@@ -88,10 +88,8 @@ import BoxFillWorkflow from "./components/terminal/box-fill/BoxFillWorkflow";
 import LotIdentificationHome from "./components/terminal/lot-identification/LotIdentificationHome";
 import PoPickStep from "./components/terminal/lot-identification/PoPickStep";
 import PoLinePickStep from "./components/terminal/lot-identification/PoLinePickStep";
-import LotEntryStep from "./components/terminal/lot-identification/LotEntryStep";
-import ContainerScanLoop from "./components/terminal/lot-identification/ContainerScanLoop";
+import ReceiveScreen from "./components/terminal/lot-identification/ReceiveScreen";
 import FinishPoStep from "./components/terminal/lot-identification/FinishPoStep";
-import FreeformMaterialStep from "./components/terminal/lot-identification/FreeformMaterialStep";
 import BaleniLayout from "./components/baleni/BaleniLayout";
 import BaleniHome from "./components/baleni/BaleniHome";
 import BaleniStatistics from "./components/baleni/statistics/BaleniStatistics";
@@ -389,12 +387,9 @@ function App() {
                           <Route index element={<LotIdentificationHome />} />
                           <Route path="po" element={<PoPickStep />} />
                           <Route path="po/:id" element={<PoLinePickStep />} />
-                          <Route path="po/:id/line/:lineId/material/:material/lot" element={<LotEntryStep mode="po" />} />
-                          <Route path="po/:id/line/:lineId/material/:material/lot/:lot/scan" element={<ContainerScanLoop mode="po" />} />
+                          <Route path="po/:id/line/:lineId/material/:material" element={<ReceiveScreen mode="po" />} />
                           <Route path="po/:id/finish" element={<FinishPoStep />} />
-                          <Route path="freeform" element={<FreeformMaterialStep />} />
-                          <Route path="freeform/:material/lot" element={<LotEntryStep mode="freeform" />} />
-                          <Route path="freeform/:material/lot/:lot/scan" element={<ContainerScanLoop mode="freeform" />} />
+                          <Route path="freeform" element={<ReceiveScreen mode="freeform" />} />
                         </Route>
                       </Route>
 

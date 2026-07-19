@@ -112,6 +112,13 @@ const TransportBoxItems: React.FC<TransportBoxItemsProps> = ({
     amount: number;
   } | null>(null);
 
+  const [removePending, setRemovePending] = useState<{
+    id: number;
+    productName: string;
+    amount: number;
+  } | null>(null);
+  const [removeAmount, setRemoveAmount] = useState("");
+
   const { data: inventoryData, isLoading: inventoryLoading, error: inventoryError } =
     useManufacturedProductInventoryQuery({ onlyWithStock: true });
 
@@ -420,7 +427,15 @@ const TransportBoxItems: React.FC<TransportBoxItemsProps> = ({
                   {isFormEditable("items") && (
                     <td className="px-2 py-2 text-right">
                       <button
-                        onClick={() => item.id && handleRemoveItem(item.id)}
+                        onClick={() => {
+                          if (!item.id) return;
+                          setRemovePending({
+                            id: item.id,
+                            productName: item.productName || item.productCode || "",
+                            amount: item.amount ?? 0,
+                          });
+                          setRemoveAmount(String(item.amount ?? 0));
+                        }}
                         disabled={!item.id}
                         className="text-red-600 hover:text-red-900 p-1 rounded hover:bg-red-50 disabled:opacity-50 disabled:cursor-not-allowed dark:text-red-400 dark:hover:text-red-300 dark:hover:bg-red-900/30"
                         title="Odebrat položku"
@@ -482,6 +497,56 @@ const TransportBoxItems: React.FC<TransportBoxItemsProps> = ({
               <button
                 type="button"
                 onClick={() => setOverdraftPending(null)}
+                className="w-full py-2 text-sm text-gray-500 hover:text-gray-700 dark:text-graphite-muted dark:hover:text-graphite-text"
+              >
+                Zrušit
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {removePending !== null && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-sm p-6 dark:bg-graphite-surface dark:shadow-soft-dark">
+            <div className="mb-4">
+              <p className="font-semibold text-gray-900 dark:text-graphite-text">Odebrat položku</p>
+              <p className="mt-1 text-sm text-gray-600 dark:text-graphite-muted">
+                {removePending.productName} — v boxu <strong>{removePending.amount}</strong>
+              </p>
+            </div>
+            <label className="block text-xs font-medium text-gray-700 mb-1 dark:text-graphite-muted">
+              Množství k odebrání
+            </label>
+            <input
+              type="number"
+              autoFocus
+              value={removeAmount}
+              onChange={(e) => setRemoveAmount(e.target.value)}
+              step="0.01"
+              min="0.01"
+              max={removePending.amount}
+              className="w-full mb-4 px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent dark:bg-graphite-surface-2 dark:border-graphite-border dark:text-graphite-text"
+            />
+            <div className="flex flex-col gap-3">
+              <button
+                type="button"
+                disabled={
+                  !removeAmount ||
+                  parseFloat(removeAmount) <= 0 ||
+                  parseFloat(removeAmount) > removePending.amount
+                }
+                onClick={() => {
+                  handleRemoveItem(removePending.id, parseFloat(removeAmount));
+                  setRemovePending(null);
+                }}
+                className="w-full py-3 text-base font-semibold text-white bg-red-600 rounded-lg hover:bg-red-700 active:bg-red-800 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Odebrat
+              </button>
+              <button
+                type="button"
+                onClick={() => setRemovePending(null)}
                 className="w-full py-2 text-sm text-gray-500 hover:text-gray-700 dark:text-graphite-muted dark:hover:text-graphite-text"
               >
                 Zrušit

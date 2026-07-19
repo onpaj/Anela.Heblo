@@ -37,7 +37,7 @@ export interface TransportBoxItemsProps {
   transportBox: TransportBoxDto;
   isFormEditable: (fieldType: "items" | "notes" | "boxNumber") => boolean;
   formatDate: (dateString: string | Date | undefined) => string;
-  handleRemoveItem: (itemId: number) => void;
+  handleRemoveItem: (itemId: number, amount?: number) => void;
   quantityInput: string;
   setQuantityInput: (value: string) => void;
   selectedProduct: CatalogItemDto | null;

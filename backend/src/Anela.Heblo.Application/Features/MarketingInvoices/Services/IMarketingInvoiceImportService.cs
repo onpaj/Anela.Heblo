@@ -1,4 +1,4 @@
-using Anela.Heblo.Domain.Features.MarketingInvoices;
+using Anela.Heblo.Application.Features.MarketingInvoices.Contracts;
 
 namespace Anela.Heblo.Application.Features.MarketingInvoices.Services;
 

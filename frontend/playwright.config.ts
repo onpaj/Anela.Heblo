@@ -33,6 +33,24 @@ if (missing.length > 0) {
 
 console.log('✅ E2E environment variables validated successfully');
 
+// ReportPortal reporter — opt-in only. Stays out of the reporter list entirely unless
+// RP_ENABLE=true (+ RP_API_KEY/RP_ENDPOINT) so local runs are unaffected. See
+// reportportal/README.md and frontend/reportportal.config.js.
+const rp = require('./reportportal.config.js');
+const reporters: any[] = [
+  ['html'],
+  ['junit', { outputFile: 'test-results/junit.xml' }],
+  ['json', { outputFile: 'test-results/results.json' }],
+  ['list'],
+];
+if (rp.rpEnabled()) {
+  console.log('📡 ReportPortal reporter enabled for Playwright');
+  reporters.push([
+    '@reportportal/agent-js-playwright',
+    rp.buildConfig('e2e', { launch: process.env.RP_LAUNCH || 'heblo-e2e' }),
+  ]);
+}
+
 export default defineConfig({
   testDir: './test/e2e',
   /* Run tests in files in parallel */
@@ -44,12 +62,7 @@ export default defineConfig({
   /* Opt out of parallel tests on CI. */
   workers: 1, // E2E tests run one at a time
   /* Reporter to use. See https://playwright.dev/docs/test-reporters */
-  reporter: [
-    ['html'],
-    ['junit', { outputFile: 'test-results/junit.xml' }],
-    ['json', { outputFile: 'test-results/results.json' }],
-    ['list']
-  ],
+  reporter: reporters,
   
   /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
   use: {
@@ -79,8 +92,22 @@ export default defineConfig({
   /* Global test timeout for E2E - 5 minutes per test */
   timeout: 300000, // 5 minutes per test (was: 7 minutes)
 
-  /* Test file timeout - increased to allow all 218 tests to complete */
-  globalTimeout: 3600000, // 60 minutes for entire test run (was: 30 minutes)
+  /* Whole-run ceiling.
+   *
+   * A healthy full run measured ~48 min against staging (2026-07, 357 tests, workers: 1):
+   *   catalog 15.7 · core ~9 · stock-operations 6.1 · transport 5.4 · marketing 3.6
+   *   issued-invoices 3.1 · manufacturing 2.3 · baleni 1.3 · terminal 0.8 · finance 0.5
+   *   leaflet-generator 0.3
+   *
+   * The previous 60 min left only ~25% headroom, and failing tests are far slower than passing
+   * ones (each burns its full wait, then captures screenshot/video/trace). So a run with a
+   * handful of failures overran the ceiling and Playwright reported every remaining test as
+   * "skipped" - which is how a nightly run reported 206 skipped and graded partial data while
+   * looking like it had completed.
+   *
+   * 90 min gives ~87% headroom over a healthy run. Since the suite is sequential, the durable
+   * fix is sharding by project across parallel jobs rather than raising this further. */
+  globalTimeout: 5400000, // 90 minutes for entire test run (was: 60 minutes)
 
   /* Configure projects for modular test execution */
   projects: [
@@ -128,6 +155,25 @@ export default defineConfig({
       name: 'baleni',
       testDir: './test/e2e/baleni',
       use: { ...devices['Desktop Chrome'] },
+    },
+    {
+      name: 'leaflet-generator',
+      testDir: './test/e2e/leaflet-generator',
+      use: { ...devices['Desktop Chrome'] },
+    },
+    {
+      // The terminal module is a mobile warehouse UI — run it emulating an iPhone "Max"
+      // (iPhone 15 Pro Max viewport/UA) on Chromium so it shares the suite's launch args.
+      name: 'terminal',
+      testDir: './test/e2e/terminal',
+      use: {
+        ...devices['Desktop Chrome'],
+        viewport: devices['iPhone 15 Pro Max'].viewport,
+        userAgent: devices['iPhone 15 Pro Max'].userAgent,
+        deviceScaleFactor: devices['iPhone 15 Pro Max'].deviceScaleFactor,
+        isMobile: true,
+        hasTouch: true,
+      },
     },
   ],
 

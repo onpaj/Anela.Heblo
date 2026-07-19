@@ -23,7 +23,7 @@ export interface ScanActions {
   refocus: () => void;
 }
 
-/** Volatile — changes per keystroke. Only ScanStrip should subscribe. */
+/** Volatile — tracked by ScanProvider for the scan echo; no visual surface renders it now. */
 export interface ScanEcho {
   /** live characters the wedge is accumulating, for the caret echo */
   buffer: string;

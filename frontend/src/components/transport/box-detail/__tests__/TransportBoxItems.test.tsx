@@ -93,3 +93,49 @@ describe("TransportBoxItems — product thumbnails", () => {
     expect(screen.getByTestId("product-thumbnail-placeholder")).toBeInTheDocument();
   });
 });
+
+describe("TransportBoxItems — remove by amount", () => {
+  const editableProps = {
+    ...defaultProps,
+    isFormEditable: (field: "items" | "notes" | "boxNumber") => field === "items",
+  };
+
+  it("opens the remove dialog defaulting to the full amount and removes a chosen quantity", () => {
+    const handleRemoveItem = jest.fn();
+    const item = makeItem({ id: 7, amount: 10 });
+    render(
+      <TransportBoxItems
+        {...editableProps}
+        handleRemoveItem={handleRemoveItem}
+        transportBox={makeBox([item])}
+      />,
+    );
+
+    fireEvent.click(screen.getByTitle("Odebrat položku"));
+
+    const input = screen.getByRole("spinbutton") as HTMLInputElement;
+    expect(input.value).toBe("10"); // defaults to full amount
+
+    fireEvent.change(input, { target: { value: "3" } });
+    fireEvent.click(screen.getByRole("button", { name: "Odebrat" }));
+
+    expect(handleRemoveItem).toHaveBeenCalledWith(7, 3);
+  });
+
+  it("removes the whole row when confirming the full amount", () => {
+    const handleRemoveItem = jest.fn();
+    const item = makeItem({ id: 7, amount: 4 });
+    render(
+      <TransportBoxItems
+        {...editableProps}
+        handleRemoveItem={handleRemoveItem}
+        transportBox={makeBox([item])}
+      />,
+    );
+
+    fireEvent.click(screen.getByTitle("Odebrat položku"));
+    fireEvent.click(screen.getByRole("button", { name: "Odebrat" }));
+
+    expect(handleRemoveItem).toHaveBeenCalledWith(7, 4);
+  });
+});
