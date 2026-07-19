@@ -72,6 +72,9 @@ namespace Anela.Heblo.Domain.Features.Photobank
         Task<List<Photo>> GetPhotosByIdsAsync(IReadOnlyList<int> photoIds, CancellationToken cancellationToken);
         Task RemovePhotoTagsBySourceAsync(IReadOnlyList<int> photoIds, PhotoTagSource source, CancellationToken cancellationToken);
 
+        // Rule reapply
+        Task<List<PhotoAutoTagCandidate>> GetPhotoRuleCandidatesPageAsync(int pageSize, int offset, CancellationToken cancellationToken);
+
         Task SaveChangesAsync(CancellationToken cancellationToken);
     }
 }

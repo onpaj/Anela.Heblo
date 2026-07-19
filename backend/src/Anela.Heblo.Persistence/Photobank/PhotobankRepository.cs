@@ -396,6 +396,18 @@ public class PhotobankRepository : IPhotobankRepository
             .ToListAsync(cancellationToken);
     }
 
+    public async Task<List<PhotoAutoTagCandidate>> GetPhotoRuleCandidatesPageAsync(
+        int pageSize, int offset, CancellationToken cancellationToken)
+    {
+        return await _context.Photos
+            .AsNoTracking()
+            .OrderBy(p => p.Id)
+            .Skip(offset)
+            .Take(pageSize)
+            .Select(p => new PhotoAutoTagCandidate(p.Id, p.FolderPath, p.FileName))
+            .ToListAsync(cancellationToken);
+    }
+
     public async Task StampAutoTaggedAtAsync(
         IReadOnlyList<int> photoIds, DateTime timestamp, CancellationToken cancellationToken)
     {

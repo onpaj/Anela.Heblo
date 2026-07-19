@@ -46,6 +46,46 @@ public class PhotobankRepositoryReapplyPrimitivesTests : IDisposable
     }
 
     [Fact]
+    public async System.Threading.Tasks.Task GetPhotoRuleCandidatesPageAsync_firstPage_returnsProjectionOrderedById()
+    {
+        // Arrange
+        _context.Photos.AddRange(
+            new Photo { Id = 2, SharePointFileId = "sp-2", FileName = "b.jpg", FolderPath = "Events", ModifiedAt = DateTime.UtcNow },
+            new Photo { Id = 1, SharePointFileId = "sp-1", FileName = "a.jpg", FolderPath = "Products", ModifiedAt = DateTime.UtcNow },
+            new Photo { Id = 3, SharePointFileId = "sp-3", FileName = "c.jpg", FolderPath = "Events", ModifiedAt = DateTime.UtcNow });
+        await _context.SaveChangesAsync(CancellationToken.None);
+
+        // Act
+        var page = await _repository.GetPhotoRuleCandidatesPageAsync(pageSize: 2, offset: 0, CancellationToken.None);
+
+        // Assert
+        page.Should().HaveCount(2);
+        page.Select(p => p.Id).Should().Equal(new[] { 1, 2 }); // ordered by Id, not insertion order
+        page[0].FolderPath.Should().Be("Products");
+        page[0].FileName.Should().Be("a.jpg");
+    }
+
+    [Fact]
+    public async System.Threading.Tasks.Task GetPhotoRuleCandidatesPageAsync_secondPage_returnsRemainingRowsViaOffset()
+    {
+        // Arrange
+        _context.Photos.AddRange(
+            new Photo { Id = 1, SharePointFileId = "sp-1", FileName = "a.jpg", FolderPath = "Products", ModifiedAt = DateTime.UtcNow },
+            new Photo { Id = 2, SharePointFileId = "sp-2", FileName = "b.jpg", FolderPath = "Events", ModifiedAt = DateTime.UtcNow },
+            new Photo { Id = 3, SharePointFileId = "sp-3", FileName = "c.jpg", FolderPath = "Archive", ModifiedAt = DateTime.UtcNow });
+        await _context.SaveChangesAsync(CancellationToken.None);
+
+        // Act — page size 2: first page has 2 rows, second page (offset 2) has the remaining 1
+        var secondPage = await _repository.GetPhotoRuleCandidatesPageAsync(pageSize: 2, offset: 2, CancellationToken.None);
+
+        // Assert
+        secondPage.Should().ContainSingle();
+        secondPage[0].Id.Should().Be(3);
+        secondPage[0].FolderPath.Should().Be("Archive");
+        secondPage[0].FileName.Should().Be("c.jpg");
+    }
+
+    [Fact]
     public async System.Threading.Tasks.Task RemoveRuleTagsAsync_unscoped_removesOnlyRuleTags()
     {
         // Arrange
