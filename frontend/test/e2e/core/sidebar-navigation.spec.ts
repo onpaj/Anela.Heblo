@@ -56,6 +56,11 @@ test.describe('Sidebar Navigation', () => {
     // Get all section buttons in the sidebar
     const sectionButtons = page.locator('nav button:has(svg)').filter({ hasText: /^(Anela|Sklad|Administrace)$/ });
 
+    // allTextContents() does not auto-wait, and the beforeEach only waits for
+    // 'domcontentloaded' - which fires before React has rendered the sidebar.
+    // Wait for the sections to actually exist before snapshotting their order.
+    await expect(sectionButtons).toHaveCount(3);
+
     // Get text content of all sections
     const sectionTexts = await sectionButtons.allTextContents();
 

@@ -16,6 +16,9 @@ public static class FeatureFlagRegistry
         new(FeatureFlagKeys.DeliveredOrderCompletionTestSource,
             Description: "When on, the delivered-orders job polls test state 73 (Oprava-robot) instead of the production 'handed to carrier' states 70/82.",
             DefaultValue: false),
+        new(FeatureFlagKeys.LabelPrintingEnabled,
+            Description: "When on, label print jobs are sent to the physical printer; when off the physical print is skipped (label generation still runs). Off on Staging where no printer exists.",
+            DefaultValue: true),
     ];
 
     public static readonly IReadOnlyDictionary<string, FeatureFlagDefinition> ByKey =

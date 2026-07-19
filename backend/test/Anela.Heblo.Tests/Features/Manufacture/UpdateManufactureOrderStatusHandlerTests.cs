@@ -57,6 +57,10 @@ public class UpdateManufactureOrderStatusHandlerTests
             .Setup(r => r.AddRangeAsync(It.IsAny<IEnumerable<ManufacturedProductInventoryItem>>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync((IEnumerable<ManufacturedProductInventoryItem> items, CancellationToken _) => items);
 
+        _inventoryRepositoryMock
+            .Setup(r => r.GetByProductCodesWithLogsAsync(It.IsAny<IReadOnlyCollection<string>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<ManufacturedProductInventoryItem>());
+
         _handler = new UpdateManufactureOrderStatusHandler(
             _repositoryMock.Object,
             TimeProvider.System,
@@ -583,6 +587,152 @@ public class UpdateManufactureOrderStatusHandlerTests
                         i.ManufactureOrderId == ValidOrderId &&
                         i.CreatedBy == TestUserName) &&
                     items.Count() == 2),
+                It.IsAny<CancellationToken>()),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task Handle_TransitionToCompleted_MergesIntoExistingRow_InsteadOfCreatingDuplicate()
+    {
+        // Arrange — an inventory row for the same product+lot+expiration already exists (from another order)
+        var existing = new ManufacturedProductInventoryItem(
+            productCode: "PROD-001",
+            productName: "Product One",
+            amount: 100m,
+            createdBy: "Someone",
+            createdAt: new DateTime(2027, 1, 1),
+            lotNumber: "LOT-A",
+            expirationDate: new DateOnly(2027, 6, 1),
+            manufactureOrderId: 555);
+
+        var order = CreateOrderInState(ManufactureOrderState.SemiProductManufactured);
+        order.Products = new List<ManufactureOrderProduct>
+        {
+            new ManufactureOrderProduct
+            {
+                ProductCode = "PROD-001",
+                ProductName = "Product One",
+                ActualQuantity = 10m,
+                LotNumber = "LOT-A",
+                ExpirationDate = new DateOnly(2027, 6, 1),
+                ManufactureOrderId = ValidOrderId
+            }
+        };
+
+        _repositoryMock
+            .Setup(x => x.GetOrderByIdAsync(ValidOrderId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(order);
+        _repositoryMock
+            .Setup(x => x.UpdateOrderAsync(It.IsAny<ManufactureOrder>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((ManufactureOrder o, CancellationToken _) => o);
+        _inventoryRepositoryMock
+            .Setup(r => r.GetByProductCodesWithLogsAsync(It.IsAny<IReadOnlyCollection<string>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<ManufacturedProductInventoryItem> { existing });
+
+        var request = new UpdateManufactureOrderStatusRequest { Id = ValidOrderId, NewState = ManufactureOrderState.Completed };
+
+        // Act
+        var result = await _handler.Handle(request, CancellationToken.None);
+
+        // Assert — existing row incremented, no new row inserted
+        result.Success.Should().BeTrue();
+        existing.Amount.Should().Be(110m);
+        existing.WasWrittenDownByOrder(ValidOrderId).Should().BeTrue();
+        _inventoryRepositoryMock.Verify(
+            r => r.AddRangeAsync(It.IsAny<IEnumerable<ManufacturedProductInventoryItem>>(), It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
+
+    [Fact]
+    public async Task Handle_ReCompletingSameOrder_DoesNotWriteInventoryTwice()
+    {
+        // Arrange — the row already carries this order's write-down (order was completed before)
+        var existing = new ManufacturedProductInventoryItem(
+            productCode: "PROD-001",
+            productName: "Product One",
+            amount: 152m,
+            createdBy: TestUserName,
+            createdAt: new DateTime(2027, 1, 1),
+            lotNumber: "LOT-A",
+            expirationDate: new DateOnly(2027, 6, 1),
+            manufactureOrderId: ValidOrderId);
+
+        var order = CreateOrderInState(ManufactureOrderState.SemiProductManufactured);
+        order.Products = new List<ManufactureOrderProduct>
+        {
+            new ManufactureOrderProduct
+            {
+                ProductCode = "PROD-001",
+                ProductName = "Product One",
+                ActualQuantity = 152m,
+                LotNumber = "LOT-A",
+                ExpirationDate = new DateOnly(2027, 6, 1),
+                ManufactureOrderId = ValidOrderId
+            }
+        };
+
+        _repositoryMock
+            .Setup(x => x.GetOrderByIdAsync(ValidOrderId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(order);
+        _repositoryMock
+            .Setup(x => x.UpdateOrderAsync(It.IsAny<ManufactureOrder>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((ManufactureOrder o, CancellationToken _) => o);
+        _inventoryRepositoryMock
+            .Setup(r => r.GetByProductCodesWithLogsAsync(It.IsAny<IReadOnlyCollection<string>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<ManufacturedProductInventoryItem> { existing });
+
+        var request = new UpdateManufactureOrderStatusRequest { Id = ValidOrderId, NewState = ManufactureOrderState.Completed };
+
+        // Act
+        var result = await _handler.Handle(request, CancellationToken.None);
+
+        // Assert — amount unchanged, nothing added
+        result.Success.Should().BeTrue();
+        existing.Amount.Should().Be(152m);
+        _inventoryRepositoryMock.Verify(
+            r => r.AddRangeAsync(It.IsAny<IEnumerable<ManufacturedProductInventoryItem>>(), It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
+
+    [Fact]
+    public async Task Handle_TransitionToCompleted_AggregatesSameProductLotLinesIntoSingleRow()
+    {
+        // Arrange — two order lines for the same product+lot+expiration
+        var order = CreateOrderInState(ManufactureOrderState.SemiProductManufactured);
+        order.Products = new List<ManufactureOrderProduct>
+        {
+            new ManufactureOrderProduct
+            {
+                ProductCode = "PROD-001", ProductName = "Product One", ActualQuantity = 6m,
+                LotNumber = "LOT-A", ExpirationDate = new DateOnly(2027, 6, 1), ManufactureOrderId = ValidOrderId
+            },
+            new ManufactureOrderProduct
+            {
+                ProductCode = "PROD-001", ProductName = "Product One", ActualQuantity = 4m,
+                LotNumber = "LOT-A", ExpirationDate = new DateOnly(2027, 6, 1), ManufactureOrderId = ValidOrderId
+            }
+        };
+
+        _repositoryMock
+            .Setup(x => x.GetOrderByIdAsync(ValidOrderId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(order);
+        _repositoryMock
+            .Setup(x => x.UpdateOrderAsync(It.IsAny<ManufactureOrder>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((ManufactureOrder o, CancellationToken _) => o);
+
+        var request = new UpdateManufactureOrderStatusRequest { Id = ValidOrderId, NewState = ManufactureOrderState.Completed };
+
+        // Act
+        var result = await _handler.Handle(request, CancellationToken.None);
+
+        // Assert — a single row with the summed amount
+        result.Success.Should().BeTrue();
+        _inventoryRepositoryMock.Verify(
+            r => r.AddRangeAsync(
+                It.Is<IEnumerable<ManufacturedProductInventoryItem>>(items =>
+                    items.Count() == 1 &&
+                    items.Single().ProductCode == "PROD-001" &&
+                    items.Single().Amount == 10m),
                 It.IsAny<CancellationToken>()),
             Times.Once);
     }

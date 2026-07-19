@@ -272,9 +272,10 @@ public sealed class AzureBlobStorageService : IBlobStorageService
     private async Task<BlobContainerClient> GetOrCreateContainerAsync(string containerName, CancellationToken cancellationToken = default)
     {
         var containerClient = _blobServiceClient.GetBlobContainerClient(containerName);
-        if (_containerExists.TryAdd(containerName, true))
+        if (!_containerExists.ContainsKey(containerName))
         {
             await containerClient.CreateIfNotExistsAsync(PublicAccessType.None, cancellationToken: cancellationToken);
+            _containerExists.TryAdd(containerName, true);
         }
 
         return containerClient;

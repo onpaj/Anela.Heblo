@@ -53,8 +53,8 @@ public class RemoveItemFromBoxHandler : IRequestHandler<RemoveItemFromBoxRequest
                 };
             }
 
-            var removedItem = transportBox.DeleteItem(request.ItemId);
-            if (removedItem == null)
+            var item = transportBox.Items.SingleOrDefault(i => i.Id == request.ItemId);
+            if (item == null)
             {
                 return new RemoveItemFromBoxResponse
                 {
@@ -64,11 +64,24 @@ public class RemoveItemFromBoxHandler : IRequestHandler<RemoveItemFromBoxRequest
                 };
             }
 
-            if (removedItem.SourceInventoryId != null)
+            if (request.Amount.HasValue && request.Amount.Value <= 0)
+            {
+                return new RemoveItemFromBoxResponse
+                {
+                    Success = false,
+                    ErrorCode = ErrorCodes.ValidationError,
+                    Params = new Dictionary<string, string> { { "details", "Amount must be greater than zero." } }
+                };
+            }
+
+            var amountToRemove = request.Amount ?? item.Amount;
+            var decreaseResult = transportBox.DecreaseItem(request.ItemId, amountToRemove);
+
+            if (item.SourceInventoryId != null && decreaseResult!.RemovedAmount > 0)
             {
                 await _inventoryReservationService.RestoreAsync(
-                    inventoryId: removedItem.SourceInventoryId.Value,
-                    amount: (decimal)removedItem.Amount,
+                    inventoryId: item.SourceInventoryId.Value,
+                    amount: (decimal)decreaseResult.RemovedAmount,
                     userName: userName,
                     timestamp: timestamp,
                     boxId: transportBox.Id,
@@ -78,8 +91,8 @@ public class RemoveItemFromBoxHandler : IRequestHandler<RemoveItemFromBoxRequest
 
             await _repository.SaveChangesAsync(cancellationToken);
 
-            _logger.LogInformation("Removed item {ItemId} ({ProductCode}) from transport box {BoxId} by user {UserName}",
-                request.ItemId, removedItem.ProductCode, request.BoxId, userName);
+            _logger.LogInformation("Removed {RemovedAmount} of item {ItemId} ({ProductCode}) from transport box {BoxId} by user {UserName} (row removed: {RowRemoved})",
+                decreaseResult!.RemovedAmount, request.ItemId, item.ProductCode, request.BoxId, userName, decreaseResult.RowRemoved);
 
             var transportBoxDto = _mapper.Map<TransportBoxDto>(transportBox);
 

@@ -12,6 +12,7 @@ interface ScanInputProps {
   suppressKeyboard?: boolean;
   allowKeyboardToggle?: boolean;
   defaultValue?: string;
+  disabled?: boolean;
 }
 
 const REFOCUS_DELAY_MS = 100;
@@ -27,6 +28,7 @@ const ScanInput: React.FC<ScanInputProps> = ({
   suppressKeyboard = false,
   allowKeyboardToggle = false,
   defaultValue,
+  disabled = false,
 }) => {
   const [value, setValue] = useState(defaultValue ?? '');
   const [keyboardSuppressed, setKeyboardSuppressed] = useState(suppressKeyboard);
@@ -36,9 +38,11 @@ const ScanInput: React.FC<ScanInputProps> = ({
   const prevLoadingRef = useRef(loading);
   const refocusOnBlurRef = useRef(refocusOnBlur);
   refocusOnBlurRef.current = refocusOnBlur;
+  const disabledRef = useRef(disabled);
+  disabledRef.current = disabled;
 
   useEffect(() => {
-    if (autoFocusOnMount) {
+    if (autoFocusOnMount && !disabled) {
       inputRef.current?.focus();
     }
     // intentionally runs once on mount
@@ -52,7 +56,7 @@ const ScanInput: React.FC<ScanInputProps> = ({
   }, [defaultValue]);
 
   useEffect(() => {
-    if (prevLoadingRef.current && !loading) {
+    if (prevLoadingRef.current && !loading && !disabledRef.current) {
       setTimeout(() => inputRef.current?.focus(), REFOCUS_DELAY_MS);
     }
     prevLoadingRef.current = loading;
@@ -80,7 +84,7 @@ const ScanInput: React.FC<ScanInputProps> = ({
   );
 
   const handleBlur = useCallback(() => {
-    if (!refocusOnBlurRef.current || loadingRef.current) return;
+    if (!refocusOnBlurRef.current || loadingRef.current || disabledRef.current) return;
     setTimeout(() => {
       if (!loadingRef.current) inputRef.current?.focus();
     }, REFOCUS_DELAY_MS);
@@ -104,12 +108,13 @@ const ScanInput: React.FC<ScanInputProps> = ({
           <input
             ref={inputRef}
             type="text"
+            aria-label={label}
             inputMode={keyboardSuppressed ? 'none' : 'text'}
             value={value}
             onChange={handleChange}
             onBlur={handleBlur}
             placeholder={placeholder}
-            disabled={loading}
+            disabled={loading || disabled}
             autoComplete="off"
             autoCapitalize="off"
             className="w-full h-14 pl-10 pr-3 text-lg border border-border-light dark:border-graphite-border dark:bg-graphite-surface-2 dark:text-graphite-text dark:placeholder-graphite-faint rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-blue focus:border-primary-blue disabled:bg-gray-100 dark:disabled:bg-graphite-surface disabled:cursor-not-allowed"

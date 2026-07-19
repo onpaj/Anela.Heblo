@@ -53,7 +53,11 @@ test.describe('Changelog System', () => {
     await expect(versionSidebar).toBeVisible();
 
     // Check for version list header
-    const versionListHeader = page.locator('text=Verze');
+    // Match the sidebar heading exactly. A bare `text=Verze` is a substring match and, once the
+    // versions load, also hits "Verze 3.142.0" and "Aktuální verze" - 4 elements, strict-mode
+    // violation. It only passed when the assertion happened to run before the data arrived, which
+    // is what made this test look like a timing flake.
+    const versionListHeader = page.getByRole('heading', { name: 'Verze', exact: true });
     await expect(versionListHeader).toBeVisible();
 
     // Wait for either error state or version list to appear
@@ -61,8 +65,17 @@ test.describe('Changelog System', () => {
     const errorIndicator = page.locator('[data-testid="changelog-version-sidebar"] >> text=Chyba načítání');
     const versionList = page.locator('[data-testid="changelog-version-list"]');
 
-    // Wait a bit for the API call to complete (either success or error)
-    await page.waitForTimeout(2000);
+    // Wait for the changelog request to reach a terminal state - either the version list or the
+    // error panel. A fixed sleep here caused intermittent failures: when the request took longer
+    // than the timeout neither branch had rendered, so `isError` was false and the else-branch
+    // asserted on a version list that had not arrived yet. The data does arrive; the test was
+    // looking too early.
+    await expect
+      .poll(
+        async () => (await errorIndicator.isVisible()) || (await versionList.isVisible()),
+        { timeout: 20000 },
+      )
+      .toBe(true);
 
     // Check which state we're in
     const isError = await errorIndicator.isVisible();
@@ -150,8 +163,17 @@ test.describe('Changelog System', () => {
     const errorIndicator = page.locator('[data-testid="changelog-version-sidebar"] >> text=Chyba načítání');
     const versionList = page.locator('[data-testid="changelog-version-list"]');
 
-    // Wait a bit for the API call to complete (either success or error)
-    await page.waitForTimeout(2000);
+    // Wait for the changelog request to reach a terminal state - either the version list or the
+    // error panel. A fixed sleep here caused intermittent failures: when the request took longer
+    // than the timeout neither branch had rendered, so `isError` was false and the else-branch
+    // asserted on a version list that had not arrived yet. The data does arrive; the test was
+    // looking too early.
+    await expect
+      .poll(
+        async () => (await errorIndicator.isVisible()) || (await versionList.isVisible()),
+        { timeout: 20000 },
+      )
+      .toBe(true);
 
     // Check which state we're in
     const isError = await errorIndicator.isVisible();

@@ -95,7 +95,7 @@ describe("AuthGuard - returnUrl navigation", () => {
     });
   });
 
-  test("does not navigate when returnUrl equals current pathname", async () => {
+  test("does not navigate but still consumes returnUrl when it equals current pathname", async () => {
     localStorage.setItem("auth.returnUrl", "/dashboard");
     Object.defineProperty(window, "location", {
       value: { pathname: "/dashboard", search: "" },
@@ -114,7 +114,11 @@ describe("AuthGuard - returnUrl navigation", () => {
       </AuthGuard>
     );
 
-    await new Promise((r) => setTimeout(r, 50));
+    // No navigation (already on the target), but the stale returnUrl must be cleared —
+    // otherwise a deep-linked load leaves a landmine that bounces the first in-app navigation.
+    await waitFor(() => {
+      expect(localStorage.getItem("auth.returnUrl")).toBeNull();
+    });
     expect(mockNavigate).not.toHaveBeenCalled();
   });
 

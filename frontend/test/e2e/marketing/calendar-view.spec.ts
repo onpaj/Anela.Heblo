@@ -63,22 +63,48 @@ test.describe('Marketing Calendar — Calendar View', () => {
   });
 
   test('should return to current month when clicking Dnes', async ({ page }) => {
-    const czechMonths = [
-      'Leden', 'Únor', 'Březen', 'Duben', 'Květen', 'Červen',
-      'Červenec', 'Srpen', 'Září', 'Říjen', 'Listopad', 'Prosinec',
-    ];
-    const currentMonthName = czechMonths[new Date().getMonth()];
+    // Don't assert on the current month's name: periodLabel (MarketingCalendarPage.tsx:138)
+    // is built from the calendar *grid* range, which includes leading/trailing days of adjacent
+    // months, so it is a "Červenec – Srpen 2026" style range rather than a single month.
+    // Capture it and assert Dnes restores it — that is what "return to the current month" means,
+    // and it holds in every month.
+    //
+    // The capture must wait for FullCalendar's datesSet to fire. periodLabel falls back to
+    // `visibleRange ?? currentDate`, so until then start and end are the same day and the label
+    // renders as a bare "Červenec 2026"; capturing during that window yields a value the calendar
+    // never returns to. The 5-week grid always spans two months, so wait for the range form.
+    const periodLabel = page.locator('span').filter({ hasText: /20\d\d/ }).first();
+    await expect(periodLabel).toHaveText(/\s–\s/, { timeout: 15000 });
+    const labelOnLoad = await periodLabel.textContent();
 
     // Navigate away to next month first
     const navButtons = page.locator('button').filter({ hasText: /^$/ });
     await navButtons.last().click();
+    await expect(periodLabel).not.toHaveText(labelOnLoad ?? '', { timeout: 5000 });
 
-    // Return via Dnes button
-    const todayButton = page.locator('button').filter({ hasText: 'Dnes' }).first();
+    // Return via Dnes button. Match by exact accessible name, not hasText: 'Dnes' is a
+    // substring match and the calendar contains marketing actions whose titles mention
+    // "MF Dnes", so a loose filter can resolve to an event bar instead of the nav button.
+    const todayButton = page.getByRole('button', { name: 'Dnes', exact: true });
     await expect(todayButton).toBeVisible({ timeout: 5000 });
-    await todayButton.click();
 
-    await expect(page.locator(`text=/${currentMonthName}/`).first()).toBeVisible({ timeout: 5000 });
+    // goToToday delegates to FullCalendar's gotoDate. If it lands while the grid is still
+    // re-rendering from the previous navigation the call is swallowed and the view never moves,
+    // which is load-dependent: a single click is reliable when the module runs alone but not
+    // under full-suite contention. FullCalendar exposes no "idle" signal to wait on, so poll the
+    // click until the period label returns instead of guessing at a settle duration.
+    await expect
+      .poll(
+        async () => {
+          if ((await periodLabel.textContent()) !== labelOnLoad) {
+            await todayButton.click();
+            await page.waitForTimeout(500);
+          }
+          return periodLabel.textContent();
+        },
+        { timeout: 20000, intervals: [500] },
+      )
+      .toBe(labelOnLoad);
   });
 
   test('should open edit modal when clicking an event bar', async ({ page }) => {
