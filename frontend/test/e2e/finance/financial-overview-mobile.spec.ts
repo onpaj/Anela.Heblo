@@ -18,6 +18,15 @@ test.describe('Financial Overview — mobile viewport', () => {
     const baseUrl = process.env.PLAYWRIGHT_BASE_URL || 'https://heblo.stg.anela.cz'
     await page.goto(`${baseUrl}/finance/overview`)
     await waitForPageLoad(page)
+
+    // waitForPageLoad only settles the document; the Financial Overview data query against
+    // staging routinely takes 20-30s, during which the page renders only the auth shell.
+    // Gate every test on the KPI block actually being present so the 5s assertion default
+    // below is measured from "data rendered", not "navigation finished".
+    await expect(
+      page.getByRole('heading', { name: 'Finanční přehled', exact: true })
+    ).toBeVisible({ timeout: 60_000 })
+    await expect(page.getByText('Celkové příjmy')).toBeVisible({ timeout: 60_000 })
   })
 
   test('KPI cards and chart heading are visible', async ({ page }) => {
