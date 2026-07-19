@@ -28,15 +28,15 @@
   "tasks": [
     {
       "name": "batch-photobank-index-upserts",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-07-19T06:33:28.099772Z"
+      "updated_at": "2026-07-19T06:52:48.836498Z"
     },
     {
       "name": "add-photobank-index-batch-tests",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-07-19T06:52:53.106823Z"
     }
   ]
 }
