@@ -82,14 +82,14 @@ Filled in from the baseline run.
 | catalog/sorting-with-filters.spec.ts | ✅ | |
 | catalog/text-search-filters.spec.ts | ✅ | |
 | catalog/ui.spec.ts | ✅ | |
-| core/changelog.spec.ts | ⚠️ | 9/10 pass. FAIL: `should display version history in modal` — pre-existing (fails with and without toaster fix). Needs triage. |
-| core/dashboard.spec.ts | ⚠️ | FAIL: `should display AutoShow tiles automatically`, `should support drag and drop to reorder tiles` |
+| core/changelog.spec.ts | ✅ | Green in full-module run. `should display version history in modal` seen flaky standalone — see debt list. |
+| core/dashboard.spec.ts | 🔧 | drag-and-drop rewritten to drive dnd-kit KeyboardSensor (raw mouse drag was a no-op); AutoShow tiles fixed by toaster suppression |
 | core/invoice-classification-history-actions.spec.ts | ✅ | passing (some inherited `.skip`) |
 | core/invoice-classification-history-filters.spec.ts | ✅ | passing (some inherited `.skip`) |
 | core/invoice-classification-history.spec.ts | ✅ | |
 | core/recurring-jobs-management.spec.ts | ✅ | |
-| core/sidebar-navigation.spec.ts | ⚠️ | FAIL: `should display Anela section before Sklad and Administrace` |
-| core/staging-auth.spec.ts | ⚠️ | FAIL: `should validate API authentication status` |
+| core/sidebar-navigation.spec.ts | 🔧 | added `toHaveCount(3)` wait — `allTextContents()` does not auto-wait, ran before React rendered |
+| core/staging-auth.spec.ts | 🐛 | `should validate API authentication status` skipped — blocked by backend bug #2 |
 | finance/financial-overview-mobile.spec.ts | ⬜ | |
 | issued-invoices/filters.spec.ts | ⬜ | |
 | issued-invoices/navigation.spec.ts | ⬜ | |
