@@ -33,6 +33,24 @@ if (missing.length > 0) {
 
 console.log('✅ E2E environment variables validated successfully');
 
+// ReportPortal reporter — opt-in only. Stays out of the reporter list entirely unless
+// RP_ENABLE=true (+ RP_API_KEY/RP_ENDPOINT) so local runs are unaffected. See
+// reportportal/README.md and frontend/reportportal.config.js.
+const rp = require('./reportportal.config.js');
+const reporters: any[] = [
+  ['html'],
+  ['junit', { outputFile: 'test-results/junit.xml' }],
+  ['json', { outputFile: 'test-results/results.json' }],
+  ['list'],
+];
+if (rp.rpEnabled()) {
+  console.log('📡 ReportPortal reporter enabled for Playwright');
+  reporters.push([
+    '@reportportal/agent-js-playwright',
+    rp.buildConfig('e2e', { launch: process.env.RP_LAUNCH || 'heblo-e2e' }),
+  ]);
+}
+
 export default defineConfig({
   testDir: './test/e2e',
   /* Run tests in files in parallel */
@@ -44,12 +62,7 @@ export default defineConfig({
   /* Opt out of parallel tests on CI. */
   workers: 1, // E2E tests run one at a time
   /* Reporter to use. See https://playwright.dev/docs/test-reporters */
-  reporter: [
-    ['html'],
-    ['junit', { outputFile: 'test-results/junit.xml' }],
-    ['json', { outputFile: 'test-results/results.json' }],
-    ['list']
-  ],
+  reporter: reporters,
   
   /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
   use: {
