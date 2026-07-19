@@ -102,30 +102,27 @@ test.describe('Dashboard', () => {
     const dragHandle = firstTile.locator('button[title="Přetáhnout pro změnu pořadí"]');
     await expect(dragHandle).toBeVisible();
 
-    // Get bounding boxes for drag and drop
-    const handleBox = await dragHandle.boundingBox();
-    const secondTileBox = await secondTile.boundingBox();
+    // Reorder via the dnd-kit KeyboardSensor (DashboardGrid registers it with
+    // sortableKeyboardCoordinates). Mouse-driven dnd-kit drags are unreliable here:
+    // the tiles have mixed col-spans, so closestCenter collision detection resolves
+    // the dragged (large) tile back onto itself and the drop is a no-op.
+    // Keyboard: Space picks up, ArrowRight moves to the next sortable, Space drops.
+    await dragHandle.focus();
+    await dragHandle.press(' ');
+    await dragHandle.press('ArrowRight');
+    await dragHandle.press(' ');
 
-    if (!handleBox || !secondTileBox) {
-      throw new Error('Could not get bounding boxes for drag and drop');
-    }
-
-    // Perform drag and drop
-    await page.mouse.move(handleBox.x + handleBox.width / 2, handleBox.y + handleBox.height / 2);
-    await page.mouse.down();
-    await page.mouse.move(secondTileBox.x + secondTileBox.width / 2, secondTileBox.y + secondTileBox.height / 2, { steps: 5 });
-    await page.mouse.up();
-
-    // Wait for the reorder to complete
-    await page.waitForTimeout(1000);
-
-    // Verify tiles were reordered
-    const tilesAfterDrag = page.locator('[data-testid^="dashboard-tile-"]');
-    const firstTileIdAfter = await tilesAfterDrag.nth(0).getAttribute('data-testid');
-    const secondTileIdAfter = await tilesAfterDrag.nth(1).getAttribute('data-testid');
-
-    // The first tile should now be in second position or vice versa
-    expect(firstTileIdAfter !== firstTileId || secondTileIdAfter !== secondTileId).toBeTruthy();
+    // The reorder is persisted through useSaveDashboardSettings, so poll the DOM
+    // until the order actually changes rather than sleeping a fixed amount.
+    await expect
+      .poll(async () => {
+        const tilesAfterDrag = page.locator('[data-testid^="dashboard-tile-"]');
+        return [
+          await tilesAfterDrag.nth(0).getAttribute('data-testid'),
+          await tilesAfterDrag.nth(1).getAttribute('data-testid'),
+        ].join('|');
+      }, { timeout: 10000 })
+      .not.toBe([firstTileId, secondTileId].join('|'));
   });
 
   test('should display empty state for production tile with no orders', async ({ page }) => {

@@ -38,6 +38,13 @@ Fixed in tests (not app — the toaster is intended behavior for real users) via
 | # | Area | Symptom | Status |
 | - | ---- | ------- | ------ |
 | 1 | catalog filter | `/api/catalog?productName=Kr%C3%A9m` → HTTP 200 but **0 rows**, while unfiltered returns 20. Possible diacritics/case handling bug in backend query. | ⚠️ **Unverified** — may just be staging data. Needs confirmation. |
+| 2 | `GET /api/e2etest/auth-status` | Returns **HTTP 400** `"An item with the same key has already been added. Key: .../claims/role"`. `E2ETestController.cs:150` does `User.Claims.ToDictionary(c => c.Type, c => c.Value)`; `ToDictionary` throws on duplicate keys and the E2E identity carries 11+ `ClaimTypes.Role` claims (`E2ESessionService.CreateSyntheticUserClaims`), plus one per permission from `PermissionClaimsTransformation`. Endpoint has been unreachable since the 2nd role claim landed. Fix: group by type into `string[]`. | 🐛 **Confirmed**, not fixed. Test `core/staging-auth.spec.ts` "should validate API authentication status" marked `.skip()` with pointer. |
+
+## Test-quality debt noted (not blocking)
+
+- `core/dashboard.spec.ts` "should support drag and drop to reorder tiles" is **destructive**: it persists a new tile order for the shared staging E2E user via `useSaveDashboardSettings`, so repeated runs keep shuffling that user's dashboard.
+- `core/dashboard.spec.ts:53` still uses a bare `waitForTimeout(1000)` — passes today, same latent-flake class as the ones removed.
+- `core/changelog.spec.ts` "should display version history in modal" is **flaky**: observed failing twice standalone (both with and without the toaster fix) but passing in a full-module run. Needs a stability check.
 
 ---
 
