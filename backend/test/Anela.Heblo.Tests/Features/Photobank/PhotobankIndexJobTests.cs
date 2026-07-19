@@ -347,4 +347,368 @@ public class PhotobankIndexJobTests
             g => g.GetDeltaAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()),
             Times.Never);
     }
+
+    [Fact]
+    public async Task UpsertPhotoBatch_MultipleItemsInSameBatch_FlushesSaveChangesExactlyThreeTimesTotal()
+    {
+        // Arrange — 2 non-deleted items, both fit in a single batch (BatchSize = 200).
+        // Expected SaveChangesAsync calls: 1 (Phase A) + 1 (Phase B) + 1 (root bookkeeping) = 3.
+        var root = new PhotobankIndexRoot
+        {
+            Id = 1,
+            SharePointPath = "/sites/test/photos",
+            DriveId = "drive-1",
+            RootItemId = "root-item-1",
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow,
+        };
+
+        var tagRule = new TagRule
+        {
+            PathPattern = "Fotky/Produkty",
+            TagName = "produkty",
+            IsActive = true,
+            SortOrder = 0,
+        };
+
+        var item1 = new GraphPhotoItem
+        {
+            ItemId = "file-1",
+            Name = "one.jpg",
+            FolderPath = "Fotky/Produkty",
+            WebUrl = "https://sharepoint.example.com/one.jpg",
+            FileSizeBytes = 100,
+            LastModifiedAt = DateTime.UtcNow,
+            DriveId = "drive-1",
+            IsDeleted = false,
+        };
+        var item2 = new GraphPhotoItem
+        {
+            ItemId = "file-2",
+            Name = "two.jpg",
+            FolderPath = "Fotky/Produkty",
+            WebUrl = "https://sharepoint.example.com/two.jpg",
+            FileSizeBytes = 200,
+            LastModifiedAt = DateTime.UtcNow,
+            DriveId = "drive-1",
+            IsDeleted = false,
+        };
+
+        _repoMock
+            .Setup(r => r.GetActiveRootsWithDriveAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync([root]);
+
+        _repoMock
+            .Setup(r => r.GetActiveTagRulesAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync([tagRule]);
+
+        _repoMock
+            .Setup(r => r.GetPhotoBySharePointFileIdAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((Photo?)null);
+
+        _repoMock
+            .Setup(r => r.AddPhotoAsync(It.IsAny<Photo>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
+        _repoMock
+            .Setup(r => r.GetOrCreateTagsAsync(It.IsAny<IReadOnlyCollection<string>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Dictionary<string, int> { ["produkty"] = 42 });
+
+        _repoMock
+            .Setup(r => r.GetPhotoTagsByPhotoAndSourceAsync(It.IsAny<int>(), PhotoTagSource.Rule, It.IsAny<CancellationToken>()))
+            .ReturnsAsync([]);
+
+        _repoMock
+            .Setup(r => r.RemovePhotoTagsAsync(It.IsAny<IEnumerable<PhotoTag>>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
+        _repoMock
+            .Setup(r => r.PhotoTagExistsAsync(It.IsAny<int>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(false);
+
+        _repoMock
+            .Setup(r => r.AddPhotoTagAsync(It.IsAny<PhotoTag>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
+        _repoMock
+            .Setup(r => r.SaveChangesAsync(It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
+        _graphServiceMock
+            .Setup(g => g.GetDeltaAsync("drive-1", "root-item-1", null, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new GraphDeltaResult
+            {
+                Items = [item1, item2],
+                NewDeltaLink = "https://graph.microsoft.com/v1.0/drives/drive-1/items/root-item-1/delta?token=abc",
+            });
+
+        // Act
+        await _job.ExecuteAsync();
+
+        // Assert
+        _repoMock.Verify(r => r.AddPhotoAsync(It.IsAny<Photo>(), It.IsAny<CancellationToken>()), Times.Exactly(2));
+        _repoMock.Verify(r => r.AddPhotoTagAsync(It.IsAny<PhotoTag>(), It.IsAny<CancellationToken>()), Times.Exactly(2));
+        _repoMock.Verify(r => r.GetOrCreateTagsAsync(It.IsAny<IReadOnlyCollection<string>>(), It.IsAny<CancellationToken>()), Times.Once);
+        _repoMock.Verify(r => r.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Exactly(3));
+    }
+
+    [Fact]
+    public async Task UpsertPhotoBatch_DeltaLargerThanBatchSize_FlushesCeilNOverBatchSizeTimes()
+    {
+        // Arrange — 201 non-deleted items, no matching tag rules (empty active rule list),
+        // so BatchSize = 200 forces 2 batches: [200 items] + [1 item].
+        // Expected SaveChangesAsync calls: (1 + 1) per batch * 2 batches + 1 root bookkeeping = 5.
+        var root = new PhotobankIndexRoot
+        {
+            Id = 1,
+            SharePointPath = "/sites/test/photos",
+            DriveId = "drive-1",
+            RootItemId = "root-item-1",
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow,
+        };
+
+        const int itemCount = 201;
+        var items = Enumerable.Range(0, itemCount)
+            .Select(i => new GraphPhotoItem
+            {
+                ItemId = $"file-{i:D4}",
+                Name = $"photo-{i:D4}.jpg",
+                FolderPath = "Fotky/Ostatni",
+                WebUrl = $"https://sharepoint.example.com/photo-{i:D4}.jpg",
+                FileSizeBytes = 100,
+                LastModifiedAt = DateTime.UtcNow,
+                DriveId = "drive-1",
+                IsDeleted = false,
+            })
+            .ToList();
+
+        _repoMock
+            .Setup(r => r.GetActiveRootsWithDriveAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync([root]);
+
+        _repoMock
+            .Setup(r => r.GetActiveTagRulesAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<TagRule>());
+
+        _repoMock
+            .Setup(r => r.GetPhotoBySharePointFileIdAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((Photo?)null);
+
+        _repoMock
+            .Setup(r => r.AddPhotoAsync(It.IsAny<Photo>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
+        _repoMock
+            .Setup(r => r.GetPhotoTagsByPhotoAndSourceAsync(It.IsAny<int>(), PhotoTagSource.Rule, It.IsAny<CancellationToken>()))
+            .ReturnsAsync([]);
+
+        _repoMock
+            .Setup(r => r.RemovePhotoTagsAsync(It.IsAny<IEnumerable<PhotoTag>>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
+        _repoMock
+            .Setup(r => r.SaveChangesAsync(It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
+        _graphServiceMock
+            .Setup(g => g.GetDeltaAsync("drive-1", "root-item-1", null, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new GraphDeltaResult
+            {
+                Items = items,
+                NewDeltaLink = "https://graph.microsoft.com/v1.0/drives/drive-1/items/root-item-1/delta?token=abc",
+            });
+
+        // Act
+        await _job.ExecuteAsync();
+
+        // Assert
+        _repoMock.Verify(r => r.AddPhotoAsync(It.IsAny<Photo>(), It.IsAny<CancellationToken>()), Times.Exactly(itemCount));
+        _repoMock.Verify(r => r.GetOrCreateTagsAsync(It.IsAny<IReadOnlyCollection<string>>(), It.IsAny<CancellationToken>()), Times.Never);
+        _repoMock.Verify(r => r.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Exactly(5));
+    }
+
+    [Fact]
+    public async Task UpsertPhotoBatch_DuplicateSharePointFileIdWithinOneBatch_ResultsInSinglePhotoRow()
+    {
+        // Arrange — the same SharePointFileId appears twice as a non-deleted item in one
+        // delta/batch (e.g. modified twice since last sync). The batch-local cache must
+        // make both occurrences resolve to, and mutate, the same Photo instance — not
+        // create two rows.
+        var root = new PhotobankIndexRoot
+        {
+            Id = 1,
+            SharePointPath = "/sites/test/photos",
+            DriveId = "drive-1",
+            RootItemId = "root-item-1",
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow,
+        };
+
+        var item1 = new GraphPhotoItem
+        {
+            ItemId = "file-dup",
+            Name = "first-name.jpg",
+            FolderPath = "Fotky/A",
+            WebUrl = "https://sharepoint.example.com/first-name.jpg",
+            FileSizeBytes = 111,
+            LastModifiedAt = DateTime.UtcNow,
+            DriveId = "drive-1",
+            IsDeleted = false,
+        };
+        var item2 = new GraphPhotoItem
+        {
+            ItemId = "file-dup",
+            Name = "second-name.jpg",
+            FolderPath = "Fotky/B",
+            WebUrl = "https://sharepoint.example.com/second-name.jpg",
+            FileSizeBytes = 222,
+            LastModifiedAt = DateTime.UtcNow,
+            DriveId = "drive-1",
+            IsDeleted = false,
+        };
+
+        _repoMock
+            .Setup(r => r.GetActiveRootsWithDriveAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync([root]);
+
+        _repoMock
+            .Setup(r => r.GetActiveTagRulesAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<TagRule>());
+
+        _repoMock
+            .Setup(r => r.GetPhotoBySharePointFileIdAsync("file-dup", It.IsAny<CancellationToken>()))
+            .ReturnsAsync((Photo?)null);
+
+        Photo? capturedPhoto = null;
+        _repoMock
+            .Setup(r => r.AddPhotoAsync(It.IsAny<Photo>(), It.IsAny<CancellationToken>()))
+            .Callback<Photo, CancellationToken>((p, _) => capturedPhoto = p)
+            .Returns(Task.CompletedTask);
+
+        _repoMock
+            .Setup(r => r.GetPhotoTagsByPhotoAndSourceAsync(It.IsAny<int>(), PhotoTagSource.Rule, It.IsAny<CancellationToken>()))
+            .ReturnsAsync([]);
+
+        _repoMock
+            .Setup(r => r.RemovePhotoTagsAsync(It.IsAny<IEnumerable<PhotoTag>>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
+        _repoMock
+            .Setup(r => r.SaveChangesAsync(It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
+        _graphServiceMock
+            .Setup(g => g.GetDeltaAsync("drive-1", "root-item-1", null, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new GraphDeltaResult
+            {
+                Items = [item1, item2],
+                NewDeltaLink = "https://graph.microsoft.com/v1.0/drives/drive-1/items/root-item-1/delta?token=abc",
+            });
+
+        // Act
+        await _job.ExecuteAsync();
+
+        // Assert — a single Photo row is created, and its final field values reflect the
+        // second (later) item in delta order, proving both occurrences shared one instance.
+        _repoMock.Verify(r => r.AddPhotoAsync(It.IsAny<Photo>(), It.IsAny<CancellationToken>()), Times.Once);
+        _repoMock.Verify(r => r.GetPhotoBySharePointFileIdAsync("file-dup", It.IsAny<CancellationToken>()), Times.Once);
+
+        capturedPhoto.Should().NotBeNull();
+        capturedPhoto!.FileName.Should().Be("second-name.jpg");
+        capturedPhoto.FolderPath.Should().Be("Fotky/B");
+        capturedPhoto.FileSizeBytes.Should().Be(222);
+    }
+
+    [Fact]
+    public async Task UpsertPhotoBatch_UpsertThenDeleteSameItemInSameDelta_PhotoEndsUpRemoved()
+    {
+        // Arrange — one delta containing, in order: a non-deleted item for SharePointFileId
+        // "file-x", then a deleted item for the same "file-x". Per the deletion-flush rule,
+        // the pending upsert batch (containing the first item) must be flushed before the
+        // deletion is processed, so the deletion's lookup finds and removes the just-created
+        // photo — exactly as today's per-item-flush behavior guarantees.
+        var root = new PhotobankIndexRoot
+        {
+            Id = 1,
+            SharePointPath = "/sites/test/photos",
+            DriveId = "drive-1",
+            RootItemId = "root-item-1",
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow,
+        };
+
+        var upsertItem = new GraphPhotoItem
+        {
+            ItemId = "file-x",
+            Name = "renamed.jpg",
+            FolderPath = "Fotky/Produkty",
+            WebUrl = "https://sharepoint.example.com/renamed.jpg",
+            FileSizeBytes = 333,
+            LastModifiedAt = DateTime.UtcNow,
+            DriveId = "drive-1",
+            IsDeleted = false,
+        };
+        var deleteItem = new GraphPhotoItem
+        {
+            ItemId = "file-x",
+            Name = string.Empty,
+            FolderPath = string.Empty,
+            DriveId = "drive-1",
+            IsDeleted = true,
+        };
+
+        _repoMock
+            .Setup(r => r.GetActiveRootsWithDriveAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync([root]);
+
+        _repoMock
+            .Setup(r => r.GetActiveTagRulesAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<TagRule>());
+
+        Photo? capturedPhoto = null;
+        _repoMock
+            .Setup(r => r.AddPhotoAsync(It.IsAny<Photo>(), It.IsAny<CancellationToken>()))
+            .Callback<Photo, CancellationToken>((p, _) => capturedPhoto = p)
+            .Returns(Task.CompletedTask);
+
+        // Lazily evaluated: returns null on the first (Phase A, upsert) lookup — before
+        // AddPhotoAsync has run — and returns the just-created Photo on the second
+        // (deletion) lookup, simulating that the pending batch's flush has committed it.
+        _repoMock
+            .Setup(r => r.GetPhotoBySharePointFileIdAsync("file-x", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(() => capturedPhoto);
+
+        _repoMock
+            .Setup(r => r.GetPhotoTagsByPhotoAndSourceAsync(It.IsAny<int>(), PhotoTagSource.Rule, It.IsAny<CancellationToken>()))
+            .ReturnsAsync([]);
+
+        _repoMock
+            .Setup(r => r.RemovePhotoTagsAsync(It.IsAny<IEnumerable<PhotoTag>>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
+        _repoMock
+            .Setup(r => r.RemovePhotoAsync(It.IsAny<Photo>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
+        _repoMock
+            .Setup(r => r.SaveChangesAsync(It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
+        _graphServiceMock
+            .Setup(g => g.GetDeltaAsync("drive-1", "root-item-1", null, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new GraphDeltaResult
+            {
+                Items = [upsertItem, deleteItem],
+                NewDeltaLink = "https://graph.microsoft.com/v1.0/drives/drive-1/items/root-item-1/delta?token=abc",
+            });
+
+        // Act
+        await _job.ExecuteAsync();
+
+        // Assert — the photo was created, then removed: no orphaned row.
+        capturedPhoto.Should().NotBeNull();
+        _repoMock.Verify(r => r.AddPhotoAsync(It.IsAny<Photo>(), It.IsAny<CancellationToken>()), Times.Once);
+        _repoMock.Verify(r => r.RemovePhotoAsync(capturedPhoto!, It.IsAny<CancellationToken>()), Times.Once);
+    }
 }
