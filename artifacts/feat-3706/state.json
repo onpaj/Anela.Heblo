@@ -34,15 +34,15 @@
     },
     {
       "name": "add-paged-filter-tests",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-07-20T07:54:44.557556Z"
+      "updated_at": "2026-07-20T08:00:41.348234Z"
     },
     {
       "name": "add-paged-sort-and-paging-tests",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-07-20T08:00:45.635573Z"
     }
   ]
 }
