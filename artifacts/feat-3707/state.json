@@ -21,16 +21,16 @@
       "updated_at": "2026-07-20T08:25:13.387791Z"
     },
     "developing": {
-      "status": "pending",
-      "updated_at": null
+      "status": "in_progress",
+      "updated_at": "2026-07-20T08:25:28.899561Z"
     }
   },
   "tasks": [
     {
       "name": "add-packingstatstile-unit-tests",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-07-20T08:25:29.142906Z"
     }
   ]
 }
