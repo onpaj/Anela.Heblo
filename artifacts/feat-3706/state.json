@@ -21,16 +21,16 @@
       "updated_at": "2026-07-20T07:33:06.219435Z"
     },
     "developing": {
-      "status": "pending",
-      "updated_at": null
+      "status": "in_progress",
+      "updated_at": "2026-07-20T07:33:38.763990Z"
     }
   },
   "tasks": [
     {
       "name": "add-batch-boundary-and-reader-mapping-tests",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-07-20T07:33:38.943507Z"
     },
     {
       "name": "add-paged-filter-tests",
