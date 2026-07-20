@@ -21,16 +21,16 @@
       "updated_at": "2026-07-20T10:25:01.947792Z"
     },
     "developing": {
-      "status": "in_progress",
-      "updated_at": "2026-07-20T10:25:19.605000Z"
+      "status": "completed",
+      "updated_at": "2026-07-20T10:35:02.874403Z"
     }
   },
   "tasks": [
     {
       "name": "add-materials-for-purchase-handler-tests",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-07-20T10:25:19.808164Z"
+      "updated_at": "2026-07-20T10:35:02.480039Z"
     }
   ]
 }
