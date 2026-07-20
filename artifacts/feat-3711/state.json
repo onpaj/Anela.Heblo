@@ -21,16 +21,16 @@
       "updated_at": "2026-07-20T12:27:07.063974Z"
     },
     "developing": {
-      "status": "pending",
-      "updated_at": null
+      "status": "in_progress",
+      "updated_at": "2026-07-20T12:27:34.427385Z"
     }
   },
   "tasks": [
     {
       "name": "parse-summary-json-tests",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-07-20T12:27:34.663158Z"
     },
     {
       "name": "run-cli-async-success-and-retry-tests",
