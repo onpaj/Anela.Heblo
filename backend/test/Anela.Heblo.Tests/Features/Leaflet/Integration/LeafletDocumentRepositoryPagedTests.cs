@@ -255,4 +255,173 @@ public class LeafletDocumentRepositoryPagedTests : IAsyncLifetime
         var single = Assert.Single(items);
         Assert.Equal(docMatch.Id, single.Id);
     }
+
+    [Fact]
+    public async Task GetDocumentsPagedAsync_SortByFilename_BothDirections()
+    {
+        // Arrange
+        var docA = MakeDocument("alpha.pdf", "leaflet-paged-hash-020");
+        var docB = MakeDocument("bravo.pdf", "leaflet-paged-hash-021");
+        var docC = MakeDocument("charlie.pdf", "leaflet-paged-hash-022");
+        await _repository.AddDocumentAsync(docA);
+        await _repository.AddDocumentAsync(docB);
+        await _repository.AddDocumentAsync(docC);
+
+        // Act
+        var (ascItems, _) = await _repository.GetDocumentsPagedAsync(
+            pageNumber: 1, pageSize: 10, sortBy: "Filename", sortDescending: false,
+            filenameFilter: null, statusFilter: null, contentTypeFilter: null);
+        var (descItems, _) = await _repository.GetDocumentsPagedAsync(
+            pageNumber: 1, pageSize: 10, sortBy: "Filename", sortDescending: true,
+            filenameFilter: null, statusFilter: null, contentTypeFilter: null);
+
+        // Assert
+        Assert.Equal(new[] { "alpha.pdf", "bravo.pdf", "charlie.pdf" }, ascItems.Select(d => d.Filename).ToArray());
+        Assert.Equal(new[] { "charlie.pdf", "bravo.pdf", "alpha.pdf" }, descItems.Select(d => d.Filename).ToArray());
+    }
+
+    [Fact]
+    public async Task GetDocumentsPagedAsync_SortByStatus_BothDirections()
+    {
+        // Arrange
+        var docProcessing = MakeDocument("status-sort-processing.pdf", "leaflet-paged-hash-023", status: LeafletDocumentStatus.Processing);
+        var docIndexed = MakeDocument("status-sort-indexed.pdf", "leaflet-paged-hash-024", status: LeafletDocumentStatus.Indexed);
+        var docFailed = MakeDocument("status-sort-failed.pdf", "leaflet-paged-hash-025", status: LeafletDocumentStatus.Failed);
+        await _repository.AddDocumentAsync(docProcessing);
+        await _repository.AddDocumentAsync(docIndexed);
+        await _repository.AddDocumentAsync(docFailed);
+
+        // Act
+        var (ascItems, _) = await _repository.GetDocumentsPagedAsync(
+            pageNumber: 1, pageSize: 10, sortBy: "Status", sortDescending: false,
+            filenameFilter: null, statusFilter: null, contentTypeFilter: null);
+        var (descItems, _) = await _repository.GetDocumentsPagedAsync(
+            pageNumber: 1, pageSize: 10, sortBy: "Status", sortDescending: true,
+            filenameFilter: null, statusFilter: null, contentTypeFilter: null);
+
+        // Assert: enum ordinal order — Processing (0) < Indexed (1) < Failed (2).
+        Assert.Equal(
+            new[] { LeafletDocumentStatus.Processing, LeafletDocumentStatus.Indexed, LeafletDocumentStatus.Failed },
+            ascItems.Select(d => d.Status).ToArray());
+        Assert.Equal(
+            new[] { LeafletDocumentStatus.Failed, LeafletDocumentStatus.Indexed, LeafletDocumentStatus.Processing },
+            descItems.Select(d => d.Status).ToArray());
+    }
+
+    [Fact]
+    public async Task GetDocumentsPagedAsync_SortByIndexedAt_BothDirections_WithNulls()
+    {
+        // Arrange: two documents with distinct IndexedAt timestamps, one with IndexedAt = null.
+        var now = DateTime.UtcNow;
+        var docEarly = MakeDocument("indexed-early.pdf", "leaflet-paged-hash-026", indexedAt: now.AddHours(-2));
+        var docLate = MakeDocument("indexed-late.pdf", "leaflet-paged-hash-027", indexedAt: now.AddHours(-1));
+        var docNull = MakeDocument("indexed-null.pdf", "leaflet-paged-hash-028", indexedAt: null);
+        await _repository.AddDocumentAsync(docEarly);
+        await _repository.AddDocumentAsync(docLate);
+        await _repository.AddDocumentAsync(docNull);
+
+        // Act
+        var (ascItems, _) = await _repository.GetDocumentsPagedAsync(
+            pageNumber: 1, pageSize: 10, sortBy: "IndexedAt", sortDescending: false,
+            filenameFilter: null, statusFilter: null, contentTypeFilter: null);
+        var (descItems, _) = await _repository.GetDocumentsPagedAsync(
+            pageNumber: 1, pageSize: 10, sortBy: "IndexedAt", sortDescending: true,
+            filenameFilter: null, statusFilter: null, contentTypeFilter: null);
+
+        // Assert: Postgres default — NULLS LAST for ascending, NULLS FIRST for descending.
+        Assert.Equal(
+            new[] { "indexed-early.pdf", "indexed-late.pdf", "indexed-null.pdf" },
+            ascItems.Select(d => d.Filename).ToArray());
+        Assert.Equal(
+            new[] { "indexed-null.pdf", "indexed-late.pdf", "indexed-early.pdf" },
+            descItems.Select(d => d.Filename).ToArray());
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("NotARealColumn")]
+    public async Task GetDocumentsPagedAsync_UnrecognizedSortBy_FallsBackToIngestedAt(string sortBy)
+    {
+        // Arrange: two documents with distinct IngestedAt timestamps.
+        var now = DateTime.UtcNow;
+        var docOld = MakeDocument("ingested-old.pdf", "leaflet-paged-hash-029", ingestedAt: now.AddHours(-2));
+        var docNew = MakeDocument("ingested-new.pdf", "leaflet-paged-hash-030", ingestedAt: now.AddHours(-1));
+        await _repository.AddDocumentAsync(docOld);
+        await _repository.AddDocumentAsync(docNew);
+
+        // Act
+        var (ascItems, _) = await _repository.GetDocumentsPagedAsync(
+            pageNumber: 1, pageSize: 10, sortBy: sortBy, sortDescending: false,
+            filenameFilter: null, statusFilter: null, contentTypeFilter: null);
+        var (descItems, _) = await _repository.GetDocumentsPagedAsync(
+            pageNumber: 1, pageSize: 10, sortBy: sortBy, sortDescending: true,
+            filenameFilter: null, statusFilter: null, contentTypeFilter: null);
+
+        // Assert: the "_ =>" switch arm (IngestedAt ordering) is reached regardless of how the
+        // caller misspells or omits sortBy.
+        Assert.Equal(
+            new[] { "ingested-old.pdf", "ingested-new.pdf" },
+            ascItems.Select(d => d.Filename).ToArray());
+        Assert.Equal(
+            new[] { "ingested-new.pdf", "ingested-old.pdf" },
+            descItems.Select(d => d.Filename).ToArray());
+    }
+
+    [Fact]
+    public async Task GetDocumentsPagedAsync_PageSlicing_StableTotal()
+    {
+        // Arrange: 5 documents with distinct IngestedAt timestamps; docs[0] is most-recently
+        // ingested, docs[4] least recently.
+        var now = DateTime.UtcNow;
+        var docs = Enumerable.Range(0, 5)
+            .Select(i => MakeDocument($"page-doc-{i}.pdf", $"leaflet-paged-hash-{40 + i}", ingestedAt: now.AddMinutes(-i)))
+            .ToList();
+        foreach (var doc in docs)
+            await _repository.AddDocumentAsync(doc);
+
+        // Act: sortBy "" falls back to IngestedAt (the default column); sortDescending: true
+        // means most-recently-ingested first, matching "page 1 = the 2 most-recently-ingested".
+        var (page1, total1) = await _repository.GetDocumentsPagedAsync(
+            pageNumber: 1, pageSize: 2, sortBy: "", sortDescending: true,
+            filenameFilter: null, statusFilter: null, contentTypeFilter: null);
+        var (page2, total2) = await _repository.GetDocumentsPagedAsync(
+            pageNumber: 2, pageSize: 2, sortBy: "", sortDescending: true,
+            filenameFilter: null, statusFilter: null, contentTypeFilter: null);
+        var (page3, total3) = await _repository.GetDocumentsPagedAsync(
+            pageNumber: 3, pageSize: 2, sortBy: "", sortDescending: true,
+            filenameFilter: null, statusFilter: null, contentTypeFilter: null);
+
+        // Assert: Total is stable across all pages; each page returns the correct slice.
+        Assert.Equal(5, total1);
+        Assert.Equal(5, total2);
+        Assert.Equal(5, total3);
+        Assert.Equal(new[] { "page-doc-0.pdf", "page-doc-1.pdf" }, page1.Select(d => d.Filename).ToArray());
+        Assert.Equal(new[] { "page-doc-2.pdf", "page-doc-3.pdf" }, page2.Select(d => d.Filename).ToArray());
+        Assert.Equal(new[] { "page-doc-4.pdf" }, page3.Select(d => d.Filename).ToArray());
+    }
+
+    [Fact]
+    public async Task GetDocumentsPagedAsync_Total_ReflectsFilteredCount_NotPagedCount()
+    {
+        // Arrange: 3 of 5 documents match the contentType filter.
+        var docMatch1 = MakeDocument("filtered-match-1.pdf", "leaflet-paged-hash-050", contentType: "application/pdf");
+        var docMatch2 = MakeDocument("filtered-match-2.pdf", "leaflet-paged-hash-051", contentType: "application/pdf");
+        var docMatch3 = MakeDocument("filtered-match-3.pdf", "leaflet-paged-hash-052", contentType: "application/pdf");
+        var docNoMatch1 = MakeDocument("filtered-nomatch-1.pdf", "leaflet-paged-hash-053", contentType: "image/png");
+        var docNoMatch2 = MakeDocument("filtered-nomatch-2.pdf", "leaflet-paged-hash-054", contentType: "image/png");
+        await _repository.AddDocumentAsync(docMatch1);
+        await _repository.AddDocumentAsync(docMatch2);
+        await _repository.AddDocumentAsync(docMatch3);
+        await _repository.AddDocumentAsync(docNoMatch1);
+        await _repository.AddDocumentAsync(docNoMatch2);
+
+        // Act: pageSize smaller than the filtered match count.
+        var (items, total) = await _repository.GetDocumentsPagedAsync(
+            pageNumber: 1, pageSize: 2, sortBy: "Filename", sortDescending: false,
+            filenameFilter: null, statusFilter: null, contentTypeFilter: "application/pdf");
+
+        // Assert: Total reflects the filtered count (3), not the returned page size (2).
+        Assert.Equal(2, items.Count);
+        Assert.Equal(3, total);
+    }
 }
