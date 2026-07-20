@@ -299,12 +299,14 @@ public class LeafletDocumentRepositoryPagedTests : IAsyncLifetime
             pageNumber: 1, pageSize: 10, sortBy: "Status", sortDescending: true,
             filenameFilter: null, statusFilter: null, contentTypeFilter: null);
 
-        // Assert: enum ordinal order — Processing (0) < Indexed (1) < Failed (2).
-        Assert.Equal(
-            new[] { LeafletDocumentStatus.Processing, LeafletDocumentStatus.Indexed, LeafletDocumentStatus.Failed },
-            ascItems.Select(d => d.Status).ToArray());
+        // Assert: Status is persisted as a lowercase string column (see LeafletDocumentConfiguration's
+        // HasConversion), so sorting is alphabetical on the stored value, not the enum ordinal:
+        // "failed" < "indexed" < "processing".
         Assert.Equal(
             new[] { LeafletDocumentStatus.Failed, LeafletDocumentStatus.Indexed, LeafletDocumentStatus.Processing },
+            ascItems.Select(d => d.Status).ToArray());
+        Assert.Equal(
+            new[] { LeafletDocumentStatus.Processing, LeafletDocumentStatus.Indexed, LeafletDocumentStatus.Failed },
             descItems.Select(d => d.Status).ToArray());
     }
 
