@@ -28,15 +28,15 @@
   "tasks": [
     {
       "name": "parse-summary-json-tests",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-07-20T12:27:34.663158Z"
+      "updated_at": "2026-07-20T12:32:26.123314Z"
     },
     {
       "name": "run-cli-async-success-and-retry-tests",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-07-20T12:32:31.528471Z"
     }
   ]
 }
