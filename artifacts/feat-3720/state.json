@@ -25,5 +25,30 @@
       "updated_at": null
     }
   },
-  "tasks": []
+  "tasks": [
+    {
+      "name": "add-shipment-delivery-checker-contract-and-adapter",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    },
+    {
+      "name": "register-shipment-delivery-checker-in-shipmentlabels-module",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    },
+    {
+      "name": "swap-complete-delivered-orders-job-to-new-contract",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    },
+    {
+      "name": "add-module-boundary-rule-for-shoptetorders-shipmentlabels",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    }
+  ]
 }
