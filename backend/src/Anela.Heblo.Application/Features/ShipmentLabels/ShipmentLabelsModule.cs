@@ -1,8 +1,10 @@
 using Anela.Heblo.Application.Common.Behaviors;
 using Anela.Heblo.Application.Features.Packaging.UseCases.GetPackageLabelPdf;
+using Anela.Heblo.Application.Features.ShipmentLabels.Infrastructure;
 using Anela.Heblo.Application.Features.ShipmentLabels.UseCases.CreateOrderShipment;
 using Anela.Heblo.Application.Features.ShipmentLabels.UseCases.GetOrderShipmentLabels;
 using Anela.Heblo.Application.Features.ShipmentLabels.Validators;
+using Anela.Heblo.Application.Features.ShoptetOrders.Contracts;
 using FluentValidation;
 using MediatR;
 using Microsoft.Extensions.Configuration;
@@ -35,6 +37,10 @@ public static class ShipmentLabelsModule
         {
             client.Timeout = TimeSpan.FromSeconds(30);
         });
+
+        // Cross-module contract: ShipmentLabels implements ShoptetOrders' IShipmentDeliveryChecker via
+        // adapter. DI registration is owned by the provider (ShipmentLabels), not the consumer (ShoptetOrders).
+        services.AddTransient<IShipmentDeliveryChecker, ShipmentLabelsShipmentDeliveryCheckerAdapter>();
 
         return services;
     }
