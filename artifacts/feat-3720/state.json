@@ -34,15 +34,15 @@
     },
     {
       "name": "register-shipment-delivery-checker-in-shipmentlabels-module",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-07-21T06:00:40.521991Z"
+      "updated_at": "2026-07-21T06:25:25.565195Z"
     },
     {
       "name": "swap-complete-delivered-orders-job-to-new-contract",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-07-21T06:25:31.016214Z"
     },
     {
       "name": "add-module-boundary-rule-for-shoptetorders-shipmentlabels",
