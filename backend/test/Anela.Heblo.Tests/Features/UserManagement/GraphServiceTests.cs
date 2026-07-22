@@ -436,17 +436,35 @@ public class GraphServiceTests
     }
 
     [Fact]
-    public async Task GetGroupMembersAsync_GraphReturnsNonSuccess_ReturnsEmptyList()
+    public async Task GetGroupMembersAsync_GraphReturnsNonSuccess_ThrowsGraphServiceException()
     {
         // Arrange
         var handler = new FakeHttpMessageHandler(HttpStatusCode.Forbidden, "{\"error\":{\"code\":\"Forbidden\"}}");
         var service = BuildService(handler, out _, out _, out _);
 
         // Act
-        var result = await service.GetGroupMembersAsync("group-1");
+        var ex = await Assert.ThrowsAsync<GraphServiceException>(() => service.GetGroupMembersAsync("group-1"));
 
         // Assert
-        result.Should().BeEmpty();
+        ex.Message.Should().Contain("403");
+        ex.Message.Should().Contain("group-1");
+        ex.InnerException.Should().NotBeNull();
+    }
+
+    [Fact]
+    public async Task GetGroupMembersAsync_GraphReturnsTooManyRequests_ThrowsGraphServiceException()
+    {
+        // Arrange
+        var handler = new FakeHttpMessageHandler(HttpStatusCode.TooManyRequests, "{\"error\":{\"code\":\"TooManyRequests\"}}");
+        var service = BuildService(handler, out _, out _, out _);
+
+        // Act
+        var ex = await Assert.ThrowsAsync<GraphServiceException>(() => service.GetGroupMembersAsync("group-2"));
+
+        // Assert
+        ex.Message.Should().Contain("429");
+        ex.Message.Should().Contain("group-2");
+        ex.InnerException.Should().NotBeNull();
     }
 
     [Fact]
