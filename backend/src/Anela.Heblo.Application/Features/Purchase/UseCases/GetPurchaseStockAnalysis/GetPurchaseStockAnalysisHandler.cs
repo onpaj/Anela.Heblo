@@ -11,15 +11,18 @@ public class GetPurchaseStockAnalysisHandler : IRequestHandler<GetPurchaseStockA
 {
     private readonly IMaterialCatalogService _materialCatalog;
     private readonly IStockSeverityCalculator _stockSeverityCalculator;
+    private readonly IStockAnalysisCalculator _stockAnalysisCalculator;
     private readonly ILogger<GetPurchaseStockAnalysisHandler> _logger;
 
     public GetPurchaseStockAnalysisHandler(
         IMaterialCatalogService materialCatalog,
         IStockSeverityCalculator stockSeverityCalculator,
+        IStockAnalysisCalculator stockAnalysisCalculator,
         ILogger<GetPurchaseStockAnalysisHandler> logger)
     {
         _materialCatalog = materialCatalog;
         _stockSeverityCalculator = stockSeverityCalculator;
+        _stockAnalysisCalculator = stockAnalysisCalculator;
         _logger = logger;
     }
 
@@ -99,12 +102,12 @@ public class GetPurchaseStockAnalysisHandler : IRequestHandler<GetPurchaseStockA
         var optimalStockDays = item.OptimalStockDaysSetup;
         var optimalStock = optimalStockDays > 0 ? dailyConsumption * (double)optimalStockDays : 0;
 
-        var stockEfficiency = CalculateStockEfficiency((double)item.Stock.EffectiveStock, (double)minStock, optimalStock);
+        var stockEfficiency = _stockAnalysisCalculator.CalculateStockEfficiency((double)item.Stock.EffectiveStock, (double)minStock, optimalStock);
         var severity = _stockSeverityCalculator.DetermineStockSeverity((double)item.Stock.EffectiveStock, (double)minStock, optimalStock, item.IsMinStockConfigured, item.IsOptimalStockConfigured);
 
         var lastPurchase = GetLastPurchaseInfo(item);
 
-        var recommendedQuantity = CalculateRecommendedOrderQuantity(
+        var recommendedQuantity = _stockAnalysisCalculator.CalculateRecommendedOrderQuantity(
             (double)item.Stock.Available,
             optimalStock,
             (double)minStock,
@@ -134,16 +137,6 @@ public class GetPurchaseStockAnalysisHandler : IRequestHandler<GetPurchaseStockA
         };
     }
 
-    private double CalculateStockEfficiency(double availableStock, double minStock, double optimalStock)
-    {
-        if (optimalStock <= 0)
-        {
-            return minStock > 0 ? (availableStock / minStock) * 100 : 0;
-        }
-
-        return (availableStock / optimalStock) * 100;
-    }
-
     private LastPurchaseInfoDto? GetLastPurchaseInfo(MaterialStockSnapshot item)
     {
         var lastPurchase = item.LastPurchase;
@@ -161,29 +154,6 @@ public class GetPurchaseStockAnalysisHandler : IRequestHandler<GetPurchaseStockA
             UnitPrice = lastPurchase.UnitPrice,
             TotalPrice = lastPurchase.TotalPrice
         };
-    }
-
-    private double? CalculateRecommendedOrderQuantity(double availableStock, double optimalStock, double minStock, string moq)
-    {
-        if (optimalStock <= 0 && minStock <= 0)
-        {
-            return null;
-        }
-
-        var targetStock = optimalStock > 0 ? optimalStock : minStock * 2;
-        var needed = targetStock - availableStock;
-
-        if (needed <= 0)
-        {
-            return null;
-        }
-
-        if (!string.IsNullOrEmpty(moq) && double.TryParse(moq, out var minOrderQty))
-        {
-            return Math.Max(needed, minOrderQty);
-        }
-
-        return needed;
     }
 
     private bool ShouldIncludeItem(StockAnalysisItemDto item, GetPurchaseStockAnalysisRequest request)

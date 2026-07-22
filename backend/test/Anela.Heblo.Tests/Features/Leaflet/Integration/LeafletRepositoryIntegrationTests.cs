@@ -232,6 +232,100 @@ public class LeafletRepositoryIntegrationTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task AddChunksAsync_PersistsAll_AtExactBatchBoundary()
+    {
+        // Arrange: exactly MaxRowsPerBatch (1000) chunks — a single batch, boundary edge.
+        var doc = MakeDocument("batch-boundary-test.pdf", "leaflet-hash-100");
+        await _repository.AddDocumentAsync(doc);
+
+        var chunks = Enumerable.Range(0, 1000)
+            .Select(i => new LeafletChunk
+            {
+                Id = Guid.NewGuid(),
+                DocumentId = doc.Id,
+                ChunkIndex = i,
+                Content = $"Boundary content {i}",
+                Summary = $"Boundary summary {i}",
+                WordCount = i + 1,
+                Embedding = [(float)i, 0f, 0f]
+            })
+            .ToList();
+
+        // Act
+        await _repository.AddChunksAsync(chunks);
+
+        // Assert: all 1000 rows persisted, first and last of the single batch round-trip correctly.
+        var stored = await _context.LeafletChunks
+            .AsNoTracking()
+            .Where(c => c.DocumentId == doc.Id)
+            .OrderBy(c => c.ChunkIndex)
+            .ToListAsync();
+
+        Assert.Equal(1000, stored.Count);
+
+        var first = stored[0];
+        Assert.Equal(0, first.ChunkIndex);
+        Assert.Equal("Boundary content 0", first.Content);
+        Assert.Equal("Boundary summary 0", first.Summary);
+        Assert.Equal(1, first.WordCount);
+
+        var last = stored[999];
+        Assert.Equal(999, last.ChunkIndex);
+        Assert.Equal("Boundary content 999", last.Content);
+        Assert.Equal("Boundary summary 999", last.Summary);
+        Assert.Equal(1000, last.WordCount);
+    }
+
+    [Fact]
+    public async Task AddChunksAsync_PersistsAll_AcrossTwoBatches()
+    {
+        // Arrange: MaxRowsPerBatch (1000) + 1 = 1001 chunks — forces a second INSERT with a
+        // fresh NpgsqlCommand and its own @id0-style parameter set (proves no parameter-name collision).
+        var doc = MakeDocument("two-batch-test.pdf", "leaflet-hash-101");
+        await _repository.AddDocumentAsync(doc);
+
+        var chunks = Enumerable.Range(0, 1001)
+            .Select(i => new LeafletChunk
+            {
+                Id = Guid.NewGuid(),
+                DocumentId = doc.Id,
+                ChunkIndex = i,
+                Content = $"TwoBatch content {i}",
+                Summary = $"TwoBatch summary {i}",
+                WordCount = i + 1,
+                Embedding = [(float)i, 0f, 0f]
+            })
+            .ToList();
+
+        // Act: single call internally issues two INSERTs (batch 1: ChunkIndex 0..999, batch 2: 1000).
+        await _repository.AddChunksAsync(chunks);
+
+        // Assert: no row silently dropped or duplicated across the boundary.
+        var stored = await _context.LeafletChunks
+            .AsNoTracking()
+            .Where(c => c.DocumentId == doc.Id)
+            .OrderBy(c => c.ChunkIndex)
+            .ToListAsync();
+
+        Assert.Equal(1001, stored.Count);
+
+        // Last row of batch 1.
+        var lastOfBatch1 = stored[999];
+        Assert.Equal(999, lastOfBatch1.ChunkIndex);
+        Assert.Equal("TwoBatch content 999", lastOfBatch1.Content);
+        Assert.Equal("TwoBatch summary 999", lastOfBatch1.Summary);
+        Assert.Equal(1000, lastOfBatch1.WordCount);
+
+        // Sole row of batch 2 — proves the second NpgsqlCommand's own parameter set executed
+        // correctly and did not collide with or overwrite batch 1's parameters.
+        var onlyRowOfBatch2 = stored[1000];
+        Assert.Equal(1000, onlyRowOfBatch2.ChunkIndex);
+        Assert.Equal("TwoBatch content 1000", onlyRowOfBatch2.Content);
+        Assert.Equal("TwoBatch summary 1000", onlyRowOfBatch2.Summary);
+        Assert.Equal(1001, onlyRowOfBatch2.WordCount);
+    }
+
+    [Fact]
     public async Task AddDocumentAndChunks_CanBeRetrievedByHash()
     {
         // Arrange
@@ -326,6 +420,101 @@ public class LeafletRepositoryIntegrationTests : IAsyncLifetime
         // Assert
         Assert.Single(results);
         Assert.Equal("Expected search summary", results[0].Chunk.Summary);
+    }
+
+    [Fact]
+    public async Task SearchSimilarAsync_MapsAllReaderColumns_AcrossTwoDocuments()
+    {
+        // Arrange: two distinct documents, one chunk each, orthogonal embeddings so similarity
+        // ordering is unambiguous.
+        var doc1 = MakeDocument("mapping-doc-one.pdf", "leaflet-hash-102");
+        var doc2 = MakeDocument("mapping-doc-two.pdf", "leaflet-hash-103");
+        await _repository.AddDocumentAsync(doc1);
+        await _repository.AddDocumentAsync(doc2);
+
+        var chunk1 = new LeafletChunk
+        {
+            Id = Guid.NewGuid(),
+            DocumentId = doc1.Id,
+            ChunkIndex = 7,
+            Content = "Doc one content",
+            Summary = "Doc one summary",
+            WordCount = 11,
+            Embedding = [1.0f, 0.0f, 0.0f]
+        };
+        var chunk2 = new LeafletChunk
+        {
+            Id = Guid.NewGuid(),
+            DocumentId = doc2.Id,
+            ChunkIndex = 3,
+            Content = "Doc two content",
+            Summary = "Doc two summary",
+            WordCount = 13,
+            Embedding = [0.0f, 1.0f, 0.0f]
+        };
+        await _repository.AddChunksAsync([chunk1, chunk2]);
+
+        // Act: query aligned with chunk1 => chunk1 must be the top (closest) result.
+        var results = await _repository.SearchSimilarAsync([1.0f, 0.0f, 0.0f], topK: 2);
+
+        // Assert
+        Assert.Equal(2, results.Count);
+        var top = results[0];
+
+        Assert.Equal(chunk1.Id, top.Chunk.Id);
+        Assert.Equal(doc1.Id, top.Chunk.DocumentId);
+        Assert.Equal(7, top.Chunk.ChunkIndex);
+        Assert.Equal("Doc one content", top.Chunk.Content);
+        Assert.Equal("Doc one summary", top.Chunk.Summary);
+        Assert.Equal(11, top.Chunk.WordCount);
+
+        // Proves the JOIN on ordinals 6/7 resolves to the correct (own) document per row,
+        // not a fixed/first document.
+        Assert.Equal(doc1.Id, top.Chunk.Document.Id);
+        Assert.Equal("mapping-doc-one.pdf", top.Chunk.Document.Filename);
+        Assert.Equal("/leaflets/mapping-doc-one.pdf", top.Chunk.Document.SourcePath);
+
+        // Intentional current behavior: the reader never populates Embedding.
+        Assert.Empty(top.Chunk.Embedding);
+
+        Assert.True(results[0].Score > results[1].Score);
+    }
+
+    [Fact]
+    public async Task SearchSimilarAsync_TopKLimitsResultCount()
+    {
+        // Arrange: 3 chunks with distinct embeddings.
+        var doc = MakeDocument("topk-test.pdf", "leaflet-hash-104");
+        await _repository.AddDocumentAsync(doc);
+
+        var chunks = new[]
+        {
+            new LeafletChunk { Id = Guid.NewGuid(), DocumentId = doc.Id, ChunkIndex = 0, Content = "A", Summary = "A", WordCount = 1, Embedding = [1.0f, 0.0f, 0.0f] },
+            new LeafletChunk { Id = Guid.NewGuid(), DocumentId = doc.Id, ChunkIndex = 1, Content = "B", Summary = "B", WordCount = 1, Embedding = [0.0f, 1.0f, 0.0f] },
+            new LeafletChunk { Id = Guid.NewGuid(), DocumentId = doc.Id, ChunkIndex = 2, Content = "C", Summary = "C", WordCount = 1, Embedding = [0.0f, 0.0f, 1.0f] },
+        };
+        await _repository.AddChunksAsync(chunks);
+
+        // Act
+        var results = await _repository.SearchSimilarAsync([1.0f, 0.0f, 0.0f], topK: 1);
+
+        // Assert: LIMIT @topK is actually wired, not just present in the SQL text.
+        Assert.Single(results);
+    }
+
+    [Fact]
+    public async Task SearchSimilarAsync_ReturnsEmptyList_WhenNoChunks()
+    {
+        // Arrange: a document with zero chunks.
+        var doc = MakeDocument("no-chunks-test.pdf", "leaflet-hash-105");
+        await _repository.AddDocumentAsync(doc);
+
+        // Act
+        var results = await _repository.SearchSimilarAsync([1.0f, 0.0f, 0.0f], topK: 5);
+
+        // Assert: zero-iteration reader loop returns an empty, non-null list, no exception.
+        Assert.NotNull(results);
+        Assert.Empty(results);
     }
 
     [Fact]

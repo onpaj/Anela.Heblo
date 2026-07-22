@@ -36,6 +36,10 @@ public class RecurringJobConfigurationConfiguration : IEntityTypeConfiguration<R
             .HasMaxLength(50)
             .IsRequired();
 
+        builder.Property(e => e.TimeZoneId)
+            .HasMaxLength(100)
+            .IsRequired();
+
         builder.Property(e => e.IsEnabled)
             .IsRequired();
 

@@ -144,6 +144,7 @@ public class UpdateRecurringJobCronHandlerTests
             displayName: "Test Job",
             description: "A test job",
             cronExpression: cronExpression,
+            timeZoneId: "Europe/Prague",
             isEnabled: true,
             lastModifiedBy: "seed");
     }
