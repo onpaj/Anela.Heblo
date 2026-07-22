@@ -144,11 +144,6 @@ public class PhotobankRepository : IPhotobankRepository
         return new PhotoLocator(projection.DriveId, projection.SharePointFileId, projection.ModifiedAt);
     }
 
-    public async Task<List<Photo>> GetAllPhotosAsync(CancellationToken cancellationToken)
-    {
-        return await _context.Photos.ToListAsync(cancellationToken);
-    }
-
     public Task<Photo?> GetPhotoBySharePointFileIdAsync(string sharePointFileId, CancellationToken cancellationToken)
     {
         return _context.Photos
@@ -389,6 +384,18 @@ public class PhotobankRepository : IPhotobankRepository
     {
         return await _context.Photos
             .Where(p => p.LastAutoTaggedAt == null)
+            .OrderBy(p => p.Id)
+            .Skip(offset)
+            .Take(pageSize)
+            .Select(p => new PhotoAutoTagCandidate(p.Id, p.FolderPath, p.FileName))
+            .ToListAsync(cancellationToken);
+    }
+
+    public async Task<List<PhotoAutoTagCandidate>> GetPhotoRuleCandidatesPageAsync(
+        int pageSize, int offset, CancellationToken cancellationToken)
+    {
+        return await _context.Photos
+            .AsNoTracking()
             .OrderBy(p => p.Id)
             .Skip(offset)
             .Take(pageSize)

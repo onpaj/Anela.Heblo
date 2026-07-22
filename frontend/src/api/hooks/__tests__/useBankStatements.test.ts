@@ -1,5 +1,5 @@
 import { renderHook, waitFor } from '@testing-library/react';
-import { useBankStatementAccounts } from '../useBankStatements';
+import { useBankStatementAccounts, useBankStatementsList } from '../useBankStatements';
 import { mockAuthenticatedApiClient, createQueryClientWrapper } from '../../testUtils';
 
 jest.mock('../../client');
@@ -113,5 +113,55 @@ describe('useBankStatements - Account Listing', () => {
             expect(mockClient.bankStatements_GetAccounts).toHaveBeenCalledTimes(1);
             expect(mockClient.bankStatements_GetAccounts).toHaveBeenCalledWith();
         });
+    });
+});
+
+describe('useBankStatements - List Query', () => {
+    let mockClient: {
+        bankStatements_GetAccounts: jest.Mock;
+        bankStatements_GetBankStatements: jest.Mock;
+        bankStatements_ImportStatements: jest.Mock;
+    };
+
+    beforeEach(() => {
+        jest.clearAllMocks();
+        mockClient = {
+            bankStatements_GetAccounts: jest.fn(),
+            bankStatements_GetBankStatements: jest.fn(),
+            bankStatements_ImportStatements: jest.fn(),
+        };
+        mockAuthenticatedApiClient(mockClient);
+    });
+
+    it('converts dateFrom/dateTo strings to Date objects before calling the generated client', async () => {
+        mockClient.bankStatements_GetBankStatements.mockResolvedValue({ items: [], totalCount: 0 });
+
+        const { wrapper } = createQueryClientWrapper();
+        const { result } = renderHook(
+            () => useBankStatementsList({ dateFrom: '2026-01-01', dateTo: '2026-01-31' }),
+            { wrapper }
+        );
+
+        await waitFor(() => expect(result.current.isSuccess).toBe(true));
+
+        expect(mockClient.bankStatements_GetBankStatements).toHaveBeenCalledTimes(1);
+        const call = mockClient.bankStatements_GetBankStatements.mock.calls[0];
+        expect(call[5]).toEqual(new Date('2026-01-01'));
+        expect(call[6]).toEqual(new Date('2026-01-31'));
+    });
+
+    it('passes undefined for dateFrom/dateTo/statementDate/importDate when absent', async () => {
+        mockClient.bankStatements_GetBankStatements.mockResolvedValue({ items: [], totalCount: 0 });
+
+        const { wrapper } = createQueryClientWrapper();
+        const { result } = renderHook(() => useBankStatementsList({}), { wrapper });
+
+        await waitFor(() => expect(result.current.isSuccess).toBe(true));
+
+        const call = mockClient.bankStatements_GetBankStatements.mock.calls[0];
+        expect(call[3]).toBeUndefined(); // statementDate
+        expect(call[4]).toBeUndefined(); // importDate
+        expect(call[5]).toBeUndefined(); // dateFrom
+        expect(call[6]).toBeUndefined(); // dateTo
     });
 });

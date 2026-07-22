@@ -19,6 +19,7 @@ public class UpdateRecurringJobStatusHandlerTests
     private const string ValidDisplayName = "Test Job";
     private const string ValidDescription = "Test Description";
     private const string ValidCronExpression = "0 0 * * *";
+    private const string ValidTimeZoneId = "Europe/Prague";
 
     public UpdateRecurringJobStatusHandlerTests()
     {
@@ -51,6 +52,7 @@ public class UpdateRecurringJobStatusHandlerTests
             ValidDisplayName,
             ValidDescription,
             ValidCronExpression,
+            ValidTimeZoneId,
             false,
             "System");
 
@@ -91,6 +93,7 @@ public class UpdateRecurringJobStatusHandlerTests
             ValidDisplayName,
             ValidDescription,
             ValidCronExpression,
+            ValidTimeZoneId,
             true,
             "System");
 
@@ -155,6 +158,7 @@ public class UpdateRecurringJobStatusHandlerTests
             ValidDisplayName,
             ValidDescription,
             ValidCronExpression,
+            ValidTimeZoneId,
             false,
             "System");
 
@@ -194,6 +198,7 @@ public class UpdateRecurringJobStatusHandlerTests
             ValidDisplayName,
             ValidDescription,
             ValidCronExpression,
+            ValidTimeZoneId,
             false,
             "System");
 
@@ -228,6 +233,7 @@ public class UpdateRecurringJobStatusHandlerTests
             ValidDisplayName,
             ValidDescription,
             ValidCronExpression,
+            ValidTimeZoneId,
             false,
             "System");
 
@@ -305,6 +311,7 @@ public class UpdateRecurringJobStatusHandlerTests
             ValidDisplayName,
             ValidDescription,
             ValidCronExpression,
+            ValidTimeZoneId,
             false,
             "System");
 
