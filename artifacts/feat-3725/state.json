@@ -21,16 +21,16 @@
       "updated_at": "2026-07-22T07:20:20.345911Z"
     },
     "developing": {
-      "status": "in_progress",
-      "updated_at": "2026-07-22T07:20:37.884960Z"
+      "status": "completed",
+      "updated_at": "2026-07-22T08:05:08.968858Z"
     }
   },
   "tasks": [
     {
       "name": "remove-search-users-async",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-07-22T07:20:38.104111Z"
+      "updated_at": "2026-07-22T08:05:04.315342Z"
     }
   ]
 }
