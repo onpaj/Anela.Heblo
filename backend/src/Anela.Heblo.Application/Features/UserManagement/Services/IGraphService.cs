@@ -11,6 +11,5 @@ public interface IGraphService
     /// Thrown when Microsoft Graph returns an OData error response.
     /// </exception>
     Task<List<UserDto>> GetGroupMembersAsync(string groupId, CancellationToken cancellationToken = default);
-    Task<List<UserDto>> SearchUsersAsync(string query, CancellationToken cancellationToken = default);
     Task<List<UserDto>> GetAppRoleMembersAsync(string appRoleValue, CancellationToken cancellationToken = default);
 }
