@@ -1,3 +1,66 @@
+### task: batch-photobank-index-upserts
+
+
+**Files:**
+- Modify: `backend/src/Anela.Heblo.Application/Features/Photobank/Infrastructure/Jobs/PhotobankIndexJob.cs` (full rewrite)
+- Modify: `backend/test/Anela.Heblo.Tests/Features/Photobank/PhotobankIndexJobTests.cs` (update 2 existing test methods' mocks only — `ExecuteAsync_InsertsNewPhoto_WithRuleTagsApplied` and `UpsertPhoto_WhenTagAlreadyExists_SkipsInsert`)
+
+This task replaces the per-item `SaveChangesAsync` pair in `PhotobankIndexJob` with a batched accumulate/flush loop (default batch size 200), and updates the two existing tests whose mocks reference the now-unused `GetOrCreateTagAsync(string, ...)` so the suite compiles and passes against the new code. New test cases exercising the batching behavior itself are added in the next task (`add-photobank-index-batch-tests`), which depends on this task's production code already being in place.
+
+#### Step 1 — Confirm current test baseline passes
+
+Run the existing Photobank index job tests against the current (pre-change) code to confirm the starting point is green:
+
+```bash
+cd /home/user/worktrees/feature-3692-Arch-Review-Photobank-Photobankindexjob-Calls-Save
+dotnet test --filter "FullyQualifiedName~PhotobankIndexJobTests"
+```
+
+Expected output: `Passed! - Failed: 0, Passed: 5, Skipped: 0` (5 existing test methods: `ExecuteAsync_InsertsNewPhoto_WithRuleTagsApplied`, `UpsertPhoto_WhenTagAlreadyExists_SkipsInsert`, `ExecuteAsync_RemovesPhoto_WhenDeleted`, `ExecuteAsync_PersistsDeltaLink_AfterRun`, `ExecuteAsync_SkipsInactiveRoots`).
+
+#### Step 2 — Update the two existing tests' mocks to the bulk tag-resolution method
+
+These two tests currently mock the singular `GetOrCreateTagAsync(string, CancellationToken)`, which the new production code will no longer call (Step 3 replaces it with `GetOrCreateTagsAsync(IReadOnlyCollection<string>, CancellationToken)`, per-batch). Update them now so that after Step 3 the whole suite is green in one pass.
+
+In `backend/test/Anela.Heblo.Tests/Features/Photobank/PhotobankIndexJobTests.cs`, in `ExecuteAsync_InsertsNewPhoto_WithRuleTagsApplied`, replace:
+```csharp
+        var tag = new Tag { Id = 42, Name = "produkty" };
+        _repoMock
+            .Setup(r => r.GetOrCreateTagAsync("produkty", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(tag);
+```
+with:
+```csharp
+        _repoMock
+            .Setup(r => r.GetOrCreateTagsAsync(It.IsAny<IReadOnlyCollection<string>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Dictionary<string, int> { ["produkty"] = 42 });
+```
+
+In the same test method, the assertions below still reference `capturedPhotoTag.TagId.Should().Be(42);` — leave this assertion unchanged; it still holds because the production code will resolve `"produkty"` to id `42` via the dictionary returned by `GetOrCreateTagsAsync`.
+
+In `UpsertPhoto_WhenTagAlreadyExists_SkipsInsert`, replace:
+```csharp
+        var tag = new Tag { Id = 42, Name = "produkty" };
+        _repoMock
+            .Setup(r => r.GetOrCreateTagAsync("produkty", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(tag);
+```
+with:
+```csharp
+        _repoMock
+            .Setup(r => r.GetOrCreateTagsAsync(It.IsAny<IReadOnlyCollection<string>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Dictionary<string, int> { ["produkty"] = 42 });
+```
+
+Do not change anything else in either test method (the `PhotoTagExistsAsync` mocks, `Times.Once`/`Times.Never` assertions, and all other setup stay exactly as they are).
+
+Do **not** run the tests yet — against the still-unchanged production code, these two tests will now fail (production code still calls `GetOrCreateTagAsync`, which is no longer mocked and will return Moq's default `null`, causing a `NullReferenceException` at `tag!.Id`). This is expected; proceed directly to Step 3.
+
+#### Step 3 — Replace `PhotobankIndexJob.cs` with the batched implementation
+
+Overwrite the full contents of `backend/src/Anela.Heblo.Application/Features/Photobank/Infrastructure/Jobs/PhotobankIndexJob.cs` with:
+
+```csharp
 using Anela.Heblo.Application.Features.Photobank.Services;
 using Anela.Heblo.Domain.Features.BackgroundJobs;
 using Anela.Heblo.Domain.Features.Photobank;
@@ -197,24 +260,10 @@ public class PhotobankIndexJob : IRecurringJob
             ? await _repo.GetOrCreateTagsAsync(allMatchingTagNames, ct)
             : new Dictionary<string, int>();
 
-        // Dedupe by Photo before applying tags: when the same SharePointFileId appears
-        // twice as a non-deleted item in one batch, both occurrences share the same
-        // tracked Photo instance (see photosByFileId above), but the tag removal/add
-        // loop below reads existing tags via DB queries that can't see this batch's own
-        // unflushed changes yet. Processing the same photo twice in that loop would
-        // either leave stale tags behind (different rules matched) or double-insert the
-        // same (PhotoId, TagId) pair and crash SaveChangesAsync (same rule matched
-        // twice). Collapsing to one entry per Photo — keeping the last item's matches,
-        // mirroring Phase A's last-write-wins collapse — avoids both failure modes.
-        var tagNamesByPhoto = new Dictionary<Photo, IReadOnlyList<string>>();
         foreach (var (item, tagNames) in itemMatches)
         {
             var photo = photosByFileId[item.ItemId];
-            tagNamesByPhoto[photo] = tagNames;
-        }
 
-        foreach (var (photo, tagNames) in tagNamesByPhoto)
-        {
             // Re-apply rule tags: remove existing Rule-source tags, add new ones
             var existingRuleTags = await _repo.GetPhotoTagsByPhotoAndSourceAsync(photo.Id, PhotoTagSource.Rule, ct);
             await _repo.RemovePhotoTagsAsync(existingRuleTags, ct);
@@ -237,3 +286,40 @@ public class PhotobankIndexJob : IRecurringJob
         await _repo.SaveChangesAsync(ct);
     }
 }
+```
+
+Key points carried over unchanged from the original: field-by-field upsert semantics (`FileName`, `FolderPath`, `SharePointWebUrl`, `FileSizeBytes`, `ModifiedAt`, `DriveId`, `SharePointFileId`/`IndexedAt` on create), `pathChanged` → `LastAutoTaggedAt = null` reset, the `PhotoTagExistsAsync` duplicate guard before adding a `PhotoTag`, deletion handling (`GetPhotoBySharePointFileIdAsync` + `RemovePhotoAsync`, no flush — covered by the end-of-root `SaveChangesAsync`), root bookkeeping (`root.DeltaLink`/`root.LastIndexedAt`, single flush after the loop), and the outer `try`/`catch` (catch-log-continue, no rethrow).
+
+#### Step 4 — Build and run the full suite
+
+```bash
+cd /home/user/worktrees/feature-3692-Arch-Review-Photobank-Photobankindexjob-Calls-Save
+dotnet build
+```
+Expected output: `Build succeeded.` with 0 errors.
+
+```bash
+dotnet test --filter "FullyQualifiedName~PhotobankIndexJobTests"
+```
+Expected output: `Passed! - Failed: 0, Passed: 5, Skipped: 0`.
+
+If any of the 5 tests fail, check first whether the failure is in `ExecuteAsync_InsertsNewPhoto_WithRuleTagsApplied` or `UpsertPhoto_WhenTagAlreadyExists_SkipsInsert` — these are the two most likely to regress if the `GetOrCreateTagsAsync` mock from Step 2 doesn't exactly match production code's call (e.g. mismatched `IReadOnlyCollection<string>` matcher).
+
+#### Step 5 — Format and full build check
+
+```bash
+cd /home/user/worktrees/feature-3692-Arch-Review-Photobank-Photobankindexjob-Calls-Save
+dotnet format
+dotnet build
+```
+Expected: `dotnet format` reports no remaining issues (or auto-fixes whitespace-only diffs in the two files touched); `dotnet build` succeeds with 0 errors, 0 warnings introduced by this change.
+
+#### Step 6 — Commit
+
+```bash
+cd /home/user/worktrees/feature-3692-Arch-Review-Photobank-Photobankindexjob-Calls-Save
+git add backend/src/Anela.Heblo.Application/Features/Photobank/Infrastructure/Jobs/PhotobankIndexJob.cs backend/test/Anela.Heblo.Tests/Features/Photobank/PhotobankIndexJobTests.cs
+git commit -m "Batch SaveChangesAsync calls in PhotobankIndexJob upsert path"
+```
+
+---
