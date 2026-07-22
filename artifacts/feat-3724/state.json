@@ -21,16 +21,16 @@
       "updated_at": "2026-07-22T05:23:22.482064Z"
     },
     "developing": {
-      "status": "in_progress",
-      "updated_at": "2026-07-22T05:23:39.716324Z"
+      "status": "completed",
+      "updated_at": "2026-07-22T07:20:06.921957Z"
     }
   },
   "tasks": [
     {
       "name": "fix-graph-service-swallow",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-07-22T05:23:40.020280Z"
+      "updated_at": "2026-07-22T07:20:06.547160Z"
     }
   ]
 }
