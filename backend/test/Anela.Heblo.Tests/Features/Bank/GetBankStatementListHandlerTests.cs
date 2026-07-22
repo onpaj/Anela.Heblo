@@ -40,8 +40,8 @@ public class GetBankStatementListHandlerTests
         {
             TransferId = "  ABC  ",
             Account = "  shoptet  ",
-            DateFrom = "2026-01-01",
-            DateTo = "2026-01-31",
+            DateFrom = new DateTime(2026, 1, 1),
+            DateTo = new DateTime(2026, 1, 31),
             ErrorsOnly = true,
         };
         BankStatementListFilter? captured = null;
@@ -63,32 +63,6 @@ public class GetBankStatementListHandlerTests
         captured.DateFrom.Should().Be(new DateTime(2026, 1, 1));
         captured.DateTo.Should().Be(new DateTime(2026, 1, 31));
         captured.ErrorsOnly.Should().Be(true);
-    }
-
-    [Fact]
-    public async Task Handle_IgnoresUnparseableDateStrings()
-    {
-        // Arrange
-        var request = new GetBankStatementListRequest
-        {
-            DateFrom = "not-a-date",
-            DateTo = "still-not-a-date",
-        };
-        BankStatementListFilter? captured = null;
-        _repository
-            .Setup(r => r.GetFilteredAsync(
-                It.IsAny<BankStatementListFilter>(),
-                It.IsAny<int>(), It.IsAny<int>(), It.IsAny<string>(), It.IsAny<bool>(), It.IsAny<CancellationToken>()))
-            .Callback<BankStatementListFilter, int, int, string, bool, CancellationToken>(
-                (f, _, _, _, _, _) => captured = f)
-            .ReturnsAsync((Enumerable.Empty<BankStatementImport>(), 0));
-
-        // Act
-        await _handler.Handle(request, CancellationToken.None);
-
-        // Assert
-        captured!.DateFrom.Should().BeNull();
-        captured.DateTo.Should().BeNull();
     }
 
     [Fact]
@@ -141,27 +115,9 @@ public class GetBankStatementListRequestValidatorTests
     }
 
     [Fact]
-    public void Validate_RejectsUnparseableDateFrom()
-    {
-        var request = new GetBankStatementListRequest { DateFrom = "not-a-date" };
-        var result = _validator.Validate(request);
-        result.IsValid.Should().BeFalse();
-        result.Errors.Should().Contain(e => e.PropertyName == nameof(GetBankStatementListRequest.DateFrom));
-    }
-
-    [Fact]
-    public void Validate_RejectsUnparseableDateTo()
-    {
-        var request = new GetBankStatementListRequest { DateTo = "not-a-date" };
-        var result = _validator.Validate(request);
-        result.IsValid.Should().BeFalse();
-        result.Errors.Should().Contain(e => e.PropertyName == nameof(GetBankStatementListRequest.DateTo));
-    }
-
-    [Fact]
     public void Validate_RejectsDateFromLaterThanDateTo()
     {
-        var request = new GetBankStatementListRequest { DateFrom = "2026-02-01", DateTo = "2026-01-01" };
+        var request = new GetBankStatementListRequest { DateFrom = new DateTime(2026, 2, 1), DateTo = new DateTime(2026, 1, 1) };
         var result = _validator.Validate(request);
         result.IsValid.Should().BeFalse();
         result.Errors.Should().Contain(e => e.PropertyName == nameof(GetBankStatementListRequest.DateFrom));
@@ -178,7 +134,7 @@ public class GetBankStatementListRequestValidatorTests
     [Fact]
     public void Validate_AcceptsValidDateRange()
     {
-        var request = new GetBankStatementListRequest { DateFrom = "2026-01-01", DateTo = "2026-01-31" };
+        var request = new GetBankStatementListRequest { DateFrom = new DateTime(2026, 1, 1), DateTo = new DateTime(2026, 1, 31) };
         var result = _validator.Validate(request);
         result.IsValid.Should().BeTrue();
     }
