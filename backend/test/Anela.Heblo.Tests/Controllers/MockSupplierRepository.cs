@@ -1,5 +1,4 @@
 using Anela.Heblo.Domain.Features.Purchase;
-using Anela.Heblo.Domain.Features.Purchase;
 
 namespace Anela.Heblo.Tests.Controllers;
 
@@ -50,12 +49,6 @@ public class MockSupplierRepository : ISupplierRepository
     public Task<Supplier?> GetByIdAsync(long id, CancellationToken cancellationToken = default)
     {
         var supplier = MockSuppliers.FirstOrDefault(s => s.Id == id);
-        return Task.FromResult(supplier);
-    }
-
-    public Task<Supplier?> GetByNameAsync(string name, CancellationToken cancellationToken = default)
-    {
-        var supplier = MockSuppliers.FirstOrDefault(s => s.Name.Equals(name, StringComparison.OrdinalIgnoreCase));
         return Task.FromResult(supplier);
     }
 }
