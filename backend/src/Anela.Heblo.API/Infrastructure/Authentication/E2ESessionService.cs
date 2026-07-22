@@ -83,6 +83,8 @@ public class E2ESessionService : IE2ESessionService
             new Claim("oid", "e2e-test-object-id"),
             new Claim("tid", environmentName), // Use environment as tenant for testing
             new Claim(ClaimTypes.Role, AccessRoles.Base), // Base role for application access
+            // super_user routes /api/auth/me through the wildcard, populating full permissions for E2E sidebar (#3680).
+            new Claim(ClaimTypes.Role, AccessRoles.SuperUser),
             new Claim("scp", "access_as_user"),
             // Grant the finance overview read role so E2E tests can reach /api/FinancialOverview.
             // FeatureAuthorize checks the role claim (permission strings were renamed away from the

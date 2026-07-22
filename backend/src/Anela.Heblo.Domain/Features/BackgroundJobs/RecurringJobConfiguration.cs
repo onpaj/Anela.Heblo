@@ -21,6 +21,10 @@ public class RecurringJobConfiguration : Entity<string>
     [MaxLength(50)]
     public string CronExpression { get; private set; }
 
+    [Required]
+    [MaxLength(100)]
+    public string TimeZoneId { get; private set; }
+
     public bool IsEnabled { get; private set; }
 
     public DateTime LastModifiedAt { get; private set; }
@@ -36,6 +40,7 @@ public class RecurringJobConfiguration : Entity<string>
         DisplayName = string.Empty;
         Description = string.Empty;
         CronExpression = string.Empty;
+        TimeZoneId = string.Empty;
         LastModifiedBy = string.Empty;
     }
 
@@ -44,6 +49,7 @@ public class RecurringJobConfiguration : Entity<string>
         string displayName,
         string description,
         string cronExpression,
+        string timeZoneId,
         bool isEnabled,
         string lastModifiedBy)
     {
@@ -55,6 +61,8 @@ public class RecurringJobConfiguration : Entity<string>
             throw new ValidationException("Description is required");
         if (string.IsNullOrWhiteSpace(cronExpression))
             throw new ValidationException("CronExpression is required");
+        if (string.IsNullOrWhiteSpace(timeZoneId))
+            throw new ValidationException("TimeZoneId is required");
         if (string.IsNullOrWhiteSpace(lastModifiedBy))
             throw new ValidationException("LastModifiedBy is required");
 
@@ -63,6 +71,7 @@ public class RecurringJobConfiguration : Entity<string>
         DisplayName = displayName;
         Description = description;
         CronExpression = cronExpression;
+        TimeZoneId = timeZoneId;
         IsEnabled = isEnabled;
         LastModifiedAt = DateTime.UtcNow;
         LastModifiedBy = lastModifiedBy;
@@ -72,6 +81,7 @@ public class RecurringJobConfiguration : Entity<string>
         string displayName,
         string description,
         string cronExpression,
+        string timeZoneId,
         string modifiedBy)
     {
         if (string.IsNullOrWhiteSpace(displayName))
@@ -80,12 +90,15 @@ public class RecurringJobConfiguration : Entity<string>
             throw new ValidationException("Description is required");
         if (string.IsNullOrWhiteSpace(cronExpression))
             throw new ValidationException("CronExpression is required");
+        if (string.IsNullOrWhiteSpace(timeZoneId))
+            throw new ValidationException("TimeZoneId is required");
         if (string.IsNullOrWhiteSpace(modifiedBy))
             throw new ValidationException("ModifiedBy is required");
 
         DisplayName = displayName;
         Description = description;
         CronExpression = cronExpression;
+        TimeZoneId = timeZoneId;
         LastModifiedAt = DateTime.UtcNow;
         LastModifiedBy = modifiedBy;
     }

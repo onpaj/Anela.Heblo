@@ -32,6 +32,7 @@ Read the relevant doc **before** implementation work touches that area. No archi
 - `docs/testing/playwright-e2e-testing.md` — E2E setup, authentication, commands
 - `docs/testing/test-data-fixtures.md` — available test data for E2E tests
 - `docs/testing/e2e-module-guide.md` — module boundaries for parallel E2E execution
+- `docs/testing/reportportal.md` — ReportPortal reporting for BE/FE/E2E (opt-in via `RP_ENABLE`)
 
 **Integrations**
 - `docs/integrations/mcp-server.md` — MCP tools, endpoints, client config (20 tools)

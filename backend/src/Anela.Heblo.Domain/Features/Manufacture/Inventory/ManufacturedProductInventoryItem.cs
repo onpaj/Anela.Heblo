@@ -4,6 +4,8 @@ namespace Anela.Heblo.Domain.Features.Manufacture.Inventory;
 
 public class ManufacturedProductInventoryItem : Entity<int>
 {
+    public const string ManufactureOrderReferenceType = "ManufactureOrder";
+
     private readonly List<ManufacturedProductInventoryLog> _log = new();
 
     public string ProductCode { get; private set; } = null!;
@@ -44,11 +46,38 @@ public class ManufacturedProductInventoryItem : Entity<int>
             amountAfter: amount,
             user: createdBy,
             timestamp: createdAt,
-            referenceType: manufactureOrderId.HasValue ? "ManufactureOrder" : null,
+            referenceType: manufactureOrderId.HasValue ? ManufactureOrderReferenceType : null,
             referenceId: manufactureOrderId?.ToString()));
     }
 
     private ManufacturedProductInventoryItem() { }
+
+    /// <summary>
+    /// Adds a manufacture write-down amount onto this existing inventory row and records a log entry
+    /// referencing the source order. Used to merge repeated product+lot+expiration output into a single row.
+    /// </summary>
+    public void WriteDownFromManufacture(decimal amount, string user, DateTime timestamp, int manufactureOrderId)
+    {
+        Amount += amount;
+        LastModifiedAt = timestamp;
+        LastModifiedBy = user;
+        _log.Add(new ManufacturedProductInventoryLog(
+            InventoryChangeType.InitialWriteDown,
+            amountDelta: amount,
+            amountAfter: Amount,
+            user: user,
+            timestamp: timestamp,
+            referenceType: ManufactureOrderReferenceType,
+            referenceId: manufactureOrderId.ToString()));
+    }
+
+    /// <summary>
+    /// True when this row already recorded a manufacture write-down for the given order, so completing
+    /// the same order again must not write the amount a second time (idempotency guard).
+    /// </summary>
+    public bool WasWrittenDownByOrder(int manufactureOrderId) =>
+        _log.Any(l => l.ReferenceType == ManufactureOrderReferenceType
+                      && l.ReferenceId == manufactureOrderId.ToString());
 
     public void Consume(decimal amount, string user, DateTime timestamp, int? transportBoxId = null, string? transportBoxCode = null, bool allowNegativeStock = false)
     {

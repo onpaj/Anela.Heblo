@@ -138,12 +138,14 @@ public class TransportBoxController : BaseApiController
     public async Task<ActionResult<RemoveItemFromBoxResponse>> RemoveItemFromBox(
         int id,
         int itemId,
+        [FromQuery] double? amount = null,
         CancellationToken cancellationToken = default)
     {
         var request = new RemoveItemFromBoxRequest
         {
             BoxId = id,
-            ItemId = itemId
+            ItemId = itemId,
+            Amount = amount
         };
 
         var response = await _mediator.Send(request, cancellationToken);

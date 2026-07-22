@@ -111,21 +111,54 @@ public class TransportBox : Entity<int>
         int? sourceInventoryId = null)
     {
         CheckState(TransportBoxState.Opened, TransportBoxState.Opened);
+
+        var existing = _items.FirstOrDefault(i =>
+            IsSameGroup(i, productCode, lotNumber, expirationDate, sourceInventoryId));
+        if (existing != null)
+        {
+            existing.AddAmount(amount, date, userName);
+            return existing;
+        }
+
         var newItem = new TransportBoxItem(productCode, productName, amount, date, userName,
             lotNumber, expirationDate, sourceInventoryId);
         _items.Add(newItem);
         return newItem;
     }
 
-    public TransportBoxItem? DeleteItem(int itemId)
+    private static bool IsSameGroup(
+        TransportBoxItem item,
+        string productCode,
+        string? lotNumber,
+        DateOnly? expirationDate,
+        int? sourceInventoryId) =>
+        item.ProductCode == productCode
+        && item.LotNumber == lotNumber
+        && item.ExpirationDate == expirationDate
+        && item.SourceInventoryId == sourceInventoryId;
+
+    /// <summary>
+    /// Removes up to <paramref name="amount"/> from the item identified by <paramref name="itemId"/>.
+    /// The row is removed entirely once its amount reaches zero. Returns the affected item and the
+    /// amount actually removed, or null when no matching item exists.
+    /// </summary>
+    public DecreaseItemResult? DecreaseItem(int itemId, double amount)
     {
         CheckState(TransportBoxState.Opened, TransportBoxState.Opened);
-        var toDelete = _items.SingleOrDefault(s => s.Id == itemId);
-        if (toDelete != null)
+        var item = _items.SingleOrDefault(s => s.Id == itemId);
+        if (item == null)
         {
-            _items.Remove(toDelete);
+            return null;
         }
-        return toDelete;
+
+        var removedAmount = item.RemoveAmount(amount);
+        var rowRemoved = item.Amount <= 0;
+        if (rowRemoved)
+        {
+            _items.Remove(item);
+        }
+
+        return new DecreaseItemResult(item, removedAmount, rowRemoved);
     }
 
 

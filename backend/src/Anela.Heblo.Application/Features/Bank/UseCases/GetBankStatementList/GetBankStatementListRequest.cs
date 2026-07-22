@@ -7,10 +7,10 @@ public class GetBankStatementListRequest : IRequest<GetBankStatementListResponse
     public int? Id { get; set; }
     public string? TransferId { get; set; }
     public string? Account { get; set; }
-    public string? StatementDate { get; set; }
-    public string? ImportDate { get; set; }
-    public string? DateFrom { get; set; }
-    public string? DateTo { get; set; }
+    public DateTime? StatementDate { get; set; }
+    public DateTime? ImportDate { get; set; }
+    public DateTime? DateFrom { get; set; }
+    public DateTime? DateTo { get; set; }
     public bool? ErrorsOnly { get; set; }
     public int Skip { get; set; } = 0;
     public int Take { get; set; } = 10;
