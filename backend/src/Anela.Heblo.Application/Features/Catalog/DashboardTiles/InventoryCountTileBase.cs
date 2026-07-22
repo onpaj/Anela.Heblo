@@ -35,7 +35,7 @@ public abstract class InventoryCountTileBase : ITile
     {
         try
         {
-            var cutoffDate = DateTime.UtcNow.AddDays(-DaysOffset);
+            var cutoffDate = _timeProvider.GetUtcNow().UtcDateTime.AddDays(-DaysOffset);
             var catalogItems = await _catalogRepository.GetAllAsync(cancellationToken);
 
             var count = catalogItems
