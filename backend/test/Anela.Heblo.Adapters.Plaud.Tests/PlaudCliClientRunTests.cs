@@ -32,6 +32,26 @@ public sealed class PlaudCliClientRunTests
         }
     }
 
+    // ── Fake token refresher ────────────────────────────────────────────────
+
+    private sealed class FakeTokenRefresher : IPlaudTokenRefresher
+    {
+        public int RefreshCallCount { get; private set; }
+        public int SyncCallCount { get; private set; }
+
+        public Task RefreshAsync(CancellationToken ct = default)
+        {
+            RefreshCallCount++;
+            throw new InvalidOperationException("should not be called");
+        }
+
+        public Task SyncToKeyVaultAsync(CancellationToken ct = default)
+        {
+            SyncCallCount++;
+            return Task.CompletedTask;
+        }
+    }
+
     // ── Helpers ──────────────────────────────────────────────────────────────
 
     // Far-future Unix millisecond expiry so the refresher's past-check passes.
@@ -133,13 +153,15 @@ public sealed class PlaudCliClientRunTests
 
             await WriteTokensAsync(tokensPath);
 
-            var refreshClient = FakeRefreshClient.Throws(
-                new HttpRequestException("Plaud token refresh failed: 401 Unauthorized"));
+            var expectedInner = new HttpRequestException("Plaud token refresh failed: 401 Unauthorized");
+            var refreshClient = FakeRefreshClient.Throws(expectedInner);
             var client = CreateClient(shimPath, refreshClient, tokensPath);
 
             Func<Task> act = () => client.ListRecentAsync(7);
 
-            await act.Should().ThrowAsync<PlaudAuthExpiredException>();
+            var thrown = await act.Should().ThrowAsync<PlaudAuthExpiredException>();
+            thrown.Which.InnerException.Should().BeSameAs(expectedInner);
+            thrown.Which.Message.Should().Contain("token refresh failed");
             refreshClient.CallCount.Should().Be(1);
         }
         finally
@@ -159,9 +181,12 @@ public sealed class PlaudCliClientRunTests
         var (dir, shimPath, tokensPath) = CreateTestDir();
         try
         {
-            // Shim always fails with AUTH_FAILED, regardless of tokens.
+            // Shim always fails with AUTH_FAILED, regardless of tokens. Also records one line per
+            // invocation to countFile so the test can assert the CLI is invoked exactly twice
+            // (initial call + one retry) with no runaway retry loop.
+            var countFile = Path.Combine(dir, "invocations.log");
             await File.WriteAllTextAsync(shimPath,
-                "#!/bin/sh\nprintf '[AUTH_FAILED] Token invalid or expired\\n' >&2\nexit 1\n");
+                $"#!/bin/sh\necho invoked >> \"{countFile}\"\nprintf '[AUTH_FAILED] Token invalid or expired\\n' >&2\nexit 1\n");
             File.SetUnixFileMode(shimPath, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
 
             await WriteTokensAsync(tokensPath);
@@ -174,6 +199,9 @@ public sealed class PlaudCliClientRunTests
 
             await act.Should().ThrowAsync<PlaudAuthExpiredException>();
             refreshClient.CallCount.Should().Be(1);
+
+            var invocationLines = await File.ReadAllLinesAsync(countFile);
+            invocationLines.Should().HaveCount(2);
         }
         finally
         {
@@ -236,6 +264,39 @@ public sealed class PlaudCliClientRunTests
             await act.Should()
                 .ThrowAsync<InvalidOperationException>()
                 .WithMessage("*some other error*");
+        }
+        finally
+        {
+            Directory.Delete(dir, recursive: true);
+        }
+    }
+
+    // ── Plain success path ─────────────────────────────────────────────────
+
+    [SkippableFact]
+    public async Task RunCli_WhenCliSucceeds_CallsSyncToKeyVaultAndReturnsOutput()
+    {
+        Skip.If(OperatingSystem.IsWindows(), "Shim script requires bash");
+        if (OperatingSystem.IsWindows()) return;
+
+        var (dir, shimPath, _) = CreateTestDir();
+        try
+        {
+            await File.WriteAllTextAsync(shimPath,
+                "#!/bin/sh\nprintf \"Recordings in the last 7 days: 0\\n\"\nexit 0\n");
+            File.SetUnixFileMode(shimPath, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
+
+            var fake = new FakeTokenRefresher();
+            var client = new PlaudCliClient(
+                NullLogger<PlaudCliClient>.Instance,
+                Options.Create(OptionsFor(shimPath)),
+                fake);
+
+            var result = await client.ListRecentAsync(7);
+
+            result.Should().BeEmpty();
+            fake.SyncCallCount.Should().Be(1);
+            fake.RefreshCallCount.Should().Be(0);
         }
         finally
         {

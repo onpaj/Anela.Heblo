@@ -108,8 +108,8 @@ describe('ImportTab filters', () => {
 
     const listCalls = getListCalls();
     const latestCall = listCalls[listCalls.length - 1];
-    expect(latestCall[5]).toBe('2026-01-01');  // dateFrom
-    expect(latestCall[6]).toBe('2026-01-31');  // dateTo
+    expect(latestCall[5]).toEqual(new Date('2026-01-01'));  // dateFrom
+    expect(latestCall[6]).toEqual(new Date('2026-01-31'));  // dateTo
   });
 
   it('blocks Filtrovat and shows inline error when dateFrom > dateTo', async () => {
