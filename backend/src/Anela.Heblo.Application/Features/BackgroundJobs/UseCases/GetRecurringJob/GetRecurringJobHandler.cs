@@ -45,7 +45,7 @@ public class GetRecurringJobHandler : IRequestHandler<GetRecurringJobRequest, Ge
         var dto = _mapper.Map<RecurringJobDto>(job);
         var utcNow = _timeProvider.GetUtcNow().UtcDateTime;
         dto.NextRunAt = RecurringJobNextRunCalculator.Calculate(
-            dto.CronExpression, dto.IsEnabled, utcNow, _logger, dto.JobName);
+            dto.CronExpression, dto.IsEnabled, dto.TimeZoneId, utcNow, _logger, dto.JobName);
 
         return new GetRecurringJobResponse { Job = dto };
     }

@@ -207,6 +207,7 @@ public class RecurringJobDiscoveryServiceTests : IDisposable
                 displayName: "Test Async Recurring Job",
                 description: "Test job for DB CRON path verification",
                 cronExpression: _cronExpression,
+                timeZoneId: "Europe/Prague",
                 isEnabled: true,
                 lastModifiedBy: "test");
 

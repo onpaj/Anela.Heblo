@@ -125,7 +125,7 @@ public partial class Program
         builder.Services.AddOpenMeteoAdapter(builder.Configuration);
         builder.Services.AddPlaudAdapter(builder.Configuration);
         builder.Services.AddMicrosoft365Adapter(builder.Configuration);
-        builder.Services.AddOrgChartAdapter(builder.Configuration);
+        builder.Services.AddOrgChartAdapter();
 
         builder.Services.AddSingleton<IIssuedInvoiceSource>(sp => sp.GetRequiredService<ShoptetApiInvoiceSource>());
 

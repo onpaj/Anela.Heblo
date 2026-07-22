@@ -41,6 +41,7 @@ public class RecurringJobConfigurationRepositoryTests : IDisposable
             "Test Job 1",
             "Description for test job 1",
             "0 0 * * *",
+            "Europe/Prague",
             true,
             "TestUser");
 
@@ -49,6 +50,7 @@ public class RecurringJobConfigurationRepositoryTests : IDisposable
             "Test Job 2",
             "Description for test job 2",
             "0 12 * * *",
+            "Europe/Prague",
             false,
             "TestUser");
 
@@ -75,6 +77,7 @@ public class RecurringJobConfigurationRepositoryTests : IDisposable
             "Existing Job",
             "Description for existing job",
             "0 6 * * *",
+            "America/New_York",
             true,
             "TestUser");
 
@@ -90,6 +93,7 @@ public class RecurringJobConfigurationRepositoryTests : IDisposable
         Assert.Equal("Existing Job", result.DisplayName);
         Assert.Equal("Description for existing job", result.Description);
         Assert.Equal("0 6 * * *", result.CronExpression);
+        Assert.Equal("America/New_York", result.TimeZoneId);
         Assert.True(result.IsEnabled);
         Assert.Equal("TestUser", result.LastModifiedBy);
     }
@@ -113,6 +117,7 @@ public class RecurringJobConfigurationRepositoryTests : IDisposable
             "Original Display Name",
             "Original description",
             "0 8 * * *",
+            "Europe/Prague",
             true,
             "OriginalUser");
 
@@ -131,6 +136,7 @@ public class RecurringJobConfigurationRepositoryTests : IDisposable
             "Updated Display Name",
             "Updated description",
             "0 10 * * *",
+            "America/New_York",
             "UpdatedUser");
 
         await _repository.UpdateAsync(loadedConfig);
@@ -141,6 +147,7 @@ public class RecurringJobConfigurationRepositoryTests : IDisposable
         Assert.Equal("Updated Display Name", updatedConfig.DisplayName);
         Assert.Equal("Updated description", updatedConfig.Description);
         Assert.Equal("0 10 * * *", updatedConfig.CronExpression);
+        Assert.Equal("America/New_York", updatedConfig.TimeZoneId);
         Assert.Equal("UpdatedUser", updatedConfig.LastModifiedBy);
         Assert.True(updatedConfig.IsEnabled); // Should remain unchanged
     }
@@ -154,6 +161,7 @@ public class RecurringJobConfigurationRepositoryTests : IDisposable
             "Job to Disable",
             "Description",
             "0 8 * * *",
+            "Europe/Prague",
             true,
             "OriginalUser");
 
@@ -187,6 +195,7 @@ public class RecurringJobConfigurationRepositoryTests : IDisposable
             "New Job",
             "Description for new job",
             "0 5 * * *",
+            "Europe/Prague",
             true,
             "System");
 

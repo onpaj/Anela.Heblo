@@ -1,3 +1,4 @@
+using Anela.Heblo.API.Infrastructure;
 using Anela.Heblo.Application.Features.Bank.Contracts;
 using Anela.Heblo.Application.Features.Bank.UseCases.GetBankAccounts;
 using Anela.Heblo.Application.Features.Bank.UseCases.GetBankStatementById;
@@ -79,10 +80,10 @@ public class BankStatementsController : BaseApiController
         [FromQuery] int? id = null,
         [FromQuery] string? transferId = null,
         [FromQuery] string? account = null,
-        [FromQuery] string? statementDate = null,
-        [FromQuery] string? importDate = null,
-        [FromQuery] string? dateFrom = null,
-        [FromQuery] string? dateTo = null,
+        [FromQuery][ModelBinder(BinderType = typeof(UtcDateTimeModelBinder))] DateTime? statementDate = null,
+        [FromQuery][ModelBinder(BinderType = typeof(UtcDateTimeModelBinder))] DateTime? importDate = null,
+        [FromQuery][ModelBinder(BinderType = typeof(UtcDateTimeModelBinder))] DateTime? dateFrom = null,
+        [FromQuery][ModelBinder(BinderType = typeof(UtcDateTimeModelBinder))] DateTime? dateTo = null,
         [FromQuery] bool? errorsOnly = null,
         [FromQuery] int skip = 0,
         [FromQuery] int take = 10,

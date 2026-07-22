@@ -26,11 +26,6 @@ public class GetBankStatementListHandler : IRequestHandler<GetBankStatementListR
     {
         _logger.LogInformation("Getting bank statement list with Skip={Skip}, Take={Take}", request.Skip, request.Take);
 
-        DateTime? statementDate = ParseDateOrNull(request.StatementDate);
-        DateTime? importDate = ParseDateOrNull(request.ImportDate);
-        DateTime? dateFrom = ParseDateOrNull(request.DateFrom);
-        DateTime? dateTo = ParseDateOrNull(request.DateTo);
-
         var trimmedTransferId = NormalizeNullableString(request.TransferId);
         var trimmedAccount = NormalizeNullableString(request.Account);
 
@@ -38,10 +33,10 @@ public class GetBankStatementListHandler : IRequestHandler<GetBankStatementListR
             Id: request.Id,
             TransferId: trimmedTransferId,
             Account: trimmedAccount,
-            StatementDate: statementDate,
-            ImportDate: importDate,
-            DateFrom: dateFrom,
-            DateTo: dateTo,
+            StatementDate: request.StatementDate,
+            ImportDate: request.ImportDate,
+            DateFrom: request.DateFrom,
+            DateTo: request.DateTo,
             ErrorsOnly: request.ErrorsOnly);
 
         var (items, totalCount) = await _repository.GetFilteredAsync(
@@ -62,9 +57,6 @@ public class GetBankStatementListHandler : IRequestHandler<GetBankStatementListR
             TotalCount = totalCount
         };
     }
-
-    private static DateTime? ParseDateOrNull(string? value) =>
-        !string.IsNullOrWhiteSpace(value) && DateTime.TryParse(value, out var parsed) ? parsed : null;
 
     private static string? NormalizeNullableString(string? value) =>
         string.IsNullOrWhiteSpace(value) ? null : value.Trim();
