@@ -47,6 +47,13 @@ public class RecurringJobSeederTests : IDisposable
         Assert.Contains(configurations, c => c.JobName == "daily-invoice-import-czk");
         Assert.Contains(configurations, c => c.JobName == "daily-comgate-czk-import");
         Assert.Contains(configurations, c => c.JobName == "daily-comgate-eur-import");
+
+        // Verify TimeZoneId is seeded from job metadata, not just defaulted
+        var defaultTimeZoneJob = configurations.Single(c => c.JobName == "purchase-price-recalculation");
+        Assert.Equal(RecurringJobMetadata.DefaultTimeZoneId, defaultTimeZoneJob.TimeZoneId);
+
+        var nonDefaultTimeZoneJob = configurations.Single(c => c.JobName == "invoice-classification");
+        Assert.Equal("America/New_York", nonDefaultTimeZoneJob.TimeZoneId);
     }
 
     [Fact]
@@ -58,6 +65,7 @@ public class RecurringJobSeederTests : IDisposable
             "Purchase Price Recalculation",
             "Recalculates purchase prices for all materials and products",
             "0 2 * * *",
+            "Europe/Prague",
             true,
             "System");
 
@@ -174,7 +182,7 @@ public class RecurringJobSeederTests : IDisposable
             new MockRecurringJob("purchase-price-recalculation", "Purchase Price Recalculation", "Recalculates purchase prices for all materials and products", "0 2 * * *"),
             new MockRecurringJob("product-export-download", "Product Export Download", "Downloads product export data from external systems", "0 2 * * *"),
             new MockRecurringJob("product-weight-recalculation", "Product Weight Recalculation", "Recalculates product weights based on current material composition", "0 2 * * *"),
-            new MockRecurringJob("invoice-classification", "Invoice Classification", "Classifies and categorizes incoming invoices", "0 * * * *"),
+            new MockRecurringJob("invoice-classification", "Invoice Classification", "Classifies and categorizes incoming invoices", "0 * * * *", "America/New_York"),
             new MockRecurringJob("daily-consumption-calculation", "Daily Consumption Calculation", "Calculates daily consumption of packing materials", "0 3 * * *"),
             new MockRecurringJob("daily-invoice-import-eur", "Daily Invoice Import (EUR)", "Imports EUR invoices from Shoptet to ABRA Flexi", "0 4 * * *"),
             new MockRecurringJob("daily-invoice-import-czk", "Daily Invoice Import (CZK)", "Imports CZK invoices from Shoptet to ABRA Flexi", "15 4 * * *"),
@@ -190,7 +198,7 @@ public class RecurringJobSeederTests : IDisposable
     {
         public RecurringJobMetadata Metadata { get; }
 
-        public MockRecurringJob(string jobName, string displayName, string description, string cronExpression)
+        public MockRecurringJob(string jobName, string displayName, string description, string cronExpression, string? timeZoneId = null)
         {
             Metadata = new RecurringJobMetadata
             {
@@ -198,7 +206,8 @@ public class RecurringJobSeederTests : IDisposable
                 DisplayName = displayName,
                 Description = description,
                 CronExpression = cronExpression,
-                DefaultIsEnabled = true
+                DefaultIsEnabled = true,
+                TimeZoneId = timeZoneId ?? RecurringJobMetadata.DefaultTimeZoneId
             };
         }
 

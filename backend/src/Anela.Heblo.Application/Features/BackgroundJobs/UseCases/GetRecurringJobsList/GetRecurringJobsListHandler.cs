@@ -39,7 +39,7 @@ public class GetRecurringJobsListHandler : IRequestHandler<GetRecurringJobsListR
         foreach (var dto in jobDtos)
         {
             dto.NextRunAt = RecurringJobNextRunCalculator.Calculate(
-                dto.CronExpression, dto.IsEnabled, utcNow, _logger, dto.JobName);
+                dto.CronExpression, dto.IsEnabled, dto.TimeZoneId, utcNow, _logger, dto.JobName);
         }
 
         _logger.LogInformation("Retrieved {Count} recurring jobs", jobDtos.Count);

@@ -1,0 +1,40 @@
+{
+  "feature_id": "feat-3704",
+  "issue_number": 3704,
+  "created_at": "2026-07-20T05:15:35.170761Z",
+  "max_revisions": 3,
+  "phases": {
+    "analyzing": {
+      "status": "completed",
+      "updated_at": "2026-07-20T05:17:12.392225Z"
+    },
+    "architecting": {
+      "status": "completed",
+      "updated_at": "2026-07-20T05:19:13.704226Z"
+    },
+    "designing": {
+      "status": "completed",
+      "updated_at": "2026-07-20T05:20:01.287998Z"
+    },
+    "planning": {
+      "status": "completed",
+      "updated_at": "2026-07-20T05:21:06.952434Z"
+    },
+    "developing": {
+      "status": "completed",
+      "updated_at": "2026-07-20T06:19:19.440385Z"
+    },
+    "code-review": {
+      "status": "completed",
+      "updated_at": "2026-07-20T06:20:24.116715Z"
+    }
+  },
+  "tasks": [
+    {
+      "name": "extract-stock-analysis-calculator",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-07-20T06:19:14.591071Z"
+    }
+  ]
+}

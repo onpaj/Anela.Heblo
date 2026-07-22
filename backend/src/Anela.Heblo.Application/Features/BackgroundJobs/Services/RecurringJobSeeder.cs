@@ -28,6 +28,7 @@ public class RecurringJobSeeder : IRecurringJobSeeder
             job.Metadata.DisplayName,
             job.Metadata.Description,
             job.Metadata.CronExpression,
+            job.Metadata.TimeZoneId,
             job.Metadata.DefaultIsEnabled,
             "System"
         )).ToArray();
