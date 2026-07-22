@@ -12,6 +12,8 @@ namespace Anela.Heblo.Application.Features.Photobank.UseCases.ReapplyRules
 {
     public class ReapplyRulesHandler : IRequestHandler<ReapplyRulesRequest, ReapplyRulesResponse>
     {
+        private const int PageSize = 2000;
+
         private readonly IPhotobankRepository _repository;
         private readonly IPhotobankTagsCache _cache;
 
@@ -62,48 +64,57 @@ namespace Anela.Heblo.Application.Features.Photobank.UseCases.ReapplyRules
 
             var occupied = await _repository.GetOccupiedTagPairsAsync(scopeToTagName, cancellationToken);
             var tagIdsByName = await _repository.GetOrCreateTagsAsync(ruleTagNames, cancellationToken);
-            var photos = await _repository.GetAllPhotosAsync(cancellationToken);
 
             var addedPairs = new HashSet<(int PhotoId, int TagId)>();
             var newPhotoTags = new List<PhotoTag>();
             var now = DateTime.UtcNow;
             var photosUpdated = 0;
 
-            foreach (var photo in photos)
+            var offset = 0;
+            while (true)
             {
-                var allMatchingTagNames = TagRuleMatcher.GetMatchingTags(photo.FolderPath, photo.FileName, activeRules);
-                var matchingTagNames = scopeToTagName != null
-                    ? (IReadOnlyList<string>)allMatchingTagNames.Where(n => n == scopeToTagName).ToList()
-                    : allMatchingTagNames;
+                var page = await _repository.GetPhotoRuleCandidatesPageAsync(PageSize, offset, cancellationToken);
 
-                if (matchingTagNames.Count == 0)
-                    continue;
-
-                var tagsUpdated = false;
-                foreach (var tagName in matchingTagNames)
+                foreach (var photo in page)
                 {
-                    if (!tagIdsByName.TryGetValue(tagName, out var tagId))
+                    var allMatchingTagNames = TagRuleMatcher.GetMatchingTags(photo.FolderPath, photo.FileName, activeRules);
+                    var matchingTagNames = scopeToTagName != null
+                        ? (IReadOnlyList<string>)allMatchingTagNames.Where(n => n == scopeToTagName).ToList()
+                        : allMatchingTagNames;
+
+                    if (matchingTagNames.Count == 0)
                         continue;
 
-                    var pair = (photo.Id, tagId);
-                    if (!addedPairs.Add(pair))
-                        continue;
-
-                    if (occupied.Contains(pair))
-                        continue;
-
-                    newPhotoTags.Add(new PhotoTag
+                    var tagsUpdated = false;
+                    foreach (var tagName in matchingTagNames)
                     {
-                        PhotoId = photo.Id,
-                        TagId = tagId,
-                        Source = PhotoTagSource.Rule,
-                        CreatedAt = now,
-                    });
-                    tagsUpdated = true;
+                        if (!tagIdsByName.TryGetValue(tagName, out var tagId))
+                            continue;
+
+                        var pair = (photo.Id, tagId);
+                        if (!addedPairs.Add(pair))
+                            continue;
+
+                        if (occupied.Contains(pair))
+                            continue;
+
+                        newPhotoTags.Add(new PhotoTag
+                        {
+                            PhotoId = photo.Id,
+                            TagId = tagId,
+                            Source = PhotoTagSource.Rule,
+                            CreatedAt = now,
+                        });
+                        tagsUpdated = true;
+                    }
+
+                    if (tagsUpdated)
+                        photosUpdated++;
                 }
 
-                if (tagsUpdated)
-                    photosUpdated++;
+                offset += page.Count;
+                if (page.Count < PageSize)
+                    break;
             }
 
             await _repository.AddPhotoTagsAsync(newPhotoTags, cancellationToken);

@@ -25,8 +25,6 @@ namespace Anela.Heblo.Domain.Features.Photobank
 
         Task<PhotoLocator?> GetLocatorAsync(int id, CancellationToken cancellationToken);
 
-        Task<List<Photo>> GetAllPhotosAsync(CancellationToken cancellationToken);
-
         Task<Photo?> GetPhotoBySharePointFileIdAsync(string sharePointFileId, CancellationToken cancellationToken);
 
         Task AddPhotoAsync(Photo photo, CancellationToken cancellationToken);
@@ -71,6 +69,9 @@ namespace Anela.Heblo.Domain.Features.Photobank
         Task ResetAutoTaggedAtAsync(IReadOnlyList<int> photoIds, CancellationToken cancellationToken);
         Task<List<Photo>> GetPhotosByIdsAsync(IReadOnlyList<int> photoIds, CancellationToken cancellationToken);
         Task RemovePhotoTagsBySourceAsync(IReadOnlyList<int> photoIds, PhotoTagSource source, CancellationToken cancellationToken);
+
+        // Rule reapply
+        Task<List<PhotoAutoTagCandidate>> GetPhotoRuleCandidatesPageAsync(int pageSize, int offset, CancellationToken cancellationToken);
 
         Task SaveChangesAsync(CancellationToken cancellationToken);
     }

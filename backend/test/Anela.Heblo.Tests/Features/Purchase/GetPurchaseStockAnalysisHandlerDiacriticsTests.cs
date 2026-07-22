@@ -25,6 +25,7 @@ public class GetPurchaseStockAnalysisHandlerDiacriticsTests
         _handler = new GetPurchaseStockAnalysisHandler(
             _materialCatalogMock.Object,
             _stockSeverityCalculatorMock.Object,
+            new StockAnalysisCalculator(),
             _loggerMock.Object);
     }
 
