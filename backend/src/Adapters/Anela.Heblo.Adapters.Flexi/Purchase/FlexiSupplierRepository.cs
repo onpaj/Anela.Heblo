@@ -46,12 +46,6 @@ public class FlexiSupplierRepository : ISupplierRepository
         return allSuppliers.FirstOrDefault(s => s.Id == id);
     }
 
-    public async Task<Supplier?> GetByNameAsync(string name, CancellationToken cancellationToken = default)
-    {
-        var allSuppliers = await GetAllSuppliersFromCacheAsync(cancellationToken);
-        return allSuppliers.FirstOrDefault(s => s.Name.Equals(name, StringComparison.OrdinalIgnoreCase));
-    }
-
     private async Task<List<Supplier>> GetAllSuppliersFromCacheAsync(CancellationToken cancellationToken)
     {
         const string cacheKey = "all_suppliers";

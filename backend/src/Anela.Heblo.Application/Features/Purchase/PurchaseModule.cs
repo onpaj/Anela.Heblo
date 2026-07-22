@@ -24,6 +24,9 @@ public static class PurchaseModule
         // Register stock severity calculator
         services.AddScoped<IStockSeverityCalculator, StockSeverityCalculator>();
 
+        // Register stock analysis calculator
+        services.AddScoped<IStockAnalysisCalculator, StockAnalysisCalculator>();
+
         // Cross-module contract: Purchase implements Catalog's ICatalogPurchaseSource via adapter.
         // DI registration is owned by the provider (Purchase), not the consumer (Catalog).
         services.AddScoped<ICatalogPurchaseSource, PurchaseCatalogSourceAdapter>();

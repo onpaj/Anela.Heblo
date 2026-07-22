@@ -12,10 +12,10 @@ namespace Anela.Heblo.Application.Features.ExpeditionList.UseCases.PrintExpediti
 public class PrintExpeditionOrderHandler : IRequestHandler<PrintExpeditionOrderRequest, PrintExpeditionOrderResponse>
 {
     // These are already-in-progress / done / cancelled states — printing them would double-print.
+    // "Desired state after printing" is checked separately below against _options.Value.DesiredStateId.
     private static readonly IReadOnlyDictionary<int, string> NonPrintableStates = new Dictionary<int, string>
     {
         { -3, "zrušeno/blokováno" },
-        { 26, "Balí se" },
         { 52, "Zabaleno" },
         { 70, "Předáno přepravci" },
     };
@@ -52,6 +52,17 @@ public class PrintExpeditionOrderHandler : IRequestHandler<PrintExpeditionOrderR
             return new PrintExpeditionOrderResponse(
                 ErrorCodes.ShoptetOrderNotFound,
                 new Dictionary<string, string> { { "orderCode", request.OrderCode } });
+        }
+
+        if (currentStatusId == _options.Value.DesiredStateId)
+        {
+            return new PrintExpeditionOrderResponse(
+                ErrorCodes.ExpeditionOrderInvalidState,
+                new Dictionary<string, string>
+                {
+                    { "orderCode", request.OrderCode },
+                    { "currentStatusName", "Balí se" },
+                });
         }
 
         if (NonPrintableStates.TryGetValue(currentStatusId, out var stateName))
