@@ -6,8 +6,17 @@ Code on the web) do not have a working `gh` CLI, even though CLAUDE.md says
 
 - `gh auth status` reports the `GH_TOKEN` is invalid.
 - Any `gh` subcommand that uses GitHub's GraphQL API (issue search with
-  `--search`, `gh issue view`, etc.) fails with
-  `HTTP 403: GraphQL proxying is not enabled.`
+  `--search`, `gh issue view`, `gh pr list`, etc.) fails with
+  `HTTP 403: GraphQL proxying is not enabled` / "This GraphQL query is not
+  enabled for this session".
+- Confirmed 2026-07-22: this is not GraphQL-specific — `gh api repos/<owner>/<repo>`
+  and `gh api repos/<owner>/<repo>/pulls` (plain REST) fail too, with
+  `403 GitHub access is not enabled for this session. An org admin must
+  connect the Claude GitHub App for this organization.` Only non-repo-scoped
+  calls like `gh api user` succeed. Don't bother retrying `gh api` as a
+  REST-based workaround for `gh pr`/`gh issue` — repo access is blocked
+  wholesale for the `gh` CLI's token in these sessions; go straight to the
+  MCP tools instead.
 
 These sessions instead expose the GitHub MCP server tools
 (`mcp__github__*`) and explicitly instruct using those for all GitHub
