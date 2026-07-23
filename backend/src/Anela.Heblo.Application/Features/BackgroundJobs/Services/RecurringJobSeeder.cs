@@ -46,6 +46,7 @@ public class RecurringJobSeeder : IRecurringJobSeeder
                     config.DisplayName,
                     config.Description,
                     existing.CronExpression,   // preserve admin override
+                    config.TimeZoneId,
                     "System");
                 await _repository.UpdateAsync(existing, cancellationToken);
             }

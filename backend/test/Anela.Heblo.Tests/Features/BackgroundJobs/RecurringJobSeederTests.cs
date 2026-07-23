@@ -96,6 +96,7 @@ public class RecurringJobSeederTests : IDisposable
             "Old Display Name",
             "Old description that no longer matches the code",
             "0 2 * * *",
+            "Europe/Prague",
             true,
             "System");
 
@@ -123,6 +124,7 @@ public class RecurringJobSeederTests : IDisposable
             "Purchase Price Recalculation",
             "Recalculates purchase prices for all materials and products",
             "0 0 * * *", // admin-customized cron, differs from mock job's "0 2 * * *"
+            "Europe/Prague",
             false,       // admin-disabled, differs from mock job's DefaultIsEnabled: true
             "System");
 
@@ -150,6 +152,7 @@ public class RecurringJobSeederTests : IDisposable
             "Purchase Price Recalculation",
             "Recalculates purchase prices for all materials and products",
             "0 2 * * *",
+            "Europe/Prague",
             true,
             "Admin");
 
