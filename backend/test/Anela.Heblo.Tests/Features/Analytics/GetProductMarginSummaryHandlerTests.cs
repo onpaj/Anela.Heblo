@@ -278,6 +278,12 @@ public class GetProductMarginSummaryHandlerTests
         result.TotalMargin.Should().Be(500m);
         result.MonthlyData.Should().BeSameAs(monthlyData);
 
+        // TopProducts[].TotalMargin must come directly from the pre-computed GroupTotals value
+        // (500m), not from a recomputation over the group's products/SalesHistory.
+        result.TopProducts.Should().ContainSingle();
+        result.TopProducts[0].GroupKey.Should().Be("PROD001");
+        result.TopProducts[0].TotalMargin.Should().Be(500m);
+
         marginCalculatorMock.Verify(
             x => x.CalculateAsync(
                 It.IsAny<IAsyncEnumerable<AnalyticsProduct>>(),
