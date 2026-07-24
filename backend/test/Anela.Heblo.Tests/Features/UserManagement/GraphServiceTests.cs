@@ -322,6 +322,63 @@ public class GraphServiceTests
     }
 
     [Fact]
+    public async Task GetAppRoleMembersAsync_TokenAcquisitionMsalException_Throws()
+    {
+        var handler = new SequentialFakeHttpMessageHandler();
+
+        var factoryMock = new Mock<IHttpClientFactory>();
+        factoryMock
+            .Setup(f => f.CreateClient(MicrosoftGraphClientName))
+            .Returns(() => new HttpClient(handler, disposeHandler: false));
+
+        var tokenMock = new Mock<ITokenAcquisition>();
+        tokenMock
+            .Setup(t => t.GetAccessTokenForAppAsync(
+                It.IsAny<string>(),
+                It.IsAny<string?>(),
+                It.IsAny<TokenAcquisitionOptions?>()))
+            .ThrowsAsync(new MsalUiRequiredException("err", "msg"));
+
+        var cache = new MemoryCache(new MemoryCacheOptions());
+        var logger = Mock.Of<ILogger<GraphService>>();
+        var configuration = new Mock<IConfiguration>();
+        configuration.Setup(c => c["AzureAd:ClientId"]).Returns("test-client-id");
+
+        var service = new GraphService(tokenMock.Object, cache, logger, factoryMock.Object, configuration.Object);
+
+        await Assert.ThrowsAsync<GraphServiceAuthException>(() => service.GetAppRoleMembersAsync("Admin"));
+        factoryMock.Verify(f => f.CreateClient(It.IsAny<string>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task GetAppRoleMembersAsync_TransportThrows_Throws()
+    {
+        var throwingHandler = new ThrowingHttpMessageHandler(new HttpRequestException("boom"));
+
+        var factoryMock = new Mock<IHttpClientFactory>();
+        factoryMock
+            .Setup(f => f.CreateClient(MicrosoftGraphClientName))
+            .Returns(() => new HttpClient(throwingHandler, disposeHandler: false));
+
+        var tokenMock = new Mock<ITokenAcquisition>();
+        tokenMock
+            .Setup(t => t.GetAccessTokenForAppAsync(
+                "https://graph.microsoft.com/.default",
+                It.IsAny<string?>(),
+                It.IsAny<TokenAcquisitionOptions?>()))
+            .ReturnsAsync("test-token");
+
+        var cache = new MemoryCache(new MemoryCacheOptions());
+        var logger = Mock.Of<ILogger<GraphService>>();
+        var configuration = new Mock<IConfiguration>();
+        configuration.Setup(c => c["AzureAd:ClientId"]).Returns("test-client-id");
+
+        var service = new GraphService(tokenMock.Object, cache, logger, factoryMock.Object, configuration.Object);
+
+        await Assert.ThrowsAsync<HttpRequestException>(() => service.GetAppRoleMembersAsync("Admin"));
+    }
+
+    [Fact]
     public async Task GetGroupMembersAsync_CacheMiss_InvokesFactory_AndReturnsParsedUsers()
     {
         // Arrange
