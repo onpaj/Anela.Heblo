@@ -1,6 +1,6 @@
 using Anela.Heblo.Domain.Features.Analytics;
 
-namespace Anela.Heblo.Persistence.Features.Analytics;
+namespace Anela.Heblo.Application.Features.Analytics;
 
 /// <summary>
 /// 🔒 PERFORMANCE FIX: Analytics repository with streaming capabilities
