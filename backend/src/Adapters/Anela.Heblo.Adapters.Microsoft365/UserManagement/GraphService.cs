@@ -214,10 +214,12 @@ public class GraphService : IGraphService
             {
                 graphToken = await _tokenAcquisition.GetAccessTokenForAppAsync("https://graph.microsoft.com/.default");
             }
-            catch (Exception ex)
+            catch (MsalException msalEx)
             {
-                _logger.LogError(ex, "Failed to acquire Graph token for app role member lookup");
-                return new List<UserDto>();
+                _logger.LogError(msalEx, "Failed to acquire Graph token for app role member lookup. MSAL Error: {ErrorCode} - {ErrorDescription}",
+                    msalEx.ErrorCode, msalEx.Message);
+                throw new GraphServiceAuthException(
+                    $"Failed to acquire Graph token for app role member lookup: {msalEx.Message}", msalEx);
             }
 
             var httpClient = _httpClientFactory.CreateClient("MicrosoftGraph");
@@ -368,10 +370,14 @@ public class GraphService : IGraphService
             _logger.LogInformation("Resolved {Count} app role members for role '{RoleValue}'", users.Count, appRoleValue);
             return users;
         }
+        catch (GraphServiceAuthException)
+        {
+            throw;
+        }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Unexpected error fetching app role members for role '{RoleValue}'", appRoleValue);
-            return new List<UserDto>();
+            throw;
         }
     }
 }
