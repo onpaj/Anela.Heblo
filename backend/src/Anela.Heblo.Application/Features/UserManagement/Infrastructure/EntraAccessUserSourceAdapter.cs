@@ -1,4 +1,5 @@
 using Anela.Heblo.Application.Features.Authorization.Contracts;
+using Anela.Heblo.Application.Features.UserManagement.Contracts;
 using Anela.Heblo.Application.Features.UserManagement.Services;
 using Anela.Heblo.Domain.Features.Authorization;
 
@@ -12,7 +13,22 @@ internal sealed class EntraAccessUserSourceAdapter : IEntraAccessUserSource
 
     public async Task<List<EntraAccessUserRecord>> GetBaseMembersAsync(CancellationToken ct)
     {
-        var users = await _graph.GetAppRoleMembersAsync(AccessRoles.Base, ct);
+        List<UserDto> users;
+        try
+        {
+            users = await _graph.GetAppRoleMembersAsync(AccessRoles.Base, ct);
+        }
+        catch (GraphServiceAuthException ex)
+        {
+            throw new EntraAccessSourceAuthException(
+                $"Failed to resolve Entra Base role members: {ex.Message}", ex);
+        }
+        catch (GraphServiceException ex)
+        {
+            throw new EntraAccessSourceException(
+                $"Failed to resolve Entra Base role members: {ex.Message}", ex);
+        }
+
         return users
             .Select(u => new EntraAccessUserRecord(u.Id, u.Email, u.DisplayName))
             .ToList();
