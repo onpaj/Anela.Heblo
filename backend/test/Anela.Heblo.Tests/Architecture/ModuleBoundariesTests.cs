@@ -195,8 +195,11 @@ public class ModuleBoundariesTests
         "Anela.Heblo.Application.Features.Manufacture.UseCases.GetStockAnalysis.GetManufacturingStockAnalysisHandler+<Handle>d__9 -> Anela.Heblo.Domain.Features.Catalog.CatalogAggregate",
         "Anela.Heblo.Application.Features.Manufacture.UseCases.SubmitManufactureStockTaking.SubmitManufactureStockTakingHandler -> Anela.Heblo.Domain.Features.Catalog.CatalogAggregate",
         "Anela.Heblo.Application.Features.Manufacture.UseCases.SubmitManufactureStockTaking.SubmitManufactureStockTakingHandler+<Handle>d__4 -> Anela.Heblo.Domain.Features.Catalog.CatalogAggregate",
-        "Anela.Heblo.Application.Features.Manufacture.UseCases.UpdateManufactureOrderStatus.UpdateManufactureOrderStatusHandler+<>c__DisplayClass9_0 -> Anela.Heblo.Domain.Features.Catalog.CatalogAggregate",
-        "Anela.Heblo.Application.Features.Manufacture.UseCases.UpdateManufactureOrderStatus.UpdateManufactureOrderStatusHandler+<WriteDownInventoryAsync>d__9 -> Anela.Heblo.Domain.Features.Catalog.CatalogAggregate",
+        // WriteDownInventoryAsync was extracted from UpdateManufactureOrderStatusHandler into
+        // ManufactureInventoryWriteDownService (arch-review SRP fix); the CatalogAggregate lookup
+        // now lives there. This base entry covers the compiler-generated async state machine and
+        // closure types nested under it via the declaring-type fallback check.
+        "Anela.Heblo.Application.Features.Manufacture.Services.ManufactureInventoryWriteDownService -> Anela.Heblo.Domain.Features.Catalog.CatalogAggregate",
 
         // Domain enums/types reached via CatalogAggregate properties.
         // Same follow-up as above.
