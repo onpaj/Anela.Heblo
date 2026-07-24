@@ -62,6 +62,8 @@ public static class ManufactureModule
         services.AddScoped<IManufactureNameBuilder, ManufactureNameBuilder>();
         services.AddScoped<IConfirmSemiProductManufactureWorkflow, ConfirmSemiProductManufactureWorkflow>();
         services.AddScoped<IConfirmProductCompletionWorkflow, ConfirmProductCompletionWorkflow>();
+        services.AddScoped<IManufactureInventoryWriteDownService, ManufactureInventoryWriteDownService>();
+        services.AddScoped<IManufactureConditionsCaptureService, ManufactureConditionsCaptureService>();
 
         // Register dashboard tiles
         services.RegisterTile<TodayProductionTile>();

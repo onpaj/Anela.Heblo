@@ -1,9 +1,6 @@
-using Anela.Heblo.Application.Features.Manufacture.Contracts;
+using Anela.Heblo.Application.Features.Manufacture.Services;
 using Anela.Heblo.Application.Shared;
-using Anela.Heblo.Domain.Features.Catalog;
 using Anela.Heblo.Domain.Features.Manufacture;
-using Anela.Heblo.Domain.Features.Manufacture.Conditions;
-using Anela.Heblo.Domain.Features.Manufacture.Inventory;
 using Anela.Heblo.Domain.Features.Users;
 using MediatR;
 using Microsoft.Extensions.Logging;
@@ -13,29 +10,26 @@ namespace Anela.Heblo.Application.Features.Manufacture.UseCases.UpdateManufactur
 public class UpdateManufactureOrderStatusHandler : IRequestHandler<UpdateManufactureOrderStatusRequest, UpdateManufactureOrderStatusResponse>
 {
     private readonly IManufactureOrderRepository _repository;
-    private readonly IManufacturedProductInventoryRepository _inventoryRepository;
-    private readonly IManufactureCatalogSource _catalogSource;
     private readonly TimeProvider _timeProvider;
     private readonly ILogger<UpdateManufactureOrderStatusHandler> _logger;
     private readonly ICurrentUserService _currentUserService;
-    private readonly IConditionsReadingProvider _conditionsProvider;
+    private readonly IManufactureInventoryWriteDownService _inventoryWriteDownService;
+    private readonly IManufactureConditionsCaptureService _conditionsCaptureService;
 
     public UpdateManufactureOrderStatusHandler(
         IManufactureOrderRepository repository,
         TimeProvider timeProvider,
         ILogger<UpdateManufactureOrderStatusHandler> logger,
         ICurrentUserService currentUserService,
-        IConditionsReadingProvider conditionsProvider,
-        IManufacturedProductInventoryRepository inventoryRepository,
-        IManufactureCatalogSource catalogSource)
+        IManufactureInventoryWriteDownService inventoryWriteDownService,
+        IManufactureConditionsCaptureService conditionsCaptureService)
     {
         _repository = repository;
         _timeProvider = timeProvider;
         _logger = logger;
         _currentUserService = currentUserService;
-        _conditionsProvider = conditionsProvider;
-        _inventoryRepository = inventoryRepository;
-        _catalogSource = catalogSource;
+        _inventoryWriteDownService = inventoryWriteDownService;
+        _conditionsCaptureService = conditionsCaptureService;
     }
 
     public async Task<UpdateManufactureOrderStatusResponse> Handle(UpdateManufactureOrderStatusRequest request, CancellationToken cancellationToken)
@@ -131,13 +125,13 @@ public class UpdateManufactureOrderStatusHandler : IRequestHandler<UpdateManufac
             if (request.NewState is ManufactureOrderState.SemiProductManufactured or ManufactureOrderState.Completed
                 && order.ConditionsReadings.All(r => r.Stage != request.NewState))
             {
-                var reading = await CaptureConditionsReadingAsync(order, request.NewState, cancellationToken);
+                var reading = await _conditionsCaptureService.CaptureAsync(order, request.NewState, cancellationToken);
                 order.ConditionsReadings.Add(reading);
             }
 
             if (request.NewState == ManufactureOrderState.Completed)
             {
-                await WriteDownInventoryAsync(order, currentUserName, cancellationToken);
+                await _inventoryWriteDownService.WriteDownAsync(order, currentUserName, cancellationToken);
             }
 
             await _repository.UpdateOrderAsync(order, cancellationToken);
@@ -154,114 +148,6 @@ public class UpdateManufactureOrderStatusHandler : IRequestHandler<UpdateManufac
         {
             _logger.LogError(ex, "Error updating manufacture order status for order {OrderId}", request.Id);
             return new UpdateManufactureOrderStatusResponse(ErrorCodes.InternalServerError);
-        }
-    }
-
-    private async Task WriteDownInventoryAsync(ManufactureOrder order, string changedByUser, CancellationToken cancellationToken)
-    {
-        var timestamp = _timeProvider.GetUtcNow().DateTime;
-
-        var productsWithQuantity = order.Products
-            .Where(p => p.ActualQuantity is > 0)
-            .ToList();
-
-        if (productsWithQuantity.Count == 0)
-            return;
-
-        var productCodes = productsWithQuantity.Select(p => p.ProductCode).Distinct().ToList();
-        var catalogEntries = await _catalogSource.GetByIdsAsync(productCodes, cancellationToken);
-
-        // Exclude semi-products, then aggregate by product+lot+expiration so repeated output of the same
-        // product/lot produces a single inventory row instead of duplicates.
-        var lines = productsWithQuantity
-            .Where(p => !catalogEntries.TryGetValue(p.ProductCode, out var entry) || entry.Type != ProductType.SemiProduct)
-            .GroupBy(p => new { p.ProductCode, p.LotNumber, p.ExpirationDate })
-            .Select(g => new
-            {
-                g.Key.ProductCode,
-                ProductName = g.First().ProductName,
-                g.Key.LotNumber,
-                g.Key.ExpirationDate,
-                Amount = g.Sum(p => p.ActualQuantity!.Value)
-            })
-            .ToList();
-
-        if (lines.Count == 0)
-            return;
-
-        var existingItems = await _inventoryRepository.GetByProductCodesWithLogsAsync(
-            lines.Select(l => l.ProductCode).Distinct().ToList(), cancellationToken);
-
-        var newItems = new List<ManufacturedProductInventoryItem>();
-
-        foreach (var line in lines)
-        {
-            var existing = existingItems.FirstOrDefault(i =>
-                i.ProductCode == line.ProductCode
-                && i.LotNumber == line.LotNumber
-                && i.ExpirationDate == line.ExpirationDate);
-
-            if (existing != null)
-            {
-                // Idempotency: completing the same order again must not write the amount twice.
-                if (existing.WasWrittenDownByOrder(order.Id))
-                {
-                    _logger.LogInformation(
-                        "Skipping duplicate inventory write-down for order {OrderId}, product {ProductCode}, lot {LotNumber} — already written",
-                        order.Id, line.ProductCode, line.LotNumber);
-                    continue;
-                }
-
-                existing.WriteDownFromManufacture(line.Amount, changedByUser, timestamp, order.Id);
-            }
-            else
-            {
-                newItems.Add(new ManufacturedProductInventoryItem(
-                    productCode: line.ProductCode,
-                    productName: line.ProductName,
-                    amount: line.Amount,
-                    createdBy: changedByUser,
-                    createdAt: timestamp,
-                    lotNumber: line.LotNumber,
-                    expirationDate: line.ExpirationDate,
-                    manufactureOrderId: order.Id));
-            }
-        }
-
-        if (newItems.Count > 0)
-            await _inventoryRepository.AddRangeAsync(newItems, cancellationToken);
-    }
-
-    private async Task<ManufactureOrderConditionsReading> CaptureConditionsReadingAsync(
-        ManufactureOrder order,
-        ManufactureOrderState stage,
-        CancellationToken cancellationToken)
-    {
-        try
-        {
-            var snapshot = await _conditionsProvider.GetCurrentSnapshotAsync(cancellationToken);
-            return new ManufactureOrderConditionsReading
-            {
-                ManufactureOrderId = order.Id,
-                Stage = stage,
-                InnerTemperature = snapshot.InnerTemperature,
-                InnerHumidity = snapshot.InnerHumidity,
-                OuterTemperature = snapshot.OuterTemperature,
-                OuterHumidity = snapshot.OuterHumidity,
-                RecordedAt = snapshot.RecordedAt,
-                Source = snapshot.Source,
-            };
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Failed to capture conditions reading for order {OrderId}, stage {Stage}", order.Id, stage);
-            return new ManufactureOrderConditionsReading
-            {
-                ManufactureOrderId = order.Id,
-                Stage = stage,
-                RecordedAt = _timeProvider.GetUtcNow().DateTime,
-                Source = ConditionsReadingSource.Unavailable,
-            };
         }
     }
 }
