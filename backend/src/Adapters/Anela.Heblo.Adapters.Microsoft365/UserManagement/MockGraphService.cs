@@ -19,12 +19,6 @@ public class MockGraphService : IGraphService
         return Task.FromResult(new List<UserDto>());
     }
 
-    public Task<List<UserDto>> SearchUsersAsync(string query, CancellationToken cancellationToken = default)
-    {
-        _logger.LogInformation("Mock GraphService: SearchUsersAsync called for query '{Query}'", query);
-        return Task.FromResult(new List<UserDto>());
-    }
-
     public Task<List<UserDto>> GetAppRoleMembersAsync(string appRoleValue, CancellationToken cancellationToken = default)
     {
         _logger.LogInformation("Mock GraphService: GetAppRoleMembersAsync called for role '{AppRoleValue}'", appRoleValue);
