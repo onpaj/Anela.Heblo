@@ -110,4 +110,68 @@ public sealed class PlaudCliClientParserTests
         result.SummaryAvailable.Should().BeFalse();
         result.IsGenerated.Should().BeFalse();
     }
+
+    [Fact]
+    public void ParseSummaryJson_WithValidJson_ExtractsHeadlineAndContent()
+    {
+        const string json = "{\"header\":{\"headline\":\"Weekly Sync\"},\"ai_content\":\"# Notes\\n- item one\"}";
+
+        var result = PlaudCliClient.ParseSummaryJson(json);
+
+        result.Headline.Should().Be("Weekly Sync");
+        result.MarkdownContent.Should().Be("# Notes\n- item one");
+    }
+
+    [Fact]
+    public void ParseSummaryJson_WithMissingHeader_ReturnsEmptyHeadline()
+    {
+        const string json = """{"ai_content":"body text"}""";
+
+        var result = PlaudCliClient.ParseSummaryJson(json);
+
+        result.Headline.Should().Be(string.Empty);
+        result.MarkdownContent.Should().Be("body text");
+    }
+
+    [Fact]
+    public void ParseSummaryJson_WithHeaderButNoHeadline_ReturnsEmptyHeadline()
+    {
+        const string json = """{"header":{},"ai_content":"body text"}""";
+
+        var result = PlaudCliClient.ParseSummaryJson(json);
+
+        result.Headline.Should().Be(string.Empty);
+        result.MarkdownContent.Should().Be("body text");
+    }
+
+    [Fact]
+    public void ParseSummaryJson_WithMissingAiContent_ReturnsEmptyContent()
+    {
+        const string json = """{"header":{"headline":"Title Only"}}""";
+
+        var result = PlaudCliClient.ParseSummaryJson(json);
+
+        result.Headline.Should().Be("Title Only");
+        result.MarkdownContent.Should().Be(string.Empty);
+    }
+
+    [Fact]
+    public void ParseSummaryJson_WithMalformedJson_ReturnsEmptyHeadlineAndRawContent()
+    {
+        const string json = "{ this is not valid json";
+
+        var result = PlaudCliClient.ParseSummaryJson(json);
+
+        result.Headline.Should().Be(string.Empty);
+        result.MarkdownContent.Should().Be(json);
+    }
+
+    [Fact]
+    public void ParseSummaryJson_WithEmptyString_ReturnsEmptyHeadlineAndEmptyContent()
+    {
+        var result = PlaudCliClient.ParseSummaryJson(string.Empty);
+
+        result.Headline.Should().Be(string.Empty);
+        result.MarkdownContent.Should().Be(string.Empty);
+    }
 }

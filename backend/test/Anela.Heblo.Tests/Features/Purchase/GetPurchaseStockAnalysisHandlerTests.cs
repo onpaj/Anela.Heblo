@@ -22,7 +22,7 @@ public class GetPurchaseStockAnalysisHandlerTests
         _materialCatalogMock = new Mock<IMaterialCatalogService>();
         _stockSeverityCalculatorMock = new Mock<IStockSeverityCalculator>();
         _loggerMock = new Mock<ILogger<GetPurchaseStockAnalysisHandler>>();
-        _handler = new GetPurchaseStockAnalysisHandler(_materialCatalogMock.Object, _stockSeverityCalculatorMock.Object, _loggerMock.Object);
+        _handler = new GetPurchaseStockAnalysisHandler(_materialCatalogMock.Object, _stockSeverityCalculatorMock.Object, new StockAnalysisCalculator(), _loggerMock.Object);
     }
 
     private static MaterialStockSnapshot MakeSnapshot(

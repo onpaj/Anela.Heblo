@@ -22,7 +22,6 @@ public class GraphService : IGraphService
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly IConfiguration _configuration;
     private readonly TimeSpan _cacheExpiration = TimeSpan.FromMinutes(20);
-    private const int SearchResultLimit = 25;
     private const int GraphBatchSize = 20;
 
     public GraphService(
@@ -186,82 +185,6 @@ public class GraphService : IGraphService
         {
             _logger.LogError(ex, "Unexpected error fetching group members for group {GroupId}", groupId);
             throw;
-        }
-    }
-
-    public async Task<List<UserDto>> SearchUsersAsync(string query, CancellationToken cancellationToken = default)
-    {
-        var trimmed = (query ?? string.Empty).Trim();
-        if (string.IsNullOrEmpty(trimmed))
-        {
-            return new List<UserDto>();
-        }
-
-        // Strip double quotes so user input cannot break the $search expression.
-        var safe = trimmed.Replace("\"", string.Empty);
-
-        string graphToken;
-        try
-        {
-            graphToken = await _tokenAcquisition.GetAccessTokenForAppAsync("https://graph.microsoft.com/.default");
-        }
-        catch (Exception tokenEx)
-        {
-            _logger.LogError(tokenEx, "Failed to acquire Graph token for directory user search");
-            return new List<UserDto>();
-        }
-
-        try
-        {
-            var searchExpr = Uri.EscapeDataString($"\"displayName:{safe}\" OR \"mail:{safe}\" OR \"userPrincipalName:{safe}\"");
-            var requestUrl =
-                $"https://graph.microsoft.com/v1.0/users?$search={searchExpr}&$select=id,displayName,mail,userPrincipalName&$top={SearchResultLimit}";
-
-            var httpClient = _httpClientFactory.CreateClient("MicrosoftGraph");
-            using var request = new HttpRequestMessage(HttpMethod.Get, requestUrl);
-            request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", graphToken);
-            request.Headers.Add("ConsistencyLevel", "eventual"); // required by Graph $search
-
-            var response = await httpClient.SendAsync(request, cancellationToken);
-            if (!response.IsSuccessStatusCode)
-            {
-                var errorContent = await response.Content.ReadAsStringAsync(cancellationToken);
-                _logger.LogError("Graph directory search failed. Status: {StatusCode}, Body: {Content}",
-                    response.StatusCode, errorContent);
-                return new List<UserDto>();
-            }
-
-            var responseContent = await response.Content.ReadAsStringAsync(cancellationToken);
-            using var jsonDocument = System.Text.Json.JsonDocument.Parse(responseContent);
-
-            var users = new List<UserDto>();
-            if (jsonDocument.RootElement.TryGetProperty("value", out var valueElement) &&
-                valueElement.ValueKind == System.Text.Json.JsonValueKind.Array)
-            {
-                foreach (var el in valueElement.EnumerateArray())
-                {
-                    var id = el.TryGetProperty("id", out var idProp) ? idProp.GetString() ?? string.Empty : string.Empty;
-                    var displayName = el.TryGetProperty("displayName", out var nameProp) ? nameProp.GetString() ?? string.Empty : string.Empty;
-                    var mail = el.TryGetProperty("mail", out var mailProp) ? mailProp.GetString() : null;
-                    var upn = el.TryGetProperty("userPrincipalName", out var upnProp) ? upnProp.GetString() : null;
-
-                    if (string.IsNullOrEmpty(id)) continue;
-
-                    users.Add(new UserDto
-                    {
-                        Id = id,
-                        DisplayName = displayName,
-                        Email = mail ?? upn ?? string.Empty,
-                    });
-                }
-            }
-
-            return users;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Unexpected error during Graph directory user search");
-            return new List<UserDto>();
         }
     }
 

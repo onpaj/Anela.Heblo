@@ -15,6 +15,7 @@ public class RecurringJobConfigurationTests
             displayName: "Purchase Price Recalculation",
             description: "Daily purchase price recalculation job",
             cronExpression: "0 2 * * *",
+            timeZoneId: "Europe/Prague",
             isEnabled: true,
             lastModifiedBy: "system"
         );
@@ -25,8 +26,27 @@ public class RecurringJobConfigurationTests
         Assert.Equal("Purchase Price Recalculation", config.DisplayName);
         Assert.Equal("Daily purchase price recalculation job", config.Description);
         Assert.Equal("0 2 * * *", config.CronExpression);
+        Assert.Equal("Europe/Prague", config.TimeZoneId);
         Assert.True(config.IsEnabled);
         Assert.Equal("system", config.LastModifiedBy);
+    }
+
+    [Fact]
+    public void RecurringJobConfiguration_ShouldSetTimeZoneId_WhenGivenNonDefaultValue()
+    {
+        // Arrange & Act
+        var config = new RecurringJobConfiguration(
+            jobName: "test-job",
+            displayName: "Test Job",
+            description: "Test description",
+            cronExpression: "0 0 * * *",
+            timeZoneId: "America/New_York",
+            isEnabled: true,
+            lastModifiedBy: "system"
+        );
+
+        // Assert
+        Assert.Equal("America/New_York", config.TimeZoneId);
     }
 
     [Fact]
@@ -38,6 +58,7 @@ public class RecurringJobConfigurationTests
             displayName: "Test Job",
             description: "Test description",
             cronExpression: "0 0 * * *",
+            timeZoneId: "Europe/Prague",
             isEnabled: true,
             lastModifiedBy: "system"
         );
@@ -59,6 +80,7 @@ public class RecurringJobConfigurationTests
             displayName: "Test Job",
             description: "Test description",
             cronExpression: "0 0 * * *",
+            timeZoneId: "Europe/Prague",
             isEnabled: true,
             lastModifiedBy: "system"
         ));
@@ -73,6 +95,7 @@ public class RecurringJobConfigurationTests
             displayName: "",
             description: "Test description",
             cronExpression: "0 0 * * *",
+            timeZoneId: "Europe/Prague",
             isEnabled: true,
             lastModifiedBy: "system"
         ));
@@ -87,6 +110,7 @@ public class RecurringJobConfigurationTests
             displayName: "Test Job",
             description: "Test description",
             cronExpression: "0 0 * * *",
+            timeZoneId: "Europe/Prague",
             isEnabled: false,
             lastModifiedBy: "system"
         );
@@ -108,6 +132,7 @@ public class RecurringJobConfigurationTests
             displayName: "Test Job",
             description: "Test description",
             cronExpression: "0 0 * * *",
+            timeZoneId: "Europe/Prague",
             isEnabled: true,
             lastModifiedBy: "system"
         );
@@ -129,6 +154,7 @@ public class RecurringJobConfigurationTests
             displayName: "Test Job",
             description: "Test description",
             cronExpression: "0 0 * * *",
+            timeZoneId: "Europe/Prague",
             isEnabled: true,
             lastModifiedBy: "system"
         );
@@ -138,6 +164,7 @@ public class RecurringJobConfigurationTests
             displayName: "Updated Job",
             description: "Updated description",
             cronExpression: "0 2 * * *",
+            timeZoneId: "America/New_York",
             modifiedBy: "admin"
         );
 
@@ -145,7 +172,47 @@ public class RecurringJobConfigurationTests
         Assert.Equal("Updated Job", config.DisplayName);
         Assert.Equal("Updated description", config.Description);
         Assert.Equal("0 2 * * *", config.CronExpression);
+        Assert.Equal("America/New_York", config.TimeZoneId);
         Assert.Equal("admin", config.LastModifiedBy);
+    }
+
+    [Fact]
+    public void Constructor_ShouldThrowValidationException_WhenTimeZoneIdIsEmpty()
+    {
+        // Arrange & Act & Assert
+        Assert.Throws<ValidationException>(() => new RecurringJobConfiguration(
+            jobName: "test-job",
+            displayName: "Test Job",
+            description: "Test description",
+            cronExpression: "0 0 * * *",
+            timeZoneId: "   ",
+            isEnabled: true,
+            lastModifiedBy: "system"
+        ));
+    }
+
+    [Fact]
+    public void UpdateConfiguration_ShouldThrowValidationException_WhenTimeZoneIdIsEmpty()
+    {
+        // Arrange
+        var config = new RecurringJobConfiguration(
+            jobName: "test-job",
+            displayName: "Test Job",
+            description: "Test description",
+            cronExpression: "0 0 * * *",
+            timeZoneId: "Europe/Prague",
+            isEnabled: true,
+            lastModifiedBy: "system"
+        );
+
+        // Act & Assert
+        Assert.Throws<ValidationException>(() => config.UpdateConfiguration(
+            displayName: "Updated Job",
+            description: "Updated description",
+            cronExpression: "0 2 * * *",
+            timeZoneId: "",
+            modifiedBy: "admin"
+        ));
     }
 
     [Fact]
@@ -157,6 +224,7 @@ public class RecurringJobConfigurationTests
             displayName: "Test Job",
             description: "Test description",
             cronExpression: "0 0 * * *",
+            timeZoneId: "Europe/Prague",
             isEnabled: false,
             lastModifiedBy: "system"
         );
@@ -174,6 +242,7 @@ public class RecurringJobConfigurationTests
             displayName: "Test Job",
             description: "Test description",
             cronExpression: "0 0 * * *",
+            timeZoneId: "Europe/Prague",
             isEnabled: true,
             lastModifiedBy: "system"
         );
