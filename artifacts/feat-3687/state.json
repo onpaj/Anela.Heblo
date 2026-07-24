@@ -1,0 +1,36 @@
+{
+  "feature_id": "feat-3687",
+  "issue_number": 3687,
+  "created_at": "2026-07-18T07:16:47.264845Z",
+  "max_revisions": 3,
+  "phases": {
+    "analyzing": {
+      "status": "completed",
+      "updated_at": "2026-07-18T07:19:06.753964Z"
+    },
+    "architecting": {
+      "status": "completed",
+      "updated_at": "2026-07-18T07:23:53.786463Z"
+    },
+    "designing": {
+      "status": "completed",
+      "updated_at": "2026-07-18T07:24:59.254019Z"
+    },
+    "planning": {
+      "status": "completed",
+      "updated_at": "2026-07-18T07:27:37.787176Z"
+    },
+    "developing": {
+      "status": "in_progress",
+      "updated_at": "2026-07-18T07:27:50.499233Z"
+    }
+  },
+  "tasks": [
+    {
+      "name": "add-recurring-job-timezone-id",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-07-18T08:15:11.920787Z"
+    }
+  ]
+}

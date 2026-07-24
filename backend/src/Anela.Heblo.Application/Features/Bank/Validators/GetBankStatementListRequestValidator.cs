@@ -26,29 +26,8 @@ public class GetBankStatementListRequestValidator : AbstractValidator<GetBankSta
             .WithMessage($"Account must not exceed {MaxStringLength} characters")
             .When(x => x.Account != null);
 
-        RuleFor(x => x.DateFrom!)
-            .Must(BeParseableDate)
-            .WithMessage("DateFrom must be a valid date")
-            .When(x => !string.IsNullOrWhiteSpace(x.DateFrom));
-
-        RuleFor(x => x.DateTo!)
-            .Must(BeParseableDate)
-            .WithMessage("DateTo must be a valid date")
-            .When(x => !string.IsNullOrWhiteSpace(x.DateTo));
-
-        RuleFor(x => x.DateFrom!)
-            .Must((req, _) => DateFromIsNotLaterThanDateTo(req))
-            .WithMessage("DateFrom must not be later than DateTo")
-            .When(x => BeParseableDate(x.DateFrom) && BeParseableDate(x.DateTo));
-    }
-
-    private static bool BeParseableDate(string? value) =>
-        string.IsNullOrWhiteSpace(value) || DateTime.TryParse(value, out _);
-
-    private static bool DateFromIsNotLaterThanDateTo(GetBankStatementListRequest req)
-    {
-        if (!DateTime.TryParse(req.DateFrom, out var from)) return true;
-        if (!DateTime.TryParse(req.DateTo, out var to)) return true;
-        return from.Date <= to.Date;
+        RuleFor(x => x.DateFrom)
+            .Must((req, dateFrom) => !dateFrom.HasValue || !req.DateTo.HasValue || dateFrom.Value.Date <= req.DateTo.Value.Date)
+            .WithMessage("DateFrom must not be later than DateTo");
     }
 }

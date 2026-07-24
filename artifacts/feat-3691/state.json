@@ -1,0 +1,52 @@
+{
+  "feature_id": "feat-3691",
+  "issue_number": 3691,
+  "created_at": "2026-07-19T05:15:48.108539Z",
+  "max_revisions": 3,
+  "phases": {
+    "analyzing": {
+      "status": "completed",
+      "updated_at": "2026-07-19T05:17:47.172298Z"
+    },
+    "architecting": {
+      "status": "completed",
+      "updated_at": "2026-07-19T05:20:31.546298Z"
+    },
+    "designing": {
+      "status": "completed",
+      "updated_at": "2026-07-19T05:21:21.741237Z"
+    },
+    "planning": {
+      "status": "completed",
+      "updated_at": "2026-07-19T05:25:07.168781Z"
+    },
+    "developing": {
+      "status": "completed",
+      "updated_at": "2026-07-19T06:36:09.811844Z"
+    },
+    "code-review": {
+      "status": "completed",
+      "updated_at": "2026-07-19T06:39:51.842612Z"
+    }
+  },
+  "tasks": [
+    {
+      "name": "add-photo-rule-candidates-page-method",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-07-19T05:45:49.201875Z"
+    },
+    {
+      "name": "migrate-reapplyrules-handler-to-paginated-fetch",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-07-19T06:11:41.495880Z"
+    },
+    {
+      "name": "remove-dead-getallphotosasync",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-07-19T06:36:04.469641Z"
+    }
+  ]
+}
