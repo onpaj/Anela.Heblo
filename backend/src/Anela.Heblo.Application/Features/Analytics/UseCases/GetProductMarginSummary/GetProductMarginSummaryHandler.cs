@@ -81,7 +81,7 @@ public class GetProductMarginSummaryHandler : IRequestHandler<GetProductMarginSu
                 var groupData = _marginCalculator.GetGroupAggregatedMarginData(products);
 
                 // Calculate total margin based on selected margin level
-                var totalMarginForLevel = CalculateTotalMarginForLevel(products, marginLevel);
+                var totalMarginForLevel = kvp.Value;
 
                 return new TopProductDto
                 {
@@ -117,16 +117,6 @@ public class GetProductMarginSummaryHandler : IRequestHandler<GetProductMarginSu
         }
 
         return sortedProducts;
-    }
-
-    /// <summary>
-    /// Calculates total margin for a group of products based on selected margin level
-    /// </summary>
-    private decimal CalculateTotalMarginForLevel(List<AnalyticsProduct> products, MarginLevel marginLevel)
-    {
-        return products.Sum(p =>
-            (decimal)p.SalesHistory.Sum(s => s.AmountB2B + s.AmountB2C)
-            * _marginCalculator.GetMarginAmountForLevel(p, marginLevel));
     }
 
 }
