@@ -14,5 +14,9 @@ public interface IGraphService
     /// Thrown when the caller lacks permission to read the specified group.
     /// </exception>
     Task<List<UserDto>> GetGroupMembersAsync(string groupId, CancellationToken cancellationToken = default);
+
+    /// <exception cref="GraphServiceAuthException">
+    /// Thrown when token acquisition fails (MSAL auth error).
+    /// </exception>
     Task<List<UserDto>> GetAppRoleMembersAsync(string appRoleValue, CancellationToken cancellationToken = default);
 }

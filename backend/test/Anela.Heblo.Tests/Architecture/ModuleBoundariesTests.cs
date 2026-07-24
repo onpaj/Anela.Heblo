@@ -341,8 +341,27 @@ public class ModuleBoundariesTests
         "Anela.Heblo.Application.Features.Packaging.DashboardTiles.PackingStatsTile -> Anela.Heblo.Application.Features.ShoptetOrders.IPackingOrderClient",
     };
 
+    // Allowlist for Authorization -> UserManagement. Empty — EntraAccessUserSourceAdapter
+    // (UserManagement-owned) is the only class allowed to reference both IGraphService and
+    // Authorization.Contracts; it translates UserManagement's GraphServiceAuthException/
+    // GraphServiceException into Authorization-owned EntraAccessSourceAuthException/
+    // EntraAccessSourceException. GetEntraAccessUsersHandler must only ever reference
+    // Authorization.Contracts.
+    private static readonly HashSet<string> AuthorizationUserManagementAllowlist = new(StringComparer.Ordinal);
+
     public static TheoryData<ModuleBoundaryRule> Rules() => new()
     {
+        new ModuleBoundaryRule(
+            Name: "Authorization -> UserManagement",
+            InspectedNamespacePrefix: "Anela.Heblo.Application.Features.Authorization",
+            ForbiddenNamespacePrefixes: new[]
+            {
+                "Anela.Heblo.Domain.Features.UserManagement",
+                "Anela.Heblo.Application.Features.UserManagement",
+                "Anela.Heblo.Persistence.UserManagement",
+            },
+            Allowlist: AuthorizationUserManagementAllowlist),
+
         new ModuleBoundaryRule(
             Name: "Leaflet -> KnowledgeBase",
             InspectedNamespacePrefix: "Anela.Heblo.Application.Features.Leaflet",
