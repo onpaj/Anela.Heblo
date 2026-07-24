@@ -1,4 +1,3 @@
-using Anela.Heblo.Domain.Features.BackgroundJobs;
 using Microsoft.Extensions.Logging;
 using NCrontab.Advanced;
 using NCrontab.Advanced.Exceptions;
@@ -12,7 +11,7 @@ namespace Anela.Heblo.Application.Features.BackgroundJobs;
 /// </summary>
 public static class RecurringJobNextRunCalculator
 {
-    public static DateTime? Calculate(string cronExpression, bool isEnabled, DateTime utcNow, ILogger logger, string? jobName = null)
+    public static DateTime? Calculate(string cronExpression, bool isEnabled, string timeZoneId, DateTime utcNow, ILogger logger, string? jobName = null)
     {
         if (!isEnabled)
         {
@@ -22,12 +21,12 @@ public static class RecurringJobNextRunCalculator
         TimeZoneInfo tz;
         try
         {
-            tz = TimeZoneInfo.FindSystemTimeZoneById(RecurringJobMetadata.DefaultTimeZoneId);
+            tz = TimeZoneInfo.FindSystemTimeZoneById(timeZoneId);
         }
         catch (TimeZoneNotFoundException ex)
         {
             logger.LogWarning(ex, "Timezone '{TimeZoneId}' not found on host, NextRunAt will be null for job '{JobName}'",
-                RecurringJobMetadata.DefaultTimeZoneId, jobName);
+                timeZoneId, jobName);
             return null;
         }
 

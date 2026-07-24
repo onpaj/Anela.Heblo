@@ -1624,7 +1624,7 @@ export class ApiClient {
         return Promise.resolve<BankStatementImportResultDto>(null as any);
     }
 
-    bankStatements_GetBankStatements(id: number | null | undefined, transferId: string | null | undefined, account: string | null | undefined, statementDate: string | null | undefined, importDate: string | null | undefined, dateFrom: string | null | undefined, dateTo: string | null | undefined, errorsOnly: boolean | null | undefined, skip: number | undefined, take: number | undefined, orderBy: string | null | undefined, ascending: boolean | undefined): Promise<GetBankStatementListResponse> {
+    bankStatements_GetBankStatements(id: number | null | undefined, transferId: string | null | undefined, account: string | null | undefined, statementDate: Date | null | undefined, importDate: Date | null | undefined, dateFrom: Date | null | undefined, dateTo: Date | null | undefined, errorsOnly: boolean | null | undefined, skip: number | undefined, take: number | undefined, orderBy: string | null | undefined, ascending: boolean | undefined): Promise<GetBankStatementListResponse> {
         let url_ = this.baseUrl + "/api/bank-statements?";
         if (id !== undefined && id !== null)
             url_ += "id=" + encodeURIComponent("" + id) + "&";
@@ -1633,13 +1633,13 @@ export class ApiClient {
         if (account !== undefined && account !== null)
             url_ += "account=" + encodeURIComponent("" + account) + "&";
         if (statementDate !== undefined && statementDate !== null)
-            url_ += "statementDate=" + encodeURIComponent("" + statementDate) + "&";
+            url_ += "statementDate=" + encodeURIComponent(statementDate ? "" + statementDate.toISOString() : "") + "&";
         if (importDate !== undefined && importDate !== null)
-            url_ += "importDate=" + encodeURIComponent("" + importDate) + "&";
+            url_ += "importDate=" + encodeURIComponent(importDate ? "" + importDate.toISOString() : "") + "&";
         if (dateFrom !== undefined && dateFrom !== null)
-            url_ += "dateFrom=" + encodeURIComponent("" + dateFrom) + "&";
+            url_ += "dateFrom=" + encodeURIComponent(dateFrom ? "" + dateFrom.toISOString() : "") + "&";
         if (dateTo !== undefined && dateTo !== null)
-            url_ += "dateTo=" + encodeURIComponent("" + dateTo) + "&";
+            url_ += "dateTo=" + encodeURIComponent(dateTo ? "" + dateTo.toISOString() : "") + "&";
         if (errorsOnly !== undefined && errorsOnly !== null)
             url_ += "errorsOnly=" + encodeURIComponent("" + errorsOnly) + "&";
         if (skip === null)

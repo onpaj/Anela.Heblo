@@ -39,13 +39,13 @@ public class GetRecurringJobsListHandlerTests
         var request = new GetRecurringJobsListRequest();
         var jobs = new List<RecurringJobConfiguration>
         {
-            new RecurringJobConfiguration("Job1", "Display 1", "Description 1", "0 0 * * *", true, "User1"),
-            new RecurringJobConfiguration("Job2", "Display 2", "Description 2", "0 1 * * *", false, "User2")
+            new RecurringJobConfiguration("Job1", "Display 1", "Description 1", "0 0 * * *", "Europe/Prague", true, "User1"),
+            new RecurringJobConfiguration("Job2", "Display 2", "Description 2", "0 1 * * *", "Europe/Prague", false, "User2")
         };
         var jobDtos = new List<RecurringJobDto>
         {
-            new RecurringJobDto { JobName = "Job1", DisplayName = "Display 1", Description = "Description 1", CronExpression = "0 0 * * *", IsEnabled = true, LastModifiedBy = "User1" },
-            new RecurringJobDto { JobName = "Job2", DisplayName = "Display 2", Description = "Description 2", CronExpression = "0 1 * * *", IsEnabled = false, LastModifiedBy = "User2" }
+            new RecurringJobDto { JobName = "Job1", DisplayName = "Display 1", Description = "Description 1", CronExpression = "0 0 * * *", TimeZoneId = "Europe/Prague", IsEnabled = true, LastModifiedBy = "User1" },
+            new RecurringJobDto { JobName = "Job2", DisplayName = "Display 2", Description = "Description 2", CronExpression = "0 1 * * *", TimeZoneId = "Europe/Prague", IsEnabled = false, LastModifiedBy = "User2" }
         };
         _repositoryMock.Setup(r => r.GetAllAsync(It.IsAny<CancellationToken>())).ReturnsAsync(jobs);
         _mapperMock.Setup(m => m.Map<List<RecurringJobDto>>(jobs)).Returns(jobDtos);
@@ -95,7 +95,7 @@ public class GetRecurringJobsListHandlerTests
         var request = new GetRecurringJobsListRequest();
         var jobs = new List<RecurringJobConfiguration>
         {
-            new RecurringJobConfiguration("Job1", "Display 1", "Description 1", "0 0 * * *", true, "User1")
+            new RecurringJobConfiguration("Job1", "Display 1", "Description 1", "0 0 * * *", "Europe/Prague", true, "User1")
         };
         var jobDtos = new List<RecurringJobDto>();
         _repositoryMock.Setup(r => r.GetAllAsync(It.IsAny<CancellationToken>())).ReturnsAsync(jobs);
@@ -112,11 +112,11 @@ public class GetRecurringJobsListHandlerTests
         var request = new GetRecurringJobsListRequest();
         var jobs = new List<RecurringJobConfiguration>
         {
-            new RecurringJobConfiguration("Job1", "Display 1", "Description 1", "0 0 * * *", true, "User1")
+            new RecurringJobConfiguration("Job1", "Display 1", "Description 1", "0 0 * * *", "Europe/Prague", true, "User1")
         };
         var jobDtos = new List<RecurringJobDto>
         {
-            new RecurringJobDto { JobName = "Job1", CronExpression = "0 0 * * *", IsEnabled = true }
+            new RecurringJobDto { JobName = "Job1", CronExpression = "0 0 * * *", TimeZoneId = "Europe/Prague", IsEnabled = true }
         };
         _repositoryMock.Setup(r => r.GetAllAsync(It.IsAny<CancellationToken>())).ReturnsAsync(jobs);
         _mapperMock.Setup(m => m.Map<List<RecurringJobDto>>(jobs)).Returns(jobDtos);
@@ -143,11 +143,11 @@ public class GetRecurringJobsListHandlerTests
         var request = new GetRecurringJobsListRequest();
         var jobs = new List<RecurringJobConfiguration>
         {
-            new RecurringJobConfiguration("Job1", "Display 1", "Desc", "0 13 * * *", true, "User1")
+            new RecurringJobConfiguration("Job1", "Display 1", "Desc", "0 13 * * *", "Europe/Prague", true, "User1")
         };
         var jobDtos = new List<RecurringJobDto>
         {
-            new RecurringJobDto { JobName = "Job1", CronExpression = "0 13 * * *", IsEnabled = true }
+            new RecurringJobDto { JobName = "Job1", CronExpression = "0 13 * * *", TimeZoneId = "Europe/Prague", IsEnabled = true }
         };
         _repositoryMock.Setup(r => r.GetAllAsync(It.IsAny<CancellationToken>())).ReturnsAsync(jobs);
         _mapperMock.Setup(m => m.Map<List<RecurringJobDto>>(jobs)).Returns(jobDtos);
@@ -165,7 +165,7 @@ public class GetRecurringJobsListHandlerTests
         var request = new GetRecurringJobsListRequest();
         var jobs = new List<RecurringJobConfiguration>
         {
-            new RecurringJobConfiguration("Job2", "Display 2", "Desc", "0 13 * * *", false, "User1")
+            new RecurringJobConfiguration("Job2", "Display 2", "Desc", "0 13 * * *", "Europe/Prague", false, "User1")
         };
         var jobDtos = new List<RecurringJobDto>
         {
@@ -185,13 +185,13 @@ public class GetRecurringJobsListHandlerTests
         var request = new GetRecurringJobsListRequest();
         var jobs = new List<RecurringJobConfiguration>
         {
-            new RecurringJobConfiguration("Job1", "Display 1", "Desc", "0 13 * * *", true, "User1"),
-            new RecurringJobConfiguration("Job2", "Display 2", "Desc", "0 3 * * *", false, "User2")
+            new RecurringJobConfiguration("Job1", "Display 1", "Desc", "0 13 * * *", "Europe/Prague", true, "User1"),
+            new RecurringJobConfiguration("Job2", "Display 2", "Desc", "0 3 * * *", "Europe/Prague", false, "User2")
         };
         var jobDtos = new List<RecurringJobDto>
         {
-            new RecurringJobDto { JobName = "Job1", CronExpression = "0 13 * * *", IsEnabled = true },
-            new RecurringJobDto { JobName = "Job2", CronExpression = "0 3 * * *", IsEnabled = false }
+            new RecurringJobDto { JobName = "Job1", CronExpression = "0 13 * * *", TimeZoneId = "Europe/Prague", IsEnabled = true },
+            new RecurringJobDto { JobName = "Job2", CronExpression = "0 3 * * *", TimeZoneId = "Europe/Prague", IsEnabled = false }
         };
         _repositoryMock.Setup(r => r.GetAllAsync(It.IsAny<CancellationToken>())).ReturnsAsync(jobs);
         _mapperMock.Setup(m => m.Map<List<RecurringJobDto>>(jobs)).Returns(jobDtos);
@@ -204,17 +204,46 @@ public class GetRecurringJobsListHandlerTests
     }
 
     [Fact]
+    public async Task Handle_WhenJobHasNonDefaultTimeZone_NextRunAtDiffersFromDefaultTimeZone()
+    {
+        // Fixed time is 2026-03-30 12:00:00 UTC. Same cron "0 13 * * *" evaluated in two different
+        // per-job timezones must produce two different NextRunAt values, proving the handler passes
+        // dto.TimeZoneId into the calculator instead of relying on a hardcoded default.
+        var request = new GetRecurringJobsListRequest();
+        var jobs = new List<RecurringJobConfiguration>
+        {
+            new RecurringJobConfiguration("Job1", "Display 1", "Desc", "0 13 * * *", "Europe/Prague", true, "User1"),
+            new RecurringJobConfiguration("Job2", "Display 2", "Desc", "0 13 * * *", "America/New_York", true, "User2")
+        };
+        var jobDtos = new List<RecurringJobDto>
+        {
+            new RecurringJobDto { JobName = "Job1", CronExpression = "0 13 * * *", TimeZoneId = "Europe/Prague", IsEnabled = true },
+            new RecurringJobDto { JobName = "Job2", CronExpression = "0 13 * * *", TimeZoneId = "America/New_York", IsEnabled = true }
+        };
+        _repositoryMock.Setup(r => r.GetAllAsync(It.IsAny<CancellationToken>())).ReturnsAsync(jobs);
+        _mapperMock.Setup(m => m.Map<List<RecurringJobDto>>(jobs)).Returns(jobDtos);
+
+        var result = await _handler.Handle(request, CancellationToken.None);
+
+        // Europe/Prague: 13:00 CEST next occurrence after 14:00 local = 2026-03-31 13:00 CEST = 11:00 UTC
+        result.Jobs[0].NextRunAt.Should().Be(new DateTime(2026, 3, 31, 11, 0, 0, DateTimeKind.Utc));
+        // America/New_York (EDT, UTC-4): 08:00 local now, next occurrence 13:00 EDT same day = 17:00 UTC
+        result.Jobs[1].NextRunAt.Should().Be(new DateTime(2026, 3, 30, 17, 0, 0, DateTimeKind.Utc));
+        result.Jobs[0].NextRunAt.Should().NotBe(result.Jobs[1].NextRunAt);
+    }
+
+    [Fact]
     public async Task Handle_WhenCronExpressionIsInvalid_SetsNextRunAtToNullAndLogsWarning()
     {
         // Arrange — "NOT_A_CRON" is syntactically invalid and will cause CrontabSchedule.Parse to throw
         var request = new GetRecurringJobsListRequest();
         var jobs = new List<RecurringJobConfiguration>
         {
-            new RecurringJobConfiguration("Job1", "Display 1", "Desc", "NOT_A_CRON", true, "User1")
+            new RecurringJobConfiguration("Job1", "Display 1", "Desc", "NOT_A_CRON", "Europe/Prague", true, "User1")
         };
         var jobDtos = new List<RecurringJobDto>
         {
-            new RecurringJobDto { JobName = "Job1", CronExpression = "NOT_A_CRON", IsEnabled = true }
+            new RecurringJobDto { JobName = "Job1", CronExpression = "NOT_A_CRON", TimeZoneId = "Europe/Prague", IsEnabled = true }
         };
         _repositoryMock.Setup(r => r.GetAllAsync(It.IsAny<CancellationToken>())).ReturnsAsync(jobs);
         _mapperMock.Setup(m => m.Map<List<RecurringJobDto>>(jobs)).Returns(jobDtos);
@@ -252,11 +281,11 @@ public class GetRecurringJobsListHandlerTests
         var request = new GetRecurringJobsListRequest();
         var jobs = new List<RecurringJobConfiguration>
         {
-            new RecurringJobConfiguration("czk-import", "CZK Import", "Desc", "15 4 * * *", true, "System")
+            new RecurringJobConfiguration("czk-import", "CZK Import", "Desc", "15 4 * * *", "Europe/Prague", true, "System")
         };
         var jobDtos = new List<RecurringJobDto>
         {
-            new RecurringJobDto { JobName = "czk-import", CronExpression = "15 4 * * *", IsEnabled = true }
+            new RecurringJobDto { JobName = "czk-import", CronExpression = "15 4 * * *", TimeZoneId = "Europe/Prague", IsEnabled = true }
         };
         _repositoryMock.Setup(r => r.GetAllAsync(It.IsAny<CancellationToken>())).ReturnsAsync(jobs);
         _mapperMock.Setup(m => m.Map<List<RecurringJobDto>>(jobs)).Returns(jobDtos);
@@ -282,11 +311,11 @@ public class GetRecurringJobsListHandlerTests
         var request = new GetRecurringJobsListRequest();
         var jobs = new List<RecurringJobConfiguration>
         {
-            new RecurringJobConfiguration("czk-import", "CZK Import", "Desc", "15 4 * * *", true, "System")
+            new RecurringJobConfiguration("czk-import", "CZK Import", "Desc", "15 4 * * *", "Europe/Prague", true, "System")
         };
         var jobDtos = new List<RecurringJobDto>
         {
-            new RecurringJobDto { JobName = "czk-import", CronExpression = "15 4 * * *", IsEnabled = true }
+            new RecurringJobDto { JobName = "czk-import", CronExpression = "15 4 * * *", TimeZoneId = "Europe/Prague", IsEnabled = true }
         };
         _repositoryMock.Setup(r => r.GetAllAsync(It.IsAny<CancellationToken>())).ReturnsAsync(jobs);
         _mapperMock.Setup(m => m.Map<List<RecurringJobDto>>(jobs)).Returns(jobDtos);
@@ -306,11 +335,11 @@ public class GetRecurringJobsListHandlerTests
         var request = new GetRecurringJobsListRequest();
         var jobs = new List<RecurringJobConfiguration>
         {
-            new RecurringJobConfiguration("Job1", "Display 1", "Desc", "INVALID_CRON", true, "User1")
+            new RecurringJobConfiguration("Job1", "Display 1", "Desc", "INVALID_CRON", "Europe/Prague", true, "User1")
         };
         var jobDtos = new List<RecurringJobDto>
         {
-            new RecurringJobDto { JobName = "Job1", CronExpression = "INVALID_CRON", IsEnabled = true }
+            new RecurringJobDto { JobName = "Job1", CronExpression = "INVALID_CRON", TimeZoneId = "Europe/Prague", IsEnabled = true }
         };
         _repositoryMock.Setup(r => r.GetAllAsync(It.IsAny<CancellationToken>())).ReturnsAsync(jobs);
         _mapperMock.Setup(m => m.Map<List<RecurringJobDto>>(jobs)).Returns(jobDtos);
