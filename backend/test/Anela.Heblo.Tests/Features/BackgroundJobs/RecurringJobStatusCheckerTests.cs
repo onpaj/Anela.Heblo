@@ -27,6 +27,7 @@ public class RecurringJobStatusCheckerTests
                 displayName: "Job A",
                 description: "Test job",
                 cronExpression: "0 * * * *",
+                timeZoneId: "Europe/Prague",
                 isEnabled: false,
                 lastModifiedBy: "test"));
         var sut = CreateSut();
@@ -49,6 +50,7 @@ public class RecurringJobStatusCheckerTests
                 displayName: "Job Enabled",
                 description: "Test job",
                 cronExpression: "0 * * * *",
+                timeZoneId: "Europe/Prague",
                 isEnabled: true,
                 lastModifiedBy: "test"));
         var sut = CreateSut();
