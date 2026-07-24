@@ -1,6 +1,8 @@
 using Anela.Heblo.Application.Features.Authorization.Contracts;
 using Anela.Heblo.Application.Features.Authorization.UseCases.GetEntraAccessUsers;
+using Anela.Heblo.Application.Shared;
 using FluentAssertions;
+using Microsoft.Extensions.Logging;
 using Moq;
 using Xunit;
 
@@ -9,7 +11,7 @@ namespace Anela.Heblo.Tests.Authorization;
 public class GetEntraAccessUsersHandlerTests
 {
     private static GetEntraAccessUsersHandler NewHandler(IEntraAccessUserSource source)
-        => new(source);
+        => new(source, Mock.Of<ILogger<GetEntraAccessUsersHandler>>());
 
     [Fact]
     public async Task Handle_ReturnsEntraUsersOrderedByDisplayName()
@@ -41,6 +43,34 @@ public class GetEntraAccessUsersHandlerTests
         var result = await NewHandler(mock.Object).Handle(new GetEntraAccessUsersRequest(), default);
 
         result.Success.Should().BeTrue();
+        result.Users.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task Handle_WhenSourceThrowsAuthException_ReturnsConfigurationError()
+    {
+        var mock = new Mock<IEntraAccessUserSource>();
+        mock.Setup(s => s.GetBaseMembersAsync(It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new EntraAccessSourceAuthException("auth failed", new Exception("inner")));
+
+        var result = await NewHandler(mock.Object).Handle(new GetEntraAccessUsersRequest(), default);
+
+        result.Success.Should().BeFalse();
+        result.ErrorCode.Should().Be(ErrorCodes.ConfigurationError);
+        result.Users.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task Handle_WhenSourceThrowsGenericException_ReturnsExternalServiceError()
+    {
+        var mock = new Mock<IEntraAccessUserSource>();
+        mock.Setup(s => s.GetBaseMembersAsync(It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new EntraAccessSourceException("boom", new Exception("inner")));
+
+        var result = await NewHandler(mock.Object).Handle(new GetEntraAccessUsersRequest(), default);
+
+        result.Success.Should().BeFalse();
+        result.ErrorCode.Should().Be(ErrorCodes.ExternalServiceError);
         result.Users.Should().BeEmpty();
     }
 }

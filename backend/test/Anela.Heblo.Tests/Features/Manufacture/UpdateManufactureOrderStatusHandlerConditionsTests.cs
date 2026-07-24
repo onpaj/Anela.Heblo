@@ -1,9 +1,7 @@
-using Anela.Heblo.Application.Features.Manufacture.Contracts;
+using Anela.Heblo.Application.Features.Manufacture.Services;
 using Anela.Heblo.Application.Features.Manufacture.UseCases.UpdateManufactureOrderStatus;
-using Anela.Heblo.Domain.Features.Catalog;
 using Anela.Heblo.Domain.Features.Manufacture;
 using Anela.Heblo.Domain.Features.Manufacture.Conditions;
-using Anela.Heblo.Domain.Features.Manufacture.Inventory;
 using Anela.Heblo.Domain.Features.Users;
 using FluentAssertions;
 using Microsoft.Extensions.Logging;
@@ -14,19 +12,17 @@ namespace Anela.Heblo.Tests.Features.Manufacture;
 public class UpdateManufactureOrderStatusHandlerConditionsTests
 {
     private readonly Mock<IManufactureOrderRepository> _repositoryMock;
-    private readonly Mock<IManufacturedProductInventoryRepository> _inventoryRepositoryMock;
-    private readonly Mock<IManufactureCatalogSource> _catalogRepositoryMock;
     private readonly Mock<ICurrentUserService> _currentUserServiceMock;
-    private readonly Mock<IConditionsReadingProvider> _conditionsProviderMock;
+    private readonly Mock<IManufactureInventoryWriteDownService> _inventoryWriteDownServiceMock;
+    private readonly Mock<IManufactureConditionsCaptureService> _conditionsCaptureServiceMock;
     private readonly Mock<ILogger<UpdateManufactureOrderStatusHandler>> _loggerMock;
 
     public UpdateManufactureOrderStatusHandlerConditionsTests()
     {
         _repositoryMock = new Mock<IManufactureOrderRepository>();
-        _inventoryRepositoryMock = new Mock<IManufacturedProductInventoryRepository>();
-        _catalogRepositoryMock = new Mock<IManufactureCatalogSource>();
         _loggerMock = new Mock<ILogger<UpdateManufactureOrderStatusHandler>>();
-        _conditionsProviderMock = new Mock<IConditionsReadingProvider>();
+        _inventoryWriteDownServiceMock = new Mock<IManufactureInventoryWriteDownService>();
+        _conditionsCaptureServiceMock = new Mock<IManufactureConditionsCaptureService>();
         _currentUserServiceMock = new Mock<ICurrentUserService>();
 
         _currentUserServiceMock
@@ -37,13 +33,19 @@ public class UpdateManufactureOrderStatusHandlerConditionsTests
                 Email: "test@example.com",
                 IsAuthenticated: true));
 
-        _inventoryRepositoryMock
-            .Setup(r => r.AddAsync(It.IsAny<ManufacturedProductInventoryItem>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync((ManufacturedProductInventoryItem item, CancellationToken _) => item);
+        _inventoryWriteDownServiceMock
+            .Setup(x => x.WriteDownAsync(It.IsAny<ManufactureOrder>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
 
-        _catalogRepositoryMock
-            .Setup(r => r.GetByIdsAsync(It.IsAny<IEnumerable<string>>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new Dictionary<string, CatalogAggregate>());
+        _conditionsCaptureServiceMock
+            .Setup(x => x.CaptureAsync(It.IsAny<ManufactureOrder>(), It.IsAny<ManufactureOrderState>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((ManufactureOrder order, ManufactureOrderState stage, CancellationToken _) => new ManufactureOrderConditionsReading
+            {
+                ManufactureOrderId = order.Id,
+                Stage = stage,
+                Source = ConditionsReadingSource.Live,
+                RecordedAt = DateTime.UtcNow,
+            });
     }
 
     private UpdateManufactureOrderStatusHandler CreateHandler() =>
@@ -52,9 +54,8 @@ public class UpdateManufactureOrderStatusHandlerConditionsTests
             TimeProvider.System,
             _loggerMock.Object,
             _currentUserServiceMock.Object,
-            _conditionsProviderMock.Object,
-            _inventoryRepositoryMock.Object,
-            _catalogRepositoryMock.Object);
+            _inventoryWriteDownServiceMock.Object,
+            _conditionsCaptureServiceMock.Object);
 
     private ManufactureOrder CreateOrderInState(ManufactureOrderState state)
     {
@@ -71,7 +72,7 @@ public class UpdateManufactureOrderStatusHandlerConditionsTests
     }
 
     [Fact]
-    public async Task Handle_TransitionToSemiProductManufactured_CapturesConditionsReadingWithLiveSource()
+    public async Task Handle_TransitionToSemiProductManufactured_CallsConditionsCaptureService()
     {
         // Arrange
         var order = CreateOrderInState(ManufactureOrderState.Planned);
@@ -79,16 +80,6 @@ public class UpdateManufactureOrderStatusHandlerConditionsTests
             .ReturnsAsync(order);
         _repositoryMock.Setup(x => x.UpdateOrderAsync(order, It.IsAny<CancellationToken>()))
             .ReturnsAsync(order);
-
-        var snapshot = new ConditionsSnapshot(
-            InnerTemperature: 21.5m,
-            InnerHumidity: 55.0m,
-            OuterTemperature: 18.2m,
-            OuterHumidity: 72.3m,
-            RecordedAt: DateTime.UtcNow,
-            Source: ConditionsReadingSource.Live);
-        _conditionsProviderMock.Setup(x => x.GetCurrentSnapshotAsync(It.IsAny<CancellationToken>()))
-            .ReturnsAsync(snapshot);
 
         var request = new UpdateManufactureOrderStatusRequest
         {
@@ -103,18 +94,15 @@ public class UpdateManufactureOrderStatusHandlerConditionsTests
 
         // Assert
         result.Success.Should().BeTrue();
+        _conditionsCaptureServiceMock.Verify(
+            x => x.CaptureAsync(order, ManufactureOrderState.SemiProductManufactured, It.IsAny<CancellationToken>()),
+            Times.Once);
         order.ConditionsReadings.Should().HaveCount(1);
-        var reading = order.ConditionsReadings.Single();
-        reading.Stage.Should().Be(ManufactureOrderState.SemiProductManufactured);
-        reading.InnerTemperature.Should().Be(21.5m);
-        reading.InnerHumidity.Should().Be(55.0m);
-        reading.OuterTemperature.Should().Be(18.2m);
-        reading.OuterHumidity.Should().Be(72.3m);
-        reading.Source.Should().Be(ConditionsReadingSource.Live);
+        order.ConditionsReadings.Single().Stage.Should().Be(ManufactureOrderState.SemiProductManufactured);
     }
 
     [Fact]
-    public async Task Handle_TransitionToCompleted_CapturesConditionsReadingWithCorrectStage()
+    public async Task Handle_TransitionToCompleted_CallsConditionsCaptureServiceWithCorrectStage()
     {
         // Arrange
         var order = CreateOrderInState(ManufactureOrderState.SemiProductManufactured);
@@ -122,10 +110,6 @@ public class UpdateManufactureOrderStatusHandlerConditionsTests
             .ReturnsAsync(order);
         _repositoryMock.Setup(x => x.UpdateOrderAsync(order, It.IsAny<CancellationToken>()))
             .ReturnsAsync(order);
-
-        var snapshot = new ConditionsSnapshot(21m, 50m, 15m, 65m, DateTime.UtcNow, ConditionsReadingSource.Live);
-        _conditionsProviderMock.Setup(x => x.GetCurrentSnapshotAsync(It.IsAny<CancellationToken>()))
-            .ReturnsAsync(snapshot);
 
         var request = new UpdateManufactureOrderStatusRequest
         {
@@ -140,72 +124,11 @@ public class UpdateManufactureOrderStatusHandlerConditionsTests
 
         // Assert
         result.Success.Should().BeTrue();
+        _conditionsCaptureServiceMock.Verify(
+            x => x.CaptureAsync(order, ManufactureOrderState.Completed, It.IsAny<CancellationToken>()),
+            Times.Once);
         var reading = order.ConditionsReadings.Single();
         reading.Stage.Should().Be(ManufactureOrderState.Completed);
-    }
-
-    [Fact]
-    public async Task Handle_ConditionsProviderReturnsUnavailable_ReadingPersistedWithNullValuesTransitionSucceeds()
-    {
-        // Arrange
-        var order = CreateOrderInState(ManufactureOrderState.Planned);
-        _repositoryMock.Setup(x => x.GetOrderByIdAsync(1, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(order);
-        _repositoryMock.Setup(x => x.UpdateOrderAsync(order, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(order);
-
-        var snapshot = new ConditionsSnapshot(null, null, null, null, DateTime.UtcNow, ConditionsReadingSource.Unavailable);
-        _conditionsProviderMock.Setup(x => x.GetCurrentSnapshotAsync(It.IsAny<CancellationToken>()))
-            .ReturnsAsync(snapshot);
-
-        var request = new UpdateManufactureOrderStatusRequest
-        {
-            Id = 1,
-            NewState = ManufactureOrderState.SemiProductManufactured,
-            ChangeReason = "Test",
-        };
-        var handler = CreateHandler();
-
-        // Act
-        var result = await handler.Handle(request, CancellationToken.None);
-
-        // Assert
-        result.Success.Should().BeTrue();
-        var reading = order.ConditionsReadings.Single();
-        reading.InnerTemperature.Should().BeNull();
-        reading.Source.Should().Be(ConditionsReadingSource.Unavailable);
-    }
-
-    [Fact]
-    public async Task Handle_ConditionsProviderThrows_ReadingPersistedAsUnavailableTransitionSucceeds()
-    {
-        // Arrange
-        var order = CreateOrderInState(ManufactureOrderState.Planned);
-        _repositoryMock.Setup(x => x.GetOrderByIdAsync(1, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(order);
-        _repositoryMock.Setup(x => x.UpdateOrderAsync(order, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(order);
-
-        _conditionsProviderMock.Setup(x => x.GetCurrentSnapshotAsync(It.IsAny<CancellationToken>()))
-            .ThrowsAsync(new HttpRequestException("Connection refused"));
-
-        var request = new UpdateManufactureOrderStatusRequest
-        {
-            Id = 1,
-            NewState = ManufactureOrderState.SemiProductManufactured,
-            ChangeReason = "Test",
-        };
-        var handler = CreateHandler();
-
-        // Act
-        var result = await handler.Handle(request, CancellationToken.None);
-
-        // Assert
-        result.Success.Should().BeTrue();
-        order.ConditionsReadings.Should().HaveCount(1);
-        var reading = order.ConditionsReadings.Single();
-        reading.Source.Should().Be(ConditionsReadingSource.Unavailable);
-        reading.InnerTemperature.Should().BeNull();
     }
 
     [Fact]
@@ -243,7 +166,9 @@ public class UpdateManufactureOrderStatusHandlerConditionsTests
         result.Success.Should().BeTrue();
         order.ConditionsReadings.Should().HaveCount(1);
         order.ConditionsReadings.Single().RecordedAt.Should().Be(originalRecordedAt);
-        _conditionsProviderMock.Verify(x => x.GetCurrentSnapshotAsync(It.IsAny<CancellationToken>()), Times.Never);
+        _conditionsCaptureServiceMock.Verify(
+            x => x.CaptureAsync(It.IsAny<ManufactureOrder>(), It.IsAny<ManufactureOrderState>(), It.IsAny<CancellationToken>()),
+            Times.Never);
     }
 
     [Fact]
@@ -267,8 +192,10 @@ public class UpdateManufactureOrderStatusHandlerConditionsTests
         // Act
         await handler.Handle(request, CancellationToken.None);
 
-        // Assert — provider never called, no reading added
-        _conditionsProviderMock.Verify(x => x.GetCurrentSnapshotAsync(It.IsAny<CancellationToken>()), Times.Never);
+        // Assert — service never called, no reading added
+        _conditionsCaptureServiceMock.Verify(
+            x => x.CaptureAsync(It.IsAny<ManufactureOrder>(), It.IsAny<ManufactureOrderState>(), It.IsAny<CancellationToken>()),
+            Times.Never);
         order.ConditionsReadings.Should().BeEmpty();
     }
 }
