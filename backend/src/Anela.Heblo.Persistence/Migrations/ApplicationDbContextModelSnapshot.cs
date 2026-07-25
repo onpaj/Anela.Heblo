@@ -3380,7 +3380,7 @@ namespace Anela.Heblo.Persistence.Migrations
                         .HasColumnType("boolean");
 
                     b.Property<DateTime?>("LastIndexedAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp");
 
                     b.Property<string>("RootItemId")
                         .HasMaxLength(500)

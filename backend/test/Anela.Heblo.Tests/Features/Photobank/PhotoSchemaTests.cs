@@ -41,4 +41,21 @@ public class PhotoSchemaTests
             $"{propertyName} stores UTC and must map to 'timestamp without time zone' to match the " +
             "global UTC->Unspecified converter; 'timestamp with time zone' rejects Unspecified writes");
     }
+
+    [Theory]
+    [InlineData(nameof(PhotobankIndexRoot.CreatedAt))]
+    [InlineData(nameof(PhotobankIndexRoot.LastIndexedAt))]
+    public void PhotobankIndexRoot_DateTimeColumns_AreTimestampWithoutTimeZone(string propertyName)
+    {
+        using var db = NewNpgsqlContext();
+
+        var property = db.Model
+            .FindEntityType(typeof(PhotobankIndexRoot))!
+            .FindProperty(propertyName)!;
+
+        property.GetColumnType().Should().Be(
+            "timestamp",
+            $"{propertyName} stores UTC and must map to 'timestamp without time zone' to match the " +
+            "global UTC->Unspecified converter; 'timestamp with time zone' rejects Unspecified writes");
+    }
 }
