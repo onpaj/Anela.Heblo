@@ -3,6 +3,7 @@ using System;
 using Anela.Heblo.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Anela.Heblo.Persistence.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260724120000_AlignPhotobankIndexRootTimestampWithoutTimeZone")]
+    partial class AlignPhotobankIndexRootTimestampWithoutTimeZone
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -367,11 +370,6 @@ namespace Anela.Heblo.Persistence.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)");
 
-                    b.Property<string>("TimeZoneId")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)");
-
                     b.HasKey("Id");
 
                     b.HasIndex("IsEnabled")
@@ -541,31 +539,6 @@ namespace Anela.Heblo.Persistence.Migrations
                     b.ToTable("Lots", "public");
                 });
 
-            modelBuilder.Entity("Anela.Heblo.Domain.Features.Catalog.Inventory.LotLabelCalibration", b =>
-                {
-                    b.Property<int>("Id")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("DriftDotsPer100Labels")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer")
-                        .HasDefaultValue(30);
-
-                    b.Property<DateTimeOffset?>("ModifiedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("ModifiedBy")
-                        .HasMaxLength(256)
-                        .HasColumnType("character varying(256)");
-
-                    b.Property<int>("PitchDots")
-                        .HasColumnType("integer");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("LotLabelCalibrations", "public");
-                });
-
             modelBuilder.Entity("Anela.Heblo.Domain.Features.Catalog.Inventory.MaterialContainer", b =>
                 {
                     b.Property<int>("Id")
@@ -632,28 +605,6 @@ namespace Anela.Heblo.Persistence.Migrations
                         .HasDatabaseName("IX_MaterialContainers_MaterialCode_LotCode");
 
                     b.ToTable("MaterialContainers", "public");
-                });
-
-            modelBuilder.Entity("Anela.Heblo.Domain.Features.Catalog.Inventory.PrinterMediaState", b =>
-                {
-                    b.Property<int>("Id")
-                        .HasColumnType("integer");
-
-                    b.Property<string>("LastMediaType")
-                        .IsRequired()
-                        .HasMaxLength(64)
-                        .HasColumnType("character varying(64)");
-
-                    b.Property<DateTimeOffset?>("LastPrintedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("LastPrintedBy")
-                        .HasMaxLength(256)
-                        .HasColumnType("character varying(256)");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("PrinterMediaStates", "public");
                 });
 
             modelBuilder.Entity("Anela.Heblo.Domain.Features.Catalog.ManufactureDifficultySetting", b =>
