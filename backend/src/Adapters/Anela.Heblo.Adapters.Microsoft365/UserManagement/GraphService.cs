@@ -145,7 +145,9 @@ public class GraphService : IGraphService
                 // Log response headers for troubleshooting
                 _logger.LogDebug("Response headers: {@Headers}", response.Headers.ToDictionary(h => h.Key, h => string.Join(", ", h.Value)));
 
-                return new List<UserDto>();
+                throw new GraphServiceException(
+                    $"Microsoft Graph returned {(int)response.StatusCode} for group {groupId}.",
+                    new HttpRequestException(errorContent));
             }
 
             var responseContent = await response.Content.ReadAsStringAsync(cancellationToken);
