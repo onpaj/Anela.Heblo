@@ -23,7 +23,6 @@ using Anela.Heblo.Adapters.Cups.Features.ExpeditionList;
 using Anela.Heblo.API.PDFPrints;
 using Anela.Heblo.Application.Features.BackgroundJobs.Services;
 using Anela.Heblo.Adapters.FileSystem;
-using Anela.Heblo.API.Features.ExpeditionList;
 using Anela.Heblo.Application.Shared.Printing;
 using Anela.Heblo.Application.Features.Manufacture.UseCases.GetManufactureProtocol;
 using Anela.Heblo.Application.Features.Manufacture.UseCases.GetSemiproductRecipePdf;
@@ -438,7 +437,7 @@ public static class ServiceCollectionExtensions
                 {
                     var azure = provider.GetRequiredKeyedService<IPrintQueueSink>("azure");
                     var cups = provider.GetRequiredKeyedService<IPrintQueueSink>("cups");
-                    return new Anela.Heblo.API.Features.ExpeditionList.CombinedPrintQueueSink(azure, cups);
+                    return new CombinedPrintQueueSink(azure, cups);
                 });
                 break;
             default: // "FileSystem" or unset

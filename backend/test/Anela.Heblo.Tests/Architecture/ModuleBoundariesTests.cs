@@ -341,6 +341,12 @@ public class ModuleBoundariesTests
         "Anela.Heblo.Application.Features.Packaging.DashboardTiles.PackingStatsTile -> Anela.Heblo.Application.Features.ShoptetOrders.IPackingOrderClient",
     };
 
+    // Allowlist for ShoptetOrders -> ShipmentLabels. Empty — CompleteDeliveredOrdersJob now consumes
+    // the ShoptetOrders-owned IShipmentDeliveryChecker contract; the ShipmentLabels adapter
+    // (ShipmentLabelsShipmentDeliveryCheckerAdapter) lives in ShipmentLabels.Infrastructure and
+    // implements it there, so no ShoptetOrders type needs to reference ShipmentLabels directly.
+    private static readonly HashSet<string> ShoptetOrdersShipmentLabelsAllowlist = new(StringComparer.Ordinal);
+
     // Allowlist for Authorization -> UserManagement. Empty — EntraAccessUserSourceAdapter
     // (UserManagement-owned) is the only class allowed to reference both IGraphService and
     // Authorization.Contracts; it translates UserManagement's GraphServiceAuthException/
@@ -640,6 +646,15 @@ public class ModuleBoundariesTests
                 "Anela.Heblo.Persistence.Catalog",
             },
             Allowlist: new HashSet<string>(StringComparer.Ordinal)),
+
+        new ModuleBoundaryRule(
+            Name: "ShoptetOrders -> ShipmentLabels",
+            InspectedNamespacePrefix: "Anela.Heblo.Application.Features.ShoptetOrders",
+            ForbiddenNamespacePrefixes: new[]
+            {
+                "Anela.Heblo.Application.Features.ShipmentLabels",
+            },
+            Allowlist: ShoptetOrdersShipmentLabelsAllowlist),
     };
 
     [Theory]
