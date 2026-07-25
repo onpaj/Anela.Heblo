@@ -1,0 +1,58 @@
+{
+  "feature_id": "feat-3720",
+  "issue_number": 3720,
+  "created_at": "2026-07-21T05:15:22.128243Z",
+  "max_revisions": 3,
+  "phases": {
+    "analyzing": {
+      "status": "completed",
+      "updated_at": "2026-07-21T05:18:09.002160Z"
+    },
+    "architecting": {
+      "status": "completed",
+      "updated_at": "2026-07-21T05:20:12.420469Z"
+    },
+    "designing": {
+      "status": "completed",
+      "updated_at": "2026-07-21T05:21:09.125180Z"
+    },
+    "planning": {
+      "status": "completed",
+      "updated_at": "2026-07-21T05:25:27.946740Z"
+    },
+    "developing": {
+      "status": "completed",
+      "updated_at": "2026-07-21T07:07:50.886394Z"
+    },
+    "code-review": {
+      "status": "completed",
+      "updated_at": "2026-07-21T07:09:21.205695Z"
+    }
+  },
+  "tasks": [
+    {
+      "name": "add-shipment-delivery-checker-contract-and-adapter",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-07-21T06:00:32.344862Z"
+    },
+    {
+      "name": "register-shipment-delivery-checker-in-shipmentlabels-module",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-07-21T06:25:25.565195Z"
+    },
+    {
+      "name": "swap-complete-delivered-orders-job-to-new-contract",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-07-21T06:32:57.068453Z"
+    },
+    {
+      "name": "add-module-boundary-rule-for-shoptetorders-shipmentlabels",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-07-21T07:07:39.868810Z"
+    }
+  ]
+}
