@@ -1,0 +1,46 @@
+{
+  "feature_id": "feat-3711",
+  "issue_number": 3711,
+  "created_at": "2026-07-20T12:15:41.551717Z",
+  "max_revisions": 3,
+  "phases": {
+    "analyzing": {
+      "status": "completed",
+      "updated_at": "2026-07-20T12:20:36.674757Z"
+    },
+    "architecting": {
+      "status": "completed",
+      "updated_at": "2026-07-20T12:22:43.023795Z"
+    },
+    "designing": {
+      "status": "completed",
+      "updated_at": "2026-07-20T12:23:51.400202Z"
+    },
+    "planning": {
+      "status": "completed",
+      "updated_at": "2026-07-20T12:27:07.063974Z"
+    },
+    "developing": {
+      "status": "completed",
+      "updated_at": "2026-07-20T12:38:21.809576Z"
+    },
+    "code-review": {
+      "status": "completed",
+      "updated_at": "2026-07-20T12:40:42.012575Z"
+    }
+  },
+  "tasks": [
+    {
+      "name": "parse-summary-json-tests",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-07-20T12:32:26.123314Z"
+    },
+    {
+      "name": "run-cli-async-success-and-retry-tests",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-07-20T12:38:16.339158Z"
+    }
+  ]
+}

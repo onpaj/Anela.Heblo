@@ -101,4 +101,38 @@ public class PrintExpeditionOrderHandlerTests
 
         await act.Should().ThrowAsync<HttpRequestException>();
     }
+
+    [Fact]
+    public async Task Handle_NonDefaultDesiredStateId_ChecksConfiguredValueNotHardcoded26()
+    {
+        var handler = new PrintExpeditionOrderHandler(
+            _service.Object,
+            _client.Object,
+            Options.Create(new PrintPickingListOptions { DesiredStateId = 99 }),
+            new Mock<ILogger<PrintExpeditionOrderHandler>>().Object);
+
+        // Status 99 (the configured DesiredStateId) must now be rejected as invalid state.
+        _client.Setup(c => c.GetOrderStatusIdAsync("0001234", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(99);
+
+        var result = await handler.Handle(
+            new PrintExpeditionOrderRequest { OrderCode = "0001234" }, CancellationToken.None);
+
+        result.Success.Should().BeFalse();
+        result.ErrorCode.Should().Be(ErrorCodes.ExpeditionOrderInvalidState);
+        result.Params!["currentStatusName"].Should().Be("Balí se");
+        _service.Verify(s => s.PrintPickingListAsync(It.IsAny<ExpeditionPickingRequest>(), It.IsAny<IList<string>?>(), It.IsAny<CancellationToken>()), Times.Never);
+
+        // Status 26 (the old hardcoded value) must no longer be special-cased and should proceed to print.
+        _client.Setup(c => c.GetOrderStatusIdAsync("0005678", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(26);
+        _service.Setup(s => s.PrintPickingListAsync(It.IsAny<ExpeditionPickingRequest>(), It.IsAny<IList<string>?>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new ExpeditionPickingResult { ExportedFiles = new List<string>(), TotalCount = 1 });
+
+        var secondResult = await handler.Handle(
+            new PrintExpeditionOrderRequest { OrderCode = "0005678" }, CancellationToken.None);
+
+        secondResult.Success.Should().BeTrue();
+        _service.Verify(s => s.PrintPickingListAsync(It.IsAny<ExpeditionPickingRequest>(), It.IsAny<IList<string>?>(), It.IsAny<CancellationToken>()), Times.Once);
+    }
 }
