@@ -1,6 +1,6 @@
 using Anela.Heblo.Application.Features.FeatureFlags;
-using Anela.Heblo.Application.Features.ShipmentLabels;
 using Anela.Heblo.Application.Features.ShoptetOrders;
+using Anela.Heblo.Application.Features.ShoptetOrders.Contracts;
 using Anela.Heblo.Application.Features.ShoptetOrders.Infrastructure.Jobs;
 using Anela.Heblo.Domain.Features.BackgroundJobs;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -15,12 +15,12 @@ public class CompleteDeliveredOrdersJobTests
     private static (
         CompleteDeliveredOrdersJob Sut,
         Mock<IEshopOrderClient> Orders,
-        Mock<IShipmentClient> Shipments,
+        Mock<IShipmentDeliveryChecker> Shipments,
         Mock<IRecurringJobStatusChecker> StatusChecker)
         MakeSut(bool jobEnabled = true, bool applyChanges = true, bool useTestSource = false)
     {
         var orders = new Mock<IEshopOrderClient>();
-        var shipments = new Mock<IShipmentClient>();
+        var shipments = new Mock<IShipmentDeliveryChecker>();
         var statusChecker = new Mock<IRecurringJobStatusChecker>();
         statusChecker
             .Setup(s => s.IsJobEnabledAsync(It.IsAny<string>(), It.IsAny<CancellationToken>(), true))
