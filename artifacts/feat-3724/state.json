@@ -1,0 +1,40 @@
+{
+  "feature_id": "feat-3724",
+  "issue_number": 3724,
+  "created_at": "2026-07-22T05:18:09.793630Z",
+  "max_revisions": 3,
+  "phases": {
+    "analyzing": {
+      "status": "completed",
+      "updated_at": "2026-07-22T05:20:07.683097Z"
+    },
+    "architecting": {
+      "status": "completed",
+      "updated_at": "2026-07-22T05:21:40.945767Z"
+    },
+    "designing": {
+      "status": "completed",
+      "updated_at": "2026-07-22T05:21:41.316203Z"
+    },
+    "planning": {
+      "status": "completed",
+      "updated_at": "2026-07-22T05:23:22.482064Z"
+    },
+    "developing": {
+      "status": "completed",
+      "updated_at": "2026-07-22T07:20:06.921957Z"
+    },
+    "code-review": {
+      "status": "completed",
+      "updated_at": "2026-07-22T07:26:20.633529Z"
+    }
+  },
+  "tasks": [
+    {
+      "name": "fix-graph-service-swallow",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-07-22T07:20:06.547160Z"
+    }
+  ]
+}

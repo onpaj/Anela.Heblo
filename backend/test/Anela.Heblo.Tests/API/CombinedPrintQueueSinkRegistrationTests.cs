@@ -3,7 +3,6 @@ using Anela.Heblo.Adapters.Azure.Features.ExpeditionList;
 using Anela.Heblo.Adapters.Cups.Features.ExpeditionList;
 using Anela.Heblo.Adapters.FileSystem.Features.ExpeditionList;
 using Anela.Heblo.API.Extensions;
-using Anela.Heblo.API.Features.ExpeditionList;
 using Anela.Heblo.Application.Features.ExpeditionList;
 using Anela.Heblo.Application.Shared.Printing;
 using Microsoft.Extensions.Configuration;
