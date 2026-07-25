@@ -1,8 +1,8 @@
 using Anela.Heblo.Application.Shared.Printing;
 
-namespace Anela.Heblo.API.Features.ExpeditionList;
+namespace Anela.Heblo.Adapters.Azure.Features.ExpeditionList;
 
-internal sealed class CombinedPrintQueueSink : IPrintQueueSink
+public sealed class CombinedPrintQueueSink : IPrintQueueSink
 {
     private readonly IPrintQueueSink _azureSink;
     private readonly IPrintQueueSink _cupsSink;
