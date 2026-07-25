@@ -18,7 +18,7 @@ namespace Anela.Heblo.Persistence.Photobank
             builder.Property(x => x.DriveId).HasMaxLength(500);
             builder.Property(x => x.RootItemId).HasMaxLength(500);
             builder.Property(x => x.DeltaLink).HasMaxLength(2000);
-            builder.Property(x => x.LastIndexedAt);
+            builder.Property(x => x.LastIndexedAt).AsUtcTimestamp();
         }
     }
 }
