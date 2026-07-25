@@ -1,4 +1,4 @@
-using Anela.Heblo.API.Features.ExpeditionList;
+using Anela.Heblo.Adapters.Azure.Features.ExpeditionList;
 using Anela.Heblo.Application.Shared.Printing;
 using Moq;
 

@@ -1,5 +1,5 @@
 using Anela.Heblo.Application.Features.FeatureFlags;
-using Anela.Heblo.Application.Features.ShipmentLabels;
+using Anela.Heblo.Application.Features.ShoptetOrders.Contracts;
 using Anela.Heblo.Domain.Features.BackgroundJobs;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -11,7 +11,7 @@ public sealed class CompleteDeliveredOrdersJob : IRecurringJob
     private const string CompletionNote = "Automaticky vyřízeno – zásilka doručena";
 
     private readonly IEshopOrderClient _orderClient;
-    private readonly IShipmentClient _shipmentClient;
+    private readonly IShipmentDeliveryChecker _shipmentClient;
     private readonly ShoptetOrdersSettings _settings;
     private readonly IRecurringJobStatusChecker _statusChecker;
     private readonly IFeatureFlagChecker _featureFlags;
@@ -28,7 +28,7 @@ public sealed class CompleteDeliveredOrdersJob : IRecurringJob
 
     public CompleteDeliveredOrdersJob(
         IEshopOrderClient orderClient,
-        IShipmentClient shipmentClient,
+        IShipmentDeliveryChecker shipmentClient,
         IOptions<ShoptetOrdersSettings> settings,
         IRecurringJobStatusChecker statusChecker,
         IFeatureFlagChecker featureFlags,
