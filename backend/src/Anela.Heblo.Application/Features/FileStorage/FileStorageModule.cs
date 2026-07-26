@@ -1,6 +1,11 @@
 using System.Net;
+using Anela.Heblo.Application.Common.Behaviors;
 using Anela.Heblo.Application.Features.FileStorage.Infrastructure;
+using Anela.Heblo.Application.Features.FileStorage.UseCases.DownloadFromUrl;
+using Anela.Heblo.Application.Features.FileStorage.Validators;
 using Anela.Heblo.Domain.Features.FileStorage;
+using FluentValidation;
+using MediatR;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -11,7 +16,7 @@ namespace Anela.Heblo.Application.Features.FileStorage;
 
 public static class FileStorageModule
 {
-    public const string FileDownloadClientName = "FileDownload";
+    public const string FileDownloadClientName = FileStorageConstants.FileDownloadClientName;
 
     public static IServiceCollection AddFileStorageModule(
         this IServiceCollection services,
@@ -59,6 +64,13 @@ public static class FileStorageModule
         services.AddSingleton<IDownloadResilienceService, DownloadResilienceService>();
 
         services.Configure<FileDownloadOptions>(configuration.GetSection("FileStorage:Download"));
+
+        // Register validator + pipeline behavior for DownloadFromUrlRequest, mirroring
+        // AnalyticsModule's ValidationResultBehavior wiring (non-throwing, reconstructs
+        // the response's own Success/ErrorCode/Params contract instead of throwing).
+        services.AddScoped<IValidator<DownloadFromUrlRequest>, DownloadFromUrlRequestValidator>();
+        services.AddScoped<IPipelineBehavior<DownloadFromUrlRequest, DownloadFromUrlResponse>,
+            ValidationResultBehavior<DownloadFromUrlRequest, DownloadFromUrlResponse>>();
 
         return services;
     }

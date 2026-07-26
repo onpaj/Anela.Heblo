@@ -1,7 +1,6 @@
 using System.Collections.Concurrent;
 using Azure.Storage.Blobs;
 using Azure.Storage.Blobs.Models;
-using Anela.Heblo.Application.Features.FileStorage;
 using Anela.Heblo.Domain.Features.FileStorage;
 using Microsoft.Extensions.Logging;
 
@@ -36,7 +35,7 @@ public sealed class AzureBlobStorageService : IBlobStorageService
 
             // Download file from URL — resolve the named client per call so socket pooling
             // is managed by IHttpClientFactory (SocketsHttpHandler with PooledConnectionLifetime).
-            var httpClient = _httpClientFactory.CreateClient(FileStorageModule.FileDownloadClientName);
+            var httpClient = _httpClientFactory.CreateClient(FileStorageConstants.FileDownloadClientName);
             using var response = await httpClient.GetAsync(fileUrl, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
             response.EnsureSuccessStatusCode();
 
