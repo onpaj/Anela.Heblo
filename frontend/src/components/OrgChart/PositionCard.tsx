@@ -4,7 +4,6 @@ import { PositionDto } from '../../api/generated/api-client';
 export interface PositionCardProps {
   position: PositionDto;
   getChildren: (parentId: string) => PositionDto[];
-  getLevelColor: (level: number) => string;
 }
 
 const getInitials = (name: string | undefined): string => {
@@ -16,7 +15,22 @@ const getInitials = (name: string | undefined): string => {
     .toUpperCase();
 };
 
-function PositionCard({ position, getChildren, getLevelColor }: PositionCardProps): JSX.Element {
+const getLevelColor = (level: number): string => {
+  switch (level) {
+    case 1:
+      return 'border-l-4 border-red-500';
+    case 2:
+      return 'border-l-4 border-orange-500';
+    case 3:
+      return 'border-l-4 border-yellow-500';
+    case 4:
+      return 'border-l-4 border-green-500';
+    default:
+      return 'border-l-4 border-gray-500';
+  }
+};
+
+function PositionCard({ position, getChildren }: PositionCardProps): JSX.Element {
   const children = getChildren(position.id!);
 
   return (
@@ -120,7 +134,6 @@ function PositionCard({ position, getChildren, getLevelColor }: PositionCardProp
               key={child.id}
               position={child}
               getChildren={getChildren}
-              getLevelColor={getLevelColor}
             />
           ))}
         </div>

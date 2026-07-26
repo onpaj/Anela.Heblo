@@ -1,0 +1,40 @@
+{
+  "feature_id": "feat-3673",
+  "issue_number": 3673,
+  "created_at": "2026-07-17T06:14:43.791725Z",
+  "max_revisions": 3,
+  "phases": {
+    "analyzing": {
+      "status": "completed",
+      "updated_at": "2026-07-17T06:16:24.052915Z"
+    },
+    "architecting": {
+      "status": "completed",
+      "updated_at": "2026-07-17T06:17:43.381620Z"
+    },
+    "designing": {
+      "status": "completed",
+      "updated_at": "2026-07-17T06:18:06.675345Z"
+    },
+    "planning": {
+      "status": "completed",
+      "updated_at": "2026-07-17T06:19:24.956558Z"
+    },
+    "developing": {
+      "status": "completed",
+      "updated_at": "2026-07-17T06:28:27.190017Z"
+    },
+    "code-review": {
+      "status": "completed",
+      "updated_at": "2026-07-17T06:29:16.938813Z"
+    }
+  },
+  "tasks": [
+    {
+      "name": "move-getlevelcolor-to-positioncard",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-07-17T06:28:16.082885Z"
+    }
+  ]
+}

@@ -18,8 +18,6 @@ const makeEmployee = (overrides: Partial<EmployeeDto>): EmployeeDto => {
 
 const noChildren = (_parentId: string): PositionDto[] => [];
 
-const stubLevelColor = (level: number): string => `border-l-4 level-${level}`;
-
 describe('PositionCard', () => {
   it('renders a leaf position with data-position-id on the outer card', () => {
     // Arrange
@@ -37,7 +35,6 @@ describe('PositionCard', () => {
       <PositionCard
         position={position}
         getChildren={noChildren}
-        getLevelColor={stubLevelColor}
       />,
     );
 
@@ -73,7 +70,6 @@ describe('PositionCard', () => {
       <PositionCard
         position={parent}
         getChildren={getChildren}
-        getLevelColor={stubLevelColor}
       />,
     );
 
