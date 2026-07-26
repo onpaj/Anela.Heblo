@@ -5,7 +5,7 @@ namespace Anela.Heblo.Application.Features.BackgroundJobs.Services;
 /// <summary>
 /// Service responsible for enqueueing recurring jobs via Hangfire using reflection.
 /// </summary>
-public interface IHangfireJobEnqueuer
+public interface IJobEnqueuer
 {
     /// <summary>
     /// Enqueues a recurring job for immediate execution using Hangfire's BackgroundJob.Enqueue.

@@ -115,6 +115,7 @@ jest.mock("../../../../api/hooks/useMarketingCalendar", () => ({
   }),
   useMarketingAction: () => ({ data: null, isLoading: false, error: null }),
   useUpdateMarketingAction: () => ({ mutate: jest.fn() }),
+  useMoveMarketingAction: () => ({ mutate: jest.fn() }),
 }));
 
 let mockHasPermission: (perm: string) => boolean = () => false;

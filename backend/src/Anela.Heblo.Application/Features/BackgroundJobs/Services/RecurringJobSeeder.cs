@@ -13,7 +13,10 @@ public class RecurringJobSeeder : IRecurringJobSeeder
 
     /// <summary>
     /// Seeds database with configurations from discovered IRecurringJob implementations.
-    /// Only creates configurations for jobs that don't already exist in the database.
+    /// Creates configurations for jobs that don't already exist in the database. For jobs
+    /// that already have a configuration row, updates the developer-owned fields
+    /// (DisplayName, Description) to match the current code, while preserving the
+    /// admin-owned fields (CronExpression, IsEnabled) exactly as stored.
     /// </summary>
     /// <param name="jobs">Collection of discovered recurring jobs</param>
     /// <param name="cancellationToken">Cancellation token</param>
@@ -36,6 +39,16 @@ public class RecurringJobSeeder : IRecurringJobSeeder
             if (existing == null)
             {
                 await _repository.AddAsync(config, cancellationToken);
+            }
+            else
+            {
+                existing.UpdateConfiguration(
+                    config.DisplayName,
+                    config.Description,
+                    existing.CronExpression,   // preserve admin override
+                    config.TimeZoneId,
+                    "System");
+                await _repository.UpdateAsync(existing, cancellationToken);
             }
         }
     }

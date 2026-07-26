@@ -11,7 +11,7 @@ namespace Anela.Heblo.API.Infrastructure.Hangfire;
 /// Service responsible for enqueueing recurring jobs via Hangfire using reflection.
 /// Uses reflection to dynamically call IBackgroundJobClient.Enqueue with proper generic type resolution.
 /// </summary>
-public class HangfireJobEnqueuer : IHangfireJobEnqueuer
+public class HangfireJobEnqueuer : IJobEnqueuer
 {
     private readonly ILogger<HangfireJobEnqueuer> _logger;
     private readonly IBackgroundJobClient _backgroundJobClient;

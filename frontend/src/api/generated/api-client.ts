@@ -8008,6 +8008,61 @@ export class ApiClient {
         return Promise.resolve<GetMarketingCalendarResponse>(null as any);
     }
 
+    marketingCalendar_MoveMarketingAction(id: number, request: MoveMarketingActionRequest): Promise<MoveMarketingActionResponse> {
+        let url_ = this.baseUrl + "/api/MarketingCalendar/{id}/move";
+        if (id === undefined || id === null)
+            throw new Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: RequestInit = {
+            body: content_,
+            method: "PATCH",
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processMarketingCalendar_MoveMarketingAction(_response);
+        });
+    }
+
+    protected processMarketingCalendar_MoveMarketingAction(response: Response): Promise<MoveMarketingActionResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = MoveMarketingActionResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status === 404) {
+            return response.text().then((_responseText) => {
+            let result404: any = null;
+            let resultData404 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result404 = ProblemDetails.fromJS(resultData404);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result404);
+            });
+        } else if (status === 401) {
+            return response.text().then((_responseText) => {
+            let result401: any = null;
+            let resultData401 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result401 = ProblemDetails.fromJS(resultData401);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result401);
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<MoveMarketingActionResponse>(null as any);
+    }
+
     marketingCalendar_ImportFromOutlook(request: ImportFromOutlookRequest): Promise<ImportFromOutlookResponse> {
         let url_ = this.baseUrl + "/api/MarketingCalendar/import-from-outlook";
         url_ = url_.replace(/[?&]$/, "");
@@ -31736,6 +31791,91 @@ export interface IUpdateMarketingActionRequest {
     endDate?: Date | undefined;
     associatedProducts?: string[] | undefined;
     folderLinks?: MarketingFolderLinkRequest[] | undefined;
+}
+
+export class MoveMarketingActionResponse extends BaseResponse implements IMoveMarketingActionResponse {
+    id?: number;
+    modifiedAt?: Date;
+    message?: string;
+
+    constructor(data?: IMoveMarketingActionResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            this.id = _data["id"];
+            this.modifiedAt = _data["modifiedAt"] ? new Date(_data["modifiedAt"].toString()) : <any>undefined;
+            this.message = _data["message"];
+        }
+    }
+
+    static override fromJS(data: any): MoveMarketingActionResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new MoveMarketingActionResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["id"] = this.id;
+        data["modifiedAt"] = this.modifiedAt ? this.modifiedAt.toISOString() : <any>undefined;
+        data["message"] = this.message;
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IMoveMarketingActionResponse extends IBaseResponse {
+    id?: number;
+    modifiedAt?: Date;
+    message?: string;
+}
+
+export class MoveMarketingActionRequest implements IMoveMarketingActionRequest {
+    id?: number;
+    startDate!: Date;
+    endDate?: Date | undefined;
+
+    constructor(data?: IMoveMarketingActionRequest) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.id = _data["id"];
+            this.startDate = _data["startDate"] ? new Date(_data["startDate"].toString()) : <any>undefined;
+            this.endDate = _data["endDate"] ? new Date(_data["endDate"].toString()) : <any>undefined;
+        }
+    }
+
+    static fromJS(data: any): MoveMarketingActionRequest {
+        data = typeof data === 'object' ? data : {};
+        let result = new MoveMarketingActionRequest();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["id"] = this.id;
+        data["startDate"] = this.startDate ? this.startDate.toISOString() : <any>undefined;
+        data["endDate"] = this.endDate ? this.endDate.toISOString() : <any>undefined;
+        return data;
+    }
+}
+
+export interface IMoveMarketingActionRequest {
+    id?: number;
+    startDate: Date;
+    endDate?: Date | undefined;
 }
 
 export class DeleteMarketingActionResponse extends BaseResponse implements IDeleteMarketingActionResponse {

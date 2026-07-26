@@ -10,13 +10,13 @@ public class TriggerRecurringJobHandler : IRequestHandler<TriggerRecurringJobReq
 {
     private readonly IEnumerable<IRecurringJob> _jobs;
     private readonly IRecurringJobStatusChecker _statusChecker;
-    private readonly IHangfireJobEnqueuer _jobEnqueuer;
+    private readonly IJobEnqueuer _jobEnqueuer;
     private readonly ILogger<TriggerRecurringJobHandler> _logger;
 
     public TriggerRecurringJobHandler(
         IEnumerable<IRecurringJob> jobs,
         IRecurringJobStatusChecker statusChecker,
-        IHangfireJobEnqueuer jobEnqueuer,
+        IJobEnqueuer jobEnqueuer,
         ILogger<TriggerRecurringJobHandler> logger)
     {
         _jobs = jobs ?? throw new ArgumentNullException(nameof(jobs));
