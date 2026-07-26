@@ -1,0 +1,46 @@
+{
+  "feature_id": "feat-3675",
+  "issue_number": 3675,
+  "created_at": "2026-07-17T08:15:46.214261Z",
+  "max_revisions": 3,
+  "phases": {
+    "analyzing": {
+      "status": "completed",
+      "updated_at": "2026-07-17T08:21:57.343307Z"
+    },
+    "architecting": {
+      "status": "completed",
+      "updated_at": "2026-07-17T08:24:27.933175Z"
+    },
+    "designing": {
+      "status": "completed",
+      "updated_at": "2026-07-17T08:26:03.491815Z"
+    },
+    "planning": {
+      "status": "completed",
+      "updated_at": "2026-07-17T08:30:39.467917Z"
+    },
+    "developing": {
+      "status": "completed",
+      "updated_at": "2026-07-17T09:12:42.775104Z"
+    },
+    "code-review": {
+      "status": "completed",
+      "updated_at": "2026-07-17T09:34:54.440785Z"
+    }
+  },
+  "tasks": [
+    {
+      "name": "add-container-name-validator-and-pipeline-wiring",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-07-17T08:54:51.326675Z"
+    },
+    {
+      "name": "remove-container-name-validation-from-handler",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-07-17T09:12:35.662077Z"
+    }
+  ]
+}
