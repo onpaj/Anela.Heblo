@@ -15,7 +15,7 @@ import {
   useMarketingCalendar,
   useMarketingActions,
   useMarketingAction,
-  useUpdateMarketingAction,
+  useMoveMarketingAction,
 } from '../../../api/hooks/useMarketingCalendar';
 import { formatDateStr } from '../calendar/fullcalendarAdapters';
 import type { CalendarEvent } from '../calendar/fullcalendarAdapters';
@@ -101,7 +101,7 @@ const MarketingCalendarPage: React.FC = () => {
     startDateTo: filters.dateTo ? new Date(filters.dateTo) : undefined,
   });
   const detailQuery = useMarketingAction(selectedActionId ?? 0);
-  const updateMutation = useUpdateMarketingAction();
+  const moveMutation = useMoveMarketingAction();
 
   const calendarEvents: CalendarEvent[] = useMemo(
     () =>
@@ -206,20 +206,13 @@ const MarketingCalendarPage: React.FC = () => {
 
   const handleEventMove = useCallback(
     (id: number, dateFrom: string, dateTo: string) => {
-      const event = calendarEvents.find((e) => e.id === id);
-      if (!event) return;
-      updateMutation.mutate({
+      moveMutation.mutate({
         id,
-        request: {
-          title: event.title,
-          actionType: event.actionType,
-          startDate: new Date(dateFrom),
-          endDate: new Date(dateTo),
-          associatedProducts: event.associatedProducts,
-        },
+        startDate: new Date(dateFrom),
+        endDate: new Date(dateTo),
       });
     },
-    [calendarEvents, updateMutation],
+    [moveMutation],
   );
 
   const handleEventResize = useCallback(

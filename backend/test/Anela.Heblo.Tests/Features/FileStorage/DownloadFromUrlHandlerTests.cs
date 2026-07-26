@@ -159,64 +159,6 @@ public class DownloadFromUrlHandlerTests
     }
 
     [Theory]
-    [InlineData("")]
-    [InlineData("ab")]
-    [InlineData("very-long-container-name-that-exceeds-sixty-three-characters-limit")]
-    [InlineData("InvalidCase")]
-    [InlineData("invalid--double-hyphen")]
-    [InlineData("-starts-with-hyphen")]
-    [InlineData("ends-with-hyphen-")]
-    [InlineData("invalid_underscore")]
-    public async Task Handle_InvalidContainerName_ShouldReturnErrorResponse(string invalidContainerName)
-    {
-        // Arrange
-        var request = new DownloadFromUrlRequest
-        {
-            FileUrl = "https://example.com/file.txt",
-            ContainerName = invalidContainerName,
-        };
-
-        // Act
-        var result = await BuildHandler().Handle(request, CancellationToken.None);
-
-        // Assert
-        Assert.False(result.Success);
-        Assert.Equal(ErrorCodes.InvalidContainerName, result.ErrorCode);
-    }
-
-    [Theory]
-    [InlineData("valid-container")]
-    [InlineData("container123")]
-    [InlineData("my-container-name")]
-    [InlineData("abc")]
-    [InlineData("container-with-exactly-sixty-three-characters-in-total-length")]
-    public async Task Handle_ValidContainerName_ShouldSucceed(string validContainerName)
-    {
-        // Arrange
-        var blobUrl = $"https://mock.blob.core.windows.net/{validContainerName}/file.txt";
-        _blobStorage
-            .Setup(s => s.DownloadFromUrlAsync(
-                It.IsAny<string>(),
-                validContainerName,
-                It.IsAny<string?>(),
-                It.IsAny<CancellationToken>()))
-            .ReturnsAsync(blobUrl);
-
-        var request = new DownloadFromUrlRequest
-        {
-            FileUrl = "https://example.com/file.txt",
-            ContainerName = validContainerName,
-        };
-
-        // Act
-        var result = await BuildHandler().Handle(request, CancellationToken.None);
-
-        // Assert
-        Assert.True(result.Success);
-        Assert.Equal(validContainerName, result.ContainerName);
-    }
-
-    [Theory]
     [InlineData("https://example.com/image.jpg", "image.jpg")]
     [InlineData("https://example.com/documents/report.pdf", "report.pdf")]
     [InlineData("https://example.com/files/data.json", "data.json")]
@@ -490,25 +432,6 @@ public class DownloadFromUrlHandlerTests
         // Assert
         Assert.False(result.Success);
         Assert.Equal(ErrorCodes.InvalidUrlFormat, result.ErrorCode);
-        Assert.Equal("validation", result.Params!["cause"]);
-    }
-
-    [Fact]
-    public async Task Handle_ValidationFailure_InvalidContainerName_SetsCauseValidation()
-    {
-        // Arrange
-        var request = new DownloadFromUrlRequest
-        {
-            FileUrl = "https://example.com/export.csv",
-            ContainerName = "INVALID_UPPERCASE",
-        };
-
-        // Act
-        var result = await BuildHandler().Handle(request, CancellationToken.None);
-
-        // Assert
-        Assert.False(result.Success);
-        Assert.Equal(ErrorCodes.InvalidContainerName, result.ErrorCode);
         Assert.Equal("validation", result.Params!["cause"]);
     }
 

@@ -165,21 +165,6 @@ const OrgChartPage: React.FC = () => {
 
   const totalEmployees = filteredPositions.reduce((sum, pos) => sum + (pos.employees?.length || 0), 0);
 
-  const getLevelColor = (level: number) => {
-    switch (level) {
-      case 1:
-        return 'border-l-4 border-red-500';
-      case 2:
-        return 'border-l-4 border-orange-500';
-      case 3:
-        return 'border-l-4 border-yellow-500';
-      case 4:
-        return 'border-l-4 border-green-500';
-      default:
-        return 'border-l-4 border-gray-500';
-    }
-  };
-
   const getChildren = (parentId: string): Position[] =>
     orgChartGetChildren(parentId, filteredPositions);
 
@@ -334,7 +319,6 @@ const OrgChartPage: React.FC = () => {
                   key={root.id}
                   position={root}
                   getChildren={getChildren}
-                  getLevelColor={getLevelColor}
                 />
               ))}
             </div>

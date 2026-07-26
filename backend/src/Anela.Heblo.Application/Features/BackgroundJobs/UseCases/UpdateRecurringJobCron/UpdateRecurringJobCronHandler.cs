@@ -14,13 +14,13 @@ public class UpdateRecurringJobCronHandler : IRequestHandler<UpdateRecurringJobC
     private readonly ILogger<UpdateRecurringJobCronHandler> _logger;
     private readonly IRecurringJobConfigurationRepository _repository;
     private readonly ICurrentUserService _currentUserService;
-    private readonly IHangfireRecurringJobScheduler _scheduler;
+    private readonly ICronScheduler _scheduler;
 
     public UpdateRecurringJobCronHandler(
         ILogger<UpdateRecurringJobCronHandler> logger,
         IRecurringJobConfigurationRepository repository,
         ICurrentUserService currentUserService,
-        IHangfireRecurringJobScheduler scheduler)
+        ICronScheduler scheduler)
     {
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _repository = repository ?? throw new ArgumentNullException(nameof(repository));

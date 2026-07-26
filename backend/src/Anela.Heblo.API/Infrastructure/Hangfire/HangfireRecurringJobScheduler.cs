@@ -10,7 +10,7 @@ namespace Anela.Heblo.API.Infrastructure.Hangfire;
 /// <see cref="HangfireJobRegistrationHelper"/> so the runtime-update path uses
 /// the same registration code as startup discovery.
 /// </summary>
-public class HangfireRecurringJobScheduler : IHangfireRecurringJobScheduler
+public class HangfireRecurringJobScheduler : ICronScheduler
 {
     private readonly IServiceProvider _serviceProvider;
     private readonly ILogger<HangfireRecurringJobScheduler> _logger;

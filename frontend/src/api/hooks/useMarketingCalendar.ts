@@ -4,6 +4,7 @@ import {
   MarketingActionType,
   CreateMarketingActionRequest,
   UpdateMarketingActionRequest,
+  MoveMarketingActionRequest,
   ImportFromOutlookRequest,
   type ICreateMarketingActionRequest,
   type IImportFromOutlookRequest,
@@ -124,6 +125,39 @@ export const useUpdateMarketingAction = () => {
           ...request,
           id,
         }),
+      );
+    },
+    onSuccess: (_, { id }) => {
+      queryClient.invalidateQueries({
+        queryKey: [...QUERY_KEYS.marketingCalendar, "actions"],
+      });
+      queryClient.invalidateQueries({
+        queryKey: [...QUERY_KEYS.marketingCalendar, "calendar"],
+      });
+      queryClient.invalidateQueries({
+        queryKey: [...QUERY_KEYS.marketingCalendar, "action", id],
+      });
+    },
+  });
+};
+
+export const useMoveMarketingAction = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      id,
+      startDate,
+      endDate,
+    }: {
+      id: number;
+      startDate: Date;
+      endDate?: Date;
+    }) => {
+      const client = await getAuthenticatedApiClient();
+      return await client.marketingCalendar_MoveMarketingAction(
+        id,
+        new MoveMarketingActionRequest({ id, startDate, endDate }),
       );
     },
     onSuccess: (_, { id }) => {

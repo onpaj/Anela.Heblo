@@ -1,0 +1,46 @@
+{
+  "feature_id": "feat-3650",
+  "issue_number": 3650,
+  "created_at": "2026-07-15T05:16:02.766055Z",
+  "max_revisions": 3,
+  "phases": {
+    "analyzing": {
+      "status": "completed",
+      "updated_at": "2026-07-15T05:18:54.316674Z"
+    },
+    "architecting": {
+      "status": "completed",
+      "updated_at": "2026-07-15T05:21:41.502185Z"
+    },
+    "designing": {
+      "status": "completed",
+      "updated_at": "2026-07-15T05:22:51.069063Z"
+    },
+    "planning": {
+      "status": "completed",
+      "updated_at": "2026-07-15T05:24:36.964814Z"
+    },
+    "developing": {
+      "status": "completed",
+      "updated_at": "2026-07-15T06:44:07.763816Z"
+    },
+    "code-review": {
+      "status": "in_progress",
+      "updated_at": "2026-07-15T06:44:20.347364Z"
+    }
+  },
+  "tasks": [
+    {
+      "name": "backend-move-use-case",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-07-15T06:31:30.077669Z"
+    },
+    {
+      "name": "frontend-wire-move-endpoint",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-07-15T06:44:07.329009Z"
+    }
+  ]
+}

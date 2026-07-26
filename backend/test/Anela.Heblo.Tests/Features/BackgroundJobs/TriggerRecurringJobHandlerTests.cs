@@ -20,12 +20,12 @@ public class TriggerRecurringJobHandlerTests
     private static TriggerRecurringJobHandler CreateHandler(
         IEnumerable<IRecurringJob>? jobs = null,
         Mock<IRecurringJobStatusChecker>? statusChecker = null,
-        Mock<IHangfireJobEnqueuer>? enqueuer = null)
+        Mock<IJobEnqueuer>? enqueuer = null)
     {
         return new TriggerRecurringJobHandler(
             jobs ?? Array.Empty<IRecurringJob>(),
             (statusChecker ?? new Mock<IRecurringJobStatusChecker>()).Object,
-            (enqueuer ?? new Mock<IHangfireJobEnqueuer>()).Object,
+            (enqueuer ?? new Mock<IJobEnqueuer>()).Object,
             new Mock<ILogger<TriggerRecurringJobHandler>>().Object);
     }
 
@@ -91,7 +91,7 @@ public class TriggerRecurringJobHandlerTests
             .Setup(x => x.IsJobEnabledAsync("enabled-job", It.IsAny<CancellationToken>(), true))
             .ReturnsAsync(true);
 
-        var enqueuer = new Mock<IHangfireJobEnqueuer>();
+        var enqueuer = new Mock<IJobEnqueuer>();
         enqueuer
             .Setup(x => x.EnqueueJob(It.IsAny<IRecurringJob>(), It.IsAny<CancellationToken>()))
             .Returns((string?)null);

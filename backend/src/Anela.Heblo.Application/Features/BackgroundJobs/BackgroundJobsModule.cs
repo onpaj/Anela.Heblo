@@ -16,7 +16,7 @@ public static class BackgroundJobsModule
         services.AddScoped<IRecurringJobConfigurationRepository, RecurringJobConfigurationRepository>();
         // Startup-only seeding service (Application layer, wraps the repository)
         services.AddScoped<IRecurringJobSeeder, RecurringJobSeeder>();
-        // Hangfire adapter implementations (IHangfireJobEnqueuer, IHangfireRecurringJobScheduler)
+        // Hangfire adapter implementations (IJobEnqueuer, ICronScheduler)
         // are registered in Anela.Heblo.API.Extensions.ServiceCollectionExtensions.AddHangfireServices
         // because their implementations live in the API project (Clean Architecture dependency rule).
 

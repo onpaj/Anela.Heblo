@@ -6,7 +6,7 @@ exports[`PositionCard renders a leaf position with data-position-id on the outer
     class="flex flex-col items-center"
   >
     <div
-      class="bg-white dark:bg-graphite-surface rounded-xl shadow-lg dark:shadow-soft-dark p-6 w-80 transition-all hover:shadow-2xl hover:-translate-y-1 border-l-4 level-1 relative mb-20"
+      class="bg-white dark:bg-graphite-surface rounded-xl shadow-lg dark:shadow-soft-dark p-6 w-80 transition-all hover:shadow-2xl hover:-translate-y-1 border-l-4 border-red-500 relative mb-20"
       data-position-id="pos-1"
     >
       <div
@@ -62,7 +62,7 @@ exports[`PositionCard renders a recursive position with one child 1`] = `
     class="flex flex-col items-center"
   >
     <div
-      class="bg-white dark:bg-graphite-surface rounded-xl shadow-lg dark:shadow-soft-dark p-6 w-80 transition-all hover:shadow-2xl hover:-translate-y-1 border-l-4 level-2 relative mb-20"
+      class="bg-white dark:bg-graphite-surface rounded-xl shadow-lg dark:shadow-soft-dark p-6 w-80 transition-all hover:shadow-2xl hover:-translate-y-1 border-l-4 border-orange-500 relative mb-20"
       data-position-id="parent"
     >
       <div
@@ -91,7 +91,7 @@ exports[`PositionCard renders a recursive position with one child 1`] = `
         class="flex flex-col items-center"
       >
         <div
-          class="bg-white dark:bg-graphite-surface rounded-xl shadow-lg dark:shadow-soft-dark p-6 w-80 transition-all hover:shadow-2xl hover:-translate-y-1 border-l-4 level-3 relative mb-20"
+          class="bg-white dark:bg-graphite-surface rounded-xl shadow-lg dark:shadow-soft-dark p-6 w-80 transition-all hover:shadow-2xl hover:-translate-y-1 border-l-4 border-yellow-500 relative mb-20"
           data-position-id="child"
         >
           <div

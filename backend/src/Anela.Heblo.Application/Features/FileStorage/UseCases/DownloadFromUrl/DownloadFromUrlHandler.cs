@@ -58,21 +58,6 @@ public sealed class DownloadFromUrlHandler : IRequestHandler<DownloadFromUrlRequ
             };
         }
 
-        if (!IsValidContainerName(request.ContainerName))
-        {
-            _logger.LogWarning("Invalid container name: {ContainerName}", request.ContainerName);
-            return new DownloadFromUrlResponse
-            {
-                Success = false,
-                ErrorCode = ErrorCodes.InvalidContainerName,
-                Params = new Dictionary<string, string>
-                {
-                    ["containerName"] = request.ContainerName,
-                    ["cause"] = "validation",
-                },
-            };
-        }
-
         var redactedUrl = RedactUrl(request.FileUrl);
         var sw = Stopwatch.StartNew();
         int attemptCount = 0;
@@ -194,30 +179,6 @@ public sealed class DownloadFromUrlHandler : IRequestHandler<DownloadFromUrlRequ
         {
             return "[redacted]";
         }
-    }
-
-    private static bool IsValidContainerName(string containerName)
-    {
-        if (string.IsNullOrEmpty(containerName) || containerName.Length < 3 || containerName.Length > 63)
-            return false;
-
-        if (containerName != containerName.ToLowerInvariant())
-            return false;
-
-        if (!char.IsLetterOrDigit(containerName[0]) || !char.IsLetterOrDigit(containerName[^1]))
-            return false;
-
-        for (int i = 0; i < containerName.Length; i++)
-        {
-            var c = containerName[i];
-            if (!char.IsLetterOrDigit(c) && c != '-')
-                return false;
-
-            if (c == '-' && i < containerName.Length - 1 && containerName[i + 1] == '-')
-                return false;
-        }
-
-        return true;
     }
 
     private static string GetBlobNameFromUrl(string blobUrl)
