@@ -32,12 +32,10 @@ public class BlockOrderProcessingHandlerTests
     }
 
     [Fact]
-    public async Task Handle_OrderInAllowedState_ChangesStatusAndUpdatesEshopRemark()
+    public async Task Handle_OrderInAllowedState_ChangesStatusAndAppendsEshopRemark()
     {
         _clientMock.Setup(x => x.GetOrderStatusIdAsync("ORDER-A", It.IsAny<CancellationToken>()))
             .ReturnsAsync(26);
-        _clientMock.Setup(x => x.GetEshopRemarkAsync("ORDER-A", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(string.Empty);
 
         var handler = new BlockOrderProcessingHandler(
             _clientMock.Object,
@@ -55,7 +53,7 @@ public class BlockOrderProcessingHandlerTests
         response.Success.Should().BeTrue();
         _clientMock.Verify(c => c.UpdateStatusAsync("ORDER-A", 99, It.IsAny<CancellationToken>()), Times.Once);
         _clientMock.Verify(
-            c => c.UpdateEshopRemarkAsync("ORDER-A", "test note", It.IsAny<CancellationToken>()),
+            c => c.AppendEshopRemarkAsync("ORDER-A", "test note", It.IsAny<CancellationToken>()),
             Times.Once);
     }
 
@@ -64,8 +62,6 @@ public class BlockOrderProcessingHandlerTests
     {
         _clientMock.Setup(c => c.GetOrderStatusIdAsync("ORDER-B", It.IsAny<CancellationToken>()))
             .ReturnsAsync(-2);
-        _clientMock.Setup(c => c.GetEshopRemarkAsync("ORDER-B", It.IsAny<CancellationToken>()))
-            .ReturnsAsync("existing");
 
         var handler = new BlockOrderProcessingHandler(
             _clientMock.Object,
@@ -83,7 +79,7 @@ public class BlockOrderProcessingHandlerTests
         response.Success.Should().BeTrue();
         _clientMock.Verify(c => c.UpdateStatusAsync("ORDER-B", 99, It.IsAny<CancellationToken>()), Times.Once);
         _clientMock.Verify(
-            c => c.UpdateEshopRemarkAsync("ORDER-B", "existing\nnote", It.IsAny<CancellationToken>()),
+            c => c.AppendEshopRemarkAsync("ORDER-B", "note", It.IsAny<CancellationToken>()),
             Times.Once);
     }
 
@@ -103,10 +99,7 @@ public class BlockOrderProcessingHandlerTests
         result.Params.Should().ContainKey("currentStatusId").WhoseValue.Should().Be("70");
         _clientMock.Verify(x => x.UpdateStatusAsync(It.IsAny<string>(), It.IsAny<int>(), It.IsAny<CancellationToken>()), Times.Never);
         _clientMock.Verify(
-            c => c.GetEshopRemarkAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()),
-            Times.Never);
-        _clientMock.Verify(
-            c => c.UpdateEshopRemarkAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()),
+            c => c.AppendEshopRemarkAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()),
             Times.Never);
     }
 
@@ -139,115 +132,19 @@ public class BlockOrderProcessingHandlerTests
         result.Success.Should().BeFalse();
         result.ErrorCode.Should().Be(ErrorCodes.InternalServerError);
         _clientMock.Verify(
-            c => c.GetEshopRemarkAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()),
-            Times.Never);
-        _clientMock.Verify(
-            c => c.UpdateEshopRemarkAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()),
+            c => c.AppendEshopRemarkAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()),
             Times.Never);
     }
 
     [Fact]
-    public async Task Handle_OrderInAllowedState_AppendsNoteToExistingEshopRemark()
-    {
-        // Arrange
-        var clientMock = new Mock<IEshopOrderClient>();
-        clientMock.Setup(c => c.GetOrderStatusIdAsync("ORDER-1", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(26);
-        clientMock.Setup(c => c.GetEshopRemarkAsync("ORDER-1", It.IsAny<CancellationToken>()))
-            .ReturnsAsync("previous staff note");
-
-        var handler = new BlockOrderProcessingHandler(
-            clientMock.Object,
-            Options.Create(new ShoptetOrdersSettings
-            {
-                AllowedBlockSourceStateIds = new[] { 26, -2 },
-                BlockedStatusId = 99,
-            }),
-            NullLogger<BlockOrderProcessingHandler>.Instance);
-
-        // Act
-        var result = await handler.Handle(
-            new BlockOrderProcessingRequest { OrderCode = "ORDER-1", Note = "blocked by accounting" },
-            CancellationToken.None);
-
-        // Assert
-        result.Success.Should().BeTrue();
-        clientMock.Verify(c => c.UpdateStatusAsync("ORDER-1", 99, It.IsAny<CancellationToken>()), Times.Once);
-        clientMock.Verify(
-            c => c.UpdateEshopRemarkAsync(
-                "ORDER-1",
-                "previous staff note\nblocked by accounting",
-                It.IsAny<CancellationToken>()),
-            Times.Once);
-    }
-
-    [Fact]
-    public async Task Handle_OrderWithEmptyEshopRemark_SetsNoteAsFirstLine()
-    {
-        // Arrange
-        var clientMock = new Mock<IEshopOrderClient>();
-        clientMock.Setup(c => c.GetOrderStatusIdAsync("ORDER-2", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(-2);
-        clientMock.Setup(c => c.GetEshopRemarkAsync("ORDER-2", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(string.Empty);
-
-        var handler = new BlockOrderProcessingHandler(
-            clientMock.Object,
-            Options.Create(new ShoptetOrdersSettings
-            {
-                AllowedBlockSourceStateIds = new[] { 26, -2 },
-                BlockedStatusId = 99,
-            }),
-            NullLogger<BlockOrderProcessingHandler>.Instance);
-
-        // Act
-        var result = await handler.Handle(
-            new BlockOrderProcessingRequest { OrderCode = "ORDER-2", Note = "fraud suspicion" },
-            CancellationToken.None);
-
-        // Assert
-        result.Success.Should().BeTrue();
-        clientMock.Verify(
-            c => c.UpdateEshopRemarkAsync("ORDER-2", "fraud suspicion", It.IsAny<CancellationToken>()),
-            Times.Once);
-    }
-
-    [Fact]
-    public async Task Handle_ShoptetApiThrowsOnGetEshopRemark_ReturnsSuccessAndLogsWarning()
+    public async Task Handle_ShoptetApiThrowsOnAppendEshopRemark_ReturnsSuccessAndLogsWarning()
     {
         var exception = new HttpRequestException("Shoptet unavailable");
         _clientMock.Setup(x => x.GetOrderStatusIdAsync("ORDER-X", It.IsAny<CancellationToken>()))
             .ReturnsAsync(26);
         _clientMock.Setup(x => x.UpdateStatusAsync("ORDER-X", 99, It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
-        _clientMock.Setup(x => x.GetEshopRemarkAsync("ORDER-X", It.IsAny<CancellationToken>()))
-            .ThrowsAsync(exception);
-
-        var result = await CreateHandler().Handle(
-            new BlockOrderProcessingRequest { OrderCode = "ORDER-X", Note = "blocked" },
-            CancellationToken.None);
-
-        result.Success.Should().BeTrue();
-        _loggerMock.Verify(x => x.Log(
-            LogLevel.Warning,
-            It.IsAny<EventId>(),
-            It.Is<It.IsAnyType>((v, _) => v.ToString()!.Contains("ORDER-X")),
-            It.Is<Exception>(e => e != null),
-            It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
-            Times.Once);
-    }
-
-    [Fact]
-    public async Task Handle_ShoptetApiThrowsOnUpdateEshopRemark_ReturnsSuccessAndLogsWarning()
-    {
-        var exception = new HttpRequestException("Shoptet unavailable");
-        _clientMock.Setup(x => x.GetOrderStatusIdAsync("ORDER-X", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(26);
-        _clientMock.Setup(x => x.UpdateStatusAsync("ORDER-X", 99, It.IsAny<CancellationToken>()))
-            .Returns(Task.CompletedTask);
-        _clientMock.Setup(x => x.GetEshopRemarkAsync("ORDER-X", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(string.Empty);
-        _clientMock.Setup(x => x.UpdateEshopRemarkAsync("ORDER-X", "blocked", It.IsAny<CancellationToken>()))
+        _clientMock.Setup(x => x.AppendEshopRemarkAsync("ORDER-X", "blocked", It.IsAny<CancellationToken>()))
             .ThrowsAsync(exception);
 
         var result = await CreateHandler().Handle(
@@ -271,7 +168,7 @@ public class BlockOrderProcessingHandlerTests
             .ReturnsAsync(26);
         _clientMock.Setup(x => x.UpdateStatusAsync("ORDER-X", 99, It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
-        _clientMock.Setup(x => x.GetEshopRemarkAsync("ORDER-X", It.IsAny<CancellationToken>()))
+        _clientMock.Setup(x => x.AppendEshopRemarkAsync("ORDER-X", "blocked", It.IsAny<CancellationToken>()))
             .ThrowsAsync(new OperationCanceledException());
 
         await Assert.ThrowsAsync<OperationCanceledException>(() =>
