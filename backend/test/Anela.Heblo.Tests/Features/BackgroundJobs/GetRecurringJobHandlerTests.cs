@@ -38,7 +38,7 @@ public class GetRecurringJobHandlerTests
     public async Task Handle_WhenJobExistsAndEnabled_ReturnsJobWithNextRunAt()
     {
         var request = new GetRecurringJobRequest { JobName = "print-picking-list" };
-        var job = new RecurringJobConfiguration("print-picking-list", "Print", "Desc", "0 13 * * *", "Europe/Prague", true, "User1");
+        var job = new RecurringJobConfiguration("print-picking-list", "Print", "Desc", "0 13 * * *", "Europe/Prague", true, "User1", DateTime.UtcNow);
         var dto = new RecurringJobDto { JobName = "print-picking-list", CronExpression = "0 13 * * *", TimeZoneId = "Europe/Prague", IsEnabled = true };
         _repositoryMock.Setup(r => r.GetByJobNameAsync("print-picking-list", It.IsAny<CancellationToken>())).ReturnsAsync(job);
         _mapperMock.Setup(m => m.Map<RecurringJobDto>(job)).Returns(dto);
@@ -56,7 +56,7 @@ public class GetRecurringJobHandlerTests
     public async Task Handle_WhenJobIsDisabled_ReturnsJobWithNullNextRunAt()
     {
         var request = new GetRecurringJobRequest { JobName = "print-picking-list" };
-        var job = new RecurringJobConfiguration("print-picking-list", "Print", "Desc", "0 13 * * *", "Europe/Prague", false, "User1");
+        var job = new RecurringJobConfiguration("print-picking-list", "Print", "Desc", "0 13 * * *", "Europe/Prague", false, "User1", DateTime.UtcNow);
         var dto = new RecurringJobDto { JobName = "print-picking-list", CronExpression = "0 13 * * *", TimeZoneId = "Europe/Prague", IsEnabled = false };
         _repositoryMock.Setup(r => r.GetByJobNameAsync("print-picking-list", It.IsAny<CancellationToken>())).ReturnsAsync(job);
         _mapperMock.Setup(m => m.Map<RecurringJobDto>(job)).Returns(dto);
@@ -71,7 +71,7 @@ public class GetRecurringJobHandlerTests
     public async Task Handle_WhenJobHasNonDefaultTimeZone_UsesJobTimeZoneForNextRunAt()
     {
         var request = new GetRecurringJobRequest { JobName = "print-picking-list" };
-        var job = new RecurringJobConfiguration("print-picking-list", "Print", "Desc", "0 13 * * *", "America/New_York", true, "User1");
+        var job = new RecurringJobConfiguration("print-picking-list", "Print", "Desc", "0 13 * * *", "America/New_York", true, "User1", DateTime.UtcNow);
         var dto = new RecurringJobDto { JobName = "print-picking-list", CronExpression = "0 13 * * *", TimeZoneId = "America/New_York", IsEnabled = true };
         _repositoryMock.Setup(r => r.GetByJobNameAsync("print-picking-list", It.IsAny<CancellationToken>())).ReturnsAsync(job);
         _mapperMock.Setup(m => m.Map<RecurringJobDto>(job)).Returns(dto);

@@ -39,8 +39,8 @@ public class GetRecurringJobsListHandlerTests
         var request = new GetRecurringJobsListRequest();
         var jobs = new List<RecurringJobConfiguration>
         {
-            new RecurringJobConfiguration("Job1", "Display 1", "Description 1", "0 0 * * *", "Europe/Prague", true, "User1"),
-            new RecurringJobConfiguration("Job2", "Display 2", "Description 2", "0 1 * * *", "Europe/Prague", false, "User2")
+            new RecurringJobConfiguration("Job1", "Display 1", "Description 1", "0 0 * * *", "Europe/Prague", true, "User1", DateTime.UtcNow),
+            new RecurringJobConfiguration("Job2", "Display 2", "Description 2", "0 1 * * *", "Europe/Prague", false, "User2", DateTime.UtcNow)
         };
         var jobDtos = new List<RecurringJobDto>
         {
@@ -95,7 +95,7 @@ public class GetRecurringJobsListHandlerTests
         var request = new GetRecurringJobsListRequest();
         var jobs = new List<RecurringJobConfiguration>
         {
-            new RecurringJobConfiguration("Job1", "Display 1", "Description 1", "0 0 * * *", "Europe/Prague", true, "User1")
+            new RecurringJobConfiguration("Job1", "Display 1", "Description 1", "0 0 * * *", "Europe/Prague", true, "User1", DateTime.UtcNow)
         };
         var jobDtos = new List<RecurringJobDto>();
         _repositoryMock.Setup(r => r.GetAllAsync(It.IsAny<CancellationToken>())).ReturnsAsync(jobs);
@@ -112,7 +112,7 @@ public class GetRecurringJobsListHandlerTests
         var request = new GetRecurringJobsListRequest();
         var jobs = new List<RecurringJobConfiguration>
         {
-            new RecurringJobConfiguration("Job1", "Display 1", "Description 1", "0 0 * * *", "Europe/Prague", true, "User1")
+            new RecurringJobConfiguration("Job1", "Display 1", "Description 1", "0 0 * * *", "Europe/Prague", true, "User1", DateTime.UtcNow)
         };
         var jobDtos = new List<RecurringJobDto>
         {
@@ -143,7 +143,7 @@ public class GetRecurringJobsListHandlerTests
         var request = new GetRecurringJobsListRequest();
         var jobs = new List<RecurringJobConfiguration>
         {
-            new RecurringJobConfiguration("Job1", "Display 1", "Desc", "0 13 * * *", "Europe/Prague", true, "User1")
+            new RecurringJobConfiguration("Job1", "Display 1", "Desc", "0 13 * * *", "Europe/Prague", true, "User1", DateTime.UtcNow)
         };
         var jobDtos = new List<RecurringJobDto>
         {
@@ -165,7 +165,7 @@ public class GetRecurringJobsListHandlerTests
         var request = new GetRecurringJobsListRequest();
         var jobs = new List<RecurringJobConfiguration>
         {
-            new RecurringJobConfiguration("Job2", "Display 2", "Desc", "0 13 * * *", "Europe/Prague", false, "User1")
+            new RecurringJobConfiguration("Job2", "Display 2", "Desc", "0 13 * * *", "Europe/Prague", false, "User1", DateTime.UtcNow)
         };
         var jobDtos = new List<RecurringJobDto>
         {
@@ -185,8 +185,8 @@ public class GetRecurringJobsListHandlerTests
         var request = new GetRecurringJobsListRequest();
         var jobs = new List<RecurringJobConfiguration>
         {
-            new RecurringJobConfiguration("Job1", "Display 1", "Desc", "0 13 * * *", "Europe/Prague", true, "User1"),
-            new RecurringJobConfiguration("Job2", "Display 2", "Desc", "0 3 * * *", "Europe/Prague", false, "User2")
+            new RecurringJobConfiguration("Job1", "Display 1", "Desc", "0 13 * * *", "Europe/Prague", true, "User1", DateTime.UtcNow),
+            new RecurringJobConfiguration("Job2", "Display 2", "Desc", "0 3 * * *", "Europe/Prague", false, "User2", DateTime.UtcNow)
         };
         var jobDtos = new List<RecurringJobDto>
         {
@@ -212,8 +212,8 @@ public class GetRecurringJobsListHandlerTests
         var request = new GetRecurringJobsListRequest();
         var jobs = new List<RecurringJobConfiguration>
         {
-            new RecurringJobConfiguration("Job1", "Display 1", "Desc", "0 13 * * *", "Europe/Prague", true, "User1"),
-            new RecurringJobConfiguration("Job2", "Display 2", "Desc", "0 13 * * *", "America/New_York", true, "User2")
+            new RecurringJobConfiguration("Job1", "Display 1", "Desc", "0 13 * * *", "Europe/Prague", true, "User1", DateTime.UtcNow),
+            new RecurringJobConfiguration("Job2", "Display 2", "Desc", "0 13 * * *", "America/New_York", true, "User2", DateTime.UtcNow)
         };
         var jobDtos = new List<RecurringJobDto>
         {
@@ -239,7 +239,7 @@ public class GetRecurringJobsListHandlerTests
         var request = new GetRecurringJobsListRequest();
         var jobs = new List<RecurringJobConfiguration>
         {
-            new RecurringJobConfiguration("Job1", "Display 1", "Desc", "NOT_A_CRON", "Europe/Prague", true, "User1")
+            new RecurringJobConfiguration("Job1", "Display 1", "Desc", "NOT_A_CRON", "Europe/Prague", true, "User1", DateTime.UtcNow)
         };
         var jobDtos = new List<RecurringJobDto>
         {
@@ -281,7 +281,7 @@ public class GetRecurringJobsListHandlerTests
         var request = new GetRecurringJobsListRequest();
         var jobs = new List<RecurringJobConfiguration>
         {
-            new RecurringJobConfiguration("czk-import", "CZK Import", "Desc", "15 4 * * *", "Europe/Prague", true, "System")
+            new RecurringJobConfiguration("czk-import", "CZK Import", "Desc", "15 4 * * *", "Europe/Prague", true, "System", DateTime.UtcNow)
         };
         var jobDtos = new List<RecurringJobDto>
         {
@@ -311,7 +311,7 @@ public class GetRecurringJobsListHandlerTests
         var request = new GetRecurringJobsListRequest();
         var jobs = new List<RecurringJobConfiguration>
         {
-            new RecurringJobConfiguration("czk-import", "CZK Import", "Desc", "15 4 * * *", "Europe/Prague", true, "System")
+            new RecurringJobConfiguration("czk-import", "CZK Import", "Desc", "15 4 * * *", "Europe/Prague", true, "System", DateTime.UtcNow)
         };
         var jobDtos = new List<RecurringJobDto>
         {
@@ -335,7 +335,7 @@ public class GetRecurringJobsListHandlerTests
         var request = new GetRecurringJobsListRequest();
         var jobs = new List<RecurringJobConfiguration>
         {
-            new RecurringJobConfiguration("Job1", "Display 1", "Desc", "INVALID_CRON", "Europe/Prague", true, "User1")
+            new RecurringJobConfiguration("Job1", "Display 1", "Desc", "INVALID_CRON", "Europe/Prague", true, "User1", DateTime.UtcNow)
         };
         var jobDtos = new List<RecurringJobDto>
         {
