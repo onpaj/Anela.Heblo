@@ -142,4 +142,40 @@ public class ShoptetOrderClientTests
         result[0].StatusId.Should().Be(70);
         result[1].Code.Should().Be("ORD-2");
     }
+
+    [Fact]
+    public async Task AppendEshopRemarkAsync_SetsNoteAsFirstLine_WhenNoExistingRemark()
+    {
+        string? patchedRemark = null;
+        var client = BuildClient(req =>
+        {
+            if (req.Method == HttpMethod.Get)
+                return Json(new { data = new { order = new { notes = (object?)null } } });
+
+            patchedRemark = req.Content!.ReadAsStringAsync().Result;
+            return Json(new { data = (object?)null });
+        });
+
+        await client.AppendEshopRemarkAsync("ORDER-1", "fraud suspicion");
+
+        patchedRemark.Should().Contain("fraud suspicion");
+    }
+
+    [Fact]
+    public async Task AppendEshopRemarkAsync_AppendsWithNewline_WhenExistingRemarkPresent()
+    {
+        string? patchedRemark = null;
+        var client = BuildClient(req =>
+        {
+            if (req.Method == HttpMethod.Get)
+                return Json(new { data = new { order = new { notes = new { eshopRemark = "previous staff note" } } } });
+
+            patchedRemark = req.Content!.ReadAsStringAsync().Result;
+            return Json(new { data = (object?)null });
+        });
+
+        await client.AppendEshopRemarkAsync("ORDER-1", "blocked by accounting");
+
+        patchedRemark.Should().Contain("previous staff note\\nblocked by accounting");
+    }
 }

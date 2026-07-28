@@ -71,33 +71,12 @@ public class CompleteDeliveredOrdersJobTests
             .ReturnsAsync([]);
         shipments.Setup(s => s.HasDeliveredShipmentAsync("ORD-1", It.IsAny<CancellationToken>()))
             .ReturnsAsync(true);
-        orders.Setup(o => o.GetEshopRemarkAsync("ORD-1", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(string.Empty);
 
         await sut.ExecuteAsync();
 
         orders.Verify(o => o.UpdateStatusAsync("ORD-1", -3, It.IsAny<CancellationToken>()), Times.Once);
-        orders.Verify(o => o.UpdateEshopRemarkAsync(
+        orders.Verify(o => o.AppendEshopRemarkAsync(
             "ORD-1", "Automaticky vyřízeno – zásilka doručena", It.IsAny<CancellationToken>()), Times.Once);
-    }
-
-    [Fact]
-    public async Task ExecuteAsync_AppendsNote_PreservingExistingRemark()
-    {
-        var (sut, orders, shipments, _) = MakeSut();
-        orders.Setup(o => o.ListOrdersByStatusAsync(70, It.IsAny<CancellationToken>()))
-            .ReturnsAsync([Order("ORD-1", 70)]);
-        orders.Setup(o => o.ListOrdersByStatusAsync(82, It.IsAny<CancellationToken>()))
-            .ReturnsAsync([]);
-        shipments.Setup(s => s.HasDeliveredShipmentAsync("ORD-1", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(true);
-        orders.Setup(o => o.GetEshopRemarkAsync("ORD-1", It.IsAny<CancellationToken>()))
-            .ReturnsAsync("existing");
-
-        await sut.ExecuteAsync();
-
-        orders.Verify(o => o.UpdateEshopRemarkAsync(
-            "ORD-1", "existing\nAutomaticky vyřízeno – zásilka doručena", It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
@@ -126,8 +105,6 @@ public class CompleteDeliveredOrdersJobTests
             .ReturnsAsync([Order("ORD-82", 82)]);
         shipments.Setup(s => s.HasDeliveredShipmentAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(true);
-        orders.Setup(o => o.GetEshopRemarkAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(string.Empty);
 
         await sut.ExecuteAsync();
 
@@ -152,7 +129,7 @@ public class CompleteDeliveredOrdersJobTests
         shipments.Verify(s => s.HasDeliveredShipmentAsync("ORD-1", It.IsAny<CancellationToken>()), Times.Once);
         // ...but no state change or remark is written while the flag is off.
         orders.Verify(o => o.UpdateStatusAsync(It.IsAny<string>(), It.IsAny<int>(), It.IsAny<CancellationToken>()), Times.Never);
-        orders.Verify(o => o.UpdateEshopRemarkAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
+        orders.Verify(o => o.AppendEshopRemarkAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]
@@ -163,8 +140,6 @@ public class CompleteDeliveredOrdersJobTests
             .ReturnsAsync([Order("ORD-TEST", 73)]);
         shipments.Setup(s => s.HasDeliveredShipmentAsync("ORD-TEST", It.IsAny<CancellationToken>()))
             .ReturnsAsync(true);
-        orders.Setup(o => o.GetEshopRemarkAsync("ORD-TEST", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(string.Empty);
 
         await sut.ExecuteAsync();
 
@@ -188,7 +163,7 @@ public class CompleteDeliveredOrdersJobTests
 
         orders.Verify(o => o.ListOrdersByStatusAsync(73, It.IsAny<CancellationToken>()), Times.Once);
         orders.Verify(o => o.UpdateStatusAsync(It.IsAny<string>(), It.IsAny<int>(), It.IsAny<CancellationToken>()), Times.Never);
-        orders.Verify(o => o.UpdateEshopRemarkAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
+        orders.Verify(o => o.AppendEshopRemarkAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]
@@ -203,8 +178,6 @@ public class CompleteDeliveredOrdersJobTests
             .ThrowsAsync(new HttpRequestException("Shoptet 500"));
         shipments.Setup(s => s.HasDeliveredShipmentAsync("ORD-OK", It.IsAny<CancellationToken>()))
             .ReturnsAsync(true);
-        orders.Setup(o => o.GetEshopRemarkAsync("ORD-OK", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(string.Empty);
 
         await sut.ExecuteAsync();
 
