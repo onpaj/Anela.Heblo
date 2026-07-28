@@ -11,7 +11,7 @@ using Microsoft.Extensions.Options;
 
 namespace Anela.Heblo.Application.Features.Bank.UseCases.ImportBankStatement;
 
-public class ImportBankStatementHandler : IRequestHandler<ImportBankStatementRequest, ImportBankStatementResponse>
+public class ImportBankStatementHandler : IRequestHandler<ImportBankStatementRequest, BankStatementImportResultDto>
 {
     private readonly IBankClientFactory _factory;
     private readonly IBankStatementImportService _bankStatementImportService;
@@ -42,7 +42,7 @@ public class ImportBankStatementHandler : IRequestHandler<ImportBankStatementReq
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
-    public async Task<ImportBankStatementResponse> Handle(ImportBankStatementRequest request, CancellationToken cancellationToken)
+    public async Task<BankStatementImportResultDto> Handle(ImportBankStatementRequest request, CancellationToken cancellationToken)
     {
         var runStartedAt = DateTime.UtcNow;
         var totalSw = Stopwatch.StartNew();
@@ -134,7 +134,7 @@ public class ImportBankStatementHandler : IRequestHandler<ImportBankStatementReq
                 "Bank import COMPLETED - Account: {AccountName}, Attempted: {Attempted}, Success: {SuccessCount}, Errors: {ErrorCount}, Skipped: {SkippedCount}, Duration: {Duration}ms",
                 request.AccountName, imports.Count, successCount, errorCount, skippedCount, totalSw.ElapsedMilliseconds);
 
-            return new ImportBankStatementResponse
+            return new BankStatementImportResultDto
             {
                 Statements = imports,
                 SuccessCount = successCount,
