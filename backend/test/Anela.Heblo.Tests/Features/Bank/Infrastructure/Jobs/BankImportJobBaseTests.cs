@@ -1,3 +1,4 @@
+using Anela.Heblo.Application.Features.Bank.Contracts;
 using Anela.Heblo.Application.Features.Bank.Infrastructure.Jobs;
 using Anela.Heblo.Application.Features.Bank.UseCases.ImportBankStatement;
 using Anela.Heblo.Domain.Features.BackgroundJobs;
@@ -28,7 +29,7 @@ public sealed class BankImportJobBaseTests
         _statusChecker.Setup(c => c.IsJobEnabledAsync(TestJobName, It.IsAny<CancellationToken>(), It.IsAny<bool>()))
             .ReturnsAsync(true);
         _mediator.Setup(m => m.Send(It.IsAny<ImportBankStatementRequest>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new ImportBankStatementResponse());
+            .ReturnsAsync(new BankStatementImportResultDto());
     }
 
     [Fact]
@@ -53,8 +54,8 @@ public sealed class BankImportJobBaseTests
 
         ImportBankStatementRequest? captured = null;
         _mediator.Setup(m => m.Send(It.IsAny<ImportBankStatementRequest>(), It.IsAny<CancellationToken>()))
-            .Callback<IRequest<ImportBankStatementResponse>, CancellationToken>((req, _) => captured = (ImportBankStatementRequest)req)
-            .ReturnsAsync(new ImportBankStatementResponse { SuccessCount = 1 });
+            .Callback<IRequest<BankStatementImportResultDto>, CancellationToken>((req, _) => captured = (ImportBankStatementRequest)req)
+            .ReturnsAsync(new BankStatementImportResultDto { SuccessCount = 1 });
 
         await CreateJob(targetEnd: new DateTime(2026, 6, 14)).ExecuteAsync(CancellationToken.None);
 
@@ -73,8 +74,8 @@ public sealed class BankImportJobBaseTests
 
         ImportBankStatementRequest? captured = null;
         _mediator.Setup(m => m.Send(It.IsAny<ImportBankStatementRequest>(), It.IsAny<CancellationToken>()))
-            .Callback<IRequest<ImportBankStatementResponse>, CancellationToken>((req, _) => captured = (ImportBankStatementRequest)req)
-            .ReturnsAsync(new ImportBankStatementResponse());
+            .Callback<IRequest<BankStatementImportResultDto>, CancellationToken>((req, _) => captured = (ImportBankStatementRequest)req)
+            .ReturnsAsync(new BankStatementImportResultDto());
 
         await CreateJob(targetEnd: new DateTime(2026, 6, 14)).ExecuteAsync(CancellationToken.None);
 
@@ -91,8 +92,8 @@ public sealed class BankImportJobBaseTests
 
         ImportBankStatementRequest? captured = null;
         _mediator.Setup(m => m.Send(It.IsAny<ImportBankStatementRequest>(), It.IsAny<CancellationToken>()))
-            .Callback<IRequest<ImportBankStatementResponse>, CancellationToken>((req, _) => captured = (ImportBankStatementRequest)req)
-            .ReturnsAsync(new ImportBankStatementResponse());
+            .Callback<IRequest<BankStatementImportResultDto>, CancellationToken>((req, _) => captured = (ImportBankStatementRequest)req)
+            .ReturnsAsync(new BankStatementImportResultDto());
 
         await CreateJob(targetEnd: new DateTime(2026, 6, 14)).ExecuteAsync(CancellationToken.None);
 
@@ -109,7 +110,7 @@ public sealed class BankImportJobBaseTests
         _stateRepo.Setup(r => r.GetByAccountAsync(TestAccountName, It.IsAny<CancellationToken>()))
             .ReturnsAsync(state);
         _mediator.Setup(m => m.Send(It.IsAny<ImportBankStatementRequest>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new ImportBankStatementResponse { SuccessCount = 0, ErrorCount = 0 }); // 0 docs = valid
+            .ReturnsAsync(new BankStatementImportResultDto { SuccessCount = 0, ErrorCount = 0 }); // 0 docs = valid
 
         await CreateJob(targetEnd: new DateTime(2026, 6, 14)).ExecuteAsync(CancellationToken.None);
 
@@ -124,7 +125,7 @@ public sealed class BankImportJobBaseTests
         _stateRepo.Setup(r => r.GetByAccountAsync(TestAccountName, It.IsAny<CancellationToken>()))
             .ReturnsAsync(state);
         _mediator.Setup(m => m.Send(It.IsAny<ImportBankStatementRequest>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new ImportBankStatementResponse { SuccessCount = 1, ErrorCount = 2 });
+            .ReturnsAsync(new BankStatementImportResultDto { SuccessCount = 1, ErrorCount = 2 });
 
         await CreateJob(targetEnd: new DateTime(2026, 6, 14)).ExecuteAsync(CancellationToken.None);
 
