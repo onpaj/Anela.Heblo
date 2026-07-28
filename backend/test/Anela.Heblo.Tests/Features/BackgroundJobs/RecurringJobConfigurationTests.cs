@@ -17,7 +17,8 @@ public class RecurringJobConfigurationTests
             cronExpression: "0 2 * * *",
             timeZoneId: "Europe/Prague",
             isEnabled: true,
-            lastModifiedBy: "system"
+            lastModifiedBy: "system",
+            lastModifiedAt: DateTime.UtcNow
         );
 
         // Assert
@@ -42,7 +43,8 @@ public class RecurringJobConfigurationTests
             cronExpression: "0 0 * * *",
             timeZoneId: "America/New_York",
             isEnabled: true,
-            lastModifiedBy: "system"
+            lastModifiedBy: "system",
+            lastModifiedAt: DateTime.UtcNow
         );
 
         // Assert
@@ -60,11 +62,12 @@ public class RecurringJobConfigurationTests
             cronExpression: "0 0 * * *",
             timeZoneId: "Europe/Prague",
             isEnabled: true,
-            lastModifiedBy: "system"
+            lastModifiedBy: "system",
+            lastModifiedAt: DateTime.UtcNow
         );
 
         // Act
-        config.Disable("admin");
+        config.Disable("admin", DateTime.UtcNow);
 
         // Assert
         Assert.False(config.IsEnabled);
@@ -82,7 +85,8 @@ public class RecurringJobConfigurationTests
             cronExpression: "0 0 * * *",
             timeZoneId: "Europe/Prague",
             isEnabled: true,
-            lastModifiedBy: "system"
+            lastModifiedBy: "system",
+            lastModifiedAt: DateTime.UtcNow
         ));
     }
 
@@ -97,7 +101,8 @@ public class RecurringJobConfigurationTests
             cronExpression: "0 0 * * *",
             timeZoneId: "Europe/Prague",
             isEnabled: true,
-            lastModifiedBy: "system"
+            lastModifiedBy: "system",
+            lastModifiedAt: DateTime.UtcNow
         ));
     }
 
@@ -112,11 +117,12 @@ public class RecurringJobConfigurationTests
             cronExpression: "0 0 * * *",
             timeZoneId: "Europe/Prague",
             isEnabled: false,
-            lastModifiedBy: "system"
+            lastModifiedBy: "system",
+            lastModifiedAt: DateTime.UtcNow
         );
 
         // Act
-        config.Enable("admin");
+        config.Enable("admin", DateTime.UtcNow);
 
         // Assert
         Assert.True(config.IsEnabled);
@@ -134,11 +140,12 @@ public class RecurringJobConfigurationTests
             cronExpression: "0 0 * * *",
             timeZoneId: "Europe/Prague",
             isEnabled: true,
-            lastModifiedBy: "system"
+            lastModifiedBy: "system",
+            lastModifiedAt: DateTime.UtcNow
         );
 
         // Act
-        config.Disable("admin");
+        config.Disable("admin", DateTime.UtcNow);
 
         // Assert
         Assert.False(config.IsEnabled);
@@ -156,7 +163,8 @@ public class RecurringJobConfigurationTests
             cronExpression: "0 0 * * *",
             timeZoneId: "Europe/Prague",
             isEnabled: true,
-            lastModifiedBy: "system"
+            lastModifiedBy: "system",
+            lastModifiedAt: DateTime.UtcNow
         );
 
         // Act
@@ -165,7 +173,8 @@ public class RecurringJobConfigurationTests
             description: "Updated description",
             cronExpression: "0 2 * * *",
             timeZoneId: "America/New_York",
-            modifiedBy: "admin"
+            modifiedBy: "admin",
+            modifiedAt: DateTime.UtcNow
         );
 
         // Assert
@@ -187,7 +196,8 @@ public class RecurringJobConfigurationTests
             cronExpression: "0 0 * * *",
             timeZoneId: "   ",
             isEnabled: true,
-            lastModifiedBy: "system"
+            lastModifiedBy: "system",
+            lastModifiedAt: DateTime.UtcNow
         ));
     }
 
@@ -202,7 +212,8 @@ public class RecurringJobConfigurationTests
             cronExpression: "0 0 * * *",
             timeZoneId: "Europe/Prague",
             isEnabled: true,
-            lastModifiedBy: "system"
+            lastModifiedBy: "system",
+            lastModifiedAt: DateTime.UtcNow
         );
 
         // Act & Assert
@@ -211,7 +222,8 @@ public class RecurringJobConfigurationTests
             description: "Updated description",
             cronExpression: "0 2 * * *",
             timeZoneId: "",
-            modifiedBy: "admin"
+            modifiedBy: "admin",
+            modifiedAt: DateTime.UtcNow
         ));
     }
 
@@ -226,11 +238,12 @@ public class RecurringJobConfigurationTests
             cronExpression: "0 0 * * *",
             timeZoneId: "Europe/Prague",
             isEnabled: false,
-            lastModifiedBy: "system"
+            lastModifiedBy: "system",
+            lastModifiedAt: DateTime.UtcNow
         );
 
         // Act & Assert
-        Assert.Throws<ValidationException>(() => config.Enable(""));
+        Assert.Throws<ValidationException>(() => config.Enable("", DateTime.UtcNow));
     }
 
     [Fact]
@@ -244,10 +257,11 @@ public class RecurringJobConfigurationTests
             cronExpression: "0 0 * * *",
             timeZoneId: "Europe/Prague",
             isEnabled: true,
-            lastModifiedBy: "system"
+            lastModifiedBy: "system",
+            lastModifiedAt: DateTime.UtcNow
         );
 
         // Act & Assert
-        Assert.Throws<ValidationException>(() => config.Disable(""));
+        Assert.Throws<ValidationException>(() => config.Disable("", DateTime.UtcNow));
     }
 }

@@ -30,7 +30,8 @@ public class RecurringJobSeeder : IRecurringJobSeeder
             job.Metadata.CronExpression,
             job.Metadata.TimeZoneId,
             job.Metadata.DefaultIsEnabled,
-            "System"
+            "System",
+            DateTime.UtcNow
         )).ToArray();
 
         foreach (var config in defaultConfigurations)
@@ -47,7 +48,8 @@ public class RecurringJobSeeder : IRecurringJobSeeder
                     config.Description,
                     existing.CronExpression,   // preserve admin override
                     config.TimeZoneId,
-                    "System");
+                    "System",
+                    DateTime.UtcNow);
                 await _repository.UpdateAsync(existing, cancellationToken);
             }
         }

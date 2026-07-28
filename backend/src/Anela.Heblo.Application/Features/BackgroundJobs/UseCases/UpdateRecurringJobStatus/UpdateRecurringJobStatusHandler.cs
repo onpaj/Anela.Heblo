@@ -11,15 +11,18 @@ public class UpdateRecurringJobStatusHandler : IRequestHandler<UpdateRecurringJo
     private readonly ILogger<UpdateRecurringJobStatusHandler> _logger;
     private readonly IRecurringJobConfigurationRepository _repository;
     private readonly ICurrentUserService _currentUserService;
+    private readonly TimeProvider _timeProvider;
 
     public UpdateRecurringJobStatusHandler(
         ILogger<UpdateRecurringJobStatusHandler> logger,
         IRecurringJobConfigurationRepository repository,
-        ICurrentUserService currentUserService)
+        ICurrentUserService currentUserService,
+        TimeProvider timeProvider)
     {
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _repository = repository ?? throw new ArgumentNullException(nameof(repository));
         _currentUserService = currentUserService ?? throw new ArgumentNullException(nameof(currentUserService));
+        _timeProvider = timeProvider ?? throw new ArgumentNullException(nameof(timeProvider));
     }
 
     public async Task<UpdateRecurringJobStatusResponse> Handle(
@@ -45,14 +48,15 @@ public class UpdateRecurringJobStatusHandler : IRequestHandler<UpdateRecurringJo
         {
             var currentUser = _currentUserService.GetCurrentUser();
             var modifiedBy = currentUser.Name ?? "System";
+            var now = _timeProvider.GetUtcNow().UtcDateTime;
 
             if (request.IsEnabled)
             {
-                job.Enable(modifiedBy);
+                job.Enable(modifiedBy, now);
             }
             else
             {
-                job.Disable(modifiedBy);
+                job.Disable(modifiedBy, now);
             }
 
             await _repository.UpdateAsync(job, cancellationToken);

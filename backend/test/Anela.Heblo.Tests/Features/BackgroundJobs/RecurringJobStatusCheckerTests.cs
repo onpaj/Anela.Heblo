@@ -29,7 +29,8 @@ public class RecurringJobStatusCheckerTests
                 cronExpression: "0 * * * *",
                 timeZoneId: "Europe/Prague",
                 isEnabled: false,
-                lastModifiedBy: "test"));
+                lastModifiedBy: "test",
+                lastModifiedAt: DateTime.UtcNow));
         var sut = CreateSut();
 
         // Act
@@ -52,7 +53,8 @@ public class RecurringJobStatusCheckerTests
                 cronExpression: "0 * * * *",
                 timeZoneId: "Europe/Prague",
                 isEnabled: true,
-                lastModifiedBy: "test"));
+                lastModifiedBy: "test",
+                lastModifiedAt: DateTime.UtcNow));
         var sut = CreateSut();
 
         // Act

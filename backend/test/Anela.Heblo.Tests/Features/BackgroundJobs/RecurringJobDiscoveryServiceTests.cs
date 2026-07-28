@@ -209,7 +209,8 @@ public class RecurringJobDiscoveryServiceTests : IDisposable
                 cronExpression: _cronExpression,
                 timeZoneId: "Europe/Prague",
                 isEnabled: true,
-                lastModifiedBy: "test");
+                lastModifiedBy: "test",
+                lastModifiedAt: DateTime.UtcNow);
 
             return Task.FromResult(new List<RecurringJobConfiguration> { config });
         }
