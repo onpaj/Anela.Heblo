@@ -13,6 +13,8 @@ import {
 import { format, isWeekend } from 'date-fns';
 import { cs } from 'date-fns/locale';
 import { DailyBankStatementStatistics } from '../../api/hooks/useBankStatements';
+import { useTheme } from '../../contexts/ThemeContext';
+import { GRAPHITE } from '../common/reactSelectDarkStyles';
 
 interface BankStatementImportChartProps {
   data: DailyBankStatementStatistics[];
@@ -39,6 +41,17 @@ export const BankStatementImportChart: React.FC<BankStatementImportChartProps> =
   dateType = 'ImportDate',
   minimumThreshold,
 }) => {
+  const { theme } = useTheme();
+  const isDark = theme === 'dark';
+  const colors = {
+    grid: isDark ? GRAPHITE.border : '#f0f0f0',
+    axis: isDark ? GRAPHITE.muted : '#6b7280',
+    weekendFill: isDark ? '#0ea5e9' : '#e0f2fe',
+    threshold: isDark ? '#f87171' : '#dc2626',
+    line: '#3b82f6',
+    dotStroke: isDark ? GRAPHITE.surface : '#fff',
+  };
+
   // Transform data for chart
   const chartData: ChartDataPoint[] = data.map((item) => {
     const isWeekendDay = isWeekend(item.date!);
@@ -109,8 +122,8 @@ export const BankStatementImportChart: React.FC<BankStatementImportChartProps> =
           cx={cx}
           cy={cy}
           r={4}
-          fill="#dc2626"
-          stroke="#fff"
+          fill={colors.threshold}
+          stroke={colors.dotStroke}
           strokeWidth={2}
         />
       );
@@ -168,15 +181,15 @@ export const BankStatementImportChart: React.FC<BankStatementImportChartProps> =
       <div className="h-80 w-full">
         <ResponsiveContainer width="100%" height="100%">
           <LineChart data={chartData} margin={{ top: 20, right: 30, left: 20, bottom: 20 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+            <CartesianGrid strokeDasharray="3 3" stroke={colors.grid} />
             <XAxis
               dataKey="displayDate"
               tick={{ fontSize: 12 }}
-              stroke="#6b7280"
+              stroke={colors.axis}
             />
             <YAxis
               tick={{ fontSize: 12 }}
-              stroke="#6b7280"
+              stroke={colors.axis}
               label={{ 
                 value: viewType === 'ImportCount' ? 'Počet importů' : 'Počet položek', 
                 angle: -90, 
@@ -191,7 +204,7 @@ export const BankStatementImportChart: React.FC<BankStatementImportChartProps> =
                 key={index}
                 x1={period.start}
                 x2={period.end}
-                fill="#e0f2fe"
+                fill={colors.weekendFill}
                 fillOpacity={0.3}
                 strokeOpacity={0}
               />
@@ -200,24 +213,24 @@ export const BankStatementImportChart: React.FC<BankStatementImportChartProps> =
             {/* Reference line for minimum threshold */}
             <ReferenceLine
               y={minimumThreshold}
-              stroke="#dc2626"
+              stroke={colors.threshold}
               strokeDasharray="5 5"
               strokeWidth={2}
-              label={{ 
-                value: `Min. prah (${minimumThreshold})`, 
+              label={{
+                value: `Min. prah (${minimumThreshold})`,
                 position: 'top',
-                style: { fill: '#dc2626', fontSize: '12px' }
+                style: { fill: colors.threshold, fontSize: '12px' }
               }}
             />
-            
+
             {/* Main data line */}
             <Line
               type="monotone"
               dataKey={viewType === 'ImportCount' ? 'count' : 'itemCount'}
-              stroke="#3b82f6"
+              stroke={colors.line}
               strokeWidth={2}
               dot={<CustomDot />}
-              activeDot={{ r: 6, fill: '#3b82f6' }}
+              activeDot={{ r: 6, fill: colors.line }}
             />
           </LineChart>
         </ResponsiveContainer>
