@@ -14,7 +14,9 @@ namespace Anela.Heblo.Tests.Features.Photobank;
 public class PhotobankRepositoryReapplyPrimitivesTests : IDisposable
 {
     private readonly ApplicationDbContext _context;
-    private readonly PhotobankRepository _repository;
+    private readonly PhotobankAutoTagRepository _autoTagRepository;
+    private readonly PhotobankPhotoTagRepository _photoTagRepository;
+    private readonly PhotobankTagRepository _tagRepository;
 
     public PhotobankRepositoryReapplyPrimitivesTests()
     {
@@ -23,7 +25,9 @@ public class PhotobankRepositoryReapplyPrimitivesTests : IDisposable
             .Options;
 
         _context = new ApplicationDbContext(options);
-        _repository = new PhotobankRepository(_context);
+        _autoTagRepository = new PhotobankAutoTagRepository(_context);
+        _photoTagRepository = new PhotobankPhotoTagRepository(_context);
+        _tagRepository = new PhotobankTagRepository(_context);
     }
 
     public void Dispose() => _context.Dispose();
@@ -39,7 +43,7 @@ public class PhotobankRepositoryReapplyPrimitivesTests : IDisposable
         await _context.SaveChangesAsync(CancellationToken.None);
 
         // Act
-        var page = await _repository.GetPhotoRuleCandidatesPageAsync(pageSize: 2, offset: 0, CancellationToken.None);
+        var page = await _autoTagRepository.GetPhotoRuleCandidatesPageAsync(pageSize: 2, offset: 0, CancellationToken.None);
 
         // Assert
         page.Should().HaveCount(2);
@@ -59,7 +63,7 @@ public class PhotobankRepositoryReapplyPrimitivesTests : IDisposable
         await _context.SaveChangesAsync(CancellationToken.None);
 
         // Act — page size 2: first page has 2 rows, second page (offset 2) has the remaining 1
-        var secondPage = await _repository.GetPhotoRuleCandidatesPageAsync(pageSize: 2, offset: 2, CancellationToken.None);
+        var secondPage = await _autoTagRepository.GetPhotoRuleCandidatesPageAsync(pageSize: 2, offset: 2, CancellationToken.None);
 
         // Assert
         secondPage.Should().ContainSingle();
@@ -82,7 +86,7 @@ public class PhotobankRepositoryReapplyPrimitivesTests : IDisposable
         await _context.SaveChangesAsync(CancellationToken.None);
 
         // Act
-        await _repository.RemoveRuleTagsAsync(null, CancellationToken.None);
+        await _photoTagRepository.RemoveRuleTagsAsync(null, CancellationToken.None);
         await _context.SaveChangesAsync(CancellationToken.None); // primitive does not save
 
         // Assert
@@ -105,7 +109,7 @@ public class PhotobankRepositoryReapplyPrimitivesTests : IDisposable
         await _context.SaveChangesAsync(CancellationToken.None);
 
         // Act
-        await _repository.RemoveRuleTagsAsync("products", CancellationToken.None);
+        await _photoTagRepository.RemoveRuleTagsAsync("products", CancellationToken.None);
         await _context.SaveChangesAsync(CancellationToken.None);
 
         // Assert
@@ -124,7 +128,7 @@ public class PhotobankRepositoryReapplyPrimitivesTests : IDisposable
         await _context.SaveChangesAsync(CancellationToken.None);
 
         // Act — call the primitive but DO NOT save
-        await _repository.RemoveRuleTagsAsync(null, CancellationToken.None);
+        await _photoTagRepository.RemoveRuleTagsAsync(null, CancellationToken.None);
 
         // Assert — the deletion is only staged; the change tracker holds it as Deleted
         _context.ChangeTracker.Entries<PhotoTag>()
@@ -147,7 +151,7 @@ public class PhotobankRepositoryReapplyPrimitivesTests : IDisposable
         await _context.SaveChangesAsync(CancellationToken.None);
 
         // Act
-        var occupied = await _repository.GetOccupiedTagPairsAsync(null, CancellationToken.None);
+        var occupied = await _photoTagRepository.GetOccupiedTagPairsAsync(null, CancellationToken.None);
 
         // Assert
         occupied.Should().BeEquivalentTo(new HashSet<(int, int)> { (1, 10), (1, 11) });
@@ -168,7 +172,7 @@ public class PhotobankRepositoryReapplyPrimitivesTests : IDisposable
         await _context.SaveChangesAsync(CancellationToken.None);
 
         // Act
-        var occupied = await _repository.GetOccupiedTagPairsAsync("products", CancellationToken.None);
+        var occupied = await _photoTagRepository.GetOccupiedTagPairsAsync("products", CancellationToken.None);
 
         // Assert
         occupied.Should().BeEquivalentTo(new HashSet<(int, int)> { (1, 10) });
@@ -188,7 +192,7 @@ public class PhotobankRepositoryReapplyPrimitivesTests : IDisposable
         };
 
         // Act
-        await _repository.AddPhotoTagsAsync(toAdd, CancellationToken.None);
+        await _photoTagRepository.AddPhotoTagsAsync(toAdd, CancellationToken.None);
         await _context.SaveChangesAsync(CancellationToken.None); // primitive does not save
 
         // Assert
@@ -205,7 +209,7 @@ public class PhotobankRepositoryReapplyPrimitivesTests : IDisposable
         await _context.SaveChangesAsync(CancellationToken.None);
 
         // Act — "products" exists, "events" is new
-        var map = await _repository.GetOrCreateTagsAsync(new[] { "products", "events" }, CancellationToken.None);
+        var map = await _tagRepository.GetOrCreateTagsAsync(new[] { "products", "events" }, CancellationToken.None);
 
         // Assert
         map.Should().ContainKey("products").WhoseValue.Should().Be(10);
@@ -226,7 +230,7 @@ public class PhotobankRepositoryReapplyPrimitivesTests : IDisposable
         await _context.SaveChangesAsync(CancellationToken.None);
 
         // Act
-        var map = await _repository.GetOrCreateTagsAsync(new[] { "products", "events" }, CancellationToken.None);
+        var map = await _tagRepository.GetOrCreateTagsAsync(new[] { "products", "events" }, CancellationToken.None);
 
         // Assert
         map["products"].Should().Be(10);

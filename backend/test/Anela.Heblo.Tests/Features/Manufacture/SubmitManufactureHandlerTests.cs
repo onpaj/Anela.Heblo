@@ -1,5 +1,6 @@
 using Anela.Heblo.Application.Features.Manufacture.Configuration;
 using Anela.Heblo.Application.Features.Manufacture.ErrorFilters;
+using Anela.Heblo.Application.Features.Manufacture.Infrastructure;
 using Anela.Heblo.Application.Features.Manufacture.Services;
 using Anela.Heblo.Application.Features.Manufacture.UseCases.SubmitManufacture;
 using Anela.Heblo.Domain.Features.Manufacture;
@@ -17,19 +18,36 @@ public class SubmitManufactureHandlerTests
     private readonly Mock<IManufactureClient> _clientMock = new();
     private readonly Mock<IManufactureOrderRepository> _repositoryMock = new();
     private readonly Mock<IManufactureErrorTransformer> _transformerMock = new();
+    private readonly Mock<IManufactureErpResilienceService> _resilienceServiceMock = new();
     private readonly Mock<ILogger<SubmitManufactureHandler>> _loggerMock = new();
     private readonly SubmitManufactureHandler _handler;
 
     public SubmitManufactureHandlerTests()
     {
+        SetUpPassThroughResilience(_resilienceServiceMock);
         _handler = new SubmitManufactureHandler(
             _clientMock.Object,
             _repositoryMock.Object,
             _transformerMock.Object,
+            _resilienceServiceMock.Object,
             TimeProvider.System,
             _loggerMock.Object,
             Options.Create(new ManufactureErpOptions()));
     }
+
+    /// <summary>
+    /// The resilience service is exercised in isolation by
+    /// ManufactureErpResilienceServiceTests. Here it's a pass-through so
+    /// SubmitManufactureHandler's own behavior can be tested without also
+    /// depending on circuit-breaker timing/state.
+    /// </summary>
+    private static void SetUpPassThroughResilience(Mock<IManufactureErpResilienceService> mock) =>
+        mock.Setup(r => r.ExecuteAsync(
+                It.IsAny<Func<CancellationToken, Task<SubmitManufactureClientResponse>>>(),
+                It.IsAny<string>(),
+                It.IsAny<CancellationToken>()))
+            .Returns<Func<CancellationToken, Task<SubmitManufactureClientResponse>>, string, CancellationToken>(
+                (operation, _, ct) => operation(ct));
 
     [Fact]
     public async Task Handle_WhenClientSucceeds_ReturnsSuccessResponse()
@@ -194,6 +212,7 @@ public class SubmitManufactureHandlerTests
             _clientMock.Object,
             _repositoryMock.Object,
             _transformerMock.Object,
+            _resilienceServiceMock.Object,
             TimeProvider.System,
             _loggerMock.Object,
             Options.Create(new ManufactureErpOptions { ErpTimeoutSeconds = 1 }));
@@ -222,6 +241,7 @@ public class SubmitManufactureHandlerTests
             _clientMock.Object,
             _repositoryMock.Object,
             _transformerMock.Object,
+            _resilienceServiceMock.Object,
             TimeProvider.System,
             _loggerMock.Object,
             Options.Create(new ManufactureErpOptions { ErpTimeoutSeconds = 0 }));
@@ -262,6 +282,7 @@ public class SubmitManufactureHandlerTests
             _clientMock.Object,
             _repositoryMock.Object,
             _transformerMock.Object,
+            _resilienceServiceMock.Object,
             TimeProvider.System,
             _loggerMock.Object,
             Options.Create(new ManufactureErpOptions { ErpTimeoutSeconds = 30 }));
@@ -342,6 +363,7 @@ public class SubmitManufactureHandlerTests
             _clientMock.Object,
             _repositoryMock.Object,
             _transformerMock.Object,
+            _resilienceServiceMock.Object,
             fakeTime,
             _loggerMock.Object,
             Options.Create(new ManufactureErpOptions()));
@@ -406,6 +428,7 @@ public class SubmitManufactureHandlerTests
             _clientMock.Object,
             _repositoryMock.Object,
             _transformerMock.Object,
+            _resilienceServiceMock.Object,
             fakeTime,
             _loggerMock.Object,
             Options.Create(new ManufactureErpOptions()));

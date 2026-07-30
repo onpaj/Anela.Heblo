@@ -27,9 +27,12 @@ public class ReapplyRulesBehaviorPreservationTests : IDisposable
             .Options;
 
         _context = new ApplicationDbContext(options);
-        var repository = new PhotobankRepository(_context);
+        var tagRuleRepository = new PhotobankTagRuleRepository(_context);
+        var tagRepository = new PhotobankTagRepository(_context);
+        var photoTagRepository = new PhotobankPhotoTagRepository(_context);
+        var autoTagRepository = new PhotobankAutoTagRepository(_context);
         var cache = new Mock<IPhotobankTagsCache>();
-        _handler = new ReapplyRulesHandler(repository, cache.Object);
+        _handler = new ReapplyRulesHandler(tagRuleRepository, tagRepository, photoTagRepository, autoTagRepository, cache.Object);
     }
 
     public void Dispose() => _context.Dispose();

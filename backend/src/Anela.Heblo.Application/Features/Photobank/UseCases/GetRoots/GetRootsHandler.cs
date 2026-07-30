@@ -9,9 +9,9 @@ namespace Anela.Heblo.Application.Features.Photobank.UseCases.GetRoots
 {
     public class GetRootsHandler : IRequestHandler<GetRootsRequest, GetRootsResponse>
     {
-        private readonly IPhotobankRepository _repository;
+        private readonly IPhotobankRootRepository _repository;
 
-        public GetRootsHandler(IPhotobankRepository repository)
+        public GetRootsHandler(IPhotobankRootRepository repository)
         {
             _repository = repository;
         }

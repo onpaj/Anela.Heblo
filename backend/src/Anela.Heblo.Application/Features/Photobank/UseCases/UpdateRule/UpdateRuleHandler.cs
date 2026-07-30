@@ -8,9 +8,9 @@ namespace Anela.Heblo.Application.Features.Photobank.UseCases.UpdateRule
 {
     public class UpdateRuleHandler : IRequestHandler<UpdateRuleRequest, UpdateRuleResponse>
     {
-        private readonly IPhotobankRepository _repository;
+        private readonly IPhotobankTagRuleRepository _repository;
 
-        public UpdateRuleHandler(IPhotobankRepository repository)
+        public UpdateRuleHandler(IPhotobankTagRuleRepository repository)
         {
             _repository = repository;
         }

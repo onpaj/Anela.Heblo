@@ -1,6 +1,7 @@
 using System.Net;
 using Anela.Heblo.Adapters.ShoptetApi.Expedition;
 using Anela.Heblo.Adapters.ShoptetApi.Expedition.Model;
+using Anela.Heblo.Application.Features.Packaging.Contracts;
 using Anela.Heblo.Application.Features.ShoptetOrders;
 using Anela.Heblo.Application.Features.ShoptetOrders.Contracts;
 using Microsoft.Extensions.Logging;
@@ -8,7 +9,7 @@ using Microsoft.Extensions.Options;
 
 namespace Anela.Heblo.Adapters.ShoptetApi.Orders;
 
-public class ShoptetApiPackingOrderClient : IPackingOrderClient
+public class ShoptetApiPackingOrderClient : IPackingOrderClient, IPackingOrderCountSource
 {
     private readonly IShoptetExpeditionOrderSource _orderClient;
     private readonly IPackingProductSource _productSource;

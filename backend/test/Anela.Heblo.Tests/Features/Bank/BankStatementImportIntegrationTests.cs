@@ -1,6 +1,7 @@
 using System.Net;
 using System.Text;
 using System.Text.Json;
+using Anela.Heblo.Application.Features.Bank.Contracts;
 using Anela.Heblo.Application.Features.Bank.UseCases.GetBankStatementList;
 using Anela.Heblo.Application.Features.Bank.UseCases.ImportBankStatement;
 using Anela.Heblo.Domain.Features.Bank;
@@ -63,7 +64,7 @@ public class BankStatementImportIntegrationTests : IClassFixture<BankStatementIm
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
 
         var responseContent = await response.Content.ReadAsStringAsync();
-        var result = JsonSerializer.Deserialize<ImportBankStatementResponse>(responseContent, new JsonSerializerOptions
+        var result = JsonSerializer.Deserialize<BankStatementImportResultDto>(responseContent, new JsonSerializerOptions
         {
             PropertyNameCaseInsensitive = true
         });
@@ -116,7 +117,7 @@ public class BankStatementImportIntegrationTests : IClassFixture<BankStatementIm
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
 
         var responseContent = await response.Content.ReadAsStringAsync();
-        var result = JsonSerializer.Deserialize<ImportBankStatementResponse>(responseContent, new JsonSerializerOptions
+        var result = JsonSerializer.Deserialize<BankStatementImportResultDto>(responseContent, new JsonSerializerOptions
         {
             PropertyNameCaseInsensitive = true
         });
@@ -177,7 +178,7 @@ public class BankStatementImportIntegrationTests : IClassFixture<BankStatementIm
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
 
         var responseContent = await response.Content.ReadAsStringAsync();
-        var result = JsonSerializer.Deserialize<ImportBankStatementResponse>(responseContent, new JsonSerializerOptions
+        var result = JsonSerializer.Deserialize<BankStatementImportResultDto>(responseContent, new JsonSerializerOptions
         {
             PropertyNameCaseInsensitive = true
         });
@@ -220,7 +221,7 @@ public class BankStatementImportIntegrationTests : IClassFixture<BankStatementIm
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
 
         var responseContent = await response.Content.ReadAsStringAsync();
-        var result = JsonSerializer.Deserialize<ImportBankStatementResponse>(responseContent, new JsonSerializerOptions
+        var result = JsonSerializer.Deserialize<BankStatementImportResultDto>(responseContent, new JsonSerializerOptions
         {
             PropertyNameCaseInsensitive = true
         });
