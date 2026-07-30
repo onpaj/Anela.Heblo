@@ -212,6 +212,11 @@ been merely allowlisted, the guarantee would have rested on the LLM remembering 
 `labels`, filtered against `allowed_labels`. A hallucinated label is dropped rather
 than 422-ing the whole step.
 
+Since harness_v2 1.7.0 the binding also carries a `labels` **floor** —
+`["arch-review"]` — welded onto every issue the same way, so the house-convention
+label no longer depends on the persona either. See the correction note below for why
+that became necessary.
+
 **Known, accepted consequence:** the idempotency search
 (`search_issue_by_marker`) scopes to *open* issues carrying the scope label, and the
 `harness-todo` ingestion process swaps `harness:todo` → `harness:queued` within ~30s.
@@ -278,19 +283,42 @@ of drafts — `[]` when clean. Each draft: `title` in the house format
 or ADR violated with a quotation, why it matters, and a suggested direction; `labels`
 carrying **`arch-review` (mandatory)** plus one topical and one severity label.
 
-> **Correction, found in the first live run.** The persona initially picked only a
-> topical and a severity label, and issue #3768 was filed **without `arch-review`**.
-> That is not cosmetic: the persona's own dedup step searches `--label arch-review`,
-> so an issue filed without it is invisible to every future run and would be refiled
-> as a duplicate — silently defeating G2's only mitigation. The prompt now states
-> `arch-review` as mandatory and non-optional, with the reason given, so a
-> well-formed `labels` array has three entries. #3768 was retro-labelled.
+> **Correction, found in the first two live runs — and the prompt fix did not
+> work.** Run 1 (#3768) filed without `arch-review`. The prompt was strengthened to
+> state the label as mandatory, with the reason and a worked three-entry example.
+> Run 2 (#3770) used that strengthened prompt — persona mtime 13:32:41Z, issue
+> created 13:36:43Z — and **omitted the label again**. Two for two.
 >
-> The deeper lesson is G2's: **anything the persona merely *should* do is not a
-> guarantee.** `harness:todo` held because it is structural (the finisher's scope
-> label); `arch-review` did not, because it was only an instruction. If duplicate
-> findings show up, the fix is to make the label structural too — an always-applied
-> `labels` list on `OpenIssueBehavior`.
+> This is the sharpest evidence for G2's thesis: **anything the persona merely
+> *should* do is not a guarantee, and restating it more forcefully does not make it
+> one.** `harness:todo` holds on every issue because it is structural — the finisher
+> welds the scope label on. `arch-review` did not hold, twice, because it was only
+> an instruction.
+>
+> **Resolved structurally — the feature already existed.** harness_v2 **1.6.0/1.7.0**
+> added exactly this: `feat(open-issue): guarantee a configured label set on every
+> filed issue` (#146/#147). `OpenIssueBehavior` gained a `labels` config —
+> **the guaranteed floor**, applied to every issue whatever the persona drafted —
+> alongside the existing `allowed_labels` **ceiling** the agent picks within. This
+> machine was running 1.5.1, which is the only reason the problem existed here.
+>
+> The service was upgraded to 1.7.0 and the binding is now:
+>
+> ```json
+> { "kind": "open-issue",
+>   "label":  "harness:todo",     // scope label — welded on, drives idempotency
+>   "labels": ["arch-review"],    // guaranteed floor — welded on
+>   "allowed_labels": [ …topical + severity… ] }   // ceiling — persona picks
+> ```
+>
+> Verified against the real workflow file, replaying the exact live failure: with the
+> persona drafting only `["architecture","major"]`, the issue receives
+> `["arch-review","architecture","harness:todo","major"]`. Also verified for a
+> persona that drafts *no* labels at all, and for one that hallucinates a label
+> (dropped, floor still applied).
+>
+> **The persona no longer owns either label** and is told so explicitly. Both #3768
+> and #3770 were retro-labelled by hand.
 
 **The empty-block trap, hard-coded into the prompt:** an *empty* artifact parses to
 zero drafts and settles cleanly, but a *non-empty* artifact with no fenced JSON block
@@ -383,6 +411,27 @@ worktree whose task is still live.
 sweeps; every fire is a new task id. Covered by persona self-dedup against open *and*
 closed issues, which is an instruction, not a guarantee. The durable fix is a
 draft-supplied stable marker (`part-17:<sha1(title)>`) in harness_v2, deferred.
+
+**This gap is now measured, not theoretical.** The label experiment above showed the
+persona ignoring an explicit, reasoned, example-backed instruction on two consecutive
+runs. Dedup rests on an instruction of exactly the same kind — "search first, drop
+what already exists" — so it should be expected to fail at some rate too. Unlike the
+label, dedup **cannot** be made structural without the stable marker, so it stays the
+weakest link in this design. Watch for the first duplicate; if one appears, promote
+the stable marker from "deferred" to "do it".
+
+**Search shape, corrected.** An earlier draft of this spec claimed "100+ arch-review
+issues" and had the persona page `--state all --limit 300`. That was wrong — it came
+from reading a `--limit 100` result that had simply hit its cap. The real distribution
+is **8 open, ~500 closed**, which calls for a different strategy entirely:
+
+- **Open** — a single-digit list. Read it in full, every run.
+- **Closed** — ~500 deep, and *this is where a previously rejected version of a
+  finding hides*. Paging it is hopeless; the persona instead runs a keyword search
+  per candidate finding, using that finding's own class/file/concept names.
+
+A finding whose near-duplicate sits outside the returned window will still be refiled,
+and nothing flags it.
 
 **G3 — automation reaches all the way to merge.** `harness:todo` means each finding
 enters `development` and then `automerge`, which is **armed live** on this repository
