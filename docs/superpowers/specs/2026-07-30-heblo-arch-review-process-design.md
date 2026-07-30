@@ -278,19 +278,37 @@ of drafts — `[]` when clean. Each draft: `title` in the house format
 or ADR violated with a quotation, why it matters, and a suggested direction; `labels`
 carrying **`arch-review` (mandatory)** plus one topical and one severity label.
 
-> **Correction, found in the first live run.** The persona initially picked only a
-> topical and a severity label, and issue #3768 was filed **without `arch-review`**.
-> That is not cosmetic: the persona's own dedup step searches `--label arch-review`,
-> so an issue filed without it is invisible to every future run and would be refiled
-> as a duplicate — silently defeating G2's only mitigation. The prompt now states
-> `arch-review` as mandatory and non-optional, with the reason given, so a
-> well-formed `labels` array has three entries. #3768 was retro-labelled.
+> **Correction, found in the first two live runs — and the prompt fix did not
+> work.** Run 1 (#3768) filed without `arch-review`. The prompt was strengthened to
+> state the label as mandatory, with the reason and a worked three-entry example.
+> Run 2 (#3770) used that strengthened prompt — persona mtime 13:32:41Z, issue
+> created 13:36:43Z — and **omitted the label again**. Two for two.
 >
-> The deeper lesson is G2's: **anything the persona merely *should* do is not a
-> guarantee.** `harness:todo` held because it is structural (the finisher's scope
-> label); `arch-review` did not, because it was only an instruction. If duplicate
-> findings show up, the fix is to make the label structural too — an always-applied
-> `labels` list on `OpenIssueBehavior`.
+> This is the sharpest evidence for G2's thesis: **anything the persona merely
+> *should* do is not a guarantee, and restating it more forcefully does not make it
+> one.** `harness:todo` holds on every issue because it is structural — the finisher
+> welds the scope label on. `arch-review` did not hold, twice, because it was only
+> an instruction.
+>
+> **What was actually done about it.** Rather than depend on the label, the dedup
+> step now searches the **title prefix**, which *is* reliably applied (both runs
+> produced `[arch-review] <Area>: …` correctly):
+>
+> ```
+> gh issue list --repo onpaj/Anela.Heblo --search '"[arch-review]" in:title' --state all --limit 300
+> ```
+>
+> Verified: this search returns both #3768 and #3770, *including* #3770 while it
+> still carried no label. The label instruction stays (house convention, useful for
+> filtering) but nothing functional depends on it any more. Both issues were
+> retro-labelled by hand.
+>
+> **The durable fix, not done.** Add an always-applied `labels` list to
+> `OpenIssueBehavior` so the harness welds on `arch-review` the way it already welds
+> on the scope label — ~10 lines plus a test in harness_v2. Deliberately deferred:
+> it is a change to harness core, and pushing to that repo's `main` auto-releases,
+> after which the live service self-upgrades within 30 minutes. That is a bigger
+> blast radius than this label warrants today, now that dedup no longer needs it.
 
 **The empty-block trap, hard-coded into the prompt:** an *empty* artifact parses to
 zero drafts and settles cleanly, but a *non-empty* artifact with no fenced JSON block
@@ -383,6 +401,21 @@ worktree whose task is still live.
 sweeps; every fire is a new task id. Covered by persona self-dedup against open *and*
 closed issues, which is an instruction, not a guarantee. The durable fix is a
 draft-supplied stable marker (`part-17:<sha1(title)>`) in harness_v2, deferred.
+
+**This gap is now measured, not theoretical.** The label experiment above showed the
+persona ignoring an explicit, reasoned, example-backed instruction on two consecutive
+runs. Dedup rests on an instruction of exactly the same kind — "search first, drop
+what already exists" — so it should be expected to fail at some rate too. The
+mitigation was made as robust as a prompt can be (title-prefix search, which does not
+depend on a label the persona forgets, plus an area-narrowed query because there are
+already 100+ arch-review issues and a flat `--limit` will not see them all). Watch for
+the first duplicate; if one appears, promote the stable marker from "deferred" to
+"do it".
+
+**Note on search coverage:** `gh issue list --limit 300` over 100+ existing issues is
+a blunt instrument, and the persona must narrow by area to see the relevant ones. A
+finding whose near-duplicate sits outside the returned window will be refiled and
+nothing will flag it.
 
 **G3 — automation reaches all the way to merge.** `harness:todo` means each finding
 enters `development` and then `automerge`, which is **armed live** on this repository
