@@ -276,7 +276,21 @@ cross-run duplicates (see *Known gaps*, G2).
 of drafts — `[]` when clean. Each draft: `title` in the house format
 `[arch-review] <Area>: <headline>`, a `body` carrying evidence (`file:line`), the rule
 or ADR violated with a quotation, why it matters, and a suggested direction; `labels`
-naming the topical and severity labels.
+carrying **`arch-review` (mandatory)** plus one topical and one severity label.
+
+> **Correction, found in the first live run.** The persona initially picked only a
+> topical and a severity label, and issue #3768 was filed **without `arch-review`**.
+> That is not cosmetic: the persona's own dedup step searches `--label arch-review`,
+> so an issue filed without it is invisible to every future run and would be refiled
+> as a duplicate — silently defeating G2's only mitigation. The prompt now states
+> `arch-review` as mandatory and non-optional, with the reason given, so a
+> well-formed `labels` array has three entries. #3768 was retro-labelled.
+>
+> The deeper lesson is G2's: **anything the persona merely *should* do is not a
+> guarantee.** `harness:todo` held because it is structural (the finisher's scope
+> label); `arch-review` did not, because it was only an instruction. If duplicate
+> findings show up, the fix is to make the label structural too — an always-applied
+> `labels` list on `OpenIssueBehavior`.
 
 **The empty-block trap, hard-coded into the prompt:** an *empty* artifact parses to
 zero drafts and settles cleanly, but a *non-empty* artifact with no fenced JSON block
