@@ -10,19 +10,19 @@ using Xunit;
 
 namespace Anela.Heblo.Tests.Features.Photobank;
 
-public class PhotobankRepositoryFilterTests : IDisposable
+public class PhotobankPhotoRepositoryFilterTests : IDisposable
 {
     private readonly ApplicationDbContext _context;
-    private readonly PhotobankRepository _repository;
+    private readonly PhotobankPhotoRepository _repository;
 
-    public PhotobankRepositoryFilterTests()
+    public PhotobankPhotoRepositoryFilterTests()
     {
         var options = new DbContextOptionsBuilder<ApplicationDbContext>()
             .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
             .Options;
 
         _context = new ApplicationDbContext(options);
-        _repository = new PhotobankRepository(_context);
+        _repository = new PhotobankPhotoRepository(_context);
 
         SeedTestData();
     }
@@ -141,19 +141,19 @@ public class PhotobankRepositoryFilterTests : IDisposable
 // this to Postgres POSIX ~* syntax. The two engines differ on some constructs
 // (e.g., .NET lookahead, \b). Postgres-specific failures are caught by the
 // PostgresException handler in GetPhotosHandler.
-public class PhotobankRepositoryRegexFilterTests : IDisposable
+public class PhotobankPhotoRepositoryRegexFilterTests : IDisposable
 {
     private readonly ApplicationDbContext _context;
-    private readonly PhotobankRepository _repository;
+    private readonly PhotobankPhotoRepository _repository;
 
-    public PhotobankRepositoryRegexFilterTests()
+    public PhotobankPhotoRepositoryRegexFilterTests()
     {
         var options = new DbContextOptionsBuilder<ApplicationDbContext>()
             .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
             .Options;
 
         _context = new ApplicationDbContext(options);
-        _repository = new PhotobankRepository(_context);
+        _repository = new PhotobankPhotoRepository(_context);
 
         SeedTestData();
     }
@@ -212,19 +212,19 @@ public class PhotobankRepositoryRegexFilterTests : IDisposable
     }
 }
 
-public class PhotobankRepositoryPathRegexFilterTests : IDisposable
+public class PhotobankPhotoRepositoryPathRegexFilterTests : IDisposable
 {
     private readonly ApplicationDbContext _context;
-    private readonly PhotobankRepository _repository;
+    private readonly PhotobankPhotoRepository _repository;
 
-    public PhotobankRepositoryPathRegexFilterTests()
+    public PhotobankPhotoRepositoryPathRegexFilterTests()
     {
         var options = new DbContextOptionsBuilder<ApplicationDbContext>()
             .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
             .Options;
 
         _context = new ApplicationDbContext(options);
-        _repository = new PhotobankRepository(_context);
+        _repository = new PhotobankPhotoRepository(_context);
 
         SeedTestData();
     }

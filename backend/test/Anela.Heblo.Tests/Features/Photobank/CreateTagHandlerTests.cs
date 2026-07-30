@@ -11,13 +11,13 @@ namespace Anela.Heblo.Tests.Features.Photobank;
 
 public class CreateTagHandlerTests
 {
-    private readonly Mock<IPhotobankRepository> _repositoryMock;
+    private readonly Mock<IPhotobankTagRepository> _repositoryMock;
     private readonly Mock<IPhotobankTagsCache> _cacheMock = new();
     private readonly CreateTagHandler _handler;
 
     public CreateTagHandlerTests()
     {
-        _repositoryMock = new Mock<IPhotobankRepository>();
+        _repositoryMock = new Mock<IPhotobankTagRepository>();
         _handler = new CreateTagHandler(_repositoryMock.Object, _cacheMock.Object);
     }
 
