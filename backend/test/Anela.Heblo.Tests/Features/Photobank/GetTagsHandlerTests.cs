@@ -14,7 +14,7 @@ namespace Anela.Heblo.Tests.Features.Photobank;
 
 public class GetTagsHandlerTests
 {
-    private readonly Mock<IPhotobankRepository> _repo = new();
+    private readonly Mock<IPhotobankTagRepository> _repo = new();
     private readonly Mock<IPhotobankTagsCache> _cache = new();
 
     private GetTagsHandler CreateHandler() =>
