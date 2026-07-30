@@ -17,7 +17,7 @@ public sealed class ConversationClosedReaction : ISmartsuppWebhookReaction
         var conversation = SmartsuppPayloadMapper.MapConversation(convEl, ctx.Timestamp);
         conversation.CloseType = SmartsuppPayloadMapper.TryGetString(ctx.Data, "close_type");
         conversation.ClosedByAgentId = SmartsuppPayloadMapper.TryGetString(ctx.Data, "agent_id");
-        conversation.LastClosedAt = ctx.Timestamp;
+        conversation.LastClosedAt = SmartsuppPayloadMapper.AsUtc(ctx.Timestamp);
         await _repository.UpsertConversationAsync(conversation, cancellationToken);
     }
 }
