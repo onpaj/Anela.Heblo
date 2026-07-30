@@ -1,4 +1,3 @@
-using Anela.Heblo.Application.Features.KnowledgeBase.Pipeline;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -32,8 +31,7 @@ public static class AnthropicAdapterServiceCollectionExtensions
                 sp.GetRequiredService<IOptions<AnthropicOptions>>(),
                 sp.GetRequiredService<IHttpClientFactory>(),
                 sp.GetRequiredService<ILogger<AnthropicChatClient>>()))
-            .UseLogging()
-            .Use((inner, sp) => new PostAnswerEnrichmentMiddleware(inner, sp.GetRequiredService<IProductEnrichmentCache>()));
+            .UseLogging();
 
         services.AddKeyedSingleton<IChatClient>(MeetingExtractionClientKey, (sp, _) =>
             new AnthropicChatClient(

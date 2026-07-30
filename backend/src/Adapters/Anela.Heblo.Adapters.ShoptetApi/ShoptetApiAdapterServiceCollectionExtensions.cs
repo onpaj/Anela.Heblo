@@ -7,6 +7,7 @@ using Anela.Heblo.Adapters.ShoptetApi.IssuedInvoices.Mapping;
 using Anela.Heblo.Adapters.ShoptetApi.Orders;
 using Anela.Heblo.Adapters.ShoptetApi.Shipments;
 using Anela.Heblo.Adapters.ShoptetApi.Stock;
+using Anela.Heblo.Application.Features.Packaging.Contracts;
 using Anela.Heblo.Application.Features.ShipmentLabels;
 using Anela.Heblo.Application.Features.ShoptetCustomers;
 using Anela.Heblo.Application.Features.ShoptetOrders;
@@ -117,6 +118,7 @@ public static class ShoptetApiAdapterServiceCollectionExtensions
 
         services.AddTransient<IPickingListSource, ShoptetApiExpeditionListSource>();
         services.AddTransient<IPackingOrderClient, ShoptetApiPackingOrderClient>();
+        services.AddTransient<IPackingOrderCountSource, ShoptetApiPackingOrderClient>();
 
         services.AddHttpClient<IProductEshopUrlClient, HeurekaProductFeedClient>();
         services.Configure<HeurekaFeedOptions>(configuration.GetSection(HeurekaFeedOptions.ConfigKey));
