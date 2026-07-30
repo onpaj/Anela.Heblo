@@ -350,6 +350,13 @@ public class ModuleBoundariesTests
         "Anela.Heblo.Application.Features.ShipmentLabels.UseCases.CreateOrderShipment.CreateOrderShipmentHandler -> Anela.Heblo.Application.Features.ShoptetOrders.PackingOrderItem",
     };
 
+    // Allowlist for Anthropic Adapter -> Application. Empty — the adapter is a generic
+    // IChatClient provider and must carry zero application-layer feature awareness.
+    private static readonly HashSet<string> AnthropicAdapterApplicationAllowlist = new(StringComparer.Ordinal);
+
+    // Allowlist for OpenAI Adapter -> Application. Empty — same rationale as the Anthropic adapter.
+    private static readonly HashSet<string> OpenAiAdapterApplicationAllowlist = new(StringComparer.Ordinal);
+
     // Allowlist for Authorization -> UserManagement. Empty — EntraAccessUserSourceAdapter
     // (UserManagement-owned) is the only class allowed to reference both IGraphService and
     // Authorization.Contracts; it translates UserManagement's GraphServiceAuthException/
@@ -638,6 +645,26 @@ public class ModuleBoundariesTests
             },
             Allowlist: ShoptetApiAdaptersLogisticsAllowlist,
             InspectedAssembly: "Anela.Heblo.Adapters.ShoptetApi"),
+
+        new ModuleBoundaryRule(
+            Name: "Anthropic Adapter -> Application",
+            InspectedNamespacePrefix: "Anela.Heblo.Adapters.Anthropic",
+            ForbiddenNamespacePrefixes: new[]
+            {
+                "Anela.Heblo.Application",
+            },
+            Allowlist: AnthropicAdapterApplicationAllowlist,
+            InspectedAssembly: "Anela.Heblo.Adapters.Anthropic"),
+
+        new ModuleBoundaryRule(
+            Name: "OpenAI Adapter -> Application",
+            InspectedNamespacePrefix: "Anela.Heblo.Adapters.OpenAI",
+            ForbiddenNamespacePrefixes: new[]
+            {
+                "Anela.Heblo.Application",
+            },
+            Allowlist: OpenAiAdapterApplicationAllowlist,
+            InspectedAssembly: "Anela.Heblo.Adapters.OpenAI"),
 
         new ModuleBoundaryRule(
             Name: "FinancialOverview -> Catalog",
