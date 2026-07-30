@@ -1,4 +1,4 @@
-using Anela.Heblo.Application.Features.ShoptetOrders;
+using Anela.Heblo.Application.Features.Packaging.Contracts;
 using Anela.Heblo.Domain.Features.Packaging;
 using Anela.Heblo.Xcc.Services.Dashboard;
 using Microsoft.Extensions.Logging;
@@ -9,7 +9,7 @@ namespace Anela.Heblo.Application.Features.Packaging.DashboardTiles;
 public class PackingStatsTile : ITile
 {
     private readonly IPackageRepository _repo;
-    private readonly IPackingOrderClient _packingOrderClient;
+    private readonly IPackingOrderCountSource _packingOrderClient;
     private readonly TimeProvider _timeProvider;
     private readonly ILogger<PackingStatsTile> _logger;
 
@@ -23,7 +23,7 @@ public class PackingStatsTile : ITile
 
     public PackingStatsTile(
         IPackageRepository repo,
-        IPackingOrderClient packingOrderClient,
+        IPackingOrderCountSource packingOrderClient,
         TimeProvider timeProvider,
         ILogger<PackingStatsTile> logger)
     {
