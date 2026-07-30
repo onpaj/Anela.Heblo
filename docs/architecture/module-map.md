@@ -6,6 +6,7 @@ analysis produces something meaningful. The map is designed to be **iterated**: 
 
 > This document describes *cuts*, not architecture. For architecture read
 > `docs/📘 Architecture Documentation – MVP Work.md` and `docs/architecture/filesystem.md`.
+> To refresh this map when the codebase moves, follow `docs/architecture/module-map-maintenance.md`.
 
 ---
 
@@ -30,6 +31,10 @@ analysis produces something meaningful. The map is designed to be **iterated**: 
 **Sizing target:** roughly 1.5k–6k LOC of hand-written code per part (excluding generated code and migrations).
 
 **Notation:**
+- **Part numbers (#1–#52) are the stable identifier.** Use them when referring to a part anywhere else —
+  analysis notes, issues, commits. They are never reused or reassigned; see
+  `docs/architecture/module-map-maintenance.md`.
+- Parts are grouped A–D for readability only. The group letter carries no meaning beyond ordering.
 - `BE` = backend LOC (`.cs`, hand-written), `FE` = frontend LOC (`.ts`/`.tsx`, excluding `__tests__`).
 - Paths are repo-relative. A trailing `/` means the whole subtree.
 - Sizes are approximate — measured at the time of writing, meant for triage not accounting.
@@ -38,83 +43,83 @@ analysis produces something meaningful. The map is designed to be **iterated**: 
 
 ## Summary table
 
-### A. Business domain parts (33)
+### A. Business domain — parts #1–#33
 
-| ID | Part | Approx. size | Primary route(s) |
-|----|------|--------------|------------------|
-| A01 | Catalog Core & Data Aggregation | BE ~3.6k | — (background) |
-| A02 | Catalog Browsing & Product Detail | BE ~2.0k / FE ~4.2k | `/catalog` |
-| A03 | Product Costing & Margin Calculation | BE ~1.9k | — (engine) |
-| A04 | Margin Analytics & Reporting | BE ~2.2k / FE ~1.2k | `/products/margins`, `/analytics/product-margin-summary` |
-| A05 | Warehouse Inventory & Stock Taking | BE ~2.2k / FE ~2.0k | `/logistics/inventory` |
-| A06 | Stock-Up Operations | BE ~1.2k / FE ~0.9k | `/stock-up-operations` |
-| A07 | Transport Boxes | BE ~3.0k / FE ~3.5k | `/logistics/transport-boxes`, `/logistics/receive-boxes` |
-| A08 | Warehouse Terminal | BE ~0.5k / FE ~2.8k | `/terminal/*` |
-| A09 | Packaging (Baleni) Workflow | BE ~2.4k / FE ~2.7k | `/baleni/*` |
-| A10 | Packing Materials | BE ~2.0k / FE ~1.8k | `/logistics/packing-materials` |
-| A11 | Expedition & Shipping | BE ~1.6k / FE ~0.9k | `/logistics/expedition-archive`, `/customer/expedition-settings` |
-| A12 | Gift Packages | BE ~0.9k / FE ~1.7k | `/logistics/gift-package-manufacturing` |
-| A13 | Manufacture Orders & Calendar | BE ~2.2k / FE ~2.7k | `/manufacturing/orders` |
-| A14 | Batch Planning & Batch Calculator | BE ~2.5k / FE ~1.7k | `/manufacturing/batch-planning`, `/manufacturing/batch-calculator` |
-| A15 | Manufacture Execution & Output | BE ~1.9k / FE ~0.6k | `/manufacturing/output` |
-| A16 | Manufacturing Stock Analysis | BE ~1.2k / FE ~1.6k | `/manufacturing/stock-analysis` |
-| A17 | Manufacture Inventory, Lots & Settings | BE ~1.8k / FE ~1.6k | `/manufacturing/inventory`, `/manufacturing/product-inventory`, `/manufacturing/material-containers` |
-| A18 | Purchase Orders | BE ~1.6k / FE ~2.0k | `/purchase/orders` |
-| A19 | Purchase Stock Analysis & Suppliers | BE ~1.1k / FE ~1.1k | `/purchase/stock-analysis` |
-| A20 | Issued Invoices & Invoice Import | BE ~2.2k / FE ~1.2k | `/customer/issued-invoices` |
-| A21 | Invoice Classification | BE ~1.8k / FE ~1.1k | `/purchase/invoice-classification` |
-| A22 | Financial Overview & Bank Statements | BE ~2.2k / FE ~1.4k | `/finance/overview`, `/finance/bank-statements` |
-| A23 | Marketing Calendar & Marketing Invoices | BE ~2.3k / FE ~1.9k | `/marketing/calendar` |
-| A24 | Photobank | BE ~3.3k / FE ~2.3k | `/marketing/photobank` |
-| A25 | Leaflet Generator | BE ~1.5k / FE ~1.2k | `/leaflet-generator` |
-| A26 | AI Articles | BE ~2.2k / FE ~0.7k | `/articles` |
-| A27 | Knowledge Base (RAG) | BE ~2.5k / FE ~1.4k | `/knowledge-base` |
-| A28 | Meeting Tasks (Plaud) | BE ~3.2k / FE ~1.2k | `/automation/meeting-tasks` |
-| A29 | Customer Support (Smartsupp) | BE ~4.9k / FE ~2.2k | `/customer/smartsupp` |
-| A30 | E-shop Orders & Customers (Shoptet) | BE ~4.9k | — (integration) |
-| A31 | Journal | BE ~1.5k / FE ~0.8k | `/journal` |
-| A32 | Dashboard & Tiles | BE ~1.9k / FE ~2.1k | `/` |
-| A33 | Data Quality | BE ~2.0k / FE ~0.8k | `/automation/data-quality` |
+| # | Part | Approx. size | Primary route(s) |
+|---|------|--------------|------------------|
+| 1 | Catalog Core & Data Aggregation | BE ~3.6k | — (background) |
+| 2 | Catalog Browsing & Product Detail | BE ~2.0k / FE ~4.2k | `/catalog` |
+| 3 | Product Costing & Margin Calculation | BE ~1.9k | — (engine) |
+| 4 | Margin Analytics & Reporting | BE ~2.2k / FE ~1.2k | `/products/margins`, `/analytics/product-margin-summary` |
+| 5 | Warehouse Inventory & Stock Taking | BE ~2.2k / FE ~2.0k | `/logistics/inventory` |
+| 6 | Stock-Up Operations | BE ~1.2k / FE ~0.9k | `/stock-up-operations` |
+| 7 | Transport Boxes | BE ~3.0k / FE ~3.5k | `/logistics/transport-boxes`, `/logistics/receive-boxes` |
+| 8 | Warehouse Terminal | BE ~0.5k / FE ~2.8k | `/terminal/*` |
+| 9 | Packaging (Baleni) Workflow | BE ~2.4k / FE ~2.7k | `/baleni/*` |
+| 10 | Packing Materials | BE ~2.0k / FE ~1.8k | `/logistics/packing-materials` |
+| 11 | Expedition & Shipping | BE ~1.6k / FE ~0.9k | `/logistics/expedition-archive`, `/customer/expedition-settings` |
+| 12 | Gift Packages | BE ~0.9k / FE ~1.7k | `/logistics/gift-package-manufacturing` |
+| 13 | Manufacture Orders & Calendar | BE ~2.2k / FE ~2.7k | `/manufacturing/orders` |
+| 14 | Batch Planning & Batch Calculator | BE ~2.5k / FE ~1.7k | `/manufacturing/batch-planning`, `/manufacturing/batch-calculator` |
+| 15 | Manufacture Execution & Output | BE ~1.9k / FE ~0.6k | `/manufacturing/output` |
+| 16 | Manufacturing Stock Analysis | BE ~1.2k / FE ~1.6k | `/manufacturing/stock-analysis` |
+| 17 | Manufacture Inventory, Lots & Settings | BE ~1.8k / FE ~1.6k | `/manufacturing/inventory`, `/manufacturing/product-inventory`, `/manufacturing/material-containers` |
+| 18 | Purchase Orders | BE ~1.6k / FE ~2.0k | `/purchase/orders` |
+| 19 | Purchase Stock Analysis & Suppliers | BE ~1.1k / FE ~1.1k | `/purchase/stock-analysis` |
+| 20 | Issued Invoices & Invoice Import | BE ~2.2k / FE ~1.2k | `/customer/issued-invoices` |
+| 21 | Invoice Classification | BE ~1.8k / FE ~1.1k | `/purchase/invoice-classification` |
+| 22 | Financial Overview & Bank Statements | BE ~2.2k / FE ~1.4k | `/finance/overview`, `/finance/bank-statements` |
+| 23 | Marketing Calendar & Marketing Invoices | BE ~2.3k / FE ~1.9k | `/marketing/calendar` |
+| 24 | Photobank | BE ~3.3k / FE ~2.3k | `/marketing/photobank` |
+| 25 | Leaflet Generator | BE ~1.5k / FE ~1.2k | `/leaflet-generator` |
+| 26 | AI Articles | BE ~2.2k / FE ~0.7k | `/articles` |
+| 27 | Knowledge Base (RAG) | BE ~2.5k / FE ~1.4k | `/knowledge-base` |
+| 28 | Meeting Tasks (Plaud) | BE ~3.2k / FE ~1.2k | `/automation/meeting-tasks` |
+| 29 | Customer Support (Smartsupp) | BE ~4.9k / FE ~2.2k | `/customer/smartsupp` |
+| 30 | E-shop Orders & Customers (Shoptet) | BE ~4.9k | — (integration) |
+| 31 | Journal | BE ~1.5k / FE ~0.8k | `/journal` |
+| 32 | Dashboard & Tiles | BE ~1.9k / FE ~2.1k | `/` |
+| 33 | Data Quality | BE ~2.0k / FE ~0.8k | `/automation/data-quality` |
 
-### B. Platform & cross-cutting parts (10)
+### B. Platform & cross-cutting — parts #34–#43
 
-| ID | Part | Approx. size |
-|----|------|--------------|
-| B01 | Authorization & Access Management | BE ~2.4k / FE ~1.6k |
-| B02 | Users, Identity & Org Chart | BE ~1.2k / FE ~1.1k |
-| B03 | Feature Flags, Configuration & Grid Layouts | BE ~1.1k / FE ~0.7k |
-| B04 | Background Execution (Hangfire + Refresh/Hydration) | BE ~2.9k / FE ~0.4k |
-| B05 | Persistence Core & Migrations | BE ~1.5k (+ ~367k generated migrations) |
-| B06 | API Host & Composition Root | BE ~1.9k |
-| B07 | Telemetry, Health & Diagnostics | BE ~1.0k / FE ~0.2k |
-| B08 | Documents, File Storage & Printing | BE ~2.1k |
-| B09 | API Contract & Client Generation | generated + ~0.3k tooling |
-| B10 | MCP Server | BE ~1.0k |
+| # | Part | Approx. size |
+|---|------|--------------|
+| 34 | Authorization & Access Management | BE ~2.4k / FE ~1.6k |
+| 35 | Users, Identity & Org Chart | BE ~1.2k / FE ~1.1k |
+| 36 | Feature Flags, Configuration & Grid Layouts | BE ~1.1k / FE ~0.7k |
+| 37 | Background Execution (Hangfire + Refresh/Hydration) | BE ~2.9k / FE ~0.4k |
+| 38 | Persistence Core & Migrations | BE ~1.5k (+ ~367k generated migrations) |
+| 39 | API Host & Composition Root | BE ~1.9k |
+| 40 | Telemetry, Health & Diagnostics | BE ~1.0k / FE ~0.2k |
+| 41 | Documents, File Storage & Printing | BE ~2.1k |
+| 42 | API Contract & Client Generation | generated + ~0.3k tooling |
+| 43 | MCP Server | BE ~1.0k |
 
-### C. Integration adapters (4)
+### C. Integration adapters — parts #44–#47
 
-| ID | Part | Approx. size |
-|----|------|--------------|
-| C01 | FlexiBee ERP Adapter | BE ~4.4k |
-| C02 | Microsoft 365 & Azure Adapters | BE ~1.5k |
-| C03 | AI / LLM & Web Search Adapters | BE ~0.5k |
-| C04 | Ancillary External Adapters | BE ~1.5k |
+| # | Part | Approx. size |
+|---|------|--------------|
+| 44 | FlexiBee ERP Adapter | BE ~4.4k |
+| 45 | Microsoft 365 & Azure Adapters | BE ~1.5k |
+| 46 | AI / LLM & Web Search Adapters | BE ~0.5k |
+| 47 | Ancillary External Adapters | BE ~1.5k |
 
-### D. Delivery & tooling (5)
+### D. Delivery & tooling — parts #48–#52
 
-| ID | Part | Approx. size |
-|----|------|--------------|
-| D01 | Frontend Shell, Layout & Navigation | FE ~2.5k |
-| D02 | Frontend Shared UI, Hooks & Utilities | FE ~4.0k |
-| D03 | Automated Test Suites & Test Infrastructure | ~40k test LOC |
-| D04 | CI/CD, Docker & Deployment | ~2k scripts/YAML |
-| D05 | Documentation & Agent Tooling | ~docs only |
+| # | Part | Approx. size |
+|---|------|--------------|
+| 48 | Frontend Shell, Layout & Navigation | FE ~2.5k |
+| 49 | Frontend Shared UI, Hooks & Utilities | FE ~4.0k |
+| 50 | Automated Test Suites & Test Infrastructure | ~40k test LOC |
+| 51 | CI/CD, Docker & Deployment | ~2k scripts/YAML |
+| 52 | Documentation & Agent Tooling | ~docs only |
 
 ---
 
-# A. Business domain parts
+# A. Business domain — parts #1–#33
 
-## A01 — Catalog Core & Data Aggregation
+## 1. Catalog Core & Data Aggregation
 
 **Purpose:** the merge engine that assembles the unified product catalog from ERP, e-shop, manufacture, purchase and
 analytics sources; caching, scheduled refresh and resilience around it.
@@ -129,15 +134,15 @@ analytics sources; caching, scheduled refresh and resilience around it.
 **Key entry points:** `CatalogMergeService`, `CatalogMergeScheduler`, `CatalogCacheStore`, `CatalogDataRefreshService`,
 `CatalogResilienceService`, the `*SourceAdapter` classes.
 
-**Depends on:** C01 (Flexi), A30 (Shoptet), B04 (refresh scheduling).
-**Consumed by:** A02–A06, A13–A19, A32.
+**Depends on:** #44 (Flexi), #30 (Shoptet), #37 (refresh scheduling).
+**Consumed by:** #2–#6, #13–#19, #32.
 
 **Analysis notes:** this is the single highest fan-in part in the app. The `*Adapter` files here are inbound
 anti-corruption for other modules — a good place to look for hidden coupling.
 
 ---
 
-## A02 — Catalog Browsing & Product Detail
+## 2. Catalog Browsing & Product Detail
 
 **Purpose:** the catalog list/detail UI and the queries behind it — filtering, paging, product composition, usage.
 
@@ -155,11 +160,11 @@ anti-corruption for other modules — a good place to look for hidden coupling.
 - `frontend/src/components/catalog/`
 - `frontend/src/api/hooks/useCatalog.ts`, `useCatalogAutocomplete.ts`, `useProductUsage.ts`, `useUpdateProductCompositionOrder.ts`
 
-**Depends on:** A01.
+**Depends on:** #1.
 
 ---
 
-## A03 — Product Costing & Margin Calculation
+## 3. Product Costing & Margin Calculation
 
 **Purpose:** the costing engine — how a product's manufacture, material and sales costs are derived, and the
 margin maths built on top.
@@ -172,14 +177,14 @@ margin maths built on top.
 - `frontend/src/api/hooks/useProductMargins.ts`
 - `docs/features/margins_v2/`
 
-**Depends on:** A01, A13 (manufacture cost inputs).
+**Depends on:** #1, #13 (manufacture cost inputs).
 
 **Analysis notes:** four competing cost providers (`Direct`, `Flat`, `ManufactureBasedMaterial`, `Sales`) —
 worth checking which one actually wins in which scenario.
 
 ---
 
-## A04 — Margin Analytics & Reporting
+## 4. Margin Analytics & Reporting
 
 **Purpose:** aggregated margin reports, product margin summary, invoice/bank import statistics.
 
@@ -193,13 +198,13 @@ worth checking which one actually wins in which scenario.
 - `frontend/src/api/hooks/useProductMarginSummary.ts`, `useInvoiceImportStatistics.ts`
 - `frontend/src/utils/timePeriod/`, `backend/src/Anela.Heblo.Application/Common/TimePeriods/`
 
-**Depends on:** A03, A20, A22.
+**Depends on:** #3, #20, #22.
 
-**Analysis notes:** has its **own DbContext and migration chain** (`Persistence.Analytics`) — separate from B05.
+**Analysis notes:** has its **own DbContext and migration chain** (`Persistence.Analytics`) — separate from #38.
 
 ---
 
-## A05 — Warehouse Inventory & Stock Taking
+## 5. Warehouse Inventory & Stock Taking
 
 **Purpose:** physical inventory counting for warehouse stock, stock-taking history and warehouse statistics.
 
@@ -209,16 +214,16 @@ worth checking which one actually wins in which scenario.
 - `backend/src/Anela.Heblo.Persistence/Catalog/Inventory/`, `backend/src/Anela.Heblo.Persistence/Catalog/Stock/`
 - `backend/src/Anela.Heblo.Persistence/Logistics/StockTaking/`
 - `backend/src/Anela.Heblo.Domain/Features/Logistics/StockTaking/`
-- `backend/src/Anela.Heblo.API/Controllers/StockTakingController.cs`, `WeatherForecastController.cs` *(see B03)*
+- `backend/src/Anela.Heblo.API/Controllers/StockTakingController.cs`, `WeatherForecastController.cs` *(see #36)*
 - `frontend/src/components/pages/InventoryList.tsx`, `WarehouseStatistics.tsx`
 - `frontend/src/components/inventory/`
 - `frontend/src/api/hooks/useInventory.ts`, `useStockTaking.ts`, `useWarehouseStatistics.ts`
 
-**Depends on:** A01, C01.
+**Depends on:** #1, #44.
 
 ---
 
-## A06 — Stock-Up Operations
+## 6. Stock-Up Operations
 
 **Purpose:** the queue of stock-up (replenishment) operations pushed to the ERP/e-shop, with retry and accept-failure
 handling.
@@ -232,11 +237,11 @@ handling.
 - `frontend/src/api/hooks/useStockUpOperations.ts`
 - `frontend/test/e2e/stock-operations/`
 
-**Depends on:** A01, C01, A30.
+**Depends on:** #1, #44, #30.
 
 ---
 
-## A07 — Transport Boxes
+## 7. Transport Boxes
 
 **Purpose:** the transport box lifecycle — create, fill, move between states, receive at destination.
 
@@ -253,14 +258,14 @@ handling.
 - `frontend/src/api/hooks/useTransportBoxes.ts`, `useTransportBoxReceive.ts`, `useTransportBoxTransitions.ts`
 - `frontend/test/e2e/transport/`
 
-**Depends on:** A01, A05.
+**Depends on:** #1, #5.
 
 **Analysis notes:** the state machine (`TransportBoxState`, `TransportBoxTransition`, `TransportBoxStateNode`) is the
 core artefact here.
 
 ---
 
-## A08 — Warehouse Terminal
+## 8. Warehouse Terminal
 
 **Purpose:** the touch-optimised shop-floor terminal — box check, box fill, receive, lot identification against
 purchase orders.
@@ -269,18 +274,18 @@ purchase orders.
 - `frontend/src/components/terminal/`
 - `frontend/src/components/transport/touch/`
 - `frontend/src/api/hooks/useBoxFill.ts`, `useLastAddedItem.ts`
-- `backend/src/Anela.Heblo.API/Controllers/LotsController.cs` *(shared with A17)*
+- `backend/src/Anela.Heblo.API/Controllers/LotsController.cs` *(shared with #17)*
 - `frontend/test/e2e/terminal/`
 - Routes: `/terminal/*` in `frontend/src/App.tsx`
 
-**Depends on:** A07, A17, A18.
+**Depends on:** #7, #17, #18.
 
 **Analysis notes:** distinct UX layer (`TerminalLayout`, `shell/`) with its own navigation model — analyse for
 offline/latency behaviour rather than for business rules.
 
 ---
 
-## A09 — Packaging (Baleni) Workflow
+## 9. Packaging (Baleni) Workflow
 
 **Purpose:** the order-packing workstation — scan order, complete packing, print labels, packing statistics and
 per-user dashboards.
@@ -296,14 +301,14 @@ per-user dashboards.
 - `frontend/test/e2e/baleni/`
 - Routes: `/baleni/*`
 
-**Depends on:** A30 (order data), A11 (labels).
+**Depends on:** #30 (order data), #11 (labels).
 
 **Analysis notes:** `IPackingOrderClient` is declared in `ShoptetOrders` but consumed here — a known boundary smell
 (see latest commit on this branch).
 
 ---
 
-## A10 — Packing Materials
+## 10. Packing Materials
 
 **Purpose:** stock and consumption tracking for packaging materials (boxes, filler, tape).
 
@@ -315,11 +320,11 @@ per-user dashboards.
 - `frontend/src/components/packing-materials/`, `frontend/src/pages/PackingMaterialsPage.tsx`
 - `frontend/src/api/hooks/usePackingMaterials.ts`
 
-**Depends on:** A01, A09.
+**Depends on:** #1, #9.
 
 ---
 
-## A11 — Expedition & Shipping
+## 11. Expedition & Shipping
 
 **Purpose:** expedition (picking) lists and their archive, shipment label generation, carrier cooling rules and
 customer-facing expedition settings.
@@ -341,11 +346,11 @@ customer-facing expedition settings.
 - `frontend/src/components/customer/cooling/`, `frontend/src/components/customer/expeditionSettings/`
 - `frontend/src/api/hooks/useExpeditionList.ts`, `useExpeditionListArchive.ts`, `useCarrierCooling.ts`
 
-**Depends on:** A30, C04 (OpenMeteo for cooling), B08 (PDF).
+**Depends on:** #30, #47 (OpenMeteo for cooling), #41 (PDF).
 
 ---
 
-## A12 — Gift Packages
+## 12. Gift Packages
 
 **Purpose:** assembly and disassembly of gift package products, plus the gift settings that drive it.
 
@@ -358,11 +363,11 @@ customer-facing expedition settings.
 - `frontend/src/components/pages/GiftPackageManufacturing/`
 - `frontend/src/api/hooks/useGiftPackageManufacturing.ts`, `useGiftSetting.ts`
 
-**Depends on:** A01, A15.
+**Depends on:** #1, #15.
 
 ---
 
-## A13 — Manufacture Orders & Calendar
+## 13. Manufacture Orders & Calendar
 
 **Purpose:** the manufacture order aggregate — create, duplicate, update, schedule, status transitions, calendar view,
 production protocol.
@@ -381,11 +386,11 @@ production protocol.
 - `frontend/src/api/hooks/useManufactureOrders.ts`
 - `frontend/test/e2e/manufacturing/`
 
-**Depends on:** A01, A14.
+**Depends on:** #1, #14.
 
 ---
 
-## A14 — Batch Planning & Batch Calculator
+## 14. Batch Planning & Batch Calculator
 
 **Purpose:** batch size maths — plan a batch from demand, calculate by ingredient, distribute residues, adjust BoM
 ingredient amounts.
@@ -400,14 +405,14 @@ ingredient amounts.
 - `frontend/src/components/pages/ManufactureBatchPlanning.tsx`, `ManufactureBatchCalculator.tsx`
 - `frontend/src/api/hooks/useBatchPlanning.ts`, `useManufactureBatch.ts`
 
-**Depends on:** A01, C01 (BoM from Flexi).
+**Depends on:** #1, #44 (BoM from Flexi).
 
 **Analysis notes:** the densest pure-computation part in the codebase — highest value target for property/edge-case
 analysis.
 
 ---
 
-## A15 — Manufacture Execution & Output
+## 15. Manufacture Execution & Output
 
 **Purpose:** recording what was actually produced — semi-product and final-product confirmation, manual action
 resolution, output listing, recipe PDF.
@@ -422,11 +427,11 @@ resolution, output listing, recipe PDF.
 - `frontend/src/components/pages/ManufactureOutput.tsx`, `ManufactureOutputModal.tsx`
 - `frontend/src/api/hooks/useManufactureOutput.ts`, `useSemiproductRecipePdf.ts`, `useLastManufacturedItems.ts`
 
-**Depends on:** A13, C01, B08.
+**Depends on:** #13, #44, #41.
 
 ---
 
-## A16 — Manufacturing Stock Analysis
+## 16. Manufacturing Stock Analysis
 
 **Purpose:** "what do we need to manufacture" — severity scoring, consumption rates, filtering of manufacturable items.
 
@@ -439,11 +444,11 @@ resolution, output listing, recipe PDF.
 - `frontend/src/components/pages/ManufacturingStockAnalysis.tsx`
 - `frontend/src/api/hooks/useManufacturingStockAnalysis.ts`
 
-**Depends on:** A01, A14, A32.
+**Depends on:** #1, #14, #32.
 
 ---
 
-## A17 — Manufacture Inventory, Lots & Settings
+## 17. Manufacture Inventory, Lots & Settings
 
 **Purpose:** manufacture-side inventory (semi-products, manufactured products), manufacture stock taking, material
 containers/lots, difficulty settings and manufacture configuration.
@@ -468,11 +473,11 @@ containers/lots, difficulty settings and manufacture configuration.
   `useManufactureStockTaking.ts`, `useManufactureSettings.ts`, `useManufactureDifficulty.ts`,
   `useMaterialContainers.ts`, `useMaterials.ts`
 
-**Depends on:** A01, A05, C01.
+**Depends on:** #1, #5, #44.
 
 ---
 
-## A18 — Purchase Orders
+## 18. Purchase Orders
 
 **Purpose:** purchase order lifecycle, lines, supplier assignment, purchase price recalculation.
 
@@ -489,11 +494,11 @@ containers/lots, difficulty settings and manufacture configuration.
 - `frontend/src/components/purchase-orders/`
 - `frontend/src/api/hooks/usePurchaseOrders.ts`, `useRecalculatePurchasePrice.ts`
 
-**Depends on:** A01, C01.
+**Depends on:** #1, #44.
 
 ---
 
-## A19 — Purchase Stock Analysis & Suppliers
+## 19. Purchase Stock Analysis & Suppliers
 
 **Purpose:** "what do we need to buy" analysis, material-for-purchase queries, supplier master data.
 
@@ -504,11 +509,11 @@ containers/lots, difficulty settings and manufacture configuration.
 - `frontend/src/components/pages/PurchaseStockAnalysis.tsx`
 - `frontend/src/api/hooks/usePurchaseStockAnalysis.ts`, `useSuppliers.ts`
 
-**Depends on:** A01, A18.
+**Depends on:** #1, #18.
 
 ---
 
-## A20 — Issued Invoices & Invoice Import
+## 20. Issued Invoices & Invoice Import
 
 **Purpose:** issued-invoice list/detail, the async import pipeline from the e-shop into the ERP, and sync statistics.
 
@@ -524,11 +529,11 @@ containers/lots, difficulty settings and manufacture configuration.
 - `frontend/src/api/hooks/useIssuedInvoices.ts`, `useIssuedInvoiceSyncStats.ts`, `useAsyncInvoiceImport.ts`
 - `frontend/test/e2e/issued-invoices/`
 
-**Depends on:** A30, C01, B04.
+**Depends on:** #30, #44, #37.
 
 ---
 
-## A21 — Invoice Classification
+## 21. Invoice Classification
 
 **Purpose:** rule-based classification of received invoices into accounting categories, with history and stats.
 
@@ -540,11 +545,11 @@ containers/lots, difficulty settings and manufacture configuration.
 - `frontend/src/pages/InvoiceClassification/`
 - `frontend/src/api/hooks/useInvoiceClassification.ts`
 
-**Depends on:** C01, A22.
+**Depends on:** #44, #22.
 
 ---
 
-## A22 — Financial Overview & Bank Statements
+## 22. Financial Overview & Bank Statements
 
 **Purpose:** the finance dashboard (income/expense/stock value over time, comparisons) and bank statement import.
 
@@ -563,11 +568,11 @@ containers/lots, difficulty settings and manufacture configuration.
 - `frontend/src/api/hooks/useFinancialOverview.ts`, `useFinancialComparison.ts`, `useBankStatements.ts`
 - `frontend/test/e2e/finance/`
 
-**Depends on:** C01, A01 (stock value), A04.
+**Depends on:** #44, #1 (stock value), #4.
 
 ---
 
-## A23 — Marketing Calendar & Marketing Invoices
+## 23. Marketing Calendar & Marketing Invoices
 
 **Purpose:** the marketing action calendar (with Outlook import) and marketing spend invoice import.
 
@@ -582,11 +587,11 @@ containers/lots, difficulty settings and manufacture configuration.
 - `frontend/src/api/hooks/useMarketingCalendar.ts`
 - `frontend/test/e2e/marketing/`
 
-**Depends on:** C02 (Outlook via Graph), A20.
+**Depends on:** #45 (Outlook via Graph), #20.
 
 ---
 
-## A24 — Photobank
+## 24. Photobank
 
 **Purpose:** product photo library — sync from SharePoint/OneDrive, auto-tagging, search, settings.
 
@@ -599,11 +604,11 @@ containers/lots, difficulty settings and manufacture configuration.
 - `frontend/src/components/marketing/photobank/`
 - `frontend/src/api/hooks/usePhotobank.ts`, `usePhotobankSettings.ts`
 
-**Depends on:** C02, C03 (auto-tagging), A01.
+**Depends on:** #45, #46 (auto-tagging), #1.
 
 ---
 
-## A25 — Leaflet Generator
+## 25. Leaflet Generator
 
 **Purpose:** generation of product leaflets/labels as printable documents.
 
@@ -616,11 +621,11 @@ containers/lots, difficulty settings and manufacture configuration.
 - `frontend/src/api/hooks/useLeaflet.ts`
 - `frontend/test/e2e/leaflet-generator/`
 
-**Depends on:** A01, B08.
+**Depends on:** #1, #41.
 
 ---
 
-## A26 — AI Articles
+## 26. AI Articles
 
 **Purpose:** AI-assisted article/content generation pipeline with tracing and admin surface.
 
@@ -632,11 +637,11 @@ containers/lots, difficulty settings and manufacture configuration.
 - `frontend/src/features/articles/`, `frontend/src/pages/ArticlesPage.tsx`
 - `frontend/src/api/hooks/useArticles.ts`, `useArticleTrace.ts`
 
-**Depends on:** C03, A27.
+**Depends on:** #46, #27.
 
 ---
 
-## A27 — Knowledge Base (RAG)
+## 27. Knowledge Base (RAG)
 
 **Purpose:** the retrieval-augmented knowledge base — ingestion pipeline, embeddings, retrieval, feedback loop.
 
@@ -650,11 +655,11 @@ containers/lots, difficulty settings and manufacture configuration.
   `frontend/src/pages/KnowledgeBaseFeedbackPage.tsx`
 - `frontend/src/api/hooks/useKnowledgeBase.ts`
 
-**Depends on:** C03, B05 (pgvector storage).
+**Depends on:** #46, #38 (pgvector storage).
 
 ---
 
-## A28 — Meeting Tasks (Plaud)
+## 28. Meeting Tasks (Plaud)
 
 **Purpose:** meeting recordings → transcript → extracted tasks, with review workflow and per-task access control.
 
@@ -668,11 +673,11 @@ containers/lots, difficulty settings and manufacture configuration.
   `MeetingReviewLeaveDialog.tsx`, `access/`, `explain/`)
 - `frontend/src/api/hooks/useMeetingTasks.ts`
 
-**Depends on:** C03, B01.
+**Depends on:** #46, #34.
 
 ---
 
-## A29 — Customer Support (Smartsupp)
+## 29. Customer Support (Smartsupp)
 
 **Purpose:** live-chat integration — webhook ingestion, conversation storage, agent presence, AI-assisted replies,
 webhook audit.
@@ -689,11 +694,11 @@ webhook audit.
 - `frontend/src/components/customer-support/`
 - `frontend/src/api/hooks/useSmartsupp.ts`
 
-**Depends on:** C03, A30.
+**Depends on:** #46, #30.
 
 ---
 
-## A30 — E-shop Orders & Customers (Shoptet)
+## 30. E-shop Orders & Customers (Shoptet)
 
 **Purpose:** everything that reads or writes the Shoptet e-shop — orders, customers, stock sync, payments, plus the
 application-level order feature on top.
@@ -701,20 +706,20 @@ application-level order feature on top.
 **Owns:**
 - `backend/src/Anela.Heblo.Application/Features/ShoptetOrders/`
 - `backend/src/Adapters/Anela.Heblo.Adapters.ShoptetApi/` (`Orders/`, `Customers/`, `Stock/`, `ShoptetPay/`,
-  `EshopUrl/`) — *`Expedition/` and `Shipments/` belong to A11, `IssuedInvoices/` to A20*
+  `EshopUrl/`) — *`Expedition/` and `Shipments/` belong to #11, `IssuedInvoices/` to #20*
 - `backend/src/Adapters/Anela.Heblo.Adapters.Shoptet/` (feed/price import)
 - `backend/src/Anela.Heblo.API/Controllers/ShoptetOrdersController.cs`
 - `docs/integrations/shoptet-api.md`
 
 **Depends on:** —
-**Consumed by:** A01, A06, A09, A11, A20, A29.
+**Consumed by:** #1, #6, #9, #11, #20, #29.
 
 **Analysis notes:** no sandbox exists — every call hits the live store. Findings must be written to
 `docs/integrations/shoptet-api.md` before being relied on.
 
 ---
 
-## A31 — Journal
+## 31. Journal
 
 **Purpose:** free-form operational journal entries linked to products/dates.
 
@@ -727,11 +732,11 @@ application-level order feature on top.
 - `frontend/src/components/JournalEntryForm.tsx`, `JournalEntryModal.tsx`
 - `frontend/src/api/hooks/useJournal.ts`
 
-**Depends on:** A01, B02.
+**Depends on:** #1, #35.
 
 ---
 
-## A32 — Dashboard & Tiles
+## 32. Dashboard & Tiles
 
 **Purpose:** the tile registry/framework and the home dashboard that composes tiles contributed by other modules.
 
@@ -744,12 +749,12 @@ application-level order feature on top.
 - `frontend/src/components/dashboard/`, `frontend/src/components/pages/Dashboard.tsx`
 - `frontend/src/api/hooks/useDashboard.ts`
 
-**Contributed to by:** `Features/*/DashboardTiles/` in A01, A09, A13, A16 — analyse those as *inputs*, not as owned code.
-**Depends on:** B03 (grid layouts), B01.
+**Contributed to by:** `Features/*/DashboardTiles/` in #1, #9, #13, #16 — analyse those as *inputs*, not as owned code.
+**Depends on:** #36 (grid layouts), #34.
 
 ---
 
-## A33 — Data Quality
+## 33. Data Quality
 
 **Purpose:** automated consistency checks across stock, lots, operations and stock-taking; the issues dashboard.
 
@@ -762,13 +767,13 @@ application-level order feature on top.
 - `frontend/src/components/data-quality/`
 - `frontend/src/api/hooks/useDataQuality.ts`
 
-**Depends on:** A01, A05, A06, A17.
+**Depends on:** #1, #5, #6, #17.
 
 ---
 
-# B. Platform & cross-cutting parts
+# B. Platform & cross-cutting — parts #34–#43
 
-## B01 — Authorization & Access Management
+## 34. Authorization & Access Management
 
 **Purpose:** the permission model — roles, groups, menu-path guards, Entra group mapping, the access matrix and its
 generator/seeder.
@@ -788,12 +793,12 @@ generator/seeder.
 - `frontend/src/pages/GroupDetailPage.tsx`, `UserDetailPage.tsx`
 - `frontend/src/api/hooks/useAccessManagement.ts`, `usePermissions.ts`
 
-**Depends on:** B02, C02.
+**Depends on:** #35, #45.
 **Consumed by:** every routed page (`guard()` / `RequireMenuPath` in `frontend/src/App.tsx`).
 
 ---
 
-## B02 — Users, Identity & Org Chart
+## 35. Users, Identity & Org Chart
 
 **Purpose:** authentication (Entra ID / MSAL), current-user resolution, user management, departments and org chart.
 
@@ -812,11 +817,11 @@ generator/seeder.
 - `frontend/src/pages/OrgChartPage.tsx`, `orgChartUtils.ts`, `frontend/src/components/OrgChart/`
 - `frontend/src/api/hooks/useUserManagement.ts`, `useDepartments.ts`, `useOrgChart.ts`
 
-**Depends on:** C02.
+**Depends on:** #45.
 
 ---
 
-## B03 — Feature Flags, Configuration & Grid Layouts
+## 36. Feature Flags, Configuration & Grid Layouts
 
 **Purpose:** runtime toggles, app configuration exposure, and persisted per-user grid/table layouts. Also holds the
 `WeatherForecast` sample endpoint.
@@ -836,7 +841,7 @@ generator/seeder.
 
 ---
 
-## B04 — Background Execution (Hangfire + Refresh/Hydration)
+## 37. Background Execution (Hangfire + Refresh/Hydration)
 
 **Purpose:** all scheduled and deferred work — Hangfire recurring jobs and dashboard, plus the tiered background
 refresh/hydration orchestrator that warms caches at startup.
@@ -855,11 +860,11 @@ refresh/hydration orchestrator that warms caches at startup.
   `backgroundTasksHelpers.tsx`, `TaskHistoryModal.tsx`
 - `frontend/src/api/hooks/useRecurringJobs.ts`, `useBackgroundRefresh.ts`
 
-**Registered by:** `Features/*/Infrastructure/Jobs/` in A01, A09, A20.
+**Registered by:** `Features/*/Infrastructure/Jobs/` in #1, #9, #20.
 
 ---
 
-## B05 — Persistence Core & Migrations
+## 38. Persistence Core & Migrations
 
 **Purpose:** the main `DbContext`, EF conventions, resilience policies, repository base classes and the migration
 history.
@@ -874,7 +879,7 @@ migration *sequence* and the manual-migration process instead (migrations are **
 
 ---
 
-## B06 — API Host & Composition Root
+## 39. API Host & Composition Root
 
 **Purpose:** `Program.cs`, DI wiring, middleware pipeline, MediatR behaviours, exception handling, model binders,
 CORS/environment configuration.
@@ -895,14 +900,14 @@ boundaries are actually enforced or violated.
 
 ---
 
-## B07 — Telemetry, Health & Diagnostics
+## 40. Telemetry, Health & Diagnostics
 
 **Purpose:** Application Insights wiring, sampling/cost filters, health checks, diagnostics endpoints, frontend
 telemetry.
 
 **Owns:**
 - `backend/src/Anela.Heblo.API/Infrastructure/Telemetry/`
-- `backend/src/Anela.Heblo.API/HealthChecks/` (except `DataQuality/` → A33)
+- `backend/src/Anela.Heblo.API/HealthChecks/` (except `DataQuality/` → #33)
 - `backend/src/Anela.Heblo.API/Controllers/DiagnosticsController.cs`
 - `backend/src/Anela.Heblo.Xcc/Telemetry/`
 - `frontend/src/telemetry/`
@@ -911,7 +916,7 @@ telemetry.
 
 ---
 
-## B08 — Documents, File Storage & Printing
+## 41. Documents, File Storage & Printing
 
 **Purpose:** blob/file storage, catalog document management, PDF generation and physical label printing.
 
@@ -926,11 +931,11 @@ telemetry.
 - `backend/src/Adapters/Anela.Heblo.Adapters.Azure/` (blob storage)
 - `frontend/src/api/hooks/useCatalogDocuments.ts`
 
-**Consumed by:** A11, A15, A17, A25.
+**Consumed by:** #11, #15, #17, #25.
 
 ---
 
-## B09 — API Contract & Client Generation
+## 42. API Contract & Client Generation
 
 **Purpose:** the OpenAPI contract and the two generated clients (C# and TypeScript), plus the DTO rules that keep
 generation stable.
@@ -947,7 +952,7 @@ never records; hooks must use absolute URLs), not the output.
 
 ---
 
-## B10 — MCP Server
+## 43. MCP Server
 
 **Purpose:** the Model Context Protocol tool surface exposed by the API (20 tools) for AI clients.
 
@@ -955,26 +960,26 @@ never records; hooks must use absolute URLs), not the output.
 - `backend/src/Anela.Heblo.API/MCP/`
 - `docs/integrations/mcp-server.md`
 
-**Depends on:** most A-parts (tools are thin wrappers over their handlers).
+**Depends on:** most domain parts #1–#33 (tools are thin wrappers over their handlers).
 
 ---
 
-# C. Integration adapters
+# C. Integration adapters — parts #44–#47
 
-## C01 — FlexiBee ERP Adapter
+## 44. FlexiBee ERP Adapter
 
 **Purpose:** the single largest external integration — products, stock, purchase, sales, invoices, accounting,
 manufacture, lots, price lists.
 
 **Owns:** `backend/src/Adapters/Anela.Heblo.Adapters.Flexi/`
-*(sub-namespaces already claimed elsewhere: `Lots/` → A17, `Purchase/` → A18, `Invoices/` → A20,
-`Bank/` + `Accounting/` → A22. Analyse those here only as adapter mechanics.)*
+*(sub-namespaces already claimed elsewhere: `Lots/` → #17, `Purchase/` → #18, `Invoices/` → #20,
+`Bank/` + `Accounting/` → #22. Analyse those here only as adapter mechanics.)*
 
 **Also owns:** `backend/test/Anela.Heblo.Adapters.Flexi.Tests/`
 
 ---
 
-## C02 — Microsoft 365 & Azure Adapters
+## 45. Microsoft 365 & Azure Adapters
 
 **Purpose:** Graph access (users, groups, Outlook calendar, SharePoint/OneDrive files) and Azure services
 (Key Vault, blob storage).
@@ -989,7 +994,7 @@ App Settings must not hold secrets.
 
 ---
 
-## C03 — AI / LLM & Web Search Adapters
+## 46. AI / LLM & Web Search Adapters
 
 **Purpose:** LLM providers and web search used by Articles, Knowledge Base, Photobank tagging and Smartsupp.
 
@@ -1001,7 +1006,7 @@ App Settings must not hold secrets.
 
 ---
 
-## C04 — Ancillary External Adapters
+## 47. Ancillary External Adapters
 
 **Purpose:** the long tail of small integrations, each < 700 LOC, grouped because none justifies its own pass.
 
@@ -1009,7 +1014,7 @@ App Settings must not hold secrets.
 - `backend/src/Adapters/Anela.Heblo.Adapters.HomeAssistant/` (facility telemetry; has its own caching, resilience,
   health-check and telemetry sub-namespaces)
 - `backend/src/Adapters/Anela.Heblo.Adapters.OpenMeteo/` (weather → carrier cooling)
-- `backend/src/Adapters/Anela.Heblo.Adapters.GoogleAds/`, `.../Adapters.MetaAds/` (ad spend)
+- `backend/src/Adapters/Anela.Heblo.Adapters.GoogleAds/`, `backend/src/Adapters/Anela.Heblo.Adapters.MetaAds/` (ad spend)
 - `backend/src/Adapters/Anela.Heblo.Adapters.SendGrid/` (mail), `backend/src/Anela.Heblo.Xcc/Services/Email/`
 - `backend/test/Anela.Heblo.Adapters.HomeAssistant.Tests/`, `backend/test/Anela.Heblo.Adapters.OpenMeteo.Tests/`
 
@@ -1018,9 +1023,9 @@ any has a consumer at all before analysing deeply.
 
 ---
 
-# D. Delivery & tooling
+# D. Delivery & tooling — parts #48–#52
 
-## D01 — Frontend Shell, Layout & Navigation
+## 48. Frontend Shell, Layout & Navigation
 
 **Purpose:** the app skeleton — routing table, menu, layout chrome, auth gating, global state and loading.
 
@@ -1034,7 +1039,7 @@ any has a consumer at all before analysing deeply.
 
 ---
 
-## D02 — Frontend Shared UI, Hooks & Utilities
+## 49. Frontend Shared UI, Hooks & Utilities
 
 **Purpose:** the design-system layer and shared client plumbing that every page depends on.
 
@@ -1042,7 +1047,7 @@ any has a consumer at all before analysing deeply.
 - `frontend/src/components/ui/`, `common/`, `modals/`, `dialogs/`, `charts/`, `feedback/`, `test/`
 - `frontend/src/hooks/`, `frontend/src/utils/`, `frontend/src/services/` (non-generated),
   `frontend/src/types/`, `frontend/src/test-utils/`
-- `frontend/src/api/` root files (client factory, base URL handling) — *excluding* `generated/` (B09) and
+- `frontend/src/api/` root files (client factory, base URL handling) — *excluding* `generated/` (#42) and
   per-feature `hooks/*` (owned by their domain part)
 - `docs/design/ui_design_document.md`
 
@@ -1051,7 +1056,7 @@ source of bugs.
 
 ---
 
-## D03 — Automated Test Suites & Test Infrastructure
+## 50. Automated Test Suites & Test Infrastructure
 
 **Purpose:** all test harnesses, fixtures, helpers and the architecture-conformance tests.
 
@@ -1070,20 +1075,20 @@ this part owns the *shared* machinery. E2E runs nightly, not in PR CI.
 
 ---
 
-## D04 — CI/CD, Docker & Deployment
+## 51. CI/CD, Docker & Deployment
 
 **Purpose:** how the single Docker image is built, versioned and deployed to Azure Web App for Containers.
 
 **Owns:**
 - `.github/workflows/`, `.github/`
 - `Dockerfile`, `docker-compose.yml`, `GitVersion.yml`, `.codecov.yml`
-- `scripts/` (deployment, Azure, secrets, start-* scripts) — excluding those claimed by B01/B05/D03
+- `scripts/` (deployment, Azure, secrets, start-* scripts) — excluding those claimed by #34/#38/#50
 - `docs/architecture/infrastructure.md`, `docs/development/setup.md`, `docs/operations/`
 - `.husky/`
 
 ---
 
-## D05 — Documentation & Agent Tooling
+## 52. Documentation & Agent Tooling
 
 **Purpose:** the written knowledge base and the AI-agent scaffolding around the repo.
 
@@ -1101,20 +1106,20 @@ this part owns the *shared* machinery. E2E runs nightly, not in PR CI.
 ## Coverage & known gaps
 
 **Deliberately unassigned (analyse only if a part points at them):**
-- `backend/src/Anela.Heblo.Persistence/Migrations/` — generated, ~367k LOC (noted in B05)
-- `frontend/src/api/generated/`, `backend/src/Anela.Heblo.API.Client/Generated/` — generated (noted in B09)
+- `backend/src/Anela.Heblo.Persistence/Migrations/` — generated, ~367k LOC (noted in #38)
+- `frontend/src/api/generated/`, `backend/src/Anela.Heblo.API.Client/Generated/` — generated (noted in #42)
 - Root-level scratch files: `answers.md`, `brief.md`, `design.md`, `convert_asserts*.sh`, `test_dto.exe`,
   `*.pdf`, `*.jpeg`, `e2e_ralph_prompt.txt` — leftovers, not part of the application
 - `.idea/`, `.playwright-mcp/`, `.config/`, `.claire/`
 
 **Overlaps to watch when iterating:**
-- `Application/Features/Catalog` is split across **A01–A06** and **A17/A19** — read the folder listing, not the
+- `Application/Features/Catalog` is split across **#1–#6** and **#17/#19** — read the folder listing, not the
   folder name, when deciding what belongs to the part you're analysing.
-- `Application/Features/Manufacture` is split across **A13–A17**.
-- `Application/Features/Logistics` is split across **A07** (transport) and **A12** (gift packages).
-- `Adapters.ShoptetApi` is split across **A11**, **A20** and **A30**.
-- `Adapters.Flexi` is split across **C01** (mechanics) and **A17/A18/A20/A22** (domain mapping).
-- `Features/*/DashboardTiles/` folders stay with their feature; **A32** owns only the tile framework.
+- `Application/Features/Manufacture` is split across **#13–#17**.
+- `Application/Features/Logistics` is split across **#7** (transport) and **#12** (gift packages).
+- `Adapters.ShoptetApi` is split across **#11**, **#20** and **#30**.
+- `Adapters.Flexi` is split across **#44** (mechanics) and **#17/#18/#20/#22** (domain mapping).
+- `Features/*/DashboardTiles/` folders stay with their feature; **#32** owns only the tile framework.
 
 **Suggested iteration order** (dependency-light first, so later parts can lean on earlier findings):
-B06 → B05 → B01 → A01 → A30 → C01 → then the A-parts in numeric order → remaining B/C → D.
+#39 → #38 → #34 → #1 → #30 → #44 → then #2–#29 and #31–#33 in numeric order → #35–#43 → #45–#47 → #48–#52.
