@@ -8,9 +8,9 @@ namespace Anela.Heblo.Application.Features.Photobank.UseCases.DeleteRoot
 {
     public class DeleteRootHandler : IRequestHandler<DeleteRootRequest, DeleteRootResponse>
     {
-        private readonly IPhotobankRepository _repository;
+        private readonly IPhotobankRootRepository _repository;
 
-        public DeleteRootHandler(IPhotobankRepository repository)
+        public DeleteRootHandler(IPhotobankRootRepository repository)
         {
             _repository = repository;
         }

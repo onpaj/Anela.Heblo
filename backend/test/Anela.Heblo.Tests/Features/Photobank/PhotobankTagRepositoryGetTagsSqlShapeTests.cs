@@ -18,15 +18,15 @@ namespace Anela.Heblo.Tests.Features.Photobank;
 
 [Collection("PostgresIntegration")]
 [Trait("Category", "Integration")]
-public class PhotobankRepositoryGetTagsSqlShapeTests : IAsyncLifetime
+public class PhotobankTagRepositoryGetTagsSqlShapeTests : IAsyncLifetime
 {
     private readonly PostgresSharedContainerFixture _fixture;
     private string _connectionString = null!;
     private readonly CapturingCommandInterceptor _interceptor = new();
     private ApplicationDbContext _context = null!;
-    private PhotobankRepository _repository = null!;
+    private PhotobankTagRepository _repository = null!;
 
-    public PhotobankRepositoryGetTagsSqlShapeTests(PostgresSharedContainerFixture fixture)
+    public PhotobankTagRepositoryGetTagsSqlShapeTests(PostgresSharedContainerFixture fixture)
     {
         _fixture = fixture;
     }
@@ -69,7 +69,7 @@ public class PhotobankRepositoryGetTagsSqlShapeTests : IAsyncLifetime
             .Options;
 
         _context = new ApplicationDbContext(options);
-        _repository = new PhotobankRepository(_context);
+        _repository = new PhotobankTagRepository(_context);
     }
 
     public async Task DisposeAsync()

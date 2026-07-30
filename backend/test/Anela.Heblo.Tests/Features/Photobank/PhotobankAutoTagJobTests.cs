@@ -17,7 +17,9 @@ namespace Anela.Heblo.Tests.Features.Photobank;
 
 public class PhotobankAutoTagJobTests
 {
-    private readonly Mock<IPhotobankRepository> _repo = new();
+    private readonly Mock<IPhotobankTagRepository> _tagRepo = new();
+    private readonly Mock<IPhotobankAutoTagRepository> _autoTagRepo = new();
+    private readonly Mock<IPhotobankPhotoTagRepository> _photoTagRepo = new();
     private readonly Mock<IChatClient> _chat = new();
     private readonly Mock<IPhotobankTagsCache> _cache = new();
     private readonly Mock<IRecurringJobStatusChecker> _statusChecker = new();
@@ -37,7 +39,9 @@ public class PhotobankAutoTagJobTests
     {
         var opts = options ?? new AutoTagOptions { BatchSize = 50, MaxPhotosPerRun = 5_000 };
         return new PhotobankAutoTagJob(
-            _repo.Object,
+            _tagRepo.Object,
+            _autoTagRepo.Object,
+            _photoTagRepo.Object,
             _chat.Object,
             Options.Create(opts),
             NullLogger<PhotobankAutoTagJob>.Instance,
@@ -46,12 +50,12 @@ public class PhotobankAutoTagJobTests
     }
 
     private void SetupEmptyTags() =>
-        _repo
+        _tagRepo
             .Setup(r => r.GetTagsWithCountsAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(new List<TagCount>());
 
     private void SetupNoPendingPhotos() =>
-        _repo
+        _autoTagRepo
             .Setup(r => r.GetPhotosPendingAutoTagAsync(It.IsAny<int>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new List<PhotoAutoTagCandidate>());
 
@@ -85,7 +89,7 @@ public class PhotobankAutoTagJobTests
                 It.IsAny<ChatOptions?>(),
                 It.IsAny<CancellationToken>()),
             Times.Never);
-        _repo.Verify(
+        _tagRepo.Verify(
             r => r.GetTagsWithCountsAsync(It.IsAny<CancellationToken>()),
             Times.Never);
     }
@@ -125,11 +129,11 @@ public class PhotobankAutoTagJobTests
             new(10, "kosmetika", 5),
         };
 
-        _repo
+        _tagRepo
             .Setup(r => r.GetTagsWithCountsAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(tags);
 
-        _repo
+        _autoTagRepo
             .SetupSequence(r => r.GetPhotosPendingAutoTagAsync(It.IsAny<int>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(candidates)
             .ReturnsAsync(new List<PhotoAutoTagCandidate>());
@@ -137,7 +141,7 @@ public class PhotobankAutoTagJobTests
         SetupChatResponse("""{"results":[]}""");
 
         IReadOnlyList<int>? stampedIds = null;
-        _repo
+        _autoTagRepo
             .Setup(r => r.StampAutoTaggedAtAsync(It.IsAny<IReadOnlyList<int>>(), It.IsAny<DateTime>(), It.IsAny<CancellationToken>()))
             .Callback<IReadOnlyList<int>, DateTime, CancellationToken>((ids, _, _) => stampedIds = ids)
             .Returns(Task.CompletedTask);
@@ -168,11 +172,11 @@ public class PhotobankAutoTagJobTests
             new(3, "peťa", 1),
         };
 
-        _repo
+        _tagRepo
             .Setup(r => r.GetTagsWithCountsAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(tags);
 
-        _repo
+        _autoTagRepo
             .SetupSequence(r => r.GetPhotosPendingAutoTagAsync(It.IsAny<int>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(photos)
             .ReturnsAsync(new List<PhotoAutoTagCandidate>());
@@ -186,24 +190,26 @@ public class PhotobankAutoTagJobTests
             .ReturnsAsync(new ChatResponse(new ChatMessage(ChatRole.Assistant,
                 "{\"results\":[{\"id\":20,\"tags\":[\"andy\",\"ela\",\"peťa\"]}]}")));
 
-        _repo.Setup(r => r.PhotoTagExistsAsync(It.IsAny<int>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
+        _photoTagRepo.Setup(r => r.PhotoTagExistsAsync(It.IsAny<int>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(false);
 
-        _repo
+        _photoTagRepo
             .Setup(r => r.AddPhotoTagAsync(It.IsAny<PhotoTag>(), It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
 
-        _repo
+        _photoTagRepo
             .Setup(r => r.SaveChangesAsync(It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
 
-        _repo
+        _autoTagRepo
             .Setup(r => r.StampAutoTaggedAtAsync(It.IsAny<IReadOnlyList<int>>(), It.IsAny<DateTime>(), It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
 
         // Use job with MaxTagsPerPhoto = 2
         var jobWithCap = new PhotobankAutoTagJob(
-            _repo.Object,
+            _tagRepo.Object,
+            _autoTagRepo.Object,
+            _photoTagRepo.Object,
             _chat.Object,
             Options.Create(new AutoTagOptions { BatchSize = 50, MaxPhotosPerRun = 100, Model = "test-model", MaxTagsPerPhoto = 2 }),
             NullLogger<PhotobankAutoTagJob>.Instance,
@@ -214,7 +220,7 @@ public class PhotobankAutoTagJobTests
         await jobWithCap.ExecuteAsync(CancellationToken.None);
 
         // Assert — only 2 out of 3 valid tags should be applied
-        _repo.Verify(r => r.AddPhotoTagAsync(
+        _photoTagRepo.Verify(r => r.AddPhotoTagAsync(
             It.Is<PhotoTag>(pt => pt.PhotoId == 20 && pt.Source == PhotoTagSource.AI),
             It.IsAny<CancellationToken>()), Times.Exactly(2));
     }
@@ -231,11 +237,11 @@ public class PhotobankAutoTagJobTests
             new(2, "pleťová péče", 2),
         };
 
-        _repo
+        _tagRepo
             .Setup(r => r.GetTagsWithCountsAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(tags);
 
-        _repo
+        _autoTagRepo
             .SetupSequence(r => r.GetPhotosPendingAutoTagAsync(It.IsAny<int>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new List<PhotoAutoTagCandidate> { kandidat })
             .ReturnsAsync(new List<PhotoAutoTagCandidate>());
@@ -251,19 +257,19 @@ public class PhotobankAutoTagJobTests
             }
             """);
 
-        _repo
+        _photoTagRepo
             .Setup(r => r.PhotoTagExistsAsync(It.IsAny<int>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(false);
 
-        _repo
+        _photoTagRepo
             .Setup(r => r.AddPhotoTagAsync(It.IsAny<PhotoTag>(), It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
 
-        _repo
+        _photoTagRepo
             .Setup(r => r.SaveChangesAsync(It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
 
-        _repo
+        _autoTagRepo
             .Setup(r => r.StampAutoTaggedAtAsync(It.IsAny<IReadOnlyList<int>>(), It.IsAny<DateTime>(), It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
 
@@ -273,22 +279,22 @@ public class PhotobankAutoTagJobTests
         await job.ExecuteAsync(CancellationToken.None);
 
         // Assert — only the two vocabulary tags are added, not the hallucination
-        _repo.Verify(
+        _photoTagRepo.Verify(
             r => r.AddPhotoTagAsync(
                 It.Is<PhotoTag>(pt => pt.PhotoId == 42 && pt.TagId == 1 && pt.Source == PhotoTagSource.AI),
                 It.IsAny<CancellationToken>()),
             Times.Once);
-        _repo.Verify(
+        _photoTagRepo.Verify(
             r => r.AddPhotoTagAsync(
                 It.Is<PhotoTag>(pt => pt.PhotoId == 42 && pt.TagId == 2 && pt.Source == PhotoTagSource.AI),
                 It.IsAny<CancellationToken>()),
             Times.Once);
-        _repo.Verify(
+        _photoTagRepo.Verify(
             r => r.AddPhotoTagAsync(
                 It.Is<PhotoTag>(pt => pt.PhotoId == 42 && pt.TagId == 99),
                 It.IsAny<CancellationToken>()),
             Times.Never);
-        _repo.Verify(r => r.AddPhotoTagAsync(It.IsAny<PhotoTag>(), It.IsAny<CancellationToken>()), Times.Exactly(2));
+        _photoTagRepo.Verify(r => r.AddPhotoTagAsync(It.IsAny<PhotoTag>(), It.IsAny<CancellationToken>()), Times.Exactly(2));
     }
 
     [Fact]
@@ -307,22 +313,22 @@ public class PhotobankAutoTagJobTests
             new(Id: 7, FolderPath: "/photos", FileName: "ad-hoc.jpg"),
         };
 
-        _repo
+        _tagRepo
             .Setup(r => r.GetTagsWithCountsAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(new List<TagCount> { new(10, "kosmetika", 1) });
 
         SetupChatResponse("""{"results":[{"id":7,"tags":["kosmetika"]}]}""");
 
-        _repo
+        _photoTagRepo
             .Setup(r => r.PhotoTagExistsAsync(It.IsAny<int>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(false);
-        _repo
+        _photoTagRepo
             .Setup(r => r.AddPhotoTagAsync(It.IsAny<PhotoTag>(), It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
-        _repo
+        _photoTagRepo
             .Setup(r => r.SaveChangesAsync(It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
-        _repo
+        _autoTagRepo
             .Setup(r => r.StampAutoTaggedAtAsync(It.IsAny<IReadOnlyList<int>>(), It.IsAny<DateTime>(), It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
 
@@ -338,7 +344,7 @@ public class PhotobankAutoTagJobTests
                 It.IsAny<ChatOptions?>(),
                 It.IsAny<CancellationToken>()),
             Times.Once);
-        _repo.Verify(
+        _autoTagRepo.Verify(
             r => r.StampAutoTaggedAtAsync(
                 It.Is<IReadOnlyList<int>>(ids => ids.Count == 1 && ids[0] == 7),
                 It.IsAny<DateTime>(),
@@ -360,11 +366,11 @@ public class PhotobankAutoTagJobTests
         // set on AutoTagResult.Id so the deserialiser accepts both forms.
         var photo = new PhotoAutoTagCandidate(Id: 42, FolderPath: "/photos", FileName: "product.jpg");
 
-        _repo
+        _tagRepo
             .Setup(r => r.GetTagsWithCountsAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(new List<TagCount> { new(1, "kosmetika", 3) });
 
-        _repo
+        _autoTagRepo
             .SetupSequence(r => r.GetPhotosPendingAutoTagAsync(It.IsAny<int>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new List<PhotoAutoTagCandidate> { photo })
             .ReturnsAsync(new List<PhotoAutoTagCandidate>());
@@ -372,13 +378,13 @@ public class PhotobankAutoTagJobTests
         // id returned as a quoted string — the failing form from production telemetry
         SetupChatResponse("""{"results":[{"id":"42","tags":["kosmetika"]}]}""");
 
-        _repo.Setup(r => r.PhotoTagExistsAsync(It.IsAny<int>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
+        _photoTagRepo.Setup(r => r.PhotoTagExistsAsync(It.IsAny<int>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(false);
-        _repo.Setup(r => r.AddPhotoTagAsync(It.IsAny<PhotoTag>(), It.IsAny<CancellationToken>()))
+        _photoTagRepo.Setup(r => r.AddPhotoTagAsync(It.IsAny<PhotoTag>(), It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
-        _repo.Setup(r => r.SaveChangesAsync(It.IsAny<CancellationToken>()))
+        _photoTagRepo.Setup(r => r.SaveChangesAsync(It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
-        _repo.Setup(r => r.StampAutoTaggedAtAsync(It.IsAny<IReadOnlyList<int>>(), It.IsAny<DateTime>(), It.IsAny<CancellationToken>()))
+        _autoTagRepo.Setup(r => r.StampAutoTaggedAtAsync(It.IsAny<IReadOnlyList<int>>(), It.IsAny<DateTime>(), It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
 
         var job = CreateJob();
@@ -387,12 +393,12 @@ public class PhotobankAutoTagJobTests
         await job.ExecuteAsync(CancellationToken.None);
 
         // Assert — tag must have been applied even though the id came back as a string
-        _repo.Verify(
+        _photoTagRepo.Verify(
             r => r.AddPhotoTagAsync(
                 It.Is<PhotoTag>(pt => pt.PhotoId == 42 && pt.TagId == 1 && pt.Source == PhotoTagSource.AI),
                 It.IsAny<CancellationToken>()),
             Times.Once);
-        _repo.Verify(
+        _autoTagRepo.Verify(
             r => r.StampAutoTaggedAtAsync(
                 It.Is<IReadOnlyList<int>>(ids => ids.Count == 1 && ids[0] == 42),
                 It.IsAny<DateTime>(),

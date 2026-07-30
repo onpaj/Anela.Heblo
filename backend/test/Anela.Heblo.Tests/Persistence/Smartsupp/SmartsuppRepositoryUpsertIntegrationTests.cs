@@ -1,3 +1,5 @@
+using System.Text.Json;
+using Anela.Heblo.Application.Features.Smartsupp.UseCases.ProcessWebhookEvent.Mappers;
 using Anela.Heblo.Domain.Features.Smartsupp;
 using Anela.Heblo.Persistence;
 using Anela.Heblo.Persistence.Smartsupp;
@@ -201,9 +203,9 @@ public class SmartsuppRepositoryUpsertIntegrationTests : IAsyncLifetime
             Email = email,
             Name = "Test User",
             GdprApproved = false,
-            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Unspecified),
-            UpdatedAt = DateTime.SpecifyKind(updatedAt, DateTimeKind.Unspecified),
-            SyncedAt = new DateTime(2026, 1, 1, 12, 0, 0, DateTimeKind.Unspecified),
+            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc),
+            UpdatedAt = DateTime.SpecifyKind(updatedAt, DateTimeKind.Utc),
+            SyncedAt = new DateTime(2026, 1, 1, 12, 0, 0, DateTimeKind.Utc),
         };
 
     private static SmartsuppConversation MakeConversation(
@@ -219,9 +221,9 @@ public class SmartsuppRepositoryUpsertIntegrationTests : IAsyncLifetime
             IsUnread = false,
             IsOffline = false,
             IsServed = false,
-            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Unspecified),
-            UpdatedAt = DateTime.SpecifyKind(updatedAt, DateTimeKind.Unspecified),
-            SyncedAt = new DateTime(2026, 1, 1, 12, 0, 0, DateTimeKind.Unspecified),
+            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc),
+            UpdatedAt = DateTime.SpecifyKind(updatedAt, DateTimeKind.Utc),
+            SyncedAt = new DateTime(2026, 1, 1, 12, 0, 0, DateTimeKind.Utc),
         };
 
     // ──────────────────────────────────────────────────────────────────────────
@@ -304,6 +306,25 @@ public class SmartsuppRepositoryUpsertIntegrationTests : IAsyncLifetime
             foreach (var ctx in contexts)
                 await ctx.DisposeAsync();
         }
+    }
+
+    [Fact]
+    public async Task UpsertContactAsync_ReplayedUnspecifiedSyncedAt_DoesNotThrow()
+    {
+        // Regression guard: SmartsuppPayloadMapper.AsUtc's input on the replay path is an
+        // Unspecified-kind timestamp, as SmartsuppWebhookAuditEntry.EventTimestamp round-trips
+        // from a "timestamp without time zone" column even though it was always Utc when written.
+        // Before AsUtc, this reached ExecuteSqlInterpolatedAsync unguarded and Npgsql rejected it
+        // ("Cannot write DateTime with Kind=Unspecified to PostgreSQL type 'timestamp with time zone'").
+        var unspecified = DateTime.SpecifyKind(new DateTime(2026, 7, 10, 12, 0, 0), DateTimeKind.Unspecified);
+        var json = @"{""id"":""contact-replay-1"",""created_at"":""2026-07-10T11:00:00Z"",""updated_at"":""2026-07-10T11:30:00Z""}";
+        var data = JsonDocument.Parse(json).RootElement;
+        var contact = SmartsuppPayloadMapper.MapContact(data, unspecified);
+        var repo = CreateRepository();
+
+        var act = () => repo.UpsertContactAsync(contact, CancellationToken.None);
+
+        await act.Should().NotThrowAsync();
     }
 
     // ──────────────────────────────────────────────────────────────────────────

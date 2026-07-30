@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using Anela.Heblo.Application.Features.Manufacture.Configuration;
 using Anela.Heblo.Application.Features.Manufacture.ErrorFilters;
+using Anela.Heblo.Application.Features.Manufacture.Infrastructure;
 using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Domain.Features.Manufacture;
 using MediatR;
@@ -14,6 +15,7 @@ public class SubmitManufactureHandler : IRequestHandler<SubmitManufactureRequest
     private readonly IManufactureClient _manufactureClient;
     private readonly IManufactureOrderRepository _repository;
     private readonly IManufactureErrorTransformer _errorTransformer;
+    private readonly IManufactureErpResilienceService _resilienceService;
     private readonly TimeProvider _timeProvider;
     private readonly ILogger<SubmitManufactureHandler> _logger;
     private readonly ManufactureErpOptions _erpOptions;
@@ -22,6 +24,7 @@ public class SubmitManufactureHandler : IRequestHandler<SubmitManufactureRequest
         IManufactureClient manufactureClient,
         IManufactureOrderRepository repository,
         IManufactureErrorTransformer errorTransformer,
+        IManufactureErpResilienceService resilienceService,
         TimeProvider timeProvider,
         ILogger<SubmitManufactureHandler> logger,
         IOptions<ManufactureErpOptions> erpOptions)
@@ -29,6 +32,7 @@ public class SubmitManufactureHandler : IRequestHandler<SubmitManufactureRequest
         _manufactureClient = manufactureClient;
         _repository = repository;
         _errorTransformer = errorTransformer;
+        _resilienceService = resilienceService;
         _timeProvider = timeProvider;
         _logger = logger;
         _erpOptions = erpOptions.Value;
@@ -43,8 +47,10 @@ public class SubmitManufactureHandler : IRequestHandler<SubmitManufactureRequest
             using var cts = CreateLinkedCts(cancellationToken);
 
             var sw = Stopwatch.StartNew();
-            var clientResponse = await _manufactureClient.SubmitManufactureAsync(
-                request.ToClientRequest(), cts.Token);
+            var clientResponse = await _resilienceService.ExecuteAsync(
+                _ => _manufactureClient.SubmitManufactureAsync(request.ToClientRequest(), cts.Token),
+                "SubmitManufacture",
+                cancellationToken);
             sw.Stop();
 
             _logger.LogInformation(
