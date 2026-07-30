@@ -15,7 +15,7 @@ import BatchPlanningCalculator from "./components/pages/ManufactureBatchPlanning
 import ProductMarginsList from "./components/pages/ProductMarginsList";
 import ProductMarginSummary from "./components/pages/ProductMarginSummary";
 import FinancialOverview from "./components/pages/FinancialOverview";
-import BankStatementImportChart from "./components/pages/BankStatementImportChart";
+import BankStatementImportPage from "./pages/customer/BankStatementImportPage";
 import JournalList from "./components/pages/Journal/JournalList";
 import JournalEntryNew from "./components/pages/JournalEntryNew";
 import JournalEntryEdit from "./components/pages/JournalEntryEdit";
@@ -404,7 +404,7 @@ function App() {
                       <Route element={<Layout statusBar={<StatusBar />}><ErrorBoundary><Outlet /></ErrorBoundary></Layout>}>
                         <Route path="/" element={<Dashboard />} />
                         <Route path="/finance/overview" element={guard("/finance/overview", <FinancialOverview />)} />
-                        <Route path="/finance/bank-statements" element={<BankStatementImportChart />} />
+                        <Route path="/finance/bank-statements" element={<BankStatementImportPage />} />
                         <Route path="/analytics/product-margin-summary" element={guard("/analytics/product-margin-summary", <ProductMarginSummary />)} />
                         <Route path="/catalog" element={guard("/catalog", <CatalogList />)} />
                         <Route path="/purchase/orders" element={guard("/purchase/orders", <PurchaseOrderList />)} />

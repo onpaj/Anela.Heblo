@@ -14,16 +14,20 @@ namespace Anela.Heblo.Tests.Features.Photobank;
 
 public class RetagPhotosHandlerTests
 {
-    private readonly Mock<IPhotobankRepository> _repositoryMock;
+    private readonly Mock<IPhotobankPhotoRepository> _photoRepositoryMock;
+    private readonly Mock<IPhotobankPhotoTagRepository> _photoTagRepositoryMock;
+    private readonly Mock<IPhotobankAutoTagRepository> _autoTagRepositoryMock;
     private readonly Mock<IBackgroundWorker> _backgroundWorkerMock;
     private readonly Mock<IPhotobankTagsCache> _cacheMock = new();
     private readonly RetagPhotosHandler _handler;
 
     public RetagPhotosHandlerTests()
     {
-        _repositoryMock = new Mock<IPhotobankRepository>();
+        _photoRepositoryMock = new Mock<IPhotobankPhotoRepository>();
+        _photoTagRepositoryMock = new Mock<IPhotobankPhotoTagRepository>();
+        _autoTagRepositoryMock = new Mock<IPhotobankAutoTagRepository>();
         _backgroundWorkerMock = new Mock<IBackgroundWorker>();
-        _handler = new RetagPhotosHandler(_repositoryMock.Object, _backgroundWorkerMock.Object, _cacheMock.Object);
+        _handler = new RetagPhotosHandler(_photoRepositoryMock.Object, _photoTagRepositoryMock.Object, _autoTagRepositoryMock.Object, _backgroundWorkerMock.Object, _cacheMock.Object);
     }
 
     [Fact]
@@ -35,11 +39,11 @@ public class RetagPhotosHandlerTests
             .Select(id => new Photo { Id = id, FolderPath = "Photos", FileName = $"photo{id}.jpg" })
             .ToList();
 
-        _repositoryMock
+        _photoRepositoryMock
             .Setup(r => r.GetPhotosByIdsAsync(It.IsAny<IReadOnlyList<int>>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(photos);
 
-        _repositoryMock
+        _autoTagRepositoryMock
             .Setup(r => r.ResetAutoTaggedAtAsync(It.IsAny<IReadOnlyList<int>>(), It.IsAny<CancellationToken>()))
             .Returns(System.Threading.Tasks.Task.CompletedTask);
 
@@ -54,7 +58,7 @@ public class RetagPhotosHandlerTests
 
         // Assert
         result.Success.Should().BeTrue();
-        _repositoryMock.Verify(
+        _autoTagRepositoryMock.Verify(
             r => r.ResetAutoTaggedAtAsync(
                 It.Is<IReadOnlyList<int>>(ids => ids.Count == 3 && ids.Contains(1) && ids.Contains(2) && ids.Contains(3)),
                 It.IsAny<CancellationToken>()),
@@ -70,15 +74,15 @@ public class RetagPhotosHandlerTests
             .Select(id => new Photo { Id = id, FolderPath = "Photos", FileName = $"photo{id}.jpg" })
             .ToList();
 
-        _repositoryMock
+        _photoRepositoryMock
             .Setup(r => r.GetPhotosByIdsAsync(It.IsAny<IReadOnlyList<int>>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(photos);
 
-        _repositoryMock
+        _autoTagRepositoryMock
             .Setup(r => r.ResetAutoTaggedAtAsync(It.IsAny<IReadOnlyList<int>>(), It.IsAny<CancellationToken>()))
             .Returns(System.Threading.Tasks.Task.CompletedTask);
 
-        _repositoryMock
+        _photoTagRepositoryMock
             .Setup(r => r.RemovePhotoTagsBySourceAsync(It.IsAny<IReadOnlyList<int>>(), It.IsAny<PhotoTagSource>(), It.IsAny<CancellationToken>()))
             .Returns(System.Threading.Tasks.Task.CompletedTask);
 
@@ -93,7 +97,7 @@ public class RetagPhotosHandlerTests
 
         // Assert
         result.Success.Should().BeTrue();
-        _repositoryMock.Verify(
+        _photoTagRepositoryMock.Verify(
             r => r.RemovePhotoTagsBySourceAsync(
                 It.IsAny<IReadOnlyList<int>>(),
                 PhotoTagSource.AI,
@@ -105,7 +109,7 @@ public class RetagPhotosHandlerTests
     public async System.Threading.Tasks.Task Handle_ReturnsNullJobId_WhenNoPhotosFound()
     {
         // Arrange
-        _repositoryMock
+        _photoRepositoryMock
             .Setup(r => r.GetPhotosByIdsAsync(It.IsAny<IReadOnlyList<int>>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new List<Photo>());
 
@@ -117,7 +121,7 @@ public class RetagPhotosHandlerTests
         // Assert
         result.JobId.Should().BeNull();
 
-        _repositoryMock.Verify(r => r.ResetAutoTaggedAtAsync(
+        _autoTagRepositoryMock.Verify(r => r.ResetAutoTaggedAtAsync(
             It.IsAny<IReadOnlyList<int>>(),
             It.IsAny<CancellationToken>()), Times.Never);
     }
@@ -131,11 +135,11 @@ public class RetagPhotosHandlerTests
             .Select(id => new Photo { Id = id, FolderPath = "Photos", FileName = $"photo{id}.jpg" })
             .ToList();
 
-        _repositoryMock
+        _photoRepositoryMock
             .Setup(r => r.GetPhotosByIdsAsync(It.IsAny<IReadOnlyList<int>>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(photos);
 
-        _repositoryMock
+        _autoTagRepositoryMock
             .Setup(r => r.ResetAutoTaggedAtAsync(It.IsAny<IReadOnlyList<int>>(), It.IsAny<CancellationToken>()))
             .Returns(System.Threading.Tasks.Task.CompletedTask);
 
@@ -150,7 +154,7 @@ public class RetagPhotosHandlerTests
 
         // Assert
         result.Success.Should().BeTrue();
-        _repositoryMock.Verify(
+        _photoTagRepositoryMock.Verify(
             r => r.RemovePhotoTagsBySourceAsync(
                 It.IsAny<IReadOnlyList<int>>(),
                 It.IsAny<PhotoTagSource>(),

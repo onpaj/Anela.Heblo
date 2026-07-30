@@ -9,10 +9,10 @@ namespace Anela.Heblo.Application.Features.Photobank.UseCases.CreateTag
 {
     public class CreateTagHandler : IRequestHandler<CreateTagRequest, CreateTagResponse>
     {
-        private readonly IPhotobankRepository _repository;
+        private readonly IPhotobankTagRepository _repository;
         private readonly IPhotobankTagsCache _cache;
 
-        public CreateTagHandler(IPhotobankRepository repository, IPhotobankTagsCache cache)
+        public CreateTagHandler(IPhotobankTagRepository repository, IPhotobankTagsCache cache)
         {
             _repository = repository;
             _cache = cache;

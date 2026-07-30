@@ -11,18 +11,18 @@ using Xunit;
 
 namespace Anela.Heblo.Tests.Features.Photobank;
 
-public class PhotobankRepositoryGetTagsTests : IDisposable
+public class PhotobankTagRepositoryGetTagsTests : IDisposable
 {
     private readonly ApplicationDbContext _context;
-    private readonly PhotobankRepository _repository;
+    private readonly PhotobankTagRepository _repository;
 
-    public PhotobankRepositoryGetTagsTests()
+    public PhotobankTagRepositoryGetTagsTests()
     {
         var options = new DbContextOptionsBuilder<ApplicationDbContext>()
             .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
             .Options;
         _context = new ApplicationDbContext(options);
-        _repository = new PhotobankRepository(_context);
+        _repository = new PhotobankTagRepository(_context);
         SeedTagsAndPhotoTags();
     }
 

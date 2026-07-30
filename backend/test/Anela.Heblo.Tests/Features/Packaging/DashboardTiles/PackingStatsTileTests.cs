@@ -1,7 +1,7 @@
 using System.Net.Http;
 using System.Text.Json;
+using Anela.Heblo.Application.Features.Packaging.Contracts;
 using Anela.Heblo.Application.Features.Packaging.DashboardTiles;
-using Anela.Heblo.Application.Features.ShoptetOrders;
 using Anela.Heblo.Domain.Features.Packaging;
 using FluentAssertions;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -35,7 +35,7 @@ public sealed class PackingStatsTileTests
     }
 
     private readonly Mock<IPackageRepository> _repo = new();
-    private readonly Mock<IPackingOrderClient> _packingClient = new();
+    private readonly Mock<IPackingOrderCountSource> _packingClient = new();
 
     private PackingStatsTile MakeSut() =>
         new(

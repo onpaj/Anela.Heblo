@@ -12,18 +12,26 @@ namespace Anela.Heblo.Application.Features.Photobank.UseCases.BulkAddPhotoTag
 {
     public class BulkAddPhotoTagHandler : IRequestHandler<BulkAddPhotoTagRequest, BulkAddPhotoTagResponse>
     {
-        private readonly IPhotobankRepository _repository;
+        private readonly IPhotobankPhotoRepository _photoRepository;
+        private readonly IPhotobankTagRepository _tagRepository;
+        private readonly IPhotobankPhotoTagRepository _photoTagRepository;
         private readonly IPhotobankTagsCache _cache;
 
-        public BulkAddPhotoTagHandler(IPhotobankRepository repository, IPhotobankTagsCache cache)
+        public BulkAddPhotoTagHandler(
+            IPhotobankPhotoRepository photoRepository,
+            IPhotobankTagRepository tagRepository,
+            IPhotobankPhotoTagRepository photoTagRepository,
+            IPhotobankTagsCache cache)
         {
-            _repository = repository;
+            _photoRepository = photoRepository;
+            _tagRepository = tagRepository;
+            _photoTagRepository = photoTagRepository;
             _cache = cache;
         }
 
         public async Task<BulkAddPhotoTagResponse> Handle(BulkAddPhotoTagRequest request, CancellationToken cancellationToken)
         {
-            var total = await _repository.CountFilteredPhotosAsync(
+            var total = await _photoRepository.CountFilteredPhotosAsync(
                 request.Tags, request.Search, cancellationToken);
 
             if (total > PhotobankConstants.BulkTagLimit)
@@ -37,17 +45,17 @@ namespace Anela.Heblo.Application.Features.Photobank.UseCases.BulkAddPhotoTag
                 };
 
             var normalizedName = request.TagName.Trim().ToLowerInvariant();
-            var tag = await _repository.GetOrCreateTagAsync(normalizedName, cancellationToken);
+            var tag = await _tagRepository.GetOrCreateTagAsync(normalizedName, cancellationToken);
             if (tag == null)
                 return new BulkAddPhotoTagResponse(ErrorCodes.PhotoTagCreationFailed);
 
-            var photoIds = await _repository.GetFilteredPhotoIdsMissingTagAsync(
+            var photoIds = await _photoRepository.GetFilteredPhotoIdsMissingTagAsync(
                 request.Tags, request.Search, tag.Id, cancellationToken);
 
             var now = DateTime.UtcNow;
             foreach (var photoId in photoIds)
             {
-                await _repository.AddPhotoTagAsync(new PhotoTag
+                await _photoTagRepository.AddPhotoTagAsync(new PhotoTag
                 {
                     PhotoId = photoId,
                     TagId = tag.Id,
@@ -58,7 +66,7 @@ namespace Anela.Heblo.Application.Features.Photobank.UseCases.BulkAddPhotoTag
 
             if (photoIds.Count > 0)
             {
-                await _repository.SaveChangesAsync(cancellationToken);
+                await _photoTagRepository.SaveChangesAsync(cancellationToken);
                 _cache.Invalidate();
             }
 
