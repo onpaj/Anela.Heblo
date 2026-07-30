@@ -8,7 +8,7 @@ import {
 import {
   useBankStatementImportStatistics,
 } from "../../api/hooks/useBankStatements";
-import { BankStatementImportChart } from '../charts/BankStatementImportChart';
+import { BankStatementImportChart } from '../../components/charts/BankStatementImportChart';
 import { useScreenView } from '../../telemetry/useScreenView';
 
 type ViewOption = 'ImportCount' | 'TotalItemCount';

@@ -12,12 +12,12 @@ namespace Anela.Heblo.Tests.Features.Photobank;
 
 public class GetPhotosHandlerTests
 {
-    private readonly Mock<IPhotobankRepository> _repositoryMock;
+    private readonly Mock<IPhotobankPhotoRepository> _repositoryMock;
     private readonly GetPhotosHandler _handler;
 
     public GetPhotosHandlerTests()
     {
-        _repositoryMock = new Mock<IPhotobankRepository>();
+        _repositoryMock = new Mock<IPhotobankPhotoRepository>();
         _handler = new GetPhotosHandler(_repositoryMock.Object);
     }
 

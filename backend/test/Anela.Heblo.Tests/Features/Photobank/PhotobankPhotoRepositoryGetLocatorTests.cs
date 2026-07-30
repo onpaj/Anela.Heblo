@@ -7,19 +7,19 @@ using Xunit;
 
 namespace Anela.Heblo.Tests.Features.Photobank;
 
-public sealed class PhotobankRepositoryGetLocatorTests : IAsyncLifetime
+public sealed class PhotobankPhotoRepositoryGetLocatorTests : IAsyncLifetime
 {
     private readonly ApplicationDbContext _context;
-    private readonly PhotobankRepository _repository;
+    private readonly PhotobankPhotoRepository _repository;
 
-    public PhotobankRepositoryGetLocatorTests()
+    public PhotobankPhotoRepositoryGetLocatorTests()
     {
         var options = new DbContextOptionsBuilder<ApplicationDbContext>()
             .UseInMemoryDatabase(databaseName: $"PhotobankLocatorTests_{Guid.NewGuid()}")
             .Options;
 
         _context = new ApplicationDbContext(options);
-        _repository = new PhotobankRepository(_context);
+        _repository = new PhotobankPhotoRepository(_context);
     }
 
     [Fact]

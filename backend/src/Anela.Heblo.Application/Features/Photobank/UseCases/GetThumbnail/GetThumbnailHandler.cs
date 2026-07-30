@@ -7,11 +7,11 @@ namespace Anela.Heblo.Application.Features.Photobank.UseCases.GetThumbnail
 {
     public class GetThumbnailHandler : IRequestHandler<GetThumbnailRequest, GetThumbnailResponse>
     {
-        private readonly IPhotobankRepository _repository;
+        private readonly IPhotobankPhotoRepository _repository;
         private readonly IPhotobankGraphService _graphService;
 
         public GetThumbnailHandler(
-            IPhotobankRepository repository,
+            IPhotobankPhotoRepository repository,
             IPhotobankGraphService graphService)
         {
             _repository = repository;
