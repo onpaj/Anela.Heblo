@@ -12,12 +12,20 @@ namespace Anela.Heblo.Application.Features.Photobank.UseCases.BulkAddPhotoTagByI
 {
     public class BulkAddPhotoTagByIdsHandler : IRequestHandler<BulkAddPhotoTagByIdsRequest, BulkAddPhotoTagByIdsResponse>
     {
-        private readonly IPhotobankRepository _repository;
+        private readonly IPhotobankPhotoRepository _photoRepository;
+        private readonly IPhotobankTagRepository _tagRepository;
+        private readonly IPhotobankPhotoTagRepository _photoTagRepository;
         private readonly IPhotobankTagsCache _cache;
 
-        public BulkAddPhotoTagByIdsHandler(IPhotobankRepository repository, IPhotobankTagsCache cache)
+        public BulkAddPhotoTagByIdsHandler(
+            IPhotobankPhotoRepository photoRepository,
+            IPhotobankTagRepository tagRepository,
+            IPhotobankPhotoTagRepository photoTagRepository,
+            IPhotobankTagsCache cache)
         {
-            _repository = repository;
+            _photoRepository = photoRepository;
+            _tagRepository = tagRepository;
+            _photoTagRepository = photoTagRepository;
             _cache = cache;
         }
 
@@ -44,17 +52,17 @@ namespace Anela.Heblo.Application.Features.Photobank.UseCases.BulkAddPhotoTagByI
             if (normalizedName.Length == 0)
                 return new BulkAddPhotoTagByIdsResponse(ErrorCodes.BulkTagInvalidRequest);
 
-            var tag = await _repository.GetOrCreateTagAsync(normalizedName, cancellationToken);
+            var tag = await _tagRepository.GetOrCreateTagAsync(normalizedName, cancellationToken);
             if (tag == null)
                 return new BulkAddPhotoTagByIdsResponse(ErrorCodes.PhotoTagCreationFailed);
 
-            var toAdd = await _repository.GetExistingPhotoIdsMissingTagAsync(
+            var toAdd = await _photoRepository.GetExistingPhotoIdsMissingTagAsync(
                 distinctIds, tag.Id, cancellationToken);
 
             var now = DateTime.UtcNow;
             foreach (var photoId in toAdd)
             {
-                await _repository.AddPhotoTagAsync(new PhotoTag
+                await _photoTagRepository.AddPhotoTagAsync(new PhotoTag
                 {
                     PhotoId = photoId,
                     TagId = tag.Id,
@@ -65,11 +73,11 @@ namespace Anela.Heblo.Application.Features.Photobank.UseCases.BulkAddPhotoTagByI
 
             if (toAdd.Count > 0)
             {
-                await _repository.SaveChangesAsync(cancellationToken);
+                await _photoTagRepository.SaveChangesAsync(cancellationToken);
                 _cache.Invalidate();
             }
 
-            var existingCount = await _repository.CountExistingPhotosAsync(distinctIds, cancellationToken);
+            var existingCount = await _photoRepository.CountExistingPhotosAsync(distinctIds, cancellationToken);
 
             return new BulkAddPhotoTagByIdsResponse
             {

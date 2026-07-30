@@ -14,14 +14,18 @@ namespace Anela.Heblo.Tests.Features.Photobank;
 
 public class BulkAddPhotoTagHandlerTests
 {
-    private readonly Mock<IPhotobankRepository> _repositoryMock;
+    private readonly Mock<IPhotobankPhotoRepository> _photoRepositoryMock;
+    private readonly Mock<IPhotobankTagRepository> _tagRepositoryMock;
+    private readonly Mock<IPhotobankPhotoTagRepository> _photoTagRepositoryMock;
     private readonly Mock<IPhotobankTagsCache> _cacheMock = new();
     private readonly BulkAddPhotoTagHandler _handler;
 
     public BulkAddPhotoTagHandlerTests()
     {
-        _repositoryMock = new Mock<IPhotobankRepository>();
-        _handler = new BulkAddPhotoTagHandler(_repositoryMock.Object, _cacheMock.Object);
+        _photoRepositoryMock = new Mock<IPhotobankPhotoRepository>();
+        _tagRepositoryMock = new Mock<IPhotobankTagRepository>();
+        _photoTagRepositoryMock = new Mock<IPhotobankPhotoTagRepository>();
+        _handler = new BulkAddPhotoTagHandler(_photoRepositoryMock.Object, _tagRepositoryMock.Object, _photoTagRepositoryMock.Object, _cacheMock.Object);
     }
 
     private static Tag BuildTag(int id, string name) => new() { Id = id, Name = name };
@@ -33,23 +37,23 @@ public class BulkAddPhotoTagHandlerTests
         var tag = BuildTag(7, "flowers");
         var photoIds = new List<int> { 1, 2, 3, 4, 5 };
 
-        _repositoryMock
+        _photoRepositoryMock
             .Setup(r => r.CountFilteredPhotosAsync(null, "ruze", It.IsAny<CancellationToken>()))
             .ReturnsAsync(5);
 
-        _repositoryMock
+        _tagRepositoryMock
             .Setup(r => r.GetOrCreateTagAsync("flowers", It.IsAny<CancellationToken>()))
             .ReturnsAsync(tag);
 
-        _repositoryMock
+        _photoRepositoryMock
             .Setup(r => r.GetFilteredPhotoIdsMissingTagAsync(null, "ruze", 7, It.IsAny<CancellationToken>()))
             .ReturnsAsync(photoIds);
 
-        _repositoryMock
+        _photoTagRepositoryMock
             .Setup(r => r.AddPhotoTagAsync(It.IsAny<PhotoTag>(), It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
 
-        _repositoryMock
+        _photoTagRepositoryMock
             .Setup(r => r.SaveChangesAsync(It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
 
@@ -69,18 +73,18 @@ public class BulkAddPhotoTagHandlerTests
         result.AddedCount.Should().Be(5);
         result.AlreadyTaggedCount.Should().Be(0);
 
-        _repositoryMock.Verify(r => r.AddPhotoTagAsync(
+        _photoTagRepositoryMock.Verify(r => r.AddPhotoTagAsync(
             It.Is<PhotoTag>(pt => pt.TagId == 7 && pt.Source == PhotoTagSource.Manual),
             It.IsAny<CancellationToken>()), Times.Exactly(5));
 
-        _repositoryMock.Verify(r => r.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
+        _photoTagRepositoryMock.Verify(r => r.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
     public async Task Handle_CountExceedsLimit_ReturnsBulkTagLimitExceededError()
     {
         // Arrange
-        _repositoryMock
+        _photoRepositoryMock
             .Setup(r => r.CountFilteredPhotosAsync(null, "Photos", It.IsAny<CancellationToken>()))
             .ReturnsAsync(5_001);
 
@@ -99,7 +103,7 @@ public class BulkAddPhotoTagHandlerTests
         result.Params.Should().ContainKey("Count").WhoseValue.Should().Be("5001");
         result.Params.Should().ContainKey("Limit").WhoseValue.Should().Be(PhotobankConstants.BulkTagLimit.ToString());
 
-        _repositoryMock.Verify(r => r.GetOrCreateTagAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
+        _tagRepositoryMock.Verify(r => r.GetOrCreateTagAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]
@@ -109,15 +113,15 @@ public class BulkAddPhotoTagHandlerTests
         var tag = BuildTag(3, "sale");
         const int totalCount = 10;
 
-        _repositoryMock
+        _photoRepositoryMock
             .Setup(r => r.CountFilteredPhotosAsync(null, "produkt", It.IsAny<CancellationToken>()))
             .ReturnsAsync(totalCount);
 
-        _repositoryMock
+        _tagRepositoryMock
             .Setup(r => r.GetOrCreateTagAsync("sale", It.IsAny<CancellationToken>()))
             .ReturnsAsync(tag);
 
-        _repositoryMock
+        _photoRepositoryMock
             .Setup(r => r.GetFilteredPhotoIdsMissingTagAsync(null, "produkt", 3, It.IsAny<CancellationToken>()))
             .ReturnsAsync(new List<int>());
 
@@ -135,8 +139,8 @@ public class BulkAddPhotoTagHandlerTests
         result.AddedCount.Should().Be(0);
         result.AlreadyTaggedCount.Should().Be(totalCount);
 
-        _repositoryMock.Verify(r => r.AddPhotoTagAsync(It.IsAny<PhotoTag>(), It.IsAny<CancellationToken>()), Times.Never);
-        _repositoryMock.Verify(r => r.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Never);
+        _photoTagRepositoryMock.Verify(r => r.AddPhotoTagAsync(It.IsAny<PhotoTag>(), It.IsAny<CancellationToken>()), Times.Never);
+        _photoTagRepositoryMock.Verify(r => r.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]
@@ -146,24 +150,24 @@ public class BulkAddPhotoTagHandlerTests
         var tag = BuildTag(5, "new");
         const int totalCount = 8;
 
-        _repositoryMock
+        _photoRepositoryMock
             .Setup(r => r.CountFilteredPhotosAsync(It.IsAny<List<string>?>(), null, It.IsAny<CancellationToken>()))
             .ReturnsAsync(totalCount);
 
-        _repositoryMock
+        _tagRepositoryMock
             .Setup(r => r.GetOrCreateTagAsync("new", It.IsAny<CancellationToken>()))
             .ReturnsAsync(tag);
 
-        _repositoryMock
+        _photoRepositoryMock
             .Setup(r => r.GetFilteredPhotoIdsMissingTagAsync(
                 It.IsAny<List<string>?>(), null, 5, It.IsAny<CancellationToken>()))
             .ReturnsAsync(new List<int> { 10, 11, 12 });
 
-        _repositoryMock
+        _photoTagRepositoryMock
             .Setup(r => r.AddPhotoTagAsync(It.IsAny<PhotoTag>(), It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
 
-        _repositoryMock
+        _photoTagRepositoryMock
             .Setup(r => r.SaveChangesAsync(It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
 
@@ -189,15 +193,15 @@ public class BulkAddPhotoTagHandlerTests
         // Arrange
         var tag = BuildTag(2, "archived");
 
-        _repositoryMock
+        _photoRepositoryMock
             .Setup(r => r.CountFilteredPhotosAsync(null, "Archive", It.IsAny<CancellationToken>()))
             .ReturnsAsync(4);
 
-        _repositoryMock
+        _tagRepositoryMock
             .Setup(r => r.GetOrCreateTagAsync("archived", It.IsAny<CancellationToken>()))
             .ReturnsAsync(tag);
 
-        _repositoryMock
+        _photoRepositoryMock
             .Setup(r => r.GetFilteredPhotoIdsMissingTagAsync(null, "Archive", 2, It.IsAny<CancellationToken>()))
             .ReturnsAsync(new List<int>());
 
@@ -212,6 +216,6 @@ public class BulkAddPhotoTagHandlerTests
 
         // Assert
         result.Success.Should().BeTrue();
-        _repositoryMock.Verify(r => r.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Never);
+        _photoTagRepositoryMock.Verify(r => r.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Never);
     }
 }

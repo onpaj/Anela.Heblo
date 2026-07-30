@@ -10,7 +10,11 @@ public class PhotobankIndexJob : IRecurringJob
     private const int BatchSize = 200;
 
     private readonly IPhotobankGraphService _graphService;
-    private readonly IPhotobankRepository _repo;
+    private readonly IPhotobankRootRepository _rootRepository;
+    private readonly IPhotobankTagRuleRepository _tagRuleRepository;
+    private readonly IPhotobankPhotoRepository _photoRepository;
+    private readonly IPhotobankTagRepository _tagRepository;
+    private readonly IPhotobankPhotoTagRepository _photoTagRepository;
     private readonly IRecurringJobStatusChecker _statusChecker;
     private readonly ILogger<PhotobankIndexJob> _logger;
 
@@ -25,12 +29,20 @@ public class PhotobankIndexJob : IRecurringJob
 
     public PhotobankIndexJob(
         IPhotobankGraphService graphService,
-        IPhotobankRepository repo,
+        IPhotobankRootRepository rootRepository,
+        IPhotobankTagRuleRepository tagRuleRepository,
+        IPhotobankPhotoRepository photoRepository,
+        IPhotobankTagRepository tagRepository,
+        IPhotobankPhotoTagRepository photoTagRepository,
         IRecurringJobStatusChecker statusChecker,
         ILogger<PhotobankIndexJob> logger)
     {
         _graphService = graphService;
-        _repo = repo;
+        _rootRepository = rootRepository;
+        _tagRuleRepository = tagRuleRepository;
+        _photoRepository = photoRepository;
+        _tagRepository = tagRepository;
+        _photoTagRepository = photoTagRepository;
         _statusChecker = statusChecker;
         _logger = logger;
     }
@@ -43,7 +55,7 @@ public class PhotobankIndexJob : IRecurringJob
             return;
         }
 
-        var roots = await _repo.GetActiveRootsWithDriveAsync(cancellationToken);
+        var roots = await _rootRepository.GetActiveRootsWithDriveAsync(cancellationToken);
 
         _logger.LogInformation("Starting {JobName} — {Count} active roots", Metadata.JobName, roots.Count);
 
@@ -67,12 +79,12 @@ public class PhotobankIndexJob : IRecurringJob
             {
                 _logger.LogInformation("Resolving item ID for path {Path} in drive {DriveId}", root.SharePointPath, root.DriveId);
                 root.RootItemId = await _graphService.ResolveItemIdAsync(root.DriveId!, root.SharePointPath!, ct);
-                await _repo.SaveChangesAsync(ct);
+                await _rootRepository.SaveChangesAsync(ct);
             }
 
             var delta = await _graphService.GetDeltaAsync(root.DriveId!, root.RootItemId!, root.DeltaLink, ct);
 
-            var activeTagRules = await _repo.GetActiveTagRulesAsync(ct);
+            var activeTagRules = await _tagRuleRepository.GetActiveTagRulesAsync(ct);
 
             int upserted = 0, deleted = 0;
             var pendingBatch = new List<GraphPhotoItem>();
@@ -92,10 +104,10 @@ public class PhotobankIndexJob : IRecurringJob
                         pendingBatch.Clear();
                     }
 
-                    var existing = await _repo.GetPhotoBySharePointFileIdAsync(item.ItemId, ct);
+                    var existing = await _photoRepository.GetPhotoBySharePointFileIdAsync(item.ItemId, ct);
                     if (existing != null)
                     {
-                        await _repo.RemovePhotoAsync(existing, ct);
+                        await _photoRepository.RemovePhotoAsync(existing, ct);
                         deleted++;
                     }
                 }
@@ -120,7 +132,7 @@ public class PhotobankIndexJob : IRecurringJob
 
             root.DeltaLink = delta.NewDeltaLink;
             root.LastIndexedAt = DateTime.UtcNow;
-            await _repo.SaveChangesAsync(ct);
+            await _rootRepository.SaveChangesAsync(ct);
 
             _logger.LogInformation(
                 "Root {RootId}: upserted={Upserted}, deleted={Deleted}",
@@ -146,7 +158,7 @@ public class PhotobankIndexJob : IRecurringJob
         {
             if (!photosByFileId.TryGetValue(item.ItemId, out var photo))
             {
-                photo = await _repo.GetPhotoBySharePointFileIdAsync(item.ItemId, ct);
+                photo = await _photoRepository.GetPhotoBySharePointFileIdAsync(item.ItemId, ct);
             }
 
             var pathChanged = photo != null &&
@@ -159,7 +171,7 @@ public class PhotobankIndexJob : IRecurringJob
                     SharePointFileId = item.ItemId,
                     IndexedAt = DateTime.UtcNow,
                 };
-                await _repo.AddPhotoAsync(photo, ct);
+                await _photoRepository.AddPhotoAsync(photo, ct);
             }
 
             photo.FileName = item.Name;
@@ -175,7 +187,7 @@ public class PhotobankIndexJob : IRecurringJob
             photosByFileId[item.ItemId] = photo;
         }
 
-        await _repo.SaveChangesAsync(ct);
+        await _photoRepository.SaveChangesAsync(ct);
 
         // Phase B: re-apply rule tags for the whole batch, single flush.
         // Tag names are pre-resolved once for the whole batch via the bulk
@@ -194,7 +206,7 @@ public class PhotobankIndexJob : IRecurringJob
         }
 
         var tagIdsByName = allMatchingTagNames.Count > 0
-            ? await _repo.GetOrCreateTagsAsync(allMatchingTagNames, ct)
+            ? await _tagRepository.GetOrCreateTagsAsync(allMatchingTagNames, ct)
             : new Dictionary<string, int>();
 
         // Dedupe by Photo before applying tags: when the same SharePointFileId appears
@@ -216,15 +228,15 @@ public class PhotobankIndexJob : IRecurringJob
         foreach (var (photo, tagNames) in tagNamesByPhoto)
         {
             // Re-apply rule tags: remove existing Rule-source tags, add new ones
-            var existingRuleTags = await _repo.GetPhotoTagsByPhotoAndSourceAsync(photo.Id, PhotoTagSource.Rule, ct);
-            await _repo.RemovePhotoTagsAsync(existingRuleTags, ct);
+            var existingRuleTags = await _photoTagRepository.GetPhotoTagsByPhotoAndSourceAsync(photo.Id, PhotoTagSource.Rule, ct);
+            await _photoTagRepository.RemovePhotoTagsAsync(existingRuleTags, ct);
 
             foreach (var tagName in tagNames)
             {
                 if (!tagIdsByName.TryGetValue(tagName, out var tagId)) continue;
-                if (await _repo.PhotoTagExistsAsync(photo.Id, tagId, ct)) continue;
+                if (await _photoTagRepository.PhotoTagExistsAsync(photo.Id, tagId, ct)) continue;
 
-                await _repo.AddPhotoTagAsync(new PhotoTag
+                await _photoTagRepository.AddPhotoTagAsync(new PhotoTag
                 {
                     PhotoId = photo.Id,
                     TagId = tagId,
@@ -234,6 +246,6 @@ public class PhotobankIndexJob : IRecurringJob
             }
         }
 
-        await _repo.SaveChangesAsync(ct);
+        await _photoTagRepository.SaveChangesAsync(ct);
     }
 }
