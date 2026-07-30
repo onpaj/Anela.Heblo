@@ -5,6 +5,7 @@ using Anela.Heblo.Application.Shared.Rag;
 using Anela.Heblo.Domain.Features.Rag;
 using MediatR;
 using Microsoft.Extensions.AI;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
@@ -21,7 +22,7 @@ public class AskQuestionHandler : IRequestHandler<AskQuestionRequest, AskQuestio
 
     public AskQuestionHandler(
         IMediator mediator,
-        IChatClient chatClient,
+        [FromKeyedServices(KnowledgeBaseConstants.EnrichedChatClientKey)] IChatClient chatClient,
         IOptions<KnowledgeBaseOptions> options,
         IProductEnrichmentCache enrichmentCache,
         IRagInteractionRecorder recorder,
