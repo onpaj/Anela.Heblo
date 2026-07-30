@@ -1,6 +1,5 @@
 using Anela.Heblo.Application.Features.Logistics.UseCases.GiftPackageManufacture.UseCases.CreateGiftPackageManufacture;
 using Anela.Heblo.Application.Features.Logistics.UseCases.GiftPackageManufacture.UseCases.DisassembleGiftPackage;
-using Anela.Heblo.Application.Features.Logistics.UseCases.GiftPackageManufacture.UseCases.EnqueueGiftPackageManufacture;
 using Anela.Heblo.Application.Features.Logistics.UseCases.GiftPackageManufacture.UseCases.GetAvailableGiftPackages;
 using Anela.Heblo.Application.Features.Logistics.UseCases.GiftPackageManufacture.UseCases.GetGiftPackageDetail;
 using Anela.Heblo.Application.Features.Logistics.UseCases.GiftPackageManufacture.UseCases.GetManufactureLog;
@@ -85,19 +84,6 @@ public class LogisticsController : BaseApiController
     [FeatureAuthorize(Feature.Warehouse_Logistics, AccessLevel.Write)]
     public async Task<ActionResult<DisassembleGiftPackageResponse>> DisassembleGiftPackage(
         [FromBody] DisassembleGiftPackageRequest request,
-        CancellationToken cancellationToken)
-    {
-        var response = await _mediator.Send(request, cancellationToken);
-        return HandleResponse(response);
-    }
-
-    /// <summary>
-    /// Queue gift package manufacturing process as background job
-    /// </summary>
-    [HttpPost("gift-packages/manufacture/enqueue")]
-    [FeatureAuthorize(Feature.Warehouse_Logistics, AccessLevel.Write)]
-    public async Task<ActionResult<EnqueueGiftPackageManufactureResponse>> EnqueueGiftPackageManufacture(
-        [FromBody] EnqueueGiftPackageManufactureRequest request,
         CancellationToken cancellationToken)
     {
         var response = await _mediator.Send(request, cancellationToken);

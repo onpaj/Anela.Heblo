@@ -38,6 +38,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\Adapters\Anela.Heblo.Adapters.Anthropic\Anela.Heblo.Adapters.Anthropic.csproj" />
+    <ProjectReference Include="..\..\src\Adapters\Anela.Heblo.Adapters.OpenAI\Anela.Heblo.Adapters.OpenAI.csproj" />
     <ProjectReference Include="..\..\src\Adapters\Anela.Heblo.Adapters.GoogleAds\Anela.Heblo.Adapters.GoogleAds.csproj" />
     <ProjectReference Include="..\..\src\Adapters\Anela.Heblo.Adapters.Smartsupp\Anela.Heblo.Adapters.Smartsupp.csproj" />
     <ProjectReference Include="..\..\src\Adapters\Anela.Heblo.Adapters.WebSearch\Anela.Heblo.Adapters.WebSearch.csproj" />

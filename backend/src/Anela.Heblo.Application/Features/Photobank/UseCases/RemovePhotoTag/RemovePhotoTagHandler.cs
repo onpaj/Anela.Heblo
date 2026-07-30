@@ -9,23 +9,28 @@ namespace Anela.Heblo.Application.Features.Photobank.UseCases.RemovePhotoTag
 {
     public class RemovePhotoTagHandler : IRequestHandler<RemovePhotoTagRequest, RemovePhotoTagResponse>
     {
-        private readonly IPhotobankRepository _repository;
+        private readonly IPhotobankPhotoRepository _photoRepository;
+        private readonly IPhotobankPhotoTagRepository _photoTagRepository;
         private readonly IPhotobankTagsCache _cache;
 
-        public RemovePhotoTagHandler(IPhotobankRepository repository, IPhotobankTagsCache cache)
+        public RemovePhotoTagHandler(
+            IPhotobankPhotoRepository photoRepository,
+            IPhotobankPhotoTagRepository photoTagRepository,
+            IPhotobankTagsCache cache)
         {
-            _repository = repository;
+            _photoRepository = photoRepository;
+            _photoTagRepository = photoTagRepository;
             _cache = cache;
         }
 
         public async Task<RemovePhotoTagResponse> Handle(RemovePhotoTagRequest request, CancellationToken cancellationToken)
         {
-            var photo = await _repository.GetPhotoByIdAsync(request.PhotoId, cancellationToken);
+            var photo = await _photoRepository.GetPhotoByIdAsync(request.PhotoId, cancellationToken);
             if (photo == null)
                 return new RemovePhotoTagResponse(ErrorCodes.PhotoNotFound);
 
-            await _repository.RemovePhotoTagAsync(request.PhotoId, request.TagId, cancellationToken);
-            await _repository.SaveChangesAsync(cancellationToken);
+            await _photoTagRepository.RemovePhotoTagAsync(request.PhotoId, request.TagId, cancellationToken);
+            await _photoTagRepository.SaveChangesAsync(cancellationToken);
             _cache.Invalidate();
 
             return new RemovePhotoTagResponse();

@@ -1,4 +1,4 @@
-using Anela.Heblo.Application.Features.ShoptetOrders;
+using Anela.Heblo.Application.Features.Packaging.Contracts;
 using Anela.Heblo.Domain.Features.Packaging;
 using MediatR;
 using Microsoft.Extensions.Logging;
@@ -8,13 +8,13 @@ namespace Anela.Heblo.Application.Features.Packaging.UseCases.GetPackingDashboar
 public class GetPackingDashboardHandler : IRequestHandler<GetPackingDashboardRequest, GetPackingDashboardResponse>
 {
     private readonly IPackageRepository _repo;
-    private readonly IPackingOrderClient _packingOrderClient;
+    private readonly IPackingOrderCountSource _packingOrderClient;
     private readonly TimeProvider _timeProvider;
     private readonly ILogger<GetPackingDashboardHandler> _logger;
 
     public GetPackingDashboardHandler(
         IPackageRepository repo,
-        IPackingOrderClient packingOrderClient,
+        IPackingOrderCountSource packingOrderClient,
         TimeProvider timeProvider,
         ILogger<GetPackingDashboardHandler> logger)
     {
