@@ -11,30 +11,39 @@ namespace Anela.Heblo.Application.Features.Photobank.UseCases.RetagPhotos;
 
 public class RetagPhotosHandler : IRequestHandler<RetagPhotosRequest, RetagPhotosResponse>
 {
-    private readonly IPhotobankRepository _repository;
+    private readonly IPhotobankPhotoRepository _photoRepository;
+    private readonly IPhotobankPhotoTagRepository _photoTagRepository;
+    private readonly IPhotobankAutoTagRepository _autoTagRepository;
     private readonly IBackgroundWorker _backgroundWorker;
     private readonly IPhotobankTagsCache _cache;
 
-    public RetagPhotosHandler(IPhotobankRepository repository, IBackgroundWorker backgroundWorker, IPhotobankTagsCache cache)
+    public RetagPhotosHandler(
+        IPhotobankPhotoRepository photoRepository,
+        IPhotobankPhotoTagRepository photoTagRepository,
+        IPhotobankAutoTagRepository autoTagRepository,
+        IBackgroundWorker backgroundWorker,
+        IPhotobankTagsCache cache)
     {
-        _repository = repository;
+        _photoRepository = photoRepository;
+        _photoTagRepository = photoTagRepository;
+        _autoTagRepository = autoTagRepository;
         _backgroundWorker = backgroundWorker;
         _cache = cache;
     }
 
     public async Task<RetagPhotosResponse> Handle(RetagPhotosRequest request, CancellationToken cancellationToken)
     {
-        var photos = await _repository.GetPhotosByIdsAsync(request.PhotoIds, cancellationToken);
+        var photos = await _photoRepository.GetPhotosByIdsAsync(request.PhotoIds, cancellationToken);
 
         if (photos.Count == 0)
             return new RetagPhotosResponse { JobId = null };
 
         var foundIds = photos.Select(p => p.Id).ToList();
 
-        await _repository.ResetAutoTaggedAtAsync(foundIds, cancellationToken);
+        await _autoTagRepository.ResetAutoTaggedAtAsync(foundIds, cancellationToken);
 
         if (request.ClearExistingAiTags)
-            await _repository.RemovePhotoTagsBySourceAsync(foundIds, PhotoTagSource.AI, cancellationToken);
+            await _photoTagRepository.RemovePhotoTagsBySourceAsync(foundIds, PhotoTagSource.AI, cancellationToken);
 
         _cache.Invalidate();
 

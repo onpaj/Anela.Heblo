@@ -11,9 +11,9 @@ namespace Anela.Heblo.Application.Features.Photobank.UseCases.GetPhotos
 {
     public class GetPhotosHandler : IRequestHandler<GetPhotosRequest, GetPhotosResponse>
     {
-        private readonly IPhotobankRepository _repository;
+        private readonly IPhotobankPhotoRepository _repository;
 
-        public GetPhotosHandler(IPhotobankRepository repository)
+        public GetPhotosHandler(IPhotobankPhotoRepository repository)
         {
             _repository = repository;
         }
