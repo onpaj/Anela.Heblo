@@ -59,6 +59,29 @@ public class SmartsuppPayloadMapperTests
         act.Should().NotThrow();
     }
 
+    [Fact]
+    public void MapConversation_UnspecifiedSyncedAt_IsStampedUtc()
+    {
+        var json = @"{""id"":""c1"",""status"":""open"",""created_at"":""2026-05-13T10:00:00Z"",""updated_at"":""2026-05-13T10:00:00Z""}";
+        var syncedAt = DateTime.SpecifyKind(new DateTime(2026, 7, 10, 12, 0, 0), DateTimeKind.Unspecified);
+
+        var result = SmartsuppPayloadMapper.MapConversation(Parse(json), syncedAt);
+
+        result.SyncedAt.Kind.Should().Be(DateTimeKind.Utc);
+        result.SyncedAt.Should().Be(new DateTime(2026, 7, 10, 12, 0, 0, DateTimeKind.Utc));
+    }
+
+    [Fact]
+    public void MapConversation_UtcSyncedAt_PassesThroughUnchanged()
+    {
+        var json = @"{""id"":""c1"",""status"":""open"",""created_at"":""2026-05-13T10:00:00Z"",""updated_at"":""2026-05-13T10:00:00Z""}";
+        var syncedAt = new DateTime(2026, 7, 10, 12, 0, 0, DateTimeKind.Utc);
+
+        var result = SmartsuppPayloadMapper.MapConversation(Parse(json), syncedAt);
+
+        result.SyncedAt.Should().Be(syncedAt);
+    }
+
     // --- Message mapping ---
 
     [Theory]
@@ -129,5 +152,28 @@ public class SmartsuppPayloadMapperTests
         var result = SmartsuppPayloadMapper.MapContact(Parse(json), DateTime.UtcNow);
 
         result.BannedAt.Should().BeNull();
+    }
+
+    [Fact]
+    public void MapContact_UnspecifiedSyncedAt_IsStampedUtc()
+    {
+        var json = @"{""id"":""ct1"",""created_at"":""2026-05-13T10:00:00Z"",""updated_at"":""2026-05-13T10:00:00Z""}";
+        var syncedAt = DateTime.SpecifyKind(new DateTime(2026, 7, 10, 12, 0, 0), DateTimeKind.Unspecified);
+
+        var result = SmartsuppPayloadMapper.MapContact(Parse(json), syncedAt);
+
+        result.SyncedAt.Kind.Should().Be(DateTimeKind.Utc);
+        result.SyncedAt.Should().Be(new DateTime(2026, 7, 10, 12, 0, 0, DateTimeKind.Utc));
+    }
+
+    [Fact]
+    public void MapContact_UtcSyncedAt_PassesThroughUnchanged()
+    {
+        var json = @"{""id"":""ct1"",""created_at"":""2026-05-13T10:00:00Z"",""updated_at"":""2026-05-13T10:00:00Z""}";
+        var syncedAt = new DateTime(2026, 7, 10, 12, 0, 0, DateTimeKind.Utc);
+
+        var result = SmartsuppPayloadMapper.MapContact(Parse(json), syncedAt);
+
+        result.SyncedAt.Should().Be(syncedAt);
     }
 }
