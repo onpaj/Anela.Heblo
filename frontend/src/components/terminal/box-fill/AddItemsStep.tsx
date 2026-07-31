@@ -49,8 +49,8 @@ const AddItemsStep: React.FC<AddItemsStepProps> = ({
     setError(null);
     const result = await addItem.mutateAsync({
       boxId: box.id,
-      productCode: item.productCode,
-      productName: item.productName,
+      productCode: item.productCode!,
+      productName: item.productName!,
       amount,
       sourceInventoryId: item.id,
       lotNumber: item.lotNumber,
@@ -62,14 +62,14 @@ const AddItemsStep: React.FC<AddItemsStepProps> = ({
       return;
     }
     onBoxUpdated(result.transportBox);
-    onAmountUsed(item.productCode, amount);
+    onAmountUsed(item.productCode!, amount);
     setSelected(null);
     setOverdraft(null);
   };
 
   const handleAmountConfirm = (amount: number) => {
     if (!selected) return;
-    if (amount > selected.amount) {
+    if (amount > (selected.amount ?? 0)) {
       setOverdraft({ item: selected, amount });
       setSelected(null);
       return;
@@ -205,7 +205,7 @@ const AddItemsStep: React.FC<AddItemsStepProps> = ({
       {selected && (
         <AmountEntrySheet
           item={selected}
-          initialAmount={amountMemory[selected.productCode]}
+          initialAmount={amountMemory[selected.productCode!]}
           isSubmitting={addItem.isPending}
           onConfirm={handleAmountConfirm}
           onCancel={() => setSelected(null)}
@@ -217,7 +217,7 @@ const AddItemsStep: React.FC<AddItemsStepProps> = ({
           requestedAmount={overdraft.amount}
           isSubmitting={addItem.isPending}
           onAddNegative={() => void performAdd(overdraft.item, overdraft.amount, true)}
-          onAddRemaining={() => void performAdd(overdraft.item, overdraft.item.amount, false)}
+          onAddRemaining={() => void performAdd(overdraft.item, overdraft.item.amount ?? 0, false)}
           onCancel={() => setOverdraft(null)}
         />
       )}

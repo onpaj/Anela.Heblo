@@ -1,8 +1,11 @@
 using System.ComponentModel;
 using System.Text.Json;
+using Anela.Heblo.API.MCP;
 using Anela.Heblo.Application.Features.Manufacture.UseCases.GetManufactureOrders;
 using Anela.Heblo.Application.Features.Manufacture.UseCases.GetManufactureOrder;
 using Anela.Heblo.Application.Features.Manufacture.UseCases.GetCalendarView;
+using Anela.Heblo.Domain.Features.Authorization;
+using Anela.Heblo.Domain.Features.Users;
 using MediatR;
 using ModelContextProtocol;
 using ModelContextProtocol.Server;
@@ -17,15 +20,19 @@ namespace Anela.Heblo.API.MCP.Tools;
 public class ManufactureOrderMcpTools
 {
     private readonly IMediator _mediator;
+    private readonly ICurrentUserService _currentUserService;
 
-    public ManufactureOrderMcpTools(IMediator mediator)
+    public ManufactureOrderMcpTools(IMediator mediator, ICurrentUserService currentUserService)
     {
         _mediator = mediator;
+        _currentUserService = currentUserService;
     }
 
     [McpServerTool]
     public async Task<string> GetManufactureOrders(CancellationToken cancellationToken = default)
     {
+        _currentUserService.EnsureFeatureAccess(Feature.Manufacture_ManufactureOrders, "Manufacture Orders");
+
         var request = new GetManufactureOrdersRequest();
         var response = await _mediator.Send(request, cancellationToken);
 
@@ -44,6 +51,8 @@ public class ManufactureOrderMcpTools
         CancellationToken cancellationToken = default
     )
     {
+        _currentUserService.EnsureFeatureAccess(Feature.Manufacture_ManufactureOrders, "Manufacture Orders");
+
         var request = new GetManufactureOrderRequest { Id = id };
         var response = await _mediator.Send(request, cancellationToken);
 
@@ -58,6 +67,8 @@ public class ManufactureOrderMcpTools
     [McpServerTool]
     public async Task<string> GetCalendarView(CancellationToken cancellationToken = default)
     {
+        _currentUserService.EnsureFeatureAccess(Feature.Manufacture_ManufactureOrders, "Manufacture Orders");
+
         var request = new GetCalendarViewRequest();
         var response = await _mediator.Send(request, cancellationToken);
 
