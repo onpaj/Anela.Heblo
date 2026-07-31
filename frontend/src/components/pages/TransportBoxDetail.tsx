@@ -313,8 +313,8 @@ const TransportBoxDetail: React.FC<TransportBoxDetailProps> = ({
     try {
       const result = await addItemToBoxMutation.mutateAsync({
         boxId,
-        productCode: item.productCode,
-        productName: item.productName,
+        productCode: item.productCode!,
+        productName: item.productName!,
         amount,
         sourceInventoryId: item.id,
         lotNumber: item.lotNumber,
@@ -324,10 +324,10 @@ const TransportBoxDetail: React.FC<TransportBoxDetailProps> = ({
 
       if (result.success) {
         saveLastManufacturedItem({
-          productCode: item.productCode,
-          productName: item.productName,
+          productCode: item.productCode!,
+          productName: item.productName!,
           lotNumber: item.lotNumber,
-          expirationDate: item.expirationDate,
+          expirationDate: item.expirationDate?.toISOString(),
           addedAmount: amount,
         });
         refetch();

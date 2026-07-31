@@ -3,6 +3,8 @@ using Anela.Heblo.API.MCP.Tools;
 using Anela.Heblo.Application.Features.Manufacture.UseCases.CalculateBatchBySize;
 using Anela.Heblo.Application.Features.Manufacture.UseCases.CalculateBatchByIngredient;
 using Anela.Heblo.Application.Features.Manufacture.UseCases.CalculateBatchPlan;
+using Anela.Heblo.Domain.Features.Authorization;
+using Anela.Heblo.Domain.Features.Users;
 using MediatR;
 using ModelContextProtocol;
 using Moq;
@@ -12,13 +14,18 @@ namespace Anela.Heblo.Tests.MCP.Tools;
 
 public class ManufactureBatchMcpToolsTests
 {
+    private static readonly string ReadRole = AccessRoles.For(Feature.Manufacture_BatchPlanning, AccessLevel.Read);
+
     private readonly Mock<IMediator> _mediatorMock;
+    private readonly Mock<ICurrentUserService> _currentUserServiceMock;
     private readonly ManufactureBatchMcpTools _tools;
 
     public ManufactureBatchMcpToolsTests()
     {
         _mediatorMock = new Mock<IMediator>();
-        _tools = new ManufactureBatchMcpTools(_mediatorMock.Object);
+        _currentUserServiceMock = new Mock<ICurrentUserService>();
+        _currentUserServiceMock.Setup(s => s.IsInRole(ReadRole)).Returns(true);
+        _tools = new ManufactureBatchMcpTools(_mediatorMock.Object, _currentUserServiceMock.Object);
     }
 
     [Fact]
@@ -212,5 +219,32 @@ public class ManufactureBatchMcpToolsTests
         );
 
         Assert.Contains("ManufacturingDataNotAvailable", exception.Message);
+    }
+
+    [Theory]
+    [InlineData("GetBatchTemplate")]
+    [InlineData("CalculateBatchBySize")]
+    [InlineData("CalculateBatchByIngredient")]
+    [InlineData("CalculateBatchPlan")]
+    public async Task Tools_ThrowForbidden_AndSkipMediator_WhenUserLacksReadRole(string tool)
+    {
+        // Arrange
+        _currentUserServiceMock.Setup(s => s.IsInRole(ReadRole)).Returns(false);
+
+        // Act
+        var exception = await Assert.ThrowsAsync<McpException>(() => tool switch
+        {
+            "GetBatchTemplate" => _tools.GetBatchTemplate("AKL001"),
+            "CalculateBatchBySize" => _tools.CalculateBatchBySize("AKL001", 100.0),
+            "CalculateBatchByIngredient" => _tools.CalculateBatchByIngredient("AKL001", "BIS001", 50.0),
+            _ => _tools.CalculateBatchPlan(new CalculateBatchPlanRequest { ProductCode = "AKL001" })
+        });
+
+        // Assert
+        Assert.Contains("FORBIDDEN", exception.Message);
+        Assert.Contains(ReadRole, exception.Message);
+        _mediatorMock.Verify(m => m.Send(It.IsAny<CalculatedBatchSizeRequest>(), It.IsAny<CancellationToken>()), Times.Never);
+        _mediatorMock.Verify(m => m.Send(It.IsAny<CalculateBatchByIngredientRequest>(), It.IsAny<CancellationToken>()), Times.Never);
+        _mediatorMock.Verify(m => m.Send(It.IsAny<CalculateBatchPlanRequest>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 }

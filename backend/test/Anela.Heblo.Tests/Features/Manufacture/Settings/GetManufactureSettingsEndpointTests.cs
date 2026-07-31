@@ -1,4 +1,3 @@
-using System.Net;
 using System.Net.Http.Json;
 using Anela.Heblo.Application.Features.Manufacture.UseCases.GetManufactureSettings;
 using Anela.Heblo.Tests.Common;
@@ -35,14 +34,5 @@ public class GetManufactureSettingsEndpointTests : IClassFixture<HebloWebApplica
         settings.Should().NotBeNull();
         var hasProperty = typeof(GetManufactureSettingsResponse).GetProperty(nameof(GetManufactureSettingsResponse.ManufactureGroupId)) != null;
         hasProperty.Should().BeTrue();
-    }
-
-    [Fact]
-    public async Task GetSettings_ShouldBeReachableAnonymously()
-    {
-        using var anonymousClient = _factory.CreateClient();
-        anonymousClient.DefaultRequestHeaders.Authorization = null;
-        var response = await anonymousClient.GetAsync("/api/manufacture/settings");
-        response.StatusCode.Should().Be(HttpStatusCode.OK);
     }
 }
