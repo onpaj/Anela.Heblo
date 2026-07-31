@@ -1,20 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
 import { getAuthenticatedApiClient, QUERY_KEYS } from "../client";
+import { IMaterialForPurchaseDto } from "../generated/api-client";
 
-// Temporary types since API client is incomplete
-export interface MaterialForPurchaseDto {
-  productCode?: string;
-  productName?: string;
-  productType?: string;
-  lastPurchasePrice?: number;
-  location?: string;
-  currentStock?: number;
-  minimalOrderQuantity?: string;
-}
-
-interface GetMaterialsForPurchaseResponse {
-  materials?: MaterialForPurchaseDto[];
-}
+export type MaterialForPurchaseDto = IMaterialForPurchaseDto;
 
 export function useMaterialsForPurchase(
   searchTerm?: string,
@@ -27,28 +15,8 @@ export function useMaterialsForPurchase(
       searchTerm,
       limit,
     ],
-    queryFn: async () => {
-      const apiClient = getAuthenticatedApiClient();
-      const searchParams = new URLSearchParams();
-
-      if (searchTerm) {
-        searchParams.append("searchTerm", searchTerm);
-      }
-      searchParams.append("limit", limit.toString());
-
-      const relativeUrl = `/api/catalog/materials-for-purchase${searchParams.toString() ? `?${searchParams.toString()}` : ""}`;
-      const fullUrl = `${(apiClient as any).baseUrl}${relativeUrl}`;
-
-      const response = await (apiClient as any).http.fetch(fullUrl, {
-        method: "GET",
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      return response.json() as Promise<GetMaterialsForPurchaseResponse>;
-    },
+    queryFn: () =>
+      getAuthenticatedApiClient().catalog_GetMaterialsForPurchase(searchTerm, limit),
     enabled: true, // Always enabled, but we can debounce the search term
     staleTime: 5 * 60 * 1000, // 5 minutes
     gcTime: 10 * 60 * 1000, // 10 minutes
@@ -61,23 +29,7 @@ export function useMaterialByProductCode(productCode?: string) {
     queryFn: async () => {
       if (!productCode) return null;
 
-      const apiClient = getAuthenticatedApiClient();
-      const searchParams = new URLSearchParams();
-      searchParams.append("searchTerm", productCode);
-      searchParams.append("limit", "50");
-
-      const relativeUrl = `/api/catalog/materials-for-purchase?${searchParams.toString()}`;
-      const fullUrl = `${(apiClient as any).baseUrl}${relativeUrl}`;
-
-      const response = await (apiClient as any).http.fetch(fullUrl, {
-        method: "GET",
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const data = (await response.json()) as GetMaterialsForPurchaseResponse;
+      const data = await getAuthenticatedApiClient().catalog_GetMaterialsForPurchase(productCode, 50);
 
       // Find exact match by productCode
       const exactMatch = data.materials?.find(

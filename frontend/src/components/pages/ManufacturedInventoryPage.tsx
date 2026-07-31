@@ -36,14 +36,14 @@ const changeTypeLabels: Record<InventoryChangeType, string> = {
   [InventoryChangeType.ManualAddition]: "Ruční přidání",
 };
 
-const formatDate = (dateStr?: string): string => {
-  if (!dateStr) return "—";
-  return new Date(dateStr).toLocaleDateString("cs-CZ");
+const formatDate = (date?: Date): string => {
+  if (!date) return "—";
+  return date.toLocaleDateString("cs-CZ");
 };
 
-const formatDateTime = (dateStr?: string): string => {
-  if (!dateStr) return "—";
-  return new Date(dateStr).toLocaleString("cs-CZ");
+const formatDateTime = (date?: Date): string => {
+  if (!date) return "—";
+  return date.toLocaleString("cs-CZ");
 };
 
 interface AddItemModalProps {
@@ -180,21 +180,21 @@ interface InlineEditCellProps {
 
 const InlineEditCell: React.FC<InlineEditCellProps> = ({ item, onSave }) => {
   const [editing, setEditing] = useState(false);
-  const [value, setValue] = useState(item.amount);
+  const [value, setValue] = useState(item.amount ?? 0);
 
   useEffect(() => {
     if (!editing) {
-      setValue(item.amount);
+      setValue(item.amount ?? 0);
     }
   }, [item.amount, editing]);
 
   const handleSave = () => {
-    onSave(item.id, value);
+    onSave(item.id!, value);
     setEditing(false);
   };
 
   const handleCancel = () => {
-    setValue(item.amount);
+    setValue(item.amount ?? 0);
     setEditing(false);
   };
 
@@ -236,12 +236,13 @@ interface LogPanelProps {
 }
 
 const LogPanel: React.FC<LogPanelProps> = ({ item }) => {
-  if (item.log.length === 0) {
+  const log = item.log ?? [];
+  if (log.length === 0) {
     return <p className="text-sm text-gray-500 dark:text-graphite-muted px-4 py-2">Žádné záznamy.</p>;
   }
 
-  const sortedLog = [...item.log].sort(
-    (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime(),
+  const sortedLog = [...log].sort(
+    (a, b) => (a.timestamp?.getTime() ?? 0) - (b.timestamp?.getTime() ?? 0),
   );
 
   return (
@@ -260,9 +261,9 @@ const LogPanel: React.FC<LogPanelProps> = ({ item }) => {
         {sortedLog.map((entry) => (
           <tr key={entry.id}>
             <td className="px-3 py-1 whitespace-nowrap">{formatDateTime(entry.timestamp)}</td>
-            <td className="px-3 py-1 whitespace-nowrap">{changeTypeLabels[entry.changeType] ?? entry.changeType}</td>
-            <td className={`px-3 py-1 text-right whitespace-nowrap font-medium ${entry.amountDelta >= 0 ? "text-green-700 dark:text-emerald-400" : "text-red-700 dark:text-red-400"}`}>
-              {entry.amountDelta >= 0 ? "+" : ""}{entry.amountDelta}
+            <td className="px-3 py-1 whitespace-nowrap">{(entry.changeType ? changeTypeLabels[entry.changeType] : undefined) ?? entry.changeType}</td>
+            <td className={`px-3 py-1 text-right whitespace-nowrap font-medium ${(entry.amountDelta ?? 0) >= 0 ? "text-green-700 dark:text-emerald-400" : "text-red-700 dark:text-red-400"}`}>
+              {(entry.amountDelta ?? 0) >= 0 ? "+" : ""}{entry.amountDelta}
             </td>
             <td className="px-3 py-1 text-right whitespace-nowrap">{entry.amountAfter}</td>
             <td className="px-3 py-1">{entry.note ?? "—"}</td>
@@ -430,11 +431,11 @@ const ManufacturedInventoryPage: React.FC = () => {
             </thead>
             <tbody className="bg-white dark:bg-graphite-surface divide-y divide-gray-200 dark:divide-graphite-border">
               {items.map((item) => {
-                const isExpanded = expandedRows.has(item.id);
+                const isExpanded = expandedRows.has(item.id!);
                 return (
                   <React.Fragment key={item.id}>
                     <tr
-                      onClick={() => toggleRow(item.id)}
+                      onClick={() => toggleRow(item.id!)}
                       className="hover:bg-gray-50 dark:hover:bg-white/5 transition-colors cursor-pointer"
                     >
                       <td className="px-4 py-3 text-sm font-medium text-gray-900 dark:text-graphite-text whitespace-nowrap">{item.productCode}</td>
@@ -460,7 +461,7 @@ const ManufacturedInventoryPage: React.FC = () => {
                                 Zrušit
                               </button>
                               <button
-                                onClick={() => handleDeleteConfirm(item.id)}
+                                onClick={() => handleDeleteConfirm(item.id!)}
                                 disabled={deleteMutation.isPending}
                                 className="text-xs text-red-600 dark:text-red-400 hover:text-red-800 font-medium disabled:opacity-50"
                               >
@@ -469,7 +470,7 @@ const ManufacturedInventoryPage: React.FC = () => {
                             </div>
                           ) : (
                             <button
-                              onClick={() => setConfirmDeleteId(item.id)}
+                              onClick={() => setConfirmDeleteId(item.id!)}
                               className="text-red-400 dark:text-red-400 hover:text-red-600"
                               title="Smazat"
                             >
