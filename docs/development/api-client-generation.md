@@ -1,74 +1,12 @@
 # OpenAPI Client Generation
 
-This document describes how OpenAPI clients are generated for both backend (C#) and frontend (TypeScript) in the Anela Heblo project.
+This document describes how the OpenAPI client is generated for the React frontend (TypeScript) in the Anela Heblo project.
 
 ## Overview
 
 The project uses **NSwag** to automatically generate API clients from the ASP.NET Core API OpenAPI specification. This ensures type-safe API communication and reduces manual coding errors.
 
-**Two clients are generated:**
-1. **Backend C# Client** - For internal backend testing and server-to-server communication
-2. **Frontend TypeScript Client** - For React frontend to communicate with the API
-
-## Backend C# Client
-
-### Location
-- **Project**: `backend/src/Anela.Heblo.API.Client/`
-- **Generated file**: `Generated/AnelaHebloApiClient.cs`
-
-### Auto-Generation
-
-The C# client is automatically generated via a **PostBuild event** in the API project.
-
-**When it runs:**
-- **Debug mode only** - Automatically generated after building `Anela.Heblo.API` in Debug configuration
-- **Not in Release mode** - Skips generation in production builds for faster builds
-
-**Build configuration:**
-```xml
-<Target Name="GenerateApiClient" AfterTargets="Build" Condition="'$(Configuration)' == 'Debug'">
-  <Exec Command="dotnet tool restore" />
-  <Exec Command="dotnet nswag swagger2csclient ..." />
-</Target>
-```
-
-### Manual Generation
-
-```bash
-# From repository root
-dotnet msbuild backend/src/Anela.Heblo.API -t:GenerateBackendClient
-```
-
-### Configuration
-
-**Tool**: NSwag with System.Text.Json serialization
-
-**Settings:**
-- Namespace: `Anela.Heblo.API.Client`
-- JSON serialization: `System.Text.Json` (not Newtonsoft.Json)
-- Generated classes: Client classes for all API controllers
-- HTTP client: Uses `HttpClient` dependency injection
-
-### Usage Example
-
-```csharp
-using Anela.Heblo.API.Client;
-
-public class MyService
-{
-    private readonly AnelaHebloApiClient _apiClient;
-
-    public MyService(AnelaHebloApiClient apiClient)
-    {
-        _apiClient = apiClient;
-    }
-
-    public async Task<WeatherForecast[]> GetWeatherAsync()
-    {
-        return await _apiClient.WeatherForecastAsync();
-    }
-}
-```
+A single client is generated: the **Frontend TypeScript Client**, used by the React app to communicate with the API.
 
 ## Frontend TypeScript Client
 
@@ -78,10 +16,7 @@ public class MyService
 
 ### Auto-Generation
 
-The TypeScript client is generated in **two ways**:
-
-1. **PostBuild event** in backend API project (Debug mode only)
-2. **Prebuild script** in frontend `package.json` before `npm start` or `npm run build`
+The TypeScript client is generated via a **prebuild script** in frontend `package.json`, which runs before `npm start` or `npm run build`.
 
 **Frontend prebuild script:**
 ```json
@@ -377,10 +312,6 @@ Regenerate clients whenever:
 
 ### Automatic Regeneration
 
-**Backend builds (Debug mode):**
-- Building `Anela.Heblo.API` in Debug mode automatically regenerates both clients
-- Check build output for "Generating API clients..." messages
-
 **Frontend builds:**
 - `npm run build` runs prebuild script to regenerate TypeScript client
 - `npm start` runs prebuild script before starting dev server
@@ -388,9 +319,6 @@ Regenerate clients whenever:
 ### Manual Regeneration
 
 ```bash
-# Backend C# client
-dotnet msbuild backend/src/Anela.Heblo.API -t:GenerateBackendClient
-
 # Frontend TypeScript client
 dotnet msbuild backend/src/Anela.Heblo.API -t:GenerateFrontendClientManual
 
