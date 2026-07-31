@@ -1,7 +1,10 @@
 using System.ComponentModel;
 using System.Text.Json;
+using Anela.Heblo.API.MCP;
 using Anela.Heblo.Application.Features.Leaflet.UseCases.GenerateLeaflet;
 using Anela.Heblo.Application.Shared;
+using Anela.Heblo.Domain.Features.Authorization;
+using Anela.Heblo.Domain.Features.Users;
 using MediatR;
 using Microsoft.Extensions.Logging;
 using ModelContextProtocol;
@@ -14,11 +17,13 @@ public class LeafletTools
 {
     private readonly IMediator _mediator;
     private readonly ILogger<LeafletTools> _logger;
+    private readonly ICurrentUserService _currentUserService;
 
-    public LeafletTools(IMediator mediator, ILogger<LeafletTools> logger)
+    public LeafletTools(IMediator mediator, ILogger<LeafletTools> logger, ICurrentUserService currentUserService)
     {
         _mediator = mediator;
         _logger = logger;
+        _currentUserService = currentUserService;
     }
 
     [McpServerTool]
@@ -29,6 +34,8 @@ public class LeafletTools
         [Description("Length: 'Short', 'Medium', or 'Long'")] string length,
         CancellationToken ct = default)
     {
+        _currentUserService.EnsureFeatureAccess(Feature.Marketing_Leaflet, "Leaflet Generator");
+
         try
         {
             if (!Enum.TryParse<AudienceType>(audience, ignoreCase: true, out var audienceEnum))
