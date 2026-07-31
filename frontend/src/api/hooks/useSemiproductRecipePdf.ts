@@ -10,15 +10,11 @@ export const useSemiproductRecipePdf = () => {
     setError(null);
     try {
       const apiClient = getAuthenticatedApiClient();
-      const query = batchSize != null ? `?batchSize=${batchSize}` : '';
-      const relativeUrl = `/api/manufacture-batch/recipe-pdf/${productCode}${query}`;
-      const fullUrl = `${(apiClient as any).baseUrl}${relativeUrl}`;
-      const response = await (apiClient as any).http.fetch(fullUrl, { method: 'GET' });
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      const blob = await response.blob();
-      const blobUrl = URL.createObjectURL(blob);
+      const response = await apiClient.manufactureBatch_GetRecipePdf(
+        productCode,
+        batchSize,
+      );
+      const blobUrl = URL.createObjectURL(response.data);
       window.open(blobUrl, '_blank', 'noopener,noreferrer');
       setTimeout(() => URL.revokeObjectURL(blobUrl), 10000);
     } catch (err) {
