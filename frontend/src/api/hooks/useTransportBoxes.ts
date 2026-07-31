@@ -26,7 +26,7 @@ export interface AddItemToBoxInput {
   amount: number;
   sourceInventoryId?: number;
   lotNumber?: string;
-  expirationDate?: string;
+  expirationDate?: Date;
   allowNegativeStock?: boolean;
 }
 

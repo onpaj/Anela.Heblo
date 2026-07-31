@@ -4,7 +4,7 @@ import OverdraftSheet from "../OverdraftSheet";
 import type { ManufacturedProductInventoryItem } from "../../../../api/hooks/useManufacturedProductInventory";
 
 const item: ManufacturedProductInventoryItem = {
-  id: 7, productCode: "P-1", productName: "Krém", amount: 4, createdAt: "", createdBy: "", log: [],
+  id: 7, productCode: "P-1", productName: "Krém", amount: 4, createdAt: new Date(), createdBy: "", log: [],
 };
 
 describe("OverdraftSheet", () => {
