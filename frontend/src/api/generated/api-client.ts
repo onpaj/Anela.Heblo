@@ -2980,7 +2980,7 @@ export class ApiClient {
         return Promise.resolve<GetDqtRunDetailResponse>(null as any);
     }
 
-    departments_GetDepartments(): Promise<Department[]> {
+    departments_GetDepartments(): Promise<GetDepartmentsResponse> {
         let url_ = this.baseUrl + "/api/Departments";
         url_ = url_.replace(/[?&]$/, "");
 
@@ -2996,29 +2996,26 @@ export class ApiClient {
         });
     }
 
-    protected processDepartments_GetDepartments(response: Response): Promise<Department[]> {
+    protected processDepartments_GetDepartments(response: Response): Promise<GetDepartmentsResponse> {
         const status = response.status;
         let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
         if (status === 200) {
             return response.text().then((_responseText) => {
             let result200: any = null;
             let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
-            if (Array.isArray(resultData200)) {
-                result200 = [] as any;
-                for (let item of resultData200)
-                    result200!.push(Department.fromJS(item));
-            }
-            else {
-                result200 = <any>null;
-            }
+            result200 = GetDepartmentsResponse.fromJS(resultData200);
             return result200;
+            });
+        } else if (status === 500) {
+            return response.text().then((_responseText) => {
+            return throwException("A server side error occurred.", status, _responseText, _headers);
             });
         } else if (status !== 200 && status !== 204) {
             return response.text().then((_responseText) => {
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
             });
         }
-        return Promise.resolve<Department[]>(null as any);
+        return Promise.resolve<GetDepartmentsResponse>(null as any);
     }
 
     diagnostics_TestLogging(): Promise<FileResponse> {
@@ -6128,44 +6125,6 @@ export class ApiClient {
             });
         }
         return Promise.resolve<DisassembleGiftPackageResponse>(null as any);
-    }
-
-    logistics_EnqueueGiftPackageManufacture(request: EnqueueGiftPackageManufactureRequest): Promise<EnqueueGiftPackageManufactureResponse> {
-        let url_ = this.baseUrl + "/api/logistics/gift-packages/manufacture/enqueue";
-        url_ = url_.replace(/[?&]$/, "");
-
-        const content_ = JSON.stringify(request);
-
-        let options_: RequestInit = {
-            body: content_,
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-                "Accept": "application/json"
-            }
-        };
-
-        return this.http.fetch(url_, options_).then((_response: Response) => {
-            return this.processLogistics_EnqueueGiftPackageManufacture(_response);
-        });
-    }
-
-    protected processLogistics_EnqueueGiftPackageManufacture(response: Response): Promise<EnqueueGiftPackageManufactureResponse> {
-        const status = response.status;
-        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
-        if (status === 200) {
-            return response.text().then((_responseText) => {
-            let result200: any = null;
-            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
-            result200 = EnqueueGiftPackageManufactureResponse.fromJS(resultData200);
-            return result200;
-            });
-        } else if (status !== 200 && status !== 204) {
-            return response.text().then((_responseText) => {
-            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
-            });
-        }
-        return Promise.resolve<EnqueueGiftPackageManufactureResponse>(null as any);
     }
 
     logistics_GetManufactureLog(count: number | undefined): Promise<GetManufactureLogResponse> {
@@ -20230,11 +20189,52 @@ export interface IRunDqtRequest {
     dateTo?: Date;
 }
 
-export class Department implements IDepartment {
+export class GetDepartmentsResponse extends BaseResponse implements IGetDepartmentsResponse {
+    departments?: DepartmentDto[];
+
+    constructor(data?: IGetDepartmentsResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            if (Array.isArray(_data["departments"])) {
+                this.departments = [] as any;
+                for (let item of _data["departments"])
+                    this.departments!.push(DepartmentDto.fromJS(item));
+            }
+        }
+    }
+
+    static override fromJS(data: any): GetDepartmentsResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new GetDepartmentsResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        if (Array.isArray(this.departments)) {
+            data["departments"] = [];
+            for (let item of this.departments)
+                data["departments"].push(item.toJSON());
+        }
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IGetDepartmentsResponse extends IBaseResponse {
+    departments?: DepartmentDto[];
+}
+
+export class DepartmentDto implements IDepartmentDto {
     id?: string;
     name?: string;
 
-    constructor(data?: IDepartment) {
+    constructor(data?: IDepartmentDto) {
         if (data) {
             for (var property in data) {
                 if (data.hasOwnProperty(property))
@@ -20250,9 +20250,9 @@ export class Department implements IDepartment {
         }
     }
 
-    static fromJS(data: any): Department {
+    static fromJS(data: any): DepartmentDto {
         data = typeof data === 'object' ? data : {};
-        let result = new Department();
+        let result = new DepartmentDto();
         result.init(data);
         return result;
     }
@@ -20265,7 +20265,7 @@ export class Department implements IDepartment {
     }
 }
 
-export interface IDepartment {
+export interface IDepartmentDto {
     id?: string;
     name?: string;
 }
@@ -26188,87 +26188,6 @@ export class DisassembleGiftPackageRequest implements IDisassembleGiftPackageReq
 export interface IDisassembleGiftPackageRequest {
     giftPackageCode?: string;
     quantity?: number;
-}
-
-export class EnqueueGiftPackageManufactureResponse extends BaseResponse implements IEnqueueGiftPackageManufactureResponse {
-    jobId?: string;
-    message?: string;
-
-    constructor(data?: IEnqueueGiftPackageManufactureResponse) {
-        super(data);
-    }
-
-    override init(_data?: any) {
-        super.init(_data);
-        if (_data) {
-            this.jobId = _data["jobId"];
-            this.message = _data["message"];
-        }
-    }
-
-    static override fromJS(data: any): EnqueueGiftPackageManufactureResponse {
-        data = typeof data === 'object' ? data : {};
-        let result = new EnqueueGiftPackageManufactureResponse();
-        result.init(data);
-        return result;
-    }
-
-    override toJSON(data?: any) {
-        data = typeof data === 'object' ? data : {};
-        data["jobId"] = this.jobId;
-        data["message"] = this.message;
-        super.toJSON(data);
-        return data;
-    }
-}
-
-export interface IEnqueueGiftPackageManufactureResponse extends IBaseResponse {
-    jobId?: string;
-    message?: string;
-}
-
-export class EnqueueGiftPackageManufactureRequest implements IEnqueueGiftPackageManufactureRequest {
-    giftPackageCode?: string;
-    quantity?: number;
-    allowStockOverride?: boolean;
-
-    constructor(data?: IEnqueueGiftPackageManufactureRequest) {
-        if (data) {
-            for (var property in data) {
-                if (data.hasOwnProperty(property))
-                    (<any>this)[property] = (<any>data)[property];
-            }
-        }
-    }
-
-    init(_data?: any) {
-        if (_data) {
-            this.giftPackageCode = _data["giftPackageCode"];
-            this.quantity = _data["quantity"];
-            this.allowStockOverride = _data["allowStockOverride"];
-        }
-    }
-
-    static fromJS(data: any): EnqueueGiftPackageManufactureRequest {
-        data = typeof data === 'object' ? data : {};
-        let result = new EnqueueGiftPackageManufactureRequest();
-        result.init(data);
-        return result;
-    }
-
-    toJSON(data?: any) {
-        data = typeof data === 'object' ? data : {};
-        data["giftPackageCode"] = this.giftPackageCode;
-        data["quantity"] = this.quantity;
-        data["allowStockOverride"] = this.allowStockOverride;
-        return data;
-    }
-}
-
-export interface IEnqueueGiftPackageManufactureRequest {
-    giftPackageCode?: string;
-    quantity?: number;
-    allowStockOverride?: boolean;
 }
 
 export class GetManufactureLogResponse extends BaseResponse implements IGetManufactureLogResponse {

@@ -19,7 +19,6 @@ interface GiftPackageManufacturingDetailProps {
   isOpen: boolean;
   onClose: () => void;
   onManufacture: (quantity: number) => Promise<void>;
-  onEnqueueManufacture: (quantity: number) => Promise<void>;
   salesCoefficient?: number;
   fromDate?: Date;
   toDate?: Date;
@@ -30,7 +29,6 @@ const GiftPackageManufacturingDetail: React.FC<GiftPackageManufacturingDetailPro
   isOpen,
   onClose,
   onManufacture,
-  onEnqueueManufacture,
   salesCoefficient,
   fromDate,
   toDate,
@@ -96,14 +94,14 @@ const GiftPackageManufacturingDetail: React.FC<GiftPackageManufacturingDetailPro
   }, [selectedPackage]);
 
 
-  const handleEnqueueManufacture = async () => {
+  const handleManufacture = async () => {
     if (!selectedPackage) return;
 
     try {
-      await onEnqueueManufacture(quantity);
+      await onManufacture(quantity);
       onClose();
     } catch (error) {
-      console.error('Enqueue manufacturing error:', error);
+      console.error('Manufacturing error:', error);
     }
   };
 
@@ -399,9 +397,9 @@ const GiftPackageManufacturingDetail: React.FC<GiftPackageManufacturingDetailPro
 
               {/* Manufacturing Buttons - Touch Friendly */}
               <div className="space-y-3">
-                {/* Asynchronous Manufacturing Button */}
+                {/* Manufacturing Button */}
                 <button
-                  onClick={handleEnqueueManufacture}
+                  onClick={handleManufacture}
                   disabled={!validationResults.isValid}
                   className={`w-full flex items-center justify-center px-6 py-4 text-lg font-semibold rounded-lg transition-colors touch-manipulation ${
                     validationResults.isValid

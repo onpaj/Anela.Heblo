@@ -3,9 +3,9 @@ import CatalogDetail from "../CatalogDetail";
 import GiftPackageManufacturingList, { GiftPackage } from "./GiftPackageManufacturingList";
 import GiftPackageManufacturingDetail from "./GiftPackageManufacturingDetail";
 import StockUpOperationStatusIndicator from '../../common/StockUpOperationStatusIndicator';
-import { useCreateGiftPackageManufacture, useEnqueueGiftPackageManufacture } from "../../../api/hooks/useGiftPackageManufacturing";
+import { useCreateGiftPackageManufacture } from "../../../api/hooks/useGiftPackageManufacturing";
 import { useStockUpOperationsSummary } from '../../../api/hooks/useStockUpOperations';
-import { CreateGiftPackageManufactureRequest, EnqueueGiftPackageManufactureRequest, StockUpSourceType } from "../../../api/generated/api-client";
+import { CreateGiftPackageManufactureRequest, StockUpSourceType } from "../../../api/generated/api-client";
 import { useScreenView } from "../../../telemetry/useScreenView";
 import { usePermissionsContext } from '../../../auth/PermissionsContext';
 
@@ -29,7 +29,6 @@ const GiftPackageManufacturing: React.FC = () => {
 
   // Manufacturing API hooks
   const createManufactureMutation = useCreateGiftPackageManufacture();
-  const enqueueManufactureMutation = useEnqueueGiftPackageManufacture();
 
   // Gate StockUpOperations summary on the matching feature permission.
   // Backend constant: AccessRoles.WarehouseStockUpRead = "warehouse.stock_up.read"
@@ -95,24 +94,6 @@ const GiftPackageManufacturing: React.FC = () => {
     }
   };
 
-  const handleEnqueueManufacture = async (quantity: number) => {
-    if (!selectedPackage) return;
-
-    try {
-      const request = new EnqueueGiftPackageManufactureRequest({
-        giftPackageCode: selectedPackage.code,
-        quantity: quantity,
-        allowStockOverride: false
-      });
-
-      const response = await enqueueManufactureMutation.mutateAsync(request);
-      console.log(`Výroba ${quantity}x ${selectedPackage.name} zařazena do fronty. Log ID: ${response.jobId}`);
-    } catch (error) {
-      console.error('Enqueue manufacturing error:', error);
-      throw error;
-    }
-  };
-
   return (
     <>
       {showIndicator && (
@@ -135,7 +116,6 @@ const GiftPackageManufacturing: React.FC = () => {
         isOpen={isManufactureModalOpen}
         onClose={handleCloseManufactureModal}
         onManufacture={handleManufacture}
-        onEnqueueManufacture={handleEnqueueManufacture}
         salesCoefficient={salesCoefficient}
         fromDate={dateFilters.fromDate}
         toDate={dateFilters.toDate}

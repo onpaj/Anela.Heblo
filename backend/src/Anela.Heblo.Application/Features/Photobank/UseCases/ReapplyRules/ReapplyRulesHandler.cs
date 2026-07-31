@@ -14,18 +14,29 @@ namespace Anela.Heblo.Application.Features.Photobank.UseCases.ReapplyRules
     {
         private const int PageSize = 2000;
 
-        private readonly IPhotobankRepository _repository;
+        private readonly IPhotobankTagRuleRepository _tagRuleRepository;
+        private readonly IPhotobankTagRepository _tagRepository;
+        private readonly IPhotobankPhotoTagRepository _photoTagRepository;
+        private readonly IPhotobankAutoTagRepository _autoTagRepository;
         private readonly IPhotobankTagsCache _cache;
 
-        public ReapplyRulesHandler(IPhotobankRepository repository, IPhotobankTagsCache cache)
+        public ReapplyRulesHandler(
+            IPhotobankTagRuleRepository tagRuleRepository,
+            IPhotobankTagRepository tagRepository,
+            IPhotobankPhotoTagRepository photoTagRepository,
+            IPhotobankAutoTagRepository autoTagRepository,
+            IPhotobankTagsCache cache)
         {
-            _repository = repository;
+            _tagRuleRepository = tagRuleRepository;
+            _tagRepository = tagRepository;
+            _photoTagRepository = photoTagRepository;
+            _autoTagRepository = autoTagRepository;
             _cache = cache;
         }
 
         public async Task<ReapplyRulesResponse> Handle(ReapplyRulesRequest request, CancellationToken cancellationToken)
         {
-            var allRules = await _repository.GetRulesAsync(cancellationToken);
+            var allRules = await _tagRuleRepository.GetRulesAsync(cancellationToken);
 
             string? scopeToTagName = null;
             if (request.RuleId.HasValue)
@@ -45,8 +56,8 @@ namespace Anela.Heblo.Application.Features.Photobank.UseCases.ReapplyRules
             // This is also unconditional: the previous implementation always committed the
             // removal (the handler saved even when the repository returned 0), so removing
             // before the empty-rule short-circuit preserves behavior.
-            await _repository.RemoveRuleTagsAsync(scopeToTagName, cancellationToken);
-            await _repository.SaveChangesAsync(cancellationToken);
+            await _photoTagRepository.RemoveRuleTagsAsync(scopeToTagName, cancellationToken);
+            await _photoTagRepository.SaveChangesAsync(cancellationToken);
 
             var ruleTagNames = activeRules
                 .Select(r => r.TagName.ToLowerInvariant())
@@ -62,8 +73,8 @@ namespace Anela.Heblo.Application.Features.Photobank.UseCases.ReapplyRules
                 return new ReapplyRulesResponse { PhotosUpdated = 0 };
             }
 
-            var occupied = await _repository.GetOccupiedTagPairsAsync(scopeToTagName, cancellationToken);
-            var tagIdsByName = await _repository.GetOrCreateTagsAsync(ruleTagNames, cancellationToken);
+            var occupied = await _photoTagRepository.GetOccupiedTagPairsAsync(scopeToTagName, cancellationToken);
+            var tagIdsByName = await _tagRepository.GetOrCreateTagsAsync(ruleTagNames, cancellationToken);
 
             var addedPairs = new HashSet<(int PhotoId, int TagId)>();
             var newPhotoTags = new List<PhotoTag>();
@@ -73,7 +84,7 @@ namespace Anela.Heblo.Application.Features.Photobank.UseCases.ReapplyRules
             var offset = 0;
             while (true)
             {
-                var page = await _repository.GetPhotoRuleCandidatesPageAsync(PageSize, offset, cancellationToken);
+                var page = await _autoTagRepository.GetPhotoRuleCandidatesPageAsync(PageSize, offset, cancellationToken);
 
                 foreach (var photo in page)
                 {
@@ -117,8 +128,8 @@ namespace Anela.Heblo.Application.Features.Photobank.UseCases.ReapplyRules
                     break;
             }
 
-            await _repository.AddPhotoTagsAsync(newPhotoTags, cancellationToken);
-            await _repository.SaveChangesAsync(cancellationToken);
+            await _photoTagRepository.AddPhotoTagsAsync(newPhotoTags, cancellationToken);
+            await _photoTagRepository.SaveChangesAsync(cancellationToken);
             _cache.Invalidate();
 
             return new ReapplyRulesResponse { PhotosUpdated = photosUpdated };

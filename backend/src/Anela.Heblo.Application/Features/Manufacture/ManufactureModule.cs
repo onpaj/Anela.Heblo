@@ -57,6 +57,10 @@ public static class ManufactureModule
         // DI registration is owned by the provider (Manufacture), not the consumer (Catalog).
         services.AddScoped<ICatalogManufactureSource, ManufactureCatalogSourceAdapter>();
 
+        // Circuit breaker around synchronous FlexiBee ERP calls (manufacture submit path).
+        // Singleton because breaker state must persist across requests.
+        services.AddSingleton<IManufactureErpResilienceService, ManufactureErpResilienceService>();
+
         // Register application services
         services.AddScoped<IProductNameFormatter, ProductNameFormatter>();
         services.AddScoped<IManufactureNameBuilder, ManufactureNameBuilder>();

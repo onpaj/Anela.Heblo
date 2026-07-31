@@ -12,7 +12,7 @@ namespace Anela.Heblo.Tests.Features.Photobank;
 
 public class DeleteTagHandlerTests
 {
-    private readonly Mock<IPhotobankRepository> _repositoryMock = new();
+    private readonly Mock<IPhotobankTagRepository> _repositoryMock = new();
     private readonly Mock<IPhotobankTagsCache> _cacheMock = new();
 
     private DeleteTagHandler CreateHandler() => new(_repositoryMock.Object, _cacheMock.Object);

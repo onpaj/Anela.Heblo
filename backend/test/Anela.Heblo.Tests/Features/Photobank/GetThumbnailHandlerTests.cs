@@ -10,7 +10,7 @@ namespace Anela.Heblo.Tests.Features.Photobank;
 
 public sealed class GetThumbnailHandlerTests
 {
-    private readonly Mock<IPhotobankRepository> _repositoryMock = new();
+    private readonly Mock<IPhotobankPhotoRepository> _repositoryMock = new();
     private readonly Mock<IPhotobankGraphService> _graphServiceMock = new();
 
     private GetThumbnailHandler CreateHandler() =>
