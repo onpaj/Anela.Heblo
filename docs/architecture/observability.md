@@ -52,17 +52,17 @@ Tento dokument definuje kompletní observability strategii pro Anela Heblo aplik
 - OPTIONS requests (CORS preflight)
 - Verbose traces in production
 
-#### 2. Aggressive Sampling
-**CustomSamplingTelemetryProcessor** implements:
-- Requests: 30% sampling rate
-- Dependencies: 10% sampling rate
-- Traces: 5% sampling rate
-- **Always tracked (100%)**:
-  - Exceptions
-  - Custom business events
-  - Failed requests
-  - Slow requests (> 1s)
-  - Failed dependencies
+#### 2. Adaptive Sampling
+Application Insights' built-in adaptive sampling (`ApplicationInsightsExtensions.cs`), not a custom
+processor, governs volume:
+- `EnableAdaptiveSampling = true` on the telemetry configuration.
+- `UseAdaptiveSampling(maxTelemetryItemsPerSecond: 5)` in Production, `1` in non-production — the SDK
+  dynamically adjusts the sampling rate per telemetry type to hit that target throughput, rather than
+  using fixed per-type percentages.
+- `excludedTypes: "Exception;Event"` — exceptions and custom business events are always tracked (100%),
+  never subject to adaptive sampling.
+- Non-production only: an additional flat `UseSampling(10)` fallback keeps 10% of all telemetry on top
+  of adaptive sampling.
 
 #### 3. Environment-Specific Configuration
 
@@ -384,7 +384,6 @@ Each alert includes:
 // Extensions/ApplicationInsightsExtensions.cs
 services.AddOptimizedApplicationInsights(configuration, environment);
 services.AddApplicationInsightsTelemetryProcessor<CostOptimizedTelemetryProcessor>();
-services.AddApplicationInsightsTelemetryProcessor<CustomSamplingTelemetryProcessor>();
 ```
 
 #### 3. Health Checks (✅ Completed)
