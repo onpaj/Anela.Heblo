@@ -2,9 +2,16 @@ namespace Anela.Heblo.Application.Common.TimePeriods;
 
 public class TimePeriodResolver : ITimePeriodResolver
 {
+    private readonly TimeProvider _timeProvider;
+
+    public TimePeriodResolver(TimeProvider timeProvider)
+    {
+        _timeProvider = timeProvider;
+    }
+
     public IReadOnlyList<DateRange> Resolve(TimePeriod period, DateTime? customFrom = null, DateTime? customTo = null)
     {
-        var now = DateTime.UtcNow;
+        var now = _timeProvider.GetUtcNow().DateTime;
 
         return period switch
         {
