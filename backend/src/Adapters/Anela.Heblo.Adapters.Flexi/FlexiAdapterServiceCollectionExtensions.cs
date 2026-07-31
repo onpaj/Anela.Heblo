@@ -29,6 +29,7 @@ using Anela.Heblo.Domain.Features.Bank;
 using Anela.Heblo.Domain.Features.InvoiceClassification;
 using Anela.Heblo.Domain.Features.Invoices;
 using Anela.Heblo.Domain.Features.Manufacture;
+using Anela.Heblo.Application.Features.UserManagement.Services;
 using Anela.Heblo.Persistence.Analytics;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -84,6 +85,7 @@ public static class FlexiAdapterServiceCollectionExtensions
         services.AddScoped<IProductWeightClient, FlexiProductClient>();
         services.AddScoped<ILotsClient, FlexiLotsClient>();
         services.AddScoped<IDepartmentClient, FlexiDepartmentClient>();
+        services.AddScoped<IDepartmentQueryService, FlexiDepartmentQueryService>();
 
         // Invoice Classification clients
         services.AddScoped<IReceivedInvoicesClient, FlexiReceivedInvoicesClient>();
