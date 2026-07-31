@@ -7,7 +7,7 @@ import * as useBoxFill from "../../../../api/hooks/useBoxFill";
 jest.mock("../../../../utils/errorHandler", () => ({ getErrorMessage: () => "Chyba" }));
 
 const inventoryItem = {
-  id: 7, productCode: "P-1", productName: "Krém", amount: 10, createdAt: "", createdBy: "", log: [],
+  id: 7, productCode: "P-1", productName: "Krém", amount: 10, createdAt: new Date(), createdBy: "", log: [],
 };
 
 const box: useBoxFill.TerminalBox = { id: 1, code: "B001", state: "Opened", itemCount: 0, items: [] };
