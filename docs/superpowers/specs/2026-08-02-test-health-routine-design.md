@@ -267,7 +267,8 @@ issue body therefore ends with a mandatory block instructing the implementing ag
 > in the PR description instead of doing it.** A PR that reduces the total test count
 > for this module is wrong by construction.
 
-For the `test-infra` category (`ci-broken`, `schedule-broken`, `rp-reporting-broken`)
+For the `test-infra` category (`ci-broken`, `schedule-broken`, `silence-unattributed`,
+`rp-reporting-broken`)
 the body additionally states that the resolution is a credential or configuration
 change **outside the repository**, requires a human, and that the agent should report
 this rather than invent a code workaround. These issues are still labelled
