@@ -97,5 +97,17 @@ check "gh-down files exactly one ci finding" "1" "$n"
 n="$(printf '%s\n' "$out" | grep -c 'test-silence:')"
 check "gh-down does not cascade into per-module silence" "0" "$n"
 
+# --- partial staleness + GitHub unreachable -> per-module, honestly labelled ---
+out="$(RP_FIXTURE_DIR="${FIX}/gh-down-partial" GH_FIXTURE_DIR="${FIX}/gh-down-partial" "$D" --days 7 2>&1)"
+check "partial gh-down reaches the per-module path" "yes" "$(contains 'test-silence:e2e:transport:unattributed' "$out")"
+check "partial gh-down does not claim a schedule fault" "no" "$(contains '**schedule-broken**' "$out")"
+n="$(printf '%s\n' "$out" | grep -c 'test-ci:')"
+check "partial gh-down files no cascade finding" "0" "$n"
+
+# --- a 2xx GitHub body of the wrong shape is unknown, not "no failing run" ---
+out="$(RP_FIXTURE_DIR="${FIX}/gh-malformed" GH_FIXTURE_DIR="${FIX}/gh-malformed" "$D" --days 7 2>&1)"
+check "malformed gh body reads as unattributed" "yes" "$(contains 'unattributed' "$out")"
+check "malformed gh body claims no schedule fault" "no" "$(contains '**schedule-broken**' "$out")"
+
 echo "---"; echo "passed: $pass  failed: $fail"
 [[ $fail -eq 0 ]]

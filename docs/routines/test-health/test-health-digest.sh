@@ -191,7 +191,17 @@ nightly='{"workflow_runs":[]}'
 if [[ "$stale_e2e" -gt 0 ]]; then
   nightly="$(gh_get "/repos/onpaj/Anela.Heblo/actions/workflows/e2e-nightly-regression.yml/runs?per_page=5")"
 fi
-if [[ "$(printf '%s' "$nightly" | jq -r '.__gh_error // false')" == "true" ]]; then
+# Trust "none" only from a body that is actually shaped like a runs response.
+# A 2xx page that parses as JSON but carries no workflow_runs array — schema
+# drift, a proxy interstitial, an error envelope — would otherwise evaluate to
+# "none" and let us assert a schedule fault we never confirmed. The test is
+# validity, not merely the absence of our own error sentinel.
+gh_ok="$(printf '%s' "$nightly" | jq -r '
+  if (.__gh_error // false) then "no"
+  elif (.workflow_runs | type) == "array" then "yes"
+  else "no" end' 2>/dev/null || echo no)"
+
+if [[ "$gh_ok" != "yes" ]]; then
   nightly_concl="unknown"
   nightly_id=""
 else
@@ -237,7 +247,11 @@ else
     l="$(printf '%s' "$d" | jq -r '.layer')"
     m="$(printf '%s' "$d" | jq -r '.module')"
     if [[ "$nightly_concl" == "unknown" ]]; then
-      cat_name="schedule-broken"; suffix="unattributed"
+      # Its own category, not schedule-broken. schedule-broken asserts a
+      # specific claim — that the run was never scheduled — and a consumer
+      # keying on `category` rather than reading the prose would receive a
+      # confident diagnosis this finding's own text refuses to make.
+      cat_name="silence-unattributed"; suffix="unattributed"
       head_txt="${l}/${m}: no launch in the last 26h, cause undetermined"
       det="ReportPortal holds no recent launch for this module. The GitHub Actions API could not be queried, so whether the run failed, never ran, or ran without reporting is undetermined."
     elif [[ "$nightly_concl" == "success" ]]; then
