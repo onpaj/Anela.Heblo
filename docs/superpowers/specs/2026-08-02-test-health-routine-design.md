@@ -168,6 +168,7 @@ the nightly matrix: `catalog`, `issued-invoices`, `stock-operations`, `transport
 |---|---|
 | `ci-broken` | An expected launch is missing **and** the corresponding GitHub Actions run failed before the test step. Body names the failing step and error. |
 | `schedule-broken` | An expected launch is missing **and** no workflow run exists at all for the window. |
+| `silence-unattributed` | An expected launch is missing **and** the GitHub Actions API could not be queried, or answered with a body that is not a runs response. The data really is absent; the cause is not established, and the finding must not claim one. |
 | `rp-reporting-broken` | An expected launch is missing **and** the workflow run *succeeded*. Reporting is broken, not the tests. |
 | `suite-shrank` | Test count for a layer/module fell ≥20% below the 7-day median while the launch still succeeded. Catches silent skips and fixtures aborting a spec early. |
 | `regression` | A test that passed within the window now fails in the latest **2 consecutive** E2E runs, or the latest **1** backend/frontend run (those are push-triggered and deterministic). |
@@ -209,6 +210,7 @@ The first line of every issue body is its fingerprint, matching the
 |---|---|
 | ci-broken | `test-ci:<workflow>:<failing-step>` |
 | schedule-broken | `test-silence:<layer>:<module>:schedule` |
+| silence-unattributed | `test-silence:<layer>:<module>:unattributed` (per module), or `test-ci:<workflow>:unattributed` when the whole layer is stale |
 | rp-reporting-broken | `test-silence:<layer>:<module>:reporting` |
 | suite-shrank | `test-shrink:<layer>:<module>` |
 | regression | `test-regress:<layer>:<module>:<error-hash>` |
@@ -237,7 +239,7 @@ When it is unclear whether two findings are the same, err toward SKIP and record
 
   | Detection category | Label |
   |---|---|
-  | `ci-broken`, `schedule-broken`, `rp-reporting-broken` | `test-infra` |
+  | `ci-broken`, `schedule-broken`, `silence-unattributed`, `rp-reporting-broken` | `test-infra` |
   | `regression`, `suite-shrank`, `chronic` | `test-regression` |
   | `flaky` | `test-flaky` |
 

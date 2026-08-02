@@ -749,6 +749,29 @@ n="$(printf '%s\n' "$out" | grep -c 'test-ci:')"
 check "gh-down files exactly one ci finding" "1" "$n"
 n="$(printf '%s\n' "$out" | grep -c 'test-silence:')"
 check "gh-down does not cascade into per-module silence" "0" "$n"
+
+# --- partial staleness + GitHub unreachable -> per-module, honestly labelled ---
+# The only route to the per-module unknown branch: some e2e modules fresh, some
+# stale, GitHub unavailable. It must NOT claim a schedule fault it cannot show.
+out="$(RP_FIXTURE_DIR="${FIX}/gh-down-partial" GH_FIXTURE_DIR="${FIX}/gh-down-partial" "$D" --days 7 2>&1)"
+check "partial gh-down reaches the per-module path" "yes" "$(contains 'test-silence:e2e:transport:unattributed' "$out")"
+check "partial gh-down does not claim a schedule fault" "no" "$(contains '**schedule-broken**' "$out")"
+n="$(printf '%s\n' "$out" | grep -c 'test-ci:')"
+check "partial gh-down files no cascade finding" "0" "$n"
+
+# --- a 2xx GitHub body of the wrong shape is unknown, not "no failing run" ---
+out="$(RP_FIXTURE_DIR="${FIX}/gh-malformed" GH_FIXTURE_DIR="${FIX}/gh-malformed" "$D" --days 7 2>&1)"
+check "malformed gh body reads as unattributed" "yes" "$(contains 'unattributed' "$out")"
+check "malformed gh body claims no schedule fault" "no" "$(contains '**schedule-broken**' "$out")"
+```
+
+Create two more fixture sets:
+
+- `fixtures/gh-down-partial/` — two E2E modules, `catalog` fresh (within 26h) and `transport` 3 days old, plus the matching item fixtures, and a workflow-runs fixture of `{ "workflow_runs": [], "__gh_error": true }`.
+- `fixtures/gh-malformed/` — copy `fixtures/gh-down/` but replace the workflow-runs fixture with a body that is valid JSON of the wrong shape and carries no error sentinel:
+
+```json
+{ "message": "Not Found", "documentation_url": "https://docs.github.com/rest" }
 ```
 
 Create `fixtures/gh-down/` by copying `fixtures/ci-broken/`'s launch and item fixtures (whole E2E layer stale, inside the window), and replacing its workflow-runs fixture with:
@@ -763,7 +786,7 @@ Create `fixtures/gh-down/` by copying `fixtures/ci-broken/`'s launch and item fi
 ./docs/routines/test-health/test-health-digest.test.sh
 ```
 
-Expected: the nine new checks FAIL (no silence or ci findings are produced yet); the nineteen Task 3 checks still pass.
+Expected: the fourteen new checks FAIL (no silence or ci findings are produced yet); the nineteen Task 3 checks still pass.
 
 - [ ] **Step 3: Write minimal implementation**
 
@@ -828,7 +851,17 @@ fi
 # Three distinct states, never two: "failure" (GitHub says the run failed),
 # "none"/other (GitHub answered and no failing run exists), and "unknown"
 # (GitHub could not be asked — we may not conclude anything from its silence).
-if [[ "$(printf '%s' "$nightly" | jq -r '.__gh_error // false')" == "true" ]]; then
+# Trust "none" only from a body that is actually shaped like a runs response.
+# A 2xx page that parses as JSON but carries no workflow_runs array — schema
+# drift, a proxy interstitial, an error envelope — would otherwise evaluate to
+# "none" and let us assert a schedule fault we never confirmed. The test is
+# validity, not merely the absence of our own error sentinel.
+gh_ok="$(printf '%s' "$nightly" | jq -r '
+  if (.__gh_error // false) then "no"
+  elif (.workflow_runs | type) == "array" then "yes"
+  else "no" end' 2>/dev/null || echo no)"
+
+if [[ "$gh_ok" != "yes" ]]; then
   nightly_concl="unknown"
   nightly_id=""
 else
@@ -874,9 +907,11 @@ else
     l="$(printf '%s' "$d" | jq -r '.layer')"
     m="$(printf '%s' "$d" | jq -r '.module')"
     if [[ "$nightly_concl" == "unknown" ]]; then
-      # Do not claim a cause GitHub never confirmed. The missing data is real;
-      # the reason is not established, and the issue must say so.
-      cat_name="schedule-broken"; suffix="unattributed"
+      # Its own category, not schedule-broken. schedule-broken asserts a
+      # specific claim — that the run was never scheduled — and a consumer
+      # keying on `category` rather than reading the prose would receive a
+      # confident diagnosis this finding's own text refuses to make.
+      cat_name="silence-unattributed"; suffix="unattributed"
       head_txt="${l}/${m}: no launch in the last 26h, cause undetermined"
       det="ReportPortal holds no recent launch for this module. The GitHub Actions API could not be queried, so whether the run failed, never ran, or ran without reporting is undetermined."
     elif [[ "$nightly_concl" == "success" ]]; then
@@ -903,7 +938,7 @@ fi
 ./docs/routines/test-health/test-health-digest.test.sh
 ```
 
-Expected: `passed: 28  failed: 0`, exit 0.
+Expected: `passed: 33  failed: 0`, exit 0.
 
 - [ ] **Step 5: Commit**
 
@@ -969,7 +1004,7 @@ check "digest states the cap" "yes" "$(contains 'CAP: 5' "$out")"
 ./docs/routines/test-health/test-health-digest.test.sh
 ```
 
-Expected: the seven new checks FAIL; the twenty-eight prior checks still pass.
+Expected: the seven new checks FAIL; the thirty-three prior checks still pass.
 
 - [ ] **Step 3: Write minimal implementation**
 
@@ -1059,8 +1094,9 @@ done
 # Priority order for the cap, so infrastructure faults are never crowded out by
 # a pile of flaky tests.
 findings="$(printf '%s' "$findings" | jq '
-  def rank: { "ci-broken":0, "schedule-broken":1, "rp-reporting-broken":2,
-              "regression":3, "suite-shrank":4, "flaky":5, "chronic":6 }[.category] // 9;
+  def rank: { "ci-broken":0, "schedule-broken":1, "silence-unattributed":2,
+              "rp-reporting-broken":3, "regression":4, "suite-shrank":5,
+              "flaky":6, "chronic":7 }[.category] // 9;
   sort_by(rank)')"
 ```
 
@@ -1077,7 +1113,7 @@ echo "CAP: ${CAP} (file at most this many issues; report every finding you skip 
 ./docs/routines/test-health/test-health-digest.test.sh
 ```
 
-Expected: `passed: 35  failed: 0`, exit 0.
+Expected: `passed: 40  failed: 0`, exit 0.
 
 - [ ] **Step 5: Commit**
 
@@ -1117,9 +1153,9 @@ Create `docs/routines/test-health/README.md` containing, in this order:
    | E2E freshness horizon | 26h |
    | Issues per run | ≤5 |
 
-5. **What it flags** — the seven categories with their rules, copied from the spec.
+5. **What it flags** — the eight categories with their rules, copied from the spec.
 6. **What it skips** — RP status `SKIPPED`, non-`main` branches, fixes merged in-window, matching open issues, issues closed `not_planned`, layer/modules with no baseline, and the cascade rule.
-7. **Fingerprint table** — all seven fingerprints exactly as in the spec.
+7. **Fingerprint table** — all eight fingerprints exactly as in the spec.
 8. **Dedup decision table** — the four rows from the spec.
 9. **Issue contract** — title format, label mapping table, first-line fingerprint rule, required body sections.
 10. **The fix contract** — reproduce the block verbatim from the spec, including "A PR that reduces the total test count for this module is wrong by construction," and the `test-infra` clause stating that resolution needs a human.
