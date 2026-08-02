@@ -185,5 +185,18 @@ check "self-healed test is not flagged a regression" "no" "$(contains 'test-regr
 out="$(RP_FIXTURE_DIR="${FIX}/regression" GH_FIXTURE_DIR="${FIX}/regression" "$D" --days 7 2>&1)"
 check "digest states the cap" "yes" "$(contains 'CAP: 5' "$out")"
 
+# --- C2: total absence of data must not read as a healthy week. The `clean`
+# fixture's one module/launch is inside the window and the 26h freshness
+# horizon at the pinned TEST_HEALTH_NOW_MS above; advancing "now" 9 days past
+# it pushes that same launch outside BOTH, so `launches` (window-filtered) is
+# empty for this module while `raw_launches` (unfiltered newest-300) still
+# knows it exists. Before the fix this produced FINDINGS: 0 and the exact
+# same STATE as the healthy run -- indistinguishable from "nothing to report."
+c2_healthy_state="$(RP_FIXTURE_DIR="${FIX}/clean" GH_FIXTURE_DIR="${FIX}/clean" TEST_HEALTH_NOW_MS=1785030000000 "$D" --days 7 --state-only 2>&1)"
+c2_stale_out="$(RP_FIXTURE_DIR="${FIX}/clean" GH_FIXTURE_DIR="${FIX}/clean" TEST_HEALTH_NOW_MS=1785777600000 "$D" --days 7 2>&1)"
+c2_stale_state="$(RP_FIXTURE_DIR="${FIX}/clean" GH_FIXTURE_DIR="${FIX}/clean" TEST_HEALTH_NOW_MS=1785777600000 "$D" --days 7 --state-only 2>&1)"
+check "C2: 9-days-stale clean fixture is no longer FINDINGS: 0" "no" "$(contains 'FINDINGS: 0' "$c2_stale_out")"
+check "C2: 9-days-stale STATE differs from the healthy run's" "no" "$([[ "$c2_healthy_state" == "$c2_stale_state" ]] && echo yes || echo no)"
+
 echo "---"; echo "passed: $pass  failed: $fail"
 [[ $fail -eq 0 ]]

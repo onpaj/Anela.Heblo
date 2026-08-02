@@ -193,13 +193,28 @@ findings='[]'
 add_finding() { findings="$(jq -n --argjson a "$findings" --argjson b "$1" '$a + [$b]')"; }
 
 # --- presence: which layer/module reported recently vs. has a baseline? ---
-# A layer/module earns an expectation by having reported at least once in the
-# window. E2E is nightly, so its freshness horizon is 26h; the push-triggered
-# layers get the full window (a quiet week on main is not a fault).
+# A layer/module earns an expectation by appearing at all — anywhere in the
+# raw, unfiltered newest-300 launch set, NOT the window-filtered `launches`.
+# Grouping over `launches` instead would mean a layer/module with ZERO
+# launches inside the window has no row here at all: `stale` is never
+# evaluated for it, and a total, permanent absence of data reads identically
+# to a clean week (this was the exact defect — advancing "now" 9 days past a
+# clean fixture produced FINDINGS: 0 and the same STATE as a healthy run).
+# raw_launches already carries every layer/module pair with any recent
+# history; the window bounds what findings are computed FROM, not what
+# presence is EXPECTED. E2E is nightly, so its freshness horizon is 26h; the
+# push-triggered layers get the full window (a quiet week on main is not a
+# fault).
 E2E_FRESH_MS=$(( 26 * 3600 * 1000 ))
 
-expected="$(printf '%s' "$launches" | jq --argjson now "$NOW_MS" --argjson fresh "$E2E_FRESH_MS" '
-  group_by(.layer + "/" + .module)
+expected="$(printf '%s' "$raw_launches" | jq --argjson now "$NOW_MS" --argjson fresh "$E2E_FRESH_MS" '
+  [ .content[]?
+    | { startTime,
+        layer:  ((.attributes[]? | select(.key=="layer")  | .value) // "unknown"),
+        module: ((.attributes[]? | select(.key=="module") | .value) // "-"),
+        branch: ((.attributes[]? | select(.key=="branch") | .value) // "unknown") }
+    | select(.branch == "main" or .branch == "unknown") ]
+  | group_by(.layer + "/" + .module)
   | map({ layer: .[0].layer, module: .[0].module,
           newest: (map(.startTime) | max),
           runs: length })
