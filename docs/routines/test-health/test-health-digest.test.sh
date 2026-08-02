@@ -148,6 +148,17 @@ out="$(RP_FIXTURE_DIR="${FIX}/flaky" GH_FIXTURE_DIR="${FIX}/flaky" "$D" --days 7
 check "flaky is detected" "yes" "$(contains 'test-flaky:e2e:catalog' "$out")"
 check "flaky is not called a regression" "no" "$(contains 'test-regress:' "$out")"
 
+# --- I1: a genuine flake whose newest two runs both happen to fail must still
+# be classified flaky, not regression. Fixture hit sequence (newest->oldest)
+# is 1101010: k=4 fails, flips=5, pass rate 42%. Before the fix, dropping the
+# old `k -eq 2` guard made `flaky` unreachable whenever recent_fails==2, so
+# this exact shape misclassified as a regression with an overclaiming
+# headline ("newly fails two runs running") and a fingerprint that could
+# never dedup against the test's own flaky fingerprint.
+out="$(RP_FIXTURE_DIR="${FIX}/flaky-newest-two-failed" GH_FIXTURE_DIR="${FIX}/flaky-newest-two-failed" "$D" --days 7 2>&1)"
+check "I1: alternating newest-two-failed test is classified flaky" "yes" "$(contains 'test-flaky:e2e:catalog' "$out")"
+check "I1: alternating newest-two-failed test is NOT called a regression" "no" "$(contains 'test-regress:' "$out")"
+
 # --- fingerprint is stable across repeated runs of the same fixture ---
 # (collision-freeness across DIFFERENT errors is checked separately below by
 # the two-errors fixture; this only proves determinism, not uniqueness.)

@@ -437,8 +437,14 @@ for key in $(printf '%s' "$launches" | jq -r '[ .[] | .layer + "/" + .module ] |
     # detection day lost the regression permanently. The two most-recently-
     # held runs both failing is the only condition that matters; the `k -eq n`
     # check just below still decides correctly whether a prior pass may be
-    # claimed.
-    elif [[ "$recent_fails" -eq 2 ]]; then
+    # claimed. But "the two newest both failed" is also exactly what a ~50%
+    # flake looks like on an unlucky day: without the flips guard, a test that
+    # has been alternating all week gets classified regression whenever the
+    # coin lands failed-failed, producing a fingerprint the flaky finding never
+    # shares — two open issues, two labels, for one already-known flake. Fall
+    # through to the flaky branch below instead whenever the window shows real
+    # alternation (flips >= 2).
+    elif [[ "$recent_fails" -eq 2 && "$flips" -lt 2 ]]; then
       # Claim a prior pass only when one was observed. At n=2 the entire window
       # is red, so "passed earlier" would assert evidence we do not hold — the
       # same overclaim as the chronic headline that used to say "for a week".
