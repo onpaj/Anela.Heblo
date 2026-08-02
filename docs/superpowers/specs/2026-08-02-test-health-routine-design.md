@@ -73,9 +73,10 @@ task step. It currently contains only `CLAUDE_CODE_OAUTH_TOKEN`. This routine ne
 | `RP_PROJECT` | `heblo` (default if unset) | reading launches |
 | `GIT_PAT` *or* `GITHUB_TOKEN` | GitHub PAT, or the gh keyring | filing issues |
 
-`gh-api.sh` is extended to fall back to `GITHUB_TOKEN` when `GIT_PAT` is unset, since
-`harness-run.sh` already derives `GITHUB_TOKEN` from `gh auth token`. That removes one
-of the three variables that silently disabled `telemetry-anomaly`.
+`gh-api.sh` already resolves its token as `${GIT_PAT:-${GITHUB_TOKEN:-}}`, and
+`harness-run.sh` already exports `GITHUB_TOKEN` from `gh auth token`. So issue filing
+should work without adding `GIT_PAT` at all — **`RP_API_KEY` is expected to be the only
+variable that must be added by hand.** Task 1 verifies this rather than assuming it.
 
 ReportPortal is tailnet-only (`nas.tail0cdb23.ts.net:8080`). The harness host `hermes`
 is on the tailnet and reaches it directly — verified 2026-08-02, the API answers `401`
@@ -89,7 +90,7 @@ without a key. No Tailscale hop is needed on this side, unlike CI.
 |---|---|
 | `rp-query.sh` | Authenticated ReportPortal REST helper. Auth `Authorization: Bearer $RP_API_KEY`, base `$RP_ENDPOINT`. `--test` self-checks connectivity and credentials. |
 | `test-health-digest.sh` | The deterministic engine. Runs the curated RP query set over a window, cross-checks GitHub Actions runs, emits a Markdown digest plus a machine-readable state line. |
-| `gh-api.sh` | Copied from `telemetry-anomaly/`, with the `GITHUB_TOKEN` fallback added. Kept co-located so the routine folder is self-contained. |
+| `gh-api.sh` | Copied verbatim from `telemetry-anomaly/`, with only the `find-signal` search predicate changed (`label:telemetry` → `label:test-health`, `telemetry-signal:` → `test-signal:`). Kept co-located so the routine folder is self-contained. |
 | `README.md` | Routine definition: flag/skip rules, fingerprint scheme, dedup rules, caps. The agent reads this first; tuning happens here. |
 | `fixtures/` | Recorded ReportPortal JSON responses for offline tests. |
 | `test-health-digest.test.sh` | Offline test of the digest logic against `fixtures/`. |
