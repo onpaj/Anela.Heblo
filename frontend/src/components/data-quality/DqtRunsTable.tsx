@@ -9,6 +9,7 @@ import {
   AlertCircle,
 } from 'lucide-react';
 import { useDqtRuns, DqtRunDto } from '../../api/hooks/useDataQuality';
+import { formatDate, formatDateTime } from '../../utils/formatters';
 
 interface DqtRunsTableProps {
   onRunSelect: (runId: string) => void;
@@ -24,18 +25,6 @@ const TEST_TYPE_LABELS: Record<string, string> = {
   LotSumVsErpStock: 'Šarže vs. ERP sklad',
 };
 
-const formatDateTime = (iso: string): string => {
-  if (!iso) return '—';
-  const d = new Date(iso);
-  return d.toLocaleString('cs-CZ', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
-};
-
 const StatusIcon: React.FC<{ run: DqtRunDto }> = ({ run }) => {
   if (run.status === 'Failed') {
     return <XCircle className="h-4 w-4 text-red-500 dark:text-red-400" />;
@@ -43,7 +32,7 @@ const StatusIcon: React.FC<{ run: DqtRunDto }> = ({ run }) => {
   if (run.status === 'Running') {
     return <Loader2 className="h-4 w-4 text-indigo-500 dark:text-graphite-accent animate-spin" />;
   }
-  if (run.status === 'Completed' && run.totalMismatches > 0) {
+  if (run.status === 'Completed' && (run.totalMismatches ?? 0) > 0) {
     return <AlertTriangle className="h-4 w-4 text-yellow-500" />;
   }
   return <CheckCircle className="h-4 w-4 text-green-500" />;
@@ -119,7 +108,7 @@ const DqtRunsTable: React.FC<DqtRunsTableProps> = ({ onRunSelect, selectedRunId 
               return (
                 <tr
                   key={run.id}
-                  onClick={() => onRunSelect(run.id)}
+                  onClick={() => onRunSelect(run.id ?? '')}
                   className={`cursor-pointer transition-colors ${
                     isSelected
                       ? 'bg-indigo-50 dark:bg-graphite-accent/10 border-l-2 border-indigo-500 dark:border-graphite-accent'
@@ -130,17 +119,17 @@ const DqtRunsTable: React.FC<DqtRunsTableProps> = ({ onRunSelect, selectedRunId 
                     <StatusIcon run={run} />
                   </td>
                   <td className="px-3 py-3 text-sm text-gray-700 dark:text-graphite-muted whitespace-nowrap">
-                    {TEST_TYPE_LABELS[run.testType] ?? run.testType}
+                    {run.testType ? (TEST_TYPE_LABELS[run.testType] ?? run.testType) : '—'}
                   </td>
                   <td className="px-3 py-3 text-sm text-gray-900 dark:text-graphite-text whitespace-nowrap">
-                    {run.dateFrom} — {run.dateTo}
+                    {formatDate(run.dateFrom)} — {formatDate(run.dateTo)}
                   </td>
                   <td className="px-3 py-3 text-sm text-gray-700 dark:text-graphite-muted text-center">
                     {run.totalChecked}
                   </td>
                   <td className="px-3 py-3 text-sm font-medium text-center">
                     <span
-                      className={run.totalMismatches > 0 ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-emerald-400'}
+                      className={(run.totalMismatches ?? 0) > 0 ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-emerald-400'}
                     >
                       {run.totalMismatches}
                     </span>
