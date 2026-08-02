@@ -27,27 +27,6 @@ DAYS=7
 STATE_ONLY=0
 STATE_FILE="${TEST_HEALTH_STATE_FILE:-$HOME/.cache/test-health/state}"
 
-err()  { echo "Error: $*" >&2; exit 1; }
-errc() { local c="$1"; shift; echo "Error: $*" >&2; exit "$c"; }
-
-command -v jq >/dev/null || err "jq is required (expected on PATH, e.g. /Users/rem/.local/bin)."
-# perl is not decoration: normalize_error's hex-id rule needs a lookahead that
-# sed -E cannot express. Without this guard its absence is silent and total —
-# the pipeline yields an empty string for every error line, so every regression
-# and chronic fingerprint in the run collapses onto sha256("") and dedup drops
-# everything after the first.
-command -v perl >/dev/null || err "perl is required for normalize_error's hex-id rule."
-[[ -x "$RP" ]] || err "${RP} not found or not executable."
-
-while [[ $# -gt 0 ]]; do
-  case "$1" in
-    --days)       DAYS="${2:?--days requires a number}"; shift 2 ;;
-    --state-only) STATE_ONLY=1; shift ;;
-    -h|--help)    awk 'NR>1 && /^#/ {sub(/^# ?/,""); print; next} NR>1 {exit}' "$0"; exit 0 ;;
-    *)            err "unknown argument '$1'." ;;
-  esac
-done
-
 # BSD date first (macOS host), GNU date as fallback.
 day_offset() { # day_offset N -> the UTC date N days ago as YYYY-MM-DD
   date -u -v-"${1}"d +%Y-%m-%d 2>/dev/null || date -u -d "${1} days ago" +%Y-%m-%d 2>/dev/null \
@@ -57,32 +36,6 @@ fmt_epoch() { # fmt_epoch <epoch-seconds> -> ISO-8601 UTC
   date -u -r "$1" +%Y-%m-%dT%H:%M:%SZ 2>/dev/null \
     || date -u -d "@$1" +%Y-%m-%dT%H:%M:%SZ 2>/dev/null \
     || echo "epoch:$1"
-}
-
-GH="${HERE}/gh-api.sh"
-
-# A GitHub failure must be distinguishable from "GitHub says there are no runs".
-# Collapsing the two is the same mistake as reporting an unreadable ReportPortal
-# as "the tests did not run": it would make a GitHub outage look like proof that
-# the nightly was never scheduled, defeat cascade suppression, and file one
-# issue per stale module — eleven harness:todo issues, eleven PRs, one cause.
-GH_UNREACHABLE='{"workflow_runs":[],"__gh_error":true}'
-
-# Fetch a GitHub REST path, honouring GH_FIXTURE_DIR for offline replay. Uses
-# the same file-naming rule as rp-query.sh so fixtures are predictable.
-gh_get() {
-  local p="$1" out rc
-  if [[ -n "${GH_FIXTURE_DIR:-}" ]]; then
-    local name file
-    name="$(printf '%s' "${p#/}" | sed 's/[^A-Za-z0-9._-]/_/g')"
-    file="${GH_FIXTURE_DIR}/${name}.json"
-    if [[ -f "$file" ]]; then cat "$file"; else echo '{"workflow_runs":[]}'; fi
-    return 0
-  fi
-  [[ -x "$GH" ]] || { echo "$GH_UNREACHABLE"; return 0; }
-  out="$("$GH" GET "$p" 2>/dev/null)"; rc=$?
-  if [[ $rc -ne 0 ]]; then echo "$GH_UNREACHABLE"; return 0; fi
-  printf '%s' "$out"
 }
 
 TODAY="$(date -u +%Y-%m-%d)"
@@ -109,11 +62,74 @@ record_error_and_exit() { # record_error_and_exit <exit-code> <message>
   printf 'lastErrorDate=%s\nerrDays=%s\n' "$TODAY" "$n" > "$STATE_FILE" 2>/dev/null || true
   echo "STATE: error=${code}:errdays=${n}"
   echo "Error: ${msg} (exit ${code}, consecutive error days: ${n})" >&2
+  # The harness's command check discards stdout entirely on a nonzero exit and
+  # returns no observation at all in --state-only mode, so a real error code
+  # here would be total silence to the scheduler — exit 0 instead so the
+  # changed STATE line above still reaches it and dispatches the agent. Full
+  # mode (the agent invocation) keeps the real code; the agent reads it.
+  if [[ "$STATE_ONLY" -eq 1 ]]; then exit 0; fi
   exit "$code"
 }
 
 clear_error_days() {
   printf 'lastErrorDate=\nerrDays=0\n' > "$STATE_FILE" 2>/dev/null || true
+}
+
+err()  {
+  # Startup/config failures must reach the harness in --state-only mode just
+  # like a runtime RP error does — otherwise a missing jq/perl/rp-query.sh or
+  # a bad argument produces total silence instead of an escalating finding.
+  if [[ "$STATE_ONLY" -eq 1 ]]; then record_error_and_exit 1 "$*"; fi
+  echo "Error: $*" >&2
+  exit 1
+}
+errc() { local c="$1"; shift; echo "Error: $*" >&2; exit "$c"; }
+
+# Argument parsing happens BEFORE the dependency checks below: those checks
+# call err(), which needs to already know whether --state-only was passed so a
+# missing jq/perl/rp-query.sh doesn't produce silence in state-only mode.
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --days)       DAYS="${2:?--days requires a number}"; shift 2 ;;
+    --state-only) STATE_ONLY=1; shift ;;
+    -h|--help)    awk 'NR>1 && /^#/ {sub(/^# ?/,""); print; next} NR>1 {exit}' "$0"; exit 0 ;;
+    *)            err "unknown argument '$1'." ;;
+  esac
+done
+
+command -v jq >/dev/null || err "jq is required (expected on PATH, e.g. /Users/rem/.local/bin)."
+# perl is not decoration: normalize_error's hex-id rule needs a lookahead that
+# sed -E cannot express. Without this guard its absence is silent and total —
+# the pipeline yields an empty string for every error line, so every regression
+# and chronic fingerprint in the run collapses onto sha256("") and dedup drops
+# everything after the first.
+command -v perl >/dev/null || err "perl is required for normalize_error's hex-id rule."
+[[ -x "$RP" ]] || err "${RP} not found or not executable."
+
+GH="${HERE}/gh-api.sh"
+
+# A GitHub failure must be distinguishable from "GitHub says there are no runs".
+# Collapsing the two is the same mistake as reporting an unreadable ReportPortal
+# as "the tests did not run": it would make a GitHub outage look like proof that
+# the nightly was never scheduled, defeat cascade suppression, and file one
+# issue per stale module — eleven harness:todo issues, eleven PRs, one cause.
+GH_UNREACHABLE='{"workflow_runs":[],"__gh_error":true}'
+
+# Fetch a GitHub REST path, honouring GH_FIXTURE_DIR for offline replay. Uses
+# the same file-naming rule as rp-query.sh so fixtures are predictable.
+gh_get() {
+  local p="$1" out rc
+  if [[ -n "${GH_FIXTURE_DIR:-}" ]]; then
+    local name file
+    name="$(printf '%s' "${p#/}" | sed 's/[^A-Za-z0-9._-]/_/g')"
+    file="${GH_FIXTURE_DIR}/${name}.json"
+    if [[ -f "$file" ]]; then cat "$file"; else echo '{"workflow_runs":[]}'; fi
+    return 0
+  fi
+  [[ -x "$GH" ]] || { echo "$GH_UNREACHABLE"; return 0; }
+  out="$("$GH" GET "$p" 2>/dev/null)"; rc=$?
+  if [[ $rc -ne 0 ]]; then echo "$GH_UNREACHABLE"; return 0; fi
+  printf '%s' "$out"
 }
 
 # "Now" is overridable so that fixtures can pin it. Fixtures carry absolute

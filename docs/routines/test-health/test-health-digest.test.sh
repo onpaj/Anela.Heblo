@@ -42,6 +42,31 @@ out="$(RP_FIXTURE_DIR=/nonexistent-fixture-dir "$D" --days 7 2>&1)"; rc=$?
 check "unreachable/failed fetch is nonzero" "yes" "$([[ $rc -ne 0 ]] && echo yes || echo no)"
 check "unreachable files no silence findings" "no" "$(contains 'test-silence:' "$out")"
 
+# --- C1: error paths must reach the harness. In --state-only mode the
+# harness's command check discards stdout entirely on a nonzero exit and
+# returns no observation at all, so an RP-unreachable/auth-rejected/5xx/
+# config error must exit 0 (with the STATE line already printed) instead of
+# leaving the harness in total silence. Full mode keeps exiting with the real
+# code, since the agent (not the harness's own check) reads it. ---
+c1sf="$(mktemp)"; rm -f "$c1sf"
+out="$(TEST_HEALTH_STATE_FILE="$c1sf" RP_FIXTURE_DIR=/nonexistent-fixture-dir "$D" --days 7 --state-only 2>&1)"; rc=$?
+check "C1: --state-only + unreachable RP exits 0" "0" "$rc"
+check "C1: --state-only + unreachable RP still prints STATE: error=" "yes" "$(contains 'STATE: error=' "$out")"
+rm -f "$c1sf"
+
+# --- C1: startup err() (missing tool / bad argument) must ALSO route through
+# the state-emitting path in --state-only mode, not just runtime RP errors.
+# A bad argument is the portable stand-in here for "missing jq/perl/rp-query.sh"
+# (those require sabotaging PATH); the mechanism err() uses is identical.
+c1sf2="$(mktemp)"; rm -f "$c1sf2"
+out="$(TEST_HEALTH_STATE_FILE="$c1sf2" "$D" --state-only --bogus-argument 2>&1)"; rc=$?
+check "C1: --state-only + bad argument exits 0" "0" "$rc"
+check "C1: --state-only + bad argument prints STATE: error=" "yes" "$(contains 'STATE: error=' "$out")"
+rm -f "$c1sf2"
+
+out="$("$D" --bogus-argument 2>&1)"; rc=$?
+check "C1: bad argument WITHOUT --state-only still exits nonzero" "yes" "$([[ $rc -ne 0 ]] && echo yes || echo no)"
+
 # --- consecutive-error-day counter escalates; success clears it ---
 esf="$(mktemp)"; rm -f "$esf"
 out="$(TEST_HEALTH_STATE_FILE="$esf" RP_FIXTURE_DIR=/nonexistent "$D" --days 7 2>&1)"
