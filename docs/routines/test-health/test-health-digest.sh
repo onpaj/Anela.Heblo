@@ -271,7 +271,7 @@ expected="$(printf '%s' "$raw_launches" | jq --argjson now "$NOW_MS" --argjson f
           newest: (map(.startTime) | max),
           runs: length })
   | map(. + { stale: (if .layer == "e2e" then (($now - .newest) > $fresh) else false end) })
-')"
+')" || record_error_and_exit 5 "could not compute expected layer/module presence from the launch payload."
 
 stale_e2e="$(printf '%s' "$expected" | jq '[ .[] | select(.stale) ] | length')"
 fresh_e2e="$(printf '%s' "$expected" | jq '[ .[] | select(.layer=="e2e" and (.stale|not)) ] | length')"
@@ -541,7 +541,11 @@ findings="$(printf '%s' "$findings" | jq '
       | ($g[0]) as $survivor
       | ($g[1:] | map(.test // empty) | unique) as $others
       | if ($others | length) > 0 then
-          $survivor + { detail: ($survivor.detail + " Also affects: " + ($others | join(", "))) }
+          # A bare space here runs the error line straight into "Also
+          # affects", e.g. "...Network request failed Also affects: ..." —
+          # the agent copies that verbatim into an issue body. An explicit
+          # separator keeps the two clauses visually distinct.
+          $survivor + { detail: ($survivor.detail + " — Also affects: " + ($others | join(", "))) }
         else $survivor end
     )
   | sort_by(rank)')"
