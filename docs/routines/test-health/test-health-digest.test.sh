@@ -60,5 +60,20 @@ check "a successful run reports errdays=0" "yes" "$(contains 'errdays=0' "$out")
 check "a successful run clears the state file" "0" "$(sed -n 's/^errDays=//p' "$esf" | head -1)"
 rm -f "$esf"
 
+# --- partial outage: launches readable, per-launch item fetch fails ---
+# The realistic shape of a half-up ReportPortal. This must take the SAME error
+# path as a total outage: a STATE line, an incremented day counter, and above
+# all no silence findings — never "the tests did not run".
+partial="$(mktemp -d)"
+cp "${FIX}/clean/launch_page.size_300_page.sort_startTime_DESC.json" "$partial/"
+# deliberately omit the item_* fixtures so every per-launch fetch fails
+esf2="$(mktemp)"; rm -f "$esf2"
+out="$(TEST_HEALTH_STATE_FILE="$esf2" RP_FIXTURE_DIR="$partial" "$D" --days 7 2>&1)"; rc=$?
+check "item-fetch failure exits nonzero" "yes" "$([[ $rc -ne 0 ]] && echo yes || echo no)"
+check "item-fetch failure emits a state line" "yes" "$(contains 'STATE: error=' "$out")"
+check "item-fetch failure counts an error day" "yes" "$(contains 'errdays=1' "$out")"
+check "item-fetch failure files no silence findings" "no" "$(contains 'test-silence:' "$out")"
+rm -rf "$partial"; rm -f "$esf2"
+
 echo "---"; echo "passed: $pass  failed: $fail"
 [[ $fail -eq 0 ]]

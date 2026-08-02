@@ -36,7 +36,7 @@ while [[ $# -gt 0 ]]; do
   case "$1" in
     --days)       DAYS="${2:?--days requires a number}"; shift 2 ;;
     --state-only) STATE_ONLY=1; shift ;;
-    -h|--help)    sed -n '2,22p' "$0"; exit 0 ;;
+    -h|--help)    awk 'NR>1 && /^#/ {sub(/^# ?/,""); print; next} NR>1 {exit}' "$0"; exit 0 ;;
     *)            err "unknown argument '$1'." ;;
   esac
 done
@@ -45,6 +45,11 @@ done
 day_offset() { # day_offset N -> the UTC date N days ago as YYYY-MM-DD
   date -u -v-"${1}"d +%Y-%m-%d 2>/dev/null || date -u -d "${1} days ago" +%Y-%m-%d 2>/dev/null \
     || err "neither BSD nor GNU date available."
+}
+fmt_epoch() { # fmt_epoch <epoch-seconds> -> ISO-8601 UTC
+  date -u -r "$1" +%Y-%m-%dT%H:%M:%SZ 2>/dev/null \
+    || date -u -d "@$1" +%Y-%m-%dT%H:%M:%SZ 2>/dev/null \
+    || echo "epoch:$1"
 }
 
 TODAY="$(date -u +%Y-%m-%d)"
@@ -116,7 +121,12 @@ launches="$(printf '%s' "$raw_launches" | jq --argjson since "$WINDOW_START_MS" 
 failed_items='[]'
 for id in $(printf '%s' "$launches" | jq -r '.[].id'); do
   p="/item?filter.eq.launchId=${id}&filter.in.status=FAILED,INTERRUPTED&page.size=300"
-  body="$("$RP" "$p")" || errc $? "could not read failed items for launch ${id}."
+  # MUST route through record_error_and_exit, exactly like the launches call.
+  # A partial RP outage — launch list serving, item queries failing — is a real
+  # shape, and taking the plain errc() path here would print no STATE line and
+  # leave the error-day counter frozen, so the scheduler would dedup the failure
+  # into silence. That is the precise failure this counter exists to prevent.
+  body="$("$RP" "$p")" || record_error_and_exit $? "could not read failed items for launch ${id}"
   chunk="$(printf '%s' "$body" | jq --argjson lid "$id" '
     [ .content[]? | { launchId: $lid,
                       name: (.name // "unknown"),
@@ -156,7 +166,7 @@ launch_count="$(printf '%s' "$launches" | jq 'length')"
 cat <<EOF
 # Test-health digest
 
-- **Window:** last ${DAYS} days (since $(date -u -r $((WINDOW_START_MS/1000)) +%Y-%m-%dT%H:%M:%SZ 2>/dev/null || echo "${WINDOW_START_MS}ms"))
+- **Window:** last ${DAYS} days (since $(fmt_epoch $((WINDOW_START_MS/1000))))
 - **Generated:** $(date -u +%Y-%m-%dT%H:%M:%SZ)
 - **Source:** ReportPortal project ${RP_PROJECT:-heblo}
 - **Launches in window:** ${launch_count}
