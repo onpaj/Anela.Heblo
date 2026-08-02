@@ -495,6 +495,12 @@ err()  { echo "Error: $*" >&2; exit 1; }
 errc() { local c="$1"; shift; echo "Error: $*" >&2; exit "$c"; }
 
 command -v jq >/dev/null || err "jq is required (expected on PATH, e.g. /Users/rem/.local/bin)."
+# perl is not decoration: normalize_error's hex-id rule needs a lookahead that
+# sed -E cannot express. Without this guard its absence is silent and total —
+# the pipeline yields an empty string for every error line, so every regression
+# and chronic fingerprint in the run collapses onto sha256("") and dedup drops
+# everything after the first.
+command -v perl >/dev/null || err "perl is required for normalize_error's hex-id rule."
 [[ -x "$RP" ]] || err "${RP} not found or not executable."
 
 while [[ $# -gt 0 ]]; do
@@ -1163,11 +1169,19 @@ for key in $(printf '%s' "$launches" | jq -r '[ .[] | .layer + "/" + .module ] |
         headline: ($l + "/" + $m + ": \"" + $t + "\" failed all " + ($n|tostring) + " runs in the window (spanning " + ($sd|tostring) + " days)"),
         detail: ("Red in every launch held for this module — no passing run to compare against. First error line: " + $e) }')"
     elif [[ "$recent_fails" -eq 2 && "$k" -eq 2 ]]; then
-      add_finding "$(jq -n --arg l "$l" --arg m "$m" --arg h "$hash8" --arg t "$t" --arg e "$err_line" '{
+      # Claim a prior pass only when one was observed. At n=2 the entire window
+      # is red, so "passed earlier" would assert evidence we do not hold — the
+      # same overclaim as the chronic headline that used to say "for a week".
+      if [[ "$k" -eq "$n" ]]; then
+        reg_detail="No passing run observed: all ${n} launches held for this module are red, which is too thin a history to call it chronic."
+      else
+        reg_detail="Passed earlier in the window, now failing."
+      fi
+      add_finding "$(jq -n --arg l "$l" --arg m "$m" --arg h "$hash8" --arg t "$t" --arg e "$err_line" --arg d "$reg_detail" '{
         category: "regression", layer: $l, module: $m,
         fingerprint: ("test-regress:" + $l + ":" + $m + ":" + $h),
         headline: ($l + "/" + $m + ": \"" + $t + "\" newly fails two runs running"),
-        detail: ("Passed earlier in the window, now failing. First error line: " + $e) }')"
+        detail: ($d + " First error line: " + $e) }')"
     # Compare without pre-dividing: pass_pct floors, so `pass_pct <= 80` admits
     # true rates up to 80.99% into the band. pass_pct is kept for the headline.
     elif [[ "$k" -gt 0 && "$k" -lt "$n" && "$flips" -ge 2 \
