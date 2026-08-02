@@ -977,6 +977,8 @@ Create the three fixture sets:
 - `fixtures/flaky/` — one module, four launches; the same test fails in launches 1 and 3 only (pass rate 50%, 2+ flips).
 - `fixtures/two-errors/` — one module, four launches; the newest two each carry **two** failed items for two different tests, with structurally similar but numerically different errors: `AssertionError: expected list length 12 to equal 8` and `AssertionError: expected list length 47 to equal 3`. Both are regressions, and they must hash differently.
 - `fixtures/chronic/` — one module, **seven** launches spanning the window with the newest inside 26h, the same test failing in every one.
+- `fixtures/big-numbers/` — one module, four launches; the newest two each carry two failed items for two different tests whose errors contain different 8+ digit **decimal** values, e.g. `expected 123456789 to equal 3` and `expected 987654321 to equal 3`. They must hash differently.
+- `fixtures/chronic-thin/` — one module, exactly two launches, the same test failing in both. Below the `n>=3` floor, so no chronic finding.
 - `fixtures/self-healed/` — one module, five launches; the same test fails in the two **oldest** only and passes in the newest three. `k=2` but `recent_fails=0` and `flips=1`, so it is neither a regression nor flaky.
 
 Every fixture's newest launch must sit within 26h of `TEST_HEALTH_NOW_MS=1785030000000`, or the E2E freshness check classifies the module as missing data before any of this logic runs.
@@ -1011,10 +1013,20 @@ out="$(RP_FIXTURE_DIR="${FIX}/two-errors" GH_FIXTURE_DIR="${FIX}/two-errors" "$D
 n="$(printf '%s\n' "$out" | grep -o 'test-regress:[^ `]*' | sort -u | grep -c .)"
 check "two different errors get two fingerprints" "2" "$n"
 
-# --- chronic: red every run for a week ---
+# --- an 8+ digit DECIMAL must not be normalized like a hex id ---
+out="$(RP_FIXTURE_DIR="${FIX}/big-numbers" GH_FIXTURE_DIR="${FIX}/big-numbers" "$D" --days 7 2>&1)"
+n="$(printf '%s\n' "$out" | grep -o 'test-regress:[^ `]*' | sort -u | grep -c .)"
+check "large decimals do not collide into one fingerprint" "2" "$n"
+
+# --- chronic: red in every run held ---
 out="$(RP_FIXTURE_DIR="${FIX}/chronic" GH_FIXTURE_DIR="${FIX}/chronic" "$D" --days 7 2>&1)"
 check "chronic is detected" "yes" "$(contains 'test-chronic:e2e:catalog:' "$out")"
 check "chronic is not also called flaky" "no" "$(contains 'test-flaky:' "$out")"
+check "chronic reports a measured span, not a claimed week" "no" "$(contains 'for a week' "$out")"
+
+# --- thin history is not chronic: two launches is not "every run" evidence ---
+out="$(RP_FIXTURE_DIR="${FIX}/chronic-thin" GH_FIXTURE_DIR="${FIX}/chronic-thin" "$D" --days 7 2>&1)"
+check "two all-red launches are not called chronic" "no" "$(contains 'test-chronic:' "$out")"
 
 # --- a self-healed test is neither flaky nor a regression ---
 # Failed the two oldest runs, green ever since: one flip, and the failures are
@@ -1034,7 +1046,7 @@ check "digest states the cap" "yes" "$(contains 'CAP: 5' "$out")"
 ./docs/routines/test-health/test-health-digest.test.sh
 ```
 
-Expected: the twelve new checks FAIL; the thirty-three prior checks still pass.
+Expected: the sixteen new checks FAIL; the thirty-three prior checks still pass.
 
 - [ ] **Step 3: Write minimal implementation**
 
@@ -1073,9 +1085,15 @@ done
 # one broken fixture across fifteen specs clusters into one issue — that
 # collision would make two different regressions in the same module share a
 # fingerprint, and dedup would silently drop the second.
+# The hex-id rule must require an actual hex letter. `[0-9a-f]{8,}` matches any
+# 8+ digit DECIMAL too, since 0-9 is a subset of 0-9a-f — so "expected 123456789"
+# and "expected 987654321" both become "expected <id>" and collide. perl's
+# lookahead expresses "8+ hex chars, at least one of them a letter" exactly;
+# sed's ERE cannot, and perl is present on every macOS host.
 normalize_error() {
   printf '%s' "$1" \
-    | sed -E 's/[0-9]+ms/<ms>/g; s/:[0-9]+:[0-9]+/:<pos>/g; s/[0-9a-f]{8,}/<id>/gi; s/[0-9]{4}-[0-9]{2}-[0-9]{2}[T ][0-9:.]+/<ts>/g' \
+    | sed -E 's/[0-9]+ms/<ms>/g; s/:[0-9]+:[0-9]+/:<pos>/g; s/[0-9]{4}-[0-9]{2}-[0-9]{2}[T ][0-9:.]+/<ts>/g' \
+    | perl -pe 's/\b(?=[0-9a-f]{8,}\b)(?=[0-9a-f]*[a-f])[0-9a-f]+\b/<id>/gi' \
     | cut -c1-200
 }
 
@@ -1086,6 +1104,13 @@ for key in $(printf '%s' "$launches" | jq -r '[ .[] | .layer + "/" + .module ] |
     '[ .[] | select(.layer==$l and .module==$m) ] | sort_by(-.startTime) | .[].id')"
   n="$(printf '%s\n' "$ids" | grep -c .)"
   [[ "$n" -ge 2 ]] || continue
+
+  # Real elapsed days between this module's oldest and newest launch, so a
+  # finding can report the span it actually observed rather than inferring one
+  # from a run count.
+  span_days="$(printf '%s' "$launches" | jq --arg l "$l" --arg m "$m" \
+    '[ .[] | select(.layer==$l and .module==$m) | .startTime ]
+     | ((max - min) / 86400000) | floor')"
 
   tests="$(printf '%s' "$failed_items" | jq -r --argjson ids "$(printf '%s\n' "$ids" | jq -R . | jq -s 'map(tonumber)')" \
     '[ .[] | select(.launchId as $x | $ids | index($x)) | (.path + " > " + .name) ] | unique | .[]')"
@@ -1123,12 +1148,20 @@ for key in $(printf '%s' "$launches" | jq -r '[ .[] | .layer + "/" + .module ] |
     hash8="$(printf '%s' "$norm" | shasum -a 256 | cut -c1-8)"
     pass_pct=$(( (n - k) * 100 / n ))
 
-    if [[ "$k" -eq "$n" && "$n" -ge 7 ]]; then
-      add_finding "$(jq -n --arg l "$l" --arg m "$m" --arg h "$hash8" --arg t "$t" --arg e "$err_line" '{
+    # Chronic means "red in every run we have", not "red in seven runs". A
+    # launch count is only a calendar week for the nightly E2E layer; backend
+    # and frontend report per push to main, where seven launches can be a single
+    # afternoon — filing an issue headlined "for a week" that is simply false —
+    # or never accumulate at all in a quiet week, leaving a permanently red test
+    # re-filed as a fresh regression forever. The headline states the real span
+    # and run count instead of asserting a duration it has not measured.
+    if [[ "$k" -eq "$n" && "$n" -ge 3 ]]; then
+      add_finding "$(jq -n --arg l "$l" --arg m "$m" --arg h "$hash8" --arg t "$t" --arg e "$err_line" \
+                            --argjson n "$n" --argjson sd "$span_days" '{
         category: "chronic", layer: $l, module: $m,
         fingerprint: ("test-chronic:" + $l + ":" + $m + ":" + $h),
-        headline: ($l + "/" + $m + ": \"" + $t + "\" has failed every run for a week"),
-        detail: ("First error line: " + $e) }')"
+        headline: ($l + "/" + $m + ": \"" + $t + "\" failed all " + ($n|tostring) + " runs in the window (spanning " + ($sd|tostring) + " days)"),
+        detail: ("Red in every launch held for this module — no passing run to compare against. First error line: " + $e) }')"
     elif [[ "$recent_fails" -eq 2 && "$k" -eq 2 ]]; then
       add_finding "$(jq -n --arg l "$l" --arg m "$m" --arg h "$hash8" --arg t "$t" --arg e "$err_line" '{
         category: "regression", layer: $l, module: $m,
@@ -1171,7 +1204,7 @@ echo "CAP: ${CAP} (file at most this many issues; report every finding you skip 
 ./docs/routines/test-health/test-health-digest.test.sh
 ```
 
-Expected: `passed: 45  failed: 0`, exit 0.
+Expected: `passed: 49  failed: 0`, exit 0.
 
 - [ ] **Step 5: Commit**
 

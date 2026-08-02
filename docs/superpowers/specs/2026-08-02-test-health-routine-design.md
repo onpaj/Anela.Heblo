@@ -173,7 +173,7 @@ the nightly matrix: `catalog`, `issued-invoices`, `stock-operations`, `transport
 | `suite-shrank` | Test count for a layer/module fell ≥20% below the 7-day median while the launch still succeeded. Catches silent skips and fixtures aborting a spec early. |
 | `regression` | A test that passed within the window now fails in the latest **2 consecutive** E2E runs, or the latest **1** backend/frontend run (those are push-triggered and deterministic). |
 | `flaky` | A test both passed and failed within the window with ≥2 status flips and a pass rate between 20% and 80%. |
-| `chronic` | A test failing in every run for ≥7 days. Filed once, then suppressed by dedup. |
+| `chronic` | A test failing in **every** launch held for its layer/module, with at least 3 launches to judge from. Deliberately not a run count standing in for a duration: seven launches is a week only for the nightly E2E layer, while backend/frontend report per push. The headline reports the measured span and run count rather than asserting a week it has not verified. Filed once, then suppressed by dedup. |
 
 ### Skipped deliberately
 
