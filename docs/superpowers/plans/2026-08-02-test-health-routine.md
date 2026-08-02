@@ -975,6 +975,11 @@ Create the three fixture sets:
 - `fixtures/shrank/` — one module, two launches, `statistics.executions.total` of `20` on the older three and `14` on the newest (30% drop, both `PASSED`).
 - `fixtures/regression/` — one module, four nightly launches; the newest two both list the same failed item `catalog.spec.ts > filters by product type` with error `TimeoutError: locator.click: Timeout 30000ms exceeded`, the older two list none.
 - `fixtures/flaky/` — one module, four launches; the same test fails in launches 1 and 3 only (pass rate 50%, 2+ flips).
+- `fixtures/two-errors/` — one module, four launches; the newest two each carry **two** failed items for two different tests, with structurally similar but numerically different errors: `AssertionError: expected list length 12 to equal 8` and `AssertionError: expected list length 47 to equal 3`. Both are regressions, and they must hash differently.
+- `fixtures/chronic/` — one module, **seven** launches spanning the window with the newest inside 26h, the same test failing in every one.
+- `fixtures/self-healed/` — one module, five launches; the same test fails in the two **oldest** only and passes in the newest three. `k=2` but `recent_fails=0` and `flips=1`, so it is neither a regression nor flaky.
+
+Every fixture's newest launch must sit within 26h of `TEST_HEALTH_NOW_MS=1785030000000`, or the E2E freshness check classifies the module as missing data before any of this logic runs.
 
 Append to `test-health-digest.test.sh`:
 
@@ -998,6 +1003,26 @@ a="$(RP_FIXTURE_DIR="${FIX}/regression" GH_FIXTURE_DIR="${FIX}/regression" "$D" 
 b="$(RP_FIXTURE_DIR="${FIX}/regression" GH_FIXTURE_DIR="${FIX}/regression" "$D" --days 7 2>&1 | grep -o 'test-regress:[^ `]*' | head -1)"
 check "fingerprint is stable across runs" "$a" "$b"
 
+# --- two different errors must NOT collide into one fingerprint ---
+# The regression fingerprint carries no test path, so a normalization that
+# over-generalises makes two distinct regressions in one module share an id and
+# dedup silently drops the second.
+out="$(RP_FIXTURE_DIR="${FIX}/two-errors" GH_FIXTURE_DIR="${FIX}/two-errors" "$D" --days 7 2>&1)"
+n="$(printf '%s\n' "$out" | grep -o 'test-regress:[^ `]*' | sort -u | grep -c .)"
+check "two different errors get two fingerprints" "2" "$n"
+
+# --- chronic: red every run for a week ---
+out="$(RP_FIXTURE_DIR="${FIX}/chronic" GH_FIXTURE_DIR="${FIX}/chronic" "$D" --days 7 2>&1)"
+check "chronic is detected" "yes" "$(contains 'test-chronic:e2e:catalog:' "$out")"
+check "chronic is not also called flaky" "no" "$(contains 'test-flaky:' "$out")"
+
+# --- a self-healed test is neither flaky nor a regression ---
+# Failed the two oldest runs, green ever since: one flip, and the failures are
+# not recent. Filing this would be a pull request to fix an already-fixed test.
+out="$(RP_FIXTURE_DIR="${FIX}/self-healed" GH_FIXTURE_DIR="${FIX}/self-healed" "$D" --days 7 2>&1)"
+check "self-healed test is not flagged flaky" "no" "$(contains 'test-flaky:' "$out")"
+check "self-healed test is not flagged a regression" "no" "$(contains 'test-regress:' "$out")"
+
 # --- the cap is enforced and stated, never silent ---
 out="$(RP_FIXTURE_DIR="${FIX}/regression" GH_FIXTURE_DIR="${FIX}/regression" "$D" --days 7 2>&1)"
 check "digest states the cap" "yes" "$(contains 'CAP: 5' "$out")"
@@ -1009,7 +1034,7 @@ check "digest states the cap" "yes" "$(contains 'CAP: 5' "$out")"
 ./docs/routines/test-health/test-health-digest.test.sh
 ```
 
-Expected: the seven new checks FAIL; the thirty-three prior checks still pass.
+Expected: the twelve new checks FAIL; the thirty-three prior checks still pass.
 
 - [ ] **Step 3: Write minimal implementation**
 
@@ -1041,9 +1066,16 @@ done
 # --- per-test history from failed-item set membership ---
 # normalize: strip line/col numbers, hex ids, timestamps and ms durations so the
 # same root cause hashes identically across runs.
+# Neutralise only what genuinely varies run-to-run. There is deliberately NO
+# blanket digit rule: `s/[0-9]+/<n>/g` would fold "expected length 12 to equal 8"
+# and "expected length 47 to equal 3" into one string and therefore one hash.
+# Since the regression/chronic fingerprint carries no test path — by design, so
+# one broken fixture across fifteen specs clusters into one issue — that
+# collision would make two different regressions in the same module share a
+# fingerprint, and dedup would silently drop the second.
 normalize_error() {
   printf '%s' "$1" \
-    | sed -E 's/[0-9]+ms/<ms>/g; s/:[0-9]+:[0-9]+/:<pos>/g; s/[0-9a-f]{8,}/<id>/gi; s/[0-9]{4}-[0-9]{2}-[0-9]{2}[T ][0-9:.]+/<ts>/g; s/[0-9]+/<n>/g' \
+    | sed -E 's/[0-9]+ms/<ms>/g; s/:[0-9]+:[0-9]+/:<pos>/g; s/[0-9a-f]{8,}/<id>/gi; s/[0-9]{4}-[0-9]{2}-[0-9]{2}[T ][0-9:.]+/<ts>/g' \
     | cut -c1-200
 }
 
@@ -1061,13 +1093,30 @@ for key in $(printf '%s' "$launches" | jq -r '[ .[] | .layer + "/" + .module ] |
   newest_two="$(printf '%s\n' "$ids" | head -2)"
   while IFS= read -r t; do
     [[ -n "$t" ]] || continue
-    k=0; recent_fails=0
+    k=0; recent_fails=0; seq=""
     for id in $ids; do
       hit="$(printf '%s' "$failed_items" | jq --argjson i "$id" --arg t "$t" \
         '[ .[] | select(.launchId==$i and (.path + " > " + .name)==$t) ] | length')"
-      [[ "$hit" -gt 0 ]] && k=$((k+1))
-      case "$newest_two" in *"$id"*) [[ "$hit" -gt 0 ]] && recent_fails=$((recent_fails+1)) ;; esac
+      if [[ "$hit" -gt 0 ]]; then
+        k=$((k+1)); seq="${seq}1"
+        # Exact-line match, never a glob. `case $newest_two in *"$id"*` counts
+        # launch 42 as one of the newest two whenever a newest id merely
+        # contains "42" — 4200, 1042. ReportPortal ids are dense sequential
+        # integers, so that misfiles regressions routinely in production while
+        # every fixture using small ids passes green.
+        if printf '%s\n' "$newest_two" | grep -qxF "$id"; then
+          recent_fails=$((recent_fails+1))
+        fi
+      else
+        seq="${seq}0"
+      fi
     done
+
+    # Count status transitions across the window. Flaky means *alternating*,
+    # not merely "sometimes red". A test that failed the two oldest runs and has
+    # passed ever since has one flip and has already healed — filing it as flaky
+    # produces a pull request to fix nothing.
+    flips="$(printf '%s' "$seq" | awk '{n=0; for(i=2;i<=length($0);i++) if(substr($0,i,1)!=substr($0,i-1,1)) n++; print n+0}')"
     err_line="$(printf '%s' "$failed_items" | jq -r --arg t "$t" \
       'map(select((.path + " > " + .name)==$t)) | .[0].error // ""')"
     norm="$(normalize_error "$err_line")"
@@ -1086,7 +1135,11 @@ for key in $(printf '%s' "$launches" | jq -r '[ .[] | .layer + "/" + .module ] |
         fingerprint: ("test-regress:" + $l + ":" + $m + ":" + $h),
         headline: ($l + "/" + $m + ": \"" + $t + "\" newly fails two runs running"),
         detail: ("Passed earlier in the window, now failing. First error line: " + $e) }')"
-    elif [[ "$k" -gt 0 && "$k" -lt "$n" && "$pass_pct" -ge 20 && "$pass_pct" -le 80 ]]; then
+    # Compare without pre-dividing: pass_pct floors, so `pass_pct <= 80` admits
+    # true rates up to 80.99% into the band. pass_pct is kept for the headline.
+    elif [[ "$k" -gt 0 && "$k" -lt "$n" && "$flips" -ge 2 \
+            && $(( (n - k) * 100 )) -ge $(( 20 * n )) \
+            && $(( (n - k) * 100 )) -le $(( 80 * n )) ]]; then
       add_finding "$(jq -n --arg l "$l" --arg m "$m" --arg t "$t" --argjson p "$pass_pct" --arg e "$err_line" '{
         category: "flaky", layer: $l, module: $m,
         fingerprint: ("test-flaky:" + $l + ":" + $m + ":" + $t),
@@ -1118,7 +1171,7 @@ echo "CAP: ${CAP} (file at most this many issues; report every finding you skip 
 ./docs/routines/test-health/test-health-digest.test.sh
 ```
 
-Expected: `passed: 40  failed: 0`, exit 0.
+Expected: `passed: 45  failed: 0`, exit 0.
 
 - [ ] **Step 5: Commit**
 
