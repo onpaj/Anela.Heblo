@@ -413,11 +413,18 @@ for key in $(printf '%s' "$launches" | jq -r '[ .[] | .layer + "/" + .module ] |
     if [[ "$k" -eq "$n" && "$n" -ge 3 ]]; then
       add_finding "$(jq -n --arg l "$l" --arg m "$m" --arg h "$hash8" --arg t "$t" --arg e "$err_line" \
                             --argjson n "$n" --argjson sd "$span_days" '{
-        category: "chronic", layer: $l, module: $m,
+        category: "chronic", layer: $l, module: $m, test: $t,
         fingerprint: ("test-chronic:" + $l + ":" + $m + ":" + $h),
         headline: ($l + "/" + $m + ": \"" + $t + "\" failed all " + ($n|tostring) + " runs in the window (spanning " + ($sd|tostring) + " days)"),
         detail: ("Red in every launch held for this module — no passing run to compare against. First error line: " + $e) }')"
-    elif [[ "$recent_fails" -eq 2 && "$k" -eq 2 ]]; then
+    # A sustained regression must not require the window to hold EXACTLY two
+    # failures. That old `k -eq 2` clause meant a test failing nights 5, 6 and
+    # 7 (k=3) was neither chronic (k != n) nor a regression (k != 2): a missed
+    # detection day lost the regression permanently. The two most-recently-
+    # held runs both failing is the only condition that matters; the `k -eq n`
+    # check just below still decides correctly whether a prior pass may be
+    # claimed.
+    elif [[ "$recent_fails" -eq 2 ]]; then
       # Claim a prior pass only when one was observed. At n=2 the entire window
       # is red, so "passed earlier" would assert evidence we do not hold — the
       # same overclaim as the chronic headline that used to say "for a week".
@@ -427,7 +434,7 @@ for key in $(printf '%s' "$launches" | jq -r '[ .[] | .layer + "/" + .module ] |
         reg_detail="Passed earlier in the window, now failing."
       fi
       add_finding "$(jq -n --arg l "$l" --arg m "$m" --arg h "$hash8" --arg t "$t" --arg e "$err_line" --arg d "$reg_detail" '{
-        category: "regression", layer: $l, module: $m,
+        category: "regression", layer: $l, module: $m, test: $t,
         fingerprint: ("test-regress:" + $l + ":" + $m + ":" + $h),
         headline: ($l + "/" + $m + ": \"" + $t + "\" newly fails two runs running"),
         detail: ($d + " First error line: " + $e) }')"
@@ -446,12 +453,31 @@ for key in $(printf '%s' "$launches" | jq -r '[ .[] | .layer + "/" + .module ] |
 done
 
 # Priority order for the cap, so infrastructure faults are never crowded out by
-# a pile of flaky tests.
+# a pile of flaky tests. Also dedupe by fingerprint: regression/chronic
+# fingerprints deliberately omit the test path (so one broken fixture across
+# many specs clusters into one issue), which means several DIFFERENT tests
+# failing on the same normalized error land on an identical fingerprint. Left
+# undeduped, that's several findings for one cause — and the agent's own
+# per-finding dedup can't save it, since GitHub's issue search index is
+# eventually consistent and won't see the first issue in time to catch the
+# second. Collapse to the highest-priority survivor per fingerprint, but keep
+# the information: roll the other affected test names into its detail rather
+# than discarding them. group_by/sort_by resort by their own key internally,
+# so a final sort_by(rank) restores the priority order across fingerprints.
 findings="$(printf '%s' "$findings" | jq '
   def rank: { "ci-broken":0, "schedule-broken":1, "silence-unattributed":2,
               "rp-reporting-broken":3, "regression":4, "suite-shrank":5,
               "flaky":6, "chronic":7 }[.category] // 9;
-  sort_by(rank)')"
+  group_by(.fingerprint)
+  | map(
+      sort_by(rank) as $g
+      | ($g[0]) as $survivor
+      | ($g[1:] | map(.test // empty) | unique) as $others
+      | if ($others | length) > 0 then
+          $survivor + { detail: ($survivor.detail + " Also affects: " + ($others | join(", "))) }
+        else $survivor end
+    )
+  | sort_by(rank)')"
 
 # ------------------------------------------------------------------ state ---
 finding_count="$(printf '%s' "$findings" | jq 'length')"

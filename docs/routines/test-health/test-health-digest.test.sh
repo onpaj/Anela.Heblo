@@ -198,5 +198,25 @@ c2_stale_state="$(RP_FIXTURE_DIR="${FIX}/clean" GH_FIXTURE_DIR="${FIX}/clean" TE
 check "C2: 9-days-stale clean fixture is no longer FINDINGS: 0" "no" "$(contains 'FINDINGS: 0' "$c2_stale_out")"
 check "C2: 9-days-stale STATE differs from the healthy run's" "no" "$([[ "$c2_healthy_state" == "$c2_stale_state" ]] && echo yes || echo no)"
 
+# --- C3: three different tests failing on the same normalized error in one
+# module must collapse to exactly ONE finding (chronic/regression fingerprints
+# deliberately omit the test path), with the other affected specs rolled into
+# the surviving finding's detail rather than silently dropped.
+out="$(RP_FIXTURE_DIR="${FIX}/chronic-collision" GH_FIXTURE_DIR="${FIX}/chronic-collision" "$D" --days 7 2>&1)"
+n="$(printf '%s\n' "$out" | grep -c 'test-chronic:')"
+check "C3: three same-error tests collapse to one finding" "1" "$n"
+check "C3: detail names the first collapsed test" "yes" "$(contains 'loads product page' "$out")"
+check "C3: detail names the second collapsed test" "yes" "$(contains 'filters by category' "$out")"
+check "C3: detail names the third collapsed test" "yes" "$(contains 'sorts by price' "$out")"
+
+# --- C4: a sustained regression (failing the newest 3 of 7 runs) must be
+# detected. The old rule required EXACTLY two failures in the whole window
+# (`k -eq 2`), so this was neither chronic (k != n) nor a regression (k != 2)
+# nor flaky (only 1 flip) -- it produced nothing at all.
+out="$(RP_FIXTURE_DIR="${FIX}/sustained-regression" GH_FIXTURE_DIR="${FIX}/sustained-regression" "$D" --days 7 2>&1)"
+check "C4: newest-3-of-7 failures reported as a regression" "yes" "$(contains 'test-regress:e2e:catalog:' "$out")"
+check "C4: sustained regression is not called chronic" "no" "$(contains 'test-chronic:' "$out")"
+check "C4: sustained regression is not called flaky" "no" "$(contains 'test-flaky:' "$out")"
+
 echo "---"; echo "passed: $pass  failed: $fail"
 [[ $fail -eq 0 ]]
