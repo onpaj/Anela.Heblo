@@ -30,7 +30,7 @@ const mockPhotos: PhotoDto[] = [
     folderPath: "/test",
     sharePointWebUrl: null,
     fileSizeBytes: null,
-    lastModifiedAt: "2026-01-01T00:00:00Z",
+    lastModifiedAt: new Date("2026-01-01T00:00:00Z"),
     tags: [],
   },
   {
@@ -41,7 +41,7 @@ const mockPhotos: PhotoDto[] = [
     folderPath: "/test",
     sharePointWebUrl: null,
     fileSizeBytes: null,
-    lastModifiedAt: "2026-01-01T00:00:00Z",
+    lastModifiedAt: new Date("2026-01-01T00:00:00Z"),
     tags: [],
   },
 ];
