@@ -14,6 +14,7 @@
 # character outside [A-Za-z0-9._-] replaced by '_', plus '.json'.
 #
 # Exit codes: 0 ok | 1 config/usage error | 3 unreachable | 4 auth rejected
+#             5 unexpected HTTP status (404/429/5xx)
 #
 set -uo pipefail
 
@@ -77,5 +78,8 @@ body="${out%__HTTP_CODE__*}"
 case "$code" in
   2*)      printf '%s' "$body"; exit 0 ;;
   401|403) errc 4 "ReportPortal returned HTTP ${code} — API key invalid or lacks project access." ;;
-  *)       printf '%s' "$body" >&2; errc 1 "ReportPortal returned HTTP ${code}." ;;
+  # Exit 5, NOT 1: a 404/429/5xx means the server said no, which is a wholly
+  # different problem from "you forgot to set RP_ENDPOINT". Collapsing the two
+  # would send the operator hunting for a missing variable during an RP outage.
+  *)       printf '%s' "$body" >&2; errc 5 "ReportPortal returned HTTP ${code}." ;;
 esac
