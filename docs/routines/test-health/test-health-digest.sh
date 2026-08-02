@@ -379,13 +379,15 @@ for key in $(printf '%s' "$launches" | jq -r '[ .[] | .layer + "/" + .module ] |
   median="$(printf '%s' "$series" | jq '[ .[1:][].total ] | sort | .[ (length/2 | floor) ]')"
   [[ "$median" -gt 0 ]] || continue
   drop=$(( (median - newest) * 100 / median ))
-  # Only claim a shrink when the newest launch did NOT fail. The detail below
-  # asserts "the launch still succeeded" without ever checking .status — a
-  # newest launch that actually FAILED is fully explained by the failure, and
-  # filing suite-shrank on top of it would read as an assertion this finding
-  # never verified (and risk a PR "restoring" a test a deliberate deletion or
-  # re-shard removed on purpose).
-  if [[ "$drop" -ge "$SHRINK_PCT" && "$newest_status" != "FAILED" ]]; then
+  # Only claim a shrink when the newest launch actually succeeded. The detail
+  # below asserts "the launch still succeeded" without ever checking .status —
+  # guarding on `!= "FAILED"` alone still let STOPPED/INTERRUPTED through
+  # (the item query already filters on FAILED,INTERRUPTED, so INTERRUPTED is
+  # a live status here), and an interrupted or stopped launch IS the
+  # aborted-fixture case this text describes, not an unexplained shrink on
+  # top of it. Require the positive PASSED match instead of a negative
+  # exclusion so every non-passing status is covered, not just FAILED.
+  if [[ "$drop" -ge "$SHRINK_PCT" && "$newest_status" == "PASSED" ]]; then
     add_finding "$(jq -n --arg l "$l" --arg m "$m" --argjson nw "$newest" --argjson md "$median" --argjson d "$drop" '{
       category: "suite-shrank", layer: $l, module: $m,
       fingerprint: ("test-shrink:" + $l + ":" + $m),

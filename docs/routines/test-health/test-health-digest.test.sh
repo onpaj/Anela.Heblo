@@ -277,5 +277,12 @@ check "I2: empty-.content STATE differs from the clean run's" "no" "$([[ "$clean
 out="$(RP_FIXTURE_DIR="${FIX}/shrank-failed" GH_FIXTURE_DIR="${FIX}/shrank-failed" "$D" --days 7 2>&1)"
 check "I7: shrink is suppressed when the newest launch FAILED" "no" "$(contains 'test-shrink:' "$out")"
 
+# --- I4: suite-shrank must also be suppressed for a STOPPED/INTERRUPTED
+# newest launch, not just FAILED -- the old guard (`!= "FAILED"`) let those
+# through even though an interrupted/stopped run IS the aborted-fixture case
+# the finding's own detail text describes. ---
+out="$(RP_FIXTURE_DIR="${FIX}/shrank-stopped" GH_FIXTURE_DIR="${FIX}/shrank-stopped" "$D" --days 7 2>&1)"
+check "I4: shrink is suppressed when the newest launch STOPPED" "no" "$(contains 'test-shrink:' "$out")"
+
 echo "---"; echo "passed: $pass  failed: $fail"
 [[ $fail -eq 0 ]]
