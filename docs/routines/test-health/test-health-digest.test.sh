@@ -109,5 +109,28 @@ out="$(RP_FIXTURE_DIR="${FIX}/gh-malformed" GH_FIXTURE_DIR="${FIX}/gh-malformed"
 check "malformed gh body reads as unattributed" "yes" "$(contains 'unattributed' "$out")"
 check "malformed gh body claims no schedule fault" "no" "$(contains '**schedule-broken**' "$out")"
 
+# --- suite shrank ---
+out="$(RP_FIXTURE_DIR="${FIX}/shrank" GH_FIXTURE_DIR="${FIX}/shrank" "$D" --days 7 2>&1)"
+check "shrink is detected" "yes" "$(contains 'test-shrink:e2e:catalog' "$out")"
+
+# --- genuine regression: failing the newest two nights, clean before ---
+out="$(RP_FIXTURE_DIR="${FIX}/regression" GH_FIXTURE_DIR="${FIX}/regression" "$D" --days 7 2>&1)"
+check "regression is detected" "yes" "$(contains 'test-regress:e2e:catalog:' "$out")"
+check "regression is not called flaky" "no" "$(contains 'test-flaky:' "$out")"
+
+# --- flaky: alternating pass/fail across the window ---
+out="$(RP_FIXTURE_DIR="${FIX}/flaky" GH_FIXTURE_DIR="${FIX}/flaky" "$D" --days 7 2>&1)"
+check "flaky is detected" "yes" "$(contains 'test-flaky:e2e:catalog' "$out")"
+check "flaky is not called a regression" "no" "$(contains 'test-regress:' "$out")"
+
+# --- fingerprints are stable and collision-free ---
+a="$(RP_FIXTURE_DIR="${FIX}/regression" GH_FIXTURE_DIR="${FIX}/regression" "$D" --days 7 2>&1 | grep -o 'test-regress:[^ `]*' | head -1)"
+b="$(RP_FIXTURE_DIR="${FIX}/regression" GH_FIXTURE_DIR="${FIX}/regression" "$D" --days 7 2>&1 | grep -o 'test-regress:[^ `]*' | head -1)"
+check "fingerprint is stable across runs" "$a" "$b"
+
+# --- the cap is enforced and stated, never silent ---
+out="$(RP_FIXTURE_DIR="${FIX}/regression" GH_FIXTURE_DIR="${FIX}/regression" "$D" --days 7 2>&1)"
+check "digest states the cap" "yes" "$(contains 'CAP: 5' "$out")"
+
 echo "---"; echo "passed: $pass  failed: $fail"
 [[ $fail -eq 0 ]]

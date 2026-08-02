@@ -276,7 +276,93 @@ else
   done
 fi
 
-# (Task 5 appends suite shrink, regression, flaky and chronic detection here.)
+# --- suite shrink: newest run materially smaller than the window median ---
+SHRINK_PCT=20
+for key in $(printf '%s' "$launches" | jq -r '[ .[] | .layer + "/" + .module ] | unique | .[]'); do
+  l="${key%%/*}"; m="${key##*/}"
+  series="$(printf '%s' "$launches" | jq --arg l "$l" --arg m "$m" \
+    '[ .[] | select(.layer==$l and .module==$m) ] | sort_by(-.startTime)')"
+  n="$(printf '%s' "$series" | jq 'length')"
+  [[ "$n" -ge 3 ]] || continue   # no baseline, no claim
+  newest="$(printf '%s' "$series" | jq '.[0].total')"
+  median="$(printf '%s' "$series" | jq '[ .[1:][].total ] | sort | .[ (length/2 | floor) ]')"
+  [[ "$median" -gt 0 ]] || continue
+  drop=$(( (median - newest) * 100 / median ))
+  if [[ "$drop" -ge "$SHRINK_PCT" ]]; then
+    add_finding "$(jq -n --arg l "$l" --arg m "$m" --argjson nw "$newest" --argjson md "$median" --argjson d "$drop" '{
+      category: "suite-shrank", layer: $l, module: $m,
+      fingerprint: ("test-shrink:" + $l + ":" + $m),
+      headline: ($l + "/" + $m + ": test count fell " + ($d|tostring) + "% (" + ($md|tostring) + " -> " + ($nw|tostring) + ")"),
+      detail: "The launch still succeeded, so tests were skipped or a fixture aborted a spec early rather than failing."
+    }')"
+  fi
+done
+
+# --- per-test history from failed-item set membership ---
+# normalize: strip line/col numbers, hex ids, timestamps and ms durations so the
+# same root cause hashes identically across runs.
+normalize_error() {
+  printf '%s' "$1" \
+    | sed -E 's/[0-9]+ms/<ms>/g; s/:[0-9]+:[0-9]+/:<pos>/g; s/[0-9a-f]{8,}/<id>/gi; s/[0-9]{4}-[0-9]{2}-[0-9]{2}[T ][0-9:.]+/<ts>/g; s/[0-9]+/<n>/g' \
+    | cut -c1-200
+}
+
+CAP=5
+for key in $(printf '%s' "$launches" | jq -r '[ .[] | .layer + "/" + .module ] | unique | .[]'); do
+  l="${key%%/*}"; m="${key##*/}"
+  ids="$(printf '%s' "$launches" | jq -r --arg l "$l" --arg m "$m" \
+    '[ .[] | select(.layer==$l and .module==$m) ] | sort_by(-.startTime) | .[].id')"
+  n="$(printf '%s\n' "$ids" | grep -c .)"
+  [[ "$n" -ge 2 ]] || continue
+
+  tests="$(printf '%s' "$failed_items" | jq -r --argjson ids "$(printf '%s\n' "$ids" | jq -R . | jq -s 'map(tonumber)')" \
+    '[ .[] | select(.launchId as $x | $ids | index($x)) | (.path + " > " + .name) ] | unique | .[]')"
+
+  newest_two="$(printf '%s\n' "$ids" | head -2)"
+  while IFS= read -r t; do
+    [[ -n "$t" ]] || continue
+    k=0; recent_fails=0
+    for id in $ids; do
+      hit="$(printf '%s' "$failed_items" | jq --argjson i "$id" --arg t "$t" \
+        '[ .[] | select(.launchId==$i and (.path + " > " + .name)==$t) ] | length')"
+      [[ "$hit" -gt 0 ]] && k=$((k+1))
+      case "$newest_two" in *"$id"*) [[ "$hit" -gt 0 ]] && recent_fails=$((recent_fails+1)) ;; esac
+    done
+    err_line="$(printf '%s' "$failed_items" | jq -r --arg t "$t" \
+      'map(select((.path + " > " + .name)==$t)) | .[0].error // ""')"
+    norm="$(normalize_error "$err_line")"
+    hash8="$(printf '%s' "$norm" | shasum -a 256 | cut -c1-8)"
+    pass_pct=$(( (n - k) * 100 / n ))
+
+    if [[ "$k" -eq "$n" && "$n" -ge 7 ]]; then
+      add_finding "$(jq -n --arg l "$l" --arg m "$m" --arg h "$hash8" --arg t "$t" --arg e "$err_line" '{
+        category: "chronic", layer: $l, module: $m,
+        fingerprint: ("test-chronic:" + $l + ":" + $m + ":" + $h),
+        headline: ($l + "/" + $m + ": \"" + $t + "\" has failed every run for a week"),
+        detail: ("First error line: " + $e) }')"
+    elif [[ "$recent_fails" -eq 2 && "$k" -eq 2 ]]; then
+      add_finding "$(jq -n --arg l "$l" --arg m "$m" --arg h "$hash8" --arg t "$t" --arg e "$err_line" '{
+        category: "regression", layer: $l, module: $m,
+        fingerprint: ("test-regress:" + $l + ":" + $m + ":" + $h),
+        headline: ($l + "/" + $m + ": \"" + $t + "\" newly fails two runs running"),
+        detail: ("Passed earlier in the window, now failing. First error line: " + $e) }')"
+    elif [[ "$k" -gt 0 && "$k" -lt "$n" && "$pass_pct" -ge 20 && "$pass_pct" -le 80 ]]; then
+      add_finding "$(jq -n --arg l "$l" --arg m "$m" --arg t "$t" --argjson p "$pass_pct" --arg e "$err_line" '{
+        category: "flaky", layer: $l, module: $m,
+        fingerprint: ("test-flaky:" + $l + ":" + $m + ":" + $t),
+        headline: ($l + "/" + $m + ": \"" + $t + "\" is flaky (" + ($p|tostring) + "% pass rate)"),
+        detail: ("Alternates within the window with no consistent outcome. First error line: " + $e) }')"
+    fi
+  done <<< "$tests"
+done
+
+# Priority order for the cap, so infrastructure faults are never crowded out by
+# a pile of flaky tests.
+findings="$(printf '%s' "$findings" | jq '
+  def rank: { "ci-broken":0, "schedule-broken":1, "silence-unattributed":2,
+              "rp-reporting-broken":3, "regression":4, "suite-shrank":5,
+              "flaky":6, "chronic":7 }[.category] // 9;
+  sort_by(rank)')"
 
 # ------------------------------------------------------------------ state ---
 finding_count="$(printf '%s' "$findings" | jq 'length')"
@@ -335,6 +421,7 @@ echo
 echo "## 3. Findings"
 echo
 echo "FINDINGS: ${finding_count}"
+echo "CAP: ${CAP} (file at most this many issues; report every finding you skip and why)"
 echo
 printf '%s' "$findings" | jq -r '
   if length == 0 then "_(none — nothing to file)_"
