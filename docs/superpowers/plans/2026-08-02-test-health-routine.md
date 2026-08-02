@@ -716,7 +716,9 @@ git commit -m "feat(test-health): add digest skeleton with launch inventory and 
 
 - [ ] **Step 1: Write the failing test**
 
-Create `fixtures/silent-module/`: copy `fixtures/clean/*` but give the two launches `module: catalog` and `module: transport` with `startTime` values **8 days old** for `transport` and **within 26h** for `catalog`, so `transport` has a baseline but no recent launch. Add the matching empty `item_...` fixtures for both launch ids.
+Create `fixtures/silent-module/`: copy `fixtures/clean/*` but give the two launches `module: catalog` and `module: transport`, with `startTime` **3 days before `TEST_HEALTH_NOW_MS`** for `transport` and **within 26h** for `catalog`, so `transport` has a baseline but no recent launch. Add the matching empty `item_...` fixtures for both launch ids.
+
+The 3-day value is load-bearing and must sit strictly between the two horizons. A module only earns an expectation by appearing *inside* the window, so a launch older than `--days 7` is filtered out before the presence logic ever sees it and produces no finding at all — correctly, under the "no baseline, no claim" rule. It must also be older than the 26h E2E freshness horizon to read as stale. Anything in `(26h, 7 days]` works; 3 days is comfortably clear of both edges.
 
 Create `fixtures/ci-broken/`: launches contain only `heblo-backend` (E2E entirely absent, but present in the prior baseline via a launch older than 26h), plus a GitHub fixture for the workflow-runs query whose newest run has `"conclusion": "failure"` and a failed step named `🚀 Deploy main to Staging`.
 
