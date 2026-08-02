@@ -46,7 +46,7 @@ function decodeMismatchFlags(code: number, labels: Record<number, string>): stri
     .map(([, label]) => label);
 }
 
-const prettyPrint = (raw: string | null): string => {
+const prettyPrint = (raw: string | null | undefined): string => {
   if (raw == null) return '';
   try {
     return JSON.stringify(JSON.parse(raw), null, 2);
@@ -76,7 +76,7 @@ const InvoiceResultRow: React.FC<{ result: InvoiceDqtResultDto }> = ({ result })
         </td>
         <td className="px-3 py-2">
           <div className="flex flex-wrap gap-1">
-            {result.mismatchFlags.map((flag) => (
+            {(result.mismatchFlags ?? []).map((flag) => (
               <span
                 key={flag}
                 className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
@@ -195,7 +195,7 @@ const DqtRunDetail: React.FC<DqtRunDetailProps> = ({ runId }) => {
           </thead>
           <tbody>
             {driftResults.map((row: DqtDriftResultDto, i: number) => {
-              const flagLabels = decodeMismatchFlags(row.mismatchCode, flagMap);
+              const flagLabels = decodeMismatchFlags(row.mismatchCode ?? 0, flagMap);
               return (
                 <tr key={i} className="border-b last:border-0">
                   <td className="py-1.5 pr-4 font-mono text-xs">{row.entityKey}</td>
