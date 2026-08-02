@@ -90,6 +90,23 @@ check "I3: --days with no value exits 0 under --state-only" "0" "$rc"
 check "I3: --days with no value emits a STATE error line" "yes" "$(contains 'STATE: error=' "$out")"
 rm -f "$i3sf2"
 
+# --- flag ORDER must not decide whether a failure is observable ---
+# The checks above all pass --state-only first. Parsing runs left to right, so
+# with --state-only last the validation error fired while STATE_ONLY was still
+# 0: exit 1, no STATE line, and the harness discards stdout on a nonzero exit.
+# A silent failure that depended purely on argument order.
+i3sf3="$(mktemp)"; rm -f "$i3sf3"
+out="$(TEST_HEALTH_STATE_FILE="$i3sf3" RP_FIXTURE_DIR="${FIX}/clean" "$D" --days abc --state-only 2>&1)"; rc=$?
+check "I3: --state-only LAST still exits 0 on a bad --days" "0" "$rc"
+check "I3: --state-only LAST still emits a STATE error line" "yes" "$(contains 'STATE: error=' "$out")"
+rm -f "$i3sf3"
+
+i3sf4="$(mktemp)"; rm -f "$i3sf4"
+out="$(TEST_HEALTH_STATE_FILE="$i3sf4" RP_FIXTURE_DIR="${FIX}/clean" "$D" --bogus-argument --state-only 2>&1)"; rc=$?
+check "I3: --state-only LAST still exits 0 on an unknown flag" "0" "$rc"
+check "I3: --state-only LAST still emits a STATE line for unknown flags" "yes" "$(contains 'STATE: error=' "$out")"
+rm -f "$i3sf4"
+
 # --- consecutive-error-day counter escalates; success clears it ---
 esf="$(mktemp)"; rm -f "$esf"
 out="$(TEST_HEALTH_STATE_FILE="$esf" RP_FIXTURE_DIR=/nonexistent "$D" --days 7 2>&1)"

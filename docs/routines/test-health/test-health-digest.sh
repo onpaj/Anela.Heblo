@@ -88,6 +88,15 @@ errc() { local c="$1"; shift; echo "Error: $*" >&2; exit "$c"; }
 # Argument parsing happens BEFORE the dependency checks below: those checks
 # call err(), which needs to already know whether --state-only was passed so a
 # missing jq/perl/rp-query.sh doesn't produce silence in state-only mode.
+# Pre-scan for --state-only before validating anything. The loop below parses
+# left to right, so `--days abc --state-only` would validate --days while
+# STATE_ONLY was still 0, and err() would exit 1 with no STATE line — silent to
+# the harness, which discards stdout on a nonzero exit. Order of flags on the
+# command line must not decide whether a failure is observable.
+for _arg in "$@"; do
+  [[ "$_arg" == "--state-only" ]] && STATE_ONLY=1
+done
+
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --days)
