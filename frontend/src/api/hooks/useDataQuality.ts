@@ -1,73 +1,21 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getAuthenticatedApiClient, QUERY_KEYS } from '../client';
+import {
+  DqtTestType,
+  DqtRunStatus,
+  RunDqtRequest,
+  type GetDqtRunsResponse,
+  type GetDqtRunDetailResponse,
+  type RunDqtResponse,
+} from '../generated/api-client';
 
 // ---- Types ----
 
-export interface DqtRunDto {
-  id: string;
-  testType: string;
-  dateFrom: string;
-  dateTo: string;
-  status: string;
-  startedAt: string;
-  completedAt: string | null;
-  triggerType: string;
-  totalChecked: number;
-  totalMismatches: number;
-  errorMessage: string | null;
-}
-
-export interface InvoiceDqtResultDto {
-  id: string;
-  invoiceCode: string;
-  mismatchType: number;
-  mismatchFlags: string[];
-  shoptetValue: string | null;
-  flexiValue: string | null;
-  details: string | null;
-}
-
 export interface GetDqtRunsParams {
-  testType?: string;
-  status?: string;
+  testType?: DqtTestType;
+  status?: DqtRunStatus;
   pageNumber?: number;
   pageSize?: number;
-}
-
-export interface GetDqtRunsResponse {
-  success: boolean;
-  items: DqtRunDto[];
-  totalCount: number;
-  pageNumber: number;
-  pageSize: number;
-  totalPages: number;
-}
-
-export interface DqtDriftResultDto {
-  entityKey: string;
-  mismatchCode: number;
-  hebloValue: string | null;
-  shoptetValue: string | null;
-  details: string | null;
-}
-
-export interface GetDqtRunDetailResponse {
-  success: boolean;
-  run: DqtRunDto | null;
-  results: InvoiceDqtResultDto[];
-  driftResults: DqtDriftResultDto[];
-  totalDriftResults: number;
-}
-
-export interface RunDqtRequest {
-  testType?: string;
-  dateFrom: string;
-  dateTo: string;
-}
-
-export interface RunDqtResponse {
-  success: boolean;
-  dqtRunId: string | null;
 }
 
 // ---- Query key factory ----
@@ -89,31 +37,14 @@ export const dataQualityKeys = {
 export const useDqtRuns = (params: GetDqtRunsParams = {}) => {
   return useQuery({
     queryKey: dataQualityKeys.runs(params),
-    queryFn: async (): Promise<GetDqtRunsResponse> => {
+    queryFn: (): Promise<GetDqtRunsResponse> => {
       const apiClient = getAuthenticatedApiClient();
-      const searchParams = new URLSearchParams();
-
-      if (params.testType) searchParams.append('testType', params.testType);
-      if (params.status) searchParams.append('status', params.status);
-      if (params.pageNumber !== undefined)
-        searchParams.append('pageNumber', params.pageNumber.toString());
-      if (params.pageSize !== undefined)
-        searchParams.append('pageSize', params.pageSize.toString());
-
-      const query = searchParams.toString();
-      const relativeUrl = `/api/data-quality/runs${query ? `?${query}` : ''}`;
-      const fullUrl = `${(apiClient as any).baseUrl}${relativeUrl}`;
-
-      const response = await (apiClient as any).http.fetch(fullUrl, {
-        method: 'GET',
-        headers: { Accept: 'application/json' },
-      });
-
-      if (!response.ok) {
-        throw new Error(`Failed to fetch DQT runs: ${response.status}`);
-      }
-
-      return response.json();
+      return apiClient.dataQuality_GetRuns(
+        params.testType,
+        params.status,
+        params.pageNumber,
+        params.pageSize,
+      );
     },
     staleTime: 30 * 1000,
     gcTime: 5 * 60 * 1000,
@@ -132,24 +63,9 @@ export const useDqtRunDetail = (
 ) => {
   return useQuery({
     queryKey: dataQualityKeys.runDetail(runId ?? ''),
-    queryFn: async (): Promise<GetDqtRunDetailResponse> => {
+    queryFn: (): Promise<GetDqtRunDetailResponse> => {
       const apiClient = getAuthenticatedApiClient();
-      const searchParams = new URLSearchParams({
-        resultPage: resultPage.toString(),
-        resultPageSize: resultPageSize.toString(),
-      });
-      const fullUrl = `${(apiClient as any).baseUrl}/api/data-quality/runs/${runId}?${searchParams.toString()}`;
-
-      const response = await (apiClient as any).http.fetch(fullUrl, {
-        method: 'GET',
-        headers: { Accept: 'application/json' },
-      });
-
-      if (!response.ok) {
-        throw new Error(`Failed to fetch DQT run detail: ${response.status}`);
-      }
-
-      return response.json();
+      return apiClient.dataQuality_GetRunDetail(runId!, resultPage, resultPageSize);
     },
     enabled: !!runId,
     staleTime: 30 * 1000,
@@ -165,24 +81,15 @@ export const useRunDqt = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (payload: RunDqtRequest): Promise<RunDqtResponse> => {
+    mutationFn: (request: RunDqtRequest): Promise<RunDqtResponse> => {
       const apiClient = getAuthenticatedApiClient();
-      const fullUrl = `${(apiClient as any).baseUrl}/api/data-quality/runs`;
-
-      const response = await (apiClient as any).http.fetch(fullUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-        body: JSON.stringify(payload),
-      });
-
-      if (!response.ok) {
-        throw new Error(`Failed to trigger DQT run: ${response.status}`);
-      }
-
-      return response.json();
+      return apiClient.dataQuality_RunDqt(request);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: dataQualityKeys.all });
     },
   });
 };
+
+// Re-export types for convenience
+export type { DqtRunDto, InvoiceDqtResultDto, DqtDriftResultDto } from '../generated/api-client';
