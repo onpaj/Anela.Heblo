@@ -61,7 +61,7 @@ describe('IndexRootsTab', () => {
         rootItemId: 'item-456',
         isActive: false,
         createdAt: '2026-01-02T00:00:00Z',
-        lastIndexedAt: '2026-03-15T12:00:00Z',
+        lastIndexedAt: new Date('2026-03-15T12:00:00Z'),
       },
     ];
     mockUseIndexRoots.mockReturnValue({ data: roots, isLoading: false, error: null });
