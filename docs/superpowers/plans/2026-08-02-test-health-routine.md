@@ -622,10 +622,10 @@ EOF
 printf '%s' "$launches" | jq -r '
   if length == 0 then "_(no launches in window)_"
   else
-    "| layer | module | launch # | status | total | passed | failed | skipped | started |",
-    "| --- | --- | --- | --- | --- | --- | --- | --- | --- |",
+    "| launch | layer | module | # | status | total | passed | failed | skipped | started |",
+    "| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |",
     ( sort_by(.layer, .module, -.startTime)[]
-      | "| \(.layer) | \(.module) | \(.number) | \(.status) | \(.total) | \(.passed) | \(.failed) | \(.skipped) | \(.startTime) |" )
+      | "| \(.name) | \(.layer) | \(.module) | \(.number) | \(.status) | \(.total) | \(.passed) | \(.failed) | \(.skipped) | \(.startTime) |" )
   end'
 
 echo
