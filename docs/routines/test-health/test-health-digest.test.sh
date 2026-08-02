@@ -75,5 +75,19 @@ check "item-fetch failure counts an error day" "yes" "$(contains 'errdays=1' "$o
 check "item-fetch failure files no silence findings" "no" "$(contains 'test-silence:' "$out")"
 rm -rf "$partial"; rm -f "$esf2"
 
+# --- one module silent, others fine -> exactly one silence finding ---
+out="$(RP_FIXTURE_DIR="${FIX}/silent-module" GH_FIXTURE_DIR="${FIX}/silent-module" "$D" --days 7 2>&1)"
+check "silent module is detected" "yes" "$(contains 'test-silence:e2e:transport' "$out")"
+check "healthy module is not flagged" "no" "$(contains 'test-silence:e2e:catalog' "$out")"
+n="$(printf '%s\n' "$out" | grep -c 'test-silence:')"
+check "exactly one silence finding" "1" "$n"
+
+# --- whole layer down due to CI -> ONE ci-broken finding, not eleven ---
+out="$(RP_FIXTURE_DIR="${FIX}/ci-broken" GH_FIXTURE_DIR="${FIX}/ci-broken" "$D" --days 7 2>&1)"
+check "ci-broken is detected" "yes" "$(contains 'test-ci:' "$out")"
+check "ci-broken names the failing step" "yes" "$(contains 'Deploy main to Staging' "$out")"
+n="$(printf '%s\n' "$out" | grep -c 'test-silence:')"
+check "cascade suppressed: no per-module silence" "0" "$n"
+
 echo "---"; echo "passed: $pass  failed: $fail"
 [[ $fail -eq 0 ]]

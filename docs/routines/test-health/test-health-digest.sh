@@ -52,6 +52,23 @@ fmt_epoch() { # fmt_epoch <epoch-seconds> -> ISO-8601 UTC
     || echo "epoch:$1"
 }
 
+GH="${HERE}/gh-api.sh"
+
+# Fetch a GitHub REST path, honouring GH_FIXTURE_DIR for offline replay. Uses
+# the same file-naming rule as rp-query.sh so fixtures are predictable.
+gh_get() {
+  local p="$1"
+  if [[ -n "${GH_FIXTURE_DIR:-}" ]]; then
+    local name file
+    name="$(printf '%s' "${p#/}" | sed 's/[^A-Za-z0-9._-]/_/g')"
+    file="${GH_FIXTURE_DIR}/${name}.json"
+    [[ -f "$file" ]] && cat "$file" || echo '{"workflow_runs":[]}'
+    return 0
+  fi
+  [[ -x "$GH" ]] || { echo '{"workflow_runs":[]}'; return 0; }
+  "$GH" GET "$p" 2>/dev/null || echo '{"workflow_runs":[]}'
+}
+
 TODAY="$(date -u +%Y-%m-%d)"
 mkdir -p "$(dirname "$STATE_FILE")" 2>/dev/null || true
 
@@ -143,8 +160,71 @@ done
 findings='[]'
 add_finding() { findings="$(jq -n --argjson a "$findings" --argjson b "$1" '$a + [$b]')"; }
 
-# (Tasks 4 and 5 append presence, shrink, regression, flaky and chronic
-# detection here. Task 3 establishes inventory and plumbing only.)
+# --- presence: which layer/module reported recently vs. has a baseline? ---
+# A layer/module earns an expectation by having reported at least once in the
+# window. E2E is nightly, so its freshness horizon is 26h; the push-triggered
+# layers get the full window (a quiet week on main is not a fault).
+E2E_FRESH_MS=$(( 26 * 3600 * 1000 ))
+
+expected="$(printf '%s' "$launches" | jq --argjson now "$NOW_MS" --argjson fresh "$E2E_FRESH_MS" '
+  group_by(.layer + "/" + .module)
+  | map({ layer: .[0].layer, module: .[0].module,
+          newest: (map(.startTime) | max),
+          runs: length })
+  | map(. + { stale: (if .layer == "e2e" then (($now - .newest) > $fresh) else false end) })
+')"
+
+stale_e2e="$(printf '%s' "$expected" | jq '[ .[] | select(.stale) ] | length')"
+fresh_e2e="$(printf '%s' "$expected" | jq '[ .[] | select(.layer=="e2e" and (.stale|not)) ] | length')"
+
+# CI cross-check, run once: did the nightly workflow fail before the tests?
+nightly='{"workflow_runs":[]}'
+if [[ "$stale_e2e" -gt 0 ]]; then
+  nightly="$(gh_get "/repos/onpaj/Anela.Heblo/actions/workflows/e2e-nightly-regression.yml/runs?per_page=5")"
+fi
+nightly_concl="$(printf '%s' "$nightly" | jq -r '.workflow_runs[0].conclusion // "none"')"
+nightly_id="$(printf '%s' "$nightly" | jq -r '.workflow_runs[0].id // empty')"
+
+failing_step="unknown"
+if [[ "$nightly_concl" == "failure" && -n "$nightly_id" ]]; then
+  jobs="$(gh_get "/repos/onpaj/Anela.Heblo/actions/runs/${nightly_id}/jobs")"
+  failing_step="$(printf '%s' "$jobs" | jq -r '
+    [ .jobs[]?.steps[]? | select(.conclusion=="failure") | .name ] | first // "unknown"')"
+fi
+
+# Cascade rule: if EVERY e2e module is stale and the workflow failed, this is
+# one infrastructure fault, not eleven missing modules. File once.
+if [[ "$stale_e2e" -gt 0 && "$fresh_e2e" -eq 0 && "$nightly_concl" == "failure" ]]; then
+  add_finding "$(jq -n --arg s "$failing_step" --argjson n "$stale_e2e" '{
+    category: "ci-broken",
+    layer: "e2e", module: "-",
+    fingerprint: ("test-ci:e2e-nightly-regression.yml:" + $s),
+    headline: ("E2E nightly failed at step \"" + $s + "\" — no tests ran, " + ($n|tostring) + " modules have no data"),
+    detail: "The workflow run failed before the test step, so ReportPortal received nothing. Resolution is outside the repository (credential/config), not a code change."
+  }')"
+else
+  # Otherwise report each stale module individually, distinguishing "the
+  # workflow never ran" from "it ran fine but reporting did not arrive".
+  for row in $(printf '%s' "$expected" | jq -r '.[] | select(.stale) | @base64'); do
+    d="$(printf '%s' "$row" | base64 --decode)"
+    l="$(printf '%s' "$d" | jq -r '.layer')"
+    m="$(printf '%s' "$d" | jq -r '.module')"
+    if [[ "$nightly_concl" == "success" ]]; then
+      cat_name="rp-reporting-broken"; suffix="reporting"
+      head_txt="${l}/${m}: workflow succeeded but no ReportPortal launch arrived"
+      det="The nightly run completed successfully, so the tests ran — the reporting agent or the tailnet hop failed."
+    else
+      cat_name="schedule-broken"; suffix="schedule"
+      head_txt="${l}/${m}: no launch in the last 26h despite a 7-day baseline"
+      det="No recent launch and no successful workflow run explains it. The nightly may not have been scheduled at all."
+    fi
+    add_finding "$(jq -n --arg c "$cat_name" --arg l "$l" --arg m "$m" --arg s "$suffix" \
+                          --arg h "$head_txt" --arg dt "$det" '{
+      category: $c, layer: $l, module: $m,
+      fingerprint: ("test-silence:" + $l + ":" + $m + ":" + $s),
+      headline: $h, detail: $dt }')"
+  done
+fi
 
 # ------------------------------------------------------------------ state ---
 finding_count="$(printf '%s' "$findings" | jq 'length')"

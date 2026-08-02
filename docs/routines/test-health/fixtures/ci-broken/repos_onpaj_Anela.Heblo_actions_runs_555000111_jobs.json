@@ -1,0 +1,13 @@
+{
+  "total_count": 1,
+  "jobs": [
+    { "id": 1, "name": "e2e-nightly",
+      "steps": [
+        { "name": "Set up job", "conclusion": "success", "number": 1 },
+        { "name": "Checkout", "conclusion": "success", "number": 2 },
+        { "name": "🚀 Deploy main to Staging", "conclusion": "failure", "number": 3 },
+        { "name": "Run E2E tests", "conclusion": "cancelled", "number": 4 }
+      ]
+    }
+  ]
+}
