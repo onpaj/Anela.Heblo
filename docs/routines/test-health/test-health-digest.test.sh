@@ -123,10 +123,27 @@ out="$(RP_FIXTURE_DIR="${FIX}/flaky" GH_FIXTURE_DIR="${FIX}/flaky" "$D" --days 7
 check "flaky is detected" "yes" "$(contains 'test-flaky:e2e:catalog' "$out")"
 check "flaky is not called a regression" "no" "$(contains 'test-regress:' "$out")"
 
-# --- fingerprints are stable and collision-free ---
+# --- fingerprint is stable across repeated runs of the same fixture ---
+# (collision-freeness across DIFFERENT errors is checked separately below by
+# the two-errors fixture; this only proves determinism, not uniqueness.)
 a="$(RP_FIXTURE_DIR="${FIX}/regression" GH_FIXTURE_DIR="${FIX}/regression" "$D" --days 7 2>&1 | grep -o 'test-regress:[^ `]*' | head -1)"
 b="$(RP_FIXTURE_DIR="${FIX}/regression" GH_FIXTURE_DIR="${FIX}/regression" "$D" --days 7 2>&1 | grep -o 'test-regress:[^ `]*' | head -1)"
 check "fingerprint is stable across runs" "$a" "$b"
+
+# --- two different errors must NOT collide into one fingerprint ---
+out="$(RP_FIXTURE_DIR="${FIX}/two-errors" GH_FIXTURE_DIR="${FIX}/two-errors" "$D" --days 7 2>&1)"
+n="$(printf '%s\n' "$out" | grep -o 'test-regress:[^ `]*' | sort -u | grep -c .)"
+check "two different errors get two fingerprints" "2" "$n"
+
+# --- chronic: red every run for a week ---
+out="$(RP_FIXTURE_DIR="${FIX}/chronic" GH_FIXTURE_DIR="${FIX}/chronic" "$D" --days 7 2>&1)"
+check "chronic is detected" "yes" "$(contains 'test-chronic:e2e:catalog:' "$out")"
+check "chronic is not also called flaky" "no" "$(contains 'test-flaky:' "$out")"
+
+# --- a self-healed test is neither flaky nor a regression ---
+out="$(RP_FIXTURE_DIR="${FIX}/self-healed" GH_FIXTURE_DIR="${FIX}/self-healed" "$D" --days 7 2>&1)"
+check "self-healed test is not flagged flaky" "no" "$(contains 'test-flaky:' "$out")"
+check "self-healed test is not flagged a regression" "no" "$(contains 'test-regress:' "$out")"
 
 # --- the cap is enforced and stated, never silent ---
 out="$(RP_FIXTURE_DIR="${FIX}/regression" GH_FIXTURE_DIR="${FIX}/regression" "$D" --days 7 2>&1)"

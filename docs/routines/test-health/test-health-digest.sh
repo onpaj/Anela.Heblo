@@ -299,11 +299,16 @@ for key in $(printf '%s' "$launches" | jq -r '[ .[] | .layer + "/" + .module ] |
 done
 
 # --- per-test history from failed-item set membership ---
-# normalize: strip line/col numbers, hex ids, timestamps and ms durations so the
-# same root cause hashes identically across runs.
+# Neutralise only what genuinely varies run-to-run. There is deliberately NO
+# blanket digit rule: `s/[0-9]+/<n>/g` would fold "expected length 12 to equal 8"
+# and "expected length 47 to equal 3" into one string and therefore one hash.
+# Since the regression/chronic fingerprint carries no test path — by design, so
+# one broken fixture across fifteen specs clusters into one issue — that
+# collision would make two different regressions in the same module share a
+# fingerprint, and dedup would silently drop the second.
 normalize_error() {
   printf '%s' "$1" \
-    | sed -E 's/[0-9]+ms/<ms>/g; s/:[0-9]+:[0-9]+/:<pos>/g; s/[0-9a-f]{8,}/<id>/gi; s/[0-9]{4}-[0-9]{2}-[0-9]{2}[T ][0-9:.]+/<ts>/g; s/[0-9]+/<n>/g' \
+    | sed -E 's/[0-9]+ms/<ms>/g; s/:[0-9]+:[0-9]+/:<pos>/g; s/[0-9a-f]{8,}/<id>/gi; s/[0-9]{4}-[0-9]{2}-[0-9]{2}[T ][0-9:.]+/<ts>/g' \
     | cut -c1-200
 }
 
@@ -321,13 +326,31 @@ for key in $(printf '%s' "$launches" | jq -r '[ .[] | .layer + "/" + .module ] |
   newest_two="$(printf '%s\n' "$ids" | head -2)"
   while IFS= read -r t; do
     [[ -n "$t" ]] || continue
-    k=0; recent_fails=0
+    k=0; recent_fails=0; seq=""
     for id in $ids; do
       hit="$(printf '%s' "$failed_items" | jq --argjson i "$id" --arg t "$t" \
         '[ .[] | select(.launchId==$i and (.path + " > " + .name)==$t) ] | length')"
-      [[ "$hit" -gt 0 ]] && k=$((k+1))
-      case "$newest_two" in *"$id"*) [[ "$hit" -gt 0 ]] && recent_fails=$((recent_fails+1)) ;; esac
+      if [[ "$hit" -gt 0 ]]; then
+        k=$((k+1)); seq="${seq}1"
+        # Exact-line match, never a glob. `case $newest_two in *"$id"*` counts
+        # launch 42 as one of the newest two whenever a newest id merely
+        # contains "42" — 4200, 1042. ReportPortal ids are dense sequential
+        # integers, so that misfiles regressions routinely in production while
+        # every fixture using small ids passes green.
+        if printf '%s\n' "$newest_two" | grep -qxF "$id"; then
+          recent_fails=$((recent_fails+1))
+        fi
+      else
+        seq="${seq}0"
+      fi
     done
+
+    # Count status transitions across the window. Flaky means *alternating*,
+    # not merely "sometimes red". A test that failed the two oldest runs and has
+    # passed ever since has one flip and has already healed — filing it as flaky
+    # produces a pull request to fix nothing.
+    flips="$(printf '%s' "$seq" | awk '{n=0; for(i=2;i<=length($0);i++) if(substr($0,i,1)!=substr($0,i-1,1)) n++; print n+0}')"
+
     err_line="$(printf '%s' "$failed_items" | jq -r --arg t "$t" \
       'map(select((.path + " > " + .name)==$t)) | .[0].error // ""')"
     norm="$(normalize_error "$err_line")"
@@ -346,7 +369,11 @@ for key in $(printf '%s' "$launches" | jq -r '[ .[] | .layer + "/" + .module ] |
         fingerprint: ("test-regress:" + $l + ":" + $m + ":" + $h),
         headline: ($l + "/" + $m + ": \"" + $t + "\" newly fails two runs running"),
         detail: ("Passed earlier in the window, now failing. First error line: " + $e) }')"
-    elif [[ "$k" -gt 0 && "$k" -lt "$n" && "$pass_pct" -ge 20 && "$pass_pct" -le 80 ]]; then
+    # Compare without pre-dividing: pass_pct floors, so `pass_pct <= 80` admits
+    # true rates up to 80.99% into the band. pass_pct is kept for the headline.
+    elif [[ "$k" -gt 0 && "$k" -lt "$n" && "$flips" -ge 2 \
+            && $(( (n - k) * 100 )) -ge $(( 20 * n )) \
+            && $(( (n - k) * 100 )) -le $(( 80 * n )) ]]; then
       add_finding "$(jq -n --arg l "$l" --arg m "$m" --arg t "$t" --argjson p "$pass_pct" --arg e "$err_line" '{
         category: "flaky", layer: $l, module: $m,
         fingerprint: ("test-flaky:" + $l + ":" + $m + ":" + $t),
