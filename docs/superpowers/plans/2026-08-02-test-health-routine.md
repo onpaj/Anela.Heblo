@@ -402,6 +402,24 @@ out="$(RP_FIXTURE_DIR=/nonexistent-fixture-dir "$D" --days 7 2>&1)"; rc=$?
 check "unreachable/failed fetch is nonzero" "yes" "$([[ $rc -ne 0 ]] && echo yes || echo no)"
 check "unreachable files no silence findings" "no" "$(contains 'test-silence:' "$out")"
 
+# --- consecutive-error-day counter escalates; success clears it ---
+esf="$(mktemp)"; rm -f "$esf"
+out="$(TEST_HEALTH_STATE_FILE="$esf" RP_FIXTURE_DIR=/nonexistent "$D" --days 7 2>&1)"
+check "first error day counts 1" "yes" "$(contains 'errdays=1' "$out")"
+
+out="$(TEST_HEALTH_STATE_FILE="$esf" RP_FIXTURE_DIR=/nonexistent "$D" --days 7 2>&1)"
+check "same-day rerun does not double count" "yes" "$(contains 'errdays=1' "$out")"
+
+y="$(date -u -v-1d +%Y-%m-%d 2>/dev/null || date -u -d 'yesterday' +%Y-%m-%d)"
+printf 'lastErrorDate=%s\nerrDays=4\n' "$y" > "$esf"
+out="$(TEST_HEALTH_STATE_FILE="$esf" RP_FIXTURE_DIR=/nonexistent "$D" --days 7 2>&1)"
+check "a consecutive day escalates the count" "yes" "$(contains 'errdays=5' "$out")"
+
+out="$(TEST_HEALTH_STATE_FILE="$esf" RP_FIXTURE_DIR="${FIX}/clean" "$D" --days 7 2>&1)"
+check "a successful run reports errdays=0" "yes" "$(contains 'errdays=0' "$out")"
+check "a successful run clears the state file" "0" "$(sed -n 's/^errDays=//p' "$esf" | head -1)"
+rm -f "$esf"
+
 echo "---"; echo "passed: $pass  failed: $fail"
 [[ $fail -eq 0 ]]
 ```
@@ -469,6 +487,41 @@ epoch_days_ago() {
   date -u -v-"${d}"d +%s 2>/dev/null || date -u -d "${d} days ago" +%s 2>/dev/null \
     || err "neither BSD nor GNU date available."
 }
+day_offset() { # day_offset N -> the UTC date N days ago as YYYY-MM-DD
+  date -u -v-"${1}"d +%Y-%m-%d 2>/dev/null || date -u -d "${1} days ago" +%Y-%m-%d 2>/dev/null \
+    || err "neither BSD nor GNU date available."
+}
+
+TODAY="$(date -u +%Y-%m-%d)"
+mkdir -p "$(dirname "$STATE_FILE")" 2>/dev/null || true
+
+state_field() { # state_field <key> -> value from the state file, or empty
+  [[ -f "$STATE_FILE" ]] || return 0
+  sed -n "s/^$1=//p" "$STATE_FILE" | head -1
+}
+
+# A routine that cannot run must get LOUDER, not quieter. telemetry-anomaly
+# reported "done" every day for weeks while entirely broken, because an
+# unchanged state produced an identical, deduplicated non-event. Counting
+# consecutive error days makes the state change daily, so harness dispatches
+# a fresh, escalating task instead of swallowing it.
+record_error_and_exit() { # record_error_and_exit <exit-code> <message>
+  local code="$1" msg="$2" prev_date prev_n yesterday n
+  prev_date="$(state_field lastErrorDate)"
+  prev_n="$(state_field errDays)"; [[ -n "$prev_n" ]] || prev_n=0
+  yesterday="$(day_offset 1)"
+  if [[ "$prev_date" == "$TODAY" ]]; then n="$prev_n"          # re-run same day
+  elif [[ "$prev_date" == "$yesterday" ]]; then n=$((prev_n + 1))
+  else n=1; fi
+  printf 'lastErrorDate=%s\nerrDays=%s\n' "$TODAY" "$n" > "$STATE_FILE" 2>/dev/null || true
+  echo "STATE: error=${code}:errdays=${n}"
+  echo "Error: ${msg} (exit ${code}, consecutive error days: ${n})" >&2
+  exit "$code"
+}
+
+clear_error_days() {
+  printf 'lastErrorDate=\nerrDays=0\n' > "$STATE_FILE" 2>/dev/null || true
+}
 
 WINDOW_START_MS=$(( $(epoch_days_ago "$DAYS") * 1000 ))
 NOW_MS=$(( $(date -u +%s) * 1000 ))
@@ -480,8 +533,8 @@ NOW_MS=$(( $(date -u +%s) * 1000 ))
 raw_launches="$("$RP" '/launch?page.size=300&page.sort=startTime,DESC')"; rc=$?
 if [[ $rc -ne 0 ]]; then
   # 3 = unreachable, 4 = auth. Either way we know NOTHING about test presence,
-  # so we must not emit silence findings. Propagate and stop.
-  errc "$rc" "could not read launches from ReportPortal — no findings computed."
+  # so we must not emit silence findings. Record the error day and stop.
+  record_error_and_exit "$rc" "could not read launches from ReportPortal"
 fi
 
 launches="$(printf '%s' "$raw_launches" | jq --argjson since "$WINDOW_START_MS" '
@@ -529,12 +582,9 @@ finding_count="$(printf '%s' "$findings" | jq 'length')"
 state_body="$(printf '%s' "$findings" | jq -S -c '[ .[] | .fingerprint ] | sort')"
 state_hash="$(printf '%s' "$state_body" | shasum -a 256 | cut -c1-16)"
 
-# Consecutive-error-day counter: a routine that cannot run must get LOUDER, not
-# quieter. telemetry-anomaly reported "done" every day while entirely broken.
-mkdir -p "$(dirname "$STATE_FILE")" 2>/dev/null || true
-err_days=0
-STATE="findings=${finding_count}:${state_hash}:errdays=${err_days}"
-printf '%s\n' "$STATE" > "$STATE_FILE" 2>/dev/null || true
+# Reaching here means the gather succeeded, so the error streak is over.
+clear_error_days
+STATE="findings=${finding_count}:${state_hash}:errdays=0"
 
 if [[ "$STATE_ONLY" -eq 1 ]]; then
   echo "STATE: ${STATE}"
@@ -601,7 +651,7 @@ chmod +x docs/routines/test-health/test-health-digest.sh
 ./docs/routines/test-health/test-health-digest.test.sh
 ```
 
-Expected: `passed: 11  failed: 0`, exit 0.
+Expected: `passed: 15  failed: 0`, exit 0.
 
 - [ ] **Step 5: Commit**
 
@@ -656,7 +706,7 @@ check "cascade suppressed: no per-module silence" "0" "$n"
 ./docs/routines/test-health/test-health-digest.test.sh
 ```
 
-Expected: the six new checks FAIL (no silence or ci findings are produced yet); the eleven Task 3 checks still pass.
+Expected: the six new checks FAIL (no silence or ci findings are produced yet); the fifteen Task 3 checks still pass.
 
 - [ ] **Step 3: Write minimal implementation**
 
@@ -757,7 +807,7 @@ fi
 ./docs/routines/test-health/test-health-digest.test.sh
 ```
 
-Expected: `passed: 17  failed: 0`, exit 0.
+Expected: `passed: 21  failed: 0`, exit 0.
 
 - [ ] **Step 5: Commit**
 
@@ -823,7 +873,7 @@ check "digest states the cap" "yes" "$(contains 'CAP: 5' "$out")"
 ./docs/routines/test-health/test-health-digest.test.sh
 ```
 
-Expected: the seven new checks FAIL; the seventeen prior checks still pass.
+Expected: the seven new checks FAIL; the twenty-one prior checks still pass.
 
 - [ ] **Step 3: Write minimal implementation**
 
@@ -931,7 +981,7 @@ echo "CAP: ${CAP} (file at most this many issues; report every finding you skip 
 ./docs/routines/test-health/test-health-digest.test.sh
 ```
 
-Expected: `passed: 24  failed: 0`, exit 0.
+Expected: `passed: 28  failed: 0`, exit 0.
 
 - [ ] **Step 5: Commit**
 
@@ -1298,7 +1348,9 @@ ls -l ~/harness-root/processes/test-health.json ~/harness-root/agents/test-healt
 | Dry-run calibration | Task 9 |
 | Open question: unverified API shapes | Task 8 |
 
-Two spec items are deliberately *not* separate tasks: the consecutive-error-day counter is stubbed at `err_days=0` in Task 3 and is only meaningful once the digest can fail against a live server, so it is finalized in Task 8; and the backend/frontend single-run regression rule falls out of the same `recent_fails` logic as E2E because those layers have `n` launches per window with no 26h horizon.
+One spec item is deliberately *not* a separate task: the backend/frontend single-run regression rule falls out of the same `recent_fails` logic as E2E, because those layers have `n` launches per window with no 26h freshness horizon.
+
+The consecutive-error-day counter is implemented in full in Task 3 (`record_error_and_exit` / `clear_error_days`), not stubbed — it needs only the state file, so it is testable offline and carries no dependency on the credential-blocked Task 8. This is the mechanism that stops the routine from failing quietly the way `telemetry-anomaly` did.
 
 **Placeholder scan:** no `TBD`/`TODO`/"implement later"/"similar to Task N" remain. Every code step carries complete code. Task 6 specifies README contents as an explicit ordered list with the exact strings its verification greps for, rather than prose.
 
