@@ -430,6 +430,21 @@ check "a successful run reports errdays=0" "yes" "$(contains 'errdays=0' "$out")
 check "a successful run clears the state file" "0" "$(sed -n 's/^errDays=//p' "$esf" | head -1)"
 rm -f "$esf"
 
+# --- partial outage: launches readable, per-launch item fetch fails ---
+# The realistic shape of a half-up ReportPortal. This must take the SAME error
+# path as a total outage: a STATE line, an incremented day counter, and above
+# all no silence findings — never "the tests did not run".
+partial="$(mktemp -d)"
+cp "${FIX}/clean/launch_page.size_300_page.sort_startTime_DESC.json" "$partial/"
+# deliberately omit the item_* fixtures so every per-launch fetch fails
+esf2="$(mktemp)"; rm -f "$esf2"
+out="$(TEST_HEALTH_STATE_FILE="$esf2" RP_FIXTURE_DIR="$partial" "$D" --days 7 2>&1)"; rc=$?
+check "item-fetch failure exits nonzero" "yes" "$([[ $rc -ne 0 ]] && echo yes || echo no)"
+check "item-fetch failure emits a state line" "yes" "$(contains 'STATE: error=' "$out")"
+check "item-fetch failure counts an error day" "yes" "$(contains 'errdays=1' "$out")"
+check "item-fetch failure files no silence findings" "no" "$(contains 'test-silence:' "$out")"
+rm -rf "$partial"; rm -f "$esf2"
+
 echo "---"; echo "passed: $pass  failed: $fail"
 [[ $fail -eq 0 ]]
 ```
@@ -486,12 +501,21 @@ while [[ $# -gt 0 ]]; do
   case "$1" in
     --days)       DAYS="${2:?--days requires a number}"; shift 2 ;;
     --state-only) STATE_ONLY=1; shift ;;
-    -h|--help)    sed -n '2,22p' "$0"; exit 0 ;;
+    # Print the leading comment block, whatever length it has grown to — a
+    # hardcoded line range silently starts printing code as the header changes.
+    -h|--help)    awk 'NR>1 && /^#/ {sub(/^# ?/,""); print; next} NR>1 {exit}' "$0"; exit 0 ;;
     *)            err "unknown argument '$1'." ;;
   esac
 done
 
-# BSD date first (macOS host), GNU date as fallback.
+# BSD date first (macOS host), GNU date as fallback. Note the two flavours
+# disagree on -r: BSD reads it as an epoch, GNU as a file mtime, so a bare
+# `date -r <epoch>` fails silently on Linux rather than falling through.
+fmt_epoch() { # fmt_epoch <epoch-seconds> -> ISO-8601 UTC
+  date -u -r "$1" +%Y-%m-%dT%H:%M:%SZ 2>/dev/null \
+    || date -u -d "@$1" +%Y-%m-%dT%H:%M:%SZ 2>/dev/null \
+    || echo "epoch:$1"
+}
 day_offset() { # day_offset N -> the UTC date N days ago as YYYY-MM-DD
   date -u -v-"${1}"d +%Y-%m-%d 2>/dev/null || date -u -d "${1} days ago" +%Y-%m-%d 2>/dev/null \
     || err "neither BSD nor GNU date available."
@@ -566,7 +590,12 @@ launches="$(printf '%s' "$raw_launches" | jq --argjson since "$WINDOW_START_MS" 
 failed_items='[]'
 for id in $(printf '%s' "$launches" | jq -r '.[].id'); do
   p="/item?filter.eq.launchId=${id}&filter.in.status=FAILED,INTERRUPTED&page.size=300"
-  body="$("$RP" "$p")" || errc $? "could not read failed items for launch ${id}."
+  # MUST route through record_error_and_exit, exactly like the launches call.
+  # A partial RP outage — launch list serving, item queries failing — is a real
+  # shape, and taking the plain errc() path here would print no STATE line and
+  # leave the error-day counter frozen, so the scheduler would dedup the failure
+  # into silence. That is the precise failure this counter exists to prevent.
+  body="$("$RP" "$p")" || record_error_and_exit $? "could not read failed items for launch ${id}"
   chunk="$(printf '%s' "$body" | jq --argjson lid "$id" '
     [ .content[]? | { launchId: $lid,
                       name: (.name // "unknown"),
@@ -606,7 +635,7 @@ launch_count="$(printf '%s' "$launches" | jq 'length')"
 cat <<EOF
 # Test-health digest
 
-- **Window:** last ${DAYS} days (since $(date -u -r $((WINDOW_START_MS/1000)) +%Y-%m-%dT%H:%M:%SZ 2>/dev/null || echo "${WINDOW_START_MS}ms"))
+- **Window:** last ${DAYS} days (since $(fmt_epoch $((WINDOW_START_MS/1000))))
 - **Generated:** $(date -u +%Y-%m-%dT%H:%M:%SZ)
 - **Source:** ReportPortal project ${RP_PROJECT:-heblo}
 - **Launches in window:** ${launch_count}
@@ -660,7 +689,7 @@ chmod +x docs/routines/test-health/test-health-digest.sh
 ./docs/routines/test-health/test-health-digest.test.sh
 ```
 
-Expected: `passed: 15  failed: 0`, exit 0.
+Expected: `passed: 19  failed: 0`, exit 0.
 
 - [ ] **Step 5: Commit**
 
@@ -715,7 +744,7 @@ check "cascade suppressed: no per-module silence" "0" "$n"
 ./docs/routines/test-health/test-health-digest.test.sh
 ```
 
-Expected: the six new checks FAIL (no silence or ci findings are produced yet); the fifteen Task 3 checks still pass.
+Expected: the six new checks FAIL (no silence or ci findings are produced yet); the nineteen Task 3 checks still pass.
 
 - [ ] **Step 3: Write minimal implementation**
 
@@ -816,7 +845,7 @@ fi
 ./docs/routines/test-health/test-health-digest.test.sh
 ```
 
-Expected: `passed: 21  failed: 0`, exit 0.
+Expected: `passed: 25  failed: 0`, exit 0.
 
 - [ ] **Step 5: Commit**
 
@@ -882,7 +911,7 @@ check "digest states the cap" "yes" "$(contains 'CAP: 5' "$out")"
 ./docs/routines/test-health/test-health-digest.test.sh
 ```
 
-Expected: the seven new checks FAIL; the twenty-one prior checks still pass.
+Expected: the seven new checks FAIL; the twenty-five prior checks still pass.
 
 - [ ] **Step 3: Write minimal implementation**
 
@@ -990,7 +1019,7 @@ echo "CAP: ${CAP} (file at most this many issues; report every finding you skip 
 ./docs/routines/test-health/test-health-digest.test.sh
 ```
 
-Expected: `passed: 28  failed: 0`, exit 0.
+Expected: `passed: 32  failed: 0`, exit 0.
 
 - [ ] **Step 5: Commit**
 
