@@ -865,8 +865,13 @@ if [[ "$gh_ok" != "yes" ]]; then
   nightly_concl="unknown"
   nightly_id=""
 else
-  nightly_concl="$(printf '%s' "$nightly" | jq -r '.workflow_runs[0].conclusion // "none"')"
-  nightly_id="$(printf '%s' "$nightly" | jq -r '.workflow_runs[0].id // empty')"
+  # Guarded the same way as gh_ok. A well-typed array holding a malformed
+  # element would jq-error here and leave an empty string — a fourth state that
+  # is neither failure, success, none nor unknown, and which falls through to
+  # the same defaults as a confirmed "none". Default it to unknown instead.
+  nightly_concl="$(printf '%s' "$nightly" | jq -r '.workflow_runs[0].conclusion // "none"' 2>/dev/null)"
+  [[ -n "$nightly_concl" ]] || nightly_concl="unknown"
+  nightly_id="$(printf '%s' "$nightly" | jq -r '.workflow_runs[0].id // empty' 2>/dev/null)"
 fi
 
 failing_step="unknown"

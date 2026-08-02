@@ -210,7 +210,7 @@ The first line of every issue body is its fingerprint, matching the
 |---|---|
 | ci-broken | `test-ci:<workflow>:<failing-step>` |
 | schedule-broken | `test-silence:<layer>:<module>:schedule` |
-| silence-unattributed | `test-silence:<layer>:<module>:unattributed` (per module), or `test-ci:<workflow>:unattributed` when the whole layer is stale |
+| silence-unattributed | `test-silence:<layer>:<module>:unattributed` — per module only. When the *whole* layer is stale and the cause cannot be attributed, the finding stays in the `ci-broken` category with fingerprint `test-ci:<workflow>:unattributed`: a whole-layer outage is a single higher-priority event (rank 0) than one unattributable module (rank 2), and the categories must not be merged just because both currently map to the `test-infra` label. |
 | rp-reporting-broken | `test-silence:<layer>:<module>:reporting` |
 | suite-shrank | `test-shrink:<layer>:<module>` |
 | regression | `test-regress:<layer>:<module>:<error-hash>` |
