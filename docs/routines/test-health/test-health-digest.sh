@@ -226,6 +226,8 @@ else
   done
 fi
 
+# (Task 5 appends suite shrink, regression, flaky and chronic detection here.)
+
 # ------------------------------------------------------------------ state ---
 finding_count="$(printf '%s' "$findings" | jq 'length')"
 state_body="$(printf '%s' "$findings" | jq -S -c '[ .[] | .fingerprint ] | sort')"
