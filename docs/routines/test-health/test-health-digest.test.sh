@@ -135,10 +135,21 @@ out="$(RP_FIXTURE_DIR="${FIX}/two-errors" GH_FIXTURE_DIR="${FIX}/two-errors" "$D
 n="$(printf '%s\n' "$out" | grep -o 'test-regress:[^ `]*' | sort -u | grep -c .)"
 check "two different errors get two fingerprints" "2" "$n"
 
-# --- chronic: red every run for a week ---
+# --- an 8+ digit DECIMAL must not be normalized like a hex id ---
+out="$(RP_FIXTURE_DIR="${FIX}/big-numbers" GH_FIXTURE_DIR="${FIX}/big-numbers" "$D" --days 7 2>&1)"
+n="$(printf '%s\n' "$out" | grep -o 'test-regress:[^ `]*' | sort -u | grep -c .)"
+check "large decimals do not collide into one fingerprint" "2" "$n"
+
+# --- chronic: red every run held for this module, span reported not claimed ---
 out="$(RP_FIXTURE_DIR="${FIX}/chronic" GH_FIXTURE_DIR="${FIX}/chronic" "$D" --days 7 2>&1)"
 check "chronic is detected" "yes" "$(contains 'test-chronic:e2e:catalog:' "$out")"
 check "chronic is not also called flaky" "no" "$(contains 'test-flaky:' "$out")"
+check "chronic reports a measured span, not a claimed week" "no" "$(contains 'for a week' "$out")"
+check "chronic reports the measured span (6 days for 7 daily launches)" "yes" "$(contains 'spanning 6 days' "$out")"
+
+# --- thin history is not chronic: two launches is not "every run" evidence ---
+out="$(RP_FIXTURE_DIR="${FIX}/chronic-thin" GH_FIXTURE_DIR="${FIX}/chronic-thin" "$D" --days 7 2>&1)"
+check "two all-red launches are not called chronic" "no" "$(contains 'test-chronic:' "$out")"
 
 # --- a self-healed test is neither flaky nor a regression ---
 out="$(RP_FIXTURE_DIR="${FIX}/self-healed" GH_FIXTURE_DIR="${FIX}/self-healed" "$D" --days 7 2>&1)"

@@ -308,7 +308,8 @@ done
 # fingerprint, and dedup would silently drop the second.
 normalize_error() {
   printf '%s' "$1" \
-    | sed -E 's/[0-9]+ms/<ms>/g; s/:[0-9]+:[0-9]+/:<pos>/g; s/[0-9a-f]{8,}/<id>/gi; s/[0-9]{4}-[0-9]{2}-[0-9]{2}[T ][0-9:.]+/<ts>/g' \
+    | sed -E 's/[0-9]+ms/<ms>/g; s/:[0-9]+:[0-9]+/:<pos>/g; s/[0-9]{4}-[0-9]{2}-[0-9]{2}[T ][0-9:.]+/<ts>/g' \
+    | perl -pe 's/\b(?=[0-9a-f]{8,}\b)(?=[0-9a-f]*[a-f])[0-9a-f]+\b/<id>/gi' \
     | cut -c1-200
 }
 
@@ -319,6 +320,13 @@ for key in $(printf '%s' "$launches" | jq -r '[ .[] | .layer + "/" + .module ] |
     '[ .[] | select(.layer==$l and .module==$m) ] | sort_by(-.startTime) | .[].id')"
   n="$(printf '%s\n' "$ids" | grep -c .)"
   [[ "$n" -ge 2 ]] || continue
+
+  # Real elapsed days between this module's oldest and newest launch, so a
+  # finding can report the span it actually observed rather than inferring one
+  # from a run count.
+  span_days="$(printf '%s' "$launches" | jq --arg l "$l" --arg m "$m" \
+    '[ .[] | select(.layer==$l and .module==$m) | .startTime ]
+     | ((max - min) / 86400000) | floor')"
 
   tests="$(printf '%s' "$failed_items" | jq -r --argjson ids "$(printf '%s\n' "$ids" | jq -R . | jq -s 'map(tonumber)')" \
     '[ .[] | select(.launchId as $x | $ids | index($x)) | (.path + " > " + .name) ] | unique | .[]')"
@@ -357,12 +365,20 @@ for key in $(printf '%s' "$launches" | jq -r '[ .[] | .layer + "/" + .module ] |
     hash8="$(printf '%s' "$norm" | shasum -a 256 | cut -c1-8)"
     pass_pct=$(( (n - k) * 100 / n ))
 
-    if [[ "$k" -eq "$n" && "$n" -ge 7 ]]; then
-      add_finding "$(jq -n --arg l "$l" --arg m "$m" --arg h "$hash8" --arg t "$t" --arg e "$err_line" '{
+    # Chronic means "red in every run we have", not "red in seven runs". A
+    # launch count is only a calendar week for the nightly E2E layer; backend
+    # and frontend report per push to main, where seven launches can be a single
+    # afternoon — filing an issue headlined "for a week" that is simply false —
+    # or never accumulate at all in a quiet week, leaving a permanently red test
+    # re-filed as a fresh regression forever. The headline states the real span
+    # and run count instead of asserting a duration it has not measured.
+    if [[ "$k" -eq "$n" && "$n" -ge 3 ]]; then
+      add_finding "$(jq -n --arg l "$l" --arg m "$m" --arg h "$hash8" --arg t "$t" --arg e "$err_line" \
+                            --argjson n "$n" --argjson sd "$span_days" '{
         category: "chronic", layer: $l, module: $m,
         fingerprint: ("test-chronic:" + $l + ":" + $m + ":" + $h),
-        headline: ($l + "/" + $m + ": \"" + $t + "\" has failed every run for a week"),
-        detail: ("First error line: " + $e) }')"
+        headline: ($l + "/" + $m + ": \"" + $t + "\" failed all " + ($n|tostring) + " runs in the window (spanning " + ($sd|tostring) + " days)"),
+        detail: ("Red in every launch held for this module — no passing run to compare against. First error line: " + $e) }')"
     elif [[ "$recent_fails" -eq 2 && "$k" -eq 2 ]]; then
       add_finding "$(jq -n --arg l "$l" --arg m "$m" --arg h "$hash8" --arg t "$t" --arg e "$err_line" '{
         category: "regression", layer: $l, module: $m,
