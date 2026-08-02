@@ -6,7 +6,7 @@ import type { PhotoDto } from "../../../api/hooks/usePhotobank";
 
 const MAX_VISIBLE_TAGS = 5;
 
-function formatFileSize(bytes: number | null): string {
+function formatFileSize(bytes: number | null | undefined): string {
   if (bytes == null) return "—";
   if (bytes < 1024) return `${bytes} B`;
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
@@ -74,9 +74,10 @@ function PhotoList({
       <div className="flex-1 overflow-y-auto divide-y divide-gray-200 dark:divide-graphite-border">
         {photos.map((photo) => {
           const isSelected = photo.id === selectedPhotoId;
-          const isChecked = selectedIds.has(photo.id);
-          const visibleTags = photo.tags.slice(0, MAX_VISIBLE_TAGS);
-          const overflowCount = photo.tags.length - MAX_VISIBLE_TAGS;
+          const isChecked = selectedIds.has(photo.id!);
+          const tags = photo.tags ?? [];
+          const visibleTags = tags.slice(0, MAX_VISIBLE_TAGS);
+          const overflowCount = tags.length - MAX_VISIBLE_TAGS;
 
           return (
             <div
@@ -99,12 +100,12 @@ function PhotoList({
                   }
                   if (e.shiftKey) {
                     e.preventDefault();
-                    onPhotoSelection(photo.id, "range");
+                    onPhotoSelection(photo.id!, "range");
                     return;
                   }
                   if (e.metaKey || e.ctrlKey) {
                     e.preventDefault();
-                    onPhotoSelection(photo.id, "toggle");
+                    onPhotoSelection(photo.id!, "toggle");
                     return;
                   }
                   onPhotoSelect(photo);
@@ -115,9 +116,9 @@ function PhotoList({
                 aria-label={photo.name}
               >
                 <PhotoThumbnail
-                  photoId={photo.id}
-                  modifiedAt={photo.lastModifiedAt}
-                  alt={photo.name}
+                  photoId={photo.id!}
+                  modifiedAt={photo.lastModifiedAt?.toISOString() ?? ""}
+                  alt={photo.name ?? ""}
                   className="w-20 h-20 rounded-lg object-cover flex-shrink-0"
                   size="medium"
                 />
@@ -128,10 +129,10 @@ function PhotoList({
                   <span className="text-sm text-gray-500 dark:text-graphite-muted truncate">
                     {photo.folderPath}
                   </span>
-                  {photo.tags.length > 0 && (
+                  {tags.length > 0 && (
                     <div className="flex flex-wrap gap-1">
                       {visibleTags.map((tag) => (
-                        <TagBadge key={tag.id} name={tag.name} />
+                        <TagBadge key={tag.id} name={tag.name ?? ""} />
                       ))}
                       {overflowCount > 0 && (
                         <span className="inline-flex items-center px-1.5 py-0.5 bg-gray-100 dark:bg-graphite-surface-2 text-gray-600 dark:text-graphite-muted rounded-full text-xs">
@@ -143,7 +144,7 @@ function PhotoList({
                   <div className="flex items-center gap-3 text-xs text-gray-500 dark:text-graphite-muted">
                     <span>{formatFileSize(photo.fileSizeBytes)}</span>
                     <span>
-                      {new Date(photo.lastModifiedAt).toLocaleDateString("cs-CZ")}
+                      {photo.lastModifiedAt ? photo.lastModifiedAt.toLocaleDateString("cs-CZ") : "—"}
                     </span>
                     {photo.sharePointWebUrl && (
                       <a
