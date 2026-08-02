@@ -54,19 +54,28 @@ fmt_epoch() { # fmt_epoch <epoch-seconds> -> ISO-8601 UTC
 
 GH="${HERE}/gh-api.sh"
 
+# A GitHub failure must be distinguishable from "GitHub says there are no runs".
+# Collapsing the two is the same mistake as reporting an unreadable ReportPortal
+# as "the tests did not run": it would make a GitHub outage look like proof that
+# the nightly was never scheduled, defeat cascade suppression, and file one
+# issue per stale module — eleven harness:todo issues, eleven PRs, one cause.
+GH_UNREACHABLE='{"workflow_runs":[],"__gh_error":true}'
+
 # Fetch a GitHub REST path, honouring GH_FIXTURE_DIR for offline replay. Uses
 # the same file-naming rule as rp-query.sh so fixtures are predictable.
 gh_get() {
-  local p="$1"
+  local p="$1" out rc
   if [[ -n "${GH_FIXTURE_DIR:-}" ]]; then
     local name file
     name="$(printf '%s' "${p#/}" | sed 's/[^A-Za-z0-9._-]/_/g')"
     file="${GH_FIXTURE_DIR}/${name}.json"
-    [[ -f "$file" ]] && cat "$file" || echo '{"workflow_runs":[]}'
+    if [[ -f "$file" ]]; then cat "$file"; else echo '{"workflow_runs":[]}'; fi
     return 0
   fi
-  [[ -x "$GH" ]] || { echo '{"workflow_runs":[]}'; return 0; }
-  "$GH" GET "$p" 2>/dev/null || echo '{"workflow_runs":[]}'
+  [[ -x "$GH" ]] || { echo "$GH_UNREACHABLE"; return 0; }
+  out="$("$GH" GET "$p" 2>/dev/null)"; rc=$?
+  if [[ $rc -ne 0 ]]; then echo "$GH_UNREACHABLE"; return 0; fi
+  printf '%s' "$out"
 }
 
 TODAY="$(date -u +%Y-%m-%d)"
@@ -182,8 +191,13 @@ nightly='{"workflow_runs":[]}'
 if [[ "$stale_e2e" -gt 0 ]]; then
   nightly="$(gh_get "/repos/onpaj/Anela.Heblo/actions/workflows/e2e-nightly-regression.yml/runs?per_page=5")"
 fi
-nightly_concl="$(printf '%s' "$nightly" | jq -r '.workflow_runs[0].conclusion // "none"')"
-nightly_id="$(printf '%s' "$nightly" | jq -r '.workflow_runs[0].id // empty')"
+if [[ "$(printf '%s' "$nightly" | jq -r '.__gh_error // false')" == "true" ]]; then
+  nightly_concl="unknown"
+  nightly_id=""
+else
+  nightly_concl="$(printf '%s' "$nightly" | jq -r '.workflow_runs[0].conclusion // "none"')"
+  nightly_id="$(printf '%s' "$nightly" | jq -r '.workflow_runs[0].id // empty')"
+fi
 
 failing_step="unknown"
 if [[ "$nightly_concl" == "failure" && -n "$nightly_id" ]]; then
@@ -199,8 +213,21 @@ if [[ "$stale_e2e" -gt 0 && "$fresh_e2e" -eq 0 && "$nightly_concl" == "failure" 
     category: "ci-broken",
     layer: "e2e", module: "-",
     fingerprint: ("test-ci:e2e-nightly-regression.yml:" + $s),
-    headline: ("E2E nightly failed at step \"" + $s + "\" — no tests ran, " + ($n|tostring) + " modules have no data"),
+    headline: ("E2E nightly failed at step \"" + $s + "\" — no tests ran, " + ($n|tostring) + " module(s) have no data"),
     detail: "The workflow run failed before the test step, so ReportPortal received nothing. Resolution is outside the repository (credential/config), not a code change."
+  }')"
+elif [[ "$stale_e2e" -gt 0 && "$fresh_e2e" -eq 0 && "$nightly_concl" == "unknown" ]]; then
+  # ReportPortal was readable and genuinely holds no E2E data — that much is
+  # fact. What we cannot do is attribute it, because GitHub did not answer.
+  # Still exactly ONE finding: the cascade rule is about not multiplying a
+  # single unknown cause into eleven issues, and an unattributable outage is
+  # no less single than an attributable one.
+  add_finding "$(jq -n --argjson n "$stale_e2e" '{
+    category: "ci-broken",
+    layer: "e2e", module: "-",
+    fingerprint: "test-ci:e2e-nightly-regression.yml:unattributed",
+    headline: ("E2E data missing for " + ($n|tostring) + " module(s); GitHub could not be reached to attribute the cause"),
+    detail: "ReportPortal was readable and holds no recent E2E launches, so the data really is absent. The GitHub Actions API could not be queried, so whether the nightly failed, never ran, or ran without reporting is undetermined. Check the workflow run history by hand."
   }')"
 else
   # Otherwise report each stale module individually, distinguishing "the
@@ -209,7 +236,11 @@ else
     d="$(printf '%s' "$row" | base64 --decode)"
     l="$(printf '%s' "$d" | jq -r '.layer')"
     m="$(printf '%s' "$d" | jq -r '.module')"
-    if [[ "$nightly_concl" == "success" ]]; then
+    if [[ "$nightly_concl" == "unknown" ]]; then
+      cat_name="schedule-broken"; suffix="unattributed"
+      head_txt="${l}/${m}: no launch in the last 26h, cause undetermined"
+      det="ReportPortal holds no recent launch for this module. The GitHub Actions API could not be queried, so whether the run failed, never ran, or ran without reporting is undetermined."
+    elif [[ "$nightly_concl" == "success" ]]; then
       cat_name="rp-reporting-broken"; suffix="reporting"
       head_txt="${l}/${m}: workflow succeeded but no ReportPortal launch arrived"
       det="The nightly run completed successfully, so the tests ran — the reporting agent or the tailnet hop failed."

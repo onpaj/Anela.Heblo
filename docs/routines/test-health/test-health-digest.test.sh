@@ -89,5 +89,13 @@ check "ci-broken names the failing step" "yes" "$(contains 'Deploy main to Stagi
 n="$(printf '%s\n' "$out" | grep -c 'test-silence:')"
 check "cascade suppressed: no per-module silence" "0" "$n"
 
+# --- whole layer stale, GitHub unreachable -> ONE unattributed finding ---
+out="$(RP_FIXTURE_DIR="${FIX}/gh-down" GH_FIXTURE_DIR="${FIX}/gh-down" "$D" --days 7 2>&1)"
+check "gh-down is reported as unattributed" "yes" "$(contains 'test-ci:e2e-nightly-regression.yml:unattributed' "$out")"
+n="$(printf '%s\n' "$out" | grep -c 'test-ci:')"
+check "gh-down files exactly one ci finding" "1" "$n"
+n="$(printf '%s\n' "$out" | grep -c 'test-silence:')"
+check "gh-down does not cascade into per-module silence" "0" "$n"
+
 echo "---"; echo "passed: $pass  failed: $fail"
 [[ $fail -eq 0 ]]
