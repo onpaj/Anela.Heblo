@@ -15,6 +15,7 @@
 - **Host bash is 3.2** (macOS 12). No associative arrays (`declare -A`), no `${var^^}`, no `mapfile`. Use `awk`/`jq`/temp files instead.
 - **Host `date` is BSD.** Use `date -u -v-7d +%s`, never `date -d`. Any date helper must try BSD first and fall back to GNU.
 - **`jq` is at `/Users/rem/.local/bin/jq`**, which is on `harness-run.sh`'s PATH. Scripts must check for it and fail with a clear message.
+- **The digest's notion of "now" is overridable via `TEST_HEALTH_NOW_MS`** (epoch milliseconds), defaulting to wall-clock now. Fixtures carry absolute timestamps, so every test must pin this — otherwise the rolling window slides past the fixtures within days and the suite rots into a false pass: launches filtered out, zero findings, everything apparently green. All fixture-driven tests in Tasks 3, 4 and 5 export `TEST_HEALTH_NOW_MS=1785030000000`.
 - **Every script is read-only** with respect to the repo and the app: no code changes, no commits, no PRs. The only writes are the step artifact, the state file, and filed GitHub issues.
 - **Never print or log `RP_API_KEY`, `GIT_PAT` or `GITHUB_TOKEN`.**
 - **Exit-code contract**, shared by `rp-query.sh` and the digest: `0` ok, `1` usage/config error (named variable), `3` ReportPortal unreachable (network), `4` ReportPortal auth rejected (401/403), `5` ReportPortal returned an unexpected HTTP status (404/429/5xx). `1` must mean "your configuration is wrong" and nothing else — the agent prompt tells the operator to go fix a variable when it sees `1`. The digest treats `3`, `4` and `5` identically: the gather failed, so nothing is known about test presence and no silence finding may be emitted.
@@ -382,6 +383,11 @@ export TEST_HEALTH_STATE_FILE="$(mktemp)"
 trap 'rm -f "$TEST_HEALTH_STATE_FILE"' EXIT
 export RP_API_KEY=dummy RP_ENDPOINT=http://fixture.invalid/api/v1 RP_PROJECT=heblo
 
+# Pin "now" so the fixtures' absolute timestamps stay inside the rolling window
+# forever. 1785030000000 sits ~8h after the newest clean-week launch, which also
+# keeps it inside the 26h E2E freshness horizon Task 4 checks.
+export TEST_HEALTH_NOW_MS=1785030000000
+
 # --- clean week: launches present, nothing failing -> zero findings ---
 out="$(RP_FIXTURE_DIR="${FIX}/clean" "$D" --days 7 2>&1)"; rc=$?
 check "clean week exits 0" "0" "$rc"
@@ -486,11 +492,6 @@ while [[ $# -gt 0 ]]; do
 done
 
 # BSD date first (macOS host), GNU date as fallback.
-epoch_days_ago() {
-  local d="$1"
-  date -u -v-"${d}"d +%s 2>/dev/null || date -u -d "${d} days ago" +%s 2>/dev/null \
-    || err "neither BSD nor GNU date available."
-}
 day_offset() { # day_offset N -> the UTC date N days ago as YYYY-MM-DD
   date -u -v-"${1}"d +%Y-%m-%d 2>/dev/null || date -u -d "${1} days ago" +%Y-%m-%d 2>/dev/null \
     || err "neither BSD nor GNU date available."
@@ -527,8 +528,12 @@ clear_error_days() {
   printf 'lastErrorDate=\nerrDays=0\n' > "$STATE_FILE" 2>/dev/null || true
 }
 
-WINDOW_START_MS=$(( $(epoch_days_ago "$DAYS") * 1000 ))
-NOW_MS=$(( $(date -u +%s) * 1000 ))
+# "Now" is overridable so that fixtures can pin it. Fixtures carry absolute
+# timestamps; a window computed from wall-clock now would slide past them within
+# days and the suite would rot into a false pass — launches silently filtered
+# out, zero findings, everything "green". Tests set TEST_HEALTH_NOW_MS.
+NOW_MS="${TEST_HEALTH_NOW_MS:-$(( $(date -u +%s) * 1000 ))}"
+WINDOW_START_MS=$(( NOW_MS - DAYS * 86400 * 1000 ))
 
 # ---------------------------------------------------------------- gather ----
 # One page of 300 launches, newest first, then filter to the window with jq.
