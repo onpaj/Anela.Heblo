@@ -67,6 +67,29 @@ rm -f "$c1sf2"
 out="$("$D" --bogus-argument 2>&1)"; rc=$?
 check "C1: bad argument WITHOUT --state-only still exits nonzero" "yes" "$([[ $rc -ne 0 ]] && echo yes || echo no)"
 
+# --- I3: --days validation. Both shapes are one character away from the
+# shipped `--days 7` and previously went silent: a non-numeric value blew up
+# much later at the WINDOW_START_MS arithmetic (an unbound-variable abort
+# that exits 0 with completely empty stdout under `set -u`), and a bare
+# `--days` with no value aborted via bash's own nounset handling before
+# err() ever ran (exit 1, no STATE line). Both must now route through err()
+# so --state-only still gets an observation. ---
+i3sf="$(mktemp)"; rm -f "$i3sf"
+out="$(TEST_HEALTH_STATE_FILE="$i3sf" RP_FIXTURE_DIR="${FIX}/clean" "$D" --state-only --days abc 2>&1)"; rc=$?
+check "I3: --days abc exits 0 under --state-only" "0" "$rc"
+check "I3: --days abc emits a STATE error line" "yes" "$(contains 'STATE: error=' "$out")"
+rm -f "$i3sf"
+
+out="$(RP_FIXTURE_DIR="${FIX}/clean" "$D" --days abc 2>&1)"; rc=$?
+check "I3: --days abc WITHOUT --state-only exits nonzero" "yes" "$([[ $rc -ne 0 ]] && echo yes || echo no)"
+check "I3: --days abc WITHOUT --state-only is not silent" "yes" "$([[ -n "$out" ]] && echo yes || echo no)"
+
+i3sf2="$(mktemp)"; rm -f "$i3sf2"
+out="$(TEST_HEALTH_STATE_FILE="$i3sf2" RP_FIXTURE_DIR="${FIX}/clean" "$D" --state-only --days 2>&1)"; rc=$?
+check "I3: --days with no value exits 0 under --state-only" "0" "$rc"
+check "I3: --days with no value emits a STATE error line" "yes" "$(contains 'STATE: error=' "$out")"
+rm -f "$i3sf2"
+
 # --- consecutive-error-day counter escalates; success clears it ---
 esf="$(mktemp)"; rm -f "$esf"
 out="$(TEST_HEALTH_STATE_FILE="$esf" RP_FIXTURE_DIR=/nonexistent "$D" --days 7 2>&1)"

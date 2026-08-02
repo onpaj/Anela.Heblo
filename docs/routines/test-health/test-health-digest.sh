@@ -90,7 +90,22 @@ errc() { local c="$1"; shift; echo "Error: $*" >&2; exit "$c"; }
 # missing jq/perl/rp-query.sh doesn't produce silence in state-only mode.
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    --days)       DAYS="${2:?--days requires a number}"; shift 2 ;;
+    --days)
+      # Both malformed shapes here are one character away from the shipped
+      # `--days 7` and must not go silent. A bare `${2:?...}` aborts via
+      # bash's own nounset handling before err() ever runs -- exit 1, no
+      # STATE line, invisible to --state-only. And a non-numeric value (e.g.
+      # `--days abc`) parses fine here under `set -u` and only blows up much
+      # later at the WINDOW_START_MS arithmetic, as an unbound-variable abort
+      # that exits 0 with empty stdout -- total, silent harness blindness.
+      # Validate eagerly and route both through err(), which already knows
+      # how to reach --state-only via record_error_and_exit.
+      [[ $# -ge 2 ]] || err "--days requires a value."
+      case "$2" in
+        ''|*[!0-9]*) err "--days requires a positive integer, got '$2'." ;;
+      esac
+      [[ "$2" -gt 0 ]] || err "--days requires a positive integer, got '$2'."
+      DAYS="$2"; shift 2 ;;
     --state-only) STATE_ONLY=1; shift ;;
     -h|--help)    awk 'NR>1 && /^#/ {sub(/^# ?/,""); print; next} NR>1 {exit}' "$0"; exit 0 ;;
     *)            err "unknown argument '$1'." ;;
