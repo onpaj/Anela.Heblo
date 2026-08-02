@@ -10,6 +10,7 @@ public class LotStockReconciliationDqtJob : IRecurringJob
     private readonly IDqtRunRepository _repository;
     private readonly IDriftDqtJobRunner _jobRunner;
     private readonly IRecurringJobStatusChecker _statusChecker;
+    private readonly TimeProvider _timeProvider;
     private readonly ILogger<LotStockReconciliationDqtJob> _logger;
 
     public RecurringJobMetadata Metadata { get; } = new()
@@ -25,11 +26,13 @@ public class LotStockReconciliationDqtJob : IRecurringJob
         IDqtRunRepository repository,
         IDriftDqtJobRunner jobRunner,
         IRecurringJobStatusChecker statusChecker,
+        TimeProvider timeProvider,
         ILogger<LotStockReconciliationDqtJob> logger)
     {
         _repository = repository;
         _jobRunner = jobRunner;
         _statusChecker = statusChecker;
+        _timeProvider = timeProvider;
         _logger = logger;
     }
 
@@ -42,7 +45,7 @@ public class LotStockReconciliationDqtJob : IRecurringJob
         }
 
         // Snapshot reconciliation — from/to are the current day for both bounds.
-        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+        var today = DateOnly.FromDateTime(_timeProvider.GetUtcNow().DateTime);
 
         _logger.LogInformation("Starting {JobName} for {Date}", Metadata.JobName, today);
 

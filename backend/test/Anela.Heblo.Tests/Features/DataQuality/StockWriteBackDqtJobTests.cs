@@ -9,17 +9,24 @@ namespace Anela.Heblo.Tests.Features.DataQuality;
 
 public class StockWriteBackDqtJobTests
 {
+    private static readonly DateTimeOffset FixedNow = new(2026, 8, 2, 0, 30, 0, TimeSpan.Zero);
+    private static readonly DateOnly ExpectedDate = new(2026, 8, 1);
+
     private readonly Mock<IDqtRunRepository> _repositoryMock = new();
     private readonly Mock<IDriftDqtJobRunner> _jobRunnerMock = new();
     private readonly Mock<IRecurringJobStatusChecker> _statusCheckerMock = new();
+    private readonly Mock<TimeProvider> _timeProviderMock = new();
     private readonly StockWriteBackDqtJob _sut;
 
     public StockWriteBackDqtJobTests()
     {
+        _timeProviderMock.Setup(x => x.GetUtcNow()).Returns(FixedNow);
+
         _sut = new StockWriteBackDqtJob(
             _repositoryMock.Object,
             _jobRunnerMock.Object,
             _statusCheckerMock.Object,
+            _timeProviderMock.Object,
             NullLogger<StockWriteBackDqtJob>.Instance);
     }
 
@@ -106,5 +113,33 @@ public class StockWriteBackDqtJobTests
 
         // Assert
         _repositoryMock.Verify(r => r.SaveChangesAsync(token), Times.Once);
+    }
+
+    [Fact]
+    public async Task ExecuteAsync_UsesTimeProviderForDateWindow_NotWallClock()
+    {
+        // Arrange
+        _statusCheckerMock
+            .Setup(s => s.IsJobEnabledAsync(_sut.Metadata.JobName, It.IsAny<CancellationToken>(), true))
+            .ReturnsAsync(true);
+        _repositoryMock
+            .Setup(r => r.AddAsync(It.IsAny<DqtRun>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((DqtRun run, CancellationToken _) => run);
+        _repositoryMock
+            .Setup(r => r.SaveChangesAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(1);
+        _jobRunnerMock
+            .Setup(j => j.RunAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
+        // Act
+        await _sut.ExecuteAsync(CancellationToken.None);
+
+        // Assert
+        _repositoryMock.Verify(
+            r => r.AddAsync(
+                It.Is<DqtRun>(run => run.DateFrom == ExpectedDate && run.DateTo == ExpectedDate),
+                It.IsAny<CancellationToken>()),
+            Times.Once);
     }
 }
