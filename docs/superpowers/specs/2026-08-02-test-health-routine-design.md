@@ -279,7 +279,8 @@ Azure client secret is exactly this case — no agent can rotate it.)*
 |---|---|
 | `RP_API_KEY` / `RP_ENDPOINT` missing | digest exits non-zero naming the variable; agent reports the abort plainly and finishes `done` (a `failed` verdict would route a config problem to the self-healer, which cannot fix it) |
 | ReportPortal unreachable (connect failure/timeout) | **distinguished from "no data"** — the digest emits `RP_UNREACHABLE` and suppresses every silence finding, so a tailnet outage cannot mass-file false silence issues |
-| ReportPortal returns 401/403 | treated as a configuration abort, not as absence of data |
+| ReportPortal returns 401/403 | exit 4 — treated as a configuration abort, not as absence of data |
+| ReportPortal returns 404/429/5xx | exit 5 — the server said no. Deliberately *not* exit 1, which is reserved for "a variable is missing"; conflating the two would send the operator hunting for a credential during an RP outage. Suppresses silence findings exactly like exit 3. |
 | GitHub API 403/429 | `gh-api.sh` already retries transient search-API throttling |
 | Persistent abort | the state line carries a consecutive-error-day counter, so `dedup: per-state` produces a fresh, louder task each day instead of an identical silent one |
 | Partial RP data (some layers reachable, some queries fail) | findings are emitted only for layers whose queries succeeded; degraded coverage is stated explicitly in the digest header |

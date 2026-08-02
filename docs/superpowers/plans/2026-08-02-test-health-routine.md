@@ -17,7 +17,7 @@
 - **`jq` is at `/Users/rem/.local/bin/jq`**, which is on `harness-run.sh`'s PATH. Scripts must check for it and fail with a clear message.
 - **Every script is read-only** with respect to the repo and the app: no code changes, no commits, no PRs. The only writes are the step artifact, the state file, and filed GitHub issues.
 - **Never print or log `RP_API_KEY`, `GIT_PAT` or `GITHUB_TOKEN`.**
-- **Exit-code contract**, shared by `rp-query.sh` and the digest: `0` ok, `1` usage/config error (named variable), `3` ReportPortal unreachable (network), `4` ReportPortal auth rejected (401/403).
+- **Exit-code contract**, shared by `rp-query.sh` and the digest: `0` ok, `1` usage/config error (named variable), `3` ReportPortal unreachable (network), `4` ReportPortal auth rejected (401/403), `5` ReportPortal returned an unexpected HTTP status (404/429/5xx). `1` must mean "your configuration is wrong" and nothing else — the agent prompt tells the operator to go fix a variable when it sees `1`. The digest treats `3`, `4` and `5` identically: the gather failed, so nothing is known about test presence and no silence finding may be emitted.
 - **Repo rule (`CLAUDE.md`): GitHub access via `gh` CLI or the REST helper only — never MCP GitHub tools.**
 - **Validation:** this change touches only shell scripts, docs and JSON. No `dotnet build` / `npm run build` is required.
 
@@ -130,6 +130,7 @@ Create `docs/routines/test-health/rp-query.sh`:
 # character outside [A-Za-z0-9._-] replaced by '_', plus '.json'.
 #
 # Exit codes: 0 ok | 1 config/usage error | 3 unreachable | 4 auth rejected
+#             5 unexpected HTTP status (404/429/5xx)
 #
 set -uo pipefail
 
@@ -193,7 +194,10 @@ body="${out%__HTTP_CODE__*}"
 case "$code" in
   2*)      printf '%s' "$body"; exit 0 ;;
   401|403) errc 4 "ReportPortal returned HTTP ${code} — API key invalid or lacks project access." ;;
-  *)       printf '%s' "$body" >&2; errc 1 "ReportPortal returned HTTP ${code}." ;;
+  # Exit 5, NOT 1: a 404/429/5xx means the server said no, which is a wholly
+  # different problem from "you forgot to set RP_ENDPOINT". Collapsing the two
+  # would send the operator hunting for a missing variable during an RP outage.
+  *)       printf '%s' "$body" >&2; errc 5 "ReportPortal returned HTTP ${code}." ;;
 esac
 ```
 
@@ -1037,7 +1041,7 @@ export RP_PROJECT=heblo
 ./docs/routines/test-health/test-health-digest.sh --days 7
 ```
 
-12. **Troubleshooting** — the exit-code table (0/1/3/4), and the explicit note that exit 3 means *ReportPortal is unreachable*, which is never to be read as "the tests did not run".
+12. **Troubleshooting** — the exit-code table (`0` ok, `1` config error, `3` unreachable, `4` auth rejected, `5` unexpected HTTP status), with two explicit notes: exit `3` means *ReportPortal is unreachable*, which is never to be read as "the tests did not run"; and exit `1` means *your configuration is wrong*, which is why server-side faults use `5` instead.
 
 - [ ] **Step 2: Verify the README covers every rule**
 
