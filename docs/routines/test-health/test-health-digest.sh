@@ -150,6 +150,20 @@ if [[ $rc -ne 0 ]]; then
   record_error_and_exit "$rc" "could not read launches from ReportPortal"
 fi
 
+# Validate the shape the same way the GitHub payload is already validated
+# below (`gh_ok`): a 2xx body that parses as JSON but doesn't carry a
+# `.content` array — schema drift, a proxy interstitial, an auth page that
+# happens to be valid JSON — must not fall through to "zero launches". That
+# collapse is the same defect as an unreachable GitHub API reading as "no
+# workflow runs", one level up: a genuinely empty `.content` array IS a real
+# answer (handled below via rp_launch_count), but anything else is a
+# malformed response we must not trust.
+rp_ok="$(printf '%s' "$raw_launches" | jq -r '
+  if (.content | type) == "array" then "yes" else "no" end' 2>/dev/null || echo no)"
+[[ "$rp_ok" == "yes" ]] || record_error_and_exit 5 "ReportPortal launch payload has no '.content' array (malformed response)."
+rp_launch_count="$(printf '%s' "$raw_launches" | jq '.content | length' 2>/dev/null)" \
+  || record_error_and_exit 5 "could not count entries in the ReportPortal launch payload."
+
 launches="$(printf '%s' "$raw_launches" | jq --argjson since "$WINDOW_START_MS" '
   [ .content[]?
     | select(.startTime >= $since)
@@ -198,6 +212,22 @@ done
 # Findings are accumulated as JSON objects: {category, layer, module, fingerprint, headline, detail}
 findings='[]'
 add_finding() { findings="$(jq -n --argjson a "$findings" --argjson b "$1" '$a + [$b]')"; }
+
+# rp_ok above only rules out a malformed body; a validly-shaped, genuinely
+# empty `.content` is a real answer, not an error — but left unflagged it is
+# byte-identical to a healthy clean week (findings=0, same STATE shape). This
+# is the decay state of the very outage this routine's C2 fix detects: once
+# ~300 newer launches or RP retention push every prior launch off this page,
+# a real, ongoing outage silently reverts to green. State it explicitly.
+if [[ "$rp_launch_count" -eq 0 ]]; then
+  add_finding "$(jq -n '{
+    category: "rp-empty",
+    layer: "-", module: "-",
+    fingerprint: "test-rp-empty:no-launches",
+    headline: "ReportPortal returned no launches at all for the window",
+    detail: "The query succeeded and returned a validly-shaped, empty page: there is no launch history to evaluate. This is either a brand-new project or every prior launch has aged off retention/pagination — it is not the same as a clean week and must not be read as one."
+  }')"
+fi
 
 # --- presence: which layer/module reported recently vs. has a baseline? ---
 # A layer/module earns an expectation by appearing at all — anywhere in the

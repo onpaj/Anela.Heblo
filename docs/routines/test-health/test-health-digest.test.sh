@@ -229,6 +229,24 @@ check "C4: newest-3-of-7 failures reported as a regression" "yes" "$(contains 't
 check "C4: sustained regression is not called chronic" "no" "$(contains 'test-chronic:' "$out")"
 check "C4: sustained regression is not called flaky" "no" "$(contains 'test-flaky:' "$out")"
 
+# --- I2: a malformed RP launch payload (.content missing/not-an-array) must
+# be a hard error, not silently read as zero launches -- the same defect C2
+# fixed for the window-filtered view, one level up on the raw page. ---
+out="$(RP_FIXTURE_DIR="${FIX}/rp-malformed" "$D" --days 7 2>&1)"; rc=$?
+check "I2: malformed RP .content exits 5" "5" "$rc"
+check "I2: malformed RP .content emits a STATE error line" "yes" "$(contains 'STATE: error=5' "$out")"
+
+# --- I2: a validly-shaped but genuinely EMPTY .content is a real answer, not
+# a parse failure -- but it must not read as a healthy clean week. It needs
+# its own finding and a STATE distinct from the clean fixture's. ---
+out="$(RP_FIXTURE_DIR="${FIX}/rp-empty" "$D" --days 7 2>&1)"; rc=$?
+check "I2: empty RP .content exits 0" "0" "$rc"
+check "I2: empty RP .content produces a finding" "yes" "$(contains 'test-rp-empty:no-launches' "$out")"
+check "I2: empty RP .content is not FINDINGS: 0" "no" "$(contains 'FINDINGS: 0' "$out")"
+clean_state="$(RP_FIXTURE_DIR="${FIX}/clean" "$D" --days 7 --state-only 2>&1)"
+empty_state="$(RP_FIXTURE_DIR="${FIX}/rp-empty" "$D" --days 7 --state-only 2>&1)"
+check "I2: empty-.content STATE differs from the clean run's" "no" "$([[ "$clean_state" == "$empty_state" ]] && echo yes || echo no)"
+
 # --- I7: suite-shrank must not fire when the newest launch actually FAILED --
 # the shrink is fully explained by the failure, and the finding's own detail
 # text ("The launch still succeeded...") would otherwise be an assertion it
