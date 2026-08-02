@@ -738,6 +738,23 @@ check "ci-broken is detected" "yes" "$(contains 'test-ci:' "$out")"
 check "ci-broken names the failing step" "yes" "$(contains 'Deploy main to Staging' "$out")"
 n="$(printf '%s\n' "$out" | grep -c 'test-silence:')"
 check "cascade suppressed: no per-module silence" "0" "$n"
+
+# --- whole layer stale, GitHub unreachable -> ONE unattributed finding ---
+# A GitHub outage must not be read as proof the nightly never ran, and must not
+# multiply into one issue per module. The fixture's workflow-runs response
+# carries "__gh_error": true to simulate an unreachable API.
+out="$(RP_FIXTURE_DIR="${FIX}/gh-down" GH_FIXTURE_DIR="${FIX}/gh-down" "$D" --days 7 2>&1)"
+check "gh-down is reported as unattributed" "yes" "$(contains 'test-ci:e2e-nightly-regression.yml:unattributed' "$out")"
+n="$(printf '%s\n' "$out" | grep -c 'test-ci:')"
+check "gh-down files exactly one ci finding" "1" "$n"
+n="$(printf '%s\n' "$out" | grep -c 'test-silence:')"
+check "gh-down does not cascade into per-module silence" "0" "$n"
+```
+
+Create `fixtures/gh-down/` by copying `fixtures/ci-broken/`'s launch and item fixtures (whole E2E layer stale, inside the window), and replacing its workflow-runs fixture with:
+
+```json
+{ "workflow_runs": [], "__gh_error": true }
 ```
 
 - [ ] **Step 2: Run test to verify it fails**
@@ -746,7 +763,7 @@ check "cascade suppressed: no per-module silence" "0" "$n"
 ./docs/routines/test-health/test-health-digest.test.sh
 ```
 
-Expected: the six new checks FAIL (no silence or ci findings are produced yet); the nineteen Task 3 checks still pass.
+Expected: the nine new checks FAIL (no silence or ci findings are produced yet); the nineteen Task 3 checks still pass.
 
 - [ ] **Step 3: Write minimal implementation**
 
@@ -755,19 +772,31 @@ In `test-health-digest.sh`, add a GitHub fetch helper immediately after the `epo
 ```bash
 GH="${HERE}/gh-api.sh"
 
+# A GitHub failure must be distinguishable from "GitHub says there are no runs".
+# Collapsing the two is the same mistake as reporting an unreadable ReportPortal
+# as "the tests did not run": it would make a GitHub outage look like proof that
+# the nightly was never scheduled, defeat cascade suppression, and file one
+# issue per stale module — eleven harness:todo issues, eleven PRs, one cause.
+GH_UNREACHABLE='{"workflow_runs":[],"__gh_error":true}'
+
 # Fetch a GitHub REST path, honouring GH_FIXTURE_DIR for offline replay. Uses
-# the same file-naming rule as rp-query.sh so fixtures are predictable.
+# the same file-naming rule as rp-query.sh so fixtures are predictable. A
+# fixture whose body carries "__gh_error": true simulates an unreachable API.
 gh_get() {
-  local p="$1"
+  local p="$1" out rc
   if [[ -n "${GH_FIXTURE_DIR:-}" ]]; then
     local name file
     name="$(printf '%s' "${p#/}" | sed 's/[^A-Za-z0-9._-]/_/g')"
     file="${GH_FIXTURE_DIR}/${name}.json"
-    [[ -f "$file" ]] && cat "$file" || echo '{"workflow_runs":[]}'
+    # A missing fixture means "no runs", which is a real answer. Simulating a
+    # broken API is done with an explicit __gh_error fixture, not by omission.
+    if [[ -f "$file" ]]; then cat "$file"; else echo '{"workflow_runs":[]}'; fi
     return 0
   fi
-  [[ -x "$GH" ]] || { echo '{"workflow_runs":[]}'; return 0; }
-  "$GH" GET "$p" 2>/dev/null || echo '{"workflow_runs":[]}'
+  [[ -x "$GH" ]] || { echo "$GH_UNREACHABLE"; return 0; }
+  out="$("$GH" GET "$p" 2>/dev/null)"; rc=$?
+  if [[ $rc -ne 0 ]]; then echo "$GH_UNREACHABLE"; return 0; fi
+  printf '%s' "$out"
 }
 ```
 
@@ -796,8 +825,16 @@ nightly='{"workflow_runs":[]}'
 if [[ "$stale_e2e" -gt 0 ]]; then
   nightly="$(gh_get "/repos/onpaj/Anela.Heblo/actions/workflows/e2e-nightly-regression.yml/runs?per_page=5")"
 fi
-nightly_concl="$(printf '%s' "$nightly" | jq -r '.workflow_runs[0].conclusion // "none"')"
-nightly_id="$(printf '%s' "$nightly" | jq -r '.workflow_runs[0].id // empty')"
+# Three distinct states, never two: "failure" (GitHub says the run failed),
+# "none"/other (GitHub answered and no failing run exists), and "unknown"
+# (GitHub could not be asked — we may not conclude anything from its silence).
+if [[ "$(printf '%s' "$nightly" | jq -r '.__gh_error // false')" == "true" ]]; then
+  nightly_concl="unknown"
+  nightly_id=""
+else
+  nightly_concl="$(printf '%s' "$nightly" | jq -r '.workflow_runs[0].conclusion // "none"')"
+  nightly_id="$(printf '%s' "$nightly" | jq -r '.workflow_runs[0].id // empty')"
+fi
 
 failing_step="unknown"
 if [[ "$nightly_concl" == "failure" && -n "$nightly_id" ]]; then
@@ -816,6 +853,19 @@ if [[ "$stale_e2e" -gt 0 && "$fresh_e2e" -eq 0 && "$nightly_concl" == "failure" 
     headline: ("E2E nightly failed at step \"" + $s + "\" — no tests ran, " + ($n|tostring) + " modules have no data"),
     detail: "The workflow run failed before the test step, so ReportPortal received nothing. Resolution is outside the repository (credential/config), not a code change."
   }')"
+elif [[ "$stale_e2e" -gt 0 && "$fresh_e2e" -eq 0 && "$nightly_concl" == "unknown" ]]; then
+  # ReportPortal was readable and genuinely holds no E2E data — that much is
+  # fact. What we cannot do is attribute it, because GitHub did not answer.
+  # Still exactly ONE finding: the cascade rule is about not multiplying a
+  # single unknown cause into eleven issues, and an unattributable outage is
+  # no less single than an attributable one.
+  add_finding "$(jq -n --argjson n "$stale_e2e" '{
+    category: "ci-broken",
+    layer: "e2e", module: "-",
+    fingerprint: "test-ci:e2e-nightly-regression.yml:unattributed",
+    headline: ("E2E data missing for " + ($n|tostring) + " module(s); GitHub could not be reached to attribute the cause"),
+    detail: "ReportPortal was readable and holds no recent E2E launches, so the data really is absent. The GitHub Actions API could not be queried, so whether the nightly failed, never ran, or ran without reporting is undetermined. Check the workflow run history by hand."
+  }')"
 else
   # Otherwise report each stale module individually, distinguishing "the
   # workflow never ran" from "it ran fine but reporting did not arrive".
@@ -823,7 +873,13 @@ else
     d="$(printf '%s' "$row" | base64 --decode)"
     l="$(printf '%s' "$d" | jq -r '.layer')"
     m="$(printf '%s' "$d" | jq -r '.module')"
-    if [[ "$nightly_concl" == "success" ]]; then
+    if [[ "$nightly_concl" == "unknown" ]]; then
+      # Do not claim a cause GitHub never confirmed. The missing data is real;
+      # the reason is not established, and the issue must say so.
+      cat_name="schedule-broken"; suffix="unattributed"
+      head_txt="${l}/${m}: no launch in the last 26h, cause undetermined"
+      det="ReportPortal holds no recent launch for this module. The GitHub Actions API could not be queried, so whether the run failed, never ran, or ran without reporting is undetermined."
+    elif [[ "$nightly_concl" == "success" ]]; then
       cat_name="rp-reporting-broken"; suffix="reporting"
       head_txt="${l}/${m}: workflow succeeded but no ReportPortal launch arrived"
       det="The nightly run completed successfully, so the tests ran — the reporting agent or the tailnet hop failed."
@@ -847,7 +903,7 @@ fi
 ./docs/routines/test-health/test-health-digest.test.sh
 ```
 
-Expected: `passed: 25  failed: 0`, exit 0.
+Expected: `passed: 28  failed: 0`, exit 0.
 
 - [ ] **Step 5: Commit**
 
@@ -913,7 +969,7 @@ check "digest states the cap" "yes" "$(contains 'CAP: 5' "$out")"
 ./docs/routines/test-health/test-health-digest.test.sh
 ```
 
-Expected: the seven new checks FAIL; the twenty-five prior checks still pass.
+Expected: the seven new checks FAIL; the twenty-eight prior checks still pass.
 
 - [ ] **Step 3: Write minimal implementation**
 
@@ -1021,7 +1077,7 @@ echo "CAP: ${CAP} (file at most this many issues; report every finding you skip 
 ./docs/routines/test-health/test-health-digest.test.sh
 ```
 
-Expected: `passed: 32  failed: 0`, exit 0.
+Expected: `passed: 35  failed: 0`, exit 0.
 
 - [ ] **Step 5: Commit**
 
