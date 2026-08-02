@@ -17,6 +17,7 @@
 #      TEST_HEALTH_STATE_FILE (default $HOME/.cache/test-health/state)
 #
 # Exit codes: 0 ok | 1 config error | 3 RP unreachable | 4 RP auth rejected
+#             5 unexpected RP HTTP status (404/429/5xx)
 #
 set -uo pipefail
 
