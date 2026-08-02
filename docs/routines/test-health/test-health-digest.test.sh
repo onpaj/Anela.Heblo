@@ -218,5 +218,12 @@ check "C4: newest-3-of-7 failures reported as a regression" "yes" "$(contains 't
 check "C4: sustained regression is not called chronic" "no" "$(contains 'test-chronic:' "$out")"
 check "C4: sustained regression is not called flaky" "no" "$(contains 'test-flaky:' "$out")"
 
+# --- I7: suite-shrank must not fire when the newest launch actually FAILED --
+# the shrink is fully explained by the failure, and the finding's own detail
+# text ("The launch still succeeded...") would otherwise be an assertion it
+# never checked.
+out="$(RP_FIXTURE_DIR="${FIX}/shrank-failed" GH_FIXTURE_DIR="${FIX}/shrank-failed" "$D" --days 7 2>&1)"
+check "I7: shrink is suppressed when the newest launch FAILED" "no" "$(contains 'test-shrink:' "$out")"
+
 echo "---"; echo "passed: $pass  failed: $fail"
 [[ $fail -eq 0 ]]

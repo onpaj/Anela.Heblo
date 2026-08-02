@@ -36,14 +36,17 @@ live, and it is where thresholds get tuned (see the caveat under
 | `gh-api.test.sh` | Offline tests asserting the retargeting: searches `label:test-health` and the `test-signal: ` prefix, no leftover `telemetry`/`telemetry-signal` predicate, keeps the `GITHUB_TOKEN` fallback, errors without a token. |
 | `test-health-digest.sh` | The deterministic engine. Pulls launches + failed items from ReportPortal for a window, cross-checks GitHub Actions for the nightly workflow, computes every finding below, and prints a Markdown digest ending in a machine-readable `STATE:` line. Requires `jq` and `perl` on `PATH` (guarded at startup). |
 | `test-health-digest.test.sh` | Offline tests of the digest against `fixtures/`: a clean week, RP-unreachable suppressing silence findings, the consecutive-error-day counter, and state determinism. |
-| `fixtures/` | Recorded ReportPortal/GitHub JSON for offline replay (`RP_FIXTURE_DIR`, `GH_FIXTURE_DIR`): `clean`, `ci-broken`, `silent-module`, `gh-down`, `gh-down-partial`, `gh-malformed`, `shrank`, `regression`, `flaky`, `chronic`, `chronic-thin`, `self-healed`, `two-errors`, `big-numbers`. |
+| `fixtures/` | Recorded ReportPortal/GitHub JSON for offline replay (`RP_FIXTURE_DIR`, `GH_FIXTURE_DIR`): `clean`, `ci-broken`, `silent-module`, `gh-down`, `gh-down-partial`, `gh-malformed`, `shrank`, `shrank-failed`, `regression`, `sustained-regression`, `flaky`, `chronic`, `chronic-thin`, `chronic-collision`, `self-healed`, `two-errors`, `big-numbers`. |
+| `harness/test-health.process.json` | The harness Process definition (schedule, command). Installed into `~/harness-root/processes/`. |
+| `harness/test-health.agent.json` | The harness Agent definition — the prompt in "Running the routine" below. Installed into `~/harness-root/agents/`. |
+| `harness/install.sh` | Copies both harness JSON files into `~/harness-root`, skipping a destination that's newer than the repo copy unless `--force`. Also prints the one-time reminder for required labels and secrets (see "Labels" below). |
 | `README.md` | This file — the routine definition. The agent reads it first; tuning happens here (with the caveat below). |
 
 ## Routine details
 
 | Field | Value |
 |---|---|
-| Routine ID | Not yet created — the harness `processes/test-health.json` / `agents/test-health.json` pair is Task 7 |
+| Routine ID | `test-health` — the harness `processes/test-health.json` / `agents/test-health.json` pair ships in `harness/`; run `harness/install.sh` to copy them into `~/harness-root` |
 | Schedule | `30 5 * * *` UTC (07:30 Europe/Prague), comfortably after the nightly's ~34-minute run starting at 04:00 UTC |
 | Model | `sonnet` |
 | Repo | `onpaj/Anela.Heblo` |
@@ -102,9 +105,10 @@ are computed **only for the `e2e` layer**. The script's staleness
 computation hardcodes `stale: false` for every non-`e2e` layer, so a
 backend or frontend module that stops reporting entirely is not detected by
 this routine today — only `suite-shrank`, `regression`, `flaky`, and
-`chronic` currently reach backend/frontend. See the discrepancy note in the
-task report; this is worth a follow-up if backend/frontend silence turns out
-to matter in practice.
+`chronic` currently reach backend/frontend. This is a known gap between the
+original design intent and what shipped, not an oversight discovered later —
+worth a follow-up if backend/frontend silence turns out to matter in
+practice.
 
 ## What it skips
 
@@ -171,7 +175,8 @@ record why.
 
 ## Issue contract
 
-- **Title:** `[test-health] <layer>/<module>: <headline>`
+- **Title:** `[test-health] <headline>` — every headline already begins with
+  `<layer>/<module>: `, so do not prepend it a second time.
 - **Labels:** `test-health`, exactly one category label, and `harness:todo`.
 
   | Detection category | Label |
@@ -249,6 +254,30 @@ server:
 RP_FIXTURE_DIR=docs/routines/test-health/fixtures/clean \
   ./docs/routines/test-health/test-health-digest.sh --days 7
 ```
+
+## Labels
+
+Verified against `onpaj/Anela.Heblo`: `harness:todo` already exists, but
+`test-health`, `test-infra`, `test-regression`, and `test-flaky` — the four
+labels this routine's issue contract requires — do **not**. Creating them is
+the operator's call, not something to do silently as a side effect of
+running the routine. To create them, following the same pattern as
+`telemetry-anomaly` (`docs/routines/telemetry-anomaly/README.md`):
+
+```bash
+for l in "test-health:0e8a16" "test-infra:b60205" \
+         "test-regression:fbca04" "test-flaky:1d76db"; do
+  name="${l%%:*}"; color="${l##*:}"
+  gh label create "$name" --repo onpaj/Anela.Heblo --color "$color" \
+    --description "test-health routine: ${name}"
+done
+```
+
+Until these exist, do not rely on `find-signal`'s dedup search: it queries
+`label:test-health in:body "test-signal: <fingerprint>"`, and that only
+matches issues that actually carry the `test-health` label. If the label
+doesn't exist on the repo yet, filed issues cannot reliably carry it, which
+breaks dedup for every run after the first.
 
 ## Troubleshooting
 

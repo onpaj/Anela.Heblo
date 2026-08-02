@@ -163,7 +163,7 @@ launches="$(printf '%s' "$raw_launches" | jq --argjson since "$WINDOW_START_MS" 
         failed: (.statistics.executions.failed  // 0),
         skipped:(.statistics.executions.skipped // 0) }
     | select(.branch == "main" or .branch == "unknown") ]
-')" || err "could not parse the launch payload as JSON."
+')" || record_error_and_exit 5 "could not parse the launch payload as JSON."
 
 # Failed items per launch. Cheap: only failures are fetched, never full item
 # lists. Pass/fail history per test is then derived from set membership.
@@ -183,8 +183,15 @@ for id in $(printf '%s' "$launches" | jq -r '.[].id'); do
                       status: (.status // "FAILED"),
                       issue: ((.issue.comment // "") ),
                       error: ((.description // "") | split("\n")[0] // "") } ]
-  ')" || err "could not parse items for launch ${id}."
-  failed_items="$(jq -n --argjson a "$failed_items" --argjson b "$chunk" '$a + $b')"
+  ')" || record_error_and_exit 5 "could not parse items for launch ${id}."
+  # Unlike its neighbours, this accumulation re-passes the whole growing array
+  # via --argjson on every iteration with no guard. On a bad night (many
+  # failures) it can exceed jq/the shell's argument limits; unguarded, jq
+  # would fail, $failed_items would silently become empty, and the run would
+  # complete "successfully" with every regression/chronic/flaky finding gone —
+  # losing exactly the data that matters most. Fail loudly instead.
+  failed_items="$(jq -n --argjson a "$failed_items" --argjson b "$chunk" '$a + $b')" \
+    || record_error_and_exit 1 "could not accumulate failed items at launch ${id} (jq failed, possibly an argument-size limit)."
 done
 
 # --------------------------------------------------------------- findings ---
@@ -323,10 +330,17 @@ for key in $(printf '%s' "$launches" | jq -r '[ .[] | .layer + "/" + .module ] |
   n="$(printf '%s' "$series" | jq 'length')"
   [[ "$n" -ge 3 ]] || continue   # no baseline, no claim
   newest="$(printf '%s' "$series" | jq '.[0].total')"
+  newest_status="$(printf '%s' "$series" | jq -r '.[0].status')"
   median="$(printf '%s' "$series" | jq '[ .[1:][].total ] | sort | .[ (length/2 | floor) ]')"
   [[ "$median" -gt 0 ]] || continue
   drop=$(( (median - newest) * 100 / median ))
-  if [[ "$drop" -ge "$SHRINK_PCT" ]]; then
+  # Only claim a shrink when the newest launch did NOT fail. The detail below
+  # asserts "the launch still succeeded" without ever checking .status — a
+  # newest launch that actually FAILED is fully explained by the failure, and
+  # filing suite-shrank on top of it would read as an assertion this finding
+  # never verified (and risk a PR "restoring" a test a deliberate deletion or
+  # re-shard removed on purpose).
+  if [[ "$drop" -ge "$SHRINK_PCT" && "$newest_status" != "FAILED" ]]; then
     add_finding "$(jq -n --arg l "$l" --arg m "$m" --argjson nw "$newest" --argjson md "$median" --argjson d "$drop" '{
       category: "suite-shrank", layer: $l, module: $m,
       fingerprint: ("test-shrink:" + $l + ":" + $m),
