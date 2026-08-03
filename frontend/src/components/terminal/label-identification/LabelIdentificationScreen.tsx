@@ -8,8 +8,72 @@ import {
   LabelCandidateDto,
   LabelMatchDecision,
   LabelVariantDto,
+  SwaggerException,
 } from "../../../api/generated/api-client";
 import { handleApiError } from "../../../utils/errorHandler";
+
+// Kestrel rejects an oversized body before the controller runs, so there is no JSON
+// response at all for a 413 — the spec maps oversized uploads to the same code as a
+// missing/non-image photo.
+const HTTP_PAYLOAD_TOO_LARGE = 413;
+
+/**
+ * The generated client throws SwaggerException for any non-200/204 response, discarding
+ * nothing — `error.response` is the raw response body text. All four label error codes
+ * (3301-3304) map to non-200 statuses, so this is the only place a failed identify call's
+ * real errorCode can be recovered; without it every failure looks like a generic OCR outage.
+ */
+function resolveIdentifyErrorMessage(error: unknown): string {
+  if (error instanceof SwaggerException) {
+    const parsedBody = parseFailedIdentifyResponse(error.response);
+    if (parsedBody) {
+      return handleApiError({
+        success: false,
+        errorCode: parsedBody.errorCode,
+        params: parsedBody.params,
+      });
+    }
+    if (error.status === HTTP_PAYLOAD_TOO_LARGE) {
+      return handleApiError({
+        success: false,
+        errorCode: ErrorCodes.LabelPhotoMissingOrInvalid,
+      });
+    }
+  }
+
+  // Parse failure, network error, or anything else that isn't a structured server
+  // response — LabelOcrServiceUnavailable is a dedicated error code (not the generic,
+  // differently-worded errors.ExternalServiceError shared by every other module) specifically
+  // so this feature-specific message lives in i18n like every other ErrorCodes member,
+  // rather than as a component-local literal.
+  return handleApiError({
+    success: false,
+    errorCode: ErrorCodes.LabelOcrServiceUnavailable,
+  });
+}
+
+/**
+ * The response body may be empty, HTML (e.g. a proxy error page), or a ProblemDetails
+ * object instead of the serialized IdentifyLabelResponse we expect — parse defensively.
+ */
+function parseFailedIdentifyResponse(
+  responseBody: string,
+): { errorCode: ErrorCodes; params?: Record<string, string> } | undefined {
+  try {
+    const parsed = JSON.parse(responseBody);
+    if (
+      parsed &&
+      typeof parsed === "object" &&
+      parsed.success === false &&
+      typeof parsed.errorCode === "string"
+    ) {
+      return { errorCode: parsed.errorCode, params: parsed.params };
+    }
+  } catch {
+    // Not JSON — fall through to the generic fallback.
+  }
+  return undefined;
+}
 
 type ScreenState =
   | { kind: "capture" }
@@ -31,27 +95,24 @@ const LabelIdentificationScreen: React.FC = () => {
     if (inputRef.current) inputRef.current.value = "";
   };
 
+  // A family with exactly one variant needs no size step, whether it's the operator
+  // picking from a Choose decision's candidate list or (handled separately above) an
+  // Auto decision's single top match.
+  const selectCandidate = (candidate: LabelCandidateDto) => {
+    const variants = candidate.variants ?? [];
+    if (variants.length === 1) {
+      setState({ kind: "chosen", variant: variants[0] });
+      return;
+    }
+    setSelectedFamily(candidate);
+  };
+
   const handlePhoto = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
     try {
       const response = await identify.mutateAsync(file);
-      if (!response.success) {
-        // response.success is `boolean | undefined` on the generated
-        // IdentifyLabelResponse (it extends the abstract BaseResponse class),
-        // while handleApiError's local BaseResponse requires `success: boolean`.
-        // Build an explicit literal rather than widening the shared type.
-        setState({
-          kind: "error",
-          message: handleApiError({
-            success: false,
-            errorCode: response.errorCode,
-            params: response.params,
-          }),
-        });
-        return;
-      }
       // A family with exactly one variant needs no size step.
       const top = response.candidates?.[0];
       const topVariants = top?.variants ?? [];
@@ -63,20 +124,12 @@ const LabelIdentificationScreen: React.FC = () => {
         setSelectedFamily(top);
       }
       setState({ kind: "result", response });
-    } catch {
-      // Thrown/network failure — there is no BaseResponse from the server here,
-      // so this is a client-constructed error. LabelOcrServiceUnavailable is a
-      // dedicated error code (not the generic, differently-worded
-      // errors.ExternalServiceError shared by every other module) specifically
-      // so this feature-specific message lives in i18n like every other
-      // ErrorCodes member, rather than as a component-local literal.
-      setState({
-        kind: "error",
-        message: handleApiError({
-          success: false,
-          errorCode: ErrorCodes.LabelOcrServiceUnavailable,
-        }),
-      });
+    } catch (error: unknown) {
+      // The generated client throws for any non-200/204 status, and all four label
+      // error codes map to non-200 statuses — so a failed identify call never resolves
+      // with a `BaseResponse` here. The real errorCode (if any) has to be recovered
+      // from the thrown error instead.
+      setState({ kind: "error", message: resolveIdentifyErrorMessage(error) });
     }
   };
 
@@ -177,7 +230,7 @@ const LabelIdentificationScreen: React.FC = () => {
             <button
               key={candidate.family ?? ""}
               data-testid={`label-candidate-${candidate.family ?? ""}`}
-              onClick={() => setSelectedFamily(candidate)}
+              onClick={() => selectCandidate(candidate)}
               className="rounded-2xl border border-border-light bg-white p-5 text-left shadow-soft transition-all hover:border-primary-blue dark:border-graphite-border dark:bg-graphite-surface"
             >
               <div className="flex items-baseline justify-between">

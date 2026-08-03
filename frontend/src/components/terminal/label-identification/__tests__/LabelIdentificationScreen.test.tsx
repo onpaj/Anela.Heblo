@@ -2,7 +2,7 @@ import React from "react";
 import { render, screen, fireEvent } from "@testing-library/react";
 import LabelIdentificationScreen from "../LabelIdentificationScreen";
 import { useIdentifyLabelMutation } from "../../../../api/hooks/useLabelIdentification";
-import { LabelMatchDecision } from "../../../../api/generated/api-client";
+import { LabelMatchDecision, SwaggerException } from "../../../../api/generated/api-client";
 
 jest.mock("../../../../api/hooks/useLabelIdentification");
 jest.mock("../../../../telemetry/useScreenView", () => ({ useScreenView: jest.fn() }));
@@ -91,6 +91,25 @@ describe("LabelIdentificationScreen", () => {
     expect(screen.getByTestId("label-candidate-MAS007")).toBeInTheDocument();
   });
 
+  it("skips the size step when a chosen Choose candidate has exactly one variant", async () => {
+    mockMutate.mockResolvedValue({
+      success: true,
+      decision: LabelMatchDecision.Choose,
+      rawText: "…",
+      candidates: [
+        { family: "KRE005", score: 74.1, variants: [{ productCode: "KRE005015", productName: "A" }] },
+        { family: "MAS007", score: 71.0, variants: [{ productCode: "MAS007015", productName: "B" }] },
+      ],
+    });
+    render(<LabelIdentificationScreen />);
+    uploadPhoto();
+
+    fireEvent.click(await screen.findByTestId("label-candidate-KRE005"));
+
+    expect(await screen.findByTestId("label-final-code")).toHaveTextContent("KRE005015");
+    expect(screen.queryByTestId("label-size-step")).not.toBeInTheDocument();
+  });
+
   it("shows the unreadable message with a retry on a Low decision", async () => {
     mockMutate.mockResolvedValue({
       success: true, decision: LabelMatchDecision.Low, rawText: "…", candidates: [],
@@ -129,7 +148,7 @@ describe("LabelIdentificationScreen", () => {
     expect(screen.getByText("Zkusit znovu")).toBeInTheDocument();
   });
 
-  it("shows a Czech error message when the request fails", async () => {
+  it("shows a Czech error message when the request fails with a genuine non-HTTP error", async () => {
     mockMutate.mockRejectedValue(new Error("boom"));
     render(<LabelIdentificationScreen />);
     uploadPhoto();
@@ -137,6 +156,48 @@ describe("LabelIdentificationScreen", () => {
     expect(
       await screen.findByText("Služba rozpoznávání není dostupná, zkuste to znovu."),
     ).toBeInTheDocument();
+  });
+
+  it("shows the unreadable-ingredients message for a 422 LabelTextUnreadable SwaggerException", async () => {
+    const body = JSON.stringify({
+      success: false,
+      errorCode: "LabelTextUnreadable",
+      params: null,
+    });
+    mockMutate.mockRejectedValue(
+      new SwaggerException("Unprocessable", 422, body, {}, null),
+    );
+    render(<LabelIdentificationScreen />);
+    uploadPhoto();
+
+    expect(
+      await screen.findByText(
+        "Na fotce nejsou čitelné ingredience — jděte blíž a držte telefon v klidu.",
+      ),
+    ).toBeInTheDocument();
+  });
+
+  it("shows the undecodable-photo message for a 400 LabelPhotoUndecodable SwaggerException", async () => {
+    const body = JSON.stringify({
+      success: false,
+      errorCode: "LabelPhotoUndecodable",
+      params: null,
+    });
+    mockMutate.mockRejectedValue(
+      new SwaggerException("Bad Request", 400, body, {}, null),
+    );
+    render(<LabelIdentificationScreen />);
+    uploadPhoto();
+
+    expect(await screen.findByText("Nepodařilo se načíst fotku.")).toBeInTheDocument();
+  });
+
+  it("shows the missing-photo message for a 413 payload-too-large SwaggerException with no body", async () => {
+    mockMutate.mockRejectedValue(new SwaggerException("Payload Too Large", 413, "", {}, null));
+    render(<LabelIdentificationScreen />);
+    uploadPhoto();
+
+    expect(await screen.findByText("Nahrajte prosím fotku štítku.")).toBeInTheDocument();
   });
 
   it("shows a reading indicator while the request is in flight", () => {
