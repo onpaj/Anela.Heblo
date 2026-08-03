@@ -150,7 +150,10 @@ public partial class Program
             })
             .AddJsonOptions(options =>
             {
-                options.JsonSerializerOptions.Converters.Add(new System.Text.Json.Serialization.JsonStringEnumConverter());
+                foreach (var converter in Anela.Heblo.API.Infrastructure.Json.McpJsonOptions.Default.Converters)
+                {
+                    options.JsonSerializerOptions.Converters.Add(converter);
+                }
             });
         builder.Services.AddSwaggerServices(builder.Configuration);
         builder.Services.AddOpenApiDocument();

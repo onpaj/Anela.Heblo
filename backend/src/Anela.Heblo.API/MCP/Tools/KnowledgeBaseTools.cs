@@ -1,5 +1,6 @@
 using System.ComponentModel;
 using System.Text.Json;
+using Anela.Heblo.API.Infrastructure.Json;
 using Anela.Heblo.API.MCP;
 using Anela.Heblo.Application.Features.KnowledgeBase.UseCases.AskQuestion;
 using Anela.Heblo.Application.Features.KnowledgeBase.UseCases.SearchDocuments;
@@ -42,7 +43,7 @@ public class KnowledgeBaseTools
                 Query = query,
                 TopK = topK
             }, cancellationToken);
-            return JsonSerializer.Serialize(result);
+            return JsonSerializer.Serialize(result, McpJsonOptions.Default);
         }
         catch (Exception ex)
         {
@@ -67,7 +68,7 @@ public class KnowledgeBaseTools
                 Question = question,
                 TopK = topK
             }, cancellationToken);
-            return JsonSerializer.Serialize(result);
+            return JsonSerializer.Serialize(result, McpJsonOptions.Default);
         }
         catch (Exception ex)
         {
