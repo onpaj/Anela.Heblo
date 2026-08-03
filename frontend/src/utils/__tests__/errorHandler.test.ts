@@ -77,6 +77,37 @@ describe("errorHandler", () => {
 
       expect(result).toBe("Výjimka aplikace");
     });
+
+    it("should resolve TransportBoxCodeRequired from string code sent by the API", () => {
+      const message = getErrorMessage("TransportBoxCodeRequired");
+      expect(message).toBe("Kód boxu je povinný");
+    });
+
+    it("should resolve TransportBoxCodeInvalidFormat with the entered code substituted", () => {
+      const message = getErrorMessage("TransportBoxCodeInvalidFormat", {
+        code: "xyz",
+      });
+      expect(message).toBe(
+        "Neplatný formát kódu boxu 'xyz' — očekávaný formát B a 3 číslice (např. B001)",
+      );
+    });
+
+    it("should resolve TransportBoxEmpty with the box code substituted", () => {
+      const message = getErrorMessage("TransportBoxEmpty", { code: "B001" });
+      expect(message).toBe(
+        "Box B001 neobsahuje žádné položky — nelze jej odeslat prázdný",
+      );
+    });
+
+    it("should resolve TransportBoxInvalidStateTransition with state params substituted", () => {
+      const message = getErrorMessage("TransportBoxInvalidStateTransition", {
+        currentState: "Closed",
+        allowedStates: "Opened",
+      });
+      expect(message).toBe(
+        "Box nelze v tomto stavu (Closed) takto změnit — povolené stavy: Opened",
+      );
+    });
   });
 
   describe("handleApiError", () => {
@@ -185,6 +216,7 @@ describe("Error Code Coverage", () => {
     expect(names).toContain("PurchaseOrderNotFound");
     expect(names).toContain("CatalogItemNotFound");
     expect(names).toContain("TransportBoxNotFound");
+    expect(names).toContain("TransportBoxEmpty");
     expect(names).toContain("ConfigurationNotFound");
     expect(names).toContain("ExternalServiceError");
   });
