@@ -13,4 +13,10 @@ public static class CatalogConstants
     /// Paired with ALL_HISTORY_MONTHS_THRESHOLD to define what "all history" means in one place.
     /// </summary>
     public static readonly DateTime HISTORY_FLOOR_DATE = new(2020, 1, 1);
+
+    /// <summary>
+    /// Warehouse physical capacity in kilograms, used to compute WarehouseUtilizationPercentage
+    /// in GetWarehouseStatisticsHandler. Adjust here if the physical warehouse capacity changes.
+    /// </summary>
+    public const double WarehouseCapacityKg = 3000.0;
 }
