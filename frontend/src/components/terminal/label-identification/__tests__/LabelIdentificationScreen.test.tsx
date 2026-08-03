@@ -102,6 +102,33 @@ describe("LabelIdentificationScreen", () => {
     expect(screen.getByText("Zkusit znovu")).toBeInTheDocument();
   });
 
+  it("shows the unreadable message when a non-Low decision has no candidates", async () => {
+    mockMutate.mockResolvedValue({
+      success: true, decision: LabelMatchDecision.Choose, rawText: "…", candidates: [],
+    });
+    render(<LabelIdentificationScreen />);
+    uploadPhoto();
+
+    expect(await screen.findByText("Nepodařilo se přečíst štítek")).toBeInTheDocument();
+    expect(screen.getByText("Zkusit znovu")).toBeInTheDocument();
+  });
+
+  it("shows the unreadable message when a selected family has no variants", async () => {
+    mockMutate.mockResolvedValue({
+      success: true,
+      decision: LabelMatchDecision.Choose,
+      rawText: "…",
+      candidates: [{ family: "KRE005", score: 74.1, variants: [] }],
+    });
+    render(<LabelIdentificationScreen />);
+    uploadPhoto();
+
+    fireEvent.click(await screen.findByTestId("label-candidate-KRE005"));
+
+    expect(await screen.findByText("Nepodařilo se přečíst štítek")).toBeInTheDocument();
+    expect(screen.getByText("Zkusit znovu")).toBeInTheDocument();
+  });
+
   it("shows a Czech error message when the request fails", async () => {
     mockMutate.mockRejectedValue(new Error("boom"));
     render(<LabelIdentificationScreen />);

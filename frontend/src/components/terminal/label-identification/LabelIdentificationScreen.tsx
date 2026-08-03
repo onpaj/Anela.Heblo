@@ -3,6 +3,7 @@ import { Camera, RotateCcw } from "lucide-react";
 import { useScreenView } from "../../../telemetry/useScreenView";
 import { useIdentifyLabelMutation } from "../../../api/hooks/useLabelIdentification";
 import {
+  ErrorCodes,
   IdentifyLabelResponse,
   LabelCandidateDto,
   LabelMatchDecision,
@@ -63,16 +64,18 @@ const LabelIdentificationScreen: React.FC = () => {
       }
       setState({ kind: "result", response });
     } catch {
-      // Thrown/network failure — there is no BaseResponse to inspect here (no
-      // errorCode from the server), so we can't route this through
-      // handleApiError/i18n the way the response.success === false branch
-      // above does. This literal mirrors the other hardcoded UI copy in this
-      // component (e.g. the Low-decision message below) rather than faking a
-      // BaseResponse just to reach the generic, differently-worded
-      // errors.ExternalServiceError string shared by every other module.
+      // Thrown/network failure — there is no BaseResponse from the server here,
+      // so this is a client-constructed error. LabelOcrServiceUnavailable is a
+      // dedicated error code (not the generic, differently-worded
+      // errors.ExternalServiceError shared by every other module) specifically
+      // so this feature-specific message lives in i18n like every other
+      // ErrorCodes member, rather than as a component-local literal.
       setState({
         kind: "error",
-        message: "Služba rozpoznávání není dostupná, zkuste to znovu.",
+        message: handleApiError({
+          success: false,
+          errorCode: ErrorCodes.LabelOcrServiceUnavailable,
+        }),
       });
     }
   };
@@ -93,10 +96,10 @@ const LabelIdentificationScreen: React.FC = () => {
           data-testid="label-final-code"
           className="text-5xl font-extrabold text-emerald-600 dark:text-emerald-400"
         >
-          {state.variant.productCode}
+          {state.variant.productCode || "—"}
         </p>
         <p className="mt-3 text-xl text-neutral-slate dark:text-graphite-text">
-          {state.variant.productName}
+          {state.variant.productName ?? ""}
         </p>
         <ScanAgain onClick={reset} />
       </Centered>
@@ -114,29 +117,38 @@ const LabelIdentificationScreen: React.FC = () => {
 
   if (state.kind === "result") {
     const { response } = state;
+    const candidatesList = response.candidates ?? [];
 
     if (selectedFamily) {
+      const variants = selectedFamily.variants ?? [];
+      // Defensive: the backend should always ship at least one variant per
+      // candidate. If it somehow doesn't, a size step with zero buttons is a
+      // dead end — fall back to the same unreadable-label failure state used
+      // for a Low decision rather than leaving the operator stuck.
+      if (variants.length === 0) {
+        return <UnreadableLabel onRetry={reset} />;
+      }
       return (
         <Centered>
           <p className="text-3xl font-extrabold text-neutral-slate dark:text-graphite-text">
-            {selectedFamily.family}
+            {selectedFamily.family ?? ""}
           </p>
           <p className="mt-2 mb-6 text-base text-neutral-gray dark:text-graphite-muted">
             Vyberte velikost
           </p>
           <div data-testid="label-size-step" className="grid w-full max-w-md gap-4">
-            {(selectedFamily.variants ?? []).map((variant) => (
+            {variants.map((variant) => (
               <button
-                key={variant.productCode}
-                data-testid={`label-variant-${variant.productCode}`}
+                key={variant.productCode ?? "—"}
+                data-testid={`label-variant-${variant.productCode ?? "—"}`}
                 onClick={() => setState({ kind: "chosen", variant })}
                 className="rounded-2xl border border-border-light bg-white p-6 text-left shadow-soft transition-all hover:border-primary-blue dark:border-graphite-border dark:bg-graphite-surface"
               >
                 <p className="text-2xl font-bold text-neutral-slate dark:text-graphite-text">
-                  {variant.productCode}
+                  {variant.productCode || "—"}
                 </p>
                 <p className="text-sm text-neutral-gray dark:text-graphite-muted">
-                  {variant.productName}
+                  {variant.productName ?? ""}
                 </p>
               </button>
             ))}
@@ -146,30 +158,31 @@ const LabelIdentificationScreen: React.FC = () => {
       );
     }
 
-    const isLow = response.decision === LabelMatchDecision.Low;
+    // Defensive: an empty candidate list is treated the same as a Low decision
+    // — the backend should never send one for a non-Low decision, but a blank
+    // "Vyberte produkt" screen with nothing under it is the worst failure mode
+    // on a warehouse floor.
+    const isLow = response.decision === LabelMatchDecision.Low || candidatesList.length === 0;
+    if (isLow) {
+      return <UnreadableLabel onRetry={reset} />;
+    }
+
     return (
       <Centered>
-        {isLow && (
-          <p className="mb-4 text-lg font-semibold text-rose-600 dark:text-rose-400">
-            Nepodařilo se přečíst štítek
-          </p>
-        )}
-        {!isLow && (
-          <p className="mb-4 text-base text-neutral-gray dark:text-graphite-muted">
-            Vyberte produkt
-          </p>
-        )}
+        <p className="mb-4 text-base text-neutral-gray dark:text-graphite-muted">
+          Vyberte produkt
+        </p>
         <div className="grid w-full max-w-md gap-3">
-          {(response.candidates ?? []).map((candidate) => (
+          {candidatesList.map((candidate) => (
             <button
-              key={candidate.family}
-              data-testid={`label-candidate-${candidate.family}`}
+              key={candidate.family ?? ""}
+              data-testid={`label-candidate-${candidate.family ?? ""}`}
               onClick={() => setSelectedFamily(candidate)}
               className="rounded-2xl border border-border-light bg-white p-5 text-left shadow-soft transition-all hover:border-primary-blue dark:border-graphite-border dark:bg-graphite-surface"
             >
               <div className="flex items-baseline justify-between">
                 <p className="text-xl font-bold text-neutral-slate dark:text-graphite-text">
-                  {candidate.family}
+                  {candidate.family ?? ""}
                 </p>
                 <span className="text-sm text-neutral-gray dark:text-graphite-muted">
                   {(candidate.score ?? 0).toFixed(1)}
@@ -181,7 +194,7 @@ const LabelIdentificationScreen: React.FC = () => {
             </button>
           ))}
         </div>
-        <ScanAgain onClick={reset} label={isLow ? "Zkusit znovu" : "Skenovat další"} />
+        <ScanAgain onClick={reset} label="Skenovat další" />
       </Centered>
     );
   }
@@ -211,6 +224,18 @@ const LabelIdentificationScreen: React.FC = () => {
 
 const Centered: React.FC<{ children: React.ReactNode }> = ({ children }) => (
   <div className="flex h-full flex-col items-center justify-center p-4">{children}</div>
+);
+
+// Shared with both the Low decision and the two defensive dead-end cases
+// (empty candidate list, selected family with no variants) — same failure
+// state, same retry, rather than inventing a distinct message per case.
+const UnreadableLabel: React.FC<{ onRetry: () => void }> = ({ onRetry }) => (
+  <Centered>
+    <p className="mb-4 text-lg font-semibold text-rose-600 dark:text-rose-400">
+      Nepodařilo se přečíst štítek
+    </p>
+    <ScanAgain onClick={onRetry} label="Zkusit znovu" />
+  </Centered>
 );
 
 const ScanAgain: React.FC<{ onClick: () => void; label?: string }> = ({

@@ -428,6 +428,8 @@ public enum ErrorCodes
     LabelPhotoUndecodable = 3302,
     [HttpStatusCode(HttpStatusCode.UnprocessableEntity)]
     LabelTextUnreadable = 3303,
+    [HttpStatusCode(HttpStatusCode.ServiceUnavailable)]
+    LabelOcrServiceUnavailable = 3304,
 
     // External Service errors (90XX)
     [HttpStatusCode(HttpStatusCode.ServiceUnavailable)]

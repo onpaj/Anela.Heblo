@@ -13819,6 +13819,7 @@ export enum ErrorCodes {
     LabelPhotoMissingOrInvalid = "LabelPhotoMissingOrInvalid",
     LabelPhotoUndecodable = "LabelPhotoUndecodable",
     LabelTextUnreadable = "LabelTextUnreadable",
+    LabelOcrServiceUnavailable = "LabelOcrServiceUnavailable",
     ExternalServiceError = "ExternalServiceError",
     FlexiApiError = "FlexiApiError",
     ShoptetApiError = "ShoptetApiError",

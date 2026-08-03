@@ -42,7 +42,7 @@ public class IdentifyLabelHandler : IRequestHandler<IdentifyLabelRequest, Identi
         catch (Exception ex)
         {
             _logger.LogError(ex, "Label OCR service failed");
-            return new IdentifyLabelResponse(ErrorCodes.ExternalServiceError);
+            return new IdentifyLabelResponse(ErrorCodes.LabelOcrServiceUnavailable);
         }
 
         if (string.IsNullOrWhiteSpace(rawText))

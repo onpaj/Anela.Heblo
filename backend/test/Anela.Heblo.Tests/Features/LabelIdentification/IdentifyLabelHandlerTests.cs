@@ -112,7 +112,7 @@ public class IdentifyLabelHandlerTests
     }
 
     [Fact]
-    public async Task Upstream_failure_fails_with_ExternalServiceError()
+    public async Task Upstream_failure_fails_with_LabelOcrServiceUnavailable()
     {
         _ocr.Setup(o => o.ReadIngredientsAsync(It.IsAny<Stream>(), It.IsAny<CancellationToken>()))
             .ThrowsAsync(new HttpRequestException("upstream down"));
@@ -120,7 +120,7 @@ public class IdentifyLabelHandlerTests
         var response = await CreateHandler().Handle(RequestWithPhoto(), CancellationToken.None);
 
         response.Success.Should().BeFalse();
-        response.ErrorCode.Should().Be(ErrorCodes.ExternalServiceError);
+        response.ErrorCode.Should().Be(ErrorCodes.LabelOcrServiceUnavailable);
     }
 
     [Fact]
