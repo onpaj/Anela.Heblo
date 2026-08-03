@@ -33,7 +33,11 @@ namespace Anela.Heblo.Persistence.Marketing
                 .Include(x => x.FolderLinks)
                 .AsQueryable();
 
-            if (!criteria.IncludeDeleted)
+            if (criteria.IncludeDeleted)
+            {
+                query = query.IgnoreQueryFilters();
+            }
+            else
             {
                 query = query.Where(x => !x.IsDeleted);
             }
