@@ -4,13 +4,15 @@
     ReportPortal integration for all backend test projects (opt-in).
 
     The VSTest logger is only invoked when `dotnet test -l:ReportPortal` is passed AND
-    reportportal_enabled=true is set in the environment (CI does both — see
-    ci-main-branch.yml). Plain `dotnet test` / `dotnet build` ignore it entirely, so local
-    runs are unaffected. The package is a test logger DLL; its mere presence does nothing.
+    reportportal_enabled=true is set in the environment. It is no longer wired into CI at
+    all — that only happens for manual/local opt-in use (see docs/testing/reportportal.md).
+    Plain `dotnet test` / `dotnet build` ignore it entirely, so local runs are unaffected.
+    The package is a test logger DLL; its mere presence does nothing.
 
     ReportPortal.config.json is shared across every test project and copied to each output
     directory next to the test assembly, where the logger looks for it. It ships with
-    enabled=false; CI flips it on via reportportal_* environment variables.
+    enabled=false; enable it locally via reportportal_* environment variables (see
+    docs/testing/reportportal.md).
 
     JunitXml.TestLogger produces a JUnit-format XML report used to import results into
     ReportPortal ASYNCHRONOUSLY after the test run (see ci-main-branch.yml's

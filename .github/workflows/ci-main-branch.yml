@@ -133,7 +133,7 @@ jobs:
 
       - name: 🧪 Run tests with coverage (excluding Playwright integration tests)
         run: |
-          dotnet test Anela.Heblo.sln --collect:"XPlat Code Coverage" --logger trx --logger "console;verbosity=normal" --logger "junit;LogFilePath=junit-results.xml" --results-directory ./coverage --filter "Category!=Playwright&Category!=Integration" -- DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.Format=cobertura
+          dotnet test Anela.Heblo.sln --collect:"XPlat Code Coverage" --logger trx --logger "console;verbosity=normal" --logger "junit;LogFileName={assembly}-junit.xml" --results-directory ./coverage --filter "Category!=Playwright&Category!=Integration" -- DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.Format=cobertura
         env:
           ASPNETCORE_ENVIRONMENT: Automation
           # Shoptet integration test configuration
@@ -150,7 +150,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: backend-junit-results
-          path: coverage/junit-results.xml
+          path: coverage/*-junit.xml
           retention-days: 7
 
       - name: 🔀 Merge coverage reports
@@ -240,11 +240,15 @@ jobs:
       - name: 📡 Import JUnit results into ReportPortal
         continue-on-error: true
         run: |
-          curl --fail --silent --show-error \
-            -X POST "${RP_ENDPOINT}/plugin/${RP_PROJECT}/junit/import" \
-            -H "Authorization: Bearer ${RP_API_KEY}" \
-            -F "file=@./junit/junit-results.xml;type=application/xml" \
-            -F 'launchImportRq={"name":"heblo-backend","attributes":[{"key":"layer","value":"backend"},{"key":"ci","value":"'"${GITHUB_RUN_NUMBER}"'"}]};type=application/json'
+          for f in ./junit/*-junit.xml; do
+            echo "📡 Importing $f..."
+            curl --fail-with-body --silent --show-error \
+              -X POST "${RP_ENDPOINT}/plugin/${RP_PROJECT}/junit/import" \
+              -H "Authorization: Bearer ${RP_API_KEY}" \
+              -F "file=@${f};type=application/xml" \
+              -F 'launchImportRq={"name":"heblo-backend","attributes":[{"key":"layer","value":"backend"},{"key":"ci","value":"'"${GITHUB_RUN_NUMBER}"'"}]};type=application/json' \
+              || echo "⚠️ Import failed for $f (continuing with remaining files)"
+          done
         env:
           RP_ENDPOINT: ${{ vars.RP_ENDPOINT }}
           RP_PROJECT: ${{ vars.RP_PROJECT }}

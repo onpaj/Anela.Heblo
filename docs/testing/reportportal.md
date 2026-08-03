@@ -61,14 +61,18 @@ Instead:
 
 - `backend/test/Directory.Build.props` adds `JunitXml.TestLogger` to every backend test
   project. `ci-main-branch.yml`'s `backend-tests` job always passes
-  `--logger "junit;LogFilePath=junit-results.xml"` (no network calls, safe to run locally
-  too) and uploads the resulting `coverage/junit-results.xml` as a build artifact when
-  `RP_ENABLE=true`.
+  `--logger "junit;LogFileName={assembly}-junit.xml"` (no network calls, safe to run
+  locally too), which produces one JUnit file per test project
+  (e.g. `coverage/Anela.Heblo.Tests-junit.xml`, `coverage/Anela.Heblo.Adapters.Flexi.Tests-junit.xml`,
+  etc. — six in total, one per backend test project) and uploads them all as a build
+  artifact (glob `coverage/*-junit.xml`) when `RP_ENABLE=true`.
 - A separate `backend-report-portal` job — which nothing else `needs:` — downloads that
-  artifact and `POST`s it to ReportPortal's `junit/import` endpoint
-  (`POST {RP_ENDPOINT}/plugin/{RP_PROJECT}/junit/import`) after `backend-tests` finishes.
-  It runs in parallel with `build-and-push`/`deploy-production`, so however long the
-  import takes has zero effect on deploy latency.
+  artifact and loops over every downloaded `*-junit.xml` file, `POST`ing each one
+  individually to ReportPortal's `junit/import` endpoint
+  (`POST {RP_ENDPOINT}/plugin/{RP_PROJECT}/junit/import`) after `backend-tests` finishes,
+  all attributed to the same `heblo-backend` launch. It runs in parallel with
+  `build-and-push`/`deploy-production`, so however long the import takes has zero effect
+  on deploy latency.
 - `ReportPortal.VSTest.TestLogger` (the live logger) is still present in
   `Directory.Build.props` for local, single-project debugging against your own instance —
   it's just no longer wired into CI. Enable it locally with:
