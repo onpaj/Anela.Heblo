@@ -107,9 +107,14 @@ backend/src/Anela.Heblo.Application/Features/LabelIdentification/Data/label-refe
 
 25 entries, loaded as an embedded resource at startup into an immutable index.
 
-Where a family's two sizes have differing text (only `KRE003`), the **longer** text is the
-representative — it is the superset in practice, and `token_set_ratio` is insensitive to
-the extra tokens.
+All 12 multi-size families normalize to byte-identical text, so any member is a valid
+representative; the extractor picks the longest as a defensive tie-break.
+
+> **Corrected during implementation.** This section originally claimed `KRE003` was the one
+> family whose sizes differed in text (99.9 similarity). That difference was entirely an
+> artifact of the job-name stamp described under Normalization below — once the stamp is
+> stripped, `KRE003`'s two sizes are identical like every other family. Verified per-code
+> across all 37 PDFs.
 
 **Generation is a one-time offline step.** A small console tool at
 `backend/tools/LabelReferenceExtractor/` reads `data/labels/*.pdf` with **PdfPig 0.1.9**
@@ -168,9 +173,20 @@ entry with tokens the query can never match, systematically depressing scores. I
 carries the size (`_15ml_`), so leaving it in would break the family-identity property that
 this whole design rests on.
 
-Verified across the corpus: **all 37 PDFs contain exactly one `Ingredients` marker** — none
-missing, none duplicated — so the strip is deterministic and total. The extractor and the
-OCR path must call the same normalizer; this is why it is one implementation.
+**A prefix strip alone is not sufficient — corrected during implementation.** The PDFs are
+**multi-page**, and the stamp repeats *once per page*. Under PdfPig's content-stream
+ordering it lands *after* the ingredient text, where no prefix rule can reach it. (The
+original corpus analysis used `pdftotext`, which orders by visual layout and placed the
+stamp first — hence the wrong conclusion. `pdftotext` surfaces only 16 stamp occurrences
+across the corpus; PdfPig sees 50, one per page.)
+
+The normalizer therefore strips the stamp **wherever it occurs**, before the charset filter,
+in addition to the `Ingredients:` prefix strip. The prefix strip is still required and still
+lazy: multi-page PDFs carry the marker only on page 1, so `^.*?ingredients\s*:` correctly
+preserves page 2's continuation of the ingredient list.
+
+The extractor and the OCR path must call the same normalizer; this is why it is one
+implementation.
 
 The job-name line is *not* used as a product-name source. Names come from the catalogue,
 which is authoritative and stays current.
