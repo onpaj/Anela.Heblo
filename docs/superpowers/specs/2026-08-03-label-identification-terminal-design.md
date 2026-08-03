@@ -160,6 +160,21 @@ Lowercase; join hyphenation across line breaks; strip everything up to and inclu
 `Ingredients:` prefix; normalize en-dash to hyphen and `/` to space; drop characters outside
 `[a-z0-9, ]`; collapse whitespace.
 
+**The prefix strip is load-bearing, not cosmetic.** The artwork PDFs carry a Czech job-name
+line *above* the sticker's die-cut area — `Anela_Něžná paní Ovesná_15`,
+`Anela_Malá čarodějka_15ml_k`, `Anela_Klidné nožky_15ml_kelim` — which is never printed on
+the physical sticker and therefore never seen by OCR. Left in, it would pollute every index
+entry with tokens the query can never match, systematically depressing scores. It also
+carries the size (`_15ml_`), so leaving it in would break the family-identity property that
+this whole design rests on.
+
+Verified across the corpus: **all 37 PDFs contain exactly one `Ingredients` marker** — none
+missing, none duplicated — so the strip is deterministic and total. The extractor and the
+OCR path must call the same normalizer; this is why it is one implementation.
+
+The job-name line is *not* used as a product-name source. Names come from the catalogue,
+which is authoritative and stays current.
+
 ### Matching
 
 Unchanged from the prior design, applied to families:
@@ -225,8 +240,19 @@ POST /api/label-identification/identify
 Content-Type: multipart/form-data, field: photo
 ```
 
-This is the **first `IFormFile` endpoint in the codebase** — no existing multipart pattern
-to follow.
+Follows the established multipart pattern from
+`CatalogDocumentsController.UploadPifDocument`: `IFormFile? photo` parameter, a
+`[RequestSizeLimit]` attribute, `photo.OpenReadStream()`, and a MediatR request carrying
+`FileStream` / `ContentType` / `SizeBytes`. NSwag already emits `FileParameter` for these,
+so the generated TypeScript client handles the upload with no special casing.
+
+Authorization: `[FeatureAuthorize(Feature.Products_Catalog)]` — read-level, reusing the
+existing feature. `Feature` is generated from `access-matrix.json` by
+`Anela.Heblo.AccessMatrixGen`; adding a new value would mean regenerating
+`Feature.generated.cs`, `access-matrix.generated.json`,
+`access-matrix-entra.generated.json`, and `frontend/src/auth/accessMatrix.generated.ts`,
+and updating `AccessMatrixTests`. Label identification is a read-only product lookup, so
+`Products_Catalog` fits and that regeneration is avoided.
 
 Errors return `BaseResponse` with an `ErrorCodes` value; Czech strings live in the frontend
 error map like every other module, not baked into HTTP bodies.
@@ -356,7 +382,8 @@ asserts variant expansion, product-name resolution, the missing-catalogue-entry 
 and each decision branch.
 
 **Controller integration test** — `WebApplicationFactory` with OCR faked; multipart upload,
-oversized upload rejected, non-image rejected.
+oversized upload rejected, non-image rejected. Four `IFormFile` endpoints already exist
+(`CatalogDocuments` ×2, `KnowledgeBase`, `Leaflet`); follow their test setup.
 
 **Frontend** — `react-scripts test` (not `npx jest`). Component tests for the three result
 states and the size-selection step. Terminal shell components mock their context
