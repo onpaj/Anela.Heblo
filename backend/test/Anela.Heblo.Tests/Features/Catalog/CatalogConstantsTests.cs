@@ -112,7 +112,8 @@ public class CatalogConstantsTests
         fields.Select(f => f.Name).Should().BeEquivalentTo(new[]
         {
             nameof(CatalogConstants.ALL_HISTORY_MONTHS_THRESHOLD),
-            nameof(CatalogConstants.HISTORY_FLOOR_DATE)
+            nameof(CatalogConstants.HISTORY_FLOOR_DATE),
+            nameof(CatalogConstants.WarehouseCapacityKg)
         });
         properties.Should().BeEmpty("Constants class should not have properties");
         methods.Should().BeEmpty("Constants class should not have methods");
