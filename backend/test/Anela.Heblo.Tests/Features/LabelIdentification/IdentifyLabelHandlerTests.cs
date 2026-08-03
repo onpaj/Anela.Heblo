@@ -124,6 +124,19 @@ public class IdentifyLabelHandlerTests
     }
 
     [Fact]
+    public async Task Cancellation_propagates_instead_of_being_reported_as_an_OCR_outage()
+    {
+        // An operator navigating away mid-request is not an Anthropic outage — reporting it
+        // as LabelOcrServiceUnavailable would pollute App Insights with false alarms.
+        _ocr.Setup(o => o.ReadIngredientsAsync(It.IsAny<Stream>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new OperationCanceledException());
+
+        var act = () => CreateHandler().Handle(RequestWithPhoto(), CancellationToken.None);
+
+        await act.Should().ThrowAsync<OperationCanceledException>();
+    }
+
+    [Fact]
     public async Task Garbage_transcription_returns_Low_as_a_successful_response()
     {
         // Low is a real answer, not an error — the UI shows a retry prompt with candidates.

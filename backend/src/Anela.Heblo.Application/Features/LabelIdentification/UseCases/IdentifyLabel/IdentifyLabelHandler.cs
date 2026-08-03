@@ -39,6 +39,11 @@ public class IdentifyLabelHandler : IRequestHandler<IdentifyLabelRequest, Identi
             _logger.LogWarning(ex, "Label photo could not be decoded");
             return new IdentifyLabelResponse(ErrorCodes.LabelPhotoUndecodable);
         }
+        catch (OperationCanceledException)
+        {
+            // Operator navigated away mid-request — not an OCR outage, let it propagate.
+            throw;
+        }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Label OCR service failed");
