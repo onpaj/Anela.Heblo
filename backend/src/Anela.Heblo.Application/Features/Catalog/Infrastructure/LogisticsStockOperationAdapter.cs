@@ -31,6 +31,24 @@ internal sealed class LogisticsStockOperationAdapter : ILogisticsStockOperationS
             cancellationToken);
     }
 
+    public Task StageOperationAsync(
+        string documentNumber,
+        string productCode,
+        int amount,
+        LogisticsStockOperationSource sourceType,
+        int sourceId,
+        CancellationToken cancellationToken = default)
+    {
+        var mappedSourceType = MapSourceType(sourceType);
+        return _stockUpProcessingService.StageOperationAsync(
+            documentNumber,
+            productCode,
+            amount,
+            mappedSourceType,
+            sourceId,
+            cancellationToken);
+    }
+
     private static StockUpSourceType MapSourceType(LogisticsStockOperationSource sourceType) => sourceType switch
     {
         LogisticsStockOperationSource.TransportBox => StockUpSourceType.TransportBox,

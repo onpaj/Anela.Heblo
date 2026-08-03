@@ -41,6 +41,32 @@ public class StockUpProcessingService : IStockUpProcessingService
             operation.Id);
     }
 
+    public async Task StageOperationAsync(
+        string documentNumber,
+        string productCode,
+        int amount,
+        StockUpSourceType sourceType,
+        int sourceId,
+        CancellationToken ct = default)
+    {
+        var existing = await _repository.GetByDocumentNumberAsync(documentNumber, ct);
+        if (existing != null)
+        {
+            _logger.LogInformation(
+                "StockUpOperation {DocumentNumber} already exists (state {State}) — skipping duplicate staging on retry",
+                documentNumber, existing.State);
+            return;
+        }
+
+        _logger.LogInformation(
+            "Staging StockUpOperation for document {DocumentNumber}, product {ProductCode}, amount {Amount}",
+            documentNumber, productCode, amount);
+
+        var operation = new StockUpOperation(documentNumber, productCode, amount, sourceType, sourceId);
+
+        await _repository.AddAsync(operation, ct);
+    }
+
     public async Task ProcessPendingOperationsAsync(CancellationToken ct = default)
     {
         _logger.LogInformation("Starting to process pending stock-up operations");
