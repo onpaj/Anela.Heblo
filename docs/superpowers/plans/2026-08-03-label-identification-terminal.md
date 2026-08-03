@@ -2140,7 +2140,7 @@ describe("useIdentifyLabelMutation", () => {
   it("sends the photo as a FileParameter and returns the response", async () => {
     const identify = jest.fn().mockResolvedValue({
       success: true,
-      decision: "Auto",
+      decision: LabelMatchDecision.Auto,
       rawText: "Tocopherol",
       candidates: [{ family: "KRE005", score: 100, variants: [] }],
     });
@@ -2262,6 +2262,7 @@ import React from "react";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import LabelIdentificationScreen from "../LabelIdentificationScreen";
 import { useIdentifyLabelMutation } from "../../../../api/hooks/useLabelIdentification";
+import { LabelMatchDecision } from "../../../../api/generated/api-client";
 
 jest.mock("../../../../api/hooks/useLabelIdentification");
 jest.mock("../../../../telemetry/useScreenView", () => ({ useScreenView: jest.fn() }));
@@ -2296,7 +2297,7 @@ describe("LabelIdentificationScreen", () => {
   it("shows a single product code and name when one variant auto-confirms", async () => {
     mockMutate.mockResolvedValue({
       success: true,
-      decision: "Auto",
+      decision: LabelMatchDecision.Auto,
       rawText: "…",
       candidates: [{
         family: "PEE002", score: 97.2,
@@ -2314,7 +2315,7 @@ describe("LabelIdentificationScreen", () => {
   it("asks for the size when the family has two variants", async () => {
     mockMutate.mockResolvedValue({
       success: true,
-      decision: "Auto",
+      decision: LabelMatchDecision.Auto,
       rawText: "…",
       candidates: [{
         family: "KRE005", score: 100,
@@ -2336,7 +2337,7 @@ describe("LabelIdentificationScreen", () => {
   it("lists candidates to choose from on a Choose decision", async () => {
     mockMutate.mockResolvedValue({
       success: true,
-      decision: "Choose",
+      decision: LabelMatchDecision.Choose,
       rawText: "…",
       candidates: [
         { family: "KRE005", score: 74.1, variants: [{ productCode: "KRE005015", productName: "A" }] },
@@ -2352,7 +2353,7 @@ describe("LabelIdentificationScreen", () => {
 
   it("shows the unreadable message with a retry on a Low decision", async () => {
     mockMutate.mockResolvedValue({
-      success: true, decision: "Low", rawText: "…", candidates: [],
+      success: true, decision: LabelMatchDecision.Low, rawText: "…", candidates: [],
     });
     render(<LabelIdentificationScreen />);
     uploadPhoto();
@@ -2421,8 +2422,10 @@ import { Camera, RotateCcw } from "lucide-react";
 import { useScreenView } from "../../../telemetry/useScreenView";
 import { useIdentifyLabelMutation } from "../../../api/hooks/useLabelIdentification";
 import {
+  ErrorCodes,
   IdentifyLabelResponse,
   LabelCandidateDto,
+  LabelMatchDecision,
   LabelVariantDto,
 } from "../../../api/generated/api-client";
 import { handleApiError } from "../../../utils/errorHandler";
@@ -2459,11 +2462,11 @@ const LabelIdentificationScreen: React.FC = () => {
       }
       // A family with exactly one variant needs no size step.
       const top = response.candidates?.[0];
-      if (response.decision === "Auto" && top && top.variants.length === 1) {
+      if (response.decision === LabelMatchDecision.Auto && top && top.variants.length === 1) {
         setState({ kind: "chosen", variant: top.variants[0] });
         return;
       }
-      if (response.decision === "Auto" && top) {
+      if (response.decision === LabelMatchDecision.Auto && top) {
         setSelectedFamily(top);
       }
       setState({ kind: "result", response });
@@ -2546,7 +2549,7 @@ const LabelIdentificationScreen: React.FC = () => {
       );
     }
 
-    const isLow = response.decision === "Low";
+    const isLow = response.decision === LabelMatchDecision.Low;
     return (
       <Centered>
         {isLow && (
