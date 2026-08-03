@@ -161,3 +161,7 @@ spec.r*.md
 task-plan.r*.md
 brief.md
 frontend/node_modules
+
+# Label identification reference artwork (source PDFs + sample photos).
+# Extracted text is committed as label-references.json; the PDFs are ~67 MB.
+data/
