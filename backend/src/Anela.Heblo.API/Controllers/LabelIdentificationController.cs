@@ -11,7 +11,10 @@ namespace Anela.Heblo.API.Controllers;
 [Route("api/label-identification")]
 public class LabelIdentificationController : BaseApiController
 {
-    private const int MaxUploadBytes = 10 * 1024 * 1024;
+    // Current Android flagships routinely produce 8-20 MB JPEGs; iOS 48 MP output reaches
+    // 5-10 MB. An attribute argument must be a compile-time constant, so this cap cannot
+    // read LabelIdentificationOptions — it is the sole enforcement point for upload size.
+    private const int MaxUploadBytes = 25 * 1024 * 1024;
 
     private readonly IMediator _mediator;
 
