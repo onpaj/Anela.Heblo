@@ -286,14 +286,32 @@ LabelPhotoMissingOrInvalid = 3301,
 LabelPhotoUndecodable = 3302,
 [HttpStatusCode(HttpStatusCode.UnprocessableEntity)]
 LabelTextUnreadable = 3303,
+[HttpStatusCode(HttpStatusCode.ServiceUnavailable)]
+LabelOcrServiceUnavailable = 3304,
 ```
 
 | Situation | `ErrorCodes` | HTTP | Czech (frontend) |
 |---|---|---|---|
 | Missing / non-image / oversized upload | `LabelPhotoMissingOrInvalid` | 400 | "Nahrajte prosím fotku štítku." |
 | Image cannot be decoded | `LabelPhotoUndecodable` | 400 | "Nepodařilo se načíst fotku." |
-| Anthropic error or timeout | `ExternalServiceError` (9001, existing) | 503 | "Služba rozpoznávání není dostupná, zkuste to znovu." |
+| Anthropic error or timeout | `LabelOcrServiceUnavailable` | 503 | "Služba rozpoznávání není dostupná, zkuste to znovu." |
 | Model returns nothing readable | `LabelTextUnreadable` | 422 | "Na fotce nejsou čitelné ingredience — jděte blíž a držte telefon v klidu." |
+
+> **Corrected during implementation.** The OCR-outage row originally mapped to the
+> *shared* `ErrorCodes.ExternalServiceError` (9001) while promising feature-specific Czech
+> copy. Those are incompatible: `ExternalServiceError`'s translation is the generic
+> cross-module "Chyba externí služby", so the intended sentence could only be delivered by
+> hardcoding it in the component — duplicating the error vocabulary and escaping the
+> `LocalizationCoverageTests` gate, which only sees strings bound to an `ErrorCodes` member.
+> A dedicated `3304` fixes it for the same reason 3301–3303 exist.
+
+Two enforcement points apply whenever a code is added here, both learned the hard way:
+`ErrorHandlingTests.ErrorCodes_ShouldFollowModulePrefixSystem` requires the `33XX` range to be
+a declared bucket *and* folded into its aggregate count, and
+`LocalizationCoverageTests.FrontendI18n_ShouldHaveTranslationsForAllErrorCodes` requires a
+translation in `frontend/src/i18n.ts` for **every** member. Frontend code reads these through
+the shared `handleApiError` helper (`frontend/src/utils/errorHandler.ts`), never a
+component-local map.
 
 Stack traces never reach the phone; full detail goes to `ILogger`.
 
