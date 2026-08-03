@@ -2240,8 +2240,16 @@ git commit -m "feat: add label identification client hook"
 
 **Files:**
 - Create: `frontend/src/components/terminal/label-identification/LabelIdentificationScreen.tsx`
-- Create: `frontend/src/components/terminal/label-identification/labelIdentificationErrors.ts`
 - Test: `frontend/src/components/terminal/label-identification/__tests__/LabelIdentificationScreen.test.tsx`
+
+> **Corrected during implementation.** This task originally created a component-local
+> `labelIdentificationErrors.ts` map. That was wrong: this repo already has a central
+> `frontend/src/utils/errorHandler.ts` exposing `handleApiError(response: BaseResponse): string`,
+> which resolves `errorCode` through the `errors.<EnumName>` i18n key. A backend test
+> (`LocalizationCoverageTests.FrontendI18n_ShouldHaveTranslationsForAllErrorCodes`) *enforces* that
+> every `ErrorCodes` member has a translation in `frontend/src/i18n.ts`, so a bespoke component map
+> would both duplicate the strings and fail to satisfy the test. The Czech strings now live in
+> `i18n.ts` (added in Task 9's fix round) and this screen calls `handleApiError`.
 
 **Interfaces:**
 - Consumes: `useIdentifyLabelMutation` (Task 10), `useScreenView` (existing)
@@ -2381,29 +2389,27 @@ cd frontend && CI=true npx react-scripts test --testPathPattern="LabelIdentifica
 
 Expected: FAIL — module not found.
 
-- [ ] **Step 3: Write the error map**
+- [ ] **Step 3: Confirm the shared error helper and i18n keys are in place**
 
-`frontend/src/components/terminal/label-identification/labelIdentificationErrors.ts`:
+No new error-map file. Use the existing central helper:
 
 ```typescript
-import { ErrorCodes } from "../../../api/generated/api-client";
-
-const MESSAGES: Partial<Record<ErrorCodes, string>> = {
-  [ErrorCodes.LabelPhotoMissingOrInvalid]: "Nahrajte prosím fotku štítku.",
-  [ErrorCodes.LabelPhotoUndecodable]: "Nepodařilo se načíst fotku.",
-  [ErrorCodes.LabelTextUnreadable]:
-    "Na fotce nejsou čitelné ingredience — jděte blíž a držte telefon v klidu.",
-  [ErrorCodes.ExternalServiceError]:
-    "Služba rozpoznávání není dostupná, zkuste to znovu.",
-};
-
-const FALLBACK = "Služba rozpoznávání není dostupná, zkuste to znovu.";
-
-export const labelErrorMessage = (errorCode?: ErrorCodes | null): string =>
-  (errorCode != null && MESSAGES[errorCode]) || FALLBACK;
+// frontend/src/utils/errorHandler.ts
+export function handleApiError(response: BaseResponse): string;
 ```
 
-If the generated `ErrorCodes` enum members differ in casing from the C# names, use the generated spelling.
+It resolves `response.errorCode` through the `errors.<EnumName>` i18n key and returns a
+ready-to-render Czech string. Verify the three keys exist (added in Task 9's fix round):
+
+```bash
+grep -n "LabelPhotoMissingOrInvalid\|LabelPhotoUndecodable\|LabelTextUnreadable" frontend/src/i18n.ts
+```
+
+Expected: three entries under the `errors` block. If any is missing, stop and report — the backend
+`LocalizationCoverageTests` would also be failing.
+
+For a thrown/network failure (no `BaseResponse` to inspect), use the `ExternalServiceError` key so
+the operator still gets the "služba není dostupná" message rather than a raw exception string.
 
 - [ ] **Step 4: Write the screen**
 
@@ -2419,7 +2425,7 @@ import {
   LabelCandidateDto,
   LabelVariantDto,
 } from "../../../api/generated/api-client";
-import { labelErrorMessage } from "./labelIdentificationErrors";
+import { handleApiError } from "../../../utils/errorHandler";
 
 type ScreenState =
   | { kind: "capture" }
@@ -2448,7 +2454,7 @@ const LabelIdentificationScreen: React.FC = () => {
     try {
       const response = await identify.mutateAsync(file);
       if (!response.success) {
-        setState({ kind: "error", message: labelErrorMessage(response.errorCode) });
+        setState({ kind: "error", message: handleApiError(response) });
         return;
       }
       // A family with exactly one variant needs no size step.
@@ -2462,7 +2468,12 @@ const LabelIdentificationScreen: React.FC = () => {
       }
       setState({ kind: "result", response });
     } catch {
-      setState({ kind: "error", message: labelErrorMessage(null) });
+      // Thrown/network failure — no BaseResponse to inspect, so surface the
+      // generic upstream-unavailable message via the same i18n path.
+      setState({
+        kind: "error",
+        message: handleApiError({ success: false, errorCode: ErrorCodes.ExternalServiceError }),
+      });
     }
   };
 
