@@ -54,16 +54,19 @@ public class IdentifyLabelHandler : IRequestHandler<IdentifyLabelRequest, Identi
         var normalized = LabelTextNormalizer.Normalize(rawText);
         var match = _matcher.Match(normalized);
 
-        var candidates = new List<LabelCandidateDto>();
-        foreach (var candidate in match.Candidates)
-        {
-            candidates.Add(new LabelCandidateDto
+        // Bulk-fetch every referenced product in a single call to avoid N+1 DB queries
+        // (up to 3 candidates x 2 variants would otherwise be up to 6 sequential lookups).
+        var allCodes = match.Candidates.SelectMany(c => c.Codes).Distinct();
+        var products = await _catalogRepository.GetByIdsAsync(allCodes, cancellationToken);
+
+        var candidates = match.Candidates
+            .Select(candidate => new LabelCandidateDto
             {
                 Family = candidate.Family,
                 Score = Math.Round(candidate.Score, 1),
-                Variants = await ResolveVariantsAsync(candidate.Codes, cancellationToken),
-            });
-        }
+                Variants = ResolveVariants(candidate.Codes, products),
+            })
+            .ToList();
 
         _logger.LogInformation(
             "Label identified as {Decision} with top family {Family}",
@@ -78,23 +81,22 @@ public class IdentifyLabelHandler : IRequestHandler<IdentifyLabelRequest, Identi
         };
     }
 
-    private async Task<List<LabelVariantDto>> ResolveVariantsAsync(
+    private static List<LabelVariantDto> ResolveVariants(
         IReadOnlyList<string> codes,
-        CancellationToken cancellationToken)
+        IReadOnlyDictionary<string, CatalogAggregate> products)
     {
-        var variants = new List<LabelVariantDto>();
-        foreach (var code in codes)
-        {
-            // A code missing from the catalogue still yields the code — that is the
-            // answer the operator needs; the name is a convenience.
-            var product = await _catalogRepository.GetByIdAsync(code, cancellationToken);
-            variants.Add(new LabelVariantDto
+        return codes
+            .Select(code =>
             {
-                ProductCode = code,
-                ProductName = product?.ProductName ?? string.Empty,
-            });
-        }
-
-        return variants;
+                // A code missing from the catalogue still yields the code — that is the
+                // answer the operator needs; the name is a convenience.
+                products.TryGetValue(code, out var product);
+                return new LabelVariantDto
+                {
+                    ProductCode = code,
+                    ProductName = product?.ProductName ?? string.Empty,
+                };
+            })
+            .ToList();
     }
 }

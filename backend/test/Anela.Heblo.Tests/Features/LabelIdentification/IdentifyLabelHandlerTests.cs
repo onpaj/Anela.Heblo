@@ -16,6 +16,15 @@ public class IdentifyLabelHandlerTests
     private readonly Mock<ILabelOcrService> _ocr = new();
     private readonly Mock<ICatalogRepository> _catalog = new();
     private readonly LabelReferenceIndex _index = new();
+    private readonly Dictionary<string, CatalogAggregate> _catalogEntries = new();
+
+    public IdentifyLabelHandlerTests()
+    {
+        // Default: no catalogue entries. Individual tests add entries via SetupCatalogName;
+        // the single GetByIdsAsync stub always reflects the current contents of _catalogEntries.
+        _catalog.Setup(c => c.GetByIdsAsync(It.IsAny<IEnumerable<string>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(() => _catalogEntries);
+    }
 
     private IdentifyLabelHandler CreateHandler()
     {
@@ -34,8 +43,7 @@ public class IdentifyLabelHandlerTests
     };
 
     private void SetupCatalogName(string code, string name) =>
-        _catalog.Setup(c => c.GetByIdAsync(code, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new CatalogAggregate { ProductCode = code, ProductName = name });
+        _catalogEntries[code] = new CatalogAggregate { ProductCode = code, ProductName = name };
 
     [Fact]
     public async Task Auto_decision_returns_the_matched_family_with_resolved_product_names()
@@ -60,8 +68,6 @@ public class IdentifyLabelHandlerTests
     {
         _ocr.Setup(o => o.ReadIngredientsAsync(It.IsAny<Stream>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(TextFor("KRE005"));
-        _catalog.Setup(c => c.GetByIdAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync((CatalogAggregate?)null);
 
         var response = await CreateHandler().Handle(RequestWithPhoto(), CancellationToken.None);
 
@@ -75,8 +81,6 @@ public class IdentifyLabelHandlerTests
     {
         _ocr.Setup(o => o.ReadIngredientsAsync(It.IsAny<Stream>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync("Tocopherol, Limonene");
-        _catalog.Setup(c => c.GetByIdAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync((CatalogAggregate?)null);
 
         var response = await CreateHandler().Handle(RequestWithPhoto(), CancellationToken.None);
 
@@ -125,8 +129,6 @@ public class IdentifyLabelHandlerTests
         // Low is a real answer, not an error — the UI shows a retry prompt with candidates.
         _ocr.Setup(o => o.ReadIngredientsAsync(It.IsAny<Stream>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync("qqq www zzz nothing like an ingredient list");
-        _catalog.Setup(c => c.GetByIdAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync((CatalogAggregate?)null);
 
         var response = await CreateHandler().Handle(RequestWithPhoto(), CancellationToken.None);
 
