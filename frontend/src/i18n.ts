@@ -314,6 +314,11 @@ const resources = {
         AuthorizationSystemGroupImmutable: "Systémové skupiny nelze upravovat.",
         AuthorizationDuplicateGroupName: "Skupina s tímto názvem již existuje.",
 
+        // Label identification module errors
+        LabelPhotoMissingOrInvalid: "Nahrajte prosím fotku štítku.",
+        LabelPhotoUndecodable: "Nepodařilo se načíst fotku.",
+        LabelTextUnreadable: "Na fotce nejsou čitelné ingredience — jděte blíž a držte telefon v klidu.",
+
         // External Service errors
         ExternalServiceError: "Chyba externí služby",
         FlexiApiError: "Chyba ABRA Flexi API",
