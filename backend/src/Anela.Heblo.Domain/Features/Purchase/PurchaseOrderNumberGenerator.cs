@@ -2,22 +2,16 @@ namespace Anela.Heblo.Domain.Features.Purchase;
 
 public interface IPurchaseOrderNumberGenerator
 {
-    Task<string> GenerateOrderNumberAsync(DateTime orderDate, CancellationToken cancellationToken = default);
+    string GenerateCandidate(DateTime orderDate, DateTimeOffset now, int attempt);
 }
 
 public class PurchaseOrderNumberGenerator : IPurchaseOrderNumberGenerator
 {
-    public Task<string> GenerateOrderNumberAsync(DateTime orderDate, CancellationToken cancellationToken = default)
+    public string GenerateCandidate(DateTime orderDate, DateTimeOffset now, int attempt)
     {
-        var year = orderDate.Year;
-        var month = orderDate.Month;
-        var day = orderDate.Day;
-        var hour = DateTime.Now.Hour;
-        var minute = DateTime.Now.Minute;
+        var suffix = attempt <= 1 ? string.Empty : $"-{attempt}";
 
-        // Format: POyyyyMMdd-HHmm
-        var orderNumber = $"PO{year:D4}{month:D2}{day:D2}-{hour:D2}{minute:D2}";
-
-        return Task.FromResult(orderNumber);
+        // Format: POyyyyMMdd-HHmmss[-attempt]
+        return $"PO{orderDate.Year:D4}{orderDate.Month:D2}{orderDate.Day:D2}-{now.Hour:D2}{now.Minute:D2}{now.Second:D2}{suffix}";
     }
 }
