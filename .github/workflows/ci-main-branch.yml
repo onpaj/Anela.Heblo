@@ -131,23 +131,9 @@ jobs:
           dotnet build backend/test/Anela.Heblo.Adapters.Shoptet.Tests --configuration Release --no-restore
           dotnet build backend/test/Anela.Heblo.Adapters.Flexi.Tests --configuration Release --no-restore
 
-      # See the frontend job for rationale — fail-safe Tailnet join for ReportPortal.
-      - name: 🔗 Connect to Tailscale (for ReportPortal)
-        if: vars.RP_ENABLE == 'true'
-        continue-on-error: true
-        uses: tailscale/github-action@v4
-        with:
-          # Tagged, reusable, ephemeral auth key (carries tag:ci itself, so no tags input).
-          authkey: ${{ secrets.TS_AUTHKEY }}
-
       - name: 🧪 Run tests with coverage (excluding Playwright integration tests)
         run: |
-          RP_LOGGER=""
-          if [ "${RP_ENABLE}" = "true" ]; then
-            RP_LOGGER="--logger ReportPortal"
-            echo "📡 ReportPortal logger enabled for backend tests"
-          fi
-          dotnet test Anela.Heblo.sln --collect:"XPlat Code Coverage" --logger trx --logger "console;verbosity=normal" $RP_LOGGER --results-directory ./coverage --filter "Category!=Playwright&Category!=Integration" -- DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.Format=cobertura
+          dotnet test Anela.Heblo.sln --collect:"XPlat Code Coverage" --logger trx --logger "console;verbosity=normal" --logger "junit;LogFilePath=junit-results.xml" --results-directory ./coverage --filter "Category!=Playwright&Category!=Integration" -- DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.Format=cobertura
         env:
           ASPNETCORE_ENVIRONMENT: Automation
           # Shoptet integration test configuration
@@ -158,15 +144,14 @@ jobs:
           FlexiBeeSettings__Login: ${{ secrets.FLEXIBEE_USERNAME }}
           FlexiBeeSettings__Password: ${{ secrets.FLEXIBEE_PASSWORD }}
           FlexiBeeSettings__Company: ${{ secrets.FLEXIBEE_COMPANY }}
-          # ReportPortal (opt-in). The logger is only attached when RP_ENABLE=true; these
-          # reportportal_* vars override backend/test/ReportPortal.config.json at runtime.
-          RP_ENABLE: ${{ vars.RP_ENABLE }}
-          reportportal_enabled: ${{ vars.RP_ENABLE }}
-          reportportal_server_url: ${{ vars.RP_ENDPOINT }}
-          reportportal_server_project: ${{ vars.RP_PROJECT }}
-          reportportal_server_apikey: ${{ secrets.RP_API_KEY }}
-          reportportal_launch_name: heblo-backend
-          reportportal_launch_attributes: layer:backend;ci:${{ github.run_number }}
+
+      - name: 📦 Persist JUnit results artifact (for async ReportPortal import)
+        if: (success() || failure()) && vars.RP_ENABLE == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-junit-results
+          path: coverage/junit-results.xml
+          retention-days: 7
 
       - name: 🔀 Merge coverage reports
         run: |
