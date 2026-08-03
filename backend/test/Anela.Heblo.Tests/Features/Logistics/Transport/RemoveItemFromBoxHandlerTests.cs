@@ -258,6 +258,30 @@ public class RemoveItemFromBoxHandlerTests
             Times.Once);
     }
 
+    [Fact]
+    public async Task Handle_BoxNotInOpenedState_ReturnsTransportBoxInvalidStateTransition()
+    {
+        // Arrange — box is Closed, but DecreaseItem requires Opened
+        var box = CreateOpenBoxWithItem(itemId: 1, sourceInventoryId: null, amount: 5.0);
+        var stateProperty = typeof(TransportBox).GetProperty("State");
+        stateProperty?.SetValue(box, TransportBoxState.Closed);
+
+        var request = new RemoveItemFromBoxRequest { BoxId = 1, ItemId = 1 };
+
+        _repositoryMock
+            .Setup(x => x.GetByIdWithDetailsAsync(1))
+            .ReturnsAsync(box);
+
+        // Act
+        var result = await _handler.Handle(request, CancellationToken.None);
+
+        // Assert
+        result.Success.Should().BeFalse();
+        result.ErrorCode.Should().Be(ErrorCodes.TransportBoxInvalidStateTransition);
+        result.Params.Should().ContainKey("currentState").WhoseValue.Should().Be("Closed");
+        result.Params.Should().ContainKey("allowedStates").WhoseValue.Should().Be("Opened");
+    }
+
     private static TransportBox CreateOpenBox()
     {
         var box = new TransportBox();

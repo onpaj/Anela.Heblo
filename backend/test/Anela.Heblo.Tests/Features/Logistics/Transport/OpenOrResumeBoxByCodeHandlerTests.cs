@@ -87,14 +87,15 @@ public class OpenOrResumeBoxByCodeHandlerTests
     }
 
     [Fact]
-    public async Task Handle_InvalidCodeFormat_ReturnsValidationError()
+    public async Task Handle_InvalidCodeFormat_ReturnsTransportBoxCodeInvalidFormat()
     {
         _repositoryMock.Setup(r => r.GetByCodeAsync(It.IsAny<string>())).ReturnsAsync((TransportBox?)null);
 
         var result = await _handler.Handle(new OpenOrResumeBoxByCodeRequest { BoxCode = "XYZ" }, CancellationToken.None);
 
         result.Success.Should().BeFalse();
-        result.ErrorCode.Should().Be(ErrorCodes.ValidationError);
+        result.ErrorCode.Should().Be(ErrorCodes.TransportBoxCodeInvalidFormat);
+        result.Params.Should().ContainKey("code").WhoseValue.Should().Be("XYZ");
     }
 
     [Fact]

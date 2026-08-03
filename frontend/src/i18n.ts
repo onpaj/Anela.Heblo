@@ -153,6 +153,13 @@ const resources = {
         TransportBoxItemError: "Chyba při práci s položkami v přepravním boxu",
         TransportBoxDuplicateActiveBoxFound:
           "Box s číslem {code} již existuje a je stále aktivní",
+        TransportBoxCodeRequired: "Kód boxu je povinný",
+        TransportBoxCodeInvalidFormat:
+          "Neplatný formát kódu boxu '{code}' — očekávaný formát B a 3 číslice (např. B001)",
+        TransportBoxEmpty:
+          "Box {code} neobsahuje žádné položky — nelze jej odeslat prázdný",
+        TransportBoxInvalidStateTransition:
+          "Box nelze v tomto stavu ({currentState}) takto změnit — povolené stavy: {allowedStates}",
 
         // Configuration module errors
         ConfigurationNotFound: "Konfigurace nenalezena (ID: {id})",
