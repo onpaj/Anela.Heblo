@@ -392,6 +392,18 @@ The size step appears only for the 12 two-size families. Sizes are derived from 
 Designed for a phone held one-handed on a warehouse floor: large tap targets, high contrast,
 the product code as the biggest thing on screen.
 
+> **Added after initial ship — visual confirmation.** The result branches (candidate list,
+> size step, final code) show the **reference label artwork** for the proposed family so the
+> operator confirms by visual similarity to the sticker in hand, and can tap to enlarge and
+> read the INCI text. This does **not** reintroduce blob storage or runtime PDF parsing: one
+> PNG per family (25, page-1; long lists add a `{family}-2.png`) is **pre-rendered offline**
+> by `scripts/render-label-references.sh` from the same gitignored `data/labels/*.pdf` the
+> text extractor reads, and **committed as static assets** under
+> `frontend/public/label-references/`. The frontend derives the image path from the
+> `family` already on `LabelCandidateDto` — no backend, DTO, endpoint, or storage change.
+> The committed PNGs (~3 MB total) are a deliberate exception to §1's "PDFs absent from git":
+> the 67 MB of source PDFs stay gitignored; only the small rendered images are tracked.
+
 ### Data access
 
 The hook calls the **generated typed client**, not `(apiClient as any).http.fetch` — recent

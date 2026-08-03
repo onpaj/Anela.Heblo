@@ -1,5 +1,5 @@
 import React, { useRef, useState } from "react";
-import { Camera, RotateCcw } from "lucide-react";
+import { Camera, RotateCcw, X, ZoomIn } from "lucide-react";
 import { useScreenView } from "../../../telemetry/useScreenView";
 import { useIdentifyLabelMutation } from "../../../api/hooks/useLabelIdentification";
 import {
@@ -75,6 +75,18 @@ function parseFailedIdentifyResponse(
   return undefined;
 }
 
+// Reference label artwork is committed as static frontend assets (one PNG per family,
+// rendered offline by scripts/render-label-references.sh). These are same-origin public
+// assets, so they use PUBLIC_URL directly — unlike API hooks, which must use apiClient.baseUrl.
+const PUBLIC_URL = process.env.PUBLIC_URL ?? "";
+
+// Long ingredient lists span two PDF pages, so a family may have a second image
+// ({family}-2.png); single-page families 404 it and the <img> hides itself via onError.
+function referenceLabelSrc(family: string, page = 1): string {
+  const suffix = page > 1 ? `-${page}` : "";
+  return `${PUBLIC_URL}/label-references/${family}${suffix}.png`;
+}
+
 type ScreenState =
   | { kind: "capture" }
   | { kind: "result"; response: IdentifyLabelResponse }
@@ -86,14 +98,27 @@ const LabelIdentificationScreen: React.FC = () => {
 
   const [state, setState] = useState<ScreenState>({ kind: "capture" });
   const [selectedFamily, setSelectedFamily] = useState<LabelCandidateDto | null>(null);
+  const [zoomFamily, setZoomFamily] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const identify = useIdentifyLabelMutation();
 
   const reset = () => {
     setState({ kind: "capture" });
     setSelectedFamily(null);
+    setZoomFamily(null);
     if (inputRef.current) inputRef.current.value = "";
   };
+
+  // The reference-label zoom overlay is shared across the result branches; render it
+  // alongside whichever branch is active so any label image can be tapped to enlarge.
+  const withZoom = (content: React.ReactNode) => (
+    <>
+      {content}
+      {zoomFamily && (
+        <ReferenceLabelViewer family={zoomFamily} onClose={() => setZoomFamily(null)} />
+      )}
+    </>
+  );
 
   // A family with exactly one variant needs no size step, whether it's the operator
   // picking from a Choose decision's candidate list or (handled separately above) an
@@ -143,7 +168,9 @@ const LabelIdentificationScreen: React.FC = () => {
   }
 
   if (state.kind === "chosen") {
-    return (
+    // Family is the first six characters of the product code (KRE005015 -> KRE005).
+    const family = (state.variant.productCode ?? "").slice(0, 6);
+    return withZoom(
       <Centered>
         <p
           data-testid="label-final-code"
@@ -154,8 +181,11 @@ const LabelIdentificationScreen: React.FC = () => {
         <p className="mt-3 text-xl text-neutral-slate dark:text-graphite-text">
           {state.variant.productName ?? ""}
         </p>
+        {family && (
+          <ReferenceLabelButton family={family} onZoom={() => setZoomFamily(family)} />
+        )}
         <ScanAgain onClick={reset} />
-      </Centered>
+      </Centered>,
     );
   }
 
@@ -181,12 +211,18 @@ const LabelIdentificationScreen: React.FC = () => {
       if (variants.length === 0) {
         return <UnreadableLabel onRetry={reset} />;
       }
-      return (
+      return withZoom(
         <Centered>
           <p className="text-3xl font-extrabold text-neutral-slate dark:text-graphite-text">
             {selectedFamily.family ?? ""}
           </p>
-          <p className="mt-2 mb-6 text-base text-neutral-gray dark:text-graphite-muted">
+          {selectedFamily.family && (
+            <ReferenceLabelButton
+              family={selectedFamily.family}
+              onZoom={() => setZoomFamily(selectedFamily.family ?? null)}
+            />
+          )}
+          <p className="mt-6 mb-6 text-base text-neutral-gray dark:text-graphite-muted">
             Vyberte velikost
           </p>
           <div data-testid="label-size-step" className="grid w-full max-w-md gap-4">
@@ -207,7 +243,7 @@ const LabelIdentificationScreen: React.FC = () => {
             ))}
           </div>
           <ScanAgain onClick={reset} />
-        </Centered>
+        </Centered>,
       );
     }
 
@@ -220,35 +256,61 @@ const LabelIdentificationScreen: React.FC = () => {
       return <UnreadableLabel onRetry={reset} />;
     }
 
-    return (
+    return withZoom(
       <Centered>
         <p className="mb-4 text-base text-neutral-gray dark:text-graphite-muted">
           Vyberte produkt
         </p>
         <div className="grid w-full max-w-md gap-3">
-          {candidatesList.map((candidate) => (
-            <button
-              key={candidate.family ?? ""}
-              data-testid={`label-candidate-${candidate.family ?? ""}`}
-              onClick={() => selectCandidate(candidate)}
-              className="rounded-2xl border border-border-light bg-white p-5 text-left shadow-soft transition-all hover:border-primary-blue dark:border-graphite-border dark:bg-graphite-surface"
-            >
-              <div className="flex items-baseline justify-between">
-                <p className="text-xl font-bold text-neutral-slate dark:text-graphite-text">
-                  {candidate.family ?? ""}
-                </p>
-                <span className="text-sm text-neutral-gray dark:text-graphite-muted">
-                  {(candidate.score ?? 0).toFixed(1)}
-                </span>
+          {candidatesList.map((candidate) => {
+            const family = candidate.family ?? "";
+            return (
+              // The zoom control is a sibling of the select button, not nested inside it —
+              // nesting interactive elements is invalid and breaks tap handling.
+              <div key={family} className="relative">
+                <button
+                  data-testid={`label-candidate-${family}`}
+                  onClick={() => selectCandidate(candidate)}
+                  className="flex w-full flex-col rounded-2xl border border-border-light bg-white p-5 text-left shadow-soft transition-all hover:border-primary-blue dark:border-graphite-border dark:bg-graphite-surface"
+                >
+                  {family && (
+                    <ReferenceLabelImage
+                      family={family}
+                      className="mb-3 h-40 w-full rounded-lg bg-white object-contain"
+                    />
+                  )}
+                  <div className="flex items-baseline justify-between">
+                    <p className="text-xl font-bold text-neutral-slate dark:text-graphite-text">
+                      {family}
+                    </p>
+                    <span className="text-sm text-neutral-gray dark:text-graphite-muted">
+                      {(candidate.score ?? 0).toFixed(1)}
+                    </span>
+                  </div>
+                  <p className="text-sm text-neutral-gray dark:text-graphite-muted">
+                    {(candidate.variants ?? [])
+                      .map((v) => v.productName)
+                      .filter(Boolean)
+                      .join(" / ")}
+                  </p>
+                </button>
+                {family && (
+                  <button
+                    type="button"
+                    aria-label="Zvětšit štítek"
+                    data-testid={`label-candidate-zoom-${family}`}
+                    onClick={() => setZoomFamily(family)}
+                    className="absolute right-3 top-3 rounded-full bg-white/90 p-2 text-neutral-slate shadow dark:bg-graphite-surface dark:text-graphite-text"
+                  >
+                    <ZoomIn className="h-5 w-5" />
+                  </button>
+                )}
               </div>
-              <p className="text-sm text-neutral-gray dark:text-graphite-muted">
-                {(candidate.variants ?? []).map((v) => v.productName).filter(Boolean).join(" / ")}
-              </p>
-            </button>
-          ))}
+            );
+          })}
         </div>
         <ScanAgain onClick={reset} label="Skenovat další" />
-      </Centered>
+      </Centered>,
     );
   }
 
@@ -289,6 +351,89 @@ const UnreadableLabel: React.FC<{ onRetry: () => void }> = ({ onRetry }) => (
     </p>
     <ScanAgain onClick={onRetry} label="Zkusit znovu" />
   </Centered>
+);
+
+// The reference label artwork for a family; hides itself if the PNG is missing (e.g. a
+// family whose artwork hasn't been rendered yet) so a broken image never reaches the floor.
+const ReferenceLabelImage: React.FC<{ family: string; page?: number; className?: string }> = ({
+  family,
+  page = 1,
+  className,
+}) => {
+  const [hasError, setHasError] = useState(false);
+  if (hasError) return null;
+  return (
+    <img
+      src={referenceLabelSrc(family, page)}
+      alt={`Referenční štítek ${family}`}
+      onError={() => setHasError(true)}
+      className={className}
+    />
+  );
+};
+
+// Standalone tap-to-zoom label used on the size-step and final screens. Hides itself (and
+// its "zvětšit" hint) if the artwork is missing, rather than leaving an empty tap target.
+const ReferenceLabelButton: React.FC<{ family: string; onZoom: () => void }> = ({
+  family,
+  onZoom,
+}) => {
+  const [hasError, setHasError] = useState(false);
+  if (hasError) return null;
+  return (
+    <button
+      type="button"
+      onClick={onZoom}
+      data-testid={`label-reference-${family}`}
+      className="mt-6 flex flex-col items-center gap-1"
+    >
+      <img
+        src={referenceLabelSrc(family)}
+        alt={`Referenční štítek ${family}`}
+        onError={() => setHasError(true)}
+        className="h-56 w-56 rounded-xl bg-white object-contain shadow-soft"
+      />
+      <span className="flex items-center gap-1 text-sm text-neutral-gray dark:text-graphite-muted">
+        <ZoomIn className="h-4 w-4" /> Klepnutím zvětšíte
+      </span>
+    </button>
+  );
+};
+
+// Fullscreen reader so the operator can read the INCI text and confirm the match. Shows
+// page 1 and (for long ingredient lists) page 2; the backdrop and close button dismiss it.
+const ReferenceLabelViewer: React.FC<{ family: string; onClose: () => void }> = ({
+  family,
+  onClose,
+}) => (
+  <div
+    role="dialog"
+    aria-modal="true"
+    data-testid="label-reference-viewer"
+    onClick={onClose}
+    className="fixed inset-0 z-50 flex flex-col items-center gap-4 overflow-y-auto bg-black/80 p-4"
+  >
+    <button
+      type="button"
+      onClick={onClose}
+      aria-label="Zavřít"
+      className="sticky top-0 self-end rounded-full bg-white/90 p-2 text-neutral-slate shadow"
+    >
+      <X className="h-6 w-6" />
+    </button>
+    <div className="flex flex-col items-center gap-4" onClick={(e) => e.stopPropagation()}>
+      <ReferenceLabelImage
+        family={family}
+        page={1}
+        className="max-h-[80vh] w-auto rounded-xl bg-white"
+      />
+      <ReferenceLabelImage
+        family={family}
+        page={2}
+        className="max-h-[80vh] w-auto rounded-xl bg-white"
+      />
+    </div>
+  </div>
 );
 
 const ScanAgain: React.FC<{ onClick: () => void; label?: string }> = ({

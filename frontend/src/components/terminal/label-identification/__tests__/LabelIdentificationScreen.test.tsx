@@ -205,4 +205,90 @@ describe("LabelIdentificationScreen", () => {
     render(<LabelIdentificationScreen />);
     expect(screen.getByText("Čtu štítek…")).toBeInTheDocument();
   });
+
+  it("shows the reference label and opens the zoom viewer on the final screen", async () => {
+    mockMutate.mockResolvedValue({
+      success: true,
+      decision: LabelMatchDecision.Auto,
+      rawText: "…",
+      candidates: [{
+        family: "PEE002", score: 97.2,
+        variants: [{ productCode: "PEE002015", productName: "Ochráním chodidla" }],
+      }],
+    });
+    render(<LabelIdentificationScreen />);
+    uploadPhoto();
+
+    const labelButton = await screen.findByTestId("label-reference-PEE002");
+    expect(screen.getByAltText("Referenční štítek PEE002")).toBeInTheDocument();
+    expect(screen.queryByTestId("label-reference-viewer")).not.toBeInTheDocument();
+
+    fireEvent.click(labelButton);
+    expect(screen.getByTestId("label-reference-viewer")).toBeInTheDocument();
+  });
+
+  it("shows a reference label per candidate and zooms without selecting", async () => {
+    mockMutate.mockResolvedValue({
+      success: true,
+      decision: LabelMatchDecision.Choose,
+      rawText: "…",
+      candidates: [
+        { family: "KRE005", score: 74.1, variants: [{ productCode: "KRE005015", productName: "A" }] },
+        { family: "MAS007", score: 71.0, variants: [{ productCode: "MAS007015", productName: "B" }] },
+      ],
+    });
+    render(<LabelIdentificationScreen />);
+    uploadPhoto();
+
+    expect(await screen.findByAltText("Referenční štítek KRE005")).toBeInTheDocument();
+    expect(screen.getByAltText("Referenční štítek MAS007")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByTestId("label-candidate-zoom-KRE005"));
+
+    // The zoom control is a sibling of the select button, so zooming must not confirm.
+    expect(screen.getByTestId("label-reference-viewer")).toBeInTheDocument();
+    expect(screen.queryByTestId("label-final-code")).not.toBeInTheDocument();
+  });
+
+  it("shows the family reference label on the size step", async () => {
+    mockMutate.mockResolvedValue({
+      success: true,
+      decision: LabelMatchDecision.Auto,
+      rawText: "…",
+      candidates: [{
+        family: "KRE005", score: 100,
+        variants: [
+          { productCode: "KRE005015", productName: "Masážní olej 15 ml" },
+          { productCode: "KRE005030", productName: "Masážní olej 30 ml" },
+        ],
+      }],
+    });
+    render(<LabelIdentificationScreen />);
+    uploadPhoto();
+
+    expect(await screen.findByTestId("label-size-step")).toBeInTheDocument();
+    expect(screen.getByTestId("label-reference-KRE005")).toBeInTheDocument();
+    expect(screen.getByAltText("Referenční štítek KRE005")).toBeInTheDocument();
+  });
+
+  it("hides the reference label when its artwork fails to load", async () => {
+    mockMutate.mockResolvedValue({
+      success: true,
+      decision: LabelMatchDecision.Auto,
+      rawText: "…",
+      candidates: [{
+        family: "PEE002", score: 97.2,
+        variants: [{ productCode: "PEE002015", productName: "Ochráním chodidla" }],
+      }],
+    });
+    render(<LabelIdentificationScreen />);
+    uploadPhoto();
+
+    const image = await screen.findByAltText("Referenční štítek PEE002");
+    fireEvent.error(image);
+
+    expect(screen.queryByTestId("label-reference-PEE002")).not.toBeInTheDocument();
+    // The product code itself still stands — a missing image never blocks the answer.
+    expect(screen.getByTestId("label-final-code")).toHaveTextContent("PEE002015");
+  });
 });
