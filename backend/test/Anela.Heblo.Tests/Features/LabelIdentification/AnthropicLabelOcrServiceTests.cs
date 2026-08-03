@@ -91,6 +91,20 @@ public class AnthropicLabelOcrServiceTests
     }
 
     [Fact]
+    public async Task Throws_LabelOcrException_when_the_photo_dimensions_exceed_the_pixel_limit()
+    {
+        var service = CreateService();
+        // 10000 x 5001 = 50,010,000 px, just over the 50,000,000 cap — well under any byte
+        // size limit, which is exactly the attack this guards against (a highly
+        // compressible image with attacker-controlled huge dimensions).
+        using var oversized = JpegPhoto(10000, 5001);
+
+        var act = () => service.ReadIngredientsAsync(oversized, CancellationToken.None);
+
+        await act.Should().ThrowAsync<LabelOcrException>();
+    }
+
+    [Fact]
     public async Task Returns_empty_when_the_model_returns_nothing()
     {
         SetupResponse("   ");

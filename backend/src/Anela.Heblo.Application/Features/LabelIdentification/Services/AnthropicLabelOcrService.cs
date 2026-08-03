@@ -9,6 +9,12 @@ public sealed class AnthropicLabelOcrService : ILabelOcrService
 {
     private const int JpegQuality = 90;
 
+    // A byte cap on the upload does not bound pixel count: a highly compressible image
+    // can decode to gigabytes of raw pixels well under any reasonable size limit. ~50 MP
+    // is far above any phone camera's actual output but far below what would OOM the
+    // container decoding it.
+    private const long MaxDecodedPixels = 50_000_000;
+
     // Constrained to one job the model is good at: read text. Labels on a roll are all
     // the same product, so rotation, blur, and ghost text bleeding in from neighbouring
     // stickers are expected and harmless.
@@ -54,7 +60,19 @@ public sealed class AnthropicLabelOcrService : ILabelOcrService
 
     private byte[] Downscale(Stream photo)
     {
-        using var original = SKBitmap.Decode(photo)
+        // Inspect dimensions from the header before decoding pixels. SKCodec.Create only
+        // parses enough of the file to report SKCodec.Info — it does not allocate the full
+        // pixel buffer, so a highly compressible image with attacker-controlled huge
+        // dimensions is rejected before it can OOM the process.
+        using var codec = SKCodec.Create(photo)
+            ?? throw new LabelOcrException("Photo could not be decoded as an image.");
+
+        if ((long)codec.Info.Width * codec.Info.Height > MaxDecodedPixels)
+        {
+            throw new LabelOcrException("Photo dimensions exceed the supported limit.");
+        }
+
+        using var original = SKBitmap.Decode(codec)
             ?? throw new LabelOcrException("Photo could not be decoded as an image.");
 
         var longestEdge = Math.Max(original.Width, original.Height);
