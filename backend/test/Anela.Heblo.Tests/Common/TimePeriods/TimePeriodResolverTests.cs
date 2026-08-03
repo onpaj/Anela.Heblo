@@ -1,11 +1,13 @@
 using Anela.Heblo.Application.Common.TimePeriods;
 using FluentAssertions;
+using Microsoft.Extensions.Time.Testing;
 
 namespace Anela.Heblo.Tests.Common.TimePeriods;
 
 public class TimePeriodResolverTests
 {
-    private readonly TimePeriodResolver _sut = new();
+    private static readonly DateTimeOffset FrozenNowUtc = new(2026, 2, 1, 0, 0, 0, TimeSpan.Zero);
+    private readonly TimePeriodResolver _sut = new(new FakeTimeProvider(FrozenNowUtc));
 
     [Fact]
     public void Resolve_PreviousQuarter_ReturnsOneRange()
@@ -15,8 +17,8 @@ public class TimePeriodResolverTests
 
         // Assert
         result.Should().HaveCount(1);
-        result[0].From.Should().BeBefore(result[0].To);
-        result[0].From.Should().BeBefore(DateTime.UtcNow);
+        result[0].From.Should().Be(new DateTime(2025, 11, 1));
+        result[0].To.Should().Be(new DateTime(2026, 1, 31));
     }
 
     [Fact]
@@ -27,8 +29,8 @@ public class TimePeriodResolverTests
 
         // Assert
         result.Should().HaveCount(1);
-        result[0].From.Should().BeBefore(result[0].To);
-        result[0].From.Should().BeBefore(DateTime.UtcNow);
+        result[0].From.Should().Be(new DateTime(2025, 2, 1));
+        result[0].To.Should().Be(new DateTime(2025, 4, 30));
     }
 
     [Fact]
@@ -39,8 +41,8 @@ public class TimePeriodResolverTests
 
         // Assert
         result.Should().HaveCount(1);
-        result[0].From.Should().BeBefore(result[0].To);
-        result[0].From.Should().BeBefore(DateTime.UtcNow);
+        result[0].From.Should().Be(new DateTime(2025, 2, 1));
+        result[0].To.Should().Be(new DateTime(2026, 1, 31));
     }
 
     [Fact]
@@ -51,8 +53,8 @@ public class TimePeriodResolverTests
 
         // Assert
         result.Should().HaveCount(1);
-        result[0].From.Should().BeBefore(result[0].To);
-        result[0].From.Should().BeBefore(DateTime.UtcNow);
+        result[0].From.Should().Be(new DateTime(2025, 10, 1));
+        result[0].To.Should().Be(new DateTime(2026, 1, 31));
     }
 
     [Fact]
@@ -64,11 +66,11 @@ public class TimePeriodResolverTests
         // Assert
         result.Should().HaveCount(2);
 
-        result[0].From.Should().BeBefore(result[0].To);
-        result[0].From.Should().BeBefore(DateTime.UtcNow);
+        result[0].From.Should().Be(new DateTime(2025, 8, 1));
+        result[0].To.Should().Be(new DateTime(2026, 2, 1));
 
-        result[1].From.Should().BeBefore(result[1].To);
-        result[1].From.Should().BeBefore(DateTime.UtcNow);
+        result[1].From.Should().Be(new DateTime(2025, 2, 1));
+        result[1].To.Should().Be(new DateTime(2025, 5, 1));
 
         result[1].From.Should().BeBefore(result[0].From);
     }

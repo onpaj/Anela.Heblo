@@ -102,25 +102,25 @@ const BoxFillWorkflow: React.FC = () => {
     if (!box) return;
     setError(null);
     const result = await addItem.mutateAsync({
-      boxId: box.id, productCode: item.productCode, productName: item.productName,
+      boxId: box.id, productCode: item.productCode!, productName: item.productName!,
       amount, sourceInventoryId: item.id, lotNumber: item.lotNumber,
       expirationDate: item.expirationDate, allowNegativeStock,
     });
     if (!result.success || !result.transportBox) {
       setError(result.errorCode ? getErrorMessage(result.errorCode, result.params) : "Položku se nepodařilo přidat");
-      flash('err', item.productCode);
+      flash('err', item.productCode!);
       return;
     }
     setBox(result.transportBox);
-    setAmountMemory((prev) => ({ ...prev, [item.productCode]: amount }));
+    setAmountMemory((prev) => ({ ...prev, [item.productCode!]: amount }));
     setSelected(null);
     setOverdraft(null);
-    flash(tone, item.productCode);
+    flash(tone, item.productCode!);
   };
 
   const handleAmountConfirm = (amount: number) => {
     if (!selected) return;
-    if (amount > selected.amount) {
+    if (amount > (selected.amount ?? 0)) {
       setOverdraft({ item: selected, amount });
       setSelected(null);
       return;
@@ -166,7 +166,7 @@ const BoxFillWorkflow: React.FC = () => {
       {selected && (
         <AmountEntrySheet
           item={selected}
-          initialAmount={amountMemory[selected.productCode]}
+          initialAmount={amountMemory[selected.productCode!]}
           isSubmitting={addItem.isPending}
           onConfirm={handleAmountConfirm}
           onCancel={() => setSelected(null)}
@@ -178,7 +178,7 @@ const BoxFillWorkflow: React.FC = () => {
           requestedAmount={overdraft.amount}
           isSubmitting={addItem.isPending}
           onAddNegative={() => void performAdd(overdraft.item, overdraft.amount, true, 'warn')}
-          onAddRemaining={() => void performAdd(overdraft.item, overdraft.item.amount, false, 'warn')}
+          onAddRemaining={() => void performAdd(overdraft.item, overdraft.item.amount ?? 0, false, 'warn')}
           onCancel={() => setOverdraft(null)}
         />
       )}

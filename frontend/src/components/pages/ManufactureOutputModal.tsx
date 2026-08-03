@@ -22,14 +22,15 @@ const ManufactureOutputModal: React.FC<ManufactureOutputModalProps> = ({
 
   if (!isOpen || !monthData) return null;
 
+  const products = monthData.products ?? [];
   const productionRecordsForProduct = selectedProduct
-    ? monthData.productionDetails.filter(
+    ? (monthData.productionDetails ?? []).filter(
         (detail) => detail.productCode === selectedProduct.productCode,
       )
     : [];
 
-  const formatDate = (dateStr: string) => {
-    return new Date(dateStr).toLocaleDateString("cs-CZ");
+  const formatDate = (date?: Date) => {
+    return date ? date.toLocaleDateString("cs-CZ") : "";
   };
 
   const formatCurrency = (amount: number) => {
@@ -50,10 +51,10 @@ const ManufactureOutputModal: React.FC<ManufactureOutputModalProps> = ({
             <Calendar className="h-6 w-6 text-indigo-600 dark:text-graphite-accent" />
             <div>
               <h2 className="text-xl font-semibold text-gray-900 dark:text-graphite-text">
-                Detaily výroby - {formatMonthDisplay(monthData.month)}
+                Detaily výroby - {formatMonthDisplay(monthData.month ?? "")}
               </h2>
               <p className="text-sm text-gray-600 dark:text-graphite-muted">
-                Celkový vážený výtlak: {monthData.totalOutput.toFixed(1)}
+                Celkový vážený výtlak: {(monthData.totalOutput ?? 0).toFixed(1)}
               </p>
             </div>
           </div>
@@ -72,7 +73,7 @@ const ManufactureOutputModal: React.FC<ManufactureOutputModalProps> = ({
             <div className="p-4 bg-gray-50 dark:bg-graphite-surface-2 border-b border-gray-200 dark:border-graphite-border">
               <h3 className="text-lg font-medium text-gray-900 dark:text-graphite-text flex items-center">
                 <Package className="h-5 w-5 mr-2" />
-                Produkty ({monthData.products.length})
+                Produkty ({products.length})
               </h3>
               <p className="text-sm text-gray-600 dark:text-graphite-muted mt-1">
                 Kliknutím na produkt zobrazíte detailní výrobní záznamy
@@ -97,7 +98,7 @@ const ManufactureOutputModal: React.FC<ManufactureOutputModalProps> = ({
                   </tr>
                 </thead>
                 <tbody className="bg-white dark:bg-graphite-surface divide-y divide-gray-200 dark:divide-graphite-border">
-                  {monthData.products.map((product) => (
+                  {products.map((product) => (
                     <tr
                       key={product.productCode}
                       className={`cursor-pointer transition-colors ${
@@ -118,13 +119,13 @@ const ManufactureOutputModal: React.FC<ManufactureOutputModalProps> = ({
                         </div>
                       </td>
                       <td className="px-4 py-3 text-sm text-right text-gray-900 dark:text-graphite-text">
-                        {product.quantity.toFixed(1)}
+                        {(product.quantity ?? 0).toFixed(1)}
                       </td>
                       <td className="px-4 py-3 text-sm text-right text-gray-900 dark:text-graphite-text">
-                        {product.difficulty.toFixed(1)}
+                        {(product.difficulty ?? 0).toFixed(1)}
                       </td>
                       <td className="px-4 py-3 text-sm text-right font-medium text-gray-900 dark:text-graphite-text">
-                        {product.weightedValue.toFixed(1)}
+                        {(product.weightedValue ?? 0).toFixed(1)}
                       </td>
                     </tr>
                   ))}
@@ -184,13 +185,13 @@ const ManufactureOutputModal: React.FC<ManufactureOutputModalProps> = ({
                           {formatDate(record.date)}
                         </td>
                         <td className="px-4 py-2 text-sm text-right text-gray-900 dark:text-graphite-text">
-                          {record.amount.toFixed(1)}
+                          {(record.amount ?? 0).toFixed(1)}
                         </td>
                         <td className="px-4 py-2 text-sm text-right text-gray-900 dark:text-graphite-text">
-                          {formatCurrency(record.pricePerPiece)}
+                          {formatCurrency(record.pricePerPiece ?? 0)}
                         </td>
                         <td className="px-4 py-2 text-sm text-right font-medium text-gray-900 dark:text-graphite-text">
-                          {formatCurrency(record.priceTotal)}
+                          {formatCurrency(record.priceTotal ?? 0)}
                         </td>
                         <td className="px-4 py-2 text-sm text-gray-900 dark:text-graphite-text">
                           {record.documentNumber}

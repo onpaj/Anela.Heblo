@@ -12,7 +12,7 @@ namespace Anela.Heblo.Tests.Features.Photobank;
 
 public class GetRootsHandlerTests
 {
-    private readonly Mock<IPhotobankRepository> _repoMock = new();
+    private readonly Mock<IPhotobankRootRepository> _repoMock = new();
 
     private GetRootsHandler CreateHandler() => new(_repoMock.Object);
 

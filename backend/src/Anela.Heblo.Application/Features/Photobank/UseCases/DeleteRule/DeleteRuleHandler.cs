@@ -8,9 +8,9 @@ namespace Anela.Heblo.Application.Features.Photobank.UseCases.DeleteRule
 {
     public class DeleteRuleHandler : IRequestHandler<DeleteRuleRequest, DeleteRuleResponse>
     {
-        private readonly IPhotobankRepository _repository;
+        private readonly IPhotobankTagRuleRepository _repository;
 
-        public DeleteRuleHandler(IPhotobankRepository repository)
+        public DeleteRuleHandler(IPhotobankTagRuleRepository repository)
         {
             _repository = repository;
         }

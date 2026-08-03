@@ -9,7 +9,7 @@ jest.mock("../../../../utils/errorHandler", () => ({ getErrorMessage: () => "Chy
 
 const inventoryItem = {
   id: 7, productCode: "P-1", productName: "Krém", amount: 10,
-  lotNumber: "L1", expirationDate: "2027-01-01", createdAt: "", createdBy: "", log: [],
+  lotNumber: "L1", expirationDate: new Date("2027-01-01"), createdAt: new Date(), createdBy: "", log: [],
 };
 
 const emptyBox: useBoxFill.TerminalBox = { id: 1, code: "B001", state: "Opened", itemCount: 0, items: [] };
@@ -132,7 +132,7 @@ describe("BoxFillWorkflow", () => {
     expect(addMutateAsync).toHaveBeenCalledWith(
       expect.objectContaining({
         boxId: 1, productCode: "P-1", productName: "Krém", amount: 2,
-        sourceInventoryId: 7, lotNumber: "L1", expirationDate: "2027-01-01",
+        sourceInventoryId: 7, lotNumber: "L1", expirationDate: new Date("2027-01-01"),
         allowNegativeStock: false,
       }),
     );

@@ -25,7 +25,8 @@ export const useDepartments = () => {
         throw new Error(`Failed to fetch departments: ${response.statusText}`);
       }
 
-      return await response.json();
+      const body = await response.json();
+      return body.departments;
     },
     staleTime: 5 * 60 * 1000, // 5 minutes - departments don't change often
   });

@@ -27,7 +27,7 @@ const ManufacturedRow: React.FC<ManufacturedRowProps> = ({ item, onAdd, onOverdr
       setRowError("Zadejte kladné číslo");
       return;
     }
-    if (parsed > item.amount) {
+    if (parsed > (item.amount ?? 0)) {
       onOverdraft(item, parsed);
       return;
     }
@@ -45,7 +45,7 @@ const ManufacturedRow: React.FC<ManufacturedRowProps> = ({ item, onAdd, onOverdr
         <div className="text-xs text-gray-500 flex flex-wrap gap-x-3 mt-0.5 dark:text-graphite-muted">
           <span className="font-mono">{item.productCode}</span>
           {item.lotNumber && <span>Lot: {item.lotNumber}</span>}
-          {item.expirationDate && <span>Exp: {item.expirationDate}</span>}
+          {item.expirationDate && <span>Exp: {item.expirationDate.toISOString().slice(0, 10)}</span>}
           <span className="font-semibold text-green-700 dark:text-emerald-300">Sklad: {item.amount}</span>
         </div>
         {rowError && (
@@ -126,8 +126,8 @@ const TransportBoxItems: React.FC<TransportBoxItemsProps> = ({
     if (!manufacturedSearch.trim()) return true;
     const q = manufacturedSearch.toLowerCase();
     return (
-      item.productName.toLowerCase().includes(q) ||
-      item.productCode.toLowerCase().includes(q) ||
+      (item.productName ?? "").toLowerCase().includes(q) ||
+      (item.productCode ?? "").toLowerCase().includes(q) ||
       (item.lotNumber ?? "").toLowerCase().includes(q)
     );
   });
@@ -208,7 +208,7 @@ const TransportBoxItems: React.FC<TransportBoxItemsProps> = ({
                         (e.lotNumber ?? "") === (item.lotNumber ?? ""),
                     );
                     const defaultAmount = lastEntry
-                      ? Math.min(lastEntry.addedAmount, item.amount)
+                      ? Math.min(lastEntry.addedAmount, item.amount ?? 0)
                       : undefined;
                     return (
                       <ManufacturedRow
@@ -482,12 +482,12 @@ const TransportBoxItems: React.FC<TransportBoxItemsProps> = ({
                 }}
                 className="w-full py-4 text-base font-semibold text-white bg-amber-600 rounded-lg hover:bg-amber-700 active:bg-amber-800"
               >
-                Přidat záporný stav ({overdraftPending.amount}ks, {overdraftPending.amount - overdraftPending.item.amount} chybí)
+                Přidat záporný stav ({overdraftPending.amount}ks, {overdraftPending.amount - (overdraftPending.item.amount ?? 0)} chybí)
               </button>
               <button
                 type="button"
                 onClick={() => {
-                  handleAddManufacturedItem({ item: overdraftPending.item, amount: overdraftPending.item.amount });
+                  handleAddManufacturedItem({ item: overdraftPending.item, amount: overdraftPending.item.amount ?? 0 });
                   setOverdraftPending(null);
                 }}
                 className="w-full py-4 text-base font-semibold text-gray-800 bg-gray-100 rounded-lg hover:bg-gray-200 active:bg-gray-300 dark:text-graphite-text dark:bg-graphite-surface-2 dark:hover:bg-graphite-hover"
