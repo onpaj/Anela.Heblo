@@ -344,7 +344,14 @@ text bleeding in from neighbouring stickers are expected and harmless.
 | `AutoConfirmMargin` | `5` | Required lead over the runner-up |
 | `LowConfidenceFloor` | `60` | Below this, `Low` |
 | `MaxImageEdge` | `2048` | Downscale target, px |
-| `MaxUploadBytes` | `10485760` | Upload size cap |
+
+> The upload size cap (`25 * 1024 * 1024` — 25 MB, raised from an initial 10 MB that was
+> below real phone-photo sizes) lives as a `const` on
+> `LabelIdentificationController.MaxUploadBytes`, not in `LabelIdentificationOptions`: it is
+> a `[RequestSizeLimit]` attribute argument, and attribute arguments must be compile-time
+> constants, so it cannot read configuration. An earlier `MaxUploadBytes` option property
+> was removed — it was read by nothing and setting it in configuration silently did
+> nothing.
 
 The model id and API key come from the existing `AnthropicOptions` (Key Vault). No new
 secret.

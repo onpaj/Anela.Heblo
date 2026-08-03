@@ -15,7 +15,4 @@ public class LabelIdentificationOptions
 
     /// <summary>Longest edge, in px, the photo is downscaled to before the vision call.</summary>
     public int MaxImageEdge { get; set; } = 2048;
-
-    /// <summary>Upload size cap in bytes.</summary>
-    public long MaxUploadBytes { get; set; } = 10 * 1024 * 1024;
 }
