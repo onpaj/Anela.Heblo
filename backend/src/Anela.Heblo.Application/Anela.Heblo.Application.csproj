@@ -52,4 +52,8 @@
     <Folder Include="Features\Journal\Model\" />
   </ItemGroup>
 
+  <ItemGroup>
+    <EmbeddedResource Include="Features\LabelIdentification\Data\label-references.json" />
+  </ItemGroup>
+
 </Project>
