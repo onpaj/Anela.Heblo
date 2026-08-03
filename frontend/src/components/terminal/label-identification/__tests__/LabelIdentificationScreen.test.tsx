@@ -1,5 +1,5 @@
 import React from "react";
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { render, screen, fireEvent } from "@testing-library/react";
 import LabelIdentificationScreen from "../LabelIdentificationScreen";
 import { useIdentifyLabelMutation } from "../../../../api/hooks/useLabelIdentification";
 import { LabelMatchDecision } from "../../../../api/generated/api-client";
@@ -47,7 +47,7 @@ describe("LabelIdentificationScreen", () => {
     render(<LabelIdentificationScreen />);
     uploadPhoto();
 
-    await waitFor(() => expect(screen.getByText("PEE002015")).toBeInTheDocument());
+    expect(await screen.findByText("PEE002015")).toBeInTheDocument();
     expect(screen.getByText("Ochráním chodidla")).toBeInTheDocument();
     expect(screen.queryByTestId("label-size-step")).not.toBeInTheDocument();
   });
@@ -68,10 +68,10 @@ describe("LabelIdentificationScreen", () => {
     render(<LabelIdentificationScreen />);
     uploadPhoto();
 
-    await waitFor(() => expect(screen.getByTestId("label-size-step")).toBeInTheDocument());
+    expect(await screen.findByTestId("label-size-step")).toBeInTheDocument();
     fireEvent.click(screen.getByTestId("label-variant-KRE005030"));
 
-    await waitFor(() => expect(screen.getByTestId("label-final-code")).toHaveTextContent("KRE005030"));
+    expect(await screen.findByTestId("label-final-code")).toHaveTextContent("KRE005030");
   });
 
   it("lists candidates to choose from on a Choose decision", async () => {
@@ -87,7 +87,7 @@ describe("LabelIdentificationScreen", () => {
     render(<LabelIdentificationScreen />);
     uploadPhoto();
 
-    await waitFor(() => expect(screen.getByTestId("label-candidate-KRE005")).toBeInTheDocument());
+    expect(await screen.findByTestId("label-candidate-KRE005")).toBeInTheDocument();
     expect(screen.getByTestId("label-candidate-MAS007")).toBeInTheDocument();
   });
 
@@ -98,8 +98,7 @@ describe("LabelIdentificationScreen", () => {
     render(<LabelIdentificationScreen />);
     uploadPhoto();
 
-    await waitFor(() =>
-      expect(screen.getByText("Nepodařilo se přečíst štítek")).toBeInTheDocument());
+    expect(await screen.findByText("Nepodařilo se přečíst štítek")).toBeInTheDocument();
     expect(screen.getByText("Zkusit znovu")).toBeInTheDocument();
   });
 
@@ -108,10 +107,9 @@ describe("LabelIdentificationScreen", () => {
     render(<LabelIdentificationScreen />);
     uploadPhoto();
 
-    await waitFor(() =>
-      expect(
-        screen.getByText("Služba rozpoznávání není dostupná, zkuste to znovu."),
-      ).toBeInTheDocument());
+    expect(
+      await screen.findByText("Služba rozpoznávání není dostupná, zkuste to znovu."),
+    ).toBeInTheDocument();
   });
 
   it("shows a reading indicator while the request is in flight", () => {
