@@ -421,6 +421,14 @@ public enum ErrorCodes
     [HttpStatusCode(HttpStatusCode.Conflict)]
     AuthorizationDuplicateGroupName = 3206,
 
+    // Label identification module errors (33XX)
+    [HttpStatusCode(HttpStatusCode.BadRequest)]
+    LabelPhotoMissingOrInvalid = 3301,
+    [HttpStatusCode(HttpStatusCode.BadRequest)]
+    LabelPhotoUndecodable = 3302,
+    [HttpStatusCode(HttpStatusCode.UnprocessableEntity)]
+    LabelTextUnreadable = 3303,
+
     // External Service errors (90XX)
     [HttpStatusCode(HttpStatusCode.ServiceUnavailable)]
     ExternalServiceError = 9001,
