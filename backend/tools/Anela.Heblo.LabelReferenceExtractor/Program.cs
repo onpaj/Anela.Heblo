@@ -46,9 +46,12 @@ foreach (var path in pdfs)
 }
 
 // Group by family = first 6 characters of the product code (KRE005015 -> KRE005).
-// Where a family's sizes differ in text (only KRE003 in the current corpus), the
-// LONGER text is the representative: it is the superset in practice and
-// token_set_ratio is insensitive to the extra tokens.
+// All 12 multi-size families in the current corpus normalize byte-identically
+// across their 015/030 members (verified after LabelTextNormalizer strips the
+// per-page job-name stamp, which used to make them look different because it
+// carries the size). Picking the longer text is a no-op tie-break for that case;
+// it stays as a safety net should a future artwork update introduce a real
+// per-size difference.
 var entries = extracted
     .GroupBy(e => e.Code[..6])
     .OrderBy(g => g.Key, StringComparer.Ordinal)

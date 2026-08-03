@@ -20,6 +20,22 @@ public class LabelTextNormalizerTests
     }
 
     [Fact]
+    public void Strips_job_name_stamp_when_it_trails_the_ingredient_text()
+    {
+        // Real PdfPig extraction (content-stream order) puts the stamp AFTER the
+        // ingredient list, once per page — not before it as pdftotext's visual-order
+        // extraction suggested. This is the real shape seen across all 37 reference
+        // PDFs (e.g. KRE002015.pdf), so the strip must not depend on the stamp being
+        // a document-level prefix.
+        var raw = "Ingredients: Helianthus Annuus Seed Oil, Linalyl Acetate" +
+                  "Anela_Malá čarodějka_15ml_kelimek-dno_32mm_bila-snimatelna";
+
+        var result = LabelTextNormalizer.Normalize(raw);
+
+        result.Should().Be("helianthus annuus seed oil, linalyl acetate");
+    }
+
+    [Fact]
     public void Joins_hyphenation_across_line_breaks()
     {
         var result = LabelTextNormalizer.Normalize("Ingredients: Toco-\npherol");
