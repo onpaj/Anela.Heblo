@@ -26,19 +26,12 @@ TIMESPAN="P7D"
 [[ -x "$QUERY" ]] || { echo "Error: ${QUERY} not found or not executable." >&2; exit 1; }
 command -v jq >/dev/null || { echo "Error: jq is required." >&2; exit 1; }
 
-# Local/dev convenience: fall back to a gitignored .env at the repo root for
-# secrets not already present in the environment (appinsights-query.sh does
-# the same independently, but this is needed for the header's app-id echo).
-# Real env vars always win over the .env file.
-ENV_FILE="$(cd "${HERE}/../../.." && pwd)/.env"
-if [[ -f "$ENV_FILE" ]]; then
-  _pre_app_id="${APPINSIGHTS_APP_ID:-}"
-  set -a
-  # shellcheck disable=SC1090
-  source "$ENV_FILE"
-  set +a
-  [[ -n "$_pre_app_id" ]] && APPINSIGHTS_APP_ID="$_pre_app_id"
-fi
+# Loaded here (in addition to appinsights-query.sh doing the same
+# independently for each child invocation) so the header's app-id echo below
+# reflects the resolved value.
+# shellcheck disable=SC1090
+source "${HERE}/env-fallback.sh"
+load_env_fallback APPINSIGHTS_APP_ID APPINSIGHTS_API_KEY
 
 if [[ "${1:-}" == "--timespan" ]]; then
   TIMESPAN="${2:?--timespan requires a value, e.g. P1D}"

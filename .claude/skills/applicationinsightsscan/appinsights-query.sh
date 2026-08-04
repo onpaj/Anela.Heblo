@@ -2,7 +2,8 @@
 #
 # appinsights-query.sh — query Azure Application Insights via the REST data-plane API.
 #
-# Credentials are read from the environment (never hardcode the key):
+# Credentials are read from the environment (never hardcode the key), with a
+# gitignored .env at the repo root as a local/dev fallback (env-fallback.sh):
 #   APPINSIGHTS_APP_ID   Application ID (GUID) from the App Insights "API Access" blade
 #   APPINSIGHTS_API_KEY  API key with "Read telemetry" permission
 #
@@ -28,20 +29,9 @@ TIMESPAN="P1D"
 
 err() { echo "Error: $*" >&2; exit 1; }
 
-# Local/dev convenience: fall back to a gitignored .env at the repo root for
-# secrets not already present in the environment. Real env vars (e.g. an Orca
-# automation that injects them directly) always win over the .env file.
-ENV_FILE="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)/.env"
-if [[ -f "$ENV_FILE" ]]; then
-  _pre_app_id="${APPINSIGHTS_APP_ID:-}"
-  _pre_api_key="${APPINSIGHTS_API_KEY:-}"
-  set -a
-  # shellcheck disable=SC1090
-  source "$ENV_FILE"
-  set +a
-  [[ -n "$_pre_app_id" ]] && APPINSIGHTS_APP_ID="$_pre_app_id"
-  [[ -n "$_pre_api_key" ]] && APPINSIGHTS_API_KEY="$_pre_api_key"
-fi
+# shellcheck disable=SC1090
+source "$(dirname "${BASH_SOURCE[0]}")/env-fallback.sh"
+load_env_fallback APPINSIGHTS_APP_ID APPINSIGHTS_API_KEY
 
 [[ -n "${APPINSIGHTS_APP_ID:-}" ]]  || err "APPINSIGHTS_APP_ID is not set."
 [[ -n "${APPINSIGHTS_API_KEY:-}" ]] || err "APPINSIGHTS_API_KEY is not set."
