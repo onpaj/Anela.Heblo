@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useQuery, keepPreviousData } from "@tanstack/react-query";
-import { getAuthenticatedApiClient } from "../client";
+import { getAuthenticatedApiClient, QUERY_KEYS } from "../client";
 import { SupplierDto, SearchSuppliersResponse } from "../generated/api-client";
 
 // Re-export types from generated client
@@ -19,7 +19,7 @@ export function useSupplierSearch(searchTerm: string, limit: number = 10) {
   }, [searchTerm]);
 
   const query = useQuery({
-    queryKey: ["suppliers", "search", debouncedSearchTerm, limit],
+    queryKey: [...QUERY_KEYS.suppliers, "search", debouncedSearchTerm, limit],
     queryFn: async () => {
       const apiClient = getAuthenticatedApiClient();
       return apiClient.suppliers_SearchSuppliers(debouncedSearchTerm, limit);
