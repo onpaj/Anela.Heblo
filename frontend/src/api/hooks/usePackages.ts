@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { getAuthenticatedApiClient } from "../client";
+import type { Carriers, PackageDto as GeneratedPackageDto } from "../generated/api-client";
 
 export type PackageDto = {
   id: number;
@@ -34,6 +35,19 @@ export type GetPackagesResponse = {
   pageSize: number;
 };
 
+const toPackageDto = (dto: GeneratedPackageDto): PackageDto => ({
+  id: dto.id ?? 0,
+  orderCode: dto.orderCode ?? '',
+  customerName: dto.customerName ?? '',
+  packageNumber: dto.packageNumber ?? '',
+  trackingNumber: dto.trackingNumber,
+  shippingProviderCode: dto.shippingProviderCode ?? '',
+  shippingProviderName: dto.shippingProviderName,
+  packedAt: dto.packedAt ? dto.packedAt.toISOString() : '',
+  packedBy: dto.packedBy,
+  packedByUserId: dto.packedByUserId,
+});
+
 export const packageKeys = {
   all: ["packages"] as const,
   list: (req: GetPackagesRequest) => [...packageKeys.all, "list", req] as const,
@@ -43,41 +57,26 @@ export const usePackagesQuery = (request: GetPackagesRequest) =>
   useQuery({
     queryKey: packageKeys.list(request),
     queryFn: async (): Promise<GetPackagesResponse> => {
-      const apiClient = getAuthenticatedApiClient() as any;
-      const relativeUrl = "/api/packaging/packages";
-      const params = new URLSearchParams();
+      const apiClient = getAuthenticatedApiClient();
+      const response = await apiClient.packaging_GetPackages(
+        request.orderCode || undefined,
+        request.customerName || undefined,
+        request.packageNumber || undefined,
+        (request.carrier || undefined) as unknown as Carriers | undefined,
+        request.fromDate ? new Date(request.fromDate) : undefined,
+        request.toDate ? new Date(request.toDate) : undefined,
+        request.pageNumber,
+        request.pageSize,
+        request.sortBy,
+        request.sortDescending,
+      );
 
-      if (request.orderCode) params.append("OrderCode", request.orderCode);
-      if (request.customerName)
-        params.append("CustomerName", request.customerName);
-      if (request.packageNumber)
-        params.append("PackageNumber", request.packageNumber);
-      if (request.carrier) params.append("Carrier", request.carrier);
-      if (request.fromDate) params.append("FromDate", request.fromDate);
-      if (request.toDate) params.append("ToDate", request.toDate);
-      if (request.pageNumber)
-        params.append("PageNumber", request.pageNumber.toString());
-      if (request.pageSize)
-        params.append("PageSize", request.pageSize.toString());
-      if (request.sortBy) params.append("SortBy", request.sortBy);
-      if (request.sortDescending !== undefined)
-        params.append("SortDescending", request.sortDescending.toString());
-
-      const queryString = params.toString();
-      const fullUrl = `${apiClient.baseUrl}${relativeUrl}${queryString ? `?${queryString}` : ""}`;
-
-      const response = await apiClient.http.fetch(fullUrl, {
-        method: "GET",
-        headers: {
-          Accept: "application/json",
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      return response.json() as Promise<GetPackagesResponse>;
+      return {
+        items: (response.items ?? []).map(toPackageDto),
+        totalCount: response.totalCount ?? 0,
+        pageNumber: response.pageNumber ?? request.pageNumber,
+        pageSize: response.pageSize ?? request.pageSize,
+      };
     },
     staleTime: 1000 * 30,
   });
@@ -85,23 +84,9 @@ export const usePackagesQuery = (request: GetPackagesRequest) =>
 export const useDeletePackageMutation = () => {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (id: number) => {
-      const apiClient = getAuthenticatedApiClient() as any;
-      const relativeUrl = `/api/packaging/packages/${id}`;
-      const fullUrl = `${apiClient.baseUrl}${relativeUrl}`;
-
-      const response = await apiClient.http.fetch(fullUrl, {
-        method: "DELETE",
-        headers: {
-          Accept: "application/json",
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      return response.json();
+    mutationFn: async (id: number): Promise<void> => {
+      const apiClient = getAuthenticatedApiClient();
+      await apiClient.packaging_DeletePackage(id);
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: packageKeys.all });

@@ -1,16 +1,21 @@
 import { renderHook, waitFor } from '@testing-library/react';
 import { useOrderTrackingNumbers } from '../useOrderTrackingNumbers';
-import { createMockApiClient, mockAuthenticatedApiClient, createQueryClientWrapper } from '../../testUtils';
+import { getAuthenticatedApiClient } from '../../client';
+import { createQueryClientWrapper } from '../../testUtils';
 
-jest.mock('../../client');
+jest.mock('../../client', () => ({
+  ...jest.requireActual('../../client'),
+  getAuthenticatedApiClient: jest.fn(),
+}));
 
 describe('useOrderTrackingNumbers', () => {
-  let mockFetch: jest.Mock;
+  let mockPackaging_GetOrderTrackingNumbers: jest.Mock;
 
   beforeEach(() => {
-    const mock = createMockApiClient();
-    mockFetch = mock.mockFetch;
-    mockAuthenticatedApiClient(mock.mockClient);
+    mockPackaging_GetOrderTrackingNumbers = jest.fn();
+    (getAuthenticatedApiClient as jest.Mock).mockReturnValue({
+      packaging_GetOrderTrackingNumbers: mockPackaging_GetOrderTrackingNumbers,
+    });
   });
 
   afterEach(() => {
@@ -18,9 +23,9 @@ describe('useOrderTrackingNumbers', () => {
   });
 
   it('returns the per-package tracking numbers from a successful response', async () => {
-    mockFetch.mockResolvedValue({
-      ok: true,
-      json: () => Promise.resolve({ success: true, trackingNumbers: ['TR-1', 'TR-2'] }),
+    mockPackaging_GetOrderTrackingNumbers.mockResolvedValue({
+      success: true,
+      trackingNumbers: ['TR-1', 'TR-2'],
     });
 
     const { wrapper } = createQueryClientWrapper();
@@ -28,13 +33,12 @@ describe('useOrderTrackingNumbers', () => {
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
     expect(result.current.data).toEqual(['TR-1', 'TR-2']);
+    expect(getAuthenticatedApiClient).toHaveBeenCalledWith(false);
+    expect(mockPackaging_GetOrderTrackingNumbers).toHaveBeenCalledWith('126000034');
   });
 
   it('returns an empty array when the response has no tracking numbers', async () => {
-    mockFetch.mockResolvedValue({
-      ok: true,
-      json: () => Promise.resolve({ success: true, trackingNumbers: null }),
-    });
+    mockPackaging_GetOrderTrackingNumbers.mockResolvedValue({ success: true, trackingNumbers: null });
 
     const { wrapper } = createQueryClientWrapper();
     const { result } = renderHook(() => useOrderTrackingNumbers('ORD-1', true), { wrapper });
@@ -44,10 +48,7 @@ describe('useOrderTrackingNumbers', () => {
   });
 
   it('returns an empty array when the response is not successful', async () => {
-    mockFetch.mockResolvedValue({
-      ok: true,
-      json: () => Promise.resolve({ success: false, errorCode: 'Exception' }),
-    });
+    mockPackaging_GetOrderTrackingNumbers.mockResolvedValue({ success: false, errorCode: 'Exception' });
 
     const { wrapper } = createQueryClientWrapper();
     const { result } = renderHook(() => useOrderTrackingNumbers('ORD-1', true), { wrapper });
@@ -56,8 +57,8 @@ describe('useOrderTrackingNumbers', () => {
     expect(result.current.data).toEqual([]);
   });
 
-  it('returns an empty array when the HTTP response is not ok', async () => {
-    mockFetch.mockResolvedValue({ ok: false, status: 500 });
+  it('returns an empty array when the underlying request throws (e.g. non-2xx response)', async () => {
+    mockPackaging_GetOrderTrackingNumbers.mockRejectedValue(new Error('HTTP 500'));
 
     const { wrapper } = createQueryClientWrapper();
     const { result } = renderHook(() => useOrderTrackingNumbers('ORD-1', true), { wrapper });
@@ -67,7 +68,7 @@ describe('useOrderTrackingNumbers', () => {
   });
 
   it('returns an empty array when a network error occurs', async () => {
-    mockFetch.mockRejectedValue(new Error('Network failure'));
+    mockPackaging_GetOrderTrackingNumbers.mockRejectedValue(new Error('Network failure'));
 
     const { wrapper } = createQueryClientWrapper();
     const { result } = renderHook(() => useOrderTrackingNumbers('ORD-1', true), { wrapper });
@@ -79,6 +80,6 @@ describe('useOrderTrackingNumbers', () => {
   it('does not fetch when disabled', () => {
     const { wrapper } = createQueryClientWrapper();
     renderHook(() => useOrderTrackingNumbers('ORD-1', false), { wrapper });
-    expect(mockFetch).not.toHaveBeenCalled();
+    expect(mockPackaging_GetOrderTrackingNumbers).not.toHaveBeenCalled();
   });
 });
