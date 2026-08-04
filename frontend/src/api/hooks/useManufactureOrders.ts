@@ -399,8 +399,17 @@ export const useOpenManufactureProtocol = () => {
     setError(null);
     try {
       const apiClient = getManufactureOrdersClient();
-      const fileResponse = await apiClient.manufactureOrder_GetProtocolPdf(orderId);
-      const blobUrl = URL.createObjectURL(fileResponse.data);
+      const response = await apiClient.manufactureOrder_GetProtocolPdf(orderId);
+      if (!response.pdfBytes) {
+        throw new Error('Manufacture protocol PDF response did not include pdfBytes');
+      }
+      const byteCharacters = atob(response.pdfBytes);
+      const byteNumbers = new Array(byteCharacters.length);
+      for (let i = 0; i < byteCharacters.length; i++) {
+        byteNumbers[i] = byteCharacters.charCodeAt(i);
+      }
+      const blob = new Blob([new Uint8Array(byteNumbers)], { type: 'application/pdf' });
+      const blobUrl = URL.createObjectURL(blob);
       window.open(blobUrl, '_blank', 'noopener,noreferrer');
       setTimeout(() => URL.revokeObjectURL(blobUrl), 10000);
     } catch (err) {

@@ -7,6 +7,10 @@ const mockGetAuthenticatedApiClient = getAuthenticatedApiClient as jest.MockedFu
   typeof getAuthenticatedApiClient
 >;
 
+// btoa('pdf') — matches the base64 pdfBytes shape returned by the generated
+// GetManufactureProtocolResponse (pdfBytes?: string; fileName?: string), not FileResponse.
+const MOCK_PDF_BYTES_BASE64 = 'cGRm';
+
 describe('useOpenManufactureProtocol', () => {
   let mockGetProtocolPdf: jest.Mock;
 
@@ -29,8 +33,8 @@ describe('useOpenManufactureProtocol', () => {
 
   test('calls with the correct order id', async () => {
     mockGetProtocolPdf.mockResolvedValueOnce({
-      data: new Blob(['pdf'], { type: 'application/pdf' }),
-      status: 200,
+      pdfBytes: MOCK_PDF_BYTES_BASE64,
+      fileName: 'protocol.pdf',
     });
 
     const { result } = renderHook(() => useOpenManufactureProtocol());
@@ -43,8 +47,10 @@ describe('useOpenManufactureProtocol', () => {
   });
 
   test('opens the blob URL in a new tab', async () => {
-    const mockBlob = new Blob(['pdf'], { type: 'application/pdf' });
-    mockGetProtocolPdf.mockResolvedValueOnce({ data: mockBlob, status: 200 });
+    mockGetProtocolPdf.mockResolvedValueOnce({
+      pdfBytes: MOCK_PDF_BYTES_BASE64,
+      fileName: 'protocol.pdf',
+    });
 
     const { result } = renderHook(() => useOpenManufactureProtocol());
 
@@ -52,12 +58,18 @@ describe('useOpenManufactureProtocol', () => {
       await result.current.openProtocol(42);
     });
 
-    expect(URL.createObjectURL).toHaveBeenCalledWith(mockBlob);
+    expect(URL.createObjectURL).toHaveBeenCalledTimes(1);
+    const createdBlob = (URL.createObjectURL as jest.Mock).mock.calls[0][0];
+    expect(createdBlob).toBeInstanceOf(Blob);
+    expect(createdBlob.type).toBe('application/pdf');
     expect(window.open).toHaveBeenCalledWith('blob:mock-url', '_blank', 'noopener,noreferrer');
   });
 
   test('schedules URL revocation after 10 seconds', async () => {
-    mockGetProtocolPdf.mockResolvedValueOnce({ data: new Blob(['pdf']), status: 200 });
+    mockGetProtocolPdf.mockResolvedValueOnce({
+      pdfBytes: MOCK_PDF_BYTES_BASE64,
+      fileName: 'protocol.pdf',
+    });
 
     const { result } = renderHook(() => useOpenManufactureProtocol());
 
@@ -75,8 +87,8 @@ describe('useOpenManufactureProtocol', () => {
   });
 
   test('sets isLoading to true during fetch and false after', async () => {
-    let resolveFetch: (v: { data: Blob; status: number }) => void;
-    const fetchPromise = new Promise<{ data: Blob; status: number }>((res) => {
+    let resolveFetch: (v: { pdfBytes: string; fileName: string }) => void;
+    const fetchPromise = new Promise<{ pdfBytes: string; fileName: string }>((res) => {
       resolveFetch = res;
     });
     mockGetProtocolPdf.mockReturnValueOnce(fetchPromise);
@@ -89,10 +101,26 @@ describe('useOpenManufactureProtocol', () => {
       await result.current.openProtocol(42);
     });
 
-    resolveFetch!({ data: new Blob(['pdf']), status: 200 });
+    resolveFetch!({ pdfBytes: MOCK_PDF_BYTES_BASE64, fileName: 'protocol.pdf' });
     await openPromise;
 
     expect(result.current.isLoading).toBe(false);
+  });
+
+  test('sets error when response has no pdfBytes', async () => {
+    mockGetProtocolPdf.mockResolvedValueOnce({ fileName: 'protocol.pdf' });
+
+    const { result } = renderHook(() => useOpenManufactureProtocol());
+
+    await act(async () => {
+      await result.current.openProtocol(99);
+    });
+
+    expect(result.current.error).not.toBeNull();
+    expect(result.current.error?.message).toBe(
+      'Manufacture protocol PDF response did not include pdfBytes',
+    );
+    expect(window.open).not.toHaveBeenCalled();
   });
 
   test('sets error when HTTP response is not ok', async () => {
