@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Package, ClipboardList, Tag, PackageSearch, PackagePlus } from 'lucide-react';
+import { Package, ClipboardList, Tag, PackageSearch, PackagePlus, ScanText } from 'lucide-react';
 import { useScreenView } from '../../telemetry/useScreenView';
 import { useScanScreen } from './shell/useScanScreen';
 import { useTransportBoxByCodeQuery } from '../../api/hooks/useTransportBoxes';
@@ -53,6 +53,14 @@ const WORKFLOWS: WorkflowTile[] = [
     description: 'Evidujte šarže při příjmu a sledujte spotřebu ve výrobě',
     href: '/terminal/lot-identification',
     icon: Tag,
+    comingSoon: false,
+  },
+  {
+    id: 'label-id',
+    title: 'Identifikace štítku',
+    description: 'Vyfoťte štítek a zjistěte kód produktu',
+    href: '/terminal/label-identification',
+    icon: ScanText,
     comingSoon: false,
   },
 ];
