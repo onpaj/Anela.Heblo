@@ -1,7 +1,10 @@
 using System.ComponentModel;
 using System.Text.Json;
+using Anela.Heblo.API.MCP;
 using Anela.Heblo.Application.Features.KnowledgeBase.UseCases.AskQuestion;
 using Anela.Heblo.Application.Features.KnowledgeBase.UseCases.SearchDocuments;
+using Anela.Heblo.Domain.Features.Authorization;
+using Anela.Heblo.Domain.Features.Users;
 using MediatR;
 using Microsoft.Extensions.Logging;
 using ModelContextProtocol;
@@ -14,11 +17,13 @@ public class KnowledgeBaseTools
 {
     private readonly IMediator _mediator;
     private readonly ILogger<KnowledgeBaseTools> _logger;
+    private readonly ICurrentUserService _currentUserService;
 
-    public KnowledgeBaseTools(IMediator mediator, ILogger<KnowledgeBaseTools> logger)
+    public KnowledgeBaseTools(IMediator mediator, ILogger<KnowledgeBaseTools> logger, ICurrentUserService currentUserService)
     {
         _mediator = mediator;
         _logger = logger;
+        _currentUserService = currentUserService;
     }
 
     [McpServerTool]
@@ -28,6 +33,8 @@ public class KnowledgeBaseTools
         [Description("Number of chunks to return (default: 5)")] int topK = 5,
         CancellationToken cancellationToken = default)
     {
+        _currentUserService.EnsureFeatureAccess(Feature.Customer_KnowledgeBase, "Knowledge Base");
+
         try
         {
             var result = await _mediator.Send(new SearchDocumentsRequest
@@ -51,6 +58,8 @@ public class KnowledgeBaseTools
         [Description("Number of context chunks to retrieve (default: 5)")] int topK = 5,
         CancellationToken cancellationToken = default)
     {
+        _currentUserService.EnsureFeatureAccess(Feature.Customer_KnowledgeBase, "Knowledge Base");
+
         try
         {
             var result = await _mediator.Send(new AskQuestionRequest

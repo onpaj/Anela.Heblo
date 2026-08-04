@@ -17,7 +17,7 @@ function makePhoto(overrides: Partial<PhotoDto> = {}): PhotoDto {
     folderPath: "/Marketing",
     sharePointWebUrl: "https://example.com/photo",
     fileSizeBytes: 2048,
-    lastModifiedAt: "2024-01-15T10:00:00Z",
+    lastModifiedAt: new Date("2024-01-15T10:00:00Z"),
     tags: [],
     ...overrides,
   };
@@ -64,7 +64,7 @@ describe("PhotoList", () => {
 
   test("formats lastModifiedAt as Czech date", () => {
     // Arrange & Act
-    renderList({ photos: [makePhoto({ lastModifiedAt: "2024-01-15T10:00:00Z" })] });
+    renderList({ photos: [makePhoto({ lastModifiedAt: new Date("2024-01-15T10:00:00Z") })] });
 
     // Assert
     const expected = new Date("2024-01-15T10:00:00Z").toLocaleDateString("cs-CZ");

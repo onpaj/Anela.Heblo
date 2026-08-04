@@ -937,11 +937,10 @@ telemetry.
 
 ## 42. API Contract & Client Generation
 
-**Purpose:** the OpenAPI contract and the two generated clients (C# and TypeScript), plus the DTO rules that keep
+**Purpose:** the OpenAPI contract and the generated TypeScript client, plus the DTO rules that keep
 generation stable.
 
 **Owns:**
-- `backend/src/Anela.Heblo.API.Client/`
 - `backend/src/Anela.Heblo.API/nswag-templates/`
 - `frontend/src/api/generated/`, `frontend/src/services/generated/`
 - `scripts/regenerate-api-client.sh`
@@ -1107,7 +1106,7 @@ this part owns the *shared* machinery. E2E runs nightly, not in PR CI.
 
 **Deliberately unassigned (analyse only if a part points at them):**
 - `backend/src/Anela.Heblo.Persistence/Migrations/` — generated, ~367k LOC (noted in #38)
-- `frontend/src/api/generated/`, `backend/src/Anela.Heblo.API.Client/Generated/` — generated (noted in #42)
+- `frontend/src/api/generated/` — generated (noted in #42)
 - Root-level scratch files: `answers.md`, `brief.md`, `design.md`, `convert_asserts*.sh`, `test_dto.exe`,
   `*.pdf`, `*.jpeg`, `e2e_ralph_prompt.txt` — leftovers, not part of the application
 - `.idea/`, `.playwright-mcp/`, `.config/`, `.claire/`

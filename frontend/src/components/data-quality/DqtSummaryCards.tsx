@@ -1,6 +1,7 @@
 import React from 'react';
 import { CheckCircle, AlertTriangle, XCircle, HelpCircle, Loader2 } from 'lucide-react';
 import { DqtRunDto } from '../../api/hooks/useDataQuality';
+import { formatDate } from '../../utils/formatters';
 
 interface DqtSummaryCardsProps {
   run: DqtRunDto | null | undefined;
@@ -25,7 +26,7 @@ const DqtSummaryCards: React.FC<DqtSummaryCardsProps> = ({ run, isLoading }) => 
         labelClass: 'text-red-600 dark:text-red-400',
       };
     }
-    if (run.status === 'Completed' && run.totalMismatches > 0) {
+    if (run.status === 'Completed' && (run.totalMismatches ?? 0) > 0) {
       return {
         label: 'Neshody',
         icon: <AlertTriangle className="h-6 w-6 text-yellow-500" />,
@@ -33,7 +34,7 @@ const DqtSummaryCards: React.FC<DqtSummaryCardsProps> = ({ run, isLoading }) => 
         labelClass: 'text-yellow-600 dark:text-amber-400',
       };
     }
-    if (run.status === 'Completed' && run.totalMismatches === 0) {
+    if (run.status === 'Completed' && (run.totalMismatches ?? 0) === 0) {
       return {
         label: 'OK',
         icon: <CheckCircle className="h-6 w-6 text-green-500" />,
@@ -88,12 +89,12 @@ const DqtSummaryCards: React.FC<DqtSummaryCardsProps> = ({ run, isLoading }) => 
           className={`text-2xl font-bold ${
             run == null
               ? 'text-gray-400 dark:text-graphite-faint'
-              : run.totalMismatches > 0
+              : (run.totalMismatches ?? 0) > 0
                 ? 'text-red-600 dark:text-red-400'
                 : 'text-green-600 dark:text-emerald-400'
           }`}
         >
-          {run != null ? run.totalMismatches : '—'}
+          {run?.totalMismatches ?? '—'}
         </p>
       </div>
 
@@ -101,7 +102,7 @@ const DqtSummaryCards: React.FC<DqtSummaryCardsProps> = ({ run, isLoading }) => 
       <div className="bg-white dark:bg-graphite-surface rounded-lg border border-gray-200 dark:border-graphite-border p-4">
         <h3 className="text-sm font-medium text-gray-600 dark:text-graphite-muted mb-2">Zkontrolováno</h3>
         <p className="text-2xl font-bold text-gray-900 dark:text-graphite-text">
-          {run != null ? run.totalChecked : '—'}
+          {run?.totalChecked ?? '—'}
         </p>
       </div>
 
@@ -111,7 +112,7 @@ const DqtSummaryCards: React.FC<DqtSummaryCardsProps> = ({ run, isLoading }) => 
         <p className="text-sm font-medium text-gray-900 dark:text-graphite-text">
           {run != null ? (
             <>
-              {run.dateFrom} — {run.dateTo}
+              {formatDate(run.dateFrom)} — {formatDate(run.dateTo)}
             </>
           ) : (
             '—'

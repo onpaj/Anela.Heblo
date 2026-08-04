@@ -2,6 +2,8 @@ using System.Text.Json;
 using Anela.Heblo.API.MCP.Tools;
 using Anela.Heblo.Application.Features.Leaflet.UseCases.GenerateLeaflet;
 using Anela.Heblo.Application.Shared;
+using Anela.Heblo.Domain.Features.Authorization;
+using Anela.Heblo.Domain.Features.Users;
 using MediatR;
 using Microsoft.Extensions.Logging;
 using ModelContextProtocol;
@@ -12,10 +14,18 @@ namespace Anela.Heblo.Tests.MCP.Tools;
 
 public class LeafletToolsTests
 {
+    private static readonly string ReadRole = AccessRoles.For(Feature.Marketing_Leaflet, AccessLevel.Read);
+
     private readonly Mock<IMediator> _mediator = new();
     private readonly Mock<ILogger<LeafletTools>> _logger = new();
+    private readonly Mock<ICurrentUserService> _currentUserService = new();
 
-    private LeafletTools CreateTools() => new(_mediator.Object, _logger.Object);
+    public LeafletToolsTests()
+    {
+        _currentUserService.Setup(s => s.IsInRole(ReadRole)).Returns(true);
+    }
+
+    private LeafletTools CreateTools() => new(_mediator.Object, _logger.Object, _currentUserService.Object);
 
     [Fact]
     public async Task GenerateLeaflet_returns_serialized_response_on_success()
@@ -102,5 +112,21 @@ public class LeafletToolsTests
                 It.IsAny<Exception>(),
                 It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
             Times.Once);
+    }
+
+    [Fact]
+    public async Task GenerateLeaflet_throws_Forbidden_AndSkipsMediator_WhenUserLacksReadRole()
+    {
+        // Arrange
+        _currentUserService.Setup(s => s.IsInRole(ReadRole)).Returns(false);
+
+        // Act
+        var exception = await Assert.ThrowsAsync<McpException>(() =>
+            CreateTools().GenerateLeaflet("Some topic", "EndConsumer", "Short"));
+
+        // Assert
+        Assert.Contains("FORBIDDEN", exception.Message);
+        Assert.Contains(ReadRole, exception.Message);
+        _mediator.Verify(m => m.Send(It.IsAny<GenerateLeafletRequest>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 }

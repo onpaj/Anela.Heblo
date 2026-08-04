@@ -4,7 +4,7 @@ The application exposes MCP tools for AI assistants to query catalog data, manuf
 
 ## Available Tools
 
-**Catalog (8)**
+**Catalog (8)** — all require the `Products_Catalog` permission, except `GetProductMargins` which requires `Products_ProductMargins`.
 - `GetCatalogList` — list products with filtering/pagination
 - `GetCatalogDetail` — detailed product information
 - `GetProductComposition` — product composition/ingredients
@@ -14,23 +14,26 @@ The application exposes MCP tools for AI assistants to query catalog data, manuf
 - `GetWarehouseStatistics` — warehouse statistics
 - `GetProductMargins` — product margins (M0/M1/M2 + monthly history); requires the Products_ProductMargins permission
 
-**Manufacture Orders (3)**
+**Manufacture Orders (3)** — require the `Manufacture_ManufactureOrders` permission.
 - `GetManufactureOrders` — list manufacture orders with filtering
 - `GetManufactureOrder` — single manufacture order details
 - `GetCalendarView` — calendar view of manufacture orders
 
-**Manufacture Batch (4)**
+**Manufacture Batch (4)** — require the `Manufacture_BatchPlanning` permission.
 - `GetBatchTemplate` — batch template for product
 - `CalculateBatchBySize` — calculate batch by desired size
 - `CalculateBatchByIngredient` — calculate batch by ingredient quantity
 - `CalculateBatchPlan` — batch plan for multiple products
 
-**User Management (1)**
+**User Management (1)** — requires the `Admin_Administration` permission.
 - `GetGroupMembers` — Entra ID group members by group ID
 
-**Knowledge Base (2)**
+**Knowledge Base (2)** — require the `Customer_KnowledgeBase` permission.
 - `SearchKnowledgeBase` — semantic search over ingested documents, returns ranked chunks with source references
 - `AskKnowledgeBase` — AI-generated answer grounded in company documents, returns prose answer with cited sources
+
+**Leaflet (1)** — requires the `Marketing_Leaflet` permission.
+- `GenerateLeaflet` — generates a marketing leaflet in Czech Markdown using the knowledge base and historical leaflets as style references
 
 **Meeting Notes (4)** — read-only; all require the `anela.meetings.read` permission. Per-meeting visibility (Public / Private / Restricted) is enforced per caller, same as the web UI.
 - `ListMeetings` — list meetings (summary level: subject, summary, status, task counts; no raw transcript) with search, status filter, and pagination
