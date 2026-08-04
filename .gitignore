@@ -161,3 +161,9 @@ spec.r*.md
 task-plan.r*.md
 brief.md
 frontend/node_modules
+
+# Label identification reference artwork (source PDFs + sample photos).
+# Extracted text is committed as label-references.json; the PDFs are ~67 MB.
+# Anchored to repo root: an unanchored "data/" also matches (case-insensitively)
+# the committed .../LabelIdentification/Data/ folder and would hide the generated JSON.
+/data/
