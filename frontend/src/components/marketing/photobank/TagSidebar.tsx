@@ -76,7 +76,7 @@ const TagSidebar: React.FC<TagSidebarProps> = ({
   }, [onSearchChange]);
 
   const filteredTags = tagFilter.trim()
-    ? tags.filter((t) => t.name.toLowerCase().includes(tagFilter.trim().toLowerCase()))
+    ? tags.filter((t) => t.name?.toLowerCase().includes(tagFilter.trim().toLowerCase()))
     : tags;
 
   const hasActiveFilters = search.length > 0 || selectedTagIds.length > 0 || withoutTags || useRegex;
@@ -198,19 +198,19 @@ const TagSidebar: React.FC<TagSidebarProps> = ({
             </li>
 
             {filteredTags.map((tag) => {
-              const isSelected = selectedTagIds.includes(tag.id);
+              const isSelected = selectedTagIds.includes(tag.id!);
               return (
                 <li key={tag.id}>
                   <button
                     type="button"
-                    onClick={() => onTagToggle(tag.id)}
+                    onClick={() => onTagToggle(tag.id!)}
                     className={[
                       "w-full flex items-center justify-between px-2 py-1.5 rounded-md transition-colors text-left",
                       isSelected ? "bg-secondary-blue-pale" : "hover:bg-gray-50 dark:hover:bg-white/5",
                     ].join(" ")}
                     aria-pressed={isSelected}
                   >
-                    <TagBadge name={tag.name} />
+                    <TagBadge name={tag.name ?? ""} />
                     <span
                       className={[
                         "ml-2 text-xs tabular-nums flex-shrink-0",

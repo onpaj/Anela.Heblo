@@ -39,8 +39,8 @@ const TagsTab: React.FC = () => {
 
   const handleDeleteClick = (tag: TagWithCountDto) => {
     if (tag.count === 0) {
-      setDeletingId(tag.id);
-      deleteTag.mutate(tag.id, { onSettled: () => setDeletingId(null) });
+      setDeletingId(tag.id!);
+      deleteTag.mutate(tag.id!, { onSettled: () => setDeletingId(null) });
     } else {
       setTagToDelete(tag);
     }
@@ -48,8 +48,8 @@ const TagsTab: React.FC = () => {
 
   const handleConfirmDelete = () => {
     if (tagToDelete) {
-      setDeletingId(tagToDelete.id);
-      deleteTag.mutate(tagToDelete.id, { onSettled: () => setDeletingId(null) });
+      setDeletingId(tagToDelete.id!);
+      deleteTag.mutate(tagToDelete.id!, { onSettled: () => setDeletingId(null) });
       setTagToDelete(null);
     }
   };
@@ -58,7 +58,7 @@ const TagsTab: React.FC = () => {
     setTagToDelete(null);
   };
 
-  const sortedTags = [...tags].sort((a, b) => a.name.localeCompare(b.name));
+  const sortedTags = [...tags].sort((a, b) => (a.name ?? '').localeCompare(b.name ?? ''));
 
   if (isLoading) {
     return <div className="text-sm text-gray-500 dark:text-graphite-muted">Načítání...</div>;

@@ -40,22 +40,23 @@ const ManufactureOutput: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   const chartData = useMemo(() => {
-    if (!data?.months) return null;
+    const months = data?.months ?? [];
+    if (months.length === 0) return null;
 
-    const labels = data.months.map((m) => getMonthShortName(m.month));
+    const labels = months.map((m) => getMonthShortName(m.month ?? ""));
 
     // Collect all unique products across all months and sort by total weighted value
     const productTotals = new Map<string, { name: string; total: number }>();
 
-    data.months.forEach((month) => {
-      month.products.forEach((product) => {
-        const existing = productTotals.get(product.productCode) || {
-          name: product.productName,
+    months.forEach((month) => {
+      (month.products ?? []).forEach((product) => {
+        const existing = productTotals.get(product.productCode ?? "") || {
+          name: product.productName ?? "",
           total: 0,
         };
-        productTotals.set(product.productCode, {
-          name: product.productName,
-          total: existing.total + product.weightedValue,
+        productTotals.set(product.productCode ?? "", {
+          name: product.productName ?? "",
+          total: existing.total + (product.weightedValue ?? 0),
         });
       });
     });
@@ -85,10 +86,10 @@ const ManufactureOutput: React.FC = () => {
     if (hasOtherProducts) {
       datasets.push({
         label: "Ostatní produkty",
-        data: data.months.map((month) => {
-          const otherValue = month.products
-            .filter((p) => !topProductCodes.has(p.productCode))
-            .reduce((sum, p) => sum + p.weightedValue, 0);
+        data: months.map((month) => {
+          const otherValue = (month.products ?? [])
+            .filter((p) => !topProductCodes.has(p.productCode ?? ""))
+            .reduce((sum, p) => sum + (p.weightedValue ?? 0), 0);
           return otherValue;
         }),
         backgroundColor: OTHER_COLOR,
@@ -103,8 +104,8 @@ const ManufactureOutput: React.FC = () => {
 
       datasets.push({
         label: productInfo.name,
-        data: data.months.map((month) => {
-          const product = month.products.find(
+        data: months.map((month) => {
+          const product = (month.products ?? []).find(
             (p) => p.productCode === productCode,
           );
           return product?.weightedValue || 0;
@@ -125,9 +126,10 @@ const ManufactureOutput: React.FC = () => {
     responsive: true,
     maintainAspectRatio: false,
     onClick: (event: any, elements: any[]) => {
-      if (elements.length > 0 && data?.months) {
+      const months = data?.months ?? [];
+      if (elements.length > 0 && months.length > 0) {
         const monthIndex = elements[0].index;
-        const monthData = data.months[monthIndex];
+        const monthData = months[monthIndex];
         setSelectedMonth(monthData);
         setIsModalOpen(true);
       }
@@ -153,22 +155,23 @@ const ManufactureOutput: React.FC = () => {
             return `${context.dataset.label}: ${value.toFixed(1)}`;
           },
           afterLabel: (context: any) => {
-            if (!data?.months) return "";
+            const months = data?.months ?? [];
+            if (months.length === 0) return "";
 
-            const monthData = data.months[context.dataIndex];
+            const monthData = months[context.dataIndex];
             const datasetLabel = context.dataset.label;
 
             if (datasetLabel === "Ostatní produkty") {
               return "";
             }
 
-            const product = monthData.products.find(
+            const product = (monthData.products ?? []).find(
               (p) => p.productName === datasetLabel,
             );
             if (product) {
               return [
-                `Množství: ${product.quantity.toFixed(1)}`,
-                `Náročnost: ${product.difficulty.toFixed(1)}`,
+                `Množství: ${(product.quantity ?? 0).toFixed(1)}`,
+                `Náročnost: ${(product.difficulty ?? 0).toFixed(1)}`,
               ];
             }
             return "";
@@ -196,31 +199,33 @@ const ManufactureOutput: React.FC = () => {
 
   // Calculate summary statistics
   const summaryStats = useMemo(() => {
-    if (!data?.months) return null;
+    const months = data?.months ?? [];
+    if (months.length === 0) return null;
 
-    const totalOutput = data.months.reduce(
-      (sum, month) => sum + month.totalOutput,
+    const totalOutput = months.reduce(
+      (sum, month) => sum + (month.totalOutput ?? 0),
       0,
     );
-    const avgMonthlyOutput = totalOutput / data.months.length;
+    const avgMonthlyOutput = totalOutput / months.length;
 
     // Find month with highest output
-    const maxMonth = data.months.reduce(
-      (max, month) => (month.totalOutput > max.totalOutput ? month : max),
-      data.months[0],
+    const maxMonth = months.reduce(
+      (max, month) =>
+        (month.totalOutput ?? 0) > (max.totalOutput ?? 0) ? month : max,
+      months[0],
     );
 
     // Find most productive product overall
     const productTotals = new Map<string, { name: string; total: number }>();
-    data.months.forEach((month) => {
-      month.products.forEach((product) => {
-        const existing = productTotals.get(product.productCode) || {
-          name: product.productName,
+    months.forEach((month) => {
+      (month.products ?? []).forEach((product) => {
+        const existing = productTotals.get(product.productCode ?? "") || {
+          name: product.productName ?? "",
           total: 0,
         };
-        productTotals.set(product.productCode, {
-          name: product.productName,
-          total: existing.total + product.weightedValue,
+        productTotals.set(product.productCode ?? "", {
+          name: product.productName ?? "",
+          total: existing.total + (product.weightedValue ?? 0),
         });
       });
     });
@@ -232,7 +237,7 @@ const ManufactureOutput: React.FC = () => {
     return {
       totalOutput,
       avgMonthlyOutput,
-      maxMonth: maxMonth ? formatMonthDisplay(maxMonth.month) : "",
+      maxMonth: maxMonth ? formatMonthDisplay(maxMonth.month ?? "") : "",
       maxMonthValue: maxMonth?.totalOutput || 0,
       topProduct: topProduct?.[1].name || "",
       topProductValue: topProduct?.[1].total || 0,

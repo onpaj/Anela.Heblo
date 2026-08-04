@@ -1,0 +1,48 @@
+# Architecture review — Expedition: replace `(apiClient as any).http.fetch` with typed generated client calls
+
+## Verdict
+
+**Aligned. Proceed to implementation as designed**, with two non-blocking observations recorded below (both pre-existing, out of scope, not to be fixed as part of this task).
+
+Every factual claim in `plan-01.md` and `design-01.md` was independently re-verified against the current working tree (not just trusted from the artifacts):
+
+- `frontend/src/api/hooks/useExpeditionList.ts` and `useCarrierCooling.ts` still contain exactly the `(apiClient as any).baseUrl` / `.http.fetch` calls described, unchanged since the plan/design were written.
+- `carrierCooling_GetMatrix`, `carrierCooling_SetCooling`, `expeditionList_RunFix`, `expeditionList_PrintOrder` exist in `api-client.ts` at the cited lines, with the cited signatures.
+- `ExpeditionListController.RunFix`/`.PrintOrder` both call `return Ok(response);` unconditionally; `CarrierCoolingController.GetMatrix` does too; `CarrierCoolingController.SetCooling` calls `HandleResponse(response)`. All four confirmed directly in the controller source — the plan's "always 200 vs. HandleResponse" distinction is correct.
+- `BaseResponse` (generated, abstract) has `success?`, `errorCode?: ErrorCodes`, `params?: {[key:string]:string}` — matches `types/errors.ts`'s hand-kept `BaseResponse` field-for-field, confirming the design's reuse of that type for `usePrintExpeditionOrder`'s result is sound.
+- `Carriers`, `DeliveryHandling`, `Cooling` are generated as TS **enums** (nominal), and `GetCarrierCoolingMatrixResponse`/`CarrierGroupDto`/`CarrierCoolingRowDto` have all-optional fields — confirming the design's stated reason for not directly substituting the generated types is real, not speculative.
+- All four consumers (`PrintOrderModal.tsx`, `CoolingTab.tsx`, `CarrierCoolingMatrix.tsx`, `ExpeditionListArchivePage.tsx`) were read directly; each reads only the shape the design says it reads. The "no consumer needs edits" conclusion holds.
+- `useExpeditionList.test.ts` (mocks `{baseUrl, http:{fetch}}`) and `useExpeditionListArchive.test.ts` (mocks typed methods directly) were both read; the described before/after testing pattern is accurate, and no `useCarrierCooling.test.ts` currently exists.
+
+## Alignment with existing patterns
+
+The design correctly identifies `useExpeditionListArchive.ts` as the reference implementation and mirrors it faithfully:
+
+- Transport goes through `getAuthenticatedApiClient()` → typed method call, never a raw `fetch`.
+- The generated response is mapped, field-by-field, into a small local result type via one explicit function — this is exactly how `useExpeditionDates`, `useExpeditionListsByDate`, and `useReprintExpeditionList` already handle NSwag's all-optional generated fields (`response.dates ?? []`, `response.totalCount ?? 0`, etc.). Nothing new is introduced here architecturally; it's the established idiom in this codebase for "generated optional DTO in, small required-field local DTO out."
+- `docs/development/api-client-generation.md`'s hierarchy of solutions is respected in the right order: typed client call first (used for all four endpoints); the `getApiBaseUrl()`/`getAuthenticatedFetch()` escape hatch is correctly *not* invoked, because none of the four endpoints need hand-rolled status-code branching — `SetCooling`'s non-2xx path is fully handled by the generated client's own thrown `SwaggerException`, and the doc's escape hatch is reserved for cases the generated client can't yet express (not the case here).
+
+## Proposed architecture (as designed) — assessment
+
+1. **`useExpeditionList.ts`**: both mutations swap their manual fetch/parse for `client.expeditionList_RunFix()` / `client.expeditionList_PrintOrder(new PrintExpeditionOrderRequest({ orderCode }))`. Since both controller actions unconditionally `Ok(...)`, the removed `!response.ok` branches were already dead against current backend behavior — deleting them is correct, not a behavior change. Approved as designed.
+
+2. **`useCarrierCooling.ts`**: `getMatrix`/`setCooling` swap to `client.carrierCooling_GetMatrix()` / `client.carrierCooling_SetCooling(...)`. `setCooling`'s non-2xx path (the one real branching case in this whole task, since `SetCooling` is the only action that calls `HandleResponse`) is now handled by the generated client's own `SwaggerException`, which is strictly more information than today's `throw new Error(...)` — and no consumer inspects the rejection's shape, so this is behavior-preserving at the only call site. Approved as designed.
+
+3. **Local DTOs (`CarrierGroupDto`, `CarrierCoolingRowDto`, `GetCarrierCoolingMatrixResponse`, `SetCarrierCoolingRequest`, `Carriers`/`DeliveryHandling`/`Cooling`) are kept, not deleted**, superseding the plan's FR-5. This is the one place the design diverges from the plan, and it's the right call: the plan's FR-5 was written before the enum-nominality and all-optional-field constraints were confirmed against the actual generated code. Deleting the local types and consuming the generated ones directly would push `undefined`-handling and enum-vs-string-literal friction into `CarrierCoolingMatrix.tsx` and its test — components explicitly out of scope for this task. Keeping local required-field types populated by one explicit, compiler-checked mapping function is the same shape `useExpeditionListArchive.ts` already uses and that the task's own evidence calls "the correct pattern already in use inside the same part." The task's rule violation is about bypassing the typed client (`(apiClient as any)`), which this design fully eliminates in both files; DTO duplication was cited as an *aggravating factor* of that bypass, not a separate mandate — and the mapping function is precisely what closes the "drift apart undetected" gap the task warns about, since a NSwag field rename now fails the build inside that mapping function instead of failing silently at runtime inside an untyped `response.json()` cast (today's actual behavior).
+
+## Implementation guidance
+
+- Change surface: `frontend/src/api/hooks/useExpeditionList.ts`, `frontend/src/api/hooks/useCarrierCooling.ts`, and their test files only. No backend changes, no consumer-component changes, no `useExpeditionListArchive.ts` changes.
+- Import the generated `SetCarrierCoolingRequest` class under an alias to avoid colliding with the local interface of the same name (design already specifies this).
+- The `as unknown as Carriers/DeliveryHandling/Cooling` casts in the `getMatrix` mapping are the correct mechanism here — do not replace them with `as any`; they narrow one closed, structurally-matching type to another, which is categorically different from the private-field access this task is fixing.
+- Test rewrites: mock the four typed methods on the object returned by `getAuthenticatedApiClient()` (per `useExpeditionListArchive.test.ts:44-49`), not `{baseUrl, http:{fetch}}`. Resolve/reject mocks with plain objects matching the generated response shape (or real instances) — there is no `.ok`/`.json()` surface left to fake.
+
+## Risks and mitigations
+
+1. **Enum drift blind spot (low severity, pre-existing, not worsened).** The `as unknown as Carriers` casts in `getMatrix`'s mapping bypass exhaustiveness checking: if the backend adds a new `Carriers`/`DeliveryHandling`/`Cooling` member, NSwag regenerates the enum automatically but the local string-literal unions in `useCarrierCooling.ts` do not update, and the cast lets the new value through silently at the type level (though `CARRIER_LABELS`/`HANDLING_LABELS` in `CarrierCoolingMatrix.tsx` do have runtime `?? fallback` for unknown keys, so it fails soft, not hard). This is not a regression — today's code has *zero* type verification at all (an untyped `response.json()` cast) — but it's also not fully closed by this design. Mitigation: none required for this task; if it bites in practice, the fix is a follow-up arch-review item, not a blocker here.
+2. **Pre-existing backend status-code inconsistency (`RunFix`/`PrintOrder` always-200 vs. `SetCooling`'s `HandleResponse`).** Both plan and design correctly flag this as a latent backend design smell and correctly scope it *out* of this frontend-only fix. Confirmed independently against the controller source. No action needed here; correctly deferred to a separate arch-review item.
+3. **`frontend/src/constants/carrierLabels.ts` already imports and keys off the *generated* `Carriers` enum** (`Record<Carriers, string>` from `../api/generated/api-client`), while `CarrierCoolingMatrix.tsx` (the consumer of that map) types its own `carrier` prop against the *local* union from `useCarrierCooling.ts`. This is a pre-existing minor inconsistency the design's writeup slightly glosses over when it says the component "use[s] plain string literals throughout" — `CARRIER_LABELS` is the one exception. Verified this compiles today with no error (TypeScript's index-access compatibility check is more permissive than assignment compatibility for enum-keyed `Record` types indexed by a matching string-literal type) — confirmed with an isolated `tsc --strict` repro, not assumed. No action needed: this file is untouched by the plan/design and this task does not need to reconcile it, but it's worth noting for whoever eventually normalizes `Carriers` typing end-to-end.
+
+## Prerequisites before implementation begins
+
+None. All four generated client methods already exist (no NSwag regeneration required), the reference pattern (`useExpeditionListArchive.ts`) is already in the codebase, and every consumer's compatibility has been verified against actual source rather than assumed. Implementation can proceed directly per the design's rough plan.

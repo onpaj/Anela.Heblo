@@ -1,5 +1,11 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getAuthenticatedApiClient } from '../client';
+import { SetCarrierCoolingRequest as GeneratedSetCarrierCoolingRequest } from '../generated/api-client';
+import type {
+  Carriers as GeneratedCarriers,
+  DeliveryHandling as GeneratedDeliveryHandling,
+  Cooling as GeneratedCooling,
+} from '../generated/api-client';
 
 // String literal unions — values must match the backend string serialization
 export type Carriers = 'Zasilkovna' | 'PPL' | 'GLS' | 'Osobak';
@@ -33,32 +39,30 @@ const QUERY_KEYS = {
 };
 
 const getMatrix = async (): Promise<GetCarrierCoolingMatrixResponse> => {
-  const apiClient = getAuthenticatedApiClient();
-  const fullUrl = `${(apiClient as any).baseUrl}/api/carrier-cooling`;
-  const response = await (apiClient as any).http.fetch(fullUrl, {
-    method: 'GET',
-    headers: { Accept: 'application/json' },
-  });
-  if (!response.ok) {
-    throw new Error(`Failed to fetch cooling matrix: ${response.status}`);
-  }
-  return response.json();
+  const client = getAuthenticatedApiClient();
+  const response = await client.carrierCooling_GetMatrix();
+  return {
+    groups: (response.groups ?? []).map((g) => ({
+      carrier: g.carrier as unknown as Carriers,
+      rows: (g.rows ?? []).map((r) => ({
+        deliveryHandling: r.deliveryHandling as unknown as DeliveryHandling,
+        cooling: r.cooling as unknown as Cooling,
+        coolingText: r.coolingText ?? null,
+      })),
+    })),
+  };
 };
 
 const setCooling = async (request: SetCarrierCoolingRequest): Promise<void> => {
-  const apiClient = getAuthenticatedApiClient();
-  const fullUrl = `${(apiClient as any).baseUrl}/api/carrier-cooling`;
-  const response = await (apiClient as any).http.fetch(fullUrl, {
-    method: 'PUT',
-    headers: {
-      'Content-Type': 'application/json',
-      Accept: 'application/json',
-    },
-    body: JSON.stringify(request),
-  });
-  if (!response.ok) {
-    throw new Error(`Failed to set cooling: ${response.status}`);
-  }
+  const client = getAuthenticatedApiClient();
+  await client.carrierCooling_SetCooling(
+    new GeneratedSetCarrierCoolingRequest({
+      carrier: request.carrier as unknown as GeneratedCarriers,
+      deliveryHandling: request.deliveryHandling as unknown as GeneratedDeliveryHandling,
+      cooling: request.cooling as unknown as GeneratedCooling,
+      coolingText: request.coolingText ?? undefined,
+    }),
+  );
 };
 
 export const useCarrierCoolingMatrix = () => {
