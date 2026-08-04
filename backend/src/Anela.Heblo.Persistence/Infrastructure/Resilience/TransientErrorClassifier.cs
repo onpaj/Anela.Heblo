@@ -1,6 +1,7 @@
 using System.Net.Sockets;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
+using Polly.Timeout;
 
 namespace Anela.Heblo.Persistence.Infrastructure.Resilience;
 
@@ -50,6 +51,7 @@ public static class TransientErrorClassifier
             SocketException => true,
             TimeoutException => true,
             IOException => true,
+            TimeoutRejectedException => true,
             { InnerException: { } inner } => IsTransientCore(inner),
             _ => false,
         };
