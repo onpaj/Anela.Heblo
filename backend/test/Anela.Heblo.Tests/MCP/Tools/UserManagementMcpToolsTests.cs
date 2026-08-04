@@ -2,6 +2,8 @@ using System.Text.Json;
 using Anela.Heblo.API.MCP.Tools;
 using Anela.Heblo.Application.Features.UserManagement.UseCases.GetGroupMembers;
 using Anela.Heblo.Application.Shared;
+using Anela.Heblo.Domain.Features.Authorization;
+using Anela.Heblo.Domain.Features.Users;
 using MediatR;
 using ModelContextProtocol;
 using Moq;
@@ -11,12 +13,16 @@ namespace Anela.Heblo.Tests.MCP.Tools;
 
 public class UserManagementMcpToolsTests
 {
+    private static readonly string ReadRole = AccessRoles.For(Feature.Admin_Administration, AccessLevel.Read);
+
     private readonly Mock<IMediator> _mediatorMock = new();
+    private readonly Mock<ICurrentUserService> _currentUserServiceMock = new();
     private readonly UserManagementMcpTools _tools;
 
     public UserManagementMcpToolsTests()
     {
-        _tools = new UserManagementMcpTools(_mediatorMock.Object);
+        _currentUserServiceMock.Setup(s => s.IsInRole(ReadRole)).Returns(true);
+        _tools = new UserManagementMcpTools(_mediatorMock.Object, _currentUserServiceMock.Object);
     }
 
     [Fact]
@@ -58,5 +64,20 @@ public class UserManagementMcpToolsTests
         // Act & Assert
         var ex = await Assert.ThrowsAsync<McpException>(() => _tools.GetGroupMembers("group-id-999"));
         Assert.Contains("ExternalServiceError", ex.Message);
+    }
+
+    [Fact]
+    public async Task GetGroupMembers_ThrowsForbidden_AndSkipsMediator_WhenUserLacksReadRole()
+    {
+        // Arrange
+        _currentUserServiceMock.Setup(s => s.IsInRole(ReadRole)).Returns(false);
+
+        // Act
+        var exception = await Assert.ThrowsAsync<McpException>(() => _tools.GetGroupMembers("group-id-123"));
+
+        // Assert
+        Assert.Contains("FORBIDDEN", exception.Message);
+        Assert.Contains(ReadRole, exception.Message);
+        _mediatorMock.Verify(m => m.Send(It.IsAny<GetGroupMembersRequest>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 }

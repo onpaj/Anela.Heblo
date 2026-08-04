@@ -13,12 +13,12 @@ namespace Anela.Heblo.Application.Features.Photobank.UseCases.GetTags
 {
     public class GetTagsHandler : IRequestHandler<GetTagsRequest, GetTagsResponse>
     {
-        private readonly IPhotobankRepository _repository;
+        private readonly IPhotobankTagRepository _repository;
         private readonly IPhotobankTagsCache _cache;
         private readonly ILogger<GetTagsHandler> _logger;
 
         public GetTagsHandler(
-            IPhotobankRepository repository,
+            IPhotobankTagRepository repository,
             IPhotobankTagsCache cache,
             ILogger<GetTagsHandler> logger)
         {

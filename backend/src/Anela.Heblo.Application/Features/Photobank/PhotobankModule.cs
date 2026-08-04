@@ -30,7 +30,12 @@ public static class PhotobankModule
 {
     public static IServiceCollection AddPhotobankModule(this IServiceCollection services, IConfiguration configuration)
     {
-        services.AddScoped<IPhotobankRepository, PhotobankRepository>();
+        services.AddScoped<IPhotobankPhotoRepository, PhotobankPhotoRepository>();
+        services.AddScoped<IPhotobankTagRepository, PhotobankTagRepository>();
+        services.AddScoped<IPhotobankPhotoTagRepository, PhotobankPhotoTagRepository>();
+        services.AddScoped<IPhotobankRootRepository, PhotobankRootRepository>();
+        services.AddScoped<IPhotobankTagRuleRepository, PhotobankTagRuleRepository>();
+        services.AddScoped<IPhotobankAutoTagRepository, PhotobankAutoTagRepository>();
         services.AddScoped<PhotobankAutoTagJob>();
         services.Configure<AutoTagOptions>(configuration.GetSection(AutoTagOptions.SectionName));
 

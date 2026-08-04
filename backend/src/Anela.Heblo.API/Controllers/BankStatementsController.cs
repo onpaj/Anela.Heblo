@@ -48,15 +48,7 @@ public class BankStatementsController : BaseApiController
         var importRequest = new ImportBankStatementRequest(request.AccountName, request.DateFrom, request.DateTo);
         var response = await _mediator.Send(importRequest);
 
-        var result = new BankStatementImportResultDto
-        {
-            Statements = response.Statements,
-            SuccessCount = response.SuccessCount,
-            ErrorCount = response.ErrorCount,
-            SkippedCount = response.SkippedCount,
-        };
-
-        return Ok(result);
+        return Ok(response);
     }
 
     /// <summary>

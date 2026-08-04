@@ -232,9 +232,7 @@ public class ShoptetApiExpeditionListSource : IPickingListSource
         try
         {
             var note = $"Robot expedice: neúplná adresa – chybí: {string.Join(", ", missingFields)}.";
-            var current = await _client.GetEshopRemarkAsync(code, cancellationToken);
-            var updated = string.IsNullOrEmpty(current) ? note : $"{current}\n{note}";
-            await _client.UpdateEshopRemarkAsync(code, updated, cancellationToken);
+            await _eshopOrderClient.AppendEshopRemarkAsync(code, note, cancellationToken);
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {

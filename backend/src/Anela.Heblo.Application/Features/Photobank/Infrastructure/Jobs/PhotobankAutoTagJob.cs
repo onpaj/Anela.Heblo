@@ -12,7 +12,9 @@ namespace Anela.Heblo.Application.Features.Photobank.Infrastructure.Jobs;
 
 public class PhotobankAutoTagJob : IRecurringJob
 {
-    private readonly IPhotobankRepository _repo;
+    private readonly IPhotobankTagRepository _tagRepository;
+    private readonly IPhotobankAutoTagRepository _autoTagRepository;
+    private readonly IPhotobankPhotoTagRepository _photoTagRepository;
     private readonly IChatClient _chat;
     private readonly AutoTagOptions _options;
     private readonly ILogger<PhotobankAutoTagJob> _logger;
@@ -29,14 +31,18 @@ public class PhotobankAutoTagJob : IRecurringJob
     };
 
     public PhotobankAutoTagJob(
-        IPhotobankRepository repo,
+        IPhotobankTagRepository tagRepository,
+        IPhotobankAutoTagRepository autoTagRepository,
+        IPhotobankPhotoTagRepository photoTagRepository,
         IChatClient chat,
         IOptions<AutoTagOptions> options,
         ILogger<PhotobankAutoTagJob> logger,
         IPhotobankTagsCache cache,
         IRecurringJobStatusChecker statusChecker)
     {
-        _repo = repo;
+        _tagRepository = tagRepository;
+        _autoTagRepository = autoTagRepository;
+        _photoTagRepository = photoTagRepository;
         _chat = chat;
         _options = options.Value;
         _logger = logger;
@@ -56,7 +62,7 @@ public class PhotobankAutoTagJob : IRecurringJob
             return;
         }
 
-        var tagsByName = (await _repo.GetTagsWithCountsAsync(cancellationToken))
+        var tagsByName = (await _tagRepository.GetTagsWithCountsAsync(cancellationToken))
             .ToDictionary(t => t.Name, t => t.Id, StringComparer.Ordinal);
 
         _logger.LogInformation("{JobName} starting — vocabulary size: {VocabSize}", Metadata.JobName, tagsByName.Count);
@@ -69,7 +75,7 @@ public class PhotobankAutoTagJob : IRecurringJob
             var remaining = _options.MaxPhotosPerRun - processedCount;
             var pageSize = Math.Min(_options.BatchSize, remaining);
 
-            var batch = await _repo.GetPhotosPendingAutoTagAsync(pageSize, offset, cancellationToken);
+            var batch = await _autoTagRepository.GetPhotosPendingAutoTagAsync(pageSize, offset, cancellationToken);
             if (batch.Count == 0) break;
 
             await ProcessBatchAsync(batch, tagsByName, cancellationToken);
@@ -83,7 +89,7 @@ public class PhotobankAutoTagJob : IRecurringJob
 
     public async Task ExecuteForPhotosAsync(IReadOnlyList<PhotoAutoTagCandidate> candidates, CancellationToken ct)
     {
-        var tagsByName = (await _repo.GetTagsWithCountsAsync(ct))
+        var tagsByName = (await _tagRepository.GetTagsWithCountsAsync(ct))
             .ToDictionary(t => t.Name, t => t.Id, StringComparer.Ordinal);
 
         for (var offset = 0; offset < candidates.Count; offset += _options.BatchSize)
@@ -129,8 +135,8 @@ public class PhotobankAutoTagJob : IRecurringJob
             await ApplyTagsForPhotoAsync(result, tagsByName, ct);
         }
 
-        await _repo.SaveChangesAsync(ct);
-        await _repo.StampAutoTaggedAtAsync(batchIds, DateTime.UtcNow, ct);
+        await _photoTagRepository.SaveChangesAsync(ct);
+        await _autoTagRepository.StampAutoTaggedAtAsync(batchIds, DateTime.UtcNow, ct);
         _cache.Invalidate();
     }
 
@@ -149,9 +155,9 @@ public class PhotobankAutoTagJob : IRecurringJob
         {
             var tagId = tagsByName[tagName];
 
-            if (await _repo.PhotoTagExistsAsync(result.Id, tagId, ct)) continue;
+            if (await _photoTagRepository.PhotoTagExistsAsync(result.Id, tagId, ct)) continue;
 
-            await _repo.AddPhotoTagAsync(
+            await _photoTagRepository.AddPhotoTagAsync(
                 new PhotoTag
                 {
                     PhotoId = result.Id,

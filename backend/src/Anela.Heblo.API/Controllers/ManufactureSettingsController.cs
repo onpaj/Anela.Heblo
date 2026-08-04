@@ -1,13 +1,14 @@
 using Anela.Heblo.Application.Features.Manufacture.UseCases.GetManufactureSettings;
+using Anela.Heblo.Domain.Features.Authorization;
 using MediatR;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Anela.Heblo.API.Controllers;
 
+[FeatureAuthorize(Feature.Manufacture_ManufactureOrders)]
 [ApiController]
 [Route("api/manufacture/settings")]
-public class ManufactureSettingsController : ControllerBase
+public class ManufactureSettingsController : BaseApiController
 {
     private readonly IMediator _mediator;
 
@@ -17,7 +18,9 @@ public class ManufactureSettingsController : ControllerBase
     }
 
     [HttpGet]
-    [AllowAnonymous]
-    public Task<GetManufactureSettingsResponse> GetSettings(CancellationToken cancellationToken)
-        => _mediator.Send(new GetManufactureSettingsRequest(), cancellationToken);
+    public async Task<ActionResult<GetManufactureSettingsResponse>> GetSettings(CancellationToken cancellationToken)
+    {
+        var response = await _mediator.Send(new GetManufactureSettingsRequest(), cancellationToken);
+        return HandleResponse(response);
+    }
 }

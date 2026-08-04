@@ -4,7 +4,7 @@ import AmountEntrySheet from "../AmountEntrySheet";
 import type { ManufacturedProductInventoryItem } from "../../../../api/hooks/useManufacturedProductInventory";
 
 const item: ManufacturedProductInventoryItem = {
-  id: 7, productCode: "P-1", productName: "Krém", amount: 10, createdAt: "", createdBy: "", log: [],
+  id: 7, productCode: "P-1", productName: "Krém", amount: 10, createdAt: new Date(), createdBy: "", log: [],
 };
 
 describe("AmountEntrySheet", () => {

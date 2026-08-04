@@ -7,9 +7,9 @@ namespace Anela.Heblo.Application.Features.Photobank.UseCases.AddRule
 {
     public class AddRuleHandler : IRequestHandler<AddRuleRequest, AddRuleResponse>
     {
-        private readonly IPhotobankRepository _repository;
+        private readonly IPhotobankTagRuleRepository _repository;
 
-        public AddRuleHandler(IPhotobankRepository repository)
+        public AddRuleHandler(IPhotobankTagRuleRepository repository)
         {
             _repository = repository;
         }

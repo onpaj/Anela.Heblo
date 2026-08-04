@@ -10,27 +10,35 @@ namespace Anela.Heblo.Application.Features.Photobank.UseCases.AddPhotoTag
 {
     public class AddPhotoTagHandler : IRequestHandler<AddPhotoTagRequest, AddPhotoTagResponse>
     {
-        private readonly IPhotobankRepository _repository;
+        private readonly IPhotobankPhotoRepository _photoRepository;
+        private readonly IPhotobankTagRepository _tagRepository;
+        private readonly IPhotobankPhotoTagRepository _photoTagRepository;
         private readonly IPhotobankTagsCache _cache;
 
-        public AddPhotoTagHandler(IPhotobankRepository repository, IPhotobankTagsCache cache)
+        public AddPhotoTagHandler(
+            IPhotobankPhotoRepository photoRepository,
+            IPhotobankTagRepository tagRepository,
+            IPhotobankPhotoTagRepository photoTagRepository,
+            IPhotobankTagsCache cache)
         {
-            _repository = repository;
+            _photoRepository = photoRepository;
+            _tagRepository = tagRepository;
+            _photoTagRepository = photoTagRepository;
             _cache = cache;
         }
 
         public async Task<AddPhotoTagResponse> Handle(AddPhotoTagRequest request, CancellationToken cancellationToken)
         {
-            var photo = await _repository.GetPhotoByIdAsync(request.PhotoId, cancellationToken);
+            var photo = await _photoRepository.GetPhotoByIdAsync(request.PhotoId, cancellationToken);
             if (photo == null)
                 return new AddPhotoTagResponse(ErrorCodes.PhotoNotFound);
 
             var normalizedName = request.TagName.Trim().ToLowerInvariant();
-            var tag = await _repository.GetOrCreateTagAsync(normalizedName, cancellationToken);
+            var tag = await _tagRepository.GetOrCreateTagAsync(normalizedName, cancellationToken);
             if (tag == null)
                 return new AddPhotoTagResponse(ErrorCodes.PhotoTagCreationFailed);
 
-            if (await _repository.PhotoTagExistsAsync(photo.Id, tag.Id, cancellationToken))
+            if (await _photoTagRepository.PhotoTagExistsAsync(photo.Id, tag.Id, cancellationToken))
                 return new AddPhotoTagResponse { TagId = tag.Id, TagName = tag.Name };
 
             var photoTag = new PhotoTag
@@ -41,8 +49,8 @@ namespace Anela.Heblo.Application.Features.Photobank.UseCases.AddPhotoTag
                 CreatedAt = DateTime.UtcNow,
             };
 
-            await _repository.AddPhotoTagAsync(photoTag, cancellationToken);
-            await _repository.SaveChangesAsync(cancellationToken);
+            await _photoTagRepository.AddPhotoTagAsync(photoTag, cancellationToken);
+            await _photoTagRepository.SaveChangesAsync(cancellationToken);
             _cache.Invalidate();
 
             return new AddPhotoTagResponse { TagId = tag.Id, TagName = tag.Name };

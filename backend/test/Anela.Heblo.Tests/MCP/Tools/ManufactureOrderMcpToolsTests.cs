@@ -3,6 +3,8 @@ using Anela.Heblo.API.MCP.Tools;
 using Anela.Heblo.Application.Features.Manufacture.UseCases.GetManufactureOrders;
 using Anela.Heblo.Application.Features.Manufacture.UseCases.GetManufactureOrder;
 using Anela.Heblo.Application.Features.Manufacture.UseCases.GetCalendarView;
+using Anela.Heblo.Domain.Features.Authorization;
+using Anela.Heblo.Domain.Features.Users;
 using MediatR;
 using ModelContextProtocol;
 using Moq;
@@ -12,13 +14,18 @@ namespace Anela.Heblo.Tests.MCP.Tools;
 
 public class ManufactureOrderMcpToolsTests
 {
+    private static readonly string ReadRole = AccessRoles.For(Feature.Manufacture_ManufactureOrders, AccessLevel.Read);
+
     private readonly Mock<IMediator> _mediatorMock;
+    private readonly Mock<ICurrentUserService> _currentUserServiceMock;
     private readonly ManufactureOrderMcpTools _tools;
 
     public ManufactureOrderMcpToolsTests()
     {
         _mediatorMock = new Mock<IMediator>();
-        _tools = new ManufactureOrderMcpTools(_mediatorMock.Object);
+        _currentUserServiceMock = new Mock<ICurrentUserService>();
+        _currentUserServiceMock.Setup(s => s.IsInRole(ReadRole)).Returns(true);
+        _tools = new ManufactureOrderMcpTools(_mediatorMock.Object, _currentUserServiceMock.Object);
     }
 
     [Fact]
@@ -160,5 +167,30 @@ public class ManufactureOrderMcpToolsTests
         );
 
         Assert.Contains("ManufacturingDataNotAvailable", exception.Message);
+    }
+
+    [Theory]
+    [InlineData("GetManufactureOrders")]
+    [InlineData("GetManufactureOrder")]
+    [InlineData("GetCalendarView")]
+    public async Task Tools_ThrowForbidden_AndSkipMediator_WhenUserLacksReadRole(string tool)
+    {
+        // Arrange
+        _currentUserServiceMock.Setup(s => s.IsInRole(ReadRole)).Returns(false);
+
+        // Act
+        var exception = await Assert.ThrowsAsync<McpException>(() => tool switch
+        {
+            "GetManufactureOrders" => _tools.GetManufactureOrders(),
+            "GetManufactureOrder" => _tools.GetManufactureOrder(123),
+            _ => _tools.GetCalendarView()
+        });
+
+        // Assert
+        Assert.Contains("FORBIDDEN", exception.Message);
+        Assert.Contains(ReadRole, exception.Message);
+        _mediatorMock.Verify(m => m.Send(It.IsAny<GetManufactureOrdersRequest>(), It.IsAny<CancellationToken>()), Times.Never);
+        _mediatorMock.Verify(m => m.Send(It.IsAny<GetManufactureOrderRequest>(), It.IsAny<CancellationToken>()), Times.Never);
+        _mediatorMock.Verify(m => m.Send(It.IsAny<GetCalendarViewRequest>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 }

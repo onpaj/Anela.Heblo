@@ -1,19 +1,15 @@
-import { renderHook, waitFor } from "@testing-library/react";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import React, { ReactNode } from "react";
+import { renderHook, waitFor, act } from "@testing-library/react";
 import {
   usePhotos,
   usePhotoTags,
   useAddPhotoTag,
   useCreateTag,
   useDeleteTag,
+  useBulkAddPhotoTag,
 } from "../usePhotobank";
-import { getAuthenticatedApiClient } from "../../client";
+import { mockAuthenticatedApiClient, createQueryClientWrapper } from "../../testUtils";
 
-// Mock the API client
 jest.mock("../../client");
-const mockGetAuthenticatedApiClient =
-  getAuthenticatedApiClient as jest.MockedFunction<typeof getAuthenticatedApiClient>;
 
 // ---- Mock data ------------------------------------------------------------
 
@@ -25,7 +21,7 @@ const mockPhoto = {
   folderPath: "/Fotky/2026",
   sharePointWebUrl: "https://anela.sharepoint.com/photo.jpg",
   fileSizeBytes: 1024,
-  lastModifiedAt: "2026-04-01T10:00:00Z",
+  lastModifiedAt: new Date("2026-04-01T10:00:00Z"),
   tags: [{ id: 10, name: "výroba", source: "Rule" }],
 };
 
@@ -44,346 +40,286 @@ const mockTagsResponse = {
   success: true,
 };
 
-// ---- Helpers --------------------------------------------------------------
-
-function createWrapper() {
-  const queryClient = new QueryClient({
-    defaultOptions: {
-      queries: { retry: false },
-      mutations: { retry: false },
-    },
-  });
-
-  return ({ children }: { children: ReactNode }) =>
-    React.createElement(QueryClientProvider, { client: queryClient }, children);
-}
-
-function createMockClient(fetchImpl: jest.Mock) {
-  return {
-    baseUrl: "http://localhost:5001",
-    http: { fetch: fetchImpl },
-  };
-}
-
 // ---- Tests ----------------------------------------------------------------
 
 describe("usePhotos", () => {
-  let mockFetch: jest.Mock;
+  let mockClient: { photobank_GetPhotos: jest.Mock };
 
   beforeEach(() => {
-    mockFetch = jest.fn();
-    mockGetAuthenticatedApiClient.mockReturnValue(
-      createMockClient(mockFetch) as any,
-    );
+    mockClient = { photobank_GetPhotos: jest.fn() };
+    mockAuthenticatedApiClient(mockClient);
   });
 
-  afterEach(() => {
-    jest.clearAllMocks();
-  });
+  afterEach(() => jest.clearAllMocks());
 
-  test("returns data from API on success", async () => {
-    // Arrange
-    mockFetch.mockResolvedValue({
-      ok: true,
-      json: async () => mockPhotosResponse,
-    });
+  test("returns data from the generated client on success", async () => {
+    mockClient.photobank_GetPhotos.mockResolvedValue(mockPhotosResponse);
 
-    // Act
-    const { result } = renderHook(() => usePhotos(), { wrapper: createWrapper() });
+    const { wrapper } = createQueryClientWrapper();
+    const { result } = renderHook(() => usePhotos(), { wrapper });
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
-    // Assert
     expect(result.current.data?.items).toHaveLength(1);
     expect(result.current.data?.total).toBe(1);
     expect(result.current.data?.items[0].name).toBe("photo.jpg");
   });
 
-  test("passes search param in query string", async () => {
-    // Arrange
-    mockFetch.mockResolvedValue({
-      ok: true,
-      json: async () => mockPhotosResponse,
-    });
+  test("passes params positionally to photobank_GetPhotos", async () => {
+    mockClient.photobank_GetPhotos.mockResolvedValue(mockPhotosResponse);
 
-    // Act
+    const { wrapper } = createQueryClientWrapper();
     const { result } = renderHook(
-      () => usePhotos({ search: "foto", page: 1, pageSize: 48 }),
-      { wrapper: createWrapper() },
+      () => usePhotos({ tags: ["výroba", "marketing"], search: "foto", page: 1, pageSize: 48 }),
+      { wrapper },
     );
 
     await waitFor(() => expect(result.current.isLoading).toBe(false));
 
-    // Assert
-    expect(mockFetch).toHaveBeenCalledWith(
-      expect.stringContaining("search=foto"),
-      expect.any(Object),
+    expect(mockClient.photobank_GetPhotos).toHaveBeenCalledWith(
+      ["výroba", "marketing"],
+      "foto",
+      undefined,
+      undefined,
+      1,
+      48,
     );
   });
 
-  test("passes tag filter in query string", async () => {
-    // Arrange
-    mockFetch.mockResolvedValue({
-      ok: true,
-      json: async () => mockPhotosResponse,
-    });
+  test("rejects on API error", async () => {
+    mockClient.photobank_GetPhotos.mockRejectedValue(new Error("Photobank API error: 500 Internal Server Error"));
 
-    // Act
-    const { result } = renderHook(
-      () => usePhotos({ tags: ["výroba", "marketing"] }),
-      { wrapper: createWrapper() },
-    );
-
-    await waitFor(() => expect(result.current.isLoading).toBe(false));
-
-    // Assert
-    const calledUrl: string = mockFetch.mock.calls[0][0];
-    expect(calledUrl).toContain("tags=v%C3%BDroba");
-    expect(calledUrl).toContain("tags=marketing");
-  });
-
-  test("throws on non-ok response", async () => {
-    // Arrange
-    mockFetch.mockResolvedValue({
-      ok: false,
-      status: 500,
-      statusText: "Internal Server Error",
-    });
-
-    // Act
-    const { result } = renderHook(() => usePhotos(), { wrapper: createWrapper() });
+    const { wrapper } = createQueryClientWrapper();
+    const { result } = renderHook(() => usePhotos(), { wrapper });
 
     await waitFor(() => expect(result.current.isError).toBe(true));
 
-    // Assert
     expect(result.current.error).toBeTruthy();
   });
 });
 
 describe("usePhotoTags", () => {
-  let mockFetch: jest.Mock;
+  let mockClient: { photobank_GetTags: jest.Mock };
 
   beforeEach(() => {
-    mockFetch = jest.fn();
-    mockGetAuthenticatedApiClient.mockReturnValue(
-      createMockClient(mockFetch) as any,
-    );
+    mockClient = { photobank_GetTags: jest.fn() };
+    mockAuthenticatedApiClient(mockClient);
   });
 
-  afterEach(() => {
-    jest.clearAllMocks();
-  });
+  afterEach(() => jest.clearAllMocks());
 
-  test("returns tag list from API", async () => {
-    // Arrange
-    mockFetch.mockResolvedValue({
-      ok: true,
-      json: async () => mockTagsResponse,
-    });
+  test("returns tag list from photobank_GetTags", async () => {
+    mockClient.photobank_GetTags.mockResolvedValue(mockTagsResponse);
 
-    // Act
-    const { result } = renderHook(() => usePhotoTags(), { wrapper: createWrapper() });
+    const { wrapper } = createQueryClientWrapper();
+    const { result } = renderHook(() => usePhotoTags(), { wrapper });
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
-    // Assert
     expect(result.current.data).toHaveLength(2);
     expect(result.current.data?.[0].name).toBe("výroba");
     expect(result.current.data?.[0].count).toBe(5);
   });
 
-  test("calls the /api/photobank/tags endpoint", async () => {
-    // Arrange
-    mockFetch.mockResolvedValue({
-      ok: true,
-      json: async () => mockTagsResponse,
-    });
+  test("returns an empty list when tags is absent from the response", async () => {
+    mockClient.photobank_GetTags.mockResolvedValue({ success: true });
 
-    // Act
-    const { result } = renderHook(() => usePhotoTags(), { wrapper: createWrapper() });
+    const { wrapper } = createQueryClientWrapper();
+    const { result } = renderHook(() => usePhotoTags(), { wrapper });
 
-    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
-    // Assert
-    expect(mockFetch).toHaveBeenCalledWith(
-      expect.stringContaining("/api/photobank/tags"),
-      expect.any(Object),
-    );
+    expect(result.current.data).toEqual([]);
   });
 });
 
 describe("useAddPhotoTag", () => {
-  let mockFetch: jest.Mock;
+  let mockClient: { photobank_AddPhotoTag: jest.Mock };
 
   beforeEach(() => {
-    mockFetch = jest.fn();
-    mockGetAuthenticatedApiClient.mockReturnValue(
-      createMockClient(mockFetch) as any,
-    );
+    mockClient = { photobank_AddPhotoTag: jest.fn() };
+    mockAuthenticatedApiClient(mockClient);
   });
 
-  afterEach(() => {
-    jest.clearAllMocks();
-  });
+  afterEach(() => jest.clearAllMocks());
 
-  test("calls POST to correct endpoint with tag name", async () => {
-    // Arrange
-    mockFetch.mockResolvedValue({ ok: true });
+  test("calls photobank_AddPhotoTag with photo id and tag name body", async () => {
+    mockClient.photobank_AddPhotoTag.mockResolvedValue({ tagId: 1, tagName: "výroba", success: true });
 
-    // Act
-    const { result } = renderHook(() => useAddPhotoTag(42), {
-      wrapper: createWrapper(),
-    });
+    const { wrapper } = createQueryClientWrapper();
+    const { result } = renderHook(() => useAddPhotoTag(42), { wrapper });
 
     result.current.mutate("výroba");
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
-    // Assert
-    expect(mockFetch).toHaveBeenCalledWith(
-      expect.stringContaining("/api/photobank/photos/42/tags"),
-      expect.objectContaining({ method: "POST" }),
-    );
+    expect(mockClient.photobank_AddPhotoTag).toHaveBeenCalledTimes(1);
+    const [photoId, body] = mockClient.photobank_AddPhotoTag.mock.calls[0];
+    expect(photoId).toBe(42);
+    expect(body).toEqual(expect.objectContaining({ tagName: "výroba" }));
   });
 
   test("sets error state on API failure", async () => {
-    // Arrange
-    mockFetch.mockResolvedValue({
-      ok: false,
-      status: 400,
-      statusText: "Bad Request",
-    });
+    mockClient.photobank_AddPhotoTag.mockRejectedValue(new Error("Photobank API error: 400 Bad Request"));
 
-    // Act
-    const { result } = renderHook(() => useAddPhotoTag(42), {
-      wrapper: createWrapper(),
-    });
+    const { wrapper } = createQueryClientWrapper();
+    const { result } = renderHook(() => useAddPhotoTag(42), { wrapper });
 
     result.current.mutate("bad-tag");
 
     await waitFor(() => expect(result.current.isError).toBe(true));
 
-    // Assert
     expect(result.current.error).toBeTruthy();
   });
 });
 
 describe("useCreateTag", () => {
-  let mockFetch: jest.Mock;
+  let mockClient: { photobank_CreateTag: jest.Mock };
 
   beforeEach(() => {
-    mockFetch = jest.fn();
-    mockGetAuthenticatedApiClient.mockReturnValue(
-      createMockClient(mockFetch) as any,
-    );
+    mockClient = { photobank_CreateTag: jest.fn() };
+    mockAuthenticatedApiClient(mockClient);
   });
 
-  afterEach(() => {
-    jest.clearAllMocks();
-  });
+  afterEach(() => jest.clearAllMocks());
 
-  test("calls POST to /api/photobank/tags with tag name in body", async () => {
-    // Arrange
-    mockFetch.mockResolvedValue({
-      ok: true,
-      json: async () => ({ id: 99, name: "nový tag", source: "Manual" }),
-    });
+  test("calls photobank_CreateTag with the tag name body", async () => {
+    mockClient.photobank_CreateTag.mockResolvedValue({ id: 99, name: "nový tag", success: true });
 
-    // Act
-    const { result } = renderHook(() => useCreateTag(), {
-      wrapper: createWrapper(),
-    });
+    const { wrapper } = createQueryClientWrapper();
+    const { result } = renderHook(() => useCreateTag(), { wrapper });
 
     result.current.mutate("nový tag");
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
-    // Assert
-    expect(mockFetch).toHaveBeenCalledWith(
-      expect.stringContaining("/api/photobank/tags"),
-      expect.objectContaining({ method: "POST" }),
-    );
-    const body = JSON.parse(mockFetch.mock.calls[0][1].body);
-    expect(body).toEqual({ name: "nový tag" });
+    expect(mockClient.photobank_CreateTag).toHaveBeenCalledTimes(1);
+    const [body] = mockClient.photobank_CreateTag.mock.calls[0];
+    expect(body).toEqual(expect.objectContaining({ name: "nový tag" }));
   });
 
   test("sets error state on API failure", async () => {
-    // Arrange
-    mockFetch.mockResolvedValue({
-      ok: false,
-      status: 409,
-      statusText: "Conflict",
-    });
+    mockClient.photobank_CreateTag.mockRejectedValue(new Error("Photobank API error: 409 Conflict"));
 
-    // Act
-    const { result } = renderHook(() => useCreateTag(), {
-      wrapper: createWrapper(),
-    });
+    const { wrapper } = createQueryClientWrapper();
+    const { result } = renderHook(() => useCreateTag(), { wrapper });
 
     result.current.mutate("duplicate");
 
     await waitFor(() => expect(result.current.isError).toBe(true));
 
-    // Assert
     expect(result.current.error).toBeTruthy();
   });
 });
 
 describe("useDeleteTag", () => {
-  let mockFetch: jest.Mock;
+  let mockClient: { photobank_DeleteTag: jest.Mock };
 
   beforeEach(() => {
-    mockFetch = jest.fn();
-    mockGetAuthenticatedApiClient.mockReturnValue(
-      createMockClient(mockFetch) as any,
-    );
+    mockClient = { photobank_DeleteTag: jest.fn() };
+    mockAuthenticatedApiClient(mockClient);
   });
 
-  afterEach(() => {
-    jest.clearAllMocks();
-  });
+  afterEach(() => jest.clearAllMocks());
 
-  test("calls DELETE to /api/photobank/tags/:id", async () => {
-    // Arrange
-    mockFetch.mockResolvedValue({
-      ok: true,
-      json: async () => ({}),
-    });
+  test("calls photobank_DeleteTag with the tag id", async () => {
+    mockClient.photobank_DeleteTag.mockResolvedValue({ removedAssignmentCount: 0, success: true });
 
-    // Act
-    const { result } = renderHook(() => useDeleteTag(), {
-      wrapper: createWrapper(),
-    });
+    const { wrapper } = createQueryClientWrapper();
+    const { result } = renderHook(() => useDeleteTag(), { wrapper });
 
     result.current.mutate(55);
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
-    // Assert
-    expect(mockFetch).toHaveBeenCalledWith(
-      expect.stringContaining("/api/photobank/tags/55"),
-      expect.objectContaining({ method: "DELETE" }),
-    );
+    expect(mockClient.photobank_DeleteTag).toHaveBeenCalledWith(55);
   });
 
   test("sets error state on API failure", async () => {
-    // Arrange
-    mockFetch.mockResolvedValue({
-      ok: false,
-      status: 404,
-      statusText: "Not Found",
-    });
+    mockClient.photobank_DeleteTag.mockRejectedValue(new Error("Photobank API error: 404 Not Found"));
 
-    // Act
-    const { result } = renderHook(() => useDeleteTag(), {
-      wrapper: createWrapper(),
-    });
+    const { wrapper } = createQueryClientWrapper();
+    const { result } = renderHook(() => useDeleteTag(), { wrapper });
 
     result.current.mutate(999);
 
     await waitFor(() => expect(result.current.isError).toBe(true));
 
-    // Assert
     expect(result.current.error).toBeTruthy();
+  });
+});
+
+describe("useBulkAddPhotoTag", () => {
+  let mockClient: { photobank_BulkAddPhotoTag: jest.Mock };
+
+  beforeEach(() => {
+    mockClient = { photobank_BulkAddPhotoTag: jest.fn() };
+    mockAuthenticatedApiClient(mockClient);
+  });
+
+  afterEach(() => jest.clearAllMocks());
+
+  test("returns a success result on the happy path", async () => {
+    mockClient.photobank_BulkAddPhotoTag.mockResolvedValue({
+      success: true,
+      tagId: 7,
+      tagName: "výroba",
+      addedCount: 12,
+      alreadyTaggedCount: 3,
+    });
+
+    const { wrapper } = createQueryClientWrapper();
+    const { result } = renderHook(() => useBulkAddPhotoTag(), { wrapper });
+
+    let data;
+    await act(async () => {
+      data = await result.current.mutateAsync({ search: "foto", tagName: "výroba" });
+    });
+
+    expect(data).toEqual({
+      success: true,
+      tagId: 7,
+      tagName: "výroba",
+      addedCount: 12,
+      alreadyTaggedCount: 3,
+    });
+  });
+
+  test("translates the 2606 limit-exceeded business outcome instead of rejecting", async () => {
+    mockClient.photobank_BulkAddPhotoTag.mockRejectedValue({
+      success: false,
+      errorCode: 2606,
+      params: { Count: "12000", Limit: "5000" },
+    });
+
+    const { wrapper } = createQueryClientWrapper();
+    const { result } = renderHook(() => useBulkAddPhotoTag(), { wrapper });
+
+    let data;
+    await act(async () => {
+      data = await result.current.mutateAsync({ search: "foto", tagName: "výroba" });
+    });
+
+    expect(data).toEqual({
+      success: false,
+      errorCode: 2606,
+      params: { Count: "12000", Limit: "5000" },
+    });
+    expect(result.current.isError).toBe(false);
+  });
+
+  test("rethrows an unrecognizable failure (e.g. 403 with no success field)", async () => {
+    mockClient.photobank_BulkAddPhotoTag.mockRejectedValue({});
+
+    const { wrapper } = createQueryClientWrapper();
+    const { result } = renderHook(() => useBulkAddPhotoTag(), { wrapper });
+
+    await act(async () => {
+      await expect(
+        result.current.mutateAsync({ search: "foto", tagName: "výroba" }),
+      ).rejects.toEqual({});
+    });
+
+    await waitFor(() => expect(result.current.isError).toBe(true));
   });
 });

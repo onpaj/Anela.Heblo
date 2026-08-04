@@ -14,13 +14,19 @@ public class UpdateRecurringJobCronHandlerTests
     private readonly Mock<IRecurringJobConfigurationRepository> _repositoryMock;
     private readonly Mock<ICurrentUserService> _currentUserServiceMock;
     private readonly Mock<ICronScheduler> _schedulerMock;
+    private readonly Mock<TimeProvider> _timeProviderMock;
     private readonly UpdateRecurringJobCronHandler _handler;
+
+    // 2026-03-30 12:00 UTC — fixed reference time to avoid flakiness
+    private static readonly DateTimeOffset FixedUtcNow = new(2026, 3, 30, 12, 0, 0, TimeSpan.Zero);
 
     public UpdateRecurringJobCronHandlerTests()
     {
         _repositoryMock = new Mock<IRecurringJobConfigurationRepository>();
         _currentUserServiceMock = new Mock<ICurrentUserService>();
         _schedulerMock = new Mock<ICronScheduler>();
+        _timeProviderMock = new Mock<TimeProvider>();
+        _timeProviderMock.Setup(tp => tp.GetUtcNow()).Returns(FixedUtcNow);
 
         _currentUserServiceMock
             .Setup(x => x.GetCurrentUser())
@@ -30,7 +36,8 @@ public class UpdateRecurringJobCronHandlerTests
             Mock.Of<Microsoft.Extensions.Logging.ILogger<UpdateRecurringJobCronHandler>>(),
             _repositoryMock.Object,
             _currentUserServiceMock.Object,
-            _schedulerMock.Object);
+            _schedulerMock.Object,
+            _timeProviderMock.Object);
     }
 
     [Fact]
@@ -146,6 +153,7 @@ public class UpdateRecurringJobCronHandlerTests
             cronExpression: cronExpression,
             timeZoneId: "Europe/Prague",
             isEnabled: true,
-            lastModifiedBy: "seed");
+            lastModifiedBy: "seed",
+            lastModifiedAt: DateTime.UtcNow);
     }
 }

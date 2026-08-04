@@ -99,7 +99,6 @@ public static class CatalogModule
         services.AddTransient<IMarginCalculationService, MarginCalculationService>();
         services.AddSingleton<ICatalogResilienceService, CatalogResilienceService>();
         services.AddSingleton<ICatalogMergeScheduler, CatalogMergeScheduler>();
-        services.AddTransient<SafeMarginCalculator>();
         services.AddTransient<IProductWeightRecalculationService, ProductWeightRecalculationService>();
         services.AddTransient<IStockUpProcessingService, StockUpProcessingService>();
         services.AddScoped<IEshopStockDomainService, EshopStockDomainService>();

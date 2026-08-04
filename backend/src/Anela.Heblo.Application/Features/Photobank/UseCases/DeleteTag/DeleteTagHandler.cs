@@ -9,10 +9,10 @@ namespace Anela.Heblo.Application.Features.Photobank.UseCases.DeleteTag
 {
     public class DeleteTagHandler : IRequestHandler<DeleteTagRequest, DeleteTagResponse>
     {
-        private readonly IPhotobankRepository _repository;
+        private readonly IPhotobankTagRepository _repository;
         private readonly IPhotobankTagsCache _cache;
 
-        public DeleteTagHandler(IPhotobankRepository repository, IPhotobankTagsCache cache)
+        public DeleteTagHandler(IPhotobankTagRepository repository, IPhotobankTagsCache cache)
         {
             _repository = repository;
             _cache = cache;

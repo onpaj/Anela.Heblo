@@ -1,6 +1,4 @@
 import { renderHook, waitFor, act } from "@testing-library/react";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import React, { ReactNode } from "react";
 import {
   useIndexRoots,
   useTagRules,
@@ -10,11 +8,9 @@ import {
   useDeleteTagRule,
   useReapplyTagRules,
 } from "../usePhotobankSettings";
-import { getAuthenticatedApiClient } from "../../client";
+import { mockAuthenticatedApiClient, createQueryClientWrapper } from "../../testUtils";
 
 jest.mock("../../client");
-const mockGetAuthenticatedApiClient =
-  getAuthenticatedApiClient as jest.MockedFunction<typeof getAuthenticatedApiClient>;
 
 // ---- Mock data ----------------------------------------------------------------
 
@@ -25,8 +21,8 @@ const mockRoot = {
   driveId: "drive-abc",
   rootItemId: "item-xyz",
   isActive: true,
-  createdAt: "2026-01-01T00:00:00Z",
-  lastIndexedAt: "2026-04-24T03:00:00Z",
+  createdAt: new Date("2026-01-01T00:00:00Z"),
+  lastIndexedAt: new Date("2026-04-24T03:00:00Z"),
 };
 
 const mockRule = {
@@ -37,60 +33,36 @@ const mockRule = {
   sortOrder: 10,
 };
 
-// ---- Helpers ------------------------------------------------------------------
-
-function createWrapper() {
-  const queryClient = new QueryClient({
-    defaultOptions: {
-      queries: { retry: false },
-      mutations: { retry: false },
-    },
-  });
-  return ({ children }: { children: ReactNode }) =>
-    React.createElement(QueryClientProvider, { client: queryClient }, children);
-}
-
-function createMockClient(fetchImpl: jest.Mock) {
-  return {
-    baseUrl: "http://localhost:5001",
-    http: { fetch: fetchImpl },
-  };
-}
-
 // ---- useIndexRoots ------------------------------------------------------------
 
 describe("useIndexRoots", () => {
-  let mockFetch: jest.Mock;
+  let mockClient: { photobank_GetRoots: jest.Mock };
 
   beforeEach(() => {
-    mockFetch = jest.fn();
-    mockGetAuthenticatedApiClient.mockReturnValue(createMockClient(mockFetch) as any);
+    mockClient = { photobank_GetRoots: jest.fn() };
+    mockAuthenticatedApiClient(mockClient);
   });
 
   afterEach(() => jest.clearAllMocks());
 
-  test("fetches roots from correct URL and returns list", async () => {
-    mockFetch.mockResolvedValue({
-      ok: true,
-      json: async () => ({ roots: [mockRoot], success: true }),
-    });
+  test("returns roots from photobank_GetRoots", async () => {
+    mockClient.photobank_GetRoots.mockResolvedValue({ roots: [mockRoot], success: true });
 
-    const { result } = renderHook(() => useIndexRoots(), { wrapper: createWrapper() });
+    const { wrapper } = createQueryClientWrapper();
+    const { result } = renderHook(() => useIndexRoots(), { wrapper });
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
-    expect(mockFetch).toHaveBeenCalledWith(
-      expect.stringContaining("/api/photobank/settings/roots"),
-      expect.objectContaining({ method: "GET" }),
-    );
+    expect(mockClient.photobank_GetRoots).toHaveBeenCalledTimes(1);
     expect(result.current.data).toHaveLength(1);
     expect(result.current.data![0].driveId).toBe("drive-abc");
   });
 
-  test("throws on non-ok response", async () => {
-    mockFetch.mockResolvedValue({ ok: false, status: 403, statusText: "Forbidden" });
+  test("rejects on API error", async () => {
+    mockClient.photobank_GetRoots.mockRejectedValue(new Error("Photobank settings API error: 403 Forbidden"));
 
-    const { result } = renderHook(() => useIndexRoots(), { wrapper: createWrapper() });
+    const { wrapper } = createQueryClientWrapper();
+    const { result } = renderHook(() => useIndexRoots(), { wrapper });
 
     await waitFor(() => expect(result.current.isError).toBe(true));
     expect(result.current.error).toBeTruthy();
@@ -100,29 +72,23 @@ describe("useIndexRoots", () => {
 // ---- useTagRules --------------------------------------------------------------
 
 describe("useTagRules", () => {
-  let mockFetch: jest.Mock;
+  let mockClient: { photobank_GetRules: jest.Mock };
 
   beforeEach(() => {
-    mockFetch = jest.fn();
-    mockGetAuthenticatedApiClient.mockReturnValue(createMockClient(mockFetch) as any);
+    mockClient = { photobank_GetRules: jest.fn() };
+    mockAuthenticatedApiClient(mockClient);
   });
 
   afterEach(() => jest.clearAllMocks());
 
-  test("fetches rules from correct URL and returns list", async () => {
-    mockFetch.mockResolvedValue({
-      ok: true,
-      json: async () => ({ rules: [mockRule], success: true }),
-    });
+  test("returns rules from photobank_GetRules", async () => {
+    mockClient.photobank_GetRules.mockResolvedValue({ rules: [mockRule], success: true });
 
-    const { result } = renderHook(() => useTagRules(), { wrapper: createWrapper() });
+    const { wrapper } = createQueryClientWrapper();
+    const { result } = renderHook(() => useTagRules(), { wrapper });
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
-    expect(mockFetch).toHaveBeenCalledWith(
-      expect.stringContaining("/api/photobank/settings/rules"),
-      expect.objectContaining({ method: "GET" }),
-    );
     expect(result.current.data![0].tagName).toBe("produkty");
   });
 });
@@ -130,21 +96,20 @@ describe("useTagRules", () => {
 // ---- useAddIndexRoot ----------------------------------------------------------
 
 describe("useAddIndexRoot", () => {
-  let mockFetch: jest.Mock;
+  let mockClient: { photobank_AddRoot: jest.Mock };
 
   beforeEach(() => {
-    mockFetch = jest.fn();
-    mockGetAuthenticatedApiClient.mockReturnValue(createMockClient(mockFetch) as any);
+    mockClient = { photobank_AddRoot: jest.fn() };
+    mockAuthenticatedApiClient(mockClient);
   });
 
   afterEach(() => jest.clearAllMocks());
 
-  test("POSTs to correct URL with input body", async () => {
-    mockFetch
-      .mockResolvedValueOnce({ ok: true, json: async () => ({ id: 1, success: true }) })
-      .mockResolvedValueOnce({ ok: true, json: async () => ({ roots: [], success: true }) });
+  test("calls photobank_AddRoot with the input body, normalizing null displayName to undefined", async () => {
+    mockClient.photobank_AddRoot.mockResolvedValue({ id: 1, success: true });
 
-    const { result } = renderHook(() => useAddIndexRoot(), { wrapper: createWrapper() });
+    const { wrapper } = createQueryClientWrapper();
+    const { result } = renderHook(() => useAddIndexRoot(), { wrapper });
 
     await act(async () => {
       await result.current.mutateAsync({
@@ -154,11 +119,13 @@ describe("useAddIndexRoot", () => {
       });
     });
 
-    expect(mockFetch).toHaveBeenCalledWith(
-      expect.stringContaining("/api/photobank/settings/roots"),
+    expect(mockClient.photobank_AddRoot).toHaveBeenCalledTimes(1);
+    const [body] = mockClient.photobank_AddRoot.mock.calls[0];
+    expect(body).toEqual(
       expect.objectContaining({
-        method: "POST",
-        body: expect.stringContaining("drive-1"),
+        sharePointPath: "/Fotky",
+        displayName: undefined,
+        driveId: "drive-1",
       }),
     );
   });
@@ -167,62 +134,55 @@ describe("useAddIndexRoot", () => {
 // ---- useDeleteIndexRoot -------------------------------------------------------
 
 describe("useDeleteIndexRoot", () => {
-  let mockFetch: jest.Mock;
+  let mockClient: { photobank_DeleteRoot: jest.Mock };
 
   beforeEach(() => {
-    mockFetch = jest.fn();
-    mockGetAuthenticatedApiClient.mockReturnValue(createMockClient(mockFetch) as any);
+    mockClient = { photobank_DeleteRoot: jest.fn() };
+    mockAuthenticatedApiClient(mockClient);
   });
 
   afterEach(() => jest.clearAllMocks());
 
-  test("DELETEs correct URL for given id", async () => {
-    mockFetch
-      .mockResolvedValueOnce({ ok: true })
-      .mockResolvedValueOnce({ ok: true, json: async () => ({ roots: [], success: true }) });
+  test("calls photobank_DeleteRoot with the given id", async () => {
+    mockClient.photobank_DeleteRoot.mockResolvedValue({ success: true });
 
-    const { result } = renderHook(() => useDeleteIndexRoot(), { wrapper: createWrapper() });
+    const { wrapper } = createQueryClientWrapper();
+    const { result } = renderHook(() => useDeleteIndexRoot(), { wrapper });
 
     await act(async () => {
       await result.current.mutateAsync(7);
     });
 
-    expect(mockFetch).toHaveBeenCalledWith(
-      expect.stringContaining("/api/photobank/settings/roots/7"),
-      expect.objectContaining({ method: "DELETE" }),
-    );
+    expect(mockClient.photobank_DeleteRoot).toHaveBeenCalledWith(7);
   });
 });
 
 // ---- useAddTagRule ------------------------------------------------------------
 
 describe("useAddTagRule", () => {
-  let mockFetch: jest.Mock;
+  let mockClient: { photobank_AddRule: jest.Mock };
 
   beforeEach(() => {
-    mockFetch = jest.fn();
-    mockGetAuthenticatedApiClient.mockReturnValue(createMockClient(mockFetch) as any);
+    mockClient = { photobank_AddRule: jest.fn() };
+    mockAuthenticatedApiClient(mockClient);
   });
 
   afterEach(() => jest.clearAllMocks());
 
-  test("POSTs to rules endpoint with rule data", async () => {
-    mockFetch
-      .mockResolvedValueOnce({ ok: true, json: async () => ({ id: 5, success: true }) })
-      .mockResolvedValueOnce({ ok: true, json: async () => ({ rules: [], success: true }) });
+  test("calls photobank_AddRule with the rule data", async () => {
+    mockClient.photobank_AddRule.mockResolvedValue({ id: 5, success: true });
 
-    const { result } = renderHook(() => useAddTagRule(), { wrapper: createWrapper() });
+    const { wrapper } = createQueryClientWrapper();
+    const { result } = renderHook(() => useAddTagRule(), { wrapper });
 
     await act(async () => {
       await result.current.mutateAsync({ pathPattern: "/Fotky/*", tagName: "fotky", sortOrder: 0 });
     });
 
-    expect(mockFetch).toHaveBeenCalledWith(
-      expect.stringContaining("/api/photobank/settings/rules"),
-      expect.objectContaining({
-        method: "POST",
-        body: expect.stringContaining("fotky"),
-      }),
+    expect(mockClient.photobank_AddRule).toHaveBeenCalledTimes(1);
+    const [body] = mockClient.photobank_AddRule.mock.calls[0];
+    expect(body).toEqual(
+      expect.objectContaining({ pathPattern: "/Fotky/*", tagName: "fotky", sortOrder: 0 }),
     );
   });
 });
@@ -230,62 +190,53 @@ describe("useAddTagRule", () => {
 // ---- useDeleteTagRule ---------------------------------------------------------
 
 describe("useDeleteTagRule", () => {
-  let mockFetch: jest.Mock;
+  let mockClient: { photobank_DeleteRule: jest.Mock };
 
   beforeEach(() => {
-    mockFetch = jest.fn();
-    mockGetAuthenticatedApiClient.mockReturnValue(createMockClient(mockFetch) as any);
+    mockClient = { photobank_DeleteRule: jest.fn() };
+    mockAuthenticatedApiClient(mockClient);
   });
 
   afterEach(() => jest.clearAllMocks());
 
-  test("DELETEs correct URL for given rule id", async () => {
-    mockFetch
-      .mockResolvedValueOnce({ ok: true })
-      .mockResolvedValueOnce({ ok: true, json: async () => ({ rules: [], success: true }) });
+  test("calls photobank_DeleteRule with the given rule id", async () => {
+    mockClient.photobank_DeleteRule.mockResolvedValue({ success: true });
 
-    const { result } = renderHook(() => useDeleteTagRule(), { wrapper: createWrapper() });
+    const { wrapper } = createQueryClientWrapper();
+    const { result } = renderHook(() => useDeleteTagRule(), { wrapper });
 
     await act(async () => {
       await result.current.mutateAsync(3);
     });
 
-    expect(mockFetch).toHaveBeenCalledWith(
-      expect.stringContaining("/api/photobank/settings/rules/3"),
-      expect.objectContaining({ method: "DELETE" }),
-    );
+    expect(mockClient.photobank_DeleteRule).toHaveBeenCalledWith(3);
   });
 });
 
 // ---- useReapplyTagRules -------------------------------------------------------
 
 describe("useReapplyTagRules", () => {
-  let mockFetch: jest.Mock;
+  let mockClient: { photobank_ReapplyRules: jest.Mock };
 
   beforeEach(() => {
-    mockFetch = jest.fn();
-    mockGetAuthenticatedApiClient.mockReturnValue(createMockClient(mockFetch) as any);
+    mockClient = { photobank_ReapplyRules: jest.fn() };
+    mockAuthenticatedApiClient(mockClient);
   });
 
   afterEach(() => jest.clearAllMocks());
 
-  test("POSTs to reapply endpoint and returns photosUpdated count", async () => {
-    mockFetch.mockResolvedValue({
-      ok: true,
-      json: async () => ({ photosUpdated: 42, success: true }),
-    });
+  test("calls photobank_ReapplyRules and returns photosUpdated count", async () => {
+    mockClient.photobank_ReapplyRules.mockResolvedValue({ photosUpdated: 42, success: true });
 
-    const { result } = renderHook(() => useReapplyTagRules(), { wrapper: createWrapper() });
+    const { wrapper } = createQueryClientWrapper();
+    const { result } = renderHook(() => useReapplyTagRules(), { wrapper });
 
-    let data: { photosUpdated: number } | undefined;
+    let data: { photosUpdated?: number } | undefined;
     await act(async () => {
       data = await result.current.mutateAsync();
     });
 
-    expect(mockFetch).toHaveBeenCalledWith(
-      expect.stringContaining("/api/photobank/settings/rules/reapply"),
-      expect.objectContaining({ method: "POST" }),
-    );
+    expect(mockClient.photobank_ReapplyRules).toHaveBeenCalledTimes(1);
     expect(data?.photosUpdated).toBe(42);
   });
 });

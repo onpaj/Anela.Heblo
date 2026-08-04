@@ -113,7 +113,8 @@ public class CatalogConstantsTests
         {
             nameof(CatalogConstants.ALL_HISTORY_MONTHS_THRESHOLD),
             nameof(CatalogConstants.HISTORY_FLOOR_DATE),
-            nameof(CatalogConstants.MARGIN_HISTORY_FLOOR_DATE)
+            nameof(CatalogConstants.MARGIN_HISTORY_FLOOR_DATE),
+            nameof(CatalogConstants.WarehouseCapacityKg)
         });
         properties.Should().BeEmpty("Constants class should not have properties");
         methods.Should().BeEmpty("Constants class should not have methods");

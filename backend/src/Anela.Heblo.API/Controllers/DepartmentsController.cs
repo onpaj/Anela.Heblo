@@ -1,23 +1,30 @@
+using Anela.Heblo.Application.Features.UserManagement.UseCases.GetDepartments;
+using Anela.Heblo.Domain.Features.Authorization;
+using MediatR;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using Anela.Heblo.Domain.Features.InvoiceClassification;
 
 namespace Anela.Heblo.API.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-public class DepartmentsController : ControllerBase
+[FeatureAuthorize(Feature.Finance_FinancialOverview, Feature.Purchase_InvoiceClassification)]
+public class DepartmentsController : BaseApiController
 {
-    private readonly IDepartmentClient _departmentClient;
+    private readonly IMediator _mediator;
 
-    public DepartmentsController(IDepartmentClient departmentClient)
+    public DepartmentsController(IMediator mediator)
     {
-        _departmentClient = departmentClient;
+        _mediator = mediator;
     }
 
     [HttpGet]
-    public async Task<ActionResult<IEnumerable<Department>>> GetDepartments(CancellationToken cancellationToken = default)
+    [ProducesResponseType(typeof(GetDepartmentsResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    public async Task<ActionResult<GetDepartmentsResponse>> GetDepartments(CancellationToken cancellationToken = default)
     {
-        var departments = await _departmentClient.GetDepartmentsAsync(cancellationToken);
-        return Ok(departments);
+        var response = await _mediator.Send(new GetDepartmentsRequest(), cancellationToken);
+        return HandleResponse(response);
     }
 }
