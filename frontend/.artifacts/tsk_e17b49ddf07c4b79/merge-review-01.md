@@ -3,6 +3,8 @@
 **Title:** [arch-review] Manufacture: useManufactureOrders list & protocol hooks bypass the typed generated client via `(apiClient as any).http.fetch`
 **Base:** main · **Head:** harness/tsk_b8f2386a67e8459f · **Closes:** #3797
 
+> **Correction (post-review):** this document originally described `manufactureOrder_GetProtocolPdf` returning a `FileResponse` with a `.data: Blob` field. That was never accurate for this endpoint — the generated client returns `GetManufactureProtocolResponse { pdfBytes?: string; fileName?: string }` (base64-encoded bytes). The claims below have been corrected to match the actual shipped implementation, which decodes `pdfBytes` via `atob`/`Uint8Array` into a `Blob`.
+
 ## What the PR does
 
 Two hooks in `frontend/src/api/hooks/useManufactureOrders.ts` bypassed the generated NSwag client
@@ -10,7 +12,7 @@ by reaching into private fields (`(apiClient as any).baseUrl`, `(apiClient as an
 hand-building URLs/query strings. This PR routes both through the already-generated typed methods:
 
 - `useManufactureOrdersQuery` → `manufactureOrder_GetOrders(...)` (11 positional filter params)
-- `useOpenManufactureProtocol` → `manufactureOrder_GetProtocolPdf(orderId)` (returns `FileResponse`)
+- `useOpenManufactureProtocol` → `manufactureOrder_GetProtocolPdf(orderId)` (returns `GetManufactureProtocolResponse`, base64 `pdfBytes`, decoded client-side into a `Blob`)
 
 Net code change is small: **2 files** (`useManufactureOrders.ts` +19/−42, coupled test +20/−33).
 The remaining ~1150 additions are process-artifact markdown under `.artifacts/tsk_b8f2386a67e8459f/`,
@@ -23,10 +25,10 @@ Read the full diff, the surrounding hook source, the generated client, and both 
 
 - **Signatures match the calls exactly.**
   - `manufactureOrder_GetOrders(state, dateFrom, dateTo, responsiblePerson, orderNumber, productCode, erpDocumentNumber, manualActionRequired, lotNumber, pageNumber, pageSize)` at `api-client.ts:6917` — same positional order the code passes. `pageNumber`/`pageSize` are `number | undefined` (not `null`), and the code correctly normalizes every arg with `?? undefined`.
-  - `manufactureOrder_GetProtocolPdf(id): Promise<FileResponse>` at `api-client.ts:7336`; `FileResponse.data: Blob` (`api-client.ts:43171`) is a drop-in for the old `response.blob()`.
+  - `manufactureOrder_GetProtocolPdf(id): Promise<GetManufactureProtocolResponse>` at `api-client.ts:7382`; `GetManufactureProtocolResponse` (`api-client.ts:30354`) has `pdfBytes?: string` (base64) and `fileName?: string` — no `.data`/`Blob` field. The hook decodes `pdfBytes` via `atob`/`Uint8Array` into a `Blob` before calling `URL.createObjectURL`, replacing the old `response.blob()`.
 - **Anti-pattern fully removed.** No `(apiClient as any).http`/`.baseUrl` remains in either hook; the only surviving `as any` is the pre-existing `getManufactureOrdersClient()` cast used by all sibling hooks.
 - **Consumers compile & read unchanged fields.** `ManufactureOrderList.tsx:90-92` destructures `data.orders/totalCount/totalPages` (all on `GetManufactureOrdersResponse`); `ManufactureOrderDetail.tsx:124` uses only `{ openProtocol, isLoading }` — it does **not** read `error`, so the one accepted behavior change (error string `"HTTP error! status: 404"` → SwaggerException's `"An unexpected server error occurred."`) is not user-visible; it's only logged to console.
-- **Tests pass.** Ran the coupled `useOpenManufactureProtocol.test.ts` via `react-scripts test` → **6/6 green**.
+- **Tests pass.** Ran the coupled `useOpenManufactureProtocol.test.ts` via `react-scripts test` → **7/7 green** (mocks the real `{ pdfBytes, fileName }` shape, plus a case for a missing-`pdfBytes` response).
 - **Build clean.** `react-scripts build` → "Compiled successfully" (project's pinned TS 4.9.5). (`npx tsc` surfaced errors only inside `node_modules/react-i18next` — a lib/TS-version mismatch pre-existing in the repo and suppressed by CRA's skipLibCheck; unrelated to this diff.)
 - **Lint clean.** `eslint` on both changed files → 0 problems.
 

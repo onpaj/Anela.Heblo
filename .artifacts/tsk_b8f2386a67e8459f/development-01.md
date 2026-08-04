@@ -2,6 +2,14 @@
 
 Implemented exactly as specified in design-02/plan-02, with no deviations.
 
+> **Correction (post-review):** after this step was written, an unrelated PR (#3847) merged into
+> `main` and changed `manufactureOrder_GetProtocolPdf`'s generated return type from
+> `Promise<FileResponse>` (`{ data: Blob }`) to `Promise<GetManufactureProtocolResponse>`
+> (`{ pdfBytes?: string; fileName?: string }`, base64). The code snippet and test description
+> below reflect the pre-#3847 implementation and are now stale; the actual shipped code decodes
+> `response.pdfBytes` via `atob`/`Uint8Array` into a `Blob`. See `useManufactureOrders.ts` and
+> `useOpenManufactureProtocol.test.ts` for the current implementation.
+
 ## Files changed
 
 ### `frontend/src/api/hooks/useManufactureOrders.ts`
