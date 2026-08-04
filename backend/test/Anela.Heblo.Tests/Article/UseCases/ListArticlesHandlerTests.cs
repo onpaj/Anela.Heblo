@@ -75,4 +75,71 @@ public class ListArticlesHandlerTests
             r => r.GetPagedAsync(ArticleStatus.Failed, 1, 25, It.IsAny<CancellationToken>()),
             Times.Once);
     }
+
+    [Fact]
+    public async Task Handle_ClampsOversizedPageSizeTo100()
+    {
+        _repository
+            .Setup(r => r.GetPagedAsync(
+                It.IsAny<ArticleStatus?>(),
+                It.IsAny<int>(),
+                It.IsAny<int>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync((new List<DomainArticle>(), 0));
+
+        var response = await CreateHandler().Handle(
+            new ListArticlesRequest { Page = 1, PageSize = 1_000_000 },
+            default);
+
+        _repository.Verify(
+            r => r.GetPagedAsync(It.IsAny<ArticleStatus?>(), 1, 100, It.IsAny<CancellationToken>()),
+            Times.Once);
+        response.PageSize.Should().Be(100);
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(-5)]
+    public async Task Handle_ClampsNonPositivePageSizeTo1(int requestedPageSize)
+    {
+        _repository
+            .Setup(r => r.GetPagedAsync(
+                It.IsAny<ArticleStatus?>(),
+                It.IsAny<int>(),
+                It.IsAny<int>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync((new List<DomainArticle>(), 0));
+
+        var response = await CreateHandler().Handle(
+            new ListArticlesRequest { Page = 1, PageSize = requestedPageSize },
+            default);
+
+        _repository.Verify(
+            r => r.GetPagedAsync(It.IsAny<ArticleStatus?>(), 1, 1, It.IsAny<CancellationToken>()),
+            Times.Once);
+        response.PageSize.Should().Be(1);
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(-3)]
+    public async Task Handle_ClampsNonPositivePageTo1(int requestedPage)
+    {
+        _repository
+            .Setup(r => r.GetPagedAsync(
+                It.IsAny<ArticleStatus?>(),
+                It.IsAny<int>(),
+                It.IsAny<int>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync((new List<DomainArticle>(), 0));
+
+        var response = await CreateHandler().Handle(
+            new ListArticlesRequest { Page = requestedPage, PageSize = 20 },
+            default);
+
+        _repository.Verify(
+            r => r.GetPagedAsync(It.IsAny<ArticleStatus?>(), 1, It.IsAny<int>(), It.IsAny<CancellationToken>()),
+            Times.Once);
+        response.Page.Should().Be(1);
+    }
 }

@@ -12,7 +12,4 @@ public class GetProductMarginsRequest : IRequest<GetProductMarginsResponse>
     public int PageSize { get; set; } = 20;
     public string? SortBy { get; set; }
     public bool SortDescending { get; set; } = false;
-
-    public DateTime? DateFrom { get; set; }
-    public DateTime? DateTo { get; set; }
 }

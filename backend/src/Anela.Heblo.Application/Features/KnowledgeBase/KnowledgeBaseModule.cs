@@ -8,6 +8,7 @@ using Anela.Heblo.Application.Features.KnowledgeBase.UseCases.AskQuestion;
 using Anela.Heblo.Domain.Features.KnowledgeBase;
 using Anela.Heblo.Persistence.KnowledgeBase;
 using MediatR;
+using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -48,6 +49,14 @@ public static class KnowledgeBaseModule
         services.AddScoped<IKnowledgeBaseRepository, KnowledgeBaseRepository>();
 
         services.AddSingleton<IProductEnrichmentCache, ProductEnrichmentCache>();
+
+        // KB-scoped decoration of the default IChatClient with product-link enrichment.
+        // Kept out of the generic Anthropic adapter so unrelated features resolving the
+        // default (unkeyed) IChatClient don't inherit KB's product-code rewriting.
+        services.AddKeyedSingleton<IChatClient>(KnowledgeBaseConstants.EnrichedChatClientKey, (sp, _) =>
+            new PostAnswerEnrichmentMiddleware(
+                sp.GetRequiredService<IChatClient>(),
+                sp.GetRequiredService<IProductEnrichmentCache>()));
 
         // Register QuestionLoggingBehavior scoped to KB (not global like ValidationBehavior)
         services.AddScoped<IPipelineBehavior<AskQuestionRequest, AskQuestionResponse>, QuestionLoggingBehavior>();

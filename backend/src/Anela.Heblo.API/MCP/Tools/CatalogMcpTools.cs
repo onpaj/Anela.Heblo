@@ -1,5 +1,6 @@
 using System.ComponentModel;
 using System.Text.Json;
+using Anela.Heblo.API.MCP;
 using Anela.Heblo.Application.Features.Catalog.Contracts;
 using Anela.Heblo.Application.Features.Catalog.UseCases.GetCatalogDetail;
 using Anela.Heblo.Application.Features.Catalog.UseCases.GetProductComposition;
@@ -44,6 +45,8 @@ public class CatalogMcpTools
         int pageSize = 50,
         CancellationToken cancellationToken = default)
     {
+        _currentUserService.EnsureFeatureAccess(Feature.Products_Catalog, "Catalog");
+
         var request = new GetCatalogListRequest
         {
             SearchTerm = searchTerm,
@@ -64,6 +67,8 @@ public class CatalogMcpTools
         int monthsBack = 13,
         CancellationToken cancellationToken = default)
     {
+        _currentUserService.EnsureFeatureAccess(Feature.Products_Catalog, "Catalog");
+
         var request = new GetCatalogDetailRequest
         {
             ProductCode = productCode,
@@ -86,6 +91,8 @@ public class CatalogMcpTools
         string productCode,
         CancellationToken cancellationToken = default)
     {
+        _currentUserService.EnsureFeatureAccess(Feature.Products_Catalog, "Catalog");
+
         var request = new GetProductCompositionRequest { ProductCode = productCode };
         var response = await _mediator.Send(request, cancellationToken);
 
@@ -100,6 +107,8 @@ public class CatalogMcpTools
     [McpServerTool]
     public async Task<string> GetMaterialsForPurchase(CancellationToken cancellationToken = default)
     {
+        _currentUserService.EnsureFeatureAccess(Feature.Products_Catalog, "Catalog");
+
         var request = new GetMaterialsForPurchaseRequest();
         var response = await _mediator.Send(request, cancellationToken);
         return JsonSerializer.Serialize(response);
@@ -115,6 +124,8 @@ public class CatalogMcpTools
         ProductType[]? productTypes = null,
         CancellationToken cancellationToken = default)
     {
+        _currentUserService.EnsureFeatureAccess(Feature.Products_Catalog, "Catalog");
+
         var request = new GetCatalogListRequest
         {
             SearchTerm = searchTerm,
@@ -133,6 +144,8 @@ public class CatalogMcpTools
         string productCode,
         CancellationToken cancellationToken = default)
     {
+        _currentUserService.EnsureFeatureAccess(Feature.Products_Catalog, "Catalog");
+
         var request = new GetProductUsageRequest { ProductCode = productCode };
         var response = await _mediator.Send(request, cancellationToken);
 
@@ -147,6 +160,8 @@ public class CatalogMcpTools
     [McpServerTool]
     public async Task<string> GetWarehouseStatistics(CancellationToken cancellationToken = default)
     {
+        _currentUserService.EnsureFeatureAccess(Feature.Products_Catalog, "Catalog");
+
         var request = new GetWarehouseStatisticsRequest();
         var response = await _mediator.Send(request, cancellationToken);
         return JsonSerializer.Serialize(response);
@@ -171,12 +186,7 @@ public class CatalogMcpTools
         bool sortDescending = false,
         CancellationToken cancellationToken = default)
     {
-        var requiredRole = AccessRoles.For(Feature.Products_ProductMargins, AccessLevel.Read);
-        if (!_currentUserService.IsInRole(requiredRole))
-        {
-            throw new McpException(
-                $"[FORBIDDEN] You do not have permission to access Product Margins (requires {requiredRole}).");
-        }
+        _currentUserService.EnsureFeatureAccess(Feature.Products_ProductMargins, "Product Margins");
 
         var request = new GetProductMarginsRequest
         {

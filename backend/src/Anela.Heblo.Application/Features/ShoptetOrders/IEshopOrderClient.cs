@@ -19,6 +19,17 @@ public interface IEshopOrderClient
     /// </summary>
     Task UpdateEshopRemarkAsync(string orderCode, string eshopRemark, CancellationToken ct = default);
 
+    /// <summary>
+    /// Read-modify-write helper: appends <paramref name="text"/> to the order's current
+    /// eshop remark, separated by a newline. If the order has no remark yet, the remark
+    /// becomes <paramref name="text"/> verbatim (no leading separator).
+    /// Equivalent to:
+    ///   var current = await GetEshopRemarkAsync(orderCode, ct);
+    ///   var updated = string.IsNullOrEmpty(current) ? text : $"{current}\n{text}";
+    ///   await UpdateEshopRemarkAsync(orderCode, updated, ct);
+    /// </summary>
+    Task AppendEshopRemarkAsync(string orderCode, string text, CancellationToken ct = default);
+
     Task DeleteOrderAsync(string orderCode, CancellationToken ct = default);
     Task<List<EshopOrderSummary>> GetRecentOrdersAsync(int count = 20, CancellationToken ct = default);
 

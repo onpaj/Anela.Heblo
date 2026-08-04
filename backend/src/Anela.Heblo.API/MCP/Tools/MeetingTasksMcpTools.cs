@@ -1,5 +1,6 @@
 using System.ComponentModel;
 using System.Text.Json;
+using Anela.Heblo.API.MCP;
 using Anela.Heblo.Application.Features.MeetingTasks.UseCases.GetTranscriptDetail;
 using Anela.Heblo.Application.Features.MeetingTasks.UseCases.GetTranscriptList;
 using Anela.Heblo.Domain.Features.Authorization;
@@ -49,7 +50,7 @@ public class MeetingTasksMcpTools
         int pageSize = 20,
         CancellationToken cancellationToken = default)
     {
-        EnsureReadAccess();
+        _currentUserService.EnsureFeatureAccess(Feature.Anela_Meetings, "Meeting Notes");
 
         try
         {
@@ -88,7 +89,7 @@ public class MeetingTasksMcpTools
         [Description("Meeting id (GUID)")] Guid id,
         CancellationToken cancellationToken = default)
     {
-        EnsureReadAccess();
+        _currentUserService.EnsureFeatureAccess(Feature.Anela_Meetings, "Meeting Notes");
 
         try
         {
@@ -127,7 +128,7 @@ public class MeetingTasksMcpTools
         [Description("Meeting id (GUID)")] Guid id,
         CancellationToken cancellationToken = default)
     {
-        EnsureReadAccess();
+        _currentUserService.EnsureFeatureAccess(Feature.Anela_Meetings, "Meeting Notes");
 
         try
         {
@@ -157,7 +158,7 @@ public class MeetingTasksMcpTools
         [Description("Meeting id (GUID)")] Guid id,
         CancellationToken cancellationToken = default)
     {
-        EnsureReadAccess();
+        _currentUserService.EnsureFeatureAccess(Feature.Anela_Meetings, "Meeting Notes");
 
         try
         {
@@ -178,16 +179,6 @@ public class MeetingTasksMcpTools
         {
             _logger.LogWarning(ex, "MCP GetMeetingTasks failed for meeting {MeetingId}", id);
             throw new McpException($"Failed to get meeting tasks: {ex.Message}");
-        }
-    }
-
-    private void EnsureReadAccess()
-    {
-        var role = AccessRoles.For(Feature.Anela_Meetings, AccessLevel.Read);
-        if (!_currentUserService.IsInRole(role))
-        {
-            throw new McpException(
-                $"[FORBIDDEN] You do not have permission to access Meeting Notes (requires {role}).");
         }
     }
 

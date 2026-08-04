@@ -10,14 +10,22 @@ namespace Anela.Heblo.Tests.Features.Photobank;
 
 public class PhotobankIndexJobTests
 {
-    private readonly Mock<IPhotobankRepository> _repoMock;
+    private readonly Mock<IPhotobankRootRepository> _rootRepoMock;
+    private readonly Mock<IPhotobankTagRuleRepository> _tagRuleRepoMock;
+    private readonly Mock<IPhotobankPhotoRepository> _photoRepoMock;
+    private readonly Mock<IPhotobankTagRepository> _tagRepoMock;
+    private readonly Mock<IPhotobankPhotoTagRepository> _photoTagRepoMock;
     private readonly Mock<IPhotobankGraphService> _graphServiceMock;
     private readonly Mock<IRecurringJobStatusChecker> _statusCheckerMock;
     private readonly PhotobankIndexJob _job;
 
     public PhotobankIndexJobTests()
     {
-        _repoMock = new Mock<IPhotobankRepository>();
+        _rootRepoMock = new Mock<IPhotobankRootRepository>();
+        _tagRuleRepoMock = new Mock<IPhotobankTagRuleRepository>();
+        _photoRepoMock = new Mock<IPhotobankPhotoRepository>();
+        _tagRepoMock = new Mock<IPhotobankTagRepository>();
+        _photoTagRepoMock = new Mock<IPhotobankPhotoTagRepository>();
         _graphServiceMock = new Mock<IPhotobankGraphService>();
         _statusCheckerMock = new Mock<IRecurringJobStatusChecker>();
 
@@ -27,7 +35,11 @@ public class PhotobankIndexJobTests
 
         _job = new PhotobankIndexJob(
             _graphServiceMock.Object,
-            _repoMock.Object,
+            _rootRepoMock.Object,
+            _tagRuleRepoMock.Object,
+            _photoRepoMock.Object,
+            _tagRepoMock.Object,
+            _photoTagRepoMock.Object,
             _statusCheckerMock.Object,
             NullLogger<PhotobankIndexJob>.Instance);
     }
@@ -66,47 +78,53 @@ public class PhotobankIndexJobTests
             IsDeleted = false,
         };
 
-        _repoMock
+        _rootRepoMock
             .Setup(r => r.GetActiveRootsWithDriveAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync([root]);
 
-        _repoMock
+        _tagRuleRepoMock
             .Setup(r => r.GetActiveTagRulesAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync([tagRule]);
 
-        _repoMock
+        _photoRepoMock
             .Setup(r => r.GetPhotoBySharePointFileIdAsync("file-abc-123", It.IsAny<CancellationToken>()))
             .ReturnsAsync((Photo?)null);
 
         Photo? capturedPhoto = null;
-        _repoMock
+        _photoRepoMock
             .Setup(r => r.AddPhotoAsync(It.IsAny<Photo>(), It.IsAny<CancellationToken>()))
             .Callback<Photo, CancellationToken>((p, _) => capturedPhoto = p)
             .Returns(Task.CompletedTask);
 
-        _repoMock
+        _photoTagRepoMock
             .Setup(r => r.GetPhotoTagsByPhotoAndSourceAsync(It.IsAny<int>(), PhotoTagSource.Rule, It.IsAny<CancellationToken>()))
             .ReturnsAsync([]);
 
-        _repoMock
+        _photoTagRepoMock
             .Setup(r => r.RemovePhotoTagsAsync(It.IsAny<IEnumerable<PhotoTag>>(), It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
 
-        _repoMock
+        _tagRepoMock
             .Setup(r => r.GetOrCreateTagsAsync(It.IsAny<IReadOnlyCollection<string>>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new Dictionary<string, int> { ["produkty"] = 42 });
 
-        _repoMock
+        _photoTagRepoMock
             .Setup(r => r.PhotoTagExistsAsync(It.IsAny<int>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(false);
 
         PhotoTag? capturedPhotoTag = null;
-        _repoMock
+        _photoTagRepoMock
             .Setup(r => r.AddPhotoTagAsync(It.IsAny<PhotoTag>(), It.IsAny<CancellationToken>()))
             .Callback<PhotoTag, CancellationToken>((pt, _) => capturedPhotoTag = pt)
             .Returns(Task.CompletedTask);
 
-        _repoMock
+        _photoRepoMock
+            .Setup(r => r.SaveChangesAsync(It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+        _photoTagRepoMock
+            .Setup(r => r.SaveChangesAsync(It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+        _rootRepoMock
             .Setup(r => r.SaveChangesAsync(It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
 
@@ -133,8 +151,8 @@ public class PhotobankIndexJobTests
         capturedPhotoTag!.TagId.Should().Be(42);
         capturedPhotoTag.Source.Should().Be(PhotoTagSource.Rule);
 
-        _repoMock.Verify(r => r.AddPhotoAsync(It.IsAny<Photo>(), It.IsAny<CancellationToken>()), Times.Once);
-        _repoMock.Verify(r => r.AddPhotoTagAsync(It.IsAny<PhotoTag>(), It.IsAny<CancellationToken>()), Times.Once);
+        _photoRepoMock.Verify(r => r.AddPhotoAsync(It.IsAny<Photo>(), It.IsAny<CancellationToken>()), Times.Once);
+        _photoTagRepoMock.Verify(r => r.AddPhotoTagAsync(It.IsAny<PhotoTag>(), It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
@@ -171,39 +189,45 @@ public class PhotobankIndexJobTests
             IsDeleted = false,
         };
 
-        _repoMock
+        _rootRepoMock
             .Setup(r => r.GetActiveRootsWithDriveAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync([root]);
 
-        _repoMock
+        _tagRuleRepoMock
             .Setup(r => r.GetActiveTagRulesAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync([tagRule]);
 
-        _repoMock
+        _photoRepoMock
             .Setup(r => r.GetPhotoBySharePointFileIdAsync("file-abc-123", It.IsAny<CancellationToken>()))
             .ReturnsAsync((Photo?)null);
 
-        _repoMock
+        _photoRepoMock
             .Setup(r => r.AddPhotoAsync(It.IsAny<Photo>(), It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
 
-        _repoMock
+        _photoTagRepoMock
             .Setup(r => r.GetPhotoTagsByPhotoAndSourceAsync(It.IsAny<int>(), PhotoTagSource.Rule, It.IsAny<CancellationToken>()))
             .ReturnsAsync([]);
 
-        _repoMock
+        _photoTagRepoMock
             .Setup(r => r.RemovePhotoTagsAsync(It.IsAny<IEnumerable<PhotoTag>>(), It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
 
-        _repoMock
+        _tagRepoMock
             .Setup(r => r.GetOrCreateTagsAsync(It.IsAny<IReadOnlyCollection<string>>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new Dictionary<string, int> { ["produkty"] = 42 });
 
-        _repoMock
+        _photoTagRepoMock
             .Setup(r => r.PhotoTagExistsAsync(It.IsAny<int>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(true);
 
-        _repoMock
+        _photoRepoMock
+            .Setup(r => r.SaveChangesAsync(It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+        _photoTagRepoMock
+            .Setup(r => r.SaveChangesAsync(It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+        _rootRepoMock
             .Setup(r => r.SaveChangesAsync(It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
 
@@ -219,7 +243,7 @@ public class PhotobankIndexJobTests
         await _job.ExecuteAsync();
 
         // Assert
-        _repoMock.Verify(r => r.AddPhotoTagAsync(It.IsAny<PhotoTag>(), It.IsAny<CancellationToken>()), Times.Never);
+        _photoTagRepoMock.Verify(r => r.AddPhotoTagAsync(It.IsAny<PhotoTag>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]
@@ -255,19 +279,19 @@ public class PhotobankIndexJobTests
             IsDeleted = true,
         };
 
-        _repoMock
+        _rootRepoMock
             .Setup(r => r.GetActiveRootsWithDriveAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync([root]);
 
-        _repoMock
+        _photoRepoMock
             .Setup(r => r.GetPhotoBySharePointFileIdAsync("file-to-delete", It.IsAny<CancellationToken>()))
             .ReturnsAsync(existingPhoto);
 
-        _repoMock
+        _photoRepoMock
             .Setup(r => r.RemovePhotoAsync(existingPhoto, It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
 
-        _repoMock
+        _rootRepoMock
             .Setup(r => r.SaveChangesAsync(It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
 
@@ -283,8 +307,8 @@ public class PhotobankIndexJobTests
         await _job.ExecuteAsync();
 
         // Assert
-        _repoMock.Verify(r => r.RemovePhotoAsync(existingPhoto, It.IsAny<CancellationToken>()), Times.Once);
-        _repoMock.Verify(r => r.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.AtLeastOnce);
+        _photoRepoMock.Verify(r => r.RemovePhotoAsync(existingPhoto, It.IsAny<CancellationToken>()), Times.Once);
+        _rootRepoMock.Verify(r => r.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.AtLeastOnce);
     }
 
     [Fact]
@@ -303,11 +327,11 @@ public class PhotobankIndexJobTests
             CreatedAt = DateTime.UtcNow,
         };
 
-        _repoMock
+        _rootRepoMock
             .Setup(r => r.GetActiveRootsWithDriveAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync([root]);
 
-        _repoMock
+        _rootRepoMock
             .Setup(r => r.SaveChangesAsync(It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
 
@@ -326,7 +350,7 @@ public class PhotobankIndexJobTests
         root.DeltaLink.Should().Be(expectedDeltaLink);
         root.LastIndexedAt.Should().NotBeNull();
         root.LastIndexedAt!.Value.Should().BeCloseTo(DateTime.UtcNow, TimeSpan.FromSeconds(5));
-        _repoMock.Verify(r => r.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
+        _rootRepoMock.Verify(r => r.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
@@ -335,7 +359,7 @@ public class PhotobankIndexJobTests
         // Arrange
         var activeRoots = new List<PhotobankIndexRoot>(); // GetActiveRootsWithDriveAsync already filters
 
-        _repoMock
+        _rootRepoMock
             .Setup(r => r.GetActiveRootsWithDriveAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(activeRoots);
 
@@ -352,7 +376,8 @@ public class PhotobankIndexJobTests
     public async Task UpsertPhotoBatch_MultipleItemsInSameBatch_FlushesSaveChangesExactlyThreeTimesTotal()
     {
         // Arrange — 2 non-deleted items, both fit in a single batch (BatchSize = 200).
-        // Expected SaveChangesAsync calls: 1 (Phase A) + 1 (Phase B) + 1 (root bookkeeping) = 3.
+        // Expected SaveChangesAsync calls: 1 (Phase A, photo repo) + 1 (Phase B, photo-tag repo)
+        // + 1 (root bookkeeping, root repo) = 3, one per repository.
         var root = new PhotobankIndexRoot
         {
             Id = 1,
@@ -394,43 +419,49 @@ public class PhotobankIndexJobTests
             IsDeleted = false,
         };
 
-        _repoMock
+        _rootRepoMock
             .Setup(r => r.GetActiveRootsWithDriveAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync([root]);
 
-        _repoMock
+        _tagRuleRepoMock
             .Setup(r => r.GetActiveTagRulesAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync([tagRule]);
 
-        _repoMock
+        _photoRepoMock
             .Setup(r => r.GetPhotoBySharePointFileIdAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync((Photo?)null);
 
-        _repoMock
+        _photoRepoMock
             .Setup(r => r.AddPhotoAsync(It.IsAny<Photo>(), It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
 
-        _repoMock
+        _tagRepoMock
             .Setup(r => r.GetOrCreateTagsAsync(It.IsAny<IReadOnlyCollection<string>>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new Dictionary<string, int> { ["produkty"] = 42 });
 
-        _repoMock
+        _photoTagRepoMock
             .Setup(r => r.GetPhotoTagsByPhotoAndSourceAsync(It.IsAny<int>(), PhotoTagSource.Rule, It.IsAny<CancellationToken>()))
             .ReturnsAsync([]);
 
-        _repoMock
+        _photoTagRepoMock
             .Setup(r => r.RemovePhotoTagsAsync(It.IsAny<IEnumerable<PhotoTag>>(), It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
 
-        _repoMock
+        _photoTagRepoMock
             .Setup(r => r.PhotoTagExistsAsync(It.IsAny<int>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(false);
 
-        _repoMock
+        _photoTagRepoMock
             .Setup(r => r.AddPhotoTagAsync(It.IsAny<PhotoTag>(), It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
 
-        _repoMock
+        _photoRepoMock
+            .Setup(r => r.SaveChangesAsync(It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+        _photoTagRepoMock
+            .Setup(r => r.SaveChangesAsync(It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+        _rootRepoMock
             .Setup(r => r.SaveChangesAsync(It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
 
@@ -446,10 +477,12 @@ public class PhotobankIndexJobTests
         await _job.ExecuteAsync();
 
         // Assert
-        _repoMock.Verify(r => r.AddPhotoAsync(It.IsAny<Photo>(), It.IsAny<CancellationToken>()), Times.Exactly(2));
-        _repoMock.Verify(r => r.AddPhotoTagAsync(It.IsAny<PhotoTag>(), It.IsAny<CancellationToken>()), Times.Exactly(2));
-        _repoMock.Verify(r => r.GetOrCreateTagsAsync(It.IsAny<IReadOnlyCollection<string>>(), It.IsAny<CancellationToken>()), Times.Once);
-        _repoMock.Verify(r => r.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Exactly(3));
+        _photoRepoMock.Verify(r => r.AddPhotoAsync(It.IsAny<Photo>(), It.IsAny<CancellationToken>()), Times.Exactly(2));
+        _photoTagRepoMock.Verify(r => r.AddPhotoTagAsync(It.IsAny<PhotoTag>(), It.IsAny<CancellationToken>()), Times.Exactly(2));
+        _tagRepoMock.Verify(r => r.GetOrCreateTagsAsync(It.IsAny<IReadOnlyCollection<string>>(), It.IsAny<CancellationToken>()), Times.Once);
+        _photoRepoMock.Verify(r => r.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
+        _photoTagRepoMock.Verify(r => r.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
+        _rootRepoMock.Verify(r => r.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
@@ -457,7 +490,8 @@ public class PhotobankIndexJobTests
     {
         // Arrange — 201 non-deleted items, no matching tag rules (empty active rule list),
         // so BatchSize = 200 forces 2 batches: [200 items] + [1 item].
-        // Expected SaveChangesAsync calls: (1 + 1) per batch * 2 batches + 1 root bookkeeping = 5.
+        // Expected SaveChangesAsync calls: photo repo x2 (Phase A per batch), photo-tag repo x2
+        // (Phase B per batch), root repo x1 (bookkeeping) = 5 total.
         var root = new PhotobankIndexRoot
         {
             Id = 1,
@@ -483,31 +517,37 @@ public class PhotobankIndexJobTests
             })
             .ToList();
 
-        _repoMock
+        _rootRepoMock
             .Setup(r => r.GetActiveRootsWithDriveAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync([root]);
 
-        _repoMock
+        _tagRuleRepoMock
             .Setup(r => r.GetActiveTagRulesAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(new List<TagRule>());
 
-        _repoMock
+        _photoRepoMock
             .Setup(r => r.GetPhotoBySharePointFileIdAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync((Photo?)null);
 
-        _repoMock
+        _photoRepoMock
             .Setup(r => r.AddPhotoAsync(It.IsAny<Photo>(), It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
 
-        _repoMock
+        _photoTagRepoMock
             .Setup(r => r.GetPhotoTagsByPhotoAndSourceAsync(It.IsAny<int>(), PhotoTagSource.Rule, It.IsAny<CancellationToken>()))
             .ReturnsAsync([]);
 
-        _repoMock
+        _photoTagRepoMock
             .Setup(r => r.RemovePhotoTagsAsync(It.IsAny<IEnumerable<PhotoTag>>(), It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
 
-        _repoMock
+        _photoRepoMock
+            .Setup(r => r.SaveChangesAsync(It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+        _photoTagRepoMock
+            .Setup(r => r.SaveChangesAsync(It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+        _rootRepoMock
             .Setup(r => r.SaveChangesAsync(It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
 
@@ -523,9 +563,11 @@ public class PhotobankIndexJobTests
         await _job.ExecuteAsync();
 
         // Assert
-        _repoMock.Verify(r => r.AddPhotoAsync(It.IsAny<Photo>(), It.IsAny<CancellationToken>()), Times.Exactly(itemCount));
-        _repoMock.Verify(r => r.GetOrCreateTagsAsync(It.IsAny<IReadOnlyCollection<string>>(), It.IsAny<CancellationToken>()), Times.Never);
-        _repoMock.Verify(r => r.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Exactly(5));
+        _photoRepoMock.Verify(r => r.AddPhotoAsync(It.IsAny<Photo>(), It.IsAny<CancellationToken>()), Times.Exactly(itemCount));
+        _tagRepoMock.Verify(r => r.GetOrCreateTagsAsync(It.IsAny<IReadOnlyCollection<string>>(), It.IsAny<CancellationToken>()), Times.Never);
+        _photoRepoMock.Verify(r => r.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Exactly(2));
+        _photoTagRepoMock.Verify(r => r.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Exactly(2));
+        _rootRepoMock.Verify(r => r.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
@@ -568,33 +610,39 @@ public class PhotobankIndexJobTests
             IsDeleted = false,
         };
 
-        _repoMock
+        _rootRepoMock
             .Setup(r => r.GetActiveRootsWithDriveAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync([root]);
 
-        _repoMock
+        _tagRuleRepoMock
             .Setup(r => r.GetActiveTagRulesAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(new List<TagRule>());
 
-        _repoMock
+        _photoRepoMock
             .Setup(r => r.GetPhotoBySharePointFileIdAsync("file-dup", It.IsAny<CancellationToken>()))
             .ReturnsAsync((Photo?)null);
 
         Photo? capturedPhoto = null;
-        _repoMock
+        _photoRepoMock
             .Setup(r => r.AddPhotoAsync(It.IsAny<Photo>(), It.IsAny<CancellationToken>()))
             .Callback<Photo, CancellationToken>((p, _) => capturedPhoto = p)
             .Returns(Task.CompletedTask);
 
-        _repoMock
+        _photoTagRepoMock
             .Setup(r => r.GetPhotoTagsByPhotoAndSourceAsync(It.IsAny<int>(), PhotoTagSource.Rule, It.IsAny<CancellationToken>()))
             .ReturnsAsync([]);
 
-        _repoMock
+        _photoTagRepoMock
             .Setup(r => r.RemovePhotoTagsAsync(It.IsAny<IEnumerable<PhotoTag>>(), It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
 
-        _repoMock
+        _photoRepoMock
+            .Setup(r => r.SaveChangesAsync(It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+        _photoTagRepoMock
+            .Setup(r => r.SaveChangesAsync(It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+        _rootRepoMock
             .Setup(r => r.SaveChangesAsync(It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
 
@@ -611,8 +659,8 @@ public class PhotobankIndexJobTests
 
         // Assert — a single Photo row is created, and its final field values reflect the
         // second (later) item in delta order, proving both occurrences shared one instance.
-        _repoMock.Verify(r => r.AddPhotoAsync(It.IsAny<Photo>(), It.IsAny<CancellationToken>()), Times.Once);
-        _repoMock.Verify(r => r.GetPhotoBySharePointFileIdAsync("file-dup", It.IsAny<CancellationToken>()), Times.Once);
+        _photoRepoMock.Verify(r => r.AddPhotoAsync(It.IsAny<Photo>(), It.IsAny<CancellationToken>()), Times.Once);
+        _photoRepoMock.Verify(r => r.GetPhotoBySharePointFileIdAsync("file-dup", It.IsAny<CancellationToken>()), Times.Once);
 
         capturedPhoto.Should().NotBeNull();
         capturedPhoto!.FileName.Should().Be("second-name.jpg");
@@ -658,16 +706,16 @@ public class PhotobankIndexJobTests
             IsDeleted = true,
         };
 
-        _repoMock
+        _rootRepoMock
             .Setup(r => r.GetActiveRootsWithDriveAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync([root]);
 
-        _repoMock
+        _tagRuleRepoMock
             .Setup(r => r.GetActiveTagRulesAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(new List<TagRule>());
 
         Photo? capturedPhoto = null;
-        _repoMock
+        _photoRepoMock
             .Setup(r => r.AddPhotoAsync(It.IsAny<Photo>(), It.IsAny<CancellationToken>()))
             .Callback<Photo, CancellationToken>((p, _) => capturedPhoto = p)
             .Returns(Task.CompletedTask);
@@ -675,23 +723,29 @@ public class PhotobankIndexJobTests
         // Lazily evaluated: returns null on the first (Phase A, upsert) lookup — before
         // AddPhotoAsync has run — and returns the just-created Photo on the second
         // (deletion) lookup, simulating that the pending batch's flush has committed it.
-        _repoMock
+        _photoRepoMock
             .Setup(r => r.GetPhotoBySharePointFileIdAsync("file-x", It.IsAny<CancellationToken>()))
             .ReturnsAsync(() => capturedPhoto);
 
-        _repoMock
+        _photoTagRepoMock
             .Setup(r => r.GetPhotoTagsByPhotoAndSourceAsync(It.IsAny<int>(), PhotoTagSource.Rule, It.IsAny<CancellationToken>()))
             .ReturnsAsync([]);
 
-        _repoMock
+        _photoTagRepoMock
             .Setup(r => r.RemovePhotoTagsAsync(It.IsAny<IEnumerable<PhotoTag>>(), It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
 
-        _repoMock
+        _photoRepoMock
             .Setup(r => r.RemovePhotoAsync(It.IsAny<Photo>(), It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
 
-        _repoMock
+        _photoRepoMock
+            .Setup(r => r.SaveChangesAsync(It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+        _photoTagRepoMock
+            .Setup(r => r.SaveChangesAsync(It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+        _rootRepoMock
             .Setup(r => r.SaveChangesAsync(It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
 
@@ -708,8 +762,8 @@ public class PhotobankIndexJobTests
 
         // Assert — the photo was created, then removed: no orphaned row.
         capturedPhoto.Should().NotBeNull();
-        _repoMock.Verify(r => r.AddPhotoAsync(It.IsAny<Photo>(), It.IsAny<CancellationToken>()), Times.Once);
-        _repoMock.Verify(r => r.RemovePhotoAsync(capturedPhoto!, It.IsAny<CancellationToken>()), Times.Once);
+        _photoRepoMock.Verify(r => r.AddPhotoAsync(It.IsAny<Photo>(), It.IsAny<CancellationToken>()), Times.Once);
+        _photoRepoMock.Verify(r => r.RemovePhotoAsync(capturedPhoto!, It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
@@ -769,45 +823,51 @@ public class PhotobankIndexJobTests
             IsDeleted = false,
         };
 
-        _repoMock
+        _rootRepoMock
             .Setup(r => r.GetActiveRootsWithDriveAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync([root]);
 
-        _repoMock
+        _tagRuleRepoMock
             .Setup(r => r.GetActiveTagRulesAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync([tagRuleA, tagRuleB]);
 
-        _repoMock
+        _photoRepoMock
             .Setup(r => r.GetPhotoBySharePointFileIdAsync("file-dup", It.IsAny<CancellationToken>()))
             .ReturnsAsync((Photo?)null);
 
-        _repoMock
+        _photoRepoMock
             .Setup(r => r.AddPhotoAsync(It.IsAny<Photo>(), It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
 
-        _repoMock
+        _photoTagRepoMock
             .Setup(r => r.GetPhotoTagsByPhotoAndSourceAsync(It.IsAny<int>(), PhotoTagSource.Rule, It.IsAny<CancellationToken>()))
             .ReturnsAsync([]);
 
-        _repoMock
+        _photoTagRepoMock
             .Setup(r => r.RemovePhotoTagsAsync(It.IsAny<IEnumerable<PhotoTag>>(), It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
 
-        _repoMock
+        _tagRepoMock
             .Setup(r => r.GetOrCreateTagsAsync(It.IsAny<IReadOnlyCollection<string>>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new Dictionary<string, int> { ["tag-a"] = 1, ["tag-b"] = 2 });
 
-        _repoMock
+        _photoTagRepoMock
             .Setup(r => r.PhotoTagExistsAsync(It.IsAny<int>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(false);
 
         var addedPhotoTags = new List<PhotoTag>();
-        _repoMock
+        _photoTagRepoMock
             .Setup(r => r.AddPhotoTagAsync(It.IsAny<PhotoTag>(), It.IsAny<CancellationToken>()))
             .Callback<PhotoTag, CancellationToken>((pt, _) => addedPhotoTags.Add(pt))
             .Returns(Task.CompletedTask);
 
-        _repoMock
+        _photoRepoMock
+            .Setup(r => r.SaveChangesAsync(It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+        _photoTagRepoMock
+            .Setup(r => r.SaveChangesAsync(It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+        _rootRepoMock
             .Setup(r => r.SaveChangesAsync(It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
 
@@ -824,9 +884,9 @@ public class PhotobankIndexJobTests
 
         // Assert — the photo's tag-application path ran exactly once (per distinct photo, not
         // per raw item), and only the last item's ("Fotky/B" -> "tag-b") match was applied.
-        _repoMock.Verify(r => r.GetPhotoTagsByPhotoAndSourceAsync(It.IsAny<int>(), PhotoTagSource.Rule, It.IsAny<CancellationToken>()), Times.Once);
-        _repoMock.Verify(r => r.RemovePhotoTagsAsync(It.IsAny<IEnumerable<PhotoTag>>(), It.IsAny<CancellationToken>()), Times.Once);
-        _repoMock.Verify(r => r.AddPhotoTagAsync(It.IsAny<PhotoTag>(), It.IsAny<CancellationToken>()), Times.Once);
+        _photoTagRepoMock.Verify(r => r.GetPhotoTagsByPhotoAndSourceAsync(It.IsAny<int>(), PhotoTagSource.Rule, It.IsAny<CancellationToken>()), Times.Once);
+        _photoTagRepoMock.Verify(r => r.RemovePhotoTagsAsync(It.IsAny<IEnumerable<PhotoTag>>(), It.IsAny<CancellationToken>()), Times.Once);
+        _photoTagRepoMock.Verify(r => r.AddPhotoTagAsync(It.IsAny<PhotoTag>(), It.IsAny<CancellationToken>()), Times.Once);
 
         addedPhotoTags.Should().ContainSingle();
         addedPhotoTags[0].TagId.Should().Be(2); // "tag-b", from the last item ("Fotky/B")
@@ -882,46 +942,52 @@ public class PhotobankIndexJobTests
             IsDeleted = false,
         };
 
-        _repoMock
+        _rootRepoMock
             .Setup(r => r.GetActiveRootsWithDriveAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync([root]);
 
-        _repoMock
+        _tagRuleRepoMock
             .Setup(r => r.GetActiveTagRulesAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync([tagRuleCommon]);
 
-        _repoMock
+        _photoRepoMock
             .Setup(r => r.GetPhotoBySharePointFileIdAsync("file-dup", It.IsAny<CancellationToken>()))
             .ReturnsAsync((Photo?)null);
 
-        _repoMock
+        _photoRepoMock
             .Setup(r => r.AddPhotoAsync(It.IsAny<Photo>(), It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
 
-        _repoMock
+        _photoTagRepoMock
             .Setup(r => r.GetPhotoTagsByPhotoAndSourceAsync(It.IsAny<int>(), PhotoTagSource.Rule, It.IsAny<CancellationToken>()))
             .ReturnsAsync([]);
 
-        _repoMock
+        _photoTagRepoMock
             .Setup(r => r.RemovePhotoTagsAsync(It.IsAny<IEnumerable<PhotoTag>>(), It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
 
-        _repoMock
+        _tagRepoMock
             .Setup(r => r.GetOrCreateTagsAsync(It.IsAny<IReadOnlyCollection<string>>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new Dictionary<string, int> { ["common"] = 99 });
 
         // Real DB semantics: PhotoTagExistsAsync can never see this batch's own unflushed
         // inserts, so it always returns false here — the fix must avoid relying on this check
         // to prevent the duplicate insert.
-        _repoMock
+        _photoTagRepoMock
             .Setup(r => r.PhotoTagExistsAsync(It.IsAny<int>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(false);
 
-        _repoMock
+        _photoTagRepoMock
             .Setup(r => r.AddPhotoTagAsync(It.IsAny<PhotoTag>(), It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
 
-        _repoMock
+        _photoRepoMock
+            .Setup(r => r.SaveChangesAsync(It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+        _photoTagRepoMock
+            .Setup(r => r.SaveChangesAsync(It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+        _rootRepoMock
             .Setup(r => r.SaveChangesAsync(It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
 
@@ -938,6 +1004,6 @@ public class PhotobankIndexJobTests
 
         // Assert — AddPhotoTagAsync is called exactly once for the (PhotoId, TagId) pair,
         // never twice, so a real DbContext's composite-key constraint would never be violated.
-        _repoMock.Verify(r => r.AddPhotoTagAsync(It.Is<PhotoTag>(pt => pt.TagId == 99), It.IsAny<CancellationToken>()), Times.Once);
+        _photoTagRepoMock.Verify(r => r.AddPhotoTagAsync(It.Is<PhotoTag>(pt => pt.TagId == 99), It.IsAny<CancellationToken>()), Times.Once);
     }
 }

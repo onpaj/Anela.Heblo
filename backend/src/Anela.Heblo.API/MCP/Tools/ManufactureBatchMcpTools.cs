@@ -1,8 +1,11 @@
 using System.ComponentModel;
 using System.Text.Json;
+using Anela.Heblo.API.MCP;
 using Anela.Heblo.Application.Features.Manufacture.UseCases.CalculateBatchBySize;
 using Anela.Heblo.Application.Features.Manufacture.UseCases.CalculateBatchByIngredient;
 using Anela.Heblo.Application.Features.Manufacture.UseCases.CalculateBatchPlan;
+using Anela.Heblo.Domain.Features.Authorization;
+using Anela.Heblo.Domain.Features.Users;
 using MediatR;
 using ModelContextProtocol;
 using ModelContextProtocol.Server;
@@ -17,10 +20,12 @@ namespace Anela.Heblo.API.MCP.Tools;
 public class ManufactureBatchMcpTools
 {
     private readonly IMediator _mediator;
+    private readonly ICurrentUserService _currentUserService;
 
-    public ManufactureBatchMcpTools(IMediator mediator)
+    public ManufactureBatchMcpTools(IMediator mediator, ICurrentUserService currentUserService)
     {
         _mediator = mediator;
+        _currentUserService = currentUserService;
     }
 
     [McpServerTool]
@@ -30,6 +35,8 @@ public class ManufactureBatchMcpTools
         CancellationToken cancellationToken = default
     )
     {
+        _currentUserService.EnsureFeatureAccess(Feature.Manufacture_BatchPlanning, "Batch Planning");
+
         var request = new CalculatedBatchSizeRequest { ProductCode = productCode };
         var response = await _mediator.Send(request, cancellationToken);
 
@@ -50,6 +57,8 @@ public class ManufactureBatchMcpTools
         CancellationToken cancellationToken = default
     )
     {
+        _currentUserService.EnsureFeatureAccess(Feature.Manufacture_BatchPlanning, "Batch Planning");
+
         var request = new CalculatedBatchSizeRequest { ProductCode = productCode, DesiredBatchSize = desiredBatchSize };
         var response = await _mediator.Send(request, cancellationToken);
 
@@ -72,6 +81,8 @@ public class ManufactureBatchMcpTools
         CancellationToken cancellationToken = default
     )
     {
+        _currentUserService.EnsureFeatureAccess(Feature.Manufacture_BatchPlanning, "Batch Planning");
+
         var request = new CalculateBatchByIngredientRequest
         {
             ProductCode = productCode,
@@ -95,6 +106,8 @@ public class ManufactureBatchMcpTools
         CancellationToken cancellationToken = default
     )
     {
+        _currentUserService.EnsureFeatureAccess(Feature.Manufacture_BatchPlanning, "Batch Planning");
+
         var response = await _mediator.Send(request, cancellationToken);
 
         if (!response.Success)

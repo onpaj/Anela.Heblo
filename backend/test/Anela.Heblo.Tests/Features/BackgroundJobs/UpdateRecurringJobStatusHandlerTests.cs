@@ -13,6 +13,7 @@ public class UpdateRecurringJobStatusHandlerTests
     private readonly Mock<ILogger<UpdateRecurringJobStatusHandler>> _loggerMock;
     private readonly Mock<IRecurringJobConfigurationRepository> _repositoryMock;
     private readonly Mock<ICurrentUserService> _currentUserServiceMock;
+    private readonly Mock<TimeProvider> _timeProviderMock;
     private readonly UpdateRecurringJobStatusHandler _handler;
 
     private const string ValidJobName = "TestJob";
@@ -21,11 +22,16 @@ public class UpdateRecurringJobStatusHandlerTests
     private const string ValidCronExpression = "0 0 * * *";
     private const string ValidTimeZoneId = "Europe/Prague";
 
+    // 2026-03-30 12:00 UTC — fixed reference time to avoid flakiness
+    private static readonly DateTimeOffset FixedUtcNow = new(2026, 3, 30, 12, 0, 0, TimeSpan.Zero);
+
     public UpdateRecurringJobStatusHandlerTests()
     {
         _loggerMock = new Mock<ILogger<UpdateRecurringJobStatusHandler>>();
         _repositoryMock = new Mock<IRecurringJobConfigurationRepository>();
         _currentUserServiceMock = new Mock<ICurrentUserService>();
+        _timeProviderMock = new Mock<TimeProvider>();
+        _timeProviderMock.Setup(tp => tp.GetUtcNow()).Returns(FixedUtcNow);
 
         _currentUserServiceMock
             .Setup(x => x.GetCurrentUser())
@@ -34,7 +40,8 @@ public class UpdateRecurringJobStatusHandlerTests
         _handler = new UpdateRecurringJobStatusHandler(
             _loggerMock.Object,
             _repositoryMock.Object,
-            _currentUserServiceMock.Object);
+            _currentUserServiceMock.Object,
+            _timeProviderMock.Object);
     }
 
     [Fact]
@@ -54,7 +61,8 @@ public class UpdateRecurringJobStatusHandlerTests
             ValidCronExpression,
             ValidTimeZoneId,
             false,
-            "System");
+            "System",
+            DateTime.UtcNow);
 
         _repositoryMock
             .Setup(r => r.GetByJobNameAsync(ValidJobName, It.IsAny<CancellationToken>()))
@@ -73,7 +81,7 @@ public class UpdateRecurringJobStatusHandlerTests
         result.JobName.Should().Be(ValidJobName);
         result.IsEnabled.Should().BeTrue();
         result.LastModifiedBy.Should().Be("Test User");
-        result.LastModifiedAt.Should().BeCloseTo(DateTime.UtcNow, TimeSpan.FromSeconds(5));
+        result.LastModifiedAt.Should().Be(FixedUtcNow.UtcDateTime);
 
         job.IsEnabled.Should().BeTrue();
     }
@@ -95,7 +103,8 @@ public class UpdateRecurringJobStatusHandlerTests
             ValidCronExpression,
             ValidTimeZoneId,
             true,
-            "System");
+            "System",
+            DateTime.UtcNow);
 
         _repositoryMock
             .Setup(r => r.GetByJobNameAsync(ValidJobName, It.IsAny<CancellationToken>()))
@@ -160,7 +169,8 @@ public class UpdateRecurringJobStatusHandlerTests
             ValidCronExpression,
             ValidTimeZoneId,
             false,
-            "System");
+            "System",
+            DateTime.UtcNow);
 
         _repositoryMock
             .Setup(r => r.GetByJobNameAsync(ValidJobName, It.IsAny<CancellationToken>()))
@@ -200,7 +210,8 @@ public class UpdateRecurringJobStatusHandlerTests
             ValidCronExpression,
             ValidTimeZoneId,
             false,
-            "System");
+            "System",
+            DateTime.UtcNow);
 
         _repositoryMock
             .Setup(r => r.GetByJobNameAsync(ValidJobName, It.IsAny<CancellationToken>()))
@@ -235,7 +246,8 @@ public class UpdateRecurringJobStatusHandlerTests
             ValidCronExpression,
             ValidTimeZoneId,
             false,
-            "System");
+            "System",
+            DateTime.UtcNow);
 
         _repositoryMock
             .Setup(r => r.GetByJobNameAsync(ValidJobName, It.IsAny<CancellationToken>()))
@@ -313,7 +325,8 @@ public class UpdateRecurringJobStatusHandlerTests
             ValidCronExpression,
             ValidTimeZoneId,
             false,
-            "System");
+            "System",
+            DateTime.UtcNow);
 
         _repositoryMock
             .Setup(r => r.GetByJobNameAsync(ValidJobName, It.IsAny<CancellationToken>()))

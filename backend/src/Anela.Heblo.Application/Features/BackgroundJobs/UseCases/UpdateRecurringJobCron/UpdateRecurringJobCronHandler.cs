@@ -15,17 +15,20 @@ public class UpdateRecurringJobCronHandler : IRequestHandler<UpdateRecurringJobC
     private readonly IRecurringJobConfigurationRepository _repository;
     private readonly ICurrentUserService _currentUserService;
     private readonly ICronScheduler _scheduler;
+    private readonly TimeProvider _timeProvider;
 
     public UpdateRecurringJobCronHandler(
         ILogger<UpdateRecurringJobCronHandler> logger,
         IRecurringJobConfigurationRepository repository,
         ICurrentUserService currentUserService,
-        ICronScheduler scheduler)
+        ICronScheduler scheduler,
+        TimeProvider timeProvider)
     {
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _repository = repository ?? throw new ArgumentNullException(nameof(repository));
         _currentUserService = currentUserService ?? throw new ArgumentNullException(nameof(currentUserService));
         _scheduler = scheduler ?? throw new ArgumentNullException(nameof(scheduler));
+        _timeProvider = timeProvider ?? throw new ArgumentNullException(nameof(timeProvider));
     }
 
     public async Task<UpdateRecurringJobCronResponse> Handle(
@@ -63,8 +66,9 @@ public class UpdateRecurringJobCronHandler : IRequestHandler<UpdateRecurringJobC
         {
             var currentUser = _currentUserService.GetCurrentUser();
             var modifiedBy = currentUser.Name ?? "System";
+            var now = _timeProvider.GetUtcNow().UtcDateTime;
 
-            job.UpdateCronExpression(request.CronExpression, modifiedBy);
+            job.UpdateCronExpression(request.CronExpression, modifiedBy, now);
             await _repository.UpdateAsync(job, cancellationToken);
 
             _scheduler.UpdateCronSchedule(job.JobName, job.CronExpression);

@@ -3,7 +3,7 @@ using MediatR;
 
 namespace Anela.Heblo.Application.Features.Bank.UseCases.ImportBankStatement;
 
-public class ImportBankStatementRequest : IRequest<ImportBankStatementResponse>
+public class ImportBankStatementRequest : IRequest<BankStatementImportResultDto>
 {
     public string AccountName { get; set; } = null!;
     public DateTime DateFrom { get; set; }

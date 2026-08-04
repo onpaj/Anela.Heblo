@@ -135,11 +135,7 @@ public sealed class CompleteDeliveredOrdersJob : IRecurringJob
     {
         try
         {
-            var currentRemark = await _orderClient.GetEshopRemarkAsync(orderCode, cancellationToken);
-            var updatedRemark = string.IsNullOrEmpty(currentRemark)
-                ? CompletionNote
-                : $"{currentRemark}\n{CompletionNote}";
-            await _orderClient.UpdateEshopRemarkAsync(orderCode, updatedRemark, cancellationToken);
+            await _orderClient.AppendEshopRemarkAsync(orderCode, CompletionNote, cancellationToken);
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {

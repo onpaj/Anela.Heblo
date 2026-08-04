@@ -177,6 +177,15 @@ public class ShoptetOrderClient : IEshopOrderClient, IShoptetExpeditionOrderSour
         }
     }
 
+    public async Task AppendEshopRemarkAsync(string orderCode, string text, CancellationToken ct = default)
+    {
+        var currentRemark = await GetEshopRemarkAsync(orderCode, ct);
+        var updatedRemark = string.IsNullOrEmpty(currentRemark)
+            ? text
+            : $"{currentRemark}\n{text}";
+        await UpdateEshopRemarkAsync(orderCode, updatedRemark, ct);
+    }
+
     public async Task DeleteOrderAsync(string orderCode, CancellationToken ct = default)
     {
         var response = await _http.DeleteAsync($"/api/orders/{orderCode}", ct);

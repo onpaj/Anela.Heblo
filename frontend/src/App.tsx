@@ -15,7 +15,7 @@ import BatchPlanningCalculator from "./components/pages/ManufactureBatchPlanning
 import ProductMarginsList from "./components/pages/ProductMarginsList";
 import ProductMarginSummary from "./components/pages/ProductMarginSummary";
 import FinancialOverview from "./components/pages/FinancialOverview";
-import BankStatementImportChart from "./components/pages/BankStatementImportChart";
+import BankStatementImportPage from "./pages/customer/BankStatementImportPage";
 import JournalList from "./components/pages/Journal/JournalList";
 import JournalEntryNew from "./components/pages/JournalEntryNew";
 import JournalEntryEdit from "./components/pages/JournalEntryEdit";
@@ -90,6 +90,7 @@ import PoPickStep from "./components/terminal/lot-identification/PoPickStep";
 import PoLinePickStep from "./components/terminal/lot-identification/PoLinePickStep";
 import ReceiveScreen from "./components/terminal/lot-identification/ReceiveScreen";
 import FinishPoStep from "./components/terminal/lot-identification/FinishPoStep";
+import LabelIdentificationScreen from "./components/terminal/label-identification/LabelIdentificationScreen";
 import BaleniLayout from "./components/baleni/BaleniLayout";
 import BaleniHome from "./components/baleni/BaleniHome";
 import BaleniStatistics from "./components/baleni/statistics/BaleniStatistics";
@@ -391,6 +392,7 @@ function App() {
                           <Route path="po/:id/finish" element={<FinishPoStep />} />
                           <Route path="freeform" element={<ReceiveScreen mode="freeform" />} />
                         </Route>
+                        <Route path="label-identification" element={<LabelIdentificationScreen />} />
                       </Route>
 
                       {/* Balení device module — landscape touch PC, no sidebar */}
@@ -405,7 +407,7 @@ function App() {
                       <Route element={<Layout statusBar={<StatusBar />}><ErrorBoundary><Outlet /></ErrorBoundary></Layout>}>
                         <Route path="/" element={<Dashboard />} />
                         <Route path="/finance/overview" element={guard("/finance/overview", <FinancialOverview />)} />
-                        <Route path="/finance/bank-statements" element={<BankStatementImportChart />} />
+                        <Route path="/finance/bank-statements" element={<BankStatementImportPage />} />
                         <Route path="/analytics/product-margin-summary" element={guard("/analytics/product-margin-summary", <ProductMarginSummary />)} />
                         <Route path="/catalog" element={guard("/catalog", <CatalogList />)} />
                         <Route path="/purchase/orders" element={guard("/purchase/orders", <PurchaseOrderList />)} />

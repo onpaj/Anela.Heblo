@@ -1,7 +1,10 @@
 using System.ComponentModel;
 using System.Text.Json;
+using Anela.Heblo.API.MCP;
 using Anela.Heblo.Application.Features.UserManagement.UseCases.GetGroupMembers;
 using Anela.Heblo.Application.Shared;
+using Anela.Heblo.Domain.Features.Authorization;
+using Anela.Heblo.Domain.Features.Users;
 using FluentValidation;
 using MediatR;
 using ModelContextProtocol;
@@ -16,10 +19,12 @@ namespace Anela.Heblo.API.MCP.Tools;
 public class UserManagementMcpTools
 {
     private readonly IMediator _mediator;
+    private readonly ICurrentUserService _currentUserService;
 
-    public UserManagementMcpTools(IMediator mediator)
+    public UserManagementMcpTools(IMediator mediator, ICurrentUserService currentUserService)
     {
         _mediator = mediator;
+        _currentUserService = currentUserService;
     }
 
     [McpServerTool]
@@ -29,6 +34,8 @@ public class UserManagementMcpTools
         CancellationToken cancellationToken = default
     )
     {
+        _currentUserService.EnsureFeatureAccess(Feature.Admin_Administration, "User Management");
+
         var request = new GetGroupMembersRequest { GroupId = groupId };
 
         GetGroupMembersResponse response;

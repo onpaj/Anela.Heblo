@@ -20,6 +20,7 @@ using Anela.Heblo.Application.Features.ExpeditionList;
 using Anela.Heblo.Application.Features.ExpeditionListArchive;
 using Anela.Heblo.Application.Features.CatalogDocuments;
 using Anela.Heblo.Application.Features.KnowledgeBase;
+using Anela.Heblo.Application.Features.LabelIdentification;
 using Anela.Heblo.Application.Features.Article;
 using Anela.Heblo.Application.Features.Leaflet;
 using Anela.Heblo.Application.Features.MeetingTasks;
@@ -99,6 +100,7 @@ public static class ApplicationModule
         services.AddInvoicesModule(configuration);
         services.AddKnowledgeBaseModule(configuration);
         services.AddCatalogDocumentsModule(configuration);
+        services.AddLabelIdentificationModule(configuration);
         services.AddLeafletModule(configuration);
         services.AddArticleModule(configuration);
         services.AddExpeditionListModule(configuration);

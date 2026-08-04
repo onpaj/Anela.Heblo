@@ -1,5 +1,6 @@
 import { useMutation } from "@tanstack/react-query";
 import { getAuthenticatedApiClient } from "../client";
+import { PrintExpeditionOrderRequest } from "../generated/api-client";
 import { BaseResponse } from "../../types/errors";
 
 export interface RunExpeditionListPrintFixResult {
@@ -9,23 +10,9 @@ export interface RunExpeditionListPrintFixResult {
 export const useRunExpeditionListPrintFix = () => {
   return useMutation<RunExpeditionListPrintFixResult, Error, void>({
     mutationFn: async (): Promise<RunExpeditionListPrintFixResult> => {
-      const apiClient = getAuthenticatedApiClient();
-      const relativeUrl = `/api/expedition-list/run-fix`;
-      const fullUrl = `${(apiClient as any).baseUrl}${relativeUrl}`;
-
-      const response = await (apiClient as any).http.fetch(fullUrl, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => null);
-        throw new Error(
-          errorData?.errorMessage ?? `HTTP error! status: ${response.status}`
-        );
-      }
-
-      return await response.json();
+      const client = getAuthenticatedApiClient();
+      const response = await client.expeditionList_RunFix();
+      return { totalCount: response.totalCount ?? 0 };
     },
   });
 };
@@ -33,31 +20,14 @@ export const useRunExpeditionListPrintFix = () => {
 export const usePrintExpeditionOrder = () => {
   return useMutation<BaseResponse, Error, { orderCode: string }>({
     mutationFn: async ({ orderCode }): Promise<BaseResponse> => {
-      const apiClient = getAuthenticatedApiClient();
-      const relativeUrl = `/api/expedition-list/print-order`;
-      const fullUrl = `${(apiClient as any).baseUrl}${relativeUrl}`;
-
-      const response = await (apiClient as any).http.fetch(fullUrl, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ orderCode }),
-      });
-
-      // The handler returns a BaseResponse body even for failures (mapped to
-      // 4xx by the ErrorCodes HttpStatusCode attribute), so read the body first.
-      const data = await response.json().catch(() => null);
-      if (data && typeof data.success === "boolean") {
-        return {
-          success: data.success,
-          errorCode: data.errorCode ?? undefined,
-          params: data.params ?? undefined,
-        };
-      }
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      return { success: true };
+      const client = getAuthenticatedApiClient();
+      const request = new PrintExpeditionOrderRequest({ orderCode });
+      const response = await client.expeditionList_PrintOrder(request);
+      return {
+        success: response.success ?? true,
+        errorCode: response.errorCode ?? undefined,
+        params: response.params ?? undefined,
+      };
     },
   });
 };

@@ -51,7 +51,8 @@ public class RecurringJobConfiguration : Entity<string>
         string cronExpression,
         string timeZoneId,
         bool isEnabled,
-        string lastModifiedBy)
+        string lastModifiedBy,
+        DateTime lastModifiedAt)
     {
         if (string.IsNullOrWhiteSpace(jobName))
             throw new ValidationException("JobName is required");
@@ -73,7 +74,7 @@ public class RecurringJobConfiguration : Entity<string>
         CronExpression = cronExpression;
         TimeZoneId = timeZoneId;
         IsEnabled = isEnabled;
-        LastModifiedAt = DateTime.UtcNow;
+        LastModifiedAt = lastModifiedAt;
         LastModifiedBy = lastModifiedBy;
     }
 
@@ -82,7 +83,8 @@ public class RecurringJobConfiguration : Entity<string>
         string description,
         string cronExpression,
         string timeZoneId,
-        string modifiedBy)
+        string modifiedBy,
+        DateTime modifiedAt)
     {
         if (string.IsNullOrWhiteSpace(displayName))
             throw new ValidationException("DisplayName is required");
@@ -99,31 +101,31 @@ public class RecurringJobConfiguration : Entity<string>
         Description = description;
         CronExpression = cronExpression;
         TimeZoneId = timeZoneId;
-        LastModifiedAt = DateTime.UtcNow;
+        LastModifiedAt = modifiedAt;
         LastModifiedBy = modifiedBy;
     }
 
-    public void Enable(string modifiedBy)
+    public void Enable(string modifiedBy, DateTime modifiedAt)
     {
         if (string.IsNullOrWhiteSpace(modifiedBy))
             throw new ValidationException("ModifiedBy is required");
 
         IsEnabled = true;
-        LastModifiedAt = DateTime.UtcNow;
+        LastModifiedAt = modifiedAt;
         LastModifiedBy = modifiedBy;
     }
 
-    public void Disable(string modifiedBy)
+    public void Disable(string modifiedBy, DateTime modifiedAt)
     {
         if (string.IsNullOrWhiteSpace(modifiedBy))
             throw new ValidationException("ModifiedBy is required");
 
         IsEnabled = false;
-        LastModifiedAt = DateTime.UtcNow;
+        LastModifiedAt = modifiedAt;
         LastModifiedBy = modifiedBy;
     }
 
-    public void UpdateCronExpression(string cronExpression, string modifiedBy)
+    public void UpdateCronExpression(string cronExpression, string modifiedBy, DateTime modifiedAt)
     {
         if (string.IsNullOrWhiteSpace(cronExpression))
             throw new ValidationException("CronExpression is required");
@@ -131,7 +133,7 @@ public class RecurringJobConfiguration : Entity<string>
             throw new ValidationException("ModifiedBy is required");
 
         CronExpression = cronExpression;
-        LastModifiedAt = DateTime.UtcNow;
+        LastModifiedAt = modifiedAt;
         LastModifiedBy = modifiedBy;
     }
 }
