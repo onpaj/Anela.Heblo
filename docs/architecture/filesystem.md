@@ -45,7 +45,6 @@ This document defines the project's directory structure and filesystem organizat
 │   │   │   ├── Repositories/          # Generic/shared repositories
 │   │   │   ├── Migrations/            # EF Core migrations
 │   │   │   └── PersistenceModule.cs   # DI registration
-│   │   └── Anela.Heblo.API.Client/    # Auto-generated OpenAPI client
 │   ├── test/      # Unit/integration tests
 │   └── scripts/   # Utility scripts
 │
@@ -207,15 +206,9 @@ Features/{Feature}/
 
 ## 🔧 OpenAPI Client Generation
 
-### Backend C# Client
-- **Location**: `backend/src/Anela.Heblo.API.Client/`
-- **Auto-generation**: PostBuild event in API project (Debug mode only)
-- **Tool**: NSwag with System.Text.Json
-- **Output**: `Generated/AnelaHebloApiClient.cs`
-
 ### Frontend TypeScript Client
 - **Location**: `frontend/src/api/generated/api-client.ts`
-- **Auto-generation**: Via backend PostBuild event or frontend prebuild script
+- **Auto-generation**: Via frontend prebuild script
 - **Tool**: NSwag with Fetch API template
 - **Build Integration**: Automatically generated before frontend build
 
@@ -239,7 +232,6 @@ Features/{Feature}/
 - **Scripts**: `backend/scripts/` (utility tools)
 
 ### Generated Code
-- **Backend Client**: `backend/src/Anela.Heblo.API.Client/Generated/`
 - **Frontend Client**: `frontend/src/api/generated/`
 
 ---

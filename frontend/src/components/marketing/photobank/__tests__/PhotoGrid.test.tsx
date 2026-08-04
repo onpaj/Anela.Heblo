@@ -19,7 +19,7 @@ const makePhoto = (overrides = {}) => ({
   folderPath: "/Fotky/2026",
   sharePointWebUrl: "https://sp.example.com/photo-01.jpg",
   fileSizeBytes: 2048,
-  lastModifiedAt: "2026-04-01T10:00:00Z",
+  lastModifiedAt: new Date("2026-04-01T10:00:00Z"),
   tags: [],
   ...overrides,
 });

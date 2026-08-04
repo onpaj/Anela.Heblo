@@ -45,7 +45,7 @@ export default function BulkTagDialog({
 
   const suggestions = tagName.trim()
     ? existingTags
-        .filter((t) => t.name.toLowerCase().includes(tagName.toLowerCase()))
+        .filter((t) => t.name?.toLowerCase().includes(tagName.toLowerCase()))
         .slice(0, MAX_AUTOCOMPLETE_SUGGESTIONS)
     : [];
 
@@ -171,7 +171,7 @@ export default function BulkTagDialog({
                       onMouseDown={(e) => {
                         // Prevent blur before click registers
                         e.preventDefault();
-                        setTagName(tag.name);
+                        setTagName(tag.name ?? "");
                         setShowSuggestions(false);
                         setErrorMessage(null);
                       }}

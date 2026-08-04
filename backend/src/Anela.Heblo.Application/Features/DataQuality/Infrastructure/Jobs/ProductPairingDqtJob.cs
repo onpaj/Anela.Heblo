@@ -11,6 +11,7 @@ public class ProductPairingDqtJob : IRecurringJob
     private readonly IDqtRunRepository _repository;
     private readonly IDriftDqtJobRunner _jobRunner;
     private readonly IRecurringJobStatusChecker _statusChecker;
+    private readonly TimeProvider _timeProvider;
     private readonly ILogger<ProductPairingDqtJob> _logger;
 
     public RecurringJobMetadata Metadata { get; } = new()
@@ -26,11 +27,13 @@ public class ProductPairingDqtJob : IRecurringJob
         IDqtRunRepository repository,
         IDriftDqtJobRunner jobRunner,
         IRecurringJobStatusChecker statusChecker,
+        TimeProvider timeProvider,
         ILogger<ProductPairingDqtJob> logger)
     {
         _repository = repository;
         _jobRunner = jobRunner;
         _statusChecker = statusChecker;
+        _timeProvider = timeProvider;
         _logger = logger;
     }
 
@@ -43,7 +46,7 @@ public class ProductPairingDqtJob : IRecurringJob
             return;
         }
 
-        var today = DateOnly.FromDateTime(DateTime.Today);
+        var today = DateOnly.FromDateTime(_timeProvider.GetUtcNow().DateTime);
 
         _logger.LogInformation("Starting {JobName} for {Date}", Metadata.JobName, today);
 

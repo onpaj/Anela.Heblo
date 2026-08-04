@@ -1,38 +1,20 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { getAuthenticatedApiClient, QUERY_KEYS } from "../client";
+import {
+  AddPhotoTagBody,
+  BulkAddPhotoTagBody,
+  BulkAddPhotoTagByIdsBody,
+  CreateTagBody,
+  GetPhotosResponse,
+  PhotoDto,
+  RetagPhotosBody,
+  TagDto,
+  TagWithCountDto,
+} from "../generated/api-client";
+
+export type { GetPhotosResponse, PhotoDto, TagDto, TagWithCountDto };
 
 // ---- Types ----------------------------------------------------------------
-
-export interface TagDto {
-  id: number;
-  name: string;
-  source: string;
-}
-
-export interface PhotoDto {
-  id: number;
-  sharePointFileId: string;
-  driveId: string | null;
-  name: string;
-  folderPath: string;
-  sharePointWebUrl: string | null;
-  fileSizeBytes: number | null;
-  lastModifiedAt: string;
-  tags: TagDto[];
-}
-
-export interface TagWithCountDto {
-  id: number;
-  name: string;
-  count: number;
-}
-
-export interface GetPhotosResponse {
-  items: PhotoDto[];
-  total: number;
-  page: number;
-  pageSize: number;
-}
 
 export interface GetPhotosParams {
   tags?: string[];
@@ -43,64 +25,21 @@ export interface GetPhotosParams {
   pageSize?: number;
 }
 
-// ---- Helpers --------------------------------------------------------------
-
-function getClientAndBaseUrl(): { apiClient: ReturnType<typeof getAuthenticatedApiClient>; baseUrl: string } {
-  const apiClient = getAuthenticatedApiClient();
-  const baseUrl = (apiClient as any).baseUrl as string;
-  return { apiClient, baseUrl };
-}
-
-async function apiFetch(apiClient: ReturnType<typeof getAuthenticatedApiClient>, url: string): Promise<Response> {
-  const response = await (apiClient as any).http.fetch(url, { method: "GET" });
-  if (!response.ok) {
-    throw new Error(`Photobank API error: ${response.status} ${response.statusText}`);
-  }
-  return response;
-}
-
-async function apiPost(apiClient: ReturnType<typeof getAuthenticatedApiClient>, url: string, body: unknown): Promise<Response> {
-  const response = await (apiClient as any).http.fetch(url, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
-  });
-  if (!response.ok) {
-    throw new Error(`Photobank API error: ${response.status} ${response.statusText}`);
-  }
-  return response;
-}
-
-async function apiDelete(apiClient: ReturnType<typeof getAuthenticatedApiClient>, url: string): Promise<Response> {
-  const response = await (apiClient as any).http.fetch(url, { method: "DELETE" });
-  if (!response.ok) {
-    throw new Error(`Photobank API error: ${response.status} ${response.statusText}`);
-  }
-  return response;
-}
-
-function buildPhotosUrl(baseUrl: string, params: GetPhotosParams): string {
-  const qs = new URLSearchParams();
-  if (params.search) qs.set("search", params.search);
-  if (params.useRegex) qs.set("useRegex", "true");
-  if (params.withoutTags) qs.set("withoutTags", "true");
-  if (params.page != null) qs.set("page", String(params.page));
-  if (params.pageSize != null) qs.set("pageSize", String(params.pageSize));
-  (params.tags ?? []).forEach((t) => qs.append("tags", String(t)));
-  const query = qs.toString();
-  return `${baseUrl}/api/photobank/photos${query ? `?${query}` : ""}`;
-}
-
 // ---- Hooks ----------------------------------------------------------------
 
 export const usePhotos = (params: GetPhotosParams = {}) => {
   return useQuery<GetPhotosResponse>({
     queryKey: [...QUERY_KEYS.photobank, "photos", params],
     queryFn: async () => {
-      const { apiClient, baseUrl } = getClientAndBaseUrl();
-      const url = buildPhotosUrl(baseUrl, params);
-      const response = await apiFetch(apiClient, url);
-      return response.json();
+      const apiClient = getAuthenticatedApiClient();
+      return apiClient.photobank_GetPhotos(
+        params.tags,
+        params.search,
+        params.useRegex,
+        params.withoutTags,
+        params.page,
+        params.pageSize,
+      );
     },
   });
 };
@@ -109,10 +48,9 @@ export const usePhotoTags = () => {
   return useQuery<TagWithCountDto[]>({
     queryKey: [...QUERY_KEYS.photobank, "tags"],
     queryFn: async () => {
-      const { apiClient, baseUrl } = getClientAndBaseUrl();
-      const response = await apiFetch(apiClient, `${baseUrl}/api/photobank/tags`);
-      const data = await response.json();
-      return data.tags ?? [];
+      const apiClient = getAuthenticatedApiClient();
+      const response = await apiClient.photobank_GetTags();
+      return response.tags ?? [];
     },
   });
 };
@@ -122,8 +60,8 @@ export const useAddPhotoTag = (photoId: number) => {
 
   return useMutation({
     mutationFn: async (tagName: string) => {
-      const { apiClient, baseUrl } = getClientAndBaseUrl();
-      await apiPost(apiClient, `${baseUrl}/api/photobank/photos/${photoId}/tags`, { tagName });
+      const apiClient = getAuthenticatedApiClient();
+      await apiClient.photobank_AddPhotoTag(photoId, new AddPhotoTagBody({ tagName }));
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.photobank });
@@ -136,8 +74,8 @@ export const useRemovePhotoTag = (photoId: number) => {
 
   return useMutation({
     mutationFn: async (tagId: number) => {
-      const { apiClient, baseUrl } = getClientAndBaseUrl();
-      await apiDelete(apiClient, `${baseUrl}/api/photobank/photos/${photoId}/tags/${tagId}`);
+      const apiClient = getAuthenticatedApiClient();
+      await apiClient.photobank_RemovePhotoTag(photoId, tagId);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.photobank });
@@ -151,9 +89,8 @@ export const useCreateTag = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (name: string) => {
-      const { apiClient, baseUrl } = getClientAndBaseUrl();
-      const response = await apiPost(apiClient, `${baseUrl}/api/photobank/tags`, { name });
-      return response.json();
+      const apiClient = getAuthenticatedApiClient();
+      return apiClient.photobank_CreateTag(new CreateTagBody({ name }));
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.photobank });
@@ -165,9 +102,8 @@ export const useDeleteTag = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (tagId: number) => {
-      const { apiClient, baseUrl } = getClientAndBaseUrl();
-      const response = await apiDelete(apiClient, `${baseUrl}/api/photobank/tags/${tagId}`);
-      return response.json();
+      const apiClient = getAuthenticatedApiClient();
+      return apiClient.photobank_DeleteTag(tagId);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.photobank });
@@ -204,11 +140,10 @@ export const useBulkAddPhotoTagByIds = () => {
   const queryClient = useQueryClient();
   return useMutation<void, Error, BulkAddPhotoTagByIdsParams>({
     mutationFn: async (params) => {
-      const { apiClient, baseUrl } = getClientAndBaseUrl();
-      await apiPost(apiClient, `${baseUrl}/api/photobank/photos/tag-by-ids`, {
-        photoIds: params.photoIds,
-        tagName: params.tagName,
-      });
+      const apiClient = getAuthenticatedApiClient();
+      await apiClient.photobank_BulkAddPhotoTagByIds(
+        new BulkAddPhotoTagByIdsBody({ photoIds: params.photoIds, tagName: params.tagName }),
+      );
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.photobank });
@@ -228,8 +163,13 @@ export const useRetagPhotos = () => {
 
   return useMutation({
     mutationFn: async (request: RetagPhotosRequest) => {
-      const { apiClient, baseUrl } = getClientAndBaseUrl();
-      await apiPost(apiClient, `${baseUrl}/api/photobank/photos/auto-tag`, request);
+      const apiClient = getAuthenticatedApiClient();
+      await apiClient.photobank_RetagPhotos(
+        new RetagPhotosBody({
+          photoIds: request.photoIds,
+          clearExistingAiTags: request.clearExistingAiTags,
+        }),
+      );
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.photobank });
@@ -241,25 +181,35 @@ export const useBulkAddPhotoTag = () => {
   const queryClient = useQueryClient();
   return useMutation<BulkAddPhotoTagResult, Error, BulkAddPhotoTagParams>({
     mutationFn: async (params) => {
-      const { apiClient, baseUrl } = getClientAndBaseUrl();
-      const response = await (apiClient as any).http.fetch(
-        `${baseUrl}/api/photobank/photos/bulk-tag`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
+      const apiClient = getAuthenticatedApiClient();
+      try {
+        const response = await apiClient.photobank_BulkAddPhotoTag(
+          new BulkAddPhotoTagBody({
             tags: params.tags,
             search: params.search,
             tagName: params.tagName,
           }),
-        },
-      );
-      if (!response.ok && response.status !== 400) {
-        // Only parse structured error bodies for 400 (validation/business rule errors).
-        // For anything else (401, 403, 500, network), throw a descriptive error.
-        throw new Error(`Photobank API error: ${response.status} ${response.statusText}`);
+        );
+        return {
+          success: true,
+          tagId: response.tagId,
+          tagName: response.tagName,
+          addedCount: response.addedCount,
+          alreadyTaggedCount: response.alreadyTaggedCount,
+        };
+      } catch (e) {
+        // The generated client throws (rather than returns) the 400 business-outcome body,
+        // parsing it as ProblemDetails. Its `[key: string]: any` index signature plus
+        // copy-all-properties init() means the real BulkAddPhotoTagResponse fields
+        // (success/errorCode/params/...) still land on the thrown object at runtime, just
+        // untyped. A 403 (empty body) yields no `success` property at all, so it falls
+        // through to the rethrow below rather than matching `success === false`.
+        const err = e as Partial<BulkAddPhotoTagResult> & { success?: boolean };
+        if (err && err.success === false && typeof err.errorCode === "number") {
+          return { success: false, errorCode: err.errorCode, params: err.params };
+        }
+        throw e;
       }
-      return response.json() as Promise<BulkAddPhotoTagResult>;
     },
     onSuccess: (data) => {
       if (data.success) {
