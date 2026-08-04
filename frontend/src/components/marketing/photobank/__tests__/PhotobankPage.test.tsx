@@ -16,9 +16,9 @@ jest.mock("../../../../api/hooks/usePhotobank", () => ({
   usePhotos: () => ({
     data: {
       items: [
-        { id: 1, name: "p1.jpg", sharePointFileId: "f1", driveId: "d", folderPath: "/", sharePointWebUrl: null, fileSizeBytes: null, lastModifiedAt: "2026-01-01T00:00:00Z", tags: [] },
-        { id: 2, name: "p2.jpg", sharePointFileId: "f2", driveId: "d", folderPath: "/", sharePointWebUrl: null, fileSizeBytes: null, lastModifiedAt: "2026-01-01T00:00:00Z", tags: [] },
-        { id: 3, name: "p3.jpg", sharePointFileId: "f3", driveId: "d", folderPath: "/", sharePointWebUrl: null, fileSizeBytes: null, lastModifiedAt: "2026-01-01T00:00:00Z", tags: [] },
+        { id: 1, name: "p1.jpg", sharePointFileId: "f1", driveId: "d", folderPath: "/", sharePointWebUrl: null, fileSizeBytes: null, lastModifiedAt: new Date("2026-01-01T00:00:00Z"), tags: [] },
+        { id: 2, name: "p2.jpg", sharePointFileId: "f2", driveId: "d", folderPath: "/", sharePointWebUrl: null, fileSizeBytes: null, lastModifiedAt: new Date("2026-01-01T00:00:00Z"), tags: [] },
+        { id: 3, name: "p3.jpg", sharePointFileId: "f3", driveId: "d", folderPath: "/", sharePointWebUrl: null, fileSizeBytes: null, lastModifiedAt: new Date("2026-01-01T00:00:00Z"), tags: [] },
       ],
       total: 3,
       page: 1,

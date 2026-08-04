@@ -59,7 +59,7 @@ const TagRulesTab: React.FC = () => {
     }
   };
 
-  const sortedRules = [...rules].sort((a, b) => a.sortOrder - b.sortOrder);
+  const sortedRules = [...rules].sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0));
 
   if (isLoading) {
     return <div className="text-sm text-gray-500 dark:text-graphite-muted">Načítání...</div>;
@@ -100,7 +100,7 @@ const TagRulesTab: React.FC = () => {
                   </td>
                   <td className="py-2">
                     <button
-                      onClick={() => handleDelete(rule.id)}
+                      onClick={() => handleDelete(rule.id!)}
                       disabled={deletingId === rule.id}
                       className="p-1 text-gray-400 dark:text-graphite-faint hover:text-red-500 rounded disabled:opacity-50"
                       aria-label={`Smazat pravidlo ${rule.pathPattern}`}

@@ -1,12 +1,18 @@
 import React, { useState } from 'react';
 import { Play, Loader2, ChevronDown, ChevronUp, CheckCircle, AlertCircle } from 'lucide-react';
 import { useRunDqt } from '../../api/hooks/useDataQuality';
+import { DqtTestType, RunDqtRequest } from '../../api/generated/api-client';
 
 const formatDate = (date: Date): string => {
   const y = date.getFullYear();
   const m = String(date.getMonth() + 1).padStart(2, '0');
   const d = String(date.getDate()).padStart(2, '0');
   return `${y}-${m}-${d}`;
+};
+
+const toLocalDate = (yyyyMmDd: string): Date => {
+  const [y, m, d] = yyyyMmDd.split('-').map(Number);
+  return new Date(y, m - 1, d);
 };
 
 const getDefaultDates = () => {
@@ -20,15 +26,15 @@ const getDefaultDates = () => {
 };
 
 type TestTypeOption = {
-  value: string;
+  value: DqtTestType;
   label: string;
 };
 
 const TEST_TYPE_OPTIONS: TestTypeOption[] = [
-  { value: 'IssuedInvoiceComparison', label: 'Porovnání faktur' },
-  { value: 'ProductPairing', label: 'Párování produktů' },
-  { value: 'StockWriteBackReconciliation', label: 'Zpětný zápis skladu' },
-  { value: 'LotSumVsErpStock', label: 'Šarže vs. ERP sklad' },
+  { value: DqtTestType.IssuedInvoiceComparison, label: 'Porovnání faktur' },
+  { value: DqtTestType.ProductPairing, label: 'Párování produktů' },
+  { value: DqtTestType.StockWriteBackReconciliation, label: 'Zpětný zápis skladu' },
+  { value: DqtTestType.LotSumVsErpStock, label: 'Šarže vs. ERP sklad' },
 ];
 
 const RunDqtButton: React.FC = () => {
@@ -36,7 +42,7 @@ const RunDqtButton: React.FC = () => {
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [dateFrom, setDateFrom] = useState(defaults.dateFrom);
   const [dateTo, setDateTo] = useState(defaults.dateTo);
-  const [testType, setTestType] = useState('IssuedInvoiceComparison');
+  const [testType, setTestType] = useState<DqtTestType>(DqtTestType.IssuedInvoiceComparison);
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(
     null,
   );
@@ -46,7 +52,11 @@ const RunDqtButton: React.FC = () => {
   const handleRun = () => {
     setFeedback(null);
     mutate(
-      { testType, dateFrom, dateTo },
+      new RunDqtRequest({
+        testType,
+        dateFrom: toLocalDate(dateFrom),
+        dateTo: toLocalDate(dateTo),
+      }),
       {
         onSuccess: () => {
           setFeedback({ type: 'success', message: 'DQT test byl spuštěn.' });
@@ -65,7 +75,7 @@ const RunDqtButton: React.FC = () => {
         {/* Test type selector */}
         <select
           value={testType}
-          onChange={(e) => setTestType(e.target.value)}
+          onChange={(e) => setTestType(e.target.value as DqtTestType)}
           className="border border-gray-300 dark:border-graphite-border rounded-md px-3 py-2 text-sm focus:ring-indigo-500 focus:border-indigo-500 bg-white dark:bg-graphite-surface-2 dark:text-graphite-text"
         >
           {TEST_TYPE_OPTIONS.map((opt) => (

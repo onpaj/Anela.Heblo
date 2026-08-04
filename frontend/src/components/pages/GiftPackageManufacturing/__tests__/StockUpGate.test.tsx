@@ -4,14 +4,12 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import GiftPackageManufacturing from "../index";
 import {
   useCreateGiftPackageManufacture,
-  useEnqueueGiftPackageManufacture,
 } from "../../../../api/hooks/useGiftPackageManufacturing";
 import { useStockUpOperationsSummary } from "../../../../api/hooks/useStockUpOperations";
 
 // Mock the manufacturing hooks
 jest.mock("../../../../api/hooks/useGiftPackageManufacturing", () => ({
   useCreateGiftPackageManufacture: jest.fn(),
-  useEnqueueGiftPackageManufacture: jest.fn(),
 }));
 
 // Mock the StockUp operations hook
@@ -59,9 +57,6 @@ jest.mock("../../../../api/generated/api-client", () => ({
   CreateGiftPackageManufactureRequest: jest
     .fn()
     .mockImplementation((data) => data),
-  EnqueueGiftPackageManufactureRequest: jest
-    .fn()
-    .mockImplementation((data) => data),
   StockUpSourceType: {
     TransportBox: "TransportBox",
     GiftPackageManufacture: "GiftPackageManufacture",
@@ -88,7 +83,6 @@ jest.mock("../../../../auth/PermissionsContext", () => ({
 }));
 
 const mockUseCreateGiftPackageManufacture = useCreateGiftPackageManufacture as jest.Mock;
-const mockUseEnqueueGiftPackageManufacture = useEnqueueGiftPackageManufacture as jest.Mock;
 const mockUseStockUpOperationsSummary = useStockUpOperationsSummary as jest.Mock;
 
 const createWrapper = ({ children }: { children: React.ReactNode }) => {
@@ -114,12 +108,6 @@ describe("GiftPackageManufacturing — StockUpOperations summary permission gate
 
     // Default mocks for mutations
     mockUseCreateGiftPackageManufacture.mockReturnValue({
-      mutateAsync: jest.fn(),
-      isPending: false,
-      error: null,
-    });
-
-    mockUseEnqueueGiftPackageManufacture.mockReturnValue({
       mutateAsync: jest.fn(),
       isPending: false,
       error: null,

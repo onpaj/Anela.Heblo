@@ -1,7 +1,8 @@
 import { renderHook } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import React from 'react';
-import { useRunExpeditionListPrintFix } from '../useExpeditionList';
+import { useRunExpeditionListPrintFix, usePrintExpeditionOrder } from '../useExpeditionList';
+import { PrintExpeditionOrderRequest } from '../../generated/api-client';
 import * as clientModule from '../../client';
 
 jest.mock('../../client', () => ({
@@ -24,23 +25,18 @@ const createWrapper = ({ children }: { children: React.ReactNode }) => {
 };
 
 describe('useRunExpeditionListPrintFix', () => {
-  let mockFetch: jest.Mock;
+  let mockRunFix: jest.Mock;
 
   beforeEach(() => {
     jest.clearAllMocks();
-    mockFetch = jest.fn();
+    mockRunFix = jest.fn();
     mockGetAuthenticatedApiClient.mockReturnValue({
-      baseUrl: 'https://api.example.test',
-      http: { fetch: mockFetch },
+      expeditionList_RunFix: mockRunFix,
     } as any);
   });
 
-  it('POSTs to /api/expedition-list/run-fix and returns the parsed JSON response', async () => {
-    const responseBody = { totalCount: 7 };
-    mockFetch.mockResolvedValue({
-      ok: true,
-      json: jest.fn().mockResolvedValue(responseBody),
-    });
+  it('calls expeditionList_RunFix with no arguments and returns the mapped totalCount', async () => {
+    mockRunFix.mockResolvedValue({ totalCount: 7, skippedCount: 1 });
 
     const { result } = renderHook(() => useRunExpeditionListPrintFix(), {
       wrapper: createWrapper,
@@ -48,39 +44,78 @@ describe('useRunExpeditionListPrintFix', () => {
 
     const response = await result.current.mutateAsync();
 
-    expect(mockFetch).toHaveBeenCalledTimes(1);
-    expect(mockFetch).toHaveBeenCalledWith(
-      'https://api.example.test/api/expedition-list/run-fix',
-      { method: 'POST', headers: { 'Content-Type': 'application/json' } },
-    );
-    expect(response).toEqual(responseBody);
+    expect(mockRunFix).toHaveBeenCalledTimes(1);
+    expect(mockRunFix).toHaveBeenCalledWith();
+    expect(response).toEqual({ totalCount: 7 });
   });
 
-  it('throws an error with the backend errorMessage when the response is not ok', async () => {
-    mockFetch.mockResolvedValue({
-      ok: false,
-      status: 500,
-      json: jest.fn().mockResolvedValue({ errorMessage: 'Internal Server Error' }),
-    });
+  it('defaults totalCount to 0 when the response omits it', async () => {
+    mockRunFix.mockResolvedValue({});
 
     const { result } = renderHook(() => useRunExpeditionListPrintFix(), {
       wrapper: createWrapper,
     });
 
-    await expect(result.current.mutateAsync()).rejects.toThrow('Internal Server Error');
+    const response = await result.current.mutateAsync();
+
+    expect(response).toEqual({ totalCount: 0 });
   });
 
-  it('falls back to a generic HTTP error message when the error body is unparseable', async () => {
-    mockFetch.mockResolvedValue({
-      ok: false,
-      status: 503,
-      json: jest.fn().mockRejectedValue(new SyntaxError('Unexpected token')),
-    });
+  it('rejects when the typed client call throws', async () => {
+    mockRunFix.mockRejectedValue({ status: 500, message: 'Internal Server Error' });
 
     const { result } = renderHook(() => useRunExpeditionListPrintFix(), {
       wrapper: createWrapper,
     });
 
-    await expect(result.current.mutateAsync()).rejects.toThrow('HTTP error! status: 503');
+    await expect(result.current.mutateAsync()).rejects.toMatchObject({ status: 500 });
+  });
+});
+
+describe('usePrintExpeditionOrder', () => {
+  let mockPrintOrder: jest.Mock;
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockPrintOrder = jest.fn();
+    mockGetAuthenticatedApiClient.mockReturnValue({
+      expeditionList_PrintOrder: mockPrintOrder,
+    } as any);
+  });
+
+  it('instantiates PrintExpeditionOrderRequest, calls the typed method, and returns the mapped response', async () => {
+    mockPrintOrder.mockResolvedValue({ success: true, errorCode: undefined, params: undefined });
+
+    const { result } = renderHook(() => usePrintExpeditionOrder(), {
+      wrapper: createWrapper,
+    });
+
+    const response = await result.current.mutateAsync({ orderCode: '0001234' });
+
+    expect(mockPrintOrder).toHaveBeenCalledTimes(1);
+    const calledWith = mockPrintOrder.mock.calls[0][0];
+    expect(calledWith).toBeInstanceOf(PrintExpeditionOrderRequest);
+    expect(calledWith.orderCode).toBe('0001234');
+    expect(response).toEqual({ success: true, errorCode: undefined, params: undefined });
+  });
+
+  it('resolves with a business failure (success: false) instead of throwing', async () => {
+    mockPrintOrder.mockResolvedValue({
+      success: false,
+      errorCode: 'OrderNotFound',
+      params: { orderCode: '0001234' },
+    });
+
+    const { result } = renderHook(() => usePrintExpeditionOrder(), {
+      wrapper: createWrapper,
+    });
+
+    const response = await result.current.mutateAsync({ orderCode: '0001234' });
+
+    expect(response).toEqual({
+      success: false,
+      errorCode: 'OrderNotFound',
+      params: { orderCode: '0001234' },
+    });
   });
 });
