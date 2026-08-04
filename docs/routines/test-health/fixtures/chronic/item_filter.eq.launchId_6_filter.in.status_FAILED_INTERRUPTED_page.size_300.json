@@ -1,0 +1,8 @@
+{ "content": [
+    { "name": "loads product page",
+      "pathNames": { "itemPaths": [ {"name": "catalog.spec.ts"} ] },
+      "status": "FAILED",
+      "issue": { "comment": "" },
+      "description": "Error: Network request failed" }
+  ],
+  "page": { "number": 1, "size": 300, "totalElements": 1, "totalPages": 1 } }

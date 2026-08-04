@@ -1,12 +1,11 @@
 import { useMutation } from '@tanstack/react-query';
 import { getAuthenticatedApiClient } from '../client';
 import { startNewTelemetryOperation } from '../../telemetry/appInsights';
+import { ScanOrderBody } from '../generated/api-client';
+import type { ScanOrderData, ScanShipmentData } from '../generated/api-client';
 
-interface ApiClientWithInternals {
-  baseUrl: string;
-  http: { fetch(url: RequestInfo, init?: RequestInit): Promise<Response> };
-}
-
+// String literal union — values must match the backend string serialization
+// (same pattern as useCarrierCooling.ts's local Cooling type).
 export type Cooling = 'None' | 'L1' | 'L2';
 
 export interface PackingOrderItem {
@@ -46,6 +45,15 @@ export interface ScanShipmentPackage {
   labelZpl: string | null;
 }
 
+export const mapShipmentPackages = (
+  packages: Array<{ trackingNumber?: string; labelUrl?: string; labelZpl?: string }> | undefined,
+): ScanShipmentPackage[] =>
+  (packages ?? []).map((pkg) => ({
+    trackingNumber: pkg.trackingNumber ?? null,
+    labelUrl: pkg.labelUrl ?? null,
+    labelZpl: pkg.labelZpl ?? null,
+  }));
+
 export interface ScanShipment {
   shipmentGuid: string;
   packages: ScanShipmentPackage[];
@@ -57,6 +65,37 @@ export interface ScanPackingOrderResult {
   order: PackingOrder;
   shipment: ScanShipment | null;
 }
+
+const toPackingOrder = (data: ScanOrderData): PackingOrder => ({
+  code: data.code ?? '',
+  customerName: data.customerName ?? '',
+  shippingMethodName: data.shippingMethodName ?? '',
+  shippingAddress: data.shippingAddress
+    ? {
+        street: data.shippingAddress.street ?? null,
+        city: data.shippingAddress.city ?? null,
+        zip: data.shippingAddress.zip ?? null,
+      }
+    : null,
+  cooling: (data.cooling as unknown as Cooling) ?? 'None',
+  isCooled: data.isCooled ?? false,
+  customerNote: data.customerNote ?? null,
+  eshopNote: data.eshopNote ?? null,
+  eligibility: { isEligible: data.eligibility?.isEligible ?? false },
+  items: (data.items ?? []).map((item) => ({
+    name: item.name ?? '',
+    quantity: item.quantity ?? 0,
+    imageUrl: item.imageUrl ?? null,
+    setName: item.setName ?? null,
+  })),
+});
+
+const toScanShipment = (data: ScanShipmentData): ScanShipment => ({
+  shipmentGuid: data.shipmentGuid ?? '',
+  packages: mapShipmentPackages(data.packages),
+  alreadyExisted: data.alreadyExisted ?? false,
+  pendingCompletion: data.pendingCompletion,
+});
 
 const SCAN_ERROR_MESSAGES: Partial<Record<string, string>> = {
   ShoptetOrderNotFound: 'Objednávka nebyla nalezena.',
@@ -79,26 +118,25 @@ const scanPackingOrder = async ({
   numberOfPackages = 1,
   packingUserId = null,
 }: ScanPackingOrderVariables): Promise<ScanPackingOrderResult> => {
-  const apiClient = getAuthenticatedApiClient(false) as unknown as ApiClientWithInternals;
-  const response = await apiClient.http.fetch(
-    `${apiClient.baseUrl}/api/packaging/orders/${encodeURIComponent(orderCode)}/scan?numberOfPackages=${numberOfPackages}`,
-    {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ packingUserId }),
-    },
+  const apiClient = getAuthenticatedApiClient(false);
+  const response = await apiClient.packaging_ScanOrder(
+    orderCode,
+    numberOfPackages,
+    new ScanOrderBody({ packingUserId: packingUserId ?? undefined }),
   );
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const data = (await response.json()) as any;
 
-  if (!data.success) {
-    const message = (data.errorCode && SCAN_ERROR_MESSAGES[data.errorCode as string]) ?? GENERIC_SCAN_ERROR;
+  if (!response.success) {
+    const message = (response.errorCode && SCAN_ERROR_MESSAGES[response.errorCode]) ?? GENERIC_SCAN_ERROR;
     throw new Error(message);
   }
 
+  if (!response.order) {
+    throw new Error(GENERIC_SCAN_ERROR);
+  }
+
   return {
-    order: data.order as PackingOrder,
-    shipment: (data.shipment as ScanShipment) ?? null,
+    order: toPackingOrder(response.order),
+    shipment: response.shipment ? toScanShipment(response.shipment) : null,
   };
 };
 
