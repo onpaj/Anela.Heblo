@@ -43,7 +43,8 @@ public class RecurringJobConfigurationRepositoryTests : IDisposable
             "0 0 * * *",
             "Europe/Prague",
             true,
-            "TestUser");
+            "TestUser",
+            DateTime.UtcNow);
 
         var config2 = new RecurringJobConfiguration(
             "TestJob2",
@@ -52,7 +53,8 @@ public class RecurringJobConfigurationRepositoryTests : IDisposable
             "0 12 * * *",
             "Europe/Prague",
             false,
-            "TestUser");
+            "TestUser",
+            DateTime.UtcNow);
 
         await _context.RecurringJobConfigurations.AddAsync(config1);
         await _context.RecurringJobConfigurations.AddAsync(config2);
@@ -79,7 +81,8 @@ public class RecurringJobConfigurationRepositoryTests : IDisposable
             "0 6 * * *",
             "America/New_York",
             true,
-            "TestUser");
+            "TestUser",
+            DateTime.UtcNow);
 
         await _context.RecurringJobConfigurations.AddAsync(config);
         await _context.SaveChangesAsync();
@@ -119,7 +122,8 @@ public class RecurringJobConfigurationRepositoryTests : IDisposable
             "0 8 * * *",
             "Europe/Prague",
             true,
-            "OriginalUser");
+            "OriginalUser",
+            DateTime.UtcNow);
 
         await _context.RecurringJobConfigurations.AddAsync(config);
         await _context.SaveChangesAsync();
@@ -137,7 +141,8 @@ public class RecurringJobConfigurationRepositoryTests : IDisposable
             "Updated description",
             "0 10 * * *",
             "America/New_York",
-            "UpdatedUser");
+            "UpdatedUser",
+            DateTime.UtcNow);
 
         await _repository.UpdateAsync(loadedConfig);
 
@@ -163,7 +168,8 @@ public class RecurringJobConfigurationRepositoryTests : IDisposable
             "0 8 * * *",
             "Europe/Prague",
             true,
-            "OriginalUser");
+            "OriginalUser",
+            DateTime.UtcNow);
 
         await _context.RecurringJobConfigurations.AddAsync(config);
         await _context.SaveChangesAsync();
@@ -176,7 +182,7 @@ public class RecurringJobConfigurationRepositoryTests : IDisposable
         Assert.NotNull(loadedConfig);
 
         // Act
-        loadedConfig.Disable("DisablingUser");
+        loadedConfig.Disable("DisablingUser", DateTime.UtcNow);
         await _repository.UpdateAsync(loadedConfig);
 
         // Assert
@@ -197,7 +203,8 @@ public class RecurringJobConfigurationRepositoryTests : IDisposable
             "0 5 * * *",
             "Europe/Prague",
             true,
-            "System");
+            "System",
+            DateTime.UtcNow);
 
         // Act
         await _repository.AddAsync(config);

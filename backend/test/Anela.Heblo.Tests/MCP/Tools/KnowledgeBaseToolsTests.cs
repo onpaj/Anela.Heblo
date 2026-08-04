@@ -2,6 +2,8 @@ using System.Text.Json;
 using Anela.Heblo.API.MCP.Tools;
 using Anela.Heblo.Application.Features.KnowledgeBase.UseCases.AskQuestion;
 using Anela.Heblo.Application.Features.KnowledgeBase.UseCases.SearchDocuments;
+using Anela.Heblo.Domain.Features.Authorization;
+using Anela.Heblo.Domain.Features.Users;
 using MediatR;
 using Microsoft.Extensions.Logging;
 using ModelContextProtocol;
@@ -12,10 +14,18 @@ namespace Anela.Heblo.Tests.MCP.Tools;
 
 public class KnowledgeBaseToolsTests
 {
+    private static readonly string ReadRole = AccessRoles.For(Feature.Customer_KnowledgeBase, AccessLevel.Read);
+
     private readonly Mock<IMediator> _mediator = new();
     private readonly Mock<ILogger<KnowledgeBaseTools>> _logger = new();
+    private readonly Mock<ICurrentUserService> _currentUserService = new();
 
-    private KnowledgeBaseTools CreateTools() => new(_mediator.Object, _logger.Object);
+    public KnowledgeBaseToolsTests()
+    {
+        _currentUserService.Setup(s => s.IsInRole(ReadRole)).Returns(true);
+    }
+
+    private KnowledgeBaseTools CreateTools() => new(_mediator.Object, _logger.Object, _currentUserService.Object);
 
     [Fact]
     public async Task SearchKnowledgeBase_ShouldMapParametersCorrectly()
@@ -122,5 +132,27 @@ public class KnowledgeBaseToolsTests
                 It.IsAny<Exception>(),
                 It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
             Times.Once);
+    }
+
+    [Theory]
+    [InlineData("SearchKnowledgeBase")]
+    [InlineData("AskKnowledgeBase")]
+    public async Task Tools_ThrowForbidden_AndSkipMediator_WhenUserLacksReadRole(string tool)
+    {
+        // Arrange
+        _currentUserService.Setup(s => s.IsInRole(ReadRole)).Returns(false);
+
+        // Act
+        var exception = await Assert.ThrowsAsync<McpException>(() => tool switch
+        {
+            "SearchKnowledgeBase" => CreateTools().SearchKnowledgeBase("query"),
+            _ => CreateTools().AskKnowledgeBase("question?")
+        });
+
+        // Assert
+        Assert.Contains("FORBIDDEN", exception.Message);
+        Assert.Contains(ReadRole, exception.Message);
+        _mediator.Verify(m => m.Send(It.IsAny<SearchDocumentsRequest>(), It.IsAny<CancellationToken>()), Times.Never);
+        _mediator.Verify(m => m.Send(It.IsAny<AskQuestionRequest>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 }

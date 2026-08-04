@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from "react";
+import React from "react";
 import { getRuntimeConfig } from "../config/runtimeConfig";
-import { getAuthenticatedApiClient } from "../api/client";
+import { useConfigurationQuery } from "../api/hooks/useConfiguration";
 import {
   useLiveHealthCheck,
   useReadyHealthCheck,
@@ -16,12 +16,7 @@ export const StatusBar: React.FC<StatusBarProps> = ({
   className = "",
   sidebarCollapsed = false,
 }) => {
-  const [appInfo, setAppInfo] = useState<{
-    version: string;
-    environment: string;
-    apiUrl: string;
-    mockAuth: boolean;
-  } | null>(null);
+  const { data: configData, isLoading } = useConfigurationQuery();
 
   // Health check hooks
   const {
@@ -36,62 +31,20 @@ export const StatusBar: React.FC<StatusBarProps> = ({
     error: readyHealthError,
   } = useReadyHealthCheck();
 
-  useEffect(() => {
-    const loadAppInfo = async () => {
-      try {
-        const config = getRuntimeConfig();
-
-        // Try to fetch configuration from backend API
-        try {
-          const apiClient = getAuthenticatedApiClient();
-          const relativeUrl = "/api/configuration";
-          const fullUrl = `${(apiClient as any).baseUrl}${relativeUrl}`;
-
-          const response = await (apiClient as any).http.fetch(fullUrl, {
-            method: "GET",
-          });
-
-          if (response.ok) {
-            const backendConfig = await response.json();
-            setAppInfo({
-              version: backendConfig.version,
-              environment: backendConfig.environment,
-              apiUrl: config.apiUrl,
-              mockAuth: backendConfig.useMockAuth,
-            });
-            return;
-          }
-        } catch (apiError) {
-          console.warn(
-            "Could not load configuration from backend API:",
-            apiError,
-          );
-        }
-
-        // Fallback to frontend-only configuration
-        setAppInfo({
-          version: process.env.REACT_APP_VERSION || "0.1.0",
-          environment: config.useMockAuth ? "Development" : "Production",
-          apiUrl: config.apiUrl,
-          mockAuth: config.useMockAuth,
-        });
-      } catch (error) {
-        console.warn("Could not load app info for status bar:", error);
-        setAppInfo({
-          version: process.env.REACT_APP_VERSION || "0.1.0",
-          environment: process.env.NODE_ENV || "development",
-          apiUrl: window.location.origin,
-          mockAuth: true,
-        });
-      }
-    };
-
-    loadAppInfo();
-  }, []);
-
-  if (!appInfo) {
+  if (isLoading) {
     return null;
   }
+
+  const config = getRuntimeConfig();
+
+  const appInfo = {
+    version: configData?.version || process.env.REACT_APP_VERSION || "0.1.0",
+    environment:
+      configData?.environment ??
+      (config.useMockAuth ? "Development" : "Production"),
+    apiUrl: config.apiUrl,
+    mockAuth: configData?.useMockAuth ?? config.useMockAuth,
+  };
 
   // Injected by the Conductor run script — names the git branch this instance runs.
   const branchName = process.env.REACT_APP_BRANCH_NAME;

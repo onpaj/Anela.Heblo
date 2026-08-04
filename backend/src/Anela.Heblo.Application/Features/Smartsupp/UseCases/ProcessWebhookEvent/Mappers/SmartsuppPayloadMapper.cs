@@ -55,7 +55,7 @@ public static class SmartsuppPayloadMapper
             LocationCode = TryGetString(data, "location_code"),
             CreatedAt = ReadUtc(data, "created_at"),
             UpdatedAt = ReadUtc(data, "updated_at"),
-            SyncedAt = syncedAt,
+            SyncedAt = AsUtc(syncedAt),
         };
     }
 
@@ -110,7 +110,7 @@ public static class SmartsuppPayloadMapper
             PropertiesJson = data.TryGetProperty("properties", out var props) ? props.GetRawText() : null,
             CreatedAt = ReadUtc(data, "created_at"),
             UpdatedAt = ReadUtc(data, "updated_at"),
-            SyncedAt = syncedAt,
+            SyncedAt = AsUtc(syncedAt),
         };
     }
 
@@ -134,6 +134,14 @@ public static class SmartsuppPayloadMapper
         element.TryGetProperty(name, out var v) && v.ValueKind == JsonValueKind.String
             ? DateTime.SpecifyKind(v.GetDateTime().ToUniversalTime(), DateTimeKind.Utc)
             : null;
+
+    // Relabels a non-Utc DateTime as Utc without shifting the wall-clock value. Callers must
+    // guarantee the value is already semantically UTC — this covers syncedAt, which on the replay
+    // path arrives as Unspecified after round-tripping through a "timestamp without time zone"
+    // column that was always written as Utc. Using .ToUniversalTime() here would misinterpret it
+    // as local time and shift it.
+    public static DateTime AsUtc(DateTime dt) =>
+        dt.Kind == DateTimeKind.Utc ? dt : DateTime.SpecifyKind(dt, DateTimeKind.Utc);
 
     private static SmartsuppMessageAuthorType ParseAuthorType(string? subType) =>
         subType?.ToLowerInvariant() switch

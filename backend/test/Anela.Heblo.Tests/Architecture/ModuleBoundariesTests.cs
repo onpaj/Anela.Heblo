@@ -331,14 +331,6 @@ public class ModuleBoundariesTests
         "Anela.Heblo.Application.Features.Packaging.UseCases.ResetOrderShipment.ResetOrderShipmentHandler -> Anela.Heblo.Application.Features.ShoptetOrders.PackingOrderItem",
 
         "Anela.Heblo.Application.Features.Packaging.UseCases.CompletePackingOrder.CompletePackingOrderHandler -> Anela.Heblo.Application.Features.ShoptetOrders.IEshopOrderClient",
-
-        // GetPackingDashboardHandler consumes IPackingOrderClient to read the orders-being-packed
-        // count for the dashboard (no ShoptetOrders DTOs cross the boundary — the call returns int?).
-        "Anela.Heblo.Application.Features.Packaging.UseCases.GetPackingDashboard.GetPackingDashboardHandler -> Anela.Heblo.Application.Features.ShoptetOrders.IPackingOrderClient",
-
-        // PackingStatsTile is a dashboard tile that mirrors GetPackingDashboardHandler's logic;
-        // it consumes only IPackingOrderClient (returns int?) — no ShoptetOrders DTOs cross the boundary.
-        "Anela.Heblo.Application.Features.Packaging.DashboardTiles.PackingStatsTile -> Anela.Heblo.Application.Features.ShoptetOrders.IPackingOrderClient",
     };
 
     // Allowlist for ShoptetOrders -> ShipmentLabels. Empty — CompleteDeliveredOrdersJob now consumes
@@ -346,6 +338,24 @@ public class ModuleBoundariesTests
     // (ShipmentLabelsShipmentDeliveryCheckerAdapter) lives in ShipmentLabels.Infrastructure and
     // implements it there, so no ShoptetOrders type needs to reference ShipmentLabels directly.
     private static readonly HashSet<string> ShoptetOrdersShipmentLabelsAllowlist = new(StringComparer.Ordinal);
+
+    // Allowlist for ShipmentLabels -> ShoptetOrders. CreateOrderShipmentHandler legitimately
+    // consumes IPackingOrderClient to fetch order weight/items for shipment creation. This
+    // mirrors the pre-existing, deliberately pinned Packaging -> ShoptetOrders coupling
+    // (2026-06-05 decoupling) — tracked here rather than left ungoverned.
+    private static readonly HashSet<string> ShipmentLabelsShoptetOrdersAllowlist = new(StringComparer.Ordinal)
+    {
+        "Anela.Heblo.Application.Features.ShipmentLabels.UseCases.CreateOrderShipment.CreateOrderShipmentHandler -> Anela.Heblo.Application.Features.ShoptetOrders.IPackingOrderClient",
+        "Anela.Heblo.Application.Features.ShipmentLabels.UseCases.CreateOrderShipment.CreateOrderShipmentHandler -> Anela.Heblo.Application.Features.ShoptetOrders.PackingOrder",
+        "Anela.Heblo.Application.Features.ShipmentLabels.UseCases.CreateOrderShipment.CreateOrderShipmentHandler -> Anela.Heblo.Application.Features.ShoptetOrders.PackingOrderItem",
+    };
+
+    // Allowlist for Anthropic Adapter -> Application. Empty — the adapter is a generic
+    // IChatClient provider and must carry zero application-layer feature awareness.
+    private static readonly HashSet<string> AnthropicAdapterApplicationAllowlist = new(StringComparer.Ordinal);
+
+    // Allowlist for OpenAI Adapter -> Application. Empty — same rationale as the Anthropic adapter.
+    private static readonly HashSet<string> OpenAiAdapterApplicationAllowlist = new(StringComparer.Ordinal);
 
     // Allowlist for Authorization -> UserManagement. Empty — EntraAccessUserSourceAdapter
     // (UserManagement-owned) is the only class allowed to reference both IGraphService and
@@ -637,6 +647,26 @@ public class ModuleBoundariesTests
             InspectedAssembly: "Anela.Heblo.Adapters.ShoptetApi"),
 
         new ModuleBoundaryRule(
+            Name: "Anthropic Adapter -> Application",
+            InspectedNamespacePrefix: "Anela.Heblo.Adapters.Anthropic",
+            ForbiddenNamespacePrefixes: new[]
+            {
+                "Anela.Heblo.Application",
+            },
+            Allowlist: AnthropicAdapterApplicationAllowlist,
+            InspectedAssembly: "Anela.Heblo.Adapters.Anthropic"),
+
+        new ModuleBoundaryRule(
+            Name: "OpenAI Adapter -> Application",
+            InspectedNamespacePrefix: "Anela.Heblo.Adapters.OpenAI",
+            ForbiddenNamespacePrefixes: new[]
+            {
+                "Anela.Heblo.Application",
+            },
+            Allowlist: OpenAiAdapterApplicationAllowlist,
+            InspectedAssembly: "Anela.Heblo.Adapters.OpenAI"),
+
+        new ModuleBoundaryRule(
             Name: "FinancialOverview -> Catalog",
             InspectedNamespacePrefix: "Anela.Heblo.Application.Features.FinancialOverview",
             ForbiddenNamespacePrefixes: new[]
@@ -655,6 +685,15 @@ public class ModuleBoundariesTests
                 "Anela.Heblo.Application.Features.ShipmentLabels",
             },
             Allowlist: ShoptetOrdersShipmentLabelsAllowlist),
+
+        new ModuleBoundaryRule(
+            Name: "ShipmentLabels -> ShoptetOrders",
+            InspectedNamespacePrefix: "Anela.Heblo.Application.Features.ShipmentLabels",
+            ForbiddenNamespacePrefixes: new[]
+            {
+                "Anela.Heblo.Application.Features.ShoptetOrders",
+            },
+            Allowlist: ShipmentLabelsShoptetOrdersAllowlist),
     };
 
     [Theory]

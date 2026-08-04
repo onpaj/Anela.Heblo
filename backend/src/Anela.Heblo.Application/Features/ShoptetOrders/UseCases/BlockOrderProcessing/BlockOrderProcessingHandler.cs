@@ -52,11 +52,7 @@ public class BlockOrderProcessingHandler : IRequestHandler<BlockOrderProcessingR
 
         try
         {
-            var currentRemark = await _eshopOrderClient.GetEshopRemarkAsync(request.OrderCode, cancellationToken);
-            var updatedRemark = string.IsNullOrEmpty(currentRemark)
-                ? request.Note
-                : $"{currentRemark}\n{request.Note}";
-            await _eshopOrderClient.UpdateEshopRemarkAsync(request.OrderCode, updatedRemark, cancellationToken);
+            await _eshopOrderClient.AppendEshopRemarkAsync(request.OrderCode, request.Note, cancellationToken);
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {

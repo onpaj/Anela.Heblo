@@ -67,7 +67,8 @@ public class RecurringJobSeederTests : IDisposable
             "0 2 * * *",
             "Europe/Prague",
             true,
-            "System");
+            "System",
+            DateTime.UtcNow);
 
         await _context.RecurringJobConfigurations.AddAsync(existingConfig);
         await _context.SaveChangesAsync();
@@ -98,7 +99,8 @@ public class RecurringJobSeederTests : IDisposable
             "0 2 * * *",
             "Europe/Prague",
             true,
-            "System");
+            "System",
+            DateTime.UtcNow);
 
         await _context.RecurringJobConfigurations.AddAsync(existingConfig);
         await _context.SaveChangesAsync();
@@ -126,7 +128,8 @@ public class RecurringJobSeederTests : IDisposable
             "0 0 * * *", // admin-customized cron, differs from mock job's "0 2 * * *"
             "Europe/Prague",
             false,       // admin-disabled, differs from mock job's DefaultIsEnabled: true
-            "System");
+            "System",
+            DateTime.UtcNow);
 
         await _context.RecurringJobConfigurations.AddAsync(existingConfig);
         await _context.SaveChangesAsync();
@@ -154,7 +157,8 @@ public class RecurringJobSeederTests : IDisposable
             "0 2 * * *",
             "Europe/Prague",
             true,
-            "Admin");
+            "Admin",
+            DateTime.UtcNow);
 
         await _context.RecurringJobConfigurations.AddAsync(existingConfig);
         await _context.SaveChangesAsync();

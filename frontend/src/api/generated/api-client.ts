@@ -2980,7 +2980,7 @@ export class ApiClient {
         return Promise.resolve<GetDqtRunDetailResponse>(null as any);
     }
 
-    departments_GetDepartments(): Promise<Department[]> {
+    departments_GetDepartments(): Promise<GetDepartmentsResponse> {
         let url_ = this.baseUrl + "/api/Departments";
         url_ = url_.replace(/[?&]$/, "");
 
@@ -2996,29 +2996,33 @@ export class ApiClient {
         });
     }
 
-    protected processDepartments_GetDepartments(response: Response): Promise<Department[]> {
+    protected processDepartments_GetDepartments(response: Response): Promise<GetDepartmentsResponse> {
         const status = response.status;
         let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
         if (status === 200) {
             return response.text().then((_responseText) => {
             let result200: any = null;
             let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
-            if (Array.isArray(resultData200)) {
-                result200 = [] as any;
-                for (let item of resultData200)
-                    result200!.push(Department.fromJS(item));
-            }
-            else {
-                result200 = <any>null;
-            }
+            result200 = GetDepartmentsResponse.fromJS(resultData200);
             return result200;
+            });
+        } else if (status === 401) {
+            return response.text().then((_responseText) => {
+            let result401: any = null;
+            let resultData401 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result401 = ProblemDetails.fromJS(resultData401);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result401);
+            });
+        } else if (status === 500) {
+            return response.text().then((_responseText) => {
+            return throwException("A server side error occurred.", status, _responseText, _headers);
             });
         } else if (status !== 200 && status !== 204) {
             return response.text().then((_responseText) => {
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
             });
         }
-        return Promise.resolve<Department[]>(null as any);
+        return Promise.resolve<GetDepartmentsResponse>(null as any);
     }
 
     diagnostics_TestLogging(): Promise<FileResponse> {
@@ -5569,6 +5573,45 @@ export class ApiClient {
         return Promise.resolve<UploadDocumentResponse2>(null as any);
     }
 
+    labelIdentification_Identify(photo: FileParameter | null | undefined): Promise<IdentifyLabelResponse> {
+        let url_ = this.baseUrl + "/api/label-identification/identify";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = new FormData();
+        if (photo !== null && photo !== undefined)
+            content_.append("photo", photo.data, photo.fileName ? photo.fileName : "photo");
+
+        let options_: RequestInit = {
+            body: content_,
+            method: "POST",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processLabelIdentification_Identify(_response);
+        });
+    }
+
+    protected processLabelIdentification_Identify(response: Response): Promise<IdentifyLabelResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = IdentifyLabelResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<IdentifyLabelResponse>(null as any);
+    }
+
     leaflet_Generate(request: GenerateLeafletRequest): Promise<GenerateLeafletResponse> {
         let url_ = this.baseUrl + "/api/leaflet/generate";
         url_ = url_.replace(/[?&]$/, "");
@@ -6128,44 +6171,6 @@ export class ApiClient {
             });
         }
         return Promise.resolve<DisassembleGiftPackageResponse>(null as any);
-    }
-
-    logistics_EnqueueGiftPackageManufacture(request: EnqueueGiftPackageManufactureRequest): Promise<EnqueueGiftPackageManufactureResponse> {
-        let url_ = this.baseUrl + "/api/logistics/gift-packages/manufacture/enqueue";
-        url_ = url_.replace(/[?&]$/, "");
-
-        const content_ = JSON.stringify(request);
-
-        let options_: RequestInit = {
-            body: content_,
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-                "Accept": "application/json"
-            }
-        };
-
-        return this.http.fetch(url_, options_).then((_response: Response) => {
-            return this.processLogistics_EnqueueGiftPackageManufacture(_response);
-        });
-    }
-
-    protected processLogistics_EnqueueGiftPackageManufacture(response: Response): Promise<EnqueueGiftPackageManufactureResponse> {
-        const status = response.status;
-        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
-        if (status === 200) {
-            return response.text().then((_responseText) => {
-            let result200: any = null;
-            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
-            result200 = EnqueueGiftPackageManufactureResponse.fromJS(resultData200);
-            return result200;
-            });
-        } else if (status !== 200 && status !== 204) {
-            return response.text().then((_responseText) => {
-            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
-            });
-        }
-        return Promise.resolve<EnqueueGiftPackageManufactureResponse>(null as any);
     }
 
     logistics_GetManufactureLog(count: number | undefined): Promise<GetManufactureLogResponse> {
@@ -7374,7 +7379,7 @@ export class ApiClient {
         return Promise.resolve<ResolveManualActionResponse>(null as any);
     }
 
-    manufactureOrder_GetProtocolPdf(id: number): Promise<FileResponse> {
+    manufactureOrder_GetProtocolPdf(id: number): Promise<GetManufactureProtocolResponse> {
         let url_ = this.baseUrl + "/api/ManufactureOrder/{id}/protocol.pdf";
         if (id === undefined || id === null)
             throw new Error("The parameter 'id' must be defined.");
@@ -7384,7 +7389,7 @@ export class ApiClient {
         let options_: RequestInit = {
             method: "GET",
             headers: {
-                "Accept": "application/octet-stream"
+                "Accept": "application/json"
             }
         };
 
@@ -7393,26 +7398,22 @@ export class ApiClient {
         });
     }
 
-    protected processManufactureOrder_GetProtocolPdf(response: Response): Promise<FileResponse> {
+    protected processManufactureOrder_GetProtocolPdf(response: Response): Promise<GetManufactureProtocolResponse> {
         const status = response.status;
         let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
-        if (status === 200 || status === 206) {
-            const contentDisposition = response.headers ? response.headers.get("content-disposition") : undefined;
-            let fileNameMatch = contentDisposition ? /filename\*=(?:(\\?['"])(.*?)\1|(?:[^\s]+'.*?')?([^;\n]*))/g.exec(contentDisposition) : undefined;
-            let fileName = fileNameMatch && fileNameMatch.length > 1 ? fileNameMatch[3] || fileNameMatch[2] : undefined;
-            if (fileName) {
-                fileName = decodeURIComponent(fileName);
-            } else {
-                fileNameMatch = contentDisposition ? /filename="?([^"]*?)"?(;|$)/g.exec(contentDisposition) : undefined;
-                fileName = fileNameMatch && fileNameMatch.length > 1 ? fileNameMatch[1] : undefined;
-            }
-            return response.blob().then(blob => { return { fileName: fileName, data: blob, status: status, headers: _headers }; });
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = GetManufactureProtocolResponse.fromJS(resultData200);
+            return result200;
+            });
         } else if (status !== 200 && status !== 204) {
             return response.text().then((_responseText) => {
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
             });
         }
-        return Promise.resolve<FileResponse>(null as any);
+        return Promise.resolve<GetManufactureProtocolResponse>(null as any);
     }
 
     manufactureOrder_UpdateOrderSchedule(id: number, request: UpdateManufactureOrderScheduleRequest): Promise<UpdateManufactureOrderScheduleResponse> {
@@ -10844,7 +10845,7 @@ export class ApiClient {
         return Promise.resolve<void>(null as any);
     }
 
-    productMargins_GetProductMargins(productCode: string | null | undefined, productName: string | null | undefined, productType: ProductType | null | undefined, pageNumber: number | undefined, pageSize: number | undefined, sortBy: string | null | undefined, sortDescending: boolean | undefined, dateFrom: Date | null | undefined, dateTo: Date | null | undefined): Promise<GetProductMarginsResponse> {
+    productMargins_GetProductMargins(productCode: string | null | undefined, productName: string | null | undefined, productType: ProductType | null | undefined, pageNumber: number | undefined, pageSize: number | undefined, sortBy: string | null | undefined, sortDescending: boolean | undefined): Promise<GetProductMarginsResponse> {
         let url_ = this.baseUrl + "/api/ProductMargins?";
         if (productCode !== undefined && productCode !== null)
             url_ += "ProductCode=" + encodeURIComponent("" + productCode) + "&";
@@ -10866,10 +10867,6 @@ export class ApiClient {
             throw new Error("The parameter 'sortDescending' cannot be null.");
         else if (sortDescending !== undefined)
             url_ += "SortDescending=" + encodeURIComponent("" + sortDescending) + "&";
-        if (dateFrom !== undefined && dateFrom !== null)
-            url_ += "DateFrom=" + encodeURIComponent(dateFrom ? "" + dateFrom.toISOString() : "") + "&";
-        if (dateTo !== undefined && dateTo !== null)
-            url_ += "DateTo=" + encodeURIComponent(dateTo ? "" + dateTo.toISOString() : "") + "&";
         url_ = url_.replace(/[?&]$/, "");
 
         let options_: RequestInit = {
@@ -13027,14 +13024,16 @@ export class ApiClient {
         return Promise.resolve<AddItemToBoxResponse>(null as any);
     }
 
-    transportBox_RemoveItemFromBox(id: number, itemId: number): Promise<RemoveItemFromBoxResponse> {
-        let url_ = this.baseUrl + "/api/transport-boxes/{id}/items/{itemId}";
+    transportBox_RemoveItemFromBox(id: number, itemId: number, amount: number | null | undefined): Promise<RemoveItemFromBoxResponse> {
+        let url_ = this.baseUrl + "/api/transport-boxes/{id}/items/{itemId}?";
         if (id === undefined || id === null)
             throw new Error("The parameter 'id' must be defined.");
         url_ = url_.replace("{id}", encodeURIComponent("" + id));
         if (itemId === undefined || itemId === null)
             throw new Error("The parameter 'itemId' must be defined.");
         url_ = url_.replace("{itemId}", encodeURIComponent("" + itemId));
+        if (amount !== undefined && amount !== null)
+            url_ += "amount=" + encodeURIComponent("" + amount) + "&";
         url_ = url_.replace(/[?&]$/, "");
 
         let options_: RequestInit = {
@@ -13679,6 +13678,7 @@ export enum ErrorCodes {
     InvalidScheduleDateOrder = "InvalidScheduleDateOrder",
     ManufacturedInventoryItemNotFound = "ManufacturedInventoryItemNotFound",
     ManufacturedInventoryInsufficientStock = "ManufacturedInventoryInsufficientStock",
+    ManufactureOrderNotCompleted = "ManufactureOrderNotCompleted",
     CatalogItemNotFound = "CatalogItemNotFound",
     ManufactureDifficultyNotFound = "ManufactureDifficultyNotFound",
     ManufactureDifficultyConflict = "ManufactureDifficultyConflict",
@@ -13816,6 +13816,10 @@ export enum ErrorCodes {
     AuthorizationInvalidPermission = "AuthorizationInvalidPermission",
     AuthorizationGroupCycleDetected = "AuthorizationGroupCycleDetected",
     AuthorizationDuplicateGroupName = "AuthorizationDuplicateGroupName",
+    LabelPhotoMissingOrInvalid = "LabelPhotoMissingOrInvalid",
+    LabelPhotoUndecodable = "LabelPhotoUndecodable",
+    LabelTextUnreadable = "LabelTextUnreadable",
+    LabelOcrServiceUnavailable = "LabelOcrServiceUnavailable",
     ExternalServiceError = "ExternalServiceError",
     FlexiApiError = "FlexiApiError",
     ShoptetApiError = "ShoptetApiError",
@@ -14488,10 +14492,10 @@ export enum ArticleStatus {
 
 export class GenerateArticleRequest implements IGenerateArticleRequest {
     topic!: string;
-    scope?: string;
+    scope!: string;
     audience?: string | undefined;
     angle?: string | undefined;
-    length?: string;
+    length!: string;
     languageNote?: string | undefined;
     useKnowledgeBase?: boolean;
     useWebSearch?: boolean;
@@ -14547,10 +14551,10 @@ export class GenerateArticleRequest implements IGenerateArticleRequest {
 
 export interface IGenerateArticleRequest {
     topic: string;
-    scope?: string;
+    scope: string;
     audience?: string | undefined;
     angle?: string | undefined;
-    length?: string;
+    length: string;
     languageNote?: string | undefined;
     useKnowledgeBase?: boolean;
     useWebSearch?: boolean;
@@ -20230,11 +20234,52 @@ export interface IRunDqtRequest {
     dateTo?: Date;
 }
 
-export class Department implements IDepartment {
+export class GetDepartmentsResponse extends BaseResponse implements IGetDepartmentsResponse {
+    departments?: DepartmentDto[];
+
+    constructor(data?: IGetDepartmentsResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            if (Array.isArray(_data["departments"])) {
+                this.departments = [] as any;
+                for (let item of _data["departments"])
+                    this.departments!.push(DepartmentDto.fromJS(item));
+            }
+        }
+    }
+
+    static override fromJS(data: any): GetDepartmentsResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new GetDepartmentsResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        if (Array.isArray(this.departments)) {
+            data["departments"] = [];
+            for (let item of this.departments)
+                data["departments"].push(item.toJSON());
+        }
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IGetDepartmentsResponse extends IBaseResponse {
+    departments?: DepartmentDto[];
+}
+
+export class DepartmentDto implements IDepartmentDto {
     id?: string;
     name?: string;
 
-    constructor(data?: IDepartment) {
+    constructor(data?: IDepartmentDto) {
         if (data) {
             for (var property in data) {
                 if (data.hasOwnProperty(property))
@@ -20250,9 +20295,9 @@ export class Department implements IDepartment {
         }
     }
 
-    static fromJS(data: any): Department {
+    static fromJS(data: any): DepartmentDto {
         data = typeof data === 'object' ? data : {};
-        let result = new Department();
+        let result = new DepartmentDto();
         result.init(data);
         return result;
     }
@@ -20265,7 +20310,7 @@ export class Department implements IDepartment {
     }
 }
 
-export interface IDepartment {
+export interface IDepartmentDto {
     id?: string;
     name?: string;
 }
@@ -24880,6 +24925,153 @@ export interface IUploadDocumentResponse2 extends IBaseResponse {
     document?: DocumentSummary | undefined;
 }
 
+export class IdentifyLabelResponse extends BaseResponse implements IIdentifyLabelResponse {
+    rawText?: string;
+    decision?: LabelMatchDecision;
+    candidates?: LabelCandidateDto[];
+
+    constructor(data?: IIdentifyLabelResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            this.rawText = _data["rawText"];
+            this.decision = _data["decision"];
+            if (Array.isArray(_data["candidates"])) {
+                this.candidates = [] as any;
+                for (let item of _data["candidates"])
+                    this.candidates!.push(LabelCandidateDto.fromJS(item));
+            }
+        }
+    }
+
+    static override fromJS(data: any): IdentifyLabelResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new IdentifyLabelResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["rawText"] = this.rawText;
+        data["decision"] = this.decision;
+        if (Array.isArray(this.candidates)) {
+            data["candidates"] = [];
+            for (let item of this.candidates)
+                data["candidates"].push(item.toJSON());
+        }
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IIdentifyLabelResponse extends IBaseResponse {
+    rawText?: string;
+    decision?: LabelMatchDecision;
+    candidates?: LabelCandidateDto[];
+}
+
+export enum LabelMatchDecision {
+    Auto = "Auto",
+    Choose = "Choose",
+    Low = "Low",
+}
+
+export class LabelCandidateDto implements ILabelCandidateDto {
+    family?: string;
+    score?: number;
+    variants?: LabelVariantDto[];
+
+    constructor(data?: ILabelCandidateDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.family = _data["family"];
+            this.score = _data["score"];
+            if (Array.isArray(_data["variants"])) {
+                this.variants = [] as any;
+                for (let item of _data["variants"])
+                    this.variants!.push(LabelVariantDto.fromJS(item));
+            }
+        }
+    }
+
+    static fromJS(data: any): LabelCandidateDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new LabelCandidateDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["family"] = this.family;
+        data["score"] = this.score;
+        if (Array.isArray(this.variants)) {
+            data["variants"] = [];
+            for (let item of this.variants)
+                data["variants"].push(item.toJSON());
+        }
+        return data;
+    }
+}
+
+export interface ILabelCandidateDto {
+    family?: string;
+    score?: number;
+    variants?: LabelVariantDto[];
+}
+
+export class LabelVariantDto implements ILabelVariantDto {
+    productCode?: string;
+    productName?: string;
+
+    constructor(data?: ILabelVariantDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.productCode = _data["productCode"];
+            this.productName = _data["productName"];
+        }
+    }
+
+    static fromJS(data: any): LabelVariantDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new LabelVariantDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["productCode"] = this.productCode;
+        data["productName"] = this.productName;
+        return data;
+    }
+}
+
+export interface ILabelVariantDto {
+    productCode?: string;
+    productName?: string;
+}
+
 export class GenerateLeafletResponse extends BaseResponse implements IGenerateLeafletResponse {
     content?: string;
     id?: string | undefined;
@@ -26188,87 +26380,6 @@ export class DisassembleGiftPackageRequest implements IDisassembleGiftPackageReq
 export interface IDisassembleGiftPackageRequest {
     giftPackageCode?: string;
     quantity?: number;
-}
-
-export class EnqueueGiftPackageManufactureResponse extends BaseResponse implements IEnqueueGiftPackageManufactureResponse {
-    jobId?: string;
-    message?: string;
-
-    constructor(data?: IEnqueueGiftPackageManufactureResponse) {
-        super(data);
-    }
-
-    override init(_data?: any) {
-        super.init(_data);
-        if (_data) {
-            this.jobId = _data["jobId"];
-            this.message = _data["message"];
-        }
-    }
-
-    static override fromJS(data: any): EnqueueGiftPackageManufactureResponse {
-        data = typeof data === 'object' ? data : {};
-        let result = new EnqueueGiftPackageManufactureResponse();
-        result.init(data);
-        return result;
-    }
-
-    override toJSON(data?: any) {
-        data = typeof data === 'object' ? data : {};
-        data["jobId"] = this.jobId;
-        data["message"] = this.message;
-        super.toJSON(data);
-        return data;
-    }
-}
-
-export interface IEnqueueGiftPackageManufactureResponse extends IBaseResponse {
-    jobId?: string;
-    message?: string;
-}
-
-export class EnqueueGiftPackageManufactureRequest implements IEnqueueGiftPackageManufactureRequest {
-    giftPackageCode?: string;
-    quantity?: number;
-    allowStockOverride?: boolean;
-
-    constructor(data?: IEnqueueGiftPackageManufactureRequest) {
-        if (data) {
-            for (var property in data) {
-                if (data.hasOwnProperty(property))
-                    (<any>this)[property] = (<any>data)[property];
-            }
-        }
-    }
-
-    init(_data?: any) {
-        if (_data) {
-            this.giftPackageCode = _data["giftPackageCode"];
-            this.quantity = _data["quantity"];
-            this.allowStockOverride = _data["allowStockOverride"];
-        }
-    }
-
-    static fromJS(data: any): EnqueueGiftPackageManufactureRequest {
-        data = typeof data === 'object' ? data : {};
-        let result = new EnqueueGiftPackageManufactureRequest();
-        result.init(data);
-        return result;
-    }
-
-    toJSON(data?: any) {
-        data = typeof data === 'object' ? data : {};
-        data["giftPackageCode"] = this.giftPackageCode;
-        data["quantity"] = this.quantity;
-        data["allowStockOverride"] = this.allowStockOverride;
-        return data;
-    }
-}
-
-export interface IEnqueueGiftPackageManufactureRequest {
-    giftPackageCode?: string;
-    quantity?: number;
-    allowStockOverride?: boolean;
 }
 
 export class GetManufactureLogResponse extends BaseResponse implements IGetManufactureLogResponse {
@@ -30238,6 +30349,43 @@ export interface IResolveManualActionRequest {
     erpOrderNumberProduct?: string | undefined;
     erpDiscardResidueDocumentNumber?: string | undefined;
     note?: string | undefined;
+}
+
+export class GetManufactureProtocolResponse extends BaseResponse implements IGetManufactureProtocolResponse {
+    pdfBytes?: string;
+    fileName?: string;
+
+    constructor(data?: IGetManufactureProtocolResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            this.pdfBytes = _data["pdfBytes"];
+            this.fileName = _data["fileName"];
+        }
+    }
+
+    static override fromJS(data: any): GetManufactureProtocolResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new GetManufactureProtocolResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["pdfBytes"] = this.pdfBytes;
+        data["fileName"] = this.fileName;
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IGetManufactureProtocolResponse extends IBaseResponse {
+    pdfBytes?: string;
+    fileName?: string;
 }
 
 export class UpdateManufactureOrderScheduleResponse extends BaseResponse implements IUpdateManufactureOrderScheduleResponse {
@@ -39115,6 +39263,7 @@ export class RecurringJobDto implements IRecurringJobDto {
     displayName?: string;
     description?: string;
     cronExpression?: string;
+    timeZoneId?: string;
     isEnabled?: boolean;
     lastModifiedAt?: Date;
     lastModifiedBy?: string;
@@ -39135,6 +39284,7 @@ export class RecurringJobDto implements IRecurringJobDto {
             this.displayName = _data["displayName"];
             this.description = _data["description"];
             this.cronExpression = _data["cronExpression"];
+            this.timeZoneId = _data["timeZoneId"];
             this.isEnabled = _data["isEnabled"];
             this.lastModifiedAt = _data["lastModifiedAt"] ? new Date(_data["lastModifiedAt"].toString()) : <any>undefined;
             this.lastModifiedBy = _data["lastModifiedBy"];
@@ -39155,6 +39305,7 @@ export class RecurringJobDto implements IRecurringJobDto {
         data["displayName"] = this.displayName;
         data["description"] = this.description;
         data["cronExpression"] = this.cronExpression;
+        data["timeZoneId"] = this.timeZoneId;
         data["isEnabled"] = this.isEnabled;
         data["lastModifiedAt"] = this.lastModifiedAt ? this.lastModifiedAt.toISOString() : <any>undefined;
         data["lastModifiedBy"] = this.lastModifiedBy;
@@ -39168,6 +39319,7 @@ export interface IRecurringJobDto {
     displayName?: string;
     description?: string;
     cronExpression?: string;
+    timeZoneId?: string;
     isEnabled?: boolean;
     lastModifiedAt?: Date;
     lastModifiedBy?: string;

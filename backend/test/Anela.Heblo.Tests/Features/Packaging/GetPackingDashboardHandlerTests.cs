@@ -1,5 +1,5 @@
+using Anela.Heblo.Application.Features.Packaging.Contracts;
 using Anela.Heblo.Application.Features.Packaging.UseCases.GetPackingDashboard;
-using Anela.Heblo.Application.Features.ShoptetOrders;
 using Anela.Heblo.Domain.Features.Packaging;
 using FluentAssertions;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -33,7 +33,7 @@ public class GetPackingDashboardHandlerTests
 
     private static GetPackingDashboardHandler MakeSut(
         out Mock<IPackageRepository> repo,
-        out Mock<IPackingOrderClient> packingClient,
+        out Mock<IPackingOrderCountSource> packingClient,
         (int TotalDistinctOrders, IReadOnlyList<PackerPackingSummary> ByPacker) repoResult,
         int shoptetCount = 5,
         int processingCount = 7)
@@ -43,7 +43,7 @@ public class GetPackingDashboardHandlerTests
                 It.IsAny<DateTimeOffset>(), It.IsAny<DateTimeOffset>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(repoResult);
 
-        packingClient = new Mock<IPackingOrderClient>();
+        packingClient = new Mock<IPackingOrderCountSource>();
         packingClient.Setup(c => c.GetOrdersBeingPackedCountAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(shoptetCount);
         packingClient.Setup(c => c.GetOrdersBeingProcessedCountAsync(It.IsAny<CancellationToken>()))

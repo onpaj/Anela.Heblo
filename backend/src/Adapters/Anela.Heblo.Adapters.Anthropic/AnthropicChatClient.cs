@@ -71,7 +71,7 @@ public class AnthropicChatClient : IChatClient
 
         var userMessages = messageList
             .Where(m => m.Role == ChatRole.User)
-            .Select(m => new { role = "user", content = m.Text })
+            .Select(BuildUserMessage)
             .ToArray();
 
         var model = options?.ModelId ?? _options.Model;
@@ -148,6 +148,46 @@ public class AnthropicChatClient : IChatClient
             max_tokens = maxTokens,
             messages = userMessages
         };
+    }
+
+    /// <summary>
+    /// Messages carrying image data serialize as an Anthropic content-block array;
+    /// text-only messages keep the plain-string form every existing caller relies on.
+    /// </summary>
+    private static object BuildUserMessage(ChatMessage message)
+    {
+        var imageContents = message.Contents
+            .OfType<DataContent>()
+            .Where(c => c.MediaType?.StartsWith("image/", StringComparison.OrdinalIgnoreCase) == true)
+            .ToList();
+
+        if (imageContents.Count == 0)
+        {
+            return new { role = "user", content = message.Text };
+        }
+
+        var blocks = new List<object>();
+        foreach (var image in imageContents)
+        {
+            blocks.Add(new
+            {
+                type = "image",
+                source = new
+                {
+                    type = "base64",
+                    media_type = image.MediaType,
+                    data = Convert.ToBase64String(image.Data.ToArray()),
+                },
+            });
+        }
+
+        var text = string.Concat(message.Contents.OfType<TextContent>().Select(c => c.Text));
+        if (!string.IsNullOrEmpty(text))
+        {
+            blocks.Add(new { type = "text", text });
+        }
+
+        return new { role = "user", content = blocks };
     }
 
     private sealed class AnthropicMessagesResponse

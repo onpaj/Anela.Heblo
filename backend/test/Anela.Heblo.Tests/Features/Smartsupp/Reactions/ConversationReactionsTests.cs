@@ -97,6 +97,38 @@ public class ConversationReactionsTests
     }
 
     [Fact]
+    public async Task ConversationClosedReaction_UnspecifiedTimestamp_StampsLastClosedAtAsUtc()
+    {
+        var reaction = new ConversationClosedReaction(_repo.Object);
+        var ctx = MakeCtx("conversation.closed", $@"{{
+            ""conversation"":{ConvJson(status: "closed")},
+            ""close_type"":""agent"",
+            ""agent_id"":""123""
+        }}");
+        ctx.Timestamp = DateTime.SpecifyKind(ctx.Timestamp, DateTimeKind.Unspecified);
+
+        await reaction.HandleAsync(ctx, CancellationToken.None);
+
+        _repo.Verify(r => r.UpsertConversationAsync(
+            It.Is<SmartsuppConversation>(c => c.LastClosedAt!.Value.Kind == DateTimeKind.Utc),
+            It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task ConversationClosedByContactReaction_UnspecifiedTimestamp_StampsLastClosedAtAsUtc()
+    {
+        var reaction = new ConversationClosedByContactReaction(_repo.Object);
+        var ctx = MakeCtx("conversation.closed_by_contact", $@"{{""conversation"":{ConvJson()}}}");
+        ctx.Timestamp = DateTime.SpecifyKind(ctx.Timestamp, DateTimeKind.Unspecified);
+
+        await reaction.HandleAsync(ctx, CancellationToken.None);
+
+        _repo.Verify(r => r.UpsertConversationAsync(
+            It.Is<SmartsuppConversation>(c => c.LastClosedAt!.Value.Kind == DateTimeKind.Utc),
+            It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
     public async Task ConversationContactRepliedReaction_UpsertsConversationAndMessage()
     {
         var reaction = new ConversationContactRepliedReaction(_repo.Object);

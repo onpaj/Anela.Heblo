@@ -28,6 +28,7 @@ public class CatalogMcpToolsTests
     {
         _mediatorMock = new Mock<IMediator>();
         _currentUserServiceMock = new Mock<ICurrentUserService>();
+        _currentUserServiceMock.Setup(s => s.IsInRole(AccessRoles.ProductsCatalogRead)).Returns(true);
         _tools = new CatalogMcpTools(_mediatorMock.Object, _currentUserServiceMock.Object);
     }
 
@@ -412,5 +413,41 @@ public class CatalogMcpToolsTests
             () => _tools.GetProductMargins(productCode: "DEO001030"));
 
         Assert.Contains("Exception", exception.Message);
+    }
+
+    [Theory]
+    [InlineData("GetCatalogList")]
+    [InlineData("GetCatalogDetail")]
+    [InlineData("GetProductComposition")]
+    [InlineData("GetMaterialsForPurchase")]
+    [InlineData("GetAutocomplete")]
+    [InlineData("GetProductUsage")]
+    [InlineData("GetWarehouseStatistics")]
+    public async Task Tools_ThrowForbidden_AndSkipMediator_WhenUserLacksCatalogReadRole(string tool)
+    {
+        // Arrange
+        _currentUserServiceMock.Setup(s => s.IsInRole(AccessRoles.ProductsCatalogRead)).Returns(false);
+
+        // Act
+        var exception = await Assert.ThrowsAsync<McpException>(() => tool switch
+        {
+            "GetCatalogList" => _tools.GetCatalogList(),
+            "GetCatalogDetail" => _tools.GetCatalogDetail("AKL001"),
+            "GetProductComposition" => _tools.GetProductComposition("AKL001"),
+            "GetMaterialsForPurchase" => _tools.GetMaterialsForPurchase(),
+            "GetAutocomplete" => _tools.GetAutocomplete(),
+            "GetProductUsage" => _tools.GetProductUsage("AKL001"),
+            _ => _tools.GetWarehouseStatistics()
+        });
+
+        // Assert
+        Assert.Contains("FORBIDDEN", exception.Message);
+        Assert.Contains(AccessRoles.ProductsCatalogRead, exception.Message);
+        _mediatorMock.Verify(m => m.Send(It.IsAny<GetCatalogListRequest>(), It.IsAny<CancellationToken>()), Times.Never);
+        _mediatorMock.Verify(m => m.Send(It.IsAny<GetCatalogDetailRequest>(), It.IsAny<CancellationToken>()), Times.Never);
+        _mediatorMock.Verify(m => m.Send(It.IsAny<GetProductCompositionRequest>(), It.IsAny<CancellationToken>()), Times.Never);
+        _mediatorMock.Verify(m => m.Send(It.IsAny<GetMaterialsForPurchaseRequest>(), It.IsAny<CancellationToken>()), Times.Never);
+        _mediatorMock.Verify(m => m.Send(It.IsAny<GetProductUsageRequest>(), It.IsAny<CancellationToken>()), Times.Never);
+        _mediatorMock.Verify(m => m.Send(It.IsAny<GetWarehouseStatisticsRequest>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 }
