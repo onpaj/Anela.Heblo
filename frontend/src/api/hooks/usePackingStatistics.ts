@@ -126,13 +126,17 @@ export const usePackingStatistics = (params: PackingStatisticsParams = {}) =>
         params.toDate ? new Date(params.toDate) : undefined,
       );
 
+      if (!response.summary) {
+        throw new Error('Statistiky balení se nepodařilo načíst.');
+      }
+
       return {
         fromDate: response.fromDate ? response.fromDate.toISOString() : '',
         toDate: response.toDate ? response.toDate.toISOString() : '',
         packerAttributionSince: response.packerAttributionSince
           ? response.packerAttributionSince.toISOString()
           : null,
-        summary: toPackingStatisticsSummary(response.summary!),
+        summary: toPackingStatisticsSummary(response.summary),
         throughputDaily: (response.throughputDaily ?? []).map(toDailyThroughput),
         hourHeatmap: (response.hourHeatmap ?? []).map(toHourBucket),
         byPacker: (response.byPacker ?? []).map(toPackerThroughput),

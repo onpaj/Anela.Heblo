@@ -25,9 +25,6 @@ describe('useScanPackingOrder', () => {
       defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
     });
     mockPackaging_ScanOrder = jest.fn();
-    mockGetAuthenticatedApiClient.mockReturnValue({
-      packaging_ScanOrder: mockPackaging_ScanOrder,
-    } as any);
     jest.clearAllMocks();
     mockGetAuthenticatedApiClient.mockReturnValue({
       packaging_ScanOrder: mockPackaging_ScanOrder,

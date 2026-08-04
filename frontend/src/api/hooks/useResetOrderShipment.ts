@@ -2,14 +2,11 @@ import { useMutation } from '@tanstack/react-query';
 import { getAuthenticatedApiClient } from '../client';
 import type { ResetShipmentData } from '../generated/api-client';
 import type { ScanShipment } from './useScanPackingOrder';
+import { mapShipmentPackages } from './useScanPackingOrder';
 
 const toScanShipment = (data: ResetShipmentData): ScanShipment => ({
   shipmentGuid: data.shipmentGuid ?? '',
-  packages: (data.packages ?? []).map((pkg) => ({
-    trackingNumber: pkg.trackingNumber ?? null,
-    labelUrl: pkg.labelUrl ?? null,
-    labelZpl: pkg.labelZpl ?? null,
-  })),
+  packages: mapShipmentPackages(data.packages),
   // The reset endpoint always creates a fresh shipment.
   alreadyExisted: false,
   pendingCompletion: data.pendingCompletion,
@@ -43,7 +40,11 @@ const resetOrderShipment = async ({
     throw new Error(message);
   }
 
-  return toScanShipment(response.shipment!);
+  if (!response.shipment) {
+    throw new Error(GENERIC_RESET_ERROR);
+  }
+
+  return toScanShipment(response.shipment);
 };
 
 export const useResetOrderShipment = () =>

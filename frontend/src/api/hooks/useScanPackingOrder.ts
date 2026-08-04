@@ -45,6 +45,15 @@ export interface ScanShipmentPackage {
   labelZpl: string | null;
 }
 
+export const mapShipmentPackages = (
+  packages: Array<{ trackingNumber?: string; labelUrl?: string; labelZpl?: string }> | undefined,
+): ScanShipmentPackage[] =>
+  (packages ?? []).map((pkg) => ({
+    trackingNumber: pkg.trackingNumber ?? null,
+    labelUrl: pkg.labelUrl ?? null,
+    labelZpl: pkg.labelZpl ?? null,
+  }));
+
 export interface ScanShipment {
   shipmentGuid: string;
   packages: ScanShipmentPackage[];
@@ -83,11 +92,7 @@ const toPackingOrder = (data: ScanOrderData): PackingOrder => ({
 
 const toScanShipment = (data: ScanShipmentData): ScanShipment => ({
   shipmentGuid: data.shipmentGuid ?? '',
-  packages: (data.packages ?? []).map((pkg) => ({
-    trackingNumber: pkg.trackingNumber ?? null,
-    labelUrl: pkg.labelUrl ?? null,
-    labelZpl: pkg.labelZpl ?? null,
-  })),
+  packages: mapShipmentPackages(data.packages),
   alreadyExisted: data.alreadyExisted ?? false,
   pendingCompletion: data.pendingCompletion,
 });
@@ -117,7 +122,7 @@ const scanPackingOrder = async ({
   const response = await apiClient.packaging_ScanOrder(
     orderCode,
     numberOfPackages,
-    { packingUserId: packingUserId ?? undefined } as ScanOrderBody,
+    new ScanOrderBody({ packingUserId: packingUserId ?? undefined }),
   );
 
   if (!response.success) {
@@ -125,8 +130,12 @@ const scanPackingOrder = async ({
     throw new Error(message);
   }
 
+  if (!response.order) {
+    throw new Error(GENERIC_SCAN_ERROR);
+  }
+
   return {
-    order: toPackingOrder(response.order!),
+    order: toPackingOrder(response.order),
     shipment: response.shipment ? toScanShipment(response.shipment) : null,
   };
 };
