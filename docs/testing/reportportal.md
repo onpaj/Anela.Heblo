@@ -49,16 +49,33 @@ Set up once in the Tailscale admin console (**Settings → Keys → Generate aut
 
 ### Backend — `dotnet test` (xUnit)
 
-- `backend/test/Directory.Build.props` adds the `ReportPortal.VSTest.TestLogger` package to
-  every backend test project and copies the shared `backend/test/ReportPortal.config.json`
-  next to each test assembly.
-- The config ships with `"enabled": false`. The logger only activates when the run passes
-  `-l:ReportPortal` **and** `reportportal_enabled=true` is in the environment.
-- `ci-main-branch.yml` adds `--logger ReportPortal` and the `reportportal_*` env overrides
-  only when `RP_ENABLE=true`.
-- Launch: `heblo-backend`, attributes `layer:backend`, `ci:<run-number>`.
+Backend reporting is **asynchronous**, decoupled from the `backend-tests` job that gates
+`build-and-push`/`deploy-production`. This is different from every other layer in this
+doc, for a specific reason: `ReportPortal.VSTest.TestLogger` reports live, making one HTTP
+round-trip per test. Against 6,000+ backend tests and a NAS-hosted RP instance reachable
+only over Tailscale, that took the `backend-tests` job from ~4 minutes to 1–2 **hours** —
+and because GitHub Actions `needs:` waits for job completion (not just success), that
+latency blocked every deploy on `main`.
 
-Enable locally (against your own instance) with:
+Instead:
+
+- `backend/test/Directory.Build.props` adds `JunitXml.TestLogger` to every backend test
+  project. `ci-main-branch.yml`'s `backend-tests` job always passes
+  `--logger "junit;LogFileName={assembly}-junit.xml"` (no network calls, safe to run
+  locally too), which produces one JUnit file per test project
+  (e.g. `coverage/Anela.Heblo.Tests-junit.xml`, `coverage/Anela.Heblo.Adapters.Flexi.Tests-junit.xml`,
+  etc. — six in total, one per backend test project) and uploads them all as a build
+  artifact (glob `coverage/*-junit.xml`) when `RP_ENABLE=true`.
+- A separate `backend-report-portal` job — which nothing else `needs:` — downloads that
+  artifact and loops over every downloaded `*-junit.xml` file, `POST`ing each one
+  individually to ReportPortal's `junit/import` endpoint
+  (`POST {RP_ENDPOINT}/plugin/{RP_PROJECT}/junit/import`) after `backend-tests` finishes,
+  all attributed to the same `heblo-backend` launch. It runs in parallel with
+  `build-and-push`/`deploy-production`, so however long the import takes has zero effect
+  on deploy latency.
+- `ReportPortal.VSTest.TestLogger` (the live logger) is still present in
+  `Directory.Build.props` for local, single-project debugging against your own instance —
+  it's just no longer wired into CI. Enable it locally with:
 
 ```bash
 reportportal_enabled=true \
@@ -67,6 +84,14 @@ reportportal_server_project=heblo \
 reportportal_server_apikey=<key> \
 dotnet test Anela.Heblo.sln -l:ReportPortal
 ```
+
+- Launch: `heblo-backend`, attributes `layer:backend`, `ci:<run-number>` — same as before,
+  just arriving asynchronously instead of live.
+- Known risk: ReportPortal's JUnit import endpoint has timed out on files as small as
+  ~1.3MB on under-resourced servers (see `reportportal/reportportal#2474`). The import
+  job is `continue-on-error: true` at every step and nothing downstream depends on it, so
+  a timeout just means that run's data doesn't make it into RP — consistent with the
+  "reporting is non-fatal by design" principle above.
 
 ### Frontend unit — Jest (CRA)
 

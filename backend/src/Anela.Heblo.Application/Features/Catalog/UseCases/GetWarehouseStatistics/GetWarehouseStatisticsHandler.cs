@@ -6,10 +6,12 @@ namespace Anela.Heblo.Application.Features.Catalog.UseCases.GetWarehouseStatisti
 public class GetWarehouseStatisticsHandler : IRequestHandler<GetWarehouseStatisticsRequest, GetWarehouseStatisticsResponse>
 {
     private readonly ICatalogRepository _catalogRepository;
+    private readonly TimeProvider _timeProvider;
 
-    public GetWarehouseStatisticsHandler(ICatalogRepository catalogRepository)
+    public GetWarehouseStatisticsHandler(ICatalogRepository catalogRepository, TimeProvider timeProvider)
     {
         _catalogRepository = catalogRepository;
+        _timeProvider = timeProvider;
     }
 
     public async Task<GetWarehouseStatisticsResponse> Handle(GetWarehouseStatisticsRequest request, CancellationToken cancellationToken)
@@ -25,11 +27,10 @@ public class GetWarehouseStatisticsHandler : IRequestHandler<GetWarehouseStatist
             .Where(item => item.GrossWeight.HasValue)
             .Sum(item => (double)item.Stock.Eshop * item.GrossWeight!.Value / 1000.0);
 
-        // Warehouse capacity constant
-        const double warehouseCapacityKg = 3000;
-
         // Calculate utilization percentage (can exceed 100%)
-        var utilizationPercentage = warehouseCapacityKg > 0 ? (totalWeight / warehouseCapacityKg) * 100 : 0;
+        var utilizationPercentage = CatalogConstants.WarehouseCapacityKg > 0
+            ? (totalWeight / CatalogConstants.WarehouseCapacityKg) * 100
+            : 0;
 
         // Count total products
         var totalProductCount = allCatalogItems.Count();
@@ -38,10 +39,10 @@ public class GetWarehouseStatisticsHandler : IRequestHandler<GetWarehouseStatist
         {
             TotalQuantity = totalQuantity,
             TotalWeight = totalWeight,
-            WarehouseCapacityKg = warehouseCapacityKg,
+            WarehouseCapacityKg = CatalogConstants.WarehouseCapacityKg,
             WarehouseUtilizationPercentage = utilizationPercentage,
             TotalProductCount = totalProductCount,
-            LastUpdated = DateTime.UtcNow
+            LastUpdated = _timeProvider.GetUtcNow().UtcDateTime
         };
     }
 }

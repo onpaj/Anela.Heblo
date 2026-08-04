@@ -82,12 +82,12 @@ const IndexRootsTab: React.FC = () => {
                   </td>
                   <td className="py-2 pr-4 text-xs text-gray-500 dark:text-graphite-muted">
                     {root.lastIndexedAt
-                      ? new Date(root.lastIndexedAt).toLocaleDateString("cs-CZ")
+                      ? root.lastIndexedAt.toLocaleDateString("cs-CZ")
                       : "Nikdy"}
                   </td>
                   <td className="py-2">
                     <button
-                      onClick={() => handleDelete(root.id)}
+                      onClick={() => handleDelete(root.id!)}
                       disabled={deletingId === root.id}
                       className="text-gray-400 dark:text-graphite-faint hover:text-red-500 disabled:opacity-50"
                       aria-label={`Smazat kořen ${root.sharePointPath}`}

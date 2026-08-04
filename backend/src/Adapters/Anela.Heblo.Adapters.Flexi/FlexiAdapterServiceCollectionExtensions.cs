@@ -83,7 +83,6 @@ public static class FlexiAdapterServiceCollectionExtensions
         services.AddScoped<IFlexiManufactureDocumentService, FlexiManufactureDocumentService>();
         services.AddScoped<IManufactureClient, FlexiManufactureClient>();
         services.AddScoped<IProductWeightClient, FlexiProductClient>();
-        services.AddScoped<ILotsClient, FlexiLotsClient>();
         services.AddScoped<IDepartmentClient, FlexiDepartmentClient>();
         services.AddScoped<IDepartmentQueryService, FlexiDepartmentQueryService>();
 

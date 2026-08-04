@@ -69,7 +69,8 @@ const PhotoGrid: React.FC<PhotoGridProps> = ({
         <div className="grid grid-cols-[repeat(auto-fill,minmax(160px,1fr))] gap-3 select-none">
           {photos.map((photo) => {
             const isSelected = photo.id === selectedPhotoId;
-            const isChecked = selectedIds.has(photo.id);
+            const isChecked = selectedIds.has(photo.id!);
+            const tags = photo.tags ?? [];
             return (
               <div
                 key={photo.id}
@@ -91,12 +92,12 @@ const PhotoGrid: React.FC<PhotoGridProps> = ({
                     }
                     if (e.shiftKey) {
                       e.preventDefault();
-                      onPhotoSelection(photo.id, "range");
+                      onPhotoSelection(photo.id!, "range");
                       return;
                     }
                     if (e.metaKey || e.ctrlKey) {
                       e.preventDefault();
-                      onPhotoSelection(photo.id, "toggle");
+                      onPhotoSelection(photo.id!, "toggle");
                       return;
                     }
                     onPhotoSelect(photo);
@@ -107,20 +108,20 @@ const PhotoGrid: React.FC<PhotoGridProps> = ({
                   aria-label={photo.name}
                 >
                   <PhotoThumbnail
-                    photoId={photo.id}
-                    modifiedAt={photo.lastModifiedAt}
-                    alt={photo.name}
+                    photoId={photo.id!}
+                    modifiedAt={photo.lastModifiedAt?.toISOString() ?? ""}
+                    alt={photo.name ?? ""}
                     className="w-full h-full"
                     size="medium"
                   />
-                  {showTags && photo.tags.length > 0 && (
+                  {showTags && tags.length > 0 && (
                     <div className="absolute top-1 left-1 right-1 flex flex-wrap gap-1 pointer-events-none z-10">
-                      {photo.tags.slice(0, TILE_MAX_VISIBLE_TAGS).map((tag) => (
-                        <TagBadge key={tag.id} name={tag.name} variant="overlay" />
+                      {tags.slice(0, TILE_MAX_VISIBLE_TAGS).map((tag) => (
+                        <TagBadge key={tag.id} name={tag.name ?? ""} variant="overlay" />
                       ))}
-                      {photo.tags.length > TILE_MAX_VISIBLE_TAGS && (
+                      {tags.length > TILE_MAX_VISIBLE_TAGS && (
                         <span className="inline-flex items-center px-1.5 py-0.5 bg-black/50 text-white rounded-full text-xs">
-                          +{photo.tags.length - TILE_MAX_VISIBLE_TAGS}
+                          +{tags.length - TILE_MAX_VISIBLE_TAGS}
                         </span>
                       )}
                     </div>

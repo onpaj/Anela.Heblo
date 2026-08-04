@@ -10,6 +10,7 @@ public class InvoiceDqtJob : IRecurringJob
     private readonly IDqtRunRepository _repository;
     private readonly IInvoiceDqtJobRunner _jobRunner;
     private readonly IRecurringJobStatusChecker _statusChecker;
+    private readonly TimeProvider _timeProvider;
     private readonly ILogger<InvoiceDqtJob> _logger;
 
     public RecurringJobMetadata Metadata { get; } = new()
@@ -25,11 +26,13 @@ public class InvoiceDqtJob : IRecurringJob
         IDqtRunRepository repository,
         IInvoiceDqtJobRunner jobRunner,
         IRecurringJobStatusChecker statusChecker,
+        TimeProvider timeProvider,
         ILogger<InvoiceDqtJob> logger)
     {
         _repository = repository;
         _jobRunner = jobRunner;
         _statusChecker = statusChecker;
+        _timeProvider = timeProvider;
         _logger = logger;
     }
 
@@ -41,7 +44,7 @@ public class InvoiceDqtJob : IRecurringJob
             return;
         }
 
-        var yesterday = DateOnly.FromDateTime(DateTime.Today.AddDays(-1));
+        var yesterday = DateOnly.FromDateTime(_timeProvider.GetUtcNow().DateTime).AddDays(-1);
 
         _logger.LogInformation("Starting {JobName} for {Date}", Metadata.JobName, yesterday);
 

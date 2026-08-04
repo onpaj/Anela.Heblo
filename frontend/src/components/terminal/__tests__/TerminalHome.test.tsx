@@ -132,4 +132,14 @@ describe('TerminalHome', () => {
 
     expect(screen.queryByTestId('location-display')).not.toBeInTheDocument();
   });
+
+  it('offers the label identification workflow', () => {
+    renderHome();
+
+    expect(screen.getByText('Identifikace štítku')).toBeInTheDocument();
+    expect(screen.getByTestId('workflow-tile-label-id')).toHaveAttribute(
+      'href',
+      '/terminal/label-identification',
+    );
+  });
 });

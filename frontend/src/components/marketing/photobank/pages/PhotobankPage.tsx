@@ -98,7 +98,7 @@ function PhotobankPage() {
   });
 
   const selectedPhoto = useMemo(
-    () => (selectedPhotoId != null ? (photosData?.items.find((p) => p.id === selectedPhotoId) ?? null) : null),
+    () => (selectedPhotoId != null ? (photosData?.items?.find((p) => p.id === selectedPhotoId) ?? null) : null),
     [selectedPhotoId, photosData],
   );
 
@@ -138,7 +138,7 @@ function PhotobankPage() {
   }, []);
 
   const handlePhotoSelect = useCallback((photo: PhotoDto) => {
-    setSelectedPhotoId((prev) => (prev === photo.id ? null : photo.id));
+    setSelectedPhotoId((prev) => (prev === photo.id ? null : photo.id!));
   }, []);
 
   const handleDrawerClose = useCallback(() => {
@@ -171,7 +171,7 @@ function PhotobankPage() {
         if (anchorIdx !== -1 && targetIdx !== -1) {
           const lo = Math.min(anchorIdx, targetIdx);
           const hi = Math.max(anchorIdx, targetIdx);
-          setSelectedIds(new Set(items.slice(lo, hi + 1).map((p) => p.id)));
+          setSelectedIds(new Set(items.slice(lo, hi + 1).map((p) => p.id!)));
           return;
         }
       }

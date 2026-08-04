@@ -20,14 +20,14 @@ const PhotoDrawer: React.FC<PhotoDrawerProps> = ({ photo, onClose }) => {
 
   const canEditTags = hasPermission('marketing.photobank.write');
 
-  const addTagMutation = useAddPhotoTag(photo.id);
-  const removeTagMutation = useRemovePhotoTag(photo.id);
+  const addTagMutation = useAddPhotoTag(photo.id!);
+  const removeTagMutation = useRemovePhotoTag(photo.id!);
   const retagMutation = useRetagPhotos();
 
   const [retagSuccess, setRetagSuccess] = useState(false);
 
   const handleRetag = useCallback(async () => {
-    await retagMutation.mutateAsync({ photoIds: [photo.id], clearExistingAiTags: false });
+    await retagMutation.mutateAsync({ photoIds: [photo.id!], clearExistingAiTags: false });
     setRetagSuccess(true);
     setTimeout(() => setRetagSuccess(false), 2000);
   }, [photo.id, retagMutation]);
@@ -62,7 +62,7 @@ const PhotoDrawer: React.FC<PhotoDrawerProps> = ({ photo, onClose }) => {
   );
 
   // Format file size
-  const formatFileSize = (bytes: number | null): string => {
+  const formatFileSize = (bytes: number | null | undefined): string => {
     if (bytes == null) return "—";
     if (bytes < 1024) return `${bytes} B`;
     if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
@@ -88,9 +88,9 @@ const PhotoDrawer: React.FC<PhotoDrawerProps> = ({ photo, onClose }) => {
       {/* Thumbnail */}
       <div className="p-3 border-b border-gray-100 dark:border-graphite-border">
         <PhotoThumbnail
-          photoId={photo.id}
-          modifiedAt={photo.lastModifiedAt}
-          alt={photo.name}
+          photoId={photo.id!}
+          modifiedAt={photo.lastModifiedAt?.toISOString() ?? ""}
+          alt={photo.name ?? ""}
           className="w-full aspect-square"
           size="large"
         />
@@ -98,11 +98,11 @@ const PhotoDrawer: React.FC<PhotoDrawerProps> = ({ photo, onClose }) => {
 
       {/* Metadata */}
       <div className="p-3 border-b border-gray-100 dark:border-graphite-border space-y-1.5">
-        <DetailRow label="Složka" value={photo.folderPath} />
+        <DetailRow label="Složka" value={photo.folderPath ?? ""} />
         <DetailRow label="Velikost" value={formatFileSize(photo.fileSizeBytes)} />
         <DetailRow
           label="Upraveno"
-          value={new Date(photo.lastModifiedAt).toLocaleDateString("cs-CZ")}
+          value={photo.lastModifiedAt ? photo.lastModifiedAt.toLocaleDateString("cs-CZ") : "—"}
         />
       </div>
 
@@ -167,15 +167,15 @@ const PhotoDrawer: React.FC<PhotoDrawerProps> = ({ photo, onClose }) => {
           </span>
         </div>
 
-        {photo.tags.length === 0 ? (
+        {(photo.tags ?? []).length === 0 ? (
           <p className="text-xs text-gray-400 dark:text-graphite-faint mb-2">Žádné štítky</p>
         ) : (
           <div className="flex flex-wrap gap-1.5 mb-3">
-            {photo.tags.map((tag) => (
+            {(photo.tags ?? []).map((tag) => (
               <TagBadge
                 key={tag.id}
-                name={tag.name}
-                onRemove={canEditTags && !removeTagMutation.isPending ? () => handleRemoveTag(tag.id) : undefined}
+                name={tag.name ?? ""}
+                onRemove={canEditTags && !removeTagMutation.isPending ? () => handleRemoveTag(tag.id!) : undefined}
               />
             ))}
           </div>
