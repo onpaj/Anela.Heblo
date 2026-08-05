@@ -1,16 +1,21 @@
 import { renderHook, waitFor } from '@testing-library/react';
 import { useOrderTrackingNumber } from '../useOrderTrackingNumber';
-import { createMockApiClient, mockAuthenticatedApiClient, createQueryClientWrapper } from '../../testUtils';
+import { getAuthenticatedApiClient } from '../../client';
+import { createQueryClientWrapper } from '../../testUtils';
 
-jest.mock('../../client');
+jest.mock('../../client', () => ({
+  ...jest.requireActual('../../client'),
+  getAuthenticatedApiClient: jest.fn(),
+}));
 
 describe('useOrderTrackingNumber', () => {
-  let mockFetch: jest.Mock;
+  let mockPackaging_GetOrderTrackingNumber: jest.Mock;
 
   beforeEach(() => {
-    const mock = createMockApiClient();
-    mockFetch = mock.mockFetch;
-    mockAuthenticatedApiClient(mock.mockClient);
+    mockPackaging_GetOrderTrackingNumber = jest.fn();
+    (getAuthenticatedApiClient as jest.Mock).mockReturnValue({
+      packaging_GetOrderTrackingNumber: mockPackaging_GetOrderTrackingNumber,
+    });
   });
 
   afterEach(() => {
@@ -18,9 +23,9 @@ describe('useOrderTrackingNumber', () => {
   });
 
   it('returns the tracking number from a successful response', async () => {
-    mockFetch.mockResolvedValue({
-      ok: true,
-      json: () => Promise.resolve({ success: true, trackingNumber: '2421907688' }),
+    mockPackaging_GetOrderTrackingNumber.mockResolvedValue({
+      success: true,
+      trackingNumber: '2421907688',
     });
 
     const { wrapper } = createQueryClientWrapper();
@@ -28,13 +33,12 @@ describe('useOrderTrackingNumber', () => {
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
     expect(result.current.data).toBe('2421907688');
+    expect(getAuthenticatedApiClient).toHaveBeenCalledWith(false);
+    expect(mockPackaging_GetOrderTrackingNumber).toHaveBeenCalledWith('126000034');
   });
 
   it('returns null when the response has no tracking number', async () => {
-    mockFetch.mockResolvedValue({
-      ok: true,
-      json: () => Promise.resolve({ success: true, trackingNumber: null }),
-    });
+    mockPackaging_GetOrderTrackingNumber.mockResolvedValue({ success: true, trackingNumber: null });
 
     const { wrapper } = createQueryClientWrapper();
     const { result } = renderHook(() => useOrderTrackingNumber('ORD-1', true), { wrapper });
@@ -44,10 +48,7 @@ describe('useOrderTrackingNumber', () => {
   });
 
   it('returns null when the response is not successful', async () => {
-    mockFetch.mockResolvedValue({
-      ok: true,
-      json: () => Promise.resolve({ success: false, errorCode: 'Exception' }),
-    });
+    mockPackaging_GetOrderTrackingNumber.mockResolvedValue({ success: false, errorCode: 'Exception' });
 
     const { wrapper } = createQueryClientWrapper();
     const { result } = renderHook(() => useOrderTrackingNumber('ORD-1', true), { wrapper });
@@ -56,11 +57,8 @@ describe('useOrderTrackingNumber', () => {
     expect(result.current.data).toBeNull();
   });
 
-  it('returns null when the HTTP response is not ok', async () => {
-    mockFetch.mockResolvedValue({
-      ok: false,
-      status: 500,
-    });
+  it('returns null when the underlying request throws (e.g. non-2xx response)', async () => {
+    mockPackaging_GetOrderTrackingNumber.mockRejectedValue(new Error('HTTP 500'));
 
     const { wrapper } = createQueryClientWrapper();
     const { result } = renderHook(() => useOrderTrackingNumber('ORD-1', true), { wrapper });
@@ -70,7 +68,7 @@ describe('useOrderTrackingNumber', () => {
   });
 
   it('returns null when a network error occurs', async () => {
-    mockFetch.mockRejectedValue(new Error('Network failure'));
+    mockPackaging_GetOrderTrackingNumber.mockRejectedValue(new Error('Network failure'));
 
     const { wrapper } = createQueryClientWrapper();
     const { result } = renderHook(() => useOrderTrackingNumber('ORD-1', true), { wrapper });
@@ -82,6 +80,6 @@ describe('useOrderTrackingNumber', () => {
   it('does not fetch when disabled', () => {
     const { wrapper } = createQueryClientWrapper();
     renderHook(() => useOrderTrackingNumber('ORD-1', false), { wrapper });
-    expect(mockFetch).not.toHaveBeenCalled();
+    expect(mockPackaging_GetOrderTrackingNumber).not.toHaveBeenCalled();
   });
 });
