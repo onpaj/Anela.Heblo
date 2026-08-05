@@ -67,6 +67,8 @@ public enum ErrorCodes
     PurchaseOrderUpdateFailed = 1107,
     [HttpStatusCode(HttpStatusCode.NotFound)]
     PurchaseOrderLineNotFound = 1108,
+    [HttpStatusCode(HttpStatusCode.Conflict)]
+    PurchaseOrderNumberGenerationFailed = 1109,
 
     // Manufacture module errors (12XX)
     [HttpStatusCode(HttpStatusCode.NotFound)]
