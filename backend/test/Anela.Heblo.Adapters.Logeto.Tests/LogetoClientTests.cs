@@ -109,6 +109,46 @@ public class LogetoClientTests
     }
 
     [Fact]
+    public async Task GetTimeTrackingAsync_RealisticItem_DateFieldFailsToDeserialize()
+    {
+        // The real Logeto account returns From/To/Date as offset-less local datetime
+        // strings (e.g. "2026-07-27T07:08:00" and, for Date, a full datetime with a
+        // midnight time component: "2026-07-27T00:00:00") — see
+        // docs/superpowers/specs/2026-08-05-logeto-spike-results.md, Finding 3.
+        //
+        // This is a CHARACTERIZATION TEST, not a happy-path test: LogetoTimeEntry.Date
+        // is typed as DateOnly, and System.Text.Json's built-in DateOnly converter
+        // requires a pure "yyyy-MM-dd" string — it rejects a full datetime string, even
+        // one with an all-zero time component. Deserializing this realistic payload
+        // therefore throws today. This is a real, currently-shipped incompatibility
+        // between the DTO's declared type and the live API's actual response shape;
+        // fixing it is out of scope here (see final-review-fix-report.md, Finding 3).
+        var handler = new StubHandler(Json("""
+            {"ContinuationToken":null,"Items":[{
+              "Guid":"11111111-1111-1111-1111-111111111111",
+              "Person":"22222222-2222-2222-2222-222222222222",
+              "Date":"2026-07-27T00:00:00",
+              "From":"2026-07-27T07:08:00",
+              "To":"2026-07-27T14:24:00",
+              "Hours":null,
+              "Activity":"0233db1a-e04d-4cf2-a01b-9cec5d65c1e7",
+              "Description":null,
+              "ExternalKey":null
+            }]}
+            """));
+        var client = CreateClient(handler);
+
+        var act = () => client.GetTimeTrackingAsync(
+            new DateOnly(2026, 7, 27), new DateOnly(2026, 7, 27), CancellationToken.None);
+
+        var ex = await act.Should().ThrowAsync<LogetoApiException>();
+        ex.Which.Message.Should().Be(
+            "Logeto returned an unparseable response body for /api/v2/TimeTracking: " +
+            "The JSON value could not be converted to System.DateOnly. " +
+            "Path: $.Items[0].Date | LineNumber: 3 | BytePositionInLine: 30.");
+    }
+
+    [Fact]
     public async Task CreateTimeEntryAsync_PostsMergeQueryAndPascalCaseBody()
     {
         var handler = new StubHandler(Json("""{"Guid":"33333333-3333-3333-3333-333333333333"}""", HttpStatusCode.Created));

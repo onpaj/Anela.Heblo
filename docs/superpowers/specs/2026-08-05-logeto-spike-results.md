@@ -98,6 +98,48 @@ default to `false`, not `true`. `LogetoTimeConverter`'s `false` branch
 exactly as written in Task 6 — no code change needed there, only the two
 default values in Task 5's config and `BreakInsertionOptions.cs`.
 
+### Concrete evidence: raw redacted response shape
+
+For a redacted `GET /api/v2/TimeTracking` item as actually returned by the
+real account (real `Guid` values replaced with fakes), so future readers
+don't have to re-derive the shape from prose:
+
+```json
+{
+  "ContinuationToken": null,
+  "Items": [
+    {
+      "Guid": "11111111-1111-1111-1111-111111111111",
+      "Person": "22222222-2222-2222-2222-222222222222",
+      "Date": "2026-07-27T00:00:00",
+      "From": "2026-07-27T07:08:00",
+      "To": "2026-07-27T14:24:00",
+      "Hours": null,
+      "Activity": "0233db1a-e04d-4cf2-a01b-9cec5d65c1e7",
+      "Description": null,
+      "ExternalKey": null
+    }
+  ]
+}
+```
+
+Note `Date` is also offset-less **and** carries a full datetime (with a
+midnight time component) rather than a bare `yyyy-MM-dd` string. This is
+pinned by a characterization test,
+`LogetoClientTests.GetTimeTrackingAsync_RealisticItem_DateFieldFailsToDeserialize`
+(`backend/test/Anela.Heblo.Adapters.Logeto.Tests/LogetoClientTests.cs`), which
+documents a real, currently-shipped incompatibility: `LogetoTimeEntry.Date` is
+typed as `DateOnly`, and `System.Text.Json`'s built-in `DateOnly` converter
+rejects this full-datetime string outright — deserializing this exact
+real-world payload throws `LogetoApiException` with message "Logeto returned
+an unparseable response body for /api/v2/TimeTracking: The JSON value could
+not be converted to System.DateOnly. Path: $.Items[0].Date | LineNumber: 3 |
+BytePositionInLine: 30." This means `GetTimeTrackingAsync` would fail against
+the live account today whenever the response includes any item — not just an
+empty page. Fixing the DTO/JSON options is out of scope for this note; see
+`.superpowers/sdd/2026-08-05-logeto-break-insertion/final-review-fix-report.md`
+for the full writeup.
+
 ## Cleanup
 
 All six test records (three per test day, dates 2026-08-06 and 2026-08-07,

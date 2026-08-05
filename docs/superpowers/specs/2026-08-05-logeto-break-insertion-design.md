@@ -152,3 +152,22 @@ Before any job code is written:
    record the finding here before implementation continues.
 
 Ship with `Enabled=false` in production until the spike passes.
+
+## As-built deltas
+
+This section records where the shipped implementation diverged from the design above,
+captured during the final whole-branch code review.
+
+1. **No `Enabled` config key exists.** The `Logeto:BreakInsertion` config section
+   (`BreakInsertionOptions`) has no `Enabled` flag. The real on/off switch is
+   `BreakInsertionJob.Metadata.DefaultIsEnabled` (defaults to `false`) combined with the
+   existing BackgroundJobs admin panel/DB row — the same mechanism every other recurring
+   job in this codebase uses. This reuses existing infrastructure instead of adding a
+   parallel Logeto-specific flag; a good decision, just never backported to this spec.
+2. **`BreakDuration` (TimeSpan-shaped, `00:30`) became `BreakDurationMinutes` (`int`, `30`)**
+   in the shipped `BreakInsertionOptions`.
+3. **`ILogetoClient.GetTimeTrackingAsync` has no `personId` parameter** — its shipped
+   signature is `GetTimeTrackingAsync(DateOnly from, DateOnly to, CancellationToken)`.
+   The real Logeto `TimeTracking` endpoint has no server-side person filter; the client
+   fetches the full date range for all people and `BreakInsertionService` filters
+   client-side per person.
