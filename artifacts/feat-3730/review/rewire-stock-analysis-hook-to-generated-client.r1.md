@@ -1,0 +1,26 @@
+# Code Review: rewire-stock-analysis-hook-to-generated-client
+
+## Summary
+The implementation rewires `useManufacturingStockAnalysisQuery` off the hand-rolled `(apiClient as any).http.fetch` call onto the generated OpenAPI client method `manufacturingStockAnalysis_GetStockAnalysis`, replacing six hand-coded types with re-exports from the generated client and adding a single shared `toGeneratedTimePeriod` boundary-conversion helper. Both changed files match the task context's specified code verbatim, and independent verification (test run, generated-client signature inspection, consumer import check, `tsc`/`npm run build`) confirms every claim in the developer's report.
+
+## Review Result: PASS
+
+### task: rewire-stock-analysis-hook-to-generated-client
+**Status:** PASS
+
+## Independent Verification
+
+- **Diff vs. spec:** `git show 1eb92347` shows `frontend/src/api/hooks/useManufacturingStockAnalysis.ts` and `frontend/src/api/hooks/__tests__/useManufacturingStockAnalysis.test.tsx` were rewritten byte-for-byte matching the task context's Step 1 and Step 3 code blocks. No local re-declarations of `ManufacturingStockSortBy`, `ManufacturingStockSeverity`, `ManufacturingStockItemDto`, `ManufacturingStockSummaryDto`, or `GetManufacturingStockAnalysisResponse` remain — they are now imported and re-exported from `../generated/api-client` (FR-1).
+- **Generated client signature match:** `frontend/src/api/generated/api-client.ts:7622` declares `manufacturingStockAnalysis_GetStockAnalysis(timePeriod, customFromDate, customToDate, productFamily, criticalItemsOnly, majorItemsOnly, adequateItemsOnly, unconfiguredOnly, searchTerm, pageNumber, pageSize, sortBy, sortDescending, salesMultiplier, isExport)` — this positional order exactly matches the hook's call site and the test's `toHaveBeenCalledWith(...)` assertions (FR-2).
+- **`fetch`/`URLSearchParams` removal:** confirmed no reference to `(apiClient as any)`, `.http.fetch(`, or manual `URLSearchParams` remains in the rewritten hook; `formatDateForApi` is gone (FR-2).
+- **TimePeriod boundary conversion (FR-3):** the app-level `TimePeriod` enum (`frontend/src/utils/timePeriod/timePeriod.ts`) and the generated client's `TimePeriod` enum (`api-client.ts:27891`) have identical string members (`PreviousQuarter`, `FutureQuarter`, `Y2Y`, `PreviousSeason`, `Q9M`, `CustomPeriod`), so the same-string-value cast in `toGeneratedTimePeriod` is safe as documented. A single, clearly-commented conversion point exists and is used by the hook's `queryFn`. Q9M-omission behavior is preserved and covered by a dedicated test.
+- **Consumer imports (FR-4):** `ManufacturingStockAnalysis.tsx` imports `useManufacturingStockAnalysisQuery`, `GetManufacturingStockAnalysisRequest`, `TimePeriodFilter`, `ManufacturingStockSortBy`, `ManufacturingStockSeverity`, `formatNumber`, `formatPercentage`, `formatWarehouseStock`, `calculateTimePeriodRange`, `getTimePeriodDisplayText`, and separately `ManufacturingStockItemDto` — all still exported by the rewritten hook module. `ManufactureBatchPlanning.tsx`'s import of `calculateTimePeriodRange` also still resolves. Both continue to compile against the new hook unchanged, as required.
+- **Test run:** ran `CI=true TZ="Europe/Prague" npx react-scripts test --watchAll=false src/api/hooks/__tests__/useManufacturingStockAnalysis.test.tsx` directly — all 14 tests pass (5 in `useManufacturingStockAnalysisQuery`, 5 in `calculateTimePeriodRange`, 4 in `formatWarehouseStock`), matching the implementation report.
+- **Build/type-check:** ran `npm run build` — fails with exactly one `TS2345` error at `ManufacturingStockAnalysis.tsx:286` (`item.productFamily!`), and no errors reference the hook file. This matches the implementation report's claim precisely and is explicitly out of scope for this task (belongs to FR-5, the `handleExport` migration task). `npx tsc --noEmit` output is otherwise only pre-existing, unrelated syntax noise from `node_modules/react-i18next/*.d.ts` (an environment/TS-version artifact, not caused by this change).
+- **NFR-3 (no `as any`):** confirmed no `as any` remains in the hook; the one `as unknown as GeneratedTimePeriod` cast is a documented, deliberate same-string-value enum bridge, consistent with FR-3's guidance, not an unchecked escape hatch.
+
+No discrepancies found between the developer's summary and the actual code/test/build behavior.
+
+## Overall Notes
+- The task context itself preemptively resolved an internal tension between FR-1's acceptance-criteria wording ("every field... must reference... the generated TimePeriod enum") and FR-3/FR-4's requirement that `TimePeriodFilter`-typed consumer state keep compiling; the implementation correctly followed the task context's resolution (keep `timePeriod` app-level, convert only at the boundary), not a literal reading of FR-1's AC line. This is the correct call — the task context is the authoritative, already-reconciled instruction set for this task, and design.r1.md's Component Design section independently corroborates it.
+- The exported `toGeneratedTimePeriod` helper is scoped slightly beyond this task's own file (it's built for reuse by Task 2's `handleExport`), but this was explicitly justified in the task context itself as satisfying FR-3 AC2's "single conversion point" requirement across both call sites, so it is not scope creep.

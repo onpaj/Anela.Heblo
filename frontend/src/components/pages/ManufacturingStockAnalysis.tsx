@@ -26,6 +26,7 @@ import {
   formatWarehouseStock,
   calculateTimePeriodRange,
   getTimePeriodDisplayText,
+  toGeneratedTimePeriod,
 } from "../../api/hooks/useManufacturingStockAnalysis";
 import { getAuthenticatedApiClient } from "../../api/client";
 import { exportToXlsx } from "../../utils/exportToXlsx";
@@ -176,66 +177,48 @@ const ManufacturingStockAnalysis: React.FC = () => {
     setIsExporting(true);
     try {
       const apiClient = await getAuthenticatedApiClient();
-      const relativeUrl = `/api/manufacturing-stock-analysis`;
-      const params = new URLSearchParams();
 
-      if (filters.timePeriod && filters.timePeriod !== TimePeriodFilter.Q9M) {
-        params.append("timePeriod", filters.timePeriod);
-      }
-      if (filters.customFromDate)
-        params.append("customFromDate", filters.customFromDate.toISOString().split("T")[0]);
-      if (filters.customToDate)
-        params.append("customToDate", filters.customToDate.toISOString().split("T")[0]);
-      if (filters.productFamily)
-        params.append("productFamily", filters.productFamily);
-      if (filters.criticalItemsOnly) params.append("criticalItemsOnly", "true");
-      if (filters.majorItemsOnly) params.append("majorItemsOnly", "true");
-      if (filters.adequateItemsOnly) params.append("adequateItemsOnly", "true");
-      if (filters.unconfiguredOnly) params.append("unconfiguredOnly", "true");
-      if (filters.searchTerm) params.append("searchTerm", filters.searchTerm);
-      if (filters.sortBy) params.append("sortBy", filters.sortBy);
-      if (filters.sortDescending !== undefined)
-        params.append("sortDescending", filters.sortDescending.toString());
-      if (filters.salesMultiplier !== undefined && filters.salesMultiplier !== 1.0)
-        params.append("salesMultiplier", filters.salesMultiplier.toString());
-      params.append("isExport", "true");
+      const result = await apiClient.manufacturingStockAnalysis_GetStockAnalysis(
+        toGeneratedTimePeriod(filters.timePeriod),
+        filters.customFromDate,
+        filters.customToDate,
+        filters.productFamily,
+        filters.criticalItemsOnly,
+        filters.majorItemsOnly,
+        filters.adequateItemsOnly,
+        filters.unconfiguredOnly,
+        filters.searchTerm,
+        undefined, // pageNumber — export returns all matching rows; the pre-refactor
+        undefined, // pageSize  — query string builder never sent pageNumber/pageSize either
+        filters.sortBy,
+        filters.sortDescending,
+        filters.salesMultiplier,
+        true, // isExport
+      );
 
-      const queryString = params.toString();
-      const fullUrl = `${(apiClient as any).baseUrl}${relativeUrl}${queryString ? `?${queryString}` : ""}`;
-
-      const response = await (apiClient as any).http.fetch(fullUrl, {
-        method: "GET",
-        headers: { Accept: "application/json" },
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const result = await response.json();
       const today = new Date().toISOString().split("T")[0];
       await exportToXlsx(
         result.items ?? [],
         [
-          { header: "Kód", value: (row: any) => row.code },
-          { header: "Název", value: (row: any) => row.name },
-          { header: "Sklad aktuální", value: (row: any) => row.currentStock },
-          { header: "Sklad ERP", value: (row: any) => row.erpStock },
-          { header: "Sklad E-shop", value: (row: any) => row.eshopStock },
-          { header: "Sklad transport", value: (row: any) => row.transportStock },
-          { header: "Primární zdroj skladu", value: (row: any) => row.primaryStockSource },
-          { header: "Rezervace", value: (row: any) => row.reserve },
-          { header: "Plánováno", value: (row: any) => row.planned },
-          { header: "Prodeje v období", value: (row: any) => row.salesInPeriod },
-          { header: "Denní prodeje", value: (row: any) => row.dailySalesRate },
-          { header: "Optimální dny (nastavení)", value: (row: any) => row.optimalDaysSetup },
-          { header: "Dní skladu", value: (row: any) => row.stockDaysAvailable },
-          { header: "Minimální sklad", value: (row: any) => row.minimumStock },
-          { header: "Přebytečné (%)", value: (row: any) => row.overstockPercentage },
-          { header: "Velikost dávky", value: (row: any) => row.batchSize },
-          { header: "Produktová rodina", value: (row: any) => row.productFamily },
-          { header: "Závažnost", value: (row: any) => row.severity },
-          { header: "Nakonfigurováno", value: (row: any) => row.isConfigured },
+          { header: "Kód", value: (row: ManufacturingStockItemDto) => row.code },
+          { header: "Název", value: (row: ManufacturingStockItemDto) => row.name },
+          { header: "Sklad aktuální", value: (row: ManufacturingStockItemDto) => row.currentStock },
+          { header: "Sklad ERP", value: (row: ManufacturingStockItemDto) => row.erpStock },
+          { header: "Sklad E-shop", value: (row: ManufacturingStockItemDto) => row.eshopStock },
+          { header: "Sklad transport", value: (row: ManufacturingStockItemDto) => row.transportStock },
+          { header: "Primární zdroj skladu", value: (row: ManufacturingStockItemDto) => row.primaryStockSource },
+          { header: "Rezervace", value: (row: ManufacturingStockItemDto) => row.reserve },
+          { header: "Plánováno", value: (row: ManufacturingStockItemDto) => row.planned },
+          { header: "Prodeje v období", value: (row: ManufacturingStockItemDto) => row.salesInPeriod },
+          { header: "Denní prodeje", value: (row: ManufacturingStockItemDto) => row.dailySalesRate },
+          { header: "Optimální dny (nastavení)", value: (row: ManufacturingStockItemDto) => row.optimalDaysSetup },
+          { header: "Dní skladu", value: (row: ManufacturingStockItemDto) => row.stockDaysAvailable },
+          { header: "Minimální sklad", value: (row: ManufacturingStockItemDto) => row.minimumStock },
+          { header: "Přebytečné (%)", value: (row: ManufacturingStockItemDto) => row.overstockPercentage },
+          { header: "Velikost dávky", value: (row: ManufacturingStockItemDto) => row.batchSize },
+          { header: "Produktová rodina", value: (row: ManufacturingStockItemDto) => row.productFamily },
+          { header: "Závažnost", value: (row: ManufacturingStockItemDto) => row.severity },
+          { header: "Nakonfigurováno", value: (row: ManufacturingStockItemDto) => row.isConfigured },
         ],
         `manufacturing-stock-analysis-${today}.xlsx`,
       );
@@ -247,7 +230,7 @@ const ManufacturingStockAnalysis: React.FC = () => {
   }, [filters, showError]);
 
   // Planning list functionality
-  const isInPlanningList = (productCode: string) => {
+  const isInPlanningList = (productCode: string | undefined) => {
     return planningListItems.some(item => item.productCode === productCode);
   };
 
@@ -283,7 +266,9 @@ const ManufacturingStockAnalysis: React.FC = () => {
                 className="expand-button flex-shrink-0 p-1 mr-2 text-gray-400 hover:text-gray-600 dark:text-graphite-faint dark:hover:text-graphite-muted focus:outline-none"
                 onClick={(e) => {
                   e.stopPropagation();
-                  handleRowExpand(item.productFamily!, item.code);
+                  if (item.productFamily && item.code) {
+                    handleRowExpand(item.productFamily, item.code);
+                  }
                 }}
                 title={isExpanded ? 'Skrýt ostatní produkty řady' : 'Zobrazit ostatní produkty řady'}
               >
@@ -432,7 +417,7 @@ const ManufacturingStockAnalysis: React.FC = () => {
       cellClassName: 'text-xs text-gray-900 dark:text-graphite-text',
       renderCell: (item) => (
         <div className="font-bold">
-          {item.stockDaysAvailable > 999 ? '∞' : formatNumber(item.stockDaysAvailable, 0)}
+          {(item.stockDaysAvailable ?? 0) > 999 ? '∞' : formatNumber(item.stockDaysAvailable, 0)}
         </div>
       ),
     },
@@ -464,7 +449,7 @@ const ManufacturingStockAnalysis: React.FC = () => {
       minWidth: 90,
       defaultWidth: 120,
       cellClassName: 'text-xs text-gray-900 dark:text-graphite-text',
-      renderCell: (item) => <>{item.optimalDaysSetup > 0 ? `${item.optimalDaysSetup} dní` : '—'}</>,
+      renderCell: (item) => <>{(item.optimalDaysSetup ?? 0) > 0 ? `${item.optimalDaysSetup} dní` : '—'}</>,
     },
     {
       id: 'batchSize',
@@ -484,7 +469,7 @@ const ManufacturingStockAnalysis: React.FC = () => {
 
   // Get row background color based on severity (like in PurchaseStockAnalysis)
   const getRowColorClass = (
-    severity: ManufacturingStockSeverity,
+    severity: ManufacturingStockSeverity | undefined,
     isSubgridRow: boolean = false,
   ) => {
     // Handle both string and numeric enum values
@@ -595,34 +580,34 @@ const ManufacturingStockAnalysis: React.FC = () => {
 
         try {
           // Fetch products for this ProductFamily
-          const apiClient = getAuthenticatedApiClient();
-          const relativeUrl = `/api/manufacturing-stock-analysis`;
-          const params = new URLSearchParams();
-          params.append("productFamily", productFamily);
-          params.append("pageSize", "100"); // Get all products in family
+          const apiClient = await getAuthenticatedApiClient();
+          const data = await apiClient.manufacturingStockAnalysis_GetStockAnalysis(
+            undefined, // timePeriod
+            undefined, // customFromDate
+            undefined, // customToDate
+            productFamily,
+            undefined, // criticalItemsOnly
+            undefined, // majorItemsOnly
+            undefined, // adequateItemsOnly
+            undefined, // unconfiguredOnly
+            undefined, // searchTerm
+            undefined, // pageNumber
+            100, // pageSize — get all products in family
+            undefined, // sortBy
+            undefined, // sortDescending
+            undefined, // salesMultiplier
+            false, // isExport
+          );
 
-          const queryString = params.toString();
-          const fullUrl = `${(apiClient as any).baseUrl}${relativeUrl}?${queryString}`;
+          // Filter out the current product from subgrid
+          const filteredItems = (data.items ?? []).filter(
+            (item) => item.code !== currentProductCode,
+          );
 
-          const response = await (apiClient as any).http.fetch(fullUrl, {
-            method: "GET",
-            headers: {
-              Accept: "application/json",
-            },
-          });
-
-          if (response.ok) {
-            const data = await response.json();
-            // Filter out the current product from subgrid
-            const filteredItems = data.items.filter(
-              (item: any) => item.code !== currentProductCode,
-            );
-
-            setSubgridData((prev) => ({
-              ...prev,
-              [productFamily]: filteredItems,
-            }));
-          }
+          setSubgridData((prev) => ({
+            ...prev,
+            [productFamily]: filteredItems,
+          }));
         } catch (error) {
           console.error("Error loading product family data:", error);
         } finally {
@@ -849,7 +834,7 @@ const ManufacturingStockAnalysis: React.FC = () => {
   };
 
   // Get color strip for product based on severity - matching summary cards colors
-  const getSeverityStripColor = (severity: ManufacturingStockSeverity) => {
+  const getSeverityStripColor = (severity: ManufacturingStockSeverity | undefined) => {
     // Handle both string and numeric enum values
     const severityStr = String(severity);
     
@@ -876,7 +861,7 @@ const ManufacturingStockAnalysis: React.FC = () => {
 
 
   // Get color class for stock values based on severity - matching summary cards
-  const getStockValueColorClass = (severity: ManufacturingStockSeverity) => {
+  const getStockValueColorClass = (severity: ManufacturingStockSeverity | undefined) => {
     switch (severity) {
       case ManufacturingStockSeverity.Critical:
         return "text-red-600 dark:text-red-400";    // Matches summary card text
@@ -1365,7 +1350,7 @@ const ManufacturingStockAnalysis: React.FC = () => {
                     className="w-full border border-gray-300 rounded-md px-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-transparent dark:bg-graphite-surface-2 dark:border-graphite-border dark:text-graphite-text dark:placeholder-graphite-faint"
                   >
                     <option value="">Všechny</option>
-                    {summary?.productFamilies.map((family) => (
+                    {summary?.productFamilies?.map((family) => (
                       <option key={family} value={family}>
                         {family}
                       </option>
