@@ -30,7 +30,9 @@ public class ProductionConnectionStringDefaultsTests
         var config = LoadProductionConfig();
 
         config.GetValue<int>("Database:Resilience:MaxRetryAttempts").Should().Be(3);
-        config.GetValue<TimeSpan>("Database:Resilience:TotalTimeBudget").Should().Be(TimeSpan.FromSeconds(10));
+        config.GetValue<TimeSpan>("Database:Resilience:TotalTimeBudget").Should().Be(TimeSpan.FromSeconds(3),
+            "TotalTimeBudget is a per-attempt ceiling, not a shared budget; reduced 10s->3s so a retried " +
+            "Polly-internal timeout (now classified transient) bounds worst-case latency at ~13.4s instead of ~41s");
     }
 
     [Fact]
