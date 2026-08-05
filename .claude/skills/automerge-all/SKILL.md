@@ -31,10 +31,11 @@ prompt, with `{N}` replaced by the PR number:
 > entire final message with exactly one line: `VERDICT_FILE:
 > /tmp/automerge-verdict-{N}.json`.
 >
-> This does NOT apply to step 2's hygiene auto-reject — if step 2 auto-rejects
-> this PR (`still-failing` or `conflict`), complete that step's
-> `apply_verdict.sh --action needs-work` call as written, and instead end
-> your final message with exactly one line:
+> This does NOT apply to step 2's hygiene check — if step 2 reports
+> `still-failing` or `conflict`, the script itself already flagged the PR
+> `needs-work` and posted the reason (nothing for you to do there); just
+> follow step 2 as written and, instead of continuing to step 3, end your
+> final message with exactly one line:
 > `HYGIENE_REJECTED: {status} — {detail}`.
 >
 > If step 2 reports `pending-timeout`, end your final message with exactly

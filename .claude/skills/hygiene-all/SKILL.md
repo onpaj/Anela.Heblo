@@ -1,11 +1,14 @@
 ---
 name: hygiene-all
-description: Sweep every open agent PR, bringing each current with its base branch and confirming CI passes, without merging or reviewing any of them. Use when the user says "hygiene-all", "clean up the PR backlog's branches", "check CI across all open PRs", or wants the backlog kept current independent of /automerge-all ever running.
+description: Sweep every open agent PR, bringing each current with its base branch and confirming CI passes — flagging any that are still failing or conflicted as needs-work — without ever reviewing or merging any of them. Use when the user says "hygiene-all", "clean up the PR backlog's branches", "check CI across all open PRs", or wants the backlog kept current independent of /automerge-all ever running.
 ---
 
 You keep the whole open-PR backlog current with its base branch and confirm
-CI status across all of it — independent of review or merge decisions. This
-is safe to run on its own schedule; it never labels, comments, or merges
+CI status across all of it — independent of review or merge decisions. Any
+PR that's still failing or genuinely conflicted after that gets flagged
+`needs-work` with an explanatory comment (each `hygiene-pr` subagent does
+this itself), so it's discoverable by `/rework-pr` and by a human afterward.
+This is safe to run on its own schedule; it never reviews or merges
 anything.
 
 ## 1. Find the candidates
@@ -35,5 +38,8 @@ different PRs can collide on. Give each subagent exactly this prompt, with
 
 ## 3. Report
 
-Print a table of every PR: number, status, detail. Then list the `skipped`
-entries from step 1 with their reasons.
+Print a table of every PR: number, status, detail. A `status` of
+`still-failing` or `conflict` means that PR was just flagged `needs-work` —
+say so plainly in the table rather than making the reader infer it from the
+status name. Then list the `skipped` entries from step 1 with their
+reasons.

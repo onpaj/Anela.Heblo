@@ -41,34 +41,14 @@ check, plus the fix, in one step.
 Branch on its `status`:
 
 - **`already-clean` or `fixed`** → continue to step 3 (review).
-- **`still-failing` or `conflict`** → **auto-reject, skip the review
-  entirely.** Write this block to `/tmp/automerge-hygiene-{N}.md` using the
-  **Write tool**:
-
-  ```
-  Hygiene check failed for this PR before code review.
-
-  pr: {N}
-  score: 0
-  verdict: REJECT
-  risk: high
-  reasons:
-    - {hygiene status}: {hygiene detail, verbatim from update_and_wait.sh}
-  concerns: needs a human, or /rework-pr once flagged, to resolve
-  ```
-
-  Then apply it:
-
-  ```bash
-  .claude/skills/automerge-pr/apply_verdict.sh \
-    --pr {N} --action needs-work --review-file /tmp/automerge-hygiene-{N}.md
-  ```
-
-  Report this PR (number, hygiene status, action: `needs-work`) and stop —
-  do not proceed to step 3 for this PR. This block matches the same
-  `verdict: REJECT` shape a code-review rejection produces, so
-  `rework-pr/find_candidate.sh`'s revision-attempt cap counts it the same
-  way.
+- **`still-failing` or `conflict`** → **skip the review entirely.** The
+  script itself already flagged this PR `needs-work` and posted a comment
+  explaining why (via `apply_verdict.sh`, the same mechanism this skill
+  uses for a code-review rejection) — that happens inside
+  `update_and_wait.sh` now, not here, so hygiene-pr/hygiene-all produce the
+  same durable trail even when run standalone. Do not post anything
+  yourself. Report this PR (number, hygiene status, action: `needs-work`)
+  and stop — do not proceed to step 3 for this PR.
 - **`pending-timeout`** → report this PR as skipped
   (`CI checks pending, retry later`) and stop.
 - **`error`** → report this PR as skipped

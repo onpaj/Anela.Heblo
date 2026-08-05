@@ -1,7 +1,13 @@
 #!/usr/bin/env bash
 # Bring one PR's branch current with its base branch and wait for CI to
-# resolve. Never touches labels, comments, or merge state — only reads, and
-# if needed, runs `gh pr update-branch`.
+# resolve. Read-only for every outcome except still-failing/conflict: those
+# two mean the PR cannot be merged as-is regardless of who's asking, so this
+# script flags it `needs-work` itself (via apply_verdict.sh, the same
+# mechanism /automerge-pr uses for a code-review rejection) rather than
+# leaving that to a caller that might never run — hygiene-pr/hygiene-all
+# are meant to be usable standalone, and a status-only report with no
+# durable label left a still-failing PR invisible to /rework-pr's own
+# candidate search and to a human who wasn't staring at that one output.
 #
 #   update_and_wait.sh --pr N
 #
@@ -11,6 +17,8 @@
 # fails the caller over a PR-hygiene outcome. (A missing/unknown argument
 # still exits 1, matching the sibling scripts' convention.)
 set -uo pipefail
+
+NEEDS_WORK_SCRIPT=".claude/skills/automerge-pr/apply_verdict.sh"
 
 POLL_INTERVAL_SECONDS="${HYGIENE_POLL_INTERVAL_SECONDS:-15}"
 POLL_MAX_ATTEMPTS="${HYGIENE_POLL_MAX_ATTEMPTS:-40}"
@@ -28,6 +36,30 @@ done
 report() {  # status, detail
   jq -n --argjson pr "$PR" --arg status "$1" --arg detail "$2" \
     '{pr: $pr, status: $status, detail: $detail}'
+}
+
+# Flags the PR needs-work and reports, for the two outcomes that mean it
+# cannot be merged as-is (still-failing, conflict). Reuses apply_verdict.sh
+# rather than reimplementing label/comment logic, so this stays the one
+# place that owns it. The block below must keep a literal `verdict: REJECT`
+# line — rework-pr/find_candidate.sh and list_candidates.sh count comment
+# bodies matching that pattern toward the revision-attempt cap; breaking it
+# would let a permanently broken build bounce between hygiene/automerge-pr
+# and /rework-pr forever without ever hitting the cap. A labelling failure
+# is noted in `detail`, not swallowed — but it never masks the underlying
+# finding, which is real regardless of whether the flag landed.
+report_and_flag_needs_work() {  # status, detail
+  local status="$1" detail="$2" tmpfile verdict_out label_note=""
+  tmpfile=$(mktemp)
+  printf 'Hygiene check found this PR cannot be merged as-is.\n\npr: %s\nscore: 0\nverdict: REJECT\nrisk: high\nreasons:\n  - %s: %s\nconcerns: needs a human, or /rework-pr, to resolve\n' \
+    "$PR" "$status" "$detail" > "$tmpfile"
+  if ! verdict_out=$(GH_REPO="$REPO" "$NEEDS_WORK_SCRIPT" \
+      --pr "$PR" --action needs-work --review-file "$tmpfile" 2>&1); then
+    label_note=" (could not flag needs-work: $verdict_out)"
+  fi
+  rm -f "$tmpfile"
+  report "$status" "$detail$label_note"
+  exit 0
 }
 
 REPO="${GH_REPO:-}"
@@ -116,14 +148,14 @@ if ! $is_behind && ! $is_conflicting; then
     success|none)
       report "already-clean" "branch is current, checks are $ci_state"; exit 0 ;;
     failure)
-      report "still-failing" "branch is current with base, but checks are failing"; exit 0 ;;
+      report_and_flag_needs_work "still-failing" "branch is current with base, but checks are failing" ;;
     pending)
       : # already current — fall through to the poll loop without updating
       ;;
   esac
 else
   if ! update_err=$(gh pr update-branch "$PR" --repo "$REPO" 2>&1); then
-    report "conflict" "gh pr update-branch failed: $update_err"; exit 0
+    report_and_flag_needs_work "conflict" "gh pr update-branch failed: $update_err"
   fi
   did_update=true
 fi
@@ -141,7 +173,7 @@ while [ "$attempt" -lt "$POLL_MAX_ATTEMPTS" ]; do
       fi
       exit 0 ;;
     failure)
-      report "still-failing" "branch is current with base, but checks are failing"; exit 0 ;;
+      report_and_flag_needs_work "still-failing" "branch is current with base, but checks are failing" ;;
   esac
   attempt=$((attempt + 1))
   [ "$attempt" -lt "$POLL_MAX_ATTEMPTS" ] && sleep "$POLL_INTERVAL_SECONDS"

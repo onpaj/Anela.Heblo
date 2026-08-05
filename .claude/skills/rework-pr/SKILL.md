@@ -157,12 +157,13 @@ gh api "repos/$REPO/pulls/{N}/comments"
 gh pr diff {N} --repo "$REPO"
 ```
 
-This includes any hygiene auto-reject comment `/automerge-pr` posted
-(`Hygiene check failed for this PR before code review...`) — treat a CI
-failure it describes the same way you'd treat a code-review finding: read
-it, identify the concrete problem, fix it directly in `$WORKTREE`. If the
-feedback is too vague to act on directly, make a good-faith improvement
-rather than aborting.
+This includes any hygiene needs-work comment (`Hygiene check found this PR
+cannot be merged as-is...`) — posted either by `/automerge-pr` or by
+`hygiene-pr`/`hygiene-all` running on their own — treat a CI failure it
+describes the same way you'd treat a code-review finding: read it, identify
+the concrete problem, fix it directly in `$WORKTREE`. If the feedback is
+too vague to act on directly, make a good-faith improvement rather than
+aborting.
 
 ## 6. Commit and push, with retry
 
