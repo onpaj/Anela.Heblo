@@ -1,0 +1,627 @@
+#!/usr/bin/env bash
+#
+# test-health-digest.sh — deterministic test-health digest from ReportPortal.
+#
+# The gathering half of the test-health routine: queries ReportPortal for the
+# launches in a window plus their failed items, computes findings, and prints a
+# Markdown digest ending in a machine-readable STATE line.
+#
+# Absence of expected data is computed HERE, not left to the agent: a nightly
+# that never ran is the failure mode this routine exists to catch.
+#
+# Usage:
+#   test-health-digest.sh [--days N] [--state-only]
+#
+# Env: RP_API_KEY / RP_ENDPOINT / RP_PROJECT (see rp-query.sh),
+#      RP_FIXTURE_DIR, GH_FIXTURE_DIR (offline replay),
+#      TEST_HEALTH_STATE_FILE (default $HOME/.cache/test-health/state)
+#
+# Exit codes: 0 ok | 1 config error | 3 RP unreachable | 4 RP auth rejected
+#             5 unexpected RP HTTP status (404/429/5xx)
+#
+set -uo pipefail
+
+HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+RP="${HERE}/rp-query.sh"
+DAYS=7
+STATE_ONLY=0
+STATE_FILE="${TEST_HEALTH_STATE_FILE:-$HOME/.cache/test-health/state}"
+
+# BSD date first (macOS host), GNU date as fallback.
+day_offset() { # day_offset N -> the UTC date N days ago as YYYY-MM-DD
+  date -u -v-"${1}"d +%Y-%m-%d 2>/dev/null || date -u -d "${1} days ago" +%Y-%m-%d 2>/dev/null \
+    || err "neither BSD nor GNU date available."
+}
+fmt_epoch() { # fmt_epoch <epoch-seconds> -> ISO-8601 UTC
+  date -u -r "$1" +%Y-%m-%dT%H:%M:%SZ 2>/dev/null \
+    || date -u -d "@$1" +%Y-%m-%dT%H:%M:%SZ 2>/dev/null \
+    || echo "epoch:$1"
+}
+
+TODAY="$(date -u +%Y-%m-%d)"
+mkdir -p "$(dirname "$STATE_FILE")" 2>/dev/null || true
+
+state_field() { # state_field <key> -> value from the state file, or empty
+  [[ -f "$STATE_FILE" ]] || return 0
+  sed -n "s/^$1=//p" "$STATE_FILE" | head -1
+}
+
+# A routine that cannot run must get LOUDER, not quieter. telemetry-anomaly
+# reported "done" every day for weeks while entirely broken, because an
+# unchanged state produced an identical, deduplicated non-event. Counting
+# consecutive error days makes the state change daily, so harness dispatches
+# a fresh, escalating task instead of swallowing it.
+record_error_and_exit() { # record_error_and_exit <exit-code> <message>
+  local code="$1" msg="$2" prev_date prev_n yesterday n
+  prev_date="$(state_field lastErrorDate)"
+  prev_n="$(state_field errDays)"; [[ -n "$prev_n" ]] || prev_n=0
+  yesterday="$(day_offset 1)"
+  if [[ "$prev_date" == "$TODAY" ]]; then n="$prev_n"          # re-run same day
+  elif [[ "$prev_date" == "$yesterday" ]]; then n=$((prev_n + 1))
+  else n=1; fi
+  printf 'lastErrorDate=%s\nerrDays=%s\n' "$TODAY" "$n" > "$STATE_FILE" 2>/dev/null || true
+  echo "STATE: error=${code}:errdays=${n}"
+  echo "Error: ${msg} (exit ${code}, consecutive error days: ${n})" >&2
+  # The harness's command check discards stdout entirely on a nonzero exit and
+  # returns no observation at all in --state-only mode, so a real error code
+  # here would be total silence to the scheduler — exit 0 instead so the
+  # changed STATE line above still reaches it and dispatches the agent. Full
+  # mode (the agent invocation) keeps the real code; the agent reads it.
+  if [[ "$STATE_ONLY" -eq 1 ]]; then exit 0; fi
+  exit "$code"
+}
+
+clear_error_days() {
+  printf 'lastErrorDate=\nerrDays=0\n' > "$STATE_FILE" 2>/dev/null || true
+}
+
+err()  {
+  # Startup/config failures must reach the harness in --state-only mode just
+  # like a runtime RP error does — otherwise a missing jq/perl/rp-query.sh or
+  # a bad argument produces total silence instead of an escalating finding.
+  if [[ "$STATE_ONLY" -eq 1 ]]; then record_error_and_exit 1 "$*"; fi
+  echo "Error: $*" >&2
+  exit 1
+}
+errc() { local c="$1"; shift; echo "Error: $*" >&2; exit "$c"; }
+
+# Argument parsing happens BEFORE the dependency checks below: those checks
+# call err(), which needs to already know whether --state-only was passed so a
+# missing jq/perl/rp-query.sh doesn't produce silence in state-only mode.
+# Pre-scan for --state-only before validating anything. The loop below parses
+# left to right, so `--days abc --state-only` would validate --days while
+# STATE_ONLY was still 0, and err() would exit 1 with no STATE line — silent to
+# the harness, which discards stdout on a nonzero exit. Order of flags on the
+# command line must not decide whether a failure is observable.
+for _arg in "$@"; do
+  [[ "$_arg" == "--state-only" ]] && STATE_ONLY=1
+done
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --days)
+      # Both malformed shapes here are one character away from the shipped
+      # `--days 7` and must not go silent. A bare `${2:?...}` aborts via
+      # bash's own nounset handling before err() ever runs -- exit 1, no
+      # STATE line, invisible to --state-only. And a non-numeric value (e.g.
+      # `--days abc`) parses fine here under `set -u` and only blows up much
+      # later at the WINDOW_START_MS arithmetic, as an unbound-variable abort
+      # that exits 0 with empty stdout -- total, silent harness blindness.
+      # Validate eagerly and route both through err(), which already knows
+      # how to reach --state-only via record_error_and_exit.
+      [[ $# -ge 2 ]] || err "--days requires a value."
+      case "$2" in
+        ''|*[!0-9]*) err "--days requires a positive integer, got '$2'." ;;
+      esac
+      [[ "$2" -gt 0 ]] || err "--days requires a positive integer, got '$2'."
+      DAYS="$2"; shift 2 ;;
+    --state-only) STATE_ONLY=1; shift ;;
+    -h|--help)    awk 'NR>1 && /^#/ {sub(/^# ?/,""); print; next} NR>1 {exit}' "$0"; exit 0 ;;
+    *)            err "unknown argument '$1'." ;;
+  esac
+done
+
+command -v jq >/dev/null || err "jq is required (expected on PATH, e.g. /Users/rem/.local/bin)."
+# perl is not decoration: normalize_error's hex-id rule needs a lookahead that
+# sed -E cannot express. Without this guard its absence is silent and total —
+# the pipeline yields an empty string for every error line, so every regression
+# and chronic fingerprint in the run collapses onto sha256("") and dedup drops
+# everything after the first.
+command -v perl >/dev/null || err "perl is required for normalize_error's hex-id rule."
+[[ -x "$RP" ]] || err "${RP} not found or not executable."
+
+GH="${HERE}/gh-api.sh"
+
+# A GitHub failure must be distinguishable from "GitHub says there are no runs".
+# Collapsing the two is the same mistake as reporting an unreadable ReportPortal
+# as "the tests did not run": it would make a GitHub outage look like proof that
+# the nightly was never scheduled, defeat cascade suppression, and file one
+# issue per stale module — eleven harness:todo issues, eleven PRs, one cause.
+GH_UNREACHABLE='{"workflow_runs":[],"__gh_error":true}'
+
+# Fetch a GitHub REST path, honouring GH_FIXTURE_DIR for offline replay. Uses
+# the same file-naming rule as rp-query.sh so fixtures are predictable.
+gh_get() {
+  local p="$1" out rc
+  if [[ -n "${GH_FIXTURE_DIR:-}" ]]; then
+    local name file
+    name="$(printf '%s' "${p#/}" | sed 's/[^A-Za-z0-9._-]/_/g')"
+    file="${GH_FIXTURE_DIR}/${name}.json"
+    if [[ -f "$file" ]]; then cat "$file"; else echo '{"workflow_runs":[]}'; fi
+    return 0
+  fi
+  [[ -x "$GH" ]] || { echo "$GH_UNREACHABLE"; return 0; }
+  out="$("$GH" GET "$p" 2>/dev/null)"; rc=$?
+  if [[ $rc -ne 0 ]]; then echo "$GH_UNREACHABLE"; return 0; fi
+  printf '%s' "$out"
+}
+
+# "Now" is overridable so that fixtures can pin it. Fixtures carry absolute
+# timestamps; a window computed from wall-clock now would slide past them within
+# days and the suite would rot into a false pass — launches silently filtered
+# out, zero findings, everything "green". Tests set TEST_HEALTH_NOW_MS.
+NOW_MS="${TEST_HEALTH_NOW_MS:-$(( $(date -u +%s) * 1000 ))}"
+WINDOW_START_MS=$(( NOW_MS - DAYS * 86400 * 1000 ))
+
+# ---------------------------------------------------------------- gather ----
+# One page of 300 launches, newest first, then filter to the window with jq.
+# Filtering client-side keeps us off RP's filter-parameter grammar, which is
+# version-sensitive and unverified against this instance.
+raw_launches="$("$RP" '/launch?page.size=300&page.sort=startTime,DESC')"; rc=$?
+if [[ $rc -ne 0 ]]; then
+  # 3 = unreachable, 4 = auth. Either way we know NOTHING about test presence,
+  # so we must not emit silence findings. Record the error day and stop.
+  record_error_and_exit "$rc" "could not read launches from ReportPortal"
+fi
+
+# Validate the shape the same way the GitHub payload is already validated
+# below (`gh_ok`): a 2xx body that parses as JSON but doesn't carry a
+# `.content` array — schema drift, a proxy interstitial, an auth page that
+# happens to be valid JSON — must not fall through to "zero launches". That
+# collapse is the same defect as an unreachable GitHub API reading as "no
+# workflow runs", one level up: a genuinely empty `.content` array IS a real
+# answer (handled below via rp_launch_count), but anything else is a
+# malformed response we must not trust.
+rp_ok="$(printf '%s' "$raw_launches" | jq -r '
+  if (.content | type) == "array" then "yes" else "no" end' 2>/dev/null || echo no)"
+[[ "$rp_ok" == "yes" ]] || record_error_and_exit 5 "ReportPortal launch payload has no '.content' array (malformed response)."
+rp_launch_count="$(printf '%s' "$raw_launches" | jq '.content | length' 2>/dev/null)" \
+  || record_error_and_exit 5 "could not count entries in the ReportPortal launch payload."
+
+launches="$(printf '%s' "$raw_launches" | jq --argjson since "$WINDOW_START_MS" '
+  [ .content[]?
+    | select(.startTime >= $since)
+    | { id, name, number, status, startTime,
+        layer:  ((.attributes[]? | select(.key=="layer")  | .value) // "unknown"),
+        module: ((.attributes[]? | select(.key=="module") | .value) // "-"),
+        branch: ((.attributes[]? | select(.key=="branch") | .value) // "unknown"),
+        ci:     ((.attributes[]? | select(.key=="ci")     | .value) // "-"),
+        total:  (.statistics.executions.total   // 0),
+        passed: (.statistics.executions.passed  // 0),
+        failed: (.statistics.executions.failed  // 0),
+        skipped:(.statistics.executions.skipped // 0) }
+    | select(.branch == "main" or .branch == "unknown") ]
+')" || record_error_and_exit 5 "could not parse the launch payload as JSON."
+
+# Failed items per launch. Cheap: only failures are fetched, never full item
+# lists. Pass/fail history per test is then derived from set membership.
+failed_items='[]'
+for id in $(printf '%s' "$launches" | jq -r '.[].id'); do
+  p="/item?filter.eq.launchId=${id}&filter.in.status=FAILED,INTERRUPTED&page.size=300"
+  # MUST route through record_error_and_exit, exactly like the launches call.
+  # A partial RP outage — launch list serving, item queries failing — is a real
+  # shape, and taking the plain errc() path here would print no STATE line and
+  # leave the error-day counter frozen, so the scheduler would dedup the failure
+  # into silence. That is the precise failure this counter exists to prevent.
+  body="$("$RP" "$p")" || record_error_and_exit $? "could not read failed items for launch ${id}"
+  chunk="$(printf '%s' "$body" | jq --argjson lid "$id" '
+    [ .content[]? | { launchId: $lid,
+                      name: (.name // "unknown"),
+                      path: (.pathNames.itemPaths // [] | map(.name) | join(" > ")),
+                      status: (.status // "FAILED"),
+                      issue: ((.issue.comment // "") ),
+                      error: ((.description // "") | split("\n")[0] // "") } ]
+  ')" || record_error_and_exit 5 "could not parse items for launch ${id}."
+  # Unlike its neighbours, this accumulation re-passes the whole growing array
+  # via --argjson on every iteration with no guard. On a bad night (many
+  # failures) it can exceed jq/the shell's argument limits; unguarded, jq
+  # would fail, $failed_items would silently become empty, and the run would
+  # complete "successfully" with every regression/chronic/flaky finding gone —
+  # losing exactly the data that matters most. Fail loudly instead.
+  failed_items="$(jq -n --argjson a "$failed_items" --argjson b "$chunk" '$a + $b')" \
+    || record_error_and_exit 1 "could not accumulate failed items at launch ${id} (jq failed, possibly an argument-size limit)."
+done
+
+# --------------------------------------------------------------- findings ---
+# Findings are accumulated as JSON objects: {category, layer, module, fingerprint, headline, detail}
+findings='[]'
+add_finding() { findings="$(jq -n --argjson a "$findings" --argjson b "$1" '$a + [$b]')"; }
+
+# rp_ok above only rules out a malformed body; a validly-shaped, genuinely
+# empty `.content` is a real answer, not an error — but left unflagged it is
+# byte-identical to a healthy clean week (findings=0, same STATE shape). This
+# is the decay state of the very outage this routine's C2 fix detects: once
+# ~300 newer launches or RP retention push every prior launch off this page,
+# a real, ongoing outage silently reverts to green. State it explicitly.
+if [[ "$rp_launch_count" -eq 0 ]]; then
+  add_finding "$(jq -n '{
+    category: "rp-empty",
+    layer: "-", module: "-",
+    fingerprint: "test-rp-empty:no-launches",
+    headline: "ReportPortal returned no launches at all for the window",
+    detail: "The query succeeded and returned a validly-shaped, empty page: there is no launch history to evaluate. This is either a brand-new project or every prior launch has aged off retention/pagination — it is not the same as a clean week and must not be read as one."
+  }')"
+fi
+
+# --- presence: which layer/module reported recently vs. has a baseline? ---
+# A layer/module earns an expectation by appearing at all — anywhere in the
+# raw, unfiltered newest-300 launch set, NOT the window-filtered `launches`.
+# Grouping over `launches` instead would mean a layer/module with ZERO
+# launches inside the window has no row here at all: `stale` is never
+# evaluated for it, and a total, permanent absence of data reads identically
+# to a clean week (this was the exact defect — advancing "now" 9 days past a
+# clean fixture produced FINDINGS: 0 and the same STATE as a healthy run).
+# raw_launches already carries every layer/module pair with any recent
+# history; the window bounds what findings are computed FROM, not what
+# presence is EXPECTED. E2E is nightly, so its freshness horizon is 26h; the
+# push-triggered layers get the full window (a quiet week on main is not a
+# fault).
+E2E_FRESH_MS=$(( 26 * 3600 * 1000 ))
+
+expected="$(printf '%s' "$raw_launches" | jq --argjson now "$NOW_MS" --argjson fresh "$E2E_FRESH_MS" '
+  [ .content[]?
+    | { startTime,
+        layer:  ((.attributes[]? | select(.key=="layer")  | .value) // "unknown"),
+        module: ((.attributes[]? | select(.key=="module") | .value) // "-"),
+        branch: ((.attributes[]? | select(.key=="branch") | .value) // "unknown") }
+    | select(.branch == "main" or .branch == "unknown") ]
+  | group_by(.layer + "/" + .module)
+  | map({ layer: .[0].layer, module: .[0].module,
+          newest: (map(.startTime) | max),
+          runs: length })
+  | map(. + { stale: (if .layer == "e2e" then (($now - .newest) > $fresh) else false end) })
+')" || record_error_and_exit 5 "could not compute expected layer/module presence from the launch payload."
+
+stale_e2e="$(printf '%s' "$expected" | jq '[ .[] | select(.stale) ] | length')"
+fresh_e2e="$(printf '%s' "$expected" | jq '[ .[] | select(.layer=="e2e" and (.stale|not)) ] | length')"
+
+# CI cross-check, run once: did the nightly workflow fail before the tests?
+nightly='{"workflow_runs":[]}'
+if [[ "$stale_e2e" -gt 0 ]]; then
+  nightly="$(gh_get "/repos/onpaj/Anela.Heblo/actions/workflows/e2e-nightly-regression.yml/runs?per_page=5")"
+fi
+# Trust "none" only from a body that is actually shaped like a runs response.
+# A 2xx page that parses as JSON but carries no workflow_runs array — schema
+# drift, a proxy interstitial, an error envelope — would otherwise evaluate to
+# "none" and let us assert a schedule fault we never confirmed. The test is
+# validity, not merely the absence of our own error sentinel.
+gh_ok="$(printf '%s' "$nightly" | jq -r '
+  if (.__gh_error // false) then "no"
+  elif (.workflow_runs | type) == "array" then "yes"
+  else "no" end' 2>/dev/null || echo no)"
+
+if [[ "$gh_ok" != "yes" ]]; then
+  nightly_concl="unknown"
+  nightly_id=""
+else
+  # Guarded the same way as gh_ok. A well-typed array holding a malformed
+  # element would jq-error here and leave an empty string — a fourth state that
+  # is neither failure, success, none nor unknown, and which falls through to
+  # the same defaults as a confirmed "none". Default it to unknown instead.
+  nightly_concl="$(printf '%s' "$nightly" | jq -r '.workflow_runs[0].conclusion // "none"' 2>/dev/null)"
+  [[ -n "$nightly_concl" ]] || nightly_concl="unknown"
+  nightly_id="$(printf '%s' "$nightly" | jq -r '.workflow_runs[0].id // empty' 2>/dev/null)"
+fi
+
+failing_step="unknown"
+if [[ "$nightly_concl" == "failure" && -n "$nightly_id" ]]; then
+  jobs="$(gh_get "/repos/onpaj/Anela.Heblo/actions/runs/${nightly_id}/jobs")"
+  failing_step="$(printf '%s' "$jobs" | jq -r '
+    [ .jobs[]?.steps[]? | select(.conclusion=="failure") | .name ] | first // "unknown"')"
+fi
+
+# Cascade rule: if EVERY e2e module is stale and the workflow failed, this is
+# one infrastructure fault, not eleven missing modules. File once.
+if [[ "$stale_e2e" -gt 0 && "$fresh_e2e" -eq 0 && "$nightly_concl" == "failure" ]]; then
+  add_finding "$(jq -n --arg s "$failing_step" --argjson n "$stale_e2e" '{
+    category: "ci-broken",
+    layer: "e2e", module: "-",
+    fingerprint: ("test-ci:e2e-nightly-regression.yml:" + $s),
+    headline: ("E2E nightly failed at step \"" + $s + "\" — no tests ran, " + ($n|tostring) + " module(s) have no data"),
+    detail: "The workflow run failed before the test step, so ReportPortal received nothing. Resolution is outside the repository (credential/config), not a code change."
+  }')"
+elif [[ "$stale_e2e" -gt 0 && "$fresh_e2e" -eq 0 && "$nightly_concl" == "unknown" ]]; then
+  # ReportPortal was readable and genuinely holds no E2E data — that much is
+  # fact. What we cannot do is attribute it, because GitHub did not answer.
+  # Still exactly ONE finding: the cascade rule is about not multiplying a
+  # single unknown cause into eleven issues, and an unattributable outage is
+  # no less single than an attributable one.
+  add_finding "$(jq -n --argjson n "$stale_e2e" '{
+    category: "ci-broken",
+    layer: "e2e", module: "-",
+    fingerprint: "test-ci:e2e-nightly-regression.yml:unattributed",
+    headline: ("E2E data missing for " + ($n|tostring) + " module(s); GitHub could not be reached to attribute the cause"),
+    detail: "ReportPortal was readable and holds no recent E2E launches, so the data really is absent. The GitHub Actions API could not be queried, so whether the nightly failed, never ran, or ran without reporting is undetermined. Check the workflow run history by hand."
+  }')"
+else
+  # Otherwise report each stale module individually, distinguishing "the
+  # workflow never ran" from "it ran fine but reporting did not arrive".
+  for row in $(printf '%s' "$expected" | jq -r '.[] | select(.stale) | @base64'); do
+    d="$(printf '%s' "$row" | base64 --decode)"
+    l="$(printf '%s' "$d" | jq -r '.layer')"
+    m="$(printf '%s' "$d" | jq -r '.module')"
+    if [[ "$nightly_concl" == "unknown" ]]; then
+      # Its own category, not schedule-broken. schedule-broken asserts a
+      # specific claim — that the run was never scheduled — and a consumer
+      # keying on `category` rather than reading the prose would receive a
+      # confident diagnosis this finding's own text refuses to make.
+      cat_name="silence-unattributed"; suffix="unattributed"
+      head_txt="${l}/${m}: no launch in the last 26h, cause undetermined"
+      det="ReportPortal holds no recent launch for this module. The GitHub Actions API could not be queried, so whether the run failed, never ran, or ran without reporting is undetermined."
+    elif [[ "$nightly_concl" == "success" ]]; then
+      cat_name="rp-reporting-broken"; suffix="reporting"
+      head_txt="${l}/${m}: workflow succeeded but no ReportPortal launch arrived"
+      det="The nightly run completed successfully, so the tests ran — the reporting agent or the tailnet hop failed."
+    else
+      cat_name="schedule-broken"; suffix="schedule"
+      head_txt="${l}/${m}: no launch in the last 26h despite a 7-day baseline"
+      det="No recent launch and no successful workflow run explains it. The nightly may not have been scheduled at all."
+    fi
+    add_finding "$(jq -n --arg c "$cat_name" --arg l "$l" --arg m "$m" --arg s "$suffix" \
+                          --arg h "$head_txt" --arg dt "$det" '{
+      category: $c, layer: $l, module: $m,
+      fingerprint: ("test-silence:" + $l + ":" + $m + ":" + $s),
+      headline: $h, detail: $dt }')"
+  done
+fi
+
+# --- suite shrink: newest run materially smaller than the window median ---
+SHRINK_PCT=20
+for key in $(printf '%s' "$launches" | jq -r '[ .[] | .layer + "/" + .module ] | unique | .[]'); do
+  l="${key%%/*}"; m="${key##*/}"
+  series="$(printf '%s' "$launches" | jq --arg l "$l" --arg m "$m" \
+    '[ .[] | select(.layer==$l and .module==$m) ] | sort_by(-.startTime)')"
+  n="$(printf '%s' "$series" | jq 'length')"
+  [[ "$n" -ge 3 ]] || continue   # no baseline, no claim
+  newest="$(printf '%s' "$series" | jq '.[0].total')"
+  newest_status="$(printf '%s' "$series" | jq -r '.[0].status')"
+  median="$(printf '%s' "$series" | jq '[ .[1:][].total ] | sort | .[ (length/2 | floor) ]')"
+  [[ "$median" -gt 0 ]] || continue
+  drop=$(( (median - newest) * 100 / median ))
+  # Only claim a shrink when the newest launch actually succeeded. The detail
+  # below asserts "the launch still succeeded" without ever checking .status —
+  # guarding on `!= "FAILED"` alone still let STOPPED/INTERRUPTED through
+  # (the item query already filters on FAILED,INTERRUPTED, so INTERRUPTED is
+  # a live status here), and an interrupted or stopped launch IS the
+  # aborted-fixture case this text describes, not an unexplained shrink on
+  # top of it. Require the positive PASSED match instead of a negative
+  # exclusion so every non-passing status is covered, not just FAILED.
+  if [[ "$drop" -ge "$SHRINK_PCT" && "$newest_status" == "PASSED" ]]; then
+    add_finding "$(jq -n --arg l "$l" --arg m "$m" --argjson nw "$newest" --argjson md "$median" --argjson d "$drop" '{
+      category: "suite-shrank", layer: $l, module: $m,
+      fingerprint: ("test-shrink:" + $l + ":" + $m),
+      headline: ($l + "/" + $m + ": test count fell " + ($d|tostring) + "% (" + ($md|tostring) + " -> " + ($nw|tostring) + ")"),
+      detail: "The launch still succeeded, so tests were skipped or a fixture aborted a spec early rather than failing."
+    }')"
+  fi
+done
+
+# --- per-test history from failed-item set membership ---
+# Neutralise only what genuinely varies run-to-run. There is deliberately NO
+# blanket digit rule: `s/[0-9]+/<n>/g` would fold "expected length 12 to equal 8"
+# and "expected length 47 to equal 3" into one string and therefore one hash.
+# Since the regression/chronic fingerprint carries no test path — by design, so
+# one broken fixture across fifteen specs clusters into one issue — that
+# collision would make two different regressions in the same module share a
+# fingerprint, and dedup would silently drop the second.
+normalize_error() {
+  printf '%s' "$1" \
+    | sed -E 's/[0-9]+ms/<ms>/g; s/:[0-9]+:[0-9]+/:<pos>/g; s/[0-9]{4}-[0-9]{2}-[0-9]{2}[T ][0-9:.]+/<ts>/g' \
+    | perl -pe 's/\b(?=[0-9a-f]{8,}\b)(?=[0-9a-f]*[a-f])[0-9a-f]+\b/<id>/gi' \
+    | cut -c1-200
+}
+
+CAP=5
+for key in $(printf '%s' "$launches" | jq -r '[ .[] | .layer + "/" + .module ] | unique | .[]'); do
+  l="${key%%/*}"; m="${key##*/}"
+  ids="$(printf '%s' "$launches" | jq -r --arg l "$l" --arg m "$m" \
+    '[ .[] | select(.layer==$l and .module==$m) ] | sort_by(-.startTime) | .[].id')"
+  n="$(printf '%s\n' "$ids" | grep -c .)"
+  [[ "$n" -ge 2 ]] || continue
+
+  # Real elapsed days between this module's oldest and newest launch, so a
+  # finding can report the span it actually observed rather than inferring one
+  # from a run count.
+  span_days="$(printf '%s' "$launches" | jq --arg l "$l" --arg m "$m" \
+    '[ .[] | select(.layer==$l and .module==$m) | .startTime ]
+     | ((max - min) / 86400000) | floor')"
+
+  tests="$(printf '%s' "$failed_items" | jq -r --argjson ids "$(printf '%s\n' "$ids" | jq -R . | jq -s 'map(tonumber)')" \
+    '[ .[] | select(.launchId as $x | $ids | index($x)) | (.path + " > " + .name) ] | unique | .[]')"
+
+  newest_two="$(printf '%s\n' "$ids" | head -2)"
+  while IFS= read -r t; do
+    [[ -n "$t" ]] || continue
+    k=0; recent_fails=0; seq=""
+    for id in $ids; do
+      hit="$(printf '%s' "$failed_items" | jq --argjson i "$id" --arg t "$t" \
+        '[ .[] | select(.launchId==$i and (.path + " > " + .name)==$t) ] | length')"
+      if [[ "$hit" -gt 0 ]]; then
+        k=$((k+1)); seq="${seq}1"
+        # Exact-line match, never a glob. `case $newest_two in *"$id"*` counts
+        # launch 42 as one of the newest two whenever a newest id merely
+        # contains "42" — 4200, 1042. ReportPortal ids are dense sequential
+        # integers, so that misfiles regressions routinely in production while
+        # every fixture using small ids passes green.
+        if printf '%s\n' "$newest_two" | grep -qxF "$id"; then
+          recent_fails=$((recent_fails+1))
+        fi
+      else
+        seq="${seq}0"
+      fi
+    done
+
+    # Count status transitions across the window. Flaky means *alternating*,
+    # not merely "sometimes red". A test that failed the two oldest runs and has
+    # passed ever since has one flip and has already healed — filing it as flaky
+    # produces a pull request to fix nothing.
+    flips="$(printf '%s' "$seq" | awk '{n=0; for(i=2;i<=length($0);i++) if(substr($0,i,1)!=substr($0,i-1,1)) n++; print n+0}')"
+
+    err_line="$(printf '%s' "$failed_items" | jq -r --arg t "$t" \
+      'map(select((.path + " > " + .name)==$t)) | .[0].error // ""')"
+    norm="$(normalize_error "$err_line")"
+    hash8="$(printf '%s' "$norm" | shasum -a 256 | cut -c1-8)"
+    pass_pct=$(( (n - k) * 100 / n ))
+
+    # Chronic means "red in every run we have", not "red in seven runs". A
+    # launch count is only a calendar week for the nightly E2E layer; backend
+    # and frontend report per push to main, where seven launches can be a single
+    # afternoon — filing an issue headlined "for a week" that is simply false —
+    # or never accumulate at all in a quiet week, leaving a permanently red test
+    # re-filed as a fresh regression forever. The headline states the real span
+    # and run count instead of asserting a duration it has not measured.
+    if [[ "$k" -eq "$n" && "$n" -ge 3 ]]; then
+      add_finding "$(jq -n --arg l "$l" --arg m "$m" --arg h "$hash8" --arg t "$t" --arg e "$err_line" \
+                            --argjson n "$n" --argjson sd "$span_days" '{
+        category: "chronic", layer: $l, module: $m, test: $t,
+        fingerprint: ("test-chronic:" + $l + ":" + $m + ":" + $h),
+        headline: ($l + "/" + $m + ": \"" + $t + "\" failed all " + ($n|tostring) + " runs in the window (spanning " + ($sd|tostring) + " days)"),
+        detail: ("Red in every launch held for this module — no passing run to compare against. First error line: " + $e) }')"
+    # A sustained regression must not require the window to hold EXACTLY two
+    # failures. That old `k -eq 2` clause meant a test failing nights 5, 6 and
+    # 7 (k=3) was neither chronic (k != n) nor a regression (k != 2): a missed
+    # detection day lost the regression permanently. The two most-recently-
+    # held runs both failing is the only condition that matters; the `k -eq n`
+    # check just below still decides correctly whether a prior pass may be
+    # claimed. But "the two newest both failed" is also exactly what a ~50%
+    # flake looks like on an unlucky day: without the flips guard, a test that
+    # has been alternating all week gets classified regression whenever the
+    # coin lands failed-failed, producing a fingerprint the flaky finding never
+    # shares — two open issues, two labels, for one already-known flake. Fall
+    # through to the flaky branch below instead whenever the window shows real
+    # alternation (flips >= 2).
+    elif [[ "$recent_fails" -eq 2 && "$flips" -lt 2 ]]; then
+      # Claim a prior pass only when one was observed. At n=2 the entire window
+      # is red, so "passed earlier" would assert evidence we do not hold — the
+      # same overclaim as the chronic headline that used to say "for a week".
+      if [[ "$k" -eq "$n" ]]; then
+        reg_detail="No passing run observed: all ${n} launches held for this module are red, which is too thin a history to call it chronic."
+      else
+        reg_detail="Passed earlier in the window, now failing."
+      fi
+      add_finding "$(jq -n --arg l "$l" --arg m "$m" --arg h "$hash8" --arg t "$t" --arg e "$err_line" --arg d "$reg_detail" '{
+        category: "regression", layer: $l, module: $m, test: $t,
+        fingerprint: ("test-regress:" + $l + ":" + $m + ":" + $h),
+        headline: ($l + "/" + $m + ": \"" + $t + "\" newly fails two runs running"),
+        detail: ($d + " First error line: " + $e) }')"
+    # Compare without pre-dividing: pass_pct floors, so `pass_pct <= 80` admits
+    # true rates up to 80.99% into the band. pass_pct is kept for the headline.
+    elif [[ "$k" -gt 0 && "$k" -lt "$n" && "$flips" -ge 2 \
+            && $(( (n - k) * 100 )) -ge $(( 20 * n )) \
+            && $(( (n - k) * 100 )) -le $(( 80 * n )) ]]; then
+      add_finding "$(jq -n --arg l "$l" --arg m "$m" --arg t "$t" --argjson p "$pass_pct" --arg e "$err_line" '{
+        category: "flaky", layer: $l, module: $m,
+        fingerprint: ("test-flaky:" + $l + ":" + $m + ":" + $t),
+        headline: ($l + "/" + $m + ": \"" + $t + "\" is flaky (" + ($p|tostring) + "% pass rate)"),
+        detail: ("Alternates within the window with no consistent outcome. First error line: " + $e) }')"
+    fi
+  done <<< "$tests"
+done
+
+# Priority order for the cap, so infrastructure faults are never crowded out by
+# a pile of flaky tests. Also dedupe by fingerprint: regression/chronic
+# fingerprints deliberately omit the test path (so one broken fixture across
+# many specs clusters into one issue), which means several DIFFERENT tests
+# failing on the same normalized error land on an identical fingerprint. Left
+# undeduped, that's several findings for one cause — and the agent's own
+# per-finding dedup can't save it, since GitHub's issue search index is
+# eventually consistent and won't see the first issue in time to catch the
+# second. Collapse to the highest-priority survivor per fingerprint, but keep
+# the information: roll the other affected test names into its detail rather
+# than discarding them. group_by/sort_by resort by their own key internally,
+# so a final sort_by(rank) restores the priority order across fingerprints.
+findings="$(printf '%s' "$findings" | jq '
+  def rank: { "ci-broken":0, "schedule-broken":1, "silence-unattributed":2,
+              "rp-reporting-broken":3, "regression":4, "suite-shrank":5,
+              "flaky":6, "chronic":7 }[.category] // 9;
+  group_by(.fingerprint)
+  | map(
+      sort_by(rank) as $g
+      | ($g[0]) as $survivor
+      | ($g[1:] | map(.test // empty) | unique) as $others
+      | if ($others | length) > 0 then
+          # A bare space here runs the error line straight into "Also
+          # affects", e.g. "...Network request failed Also affects: ..." —
+          # the agent copies that verbatim into an issue body. An explicit
+          # separator keeps the two clauses visually distinct.
+          $survivor + { detail: ($survivor.detail + " — Also affects: " + ($others | join(", "))) }
+        else $survivor end
+    )
+  | sort_by(rank)')"
+
+# ------------------------------------------------------------------ state ---
+finding_count="$(printf '%s' "$findings" | jq 'length')"
+state_body="$(printf '%s' "$findings" | jq -S -c '[ .[] | .fingerprint ] | sort')"
+state_hash="$(printf '%s' "$state_body" | shasum -a 256 | cut -c1-16)"
+
+# Reaching here means the gather succeeded, so the error streak is over.
+clear_error_days
+STATE="findings=${finding_count}:${state_hash}:errdays=0"
+
+if [[ "$STATE_ONLY" -eq 1 ]]; then
+  echo "STATE: ${STATE}"
+  exit 0
+fi
+
+# ----------------------------------------------------------------- output ---
+launch_count="$(printf '%s' "$launches" | jq 'length')"
+
+cat <<EOF
+# Test-health digest
+
+- **Window:** last ${DAYS} days (since $(fmt_epoch $((WINDOW_START_MS/1000))))
+- **Generated:** $(date -u +%Y-%m-%dT%H:%M:%SZ)
+- **Source:** ReportPortal project ${RP_PROJECT:-heblo}
+- **Launches in window:** ${launch_count}
+
+> Deterministic digest. Absence of expected data is computed here and appears
+> as a finding — do not infer it yourself, and do not treat a missing section
+> as "everything is fine".
+
+## 1. Launch inventory
+
+EOF
+
+printf '%s' "$launches" | jq -r '
+  if length == 0 then "_(no launches in window)_"
+  else
+    "| launch | layer | module | # | status | total | passed | failed | skipped | started |",
+    "| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |",
+    ( sort_by(.layer, .module, -.startTime)[]
+      | "| \(.name) | \(.layer) | \(.module) | \(.number) | \(.status) | \(.total) | \(.passed) | \(.failed) | \(.skipped) | \(.startTime) |" )
+  end'
+
+echo
+echo "## 2. Failed items in window"
+echo
+printf '%s' "$failed_items" | jq -r '
+  if length == 0 then "_(none)_"
+  else
+    "| launch | test | error (first line) |",
+    "| --- | --- | --- |",
+    ( .[] | "| \(.launchId) | \(.path) > \(.name) | \(.error | .[0:160]) |" )
+  end'
+
+echo
+echo "## 3. Findings"
+echo
+echo "FINDINGS: ${finding_count}"
+echo "CAP: ${CAP} (file at most this many issues; report every finding you skip and why)"
+echo
+printf '%s' "$findings" | jq -r '
+  if length == 0 then "_(none — nothing to file)_"
+  else ( .[] | "- **\(.category)** `\(.fingerprint)` — \(.headline)\n  \(.detail)" )
+  end'
+
+echo
+echo "STATE: ${STATE}"

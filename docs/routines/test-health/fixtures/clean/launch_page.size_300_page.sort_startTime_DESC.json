@@ -1,0 +1,15 @@
+{
+  "content": [
+    { "id": 1, "name": "heblo-e2e", "number": 42, "status": "PASSED",
+      "startTime": 1785000000000,
+      "attributes": [ {"key":"layer","value":"e2e"}, {"key":"module","value":"catalog"},
+                      {"key":"branch","value":"main"}, {"key":"ci","value":"1001"} ],
+      "statistics": { "executions": { "total": 20, "passed": 20, "failed": 0, "skipped": 0 } } },
+    { "id": 2, "name": "heblo-e2e", "number": 41, "status": "PASSED",
+      "startTime": 1784913600000,
+      "attributes": [ {"key":"layer","value":"e2e"}, {"key":"module","value":"catalog"},
+                      {"key":"branch","value":"main"}, {"key":"ci","value":"1000"} ],
+      "statistics": { "executions": { "total": 20, "passed": 20, "failed": 0, "skipped": 0 } } }
+  ],
+  "page": { "number": 1, "size": 300, "totalElements": 2, "totalPages": 1 }
+}

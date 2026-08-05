@@ -1,0 +1,14 @@
+{
+  "trigger": { "cron": "30 5 * * *" },
+  "action": {
+    "check": "command",
+    "params": {
+      "command": "git -C /Users/rem/Anela.Heblo pull --ff-only -q; /Users/rem/Anela.Heblo/docs/routines/test-health/test-health-digest.sh --days 7 --state-only",
+      "timeout": 300
+    }
+  },
+  "target": { "step": "test-health" },
+  "repository": "Anela.Heblo",
+  "dedup": "per-state",
+  "sink": { "kind": "none" }
+}

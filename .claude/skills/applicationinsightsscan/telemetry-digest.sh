@@ -26,6 +26,13 @@ TIMESPAN="P7D"
 [[ -x "$QUERY" ]] || { echo "Error: ${QUERY} not found or not executable." >&2; exit 1; }
 command -v jq >/dev/null || { echo "Error: jq is required." >&2; exit 1; }
 
+# Loaded here (in addition to appinsights-query.sh doing the same
+# independently for each child invocation) so the header's app-id echo below
+# reflects the resolved value.
+# shellcheck disable=SC1090
+source "${HERE}/env-fallback.sh"
+load_env_fallback APPINSIGHTS_APP_ID APPINSIGHTS_API_KEY
+
 if [[ "${1:-}" == "--timespan" ]]; then
   TIMESPAN="${2:?--timespan requires a value, e.g. P1D}"
   shift 2

@@ -1,0 +1,13 @@
+{ "content": [
+    { "name": "filters by category",
+      "pathNames": { "itemPaths": [ {"name": "catalog.spec.ts"} ] },
+      "status": "FAILED",
+      "issue": { "comment": "" },
+      "description": "AssertionError: expected list length 12 to equal 8\n    at catalog.spec.ts:70:9" },
+    { "name": "sorts by rating",
+      "pathNames": { "itemPaths": [ {"name": "catalog.spec.ts"} ] },
+      "status": "FAILED",
+      "issue": { "comment": "" },
+      "description": "AssertionError: expected list length 47 to equal 3\n    at catalog.spec.ts:90:9" }
+  ],
+  "page": { "number": 1, "size": 300, "totalElements": 2, "totalPages": 1 } }
