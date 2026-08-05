@@ -9,13 +9,30 @@
 # durable label left a still-failing PR invisible to /rework-pr's own
 # candidate search and to a human who wasn't staring at that one output.
 #
-#   update_and_wait.sh --pr N
+#   update_and_wait.sh --pr N [--force]
 #
 # Emits JSON: {"pr": N, "status": "already-clean|fixed|still-failing|
-#              conflict|pending-timeout|error", "detail": "..."}
+#              conflict|ci-running|pending-timeout|error", "detail": "..."}
 # Always exits 0 once arguments validate — this script reports, it never
 # fails the caller over a PR-hygiene outcome. (A missing/unknown argument
 # still exits 1, matching the sibling scripts' convention.)
+#
+# `ci-running` vs `pending-timeout`: if CI is already mid-flight on read —
+# from some earlier push this run didn't cause — this script does not touch
+# the PR at all (no update-branch call) and reports `ci-running` immediately;
+# forcing an update-branch here would cancel a build already in progress for
+# no reason, and there's no telling how much longer it has left to run. A
+# caller should just retry on its next sweep. `pending-timeout` is different:
+# it only happens after THIS run performed an update-branch (or found the
+# branch already current) and then polled the CI it's responsible for past
+# POLL_MAX_ATTEMPTS.
+#
+# --force overrides only the `ci-running` short-circuit above: it proceeds
+# straight to the behind/conflicting check (and the merge-branch update that
+# implies, cancelling any in-flight run) instead of bailing out. It does
+# NOT force a `gh pr update-branch` call when there's nothing to actually
+# merge — a PR already current with its base still just polls/confirms
+# whatever CI is doing, it never gets a pointless update-branch call.
 set -uo pipefail
 
 NEEDS_WORK_SCRIPT=".claude/skills/automerge-pr/apply_verdict.sh"
@@ -24,9 +41,11 @@ POLL_INTERVAL_SECONDS="${HYGIENE_POLL_INTERVAL_SECONDS:-15}"
 POLL_MAX_ATTEMPTS="${HYGIENE_POLL_MAX_ATTEMPTS:-40}"
 
 PR=""
+FORCE=false
 while [ $# -gt 0 ]; do
   case "$1" in
     --pr) PR="$2"; shift 2 ;;
+    --force) FORCE=true; shift ;;
     *) echo "unknown argument: $1" >&2; exit 1 ;;
   esac
 done
@@ -150,7 +169,16 @@ if ! $is_behind && ! $is_conflicting; then
     failure)
       report_and_flag_needs_work "still-failing" "branch is current with base, but checks are failing" ;;
     pending)
-      : # already current — fall through to the poll loop without updating
+      # Nothing this run would otherwise do (not behind, not conflicting) —
+      # CI running here is mid-flight from a push this run had nothing to do
+      # with. An update-branch would just cancel it for no benefit, so skip
+      # entirely unless --force said "no matter what": then fall through to
+      # the poll loop below instead of calling update-branch on a PR with
+      # nothing to merge.
+      if ! $FORCE; then
+        report "ci-running" "CI checks are already running from a prior push; skipping so this run doesn't cancel them — retry on the next sweep"
+        exit 0
+      fi
       ;;
   esac
 else
