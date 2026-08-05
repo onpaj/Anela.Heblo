@@ -1,0 +1,8 @@
+{ "content": [
+    { "name": "filters by product type",
+      "pathNames": { "itemPaths": [ {"name": "catalog.spec.ts"} ] },
+      "status": "FAILED",
+      "issue": { "comment": "" },
+      "description": "TimeoutError: locator.click: Timeout 30000ms exceeded\n    at catalog.spec.ts:58:22" }
+  ],
+  "page": { "number": 1, "size": 300, "totalElements": 1, "totalPages": 1 } }

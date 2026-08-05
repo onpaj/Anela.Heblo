@@ -57,7 +57,12 @@ internal sealed class HebloFeatureProvider : FeatureProvider
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Feature flag resolution failed for key {FlagKey}; using default {DefaultValue}", flagKey, defaultValue);
+            var attempts = ex.Data["Anela.DbRetryAttempts"] as int? ?? 1;
+            var dbRetryExhausted = attempts > 1;
+            _logger.LogWarning(
+                ex,
+                "Feature flag resolution failed for key {FlagKey}; using default {DefaultValue}; dbRetryExhausted={DbRetryExhausted} attempts={Attempts}",
+                flagKey, defaultValue, dbRetryExhausted, attempts);
             return new ResolutionDetails<bool>(
                 flagKey,
                 defaultValue,
