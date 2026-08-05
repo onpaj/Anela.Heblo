@@ -3,6 +3,7 @@ using Anela.Heblo.Persistence.Infrastructure.Resilience;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
+using Polly.Timeout;
 
 namespace Anela.Heblo.Tests.Persistence.Resilience;
 
@@ -55,6 +56,25 @@ public class TransientErrorClassifierTests
     public void IsTransient_ReturnsTrue_ForIOException()
     {
         TransientErrorClassifier.IsTransient(new IOException()).Should().BeTrue();
+    }
+
+    [Fact]
+    public void IsTransient_ReturnsTrue_ForTimeoutRejectedException()
+    {
+        // Polly's own per-attempt timeout firing — should be retried.
+        TransientErrorClassifier.IsTransient(new TimeoutRejectedException()).Should().BeTrue();
+    }
+
+    [Fact]
+    public void IsTransient_ReturnsFalse_ForAmbientTaskCanceledException()
+    {
+        // A raw TaskCanceledException from the caller's own token (e.g. HttpContext.RequestAborted)
+        // must never be classified transient — retrying after the caller gave up wastes a pool slot.
+        using var cts = new CancellationTokenSource();
+        cts.Cancel();
+        var ex = new TaskCanceledException("ambient cancellation", null, cts.Token);
+
+        TransientErrorClassifier.IsTransient(ex).Should().BeFalse();
     }
 
     [Fact]

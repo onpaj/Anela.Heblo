@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { getApiBaseUrl, getAuthenticatedFetch } from "../client";
+import { getAuthenticatedApiClient } from "../client";
 
 export type PackerStatsDto = {
   packerId?: string;
@@ -23,17 +23,22 @@ export const usePackingDashboard = () =>
   useQuery({
     queryKey: packingDashboardKeys.all,
     queryFn: async (): Promise<GetPackingDashboardResponse> => {
-      const url = `${getApiBaseUrl()}/api/packaging/dashboard`;
-      const response = await getAuthenticatedFetch()(url, {
-        method: "GET",
-        headers: { Accept: "application/json" },
-      });
+      const apiClient = getAuthenticatedApiClient(false);
+      const response = await apiClient.packaging_GetDashboard();
 
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      return response.json() as Promise<GetPackingDashboardResponse>;
+      return {
+        ordersBeingPackedCount: response.ordersBeingPackedCount ?? null,
+        ordersBeingProcessedCount: response.ordersBeingProcessedCount ?? null,
+        ordersBeingPackedCountLastSync: response.ordersBeingPackedCountLastSync
+          ? response.ordersBeingPackedCountLastSync.toISOString()
+          : null,
+        totalOrdersPackedToday: response.totalOrdersPackedToday ?? 0,
+        packedByPacker: (response.packedByPacker ?? []).map((p) => ({
+          packerId: p.packerId,
+          packerName: p.packerName ?? '',
+          orderCount: p.orderCount ?? 0,
+        })),
+      };
     },
     staleTime: 60_000,
     refetchInterval: 60_000,

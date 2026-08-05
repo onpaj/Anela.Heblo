@@ -4,6 +4,7 @@ using FluentAssertions;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using Npgsql;
+using Polly.Timeout;
 using Xunit;
 
 namespace Anela.Heblo.Tests.Persistence.Resilience;
@@ -104,6 +105,72 @@ public class DbResiliencePipelineProviderTests
 
         result.Should().Be(42);
         calls.Should().Be(2);
+    }
+
+    [Fact]
+    public async Task Pipeline_RetriesTimeoutRejectedException_WhenOperationHangsPastPerAttemptBudget()
+    {
+        // AddTimeout is nested inside AddRetry, so it's a per-attempt ceiling, not a shared budget.
+        // A permanently-hanging operation must be retried up to MaxRetryAttempts times, each bounded
+        // individually by TotalTimeBudget, once TimeoutRejectedException is classified transient.
+        var totalBudget = TimeSpan.FromMilliseconds(50);
+        var (provider, _) = CreateProvider(
+            maxAttempts: 3,
+            baseDelay: TimeSpan.FromMilliseconds(10),
+            maxDelay: TimeSpan.FromMilliseconds(10),
+            totalBudget: totalBudget);
+
+        var calls = 0;
+        var sw = System.Diagnostics.Stopwatch.StartNew();
+        var ex = await Record.ExceptionAsync(async () =>
+        {
+            await provider.Pipeline.ExecuteAsync(async ct =>
+            {
+                calls++;
+                // Observes the pipeline's own per-attempt timeout token (as a real async DB call
+                // would via its own CancellationToken parameter) so AddTimeout can actually cut it
+                // off — a delegate that ignores its token entirely cannot be preempted by Polly.
+                await Task.Delay(TimeSpan.FromSeconds(1), ct);
+                return 0;
+            });
+        });
+        sw.Stop();
+
+        ex.Should().BeOfType<TimeoutRejectedException>();
+        calls.Should().Be(4); // 1 initial attempt + 3 retries
+
+        // Worst case: (MaxRetryAttempts + 1) * TotalTimeBudget + backoff delays between attempts.
+        var worstCase = TimeSpan.FromMilliseconds(4 * totalBudget.TotalMilliseconds + 3 * 10) + TimeSpan.FromSeconds(2);
+        sw.Elapsed.Should().BeLessThan(worstCase);
+    }
+
+    [Fact]
+    public async Task Pipeline_DoesNotRetry_OnAmbientCancellation()
+    {
+        // The caller's own token firing (not Polly's internal timeout) must never be retried —
+        // retrying after the caller already gave up wastes a pool slot and prolongs contention.
+        var (provider, _) = CreateProvider(
+            maxAttempts: 3,
+            baseDelay: TimeSpan.FromMilliseconds(1),
+            maxDelay: TimeSpan.FromMilliseconds(10),
+            totalBudget: TimeSpan.FromSeconds(10));
+
+        var calls = 0;
+        using var cts = new CancellationTokenSource();
+
+        var ex = await Record.ExceptionAsync(async () =>
+        {
+            await provider.Pipeline.ExecuteAsync(async ct =>
+            {
+                calls++;
+                cts.Cancel();
+                ct.ThrowIfCancellationRequested();
+                return 0;
+            }, cts.Token);
+        });
+
+        ex.Should().BeAssignableTo<OperationCanceledException>();
+        calls.Should().Be(1);
     }
 
     [Fact]

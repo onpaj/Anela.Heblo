@@ -12,6 +12,7 @@ using Anela.Heblo.Domain.Features.Catalog.Price;
 using Anela.Heblo.Domain.Features.Catalog.PurchaseHistory;
 using Anela.Heblo.Domain.Features.Catalog.Sales;
 using Anela.Heblo.Domain.Features.Catalog.ManufactureHistory;
+using Anela.Heblo.Domain.Features.Catalog.Services;
 using Anela.Heblo.Domain.Features.Catalog.Stock;
 using Anela.Heblo.Domain.Features.Manufacture;
 using FluentAssertions;
@@ -42,6 +43,7 @@ public class CatalogRepositoryCacheOptimizationTests
     private readonly Mock<IManufactureDifficultyRepository> _manufactureDifficultyRepositoryMock;
     private readonly Mock<ICatalogResilienceService> _resilienceServiceMock;
     private readonly Mock<ICatalogMergeScheduler> _mergeSchedulerMock;
+    private readonly Mock<IMarginCalculationService> _marginServiceMock;
     private readonly IMemoryCache _cache;
     private readonly Mock<TimeProvider> _timeProviderMock;
     private readonly Mock<IOptions<DataSourceOptions>> _optionsMock;
@@ -77,6 +79,7 @@ public class CatalogRepositoryCacheOptimizationTests
         _manufactureDifficultyRepositoryMock = new Mock<IManufactureDifficultyRepository>();
         _resilienceServiceMock = new Mock<ICatalogResilienceService>();
         _mergeSchedulerMock = new Mock<ICatalogMergeScheduler>();
+        _marginServiceMock = new Mock<IMarginCalculationService>();
         _cache = new MemoryCache(new MemoryCacheOptions());
         _timeProviderMock = new Mock<TimeProvider>();
         _optionsMock = new Mock<IOptions<DataSourceOptions>>();
@@ -170,6 +173,8 @@ public class CatalogRepositoryCacheOptimizationTests
             _mergeService,
             _refreshService,
             _mergeSchedulerMock.Object,
+            _marginServiceMock.Object,
+            _timeProviderMock.Object,
             _cacheOptionsMock.Object,
             _loggerMock.Object);
     }
