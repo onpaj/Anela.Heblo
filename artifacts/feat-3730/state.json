@@ -21,8 +21,8 @@
       "updated_at": "2026-08-05T03:38:34.160728Z"
     },
     "developing": {
-      "status": "in_progress",
-      "updated_at": "2026-08-05T03:38:59.510442Z"
+      "status": "completed",
+      "updated_at": "2026-08-05T04:48:38.657678Z"
     }
   },
   "tasks": [
@@ -34,9 +34,9 @@
     },
     {
       "name": "migrate-export-handler-and-fix-page-type-fallout",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-08-05T04:10:58.724565Z"
+      "updated_at": "2026-08-05T04:48:33.799532Z"
     }
   ]
 }
