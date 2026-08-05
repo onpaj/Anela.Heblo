@@ -5,6 +5,7 @@ using Anela.Heblo.Domain.Features.Catalog;
 using Anela.Heblo.Domain.Features.Catalog.Cache;
 using Anela.Heblo.Domain.Features.Catalog.CostProviders;
 using Anela.Heblo.Domain.Features.Catalog.ValueObjects;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
@@ -18,7 +19,7 @@ public class SalesCostProvider : ISalesCostProvider
 {
     private static readonly SemaphoreSlim RefreshLock = new(1, 1);
     private readonly ISalesCostCache _cache;
-    private readonly ICatalogRepository _catalogRepository;
+    private readonly IServiceProvider _serviceProvider;
     private readonly ILedgerService _ledgerService;
     private readonly ILogger<SalesCostProvider> _logger;
     private readonly DataSourceOptions _options;
@@ -26,15 +27,18 @@ public class SalesCostProvider : ISalesCostProvider
     private const string WarehouseCostCenter = "SKLAD";
     private const string MarketingCostCenter = "MARKETING";
 
+    // ICatalogRepository is resolved lazily via IServiceProvider, not injected directly:
+    // CatalogRepository -> IMarginCalculationService -> ISalesCostProvider -> ICatalogRepository
+    // is a real constructor-time cycle. See ManufactureBasedMaterialCostProvider for the same fix.
     public SalesCostProvider(
         ISalesCostCache cache,
-        ICatalogRepository catalogRepository,
+        IServiceProvider serviceProvider,
         ILedgerService ledgerService,
         ILogger<SalesCostProvider> logger,
         IOptions<DataSourceOptions> options)
     {
         _cache = cache;
-        _catalogRepository = catalogRepository;
+        _serviceProvider = serviceProvider;
         _ledgerService = ledgerService;
         _logger = logger;
         _options = options.Value;
@@ -98,9 +102,10 @@ public class SalesCostProvider : ISalesCostProvider
 
     private async Task<CostCacheData> ComputeAllCostsAsync(CancellationToken ct)
     {
-        await _catalogRepository.WaitForCurrentMergeAsync(ct);
+        var catalogRepository = _serviceProvider.GetRequiredService<ICatalogRepository>();
+        await catalogRepository.WaitForCurrentMergeAsync(ct);
 
-        var products = (await _catalogRepository.GetAllAsync(ct)).ToList();
+        var products = (await catalogRepository.GetAllAsync(ct)).ToList();
         var (dateFrom, dateTo, costsFrom, costsTo) = GetDateRange();
         var months = GenerateMonthRange(costsFrom, costsTo);
 
