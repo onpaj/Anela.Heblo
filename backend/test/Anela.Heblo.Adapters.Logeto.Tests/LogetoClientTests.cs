@@ -109,20 +109,18 @@ public class LogetoClientTests
     }
 
     [Fact]
-    public async Task GetTimeTrackingAsync_RealisticItem_DateFieldFailsToDeserialize()
+    public async Task GetTimeTrackingAsync_RealisticItem_DateFieldWithTimeComponentDeserializesCorrectly()
     {
         // The real Logeto account returns From/To/Date as offset-less local datetime
         // strings (e.g. "2026-07-27T07:08:00" and, for Date, a full datetime with a
         // midnight time component: "2026-07-27T00:00:00") — see
         // docs/superpowers/specs/2026-08-05-logeto-spike-results.md, Finding 3.
         //
-        // This is a CHARACTERIZATION TEST, not a happy-path test: LogetoTimeEntry.Date
-        // is typed as DateOnly, and System.Text.Json's built-in DateOnly converter
-        // requires a pure "yyyy-MM-dd" string — it rejects a full datetime string, even
-        // one with an all-zero time component. Deserializing this realistic payload
-        // therefore throws today. This is a real, currently-shipped incompatibility
-        // between the DTO's declared type and the live API's actual response shape;
-        // fixing it is out of scope here (see final-review-fix-report.md, Finding 3).
+        // LogetoTimeEntry.Date is typed as DateOnly, but System.Text.Json's built-in
+        // DateOnly converter requires a pure "yyyy-MM-dd" string and rejects a full
+        // datetime string outright — even one with an all-zero time component. This is
+        // fixed via FlexibleDateOnlyJsonConverter, which accepts both shapes and takes
+        // just the date part.
         var handler = new StubHandler(Json("""
             {"ContinuationToken":null,"Items":[{
               "Guid":"11111111-1111-1111-1111-111111111111",
@@ -138,14 +136,38 @@ public class LogetoClientTests
             """));
         var client = CreateClient(handler);
 
-        var act = () => client.GetTimeTrackingAsync(
+        var items = await client.GetTimeTrackingAsync(
             new DateOnly(2026, 7, 27), new DateOnly(2026, 7, 27), CancellationToken.None);
 
-        var ex = await act.Should().ThrowAsync<LogetoApiException>();
-        ex.Which.Message.Should().Be(
-            "Logeto returned an unparseable response body for /api/v2/TimeTracking: " +
-            "The JSON value could not be converted to System.DateOnly. " +
-            "Path: $.Items[0].Date | LineNumber: 3 | BytePositionInLine: 30.");
+        items.Should().HaveCount(1);
+        items[0].Date.Should().Be(new DateOnly(2026, 7, 27));
+    }
+
+    [Fact]
+    public async Task GetTimeTrackingAsync_DateFieldWithoutTimeComponent_DeserializesCorrectly()
+    {
+        // The converter must also accept a bare "yyyy-MM-dd" date string, since not
+        // every consumer of this DTO shape is guaranteed to send a time component.
+        var handler = new StubHandler(Json("""
+            {"ContinuationToken":null,"Items":[{
+              "Guid":"11111111-1111-1111-1111-111111111111",
+              "Person":"22222222-2222-2222-2222-222222222222",
+              "Date":"2026-07-27",
+              "From":"2026-07-27T07:08:00",
+              "To":"2026-07-27T14:24:00",
+              "Hours":null,
+              "Activity":"0233db1a-e04d-4cf2-a01b-9cec5d65c1e7",
+              "Description":null,
+              "ExternalKey":null
+            }]}
+            """));
+        var client = CreateClient(handler);
+
+        var items = await client.GetTimeTrackingAsync(
+            new DateOnly(2026, 7, 27), new DateOnly(2026, 7, 27), CancellationToken.None);
+
+        items.Should().HaveCount(1);
+        items[0].Date.Should().Be(new DateOnly(2026, 7, 27));
     }
 
     [Fact]

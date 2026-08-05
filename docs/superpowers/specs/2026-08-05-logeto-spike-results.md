@@ -124,21 +124,35 @@ don't have to re-derive the shape from prose:
 ```
 
 Note `Date` is also offset-less **and** carries a full datetime (with a
-midnight time component) rather than a bare `yyyy-MM-dd` string. This is
-pinned by a characterization test,
+midnight time component) rather than a bare `yyyy-MM-dd` string. This was a
+real, currently-shipped incompatibility: `LogetoTimeEntry.Date` is typed as
+`DateOnly`, and `System.Text.Json`'s built-in `DateOnly` converter rejected
+this full-datetime string outright — deserializing this exact real-world
+payload used to throw `LogetoApiException` with message "Logeto returned an
+unparseable response body for /api/v2/TimeTracking: The JSON value could not
+be converted to System.DateOnly. Path: $.Items[0].Date | LineNumber: 3 |
+BytePositionInLine: 30." That meant `GetTimeTrackingAsync` would have failed
+against the live account whenever the response included any item — not just
+an empty page.
+
+**This has since been fixed** via a custom
+`FlexibleDateOnlyJsonConverter`
+(`backend/src/Adapters/Anela.Heblo.Adapters.Logeto/FlexibleDateOnlyJsonConverter.cs`),
+registered on `LogetoClient`'s shared `JsonSerializerOptions`. It accepts both
+a bare `"yyyy-MM-dd"` string and a full ISO datetime string with a time
+component, taking just the date part, so both the full-datetime shape the
+live account returns and a plain date string deserialize correctly. The test
+that pinned the original failure,
 `LogetoClientTests.GetTimeTrackingAsync_RealisticItem_DateFieldFailsToDeserialize`
-(`backend/test/Anela.Heblo.Adapters.Logeto.Tests/LogetoClientTests.cs`), which
-documents a real, currently-shipped incompatibility: `LogetoTimeEntry.Date` is
-typed as `DateOnly`, and `System.Text.Json`'s built-in `DateOnly` converter
-rejects this full-datetime string outright — deserializing this exact
-real-world payload throws `LogetoApiException` with message "Logeto returned
-an unparseable response body for /api/v2/TimeTracking: The JSON value could
-not be converted to System.DateOnly. Path: $.Items[0].Date | LineNumber: 3 |
-BytePositionInLine: 30." This means `GetTimeTrackingAsync` would fail against
-the live account today whenever the response includes any item — not just an
-empty page. Fixing the DTO/JSON options is out of scope for this note; see
+(`backend/test/Anela.Heblo.Adapters.Logeto.Tests/LogetoClientTests.cs`), was
+renamed to
+`GetTimeTrackingAsync_RealisticItem_DateFieldWithTimeComponentDeserializesCorrectly`
+and now asserts successful deserialization (`LogetoTimeEntry.Date` equals the
+expected `DateOnly`) instead of the exception. A second test,
+`GetTimeTrackingAsync_DateFieldWithoutTimeComponent_DeserializesCorrectly`,
+was added to confirm the bare-date shape still works. See
 `.superpowers/sdd/2026-08-05-logeto-break-insertion/final-review-fix-report.md`
-for the full writeup.
+for the full writeup of this fix.
 
 ## Cleanup
 

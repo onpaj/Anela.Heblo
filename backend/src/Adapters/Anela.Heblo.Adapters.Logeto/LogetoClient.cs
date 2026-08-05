@@ -8,11 +8,18 @@ namespace Anela.Heblo.Adapters.Logeto;
 
 public class LogetoClient : ILogetoClient
 {
-    private static readonly JsonSerializerOptions JsonOptions = new()
+    private static readonly JsonSerializerOptions JsonOptions = CreateJsonOptions();
+
+    private static JsonSerializerOptions CreateJsonOptions()
     {
-        PropertyNameCaseInsensitive = true,
-        DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull
-    };
+        var options = new JsonSerializerOptions
+        {
+            PropertyNameCaseInsensitive = true,
+            DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull
+        };
+        options.Converters.Add(new FlexibleDateOnlyJsonConverter());
+        return options;
+    }
 
     private readonly HttpClient _httpClient;
     private readonly ILogger<LogetoClient> _logger;
