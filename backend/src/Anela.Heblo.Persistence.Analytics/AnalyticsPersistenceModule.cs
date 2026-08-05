@@ -2,6 +2,8 @@ using Anela.Heblo.Persistence.Infrastructure.Resilience;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.Options;
 using Npgsql;
 
 namespace Anela.Heblo.Persistence.Analytics;
@@ -23,6 +25,18 @@ public static class AnalyticsPersistenceModule
         // (which is used by EanCodeGenerator and health checks).
         services.AddKeyedSingleton<NpgsqlDataSource>("analytics", dataSource);
 
+        // AnalyticsDbContext backs LedgerSyncService.UpsertBatchAsync (and siblings), which SaveChangesAsync's
+        // up to FlexiAnalyticsSyncOptions.BatchSize=500 rows in a single call and can legitimately run past
+        // the Database:Resilience-configured, request-serving pipeline's short per-attempt timeout. It gets
+        // its own pipeline here, keeping DbResilienceOptions' un-tuned defaults, staying isolated from that
+        // config section instead of sharing the singleton IDbResiliencePipelineProvider.
+        services.AddKeyedSingleton<IDbResiliencePipelineProvider>("analytics", (sp, _) =>
+            new DbResiliencePipelineProvider(
+                Options.Create(new DbResilienceOptions()),
+                sp.GetRequiredService<DbResilienceMetrics>(),
+                sp.GetService<ILogger<DbResiliencePipelineProvider>>()
+                    ?? NullLogger<DbResiliencePipelineProvider>.Instance));
+
         services.AddDbContext<AnalyticsDbContext>((sp, options) =>
         {
             options.UseNpgsql(dataSource, npgsql =>
@@ -30,7 +44,7 @@ public static class AnalyticsPersistenceModule
                 npgsql.ExecutionStrategy(deps =>
                     new PollyExecutionStrategy(
                         deps,
-                        sp.GetRequiredService<IDbResiliencePipelineProvider>(),
+                        sp.GetRequiredKeyedService<IDbResiliencePipelineProvider>("analytics"),
                         sp.GetRequiredService<DbResilienceMetrics>(),
                         sp.GetRequiredService<ILogger<PollyExecutionStrategy>>()));
             });
