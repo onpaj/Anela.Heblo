@@ -1,7 +1,7 @@
 using Hangfire.Dashboard;
 using System.Security.Claims;
 using Anela.Heblo.API.Infrastructure;
-using Anela.Heblo.Domain.Shared;
+using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Domain.Features.Authorization;
 
 namespace Anela.Heblo.API.Infrastructure.Hangfire;

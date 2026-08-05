@@ -1,4 +1,4 @@
-namespace Anela.Heblo.Domain.Shared;
+namespace Anela.Heblo.Application.Shared;
 
 public static class InfrastructureConfigurationKeys
 {
