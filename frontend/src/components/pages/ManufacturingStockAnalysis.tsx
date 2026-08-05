@@ -266,7 +266,9 @@ const ManufacturingStockAnalysis: React.FC = () => {
                 className="expand-button flex-shrink-0 p-1 mr-2 text-gray-400 hover:text-gray-600 dark:text-graphite-faint dark:hover:text-graphite-muted focus:outline-none"
                 onClick={(e) => {
                   e.stopPropagation();
-                  handleRowExpand(item.productFamily!, item.code!);
+                  if (item.productFamily && item.code) {
+                    handleRowExpand(item.productFamily, item.code);
+                  }
                 }}
                 title={isExpanded ? 'Skrýt ostatní produkty řady' : 'Zobrazit ostatní produkty řady'}
               >
