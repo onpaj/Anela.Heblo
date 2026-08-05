@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Anela.Heblo.API.Infrastructure.Json;
 using Anela.Heblo.API.MCP.Tools;
 using Anela.Heblo.Application.Features.MeetingTasks.Contracts;
 using Anela.Heblo.Application.Features.MeetingTasks.UseCases.GetTranscriptDetail;
@@ -75,7 +76,7 @@ public class MeetingTasksMcpToolsTests
                 req.PageSize == 10),
             default), Times.Once);
 
-        var deserialized = JsonSerializer.Deserialize<GetTranscriptListResponse>(json);
+        var deserialized = JsonSerializer.Deserialize<GetTranscriptListResponse>(json, McpJsonOptions.Default);
         Assert.NotNull(deserialized);
         Assert.Equal(2, deserialized!.PageNumber);
     }
