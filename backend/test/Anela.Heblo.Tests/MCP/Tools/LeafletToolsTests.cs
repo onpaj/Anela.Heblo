@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Anela.Heblo.API.Infrastructure.Json;
 using Anela.Heblo.API.MCP.Tools;
 using Anela.Heblo.Application.Features.Leaflet.UseCases.GenerateLeaflet;
 using Anela.Heblo.Application.Shared;
@@ -49,7 +50,7 @@ public class LeafletToolsTests
             "Short");
 
         // Assert
-        var deserialized = JsonSerializer.Deserialize<GenerateLeafletResponse>(result);
+        var deserialized = JsonSerializer.Deserialize<GenerateLeafletResponse>(result, McpJsonOptions.Default);
         Assert.NotNull(deserialized);
         Assert.Equal("# Bisabolol\n\nVelký text...", deserialized!.Content);
     }

@@ -1,5 +1,6 @@
 using System.ComponentModel;
 using System.Text.Json;
+using Anela.Heblo.API.Infrastructure.Json;
 using Anela.Heblo.API.MCP;
 using Anela.Heblo.Application.Features.Manufacture.UseCases.CalculateBatchBySize;
 using Anela.Heblo.Application.Features.Manufacture.UseCases.CalculateBatchByIngredient;
@@ -45,7 +46,7 @@ public class ManufactureBatchMcpTools
             throw new McpException($"[{response.ErrorCode?.ToString() ?? "UNKNOWN_ERROR"}] {response.FullError()}");
         }
 
-        return JsonSerializer.Serialize(response);
+        return JsonSerializer.Serialize(response, McpJsonOptions.Default);
     }
 
     [McpServerTool]
@@ -67,7 +68,7 @@ public class ManufactureBatchMcpTools
             throw new McpException($"[{response.ErrorCode?.ToString() ?? "UNKNOWN_ERROR"}] {response.FullError()}");
         }
 
-        return JsonSerializer.Serialize(response);
+        return JsonSerializer.Serialize(response, McpJsonOptions.Default);
     }
 
     [McpServerTool]
@@ -96,7 +97,7 @@ public class ManufactureBatchMcpTools
             throw new McpException($"[{response.ErrorCode?.ToString() ?? "UNKNOWN_ERROR"}] {response.FullError()}");
         }
 
-        return JsonSerializer.Serialize(response);
+        return JsonSerializer.Serialize(response, McpJsonOptions.Default);
     }
 
     [McpServerTool]
@@ -115,6 +116,6 @@ public class ManufactureBatchMcpTools
             throw new McpException($"[{response.ErrorCode?.ToString() ?? "UNKNOWN_ERROR"}] {response.FullError()}");
         }
 
-        return JsonSerializer.Serialize(response);
+        return JsonSerializer.Serialize(response, McpJsonOptions.Default);
     }
 }

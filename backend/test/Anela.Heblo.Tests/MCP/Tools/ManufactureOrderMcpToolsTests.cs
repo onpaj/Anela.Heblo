@@ -1,9 +1,11 @@
 using System.Text.Json;
+using Anela.Heblo.API.Infrastructure.Json;
 using Anela.Heblo.API.MCP.Tools;
 using Anela.Heblo.Application.Features.Manufacture.UseCases.GetManufactureOrders;
 using Anela.Heblo.Application.Features.Manufacture.UseCases.GetManufactureOrder;
 using Anela.Heblo.Application.Features.Manufacture.UseCases.GetCalendarView;
 using Anela.Heblo.Domain.Features.Authorization;
+using Anela.Heblo.Domain.Features.Manufacture;
 using Anela.Heblo.Domain.Features.Users;
 using MediatR;
 using ModelContextProtocol;
@@ -32,7 +34,14 @@ public class ManufactureOrderMcpToolsTests
     public async Task GetManufactureOrders_ShouldMapParametersCorrectly()
     {
         // Arrange
-        var expectedResponse = new GetManufactureOrdersResponse { Success = true };
+        var expectedResponse = new GetManufactureOrdersResponse
+        {
+            Success = true,
+            Orders = new List<ManufactureOrderDto>
+            {
+                new() { State = ManufactureOrderState.Planned }
+            }
+        };
 
         _mediatorMock
             .Setup(m => m.Send(It.IsAny<GetManufactureOrdersRequest>(), default))
@@ -47,9 +56,14 @@ public class ManufactureOrderMcpToolsTests
             default
         ), Times.Once);
 
-        var deserialized = JsonSerializer.Deserialize<GetManufactureOrdersResponse>(jsonResult);
+        // Regression guard: ManufactureOrderState has no type-level [JsonConverter], so this
+        // only holds once MCP responses route through the app-wide JsonStringEnumConverter.
+        Assert.Contains("\"state\":\"Planned\"", jsonResult, StringComparison.OrdinalIgnoreCase);
+
+        var deserialized = JsonSerializer.Deserialize<GetManufactureOrdersResponse>(jsonResult, McpJsonOptions.Default);
         Assert.NotNull(deserialized);
         Assert.True(deserialized.Success);
+        Assert.Equal(ManufactureOrderState.Planned, deserialized.Orders[0].State);
     }
 
     [Fact]
@@ -71,7 +85,7 @@ public class ManufactureOrderMcpToolsTests
             default
         ), Times.Once);
 
-        var deserialized = JsonSerializer.Deserialize<GetManufactureOrderResponse>(jsonResult);
+        var deserialized = JsonSerializer.Deserialize<GetManufactureOrderResponse>(jsonResult, McpJsonOptions.Default);
         Assert.NotNull(deserialized);
         Assert.True(deserialized.Success);
     }
@@ -141,7 +155,7 @@ public class ManufactureOrderMcpToolsTests
             default
         ), Times.Once);
 
-        var deserialized = JsonSerializer.Deserialize<GetCalendarViewResponse>(jsonResult);
+        var deserialized = JsonSerializer.Deserialize<GetCalendarViewResponse>(jsonResult, McpJsonOptions.Default);
         Assert.NotNull(deserialized);
         Assert.True(deserialized.Success);
     }
