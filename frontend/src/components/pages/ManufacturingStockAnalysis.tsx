@@ -578,34 +578,34 @@ const ManufacturingStockAnalysis: React.FC = () => {
 
         try {
           // Fetch products for this ProductFamily
-          const apiClient = getAuthenticatedApiClient();
-          const relativeUrl = `/api/manufacturing-stock-analysis`;
-          const params = new URLSearchParams();
-          params.append("productFamily", productFamily);
-          params.append("pageSize", "100"); // Get all products in family
+          const apiClient = await getAuthenticatedApiClient();
+          const data = await apiClient.manufacturingStockAnalysis_GetStockAnalysis(
+            undefined, // timePeriod
+            undefined, // customFromDate
+            undefined, // customToDate
+            productFamily,
+            undefined, // criticalItemsOnly
+            undefined, // majorItemsOnly
+            undefined, // adequateItemsOnly
+            undefined, // unconfiguredOnly
+            undefined, // searchTerm
+            undefined, // pageNumber
+            100, // pageSize — get all products in family
+            undefined, // sortBy
+            undefined, // sortDescending
+            undefined, // salesMultiplier
+            false, // isExport
+          );
 
-          const queryString = params.toString();
-          const fullUrl = `${(apiClient as any).baseUrl}${relativeUrl}?${queryString}`;
+          // Filter out the current product from subgrid
+          const filteredItems = (data.items ?? []).filter(
+            (item) => item.code !== currentProductCode,
+          );
 
-          const response = await (apiClient as any).http.fetch(fullUrl, {
-            method: "GET",
-            headers: {
-              Accept: "application/json",
-            },
-          });
-
-          if (response.ok) {
-            const data = await response.json();
-            // Filter out the current product from subgrid
-            const filteredItems = data.items.filter(
-              (item: any) => item.code !== currentProductCode,
-            );
-
-            setSubgridData((prev) => ({
-              ...prev,
-              [productFamily]: filteredItems,
-            }));
-          }
+          setSubgridData((prev) => ({
+            ...prev,
+            [productFamily]: filteredItems,
+          }));
         } catch (error) {
           console.error("Error loading product family data:", error);
         } finally {
