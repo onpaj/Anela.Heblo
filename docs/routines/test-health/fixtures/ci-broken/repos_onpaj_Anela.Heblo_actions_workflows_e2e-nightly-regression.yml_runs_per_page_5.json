@@ -1,0 +1,8 @@
+{
+  "total_count": 1,
+  "workflow_runs": [
+    { "id": 555000111, "name": "E2E Nightly Regression", "conclusion": "failure",
+      "status": "completed", "html_url": "https://github.com/onpaj/Anela.Heblo/actions/runs/555000111",
+      "created_at": "2026-07-25T02:00:00Z" }
+  ]
+}

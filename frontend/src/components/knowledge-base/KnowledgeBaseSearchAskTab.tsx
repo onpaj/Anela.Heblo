@@ -33,16 +33,16 @@ const SourceAccordion: React.FC<SourceAccordionProps> = ({ sources, onViewSource
             <div
               key={src.chunkId}
               className="px-4 py-3 space-y-1 cursor-pointer hover:bg-gray-50 dark:hover:bg-white/5"
-              onClick={() => onViewSource(src.chunkId, src.score)}
+              onClick={() => onViewSource(src.chunkId ?? '', src.score ?? 0)}
               role="button"
               tabIndex={0}
-              onKeyDown={(e) => e.key === 'Enter' && onViewSource(src.chunkId, src.score)}
+              onKeyDown={(e) => e.key === 'Enter' && onViewSource(src.chunkId ?? '', src.score ?? 0)}
               aria-label={`Zobrazit zdroj ${src.filename}`}
             >
               <div className="flex items-center justify-between">
                 <span className="text-sm font-medium text-gray-700 dark:text-graphite-muted">{src.filename}</span>
                 <span className="text-xs px-1.5 py-0.5 rounded font-medium bg-gray-100 text-gray-600 dark:bg-graphite-surface-2 dark:text-graphite-muted">
-                  {Math.round(src.score * 100)}%
+                  {Math.round((src.score ?? 0) * 100)}%
                 </span>
               </div>
               <p className="text-xs text-gray-500 dark:text-graphite-muted italic line-clamp-3">{src.excerpt}</p>
@@ -145,9 +145,9 @@ const KnowledgeBaseSearchAskTab: React.FC = () => {
       {ask.data && (
         <div className="space-y-4">
           <div className="bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-900/30 rounded-lg p-4 prose prose-sm prose-blue max-w-none">
-            <ReactMarkdown>{ask.data.answer}</ReactMarkdown>
+            <ReactMarkdown>{ask.data.answer ?? ''}</ReactMarkdown>
           </div>
-          <SourceAccordion sources={ask.data.sources} onViewSource={handleViewSource} />
+          <SourceAccordion sources={ask.data.sources ?? []} onViewSource={handleViewSource} />
           {ask.data.id && <KnowledgeBaseFeedback logId={ask.data.id} />}
         </div>
       )}

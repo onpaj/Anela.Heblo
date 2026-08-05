@@ -31,9 +31,9 @@ const ChunkCard: React.FC<ChunkCardProps> = ({ chunk, onViewSource }) => (
     <div className="flex items-center justify-between">
       <span className="text-sm font-medium text-gray-700 dark:text-graphite-muted">{chunk.sourceFilename}</span>
       <div className="flex items-center gap-2">
-        <ScoreBadge score={chunk.score} />
+        <ScoreBadge score={chunk.score ?? 0} />
         <button
-          onClick={() => onViewSource(chunk.chunkId, chunk.score)}
+          onClick={() => onViewSource(chunk.chunkId ?? '', chunk.score ?? 0)}
           className="flex items-center gap-1 text-xs text-blue-600 dark:text-blue-400 hover:text-blue-800"
           aria-label={`Zobrazit zdroj ${chunk.sourceFilename}`}
         >
@@ -107,12 +107,12 @@ const KnowledgeBaseSearchTab: React.FC = () => {
 
       {search.data && (
         <div className="space-y-3">
-          {search.data.chunks.length === 0 ? (
+          {(search.data.chunks ?? []).length === 0 ? (
             <p className="text-sm text-gray-500 dark:text-graphite-muted text-center py-6">
               Žádné výsledky pro „{query}".
             </p>
           ) : (
-            search.data.chunks.map((chunk) => (
+            (search.data.chunks ?? []).map((chunk) => (
               <ChunkCard key={chunk.chunkId} chunk={chunk} onViewSource={handleViewSource} />
             ))
           )}
