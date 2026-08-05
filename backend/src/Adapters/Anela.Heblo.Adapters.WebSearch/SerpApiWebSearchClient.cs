@@ -10,31 +10,37 @@ namespace Anela.Heblo.Adapters.WebSearch;
 
 public class SerpApiWebSearchClient : IWebSearchClient
 {
-    private static readonly ResiliencePipeline Pipeline = new ResiliencePipelineBuilder()
-        .AddRetry(new RetryStrategyOptions
-        {
-            MaxRetryAttempts = 3,
-            Delay = TimeSpan.FromSeconds(2),
-            BackoffType = DelayBackoffType.Exponential,
-            ShouldHandle = new PredicateBuilder().Handle<HttpRequestException>(ex =>
-            ex.StatusCode == HttpStatusCode.TooManyRequests ||
-            ex.StatusCode == HttpStatusCode.ServiceUnavailable ||
-            ex.StatusCode is null) // null = network-level error (no HTTP response)
-        })
-        .Build();
+    private static readonly ResiliencePipeline DefaultPipeline = BuildPipeline(TimeSpan.FromSeconds(2));
+
+    public static ResiliencePipeline BuildPipeline(TimeSpan baseDelay) =>
+        new ResiliencePipelineBuilder()
+            .AddRetry(new RetryStrategyOptions
+            {
+                MaxRetryAttempts = 3,
+                Delay = baseDelay,
+                BackoffType = DelayBackoffType.Exponential,
+                ShouldHandle = new PredicateBuilder().Handle<HttpRequestException>(ex =>
+                ex.StatusCode == HttpStatusCode.TooManyRequests ||
+                ex.StatusCode == HttpStatusCode.ServiceUnavailable ||
+                ex.StatusCode is null) // null = network-level error (no HTTP response)
+            })
+            .Build();
 
     private readonly WebSearchAdapterOptions _options;
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly ILogger<SerpApiWebSearchClient> _logger;
+    private readonly ResiliencePipeline _pipeline;
 
     public SerpApiWebSearchClient(
         IOptions<WebSearchAdapterOptions> options,
         IHttpClientFactory httpClientFactory,
-        ILogger<SerpApiWebSearchClient> logger)
+        ILogger<SerpApiWebSearchClient> logger,
+        ResiliencePipeline? pipeline = null)
     {
         _options = options.Value;
         _httpClientFactory = httpClientFactory;
         _logger = logger;
+        _pipeline = pipeline ?? DefaultPipeline;
     }
 
     public async Task<WebSearchResult> SearchAsync(string query, WebSearchOptions options, CancellationToken ct = default)
@@ -52,11 +58,22 @@ public class SerpApiWebSearchClient : IWebSearchClient
 
         _logger.LogDebug("Web search: {Query} (locale={Locale}, geo={Geo}, top={Top})", query, locale, geo, num);
 
-        var response = await Pipeline.ExecuteAsync(
-            async token => await client.GetAsync(url, token),
-            ct);
+        var response = await _pipeline.ExecuteAsync(async token =>
+        {
+            var httpResponse = await client.GetAsync(url, token);
 
-        response.EnsureSuccessStatusCode();
+            if (!httpResponse.IsSuccessStatusCode)
+            {
+                var errorBody = await httpResponse.Content.ReadAsStringAsync(token);
+                _logger.LogError("SerpApi error {Status}: {Body}", httpResponse.StatusCode, errorBody);
+                throw new HttpRequestException(
+                    $"SerpApi returned {(int)httpResponse.StatusCode}: {errorBody}",
+                    null,
+                    httpResponse.StatusCode);
+            }
+
+            return httpResponse;
+        }, ct);
 
         var json = await response.Content.ReadAsStringAsync(ct);
         return ParseSerpApiResponse(query, json);

@@ -7,11 +7,15 @@ using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using Moq;
 using Moq.Protected;
+using Polly;
 
 namespace Anela.Heblo.Tests.Adapters.WebSearch;
 
 public sealed class SerpApiWebSearchClientTests
 {
+    private static readonly ResiliencePipeline InstantRetryPipeline =
+        SerpApiWebSearchClient.BuildPipeline(TimeSpan.Zero);
+
     private static IOptions<WebSearchAdapterOptions> CreateOptions(string apiKey = "test-api-key") =>
         Options.Create(new WebSearchAdapterOptions
         {
@@ -32,6 +36,14 @@ public sealed class SerpApiWebSearchClientTests
                 ItExpr.IsAny<CancellationToken>())
             .ReturnsAsync(response);
 
+        var client = new HttpClient(handlerMock.Object);
+        var factoryMock = new Mock<IHttpClientFactory>();
+        factoryMock.Setup(f => f.CreateClient("SerpApi")).Returns(client);
+        return factoryMock.Object;
+    }
+
+    private static IHttpClientFactory CreateHttpClientFactory(Mock<HttpMessageHandler> handlerMock)
+    {
         var client = new HttpClient(handlerMock.Object);
         var factoryMock = new Mock<IHttpClientFactory>();
         factoryMock.Setup(f => f.CreateClient("SerpApi")).Returns(client);
@@ -112,5 +124,158 @@ public sealed class SerpApiWebSearchClientTests
         // Assert
         await act.Should().ThrowAsync<InvalidOperationException>()
             .WithMessage("*WebSearch:ApiKey*");
+    }
+
+    [Fact]
+    public async Task SearchAsync_RetriesOn429_ThenSucceeds()
+    {
+        // Arrange
+        const string json = """
+            {
+                "organic_results": [
+                    { "title": "Result One", "link": "https://example.com/1", "snippet": "First snippet." }
+                ]
+            }
+            """;
+
+        var callCount = 0;
+        var handlerMock = new Mock<HttpMessageHandler>();
+        handlerMock
+            .Protected()
+            .Setup<Task<HttpResponseMessage>>(
+                "SendAsync",
+                ItExpr.IsAny<HttpRequestMessage>(),
+                ItExpr.IsAny<CancellationToken>())
+            .ReturnsAsync(() =>
+            {
+                callCount++;
+                if (callCount < 3)
+                    return new HttpResponseMessage(HttpStatusCode.TooManyRequests)
+                    {
+                        Content = new StringContent("""{"error":"rate limited"}""")
+                    };
+                return new HttpResponseMessage(HttpStatusCode.OK)
+                {
+                    Content = new StringContent(json, Encoding.UTF8, "application/json")
+                };
+            });
+
+        var sut = new SerpApiWebSearchClient(
+            CreateOptions(),
+            CreateHttpClientFactory(handlerMock),
+            NullLogger<SerpApiWebSearchClient>.Instance,
+            InstantRetryPipeline);
+
+        // Act
+        var result = await sut.SearchAsync("test query", new WebSearchOptions());
+
+        // Assert
+        result.Hits.Should().HaveCount(1);
+        callCount.Should().Be(3);
+    }
+
+    [Fact]
+    public async Task SearchAsync_RetriesOn503_ThenThrowsAfterExhaustingRetries()
+    {
+        // Arrange
+        var callCount = 0;
+        var handlerMock = new Mock<HttpMessageHandler>();
+        handlerMock
+            .Protected()
+            .Setup<Task<HttpResponseMessage>>(
+                "SendAsync",
+                ItExpr.IsAny<HttpRequestMessage>(),
+                ItExpr.IsAny<CancellationToken>())
+            .ReturnsAsync(() =>
+            {
+                callCount++;
+                return new HttpResponseMessage(HttpStatusCode.ServiceUnavailable)
+                {
+                    Content = new StringContent("""{"error":"unavailable"}""")
+                };
+            });
+
+        var sut = new SerpApiWebSearchClient(
+            CreateOptions(),
+            CreateHttpClientFactory(handlerMock),
+            NullLogger<SerpApiWebSearchClient>.Instance,
+            InstantRetryPipeline);
+
+        // Act
+        var act = async () => await sut.SearchAsync("test query", new WebSearchOptions());
+
+        // Assert
+        var ex = await act.Should().ThrowAsync<HttpRequestException>();
+        ex.Which.StatusCode.Should().Be(HttpStatusCode.ServiceUnavailable);
+        callCount.Should().Be(4); // 1 initial + 3 retries
+    }
+
+    [Fact]
+    public async Task SearchAsync_DoesNotRetryOn400()
+    {
+        // Arrange
+        var callCount = 0;
+        var handlerMock = new Mock<HttpMessageHandler>();
+        handlerMock
+            .Protected()
+            .Setup<Task<HttpResponseMessage>>(
+                "SendAsync",
+                ItExpr.IsAny<HttpRequestMessage>(),
+                ItExpr.IsAny<CancellationToken>())
+            .ReturnsAsync(() =>
+            {
+                callCount++;
+                return new HttpResponseMessage(HttpStatusCode.BadRequest)
+                {
+                    Content = new StringContent("""{"error":"bad request"}""")
+                };
+            });
+
+        var sut = new SerpApiWebSearchClient(
+            CreateOptions(),
+            CreateHttpClientFactory(handlerMock),
+            NullLogger<SerpApiWebSearchClient>.Instance,
+            InstantRetryPipeline);
+
+        // Act
+        var act = async () => await sut.SearchAsync("test query", new WebSearchOptions());
+
+        // Assert
+        var ex = await act.Should().ThrowAsync<HttpRequestException>();
+        ex.Which.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        callCount.Should().Be(1);
+    }
+
+    [Fact]
+    public async Task SearchAsync_RetriesOnTransportLevelFailure()
+    {
+        // Arrange
+        var callCount = 0;
+        var handlerMock = new Mock<HttpMessageHandler>();
+        handlerMock
+            .Protected()
+            .Setup<Task<HttpResponseMessage>>(
+                "SendAsync",
+                ItExpr.IsAny<HttpRequestMessage>(),
+                ItExpr.IsAny<CancellationToken>())
+            .Returns<HttpRequestMessage, CancellationToken>((_, _) =>
+            {
+                callCount++;
+                throw new HttpRequestException("Simulated network failure");
+            });
+
+        var sut = new SerpApiWebSearchClient(
+            CreateOptions(),
+            CreateHttpClientFactory(handlerMock),
+            NullLogger<SerpApiWebSearchClient>.Instance,
+            InstantRetryPipeline);
+
+        // Act
+        var act = async () => await sut.SearchAsync("test query", new WebSearchOptions());
+
+        // Assert
+        var ex = await act.Should().ThrowAsync<HttpRequestException>();
+        ex.Which.StatusCode.Should().BeNull();
+        callCount.Should().Be(4); // 1 initial + 3 retries
     }
 }
