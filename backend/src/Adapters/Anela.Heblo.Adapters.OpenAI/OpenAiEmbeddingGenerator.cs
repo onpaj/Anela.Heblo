@@ -24,22 +24,26 @@ public class OpenAiEmbeddingGenerator : IEmbeddingGenerator<string, Embedding<fl
 
     private readonly OpenAiEmbeddingOptions _options;
     private readonly ILogger<OpenAiEmbeddingGenerator> _logger;
-    private readonly EmbeddingClient _client;
+    private readonly Lazy<EmbeddingClient> _client;
 
     public OpenAiEmbeddingGenerator(
         IOptions<OpenAiEmbeddingOptions> options,
         ILogger<OpenAiEmbeddingGenerator> logger)
-        : this(options, logger, new EmbeddingClient(options.Value.EmbeddingModel, options.Value.ApiKey))
+        : this(options, logger, client: null)
     { }
 
+    // The OpenAI SDK's EmbeddingClient constructor throws when the API key is empty, so it must not
+    // run during DI construction: OpenAI:ApiKey is unset in test/local environments, and eagerly
+    // building the client here would make every consumer of IEmbeddingGenerator unresolvable.
+    // Construction is deferred to first use, by which point GenerateAsync has already validated the key.
     internal OpenAiEmbeddingGenerator(
         IOptions<OpenAiEmbeddingOptions> options,
         ILogger<OpenAiEmbeddingGenerator> logger,
-        EmbeddingClient client)
+        EmbeddingClient? client)
     {
         _options = options.Value;
         _logger = logger;
-        _client = client;
+        _client = new Lazy<EmbeddingClient>(() => client ?? new EmbeddingClient(_options.EmbeddingModel, _options.ApiKey));
     }
 
     public EmbeddingGeneratorMetadata Metadata => new("OpenAiEmbeddingGenerator");
@@ -64,7 +68,7 @@ public class OpenAiEmbeddingGenerator : IEmbeddingGenerator<string, Embedding<fl
         foreach (var chunk in inputList.Chunk(MaxBatchSize))
         {
             var result = await Pipeline.ExecuteAsync(
-                async token => await _client.GenerateEmbeddingsAsync(chunk, embeddingOptions, cancellationToken: token),
+                async token => await _client.Value.GenerateEmbeddingsAsync(chunk, embeddingOptions, cancellationToken: token),
                 cancellationToken);
 
             foreach (var item in result.Value.OrderBy(e => e.Index))
