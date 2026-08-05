@@ -60,13 +60,13 @@ public class TransportBox : Entity<int>
 
         if (string.IsNullOrWhiteSpace(boxCode))
         {
-            throw new ValidationException("Box code cannot be null or empty");
+            throw new TransportBoxCodeRequiredException();
         }
 
         // Validate box code format (B + 3 digits)
         if (!IsValidBoxCodeFormat(boxCode))
         {
-            throw new ValidationException("Box code must follow format: B + 3 digits (e.g., B001, B123)");
+            throw new TransportBoxCodeFormatException(boxCode);
         }
         ChangeState(TransportBoxState.Opened, date, userName, TransportBoxState.New);
         Code = boxCode.ToUpper();
@@ -85,8 +85,10 @@ public class TransportBox : Entity<int>
             && State != TransportBoxState.Reserve
             && State != TransportBoxState.Quarantine)
         {
-            throw new ValidationException(
-                $"Cannot revert to Opened from {State} state. Only InTransit, Reserve and Quarantine states can be reverted.");
+            var message =
+                $"Cannot revert to Opened from {State} state. Only InTransit, Reserve and Quarantine states can be reverted.";
+            throw new TransportBoxInvalidStateTransitionException(
+                message, State, new[] { TransportBoxState.InTransit, TransportBoxState.Reserve, TransportBoxState.Quarantine });
         }
 
         if (string.IsNullOrEmpty(Code))
@@ -175,7 +177,7 @@ public class TransportBox : Entity<int>
     {
         if (!_items.Any())
         {
-            throw new ValidationException("Cannot transition to InTransit state: Box must contain at least one item");
+            throw new TransportBoxEmptyException(Code);
         }
 
         ChangeState(TransportBoxState.InTransit, date, userName, TransportBoxState.Opened, TransportBoxState.Error);
@@ -249,7 +251,8 @@ public class TransportBox : Entity<int>
     {
         if (allowedStates.Any() && !allowedStates.Contains(State))
         {
-            throw new ValidationException($"Unable to change state from {State} to {newState} ({string.Join(", ", allowedStates)} state is required for this action)");
+            var message = $"Unable to change state from {State} to {newState} ({string.Join(", ", allowedStates)} state is required for this action)";
+            throw new TransportBoxInvalidStateTransitionException(message, State, allowedStates);
         }
     }
 

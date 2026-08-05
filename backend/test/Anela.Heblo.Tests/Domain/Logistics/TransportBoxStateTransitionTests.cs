@@ -377,8 +377,9 @@ public class TransportBoxStateTransitionTests
         var act = () => box.ToTransit(_testDate, TestUser);
 
         // Assert
-        act.Should().Throw<ValidationException>()
-           .WithMessage("Cannot transition to InTransit state: Box must contain at least one item");
+        act.Should().Throw<TransportBoxEmptyException>()
+           .WithMessage("Cannot transition to InTransit state: Box must contain at least one item")
+           .Which.BoxCode.Should().Be("B001");
     }
 
     [Fact]
@@ -389,16 +390,30 @@ public class TransportBoxStateTransitionTests
 
         // Act & Assert
         var act1 = () => box.Open("B12", _testDate, TestUser); // Too short
-        act1.Should().Throw<ValidationException>()
+        act1.Should().Throw<TransportBoxCodeFormatException>()
             .WithMessage("Box code must follow format: B + 3 digits (e.g., B001, B123)");
 
         var act2 = () => box.Open("C001", _testDate, TestUser); // Wrong prefix
-        act2.Should().Throw<ValidationException>()
+        act2.Should().Throw<TransportBoxCodeFormatException>()
             .WithMessage("Box code must follow format: B + 3 digits (e.g., B001, B123)");
 
         var act3 = () => box.Open("B1A1", _testDate, TestUser); // Non-numeric
-        act3.Should().Throw<ValidationException>()
+        act3.Should().Throw<TransportBoxCodeFormatException>()
             .WithMessage("Box code must follow format: B + 3 digits (e.g., B001, B123)");
+    }
+
+    [Fact]
+    public void AssignBoxNumber_EmptyCode_ShouldThrowCodeRequired()
+    {
+        // Arrange
+        var box = CreateBoxInState(TransportBoxState.New);
+
+        // Act
+        var act = () => box.Open("   ", _testDate, TestUser);
+
+        // Assert
+        act.Should().Throw<TransportBoxCodeRequiredException>()
+           .WithMessage("Box code cannot be null or empty");
     }
 
     [Fact]
@@ -558,5 +573,36 @@ public class TransportBoxStateTransitionTests
         var transitions = box.TransitionNode.GetAllTransitions().Select(t => t.NewState).ToList();
 
         transitions.Should().Contain(TransportBoxState.Quarantine);
+    }
+
+    [Fact]
+    public void CheckState_WrongState_ThrowsTransportBoxInvalidStateTransitionException()
+    {
+        // Arrange — AddItem requires Opened; box is New
+        var box = CreateBoxInState(TransportBoxState.New);
+
+        // Act
+        var act = () => box.AddItem("PRODUCT001", "Test Product", 1.0, _testDate, TestUser);
+
+        // Assert
+        act.Should().Throw<TransportBoxInvalidStateTransitionException>()
+           .Which.CurrentState.Should().Be(TransportBoxState.New);
+    }
+
+    [Fact]
+    public void RevertToOpened_WrongState_ThrowsTransportBoxInvalidStateTransitionException()
+    {
+        // Arrange — RevertToOpened requires InTransit/Reserve/Quarantine; box is New
+        var box = CreateBoxInState(TransportBoxState.New);
+
+        // Act
+        var act = () => box.RevertToOpened(_testDate, TestUser);
+
+        // Assert
+        act.Should().Throw<TransportBoxInvalidStateTransitionException>()
+           .Which.AllowedStates.Should().BeEquivalentTo(new[]
+           {
+               TransportBoxState.InTransit, TransportBoxState.Reserve, TransportBoxState.Quarantine
+           });
     }
 }
