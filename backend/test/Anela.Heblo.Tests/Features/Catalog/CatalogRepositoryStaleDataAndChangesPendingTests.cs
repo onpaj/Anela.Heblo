@@ -12,6 +12,7 @@ using Anela.Heblo.Domain.Features.Catalog.ManufactureHistory;
 using Anela.Heblo.Domain.Features.Catalog.Price;
 using Anela.Heblo.Domain.Features.Catalog.PurchaseHistory;
 using Anela.Heblo.Domain.Features.Catalog.Sales;
+using Anela.Heblo.Domain.Features.Catalog.Services;
 using Anela.Heblo.Domain.Features.Catalog.Stock;
 using Anela.Heblo.Domain.Features.Manufacture;
 using FluentAssertions;
@@ -42,6 +43,7 @@ public class CatalogRepositoryStaleDataAndChangesPendingTests
     private readonly Mock<IManufactureDifficultyRepository> _manufactureDifficultyRepositoryMock = new();
     private readonly Mock<ICatalogResilienceService> _resilienceServiceMock = new();
     private readonly Mock<ICatalogMergeScheduler> _mergeSchedulerMock = new();
+    private readonly Mock<IMarginCalculationService> _marginServiceMock = new();
     private readonly Mock<TimeProvider> _timeProviderMock = new();
     private readonly Mock<ILogger<CatalogRepository>> _loggerMock = new();
 
@@ -131,6 +133,8 @@ public class CatalogRepositoryStaleDataAndChangesPendingTests
             mergeService,
             refreshService,
             _mergeSchedulerMock.Object,
+            _marginServiceMock.Object,
+            _timeProviderMock.Object,
             cacheOptionsMock.Object,
             _loggerMock.Object);
     }

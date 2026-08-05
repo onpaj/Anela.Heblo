@@ -67,6 +67,46 @@ rm -f "$c1sf2"
 out="$("$D" --bogus-argument 2>&1)"; rc=$?
 check "C1: bad argument WITHOUT --state-only still exits nonzero" "yes" "$([[ $rc -ne 0 ]] && echo yes || echo no)"
 
+# --- I3: --days validation. Both shapes are one character away from the
+# shipped `--days 7` and previously went silent: a non-numeric value blew up
+# much later at the WINDOW_START_MS arithmetic (an unbound-variable abort
+# that exits 0 with completely empty stdout under `set -u`), and a bare
+# `--days` with no value aborted via bash's own nounset handling before
+# err() ever ran (exit 1, no STATE line). Both must now route through err()
+# so --state-only still gets an observation. ---
+i3sf="$(mktemp)"; rm -f "$i3sf"
+out="$(TEST_HEALTH_STATE_FILE="$i3sf" RP_FIXTURE_DIR="${FIX}/clean" "$D" --state-only --days abc 2>&1)"; rc=$?
+check "I3: --days abc exits 0 under --state-only" "0" "$rc"
+check "I3: --days abc emits a STATE error line" "yes" "$(contains 'STATE: error=' "$out")"
+rm -f "$i3sf"
+
+out="$(RP_FIXTURE_DIR="${FIX}/clean" "$D" --days abc 2>&1)"; rc=$?
+check "I3: --days abc WITHOUT --state-only exits nonzero" "yes" "$([[ $rc -ne 0 ]] && echo yes || echo no)"
+check "I3: --days abc WITHOUT --state-only is not silent" "yes" "$([[ -n "$out" ]] && echo yes || echo no)"
+
+i3sf2="$(mktemp)"; rm -f "$i3sf2"
+out="$(TEST_HEALTH_STATE_FILE="$i3sf2" RP_FIXTURE_DIR="${FIX}/clean" "$D" --state-only --days 2>&1)"; rc=$?
+check "I3: --days with no value exits 0 under --state-only" "0" "$rc"
+check "I3: --days with no value emits a STATE error line" "yes" "$(contains 'STATE: error=' "$out")"
+rm -f "$i3sf2"
+
+# --- flag ORDER must not decide whether a failure is observable ---
+# The checks above all pass --state-only first. Parsing runs left to right, so
+# with --state-only last the validation error fired while STATE_ONLY was still
+# 0: exit 1, no STATE line, and the harness discards stdout on a nonzero exit.
+# A silent failure that depended purely on argument order.
+i3sf3="$(mktemp)"; rm -f "$i3sf3"
+out="$(TEST_HEALTH_STATE_FILE="$i3sf3" RP_FIXTURE_DIR="${FIX}/clean" "$D" --days abc --state-only 2>&1)"; rc=$?
+check "I3: --state-only LAST still exits 0 on a bad --days" "0" "$rc"
+check "I3: --state-only LAST still emits a STATE error line" "yes" "$(contains 'STATE: error=' "$out")"
+rm -f "$i3sf3"
+
+i3sf4="$(mktemp)"; rm -f "$i3sf4"
+out="$(TEST_HEALTH_STATE_FILE="$i3sf4" RP_FIXTURE_DIR="${FIX}/clean" "$D" --bogus-argument --state-only 2>&1)"; rc=$?
+check "I3: --state-only LAST still exits 0 on an unknown flag" "0" "$rc"
+check "I3: --state-only LAST still emits a STATE line for unknown flags" "yes" "$(contains 'STATE: error=' "$out")"
+rm -f "$i3sf4"
+
 # --- consecutive-error-day counter escalates; success clears it ---
 esf="$(mktemp)"; rm -f "$esf"
 out="$(TEST_HEALTH_STATE_FILE="$esf" RP_FIXTURE_DIR=/nonexistent "$D" --days 7 2>&1)"
@@ -148,6 +188,17 @@ out="$(RP_FIXTURE_DIR="${FIX}/flaky" GH_FIXTURE_DIR="${FIX}/flaky" "$D" --days 7
 check "flaky is detected" "yes" "$(contains 'test-flaky:e2e:catalog' "$out")"
 check "flaky is not called a regression" "no" "$(contains 'test-regress:' "$out")"
 
+# --- I1: a genuine flake whose newest two runs both happen to fail must still
+# be classified flaky, not regression. Fixture hit sequence (newest->oldest)
+# is 1101010: k=4 fails, flips=5, pass rate 42%. Before the fix, dropping the
+# old `k -eq 2` guard made `flaky` unreachable whenever recent_fails==2, so
+# this exact shape misclassified as a regression with an overclaiming
+# headline ("newly fails two runs running") and a fingerprint that could
+# never dedup against the test's own flaky fingerprint.
+out="$(RP_FIXTURE_DIR="${FIX}/flaky-newest-two-failed" GH_FIXTURE_DIR="${FIX}/flaky-newest-two-failed" "$D" --days 7 2>&1)"
+check "I1: alternating newest-two-failed test is classified flaky" "yes" "$(contains 'test-flaky:e2e:catalog' "$out")"
+check "I1: alternating newest-two-failed test is NOT called a regression" "no" "$(contains 'test-regress:' "$out")"
+
 # --- fingerprint is stable across repeated runs of the same fixture ---
 # (collision-freeness across DIFFERENT errors is checked separately below by
 # the two-errors fixture; this only proves determinism, not uniqueness.)
@@ -197,6 +248,58 @@ c2_stale_out="$(RP_FIXTURE_DIR="${FIX}/clean" GH_FIXTURE_DIR="${FIX}/clean" TEST
 c2_stale_state="$(RP_FIXTURE_DIR="${FIX}/clean" GH_FIXTURE_DIR="${FIX}/clean" TEST_HEALTH_NOW_MS=1785777600000 "$D" --days 7 --state-only 2>&1)"
 check "C2: 9-days-stale clean fixture is no longer FINDINGS: 0" "no" "$(contains 'FINDINGS: 0' "$c2_stale_out")"
 check "C2: 9-days-stale STATE differs from the healthy run's" "no" "$([[ "$c2_healthy_state" == "$c2_stale_state" ]] && echo yes || echo no)"
+
+# --- C3: three different tests failing on the same normalized error in one
+# module must collapse to exactly ONE finding (chronic/regression fingerprints
+# deliberately omit the test path), with the other affected specs rolled into
+# the surviving finding's detail rather than silently dropped.
+out="$(RP_FIXTURE_DIR="${FIX}/chronic-collision" GH_FIXTURE_DIR="${FIX}/chronic-collision" "$D" --days 7 2>&1)"
+n="$(printf '%s\n' "$out" | grep -c 'test-chronic:')"
+check "C3: three same-error tests collapse to one finding" "1" "$n"
+check "C3: detail names the first collapsed test" "yes" "$(contains 'loads product page' "$out")"
+check "C3: detail names the second collapsed test" "yes" "$(contains 'filters by category' "$out")"
+check "C3: detail names the third collapsed test" "yes" "$(contains 'sorts by price' "$out")"
+
+# --- C4: a sustained regression (failing the newest 3 of 7 runs) must be
+# detected. The old rule required EXACTLY two failures in the whole window
+# (`k -eq 2`), so this was neither chronic (k != n) nor a regression (k != 2)
+# nor flaky (only 1 flip) -- it produced nothing at all.
+out="$(RP_FIXTURE_DIR="${FIX}/sustained-regression" GH_FIXTURE_DIR="${FIX}/sustained-regression" "$D" --days 7 2>&1)"
+check "C4: newest-3-of-7 failures reported as a regression" "yes" "$(contains 'test-regress:e2e:catalog:' "$out")"
+check "C4: sustained regression is not called chronic" "no" "$(contains 'test-chronic:' "$out")"
+check "C4: sustained regression is not called flaky" "no" "$(contains 'test-flaky:' "$out")"
+
+# --- I2: a malformed RP launch payload (.content missing/not-an-array) must
+# be a hard error, not silently read as zero launches -- the same defect C2
+# fixed for the window-filtered view, one level up on the raw page. ---
+out="$(RP_FIXTURE_DIR="${FIX}/rp-malformed" "$D" --days 7 2>&1)"; rc=$?
+check "I2: malformed RP .content exits 5" "5" "$rc"
+check "I2: malformed RP .content emits a STATE error line" "yes" "$(contains 'STATE: error=5' "$out")"
+
+# --- I2: a validly-shaped but genuinely EMPTY .content is a real answer, not
+# a parse failure -- but it must not read as a healthy clean week. It needs
+# its own finding and a STATE distinct from the clean fixture's. ---
+out="$(RP_FIXTURE_DIR="${FIX}/rp-empty" "$D" --days 7 2>&1)"; rc=$?
+check "I2: empty RP .content exits 0" "0" "$rc"
+check "I2: empty RP .content produces a finding" "yes" "$(contains 'test-rp-empty:no-launches' "$out")"
+check "I2: empty RP .content is not FINDINGS: 0" "no" "$(contains 'FINDINGS: 0' "$out")"
+clean_state="$(RP_FIXTURE_DIR="${FIX}/clean" "$D" --days 7 --state-only 2>&1)"
+empty_state="$(RP_FIXTURE_DIR="${FIX}/rp-empty" "$D" --days 7 --state-only 2>&1)"
+check "I2: empty-.content STATE differs from the clean run's" "no" "$([[ "$clean_state" == "$empty_state" ]] && echo yes || echo no)"
+
+# --- I7: suite-shrank must not fire when the newest launch actually FAILED --
+# the shrink is fully explained by the failure, and the finding's own detail
+# text ("The launch still succeeded...") would otherwise be an assertion it
+# never checked.
+out="$(RP_FIXTURE_DIR="${FIX}/shrank-failed" GH_FIXTURE_DIR="${FIX}/shrank-failed" "$D" --days 7 2>&1)"
+check "I7: shrink is suppressed when the newest launch FAILED" "no" "$(contains 'test-shrink:' "$out")"
+
+# --- I4: suite-shrank must also be suppressed for a STOPPED/INTERRUPTED
+# newest launch, not just FAILED -- the old guard (`!= "FAILED"`) let those
+# through even though an interrupted/stopped run IS the aborted-fixture case
+# the finding's own detail text describes. ---
+out="$(RP_FIXTURE_DIR="${FIX}/shrank-stopped" GH_FIXTURE_DIR="${FIX}/shrank-stopped" "$D" --days 7 2>&1)"
+check "I4: shrink is suppressed when the newest launch STOPPED" "no" "$(contains 'test-shrink:' "$out")"
 
 echo "---"; echo "passed: $pass  failed: $fail"
 [[ $fail -eq 0 ]]

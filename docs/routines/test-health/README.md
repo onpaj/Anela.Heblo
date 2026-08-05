@@ -36,14 +36,17 @@ live, and it is where thresholds get tuned (see the caveat under
 | `gh-api.test.sh` | Offline tests asserting the retargeting: searches `label:test-health` and the `test-signal: ` prefix, no leftover `telemetry`/`telemetry-signal` predicate, keeps the `GITHUB_TOKEN` fallback, errors without a token. |
 | `test-health-digest.sh` | The deterministic engine. Pulls launches + failed items from ReportPortal for a window, cross-checks GitHub Actions for the nightly workflow, computes every finding below, and prints a Markdown digest ending in a machine-readable `STATE:` line. Requires `jq` and `perl` on `PATH` (guarded at startup). |
 | `test-health-digest.test.sh` | Offline tests of the digest against `fixtures/`: a clean week, RP-unreachable suppressing silence findings, the consecutive-error-day counter, and state determinism. |
-| `fixtures/` | Recorded ReportPortal/GitHub JSON for offline replay (`RP_FIXTURE_DIR`, `GH_FIXTURE_DIR`): `clean`, `ci-broken`, `silent-module`, `gh-down`, `gh-down-partial`, `gh-malformed`, `shrank`, `regression`, `flaky`, `chronic`, `chronic-thin`, `self-healed`, `two-errors`, `big-numbers`. |
+| `fixtures/` | Recorded ReportPortal/GitHub JSON for offline replay (`RP_FIXTURE_DIR`, `GH_FIXTURE_DIR`): `clean`, `ci-broken`, `silent-module`, `gh-down`, `gh-down-partial`, `gh-malformed`, `shrank`, `shrank-failed`, `regression`, `sustained-regression`, `flaky`, `chronic`, `chronic-thin`, `chronic-collision`, `self-healed`, `two-errors`, `big-numbers`. |
+| `harness/test-health.process.json` | The harness Process definition (schedule, command). Installed into `~/harness-root/processes/`. |
+| `harness/test-health.agent.json` | The harness Agent definition — the prompt in "Running the routine" below. Installed into `~/harness-root/agents/`. |
+| `harness/install.sh` | Copies both harness JSON files into `~/harness-root`, skipping a destination that's newer than the repo copy unless `--force`. Also prints the one-time reminder for required labels and secrets (see "Labels" below). |
 | `README.md` | This file — the routine definition. The agent reads it first; tuning happens here (with the caveat below). |
 
 ## Routine details
 
 | Field | Value |
 |---|---|
-| Routine ID | Not yet created — the harness `processes/test-health.json` / `agents/test-health.json` pair is Task 7 |
+| Routine ID | `test-health` — the harness `processes/test-health.json` / `agents/test-health.json` pair ships in `harness/`; run `harness/install.sh` to copy them into `~/harness-root` |
 | Schedule | `30 5 * * *` UTC (07:30 Europe/Prague), comfortably after the nightly's ~34-minute run starting at 04:00 UTC |
 | Model | `sonnet` |
 | Repo | `onpaj/Anela.Heblo` |
@@ -62,7 +65,7 @@ changing a value here has no effect until the corresponding line in
 | Window | 7 days by default | `DAYS=7`, `--days N` |
 | E2E freshness horizon | 26h | `E2E_FRESH_MS=$(( 26 * 3600 * 1000 ))` |
 | Suite-shrink trigger | newest run's total ≥20% below the median of the other runs, needs ≥3 runs to have a baseline | `SHRINK_PCT=20`; `[[ "$n" -ge 3 ]]` guard |
-| Regression trigger | a test's two most-recently-held launches for its layer/module both fail, and the window holds no other failure for that test (exactly 2 total) | `recent_fails -eq 2 && k -eq 2` |
+| Regression trigger | a test's two most-recently-held launches for its layer/module both fail, and the test is not alternating (fewer than 2 status flips across the window) | `recent_fails -eq 2 && flips -lt 2` |
 | Flaky trigger | ≥2 status flips **and** a pass rate in [20%, 80%], compared as integers without pre-dividing | `flips -ge 2` plus the `(n-k)*100` bounds vs. `20*n` / `80*n` |
 | Chronic trigger | red in every held launch for that layer/module, minimum 3 launches | `k -eq n && n -ge 3` |
 | Issues per run (cap) | ≤5, in priority order (see below) | `CAP=5` and the `rank` map |
@@ -77,22 +80,27 @@ hasn't verified.
 **Priority order for the cap** (highest first — infrastructure faults are
 never crowded out by a pile of flaky tests): `ci-broken` (0) → `schedule-broken`
 (1) → `silence-unattributed` (2) → `rp-reporting-broken` (3) → `regression`
-(4) → `suite-shrank` (5) → `flaky` (6) → `chronic` (7).
+(4) → `suite-shrank` (5) → `flaky` (6) → `chronic` (7). `rp-empty` (below)
+isn't in the `rank` map at all — it doesn't need to be, since it can only
+ever be computed when ReportPortal's raw newest-300 page is itself empty, a
+state in which none of the other eight categories can be computed either. It
+is always the sole finding when it fires.
 
 ## What it flags
 
-Eight categories. Findings are computed per `layer`/`module` pair, taken
+Nine categories. Findings are computed per `layer`/`module` pair, taken
 from each ReportPortal launch's `layer`/`module` attributes (unknown/missing
 attributes fall back to `"unknown"`/`"-"` rather than being dropped).
 
 | Category | Rule as implemented |
 |---|---|
-| `ci-broken` | **Cascade case:** every E2E module that reported in the window is stale (see freshness horizon) *and* the `e2e-nightly-regression.yml` workflow's most recent run failed — filed **once**, naming the failing step, not once per module. Also covers the "whole layer stale, cause unknown" variant (GitHub couldn't be queried, or answered with a body that isn't shaped like a runs response) — that variant stays in `ci-broken` with fingerprint suffix `unattributed`, not `silence-unattributed`, because a whole-layer outage outranks one unattributable module. |
+| `rp-empty` | ReportPortal's raw newest-300 launch page parsed correctly but its `.content` array is genuinely empty — no launch history exists at all. Distinct from a malformed payload (`.content` missing or not an array), which is a hard error (exit 5), and distinct from a healthy clean week, which has launches but no findings. |
+| `ci-broken` | **Cascade case:** every E2E module with any recent history — from the raw, unfiltered newest-300 launch page, not the window-filtered set (see the presence note below) — is stale (see freshness horizon) *and* the `e2e-nightly-regression.yml` workflow's most recent run failed — filed **once**, naming the failing step, not once per module. Also covers the "whole layer stale, cause unknown" variant (GitHub couldn't be queried, or answered with a body that isn't shaped like a runs response) — that variant stays in `ci-broken` with fingerprint suffix `unattributed`, not `silence-unattributed`, because a whole-layer outage outranks one unattributable module. |
 | `schedule-broken` | A single E2E module's launch is stale, the *whole* layer is not stale (so the cascade above didn't fire), and the workflow's most recent run reports no conclusion at all. |
 | `silence-unattributed` | A single E2E module's launch is stale and GitHub's Actions API could not be queried, or answered with a body that isn't a valid runs response. The data really is absent; the cause is undetermined, and the finding must not claim one. |
 | `rp-reporting-broken` | A single E2E module's launch is stale but the workflow's most recent run **succeeded** — the tests ran, ReportPortal just never heard about it. |
-| `suite-shrank` | A layer/module has ≥3 launches in the window and the newest run's total test count fell ≥20% below the median of the rest, while that run still succeeded (skipped tests or an aborted fixture, not a failure). |
-| `regression` | A test's two most-recently-held launches for its layer/module both failed, and the window holds no other failure for that test. This is applied **uniformly across all layers** — the script does not currently give backend/frontend a 1-run trigger; see the discrepancy note below. |
+| `suite-shrank` | A layer/module has ≥3 launches in the window and the newest run's total test count fell ≥20% below the median of the rest, while that run's own status was `PASSED` (any other status — `FAILED`, `STOPPED`, `INTERRUPTED` — is fully explained by that status and is never also claimed as an unexplained shrink). |
+| `regression` | A test's two most-recently-held launches for its layer/module both failed, and the test is not alternating (fewer than 2 status flips across the window) — an alternating test falls through to `flaky` instead, even when the newest two happen to both be red. This is applied **uniformly across all layers** — the script does not currently give backend/frontend a 1-run trigger; see the discrepancy note below. |
 | `flaky` | A test has ≥2 status flips across the window and a pass rate landing in [20%, 80%] (floor-safe integer comparison, so a true rate of 80.99% still lands in the band). |
 | `chronic` | A test is red in every held launch for its layer/module, with at least 3 launches to judge from. Headline states the measured span (days) and run count, per the "not ≥7 days" note above. |
 
@@ -102,9 +110,10 @@ are computed **only for the `e2e` layer**. The script's staleness
 computation hardcodes `stale: false` for every non-`e2e` layer, so a
 backend or frontend module that stops reporting entirely is not detected by
 this routine today — only `suite-shrank`, `regression`, `flaky`, and
-`chronic` currently reach backend/frontend. See the discrepancy note in the
-task report; this is worth a follow-up if backend/frontend silence turns out
-to matter in practice.
+`chronic` currently reach backend/frontend. This is a known gap between the
+original design intent and what shipped, not an oversight discovered later —
+worth a follow-up if backend/frontend silence turns out to matter in
+practice.
 
 ## What it skips
 
@@ -139,6 +148,7 @@ described in "Issue contract" below.
 
 | Category | Fingerprint |
 |---|---|
+| `rp-empty` | `test-rp-empty:no-launches` |
 | `ci-broken` (attributed) | `test-ci:e2e-nightly-regression.yml:<failing-step>` |
 | `ci-broken` (cascade, cause unknown) | `test-ci:e2e-nightly-regression.yml:unattributed` |
 | `schedule-broken` | `test-silence:<layer>:<module>:schedule` |
@@ -171,12 +181,13 @@ record why.
 
 ## Issue contract
 
-- **Title:** `[test-health] <layer>/<module>: <headline>`
+- **Title:** `[test-health] <headline>` — every headline already begins with
+  `<layer>/<module>: `, so do not prepend it a second time.
 - **Labels:** `test-health`, exactly one category label, and `harness:todo`.
 
   | Detection category | Label |
   |---|---|
-  | `ci-broken`, `schedule-broken`, `silence-unattributed`, `rp-reporting-broken` | `test-infra` |
+  | `rp-empty`, `ci-broken`, `schedule-broken`, `silence-unattributed`, `rp-reporting-broken` | `test-infra` |
   | `regression`, `suite-shrank`, `chronic` | `test-regression` |
   | `flaky` | `test-flaky` |
 
@@ -190,7 +201,7 @@ record why.
   the affected spec paths, a trimmed failure excerpt, ReportPortal launch
   links, a correlation hypothesis where commits or PRs in the window explain
   it, and a minimal next step.
-- **For the `test-infra` label** (`ci-broken`, `schedule-broken`,
+- **For the `test-infra` label** (`rp-empty`, `ci-broken`, `schedule-broken`,
   `silence-unattributed`, `rp-reporting-broken`), the body additionally
   states that the resolution is a credential or configuration change
   **outside the repository**, requires a human, and that the agent should
@@ -219,7 +230,7 @@ block instructing the implementing agent:
 > in the PR description instead of doing it.** A PR that reduces the total test count
 > for this module is wrong by construction.
 
-For the `test-infra` category (`ci-broken`, `schedule-broken`,
+For the `test-infra` category (`rp-empty`, `ci-broken`, `schedule-broken`,
 `silence-unattributed`, `rp-reporting-broken`) the body additionally states
 that the resolution is a credential or configuration change **outside the
 repository**, requires a human, and that the agent should report this rather
@@ -249,6 +260,43 @@ server:
 RP_FIXTURE_DIR=docs/routines/test-health/fixtures/clean \
   ./docs/routines/test-health/test-health-digest.sh --days 7
 ```
+
+## Labels
+
+Verified against `onpaj/Anela.Heblo`: `harness:todo` already exists, but
+`test-health`, `test-infra`, `test-regression`, and `test-flaky` — the four
+labels this routine's issue contract requires — do **not**. Creating them is
+the operator's call, not something to do silently as a side effect of
+running the routine. To create them, following the same pattern as
+`telemetry-anomaly` (`docs/routines/telemetry-anomaly/README.md`):
+
+```bash
+for l in "test-health:0e8a16" "test-infra:b60205" \
+         "test-regression:fbca04" "test-flaky:1d76db"; do
+  name="${l%%:*}"; color="${l##*:}"
+  gh label create "$name" --repo onpaj/Anela.Heblo --color "$color" \
+    --description "test-health routine: ${name}"
+done
+```
+
+If these are left uncreated, the routine still works and dedup is fine from
+the second run onward: GitHub's issue-creation API auto-creates a label that
+doesn't exist yet the first time an issue references it, at the default grey
+with no description. That auto-creation is already the pattern in this repo —
+of its 224 labels, roughly 200 are grey and description-less, including
+`arch-review` and the whole `harness:queued`/`harness:in-progress`/
+`harness:landing`/`harness:pr-open` family, all applied by routines with no
+label-creation code of their own — so `find-signal`'s `label:test-health`
+search will find what it's looking for on every run after the first exactly
+as designed.
+
+The actual cost of leaving them uncreated: the *first* issue this routine
+files silently adds `test-health` plus whichever of `test-infra` /
+`test-regression` / `test-flaky` fires first to the repository, in the
+default styling, without the operator having chosen their colours or
+descriptions. That's the reason to create them deliberately up front — so
+they look like the other three, not as a fix for dedup, which was never
+broken.
 
 ## Troubleshooting
 

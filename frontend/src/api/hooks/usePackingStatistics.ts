@@ -1,5 +1,13 @@
 import { useQuery } from "@tanstack/react-query";
-import { getApiBaseUrl, getAuthenticatedFetch } from "../client";
+import { getAuthenticatedApiClient } from "../client";
+import type {
+  DailyThroughputDto,
+  HourBucketDto,
+  PackerThroughputDto,
+  CarrierMixDto,
+  PackagesPerOrderBucketDto,
+  PackingStatisticsSummaryDto,
+} from "../generated/api-client";
 
 export interface PackingStatisticsSummary {
   totalPackages: number;
@@ -62,6 +70,46 @@ export interface PackingStatisticsParams {
   toDate?: string;
 }
 
+const toDailyThroughput = (dto: DailyThroughputDto): DailyThroughput => ({
+  date: dto.date ? dto.date.toISOString() : '',
+  orderCount: dto.orderCount ?? 0,
+  packageCount: dto.packageCount ?? 0,
+});
+
+const toHourBucket = (dto: HourBucketDto): HourBucket => ({
+  dayOfWeek: dto.dayOfWeek ?? 0,
+  hour: dto.hour ?? 0,
+  packageCount: dto.packageCount ?? 0,
+});
+
+const toPackerThroughput = (dto: PackerThroughputDto): PackerThroughput => ({
+  packerId: dto.packerId ?? null,
+  packerName: dto.packerName ?? '',
+  orderCount: dto.orderCount ?? 0,
+  packageCount: dto.packageCount ?? 0,
+});
+
+const toCarrierMix = (dto: CarrierMixDto): CarrierMix => ({
+  code: dto.code ?? '',
+  name: dto.name ?? '',
+  packageCount: dto.packageCount ?? 0,
+});
+
+const toPackagesPerOrderBucket = (dto: PackagesPerOrderBucketDto): PackagesPerOrderBucket => ({
+  packageCount: dto.packageCount ?? 0,
+  orderCount: dto.orderCount ?? 0,
+});
+
+const toPackingStatisticsSummary = (dto: PackingStatisticsSummaryDto): PackingStatisticsSummary => ({
+  totalPackages: dto.totalPackages ?? 0,
+  totalOrders: dto.totalOrders ?? 0,
+  distinctPackers: dto.distinctPackers ?? 0,
+  averagePackagesPerOrder: dto.averagePackagesPerOrder ?? 0,
+  trackingCoveragePercent: dto.trackingCoveragePercent ?? 0,
+  busiestDay: dto.busiestDay ? toDailyThroughput(dto.busiestDay) : null,
+  busiestHour: dto.busiestHour ? toHourBucket(dto.busiestHour) : null,
+});
+
 export const packingStatisticsKeys = {
   all: ["packingStatistics"] as const,
   detail: (params: PackingStatisticsParams) =>
@@ -72,22 +120,29 @@ export const usePackingStatistics = (params: PackingStatisticsParams = {}) =>
   useQuery({
     queryKey: packingStatisticsKeys.detail(params),
     queryFn: async (): Promise<PackingStatisticsResponse> => {
-      const query = new URLSearchParams();
-      if (params.fromDate) query.set("fromDate", params.fromDate);
-      if (params.toDate) query.set("toDate", params.toDate);
-      const suffix = query.toString() ? `?${query.toString()}` : "";
+      const apiClient = getAuthenticatedApiClient(false);
+      const response = await apiClient.packaging_GetStatistics(
+        params.fromDate ? new Date(params.fromDate) : undefined,
+        params.toDate ? new Date(params.toDate) : undefined,
+      );
 
-      const url = `${getApiBaseUrl()}/api/packaging/statistics${suffix}`;
-      const response = await getAuthenticatedFetch()(url, {
-        method: "GET",
-        headers: { Accept: "application/json" },
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+      if (!response.summary) {
+        throw new Error('Statistiky balení se nepodařilo načíst.');
       }
 
-      return response.json() as Promise<PackingStatisticsResponse>;
+      return {
+        fromDate: response.fromDate ? response.fromDate.toISOString() : '',
+        toDate: response.toDate ? response.toDate.toISOString() : '',
+        packerAttributionSince: response.packerAttributionSince
+          ? response.packerAttributionSince.toISOString()
+          : null,
+        summary: toPackingStatisticsSummary(response.summary),
+        throughputDaily: (response.throughputDaily ?? []).map(toDailyThroughput),
+        hourHeatmap: (response.hourHeatmap ?? []).map(toHourBucket),
+        byPacker: (response.byPacker ?? []).map(toPackerThroughput),
+        byCarrier: (response.byCarrier ?? []).map(toCarrierMix),
+        packagesPerOrder: (response.packagesPerOrder ?? []).map(toPackagesPerOrderBucket),
+      };
     },
     staleTime: 5 * 60_000,
   });

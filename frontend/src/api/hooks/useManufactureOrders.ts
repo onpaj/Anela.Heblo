@@ -19,6 +19,7 @@ import {
   DuplicateManufactureOrderResponse,
   ResolveManualActionRequest,
   ResolveManualActionResponse,
+  GetManufactureOrdersResponse,
 } from "../generated/api-client";
 
 // Define request interface matching the API parameters
@@ -58,39 +59,21 @@ const getManufactureOrdersClient = (): GeneratedApiClient => {
 export const useManufactureOrdersQuery = (request: GetManufactureOrdersRequest = {}) => {
   return useQuery({
     queryKey: manufactureOrderKeys.list(request),
-    queryFn: async () => {
-      const apiClient = getAuthenticatedApiClient();
-      const relativeUrl = `/api/manufactureorder`;
-      const fullUrl = `${(apiClient as any).baseUrl}${relativeUrl}`;
-      
-      const params = new URLSearchParams();
-      if (request.state !== undefined && request.state !== null) params.append('state', request.state.toString());
-      if (request.dateFrom) params.append('dateFrom', request.dateFrom.toISOString());
-      if (request.dateTo) params.append('dateTo', request.dateTo.toISOString());
-      if (request.responsiblePerson) params.append('responsiblePerson', request.responsiblePerson);
-      if (request.orderNumber) params.append('orderNumber', request.orderNumber);
-      if (request.productCode) params.append('productCode', request.productCode);
-      if (request.erpDocumentNumber) params.append('erpDocumentNumber', request.erpDocumentNumber);
-      if (request.manualActionRequired !== undefined && request.manualActionRequired !== null) {
-        params.append('manualActionRequired', request.manualActionRequired.toString());
-      }
-      if (request.lotNumber) params.append('lotNumber', request.lotNumber);
-      if (request.pageNumber !== undefined && request.pageNumber !== null) params.append('pageNumber', request.pageNumber.toString());
-      if (request.pageSize !== undefined && request.pageSize !== null) params.append('pageSize', request.pageSize.toString());
-
-      const urlWithParams = params.toString() ? `${fullUrl}?${params.toString()}` : fullUrl;
-      const response = await (apiClient as any).http.fetch(urlWithParams, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json'
-        }
-      });
-      
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      
-      return await response.json();
+    queryFn: async (): Promise<GetManufactureOrdersResponse> => {
+      const apiClient = getManufactureOrdersClient();
+      return await apiClient.manufactureOrder_GetOrders(
+        request.state ?? undefined,
+        request.dateFrom ?? undefined,
+        request.dateTo ?? undefined,
+        request.responsiblePerson ?? undefined,
+        request.orderNumber ?? undefined,
+        request.productCode ?? undefined,
+        request.erpDocumentNumber ?? undefined,
+        request.manualActionRequired ?? undefined,
+        request.lotNumber ?? undefined,
+        request.pageNumber ?? undefined,
+        request.pageSize ?? undefined,
+      );
     },
     staleTime: 1000 * 60 * 5, // 5 minutes
   });
@@ -415,14 +398,17 @@ export const useOpenManufactureProtocol = () => {
     setIsLoading(true);
     setError(null);
     try {
-      const apiClient = getAuthenticatedApiClient();
-      const relativeUrl = `/api/manufactureorder/${orderId}/protocol.pdf`;
-      const fullUrl = `${(apiClient as any).baseUrl}${relativeUrl}`;
-      const response = await (apiClient as any).http.fetch(fullUrl, { method: 'GET' });
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+      const apiClient = getManufactureOrdersClient();
+      const response = await apiClient.manufactureOrder_GetProtocolPdf(orderId);
+      if (!response.pdfBytes) {
+        throw new Error('Manufacture protocol PDF response did not include pdfBytes');
       }
-      const blob = await response.blob();
+      const byteCharacters = atob(response.pdfBytes);
+      const byteNumbers = new Array(byteCharacters.length);
+      for (let i = 0; i < byteCharacters.length; i++) {
+        byteNumbers[i] = byteCharacters.charCodeAt(i);
+      }
+      const blob = new Blob([new Uint8Array(byteNumbers)], { type: 'application/pdf' });
       const blobUrl = URL.createObjectURL(blob);
       window.open(blobUrl, '_blank', 'noopener,noreferrer');
       setTimeout(() => URL.revokeObjectURL(blobUrl), 10000);

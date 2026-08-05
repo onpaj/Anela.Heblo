@@ -88,9 +88,33 @@ errc() { local c="$1"; shift; echo "Error: $*" >&2; exit "$c"; }
 # Argument parsing happens BEFORE the dependency checks below: those checks
 # call err(), which needs to already know whether --state-only was passed so a
 # missing jq/perl/rp-query.sh doesn't produce silence in state-only mode.
+# Pre-scan for --state-only before validating anything. The loop below parses
+# left to right, so `--days abc --state-only` would validate --days while
+# STATE_ONLY was still 0, and err() would exit 1 with no STATE line — silent to
+# the harness, which discards stdout on a nonzero exit. Order of flags on the
+# command line must not decide whether a failure is observable.
+for _arg in "$@"; do
+  [[ "$_arg" == "--state-only" ]] && STATE_ONLY=1
+done
+
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    --days)       DAYS="${2:?--days requires a number}"; shift 2 ;;
+    --days)
+      # Both malformed shapes here are one character away from the shipped
+      # `--days 7` and must not go silent. A bare `${2:?...}` aborts via
+      # bash's own nounset handling before err() ever runs -- exit 1, no
+      # STATE line, invisible to --state-only. And a non-numeric value (e.g.
+      # `--days abc`) parses fine here under `set -u` and only blows up much
+      # later at the WINDOW_START_MS arithmetic, as an unbound-variable abort
+      # that exits 0 with empty stdout -- total, silent harness blindness.
+      # Validate eagerly and route both through err(), which already knows
+      # how to reach --state-only via record_error_and_exit.
+      [[ $# -ge 2 ]] || err "--days requires a value."
+      case "$2" in
+        ''|*[!0-9]*) err "--days requires a positive integer, got '$2'." ;;
+      esac
+      [[ "$2" -gt 0 ]] || err "--days requires a positive integer, got '$2'."
+      DAYS="$2"; shift 2 ;;
     --state-only) STATE_ONLY=1; shift ;;
     -h|--help)    awk 'NR>1 && /^#/ {sub(/^# ?/,""); print; next} NR>1 {exit}' "$0"; exit 0 ;;
     *)            err "unknown argument '$1'." ;;
@@ -150,6 +174,20 @@ if [[ $rc -ne 0 ]]; then
   record_error_and_exit "$rc" "could not read launches from ReportPortal"
 fi
 
+# Validate the shape the same way the GitHub payload is already validated
+# below (`gh_ok`): a 2xx body that parses as JSON but doesn't carry a
+# `.content` array — schema drift, a proxy interstitial, an auth page that
+# happens to be valid JSON — must not fall through to "zero launches". That
+# collapse is the same defect as an unreachable GitHub API reading as "no
+# workflow runs", one level up: a genuinely empty `.content` array IS a real
+# answer (handled below via rp_launch_count), but anything else is a
+# malformed response we must not trust.
+rp_ok="$(printf '%s' "$raw_launches" | jq -r '
+  if (.content | type) == "array" then "yes" else "no" end' 2>/dev/null || echo no)"
+[[ "$rp_ok" == "yes" ]] || record_error_and_exit 5 "ReportPortal launch payload has no '.content' array (malformed response)."
+rp_launch_count="$(printf '%s' "$raw_launches" | jq '.content | length' 2>/dev/null)" \
+  || record_error_and_exit 5 "could not count entries in the ReportPortal launch payload."
+
 launches="$(printf '%s' "$raw_launches" | jq --argjson since "$WINDOW_START_MS" '
   [ .content[]?
     | select(.startTime >= $since)
@@ -163,7 +201,7 @@ launches="$(printf '%s' "$raw_launches" | jq --argjson since "$WINDOW_START_MS" 
         failed: (.statistics.executions.failed  // 0),
         skipped:(.statistics.executions.skipped // 0) }
     | select(.branch == "main" or .branch == "unknown") ]
-')" || err "could not parse the launch payload as JSON."
+')" || record_error_and_exit 5 "could not parse the launch payload as JSON."
 
 # Failed items per launch. Cheap: only failures are fetched, never full item
 # lists. Pass/fail history per test is then derived from set membership.
@@ -183,14 +221,37 @@ for id in $(printf '%s' "$launches" | jq -r '.[].id'); do
                       status: (.status // "FAILED"),
                       issue: ((.issue.comment // "") ),
                       error: ((.description // "") | split("\n")[0] // "") } ]
-  ')" || err "could not parse items for launch ${id}."
-  failed_items="$(jq -n --argjson a "$failed_items" --argjson b "$chunk" '$a + $b')"
+  ')" || record_error_and_exit 5 "could not parse items for launch ${id}."
+  # Unlike its neighbours, this accumulation re-passes the whole growing array
+  # via --argjson on every iteration with no guard. On a bad night (many
+  # failures) it can exceed jq/the shell's argument limits; unguarded, jq
+  # would fail, $failed_items would silently become empty, and the run would
+  # complete "successfully" with every regression/chronic/flaky finding gone —
+  # losing exactly the data that matters most. Fail loudly instead.
+  failed_items="$(jq -n --argjson a "$failed_items" --argjson b "$chunk" '$a + $b')" \
+    || record_error_and_exit 1 "could not accumulate failed items at launch ${id} (jq failed, possibly an argument-size limit)."
 done
 
 # --------------------------------------------------------------- findings ---
 # Findings are accumulated as JSON objects: {category, layer, module, fingerprint, headline, detail}
 findings='[]'
 add_finding() { findings="$(jq -n --argjson a "$findings" --argjson b "$1" '$a + [$b]')"; }
+
+# rp_ok above only rules out a malformed body; a validly-shaped, genuinely
+# empty `.content` is a real answer, not an error — but left unflagged it is
+# byte-identical to a healthy clean week (findings=0, same STATE shape). This
+# is the decay state of the very outage this routine's C2 fix detects: once
+# ~300 newer launches or RP retention push every prior launch off this page,
+# a real, ongoing outage silently reverts to green. State it explicitly.
+if [[ "$rp_launch_count" -eq 0 ]]; then
+  add_finding "$(jq -n '{
+    category: "rp-empty",
+    layer: "-", module: "-",
+    fingerprint: "test-rp-empty:no-launches",
+    headline: "ReportPortal returned no launches at all for the window",
+    detail: "The query succeeded and returned a validly-shaped, empty page: there is no launch history to evaluate. This is either a brand-new project or every prior launch has aged off retention/pagination — it is not the same as a clean week and must not be read as one."
+  }')"
+fi
 
 # --- presence: which layer/module reported recently vs. has a baseline? ---
 # A layer/module earns an expectation by appearing at all — anywhere in the
@@ -219,7 +280,7 @@ expected="$(printf '%s' "$raw_launches" | jq --argjson now "$NOW_MS" --argjson f
           newest: (map(.startTime) | max),
           runs: length })
   | map(. + { stale: (if .layer == "e2e" then (($now - .newest) > $fresh) else false end) })
-')"
+')" || record_error_and_exit 5 "could not compute expected layer/module presence from the launch payload."
 
 stale_e2e="$(printf '%s' "$expected" | jq '[ .[] | select(.stale) ] | length')"
 fresh_e2e="$(printf '%s' "$expected" | jq '[ .[] | select(.layer=="e2e" and (.stale|not)) ] | length')"
@@ -323,10 +384,19 @@ for key in $(printf '%s' "$launches" | jq -r '[ .[] | .layer + "/" + .module ] |
   n="$(printf '%s' "$series" | jq 'length')"
   [[ "$n" -ge 3 ]] || continue   # no baseline, no claim
   newest="$(printf '%s' "$series" | jq '.[0].total')"
+  newest_status="$(printf '%s' "$series" | jq -r '.[0].status')"
   median="$(printf '%s' "$series" | jq '[ .[1:][].total ] | sort | .[ (length/2 | floor) ]')"
   [[ "$median" -gt 0 ]] || continue
   drop=$(( (median - newest) * 100 / median ))
-  if [[ "$drop" -ge "$SHRINK_PCT" ]]; then
+  # Only claim a shrink when the newest launch actually succeeded. The detail
+  # below asserts "the launch still succeeded" without ever checking .status —
+  # guarding on `!= "FAILED"` alone still let STOPPED/INTERRUPTED through
+  # (the item query already filters on FAILED,INTERRUPTED, so INTERRUPTED is
+  # a live status here), and an interrupted or stopped launch IS the
+  # aborted-fixture case this text describes, not an unexplained shrink on
+  # top of it. Require the positive PASSED match instead of a negative
+  # exclusion so every non-passing status is covered, not just FAILED.
+  if [[ "$drop" -ge "$SHRINK_PCT" && "$newest_status" == "PASSED" ]]; then
     add_finding "$(jq -n --arg l "$l" --arg m "$m" --argjson nw "$newest" --argjson md "$median" --argjson d "$drop" '{
       category: "suite-shrank", layer: $l, module: $m,
       fingerprint: ("test-shrink:" + $l + ":" + $m),
@@ -413,11 +483,24 @@ for key in $(printf '%s' "$launches" | jq -r '[ .[] | .layer + "/" + .module ] |
     if [[ "$k" -eq "$n" && "$n" -ge 3 ]]; then
       add_finding "$(jq -n --arg l "$l" --arg m "$m" --arg h "$hash8" --arg t "$t" --arg e "$err_line" \
                             --argjson n "$n" --argjson sd "$span_days" '{
-        category: "chronic", layer: $l, module: $m,
+        category: "chronic", layer: $l, module: $m, test: $t,
         fingerprint: ("test-chronic:" + $l + ":" + $m + ":" + $h),
         headline: ($l + "/" + $m + ": \"" + $t + "\" failed all " + ($n|tostring) + " runs in the window (spanning " + ($sd|tostring) + " days)"),
         detail: ("Red in every launch held for this module — no passing run to compare against. First error line: " + $e) }')"
-    elif [[ "$recent_fails" -eq 2 && "$k" -eq 2 ]]; then
+    # A sustained regression must not require the window to hold EXACTLY two
+    # failures. That old `k -eq 2` clause meant a test failing nights 5, 6 and
+    # 7 (k=3) was neither chronic (k != n) nor a regression (k != 2): a missed
+    # detection day lost the regression permanently. The two most-recently-
+    # held runs both failing is the only condition that matters; the `k -eq n`
+    # check just below still decides correctly whether a prior pass may be
+    # claimed. But "the two newest both failed" is also exactly what a ~50%
+    # flake looks like on an unlucky day: without the flips guard, a test that
+    # has been alternating all week gets classified regression whenever the
+    # coin lands failed-failed, producing a fingerprint the flaky finding never
+    # shares — two open issues, two labels, for one already-known flake. Fall
+    # through to the flaky branch below instead whenever the window shows real
+    # alternation (flips >= 2).
+    elif [[ "$recent_fails" -eq 2 && "$flips" -lt 2 ]]; then
       # Claim a prior pass only when one was observed. At n=2 the entire window
       # is red, so "passed earlier" would assert evidence we do not hold — the
       # same overclaim as the chronic headline that used to say "for a week".
@@ -427,7 +510,7 @@ for key in $(printf '%s' "$launches" | jq -r '[ .[] | .layer + "/" + .module ] |
         reg_detail="Passed earlier in the window, now failing."
       fi
       add_finding "$(jq -n --arg l "$l" --arg m "$m" --arg h "$hash8" --arg t "$t" --arg e "$err_line" --arg d "$reg_detail" '{
-        category: "regression", layer: $l, module: $m,
+        category: "regression", layer: $l, module: $m, test: $t,
         fingerprint: ("test-regress:" + $l + ":" + $m + ":" + $h),
         headline: ($l + "/" + $m + ": \"" + $t + "\" newly fails two runs running"),
         detail: ($d + " First error line: " + $e) }')"
@@ -446,12 +529,35 @@ for key in $(printf '%s' "$launches" | jq -r '[ .[] | .layer + "/" + .module ] |
 done
 
 # Priority order for the cap, so infrastructure faults are never crowded out by
-# a pile of flaky tests.
+# a pile of flaky tests. Also dedupe by fingerprint: regression/chronic
+# fingerprints deliberately omit the test path (so one broken fixture across
+# many specs clusters into one issue), which means several DIFFERENT tests
+# failing on the same normalized error land on an identical fingerprint. Left
+# undeduped, that's several findings for one cause — and the agent's own
+# per-finding dedup can't save it, since GitHub's issue search index is
+# eventually consistent and won't see the first issue in time to catch the
+# second. Collapse to the highest-priority survivor per fingerprint, but keep
+# the information: roll the other affected test names into its detail rather
+# than discarding them. group_by/sort_by resort by their own key internally,
+# so a final sort_by(rank) restores the priority order across fingerprints.
 findings="$(printf '%s' "$findings" | jq '
   def rank: { "ci-broken":0, "schedule-broken":1, "silence-unattributed":2,
               "rp-reporting-broken":3, "regression":4, "suite-shrank":5,
               "flaky":6, "chronic":7 }[.category] // 9;
-  sort_by(rank)')"
+  group_by(.fingerprint)
+  | map(
+      sort_by(rank) as $g
+      | ($g[0]) as $survivor
+      | ($g[1:] | map(.test // empty) | unique) as $others
+      | if ($others | length) > 0 then
+          # A bare space here runs the error line straight into "Also
+          # affects", e.g. "...Network request failed Also affects: ..." —
+          # the agent copies that verbatim into an issue body. An explicit
+          # separator keeps the two clauses visually distinct.
+          $survivor + { detail: ($survivor.detail + " — Also affects: " + ($others | join(", "))) }
+        else $survivor end
+    )
+  | sort_by(rank)')"
 
 # ------------------------------------------------------------------ state ---
 finding_count="$(printf '%s' "$findings" | jq 'length')"

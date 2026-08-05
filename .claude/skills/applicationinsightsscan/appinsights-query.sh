@@ -2,7 +2,8 @@
 #
 # appinsights-query.sh — query Azure Application Insights via the REST data-plane API.
 #
-# Credentials are read from the environment (never hardcode the key):
+# Credentials are read from the environment (never hardcode the key), with a
+# gitignored .env at the repo root as a local/dev fallback (env-fallback.sh):
 #   APPINSIGHTS_APP_ID   Application ID (GUID) from the App Insights "API Access" blade
 #   APPINSIGHTS_API_KEY  API key with "Read telemetry" permission
 #
@@ -27,6 +28,10 @@ API_HOST="https://api.applicationinsights.io"
 TIMESPAN="P1D"
 
 err() { echo "Error: $*" >&2; exit 1; }
+
+# shellcheck disable=SC1090
+source "$(dirname "${BASH_SOURCE[0]}")/env-fallback.sh"
+load_env_fallback APPINSIGHTS_APP_ID APPINSIGHTS_API_KEY
 
 [[ -n "${APPINSIGHTS_APP_ID:-}" ]]  || err "APPINSIGHTS_APP_ID is not set."
 [[ -n "${APPINSIGHTS_API_KEY:-}" ]] || err "APPINSIGHTS_API_KEY is not set."

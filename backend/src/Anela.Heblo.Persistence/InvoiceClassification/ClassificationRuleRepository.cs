@@ -68,15 +68,41 @@ public class ClassificationRuleRepository : IClassificationRuleRepository
             .Where(r => ruleIds.Contains(r.Id))
             .ToListAsync();
 
-        for (int i = 0; i < ruleIds.Count; i++)
+        var orderedRules = ruleIds
+            .Select(id => rules.FirstOrDefault(r => r.Id == id))
+            .Where(r => r != null)
+            .Select(r => r!)
+            .ToList();
+
+        if (orderedRules.Count == 0)
         {
-            var rule = rules.FirstOrDefault(r => r.Id == ruleIds[i]);
-            if (rule != null)
-            {
-                rule.SetOrder(i + 1);
-            }
+            return;
         }
 
+        // The fixed set of Order values already legally owned by exactly these rows.
+        // Redistributing this set (instead of renumbering to 1..N) guarantees every
+        // write stays collision-free against rows outside ruleIds (e.g. inactive rows),
+        // since Order is unique across the whole table, not just active rows.
+        var valuesToRedistribute = orderedRules
+            .Select(r => r.Order)
+            .OrderBy(o => o)
+            .ToList();
+
+        // Phase 1: move to a disjoint negative range. Order is always >= 1 for real
+        // rows, so negative values can never collide with an existing row, active or
+        // inactive. This avoids the transient unique_violation a non-deferrable unique
+        // index throws when a permutation is written row-by-row.
+        for (int i = 0; i < orderedRules.Count; i++)
+        {
+            orderedRules[i].SetOrder(-(i + 1));
+        }
+        await _context.SaveChangesAsync();
+
+        // Phase 2: assign the redistributed final values.
+        for (int i = 0; i < orderedRules.Count; i++)
+        {
+            orderedRules[i].SetOrder(valuesToRedistribute[i]);
+        }
         await _context.SaveChangesAsync();
     }
 }
