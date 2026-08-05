@@ -39,7 +39,10 @@ public class BackgroundRefreshTaskRegistry : IBackgroundRefreshTaskRegistry
             {
                 RegisterTask(taskInfo.TaskId, taskInfo.RefreshMethod, taskInfo.Configuration);
             }
-            RegisterTask(taskInfo.TaskId, taskInfo.RefreshMethod);
+            else
+            {
+                RegisterTask(taskInfo.TaskId, taskInfo.RefreshMethod);
+            }
         }
 
         _logger.LogInformation("Successfully initialized {RegisteredCount} background refresh tasks", _registeredTasks.Count);

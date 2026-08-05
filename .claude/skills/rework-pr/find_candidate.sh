@@ -1,22 +1,21 @@
 #!/usr/bin/env bash
 # Find the oldest open `needs-work` PR that hasn't hit the revision-attempt
-# cap.
+# cap and isn't already claimed by an in-progress rework-pr run.
 #
 # Emits JSON: {"candidate": {...}|null, "skipped": [...]}
 set -euo pipefail
 
 NEEDS_WORK_LABEL="needs-work"
+AGENT_WIP_LABEL="agent-wip"
 MAX_REVISION_ATTEMPTS=3
-# /automerge only ever labels PRs that already carry `agent` (see
-# automerge/candidates.sh's own `--label agent` filter), so this keeps
-# eligibility here to "PRs /automerge itself rejected" rather than any
+# /automerge-pr only ever labels PRs that already carry `agent` (see
+# automerge-pr/candidates.sh's own `--label agent` filter), so this keeps
+# eligibility here to "PRs /automerge-pr itself rejected" rather than any
 # needs-work-labelled PR from any source (human-labelled, a fork PR, etc.).
 AGENT_LABEL="agent"
 
 REPO="${GH_REPO:-}"
 if [ -z "$REPO" ]; then
-  # Same convention as .claude/skills/applicationinsightsscan/gh-api.sh's
-  # detect_repo() and automerge/candidates.sh: parse `origin` directly.
   url=$(git remote get-url origin 2>/dev/null) || { echo "cannot detect repo: no origin remote" >&2; exit 1; }
   case "$url" in
     *github.com*) ;;
@@ -36,7 +35,7 @@ prs_json=$(gh pr list \
   --label "$NEEDS_WORK_LABEL" \
   --label "$AGENT_LABEL" \
   --limit 100 \
-  --json number,title,createdAt,headRefName,body,isDraft,mergeable)
+  --json number,title,createdAt,headRefName,body,isDraft,mergeable,labels)
 
 sorted_numbers=$(echo "$prs_json" | jq -r 'sort_by(.createdAt) | .[].number')
 
@@ -47,23 +46,35 @@ for n in $sorted_numbers; do
   pr_obj=$(echo "$prs_json" | jq --argjson n "$n" '.[] | select(.number == $n)')
   is_draft=$(echo "$pr_obj" | jq -r '.isDraft')
   mergeable=$(echo "$pr_obj" | jq -r '.mergeable')
+  has_needs_work=$(echo "$pr_obj" | jq --arg l "$NEEDS_WORK_LABEL" '[.labels[]?.name] | any(. == $l)')
+  has_agent=$(echo "$pr_obj" | jq --arg l "$AGENT_LABEL" '[.labels[]?.name] | any(. == $l)')
+  has_agent_wip=$(echo "$pr_obj" | jq --arg l "$AGENT_WIP_LABEL" '[.labels[]?.name] | any(. == $l)')
 
-  # Draft/conflicted/unresolved-mergeability PRs are out of scope (see the
-  # design spec's Scope section), mirroring automerge/candidates.sh's own
-  # draft/CONFLICTING/UNKNOWN filter.
+  # Draft/unresolved-mergeability PRs are out of scope. CONFLICTING is no
+  # longer skipped here — rework-pr's own merge-and-resolve step (SKILL.md
+  # step 5) is what handles a genuinely conflicting PR.
   if [ "$is_draft" = "true" ]; then
     skipped=$(echo "$skipped" | jq --argjson n "$n" \
       '. + [{number: $n, reason: "draft"}]')
     continue
   fi
-  if [ "$mergeable" = "CONFLICTING" ]; then
-    skipped=$(echo "$skipped" | jq --argjson n "$n" \
-      '. + [{number: $n, reason: "CONFLICTING (merge conflicts)"}]')
-    continue
-  fi
   if [ "$mergeable" = "UNKNOWN" ]; then
     skipped=$(echo "$skipped" | jq --argjson n "$n" \
       '. + [{number: $n, reason: "UNKNOWN (mergeability not computed, retry)"}]')
+    continue
+  fi
+  if [ "$has_agent_wip" = "true" ]; then
+    skipped=$(echo "$skipped" | jq --argjson n "$n" \
+      '. + [{number: $n, reason: "claimed by an in-progress rework-pr run"}]')
+    continue
+  fi
+  # gh pr list --label filters via GitHub's search index, which can lag
+  # behind live label state for a short window after a label change. The
+  # live .labels field (already in hand from the query above) is the
+  # source of truth.
+  if [ "$has_needs_work" != "true" ] || [ "$has_agent" != "true" ]; then
+    skipped=$(echo "$skipped" | jq --argjson n "$n" \
+      '. + [{number: $n, reason: "stale search match (no longer carries needs-work+agent live)"}]')
     continue
   fi
 

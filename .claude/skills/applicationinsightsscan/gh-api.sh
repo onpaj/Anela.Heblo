@@ -42,26 +42,26 @@ detect_repo() {
   echo "$path"
 }
 
-# GIT_PAT and GITHUB_TOKEN are two names for one effective token (see TOKEN
-# below), so capture whether a real one existed *before* the .env fallback
-# runs: if it did, that real token must win outright, rather than letting a
-# .env-only GIT_PAT outrank a real GITHUB_TOKEN (or vice versa) once merged.
-_real_git_pat="${GIT_PAT:-}"
-_real_github_token="${GITHUB_TOKEN:-}"
-
-# shellcheck disable=SC1090
-source "$(dirname "${BASH_SOURCE[0]}")/env-fallback.sh"
-load_env_fallback GH_REPO GIT_PAT GITHUB_TOKEN
+# Local/dev convenience: fall back to a gitignored .env at the repo root for
+# secrets not already present in the environment. Real env vars (e.g. an Orca
+# automation that injects them directly) always win over the .env file.
+ENV_FILE="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)/.env"
+if [[ -f "$ENV_FILE" ]]; then
+  _pre_gh_repo="${GH_REPO:-}"
+  _pre_git_pat="${GIT_PAT:-}"
+  _pre_github_token="${GITHUB_TOKEN:-}"
+  set -a
+  # shellcheck disable=SC1090
+  source "$ENV_FILE"
+  set +a
+  [[ -n "$_pre_gh_repo" ]] && GH_REPO="$_pre_gh_repo"
+  [[ -n "$_pre_git_pat" ]] && GIT_PAT="$_pre_git_pat"
+  [[ -n "$_pre_github_token" ]] && GITHUB_TOKEN="$_pre_github_token"
+fi
 
 REPO="${GH_REPO:-$(detect_repo || true)}"
 API="https://api.github.com"
-if [[ -n "$_real_git_pat" ]]; then
-  TOKEN="$_real_git_pat"
-elif [[ -n "$_real_github_token" ]]; then
-  TOKEN="$_real_github_token"
-else
-  TOKEN="${GIT_PAT:-${GITHUB_TOKEN:-}}"
-fi
+TOKEN="${GIT_PAT:-${GITHUB_TOKEN:-}}"
 
 err() { echo "Error: $*" >&2; exit 1; }
 [[ -n "$TOKEN" ]] || err "no token — set GIT_PAT (or GITHUB_TOKEN)."

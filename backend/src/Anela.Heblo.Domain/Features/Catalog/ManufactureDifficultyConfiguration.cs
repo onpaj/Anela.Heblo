@@ -21,4 +21,11 @@ public class ManufactureDifficultyConfiguration
         Settings = settings;
         ManufactureDifficulty = GetDifficultyForDate(referenceDate)?.DifficultyValue;
     }
+
+    public ManufactureDifficultyConfiguration Clone()
+        => new()
+        {
+            Settings = Settings.ToList(),
+            ManufactureDifficulty = ManufactureDifficulty,
+        };
 }

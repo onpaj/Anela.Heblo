@@ -302,7 +302,37 @@ public class CatalogAggregate : Entity<string>
         UpdateConsumedHistorySummary();
     }
 
+    /// <summary>
+    /// Produces an independent copy of this aggregate, so mutating the clone's nested
+    /// mutable members (Stock, Properties, ManufactureDifficultySettings, StockTakingHistory,
+    /// history summaries) never affects the instance it was cloned from.
+    /// </summary>
+    public CatalogAggregate Clone()
+    {
+        var clone = (CatalogAggregate)MemberwiseClone();
 
+        clone.Stock = Stock with { Lots = Stock.Lots.ToList() };
+        clone.Properties = Properties with { };
+        clone.ManufactureDifficultySettings = ManufactureDifficultySettings.Clone();
+        clone.StockTakingHistory = StockTakingHistory.ToList();
+        clone.SaleHistorySummary = new SaleHistorySummary
+        {
+            MonthlyData = new Dictionary<string, MonthlySalesSummary>(SaleHistorySummary.MonthlyData),
+            LastUpdated = SaleHistorySummary.LastUpdated,
+        };
+        clone.ConsumedHistorySummary = new ConsumedHistorySummary
+        {
+            MonthlyData = new Dictionary<string, MonthlyConsumedSummary>(ConsumedHistorySummary.MonthlyData),
+            LastUpdated = ConsumedHistorySummary.LastUpdated,
+        };
+        clone.PurchaseHistorySummary = new PurchaseHistorySummary
+        {
+            MonthlyData = new Dictionary<string, MonthlyPurchaseSummary>(PurchaseHistorySummary.MonthlyData),
+            LastUpdated = PurchaseHistorySummary.LastUpdated,
+        };
+
+        return clone;
+    }
 
     /// <summary>
     /// Synchronizes stock taking results with the catalog aggregate.

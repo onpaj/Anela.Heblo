@@ -160,7 +160,7 @@ dotnet test --filter "MethodName"
 ### Technology Stack
 
 - **Unit/Component Tests**: Jest + React Testing Library
-- **E2E Tests**: Playwright (automation environment only)
+- **E2E Tests**: Playwright (deployed staging environment only)
 - **Mocking**: MSW (Mock Service Worker) for API calls
 - **Test Data**: Factory functions for consistent test data
 
@@ -245,23 +245,14 @@ npm test -- --testNamePattern="form validation"
 
 ### Environment Requirements
 
-**CRITICAL**: Playwright tests MUST ALWAYS use deployed staging environment:
-- **Test URL**: `http://heblo.stg.anela.cz`
+**CRITICAL**: Playwright tests MUST ALWAYS use the deployed staging environment:
+- **Test URL**: `https://heblo.stg.anela.cz`
+
+`scripts/run-playwright-tests.sh` hardcodes this URL and has no code path that targets ports 3001/5001. See `docs/testing/e2e-module-guide.md` for module boundaries.
 
 ### Test Organization Structure
 
-```
-frontend/test/
-├── ui/                    # UI validation tests
-│   ├── layout/           # Layout components (sidebar, responsiveness)
-│   ├── auth/             # Authentication flows
-│   ├── catalog/          # Catalog functionality
-│   ├── purchase/         # Purchase order workflows
-│   ├── manufacturing/    # Manufacturing analysis
-│   └── analytics/        # Analytics and reporting
-├── integration/          # API integration tests
-└── e2e/                 # Full user journey tests
-```
+E2E tests live under `frontend/test/e2e/<module>/`, one Playwright project per module (`--project=<module>`). Module boundaries, the current module list, and guidance for placing new tests are defined authoritatively in `docs/testing/e2e-module-guide.md` — refer to it rather than this document.
 
 ### E2E Authentication Setup
 
@@ -447,7 +438,7 @@ test.describe('Purchase Order Management', () => {
 
 #### Manual Test Execution
 ```bash
-# Run all E2E tests (uses automation environment)
+# Run all E2E tests (targets staging: https://heblo.stg.anela.cz)
 ./scripts/run-playwright-tests.sh
 
 # Run specific test file
@@ -459,14 +450,6 @@ test.describe('Purchase Order Management', () => {
 # Run tests matching pattern
 ./scripts/run-playwright-tests.sh --grep "purchase order"
 ```
-
-#### VS Code Launch Configurations
-
-Available configurations:
-1. **"Launch Automation Environment"** - Start both backend (5001) and frontend (3001)
-2. **"Run All UI Tests (Playwright)"** - Execute full E2E test suite
-3. **"Run UI Tests (Headed)"** - Run tests with visible browser
-4. **"Run UI Tests (Debug)"** - Debug mode with Playwright inspector
 
 ### Record and Generate Tests
 ```bash
@@ -484,6 +467,8 @@ npx playwright install
 | Automation/Testing | 3001 | 5001 | Playwright E2E tests |
 | Test Environment | 8080 | 5000 | Staging container |
 | Production | 8080 | 5000 | Production container |
+
+> **Note:** The current E2E runner (`scripts/run-playwright-tests.sh`) never uses these ports for Playwright tests — it always targets the deployed staging environment described in [Environment Requirements](#environment-requirements), regardless of what's running locally.
 
 ### Authentication Configuration
 
@@ -708,7 +693,7 @@ During code review:
 
 ### E2E Testing
 - Focus on critical user journeys only
-- Always use automation environment (ports 3001/5001)
+- Always target the deployed staging environment (`https://heblo.stg.anela.cz`), never local ports
 - Test responsive behavior across breakpoints
 - Include accessibility validation
 - Generate tests by recording user interactions
