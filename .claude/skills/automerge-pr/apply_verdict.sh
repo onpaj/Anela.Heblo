@@ -11,6 +11,7 @@ set -uo pipefail
 
 MERGED_ISSUE_LABEL="agent-merged"
 NEEDS_WORK_LABEL="needs-work"
+HUMAN_REQUIRED_LABEL="human-required"
 
 PR=""; ACTION=""; REVIEW_FILE=""; ISSUE=""
 
@@ -65,7 +66,16 @@ gh pr comment "$PR" --repo "$REPO" --body-file "$REVIEW_FILE" \
 
 case "$ACTION" in
   comment)
-    report "ok" "review posted, left for a human"
+    # A mid-band score is not "try again next run" — without a label, every
+    # future sweep re-reviews and re-comments on this same PR forever. Flag
+    # it so candidates.sh excludes it until a human clears the label.
+    gh label create "$HUMAN_REQUIRED_LABEL" --repo "$REPO" --color fbca04 \
+      --description "Agent review is unsure; needs a human decision" >/dev/null 2>&1 || true
+    if gh pr edit "$PR" --repo "$REPO" --add-label "$HUMAN_REQUIRED_LABEL"; then
+      report "ok" "review posted, flagged $HUMAN_REQUIRED_LABEL"
+    else
+      report "ok" "review posted, but could not add $HUMAN_REQUIRED_LABEL label"
+    fi
     ;;
 
   needs-work)
