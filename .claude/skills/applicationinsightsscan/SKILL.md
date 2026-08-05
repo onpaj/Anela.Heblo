@@ -81,9 +81,5 @@ execution environment, not in this repo:
 | `GIT_PAT` (or `GITHUB_TOKEN`) | Token with `repo` scope / Issues read-write on the target repo |
 | `GH_REPO` (optional) | Overrides the auto-detected target repo (`owner/repo`) |
 
-As a local/dev convenience, the secret rows above also fall back to a
-gitignored `.env` at the repo root for any that aren't already set in the
-environment (see `env-fallback.sh`) — a real environment variable always
-takes precedence over the `.env` file. If any of these are missing from both
-the environment and `.env`, the scripts fail fast with a clear error —
+If any of these are missing, the scripts fail fast with a clear error —
 report that back to the user rather than guessing at values.
