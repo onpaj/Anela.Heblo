@@ -1,5 +1,6 @@
 using System.ComponentModel;
 using System.Text.Json;
+using Anela.Heblo.API.Infrastructure.Json;
 using Anela.Heblo.API.MCP;
 using Anela.Heblo.Application.Features.Catalog.Contracts;
 using Anela.Heblo.Application.Features.Catalog.UseCases.GetCatalogDetail;
@@ -56,7 +57,7 @@ public class CatalogMcpTools
         };
 
         var response = await _mediator.Send(request, cancellationToken);
-        return JsonSerializer.Serialize(response);
+        return JsonSerializer.Serialize(response, McpJsonOptions.Default);
     }
 
     [McpServerTool]
@@ -82,7 +83,7 @@ public class CatalogMcpTools
             throw new McpException($"[{response.ErrorCode?.ToString() ?? "UNKNOWN_ERROR"}] {response.FullError()}");
         }
 
-        return JsonSerializer.Serialize(response);
+        return JsonSerializer.Serialize(response, McpJsonOptions.Default);
     }
 
     [McpServerTool]
@@ -101,7 +102,7 @@ public class CatalogMcpTools
             throw new McpException($"[{response.ErrorCode?.ToString() ?? "UNKNOWN_ERROR"}] {response.FullError()}");
         }
 
-        return JsonSerializer.Serialize(response);
+        return JsonSerializer.Serialize(response, McpJsonOptions.Default);
     }
 
     [McpServerTool]
@@ -111,7 +112,7 @@ public class CatalogMcpTools
 
         var request = new GetMaterialsForPurchaseRequest();
         var response = await _mediator.Send(request, cancellationToken);
-        return JsonSerializer.Serialize(response);
+        return JsonSerializer.Serialize(response, McpJsonOptions.Default);
     }
 
     [McpServerTool]
@@ -135,7 +136,7 @@ public class CatalogMcpTools
         };
 
         var response = await _mediator.Send(request, cancellationToken);
-        return JsonSerializer.Serialize(response);
+        return JsonSerializer.Serialize(response, McpJsonOptions.Default);
     }
 
     [McpServerTool]
@@ -154,7 +155,7 @@ public class CatalogMcpTools
             throw new McpException($"[{response.ErrorCode?.ToString() ?? "UNKNOWN_ERROR"}] {response.FullError()}");
         }
 
-        return JsonSerializer.Serialize(response);
+        return JsonSerializer.Serialize(response, McpJsonOptions.Default);
     }
 
     [McpServerTool]
@@ -164,7 +165,7 @@ public class CatalogMcpTools
 
         var request = new GetWarehouseStatisticsRequest();
         var response = await _mediator.Send(request, cancellationToken);
-        return JsonSerializer.Serialize(response);
+        return JsonSerializer.Serialize(response, McpJsonOptions.Default);
     }
 
     [McpServerTool]
@@ -206,6 +207,6 @@ public class CatalogMcpTools
             throw new McpException($"[{response.ErrorCode?.ToString() ?? "UNKNOWN_ERROR"}] {response.FullError()}");
         }
 
-        return JsonSerializer.Serialize(response);
+        return JsonSerializer.Serialize(response, McpJsonOptions.Default);
     }
 }

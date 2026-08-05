@@ -268,6 +268,36 @@ public class AddItemToBoxHandlerTests
         result.Params.Should().ContainKey("sourceInventoryId").WhoseValue.Should().Be("999");
     }
 
+    [Fact]
+    public async Task Handle_BoxNotInOpenedState_ReturnsTransportBoxInvalidStateTransition()
+    {
+        // Arrange — box is Closed, but AddItem requires Opened
+        var box = CreateOpenBox();
+        var stateProperty = typeof(TransportBox).GetProperty("State");
+        stateProperty?.SetValue(box, TransportBoxState.Closed);
+
+        var request = new AddItemToBoxRequest
+        {
+            BoxId = 1,
+            ProductCode = "PROD-001",
+            ProductName = "Test Product",
+            Amount = 5.0
+        };
+
+        _repositoryMock
+            .Setup(x => x.GetByIdWithDetailsAsync(1))
+            .ReturnsAsync(box);
+
+        // Act
+        var result = await _handler.Handle(request, CancellationToken.None);
+
+        // Assert
+        result.Success.Should().BeFalse();
+        result.ErrorCode.Should().Be(ErrorCodes.TransportBoxInvalidStateTransition);
+        result.Params.Should().ContainKey("currentState").WhoseValue.Should().Be("Closed");
+        result.Params.Should().ContainKey("allowedStates").WhoseValue.Should().Be("Opened");
+    }
+
     private static TransportBox CreateOpenBox()
     {
         var box = new TransportBox();
