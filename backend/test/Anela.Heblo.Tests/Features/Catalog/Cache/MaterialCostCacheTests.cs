@@ -43,7 +43,12 @@ public class MaterialCostCacheTests
         catalogRepoMock.Setup(r => r.GetAllAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(new List<CatalogAggregate>());
 
-        var source = new ManufactureBasedMaterialCostProvider(cache, catalogRepoMock.Object, loggerMock.Object, options);
+        var serviceProviderMock = new Mock<IServiceProvider>();
+        serviceProviderMock
+            .Setup(sp => sp.GetService(typeof(ICatalogRepository)))
+            .Returns(catalogRepoMock.Object);
+
+        var source = new ManufactureBasedMaterialCostProvider(cache, serviceProviderMock.Object, loggerMock.Object, options);
 
         // Act
         await source.RefreshAsync();

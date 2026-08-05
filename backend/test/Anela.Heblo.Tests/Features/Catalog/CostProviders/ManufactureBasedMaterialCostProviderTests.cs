@@ -113,9 +113,14 @@ public class ManufactureBasedMaterialCostProviderTests
         Mock<ILogger<ManufactureBasedMaterialCostProvider>>? loggerMock = null,
         int manufactureCostHistoryDays = DefaultHistoryDays)
     {
+        var serviceProviderMock = new Mock<IServiceProvider>();
+        serviceProviderMock
+            .Setup(sp => sp.GetService(typeof(ICatalogRepository)))
+            .Returns((repoMock ?? new Mock<ICatalogRepository>()).Object);
+
         return new ManufactureBasedMaterialCostProvider(
             (cacheMock ?? new Mock<IMaterialCostCache>()).Object,
-            (repoMock ?? new Mock<ICatalogRepository>()).Object,
+            serviceProviderMock.Object,
             (loggerMock ?? new Mock<ILogger<ManufactureBasedMaterialCostProvider>>()).Object,
             Options.Create(new DataSourceOptions { ManufactureCostHistoryDays = manufactureCostHistoryDays }));
     }
