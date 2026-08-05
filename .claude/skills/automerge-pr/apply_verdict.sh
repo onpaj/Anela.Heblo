@@ -95,7 +95,7 @@ case "$ACTION" in
       # mirrors the needs-work path so a missing label can't turn a
       # successful merge into a reported failure.
       gh label create "$MERGED_ISSUE_LABEL" --repo "$REPO" --color 0e8a16 \
-        --description "Auto-merged by /automerge" >/dev/null 2>&1 || true
+        --description "Auto-merged by /automerge-pr" >/dev/null 2>&1 || true
       if gh issue edit "$ISSUE" --repo "$REPO" --add-label "$MERGED_ISSUE_LABEL"; then
         report "ok" "squash-merged, branch deleted, issue #$ISSUE labelled"
       else

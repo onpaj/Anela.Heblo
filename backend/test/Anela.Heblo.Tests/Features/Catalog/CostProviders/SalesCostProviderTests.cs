@@ -50,9 +50,14 @@ public class SalesCostProviderTests
         Mock<ILogger<SalesCostProvider>>? loggerMock = null,
         int manufactureCostHistoryDays = DefaultHistoryDays)
     {
+        var serviceProviderMock = new Mock<IServiceProvider>();
+        serviceProviderMock
+            .Setup(sp => sp.GetService(typeof(ICatalogRepository)))
+            .Returns((repoMock ?? new Mock<ICatalogRepository>()).Object);
+
         return new SalesCostProvider(
             (cacheMock ?? new Mock<ISalesCostCache>()).Object,
-            (repoMock ?? new Mock<ICatalogRepository>()).Object,
+            serviceProviderMock.Object,
             (ledgerMock ?? new Mock<ILedgerService>()).Object,
             (loggerMock ?? new Mock<ILogger<SalesCostProvider>>()).Object,
             Options.Create(new DataSourceOptions { ManufactureCostHistoryDays = manufactureCostHistoryDays }));

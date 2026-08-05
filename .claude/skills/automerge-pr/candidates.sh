@@ -33,7 +33,7 @@ gh pr list \
   --state open \
   --label "$AGENT_LABEL" \
   --limit 100 \
-  --json number,title,isDraft,mergeable,reviewDecision,headRefName,additions,deletions,changedFiles,body,labels \
+  --json number,title,isDraft,mergeable,reviewDecision,headRefName,additions,deletions,changedFiles,body,labels,createdAt \
 | jq --argjson max "$MAX_CANDIDATES" '
     # Must match NEEDS_WORK_LABEL in apply_verdict.sh — the value is
     # duplicated here (bash has no shared-constant mechanism across these
@@ -60,7 +60,7 @@ gh pr list \
   | (map(select(reason != null))
       | map({number, reason: reason})     | sort_by(.number)) as $skipped
   | {
-      candidates: ($ok[:$max] | map({number, title, additions, changedFiles, linkedIssue: linked_issue})),
+      candidates: ($ok[:$max] | map({number, title, additions, changedFiles, linkedIssue: linked_issue, createdAt})),
       skipped: $skipped,
       truncated: (($ok | length) - $max | if . < 0 then 0 else . end)
     }
