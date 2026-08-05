@@ -286,7 +286,7 @@ public class ChangeTransportBoxStateHandler : IRequestHandler<ChangeTransportBox
         {
             var documentNumber = $"BOX-{box.Id:000000}-{group.ProductCode}";
 
-            await _stockOperationService.CreateOperationAsync(
+            await _stockOperationService.StageOperationAsync(
                 documentNumber,
                 group.ProductCode,
                 group.Amount,
@@ -294,11 +294,11 @@ public class ChangeTransportBoxStateHandler : IRequestHandler<ChangeTransportBox
                 box.Id,
                 cancellationToken);
 
-            _logger.LogDebug("Created StockUpOperation {DocumentNumber} for product {ProductCode}, amount {Amount} (aggregated from {LineCount} item line(s))",
+            _logger.LogDebug("Staged StockUpOperation {DocumentNumber} for product {ProductCode}, amount {Amount} (aggregated from {LineCount} item line(s))",
                 documentNumber, group.ProductCode, group.Amount, group.LineCount);
         }
 
-        _logger.LogInformation("Successfully created {OperationCount} StockUpOperation(s) from {ItemCount} item line(s) for box {BoxId} ({BoxCode})",
+        _logger.LogInformation("Staged {OperationCount} StockUpOperation(s) from {ItemCount} item line(s) for box {BoxId} ({BoxCode})",
             aggregated.Count, box.Items.Count, box.Id, box.Code);
 
         return null;
