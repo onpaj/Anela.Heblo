@@ -1,5 +1,6 @@
 using System.ComponentModel;
 using System.Text.Json;
+using Anela.Heblo.API.Infrastructure.Json;
 using Anela.Heblo.API.MCP;
 using Anela.Heblo.Application.Features.MeetingTasks.UseCases.GetTranscriptDetail;
 using Anela.Heblo.Application.Features.MeetingTasks.UseCases.GetTranscriptList;
@@ -70,7 +71,7 @@ public class MeetingTasksMcpTools
                 response.TotalCount,
                 response.PageNumber,
                 response.PageSize
-            });
+            }, McpJsonOptions.Default);
         }
         catch (McpException)
         {
@@ -109,7 +110,7 @@ public class MeetingTasksMcpTools
                 transcript.ApprovedTaskCount,
                 transcript.RejectedTaskCount,
                 transcript.AccessLevel
-            });
+            }, McpJsonOptions.Default);
         }
         catch (McpException)
         {
@@ -139,7 +140,7 @@ public class MeetingTasksMcpTools
                 transcript.Id,
                 transcript.Subject,
                 transcript.RawTranscript
-            });
+            }, McpJsonOptions.Default);
         }
         catch (McpException)
         {
@@ -169,7 +170,7 @@ public class MeetingTasksMcpTools
                 transcript.Id,
                 transcript.Subject,
                 transcript.Tasks
-            });
+            }, McpJsonOptions.Default);
         }
         catch (McpException)
         {

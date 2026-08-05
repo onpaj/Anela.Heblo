@@ -43,7 +43,7 @@ public class TransportBoxCodeCaseHandlingTests
         var act = () => box.Open(invalidCode, _testDate, TestUser);
 
         // Assert
-        act.Should().Throw<ValidationException>()
+        act.Should().Throw<TransportBoxCodeFormatException>()
             .WithMessage("Box code must follow format: B + 3 digits (e.g., B001, B123)");
     }
 
