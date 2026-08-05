@@ -784,7 +784,7 @@ Add the matching `using Anela.Heblo.Adapters.Logeto;` to Program.cs's using bloc
 
 - [ ] **Step 3: Add the config section to appsettings.json**
 
-Next to the existing top-level sections (e.g. `"WeatherForecast"` at line ~572). `BreakActivityName` and `StartDate` values come from the Task 1 spike results doc — fill in the real activity name; `ApiTimesAreUtc` per the spike verdict:
+Next to the existing top-level sections (e.g. `"WeatherForecast"` at line ~572). Values below are settled by the verification spike (`docs/superpowers/specs/2026-08-05-logeto-spike-results.md`): `ApiTimesAreUtc` is `false` (API is a pure pass-through of Prague wall-clock time, confirmed against the live UI) and `BreakActivityName` is `"Přestávka"` (the generic break activity, per user decision — not `"Oběd"`):
 
 ```json
 "Logeto": {
@@ -793,25 +793,24 @@ Next to the existing top-level sections (e.g. `"WeatherForecast"` at line ~572).
   "BreakInsertion": {
     "StartDate": "2026-08-01",
     "NoteMarker": "integration",
-    "BreakActivityName": "Oběd",
+    "BreakActivityName": "Přestávka",
     "PreferredWindowStart": "11:00",
     "BreakDurationMinutes": 30,
     "MinWorkHours": 6,
-    "ApiTimesAreUtc": true
+    "ApiTimesAreUtc": false
   }
 }
 ```
 
-- [ ] **Step 4: Store real credentials**
+- [ ] **Step 4: Real credentials — already in place from the verification spike**
 
-Local dev — edit the user-secrets `secrets.json` for the API project directly (project convention: never `dotnet user-secrets set`), adding:
+The Task 1 spike already added `Logeto.AccountName` (`anelacosmetics`) and `Logeto.AccessKey` to local user-secrets `secrets.json` directly (project convention: never `dotnet user-secrets set`). Nothing to do here for local dev — just confirm the section is still present:
 
-```json
-"Logeto": {
-  "AccountName": "<real account>",
-  "AccessKey": "<real key>"
-}
+```bash
+grep -A2 '"Logeto"' ~/.microsoft/usersecrets/f4e6382a-aefd-47ef-9cd7-7e12daac7e45/secrets.json
 ```
+
+Expected: `AccountName` and `AccessKey` both non-empty.
 
 Staging (when ready to enable):
 
@@ -1143,8 +1142,9 @@ public class BreakInsertionOptions
     /// <summary>People whose Note equals this marker (trimmed, case-insensitive) are processed.</summary>
     public string NoteMarker { get; set; } = "integration";
 
-    /// <summary>Name of the Break-type Logeto activity to insert (account-specific, e.g. "Oběd").</summary>
-    public string BreakActivityName { get; set; } = string.Empty;
+    /// <summary>Name of the Break-type Logeto activity to insert. Account has "Přestávka" (generic,
+    /// used here) and "Oběd" (lunch) — see spike results doc for why the generic one was chosen.</summary>
+    public string BreakActivityName { get; set; } = "Přestávka";
 
     /// <summary>Preferred break start, Prague wall clock.</summary>
     public TimeOnly PreferredWindowStart { get; set; } = new(11, 0);
@@ -1154,8 +1154,10 @@ public class BreakInsertionOptions
     /// <summary>Daily worked-hours threshold (inclusive) that requires a break.</summary>
     public int MinWorkHours { get; set; } = 6;
 
-    /// <summary>Whether API From/To timestamps are UTC (spike verdict). False = local wall time.</summary>
-    public bool ApiTimesAreUtc { get; set; } = true;
+    /// <summary>Whether API From/To timestamps are UTC. False = local wall time — confirmed by the
+    /// verification spike (docs/superpowers/specs/2026-08-05-logeto-spike-results.md): the API is a
+    /// pure pass-through of Prague wall-clock time, verified against the live Logeto UI.</summary>
+    public bool ApiTimesAreUtc { get; set; } = false;
 }
 ```
 
