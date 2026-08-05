@@ -15,6 +15,11 @@ public static class CatalogConstants
     public static readonly DateTime HISTORY_FLOOR_DATE = new(2020, 1, 1);
 
     /// <summary>
+    /// Earliest date for which M2 margin data is available; margin refresh never requests data before this.
+    /// </summary>
+    public static readonly DateOnly MARGIN_HISTORY_FLOOR_DATE = new(2025, 1, 1);
+
+    /// <summary>
     /// Warehouse physical capacity in kilograms, used to compute WarehouseUtilizationPercentage
     /// in GetWarehouseStatisticsHandler. Adjust here if the physical warehouse capacity changes.
     /// </summary>
