@@ -22,6 +22,7 @@ public interface ICatalogRepository : IReadOnlyRepository<CatalogAggregate, stri
     Task RefreshErpPricesData(CancellationToken ct);
     Task RefreshEshopUrlData(CancellationToken ct);
     Task RefreshManufactureDifficultySettingsData(string? product, CancellationToken ct);
+    Task RefreshMarginData(CancellationToken ct);
 
     // Data load timestamps - stored in cache with same expiration as data
     DateTime? TransportLoadDate { get; }
