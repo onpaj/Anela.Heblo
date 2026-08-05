@@ -112,6 +112,13 @@ public class BreakInsertionService
             .Where(e => e.From.HasValue && e.To.HasValue && e.To > e.From)
             .ToList();
 
+        foreach (var invalid in workEntries.Where(e => e.From.HasValue && e.To.HasValue && e.To <= e.From))
+        {
+            _logger.LogWarning(
+                "Ignoring work entry {EntryGuid} for person {PersonGuid} on {Date}: To ({To}) is not after From ({From})",
+                invalid.Guid, person.Guid, date, invalid.To, invalid.From);
+        }
+
         var windowedTotal = windowed.Aggregate(TimeSpan.Zero, (sum, e) => sum + (e.To!.Value - e.From!.Value));
         var hoursOnlyTotal = workEntries
             .Where(e => !e.From.HasValue || !e.To.HasValue)

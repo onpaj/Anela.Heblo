@@ -2,6 +2,7 @@ using Anela.Heblo.Application.Features.Attendance;
 using Anela.Heblo.Application.Features.Attendance.Services;
 using Anela.Heblo.Domain.Features.Attendance;
 using FluentAssertions;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using Moq;
@@ -17,7 +18,8 @@ public class BreakInsertionServiceTests
 
     private readonly Mock<ILogetoClient> _client = new();
 
-    private BreakInsertionService CreateService(BreakInsertionOptions? options = null)
+    private BreakInsertionService CreateService(
+        BreakInsertionOptions? options = null, ILogger<BreakInsertionService>? logger = null)
     {
         options ??= new BreakInsertionOptions
         {
@@ -35,7 +37,7 @@ public class BreakInsertionServiceTests
             _client.Object,
             Options.Create(options),
             timeProvider.Object,
-            NullLogger<BreakInsertionService>.Instance);
+            logger ?? NullLogger<BreakInsertionService>.Instance);
     }
 
     private void SetupDefaults(params LogetoTimeEntry[] entries)
@@ -150,6 +152,35 @@ public class BreakInsertionServiceTests
 
         summary.BreaksInserted.Should().Be(0);
         summary.SkippedHoursOnly.Should().Be(1);
+    }
+
+    [Fact]
+    public async Task LogsWarning_WhenWorkEntryHasToNotAfterFrom()
+    {
+        var invalidEntry = new LogetoTimeEntry
+        {
+            Guid = Guid.NewGuid(),
+            Person = Worker,
+            Date = Day,
+            Activity = WorkActivity,
+            From = new DateTimeOffset(2026, 8, 3, 12, 0, 0, TimeSpan.Zero),
+            To = new DateTimeOffset(2026, 8, 3, 12, 0, 0, TimeSpan.Zero) // To == From, not a valid window
+        };
+        SetupDefaults(WorkEntry(8, 0, 16, 30), invalidEntry); // still 8.5h from the valid entry alone
+
+        var loggerMock = new Mock<ILogger<BreakInsertionService>>();
+
+        var summary = await CreateService(logger: loggerMock.Object).RunAsync(CancellationToken.None);
+
+        summary.BreaksInserted.Should().Be(1); // the malformed entry is excluded, not counted or crashing
+        loggerMock.Verify(
+            x => x.Log(
+                LogLevel.Warning,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains(invalidEntry.Guid.ToString())),
+                null,
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Once);
     }
 
     [Fact]
