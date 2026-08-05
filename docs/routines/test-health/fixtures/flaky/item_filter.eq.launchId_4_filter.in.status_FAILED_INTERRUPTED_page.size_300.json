@@ -1,0 +1,8 @@
+{ "content": [
+    { "name": "sorts by price",
+      "pathNames": { "itemPaths": [ {"name": "catalog.spec.ts"} ] },
+      "status": "FAILED",
+      "issue": { "comment": "" },
+      "description": "AssertionError: expected list length 12 to equal 8\n    at catalog.spec.ts:30:5" }
+  ],
+  "page": { "number": 1, "size": 300, "totalElements": 1, "totalPages": 1 } }

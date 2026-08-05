@@ -1,0 +1,20 @@
+{
+  "content": [
+    { "id": 1, "name": "heblo-e2e", "number": 3, "status": "FAILED",
+      "startTime": 1785000000000,
+      "attributes": [ {"key":"layer","value":"e2e"}, {"key":"module","value":"catalog"},
+                      {"key":"branch","value":"main"}, {"key":"ci","value":"1601"} ],
+      "statistics": { "executions": { "total": 20, "passed": 17, "failed": 3, "skipped": 0 } } },
+    { "id": 2, "name": "heblo-e2e", "number": 2, "status": "FAILED",
+      "startTime": 1784913600000,
+      "attributes": [ {"key":"layer","value":"e2e"}, {"key":"module","value":"catalog"},
+                      {"key":"branch","value":"main"}, {"key":"ci","value":"1600"} ],
+      "statistics": { "executions": { "total": 20, "passed": 17, "failed": 3, "skipped": 0 } } },
+    { "id": 3, "name": "heblo-e2e", "number": 1, "status": "FAILED",
+      "startTime": 1784827200000,
+      "attributes": [ {"key":"layer","value":"e2e"}, {"key":"module","value":"catalog"},
+                      {"key":"branch","value":"main"}, {"key":"ci","value":"1599"} ],
+      "statistics": { "executions": { "total": 20, "passed": 17, "failed": 3, "skipped": 0 } } }
+  ],
+  "page": { "number": 1, "size": 300, "totalElements": 3, "totalPages": 1 }
+}

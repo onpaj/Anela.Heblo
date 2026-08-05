@@ -1,0 +1,30 @@
+{
+  "content": [
+    { "id": 1, "name": "heblo-e2e", "number": 45, "status": "PASSED",
+      "startTime": 1785000000000,
+      "attributes": [ {"key":"layer","value":"e2e"}, {"key":"module","value":"catalog"},
+                      {"key":"branch","value":"main"}, {"key":"ci","value":"1604"} ],
+      "statistics": { "executions": { "total": 20, "passed": 20, "failed": 0, "skipped": 0 } } },
+    { "id": 2, "name": "heblo-e2e", "number": 44, "status": "PASSED",
+      "startTime": 1784913600000,
+      "attributes": [ {"key":"layer","value":"e2e"}, {"key":"module","value":"catalog"},
+                      {"key":"branch","value":"main"}, {"key":"ci","value":"1603"} ],
+      "statistics": { "executions": { "total": 20, "passed": 20, "failed": 0, "skipped": 0 } } },
+    { "id": 3, "name": "heblo-e2e", "number": 43, "status": "PASSED",
+      "startTime": 1784827200000,
+      "attributes": [ {"key":"layer","value":"e2e"}, {"key":"module","value":"catalog"},
+                      {"key":"branch","value":"main"}, {"key":"ci","value":"1602"} ],
+      "statistics": { "executions": { "total": 20, "passed": 20, "failed": 0, "skipped": 0 } } },
+    { "id": 4, "name": "heblo-e2e", "number": 42, "status": "FAILED",
+      "startTime": 1784740800000,
+      "attributes": [ {"key":"layer","value":"e2e"}, {"key":"module","value":"catalog"},
+                      {"key":"branch","value":"main"}, {"key":"ci","value":"1601"} ],
+      "statistics": { "executions": { "total": 20, "passed": 19, "failed": 1, "skipped": 0 } } },
+    { "id": 5, "name": "heblo-e2e", "number": 41, "status": "FAILED",
+      "startTime": 1784654400000,
+      "attributes": [ {"key":"layer","value":"e2e"}, {"key":"module","value":"catalog"},
+                      {"key":"branch","value":"main"}, {"key":"ci","value":"1600"} ],
+      "statistics": { "executions": { "total": 20, "passed": 19, "failed": 1, "skipped": 0 } } }
+  ],
+  "page": { "number": 1, "size": 300, "totalElements": 5, "totalPages": 1 }
+}

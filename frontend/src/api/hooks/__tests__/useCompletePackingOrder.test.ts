@@ -5,31 +5,29 @@ jest.mock('../../client', () => ({
   getAuthenticatedApiClient: jest.fn(),
 }));
 
-const mockFetch = jest.fn();
+const mockPackaging_CompletePacking = jest.fn();
 
 beforeEach(() => {
   jest.clearAllMocks();
   (getAuthenticatedApiClient as jest.Mock).mockReturnValue({
-    baseUrl: 'http://api',
-    http: { fetch: mockFetch },
+    packaging_CompletePacking: mockPackaging_CompletePacking,
   });
 });
 
 describe('completePackingOrder', () => {
-  it('POSTs to the packing/complete endpoint with the encoded order code', async () => {
-    mockFetch.mockResolvedValue({ json: async () => ({ success: true }) });
+  it('calls packaging_CompletePacking with the order code, suppressing global toasts', async () => {
+    mockPackaging_CompletePacking.mockResolvedValue({ success: true });
 
     await completePackingOrder('25/0001');
 
-    expect(mockFetch).toHaveBeenCalledWith(
-      'http://api/api/packaging/orders/25%2F0001/packing/complete',
-      { method: 'POST' }
-    );
+    expect(getAuthenticatedApiClient).toHaveBeenCalledWith(false);
+    expect(mockPackaging_CompletePacking).toHaveBeenCalledWith('25/0001');
   });
 
   it('throws a friendly message when the server reports failure', async () => {
-    mockFetch.mockResolvedValue({
-      json: async () => ({ success: false, errorCode: 'PackingCompletionFailed' }),
+    mockPackaging_CompletePacking.mockResolvedValue({
+      success: false,
+      errorCode: 'PackingCompletionFailed',
     });
 
     await expect(completePackingOrder('250001')).rejects.toThrow(

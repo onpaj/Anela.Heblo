@@ -53,6 +53,7 @@ public sealed class PollyExecutionStrategy : IExecutionStrategy
         }
         catch (Exception ex)
         {
+            ex.Data["Anela.DbRetryAttempts"] = attempt;
             _metrics.RecordRetryFailure(ex.GetType().FullName ?? "unknown", attempt);
             _logger.LogError(
                 ex,
@@ -87,6 +88,7 @@ public sealed class PollyExecutionStrategy : IExecutionStrategy
         }
         catch (Exception ex)
         {
+            ex.Data["Anela.DbRetryAttempts"] = attempt;
             _metrics.RecordRetryFailure(ex.GetType().FullName ?? "unknown", attempt);
             _logger.LogError(
                 ex,
