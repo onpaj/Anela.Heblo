@@ -19,7 +19,13 @@ public class FlexibleDateOnlyJsonConverter : JsonConverter<DateOnly>
             ?? throw new JsonException("Expected a date string but got null.");
 
         var datePart = value.Length > 10 ? value[..10] : value;
-        return DateOnly.ParseExact(datePart, "yyyy-MM-dd");
+
+        if (!DateOnly.TryParseExact(datePart, "yyyy-MM-dd", out var date))
+        {
+            throw new JsonException($"'{value}' is not a valid Logeto date.");
+        }
+
+        return date;
     }
 
     public override void Write(Utf8JsonWriter writer, DateOnly value, JsonSerializerOptions options)

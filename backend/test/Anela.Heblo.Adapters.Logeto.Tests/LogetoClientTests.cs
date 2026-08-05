@@ -223,6 +223,34 @@ public class LogetoClientTests
     }
 
     [Fact]
+    public async Task GetTimeTrackingAsync_MalformedDateValue_ThrowsLogetoApiException()
+    {
+        // A syntactically valid JSON body whose "Date" value isn't a date at all must not
+        // escape as a raw FormatException — it should surface the same way any other
+        // unparseable response body does, via LogetoApiException.
+        var handler = new StubHandler(Json("""
+            {"ContinuationToken":null,"Items":[{
+              "Guid":"11111111-1111-1111-1111-111111111111",
+              "Person":"22222222-2222-2222-2222-222222222222",
+              "Date":"not-a-date",
+              "From":"2026-07-27T07:08:00",
+              "To":"2026-07-27T14:24:00",
+              "Hours":null,
+              "Activity":"0233db1a-e04d-4cf2-a01b-9cec5d65c1e7",
+              "Description":null,
+              "ExternalKey":null
+            }]}
+            """));
+        var client = CreateClient(handler);
+
+        var act = () => client.GetTimeTrackingAsync(
+            new DateOnly(2026, 7, 27), new DateOnly(2026, 7, 27), CancellationToken.None);
+
+        var ex = await act.Should().ThrowAsync<LogetoApiException>();
+        ex.Which.StatusCode.Should().Be(200);
+    }
+
+    [Fact]
     public async Task RepeatedContinuationToken_StopsInsteadOfLoopingForever()
     {
         var handler = new StubHandler(
