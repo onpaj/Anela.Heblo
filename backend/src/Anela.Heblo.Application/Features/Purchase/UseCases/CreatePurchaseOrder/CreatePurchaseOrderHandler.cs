@@ -10,12 +10,15 @@ namespace Anela.Heblo.Application.Features.Purchase.UseCases.CreatePurchaseOrder
 
 public class CreatePurchaseOrderHandler : IRequestHandler<CreatePurchaseOrderRequest, CreatePurchaseOrderResponse>
 {
+    private const int MaxOrderNumberAttempts = 5;
+
     private readonly ILogger<CreatePurchaseOrderHandler> _logger;
     private readonly IPurchaseOrderRepository _repository;
     private readonly IPurchaseOrderNumberGenerator _orderNumberGenerator;
     private readonly IMaterialCatalogService _materialCatalog;
     private readonly ICurrentUserService _currentUserService;
     private readonly ISupplierRepository _supplierRepository;
+    private readonly TimeProvider _timeProvider;
 
     public CreatePurchaseOrderHandler(
         ILogger<CreatePurchaseOrderHandler> logger,
@@ -23,7 +26,8 @@ public class CreatePurchaseOrderHandler : IRequestHandler<CreatePurchaseOrderReq
         IPurchaseOrderNumberGenerator orderNumberGenerator,
         IMaterialCatalogService materialCatalog,
         ICurrentUserService currentUserService,
-        ISupplierRepository supplierRepository)
+        ISupplierRepository supplierRepository,
+        TimeProvider timeProvider)
     {
         _logger = logger;
         _repository = repository;
@@ -31,6 +35,7 @@ public class CreatePurchaseOrderHandler : IRequestHandler<CreatePurchaseOrderReq
         _materialCatalog = materialCatalog;
         _currentUserService = currentUserService;
         _supplierRepository = supplierRepository;
+        _timeProvider = timeProvider;
     }
 
     public async Task<CreatePurchaseOrderResponse> Handle(CreatePurchaseOrderRequest request, CancellationToken cancellationToken)
@@ -49,9 +54,36 @@ public class CreatePurchaseOrderHandler : IRequestHandler<CreatePurchaseOrderReq
         var orderDate = request.OrderDate.ToUtcDateTime();
         var expectedDeliveryDate = request.ExpectedDeliveryDate.ToUtcDateTimeOrNull();
 
-        var orderNumber = !string.IsNullOrEmpty(request.OrderNumber)
-            ? request.OrderNumber
-            : await _orderNumberGenerator.GenerateOrderNumberAsync(orderDate, cancellationToken);
+        string orderNumber;
+        if (!string.IsNullOrEmpty(request.OrderNumber))
+        {
+            orderNumber = request.OrderNumber;
+        }
+        else
+        {
+            var now = _timeProvider.GetUtcNow();
+            string? candidate = null;
+
+            for (var attempt = 1; attempt <= MaxOrderNumberAttempts; attempt++)
+            {
+                var generated = _orderNumberGenerator.GenerateCandidate(orderDate, now, attempt);
+                if (!await _repository.OrderNumberExistsAsync(generated, cancellationToken))
+                {
+                    candidate = generated;
+                    break;
+                }
+            }
+
+            if (candidate == null)
+            {
+                _logger.LogError(
+                    "Failed to generate a unique purchase order number for order date {OrderDate} after {Attempts} attempts",
+                    orderDate, MaxOrderNumberAttempts);
+                return new CreatePurchaseOrderResponse(ErrorCodes.PurchaseOrderNumberGenerationFailed);
+            }
+
+            orderNumber = candidate;
+        }
 
         var currentUser = _currentUserService.GetCurrentUser();
         var createdBy = currentUser.Name ?? "System";
