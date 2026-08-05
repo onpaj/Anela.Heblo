@@ -1,5 +1,17 @@
 # Feature Brief: Label OCR Product Identifier (one-shot app)
 
+**Status: Superseded.** This brief's standalone Python/FastAPI proposal was superseded
+before implementation by
+[`docs/superpowers/specs/2026-08-03-label-identification-terminal-design.md`](docs/superpowers/specs/2026-08-03-label-identification-terminal-design.md)
+(catalogue analysis showed 11 reference PDF pairs are byte-identical after
+normalization, making the auto-confirm margin logic in this brief unachievable for
+those products; the approved design instead builds on Heblo's existing terminal/.NET
+infrastructure). The feature was implemented per that design and shipped in
+[#3847](https://github.com/onpaj/Anela.Heblo/pull/3847),
+"feat(terminal): identify products by photographing their INCI label". This document is
+kept only as a historical record of the original proposal — do not use it as a current
+spec.
+
 ## Problem Statement
 
 Anela Heblo has rolls of product etiquettes (round stickers) that carry only the INCI
