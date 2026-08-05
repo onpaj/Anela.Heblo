@@ -47,7 +47,7 @@ This is the one piece of hand-rolled state the migration keeps — it's UX debou
 
 ```ts
 const query = useQuery({
-  queryKey: ["suppliers", "search", debouncedSearchTerm, limit],
+  queryKey: [...QUERY_KEYS.suppliers, "search", debouncedSearchTerm, limit],
   queryFn: async () => {
     const apiClient = getAuthenticatedApiClient(); // sync, not awaited — confirmed client.ts:276
     return apiClient.suppliers_SearchSuppliers(debouncedSearchTerm, limit);
@@ -57,7 +57,7 @@ const query = useQuery({
 });
 ```
 
-- Not added to the shared `QUERY_KEYS` registry in `client.ts` — that file defines one entry per *domain* (`catalog`, `journal`, etc.), and this hook is the only caller of `"suppliers"`. Adding a registry entry for a single-use key is scope creep the same way a shared debounce hook would be; the existing `"suppliers"` domains list doesn't have one and none is needed for one call site. Literal key array matches how `useCatalogAutocomplete` embeds its own sub-keys (`"autocomplete"`, `searchTerm`, ...) past the shared prefix.
+- Adds a `suppliers: ["suppliers"] as const` entry to the shared `QUERY_KEYS` registry in `client.ts` and spreads it into the key (`[...QUERY_KEYS.suppliers, "search", debouncedSearchTerm, limit]`), matching the pattern `useCatalogAutocomplete.ts` uses for its own domain prefix (`[...QUERY_KEYS.catalog, ...]`). An earlier revision of this design argued for a literal array instead (treating a single-caller key as not worth a registry entry); that was superseded during rework to keep the convention consistent with the codebase's other `useQuery` call sites, and `authenticated-api-usage.test.ts`'s "consistent query keys" check enforces exactly this. The resulting key array is identical either way — `["suppliers", "search", debouncedSearchTerm, limit]` — so this is a one-line addition to `client.ts`, not a behavior change.
 - `queryFn` fires only when `enabled` is true, so it never runs for sub-2-char debounced terms — no manual short-circuit-and-return-empty-object needed inside `queryFn` (unlike `useCatalogAutocomplete`, which returns `{ items: [] }` itself for historical reasons); `enabled: false` plus the derivation layer below already produces the same externally-visible result.
 - No `staleTime` override: inherits the global `QueryClient` default (5 min) set in `App.tsx`. Supplier lists change rarely; identical repeated searches within 5 minutes are served from cache, satisfying FR-3.
 
@@ -94,9 +94,9 @@ No schema changes anywhere in this task — it's a client-side data-fetching mec
 - **Request**: `apiClient.suppliers_SearchSuppliers(searchTerm: string, limit: number)` → `GET /api/suppliers/search?searchTerm=...&limit=...` (generated client method, untouched).
 - **Response**: `SearchSuppliersResponse { suppliers?: SupplierDto[] }` (generated DTO, untouched); `SupplierDto` re-exported as-is from `useSuppliers.ts:6`.
 - **React Query cache key** (new — this is the only "schema" this task introduces, and it's a cache key, not a wire format):
-  `["suppliers", "search", debouncedSearchTerm: string, limit: number]`
-  Chosen to mirror the literal-array style of `useCatalogAutocomplete`'s key rather than adding a single-use entry to the shared `QUERY_KEYS` object (see Component design above).
+  `[...QUERY_KEYS.suppliers, "search", debouncedSearchTerm: string, limit: number]`
+  Built from a new `QUERY_KEYS.suppliers` prefix (see Component design above) to match the shared-registry convention used by sibling hooks like `useCatalogAutocomplete`.
 
 ## Summary of file-level change
 
-Only `frontend/src/api/hooks/useSuppliers.ts` changes: the `useState`×3 + `useEffect` + `setTimeout`-fetch body of `useSupplierSearch` is replaced by the three layers above (debounce `useState`/`useEffect` retained, fetch logic replaced by `useQuery`). Imports change from `{ useState, useEffect }` to add `useQuery`, `keepPreviousData` from `@tanstack/react-query`, and `getAuthenticatedApiClient` from `../client` (already imported). No other file changes.
+Two source files change: `frontend/src/api/hooks/useSuppliers.ts` (the `useState`×3 + `useEffect` + `setTimeout`-fetch body of `useSupplierSearch` is replaced by the three layers above; imports change from `{ useState, useEffect }` to add `useQuery`, `keepPreviousData` from `@tanstack/react-query`) and `frontend/src/api/client.ts` (one-line addition: `suppliers: ["suppliers"] as const` in `QUERY_KEYS`). No other file changes.

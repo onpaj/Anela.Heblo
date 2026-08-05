@@ -8,9 +8,11 @@ Migrated `useSupplierSearch` (`frontend/src/api/hooks/useSuppliers.ts`) from a h
 
 - **`frontend/src/api/hooks/useSuppliers.ts`** (modified) — rewritten per the three-layer design:
   1. **Debounce layer** (unchanged responsibility/timing): private `useState`+`useEffect`+`setTimeout` (300ms) producing `debouncedSearchTerm` from the raw `searchTerm` prop.
-  2. **Query layer**: `useQuery({ queryKey: ["suppliers", "search", debouncedSearchTerm, limit], queryFn, enabled: debouncedSearchTerm.length >= 2, placeholderData: keepPreviousData })`. `queryFn` calls `getAuthenticatedApiClient()` synchronously (not awaited, matching `useCatalogAutocomplete.ts`/`usePurchaseStockAnalysis.ts` — confirmed `client.ts:276` is a sync function) then `apiClient.suppliers_SearchSuppliers(debouncedSearchTerm, limit)`.
+  2. **Query layer**: `useQuery({ queryKey: [...QUERY_KEYS.suppliers, "search", debouncedSearchTerm, limit], queryFn, enabled: debouncedSearchTerm.length >= 2, placeholderData: keepPreviousData })`. `queryFn` calls `getAuthenticatedApiClient()` synchronously (not awaited, matching `useCatalogAutocomplete.ts`/`usePurchaseStockAnalysis.ts` — confirmed `client.ts:276` is a sync function) then `apiClient.suppliers_SearchSuppliers(debouncedSearchTerm, limit)`.
   3. **Derivation layer**: `suppliers` and `isLoading` are gated on the **raw** `searchTerm` (not the debounced term) so short-input clears happen immediately rather than waiting out the 300ms debounce window — the load-bearing detail called out in `architecture-01.md`. `isLoading` uses `query.isFetching` (not `isLoading`) since `keepPreviousData` keeps React Query's own `isLoading` false after the first fetch. `error` falls back to the same `"Failed to search suppliers"` message as the original code.
   - Public signature and return shape (`{ suppliers, isLoading, error }`, same types) unchanged — `SupplierAutocomplete.tsx` was not touched, per plan.
+
+- **`frontend/src/api/client.ts`** (modified, one line) — added `suppliers: ["suppliers"] as const` to the shared `QUERY_KEYS` registry, following the same convention `useCatalogAutocomplete.ts` uses (`QUERY_KEYS.catalog`). Added during rework after CI's `authenticated-api-usage.test.ts` "consistent query keys with QUERY_KEYS" check flagged the original literal-array key; the resulting key array is unchanged, only its construction.
 
 - **`frontend/src/api/hooks/__tests__/useSuppliers.test.tsx`** (new) — hook test suite following this repo's established `QueryClientProvider`-wrapped `renderHook` pattern (matching `useDashboard.test.tsx`), mocking `getAuthenticatedApiClient`/`suppliers_SearchSuppliers`. Covers:
   - short terms (<2 chars) never fetch and return `[]`
@@ -21,7 +23,7 @@ Migrated `useSupplierSearch` (`frontend/src/api/hooks/useSuppliers.ts`) from a h
 
   Note: this repo's installed Jest is v27 (via `react-scripts` 5.0.1), which lacks `jest.advanceTimersByTimeAsync`. Tests use real timers with `waitFor`/`act`-wrapped real `setTimeout` waits rather than fake timers, to stay compatible with this Jest version — same approach used elsewhere in the codebase's hook tests for async React Query flows.
 
-No other files were touched (`SupplierAutocomplete.tsx`, `client.ts`, generated API client — all untouched, per plan's explicit out-of-scope list).
+No other files were touched (`SupplierAutocomplete.tsx`, generated API client — untouched, per plan's explicit out-of-scope list).
 
 ## Verification
 

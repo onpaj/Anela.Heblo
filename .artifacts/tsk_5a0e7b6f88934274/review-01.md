@@ -4,10 +4,12 @@
 
 ## What was checked
 
-Diff scope (confirmed via `git diff --stat f4e76420 HEAD`): exactly two files touched —
-`frontend/src/api/hooks/useSuppliers.ts` (rewritten) and a new
-`frontend/src/api/hooks/__tests__/useSuppliers.test.tsx`. No other file in the repo changed
-across the whole task lineage. This matches the plan's explicit "minimal blast radius" scope.
+Diff scope (confirmed via `git diff --stat` against `origin/main`): three source files touched —
+`frontend/src/api/hooks/useSuppliers.ts` (rewritten), a new
+`frontend/src/api/hooks/__tests__/useSuppliers.test.tsx`, and a one-line addition to
+`frontend/src/api/client.ts` (`suppliers: ["suppliers"] as const` in `QUERY_KEYS`, added during
+rework to satisfy `authenticated-api-usage.test.ts`'s query-key-registry check — see
+development-01.md). No other file in the repo changed across the task lineage.
 
 ### Spec/FR conformance (plan-01.md)
 
@@ -19,7 +21,7 @@ across the whole task lineage. This matches the plan's explicit "minimal blast r
 - **FR-2** (debounce + immediate-clear): confirmed. `suppliers`/`isLoading` are derived from the
   **raw** `searchTerm.length`, not `debouncedSearchTerm`, exactly as architecture-01.md flagged as
   load-bearing. Query itself gated with `enabled: debouncedSearchTerm.length >= 2`.
-- **FR-3** (cache key/de-dup): confirmed. `queryKey: ["suppliers", "search", debouncedSearchTerm, limit]`. Verified via a dedicated test that an identical repeated term doesn't re-fetch.
+- **FR-3** (cache key/de-dup): confirmed. `queryKey: [...QUERY_KEYS.suppliers, "search", debouncedSearchTerm, limit]`, which resolves to the same `["suppliers", "search", debouncedSearchTerm, limit]` array. Verified via a dedicated test that an identical repeated term doesn't re-fetch.
 - **FR-4** (`keepPreviousData`): present and correctly imported from `@tanstack/react-query`.
 - **FR-5** (return shape parity): confirmed. Still returns `{ suppliers, isLoading, error }` with
   the same types; `isLoading` correctly uses `query.isFetching` (not bare `isLoading`, which would
@@ -29,8 +31,7 @@ across the whole task lineage. This matches the plan's explicit "minimal blast r
 
 ### Architecture adherence
 
-Matches `useCatalogAutocomplete.ts`'s conventions (sync client call, `enabled` gate shape, literal
-query-key array instead of a shared `QUERY_KEYS` entry — consistent with the `usePurchaseStockAnalysis.ts` precedent for single-caller hooks). `SupplierAutocomplete.tsx` was correctly left untouched and its consumption (`const { suppliers, isLoading } = useSupplierSearch(searchTerm)`) remains valid against the new return shape.
+Matches `useCatalogAutocomplete.ts`'s conventions (sync client call, `enabled` gate shape, and — after rework — a shared `QUERY_KEYS.suppliers` prefix spread into the query key, mirroring `QUERY_KEYS.catalog`). `SupplierAutocomplete.tsx` was correctly left untouched and its consumption (`const { suppliers, isLoading } = useSupplierSearch(searchTerm)`) remains valid against the new return shape.
 
 ### Test coverage
 
