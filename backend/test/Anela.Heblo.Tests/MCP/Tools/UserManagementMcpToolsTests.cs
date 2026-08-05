@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Anela.Heblo.API.Infrastructure.Json;
 using Anela.Heblo.API.MCP.Tools;
 using Anela.Heblo.Application.Features.UserManagement.UseCases.GetGroupMembers;
 using Anela.Heblo.Application.Shared;
@@ -42,7 +43,7 @@ public class UserManagementMcpToolsTests
             m => m.Send(It.Is<GetGroupMembersRequest>(r => r.GroupId == "group-id-123"), default),
             Times.Once);
 
-        var deserialized = JsonSerializer.Deserialize<GetGroupMembersResponse>(json);
+        var deserialized = JsonSerializer.Deserialize<GetGroupMembersResponse>(json, McpJsonOptions.Default);
         Assert.NotNull(deserialized);
         Assert.True(deserialized!.Success);
     }

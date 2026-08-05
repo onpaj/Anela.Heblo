@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Anela.Heblo.API.Infrastructure.Json;
 using Anela.Heblo.API.MCP.Tools;
 using Anela.Heblo.Application.Features.Catalog.Contracts;
 using Anela.Heblo.Application.Features.Catalog.UseCases.GetCatalogDetail;
@@ -69,7 +70,7 @@ public class CatalogMcpToolsTests
             default
         ), Times.Once);
 
-        var deserialized = JsonSerializer.Deserialize<GetCatalogListResponse>(jsonResult);
+        var deserialized = JsonSerializer.Deserialize<GetCatalogListResponse>(jsonResult, McpJsonOptions.Default);
         Assert.NotNull(deserialized);
         Assert.Equal(0, deserialized.TotalCount);
         Assert.Equal(2, deserialized.PageNumber);
@@ -105,7 +106,7 @@ public class CatalogMcpToolsTests
             default
         ), Times.Once);
 
-        var deserialized = JsonSerializer.Deserialize<GetCatalogDetailResponse>(jsonResult);
+        var deserialized = JsonSerializer.Deserialize<GetCatalogDetailResponse>(jsonResult, McpJsonOptions.Default);
         Assert.NotNull(deserialized);
         Assert.True(deserialized.Success);
         Assert.Equal("AKL001", deserialized.Item?.ProductCode);
@@ -160,7 +161,7 @@ public class CatalogMcpToolsTests
             default
         ), Times.Once);
 
-        var deserialized = JsonSerializer.Deserialize<GetProductCompositionResponse>(jsonResult);
+        var deserialized = JsonSerializer.Deserialize<GetProductCompositionResponse>(jsonResult, McpJsonOptions.Default);
         Assert.NotNull(deserialized);
         Assert.True(deserialized.Success);
     }
@@ -211,7 +212,7 @@ public class CatalogMcpToolsTests
             default
         ), Times.Once);
 
-        var deserialized = JsonSerializer.Deserialize<GetMaterialsForPurchaseResponse>(jsonResult);
+        var deserialized = JsonSerializer.Deserialize<GetMaterialsForPurchaseResponse>(jsonResult, McpJsonOptions.Default);
         Assert.NotNull(deserialized);
     }
 
@@ -241,7 +242,7 @@ public class CatalogMcpToolsTests
             default
         ), Times.Once);
 
-        var deserialized = JsonSerializer.Deserialize<GetCatalogListResponse>(jsonResult);
+        var deserialized = JsonSerializer.Deserialize<GetCatalogListResponse>(jsonResult, McpJsonOptions.Default);
         Assert.NotNull(deserialized);
     }
 
@@ -267,7 +268,7 @@ public class CatalogMcpToolsTests
             default
         ), Times.Once);
 
-        var deserialized = JsonSerializer.Deserialize<GetProductUsageResponse>(jsonResult);
+        var deserialized = JsonSerializer.Deserialize<GetProductUsageResponse>(jsonResult, McpJsonOptions.Default);
         Assert.NotNull(deserialized);
         Assert.True(deserialized.Success);
     }
@@ -318,7 +319,7 @@ public class CatalogMcpToolsTests
             default
         ), Times.Once);
 
-        var deserialized = JsonSerializer.Deserialize<GetWarehouseStatisticsResponse>(jsonResult);
+        var deserialized = JsonSerializer.Deserialize<GetWarehouseStatisticsResponse>(jsonResult, McpJsonOptions.Default);
         Assert.NotNull(deserialized);
     }
 
@@ -363,7 +364,7 @@ public class CatalogMcpToolsTests
                 req.SortDescending == true),
             default), Times.Once);
 
-        var deserialized = JsonSerializer.Deserialize<GetProductMarginsResponse>(jsonResult);
+        var deserialized = JsonSerializer.Deserialize<GetProductMarginsResponse>(jsonResult, McpJsonOptions.Default);
         Assert.NotNull(deserialized);
         Assert.Equal(1, deserialized.TotalCount);
         Assert.Single(deserialized.Items);

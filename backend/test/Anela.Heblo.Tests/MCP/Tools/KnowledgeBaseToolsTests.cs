@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Anela.Heblo.API.Infrastructure.Json;
 using Anela.Heblo.API.MCP.Tools;
 using Anela.Heblo.Application.Features.KnowledgeBase.UseCases.AskQuestion;
 using Anela.Heblo.Application.Features.KnowledgeBase.UseCases.SearchDocuments;
@@ -43,7 +44,7 @@ public class KnowledgeBaseToolsTests
 
         var result = await CreateTools().SearchKnowledgeBase("phenoxyethanol", 3);
 
-        var deserialized = JsonSerializer.Deserialize<SearchDocumentsResponse>(result);
+        var deserialized = JsonSerializer.Deserialize<SearchDocumentsResponse>(result, McpJsonOptions.Default);
         Assert.NotNull(deserialized);
         Assert.Single(deserialized!.Chunks);
         Assert.Equal("Test chunk", deserialized.Chunks[0].Content);
@@ -66,7 +67,7 @@ public class KnowledgeBaseToolsTests
 
         var result = await CreateTools().AskKnowledgeBase("Max phenoxyethanol?");
 
-        var deserialized = JsonSerializer.Deserialize<AskQuestionResponse>(result);
+        var deserialized = JsonSerializer.Deserialize<AskQuestionResponse>(result, McpJsonOptions.Default);
         Assert.NotNull(deserialized);
         Assert.Equal("The max is 1.0%.", deserialized!.Answer);
         Assert.Single(deserialized.Sources);

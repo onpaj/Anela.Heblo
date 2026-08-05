@@ -146,6 +146,49 @@ public class ChangeTransportBoxStateHandler : IRequestHandler<ChangeTransportBox
                 UpdatedBox = updatedBox
             };
         }
+        catch (TransportBoxCodeRequiredException ex)
+        {
+            _logger.LogWarning("Box code required for box {BoxId}", request.BoxId);
+            return new ChangeTransportBoxStateResponse
+            {
+                Success = false,
+                ErrorCode = ErrorCodes.TransportBoxCodeRequired,
+            };
+        }
+        catch (TransportBoxCodeFormatException ex)
+        {
+            _logger.LogWarning("Invalid box code format for box {BoxId}: {Code}", request.BoxId, ex.EnteredCode);
+            return new ChangeTransportBoxStateResponse
+            {
+                Success = false,
+                ErrorCode = ErrorCodes.TransportBoxCodeInvalidFormat,
+                Params = new Dictionary<string, string> { { "code", ex.EnteredCode } }
+            };
+        }
+        catch (TransportBoxEmptyException ex)
+        {
+            _logger.LogWarning("Attempted to dispatch empty box {BoxId}", request.BoxId);
+            return new ChangeTransportBoxStateResponse
+            {
+                Success = false,
+                ErrorCode = ErrorCodes.TransportBoxEmpty,
+                Params = new Dictionary<string, string> { { "code", ex.BoxCode ?? "" } }
+            };
+        }
+        catch (TransportBoxInvalidStateTransitionException ex)
+        {
+            _logger.LogWarning("Invalid state transition for box {BoxId}: {Message}", request.BoxId, ex.Message);
+            return new ChangeTransportBoxStateResponse
+            {
+                Success = false,
+                ErrorCode = ErrorCodes.TransportBoxInvalidStateTransition,
+                Params = new Dictionary<string, string>
+                {
+                    { "currentState", ex.CurrentState.ToString() },
+                    { "allowedStates", string.Join(", ", ex.AllowedStates) }
+                }
+            };
+        }
         catch (ValidationException ex)
         {
             _logger.LogWarning("State transition validation failed for box {BoxId}: {Message}", request.BoxId, ex.Message);

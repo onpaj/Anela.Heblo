@@ -111,6 +111,22 @@ public class AddItemToBoxHandler : IRequestHandler<AddItemToBoxRequest, AddItemT
                 TransportBox = transportBoxDto
             };
         }
+        catch (TransportBoxInvalidStateTransitionException ex)
+        {
+            _logger.LogWarning("Invalid state for adding item to transport box {BoxId}: {Message}",
+                request.BoxId, ex.Message);
+
+            return new AddItemToBoxResponse
+            {
+                Success = false,
+                ErrorCode = ErrorCodes.TransportBoxInvalidStateTransition,
+                Params = new Dictionary<string, string>
+                {
+                    { "currentState", ex.CurrentState.ToString() },
+                    { "allowedStates", string.Join(", ", ex.AllowedStates) }
+                }
+            };
+        }
         catch (ValidationException ex)
         {
             _logger.LogWarning("Validation error adding item to transport box {BoxId}: {Error}",
