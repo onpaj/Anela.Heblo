@@ -16,7 +16,15 @@ itself.
 ## 1. Resolve the target PR
 
 If a PR number was given in your invocation, use it as `{N}`. Otherwise,
-find the oldest (lowest-numbered) open `agent` PR:
+check whether the branch you're currently on already has an open PR — if
+so, treat it as the target, the same as an explicit number:
+
+```bash
+gh pr view --json number,state -q 'select(.state == "OPEN") | .number' 2>/dev/null
+```
+
+If that prints a number, use it as `{N}` and skip the candidate search
+below. Otherwise, find the oldest (lowest-numbered) open `agent` PR:
 
 ```bash
 .claude/skills/automerge-pr/candidates.sh
@@ -49,6 +57,10 @@ Branch on its `status`:
   same durable trail even when run standalone. Do not post anything
   yourself. Report this PR (number, hygiene status, action: `needs-work`)
   and stop — do not proceed to step 3 for this PR.
+- **`ci-running`** → report this PR as skipped (`CI already running from a
+  prior push, retry later`) and stop. Nothing was touched this run — no
+  branch update, no polling — precisely so a build already in flight isn't
+  cancelled by this call.
 - **`pending-timeout`** → report this PR as skipped
   (`CI checks pending, retry later`) and stop.
 - **`error`** → report this PR as skipped
@@ -70,15 +82,45 @@ replaced by the PR number:
 > You are READ-ONLY. You must not run `gh pr merge`, `gh pr close`,
 > `gh pr edit`, `git push`, or any other state-changing command. Gather context
 > with:
-> - `gh pr view {N} --json title,body,headRefName,additions,deletions,changedFiles`
+> - `gh pr view {N} --json title,body,headRefName,additions,deletions,changedFiles,author,files`
 > - `gh pr diff {N}`
 > - `gh issue view <issue> --json title,body` for the issue the PR body links
 > - `Read` and `Grep` on the repo, to check the change fits the code around it
 >
-> You cannot run the test suite, and you must not assume the code works because
-> it looks plausible.
+> Do not run the test suite, or any individual test, yourself — under any
+> circumstances, via Bash or any other tool. Whether tests pass is CI's
+> determination, not yours, and it's already been made (step 2 confirms CI
+> is green before you're ever invoked). Your job re: tests is narrower:
+> confirm the relevant behavior is *covered* by one, not to execute it or
+> independently re-confirm its outcome. You also must not assume the code
+> works just because it looks plausible.
 >
-> Start from 100 and deduct:
+> First check `.author.login` and every entry's `path` in `.files` from the
+> `gh pr view` call above:
+>
+> - **Dependency-bot PR** — author is a known dependency-update bot
+>   (`dependabot[bot]`, `renovate[bot]`, or similar — also recognizable from
+>   a `dependabot/...` or `renovate/...` head branch). This is an automated
+>   version bump, not scoped feature work: it has no linked issue by design.
+>   Skip the "no linked issue" and "diff does something the linked issue did
+>   not ask for" deductions below, and instead judge whether the diff is a
+>   plausible, scoped bump (dependency manifest/lockfile — or a pinned
+>   action version in a workflow file — changed consistently with the
+>   version bump the title describes, nothing unrelated bundled in).
+> - **Documentation-only PR** — every changed file is non-code
+>   documentation (paths under `docs/`, `*.md`, `*.txt`, `README*`,
+>   `LICENSE*`, or similar prose — no source, config, script, or workflow
+>   file touched). A docs-only change doesn't need a tracked issue either.
+>   Skip the same two deductions, and instead judge whether the prose is
+>   accurate against the current code (`Read`/`Grep` the paths it
+>   describes) and doesn't contradict other docs.
+>
+> Both exemptions only waive those two specific deductions — every other
+> deduction below still applies as written, including the workflow-file and
+> cannot-verify-correctness ones.
+>
+> For every other PR — and for every remaining deduction on an exempted
+> one — start from 100 and deduct:
 > - -40 the diff does something the linked issue did not ask for
 > - -30 no linked issue found in the PR body
 > - -25 new behaviour added with no accompanying test
@@ -92,6 +134,16 @@ replaced by the PR number:
 > That last one is not optional. If you cannot tell whether the change is
 > correct, that is low confidence and the score must show it. Do not round up
 > toward a merge because the change looks tidy.
+>
+> It does not, however, cover behaviour whose only gap is that you didn't
+> personally run a test for it — you're not supposed to. That includes
+> container/integration tests: they ran in CI, not your sandbox, and a real
+> failure there would already have flagged this PR `needs-work` before it
+> ever reached you, so a green CI run is the verification, regardless of
+> what kind of test produced it. Reserve this deduction for logic that no
+> test covers at all (the "no accompanying test" deduction above already
+> catches that) and that you also can't reason through by reading the diff
+> — never for "I can't personally run this to check."
 >
 > End your output with exactly this block and nothing after it:
 >
@@ -155,6 +207,16 @@ State: PR number, hygiene outcome (`none` if step 2 wasn't reached because
 you took an explicit-PR-number fast path — this should not happen, step 2
 always runs — otherwise the `status` from step 2), score, verdict, action
 taken (or `deferred to caller` in orchestrated mode).
+
+`apply_verdict.sh --action merge` can itself report `"status": "needs-work"`
+instead of `"ok"` — if the merge fails because the PR became unmergeable
+between review and merge (most commonly: an earlier PR in the same
+`/automerge-all` batch just merged and moved the default branch underneath
+this one), the script flags it `needs-work` with a `verdict: REJECT`
+comment itself, the same durable trail a hygiene or code-review rejection
+leaves, so it's discoverable by `/rework-pr` and counts toward its
+revision-attempt cap. Nothing further for you to do — report it as you
+would any other `needs-work` outcome.
 
 ## Constants
 

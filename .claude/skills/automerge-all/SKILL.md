@@ -38,6 +38,10 @@ prompt, with `{N}` replaced by the PR number:
 > final message with exactly one line:
 > `HYGIENE_REJECTED: {status} — {detail}`.
 >
+> If step 2 reports `ci-running`, end your final message with exactly one
+> line: `SKIPPED: CI already running from a prior push, retry later`.
+> Nothing was touched this run — no branch update, no polling.
+>
 > If step 2 reports `pending-timeout`, end your final message with exactly
 > one line: `SKIPPED: CI checks pending, retry later`.
 >
@@ -69,6 +73,15 @@ two merges never race on `master`:
 `linkedIssue` from step 1's candidate object; pass `--issue` when non-null.
 A non-zero exit means that PR failed. **Continue to the next PR
 regardless** — one failure never aborts the batch.
+
+A merge verdict applied here can come back `"status": "needs-work"`
+instead of `"ok"` — this is expected and not a bug in this run: merging PR
+N can turn PR N+1 in the same batch from mergeable to conflicting, since
+they were both scored against `master` as it stood at review time, before
+either merged. `apply_verdict.sh` detects exactly that case itself and
+flags the now-conflicting PR `needs-work` with a `verdict: REJECT`
+comment — there is nothing further for you to do for that PR; just record
+its `detail` for step 5's report like any other outcome.
 
 ## 5. Report
 
