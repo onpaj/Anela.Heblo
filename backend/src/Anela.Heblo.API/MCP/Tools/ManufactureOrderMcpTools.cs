@@ -1,5 +1,6 @@
 using System.ComponentModel;
 using System.Text.Json;
+using Anela.Heblo.API.Infrastructure.Json;
 using Anela.Heblo.API.MCP;
 using Anela.Heblo.Application.Features.Manufacture.UseCases.GetManufactureOrders;
 using Anela.Heblo.Application.Features.Manufacture.UseCases.GetManufactureOrder;
@@ -41,7 +42,7 @@ public class ManufactureOrderMcpTools
             throw new McpException($"[{response.ErrorCode?.ToString() ?? "UNKNOWN_ERROR"}] {response.FullError()}");
         }
 
-        return JsonSerializer.Serialize(response);
+        return JsonSerializer.Serialize(response, McpJsonOptions.Default);
     }
 
     [McpServerTool]
@@ -61,7 +62,7 @@ public class ManufactureOrderMcpTools
             throw new McpException($"[{response.ErrorCode?.ToString() ?? "UNKNOWN_ERROR"}] {response.FullError()}");
         }
 
-        return JsonSerializer.Serialize(response);
+        return JsonSerializer.Serialize(response, McpJsonOptions.Default);
     }
 
     [McpServerTool]
@@ -77,6 +78,6 @@ public class ManufactureOrderMcpTools
             throw new McpException($"[{response.ErrorCode?.ToString() ?? "UNKNOWN_ERROR"}] {response.FullError()}");
         }
 
-        return JsonSerializer.Serialize(response);
+        return JsonSerializer.Serialize(response, McpJsonOptions.Default);
     }
 }

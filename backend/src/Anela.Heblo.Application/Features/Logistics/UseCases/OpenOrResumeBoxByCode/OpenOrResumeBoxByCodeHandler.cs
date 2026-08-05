@@ -87,6 +87,12 @@ public class OpenOrResumeBoxByCodeHandler : IRequestHandler<OpenOrResumeBoxByCod
                 Resumed = false
             };
         }
+        catch (TransportBoxCodeFormatException ex)
+        {
+            _logger.LogWarning("Invalid box code format opening box by code {Code}", request.BoxCode);
+            return new OpenOrResumeBoxByCodeResponse(ErrorCodes.TransportBoxCodeInvalidFormat,
+                new Dictionary<string, string> { { "code", ex.EnteredCode } });
+        }
         catch (ValidationException ex)
         {
             _logger.LogWarning("Validation error opening box by code {Code}: {Error}", request.BoxCode, ex.Message);
