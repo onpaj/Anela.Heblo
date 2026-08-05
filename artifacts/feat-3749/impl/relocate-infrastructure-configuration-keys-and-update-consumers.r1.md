@@ -89,4 +89,4 @@ solution build succeeds with 0 errors, `GetConfigurationHandlerTests` pass 5/5, 
 - `backend/test/Anela.Heblo.Tests/Features/Configuration/GetConfigurationHandlerTests.cs` — `using` updated
 
 ## Status
-PASS
+DONE
