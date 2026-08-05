@@ -471,7 +471,7 @@ public class PurchaseOrdersControllerTests : IClassFixture<PurchaseOrdersTestFac
         content.Should().NotBeNull();
         content!.OrderNumber.Should().NotBeNullOrEmpty();
         content.OrderNumber.Should().StartWith("PO");
-        content.OrderNumber.Should().MatchRegex(@"^PO\d{8}-\d{6}(-\d+)?$"); // POyyyyMMdd-HHmmss[-attempt] format
+        content.OrderNumber.Should().MatchRegex(@"^PO\d{8}-\d{9}(-\d+)?$"); // POyyyyMMdd-HHmmssfff[-attempt] format
     }
 
     [Fact]
