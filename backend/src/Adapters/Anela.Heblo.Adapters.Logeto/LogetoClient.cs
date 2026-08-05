@@ -88,8 +88,21 @@ public class LogetoClient : ILogetoClient
             var response = await _httpClient.GetAsync(url, cancellationToken);
             await EnsureSuccessAsync(response, cancellationToken);
 
-            var page = await response.Content.ReadFromJsonAsync<Page<T>>(JsonOptions, cancellationToken)
-                ?? throw new LogetoApiException(200, null, $"Logeto returned an empty body for {path}");
+            Page<T>? page;
+            try
+            {
+                page = await response.Content.ReadFromJsonAsync<Page<T>>(JsonOptions, cancellationToken);
+            }
+            catch (JsonException ex)
+            {
+                throw new LogetoApiException(200, null,
+                    $"Logeto returned an unparseable response body for {path}: {ex.Message}");
+            }
+
+            if (page is null)
+            {
+                throw new LogetoApiException(200, null, $"Logeto returned an empty body for {path}");
+            }
 
             items.AddRange(page.Items ?? new List<T>());
 

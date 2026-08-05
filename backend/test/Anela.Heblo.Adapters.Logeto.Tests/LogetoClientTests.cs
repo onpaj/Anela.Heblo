@@ -123,13 +123,13 @@ public class LogetoClientTests
             To = "2026-08-03T09:30:00Z",
             Billable = false,
             Description = "Automatická přestávka",
-            ExternalKey = "autobreak-x-2026-08-03"
+            ExternalKey = null
         }, merge: true, CancellationToken.None);
 
         handler.Requests[0].Method.Should().Be(HttpMethod.Post);
         handler.Requests[0].RequestUri!.PathAndQuery.Should().Be("/api/v2/TimeTracking?merge=true");
         handler.RequestBodies[0].Should().Contain("\"Person\"").And.Contain("\"Billable\":false");
-        handler.RequestBodies[0].Should().NotContain("\"Hours\"", "null members must be omitted");
+        handler.RequestBodies[0].Should().NotContain("\"ExternalKey\"", "null members must be omitted");
     }
 
     [Fact]
@@ -146,6 +146,18 @@ public class LogetoClientTests
         ex.Which.StatusCode.Should().Be(400);
         ex.Which.ApiErrorCode.Should().Be("InvalidTime");
         ex.Which.Message.Should().Contain("Seconds must be zero");
+    }
+
+    [Fact]
+    public async Task GetActivitiesAsync_MalformedBody_ThrowsLogetoApiException()
+    {
+        var handler = new StubHandler(Json("not json"));
+        var client = CreateClient(handler);
+
+        var act = () => client.GetActivitiesAsync(CancellationToken.None);
+
+        var ex = await act.Should().ThrowAsync<LogetoApiException>();
+        ex.Which.StatusCode.Should().Be(200);
     }
 
     [Fact]
