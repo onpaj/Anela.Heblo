@@ -25,5 +25,24 @@
       "updated_at": null
     }
   },
-  "tasks": []
+  "tasks": [
+    {
+      "name": "define-smartsupp-knowledge-source-contract-and-adapter",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    },
+    {
+      "name": "rewire-generate-draft-reply-handler",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    },
+    {
+      "name": "add-smartsupp-knowledgebase-boundary-rule",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    }
+  ]
 }
