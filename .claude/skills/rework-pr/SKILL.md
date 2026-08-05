@@ -35,7 +35,18 @@ invocation below.
 
 If a PR number was given in your invocation, use it as `{N}` and skip to
 step 2 (still confirm it's `OPEN` there — an explicit number bypasses
-candidate *search*, not the open-state check). Otherwise:
+candidate *search*, not the open-state check).
+
+Otherwise, check whether the branch you're currently on already has an
+open PR — if so, treat it exactly like an explicit number (skip to step 2,
+still confirming `OPEN` there, and skip candidate search entirely):
+
+```bash
+gh pr view --repo "$REPO" --json number,state -q 'select(.state == "OPEN") | .number' 2>/dev/null
+```
+
+If that prints a number, use it as `{N}`. Otherwise, fall back to the
+candidate search:
 
 ```bash
 .claude/skills/rework-pr/find_candidate.sh > /tmp/rework-candidate.json
@@ -105,7 +116,8 @@ worktree convention:
 
 ```bash
 HEAD_REF=$(jq -r '.candidate.headRefName // empty' /tmp/rework-candidate.json)
-# If you took the explicit-PR-number path in step 1, HEAD_REF came from
+# If you took the explicit-PR-number or current-branch path in step 1,
+# HEAD_REF came from
 # `gh pr view {N} --repo "$REPO" --json headRefName --jq .headRefName` instead.
 WORKTREE="../worktrees/$(echo "$HEAD_REF" | sed 's#/#-#')"
 
