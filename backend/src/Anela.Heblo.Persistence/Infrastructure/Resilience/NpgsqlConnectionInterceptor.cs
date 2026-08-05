@@ -10,7 +10,11 @@ namespace Anela.Heblo.Persistence.Infrastructure.Resilience;
 /// Records structured properties for connection-lifecycle events. Read-path disconnects
 /// (PostgresException at NpgsqlConnector.ReadMessageLong) never reach SaveChanges and
 /// so cannot be captured by PostgresExceptionLoggingInterceptor.
-/// Also records pool-exhaustion wait (any connection open > 1 s).
+/// Also records pool-exhaustion wait (any connection open > 1 s), on both the success
+/// (ConnectionOpened) and failure (ConnectionFailed) paths. Known residual gap: an open
+/// attempt cancelled between ConnectionOpening and either of those events (neither fires)
+/// still leaves no wait-time signal — this interceptor has no lower-level Npgsql/ADO.NET
+/// hook to observe that case.
 /// </summary>
 public sealed class NpgsqlConnectionInterceptor : DbConnectionInterceptor
 {
@@ -80,19 +84,13 @@ public sealed class NpgsqlConnectionInterceptor : DbConnectionInterceptor
 
     private void RecordOpenLatency()
     {
-        var sw = OpenStopwatch.Value;
-        if (sw is null) return;
-
-        sw.Stop();
-        OpenStopwatch.Value = null;
-
-        var seconds = sw.Elapsed.TotalSeconds;
-        if (seconds > PoolExhaustionThresholdSeconds)
+        var seconds = StopAndGetElapsedSeconds();
+        if (seconds is > PoolExhaustionThresholdSeconds)
         {
-            _metrics.RecordPoolExhaustionWait(seconds);
+            _metrics.RecordPoolExhaustionWait(seconds.Value);
             _logger.LogWarning(
                 "DbPoolExhaustionWait wait_seconds={WaitSeconds:F2}",
-                seconds);
+                seconds.Value);
         }
     }
 
@@ -100,13 +98,30 @@ public sealed class NpgsqlConnectionInterceptor : DbConnectionInterceptor
     {
         var host = SafeGetProperty(connection, "Host");
         var database = SafeGetProperty(connection, "Database");
+        var waitSeconds = StopAndGetElapsedSeconds();
+
+        if (waitSeconds is > PoolExhaustionThresholdSeconds)
+        {
+            _metrics.RecordPoolExhaustionWait(waitSeconds.Value);
+        }
 
         _logger.LogWarning(
             exception,
-            "DbConnectionFailed exception.type={ExceptionType} npgsql.host={Host} npgsql.database={Database}",
+            "DbConnectionFailed exception.type={ExceptionType} npgsql.host={Host} npgsql.database={Database} wait_seconds={WaitSeconds}",
             exception.GetType().FullName,
             host,
-            database);
+            database,
+            waitSeconds);
+    }
+
+    private static double? StopAndGetElapsedSeconds()
+    {
+        var sw = OpenStopwatch.Value;
+        if (sw is null) return null;
+
+        sw.Stop();
+        OpenStopwatch.Value = null;
+        return sw.Elapsed.TotalSeconds;
     }
 
     private static string? SafeGetProperty(DbConnection connection, string name)

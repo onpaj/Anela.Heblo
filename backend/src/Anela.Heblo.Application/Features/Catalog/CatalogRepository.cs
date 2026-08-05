@@ -1,6 +1,7 @@
 using System.Linq.Expressions;
 using Anela.Heblo.Application.Features.Catalog.Infrastructure;
 using Anela.Heblo.Domain.Features.Catalog;
+using Anela.Heblo.Domain.Features.Catalog.Services;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
@@ -12,6 +13,8 @@ public sealed class CatalogRepository : ICatalogRepository
     private readonly CatalogMergeService _mergeService;
     private readonly CatalogDataRefreshService _refreshService;
     private readonly ICatalogMergeScheduler _mergeScheduler;
+    private readonly IMarginCalculationService _marginService;
+    private readonly TimeProvider _timeProvider;
     private readonly IOptions<CatalogCacheOptions> _cacheOptions;
     private readonly ILogger<CatalogRepository> _logger;
 
@@ -20,6 +23,8 @@ public sealed class CatalogRepository : ICatalogRepository
         CatalogMergeService mergeService,
         CatalogDataRefreshService refreshService,
         ICatalogMergeScheduler mergeScheduler,
+        IMarginCalculationService marginService,
+        TimeProvider timeProvider,
         IOptions<CatalogCacheOptions> cacheOptions,
         ILogger<CatalogRepository> logger)
     {
@@ -27,6 +32,8 @@ public sealed class CatalogRepository : ICatalogRepository
         _mergeService = mergeService ?? throw new ArgumentNullException(nameof(mergeService));
         _refreshService = refreshService ?? throw new ArgumentNullException(nameof(refreshService));
         _mergeScheduler = mergeScheduler ?? throw new ArgumentNullException(nameof(mergeScheduler));
+        _marginService = marginService ?? throw new ArgumentNullException(nameof(marginService));
+        _timeProvider = timeProvider ?? throw new ArgumentNullException(nameof(timeProvider));
         _cacheOptions = cacheOptions ?? throw new ArgumentNullException(nameof(cacheOptions));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
@@ -117,6 +124,21 @@ public sealed class CatalogRepository : ICatalogRepository
     public Task RefreshEshopUrlData(CancellationToken ct) => _refreshService.RefreshEshopUrlData(ct);
     public Task RefreshManufactureDifficultySettingsData(string? product, CancellationToken ct) =>
         _refreshService.RefreshManufactureDifficultySettingsData(product, ct);
+
+    public async Task RefreshMarginData(CancellationToken ct)
+    {
+        await WaitForCurrentMergeAsync(ct);
+        var products = await GetAllAsync(ct);
+
+        var twoYearsAgo = DateOnly.FromDateTime(_timeProvider.GetUtcNow().UtcDateTime.AddYears(-2));
+        var dateFrom = twoYearsAgo > CatalogConstants.MARGIN_HISTORY_FLOOR_DATE ? twoYearsAgo : CatalogConstants.MARGIN_HISTORY_FLOOR_DATE;
+        var dateTo = DateOnly.FromDateTime(_timeProvider.GetUtcNow().UtcDateTime).AddMonths(-1); // Current month is not accurate
+
+        foreach (var product in products)
+        {
+            product.Margins = await _marginService.GetMarginAsync(product, dateFrom, dateTo, ct);
+        }
+    }
 
     // --- Load date properties ---
 

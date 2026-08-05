@@ -10,6 +10,8 @@ namespace Anela.Heblo.Adapters.OpenAI;
 
 public class OpenAiEmbeddingGenerator : IEmbeddingGenerator<string, Embedding<float>>
 {
+    private const int MaxBatchSize = 2048; // OpenAI embeddings endpoint per-request item cap
+
     private static readonly ResiliencePipeline Pipeline = new ResiliencePipelineBuilder()
         .AddRetry(new RetryStrategyOptions
         {
@@ -22,13 +24,22 @@ public class OpenAiEmbeddingGenerator : IEmbeddingGenerator<string, Embedding<fl
 
     private readonly OpenAiEmbeddingOptions _options;
     private readonly ILogger<OpenAiEmbeddingGenerator> _logger;
+    private readonly EmbeddingClient _client;
 
     public OpenAiEmbeddingGenerator(
         IOptions<OpenAiEmbeddingOptions> options,
         ILogger<OpenAiEmbeddingGenerator> logger)
+        : this(options, logger, new EmbeddingClient(options.Value.EmbeddingModel, options.Value.ApiKey))
+    { }
+
+    internal OpenAiEmbeddingGenerator(
+        IOptions<OpenAiEmbeddingOptions> options,
+        ILogger<OpenAiEmbeddingGenerator> logger,
+        EmbeddingClient client)
     {
         _options = options.Value;
         _logger = logger;
+        _client = client;
     }
 
     public EmbeddingGeneratorMetadata Metadata => new("OpenAiEmbeddingGenerator");
@@ -42,22 +53,25 @@ public class OpenAiEmbeddingGenerator : IEmbeddingGenerator<string, Embedding<fl
             throw new InvalidOperationException("OpenAI:ApiKey is not configured.");
 
         var inputList = values.ToList();
-        var client = new EmbeddingClient(_options.EmbeddingModel, _options.ApiKey);
+        if (inputList.Count == 0)
+            return new GeneratedEmbeddings<Embedding<float>>();
 
         _logger.LogDebug("Generating embeddings for {Count} inputs", inputList.Count);
 
+        var embeddingOptions = new global::OpenAI.Embeddings.EmbeddingGenerationOptions { Dimensions = _options.EmbeddingDimensions };
         var embeddings = new GeneratedEmbeddings<Embedding<float>>();
 
-        foreach (var input in inputList)
+        foreach (var chunk in inputList.Chunk(MaxBatchSize))
         {
-            var embeddingOptions = new global::OpenAI.Embeddings.EmbeddingGenerationOptions { Dimensions = _options.EmbeddingDimensions };
             var result = await Pipeline.ExecuteAsync(
-                async token => await client.GenerateEmbeddingAsync(input, embeddingOptions, cancellationToken: token),
+                async token => await _client.GenerateEmbeddingsAsync(chunk, embeddingOptions, cancellationToken: token),
                 cancellationToken);
 
-            var floats = result.Value.ToFloats();
-            var embeddingVector = new ReadOnlyMemory<float>(floats.ToArray());
-            embeddings.Add(new Embedding<float>(embeddingVector));
+            foreach (var item in result.Value.OrderBy(e => e.Index))
+            {
+                var floats = item.ToFloats();
+                embeddings.Add(new Embedding<float>(new ReadOnlyMemory<float>(floats.ToArray())));
+            }
         }
 
         return embeddings;
