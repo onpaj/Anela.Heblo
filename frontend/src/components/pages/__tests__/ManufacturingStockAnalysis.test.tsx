@@ -1,5 +1,5 @@
 import React from "react";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import "@testing-library/jest-dom";
 import { BrowserRouter } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -36,12 +36,13 @@ jest.mock("../../../api/hooks/useManufacturingStockAnalysis", () => ({
     BatchSize: "BatchSize",
   },
   ManufacturingStockSeverity: {
-    Critical: 0,
-    Major: 1,
-    Minor: 2,
-    Adequate: 3,
-    Unconfigured: 4,
+    Critical: "Critical",
+    Major: "Major",
+    Minor: "Minor",
+    Adequate: "Adequate",
+    Unconfigured: "Unconfigured",
   },
+  toGeneratedTimePeriod: (tp: any) => (tp && tp !== "Q9M" ? tp : undefined),
   formatNumber: (value: number) => value.toLocaleString("cs-CZ"),
   formatPercentage: (value: number) => `${value}%`,
   formatWarehouseStock: (item: any) => {
@@ -98,6 +99,14 @@ jest.mock("../CatalogDetail", () => {
   };
 });
 
+jest.mock("../../../utils/exportToXlsx", () => ({
+  exportToXlsx: jest.fn().mockResolvedValue(undefined),
+}));
+
+// Auto-mocked (no factory): only the "handleExport" describe block below configures
+// getAuthenticatedApiClient's return value; every other test never calls it.
+jest.mock("../../../api/client");
+
 const createWrapper = () => {
   const queryClient = new QueryClient({
     defaultOptions: {
@@ -153,7 +162,7 @@ describe("ManufacturingStockAnalysis", () => {
         overstockPercentage: 200,
         batchSize: "25",
         productFamily: "TestFamily",
-        severity: 3, // ManufacturingStockSeverity.Adequate
+        severity: "Adequate",
         isConfigured: true,
       },
       {
@@ -173,7 +182,7 @@ describe("ManufacturingStockAnalysis", () => {
         overstockPercentage: 15,
         batchSize: "50",
         productFamily: "TestFamily",
-        severity: 0, // ManufacturingStockSeverity.Critical
+        severity: "Critical",
         isConfigured: true,
       },
     ],
@@ -616,5 +625,73 @@ describe("ManufacturingStockAnalysis", () => {
     expect(
       screen.getByRole("option", { name: "9M (6 měsíců + prognóza 3 měsíce)" }),
     ).toBeInTheDocument();
+  });
+
+  describe("handleExport", () => {
+    const mockGetStockAnalysis = jest.fn();
+
+    beforeEach(() => {
+      document.cookie = "manufacturing-stock-sales-multiplier=; max-age=0; path=/";
+      const { getAuthenticatedApiClient } = require("../../../api/client");
+      (getAuthenticatedApiClient as jest.Mock).mockResolvedValue({
+        manufacturingStockAnalysis_GetStockAnalysis: mockGetStockAnalysis,
+      });
+      mockGetStockAnalysis.mockReset();
+    });
+
+    it("calls the generated client with isExport=true, no pagination, and typed row accessors matching the default filters", async () => {
+      mockUseManufacturingStockAnalysisQuery.mockReturnValue({
+        data: mockData,
+        isLoading: false,
+        error: null,
+        refetch: jest.fn(),
+      });
+      mockGetStockAnalysis.mockResolvedValue({
+        items: [
+          {
+            code: "PROD001",
+            name: "Test Product 1",
+            currentStock: 100,
+            severity: "Adequate",
+          },
+        ],
+      });
+
+      render(<ManufacturingStockAnalysis />, { wrapper: createWrapper() });
+
+      fireEvent.click(screen.getByText("Export"));
+
+      await waitFor(() => expect(mockGetStockAnalysis).toHaveBeenCalled());
+
+      expect(mockGetStockAnalysis).toHaveBeenCalledWith(
+        undefined, // timePeriod — default filter state is Q9M, omitted
+        undefined, // customFromDate
+        undefined, // customToDate
+        undefined, // productFamily
+        true, // criticalItemsOnly (default filter state)
+        true, // majorItemsOnly (default filter state)
+        false, // adequateItemsOnly
+        false, // unconfiguredOnly
+        "", // searchTerm
+        undefined, // pageNumber — export is not paginated
+        undefined, // pageSize
+        "OverstockPercentage", // sortBy (default filter state)
+        false, // sortDescending
+        1, // salesMultiplier (default, cookie cleared above)
+        true, // isExport
+      );
+
+      const { exportToXlsx: mockExportToXlsx } = require("../../../utils/exportToXlsx");
+      await waitFor(() => expect(mockExportToXlsx).toHaveBeenCalled());
+
+      const [rows, columns, filename] = mockExportToXlsx.mock.calls[0];
+      expect(rows).toEqual([
+        { code: "PROD001", name: "Test Product 1", currentStock: 100, severity: "Adequate" },
+      ]);
+      expect(columns.find((c: any) => c.header === "Kód").value(rows[0])).toBe("PROD001");
+      expect(columns.find((c: any) => c.header === "Sklad aktuální").value(rows[0])).toBe(100);
+      expect(columns.find((c: any) => c.header === "Závažnost").value(rows[0])).toBe("Adequate");
+      expect(filename).toMatch(/^manufacturing-stock-analysis-\d{4}-\d{2}-\d{2}\.xlsx$/);
+    });
   });
 });
