@@ -4,6 +4,7 @@ using Anela.Heblo.Domain.Features.Catalog;
 using Anela.Heblo.Domain.Features.Catalog.Cache;
 using Anela.Heblo.Domain.Features.Catalog.CostProviders;
 using Anela.Heblo.Domain.Features.Catalog.ValueObjects;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
@@ -18,18 +19,23 @@ public class ManufactureBasedMaterialCostProvider : IMaterialCostProvider
 {
     private static readonly SemaphoreSlim _refreshLock = new(1, 1);
     private readonly IMaterialCostCache _cache;
-    private readonly ICatalogRepository _catalogRepository;
+    private readonly IServiceProvider _serviceProvider;
     private readonly ILogger<ManufactureBasedMaterialCostProvider> _logger;
     private readonly DataSourceOptions _options;
 
+    // ICatalogRepository is resolved lazily via IServiceProvider, not injected directly:
+    // CatalogRepository -> IMarginCalculationService -> IMaterialCostProvider -> ICatalogRepository
+    // is a real constructor-time cycle, since CatalogRepository depends on IMarginCalculationService,
+    // which depends on this class. Deferring the lookup to call time (RefreshAsync/ComputeAllCostsAsync)
+    // keeps this class's own construction cycle-free.
     public ManufactureBasedMaterialCostProvider(
         IMaterialCostCache cache,
-        ICatalogRepository catalogRepository,
+        IServiceProvider serviceProvider,
         ILogger<ManufactureBasedMaterialCostProvider> logger,
         IOptions<DataSourceOptions> options)
     {
         _cache = cache;
-        _catalogRepository = catalogRepository;
+        _serviceProvider = serviceProvider;
         _logger = logger;
         _options = options.Value;
     }
@@ -93,9 +99,10 @@ public class ManufactureBasedMaterialCostProvider : IMaterialCostProvider
 
     private async Task<CostCacheData> ComputeAllCostsAsync(CancellationToken ct)
     {
-        await _catalogRepository.WaitForCurrentMergeAsync(ct);
+        var catalogRepository = _serviceProvider.GetRequiredService<ICatalogRepository>();
+        await catalogRepository.WaitForCurrentMergeAsync(ct);
 
-        var products = await _catalogRepository.GetAllAsync(ct);
+        var products = await catalogRepository.GetAllAsync(ct);
         var dateFrom = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(-_options.ManufactureCostHistoryDays));
         var dateTo = DateOnly.FromDateTime(DateTime.UtcNow);
 
@@ -126,8 +133,9 @@ public class ManufactureBasedMaterialCostProvider : IMaterialCostProvider
         DateOnly? dateTo,
         CancellationToken ct)
     {
-        await _catalogRepository.WaitForCurrentMergeAsync(ct);
-        var products = await _catalogRepository.GetAllAsync(ct);
+        var catalogRepository = _serviceProvider.GetRequiredService<ICatalogRepository>();
+        await catalogRepository.WaitForCurrentMergeAsync(ct);
+        var products = await catalogRepository.GetAllAsync(ct);
 
         var from = dateFrom ?? DateOnly.FromDateTime(DateTime.UtcNow.AddDays(-_options.ManufactureCostHistoryDays));
         var to = dateTo ?? DateOnly.FromDateTime(DateTime.UtcNow);

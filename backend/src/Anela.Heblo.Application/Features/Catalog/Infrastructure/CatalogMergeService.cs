@@ -79,7 +79,7 @@ public sealed class CatalogMergeService
         }
         else
         {
-            products = catalogData;
+            products = catalogData.Select(p => p.Clone()).ToList();
         }
 
         // Build all lookup maps from cache data
