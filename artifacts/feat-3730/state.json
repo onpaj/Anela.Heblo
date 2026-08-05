@@ -21,16 +21,16 @@
       "updated_at": "2026-08-05T03:38:34.160728Z"
     },
     "developing": {
-      "status": "pending",
-      "updated_at": null
+      "status": "in_progress",
+      "updated_at": "2026-08-05T03:38:59.510442Z"
     }
   },
   "tasks": [
     {
       "name": "rewire-stock-analysis-hook-to-generated-client",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-08-05T03:38:59.822200Z"
     },
     {
       "name": "migrate-export-handler-and-fix-page-type-fallout",
