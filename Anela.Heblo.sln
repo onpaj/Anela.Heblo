@@ -87,6 +87,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Anela.Heblo.Adapters.OrgCha
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Anela.Heblo.LabelReferenceExtractor", "backend\tools\Anela.Heblo.LabelReferenceExtractor\Anela.Heblo.LabelReferenceExtractor.csproj", "{C72B0EBE-33F7-4241-A32B-B52B467F8789}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Anela.Heblo.Adapters.Logeto", "backend\src\Adapters\Anela.Heblo.Adapters.Logeto\Anela.Heblo.Adapters.Logeto.csproj", "{D1BA15AC-6E60-4C47-808A-4A3F0976729A}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -505,6 +507,18 @@ Global
 		{C72B0EBE-33F7-4241-A32B-B52B467F8789}.Release|x64.Build.0 = Release|Any CPU
 		{C72B0EBE-33F7-4241-A32B-B52B467F8789}.Release|x86.ActiveCfg = Release|Any CPU
 		{C72B0EBE-33F7-4241-A32B-B52B467F8789}.Release|x86.Build.0 = Release|Any CPU
+		{D1BA15AC-6E60-4C47-808A-4A3F0976729A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D1BA15AC-6E60-4C47-808A-4A3F0976729A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D1BA15AC-6E60-4C47-808A-4A3F0976729A}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{D1BA15AC-6E60-4C47-808A-4A3F0976729A}.Debug|x64.Build.0 = Debug|Any CPU
+		{D1BA15AC-6E60-4C47-808A-4A3F0976729A}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{D1BA15AC-6E60-4C47-808A-4A3F0976729A}.Debug|x86.Build.0 = Debug|Any CPU
+		{D1BA15AC-6E60-4C47-808A-4A3F0976729A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D1BA15AC-6E60-4C47-808A-4A3F0976729A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D1BA15AC-6E60-4C47-808A-4A3F0976729A}.Release|x64.ActiveCfg = Release|Any CPU
+		{D1BA15AC-6E60-4C47-808A-4A3F0976729A}.Release|x64.Build.0 = Release|Any CPU
+		{D1BA15AC-6E60-4C47-808A-4A3F0976729A}.Release|x86.ActiveCfg = Release|Any CPU
+		{D1BA15AC-6E60-4C47-808A-4A3F0976729A}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -548,5 +562,6 @@ Global
 		{FB4CF527-5C59-4D5A-9A47-835C6C1AC76B} = {4B6F17C3-0A57-487A-BE8C-1808B40EC604}
 		{C7A82E5F-3D91-4B06-A2F8-9E0C1D5B4738} = {4B6F17C3-0A57-487A-BE8C-1808B40EC604}
 		{C72B0EBE-33F7-4241-A32B-B52B467F8789} = {7D3E9F2B-4A1C-4E6D-8B5F-3C2D7F9E0A1B}
+		{D1BA15AC-6E60-4C47-808A-4A3F0976729A} = {4B6F17C3-0A57-487A-BE8C-1808B40EC604}
 	EndGlobalSection
 EndGlobal
