@@ -202,7 +202,7 @@ const KnowledgeBaseDocumentsTab: React.FC<Props> = ({ canDelete }) => {
   const handleDeleteConfirm = async () => {
     if (!pendingDelete) return;
     try {
-      await deleteDocument.mutateAsync(pendingDelete.id);
+      await deleteDocument.mutateAsync(pendingDelete.id ?? '');
     } finally {
       setPendingDelete(null);
     }
@@ -356,15 +356,15 @@ const KnowledgeBaseDocumentsTab: React.FC<Props> = ({ canDelete }) => {
                   >
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-graphite-text">{doc.filename}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm">
-                      <StatusBadge status={doc.status} />
+                      <StatusBadge status={doc.status ?? ''} />
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-graphite-muted">{doc.contentType}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-graphite-muted">
-                      {new Date(doc.createdAt).toLocaleDateString('cs-CZ')}
+                      {doc.createdAt?.toLocaleDateString('cs-CZ') ?? '–'}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-graphite-muted">
                       {doc.indexedAt
-                        ? new Date(doc.indexedAt).toLocaleDateString('cs-CZ')
+                        ? doc.indexedAt.toLocaleDateString('cs-CZ')
                         : '–'}
                     </td>
                     {canDelete && (

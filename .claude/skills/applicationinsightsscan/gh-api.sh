@@ -42,9 +42,26 @@ detect_repo() {
   echo "$path"
 }
 
+# GIT_PAT and GITHUB_TOKEN are two names for one effective token (see TOKEN
+# below), so capture whether a real one existed *before* the .env fallback
+# runs: if it did, that real token must win outright, rather than letting a
+# .env-only GIT_PAT outrank a real GITHUB_TOKEN (or vice versa) once merged.
+_real_git_pat="${GIT_PAT:-}"
+_real_github_token="${GITHUB_TOKEN:-}"
+
+# shellcheck disable=SC1090
+source "$(dirname "${BASH_SOURCE[0]}")/env-fallback.sh"
+load_env_fallback GH_REPO GIT_PAT GITHUB_TOKEN
+
 REPO="${GH_REPO:-$(detect_repo || true)}"
 API="https://api.github.com"
-TOKEN="${GIT_PAT:-${GITHUB_TOKEN:-}}"
+if [[ -n "$_real_git_pat" ]]; then
+  TOKEN="$_real_git_pat"
+elif [[ -n "$_real_github_token" ]]; then
+  TOKEN="$_real_github_token"
+else
+  TOKEN="${GIT_PAT:-${GITHUB_TOKEN:-}}"
+fi
 
 err() { echo "Error: $*" >&2; exit 1; }
 [[ -n "$TOKEN" ]] || err "no token — set GIT_PAT (or GITHUB_TOKEN)."

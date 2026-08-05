@@ -1,21 +1,27 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getAuthenticatedApiClient, QUERY_KEYS } from '../client';
+import {
+  SearchDocumentsRequest,
+  AskQuestionRequest,
+  SubmitFeedbackRequest,
+  type ISubmitFeedbackRequest,
+  type GetDocumentsResponse,
+  type GetDocumentContentTypesResponse,
+  type SearchDocumentsResponse,
+  type AskQuestionResponse,
+  type GetChunkDetailResponse,
+  type DeleteDocumentResponse,
+  type UploadDocumentResponse2,
+  type FileParameter,
+  type GetFeedbackListResponse as GeneratedGetFeedbackListResponse,
+} from '../generated/api-client';
 import type {
   RagFeedbackLogSummary,
+  RagFeedbackChunk,
   RagFeedbackStats,
 } from '../../components/feedback/ragFeedbackTypes';
 
 // ---- Types ----
-
-export interface DocumentSummary {
-  id: string;
-  filename: string;
-  status: string;
-  contentType: string;
-  createdAt: string;
-  indexedAt: string | null;
-  firstChunkId: string | null;
-}
 
 export interface GetDocumentsParams {
   pageNumber?: number;
@@ -27,100 +33,17 @@ export interface GetDocumentsParams {
   contentTypeFilter?: string;
 }
 
-export interface GetDocumentsResponse {
-  success: boolean;
-  documents: DocumentSummary[];
-  totalCount: number;
-  pageNumber: number;
-  pageSize: number;
-  totalPages: number;
-}
-
-export interface GetDocumentContentTypesResponse {
-  success: boolean;
-  contentTypes: string[];
-}
-
-export interface ChunkResult {
-  chunkId: string;
-  documentId: string;
-  content: string;
-  score: number;
-  sourceFilename: string;
-  sourcePath: string;
-}
-
-export interface SearchDocumentsResponse {
-  success: boolean;
-  chunks: ChunkResult[];
-}
-
-export interface SourceReference {
-  chunkId: string;
-  documentId: string;
-  filename: string;
-  excerpt: string;
-  score: number;
-}
-
-export interface AskQuestionResponse {
-  success: boolean;
-  id: string | null;
-  answer: string;
-  sources: SourceReference[];
-}
-
-export interface SubmitFeedbackRequest {
-  logId: string;
-  precisionScore: number;
-  styleScore: number;
-  comment?: string;
-}
-
 export interface SubmitFeedbackResult {
   alreadySubmitted?: true;
 }
 
-export interface DeleteDocumentResponse {
-  success: boolean;
-}
-
 export type DocumentType = 'KnowledgeBase' | 'Conversation';
-
-export interface UploadDocumentResponse {
-  success: boolean;
-  document: DocumentSummary | null;
-}
 
 // The KB feedback list now returns the unified RAG feedback shape (question/answer/scores plus the
 // eval fields: retrieved chunks + scores, expanded query, rendered prompt, and — for Smartsupp —
 // the sent answer / edited flag). Aliased so existing imports keep working.
 export type FeedbackLogSummary = RagFeedbackLogSummary;
 export type FeedbackStatsDto = RagFeedbackStats;
-
-export interface ChunkDetail {
-  chunkId: string;
-  documentId: string;
-  filename: string;
-  documentType: 'KnowledgeBase' | 'Conversation';
-  indexedAt: string | null;
-  chunkIndex: number;
-  summary: string;
-  content: string;
-}
-
-export interface GetChunkDetailResponse {
-  success: boolean;
-  chunkId: string;
-  documentId: string;
-  filename: string;
-  documentType: 'KnowledgeBase' | 'Conversation';
-  indexedAt: string | null;
-  chunkIndex: number;
-  summary: string;
-  content: string;
-  sourcePath?: string;
-}
 
 export interface GetFeedbackListParams {
   pageNumber?: number;
@@ -154,6 +77,63 @@ export const knowledgeBaseKeys = {
     [...QUERY_KEYS.knowledgeBase, 'chunk-detail', chunkId] as const,
 };
 
+// ---- Feedback-list mapping ----
+// Keeps the generated RAG DTOs from leaking into ragFeedbackTypes.ts consumers, which assume
+// createdAt: string and null (not undefined) for absent optional fields.
+
+const toLocalFeedbackChunk = (chunk: {
+  chunkId?: string;
+  documentId?: string;
+  filename?: string;
+  score?: number;
+  content?: string;
+}): RagFeedbackChunk => ({
+  chunkId: chunk.chunkId ?? '',
+  documentId: chunk.documentId ?? '',
+  filename: chunk.filename ?? '',
+  score: chunk.score ?? 0,
+  content: chunk.content ?? '',
+});
+
+const toLocalFeedbackListResponse = (
+  generated: GeneratedGetFeedbackListResponse,
+): GetFeedbackListResponse => ({
+  success: true,
+  logs: (generated.logs ?? []).map((log) => ({
+    id: log.id ?? '',
+    question: log.question ?? '',
+    answer: log.answer ?? '',
+    expandedQuery: log.expandedQuery ?? null,
+    systemPrompt: log.systemPrompt ?? '',
+    retrievedChunks: (log.retrievedChunks ?? []).map(toLocalFeedbackChunk),
+    topK: log.topK ?? 0,
+    sourceCount: log.sourceCount ?? 0,
+    durationMs: log.durationMs ?? 0,
+    createdAt: log.createdAt ? log.createdAt.toISOString() : '',
+    userId: log.userId ?? null,
+    userName: log.userName ?? null,
+    conversationId: log.conversationId ?? null,
+    topic: log.topic ?? null,
+    sentAnswer: log.sentAnswer ?? null,
+    wasEdited: log.wasEdited ?? null,
+    sentAt: log.sentAt ? log.sentAt.toISOString() : null,
+    precisionScore: log.precisionScore ?? null,
+    styleScore: log.styleScore ?? null,
+    feedbackComment: log.feedbackComment ?? null,
+    hasFeedback: log.hasFeedback ?? false,
+  })),
+  totalCount: generated.totalCount ?? 0,
+  pageNumber: generated.pageNumber ?? 0,
+  pageSize: generated.pageSize ?? 0,
+  totalPages: generated.totalPages ?? 0,
+  stats: {
+    totalQuestions: generated.stats?.totalQuestions ?? 0,
+    totalWithFeedback: generated.stats?.totalWithFeedback ?? 0,
+    avgPrecisionScore: generated.stats?.avgPrecisionScore ?? null,
+    avgStyleScore: generated.stats?.avgStyleScore ?? null,
+  },
+});
+
 // ---- Hooks ----
 
 /**
@@ -162,36 +142,17 @@ export const knowledgeBaseKeys = {
 export const useKnowledgeBaseDocumentsQuery = (params: GetDocumentsParams = {}) => {
   return useQuery({
     queryKey: knowledgeBaseKeys.documents(params),
-    queryFn: async (): Promise<GetDocumentsResponse> => {
+    queryFn: (): Promise<GetDocumentsResponse> => {
       const apiClient = getAuthenticatedApiClient();
-      const searchParams = new URLSearchParams();
-
-      if (params.pageNumber !== undefined)
-        searchParams.append('pageNumber', params.pageNumber.toString());
-      if (params.pageSize !== undefined)
-        searchParams.append('pageSize', params.pageSize.toString());
-      if (params.sortBy) searchParams.append('sortBy', params.sortBy);
-      if (params.sortDescending !== undefined)
-        searchParams.append('sortDescending', params.sortDescending.toString());
-      if (params.filenameFilter) searchParams.append('filenameFilter', params.filenameFilter);
-      if (params.statusFilter) searchParams.append('statusFilter', params.statusFilter);
-      if (params.contentTypeFilter)
-        searchParams.append('contentTypeFilter', params.contentTypeFilter);
-
-      const query = searchParams.toString();
-      const relativeUrl = `/api/knowledgebase/documents${query ? `?${query}` : ''}`;
-      const fullUrl = `${(apiClient as any).baseUrl}${relativeUrl}`;
-
-      const response = await (apiClient as any).http.fetch(fullUrl, {
-        method: 'GET',
-        headers: { Accept: 'application/json' },
-      });
-
-      if (!response.ok) {
-        throw new Error(`Failed to fetch documents: ${response.status}`);
-      }
-
-      return response.json();
+      return apiClient.knowledgeBase_GetDocuments(
+        params.pageNumber,
+        params.pageSize,
+        params.sortBy,
+        params.sortDescending,
+        params.filenameFilter,
+        params.statusFilter,
+        params.contentTypeFilter,
+      );
     },
     staleTime: 5 * 60 * 1000,
     gcTime: 10 * 60 * 1000,
@@ -204,20 +165,9 @@ export const useKnowledgeBaseDocumentsQuery = (params: GetDocumentsParams = {}) 
 export const useKnowledgeBaseContentTypesQuery = () => {
   return useQuery({
     queryKey: knowledgeBaseKeys.contentTypes(),
-    queryFn: async (): Promise<GetDocumentContentTypesResponse> => {
+    queryFn: (): Promise<GetDocumentContentTypesResponse> => {
       const apiClient = getAuthenticatedApiClient();
-      const fullUrl = `${(apiClient as any).baseUrl}/api/knowledgebase/documents/content-types`;
-
-      const response = await (apiClient as any).http.fetch(fullUrl, {
-        method: 'GET',
-        headers: { Accept: 'application/json' },
-      });
-
-      if (!response.ok) {
-        throw new Error(`Failed to fetch content types: ${response.status}`);
-      }
-
-      return response.json();
+      return apiClient.knowledgeBase_GetDocumentContentTypes();
     },
     staleTime: 10 * 60 * 1000,
     gcTime: 15 * 60 * 1000,
@@ -229,7 +179,7 @@ export const useKnowledgeBaseContentTypesQuery = () => {
  */
 export const useKnowledgeBaseSearchMutation = () => {
   return useMutation({
-    mutationFn: async ({
+    mutationFn: ({
       query,
       topK = 5,
     }: {
@@ -237,20 +187,7 @@ export const useKnowledgeBaseSearchMutation = () => {
       topK?: number;
     }): Promise<SearchDocumentsResponse> => {
       const apiClient = getAuthenticatedApiClient();
-      const relativeUrl = '/api/knowledgebase/search';
-      const fullUrl = `${(apiClient as any).baseUrl}${relativeUrl}`;
-
-      const response = await (apiClient as any).http.fetch(fullUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-        body: JSON.stringify({ query, topK }),
-      });
-
-      if (!response.ok) {
-        throw new Error(`Search failed: ${response.status}`);
-      }
-
-      return response.json();
+      return apiClient.knowledgeBase_Search(new SearchDocumentsRequest({ query, topK }));
     },
   });
 };
@@ -262,20 +199,9 @@ export const useKnowledgeBaseSearchMutation = () => {
 export const useChunkDetailQuery = (chunkId: string | null) => {
   return useQuery({
     queryKey: knowledgeBaseKeys.chunkDetail(chunkId ?? ''),
-    queryFn: async (): Promise<GetChunkDetailResponse> => {
+    queryFn: (): Promise<GetChunkDetailResponse> => {
       const apiClient = getAuthenticatedApiClient();
-      const fullUrl = `${(apiClient as any).baseUrl}/api/knowledgebase/chunks/${chunkId}`;
-
-      const response = await (apiClient as any).http.fetch(fullUrl, {
-        method: 'GET',
-        headers: { Accept: 'application/json' },
-      });
-
-      if (!response.ok) {
-        throw new Error(`Failed to fetch chunk detail: ${response.status}`);
-      }
-
-      return response.json();
+      return apiClient.knowledgeBase_GetChunkDetail(chunkId!);
     },
     enabled: !!chunkId,
     staleTime: 10 * 60 * 1000,
@@ -288,7 +214,7 @@ export const useChunkDetailQuery = (chunkId: string | null) => {
  */
 export const useKnowledgeBaseAskMutation = () => {
   return useMutation({
-    mutationFn: async ({
+    mutationFn: ({
       question,
       topK = 5,
     }: {
@@ -296,20 +222,7 @@ export const useKnowledgeBaseAskMutation = () => {
       topK?: number;
     }): Promise<AskQuestionResponse> => {
       const apiClient = getAuthenticatedApiClient();
-      const relativeUrl = '/api/knowledgebase/ask';
-      const fullUrl = `${(apiClient as any).baseUrl}${relativeUrl}`;
-
-      const response = await (apiClient as any).http.fetch(fullUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-        body: JSON.stringify({ question, topK }),
-      });
-
-      if (!response.ok) {
-        throw new Error(`Ask failed: ${response.status}`);
-      }
-
-      return response.json();
+      return apiClient.knowledgeBase_Ask(new AskQuestionRequest({ question, topK }));
     },
   });
 };
@@ -321,21 +234,9 @@ export const useDeleteKnowledgeBaseDocumentMutation = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (documentId: string): Promise<DeleteDocumentResponse> => {
+    mutationFn: (documentId: string): Promise<DeleteDocumentResponse> => {
       const apiClient = getAuthenticatedApiClient();
-      const relativeUrl = `/api/knowledgebase/documents/${documentId}`;
-      const fullUrl = `${(apiClient as any).baseUrl}${relativeUrl}`;
-
-      const response = await (apiClient as any).http.fetch(fullUrl, {
-        method: 'DELETE',
-        headers: { Accept: 'application/json' },
-      });
-
-      if (!response.ok) {
-        throw new Error(`Delete failed: ${response.status}`);
-      }
-
-      return response.json();
+      return apiClient.knowledgeBase_DeleteDocument(documentId);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: knowledgeBaseKeys.all });
@@ -349,25 +250,18 @@ export const useDeleteKnowledgeBaseDocumentMutation = () => {
  */
 export const useSubmitFeedbackMutation = () => {
   return useMutation({
-    mutationFn: async (payload: SubmitFeedbackRequest): Promise<SubmitFeedbackResult> => {
+    mutationFn: async (payload: ISubmitFeedbackRequest): Promise<SubmitFeedbackResult> => {
       const apiClient = getAuthenticatedApiClient();
-      const fullUrl = `${(apiClient as any).baseUrl}/api/knowledgebase/feedback`;
-
-      const response = await (apiClient as any).http.fetch(fullUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-        body: JSON.stringify(payload),
-      });
-
-      if (response.status === 409) {
-        return { alreadySubmitted: true };
+      try {
+        await apiClient.knowledgeBase_SubmitFeedback(new SubmitFeedbackRequest(payload));
+        return {};
+      } catch (e: unknown) {
+        const err = e as { status?: number };
+        if (err.status === 409) {
+          return { alreadySubmitted: true };
+        }
+        throw e;
       }
-
-      if (!response.ok) {
-        throw new Error(`Submit feedback failed: ${response.status}`);
-      }
-
-      return {};
     },
   });
 };
@@ -381,31 +275,16 @@ export const useUploadKnowledgeBaseDocumentMutation = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({
+    mutationFn: ({
       file,
       documentType,
     }: {
       file: File;
       documentType: DocumentType;
-    }): Promise<UploadDocumentResponse> => {
+    }): Promise<UploadDocumentResponse2> => {
       const apiClient = getAuthenticatedApiClient();
-      const fullUrl = `${(apiClient as any).baseUrl}/api/knowledgebase/documents/upload`;
-
-      const formData = new FormData();
-      formData.append('file', file);
-      formData.append('documentType', documentType);
-
-      // Do NOT set Content-Type header — browser sets it with multipart boundary automatically
-      const response = await (apiClient as any).http.fetch(fullUrl, {
-        method: 'POST',
-        body: formData,
-      });
-
-      if (!response.ok) {
-        throw new Error(`Upload failed: ${response.status}`);
-      }
-
-      return response.json();
+      const fileParameter: FileParameter = { data: file, fileName: file.name };
+      return apiClient.knowledgeBase_UploadDocument(fileParameter, documentType);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: knowledgeBaseKeys.all });
@@ -422,35 +301,24 @@ export const useKnowledgeBaseFeedbackListQuery = (params: GetFeedbackListParams 
     queryKey: knowledgeBaseKeys.feedbackList(params),
     queryFn: async (): Promise<GetFeedbackListResponse> => {
       const apiClient = getAuthenticatedApiClient();
-      const searchParams = new URLSearchParams();
-
-      if (params.pageNumber !== undefined)
-        searchParams.append('pageNumber', params.pageNumber.toString());
-      if (params.pageSize !== undefined)
-        searchParams.append('pageSize', params.pageSize.toString());
-      if (params.sortBy) searchParams.append('sortBy', params.sortBy);
-      if (params.sortDescending !== undefined)
-        searchParams.append('sortDescending', params.sortDescending.toString());
-      if (params.hasFeedback !== undefined)
-        searchParams.append('hasFeedback', params.hasFeedback.toString());
-      if (params.userId) searchParams.append('userId', params.userId);
-
-      const query = searchParams.toString();
-      const relativeUrl = `/api/knowledgebase/feedback/list${query ? `?${query}` : ''}`;
-      const fullUrl = `${(apiClient as any).baseUrl}${relativeUrl}`;
-
-      const response = await (apiClient as any).http.fetch(fullUrl, {
-        method: 'GET',
-        headers: { Accept: 'application/json' },
-      });
-
-      if (!response.ok) {
-        throw new Error(`Failed to fetch feedback list: ${response.status}`);
-      }
-
-      return response.json();
+      const generated = await apiClient.knowledgeBase_GetFeedbackList(
+        params.pageNumber,
+        params.pageSize,
+        params.sortBy,
+        params.sortDescending,
+        params.hasFeedback,
+        params.userId,
+      );
+      return toLocalFeedbackListResponse(generated);
     },
     staleTime: 2 * 60 * 1000,
     gcTime: 5 * 60 * 1000,
   });
 };
+
+// Re-export types for convenience
+export type {
+  DocumentSummary,
+  ChunkResult,
+  SourceReference,
+} from '../generated/api-client';

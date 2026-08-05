@@ -168,11 +168,12 @@ the nightly matrix: `catalog`, `issued-invoices`, `stock-operations`, `transport
 |---|---|
 | `ci-broken` | An expected launch is missing **and** the corresponding GitHub Actions run failed before the test step. Body names the failing step and error. |
 | `schedule-broken` | An expected launch is missing **and** no workflow run exists at all for the window. |
+| `silence-unattributed` | An expected launch is missing **and** the GitHub Actions API could not be queried, or answered with a body that is not a runs response. The data really is absent; the cause is not established, and the finding must not claim one. |
 | `rp-reporting-broken` | An expected launch is missing **and** the workflow run *succeeded*. Reporting is broken, not the tests. |
 | `suite-shrank` | Test count for a layer/module fell ≥20% below the 7-day median while the launch still succeeded. Catches silent skips and fixtures aborting a spec early. |
 | `regression` | A test that passed within the window now fails in the latest **2 consecutive** E2E runs, or the latest **1** backend/frontend run (those are push-triggered and deterministic). |
 | `flaky` | A test both passed and failed within the window with ≥2 status flips and a pass rate between 20% and 80%. |
-| `chronic` | A test failing in every run for ≥7 days. Filed once, then suppressed by dedup. |
+| `chronic` | A test failing in **every** launch held for its layer/module, with at least 3 launches to judge from. Deliberately not a run count standing in for a duration: seven launches is a week only for the nightly E2E layer, while backend/frontend report per push. The headline reports the measured span and run count rather than asserting a week it has not verified. Filed once, then suppressed by dedup. |
 
 ### Skipped deliberately
 
@@ -209,6 +210,7 @@ The first line of every issue body is its fingerprint, matching the
 |---|---|
 | ci-broken | `test-ci:<workflow>:<failing-step>` |
 | schedule-broken | `test-silence:<layer>:<module>:schedule` |
+| silence-unattributed | `test-silence:<layer>:<module>:unattributed` — per module only. When the *whole* layer is stale and the cause cannot be attributed, the finding stays in the `ci-broken` category with fingerprint `test-ci:<workflow>:unattributed`: a whole-layer outage is a single higher-priority event (rank 0) than one unattributable module (rank 2), and the categories must not be merged just because both currently map to the `test-infra` label. |
 | rp-reporting-broken | `test-silence:<layer>:<module>:reporting` |
 | suite-shrank | `test-shrink:<layer>:<module>` |
 | regression | `test-regress:<layer>:<module>:<error-hash>` |
@@ -237,7 +239,7 @@ When it is unclear whether two findings are the same, err toward SKIP and record
 
   | Detection category | Label |
   |---|---|
-  | `ci-broken`, `schedule-broken`, `rp-reporting-broken` | `test-infra` |
+  | `ci-broken`, `schedule-broken`, `silence-unattributed`, `rp-reporting-broken` | `test-infra` |
   | `regression`, `suite-shrank`, `chronic` | `test-regression` |
   | `flaky` | `test-flaky` |
 
@@ -265,7 +267,8 @@ issue body therefore ends with a mandatory block instructing the implementing ag
 > in the PR description instead of doing it.** A PR that reduces the total test count
 > for this module is wrong by construction.
 
-For the `test-infra` category (`ci-broken`, `schedule-broken`, `rp-reporting-broken`)
+For the `test-infra` category (`ci-broken`, `schedule-broken`, `silence-unattributed`,
+`rp-reporting-broken`)
 the body additionally states that the resolution is a credential or configuration
 change **outside the repository**, requires a human, and that the agent should report
 this rather than invent a code workaround. These issues are still labelled

@@ -495,6 +495,12 @@ err()  { echo "Error: $*" >&2; exit 1; }
 errc() { local c="$1"; shift; echo "Error: $*" >&2; exit "$c"; }
 
 command -v jq >/dev/null || err "jq is required (expected on PATH, e.g. /Users/rem/.local/bin)."
+# perl is not decoration: normalize_error's hex-id rule needs a lookahead that
+# sed -E cannot express. Without this guard its absence is silent and total —
+# the pipeline yields an empty string for every error line, so every regression
+# and chronic fingerprint in the run collapses onto sha256("") and dedup drops
+# everything after the first.
+command -v perl >/dev/null || err "perl is required for normalize_error's hex-id rule."
 [[ -x "$RP" ]] || err "${RP} not found or not executable."
 
 while [[ $# -gt 0 ]]; do
@@ -749,6 +755,29 @@ n="$(printf '%s\n' "$out" | grep -c 'test-ci:')"
 check "gh-down files exactly one ci finding" "1" "$n"
 n="$(printf '%s\n' "$out" | grep -c 'test-silence:')"
 check "gh-down does not cascade into per-module silence" "0" "$n"
+
+# --- partial staleness + GitHub unreachable -> per-module, honestly labelled ---
+# The only route to the per-module unknown branch: some e2e modules fresh, some
+# stale, GitHub unavailable. It must NOT claim a schedule fault it cannot show.
+out="$(RP_FIXTURE_DIR="${FIX}/gh-down-partial" GH_FIXTURE_DIR="${FIX}/gh-down-partial" "$D" --days 7 2>&1)"
+check "partial gh-down reaches the per-module path" "yes" "$(contains 'test-silence:e2e:transport:unattributed' "$out")"
+check "partial gh-down does not claim a schedule fault" "no" "$(contains '**schedule-broken**' "$out")"
+n="$(printf '%s\n' "$out" | grep -c 'test-ci:')"
+check "partial gh-down files no cascade finding" "0" "$n"
+
+# --- a 2xx GitHub body of the wrong shape is unknown, not "no failing run" ---
+out="$(RP_FIXTURE_DIR="${FIX}/gh-malformed" GH_FIXTURE_DIR="${FIX}/gh-malformed" "$D" --days 7 2>&1)"
+check "malformed gh body reads as unattributed" "yes" "$(contains 'unattributed' "$out")"
+check "malformed gh body claims no schedule fault" "no" "$(contains '**schedule-broken**' "$out")"
+```
+
+Create two more fixture sets:
+
+- `fixtures/gh-down-partial/` — two E2E modules, `catalog` fresh (within 26h) and `transport` 3 days old, plus the matching item fixtures, and a workflow-runs fixture of `{ "workflow_runs": [], "__gh_error": true }`.
+- `fixtures/gh-malformed/` — copy `fixtures/gh-down/` but replace the workflow-runs fixture with a body that is valid JSON of the wrong shape and carries no error sentinel:
+
+```json
+{ "message": "Not Found", "documentation_url": "https://docs.github.com/rest" }
 ```
 
 Create `fixtures/gh-down/` by copying `fixtures/ci-broken/`'s launch and item fixtures (whole E2E layer stale, inside the window), and replacing its workflow-runs fixture with:
@@ -763,7 +792,7 @@ Create `fixtures/gh-down/` by copying `fixtures/ci-broken/`'s launch and item fi
 ./docs/routines/test-health/test-health-digest.test.sh
 ```
 
-Expected: the nine new checks FAIL (no silence or ci findings are produced yet); the nineteen Task 3 checks still pass.
+Expected: the fourteen new checks FAIL (no silence or ci findings are produced yet); the nineteen Task 3 checks still pass.
 
 - [ ] **Step 3: Write minimal implementation**
 
@@ -828,12 +857,27 @@ fi
 # Three distinct states, never two: "failure" (GitHub says the run failed),
 # "none"/other (GitHub answered and no failing run exists), and "unknown"
 # (GitHub could not be asked — we may not conclude anything from its silence).
-if [[ "$(printf '%s' "$nightly" | jq -r '.__gh_error // false')" == "true" ]]; then
+# Trust "none" only from a body that is actually shaped like a runs response.
+# A 2xx page that parses as JSON but carries no workflow_runs array — schema
+# drift, a proxy interstitial, an error envelope — would otherwise evaluate to
+# "none" and let us assert a schedule fault we never confirmed. The test is
+# validity, not merely the absence of our own error sentinel.
+gh_ok="$(printf '%s' "$nightly" | jq -r '
+  if (.__gh_error // false) then "no"
+  elif (.workflow_runs | type) == "array" then "yes"
+  else "no" end' 2>/dev/null || echo no)"
+
+if [[ "$gh_ok" != "yes" ]]; then
   nightly_concl="unknown"
   nightly_id=""
 else
-  nightly_concl="$(printf '%s' "$nightly" | jq -r '.workflow_runs[0].conclusion // "none"')"
-  nightly_id="$(printf '%s' "$nightly" | jq -r '.workflow_runs[0].id // empty')"
+  # Guarded the same way as gh_ok. A well-typed array holding a malformed
+  # element would jq-error here and leave an empty string — a fourth state that
+  # is neither failure, success, none nor unknown, and which falls through to
+  # the same defaults as a confirmed "none". Default it to unknown instead.
+  nightly_concl="$(printf '%s' "$nightly" | jq -r '.workflow_runs[0].conclusion // "none"' 2>/dev/null)"
+  [[ -n "$nightly_concl" ]] || nightly_concl="unknown"
+  nightly_id="$(printf '%s' "$nightly" | jq -r '.workflow_runs[0].id // empty' 2>/dev/null)"
 fi
 
 failing_step="unknown"
@@ -874,9 +918,11 @@ else
     l="$(printf '%s' "$d" | jq -r '.layer')"
     m="$(printf '%s' "$d" | jq -r '.module')"
     if [[ "$nightly_concl" == "unknown" ]]; then
-      # Do not claim a cause GitHub never confirmed. The missing data is real;
-      # the reason is not established, and the issue must say so.
-      cat_name="schedule-broken"; suffix="unattributed"
+      # Its own category, not schedule-broken. schedule-broken asserts a
+      # specific claim — that the run was never scheduled — and a consumer
+      # keying on `category` rather than reading the prose would receive a
+      # confident diagnosis this finding's own text refuses to make.
+      cat_name="silence-unattributed"; suffix="unattributed"
       head_txt="${l}/${m}: no launch in the last 26h, cause undetermined"
       det="ReportPortal holds no recent launch for this module. The GitHub Actions API could not be queried, so whether the run failed, never ran, or ran without reporting is undetermined."
     elif [[ "$nightly_concl" == "success" ]]; then
@@ -903,7 +949,7 @@ fi
 ./docs/routines/test-health/test-health-digest.test.sh
 ```
 
-Expected: `passed: 28  failed: 0`, exit 0.
+Expected: `passed: 33  failed: 0`, exit 0.
 
 - [ ] **Step 5: Commit**
 
@@ -935,6 +981,13 @@ Create the three fixture sets:
 - `fixtures/shrank/` — one module, two launches, `statistics.executions.total` of `20` on the older three and `14` on the newest (30% drop, both `PASSED`).
 - `fixtures/regression/` — one module, four nightly launches; the newest two both list the same failed item `catalog.spec.ts > filters by product type` with error `TimeoutError: locator.click: Timeout 30000ms exceeded`, the older two list none.
 - `fixtures/flaky/` — one module, four launches; the same test fails in launches 1 and 3 only (pass rate 50%, 2+ flips).
+- `fixtures/two-errors/` — one module, four launches; the newest two each carry **two** failed items for two different tests, with structurally similar but numerically different errors: `AssertionError: expected list length 12 to equal 8` and `AssertionError: expected list length 47 to equal 3`. Both are regressions, and they must hash differently.
+- `fixtures/chronic/` — one module, **seven** launches spanning the window with the newest inside 26h, the same test failing in every one.
+- `fixtures/big-numbers/` — one module, four launches; the newest two each carry two failed items for two different tests whose errors contain different 8+ digit **decimal** values, e.g. `expected 123456789 to equal 3` and `expected 987654321 to equal 3`. They must hash differently.
+- `fixtures/chronic-thin/` — one module, exactly two launches, the same test failing in both. Below the `n>=3` floor, so no chronic finding.
+- `fixtures/self-healed/` — one module, five launches; the same test fails in the two **oldest** only and passes in the newest three. `k=2` but `recent_fails=0` and `flips=1`, so it is neither a regression nor flaky.
+
+Every fixture's newest launch must sit within 26h of `TEST_HEALTH_NOW_MS=1785030000000`, or the E2E freshness check classifies the module as missing data before any of this logic runs.
 
 Append to `test-health-digest.test.sh`:
 
@@ -958,6 +1011,36 @@ a="$(RP_FIXTURE_DIR="${FIX}/regression" GH_FIXTURE_DIR="${FIX}/regression" "$D" 
 b="$(RP_FIXTURE_DIR="${FIX}/regression" GH_FIXTURE_DIR="${FIX}/regression" "$D" --days 7 2>&1 | grep -o 'test-regress:[^ `]*' | head -1)"
 check "fingerprint is stable across runs" "$a" "$b"
 
+# --- two different errors must NOT collide into one fingerprint ---
+# The regression fingerprint carries no test path, so a normalization that
+# over-generalises makes two distinct regressions in one module share an id and
+# dedup silently drops the second.
+out="$(RP_FIXTURE_DIR="${FIX}/two-errors" GH_FIXTURE_DIR="${FIX}/two-errors" "$D" --days 7 2>&1)"
+n="$(printf '%s\n' "$out" | grep -o 'test-regress:[^ `]*' | sort -u | grep -c .)"
+check "two different errors get two fingerprints" "2" "$n"
+
+# --- an 8+ digit DECIMAL must not be normalized like a hex id ---
+out="$(RP_FIXTURE_DIR="${FIX}/big-numbers" GH_FIXTURE_DIR="${FIX}/big-numbers" "$D" --days 7 2>&1)"
+n="$(printf '%s\n' "$out" | grep -o 'test-regress:[^ `]*' | sort -u | grep -c .)"
+check "large decimals do not collide into one fingerprint" "2" "$n"
+
+# --- chronic: red in every run held ---
+out="$(RP_FIXTURE_DIR="${FIX}/chronic" GH_FIXTURE_DIR="${FIX}/chronic" "$D" --days 7 2>&1)"
+check "chronic is detected" "yes" "$(contains 'test-chronic:e2e:catalog:' "$out")"
+check "chronic is not also called flaky" "no" "$(contains 'test-flaky:' "$out")"
+check "chronic reports a measured span, not a claimed week" "no" "$(contains 'for a week' "$out")"
+
+# --- thin history is not chronic: two launches is not "every run" evidence ---
+out="$(RP_FIXTURE_DIR="${FIX}/chronic-thin" GH_FIXTURE_DIR="${FIX}/chronic-thin" "$D" --days 7 2>&1)"
+check "two all-red launches are not called chronic" "no" "$(contains 'test-chronic:' "$out")"
+
+# --- a self-healed test is neither flaky nor a regression ---
+# Failed the two oldest runs, green ever since: one flip, and the failures are
+# not recent. Filing this would be a pull request to fix an already-fixed test.
+out="$(RP_FIXTURE_DIR="${FIX}/self-healed" GH_FIXTURE_DIR="${FIX}/self-healed" "$D" --days 7 2>&1)"
+check "self-healed test is not flagged flaky" "no" "$(contains 'test-flaky:' "$out")"
+check "self-healed test is not flagged a regression" "no" "$(contains 'test-regress:' "$out")"
+
 # --- the cap is enforced and stated, never silent ---
 out="$(RP_FIXTURE_DIR="${FIX}/regression" GH_FIXTURE_DIR="${FIX}/regression" "$D" --days 7 2>&1)"
 check "digest states the cap" "yes" "$(contains 'CAP: 5' "$out")"
@@ -969,7 +1052,7 @@ check "digest states the cap" "yes" "$(contains 'CAP: 5' "$out")"
 ./docs/routines/test-health/test-health-digest.test.sh
 ```
 
-Expected: the seven new checks FAIL; the twenty-eight prior checks still pass.
+Expected: the sixteen new checks FAIL; the thirty-three prior checks still pass.
 
 - [ ] **Step 3: Write minimal implementation**
 
@@ -1001,9 +1084,22 @@ done
 # --- per-test history from failed-item set membership ---
 # normalize: strip line/col numbers, hex ids, timestamps and ms durations so the
 # same root cause hashes identically across runs.
+# Neutralise only what genuinely varies run-to-run. There is deliberately NO
+# blanket digit rule: `s/[0-9]+/<n>/g` would fold "expected length 12 to equal 8"
+# and "expected length 47 to equal 3" into one string and therefore one hash.
+# Since the regression/chronic fingerprint carries no test path — by design, so
+# one broken fixture across fifteen specs clusters into one issue — that
+# collision would make two different regressions in the same module share a
+# fingerprint, and dedup would silently drop the second.
+# The hex-id rule must require an actual hex letter. `[0-9a-f]{8,}` matches any
+# 8+ digit DECIMAL too, since 0-9 is a subset of 0-9a-f — so "expected 123456789"
+# and "expected 987654321" both become "expected <id>" and collide. perl's
+# lookahead expresses "8+ hex chars, at least one of them a letter" exactly;
+# sed's ERE cannot, and perl is present on every macOS host.
 normalize_error() {
   printf '%s' "$1" \
-    | sed -E 's/[0-9]+ms/<ms>/g; s/:[0-9]+:[0-9]+/:<pos>/g; s/[0-9a-f]{8,}/<id>/gi; s/[0-9]{4}-[0-9]{2}-[0-9]{2}[T ][0-9:.]+/<ts>/g; s/[0-9]+/<n>/g' \
+    | sed -E 's/[0-9]+ms/<ms>/g; s/:[0-9]+:[0-9]+/:<pos>/g; s/[0-9]{4}-[0-9]{2}-[0-9]{2}[T ][0-9:.]+/<ts>/g' \
+    | perl -pe 's/\b(?=[0-9a-f]{8,}\b)(?=[0-9a-f]*[a-f])[0-9a-f]+\b/<id>/gi' \
     | cut -c1-200
 }
 
@@ -1015,38 +1111,82 @@ for key in $(printf '%s' "$launches" | jq -r '[ .[] | .layer + "/" + .module ] |
   n="$(printf '%s\n' "$ids" | grep -c .)"
   [[ "$n" -ge 2 ]] || continue
 
+  # Real elapsed days between this module's oldest and newest launch, so a
+  # finding can report the span it actually observed rather than inferring one
+  # from a run count.
+  span_days="$(printf '%s' "$launches" | jq --arg l "$l" --arg m "$m" \
+    '[ .[] | select(.layer==$l and .module==$m) | .startTime ]
+     | ((max - min) / 86400000) | floor')"
+
   tests="$(printf '%s' "$failed_items" | jq -r --argjson ids "$(printf '%s\n' "$ids" | jq -R . | jq -s 'map(tonumber)')" \
     '[ .[] | select(.launchId as $x | $ids | index($x)) | (.path + " > " + .name) ] | unique | .[]')"
 
   newest_two="$(printf '%s\n' "$ids" | head -2)"
   while IFS= read -r t; do
     [[ -n "$t" ]] || continue
-    k=0; recent_fails=0
+    k=0; recent_fails=0; seq=""
     for id in $ids; do
       hit="$(printf '%s' "$failed_items" | jq --argjson i "$id" --arg t "$t" \
         '[ .[] | select(.launchId==$i and (.path + " > " + .name)==$t) ] | length')"
-      [[ "$hit" -gt 0 ]] && k=$((k+1))
-      case "$newest_two" in *"$id"*) [[ "$hit" -gt 0 ]] && recent_fails=$((recent_fails+1)) ;; esac
+      if [[ "$hit" -gt 0 ]]; then
+        k=$((k+1)); seq="${seq}1"
+        # Exact-line match, never a glob. `case $newest_two in *"$id"*` counts
+        # launch 42 as one of the newest two whenever a newest id merely
+        # contains "42" — 4200, 1042. ReportPortal ids are dense sequential
+        # integers, so that misfiles regressions routinely in production while
+        # every fixture using small ids passes green.
+        if printf '%s\n' "$newest_two" | grep -qxF "$id"; then
+          recent_fails=$((recent_fails+1))
+        fi
+      else
+        seq="${seq}0"
+      fi
     done
+
+    # Count status transitions across the window. Flaky means *alternating*,
+    # not merely "sometimes red". A test that failed the two oldest runs and has
+    # passed ever since has one flip and has already healed — filing it as flaky
+    # produces a pull request to fix nothing.
+    flips="$(printf '%s' "$seq" | awk '{n=0; for(i=2;i<=length($0);i++) if(substr($0,i,1)!=substr($0,i-1,1)) n++; print n+0}')"
     err_line="$(printf '%s' "$failed_items" | jq -r --arg t "$t" \
       'map(select((.path + " > " + .name)==$t)) | .[0].error // ""')"
     norm="$(normalize_error "$err_line")"
     hash8="$(printf '%s' "$norm" | shasum -a 256 | cut -c1-8)"
     pass_pct=$(( (n - k) * 100 / n ))
 
-    if [[ "$k" -eq "$n" && "$n" -ge 7 ]]; then
-      add_finding "$(jq -n --arg l "$l" --arg m "$m" --arg h "$hash8" --arg t "$t" --arg e "$err_line" '{
+    # Chronic means "red in every run we have", not "red in seven runs". A
+    # launch count is only a calendar week for the nightly E2E layer; backend
+    # and frontend report per push to main, where seven launches can be a single
+    # afternoon — filing an issue headlined "for a week" that is simply false —
+    # or never accumulate at all in a quiet week, leaving a permanently red test
+    # re-filed as a fresh regression forever. The headline states the real span
+    # and run count instead of asserting a duration it has not measured.
+    if [[ "$k" -eq "$n" && "$n" -ge 3 ]]; then
+      add_finding "$(jq -n --arg l "$l" --arg m "$m" --arg h "$hash8" --arg t "$t" --arg e "$err_line" \
+                            --argjson n "$n" --argjson sd "$span_days" '{
         category: "chronic", layer: $l, module: $m,
         fingerprint: ("test-chronic:" + $l + ":" + $m + ":" + $h),
-        headline: ($l + "/" + $m + ": \"" + $t + "\" has failed every run for a week"),
-        detail: ("First error line: " + $e) }')"
+        headline: ($l + "/" + $m + ": \"" + $t + "\" failed all " + ($n|tostring) + " runs in the window (spanning " + ($sd|tostring) + " days)"),
+        detail: ("Red in every launch held for this module — no passing run to compare against. First error line: " + $e) }')"
     elif [[ "$recent_fails" -eq 2 && "$k" -eq 2 ]]; then
-      add_finding "$(jq -n --arg l "$l" --arg m "$m" --arg h "$hash8" --arg t "$t" --arg e "$err_line" '{
+      # Claim a prior pass only when one was observed. At n=2 the entire window
+      # is red, so "passed earlier" would assert evidence we do not hold — the
+      # same overclaim as the chronic headline that used to say "for a week".
+      if [[ "$k" -eq "$n" ]]; then
+        reg_detail="No passing run observed: all ${n} launches held for this module are red, which is too thin a history to call it chronic."
+      else
+        reg_detail="Passed earlier in the window, now failing."
+      fi
+      add_finding "$(jq -n --arg l "$l" --arg m "$m" --arg h "$hash8" --arg t "$t" --arg e "$err_line" --arg d "$reg_detail" '{
         category: "regression", layer: $l, module: $m,
         fingerprint: ("test-regress:" + $l + ":" + $m + ":" + $h),
         headline: ($l + "/" + $m + ": \"" + $t + "\" newly fails two runs running"),
-        detail: ("Passed earlier in the window, now failing. First error line: " + $e) }')"
-    elif [[ "$k" -gt 0 && "$k" -lt "$n" && "$pass_pct" -ge 20 && "$pass_pct" -le 80 ]]; then
+        detail: ($d + " First error line: " + $e) }')"
+    # Compare without pre-dividing: pass_pct floors, so `pass_pct <= 80` admits
+    # true rates up to 80.99% into the band. pass_pct is kept for the headline.
+    elif [[ "$k" -gt 0 && "$k" -lt "$n" && "$flips" -ge 2 \
+            && $(( (n - k) * 100 )) -ge $(( 20 * n )) \
+            && $(( (n - k) * 100 )) -le $(( 80 * n )) ]]; then
       add_finding "$(jq -n --arg l "$l" --arg m "$m" --arg t "$t" --argjson p "$pass_pct" --arg e "$err_line" '{
         category: "flaky", layer: $l, module: $m,
         fingerprint: ("test-flaky:" + $l + ":" + $m + ":" + $t),
@@ -1059,8 +1199,9 @@ done
 # Priority order for the cap, so infrastructure faults are never crowded out by
 # a pile of flaky tests.
 findings="$(printf '%s' "$findings" | jq '
-  def rank: { "ci-broken":0, "schedule-broken":1, "rp-reporting-broken":2,
-              "regression":3, "suite-shrank":4, "flaky":5, "chronic":6 }[.category] // 9;
+  def rank: { "ci-broken":0, "schedule-broken":1, "silence-unattributed":2,
+              "rp-reporting-broken":3, "regression":4, "suite-shrank":5,
+              "flaky":6, "chronic":7 }[.category] // 9;
   sort_by(rank)')"
 ```
 
@@ -1077,7 +1218,7 @@ echo "CAP: ${CAP} (file at most this many issues; report every finding you skip 
 ./docs/routines/test-health/test-health-digest.test.sh
 ```
 
-Expected: `passed: 35  failed: 0`, exit 0.
+Expected: `passed: 49  failed: 0`, exit 0.
 
 - [ ] **Step 5: Commit**
 
@@ -1117,9 +1258,9 @@ Create `docs/routines/test-health/README.md` containing, in this order:
    | E2E freshness horizon | 26h |
    | Issues per run | ≤5 |
 
-5. **What it flags** — the seven categories with their rules, copied from the spec.
+5. **What it flags** — the eight categories with their rules, copied from the spec.
 6. **What it skips** — RP status `SKIPPED`, non-`main` branches, fixes merged in-window, matching open issues, issues closed `not_planned`, layer/modules with no baseline, and the cascade rule.
-7. **Fingerprint table** — all seven fingerprints exactly as in the spec.
+7. **Fingerprint table** — all eight fingerprints exactly as in the spec.
 8. **Dedup decision table** — the four rows from the spec.
 9. **Issue contract** — title format, label mapping table, first-line fingerprint rule, required body sections.
 10. **The fix contract** — reproduce the block verbatim from the spec, including "A PR that reduces the total test count for this module is wrong by construction," and the `test-infra` clause stating that resolution needs a human.
