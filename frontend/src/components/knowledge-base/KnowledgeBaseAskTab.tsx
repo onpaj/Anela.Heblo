@@ -34,10 +34,10 @@ const SourceAccordion: React.FC<SourceAccordionProps> = ({ sources, onViewSource
                 <span className="text-sm font-medium text-gray-700 dark:text-graphite-muted">{src.filename}</span>
                 <div className="flex items-center gap-2">
                   <span className="text-xs text-gray-400 dark:text-graphite-faint">
-                    {Math.round(src.score * 100)}%
+                    {Math.round((src.score ?? 0) * 100)}%
                   </span>
                   <button
-                    onClick={() => onViewSource(src.chunkId, src.score)}
+                    onClick={() => onViewSource(src.chunkId ?? '', src.score ?? 0)}
                     className="flex items-center gap-1 text-xs text-blue-600 dark:text-blue-400 hover:text-blue-800"
                     aria-label={`Zobrazit zdroj ${src.filename}`}
                   >
@@ -112,9 +112,9 @@ const KnowledgeBaseAskTab: React.FC = () => {
       {ask.data && (
         <div className="space-y-4">
           <div className="bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-900/30 rounded-lg p-4 prose prose-sm prose-blue max-w-none">
-            <ReactMarkdown>{ask.data.answer}</ReactMarkdown>
+            <ReactMarkdown>{ask.data.answer ?? ''}</ReactMarkdown>
           </div>
-          <SourceAccordion sources={ask.data.sources} onViewSource={handleViewSource} />
+          <SourceAccordion sources={ask.data.sources ?? []} onViewSource={handleViewSource} />
         </div>
       )}
 
