@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Anela.Heblo.API.Infrastructure.Json;
 using Anela.Heblo.API.MCP.Tools;
 using Anela.Heblo.Application.Features.Manufacture.UseCases.CalculateBatchBySize;
 using Anela.Heblo.Application.Features.Manufacture.UseCases.CalculateBatchByIngredient;
@@ -47,7 +48,7 @@ public class ManufactureBatchMcpToolsTests
             default
         ), Times.Once);
 
-        var deserialized = JsonSerializer.Deserialize<CalculatedBatchSizeResponse>(jsonResult);
+        var deserialized = JsonSerializer.Deserialize<CalculatedBatchSizeResponse>(jsonResult, McpJsonOptions.Default);
         Assert.NotNull(deserialized);
         Assert.True(deserialized.Success);
     }
@@ -94,7 +95,7 @@ public class ManufactureBatchMcpToolsTests
             default
         ), Times.Once);
 
-        var deserialized = JsonSerializer.Deserialize<CalculatedBatchSizeResponse>(jsonResult);
+        var deserialized = JsonSerializer.Deserialize<CalculatedBatchSizeResponse>(jsonResult, McpJsonOptions.Default);
         Assert.NotNull(deserialized);
         Assert.True(deserialized.Success);
     }
@@ -144,7 +145,7 @@ public class ManufactureBatchMcpToolsTests
             default
         ), Times.Once);
 
-        var deserialized = JsonSerializer.Deserialize<CalculateBatchByIngredientResponse>(jsonResult);
+        var deserialized = JsonSerializer.Deserialize<CalculateBatchByIngredientResponse>(jsonResult, McpJsonOptions.Default);
         Assert.NotNull(deserialized);
         Assert.True(deserialized.Success);
     }
@@ -193,7 +194,7 @@ public class ManufactureBatchMcpToolsTests
             default
         ), Times.Once);
 
-        var deserialized = JsonSerializer.Deserialize<CalculateBatchPlanResponse>(jsonResult);
+        var deserialized = JsonSerializer.Deserialize<CalculateBatchPlanResponse>(jsonResult, McpJsonOptions.Default);
         Assert.NotNull(deserialized);
         Assert.True(deserialized.Success);
     }

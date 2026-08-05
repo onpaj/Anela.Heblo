@@ -102,6 +102,22 @@ public class RemoveItemFromBoxHandler : IRequestHandler<RemoveItemFromBoxRequest
                 TransportBox = transportBoxDto
             };
         }
+        catch (TransportBoxInvalidStateTransitionException ex)
+        {
+            _logger.LogWarning("Invalid state for removing item from transport box {BoxId}: {Message}",
+                request.BoxId, ex.Message);
+
+            return new RemoveItemFromBoxResponse
+            {
+                Success = false,
+                ErrorCode = ErrorCodes.TransportBoxInvalidStateTransition,
+                Params = new Dictionary<string, string>
+                {
+                    { "currentState", ex.CurrentState.ToString() },
+                    { "allowedStates", string.Join(", ", ex.AllowedStates) }
+                }
+            };
+        }
         catch (ValidationException ex)
         {
             _logger.LogWarning("Validation error removing item from transport box {BoxId}: {Error}",
