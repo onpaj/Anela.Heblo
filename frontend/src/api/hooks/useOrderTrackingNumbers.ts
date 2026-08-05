@@ -1,22 +1,12 @@
 import { useQuery } from '@tanstack/react-query';
 import { getAuthenticatedApiClient, QUERY_KEYS } from '../client';
 
-interface ApiClientWithInternals {
-  baseUrl: string;
-  http: { fetch(url: RequestInfo, init?: RequestInit): Promise<Response> };
-}
-
 const fetchOrderTrackingNumbers = async (orderCode: string): Promise<string[]> => {
   try {
-    const apiClient = getAuthenticatedApiClient(false) as unknown as ApiClientWithInternals;
-    const response = await apiClient.http.fetch(
-      `${apiClient.baseUrl}/api/packaging/orders/${encodeURIComponent(orderCode)}/tracking-numbers`,
-    );
-    if (!response.ok) return [];
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const data = (await response.json()) as any;
-    if (!data.success) return [];
-    return (data.trackingNumbers as string[] | null) ?? [];
+    const apiClient = getAuthenticatedApiClient(false);
+    const response = await apiClient.packaging_GetOrderTrackingNumbers(orderCode);
+    if (!response.success) return [];
+    return response.trackingNumbers ?? [];
   } catch {
     return [];
   }
