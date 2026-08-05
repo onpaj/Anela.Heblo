@@ -4,6 +4,7 @@ using Anela.Heblo.Adapters.Anthropic;
 using Anela.Heblo.Adapters.Smartsupp;
 using Anela.Heblo.Adapters.Azure;
 using Anela.Heblo.Adapters.HomeAssistant;
+using Anela.Heblo.Adapters.Logeto;
 using Anela.Heblo.Adapters.Microsoft365;
 using Anela.Heblo.Adapters.OrgChart;
 using Anela.Heblo.Adapters.OpenMeteo;
@@ -123,6 +124,7 @@ public partial class Program
         builder.Services.AddSendGridAdapter(builder.Configuration);
         builder.Services.AddHomeAssistantAdapter(builder.Configuration);
         builder.Services.AddOpenMeteoAdapter(builder.Configuration);
+        builder.Services.AddLogetoAdapter(builder.Configuration);
         builder.Services.AddPlaudAdapter(builder.Configuration);
         builder.Services.AddMicrosoft365Adapter(builder.Configuration);
         builder.Services.AddOrgChartAdapter();
