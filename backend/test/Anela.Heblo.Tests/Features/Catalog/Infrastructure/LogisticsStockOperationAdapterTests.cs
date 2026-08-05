@@ -25,6 +25,16 @@ public class LogisticsStockOperationAdapterTests
                 It.IsAny<int>(),
                 It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
+
+        _service
+            .Setup(s => s.StageOperationAsync(
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<int>(),
+                It.IsAny<StockUpSourceType>(),
+                It.IsAny<int>(),
+                It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
     }
 
     [Fact]
@@ -85,6 +95,52 @@ public class LogisticsStockOperationAdapterTests
         var unknownSource = (LogisticsStockOperationSource)999;
 
         var act = () => CreateAdapter().CreateOperationAsync(
+            "DOC-1", "PROD-1", 1, unknownSource, 0);
+
+        await act.Should().ThrowAsync<ArgumentOutOfRangeException>();
+    }
+
+    [Fact]
+    public async Task StageOperationAsync_WithTransportBoxSource_DelegatesToServiceWithCorrectEnum()
+    {
+        SetupServiceReturnsCompleted();
+
+        await CreateAdapter().StageOperationAsync(
+            "DOC-1", "PROD-1", 5, LogisticsStockOperationSource.TransportBox, 10);
+
+        _service.Verify(s => s.StageOperationAsync(
+            It.IsAny<string>(),
+            It.IsAny<string>(),
+            It.IsAny<int>(),
+            StockUpSourceType.TransportBox,
+            It.IsAny<int>(),
+            It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task StageOperationAsync_PassesThroughAllParameters()
+    {
+        var ct = new CancellationToken(false);
+        SetupServiceReturnsCompleted();
+
+        await CreateAdapter().StageOperationAsync(
+            "DOC-42", "SET-99", 7, LogisticsStockOperationSource.TransportBox, 55, ct);
+
+        _service.Verify(s => s.StageOperationAsync(
+            "DOC-42",
+            "SET-99",
+            7,
+            StockUpSourceType.TransportBox,
+            55,
+            ct), Times.Once);
+    }
+
+    [Fact]
+    public async Task StageOperationAsync_WithUnknownSource_ThrowsArgumentOutOfRangeException()
+    {
+        var unknownSource = (LogisticsStockOperationSource)999;
+
+        var act = () => CreateAdapter().StageOperationAsync(
             "DOC-1", "PROD-1", 1, unknownSource, 0);
 
         await act.Should().ThrowAsync<ArgumentOutOfRangeException>();

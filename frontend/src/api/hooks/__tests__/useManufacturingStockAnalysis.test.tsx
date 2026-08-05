@@ -1,46 +1,26 @@
 import { renderHook, waitFor } from "@testing-library/react";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import React from "react";
 import {
   useManufacturingStockAnalysisQuery,
   TimePeriodFilter,
+  ManufacturingStockSortBy,
   calculateTimePeriodRange,
   formatWarehouseStock,
 } from "../useManufacturingStockAnalysis";
-import { getAuthenticatedApiClient } from "../../client";
+import {
+  mockAuthenticatedApiClient,
+  createQueryClientWrapper,
+} from "../../testUtils";
 
-// Mock the API client
 jest.mock("../../client");
-const mockGetAuthenticatedApiClient =
-  getAuthenticatedApiClient as jest.MockedFunction<
-    typeof getAuthenticatedApiClient
-  >;
-
-const createWrapper = () => {
-  const queryClient = new QueryClient({
-    defaultOptions: {
-      queries: {
-        retry: false,
-      },
-    },
-  });
-
-  return ({ children }: { children: React.ReactNode }) => (
-    <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
-  );
-};
 
 describe("useManufacturingStockAnalysisQuery", () => {
+  let mockClient: { manufacturingStockAnalysis_GetStockAnalysis: jest.Mock };
+
   beforeEach(() => {
     jest.clearAllMocks();
+    mockClient = { manufacturingStockAnalysis_GetStockAnalysis: jest.fn() };
+    mockAuthenticatedApiClient(mockClient);
   });
-
-  const mockApiClient = {
-    http: {
-      fetch: jest.fn(),
-    },
-    baseUrl: "http://localhost:5001",
-  };
 
   const mockResponse = {
     items: [
@@ -76,64 +56,12 @@ describe("useManufacturingStockAnalysisQuery", () => {
     pageSize: 20,
   };
 
-  it("fetches manufacturing stock analysis data successfully", async () => {
-    mockGetAuthenticatedApiClient.mockResolvedValue(mockApiClient as any);
-    mockApiClient.http.fetch.mockResolvedValue({
-      ok: true,
-      json: async () => mockResponse,
-    } as any);
-
-    const { result } = renderHook(
-      () =>
-        useManufacturingStockAnalysisQuery({
-          timePeriod: TimePeriodFilter.PreviousQuarter,
-          pageNumber: 1,
-          pageSize: 20,
-        }),
-      { wrapper: createWrapper() },
+  it("calls manufacturingStockAnalysis_GetStockAnalysis with params in exact declared positional order", async () => {
+    mockClient.manufacturingStockAnalysis_GetStockAnalysis.mockResolvedValue(
+      mockResponse,
     );
 
-    await waitFor(() => {
-      expect(result.current.isLoading).toBe(false);
-    });
-
-    expect(result.current.data).toEqual(mockResponse);
-    expect(result.current.error).toBeNull();
-  });
-
-  it("handles API errors correctly", async () => {
-    mockGetAuthenticatedApiClient.mockResolvedValue(mockApiClient as any);
-    mockApiClient.http.fetch.mockResolvedValue({
-      ok: false,
-      status: 500,
-      statusText: "Internal Server Error",
-    } as any);
-
-    const { result } = renderHook(
-      () =>
-        useManufacturingStockAnalysisQuery({
-          timePeriod: TimePeriodFilter.PreviousQuarter,
-          pageNumber: 1,
-          pageSize: 20,
-        }),
-      { wrapper: createWrapper() },
-    );
-
-    await waitFor(() => {
-      expect(result.current.isLoading).toBe(false);
-    });
-
-    expect(result.current.error).toBeTruthy();
-    expect(result.current.data).toBeUndefined();
-  });
-
-  it("constructs correct API URL with parameters", async () => {
-    mockGetAuthenticatedApiClient.mockResolvedValue(mockApiClient as any);
-    mockApiClient.http.fetch.mockResolvedValue({
-      ok: true,
-      json: async () => mockResponse,
-    });
-
+    const { wrapper } = createQueryClientWrapper();
     const { result } = renderHook(
       () =>
         useManufacturingStockAnalysisQuery({
@@ -143,63 +71,46 @@ describe("useManufacturingStockAnalysisQuery", () => {
           searchTerm: "test",
           criticalItemsOnly: true,
           productFamily: "TestFamily",
+          sortBy: ManufacturingStockSortBy.CurrentStock,
+          sortDescending: true,
+          salesMultiplier: 1.5,
         }),
-      { wrapper: createWrapper() },
+      { wrapper },
     );
 
-    await waitFor(() => {
-      expect(result.current.isLoading).toBe(false);
-    });
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
-    // Check that the URL contains all expected parameters
-    const callArgs = mockApiClient.http.fetch.mock.calls[0];
-    const url = callArgs[0] as string;
-    expect(url).toContain(
-      "http://localhost:5001/api/manufacturing-stock-analysis",
+    // Argument order guards against the positional-transposition risk flagged in
+    // arch-review.r1.md's risk table (e.g. swapping pageNumber/pageSize, or the four
+    // *ItemsOnly booleans).
+    expect(
+      mockClient.manufacturingStockAnalysis_GetStockAnalysis,
+    ).toHaveBeenCalledWith(
+      "PreviousQuarter", // timePeriod
+      undefined, // customFromDate
+      undefined, // customToDate
+      "TestFamily", // productFamily
+      true, // criticalItemsOnly
+      undefined, // majorItemsOnly
+      undefined, // adequateItemsOnly
+      undefined, // unconfiguredOnly
+      "test", // searchTerm
+      2, // pageNumber
+      10, // pageSize
+      "CurrentStock", // sortBy
+      true, // sortDescending
+      1.5, // salesMultiplier
+      false, // isExport
     );
-    expect(url).toContain("pageNumber=2");
-    expect(url).toContain("pageSize=10");
-    expect(url).toContain("searchTerm=test");
-    expect(url).toContain("criticalItemsOnly=true");
-    expect(url).toContain("productFamily=TestFamily");
-    expect(callArgs[1]).toEqual({
-      method: "GET",
-      headers: { Accept: "application/json" },
-    });
+    expect(result.current.data).toEqual(mockResponse);
   });
 
-  it("omits timePeriod param when it equals Q9M (default)", async () => {
-    mockGetAuthenticatedApiClient.mockResolvedValue(mockApiClient as any);
-    mockApiClient.http.fetch.mockResolvedValue({
-      ok: true,
-      json: async () => mockResponse,
-    } as any);
-
-    const { result } = renderHook(
-      () =>
-        useManufacturingStockAnalysisQuery({
-          timePeriod: TimePeriodFilter.Q9M,
-          pageNumber: 1,
-          pageSize: 20,
-        }),
-      { wrapper: createWrapper() },
+  it("handles API errors correctly", async () => {
+    mockClient.manufacturingStockAnalysis_GetStockAnalysis.mockRejectedValue(
+      new Error("An unexpected server error occurred."),
     );
 
-    await waitFor(() => {
-      expect(result.current.isLoading).toBe(false);
-    });
-
-    const url = mockApiClient.http.fetch.mock.calls[0][0] as string;
-    expect(url).not.toContain("timePeriod=");
-  });
-
-  it("includes timePeriod param for non-default periods", async () => {
-    mockGetAuthenticatedApiClient.mockResolvedValue(mockApiClient as any);
-    mockApiClient.http.fetch.mockResolvedValue({
-      ok: true,
-      json: async () => mockResponse,
-    } as any);
-
+    const { wrapper } = createQueryClientWrapper();
     const { result } = renderHook(
       () =>
         useManufacturingStockAnalysisQuery({
@@ -207,27 +118,69 @@ describe("useManufacturingStockAnalysisQuery", () => {
           pageNumber: 1,
           pageSize: 20,
         }),
-      { wrapper: createWrapper() },
+      { wrapper },
     );
 
-    await waitFor(() => {
-      expect(result.current.isLoading).toBe(false);
-    });
+    await waitFor(() => expect(result.current.isError).toBe(true));
 
-    const url = mockApiClient.http.fetch.mock.calls[0][0] as string;
-    expect(url).toContain("timePeriod=PreviousQuarter");
+    expect(result.current.error).toBeTruthy();
+    expect(result.current.data).toBeUndefined();
   });
 
-  it("handles custom time period with dates", async () => {
+  it("omits timePeriod param when it equals Q9M (default)", async () => {
+    mockClient.manufacturingStockAnalysis_GetStockAnalysis.mockResolvedValue(
+      mockResponse,
+    );
+
+    const { wrapper } = createQueryClientWrapper();
+    const { result } = renderHook(
+      () =>
+        useManufacturingStockAnalysisQuery({
+          timePeriod: TimePeriodFilter.Q9M,
+          pageNumber: 1,
+          pageSize: 20,
+        }),
+      { wrapper },
+    );
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+
+    const timePeriodArg =
+      mockClient.manufacturingStockAnalysis_GetStockAnalysis.mock.calls[0][0];
+    expect(timePeriodArg).toBeUndefined();
+  });
+
+  it("includes timePeriod param for non-default periods", async () => {
+    mockClient.manufacturingStockAnalysis_GetStockAnalysis.mockResolvedValue(
+      mockResponse,
+    );
+
+    const { wrapper } = createQueryClientWrapper();
+    const { result } = renderHook(
+      () =>
+        useManufacturingStockAnalysisQuery({
+          timePeriod: TimePeriodFilter.PreviousQuarter,
+          pageNumber: 1,
+          pageSize: 20,
+        }),
+      { wrapper },
+    );
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+
+    const timePeriodArg =
+      mockClient.manufacturingStockAnalysis_GetStockAnalysis.mock.calls[0][0];
+    expect(timePeriodArg).toBe("PreviousQuarter");
+  });
+
+  it("passes customFromDate/customToDate through as Date objects for CustomPeriod", async () => {
     const customFromDate = new Date("2023-01-01");
     const customToDate = new Date("2023-03-31");
+    mockClient.manufacturingStockAnalysis_GetStockAnalysis.mockResolvedValue(
+      mockResponse,
+    );
 
-    mockGetAuthenticatedApiClient.mockResolvedValue(mockApiClient as any);
-    mockApiClient.http.fetch.mockResolvedValue({
-      ok: true,
-      json: async () => mockResponse,
-    } as any);
-
+    const { wrapper } = createQueryClientWrapper();
     const { result } = renderHook(
       () =>
         useManufacturingStockAnalysisQuery({
@@ -237,23 +190,29 @@ describe("useManufacturingStockAnalysisQuery", () => {
           pageNumber: 1,
           pageSize: 20,
         }),
-      { wrapper: createWrapper() },
+      { wrapper },
     );
 
-    await waitFor(() => {
-      expect(result.current.isLoading).toBe(false);
-    });
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
-    expect(mockApiClient.http.fetch).toHaveBeenCalledWith(
-      expect.stringContaining("customFromDate=2023-01-01"),
-      expect.objectContaining({
-        method: "GET",
-        headers: { Accept: "application/json" },
-      }),
-    );
-    expect(mockApiClient.http.fetch).toHaveBeenCalledWith(
-      expect.stringContaining("customToDate=2023-03-31"),
-      expect.any(Object),
+    expect(
+      mockClient.manufacturingStockAnalysis_GetStockAnalysis,
+    ).toHaveBeenCalledWith(
+      "CustomPeriod",
+      customFromDate,
+      customToDate,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      1,
+      20,
+      undefined,
+      undefined,
+      undefined,
+      false,
     );
   });
 });

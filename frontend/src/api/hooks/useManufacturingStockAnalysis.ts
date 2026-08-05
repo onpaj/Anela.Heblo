@@ -6,9 +6,27 @@ import {
   getTimePeriodDisplayText,
   type DateRange,
 } from "../../utils/timePeriod";
+import {
+  TimePeriod as GeneratedTimePeriod,
+  GetManufacturingStockAnalysisResponse,
+  ManufacturingStockItemDto,
+  ManufacturingStockSummaryDto,
+  ManufacturingStockSeverity,
+  ManufacturingStockSortBy,
+} from "../generated/api-client";
 
 export { TimePeriod as TimePeriodFilter };
 export { getTimePeriodDisplayText };
+
+// Re-exported so existing consumers (ManufacturingStockAnalysis.tsx, ManufactureBatchPlanning.tsx)
+// keep importing types/enums from this hook module unchanged, per spec FR-4 / arch-review Decision 1.
+export {
+  GetManufacturingStockAnalysisResponse,
+  ManufacturingStockItemDto,
+  ManufacturingStockSummaryDto,
+  ManufacturingStockSeverity,
+  ManufacturingStockSortBy,
+};
 
 export function calculateTimePeriodRange(
   period: TimePeriod,
@@ -24,7 +42,11 @@ export function calculateTimePeriodRange(
   };
 }
 
-// Define types for the manufacturing stock analysis API
+// Request shape accepted by the query hook. The generated client method takes positional scalar
+// arguments (not a request object), so this local interface remains the hook's public parameter
+// contract. `sortBy` types against the generated enum; `timePeriod` stays typed against the
+// app-level TimePeriodFilter (unchanged for all other consumers, e.g. calculateTimePeriodRange) —
+// see FR-3 in spec.r1.md and design.r1.md's Component Design section.
 export interface GetManufacturingStockAnalysisRequest {
   timePeriod?: TimePeriod;
   customFromDate?: Date;
@@ -42,73 +64,24 @@ export interface GetManufacturingStockAnalysisRequest {
   salesMultiplier?: number;
 }
 
-export enum ManufacturingStockSortBy {
-  ProductCode = "ProductCode",
-  ProductName = "ProductName",
-  CurrentStock = "CurrentStock",
-  Reserve = "Reserve",
-  Quarantine = "Quarantine",
-  Planned = "Planned",
-  SalesInPeriod = "SalesInPeriod",
-  DailySales = "DailySales",
-  OptimalDaysSetup = "OptimalDaysSetup",
-  StockDaysAvailable = "StockDaysAvailable",
-  MinimumStock = "MinimumStock",
-  OverstockPercentage = "OverstockPercentage",
-  BatchSize = "BatchSize",
-}
-
-export enum ManufacturingStockSeverity {
-  Critical = 0,
-  Major = 1,
-  Minor = 2,
-  Adequate = 3,
-  Unconfigured = 4,
-}
-
-export interface ManufacturingStockItemDto {
-  code: string;
-  name: string;
-  currentStock: number;
-  erpStock: number;
-  eshopStock: number;
-  transportStock: number;
-  manufacturedStock: number;
-  primaryStockSource: string;
-  reserve: number;
-  quarantine: number;
-  planned: number;
-  salesInPeriod: number;
-  dailySalesRate: number;
-  optimalDaysSetup: number;
-  stockDaysAvailable: number;
-  minimumStock: number;
-  overstockPercentage: number;
-  batchSize: string;
-  productFamily?: string;
-  severity: ManufacturingStockSeverity;
-  isConfigured: boolean;
-}
-
-export interface ManufacturingStockSummaryDto {
-  totalProducts: number;
-  criticalCount: number;
-  majorCount: number;
-  minorCount: number;
-  adequateCount: number;
-  unconfiguredCount: number;
-  analysisPeriodStart: string;
-  analysisPeriodEnd: string;
-  productFamilies: string[];
-}
-
-export interface GetManufacturingStockAnalysisResponse {
-  items: ManufacturingStockItemDto[];
-  totalCount: number;
-  pageNumber: number;
-  pageSize: number;
-  summary: ManufacturingStockSummaryDto;
-}
+/**
+ * Converts the app-level TimePeriodFilter to the generated client's own TimePeriod enum at the
+ * single API boundary (spec FR-3). Both are string enums with identical members
+ * (PreviousQuarter/FutureQuarter/Y2Y/PreviousSeason/Q9M/CustomPeriod) — TypeScript enums are
+ * nominal, so this is a same-string-value cast, not a data mapping; do not turn this into a
+ * value-by-value mapping table unless the two enums genuinely diverge in membership.
+ *
+ * Q9M is the backend's implicit default: the pre-refactor query-string builder never appended
+ * `timePeriod` when it was Q9M, so this returns `undefined` in that case to preserve that
+ * omission. Used by both useManufacturingStockAnalysisQuery's queryFn and
+ * ManufacturingStockAnalysis.tsx's handleExport, so there is exactly one conversion point.
+ */
+export const toGeneratedTimePeriod = (
+  timePeriod: TimePeriod | undefined,
+): GeneratedTimePeriod | undefined =>
+  timePeriod && timePeriod !== TimePeriod.Q9M
+    ? (timePeriod as unknown as GeneratedTimePeriod)
+    : undefined;
 
 // Query keys
 const manufacturingStockAnalysisKeys = {
@@ -116,11 +89,6 @@ const manufacturingStockAnalysisKeys = {
   lists: () => [...manufacturingStockAnalysisKeys.all, "list"] as const,
   list: (filters: GetManufacturingStockAnalysisRequest) =>
     [...manufacturingStockAnalysisKeys.lists(), filters] as const,
-};
-
-// Helper to format date for API
-const formatDateForApi = (date: Date): string => {
-  return date.toISOString().split("T")[0]; // YYYY-MM-DD format
 };
 
 // Main hook for manufacturing stock analysis
@@ -131,54 +99,24 @@ export const useManufacturingStockAnalysisQuery = (
     queryKey: manufacturingStockAnalysisKeys.list(request),
     queryFn: async () => {
       const apiClient = await getAuthenticatedApiClient();
-      const relativeUrl = `/api/manufacturing-stock-analysis`;
-      const params = new URLSearchParams();
 
-      if (
-        request.timePeriod &&
-        request.timePeriod !== TimePeriod.Q9M
-      ) {
-        params.append("timePeriod", request.timePeriod);
-      }
-      if (request.customFromDate)
-        params.append(
-          "customFromDate",
-          formatDateForApi(request.customFromDate),
-        );
-      if (request.customToDate)
-        params.append("customToDate", formatDateForApi(request.customToDate));
-      if (request.productFamily)
-        params.append("productFamily", request.productFamily);
-      if (request.criticalItemsOnly) params.append("criticalItemsOnly", "true");
-      if (request.majorItemsOnly) params.append("majorItemsOnly", "true");
-      if (request.adequateItemsOnly) params.append("adequateItemsOnly", "true");
-      if (request.unconfiguredOnly) params.append("unconfiguredOnly", "true");
-      if (request.searchTerm) params.append("searchTerm", request.searchTerm);
-      if (request.pageNumber)
-        params.append("pageNumber", request.pageNumber.toString());
-      if (request.pageSize)
-        params.append("pageSize", request.pageSize.toString());
-      if (request.sortBy) params.append("sortBy", request.sortBy);
-      if (request.sortDescending !== undefined)
-        params.append("sortDescending", request.sortDescending.toString());
-      if (request.salesMultiplier !== undefined && request.salesMultiplier !== 1.0)
-        params.append("salesMultiplier", request.salesMultiplier.toString());
-
-      const queryString = params.toString();
-      const fullUrl = `${(apiClient as any).baseUrl}${relativeUrl}${queryString ? `?${queryString}` : ""}`;
-
-      const response = await (apiClient as any).http.fetch(fullUrl, {
-        method: "GET",
-        headers: {
-          Accept: "application/json",
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      return response.json() as Promise<GetManufacturingStockAnalysisResponse>;
+      return apiClient.manufacturingStockAnalysis_GetStockAnalysis(
+        toGeneratedTimePeriod(request.timePeriod),
+        request.customFromDate,
+        request.customToDate,
+        request.productFamily,
+        request.criticalItemsOnly,
+        request.majorItemsOnly,
+        request.adequateItemsOnly,
+        request.unconfiguredOnly,
+        request.searchTerm,
+        request.pageNumber,
+        request.pageSize,
+        request.sortBy,
+        request.sortDescending,
+        request.salesMultiplier,
+        false, // isExport — this hook is for interactive display, not export
+      );
     },
     staleTime: 1000 * 60 * 2, // 2 minutes (stock data changes less frequently than purchase orders)
   });
@@ -225,7 +163,15 @@ export const getManufacturingSeverityDisplayText = (
 };
 
 // Helper function to format Czech number
-export const formatNumber = (value: number, decimals: number = 2): string => {
+// Widened to accept `number | undefined` because the generated ManufacturingStockItemDto marks
+// every numeric field optional (NSwag's default for all response DTOs), unlike the hand-coded
+// interface it replaces. Mirrors the identical convention already shipped in the sibling
+// frontend/src/api/hooks/usePurchaseStockAnalysis.ts.
+export const formatNumber = (
+  value: number | undefined,
+  decimals: number = 2,
+): string => {
+  if (value === undefined || value === null) return "—";
   return value.toLocaleString("cs-CZ", {
     minimumFractionDigits: decimals,
     maximumFractionDigits: decimals,
@@ -233,7 +179,8 @@ export const formatNumber = (value: number, decimals: number = 2): string => {
 };
 
 // Helper function to format percentage
-export const formatPercentage = (value: number): string => {
+export const formatPercentage = (value: number | undefined): string => {
+  if (value === undefined || value === null) return "—";
   return `${formatNumber(value, 1)}%`;
 };
 
@@ -264,4 +211,3 @@ export const formatWarehouseStock = (item: ManufacturingStockItemDto): string =>
 
   return `${totalStock} (${parts.join("+")})`;
 };
-

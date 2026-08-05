@@ -1,0 +1,46 @@
+{
+  "feature_id": "feat-3730",
+  "issue_number": 3730,
+  "created_at": "2026-08-05T03:15:19.546300Z",
+  "max_revisions": 3,
+  "phases": {
+    "analyzing": {
+      "status": "completed",
+      "updated_at": "2026-08-05T03:19:14.412767Z"
+    },
+    "architecting": {
+      "status": "completed",
+      "updated_at": "2026-08-05T03:21:31.118485Z"
+    },
+    "designing": {
+      "status": "completed",
+      "updated_at": "2026-08-05T03:22:43.402084Z"
+    },
+    "planning": {
+      "status": "completed",
+      "updated_at": "2026-08-05T03:38:34.160728Z"
+    },
+    "developing": {
+      "status": "completed",
+      "updated_at": "2026-08-05T04:48:38.657678Z"
+    },
+    "code-review": {
+      "status": "completed",
+      "updated_at": "2026-08-05T04:51:54.050572Z"
+    }
+  },
+  "tasks": [
+    {
+      "name": "rewire-stock-analysis-hook-to-generated-client",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-08-05T04:10:50.167832Z"
+    },
+    {
+      "name": "migrate-export-handler-and-fix-page-type-fallout",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-08-05T04:48:33.799532Z"
+    }
+  ]
+}
