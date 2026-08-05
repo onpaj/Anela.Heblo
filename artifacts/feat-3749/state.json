@@ -21,16 +21,16 @@
       "updated_at": "2026-08-05T04:27:28.379403Z"
     },
     "developing": {
-      "status": "pending",
-      "updated_at": null
+      "status": "in_progress",
+      "updated_at": "2026-08-05T04:27:47.052023Z"
     }
   },
   "tasks": [
     {
       "name": "relocate-infrastructure-configuration-keys-and-update-consumers",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-08-05T04:27:47.916208Z"
     }
   ]
 }
