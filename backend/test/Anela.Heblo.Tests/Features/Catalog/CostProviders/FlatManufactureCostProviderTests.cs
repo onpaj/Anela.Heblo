@@ -357,9 +357,14 @@ public class FlatManufactureCostProviderTests
         ILogger<FlatManufactureCostProvider>? logger = null,
         DataSourceOptions? options = null)
     {
+        var serviceProviderMock = new Mock<IServiceProvider>();
+        serviceProviderMock
+            .Setup(sp => sp.GetService(typeof(ICatalogRepository)))
+            .Returns(catalogRepository ?? Mock.Of<ICatalogRepository>());
+
         return new FlatManufactureCostProvider(
             cache ?? new FlatManufactureCostCache(new MemoryCache(new MemoryCacheOptions())),
-            catalogRepository ?? Mock.Of<ICatalogRepository>(),
+            serviceProviderMock.Object,
             ledgerService ?? Mock.Of<ILedgerService>(),
             logger ?? Mock.Of<ILogger<FlatManufactureCostProvider>>(),
             Options.Create(options ?? new DataSourceOptions())
