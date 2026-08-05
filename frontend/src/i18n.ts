@@ -102,6 +102,8 @@ const resources = {
           "Aktualizace objednávky {orderNumber} selhala: {message}",
         PurchaseOrderLineNotFound:
           "Řádek objednávky {PurchaseOrderLineId} neexistuje",
+        PurchaseOrderNumberGenerationFailed:
+          "Nepodařilo se vygenerovat unikátní číslo objednávky",
 
         // Manufacture module errors
         ManufacturingDataNotAvailable:
