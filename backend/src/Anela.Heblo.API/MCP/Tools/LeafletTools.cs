@@ -1,5 +1,6 @@
 using System.ComponentModel;
 using System.Text.Json;
+using Anela.Heblo.API.Infrastructure.Json;
 using Anela.Heblo.API.MCP;
 using Anela.Heblo.Application.Features.Leaflet.UseCases.GenerateLeaflet;
 using Anela.Heblo.Application.Shared;
@@ -59,7 +60,7 @@ public class LeafletTools
                 throw new McpException(message);
             }
 
-            return JsonSerializer.Serialize(response);
+            return JsonSerializer.Serialize(response, McpJsonOptions.Default);
         }
         catch (McpException)
         {

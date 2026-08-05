@@ -149,6 +149,14 @@ public enum ErrorCodes
     TransportBoxItemError = 1404,
     [HttpStatusCode(HttpStatusCode.Conflict)]
     TransportBoxDuplicateActiveBoxFound = 1405,
+    [HttpStatusCode(HttpStatusCode.BadRequest)]
+    TransportBoxCodeRequired = 1406,
+    [HttpStatusCode(HttpStatusCode.BadRequest)]
+    TransportBoxCodeInvalidFormat = 1407,
+    [HttpStatusCode(HttpStatusCode.UnprocessableEntity)]
+    TransportBoxEmpty = 1408,
+    [HttpStatusCode(HttpStatusCode.UnprocessableEntity)]
+    TransportBoxInvalidStateTransition = 1409,
 
     // Configuration module errors (15XX)
     [HttpStatusCode(HttpStatusCode.NotFound)]

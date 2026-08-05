@@ -660,6 +660,92 @@ public class ChangeTransportBoxStateHandlerTests
             Times.Once);
     }
 
+    [Fact]
+    public async Task Handle_OpenedToInTransit_EmptyBox_ReturnsTransportBoxEmpty()
+    {
+        // Arrange — box in Opened state with no items
+        var box = CreateTestBox(TransportBoxState.Opened);
+        _repositoryMock.Setup(x => x.GetByIdWithDetailsAsync(1)).ReturnsAsync(box);
+
+        var request = new ChangeTransportBoxStateRequest
+        {
+            BoxId = 1,
+            NewState = TransportBoxState.InTransit
+        };
+
+        // Act
+        var result = await _handler.Handle(request, CancellationToken.None);
+
+        // Assert
+        result.Success.Should().BeFalse();
+        result.ErrorCode.Should().Be(ErrorCodes.TransportBoxEmpty);
+        result.Params.Should().ContainKey("code").WhoseValue.Should().Be("TEST-BOX-001");
+        _repositoryMock.Verify(x => x.UpdateAsync(It.IsAny<TransportBox>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task Handle_NewToOpened_WhitespaceOnlyBoxCode_ReturnsTransportBoxCodeRequired()
+    {
+        // Arrange — box in New state; BoxCode is whitespace-only, which passes the handler's
+        // own IsNullOrEmpty pre-check but is rejected by the domain's IsNullOrWhiteSpace check.
+        var box = CreateTestBox(TransportBoxState.New);
+        var request = new ChangeTransportBoxStateRequest
+        {
+            BoxId = 1,
+            NewState = TransportBoxState.Opened,
+            BoxCode = "   "
+        };
+
+        _repositoryMock
+            .Setup(x => x.GetByIdWithDetailsAsync(1))
+            .ReturnsAsync(box);
+        _repositoryMock
+            .Setup(x => x.IsBoxCodeActiveAsync(It.IsAny<string>()))
+            .ReturnsAsync(false);
+        _repositoryMock
+            .Setup(x => x.GetPagedListAsync(It.IsAny<int>(), It.IsAny<int>(), It.IsAny<string>(), It.IsAny<TransportBoxState?>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<bool>(), It.IsAny<bool>()))
+            .ReturnsAsync((new List<TransportBox>(), 0));
+
+        // Act
+        var result = await _handler.Handle(request, CancellationToken.None);
+
+        // Assert
+        result.Success.Should().BeFalse();
+        result.ErrorCode.Should().Be(ErrorCodes.TransportBoxCodeRequired);
+        _repositoryMock.Verify(x => x.UpdateAsync(It.IsAny<TransportBox>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task Handle_NewToOpened_MalformedBoxCode_ReturnsTransportBoxCodeInvalidFormat()
+    {
+        // Arrange — box in New state; BoxCode does not follow the B+3-digits format
+        var box = CreateTestBox(TransportBoxState.New);
+        var request = new ChangeTransportBoxStateRequest
+        {
+            BoxId = 1,
+            NewState = TransportBoxState.Opened,
+            BoxCode = "XYZ1"
+        };
+
+        _repositoryMock
+            .Setup(x => x.GetByIdWithDetailsAsync(1))
+            .ReturnsAsync(box);
+        _repositoryMock
+            .Setup(x => x.IsBoxCodeActiveAsync(It.IsAny<string>()))
+            .ReturnsAsync(false);
+        _repositoryMock
+            .Setup(x => x.GetPagedListAsync(It.IsAny<int>(), It.IsAny<int>(), It.IsAny<string>(), It.IsAny<TransportBoxState?>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<bool>(), It.IsAny<bool>()))
+            .ReturnsAsync((new List<TransportBox>(), 0));
+
+        // Act
+        var result = await _handler.Handle(request, CancellationToken.None);
+
+        // Assert
+        result.Success.Should().BeFalse();
+        result.ErrorCode.Should().Be(ErrorCodes.TransportBoxCodeInvalidFormat);
+        result.Params.Should().ContainKey("code").WhoseValue.Should().Be("XYZ1");
+    }
+
     private void SetupReceivedTransitionMocks(TransportBox box)
     {
         _repositoryMock.Setup(x => x.GetByIdWithDetailsAsync(1)).ReturnsAsync(box);
