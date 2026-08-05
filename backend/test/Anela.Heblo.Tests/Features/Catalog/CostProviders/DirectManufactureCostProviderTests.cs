@@ -224,9 +224,14 @@ public class DirectManufactureCostProviderTests
         ILogger<DirectManufactureCostProvider>? logger = null,
         DataSourceOptions? options = null)
     {
+        var serviceProviderMock = new Mock<IServiceProvider>();
+        serviceProviderMock
+            .Setup(sp => sp.GetService(typeof(ICatalogRepository)))
+            .Returns(catalogRepository ?? Mock.Of<ICatalogRepository>());
+
         return new DirectManufactureCostProvider(
             cache ?? Mock.Of<IDirectManufactureCostCache>(),
-            catalogRepository ?? Mock.Of<ICatalogRepository>(),
+            serviceProviderMock.Object,
             logger ?? Mock.Of<ILogger<DirectManufactureCostProvider>>(),
             Options.Create(options ?? new DataSourceOptions())
         );
