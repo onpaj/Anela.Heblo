@@ -80,10 +80,33 @@ case "$ACTION" in
   merge)
     if ! merge_err=$(gh pr merge "$PR" --repo "$REPO" --squash --delete-branch 2>&1); then
       # A PR that went unmergeable between listing and merging is not an error
-      # in this run — master simply moved underneath it.
+      # in this run — master simply moved underneath it (most commonly because
+      # an earlier PR in the same batch just merged ahead of it). Flag it
+      # needs-work with a REJECT-verdict comment, the same pattern
+      # hygiene-pr/update_and_wait.sh's report_and_flag_needs_work() uses, so
+      # this PR stays discoverable by /rework-pr and counts toward its
+      # revision-attempt cap exactly like any other auto-rejection — a silent
+      # "skipped" would otherwise leave a now-conflicting PR invisible until
+      # someone reruns this skill against it by hand.
       case "$merge_err" in
         *not\ mergeable*|*Merge\ conflict*|*conflict*)
-          report "skipped" "became unmergeable before merge"; exit 1 ;;
+          reject_file=$(mktemp)
+          printf 'This PR became unmergeable before the merge completed — the default branch moved underneath it (commonly because an earlier PR in the same batch was just merged).\n\npr: %s\nscore: 0\nverdict: REJECT\nrisk: high\nreasons:\n  - merge conflict: %s\nconcerns: needs a rebase/merge against the current default branch, or /rework-pr\n' \
+            "$PR" "$merge_err" > "$reject_file"
+          gh label create "$NEEDS_WORK_LABEL" --repo "$REPO" --color d93f0b \
+            --description "Agent review found blocking problems" >/dev/null 2>&1 || true
+          if ! gh pr comment "$PR" --repo "$REPO" --body-file "$reject_file"; then
+            rm -f "$reject_file"
+            fail "became unmergeable, and could not post the needs-work comment: ${merge_err}"
+          fi
+          rm -f "$reject_file"
+          if gh pr edit "$PR" --repo "$REPO" --add-label "$NEEDS_WORK_LABEL"; then
+            report "needs-work" "became unmergeable before merge (default branch moved underneath it); flagged $NEEDS_WORK_LABEL"
+          else
+            report "needs-work" "became unmergeable before merge (default branch moved underneath it); could not add $NEEDS_WORK_LABEL label"
+          fi
+          exit 1
+          ;;
         *)
           # jq -n in report() escapes this correctly now, so the raw
           # message can be passed through unmodified.
