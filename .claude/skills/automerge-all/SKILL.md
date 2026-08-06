@@ -115,14 +115,15 @@ Do not restate these values elsewhere; each lives in exactly one file.
 |----------|----------------|
 | `MERGE_THRESHOLD`, `NEEDS_WORK_THRESHOLD` | `automerge-pr/parse_verdict.py` |
 | `MAX_CANDIDATES`, `AGENT_LABEL` | `automerge-pr/candidates.sh` |
-| `MERGED_ISSUE_LABEL`, `NEEDS_WORK_LABEL` | `automerge-pr/apply_verdict.sh` |
+| `MERGED_ISSUE_LABEL`, `NEEDS_WORK_LABEL`, `HUMAN_REQUIRED_LABEL` | `automerge-pr/apply_verdict.sh` |
 
 ## Limits worth knowing
 
 Same limits as `/automerge-pr` (no test-suite execution, prompt-only
-READ-ONLY constraint, no confirmation prompt, no dedup on repeated
-`comment`-band reviews) — see that skill's *Limits* section, not restated
-here.
+READ-ONLY constraint, no confirmation prompt) — see that skill's *Limits*
+section, not restated here. `comment`-band PRs are labelled
+`human-required` and excluded from future sweeps by `candidates.sh`, so
+this batch run also won't re-review them.
 
 Verdict application happens serially even though review happens in
 parallel — a PR flagged `needs-work` on hygiene grounds during the parallel
