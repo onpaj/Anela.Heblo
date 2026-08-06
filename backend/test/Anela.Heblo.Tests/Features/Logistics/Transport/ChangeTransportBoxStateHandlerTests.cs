@@ -45,7 +45,7 @@ public class ChangeTransportBoxStateHandlerTests
             .Returns(new DateTimeOffset(2024, 1, 1, 12, 0, 0, TimeSpan.Zero));
 
         _stockUpProcessingServiceMock
-            .Setup(x => x.CreateOperationAsync(
+            .Setup(x => x.StageOperationAsync(
                 It.IsAny<string>(),
                 It.IsAny<string>(),
                 It.IsAny<int>(),
@@ -297,7 +297,7 @@ public class ChangeTransportBoxStateHandlerTests
 
         // Assert — no stock operations created (that only happens on Received)
         _stockUpProcessingServiceMock.Verify(
-            x => x.CreateOperationAsync(
+            x => x.StageOperationAsync(
                 It.IsAny<string>(), It.IsAny<string>(), It.IsAny<int>(),
                 It.IsAny<LogisticsStockOperationSource>(), It.IsAny<int>(), It.IsAny<CancellationToken>()),
             Times.Never);
@@ -327,10 +327,38 @@ public class ChangeTransportBoxStateHandlerTests
         // Assert
         result.Success.Should().BeTrue();
         _stockUpProcessingServiceMock.Verify(
-            x => x.CreateOperationAsync(
+            x => x.StageOperationAsync(
                 It.IsAny<string>(), It.IsAny<string>(), It.IsAny<int>(),
                 It.IsAny<LogisticsStockOperationSource>(), It.IsAny<int>(), It.IsAny<CancellationToken>()),
             Times.Once);
+    }
+
+    [Fact]
+    public async Task Handle_QuarantineToReceived_NeverCallsNonIdempotentCreateOperationAsync()
+    {
+        // Arrange — box in Quarantine state with items. Received must stage (not immediately
+        // commit) stock-up operations so they land in the same SaveChangesAsync as the box's
+        // own state transition; calling the old CreateOperationAsync here would reintroduce the
+        // two-transaction bug this fix closes.
+        var box = CreateTestBoxWithItems(TransportBoxState.Quarantine);
+        SetupReceivedTransitionMocks(box);
+
+        var request = new ChangeTransportBoxStateRequest
+        {
+            BoxId = 1,
+            NewState = TransportBoxState.Received
+        };
+
+        // Act
+        var result = await _handler.Handle(request, CancellationToken.None);
+
+        // Assert
+        result.Success.Should().BeTrue();
+        _stockUpProcessingServiceMock.Verify(
+            x => x.CreateOperationAsync(
+                It.IsAny<string>(), It.IsAny<string>(), It.IsAny<int>(),
+                It.IsAny<LogisticsStockOperationSource>(), It.IsAny<int>(), It.IsAny<CancellationToken>()),
+            Times.Never);
     }
 
     [Fact]
@@ -353,7 +381,7 @@ public class ChangeTransportBoxStateHandlerTests
         // Assert
         result.Success.Should().BeTrue();
         _stockUpProcessingServiceMock.Verify(
-            x => x.CreateOperationAsync(
+            x => x.StageOperationAsync(
                 "BOX-000001-P-001",
                 "P-001",
                 8,
@@ -362,7 +390,7 @@ public class ChangeTransportBoxStateHandlerTests
                 It.IsAny<CancellationToken>()),
             Times.Once);
         _stockUpProcessingServiceMock.Verify(
-            x => x.CreateOperationAsync(
+            x => x.StageOperationAsync(
                 It.IsAny<string>(), It.IsAny<string>(), It.IsAny<int>(),
                 It.IsAny<LogisticsStockOperationSource>(), It.IsAny<int>(), It.IsAny<CancellationToken>()),
             Times.Once);
@@ -388,17 +416,17 @@ public class ChangeTransportBoxStateHandlerTests
         // Assert
         result.Success.Should().BeTrue();
         _stockUpProcessingServiceMock.Verify(
-            x => x.CreateOperationAsync(
+            x => x.StageOperationAsync(
                 "BOX-000001-P-001", "P-001", 2,
                 LogisticsStockOperationSource.TransportBox, 1, It.IsAny<CancellationToken>()),
             Times.Once);
         _stockUpProcessingServiceMock.Verify(
-            x => x.CreateOperationAsync(
+            x => x.StageOperationAsync(
                 "BOX-000001-P-002", "P-002", 4,
                 LogisticsStockOperationSource.TransportBox, 1, It.IsAny<CancellationToken>()),
             Times.Once);
         _stockUpProcessingServiceMock.Verify(
-            x => x.CreateOperationAsync(
+            x => x.StageOperationAsync(
                 It.IsAny<string>(), It.IsAny<string>(), It.IsAny<int>(),
                 It.IsAny<LogisticsStockOperationSource>(), It.IsAny<int>(), It.IsAny<CancellationToken>()),
             Times.Exactly(2));
@@ -424,7 +452,7 @@ public class ChangeTransportBoxStateHandlerTests
         // Assert
         result.Success.Should().BeTrue();
         _stockUpProcessingServiceMock.Verify(
-            x => x.CreateOperationAsync(
+            x => x.StageOperationAsync(
                 It.IsAny<string>(), "P-001", 3,
                 It.IsAny<LogisticsStockOperationSource>(), It.IsAny<int>(), It.IsAny<CancellationToken>()),
             Times.Once);
@@ -553,7 +581,7 @@ public class ChangeTransportBoxStateHandlerTests
         result.ErrorCode.Should().Be(ErrorCodes.TransportBoxStateChangeError);
         _repositoryMock.Verify(x => x.UpdateAsync(It.IsAny<TransportBox>(), It.IsAny<CancellationToken>()), Times.Never);
         _stockUpProcessingServiceMock.Verify(
-            x => x.CreateOperationAsync(
+            x => x.StageOperationAsync(
                 It.IsAny<string>(), It.IsAny<string>(), It.IsAny<int>(),
                 It.IsAny<LogisticsStockOperationSource>(), It.IsAny<int>(), It.IsAny<CancellationToken>()),
             Times.Never);
@@ -617,7 +645,7 @@ public class ChangeTransportBoxStateHandlerTests
         // Assert — 3 + 5 = 8, aggregated into one operation
         result.Success.Should().BeTrue();
         _stockUpProcessingServiceMock.Verify(
-            x => x.CreateOperationAsync(
+            x => x.StageOperationAsync(
                 "BOX-000001-P-001",
                 "P-001",
                 8,
@@ -626,10 +654,96 @@ public class ChangeTransportBoxStateHandlerTests
                 It.IsAny<CancellationToken>()),
             Times.Once);
         _stockUpProcessingServiceMock.Verify(
-            x => x.CreateOperationAsync(
+            x => x.StageOperationAsync(
                 It.IsAny<string>(), It.IsAny<string>(), It.IsAny<int>(),
                 It.IsAny<LogisticsStockOperationSource>(), It.IsAny<int>(), It.IsAny<CancellationToken>()),
             Times.Once);
+    }
+
+    [Fact]
+    public async Task Handle_OpenedToInTransit_EmptyBox_ReturnsTransportBoxEmpty()
+    {
+        // Arrange — box in Opened state with no items
+        var box = CreateTestBox(TransportBoxState.Opened);
+        _repositoryMock.Setup(x => x.GetByIdWithDetailsAsync(1)).ReturnsAsync(box);
+
+        var request = new ChangeTransportBoxStateRequest
+        {
+            BoxId = 1,
+            NewState = TransportBoxState.InTransit
+        };
+
+        // Act
+        var result = await _handler.Handle(request, CancellationToken.None);
+
+        // Assert
+        result.Success.Should().BeFalse();
+        result.ErrorCode.Should().Be(ErrorCodes.TransportBoxEmpty);
+        result.Params.Should().ContainKey("code").WhoseValue.Should().Be("TEST-BOX-001");
+        _repositoryMock.Verify(x => x.UpdateAsync(It.IsAny<TransportBox>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task Handle_NewToOpened_WhitespaceOnlyBoxCode_ReturnsTransportBoxCodeRequired()
+    {
+        // Arrange — box in New state; BoxCode is whitespace-only, which passes the handler's
+        // own IsNullOrEmpty pre-check but is rejected by the domain's IsNullOrWhiteSpace check.
+        var box = CreateTestBox(TransportBoxState.New);
+        var request = new ChangeTransportBoxStateRequest
+        {
+            BoxId = 1,
+            NewState = TransportBoxState.Opened,
+            BoxCode = "   "
+        };
+
+        _repositoryMock
+            .Setup(x => x.GetByIdWithDetailsAsync(1))
+            .ReturnsAsync(box);
+        _repositoryMock
+            .Setup(x => x.IsBoxCodeActiveAsync(It.IsAny<string>()))
+            .ReturnsAsync(false);
+        _repositoryMock
+            .Setup(x => x.GetPagedListAsync(It.IsAny<int>(), It.IsAny<int>(), It.IsAny<string>(), It.IsAny<TransportBoxState?>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<bool>(), It.IsAny<bool>()))
+            .ReturnsAsync((new List<TransportBox>(), 0));
+
+        // Act
+        var result = await _handler.Handle(request, CancellationToken.None);
+
+        // Assert
+        result.Success.Should().BeFalse();
+        result.ErrorCode.Should().Be(ErrorCodes.TransportBoxCodeRequired);
+        _repositoryMock.Verify(x => x.UpdateAsync(It.IsAny<TransportBox>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task Handle_NewToOpened_MalformedBoxCode_ReturnsTransportBoxCodeInvalidFormat()
+    {
+        // Arrange — box in New state; BoxCode does not follow the B+3-digits format
+        var box = CreateTestBox(TransportBoxState.New);
+        var request = new ChangeTransportBoxStateRequest
+        {
+            BoxId = 1,
+            NewState = TransportBoxState.Opened,
+            BoxCode = "XYZ1"
+        };
+
+        _repositoryMock
+            .Setup(x => x.GetByIdWithDetailsAsync(1))
+            .ReturnsAsync(box);
+        _repositoryMock
+            .Setup(x => x.IsBoxCodeActiveAsync(It.IsAny<string>()))
+            .ReturnsAsync(false);
+        _repositoryMock
+            .Setup(x => x.GetPagedListAsync(It.IsAny<int>(), It.IsAny<int>(), It.IsAny<string>(), It.IsAny<TransportBoxState?>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<bool>(), It.IsAny<bool>()))
+            .ReturnsAsync((new List<TransportBox>(), 0));
+
+        // Act
+        var result = await _handler.Handle(request, CancellationToken.None);
+
+        // Assert
+        result.Success.Should().BeFalse();
+        result.ErrorCode.Should().Be(ErrorCodes.TransportBoxCodeInvalidFormat);
+        result.Params.Should().ContainKey("code").WhoseValue.Should().Be("XYZ1");
     }
 
     private void SetupReceivedTransitionMocks(TransportBox box)

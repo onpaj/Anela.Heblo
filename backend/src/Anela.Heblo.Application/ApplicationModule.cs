@@ -1,6 +1,7 @@
 using Anela.Heblo.Application.Common;
 using Anela.Heblo.Application.Common.TimePeriods;
 using Anela.Heblo.Application.Shared.Users;
+using Anela.Heblo.Application.Features.Attendance;
 using Anela.Heblo.Application.Features.FeatureFlags;
 using Anela.Heblo.Application.Features.Configuration;
 using Anela.Heblo.Application.Shared.Rag;
@@ -78,6 +79,7 @@ public static class ApplicationModule
         // Register all feature modules
         services.AddConfigurationModule();
         services.AddAnalyticsModule(configuration);
+        services.AddAttendanceModule(configuration);
         services.AddBackgroundJobsModule();
         services.AddBackgroundRefreshModule();
         services.AddBankModule(configuration);

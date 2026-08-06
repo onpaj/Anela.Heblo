@@ -4,6 +4,7 @@ using Anela.Heblo.Domain.Features.Catalog;
 using Anela.Heblo.Domain.Features.Catalog.Cache;
 using Anela.Heblo.Domain.Features.Catalog.CostProviders;
 using Anela.Heblo.Domain.Features.Catalog.ValueObjects;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
@@ -17,18 +18,21 @@ public class DirectManufactureCostProvider : IDirectManufactureCostProvider
 {
     private static readonly SemaphoreSlim RefreshLock = new(1, 1);
     private readonly IDirectManufactureCostCache _cache;
-    private readonly ICatalogRepository _catalogRepository;
+    private readonly IServiceProvider _serviceProvider;
     private readonly ILogger<DirectManufactureCostProvider> _logger;
     private readonly IOptions<DataSourceOptions> _options;
 
+    // ICatalogRepository is resolved lazily via IServiceProvider, not injected directly:
+    // CatalogRepository -> IMarginCalculationService -> IDirectManufactureCostProvider -> ICatalogRepository
+    // is a real constructor-time cycle. See ManufactureBasedMaterialCostProvider for the same fix.
     public DirectManufactureCostProvider(
         IDirectManufactureCostCache cache,
-        ICatalogRepository catalogRepository,
+        IServiceProvider serviceProvider,
         ILogger<DirectManufactureCostProvider> logger,
         IOptions<DataSourceOptions> options)
     {
         _cache = cache;
-        _catalogRepository = catalogRepository;
+        _serviceProvider = serviceProvider;
         _logger = logger;
         _options = options;
     }
@@ -91,9 +95,10 @@ public class DirectManufactureCostProvider : IDirectManufactureCostProvider
 
     private async Task<CostCacheData> ComputeAllCostsAsync(CancellationToken ct)
     {
-        await _catalogRepository.WaitForCurrentMergeAsync(ct);
+        var catalogRepository = _serviceProvider.GetRequiredService<ICatalogRepository>();
+        await catalogRepository.WaitForCurrentMergeAsync(ct);
 
-        var products = await _catalogRepository.GetAllAsync(ct);
+        var products = await catalogRepository.GetAllAsync(ct);
         var dateFrom = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(-_options.Value.ManufactureCostHistoryDays));
         var dateTo = DateOnly.FromDateTime(DateTime.UtcNow);
 
