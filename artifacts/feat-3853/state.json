@@ -21,16 +21,16 @@
       "updated_at": "2026-08-06T09:53:54.930273Z"
     },
     "developing": {
-      "status": "pending",
-      "updated_at": null
+      "status": "in_progress",
+      "updated_at": "2026-08-06T09:54:50.839823Z"
     }
   },
   "tasks": [
     {
       "name": "extract-shipment-creation-service",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-08-06T09:54:51.489255Z"
     },
     {
       "name": "refactor-scan-handler",
