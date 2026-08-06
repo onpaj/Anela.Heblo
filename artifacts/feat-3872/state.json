@@ -34,15 +34,15 @@
     },
     {
       "name": "dark-mode-packing-charts-recharts",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-08-06T09:58:03.939429Z"
+      "updated_at": "2026-08-06T10:05:47.136907Z"
     },
     {
       "name": "dark-mode-packing-hour-heatmap",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-08-06T10:05:54.420471Z"
     }
   ]
 }
