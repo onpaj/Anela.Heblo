@@ -33,40 +33,26 @@ Then re-run step 1's `uv tool list` command to get the "after" version.
 Report both versions to the user. If they're identical, say so plainly —
 that's not a failure, it just means this was already the latest.
 
-## 3. Refresh this project's scaffolding — ask before forcing
+## 3. Refresh this project's scaffolding
 
 `agentharness init` copies the package's `.agents/`, `.pipeline/`,
 `.claude/agents/`, and `.claude/skills/` files into this project, plus
-`.env` GitHub keys. Run it once *without* `--force` first:
+`.env` GitHub keys. It **always overwrites** every scaffolding file with
+the newly-installed package's version — including any project-specific
+customizations already made to `.agents/`, `.pipeline/`,
+`.claude/agents/`, or `.claude/skills/` (this project has several: e.g.
+`hygiene-pr`, `automerge-pr`, `rework-pr` all carry local changes). The
+old `--force` flag still exists for backward compatibility with older
+scripts, but it's now a no-op — plain `agentharness init` already
+overwrites everything.
+
+Before running it, check `git status` and flag any uncommitted changes
+under the affected directories (suggest a commit or stash, per this
+project's usual git-safety practice) — uncommitted local edits would
+otherwise be silently lost. Once clean, run:
 
 ```bash
 agentharness init
-```
-
-Without `--force` this only **adds missing files** — anything that
-already exists here (including every skill this project has customized,
-like the ones this very session edited) is left untouched and reported as
-`skip`. This step alone is safe to always run.
-
-Then **ask the user** (do not assume) whether they also want to re-run
-with `--force`:
-
-> `agentharness init --force` overwrites every scaffolding file with the
-> newly-installed package's version — including any project-specific
-> customizations already made to `.agents/`, `.pipeline/`,
-> `.claude/agents/`, or `.claude/skills/` (this project has several: e.g.
-> `hygiene-pr`, `automerge-pr`, `rework-pr` all carry local changes).
-> Uncommitted local edits would be silently lost. Recommend committing or
-> stashing first if there's anything uncommitted (`git status`).
-
-If the user declines, stop here — step 2's upgrade and step 3's
-non-forced `init` already happened and are the entire outcome. If they
-agree, first check `git status` and flag any uncommitted changes under
-the affected directories before proceeding (suggest a commit or stash,
-per this project's usual git-safety practice); once clean, run:
-
-```bash
-agentharness init --force
 ```
 
 ## 4. Report

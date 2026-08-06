@@ -3,10 +3,10 @@ name: automerge-pr
 description: Review one PR — bringing it current with main and confirming CI first — and merge it if the review is confident, comment if not, or flag needs-work if it can't even be reviewed. Use when the user says "automerge-pr", "review and merge PR N", "check if PR N is ready to merge", or gives a specific PR number to clear.
 ---
 
-You take one PR from "open" to a decision: merged, commented-and-left-open,
-or flagged `needs-work` — after first making sure it's actually current
-with `main` and its CI is green. Called directly for one PR, or by
-`/automerge-all` as part of a full-backlog sweep.
+You take one PR from "open" to a decision: merged, commented and flagged
+`human-required`, or flagged `needs-work` — after first making sure it's
+actually current with `main` and its CI is green. Called directly for one
+PR, or by `/automerge-all` as part of a full-backlog sweep.
 
 **All deterministic work is done by the scripts beside this file.** Do not
 re-implement their logic, re-derive the score thresholds, or hand-write
@@ -226,7 +226,7 @@ Do not restate these values elsewhere; each lives in exactly one file.
 |----------|----------------|
 | `MERGE_THRESHOLD`, `NEEDS_WORK_THRESHOLD` | `parse_verdict.py` |
 | `MAX_CANDIDATES`, `AGENT_LABEL` | `candidates.sh` |
-| `MERGED_ISSUE_LABEL`, `NEEDS_WORK_LABEL` | `apply_verdict.sh` |
+| `MERGED_ISSUE_LABEL`, `NEEDS_WORK_LABEL`, `HUMAN_REQUIRED_LABEL` | `apply_verdict.sh` |
 | `HYGIENE_POLL_INTERVAL_SECONDS`, `HYGIENE_POLL_MAX_ATTEMPTS` | `hygiene-pr/update_and_wait.sh` |
 
 ## Limits worth knowing
@@ -247,9 +247,11 @@ reports. Until a Bash-less or credential-scoped reviewer ships, treat every
 merge this skill performs as something a compromised or confused subagent
 could have influenced beyond its stated score.
 
-A PR that lands in the `comment` band gets a fresh review comment every time
-this skill runs against it, until it's merged or manually labelled
-`needs-work` — there's no dedup on repeated runs yet.
+A PR that lands in the `comment` band gets the review posted once, then is
+labelled `human-required` and excluded from future candidate lists by
+`candidates.sh` — it will not be re-reviewed on later sweeps. A human must
+either act on it directly (merge, close, push a fix) or remove the label
+to send it through another automated pass.
 
 `hygiene-pr` only resolves conflicts it can fast-forward/merge cleanly. A
 genuinely `CONFLICTING` PR reports `conflict` here and gets flagged
