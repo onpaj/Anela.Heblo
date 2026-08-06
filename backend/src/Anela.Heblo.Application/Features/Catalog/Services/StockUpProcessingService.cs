@@ -25,8 +25,18 @@ public class StockUpProcessingService : IStockUpProcessingService
         int amount,
         StockUpSourceType sourceType,
         int sourceId,
-        CancellationToken ct = default)
+        CancellationToken ct = default,
+        bool persistImmediately = true)
     {
+        var existing = await _repository.GetByDocumentNumberAsync(documentNumber, ct);
+        if (existing != null)
+        {
+            _logger.LogInformation(
+                "StockUpOperation {DocumentNumber} already exists (Id={OperationId}, State={State}); skipping duplicate create",
+                documentNumber, existing.Id, existing.State);
+            return;
+        }
+
         _logger.LogInformation(
             "Creating StockUpOperation for document {DocumentNumber}, product {ProductCode}, amount {Amount}",
             documentNumber, productCode, amount);
@@ -34,7 +44,11 @@ public class StockUpProcessingService : IStockUpProcessingService
         var operation = new StockUpOperation(documentNumber, productCode, amount, sourceType, sourceId);
 
         await _repository.AddAsync(operation, ct);
-        await _repository.SaveChangesAsync(ct);
+
+        if (persistImmediately)
+        {
+            await _repository.SaveChangesAsync(ct);
+        }
 
         _logger.LogDebug(
             "StockUpOperation created with ID {OperationId} in Pending state",
