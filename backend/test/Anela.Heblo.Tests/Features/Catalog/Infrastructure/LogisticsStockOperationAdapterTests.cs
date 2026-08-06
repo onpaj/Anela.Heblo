@@ -23,7 +23,8 @@ public class LogisticsStockOperationAdapterTests
                 It.IsAny<int>(),
                 It.IsAny<StockUpSourceType>(),
                 It.IsAny<int>(),
-                It.IsAny<CancellationToken>()))
+                It.IsAny<CancellationToken>(),
+                It.IsAny<bool>()))
             .Returns(Task.CompletedTask);
     }
 
@@ -41,7 +42,8 @@ public class LogisticsStockOperationAdapterTests
             It.IsAny<int>(),
             StockUpSourceType.TransportBox,
             It.IsAny<int>(),
-            It.IsAny<CancellationToken>()), Times.Once);
+            It.IsAny<CancellationToken>(),
+            It.IsAny<bool>()), Times.Once);
     }
 
     [Fact]
@@ -58,7 +60,8 @@ public class LogisticsStockOperationAdapterTests
             It.IsAny<int>(),
             StockUpSourceType.GiftPackageManufacture,
             It.IsAny<int>(),
-            It.IsAny<CancellationToken>()), Times.Once);
+            It.IsAny<CancellationToken>(),
+            It.IsAny<bool>()), Times.Once);
     }
 
     [Fact]
@@ -76,7 +79,27 @@ public class LogisticsStockOperationAdapterTests
             7,
             StockUpSourceType.TransportBox,
             55,
-            ct), Times.Once);
+            ct,
+            It.IsAny<bool>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task CreateOperationAsync_PersistImmediatelyFalse_ForwardsToService()
+    {
+        SetupServiceReturnsCompleted();
+
+        await CreateAdapter().CreateOperationAsync(
+            "DOC-1", "PROD-1", 5, LogisticsStockOperationSource.TransportBox, 10,
+            CancellationToken.None, persistImmediately: false);
+
+        _service.Verify(s => s.CreateOperationAsync(
+            "DOC-1",
+            "PROD-1",
+            5,
+            StockUpSourceType.TransportBox,
+            10,
+            It.IsAny<CancellationToken>(),
+            false), Times.Once);
     }
 
     [Fact]

@@ -19,7 +19,8 @@ internal sealed class LogisticsStockOperationAdapter : ILogisticsStockOperationS
         int amount,
         LogisticsStockOperationSource sourceType,
         int sourceId,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default,
+        bool persistImmediately = true)
     {
         var mappedSourceType = MapSourceType(sourceType);
         return _stockUpProcessingService.CreateOperationAsync(
@@ -28,7 +29,8 @@ internal sealed class LogisticsStockOperationAdapter : ILogisticsStockOperationS
             amount,
             mappedSourceType,
             sourceId,
-            cancellationToken);
+            cancellationToken,
+            persistImmediately);
     }
 
     private static StockUpSourceType MapSourceType(LogisticsStockOperationSource sourceType) => sourceType switch
