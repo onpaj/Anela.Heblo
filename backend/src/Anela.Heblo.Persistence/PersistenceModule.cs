@@ -1,5 +1,22 @@
+using Anela.Heblo.Domain.Features.Article;
+using Anela.Heblo.Domain.Features.BackgroundJobs;
+using Anela.Heblo.Domain.Features.DataQuality;
+using Anela.Heblo.Domain.Features.Bank;
+using Anela.Heblo.Domain.Features.Campaigns;
+using Anela.Heblo.Domain.Features.GridLayouts;
+using Anela.Heblo.Persistence.Campaigns;
+using Anela.Heblo.Persistence.GridLayouts;
+using Anela.Heblo.Domain.Features.Catalog.Stock;
 using Anela.Heblo.Domain.Features.Catalog.Inventory;
+using Anela.Heblo.Domain.Features.InvoiceClassification;
+using Anela.Heblo.Domain.Features.KnowledgeBase;
+using Anela.Heblo.Domain.Features.Leaflet;
+using Anela.Heblo.Persistence.BackgroundJobs;
 using Anela.Heblo.Persistence.Catalog.Inventory;
+using Anela.Heblo.Persistence.DataQuality;
+using Anela.Heblo.Persistence.Catalog.Stock;
+using Anela.Heblo.Persistence.Dashboard;
+using Anela.Heblo.Persistence.Features.Bank;
 using Anela.Heblo.Persistence.Infrastructure;
 using Anela.Heblo.Persistence.Infrastructure.Resilience;
 using Anela.Heblo.Xcc.Telemetry;
@@ -123,10 +140,39 @@ public static class PersistenceModule
         // Register telemetry services
         services.AddScoped<ITelemetryService, NoOpTelemetryService>(); // Default to NoOp, can be overridden by API layer
 
-        // NOTE: Repository bindings live in each module's {Feature}Module.cs (vertical-slice
-        // composition), not here. PersistenceModule owns only shared infrastructure: the
-        // DbContext, NpgsqlDataSource, interceptors, telemetry, and the code generator.
-        // See docs/architecture/development_guidelines.md (§Dependency Injection Patterns).
+        // Register repositories
+        services.AddScoped<IUserDashboardSettingsRepository, UserDashboardSettingsRepository>();
+
+        // Bank repositories
+        services.AddScoped<IBankStatementImportRepository, BankStatementImportRepository>();
+
+        // Invoice Classification repositories
+        services.AddScoped<IClassificationRuleRepository, ClassificationRuleRepository>();
+        services.AddScoped<IClassificationHistoryRepository, ClassificationHistoryRepository>();
+
+        // Stock repositories
+        services.AddScoped<IStockUpOperationRepository, StockUpOperationRepository>();
+
+        // Background Jobs repositories
+        services.AddScoped<IRecurringJobConfigurationRepository, RecurringJobConfigurationRepository>();
+
+        // KnowledgeBase repositories
+        services.AddScoped<IKnowledgeBaseRepository, KnowledgeBaseRepository>();
+
+        // Leaflet repositories
+        services.AddScoped<ILeafletRepository, LeafletRepository>();
+
+        // Article repositories
+        services.AddScoped<IArticleRepository, ArticleRepository>();
+
+        // Grid Layouts repositories
+        services.AddScoped<IGridLayoutRepository, GridLayoutRepository>();
+
+        // Campaigns repositories
+        services.AddScoped<ICampaignRepository, CampaignRepository>();
+
+        // Data Quality repositories
+        services.AddScoped<IDqtRunRepository, DqtRunRepository>();
 
         return services;
     }

@@ -12,6 +12,7 @@
     <PackageReference Include="Polly.Extensions" Version="8.4.1" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\..\Anela.Heblo.Domain\Anela.Heblo.Domain.csproj" />
     <ProjectReference Include="..\..\Anela.Heblo.Application\Anela.Heblo.Application.csproj" />
   </ItemGroup>
   <ItemGroup>

@@ -34,6 +34,7 @@ using Anela.Heblo.Application.Features.Logistics.UseCases.GiftPackageManufacture
 using Anela.Heblo.Application.Features.Manufacture;
 using Anela.Heblo.Application.Features.OrgChart;
 using Anela.Heblo.Application.Features.PackingMaterials;
+using Anela.Heblo.Application.Features.Campaigns;
 using Anela.Heblo.Application.Features.CarrierCooling;
 using Anela.Heblo.Application.Features.Logistics.UseCases.GiftSettings;
 using Anela.Heblo.Application.Features.WeatherForecast;
@@ -110,6 +111,7 @@ public static class ApplicationModule
         services.AddShipmentLabelsModule(configuration);
         services.AddPackagingModule();
         services.AddGridLayoutsModule();
+        services.AddCampaignsModule();
         services.AddMarketingInvoicesModule();
         services.AddCarrierCoolingModule();
         services.AddGiftSettingsModule();
