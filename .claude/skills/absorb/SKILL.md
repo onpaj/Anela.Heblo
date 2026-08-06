@@ -56,19 +56,6 @@ be absorbed for review or follow-up work) and continue.
 ```bash
 git fetch origin <branch>
 git checkout <branch> 2>/dev/null || git checkout -b <branch> origin/<branch>
-```
-
-Before resetting, check for local commits that never reached `origin/<branch>`
-(the step 1 check only catches uncommitted changes, not this):
-
-```bash
-git rev-list origin/<branch>..<branch>
-```
-
-If that prints anything, **stop and ask the user** how to proceed — a hard
-reset would silently discard those commits. Otherwise:
-
-```bash
 git reset --hard origin/<branch>
 ```
 
