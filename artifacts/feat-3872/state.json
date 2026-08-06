@@ -28,15 +28,15 @@
   "tasks": [
     {
       "name": "dark-mode-baleni-statistics-jsx",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-08-06T09:41:24.512669Z"
+      "updated_at": "2026-08-06T09:57:53.067343Z"
     },
     {
       "name": "dark-mode-packing-charts-recharts",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-08-06T09:58:03.939429Z"
     },
     {
       "name": "dark-mode-packing-hour-heatmap",
