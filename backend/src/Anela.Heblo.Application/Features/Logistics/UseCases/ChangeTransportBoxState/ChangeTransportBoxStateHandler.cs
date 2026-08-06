@@ -292,7 +292,8 @@ public class ChangeTransportBoxStateHandler : IRequestHandler<ChangeTransportBox
                 group.Amount,
                 LogisticsStockOperationSource.TransportBox,
                 box.Id,
-                cancellationToken);
+                cancellationToken,
+                persistImmediately: false);
 
             _logger.LogDebug("Created StockUpOperation {DocumentNumber} for product {ProductCode}, amount {Amount} (aggregated from {LineCount} item line(s))",
                 documentNumber, group.ProductCode, group.Amount, group.LineCount);

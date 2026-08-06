@@ -51,7 +51,8 @@ public class ChangeTransportBoxStateHandlerTests
                 It.IsAny<int>(),
                 It.IsAny<LogisticsStockOperationSource>(),
                 It.IsAny<int>(),
-                It.IsAny<CancellationToken>()))
+                It.IsAny<CancellationToken>(),
+                It.IsAny<bool>()))
             .Returns(Task.CompletedTask);
 
         _handler = new ChangeTransportBoxStateHandler(
@@ -299,7 +300,8 @@ public class ChangeTransportBoxStateHandlerTests
         _stockUpProcessingServiceMock.Verify(
             x => x.CreateOperationAsync(
                 It.IsAny<string>(), It.IsAny<string>(), It.IsAny<int>(),
-                It.IsAny<LogisticsStockOperationSource>(), It.IsAny<int>(), It.IsAny<CancellationToken>()),
+                It.IsAny<LogisticsStockOperationSource>(), It.IsAny<int>(), It.IsAny<CancellationToken>(),
+                It.IsAny<bool>()),
             Times.Never);
     }
 
@@ -329,7 +331,8 @@ public class ChangeTransportBoxStateHandlerTests
         _stockUpProcessingServiceMock.Verify(
             x => x.CreateOperationAsync(
                 It.IsAny<string>(), It.IsAny<string>(), It.IsAny<int>(),
-                It.IsAny<LogisticsStockOperationSource>(), It.IsAny<int>(), It.IsAny<CancellationToken>()),
+                It.IsAny<LogisticsStockOperationSource>(), It.IsAny<int>(), It.IsAny<CancellationToken>(),
+                It.IsAny<bool>()),
             Times.Once);
     }
 
@@ -359,12 +362,14 @@ public class ChangeTransportBoxStateHandlerTests
                 8,
                 LogisticsStockOperationSource.TransportBox,
                 1,
-                It.IsAny<CancellationToken>()),
+                It.IsAny<CancellationToken>(),
+                It.IsAny<bool>()),
             Times.Once);
         _stockUpProcessingServiceMock.Verify(
             x => x.CreateOperationAsync(
                 It.IsAny<string>(), It.IsAny<string>(), It.IsAny<int>(),
-                It.IsAny<LogisticsStockOperationSource>(), It.IsAny<int>(), It.IsAny<CancellationToken>()),
+                It.IsAny<LogisticsStockOperationSource>(), It.IsAny<int>(), It.IsAny<CancellationToken>(),
+                It.IsAny<bool>()),
             Times.Once);
     }
 
@@ -390,18 +395,45 @@ public class ChangeTransportBoxStateHandlerTests
         _stockUpProcessingServiceMock.Verify(
             x => x.CreateOperationAsync(
                 "BOX-000001-P-001", "P-001", 2,
-                LogisticsStockOperationSource.TransportBox, 1, It.IsAny<CancellationToken>()),
+                LogisticsStockOperationSource.TransportBox, 1, It.IsAny<CancellationToken>(),
+                It.IsAny<bool>()),
             Times.Once);
         _stockUpProcessingServiceMock.Verify(
             x => x.CreateOperationAsync(
                 "BOX-000001-P-002", "P-002", 4,
-                LogisticsStockOperationSource.TransportBox, 1, It.IsAny<CancellationToken>()),
+                LogisticsStockOperationSource.TransportBox, 1, It.IsAny<CancellationToken>(),
+                It.IsAny<bool>()),
             Times.Once);
         _stockUpProcessingServiceMock.Verify(
             x => x.CreateOperationAsync(
                 It.IsAny<string>(), It.IsAny<string>(), It.IsAny<int>(),
-                It.IsAny<LogisticsStockOperationSource>(), It.IsAny<int>(), It.IsAny<CancellationToken>()),
+                It.IsAny<LogisticsStockOperationSource>(), It.IsAny<int>(), It.IsAny<CancellationToken>(),
+                It.IsAny<bool>()),
             Times.Exactly(2));
+    }
+
+    [Fact]
+    public async Task Handle_InTransitToReceived_PassesPersistImmediatelyFalse()
+    {
+        // Arrange — Receive must defer the SaveChangesAsync for StockUpOperation creation so
+        // it commits atomically with the box's own state-transition SaveChangesAsync (FR-1):
+        // both writes share the same ApplicationDbContext instance and must be flushed together.
+        var box = CreateTestBoxWithItems(TransportBoxState.InTransit);
+        SetupReceivedTransitionMocks(box);
+
+        var request = new ChangeTransportBoxStateRequest { BoxId = 1, NewState = TransportBoxState.Received };
+
+        // Act
+        var result = await _handler.Handle(request, CancellationToken.None);
+
+        // Assert
+        result.Success.Should().BeTrue();
+        _stockUpProcessingServiceMock.Verify(
+            x => x.CreateOperationAsync(
+                It.IsAny<string>(), It.IsAny<string>(), It.IsAny<int>(),
+                It.IsAny<LogisticsStockOperationSource>(), It.IsAny<int>(), It.IsAny<CancellationToken>(),
+                false),
+            Times.Once);
     }
 
     [Fact]
@@ -426,7 +458,8 @@ public class ChangeTransportBoxStateHandlerTests
         _stockUpProcessingServiceMock.Verify(
             x => x.CreateOperationAsync(
                 It.IsAny<string>(), "P-001", 3,
-                It.IsAny<LogisticsStockOperationSource>(), It.IsAny<int>(), It.IsAny<CancellationToken>()),
+                It.IsAny<LogisticsStockOperationSource>(), It.IsAny<int>(), It.IsAny<CancellationToken>(),
+                It.IsAny<bool>()),
             Times.Once);
     }
 
@@ -555,7 +588,8 @@ public class ChangeTransportBoxStateHandlerTests
         _stockUpProcessingServiceMock.Verify(
             x => x.CreateOperationAsync(
                 It.IsAny<string>(), It.IsAny<string>(), It.IsAny<int>(),
-                It.IsAny<LogisticsStockOperationSource>(), It.IsAny<int>(), It.IsAny<CancellationToken>()),
+                It.IsAny<LogisticsStockOperationSource>(), It.IsAny<int>(), It.IsAny<CancellationToken>(),
+                It.IsAny<bool>()),
             Times.Never);
     }
 
@@ -623,12 +657,14 @@ public class ChangeTransportBoxStateHandlerTests
                 8,
                 LogisticsStockOperationSource.TransportBox,
                 1,
-                It.IsAny<CancellationToken>()),
+                It.IsAny<CancellationToken>(),
+                It.IsAny<bool>()),
             Times.Once);
         _stockUpProcessingServiceMock.Verify(
             x => x.CreateOperationAsync(
                 It.IsAny<string>(), It.IsAny<string>(), It.IsAny<int>(),
-                It.IsAny<LogisticsStockOperationSource>(), It.IsAny<int>(), It.IsAny<CancellationToken>()),
+                It.IsAny<LogisticsStockOperationSource>(), It.IsAny<int>(), It.IsAny<CancellationToken>(),
+                It.IsAny<bool>()),
             Times.Once);
     }
 

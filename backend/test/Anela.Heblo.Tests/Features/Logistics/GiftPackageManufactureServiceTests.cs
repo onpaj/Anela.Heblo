@@ -197,7 +197,8 @@ public class GiftPackageManufactureServiceTests
                 It.IsAny<int>(),
                 It.IsAny<LogisticsStockOperationSource>(),
                 It.IsAny<int>(),
-                It.IsAny<CancellationToken>()))
+                It.IsAny<CancellationToken>(),
+                It.IsAny<bool>()))
             .Returns(Task.CompletedTask);
 
         // Act
