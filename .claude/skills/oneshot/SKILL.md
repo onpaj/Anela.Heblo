@@ -49,22 +49,45 @@ WORKTREE="../worktrees/feature-${ISSUE_ID}-${SLUG}"
 agentharness status {feature_id}
 ```
 
-3. **Mark the issue as work-in-progress.** Using the `gh` CLI, add the
-   `agent-wip` label to the feature's GitHub issue and remove the `agent` label
-   if it is present:
+3. **Claim the issue atomically.** This is the one place a duplicate
+   pipeline gets started on the same issue, so the claim must be a real
+   lock, not a label check — GitHub's label API has no compare-and-set, and
+   a candidate list (e.g. `chopchop`'s) may be stale by the time you reach
+   this step. Run the claim script that ships beside this skill: it creates
+   the remote `feature/{issue_id}-{Title-Slug}` branch through the GitHub
+   refs API — creating an already-existing ref fails, so exactly one
+   concurrent claimer wins, no matter how tight the race — and then swaps
+   the labels `agent` → `agent-wip` for visibility:
 ```bash
-gh issue edit {issue_number} --add-label agent-wip --remove-label agent
+BRANCH=$(.claude/skills/oneshot/claim_issue.sh "$ISSUE_ID")
 ```
-   If the issue has no `agent` label, the `--remove-label` is a harmless no-op;
-   keep `--add-label agent-wip` regardless.
+   - Exit `0` — you own the issue; `$BRANCH` holds the claimed branch name.
+   - Exit `3` — the issue is already claimed: a `feature/{issue_id}-*`
+     branch exists on origin (an in-flight or finished pipeline), or a
+     concurrent claimer won the race. **Stop** — do not create a worktree,
+     and do not proceed to step 4. Report to the user that this issue
+     already has a pipeline (someone else's `/oneshot`, `/chopchop`, or a
+     concurrent invocation of this same one) and suggest `/absorb` if a PR
+     already exists for it, rather than starting a second, competing
+     implementation.
+   - Any other exit — a real failure; report it and stop.
 
-4. Create and enter a dedicated worktree on the `feature/{issue_id}-{Title-Slug}`
-   branch (compute `BRANCH` and `WORKTREE` as shown in **Naming convention**):
+   **Skip this step only when the issue was already claimed in this same
+   session** — e.g. `/chopchop` just ran `claim_issue.sh` itself and handed
+   you the branch. Re-running the script then would see your own claim
+   branch and misreport "already claimed".
+
+4. Create and enter a dedicated worktree on the claimed branch (compute
+   `BRANCH` and `WORKTREE` as shown in **Naming convention**). The claim in
+   step 3 already created the branch on origin (pointing at the default
+   branch head), so fetch it and attach:
 ```bash
-git worktree add -b "$BRANCH" "$WORKTREE"
+git fetch origin "$BRANCH"
+git worktree add --track -b "$BRANCH" "$WORKTREE" "origin/$BRANCH"
 cd "$WORKTREE"
 ```
-If the branch already exists, attach to it instead:
+If a local branch of that name already exists (e.g. resuming an interrupted
+run), attach to it instead:
 ```bash
 git worktree add "$WORKTREE" "$BRANCH"
 ```
