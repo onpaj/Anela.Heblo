@@ -62,14 +62,21 @@ If `candidate` is `null`
 `No needs-work PRs ready to revise.`, list `skipped` with reasons, and
 stop. Otherwise set `{N}` from `.candidate.number`.
 
-## 2. Confirm it's open, then claim it
+## 2. Confirm it's open and unclaimed, then claim it
 
 ```bash
-gh pr view {N} --repo "$REPO" --json state --jq .state
+gh pr view {N} --repo "$REPO" --json state,labels
 ```
 
-If the result is not `OPEN`, report this PR as skipped (not pushed to) and
+If `.state` is not `OPEN`, report this PR as skipped (not pushed to) and
 **stop** — do not proceed to step 3 or beyond.
+
+If `.labels` already contains `agent-wip`, another `rework-pr` run (this
+skill invoked directly with an explicit number bypasses
+`find_candidate.sh`/`list_candidates.sh`'s own live-label check, and even
+their snapshot can go stale between listing and this step) got here first
+— report this PR as skipped (`already claimed by an in-progress rework-pr
+run`) and **stop**. Do not add the label again, do not touch the branch.
 
 Otherwise, claim it immediately, before any branch work starts. The label
 may not exist in the repo yet — create it best-effort first, the same
@@ -80,6 +87,10 @@ gh label create agent-wip --repo "$REPO" --color fbca04 \
   --description "Claimed by an in-progress /rework-pr run" >/dev/null 2>&1 || true
 gh pr edit {N} --repo "$REPO" --add-label agent-wip
 ```
+
+This check-then-claim narrows the race but is not a true atomic lock —
+`gh`'s label API has no compare-and-set, so two invocations reading
+"unclaimed" in the same instant can still both proceed.
 
 **From this point on, release this claim on ANY exit, for any reason** —
 including a script exiting non-zero, a `git` command failing, an unexpected
