@@ -1,4 +1,4 @@
-using Anela.Heblo.Application.Features.KnowledgeBase.UseCases.SearchDocuments;
+using Anela.Heblo.Application.Features.Smartsupp.Contracts;
 using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Application.Shared.Rag;
 using Anela.Heblo.Domain.Features.Rag;
@@ -23,7 +23,7 @@ public class GenerateDraftReplyHandler
     private const string NoTopicPlaceholder = "(neuvedeno)";
 
     private readonly ISmartsuppRepository _repository;
-    private readonly IMediator _mediator;
+    private readonly ISmartsuppKnowledgeSource _knowledgeSource;
     private readonly IChatClient _chatClient;
     private readonly SmartsuppDraftReplyOptions _options;
     private readonly ICurrentUserService _currentUserService;
@@ -32,7 +32,7 @@ public class GenerateDraftReplyHandler
 
     public GenerateDraftReplyHandler(
         ISmartsuppRepository repository,
-        IMediator mediator,
+        ISmartsuppKnowledgeSource knowledgeSource,
         IChatClient chatClient,
         IOptions<SmartsuppDraftReplyOptions> options,
         ICurrentUserService currentUserService,
@@ -40,7 +40,7 @@ public class GenerateDraftReplyHandler
         ILogger<GenerateDraftReplyHandler> logger)
     {
         _repository = repository;
-        _mediator = mediator;
+        _knowledgeSource = knowledgeSource;
         _chatClient = chatClient;
         _options = options.Value;
         _currentUserService = currentUserService;
@@ -67,12 +67,10 @@ public class GenerateDraftReplyHandler
 
         var transcript = ConversationTranscriptBuilder.Build(conversation.Messages);
 
-        var searchResult = await _mediator.Send(
-            new SearchDocumentsRequest { Query = retrievalQuery, TopK = RetrievalTopK },
-            cancellationToken);
+        var chunks = await _knowledgeSource.SearchAsync(retrievalQuery, RetrievalTopK, cancellationToken);
 
-        var context = searchResult.Chunks.Count != 0
-            ? string.Join("\n\n---\n\n", searchResult.Chunks.Select(c => c.Content))
+        var context = chunks.Count != 0
+            ? string.Join("\n\n---\n\n", chunks.Select(c => c.Content))
             : NoContextPlaceholder;
 
         var agentName = SmartsuppNameHelper.ExtractFirstName(_currentUserService.GetCurrentUser().Name);
@@ -115,7 +113,7 @@ public class GenerateDraftReplyHandler
         return new GenerateDraftReplyResponse
         {
             Answer = answer,
-            Sources = searchResult.Chunks.Select(c => new DraftReplySource
+            Sources = chunks.Select(c => new DraftReplySource
             {
                 ChunkId = c.ChunkId,
                 DocumentId = c.DocumentId,
