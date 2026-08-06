@@ -1,11 +1,16 @@
 ---
 name: absorb
-description: Absorb an existing GitHub PR into the current Conductor workspace. Use when the user says "absorb PR", "absorb PR 123", "load PR", "take over PR", "work on PR", or wants to continue work on a pull request that was created outside this workspace. Fetches the PR branch, checks it out, syncs with remote, backmerges the base branch (main), resolves any merge conflicts, runs tests, and fixes failing tests — leaving the workspace ready to continue work.
+description: Absorb an existing GitHub PR into the current local checkout. Use when the user says "absorb PR", "absorb PR 123", "load PR", "take over PR", "work on PR", or wants to continue work on a pull request that was created outside this session. Fetches the PR branch, checks it out, backmerges the default branch, resolves any merge conflicts, runs the project's own test suite and fixes failures, checks the PR discussion for outstanding requested work, and leaves the checkout ready to continue work.
 ---
 
 # Absorb PR
 
-Loads an existing GitHub PR into this Conductor workspace, fully reconciled and test-passing: fetches the branch, syncs it, backmerges the base branch, resolves conflicts, runs tests, fixes failures, and writes a `.context/pr.md` file.
+Loads an existing GitHub PR into this checkout, fully reconciled and
+test-passing: fetches the branch, backmerges the default branch, resolves
+conflicts, runs tests, fixes failures, surfaces any unresolved discussion
+that still needs action, and writes a `.context/pr.md` file. Unlike
+`/rework-pr`, this is not scoped to `agent`-labelled PRs or a revision
+cap — it works on any PR, including ones a human opened by hand.
 
 ## Usage
 
@@ -13,96 +18,170 @@ Loads an existing GitHub PR into this Conductor workspace, fully reconciled and 
 /absorb <PR_NUMBER>
 ```
 
-## Steps
+## 0. Resolve `$REPO` first
 
-### 1. Safety check
+```bash
+REPO="${GH_REPO:-$(git remote get-url origin | sed -e 's#.*github\.com[:/]##' -e 's#\.git$##')}"
+```
+
+If that does not produce an `owner/name` pair, stop and say so. Use
+`--repo "$REPO"` on every `gh` call below.
+
+## 1. Safety check
 
 ```bash
 git status --porcelain
 ```
 
-If there are uncommitted changes, **stop** and ask the user to stash or commit them first.
+If there are uncommitted changes, **stop** and ask the user to stash or
+commit them first — this skill checks out a different branch in place, in
+the current checkout, not an isolated worktree.
 
-### 2. Fetch PR metadata
+## 2. Fetch PR metadata
 
 ```bash
-gh pr view <PR_NUMBER> --json number,title,body,headRefName,baseRefName,url,state,author,additions,deletions,changedFiles
+gh pr view <PR_NUMBER> --repo "$REPO" \
+  --json number,title,body,headRefName,baseRefName,url,state,author,additions,deletions,changedFiles
 ```
 
-Store `headRefName` as `<branch>` and `baseRefName` as `<base>` (typically `main`).
+Store `headRefName` as `<branch>`. Do not assume `baseRefName` is `main` —
+read it from this call, or cross-check against the actual default branch
+in step 4.
 
-### 3. Fetch and checkout the branch
+If `.state` is not `OPEN`, warn the user (merged or closed PRs can still
+be absorbed for review or follow-up work) and continue.
+
+## 3. Fetch and check out the branch
 
 ```bash
-git fetch origin
+git fetch origin <branch>
 git checkout <branch> 2>/dev/null || git checkout -b <branch> origin/<branch>
-git pull origin <branch>
 ```
 
-### 4. Backmerge the base branch
+Before resetting, check for local commits that never reached `origin/<branch>`
+(the step 1 check only catches uncommitted changes, not this):
 
 ```bash
-git merge origin/<base> --no-edit
+git rev-list origin/<branch>..<branch>
 ```
 
-If it merges cleanly — proceed.
+If that prints anything, **stop and ask the user** how to proceed — a hard
+reset would silently discard those commits. Otherwise:
+
+```bash
+git reset --hard origin/<branch>
+```
+
+## 4. Backmerge the default branch
+
+Resolve the actual default branch rather than assuming `main`:
+
+```bash
+DEFAULT_BRANCH=$(gh repo view "$REPO" --json defaultBranchRef --jq .defaultBranchRef.name)
+git fetch origin "$DEFAULT_BRANCH"
+git merge "origin/$DEFAULT_BRANCH" --no-edit
+```
+
+Use `merge`, never `rebase` — this rewrites nothing, so the eventual push
+stays a plain `git push`.
+
+If it merges cleanly, proceed to step 5.
 
 If there are conflicts:
 
-1. List all conflicted files:
-   ```bash
-   git diff --name-only --diff-filter=U
-   ```
+1. List the conflicted files: `git diff --name-only --diff-filter=U`
+2. For each one, read it and reason about the correct resolution — prefer
+   the PR branch's intent, integrate the default branch's additions
+   alongside it, and combine both sides on a structural conflict (both
+   added to the same file).
+3. `git add <file>` once each is resolved.
+4. If a conflict's intent is genuinely unclear (the same line changed two
+   incompatible ways for reasons you can't determine from context), **stop
+   and ask the user** how to resolve it — do not guess on ambiguous logic
+   collisions. Otherwise, once every file is resolved:
 
-2. For each conflicted file, read it and reason about the correct resolution:
-   - Understand what the PR branch changed vs what the base branch changed.
-   - Prefer the PR branch's intent — keep its logic, integrate base branch additions alongside.
-   - For structural conflicts (both sides added to the same file), combine both changes.
-   - For logic conflicts, use your understanding of the codebase to pick the correct version.
+```bash
+git commit -m "chore: backmerge origin/$DEFAULT_BRANCH into <branch>"
+```
 
-3. After editing each file to resolve it:
-   ```bash
-   git add <file>
-   ```
+## 5. Run the project's own test suite
 
-4. Once all conflicts are resolved:
-   ```bash
-   git commit -m "chore: backmerge origin/<base> into <branch>"
-   ```
+Detect how this repo runs its tests rather than assuming a stack — check,
+in order: a project skill or `CLAUDE.md`/`AGENTS.md` section that already
+documents the test command, then common manifests (`pyproject.toml` →
+`pytest`, `package.json`'s `scripts.test` → `npm test`, `*.csproj`/`*.sln`
+→ `dotnet test`, `Cargo.toml` → `cargo test`, `go.mod` → `go test ./...`).
+If none of these resolve unambiguously, ask the user for the test command
+rather than guessing.
 
-### 5. Run tests
+If all tests pass, skip to step 7.
 
-Detect the project type and run the full suite:
+## 6. Fix failing tests
 
-- **.NET backend** — `dotnet test`
-- **Frontend** — `npm run build && npm run lint` (from `frontend/` directory)
-
-If all tests pass, proceed to step 7.
-
-### 6. Fix failing tests
-
-For each failing test:
+For each failure:
 
 1. Read the failure message carefully.
 2. Locate the relevant source file(s).
-3. Determine whether the failure is in the test or in the implementation:
-   - If the test is wrong (e.g. testing a removed API that no longer exists), update the test.
-   - If the implementation is broken, fix the implementation.
+3. Determine whether the failure is in the test or the implementation — if
+   the test targets a removed/changed API, update the test; if the
+   implementation is actually broken, fix the implementation.
 4. Re-run only the affected test to confirm the fix.
-5. Continue until all tests pass.
+5. Continue until the full suite passes.
+
+If a failure requires understanding a design change beyond a
+straightforward fix, describe what's failing and ask the user for
+guidance rather than guessing.
 
 Commit fixes:
+
 ```bash
-git commit -m "fix: resolve failing tests after backmerge with <base>"
+git commit -m "fix: resolve failing tests after backmerge with $DEFAULT_BRANCH"
 ```
 
-### 7. Push the updated branch
+## 7. Push the updated branch
 
 ```bash
 git push origin <branch>
 ```
 
-### 8. Write workspace context
+Skip this step (and note it in the final summary) if step 4 made no new
+commits and step 6 wasn't needed — nothing changed to push.
+
+## 8. Check the PR discussion for outstanding work
+
+Gather the full discussion, not just the latest comment:
+
+```bash
+gh pr view <PR_NUMBER> --repo "$REPO" --json comments,reviews
+gh api "repos/$REPO/pulls/<PR_NUMBER>/comments"
+```
+
+Read every comment and review against the current diff (`gh pr diff
+<PR_NUMBER> --repo "$REPO"`) and judge, per item, whether it's already
+addressed by what's on the branch now or still outstanding — a
+`CHANGES_REQUESTED` review with no newer commit addressing it, an
+unresolved inline review comment, or a plain comment asking for something
+("can you also...", "please also fix...") that the diff doesn't reflect.
+
+If nothing outstanding is found, note that in the final summary and move
+to step 9.
+
+If you find genuine outstanding items, **stop and list them for the
+user** — do not act on them unprompted. For each: who asked, what they
+asked for, and whether it looks small or substantial. Then ask whether
+they want this work done now.
+
+- If the user declines, or wants to handle it themselves: stop here,
+  leave the branch as reconciled in steps 3–7.
+- If the user agrees: for each confirmed item, spawn a `general-purpose`
+  subagent (via the `Agent` tool) to implement it — give it the specific
+  comment/review text, the file(s) it concerns, and this repo's normal
+  test-before-commit expectations. Review what it changed, run the test
+  suite again (step 5's detected command), commit, and push
+  (`git commit -m "fix: address PR feedback — <short description>"`, then
+  `git push origin <branch>`) once everything passes.
+
+## 9. Write workspace context
 
 ```bash
 mkdir -p .context
@@ -115,31 +194,40 @@ Create or overwrite `.context/pr.md`:
 
 - **PR**: #<number> — <title>
 - **URL**: <url>
-- **Branch**: `<branch>` → `<base>`
+- **Branch**: `<branch>` → `<default branch>`
 - **State**: <state>
 - **Author**: <author.login>
 - **Changes**: +<additions> / -<deletions> across <changedFiles> files
-- **Absorbed**: backmerged with `<base>`, all tests passing
+- **Absorbed**: backmerged with `<default branch>`, all tests passing
+- **Outstanding discussion**: <none found | addressed now | left for the user, with a one-line list>
 
 ## Description
 
 <body>
 ```
 
-### 9. Report status
+## 10. Report status
 
-Print a short summary and stop — do not start implementing new features unless the user asks:
+Print a short summary and stop — do not start implementing new features
+beyond what the user confirmed in step 8:
 
 ```
 Absorbed PR #<number>: <title>
-Branch: <branch> (backmerged with <base>, pushed)
+Branch: <branch> (backmerged with <default branch>, pushed)
 Tests: all passing
+Discussion: <none outstanding | N item(s) addressed | N item(s) left open, listed above>
 Context written to .context/pr.md
 ```
 
 ## Edge Cases
 
-- **PR merged or closed**: warn the user, but proceed — they may want to review or extend the branch.
-- **Unresolvable conflicts**: if a conflict is genuinely ambiguous (logic collision in complex domain code), pause, show the conflict, and ask the user how to resolve it before continuing.
-- **Tests failing beyond a simple fix**: if fixing tests requires understanding a major design change, describe what's failing and ask the user for guidance rather than guessing.
-- **Branch already up to date with base**: skip the merge step and note it in the final summary.
+- **PR merged or closed**: warn the user, but proceed — they may want to
+  review or extend the branch.
+- **Unresolvable conflicts**: pause, show the conflict, and ask the user
+  how to resolve it before continuing (step 4).
+- **Tests failing beyond a simple fix**: describe what's failing and ask
+  for guidance rather than guessing (step 6).
+- **No unambiguous test command**: ask the user rather than skipping tests
+  silently (step 5).
+- **Branch already up to date with the default branch**: skip the merge
+  and note it in the final summary.
