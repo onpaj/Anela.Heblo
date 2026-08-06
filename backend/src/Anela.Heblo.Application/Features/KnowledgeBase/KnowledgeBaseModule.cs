@@ -1,4 +1,5 @@
 using Anela.Heblo.Application.Features.Article.Contracts;
+using Anela.Heblo.Application.Features.Smartsupp.Contracts;
 using Anela.Heblo.Application.Features.KnowledgeBase.Pipeline;
 using Anela.Heblo.Application.Features.KnowledgeBase.Services;
 using Anela.Heblo.Application.Features.Leaflet.Contracts;
@@ -44,6 +45,10 @@ public static class KnowledgeBaseModule
         // Cross-module contract: KnowledgeBase implements Article's IArticleKnowledgeSource via adapter.
         // Scoped to match existing Article contract bindings above.
         services.AddScoped<IArticleKnowledgeSource, KnowledgeBaseArticleKnowledgeSource>();
+
+        // Cross-module contract: KnowledgeBase implements Smartsupp's ISmartsuppKnowledgeSource via adapter.
+        // Same provider-owned-DI pattern as the Leaflet/Article bindings above.
+        services.AddScoped<ISmartsuppKnowledgeSource, KnowledgeBaseSmartsuppKnowledgeSource>();
 
         // Repository (real EF Core implementation lives in the Persistence layer)
         services.AddScoped<IKnowledgeBaseRepository, KnowledgeBaseRepository>();
