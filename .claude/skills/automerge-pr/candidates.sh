@@ -35,11 +35,13 @@ gh pr list \
   --limit 100 \
   --json number,title,isDraft,mergeable,reviewDecision,headRefName,additions,deletions,changedFiles,body,labels,createdAt \
 | jq --argjson max "$MAX_CANDIDATES" '
-    # Must match NEEDS_WORK_LABEL in apply_verdict.sh — the value is
-    # duplicated here (bash has no shared-constant mechanism across these
-    # standalone scripts, the same tradeoff already made for repo-detection
-    # logic), so keep both in sync if the label name ever changes.
+    # Must match NEEDS_WORK_LABEL / HUMAN_REQUIRED_LABEL in apply_verdict.sh —
+    # the values are duplicated here (bash has no shared-constant mechanism
+    # across these standalone scripts, the same tradeoff already made for
+    # repo-detection logic), so keep both in sync if either label name ever
+    # changes.
     def needs_work_label: "needs-work";
+    def human_required_label: "human-required";
 
     def has_label($name): (.labels // [] | map(.name) | any(. == $name));
 
@@ -50,6 +52,7 @@ gh pr list \
       elif .mergeable != "MERGEABLE" then "not mergeable: \(.mergeable)"
       elif .reviewDecision == "CHANGES_REQUESTED" then "CHANGES_REQUESTED"
       elif has_label(needs_work_label) then "needs-work (rejected by a previous run)"
+      elif has_label(human_required_label) then "human-required (mid-confidence review already posted; awaiting a human)"
       else null end;
 
     def linked_issue:
