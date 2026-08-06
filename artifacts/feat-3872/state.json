@@ -21,16 +21,16 @@
       "updated_at": "2026-08-06T09:40:49.784745Z"
     },
     "developing": {
-      "status": "pending",
-      "updated_at": null
+      "status": "in_progress",
+      "updated_at": "2026-08-06T09:41:24.002216Z"
     }
   },
   "tasks": [
     {
       "name": "dark-mode-baleni-statistics-jsx",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-08-06T09:41:24.512669Z"
     },
     {
       "name": "dark-mode-packing-charts-recharts",
