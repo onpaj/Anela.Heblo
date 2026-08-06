@@ -6,10 +6,15 @@ description: Revise every open needs-work PR under the revision-attempt cap, one
 You autonomously revise every open `needs-work` PR that hasn't hit the
 revision-attempt cap, running `/rework-pr` against each one. Unlike
 `/automerge-all`, there is no serialization step here: each PR lives on its
-own branch/worktree, and the `agent-wip` claim `/rework-pr` takes (its
-SKILL.md step 2) prevents any two subagents from converging on the same
-PR even if the candidate list is momentarily stale — so the whole batch
-runs fully in parallel, start to finish.
+own branch/worktree, and `list_candidates.sh` returns at most one row per
+PR number, so within a single `/rework-all` run no two of its own
+subagents ever target the same PR — the whole batch runs fully in
+parallel, start to finish. The `agent-wip` claim `/rework-pr` takes (its
+SKILL.md step 2, including its live-label recheck immediately before
+claiming) is what protects against a *different* concurrent run — another
+`/rework-all`, a direct `/rework-pr {N}`, or a scheduled one — converging
+on the same PR; it narrows that race but is not a true lock (see that
+skill's own caveat).
 
 ## 1. Find the candidates
 
