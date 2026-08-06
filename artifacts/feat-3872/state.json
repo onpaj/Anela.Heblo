@@ -25,5 +25,24 @@
       "updated_at": null
     }
   },
-  "tasks": []
+  "tasks": [
+    {
+      "name": "dark-mode-baleni-statistics-jsx",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    },
+    {
+      "name": "dark-mode-packing-charts-recharts",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    },
+    {
+      "name": "dark-mode-packing-hour-heatmap",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    }
+  ]
 }
