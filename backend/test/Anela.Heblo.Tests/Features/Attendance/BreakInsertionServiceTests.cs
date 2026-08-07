@@ -390,4 +390,25 @@ public class BreakInsertionServiceTests
             true,
             It.IsAny<CancellationToken>()), Times.Once);
     }
+
+    [Fact]
+    public async Task InsertsExactlyOneBreak_ForTwelveHourDayWorkedInTwoShifts()
+    {
+        // Two 6 h shifts with an hour between them: BuildSegments keeps them separate
+        // (not adjacent), and ComputeBreakSlot returns a single slot regardless.
+        SetupDefaults(WorkEntry(6, 0, 12, 0), WorkEntry(13, 0, 19, 0));
+
+        var summary = await CreateService().RunAsync(CancellationToken.None);
+
+        summary.BreaksInserted.Should().Be(1);
+        _client.Verify(c => c.CreateTimeEntryAsync(
+            It.Is<LogetoCreateTimeEntryRequest>(r =>
+                r.Date == Day
+                && r.From == "2026-08-03T11:00:00" // preferred window sits strictly inside the morning shift
+                && r.To == "2026-08-03T11:30:00"),
+            true,
+            It.IsAny<CancellationToken>()), Times.Once);
+        _client.Verify(c => c.CreateTimeEntryAsync(
+            It.IsAny<LogetoCreateTimeEntryRequest>(), It.IsAny<bool>(), It.IsAny<CancellationToken>()), Times.Once);
+    }
 }
