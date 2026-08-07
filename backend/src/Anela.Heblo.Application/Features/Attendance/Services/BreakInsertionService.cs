@@ -75,7 +75,8 @@ public class BreakInsertionService
                 try
                 {
                     await ProcessDayAsync(
-                        person, day.Key, day.ToList(), typeByActivity, breakActivity, options, summary, cancellationToken);
+                        person, day.Key, day.ToList(), typeByActivity, breakActivity, options, summary,
+                        today, cancellationToken);
                 }
                 catch (Exception ex)
                 {
@@ -88,10 +89,11 @@ public class BreakInsertionService
 
         _logger.LogInformation(
             "Break insertion finished: {Scanned} days scanned, {Inserted} breaks inserted, " +
-            "{ExistingBreak} had a break, {BelowThreshold} below threshold, {HoursOnly} hours-only, " +
-            "{NoSlot} no slot, {Failed} failed",
+            "{ExistingBreak} had a break, {InProgress} in progress, {BelowThreshold} below threshold, " +
+            "{HoursOnly} hours-only, {NoSlot} no slot, {Failed} failed",
             summary.DaysScanned, summary.BreaksInserted, summary.SkippedExistingBreak,
-            summary.SkippedBelowThreshold, summary.SkippedHoursOnly, summary.SkippedNoSlot, summary.Failed);
+            summary.SkippedInProgress, summary.SkippedBelowThreshold, summary.SkippedHoursOnly,
+            summary.SkippedNoSlot, summary.Failed);
 
         return summary;
     }
@@ -104,9 +106,32 @@ public class BreakInsertionService
         LogetoActivity breakActivity,
         BreakInsertionOptions options,
         BreakInsertionSummary summary,
+        DateOnly today,
         CancellationToken cancellationToken)
     {
         summary.DaysScanned++;
+
+        if (dayEntries.Any(e => e.From.HasValue && !e.To.HasValue))
+        {
+            summary.SkippedInProgress++;
+
+            if (date < today)
+            {
+                _logger.LogWarning(
+                    "Skipping {Date} for person {PersonGuid}: an open record (no end time) is present — " +
+                    "the worker never clocked out; fix it manually in Logeto.",
+                    date, person.Guid);
+            }
+            else
+            {
+                _logger.LogDebug(
+                    "Skipping {Date} for person {PersonGuid}: an open record (no end time) is present — " +
+                    "the worker is still at work.",
+                    date, person.Guid);
+            }
+
+            return;
+        }
 
         if (dayEntries.Any(e => typeByActivity.GetValueOrDefault(e.Activity) == LogetoActivityTypes.Break))
         {
@@ -197,6 +222,7 @@ public class BreakInsertionSummary
     public int DaysScanned { get; set; }
     public int BreaksInserted { get; set; }
     public int SkippedExistingBreak { get; set; }
+    public int SkippedInProgress { get; set; }
     public int SkippedBelowThreshold { get; set; }
     public int SkippedHoursOnly { get; set; }
     public int SkippedNoSlot { get; set; }

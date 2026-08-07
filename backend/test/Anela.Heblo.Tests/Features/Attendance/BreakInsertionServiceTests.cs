@@ -15,6 +15,7 @@ public class BreakInsertionServiceTests
     private static readonly Guid BreakActivity = Guid.Parse("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb");
     private static readonly Guid Worker = Guid.Parse("cccccccc-cccc-cccc-cccc-cccccccccccc");
     private static readonly DateOnly Day = new(2026, 8, 3);
+    private static readonly DateOnly Today = new(2026, 8, 4); // matches the fixed "now" in CreateService
 
     private readonly Mock<ILogetoClient> _client = new();
 
@@ -61,15 +62,18 @@ public class BreakInsertionServiceTests
             .ReturnsAsync(entries.ToList());
     }
 
-    private static LogetoTimeEntry WorkEntry(int fromHour, int fromMin, int toHour, int toMin) => new()
+    private static LogetoTimeEntry WorkEntryOn(DateOnly date, int fromHour, int fromMin, int toHour, int toMin) => new()
     {
         Guid = Guid.NewGuid(),
         Person = Worker,
-        Date = Day,
+        Date = date,
         Activity = WorkActivity,
-        From = new DateTimeOffset(2026, 8, 3, fromHour, fromMin, 0, TimeSpan.Zero),
-        To = new DateTimeOffset(2026, 8, 3, toHour, toMin, 0, TimeSpan.Zero)
+        From = new DateTimeOffset(date.Year, date.Month, date.Day, fromHour, fromMin, 0, TimeSpan.Zero),
+        To = new DateTimeOffset(date.Year, date.Month, date.Day, toHour, toMin, 0, TimeSpan.Zero)
     };
+
+    private static LogetoTimeEntry WorkEntry(int fromHour, int fromMin, int toHour, int toMin) =>
+        WorkEntryOn(Day, fromHour, fromMin, toHour, toMin);
 
     [Fact]
     public async Task InsertsBreak_ForEightHourDayWithoutBreak()
@@ -289,5 +293,101 @@ public class BreakInsertionServiceTests
 
         summary.BreaksInserted.Should().Be(1);
         summary.Failed.Should().Be(1);
+    }
+
+    [Fact]
+    public async Task SkipsDay_WhenAnEntryIsStillOpen()
+    {
+        var openEntry = new LogetoTimeEntry
+        {
+            Guid = Guid.NewGuid(),
+            Person = Worker,
+            Date = Day,
+            Activity = WorkActivity,
+            From = new DateTimeOffset(2026, 8, 3, 17, 0, 0, TimeSpan.Zero),
+            To = null // still clocked in
+        };
+        SetupDefaults(WorkEntry(8, 0, 16, 30), openEntry); // 8.5 h closed work would otherwise qualify
+
+        var summary = await CreateService().RunAsync(CancellationToken.None);
+
+        summary.BreaksInserted.Should().Be(0);
+        summary.SkippedInProgress.Should().Be(1);
+        _client.Verify(c => c.CreateTimeEntryAsync(
+            It.IsAny<LogetoCreateTimeEntryRequest>(), It.IsAny<bool>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task LogsWarning_WhenAPastDayHasAnOpenRecord()
+    {
+        var openEntry = new LogetoTimeEntry
+        {
+            Guid = Guid.NewGuid(),
+            Person = Worker,
+            Date = Day, // 2026-08-03, before "today" — the worker never clocked out
+            Activity = WorkActivity,
+            From = new DateTimeOffset(2026, 8, 3, 8, 0, 0, TimeSpan.Zero),
+            To = null
+        };
+        SetupDefaults(openEntry);
+
+        var loggerMock = new Mock<ILogger<BreakInsertionService>>();
+
+        await CreateService(logger: loggerMock.Object).RunAsync(CancellationToken.None);
+
+        loggerMock.Verify(
+            x => x.Log(
+                LogLevel.Warning,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains("open record")),
+                null,
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task DoesNotWarn_WhenTodayHasAnOpenRecord()
+    {
+        var openEntry = new LogetoTimeEntry
+        {
+            Guid = Guid.NewGuid(),
+            Person = Worker,
+            Date = Today, // worker is at work right now — expected, not an anomaly
+            Activity = WorkActivity,
+            From = new DateTimeOffset(2026, 8, 4, 8, 0, 0, TimeSpan.Zero),
+            To = null
+        };
+        SetupDefaults(openEntry);
+
+        var loggerMock = new Mock<ILogger<BreakInsertionService>>();
+
+        var summary = await CreateService(logger: loggerMock.Object).RunAsync(CancellationToken.None);
+
+        summary.SkippedInProgress.Should().Be(1);
+        loggerMock.Verify(
+            x => x.Log(
+                LogLevel.Warning,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains("open record")),
+                null,
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Never);
+    }
+
+    [Fact]
+    public async Task InsertsBreak_ForToday_WhenAllRecordsAreClosed()
+    {
+        SetupDefaults(WorkEntryOn(Today, 6, 0, 14, 30)); // 8.5 h, finished
+
+        var summary = await CreateService().RunAsync(CancellationToken.None);
+
+        summary.BreaksInserted.Should().Be(1);
+        _client.Verify(c => c.CreateTimeEntryAsync(
+            It.Is<LogetoCreateTimeEntryRequest>(r =>
+                r.Date == Today
+                && r.From == "2026-08-04T11:00:00"
+                && r.To == "2026-08-04T11:30:00"),
+            true,
+            It.IsAny<CancellationToken>()), Times.Once);
     }
 }
