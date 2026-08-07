@@ -20,7 +20,7 @@ public class BreakInsertionServiceTests
     private readonly Mock<ILogetoClient> _client = new();
 
     private BreakInsertionService CreateService(
-        BreakInsertionOptions? options = null, ILogger<BreakInsertionService>? logger = null)
+        BreakInsertionOptions? options = null, ILogger<BreakInsertionService>? logger = null, DateTimeOffset? now = null)
     {
         options ??= new BreakInsertionOptions
         {
@@ -29,10 +29,12 @@ public class BreakInsertionServiceTests
             ApiTimesAreUtc = false // tests use wall-clock times directly for readability
         };
 
-        // Fixed "now": 2026-08-04 08:00 Prague — so "yesterday" = 2026-08-03.
+        // Fixed "now": 2026-08-04 08:00 Prague, so Prague date 2026-08-04 is `today`. With the
+        // default StartDate (2026-08-01) and default LookbackDays (7), the window therefore runs
+        // 2026-08-01 (clamped up to StartDate) through 2026-08-04.
         var timeProvider = new Mock<TimeProvider>();
         timeProvider.Setup(t => t.GetUtcNow())
-            .Returns(new DateTimeOffset(2026, 8, 4, 6, 0, 0, TimeSpan.Zero));
+            .Returns(now ?? new DateTimeOffset(2026, 8, 4, 6, 0, 0, TimeSpan.Zero));
 
         return new BreakInsertionService(
             _client.Object,
@@ -410,5 +412,84 @@ public class BreakInsertionServiceTests
             It.IsAny<CancellationToken>()), Times.Once);
         _client.Verify(c => c.CreateTimeEntryAsync(
             It.IsAny<LogetoCreateTimeEntryRequest>(), It.IsAny<bool>(), It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task ProcessesEachDayInTheWindowIndependently_WhenOneRunSpansMultipleDays()
+    {
+        // 2026-08-02: open record — should be skipped without affecting the other two days.
+        var openEntry = new LogetoTimeEntry
+        {
+            Guid = Guid.NewGuid(),
+            Person = Worker,
+            Date = new DateOnly(2026, 8, 2),
+            Activity = WorkActivity,
+            From = new DateTimeOffset(2026, 8, 2, 8, 0, 0, TimeSpan.Zero),
+            To = null
+        };
+        // 2026-08-03 (Day): 8.5 h closed work — qualifies for a break.
+        // 2026-08-04 (Today): 2 h closed work — below the 6 h threshold.
+        SetupDefaults(openEntry, WorkEntry(8, 0, 16, 30), WorkEntryOn(Today, 8, 0, 10, 0));
+
+        var summary = await CreateService().RunAsync(CancellationToken.None);
+
+        summary.DaysScanned.Should().Be(3);
+        summary.SkippedInProgress.Should().Be(1);
+        summary.BreaksInserted.Should().Be(1);
+        summary.SkippedBelowThreshold.Should().Be(1);
+    }
+
+    [Fact]
+    public async Task IgnoresEntries_OutsideTheComputedWindow_EvenWhenTheMockReturnsThem()
+    {
+        // The mock (via SetupDefaults) returns every entry regardless of the requested range, so
+        // only the service's own `e.Date >= from && e.Date <= today` filter can exclude this one.
+        var outsideDate = new DateOnly(2026, 7, 20); // before the clamped `from` of 2026-08-01
+        var outsideEntry = WorkEntryOn(outsideDate, 8, 0, 16, 30); // 8.5 h — would qualify if scanned
+        SetupDefaults(outsideEntry, WorkEntry(8, 0, 16, 30)); // Day (2026-08-03) is inside the window
+
+        var summary = await CreateService().RunAsync(CancellationToken.None);
+
+        summary.DaysScanned.Should().Be(1); // only the in-window day was scanned
+        summary.BreaksInserted.Should().Be(1);
+        _client.Verify(c => c.CreateTimeEntryAsync(
+            It.Is<LogetoCreateTimeEntryRequest>(r => r.Date == outsideDate),
+            It.IsAny<bool>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task RequestsTimeTracking_ForTheConfiguredLookbackDays_WhenNotDefault()
+    {
+        SetupDefaults();
+        var options = new BreakInsertionOptions
+        {
+            StartDate = new DateOnly(2026, 1, 1), // far enough in the past not to clamp
+            BreakActivityName = "Oběd",
+            ApiTimesAreUtc = false,
+            LookbackDays = 2
+        };
+
+        await CreateService(options).RunAsync(CancellationToken.None);
+
+        // "now" is 2026-08-04; lookback of 2 days → window starts 2026-08-02.
+        _client.Verify(c => c.GetTimeTrackingAsync(
+            new DateOnly(2026, 8, 2), new DateOnly(2026, 8, 4), It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task ComputesToday_FromPragueTime_NotUtc()
+    {
+        SetupDefaults();
+
+        // 2026-08-04T22:30:00Z is 2026-08-05 00:30 in Prague (UTC+2 in August) — a different
+        // calendar day than the UTC instant, so this is the one place a timezone bug would hide.
+        var utcNow = new DateTimeOffset(2026, 8, 4, 22, 30, 0, TimeSpan.Zero);
+
+        await CreateService(now: utcNow).RunAsync(CancellationToken.None);
+
+        // Default lookback of 7 days from Prague "today" 2026-08-05 → 2026-07-29, clamped up to
+        // the default StartDate of 2026-08-01.
+        _client.Verify(c => c.GetTimeTrackingAsync(
+            new DateOnly(2026, 8, 1), new DateOnly(2026, 8, 5), It.IsAny<CancellationToken>()), Times.Once);
     }
 }

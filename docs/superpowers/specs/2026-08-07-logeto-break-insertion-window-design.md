@@ -81,9 +81,15 @@ The job keeps `CronExpression = "0 3 * * *"`. At 03:00 today normally has no ent
 all, so R2 rarely fires on today's date by itself. Its value is the combination with
 R1: every day is re-examined on each of the next `LookbackDays` nights, so a day skipped
 for a transient reason — in progress at the time, or still below 6 h when first seen —
-self-corrects on a later run instead of being lost. This is also what makes night shifts
-crossing midnight work: a 22:00→06:00 record is open at 03:00 and skipped, then inserted
-the following night once closed.
+self-corrects on a later run instead of being lost. This also correctly *defers* night
+shifts crossing midnight: a 22:00→06:00 record is still open at 03:00, so the guard skips
+the day rather than acting on incomplete data. What happens once that record closes is
+unverified: for a 22:00→06:00 segment the slot calculator centres the break around 01:45
+**on the following calendar day**, so the insert request would carry `Date = D` with
+`From`/`To` timestamps dated `D+1`. Nobody has confirmed how Logeto files a break whose
+timestamps fall outside its `Date`. Cross-midnight break *placement* is therefore
+unverified against the live API and is out of scope for this change — only the deferral
+is covered here.
 
 ## Configuration
 
@@ -112,6 +118,25 @@ New tests in `BreakInsertionServiceTests`:
 Existing tests are expected to pass unchanged: their fixed "now" of 2026-08-04 with
 `StartDate` 2026-08-01 and the default lookback clamps to the same effective range they
 already assume.
+
+## Known limitations and trade-offs
+
+- **A permanently open past day ages out silently.** A past day with an open record
+  warns on every run while it remains inside the window, but only for at most
+  `LookbackDays` nights — once it falls out of `[from, today]` it stops being scanned and
+  the warning stops firing, with no other signal that it was ever dropped. The previous
+  unbounded walk would have retried (and warned on) such a day forever. This is an
+  accepted trade-off of bounding the scan: it is what makes the nightly cost fixed rather
+  than growing with the account's history.
+- **The open-record guard assumes "open record ⟺ day unfinished", which is false during
+  a clock-out lunch gap.** A worker who clocks out for lunch and has not yet clocked back
+  in has no open record for that moment even though their day is not done. At the 03:00
+  schedule this is unreachable — no one is on a lunch break at 3 AM — but the job can also
+  be triggered manually from the BackgroundJobs admin panel. A mid-day manual run against
+  a worker currently on such a gap would see only closed records, treat the day as
+  finished, and insert a break if the closed hours already clear the threshold. Rule 3.1
+  (skip any day that already has a break) then locks that placement in permanently — a
+  later, more complete view of the day is never reconsidered.
 
 ## Explicit non-goals
 

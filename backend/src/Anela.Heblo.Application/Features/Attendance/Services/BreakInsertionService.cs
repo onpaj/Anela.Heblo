@@ -30,14 +30,15 @@ public class BreakInsertionService
 
         var pragueNow = TimeZoneInfo.ConvertTime(_timeProvider.GetUtcNow(), LogetoTimeConverter.PragueTimeZone);
         var today = DateOnly.FromDateTime(pragueNow.Date);
-        var windowStart = today.AddDays(-options.LookbackDays);
+        var lookbackDays = Math.Max(options.LookbackDays, 0);
+        var windowStart = today.AddDays(-lookbackDays);
         var from = windowStart < options.StartDate ? options.StartDate : windowStart;
 
         if (from > today)
         {
             _logger.LogWarning(
-                "Break insertion window is empty: StartDate {StartDate} is after today {Today}. Nothing to do.",
-                options.StartDate, today);
+                "Break insertion window is empty: computed from {From} (StartDate {StartDate}) is after today {Today}. Nothing to do.",
+                from, options.StartDate, today);
             return summary;
         }
 
@@ -118,8 +119,8 @@ public class BreakInsertionService
             if (date < today)
             {
                 _logger.LogWarning(
-                    "Skipping {Date} for person {PersonGuid}: an open record (no end time) is present — " +
-                    "the worker never clocked out; fix it manually in Logeto.",
+                    "Skipping {Date} for person {PersonGuid}: an open record (no end time) is present, " +
+                    "so the day was skipped. If it is still open on a later run, it needs a human to check in Logeto.",
                     date, person.Guid);
             }
             else
