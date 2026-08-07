@@ -1,0 +1,48 @@
+{
+  "feature_id": "feat-3853",
+  "issue_number": 3853,
+  "created_at": "2026-08-06T09:22:49.065812Z",
+  "max_revisions": 3,
+  "phases": {
+    "analyzing": {
+      "status": "completed",
+      "updated_at": "2026-08-06T09:27:29.244084Z"
+    },
+    "architecting": {
+      "status": "completed",
+      "updated_at": "2026-08-06T09:32:18.404062Z"
+    },
+    "designing": {
+      "status": "completed",
+      "updated_at": "2026-08-06T09:33:37.415951Z"
+    },
+    "planning": {
+      "status": "completed",
+      "updated_at": "2026-08-06T09:53:54.930273Z"
+    },
+    "developing": {
+      "status": "in_progress",
+      "updated_at": "2026-08-07T13:37:41.727347Z"
+    }
+  },
+  "tasks": [
+    {
+      "name": "extract-shipment-creation-service",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-08-06T10:52:41.888972Z"
+    },
+    {
+      "name": "refactor-scan-handler",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-08-07T15:23:21.139674Z"
+    },
+    {
+      "name": "refactor-reset-handler",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    }
+  ]
+}
