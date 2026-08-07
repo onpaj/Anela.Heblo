@@ -21,16 +21,16 @@
       "updated_at": "2026-08-07T07:27:52.581358Z"
     },
     "developing": {
-      "status": "pending",
-      "updated_at": null
+      "status": "in_progress",
+      "updated_at": "2026-08-07T07:28:19.550931Z"
     }
   },
   "tasks": [
     {
       "name": "fix-catalog-data-refresh-cache-mutations",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-08-07T07:28:19.729425Z"
     }
   ]
 }
