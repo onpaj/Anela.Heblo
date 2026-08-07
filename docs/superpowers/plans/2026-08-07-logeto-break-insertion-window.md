@@ -52,7 +52,7 @@ No new files. `BreakSlotCalculator`, `LogetoTimeConverter`, `BreakInsertionJob`,
 
 **Interfaces:**
 - Consumes: nothing from earlier tasks.
-- Produces: `BreakInsertionOptions.LookbackDays` (`int`, default `7`). `BreakInsertionService.ProcessDayAsync` gains a `DateOnly today` parameter positioned immediately before `CancellationToken cancellationToken` — Task 2 relies on that parameter existing.
+- Produces: `BreakInsertionOptions.LookbackDays` (`int`, default `7`). Two locals in `RunAsync` that Task 2 depends on: `today` (`DateOnly`, Prague current date) and `from` (`DateOnly`, clamped window start). The `lastDay` local is removed.
 
 - [ ] **Step 1: Write the failing tests**
 
@@ -178,44 +178,20 @@ In `BreakInsertionService.cs`, replace lines 28-54 (from `var options = _options
 
 The activity/people fetching blocks are unchanged apart from now sitting *after* the window guard. The whole point of the reordering is that an empty window costs zero API calls.
 
-- [ ] **Step 5: Update the per-person day filter and thread `today` through**
+- [ ] **Step 5: Update the per-person day filter**
 
-In the same file, replace the per-person filter and the `ProcessDayAsync` call:
+In the same file, replace the per-person day filter so it uses the new window bounds:
 
 ```csharp
             var days = entries
                 .Where(e => e.Person == person.Guid && e.Date >= from && e.Date <= today)
                 .GroupBy(e => e.Date)
                 .OrderBy(g => g.Key);
-
-            foreach (var day in days)
-            {
-                try
-                {
-                    await ProcessDayAsync(
-                        person, day.Key, day.ToList(), typeByActivity, breakActivity, options, summary,
-                        today, cancellationToken);
-                }
 ```
 
-and add the matching parameter to the `ProcessDayAsync` signature, immediately before `cancellationToken`:
+The `ProcessDayAsync` signature and its call site are **not** touched in this task — Task 2 changes both, when it has a use for `today`.
 
-```csharp
-    private async Task ProcessDayAsync(
-        LogetoPerson person,
-        DateOnly date,
-        IReadOnlyList<LogetoTimeEntry> dayEntries,
-        IReadOnlyDictionary<Guid, string> typeByActivity,
-        LogetoActivity breakActivity,
-        BreakInsertionOptions options,
-        BreakInsertionSummary summary,
-        DateOnly today,
-        CancellationToken cancellationToken)
-```
-
-`today` is unused in `ProcessDayAsync` until Task 2 — that is expected and will not fail the build.
-
-The old `lastDay` local is gone. Verify no reference to it remains.
+The old `lastDay` local is gone. Verify no reference to it remains anywhere in the file.
 
 - [ ] **Step 6: Add the config default**
 
@@ -264,8 +240,8 @@ git commit -m "feat: bound Logeto break insertion to a rolling window above the 
 - Test: `backend/test/Anela.Heblo.Tests/Features/Attendance/BreakInsertionServiceTests.cs`
 
 **Interfaces:**
-- Consumes: `ProcessDayAsync`'s `DateOnly today` parameter from Task 1.
-- Produces: `BreakInsertionSummary.SkippedInProgress` (`int`). Both log messages contain the literal substring `open record`, which the tests assert on.
+- Consumes: the `today` local in `RunAsync` from Task 1.
+- Produces: `BreakInsertionSummary.SkippedInProgress` (`int`); a `DateOnly today` parameter on `ProcessDayAsync`, positioned immediately before `CancellationToken cancellationToken`. Both log messages contain the literal substring `open record`, which the tests assert on.
 
 - [ ] **Step 1: Write the failing tests**
 
@@ -408,7 +384,32 @@ In `BreakInsertionService.cs`, add to the `BreakInsertionSummary` class after `S
     public int SkippedInProgress { get; set; }
 ```
 
-- [ ] **Step 4: Add the in-progress guard**
+- [ ] **Step 4: Thread `today` into `ProcessDayAsync`**
+
+Add the parameter to the `ProcessDayAsync` signature, immediately before `cancellationToken`:
+
+```csharp
+    private async Task ProcessDayAsync(
+        LogetoPerson person,
+        DateOnly date,
+        IReadOnlyList<LogetoTimeEntry> dayEntries,
+        IReadOnlyDictionary<Guid, string> typeByActivity,
+        LogetoActivity breakActivity,
+        BreakInsertionOptions options,
+        BreakInsertionSummary summary,
+        DateOnly today,
+        CancellationToken cancellationToken)
+```
+
+and pass the `today` local at the single call site inside `RunAsync`:
+
+```csharp
+                    await ProcessDayAsync(
+                        person, day.Key, day.ToList(), typeByActivity, breakActivity, options, summary,
+                        today, cancellationToken);
+```
+
+- [ ] **Step 5: Add the in-progress guard**
 
 In `ProcessDayAsync`, insert this block immediately after `summary.DaysScanned++;` and **before** the existing-break check:
 
@@ -438,7 +439,7 @@ In `ProcessDayAsync`, insert this block immediately after `summary.DaysScanned++
 
 Order matters: this runs before the existing-break check so an unfinished day is never counted as anything else. Hours-only records have both `From` and `To` null and are deliberately not matched here — they keep their existing handling further down.
 
-- [ ] **Step 5: Add the counter to the run summary log**
+- [ ] **Step 6: Add the counter to the run summary log**
 
 Replace the `_logger.LogInformation` call at the end of `RunAsync` with:
 
@@ -454,7 +455,7 @@ Replace the `_logger.LogInformation` call at the end of `RunAsync` with:
 
 Count the placeholders against the arguments — there are eight of each, in that order.
 
-- [ ] **Step 6: Run the tests to verify they pass**
+- [ ] **Step 7: Run the tests to verify they pass**
 
 ```bash
 dotnet build Anela.Heblo.sln -p:UseSharedCompilation=false
@@ -464,7 +465,7 @@ dotnet test backend/test/Anela.Heblo.Tests/Anela.Heblo.Tests.csproj --no-build \
 
 Expected: PASS, all tests including Task 1's and every pre-existing one.
 
-- [ ] **Step 7: Format and commit**
+- [ ] **Step 8: Format and commit**
 
 ```bash
 dotnet format Anela.Heblo.sln --no-restore
