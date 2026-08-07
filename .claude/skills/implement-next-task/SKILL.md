@@ -176,6 +176,17 @@ if [ "$TASKS_DONE" = "yes" ] && [ ! -f "$FIX_PENDING" ]; then
   gh label create agent-completed --color 5319e7 \
     --description "AgentHarness pipeline stage label" >/dev/null 2>&1 || true
   gh issue edit "$ISSUE_ID" --remove-label agent-implementing --add-label agent-completed
+
+  # Verify before reporting "complete" -- don't assume the two GitHub-state calls above
+  # landed just because they didn't throw.
+  FINISH_OK=true
+  gh pr view "$BRANCH" --json isDraft --jq '.isDraft == false' 2>/dev/null | grep -q true || FINISH_OK=false
+  gh issue view "$ISSUE_ID" --json labels --jq '[.labels[].name] | index("agent-completed")' 2>/dev/null | grep -qv null || FINISH_OK=false
+  if [ "$FINISH_OK" != "true" ]; then
+    # One repair retry, then report exactly what's still wrong rather than "complete".
+    gh pr ready "$BRANCH" 2>/dev/null || true
+    gh issue edit "$ISSUE_ID" --remove-label agent-implementing --add-label agent-completed 2>/dev/null || true
+  fi
 else
   # Orchestrator said finishing but artifact state disagrees -- do not undraft.
   # Treat conservatively as more work remains; next invocation will re-evaluate.
@@ -212,6 +223,9 @@ git worktree remove "$WORKTREE" --force 2>/dev/null || true
 
 10. Report: issue number, unit completed, whether the pipeline finished,
     a terminal task failure was flagged, or more work remains -- and stop.
+    Only report "finished" if step 7's `$FINISH_OK` check (after its repair
+    retry) actually came back true; otherwise report exactly which of the
+    PR-undraft or `agent-completed` label swap is still unconfirmed.
 
 ## Concurrency & conflict handling
 
