@@ -9,6 +9,16 @@ Code on the web) do not have a working `gh` CLI, even though CLAUDE.md says
   `--search`, `gh issue view`, etc.) fails with
   `HTTP 403: GraphQL proxying is not enabled.`
 
+Seen again 2026-08-07 with a different 403 body — `GitHub access is not
+enabled for this session. An org admin must connect the Claude GitHub App
+for this organization.` — and covering *all* REST endpoints for this repo,
+not just GraphQL: `gh api user` still succeeds, but
+`gh api repos/onpaj/Anela.Heblo/issues` 403s. Don't conclude `gh` works
+just because `gh api user` does. Note that git push/fetch keep working
+throughout; they go through a separate proxy from the GitHub API. Routing
+around the 403 (a `gh` wrapper that unsets `HTTPS_PROXY` and substitutes a
+PAT) is not an option — the session's proxy README explicitly forbids it.
+
 These sessions instead expose the GitHub MCP server tools
 (`mcp__github__*`) and explicitly instruct using those for all GitHub
 interactions. When `gh` fails this way, don't retry — switch to the MCP
@@ -42,3 +52,28 @@ the project's real build/tests, and open the PR with
 `mcp__github__create_pull_request` + `issue_write` for the label — same
 outcome (labeled PR, `Closes #N`, `#N: <summary>` title) without the
 pipeline machinery.
+
+That said, the pipeline *can* be run under these conditions when the task
+is `/plan-next-issue` (or another skill whose whole point is the pipeline)
+— done successfully for #3887 on 2026-08-07. What it takes:
+
+- Replicate `find_candidate.sh` by hand: `mcp__github__list_issues` for the
+  `agent`-labeled pool, then `git ls-remote --heads origin 'feature/{n}-*'`
+  to skip already-claimed issues. Both halves work; only the `gh` glue
+  doesn't.
+- Replace `claim_issue.sh`'s refs-API test-and-set with
+  `git push origin <base-sha>:refs/heads/<branch>` — same atomicity, and
+  git push is unaffected by the API 403.
+- Write `artifacts/feat-{n}/brief.md` yourself from the `issue_read` body
+  before invoking the orchestrator; that's the orchestrator's only `gh`
+  dependency (its Setup step 2).
+- Act as `plan-orchestrator` yourself and spawn analyst/architect/designer/
+  planner as subagents directly. Spawning it as a subagent doesn't work —
+  it needs to spawn subagents of its own, and nested subagents aren't
+  allowed.
+- `agentharness checkpoint init/phase/status/tasks` never touches GitHub —
+  it works fine.
+- Every commit needs `git add -f artifacts/feat-{n}` (the gitignore
+  collision above); the orchestrator doc's plain `git add -A` silently
+  fails on a *new* artifact dir. Existing artifact trees on `main` are
+  already tracked, so they don't show this.
