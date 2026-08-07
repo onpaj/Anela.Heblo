@@ -1,4 +1,4 @@
-using Anela.Heblo.Application.Features.KnowledgeBase.UseCases.SearchDocuments;
+using Anela.Heblo.Application.Features.Smartsupp.Contracts;
 using Anela.Heblo.Application.Features.Smartsupp.UseCases.GenerateDraftReply;
 using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Application.Shared.Rag;
@@ -6,7 +6,6 @@ using Anela.Heblo.Domain.Features.Rag;
 using Anela.Heblo.Domain.Features.Smartsupp;
 using Anela.Heblo.Domain.Features.Users;
 using FluentAssertions;
-using MediatR;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -18,7 +17,7 @@ namespace Anela.Heblo.Tests.Features.Smartsupp;
 public class GenerateDraftReplyHandlerTests
 {
     private readonly Mock<ISmartsuppRepository> _repo = new();
-    private readonly Mock<IMediator> _mediator = new();
+    private readonly Mock<ISmartsuppKnowledgeSource> _knowledgeSource = new();
     private readonly Mock<IChatClient> _chatClient = new();
     private readonly Mock<ILogger<GenerateDraftReplyHandler>> _logger = new();
     private readonly Mock<ICurrentUserService> _currentUserService = new();
@@ -35,7 +34,7 @@ public class GenerateDraftReplyHandlerTests
             .Returns(new CurrentUser("1", name, "ondra@anela.cz", true));
 
     private GenerateDraftReplyHandler CreateHandler(SmartsuppDraftReplyOptions? options = null) =>
-        new(_repo.Object, _mediator.Object, _chatClient.Object,
+        new(_repo.Object, _knowledgeSource.Object, _chatClient.Object,
             Options.Create(options ?? new SmartsuppDraftReplyOptions()),
             _currentUserService.Object,
             _recorder,
@@ -63,15 +62,20 @@ public class GenerateDraftReplyHandlerTests
         _repo.Setup(r => r.GetConversationAsync("c1", It.IsAny<CancellationToken>()))
             .ReturnsAsync(conversation);
 
-    private void SetupSearch(params ChunkResult[] chunks) =>
-        _mediator.Setup(m => m.Send(It.IsAny<SearchDocumentsRequest>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new SearchDocumentsResponse { Chunks = chunks.ToList() });
+    private void SetupSearch(params SmartsuppKnowledgeChunk[] chunks) =>
+        _knowledgeSource.Setup(k => k.SearchAsync(It.IsAny<string>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(chunks.ToList());
 
-    private SearchDocumentsRequest? _capturedSearch;
+    private string? _capturedQuery;
+    private int? _capturedTopK;
     private void CaptureSearch() =>
-        _mediator.Setup(m => m.Send(It.IsAny<SearchDocumentsRequest>(), It.IsAny<CancellationToken>()))
-            .Callback<IRequest<SearchDocumentsResponse>, CancellationToken>((r, _) => _capturedSearch = (SearchDocumentsRequest)r)
-            .ReturnsAsync(new SearchDocumentsResponse { Chunks = new List<ChunkResult>() });
+        _knowledgeSource.Setup(k => k.SearchAsync(It.IsAny<string>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            .Callback<string, int, CancellationToken>((query, topK, _) =>
+            {
+                _capturedQuery = query;
+                _capturedTopK = topK;
+            })
+            .ReturnsAsync(new List<SmartsuppKnowledgeChunk>());
 
     private IEnumerable<ChatMessage>? _capturedChat;
     private void SetupChat(string answer = "Návrh odpovědi") =>
@@ -80,7 +84,7 @@ public class GenerateDraftReplyHandlerTests
             .Callback<IEnumerable<ChatMessage>, ChatOptions?, CancellationToken>((msgs, _, _) => _capturedChat = msgs)
             .ReturnsAsync(new ChatResponse([new ChatMessage(ChatRole.Assistant, answer)]));
 
-    private static ChunkResult Chunk(string content, string filename) =>
+    private static SmartsuppKnowledgeChunk Chunk(string content, string filename) =>
         new()
         {
             ChunkId = Guid.NewGuid(),
@@ -88,7 +92,6 @@ public class GenerateDraftReplyHandlerTests
             Content = content,
             Score = 0.9,
             SourceFilename = filename,
-            SourcePath = "/" + filename
         };
 
     [Fact]
@@ -125,7 +128,7 @@ public class GenerateDraftReplyHandlerTests
         await CreateHandler().Handle(
             new GenerateDraftReplyRequest { ConversationId = "c1", Topic = "Reklamace" }, CancellationToken.None);
 
-        _capturedSearch!.Query.Should().Be("Reklamace");
+        _capturedQuery.Should().Be("Reklamace");
     }
 
     [Fact]
@@ -139,7 +142,7 @@ public class GenerateDraftReplyHandlerTests
         await CreateHandler().Handle(
             new GenerateDraftReplyRequest { ConversationId = "c1", Topic = null }, CancellationToken.None);
 
-        _capturedSearch!.Query.Should().Be("Chci vrátit zboží");
+        _capturedQuery.Should().Be("Chci vrátit zboží");
     }
 
     [Fact]
@@ -258,7 +261,7 @@ public class GenerateDraftReplyHandlerTests
         await CreateHandler().Handle(
             new GenerateDraftReplyRequest { ConversationId = "c1", Topic = null }, CancellationToken.None);
 
-        _capturedSearch!.Query.Length.Should().Be(2000);
+        _capturedQuery!.Length.Should().Be(2000);
     }
 
     [Fact]

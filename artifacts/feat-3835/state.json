@@ -1,0 +1,52 @@
+{
+  "feature_id": "feat-3835",
+  "issue_number": 3835,
+  "created_at": "2026-08-05T05:15:51.359104Z",
+  "max_revisions": 3,
+  "phases": {
+    "analyzing": {
+      "status": "completed",
+      "updated_at": "2026-08-05T05:19:12.791966Z"
+    },
+    "architecting": {
+      "status": "completed",
+      "updated_at": "2026-08-05T05:22:32.342936Z"
+    },
+    "designing": {
+      "status": "completed",
+      "updated_at": "2026-08-05T05:24:07.484005Z"
+    },
+    "planning": {
+      "status": "completed",
+      "updated_at": "2026-08-05T05:32:13.202183Z"
+    },
+    "developing": {
+      "status": "completed",
+      "updated_at": "2026-08-06T06:02:21.648337Z"
+    },
+    "code-review": {
+      "status": "completed",
+      "updated_at": "2026-08-06T06:11:04.680986Z"
+    }
+  },
+  "tasks": [
+    {
+      "name": "define-smartsupp-knowledge-source-contract-and-adapter",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-08-06T05:51:54.116221Z"
+    },
+    {
+      "name": "rewire-generate-draft-reply-handler",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-08-06T05:56:25.844384Z"
+    },
+    {
+      "name": "add-smartsupp-knowledgebase-boundary-rule",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-08-06T06:02:21.364315Z"
+    }
+  ]
+}

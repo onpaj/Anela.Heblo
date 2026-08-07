@@ -1,0 +1,52 @@
+{
+  "feature_id": "feat-3879",
+  "issue_number": 3879,
+  "created_at": "2026-08-07T03:16:23.850560Z",
+  "max_revisions": 3,
+  "phases": {
+    "analyzing": {
+      "status": "completed",
+      "updated_at": "2026-08-07T03:19:48.749012Z"
+    },
+    "architecting": {
+      "status": "completed",
+      "updated_at": "2026-08-07T03:23:26.334782Z"
+    },
+    "designing": {
+      "status": "completed",
+      "updated_at": "2026-08-07T03:24:45.389849Z"
+    },
+    "planning": {
+      "status": "completed",
+      "updated_at": "2026-08-07T03:31:15.976869Z"
+    },
+    "developing": {
+      "status": "completed",
+      "updated_at": "2026-08-07T07:02:01.342031Z"
+    },
+    "code-review": {
+      "status": "completed",
+      "updated_at": "2026-08-07T07:06:00.208239Z"
+    }
+  },
+  "tasks": [
+    {
+      "name": "group-a-conversation-reply-reaction-base",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-08-07T07:01:49.847982Z"
+    },
+    {
+      "name": "group-b-contact-upsert-with-backfill-reaction-base",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-08-07T07:01:50.946228Z"
+    },
+    {
+      "name": "group-c-contact-upsert-only-reaction-base",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-08-07T07:01:52.041363Z"
+    }
+  ]
+}

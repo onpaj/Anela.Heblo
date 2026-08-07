@@ -26,6 +26,11 @@ public class ModuleBoundariesTests
     // Allowlist for Article → KnowledgeBase. Empty — all violations fixed.
     private static readonly HashSet<string> ArticleAllowlist = new(StringComparer.Ordinal);
 
+    // Allowlist for Smartsupp -> KnowledgeBase. Empty — GenerateDraftReplyHandler now consumes
+    // the Smartsupp-owned ISmartsuppKnowledgeSource contract; the KnowledgeBase adapter
+    // (KnowledgeBaseSmartsuppKnowledgeSource) lives in KnowledgeBase.Infrastructure.
+    private static readonly HashSet<string> SmartsuppKnowledgeBaseAllowlist = new(StringComparer.Ordinal);
+
     // Allowlist for Logistics → Manufacture. Each entry needs a comment with the justification.
     // Entries should be removed as the underlying violations are fixed.
     private static readonly HashSet<string> LogisticsAllowlist = new(StringComparer.Ordinal)
@@ -409,6 +414,17 @@ public class ModuleBoundariesTests
                 "Anela.Heblo.Persistence.KnowledgeBase",
             },
             Allowlist: ArticleAllowlist),
+
+        new ModuleBoundaryRule(
+            Name: "Smartsupp -> KnowledgeBase",
+            InspectedNamespacePrefix: "Anela.Heblo.Application.Features.Smartsupp",
+            ForbiddenNamespacePrefixes: new[]
+            {
+                "Anela.Heblo.Domain.Features.KnowledgeBase",
+                "Anela.Heblo.Application.Features.KnowledgeBase",
+                "Anela.Heblo.Persistence.KnowledgeBase",
+            },
+            Allowlist: SmartsuppKnowledgeBaseAllowlist),
 
         new ModuleBoundaryRule(
             Name: "Logistics -> Manufacture",

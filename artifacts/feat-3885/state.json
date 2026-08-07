@@ -1,0 +1,40 @@
+{
+  "feature_id": "feat-3885",
+  "issue_number": 3885,
+  "created_at": "2026-08-07T07:21:25.889541Z",
+  "max_revisions": 3,
+  "phases": {
+    "analyzing": {
+      "status": "completed",
+      "updated_at": "2026-08-07T07:25:18.476471Z"
+    },
+    "architecting": {
+      "status": "completed",
+      "updated_at": "2026-08-07T07:26:21.857181Z"
+    },
+    "designing": {
+      "status": "completed",
+      "updated_at": "2026-08-07T07:26:45.415104Z"
+    },
+    "planning": {
+      "status": "completed",
+      "updated_at": "2026-08-07T07:27:52.581358Z"
+    },
+    "developing": {
+      "status": "completed",
+      "updated_at": "2026-08-07T07:47:24.564264Z"
+    },
+    "code-review": {
+      "status": "completed",
+      "updated_at": "2026-08-07T07:48:08.490205Z"
+    }
+  },
+  "tasks": [
+    {
+      "name": "fix-catalog-data-refresh-cache-mutations",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-08-07T07:47:19.915232Z"
+    }
+  ]
+}
