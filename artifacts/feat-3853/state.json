@@ -34,9 +34,9 @@
     },
     {
       "name": "refactor-scan-handler",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-08-07T13:37:42.900872Z"
+      "updated_at": "2026-08-07T15:23:21.139674Z"
     },
     {
       "name": "refactor-reset-handler",
