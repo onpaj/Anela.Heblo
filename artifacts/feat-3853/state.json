@@ -22,21 +22,21 @@
     },
     "developing": {
       "status": "in_progress",
-      "updated_at": "2026-08-06T09:54:50.839823Z"
+      "updated_at": "2026-08-07T13:37:41.727347Z"
     }
   },
   "tasks": [
     {
       "name": "extract-shipment-creation-service",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-08-06T09:54:51.489255Z"
+      "updated_at": "2026-08-06T10:52:41.888972Z"
     },
     {
       "name": "refactor-scan-handler",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-08-07T13:37:42.900872Z"
     },
     {
       "name": "refactor-reset-handler",
