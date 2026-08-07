@@ -57,7 +57,7 @@ Log severity splits by date, because the same condition means two different thin
 | Day | Meaning | Level |
 |---|---|---|
 | `date == today` | Worker is currently at work. Expected. | Debug |
-| `date < today` | Worker never clocked out. The day will never get a break until a human fixes it in Logeto. | Warning |
+| `date < today` | The day still holds an open record and was skipped. Usually a missed clock-out, but a night shift crossing midnight is also legitimately still open at 03:00 — so the log reports the observation and does not diagnose the cause. If it is still open on a later run, a human needs to check it in Logeto. | Warning |
 
 **Assumption to verify against live data:** that Logeto represents a running record as
 `From` set / `To` null in `GET /TimeTracking`. If it instead omits running records from
