@@ -25,5 +25,18 @@
       "updated_at": null
     }
   },
-  "tasks": []
+  "tasks": [
+    {
+      "name": "inject-timeprovider-into-catalog-merge-scheduler",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    },
+    {
+      "name": "convert-merge-scheduler-tests-to-fake-time-provider",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    }
+  ]
 }
