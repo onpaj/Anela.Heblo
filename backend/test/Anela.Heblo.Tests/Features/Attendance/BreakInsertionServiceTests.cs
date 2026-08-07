@@ -93,6 +93,57 @@ public class BreakInsertionServiceTests
     }
 
     [Fact]
+    public async Task RequestsTimeTracking_ForTheRollingWindow_WhenStartDateIsFarInThePast()
+    {
+        SetupDefaults();
+        var options = new BreakInsertionOptions
+        {
+            StartDate = new DateOnly(2026, 1, 1), // far past — the lookback governs
+            BreakActivityName = "Oběd",
+            ApiTimesAreUtc = false
+        };
+
+        await CreateService(options).RunAsync(CancellationToken.None);
+
+        // "now" is 2026-08-04; default lookback of 7 days → window starts 2026-07-28, ends today.
+        _client.Verify(c => c.GetTimeTrackingAsync(
+            new DateOnly(2026, 7, 28), new DateOnly(2026, 8, 4), It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task ClampsWindowStart_ToStartDate_WhenLookbackReachesPastIt()
+    {
+        SetupDefaults();
+
+        // Default options: StartDate 2026-08-01, lookback 7 → 2026-07-28 clamped up to the floor.
+        await CreateService().RunAsync(CancellationToken.None);
+
+        _client.Verify(c => c.GetTimeTrackingAsync(
+            new DateOnly(2026, 8, 1), new DateOnly(2026, 8, 4), It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task DoesNothing_AndCallsNoApi_WhenStartDateIsInTheFuture()
+    {
+        SetupDefaults();
+        var options = new BreakInsertionOptions
+        {
+            StartDate = new DateOnly(2026, 9, 1), // after "now" of 2026-08-04
+            BreakActivityName = "Oběd",
+            ApiTimesAreUtc = false
+        };
+
+        var summary = await CreateService(options).RunAsync(CancellationToken.None);
+
+        summary.DaysScanned.Should().Be(0);
+        summary.BreaksInserted.Should().Be(0);
+        _client.Verify(c => c.GetActivitiesAsync(It.IsAny<CancellationToken>()), Times.Never);
+        _client.Verify(c => c.GetPeopleAsync(It.IsAny<CancellationToken>()), Times.Never);
+        _client.Verify(c => c.GetTimeTrackingAsync(
+            It.IsAny<DateOnly>(), It.IsAny<DateOnly>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
     public async Task SkipsDay_WhenAnyBreakAlreadyExists()
     {
         var existingBreak = new LogetoTimeEntry

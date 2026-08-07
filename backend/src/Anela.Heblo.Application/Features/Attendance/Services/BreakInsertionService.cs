@@ -28,6 +28,19 @@ public class BreakInsertionService
         var options = _options.Value;
         var summary = new BreakInsertionSummary();
 
+        var pragueNow = TimeZoneInfo.ConvertTime(_timeProvider.GetUtcNow(), LogetoTimeConverter.PragueTimeZone);
+        var today = DateOnly.FromDateTime(pragueNow.Date);
+        var windowStart = today.AddDays(-options.LookbackDays);
+        var from = windowStart < options.StartDate ? options.StartDate : windowStart;
+
+        if (from > today)
+        {
+            _logger.LogWarning(
+                "Break insertion window is empty: StartDate {StartDate} is after today {Today}. Nothing to do.",
+                options.StartDate, today);
+            return summary;
+        }
+
         var activities = await _client.GetActivitiesAsync(cancellationToken);
         var breakActivity = activities.FirstOrDefault(a =>
                 a.Type == LogetoActivityTypes.Break
@@ -48,15 +61,12 @@ public class BreakInsertionService
             return summary;
         }
 
-        var pragueNow = TimeZoneInfo.ConvertTime(_timeProvider.GetUtcNow(), LogetoTimeConverter.PragueTimeZone);
-        var lastDay = DateOnly.FromDateTime(pragueNow.Date).AddDays(-1);
-
-        var entries = await _client.GetTimeTrackingAsync(options.StartDate, lastDay, cancellationToken);
+        var entries = await _client.GetTimeTrackingAsync(from, today, cancellationToken);
 
         foreach (var person in people)
         {
             var days = entries
-                .Where(e => e.Person == person.Guid && e.Date >= options.StartDate && e.Date <= lastDay)
+                .Where(e => e.Person == person.Guid && e.Date >= from && e.Date <= today)
                 .GroupBy(e => e.Date)
                 .OrderBy(g => g.Key);
 
