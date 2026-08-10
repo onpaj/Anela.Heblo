@@ -5,6 +5,8 @@ using Anela.Heblo.Application.Features.MindMaps.UseCases.DetachMeeting;
 using Anela.Heblo.Application.Features.MindMaps.UseCases.GetMindMapDetail;
 using Anela.Heblo.Application.Features.MindMaps.UseCases.GetMindMapList;
 using Anela.Heblo.Application.Features.MindMaps.UseCases.RegenerateMindMap;
+using Anela.Heblo.Application.Features.MindMaps.UseCases.RestoreMindMapVersion;
+using Anela.Heblo.Application.Features.MindMaps.UseCases.SaveMindMapDocument;
 using Anela.Heblo.Domain.Features.Authorization;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
@@ -84,6 +86,30 @@ public sealed class MindMapsController : BaseApiController
     public async Task<ActionResult<RegenerateMindMapResponse>> Regenerate(Guid id, CancellationToken ct = default)
     {
         var result = await _mediator.Send(new RegenerateMindMapRequest { Id = id }, ct);
+        return HandleResponse(result);
+    }
+
+    [HttpPut("{id:guid}/document")]
+    [FeatureAuthorize(Feature.Anela_MindMaps, AccessLevel.Write)]
+    public async Task<ActionResult<SaveMindMapDocumentResponse>> SaveDocument(
+        Guid id,
+        [FromBody] SaveMindMapDocumentRequest request,
+        CancellationToken ct = default)
+    {
+        request.Id = id;
+        var result = await _mediator.Send(request, ct);
+        return HandleResponse(result);
+    }
+
+    [HttpPost("{id:guid}/versions/{versionNumber:int}/restore")]
+    [FeatureAuthorize(Feature.Anela_MindMaps, AccessLevel.Write)]
+    public async Task<ActionResult<RestoreMindMapVersionResponse>> RestoreVersion(
+        Guid id,
+        int versionNumber,
+        CancellationToken ct = default)
+    {
+        var result = await _mediator.Send(
+            new RestoreMindMapVersionRequest { Id = id, VersionNumber = versionNumber }, ct);
         return HandleResponse(result);
     }
 }
