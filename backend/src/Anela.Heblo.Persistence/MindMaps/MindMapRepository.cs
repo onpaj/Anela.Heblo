@@ -40,6 +40,16 @@ public class MindMapRepository : IMindMapRepository
         return Task.CompletedTask;
     }
 
+    public Task SetFailedAsync(Guid mindMapId, string lastError, CancellationToken ct = default)
+    {
+        return _context.MindMaps
+            .Where(x => x.Id == mindMapId)
+            .ExecuteUpdateAsync(setters => setters
+                .SetProperty(x => x.Status, MindMapStatus.Failed)
+                .SetProperty(x => x.LastError, lastError)
+                .SetProperty(x => x.UpdatedAt, DateTime.UtcNow), ct);
+    }
+
     public Task SaveChangesAsync(CancellationToken ct = default)
     {
         return _context.SaveChangesAsync(ct);

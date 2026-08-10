@@ -90,6 +90,9 @@ public class MindMapUpdateJobTests
         Assert.Equal(MindMapStatus.Idle, map.Status);
         Assert.Null(map.LastError);
         Assert.All(map.Meetings, m => Assert.NotNull(m.ProcessedAt));
+        // One save per processed meeting (2) plus the final Idle save — pins that saving
+        // happens per meeting rather than once at the end.
+        _repository.Verify(r => r.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Exactly(3));
     }
 
     [Fact]
@@ -112,6 +115,77 @@ public class MindMapUpdateJobTests
     }
 
     [Fact]
+    public async Task RunAsync_NumbersVersionsFromExistingMax_AndSnapshotsPostMeetingOneJson()
+    {
+        var m1 = (Guid.NewGuid(), new DateTime(2026, 7, 1));
+        var m2 = (Guid.NewGuid(), new DateTime(2026, 8, 1));
+        var map = MapWithMeetings(m1, m2);
+        map.Versions.Add(new MindMapVersion
+        {
+            Id = Guid.NewGuid(),
+            MindMapId = map.Id,
+            VersionNumber = 7,
+            Json = "{}",
+            CreatedAt = DateTime.UtcNow
+        });
+        _repository.Setup(r => r.GetByIdAsync(map.Id, It.IsAny<CancellationToken>())).ReturnsAsync(map);
+        UpdaterAddsNodePerMeeting();
+
+        await CreateSut().RunAsync(map.Id, CancellationToken.None);
+
+        // max(existing VersionNumber) + 1, not Count + 1 (3 versions exist, but the seeded
+        // one is numbered 7) — proves numbering tracks the max, not the count.
+        Assert.Equal(3, map.Versions.Count);
+        var v8 = map.Versions.Single(v => v.VersionNumber == 8);
+        var v9 = map.Versions.Single(v => v.VersionNumber == 9);
+        Assert.Equal(2, MindMapJson.Deserialize(v9.Json).Nodes.Count);
+        Assert.Equal(m2.Item1, v9.TriggerMeetingId);
+    }
+
+    [Fact]
+    public async Task RunAsync_SetsFailedAndStops_WhenGuardRejectsLlmResult_KeepingCurrentJson()
+    {
+        var m1 = (Guid.NewGuid(), new DateTime(2026, 7, 1));
+        var map = MapWithMeetings(m1);
+        var originalJson = map.CurrentJson;
+        _repository.Setup(r => r.GetByIdAsync(map.Id, It.IsAny<CancellationToken>())).ReturnsAsync(map);
+        // A document the real MindMapGuard rejects: root node id changed.
+        _updater.Setup(u => u.UpdateAsync(It.IsAny<MindMapDocument>(), It.IsAny<MeetingTranscript>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((MindMapDocument current, MeetingTranscript _, CancellationToken _) =>
+            {
+                var tampered = MindMapJson.Clone(current);
+                tampered.RootNodeId = "not-the-root";
+                return tampered;
+            });
+
+        await CreateSut().RunAsync(map.Id, CancellationToken.None);
+
+        Assert.Equal(MindMapStatus.Failed, map.Status);
+        Assert.NotNull(map.LastError);
+        Assert.Equal(originalJson, map.CurrentJson);
+        Assert.Empty(map.Versions);
+        Assert.Null(map.Meetings.Single().ProcessedAt);
+        _repository.Verify(r => r.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Never);
+        _repository.Verify(r => r.SetFailedAsync(map.Id, It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task RunAsync_RethrowsAndMarksFailed_WhenCancelled()
+    {
+        var m1 = (Guid.NewGuid(), new DateTime(2026, 7, 1));
+        var map = MapWithMeetings(m1);
+        _repository.Setup(r => r.GetByIdAsync(map.Id, It.IsAny<CancellationToken>())).ReturnsAsync(map);
+        _updater.Setup(u => u.UpdateAsync(It.IsAny<MindMapDocument>(), It.IsAny<MeetingTranscript>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new TaskCanceledException("A task was canceled."));
+
+        await Assert.ThrowsAsync<TaskCanceledException>(() => CreateSut().RunAsync(map.Id, CancellationToken.None));
+
+        Assert.Equal(MindMapStatus.Failed, map.Status);
+        _repository.Verify(r => r.SetFailedAsync(map.Id, It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Once);
+        _repository.Verify(r => r.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
     public async Task RunAsync_SetsFailedAndStops_WhenUpdaterThrows_KeepingCurrentJson()
     {
         var m1 = (Guid.NewGuid(), new DateTime(2026, 7, 1));
@@ -129,6 +203,10 @@ public class MindMapUpdateJobTests
         Assert.Equal(originalJson, map.CurrentJson);
         Assert.All(map.Meetings, m => Assert.Null(m.ProcessedAt));
         Assert.Empty(map.Versions);
+        // Failure is persisted via the change-tracker-free SetFailedAsync, never via a
+        // tracked SaveChangesAsync (which could resubmit a poisoned change set).
+        _repository.Verify(r => r.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Never);
+        _repository.Verify(r => r.SetFailedAsync(map.Id, map.LastError!, It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
@@ -152,6 +230,11 @@ public class MindMapUpdateJobTests
         Assert.NotNull(map.Meetings.Single(m => m.MeetingTranscriptId == m1.Item1).ProcessedAt);
         Assert.Null(map.Meetings.Single(m => m.MeetingTranscriptId == m2.Item1).ProcessedAt);
         Assert.Single(map.Versions);
+        // Exactly one tracked save (meeting 1's success) — meeting 2's failure is persisted
+        // via SetFailedAsync instead, so earlier progress is never at risk of being resubmitted
+        // alongside a poisoned change set.
+        _repository.Verify(r => r.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Exactly(1));
+        _repository.Verify(r => r.SetFailedAsync(map.Id, "selhalo", It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]

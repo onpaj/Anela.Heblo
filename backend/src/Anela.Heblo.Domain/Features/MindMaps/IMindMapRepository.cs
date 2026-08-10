@@ -12,5 +12,12 @@ public interface IMindMapRepository
 
     Task DeleteAsync(MindMap map, CancellationToken ct = default);
 
+    /// <summary>
+    /// Marks a map Failed via a direct update, bypassing the change tracker entirely.
+    /// Safe to call after a failed <see cref="SaveChangesAsync"/>, whose failure may leave
+    /// poisoned (still-tracked) entities behind that a subsequent tracked save would resubmit.
+    /// </summary>
+    Task SetFailedAsync(Guid mindMapId, string lastError, CancellationToken ct = default);
+
     Task SaveChangesAsync(CancellationToken ct = default);
 }
