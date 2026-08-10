@@ -197,11 +197,22 @@ interface AttachMeetingDialogProps {
   onClose: () => void;
 }
 
+// The feature's whole premise is attaching meetings over time, so the dialog must not
+// silently cap the list at the API's default page size (20) — a real user would hit
+// that within weeks and the empty-state copy would then lie about there being nothing
+// left to attach. A full search box is out of scope for this wave; requesting a much
+// larger page is the proportionate fix.
+const ATTACH_DIALOG_PAGE_SIZE = 200;
+
 const AttachMeetingDialog: React.FC<AttachMeetingDialogProps> = ({ mindMapId, attachedMeetingIds, onClose }) => {
-  const { data, isLoading, error } = useMeetingTasksList();
+  const { data, isLoading, error } = useMeetingTasksList(undefined, undefined, false, 1, ATTACH_DIALOG_PAGE_SIZE);
   const attachMeeting = useAttachMeeting();
   const attachedSet = new Set(attachedMeetingIds);
   const options = (data?.items ?? []).filter((t) => !attachedSet.has(t.id));
+  // totalCount can exceed items.length even after filtering already-attached meetings
+  // out of the fetched page — that combination means older transcripts exist beyond
+  // what was requested, and the "nothing left to attach" copy would be actively wrong.
+  const isTruncated = (data?.totalCount ?? 0) > (data?.items?.length ?? 0);
 
   const handleAttach = async (meetingTranscriptId: string) => {
     try {
@@ -235,8 +246,18 @@ const AttachMeetingDialog: React.FC<AttachMeetingDialogProps> = ({ mindMapId, at
           {!isLoading && error && (
             <p className="text-sm text-red-600 dark:text-red-400">Nepodařilo se načíst porady</p>
           )}
-          {!isLoading && !error && options.length === 0 && (
+          {!isLoading && !error && options.length === 0 && !isTruncated && (
             <p className="text-sm text-gray-500 dark:text-graphite-muted">Žádné další porady k připojení</p>
+          )}
+          {!isLoading && !error && options.length === 0 && isTruncated && (
+            <p className="text-sm text-gray-500 dark:text-graphite-muted">
+              Žádná z načtených porad není k připojení — mezi staršími poradami mohou být další.
+            </p>
+          )}
+          {!isLoading && !error && isTruncated && options.length > 0 && (
+            <p className="text-xs text-amber-800 bg-amber-50 dark:text-amber-300 dark:bg-amber-900/20 rounded-md px-2 py-1.5 mb-1">
+              Zobrazují se pouze nejnovější porady — starší porady v tomto seznamu nejsou.
+            </p>
           )}
           {!isLoading &&
             !error &&
@@ -264,10 +285,11 @@ const AttachMeetingDialog: React.FC<AttachMeetingDialogProps> = ({ mindMapId, at
 interface MeetingsTabProps {
   mindMapId: string;
   meetings: AttachedMeeting[];
+  isReadOnly: boolean;
   isDirty: boolean;
 }
 
-const MeetingsTab: React.FC<MeetingsTabProps> = ({ mindMapId, meetings, isDirty }) => {
+const MeetingsTab: React.FC<MeetingsTabProps> = ({ mindMapId, meetings, isReadOnly, isDirty }) => {
   const [isAttachOpen, setIsAttachOpen] = useState(false);
   const detachMeeting = useDetachMeeting();
 
@@ -298,8 +320,9 @@ const MeetingsTab: React.FC<MeetingsTabProps> = ({ mindMapId, meetings, isDirty 
       <button
         type="button"
         data-testid="mindmap-attach-button"
+        disabled={isReadOnly}
         onClick={handleOpenAttach}
-        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium bg-indigo-600 text-white hover:bg-indigo-700 dark:bg-graphite-accent dark:hover:bg-graphite-accent/90"
+        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium bg-indigo-600 text-white hover:bg-indigo-700 dark:bg-graphite-accent dark:hover:bg-graphite-accent/90 disabled:opacity-50 disabled:cursor-not-allowed"
       >
         <Plus className="w-4 h-4" />
         Připojit poradu
@@ -464,7 +487,7 @@ const MindMapSidePanel: React.FC<MindMapSidePanelProps> = ({
           />
         )}
         {activeTab === "meetings" && (
-          <MeetingsTab mindMapId={detail.id} meetings={detail.meetings} isDirty={isDirty} />
+          <MeetingsTab mindMapId={detail.id} meetings={detail.meetings} isReadOnly={isReadOnly} isDirty={isDirty} />
         )}
         {activeTab === "history" && (
           <HistoryTab mindMapId={detail.id} versions={detail.versions} isReadOnly={isReadOnly} isDirty={isDirty} />

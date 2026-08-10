@@ -17,8 +17,45 @@ public class MindMapRepository : IMindMapRepository
         return _context.MindMaps
             .Include(x => x.Meetings)
                 .ThenInclude(m => m.MeetingTranscript)
+            .FirstOrDefaultAsync(x => x.Id == id, ct);
+    }
+
+    public Task<MindMap?> GetForUpdateAsync(Guid id, CancellationToken ct = default)
+    {
+        return _context.MindMaps
+            .Include(x => x.Meetings)
+                .ThenInclude(m => m.MeetingTranscript)
             .Include(x => x.Versions)
             .FirstOrDefaultAsync(x => x.Id == id, ct);
+    }
+
+    public Task<List<MindMapVersionSummary>> GetVersionSummariesAsync(Guid mindMapId, CancellationToken ct = default)
+    {
+        return _context.MindMapVersions
+            .Where(v => v.MindMapId == mindMapId)
+            .OrderByDescending(v => v.VersionNumber)
+            .Select(v => new MindMapVersionSummary
+            {
+                VersionNumber = v.VersionNumber,
+                CreatedAt = v.CreatedAt,
+                TriggerMeetingId = v.TriggerMeetingId
+            })
+            .ToListAsync(ct);
+    }
+
+    public Task<MindMapVersion?> GetVersionAsync(Guid mindMapId, int versionNumber, CancellationToken ct = default)
+    {
+        return _context.MindMapVersions
+            .FirstOrDefaultAsync(v => v.MindMapId == mindMapId && v.VersionNumber == versionNumber, ct);
+    }
+
+    public async Task<int> GetNextVersionNumberAsync(Guid mindMapId, CancellationToken ct = default)
+    {
+        var maxVersionNumber = await _context.MindMapVersions
+            .Where(v => v.MindMapId == mindMapId)
+            .Select(v => (int?)v.VersionNumber)
+            .MaxAsync(ct);
+        return (maxVersionNumber ?? 0) + 1;
     }
 
     public Task<List<MindMap>> GetListAsync(CancellationToken ct = default)

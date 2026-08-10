@@ -16,8 +16,10 @@ public class RestoreMindMapVersionHandlerTests
     public async Task Handle_RestoresVersionJson_AndSnapshotsCurrent()
     {
         var map = new MindMap { Id = Guid.NewGuid(), Name = "M", CurrentJson = "{\"v\":\"current\"}", Status = MindMapStatus.Idle };
-        map.Versions.Add(new MindMapVersion { VersionNumber = 1, Json = "{\"v\":\"old\"}" });
         _repository.Setup(r => r.GetByIdAsync(map.Id, It.IsAny<CancellationToken>())).ReturnsAsync(map);
+        _repository.Setup(r => r.GetVersionAsync(map.Id, 1, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new MindMapVersion { VersionNumber = 1, Json = "{\"v\":\"old\"}" });
+        _repository.Setup(r => r.GetNextVersionNumberAsync(map.Id, It.IsAny<CancellationToken>())).ReturnsAsync(2);
 
         var response = await CreateSut().Handle(
             new RestoreMindMapVersionRequest { Id = map.Id, VersionNumber = 1 }, CancellationToken.None);
@@ -47,6 +49,8 @@ public class RestoreMindMapVersionHandlerTests
     {
         var map = new MindMap { Id = Guid.NewGuid(), Name = "M", CurrentJson = "{}", Status = MindMapStatus.Idle };
         _repository.Setup(r => r.GetByIdAsync(map.Id, It.IsAny<CancellationToken>())).ReturnsAsync(map);
+        _repository.Setup(r => r.GetVersionAsync(map.Id, 99, It.IsAny<CancellationToken>()))
+            .ReturnsAsync((MindMapVersion?)null);
 
         var response = await CreateSut().Handle(
             new RestoreMindMapVersionRequest { Id = map.Id, VersionNumber = 99 }, CancellationToken.None);
@@ -58,12 +62,14 @@ public class RestoreMindMapVersionHandlerTests
     public async Task Handle_ReturnsConflict_WhileUpdating()
     {
         var map = new MindMap { Id = Guid.NewGuid(), Name = "M", CurrentJson = "{}", Status = MindMapStatus.Updating };
-        map.Versions.Add(new MindMapVersion { VersionNumber = 1, Json = "{}" });
         _repository.Setup(r => r.GetByIdAsync(map.Id, It.IsAny<CancellationToken>())).ReturnsAsync(map);
 
         var response = await CreateSut().Handle(
             new RestoreMindMapVersionRequest { Id = map.Id, VersionNumber = 1 }, CancellationToken.None);
 
         Assert.Equal(ErrorCodes.MindMapUpdateInProgress, response.ErrorCode);
+        // The Updating guard must short-circuit before any version lookup — proves the
+        // conflict check happens first, not just that it happens.
+        _repository.Verify(r => r.GetVersionAsync(It.IsAny<Guid>(), It.IsAny<int>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 }

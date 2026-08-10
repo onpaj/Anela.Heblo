@@ -9,6 +9,7 @@ using Hangfire.States;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
+using Npgsql;
 using Xunit;
 
 namespace Anela.Heblo.Tests.Features.MindMaps;
@@ -34,6 +35,29 @@ public class AttachMeetingHandlerTests
         CurrentJson = "{}",
         Status = MindMapStatus.Idle
     };
+
+    // PostgresException's properties (including ConstraintName) are get-only — the full
+    // 18-parameter constructor is the only public way to populate ConstraintName from
+    // outside Npgsql itself.
+    private static PostgresException PostgresUniqueViolation(string constraintName) => new(
+        messageText: "duplicate key value violates unique constraint",
+        severity: "ERROR",
+        invariantSeverity: "ERROR",
+        sqlState: "23505",
+        detail: null!,
+        hint: null!,
+        position: 0,
+        internalPosition: 0,
+        internalQuery: null!,
+        where: null!,
+        schemaName: null!,
+        tableName: null!,
+        columnName: null!,
+        dataTypeName: null!,
+        constraintName: constraintName,
+        file: null!,
+        line: null!,
+        routine: null!);
 
     private static MeetingTranscript Meeting() => new()
     {
@@ -105,8 +129,9 @@ public class AttachMeetingHandlerTests
         _mapRepository.Setup(r => r.GetByIdAsync(map.Id, It.IsAny<CancellationToken>())).ReturnsAsync(map);
         _meetingRepository.Setup(r => r.GetByIdAsync(meeting.Id, It.IsAny<CancellationToken>())).ReturnsAsync(meeting);
         _accessGuard.Setup(g => g.CanAccess(meeting)).Returns(true);
+        var pgEx = PostgresUniqueViolation("UX_MindMapMeetings_MindMapId_MeetingTranscriptId");
         _mapRepository.Setup(r => r.SaveChangesAsync(It.IsAny<CancellationToken>()))
-            .ThrowsAsync(new DbUpdateException("duplicate key"));
+            .ThrowsAsync(new DbUpdateException("duplicate key", pgEx));
 
         var response = await CreateSut().Handle(
             new AttachMeetingRequest { MindMapId = map.Id, MeetingTranscriptId = meeting.Id },
@@ -114,6 +139,47 @@ public class AttachMeetingHandlerTests
 
         Assert.Equal(ErrorCodes.MindMapMeetingAlreadyAttached, response.ErrorCode);
         _backgroundJobClient.Verify(c => c.Create(It.IsAny<Job>(), It.IsAny<EnqueuedState>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task Handle_RethrowsToInternalErrorPath_WhenSaveFailsForAnUnrelatedReason()
+    {
+        // A connection blip or a foreign-key violation is a genuinely different failure
+        // from "someone else already attached this meeting" and must not be misreported
+        // as MindMapMeetingAlreadyAttached — it should fall through uncaught to the
+        // generic InternalServerError path (the API's unhandled-exception middleware).
+        var map = Map();
+        var meeting = Meeting();
+        _mapRepository.Setup(r => r.GetByIdAsync(map.Id, It.IsAny<CancellationToken>())).ReturnsAsync(map);
+        _meetingRepository.Setup(r => r.GetByIdAsync(meeting.Id, It.IsAny<CancellationToken>())).ReturnsAsync(meeting);
+        _accessGuard.Setup(g => g.CanAccess(meeting)).Returns(true);
+        _mapRepository.Setup(r => r.SaveChangesAsync(It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new DbUpdateException("connection reset"));
+
+        await Assert.ThrowsAsync<DbUpdateException>(() => CreateSut().Handle(
+            new AttachMeetingRequest { MindMapId = map.Id, MeetingTranscriptId = meeting.Id },
+            CancellationToken.None));
+
+        _backgroundJobClient.Verify(c => c.Create(It.IsAny<Job>(), It.IsAny<EnqueuedState>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task Handle_RethrowsToInternalErrorPath_WhenUniqueViolationHitsADifferentConstraint()
+    {
+        // Same SqlState (23505) but a different constraint — not the attach race this
+        // catch exists for — must also fall through rather than being misreported.
+        var map = Map();
+        var meeting = Meeting();
+        _mapRepository.Setup(r => r.GetByIdAsync(map.Id, It.IsAny<CancellationToken>())).ReturnsAsync(map);
+        _meetingRepository.Setup(r => r.GetByIdAsync(meeting.Id, It.IsAny<CancellationToken>())).ReturnsAsync(meeting);
+        _accessGuard.Setup(g => g.CanAccess(meeting)).Returns(true);
+        var pgEx = PostgresUniqueViolation("PK_SomeUnrelatedTable");
+        _mapRepository.Setup(r => r.SaveChangesAsync(It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new DbUpdateException("duplicate key", pgEx));
+
+        await Assert.ThrowsAsync<DbUpdateException>(() => CreateSut().Handle(
+            new AttachMeetingRequest { MindMapId = map.Id, MeetingTranscriptId = meeting.Id },
+            CancellationToken.None));
     }
 
     [Fact]

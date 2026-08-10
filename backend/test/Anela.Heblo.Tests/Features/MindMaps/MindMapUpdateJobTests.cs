@@ -78,7 +78,7 @@ public class MindMapUpdateJobTests
         var early = (Guid.NewGuid(), new DateTime(2026, 7, 1));
         var late = (Guid.NewGuid(), new DateTime(2026, 8, 1));
         var map = MapWithMeetings(late, early); // attached out of order
-        _repository.Setup(r => r.GetByIdAsync(map.Id, It.IsAny<CancellationToken>())).ReturnsAsync(map);
+        _repository.Setup(r => r.GetForUpdateAsync(map.Id, It.IsAny<CancellationToken>())).ReturnsAsync(map);
         var processedOrder = new List<Guid>();
         _updater.Setup(u => u.UpdateAsync(It.IsAny<MindMapDocument>(), It.IsAny<MeetingTranscript>(), It.IsAny<CancellationToken>()))
             .Callback<MindMapDocument, MeetingTranscript, CancellationToken>((_, m, _) => processedOrder.Add(m.Id))
@@ -102,7 +102,7 @@ public class MindMapUpdateJobTests
         var m2 = (Guid.NewGuid(), new DateTime(2026, 8, 1));
         var map = MapWithMeetings(m1, m2);
         var originalJson = map.CurrentJson;
-        _repository.Setup(r => r.GetByIdAsync(map.Id, It.IsAny<CancellationToken>())).ReturnsAsync(map);
+        _repository.Setup(r => r.GetForUpdateAsync(map.Id, It.IsAny<CancellationToken>())).ReturnsAsync(map);
         UpdaterAddsNodePerMeeting();
 
         await CreateSut().RunAsync(map.Id, CancellationToken.None);
@@ -128,7 +128,7 @@ public class MindMapUpdateJobTests
             Json = "{}",
             CreatedAt = DateTime.UtcNow
         });
-        _repository.Setup(r => r.GetByIdAsync(map.Id, It.IsAny<CancellationToken>())).ReturnsAsync(map);
+        _repository.Setup(r => r.GetForUpdateAsync(map.Id, It.IsAny<CancellationToken>())).ReturnsAsync(map);
         UpdaterAddsNodePerMeeting();
 
         await CreateSut().RunAsync(map.Id, CancellationToken.None);
@@ -148,7 +148,7 @@ public class MindMapUpdateJobTests
         var m1 = (Guid.NewGuid(), new DateTime(2026, 7, 1));
         var map = MapWithMeetings(m1);
         var originalJson = map.CurrentJson;
-        _repository.Setup(r => r.GetByIdAsync(map.Id, It.IsAny<CancellationToken>())).ReturnsAsync(map);
+        _repository.Setup(r => r.GetForUpdateAsync(map.Id, It.IsAny<CancellationToken>())).ReturnsAsync(map);
         // A document the real MindMapGuard rejects: root node id changed.
         _updater.Setup(u => u.UpdateAsync(It.IsAny<MindMapDocument>(), It.IsAny<MeetingTranscript>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync((MindMapDocument current, MeetingTranscript _, CancellationToken _) =>
@@ -174,7 +174,7 @@ public class MindMapUpdateJobTests
     {
         var m1 = (Guid.NewGuid(), new DateTime(2026, 7, 1));
         var map = MapWithMeetings(m1);
-        _repository.Setup(r => r.GetByIdAsync(map.Id, It.IsAny<CancellationToken>())).ReturnsAsync(map);
+        _repository.Setup(r => r.GetForUpdateAsync(map.Id, It.IsAny<CancellationToken>())).ReturnsAsync(map);
         _updater.Setup(u => u.UpdateAsync(It.IsAny<MindMapDocument>(), It.IsAny<MeetingTranscript>(), It.IsAny<CancellationToken>()))
             .ThrowsAsync(new TaskCanceledException("A task was canceled."));
 
@@ -192,7 +192,7 @@ public class MindMapUpdateJobTests
         var m2 = (Guid.NewGuid(), new DateTime(2026, 8, 1));
         var map = MapWithMeetings(m1, m2);
         var originalJson = map.CurrentJson;
-        _repository.Setup(r => r.GetByIdAsync(map.Id, It.IsAny<CancellationToken>())).ReturnsAsync(map);
+        _repository.Setup(r => r.GetForUpdateAsync(map.Id, It.IsAny<CancellationToken>())).ReturnsAsync(map);
         _updater.Setup(u => u.UpdateAsync(It.IsAny<MindMapDocument>(), It.IsAny<MeetingTranscript>(), It.IsAny<CancellationToken>()))
             .ThrowsAsync(new MindMapUpdateException("LLM vrátil nevalidní dokument"));
 
@@ -215,7 +215,7 @@ public class MindMapUpdateJobTests
         var m1 = (Guid.NewGuid(), new DateTime(2026, 7, 1));
         var m2 = (Guid.NewGuid(), new DateTime(2026, 8, 1));
         var map = MapWithMeetings(m1, m2);
-        _repository.Setup(r => r.GetByIdAsync(map.Id, It.IsAny<CancellationToken>())).ReturnsAsync(map);
+        _repository.Setup(r => r.GetForUpdateAsync(map.Id, It.IsAny<CancellationToken>())).ReturnsAsync(map);
         var call = 0;
         _updater.Setup(u => u.UpdateAsync(It.IsAny<MindMapDocument>(), It.IsAny<MeetingTranscript>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync((MindMapDocument current, MeetingTranscript _, CancellationToken _) =>
@@ -240,7 +240,7 @@ public class MindMapUpdateJobTests
     [Fact]
     public async Task RunAsync_ReturnsQuietly_WhenMapMissing()
     {
-        _repository.Setup(r => r.GetByIdAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
+        _repository.Setup(r => r.GetForUpdateAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync((MindMap?)null);
 
         await CreateSut().RunAsync(Guid.NewGuid(), CancellationToken.None);
@@ -253,11 +253,85 @@ public class MindMapUpdateJobTests
     {
         var map = MapWithMeetings();
         map.Status = MindMapStatus.Updating;
-        _repository.Setup(r => r.GetByIdAsync(map.Id, It.IsAny<CancellationToken>())).ReturnsAsync(map);
+        _repository.Setup(r => r.GetForUpdateAsync(map.Id, It.IsAny<CancellationToken>())).ReturnsAsync(map);
 
         await CreateSut().RunAsync(map.Id, CancellationToken.None);
 
         Assert.Equal(MindMapStatus.Idle, map.Status);
         _updater.Verify(u => u.UpdateAsync(It.IsAny<MindMapDocument>(), It.IsAny<MeetingTranscript>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task RunAsync_AssertsUpdatingStatus_BeforeFirstUpdateCall_WhenStatusIsNotAlreadyUpdating()
+    {
+        // A second attach can enqueue job2 while job1 still holds the per-map lock; job1
+        // then finishes and unconditionally sets Idle, overwriting whatever the attach
+        // handler set for job2. If RunAsync doesn't re-assert Updating itself, job2 spends
+        // its whole run with the map reading a stale, non-Updating status: no read-only
+        // banner, no polling, and the save/restore "Updating" guards stay open.
+        var m1 = (Guid.NewGuid(), new DateTime(2026, 7, 1));
+        var map = MapWithMeetings(m1);
+        map.Status = MindMapStatus.Idle;
+        _repository.Setup(r => r.GetForUpdateAsync(map.Id, It.IsAny<CancellationToken>())).ReturnsAsync(map);
+        MindMapStatus? statusDuringFirstUpdate = null;
+        _updater.Setup(u => u.UpdateAsync(It.IsAny<MindMapDocument>(), It.IsAny<MeetingTranscript>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((MindMapDocument current, MeetingTranscript _, CancellationToken _) =>
+            {
+                statusDuringFirstUpdate ??= map.Status;
+                return MindMapJson.Clone(current);
+            });
+
+        await CreateSut().RunAsync(map.Id, CancellationToken.None);
+
+        Assert.Equal(MindMapStatus.Updating, statusDuringFirstUpdate);
+    }
+
+    [Fact]
+    public async Task RunAsync_ReassertsUpdating_AndClearsLastError_WhenResumingFromFailedWithPendingWork()
+    {
+        // A requeued Hangfire retry (after cancellation/deploy) resumes with Status still
+        // Failed from the previous attempt's MarkFailedAsync — with pending meetings left to
+        // process, the guards that gate on Status == Updating must open again for the
+        // duration of this run, not stay closed for however long the retry takes.
+        var m1 = (Guid.NewGuid(), new DateTime(2026, 7, 1));
+        var map = MapWithMeetings(m1);
+        map.Status = MindMapStatus.Failed;
+        map.LastError = "previous attempt failed";
+        _repository.Setup(r => r.GetForUpdateAsync(map.Id, It.IsAny<CancellationToken>())).ReturnsAsync(map);
+        MindMapStatus? statusDuringUpdate = null;
+        string? lastErrorDuringUpdate = "not observed";
+        _updater.Setup(u => u.UpdateAsync(It.IsAny<MindMapDocument>(), It.IsAny<MeetingTranscript>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((MindMapDocument current, MeetingTranscript _, CancellationToken _) =>
+            {
+                statusDuringUpdate ??= map.Status;
+                lastErrorDuringUpdate = map.LastError;
+                return MindMapJson.Clone(current);
+            });
+
+        await CreateSut().RunAsync(map.Id, CancellationToken.None);
+
+        Assert.Equal(MindMapStatus.Updating, statusDuringUpdate);
+        Assert.Null(lastErrorDuringUpdate);
+        Assert.Equal(MindMapStatus.Idle, map.Status);
+    }
+
+    [Fact]
+    public async Task RunAsync_DoesNotPersistUpdatingAssertion_WhenNothingPending()
+    {
+        // No pending meetings means no work — asserting Updating here would spuriously
+        // flip a Failed map back to Updating (and clear its diagnostic LastError) even
+        // though nothing is actually going to run.
+        var map = MapWithMeetings();
+        map.Status = MindMapStatus.Failed;
+        map.LastError = "stale failure";
+        _repository.Setup(r => r.GetForUpdateAsync(map.Id, It.IsAny<CancellationToken>())).ReturnsAsync(map);
+
+        await CreateSut().RunAsync(map.Id, CancellationToken.None);
+
+        // GetPendingMeetingsChronologically finds no pending work, so RunAsync falls
+        // through to the unconditional Idle/clear-error tail at the end — same as
+        // RunAsync_EndsIdle_WhenNothingPending above.
+        Assert.Equal(MindMapStatus.Idle, map.Status);
+        Assert.Null(map.LastError);
     }
 }

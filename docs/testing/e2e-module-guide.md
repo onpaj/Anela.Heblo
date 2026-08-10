@@ -4,7 +4,7 @@ This document defines the modular structure of E2E tests, module boundaries, and
 
 ## Module Overview
 
-The E2E test suite is organized into 7 logical modules to enable parallel execution in CI/CD:
+The E2E test suite is organized into 8 logical modules to enable parallel execution in CI/CD:
 
 | Module | Test Count | Purpose | Estimated Runtime |
 |--------|-----------|---------|-------------------|

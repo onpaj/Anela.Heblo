@@ -35,7 +35,7 @@ public class MindMapUpdateJob
     [AutomaticRetry(Attempts = 10)]
     public async Task RunAsync(Guid mindMapId, CancellationToken ct)
     {
-        var map = await _repository.GetByIdAsync(mindMapId, ct);
+        var map = await _repository.GetForUpdateAsync(mindMapId, ct);
         if (map is null)
         {
             _logger.LogWarning("Mind map {MindMapId} not found — nothing to update", mindMapId);
@@ -43,6 +43,19 @@ public class MindMapUpdateJob
         }
 
         var pending = GetPendingMeetingsChronologically(map);
+
+        // The handler that enqueued this run (attach/regenerate) already set Updating —
+        // but a second attach can enqueue job2 while job1 is still holding the per-map
+        // lock below. job1 then finishes and unconditionally sets Idle, overwriting job2's
+        // Updating before job2 ever runs. Asserting it here, right before doing any work,
+        // closes that window — and also re-opens it correctly when a requeued retry
+        // resumes from Failed with work still pending.
+        if (pending.Count > 0 && map.Status != MindMapStatus.Updating)
+        {
+            map.Status = MindMapStatus.Updating;
+            map.LastError = null;
+            await _repository.SaveChangesAsync(ct);
+        }
 
         foreach (var meeting in pending)
         {

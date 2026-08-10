@@ -26,14 +26,16 @@ public class RestoreMindMapVersionHandler : IRequestHandler<RestoreMindMapVersio
             return new RestoreMindMapVersionResponse(ErrorCodes.MindMapUpdateInProgress);
         }
 
-        var version = map.Versions.FirstOrDefault(v => v.VersionNumber == request.VersionNumber);
+        // Targeted single-row fetch — map.Versions is not loaded by GetByIdAsync (that
+        // would pull every version's full Json blob for a read path that only ever needs
+        // one row here).
+        var version = await _repository.GetVersionAsync(map.Id, request.VersionNumber, cancellationToken);
         if (version is null)
         {
             return new RestoreMindMapVersionResponse(ErrorCodes.ResourceNotFound);
         }
 
-        // Safe: `version` above was found inside map.Versions, so the collection is non-empty here.
-        var nextVersionNumber = map.Versions.Max(v => v.VersionNumber) + 1;
+        var nextVersionNumber = await _repository.GetNextVersionNumberAsync(map.Id, cancellationToken);
         map.Versions.Add(new MindMapVersion
         {
             Id = Guid.NewGuid(),

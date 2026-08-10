@@ -50,9 +50,13 @@ public class GetMindMapDetailHandlerTests
                 PlaudCreatedAt = new DateTime(2026, 7, 30)
             }
         });
-        map.Versions.Add(new MindMapVersion { VersionNumber = 1, Json = "{}", TriggerMeetingId = meetingId });
-        map.Versions.Add(new MindMapVersion { VersionNumber = 2, Json = "{}" });
         _repository.Setup(r => r.GetByIdAsync(map.Id, It.IsAny<CancellationToken>())).ReturnsAsync(map);
+        _repository.Setup(r => r.GetVersionSummariesAsync(map.Id, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<MindMapVersionSummary>
+            {
+                new() { VersionNumber = 2, CreatedAt = DateTime.UtcNow },
+                new() { VersionNumber = 1, CreatedAt = DateTime.UtcNow, TriggerMeetingId = meetingId },
+            });
         var handler = new GetMindMapDetailHandler(_repository.Object);
 
         var response = await handler.Handle(new GetMindMapDetailRequest { Id = map.Id }, CancellationToken.None);

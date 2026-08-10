@@ -7,6 +7,7 @@ using Hangfire;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using Npgsql;
 
 namespace Anela.Heblo.Application.Features.MindMaps.UseCases.AttachMeeting;
 
@@ -69,7 +70,7 @@ public class AttachMeetingHandler : IRequestHandler<AttachMeetingRequest, Attach
         {
             await _mapRepository.SaveChangesAsync(cancellationToken);
         }
-        catch (DbUpdateException ex)
+        catch (DbUpdateException ex) when (IsDuplicateAttachViolation(ex))
         {
             // A concurrent request attached the same meeting first and won the unique
             // constraint race; the sequential in-memory check above cannot catch that.
@@ -120,4 +121,14 @@ public class AttachMeetingHandler : IRequestHandler<AttachMeetingRequest, Attach
             meeting.Id, map.Id);
         return new AttachMeetingResponse();
     }
+
+    /// <summary>
+    /// True only for the specific unique-constraint race this catch exists to handle — a
+    /// connection blip or unrelated FK violation must fall through to the generic
+    /// InternalServerError path instead of being misreported as "already attached".
+    /// </summary>
+    private static bool IsDuplicateAttachViolation(DbUpdateException ex) =>
+        ex.InnerException is PostgresException pg
+        && pg.SqlState == PostgresErrorCodes.UniqueViolation
+        && string.Equals(pg.ConstraintName, "UX_MindMapMeetings_MindMapId_MeetingTranscriptId", StringComparison.Ordinal);
 }

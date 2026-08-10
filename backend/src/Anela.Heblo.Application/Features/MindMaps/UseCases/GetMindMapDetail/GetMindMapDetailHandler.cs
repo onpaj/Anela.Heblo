@@ -26,6 +26,10 @@ public class GetMindMapDetailHandler : IRequestHandler<GetMindMapDetailRequest, 
             .Where(m => m.MeetingTranscript != null)
             .ToDictionary(m => m.MeetingTranscriptId, m => m.MeetingTranscript.Subject);
 
+        // Metadata only — the full version Json blobs are not needed here, and this handler
+        // backs the endpoint the frontend polls every 3s while a map is updating.
+        var versions = await _repository.GetVersionSummariesAsync(map.Id, cancellationToken);
+
         return new GetMindMapDetailResponse
         {
             Id = map.Id,
@@ -45,8 +49,7 @@ public class GetMindMapDetailHandler : IRequestHandler<GetMindMapDetailRequest, 
                     AttachedAt = m.AttachedAt,
                     ProcessedAt = m.ProcessedAt
                 }).ToList(),
-            Versions = map.Versions
-                .OrderByDescending(v => v.VersionNumber)
+            Versions = versions
                 .Select(v => new MindMapVersionDto
                 {
                     VersionNumber = v.VersionNumber,
