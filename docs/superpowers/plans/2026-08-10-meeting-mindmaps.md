@@ -747,13 +747,19 @@ and add `mindMapErrors.Count` into the `categorizedCount` sum expression.
 
 - [ ] **Step 4: Mirror in the frontend**
 
-In `frontend/src/types/errors.ts` add to the `ErrorCodes` string enum (match the existing entry style exactly):
+`frontend/src/types/errors.ts` is NOT hand-edited — it only re-exports `ErrorCodes` from `frontend/src/api/generated/api-client.ts`, which NSwag generates from the backend OpenAPI schema. Automatic generation on backend build is disabled (`Anela.Heblo.API.csproj:106`, `Condition="false"`), so regenerate explicitly and commit the regenerated client:
 
-```typescript
-  MindMapUpdateInProgress = "MindMapUpdateInProgress",
-  MindMapMeetingAlreadyAttached = "MindMapMeetingAlreadyAttached",
-  MindMapInvalidDocument = "MindMapInvalidDocument",
+```bash
+dotnet msbuild backend/src/Anela.Heblo.API -t:GenerateFrontendClientManual
 ```
+
+Then confirm the three new members landed in the generated enum:
+
+```bash
+grep -n "MindMapUpdateInProgress\|MindMapMeetingAlreadyAttached\|MindMapInvalidDocument" frontend/src/api/generated/api-client.ts
+```
+
+Expected: three matches inside `export enum ErrorCodes`. (`npm run build`'s `prebuild` script regenerates the same file, so an un-regenerated client would also self-correct at the next frontend build — but committing it here keeps the tree coherent.)
 
 In `frontend/src/i18n.ts`, inside the `errors:` object add:
 
