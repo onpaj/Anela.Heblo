@@ -22,7 +22,7 @@
     },
     "developing": {
       "status": "in_progress",
-      "updated_at": "2026-08-07T13:37:41.727347Z"
+      "updated_at": "2026-08-10T10:24:30.000455Z"
     }
   },
   "tasks": [
@@ -40,9 +40,9 @@
     },
     {
       "name": "refactor-reset-handler",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-08-10T10:24:30.299137Z"
     }
   ]
 }
