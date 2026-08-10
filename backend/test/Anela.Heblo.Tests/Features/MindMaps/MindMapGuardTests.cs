@@ -223,6 +223,26 @@ public class MindMapGuardTests
     }
 
     [Fact]
+    public void ApplyLlmUpdate_Throws_WhenLlmReturnsExistingNonLockedNodeWithNullTitle()
+    {
+        var llm = LlmEcho();
+        llm.Nodes.Single(n => n.Id == "free").Title = null!;
+
+        Assert.Throws<MindMapGuardException>(() => _guard.ApplyLlmUpdate(Previous(), llm, MeetingId));
+    }
+
+    [Fact]
+    public void ApplyLlmUpdate_RestoresLockedNodeTitle_WhenLlmEchoesNullTitle()
+    {
+        var llm = LlmEcho();
+        llm.Nodes.Single(n => n.Id == "locked").Title = null!;
+
+        var result = _guard.ApplyLlmUpdate(Previous(), llm, MeetingId);
+
+        Assert.Equal("Ruční název", result.Nodes.Single(n => n.Id == "locked").Title);
+    }
+
+    [Fact]
     public void ApplyLlmUpdate_Throws_WhenPreviousHasSuppressedNodeWithNullTitle()
     {
         var previous = Previous();

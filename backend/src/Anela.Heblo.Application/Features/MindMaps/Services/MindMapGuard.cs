@@ -41,9 +41,15 @@ public class MindMapGuard
     /// null titles) — deliberately NOT a full <see cref="MindMapDocumentValidator"/> run, since a
     /// structurally invalid arriving document can legitimately become valid after the guard runs
     /// (e.g. a deleted locked node's child is repaired by re-inserting the locked parent).
+    /// A null title is exempt for ids that were locked in <paramref name="previous"/>: their title
+    /// is unconditionally restored by <see cref="EnforceLockedNodes"/> before the validator gate,
+    /// so rejecting it here would turn a recoverable update into a false hard failure.
     /// </summary>
     private static void RejectUnmergeableInput(MindMapDocument previous, MindMapDocument llmResult)
     {
+        var lockedIds = new HashSet<string>(
+            previous.Nodes.Where(n => n.LockedBy != null).Select(n => n.Id));
+
         var seenIds = new HashSet<string>();
         foreach (var node in llmResult.Nodes)
         {
@@ -51,7 +57,7 @@ public class MindMapGuard
                 throw new MindMapGuardException("LLM returned a node with an empty id.");
             if (!seenIds.Add(node.Id))
                 throw new MindMapGuardException($"LLM returned duplicate node id '{node.Id}'.");
-            if (node.Title == null)
+            if (node.Title == null && !lockedIds.Contains(node.Id))
                 throw new MindMapGuardException($"LLM returned node '{node.Id}' with a null title.");
         }
 
