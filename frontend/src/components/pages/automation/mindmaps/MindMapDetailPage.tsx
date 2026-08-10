@@ -45,6 +45,7 @@ const MindMapDetailPage: React.FC = () => {
   const [localDoc, setLocalDoc] = useState<MindMapDocument | null>(null);
   const [isDirty, setIsDirty] = useState(false);
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
+  const [hasDocumentParseError, setHasDocumentParseError] = useState(false);
   const loadedJsonRef = useRef<string | null>(null);
   const titleInputRef = useRef<HTMLInputElement>(null);
 
@@ -58,7 +59,17 @@ const MindMapDetailPage: React.FC = () => {
     if (!detail) return;
     if (!isDirty && detail.documentJson !== loadedJsonRef.current) {
       loadedJsonRef.current = detail.documentJson;
-      setLocalDoc(parseDocument(detail.documentJson));
+      // A malformed documentJson arriving from a poll or refetch must not crash
+      // the page via the global ErrorBoundary. Surface it as an error state
+      // instead, and leave whatever `localDoc` currently holds untouched — if a
+      // working session was already loaded, that stays on screen rather than
+      // being clobbered by a bad payload.
+      try {
+        setLocalDoc(parseDocument(detail.documentJson));
+        setHasDocumentParseError(false);
+      } catch {
+        setHasDocumentParseError(true);
+      }
     }
   }, [detail, isDirty]);
 
@@ -184,6 +195,13 @@ const MindMapDetailPage: React.FC = () => {
   if (!detail) {
     return <div className="p-8 text-gray-500 dark:text-graphite-muted">Mapa nenalezena</div>;
   }
+  if (hasDocumentParseError && !localDoc) {
+    return (
+      <div className="p-8 text-gray-500 dark:text-graphite-muted">
+        Dokument mapy se nepodařilo načíst — data ze serveru jsou poškozená.
+      </div>
+    );
+  }
 
   const badge = STATUS_BADGE[detail.status] ?? { label: detail.status, ...DEFAULT_STATUS_BADGE };
   const hasPendingMeeting = detail.meetings.some((m) => !m.processedAt);
@@ -260,6 +278,14 @@ const MindMapDetailPage: React.FC = () => {
           <div className="rounded-md border border-sky-200 bg-sky-50 dark:border-sky-900/40 dark:bg-sky-900/20 px-3 py-2 text-sm text-sky-800 dark:text-sky-300">
             Na serveru je k dispozici novější verze mapy (např. z dokončené regenerace). Uložte nebo zahoďte své
             úpravy, aby se načetla.
+          </div>
+        </div>
+      )}
+
+      {hasDocumentParseError && localDoc && (
+        <div className="px-4 sm:px-6 lg:px-8 mt-3 shrink-0">
+          <div className="rounded-md border border-red-200 bg-red-50 dark:border-red-900/40 dark:bg-red-900/20 px-3 py-2 text-sm text-red-800 dark:text-red-300">
+            Poslední verzi mapy ze serveru se nepodařilo načíst — zobrazuje se předchozí stav.
           </div>
         </div>
       )}

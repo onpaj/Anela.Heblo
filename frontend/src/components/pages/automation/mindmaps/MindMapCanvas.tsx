@@ -8,6 +8,17 @@ import MindMapFlowNode from "./MindMapFlowNode";
 
 const nodeTypes = { mindMapNode: MindMapFlowNode };
 
+// Only these change types are ones this canvas actually owns (live drag position,
+// selection, measured dimensions). React Flow also emits `remove`/`add`/`replace`
+// changes; mirroring `remove` in particular would let Backspace (React Flow's
+// default `deleteKeyCode`, with nodes deletable by default) erase a selected node
+// from `renderedNodes` while `localDoc` — and the side panel, and `isDirty` — never
+// find out, so it silently reappears on the next document edit. `deleteKeyCode={null}`
+// on `<ReactFlow>` makes the key inert at the source; this filter is the second,
+// defense-in-depth layer. Real deletion has exactly one path: the side panel's
+// "Smazat uzel", which goes through the document and correctly marks it dirty.
+const MIRRORED_CHANGE_TYPES = new Set(["position", "select", "dimensions"]);
+
 interface MindMapCanvasProps {
   document: MindMapDocument;
   isReadOnly: boolean;
@@ -41,7 +52,8 @@ const MindMapCanvas: React.FC<MindMapCanvasProps> = ({
   }, [nodes]);
 
   const handleNodesChange = (changes: NodeChange[]) => {
-    setRenderedNodes((nds) => applyNodeChanges(changes, nds) as FlowNodeType[]);
+    const mirrored = changes.filter((change) => MIRRORED_CHANGE_TYPES.has(change.type));
+    setRenderedNodes((nds) => applyNodeChanges(mirrored, nds) as FlowNodeType[]);
   };
 
   const nodesWithSelection = useMemo(
@@ -58,6 +70,7 @@ const MindMapCanvas: React.FC<MindMapCanvasProps> = ({
         fitView
         nodesConnectable={false}
         colorMode={theme}
+        deleteKeyCode={null}
         onNodesChange={handleNodesChange}
         onNodeClick={(_e, node) => onSelectNode(node.id)}
         onPaneClick={() => onSelectNode(null)}

@@ -1,5 +1,5 @@
 import React from "react";
-import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import "@testing-library/jest-dom";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -171,14 +171,65 @@ describe("MindMapDetailPage", () => {
 
     fireEvent.click(screen.getByTestId("mindmap-save-button"));
 
-    await waitFor(() => expect(screen.getByTestId("mindmap-save-button")).toBeDisabled());
+    // Wait on the exact thing being asserted — the lock line only renders once the
+    // canonical (post-save) document is what's displayed. `waitFor` on the save
+    // button's disabled state would only prove the mutation settled, not that its
+    // response was actually adopted; that happened to be true today, but coupling
+    // the wait to a different signal than the assertion is a latent flake.
+    await screen.findByText(/Uzamčeno uživatelem ondra@anela\.cz/);
 
     // With the bug, the adoption effect fires using the stale (pre-save) cached
     // `detail` as soon as isDirty flips false — reverting the title back to
     // "Projekt" and dropping the lock the server just applied. Since the refetch
     // above never resolves, an unfixed page would stay reverted for good.
     expect(titleInput.value).toBe("Upraveno");
-    expect(screen.getByText(/Uzamčeno uživatelem ondra@anela\.cz/)).toBeInTheDocument();
+  });
+
+  it("shows an error state instead of crashing when the initial document JSON is malformed", async () => {
+    const { mockClient, mockFetch } = createMockApiClient(BASE_URL);
+    mockAuthenticatedApiClient(mockClient);
+    const brokenDetail = buildDetail({ documentJson: "not valid json" });
+    mockFetch.mockImplementation((url: string) => {
+      if (url === DETAIL_URL) return jsonResponse(brokenDetail);
+      throw new Error(`Unexpected fetch: ${url}`);
+    });
+
+    const queryClient = newQueryClient();
+    renderPage(queryClient);
+
+    // parseDocument throws on "not valid json"; with no prior localDoc to fall
+    // back on, the adoption effect must surface this as a rendered error state,
+    // not let the exception propagate up into the global ErrorBoundary.
+    expect(await screen.findByText(/Dokument mapy se nepodařilo načíst/)).toBeInTheDocument();
+    expect(screen.queryByTestId("mindmap-canvas-stub")).not.toBeInTheDocument();
+  });
+
+  it("keeps showing a working session, with a warning, when a later poll delivers a malformed document", async () => {
+    const { mockClient, mockFetch } = createMockApiClient(BASE_URL);
+    mockAuthenticatedApiClient(mockClient);
+    const initialDetail = buildDetail();
+    mockFetch.mockImplementation((url: string) => {
+      if (url === DETAIL_URL) return jsonResponse(initialDetail);
+      throw new Error(`Unexpected fetch: ${url}`);
+    });
+
+    const queryClient = newQueryClient();
+    renderPage(queryClient);
+    await screen.findByTestId("mindmap-canvas-stub");
+
+    // Simulate a later poll/refetch landing with a corrupted payload — the
+    // already-loaded, working document must stay on screen (not be clobbered,
+    // not crash) with a warning surfaced instead.
+    await act(async () => {
+      queryClient.setQueryData(MIND_MAPS_KEYS.detail(MAP_ID), {
+        ...initialDetail,
+        documentJson: "not valid json",
+      });
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    });
+
+    expect(screen.getByTestId("mindmap-canvas-stub")).toBeInTheDocument();
+    expect(screen.getByText(/Poslední verzi mapy ze serveru se nepodařilo načíst/)).toBeInTheDocument();
   });
 
   it("disables the panel and save controls while the map is Updating", async () => {
