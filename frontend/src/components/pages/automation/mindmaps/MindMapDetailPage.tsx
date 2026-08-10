@@ -1,10 +1,13 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
+import { useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft, RefreshCw, Save } from "lucide-react";
 import toast from "react-hot-toast";
 import UnsavedChangesDialog from "../../../dialogs/UnsavedChangesDialog";
 import { useUnsavedChangesDialog } from "../../../../hooks/useUnsavedChangesDialog";
 import {
+  MIND_MAPS_KEYS,
+  MindMapDetail,
   useMindMapDetail,
   useRegenerateMindMap,
   useSaveMindMapDocument,
@@ -34,6 +37,7 @@ const DEFAULT_STATUS_BADGE = { className: "bg-gray-100 text-gray-800 dark:bg-gra
 const MindMapDetailPage: React.FC = () => {
   useScreenView("Automation", "MindMapDetail");
   const { id } = useParams<{ id: string }>();
+  const queryClient = useQueryClient();
   const { data: detail, isLoading, error } = useMindMapDetail(id ?? "");
   const saveDocument = useSaveMindMapDocument();
   const regenerate = useRegenerateMindMap();
@@ -65,22 +69,44 @@ const MindMapDetailPage: React.FC = () => {
 
   const handleSave = async (): Promise<boolean> => {
     if (!id || !localDoc) return false;
+
+    let result: { documentJson: string };
     try {
-      const result = await saveDocument.mutateAsync({
+      result = await saveDocument.mutateAsync({
         mindMapId: id,
         documentJson: JSON.stringify(localDoc),
       });
-      // The server response carries real node ids (in place of our tmp- ones)
-      // and the locks it just applied — always trust it over the local copy.
-      loadedJsonRef.current = result.documentJson;
-      setLocalDoc(parseDocument(result.documentJson));
-      setIsDirty(false);
-      toast.success("Mapa uložena");
-      return true;
     } catch {
       toast.error("Uložení mapy se nezdařilo");
       return false;
     }
+
+    // From here the save has already succeeded server-side. useSaveMindMapDocument's
+    // onSuccess fires invalidateQueries, but that only *starts* a background refetch —
+    // it does not wait for it. Without writing the canonical result into the query
+    // cache ourselves, `detail` (read from that same cache) would still hold the
+    // pre-save document for the whole refetch window; the adoption effect below would
+    // then see `!isDirty` flip true against that stale `detail.documentJson` and
+    // immediately revert both `localDoc` and `loadedJsonRef` back to the pre-save
+    // state — visibly undoing a save that actually succeeded (tmp- ids and missing
+    // locks reappear), and re-armed for a duplicate-node bug on the next save if the
+    // user keeps editing during that window.
+    queryClient.setQueryData<MindMapDetail>(MIND_MAPS_KEYS.detail(id), (old) =>
+      old ? { ...old, documentJson: result.documentJson } : old,
+    );
+    loadedJsonRef.current = result.documentJson;
+    setIsDirty(false);
+
+    // A malformed canonical response is a distinct failure from a failed save
+    // request — the mutation already succeeded, so this must not be reported as
+    // "Uložení mapy se nezdařilo" (that would be actively misleading).
+    try {
+      setLocalDoc(parseDocument(result.documentJson));
+      toast.success("Mapa uložena");
+    } catch {
+      toast.error("Mapa byla uložena, ale odpověď serveru se nepodařilo zobrazit. Načtěte stránku znovu.");
+    }
+    return true;
   };
 
   const { dialogProps, requestNavigation } = useUnsavedChangesDialog(isDirty, handleSave);
@@ -128,6 +154,15 @@ const MindMapDetailPage: React.FC = () => {
 
   const handleRegenerate = async () => {
     if (!id) return;
+    // Regenerating replaces the document with Claude's rewrite. Doing that while
+    // the user has unsaved local edits would either bury the rewrite under a
+    // subsequent save of the stale local copy, or (per the adoption guard) get
+    // silently ignored until the user saves anyway — either way real work is lost
+    // silently. Force a save first instead.
+    if (isDirty) {
+      toast.error("Nejprve uložte mapu, poté ji můžete regenerovat.");
+      return;
+    }
     try {
       await regenerate.mutateAsync(id);
       toast.success("Regenerace mapy byla spuštěna");
@@ -139,7 +174,11 @@ const MindMapDetailPage: React.FC = () => {
   if (isLoading) {
     return <div className="p-8 text-gray-500 dark:text-graphite-muted">Načítání...</div>;
   }
-  if (error) {
+  // React Query retains the last good `data` across a failed refetch (e.g. one
+  // transient poll failure while status is "Updating"). Only treat this as a hard
+  // error — and drop the whole editor, including any unsaved edits' visual state —
+  // when there is truly no data to fall back on.
+  if (error && !detail) {
     return <div className="p-8 text-gray-500 dark:text-graphite-muted">Nepodařilo se načíst mapu</div>;
   }
   if (!detail) {
@@ -149,6 +188,11 @@ const MindMapDetailPage: React.FC = () => {
   const badge = STATUS_BADGE[detail.status] ?? { label: detail.status, ...DEFAULT_STATUS_BADGE };
   const hasPendingMeeting = detail.meetings.some((m) => !m.processedAt);
   const canRegenerate = detail.status === "Failed" || hasPendingMeeting;
+  // The adoption effect intentionally refuses to overwrite unsaved edits — but that
+  // means a newer server document (e.g. from a just-finished regeneration) can sit
+  // unapplied for as long as the user keeps editing. Surface that rather than
+  // silently doing nothing.
+  const hasNewerServerVersion = isDirty && detail.documentJson !== loadedJsonRef.current;
 
   return (
     <div className="flex flex-col w-full overflow-hidden" style={{ height: PAGE_CONTAINER_HEIGHT }}>
@@ -207,6 +251,15 @@ const MindMapDetailPage: React.FC = () => {
         <div className="px-4 sm:px-6 lg:px-8 mt-3 shrink-0">
           <div className="rounded-md border border-amber-200 bg-amber-50 dark:border-amber-900/40 dark:bg-amber-900/20 px-3 py-2 text-sm text-amber-800 dark:text-amber-300">
             Mapa se právě aktualizuje — úpravy jsou dočasně zamčené.
+          </div>
+        </div>
+      )}
+
+      {hasNewerServerVersion && (
+        <div className="px-4 sm:px-6 lg:px-8 mt-3 shrink-0">
+          <div className="rounded-md border border-sky-200 bg-sky-50 dark:border-sky-900/40 dark:bg-sky-900/20 px-3 py-2 text-sm text-sky-800 dark:text-sky-300">
+            Na serveru je k dispozici novější verze mapy (např. z dokončené regenerace). Uložte nebo zahoďte své
+            úpravy, aby se načetla.
           </div>
         </div>
       )}

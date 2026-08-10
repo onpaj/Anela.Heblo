@@ -82,7 +82,7 @@ const NodeTab: React.FC<NodeTabProps> = ({
   const isRoot = node.id === doc.rootNodeId;
 
   const handleDelete = () => {
-    if (!window.confirm(`Smazat uzel „${node.title}" a všechny jeho poduzly? Tato akce je nevratná.`)) return;
+    if (!window.confirm(`Smazat uzel „${node.title}“ a všechny jeho poduzly? Tato akce je nevratná.`)) return;
     onDeleteNode(node.id);
   };
 
@@ -264,14 +264,15 @@ const AttachMeetingDialog: React.FC<AttachMeetingDialogProps> = ({ mindMapId, at
 interface MeetingsTabProps {
   mindMapId: string;
   meetings: AttachedMeeting[];
+  isDirty: boolean;
 }
 
-const MeetingsTab: React.FC<MeetingsTabProps> = ({ mindMapId, meetings }) => {
+const MeetingsTab: React.FC<MeetingsTabProps> = ({ mindMapId, meetings, isDirty }) => {
   const [isAttachOpen, setIsAttachOpen] = useState(false);
   const detachMeeting = useDetachMeeting();
 
   const handleDetach = async (meetingTranscriptId: string, subject: string) => {
-    if (!window.confirm(`Odpojit poradu „${subject}"?`)) return;
+    if (!window.confirm(`Odpojit poradu „${subject}“?`)) return;
     try {
       await detachMeeting.mutateAsync({ mindMapId, meetingTranscriptId });
       toast.success("Porada odpojena");
@@ -280,12 +281,24 @@ const MeetingsTab: React.FC<MeetingsTabProps> = ({ mindMapId, meetings }) => {
     }
   };
 
+  const handleOpenAttach = () => {
+    // Attaching kicks off a background rewrite of the whole document; doing that
+    // while the user has unsaved local edits would let the AI rewrite either
+    // clobber those edits or be silently discarded by them later. Make the user
+    // save first.
+    if (isDirty) {
+      toast.error("Nejprve uložte mapu, poté můžete připojit poradu.");
+      return;
+    }
+    setIsAttachOpen(true);
+  };
+
   return (
     <div className="space-y-3">
       <button
         type="button"
         data-testid="mindmap-attach-button"
-        onClick={() => setIsAttachOpen(true)}
+        onClick={handleOpenAttach}
         className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium bg-indigo-600 text-white hover:bg-indigo-700 dark:bg-graphite-accent dark:hover:bg-graphite-accent/90"
       >
         <Plus className="w-4 h-4" />
@@ -450,7 +463,9 @@ const MindMapSidePanel: React.FC<MindMapSidePanelProps> = ({
             titleInputRef={titleInputRef}
           />
         )}
-        {activeTab === "meetings" && <MeetingsTab mindMapId={detail.id} meetings={detail.meetings} />}
+        {activeTab === "meetings" && (
+          <MeetingsTab mindMapId={detail.id} meetings={detail.meetings} isDirty={isDirty} />
+        )}
         {activeTab === "history" && (
           <HistoryTab mindMapId={detail.id} versions={detail.versions} isReadOnly={isReadOnly} isDirty={isDirty} />
         )}
