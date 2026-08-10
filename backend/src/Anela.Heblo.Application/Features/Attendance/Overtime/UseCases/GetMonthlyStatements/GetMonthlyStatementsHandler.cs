@@ -2,6 +2,7 @@ using Anela.Heblo.Application.Features.Attendance.Overtime.Contracts;
 using Anela.Heblo.Application.Features.Attendance.Overtime.Services;
 using Anela.Heblo.Domain.Features.Attendance.Overtime;
 using MediatR;
+using Microsoft.EntityFrameworkCore;
 
 namespace Anela.Heblo.Application.Features.Attendance.Overtime.UseCases.GetMonthlyStatements;
 
@@ -95,7 +96,17 @@ public class GetMonthlyStatementsHandler : IRequestHandler<GetMonthlyStatementsR
                     Status = OvertimeStatementStatus.Open
                 };
                 CopyComputation(statement, computation);
-                await _statements.AddAsync(statement, cancellationToken);
+                try
+                {
+                    await _statements.AddAsync(statement, cancellationToken);
+                }
+                catch (DbUpdateException)
+                {
+                    // A concurrent request already inserted this person's statement (unique
+                    // PersonId/Year/Month index) — reload it instead of surfacing a 500.
+                    statement = (await _statements.GetByMonthAsync(request.Year, request.Month, cancellationToken))
+                        .Single(s => s.PersonId == computation.PersonId);
+                }
             }
             else
             {

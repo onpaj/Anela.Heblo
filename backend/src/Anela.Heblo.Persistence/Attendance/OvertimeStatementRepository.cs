@@ -55,8 +55,18 @@ public class OvertimeStatementRepository : IOvertimeStatementRepository
 
     public async Task AddAsync(OvertimeMonthlyStatement statement, CancellationToken cancellationToken = default)
     {
-        _context.OvertimeMonthlyStatements.Add(statement);
-        await _context.SaveChangesAsync(cancellationToken);
+        var entry = _context.OvertimeMonthlyStatements.Add(statement);
+        try
+        {
+            await _context.SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateException)
+        {
+            // A failed INSERT leaves the entity tracked as Added; detach it so it cannot
+            // be re-attempted by a later SaveChanges on the shared scoped DbContext.
+            entry.State = EntityState.Detached;
+            throw;
+        }
     }
 
     public Task SaveChangesAsync(CancellationToken cancellationToken = default)

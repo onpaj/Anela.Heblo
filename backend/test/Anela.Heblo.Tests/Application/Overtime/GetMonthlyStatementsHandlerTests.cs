@@ -4,6 +4,7 @@ using Anela.Heblo.Application.Features.Attendance.Overtime.UseCases.GetMonthlySt
 using Anela.Heblo.Domain.Features.Attendance;
 using Anela.Heblo.Domain.Features.Attendance.Overtime;
 using FluentAssertions;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using Moq;
@@ -104,5 +105,28 @@ public class GetMonthlyStatementsHandlerTests
         var result = await CreateSut().Handle(new GetMonthlyStatementsRequest { Year = 2026, Month = 8 }, CancellationToken.None);
 
         result.Success.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task ConcurrentCreate_DuplicateKeyOnInsert_ReloadsWinningRow_InsteadOfThrowing()
+    {
+        // A second request for the same person/month raced ahead and already inserted the row
+        // (unique PersonId/Year/Month index) by the time this request's AddAsync runs.
+        var winningStatement = new OvertimeMonthlyStatement
+        {
+            PersonId = Person, Year = 2026, Month = 8, Status = OvertimeStatementStatus.Open,
+            WorkedHours = 8.00m, IsReviewed = true
+        };
+        _statements.SetupSequence(r => r.GetByMonthAsync(2026, 8, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<OvertimeMonthlyStatement>())
+            .ReturnsAsync(new List<OvertimeMonthlyStatement> { winningStatement });
+        _statements.Setup(r => r.AddAsync(It.IsAny<OvertimeMonthlyStatement>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new DbUpdateException("duplicate key value violates unique constraint"));
+
+        var result = await CreateSut().Handle(new GetMonthlyStatementsRequest { Year = 2026, Month = 8 }, CancellationToken.None);
+
+        result.Success.Should().BeTrue();
+        result.Statements.Single().IsReviewed.Should().BeTrue();
+        _statements.Verify(r => r.GetByMonthAsync(2026, 8, It.IsAny<CancellationToken>()), Times.Exactly(2));
     }
 }
