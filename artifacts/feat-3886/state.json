@@ -34,9 +34,9 @@
     },
     {
       "name": "convert-merge-scheduler-tests-to-fake-time-provider",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-08-10T15:21:32.946949Z"
+      "updated_at": "2026-08-10T15:46:36.611311Z"
     }
   ]
 }
