@@ -5,7 +5,7 @@ public static class MindMapDocumentValidator
     public static List<string> Validate(MindMapDocument doc)
     {
         var errors = new List<string>();
-        if (doc.Nodes.Count == 0)
+        if (doc.Nodes is not { Count: > 0 })
         {
             errors.Add("Document has no nodes.");
             return errors;

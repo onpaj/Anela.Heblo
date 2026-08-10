@@ -31,6 +31,18 @@ public class RestoreMindMapVersionHandlerTests
     }
 
     [Fact]
+    public async Task Handle_ReturnsNotFound_WhenMapDoesNotExist()
+    {
+        var id = Guid.NewGuid();
+        _repository.Setup(r => r.GetByIdAsync(id, It.IsAny<CancellationToken>())).ReturnsAsync((MindMap?)null);
+
+        var response = await CreateSut().Handle(
+            new RestoreMindMapVersionRequest { Id = id, VersionNumber = 1 }, CancellationToken.None);
+
+        Assert.Equal(ErrorCodes.ResourceNotFound, response.ErrorCode);
+    }
+
+    [Fact]
     public async Task Handle_ReturnsNotFound_ForUnknownVersion()
     {
         var map = new MindMap { Id = Guid.NewGuid(), Name = "M", CurrentJson = "{}", Status = MindMapStatus.Idle };

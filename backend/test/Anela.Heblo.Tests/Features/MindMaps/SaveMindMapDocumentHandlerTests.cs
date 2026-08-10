@@ -114,4 +114,87 @@ public class SaveMindMapDocumentHandlerTests
 
         Assert.Equal(ErrorCodes.MindMapInvalidDocument, response.ErrorCode);
     }
+
+    [Fact]
+    public async Task Handle_ReturnsInvalidDocument_WhenNodesIsExplicitlyNull()
+    {
+        var map = MapWithDoc(out _);
+        _repository.Setup(r => r.GetByIdAsync(map.Id, It.IsAny<CancellationToken>())).ReturnsAsync(map);
+
+        var response = await CreateSut().Handle(new SaveMindMapDocumentRequest
+        {
+            Id = map.Id,
+            DocumentJson = "{\"rootNodeId\":\"root\",\"nodes\":null}"
+        }, CancellationToken.None);
+
+        Assert.Equal(ErrorCodes.MindMapInvalidDocument, response.ErrorCode);
+    }
+
+    [Fact]
+    public async Task Handle_ReturnsNotFound_WhenMapDoesNotExist()
+    {
+        var id = Guid.NewGuid();
+        _repository.Setup(r => r.GetByIdAsync(id, It.IsAny<CancellationToken>())).ReturnsAsync((MindMap?)null);
+
+        var response = await CreateSut().Handle(new SaveMindMapDocumentRequest
+        {
+            Id = id,
+            DocumentJson = "{}"
+        }, CancellationToken.None);
+
+        Assert.Equal(ErrorCodes.ResourceNotFound, response.ErrorCode);
+    }
+
+    [Fact]
+    public async Task Handle_ReturnsInvalidDocument_WithErrorsParam_WhenValidatorFails()
+    {
+        var map = MapWithDoc(out _);
+        _repository.Setup(r => r.GetByIdAsync(map.Id, It.IsAny<CancellationToken>())).ReturnsAsync(map);
+        var invalid = "{\"rootNodeId\":\"root\",\"nodes\":[{\"id\":\"root\",\"title\":\"\"}]}";
+
+        var response = await CreateSut().Handle(new SaveMindMapDocumentRequest
+        {
+            Id = map.Id,
+            DocumentJson = invalid
+        }, CancellationToken.None);
+
+        Assert.Equal(ErrorCodes.MindMapInvalidDocument, response.ErrorCode);
+        Assert.True(response.Params!.ContainsKey("Errors"));
+        Assert.Contains("empty title", response.Params["Errors"]);
+    }
+
+    [Fact]
+    public async Task Handle_ReturnsValidationError_WithParams_WhenUserEmailIsEmpty()
+    {
+        var map = MapWithDoc(out var doc);
+        _repository.Setup(r => r.GetByIdAsync(map.Id, It.IsAny<CancellationToken>())).ReturnsAsync(map);
+        _currentUserService.Setup(x => x.GetCurrentUser())
+            .Returns(new CurrentUser(null, "Anonymous", "   ", true));
+
+        var response = await CreateSut().Handle(new SaveMindMapDocumentRequest
+        {
+            Id = map.Id,
+            DocumentJson = MindMapJson.Serialize(doc)
+        }, CancellationToken.None);
+
+        Assert.Equal(ErrorCodes.ValidationError, response.ErrorCode);
+        Assert.True(response.Params!.ContainsKey("Error"));
+        _repository.Verify(r => r.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task Handle_ReturnsInvalidDocument_WhenStoredDocumentIsCorrupt()
+    {
+        var map = MapWithDoc(out var doc);
+        map.CurrentJson = "not json";
+        _repository.Setup(r => r.GetByIdAsync(map.Id, It.IsAny<CancellationToken>())).ReturnsAsync(map);
+
+        var response = await CreateSut().Handle(new SaveMindMapDocumentRequest
+        {
+            Id = map.Id,
+            DocumentJson = MindMapJson.Serialize(doc)
+        }, CancellationToken.None);
+
+        Assert.Equal(ErrorCodes.MindMapInvalidDocument, response.ErrorCode);
+    }
 }

@@ -30,6 +30,15 @@ public class MindMapDocumentValidatorTests
     }
 
     [Fact]
+    public void Validate_Fails_WhenNodesIsNull()
+    {
+        // System.Text.Json overwrites the `= new()` field initializer with null for an
+        // explicit JSON "nodes": null — nullable annotations aren't runtime-enforced.
+        var errors = MindMapDocumentValidator.Validate(new MindMapDocument { RootNodeId = "x", Nodes = null! });
+        Assert.Contains(errors, e => e.Contains("no nodes"));
+    }
+
+    [Fact]
     public void Validate_Fails_OnDuplicateNodeIds()
     {
         var doc = ValidDoc();

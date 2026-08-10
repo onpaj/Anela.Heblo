@@ -57,7 +57,18 @@ public class SaveMindMapDocumentHandler : IRequestHandler<SaveMindMapDocumentReq
                 new Dictionary<string, string> { { "Errors", string.Join(" ", errors) } });
         }
 
-        var current = MindMapJson.Deserialize(map.CurrentJson);
+        MindMapDocument current;
+        try
+        {
+            current = MindMapJson.Deserialize(map.CurrentJson);
+        }
+        catch (JsonException ex)
+        {
+            return new SaveMindMapDocumentResponse(
+                ErrorCodes.MindMapInvalidDocument,
+                new Dictionary<string, string> { { "Error", ex.Message } });
+        }
+
         if (submitted.RootNodeId != current.RootNodeId)
         {
             return new SaveMindMapDocumentResponse(
@@ -68,7 +79,9 @@ public class SaveMindMapDocumentHandler : IRequestHandler<SaveMindMapDocumentReq
         var userEmail = _currentUserService.GetCurrentUser().Email;
         if (string.IsNullOrWhiteSpace(userEmail))
         {
-            return new SaveMindMapDocumentResponse(ErrorCodes.ValidationError);
+            return new SaveMindMapDocumentResponse(
+                ErrorCodes.ValidationError,
+                new Dictionary<string, string> { { "Error", "Missing user email" } });
         }
 
         var result = _lockService.ApplyUserEdit(current, submitted, userEmail);

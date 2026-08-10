@@ -66,11 +66,9 @@ public class ClaudeMindMapUpdater : IMindMapUpdater
             }
             catch (Exception ex) when (ex is not OperationCanceledException)
             {
-                // Deserialization can succeed with a structurally-valid-but-null payload
-                // (e.g. {"nodes":null} — nullable annotations aren't runtime-enforced), which
-                // then throws inside the validator. Any such failure is treated as "malformed
-                // reply" and retried, same as a JsonException — never surfaced as a raw
-                // exception the caller (IMindMapUpdater's contract) doesn't expect.
+                // Any unexpected failure here (deserialization or otherwise) is treated as
+                // "malformed reply" and retried, same as a validator error — never surfaced
+                // as a raw exception the caller (IMindMapUpdater's contract) doesn't expect.
                 lastError = ex.Message;
             }
 

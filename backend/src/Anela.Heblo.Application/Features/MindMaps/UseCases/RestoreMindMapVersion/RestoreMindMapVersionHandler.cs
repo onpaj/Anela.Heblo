@@ -32,6 +32,7 @@ public class RestoreMindMapVersionHandler : IRequestHandler<RestoreMindMapVersio
             return new RestoreMindMapVersionResponse(ErrorCodes.ResourceNotFound);
         }
 
+        // Safe: `version` above was found inside map.Versions, so the collection is non-empty here.
         var nextVersionNumber = map.Versions.Max(v => v.VersionNumber) + 1;
         map.Versions.Add(new MindMapVersion
         {
