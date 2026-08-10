@@ -25,5 +25,30 @@
       "updated_at": null
     }
   },
-  "tasks": []
+  "tasks": [
+    {
+      "name": "verify-dead-code-preconditions",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    },
+    {
+      "name": "remove-dead-transitions-hook-and-plumbing",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    },
+    {
+      "name": "validate-frontend-gates",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    },
+    {
+      "name": "file-dead-export-tooling-followup-issue",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    }
+  ]
 }
