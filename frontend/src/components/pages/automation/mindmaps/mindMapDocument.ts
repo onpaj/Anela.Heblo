@@ -115,8 +115,11 @@ function descendantIds(doc: MindMapDocument, nodeId: string): Set<string> {
   const queue = [nodeId];
   while (queue.length > 0) {
     const current = queue.shift()!;
+    if (result.has(current)) continue; // cycle guard: never re-expand a visited node
     result.add(current);
-    for (const child of childrenByParent.get(current) ?? []) queue.push(child);
+    for (const child of childrenByParent.get(current) ?? []) {
+      if (!result.has(child)) queue.push(child);
+    }
   }
   return result;
 }
@@ -134,7 +137,10 @@ export function visibleNodeIds(doc: MindMapDocument): Set<string> {
   for (const node of doc.nodes) {
     let ancestor = node.parentId ? byId.get(node.parentId) : null;
     let hidden = false;
+    const seen = new Set<string>(); // cycle guard: stop walking once an ancestor repeats
     while (ancestor) {
+      if (seen.has(ancestor.id)) break;
+      seen.add(ancestor.id);
       if (ancestor.collapsed) {
         hidden = true;
         break;

@@ -63,3 +63,48 @@ test("visibleNodeIds hides descendants of collapsed nodes", () => {
   const collapsed = toggleCollapsed(doc(), "a");
   expect(visibleNodeIds(collapsed)).toEqual(new Set(["root", "a"]));
 });
+
+test("toggleCollapsed flips collapsed on and back off", () => {
+  const collapsed = toggleCollapsed(doc(), "a");
+  expect(collapsed.nodes.find((n) => n.id === "a")!.collapsed).toBe(true);
+  const expanded = toggleCollapsed(collapsed, "a");
+  expect(expanded.nodes.find((n) => n.id === "a")!.collapsed).toBe(false);
+});
+
+test("toggleCollapsed returns the document unchanged for an unknown node id", () => {
+  const original = doc();
+  const result = toggleCollapsed(original, "does-not-exist");
+  expect(result).toBe(original);
+});
+
+// Two nodes that are each other's parent. The document validator rejects this
+// server-side, but client code must still degrade gracefully instead of
+// hanging the browser tab if it ever sees one (e.g. a bug elsewhere in the app).
+const cyclicDoc = (): MindMapDocument => ({
+  schemaVersion: 1,
+  rootNodeId: "root",
+  nodes: [
+    { id: "root", parentId: null, title: "Root", notes: null, status: "active", owner: null, lockedBy: null, sourceMeetingIds: [], position: null, collapsed: false },
+    { id: "x", parentId: "y", title: "X", notes: null, status: "active", owner: null, lockedBy: null, sourceMeetingIds: [], position: null, collapsed: false },
+    { id: "y", parentId: "x", title: "Y", notes: null, status: "active", owner: null, lockedBy: null, sourceMeetingIds: [], position: null, collapsed: false },
+  ],
+  suppressedNodes: [],
+});
+
+test(
+  "visibleNodeIds terminates on a document with a parent cycle",
+  () => {
+    const result = visibleNodeIds(cyclicDoc());
+    expect(result).toBeInstanceOf(Set);
+  },
+  2000,
+);
+
+test(
+  "deleteNode terminates on a document with a parent cycle",
+  () => {
+    const result = deleteNode(cyclicDoc(), "x");
+    expect(Array.isArray(result.nodes)).toBe(true);
+  },
+  2000,
+);
