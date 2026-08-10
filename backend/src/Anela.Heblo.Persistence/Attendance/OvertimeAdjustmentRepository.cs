@@ -20,6 +20,13 @@ public class OvertimeAdjustmentRepository : IOvertimeAdjustmentRepository
             .ToListAsync(cancellationToken);
     }
 
+    public async Task<IReadOnlyList<OvertimeAdjustment>> GetAllAsync(CancellationToken cancellationToken = default)
+    {
+        return await _context.OvertimeAdjustments
+            .OrderBy(a => a.Year).ThenBy(a => a.Month).ThenBy(a => a.CreatedAtUtc)
+            .ToListAsync(cancellationToken);
+    }
+
     public async Task<OvertimeAdjustment?> GetByIdAsync(int id, CancellationToken cancellationToken = default)
     {
         return await _context.OvertimeAdjustments.FirstOrDefaultAsync(a => a.Id == id, cancellationToken);
