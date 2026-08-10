@@ -34,6 +34,7 @@ public enum Feature
     Marketing_MarketingCalendar,
     Anela_Meetings,
     Anela_OrgChart,
+    Anela_MindMaps,
     Admin_DataQuality,
     Admin_Administration,
     Admin_FeatureFlags,

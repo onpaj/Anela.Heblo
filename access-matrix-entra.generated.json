@@ -491,6 +491,26 @@
       "value": "anela.org_chart.read"
     },
     {
+      "id": "2ab41278-b08f-5727-9827-440cc743a017",
+      "allowedMemberTypes": [
+        "User"
+      ],
+      "description": "Anela_MindMaps Read",
+      "displayName": "anela.mind_maps.read",
+      "isEnabled": true,
+      "value": "anela.mind_maps.read"
+    },
+    {
+      "id": "dab9d323-6f54-5704-b964-1be77da3c9b1",
+      "allowedMemberTypes": [
+        "User"
+      ],
+      "description": "Anela_MindMaps Write",
+      "displayName": "anela.mind_maps.write",
+      "isEnabled": true,
+      "value": "anela.mind_maps.write"
+    },
+    {
       "id": "1ac66a37-e738-5283-bbd0-7d65d2bbd41e",
       "allowedMemberTypes": [
         "User"
@@ -623,6 +643,8 @@
         "anela.meetings.read",
         "anela.meetings.write",
         "anela.org_chart.read",
+        "anela.mind_maps.read",
+        "anela.mind_maps.write",
         "admin.data_quality.read",
         "admin.data_quality.write",
         "admin.administration.read",
@@ -664,6 +686,7 @@
         "marketing.marketing_calendar.read",
         "anela.meetings.read",
         "anela.org_chart.read",
+        "anela.mind_maps.read",
         "admin.data_quality.read",
         "admin.administration.read",
         "admin.feature_flags.read"
