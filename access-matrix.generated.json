@@ -28,6 +28,7 @@
     { "key": "Marketing_MarketingCalendar", "label": "Marketingový kalendář", "hasWrite": true },
     { "key": "Anela_Meetings", "label": "Schůzky", "hasWrite": true },
     { "key": "Anela_OrgChart", "label": "Organigram" },
+    { "key": "Attendance_Overtime", "label": "Evidence přesčasů", "hasWrite": true },
     { "key": "Admin_DataQuality", "label": "Kvalita dat", "hasWrite": true },
     { "key": "Admin_Administration", "label": "Administrace", "hasWrite": true },
     { "key": "Admin_FeatureFlags", "label": "Feature příznaky", "hasWrite": true }
