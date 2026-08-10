@@ -104,6 +104,12 @@ const Sidebar: React.FC<SidebarProps> = ({
           key: "/automation/meeting-tasks",
         },
         {
+          id: "mind-maps",
+          name: "Myšlenkové mapy",
+          href: "/automation/mind-maps",
+          key: "/automation/mind-maps",
+        },
+        {
           id: "struktura",
           name: "Struktura",
           href: "#",
