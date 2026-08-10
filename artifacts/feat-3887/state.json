@@ -21,16 +21,16 @@
       "updated_at": "2026-08-07T17:36:25.245325Z"
     },
     "developing": {
-      "status": "pending",
-      "updated_at": null
+      "status": "in_progress",
+      "updated_at": "2026-08-10T14:19:28.041428Z"
     }
   },
   "tasks": [
     {
       "name": "add-transport-box-state-rules",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-08-10T14:19:28.336702Z"
     },
     {
       "name": "consume-rule-in-transport-box-repository",
