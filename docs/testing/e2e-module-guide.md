@@ -15,6 +15,7 @@ The E2E test suite is organized into 7 logical modules to enable parallel execut
 | **manufacturing** | 5 | Manufacturing orders & batches | 1-2 min |
 | **core** | 8 | Core features & navigation | 2 min |
 | **marketing** | 4 | Marketing calendar & actions | 2-3 min |
+| **mindmaps** | 1 | Mind map creation, meeting attachment, node editing | 1-2 min |
 
 ## Module Definitions
 
@@ -158,6 +159,22 @@ The E2E test suite is organized into 7 logical modules to enable parallel execut
 - `create-record.spec.ts` - Creating new marketing actions
 - `grid-view.spec.ts` - Marketing actions grid (seznam) view
 - `loading.spec.ts` - Page loading and initial state
+
+### 8. Mindmaps Module (`mindmaps/`)
+
+**Purpose:** Tests for the Mind Maps feature — creating a mind map, attaching a meeting transcript, verifying the staging stub updater's deterministic node generation, and confirming the auto-lock-on-save guard.
+
+**Scope:**
+- Mind map creation
+- Attaching a meeting transcript (via the "Porady" side-panel tab)
+- Stub-generated node appearing once the background update job finishes
+- Renaming a generated node and confirming it becomes locked on save
+- Mind map deletion (test cleanup)
+
+**Owns routes:** `/automation/mind-maps*`
+
+**Test Files:**
+- `mindmap.spec.ts` - Create → attach meeting → stub generates node → rename locks it
 
 ## Module Boundaries & Isolation
 
