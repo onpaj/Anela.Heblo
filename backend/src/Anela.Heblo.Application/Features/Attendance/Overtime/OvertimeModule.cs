@@ -22,6 +22,7 @@ public static class OvertimeModule
         services.AddScoped<IContractHoursProvider, Services.ConfigurationContractHoursProvider>();
         services.AddScoped<Services.OvertimeCalculationService>();
         services.AddScoped<Services.OvertimeExcelBuilder>();
+        services.AddScoped<Services.IOvertimeReportPublisher, Services.GraphOvertimeReportPublisher>();
 
         services.AddScoped<IOvertimeEmployeeRepository, OvertimeEmployeeRepository>();
         services.AddScoped<IOvertimeStatementRepository, OvertimeStatementRepository>();
