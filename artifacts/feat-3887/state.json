@@ -34,9 +34,9 @@
     },
     {
       "name": "consume-rule-in-transport-box-repository",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-08-10T18:32:21.940907Z"
+      "updated_at": "2026-08-10T18:54:54.367510Z"
     },
     {
       "name": "consume-rule-in-open-or-resume-handler",
