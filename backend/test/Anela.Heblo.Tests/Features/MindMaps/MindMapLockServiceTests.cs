@@ -36,6 +36,28 @@ public class MindMapLockServiceTests
     }
 
     [Fact]
+    public void ApplyUserEdit_LocksNode_WhenNotesChanged()
+    {
+        var submitted = MindMapJson.Clone(Current());
+        submitted.Nodes.Single(n => n.Id == "a").Notes = "Nová poznámka";
+
+        var result = _service.ApplyUserEdit(Current(), submitted, UserEmail);
+
+        Assert.Equal(UserEmail, result.Nodes.Single(n => n.Id == "a").LockedBy);
+    }
+
+    [Fact]
+    public void ApplyUserEdit_LocksNode_WhenOwnerChanged()
+    {
+        var submitted = MindMapJson.Clone(Current());
+        submitted.Nodes.Single(n => n.Id == "a").Owner = "novy@anela.cz";
+
+        var result = _service.ApplyUserEdit(Current(), submitted, UserEmail);
+
+        Assert.Equal(UserEmail, result.Nodes.Single(n => n.Id == "a").LockedBy);
+    }
+
+    [Fact]
     public void ApplyUserEdit_DoesNotLock_OnPositionStatusOrCollapseChange()
     {
         var submitted = MindMapJson.Clone(Current());
@@ -119,15 +141,63 @@ public class MindMapLockServiceTests
     }
 
     [Fact]
+    public void ApplyUserEdit_DeduplicatesTombstones_ByTrimmedCaseInsensitiveTitle()
+    {
+        var current = Current();
+        current.Nodes.Single(n => n.Id == "a").Title = "Deleted Node";
+        current.SuppressedNodes.Add(new SuppressedNode { Title = "  deleted node  ", DeletedBy = "jina@anela.cz" });
+        var submitted = MindMapJson.Clone(current);
+        submitted.Nodes.RemoveAll(n => n.Id == "a");
+
+        var result = _service.ApplyUserEdit(current, submitted, UserEmail);
+
+        Assert.Single(result.SuppressedNodes);
+    }
+
+    [Fact]
+    public void ApplyUserEdit_CarriesOverSchemaVersionFromCurrent()
+    {
+        var current = Current();
+        current.SchemaVersion = 2;
+        var submitted = MindMapJson.Clone(current);
+        submitted.SchemaVersion = 99;
+
+        var result = _service.ApplyUserEdit(current, submitted, UserEmail);
+
+        Assert.Equal(2, result.SchemaVersion);
+    }
+
+    [Fact]
+    public void ApplyUserEdit_Throws_WhenUserEmailIsNull()
+    {
+        var current = Current();
+        var submitted = MindMapJson.Clone(current);
+
+        Assert.ThrowsAny<ArgumentException>(() => _service.ApplyUserEdit(current, submitted, null!));
+    }
+
+    [Fact]
+    public void ApplyUserEdit_Throws_WhenUserEmailIsWhitespace()
+    {
+        var current = Current();
+        var submitted = MindMapJson.Clone(current);
+
+        Assert.ThrowsAny<ArgumentException>(() => _service.ApplyUserEdit(current, submitted, "   "));
+    }
+
+    [Fact]
     public void ApplyUserEdit_DoesNotMutateInputs()
     {
         var current = Current();
         var submitted = MindMapJson.Clone(current);
         submitted.Nodes.Single(n => n.Id == "a").Title = "Změna";
 
-        _service.ApplyUserEdit(current, submitted, UserEmail);
+        var result = _service.ApplyUserEdit(current, submitted, UserEmail);
 
         Assert.Equal("Větev A", current.Nodes.Single(n => n.Id == "a").Title);
         Assert.Null(submitted.Nodes.Single(n => n.Id == "a").LockedBy);
+        Assert.NotSame(
+            current.Nodes.Single(n => n.Id == "a").SourceMeetingIds,
+            result.Nodes.Single(n => n.Id == "a").SourceMeetingIds);
     }
 }

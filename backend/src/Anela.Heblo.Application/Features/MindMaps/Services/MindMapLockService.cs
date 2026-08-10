@@ -7,11 +7,18 @@ namespace Anela.Heblo.Application.Features.MindMaps.Services;
 /// the node, deletions become tombstones, and locks/provenance can never be set
 /// or cleared by the client. Assumes the caller already validated the submitted
 /// document and that the root id is unchanged.
+/// Lock and provenance survival are scoped to nodes whose id is stable across the
+/// save: a submitted node bearing an id not present in <c>current</c> is always
+/// treated as newly added (fresh id, fresh lock, empty provenance), even if it is
+/// byte-identical to an existing node under a different id. Diffing is by id only —
+/// there is no title-based adoption of a changed id onto an existing node's history.
 /// </summary>
 public class MindMapLockService
 {
     public MindMapDocument ApplyUserEdit(MindMapDocument current, MindMapDocument submitted, string userEmail)
     {
+        ArgumentException.ThrowIfNullOrWhiteSpace(userEmail);
+
         var result = MindMapJson.Clone(submitted);
         var currentById = current.Nodes.ToDictionary(n => n.Id);
         var submittedIds = new HashSet<string>(result.Nodes.Select(n => n.Id));
@@ -43,14 +50,20 @@ public class MindMapLockService
                 node.ParentId = mapped;
         }
 
-        var tombstones = current.Nodes
-            .Where(n => !submittedIds.Contains(n.Id))
-            .Select(n => new SuppressedNode { Title = n.Title, DeletedBy = userEmail });
-
-        result.SuppressedNodes = current.SuppressedNodes
+        var suppressedNodes = current.SuppressedNodes
             .Select(s => new SuppressedNode { Title = s.Title, DeletedBy = s.DeletedBy })
-            .Concat(tombstones)
             .ToList();
+        var seenTitles = new HashSet<string>(
+            suppressedNodes.Select(s => s.Title.Trim()),
+            StringComparer.OrdinalIgnoreCase);
+
+        foreach (var node in current.Nodes.Where(n => !submittedIds.Contains(n.Id)))
+        {
+            if (seenTitles.Add(node.Title.Trim()))
+                suppressedNodes.Add(new SuppressedNode { Title = node.Title, DeletedBy = userEmail });
+        }
+
+        result.SuppressedNodes = suppressedNodes;
         result.SchemaVersion = current.SchemaVersion;
         return result;
     }
