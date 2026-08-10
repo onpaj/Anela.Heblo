@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getAuthenticatedApiClient, QUERY_KEYS } from '../client';
+import { parseLocalDate } from '../../utils/dateUtils';
 import {
   UpsertOvertimeEmployeeRequest,
   CreateAdjustmentRequest,
@@ -56,7 +57,7 @@ export const useUpsertEmployeeMutation = () =>
       personId: employee.personId,
       displayName: employee.displayName,
       baselineHours: employee.baselineHours,
-      baselineDate: new Date(employee.baselineDate),
+      baselineDate: parseLocalDate(employee.baselineDate),
       isActive: employee.isActive,
     });
     return await client.overtime_UpsertEmployee(request);
