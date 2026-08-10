@@ -96,6 +96,11 @@ jest.mock("@azure/msal-browser", () => ({
     ACQUIRE_TOKEN_FAILURE: "msal:acquireTokenFailure",
     LOGOUT_SUCCESS: "msal:logoutSuccess",
   },
+  InteractionType: {
+    Redirect: "redirect",
+    Popup: "popup",
+    Silent: "silent",
+  },
   BrowserAuthError: class extends Error {
     constructor(message: string) {
       super(message);
