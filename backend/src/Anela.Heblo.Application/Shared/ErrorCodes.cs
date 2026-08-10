@@ -441,6 +441,24 @@ public enum ErrorCodes
     [HttpStatusCode(HttpStatusCode.ServiceUnavailable)]
     LabelOcrServiceUnavailable = 3304,
 
+    // Overtime ledger module errors (34XX)
+    [HttpStatusCode(HttpStatusCode.NotFound)]
+    OvertimeEmployeeNotFound = 3401,
+    [HttpStatusCode(HttpStatusCode.Conflict)]
+    OvertimeMonthAlreadyClosed = 3402,
+    [HttpStatusCode(HttpStatusCode.NotFound)]
+    OvertimeAdjustmentNotFound = 3403,
+    [HttpStatusCode(HttpStatusCode.Conflict)]
+    OvertimeAdjustmentMonthClosed = 3404,
+    [HttpStatusCode(HttpStatusCode.Conflict)]
+    OvertimeMonthNotReviewed = 3405,
+    [HttpStatusCode(HttpStatusCode.BadRequest)]
+    OvertimeContractHoursMissing = 3406,
+    [HttpStatusCode(HttpStatusCode.Conflict)]
+    OvertimePreviousMonthOpen = 3407,
+    [HttpStatusCode(HttpStatusCode.ServiceUnavailable)]
+    OvertimeExportPublishFailed = 3408,
+
     // External Service errors (90XX)
     [HttpStatusCode(HttpStatusCode.ServiceUnavailable)]
     ExternalServiceError = 9001,
