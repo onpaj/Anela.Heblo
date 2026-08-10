@@ -40,10 +40,27 @@ public class RegenerateMindMapHandler : IRequestHandler<RegenerateMindMapRequest
             return new RegenerateMindMapResponse();
         }
 
+        var previousStatus = map.Status;
         map.Status = MindMapStatus.Updating;
+        map.LastError = null;
         map.UpdatedAt = DateTime.UtcNow;
         await _repository.SaveChangesAsync(cancellationToken);
-        _backgroundJobClient.Enqueue<MindMapUpdateJob>(j => j.RunAsync(map.Id, CancellationToken.None));
+
+        try
+        {
+            _backgroundJobClient.Enqueue<MindMapUpdateJob>(j => j.RunAsync(map.Id, CancellationToken.None));
+        }
+        catch (Exception)
+        {
+            // Same compensation as AttachMeetingHandler: without this, a storage blip here
+            // strands the map in Updating with nothing queued, and regenerate itself refuses
+            // to help while Status == Updating.
+            map.Status = previousStatus;
+            map.UpdatedAt = DateTime.UtcNow;
+            await _repository.SaveChangesAsync(cancellationToken);
+            return new RegenerateMindMapResponse(ErrorCodes.InternalServerError);
+        }
+
         return new RegenerateMindMapResponse();
     }
 }

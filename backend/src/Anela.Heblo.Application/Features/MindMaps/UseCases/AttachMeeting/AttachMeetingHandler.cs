@@ -5,6 +5,7 @@ using Anela.Heblo.Domain.Features.MeetingTasks;
 using Anela.Heblo.Domain.Features.MindMaps;
 using Hangfire;
 using MediatR;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
 namespace Anela.Heblo.Application.Features.MindMaps.UseCases.AttachMeeting;
@@ -53,6 +54,7 @@ public class AttachMeetingHandler : IRequestHandler<AttachMeetingRequest, Attach
             return new AttachMeetingResponse(ErrorCodes.MindMapMeetingAlreadyAttached);
         }
 
+        var previousStatus = map.Status;
         map.Meetings.Add(new MindMapMeeting
         {
             Id = Guid.NewGuid(),
@@ -62,9 +64,39 @@ public class AttachMeetingHandler : IRequestHandler<AttachMeetingRequest, Attach
         });
         map.Status = MindMapStatus.Updating;
         map.UpdatedAt = DateTime.UtcNow;
-        await _mapRepository.SaveChangesAsync(cancellationToken);
 
-        _backgroundJobClient.Enqueue<MindMapUpdateJob>(j => j.RunAsync(map.Id, CancellationToken.None));
+        try
+        {
+            await _mapRepository.SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateException ex)
+        {
+            // A concurrent request attached the same meeting first and won the unique
+            // constraint race; the sequential in-memory check above cannot catch that.
+            _logger.LogWarning(ex,
+                "Concurrent attach detected for meeting {MeetingId} on mind map {MindMapId}",
+                meeting.Id, map.Id);
+            return new AttachMeetingResponse(ErrorCodes.MindMapMeetingAlreadyAttached);
+        }
+
+        try
+        {
+            _backgroundJobClient.Enqueue<MindMapUpdateJob>(j => j.RunAsync(map.Id, CancellationToken.None));
+        }
+        catch (Exception ex)
+        {
+            // The attach itself is already persisted; without this compensation a storage
+            // blip here would strand the map in Updating with nothing queued to clear it,
+            // and regenerate refuses to help while Status == Updating.
+            _logger.LogError(ex,
+                "Failed to enqueue update job for mind map {MindMapId} after attaching meeting {MeetingId}; reverting status",
+                map.Id, meeting.Id);
+            map.Status = previousStatus;
+            map.UpdatedAt = DateTime.UtcNow;
+            await _mapRepository.SaveChangesAsync(cancellationToken);
+            return new AttachMeetingResponse(ErrorCodes.InternalServerError);
+        }
+
         _logger.LogInformation(
             "Attached meeting {MeetingId} to mind map {MindMapId} and enqueued update",
             meeting.Id, map.Id);

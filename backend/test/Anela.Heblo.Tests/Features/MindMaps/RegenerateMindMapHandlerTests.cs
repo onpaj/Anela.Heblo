@@ -17,6 +17,17 @@ public class RegenerateMindMapHandlerTests
     private RegenerateMindMapHandler CreateSut() => new(_repository.Object, _backgroundJobClient.Object);
 
     [Fact]
+    public async Task Handle_ReturnsResourceNotFound_WhenMapDoesNotExist()
+    {
+        _repository.Setup(r => r.GetByIdAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((MindMap?)null);
+
+        var response = await CreateSut().Handle(new RegenerateMindMapRequest { Id = Guid.NewGuid() }, CancellationToken.None);
+
+        Assert.Equal(ErrorCodes.ResourceNotFound, response.ErrorCode);
+    }
+
+    [Fact]
     public async Task Handle_ReturnsUpdateInProgress_WhenAlreadyUpdating()
     {
         var map = new MindMap { Id = Guid.NewGuid(), Name = "M", CurrentJson = "{}", Status = MindMapStatus.Updating };
@@ -38,7 +49,11 @@ public class RegenerateMindMapHandlerTests
 
         Assert.True(response.Success);
         Assert.Equal(MindMapStatus.Updating, map.Status);
+        // Regenerating a Failed map must clear the stale error, not just flip the status —
+        // otherwise the UI shows "updating" alongside the old error text until the job clears it.
+        Assert.Null(map.LastError);
         _backgroundJobClient.Verify(c => c.Create(It.IsAny<Job>(), It.IsAny<EnqueuedState>()), Times.Once);
+        _repository.Verify(r => r.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
@@ -54,5 +69,22 @@ public class RegenerateMindMapHandlerTests
         Assert.Equal(MindMapStatus.Idle, map.Status);
         Assert.Null(map.LastError);
         _backgroundJobClient.Verify(c => c.Create(It.IsAny<Job>(), It.IsAny<EnqueuedState>()), Times.Never);
+        _repository.Verify(r => r.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task Handle_RevertsStatusAndReturnsError_WhenEnqueueThrows()
+    {
+        var map = new MindMap { Id = Guid.NewGuid(), Name = "M", CurrentJson = "{}", Status = MindMapStatus.Failed, LastError = "x" };
+        map.Meetings.Add(new MindMapMeeting { MeetingTranscriptId = Guid.NewGuid(), ProcessedAt = null });
+        _repository.Setup(r => r.GetByIdAsync(map.Id, It.IsAny<CancellationToken>())).ReturnsAsync(map);
+        _backgroundJobClient.Setup(c => c.Create(It.IsAny<Job>(), It.IsAny<EnqueuedState>()))
+            .Throws(new InvalidOperationException("storage unavailable"));
+
+        var response = await CreateSut().Handle(new RegenerateMindMapRequest { Id = map.Id }, CancellationToken.None);
+
+        Assert.Equal(ErrorCodes.InternalServerError, response.ErrorCode);
+        Assert.Equal(MindMapStatus.Failed, map.Status);
+        _repository.Verify(r => r.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Exactly(2));
     }
 }
