@@ -133,7 +133,36 @@ public class AttachMeetingHandlerTests
 
         Assert.Equal(ErrorCodes.InternalServerError, response.ErrorCode);
         Assert.Equal(MindMapStatus.Idle, map.Status);
+        // The join row itself is deliberately NOT rolled back: the attach genuinely
+        // succeeded and is already persisted, so the meeting stays attached and pending —
+        // Regenerate is the recovery path once Status is no longer Updating.
+        Assert.Single(map.Meetings, m => m.MeetingTranscriptId == meeting.Id && m.ProcessedAt == null);
         _mapRepository.Verify(r => r.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Exactly(2));
+    }
+
+    [Fact]
+    public async Task Handle_ReturnsInternalServerError_WhenEnqueueAndCompensatingSaveBothFail()
+    {
+        var map = Map();
+        var meeting = Meeting();
+        _mapRepository.Setup(r => r.GetByIdAsync(map.Id, It.IsAny<CancellationToken>())).ReturnsAsync(map);
+        _meetingRepository.Setup(r => r.GetByIdAsync(meeting.Id, It.IsAny<CancellationToken>())).ReturnsAsync(meeting);
+        _accessGuard.Setup(g => g.CanAccess(meeting)).Returns(true);
+        _backgroundJobClient.Setup(c => c.Create(It.IsAny<Job>(), It.IsAny<EnqueuedState>()))
+            .Throws(new InvalidOperationException("storage unavailable"));
+        // First save (persisting the attach) succeeds; the compensating revert save then fails too.
+        _mapRepository.SetupSequence(r => r.SaveChangesAsync(It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask)
+            .ThrowsAsync(new DbUpdateException("revert save also failed"));
+
+        // A double failure must still surface as a structured response, not an unhandled
+        // exception escaping Handle (which would otherwise mask the original enqueue failure
+        // behind a raw 500 and lose it from the response entirely).
+        var response = await CreateSut().Handle(
+            new AttachMeetingRequest { MindMapId = map.Id, MeetingTranscriptId = meeting.Id },
+            CancellationToken.None);
+
+        Assert.Equal(ErrorCodes.InternalServerError, response.ErrorCode);
     }
 
     [Fact]

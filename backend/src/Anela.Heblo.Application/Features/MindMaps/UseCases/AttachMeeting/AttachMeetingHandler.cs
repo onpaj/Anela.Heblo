@@ -88,12 +88,30 @@ public class AttachMeetingHandler : IRequestHandler<AttachMeetingRequest, Attach
             // The attach itself is already persisted; without this compensation a storage
             // blip here would strand the map in Updating with nothing queued to clear it,
             // and regenerate refuses to help while Status == Updating.
+            //
+            // The newly attached MindMapMeeting row is deliberately NOT removed here: the
+            // attach itself genuinely succeeded and is a legitimate, durable fact — the
+            // meeting really is pending. Reverting only Status leaves the map in a
+            // consistent "pending work, no job running" state, and Regenerate is the
+            // recovery path: it scans for ProcessedAt == null regardless of Status, so once
+            // Status is no longer Updating it will pick this meeting up on the next call.
             _logger.LogError(ex,
                 "Failed to enqueue update job for mind map {MindMapId} after attaching meeting {MeetingId}; reverting status",
                 map.Id, meeting.Id);
             map.Status = previousStatus;
             map.UpdatedAt = DateTime.UtcNow;
-            await _mapRepository.SaveChangesAsync(cancellationToken);
+            try
+            {
+                await _mapRepository.SaveChangesAsync(cancellationToken);
+            }
+            catch (Exception saveEx)
+            {
+                // Don't let a failure to persist the revert mask the original enqueue
+                // failure — the caller still gets a structured error either way.
+                _logger.LogError(saveEx,
+                    "Failed to revert mind map {MindMapId} status after enqueue failure during attach",
+                    map.Id);
+            }
             return new AttachMeetingResponse(ErrorCodes.InternalServerError);
         }
 
