@@ -11,6 +11,11 @@ public static class OvertimeModule
         this IServiceCollection services,
         IConfiguration configuration)
     {
+        services.AddOptions<OvertimeOptions>()
+            .Bind(configuration.GetSection(OvertimeOptions.ConfigKey));
+
+        services.AddScoped<IContractHoursProvider, Services.ConfigurationContractHoursProvider>();
+
         services.AddScoped<IOvertimeEmployeeRepository, OvertimeEmployeeRepository>();
         services.AddScoped<IOvertimeStatementRepository, OvertimeStatementRepository>();
         services.AddScoped<IOvertimeAdjustmentRepository, OvertimeAdjustmentRepository>();
