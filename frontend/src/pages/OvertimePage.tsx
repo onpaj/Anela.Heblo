@@ -6,7 +6,7 @@ import {
   useSetReviewedMutation,
   useCloseMonthMutation,
   usePublishReportMutation,
-  downloadReportUrl,
+  downloadOvertimeReport,
   type OvertimeStatementDto,
 } from '../api/hooks/useOvertime';
 import { usePermissionsContext } from '../auth/PermissionsContext';
@@ -17,6 +17,7 @@ import StatementAdjustmentsPanel from '../components/overtime/StatementAdjustmen
 import EmployeeSettingsSection from '../components/overtime/EmployeeSettingsSection';
 import { useScreenView } from '../telemetry/useScreenView';
 import { formatNumber } from '../utils/formatters';
+import { extractErrorMessage } from '../utils/errorHandler';
 
 const WRITE_PERMISSION = 'attendance.overtime.write';
 const MONTH_LABELS = [
@@ -64,9 +65,13 @@ const OvertimePage: React.FC = () => {
       return { year: y, month: next };
     });
 
-  const handleToggleReviewed = (personId: string | undefined, isReviewed: boolean) => {
+  const handleToggleReviewed = async (personId: string | undefined, isReviewed: boolean) => {
     if (!personId) return;
-    setReviewed.mutate({ personId, year, month, isReviewed: !isReviewed });
+    try {
+      await setReviewed.mutateAsync({ personId, year, month, isReviewed: !isReviewed });
+    } catch (err) {
+      showError('Uložení selhalo', extractErrorMessage(err));
+    }
   };
 
   const handleClose = async (force: boolean) => {
@@ -79,7 +84,7 @@ const OvertimePage: React.FC = () => {
         showSuccess('Měsíc uzavřen', `Uzavřeno ${result?.closedCount ?? 0} zaměstnanců.`);
       }
     } catch (err) {
-      showError('Uzavření selhalo', err instanceof Error ? err.message : 'Neznámá chyba');
+      showError('Uzavření selhalo', extractErrorMessage(err));
     }
   };
 
@@ -88,7 +93,15 @@ const OvertimePage: React.FC = () => {
       await publishReport.mutateAsync(undefined);
       showSuccess('Report nahrán', 'Report byl nahrán na SharePoint.');
     } catch (err) {
-      showError('Nahrání selhalo', err instanceof Error ? err.message : 'Neznámá chyba');
+      showError('Nahrání selhalo', extractErrorMessage(err));
+    }
+  };
+
+  const handleDownloadReport = async () => {
+    try {
+      await downloadOvertimeReport();
+    } catch (err) {
+      showError('Stažení selhalo', extractErrorMessage(err));
     }
   };
 
@@ -171,7 +184,7 @@ const OvertimePage: React.FC = () => {
           </div>
           <div className="flex items-center gap-2">
             <button
-              onClick={() => window.open(downloadReportUrl(), '_blank')}
+              onClick={handleDownloadReport}
               className="inline-flex items-center px-4 py-2 bg-white dark:bg-graphite-surface-2 border border-gray-300 dark:border-graphite-border text-gray-700 dark:text-graphite-muted text-sm font-medium rounded-md hover:bg-gray-50 dark:hover:bg-white/5 transition-colors duration-200"
             >
               <Download className="h-4 w-4 mr-2" />

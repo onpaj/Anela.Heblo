@@ -6,6 +6,8 @@ import {
 } from '../../api/hooks/useOvertime';
 import { formatLocalDate, getLocalToday } from '../../utils/dateUtils';
 import { formatNumber } from '../../utils/formatters';
+import { extractErrorMessage } from '../../utils/errorHandler';
+import { useToast } from '../../contexts/ToastContext';
 
 interface EmployeeRowProps {
   employee: OvertimeEmployeeDto;
@@ -45,7 +47,7 @@ const EmployeeRow: React.FC<EmployeeRowProps> = ({ employee, canWrite, isSaving,
           value={baselineHours}
           onChange={(e) => setBaselineHours(e.target.value)}
           disabled={!canWrite}
-          aria-label={`Úvazek ${employee.displayName}`}
+          aria-label={`Výchozí zůstatek ${employee.displayName}`}
           className="border border-gray-300 dark:border-graphite-border rounded px-2 py-1 text-sm w-24 bg-white dark:bg-graphite-surface disabled:opacity-50"
         />
       </td>
@@ -99,18 +101,23 @@ const EmployeeSettingsSection: React.FC<EmployeeSettingsSectionProps> = ({
 }) => {
   const upsertEmployee = useUpsertEmployeeMutation();
   const [selectedPersonId, setSelectedPersonId] = useState('');
+  const { showError } = useToast();
 
-  const handleAddEmployee = () => {
+  const handleAddEmployee = async () => {
     const person = availablePeople.find((p) => p.personId === selectedPersonId);
     if (!person?.personId) return;
-    upsertEmployee.mutate({
-      personId: person.personId,
-      displayName: person.fullName ?? '',
-      baselineHours: 0,
-      baselineDate: formatLocalDate(getLocalToday()),
-      isActive: true,
-    });
-    setSelectedPersonId('');
+    try {
+      await upsertEmployee.mutateAsync({
+        personId: person.personId,
+        displayName: person.fullName ?? '',
+        baselineHours: 0,
+        baselineDate: formatLocalDate(getLocalToday()),
+        isActive: true,
+      });
+      setSelectedPersonId('');
+    } catch (err) {
+      showError('Přidání zaměstnance selhalo', extractErrorMessage(err));
+    }
   };
 
   return (
@@ -119,7 +126,7 @@ const EmployeeSettingsSection: React.FC<EmployeeSettingsSectionProps> = ({
         <thead>
           <tr className="text-left text-xs font-medium text-gray-500 dark:text-graphite-muted uppercase tracking-wider">
             <th className="py-2 pr-4">Zaměstnanec</th>
-            <th className="py-2 pr-4">Úvazek (h/den)</th>
+            <th className="py-2 pr-4">Výchozí zůstatek (h)</th>
             <th className="py-2 pr-4">Datum od</th>
             <th className="py-2 pr-4">Zůstatek</th>
             <th className="py-2 pr-4 text-center">Aktivní</th>
@@ -133,15 +140,19 @@ const EmployeeSettingsSection: React.FC<EmployeeSettingsSectionProps> = ({
               employee={employee}
               canWrite={canWrite}
               isSaving={upsertEmployee.isPending}
-              onSave={(baselineHours, baselineDate, isActive) =>
-                upsertEmployee.mutate({
-                  personId: employee.personId as string,
-                  displayName: employee.displayName ?? '',
-                  baselineHours,
-                  baselineDate,
-                  isActive,
-                })
-              }
+              onSave={async (baselineHours, baselineDate, isActive) => {
+                try {
+                  await upsertEmployee.mutateAsync({
+                    personId: employee.personId as string,
+                    displayName: employee.displayName ?? '',
+                    baselineHours,
+                    baselineDate,
+                    isActive,
+                  });
+                } catch (err) {
+                  showError('Uložení zaměstnance selhalo', extractErrorMessage(err));
+                }
+              }}
             />
           ))}
         </tbody>

@@ -108,11 +108,43 @@ export const usePublishReportMutation = () =>
     return await client.overtime_PublishReport();
   });
 
-/** Absolute URL for the XLSX download (opened via window.open — the generated
- * client can't stream files; absolute per CLAUDE.md, relative would hit port 3001). */
-export const downloadReportUrl = (): string => {
-  const client = getAuthenticatedApiClient() as any;
-  return `${client.baseUrl}/api/overtime/export`;
+interface ApiClientWithInternals {
+  baseUrl: string;
+  http: { fetch(url: RequestInfo, init?: RequestInit): Promise<Response> };
+}
+
+const DEFAULT_EXPORT_FILENAME = 'Evidence-prescasu.xlsx';
+
+/** Pulls the filename the backend sent via Content-Disposition; falls back to the
+ * default export name (kept in sync with OvertimeOptions.ExportFileName) if absent. */
+const extractFilename = (contentDisposition: string | null): string => {
+  if (!contentDisposition) return DEFAULT_EXPORT_FILENAME;
+  const match = /filename\*?=(?:UTF-8'')?"?([^";]+)"?/i.exec(contentDisposition);
+  return match ? decodeURIComponent(match[1]) : DEFAULT_EXPORT_FILENAME;
+};
+
+/** Downloads the XLSX report via an authenticated fetch (a bare `window.open` navigation
+ * can't carry the bearer token and would 401 against the [FeatureAuthorize]-gated endpoint —
+ * see frontend/src/components/baleni/printLabelPdf.ts for the established pattern this follows).
+ * Fetches the file as a blob, then triggers a programmatic download via an object URL. */
+export const downloadOvertimeReport = async (): Promise<void> => {
+  const client = getAuthenticatedApiClient(false) as unknown as ApiClientWithInternals;
+  const url = `${client.baseUrl}/api/overtime/export`;
+  const response = await client.http.fetch(url);
+  if (!response.ok) {
+    throw new Error(`Stažení reportu selhalo (${response.status})`);
+  }
+
+  const blob = await response.blob();
+  const filename = extractFilename(response.headers.get('Content-Disposition'));
+  const blobUrl = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = blobUrl;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(blobUrl);
 };
 
 export type {

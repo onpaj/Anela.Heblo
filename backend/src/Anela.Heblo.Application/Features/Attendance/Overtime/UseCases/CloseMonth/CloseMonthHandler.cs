@@ -67,6 +67,44 @@ public class CloseMonthHandler : IRequestHandler<CloseMonthRequest, CloseMonthRe
         var allEmployees = await _employees.GetAllAsync(cancellationToken);
         var active = allEmployees.Where(e => e.IsActive).ToList();
         var nameByPerson = allEmployees.ToDictionary(e => e.PersonId, e => e.DisplayName);
+
+        // AnyOpenBeforeAsync above only sees months that already have materialized statement
+        // rows. A month nobody ever viewed has no rows at all, so it's invisible to that guard —
+        // closing a later month would silently skip it and corrupt the balance chain. Walk every
+        // month since the earliest active baseline and require each to have been closed.
+        if (active.Count > 0)
+        {
+            var earliestBaseline = active.Min(e => e.BaselineDate);
+            var earliestMonth = (Year: earliestBaseline.Year, Month: earliestBaseline.Month);
+            var targetMonth = (Year: request.Year, Month: request.Month);
+
+            if (IsBeforeMonth(earliestMonth, targetMonth))
+            {
+                var closedMonths = (await _statements.GetClosedMonthsAsync(cancellationToken))
+                    .Select(m => (m.Year, m.Month))
+                    .ToHashSet();
+
+                var cursor = earliestMonth;
+                while (IsBeforeMonth(cursor, targetMonth))
+                {
+                    if (!closedMonths.Contains(cursor))
+                    {
+                        return new CloseMonthResponse
+                        {
+                            Success = false,
+                            ErrorCode = ErrorCodes.OvertimePreviousMonthOpen,
+                            Params = new Dictionary<string, string>
+                            {
+                                { "year", cursor.Year.ToString() },
+                                { "month", cursor.Month.ToString() }
+                            }
+                        };
+                    }
+                    cursor = NextMonth(cursor);
+                }
+            }
+        }
+
         var computations = await _calculation.ComputeMonthAsync(request.Year, request.Month, active, cancellationToken);
 
         var missingContract = computations.Where(c => c.DailyContractHours is null)
@@ -186,4 +224,10 @@ public class CloseMonthHandler : IRequestHandler<CloseMonthRequest, CloseMonthRe
 
         return response;
     }
+
+    private static bool IsBeforeMonth((int Year, int Month) a, (int Year, int Month) b) =>
+        a.Year < b.Year || (a.Year == b.Year && a.Month < b.Month);
+
+    private static (int Year, int Month) NextMonth((int Year, int Month) month) =>
+        month.Month == 12 ? (month.Year + 1, 1) : (month.Year, month.Month + 1);
 }

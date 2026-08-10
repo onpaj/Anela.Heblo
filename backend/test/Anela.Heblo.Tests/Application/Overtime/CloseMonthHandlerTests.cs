@@ -48,6 +48,7 @@ public class CloseMonthHandlerTests
         _statements.Setup(r => r.AnyOpenBeforeAsync(2026, 8, It.IsAny<CancellationToken>())).ReturnsAsync(false);
         _statements.Setup(r => r.GetLatestClosedAsync(Person, It.IsAny<CancellationToken>())).ReturnsAsync((OvertimeMonthlyStatement?)null);
         _statements.Setup(r => r.GetAllClosedAsync(It.IsAny<CancellationToken>())).ReturnsAsync(new List<OvertimeMonthlyStatement>());
+        _statements.Setup(r => r.GetClosedMonthsAsync(It.IsAny<CancellationToken>())).ReturnsAsync(new List<(int Year, int Month)>());
         _adjustments.Setup(r => r.GetByMonthAsync(2026, 8, It.IsAny<CancellationToken>()))
             .ReturnsAsync(new List<OvertimeAdjustment>
             {
@@ -155,6 +156,26 @@ public class CloseMonthHandlerTests
         result.Success.Should().BeTrue();
         result.PublishFailed.Should().BeTrue();
         _monthStatements.Single().Status.Should().Be(OvertimeStatementStatus.Closed);
+    }
+
+    [Fact]
+    public async Task Close_Fails_WhenEarlierBaselineMonthNeverMaterialized()
+    {
+        // Baseline is June, but no statement rows exist at all for June or July — AnyOpenBeforeAsync
+        // can't see them, so only the gap check (walking closed months since the baseline) can catch this.
+        _employees.Setup(r => r.GetAllAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<OvertimeEmployee>
+            {
+                new() { PersonId = Person, DisplayName = "Pepina", BaselineHours = 2.5m, BaselineDate = new DateOnly(2026, 6, 1), IsActive = true }
+            });
+        _statements.Setup(r => r.GetClosedMonthsAsync(It.IsAny<CancellationToken>())).ReturnsAsync(new List<(int Year, int Month)>());
+
+        var result = await CreateSut().Handle(new CloseMonthRequest { Year = 2026, Month = 8 }, CancellationToken.None);
+
+        result.Success.Should().BeFalse();
+        result.ErrorCode.Should().Be(ErrorCodes.OvertimePreviousMonthOpen);
+        result.Params!["year"].Should().Be("2026");
+        result.Params!["month"].Should().Be("6");
     }
 
     [Fact]

@@ -7,6 +7,8 @@ import {
   type OvertimeAdjustmentDto,
 } from '../../api/hooks/useOvertime';
 import { formatNumber } from '../../utils/formatters';
+import { extractErrorMessage } from '../../utils/errorHandler';
+import { useToast } from '../../contexts/ToastContext';
 
 export const ADJUSTMENT_TYPE_LABELS: Record<OvertimeAdjustmentType, string> = {
   [OvertimeAdjustmentType.Payout]: 'Proplacení',
@@ -38,15 +40,28 @@ const StatementAdjustmentsPanel: React.FC<StatementAdjustmentsPanelProps> = ({
   const [type, setType] = useState<OvertimeAdjustmentType>(OvertimeAdjustmentType.Correction);
   const [hours, setHours] = useState('');
   const [note, setNote] = useState('');
+  const { showError } = useToast();
 
   const canEdit = canWrite && !isClosed;
 
   const handleAdd = async () => {
     const hoursValue = parseFloat(hours);
     if (Number.isNaN(hoursValue)) return;
-    await createAdjustment.mutateAsync({ personId, year, month, type, hours: hoursValue, note });
-    setHours('');
-    setNote('');
+    try {
+      await createAdjustment.mutateAsync({ personId, year, month, type, hours: hoursValue, note });
+      setHours('');
+      setNote('');
+    } catch (err) {
+      showError('Přidání korekce selhalo', extractErrorMessage(err));
+    }
+  };
+
+  const handleDelete = async (id: number, label: string) => {
+    try {
+      await deleteAdjustment.mutateAsync(id);
+    } catch (err) {
+      showError(`Smazání korekce (${label}) selhalo`, extractErrorMessage(err));
+    }
   };
 
   return (
@@ -66,7 +81,10 @@ const StatementAdjustmentsPanel: React.FC<StatementAdjustmentsPanelProps> = ({
                 <td className="py-1.5 text-right">
                   {canEdit && (
                     <button
-                      onClick={() => deleteAdjustment.mutate(adj.id as number)}
+                      onClick={() => handleDelete(
+                        adj.id as number,
+                        ADJUSTMENT_TYPE_LABELS[adj.type ?? OvertimeAdjustmentType.Other],
+                      )}
                       aria-label={`Smazat korekci ${ADJUSTMENT_TYPE_LABELS[adj.type ?? OvertimeAdjustmentType.Other]}`}
                       className="text-red-500 hover:text-red-700"
                     >

@@ -42,6 +42,17 @@ public class OvertimeStatementRepository : IOvertimeStatementRepository
                            && (s.Year < year || (s.Year == year && s.Month < month)), cancellationToken);
     }
 
+    public async Task<IReadOnlyList<(int Year, int Month)>> GetClosedMonthsAsync(CancellationToken cancellationToken = default)
+    {
+        var rows = await _context.OvertimeMonthlyStatements
+            .Where(s => s.Status == OvertimeStatementStatus.Closed)
+            .Select(s => new { s.Year, s.Month })
+            .Distinct()
+            .ToListAsync(cancellationToken);
+
+        return rows.Select(r => (r.Year, r.Month)).ToList();
+    }
+
     public async Task AddAsync(OvertimeMonthlyStatement statement, CancellationToken cancellationToken = default)
     {
         _context.OvertimeMonthlyStatements.Add(statement);
