@@ -124,18 +124,27 @@ export const nextRecoveryAttempt = (now: number, minAttempt: number = 1): number
 };
 
 /**
+ * Dedupe guard + shared session cleanup for the start of a recovery redirect. Returns
+ * false (and does nothing) if a redirect is already in flight.
+ * Clears app-level session state only — MSAL's own PKCE state is left intact for the
+ * in-flight auth code exchange.
+ */
+const beginRecoveryRedirect = (): boolean => {
+  if (redirectInFlight) return false;
+  redirectInFlight = true;
+
+  UserStorage.clearUserInfo();
+  clearTokenCache();
+  saveReturnUrl();
+  return true;
+};
+
+/**
  * Recover from a 401 by re-authenticating, escalating across attempts so a dead session
  * cannot spin the app in an infinite redirect loop.
  */
 export const recoverAuth = (instance: IPublicClientApplication): void => {
-  if (redirectInFlight) return;
-  redirectInFlight = true;
-
-  // Clear app-level session state (MSAL's own PKCE state is left intact for the
-  // in-flight auth code exchange).
-  UserStorage.clearUserInfo();
-  clearTokenCache();
-  saveReturnUrl();
+  if (!beginRecoveryRedirect()) return;
 
   const attempt = nextRecoveryAttempt(Date.now());
 
@@ -175,12 +184,7 @@ export const handleMsalAuthEvent = (
     event.error instanceof InteractionRequiredAuthError;
   if (!isRedirectLoginFailure) return;
 
-  if (redirectInFlight) return;
-  redirectInFlight = true;
-
-  UserStorage.clearUserInfo();
-  clearTokenCache();
-  saveReturnUrl();
+  if (!beginRecoveryRedirect()) return;
 
   // The silent rung has already been consumed — this event IS its failure. Never
   // retry prompt:none here (that is the loop), so floor the attempt at the
