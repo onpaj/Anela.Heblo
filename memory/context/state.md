@@ -27,6 +27,12 @@ _Update this file at the end of significant sessions._
 
 - Memory directory (issue #405): adding cross-session knowledge accumulation — this PR
 - Database migrations are manual (not automated in deployment)
+- Branch `feature/meeting-mindmap`: MindMaps feature (project/workstream mind maps + Claude-rewrite
+  Hangfire job with server-side edit guard) complete through Task 15 (final validation gate,
+  2026-08-10). Backend build/format/tests and frontend lint/build/tests all green; zero MindMap
+  test failures. Pending before it's usable end-to-end: apply migration `AddMindMapsTables`
+  manually to staging (`Heblo_TST`), then run `./scripts/run-playwright-tests.sh mindmaps`
+  post-deploy to confirm the nightly E2E scenario.
 
 ## Key Infrastructure Notes
 

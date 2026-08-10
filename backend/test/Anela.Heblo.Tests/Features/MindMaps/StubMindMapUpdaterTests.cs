@@ -17,8 +17,11 @@ public class StubMindMapUpdaterTests
         };
         var meeting = new MeetingTranscript
         {
-            Id = Guid.NewGuid(), PlaudRecordingId = "r", Subject = "Týmová porada",
-            Summary = "s", RawTranscript = "t"
+            Id = Guid.NewGuid(),
+            PlaudRecordingId = "r",
+            Subject = "Týmová porada",
+            Summary = "s",
+            RawTranscript = "t"
         };
 
         var result = await new StubMindMapUpdater().UpdateAsync(current, meeting);

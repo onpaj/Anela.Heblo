@@ -109,7 +109,10 @@ public class ClaudeMindMapUpdaterTests
         var current = Current();
         current.Nodes.Add(new MindMapNode
         {
-            Id = "l1", ParentId = "root", Title = "Zamčený", LockedBy = "ondra@anela.cz",
+            Id = "l1",
+            ParentId = "root",
+            Title = "Zamčený",
+            LockedBy = "ondra@anela.cz",
             Position = new NodePosition { X = 1, Y = 2 }
         });
         current.SuppressedNodes.Add(new SuppressedNode { Title = "Smazaný nápad" });
