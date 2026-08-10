@@ -136,8 +136,10 @@ export function useAttachMeeting() {
           body: JSON.stringify({ meetingTranscriptId: input.meetingTranscriptId }),
         },
       ),
-    onSuccess: (_d, vars) =>
-      qc.invalidateQueries({ queryKey: MIND_MAPS_KEYS.detail(vars.mindMapId) }),
+    onSuccess: (_d, vars) => {
+      qc.invalidateQueries({ queryKey: MIND_MAPS_KEYS.detail(vars.mindMapId) });
+      qc.invalidateQueries({ queryKey: MIND_MAPS_KEYS.list });
+    },
   });
 }
 
@@ -149,8 +151,10 @@ export function useDetachMeeting() {
         `/api/mind-maps/${encodeURIComponent(input.mindMapId)}/meetings/${encodeURIComponent(input.meetingTranscriptId)}`,
         { method: "DELETE", headers: { Accept: "application/json" } },
       ),
-    onSuccess: (_d, vars) =>
-      qc.invalidateQueries({ queryKey: MIND_MAPS_KEYS.detail(vars.mindMapId) }),
+    onSuccess: (_d, vars) => {
+      qc.invalidateQueries({ queryKey: MIND_MAPS_KEYS.detail(vars.mindMapId) });
+      qc.invalidateQueries({ queryKey: MIND_MAPS_KEYS.list });
+    },
   });
 }
 
@@ -162,7 +166,10 @@ export function useRegenerateMindMap() {
         method: "POST",
         headers: { Accept: "application/json" },
       }),
-    onSuccess: (_d, id) => qc.invalidateQueries({ queryKey: MIND_MAPS_KEYS.detail(id) }),
+    onSuccess: (_d, id) => {
+      qc.invalidateQueries({ queryKey: MIND_MAPS_KEYS.detail(id) });
+      qc.invalidateQueries({ queryKey: MIND_MAPS_KEYS.list });
+    },
   });
 }
 
@@ -178,8 +185,10 @@ export function useSaveMindMapDocument() {
           body: JSON.stringify({ documentJson: input.documentJson }),
         },
       ),
-    onSuccess: (_d, vars) =>
-      qc.invalidateQueries({ queryKey: MIND_MAPS_KEYS.detail(vars.mindMapId) }),
+    onSuccess: (_d, vars) => {
+      qc.invalidateQueries({ queryKey: MIND_MAPS_KEYS.detail(vars.mindMapId) });
+      qc.invalidateQueries({ queryKey: MIND_MAPS_KEYS.list });
+    },
   });
 }
 
@@ -191,7 +200,9 @@ export function useRestoreMindMapVersion() {
         `/api/mind-maps/${encodeURIComponent(input.mindMapId)}/versions/${input.versionNumber}/restore`,
         { method: "POST", headers: { Accept: "application/json" } },
       ),
-    onSuccess: (_d, vars) =>
-      qc.invalidateQueries({ queryKey: MIND_MAPS_KEYS.detail(vars.mindMapId) }),
+    onSuccess: (_d, vars) => {
+      qc.invalidateQueries({ queryKey: MIND_MAPS_KEYS.detail(vars.mindMapId) });
+      qc.invalidateQueries({ queryKey: MIND_MAPS_KEYS.list });
+    },
   });
 }

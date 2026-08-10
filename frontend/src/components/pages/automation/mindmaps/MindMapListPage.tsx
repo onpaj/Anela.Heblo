@@ -9,14 +9,17 @@ import {
   useMindMapsList,
 } from "../../../../api/hooks/useMindMaps";
 import { PAGE_CONTAINER_HEIGHT } from "../../../../constants/layout";
+import { useScreenView } from "../../../../telemetry/useScreenView";
 
 const STATUS_BADGE: Record<string, { label: string; className: string }> = {
-  Idle: { label: "Aktuální", className: "bg-emerald-100 text-emerald-800" },
-  Updating: { label: "Aktualizuje se…", className: "bg-amber-100 text-amber-800" },
-  Failed: { label: "Chyba", className: "bg-red-100 text-red-800" },
+  Idle: { label: "Aktuální", className: "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300" },
+  Updating: { label: "Aktualizuje se…", className: "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300" },
+  Failed: { label: "Chyba", className: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300" },
 };
+const DEFAULT_STATUS_BADGE = { className: "bg-gray-100 text-gray-800 dark:bg-graphite-surface-2 dark:text-graphite-muted" };
 
 const MindMapListPage: React.FC = () => {
+  useScreenView("Automation", "MindMaps");
   const navigate = useNavigate();
   const { data, isLoading, error } = useMindMapsList();
   const createMap = useCreateMindMap();
@@ -38,9 +41,7 @@ const MindMapListPage: React.FC = () => {
         name: newName.trim(),
         description: newDescription.trim() || null,
       });
-      setIsCreateOpen(false);
-      setNewName("");
-      setNewDescription("");
+      closeCreateDialog();
       navigate(`/automation/mind-maps/${result.id}`);
     } catch {
       toast.error("Vytvoření mapy se nezdařilo");
@@ -107,7 +108,7 @@ const MindMapListPage: React.FC = () => {
                 </tr>
               )}
               {!isLoading && !error && items.map((map) => {
-                const badge = STATUS_BADGE[map.status] ?? { label: map.status, className: "bg-gray-100 text-gray-800" };
+                const badge = STATUS_BADGE[map.status] ?? { label: map.status, ...DEFAULT_STATUS_BADGE };
                 return (
                   <tr
                     key={map.id}
@@ -159,8 +160,9 @@ const MindMapListPage: React.FC = () => {
             <h2 className="text-lg font-semibold mb-4 dark:text-graphite-text">Nová myšlenková mapa</h2>
 
             <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 dark:text-graphite-muted mb-1">Název</label>
+              <label htmlFor="mindmap-name" className="block text-sm font-medium text-gray-700 dark:text-graphite-muted mb-1">Název</label>
               <input
+                id="mindmap-name"
                 type="text"
                 data-testid="mindmap-name-input"
                 value={newName}
@@ -170,8 +172,9 @@ const MindMapListPage: React.FC = () => {
             </div>
 
             <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 dark:text-graphite-muted mb-1">Popis</label>
+              <label htmlFor="mindmap-description" className="block text-sm font-medium text-gray-700 dark:text-graphite-muted mb-1">Popis</label>
               <textarea
+                id="mindmap-description"
                 value={newDescription}
                 onChange={(e) => setNewDescription(e.target.value)}
                 rows={3}
