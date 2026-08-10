@@ -804,9 +804,9 @@ Guard rules (from the spec):
 2. Locked nodes (`LockedBy != null` in previous): `Title`/`Notes`/`Owner` restored if the LLM changed them; re-inserted (under the nearest surviving previous ancestor, else root) if the LLM deleted them. LLM's `Status` change and new children under locked nodes are allowed.
 3. Nodes the LLM newly created whose title matches a `SuppressedNodes` tombstone (case-insensitive, trimmed) are removed again; their children re-parent to the removed node's parent.
 4. New nodes get server-assigned ids (`Guid.NewGuid().ToString("N")`), children re-pointed, and `meetingId` added to their `SourceMeetingIds`.
-5. UI metadata (`Position`, `Collapsed`, `LockedBy`) is carried over from the previous document by node id; new nodes get `Position = null`, `Collapsed = false`, `LockedBy = null`.
+5. UI metadata (`Position`, `Collapsed`, `LockedBy`) is carried over from the previous document by node id; new nodes get `Position = null`, `Collapsed = false`, `LockedBy = null`. For existing nodes, `SourceMeetingIds` is the union of the previous value and whatever the LLM returned — the model may add provenance but can never drop it. (Mirrors the client-side rule in Task 5: provenance is enforced in code, never trusted to the caller.)
 6. `SuppressedNodes` and `SchemaVersion` always carry over from the previous document verbatim.
-7. Final document must pass `MindMapDocumentValidator` — otherwise throw.
+7. Final document must pass `MindMapDocumentValidator` — otherwise throw. In addition, malformed LLM output that would crash the merge before that gate — duplicate or empty node ids, or a null `Title` — is rejected up front with `MindMapGuardException`. Do NOT run the full validator on `llmResult` before merging: a document that is structurally invalid on arrival can legitimately become valid after the guard (e.g. the LLM deletes a locked node but leaves a child pointing at it, and rule 2 reinserts the parent).
 
 - [ ] **Step 1: Write the failing tests**
 
