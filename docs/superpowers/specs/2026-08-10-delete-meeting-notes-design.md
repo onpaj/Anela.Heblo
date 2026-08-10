@@ -244,3 +244,9 @@ and all touched tests green.
 - **Deletion is final.** No restore path, by design. The tombstone deliberately keeps no content, so
   a mistaken delete of a recording older than `MaxRecordingAgeDays` cannot be recovered even from Plaud.
 - **Planner drift.** Exported tasks outlive their meeting (D2). Accepted and surfaced in the dialog copy.
+- **The meeting title outlives the tombstone elsewhere.** `IngestPlaudRecordingHandler` logs
+  `"Ingested recording {RecordingId} ({Name}) with {TaskCount} tasks"` at Information level, and
+  `{Name}` is the meeting title — it lands in Application Insights and survives there for the
+  telemetry retention period after the meeting is deleted. Full content also survives in PostgreSQL
+  point-in-time-recovery backups until they age out. Deletion removes the meeting from the
+  application, not from every system that ever touched it.

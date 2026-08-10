@@ -22,6 +22,9 @@ it('names the meeting and explains what is deleted', () => {
   render(<ConfirmDeleteMeetingDialog {...baseProps} />);
   expect(screen.getByText(/Schůzka s týmem/)).toBeInTheDocument();
   expect(screen.getByText(/přepis/i)).toBeInTheDocument();
+  expect(screen.getByText(/souhrn/i)).toBeInTheDocument();
+  expect(screen.getByText(/úkolů/i)).toBeInTheDocument();
+  expect(screen.getByText(/oprávnění/i)).toBeInTheDocument();
   expect(screen.getByText(/Planneru/i)).toBeInTheDocument();
 });
 

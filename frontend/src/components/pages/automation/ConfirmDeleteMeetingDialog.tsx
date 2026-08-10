@@ -49,7 +49,7 @@ const ConfirmDeleteMeetingDialog: React.FC<ConfirmDeleteMeetingDialogProps> = ({
           </h3>
 
           <p className="text-sm text-gray-600 dark:text-graphite-muted text-center mb-3">
-            {`Schůzka „${subject}" bude trvale smazána včetně souhrnu, přepisu, navržených úkolů a přístupových oprávnění. Tuto akci nelze vrátit zpět.`}
+            {`Schůzka „${subject}“ bude trvale smazána včetně souhrnu, přepisu, navržených úkolů a přístupových oprávnění. Tuto akci nelze vrátit zpět.`}
           </p>
 
           <p className="text-sm text-gray-500 dark:text-graphite-faint text-center mb-6">
