@@ -418,4 +418,36 @@ public sealed class IngestPlaudRecordingHandlerTests
         saved.Should().NotBeNull();
         saved!.Subject.Should().Be("Generated Meeting Title");
     }
+
+    [Fact]
+    public async Task Handle_WhenRecordingWasDeletedByUser_SkipsWithoutCallingPlaud()
+    {
+        // Arrange
+        const string recordingId = "rec_deleted";
+        var request = new IngestPlaudRecordingRequest
+        {
+            PlaudRecordingId = recordingId,
+            Name = "Private meeting",
+            PlaudCreatedAt = DateTime.UtcNow
+        };
+
+        _mockRepository
+            .Setup(r => r.ExistsByPlaudIdAsync(recordingId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(false);
+        _mockRepository
+            .Setup(r => r.IsPlaudRecordingDeletedAsync(recordingId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+
+        // Act
+        var response = await _handler.Handle(request, CancellationToken.None);
+
+        // Assert
+        response.Skipped.Should().BeTrue();
+        _mockPlaudClient.Verify(
+            c => c.GetFileDetailAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
+        _mockPlaudClient.Verify(
+            c => c.GetTranscriptAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
+        _mockRepository.Verify(
+            r => r.AddAsync(It.IsAny<MeetingTranscript>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
 }

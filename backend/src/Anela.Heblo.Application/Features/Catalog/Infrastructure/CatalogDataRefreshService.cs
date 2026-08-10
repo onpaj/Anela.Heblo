@@ -206,16 +206,34 @@ public sealed class CatalogDataRefreshService
         }
         else
         {
-            // Single product - mutate the existing dictionary entry
+            // Single product: copy-then-set the dictionary so InvalidateSourceData/SetLoadDateInCache
+            // run through the same Set*Data plumbing every other refresh path uses.
             var existingDict = _cacheStore.GetManufactureDifficultySettingsData();
-            existingDict[product] = difficultySettings.ToList();
+            var newDict = new Dictionary<string, List<ManufactureDifficultySetting>>(existingDict)
+            {
+                [product] = difficultySettings.ToList()
+            };
+            _cacheStore.SetManufactureDifficultySettingsData(newDict);
 
-            // Update live aggregate too
+            // Update the live snapshot, if one exists, by swapping in a clone of the touched
+            // product rather than mutating the shared aggregate a concurrent reader may hold.
             var current = _cacheStore.TryGetCurrent();
             var productAggregate = current?.SingleOrDefault(s => s.ProductCode == product);
-            if (productAggregate != null)
+            if (current != null && productAggregate != null)
             {
-                productAggregate.ManufactureDifficultySettings.Assign(difficultySettings, _timeProvider.GetUtcNow().UtcDateTime);
+                var updated = current.Select(p =>
+                {
+                    if (p != productAggregate)
+                    {
+                        return p;
+                    }
+
+                    var clone = p.Clone();
+                    clone.ManufactureDifficultySettings.Assign(difficultySettings, _timeProvider.GetUtcNow().UtcDateTime);
+                    return clone;
+                }).ToList();
+
+                await _cacheStore.ReplaceCacheAtomicallyAsync(updated);
             }
         }
     }
@@ -236,13 +254,18 @@ public sealed class CatalogDataRefreshService
             .ToDictionary(k => k.Key, v => v.ToList());
 
         var catalogData = _cacheStore.GetCatalogData();
-        foreach (var product in catalogData ?? [])
+        var updated = (catalogData ?? []).Select(product =>
         {
-            if (manufactureMap.TryGetValue(product.ProductCode, out var manufactures))
+            if (!manufactureMap.TryGetValue(product.ProductCode, out var manufactures))
             {
-                // Pre-existing behavior: mutates live aggregate in-place. Thread safety relies on the caller ordering.
-                product.ManufactureHistory = manufactures.ToList();
+                return product;
             }
-        }
+
+            var clone = product.Clone();
+            clone.ManufactureHistory = manufactures.ToList();
+            return clone;
+        }).ToList();
+
+        await _cacheStore.ReplaceCacheAtomicallyAsync(updated);
     }
 }

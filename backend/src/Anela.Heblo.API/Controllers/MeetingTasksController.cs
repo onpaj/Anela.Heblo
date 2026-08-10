@@ -1,4 +1,5 @@
 using Anela.Heblo.Application.Features.MeetingTasks.UseCases.AddProposedTask;
+using Anela.Heblo.Application.Features.MeetingTasks.UseCases.DeleteMeetingTranscript;
 using Anela.Heblo.Application.Features.MeetingTasks.UseCases.ExplainSummary;
 using Anela.Heblo.Application.Features.MeetingTasks.UseCases.GetMeetingUsers;
 using Anela.Heblo.Application.Features.MeetingTasks.UseCases.GetTranscriptDetail;
@@ -144,4 +145,11 @@ public sealed class MeetingTasksController : BaseApiController
         Guid transcriptId,
         CancellationToken ct = default)
         => HandleResponse(await _mediator.Send(new ReimportMeetingTranscriptRequest { Id = transcriptId }, ct));
+
+    [HttpDelete("{transcriptId:guid}")]
+    [FeatureAuthorize(Feature.Anela_Meetings, AccessLevel.Write)]
+    public async Task<ActionResult<DeleteMeetingTranscriptResponse>> Delete(
+        Guid transcriptId,
+        CancellationToken ct = default)
+        => HandleResponse(await _mediator.Send(new DeleteMeetingTranscriptRequest { TranscriptId = transcriptId }, ct));
 }

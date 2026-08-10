@@ -1,10 +1,10 @@
 import React, { useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import {
   ArrowLeft, Check, X, Plus, Send, CheckCheck, Clock, CheckCircle, CheckCircle2,
-  ChevronDown, ChevronRight, AlertTriangle, RefreshCw, Download, Undo2,
+  ChevronDown, ChevronRight, AlertTriangle, RefreshCw, Download, Undo2, Trash2,
 } from "lucide-react";
 import {
   MeetingUserDto,
@@ -13,6 +13,7 @@ import {
   TaskFormData,
   TranscriptStatus,
   useAddProposedTask,
+  useDeleteMeeting,
   useExplainMeetingSummary,
   useMeetingTaskDetail,
   useMeetingUsers,
@@ -24,6 +25,7 @@ import {
 } from "../../../api/hooks/useMeetingTasks";
 import { useUnsavedChangesDialog } from "../../../hooks/useUnsavedChangesDialog";
 import MeetingReviewLeaveDialog from "./MeetingReviewLeaveDialog";
+import ConfirmDeleteMeetingDialog from "./ConfirmDeleteMeetingDialog";
 import { usePermissionsContext } from '../../../auth/PermissionsContext';
 import { useAuth } from '../../../auth/useAuth';
 import { useExplainSelection } from './explain/useExplainSelection';
@@ -122,6 +124,10 @@ const MeetingTaskDetailPage: React.FC = () => {
   const [accessModalOpen, setAccessModalOpen] = useState(false);
   const reimport = useReimportMeeting();
   const [reimportError, setReimportError] = useState<string | null>(null);
+  const navigate = useNavigate();
+  const deleteMeeting = useDeleteMeeting();
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
   const { hasPermission } = usePermissionsContext();
   const isMeetingManager = hasPermission('anela.meetings.write');
   const { account } = useAuth();
@@ -152,6 +158,18 @@ const MeetingTaskDetailPage: React.FC = () => {
       await reimport.mutateAsync(id);
     } catch {
       setReimportError("Reimport se nezdařil. Nahrávka pravděpodobně ještě není zpracována na straně Plaud.");
+    }
+  };
+
+  const handleDelete = async () => {
+    setDeleteError(null);
+    try {
+      await deleteMeeting.mutateAsync(id);
+      // Navigate directly rather than through requestNavigation — the review leave
+      // guard must not ask to "mark as reviewed" a meeting that no longer exists.
+      navigate("/automation/meeting-tasks");
+    } catch {
+      setDeleteError("Smazání se nezdařilo. Zkuste to prosím znovu.");
     }
   };
 
@@ -356,6 +374,19 @@ const MeetingTaskDetailPage: React.FC = () => {
               className="px-3 py-1 text-sm rounded-lg border border-gray-300 dark:border-graphite-border hover:bg-gray-50 dark:hover:bg-white/5 dark:text-graphite-muted"
             >
               Spravovat přístup
+            </button>
+          )}
+          {isMeetingManager && (
+            <button
+              type="button"
+              onClick={() => {
+                setDeleteError(null);
+                setDeleteDialogOpen(true);
+              }}
+              className="inline-flex items-center px-3 py-1 text-sm rounded-lg border border-red-300 dark:border-red-800 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20"
+            >
+              <Trash2 className="w-4 h-4 mr-1" aria-hidden="true" />
+              Smazat
             </button>
           )}
         </div>
@@ -713,6 +744,17 @@ const MeetingTaskDetailPage: React.FC = () => {
           onClose={() => setAccessModalOpen(false)}
           transcript={transcript}
           users={users.data ?? []}
+        />
+      )}
+
+      {isMeetingManager && (
+        <ConfirmDeleteMeetingDialog
+          isOpen={deleteDialogOpen}
+          subject={transcript.subject}
+          isDeleting={deleteMeeting.isPending}
+          error={deleteError}
+          onConfirm={handleDelete}
+          onCancel={() => setDeleteDialogOpen(false)}
         />
       )}
 

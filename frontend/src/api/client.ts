@@ -292,9 +292,13 @@ export const getAuthenticatedApiClient = (
 
       // A successful authenticated response means the token was accepted; reset the
       // sessionStorage counter so a future token expiry recovers from the silent path.
+      // Only responses to requests that actually carried an Authorization header count:
+      // [AllowAnonymous] endpoints (e.g. feature flags) return 200 even with a dead
+      // session, and resetting on those pins the recovery ladder at the silent rung —
+      // the exact infinite login loop the ladder exists to break.
       // Uses resetAuthRecoveryCounter (not clearAuthRecoveryState) to avoid resetting
       // redirectInFlight, which must stay true until the page reloads after a redirect.
-      if (response.ok) {
+      if (response.ok && headers["Authorization"]) {
         resetAuthRecoveryCounter();
       }
 
@@ -520,6 +524,7 @@ export const QUERY_KEYS = {
   catalogDocuments: ["catalog-documents"] as const,
   materialContainers: ["materialContainers"] as const,
   suppliers: ["suppliers"] as const,
+  overtime: ["overtime"] as const,
   // Add more query keys as needed
   // users: ['users'] as const,
   // products: ['products'] as const,

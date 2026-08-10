@@ -116,6 +116,27 @@ public class MeetingTranscriptRepository : IMeetingTranscriptRepository
         transcript.Tasks.AddRange(newTasks);
     }
 
+    public async Task DeleteAsync(MeetingTranscript transcript, string deletedByUserEmail, CancellationToken ct = default)
+    {
+        _context.MeetingTranscripts.Remove(transcript);
+
+        await _context.DeletedPlaudRecordings.AddAsync(new DeletedPlaudRecording
+        {
+            Id = Guid.NewGuid(),
+            PlaudRecordingId = transcript.PlaudRecordingId,
+            DeletedAt = DateTime.UtcNow,
+            DeletedByUserEmail = deletedByUserEmail
+        }, ct);
+
+        await _context.SaveChangesAsync(ct);
+    }
+
+    public Task<bool> IsPlaudRecordingDeletedAsync(string plaudRecordingId, CancellationToken ct = default)
+    {
+        return _context.DeletedPlaudRecordings
+            .AnyAsync(x => x.PlaudRecordingId == plaudRecordingId, ct);
+    }
+
     public Task SaveChangesAsync(CancellationToken ct = default)
     {
         return _context.SaveChangesAsync(ct);
