@@ -415,6 +415,26 @@ public class BreakInsertionServiceTests
     }
 
     [Fact]
+    public async Task FallsBackToCenteredBreak_WhenShiftEndsExactlyAtPreferredWindowEnd()
+    {
+        // The preferred window (11:30-12:00) must sit strictly inside the segment, so a shift
+        // ending exactly at 12:00 touches the window's edge and falls back to a break centered
+        // in the segment instead of the preferred window.
+        SetupDefaults(WorkEntry(6, 0, 12, 0));
+
+        var summary = await CreateService().RunAsync(CancellationToken.None);
+
+        summary.BreaksInserted.Should().Be(1);
+        _client.Verify(c => c.CreateTimeEntryAsync(
+            It.Is<LogetoCreateTimeEntryRequest>(r =>
+                r.Date == Day
+                && r.From == "2026-08-03T08:45:00"
+                && r.To == "2026-08-03T09:15:00"),
+            true,
+            It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
     public async Task ProcessesEachDayInTheWindowIndependently_WhenOneRunSpansMultipleDays()
     {
         // 2026-08-02: open record — should be skipped without affecting the other two days.
