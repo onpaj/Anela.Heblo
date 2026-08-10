@@ -15,6 +15,7 @@ namespace Anela.Heblo.Tests.Application.Overtime;
 public class CloseMonthHandlerTests
 {
     private static readonly Guid Person = Guid.Parse("cccccccc-cccc-cccc-cccc-cccccccccccc");
+    private static readonly Guid InactivePerson = Guid.Parse("dddddddd-dddd-dddd-dddd-dddddddddddd");
     private static readonly Guid WorkActivity = Guid.Parse("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa");
 
     private readonly Mock<IOvertimeEmployeeRepository> _employees = new();
@@ -150,5 +151,30 @@ public class CloseMonthHandlerTests
         result.Success.Should().BeTrue();
         result.PublishFailed.Should().BeTrue();
         _monthStatements.Single().Status.Should().Be(OvertimeStatementStatus.Closed);
+    }
+
+    [Fact]
+    public async Task Close_AlsoFreezesOpenStatementsOfInactiveEmployees()
+    {
+        _employees.Setup(r => r.GetAllAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<OvertimeEmployee>
+            {
+                new() { PersonId = Person, DisplayName = "Pepina", BaselineHours = 2.5m, BaselineDate = new DateOnly(2026, 8, 1), IsActive = true },
+                new() { PersonId = InactivePerson, DisplayName = "Karel", BaselineHours = 10m, BaselineDate = new DateOnly(2026, 8, 1), IsActive = false }
+            });
+        _monthStatements.Add(new OvertimeMonthlyStatement
+        {
+            PersonId = InactivePerson, Year = 2026, Month = 8, Status = OvertimeStatementStatus.Open,
+            IsReviewed = false, DeltaHours = -2m
+        });
+        _statements.Setup(r => r.GetLatestClosedAsync(InactivePerson, It.IsAny<CancellationToken>())).ReturnsAsync((OvertimeMonthlyStatement?)null);
+
+        var result = await CreateSut().Handle(new CloseMonthRequest { Year = 2026, Month = 8 }, CancellationToken.None);
+
+        result.Success.Should().BeTrue();
+        result.ClosedCount.Should().Be(2);
+        var inactiveStatement = _monthStatements.Single(s => s.PersonId == InactivePerson);
+        inactiveStatement.Status.Should().Be(OvertimeStatementStatus.Closed);
+        inactiveStatement.BalanceAfter.Should().Be(10m - 2m);
     }
 }

@@ -135,9 +135,35 @@ public class CloseMonthHandler : IRequestHandler<CloseMonthRequest, CloseMonthRe
             statement.ClosedBy = closedBy;
         }
 
+        // Closing a month must close ALL its statements, including ones for employees who
+        // were deactivated after the statement was opened (they have no computation row, so
+        // the loop above never touches them; left Open they'd block every future close via
+        // AnyOpenBeforeAsync with no recovery path).
+        var computedPersonIds = computations.Select(c => c.PersonId).ToHashSet();
+        var employeeByPerson = allEmployees.ToDictionary(e => e.PersonId);
+        var sweptCount = 0;
+        foreach (var statement in monthStatements)
+        {
+            if (computedPersonIds.Contains(statement.PersonId) || statement.Status != OvertimeStatementStatus.Open)
+            {
+                continue;
+            }
+
+            var latestClosed = await _statements.GetLatestClosedAsync(statement.PersonId, cancellationToken);
+            var previousBalance = latestClosed?.BalanceAfter
+                ?? (employeeByPerson.TryGetValue(statement.PersonId, out var employee) ? employee.BaselineHours : 0m);
+            var adjustmentsTotal = monthAdjustments.Where(a => a.PersonId == statement.PersonId).Sum(a => a.Hours);
+
+            statement.BalanceAfter = previousBalance + statement.DeltaHours + adjustmentsTotal;
+            statement.Status = OvertimeStatementStatus.Closed;
+            statement.ClosedAtUtc = now;
+            statement.ClosedBy = closedBy;
+            sweptCount++;
+        }
+
         await _statements.SaveChangesAsync(cancellationToken);
 
-        var response = new CloseMonthResponse { ClosedCount = computations.Count };
+        var response = new CloseMonthResponse { ClosedCount = computations.Count + sweptCount };
 
         if (!_publisher.IsConfigured)
         {
