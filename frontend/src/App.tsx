@@ -62,7 +62,7 @@ import SmartsuppChatsPage from "./components/customer-support/smartsupp/pages/Sm
 import ExpeditionSettingsPage from "./pages/customer/ExpeditionSettingsPage";
 import { setGlobalTokenProvider, setGlobalAuthRedirectHandler, clearTokenCache, TokenResult } from "./api/client";
 import { apiRequest } from "./auth/msalConfig";
-import { recoverAuth } from "./auth/authRecovery";
+import { recoverAuth, handleMsalAuthEvent } from "./auth/authRecovery";
 import { InteractionRequiredAuthError } from "@azure/msal-browser";
 import { isE2ETestMode, getE2EAccessToken } from "./auth/e2eAuth";
 import { ToastProvider } from "./contexts/ToastContext";
@@ -167,6 +167,9 @@ function App() {
             getAppInsights()?.clearAuthenticatedUserContext();
             setUserIdentity(null);
           }
+          // A redirect that bounced back with login_required means the Entra session
+          // is gone — escalate to interactive login instead of looping on prompt:none.
+          handleMsalAuthEvent(instance, event);
         });
 
         // For users already signed in (page reload), set context immediately

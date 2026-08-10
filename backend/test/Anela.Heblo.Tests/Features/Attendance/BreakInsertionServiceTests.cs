@@ -90,8 +90,8 @@ public class BreakInsertionServiceTests
                 r.Person == Worker
                 && r.Activity == BreakActivity
                 && r.Date == Day
-                && r.From == "2026-08-03T11:00:00"
-                && r.To == "2026-08-03T11:30:00"
+                && r.From == "2026-08-03T11:30:00"
+                && r.To == "2026-08-03T12:00:00"
                 && r.Billable == false
                 && r.ExternalKey == $"autobreak-{Worker}-2026-08-03"),
             true,
@@ -387,8 +387,8 @@ public class BreakInsertionServiceTests
         _client.Verify(c => c.CreateTimeEntryAsync(
             It.Is<LogetoCreateTimeEntryRequest>(r =>
                 r.Date == Today
-                && r.From == "2026-08-04T11:00:00"
-                && r.To == "2026-08-04T11:30:00"),
+                && r.From == "2026-08-04T11:30:00"
+                && r.To == "2026-08-04T12:00:00"),
             true,
             It.IsAny<CancellationToken>()), Times.Once);
     }
@@ -396,9 +396,9 @@ public class BreakInsertionServiceTests
     [Fact]
     public async Task InsertsExactlyOneBreak_ForTwelveHourDayWorkedInTwoShifts()
     {
-        // Two 6 h shifts with an hour between them: BuildSegments keeps them separate
+        // Two shifts with a gap between them: BuildSegments keeps them separate
         // (not adjacent), and ComputeBreakSlot returns a single slot regardless.
-        SetupDefaults(WorkEntry(6, 0, 12, 0), WorkEntry(13, 0, 19, 0));
+        SetupDefaults(WorkEntry(6, 0, 12, 15), WorkEntry(13, 0, 19, 0));
 
         var summary = await CreateService().RunAsync(CancellationToken.None);
 
@@ -406,12 +406,32 @@ public class BreakInsertionServiceTests
         _client.Verify(c => c.CreateTimeEntryAsync(
             It.Is<LogetoCreateTimeEntryRequest>(r =>
                 r.Date == Day
-                && r.From == "2026-08-03T11:00:00" // preferred window sits strictly inside the morning shift
-                && r.To == "2026-08-03T11:30:00"),
+                && r.From == "2026-08-03T11:30:00" // preferred window sits strictly inside the morning shift
+                && r.To == "2026-08-03T12:00:00"),
             true,
             It.IsAny<CancellationToken>()), Times.Once);
         _client.Verify(c => c.CreateTimeEntryAsync(
             It.IsAny<LogetoCreateTimeEntryRequest>(), It.IsAny<bool>(), It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task FallsBackToCenteredBreak_WhenShiftEndsExactlyAtPreferredWindowEnd()
+    {
+        // The preferred window (11:30-12:00) must sit strictly inside the segment, so a shift
+        // ending exactly at 12:00 touches the window's edge and falls back to a break centered
+        // in the segment instead of the preferred window.
+        SetupDefaults(WorkEntry(6, 0, 12, 0));
+
+        var summary = await CreateService().RunAsync(CancellationToken.None);
+
+        summary.BreaksInserted.Should().Be(1);
+        _client.Verify(c => c.CreateTimeEntryAsync(
+            It.Is<LogetoCreateTimeEntryRequest>(r =>
+                r.Date == Day
+                && r.From == "2026-08-03T08:45:00"
+                && r.To == "2026-08-03T09:15:00"),
+            true,
+            It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
