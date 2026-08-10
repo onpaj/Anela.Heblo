@@ -40,9 +40,9 @@
     },
     {
       "name": "consume-rule-in-open-or-resume-handler",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-08-10T20:16:04.645735Z"
+      "updated_at": "2026-08-10T20:42:06.496185Z"
     },
     {
       "name": "cover-new-to-opened-code-occupancy",
