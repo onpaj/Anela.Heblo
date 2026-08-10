@@ -28,9 +28,9 @@
   "tasks": [
     {
       "name": "inject-timeprovider-into-catalog-merge-scheduler",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-08-10T13:21:36.494875Z"
+      "updated_at": "2026-08-10T14:09:31.877442Z"
     },
     {
       "name": "convert-merge-scheduler-tests-to-fake-time-provider",
