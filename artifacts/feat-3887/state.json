@@ -46,9 +46,9 @@
     },
     {
       "name": "cover-new-to-opened-code-occupancy",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-08-10T21:15:17.131640Z"
+      "updated_at": "2026-08-10T21:21:27.443321Z"
     },
     {
       "name": "add-code-occupancy-sql-shape-test",
