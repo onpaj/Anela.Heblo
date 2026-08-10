@@ -524,6 +524,7 @@ export const QUERY_KEYS = {
   catalogDocuments: ["catalog-documents"] as const,
   materialContainers: ["materialContainers"] as const,
   suppliers: ["suppliers"] as const,
+  overtime: ["overtime"] as const,
   // Add more query keys as needed
   // users: ['users'] as const,
   // products: ['products'] as const,
