@@ -122,6 +122,70 @@ public class MeetingTranscriptRepositoryTests : IDisposable
         reloaded.Tasks.Should().HaveCount(3);
     }
 
+    [Fact]
+    public async Task DeleteAsync_RemovesTranscriptWithTasksAndAccessGrants()
+    {
+        // Arrange
+        var transcript = BuildTranscript("plaud-delete-1", taskCount: 2);
+        transcript.AccessLevel = MeetingAccessLevel.Restricted;
+        transcript.AccessGrants.Add(new MeetingAccessGrant
+        {
+            Id = Guid.NewGuid(),
+            MeetingTranscriptId = transcript.Id,
+            UserEmail = "alice@anela.cz",
+            UserDisplayName = "Alice",
+            GrantedAt = DateTime.UtcNow,
+            GrantedByUserEmail = "ondra@anela.cz"
+        });
+        _context.MeetingTranscripts.Add(transcript);
+        await _context.SaveChangesAsync();
+
+        // Load through the repository so tasks and grants are tracked (cascade needs them loaded)
+        var loaded = await _repository.GetByIdAsync(transcript.Id);
+
+        // Act
+        await _repository.DeleteAsync(loaded!, "ondra@anela.cz");
+
+        // Assert
+        (await _context.MeetingTranscripts.CountAsync()).Should().Be(0);
+        (await _context.ProposedTasks.CountAsync()).Should().Be(0);
+        (await _context.MeetingAccessGrants.CountAsync()).Should().Be(0);
+    }
+
+    [Fact]
+    public async Task DeleteAsync_WritesTombstoneWithRecordingIdAndUser()
+    {
+        // Arrange
+        var transcript = BuildTranscript("plaud-delete-2", taskCount: 0);
+        _context.MeetingTranscripts.Add(transcript);
+        await _context.SaveChangesAsync();
+        var loaded = await _repository.GetByIdAsync(transcript.Id);
+
+        // Act
+        await _repository.DeleteAsync(loaded!, "ondra@anela.cz");
+
+        // Assert
+        var tombstone = await _context.DeletedPlaudRecordings.SingleAsync();
+        tombstone.PlaudRecordingId.Should().Be("plaud-delete-2");
+        tombstone.DeletedByUserEmail.Should().Be("ondra@anela.cz");
+        tombstone.DeletedAt.Should().BeCloseTo(DateTime.UtcNow, TimeSpan.FromMinutes(1));
+    }
+
+    [Fact]
+    public async Task IsPlaudRecordingDeletedAsync_ReturnsTrueOnlyForTombstonedRecordings()
+    {
+        // Arrange
+        var transcript = BuildTranscript("plaud-delete-3", taskCount: 0);
+        _context.MeetingTranscripts.Add(transcript);
+        await _context.SaveChangesAsync();
+        var loaded = await _repository.GetByIdAsync(transcript.Id);
+        await _repository.DeleteAsync(loaded!, "ondra@anela.cz");
+
+        // Act & Assert
+        (await _repository.IsPlaudRecordingDeletedAsync("plaud-delete-3")).Should().BeTrue();
+        (await _repository.IsPlaudRecordingDeletedAsync("plaud-never-deleted")).Should().BeFalse();
+    }
+
     private static MeetingTranscript BuildTranscript(string plaudId, int taskCount)
     {
         var now = DateTime.UtcNow;
