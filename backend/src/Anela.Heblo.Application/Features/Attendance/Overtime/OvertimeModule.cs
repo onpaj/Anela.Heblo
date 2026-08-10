@@ -1,5 +1,9 @@
+using Anela.Heblo.Application.Common.Behaviors;
+using Anela.Heblo.Application.Features.Attendance.Overtime.UseCases.UpsertOvertimeEmployee;
 using Anela.Heblo.Domain.Features.Attendance.Overtime;
 using Anela.Heblo.Persistence.Attendance;
+using FluentValidation;
+using MediatR;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -20,6 +24,10 @@ public static class OvertimeModule
         services.AddScoped<IOvertimeEmployeeRepository, OvertimeEmployeeRepository>();
         services.AddScoped<IOvertimeStatementRepository, OvertimeStatementRepository>();
         services.AddScoped<IOvertimeAdjustmentRepository, OvertimeAdjustmentRepository>();
+
+        services.AddScoped<IValidator<UpsertOvertimeEmployeeRequest>, UpsertOvertimeEmployeeValidator>();
+        services.AddScoped<IPipelineBehavior<UpsertOvertimeEmployeeRequest, UpsertOvertimeEmployeeResponse>,
+            ValidationBehavior<UpsertOvertimeEmployeeRequest, UpsertOvertimeEmployeeResponse>>();
 
         return services;
     }
