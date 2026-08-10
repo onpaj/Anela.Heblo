@@ -4116,12 +4116,13 @@ The commented render block is a binding spec — implement all of it (the table,
 
 - [ ] **Step 4: Register route and sidebar entry**
 
-In `frontend/src/App.tsx`, next to the meeting-tasks routes add (import both pages at the top near the MeetingTasks imports; `MindMapDetailPage` is created in Task 13 — for this task create it as a stub component that renders `null` so the build passes):
+In `frontend/src/App.tsx`, next to the meeting-tasks routes add (import the page at the top near the MeetingTasks imports). Only the list route is registered in this task — the detail route arrives with the editor page in Task 13, so do NOT create a placeholder detail component:
 
 ```tsx
                         <Route path="/automation/mind-maps" element={guard("/automation/mind-maps", <MindMapListPage />)} />
-                        <Route path="/automation/mind-maps/:id" element={<MindMapDetailPage />} />
 ```
+
+Consequence for this task: `MindMapListPage`'s create flow navigates to `/automation/mind-maps/${result.id}`, which has no route yet — that is expected and resolves in Task 13.
 
 In `frontend/src/components/Layout/Sidebar.tsx`, in the `anela` section's `items` after the `meeting-tasks` entry add:
 
@@ -4537,7 +4538,8 @@ git commit -m "feat: add mind map document utils and react flow conversion"
 - Create: `frontend/src/components/pages/automation/mindmaps/MindMapFlowNode.tsx`
 - Create: `frontend/src/components/pages/automation/mindmaps/MindMapCanvas.tsx`
 - Create: `frontend/src/components/pages/automation/mindmaps/MindMapSidePanel.tsx`
-- Modify (replace the Task 11 stub): `frontend/src/components/pages/automation/mindmaps/MindMapDetailPage.tsx`
+- Create: `frontend/src/components/pages/automation/mindmaps/MindMapDetailPage.tsx`
+- Modify: `frontend/src/App.tsx` (register the detail route)
 
 **Interfaces:**
 - Consumes: Task 11 hooks, Task 12 utils, `useUnsavedChangesDialog` from `frontend/src/hooks/useUnsavedChangesDialog.ts`, `UnsavedChangesDialog` from `frontend/src/components/dialogs/UnsavedChangesDialog.tsx`, `useMeetingTasksList` from `useMeetingTasks.ts` (attach dialog source).
@@ -4777,12 +4779,22 @@ export default MindMapDetailPage;
 
 The commented render spec is binding — implement all listed states, testids and wiring.
 
-- [ ] **Step 5: Build, lint, run FE tests**
+- [ ] **Step 5: Register the detail route**
+
+In `frontend/src/App.tsx`, directly after the mind-maps list route added in Task 11, add (with the matching import next to `MindMapListPage`):
+
+```tsx
+                        <Route path="/automation/mind-maps/:id" element={<MindMapDetailPage />} />
+```
+
+This mirrors the meeting-tasks pair: the list route is menu-guarded, the detail route is not (matching `App.tsx:445`).
+
+- [ ] **Step 6: Build, lint, run FE tests**
 
 Run: `cd frontend && npm run lint && CI=false npm run build && npm test -- --watchAll=false --testPathPattern=mindmaps`
 Expected: green. Manually sanity-check with `npm start` + backend `dotnet run` if desired (map create → attach → canvas renders).
 
-- [ ] **Step 6: Commit**
+- [ ] **Step 7: Commit**
 
 ```bash
 git add frontend/src
