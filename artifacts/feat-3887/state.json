@@ -28,9 +28,9 @@
   "tasks": [
     {
       "name": "add-transport-box-state-rules",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-08-10T14:19:28.336702Z"
+      "updated_at": "2026-08-10T14:34:05.033496Z"
     },
     {
       "name": "consume-rule-in-transport-box-repository",
