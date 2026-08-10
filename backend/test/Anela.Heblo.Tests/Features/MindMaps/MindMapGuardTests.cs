@@ -155,6 +155,83 @@ public class MindMapGuardTests
     }
 
     [Fact]
+    public void ApplyLlmUpdate_CarriesOverSchemaVersion_IgnoringLlmTampering()
+    {
+        var llm = LlmEcho();
+        llm.SchemaVersion = 99;
+
+        var result = _guard.ApplyLlmUpdate(Previous(), llm, MeetingId);
+
+        Assert.Equal(1, result.SchemaVersion);
+    }
+
+    [Fact]
+    public void ApplyLlmUpdate_PreservesExistingProvenance_WhenLlmOmitsSourceMeetingIds()
+    {
+        var previous = Previous();
+        var meeting1 = Guid.NewGuid();
+        previous.Nodes.Single(n => n.Id == "free").SourceMeetingIds = new List<Guid> { meeting1 };
+        var llm = LlmEcho(); // "free" node comes back from the LLM with no SourceMeetingIds at all
+
+        var result = _guard.ApplyLlmUpdate(previous, llm, MeetingId);
+
+        Assert.Contains(meeting1, result.Nodes.Single(n => n.Id == "free").SourceMeetingIds);
+    }
+
+    [Fact]
+    public void ApplyLlmUpdate_UnionsProvenance_WhenLlmAttributesExistingNodeToNewMeeting()
+    {
+        var previous = Previous();
+        var meeting1 = Guid.NewGuid();
+        var meeting2 = Guid.NewGuid();
+        previous.Nodes.Single(n => n.Id == "free").SourceMeetingIds = new List<Guid> { meeting1 };
+        var llm = LlmEcho();
+        llm.Nodes.Single(n => n.Id == "free").SourceMeetingIds = new List<Guid> { meeting2 };
+
+        var result = _guard.ApplyLlmUpdate(previous, llm, MeetingId);
+
+        var freeSourceMeetingIds = result.Nodes.Single(n => n.Id == "free").SourceMeetingIds;
+        Assert.Contains(meeting1, freeSourceMeetingIds);
+        Assert.Contains(meeting2, freeSourceMeetingIds);
+    }
+
+    [Fact]
+    public void ApplyLlmUpdate_Throws_WhenLlmReturnsDuplicateNodeIds()
+    {
+        var llm = LlmEcho();
+        llm.Nodes.Add(new MindMapNode { Id = "free", ParentId = "root", Title = "Duplicitní" });
+
+        Assert.Throws<MindMapGuardException>(() => _guard.ApplyLlmUpdate(Previous(), llm, MeetingId));
+    }
+
+    [Fact]
+    public void ApplyLlmUpdate_Throws_WhenLlmReturnsNodeWithEmptyId()
+    {
+        var llm = LlmEcho();
+        llm.Nodes.Add(new MindMapNode { Id = "   ", ParentId = "root", Title = "Bez id" });
+
+        Assert.Throws<MindMapGuardException>(() => _guard.ApplyLlmUpdate(Previous(), llm, MeetingId));
+    }
+
+    [Fact]
+    public void ApplyLlmUpdate_Throws_WhenLlmReturnsNewNodeWithNullTitle()
+    {
+        var llm = LlmEcho();
+        llm.Nodes.Add(new MindMapNode { Id = "new-1", ParentId = "root", Title = null! });
+
+        Assert.Throws<MindMapGuardException>(() => _guard.ApplyLlmUpdate(Previous(), llm, MeetingId));
+    }
+
+    [Fact]
+    public void ApplyLlmUpdate_Throws_WhenPreviousHasSuppressedNodeWithNullTitle()
+    {
+        var previous = Previous();
+        previous.SuppressedNodes.Add(new SuppressedNode { Title = null!, DeletedBy = "ondra@anela.cz" });
+
+        Assert.Throws<MindMapGuardException>(() => _guard.ApplyLlmUpdate(previous, LlmEcho(), MeetingId));
+    }
+
+    [Fact]
     public void ApplyLlmUpdate_Throws_WhenRootIdChanged()
     {
         var llm = LlmEcho();
@@ -185,5 +262,8 @@ public class MindMapGuardTests
 
         Assert.Equal(3, previous.Nodes.Count);
         Assert.Equal("new-1", llm.Nodes.Single(n => n.Title == "Nový").Id);
+        // Pins by-value copying, not just by-reference passthrough (e.g. MergeUiMetadata
+        // assigning prev.Position directly would let a later write to the result mutate this).
+        Assert.Equal(100, previous.Nodes.Single(n => n.Id == "locked").Position!.X);
     }
 }

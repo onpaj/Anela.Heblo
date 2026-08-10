@@ -14,6 +14,8 @@ public class MindMapGuard
             throw new MindMapGuardException(
                 $"LLM changed the root node id from '{previous.RootNodeId}' to '{llmResult.RootNodeId}'.");
 
+        RejectUnmergeableInput(previous, llmResult);
+
         var result = MindMapJson.Clone(llmResult);
         var prevById = previous.Nodes.ToDictionary(n => n.Id);
 
@@ -32,6 +34,29 @@ public class MindMapGuard
             throw new MindMapGuardException($"Guarded document failed validation: {string.Join(" ", errors)}");
 
         return result;
+    }
+
+    /// <summary>
+    /// Rejects only the malformations that would crash the merge itself (duplicate/empty ids,
+    /// null titles) — deliberately NOT a full <see cref="MindMapDocumentValidator"/> run, since a
+    /// structurally invalid arriving document can legitimately become valid after the guard runs
+    /// (e.g. a deleted locked node's child is repaired by re-inserting the locked parent).
+    /// </summary>
+    private static void RejectUnmergeableInput(MindMapDocument previous, MindMapDocument llmResult)
+    {
+        var seenIds = new HashSet<string>();
+        foreach (var node in llmResult.Nodes)
+        {
+            if (string.IsNullOrWhiteSpace(node.Id))
+                throw new MindMapGuardException("LLM returned a node with an empty id.");
+            if (!seenIds.Add(node.Id))
+                throw new MindMapGuardException($"LLM returned duplicate node id '{node.Id}'.");
+            if (node.Title == null)
+                throw new MindMapGuardException($"LLM returned node '{node.Id}' with a null title.");
+        }
+
+        if (previous.SuppressedNodes.Any(s => s.Title == null))
+            throw new MindMapGuardException("Previous document has a suppressed node with a null title.");
     }
 
     private static void RemoveRecreatedSuppressedNodes(
@@ -132,6 +157,7 @@ public class MindMapGuard
                     : new NodePosition { X = prev.Position.X, Y = prev.Position.Y };
                 node.Collapsed = prev.Collapsed;
                 node.LockedBy = prev.LockedBy;
+                node.SourceMeetingIds = UnionSourceMeetingIds(prev.SourceMeetingIds, node.SourceMeetingIds);
             }
             else
             {
@@ -140,5 +166,20 @@ public class MindMapGuard
                 node.LockedBy = null;
             }
         }
+    }
+
+    /// <summary>
+    /// The LLM may ADD provenance (attributing an existing node to the new meeting) but must never
+    /// be able to drop it — so existing nodes keep the union, previous ids first, no duplicates.
+    /// </summary>
+    private static List<Guid> UnionSourceMeetingIds(List<Guid> previousIds, List<Guid> llmIds)
+    {
+        var merged = new List<Guid>(previousIds);
+        foreach (var id in llmIds)
+        {
+            if (!merged.Contains(id))
+                merged.Add(id);
+        }
+        return merged;
     }
 }
