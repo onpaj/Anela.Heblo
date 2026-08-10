@@ -438,7 +438,7 @@ Expected list: `ILogetoClient.cs`, `LogetoClient.cs`, `BreakInsertionService.cs`
 
 ```bash
 grep -rl --include='*.cs' LogetoCreateTimeEntryRequest backend | grep -v '/obj/' | \
-  xargs sed -i '' 's/LogetoCreateTimeEntryRequest/LogetoTimeEntryRequest/g'
+  xargs sed -i 's/LogetoCreateTimeEntryRequest/LogetoTimeEntryRequest/g'
 ```
 
 - [ ] **Step 3: Widen the read model**
