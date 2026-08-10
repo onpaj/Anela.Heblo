@@ -271,7 +271,14 @@ Until a person's note is updated, their absence days are skipped with a
 
 - Half-day absences. Mixed days are skipped and warned, not apportioned.
 - Backfilling history beyond `LookbackDays`. Widening the window is a config
-  change, not a code change.
+  change, not a code change — but note the gap this creates: a timeless
+  absence that ages past `LookbackDays` before ever being filled (job left
+  disabled, failing, or Logeto unreachable for longer than `LookbackDays`)
+  drops out of the window permanently and is never revisited. The summary
+  counters only report on records inside the current window, so there is no
+  signal distinguishing "nothing to do" from "records aged out unfilled."
+  This is a real risk during rollout if enabling the job slips past
+  `LookbackDays` (7 by default) after merge.
 - Reading úvazek from Logeto automatically. If Systemart ever exposes
   `Úvazky pracovníků` in the public API, only `IntegrationNote`'s callers need to
   change — the rest of the service is unaffected.
