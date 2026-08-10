@@ -26,7 +26,7 @@ public class OvertimeController : BaseApiController
     public OvertimeController(IMediator mediator, IOvertimeReportPublisher publisher)
     {
         _mediator = mediator ?? throw new ArgumentNullException(nameof(mediator));
-        _publisher = publisher;
+        _publisher = publisher ?? throw new ArgumentNullException(nameof(publisher));
     }
 
     [HttpGet("employees")]
