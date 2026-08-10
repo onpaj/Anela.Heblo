@@ -8799,6 +8799,43 @@ export class ApiClient {
         return Promise.resolve<ReimportMeetingTranscriptResponse>(null as any);
     }
 
+    meetingTasks_Delete(transcriptId: string): Promise<DeleteMeetingTranscriptResponse> {
+        let url_ = this.baseUrl + "/api/meeting-tasks/{transcriptId}";
+        if (transcriptId === undefined || transcriptId === null)
+            throw new Error("The parameter 'transcriptId' must be defined.");
+        url_ = url_.replace("{transcriptId}", encodeURIComponent("" + transcriptId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "DELETE",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processMeetingTasks_Delete(_response);
+        });
+    }
+
+    protected processMeetingTasks_Delete(response: Response): Promise<DeleteMeetingTranscriptResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = DeleteMeetingTranscriptResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<DeleteMeetingTranscriptResponse>(null as any);
+    }
+
     orgChart_GetOrganizationStructure(): Promise<OrgChartResponse> {
         let url_ = this.baseUrl + "/api/OrgChart";
         url_ = url_.replace(/[?&]$/, "");
@@ -13662,6 +13699,7 @@ export enum ErrorCodes {
     InvalidSupplier = "InvalidSupplier",
     PurchaseOrderUpdateFailed = "PurchaseOrderUpdateFailed",
     PurchaseOrderLineNotFound = "PurchaseOrderLineNotFound",
+    PurchaseOrderNumberGenerationFailed = "PurchaseOrderNumberGenerationFailed",
     ManufacturingDataNotAvailable = "ManufacturingDataNotAvailable",
     ManufactureAnalysisCalculationFailed = "ManufactureAnalysisCalculationFailed",
     InvalidAnalysisParameters = "InvalidAnalysisParameters",
@@ -33590,6 +33628,33 @@ export class ReimportMeetingTranscriptResponse extends BaseResponse implements I
 }
 
 export interface IReimportMeetingTranscriptResponse extends IBaseResponse {
+}
+
+export class DeleteMeetingTranscriptResponse extends BaseResponse implements IDeleteMeetingTranscriptResponse {
+
+    constructor(data?: IDeleteMeetingTranscriptResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+    }
+
+    static override fromJS(data: any): DeleteMeetingTranscriptResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new DeleteMeetingTranscriptResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IDeleteMeetingTranscriptResponse extends IBaseResponse {
 }
 
 export class OrgChartResponse extends BaseResponse implements IOrgChartResponse {

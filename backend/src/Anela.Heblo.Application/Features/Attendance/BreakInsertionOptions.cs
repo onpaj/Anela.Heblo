@@ -7,6 +7,11 @@ public class BreakInsertionOptions
     /// <summary>First day of the daily walk (fixed start date; idempotent skipping keeps re-runs cheap).</summary>
     public DateOnly StartDate { get; set; } = new(2026, 8, 1);
 
+    /// <summary>Days of history scanned before today. The walk covers
+    /// [max(StartDate, today - LookbackDays), today], so the default spans 8 calendar days.
+    /// Bounds the nightly scan cost while letting transiently-skipped days be retried.</summary>
+    public int LookbackDays { get; set; } = 7;
+
     /// <summary>People whose Note equals this marker (trimmed, case-insensitive) are processed.</summary>
     public string NoteMarker { get; set; } = "integration";
 
@@ -15,7 +20,7 @@ public class BreakInsertionOptions
     public string BreakActivityName { get; set; } = "Přestávka";
 
     /// <summary>Preferred break start, Prague wall clock.</summary>
-    public TimeOnly PreferredWindowStart { get; set; } = new(11, 0);
+    public TimeOnly PreferredWindowStart { get; set; } = new(11, 30);
 
     public int BreakDurationMinutes { get; set; } = 30;
 
