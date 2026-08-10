@@ -15,6 +15,7 @@ public static class OvertimeModule
             .Bind(configuration.GetSection(OvertimeOptions.ConfigKey));
 
         services.AddScoped<IContractHoursProvider, Services.ConfigurationContractHoursProvider>();
+        services.AddScoped<Services.OvertimeCalculationService>();
 
         services.AddScoped<IOvertimeEmployeeRepository, OvertimeEmployeeRepository>();
         services.AddScoped<IOvertimeStatementRepository, OvertimeStatementRepository>();
