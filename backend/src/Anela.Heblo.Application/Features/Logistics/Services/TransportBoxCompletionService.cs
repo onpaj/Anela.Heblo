@@ -10,15 +10,18 @@ public class TransportBoxCompletionService : ITransportBoxCompletionService
     private readonly ILogger<TransportBoxCompletionService> _logger;
     private readonly ITransportBoxRepository _transportBoxRepository;
     private readonly ILogisticsStockOperationQueryService _stockOperationQueryService;
+    private readonly TimeProvider _timeProvider;
 
     public TransportBoxCompletionService(
         ILogger<TransportBoxCompletionService> logger,
         ITransportBoxRepository transportBoxRepository,
-        ILogisticsStockOperationQueryService stockOperationQueryService)
+        ILogisticsStockOperationQueryService stockOperationQueryService,
+        TimeProvider timeProvider)
     {
         _logger = logger;
         _transportBoxRepository = transportBoxRepository;
         _stockOperationQueryService = stockOperationQueryService;
+        _timeProvider = timeProvider;
     }
 
     public async Task CompleteReceivedBoxesAsync(CancellationToken cancellationToken = default)

@@ -4,6 +4,7 @@ using Anela.Heblo.Application.Features.Logistics.Services;
 using Anela.Heblo.Domain.Features.Logistics.Transport;
 using FluentAssertions;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Time.Testing;
 using Moq;
 using Xunit;
 
@@ -11,9 +12,12 @@ namespace Anela.Heblo.Tests.Features.Logistics.Services;
 
 public class TransportBoxCompletionServiceTests
 {
+    private static readonly DateTimeOffset FrozenNow = new(2026, 1, 15, 12, 0, 0, TimeSpan.Zero);
+
     private readonly Mock<ILogger<TransportBoxCompletionService>> _loggerMock;
     private readonly Mock<ITransportBoxRepository> _transportBoxRepositoryMock;
     private readonly Mock<ILogisticsStockOperationQueryService> _stockOperationQueryServiceMock;
+    private readonly FakeTimeProvider _timeProvider;
     private readonly TransportBoxCompletionService _service;
 
     public TransportBoxCompletionServiceTests()
@@ -21,10 +25,12 @@ public class TransportBoxCompletionServiceTests
         _loggerMock = new Mock<ILogger<TransportBoxCompletionService>>();
         _transportBoxRepositoryMock = new Mock<ITransportBoxRepository>();
         _stockOperationQueryServiceMock = new Mock<ILogisticsStockOperationQueryService>();
+        _timeProvider = new FakeTimeProvider(FrozenNow);
         _service = new TransportBoxCompletionService(
             _loggerMock.Object,
             _transportBoxRepositoryMock.Object,
-            _stockOperationQueryServiceMock.Object);
+            _stockOperationQueryServiceMock.Object,
+            _timeProvider);
     }
 
     [Fact]
