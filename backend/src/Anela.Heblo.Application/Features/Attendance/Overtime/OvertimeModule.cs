@@ -1,8 +1,8 @@
 using Anela.Heblo.Application.Common.Behaviors;
 using Anela.Heblo.Application.Features.Attendance.Overtime.UseCases.CreateAdjustment;
 using Anela.Heblo.Application.Features.Attendance.Overtime.UseCases.UpsertOvertimeEmployee;
+using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Domain.Features.Attendance.Overtime;
-using Anela.Heblo.Domain.Shared;
 using Anela.Heblo.Persistence.Attendance;
 using FluentValidation;
 using MediatR;
