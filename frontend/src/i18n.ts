@@ -329,6 +329,11 @@ const resources = {
         LabelTextUnreadable: "Na fotce nejsou čitelné ingredience — jděte blíž a držte telefon v klidu.",
         LabelOcrServiceUnavailable: "Služba rozpoznávání není dostupná, zkuste to znovu.",
 
+        // Mind Maps module errors (34XX)
+        MindMapUpdateInProgress: "Mapa se právě aktualizuje, zkuste to za chvíli",
+        MindMapMeetingAlreadyAttached: "Tato porada je už k mapě připojena",
+        MindMapInvalidDocument: "Neplatný dokument myšlenkové mapy",
+
         // External Service errors
         ExternalServiceError: "Chyba externí služby",
         FlexiApiError: "Chyba ABRA Flexi API",

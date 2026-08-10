@@ -441,6 +441,14 @@ public enum ErrorCodes
     [HttpStatusCode(HttpStatusCode.ServiceUnavailable)]
     LabelOcrServiceUnavailable = 3304,
 
+    // Mind Maps module errors (34XX)
+    [HttpStatusCode(HttpStatusCode.Conflict)]
+    MindMapUpdateInProgress = 3401,
+    [HttpStatusCode(HttpStatusCode.BadRequest)]
+    MindMapMeetingAlreadyAttached = 3402,
+    [HttpStatusCode(HttpStatusCode.BadRequest)]
+    MindMapInvalidDocument = 3403,
+
     // External Service errors (90XX)
     [HttpStatusCode(HttpStatusCode.ServiceUnavailable)]
     ExternalServiceError = 9001,
