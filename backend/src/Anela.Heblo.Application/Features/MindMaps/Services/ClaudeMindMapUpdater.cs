@@ -1,6 +1,7 @@
 using System.Reflection;
 using System.Text.Encodings.Web;
 using System.Text.Json;
+using System.Text.Unicode;
 using Anela.Heblo.Application.Features.MindMaps.Model;
 using Anela.Heblo.Domain.Features.MeetingTasks;
 using Microsoft.Extensions.AI;
@@ -17,11 +18,13 @@ public class ClaudeMindMapUpdater : IMindMapUpdater
 
     private static readonly Lazy<string> SystemPrompt = new(LoadSystemPrompt);
 
-    // The map JSON is sent as plain prompt text to Claude, not embedded in HTML/JS —
-    // relaxed escaping keeps Czech diacritics readable instead of \uXXXX-encoded.
+    // The map JSON is sent as plain prompt text to Claude. The default encoder escapes
+    // all non-ASCII characters (Czech diacritics become \uXXXX); allowing the full
+    // Unicode range keeps them readable while still escaping HTML/JS-sensitive
+    // characters such as angle brackets and ampersands — unlike UnsafeRelaxedJsonEscaping.
     private static readonly JsonSerializerOptions UserMessageJsonOptions = new()
     {
-        Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping
+        Encoder = JavaScriptEncoder.Create(UnicodeRanges.All)
     };
 
     private readonly IChatClient _chatClient;
@@ -61,8 +64,13 @@ public class ClaudeMindMapUpdater : IMindMapUpdater
                 if (errors.Count == 0) return doc;
                 lastError = string.Join(" ", errors);
             }
-            catch (JsonException ex)
+            catch (Exception ex) when (ex is not OperationCanceledException)
             {
+                // Deserialization can succeed with a structurally-valid-but-null payload
+                // (e.g. {"nodes":null} — nullable annotations aren't runtime-enforced), which
+                // then throws inside the validator. Any such failure is treated as "malformed
+                // reply" and retried, same as a JsonException — never surfaced as a raw
+                // exception the caller (IMindMapUpdater's contract) doesn't expect.
                 lastError = ex.Message;
             }
 

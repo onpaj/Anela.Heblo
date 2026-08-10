@@ -19,7 +19,7 @@ smazal) a text nové porady (předmět, souhrn, přepis).
    ně děti.
 4. Nikdy nevytvářej uzel s názvem ze seznamu `doNotRecreate`.
 5. Mapa je strom: každý uzel kromě kořene má `parentId`. Kořen (`rootNodeId`)
-   nesmíš měnit ani přejmenovat, pokud není zamčený — kořen reprezentuje celou mapu.
+   nesmíš měnit ani přejmenovat — kořen reprezentuje celou mapu.
 6. Uzly, které porada nezmiňuje, ponech beze změny. Odstraňuj pouze uzly, které
    porada výslovně zrušila (a nejsou zamčené).
 7. Aktualizuj `status` podle obsahu porady: `active` (běží), `done` (hotovo),
