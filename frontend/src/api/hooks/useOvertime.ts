@@ -36,8 +36,8 @@ export const useMonthlyStatementsQuery = (year: number, month: number) =>
     },
   });
 
-const useInvalidatingMutation = <TVariables,>(
-  mutationFn: (variables: TVariables) => Promise<unknown>,
+const useInvalidatingMutation = <TVariables, TResult>(
+  mutationFn: (variables: TVariables) => Promise<TResult>,
 ) => {
   const queryClient = useQueryClient();
   return useMutation({

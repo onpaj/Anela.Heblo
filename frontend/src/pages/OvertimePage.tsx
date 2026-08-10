@@ -77,7 +77,7 @@ const OvertimePage: React.FC = () => {
   const handleClose = async (force: boolean) => {
     setCloseDialogOpen(false);
     try {
-      const result: any = await closeMonth.mutateAsync({ year, month, force });
+      const result = await closeMonth.mutateAsync({ year, month, force });
       if (result?.publishFailed) {
         showError('Měsíc uzavřen', 'Nahrání reportu na SharePoint ale selhalo.');
       } else {
