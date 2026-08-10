@@ -21,16 +21,16 @@
       "updated_at": "2026-08-07T16:30:53.346311Z"
     },
     "developing": {
-      "status": "pending",
-      "updated_at": null
+      "status": "in_progress",
+      "updated_at": "2026-08-10T13:21:36.281306Z"
     }
   },
   "tasks": [
     {
       "name": "inject-timeprovider-into-catalog-merge-scheduler",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-08-10T13:21:36.494875Z"
     },
     {
       "name": "convert-merge-scheduler-tests-to-fake-time-provider",

@@ -35,7 +35,8 @@ public sealed class CatalogMergeSchedulerTests
         var sut = new CatalogMergeScheduler(
             logger.Object,
             Options.Create(options),
-            lifetime ?? new FakeApplicationLifetime());
+            lifetime ?? new FakeApplicationLifetime(),
+            TimeProvider.System);
         return (sut, logger);
     }
 
