@@ -1,4 +1,10 @@
-import { IPublicClientApplication } from "@azure/msal-browser";
+import {
+  EventMessage,
+  EventType,
+  InteractionRequiredAuthError,
+  InteractionType,
+  IPublicClientApplication,
+} from "@azure/msal-browser";
 import { apiRequest, loginRedirectRequest } from "./msalConfig";
 import { UserStorage } from "./userStorage";
 import { clearTokenCache } from "../api/client";
@@ -109,10 +115,10 @@ const saveReturnUrl = (): void => {
  * Determine which recovery step this 401 should trigger, advancing (and persisting)
  * the attempt counter. Exported for unit testing.
  */
-export const nextRecoveryAttempt = (now: number): number => {
+export const nextRecoveryAttempt = (now: number, minAttempt: number = 1): number => {
   const prev = readState();
   const isRecent = prev !== null && now - prev.ts < STALE_ATTEMPT_MS;
-  const attempt = isRecent ? prev!.count + 1 : 1;
+  const attempt = Math.max(isRecent ? prev!.count + 1 : 1, minAttempt);
   writeState({ count: attempt, ts: now });
   return attempt;
 };
@@ -149,6 +155,47 @@ export const recoverAuth = (instance: IPublicClientApplication): void => {
     return;
   }
 
+  escalateLogout(instance);
+};
+
+/**
+ * React to MSAL redirect results: when our own `prompt: "none"` redirect bounces back
+ * with `login_required` (an InteractionRequiredAuthError on a redirect-type
+ * LOGIN_FAILURE), escalate straight to interactive login instead of waiting for the
+ * next 401 lap. This breaks the silent-redirect loop at Entra's own answer,
+ * independent of the attempt counter's state.
+ */
+export const handleMsalAuthEvent = (
+  instance: IPublicClientApplication,
+  event: EventMessage,
+): void => {
+  const isRedirectLoginFailure =
+    event.eventType === EventType.LOGIN_FAILURE &&
+    event.interactionType === InteractionType.Redirect &&
+    event.error instanceof InteractionRequiredAuthError;
+  if (!isRedirectLoginFailure) return;
+
+  if (redirectInFlight) return;
+  redirectInFlight = true;
+
+  UserStorage.clearUserInfo();
+  clearTokenCache();
+  saveReturnUrl();
+
+  // The silent rung has already been consumed — this event IS its failure. Never
+  // retry prompt:none here (that is the loop), so floor the attempt at the
+  // interactive rung even if the counter was wiped.
+  const attempt = nextRecoveryAttempt(Date.now(), MAX_INTERACTIVE_ATTEMPT);
+
+  if (attempt <= MAX_INTERACTIVE_ATTEMPT) {
+    escalateInteractive(instance);
+    return;
+  }
+
+  escalateLogout(instance);
+};
+
+const escalateLogout = (instance: IPublicClientApplication): void => {
   // Attempts exhausted: the stale MSAL session can't be recovered silently or via
   // re-consent. Fully clear it — this is the automated equivalent of a manual logout,
   // which is the only thing known to break the loop.
