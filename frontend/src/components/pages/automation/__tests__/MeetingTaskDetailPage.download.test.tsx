@@ -14,6 +14,7 @@ import {
   useMeetingUsers,
   useReimportMeeting,
   useExplainMeetingSummary,
+  useDeleteMeeting,
 } from '../../../../api/hooks/useMeetingTasks';
 import { useExplainSelection } from '../explain/useExplainSelection';
 import MeetingTaskDetailPage from '../MeetingTaskDetailPage';
@@ -96,6 +97,7 @@ function setupHooks(transcriptOverrides: Parameters<typeof buildTranscript>[0] =
   (useMeetingUsers as jest.Mock).mockReturnValue({ data: [] });
   (useReimportMeeting as jest.Mock).mockReturnValue(noopMutation);
   (useExplainMeetingSummary as jest.Mock).mockReturnValue(noopMutation);
+  (useDeleteMeeting as jest.Mock).mockReturnValue(noopMutation);
   (useExplainSelection as jest.Mock).mockReturnValue({ selectedText: null, clearSelection: jest.fn() });
 }
 

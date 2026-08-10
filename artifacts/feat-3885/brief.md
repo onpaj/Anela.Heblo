@@ -1,0 +1,19 @@
+## Summary
+`CatalogCacheStore` exists to give readers one guarantee: they only ever see a fully-merged `CatalogAggregate` snapshot, delivered through `ReplaceCacheAtomicallyAsync`'s current→stale swap (`CatalogCacheStore.cs:108-129`). Issue #3827 fixed exactly one violation of that guarantee — `CatalogMergeService.Merge()` now clones before mutating (`CatalogMergeService.cs:82`, `.Select(p => p.Clone()).ToList()`). Two sibling methods in the same file were not touched by that fix and still mutate the live cached objects directly.
+
+## Evidence
+- `RefreshManufactureDifficultySettingsData(string? product, ...)`, `backend/src/Anela.Heblo.Application/Features/Catalog/Infrastructure/CatalogDataRefreshService.cs:197-221`, single-product branch (lines 208-219):
+  - `var existingDict = _cacheStore.GetManufactureDifficultySettingsData();` — this returns the **live** cached dictionary reference (`CatalogCacheStore.cs:337-339` is a plain `IMemoryCache.Get`, not a copy).
+  - `existingDict[product] = difficultySettings.ToList();` (line 211) mutates it in place, bypassing the `SetManufactureDifficultySettingsData` setter entirely — so `InvalidateSourceData`/`SetLoadDateInCache` (`CatalogCacheStore.cs:160-346`, called by every other `Set*Data` method) never run for this path.
+  - `var current = _cacheStore.TryGetCurrent();` then `productAggregate.ManufactureDifficultySettings.Assign(difficultySettings, ...)` (lines 214-218) mutates the **live "Current"** aggregate that every concurrent reader holds a reference to. `Assign` reassigns two fields on the shared object (`backend/src/Anela.Heblo.Domain/Features/Catalog/ManufactureDifficultyConfiguration.cs:19-23`).
+  - This is reachable in production: called with a non-null `product` from `CreateManufactureDifficultyHandler.cs:64`, `UpdateManufactureDifficultyHandler.cs:84`, `DeleteManufactureDifficultyHandler.cs:42` (part #17).
+- `RefreshManufactureCostData`, `CatalogDataRefreshService.cs:231-247`: same shape — reads the live cache via `_cacheStore.GetCatalogData()` and writes `product.ManufactureHistory = manufactures.ToList();` (line 244) directly onto each shared aggregate. The method's own comment names the problem: *"Pre-existing behavior: mutates live aggregate in-place. Thread safety relies on the caller ordering."* Currently dead code — not called anywhere in `backend/src`, and not among the tasks `CatalogModule.cs` registers via `RegisterRefreshTask<...>` (lines 162-282) — so it is harmless only because nothing invokes it yet.
+
+## Rule / intent violated
+The atomic-swap + stale-fallback isolation `CatalogCacheStore` implements, and the fix already applied to `CatalogMergeService.Merge()` for the identical problem (#3827).
+
+## Why it matters (concrete)
+This is the highest fan-in part in the app (consumed by #2–#6, #13–#19, #32). A `GetCatalogDetail`/margin read landing between the dictionary write and the `Assign()` call — or simply reading the aggregate right after this method runs, before the rest of that product's data has gone through a coherent merge — observes a manufacture-difficulty value that was never part of a merged snapshot. Separately, because this path skips `SetLoadDateInCache`, `CatalogRepository.ChangesPendingForMerge` (`CatalogRepository.cs:169-188`, which compares source load dates against `LastMergeDateTime`) never learns that manufacture-difficulty data changed for a single-product edit, so a background merge won't pick it up as pending. And `RefreshManufactureCostData` is a loaded gun: reviving it (or copying its shape into a new refresh task) silently reproduces #3827 in a part of the codebase that already paid to fix it once.
+
+## Suggested direction (not a prescription)
+Route both methods through the same clone-before-mutate discipline `Merge()` now uses, and through the `Set*Data`/`ReplaceCacheAtomicallyAsync` plumbing instead of direct dictionary/aggregate writes.

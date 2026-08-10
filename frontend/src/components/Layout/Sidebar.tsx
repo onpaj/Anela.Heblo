@@ -353,6 +353,12 @@ const Sidebar: React.FC<SidebarProps> = ({
           key: "/recurring-jobs",
         },
         {
+          id: "overtime",
+          name: "Evidence přesčasů",
+          href: "/overtime",
+          key: "/overtime",
+        },
+        {
           id: "hangfire",
           name: "Hangfire",
           href: "#",

@@ -54,6 +54,8 @@ public static class AccessRoles
     public const string AnelaMeetingsRead = "anela.meetings.read";
     public const string AnelaMeetingsWrite = "anela.meetings.write";
     public const string AnelaOrgChartRead = "anela.org_chart.read";
+    public const string AttendanceOvertimeRead = "attendance.overtime.read";
+    public const string AttendanceOvertimeWrite = "attendance.overtime.write";
     public const string AdminDataQualityRead = "admin.data_quality.read";
     public const string AdminDataQualityWrite = "admin.data_quality.write";
     public const string AdminAdministrationRead = "admin.administration.read";
@@ -113,6 +115,8 @@ public static class AccessRoles
         (Feature.Anela_Meetings, AccessLevel.Read) => AnelaMeetingsRead,
         (Feature.Anela_Meetings, AccessLevel.Write) => AnelaMeetingsWrite,
         (Feature.Anela_OrgChart, AccessLevel.Read) => AnelaOrgChartRead,
+        (Feature.Attendance_Overtime, AccessLevel.Read) => AttendanceOvertimeRead,
+        (Feature.Attendance_Overtime, AccessLevel.Write) => AttendanceOvertimeWrite,
         (Feature.Admin_DataQuality, AccessLevel.Read) => AdminDataQualityRead,
         (Feature.Admin_DataQuality, AccessLevel.Write) => AdminDataQualityWrite,
         (Feature.Admin_Administration, AccessLevel.Read) => AdminAdministrationRead,

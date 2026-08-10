@@ -33,5 +33,14 @@ public interface IMeetingTranscriptRepository
         IReadOnlyList<ProposedTask> newTasks,
         CancellationToken ct = default);
 
+    /// <summary>
+    /// Permanently removes the transcript together with its proposed tasks and access
+    /// grants (cascade), and records a <see cref="DeletedPlaudRecording"/> tombstone so
+    /// the Plaud polling job does not re-ingest the recording. Saves in one transaction.
+    /// </summary>
+    Task DeleteAsync(MeetingTranscript transcript, string deletedByUserEmail, CancellationToken ct = default);
+
+    Task<bool> IsPlaudRecordingDeletedAsync(string plaudRecordingId, CancellationToken ct = default);
+
     Task SaveChangesAsync(CancellationToken ct = default);
 }
