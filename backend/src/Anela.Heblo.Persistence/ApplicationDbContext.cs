@@ -129,6 +129,7 @@ public class ApplicationDbContext : DbContext
     public DbSet<MeetingTranscript> MeetingTranscripts { get; set; } = null!;
     public DbSet<ProposedTask> ProposedTasks { get; set; } = null!;
     public DbSet<MeetingAccessGrant> MeetingAccessGrants { get; set; } = null!;
+    public DbSet<DeletedPlaudRecording> DeletedPlaudRecordings { get; set; } = null!;
 
     // Data Quality module
     public DbSet<DqtRun> DqtRuns { get; set; } = null!;

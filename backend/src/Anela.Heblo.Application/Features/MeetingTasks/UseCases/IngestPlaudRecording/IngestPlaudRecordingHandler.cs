@@ -39,6 +39,14 @@ public sealed class IngestPlaudRecordingHandler : IRequestHandler<IngestPlaudRec
             return new IngestPlaudRecordingResponse { Skipped = true };
         }
 
+        // Recording was deliberately deleted by a user — never bring it back
+        if (await _repository.IsPlaudRecordingDeletedAsync(request.PlaudRecordingId, cancellationToken))
+        {
+            _logger.LogInformation(
+                "Recording {RecordingId} was deleted by a user, not re-ingesting", request.PlaudRecordingId);
+            return new IngestPlaudRecordingResponse { Skipped = true };
+        }
+
         // Check if Plaud has finished generating transcript + summary for this recording
         var detail = await _plaudClient.GetFileDetailAsync(request.PlaudRecordingId, cancellationToken);
         if (!detail.IsGenerated)
