@@ -58,7 +58,10 @@ public class AttachMeetingHandler : IRequestHandler<AttachMeetingRequest, Attach
         var previousStatus = map.Status;
         map.Meetings.Add(new MindMapMeeting
         {
-            Id = Guid.NewGuid(),
+            // No explicit Id: EF marks an entity added to a tracked parent's navigation
+            // collection as Modified when its key already has a value, which issues an
+            // UPDATE against a row that does not exist yet. Letting EF generate the key
+            // keeps the entity Added so it is INSERTed.
             MindMapId = map.Id,
             MeetingTranscriptId = meeting.Id,
             AttachedAt = DateTime.UtcNow
