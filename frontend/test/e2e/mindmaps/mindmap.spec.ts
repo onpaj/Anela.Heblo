@@ -30,6 +30,22 @@ test.describe('Mind maps', () => {
       await page.getByRole('button', { name: 'Porady' }).click();
       await page.getByTestId('mindmap-attach-button').click();
       const options = page.getByTestId('mindmap-attach-option');
+      // Locator.count() is a one-shot snapshot — it does not auto-wait. Right after
+      // the click, the dialog is still in its "Načítání..." loading state (the
+      // useMeetingTasksList() fetch is in flight) and no mindmap-attach-option
+      // elements exist yet, so counting immediately would read 0 even when meetings
+      // exist. Wait for the fetch to settle into one of its three terminal render
+      // states first — the first option attaching, the empty-state message, or the
+      // error message — then count. Whichever state is real resolves quickly; the
+      // other two simply time out, which Promise.race tolerates via the catch below.
+      await Promise.race([
+        options.first().waitFor({ state: 'attached', timeout: 15000 }),
+        page.getByText('Žádné další porady k připojení').waitFor({ state: 'visible', timeout: 15000 }),
+        page.getByText('Nepodařilo se načíst porady').waitFor({ state: 'visible', timeout: 15000 }),
+      ]).catch(() => {
+        // None of the terminal states appeared within budget — fall through to the
+        // count-based throw below, which reports the (still) empty state.
+      });
       if ((await options.count()) === 0) {
         throw new Error(
           'No meeting transcripts available on staging — seed at least one meeting (docs/testing/test-data-fixtures.md)',
@@ -37,11 +53,25 @@ test.describe('Mind maps', () => {
       }
       await options.first().click();
 
-      // Stub updater runs in background; poll until status returns to Idle
+      // Stub updater runs in background: attach → cache invalidation → refetch →
+      // Hangfire picks up the job → stub runs → save → the frontend's 3s status
+      // poll → refetch. The node count is the assertion that actually observes the
+      // pipeline having run, so it gets the generous budget. A freshly created map
+      // is already Idle/"Aktuální" *before* any meeting is attached, so asserting
+      // the status text first would resolve immediately without ever waiting for
+      // the update — leaving the real bottleneck (the node count) to fall back to
+      // Playwright's default 5000ms `expect` timeout (there is no `expect.timeout`
+      // override in playwright.config.ts), which staging round-trip latency would
+      // blow through. Deliberately not asserting the transient "Aktualizuje se…"
+      // state on the way through: the poll is 3s and the stub is fast, so that
+      // state can legitimately be skipped entirely, and asserting it would just
+      // trade this flake for a different one.
+      await expect(page.getByTestId('mindmap-node')).toHaveCount(2, { timeout: 60000 });
+      // Secondary check, now that the pipeline is known to have completed — also
+      // generous in case the badge's own re-render trails the node list by a beat.
       await expect(page.getByTestId('mindmap-status-badge')).toHaveText('Aktuální', {
         timeout: 60000,
       });
-      await expect(page.getByTestId('mindmap-node')).toHaveCount(2);
 
       // Rename the generated node → auto-lock on save
       const generatedNode = page.getByTestId('mindmap-node').filter({ hasText: 'Porada:' });
