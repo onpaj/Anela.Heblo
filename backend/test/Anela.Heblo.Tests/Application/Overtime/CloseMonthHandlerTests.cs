@@ -38,7 +38,11 @@ public class CloseMonthHandlerTests
             });
         _monthStatements.Add(new OvertimeMonthlyStatement
         {
-            PersonId = Person, Year = 2026, Month = 8, Status = OvertimeStatementStatus.Open, IsReviewed = true
+            PersonId = Person,
+            Year = 2026,
+            Month = 8,
+            Status = OvertimeStatementStatus.Open,
+            IsReviewed = true
         });
         _statements.Setup(r => r.GetByMonthAsync(2026, 8, It.IsAny<CancellationToken>())).ReturnsAsync(_monthStatements);
         _statements.Setup(r => r.AnyOpenBeforeAsync(2026, 8, It.IsAny<CancellationToken>())).ReturnsAsync(false);
@@ -164,8 +168,12 @@ public class CloseMonthHandlerTests
             });
         _monthStatements.Add(new OvertimeMonthlyStatement
         {
-            PersonId = InactivePerson, Year = 2026, Month = 8, Status = OvertimeStatementStatus.Open,
-            IsReviewed = false, DeltaHours = -2m
+            PersonId = InactivePerson,
+            Year = 2026,
+            Month = 8,
+            Status = OvertimeStatementStatus.Open,
+            IsReviewed = false,
+            DeltaHours = -2m
         });
         _statements.Setup(r => r.GetLatestClosedAsync(InactivePerson, It.IsAny<CancellationToken>())).ReturnsAsync((OvertimeMonthlyStatement?)null);
 

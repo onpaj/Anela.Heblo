@@ -63,8 +63,12 @@ public class OvertimeAdjustmentUseCaseTests
 
         var result = await handler.Handle(new CreateAdjustmentRequest
         {
-            PersonId = Person, Year = 2026, Month = 9,
-            Type = OvertimeAdjustmentType.Payout, Hours = -40m, Note = "Proplaceno v prémiích"
+            PersonId = Person,
+            Year = 2026,
+            Month = 9,
+            Type = OvertimeAdjustmentType.Payout,
+            Hours = -40m,
+            Note = "Proplaceno v prémiích"
         }, CancellationToken.None);
 
         result.Success.Should().BeTrue();
@@ -81,7 +85,12 @@ public class OvertimeAdjustmentUseCaseTests
 
         var result = await handler.Handle(new CreateAdjustmentRequest
         {
-            PersonId = Person, Year = 2026, Month = 9, Type = OvertimeAdjustmentType.Payout, Hours = -1m, Note = "x"
+            PersonId = Person,
+            Year = 2026,
+            Month = 9,
+            Type = OvertimeAdjustmentType.Payout,
+            Hours = -1m,
+            Note = "x"
         }, CancellationToken.None);
 
         result.ErrorCode.Should().Be(ErrorCodes.OvertimeAdjustmentMonthClosed);
@@ -96,7 +105,12 @@ public class OvertimeAdjustmentUseCaseTests
 
         var result = await handler.Handle(new CreateAdjustmentRequest
         {
-            PersonId = Person, Year = 2026, Month = 9, Type = OvertimeAdjustmentType.Other, Hours = 1m, Note = "x"
+            PersonId = Person,
+            Year = 2026,
+            Month = 9,
+            Type = OvertimeAdjustmentType.Other,
+            Hours = 1m,
+            Note = "x"
         }, CancellationToken.None);
 
         result.ErrorCode.Should().Be(ErrorCodes.OvertimeEmployeeNotFound);

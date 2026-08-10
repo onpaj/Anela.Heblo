@@ -72,7 +72,11 @@ public class OvertimeEmployeeUseCaseTests
         var handler = new UpsertOvertimeEmployeeHandler(_employees.Object, _statements.Object);
         var result = await handler.Handle(new UpsertOvertimeEmployeeRequest
         {
-            PersonId = Person, DisplayName = "Pepina", BaselineHours = 99m, BaselineDate = new DateOnly(2026, 9, 1), IsActive = true
+            PersonId = Person,
+            DisplayName = "Pepina",
+            BaselineHours = 99m,
+            BaselineDate = new DateOnly(2026, 9, 1),
+            IsActive = true
         }, CancellationToken.None);
 
         result.Success.Should().BeFalse();
@@ -91,7 +95,11 @@ public class OvertimeEmployeeUseCaseTests
         var handler = new UpsertOvertimeEmployeeHandler(_employees.Object, _statements.Object);
         var result = await handler.Handle(new UpsertOvertimeEmployeeRequest
         {
-            PersonId = Person, DisplayName = "Pepina", BaselineHours = 2.5m, BaselineDate = new DateOnly(2026, 9, 1), IsActive = true
+            PersonId = Person,
+            DisplayName = "Pepina",
+            BaselineHours = 2.5m,
+            BaselineDate = new DateOnly(2026, 9, 1),
+            IsActive = true
         }, CancellationToken.None);
 
         result.Success.Should().BeTrue();

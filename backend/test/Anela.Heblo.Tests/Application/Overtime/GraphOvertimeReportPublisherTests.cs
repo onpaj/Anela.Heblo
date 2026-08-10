@@ -42,7 +42,9 @@ public class GraphOvertimeReportPublisherTests
     {
         var sut = CreateSut(new OvertimeOptions
         {
-            ExportDriveId = "drive-1", ExportFolderPath = "Provoz/Mzdy", ExportFileName = "Evidence-prescasu.xlsx"
+            ExportDriveId = "drive-1",
+            ExportFolderPath = "Provoz/Mzdy",
+            ExportFileName = "Evidence-prescasu.xlsx"
         });
 
         await sut.PublishAsync(new byte[] { 1, 2, 3 }, "Evidence-prescasu.xlsx", CancellationToken.None);

@@ -27,14 +27,20 @@ public class OvertimeRepositoryTests : IDisposable
         var repo = new OvertimeEmployeeRepository(_context);
         await repo.UpsertAsync(new OvertimeEmployee
         {
-            PersonId = Person, DisplayName = "Pepina", BaselineHours = 2.5m,
-            BaselineDate = new DateOnly(2026, 9, 1), IsActive = true
+            PersonId = Person,
+            DisplayName = "Pepina",
+            BaselineHours = 2.5m,
+            BaselineDate = new DateOnly(2026, 9, 1),
+            IsActive = true
         }, CancellationToken.None);
 
         await repo.UpsertAsync(new OvertimeEmployee
         {
-            PersonId = Person, DisplayName = "Pepina H.", BaselineHours = 3.0m,
-            BaselineDate = new DateOnly(2026, 9, 1), IsActive = true
+            PersonId = Person,
+            DisplayName = "Pepina H.",
+            BaselineHours = 3.0m,
+            BaselineDate = new DateOnly(2026, 9, 1),
+            IsActive = true
         }, CancellationToken.None);
 
         var all = await repo.GetAllAsync(CancellationToken.None);
@@ -70,6 +76,10 @@ public class OvertimeRepositoryTests : IDisposable
 
     private static OvertimeMonthlyStatement Statement(int year, int month, OvertimeStatementStatus status, decimal balanceAfter) => new()
     {
-        PersonId = Person, Year = year, Month = month, Status = status, BalanceAfter = balanceAfter
+        PersonId = Person,
+        Year = year,
+        Month = month,
+        Status = status,
+        BalanceAfter = balanceAfter
     };
 }

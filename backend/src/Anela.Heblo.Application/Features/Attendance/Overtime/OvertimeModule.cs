@@ -2,6 +2,7 @@ using Anela.Heblo.Application.Common.Behaviors;
 using Anela.Heblo.Application.Features.Attendance.Overtime.UseCases.CreateAdjustment;
 using Anela.Heblo.Application.Features.Attendance.Overtime.UseCases.UpsertOvertimeEmployee;
 using Anela.Heblo.Domain.Features.Attendance.Overtime;
+using Anela.Heblo.Domain.Shared;
 using Anela.Heblo.Persistence.Attendance;
 using FluentValidation;
 using MediatR;
@@ -22,7 +23,22 @@ public static class OvertimeModule
         services.AddScoped<IContractHoursProvider, Services.ConfigurationContractHoursProvider>();
         services.AddScoped<Services.OvertimeCalculationService>();
         services.AddScoped<Services.OvertimeExcelBuilder>();
-        services.AddScoped<Services.IOvertimeReportPublisher, Services.GraphOvertimeReportPublisher>();
+
+        // Real Graph-based publisher needs ITokenAcquisition, which is only registered under
+        // real Microsoft Identity authentication. Mock auth / bypassed JWT validation falls
+        // back to a no-op publisher, matching CatalogDocumentsModule / MeetingTasksModule /
+        // SharedRagModule for the other Graph-dependent services.
+        var useMockAuth = configuration.GetValue<bool>("UseMockAuth", false);
+        var bypassJwt = configuration.GetValue<bool>(InfrastructureConfigurationKeys.BYPASS_JWT_VALIDATION, false);
+        if (!useMockAuth && !bypassJwt)
+        {
+            services.AddHttpClient("MicrosoftGraph");
+            services.AddScoped<Services.IOvertimeReportPublisher, Services.GraphOvertimeReportPublisher>();
+        }
+        else
+        {
+            services.AddScoped<Services.IOvertimeReportPublisher, Services.NoOpOvertimeReportPublisher>();
+        }
 
         services.AddScoped<IOvertimeEmployeeRepository, OvertimeEmployeeRepository>();
         services.AddScoped<IOvertimeStatementRepository, OvertimeStatementRepository>();
