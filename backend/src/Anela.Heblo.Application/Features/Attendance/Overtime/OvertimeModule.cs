@@ -1,4 +1,5 @@
 using Anela.Heblo.Application.Common.Behaviors;
+using Anela.Heblo.Application.Features.Attendance.Overtime.UseCases.CreateAdjustment;
 using Anela.Heblo.Application.Features.Attendance.Overtime.UseCases.UpsertOvertimeEmployee;
 using Anela.Heblo.Domain.Features.Attendance.Overtime;
 using Anela.Heblo.Persistence.Attendance;
@@ -28,6 +29,10 @@ public static class OvertimeModule
         services.AddScoped<IValidator<UpsertOvertimeEmployeeRequest>, UpsertOvertimeEmployeeValidator>();
         services.AddScoped<IPipelineBehavior<UpsertOvertimeEmployeeRequest, UpsertOvertimeEmployeeResponse>,
             ValidationBehavior<UpsertOvertimeEmployeeRequest, UpsertOvertimeEmployeeResponse>>();
+
+        services.AddScoped<IValidator<CreateAdjustmentRequest>, CreateAdjustmentValidator>();
+        services.AddScoped<IPipelineBehavior<CreateAdjustmentRequest, CreateAdjustmentResponse>,
+            ValidationBehavior<CreateAdjustmentRequest, CreateAdjustmentResponse>>();
 
         return services;
     }
