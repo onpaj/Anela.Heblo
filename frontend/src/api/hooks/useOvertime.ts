@@ -129,9 +129,9 @@ const extractFilename = (contentDisposition: string | null): string => {
  * see frontend/src/components/baleni/printLabelPdf.ts for the established pattern this follows).
  * Fetches the file as a blob, then triggers a programmatic download via an object URL. */
 export const downloadOvertimeReport = async (): Promise<void> => {
-  const client = getAuthenticatedApiClient(false) as unknown as ApiClientWithInternals;
-  const url = `${client.baseUrl}/api/overtime/export`;
-  const response = await client.http.fetch(url);
+  const apiClient = getAuthenticatedApiClient(false) as unknown as ApiClientWithInternals;
+  const url = `${apiClient.baseUrl}/api/overtime/export`;
+  const response = await apiClient.http.fetch(url);
   if (!response.ok) {
     throw new Error(`Stažení reportu selhalo (${response.status})`);
   }
