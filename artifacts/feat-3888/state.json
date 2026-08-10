@@ -28,9 +28,9 @@
   "tasks": [
     {
       "name": "inject-timeprovider",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-08-10T18:56:39.216247Z"
+      "updated_at": "2026-08-10T19:42:33.616986Z"
     },
     {
       "name": "use-injected-clock-for-transitions",
