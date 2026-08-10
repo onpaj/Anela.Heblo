@@ -43,6 +43,7 @@ import PackingMaterialsPage from "./pages/PackingMaterialsPage";
 import StockOperationsPage from "./pages/StockOperationsPage";
 import RecurringJobsPage from "./pages/RecurringJobsPage";
 import KnowledgeBasePage from "./pages/KnowledgeBasePage";
+import OvertimePage from "./pages/OvertimePage";
 import KnowledgeBaseFeedbackPage from "./pages/KnowledgeBaseFeedbackPage";
 import MarketingFeedbackPage from "./pages/MarketingFeedbackPage";
 import ArticlesPage from "./pages/ArticlesPage";
@@ -451,6 +452,7 @@ function App() {
                         <Route path="/orgchart" element={<OrgChartPage />} />
                         <Route path="/stock-up-operations" element={guard("/stock-up-operations", <StockOperationsPage />)} />
                         <Route path="/recurring-jobs" element={guard("/recurring-jobs", <RecurringJobsPage />)} />
+                        <Route path="/overtime" element={guard("/overtime", <OvertimePage />)} />
                         <Route path="/knowledge-base" element={guard("/knowledge-base", <KnowledgeBasePage />)} />
                         <Route path="/knowledge-base/feedback" element={<KnowledgeBaseFeedbackPage />} />
                         <Route path="/marketing/feedback" element={guard("/marketing/feedback", <MarketingFeedbackPage />)} />
