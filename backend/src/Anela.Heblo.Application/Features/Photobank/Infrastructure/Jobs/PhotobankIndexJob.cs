@@ -178,7 +178,9 @@ public class PhotobankIndexJob : IRecurringJob
             photo.FolderPath = item.FolderPath;
             photo.SharePointWebUrl = item.WebUrl;
             photo.FileSizeBytes = item.FileSizeBytes;
-            photo.ModifiedAt = item.LastModifiedAt ?? DateTime.UtcNow;
+            photo.ModifiedAt = item.LastModifiedAt.HasValue
+                ? DateTime.SpecifyKind(item.LastModifiedAt.Value, DateTimeKind.Utc)
+                : DateTime.UtcNow;
             photo.DriveId = driveId;
 
             if (pathChanged)

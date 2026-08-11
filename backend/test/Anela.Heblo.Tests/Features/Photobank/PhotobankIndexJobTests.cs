@@ -156,6 +156,93 @@ public class PhotobankIndexJobTests
     }
 
     [Fact]
+    public async Task UpsertPhotoBatch_GraphItemLastModifiedAtHasUnspecifiedKind_PhotoModifiedAtIsStampedUtc()
+    {
+        // Arrange — simulate System.Text.Json handing back a DateTime with Kind=Unspecified for
+        // the Graph delta item's lastModifiedDateTime (the one Photobank DateTime value sourced
+        // from something other than DateTime.UtcNow). Photo.ModifiedAt must never inherit that
+        // Kind as-is: PhotobankRootRepository/PhotobankPhotoRepository share one ApplicationDbContext
+        // whose global convention strips Kind before every write, so the column-type mapping is
+        // what actually determines success/failure — but this test only needs to prove the
+        // application-layer contract: the assigned Kind is always Utc, regardless of the source's Kind.
+        var unspecifiedInstant = new DateTime(2026, 7, 27, 1, 28, 0, DateTimeKind.Unspecified);
+
+        var root = new PhotobankIndexRoot
+        {
+            Id = 1,
+            SharePointPath = "/sites/test/photos",
+            DriveId = "drive-1",
+            RootItemId = "root-item-1",
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow,
+        };
+
+        var photoItem = new GraphPhotoItem
+        {
+            ItemId = "file-kind-test",
+            Name = "photo.jpg",
+            FolderPath = "Fotky/Produkty",
+            WebUrl = "https://sharepoint.example.com/photo.jpg",
+            FileSizeBytes = 1024,
+            LastModifiedAt = unspecifiedInstant,
+            DriveId = "drive-1",
+            IsDeleted = false,
+        };
+
+        _rootRepoMock
+            .Setup(r => r.GetActiveRootsWithDriveAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync([root]);
+
+        _tagRuleRepoMock
+            .Setup(r => r.GetActiveTagRulesAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<TagRule>());
+
+        _photoRepoMock
+            .Setup(r => r.GetPhotoBySharePointFileIdAsync("file-kind-test", It.IsAny<CancellationToken>()))
+            .ReturnsAsync((Photo?)null);
+
+        Photo? capturedPhoto = null;
+        _photoRepoMock
+            .Setup(r => r.AddPhotoAsync(It.IsAny<Photo>(), It.IsAny<CancellationToken>()))
+            .Callback<Photo, CancellationToken>((p, _) => capturedPhoto = p)
+            .Returns(Task.CompletedTask);
+
+        _photoTagRepoMock
+            .Setup(r => r.GetPhotoTagsByPhotoAndSourceAsync(It.IsAny<int>(), PhotoTagSource.Rule, It.IsAny<CancellationToken>()))
+            .ReturnsAsync([]);
+
+        _photoTagRepoMock
+            .Setup(r => r.RemovePhotoTagsAsync(It.IsAny<IEnumerable<PhotoTag>>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
+        _photoRepoMock
+            .Setup(r => r.SaveChangesAsync(It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+        _photoTagRepoMock
+            .Setup(r => r.SaveChangesAsync(It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+        _rootRepoMock
+            .Setup(r => r.SaveChangesAsync(It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
+        _graphServiceMock
+            .Setup(g => g.GetDeltaAsync("drive-1", "root-item-1", null, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new GraphDeltaResult
+            {
+                Items = [photoItem],
+                NewDeltaLink = "https://graph.microsoft.com/v1.0/drives/drive-1/items/root-item-1/delta?token=abc",
+            });
+
+        // Act
+        await _job.ExecuteAsync();
+
+        // Assert
+        capturedPhoto.Should().NotBeNull();
+        capturedPhoto!.ModifiedAt.Kind.Should().Be(DateTimeKind.Utc);
+        capturedPhoto.ModifiedAt.Should().Be(DateTime.SpecifyKind(unspecifiedInstant, DateTimeKind.Utc));
+    }
+
+    [Fact]
     public async Task UpsertPhoto_WhenTagAlreadyExists_SkipsInsert()
     {
         // Arrange
