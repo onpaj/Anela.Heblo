@@ -136,13 +136,21 @@ REPO="$(cd "<map-dir>" && gh repo view --json nameWithOwner --jq .nameWithOwner 
         || git -C "<map-dir>" remote get-url origin)"
 ```
 
+**If `USE_GH_API` is set in the environment**, every `gh` invocation shown below is
+routed through `.claude/skills/_lib/gh_api.sh` instead -- a curl+REST equivalent for
+environments where the `gh` CLI itself is not permitted.
+
 **5b. Make sure the labels exist** (idempotent — safe to re-run):
 
 ```bash
 for L in arch-review architecture tech-debt maintainability design-patterns \
          antipattern code-quality duplication documentation \
          critical major moderate minor; do
-  gh label create "$L" --color ededed --force --repo "$REPO" >/dev/null 2>&1 || true
+  if [ -n "${USE_GH_API:-}" ]; then
+    GH_REPO="$REPO" .claude/skills/_lib/gh_api.sh label-create "$L" ededed "" >/dev/null 2>&1 || true
+  else
+    gh label create "$L" --color ededed --force --repo "$REPO" >/dev/null 2>&1 || true
+  fi
 done
 ```
 
@@ -171,10 +179,17 @@ judgement:
 **5d. Create the issue:**
 
 ```bash
-gh issue create --repo "$REPO" \
-  --title "[arch-review] <Area>: <headline>" \
-  --label "arch-review,agent,<topical>,<severity>" \
-  --body-file <path-to-body>
+if [ -n "${USE_GH_API:-}" ]; then
+  GH_REPO="$REPO" .claude/skills/_lib/gh_api.sh issue-create \
+    --title "[arch-review] <Area>: <headline>" \
+    --label "arch-review,agent,<topical>,<severity>" \
+    --body-file <path-to-body>
+else
+  gh issue create --repo "$REPO" \
+    --title "[arch-review] <Area>: <headline>" \
+    --label "arch-review,agent,<topical>,<severity>" \
+    --body-file <path-to-body>
+fi
 ```
 
 Write the body to a temp file rather than passing it inline — bodies carry code fences,
