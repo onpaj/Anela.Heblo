@@ -27,10 +27,7 @@ public class UploadPifDocumentHandler : IRequestHandler<UploadPifDocumentRequest
     public async Task<UploadDocumentResponse> Handle(
         UploadPifDocumentRequest request, CancellationToken cancellationToken)
     {
-        var shortCode = request.ProductCode.Length >= 6
-            ? request.ProductCode[..6]
-            : request.ProductCode;
-        var prefix = $"{shortCode}__";
+        var prefix = PifFolderPrefixBuilder.Build(request.ProductCode);
 
         var folder = await _storage.FindFolderAsync(
             _options.PIF.DriveId, _options.PIF.BasePath, prefix,
