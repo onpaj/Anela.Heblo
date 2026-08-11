@@ -1,99 +1,35 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useEffect } from "react";
-import { getClientAndBaseUrl, apiGet, apiPost, apiDelete } from "../smartsuppClient";
-import { QUERY_KEYS } from "../client";
+import {
+  getAuthenticatedApiClient,
+  getApiBaseUrl,
+  getAuthenticatedFetch,
+  QUERY_KEYS,
+} from "../client";
+import {
+  ErrorCodes,
+  type ConversationDto,
+  type ConversationPresenceDto,
+  type ConversationSummaryDto,
+  type MessageDto,
+  type ListConversationsResponse,
+  type GetConversationResponse,
+  type GetSmartsuppContactShoptetInfoResponse,
+  type GetVisitorInfoResponse,
+  type CloseConversationResponse,
+} from "../generated/api-client";
 
-export interface ConversationSummaryDto {
-  id: string;
-  status: string;
-  lastMessageAt?: string | null;
-  lastMessagePreview?: string | null;
-  isUnread: boolean;
-}
-
-export interface ConversationPresenceDto {
-  agentId: string;
-  displayName: string;
-  source: string; // "Smartsupp" | "Heblo"
-  isCurrentUser: boolean;
-  enteredAt: string;
-}
-
-export interface ConversationDto {
-  id: string;
-  subject?: string | null;
-  contactName?: string | null;
-  contactEmail?: string | null;
-  contactAvatarUrl?: string | null;
-  status: string;
-  isUnread: boolean;
-  lastMessageAt?: string | null;
-  lastMessagePreview?: string | null;
-  createdAt: string;
-  updatedAt: string;
-  rating?: number | null;
-  ratingText?: string | null;
-  closeType?: string | null;
-  closedByAgentId?: string | null;
-  assignedAgentIds: string[];
-  channel?: string | null;
-  isServed: boolean;
-  finishedAt?: string | null;
-  domain?: string | null;
-  referer?: string | null;
-  locationCountry?: string | null;
-  locationCity?: string | null;
-  locationCode?: string | null;
-  tags: string[];
-  // Phase 1 additions
-  contactPhone?: string | null;
-  contactNote?: string | null;
-  contactTags: string[];
-  contactProperties: Record<string, string>;
-  locationIp?: string | null;
-  variables: Record<string, string>;
-  otherConversations: ConversationSummaryDto[];
-  activeViewers?: ConversationPresenceDto[];
-}
-
-export interface MessageDto {
-  id: string;
-  authorType: string;
-  authorName?: string | null;
-  content?: string | null;
-  createdAt: string;
-  agentId?: string | null;
-  subType?: string | null;
-  deliveryStatus?: string | null;
-  deliveredAt?: string | null;
-  responseTime?: number | null;
-  isFirstReply: boolean;
-  pageUrl?: string | null;
-}
-
-export interface ListConversationsResponse {
-  success: boolean;
-  items: ConversationDto[];
-  total: number;
-  page: number;
-  pageSize: number;
-}
-
-export interface GetConversationResponse {
-  success: boolean;
-  conversation?: ConversationDto | null;
-  messages: MessageDto[];
-  agentNames: Record<string, string>;
-}
-
-
-async function apiFetch(apiClient: Parameters<typeof apiGet>[0], url: string): Promise<Response> {
-  const response = await apiGet(apiClient, url);
-  if (!response.ok) {
-    throw new Error(`Smartsupp API error: ${response.status} ${response.statusText}`);
-  }
-  return response;
-}
+// Re-exported so sibling hooks under components/customer-support/smartsupp/hooks/ can keep
+// importing these from this file's existing path instead of reaching into the generated client
+// directly.
+export type {
+  ConversationDto,
+  ConversationPresenceDto,
+  ConversationSummaryDto,
+  MessageDto,
+  ListConversationsResponse,
+  GetConversationResponse,
+};
 
 export const SMARTSUPP_QUERY_KEYS = {
   conversations: (status: string) => ["smartsupp", "conversations", status] as const,
@@ -105,11 +41,8 @@ export const SMARTSUPP_QUERY_KEYS = {
 export function useSmartsuppConversations(status: "Open" | "Resolved" = "Open") {
   return useQuery({
     queryKey: SMARTSUPP_QUERY_KEYS.conversations(status),
-    queryFn: async () => {
-      const { apiClient, baseUrl } = getClientAndBaseUrl();
-      const response = await apiFetch(apiClient, `${baseUrl}/api/smartsupp/conversations?status=${status}&page=1&pageSize=100`);
-      return response.json() as Promise<ListConversationsResponse>;
-    },
+    queryFn: (): Promise<ListConversationsResponse> =>
+      getAuthenticatedApiClient().smartsupp_GetConversations(status, 1, 100),
     refetchInterval: 10_000,
     staleTime: 10_000,
   });
@@ -118,76 +51,31 @@ export function useSmartsuppConversations(status: "Open" | "Resolved" = "Open") 
 export function useSmartsuppConversation(id: string | null) {
   return useQuery({
     queryKey: SMARTSUPP_QUERY_KEYS.conversation(id ?? ""),
-    queryFn: async () => {
-      const { apiClient, baseUrl } = getClientAndBaseUrl();
-      const response = await apiFetch(apiClient, `${baseUrl}/api/smartsupp/conversations/${id}`);
-      return response.json() as Promise<GetConversationResponse>;
-    },
+    queryFn: (): Promise<GetConversationResponse> =>
+      getAuthenticatedApiClient().smartsupp_GetConversation(id!),
     enabled: !!id,
     refetchInterval: 30_000,
     staleTime: 15_000,
   });
 }
 
-export interface ShoptetCustomerSnapshotDto {
-  fullName?: string | null;
-  email?: string | null;
-  customerGroup?: string | null;
-  priceList?: string | null;
-  defaultShippingAddress?: string | null;
-}
-
-export interface ShoptetOrderSnapshotDto {
-  code: string;
-  statusName?: string | null;
-  totalWithVat?: number | null;
-  currencyCode?: string | null;
-  orderDate?: string | null;
-  adminUrl?: string | null;
-}
-
-export interface ShoptetContactInfoDto {
-  customer?: ShoptetCustomerSnapshotDto | null;
-  recentOrders: ShoptetOrderSnapshotDto[];
-  cartUpdatedAt?: string | null;
-}
-
-export interface GetSmartsuppShoptetInfoResponse {
-  success: boolean;
-  contactInfo?: ShoptetContactInfoDto | null;
-}
-
-export interface VisitorPageDto {
-  url: string;
-}
-
-export interface VisitorInfoDto {
-  os?: string | null;
-  browser?: string | null;
-  browserVersion?: string | null;
-  userAgent?: string | null;
-  visitsCount?: number | null;
-  chatsCount: number;
-  pages: VisitorPageDto[];
-}
-
-export interface GetSmartsuppVisitorInfoResponse {
-  success: boolean;
-  visitorInfo?: VisitorInfoDto | null;
-}
-
+// Shoptet/visitor info stay on the escape hatch permanently, not the typed client: the (currently
+// unwired) NSwag template-override predicate that would let the generated client return a typed
+// non-throwing 404 branch is hardcoded to fire only for HTTP 409 (see
+// backend/src/Anela.Heblo.API/nswag-templates/README.md), so a typed try/catch on 404 here would
+// buy nothing over the escape hatch. See docs/development/api-client-generation.md for the
+// escape-hatch pattern this mirrors.
 export function useSmartsuppShoptetInfo(conversationId: string | null) {
   return useQuery({
     queryKey: SMARTSUPP_QUERY_KEYS.shoptetInfo(conversationId ?? ""),
-    queryFn: async () => {
-      const { apiClient, baseUrl } = getClientAndBaseUrl();
-      const response = await apiGet(
-        apiClient,
-        `${baseUrl}/api/smartsupp/conversations/${conversationId}/shoptet-info`
+    queryFn: async (): Promise<GetSmartsuppContactShoptetInfoResponse | null> => {
+      const response = await getAuthenticatedFetch()(
+        `${getApiBaseUrl()}/api/smartsupp/conversations/${conversationId}/shoptet-info`,
+        { method: "GET" },
       );
       if (response.status === 404) return null;
       if (!response.ok) throw new Error(`Shoptet info error: ${response.status}`);
-      return response.json() as Promise<GetSmartsuppShoptetInfoResponse>;
+      return (await response.json()) as GetSmartsuppContactShoptetInfoResponse;
     },
     enabled: !!conversationId,
     staleTime: 300_000,
@@ -198,15 +86,14 @@ export function useSmartsuppShoptetInfo(conversationId: string | null) {
 export function useSmartsuppVisitorInfo(conversationId: string | null) {
   return useQuery({
     queryKey: SMARTSUPP_QUERY_KEYS.visitorInfo(conversationId ?? ""),
-    queryFn: async () => {
-      const { apiClient, baseUrl } = getClientAndBaseUrl();
-      const response = await apiGet(
-        apiClient,
-        `${baseUrl}/api/smartsupp/conversations/${conversationId}/visitor-info`
+    queryFn: async (): Promise<GetVisitorInfoResponse | null> => {
+      const response = await getAuthenticatedFetch()(
+        `${getApiBaseUrl()}/api/smartsupp/conversations/${conversationId}/visitor-info`,
+        { method: "GET" },
       );
       if (response.status === 404) return null;
       if (!response.ok) throw new Error(`Visitor info error: ${response.status}`);
-      return response.json() as Promise<GetSmartsuppVisitorInfoResponse>;
+      return (await response.json()) as GetVisitorInfoResponse;
     },
     enabled: !!conversationId,
     staleTime: 600_000,
@@ -214,19 +101,14 @@ export function useSmartsuppVisitorInfo(conversationId: string | null) {
   });
 }
 
-export interface CloseConversationResponse {
-  success: boolean;
-  errorCode?: string;
-}
-
-const CLOSE_ERROR_MESSAGES: Record<string, string> = {
-  SmartsuppCloseConversationUnavailable:
+const CLOSE_ERROR_MESSAGES: Partial<Record<ErrorCodes, string>> = {
+  [ErrorCodes.SmartsuppCloseConversationUnavailable]:
     "Nepodařilo se uzavřít konverzaci — služba je nedostupná. Zkuste to prosím znovu.",
-  SmartsuppConversationNotFound: "Konverzace nebyla nalezena.",
+  [ErrorCodes.SmartsuppConversationNotFound]: "Konverzace nebyla nalezena.",
 };
 
-function messageForCloseError(code?: string): string {
-  if (code && CLOSE_ERROR_MESSAGES[code]) return CLOSE_ERROR_MESSAGES[code];
+function messageForCloseError(code?: ErrorCodes): string {
+  if (code && CLOSE_ERROR_MESSAGES[code]) return CLOSE_ERROR_MESSAGES[code]!;
   return "Nepodařilo se uzavřít konverzaci.";
 }
 
@@ -234,23 +116,17 @@ export function useCloseConversation() {
   const queryClient = useQueryClient();
   return useMutation<CloseConversationResponse, Error, string>({
     mutationFn: async (conversationId: string) => {
-      const { apiClient, baseUrl } = getClientAndBaseUrl();
-      const response = await apiPost(
-        apiClient,
-        `${baseUrl}/api/smartsupp/conversations/${conversationId}/close`,
-        {},
-      );
-
-      if (!response.ok) {
-        const errData = await response.json().catch(() => ({})) as Partial<CloseConversationResponse>;
-        throw new Error(messageForCloseError(errData?.errorCode));
+      let data: CloseConversationResponse;
+      try {
+        data = await getAuthenticatedApiClient().smartsupp_CloseConversation(conversationId);
+      } catch {
+        // The controller's 404/503 ProducesResponseType are both untyped, so the generated
+        // client throws here without a usable errorCode — fall back to the generic message.
+        throw new Error(messageForCloseError(undefined));
       }
-
-      const data = (await response.json()) as CloseConversationResponse;
       if (!data.success) {
-        throw new Error(messageForCloseError(data?.errorCode));
+        throw new Error(messageForCloseError(data.errorCode));
       }
-
       return data;
     },
     onSuccess: (_data, conversationId) => {
@@ -276,11 +152,10 @@ export function usePresenceHeartbeat(conversationId: string | null): void {
     if (!conversationId) return;
 
     let cancelled = false;
-    const { apiClient, baseUrl } = getClientAndBaseUrl();
-    const url = `${baseUrl}/api/smartsupp/conversations/${conversationId}/presence`;
+    const apiClient = getAuthenticatedApiClient();
 
     const beat = () => {
-      apiPost(apiClient, url, {}).catch(() => {
+      apiClient.smartsupp_RecordPresence(conversationId).catch(() => {
         /* presence is best-effort; ignore transient failures */
       });
     };
@@ -293,7 +168,15 @@ export function usePresenceHeartbeat(conversationId: string | null): void {
     return () => {
       cancelled = true;
       window.clearInterval(timer);
-      apiDelete(apiClient, url, { keepalive: true }).catch(() => {
+      // The generated smartsupp_RemovePresence method builds its RequestInit internally with no
+      // way for a caller to pass `keepalive` through its public signature — every NSwag
+      // Fetch-template method owns its own options object, so this is a structural gap, not a
+      // "not wired yet" one. Stay on the escape hatch for this one call so the "leave" signal
+      // survives page/tab unload; smartsupp_RecordPresence above has no such need and stays typed.
+      getAuthenticatedFetch()(
+        `${getApiBaseUrl()}/api/smartsupp/conversations/${conversationId}/presence`,
+        { method: "DELETE", keepalive: true },
+      ).catch(() => {
         /* best-effort leave; TTL cleans up otherwise */
       });
     };
