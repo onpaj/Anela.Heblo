@@ -1928,32 +1928,48 @@ and replace the toolbar element with:
 Our `useMindMapKeyboard` is gone; the bindings are mind-elixir's. Replace the `SHORTCUTS` array in `MindMapHelpSheet.tsx` with:
 
 ```tsx
+// Verified against mind-elixir's own key map in node_modules/mind-elixir/dist/MindElixir.js
+// (the handler object containing `Enter: (`, plus the undo plugin's ⌘Z/⌘⇧Z/⌘Y listener).
+// Do not add a row without finding it there — a help sheet that lies is worse than none.
 const SHORTCUTS: Array<[string, string]> = [
   ["klik", "vybrat uzel"],
-  ["dvojklik", "začít psát do uzlu"],
+  ["dvojklik / F2", "psát do uzlu"],
   ["Enter", "nový uzel vedle vybraného"],
+  ["⇧Enter", "nový uzel před vybraný"],
   ["Tab", "nový uzel pod vybraný"],
+  ["⌘Enter", "vložit nadřazený uzel"],
   ["⌫", "smazat vybraný uzel i s podřízenými"],
-  ["mezerník", "sbalit / rozbalit větev"],
   ["↑ ↓ ← →", "chodit po mapě"],
+  ["⌥↑ / ⌥↓", "posunout mezi sourozenci"],
   ["⌘Z / ⌘⇧Z", "zpět / znovu"],
+  ["⌘= / ⌘− / ⌘0", "přiblížit / oddálit / původní velikost"],
+  ["F1", "vycentrovat"],
+  ["mezerník + tažení", "posunout plátno"],
+  ["tažení uzlu", "přesunout pod jiný uzel"],
   ["⌘S", "uložit mapu"],
-  ["táhnutí uzlu", "přesunout pod jiný uzel"],
 ];
 ```
+
+Three rows an earlier draft of this plan got wrong, corrected above — do not reintroduce them: the spacebar **pans the canvas**, it does not collapse a branch (there is no collapse shortcut at all — collapsing is the circular expander on the branch itself); ⌘← / ⌘→ switch the whole map to a left-only or right-only layout rather than outdenting or indenting; and sibling reordering is ⌥↑ / ⌥↓ (or PageUp / PageDown), not ⌘↑ / ⌘↓.
 
 and replace the closing paragraph with:
 
 ```tsx
         <p className="mt-4 text-xs text-gray-500 dark:text-graphite-muted">
           Rozložení mapy se dopočítává automaticky — kořen je uprostřed a větve se střídavě rozrůstají doprava a
-          doleva. Uzly lze přetahovat pod jiné uzly; jejich poloha se neukládá.
+          doleva. Uzly lze přetahovat pod jiné uzly; jejich poloha se neukládá. Větev sbalíte kolečkem na jejím
+          okraji. Zkratky <b>⌘←</b> a <b>⌘→</b> přepnou celou mapu na jednostranné rozložení — zpět ji vrátíte
+          pomocí <b>⌘↑</b>; toto nastavení se neukládá.
         </p>
 ```
 
 - [ ] **Step 6: Verify the bindings you just documented are real**
 
-Run `npm start`, open a map, and confirm each row of that table. mind-elixir's key handling is its own; anything that does not behave as written must be corrected in the table, not left to mislead. Note in particular whether ⌫ deletes without confirmation — if it does, that is a behaviour change from the old side-panel delete and belongs in the migration notes.
+The table above was verified against `frontend/node_modules/mind-elixir/dist/MindElixir.js` when this plan was written. Confirm it again yourself — find the handler object containing `Enter: (`, and the undo plugin's `c === "z" ? a.shiftKey ? e.redo() : e.undo()` line — and quote in your report what you found for each row. Do NOT run `npm start`; it needs a backend and Entra ID auth you do not have.
+
+Two things to note explicitly in your report:
+- Every one of those handlers sits behind `if (!e.editable) return;`, so they all go inert while the map is read-only. That is the behaviour we want.
+- ⌫ deletes without any confirmation, unlike the old side-panel delete which used `window.confirm`. Undo (⌘Z) covers it. Confirm this is what the code does and flag it as a behaviour change.
 
 - [ ] **Step 7: Run the toolbar tests**
 
