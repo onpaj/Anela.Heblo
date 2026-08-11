@@ -255,16 +255,31 @@ test("toMindElixir carries our extra fields in metadata", () => {
   expect(a.children![0].metadata?.sourceMeetingIds).toEqual(["m1", "m2"]);
 });
 
+// A round trip returns the flat array in depth-first order (a parent immediately
+// followed by its subtree) rather than the order it went in. That is a reordering
+// of the array, not a loss: what carries meaning is each parent's sibling order,
+// and nothing — not the layout, not MindMapGuard, not MindMapLockService, all of
+// which key by id — reads the absolute index. Compare accordingly.
+const nodesById = (d: MindMapDocument) => Object.fromEntries(d.nodes.map((n) => [n.id, n]));
+const siblingOrder = (d: MindMapDocument, parentId: string | null) =>
+  d.nodes.filter((n) => n.parentId === parentId).map((n) => n.id);
+
 test("a document round-trips through mind-elixir without losing a field", () => {
   const original = doc();
   const restored = fromMindElixir(toMindElixir(original), original);
-  expect(restored).toEqual(original);
+  expect(restored.nodes).toHaveLength(original.nodes.length);
+  expect(nodesById(restored)).toEqual(nodesById(original));
+  expect(restored.schemaVersion).toBe(original.schemaVersion);
+  expect(restored.rootNodeId).toBe(original.rootNodeId);
+  expect(restored.suppressedNodes).toEqual(original.suppressedNodes);
 });
 
-test("round-trip preserves sibling order exactly", () => {
+test("round-trip preserves every parent's sibling order", () => {
   const original = doc();
   const restored = fromMindElixir(toMindElixir(original), original);
-  expect(restored.nodes.map((n) => n.id)).toEqual(original.nodes.map((n) => n.id));
+  expect(siblingOrder(restored, null)).toEqual(siblingOrder(original, null));
+  expect(siblingOrder(restored, "root")).toEqual(siblingOrder(original, "root"));
+  expect(siblingOrder(restored, "a")).toEqual(siblingOrder(original, "a"));
 });
 
 test("fromMindElixir defaults a node mind-elixir created itself", () => {
