@@ -35,6 +35,12 @@
 # whatever CI is doing, it never gets a pointless update-branch call.
 set -uo pipefail
 
+# When USE_GH_API is set, every `gh` call below routes through the shared
+# curl+REST library instead — for environments where the `gh` CLI itself is
+# not permitted. See .claude/skills/_lib/gh_api.sh for the transport layer;
+# the logic here is unchanged either way.
+LIB=".claude/skills/_lib/gh_api.sh"
+
 NEEDS_WORK_SCRIPT=".claude/skills/automerge-pr/apply_verdict.sh"
 
 POLL_INTERVAL_SECONDS="${HYGIENE_POLL_INTERVAL_SECONDS:-15}"
@@ -127,8 +133,12 @@ CI_STATE_FILTER='
 # failure as a 10-minute `pending-timeout`.
 read_state() {
   local raw rc line
-  raw=$(gh pr view "$PR" --repo "$REPO" \
-    --json mergeable,mergeStateStatus,statusCheckRollup,baseRefName,headRefName 2>&1)
+  if [ -n "${USE_GH_API:-}" ]; then
+    raw=$(GH_REPO="$REPO" "$LIB" pr-view "$PR" statusCheckRollup 2>&1)
+  else
+    raw=$(gh pr view "$PR" --repo "$REPO" \
+      --json mergeable,mergeStateStatus,statusCheckRollup,baseRefName,headRefName 2>&1)
+  fi
   rc=$?
   if [ "$rc" -ne 0 ]; then
     report "error" "gh pr view failed (exit $rc): $raw"
@@ -148,7 +158,11 @@ read_state() {
 # Supplementary, so a failure here falls back to 0 (not behind) rather than
 # erroring out — read_state() above already covers the primary failure mode.
 behind_count() {  # base_ref, head_ref
-  gh api "repos/$REPO/compare/$1...$2" --jq '.behind_by // 0' 2>/dev/null || echo 0
+  if [ -n "${USE_GH_API:-}" ]; then
+    GH_REPO="$REPO" "$LIB" compare-behind-by "$1" "$2" 2>/dev/null || echo 0
+  else
+    gh api "repos/$REPO/compare/$1...$2" --jq '.behind_by // 0' 2>/dev/null || echo 0
+  fi
 }
 
 read_state
@@ -182,7 +196,12 @@ if ! $is_behind && ! $is_conflicting; then
       ;;
   esac
 else
-  if ! update_err=$(gh pr update-branch "$PR" --repo "$REPO" 2>&1); then
+  if [ -n "${USE_GH_API:-}" ]; then
+    update_err=$(GH_REPO="$REPO" "$LIB" pr-update-branch "$PR" 2>&1) && update_ok=1 || update_ok=0
+  else
+    update_err=$(gh pr update-branch "$PR" --repo "$REPO" 2>&1) && update_ok=1 || update_ok=0
+  fi
+  if [ "$update_ok" -eq 0 ]; then
     report_and_flag_needs_work "conflict" "gh pr update-branch failed: $update_err"
   fi
   did_update=true
