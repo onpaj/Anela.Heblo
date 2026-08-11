@@ -40,9 +40,9 @@
     },
     {
       "name": "photobank-schema-drift-health-check",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-08-11T04:16:59.154014Z"
+      "updated_at": "2026-08-11T05:12:41.550145Z"
     },
     {
       "name": "photobank-drift-runbook-docs",
