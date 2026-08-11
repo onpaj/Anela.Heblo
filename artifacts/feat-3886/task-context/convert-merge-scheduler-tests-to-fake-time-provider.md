@@ -1,3 +1,30 @@
+### task: convert-merge-scheduler-tests-to-fake-time-provider
+
+**Files:**
+- Modify: `backend/test/Anela.Heblo.Tests/Features/Catalog/Infrastructure/CatalogMergeSchedulerTests.cs` (whole file)
+
+#### Goal
+
+Satisfy FR-5 and NFR-1 from `spec.r1.md`: drive all 12 tests with `FakeTimeProvider` so debounce and max-interval behaviour is exercised without real sleeping, and so the "assert nothing else fired" cases stop depending on a fixed real-time window.
+
+#### Context you need before touching code
+
+- **`FakeTimeProvider` is already available.** `Microsoft.Extensions.TimeProvider.Testing` 8.1.0 is referenced in `backend/test/Anela.Heblo.Tests/Anela.Heblo.Tests.csproj`. Add `using Microsoft.Extensions.Time.Testing;` to the test file. Eleven other test files already do this — see `backend/test/Anela.Heblo.Tests/Common/TimePeriods/TimePeriodResolverTests.cs:3` and `backend/test/Anela.Heblo.Tests/Features/Manufacture/Infrastructure/ManufactureErpResilienceServiceTests.cs:7`.
+- **How `Advance` interacts with the scheduler.** `FakeTimeProvider.Advance(delta)` moves the fake clock and invokes every due timer callback **synchronously, on the calling thread, before `Advance` returns**. The scheduler's callback is `async _ => await ExecuteMergeAsync()`, so it runs synchronously only as far as its first *incomplete* await. State that `ExecuteMergeAsync` writes **after** awaiting the merge callback — `_lastMergeCompleted` (line 102), `_mergeScheduled = false` (line 103), `_firstPendingInvalidation` reset (line 104), and the semaphore release in `finally` (line 119) — is therefore **not** guaranteed to be visible the instant `Advance` returns.
+- **The two-step observation pattern.** Signal a `TaskCompletionSource` from *inside* the merge callback (which proves `ExecuteMergeAsync` has acquired the semaphore and entered the callback), then `await sut.WaitForCurrentMergeAsync()` — that method waits on `_mergeSemaphore`, which is only released in the `finally` after all bookkeeping. Together they are a fully deterministic barrier with no polling and no sleeping. This plan provides a `WaitForMergeAsync` helper that encapsulates it; use it everywhere a completed merge is observed.
+- **`FakeTimeProvider`'s default epoch is `2000-01-01T00:00:00Z`.** The current `ScheduleMerge_FiresCallbackOnce_AfterDebounceDelay` asserts `GetLastMergeTime().Should().BeAfter(testStart)` where `testStart = DateTime.UtcNow` (2026) — that assertion **fails** under a fake clock. Seed the provider with a fixed `TestStart` and assert the exact expected instant instead. Do **not** seed with `DateTimeOffset.UtcNow`; that would put wall-clock dependence straight back in.
+- **Advancing past a *pending* debounce timer fires it.** Any test that needs to reach the max-interval force path must use a `DebounceDelay` **longer** than the amount it advances, otherwise the debounce timer fires first, the merge runs, and `_firstPendingInvalidation` is reset to `DateTime.MinValue` — killing the force path. This is why tasks 3 uses `DebounceDelay = 1 hour`.
+- **One test still pays real time, by design.** `ExecuteMergeAsync_WhenMergeAlreadyInProgress_SkipsSecondInvocation` reaches `await _mergeSemaphore.WaitAsync(100)` on the *contended* path, which is a real 100 ms wait. `_mergeSemaphore.WaitAsync(100)` is explicitly out of scope (`spec.r1.md` → Out of Scope), so do not try to fake it away.
+- **Prohibited:** `await Task.Delay(n)` used as a *wait* for scheduler-driven work. `Task.Delay` may appear **only** as the losing branch of a `Task.WhenAny` failure timeout.
+- **Preserve all 12 test names and the three log assertions.** `VerifyLogged(logger, LogLevel.Information, "Force executing merge")`, `VerifyLogged(logger, LogLevel.Debug, "Merge already in progress, skipping")`, and the `logger.Verify(LogLevel.Error, …, e.Message == "boom", …, Times.Once)` block are the NFR-2 behaviour guard. They must survive.
+
+#### Implementation steps
+
+- [ ] **Step 1: Replace the file header, fixtures and helpers**
+
+Replace everything from the top of the file through the end of the `VerifyLogged` helper (currently lines 1-54) with:
+
+```csharp
 using Anela.Heblo.Application.Features.Catalog.Infrastructure;
 using FluentAssertions;
 using Microsoft.Extensions.Hosting;
@@ -100,7 +127,15 @@ public sealed class CatalogMergeSchedulerTests
             It.IsAny<Func<It.IsAnyType, Exception?, string>>()!),
             Times.AtLeastOnce);
     }
+```
 
+`VerifyLogged` is unchanged from the current file. `FakeApplicationLifetime` is unchanged. `Options_` has a trailing underscore because `Options` is already the `Microsoft.Extensions.Options.Options` static class used by `Options.Create(...)`.
+
+- [ ] **Step 2: Rewrite test 1 — `ScheduleMerge_FiresCallbackOnce_AfterDebounceDelay`**
+
+Replace the current method (lines 56-89) with:
+
+```csharp
     [Fact]
     public async Task ScheduleMerge_FiresCallbackOnce_AfterDebounceDelay()
     {
@@ -134,7 +169,15 @@ public sealed class CatalogMergeSchedulerTests
                 "GetLastMergeTime must keep the Kind that DateTime.UtcNow produced");
         }
     }
+```
 
+The `GetLastMergeTime()` assertion replaces `BeAfter(testStart)` and is strictly stronger — it pins the exact instant *and* the `DateTimeKind`, which is the FR-2 invariant.
+
+- [ ] **Step 3: Rewrite test 2 — `ScheduleMerge_BurstOfCalls_CollapseToSingleCallback`**
+
+Replace the current method (lines 91-126) with:
+
+```csharp
     [Fact]
     public async Task ScheduleMerge_BurstOfCalls_CollapseToSingleCallback()
     {
@@ -173,7 +216,15 @@ public sealed class CatalogMergeSchedulerTests
             invocations.Should().Be(1, "the debounce timer is one-shot");
         }
     }
+```
 
+This replaces `await Task.Delay(450); // extra window to confirm no second callback` with a fake-clock advance — the negative assertion no longer depends on a real-time window at all.
+
+- [ ] **Step 4: Rewrite test 3 — `ScheduleMerge_BeyondMaxMergeInterval_ForcesImmediateExecution`**
+
+Replace the current method (lines 128-162) with:
+
+```csharp
     [Fact]
     public async Task ScheduleMerge_BeyondMaxMergeInterval_ForcesImmediateExecution()
     {
@@ -206,7 +257,15 @@ public sealed class CatalogMergeSchedulerTests
 
         VerifyLogged(logger, LogLevel.Information, "Force executing merge");
     }
+```
 
+The force path dispatches via `Task.Run` (`CatalogMergeScheduler.cs:68`), which `Advance` cannot make synchronous — that is exactly why `WaitForMergeAsync` awaits a signal rather than asserting immediately.
+
+- [ ] **Step 5: Rewrite test 4 — `ExecuteMergeAsync_WhenMergeAlreadyInProgress_SkipsSecondInvocation`**
+
+Replace the current method (lines 164-207) with:
+
+```csharp
     [Fact]
     public async Task ExecuteMergeAsync_WhenMergeAlreadyInProgress_SkipsSecondInvocation()
     {
@@ -258,7 +317,13 @@ public sealed class CatalogMergeSchedulerTests
             sut.IsMergeInProgress.Should().BeFalse("semaphore should be released after merge");
         }
     }
+```
 
+- [ ] **Step 6: Rewrite tests 5-7 — the `WaitForCurrentMergeAsync` trio**
+
+Replace the current methods (lines 209-278) with:
+
+```csharp
     [Fact]
     public async Task WaitForCurrentMergeAsync_WhenNoMergeInProgress_CompletesImmediately()
     {
@@ -320,7 +385,15 @@ public sealed class CatalogMergeSchedulerTests
         waitTask.IsCompleted.Should().BeTrue("disposed scheduler should return synchronously");
         await waitTask;
     }
+```
 
+All three `Stopwatch`-based "< 50 ms" assertions are gone; `IsCompleted` is a stronger and instantaneous statement of the same intent.
+
+- [ ] **Step 7: Rewrite tests 8-9 — the disposal pair**
+
+Replace the current methods (lines 280-326) with:
+
+```csharp
     [Fact]
     public void ScheduleMerge_AfterDispose_DoesNotFireCallback()
     {
@@ -358,7 +431,15 @@ public sealed class CatalogMergeSchedulerTests
         time.Advance(Debounce * 2);
         invocations.Should().Be(0);
     }
+```
 
+Both become **synchronous** (`void`, no `async`) — with a fake clock there is nothing to await. This removes `Task.Delay(300)` and `Task.Delay(500)` outright.
+
+- [ ] **Step 8: Rewrite tests 10-11 — double-dispose and shutdown**
+
+Replace the current methods (lines 328-364) with:
+
+```csharp
     [Fact]
     public void Dispose_CalledTwice_DoesNotThrow()
     {
@@ -390,7 +471,13 @@ public sealed class CatalogMergeSchedulerTests
 
         invocations.Should().Be(0);
     }
+```
 
+- [ ] **Step 9: Delete the now-obsolete `WaitForCurrentMergeAsync_WhenApplicationStopping_CompletesImmediately`? No — rewrite it**
+
+Replace the current method (lines 366-380) with:
+
+```csharp
     [Fact]
     public async Task WaitForCurrentMergeAsync_WhenApplicationStopping_CompletesImmediately()
     {
@@ -404,7 +491,15 @@ public sealed class CatalogMergeSchedulerTests
             await waitTask;
         }
     }
+```
 
+Note: the current file has **13** `[Fact]` methods, not 12 — this one plus the 12 listed in `spec.r1.md` FR-5. All 13 are preserved.
+
+- [ ] **Step 10: Rewrite the last test — `ScheduleMerge_WhenCallbackThrows_SchedulerRemainsUsable`**
+
+Replace the current method (lines 382-434) with:
+
+```csharp
     [Fact]
     public async Task ScheduleMerge_WhenCallbackThrows_SchedulerRemainsUsable()
     {
@@ -453,3 +548,121 @@ public sealed class CatalogMergeSchedulerTests
             Times.Once);
     }
 }
+```
+
+The final `}` closes the class.
+
+- [ ] **Step 11: Verify no sleeps remain as synchronisation**
+
+```bash
+cd /home/user/worktrees/feature-3886-Arch-Review-Catalog-Catalogmergescheduler-Is-The-O
+grep -n "Task.Delay" backend/test/Anela.Heblo.Tests/Features/Catalog/Infrastructure/CatalogMergeSchedulerTests.cs
+```
+
+Expected: every hit is inside a `Task.WhenAny(...)` failure timeout (`Task.Delay(SignalTimeout)`), and there are exactly **three** — one in `WaitForMergeAsync`, one in `AwaitSignalAsync`, one in `WaitForCurrentMergeAsync_WhenMergeInProgress_BlocksUntilComplete`. Any bare `await Task.Delay(...)` is a plan violation.
+
+```bash
+grep -n "Stopwatch\|DateTime.UtcNow" backend/test/Anela.Heblo.Tests/Features/Catalog/Infrastructure/CatalogMergeSchedulerTests.cs
+```
+
+Expected: **no output**.
+
+- [ ] **Step 12: Build**
+
+```bash
+cd /home/user/worktrees/feature-3886-Arch-Review-Catalog-Catalogmergescheduler-Is-The-O/backend
+dotnet build
+```
+
+Expected: `Build succeeded.`, 0 errors.
+
+- [ ] **Step 13: Run the scheduler tests and check the wall-clock time**
+
+```bash
+cd /home/user/worktrees/feature-3886-Arch-Review-Catalog-Catalogmergescheduler-Is-The-O/backend
+dotnet test test/Anela.Heblo.Tests/Anela.Heblo.Tests.csproj --filter "FullyQualifiedName~CatalogMergeSchedulerTests" -v n
+```
+
+Expected: **Failed: 0, Passed: 13**. The reported duration for the class should be a few hundred milliseconds — the only structural real-time cost left is the ~100 ms `_mergeSemaphore.WaitAsync(100)` inside `ExecuteMergeAsync_WhenMergeAlreadyInProgress_SkipsSecondInvocation`. Compare against the pre-change duration recorded in task 1, Step 10; it should be materially lower.
+
+- [ ] **Step 14: Run the tests repeatedly to prove determinism**
+
+Flakiness is the whole point of this change, so prove it:
+
+```bash
+cd /home/user/worktrees/feature-3886-Arch-Review-Catalog-Catalogmergescheduler-Is-The-O/backend
+for i in 1 2 3 4 5; do
+  dotnet test test/Anela.Heblo.Tests/Anela.Heblo.Tests.csproj \
+    --filter "FullyQualifiedName~CatalogMergeSchedulerTests" --no-build || echo "RUN $i FAILED"
+done
+```
+
+Expected: five clean runs, no `RUN n FAILED` line.
+
+- [ ] **Step 15: Run the wider catalog suite and format**
+
+```bash
+cd /home/user/worktrees/feature-3886-Arch-Review-Catalog-Catalogmergescheduler-Is-The-O/backend
+dotnet test test/Anela.Heblo.Tests/Anela.Heblo.Tests.csproj --filter "FullyQualifiedName~Features.Catalog"
+dotnet format
+```
+
+Expected: `Failed: 0`, and `dotnet format` leaves files outside the two in scope untouched (`git diff --name-only` still shows only `CatalogMergeScheduler.cs` and `CatalogMergeSchedulerTests.cs`).
+
+- [ ] **Step 16: Commit**
+
+```bash
+cd /home/user/worktrees/feature-3886-Arch-Review-Catalog-Catalogmergescheduler-Is-The-O
+git add backend/test/Anela.Heblo.Tests/Features/Catalog/Infrastructure/CatalogMergeSchedulerTests.cs
+git commit -m "test(catalog): drive CatalogMergeSchedulerTests with FakeTimeProvider
+
+Replaces real-time Task.Delay waits with FakeTimeProvider.Advance plus
+TaskCompletionSource barriers. All 13 tests and the three log assertions
+are preserved. The only remaining real-time cost is the contended
+_mergeSemaphore.WaitAsync(100), which is out of scope.
+
+Refs #3886"
+```
+
+---
+
+## Self-Review
+
+**1. Spec coverage**
+
+| Spec item | Covered by |
+|-----------|-----------|
+| FR-1 (constructor takes `TimeProvider`) | Task 1, Steps 1 + 3; verified Step 7 |
+| FR-2 (clock reads via `TimeProvider`) | Task 1, Steps 4 + 6; verified Step 7; `DateTimeKind` invariant asserted in Task 2, Step 2 |
+| FR-3 (timer via `TimeProvider`) | Task 1, Steps 2 + 5; verified Step 7; fake-clock behaviour proven in Task 2, Steps 2/3/7 |
+| FR-4 (all construction sites updated) | Task 1, Step 8; `CatalogModule.cs` explicitly left alone (Step 7 `git diff --name-only` check) |
+| FR-5 (tests converted to `FakeTimeProvider`) | Task 2, Steps 1-10; all 13 test names preserved |
+| NFR-1 (runtime + determinism) | Task 2, Steps 11, 13, 14 |
+| NFR-2 (behaviour preservation) | Task 1, Step 10 — the unmodified real-time tests must pass against the refactored class; plus the three surviving log assertions |
+| NFR-3 (residual non-determinism documented) | Task 2 context section + the inline comment in Step 5 |
+| Arch amendment 1 (append parameter last) | Task 1, Step 3 |
+| Arch amendment 2 (no null guard) | Task 1 context section |
+| Arch amendment 3 (`.UtcDateTime`, `Kind` assertion) | Task 1 context + Task 2, Step 2 |
+| Arch amendment 4 (fixed fake epoch, exact assertion) | Task 2, Steps 1 + 2 |
+| Arch amendment 5 (TCS synchronisation rule) | Task 2, Step 1 (`WaitForMergeAsync`) + Step 11 grep gate |
+| Arch amendment 6 (production-like option values) | Task 2, Step 1 (`Debounce = 5s`, `MaxInterval = 30min`) |
+| Arch amendment 7 (honest NFR-1 target) | Task 2, Step 13 |
+| Arch amendment 8 (`CatalogModule.cs` untouched) | Task 1, Step 7 |
+
+No gaps.
+
+**2. Placeholder scan**
+
+Every code step contains the complete replacement text. No "TBD", no "similar to task N", no "add error handling". The full rewritten test file is spelled out across Task 2, Steps 1-10.
+
+**3. Type consistency**
+
+- `CreateScheduler` returns a 3-tuple `(sut, logger, time)` in Task 2 and is destructured as `(sut, _, time)` / `(sut, logger, time)` / `(sut, _, _)` consistently in all 13 tests.
+- Task 1, Step 8 keeps the **2**-tuple shape — deliberately, because Task 1 must not touch the 13 test bodies. Task 2, Step 1 replaces the helper wholesale with the 3-tuple version at the same time it rewrites every caller, so the two shapes never coexist.
+- `Options_(debounce, maxInterval)`, `NewSignal()`, `WaitForMergeAsync(sut, signal, because)`, `AwaitSignalAsync(signal, because)` and `VerifyLogged(logger, level, substring)` are each defined once in Step 1 and used with matching arity everywhere.
+- `Debounce`, `MaxInterval`, `TestStart` and `SignalTimeout` are the only shared constants and are all declared in Step 1.
+- `ITimer?` (production field) and `FakeTimeProvider` (test) never appear in each other's file.
+
+**4. Discrepancy found and corrected**
+
+`spec.r1.md` FR-5 lists 12 tests. The file actually contains **13** `[Fact]` methods — the spec's list omits `WaitForCurrentMergeAsync_WhenApplicationStopping_CompletesImmediately`. Task 2, Step 9 covers it explicitly so it is not silently dropped.
