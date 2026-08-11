@@ -3,12 +3,22 @@ import { act, fireEvent, render, screen, waitFor } from "@testing-library/react"
 import "@testing-library/jest-dom";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import toast from "react-hot-toast";
 import { createMockApiClient, mockAuthenticatedApiClient } from "../../../../../api/testUtils";
 import { MIND_MAPS_KEYS } from "../../../../../api/hooks/useMindMaps";
 import { MindMapDocument } from "../mindMapDocument";
 import MindMapDetailPage from "../MindMapDetailPage";
 
 jest.mock("../../../../../api/client");
+
+// No <Toaster/> is mounted in these tests, so toast.error()/toast.success() calls
+// against the real module would just vanish into its internal store with nothing
+// to assert on. Mock it so the dirty-map guards (regenerate/attach/restore) can be
+// asserted on directly, the same way MindMapSidePanel.test.tsx does.
+jest.mock("react-hot-toast", () => ({
+  __esModule: true,
+  default: { success: jest.fn(), error: jest.fn() },
+}));
 
 // The canvas renders through mind-elixir, which needs browser APIs jsdom doesn't
 // provide. These tests are about MindMapDetailPage's own save/adoption/read-only
@@ -339,6 +349,36 @@ describe("MindMapDetailPage", () => {
     // screen; a transient refetch failure must not fall back to the error state.
     expect(screen.getByTestId("mindmap-canvas-stub")).toBeInTheDocument();
     expect(screen.queryByText("Nepodařilo se načíst mapu")).not.toBeInTheDocument();
+  });
+
+  it("refuses to regenerate while the map is dirty, with a Czech toast, mirroring the attach- and restore-while-dirty guards", async () => {
+    const { mockClient, mockFetch } = createMockApiClient(BASE_URL);
+    mockAuthenticatedApiClient(mockClient);
+    // Regenerate only renders for Failed status or a pending (unprocessed) meeting —
+    // see MindMapDetailPage.tsx's canRegenerate.
+    const detailWithPendingMeeting = buildDetail({
+      meetings: [
+        {
+          meetingTranscriptId: "m1",
+          subject: "Porada",
+          plaudCreatedAt: "2026-08-01T00:00:00Z",
+          processedAt: null,
+        },
+      ],
+    });
+    mockFetch.mockImplementation((url: string) => {
+      if (url === DETAIL_URL) return jsonResponse(detailWithPendingMeeting);
+      throw new Error(`Unexpected fetch: ${url}`);
+    });
+
+    const queryClient = newQueryClient();
+    renderPage(queryClient);
+    await screen.findByTestId("mindmap-canvas-stub");
+
+    fireEvent.click(screen.getByTestId("stub-edit"));
+    fireEvent.click(screen.getByTestId("mindmap-regenerate-button"));
+
+    expect(toast.error).toHaveBeenCalledWith("Nejprve uložte mapu, poté ji můžete regenerovat.");
   });
 
   it("marks the map dirty when the canvas reports an edit", async () => {

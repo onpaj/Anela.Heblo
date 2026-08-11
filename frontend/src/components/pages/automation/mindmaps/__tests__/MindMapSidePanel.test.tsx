@@ -181,11 +181,22 @@ describe("MindMapSidePanel", () => {
   it("shows each node's own values, and an abandoned draft does not leak across selections", () => {
     // The draft is reset by keying the field on the node id; without that key, typing
     // into one node and selecting another would show the first node's text.
-    const { unmount } = renderPanel({ document: docWithChildren(), selectedNodeId: "a" });
+    // Rerendering the SAME tree (not unmount + fresh render) is what actually
+    // exercises that: unmounting would re-initialise useState(value) from props
+    // regardless of the `key`, making the test pass even with the key removed.
+    const { rerender } = renderPanel({ document: docWithChildren(), selectedNodeId: "a" });
     fireEvent.change(screen.getByTestId("mindmap-panel-title-input"), { target: { value: "rozepsáno" } });
-    unmount();
 
-    renderPanel({ document: docWithChildren(), selectedNodeId: "b" });
+    rerender(
+      <MindMapSidePanel
+        detail={buildDetail()}
+        document={docWithChildren()}
+        selectedNodeId="b"
+        isReadOnly={false}
+        isDirty={false}
+        onUpdateNode={jest.fn()}
+      />,
+    );
     expect(screen.getByTestId("mindmap-panel-title-input")).toHaveValue("List B");
   });
 

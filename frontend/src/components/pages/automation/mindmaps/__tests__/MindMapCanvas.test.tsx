@@ -200,6 +200,26 @@ describe("MindMapCanvas", () => {
     expect(onSelectNode).toHaveBeenCalledWith(null);
   });
 
+  it("reports the node id upward when a plain click selects exactly one node (the real selection path)", () => {
+    // A plain user click fires `selectNodes` with a one-element array, not
+    // `selectNewNode` — see the handleSelectNodes comment in MindMapCanvas.tsx.
+    const onSelectNode = jest.fn();
+    renderCanvas({ onSelectNode });
+    act(() => {
+      instance.bus.fire("selectNodes", [{ id: "a" }]);
+    });
+    expect(onSelectNode).toHaveBeenCalledWith("a");
+  });
+
+  it("reports nothing when selectNodes fires with more than one node (multi-select must not produce a bogus single selection)", () => {
+    const onSelectNode = jest.fn();
+    renderCanvas({ onSelectNode });
+    act(() => {
+      instance.bus.fire("selectNodes", [{ id: "a" }, { id: "b" }]);
+    });
+    expect(onSelectNode).not.toHaveBeenCalled();
+  });
+
   it("disables editing while the map is read-only and re-enables it after", () => {
     const { rerender, ref } = renderCanvas({ isReadOnly: true });
     expect(instance.disableEdit).toHaveBeenCalled();
@@ -243,6 +263,98 @@ describe("MindMapCanvas", () => {
         metadata: { status: "done", owner: "Bára", lockedBy: null, sourceMeetingIds: ["m1"] },
       }),
     );
+  });
+
+  it("expandAll expands every node starting from the root", () => {
+    // resetMocks (CRA's Jest default) strips findEle's default implementation
+    // before every test, same as the beforeEach hook has to restore it for
+    // mockMindElixir — give it one here too.
+    const rootEle = { nodeObj: { id: "root" } };
+    instance.findEle.mockReturnValue(rootEle);
+    const { ref } = renderCanvas();
+    act(() => {
+      ref.current!.expandAll();
+    });
+    expect(instance.findEle).toHaveBeenCalledWith(instance.nodeData.id);
+    expect(instance.expandNodeAll).toHaveBeenCalledWith(rootEle, true);
+  });
+
+  it("collapseAll collapses everything, then re-expands the root so the map never disappears", () => {
+    const rootEle = { nodeObj: { id: "root" } };
+    instance.findEle.mockReturnValue(rootEle);
+    const { ref } = renderCanvas();
+    act(() => {
+      ref.current!.collapseAll();
+    });
+    expect(instance.expandNodeAll).toHaveBeenCalledWith(rootEle, false);
+    expect(instance.expandNode).toHaveBeenCalledWith(rootEle, true);
+    // Order matters: re-expanding the root before the collapse would just have it
+    // collapsed again by expandNodeAll.
+    expect(instance.expandNodeAll.mock.invocationCallOrder[0]).toBeLessThan(
+      instance.expandNode.mock.invocationCallOrder[0],
+    );
+  });
+
+  it("fit re-centers before rescaling to fit", () => {
+    const { ref } = renderCanvas();
+    act(() => {
+      ref.current!.fit();
+    });
+    expect(instance.toCenter).toHaveBeenCalledTimes(1);
+    expect(instance.scaleFit).toHaveBeenCalledTimes(1);
+    expect(instance.toCenter.mock.invocationCallOrder[0]).toBeLessThan(
+      instance.scaleFit.mock.invocationCallOrder[0],
+    );
+  });
+
+  it("addChild adds a child under the currently selected node", () => {
+    instance.currentNode = { id: "root" };
+    const { ref } = renderCanvas();
+    act(() => {
+      ref.current!.addChild();
+    });
+    expect(instance.addChild).toHaveBeenCalledWith(instance.currentNode);
+  });
+
+  it("addChild does nothing when nothing is selected", () => {
+    instance.currentNode = null;
+    const { ref } = renderCanvas();
+    act(() => {
+      ref.current!.addChild();
+    });
+    expect(instance.addChild).not.toHaveBeenCalled();
+  });
+
+  it("addSibling inserts a sibling after the currently selected node", () => {
+    instance.currentNode = { id: "a" };
+    const { ref } = renderCanvas();
+    act(() => {
+      ref.current!.addSibling();
+    });
+    expect(instance.insertSibling).toHaveBeenCalledWith("after", instance.currentNode);
+  });
+
+  it("addSibling does nothing when nothing is selected", () => {
+    instance.currentNode = null;
+    const { ref } = renderCanvas();
+    act(() => {
+      ref.current!.addSibling();
+    });
+    expect(instance.insertSibling).not.toHaveBeenCalled();
+  });
+
+  it("exportPng resolves whatever blob mind-elixir produces", async () => {
+    const blob = new Blob(["png"]);
+    instance.exportPng.mockResolvedValue(blob);
+    const { ref } = renderCanvas();
+    await expect(ref.current!.exportPng()).resolves.toBe(blob);
+  });
+
+  it("exportSvg returns whatever blob mind-elixir produces", () => {
+    const blob = new Blob(["svg"]);
+    instance.exportSvg.mockReturnValue(blob);
+    const { ref } = renderCanvas();
+    expect(ref.current!.exportSvg()).toBe(blob);
   });
 
   it("destroys the instance on unmount", () => {
