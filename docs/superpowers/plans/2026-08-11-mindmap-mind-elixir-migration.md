@@ -660,7 +660,7 @@ git commit -m "feat: express the mind map palette as mind-elixir light/dark them
 - Produces:
   - `interface MindMapCanvasHandle { getDocument(): MindMapDocument | null; expandAll(): void; collapseAll(): void; fit(): void; addChild(): void; addSibling(): void; undo(): void; patchNode(nodeId: string, patch: MindMapNodePatch): void; exportPng(): Promise<Blob | null>; exportSvg(): Blob | null; }`
 
-  Note there is deliberately no `remove()`: deletion is reached through ⌫ and mind-elixir's context menu, and an unused handle method is dead code.
+  Note there is deliberately no `remove()`: deletion is reached through ⌫, and an unused handle method is dead code.
   - `type MindMapNodePatch = Partial<Pick<MindMapNode, "title" | "notes" | "owner" | "status">>`
   - `interface MindMapCanvasProps { initialDocument, documentRevision, isReadOnly, onChange, onSelectNode }`
 
@@ -778,6 +778,16 @@ describe("MindMapCanvas", () => {
       expect.objectContaining({ direction: 2, allowUndo: true }),
     );
     expect(instance.init).toHaveBeenCalledTimes(1);
+  });
+
+  it("keeps mind-elixir's own context menu and toolbar off", () => {
+    // The context menu can create arrows and summaries, neither of which
+    // MindMapDocument stores — they would be silently dropped on the next save —
+    // and mind-elixir has no Czech language pack for it.
+    renderCanvas();
+    expect(MindElixirMock.mock.calls[0][0]).toEqual(
+      expect.objectContaining({ contextMenu: false, toolBar: false }),
+    );
   });
 
   it("does not re-initialise when the revision is unchanged", () => {
@@ -983,7 +993,16 @@ const MindMapCanvas = forwardRef<MindMapCanvasHandle, MindMapCanvasProps>(functi
       el: container,
       direction: MindElixir.SIDE,
       allowUndo: true,
-      contextMenu: true,
+      // Off for two independent reasons, both load-bearing:
+      //  1. Its menu creates arrows ("link") and summaries. MindMapDocument stores
+      //     neither, and fromMindElixir reads only `nodeData` — anything a user
+      //     created that way would be silently discarded on the next save. The
+      //     ContextMenuOption type can disable `link` but NOT `summary`, so there
+      //     is no partial setting that closes the hole.
+      //  2. mind-elixir ships no Czech language pack (cn/en/ru/ja/pt/it/es/fr/ko/
+      //     ro/da/fi/de/nl only), and this UI is Czech throughout.
+      // Our toolbar covers add-sibling/add-child/undo, ⌫ deletes, and ⌘↑/⌘↓ reorder.
+      contextMenu: false,
       toolBar: false, // we render our own Czech toolbar
       keypress: true,
       theme: themeFor(theme === "dark" ? "dark" : "light"),
@@ -1682,7 +1701,7 @@ Replace the title, notes and owner blocks inside `NodeTab` with:
 
 Leave the status `<select>` calling `onUpdateNode` directly — a select commits atomically.
 
-Remove the "Přidat poduzel" / "Sbalit" / "Smazat uzel" buttons from `NodeTab`, the `onAddChild`, `onDeleteNode`, `onToggleCollapsed` props from `MindMapSidePanelProps` and `NodeTabProps`, and the matching no-op props from the `<MindMapSidePanel>` element in `MindMapDetailPage.tsx` (added in Task 5, Step 6). mind-elixir's own context menu and the toolbar now own those actions, and a second path that bypasses the instance would desync it.
+Remove the "Přidat poduzel" / "Sbalit" / "Smazat uzel" buttons from `NodeTab`, the `onAddChild`, `onDeleteNode`, `onToggleCollapsed` props from `MindMapSidePanelProps` and `NodeTabProps`, and the matching no-op props from the `<MindMapSidePanel>` element in `MindMapDetailPage.tsx` (added in Task 5, Step 6). The toolbar owns adding, the node's own expander owns collapsing and ⌫ owns deleting; a second path that bypasses the instance would desync it.
 
 - [ ] **Step 4: Run the panel tests**
 
@@ -1873,7 +1892,6 @@ const SHORTCUTS: Array<[string, string]> = [
   ["↑ ↓ ← →", "chodit po mapě"],
   ["⌘Z / ⌘⇧Z", "zpět / znovu"],
   ["⌘S", "uložit mapu"],
-  ["pravé tlačítko", "nabídka uzlu"],
   ["táhnutí uzlu", "přesunout pod jiný uzel"],
 ];
 ```
@@ -2154,9 +2172,9 @@ These are intentional consequences of the migration, worth knowing before review
 | Delete only via the side panel, behind a `window.confirm` | ⌫ deletes the selected node immediately; ⌘Z undoes it |
 | Undo capped at 60 steps, ours | mind-elixir's own history; `clearHistory()` on every document reload |
 | No drag | Drag a node onto another to re-parent it |
-| Nothing | PNG/SVG export, multi-select, copy/paste, node context menu |
+| Nothing | PNG/SVG export, multi-select, copy/paste |
 | Side panel typing patched the document per keystroke | Title/notes/owner commit on blur |
-| Side panel had "Přidat poduzel" / "Sbalit" / "Smazat uzel" | Those live on the toolbar and mind-elixir's context menu |
+| Side panel had "Přidat poduzel" / "Sbalit" / "Smazat uzel" | Add lives on the toolbar; collapse is the node's own expander; delete is ⌫ |
 | Branch colours derived by us from branch index | mind-elixir assigns from `theme.palette` by branch index — same behaviour, its implementation |
 
 ## Rollback
