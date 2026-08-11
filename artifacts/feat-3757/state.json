@@ -34,9 +34,9 @@
     },
     {
       "name": "photobank-phototag-schema-regression-test",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-08-11T03:16:22.109714Z"
+      "updated_at": "2026-08-11T03:39:40.578161Z"
     },
     {
       "name": "photobank-schema-drift-health-check",
