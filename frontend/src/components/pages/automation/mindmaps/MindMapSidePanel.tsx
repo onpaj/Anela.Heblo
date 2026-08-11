@@ -47,7 +47,6 @@ export interface MindMapSidePanelProps {
   onAddChild: (parentId: string) => void;
   onDeleteNode: (nodeId: string) => void;
   onToggleCollapsed: (nodeId: string) => void;
-  titleInputRef?: React.RefObject<HTMLInputElement>;
 }
 
 // --- "Uzel" tab ---
@@ -60,7 +59,6 @@ interface NodeTabProps {
   onAddChild: MindMapSidePanelProps["onAddChild"];
   onDeleteNode: MindMapSidePanelProps["onDeleteNode"];
   onToggleCollapsed: MindMapSidePanelProps["onToggleCollapsed"];
-  titleInputRef?: React.RefObject<HTMLInputElement>;
 }
 
 const NodeTab: React.FC<NodeTabProps> = ({
@@ -71,7 +69,6 @@ const NodeTab: React.FC<NodeTabProps> = ({
   onAddChild,
   onDeleteNode,
   onToggleCollapsed,
-  titleInputRef,
 }) => {
   const node = doc.nodes.find((n) => n.id === selectedNodeId) ?? null;
 
@@ -94,7 +91,6 @@ const NodeTab: React.FC<NodeTabProps> = ({
         </label>
         <input
           id="mindmap-node-title"
-          ref={titleInputRef}
           type="text"
           data-testid="mindmap-panel-title-input"
           value={node.title}
@@ -444,7 +440,6 @@ const MindMapSidePanel: React.FC<MindMapSidePanelProps> = ({
   onAddChild,
   onDeleteNode,
   onToggleCollapsed,
-  titleInputRef,
 }) => {
   const [activeTab, setActiveTab] = useState<SidePanelTab>("node");
 
@@ -483,7 +478,6 @@ const MindMapSidePanel: React.FC<MindMapSidePanelProps> = ({
             onAddChild={onAddChild}
             onDeleteNode={onDeleteNode}
             onToggleCollapsed={onToggleCollapsed}
-            titleInputRef={titleInputRef}
           />
         )}
         {activeTab === "meetings" && (

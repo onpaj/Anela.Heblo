@@ -1,5 +1,5 @@
 import React from "react";
-import { act, render } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import "@testing-library/jest-dom";
 import { MindMapDocument } from "../mindMapDocument";
 
@@ -13,9 +13,8 @@ jest.mock("@xyflow/react/dist/style.css", () => ({}));
 
 // Real React Flow needs browser APIs (ResizeObserver etc.) jsdom doesn't provide,
 // and no test in this repo renders it. Stub only the visual `ReactFlow` component
-// (keeping the real `applyNodeChanges` and types via `requireActual`) so these
-// tests exercise MindMapCanvas's own onNodesChange filtering and prop wiring
-// without needing a browser.
+// (keeping the real types via `requireActual`) so these tests exercise
+// MindMapCanvas's own prop wiring without needing a browser.
 const mockReactFlow = jest.fn((props: any) => (
   <div data-testid="reactflow-stub">
     {props.nodes.map((n: any) => (
@@ -65,15 +64,21 @@ function latestProps() {
 
 const noop = () => {};
 
-function renderCanvas(selectedNodeId: string | null = null) {
+function renderCanvas(overrides: Partial<React.ComponentProps<typeof MindMapCanvas>> = {}) {
   return render(
     <MindMapCanvas
       document={buildDoc()}
       isReadOnly={false}
-      selectedNodeId={selectedNodeId}
+      selectedNodeId={null}
+      editingNodeId={null}
       onSelectNode={noop}
-      onNodeDragStop={noop}
       onNodeDoubleClick={noop}
+      onCommitEdit={noop}
+      onCancelEdit={noop}
+      onCommitAndAddSibling={noop}
+      onToggleCollapsed={noop}
+      onKeyDown={noop}
+      {...overrides}
     />,
   );
 }
@@ -88,19 +93,39 @@ describe("MindMapCanvas", () => {
     expect(latestProps().deleteKeyCode).toBeNull();
   });
 
-  it("does not let a `remove` change (e.g. from a stray Backspace) desync the canvas from the document", () => {
-    renderCanvas("root");
-    expect(latestProps().nodes.some((n: any) => n.id === "root")).toBe(true);
+  it("keeps nodes undraggable — the two-sided layout owns every position", () => {
+    renderCanvas();
+    expect(latestProps().nodesDraggable).toBe(false);
+  });
+
+  it("marks only the selected node as selected", () => {
+    renderCanvas({ selectedNodeId: "root" });
+    expect(latestProps().nodes.find((n: any) => n.id === "root").selected).toBe(true);
+  });
+
+  it("hands the page a fitView callback once React Flow initialises", () => {
+    const fitView = jest.fn();
+    const onFitViewReady = jest.fn();
+    renderCanvas({ onFitViewReady });
 
     act(() => {
-      latestProps().onNodesChange([{ id: "root", type: "remove" }]);
+      latestProps().onInit({ fitView } as any);
     });
 
-    // A `remove` change is not one of the types this canvas mirrors — the node
-    // must still be present after it. Node deletion has exactly one real path:
-    // the side panel's "Smazat uzel", which goes through the document (and
-    // marks it dirty). If this regresses, the node vanishes from the canvas
-    // while staying in `localDoc`, silently reappearing on the next edit.
-    expect(latestProps().nodes.some((n: any) => n.id === "root")).toBe(true);
+    expect(onFitViewReady).toHaveBeenCalledTimes(1);
+    onFitViewReady.mock.calls[0][0]();
+    expect(fitView).toHaveBeenCalled();
+  });
+
+  it("scopes shortcut handling to the canvas element rather than the document", () => {
+    const onKeyDown = jest.fn();
+    renderCanvas({ onKeyDown });
+    const canvas = screen.getByTestId("mindmap-canvas");
+
+    // Focusable, so Enter/Tab/Space are only intercepted while the map has focus —
+    // typing in the side panel's inputs must never reach these shortcuts.
+    expect(canvas).toHaveAttribute("tabindex", "0");
+    fireEvent.keyDown(canvas, { key: "Enter" });
+    expect(onKeyDown).toHaveBeenCalled();
   });
 });

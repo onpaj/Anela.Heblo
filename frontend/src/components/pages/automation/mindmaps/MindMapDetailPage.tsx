@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft, RefreshCw, Save } from "lucide-react";
@@ -14,16 +14,25 @@ import {
 } from "../../../../api/hooks/useMindMaps";
 import {
   addChildNode,
+  addSiblingNode,
   deleteNode,
+  indentNode,
   MindMapDocument,
   MindMapNode,
+  moveNode,
+  outdentNode,
   parseDocument,
-  setNodePosition,
+  renameNode,
+  setAllCollapsed,
   toggleCollapsed,
   updateNodeFields,
 } from "./mindMapDocument";
 import MindMapCanvas from "./MindMapCanvas";
 import MindMapSidePanel from "./MindMapSidePanel";
+import MindMapToolbar from "./MindMapToolbar";
+import MindMapHelpSheet from "./MindMapHelpSheet";
+import { useMindMapKeyboard } from "./useMindMapKeyboard";
+import { useMindMapUndo } from "./useMindMapUndo";
 import { PAGE_CONTAINER_HEIGHT } from "../../../../constants/layout";
 import { useScreenView } from "../../../../telemetry/useScreenView";
 
@@ -33,6 +42,9 @@ const STATUS_BADGE: Record<string, { label: string; className: string }> = {
   Failed: { label: "Chyba", className: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300" },
 };
 const DEFAULT_STATUS_BADGE = { className: "bg-gray-100 text-gray-800 dark:bg-graphite-surface-2 dark:text-graphite-muted" };
+
+const NEW_NODE_TITLE = "Nový uzel";
+const EMPTY_TITLE_PLACEHOLDER = "…";
 
 const MindMapDetailPage: React.FC = () => {
   useScreenView("Automation", "MindMapDetail");
@@ -45,9 +57,12 @@ const MindMapDetailPage: React.FC = () => {
   const [localDoc, setLocalDoc] = useState<MindMapDocument | null>(null);
   const [isDirty, setIsDirty] = useState(false);
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
+  const [editingNodeId, setEditingNodeId] = useState<string | null>(null);
+  const [isHelpOpen, setIsHelpOpen] = useState(false);
   const [hasDocumentParseError, setHasDocumentParseError] = useState(false);
   const loadedJsonRef = useRef<string | null>(null);
-  const titleInputRef = useRef<HTMLInputElement>(null);
+  const fitViewRef = useRef<(() => void) | null>(null);
+  const { canUndo, push: pushUndo, pop: popUndo, clear: clearUndo } = useMindMapUndo();
 
   const isReadOnly = detail?.status === "Updating";
 
@@ -67,18 +82,35 @@ const MindMapDetailPage: React.FC = () => {
       try {
         setLocalDoc(parseDocument(detail.documentJson));
         setHasDocumentParseError(false);
+        // History from the previous document would restore ids the server no longer
+        // knows about, so it never survives adopting a new one.
+        clearUndo();
       } catch {
         setHasDocumentParseError(true);
       }
     }
-  }, [detail, isDirty]);
+  }, [detail, isDirty, clearUndo]);
 
+  /** Continuous edits (typing in the side panel) — dirty, but not one undo step per keystroke. */
   const applyEdit = (next: MindMapDocument) => {
     setLocalDoc(next);
     setIsDirty(true);
   };
 
-  const handleSave = async (): Promise<boolean> => {
+  /** Discrete edits (structure changes, committed inline renames) — undoable. */
+  const commitEdit = (previous: MindMapDocument, next: MindMapDocument) => {
+    if (next === previous) return;
+    pushUndo(previous);
+    setLocalDoc(next);
+    setIsDirty(true);
+  };
+
+  const mutate = (mutator: (doc: MindMapDocument) => MindMapDocument) => {
+    if (!localDoc) return;
+    commitEdit(localDoc, mutator(localDoc));
+  };
+
+  const handleSave = useCallback(async (): Promise<boolean> => {
     if (!id || !localDoc) return false;
 
     let result: { documentJson: string };
@@ -107,6 +139,9 @@ const MindMapDetailPage: React.FC = () => {
     );
     loadedJsonRef.current = result.documentJson;
     setIsDirty(false);
+    // Snapshots taken before the save hold client-side `tmp-` ids the server has now
+    // replaced; restoring one would re-add those nodes as brand new on the next save.
+    clearUndo();
 
     // A malformed canonical response is a distinct failure from a failed save
     // request — the mutation already succeeded, so this must not be reported as
@@ -118,9 +153,21 @@ const MindMapDetailPage: React.FC = () => {
       toast.error("Mapa byla uložena, ale odpověď serveru se nepodařilo zobrazit. Načtěte stránku znovu.");
     }
     return true;
-  };
+  }, [id, localDoc, saveDocument, queryClient, clearUndo]);
 
   const { dialogProps, requestNavigation } = useUnsavedChangesDialog(isDirty, handleSave);
+
+  // ⌘S is the one shortcut that stays document-wide: it must work while the user is
+  // typing in the side panel, not only when the canvas has focus.
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (!(event.metaKey || event.ctrlKey) || event.key.toLowerCase() !== "s") return;
+      event.preventDefault();
+      if (isDirty && !isReadOnly) void handleSave();
+    };
+    window.document.addEventListener("keydown", onKeyDown);
+    return () => window.document.removeEventListener("keydown", onKeyDown);
+  }, [handleSave, isDirty, isReadOnly]);
 
   const handleUpdateNode = (
     nodeId: string,
@@ -130,38 +177,112 @@ const MindMapDetailPage: React.FC = () => {
     applyEdit(updateNodeFields(localDoc, nodeId, patch));
   };
 
-  const focusTitleInput = () => {
-    requestAnimationFrame(() => titleInputRef.current?.focus());
+  const handleAddChild = (parentId: string) => {
+    if (!localDoc || isReadOnly) return;
+    const { doc, newNodeId } = addChildNode(localDoc, parentId, NEW_NODE_TITLE);
+    commitEdit(localDoc, doc);
+    setSelectedNodeId(newNodeId);
+    setEditingNodeId(newNodeId);
   };
 
-  const handleAddChild = (parentId: string) => {
-    if (!localDoc) return;
-    const { doc, newNodeId } = addChildNode(localDoc, parentId, "Nový uzel");
-    applyEdit(doc);
+  const handleAddSibling = (nodeId: string) => {
+    if (!localDoc || isReadOnly) return;
+    const { doc, newNodeId } = addSiblingNode(localDoc, nodeId, NEW_NODE_TITLE);
+    commitEdit(localDoc, doc);
     setSelectedNodeId(newNodeId);
-    focusTitleInput();
+    setEditingNodeId(newNodeId);
   };
 
   const handleDeleteNode = (nodeId: string) => {
-    if (!localDoc) return;
-    applyEdit(deleteNode(localDoc, nodeId));
+    if (!localDoc || isReadOnly) return;
+    mutate((doc) => deleteNode(doc, nodeId));
     if (selectedNodeId === nodeId) setSelectedNodeId(null);
+    if (editingNodeId === nodeId) setEditingNodeId(null);
   };
 
   const handleToggleCollapsed = (nodeId: string) => {
-    if (!localDoc) return;
-    applyEdit(toggleCollapsed(localDoc, nodeId));
-  };
-
-  const handleNodeDragStop = (nodeId: string, position: { x: number; y: number }) => {
-    if (!localDoc) return;
-    applyEdit(setNodePosition(localDoc, nodeId, position));
+    if (isReadOnly) return;
+    mutate((doc) => toggleCollapsed(doc, nodeId));
   };
 
   const handleNodeDoubleClick = (nodeId: string) => {
     setSelectedNodeId(nodeId);
-    if (!isReadOnly) focusTitleInput();
+    if (!isReadOnly) setEditingNodeId(nodeId);
   };
+
+  const handleStartEdit = (nodeId: string) => {
+    if (!isReadOnly) setEditingNodeId(nodeId);
+  };
+
+  const handleCommitInlineEdit = (nodeId: string, rawTitle: string) => {
+    setEditingNodeId(null);
+    if (!localDoc || isReadOnly) return;
+    const title = rawTitle.trim() || EMPTY_TITLE_PLACEHOLDER;
+    // Closing the editor without typing anything (blur, Escape, clicking the side
+    // panel) must not mark the map dirty or burn an undo step.
+    if (localDoc.nodes.find((n) => n.id === nodeId)?.title === title) return;
+    commitEdit(localDoc, renameNode(localDoc, nodeId, title));
+  };
+
+  // Enter while editing: commit the text and immediately open a fresh sibling, so a
+  // list can be typed without touching the mouse. Both changes are one undo step.
+  const handleCommitAndAddSibling = (nodeId: string, rawTitle: string) => {
+    if (!localDoc || isReadOnly) {
+      setEditingNodeId(null);
+      return;
+    }
+    const title = rawTitle.trim() || EMPTY_TITLE_PLACEHOLDER;
+    const renamed = renameNode(localDoc, nodeId, title);
+    const { doc, newNodeId } = addSiblingNode(renamed, nodeId, NEW_NODE_TITLE);
+    commitEdit(localDoc, doc);
+    setSelectedNodeId(newNodeId);
+    setEditingNodeId(newNodeId);
+  };
+
+  const handleUndo = () => {
+    const previous = popUndo();
+    if (!previous) {
+      toast("Není co vrátit");
+      return;
+    }
+    setLocalDoc(previous);
+    setIsDirty(true);
+    setEditingNodeId(null);
+    if (!previous.nodes.some((n) => n.id === selectedNodeId)) setSelectedNodeId(null);
+  };
+
+  const handleSetAllCollapsed = (collapsed: boolean) => {
+    if (isReadOnly) return;
+    mutate((doc) => setAllCollapsed(doc, collapsed));
+    requestAnimationFrame(() => fitViewRef.current?.());
+  };
+
+  const keyboardHandlers = useMemo(
+    () => ({
+      onSelect: setSelectedNodeId,
+      onStartEdit: handleStartEdit,
+      onAddSibling: handleAddSibling,
+      onAddChild: handleAddChild,
+      onDelete: handleDeleteNode,
+      onToggleCollapsed: handleToggleCollapsed,
+      onIndent: (nodeId: string) => mutate((doc) => indentNode(doc, nodeId)),
+      onOutdent: (nodeId: string) => mutate((doc) => outdentNode(doc, nodeId)),
+      onMove: (nodeId: string, delta: number) => mutate((doc) => moveNode(doc, nodeId, delta)),
+      onUndo: handleUndo,
+    }),
+    // Every handler closes over the current localDoc/selection, so the object is
+    // rebuilt whenever those change — which is exactly when the shortcuts must
+    // start acting on the new state.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [localDoc, selectedNodeId, editingNodeId, isReadOnly],
+  );
+
+  const handleCanvasKeyDown = useMindMapKeyboard({
+    document: localDoc,
+    selectedNodeId,
+    isEnabled: !isReadOnly && editingNodeId === null && !isHelpOpen,
+    handlers: keyboardHandlers,
+  });
 
   const handleRegenerate = async () => {
     if (!id) return;
@@ -257,7 +378,12 @@ const MindMapDetailPage: React.FC = () => {
             data-testid="mindmap-save-button"
             onClick={handleSave}
             disabled={!isDirty || isReadOnly || saveDocument.isPending}
-            className="inline-flex items-center px-3 py-1.5 text-sm rounded-lg font-medium bg-indigo-600 text-white hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed"
+            title="⌘S"
+            // Amber while there are unsaved changes, matching the template's "the save
+            // button stays orange until it is safe to close" cue.
+            className={`inline-flex items-center px-3 py-1.5 text-sm rounded-lg font-medium text-white disabled:opacity-50 disabled:cursor-not-allowed ${
+              isDirty ? "bg-amber-600 hover:bg-amber-700" : "bg-indigo-600 hover:bg-indigo-700"
+            }`}
           >
             <Save className="w-4 h-4 mr-1" />
             {saveDocument.isPending ? "Ukládám..." : "Uložit"}
@@ -291,16 +417,38 @@ const MindMapDetailPage: React.FC = () => {
       )}
 
       <div className="flex-1 flex overflow-hidden mt-3 px-4 sm:px-6 lg:px-8 pb-4 gap-3">
-        <div className="flex-1 min-h-[70vh] border border-gray-200 dark:border-graphite-border rounded-lg overflow-hidden">
+        <div className="relative flex-1 min-h-[70vh] border border-gray-200 dark:border-graphite-border rounded-lg overflow-hidden bg-[#FAF8F5] dark:bg-graphite-bg">
           {localDoc && (
-            <MindMapCanvas
-              document={localDoc}
-              isReadOnly={isReadOnly}
-              selectedNodeId={selectedNodeId}
-              onSelectNode={setSelectedNodeId}
-              onNodeDragStop={handleNodeDragStop}
-              onNodeDoubleClick={handleNodeDoubleClick}
-            />
+            <>
+              <MindMapToolbar
+                isReadOnly={isReadOnly}
+                hasSelection={selectedNodeId !== null}
+                canUndo={canUndo}
+                onExpandAll={() => handleSetAllCollapsed(false)}
+                onCollapseAll={() => handleSetAllCollapsed(true)}
+                onFit={() => fitViewRef.current?.()}
+                onAddSibling={() => selectedNodeId && handleAddSibling(selectedNodeId)}
+                onAddChild={() => selectedNodeId && handleAddChild(selectedNodeId)}
+                onUndo={handleUndo}
+                onOpenHelp={() => setIsHelpOpen(true)}
+              />
+              <MindMapCanvas
+                document={localDoc}
+                isReadOnly={isReadOnly}
+                selectedNodeId={selectedNodeId}
+                editingNodeId={editingNodeId}
+                onSelectNode={setSelectedNodeId}
+                onNodeDoubleClick={handleNodeDoubleClick}
+                onCommitEdit={handleCommitInlineEdit}
+                onCancelEdit={() => setEditingNodeId(null)}
+                onCommitAndAddSibling={handleCommitAndAddSibling}
+                onToggleCollapsed={handleToggleCollapsed}
+                onKeyDown={handleCanvasKeyDown}
+                onFitViewReady={(fitView) => {
+                  fitViewRef.current = fitView;
+                }}
+              />
+            </>
           )}
         </div>
         {localDoc && (
@@ -314,10 +462,11 @@ const MindMapDetailPage: React.FC = () => {
             onAddChild={handleAddChild}
             onDeleteNode={handleDeleteNode}
             onToggleCollapsed={handleToggleCollapsed}
-            titleInputRef={titleInputRef}
           />
         )}
       </div>
+
+      {isHelpOpen && <MindMapHelpSheet onClose={() => setIsHelpOpen(false)} />}
 
       <UnsavedChangesDialog {...dialogProps} />
     </div>

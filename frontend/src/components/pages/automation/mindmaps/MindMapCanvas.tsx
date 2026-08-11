@@ -1,86 +1,123 @@
-import React, { useEffect, useMemo, useState } from "react";
-import { applyNodeChanges, Background, Controls, NodeChange, ReactFlow } from "@xyflow/react";
+import React, { useCallback, useMemo, useRef } from "react";
+import { Background, Controls, OnInit, ReactFlow } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import { useTheme } from "../../../../contexts/ThemeContext";
 import { MindMapDocument } from "./mindMapDocument";
-import { toFlowGraph, MindMapFlowNode as FlowNodeType } from "./mindMapFlow";
+import { MIND_MAP_EDGE_TYPE, MIND_MAP_NODE_TYPE, toFlowGraph } from "./mindMapFlow";
 import MindMapFlowNode from "./MindMapFlowNode";
+import MindMapCurvedEdge from "./MindMapCurvedEdge";
+import { MindMapInteraction, MindMapInteractionContext } from "./mindMapInteraction";
 
-const nodeTypes = { mindMapNode: MindMapFlowNode };
+const nodeTypes = { [MIND_MAP_NODE_TYPE]: MindMapFlowNode };
+const edgeTypes = { [MIND_MAP_EDGE_TYPE]: MindMapCurvedEdge };
 
-// Only these change types are ones this canvas actually owns (live drag position,
-// selection, measured dimensions). React Flow also emits `remove`/`add`/`replace`
-// changes; mirroring `remove` in particular would let Backspace (React Flow's
-// default `deleteKeyCode`, with nodes deletable by default) erase a selected node
-// from `renderedNodes` while `localDoc` — and the side panel, and `isDirty` — never
-// find out, so it silently reappears on the next document edit. `deleteKeyCode={null}`
-// on `<ReactFlow>` makes the key inert at the source; this filter is the second,
-// defense-in-depth layer. Real deletion has exactly one path: the side panel's
-// "Smazat uzel", which goes through the document and correctly marks it dirty.
-const MIRRORED_CHANGE_TYPES = new Set(["position", "select", "dimensions"]);
+const FIT_VIEW_OPTIONS = { padding: 0.15, maxZoom: 1.15, minZoom: 0.15, duration: 200 };
 
-interface MindMapCanvasProps {
+export interface MindMapCanvasProps {
   document: MindMapDocument;
   isReadOnly: boolean;
   selectedNodeId: string | null;
+  editingNodeId: string | null;
   onSelectNode: (nodeId: string | null) => void;
-  onNodeDragStop: (nodeId: string, position: { x: number; y: number }) => void;
   onNodeDoubleClick: (nodeId: string) => void;
+  onCommitEdit: (nodeId: string, title: string) => void;
+  onCancelEdit: () => void;
+  onCommitAndAddSibling: (nodeId: string, title: string) => void;
+  onToggleCollapsed: (nodeId: string) => void;
+  onKeyDown: (event: React.KeyboardEvent<HTMLElement>) => void;
+  /** Hands the page a way to re-centre the map ("Vycentrovat" / after expand-all). */
+  onFitViewReady?: (fitView: () => void) => void;
 }
 
 const MindMapCanvas: React.FC<MindMapCanvasProps> = ({
   document: doc,
   isReadOnly,
   selectedNodeId,
+  editingNodeId,
   onSelectNode,
-  onNodeDragStop,
   onNodeDoubleClick,
+  onCommitEdit,
+  onCancelEdit,
+  onCommitAndAddSibling,
+  onToggleCollapsed,
+  onKeyDown,
+  onFitViewReady,
 }) => {
   const { theme } = useTheme();
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  // Positions come entirely from our own layout — there is no drag, so React Flow's
+  // `nodes` prop can stay a pure projection of the document with no local mirror.
   const { nodes, edges } = useMemo(() => toFlowGraph(doc), [doc]);
 
-  // React Flow's `nodes` prop is controlled. Without a local mirror fed by
-  // `onNodesChange`, every change React Flow emits during a drag is dropped —
-  // the node stays frozen under the cursor for the whole gesture and only
-  // snaps into its final place on release. Mirroring `nodes` into state and
-  // applying changes via `applyNodeChanges` restores live drag feedback;
-  // `onNodeDragStop` (below) still owns persisting the final position.
-  const [renderedNodes, setRenderedNodes] = useState<FlowNodeType[]>(nodes);
-
-  useEffect(() => {
-    setRenderedNodes(nodes);
-  }, [nodes]);
-
-  const handleNodesChange = (changes: NodeChange[]) => {
-    const mirrored = changes.filter((change) => MIRRORED_CHANGE_TYPES.has(change.type));
-    setRenderedNodes((nds) => applyNodeChanges(mirrored, nds) as FlowNodeType[]);
-  };
-
   const nodesWithSelection = useMemo(
-    () => renderedNodes.map((n) => ({ ...n, selected: n.id === selectedNodeId, draggable: !isReadOnly })),
-    [renderedNodes, selectedNodeId, isReadOnly],
+    () => nodes.map((n) => (n.id === selectedNodeId ? { ...n, selected: true } : n)),
+    [nodes, selectedNodeId],
+  );
+
+  const interaction = useMemo<MindMapInteraction>(
+    () => ({
+      editingNodeId,
+      isReadOnly,
+      isDark: theme === "dark",
+      onCommitEdit,
+      onCancelEdit,
+      onCommitAndAddSibling,
+      onToggleCollapsed,
+    }),
+    [editingNodeId, isReadOnly, theme, onCommitEdit, onCancelEdit, onCommitAndAddSibling, onToggleCollapsed],
+  );
+
+  // Keyboard shortcuts are scoped to this container, so typing in the side panel is
+  // never intercepted. Clicking anywhere on the canvas gives it focus.
+  const focusCanvas = useCallback(() => containerRef.current?.focus(), []);
+
+  const handleInit = useCallback<OnInit>(
+    (instance) => {
+      onFitViewReady?.(() => {
+        void instance.fitView(FIT_VIEW_OPTIONS);
+      });
+    },
+    [onFitViewReady],
   );
 
   return (
-    <div data-testid="mindmap-canvas" className="h-full w-full">
-      <ReactFlow
-        nodes={nodesWithSelection}
-        edges={edges}
-        nodeTypes={nodeTypes}
-        fitView
-        nodesConnectable={false}
-        colorMode={theme}
-        deleteKeyCode={null}
-        onNodesChange={handleNodesChange}
-        onNodeClick={(_e, node) => onSelectNode(node.id)}
-        onPaneClick={() => onSelectNode(null)}
-        onNodeDragStop={(_e, node) => onNodeDragStop(node.id, node.position)}
-        onNodeDoubleClick={(_e, node) => onNodeDoubleClick(node.id)}
-        proOptions={{ hideAttribution: true }}
-      >
-        <Background gap={16} />
-        <Controls showInteractive={false} />
-      </ReactFlow>
+    <div
+      data-testid="mindmap-canvas"
+      ref={containerRef}
+      tabIndex={0}
+      onKeyDown={onKeyDown}
+      className="h-full w-full outline-none"
+    >
+      <MindMapInteractionContext.Provider value={interaction}>
+        <ReactFlow
+          nodes={nodesWithSelection}
+          edges={edges}
+          nodeTypes={nodeTypes}
+          edgeTypes={edgeTypes}
+          fitView
+          fitViewOptions={FIT_VIEW_OPTIONS}
+          nodesDraggable={false}
+          nodesConnectable={false}
+          elementsSelectable
+          colorMode={theme}
+          deleteKeyCode={null}
+          onInit={handleInit}
+          onNodeClick={(_e, node) => {
+            focusCanvas();
+            onSelectNode(node.id);
+          }}
+          onPaneClick={() => {
+            focusCanvas();
+            onSelectNode(null);
+          }}
+          onNodeDoubleClick={(_e, node) => onNodeDoubleClick(node.id)}
+          proOptions={{ hideAttribution: true }}
+        >
+          <Background gap={16} />
+          <Controls showInteractive={false} />
+        </ReactFlow>
+      </MindMapInteractionContext.Provider>
     </div>
   );
 };

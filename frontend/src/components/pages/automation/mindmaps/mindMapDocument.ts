@@ -68,28 +68,31 @@ export function updateNodeFields(
   return patchNode(doc, nodeId, patch);
 }
 
-export function setNodePosition(
-  doc: MindMapDocument,
-  nodeId: string,
-  position: MindMapNodePosition,
-): MindMapDocument {
-  return patchNode(doc, nodeId, { position });
-}
-
 export function toggleCollapsed(doc: MindMapDocument, nodeId: string): MindMapDocument {
   const node = doc.nodes.find((n) => n.id === nodeId);
   if (!node) return doc;
   return patchNode(doc, nodeId, { collapsed: !node.collapsed });
 }
 
-export function addChildNode(
-  doc: MindMapDocument,
-  parentId: string,
-  title: string,
-): { doc: MindMapDocument; newNodeId: string } {
-  const newNodeId = `tmp-${Math.random().toString(36).slice(2)}${Math.random().toString(36).slice(2)}`;
-  const node: MindMapNode = {
-    id: newNodeId,
+/** Collapses or expands every node that has children. The root always stays expanded. */
+export function setAllCollapsed(doc: MindMapDocument, collapsed: boolean): MindMapDocument {
+  const parentIds = new Set(doc.nodes.map((n) => n.parentId).filter((id): id is string => id !== null));
+  return withNodes(
+    doc,
+    doc.nodes.map((n) =>
+      parentIds.has(n.id) && n.id !== doc.rootNodeId ? { ...n, collapsed } : { ...n, collapsed: false },
+    ),
+  );
+}
+
+/** Children of a node, in document array order — that order IS the sibling order. */
+export function childrenOf(doc: MindMapDocument, parentId: string): MindMapNode[] {
+  return doc.nodes.filter((n) => n.parentId === parentId);
+}
+
+function newNode(parentId: string, title: string): MindMapNode {
+  return {
+    id: `tmp-${Math.random().toString(36).slice(2)}${Math.random().toString(36).slice(2)}`,
     parentId,
     title,
     notes: null,
@@ -100,7 +103,101 @@ export function addChildNode(
     position: null,
     collapsed: false,
   };
-  return { doc: withNodes(doc, [...doc.nodes, node]), newNodeId };
+}
+
+/** Moves `nodeId` to sit immediately after `anchorId` in the array, preserving all else. */
+function reinsertAfter(nodes: MindMapNode[], nodeId: string, anchorId: string): MindMapNode[] {
+  const node = nodes.find((n) => n.id === nodeId);
+  if (!node) return nodes;
+  const without = nodes.filter((n) => n.id !== nodeId);
+  const anchorIndex = without.findIndex((n) => n.id === anchorId);
+  if (anchorIndex === -1) return [...without, node];
+  return [...without.slice(0, anchorIndex + 1), node, ...without.slice(anchorIndex + 1)];
+}
+
+export function addChildNode(
+  doc: MindMapDocument,
+  parentId: string,
+  title: string,
+): { doc: MindMapDocument; newNodeId: string } {
+  const node = newNode(parentId, title);
+  // A new child of a collapsed parent would be invisible the moment it is created.
+  const expanded = doc.nodes.map((n) => (n.id === parentId ? { ...n, collapsed: false } : n));
+  return { doc: withNodes(doc, [...expanded, node]), newNodeId: node.id };
+}
+
+/** Inserts a sibling directly after `siblingId`. The root has no siblings — it gets a child. */
+export function addSiblingNode(
+  doc: MindMapDocument,
+  siblingId: string,
+  title: string,
+): { doc: MindMapDocument; newNodeId: string } {
+  const sibling = doc.nodes.find((n) => n.id === siblingId);
+  if (!sibling || sibling.parentId === null) return addChildNode(doc, doc.rootNodeId, title);
+
+  const node = newNode(sibling.parentId, title);
+  const index = doc.nodes.findIndex((n) => n.id === siblingId);
+  const nodes = [...doc.nodes.slice(0, index + 1), node, ...doc.nodes.slice(index + 1)];
+  return { doc: withNodes(doc, nodes), newNodeId: node.id };
+}
+
+/** Demotes a node to be the last child of its preceding sibling (⌘→). */
+export function indentNode(doc: MindMapDocument, nodeId: string): MindMapDocument {
+  const node = doc.nodes.find((n) => n.id === nodeId);
+  if (!node || node.parentId === null) return doc;
+
+  const siblings = childrenOf(doc, node.parentId);
+  const index = siblings.findIndex((n) => n.id === nodeId);
+  if (index <= 0) return doc; // nothing to become the new parent
+  const newParent = siblings[index - 1];
+
+  const reparented = doc.nodes.map((n) => {
+    if (n.id === nodeId) return { ...n, parentId: newParent.id };
+    if (n.id === newParent.id) return { ...n, collapsed: false };
+    return n;
+  });
+
+  // Become the LAST child: anchor on the new parent's current last child, or on the
+  // parent itself when it has none.
+  const existingChildren = reparented.filter((n) => n.parentId === newParent.id && n.id !== nodeId);
+  const anchorId = existingChildren.length > 0 ? existingChildren[existingChildren.length - 1].id : newParent.id;
+  return withNodes(doc, reinsertAfter(reparented, nodeId, anchorId));
+}
+
+/** Promotes a node to sit next to its parent, one level up (⌘←). */
+export function outdentNode(doc: MindMapDocument, nodeId: string): MindMapDocument {
+  const node = doc.nodes.find((n) => n.id === nodeId);
+  if (!node || node.parentId === null) return doc;
+
+  const parent = doc.nodes.find((n) => n.id === node.parentId);
+  // Outdenting a top-level branch would give the document a second root.
+  if (!parent || parent.parentId === null) return doc;
+
+  const reparented = doc.nodes.map((n) => (n.id === nodeId ? { ...n, parentId: parent.parentId } : n));
+  return withNodes(doc, reinsertAfter(reparented, nodeId, parent.id));
+}
+
+/** Reorders a node among its siblings (⌘↑ / ⌘↓). `delta` is -1 or +1. */
+export function moveNode(doc: MindMapDocument, nodeId: string, delta: number): MindMapDocument {
+  const node = doc.nodes.find((n) => n.id === nodeId);
+  if (!node || node.parentId === null) return doc;
+
+  const siblings = childrenOf(doc, node.parentId);
+  const from = siblings.findIndex((n) => n.id === nodeId);
+  const to = from + delta;
+  if (from === -1 || to < 0 || to >= siblings.length) return doc;
+
+  const reordered = [...siblings];
+  reordered.splice(to, 0, ...reordered.splice(from, 1));
+
+  // Write the new sibling order back into the slots the siblings already occupy,
+  // leaving every other node's array position untouched.
+  const slots = doc.nodes.reduce<number[]>((acc, n, i) => (n.parentId === node.parentId ? [...acc, i] : acc), []);
+  const nodes = [...doc.nodes];
+  slots.forEach((slot, i) => {
+    nodes[slot] = reordered[i];
+  });
+  return withNodes(doc, nodes);
 }
 
 function descendantIds(doc: MindMapDocument, nodeId: string): Set<string> {

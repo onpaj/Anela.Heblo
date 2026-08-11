@@ -1,10 +1,15 @@
 import {
   addChildNode,
+  addSiblingNode,
+  childrenOf,
   deleteNode,
+  indentNode,
   MindMapDocument,
+  moveNode,
+  outdentNode,
   parseDocument,
   renameNode,
-  setNodePosition,
+  setAllCollapsed,
   toggleCollapsed,
   updateNodeFields,
   visibleNodeIds,
@@ -54,9 +59,97 @@ test("deleteNode removes the node and its descendants, never the root", () => {
   expect(deleteNode(doc(), "root").nodes).toHaveLength(3);
 });
 
-test("setNodePosition stores the dragged position", () => {
-  const updated = setNodePosition(doc(), "b", { x: 10, y: 20 });
-  expect(updated.nodes.find((n) => n.id === "b")!.position).toEqual({ x: 10, y: 20 });
+test("addChildNode expands a collapsed parent so the new child is visible", () => {
+  const collapsed = toggleCollapsed(doc(), "a");
+  const { doc: updated } = addChildNode(collapsed, "a", "Nové dítě");
+  expect(updated.nodes.find((n) => n.id === "a")!.collapsed).toBe(false);
+});
+
+// --- sibling order and structure editing ---
+
+const siblingsDoc = (): MindMapDocument => ({
+  schemaVersion: 1,
+  rootNodeId: "root",
+  nodes: [
+    { id: "root", parentId: null, title: "Projekt", notes: null, status: "active", owner: null, lockedBy: null, sourceMeetingIds: [], position: null, collapsed: false },
+    { id: "a", parentId: "root", title: "A", notes: null, status: "active", owner: null, lockedBy: null, sourceMeetingIds: [], position: null, collapsed: false },
+    { id: "b", parentId: "root", title: "B", notes: null, status: "active", owner: null, lockedBy: null, sourceMeetingIds: [], position: null, collapsed: false },
+    { id: "c", parentId: "root", title: "C", notes: null, status: "active", owner: null, lockedBy: null, sourceMeetingIds: [], position: null, collapsed: false },
+  ],
+  suppressedNodes: [],
+});
+
+const siblingIds = (d: MindMapDocument, parentId: string) => childrenOf(d, parentId).map((n) => n.id);
+
+test("addSiblingNode inserts directly after the reference node, not at the end", () => {
+  const { doc: updated, newNodeId } = addSiblingNode(siblingsDoc(), "a", "Nový");
+  expect(siblingIds(updated, "root")).toEqual(["a", newNodeId, "b", "c"]);
+});
+
+test("addSiblingNode on the root falls back to adding a child", () => {
+  const { doc: updated, newNodeId } = addSiblingNode(siblingsDoc(), "root", "Nový");
+  expect(updated.nodes.find((n) => n.id === newNodeId)!.parentId).toBe("root");
+});
+
+test("moveNode reorders a node among its siblings", () => {
+  expect(siblingIds(moveNode(siblingsDoc(), "c", -1), "root")).toEqual(["a", "c", "b"]);
+  expect(siblingIds(moveNode(siblingsDoc(), "a", 1), "root")).toEqual(["b", "a", "c"]);
+});
+
+test("moveNode returns the document unchanged at the ends of the sibling list", () => {
+  const original = siblingsDoc();
+  expect(moveNode(original, "a", -1)).toBe(original);
+  expect(moveNode(original, "c", 1)).toBe(original);
+});
+
+test("moveNode leaves other branches' array positions untouched", () => {
+  const withChild = addChildNode(siblingsDoc(), "b", "dítě").doc;
+  const moved = moveNode(withChild, "c", -1);
+  expect(siblingIds(moved, "b")).toEqual(siblingIds(withChild, "b"));
+});
+
+test("indentNode makes a node the last child of its previous sibling", () => {
+  const withChild = addChildNode(siblingsDoc(), "a", "existující").doc;
+  const indented = indentNode(withChild, "b");
+  expect(indented.nodes.find((n) => n.id === "b")!.parentId).toBe("a");
+  expect(siblingIds(indented, "a").at(-1)).toBe("b");
+  expect(siblingIds(indented, "root")).toEqual(["a", "c"]);
+});
+
+test("indentNode expands the new parent so the demoted node stays visible", () => {
+  const collapsedParent = toggleCollapsed(siblingsDoc(), "a");
+  expect(indentNode(collapsedParent, "b").nodes.find((n) => n.id === "a")!.collapsed).toBe(false);
+});
+
+test("indentNode does nothing for the first sibling or the root", () => {
+  const original = siblingsDoc();
+  expect(indentNode(original, "a")).toBe(original);
+  expect(indentNode(original, "root")).toBe(original);
+});
+
+test("outdentNode promotes a node to sit right after its former parent", () => {
+  const nested = indentNode(siblingsDoc(), "b"); // b becomes a's child
+  const promoted = outdentNode(nested, "b");
+  expect(promoted.nodes.find((n) => n.id === "b")!.parentId).toBe("root");
+  expect(siblingIds(promoted, "root")).toEqual(["a", "b", "c"]);
+});
+
+test("outdentNode refuses to promote a top-level branch — that would be a second root", () => {
+  const original = siblingsDoc();
+  expect(outdentNode(original, "a")).toBe(original);
+  expect(outdentNode(original, "root")).toBe(original);
+});
+
+test("setAllCollapsed collapses every parent but always leaves the root open", () => {
+  const collapsed = setAllCollapsed(doc(), true);
+  expect(collapsed.nodes.find((n) => n.id === "root")!.collapsed).toBe(false);
+  expect(collapsed.nodes.find((n) => n.id === "a")!.collapsed).toBe(true);
+  expect(collapsed.nodes.find((n) => n.id === "b")!.collapsed).toBe(false); // leaf, nothing to collapse
+});
+
+test("setAllCollapsed(false) expands everything", () => {
+  const expanded = setAllCollapsed(setAllCollapsed(doc(), true), false);
+  expect(expanded.nodes.every((n) => !n.collapsed)).toBe(true);
 });
 
 test("visibleNodeIds hides descendants of collapsed nodes", () => {
