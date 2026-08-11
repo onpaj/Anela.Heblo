@@ -1,5 +1,5 @@
 import React from "react";
-import { act, render } from "@testing-library/react";
+import { act, render, screen } from "@testing-library/react";
 import "@testing-library/jest-dom";
 import { MindMapDocument } from "../mindMapDocument";
 
@@ -292,6 +292,10 @@ describe("MindMapCanvas", () => {
     const rootEle = { nodeObj: { id: "root" }, parentNode: { children: [{}] } };
     instance.findEle.mockReturnValue(rootEle);
     instance.expandNode.mockImplementation((el: any, isExpand: boolean) => {
+      // Deliberately mirrors mind-elixir's own traversal; Testing Library's
+      // node-access rule is about querying rendered output, not about modelling a
+      // third-party library's internals in a stub.
+      // eslint-disable-next-line testing-library/no-node-access
       el.parentNode.children[1].expanded = isExpand;
     });
 
@@ -328,8 +332,8 @@ describe("MindMapCanvas", () => {
     // mind-elixir sets the branch colour as an inline border-color on the branch's
     // own <me-tpc>; deeper cards need it as an inheritable variable to tint their
     // borders. `linkDiv` fires after every layout pass.
-    const { getByTestId } = renderCanvas();
-    const container = getByTestId("mindmap-canvas");
+    renderCanvas();
+    const container = screen.getByTestId("mindmap-canvas");
     container.innerHTML =
       "<me-main><me-wrapper><me-parent>" +
       '<me-tpc style="border-color: rgb(46, 125, 107)"></me-tpc>' +
@@ -340,6 +344,9 @@ describe("MindMapCanvas", () => {
       instance.bus.fire("linkDiv");
     });
 
+    // mind-elixir owns this subtree and renders custom elements; Testing Library
+    // queries cannot address <me-main>, so query it directly.
+    // eslint-disable-next-line testing-library/no-node-access
     const branch = container.querySelector("me-main") as HTMLElement;
     expect(branch.style.getPropertyValue("--branch-color")).toBe("rgb(46, 125, 107)");
   });
