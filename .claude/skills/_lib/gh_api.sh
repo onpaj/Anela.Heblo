@@ -311,7 +311,7 @@ pr_view() {
     rollup=$(jq -cn \
       --argjson runs "$(emit "$runs_resp")" \
       --argjson status "$(emit "$status_resp")" \
-      '[($runs.check_runs // [])[] | {__typename:"CheckRun", status, conclusion}]
+      '[($runs.check_runs // [])[] | {__typename:"CheckRun", status: (.status | ascii_upcase), conclusion: (.conclusion // "" | ascii_upcase)}]
        + [($status.statuses // [])[] | {__typename:"StatusContext", state: (.state | ascii_upcase)}]')
     out=$(echo "$out" | jq -c --argjson r "$rollup" '. + {statusCheckRollup: $r}')
   fi
