@@ -2,6 +2,7 @@ using System.Reflection;
 using Npgsql;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Anela.Heblo.API.HealthChecks.DataQuality;
+using Anela.Heblo.API.HealthChecks.Photobank;
 using Microsoft.ApplicationInsights.Extensibility;
 using Anela.Heblo.Xcc;
 using Anela.Heblo.Xcc.Telemetry;
@@ -102,6 +103,10 @@ public static class ServiceCollectionExtensions
             .AddCheck<Anela.Heblo.Application.Common.BackgroundServicesReadyHealthCheck>("background-services-ready", tags: new[] { "ready" })
             .AddCheck<DataQualitySchemaHealthCheck>(
                 name: "data-quality-schema",
+                failureStatus: HealthStatus.Unhealthy,
+                tags: new[] { "ready", "db", "schema" })
+            .AddCheck<PhotobankSchemaHealthCheck>(
+                name: "photobank-schema",
                 failureStatus: HealthStatus.Unhealthy,
                 tags: new[] { "ready", "db", "schema" })
             .AddCheck<HomeAssistantConditionsHealthCheck>(
