@@ -28,9 +28,9 @@
   "tasks": [
     {
       "name": "route-usesmartsupp-core-hooks",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-08-11T23:18:09.544214Z"
+      "updated_at": "2026-08-11T23:35:00.283056Z"
     },
     {
       "name": "fix-smartsupp-consumer-optionality-fallout",
