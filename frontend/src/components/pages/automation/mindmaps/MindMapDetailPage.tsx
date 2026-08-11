@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft, RefreshCw, Save } from "lucide-react";
@@ -12,27 +12,11 @@ import {
   useRegenerateMindMap,
   useSaveMindMapDocument,
 } from "../../../../api/hooks/useMindMaps";
-import {
-  addChildNode,
-  addSiblingNode,
-  deleteNode,
-  indentNode,
-  MindMapDocument,
-  MindMapNode,
-  moveNode,
-  outdentNode,
-  parseDocument,
-  renameNode,
-  setAllCollapsed,
-  toggleCollapsed,
-  updateNodeFields,
-} from "./mindMapDocument";
-import MindMapCanvas from "./MindMapCanvas";
+import { MindMapDocument, parseDocument } from "./mindMapDocument";
+import MindMapCanvas, { MindMapCanvasHandle, MindMapNodePatch } from "./MindMapCanvas";
 import MindMapSidePanel from "./MindMapSidePanel";
 import MindMapToolbar from "./MindMapToolbar";
 import MindMapHelpSheet from "./MindMapHelpSheet";
-import { useMindMapKeyboard } from "./useMindMapKeyboard";
-import { useMindMapUndo } from "./useMindMapUndo";
 import { PAGE_CONTAINER_HEIGHT } from "../../../../constants/layout";
 import { useScreenView } from "../../../../telemetry/useScreenView";
 
@@ -43,9 +27,6 @@ const STATUS_BADGE: Record<string, { label: string; className: string }> = {
 };
 const DEFAULT_STATUS_BADGE = { className: "bg-gray-100 text-gray-800 dark:bg-graphite-surface-2 dark:text-graphite-muted" };
 
-const NEW_NODE_TITLE = "Nový uzel";
-const EMPTY_TITLE_PLACEHOLDER = "…";
-
 const MindMapDetailPage: React.FC = () => {
   useScreenView("Automation", "MindMapDetail");
   const { id } = useParams<{ id: string }>();
@@ -54,106 +35,91 @@ const MindMapDetailPage: React.FC = () => {
   const saveDocument = useSaveMindMapDocument();
   const regenerate = useRegenerateMindMap();
 
-  const [localDoc, setLocalDoc] = useState<MindMapDocument | null>(null);
+  const canvasRef = useRef<MindMapCanvasHandle>(null);
+  const [loadedJson, setLoadedJson] = useState<string | null>(null);
+  const [loadedDoc, setLoadedDoc] = useState<MindMapDocument | null>(null);
+  const [panelDoc, setPanelDoc] = useState<MindMapDocument | null>(null);
   const [isDirty, setIsDirty] = useState(false);
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
-  const [editingNodeId, setEditingNodeId] = useState<string | null>(null);
   const [isHelpOpen, setIsHelpOpen] = useState(false);
   const [hasDocumentParseError, setHasDocumentParseError] = useState(false);
-  const loadedJsonRef = useRef<string | null>(null);
-  const fitViewRef = useRef<(() => void) | null>(null);
-  const { canUndo, push: pushUndo, pop: popUndo, clear: clearUndo } = useMindMapUndo();
 
   const isReadOnly = detail?.status === "Updating";
 
-  // Adopt server document whenever it changes and there are no local edits. This
-  // is what keeps the 3s poll during a background "Updating" run from silently
-  // discarding whatever the user is currently typing: as long as isDirty is true
-  // the local copy is left alone, no matter how many times detail refetches.
+  // Adopt a server document only when there is nothing unsaved to lose. `loadedJson`
+  // doubles as the canvas's revision token: bumping it is what reloads the map.
   useEffect(() => {
     if (!detail) return;
-    if (!isDirty && detail.documentJson !== loadedJsonRef.current) {
-      loadedJsonRef.current = detail.documentJson;
-      // A malformed documentJson arriving from a poll or refetch must not crash
-      // the page via the global ErrorBoundary. Surface it as an error state
-      // instead, and leave whatever `localDoc` currently holds untouched — if a
-      // working session was already loaded, that stays on screen rather than
-      // being clobbered by a bad payload.
-      try {
-        setLocalDoc(parseDocument(detail.documentJson));
-        setHasDocumentParseError(false);
-        // History from the previous document would restore ids the server no longer
-        // knows about, so it never survives adopting a new one.
-        clearUndo();
-      } catch {
-        setHasDocumentParseError(true);
-      }
+    if (isDirty || detail.documentJson === loadedJson) return;
+    try {
+      const parsed = parseDocument(detail.documentJson);
+      setLoadedDoc(parsed);
+      setPanelDoc(parsed);
+      setLoadedJson(detail.documentJson);
+      setHasDocumentParseError(false);
+    } catch {
+      setHasDocumentParseError(true);
     }
-  }, [detail, isDirty, clearUndo]);
+  }, [detail, isDirty, loadedJson]);
 
-  /** Continuous edits (typing in the side panel) — dirty, but not one undo step per keystroke. */
-  const applyEdit = (next: MindMapDocument) => {
-    setLocalDoc(next);
+  // Any edit inside the canvas. Pulling a fresh snapshot here is what keeps the
+  // side panel showing the node's real current values.
+  const handleCanvasChange = useCallback(() => {
     setIsDirty(true);
-  };
+    const snapshot = canvasRef.current?.getDocument();
+    if (snapshot) setPanelDoc(snapshot);
+  }, []);
 
-  /** Discrete edits (structure changes, committed inline renames) — undoable. */
-  const commitEdit = (previous: MindMapDocument, next: MindMapDocument) => {
-    if (next === previous) return;
-    pushUndo(previous);
-    setLocalDoc(next);
-    setIsDirty(true);
-  };
+  const handleSelectNode = useCallback((nodeId: string | null) => {
+    setSelectedNodeId(nodeId);
+    const snapshot = canvasRef.current?.getDocument();
+    if (snapshot) setPanelDoc(snapshot);
+  }, []);
 
-  const mutate = (mutator: (doc: MindMapDocument) => MindMapDocument) => {
-    if (!localDoc) return;
-    commitEdit(localDoc, mutator(localDoc));
-  };
+  const handleUpdateNode = useCallback(
+    (nodeId: string, patch: MindMapNodePatch) => {
+      if (isReadOnly) return;
+      canvasRef.current?.patchNode(nodeId, patch);
+    },
+    [isReadOnly],
+  );
 
   const handleSave = useCallback(async (): Promise<boolean> => {
-    if (!id || !localDoc) return false;
+    const documentToSave = canvasRef.current?.getDocument();
+    if (!id || !documentToSave) return false;
 
     let result: { documentJson: string };
     try {
       result = await saveDocument.mutateAsync({
         mindMapId: id,
-        documentJson: JSON.stringify(localDoc),
+        documentJson: JSON.stringify(documentToSave),
       });
     } catch {
       toast.error("Uložení mapy se nezdařilo");
       return false;
     }
 
-    // From here the save has already succeeded server-side. useSaveMindMapDocument's
-    // onSuccess fires invalidateQueries, but that only *starts* a background refetch —
-    // it does not wait for it. Without writing the canonical result into the query
-    // cache ourselves, `detail` (read from that same cache) would still hold the
-    // pre-save document for the whole refetch window; the adoption effect below would
-    // then see `!isDirty` flip true against that stale `detail.documentJson` and
-    // immediately revert both `localDoc` and `loadedJsonRef` back to the pre-save
-    // state — visibly undoing a save that actually succeeded (tmp- ids and missing
-    // locks reappear), and re-armed for a duplicate-node bug on the next save if the
-    // user keeps editing during that window.
+    // The save succeeded server-side. Write the canonical result into the query
+    // cache and adopt it as the loaded revision in the same pass: if `loadedJson`
+    // stayed behind, the adoption effect would see a "newer" document the moment
+    // isDirty flips false and reload the map out from under the user — visibly
+    // undoing a save that actually worked.
     queryClient.setQueryData<MindMapDetail>(MIND_MAPS_KEYS.detail(id), (old) =>
       old ? { ...old, documentJson: result.documentJson } : old,
     );
-    loadedJsonRef.current = result.documentJson;
     setIsDirty(false);
-    // Snapshots taken before the save hold client-side `tmp-` ids the server has now
-    // replaced; restoring one would re-add those nodes as brand new on the next save.
-    clearUndo();
 
-    // A malformed canonical response is a distinct failure from a failed save
-    // request — the mutation already succeeded, so this must not be reported as
-    // "Uložení mapy se nezdařilo" (that would be actively misleading).
     try {
-      setLocalDoc(parseDocument(result.documentJson));
+      const parsed = parseDocument(result.documentJson);
+      setLoadedDoc(parsed);
+      setPanelDoc(parsed);
+      setLoadedJson(result.documentJson);
       toast.success("Mapa uložena");
     } catch {
       toast.error("Mapa byla uložena, ale odpověď serveru se nepodařilo zobrazit. Načtěte stránku znovu.");
     }
     return true;
-  }, [id, localDoc, saveDocument, queryClient, clearUndo]);
+  }, [id, saveDocument, queryClient]);
 
   const { dialogProps, requestNavigation } = useUnsavedChangesDialog(isDirty, handleSave);
 
@@ -168,121 +134,6 @@ const MindMapDetailPage: React.FC = () => {
     window.document.addEventListener("keydown", onKeyDown);
     return () => window.document.removeEventListener("keydown", onKeyDown);
   }, [handleSave, isDirty, isReadOnly]);
-
-  const handleUpdateNode = (
-    nodeId: string,
-    patch: Partial<Pick<MindMapNode, "title" | "notes" | "owner" | "status">>,
-  ) => {
-    if (!localDoc) return;
-    applyEdit(updateNodeFields(localDoc, nodeId, patch));
-  };
-
-  const handleAddChild = (parentId: string) => {
-    if (!localDoc || isReadOnly) return;
-    const { doc, newNodeId } = addChildNode(localDoc, parentId, NEW_NODE_TITLE);
-    commitEdit(localDoc, doc);
-    setSelectedNodeId(newNodeId);
-    setEditingNodeId(newNodeId);
-  };
-
-  const handleAddSibling = (nodeId: string) => {
-    if (!localDoc || isReadOnly) return;
-    const { doc, newNodeId } = addSiblingNode(localDoc, nodeId, NEW_NODE_TITLE);
-    commitEdit(localDoc, doc);
-    setSelectedNodeId(newNodeId);
-    setEditingNodeId(newNodeId);
-  };
-
-  const handleDeleteNode = (nodeId: string) => {
-    if (!localDoc || isReadOnly) return;
-    mutate((doc) => deleteNode(doc, nodeId));
-    if (selectedNodeId === nodeId) setSelectedNodeId(null);
-    if (editingNodeId === nodeId) setEditingNodeId(null);
-  };
-
-  const handleToggleCollapsed = (nodeId: string) => {
-    if (isReadOnly) return;
-    mutate((doc) => toggleCollapsed(doc, nodeId));
-  };
-
-  const handleNodeDoubleClick = (nodeId: string) => {
-    setSelectedNodeId(nodeId);
-    if (!isReadOnly) setEditingNodeId(nodeId);
-  };
-
-  const handleStartEdit = (nodeId: string) => {
-    if (!isReadOnly) setEditingNodeId(nodeId);
-  };
-
-  const handleCommitInlineEdit = (nodeId: string, rawTitle: string) => {
-    setEditingNodeId(null);
-    if (!localDoc || isReadOnly) return;
-    const title = rawTitle.trim() || EMPTY_TITLE_PLACEHOLDER;
-    // Closing the editor without typing anything (blur, Escape, clicking the side
-    // panel) must not mark the map dirty or burn an undo step.
-    if (localDoc.nodes.find((n) => n.id === nodeId)?.title === title) return;
-    commitEdit(localDoc, renameNode(localDoc, nodeId, title));
-  };
-
-  // Enter while editing: commit the text and immediately open a fresh sibling, so a
-  // list can be typed without touching the mouse. Both changes are one undo step.
-  const handleCommitAndAddSibling = (nodeId: string, rawTitle: string) => {
-    if (!localDoc || isReadOnly) {
-      setEditingNodeId(null);
-      return;
-    }
-    const title = rawTitle.trim() || EMPTY_TITLE_PLACEHOLDER;
-    const renamed = renameNode(localDoc, nodeId, title);
-    const { doc, newNodeId } = addSiblingNode(renamed, nodeId, NEW_NODE_TITLE);
-    commitEdit(localDoc, doc);
-    setSelectedNodeId(newNodeId);
-    setEditingNodeId(newNodeId);
-  };
-
-  const handleUndo = () => {
-    const previous = popUndo();
-    if (!previous) {
-      toast("Není co vrátit");
-      return;
-    }
-    setLocalDoc(previous);
-    setIsDirty(true);
-    setEditingNodeId(null);
-    if (!previous.nodes.some((n) => n.id === selectedNodeId)) setSelectedNodeId(null);
-  };
-
-  const handleSetAllCollapsed = (collapsed: boolean) => {
-    if (isReadOnly) return;
-    mutate((doc) => setAllCollapsed(doc, collapsed));
-    requestAnimationFrame(() => fitViewRef.current?.());
-  };
-
-  const keyboardHandlers = useMemo(
-    () => ({
-      onSelect: setSelectedNodeId,
-      onStartEdit: handleStartEdit,
-      onAddSibling: handleAddSibling,
-      onAddChild: handleAddChild,
-      onDelete: handleDeleteNode,
-      onToggleCollapsed: handleToggleCollapsed,
-      onIndent: (nodeId: string) => mutate((doc) => indentNode(doc, nodeId)),
-      onOutdent: (nodeId: string) => mutate((doc) => outdentNode(doc, nodeId)),
-      onMove: (nodeId: string, delta: number) => mutate((doc) => moveNode(doc, nodeId, delta)),
-      onUndo: handleUndo,
-    }),
-    // Every handler closes over the current localDoc/selection, so the object is
-    // rebuilt whenever those change — which is exactly when the shortcuts must
-    // start acting on the new state.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [localDoc, selectedNodeId, editingNodeId, isReadOnly],
-  );
-
-  const handleCanvasKeyDown = useMindMapKeyboard({
-    document: localDoc,
-    selectedNodeId,
-    isEnabled: !isReadOnly && editingNodeId === null && !isHelpOpen,
-    handlers: keyboardHandlers,
-  });
 
   const handleRegenerate = async () => {
     if (!id) return;
@@ -316,7 +167,7 @@ const MindMapDetailPage: React.FC = () => {
   if (!detail) {
     return <div className="p-8 text-gray-500 dark:text-graphite-muted">Mapa nenalezena</div>;
   }
-  if (hasDocumentParseError && !localDoc) {
+  if (hasDocumentParseError && !loadedDoc) {
     return (
       <div className="p-8 text-gray-500 dark:text-graphite-muted">
         Dokument mapy se nepodařilo načíst — data ze serveru jsou poškozená.
@@ -331,7 +182,7 @@ const MindMapDetailPage: React.FC = () => {
   // means a newer server document (e.g. from a just-finished regeneration) can sit
   // unapplied for as long as the user keeps editing. Surface that rather than
   // silently doing nothing.
-  const hasNewerServerVersion = isDirty && detail.documentJson !== loadedJsonRef.current;
+  const hasNewerServerVersion = isDirty && detail.documentJson !== loadedJson;
 
   return (
     <div className="flex flex-col w-full overflow-hidden" style={{ height: PAGE_CONTAINER_HEIGHT }}>
@@ -408,7 +259,7 @@ const MindMapDetailPage: React.FC = () => {
         </div>
       )}
 
-      {hasDocumentParseError && localDoc && (
+      {hasDocumentParseError && loadedDoc && (
         <div className="px-4 sm:px-6 lg:px-8 mt-3 shrink-0">
           <div className="rounded-md border border-red-200 bg-red-50 dark:border-red-900/40 dark:bg-red-900/20 px-3 py-2 text-sm text-red-800 dark:text-red-300">
             Poslední verzi mapy ze serveru se nepodařilo načíst — zobrazuje se předchozí stav.
@@ -418,51 +269,42 @@ const MindMapDetailPage: React.FC = () => {
 
       <div className="flex-1 flex overflow-hidden mt-3 px-4 sm:px-6 lg:px-8 pb-4 gap-3">
         <div className="relative flex-1 min-h-[70vh] border border-gray-200 dark:border-graphite-border rounded-lg overflow-hidden bg-[#FAF8F5] dark:bg-graphite-bg">
-          {localDoc && (
+          {loadedDoc && (
             <>
               <MindMapToolbar
                 isReadOnly={isReadOnly}
                 hasSelection={selectedNodeId !== null}
-                canUndo={canUndo}
-                onExpandAll={() => handleSetAllCollapsed(false)}
-                onCollapseAll={() => handleSetAllCollapsed(true)}
-                onFit={() => fitViewRef.current?.()}
-                onAddSibling={() => selectedNodeId && handleAddSibling(selectedNodeId)}
-                onAddChild={() => selectedNodeId && handleAddChild(selectedNodeId)}
-                onUndo={handleUndo}
+                canUndo={!isReadOnly}
+                onExpandAll={() => canvasRef.current?.expandAll()}
+                onCollapseAll={() => canvasRef.current?.collapseAll()}
+                onFit={() => canvasRef.current?.fit()}
+                onAddSibling={() => canvasRef.current?.addSibling()}
+                onAddChild={() => canvasRef.current?.addChild()}
+                onUndo={() => canvasRef.current?.undo()}
                 onOpenHelp={() => setIsHelpOpen(true)}
               />
-              {/* TODO(Task 5): MindMapCanvas is now an imperative mind-elixir host (ref
-                  handle: expandAll/collapseAll/fit/addChild/addSibling/undo/patchNode/
-                  export*), not the old controlled React Flow component. This page still
-                  drives selection/edits/undo/toolbar through its own local document
-                  mutations (selectedNodeId, editingNodeId, handleNodeDoubleClick,
-                  handleCommitInlineEdit, handleCommitAndAddSibling, handleToggleCollapsed,
-                  handleCanvasKeyDown, fitViewRef) — none of that is wired to the new
-                  canvas yet, and several of those bindings are consequently unused below.
-                  Task 5 rewires this page onto the ref handle; this is a minimal,
-                  compile-only prop swap so the build stays green until then. */}
               <MindMapCanvas
-                initialDocument={localDoc}
-                documentRevision={detail.documentJson}
+                ref={canvasRef}
+                initialDocument={loadedDoc}
+                documentRevision={loadedJson ?? ""}
                 isReadOnly={isReadOnly}
-                onChange={() => setIsDirty(true)}
-                onSelectNode={setSelectedNodeId}
+                onChange={handleCanvasChange}
+                onSelectNode={handleSelectNode}
               />
             </>
           )}
         </div>
-        {localDoc && (
+        {loadedDoc && panelDoc && (
           <MindMapSidePanel
             detail={detail}
-            document={localDoc}
+            document={panelDoc}
             selectedNodeId={selectedNodeId}
             isReadOnly={isReadOnly}
             isDirty={isDirty}
             onUpdateNode={handleUpdateNode}
-            onAddChild={handleAddChild}
-            onDeleteNode={handleDeleteNode}
-            onToggleCollapsed={handleToggleCollapsed}
+            onAddChild={() => {}}
+            onDeleteNode={() => {}}
+            onToggleCollapsed={() => {}}
           />
         )}
       </div>

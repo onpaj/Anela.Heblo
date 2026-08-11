@@ -1,5 +1,5 @@
 import React from "react";
-import { act, fireEvent, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import "@testing-library/jest-dom";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -10,28 +10,66 @@ import MindMapDetailPage from "../MindMapDetailPage";
 
 jest.mock("../../../../../api/client");
 
-// The canvas renders through @xyflow/react, which needs browser APIs (ResizeObserver
-// etc.) jsdom doesn't provide. These tests are about MindMapDetailPage's own
-// save/adoption/read-only logic, not the canvas's rendering, so stub it with a plain
-// list of clickable node buttons that still exercise the real onSelectNode callback.
-jest.mock("../MindMapCanvas", () => ({
-  __esModule: true,
-  default: ({
-    initialDocument,
-    onSelectNode,
-  }: {
-    initialDocument: MindMapDocument;
-    onSelectNode: (id: string) => void;
-  }) => (
-    <div data-testid="mindmap-canvas-stub">
-      {initialDocument.nodes.map((n) => (
-        <button key={n.id} type="button" onClick={() => onSelectNode(n.id)}>
-          {n.title}
-        </button>
-      ))}
-    </div>
-  ),
-}));
+// The canvas renders through mind-elixir, which needs browser APIs jsdom doesn't
+// provide. These tests are about MindMapDetailPage's own save/adoption/read-only
+// logic, not the canvas's rendering, so stub it with a ref handle mimicking
+// MindMapCanvasHandle plus a plain list of clickable node buttons that still
+// exercise the real onSelectNode callback.
+const mockCanvasHandle = {
+  getDocument: jest.fn(),
+  expandAll: jest.fn(),
+  collapseAll: jest.fn(),
+  fit: jest.fn(),
+  addChild: jest.fn(),
+  addSibling: jest.fn(),
+  undo: jest.fn(),
+  patchNode: jest.fn(),
+  exportPng: jest.fn(),
+  exportSvg: jest.fn(),
+};
+
+jest.mock("../MindMapCanvas", () => {
+  const React = require("react");
+  return {
+    __esModule: true,
+    default: React.forwardRef(
+      (
+        props: {
+          initialDocument: { nodes: { id: string; title: string }[] };
+          documentRevision: string;
+          onSelectNode: (id: string) => void;
+          onChange: () => void;
+        },
+        ref: React.Ref<unknown>,
+      ) => {
+        React.useImperativeHandle(ref, () => ({
+          ...mockCanvasHandle,
+          // The real canvas reports EVERY edit through onChange: patchNode calls
+          // reshapeNode, which fires mind-elixir's `operation` event, which the
+          // canvas translates into onChange. A bare jest.fn() here would model a
+          // canvas that silently swallows side-panel edits — the page would never
+          // go dirty and the Save button would never enable.
+          patchNode: (nodeId: string, patch: unknown) => {
+            mockCanvasHandle.patchNode(nodeId, patch);
+            props.onChange();
+          },
+        }));
+        return (
+          <div data-testid="mindmap-canvas-stub" data-revision={props.documentRevision}>
+            {props.initialDocument.nodes.map((n) => (
+              <button key={n.id} type="button" onClick={() => props.onSelectNode(n.id)}>
+                {n.title}
+              </button>
+            ))}
+            <button type="button" data-testid="stub-edit" onClick={() => props.onChange()}>
+              edit
+            </button>
+          </div>
+        );
+      },
+    ),
+  };
+});
 
 const BASE_URL = "http://localhost:5000";
 const MAP_ID = "map-1";
@@ -116,16 +154,15 @@ describe("MindMapDetailPage", () => {
 
     const queryClient = newQueryClient();
     renderPage(queryClient);
-    await selectRootNode();
 
-    const titleInput = (await screen.findByTestId("mindmap-panel-title-input")) as HTMLInputElement;
-    expect(titleInput.value).toBe("Projekt");
+    const stub = await screen.findByTestId("mindmap-canvas-stub");
+    const revisionBeforeEdit = stub.getAttribute("data-revision");
 
-    fireEvent.change(titleInput, { target: { value: "Rozepsáno uživatelem" } });
-    expect(titleInput.value).toBe("Rozepsáno uživatelem");
+    // The canvas reports an edit — the page is now dirty.
+    fireEvent.click(screen.getByTestId("stub-edit"));
 
     // Simulate a fresher document landing in the cache (e.g. a 3s "Updating" poll,
-    // or a just-finished Claude rewrite) while the user is still mid-edit. React
+    // or a just-finished Claude rewrite) while the user has unsaved work. React
     // Query notifies observers a macrotask after setQueryData, not synchronously
     // within `act`'s callback — flush it before asserting, otherwise the check
     // below would run against a render that hasn't happened yet and pass
@@ -138,8 +175,11 @@ describe("MindMapDetailPage", () => {
       await new Promise((resolve) => setTimeout(resolve, 0));
     });
 
-    // The adoption effect must not overwrite the user's in-progress edit.
-    expect(titleInput.value).toBe("Rozepsáno uživatelem");
+    // Reloading the canvas would throw away everything the user has done since.
+    expect(screen.getByTestId("mindmap-canvas-stub").getAttribute("data-revision")).toBe(
+      revisionBeforeEdit,
+    );
+    expect(screen.getByText(/novější verze mapy/i)).toBeInTheDocument();
   });
 
   it("keeps the just-saved document after save, even though the invalidated refetch never lands (issue-1 regression)", async () => {
@@ -174,6 +214,10 @@ describe("MindMapDetailPage", () => {
 
     const titleInput = (await screen.findByTestId("mindmap-panel-title-input")) as HTMLInputElement;
     fireEvent.change(titleInput, { target: { value: "Upraveno" } });
+    // Commit-on-blur (see MindMapSidePanel): a real browser blurs on the Save
+    // button's mousedown, jsdom does not.
+    fireEvent.blur(titleInput);
+    mockCanvasHandle.getDocument.mockReturnValue(canonicalDoc);
 
     fireEvent.click(screen.getByTestId("mindmap-save-button"));
 
@@ -295,5 +339,101 @@ describe("MindMapDetailPage", () => {
     // screen; a transient refetch failure must not fall back to the error state.
     expect(screen.getByTestId("mindmap-canvas-stub")).toBeInTheDocument();
     expect(screen.queryByText("Nepodařilo se načíst mapu")).not.toBeInTheDocument();
+  });
+
+  it("marks the map dirty when the canvas reports an edit", async () => {
+    const { mockClient, mockFetch } = createMockApiClient(BASE_URL);
+    mockAuthenticatedApiClient(mockClient);
+    mockFetch.mockImplementation((url: string) => {
+      if (url === DETAIL_URL) return jsonResponse(buildDetail());
+      throw new Error(`Unexpected fetch: ${url}`);
+    });
+
+    const queryClient = newQueryClient();
+    renderPage(queryClient);
+    await screen.findByTestId("mindmap-canvas-stub");
+
+    expect(screen.getByTestId("mindmap-save-button")).toBeDisabled();
+    fireEvent.click(screen.getByTestId("stub-edit"));
+    expect(screen.getByTestId("mindmap-save-button")).toBeEnabled();
+  });
+
+  it("saves the document read back out of the canvas, not a stale React copy", async () => {
+    const { mockClient, mockFetch } = createMockApiClient(BASE_URL);
+    mockAuthenticatedApiClient(mockClient);
+    const edited = buildDoc({
+      nodes: [
+        buildDoc().nodes[0],
+        {
+          id: "tmp-1", parentId: "root", title: "Nový", notes: null, status: "active",
+          owner: null, lockedBy: null, sourceMeetingIds: [], position: null, collapsed: false,
+        },
+      ],
+    });
+    mockCanvasHandle.getDocument.mockReturnValue(edited);
+
+    let savedJson: string | null = null;
+    mockFetch.mockImplementation((url: string, init?: RequestInit) => {
+      const method = (init?.method ?? "GET").toUpperCase();
+      if (method === "GET" && url === DETAIL_URL) return jsonResponse(buildDetail());
+      if (method === "PUT" && url === SAVE_URL) {
+        savedJson = JSON.parse(init!.body as string).documentJson;
+        return jsonResponse({ documentJson: savedJson });
+      }
+      throw new Error(`Unexpected fetch: ${method} ${url}`);
+    });
+
+    const queryClient = newQueryClient();
+    renderPage(queryClient);
+    await screen.findByTestId("mindmap-canvas-stub");
+
+    fireEvent.click(screen.getByTestId("stub-edit"));
+    fireEvent.click(screen.getByTestId("mindmap-save-button"));
+
+    await waitFor(() => expect(savedJson).not.toBeNull());
+    // The second node exists only inside the canvas — a page that still saved its
+    // own React copy would send one node here.
+    expect(JSON.parse(savedJson!).nodes).toHaveLength(2);
+  });
+
+  it("hands the canvas the new revision once the edits are saved", async () => {
+    const { mockClient, mockFetch } = createMockApiClient(BASE_URL);
+    mockAuthenticatedApiClient(mockClient);
+    const canonicalDoc = buildDoc({
+      nodes: [{ ...buildDoc().nodes[0], title: "Upraveno", lockedBy: "ondra@anela.cz" }],
+    });
+    mockCanvasHandle.getDocument.mockReturnValue(canonicalDoc);
+    let hasSaved = false;
+    mockFetch.mockImplementation((url: string, init?: RequestInit) => {
+      const method = (init?.method ?? "GET").toUpperCase();
+      if (method === "GET" && url === DETAIL_URL) {
+        // Once the PUT has succeeded the server holds the canonical document, so
+        // the refetch that invalidateQueries kicks off returns it too. A GET that
+        // kept replaying the pre-save copy would model a server that lost the
+        // write, and the adoption effect would correctly revert to it.
+        return jsonResponse(
+          hasSaved ? buildDetail({ documentJson: JSON.stringify(canonicalDoc) }) : buildDetail(),
+        );
+      }
+      if (method === "PUT" && url === SAVE_URL) {
+        hasSaved = true;
+        return jsonResponse({ documentJson: JSON.stringify(canonicalDoc) });
+      }
+      throw new Error(`Unexpected fetch: ${method} ${url}`);
+    });
+
+    const queryClient = newQueryClient();
+    renderPage(queryClient);
+    const stub = await screen.findByTestId("mindmap-canvas-stub");
+    const revisionBeforeSave = stub.getAttribute("data-revision");
+
+    fireEvent.click(screen.getByTestId("stub-edit"));
+    fireEvent.click(screen.getByTestId("mindmap-save-button"));
+
+    await waitFor(() =>
+      expect(screen.getByTestId("mindmap-canvas-stub").getAttribute("data-revision")).not.toBe(
+        revisionBeforeSave,
+      ),
+    );
   });
 });
