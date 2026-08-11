@@ -302,9 +302,6 @@ const MindMapDetailPage: React.FC = () => {
             isReadOnly={isReadOnly}
             isDirty={isDirty}
             onUpdateNode={handleUpdateNode}
-            onAddChild={() => {}}
-            onDeleteNode={() => {}}
-            onToggleCollapsed={() => {}}
           />
         )}
       </div>

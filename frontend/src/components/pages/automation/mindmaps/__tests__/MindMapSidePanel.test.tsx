@@ -5,7 +5,7 @@ import toast from "react-hot-toast";
 import MindMapSidePanel, { MindMapSidePanelProps } from "../MindMapSidePanel";
 import { MindMapDetail, useAttachMeeting, useDetachMeeting, useRestoreMindMapVersion } from "../../../../../api/hooks/useMindMaps";
 import { useMeetingTasksList } from "../../../../../api/hooks/useMeetingTasks";
-import { MindMapDocument } from "../mindMapDocument";
+import { MindMapDocument, MindMapNode } from "../mindMapDocument";
 
 // These two mutation-gated flows (attach, restore) exist specifically to stop the
 // background Claude rewrite from clobbering or silently discarding unsaved local
@@ -51,6 +51,24 @@ function buildDoc(): MindMapDocument {
   };
 }
 
+// buildDoc() has only the root node; these tests need two selectable siblings.
+function docWithChildren(): MindMapDocument {
+  const base = buildDoc();
+  const child = (id: string, title: string): MindMapNode => ({
+    id,
+    parentId: "root",
+    title,
+    notes: null,
+    status: "active",
+    owner: null,
+    lockedBy: null,
+    sourceMeetingIds: [],
+    position: null,
+    collapsed: false,
+  });
+  return { ...base, nodes: [...base.nodes, child("a", "Větev A"), child("b", "List B")] };
+}
+
 function buildDetail(overrides: Partial<MindMapDetail> = {}): MindMapDetail {
   return {
     id: "map-1",
@@ -76,9 +94,6 @@ function renderPanel(overrides: Partial<MindMapSidePanelProps> = {}) {
       isReadOnly={false}
       isDirty={false}
       onUpdateNode={jest.fn()}
-      onAddChild={jest.fn()}
-      onDeleteNode={jest.fn()}
-      onToggleCollapsed={jest.fn()}
       {...overrides}
     />,
   );
@@ -130,5 +145,54 @@ describe("MindMapSidePanel", () => {
 
     expect(toast.error).toHaveBeenCalledWith("Nejprve uložte mapu, poté ji můžete obnovit na starší verzi.");
     expect(restoreMutateAsync).not.toHaveBeenCalled();
+  });
+
+  it("does not push a document change on every keystroke in the title field", () => {
+    const onUpdateNode = jest.fn();
+    renderPanel({ document: docWithChildren(), onUpdateNode, selectedNodeId: "a" });
+
+    const input = screen.getByTestId("mindmap-panel-title-input");
+    fireEvent.change(input, { target: { value: "Nov" } });
+    fireEvent.change(input, { target: { value: "Nový" } });
+
+    // Each keystroke would otherwise trigger a full mind-elixir re-layout.
+    expect(onUpdateNode).not.toHaveBeenCalled();
+    expect(input).toHaveValue("Nový");
+  });
+
+  it("commits the title when the field loses focus", () => {
+    const onUpdateNode = jest.fn();
+    renderPanel({ document: docWithChildren(), onUpdateNode, selectedNodeId: "a" });
+
+    const input = screen.getByTestId("mindmap-panel-title-input");
+    fireEvent.change(input, { target: { value: "Nový název" } });
+    fireEvent.blur(input);
+
+    expect(onUpdateNode).toHaveBeenCalledWith("a", { title: "Nový název" });
+  });
+
+  it("does not commit when the text is unchanged", () => {
+    const onUpdateNode = jest.fn();
+    renderPanel({ document: docWithChildren(), onUpdateNode, selectedNodeId: "a" });
+    fireEvent.blur(screen.getByTestId("mindmap-panel-title-input"));
+    expect(onUpdateNode).not.toHaveBeenCalled();
+  });
+
+  it("shows each node's own values, and an abandoned draft does not leak across selections", () => {
+    // The draft is reset by keying the field on the node id; without that key, typing
+    // into one node and selecting another would show the first node's text.
+    const { unmount } = renderPanel({ document: docWithChildren(), selectedNodeId: "a" });
+    fireEvent.change(screen.getByTestId("mindmap-panel-title-input"), { target: { value: "rozepsáno" } });
+    unmount();
+
+    renderPanel({ document: docWithChildren(), selectedNodeId: "b" });
+    expect(screen.getByTestId("mindmap-panel-title-input")).toHaveValue("List B");
+  });
+
+  it("still commits status immediately — a select has no intermediate states", () => {
+    const onUpdateNode = jest.fn();
+    renderPanel({ document: docWithChildren(), onUpdateNode, selectedNodeId: "a" });
+    fireEvent.change(screen.getByLabelText("Stav"), { target: { value: "done" } });
+    expect(onUpdateNode).toHaveBeenCalledWith("a", { status: "done" });
   });
 });

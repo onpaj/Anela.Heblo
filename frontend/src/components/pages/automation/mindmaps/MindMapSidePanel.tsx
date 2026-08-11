@@ -44,89 +44,103 @@ export interface MindMapSidePanelProps {
     nodeId: string,
     patch: Partial<Pick<MindMapNode, "title" | "notes" | "owner" | "status">>,
   ) => void;
-  onAddChild: (parentId: string) => void;
-  onDeleteNode: (nodeId: string) => void;
-  onToggleCollapsed: (nodeId: string) => void;
 }
 
 // --- "Uzel" tab ---
+
+interface CommitOnBlurFieldProps {
+  id: string;
+  label: string;
+  value: string;
+  disabled: boolean;
+  rows?: number;
+  testId?: string;
+  onCommit: (value: string) => void;
+}
+
+/**
+ * Text field that keeps its own draft and only reports on blur. Each commit reaches
+ * mind-elixir's reshapeNode, which re-renders and re-lays-out the whole map — doing
+ * that per keystroke makes typing visibly stutter.
+ * `key`ing this component by node id (see NodeTab) is what resets the draft when
+ * the user selects a different node.
+ */
+const CommitOnBlurField: React.FC<CommitOnBlurFieldProps> = ({
+  id,
+  label,
+  value,
+  disabled,
+  rows,
+  testId,
+  onCommit,
+}) => {
+  const [draft, setDraft] = useState(value);
+  const commit = () => {
+    if (draft !== value) onCommit(draft);
+  };
+  const props = {
+    id,
+    value: draft,
+    disabled,
+    "data-testid": testId,
+    className: INPUT_CLASS,
+    onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => setDraft(e.target.value),
+    onBlur: commit,
+  };
+  return (
+    <div>
+      <label htmlFor={id} className="block text-sm font-medium text-gray-700 dark:text-graphite-muted mb-1">
+        {label}
+      </label>
+      {rows ? <textarea {...props} rows={rows} /> : <input {...props} type="text" />}
+    </div>
+  );
+};
 
 interface NodeTabProps {
   document: MindMapDocument;
   selectedNodeId: string | null;
   isReadOnly: boolean;
   onUpdateNode: MindMapSidePanelProps["onUpdateNode"];
-  onAddChild: MindMapSidePanelProps["onAddChild"];
-  onDeleteNode: MindMapSidePanelProps["onDeleteNode"];
-  onToggleCollapsed: MindMapSidePanelProps["onToggleCollapsed"];
 }
 
-const NodeTab: React.FC<NodeTabProps> = ({
-  document: doc,
-  selectedNodeId,
-  isReadOnly,
-  onUpdateNode,
-  onAddChild,
-  onDeleteNode,
-  onToggleCollapsed,
-}) => {
+const NodeTab: React.FC<NodeTabProps> = ({ document: doc, selectedNodeId, isReadOnly, onUpdateNode }) => {
   const node = doc.nodes.find((n) => n.id === selectedNodeId) ?? null;
 
   if (!node) {
     return <p className="text-sm text-gray-500 dark:text-graphite-muted">Vyberte uzel na plátně</p>;
   }
 
-  const isRoot = node.id === doc.rootNodeId;
-
-  const handleDelete = () => {
-    if (!window.confirm(`Smazat uzel „${node.title}“ a všechny jeho poduzly? Tato akce je nevratná.`)) return;
-    onDeleteNode(node.id);
-  };
-
   return (
     <div className="space-y-4">
-      <div>
-        <label htmlFor="mindmap-node-title" className="block text-sm font-medium text-gray-700 dark:text-graphite-muted mb-1">
-          Název
-        </label>
-        <input
-          id="mindmap-node-title"
-          type="text"
-          data-testid="mindmap-panel-title-input"
-          value={node.title}
-          disabled={isReadOnly}
-          onChange={(e) => onUpdateNode(node.id, { title: e.target.value })}
-          className={INPUT_CLASS}
-        />
-      </div>
+      <CommitOnBlurField
+        key={`${node.id}-title`}
+        id="mindmap-node-title"
+        label="Název"
+        testId="mindmap-panel-title-input"
+        value={node.title}
+        disabled={isReadOnly}
+        onCommit={(title) => onUpdateNode(node.id, { title })}
+      />
 
-      <div>
-        <label htmlFor="mindmap-node-notes" className="block text-sm font-medium text-gray-700 dark:text-graphite-muted mb-1">
-          Poznámky
-        </label>
-        <textarea
-          id="mindmap-node-notes"
-          value={node.notes ?? ""}
-          disabled={isReadOnly}
-          rows={4}
-          onChange={(e) => onUpdateNode(node.id, { notes: e.target.value || null })}
-          className={INPUT_CLASS}
-        />
-      </div>
+      <CommitOnBlurField
+        key={`${node.id}-notes`}
+        id="mindmap-node-notes"
+        label="Poznámky"
+        rows={4}
+        value={node.notes ?? ""}
+        disabled={isReadOnly}
+        onCommit={(notes) => onUpdateNode(node.id, { notes: notes || null })}
+      />
 
-      <div>
-        <label htmlFor="mindmap-node-owner" className="block text-sm font-medium text-gray-700 dark:text-graphite-muted mb-1">
-          Vlastník
-        </label>
-        <input
-          id="mindmap-node-owner"
-          type="text"
-          value={node.owner ?? ""}
-          disabled={isReadOnly}
-          onChange={(e) => onUpdateNode(node.id, { owner: e.target.value || null })}
-          className={INPUT_CLASS}
-        />
-      </div>
+      <CommitOnBlurField
+        key={`${node.id}-owner`}
+        id="mindmap-node-owner"
+        label="Vlastník"
+        value={node.owner ?? ""}
+        disabled={isReadOnly}
+        onCommit={(owner) => onUpdateNode(node.id, { owner: owner || null })}
+      />
 
       <div>
         <label htmlFor="mindmap-node-status" className="block text-sm font-medium text-gray-700 dark:text-graphite-muted mb-1">
@@ -152,35 +166,6 @@ const NodeTab: React.FC<NodeTabProps> = ({
           Uzamčeno uživatelem {node.lockedBy}
         </p>
       )}
-
-      <div className="flex flex-wrap gap-2 pt-2 border-t border-gray-200 dark:border-graphite-border">
-        <button
-          type="button"
-          disabled={isReadOnly}
-          onClick={() => onAddChild(node.id)}
-          className="px-3 py-1.5 text-sm rounded-md border border-gray-300 dark:border-graphite-border hover:bg-gray-50 dark:hover:bg-white/5 dark:text-graphite-muted disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          Přidat poduzel
-        </button>
-        <button
-          type="button"
-          disabled={isReadOnly}
-          onClick={() => onToggleCollapsed(node.id)}
-          className="px-3 py-1.5 text-sm rounded-md border border-gray-300 dark:border-graphite-border hover:bg-gray-50 dark:hover:bg-white/5 dark:text-graphite-muted disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          {node.collapsed ? "Rozbalit" : "Sbalit"}
-        </button>
-        {!isRoot && (
-          <button
-            type="button"
-            disabled={isReadOnly}
-            onClick={handleDelete}
-            className="px-3 py-1.5 text-sm rounded-md border border-red-300 text-red-700 hover:bg-red-50 dark:border-red-900/40 dark:text-red-300 dark:hover:bg-red-900/20 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            Smazat uzel
-          </button>
-        )}
-      </div>
     </div>
   );
 };
@@ -437,9 +422,6 @@ const MindMapSidePanel: React.FC<MindMapSidePanelProps> = ({
   isReadOnly,
   isDirty,
   onUpdateNode,
-  onAddChild,
-  onDeleteNode,
-  onToggleCollapsed,
 }) => {
   const [activeTab, setActiveTab] = useState<SidePanelTab>("node");
 
@@ -470,15 +452,7 @@ const MindMapSidePanel: React.FC<MindMapSidePanelProps> = ({
 
       <div className="flex-1 overflow-y-auto p-4">
         {activeTab === "node" && (
-          <NodeTab
-            document={doc}
-            selectedNodeId={selectedNodeId}
-            isReadOnly={isReadOnly}
-            onUpdateNode={onUpdateNode}
-            onAddChild={onAddChild}
-            onDeleteNode={onDeleteNode}
-            onToggleCollapsed={onToggleCollapsed}
-          />
+          <NodeTab document={doc} selectedNodeId={selectedNodeId} isReadOnly={isReadOnly} onUpdateNode={onUpdateNode} />
         )}
         {activeTab === "meetings" && (
           <MeetingsTab mindMapId={detail.id} meetings={detail.meetings} isReadOnly={isReadOnly} isDirty={isDirty} />
