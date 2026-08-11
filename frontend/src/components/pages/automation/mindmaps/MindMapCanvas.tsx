@@ -106,6 +106,26 @@ const MindMapCanvas = forwardRef<MindMapCanvasHandle, MindMapCanvasProps>(functi
     };
     const handleUnselect = () => onSelectNodeRef.current(null);
 
+    // mind-elixir colours each top-level branch from the theme palette, but it
+    // applies that colour as an INLINE border-color on the branch's own <me-tpc>.
+    // It is not a CSS variable and it is not set on any ancestor, so deeper cards
+    // have no way to reach it in CSS. Copy it onto the branch's <me-main> as
+    // --branch-color, which mindMapCanvas.css then uses to tint every card in that
+    // branch. `linkDiv` fires after every layout pass, which is exactly when the
+    // elements have been rebuilt.
+    const paintBranchColors = () => {
+      const container = containerRef.current;
+      if (!container) return;
+      container.querySelectorAll("me-main").forEach((branch) => {
+        const topic = branch.querySelector<HTMLElement>(":scope > me-wrapper > me-parent > me-tpc");
+        const color = topic?.style.borderColor;
+        if (color) (branch as HTMLElement).style.setProperty("--branch-color", color);
+      });
+    };
+
+    instance.bus.addListener("linkDiv", paintBranchColors);
+    paintBranchColors();
+
     instance.bus.addListener("operation", handleEdit);
     // Collapsing a branch is a persisted change (`collapsed`), but it is NOT an
     // `operation` — it has its own event.
@@ -115,6 +135,7 @@ const MindMapCanvas = forwardRef<MindMapCanvasHandle, MindMapCanvasProps>(functi
     instance.bus.addListener("unselectNodes", handleUnselect);
 
     return () => {
+      instance.bus.removeListener("linkDiv", paintBranchColors);
       instance.bus.removeListener("operation", handleEdit);
       instance.bus.removeListener("expandNode", handleEdit);
       instance.bus.removeListener("selectNewNode", handleSelect);
@@ -171,9 +192,21 @@ const MindMapCanvas = forwardRef<MindMapCanvasHandle, MindMapCanvasProps>(functi
       collapseAll: () => {
         const instance = instanceRef.current;
         if (!instance) return;
-        // Collapse everything, then re-open the root so the map never disappears.
+        // `expandNodeAll(root, false)` already leaves the root's own children on
+        // screen, which IS "collapse every branch but keep the root open" — it
+        // renders the top level regardless of the root's own `expanded` flag.
+        //
+        // Do NOT follow it with `expandNode(root, true)`. expandNode reaches for
+        // the node's expander element (`el.parentNode.children[1]`) and writes
+        // `.expanded` on it; the ROOT has no expander (verified: `me-root`'s
+        // parent has a single child), so that call always threw
+        // "Cannot set properties of undefined (setting 'expanded')" and took the
+        // whole page down with a React error overlay.
         instance.expandNodeAll(instance.findEle(instance.nodeData.id), false);
-        instance.expandNode(instance.findEle(instance.nodeData.id), true);
+        // expandNodeAll flips the root's own flag too. Nothing renders differently
+        // because of it, but a document claiming its root is collapsed is wrong and
+        // would round-trip into the saved JSON, so put it back.
+        instance.nodeData.expanded = true;
       },
       fit: () => {
         instanceRef.current?.toCenter();

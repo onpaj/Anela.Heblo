@@ -15,3 +15,27 @@
   color: #9aa0aa;
   background: rgba(255, 255, 255, 0.1);
 }
+
+/* mind-elixir only draws a card for the root and for top-level branches; every
+   deeper node is bare text on the background, which makes a busy map impossible to
+   read. Give those nodes the same card treatment, keeping a deliberate hierarchy:
+   the root stays an inverted filled card, branches keep their 2px solid branch
+   colour, and deeper nodes get a 1px border in the same branch colour at reduced
+   strength.
+
+   Leaves live under <me-children>; branch topics do not (they sit directly under
+   me-main > me-wrapper > me-parent), so this selector reaches deeper nodes only and
+   leaves the library's root and branch rules alone.
+
+   --branch-color is copied onto each <me-main> by MindMapCanvas's paintBranchColors,
+   because mind-elixir sets the branch colour as an inline style on the branch topic
+   rather than as an inheritable variable. The var() fallback and the preceding
+   border shorthand both degrade safely if that has not run yet, or if the browser
+   lacks color-mix. */
+.mindmap-canvas .map-container me-children me-parent > me-tpc {
+  background-color: var(--main-bgcolor);
+  border: 1px solid var(--branch-color, var(--main-color));
+  border-color: color-mix(in srgb, var(--branch-color, var(--main-color)) 55%, transparent);
+  border-radius: var(--main-radius);
+  padding: var(--topic-padding);
+}

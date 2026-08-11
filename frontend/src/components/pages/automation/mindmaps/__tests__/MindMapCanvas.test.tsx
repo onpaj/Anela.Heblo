@@ -279,20 +279,69 @@ describe("MindMapCanvas", () => {
     expect(instance.expandNodeAll).toHaveBeenCalledWith(rootEle, true);
   });
 
-  it("collapseAll collapses everything, then re-expands the root so the map never disappears", () => {
-    const rootEle = { nodeObj: { id: "root" } };
+  it("collapseAll never calls expandNode on the root, which has no expander element", () => {
+    // Regression: collapseAll used to follow the collapse with expandNode(root, true)
+    // to "re-open the root". mind-elixir's expandNode writes `.expanded` onto the
+    // node's <me-epd> expander, reached as el.parentNode.children[1] — and the root
+    // has no expander, so every click on "Sbalit" threw
+    // "Cannot set properties of undefined (setting 'expanded')" and took the page
+    // down with a React error overlay.
+    //
+    // The stub models that precondition, so re-adding the call fails this test
+    // instead of passing against an inert jest.fn().
+    const rootEle = { nodeObj: { id: "root" }, parentNode: { children: [{}] } };
     instance.findEle.mockReturnValue(rootEle);
+    instance.expandNode.mockImplementation((el: any, isExpand: boolean) => {
+      el.parentNode.children[1].expanded = isExpand;
+    });
+
+    const { ref } = renderCanvas();
+    expect(() =>
+      act(() => {
+        ref.current!.collapseAll();
+      }),
+    ).not.toThrow();
+
+    expect(instance.expandNodeAll).toHaveBeenCalledWith(rootEle, false);
+    expect(instance.expandNode).not.toHaveBeenCalled();
+  });
+
+  it("collapseAll restores the root's own expanded flag so the saved document stays truthful", () => {
+    // expandNodeAll flips the root's flag too. Nothing renders differently, but the
+    // flag round-trips into the saved JSON as `collapsed: true` on the root.
+    const rootEle = { nodeObj: { id: "root" }, parentNode: { children: [{}] } };
+    instance.findEle.mockReturnValue(rootEle);
+    instance.nodeData = { id: "root", expanded: true } as never;
+    instance.expandNodeAll.mockImplementation(() => {
+      (instance.nodeData as { expanded: boolean }).expanded = false;
+    });
+
     const { ref } = renderCanvas();
     act(() => {
       ref.current!.collapseAll();
     });
-    expect(instance.expandNodeAll).toHaveBeenCalledWith(rootEle, false);
-    expect(instance.expandNode).toHaveBeenCalledWith(rootEle, true);
-    // Order matters: re-expanding the root before the collapse would just have it
-    // collapsed again by expandNodeAll.
-    expect(instance.expandNodeAll.mock.invocationCallOrder[0]).toBeLessThan(
-      instance.expandNode.mock.invocationCallOrder[0],
-    );
+
+    expect((instance.nodeData as { expanded: boolean }).expanded).toBe(true);
+  });
+
+  it("copies each branch's inline colour onto its me-main as --branch-color", () => {
+    // mind-elixir sets the branch colour as an inline border-color on the branch's
+    // own <me-tpc>; deeper cards need it as an inheritable variable to tint their
+    // borders. `linkDiv` fires after every layout pass.
+    const { getByTestId } = renderCanvas();
+    const container = getByTestId("mindmap-canvas");
+    container.innerHTML =
+      "<me-main><me-wrapper><me-parent>" +
+      '<me-tpc style="border-color: rgb(46, 125, 107)"></me-tpc>' +
+      "</me-parent><me-children><me-wrapper><me-parent><me-tpc></me-tpc>" +
+      "</me-parent></me-wrapper></me-children></me-wrapper></me-main>";
+
+    act(() => {
+      instance.bus.fire("linkDiv");
+    });
+
+    const branch = container.querySelector("me-main") as HTMLElement;
+    expect(branch.style.getPropertyValue("--branch-color")).toBe("rgb(46, 125, 107)");
   });
 
   it("fit re-centers before rescaling to fit", () => {
