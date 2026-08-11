@@ -25,3 +25,53 @@ test("themeFor selects by mode", () => {
   expect(themeFor("light")).toBe(MIND_MAP_LIGHT_THEME);
   expect(themeFor("dark")).toBe(MIND_MAP_DARK_THEME);
 });
+
+describe("sub-branch links", () => {
+  // Parent card spans x 100..300, vertical centre 120.
+  // Child's me-parent box spans x 340..540 on the right, vertical centre 250 —
+  // and is inset from the visible card by the 12px node gap on each side.
+  const params = {
+    pT: 100, pL: 100, pW: 200, pH: 40,
+    cT: 220, cL: 340, cW: 200, cH: 60,
+    isFirst: true,
+  };
+
+  it("both themes draw sub-branches themselves rather than using the library default", () => {
+    // The default is a curve into a horizontal line under the child, which clashes
+    // with the card every node now has.
+    expect(typeof MIND_MAP_LIGHT_THEME.generateSubBranch).toBe("function");
+    expect(typeof MIND_MAP_DARK_THEME.generateSubBranch).toBe("function");
+  });
+
+  it("attaches to the side centre of both cards, like a top-level branch", () => {
+    const path = MIND_MAP_LIGHT_THEME.generateSubBranch!.call(
+      null as never,
+      { ...params, direction: "rhs" } as never,
+    );
+    // Leaves the parent's right edge (300) at its vertical centre (120) and lands on
+    // the child's LEFT edge pulled in by the node gap (340 + 12 = 352) at centre 250.
+    expect(path).toBe("M300,120 C326,120 326,250 352,250");
+  });
+
+  it("mirrors the attachment on the left-hand side", () => {
+    const path = MIND_MAP_LIGHT_THEME.generateSubBranch!.call(
+      null as never,
+      { ...params, cL: -240, direction: "lhs" } as never,
+    );
+    // Parent's LEFT edge (100), child's RIGHT edge pulled in by the gap
+    // (-240 + 200 - 12 = -52).
+    expect(path).toBe("M100,120 C24,120 24,250 -52,250");
+  });
+
+  it("keeps the node gap it insets by in step with the --node-gap-x it publishes", () => {
+    // The inset is only correct while these two agree; drifting them apart detaches
+    // every sub-branch link from its card.
+    const gap = MIND_MAP_LIGHT_THEME.cssVar!["--node-gap-x"];
+    const path = MIND_MAP_LIGHT_THEME.generateSubBranch!.call(
+      null as never,
+      { ...params, direction: "rhs" } as never,
+    );
+    const childX = Number(path.split(" ").pop()!.split(",")[0]);
+    expect(childX - params.cL).toBe(parseInt(gap!, 10));
+  });
+});
