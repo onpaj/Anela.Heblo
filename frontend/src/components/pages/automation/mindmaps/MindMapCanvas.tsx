@@ -1,6 +1,6 @@
 import React, { forwardRef, useCallback, useEffect, useImperativeHandle, useRef } from "react";
 import MindElixir from "mind-elixir";
-import type { MindElixirInstance, NodeObj } from "mind-elixir";
+import type { MindElixirInstance, NodeObj, Topic } from "mind-elixir";
 import "mind-elixir/style";
 import "./mindMapCanvas.css";
 import { useTheme } from "../../../../contexts/ThemeContext";
@@ -43,10 +43,12 @@ export interface MindMapCanvasProps {
   /** Any edit the user made — the page turns this into `isDirty`. */
   onChange: () => void;
   onSelectNode: (nodeId: string | null) => void;
+  /** A double-click (or F2's replacement) asks the page to open the node editor. */
+  onOpenNodeEditor: (nodeId: string) => void;
 }
 
 const MindMapCanvas = forwardRef<MindMapCanvasHandle, MindMapCanvasProps>(function MindMapCanvas(
-  { initialDocument, documentRevision, isReadOnly, onChange, onSelectNode },
+  { initialDocument, documentRevision, isReadOnly, onChange, onSelectNode, onOpenNodeEditor },
   ref,
 ) {
   const { theme } = useTheme();
@@ -61,10 +63,14 @@ const MindMapCanvas = forwardRef<MindMapCanvasHandle, MindMapCanvasProps>(functi
   // instance is never torn down just because the page re-rendered.
   const onChangeRef = useRef(onChange);
   const onSelectNodeRef = useRef(onSelectNode);
+  const onOpenNodeEditorRef = useRef(onOpenNodeEditor);
+  const isReadOnlyRef = useRef(isReadOnly);
   useEffect(() => {
     onChangeRef.current = onChange;
     onSelectNodeRef.current = onSelectNode;
-  }, [onChange, onSelectNode]);
+    onOpenNodeEditorRef.current = onOpenNodeEditor;
+    isReadOnlyRef.current = isReadOnly;
+  }, [onChange, onSelectNode, onOpenNodeEditor, isReadOnly]);
 
   useEffect(() => {
     const container = containerRef.current;
@@ -90,6 +96,56 @@ const MindMapCanvas = forwardRef<MindMapCanvasHandle, MindMapCanvasProps>(functi
     });
     instance.init(toMindElixir(baseDocumentRef.current));
     instanceRef.current = instance;
+
+    // mind-elixir has no DOM `dblclick` event to intercept: it detects double taps
+    // itself inside its pointerup handler and calls instance.beginEdit (verified in
+    // dist/MindElixir.js — the double-tap branch bails at `if (!e.editable) return`
+    // and then does `selectNode(b), beginEdit(b)`). There is no option that turns
+    // inline editing off, so replacing the method is the only seam: it swaps the
+    // library's inline #input-box for our own editor dialog.
+    //
+    // Keep the raw, unbound reference too: `beginEdit` is a prototype method, so
+    // calling it as `instance.beginEdit(...)` (the library's own call style, and
+    // the only way it is ever invoked here again after cleanup) already gets the
+    // right `this` from the method-call syntax — a `.bind()` copy is only needed
+    // for `handleF2` below, which calls it detached from `instance.`. Restoring
+    // the bound copy instead of the original would still behave correctly, but it
+    // would permanently shadow the library's own method with an extra wrapper.
+    const originalBeginEdit = instance.beginEdit;
+    const inlineBeginEdit = originalBeginEdit.bind(instance);
+    instance.beginEdit = ((el?: Topic) => {
+      const target = el ?? instance.currentNode;
+      if (target) onOpenNodeEditorRef.current(target.nodeObj.id);
+      return Promise.resolve();
+    }) as MindElixirInstance["beginEdit"];
+
+    // F2 must still start inline typing, and it reaches the same beginEdit. The
+    // library binds its key map as `container.onkeydown`, and the container is
+    // normally the key event's own target — where capture and bubble listeners fire
+    // in registration order, so a capture listener on the container itself is not
+    // guaranteed to win. Intercept at the document, where the capture phase always
+    // runs first, and stop the event before the library's own handler sees it.
+    const handleF2 = (event: KeyboardEvent) => {
+      if (event.key !== "F2" || isReadOnlyRef.current) return;
+      const target = event.target;
+      if (!(target instanceof Node) || !container.contains(target)) return;
+      event.stopPropagation();
+      void inlineBeginEdit();
+    };
+    window.document.addEventListener("keydown", handleF2, true);
+
+    // While the map is read-only the library's double-tap path returns before
+    // reaching beginEdit, so the replacement above never fires and the node detail
+    // would be unreachable. Listen for the browser's own dblclick as well. On an
+    // editable map both paths run and both call onOpenNodeEditor with the same id,
+    // which the page turns into the same state — a harmless duplicate.
+    const handleDoubleClick = (event: MouseEvent) => {
+      const target = event.target;
+      if (!(target instanceof HTMLElement)) return;
+      const topic = target.closest("me-tpc") as Topic | null;
+      if (topic?.nodeObj) onOpenNodeEditorRef.current(topic.nodeObj.id);
+    };
+    container.addEventListener("dblclick", handleDoubleClick);
 
     const handleEdit = () => onChangeRef.current();
     // A plain click does NOT fire `selectNewNode` — verified against mind-elixir
@@ -141,6 +197,9 @@ const MindMapCanvas = forwardRef<MindMapCanvasHandle, MindMapCanvasProps>(functi
       instance.bus.removeListener("selectNewNode", handleSelect);
       instance.bus.removeListener("selectNodes", handleSelectNodes);
       instance.bus.removeListener("unselectNodes", handleUnselect);
+      window.document.removeEventListener("keydown", handleF2, true);
+      container.removeEventListener("dblclick", handleDoubleClick);
+      instance.beginEdit = originalBeginEdit;
       instance.destroy();
       instanceRef.current = null;
     };

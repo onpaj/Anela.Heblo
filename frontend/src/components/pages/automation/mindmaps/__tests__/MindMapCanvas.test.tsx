@@ -1,5 +1,5 @@
 import React from "react";
-import { act, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import "@testing-library/jest-dom";
 import { MindMapDocument } from "../mindMapDocument";
 
@@ -18,6 +18,7 @@ const instance = {
   enableEdit: jest.fn(),
   disableEdit: jest.fn(),
   undo: jest.fn(),
+  beginEdit: jest.fn(),
   scaleFit: jest.fn(),
   toCenter: jest.fn(),
   addChild: jest.fn(),
@@ -100,6 +101,7 @@ function renderCanvas(overrides: Partial<React.ComponentProps<typeof MindMapCanv
       isReadOnly={false}
       onChange={jest.fn()}
       onSelectNode={jest.fn()}
+      onOpenNodeEditor={jest.fn()}
       {...overrides}
     />,
   );
@@ -115,6 +117,12 @@ describe("MindMapCanvas", () => {
     // to `mockMindElixir` at module load — without this, `new MindElixir(...)`
     // would return a bare auto-generated object instead of our shared `instance`.
     mockMindElixir.mockImplementation(() => instance);
+    // The component replaces `instance.beginEdit` on mount and restores it (via
+    // `.bind()`) on unmount. `.bind()` returns a plain function, not a tracked
+    // jest mock, so across the file's many mount/unmount cycles on this one
+    // shared `instance` it would otherwise nest a new bind wrapper on every test,
+    // losing `.mock` identity. Give each test a fresh mock to replace onto.
+    instance.beginEdit = jest.fn();
   });
 
   it("creates the instance with the two-sided layout and initialises it once", () => {
@@ -417,5 +425,78 @@ describe("MindMapCanvas", () => {
     const { unmount } = renderCanvas();
     unmount();
     expect(instance.destroy).toHaveBeenCalledTimes(1);
+  });
+
+  it("opens the node editor instead of mind-elixir's inline text box", () => {
+    // mind-elixir's own double-tap handler calls beginEdit(topicElement); the
+    // component replaces that method, which is the only seam the library offers.
+    const onOpenNodeEditor = jest.fn();
+    renderCanvas({ onOpenNodeEditor });
+
+    act(() => {
+      (instance.beginEdit as jest.Mock)({ nodeObj: { id: "a" } });
+    });
+
+    expect(onOpenNodeEditor).toHaveBeenCalledWith("a");
+  });
+
+  it("falls back to the selected node when beginEdit is called with no element", () => {
+    const onOpenNodeEditor = jest.fn();
+    instance.currentNode = { nodeObj: { id: "b" } };
+    renderCanvas({ onOpenNodeEditor });
+
+    act(() => {
+      (instance.beginEdit as jest.Mock)();
+    });
+
+    expect(onOpenNodeEditor).toHaveBeenCalledWith("b");
+    instance.currentNode = null;
+  });
+
+  it("keeps F2 on mind-elixir's own inline editor", () => {
+    // Captured before the component replaces the method on mount.
+    const inlineEditor = instance.beginEdit as jest.Mock;
+    const onOpenNodeEditor = jest.fn();
+    renderCanvas({ onOpenNodeEditor });
+
+    fireEvent.keyDown(screen.getByTestId("mindmap-canvas"), { key: "F2" });
+
+    expect(inlineEditor).toHaveBeenCalled();
+    expect(onOpenNodeEditor).not.toHaveBeenCalled();
+  });
+
+  it("ignores F2 pressed outside the map", () => {
+    const inlineEditor = instance.beginEdit as jest.Mock;
+    renderCanvas();
+
+    fireEvent.keyDown(window.document.body, { key: "F2" });
+
+    expect(inlineEditor).not.toHaveBeenCalled();
+  });
+
+  it("opens the node editor on a real double-click while the map is read-only", () => {
+    // mind-elixir's double-tap path bails at `if (!e.editable) return`, so the
+    // replaced beginEdit never fires while the map is Updating.
+    const onOpenNodeEditor = jest.fn();
+    renderCanvas({ isReadOnly: true, onOpenNodeEditor });
+
+    const canvas = screen.getByTestId("mindmap-canvas");
+    const topic = window.document.createElement("me-tpc");
+    (topic as HTMLElement & { nodeObj: { id: string } }).nodeObj = { id: "a" };
+    canvas.appendChild(topic);
+
+    fireEvent.dblClick(topic);
+
+    expect(onOpenNodeEditor).toHaveBeenCalledWith("a");
+  });
+
+  it("restores mind-elixir's own beginEdit when it unmounts", () => {
+    const inlineEditor = instance.beginEdit;
+    const { unmount } = renderCanvas();
+    expect(instance.beginEdit).not.toBe(inlineEditor);
+
+    unmount();
+
+    expect(instance.beginEdit).toBe(inlineEditor);
   });
 });
