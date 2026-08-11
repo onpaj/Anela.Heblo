@@ -33,6 +33,9 @@ export interface MindMapDocument {
   suppressedNodes: SuppressedNode[];
 }
 
+/** The subset of a node the user can edit by hand. */
+export type MindMapNodePatch = Partial<Pick<MindMapNode, "title" | "notes" | "owner" | "status">>;
+
 export function parseDocument(json: string): MindMapDocument {
   const parsed = JSON.parse(json) as MindMapDocument;
   if (!parsed || !Array.isArray(parsed.nodes) || !parsed.rootNodeId) {

@@ -4,7 +4,7 @@ import type { MindElixirInstance, NodeObj } from "mind-elixir";
 import "mind-elixir/style";
 import "./mindMapCanvas.css";
 import { useTheme } from "../../../../contexts/ThemeContext";
-import { MindMapDocument, MindMapNode } from "./mindMapDocument";
+import { MindMapDocument, MindMapNodePatch } from "./mindMapDocument";
 import {
   DEFAULT_METADATA,
   displayFieldsFor,
@@ -15,7 +15,7 @@ import {
 } from "./mindElixirMapping";
 import { themeFor } from "./mindElixirTheme";
 
-export type MindMapNodePatch = Partial<Pick<MindMapNode, "title" | "notes" | "owner" | "status">>;
+export type { MindMapNodePatch };
 
 export interface MindMapCanvasHandle {
   getDocument: () => MindMapDocument | null;
