@@ -156,15 +156,19 @@ public class PhotobankIndexJobTests
     }
 
     [Fact]
-    public async Task UpsertPhotoBatch_GraphItemLastModifiedAtHasUnspecifiedKind_PhotoModifiedAtIsStampedUtc()
+    public async Task UpsertPhotoBatch_GraphItemLastModifiedAtHasUnspecifiedKind_InMemoryPhotoModifiedAtIsStampedUtc()
     {
         // Arrange — simulate System.Text.Json handing back a DateTime with Kind=Unspecified for
-        // the Graph delta item's lastModifiedDateTime (the one Photobank DateTime value sourced
-        // from something other than DateTime.UtcNow). Photo.ModifiedAt must never inherit that
-        // Kind as-is: PhotobankRootRepository/PhotobankPhotoRepository share one ApplicationDbContext
-        // whose global convention strips Kind before every write, so the column-type mapping is
-        // what actually determines success/failure — but this test only needs to prove the
-        // application-layer contract: the assigned Kind is always Utc, regardless of the source's Kind.
+        // the Graph delta item's lastModifiedDateTime. This test only asserts the in-memory
+        // application-layer contract on the captured `Photo` object (the assigned Kind is always
+        // Utc, regardless of the source's Kind) — it does NOT go through ApplicationDbContext.
+        // ApplicationDbContext.OnModelCreating installs a global DateTime value converter that
+        // unconditionally re-stamps every DateTime/DateTime? property to Kind=Unspecified right
+        // before every write, so this in-memory Kind has no effect on what is actually persisted
+        // and this test cannot and does not validate/reproduce the recurring
+        // "Cannot write DateTime with Kind=Unspecified to ... 'timestamp with time zone'"
+        // exception or its fix — see PhotobankSchemaHealthCheck for the schema-drift diagnosis
+        // that actually determines whether that exception still occurs in a given environment.
         var unspecifiedInstant = new DateTime(2026, 7, 27, 1, 28, 0, DateTimeKind.Unspecified);
 
         var root = new PhotobankIndexRoot
