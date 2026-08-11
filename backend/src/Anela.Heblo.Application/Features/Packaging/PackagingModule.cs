@@ -1,5 +1,6 @@
 using Anela.Heblo.Application.Common.Behaviors;
 using Anela.Heblo.Application.Features.Packaging.DashboardTiles;
+using Anela.Heblo.Application.Features.Packaging.Services;
 using Anela.Heblo.Application.Features.Packaging.UseCases.GetOrderTrackingNumber;
 using Anela.Heblo.Application.Features.Packaging.UseCases.GetPackages;
 using Anela.Heblo.Application.Features.Packaging.UseCases.ScanPackingOrder;
@@ -19,6 +20,8 @@ public static class PackagingModule
     {
         // Repository (implementation lives in the Persistence layer)
         services.AddScoped<IPackageRepository, PackageRepository>();
+
+        services.AddScoped<IShipmentCreationService, ShipmentCreationService>();
 
         services.AddScoped<IValidator<ScanPackingOrderRequest>, ScanPackingOrderRequestValidator>();
         services.AddScoped<

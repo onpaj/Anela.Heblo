@@ -10,12 +10,13 @@ public class CatalogMergeScheduler : ICatalogMergeScheduler
     private readonly ILogger<CatalogMergeScheduler> _logger;
     private readonly CatalogCacheOptions _options;
     private readonly CancellationToken _applicationStopping;
+    private readonly TimeProvider _timeProvider;
 
     private readonly SemaphoreSlim _mergeSemaphore = new(1, 1);
     private readonly ConcurrentDictionary<string, DateTime> _invalidationTimes = new();
     private readonly object _timerLock = new();
 
-    private Timer? _debounceTimer;
+    private ITimer? _debounceTimer;
     private DateTime _lastMergeCompleted = DateTime.MinValue;
     private DateTime _firstPendingInvalidation = DateTime.MinValue;
     private bool _mergeScheduled = false;
@@ -26,11 +27,13 @@ public class CatalogMergeScheduler : ICatalogMergeScheduler
     public CatalogMergeScheduler(
         ILogger<CatalogMergeScheduler> logger,
         IOptions<CatalogCacheOptions> options,
-        IHostApplicationLifetime applicationLifetime)
+        IHostApplicationLifetime applicationLifetime,
+        TimeProvider timeProvider)
     {
         _logger = logger;
         _options = options.Value;
         _applicationStopping = applicationLifetime.ApplicationStopping;
+        _timeProvider = timeProvider;
     }
 
     public void SetMergeCallback(Func<CancellationToken, Task> mergeCallback)
@@ -44,7 +47,7 @@ public class CatalogMergeScheduler : ICatalogMergeScheduler
     {
         if (_disposed || _applicationStopping.IsCancellationRequested) return;
 
-        var now = DateTime.UtcNow;
+        var now = _timeProvider.GetUtcNow().UtcDateTime;
         _invalidationTimes.TryAdd(dataSource, now);
 
         lock (_timerLock)
@@ -71,7 +74,7 @@ public class CatalogMergeScheduler : ICatalogMergeScheduler
 
             // Reset debounce timer
             _debounceTimer?.Dispose();
-            _debounceTimer = new Timer(async _ => await ExecuteMergeAsync(),
+            _debounceTimer = _timeProvider.CreateTimer(async _ => await ExecuteMergeAsync(),
                 null, _options.DebounceDelay, Timeout.InfiniteTimeSpan);
 
             _mergeScheduled = true;
@@ -99,7 +102,7 @@ public class CatalogMergeScheduler : ICatalogMergeScheduler
 
             await _mergeCallback(_applicationStopping);
 
-            _lastMergeCompleted = DateTime.UtcNow;
+            _lastMergeCompleted = _timeProvider.GetUtcNow().UtcDateTime;
             _mergeScheduled = false;
             _firstPendingInvalidation = DateTime.MinValue;
             _invalidationTimes.Clear();
