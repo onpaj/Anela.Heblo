@@ -117,12 +117,6 @@ describe("MindMapCanvas", () => {
     // to `mockMindElixir` at module load — without this, `new MindElixir(...)`
     // would return a bare auto-generated object instead of our shared `instance`.
     mockMindElixir.mockImplementation(() => instance);
-    // The component replaces `instance.beginEdit` on mount and restores it (via
-    // `.bind()`) on unmount. `.bind()` returns a plain function, not a tracked
-    // jest mock, so across the file's many mount/unmount cycles on this one
-    // shared `instance` it would otherwise nest a new bind wrapper on every test,
-    // losing `.mock` identity. Give each test a fresh mock to replace onto.
-    instance.beginEdit = jest.fn();
   });
 
   it("creates the instance with the two-sided layout and initialises it once", () => {
