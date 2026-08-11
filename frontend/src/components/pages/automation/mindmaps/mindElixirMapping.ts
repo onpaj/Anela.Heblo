@@ -4,8 +4,14 @@
 //
 // Our extra fields ride in mind-elixir's generic `metadata` slot. `tags`, `icons`
 // and `style` are DERIVED display fields — never a source of truth. They are
-// recomputed by displayFieldsFor() here and again on every reshapeNode(), so the
-// two can never disagree.
+// recomputed by displayFieldsFor() here and again on every reshapeNode(). That
+// second call is not a plain overwrite, though: mind-elixir's reshapeNode merges
+// the OLD style object into the new one (`o.style && t.style && (t.style =
+// Object.assign(o.style, t.style))` in its own source), so a key this function
+// omits can survive from a *previous* status. displayFieldsFor defeats that by
+// always emitting all three style keys — `undefined` for the ones the current
+// status does not need — so the merge has nothing stale left to carry over, and
+// the two truly can never disagree.
 
 import type { MindElixirData, NodeObj } from "mind-elixir";
 import { MindMapDocument, MindMapNode, MindMapNodeStatus } from "./mindMapDocument";
@@ -40,10 +46,16 @@ export function displayFieldsFor(
     ...(notes ? [NOTE_ICON] : []),
   ];
 
-  let style: MindMapNodeObj["style"];
-  if (metadata.status === "idea") style = { border: IDEA_BORDER, color: "#8A827B" };
-  else if (metadata.status === "done") style = { textDecoration: "line-through" };
-  else if (metadata.status === "blocked") style = { border: BLOCKED_BORDER };
+  // Every key below is set on every call — even to `undefined` — for the reason
+  // explained in the file header: reshapeNode's merge only clears a key if the new
+  // style object actually has that key, so leaving one out lets the old value leak
+  // through a status change (e.g. done -> idea keeping the strikethrough).
+  const style: NonNullable<MindMapNodeObj["style"]> = {
+    border:
+      metadata.status === "idea" ? IDEA_BORDER : metadata.status === "blocked" ? BLOCKED_BORDER : undefined,
+    color: metadata.status === "idea" ? "#8A827B" : undefined,
+    textDecoration: metadata.status === "done" ? "line-through" : undefined,
+  };
 
   return {
     tags: metadata.owner ? [metadata.owner] : undefined,

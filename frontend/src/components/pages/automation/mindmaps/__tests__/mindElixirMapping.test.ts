@@ -152,5 +152,28 @@ test("displayFieldsFor styles idea, done and blocked distinctly", () => {
   expect(displayFieldsFor({ ...base, status: "blocked" }, null).style).toEqual(
     expect.objectContaining({ border: expect.stringContaining("#EF4444") }),
   );
-  expect(displayFieldsFor({ ...base, status: "active" }, null).style).toBeUndefined();
+  // "active" needs none of the three keys, but the style object itself is still
+  // present — see the next test for why that matters.
+  expect(displayFieldsFor({ ...base, status: "active" }, null).style).toEqual({
+    border: undefined,
+    color: undefined,
+    textDecoration: undefined,
+  });
+});
+
+test("displayFieldsFor emits all three style keys so mind-elixir's reshapeNode merge cannot carry a stale value across a status change", () => {
+  // reshapeNode (node_modules/mind-elixir/dist/MindElixir.js) merges the OLD style
+  // object into the new one: `o.style && t.style && (t.style = Object.assign(o.style,
+  // t.style))`. That only clears a key if the new style object actually has that key
+  // — simulate exactly that merge here for the two cases the review flagged.
+  const base = { owner: null, lockedBy: null, sourceMeetingIds: [] };
+  const merge = (oldStyle: object, newStyle: object) => Object.assign({ ...oldStyle }, newStyle);
+
+  const doneStyle = displayFieldsFor({ ...base, status: "done" }, null).style!;
+  const ideaStyle = displayFieldsFor({ ...base, status: "idea" }, null).style!;
+  expect((merge(doneStyle, ideaStyle) as Record<string, unknown>).textDecoration).toBeUndefined();
+
+  const blockedStyle = displayFieldsFor({ ...base, status: "blocked" }, null).style!;
+  const doneStyle2 = displayFieldsFor({ ...base, status: "done" }, null).style!;
+  expect((merge(blockedStyle, doneStyle2) as Record<string, unknown>).border).toBeUndefined();
 });

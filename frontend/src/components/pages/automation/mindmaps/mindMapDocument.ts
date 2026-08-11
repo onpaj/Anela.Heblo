@@ -38,5 +38,12 @@ export function parseDocument(json: string): MindMapDocument {
   if (!parsed || !Array.isArray(parsed.nodes) || !parsed.rootNodeId) {
     throw new Error("Invalid mind map document");
   }
+  // toMindElixir throws if rootNodeId names no node, and it is called unguarded
+  // from MindMapCanvas's mount and revision effects. Catching the same defect here
+  // — where every caller already has a try/catch and an error state to fall back
+  // on — keeps a malformed document from escaping as an uncaught exception later.
+  if (!parsed.nodes.some((n) => n.id === parsed.rootNodeId)) {
+    throw new Error("Invalid mind map document: no node matches rootNodeId");
+  }
   return parsed;
 }
