@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { X } from "lucide-react";
 import { AttachedMeeting } from "../../../../api/hooks/useMindMaps";
 import { MindMapNode, MindMapNodePatch, MindMapNodeStatus } from "./mindMapDocument";
@@ -23,6 +23,7 @@ interface CommitOnBlurFieldProps {
   disabled: boolean;
   rows?: number;
   testId?: string;
+  autoFocus?: boolean;
   onCommit: (value: string) => void;
 }
 
@@ -40,6 +41,7 @@ const CommitOnBlurField: React.FC<CommitOnBlurFieldProps> = ({
   disabled,
   rows,
   testId,
+  autoFocus,
   onCommit,
 }) => {
   const [draft, setDraft] = useState(value);
@@ -60,7 +62,11 @@ const CommitOnBlurField: React.FC<CommitOnBlurFieldProps> = ({
       <label htmlFor={id} className={LABEL_CLASS}>
         {label}
       </label>
-      {rows ? <textarea {...props} rows={rows} /> : <input {...props} type="text" />}
+      {rows ? (
+        <textarea {...props} rows={rows} />
+      ) : (
+        <input {...props} type="text" autoFocus={autoFocus} />
+      )}
     </div>
   );
 };
@@ -90,6 +96,14 @@ const MindMapNodeEditorDialog: React.FC<MindMapNodeEditorDialogProps> = ({
     onClose();
   }, [onClose]);
 
+  // A `click` event is dispatched on the nearest common ancestor of `mousedown` and
+  // `mouseup`, not on wherever the press started — so dragging a text selection that
+  // starts inside the roomy Poznámky textarea and releases over the backdrop still
+  // targets the overlay's `onClick` and would close the dialog mid-selection. Only
+  // treat it as a backdrop click when the press itself (mousedown) also landed on
+  // the backdrop.
+  const backdropPressRef = useRef(false);
+
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key !== "Escape") return;
@@ -108,15 +122,25 @@ const MindMapNodeEditorDialog: React.FC<MindMapNodeEditorDialogProps> = ({
   return (
     <div
       data-testid="mindmap-node-editor"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="mindmap-node-editor-title"
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-6"
-      onClick={closeWithFlush}
+      onMouseDown={(e) => {
+        backdropPressRef.current = e.target === e.currentTarget;
+      }}
+      onClick={(e) => {
+        if (e.target === e.currentTarget && backdropPressRef.current) closeWithFlush();
+      }}
     >
       <div
         className="flex max-h-[85vh] w-full max-w-3xl flex-col overflow-hidden rounded-xl bg-white shadow-lg dark:bg-graphite-surface dark:shadow-soft-dark"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between border-b border-gray-200 px-5 py-3 dark:border-graphite-border">
-          <h2 className="text-sm font-semibold dark:text-graphite-text">Detail uzlu</h2>
+          <h2 id="mindmap-node-editor-title" className="text-sm font-semibold dark:text-graphite-text">
+            Detail uzlu
+          </h2>
           <button
             type="button"
             onClick={closeWithFlush}
@@ -135,6 +159,7 @@ const MindMapNodeEditorDialog: React.FC<MindMapNodeEditorDialogProps> = ({
             testId="mindmap-node-title-input"
             value={node.title}
             disabled={isReadOnly}
+            autoFocus
             onCommit={(title) => onUpdateNode(node.id, { title })}
           />
 

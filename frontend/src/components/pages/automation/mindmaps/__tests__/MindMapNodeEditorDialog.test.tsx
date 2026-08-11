@@ -170,4 +170,38 @@ describe("MindMapNodeEditorDialog", () => {
     expect(screen.getByLabelText("Vlastník")).toBeDisabled();
     expect(screen.getByLabelText("Stav")).toBeDisabled();
   });
+
+  it("closes when a genuine backdrop click both starts and ends on the overlay", () => {
+    const onClose = jest.fn();
+    renderDialog({ onClose });
+
+    const overlay = screen.getByTestId("mindmap-node-editor");
+    fireEvent.mouseDown(overlay);
+    fireEvent.click(overlay);
+
+    expect(onClose).toHaveBeenCalled();
+  });
+
+  it("does not close when a text-selection drag starts in a field and releases over the backdrop", () => {
+    // A `click` event fires on the common ancestor of `mousedown` and `mouseup`, not
+    // on wherever the press began — so dragging a selection inside the roomy
+    // Poznámky textarea and releasing outside it still dispatches `click` on the
+    // overlay. Only a press that itself started on the backdrop should close.
+    const onClose = jest.fn();
+    renderDialog({ onClose });
+
+    fireEvent.mouseDown(screen.getByLabelText("Poznámky"));
+    fireEvent.click(screen.getByTestId("mindmap-node-editor"));
+
+    expect(onClose).not.toHaveBeenCalled();
+  });
+
+  it("gives the dialog accessible dialog semantics and autofocuses the title field", () => {
+    renderDialog();
+
+    const dialog = screen.getByRole("dialog");
+    expect(dialog).toHaveAttribute("aria-modal", "true");
+    expect(dialog).toHaveAttribute("aria-labelledby", "mindmap-node-editor-title");
+    expect(screen.getByTestId("mindmap-node-title-input")).toHaveFocus();
+  });
 });
