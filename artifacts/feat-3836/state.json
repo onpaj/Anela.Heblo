@@ -21,16 +21,16 @@
       "updated_at": "2026-08-11T05:28:17.637079Z"
     },
     "developing": {
-      "status": "pending",
-      "updated_at": null
+      "status": "in_progress",
+      "updated_at": "2026-08-11T09:18:37.504329Z"
     }
   },
   "tasks": [
     {
       "name": "fix-webhook-replay-identity-resolution",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-08-11T09:18:37.808041Z"
     }
   ]
 }
