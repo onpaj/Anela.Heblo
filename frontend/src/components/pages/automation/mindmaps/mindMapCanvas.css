@@ -1,0 +1,17 @@
+/* mind-elixir bakes its own light-blue owner-tag colour into its stylesheet
+   (.map-container .tags span{color:#276f86;background:#d6f0f8;...}) and exposes no
+   `cssVar` hook to reach it — Theme objects in mindElixirTheme.ts cannot touch it.
+   Override it here with this app's neutral badge tokens (matching the owner badge
+   the pre-migration MindMapFlowNode used) so it reads correctly on both themes.
+   Selector specificity (.mindmap-canvas .map-container .tags span, 3 classes + 1
+   element) exceeds the library's own rule (2 classes + 1 element), so this wins
+   without `!important`. */
+.mindmap-canvas .map-container .tags span {
+  color: #737373;
+  background: rgba(0, 0, 0, 0.06);
+}
+
+.dark .mindmap-canvas .map-container .tags span {
+  color: #9aa0aa;
+  background: rgba(255, 255, 255, 0.1);
+}

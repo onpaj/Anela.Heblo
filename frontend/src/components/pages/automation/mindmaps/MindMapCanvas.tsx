@@ -2,6 +2,7 @@ import React, { forwardRef, useCallback, useEffect, useImperativeHandle, useRef 
 import MindElixir from "mind-elixir";
 import type { MindElixirInstance, NodeObj } from "mind-elixir";
 import "mind-elixir/style";
+import "./mindMapCanvas.css";
 import { useTheme } from "../../../../contexts/ThemeContext";
 import { MindMapDocument, MindMapNode } from "./mindMapDocument";
 import {
@@ -220,7 +221,7 @@ const MindMapCanvas = forwardRef<MindMapCanvasHandle, MindMapCanvasProps>(functi
     <div
       data-testid="mindmap-canvas"
       ref={containerRef}
-      className="h-full w-full"
+      className="mindmap-canvas h-full w-full"
     />
   );
 });
