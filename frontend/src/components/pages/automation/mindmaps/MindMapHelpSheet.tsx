@@ -6,7 +6,8 @@ import { X } from "lucide-react";
 // Do not add a row without finding it there — a help sheet that lies is worse than none.
 const SHORTCUTS: Array<[string, string]> = [
   ["klik", "vybrat uzel"],
-  ["dvojklik / F2", "psát do uzlu"],
+  ["dvojklik", "otevřít detail uzlu"],
+  ["F2", "psát do uzlu"],
   ["Enter", "nový uzel vedle vybraného (u kořene: nové podřízené)"],
   ["⇧Enter", "nový uzel před vybraný"],
   ["Tab", "nový uzel pod vybraný"],
