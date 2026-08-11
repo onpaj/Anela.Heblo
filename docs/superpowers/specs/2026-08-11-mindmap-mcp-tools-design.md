@@ -52,7 +52,7 @@ status: idle | meetings: 7 | updated: 2026-08-09T14:22:03Z | revision: 638912345
 
 a1b2  Web relaunch  [active]
   c3d4  Nový e-shop  [active]  @Ondra  (locked)
-        notes: Migrujeme na Shoptet, spuštění Q4…
+    notes: Migrujeme na Shoptet, spuštění Q4…
     e5f6  Migrace produktů  [done]  @Jana  (2 meetings)
     g7h8  Platební brána  [blocked]
   i9j0  Obaly  [idea]
@@ -63,8 +63,9 @@ suppressed (do not re-create): "Starý blog", "Newsletter v2"
 Rules:
 
 - Two spaces of indent per depth level; children in document order under their parent.
-- `notes` on its own line, indented to the title column, truncated at 200 characters with `…`;
-  omitted when empty.
+- `notes` on its own line, indented one level deeper than its node, truncated at 200 characters
+  with `…`; omitted when empty. (Real ids are 32-character GUIDs, so aligning notes to the title
+  column would waste most of the line width.)
 - `(locked)` when `lockedBy` is set. `@owner` when `owner` is set.
 - `(N meetings)` is `sourceMeetingIds.Count`, shown only when non-zero — the caller can drill into
   a node's origin with the existing `GetMeetingTranscript` tool.
@@ -130,10 +131,15 @@ update path), and the tombstone stays — current `ApplyUserEdit` behaviour, unc
 
 ### Revision token
 
-`revision` is `MindMap.UpdatedAt.Ticks` rendered as a string. Every existing write path bumps
-`UpdatedAt` — the UI save, the update job, and version restore — so it is a valid change marker
-without a schema change, and it is testable on the InMemory provider (unlike the `xmin` route
-previously considered and deferred).
+`revision` is `MindMap.UpdatedAt.Ticks`, truncated to whole milliseconds, rendered as a string.
+Every existing write path bumps `UpdatedAt` — the UI save, the update job, and version restore —
+so it is a valid change marker without a schema change, and it is testable on the InMemory
+provider (unlike the `xmin` route previously considered and deferred).
+
+The millisecond truncation is required, not cosmetic: PostgreSQL `timestamp` columns keep
+microsecond precision, so the raw `DateTime.UtcNow` ticks a handler writes are not the ticks read
+back afterwards. Without truncation the revision returned by a write would never match the one
+read later and every second write would be rejected as stale.
 
 `GetMindMap` and `ListMindMaps` hand it out; `ApplyMindMapChanges` must send it back. A mismatch
 is rejected with `MindMapRevisionMismatch` and a message telling the caller to re-read the map.
