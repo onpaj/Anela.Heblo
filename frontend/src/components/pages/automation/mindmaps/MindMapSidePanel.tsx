@@ -1,6 +1,6 @@
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import toast from "react-hot-toast";
-import { Plus, X } from "lucide-react";
+import { PanelRightClose, PanelRightOpen, Plus, X } from "lucide-react";
 import {
   AttachedMeeting,
   MindMapDetail,
@@ -10,165 +10,21 @@ import {
   useRestoreMindMapVersion,
 } from "../../../../api/hooks/useMindMaps";
 import { useMeetingTasksList } from "../../../../api/hooks/useMeetingTasks";
-import { MindMapDocument, MindMapNode, MindMapNodeStatus } from "./mindMapDocument";
 
-const STATUS_LABELS: Record<MindMapNodeStatus, string> = {
-  active: "Aktivní",
-  done: "Hotovo",
-  blocked: "Blokováno",
-  idea: "Nápad",
-};
-const STATUS_OPTIONS = Object.keys(STATUS_LABELS) as MindMapNodeStatus[];
-
-const INPUT_CLASS =
-  "w-full px-3 py-2 rounded-md text-sm border border-gray-300 focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-graphite-surface-2 dark:border-graphite-border dark:text-graphite-text dark:placeholder-graphite-faint disabled:opacity-60 disabled:cursor-not-allowed";
-
-type SidePanelTab = "node" | "meetings" | "history";
+type SidePanelTab = "meetings" | "history";
 
 const TAB_LABELS: Record<SidePanelTab, string> = {
-  node: "Uzel",
   meetings: "Porady",
   history: "Historie",
 };
 
 export interface MindMapSidePanelProps {
   detail: MindMapDetail;
-  document: MindMapDocument;
-  selectedNodeId: string | null;
   isReadOnly: boolean;
-  // Not part of the original brief's prop sketch, but required to implement the
-  // "Historie" tab spec ("disabled when isReadOnly or dirty"): the page already
-  // tracks isDirty and is the only place that can know it.
+  // Required by the "Historie" and "Porady" tabs: both refuse to act while the map
+  // has unsaved edits, and only the page can know that.
   isDirty: boolean;
-  onUpdateNode: (
-    nodeId: string,
-    patch: Partial<Pick<MindMapNode, "title" | "notes" | "owner" | "status">>,
-  ) => void;
 }
-
-// --- "Uzel" tab ---
-
-interface CommitOnBlurFieldProps {
-  id: string;
-  label: string;
-  value: string;
-  disabled: boolean;
-  rows?: number;
-  testId?: string;
-  onCommit: (value: string) => void;
-}
-
-/**
- * Text field that keeps its own draft and only reports on blur. Each commit reaches
- * mind-elixir's reshapeNode, which re-renders and re-lays-out the whole map — doing
- * that per keystroke makes typing visibly stutter.
- * `key`ing this component by node id (see NodeTab) is what resets the draft when
- * the user selects a different node.
- */
-const CommitOnBlurField: React.FC<CommitOnBlurFieldProps> = ({
-  id,
-  label,
-  value,
-  disabled,
-  rows,
-  testId,
-  onCommit,
-}) => {
-  const [draft, setDraft] = useState(value);
-  const commit = () => {
-    if (draft !== value) onCommit(draft);
-  };
-  const props = {
-    id,
-    value: draft,
-    disabled,
-    "data-testid": testId,
-    className: INPUT_CLASS,
-    onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => setDraft(e.target.value),
-    onBlur: commit,
-  };
-  return (
-    <div>
-      <label htmlFor={id} className="block text-sm font-medium text-gray-700 dark:text-graphite-muted mb-1">
-        {label}
-      </label>
-      {rows ? <textarea {...props} rows={rows} /> : <input {...props} type="text" />}
-    </div>
-  );
-};
-
-interface NodeTabProps {
-  document: MindMapDocument;
-  selectedNodeId: string | null;
-  isReadOnly: boolean;
-  onUpdateNode: MindMapSidePanelProps["onUpdateNode"];
-}
-
-const NodeTab: React.FC<NodeTabProps> = ({ document: doc, selectedNodeId, isReadOnly, onUpdateNode }) => {
-  const node = doc.nodes.find((n) => n.id === selectedNodeId) ?? null;
-
-  if (!node) {
-    return <p className="text-sm text-gray-500 dark:text-graphite-muted">Vyberte uzel na plátně</p>;
-  }
-
-  return (
-    <div className="space-y-4">
-      <CommitOnBlurField
-        key={`${node.id}-title`}
-        id="mindmap-node-title"
-        label="Název"
-        testId="mindmap-panel-title-input"
-        value={node.title}
-        disabled={isReadOnly}
-        onCommit={(title) => onUpdateNode(node.id, { title })}
-      />
-
-      <CommitOnBlurField
-        key={`${node.id}-notes`}
-        id="mindmap-node-notes"
-        label="Poznámky"
-        rows={4}
-        value={node.notes ?? ""}
-        disabled={isReadOnly}
-        onCommit={(notes) => onUpdateNode(node.id, { notes: notes || null })}
-      />
-
-      <CommitOnBlurField
-        key={`${node.id}-owner`}
-        id="mindmap-node-owner"
-        label="Vlastník"
-        value={node.owner ?? ""}
-        disabled={isReadOnly}
-        onCommit={(owner) => onUpdateNode(node.id, { owner: owner || null })}
-      />
-
-      <div>
-        <label htmlFor="mindmap-node-status" className="block text-sm font-medium text-gray-700 dark:text-graphite-muted mb-1">
-          Stav
-        </label>
-        <select
-          id="mindmap-node-status"
-          value={node.status}
-          disabled={isReadOnly}
-          onChange={(e) => onUpdateNode(node.id, { status: e.target.value as MindMapNodeStatus })}
-          className={INPUT_CLASS}
-        >
-          {STATUS_OPTIONS.map((status) => (
-            <option key={status} value={status}>
-              {STATUS_LABELS[status]}
-            </option>
-          ))}
-        </select>
-      </div>
-
-      {node.lockedBy && (
-        <p className="text-xs text-amber-800 bg-amber-50 dark:text-amber-300 dark:bg-amber-900/20 rounded-md px-2 py-1.5">
-          Uzamčeno uživatelem {node.lockedBy}
-        </p>
-      )}
-    </div>
-  );
-};
 
 // --- "Porady" (meetings) tab ---
 
@@ -415,24 +271,31 @@ const HistoryTab: React.FC<HistoryTabProps> = ({ mindMapId, versions, isReadOnly
 
 // --- Panel shell ---
 
-const MindMapSidePanel: React.FC<MindMapSidePanelProps> = ({
-  detail,
-  document: doc,
-  selectedNodeId,
-  isReadOnly,
-  isDirty,
-  onUpdateNode,
-}) => {
-  const [activeTab, setActiveTab] = useState<SidePanelTab>("node");
+const MindMapSidePanel: React.FC<MindMapSidePanelProps> = ({ detail, isReadOnly, isDirty }) => {
+  // Node editing moved to its own dialog, so what is left here — attached meetings
+  // and version history — is reference material rather than something needed while
+  // working with the map. Start out of the way.
+  const [isFolded, setIsFolded] = useState(true);
+  const [activeTab, setActiveTab] = useState<SidePanelTab>("meetings");
 
-  // Selecting a node (click or double-click on the canvas) should bring the
-  // "Uzel" tab into view so the node's fields are immediately visible.
-  useEffect(() => {
-    if (selectedNodeId) setActiveTab("node");
-  }, [selectedNodeId]);
+  if (isFolded) {
+    return (
+      <div className="flex w-10 shrink-0 flex-col items-center rounded-lg border border-gray-200 bg-white py-2 dark:border-graphite-border dark:bg-graphite-surface">
+        <button
+          type="button"
+          data-testid="mindmap-panel-toggle"
+          aria-label="Zobrazit panel"
+          onClick={() => setIsFolded(false)}
+          className="rounded-md p-1 text-gray-400 hover:bg-gray-50 hover:text-gray-600 dark:text-graphite-faint dark:hover:bg-white/5 dark:hover:text-graphite-muted"
+        >
+          <PanelRightOpen className="h-5 w-5" />
+        </button>
+      </div>
+    );
+  }
 
   return (
-    <div className="w-96 shrink-0 border border-gray-200 dark:border-graphite-border rounded-lg bg-white dark:bg-graphite-surface flex flex-col overflow-hidden">
+    <div className="flex w-96 shrink-0 flex-col overflow-hidden rounded-lg border border-gray-200 bg-white dark:border-graphite-border dark:bg-graphite-surface">
       <div className="flex border-b border-gray-200 dark:border-graphite-border">
         {(Object.keys(TAB_LABELS) as SidePanelTab[]).map((tab) => (
           <button
@@ -448,12 +311,18 @@ const MindMapSidePanel: React.FC<MindMapSidePanelProps> = ({
             {TAB_LABELS[tab]}
           </button>
         ))}
+        <button
+          type="button"
+          data-testid="mindmap-panel-toggle"
+          aria-label="Skrýt panel"
+          onClick={() => setIsFolded(true)}
+          className="border-b-2 border-transparent px-2 text-gray-400 hover:text-gray-600 dark:text-graphite-faint dark:hover:text-graphite-muted"
+        >
+          <PanelRightClose className="h-5 w-5" />
+        </button>
       </div>
 
       <div className="flex-1 overflow-y-auto p-4">
-        {activeTab === "node" && (
-          <NodeTab document={doc} selectedNodeId={selectedNodeId} isReadOnly={isReadOnly} onUpdateNode={onUpdateNode} />
-        )}
         {activeTab === "meetings" && (
           <MeetingsTab mindMapId={detail.id} meetings={detail.meetings} isReadOnly={isReadOnly} isDirty={isDirty} />
         )}

@@ -5,7 +5,7 @@ import toast from "react-hot-toast";
 import MindMapSidePanel, { MindMapSidePanelProps } from "../MindMapSidePanel";
 import { MindMapDetail, useAttachMeeting, useDetachMeeting, useRestoreMindMapVersion } from "../../../../../api/hooks/useMindMaps";
 import { useMeetingTasksList } from "../../../../../api/hooks/useMeetingTasks";
-import { MindMapDocument, MindMapNode } from "../mindMapDocument";
+import { MindMapDocument } from "../mindMapDocument";
 
 // These two mutation-gated flows (attach, restore) exist specifically to stop the
 // background Claude rewrite from clobbering or silently discarding unsaved local
@@ -51,24 +51,6 @@ function buildDoc(): MindMapDocument {
   };
 }
 
-// buildDoc() has only the root node; these tests need two selectable siblings.
-function docWithChildren(): MindMapDocument {
-  const base = buildDoc();
-  const child = (id: string, title: string): MindMapNode => ({
-    id,
-    parentId: "root",
-    title,
-    notes: null,
-    status: "active",
-    owner: null,
-    lockedBy: null,
-    sourceMeetingIds: [],
-    position: null,
-    collapsed: false,
-  });
-  return { ...base, nodes: [...base.nodes, child("a", "Větev A"), child("b", "List B")] };
-}
-
 function buildDetail(overrides: Partial<MindMapDetail> = {}): MindMapDetail {
   return {
     id: "map-1",
@@ -86,17 +68,12 @@ function buildDetail(overrides: Partial<MindMapDetail> = {}): MindMapDetail {
 }
 
 function renderPanel(overrides: Partial<MindMapSidePanelProps> = {}) {
-  return render(
-    <MindMapSidePanel
-      detail={buildDetail()}
-      document={buildDoc()}
-      selectedNodeId={null}
-      isReadOnly={false}
-      isDirty={false}
-      onUpdateNode={jest.fn()}
-      {...overrides}
-    />,
+  const utils = render(
+    <MindMapSidePanel detail={buildDetail()} isReadOnly={false} isDirty={false} {...overrides} />,
   );
+  // The panel ships folded; every tab assertion below needs it open.
+  fireEvent.click(screen.getByTestId("mindmap-panel-toggle"));
+  return utils;
 }
 
 describe("MindMapSidePanel", () => {
@@ -147,63 +124,22 @@ describe("MindMapSidePanel", () => {
     expect(restoreMutateAsync).not.toHaveBeenCalled();
   });
 
-  it("does not push a document change on every keystroke in the title field", () => {
-    const onUpdateNode = jest.fn();
-    renderPanel({ document: docWithChildren(), onUpdateNode, selectedNodeId: "a" });
+  it("starts folded, so the map gets the full width", () => {
+    render(<MindMapSidePanel detail={buildDetail()} isReadOnly={false} isDirty={false} />);
 
-    const input = screen.getByTestId("mindmap-panel-title-input");
-    fireEvent.change(input, { target: { value: "Nov" } });
-    fireEvent.change(input, { target: { value: "Nový" } });
-
-    // Each keystroke would otherwise trigger a full mind-elixir re-layout.
-    expect(onUpdateNode).not.toHaveBeenCalled();
-    expect(input).toHaveValue("Nový");
+    expect(screen.getByTestId("mindmap-panel-toggle")).toHaveAttribute("aria-label", "Zobrazit panel");
+    expect(screen.queryByText("Porady")).not.toBeInTheDocument();
+    expect(screen.queryByText("Historie")).not.toBeInTheDocument();
   });
 
-  it("commits the title when the field loses focus", () => {
-    const onUpdateNode = jest.fn();
-    renderPanel({ document: docWithChildren(), onUpdateNode, selectedNodeId: "a" });
+  it("shows the tabs once unfolded and hides them again when folded back", () => {
+    render(<MindMapSidePanel detail={buildDetail()} isReadOnly={false} isDirty={false} />);
 
-    const input = screen.getByTestId("mindmap-panel-title-input");
-    fireEvent.change(input, { target: { value: "Nový název" } });
-    fireEvent.blur(input);
+    fireEvent.click(screen.getByTestId("mindmap-panel-toggle"));
+    expect(screen.getByText("Porady")).toBeInTheDocument();
+    expect(screen.getByText("Historie")).toBeInTheDocument();
 
-    expect(onUpdateNode).toHaveBeenCalledWith("a", { title: "Nový název" });
-  });
-
-  it("does not commit when the text is unchanged", () => {
-    const onUpdateNode = jest.fn();
-    renderPanel({ document: docWithChildren(), onUpdateNode, selectedNodeId: "a" });
-    fireEvent.blur(screen.getByTestId("mindmap-panel-title-input"));
-    expect(onUpdateNode).not.toHaveBeenCalled();
-  });
-
-  it("shows each node's own values, and an abandoned draft does not leak across selections", () => {
-    // The draft is reset by keying the field on the node id; without that key, typing
-    // into one node and selecting another would show the first node's text.
-    // Rerendering the SAME tree (not unmount + fresh render) is what actually
-    // exercises that: unmounting would re-initialise useState(value) from props
-    // regardless of the `key`, making the test pass even with the key removed.
-    const { rerender } = renderPanel({ document: docWithChildren(), selectedNodeId: "a" });
-    fireEvent.change(screen.getByTestId("mindmap-panel-title-input"), { target: { value: "rozepsáno" } });
-
-    rerender(
-      <MindMapSidePanel
-        detail={buildDetail()}
-        document={docWithChildren()}
-        selectedNodeId="b"
-        isReadOnly={false}
-        isDirty={false}
-        onUpdateNode={jest.fn()}
-      />,
-    );
-    expect(screen.getByTestId("mindmap-panel-title-input")).toHaveValue("List B");
-  });
-
-  it("still commits status immediately — a select has no intermediate states", () => {
-    const onUpdateNode = jest.fn();
-    renderPanel({ document: docWithChildren(), onUpdateNode, selectedNodeId: "a" });
-    fireEvent.change(screen.getByLabelText("Stav"), { target: { value: "done" } });
-    expect(onUpdateNode).toHaveBeenCalledWith("a", { status: "done" });
+    fireEvent.click(screen.getByTestId("mindmap-panel-toggle"));
+    expect(screen.queryByText("Porady")).not.toBeInTheDocument();
   });
 });
