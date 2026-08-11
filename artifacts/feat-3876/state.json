@@ -25,5 +25,48 @@
       "updated_at": null
     }
   },
-  "tasks": []
+  "tasks": [
+    {
+      "name": "route-usesmartsupp-core-hooks",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    },
+    {
+      "name": "fix-smartsupp-consumer-optionality-fallout",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    },
+    {
+      "name": "route-usegeneratedraftreply-hook",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    },
+    {
+      "name": "route-usesendmessage-hook",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    },
+    {
+      "name": "route-usesubmitdraftreplyfeedback-hook",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    },
+    {
+      "name": "extract-shared-ragfeedback-mapper",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    },
+    {
+      "name": "retire-smartsuppclient",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    }
+  ]
 }
