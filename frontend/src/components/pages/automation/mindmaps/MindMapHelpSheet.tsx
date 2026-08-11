@@ -7,7 +7,7 @@ import { X } from "lucide-react";
 const SHORTCUTS: Array<[string, string]> = [
   ["klik", "vybrat uzel"],
   ["dvojklik / F2", "psát do uzlu"],
-  ["Enter", "nový uzel vedle vybraného"],
+  ["Enter", "nový uzel vedle vybraného (u kořene: nové podřízené)"],
   ["⇧Enter", "nový uzel před vybraný"],
   ["Tab", "nový uzel pod vybraný"],
   ["⌘Enter", "vložit nadřazený uzel"],
@@ -18,7 +18,7 @@ const SHORTCUTS: Array<[string, string]> = [
   ["⌘= / ⌘− / ⌘0", "přiblížit / oddálit / původní velikost"],
   ["F1", "vycentrovat"],
   ["mezerník + tažení", "posunout plátno"],
-  ["tažení uzlu", "přesunout pod jiný uzel"],
+  ["tažení uzlu", "přesunout pod jiný uzel, nebo přeřadit mezi sourozenci (podle místa puštění)"],
   ["⌘S", "uložit mapu"],
 ];
 
