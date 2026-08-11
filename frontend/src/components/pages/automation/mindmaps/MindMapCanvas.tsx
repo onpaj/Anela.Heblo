@@ -129,6 +129,13 @@ const MindMapCanvas = forwardRef<MindMapCanvasHandle, MindMapCanvasProps>(functi
       if (event.key !== "F2" || isReadOnlyRef.current) return;
       const target = event.target;
       if (!(target instanceof Node) || !container.contains(target)) return;
+      // The library itself guards against a second F2 while its inline editor is
+      // already open: editTopic attaches its own keydown → stopPropagation()
+      // handler to #input-box, so a repeat F2 never reaches container.onkeydown.
+      // That guard runs in the bubble phase, though, and this listener runs in
+      // capture — earlier in the dispatch order — so it would call beginEdit()
+      // again regardless, stacking a second input box. Repeat the same guard here.
+      if (target instanceof Element && target.closest("#input-box")) return;
       event.stopPropagation();
       void inlineBeginEdit();
     };

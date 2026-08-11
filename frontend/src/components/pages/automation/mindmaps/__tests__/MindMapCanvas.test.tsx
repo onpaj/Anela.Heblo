@@ -474,6 +474,21 @@ describe("MindMapCanvas", () => {
     expect(inlineEditor).not.toHaveBeenCalled();
   });
 
+  it("ignores F2 while mind-elixir's own inline editor is already open, so a repeat doesn't stack a second input box", () => {
+    // Captured before the component replaces the method on mount.
+    const inlineEditor = instance.beginEdit as jest.Mock;
+    renderCanvas();
+
+    const canvas = screen.getByTestId("mindmap-canvas");
+    const inputBox = window.document.createElement("div");
+    inputBox.id = "input-box";
+    canvas.appendChild(inputBox);
+
+    fireEvent.keyDown(inputBox, { key: "F2" });
+
+    expect(inlineEditor).not.toHaveBeenCalled();
+  });
+
   it("opens the node editor on a real double-click while the map is read-only", () => {
     // mind-elixir's double-tap path bails at `if (!e.editable) return`, so the
     // replaced beginEdit never fires while the map is Updating.
