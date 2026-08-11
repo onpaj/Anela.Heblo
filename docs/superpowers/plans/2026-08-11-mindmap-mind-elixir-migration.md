@@ -1187,14 +1187,15 @@ The invariants that must survive this rewrite — each currently carries an expl
 Replace the `jest.mock("../MindMapCanvas", ...)` block at `__tests__/MindMapDetailPage.test.tsx:17-28` with one that mimics the ref handle:
 
 ```tsx
-const canvasHandle = {
+// The name MUST start with "mock": babel-plugin-jest-hoist rejects a jest.mock()
+// factory that closes over any other out-of-scope variable.
+const mockCanvasHandle = {
   getDocument: jest.fn(),
   expandAll: jest.fn(),
   collapseAll: jest.fn(),
   fit: jest.fn(),
   addChild: jest.fn(),
   addSibling: jest.fn(),
-  remove: jest.fn(),
   undo: jest.fn(),
   patchNode: jest.fn(),
   exportPng: jest.fn(),
@@ -1215,7 +1216,18 @@ jest.mock("../MindMapCanvas", () => {
         },
         ref: React.Ref<unknown>,
       ) => {
-        React.useImperativeHandle(ref, () => canvasHandle);
+        React.useImperativeHandle(ref, () => ({
+          ...mockCanvasHandle,
+          // The real canvas reports EVERY edit through onChange: patchNode calls
+          // reshapeNode, which fires mind-elixir's `operation` event, which the
+          // canvas translates into onChange. A bare jest.fn() here would model a
+          // canvas that silently swallows side-panel edits — the page would never
+          // go dirty and the Save button would never enable.
+          patchNode: (nodeId: string, patch: unknown) => {
+            mockCanvasHandle.patchNode(nodeId, patch);
+            props.onChange();
+          },
+        }));
         return (
           <div data-testid="mindmap-canvas-stub" data-revision={props.documentRevision}>
             {props.initialDocument.nodes.map((n) => (
@@ -1233,6 +1245,8 @@ jest.mock("../MindMapCanvas", () => {
   };
 });
 ```
+
+Every later reference in this plan to `canvasHandle` means `mockCanvasHandle`.
 
 - [ ] **Step 2: Replace the adoption-guard test, which this change would otherwise make vacuous**
 
@@ -1286,7 +1300,7 @@ Add an explicit blur between the change and the click:
 and make the canvas stub return the edited document for this test, since the page now saves what the canvas reports rather than its own copy:
 
 ```tsx
-    canvasHandle.getDocument.mockReturnValue(canonicalDoc);
+    mockCanvasHandle.getDocument.mockReturnValue(canonicalDoc);
 ```
 
 - [ ] **Step 4: Write the new failing tests**
@@ -1323,7 +1337,7 @@ Append to `__tests__/MindMapDetailPage.test.tsx`. These use the file's real help
         },
       ],
     });
-    canvasHandle.getDocument.mockReturnValue(edited);
+    mockCanvasHandle.getDocument.mockReturnValue(edited);
 
     let savedJson: string | null = null;
     mockFetch.mockImplementation((url: string, init?: RequestInit) => {
@@ -1355,11 +1369,21 @@ Append to `__tests__/MindMapDetailPage.test.tsx`. These use the file's real help
     const canonicalDoc = buildDoc({
       nodes: [{ ...buildDoc().nodes[0], title: "Upraveno", lockedBy: "ondra@anela.cz" }],
     });
-    canvasHandle.getDocument.mockReturnValue(canonicalDoc);
+    mockCanvasHandle.getDocument.mockReturnValue(canonicalDoc);
+    let hasSaved = false;
     mockFetch.mockImplementation((url: string, init?: RequestInit) => {
       const method = (init?.method ?? "GET").toUpperCase();
-      if (method === "GET" && url === DETAIL_URL) return jsonResponse(buildDetail());
+      if (method === "GET" && url === DETAIL_URL) {
+        // Once the PUT has succeeded the server holds the canonical document, so
+        // the refetch that invalidateQueries kicks off returns it too. A GET that
+        // kept replaying the pre-save copy would model a server that lost the
+        // write, and the adoption effect would correctly revert to it.
+        return jsonResponse(
+          hasSaved ? buildDetail({ documentJson: JSON.stringify(canonicalDoc) }) : buildDetail(),
+        );
+      }
       if (method === "PUT" && url === SAVE_URL) {
+        hasSaved = true;
         return jsonResponse({ documentJson: JSON.stringify(canonicalDoc) });
       }
       throw new Error(`Unexpected fetch: ${method} ${url}`);
