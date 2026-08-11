@@ -26,10 +26,11 @@ test.describe('Mind maps', () => {
       await expect(nodes(page)).toHaveCount(1);
 
       // Attach the first available meeting — fixtures policy: throw, never skip.
-      // The side panel opens on the "Uzel" tab by default; the attach button
-      // lives on the "Porady" tab. The tabs are plain <button> elements (no
-      // role="tab"/"tablist" is set on them), so they carry the implicit
-      // "button" role rather than "tab".
+      // The side panel ships folded by default, so it must be unfolded first; once
+      // unfolded it opens on the "Porady" tab, where the attach button lives. The
+      // tabs are plain <button> elements (no role="tab"/"tablist" is set on them),
+      // so they carry the implicit "button" role rather than "tab".
+      await page.getByTestId('mindmap-panel-toggle').click();
       await page.getByRole('button', { name: 'Porady' }).click();
       await page.getByTestId('mindmap-attach-button').click();
       const options = page.getByTestId('mindmap-attach-option');
@@ -78,12 +79,17 @@ test.describe('Mind maps', () => {
 
       // Rename the generated node → auto-lock on save
       const generatedNode = nodes(page).filter({ hasText: 'Porada:' });
-      await generatedNode.click();
-      const titleInput = page.getByTestId('mindmap-panel-title-input');
+      await generatedNode.dblclick();
+      const titleInput = page.getByTestId('mindmap-node-title-input');
       await titleInput.fill('Ručně upravený uzel');
       // The field only reports its value on blur — clicking straight to Save would
       // blur it too, but doing it explicitly keeps the failure mode obvious.
       await titleInput.blur();
+      // The dialog's `fixed inset-0` backdrop covers the save button, so it must be
+      // closed first — otherwise Playwright's actionability check on the save click
+      // below would fail as intercepted. "Zavřít" resolves unambiguously to the
+      // footer button; the X button's accessible name is "Zavřít detail uzlu".
+      await page.getByRole('button', { name: 'Zavřít' }).click();
       await page.getByTestId('mindmap-save-button').click();
       await expect(nodes(page).filter({ hasText: 'Ručně upravený uzel' })).toContainText('🔒', {
         timeout: 15000,
