@@ -4,6 +4,9 @@ import { navigateToApp } from '../helpers/e2e-auth-helper';
 // Runs against deployed staging (MindMaps:UseStubUpdater=true there), so the
 // generated node is deterministic: "Porada: <subject>".
 test.describe('Mind maps', () => {
+  // mind-elixir renders each topic as a <me-tpc> element carrying data-nodeid.
+  const nodes = (page: import('@playwright/test').Page) => page.locator('me-tpc');
+
   test('create map, attach meeting, stub generates node, rename locks it', async ({ page }) => {
     await navigateToApp(page);
     const mapName = `E2E mapa ${Date.now()}`;
@@ -20,7 +23,7 @@ test.describe('Mind maps', () => {
     try {
       // Lands on detail with just the root node
       await expect(page.getByTestId('mindmap-canvas')).toBeVisible({ timeout: 15000 });
-      await expect(page.getByTestId('mindmap-node')).toHaveCount(1);
+      await expect(nodes(page)).toHaveCount(1);
 
       // Attach the first available meeting — fixtures policy: throw, never skip.
       // The side panel opens on the "Uzel" tab by default; the attach button
@@ -66,7 +69,7 @@ test.describe('Mind maps', () => {
       // state on the way through: the poll is 3s and the stub is fast, so that
       // state can legitimately be skipped entirely, and asserting it would just
       // trade this flake for a different one.
-      await expect(page.getByTestId('mindmap-node')).toHaveCount(2, { timeout: 60000 });
+      await expect(nodes(page)).toHaveCount(2, { timeout: 60000 });
       // Secondary check, now that the pipeline is known to have completed — also
       // generous in case the badge's own re-render trails the node list by a beat.
       await expect(page.getByTestId('mindmap-status-badge')).toHaveText('Aktuální', {
@@ -74,14 +77,17 @@ test.describe('Mind maps', () => {
       });
 
       // Rename the generated node → auto-lock on save
-      const generatedNode = page.getByTestId('mindmap-node').filter({ hasText: 'Porada:' });
-      await generatedNode.dblclick();
-      await page.getByTestId('mindmap-panel-title-input').fill('Ručně upravený uzel');
+      const generatedNode = nodes(page).filter({ hasText: 'Porada:' });
+      await generatedNode.click();
+      const titleInput = page.getByTestId('mindmap-panel-title-input');
+      await titleInput.fill('Ručně upravený uzel');
+      // The field only reports its value on blur — clicking straight to Save would
+      // blur it too, but doing it explicitly keeps the failure mode obvious.
+      await titleInput.blur();
       await page.getByTestId('mindmap-save-button').click();
-      await expect(
-        page.getByTestId('mindmap-node').filter({ hasText: 'Ručně upravený uzel' })
-          .getByTestId('mindmap-node-lock'),
-      ).toBeVisible({ timeout: 15000 });
+      await expect(nodes(page).filter({ hasText: 'Ručně upravený uzel' })).toContainText('🔒', {
+        timeout: 15000,
+      });
     } finally {
       // Cleanup. Guarded on the row actually existing so that a failure before the
       // map was even created (e.g. the create step above) doesn't turn into a second,
