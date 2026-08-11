@@ -17,6 +17,12 @@
 #   1  error, 2 usage
 set -euo pipefail
 
+# When USE_GH_API is set, every `gh` call below routes through the shared
+# curl+REST library instead — for environments where the `gh` CLI itself is
+# not permitted. See .claude/skills/_lib/gh_api.sh for the transport layer;
+# the logic and exit codes here are unchanged either way.
+LIB=".claude/skills/_lib/gh_api.sh"
+
 ISSUE="${1:-}"
 if [[ -z "$ISSUE" || ! "$ISSUE" =~ ^[0-9]+$ ]]; then
   echo "usage: claim_issue.sh <issue-number>" >&2
@@ -24,7 +30,12 @@ if [[ -z "$ISSUE" || ! "$ISSUE" =~ ^[0-9]+$ ]]; then
 fi
 
 # Slug derivation — must stay byte-identical to the oneshot naming convention.
-SLUG=$(gh issue view "$ISSUE" --json title --jq '.title' \
+if [[ -n "${USE_GH_API:-}" ]]; then
+  ISSUE_TITLE=$("$LIB" issue-view "$ISSUE" | jq -r '.title')
+else
+  ISSUE_TITLE=$(gh issue view "$ISSUE" --json title --jq '.title')
+fi
+SLUG=$(echo "$ISSUE_TITLE" \
   | sed -E "s/['’]//g" \
   | sed -E 's/[^A-Za-z0-9]+/ /g' \
   | awk '{for(i=1;i<=NF;i++) $i=toupper(substr($i,1,1)) tolower(substr($i,2)); print}' \
@@ -39,7 +50,11 @@ if [[ -n "$(git ls-remote --heads origin "feature/${ISSUE}-*")" ]]; then
   exit 3
 fi
 
-DEFAULT_BRANCH=$(gh repo view --json defaultBranchRef --jq '.defaultBranchRef.name')
+if [[ -n "${USE_GH_API:-}" ]]; then
+  DEFAULT_BRANCH=$("$LIB" default-branch)
+else
+  DEFAULT_BRANCH=$(gh repo view --json defaultBranchRef --jq '.defaultBranchRef.name')
+fi
 BASE_SHA=$(git ls-remote origin "refs/heads/${DEFAULT_BRANCH}" | cut -f1)
 if [[ -z "$BASE_SHA" ]]; then
   echo "ERROR: cannot resolve origin/${DEFAULT_BRANCH}" >&2
@@ -48,18 +63,27 @@ fi
 
 # Atomic test-and-set: creating a ref that already exists fails, so exactly
 # one concurrent claimer succeeds no matter how tight the race.
-if ! err=$(gh api "repos/{owner}/{repo}/git/refs" \
-      -f ref="refs/heads/${BRANCH}" -f sha="${BASE_SHA}" 2>&1 >/dev/null); then
-  if grep -qi "already exists" <<<"$err"; then
+if [[ -n "${USE_GH_API:-}" ]]; then
+  create_ref_failed=$("$LIB" create-ref "$BRANCH" "$BASE_SHA" 2>&1 >/dev/null) && create_ref_ok=1 || create_ref_ok=0
+else
+  create_ref_failed=$(gh api "repos/{owner}/{repo}/git/refs" \
+      -f ref="refs/heads/${BRANCH}" -f sha="${BASE_SHA}" 2>&1 >/dev/null) && create_ref_ok=1 || create_ref_ok=0
+fi
+if [[ "$create_ref_ok" -eq 0 ]]; then
+  if grep -qi "already exists" <<<"$create_ref_failed"; then
     echo "issue #${ISSUE} already claimed: lost the race for ${BRANCH}" >&2
     exit 3
   fi
-  echo "ERROR: failed to create claim ref ${BRANCH}: ${err}" >&2
+  echo "ERROR: failed to create claim ref ${BRANCH}: ${create_ref_failed}" >&2
   exit 1
 fi
 
 # Advisory visibility: swap agent -> agent-wip so `--label agent` listings
 # stop returning this issue. A failure here does not undo the claim.
-gh issue edit "$ISSUE" --add-label agent-wip --remove-label agent >/dev/null 2>&1 || true
+if [[ -n "${USE_GH_API:-}" ]]; then
+  "$LIB" issue-edit "$ISSUE" --add-label agent-wip --remove-label agent >/dev/null 2>&1 || true
+else
+  gh issue edit "$ISSUE" --add-label agent-wip --remove-label agent >/dev/null 2>&1 || true
+fi
 
 echo "$BRANCH"
