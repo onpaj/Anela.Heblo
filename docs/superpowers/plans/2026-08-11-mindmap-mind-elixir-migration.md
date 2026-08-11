@@ -2231,13 +2231,15 @@ These are intentional consequences of the migration, worth knowing before review
 
 | Before | After |
 |---|---|
-| Delete only via the side panel, behind a `window.confirm` | ⌫ deletes the selected node immediately; ⌘Z undoes it |
+| Delete via a side-panel button, behind a `window.confirm` | Deletion is keyboard-only (⌫), unconfirmed, with no toolbar or panel button; ⌘Z recovers it before a save, but after a save the node becomes a permanent tombstone |
 | Undo capped at 60 steps, ours | mind-elixir's own history; `clearHistory()` on every document reload |
 | No drag | Drag a node onto another to re-parent it |
 | Nothing | PNG/SVG export, multi-select, copy/paste |
 | Side panel typing patched the document per keystroke | Title/notes/owner commit on blur |
 | Side panel had "Přidat poduzel" / "Sbalit" / "Smazat uzel" | Add lives on the toolbar; collapse is the node's own expander; delete is ⌫ |
 | Branch colours derived by us from branch index | mind-elixir assigns from `theme.palette` by branch index — same behaviour, its implementation |
+| Collapsed branch showed a child-count badge | Collapsed branch's expander is a bare +/− — mind-elixir shows no child count |
+| Selection persisted across a save | Selection is cleared after every save (the canvas's `refresh()` calls `clearSelection()`) |
 
 ## Rollback
 
