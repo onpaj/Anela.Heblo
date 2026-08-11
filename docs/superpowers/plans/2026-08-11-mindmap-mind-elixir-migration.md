@@ -1574,12 +1574,32 @@ Under React Flow, every keystroke patched a plain object. Under mind-elixir, eve
 
 - [ ] **Step 1: Write the failing test**
 
+The shared `buildDoc()` in `__tests__/MindMapSidePanel.test.tsx:32` defines exactly ONE node (`id: "root"`, `title: "Projekt"`). These tests need a parent plus two children, so they supply their own document through `renderPanel`'s existing `document` override rather than widening a fixture three other tests depend on.
+
 Append to `__tests__/MindMapSidePanel.test.tsx`:
 
 ```tsx
+// buildDoc() has only the root node; these tests need two selectable siblings.
+function docWithChildren(): MindMapDocument {
+  const base = buildDoc();
+  const child = (id: string, title: string): MindMapNode => ({
+    id,
+    parentId: "root",
+    title,
+    notes: null,
+    status: "active",
+    owner: null,
+    lockedBy: null,
+    sourceMeetingIds: [],
+    position: null,
+    collapsed: false,
+  });
+  return { ...base, nodes: [...base.nodes, child("a", "Větev A"), child("b", "List B")] };
+}
+
 it("does not push a document change on every keystroke in the title field", () => {
   const onUpdateNode = jest.fn();
-  renderPanel({ onUpdateNode, selectedNodeId: "a" });
+  renderPanel({ document: docWithChildren(), onUpdateNode, selectedNodeId: "a" });
 
   const input = screen.getByTestId("mindmap-panel-title-input");
   fireEvent.change(input, { target: { value: "Nov" } });
@@ -1592,7 +1612,7 @@ it("does not push a document change on every keystroke in the title field", () =
 
 it("commits the title when the field loses focus", () => {
   const onUpdateNode = jest.fn();
-  renderPanel({ onUpdateNode, selectedNodeId: "a" });
+  renderPanel({ document: docWithChildren(), onUpdateNode, selectedNodeId: "a" });
 
   const input = screen.getByTestId("mindmap-panel-title-input");
   fireEvent.change(input, { target: { value: "Nový název" } });
@@ -1603,31 +1623,33 @@ it("commits the title when the field loses focus", () => {
 
 it("does not commit when the text is unchanged", () => {
   const onUpdateNode = jest.fn();
-  renderPanel({ onUpdateNode, selectedNodeId: "a" });
+  renderPanel({ document: docWithChildren(), onUpdateNode, selectedNodeId: "a" });
   fireEvent.blur(screen.getByTestId("mindmap-panel-title-input"));
   expect(onUpdateNode).not.toHaveBeenCalled();
 });
 
 it("shows each node's own values, and an abandoned draft does not leak across selections", () => {
   // The draft is reset by keying the field on the node id; without that key, typing
-  // into one node and clicking another would show the first node's text.
-  const { unmount } = renderPanel({ selectedNodeId: "a" });
+  // into one node and selecting another would show the first node's text.
+  const { unmount } = renderPanel({ document: docWithChildren(), selectedNodeId: "a" });
   fireEvent.change(screen.getByTestId("mindmap-panel-title-input"), { target: { value: "rozepsáno" } });
   unmount();
 
-  renderPanel({ selectedNodeId: "b" });
+  renderPanel({ document: docWithChildren(), selectedNodeId: "b" });
   expect(screen.getByTestId("mindmap-panel-title-input")).toHaveValue("List B");
 });
 
 it("still commits status immediately — a select has no intermediate states", () => {
   const onUpdateNode = jest.fn();
-  renderPanel({ onUpdateNode, selectedNodeId: "a" });
+  renderPanel({ document: docWithChildren(), onUpdateNode, selectedNodeId: "a" });
   fireEvent.change(screen.getByLabelText("Stav"), { target: { value: "done" } });
   expect(onUpdateNode).toHaveBeenCalledWith("a", { status: "done" });
 });
 ```
 
-`renderPanel(overrides: Partial<MindMapSidePanelProps>)` already exists at `__tests__/MindMapSidePanel.test.tsx:70` — use it as-is. The node ids `"a"` (title `"Větev A"`) and `"b"` (title `"List B"`) come from that file's existing `buildDoc()`; check them before writing the assertions and use whatever it actually defines.
+Add `MindMapNode` to the file's existing import from `../mindMapDocument` if it is not already imported.
+
+Also update the `renderPanel` helper itself (`__tests__/MindMapSidePanel.test.tsx:70`): it currently passes `onAddChild`, `onDeleteNode` and `onToggleCollapsed`, which Step 3 removes from `MindMapSidePanelProps`. Delete those three lines from the helper, or the file will not type-check after Step 3.
 
 - [ ] **Step 2: Run to verify they fail**
 
