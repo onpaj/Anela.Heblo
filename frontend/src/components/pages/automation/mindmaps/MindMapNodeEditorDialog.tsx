@@ -215,7 +215,7 @@ const MindMapNodeEditorDialog: React.FC<MindMapNodeEditorDialogProps> = ({
           <button
             type="button"
             onClick={closeWithFlush}
-            className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700"
+            className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 dark:bg-graphite-accent dark:hover:bg-graphite-accent/90"
           >
             Zavřít
           </button>
