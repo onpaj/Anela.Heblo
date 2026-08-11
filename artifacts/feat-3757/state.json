@@ -25,5 +25,30 @@
       "updated_at": null
     }
   },
-  "tasks": []
+  "tasks": [
+    {
+      "name": "normalize-photo-modifiedat-utc-kind",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    },
+    {
+      "name": "photobank-phototag-schema-regression-test",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    },
+    {
+      "name": "photobank-schema-drift-health-check",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    },
+    {
+      "name": "photobank-drift-runbook-docs",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    }
+  ]
 }
