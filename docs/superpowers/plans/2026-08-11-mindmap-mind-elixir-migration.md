@@ -298,14 +298,19 @@ test("toMindElixir throws when the root id is missing rather than emitting a hea
   expect(() => toMindElixir(broken)).toThrow(/root/i);
 });
 
-test("toMindElixir terminates on a parent cycle instead of hanging", () => {
+test("toMindElixir terminates when the root lists itself as its own parent", () => {
+  // Each node has exactly one parentId, so the only cycle the walk can actually
+  // reach from the root is a self-parenting node: childrenByParent["root"] then
+  // contains root itself, and an unguarded build() would recurse forever.
   const cyclic: MindMapDocument = {
     schemaVersion: 1,
     rootNodeId: "root",
-    nodes: [node("root", null), node("x", "y"), node("y", "x")],
+    nodes: [node("root", "root"), node("a", "root")],
     suppressedNodes: [],
   };
-  expect(() => toMindElixir(cyclic)).not.toThrow();
+  const data = toMindElixir(cyclic);
+  expect(data.nodeData.id).toBe("root");
+  expect(data.nodeData.children?.map((c) => c.id)).toEqual(["a"]);
 }, 2000);
 
 test("displayFieldsFor renders the owner as a tag and the lock and note as icons", () => {
@@ -603,41 +608,26 @@ export function themeFor(mode: "light" | "dark"): Theme {
 }
 ```
 
-- [ ] **Step 4: Reduce mindMapTheme.ts to the palette**
+- [ ] **Step 4: Leave `mindMapTheme.ts` alone**
 
-The layout constants, tier metrics, font strings and text-measurement helpers in `mindMapTheme.ts` exist only to serve `mindMapLayout.ts`, which Task 8 deletes. Replace the whole file with:
+Do **not** strip the layout constants, tier metrics or font strings from `mindMapTheme.ts` in this task, even though the mind-elixir themes only need `MIND_MAP_PALETTE`. `mindMapLayout.ts`, `mindMapFlow.ts` and `MindMapFlowNode.tsx` still import those exports and are not deleted until Task 8; removing them here would leave the build broken across Tasks 3–7, and every task must satisfy the verification gate in Global Constraints on its own. Task 8 Step 3 reduces this file once its last consumer is gone.
 
-```ts
-// Branch palette shared by the mind-elixir themes. Top-level branches are coloured
-// by their index in this list, wrapping around.
+- [ ] **Step 5: Run the full gate**
 
-export const MIND_MAP_PALETTE = [
-  "#2E7D6B",
-  "#1F6FB2",
-  "#6A4C93",
-  "#B5651D",
-  "#C2185B",
-  "#7A8B2F",
-  "#D08700",
-  "#4C7A34",
-  "#3D7B8C",
-  "#77706A",
-] as const;
+Run:
+
+```bash
+cd frontend
+CI=true npx react-scripts test --watchAll=false
+CI=false npm run build
 ```
 
-This breaks `mindMapLayout.ts`, `mindMapFlow.ts` and `MindMapFlowNode.tsx`, which import the removed exports. That is expected — the build stays red until Task 8. To keep this task independently verifiable, run only the two new test files in Step 5 rather than the full build.
-
-- [ ] **Step 5: Run the theme tests**
-
-Run: `cd frontend && CI=true npx react-scripts test --testPathPattern="mindElixir" --watchAll=false`
-
-Expected: PASS (mapping + theme suites). The full suite and build are knowingly red from here until Task 8.
+Expected: all suites pass and `Compiled successfully.` — this task is purely additive, so nothing existing may break.
 
 - [ ] **Step 6: Commit**
 
 ```bash
 git add frontend/src/components/pages/automation/mindmaps/mindElixirTheme.ts \
-        frontend/src/components/pages/automation/mindmaps/mindMapTheme.ts \
         frontend/src/components/pages/automation/mindmaps/__tests__/mindElixirTheme.test.ts
 git commit -m "feat: express the mind map palette as mind-elixir light/dark themes"
 ```
@@ -690,6 +680,7 @@ const instance = {
   insertSibling: jest.fn(),
   removeNodes: jest.fn(),
   reshapeNode: jest.fn(),
+  expandNode: jest.fn(),
   expandNodeAll: jest.fn(),
   findEle: jest.fn(() => ({ nodeObj: { id: "root" } })),
   changeTheme: jest.fn(),
