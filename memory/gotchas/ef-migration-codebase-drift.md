@@ -37,6 +37,11 @@ Use the read-only SQL pair documented in `docs/development/setup.md` under "Diag
 
 The probe currently covers `DqtRuns` only. It does NOT cover the other tables touched by `StandardizeTableNamingToPascalCase`. Broader coverage is tracked as a follow-up; do not assume the probe protects against drift on any other entity.
 
+Photobank's `DateTime` columns (`Photos`, `PhotobankIndexRoots`, `PhotoTags` — see #3757) are now
+covered by a sibling safeguard, `PhotobankSchemaHealthCheck` (registered as `photobank-schema` under
+`/health/ready`), for the column-type-drift variant of this failure class (as opposed to this file's
+own table-existence variant). Other tables remain uncovered.
+
 ## Operator-filled incident record
 
 Fill in below once FR-1 through FR-4 are complete:
