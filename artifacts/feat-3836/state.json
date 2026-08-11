@@ -28,9 +28,9 @@
   "tasks": [
     {
       "name": "fix-webhook-replay-identity-resolution",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-08-11T09:18:37.808041Z"
+      "updated_at": "2026-08-11T10:25:28.237346Z"
     }
   ]
 }
