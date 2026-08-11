@@ -1,40 +1,72 @@
 import React from "react";
-import { act, fireEvent, render, screen } from "@testing-library/react";
+import { act, render } from "@testing-library/react";
 import "@testing-library/jest-dom";
 import { MindMapDocument } from "../mindMapDocument";
 
-// This repo's package.json overrides Jest's transformIgnorePatterns to skip all of
-// node_modules except date-fns, so @xyflow/react's own CSS import (pulled in by
-// MindMapCanvas.tsx) fails to parse as JS. No other test imports the real
-// MindMapCanvas module (MindMapDetailPage.test.tsx mocks it out), so this is the
-// first to hit it — stub the stylesheet import itself rather than touching the
-// repo's shared Jest config.
-jest.mock("@xyflow/react/dist/style.css", () => ({}));
+jest.mock("mind-elixir/style", () => ({}), { virtual: true });
 
-// Real React Flow needs browser APIs (ResizeObserver etc.) jsdom doesn't provide,
-// and no test in this repo renders it. Stub only the visual `ReactFlow` component
-// (keeping the real types via `requireActual`) so these tests exercise
-// MindMapCanvas's own prop wiring without needing a browser.
-const mockReactFlow = jest.fn((props: any) => (
-  <div data-testid="reactflow-stub">
-    {props.nodes.map((n: any) => (
-      <div key={n.id} data-testid={`node-${n.id}`} />
-    ))}
-  </div>
-));
+// mind-elixir drives real DOM layout (offsetWidth, getBoundingClientRect), all of
+// which jsdom reports as 0 — a real instance renders an empty, meaningless map.
+// Stub the class so these tests exercise MindMapCanvas's own wiring: mount once,
+// refresh on revision change, toggle edit mode, translate bus events outward.
+const instance = {
+  init: jest.fn(),
+  destroy: jest.fn(),
+  refresh: jest.fn(),
+  clearHistory: jest.fn(),
+  getData: jest.fn(),
+  enableEdit: jest.fn(),
+  disableEdit: jest.fn(),
+  undo: jest.fn(),
+  scaleFit: jest.fn(),
+  toCenter: jest.fn(),
+  addChild: jest.fn(),
+  insertSibling: jest.fn(),
+  removeNodes: jest.fn(),
+  reshapeNode: jest.fn(),
+  expandNode: jest.fn(),
+  expandNodeAll: jest.fn(),
+  findEle: jest.fn(() => ({ nodeObj: { id: "root" } })),
+  changeTheme: jest.fn(),
+  exportPng: jest.fn(),
+  exportSvg: jest.fn(),
+  nodeData: { id: "root" },
+  currentNode: null as unknown,
+  bus: {
+    listeners: {} as Record<string, Function[]>,
+    addListener(type: string, handler: Function) {
+      (this.listeners[type] ??= []).push(handler);
+    },
+    removeListener(type: string, handler: Function) {
+      this.listeners[type] = (this.listeners[type] ?? []).filter((h) => h !== handler);
+    },
+    fire(type: string, ...args: unknown[]) {
+      (this.listeners[type] ?? []).forEach((h) => h(...args));
+    },
+  },
+};
 
-jest.mock("@xyflow/react", () => {
-  const actual = jest.requireActual("@xyflow/react");
-  return {
-    ...actual,
-    ReactFlow: (props: any) => mockReactFlow(props),
-    Background: () => null,
-    Controls: () => null,
-  };
-});
+const mockMindElixir: any = jest.fn(() => instance);
+mockMindElixir.SIDE = 2;
+mockMindElixir.LEFT = 0;
+mockMindElixir.RIGHT = 1;
 
+jest.mock("mind-elixir", () => ({ __esModule: true, default: mockMindElixir }));
+
+// `import MindMapCanvas from "../MindMapCanvas"` would be an ES import, and ES
+// imports are hoisted above plain `const` statements by Babel's ESM→CJS
+// transform — even below the `// eslint-disable-next-line import/first` comment,
+// which only silences the lint rule and has no effect on runtime hoisting. That
+// hoisting would require "../MindMapCanvas" (and transitively "mind-elixir",
+// triggering the jest.mock factory below) before `mockMindElixir` is initialised,
+// producing a TDZ ReferenceError. `require()` is not hoisted, so it runs in the
+// order written, after `mockMindElixir` exists.
 // eslint-disable-next-line import/first
-import MindMapCanvas from "../MindMapCanvas";
+import type MindMapCanvasType from "../MindMapCanvas";
+// eslint-disable-next-line import/first
+import type { MindMapCanvasHandle } from "../MindMapCanvas";
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const MindMapCanvas: typeof MindMapCanvasType = require("../MindMapCanvas").default;
 
 function buildDoc(): MindMapDocument {
   return {
@@ -58,74 +90,164 @@ function buildDoc(): MindMapDocument {
   };
 }
 
-function latestProps() {
-  return mockReactFlow.mock.calls[mockReactFlow.mock.calls.length - 1][0];
-}
-
-const noop = () => {};
-
 function renderCanvas(overrides: Partial<React.ComponentProps<typeof MindMapCanvas>> = {}) {
-  return render(
+  const ref = React.createRef<MindMapCanvasHandle>();
+  const utils = render(
     <MindMapCanvas
-      document={buildDoc()}
+      ref={ref}
+      initialDocument={buildDoc()}
+      documentRevision="rev-1"
       isReadOnly={false}
-      selectedNodeId={null}
-      editingNodeId={null}
-      onSelectNode={noop}
-      onNodeDoubleClick={noop}
-      onCommitEdit={noop}
-      onCancelEdit={noop}
-      onCommitAndAddSibling={noop}
-      onToggleCollapsed={noop}
-      onKeyDown={noop}
+      onChange={jest.fn()}
+      onSelectNode={jest.fn()}
       {...overrides}
     />,
   );
+  return { ref, ...utils };
 }
 
 describe("MindMapCanvas", () => {
   beforeEach(() => {
-    mockReactFlow.mockClear();
+    jest.clearAllMocks();
+    instance.bus.listeners = {};
+    // CRA's Jest config sets `resetMocks: true` (config/jest global default), which
+    // runs before every test and strips the `() => instance` implementation given
+    // to `mockMindElixir` at module load — without this, `new MindElixir(...)`
+    // would return a bare auto-generated object instead of our shared `instance`.
+    mockMindElixir.mockImplementation(() => instance);
   });
 
-  it("wires deleteKeyCode off so React Flow's default Backspace-deletes-selected-node shortcut is inert", () => {
+  it("creates the instance with the two-sided layout and initialises it once", () => {
     renderCanvas();
-    expect(latestProps().deleteKeyCode).toBeNull();
+    expect(mockMindElixir).toHaveBeenCalledTimes(1);
+    expect(mockMindElixir.mock.calls[0][0]).toEqual(
+      expect.objectContaining({ direction: 2, allowUndo: true }),
+    );
+    expect(instance.init).toHaveBeenCalledTimes(1);
   });
 
-  it("keeps nodes undraggable — the two-sided layout owns every position", () => {
+  it("keeps mind-elixir's own context menu and toolbar off", () => {
+    // The context menu can create arrows and summaries, neither of which
+    // MindMapDocument stores — they would be silently dropped on the next save —
+    // and mind-elixir has no Czech language pack for it.
     renderCanvas();
-    expect(latestProps().nodesDraggable).toBe(false);
+    expect(mockMindElixir.mock.calls[0][0]).toEqual(
+      expect.objectContaining({ contextMenu: false, toolBar: false }),
+    );
   });
 
-  it("marks only the selected node as selected", () => {
-    renderCanvas({ selectedNodeId: "root" });
-    expect(latestProps().nodes.find((n: any) => n.id === "root").selected).toBe(true);
+  it("does not re-initialise when the revision is unchanged", () => {
+    const { rerender, ref } = renderCanvas();
+    rerender(
+      <MindMapCanvas
+        ref={ref}
+        initialDocument={buildDoc()}
+        documentRevision="rev-1"
+        isReadOnly={false}
+        onChange={jest.fn()}
+        onSelectNode={jest.fn()}
+      />,
+    );
+    expect(instance.refresh).not.toHaveBeenCalled();
   });
 
-  it("hands the page a fitView callback once React Flow initialises", () => {
-    const fitView = jest.fn();
-    const onFitViewReady = jest.fn();
-    renderCanvas({ onFitViewReady });
+  it("refreshes and clears history when a new server revision arrives", () => {
+    // clearHistory matters: without it ⌘Z can undo backwards into the previous
+    // document, producing node ids the server has already replaced.
+    const { rerender, ref } = renderCanvas();
+    rerender(
+      <MindMapCanvas
+        ref={ref}
+        initialDocument={buildDoc()}
+        documentRevision="rev-2"
+        isReadOnly={false}
+        onChange={jest.fn()}
+        onSelectNode={jest.fn()}
+      />,
+    );
+    expect(instance.refresh).toHaveBeenCalledTimes(1);
+    expect(instance.clearHistory).toHaveBeenCalledTimes(1);
+  });
 
+  it("reports edits upward so the page can mark the document dirty", () => {
+    const onChange = jest.fn();
+    renderCanvas({ onChange });
     act(() => {
-      latestProps().onInit({ fitView } as any);
+      instance.bus.fire("operation", { name: "addChild", obj: { id: "x" } });
     });
-
-    expect(onFitViewReady).toHaveBeenCalledTimes(1);
-    onFitViewReady.mock.calls[0][0]();
-    expect(fitView).toHaveBeenCalled();
+    expect(onChange).toHaveBeenCalledTimes(1);
   });
 
-  it("scopes shortcut handling to the canvas element rather than the document", () => {
-    const onKeyDown = jest.fn();
-    renderCanvas({ onKeyDown });
-    const canvas = screen.getByTestId("mindmap-canvas");
+  it("treats collapsing a branch as an edit — `collapsed` is a persisted field", () => {
+    const onChange = jest.fn();
+    renderCanvas({ onChange });
+    act(() => {
+      instance.bus.fire("expandNode", { id: "x" });
+    });
+    expect(onChange).toHaveBeenCalledTimes(1);
+  });
 
-    // Focusable, so Enter/Tab/Space are only intercepted while the map has focus —
-    // typing in the side panel's inputs must never reach these shortcuts.
-    expect(canvas).toHaveAttribute("tabindex", "0");
-    fireEvent.keyDown(canvas, { key: "Enter" });
-    expect(onKeyDown).toHaveBeenCalled();
+  it("reports selection and deselection upward", () => {
+    const onSelectNode = jest.fn();
+    renderCanvas({ onSelectNode });
+    act(() => {
+      instance.bus.fire("selectNewNode", { id: "a" });
+    });
+    expect(onSelectNode).toHaveBeenCalledWith("a");
+    act(() => {
+      instance.bus.fire("unselectNodes", [{ id: "a" }]);
+    });
+    expect(onSelectNode).toHaveBeenCalledWith(null);
+  });
+
+  it("disables editing while the map is read-only and re-enables it after", () => {
+    const { rerender, ref } = renderCanvas({ isReadOnly: true });
+    expect(instance.disableEdit).toHaveBeenCalled();
+    rerender(
+      <MindMapCanvas
+        ref={ref}
+        initialDocument={buildDoc()}
+        documentRevision="rev-1"
+        isReadOnly={false}
+        onChange={jest.fn()}
+        onSelectNode={jest.fn()}
+      />,
+    );
+    expect(instance.enableEdit).toHaveBeenCalled();
+  });
+
+  it("exposes the current document through the ref handle", () => {
+    instance.getData.mockReturnValue({ nodeData: { id: "root", topic: "Projekt" } });
+    const { ref } = renderCanvas();
+    expect(ref.current!.getDocument()).toEqual(
+      expect.objectContaining({ rootNodeId: "root", schemaVersion: 1 }),
+    );
+  });
+
+  it("routes side-panel field edits through reshapeNode, preserving untouched metadata", () => {
+    instance.currentNode = null;
+    instance.findEle.mockReturnValue({
+      nodeObj: {
+        id: "root",
+        topic: "Projekt",
+        metadata: { status: "active", owner: "Bára", lockedBy: null, sourceMeetingIds: ["m1"] },
+      },
+    });
+    const { ref } = renderCanvas();
+    act(() => {
+      ref.current!.patchNode("root", { status: "done" });
+    });
+    expect(instance.reshapeNode).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        metadata: { status: "done", owner: "Bára", lockedBy: null, sourceMeetingIds: ["m1"] },
+      }),
+    );
+  });
+
+  it("destroys the instance on unmount", () => {
+    const { unmount } = renderCanvas();
+    unmount();
+    expect(instance.destroy).toHaveBeenCalledTimes(1);
   });
 });

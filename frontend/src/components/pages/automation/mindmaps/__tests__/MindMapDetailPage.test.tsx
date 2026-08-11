@@ -16,9 +16,15 @@ jest.mock("../../../../../api/client");
 // list of clickable node buttons that still exercise the real onSelectNode callback.
 jest.mock("../MindMapCanvas", () => ({
   __esModule: true,
-  default: ({ document, onSelectNode }: { document: MindMapDocument; onSelectNode: (id: string) => void }) => (
+  default: ({
+    initialDocument,
+    onSelectNode,
+  }: {
+    initialDocument: MindMapDocument;
+    onSelectNode: (id: string) => void;
+  }) => (
     <div data-testid="mindmap-canvas-stub">
-      {document.nodes.map((n) => (
+      {initialDocument.nodes.map((n) => (
         <button key={n.id} type="button" onClick={() => onSelectNode(n.id)}>
           {n.title}
         </button>

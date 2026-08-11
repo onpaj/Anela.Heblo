@@ -432,21 +432,22 @@ const MindMapDetailPage: React.FC = () => {
                 onUndo={handleUndo}
                 onOpenHelp={() => setIsHelpOpen(true)}
               />
+              {/* TODO(Task 5): MindMapCanvas is now an imperative mind-elixir host (ref
+                  handle: expandAll/collapseAll/fit/addChild/addSibling/undo/patchNode/
+                  export*), not the old controlled React Flow component. This page still
+                  drives selection/edits/undo/toolbar through its own local document
+                  mutations (selectedNodeId, editingNodeId, handleNodeDoubleClick,
+                  handleCommitInlineEdit, handleCommitAndAddSibling, handleToggleCollapsed,
+                  handleCanvasKeyDown, fitViewRef) — none of that is wired to the new
+                  canvas yet, and several of those bindings are consequently unused below.
+                  Task 5 rewires this page onto the ref handle; this is a minimal,
+                  compile-only prop swap so the build stays green until then. */}
               <MindMapCanvas
-                document={localDoc}
+                initialDocument={localDoc}
+                documentRevision={detail.documentJson}
                 isReadOnly={isReadOnly}
-                selectedNodeId={selectedNodeId}
-                editingNodeId={editingNodeId}
+                onChange={() => setIsDirty(true)}
                 onSelectNode={setSelectedNodeId}
-                onNodeDoubleClick={handleNodeDoubleClick}
-                onCommitEdit={handleCommitInlineEdit}
-                onCancelEdit={() => setEditingNodeId(null)}
-                onCommitAndAddSibling={handleCommitAndAddSibling}
-                onToggleCollapsed={handleToggleCollapsed}
-                onKeyDown={handleCanvasKeyDown}
-                onFitViewReady={(fitView) => {
-                  fitViewRef.current = fitView;
-                }}
               />
             </>
           )}
