@@ -125,7 +125,8 @@ All responses inherit `BaseResponse`. New `ErrorCode`s registered in the module 
    - system prompt loaded from `Prompts/mindmap-update-skill.md`;
    - current document stripped of UI metadata, locked nodes marked `"locked": true`;
    - the suppressed-nodes list;
-   - the meeting's `Subject`, `Summary`, `RawTranscript`.
+   - the meeting's `Subject`, `Summary`, `Participants` (bounds the names the prompt allows
+     in `owner`; omitted when empty), `RawTranscript`.
 4. The model returns the full updated document. The server runs the **guard pass** (pure C#):
    - schema + tree validation: single root, no cycles, no orphan `parentId`s;
    - locked nodes: `title`/`notes`/`owner` restored from the previous version if changed;

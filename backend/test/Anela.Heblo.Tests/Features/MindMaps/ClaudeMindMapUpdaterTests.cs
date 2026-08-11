@@ -135,6 +135,45 @@ public class ClaudeMindMapUpdaterTests
     }
 
     [Fact]
+    public async Task UpdateAsync_SendsMeetingParticipants_WhenMeetingHasThem()
+    {
+        var meeting = Meeting();
+        meeting.Participants = new List<string> { "Ondra", "Andy" };
+        var captured = new CapturedUserMessage();
+
+        await CreateSut(ChatClientCapturing(captured)).UpdateAsync(Current(), meeting);
+
+        Assert.Contains("Participants: Ondra, Andy", captured.Text);
+    }
+
+    [Fact]
+    public async Task UpdateAsync_OmitsParticipantsLine_WhenMeetingHasNoParticipants()
+    {
+        var captured = new CapturedUserMessage();
+
+        await CreateSut(ChatClientCapturing(captured)).UpdateAsync(Current(), Meeting());
+
+        Assert.DoesNotContain("Participants", captured.Text);
+    }
+
+    private sealed class CapturedUserMessage
+    {
+        public string? Text { get; set; }
+    }
+
+    private static Mock<IChatClient> ChatClientCapturing(CapturedUserMessage captured)
+    {
+        var valid = """{"rootNodeId":"root","nodes":[{"id":"root","parentId":null,"title":"Projekt","status":"active"}]}""";
+        var mock = new Mock<IChatClient>();
+        mock.Setup(c => c.GetResponseAsync(
+                It.IsAny<IEnumerable<ChatMessage>>(), It.IsAny<ChatOptions>(), It.IsAny<CancellationToken>()))
+            .Callback<IEnumerable<ChatMessage>, ChatOptions, CancellationToken>((msgs, _, _) =>
+                captured.Text = msgs.First(m => m.Role == ChatRole.User).Text)
+            .ReturnsAsync(new ChatResponse(new ChatMessage(ChatRole.Assistant, valid)));
+        return mock;
+    }
+
+    [Fact]
     public async Task UpdateAsync_SecondAttempt_IncludesBadReplyAndCorrectiveErrorMessage()
     {
         var valid = """{"rootNodeId":"root","nodes":[{"id":"root","parentId":null,"title":"Projekt","status":"active"}]}""";
@@ -156,7 +195,7 @@ public class ClaudeMindMapUpdaterTests
         Assert.Equal(2, capturedCalls[0].Count); // system + user only, on the first attempt
         var secondCallMessages = capturedCalls[1];
         Assert.Contains(secondCallMessages, m => m.Role == ChatRole.Assistant && m.Text == "not json at all");
-        Assert.Contains(secondCallMessages, m => m.Role == ChatRole.User && m.Text!.Contains("nebyla validní"));
+        Assert.Contains(secondCallMessages, m => m.Role == ChatRole.User && m.Text!.Contains("was not valid"));
     }
 
     [Fact]

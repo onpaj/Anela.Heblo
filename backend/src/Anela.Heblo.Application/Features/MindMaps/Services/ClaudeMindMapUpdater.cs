@@ -77,8 +77,8 @@ public class ClaudeMindMapUpdater : IMindMapUpdater
                 attempt, MaxAttempts, lastError);
             messages.Add(new ChatMessage(ChatRole.Assistant, response.Text ?? string.Empty));
             messages.Add(new ChatMessage(ChatRole.User,
-                $"Tvá předchozí odpověď nebyla validní ({lastError}). " +
-                "Vrať POUZE validní JSON dokument mapy podle zadaného schématu."));
+                $"Your previous reply was not valid ({lastError}). " +
+                "Return ONLY a valid JSON map document matching the given schema."));
         }
 
         throw new MindMapUpdateException(
@@ -107,10 +107,18 @@ public class ClaudeMindMapUpdater : IMindMapUpdater
         };
         var mapJson = JsonSerializer.Serialize(llmView, UserMessageJsonOptions);
 
-        return $"Aktuální mapa:\n{mapJson}\n\n" +
-               $"Nová porada — {meeting.Subject} ({meeting.PlaudCreatedAt:yyyy-MM-dd}):\n\n" +
-               $"Souhrn:\n{meeting.Summary}\n\n" +
-               $"Transkript:\n{meeting.RawTranscript}";
+        // Participants bound the set of names the prompt allows in `owner`. Omitted entirely
+        // when the meeting has none, so the model never sees an empty roster it could read
+        // as "nobody was there".
+        var participants = meeting.Participants.Count > 0
+            ? $"Participants: {string.Join(", ", meeting.Participants)}\n\n"
+            : string.Empty;
+
+        return $"Current map:\n{mapJson}\n\n" +
+               $"New meeting — {meeting.Subject} ({meeting.PlaudCreatedAt:yyyy-MM-dd}):\n\n" +
+               participants +
+               $"Summary:\n{meeting.Summary}\n\n" +
+               $"Transcript:\n{meeting.RawTranscript}";
     }
 
     private static string LoadSystemPrompt()
