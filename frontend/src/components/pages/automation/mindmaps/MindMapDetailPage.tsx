@@ -46,6 +46,12 @@ const MindMapDetailPage: React.FC = () => {
   // `isDirty` state is stale inside that same keydown — it was captured at the last
   // render — so the gate needs a ref kept in lockstep with every `setIsDirty` write.
   const isDirtyRef = useRef(false);
+  // Route every write through here so the ref can never drift from the state — a
+  // direct setIsDirty call would silently break the ⌘S gate above.
+  const markDirty = useCallback((dirty: boolean) => {
+    isDirtyRef.current = dirty;
+    setIsDirty(dirty);
+  }, []);
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [isHelpOpen, setIsHelpOpen] = useState(false);
   const [hasDocumentParseError, setHasDocumentParseError] = useState(false);
@@ -72,11 +78,10 @@ const MindMapDetailPage: React.FC = () => {
   // Any edit inside the canvas. Pulling a fresh snapshot here is what keeps the
   // side panel showing the node's real current values.
   const handleCanvasChange = useCallback(() => {
-    setIsDirty(true);
-    isDirtyRef.current = true;
+    markDirty(true);
     const snapshot = canvasRef.current?.getDocument();
     if (snapshot) setCanvasDoc(snapshot);
-  }, []);
+  }, [markDirty]);
 
   const handleSelectNode = useCallback((nodeId: string | null) => {
     setSelectedNodeId(nodeId);
@@ -129,8 +134,7 @@ const MindMapDetailPage: React.FC = () => {
     queryClient.setQueryData<MindMapDetail>(MIND_MAPS_KEYS.detail(id), (old) =>
       old ? { ...old, documentJson: result.documentJson } : old,
     );
-    setIsDirty(false);
-    isDirtyRef.current = false;
+    markDirty(false);
 
     try {
       const parsed = parseDocument(result.documentJson);
@@ -142,7 +146,7 @@ const MindMapDetailPage: React.FC = () => {
       toast.error("Mapa byla uložena, ale odpověď serveru se nepodařilo zobrazit. Načtěte stránku znovu.");
     }
     return true;
-  }, [id, saveDocument, queryClient]);
+  }, [id, saveDocument, queryClient, markDirty]);
 
   const { dialogProps, requestNavigation } = useUnsavedChangesDialog(isDirty, handleSave);
 
