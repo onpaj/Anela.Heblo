@@ -17,6 +17,7 @@ import MindMapCanvas, { MindMapCanvasHandle, MindMapNodePatch } from "./MindMapC
 import MindMapSidePanel from "./MindMapSidePanel";
 import MindMapToolbar from "./MindMapToolbar";
 import MindMapHelpSheet from "./MindMapHelpSheet";
+import MindMapNodeEditorDialog from "./MindMapNodeEditorDialog";
 import { PAGE_CONTAINER_HEIGHT } from "../../../../constants/layout";
 import { useScreenView } from "../../../../telemetry/useScreenView";
 
@@ -38,11 +39,17 @@ const MindMapDetailPage: React.FC = () => {
   const canvasRef = useRef<MindMapCanvasHandle>(null);
   const [loadedJson, setLoadedJson] = useState<string | null>(null);
   const [loadedDoc, setLoadedDoc] = useState<MindMapDocument | null>(null);
-  const [panelDoc, setPanelDoc] = useState<MindMapDocument | null>(null);
+  const [canvasDoc, setCanvasDoc] = useState<MindMapDocument | null>(null);
   const [isDirty, setIsDirty] = useState(false);
+  // The ⌘S handler blurs the active element before deciding whether to save, and that
+  // blur can be what makes the map dirty (a dialog field committing on blur). The
+  // `isDirty` state is stale inside that same keydown — it was captured at the last
+  // render — so the gate needs a ref kept in lockstep with every `setIsDirty` write.
+  const isDirtyRef = useRef(false);
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [isHelpOpen, setIsHelpOpen] = useState(false);
   const [hasDocumentParseError, setHasDocumentParseError] = useState(false);
+  const [editingNodeId, setEditingNodeId] = useState<string | null>(null);
 
   const isReadOnly = detail?.status === "Updating";
 
@@ -54,7 +61,7 @@ const MindMapDetailPage: React.FC = () => {
     try {
       const parsed = parseDocument(detail.documentJson);
       setLoadedDoc(parsed);
-      setPanelDoc(parsed);
+      setCanvasDoc(parsed);
       setLoadedJson(detail.documentJson);
       setHasDocumentParseError(false);
     } catch {
@@ -66,14 +73,23 @@ const MindMapDetailPage: React.FC = () => {
   // side panel showing the node's real current values.
   const handleCanvasChange = useCallback(() => {
     setIsDirty(true);
+    isDirtyRef.current = true;
     const snapshot = canvasRef.current?.getDocument();
-    if (snapshot) setPanelDoc(snapshot);
+    if (snapshot) setCanvasDoc(snapshot);
   }, []);
 
   const handleSelectNode = useCallback((nodeId: string | null) => {
     setSelectedNodeId(nodeId);
     const snapshot = canvasRef.current?.getDocument();
-    if (snapshot) setPanelDoc(snapshot);
+    if (snapshot) setCanvasDoc(snapshot);
+  }, []);
+
+  const handleOpenNodeEditor = useCallback((nodeId: string) => {
+    setEditingNodeId(nodeId);
+    // Which selection events mind-elixir fired before the double-click is its own
+    // business; pull a snapshot so the dialog always opens on current values.
+    const snapshot = canvasRef.current?.getDocument();
+    if (snapshot) setCanvasDoc(snapshot);
   }, []);
 
   const handleUpdateNode = useCallback(
@@ -85,6 +101,12 @@ const MindMapDetailPage: React.FC = () => {
   );
 
   const handleSave = useCallback(async (): Promise<boolean> => {
+    // A dialog field commits on blur. ⌘S while one has focus would otherwise read
+    // the document before that commit lands. reshapeNode is synchronous, so the
+    // flush is visible to getDocument on the next line.
+    const active = window.document.activeElement;
+    if (active instanceof HTMLElement) active.blur();
+
     const documentToSave = canvasRef.current?.getDocument();
     if (!id || !documentToSave) return false;
 
@@ -108,11 +130,12 @@ const MindMapDetailPage: React.FC = () => {
       old ? { ...old, documentJson: result.documentJson } : old,
     );
     setIsDirty(false);
+    isDirtyRef.current = false;
 
     try {
       const parsed = parseDocument(result.documentJson);
       setLoadedDoc(parsed);
-      setPanelDoc(parsed);
+      setCanvasDoc(parsed);
       setLoadedJson(result.documentJson);
       toast.success("Mapa uložena");
     } catch {
@@ -129,11 +152,18 @@ const MindMapDetailPage: React.FC = () => {
     const onKeyDown = (event: KeyboardEvent) => {
       if (!(event.metaKey || event.ctrlKey) || event.key.toLowerCase() !== "s") return;
       event.preventDefault();
-      if (isDirty && !isReadOnly) void handleSave();
+      // Blur before the gate, not after: a focused dialog field commits on blur, and
+      // that commit — via handleCanvasChange — is what can turn a clean map dirty.
+      // reshapeNode is synchronous, so isDirtyRef already reflects it by the time the
+      // gate below runs. The `isDirty` state can't be used here — it was captured at
+      // the last render and is still stale within this same keydown.
+      const active = window.document.activeElement;
+      if (active instanceof HTMLElement) active.blur();
+      if (isDirtyRef.current && !isReadOnly) void handleSave();
     };
     window.document.addEventListener("keydown", onKeyDown);
     return () => window.document.removeEventListener("keydown", onKeyDown);
-  }, [handleSave, isDirty, isReadOnly]);
+  }, [handleSave, isReadOnly]);
 
   // Map names are user-supplied Czech text and may contain characters that are
   // unsafe or awkward in a filename (path separators, control characters, a name
@@ -219,6 +249,7 @@ const MindMapDetailPage: React.FC = () => {
   // unapplied for as long as the user keeps editing. Surface that rather than
   // silently doing nothing.
   const hasNewerServerVersion = isDirty && detail.documentJson !== loadedJson;
+  const editingNode = editingNodeId ? canvasDoc?.nodes.find((n) => n.id === editingNodeId) ?? null : null;
 
   return (
     <div className="flex flex-col w-full overflow-hidden" style={{ height: PAGE_CONTAINER_HEIGHT }}>
@@ -327,23 +358,25 @@ const MindMapDetailPage: React.FC = () => {
                 isReadOnly={isReadOnly}
                 onChange={handleCanvasChange}
                 onSelectNode={handleSelectNode}
+                onOpenNodeEditor={handleOpenNodeEditor}
               />
             </>
           )}
         </div>
-        {loadedDoc && panelDoc && (
-          <MindMapSidePanel
-            detail={detail}
-            document={panelDoc}
-            selectedNodeId={selectedNodeId}
-            isReadOnly={isReadOnly}
-            isDirty={isDirty}
-            onUpdateNode={handleUpdateNode}
-          />
-        )}
+        <MindMapSidePanel detail={detail} isReadOnly={isReadOnly} isDirty={isDirty} />
       </div>
 
       {isHelpOpen && <MindMapHelpSheet onClose={() => setIsHelpOpen(false)} />}
+
+      {editingNode && (
+        <MindMapNodeEditorDialog
+          node={editingNode}
+          meetings={detail.meetings}
+          isReadOnly={isReadOnly}
+          onUpdateNode={handleUpdateNode}
+          onClose={() => setEditingNodeId(null)}
+        />
+      )}
 
       <UnsavedChangesDialog {...dialogProps} />
     </div>

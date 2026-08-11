@@ -49,6 +49,7 @@ jest.mock("../MindMapCanvas", () => {
           documentRevision: string;
           onSelectNode: (id: string) => void;
           onChange: () => void;
+          onOpenNodeEditor: (id: string) => void;
         },
         ref: React.Ref<unknown>,
       ) => {
@@ -73,6 +74,13 @@ jest.mock("../MindMapCanvas", () => {
             ))}
             <button type="button" data-testid="stub-edit" onClick={() => props.onChange()}>
               edit
+            </button>
+            <button
+              type="button"
+              data-testid="stub-open-editor"
+              onClick={() => props.onOpenNodeEditor("root")}
+            >
+              open editor
             </button>
           </div>
         );
@@ -220,11 +228,12 @@ describe("MindMapDetailPage", () => {
 
     const queryClient = newQueryClient();
     renderPage(queryClient);
-    await selectRootNode();
+    await screen.findByTestId("mindmap-canvas-stub");
 
-    const titleInput = (await screen.findByTestId("mindmap-panel-title-input")) as HTMLInputElement;
+    fireEvent.click(screen.getByTestId("stub-open-editor"));
+    const titleInput = (await screen.findByTestId("mindmap-node-title-input")) as HTMLInputElement;
     fireEvent.change(titleInput, { target: { value: "Upraveno" } });
-    // Commit-on-blur (see MindMapSidePanel): a real browser blurs on the Save
+    // Commit-on-blur (see MindMapNodeEditorDialog): a real browser blurs on the Save
     // button's mousedown, jsdom does not.
     fireEvent.blur(titleInput);
     mockCanvasHandle.getDocument.mockReturnValue(canonicalDoc);
@@ -307,7 +316,9 @@ describe("MindMapDetailPage", () => {
 
     expect(screen.getByTestId("mindmap-status-badge")).toHaveTextContent("Aktualizuje se");
     expect(screen.getByTestId("mindmap-save-button")).toBeDisabled();
-    expect(screen.getByTestId("mindmap-panel-title-input")).toBeDisabled();
+
+    fireEvent.click(screen.getByTestId("stub-open-editor"));
+    expect(screen.getByTestId("mindmap-node-title-input")).toBeDisabled();
     expect(screen.getByText(/Mapa se právě aktualizuje/)).toBeInTheDocument();
   });
 
@@ -474,6 +485,54 @@ describe("MindMapDetailPage", () => {
       expect(screen.getByTestId("mindmap-canvas-stub").getAttribute("data-revision")).not.toBe(
         revisionBeforeSave,
       ),
+    );
+  });
+
+  it("opens the node editor for the node the canvas reports, and closes it again", async () => {
+    const { mockClient, mockFetch } = createMockApiClient(BASE_URL);
+    mockAuthenticatedApiClient(mockClient);
+    mockFetch.mockImplementation((url: string) => {
+      if (url === DETAIL_URL) return jsonResponse(buildDetail());
+      throw new Error(`Unexpected fetch: ${url}`);
+    });
+
+    renderPage(newQueryClient());
+    await screen.findByTestId("mindmap-canvas-stub");
+
+    expect(screen.queryByTestId("mindmap-node-editor")).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByTestId("stub-open-editor"));
+    expect(screen.getByTestId("mindmap-node-title-input")).toHaveValue("Projekt");
+
+    fireEvent.click(screen.getByRole("button", { name: "Zavřít" }));
+    expect(screen.queryByTestId("mindmap-node-editor")).not.toBeInTheDocument();
+  });
+
+  it("commits the focused editor field before ⌘S reads the document", async () => {
+    // The dialog's fields commit on blur; ⌘S while one has focus would otherwise
+    // save a document that never received the last thing typed.
+    const { mockClient, mockFetch } = createMockApiClient(BASE_URL);
+    mockAuthenticatedApiClient(mockClient);
+    mockCanvasHandle.getDocument.mockReturnValue(buildDoc());
+    mockFetch.mockImplementation((url: string, init?: RequestInit) => {
+      const method = (init?.method ?? "GET").toUpperCase();
+      if (method === "GET" && url === DETAIL_URL) return jsonResponse(buildDetail());
+      if (method === "PUT" && url === SAVE_URL) return jsonResponse({ documentJson: JSON.stringify(buildDoc()) });
+      throw new Error(`Unexpected fetch: ${method} ${url}`);
+    });
+
+    renderPage(newQueryClient());
+    await screen.findByTestId("mindmap-canvas-stub");
+
+    fireEvent.click(screen.getByTestId("stub-open-editor"));
+    const input = screen.getByTestId("mindmap-node-title-input");
+    input.focus();
+    fireEvent.change(input, { target: { value: "Upravený název" } });
+
+    fireEvent.keyDown(window.document, { key: "s", metaKey: true });
+
+    await waitFor(() =>
+      expect(mockCanvasHandle.patchNode).toHaveBeenCalledWith("root", { title: "Upravený název" }),
     );
   });
 });
