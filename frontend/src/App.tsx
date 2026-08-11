@@ -43,6 +43,7 @@ import PackingMaterialsPage from "./pages/PackingMaterialsPage";
 import StockOperationsPage from "./pages/StockOperationsPage";
 import RecurringJobsPage from "./pages/RecurringJobsPage";
 import KnowledgeBasePage from "./pages/KnowledgeBasePage";
+import OvertimePage from "./pages/OvertimePage";
 import KnowledgeBaseFeedbackPage from "./pages/KnowledgeBaseFeedbackPage";
 import MarketingFeedbackPage from "./pages/MarketingFeedbackPage";
 import ArticlesPage from "./pages/ArticlesPage";
@@ -62,7 +63,7 @@ import SmartsuppChatsPage from "./components/customer-support/smartsupp/pages/Sm
 import ExpeditionSettingsPage from "./pages/customer/ExpeditionSettingsPage";
 import { setGlobalTokenProvider, setGlobalAuthRedirectHandler, clearTokenCache, TokenResult } from "./api/client";
 import { apiRequest } from "./auth/msalConfig";
-import { recoverAuth } from "./auth/authRecovery";
+import { recoverAuth, handleMsalAuthEvent } from "./auth/authRecovery";
 import { InteractionRequiredAuthError } from "@azure/msal-browser";
 import { isE2ETestMode, getE2EAccessToken } from "./auth/e2eAuth";
 import { ToastProvider } from "./contexts/ToastContext";
@@ -167,6 +168,9 @@ function App() {
             getAppInsights()?.clearAuthenticatedUserContext();
             setUserIdentity(null);
           }
+          // A redirect that bounced back with login_required means the Entra session
+          // is gone — escalate to interactive login instead of looping on prompt:none.
+          handleMsalAuthEvent(instance, event);
         });
 
         // For users already signed in (page reload), set context immediately
@@ -448,6 +452,7 @@ function App() {
                         <Route path="/orgchart" element={<OrgChartPage />} />
                         <Route path="/stock-up-operations" element={guard("/stock-up-operations", <StockOperationsPage />)} />
                         <Route path="/recurring-jobs" element={guard("/recurring-jobs", <RecurringJobsPage />)} />
+                        <Route path="/overtime" element={guard("/overtime", <OvertimePage />)} />
                         <Route path="/knowledge-base" element={guard("/knowledge-base", <KnowledgeBasePage />)} />
                         <Route path="/knowledge-base/feedback" element={<KnowledgeBaseFeedbackPage />} />
                         <Route path="/marketing/feedback" element={guard("/marketing/feedback", <MarketingFeedbackPage />)} />

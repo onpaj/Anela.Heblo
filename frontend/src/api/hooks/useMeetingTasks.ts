@@ -383,3 +383,25 @@ export function useReimportMeeting() {
     },
   });
 }
+
+// --- Delete ---
+
+export interface DeleteMeetingResponse {
+  success: boolean;
+  errorCode?: string;
+}
+
+export function useDeleteMeeting() {
+  const qc = useQueryClient();
+  return useMutation<DeleteMeetingResponse, Error, string>({
+    mutationFn: async (transcriptId) =>
+      fetchJson<DeleteMeetingResponse>(
+        `/api/meeting-tasks/${encodeURIComponent(transcriptId)}`,
+        { method: "DELETE", headers: { Accept: "application/json" } },
+      ),
+    onSuccess: (_d, transcriptId) => {
+      qc.removeQueries({ queryKey: MEETING_TASKS_KEYS.detail(transcriptId) });
+      qc.invalidateQueries({ queryKey: MEETING_TASKS_KEYS.list });
+    },
+  });
+}
