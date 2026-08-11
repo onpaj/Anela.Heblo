@@ -7,7 +7,6 @@ const BUTTON_CLASS =
 export interface MindMapToolbarProps {
   isReadOnly: boolean;
   hasSelection: boolean;
-  canUndo: boolean;
   onExpandAll: () => void;
   onCollapseAll: () => void;
   onFit: () => void;
@@ -15,6 +14,8 @@ export interface MindMapToolbarProps {
   onAddChild: () => void;
   onUndo: () => void;
   onOpenHelp: () => void;
+  onExportPng: () => void;
+  onExportSvg: () => void;
 }
 
 const Separator: React.FC = () => (
@@ -24,7 +25,6 @@ const Separator: React.FC = () => (
 const MindMapToolbar: React.FC<MindMapToolbarProps> = ({
   isReadOnly,
   hasSelection,
-  canUndo,
   onExpandAll,
   onCollapseAll,
   onFit,
@@ -32,6 +32,8 @@ const MindMapToolbar: React.FC<MindMapToolbarProps> = ({
   onAddChild,
   onUndo,
   onOpenHelp,
+  onExportPng,
+  onExportSvg,
 }) => (
   <div
     data-testid="mindmap-toolbar"
@@ -77,10 +79,31 @@ const MindMapToolbar: React.FC<MindMapToolbarProps> = ({
       data-testid="mindmap-undo"
       className={BUTTON_CLASS}
       onClick={onUndo}
-      disabled={isReadOnly || !canUndo}
+      disabled={isReadOnly}
       title="Zpět (⌘Z)"
     >
       Zpět
+    </button>
+
+    <Separator />
+
+    <button
+      type="button"
+      data-testid="mindmap-export-png"
+      className={BUTTON_CLASS}
+      onClick={onExportPng}
+      title="Stáhnout mapu jako PNG"
+    >
+      PNG
+    </button>
+    <button
+      type="button"
+      data-testid="mindmap-export-svg"
+      className={BUTTON_CLASS}
+      onClick={onExportSvg}
+      title="Stáhnout mapu jako SVG"
+    >
+      SVG
     </button>
     <button type="button" className={BUTTON_CLASS} onClick={onOpenHelp} title="Klávesové zkratky">
       ?

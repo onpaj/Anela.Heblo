@@ -135,6 +135,42 @@ const MindMapDetailPage: React.FC = () => {
     return () => window.document.removeEventListener("keydown", onKeyDown);
   }, [handleSave, isDirty, isReadOnly]);
 
+  // Map names are user-supplied Czech text and may contain characters that are
+  // unsafe or awkward in a filename (path separators, control characters, a name
+  // that is empty after trimming). Replace anything outside a conservative safe
+  // set rather than trusting the raw name verbatim.
+  const sanitizeFileName = (name: string): string => {
+    const sanitized = name.trim().replace(/[\\/:*?"<>|]+/g, "_");
+    return sanitized.length > 0 ? sanitized : "mapa";
+  };
+
+  const downloadBlob = (blob: Blob, extension: string) => {
+    const url = URL.createObjectURL(blob);
+    const link = window.document.createElement("a");
+    link.href = url;
+    link.download = `${sanitizeFileName(detail?.name ?? "mapa")}.${extension}`;
+    link.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const handleExportPng = async () => {
+    const blob = await canvasRef.current?.exportPng();
+    if (!blob) {
+      toast.error("Export mapy do PNG se nezdařil");
+      return;
+    }
+    downloadBlob(blob, "png");
+  };
+
+  const handleExportSvg = () => {
+    const blob = canvasRef.current?.exportSvg();
+    if (!blob) {
+      toast.error("Export mapy do SVG se nezdařil");
+      return;
+    }
+    downloadBlob(blob, "svg");
+  };
+
   const handleRegenerate = async () => {
     if (!id) return;
     // Regenerating replaces the document with Claude's rewrite. Doing that while
@@ -274,7 +310,6 @@ const MindMapDetailPage: React.FC = () => {
               <MindMapToolbar
                 isReadOnly={isReadOnly}
                 hasSelection={selectedNodeId !== null}
-                canUndo={!isReadOnly}
                 onExpandAll={() => canvasRef.current?.expandAll()}
                 onCollapseAll={() => canvasRef.current?.collapseAll()}
                 onFit={() => canvasRef.current?.fit()}
@@ -282,6 +317,8 @@ const MindMapDetailPage: React.FC = () => {
                 onAddChild={() => canvasRef.current?.addChild()}
                 onUndo={() => canvasRef.current?.undo()}
                 onOpenHelp={() => setIsHelpOpen(true)}
+                onExportPng={handleExportPng}
+                onExportSvg={handleExportSvg}
               />
               <MindMapCanvas
                 ref={canvasRef}

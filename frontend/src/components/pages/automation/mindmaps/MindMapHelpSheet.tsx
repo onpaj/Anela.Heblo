@@ -1,18 +1,24 @@
 import React from "react";
 import { X } from "lucide-react";
 
+// Verified against mind-elixir's own key map in node_modules/mind-elixir/dist/MindElixir.js
+// (the handler object containing `Enter: (`, plus the undo plugin's ⌘Z/⌘⇧Z/⌘Y listener).
+// Do not add a row without finding it there — a help sheet that lies is worse than none.
 const SHORTCUTS: Array<[string, string]> = [
   ["klik", "vybrat uzel"],
-  ["dvojklik / F2", "začít psát do uzlu"],
-  ["Esc", "zrušit rozepsanou úpravu"],
-  ["mezerník", "sbalit / rozbalit větev"],
+  ["dvojklik / F2", "psát do uzlu"],
   ["Enter", "nový uzel vedle vybraného"],
+  ["⇧Enter", "nový uzel před vybraný"],
   ["Tab", "nový uzel pod vybraný"],
-  ["⌘ ← / →", "o úroveň výš / níž"],
-  ["⌘ ↑ / ↓", "posunout mezi sourozenci"],
-  ["↑ ↓ ← →", "chodit po mapě"],
+  ["⌘Enter", "vložit nadřazený uzel"],
   ["⌫", "smazat vybraný uzel i s podřízenými"],
-  ["⌘Z", "zpět (drží 60 kroků)"],
+  ["↑ ↓ ← →", "chodit po mapě"],
+  ["⌥↑ / ⌥↓", "posunout mezi sourozenci"],
+  ["⌘Z / ⌘⇧Z", "zpět / znovu"],
+  ["⌘= / ⌘− / ⌘0", "přiblížit / oddálit / původní velikost"],
+  ["F1", "vycentrovat"],
+  ["mezerník + tažení", "posunout plátno"],
+  ["tažení uzlu", "přesunout pod jiný uzel"],
   ["⌘S", "uložit mapu"],
 ];
 
@@ -59,8 +65,10 @@ const MindMapHelpSheet: React.FC<MindMapHelpSheetProps> = ({ onClose }) => (
           </tbody>
         </table>
         <p className="mt-4 text-xs text-gray-500 dark:text-graphite-muted">
-          Rozložení mapy se dopočítává automaticky — uzly se nepřetahují. Kořen je uprostřed, větve se střídavě
-          rozrůstají doprava a doleva.
+          Rozložení mapy se dopočítává automaticky — kořen je uprostřed a větve se střídavě rozrůstají doprava a
+          doleva. Uzly lze přetahovat pod jiné uzly; jejich poloha se neukládá. Větev sbalíte kolečkem na jejím
+          okraji. Zkratky <b>⌘←</b> a <b>⌘→</b> přepnou celou mapu na jednostranné rozložení — zpět ji vrátíte
+          pomocí <b>⌘↑</b>; toto nastavení se neukládá.
         </p>
       </div>
 
