@@ -9,12 +9,6 @@ This skill **always works inside a dedicated git worktree**. Never run the
 implementation against the main checkout — isolate the work so the user's
 primary working tree stays clean.
 
-**If `USE_GH_API` is set in the environment**, every `gh` invocation shown
-below is routed through `.claude/skills/_lib/gh_api.sh` instead — a
-curl+REST equivalent for environments where the `gh` CLI itself is not
-permitted. Each bash block below already branches on it; run the block
-as-is rather than picking one form by hand.
-
 ## Naming convention
 
 Both the worktree directory and the branch it tracks **must** use the strict,
@@ -36,12 +30,7 @@ Derive the slug **only** with this exact `gh` + `awk` pipeline so the name is
 always identical for the same title — do not improvise the slug:
 ```bash
 ISSUE_ID={issue_number}
-if [ -n "${USE_GH_API:-}" ]; then
-  ISSUE_TITLE=$(.claude/skills/_lib/gh_api.sh issue-view "$ISSUE_ID" | jq -r '.title')
-else
-  ISSUE_TITLE=$(gh issue view "$ISSUE_ID" --json title --jq '.title')
-fi
-SLUG=$(echo "$ISSUE_TITLE" \
+SLUG=$(gh issue view "$ISSUE_ID" --json title --jq '.title' \
   | sed -E "s/['’]//g" \
   | sed -E 's/[^A-Za-z0-9]+/ /g' \
   | awk '{for(i=1;i<=NF;i++) $i=toupper(substr($i,1,1)) tolower(substr($i,2)); print}' \
@@ -194,8 +183,12 @@ if [ -n "$REVIEW_FILE" ]; then
   REVIEW_SECTION=$(printf '\n## Code review\n\n%s\n' "$(cat "$REVIEW_FILE")")
 fi
 
-BODY_FILE=$(mktemp)
-cat > "$BODY_FILE" <<EOF
+PR_URL=$(gh pr create \
+  --base master \
+  --head "$BRANCH" \
+  --label agent \
+  --title "#${ISSUE_ID}: implementation" \
+  --body "$(cat <<EOF
 Closes #${ISSUE_ID}
 
 ## What the issue was
@@ -208,18 +201,7 @@ Closes #${ISSUE_ID}
 - Brief, spec, design, task plan, impl, and review markdown are committed in this branch.
 ${REVIEW_SECTION}
 EOF
-
-if [ -n "${USE_GH_API:-}" ]; then
-  PR_URL=$(.claude/skills/_lib/gh_api.sh pr-create master "$BRANCH" "#${ISSUE_ID}: implementation" "$BODY_FILE" agent)
-else
-  PR_URL=$(gh pr create \
-    --base master \
-    --head "$BRANCH" \
-    --label agent \
-    --title "#${ISSUE_ID}: implementation" \
-    --body-file "$BODY_FILE")
-fi
-rm -f "$BODY_FILE"
+)")
 
 # MANDATORY: guarantee the `agent` label, the `Closes #<n>` link, AND the
 # `#<n>: <summary>` title format. Auto-repairs all three if the agent dropped
@@ -235,11 +217,7 @@ rm -f "$BODY_FILE"
 5. **Mark the issue completed.** Using the `gh` CLI, remove the `agent-wip`
    label and add the `agent-completed` label to the feature's issue:
 ```bash
-if [ -n "${USE_GH_API:-}" ]; then
-  .claude/skills/_lib/gh_api.sh issue-edit {issue_number} --remove-label agent-wip --add-label agent-completed
-else
-  gh issue edit {issue_number} --remove-label agent-wip --add-label agent-completed
-fi
+gh issue edit {issue_number} --remove-label agent-wip --add-label agent-completed
 ```
 
 ## If something looks wrong

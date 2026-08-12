@@ -27,11 +27,6 @@ REPO="${GH_REPO:-$(git remote get-url origin | sed -e 's#.*github\.com[:/]##' -e
 If that does not produce an `owner/name` pair, stop and say so. Use
 `--repo "$REPO"` on every `gh` call below.
 
-**If `USE_GH_API` is set in the environment**, every `gh` invocation shown
-below is routed through `.claude/skills/_lib/gh_api.sh` instead -- a
-curl+REST equivalent for environments where the `gh` CLI itself is not
-permitted.
-
 ## 1. Safety check
 
 ```bash
@@ -45,12 +40,8 @@ the current checkout, not an isolated worktree.
 ## 2. Fetch PR metadata
 
 ```bash
-if [ -n "${USE_GH_API:-}" ]; then
-  GH_REPO="$REPO" .claude/skills/_lib/gh_api.sh pr-view <PR_NUMBER>
-else
-  gh pr view <PR_NUMBER> --repo "$REPO" \
-    --json number,title,body,headRefName,baseRefName,url,state,author,additions,deletions,changedFiles
-fi
+gh pr view <PR_NUMBER> --repo "$REPO" \
+  --json number,title,body,headRefName,baseRefName,url,state,author,additions,deletions,changedFiles
 ```
 
 Store `headRefName` as `<branch>`. Do not assume `baseRefName` is `main` —
@@ -73,11 +64,7 @@ git reset --hard origin/<branch>
 Resolve the actual default branch rather than assuming `main`:
 
 ```bash
-if [ -n "${USE_GH_API:-}" ]; then
-  DEFAULT_BRANCH=$(GH_REPO="$REPO" .claude/skills/_lib/gh_api.sh default-branch)
-else
-  DEFAULT_BRANCH=$(gh repo view "$REPO" --json defaultBranchRef --jq .defaultBranchRef.name)
-fi
+DEFAULT_BRANCH=$(gh repo view "$REPO" --json defaultBranchRef --jq .defaultBranchRef.name)
 git fetch origin "$DEFAULT_BRANCH"
 git merge "origin/$DEFAULT_BRANCH" --no-edit
 ```
@@ -152,23 +139,12 @@ commits and step 6 wasn't needed — nothing changed to push.
 Gather the full discussion, not just the latest comment:
 
 ```bash
-if [ -n "${USE_GH_API:-}" ]; then
-  # No single API-mode call reproduces gh's combined `comments,reviews`
-  # shape exactly -- this step is read and interpreted by you directly, not
-  # parsed by a later jq filter, so fetching the equivalent information as
-  # separate calls is fine here.
-  GH_REPO="$REPO" .claude/skills/_lib/gh_api.sh GET "repos/$REPO/issues/<PR_NUMBER>/comments"
-  GH_REPO="$REPO" .claude/skills/_lib/gh_api.sh GET "repos/$REPO/pulls/<PR_NUMBER>/reviews"
-  GH_REPO="$REPO" .claude/skills/_lib/gh_api.sh GET "repos/$REPO/pulls/<PR_NUMBER>/comments"
-else
-  gh pr view <PR_NUMBER> --repo "$REPO" --json comments,reviews
-  gh api "repos/$REPO/pulls/<PR_NUMBER>/comments"
-fi
+gh pr view <PR_NUMBER> --repo "$REPO" --json comments,reviews
+gh api "repos/$REPO/pulls/<PR_NUMBER>/comments"
 ```
 
 Read every comment and review against the current diff (`gh pr diff
-<PR_NUMBER> --repo "$REPO"`, or `.claude/skills/_lib/gh_api.sh pr-diff
-<PR_NUMBER>` under `USE_GH_API`) and judge, per item, whether it's already
+<PR_NUMBER> --repo "$REPO"`) and judge, per item, whether it's already
 addressed by what's on the branch now or still outstanding — a
 `CHANGES_REQUESTED` review with no newer commit addressing it, an
 unresolved inline review comment, or a plain comment asking for something

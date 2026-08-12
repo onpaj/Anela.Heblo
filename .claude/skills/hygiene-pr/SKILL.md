@@ -12,11 +12,6 @@ and by a human even when this runs standalone, independent of whether
 
 **All deterministic work is done by the script beside this file.**
 
-**If `USE_GH_API` is set in the environment**, every `gh` invocation shown
-below is routed through `.claude/skills/_lib/gh_api.sh` instead -- a
-curl+REST equivalent for environments where the `gh` CLI itself is not
-permitted (`update_and_wait.sh` already branches on it internally).
-
 ## 1. Resolve the target PR
 
 If a PR number was given in your invocation, use it. Otherwise, check
@@ -24,12 +19,7 @@ whether the branch you're currently on already has an open PR — if so,
 treat it as the target, the same as an explicit number:
 
 ```bash
-if [ -n "${USE_GH_API:-}" ]; then
-  CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
-  .claude/skills/_lib/gh_api.sh pr-view "$CURRENT_BRANCH" 2>/dev/null | jq -r 'select(.state == "OPEN") | .number'
-else
-  gh pr view --json number,state -q 'select(.state == "OPEN") | .number' 2>/dev/null
-fi
+gh pr view --json number,state -q 'select(.state == "OPEN") | .number' 2>/dev/null
 ```
 
 If that prints a number, use it as `{N}` and skip the candidate search
