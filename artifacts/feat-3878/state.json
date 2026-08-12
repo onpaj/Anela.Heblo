@@ -25,5 +25,24 @@
       "updated_at": null
     }
   },
-  "tasks": []
+  "tasks": [
+    {
+      "name": "add-smartsupp-contact-enricher",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    },
+    {
+      "name": "wire-reactions-to-contact-enricher",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    },
+    {
+      "name": "remove-rest-dependency-from-smartsupp-repository",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    }
+  ]
 }
