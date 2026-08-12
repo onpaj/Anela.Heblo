@@ -34,9 +34,9 @@
     },
     {
       "name": "fix-smartsupp-consumer-optionality-fallout",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-08-12T02:16:14.642065Z"
+      "updated_at": "2026-08-12T02:42:35.373389Z"
     },
     {
       "name": "route-usegeneratedraftreply-hook",
