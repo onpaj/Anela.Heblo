@@ -2986,6 +2986,104 @@ namespace Anela.Heblo.Persistence.Migrations
                     b.ToTable("ProposedTasks", "public");
                 });
 
+            modelBuilder.Entity("Anela.Heblo.Domain.Features.MindMaps.MindMap", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp");
+
+                    b.Property<string>("CurrentJson")
+                        .IsRequired()
+                        .HasColumnType("jsonb");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<string>("LastError")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("MindMaps", "public");
+                });
+
+            modelBuilder.Entity("Anela.Heblo.Domain.Features.MindMaps.MindMapMeeting", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("AttachedAt")
+                        .HasColumnType("timestamp");
+
+                    b.Property<Guid>("MeetingTranscriptId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("MindMapId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("ProcessedAt")
+                        .HasColumnType("timestamp");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("MeetingTranscriptId");
+
+                    b.HasIndex("MindMapId", "MeetingTranscriptId")
+                        .IsUnique()
+                        .HasDatabaseName("UX_MindMapMeetings_MindMapId_MeetingTranscriptId");
+
+                    b.ToTable("MindMapMeetings", "public");
+                });
+
+            modelBuilder.Entity("Anela.Heblo.Domain.Features.MindMaps.MindMapVersion", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp");
+
+                    b.Property<string>("Json")
+                        .IsRequired()
+                        .HasColumnType("jsonb");
+
+                    b.Property<Guid>("MindMapId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("TriggerMeetingId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("VersionNumber")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("MindMapId", "VersionNumber")
+                        .IsUnique()
+                        .HasDatabaseName("UX_MindMapVersions_MindMapId_VersionNumber");
+
+                    b.ToTable("MindMapVersions", "public");
+                });
+
             modelBuilder.Entity("Anela.Heblo.Domain.Features.Packaging.Package", b =>
                 {
                     b.Property<int>("Id")
@@ -4392,6 +4490,36 @@ namespace Anela.Heblo.Persistence.Migrations
                     b.Navigation("MeetingTranscript");
                 });
 
+            modelBuilder.Entity("Anela.Heblo.Domain.Features.MindMaps.MindMapMeeting", b =>
+                {
+                    b.HasOne("Anela.Heblo.Domain.Features.MeetingTasks.MeetingTranscript", "MeetingTranscript")
+                        .WithMany()
+                        .HasForeignKey("MeetingTranscriptId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Anela.Heblo.Domain.Features.MindMaps.MindMap", "MindMap")
+                        .WithMany("Meetings")
+                        .HasForeignKey("MindMapId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("MeetingTranscript");
+
+                    b.Navigation("MindMap");
+                });
+
+            modelBuilder.Entity("Anela.Heblo.Domain.Features.MindMaps.MindMapVersion", b =>
+                {
+                    b.HasOne("Anela.Heblo.Domain.Features.MindMaps.MindMap", "MindMap")
+                        .WithMany("Versions")
+                        .HasForeignKey("MindMapId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("MindMap");
+                });
+
             modelBuilder.Entity("Anela.Heblo.Domain.Features.PackingMaterials.PackingMaterialAllocation", b =>
                 {
                     b.HasOne("Anela.Heblo.Domain.Features.PackingMaterials.PackingMaterial", null)
@@ -4575,6 +4703,13 @@ namespace Anela.Heblo.Persistence.Migrations
                     b.Navigation("AccessGrants");
 
                     b.Navigation("Tasks");
+                });
+
+            modelBuilder.Entity("Anela.Heblo.Domain.Features.MindMaps.MindMap", b =>
+                {
+                    b.Navigation("Meetings");
+
+                    b.Navigation("Versions");
                 });
 
             modelBuilder.Entity("Anela.Heblo.Domain.Features.PackingMaterials.PackingMaterial", b =>

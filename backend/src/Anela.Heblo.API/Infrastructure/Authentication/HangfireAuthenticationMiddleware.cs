@@ -1,4 +1,4 @@
-using Anela.Heblo.Domain.Shared;
+using Anela.Heblo.Application.Shared;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Http.Extensions;
 

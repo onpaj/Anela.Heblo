@@ -231,7 +231,7 @@ jobs:
         # small suite that finishes well under the 60-min globalTimeout, so every test actually runs
         # and reports honestly. A manual run with enable_parallel=false falls back to a single "all"
         # job. Keep this list in sync with the `projects` array in frontend/playwright.config.ts.
-        module: ${{ fromJSON((github.event_name == 'schedule' || github.event.inputs.enable_parallel != 'false') && '["catalog", "issued-invoices", "stock-operations", "transport", "manufacturing", "core", "marketing", "finance", "baleni", "leaflet-generator", "terminal"]' || '["all"]') }}
+        module: ${{ fromJSON((github.event_name == 'schedule' || github.event.inputs.enable_parallel != 'false') && '["catalog", "issued-invoices", "stock-operations", "transport", "manufacturing", "core", "marketing", "mindmaps", "finance", "baleni", "leaflet-generator", "terminal"]' || '["all"]') }}
 
     steps:
       - name: ℹ️ Test execution mode
