@@ -58,9 +58,9 @@
     },
     {
       "name": "extract-shared-ragfeedback-mapper",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-08-12T06:20:13.864416Z"
+      "updated_at": "2026-08-12T06:38:33.847953Z"
     },
     {
       "name": "retire-smartsuppclient",
