@@ -339,6 +339,11 @@ const resources = {
         OvertimePreviousMonthOpen: "Nelze uzavřít {year}/{month} — existuje neuzavřený starší měsíc",
         OvertimeExportPublishFailed: "Nahrání reportu na SharePoint selhalo",
 
+        // Mind Maps module errors (35XX)
+        MindMapUpdateInProgress: "Mapa se právě aktualizuje, zkuste to za chvíli",
+        MindMapMeetingAlreadyAttached: "Tato porada je už k mapě připojena",
+        MindMapInvalidDocument: "Neplatný dokument myšlenkové mapy",
+
         // External Service errors
         ExternalServiceError: "Chyba externí služby",
         FlexiApiError: "Chyba ABRA Flexi API",
