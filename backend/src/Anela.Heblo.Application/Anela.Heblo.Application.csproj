@@ -57,6 +57,7 @@
 
   <ItemGroup>
     <EmbeddedResource Include="Features\LabelIdentification\Data\label-references.json" />
+    <EmbeddedResource Include="Features\MindMaps\Prompts\mindmap-update-skill.md" />
   </ItemGroup>
 
 </Project>
