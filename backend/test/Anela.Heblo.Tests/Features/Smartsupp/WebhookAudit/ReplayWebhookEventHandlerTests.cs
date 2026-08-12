@@ -4,6 +4,7 @@ using Anela.Heblo.Application.Features.Smartsupp.UseCases.ReplayWebhookEvent;
 using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Domain.Features.Smartsupp;
 using Anela.Heblo.Persistence;
+using Anela.Heblo.Persistence.Smartsupp;
 using FluentAssertions;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
@@ -43,7 +44,7 @@ public class ReplayWebhookEventHandlerTests
             .Setup(m => m.Send(It.IsAny<ProcessWebhookEventRequest>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new ProcessWebhookEventResponse { Handled = true });
 
-        var handler = new ReplayWebhookEventHandler(ctx, mediator.Object);
+        var handler = new ReplayWebhookEventHandler(new SmartsuppWebhookAuditRepository(ctx), mediator.Object);
         var response = await handler.Handle(
             new ReplayWebhookEventRequest { Id = id, ReplayedBy = "ondra@anela.cz" }, default);
 
@@ -70,7 +71,7 @@ public class ReplayWebhookEventHandlerTests
     public async Task Handle_ReturnsResourceNotFound_WhenIdMissing()
     {
         using var ctx = CreateContext();
-        var handler = new ReplayWebhookEventHandler(ctx, Mock.Of<IMediator>());
+        var handler = new ReplayWebhookEventHandler(new SmartsuppWebhookAuditRepository(ctx), Mock.Of<IMediator>());
 
         var response = await handler.Handle(
             new ReplayWebhookEventRequest { Id = Guid.NewGuid(), ReplayedBy = "x" }, default);
@@ -94,7 +95,7 @@ public class ReplayWebhookEventHandlerTests
         });
         await ctx.SaveChangesAsync();
 
-        var handler = new ReplayWebhookEventHandler(ctx, Mock.Of<IMediator>());
+        var handler = new ReplayWebhookEventHandler(new SmartsuppWebhookAuditRepository(ctx), Mock.Of<IMediator>());
         var response = await handler.Handle(
             new ReplayWebhookEventRequest { Id = id, ReplayedBy = "x" }, default);
 

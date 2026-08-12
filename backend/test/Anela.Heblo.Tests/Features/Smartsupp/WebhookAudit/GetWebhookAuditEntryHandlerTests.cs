@@ -2,6 +2,7 @@ using Anela.Heblo.Application.Features.Smartsupp.UseCases.GetWebhookAuditEntry;
 using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Domain.Features.Smartsupp;
 using Anela.Heblo.Persistence;
+using Anela.Heblo.Persistence.Smartsupp;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 using Xunit;
@@ -31,7 +32,7 @@ public class GetWebhookAuditEntryHandlerTests
         });
         await ctx.SaveChangesAsync();
 
-        var response = await new GetWebhookAuditEntryHandler(ctx)
+        var response = await new GetWebhookAuditEntryHandler(new SmartsuppWebhookAuditRepository(ctx))
             .Handle(new GetWebhookAuditEntryRequest { Id = id }, default);
 
         response.Success.Should().BeTrue();
@@ -43,7 +44,7 @@ public class GetWebhookAuditEntryHandlerTests
     public async Task Handle_ReturnsResourceNotFound_WhenIdMissing()
     {
         using var ctx = CreateContext();
-        var response = await new GetWebhookAuditEntryHandler(ctx)
+        var response = await new GetWebhookAuditEntryHandler(new SmartsuppWebhookAuditRepository(ctx))
             .Handle(new GetWebhookAuditEntryRequest { Id = Guid.NewGuid() }, default);
 
         response.Success.Should().BeFalse();

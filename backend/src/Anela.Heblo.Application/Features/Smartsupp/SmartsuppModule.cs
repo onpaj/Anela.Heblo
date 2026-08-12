@@ -23,7 +23,7 @@ public static class SmartsuppModule
         services.AddScoped<ISmartsuppRepository, SmartsuppRepository>();
         services.AddScoped<ISmartsuppPresenceRepository, SmartsuppPresenceRepository>();
         services.AddScoped<ISmartsuppPresenceService, SmartsuppPresenceService>();
-        services.AddScoped<ISmartsuppWebhookAuditWriter, SmartsuppWebhookAuditWriter>();
+        services.AddScoped<ISmartsuppWebhookAuditRepository, SmartsuppWebhookAuditRepository>();
         services.AddSingleton<ISmartsuppAgentCache, SmartsuppAgentCache>();
 
         services.AddOptions<SmartsuppDraftReplyOptions>()

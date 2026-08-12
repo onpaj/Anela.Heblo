@@ -1,21 +1,20 @@
 using System.Text.Json;
 using Anela.Heblo.Application.Features.Smartsupp.UseCases.ProcessWebhookEvent;
 using Anela.Heblo.Application.Shared;
-using Anela.Heblo.Persistence;
+using Anela.Heblo.Domain.Features.Smartsupp;
 using MediatR;
-using Microsoft.EntityFrameworkCore;
 
 namespace Anela.Heblo.Application.Features.Smartsupp.UseCases.ReplayWebhookEvent;
 
 public class ReplayWebhookEventHandler
     : IRequestHandler<ReplayWebhookEventRequest, ReplayWebhookEventResponse>
 {
-    private readonly ApplicationDbContext _context;
+    private readonly ISmartsuppWebhookAuditRepository _repository;
     private readonly IMediator _mediator;
 
-    public ReplayWebhookEventHandler(ApplicationDbContext context, IMediator mediator)
+    public ReplayWebhookEventHandler(ISmartsuppWebhookAuditRepository repository, IMediator mediator)
     {
-        _context = context;
+        _repository = repository;
         _mediator = mediator;
     }
 
@@ -23,8 +22,7 @@ public class ReplayWebhookEventHandler
         ReplayWebhookEventRequest request,
         CancellationToken cancellationToken)
     {
-        var entry = await _context.SmartsuppWebhookAuditEntries
-            .SingleOrDefaultAsync(e => e.Id == request.Id, cancellationToken);
+        var entry = await _repository.GetForReplayAsync(request.Id, cancellationToken);
 
         if (entry is null)
             return new ReplayWebhookEventResponse(ErrorCodes.ResourceNotFound);
@@ -54,7 +52,7 @@ public class ReplayWebhookEventHandler
         entry.ReplayCount += 1;
         entry.LastReplayedAt = DateTime.UtcNow;
         entry.LastReplayedBy = request.ReplayedBy;
-        await _context.SaveChangesAsync(cancellationToken);
+        await _repository.SaveChangesAsync(cancellationToken);
 
         return new ReplayWebhookEventResponse
         {
