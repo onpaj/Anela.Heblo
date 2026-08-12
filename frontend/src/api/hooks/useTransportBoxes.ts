@@ -10,6 +10,7 @@ import {
   TransportBoxDto,
   ErrorCodes,
 } from "../generated/api-client";
+import { toDateOnlyString } from "../../utils/dateUtils";
 
 // Type-safe interface for accessing API client internals
 interface ApiClientWithInternals {
@@ -219,7 +220,8 @@ export const useAddItemToBox = () => {
       };
       if (input.sourceInventoryId !== undefined) body["sourceInventoryId"] = input.sourceInventoryId;
       if (input.lotNumber !== undefined) body["lotNumber"] = input.lotNumber;
-      if (input.expirationDate !== undefined) body["expirationDate"] = input.expirationDate;
+      if (input.expirationDate !== undefined)
+        body["expirationDate"] = toDateOnlyString(input.expirationDate);
       if (input.allowNegativeStock) body["allowNegativeStock"] = true;
 
       const response = await apiClient.http.fetch(url, {
