@@ -51,6 +51,7 @@ public class MeetingTranscriptRepositorySearchIntegrationTests : IAsyncLifetime
                 "ReceivedAt"      timestamp    NOT NULL,
                 "ReviewedAt"      timestamp    NULL,
                 "ReviewedByUser"  varchar(200) NULL,
+                "Participants"    jsonb        NOT NULL DEFAULT '[]',
                 "AccessLevel"     varchar(20)  NOT NULL DEFAULT 'Private'
             );
 

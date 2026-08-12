@@ -59,6 +59,19 @@ describe("useBoxFill", () => {
     expect(res.errorCode).toBe(1404);
   });
 
+  it("useAddBoxItem sends expirationDate as a DateOnly string", async () => {
+    const fetchMock = setFetch({ ok: true, json: async () => ({ success: true }) });
+
+    const { result } = renderHook(() => useAddBoxItem(), { wrapper: createWrapper });
+    await result.current.mutateAsync({
+      boxId: 1, productCode: "P-1", productName: "Product 1", amount: 2,
+      lotNumber: "L-1", expirationDate: new Date(2027, 4, 31),
+    });
+
+    const [, init] = fetchMock.mock.calls[0];
+    expect(JSON.parse(init.body).expirationDate).toBe("2027-05-31");
+  });
+
   it("useRemoveBoxItem issues a DELETE to the box/item URL", async () => {
     const fetchMock = setFetch({ ok: true, json: async () => ({ success: true }) });
 
