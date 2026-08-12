@@ -38,7 +38,7 @@ Task<SmartsuppConversation> EnrichContactAsync(SmartsuppConversation conversatio
 ```
 
 Given a conversation whose `ContactId` is set, it:
-1. Returns the conversation unchanged if `ContactId` is null, or if `ContactName` and `ContactEmail` are already both non-null (nothing to enrich).
+1. Returns the conversation unchanged if `ContactId` is null. Otherwise checks whether a `SmartsuppContact` row already exists locally for that id via a new `ISmartsuppRepository.ContactExistsAsync(contactId, ct)` method (a plain existence read, added to the repository interface). **This existence check must query the `SmartsuppContacts` table — it must NOT be based on whether the incoming `SmartsuppConversation` DTO already carries non-null `ContactName`/`ContactEmail`.** Smartsupp webhook payloads for conversation events routinely inline `contact_name`/`contact_email` directly (`SmartsuppPayloadMapper.MapConversation` reads `contact_name`/`contact_email` straight off the JSON), so a DTO-field check would wrongly skip fetching-and-persisting a brand-new contact whenever the webhook happens to inline those fields — silently starving the `SmartsuppContacts` table for contacts that only ever arrive this way, breaking anything that joins on it (e.g. `GetSmartsuppContactShoptetInfoHandler`, `KnowledgeBaseSmartsuppKnowledgeSource`). If the contact already exists locally, hydrate `conversation.ContactName`/`ContactEmail` from it (`??=` semantics) and return — no REST call (this is the exact case covered by `DoesNotCallRest_WhenContactAlreadyInDb`).
 2. Otherwise calls `ISmartsuppApiClient.GetContactAsync(conversation.ContactId, ct)`.
 3. On success with a non-null result: maps the DTO to a `SmartsuppContact` (moved `MapContactDataToEntity` logic, `DateTimeKind.Utc` handling preserved verbatim — see the existing code comment on why this matters), persists it via `ISmartsuppRepository.UpsertContactAsync`, and sets `conversation.ContactName`/`ContactEmail` from the mapped contact (only where not already set, matching today's `??=` semantics).
 4. On success with a null result, or on any exception from the REST call: logs a warning (same message/shape as today's `_logger.LogWarning(ex, "smartsupp: failed to fetch contact {ContactId} while upserting conversation; continuing without link", contactId)`, plus an explicit warning for the "REST returned null" case) and sets `conversation.ContactId = null` — this is where the fail-open wipe now happens, one layer up from before.
@@ -105,7 +105,11 @@ public interface ISmartsuppContactEnricher
 }
 ```
 
-**Changed interface** — `ISmartsuppRepository` (`Anela.Heblo.Domain/Features/Smartsupp/ISmartsuppRepository.cs`): no signature changes. `UpsertConversationAsync` keeps its exact current signature; only its internal implementation loses the REST call and the `ContactId = null` wipe-on-miss branch.
+**Changed interface** — `ISmartsuppRepository` (`Anela.Heblo.Domain/Features/Smartsupp/ISmartsuppRepository.cs`): `UpsertConversationAsync` keeps its exact current signature; only its internal implementation loses the REST call and the `ContactId = null` wipe-on-miss branch. One new method is added for `SmartsuppContactEnricher`'s local-existence check:
+```csharp
+Task<bool> ContactExistsAsync(string contactId, CancellationToken cancellationToken);
+```
+This is a plain existence read (`_db.SmartsuppContacts.AsNoTracking().AnyAsync(c => c.Id == contactId, ct)`) — no business logic, same category as the existing `ListOrphanContactConversationIdsAsync`.
 
 **Changed constructor** — `SmartsuppRepository(ApplicationDbContext db, ILogger<SmartsuppRepository> logger)` — drops the `ISmartsuppApiClient apiClient` parameter.
 

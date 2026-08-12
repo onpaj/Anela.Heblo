@@ -156,11 +156,13 @@ public interface ISmartsuppContactEnricher
         CancellationToken cancellationToken);
 }
 ```
-`ISmartsuppRepository` and `ISmartsuppApiClient` interfaces are **unchanged** — this is additive,
-not a breaking interface change. `SmartsuppRepository`'s constructor signature changes (drops one
-parameter), which is source-compatible everywhere except direct `new SmartsuppRepository(...)`
-call sites — grep confirms all such sites are test files listed above; no production code
-constructs it directly (DI-only in `SmartsuppModule.cs`).
+`ISmartsuppApiClient` is **unchanged**. `ISmartsuppRepository` gains one additive method
+(`ContactExistsAsync`, see Decision 4) — existing members are untouched, so this is additive, not a
+breaking interface change; any test double implementing `ISmartsuppRepository` needs one new member
+implemented, which the task plan must call out. `SmartsuppRepository`'s constructor signature
+changes (drops one parameter), which is source-compatible everywhere except direct
+`new SmartsuppRepository(...)` call sites — grep confirms all such sites are test files listed
+above; no production code constructs it directly (DI-only in `SmartsuppModule.cs`).
 
 ### Data Flow
 1. Webhook POST → `ProcessWebhookEventHandler.Handle` → dispatches to the matching
@@ -184,11 +186,48 @@ constructs it directly (DI-only in `SmartsuppModule.cs`).
 | Missed DI registration causes a runtime resolution failure for all 7 reactions + the orphan handler simultaneously | Low | `dotnet build` won't catch missing DI registration (only a runtime `InvalidOperationException` will) — the task plan must include running the existing webhook integration test (`SmartsuppWebhookControllerTests`) end-to-end, not just unit tests, since that's what would actually exercise container resolution |
 
 ## Specification Amendments
-None. The spec (`spec.r1.md`) FR-1 through FR-5 already match this architecture exactly — no
-functional or interface changes are needed beyond what's specified. One clarification: FR-3's
-exception handling should catch `Exception` broadly (spec already states this) to avoid narrowing
-the fail-open contract as a side effect of the refactor — this review confirms that's correct and
-should not be "improved" during implementation, per CLAUDE.md's surgical-changes rule.
+The spec was corrected during this review cycle: FR-3's original text proposed deciding whether to
+skip the REST fetch based on whether the incoming `SmartsuppConversation` DTO already carried
+non-null `ContactName`/`ContactEmail`. That is **not** equivalent to today's behavior —
+`SmartsuppPayloadMapper.MapConversation` already reads `contact_name`/`contact_email` straight off
+many webhook payloads, so a DTO-field check would silently skip fetching-and-persisting a
+brand-new contact into `SmartsuppContacts` whenever Smartsupp happens to inline those fields on the
+event, starving that table for such contacts and breaking anything that joins on it later
+(`GetSmartsuppContactShoptetInfoHandler`, `KnowledgeBaseSmartsuppKnowledgeSource`). `spec.r1.md`
+FR-3 has been corrected to require an actual row-existence check
+(`ISmartsuppRepository.ContactExistsAsync`, a new interface method — see Decision 4 below) instead,
+matching today's `SmartsuppRepository.UpsertConversationAsync` local-lookup exactly. This review's
+"Interfaces and Contracts" and Decision 2/3 sections already assumed the corrected shape (the
+existence check happening against the repository, not the DTO) — no further amendment needed
+beyond the one already folded into `spec.r1.md`.
+
+Separately: FR-3's exception handling should catch `Exception` broadly (spec already states this)
+to avoid narrowing the fail-open contract as a side effect of the refactor — this review confirms
+that's correct and should not be "improved" during implementation, per CLAUDE.md's surgical-changes
+rule.
+
+#### Decision 4: `ContactExistsAsync` as a new, minimal `ISmartsuppRepository` method
+**Options considered:**
+- (a) Add `Task<bool> ContactExistsAsync(string contactId, CancellationToken ct)` to
+  `ISmartsuppRepository` — a plain `AnyAsync` existence check, no business logic.
+- (b) Have `SmartsuppContactEnricher` call `ApplicationDbContext` directly for the existence check.
+- (c) Have `SmartsuppContactEnricher` always call REST and let `UpsertConversationAsync`'s existing
+  local hydration silently no-op when the contact turns out to already exist (i.e., always fetch,
+  never skip).
+
+**Chosen approach:** (a).
+**Rationale:** (b) reintroduces a direct `ApplicationDbContext` dependency into the Application
+layer, which is exactly the kind of layering violation this issue exists to remove — the module's
+own `RefreshOrphanContactsHandler` currently does this (injects `ApplicationDbContext` directly)
+and is not a pattern to extend, not one to hold up as precedent. (c) changes observable behavior:
+it would call Smartsupp REST on *every* conversation upsert with a contact_id, even when the
+contact is already fully known locally — a functional regression from today's skip-when-known
+behavviour (covered by `DoesNotCallRest_WhenContactAlreadyInDb`), and unacceptable under NFR-1
+(behavior parity). (a) is the smallest correct addition: it's a read-only, no-business-logic method
+squarely inside `SmartsuppRepository`'s existing responsibility (it already has
+`ListOrphanContactConversationIdsAsync`, an equally simple predicate-style read), and it keeps
+`SmartsuppContactEnricher`'s only two dependencies as `ISmartsuppApiClient` and
+`ISmartsuppRepository`, matching NFR-2.
 
 ## Prerequisites
 None. No migration, no new configuration, no new external dependency. This can start immediately —
