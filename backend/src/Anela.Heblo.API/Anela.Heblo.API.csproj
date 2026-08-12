@@ -111,7 +111,7 @@
     <Target Name="GenerateAccessMatrix" BeforeTargets="Build" Condition="'$(Configuration)' == 'Debug'">
         <Message Text="Generating access matrix artifacts..." Importance="high" />
 
-        <Exec Command="dotnet run --project $(MSBuildThisFileDirectory)../../tools/Anela.Heblo.AccessMatrixGen -- &quot;$(MSBuildThisFileDirectory)../../../frontend/src/auth/accessMatrix.generated.ts&quot; &quot;$(MSBuildThisFileDirectory)../../../access-matrix.generated.json&quot; &quot;$(MSBuildThisFileDirectory)../Anela.Heblo.Domain/Features/Authorization/AccessRoles.generated.cs&quot;"
+        <Exec Command="dotnet run --project $(MSBuildThisFileDirectory)../../tools/Anela.Heblo.AccessMatrixGen -- &quot;$(MSBuildThisFileDirectory)../../../access-matrix.json&quot; &quot;$(MSBuildThisFileDirectory)../Anela.Heblo.Domain/Features/Authorization/Feature.generated.cs&quot; &quot;$(MSBuildThisFileDirectory)../Anela.Heblo.Domain/Features/Authorization/AccessMatrix.generated.cs&quot; &quot;$(MSBuildThisFileDirectory)../Anela.Heblo.Domain/Features/Authorization/AccessRoles.generated.cs&quot; &quot;$(MSBuildThisFileDirectory)../../../frontend/src/auth/accessMatrix.generated.ts&quot; &quot;$(MSBuildThisFileDirectory)../../../access-matrix-entra.generated.json&quot;"
               ContinueOnError="true"
               WorkingDirectory="$(MSBuildThisFileDirectory)../../.." />
 
