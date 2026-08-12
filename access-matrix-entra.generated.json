@@ -491,6 +491,26 @@
       "value": "anela.org_chart.read"
     },
     {
+      "id": "2ab41278-b08f-5727-9827-440cc743a017",
+      "allowedMemberTypes": [
+        "User"
+      ],
+      "description": "Anela_MindMaps Read",
+      "displayName": "anela.mind_maps.read",
+      "isEnabled": true,
+      "value": "anela.mind_maps.read"
+    },
+    {
+      "id": "dab9d323-6f54-5704-b964-1be77da3c9b1",
+      "allowedMemberTypes": [
+        "User"
+      ],
+      "description": "Anela_MindMaps Write",
+      "displayName": "anela.mind_maps.write",
+      "isEnabled": true,
+      "value": "anela.mind_maps.write"
+    },
+    {
       "id": "d4c4dfd1-2581-5de3-8c46-63c526985133",
       "allowedMemberTypes": [
         "User"
@@ -643,6 +663,8 @@
         "anela.meetings.read",
         "anela.meetings.write",
         "anela.org_chart.read",
+        "anela.mind_maps.read",
+        "anela.mind_maps.write",
         "attendance.overtime.read",
         "attendance.overtime.write",
         "admin.data_quality.read",
@@ -686,6 +708,7 @@
         "marketing.marketing_calendar.read",
         "anela.meetings.read",
         "anela.org_chart.read",
+        "anela.mind_maps.read",
         "admin.data_quality.read",
         "admin.administration.read",
         "admin.feature_flags.read"
