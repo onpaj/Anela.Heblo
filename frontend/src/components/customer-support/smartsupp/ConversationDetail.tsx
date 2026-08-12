@@ -31,7 +31,7 @@ interface ConversationDetailProps {
 export function lastContactMessage(messages: MessageDto[]): string | null {
   for (let i = messages.length - 1; i >= 0; i--) {
     const m = messages[i];
-    const authorType = m.authorType.toLowerCase();
+    const authorType = (m.authorType ?? "").toLowerCase();
     const isContact = authorType === "visitor" || authorType === "contact";
     const isSystem =
       authorType === "system" || (m.subType ?? "").toLowerCase() === "system";
@@ -46,7 +46,7 @@ export function lastContactMessage(messages: MessageDto[]): string | null {
 function groupByDay(messages: MessageDto[]): Array<{ day: string; items: MessageDto[] }> {
   const groups: Array<{ day: string; items: MessageDto[] }> = [];
   for (const m of messages) {
-    const day = new Date(m.createdAt).toISOString().slice(0, 10);
+    const day = new Date(m.createdAt ?? new Date(0)).toISOString().slice(0, 10);
     const last = groups[groups.length - 1];
     if (last && last.day === day) {
       last.items.push(m);
@@ -118,10 +118,10 @@ const ConversationDetail: React.FC<ConversationDetailProps> = ({
           {otherViewers.map((viewer) => (
             <PresenceBadge key={`presence-${viewer.agentId}`} viewer={viewer} />
           ))}
-          {conversation.assignedAgentIds.map((id) => (
+          {(conversation.assignedAgentIds ?? []).map((id) => (
             <AgentBadge key={id} agentId={id} name={agentNames[id] ?? id} />
           ))}
-          {liveStatus.toLowerCase() === 'open' && (
+          {(liveStatus ?? "").toLowerCase() === 'open' && (
             <button
               type="button"
               data-testid="close-conversation-btn"
@@ -173,7 +173,7 @@ const ConversationDetail: React.FC<ConversationDetailProps> = ({
         )}
         {grouped.map((g) => (
           <div key={g.day}>
-            <DaySeparator date={g.items[0].createdAt} />
+            <DaySeparator date={g.items[0].createdAt ?? new Date(0)} />
             {g.items.map((m) => (
               <MessageBubble key={m.id} message={m} agentNames={agentNames} />
             ))}
