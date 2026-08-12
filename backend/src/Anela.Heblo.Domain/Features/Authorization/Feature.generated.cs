@@ -35,6 +35,7 @@ public enum Feature
     Anela_Meetings,
     Anela_OrgChart,
     Anela_MindMaps,
+    Attendance_Overtime,
     Admin_DataQuality,
     Admin_Administration,
     Admin_FeatureFlags,

@@ -8799,6 +8799,388 @@ export class ApiClient {
         return Promise.resolve<ReimportMeetingTranscriptResponse>(null as any);
     }
 
+    meetingTasks_Delete(transcriptId: string): Promise<DeleteMeetingTranscriptResponse> {
+        let url_ = this.baseUrl + "/api/meeting-tasks/{transcriptId}";
+        if (transcriptId === undefined || transcriptId === null)
+            throw new Error("The parameter 'transcriptId' must be defined.");
+        url_ = url_.replace("{transcriptId}", encodeURIComponent("" + transcriptId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "DELETE",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processMeetingTasks_Delete(_response);
+        });
+    }
+
+    protected processMeetingTasks_Delete(response: Response): Promise<DeleteMeetingTranscriptResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = DeleteMeetingTranscriptResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<DeleteMeetingTranscriptResponse>(null as any);
+    }
+
+    mindMaps_List(): Promise<GetMindMapListResponse> {
+        let url_ = this.baseUrl + "/api/mind-maps";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processMindMaps_List(_response);
+        });
+    }
+
+    protected processMindMaps_List(response: Response): Promise<GetMindMapListResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = GetMindMapListResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<GetMindMapListResponse>(null as any);
+    }
+
+    mindMaps_Create(request: CreateMindMapRequest): Promise<CreateMindMapResponse> {
+        let url_ = this.baseUrl + "/api/mind-maps";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: RequestInit = {
+            body: content_,
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processMindMaps_Create(_response);
+        });
+    }
+
+    protected processMindMaps_Create(response: Response): Promise<CreateMindMapResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = CreateMindMapResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<CreateMindMapResponse>(null as any);
+    }
+
+    mindMaps_Detail(id: string): Promise<GetMindMapDetailResponse> {
+        let url_ = this.baseUrl + "/api/mind-maps/{id}";
+        if (id === undefined || id === null)
+            throw new Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processMindMaps_Detail(_response);
+        });
+    }
+
+    protected processMindMaps_Detail(response: Response): Promise<GetMindMapDetailResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = GetMindMapDetailResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<GetMindMapDetailResponse>(null as any);
+    }
+
+    mindMaps_Delete(id: string): Promise<DeleteMindMapResponse> {
+        let url_ = this.baseUrl + "/api/mind-maps/{id}";
+        if (id === undefined || id === null)
+            throw new Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "DELETE",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processMindMaps_Delete(_response);
+        });
+    }
+
+    protected processMindMaps_Delete(response: Response): Promise<DeleteMindMapResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = DeleteMindMapResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<DeleteMindMapResponse>(null as any);
+    }
+
+    mindMaps_AttachMeeting(id: string, request: AttachMeetingRequest): Promise<AttachMeetingResponse> {
+        let url_ = this.baseUrl + "/api/mind-maps/{id}/meetings";
+        if (id === undefined || id === null)
+            throw new Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: RequestInit = {
+            body: content_,
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processMindMaps_AttachMeeting(_response);
+        });
+    }
+
+    protected processMindMaps_AttachMeeting(response: Response): Promise<AttachMeetingResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = AttachMeetingResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<AttachMeetingResponse>(null as any);
+    }
+
+    mindMaps_DetachMeeting(id: string, meetingId: string): Promise<DetachMeetingResponse> {
+        let url_ = this.baseUrl + "/api/mind-maps/{id}/meetings/{meetingId}";
+        if (id === undefined || id === null)
+            throw new Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        if (meetingId === undefined || meetingId === null)
+            throw new Error("The parameter 'meetingId' must be defined.");
+        url_ = url_.replace("{meetingId}", encodeURIComponent("" + meetingId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "DELETE",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processMindMaps_DetachMeeting(_response);
+        });
+    }
+
+    protected processMindMaps_DetachMeeting(response: Response): Promise<DetachMeetingResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = DetachMeetingResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<DetachMeetingResponse>(null as any);
+    }
+
+    mindMaps_Regenerate(id: string): Promise<RegenerateMindMapResponse> {
+        let url_ = this.baseUrl + "/api/mind-maps/{id}/regenerate";
+        if (id === undefined || id === null)
+            throw new Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "POST",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processMindMaps_Regenerate(_response);
+        });
+    }
+
+    protected processMindMaps_Regenerate(response: Response): Promise<RegenerateMindMapResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = RegenerateMindMapResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<RegenerateMindMapResponse>(null as any);
+    }
+
+    mindMaps_SaveDocument(id: string, request: SaveMindMapDocumentRequest): Promise<SaveMindMapDocumentResponse> {
+        let url_ = this.baseUrl + "/api/mind-maps/{id}/document";
+        if (id === undefined || id === null)
+            throw new Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: RequestInit = {
+            body: content_,
+            method: "PUT",
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processMindMaps_SaveDocument(_response);
+        });
+    }
+
+    protected processMindMaps_SaveDocument(response: Response): Promise<SaveMindMapDocumentResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = SaveMindMapDocumentResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<SaveMindMapDocumentResponse>(null as any);
+    }
+
+    mindMaps_RestoreVersion(id: string, versionNumber: number): Promise<RestoreMindMapVersionResponse> {
+        let url_ = this.baseUrl + "/api/mind-maps/{id}/versions/{versionNumber}/restore";
+        if (id === undefined || id === null)
+            throw new Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        if (versionNumber === undefined || versionNumber === null)
+            throw new Error("The parameter 'versionNumber' must be defined.");
+        url_ = url_.replace("{versionNumber}", encodeURIComponent("" + versionNumber));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "POST",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processMindMaps_RestoreVersion(_response);
+        });
+    }
+
+    protected processMindMaps_RestoreVersion(response: Response): Promise<RestoreMindMapVersionResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = RestoreMindMapVersionResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<RestoreMindMapVersionResponse>(null as any);
+    }
+
     orgChart_GetOrganizationStructure(): Promise<OrgChartResponse> {
         let url_ = this.baseUrl + "/api/OrgChart";
         url_ = url_.replace(/[?&]$/, "");
@@ -8835,6 +9217,353 @@ export class ApiClient {
             });
         }
         return Promise.resolve<OrgChartResponse>(null as any);
+    }
+
+    overtime_GetEmployees(): Promise<GetOvertimeEmployeesResponse> {
+        let url_ = this.baseUrl + "/api/overtime/employees";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processOvertime_GetEmployees(_response);
+        });
+    }
+
+    protected processOvertime_GetEmployees(response: Response): Promise<GetOvertimeEmployeesResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = GetOvertimeEmployeesResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<GetOvertimeEmployeesResponse>(null as any);
+    }
+
+    overtime_UpsertEmployee(request: UpsertOvertimeEmployeeRequest): Promise<UpsertOvertimeEmployeeResponse> {
+        let url_ = this.baseUrl + "/api/overtime/employees";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: RequestInit = {
+            body: content_,
+            method: "PUT",
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processOvertime_UpsertEmployee(_response);
+        });
+    }
+
+    protected processOvertime_UpsertEmployee(response: Response): Promise<UpsertOvertimeEmployeeResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = UpsertOvertimeEmployeeResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<UpsertOvertimeEmployeeResponse>(null as any);
+    }
+
+    overtime_GetMonthlyStatements(year: number, month: number): Promise<GetMonthlyStatementsResponse> {
+        let url_ = this.baseUrl + "/api/overtime/statements/{year}/{month}";
+        if (year === undefined || year === null)
+            throw new Error("The parameter 'year' must be defined.");
+        url_ = url_.replace("{year}", encodeURIComponent("" + year));
+        if (month === undefined || month === null)
+            throw new Error("The parameter 'month' must be defined.");
+        url_ = url_.replace("{month}", encodeURIComponent("" + month));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processOvertime_GetMonthlyStatements(_response);
+        });
+    }
+
+    protected processOvertime_GetMonthlyStatements(response: Response): Promise<GetMonthlyStatementsResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = GetMonthlyStatementsResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<GetMonthlyStatementsResponse>(null as any);
+    }
+
+    overtime_SetReviewed(year: number, month: number, request: SetStatementReviewedRequest): Promise<SetStatementReviewedResponse> {
+        let url_ = this.baseUrl + "/api/overtime/statements/{year}/{month}/reviewed";
+        if (year === undefined || year === null)
+            throw new Error("The parameter 'year' must be defined.");
+        url_ = url_.replace("{year}", encodeURIComponent("" + year));
+        if (month === undefined || month === null)
+            throw new Error("The parameter 'month' must be defined.");
+        url_ = url_.replace("{month}", encodeURIComponent("" + month));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: RequestInit = {
+            body: content_,
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processOvertime_SetReviewed(_response);
+        });
+    }
+
+    protected processOvertime_SetReviewed(response: Response): Promise<SetStatementReviewedResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = SetStatementReviewedResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<SetStatementReviewedResponse>(null as any);
+    }
+
+    overtime_CreateAdjustment(request: CreateAdjustmentRequest): Promise<CreateAdjustmentResponse> {
+        let url_ = this.baseUrl + "/api/overtime/adjustments";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: RequestInit = {
+            body: content_,
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processOvertime_CreateAdjustment(_response);
+        });
+    }
+
+    protected processOvertime_CreateAdjustment(response: Response): Promise<CreateAdjustmentResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = CreateAdjustmentResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<CreateAdjustmentResponse>(null as any);
+    }
+
+    overtime_DeleteAdjustment(id: number): Promise<DeleteAdjustmentResponse> {
+        let url_ = this.baseUrl + "/api/overtime/adjustments/{id}";
+        if (id === undefined || id === null)
+            throw new Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "DELETE",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processOvertime_DeleteAdjustment(_response);
+        });
+    }
+
+    protected processOvertime_DeleteAdjustment(response: Response): Promise<DeleteAdjustmentResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = DeleteAdjustmentResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<DeleteAdjustmentResponse>(null as any);
+    }
+
+    overtime_CloseMonth(year: number, month: number, force: boolean | undefined): Promise<CloseMonthResponse> {
+        let url_ = this.baseUrl + "/api/overtime/close/{year}/{month}?";
+        if (year === undefined || year === null)
+            throw new Error("The parameter 'year' must be defined.");
+        url_ = url_.replace("{year}", encodeURIComponent("" + year));
+        if (month === undefined || month === null)
+            throw new Error("The parameter 'month' must be defined.");
+        url_ = url_.replace("{month}", encodeURIComponent("" + month));
+        if (force === null)
+            throw new Error("The parameter 'force' cannot be null.");
+        else if (force !== undefined)
+            url_ += "force=" + encodeURIComponent("" + force) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "POST",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processOvertime_CloseMonth(_response);
+        });
+    }
+
+    protected processOvertime_CloseMonth(response: Response): Promise<CloseMonthResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = CloseMonthResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<CloseMonthResponse>(null as any);
+    }
+
+    overtime_DownloadReport(): Promise<FileResponse> {
+        let url_ = this.baseUrl + "/api/overtime/export";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "application/octet-stream"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processOvertime_DownloadReport(_response);
+        });
+    }
+
+    protected processOvertime_DownloadReport(response: Response): Promise<FileResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200 || status === 206) {
+            const contentDisposition = response.headers ? response.headers.get("content-disposition") : undefined;
+            let fileNameMatch = contentDisposition ? /filename\*=(?:(\\?['"])(.*?)\1|(?:[^\s]+'.*?')?([^;\n]*))/g.exec(contentDisposition) : undefined;
+            let fileName = fileNameMatch && fileNameMatch.length > 1 ? fileNameMatch[3] || fileNameMatch[2] : undefined;
+            if (fileName) {
+                fileName = decodeURIComponent(fileName);
+            } else {
+                fileNameMatch = contentDisposition ? /filename="?([^"]*?)"?(;|$)/g.exec(contentDisposition) : undefined;
+                fileName = fileNameMatch && fileNameMatch.length > 1 ? fileNameMatch[1] : undefined;
+            }
+            return response.blob().then(blob => { return { fileName: fileName, data: blob, status: status, headers: _headers }; });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<FileResponse>(null as any);
+    }
+
+    overtime_PublishReport(): Promise<ExportOvertimeReportResponse> {
+        let url_ = this.baseUrl + "/api/overtime/export/publish";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "POST",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processOvertime_PublishReport(_response);
+        });
+    }
+
+    protected processOvertime_PublishReport(response: Response): Promise<ExportOvertimeReportResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = ExportOvertimeReportResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<ExportOvertimeReportResponse>(null as any);
     }
 
     packaging_ScanOrder(orderCode: string, numberOfPackages: number | undefined, body: ScanOrderBody | undefined): Promise<ScanPackingOrderResponse> {
@@ -13825,6 +14554,14 @@ export enum ErrorCodes {
     LabelPhotoUndecodable = "LabelPhotoUndecodable",
     LabelTextUnreadable = "LabelTextUnreadable",
     LabelOcrServiceUnavailable = "LabelOcrServiceUnavailable",
+    OvertimeEmployeeNotFound = "OvertimeEmployeeNotFound",
+    OvertimeMonthAlreadyClosed = "OvertimeMonthAlreadyClosed",
+    OvertimeAdjustmentNotFound = "OvertimeAdjustmentNotFound",
+    OvertimeAdjustmentMonthClosed = "OvertimeAdjustmentMonthClosed",
+    OvertimeMonthNotReviewed = "OvertimeMonthNotReviewed",
+    OvertimeContractHoursMissing = "OvertimeContractHoursMissing",
+    OvertimePreviousMonthOpen = "OvertimePreviousMonthOpen",
+    OvertimeExportPublishFailed = "OvertimeExportPublishFailed",
     MindMapUpdateInProgress = "MindMapUpdateInProgress",
     MindMapMeetingAlreadyAttached = "MindMapMeetingAlreadyAttached",
     MindMapInvalidDocument = "MindMapInvalidDocument",
@@ -33596,6 +34333,634 @@ export class ReimportMeetingTranscriptResponse extends BaseResponse implements I
 export interface IReimportMeetingTranscriptResponse extends IBaseResponse {
 }
 
+export class DeleteMeetingTranscriptResponse extends BaseResponse implements IDeleteMeetingTranscriptResponse {
+
+    constructor(data?: IDeleteMeetingTranscriptResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+    }
+
+    static override fromJS(data: any): DeleteMeetingTranscriptResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new DeleteMeetingTranscriptResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IDeleteMeetingTranscriptResponse extends IBaseResponse {
+}
+
+export class GetMindMapListResponse extends BaseResponse implements IGetMindMapListResponse {
+    items?: MindMapListItemDto[];
+
+    constructor(data?: IGetMindMapListResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            if (Array.isArray(_data["items"])) {
+                this.items = [] as any;
+                for (let item of _data["items"])
+                    this.items!.push(MindMapListItemDto.fromJS(item));
+            }
+        }
+    }
+
+    static override fromJS(data: any): GetMindMapListResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new GetMindMapListResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        if (Array.isArray(this.items)) {
+            data["items"] = [];
+            for (let item of this.items)
+                data["items"].push(item.toJSON());
+        }
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IGetMindMapListResponse extends IBaseResponse {
+    items?: MindMapListItemDto[];
+}
+
+export class MindMapListItemDto implements IMindMapListItemDto {
+    id?: string;
+    name?: string;
+    description?: string | undefined;
+    status?: string;
+    meetingCount?: number;
+    updatedAt?: Date;
+
+    constructor(data?: IMindMapListItemDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.id = _data["id"];
+            this.name = _data["name"];
+            this.description = _data["description"];
+            this.status = _data["status"];
+            this.meetingCount = _data["meetingCount"];
+            this.updatedAt = _data["updatedAt"] ? new Date(_data["updatedAt"].toString()) : <any>undefined;
+        }
+    }
+
+    static fromJS(data: any): MindMapListItemDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new MindMapListItemDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["id"] = this.id;
+        data["name"] = this.name;
+        data["description"] = this.description;
+        data["status"] = this.status;
+        data["meetingCount"] = this.meetingCount;
+        data["updatedAt"] = this.updatedAt ? this.updatedAt.toISOString() : <any>undefined;
+        return data;
+    }
+}
+
+export interface IMindMapListItemDto {
+    id?: string;
+    name?: string;
+    description?: string | undefined;
+    status?: string;
+    meetingCount?: number;
+    updatedAt?: Date;
+}
+
+export class GetMindMapDetailResponse extends BaseResponse implements IGetMindMapDetailResponse {
+    id?: string;
+    name?: string;
+    description?: string | undefined;
+    status?: string;
+    lastError?: string | undefined;
+    documentJson?: string;
+    meetings?: AttachedMeetingDto[];
+    versions?: MindMapVersionDto[];
+
+    constructor(data?: IGetMindMapDetailResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            this.id = _data["id"];
+            this.name = _data["name"];
+            this.description = _data["description"];
+            this.status = _data["status"];
+            this.lastError = _data["lastError"];
+            this.documentJson = _data["documentJson"];
+            if (Array.isArray(_data["meetings"])) {
+                this.meetings = [] as any;
+                for (let item of _data["meetings"])
+                    this.meetings!.push(AttachedMeetingDto.fromJS(item));
+            }
+            if (Array.isArray(_data["versions"])) {
+                this.versions = [] as any;
+                for (let item of _data["versions"])
+                    this.versions!.push(MindMapVersionDto.fromJS(item));
+            }
+        }
+    }
+
+    static override fromJS(data: any): GetMindMapDetailResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new GetMindMapDetailResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["id"] = this.id;
+        data["name"] = this.name;
+        data["description"] = this.description;
+        data["status"] = this.status;
+        data["lastError"] = this.lastError;
+        data["documentJson"] = this.documentJson;
+        if (Array.isArray(this.meetings)) {
+            data["meetings"] = [];
+            for (let item of this.meetings)
+                data["meetings"].push(item.toJSON());
+        }
+        if (Array.isArray(this.versions)) {
+            data["versions"] = [];
+            for (let item of this.versions)
+                data["versions"].push(item.toJSON());
+        }
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IGetMindMapDetailResponse extends IBaseResponse {
+    id?: string;
+    name?: string;
+    description?: string | undefined;
+    status?: string;
+    lastError?: string | undefined;
+    documentJson?: string;
+    meetings?: AttachedMeetingDto[];
+    versions?: MindMapVersionDto[];
+}
+
+export class AttachedMeetingDto implements IAttachedMeetingDto {
+    meetingTranscriptId?: string;
+    subject?: string;
+    plaudCreatedAt?: Date;
+    attachedAt?: Date;
+    processedAt?: Date | undefined;
+
+    constructor(data?: IAttachedMeetingDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.meetingTranscriptId = _data["meetingTranscriptId"];
+            this.subject = _data["subject"];
+            this.plaudCreatedAt = _data["plaudCreatedAt"] ? new Date(_data["plaudCreatedAt"].toString()) : <any>undefined;
+            this.attachedAt = _data["attachedAt"] ? new Date(_data["attachedAt"].toString()) : <any>undefined;
+            this.processedAt = _data["processedAt"] ? new Date(_data["processedAt"].toString()) : <any>undefined;
+        }
+    }
+
+    static fromJS(data: any): AttachedMeetingDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new AttachedMeetingDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["meetingTranscriptId"] = this.meetingTranscriptId;
+        data["subject"] = this.subject;
+        data["plaudCreatedAt"] = this.plaudCreatedAt ? this.plaudCreatedAt.toISOString() : <any>undefined;
+        data["attachedAt"] = this.attachedAt ? this.attachedAt.toISOString() : <any>undefined;
+        data["processedAt"] = this.processedAt ? this.processedAt.toISOString() : <any>undefined;
+        return data;
+    }
+}
+
+export interface IAttachedMeetingDto {
+    meetingTranscriptId?: string;
+    subject?: string;
+    plaudCreatedAt?: Date;
+    attachedAt?: Date;
+    processedAt?: Date | undefined;
+}
+
+export class MindMapVersionDto implements IMindMapVersionDto {
+    versionNumber?: number;
+    createdAt?: Date;
+    triggerMeetingId?: string | undefined;
+    triggerMeetingSubject?: string | undefined;
+
+    constructor(data?: IMindMapVersionDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.versionNumber = _data["versionNumber"];
+            this.createdAt = _data["createdAt"] ? new Date(_data["createdAt"].toString()) : <any>undefined;
+            this.triggerMeetingId = _data["triggerMeetingId"];
+            this.triggerMeetingSubject = _data["triggerMeetingSubject"];
+        }
+    }
+
+    static fromJS(data: any): MindMapVersionDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new MindMapVersionDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["versionNumber"] = this.versionNumber;
+        data["createdAt"] = this.createdAt ? this.createdAt.toISOString() : <any>undefined;
+        data["triggerMeetingId"] = this.triggerMeetingId;
+        data["triggerMeetingSubject"] = this.triggerMeetingSubject;
+        return data;
+    }
+}
+
+export interface IMindMapVersionDto {
+    versionNumber?: number;
+    createdAt?: Date;
+    triggerMeetingId?: string | undefined;
+    triggerMeetingSubject?: string | undefined;
+}
+
+export class CreateMindMapResponse extends BaseResponse implements ICreateMindMapResponse {
+    id?: string;
+
+    constructor(data?: ICreateMindMapResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            this.id = _data["id"];
+        }
+    }
+
+    static override fromJS(data: any): CreateMindMapResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new CreateMindMapResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["id"] = this.id;
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface ICreateMindMapResponse extends IBaseResponse {
+    id?: string;
+}
+
+export class CreateMindMapRequest implements ICreateMindMapRequest {
+    name!: string;
+    description?: string | undefined;
+
+    constructor(data?: ICreateMindMapRequest) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.name = _data["name"];
+            this.description = _data["description"];
+        }
+    }
+
+    static fromJS(data: any): CreateMindMapRequest {
+        data = typeof data === 'object' ? data : {};
+        let result = new CreateMindMapRequest();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["name"] = this.name;
+        data["description"] = this.description;
+        return data;
+    }
+}
+
+export interface ICreateMindMapRequest {
+    name: string;
+    description?: string | undefined;
+}
+
+export class DeleteMindMapResponse extends BaseResponse implements IDeleteMindMapResponse {
+
+    constructor(data?: IDeleteMindMapResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+    }
+
+    static override fromJS(data: any): DeleteMindMapResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new DeleteMindMapResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IDeleteMindMapResponse extends IBaseResponse {
+}
+
+export class AttachMeetingResponse extends BaseResponse implements IAttachMeetingResponse {
+
+    constructor(data?: IAttachMeetingResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+    }
+
+    static override fromJS(data: any): AttachMeetingResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new AttachMeetingResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IAttachMeetingResponse extends IBaseResponse {
+}
+
+export class AttachMeetingRequest implements IAttachMeetingRequest {
+    mindMapId?: string;
+    meetingTranscriptId!: string;
+
+    constructor(data?: IAttachMeetingRequest) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.mindMapId = _data["mindMapId"];
+            this.meetingTranscriptId = _data["meetingTranscriptId"];
+        }
+    }
+
+    static fromJS(data: any): AttachMeetingRequest {
+        data = typeof data === 'object' ? data : {};
+        let result = new AttachMeetingRequest();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["mindMapId"] = this.mindMapId;
+        data["meetingTranscriptId"] = this.meetingTranscriptId;
+        return data;
+    }
+}
+
+export interface IAttachMeetingRequest {
+    mindMapId?: string;
+    meetingTranscriptId: string;
+}
+
+export class DetachMeetingResponse extends BaseResponse implements IDetachMeetingResponse {
+
+    constructor(data?: IDetachMeetingResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+    }
+
+    static override fromJS(data: any): DetachMeetingResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new DetachMeetingResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IDetachMeetingResponse extends IBaseResponse {
+}
+
+export class RegenerateMindMapResponse extends BaseResponse implements IRegenerateMindMapResponse {
+
+    constructor(data?: IRegenerateMindMapResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+    }
+
+    static override fromJS(data: any): RegenerateMindMapResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new RegenerateMindMapResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IRegenerateMindMapResponse extends IBaseResponse {
+}
+
+export class SaveMindMapDocumentResponse extends BaseResponse implements ISaveMindMapDocumentResponse {
+    documentJson?: string;
+
+    constructor(data?: ISaveMindMapDocumentResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            this.documentJson = _data["documentJson"];
+        }
+    }
+
+    static override fromJS(data: any): SaveMindMapDocumentResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new SaveMindMapDocumentResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["documentJson"] = this.documentJson;
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface ISaveMindMapDocumentResponse extends IBaseResponse {
+    documentJson?: string;
+}
+
+export class SaveMindMapDocumentRequest implements ISaveMindMapDocumentRequest {
+    id?: string;
+    documentJson!: string;
+
+    constructor(data?: ISaveMindMapDocumentRequest) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.id = _data["id"];
+            this.documentJson = _data["documentJson"];
+        }
+    }
+
+    static fromJS(data: any): SaveMindMapDocumentRequest {
+        data = typeof data === 'object' ? data : {};
+        let result = new SaveMindMapDocumentRequest();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["id"] = this.id;
+        data["documentJson"] = this.documentJson;
+        return data;
+    }
+}
+
+export interface ISaveMindMapDocumentRequest {
+    id?: string;
+    documentJson: string;
+}
+
+export class RestoreMindMapVersionResponse extends BaseResponse implements IRestoreMindMapVersionResponse {
+    documentJson?: string;
+
+    constructor(data?: IRestoreMindMapVersionResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            this.documentJson = _data["documentJson"];
+        }
+    }
+
+    static override fromJS(data: any): RestoreMindMapVersionResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new RestoreMindMapVersionResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["documentJson"] = this.documentJson;
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IRestoreMindMapVersionResponse extends IBaseResponse {
+    documentJson?: string;
+}
+
 export class OrgChartResponse extends BaseResponse implements IOrgChartResponse {
     organization?: OrganizationDto;
 
@@ -33803,6 +35168,740 @@ export interface IEmployeeDto {
     startDate?: string;
     isPrimary?: boolean;
     url?: string | undefined;
+}
+
+export class GetOvertimeEmployeesResponse extends BaseResponse implements IGetOvertimeEmployeesResponse {
+    employees?: OvertimeEmployeeDto[];
+    availablePeople?: AvailableLogetoPersonDto[];
+
+    constructor(data?: IGetOvertimeEmployeesResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            if (Array.isArray(_data["employees"])) {
+                this.employees = [] as any;
+                for (let item of _data["employees"])
+                    this.employees!.push(OvertimeEmployeeDto.fromJS(item));
+            }
+            if (Array.isArray(_data["availablePeople"])) {
+                this.availablePeople = [] as any;
+                for (let item of _data["availablePeople"])
+                    this.availablePeople!.push(AvailableLogetoPersonDto.fromJS(item));
+            }
+        }
+    }
+
+    static override fromJS(data: any): GetOvertimeEmployeesResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new GetOvertimeEmployeesResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        if (Array.isArray(this.employees)) {
+            data["employees"] = [];
+            for (let item of this.employees)
+                data["employees"].push(item.toJSON());
+        }
+        if (Array.isArray(this.availablePeople)) {
+            data["availablePeople"] = [];
+            for (let item of this.availablePeople)
+                data["availablePeople"].push(item.toJSON());
+        }
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IGetOvertimeEmployeesResponse extends IBaseResponse {
+    employees?: OvertimeEmployeeDto[];
+    availablePeople?: AvailableLogetoPersonDto[];
+}
+
+export class OvertimeEmployeeDto implements IOvertimeEmployeeDto {
+    personId?: string;
+    displayName?: string;
+    baselineHours?: number;
+    baselineDate?: Date;
+    isActive?: boolean;
+    currentBalance?: number;
+
+    constructor(data?: IOvertimeEmployeeDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.personId = _data["personId"];
+            this.displayName = _data["displayName"];
+            this.baselineHours = _data["baselineHours"];
+            this.baselineDate = _data["baselineDate"] ? new Date(_data["baselineDate"].toString()) : <any>undefined;
+            this.isActive = _data["isActive"];
+            this.currentBalance = _data["currentBalance"];
+        }
+    }
+
+    static fromJS(data: any): OvertimeEmployeeDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new OvertimeEmployeeDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["personId"] = this.personId;
+        data["displayName"] = this.displayName;
+        data["baselineHours"] = this.baselineHours;
+        data["baselineDate"] = this.baselineDate ? formatDate(this.baselineDate) : <any>undefined;
+        data["isActive"] = this.isActive;
+        data["currentBalance"] = this.currentBalance;
+        return data;
+    }
+}
+
+export interface IOvertimeEmployeeDto {
+    personId?: string;
+    displayName?: string;
+    baselineHours?: number;
+    baselineDate?: Date;
+    isActive?: boolean;
+    currentBalance?: number;
+}
+
+export class AvailableLogetoPersonDto implements IAvailableLogetoPersonDto {
+    personId?: string;
+    fullName?: string;
+
+    constructor(data?: IAvailableLogetoPersonDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.personId = _data["personId"];
+            this.fullName = _data["fullName"];
+        }
+    }
+
+    static fromJS(data: any): AvailableLogetoPersonDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new AvailableLogetoPersonDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["personId"] = this.personId;
+        data["fullName"] = this.fullName;
+        return data;
+    }
+}
+
+export interface IAvailableLogetoPersonDto {
+    personId?: string;
+    fullName?: string;
+}
+
+export class UpsertOvertimeEmployeeResponse extends BaseResponse implements IUpsertOvertimeEmployeeResponse {
+
+    constructor(data?: IUpsertOvertimeEmployeeResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+    }
+
+    static override fromJS(data: any): UpsertOvertimeEmployeeResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new UpsertOvertimeEmployeeResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IUpsertOvertimeEmployeeResponse extends IBaseResponse {
+}
+
+export class UpsertOvertimeEmployeeRequest implements IUpsertOvertimeEmployeeRequest {
+    personId?: string;
+    displayName?: string;
+    baselineHours?: number;
+    baselineDate?: Date;
+    isActive?: boolean;
+
+    constructor(data?: IUpsertOvertimeEmployeeRequest) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.personId = _data["personId"];
+            this.displayName = _data["displayName"];
+            this.baselineHours = _data["baselineHours"];
+            this.baselineDate = _data["baselineDate"] ? new Date(_data["baselineDate"].toString()) : <any>undefined;
+            this.isActive = _data["isActive"];
+        }
+    }
+
+    static fromJS(data: any): UpsertOvertimeEmployeeRequest {
+        data = typeof data === 'object' ? data : {};
+        let result = new UpsertOvertimeEmployeeRequest();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["personId"] = this.personId;
+        data["displayName"] = this.displayName;
+        data["baselineHours"] = this.baselineHours;
+        data["baselineDate"] = this.baselineDate ? formatDate(this.baselineDate) : <any>undefined;
+        data["isActive"] = this.isActive;
+        return data;
+    }
+}
+
+export interface IUpsertOvertimeEmployeeRequest {
+    personId?: string;
+    displayName?: string;
+    baselineHours?: number;
+    baselineDate?: Date;
+    isActive?: boolean;
+}
+
+export class GetMonthlyStatementsResponse extends BaseResponse implements IGetMonthlyStatementsResponse {
+    year?: number;
+    month?: number;
+    isClosed?: boolean;
+    statements?: OvertimeStatementDto[];
+
+    constructor(data?: IGetMonthlyStatementsResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            this.year = _data["year"];
+            this.month = _data["month"];
+            this.isClosed = _data["isClosed"];
+            if (Array.isArray(_data["statements"])) {
+                this.statements = [] as any;
+                for (let item of _data["statements"])
+                    this.statements!.push(OvertimeStatementDto.fromJS(item));
+            }
+        }
+    }
+
+    static override fromJS(data: any): GetMonthlyStatementsResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new GetMonthlyStatementsResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["year"] = this.year;
+        data["month"] = this.month;
+        data["isClosed"] = this.isClosed;
+        if (Array.isArray(this.statements)) {
+            data["statements"] = [];
+            for (let item of this.statements)
+                data["statements"].push(item.toJSON());
+        }
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IGetMonthlyStatementsResponse extends IBaseResponse {
+    year?: number;
+    month?: number;
+    isClosed?: boolean;
+    statements?: OvertimeStatementDto[];
+}
+
+export class OvertimeStatementDto implements IOvertimeStatementDto {
+    personId?: string;
+    displayName?: string;
+    isReviewed?: boolean;
+    dailyContractHours?: number | undefined;
+    requiredHours?: number;
+    workedHours?: number;
+    vacationHours?: number;
+    sickHours?: number;
+    doctorHours?: number;
+    compTimeHours?: number;
+    otherAbsenceHours?: number;
+    deltaHours?: number;
+    previousBalance?: number;
+    adjustmentsTotal?: number;
+    projectedBalance?: number;
+    warnings?: string[];
+    adjustments?: OvertimeAdjustmentDto[];
+
+    constructor(data?: IOvertimeStatementDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.personId = _data["personId"];
+            this.displayName = _data["displayName"];
+            this.isReviewed = _data["isReviewed"];
+            this.dailyContractHours = _data["dailyContractHours"];
+            this.requiredHours = _data["requiredHours"];
+            this.workedHours = _data["workedHours"];
+            this.vacationHours = _data["vacationHours"];
+            this.sickHours = _data["sickHours"];
+            this.doctorHours = _data["doctorHours"];
+            this.compTimeHours = _data["compTimeHours"];
+            this.otherAbsenceHours = _data["otherAbsenceHours"];
+            this.deltaHours = _data["deltaHours"];
+            this.previousBalance = _data["previousBalance"];
+            this.adjustmentsTotal = _data["adjustmentsTotal"];
+            this.projectedBalance = _data["projectedBalance"];
+            if (Array.isArray(_data["warnings"])) {
+                this.warnings = [] as any;
+                for (let item of _data["warnings"])
+                    this.warnings!.push(item);
+            }
+            if (Array.isArray(_data["adjustments"])) {
+                this.adjustments = [] as any;
+                for (let item of _data["adjustments"])
+                    this.adjustments!.push(OvertimeAdjustmentDto.fromJS(item));
+            }
+        }
+    }
+
+    static fromJS(data: any): OvertimeStatementDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new OvertimeStatementDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["personId"] = this.personId;
+        data["displayName"] = this.displayName;
+        data["isReviewed"] = this.isReviewed;
+        data["dailyContractHours"] = this.dailyContractHours;
+        data["requiredHours"] = this.requiredHours;
+        data["workedHours"] = this.workedHours;
+        data["vacationHours"] = this.vacationHours;
+        data["sickHours"] = this.sickHours;
+        data["doctorHours"] = this.doctorHours;
+        data["compTimeHours"] = this.compTimeHours;
+        data["otherAbsenceHours"] = this.otherAbsenceHours;
+        data["deltaHours"] = this.deltaHours;
+        data["previousBalance"] = this.previousBalance;
+        data["adjustmentsTotal"] = this.adjustmentsTotal;
+        data["projectedBalance"] = this.projectedBalance;
+        if (Array.isArray(this.warnings)) {
+            data["warnings"] = [];
+            for (let item of this.warnings)
+                data["warnings"].push(item);
+        }
+        if (Array.isArray(this.adjustments)) {
+            data["adjustments"] = [];
+            for (let item of this.adjustments)
+                data["adjustments"].push(item.toJSON());
+        }
+        return data;
+    }
+}
+
+export interface IOvertimeStatementDto {
+    personId?: string;
+    displayName?: string;
+    isReviewed?: boolean;
+    dailyContractHours?: number | undefined;
+    requiredHours?: number;
+    workedHours?: number;
+    vacationHours?: number;
+    sickHours?: number;
+    doctorHours?: number;
+    compTimeHours?: number;
+    otherAbsenceHours?: number;
+    deltaHours?: number;
+    previousBalance?: number;
+    adjustmentsTotal?: number;
+    projectedBalance?: number;
+    warnings?: string[];
+    adjustments?: OvertimeAdjustmentDto[];
+}
+
+export class OvertimeAdjustmentDto implements IOvertimeAdjustmentDto {
+    id?: number;
+    personId?: string;
+    type?: OvertimeAdjustmentType;
+    hours?: number;
+    note?: string;
+    createdAtUtc?: Date;
+    createdBy?: string;
+
+    constructor(data?: IOvertimeAdjustmentDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.id = _data["id"];
+            this.personId = _data["personId"];
+            this.type = _data["type"];
+            this.hours = _data["hours"];
+            this.note = _data["note"];
+            this.createdAtUtc = _data["createdAtUtc"] ? new Date(_data["createdAtUtc"].toString()) : <any>undefined;
+            this.createdBy = _data["createdBy"];
+        }
+    }
+
+    static fromJS(data: any): OvertimeAdjustmentDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new OvertimeAdjustmentDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["id"] = this.id;
+        data["personId"] = this.personId;
+        data["type"] = this.type;
+        data["hours"] = this.hours;
+        data["note"] = this.note;
+        data["createdAtUtc"] = this.createdAtUtc ? this.createdAtUtc.toISOString() : <any>undefined;
+        data["createdBy"] = this.createdBy;
+        return data;
+    }
+}
+
+export interface IOvertimeAdjustmentDto {
+    id?: number;
+    personId?: string;
+    type?: OvertimeAdjustmentType;
+    hours?: number;
+    note?: string;
+    createdAtUtc?: Date;
+    createdBy?: string;
+}
+
+export enum OvertimeAdjustmentType {
+    Payout = "Payout",
+    PurchaseDeduction = "PurchaseDeduction",
+    Correction = "Correction",
+    SportBenefit = "SportBenefit",
+    Other = "Other",
+}
+
+export class SetStatementReviewedResponse extends BaseResponse implements ISetStatementReviewedResponse {
+
+    constructor(data?: ISetStatementReviewedResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+    }
+
+    static override fromJS(data: any): SetStatementReviewedResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new SetStatementReviewedResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface ISetStatementReviewedResponse extends IBaseResponse {
+}
+
+export class SetStatementReviewedRequest implements ISetStatementReviewedRequest {
+    personId?: string;
+    year?: number;
+    month?: number;
+    isReviewed?: boolean;
+
+    constructor(data?: ISetStatementReviewedRequest) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.personId = _data["personId"];
+            this.year = _data["year"];
+            this.month = _data["month"];
+            this.isReviewed = _data["isReviewed"];
+        }
+    }
+
+    static fromJS(data: any): SetStatementReviewedRequest {
+        data = typeof data === 'object' ? data : {};
+        let result = new SetStatementReviewedRequest();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["personId"] = this.personId;
+        data["year"] = this.year;
+        data["month"] = this.month;
+        data["isReviewed"] = this.isReviewed;
+        return data;
+    }
+}
+
+export interface ISetStatementReviewedRequest {
+    personId?: string;
+    year?: number;
+    month?: number;
+    isReviewed?: boolean;
+}
+
+export class CreateAdjustmentResponse extends BaseResponse implements ICreateAdjustmentResponse {
+    id?: number;
+
+    constructor(data?: ICreateAdjustmentResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            this.id = _data["id"];
+        }
+    }
+
+    static override fromJS(data: any): CreateAdjustmentResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new CreateAdjustmentResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["id"] = this.id;
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface ICreateAdjustmentResponse extends IBaseResponse {
+    id?: number;
+}
+
+export class CreateAdjustmentRequest implements ICreateAdjustmentRequest {
+    personId?: string;
+    year?: number;
+    month?: number;
+    type?: OvertimeAdjustmentType;
+    hours?: number;
+    note?: string;
+
+    constructor(data?: ICreateAdjustmentRequest) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.personId = _data["personId"];
+            this.year = _data["year"];
+            this.month = _data["month"];
+            this.type = _data["type"];
+            this.hours = _data["hours"];
+            this.note = _data["note"];
+        }
+    }
+
+    static fromJS(data: any): CreateAdjustmentRequest {
+        data = typeof data === 'object' ? data : {};
+        let result = new CreateAdjustmentRequest();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["personId"] = this.personId;
+        data["year"] = this.year;
+        data["month"] = this.month;
+        data["type"] = this.type;
+        data["hours"] = this.hours;
+        data["note"] = this.note;
+        return data;
+    }
+}
+
+export interface ICreateAdjustmentRequest {
+    personId?: string;
+    year?: number;
+    month?: number;
+    type?: OvertimeAdjustmentType;
+    hours?: number;
+    note?: string;
+}
+
+export class DeleteAdjustmentResponse extends BaseResponse implements IDeleteAdjustmentResponse {
+
+    constructor(data?: IDeleteAdjustmentResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+    }
+
+    static override fromJS(data: any): DeleteAdjustmentResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new DeleteAdjustmentResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IDeleteAdjustmentResponse extends IBaseResponse {
+}
+
+export class CloseMonthResponse extends BaseResponse implements ICloseMonthResponse {
+    closedCount?: number;
+    publishSkipped?: boolean;
+    publishFailed?: boolean;
+
+    constructor(data?: ICloseMonthResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            this.closedCount = _data["closedCount"];
+            this.publishSkipped = _data["publishSkipped"];
+            this.publishFailed = _data["publishFailed"];
+        }
+    }
+
+    static override fromJS(data: any): CloseMonthResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new CloseMonthResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["closedCount"] = this.closedCount;
+        data["publishSkipped"] = this.publishSkipped;
+        data["publishFailed"] = this.publishFailed;
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface ICloseMonthResponse extends IBaseResponse {
+    closedCount?: number;
+    publishSkipped?: boolean;
+    publishFailed?: boolean;
+}
+
+export class ExportOvertimeReportResponse extends BaseResponse implements IExportOvertimeReportResponse {
+    content?: string;
+    fileName?: string;
+
+    constructor(data?: IExportOvertimeReportResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            this.content = _data["content"];
+            this.fileName = _data["fileName"];
+        }
+    }
+
+    static override fromJS(data: any): ExportOvertimeReportResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new ExportOvertimeReportResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["content"] = this.content;
+        data["fileName"] = this.fileName;
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IExportOvertimeReportResponse extends IBaseResponse {
+    content?: string;
+    fileName?: string;
 }
 
 export class ScanPackingOrderResponse extends BaseResponse implements IScanPackingOrderResponse {

@@ -511,6 +511,26 @@
       "value": "anela.mind_maps.write"
     },
     {
+      "id": "d4c4dfd1-2581-5de3-8c46-63c526985133",
+      "allowedMemberTypes": [
+        "User"
+      ],
+      "description": "Attendance_Overtime Read",
+      "displayName": "attendance.overtime.read",
+      "isEnabled": true,
+      "value": "attendance.overtime.read"
+    },
+    {
+      "id": "94190e5e-2004-595f-a4ca-cf504395f4a9",
+      "allowedMemberTypes": [
+        "User"
+      ],
+      "description": "Attendance_Overtime Write",
+      "displayName": "attendance.overtime.write",
+      "isEnabled": true,
+      "value": "attendance.overtime.write"
+    },
+    {
       "id": "1ac66a37-e738-5283-bbd0-7d65d2bbd41e",
       "allowedMemberTypes": [
         "User"
@@ -645,6 +665,8 @@
         "anela.org_chart.read",
         "anela.mind_maps.read",
         "anela.mind_maps.write",
+        "attendance.overtime.read",
+        "attendance.overtime.write",
         "admin.data_quality.read",
         "admin.data_quality.write",
         "admin.administration.read",

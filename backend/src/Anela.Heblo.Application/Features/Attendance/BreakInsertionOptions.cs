@@ -20,7 +20,7 @@ public class BreakInsertionOptions
     public string BreakActivityName { get; set; } = "Přestávka";
 
     /// <summary>Preferred break start, Prague wall clock.</summary>
-    public TimeOnly PreferredWindowStart { get; set; } = new(11, 0);
+    public TimeOnly PreferredWindowStart { get; set; } = new(11, 30);
 
     public int BreakDurationMinutes { get; set; } = 30;
 
