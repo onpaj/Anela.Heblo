@@ -28,9 +28,9 @@
   "tasks": [
     {
       "name": "add-smartsupp-contact-enricher",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-08-12T22:18:51.121646Z"
+      "updated_at": "2026-08-12T22:46:30.750729Z"
     },
     {
       "name": "wire-reactions-to-contact-enricher",
