@@ -46,9 +46,9 @@
     },
     {
       "name": "route-usesendmessage-hook",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-08-12T04:16:48.178782Z"
+      "updated_at": "2026-08-12T04:35:35.657132Z"
     },
     {
       "name": "route-usesubmitdraftreplyfeedback-hook",
