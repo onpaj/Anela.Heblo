@@ -51,9 +51,9 @@ export function useSendMessage(conversationId: string | null): UseSendMessageRes
           conversationId,
           new SendMessageBody({ content, draftLogId: draftLogId ?? undefined }),
         );
-      } catch {
-        // 400/404/503 are all untyped ProducesResponseType on this controller action.
-        throw new Error(messageForSendError(undefined));
+      } catch (e: unknown) {
+        const errorCode = (e as { errorCode?: string }).errorCode as ErrorCodes | undefined;
+        throw new Error(messageForSendError(errorCode));
       }
       if (!data.success) {
         throw new Error(messageForSendError(data.errorCode));

@@ -71,10 +71,9 @@ export function useGenerateDraftReply(
           conversationId,
           new GenerateDraftReplyBody({ topic: topic ?? undefined }),
         );
-      } catch {
-        // 400/404/503 are all untyped ProducesResponseType on this controller action, so the
-        // generated client throws without a usable errorCode here.
-        throw new Error(messageForError(undefined));
+      } catch (e: unknown) {
+        const errorCode = (e as { errorCode?: string }).errorCode as ErrorCodes | undefined;
+        throw new Error(messageForError(errorCode));
       }
       if (!data.success) {
         throw new Error(messageForError(data.errorCode));

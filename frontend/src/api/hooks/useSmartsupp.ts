@@ -119,10 +119,9 @@ export function useCloseConversation() {
       let data: CloseConversationResponse;
       try {
         data = await getAuthenticatedApiClient().smartsupp_CloseConversation(conversationId);
-      } catch {
-        // The controller's 404/503 ProducesResponseType are both untyped, so the generated
-        // client throws here without a usable errorCode — fall back to the generic message.
-        throw new Error(messageForCloseError(undefined));
+      } catch (e: unknown) {
+        const errorCode = (e as { errorCode?: string }).errorCode as ErrorCodes | undefined;
+        throw new Error(messageForCloseError(errorCode));
       }
       if (!data.success) {
         throw new Error(messageForCloseError(data.errorCode));
