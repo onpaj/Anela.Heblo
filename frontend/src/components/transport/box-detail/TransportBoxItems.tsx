@@ -45,10 +45,7 @@ const ManufacturedRow: React.FC<ManufacturedRowProps> = ({ item, onAdd, onOverdr
   };
 
   return (
-    <div
-      onClick={handleSubmit}
-      className="flex items-center gap-3 px-3 py-2 border-b border-gray-100 last:border-b-0 hover:bg-green-50 cursor-pointer transition-colors dark:border-graphite-border dark:hover:bg-emerald-900/20"
-    >
+    <div className="flex items-center gap-3 px-3 py-2 border-b border-gray-100 last:border-b-0 hover:bg-green-50 transition-colors dark:border-graphite-border dark:hover:bg-emerald-900/20">
       <div className="flex-1 min-w-0">
         <div className="text-sm font-medium text-gray-900 truncate dark:text-graphite-text">{item.productName}</div>
         <div className="text-xs text-gray-500 flex flex-wrap gap-x-3 mt-0.5 dark:text-graphite-muted">
@@ -64,7 +61,7 @@ const ManufacturedRow: React.FC<ManufacturedRowProps> = ({ item, onAdd, onOverdr
           </div>
         )}
       </div>
-      <div className="flex items-center gap-2 flex-shrink-0" onClick={(e) => e.stopPropagation()}>
+      <div className="flex items-center gap-2 flex-shrink-0">
         <input
           type="number"
           value={rowAmount}
