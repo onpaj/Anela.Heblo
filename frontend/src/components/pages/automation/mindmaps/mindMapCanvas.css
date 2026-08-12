@@ -39,3 +39,31 @@
   border-radius: var(--main-radius);
   padding: var(--topic-padding);
 }
+
+/* Put the collapse/expand circle of a deeper node where a top-level branch's sits:
+   centred on the card's side edge, 10px clear of it.
+
+   mind-elixir places it at the bottom instead (`me-epd { top: calc(100% - 9px) }`,
+   against `top: calc(50% - 9px)` for a branch), and 5px inside the <me-parent> box
+   (`.lhs me-epd { left: 5px }`, against `left: -10px` for a branch). Both rules
+   assume a bare text node, where the box edge reads as the node's edge. Deeper
+   nodes now carry a card (above), and that card is inset from the box by the node
+   gap — so the library's placement lands the circle inside the card's bottom-left
+   corner, overlapping the border.
+
+   The 2px puts it 10px outside the card: the box is a node gap (12px) wider than
+   the card on each side, and 12 - 10 = 2. Vertical centring needs no such
+   correction — <me-parent>'s 6px vertical padding is symmetric, so the box's 50%
+   is already the card's centre. The selectors reach deeper nodes only, for the
+   same structural reason as the card rule above. */
+.mindmap-canvas .map-container me-children me-parent > me-epd {
+  top: calc(50% - 9px);
+}
+
+.mindmap-canvas .map-container .lhs me-children me-parent > me-epd {
+  left: 2px;
+}
+
+.mindmap-canvas .map-container .rhs me-children me-parent > me-epd {
+  right: 2px;
+}

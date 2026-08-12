@@ -30,6 +30,15 @@ describe("sub-branch links", () => {
   // Parent card spans x 100..300, vertical centre 120.
   // Child's me-parent box spans x 340..540 on the right, vertical centre 250 —
   // and is inset from the visible card by the 12px node gap on each side.
+  //
+  // `isFirst` is how mind-elixir tells us which kind of box `pL`/`pW` describe.
+  // Its link renderer passes `true` only on the call it makes from linkDiv, where
+  // the parent is a top-level branch — whose <me-parent> carries no horizontal
+  // padding, so its box IS its card. Every deeper link comes from the renderer's
+  // own recursion, which passes no flag at all; those parents sit under
+  // <me-children>, where <me-parent> has `padding: 6px var(--node-gap-x)` and the
+  // box is therefore a node gap wider than the card on each side. Measured in a
+  // browser against the real library: the correlation is exact at every depth.
   const params = {
     pT: 100, pL: 100, pW: 200, pH: 40,
     cT: 220, cL: 340, cW: 200, cH: 60,
@@ -61,6 +70,26 @@ describe("sub-branch links", () => {
     // Parent's LEFT edge (100), child's RIGHT edge pulled in by the gap
     // (-240 + 200 - 12 = -52).
     expect(path).toBe("M100,120 C24,120 24,250 -52,250");
+  });
+
+  it("insets the parent end too when the parent is a deeper node, not a branch", () => {
+    // Without `isFirst`, pL/pW describe a padded <me-parent> box, so the card's
+    // right edge is 300 - 12 = 288. Leaving from the raw box edge (300) started
+    // every link a node gap out in open space, detached from the card it belongs to.
+    const path = MIND_MAP_LIGHT_THEME.generateSubBranch!.call(
+      null as never,
+      { ...params, isFirst: undefined, direction: "rhs" } as never,
+    );
+    expect(path).toBe("M288,120 C320,120 320,250 352,250");
+  });
+
+  it("mirrors the deeper-parent inset on the left-hand side", () => {
+    // Card's left edge is 100 + 12 = 112.
+    const path = MIND_MAP_LIGHT_THEME.generateSubBranch!.call(
+      null as never,
+      { ...params, isFirst: undefined, cL: -240, direction: "lhs" } as never,
+    );
+    expect(path).toBe("M112,120 C30,120 30,250 -52,250");
   });
 
   it("keeps the node gap it insets by in step with the --node-gap-x it publishes", () => {

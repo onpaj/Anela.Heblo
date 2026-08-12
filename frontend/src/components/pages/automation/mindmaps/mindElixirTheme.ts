@@ -21,15 +21,24 @@ const NODE_GAP_X = 12;
  * underline looks like a stray rule rather than a connector — the attachment point
  * visibly differs between a branch (side centre) and a leaf (underneath).
  *
- * The catch: `cL`/`cW` describe the child's <me-parent> box, which is inset from
- * the visible card by the node gap on each side, while the parent's box is not.
- * Landing the curve on the raw box leaves it floating beside the card, so the
- * child end is pulled in by NODE_GAP_X. Verified in a browser against the real
- * library — the geometry is not derivable from the type alone.
+ * The catch: both ends describe an <me-parent> box, and whether that box matches
+ * the visible card depends on depth. Under <me-children>, <me-parent> carries
+ * `padding: 6px var(--node-gap-x)`, so the box is a node gap wider than the card
+ * on each side; a top-level branch's <me-parent> has no horizontal padding, so
+ * there the box IS the card. Landing a curve on the raw box leaves it floating
+ * beside the card, so each end is pulled in by NODE_GAP_X when — and only when —
+ * that end is a deeper node.
+ *
+ * The child end always is. For the parent end, `isFirst` is the tell: mind-elixir
+ * passes `true` only on the call it makes from linkDiv, whose parent is the
+ * top-level branch, and passes nothing on the recursive calls that draw every
+ * deeper link. Verified in a browser against the real library — neither the
+ * padding asymmetry nor the meaning of `isFirst` is derivable from the types.
  */
-function sideCentreBranch({ pT, pL, pW, pH, cT, cL, cW, cH, direction }: SubLineParams): string {
+function sideCentreBranch({ pT, pL, pW, pH, cT, cL, cW, cH, direction, isFirst }: SubLineParams): string {
   const isRight = direction === "rhs";
-  const x1 = isRight ? pL + pW : pL;
+  const parentInset = isFirst ? 0 : NODE_GAP_X;
+  const x1 = isRight ? pL + pW - parentInset : pL + parentInset;
   const x2 = isRight ? cL + NODE_GAP_X : cL + cW - NODE_GAP_X;
   const y1 = pT + pH / 2;
   const y2 = cT + cH / 2;
