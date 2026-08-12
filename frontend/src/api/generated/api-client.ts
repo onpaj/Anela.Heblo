@@ -8836,6 +8836,351 @@ export class ApiClient {
         return Promise.resolve<DeleteMeetingTranscriptResponse>(null as any);
     }
 
+    mindMaps_List(): Promise<GetMindMapListResponse> {
+        let url_ = this.baseUrl + "/api/mind-maps";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processMindMaps_List(_response);
+        });
+    }
+
+    protected processMindMaps_List(response: Response): Promise<GetMindMapListResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = GetMindMapListResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<GetMindMapListResponse>(null as any);
+    }
+
+    mindMaps_Create(request: CreateMindMapRequest): Promise<CreateMindMapResponse> {
+        let url_ = this.baseUrl + "/api/mind-maps";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: RequestInit = {
+            body: content_,
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processMindMaps_Create(_response);
+        });
+    }
+
+    protected processMindMaps_Create(response: Response): Promise<CreateMindMapResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = CreateMindMapResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<CreateMindMapResponse>(null as any);
+    }
+
+    mindMaps_Detail(id: string): Promise<GetMindMapDetailResponse> {
+        let url_ = this.baseUrl + "/api/mind-maps/{id}";
+        if (id === undefined || id === null)
+            throw new Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processMindMaps_Detail(_response);
+        });
+    }
+
+    protected processMindMaps_Detail(response: Response): Promise<GetMindMapDetailResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = GetMindMapDetailResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<GetMindMapDetailResponse>(null as any);
+    }
+
+    mindMaps_Delete(id: string): Promise<DeleteMindMapResponse> {
+        let url_ = this.baseUrl + "/api/mind-maps/{id}";
+        if (id === undefined || id === null)
+            throw new Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "DELETE",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processMindMaps_Delete(_response);
+        });
+    }
+
+    protected processMindMaps_Delete(response: Response): Promise<DeleteMindMapResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = DeleteMindMapResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<DeleteMindMapResponse>(null as any);
+    }
+
+    mindMaps_AttachMeeting(id: string, request: AttachMeetingRequest): Promise<AttachMeetingResponse> {
+        let url_ = this.baseUrl + "/api/mind-maps/{id}/meetings";
+        if (id === undefined || id === null)
+            throw new Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: RequestInit = {
+            body: content_,
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processMindMaps_AttachMeeting(_response);
+        });
+    }
+
+    protected processMindMaps_AttachMeeting(response: Response): Promise<AttachMeetingResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = AttachMeetingResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<AttachMeetingResponse>(null as any);
+    }
+
+    mindMaps_DetachMeeting(id: string, meetingId: string): Promise<DetachMeetingResponse> {
+        let url_ = this.baseUrl + "/api/mind-maps/{id}/meetings/{meetingId}";
+        if (id === undefined || id === null)
+            throw new Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        if (meetingId === undefined || meetingId === null)
+            throw new Error("The parameter 'meetingId' must be defined.");
+        url_ = url_.replace("{meetingId}", encodeURIComponent("" + meetingId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "DELETE",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processMindMaps_DetachMeeting(_response);
+        });
+    }
+
+    protected processMindMaps_DetachMeeting(response: Response): Promise<DetachMeetingResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = DetachMeetingResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<DetachMeetingResponse>(null as any);
+    }
+
+    mindMaps_Regenerate(id: string): Promise<RegenerateMindMapResponse> {
+        let url_ = this.baseUrl + "/api/mind-maps/{id}/regenerate";
+        if (id === undefined || id === null)
+            throw new Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "POST",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processMindMaps_Regenerate(_response);
+        });
+    }
+
+    protected processMindMaps_Regenerate(response: Response): Promise<RegenerateMindMapResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = RegenerateMindMapResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<RegenerateMindMapResponse>(null as any);
+    }
+
+    mindMaps_SaveDocument(id: string, request: SaveMindMapDocumentRequest): Promise<SaveMindMapDocumentResponse> {
+        let url_ = this.baseUrl + "/api/mind-maps/{id}/document";
+        if (id === undefined || id === null)
+            throw new Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: RequestInit = {
+            body: content_,
+            method: "PUT",
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processMindMaps_SaveDocument(_response);
+        });
+    }
+
+    protected processMindMaps_SaveDocument(response: Response): Promise<SaveMindMapDocumentResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = SaveMindMapDocumentResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<SaveMindMapDocumentResponse>(null as any);
+    }
+
+    mindMaps_RestoreVersion(id: string, versionNumber: number): Promise<RestoreMindMapVersionResponse> {
+        let url_ = this.baseUrl + "/api/mind-maps/{id}/versions/{versionNumber}/restore";
+        if (id === undefined || id === null)
+            throw new Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        if (versionNumber === undefined || versionNumber === null)
+            throw new Error("The parameter 'versionNumber' must be defined.");
+        url_ = url_.replace("{versionNumber}", encodeURIComponent("" + versionNumber));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "POST",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processMindMaps_RestoreVersion(_response);
+        });
+    }
+
+    protected processMindMaps_RestoreVersion(response: Response): Promise<RestoreMindMapVersionResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = RestoreMindMapVersionResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<RestoreMindMapVersionResponse>(null as any);
+    }
+
     orgChart_GetOrganizationStructure(): Promise<OrgChartResponse> {
         let url_ = this.baseUrl + "/api/OrgChart";
         url_ = url_.replace(/[?&]$/, "");
@@ -14217,6 +14562,9 @@ export enum ErrorCodes {
     OvertimeContractHoursMissing = "OvertimeContractHoursMissing",
     OvertimePreviousMonthOpen = "OvertimePreviousMonthOpen",
     OvertimeExportPublishFailed = "OvertimeExportPublishFailed",
+    MindMapUpdateInProgress = "MindMapUpdateInProgress",
+    MindMapMeetingAlreadyAttached = "MindMapMeetingAlreadyAttached",
+    MindMapInvalidDocument = "MindMapInvalidDocument",
     ExternalServiceError = "ExternalServiceError",
     FlexiApiError = "FlexiApiError",
     ShoptetApiError = "ShoptetApiError",
@@ -34010,6 +34358,607 @@ export class DeleteMeetingTranscriptResponse extends BaseResponse implements IDe
 }
 
 export interface IDeleteMeetingTranscriptResponse extends IBaseResponse {
+}
+
+export class GetMindMapListResponse extends BaseResponse implements IGetMindMapListResponse {
+    items?: MindMapListItemDto[];
+
+    constructor(data?: IGetMindMapListResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            if (Array.isArray(_data["items"])) {
+                this.items = [] as any;
+                for (let item of _data["items"])
+                    this.items!.push(MindMapListItemDto.fromJS(item));
+            }
+        }
+    }
+
+    static override fromJS(data: any): GetMindMapListResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new GetMindMapListResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        if (Array.isArray(this.items)) {
+            data["items"] = [];
+            for (let item of this.items)
+                data["items"].push(item.toJSON());
+        }
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IGetMindMapListResponse extends IBaseResponse {
+    items?: MindMapListItemDto[];
+}
+
+export class MindMapListItemDto implements IMindMapListItemDto {
+    id?: string;
+    name?: string;
+    description?: string | undefined;
+    status?: string;
+    meetingCount?: number;
+    updatedAt?: Date;
+
+    constructor(data?: IMindMapListItemDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.id = _data["id"];
+            this.name = _data["name"];
+            this.description = _data["description"];
+            this.status = _data["status"];
+            this.meetingCount = _data["meetingCount"];
+            this.updatedAt = _data["updatedAt"] ? new Date(_data["updatedAt"].toString()) : <any>undefined;
+        }
+    }
+
+    static fromJS(data: any): MindMapListItemDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new MindMapListItemDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["id"] = this.id;
+        data["name"] = this.name;
+        data["description"] = this.description;
+        data["status"] = this.status;
+        data["meetingCount"] = this.meetingCount;
+        data["updatedAt"] = this.updatedAt ? this.updatedAt.toISOString() : <any>undefined;
+        return data;
+    }
+}
+
+export interface IMindMapListItemDto {
+    id?: string;
+    name?: string;
+    description?: string | undefined;
+    status?: string;
+    meetingCount?: number;
+    updatedAt?: Date;
+}
+
+export class GetMindMapDetailResponse extends BaseResponse implements IGetMindMapDetailResponse {
+    id?: string;
+    name?: string;
+    description?: string | undefined;
+    status?: string;
+    lastError?: string | undefined;
+    documentJson?: string;
+    meetings?: AttachedMeetingDto[];
+    versions?: MindMapVersionDto[];
+
+    constructor(data?: IGetMindMapDetailResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            this.id = _data["id"];
+            this.name = _data["name"];
+            this.description = _data["description"];
+            this.status = _data["status"];
+            this.lastError = _data["lastError"];
+            this.documentJson = _data["documentJson"];
+            if (Array.isArray(_data["meetings"])) {
+                this.meetings = [] as any;
+                for (let item of _data["meetings"])
+                    this.meetings!.push(AttachedMeetingDto.fromJS(item));
+            }
+            if (Array.isArray(_data["versions"])) {
+                this.versions = [] as any;
+                for (let item of _data["versions"])
+                    this.versions!.push(MindMapVersionDto.fromJS(item));
+            }
+        }
+    }
+
+    static override fromJS(data: any): GetMindMapDetailResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new GetMindMapDetailResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["id"] = this.id;
+        data["name"] = this.name;
+        data["description"] = this.description;
+        data["status"] = this.status;
+        data["lastError"] = this.lastError;
+        data["documentJson"] = this.documentJson;
+        if (Array.isArray(this.meetings)) {
+            data["meetings"] = [];
+            for (let item of this.meetings)
+                data["meetings"].push(item.toJSON());
+        }
+        if (Array.isArray(this.versions)) {
+            data["versions"] = [];
+            for (let item of this.versions)
+                data["versions"].push(item.toJSON());
+        }
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IGetMindMapDetailResponse extends IBaseResponse {
+    id?: string;
+    name?: string;
+    description?: string | undefined;
+    status?: string;
+    lastError?: string | undefined;
+    documentJson?: string;
+    meetings?: AttachedMeetingDto[];
+    versions?: MindMapVersionDto[];
+}
+
+export class AttachedMeetingDto implements IAttachedMeetingDto {
+    meetingTranscriptId?: string;
+    subject?: string;
+    plaudCreatedAt?: Date;
+    attachedAt?: Date;
+    processedAt?: Date | undefined;
+
+    constructor(data?: IAttachedMeetingDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.meetingTranscriptId = _data["meetingTranscriptId"];
+            this.subject = _data["subject"];
+            this.plaudCreatedAt = _data["plaudCreatedAt"] ? new Date(_data["plaudCreatedAt"].toString()) : <any>undefined;
+            this.attachedAt = _data["attachedAt"] ? new Date(_data["attachedAt"].toString()) : <any>undefined;
+            this.processedAt = _data["processedAt"] ? new Date(_data["processedAt"].toString()) : <any>undefined;
+        }
+    }
+
+    static fromJS(data: any): AttachedMeetingDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new AttachedMeetingDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["meetingTranscriptId"] = this.meetingTranscriptId;
+        data["subject"] = this.subject;
+        data["plaudCreatedAt"] = this.plaudCreatedAt ? this.plaudCreatedAt.toISOString() : <any>undefined;
+        data["attachedAt"] = this.attachedAt ? this.attachedAt.toISOString() : <any>undefined;
+        data["processedAt"] = this.processedAt ? this.processedAt.toISOString() : <any>undefined;
+        return data;
+    }
+}
+
+export interface IAttachedMeetingDto {
+    meetingTranscriptId?: string;
+    subject?: string;
+    plaudCreatedAt?: Date;
+    attachedAt?: Date;
+    processedAt?: Date | undefined;
+}
+
+export class MindMapVersionDto implements IMindMapVersionDto {
+    versionNumber?: number;
+    createdAt?: Date;
+    triggerMeetingId?: string | undefined;
+    triggerMeetingSubject?: string | undefined;
+
+    constructor(data?: IMindMapVersionDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.versionNumber = _data["versionNumber"];
+            this.createdAt = _data["createdAt"] ? new Date(_data["createdAt"].toString()) : <any>undefined;
+            this.triggerMeetingId = _data["triggerMeetingId"];
+            this.triggerMeetingSubject = _data["triggerMeetingSubject"];
+        }
+    }
+
+    static fromJS(data: any): MindMapVersionDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new MindMapVersionDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["versionNumber"] = this.versionNumber;
+        data["createdAt"] = this.createdAt ? this.createdAt.toISOString() : <any>undefined;
+        data["triggerMeetingId"] = this.triggerMeetingId;
+        data["triggerMeetingSubject"] = this.triggerMeetingSubject;
+        return data;
+    }
+}
+
+export interface IMindMapVersionDto {
+    versionNumber?: number;
+    createdAt?: Date;
+    triggerMeetingId?: string | undefined;
+    triggerMeetingSubject?: string | undefined;
+}
+
+export class CreateMindMapResponse extends BaseResponse implements ICreateMindMapResponse {
+    id?: string;
+
+    constructor(data?: ICreateMindMapResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            this.id = _data["id"];
+        }
+    }
+
+    static override fromJS(data: any): CreateMindMapResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new CreateMindMapResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["id"] = this.id;
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface ICreateMindMapResponse extends IBaseResponse {
+    id?: string;
+}
+
+export class CreateMindMapRequest implements ICreateMindMapRequest {
+    name!: string;
+    description?: string | undefined;
+
+    constructor(data?: ICreateMindMapRequest) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.name = _data["name"];
+            this.description = _data["description"];
+        }
+    }
+
+    static fromJS(data: any): CreateMindMapRequest {
+        data = typeof data === 'object' ? data : {};
+        let result = new CreateMindMapRequest();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["name"] = this.name;
+        data["description"] = this.description;
+        return data;
+    }
+}
+
+export interface ICreateMindMapRequest {
+    name: string;
+    description?: string | undefined;
+}
+
+export class DeleteMindMapResponse extends BaseResponse implements IDeleteMindMapResponse {
+
+    constructor(data?: IDeleteMindMapResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+    }
+
+    static override fromJS(data: any): DeleteMindMapResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new DeleteMindMapResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IDeleteMindMapResponse extends IBaseResponse {
+}
+
+export class AttachMeetingResponse extends BaseResponse implements IAttachMeetingResponse {
+
+    constructor(data?: IAttachMeetingResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+    }
+
+    static override fromJS(data: any): AttachMeetingResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new AttachMeetingResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IAttachMeetingResponse extends IBaseResponse {
+}
+
+export class AttachMeetingRequest implements IAttachMeetingRequest {
+    mindMapId?: string;
+    meetingTranscriptId!: string;
+
+    constructor(data?: IAttachMeetingRequest) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.mindMapId = _data["mindMapId"];
+            this.meetingTranscriptId = _data["meetingTranscriptId"];
+        }
+    }
+
+    static fromJS(data: any): AttachMeetingRequest {
+        data = typeof data === 'object' ? data : {};
+        let result = new AttachMeetingRequest();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["mindMapId"] = this.mindMapId;
+        data["meetingTranscriptId"] = this.meetingTranscriptId;
+        return data;
+    }
+}
+
+export interface IAttachMeetingRequest {
+    mindMapId?: string;
+    meetingTranscriptId: string;
+}
+
+export class DetachMeetingResponse extends BaseResponse implements IDetachMeetingResponse {
+
+    constructor(data?: IDetachMeetingResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+    }
+
+    static override fromJS(data: any): DetachMeetingResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new DetachMeetingResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IDetachMeetingResponse extends IBaseResponse {
+}
+
+export class RegenerateMindMapResponse extends BaseResponse implements IRegenerateMindMapResponse {
+
+    constructor(data?: IRegenerateMindMapResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+    }
+
+    static override fromJS(data: any): RegenerateMindMapResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new RegenerateMindMapResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IRegenerateMindMapResponse extends IBaseResponse {
+}
+
+export class SaveMindMapDocumentResponse extends BaseResponse implements ISaveMindMapDocumentResponse {
+    documentJson?: string;
+
+    constructor(data?: ISaveMindMapDocumentResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            this.documentJson = _data["documentJson"];
+        }
+    }
+
+    static override fromJS(data: any): SaveMindMapDocumentResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new SaveMindMapDocumentResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["documentJson"] = this.documentJson;
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface ISaveMindMapDocumentResponse extends IBaseResponse {
+    documentJson?: string;
+}
+
+export class SaveMindMapDocumentRequest implements ISaveMindMapDocumentRequest {
+    id?: string;
+    documentJson!: string;
+
+    constructor(data?: ISaveMindMapDocumentRequest) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.id = _data["id"];
+            this.documentJson = _data["documentJson"];
+        }
+    }
+
+    static fromJS(data: any): SaveMindMapDocumentRequest {
+        data = typeof data === 'object' ? data : {};
+        let result = new SaveMindMapDocumentRequest();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["id"] = this.id;
+        data["documentJson"] = this.documentJson;
+        return data;
+    }
+}
+
+export interface ISaveMindMapDocumentRequest {
+    id?: string;
+    documentJson: string;
+}
+
+export class RestoreMindMapVersionResponse extends BaseResponse implements IRestoreMindMapVersionResponse {
+    documentJson?: string;
+
+    constructor(data?: IRestoreMindMapVersionResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            this.documentJson = _data["documentJson"];
+        }
+    }
+
+    static override fromJS(data: any): RestoreMindMapVersionResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new RestoreMindMapVersionResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["documentJson"] = this.documentJson;
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IRestoreMindMapVersionResponse extends IBaseResponse {
+    documentJson?: string;
 }
 
 export class OrgChartResponse extends BaseResponse implements IOrgChartResponse {
