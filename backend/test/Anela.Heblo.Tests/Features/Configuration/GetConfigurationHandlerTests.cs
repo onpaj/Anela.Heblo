@@ -1,6 +1,6 @@
 using Anela.Heblo.Application.Features.Configuration;
 using Anela.Heblo.Domain.Features.Configuration;
-using Anela.Heblo.Domain.Shared;
+using Anela.Heblo.Application.Shared;
 using FluentAssertions;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging.Abstractions;

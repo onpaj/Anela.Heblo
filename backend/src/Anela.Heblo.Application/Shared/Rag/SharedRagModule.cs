@@ -2,7 +2,7 @@ using Anela.Heblo.Application.Features.KnowledgeBase;
 using Anela.Heblo.Application.Shared.Rag.DocumentExtractors;
 using Anela.Heblo.Application.Shared.Rag.OneDrive;
 using Anela.Heblo.Domain.Features.Rag;
-using Anela.Heblo.Domain.Shared;
+using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Persistence.Rag;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
