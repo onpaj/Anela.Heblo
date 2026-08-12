@@ -15,11 +15,20 @@ interface ManufacturedRowProps {
   defaultAmount?: number;
 }
 
+const formatDefaultAmount = (defaultAmount?: number): string =>
+  defaultAmount && defaultAmount > 0 ? String(defaultAmount) : "";
+
 const ManufacturedRow: React.FC<ManufacturedRowProps> = ({ item, onAdd, onOverdraft, defaultAmount }) => {
-  const initialAmount = defaultAmount ? String(defaultAmount) : "";
-  const [rowAmount, setRowAmount] = useState(initialAmount);
-  const [isDirty, setIsDirty] = useState(false);
+  const [rowAmount, setRowAmount] = useState(() => formatDefaultAmount(defaultAmount));
   const [rowError, setRowError] = useState<string | null>(null);
+  const canSubmit = rowAmount !== "" && parseFloat(rowAmount) > 0;
+
+  // Re-prefill when the suggested amount changes (e.g. after the item was added
+  // and the remaining stock on the manufacture warehouse dropped).
+  useEffect(() => {
+    setRowAmount(formatDefaultAmount(defaultAmount));
+    setRowError(null);
+  }, [defaultAmount]);
 
   const handleSubmit = () => {
     const parsed = parseFloat(rowAmount);
@@ -61,24 +70,21 @@ const ManufacturedRow: React.FC<ManufacturedRowProps> = ({ item, onAdd, onOverdr
           value={rowAmount}
           onChange={(e) => {
             setRowAmount(e.target.value);
-            setIsDirty(true);
             setRowError(null);
           }}
-          step="0.01"
-          min="0.01"
+          step="1"
+          min="1"
           placeholder="0"
           className="w-20 px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent dark:bg-graphite-surface-2 dark:border-graphite-border dark:text-graphite-text dark:placeholder-graphite-faint"
         />
-        {isDirty && (
-          <button
-            type="button"
-            onClick={handleSubmit}
-            disabled={!rowAmount || parseFloat(rowAmount) <= 0}
-            className="px-2 py-1 text-sm font-medium text-white bg-green-600 rounded hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            Přidat
-          </button>
-        )}
+        <button
+          type="button"
+          onClick={handleSubmit}
+          disabled={!canSubmit}
+          className="px-2 py-1 text-sm font-medium text-white bg-green-600 rounded hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          Přidat
+        </button>
       </div>
     </div>
   );
@@ -207,9 +213,12 @@ const TransportBoxItems: React.FC<TransportBoxItemsProps> = ({
                         e.productCode === item.productCode &&
                         (e.lotNumber ?? "") === (item.lotNumber ?? ""),
                     );
+                    // Prefill with the last added amount for this product/lot,
+                    // otherwise with everything left on the manufacture warehouse.
+                    const availableAmount = item.amount ?? 0;
                     const defaultAmount = lastEntry
-                      ? Math.min(lastEntry.addedAmount, item.amount ?? 0)
-                      : undefined;
+                      ? Math.min(lastEntry.addedAmount, availableAmount)
+                      : availableAmount;
                     return (
                       <ManufacturedRow
                         key={item.id}
