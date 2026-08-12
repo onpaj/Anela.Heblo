@@ -1,0 +1,69 @@
+/* mind-elixir bakes its own light-blue owner-tag colour into its stylesheet
+   (.map-container .tags span{color:#276f86;background:#d6f0f8;...}) and exposes no
+   `cssVar` hook to reach it — Theme objects in mindElixirTheme.ts cannot touch it.
+   Override it here with this app's neutral badge tokens (matching the owner badge
+   the pre-migration MindMapFlowNode used) so it reads correctly on both themes.
+   Selector specificity (.mindmap-canvas .map-container .tags span, 3 classes + 1
+   element) exceeds the library's own rule (2 classes + 1 element), so this wins
+   without `!important`. */
+.mindmap-canvas .map-container .tags span {
+  color: #737373;
+  background: rgba(0, 0, 0, 0.06);
+}
+
+.dark .mindmap-canvas .map-container .tags span {
+  color: #9aa0aa;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+/* mind-elixir only draws a card for the root and for top-level branches; every
+   deeper node is bare text on the background, which makes a busy map impossible to
+   read. Give those nodes the same card treatment, keeping a deliberate hierarchy:
+   the root stays an inverted filled card, branches keep their 2px solid branch
+   colour, and deeper nodes get a 1px border in the same branch colour at reduced
+   strength.
+
+   Leaves live under <me-children>; branch topics do not (they sit directly under
+   me-main > me-wrapper > me-parent), so this selector reaches deeper nodes only and
+   leaves the library's root and branch rules alone.
+
+   --branch-color is copied onto each <me-main> by MindMapCanvas's paintBranchColors,
+   because mind-elixir sets the branch colour as an inline style on the branch topic
+   rather than as an inheritable variable. The var() fallback and the preceding
+   border shorthand both degrade safely if that has not run yet, or if the browser
+   lacks color-mix. */
+.mindmap-canvas .map-container me-children me-parent > me-tpc {
+  background-color: var(--main-bgcolor);
+  border: 1px solid var(--branch-color, var(--main-color));
+  border-color: color-mix(in srgb, var(--branch-color, var(--main-color)) 55%, transparent);
+  border-radius: var(--main-radius);
+  padding: var(--topic-padding);
+}
+
+/* Put the collapse/expand circle of a deeper node where a top-level branch's sits:
+   centred on the card's side edge, 10px clear of it.
+
+   mind-elixir places it at the bottom instead (`me-epd { top: calc(100% - 9px) }`,
+   against `top: calc(50% - 9px)` for a branch), and 5px inside the <me-parent> box
+   (`.lhs me-epd { left: 5px }`, against `left: -10px` for a branch). Both rules
+   assume a bare text node, where the box edge reads as the node's edge. Deeper
+   nodes now carry a card (above), and that card is inset from the box by the node
+   gap — so the library's placement lands the circle inside the card's bottom-left
+   corner, overlapping the border.
+
+   The 2px puts it 10px outside the card: the box is a node gap (12px) wider than
+   the card on each side, and 12 - 10 = 2. Vertical centring needs no such
+   correction — <me-parent>'s 6px vertical padding is symmetric, so the box's 50%
+   is already the card's centre. The selectors reach deeper nodes only, for the
+   same structural reason as the card rule above. */
+.mindmap-canvas .map-container me-children me-parent > me-epd {
+  top: calc(50% - 9px);
+}
+
+.mindmap-canvas .map-container .lhs me-children me-parent > me-epd {
+  left: 2px;
+}
+
+.mindmap-canvas .map-container .rhs me-children me-parent > me-epd {
+  right: 2px;
+}
