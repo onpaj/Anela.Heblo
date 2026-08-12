@@ -21,16 +21,16 @@
       "updated_at": "2026-08-12T03:25:47.568756Z"
     },
     "developing": {
-      "status": "pending",
-      "updated_at": null
+      "status": "in_progress",
+      "updated_at": "2026-08-12T22:18:50.948304Z"
     }
   },
   "tasks": [
     {
       "name": "add-smartsupp-contact-enricher",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-08-12T22:18:51.121646Z"
     },
     {
       "name": "wire-reactions-to-contact-enricher",

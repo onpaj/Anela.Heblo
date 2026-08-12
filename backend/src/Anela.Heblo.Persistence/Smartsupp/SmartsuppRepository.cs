@@ -378,4 +378,9 @@ public sealed class SmartsuppRepository : ISmartsuppRepository
 
     public async Task SaveChangesAsync(CancellationToken cancellationToken) =>
         await _db.SaveChangesAsync(cancellationToken);
+
+    public async Task<bool> ContactExistsAsync(string contactId, CancellationToken cancellationToken) =>
+        await _db.SmartsuppContacts
+            .AsNoTracking()
+            .AnyAsync(c => c.Id == contactId, cancellationToken);
 }
