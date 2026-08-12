@@ -34,9 +34,9 @@
     },
     {
       "name": "wire-reactions-to-contact-enricher",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-08-12T23:18:45.038730Z"
+      "updated_at": "2026-08-12T23:27:59.750166Z"
     },
     {
       "name": "remove-rest-dependency-from-smartsupp-repository",
