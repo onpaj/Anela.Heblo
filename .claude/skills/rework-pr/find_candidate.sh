@@ -5,6 +5,12 @@
 # Emits JSON: {"candidate": {...}|null, "skipped": [...]}
 set -euo pipefail
 
+# When USE_GH_API is set, every `gh` call below routes through the shared
+# curl+REST library instead — for environments where the `gh` CLI itself is
+# not permitted. See .claude/skills/_lib/gh_api.sh for the transport layer;
+# the logic here is unchanged either way.
+LIB=".claude/skills/_lib/gh_api.sh"
+
 NEEDS_WORK_LABEL="needs-work"
 AGENT_WIP_LABEL="agent-wip"
 MAX_REVISION_ATTEMPTS=3
@@ -29,13 +35,17 @@ if [ -z "$REPO" ]; then
   fi
 fi
 
-prs_json=$(gh pr list \
-  --repo "$REPO" \
-  --state open \
-  --label "$NEEDS_WORK_LABEL" \
-  --label "$AGENT_LABEL" \
-  --limit 100 \
-  --json number,title,createdAt,headRefName,body,isDraft,mergeable,labels)
+if [ -n "${USE_GH_API:-}" ]; then
+  prs_json=$(GH_REPO="$REPO" "$LIB" pr-list open "${NEEDS_WORK_LABEL},${AGENT_LABEL}")
+else
+  prs_json=$(gh pr list \
+    --repo "$REPO" \
+    --state open \
+    --label "$NEEDS_WORK_LABEL" \
+    --label "$AGENT_LABEL" \
+    --limit 100 \
+    --json number,title,createdAt,headRefName,body,isDraft,mergeable,labels)
+fi
 
 sorted_numbers=$(echo "$prs_json" | jq -r 'sort_by(.createdAt) | .[].number')
 
@@ -82,7 +92,11 @@ for n in $sorted_numbers; do
   # PR with more than 30 comments the most recent `verdict: REJECT` blocks
   # would otherwise sit on pages that are never fetched, undercounting
   # attempts and letting the cap never trip.
-  comments_json=$(gh api --paginate "repos/$REPO/issues/$n/comments")
+  if [ -n "${USE_GH_API:-}" ]; then
+    comments_json=$(GH_REPO="$REPO" "$LIB" paginate "repos/$REPO/issues/$n/comments")
+  else
+    comments_json=$(gh api --paginate "repos/$REPO/issues/$n/comments")
+  fi
   attempts=$(echo "$comments_json" \
     | jq '[.[].body // "" | select(test("verdict:\\s*REJECT"))] | length')
 
