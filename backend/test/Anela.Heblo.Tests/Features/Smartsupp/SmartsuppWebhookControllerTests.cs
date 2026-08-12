@@ -373,6 +373,9 @@ internal sealed class NoOpSmartsuppRepository : ISmartsuppRepository
     public Task<SmartsuppConversation?> GetConversationAsync(string id, CancellationToken cancellationToken) =>
         Task.FromResult<SmartsuppConversation?>(null);
 
+    public Task<SmartsuppConversation?> FindConversationByIdAsync(string conversationId, CancellationToken cancellationToken) =>
+        Task.FromResult<SmartsuppConversation?>(null);
+
     public Task UpsertContactAsync(SmartsuppContact contact, CancellationToken cancellationToken) => Task.CompletedTask;
 
     public Task BackfillConversationDenormFieldsAsync(SmartsuppContact contact, CancellationToken cancellationToken) => Task.CompletedTask;
