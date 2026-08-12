@@ -16,7 +16,7 @@ using Anela.Heblo.Application.Features.Photobank.UseCases.BulkAddPhotoTag;
 using Anela.Heblo.Application.Features.Photobank.UseCases.RetagPhotos;
 using Anela.Heblo.Application.Features.Photobank.UseCases.UpdateRule;
 using Anela.Heblo.Application.Features.Photobank.Validators;
-using Anela.Heblo.Domain.Shared;
+using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Domain.Features.Photobank;
 using Anela.Heblo.Persistence.Photobank;
 using FluentValidation;
