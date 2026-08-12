@@ -64,9 +64,9 @@
     },
     {
       "name": "retire-smartsuppclient",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-08-12T07:18:43.704578Z"
+      "updated_at": "2026-08-12T07:54:19.272050Z"
     }
   ]
 }
