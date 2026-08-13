@@ -1,7 +1,6 @@
 using Anela.Heblo.Domain.Features.Smartsupp;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Anela.Heblo.Persistence.Smartsupp;
 
@@ -10,16 +9,13 @@ public sealed class SmartsuppRepository : ISmartsuppRepository
     private const int MaxOtherConversations = 20;
 
     private readonly ApplicationDbContext _db;
-    private readonly ISmartsuppApiClient _apiClient;
     private readonly ILogger<SmartsuppRepository> _logger;
 
     public SmartsuppRepository(
         ApplicationDbContext db,
-        ISmartsuppApiClient apiClient,
         ILogger<SmartsuppRepository> logger)
     {
         _db = db;
-        _apiClient = apiClient;
         _logger = logger;
     }
 
@@ -93,18 +89,6 @@ public sealed class SmartsuppRepository : ISmartsuppRepository
             linkedContact = await _db.SmartsuppContacts
                 .AsNoTracking()
                 .FirstOrDefaultAsync(c => c.Id == conversation.ContactId, cancellationToken);
-
-            if (linkedContact is null)
-            {
-                // Smartsupp webhooks reference contacts by id without inlining the name/email
-                // and we cannot rely on a contact.* event arriving — pull the record via REST so
-                // the FK link survives and the conversation row carries the display name.
-                linkedContact = await TryFetchAndStageContactAsync(
-                    conversation.ContactId, conversation.SyncedAt, cancellationToken);
-
-                if (linkedContact is null)
-                    conversation.ContactId = null;
-            }
         }
 
         conversation.ContactName ??= linkedContact?.Name;
@@ -298,58 +282,6 @@ public sealed class SmartsuppRepository : ISmartsuppRepository
             .Where(c => c.ContactName == null && c.ContactEmail == null)
             .Select(c => c.Id)
             .ToListAsync(cancellationToken);
-
-    private async Task<SmartsuppContact?> TryFetchAndStageContactAsync(
-        string contactId,
-        DateTime syncedAt,
-        CancellationToken cancellationToken)
-    {
-        SmartsuppContactData? data;
-        try
-        {
-            data = await _apiClient.GetContactAsync(contactId, cancellationToken);
-        }
-        catch (Exception ex)
-        {
-            // Fail open: webhook still saves the conversation without the contact link.
-            // The orphan backfill job can pick it up later when Smartsupp REST is healthy.
-            _logger.LogWarning(ex,
-                "smartsupp: failed to fetch contact {ContactId} while upserting conversation; continuing without link",
-                contactId);
-            return null;
-        }
-
-        if (data is null)
-            return null;
-
-        var contact = MapContactDataToEntity(data, syncedAt);
-        await UpsertContactAsync(contact, cancellationToken);
-        return contact;
-    }
-
-    // Timestamps MUST be DateTimeKind.Utc: UpsertContactAsync writes them via
-    // ExecuteSqlInterpolated, which types a bare DateTime as `timestamp with time zone`
-    // and rejects Kind=Unspecified at the Npgsql layer. The webhook contact path
-    // (SmartsuppPayloadMapper.MapContact) already produces Utc; this REST-staged path
-    // must match, otherwise the enclosing conversation upsert throws and the conversation
-    // is dropped (observed for Facebook Messenger contacts fetched on demand).
-    internal static SmartsuppContact MapContactDataToEntity(SmartsuppContactData data, DateTime syncedAt) =>
-        new()
-        {
-            Id = data.Id,
-            Email = data.Email,
-            Name = data.Name,
-            Phone = data.Phone,
-            Note = data.Note,
-            BannedAt = data.BannedAt is { } bannedAt ? DateTime.SpecifyKind(bannedAt, DateTimeKind.Utc) : null,
-            BannedBy = data.BannedBy,
-            GdprApproved = data.GdprApproved,
-            TagsJson = data.TagsJson,
-            PropertiesJson = data.PropertiesJson,
-            CreatedAt = DateTime.SpecifyKind(data.CreatedAt, DateTimeKind.Utc),
-            UpdatedAt = DateTime.SpecifyKind(data.UpdatedAt, DateTimeKind.Utc),
-            SyncedAt = DateTime.SpecifyKind(syncedAt, DateTimeKind.Utc),
-        };
 
     public async Task UpdateVisitorCacheAsync(
         string conversationId,

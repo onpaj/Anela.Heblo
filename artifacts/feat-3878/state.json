@@ -22,7 +22,7 @@
     },
     "developing": {
       "status": "in_progress",
-      "updated_at": "2026-08-12T22:18:50.948304Z"
+      "updated_at": "2026-08-13T00:14:43.346659Z"
     }
   },
   "tasks": [
@@ -40,9 +40,9 @@
     },
     {
       "name": "remove-rest-dependency-from-smartsupp-repository",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-08-13T00:14:43.510186Z"
     }
   ]
 }
