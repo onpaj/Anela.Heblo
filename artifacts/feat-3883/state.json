@@ -28,9 +28,9 @@
   "tasks": [
     {
       "name": "fix-authorization-header-logging-leak",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-08-13T04:15:46.094748Z"
+      "updated_at": "2026-08-13T05:08:50.550925Z"
     }
   ]
 }
