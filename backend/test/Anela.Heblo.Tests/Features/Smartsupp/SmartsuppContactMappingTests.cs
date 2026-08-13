@@ -1,5 +1,5 @@
+using Anela.Heblo.Application.Features.Smartsupp.Infrastructure;
 using Anela.Heblo.Domain.Features.Smartsupp;
-using Anela.Heblo.Persistence.Smartsupp;
 using FluentAssertions;
 using Xunit;
 
@@ -33,7 +33,7 @@ public class SmartsuppContactMappingTests
         var syncedAt = DateTime.SpecifyKind(new DateTime(2026, 7, 13, 6, 10, 0), DateTimeKind.Unspecified);
 
         // Act
-        var entity = SmartsuppRepository.MapContactDataToEntity(data, syncedAt);
+        var entity = SmartsuppContactEnricher.MapContactDataToEntity(data, syncedAt);
 
         // Assert — every timestamp must be Utc so Npgsql accepts the raw-SQL parameters...
         entity.CreatedAt.Kind.Should().Be(DateTimeKind.Utc);
@@ -61,7 +61,7 @@ public class SmartsuppContactMappingTests
         };
 
         // Act
-        var entity = SmartsuppRepository.MapContactDataToEntity(
+        var entity = SmartsuppContactEnricher.MapContactDataToEntity(
             data, DateTime.SpecifyKind(new DateTime(2026, 7, 13, 6, 10, 0), DateTimeKind.Unspecified));
 
         // Assert
