@@ -21,16 +21,16 @@
       "updated_at": "2026-08-12T07:25:13.631405Z"
     },
     "developing": {
-      "status": "pending",
-      "updated_at": null
+      "status": "in_progress",
+      "updated_at": "2026-08-13T04:15:45.807523Z"
     }
   },
   "tasks": [
     {
       "name": "fix-authorization-header-logging-leak",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-08-13T04:15:46.094748Z"
     }
   ]
 }
