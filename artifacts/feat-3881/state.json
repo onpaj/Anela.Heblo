@@ -28,9 +28,9 @@
   "tasks": [
     {
       "name": "relocate-jobstorage-registration",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-08-13T03:14:57.002797Z"
+      "updated_at": "2026-08-13T04:07:46.590936Z"
     }
   ]
 }
