@@ -28,9 +28,9 @@
   "tasks": [
     {
       "name": "verify-dead-code-preconditions",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-08-13T23:25:18.133745Z"
+      "updated_at": "2026-08-13T23:29:14.752780Z"
     },
     {
       "name": "remove-dead-transitions-hook-and-plumbing",
