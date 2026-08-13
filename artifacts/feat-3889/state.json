@@ -21,16 +21,16 @@
       "updated_at": "2026-08-10T10:43:24.326526Z"
     },
     "developing": {
-      "status": "pending",
-      "updated_at": null
+      "status": "in_progress",
+      "updated_at": "2026-08-13T23:25:17.919973Z"
     }
   },
   "tasks": [
     {
       "name": "verify-dead-code-preconditions",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-08-13T23:25:18.133745Z"
     },
     {
       "name": "remove-dead-transitions-hook-and-plumbing",
