@@ -22,7 +22,7 @@
     },
     "developing": {
       "status": "in_progress",
-      "updated_at": "2026-08-10T18:56:38.961206Z"
+      "updated_at": "2026-08-13T13:20:27.109718Z"
     }
   },
   "tasks": [
@@ -34,9 +34,9 @@
     },
     {
       "name": "use-injected-clock-for-transitions",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-08-13T13:20:27.333420Z"
     },
     {
       "name": "clock-advance-regression-test",
