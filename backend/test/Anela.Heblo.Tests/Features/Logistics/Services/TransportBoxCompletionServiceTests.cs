@@ -72,6 +72,14 @@ public class TransportBoxCompletionServiceTests
         await _service.CompleteReceivedBoxesAsync(CancellationToken.None);
 
         box.State.Should().Be(TransportBoxState.Stocked);
+        box.LastStateChanged.Should().Be(FrozenNow.UtcDateTime);
+
+        box.StateLog.Should().ContainSingle();
+        var stateLogEntry = box.StateLog.Single();
+        stateLogEntry.State.Should().Be(TransportBoxState.Stocked);
+        stateLogEntry.StateDate.Should().Be(FrozenNow.UtcDateTime);
+        stateLogEntry.User.Should().Be("System");
+
         _transportBoxRepositoryMock.Verify(
             x => x.UpdateAsync(box, It.IsAny<CancellationToken>()),
             Times.Once);
@@ -105,6 +113,13 @@ public class TransportBoxCompletionServiceTests
         await _service.CompleteReceivedBoxesAsync(CancellationToken.None);
 
         box.State.Should().Be(TransportBoxState.Error);
+        box.LastStateChanged.Should().Be(FrozenNow.UtcDateTime);
+
+        box.StateLog.Should().ContainSingle();
+        var stateLogEntry = box.StateLog.Single();
+        stateLogEntry.State.Should().Be(TransportBoxState.Error);
+        stateLogEntry.StateDate.Should().Be(FrozenNow.UtcDateTime);
+        stateLogEntry.User.Should().Be("System");
     }
 
     [Fact]
@@ -150,6 +165,14 @@ public class TransportBoxCompletionServiceTests
         await _service.CompleteReceivedBoxesAsync(CancellationToken.None);
 
         box.State.Should().Be(TransportBoxState.Error);
+        box.LastStateChanged.Should().Be(FrozenNow.UtcDateTime);
+
+        box.StateLog.Should().ContainSingle();
+        var stateLogEntry = box.StateLog.Single();
+        stateLogEntry.State.Should().Be(TransportBoxState.Error);
+        stateLogEntry.StateDate.Should().Be(FrozenNow.UtcDateTime);
+        stateLogEntry.User.Should().Be("System");
+        stateLogEntry.Description.Should().Be("No stock-up operations found for this box");
     }
 
     [Fact]
