@@ -243,6 +243,42 @@ public class TransportBoxCompletionServiceTests
             Times.Never);
     }
 
+    [Fact]
+    public async Task CompleteReceivedBoxesAsync_ClockAdvanced_WritesAdvancedTimestamp()
+    {
+        var box = CreateBox(1, "BOX-001", TransportBoxState.Received);
+        _transportBoxRepositoryMock
+            .Setup(x => x.GetReceivedBoxesAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<TransportBox> { box });
+
+        SetupQueryReturns(box.Id, new List<LogisticsStockOperationStatus>
+        {
+            CreateStatus("BOX-000001-PROD1", LogisticsStockOperationState.Completed),
+        });
+
+        _transportBoxRepositoryMock
+            .Setup(x => x.UpdateAsync(It.IsAny<TransportBox>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+        _transportBoxRepositoryMock
+            .Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(1);
+
+        _timeProvider.Advance(TimeSpan.FromHours(1));
+
+        await _service.CompleteReceivedBoxesAsync(CancellationToken.None);
+
+        var expectedTimestamp = FrozenNow.UtcDateTime.AddHours(1);
+
+        box.State.Should().Be(TransportBoxState.Stocked);
+        box.LastStateChanged.Should().Be(expectedTimestamp);
+
+        box.StateLog.Should().ContainSingle();
+        var stateLogEntry = box.StateLog.Single();
+        stateLogEntry.State.Should().Be(TransportBoxState.Stocked);
+        stateLogEntry.StateDate.Should().Be(expectedTimestamp);
+        stateLogEntry.User.Should().Be("System");
+    }
+
     private void SetupQueryReturns(int sourceId, IReadOnlyList<LogisticsStockOperationStatus> operations)
     {
         _stockOperationQueryServiceMock
