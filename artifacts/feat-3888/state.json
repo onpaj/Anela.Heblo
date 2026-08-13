@@ -40,9 +40,9 @@
     },
     {
       "name": "clock-advance-regression-test",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-08-13T20:16:31.531988Z"
+      "updated_at": "2026-08-13T21:33:56.028451Z"
     },
     {
       "name": "validate-and-verify-scope",
