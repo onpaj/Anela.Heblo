@@ -28,9 +28,9 @@
   "tasks": [
     {
       "name": "gate-getenvironmentinfo-by-environment",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-08-13T09:19:00.761672Z"
+      "updated_at": "2026-08-13T10:43:37.439464Z"
     }
   ]
 }
