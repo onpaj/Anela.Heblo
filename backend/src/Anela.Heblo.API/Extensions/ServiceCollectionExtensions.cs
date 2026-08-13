@@ -145,7 +145,12 @@ public static class ServiceCollectionExtensions
         {
             logging.LoggingFields = Microsoft.AspNetCore.HttpLogging.HttpLoggingFields.All;
             logging.RequestHeaders.Add("User-Agent");
-            logging.RequestHeaders.Add("Authorization");
+            // Authorization is intentionally NOT added here: HttpLoggingMiddleware logs the
+            // real value of any header explicitly listed in RequestHeaders, and Authorization
+            // carries the live bearer token (Entra ID access token, or the mock-auth token) for
+            // every authenticated request. Leaving it unlisted keeps it redacted by the
+            // middleware's own default behavior, matching RequestLoggingMiddleware.IsSensitiveHeader
+            // below, which excludes the same header for the same reason. See issue #3883.
             logging.ResponseHeaders.Add("Content-Type");
             logging.MediaTypeOptions.AddText("application/json");
             logging.RequestBodyLogLimit = 4096;
