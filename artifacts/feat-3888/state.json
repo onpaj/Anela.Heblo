@@ -34,9 +34,9 @@
     },
     {
       "name": "use-injected-clock-for-transitions",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-08-13T13:20:27.333420Z"
+      "updated_at": "2026-08-13T13:59:29.339759Z"
     },
     {
       "name": "clock-advance-regression-test",
