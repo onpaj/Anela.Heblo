@@ -21,16 +21,16 @@
       "updated_at": "2026-08-12T11:28:14.210586Z"
     },
     "developing": {
-      "status": "pending",
-      "updated_at": null
+      "status": "in_progress",
+      "updated_at": "2026-08-13T09:19:00.501058Z"
     }
   },
   "tasks": [
     {
       "name": "gate-getenvironmentinfo-by-environment",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-08-13T09:19:00.761672Z"
     }
   ]
 }

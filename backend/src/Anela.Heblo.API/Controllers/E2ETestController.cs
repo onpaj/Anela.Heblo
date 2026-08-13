@@ -40,6 +40,12 @@ public class E2ETestController : ControllerBase
     [HttpGet("env-info")]
     public ActionResult<object> GetEnvironmentInfo()
     {
+        // CRITICAL SECURITY: Only allow in Staging or Development environment
+        if (!_environment.IsEnvironment("Staging") && !_environment.IsDevelopment())
+        {
+            return NotFound(new { error = "E2E endpoints only available in Staging or Development environment", currentEnvironment = _environment.EnvironmentName });
+        }
+
         return Ok(new
         {
             environment = _environment.EnvironmentName,
