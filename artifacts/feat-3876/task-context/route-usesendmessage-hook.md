@@ -1,3 +1,166 @@
+### task: route-usesendmessage-hook
+
+**Files:**
+- Modify: `frontend/src/components/customer-support/smartsupp/hooks/useSendMessage.ts`
+- Modify: `frontend/src/components/customer-support/smartsupp/hooks/__tests__/useSendMessage.test.ts`
+
+#### Step 1: Rewrite `useSendMessage.ts`
+
+Replace the entire file with:
+
+```ts
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { getAuthenticatedApiClient } from "../../../../api/client";
+import {
+  ErrorCodes,
+  SendMessageBody,
+  GetConversationResponse,
+  MessageDto,
+  type SendMessageResponse,
+} from "../../../../api/generated/api-client";
+import { SMARTSUPP_QUERY_KEYS } from "../../../../api/hooks/useSmartsupp";
+
+const SEND_ERROR_MESSAGES: Partial<Record<ErrorCodes, string>> = {
+  [ErrorCodes.SmartsuppSendMessageUnavailable]:
+    "Nepodařilo se odeslat zprávu — služba je nedostupná. Zkuste to prosím znovu.",
+  [ErrorCodes.SmartsuppConversationNotFound]: "Konverzace nebyla nalezena.",
+};
+
+function messageForSendError(code?: ErrorCodes): string {
+  if (code && SEND_ERROR_MESSAGES[code]) return SEND_ERROR_MESSAGES[code]!;
+  return "Nepodařilo se odeslat zprávu.";
+}
+
+interface SendMessageVariables {
+  content: string;
+  /** Set when the message was composed from an AI draft, to link the sent text to that draft's log. */
+  draftLogId?: string | null;
+}
+
+interface UseSendMessageResult {
+  send: (content: string, draftLogId?: string | null) => void;
+  isPending: boolean;
+  error: string | null;
+  justSent: boolean;
+  clearSent: () => void;
+}
+
+type SendMessageContext = { previous?: GetConversationResponse; optimisticId?: string };
+
+export function useSendMessage(conversationId: string | null): UseSendMessageResult {
+  const queryClient = useQueryClient();
+
+  const mutation = useMutation<SendMessageResponse, Error, SendMessageVariables, SendMessageContext>({
+    mutationFn: async ({ content, draftLogId }) => {
+      if (!conversationId) {
+        throw new Error("Není vybrána konverzace.");
+      }
+
+      let data: SendMessageResponse;
+      try {
+        data = await getAuthenticatedApiClient().smartsupp_SendMessage(
+          conversationId,
+          new SendMessageBody({ content, draftLogId: draftLogId ?? undefined }),
+        );
+      } catch {
+        // 400/404/503 are all untyped ProducesResponseType on this controller action.
+        throw new Error(messageForSendError(undefined));
+      }
+      if (!data.success) {
+        throw new Error(messageForSendError(data.errorCode));
+      }
+
+      return data;
+    },
+    onMutate: async ({ content }) => {
+      if (!conversationId) return {};
+      await queryClient.cancelQueries({
+        queryKey: SMARTSUPP_QUERY_KEYS.conversation(conversationId),
+      });
+      const previous = queryClient.getQueryData<GetConversationResponse>(
+        SMARTSUPP_QUERY_KEYS.conversation(conversationId),
+      );
+      const optimisticId = `optimistic-${Date.now()}`;
+      const optimisticMsg = new MessageDto({
+        id: optimisticId,
+        authorType: "agent",
+        content,
+        createdAt: new Date(),
+        isFirstReply: false,
+        deliveryStatus: "pending",
+      });
+      queryClient.setQueryData<GetConversationResponse>(
+        SMARTSUPP_QUERY_KEYS.conversation(conversationId),
+        (old) =>
+          old
+            ? new GetConversationResponse({
+                ...old,
+                messages: [...(old.messages ?? []), optimisticMsg],
+              })
+            : old,
+      );
+      return { previous, optimisticId };
+    },
+    onSuccess: (data, _variables, context) => {
+      const optimisticId = context?.optimisticId;
+      if (!conversationId || !optimisticId) return;
+      queryClient.setQueryData<GetConversationResponse>(
+        SMARTSUPP_QUERY_KEYS.conversation(conversationId),
+        (current) => {
+          if (!current) return current;
+          if (!data.messageId) {
+            return new GetConversationResponse({
+              ...current,
+              messages: (current.messages ?? []).filter((m) => m.id !== optimisticId),
+            });
+          }
+          return new GetConversationResponse({
+            ...current,
+            messages: (current.messages ?? []).map((m) =>
+              m.id === optimisticId
+                ? new MessageDto({
+                    ...m,
+                    id: data.messageId!,
+                    createdAt: data.createdAt ?? m.createdAt,
+                    deliveryStatus: "sent",
+                  })
+                : m,
+            ),
+          });
+        },
+      );
+    },
+    onError: (_err, _content, context) => {
+      if (context?.previous !== undefined && conversationId) {
+        queryClient.setQueryData(
+          SMARTSUPP_QUERY_KEYS.conversation(conversationId),
+          context.previous,
+        );
+      }
+    },
+  });
+
+  return {
+    send: (content: string, draftLogId?: string | null) =>
+      mutation.mutate({ content, draftLogId }),
+    isPending: mutation.isPending,
+    error: mutation.error ? mutation.error.message : null,
+    justSent: mutation.isSuccess,
+    clearSent: mutation.reset,
+  };
+}
+```
+
+Two things worth flagging explicitly since they're easy to get wrong:
+
+- `GetConversationResponse` and `MessageDto` are imported here as **values** (not `type`-only), because they're constructed with `new` in the cache-update code — importing them `type`-only would compile-error at those call sites.
+- Every cache-update spot that used to spread a plain object (`{...old, messages: [...]}`) is now wrapped in `new GetConversationResponse({...})` / `new MessageDto({...})`. This is required, not stylistic: `GetConversationResponse`/`MessageDto` are NSwag-generated classes with `init()`/`toJSON()` methods, and a plain object literal does not structurally satisfy a class type in TypeScript (confirmed by compiling both forms against this repo's `tsconfig.json` — the plain-spread form fails with "missing `init`, `toJSON`"). The generated class's constructor copies every property from the object you pass it (via `BaseResponse`'s constructor loop), so `new GetConversationResponse({...old, messages: [...]})` produces a real, correctly-populated instance.
+
+#### Step 2: Rewrite `useSendMessage.test.ts`
+
+Replace `frontend/src/components/customer-support/smartsupp/hooks/__tests__/useSendMessage.test.ts` with:
+
+```ts
 import { renderHook, act, waitFor } from "@testing-library/react";
 import React from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -221,3 +384,24 @@ describe("useSendMessage", () => {
     expect(cached?.messages.some((m) => m.id.startsWith("optimistic-"))).toBe(false);
   });
 });
+```
+
+#### Step 3: Run the test and full type-check
+
+```bash
+cd frontend
+CI=true npx react-scripts test src/components/customer-support/smartsupp/hooks/__tests__/useSendMessage.test.ts --watchAll=false
+npm run build
+```
+
+Both should be clean.
+
+#### Step 4: Commit
+
+```bash
+git add frontend/src/components/customer-support/smartsupp/hooks/useSendMessage.ts \
+  frontend/src/components/customer-support/smartsupp/hooks/__tests__/useSendMessage.test.ts
+git commit -m "Route useSendMessage through the generated typed API client"
+```
+
+---

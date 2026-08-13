@@ -1,0 +1,76 @@
+{
+  "feature_id": "feat-3876",
+  "issue_number": 3876,
+  "created_at": "2026-08-11T22:21:20.838558Z",
+  "max_revisions": 3,
+  "phases": {
+    "analyzing": {
+      "status": "completed",
+      "updated_at": "2026-08-11T22:25:51.993341Z"
+    },
+    "architecting": {
+      "status": "completed",
+      "updated_at": "2026-08-11T22:31:31.715688Z"
+    },
+    "designing": {
+      "status": "completed",
+      "updated_at": "2026-08-11T22:32:54.759245Z"
+    },
+    "planning": {
+      "status": "completed",
+      "updated_at": "2026-08-11T22:58:27.372796Z"
+    },
+    "developing": {
+      "status": "in_progress",
+      "updated_at": "2026-08-12T07:18:43.470397Z"
+    },
+    "code-review": {
+      "status": "completed",
+      "updated_at": "2026-08-12T10:20:50.982673Z"
+    }
+  },
+  "tasks": [
+    {
+      "name": "route-usesmartsupp-core-hooks",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-08-11T23:35:00.283056Z"
+    },
+    {
+      "name": "fix-smartsupp-consumer-optionality-fallout",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-08-12T02:42:35.373389Z"
+    },
+    {
+      "name": "route-usegeneratedraftreply-hook",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-08-12T03:29:30.099395Z"
+    },
+    {
+      "name": "route-usesendmessage-hook",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-08-12T04:35:35.657132Z"
+    },
+    {
+      "name": "route-usesubmitdraftreplyfeedback-hook",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-08-12T05:33:56.508277Z"
+    },
+    {
+      "name": "extract-shared-ragfeedback-mapper",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-08-12T06:38:33.847953Z"
+    },
+    {
+      "name": "retire-smartsuppclient",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-08-12T07:54:19.272050Z"
+    }
+  ]
+}

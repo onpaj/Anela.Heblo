@@ -47,8 +47,8 @@ const ConversationList: React.FC<ConversationListProps> = ({
       )}
       {[...conversations]
         .sort((a, b) => {
-          const aTime = a.lastMessageAt ?? a.updatedAt;
-          const bTime = b.lastMessageAt ?? b.updatedAt;
+          const aTime = a.lastMessageAt ?? a.updatedAt ?? new Date(0);
+          const bTime = b.lastMessageAt ?? b.updatedAt ?? new Date(0);
           return bTime < aTime ? -1 : bTime > aTime ? 1 : 0;
         })
         .map((c) => (
@@ -56,7 +56,7 @@ const ConversationList: React.FC<ConversationListProps> = ({
             key={c.id}
             conversation={c}
             isSelected={c.id === selectedId}
-            onClick={() => onSelect(c.id)}
+            onClick={() => onSelect(c.id ?? "")}
           />
         ))}
     </div>
