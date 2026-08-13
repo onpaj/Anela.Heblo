@@ -16,6 +16,12 @@ public interface ITransportBoxRepository : IRepository<TransportBox, int>
 
     Task<TransportBox?> GetByIdWithDetailsAsync(int id);
 
+    /// <summary>
+    /// True when any box currently occupies <paramref name="boxCode"/> — i.e. holds it in a
+    /// state for which <see cref="TransportBoxStateRules.OccupiesCode"/> is true. Matching is
+    /// case-insensitive. The name predates the rule; "active" here means "occupying the code",
+    /// which includes Error and Quarantine.
+    /// </summary>
     Task<bool> IsBoxCodeActiveAsync(string boxCode);
 
     Task<TransportBox?> GetByCodeAsync(string boxCode);
