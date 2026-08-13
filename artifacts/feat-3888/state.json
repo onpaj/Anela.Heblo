@@ -22,7 +22,7 @@
     },
     "developing": {
       "status": "in_progress",
-      "updated_at": "2026-08-13T13:20:27.109718Z"
+      "updated_at": "2026-08-13T20:16:31.320001Z"
     }
   },
   "tasks": [
@@ -40,9 +40,9 @@
     },
     {
       "name": "clock-advance-regression-test",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-08-13T20:16:31.531988Z"
     },
     {
       "name": "validate-and-verify-scope",
