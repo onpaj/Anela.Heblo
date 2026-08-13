@@ -40,9 +40,9 @@
     },
     {
       "name": "remove-rest-dependency-from-smartsupp-repository",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-08-13T00:14:43.510186Z"
+      "updated_at": "2026-08-13T00:24:52.276271Z"
     }
   ]
 }
