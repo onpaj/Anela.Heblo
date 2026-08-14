@@ -22,7 +22,7 @@
     },
     "developing": {
       "status": "in_progress",
-      "updated_at": "2026-08-14T04:16:14.333870Z"
+      "updated_at": "2026-08-14T05:18:37.942360Z"
     }
   },
   "tasks": [
@@ -46,9 +46,9 @@
     },
     {
       "name": "file-dead-export-tooling-followup-issue",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-08-14T05:18:38.193054Z"
     }
   ]
 }
