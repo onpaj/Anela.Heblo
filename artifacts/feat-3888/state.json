@@ -23,6 +23,10 @@
     "developing": {
       "status": "in_progress",
       "updated_at": "2026-08-13T22:25:38.575110Z"
+    },
+    "code-review": {
+      "status": "completed",
+      "updated_at": "2026-08-14T00:17:49.875486Z"
     }
   },
   "tasks": [
