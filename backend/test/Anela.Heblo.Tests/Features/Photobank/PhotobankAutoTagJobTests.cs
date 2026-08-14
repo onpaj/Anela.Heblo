@@ -298,6 +298,114 @@ public class PhotobankAutoTagJobTests
     }
 
     [Fact]
+    public async Task ExecuteAsync_LlmReturnsIdOutsideBatch_DropsResultWithoutApplyingTags()
+    {
+        // Arrange — the only candidate sent to the LLM has id 42, but the model's response
+        // claims an id (999) that was never part of this batch (hallucination, or a
+        // FolderPath/FileName-driven prompt-injection attempt). That id must never be written.
+        var candidate = new PhotoAutoTagCandidate(Id: 42, FolderPath: "/photos", FileName: "product.jpg");
+
+        _tagRepo
+            .Setup(r => r.GetTagsWithCountsAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<TagCount> { new(1, "kosmetika", 3) });
+
+        _autoTagRepo
+            .SetupSequence(r => r.GetPhotosPendingAutoTagAsync(It.IsAny<int>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<PhotoAutoTagCandidate> { candidate })
+            .ReturnsAsync(new List<PhotoAutoTagCandidate>());
+
+        // LLM response references id=999, which was never sent — only id=42 was in the batch.
+        SetupChatResponse("""{"results":[{"id":999,"tags":["kosmetika"]}]}""");
+
+        _photoTagRepo
+            .Setup(r => r.PhotoTagExistsAsync(It.IsAny<int>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(false);
+        _photoTagRepo
+            .Setup(r => r.AddPhotoTagAsync(It.IsAny<PhotoTag>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+        _photoTagRepo
+            .Setup(r => r.SaveChangesAsync(It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+        _autoTagRepo
+            .Setup(r => r.StampAutoTaggedAtAsync(It.IsAny<IReadOnlyList<int>>(), It.IsAny<DateTime>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
+        var job = CreateJob();
+
+        // Act
+        await job.ExecuteAsync(CancellationToken.None);
+
+        // Assert — no PhotoTag is ever written for the out-of-batch id, or for any id at all
+        // (the batch had exactly one candidate, id 42, and the LLM never returned a result for it).
+        _photoTagRepo.Verify(
+            r => r.AddPhotoTagAsync(It.IsAny<PhotoTag>(), It.IsAny<CancellationToken>()),
+            Times.Never);
+
+        // The batch (id 42) is still stamped as processed, regardless of the rejected result —
+        // stamping behavior for ids actually sent must be unchanged (spec FR-1).
+        _autoTagRepo.Verify(
+            r => r.StampAutoTaggedAtAsync(
+                It.Is<IReadOnlyList<int>>(ids => ids.Count == 1 && ids[0] == 42),
+                It.IsAny<DateTime>(),
+                It.IsAny<CancellationToken>()),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task ExecuteAsync_BatchWithMixedInAndOutOfBatchIds_AppliesOnlyTheInBatchResult()
+    {
+        // Arrange — two candidates sent (10 and 11); LLM returns a valid result for 10 and a
+        // result for an id (55) that belongs to neither candidate in this batch.
+        var candidates = new List<PhotoAutoTagCandidate>
+        {
+            new(Id: 10, FolderPath: "/photos", FileName: "a.jpg"),
+            new(Id: 11, FolderPath: "/photos", FileName: "b.jpg"),
+        };
+
+        _tagRepo
+            .Setup(r => r.GetTagsWithCountsAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<TagCount> { new(1, "kosmetika", 3) });
+
+        _autoTagRepo
+            .SetupSequence(r => r.GetPhotosPendingAutoTagAsync(It.IsAny<int>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(candidates)
+            .ReturnsAsync(new List<PhotoAutoTagCandidate>());
+
+        SetupChatResponse("""{"results":[{"id":10,"tags":["kosmetika"]},{"id":55,"tags":["kosmetika"]}]}""");
+
+        _photoTagRepo
+            .Setup(r => r.PhotoTagExistsAsync(It.IsAny<int>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(false);
+        _photoTagRepo
+            .Setup(r => r.AddPhotoTagAsync(It.IsAny<PhotoTag>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+        _photoTagRepo
+            .Setup(r => r.SaveChangesAsync(It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+        _autoTagRepo
+            .Setup(r => r.StampAutoTaggedAtAsync(It.IsAny<IReadOnlyList<int>>(), It.IsAny<DateTime>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
+        var job = CreateJob();
+
+        // Act
+        await job.ExecuteAsync(CancellationToken.None);
+
+        // Assert — only id 10 (in the batch) gets a PhotoTag written; id 55 (not in the batch) never does.
+        _photoTagRepo.Verify(
+            r => r.AddPhotoTagAsync(
+                It.Is<PhotoTag>(pt => pt.PhotoId == 10 && pt.TagId == 1 && pt.Source == PhotoTagSource.AI),
+                It.IsAny<CancellationToken>()),
+            Times.Once);
+        _photoTagRepo.Verify(
+            r => r.AddPhotoTagAsync(
+                It.Is<PhotoTag>(pt => pt.PhotoId == 55),
+                It.IsAny<CancellationToken>()),
+            Times.Never);
+        _photoTagRepo.Verify(r => r.AddPhotoTagAsync(It.IsAny<PhotoTag>(), It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
     public async Task ExecuteForPhotosAsync_RunsEvenWhenStatusCheckerReturnsFalse()
     {
         // Arrange — recurring-schedule toggle is OFF, but ad-hoc retag must still run.
