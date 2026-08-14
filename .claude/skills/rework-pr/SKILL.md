@@ -13,6 +13,12 @@ re-implement their logic or hand-write the `gh` commands they already own.
 Your judgement calls are: reading the review/CI feedback and fixing the
 code, and resolving any real conflict when syncing with the default branch.
 
+**If `USE_GH_API` is set in the environment**, every `gh` invocation shown
+below is routed through `.claude/skills/_lib/gh_api.sh` instead -- a
+curl+REST equivalent for environments where the `gh` CLI itself is not
+permitted. Each bash block below already branches on it; run the block
+as-is rather than picking one form by hand.
+
 One PR per invocation. Run this skill again for the next one.
 
 ## 0. Resolve `$REPO` first
@@ -42,7 +48,12 @@ open PR — if so, treat it exactly like an explicit number (skip to step 2,
 still confirming `OPEN` there, and skip candidate search entirely):
 
 ```bash
-gh pr view --repo "$REPO" --json number,state -q 'select(.state == "OPEN") | .number' 2>/dev/null
+if [ -n "${USE_GH_API:-}" ]; then
+  CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
+  GH_REPO="$REPO" .claude/skills/_lib/gh_api.sh pr-view "$CURRENT_BRANCH" 2>/dev/null | jq -r 'select(.state == "OPEN") | .number'
+else
+  gh pr view --repo "$REPO" --json number,state -q 'select(.state == "OPEN") | .number' 2>/dev/null
+fi
 ```
 
 If that prints a number, use it as `{N}`. Otherwise, fall back to the
@@ -65,7 +76,11 @@ stop. Otherwise set `{N}` from `.candidate.number`.
 ## 2. Confirm it's open and unclaimed, then claim it
 
 ```bash
-gh pr view {N} --repo "$REPO" --json state,labels
+if [ -n "${USE_GH_API:-}" ]; then
+  GH_REPO="$REPO" .claude/skills/_lib/gh_api.sh pr-view {N}
+else
+  gh pr view {N} --repo "$REPO" --json state,labels
+fi
 ```
 
 If `.state` is not `OPEN`, report this PR as skipped (not pushed to) and
@@ -83,9 +98,14 @@ may not exist in the repo yet — create it best-effort first, the same
 pattern `apply_verdict.sh` already uses for `needs-work`/`agent-merged`:
 
 ```bash
-gh label create agent-wip --repo "$REPO" --color fbca04 \
-  --description "Claimed by an in-progress /rework-pr run" >/dev/null 2>&1 || true
-gh pr edit {N} --repo "$REPO" --add-label agent-wip
+if [ -n "${USE_GH_API:-}" ]; then
+  GH_REPO="$REPO" .claude/skills/_lib/gh_api.sh label-create agent-wip fbca04 "Claimed by an in-progress /rework-pr run" >/dev/null 2>&1 || true
+  GH_REPO="$REPO" .claude/skills/_lib/gh_api.sh pr-edit {N} --add-label agent-wip
+else
+  gh label create agent-wip --repo "$REPO" --color fbca04 \
+    --description "Claimed by an in-progress /rework-pr run" >/dev/null 2>&1 || true
+  gh pr edit {N} --repo "$REPO" --add-label agent-wip
+fi
 ```
 
 This check-then-claim narrows the race but is not a true atomic lock —
@@ -97,7 +117,11 @@ including a script exiting non-zero, a `git` command failing, an unexpected
 error, or running out of turns mid-task:
 
 ```bash
-gh pr edit {N} --repo "$REPO" --remove-label agent-wip
+if [ -n "${USE_GH_API:-}" ]; then
+  GH_REPO="$REPO" .claude/skills/_lib/gh_api.sh pr-edit {N} --remove-label agent-wip
+else
+  gh pr edit {N} --repo "$REPO" --remove-label agent-wip
+fi
 ```
 
 The four paths called out below are the common cases, **not an exhaustive
@@ -128,8 +152,9 @@ worktree convention:
 ```bash
 HEAD_REF=$(jq -r '.candidate.headRefName // empty' /tmp/rework-candidate.json)
 # If you took the explicit-PR-number or current-branch path in step 1,
-# HEAD_REF came from
-# `gh pr view {N} --repo "$REPO" --json headRefName --jq .headRefName` instead.
+# HEAD_REF came from step 2's PR view instead (`.headRefName` on either
+# `gh pr view {N} --repo "$REPO" --json headRefName` or the API-mode
+# `gh_api.sh pr-view {N}` object, which already includes it).
 WORKTREE="../worktrees/$(echo "$HEAD_REF" | sed 's#/#-#')"
 
 if [ -d "$WORKTREE" ]; then
@@ -146,7 +171,11 @@ the primary checkout.
 ## 4. Sync with the default branch — merge, not rebase
 
 ```bash
-DEFAULT_BRANCH=$(gh repo view "$REPO" --json defaultBranchRef --jq .defaultBranchRef.name)
+if [ -n "${USE_GH_API:-}" ]; then
+  DEFAULT_BRANCH=$(GH_REPO="$REPO" .claude/skills/_lib/gh_api.sh default-branch)
+else
+  DEFAULT_BRANCH=$(gh repo view "$REPO" --json defaultBranchRef --jq .defaultBranchRef.name)
+fi
 git -C "$WORKTREE" fetch origin "$DEFAULT_BRANCH"
 git -C "$WORKTREE" merge "origin/$DEFAULT_BRANCH" --no-edit
 ```
@@ -175,9 +204,21 @@ the latest `/automerge-pr` block, so context from earlier rounds or a
 human's inline notes is not lost:
 
 ```bash
-gh pr view {N} --repo "$REPO" --json title,body,comments,reviews
-gh api "repos/$REPO/pulls/{N}/comments"
-gh pr diff {N} --repo "$REPO"
+if [ -n "${USE_GH_API:-}" ]; then
+  # No single API-mode call reproduces gh's combined `comments,reviews`
+  # shape exactly -- this step is read and interpreted by you directly, not
+  # parsed by a later jq filter, so fetching the equivalent information as
+  # separate calls is fine here.
+  GH_REPO="$REPO" .claude/skills/_lib/gh_api.sh pr-view {N}
+  GH_REPO="$REPO" .claude/skills/_lib/gh_api.sh GET "repos/$REPO/issues/{N}/comments"
+  GH_REPO="$REPO" .claude/skills/_lib/gh_api.sh GET "repos/$REPO/pulls/{N}/reviews"
+  GH_REPO="$REPO" .claude/skills/_lib/gh_api.sh GET "repos/$REPO/pulls/{N}/comments"
+  GH_REPO="$REPO" .claude/skills/_lib/gh_api.sh pr-diff {N}
+else
+  gh pr view {N} --repo "$REPO" --json title,body,comments,reviews
+  gh api "repos/$REPO/pulls/{N}/comments"
+  gh pr diff {N} --repo "$REPO"
+fi
 ```
 
 This includes any hygiene needs-work comment (`Hygiene check found this PR
@@ -201,6 +242,14 @@ Attempt the push, retrying on a non-fast-forward rejection (something else
 wrote to the branch mid-run — not necessarily this skill):
 
 ```bash
+release_agent_wip_claim() {
+  if [ -n "${USE_GH_API:-}" ]; then
+    GH_REPO="$REPO" .claude/skills/_lib/gh_api.sh pr-edit {N} --remove-label agent-wip
+  else
+    gh pr edit {N} --repo "$REPO" --remove-label agent-wip
+  fi
+}
+
 attempt=1
 while [ "$attempt" -le 3 ]; do
   if git -C "$WORKTREE" push origin "HEAD:$HEAD_REF"; then
@@ -209,7 +258,7 @@ while [ "$attempt" -le 3 ]; do
   if [ "$attempt" -eq 3 ]; then
     # Exhausted retries — stop. Do not call finish_revision.sh: needs-work
     # must stay on a PR whose fix did not actually land.
-    gh pr edit {N} --repo "$REPO" --remove-label agent-wip
+    release_agent_wip_claim
     echo "push failed after 3 attempts; report what landed on the branch that this run did not push"
     exit 1
   fi
@@ -222,7 +271,7 @@ while [ "$attempt" -le 3 ]; do
     # Resolve the conflicting files and `git -C "$WORKTREE" commit --no-edit`
     # to complete the merge if the intent is clear. Otherwise:
     git -C "$WORKTREE" merge --abort
-    gh pr edit {N} --repo "$REPO" --remove-label agent-wip
+    release_agent_wip_claim
     echo "push-retry merge conflicted and its intent was unclear; report this PR as skipped"
     exit 1
   fi
