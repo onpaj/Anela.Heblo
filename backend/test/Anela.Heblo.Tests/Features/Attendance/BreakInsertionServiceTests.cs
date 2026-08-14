@@ -256,6 +256,23 @@ public class BreakInsertionServiceTests
     }
 
     [Fact]
+    public async Task SelectsPerson_WhenNoteCarriesDailyHours()
+    {
+        // The note carries the person's úvazek: "integration 6,4". Break insertion used to
+        // match the note with exact equality, which silently dropped this person.
+        SetupDefaults(WorkEntry(8, 0, 16, 30));
+        _client.Setup(c => c.GetPeopleAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<LogetoPerson>
+            {
+                new() { Guid = Worker, Note = "integration 6,4", Inactive = false }
+            });
+
+        var summary = await CreateService().RunAsync(CancellationToken.None);
+
+        summary.BreaksInserted.Should().Be(1);
+    }
+
+    [Fact]
     public async Task Throws_WhenBreakActivityNameNotFound()
     {
         SetupDefaults();

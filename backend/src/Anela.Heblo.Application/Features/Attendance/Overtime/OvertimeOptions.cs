@@ -21,10 +21,6 @@ public class OvertimeOptions
     /// fall into Other (not credited, surfaced as a warning).</summary>
     public Dictionary<string, string> ActivityCategories { get; set; } = new(StringComparer.OrdinalIgnoreCase);
 
-    /// <summary>Person GUID (string) → daily contract hours without break. Temporary source
-    /// until the Logeto-backed IContractHoursProvider lands.</summary>
-    public Dictionary<string, decimal> ContractHours { get; set; } = new();
-
     /// <summary>SharePoint drive for the generated report; empty = publishing disabled.</summary>
     public string ExportDriveId { get; set; } = string.Empty;
 

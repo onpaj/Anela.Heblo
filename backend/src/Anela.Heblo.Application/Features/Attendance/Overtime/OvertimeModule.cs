@@ -20,7 +20,7 @@ public static class OvertimeModule
         services.AddOptions<OvertimeOptions>()
             .Bind(configuration.GetSection(OvertimeOptions.ConfigKey));
 
-        services.AddScoped<IContractHoursProvider, Services.ConfigurationContractHoursProvider>();
+        services.AddScoped<IContractHoursProvider, Services.LogetoContractHoursProvider>();
         services.AddScoped<Services.OvertimeCalculationService>();
         services.AddScoped<Services.OvertimeExcelBuilder>();
 
