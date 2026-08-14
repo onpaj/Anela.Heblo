@@ -21,16 +21,16 @@
       "updated_at": "2026-08-10T12:12:10.915702Z"
     },
     "developing": {
-      "status": "pending",
-      "updated_at": null
+      "status": "in_progress",
+      "updated_at": "2026-08-14T22:19:19.201870Z"
     }
   },
   "tasks": [
     {
       "name": "fix-claude-md-doc-path",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-08-14T22:19:19.407865Z"
     }
   ]
 }
