@@ -255,6 +255,38 @@ public class BreakInsertionServiceTests
         summary.BreaksInserted.Should().Be(1);
     }
 
+    [Theory]
+    [InlineData("integration 6.4")] // úvazek appended by the overtime ledger setup
+    [InlineData("  Integration   8  ")]
+    public async Task MatchesPeople_WhenNoteCarriesMoreThanTheMarker(string note)
+    {
+        SetupDefaults(WorkEntry(8, 0, 16, 30));
+        _client.Setup(c => c.GetPeopleAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<LogetoPerson>
+            {
+                new() { Guid = Worker, Note = note, Inactive = false }
+            });
+
+        var summary = await CreateService().RunAsync(CancellationToken.None);
+
+        summary.BreaksInserted.Should().Be(1);
+    }
+
+    [Fact]
+    public async Task IgnoresPeople_WhenMarkerIsOnlyAPrefixOfTheFirstWord()
+    {
+        SetupDefaults(WorkEntry(8, 0, 16, 30));
+        _client.Setup(c => c.GetPeopleAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<LogetoPerson>
+            {
+                new() { Guid = Worker, Note = "integrationXY", Inactive = false }
+            });
+
+        var summary = await CreateService().RunAsync(CancellationToken.None);
+
+        summary.BreaksInserted.Should().Be(0);
+    }
+
     [Fact]
     public async Task Throws_WhenBreakActivityNameNotFound()
     {

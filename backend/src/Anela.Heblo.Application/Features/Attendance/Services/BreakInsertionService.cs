@@ -52,8 +52,7 @@ public class BreakInsertionService
         var typeByActivity = activities.ToDictionary(a => a.Guid, a => a.Type);
 
         var people = (await _client.GetPeopleAsync(cancellationToken))
-            .Where(p => !p.Inactive
-                && string.Equals(p.Note?.Trim(), options.NoteMarker, StringComparison.OrdinalIgnoreCase))
+            .Where(p => !p.Inactive && HasNoteMarker(p.Note, options.NoteMarker))
             .ToList();
 
         if (people.Count == 0)
@@ -97,6 +96,14 @@ public class BreakInsertionService
             summary.SkippedNoSlot, summary.Failed);
 
         return summary;
+    }
+
+    /// <summary>The Logeto Note is human-edited free text that also carries the person's úvazek
+    /// ("integration 6.4"), so only its first whitespace-delimited word is the opt-in marker.</summary>
+    private static bool HasNoteMarker(string? note, string marker)
+    {
+        var firstWord = note?.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries).FirstOrDefault();
+        return string.Equals(firstWord, marker, StringComparison.OrdinalIgnoreCase);
     }
 
     private async Task ProcessDayAsync(
