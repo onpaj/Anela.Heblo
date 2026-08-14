@@ -21,6 +21,7 @@ using Anela.Heblo.Adapters.ShoptetApi;
 using Anela.Heblo.Adapters.ShoptetApi.IssuedInvoices;
 using Anela.Heblo.API.Extensions;
 using Anela.Heblo.API.Features.Users;
+using Anela.Heblo.API.Infrastructure.Hangfire;
 using Anela.Heblo.API.MCP;
 using Anela.Heblo.API.Webhooks.Smartsupp;
 using Anela.Heblo.Application;
@@ -31,6 +32,8 @@ using Anela.Heblo.Domain.Features.Invoices;
 using Anela.Heblo.Persistence;
 using Anela.Heblo.Xcc;
 using Anela.Heblo.Xcc.Services.Dashboard;
+using Anela.Heblo.Xcc.Telemetry;
+using Hangfire;
 
 namespace Anela.Heblo.API;
 
@@ -172,6 +175,11 @@ public partial class Program
         // Seed default recurring job configurations from discovered IRecurringJob implementations.
         // Runs before pipeline configuration and Hangfire startup to guarantee job configurations exist before recurring jobs start.
         await app.SeedRecurringJobConfigurationsAsync();
+
+        // Registered after Build() because the filter needs the resolved ITelemetryService singleton;
+        // the Hangfire server only starts hosted services during app.Run(), so this is early enough.
+        GlobalJobFilters.Filters.Add(new HangfireJobFailureTelemetryFilter(
+            app.Services.GetRequiredService<ITelemetryService>()));
 
         // Configure pipeline
         app.ConfigureApplicationPipeline();
