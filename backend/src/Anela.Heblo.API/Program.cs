@@ -179,7 +179,8 @@ public partial class Program
         // Registered after Build() because the filter needs the resolved ITelemetryService singleton;
         // the Hangfire server only starts hosted services during app.Run(), so this is early enough.
         GlobalJobFilters.Filters.Add(new HangfireJobFailureTelemetryFilter(
-            app.Services.GetRequiredService<ITelemetryService>()));
+            app.Services.GetRequiredService<ITelemetryService>(),
+            app.Services.GetRequiredService<ILogger<HangfireJobFailureTelemetryFilter>>()));
 
         // Configure pipeline
         app.ConfigureApplicationPipeline();

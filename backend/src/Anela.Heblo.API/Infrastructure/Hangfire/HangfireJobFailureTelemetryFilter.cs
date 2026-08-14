@@ -2,6 +2,7 @@ using Anela.Heblo.Xcc.Telemetry;
 using Hangfire.Common;
 using Hangfire.States;
 using Hangfire.Storage;
+using Microsoft.Extensions.Logging;
 
 namespace Anela.Heblo.API.Infrastructure.Hangfire;
 
@@ -16,10 +17,14 @@ public sealed class HangfireJobFailureTelemetryFilter : JobFilterAttribute, IApp
     public const string EventName = "HangfireJobFailed";
 
     private readonly ITelemetryService _telemetryService;
+    private readonly ILogger<HangfireJobFailureTelemetryFilter> _logger;
 
-    public HangfireJobFailureTelemetryFilter(ITelemetryService telemetryService)
+    public HangfireJobFailureTelemetryFilter(
+        ITelemetryService telemetryService,
+        ILogger<HangfireJobFailureTelemetryFilter> logger)
     {
         _telemetryService = telemetryService ?? throw new ArgumentNullException(nameof(telemetryService));
+        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
     public void OnStateApplied(ApplyStateContext context, IWriteOnlyTransaction transaction)
@@ -57,9 +62,12 @@ public sealed class HangfireJobFailureTelemetryFilter : JobFilterAttribute, IApp
             _telemetryService.TrackBusinessEvent(EventName, properties);
             _telemetryService.TrackException(failedState.Exception, properties);
         }
-        catch
+        catch (Exception ex)
         {
-            // Telemetry must never disturb Hangfire's state machine
+            // Telemetry must never disturb Hangfire's state machine, but a logged warning
+            // cannot throw, so failures here (e.g. JobLoadException for a removed job type)
+            // stay visible instead of vanishing silently.
+            _logger.LogWarning(ex, "Failed to report Hangfire job failure telemetry for job {JobId}", context.BackgroundJob.Id);
         }
     }
 

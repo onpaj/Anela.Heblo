@@ -5,6 +5,7 @@ using Hangfire;
 using Hangfire.Common;
 using Hangfire.States;
 using Hangfire.Storage;
+using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using Xunit;
 
@@ -17,7 +18,8 @@ public class HangfireJobFailureTelemetryFilterTests
     private readonly Mock<IStorageConnection> _connection = new();
     private readonly Mock<IWriteOnlyTransaction> _transaction = new();
 
-    private HangfireJobFailureTelemetryFilter CreateFilter() => new(_telemetryService.Object);
+    private HangfireJobFailureTelemetryFilter CreateFilter() =>
+        new(_telemetryService.Object, NullLogger<HangfireJobFailureTelemetryFilter>.Instance);
 
     private ApplyStateContext CreateContext(IState newState, string jobId = "job-42")
     {
@@ -87,6 +89,30 @@ public class HangfireJobFailureTelemetryFilterTests
         // Assert
         eventProperties.Should().NotBeNull();
         eventProperties!["RecurringJobId"].Should().Be("catalog-sync");
+    }
+
+    [Fact]
+    public void OnStateApplied_IncludesRetryCount_WhenJobHasBeenRetried()
+    {
+        // Arrange
+        _connection
+            .Setup(c => c.GetJobParameter("job-42", "RetryCount"))
+            .Returns("3");
+        Dictionary<string, string>? eventProperties = null;
+        _telemetryService
+            .Setup(t => t.TrackBusinessEvent(
+                "HangfireJobFailed",
+                It.IsAny<Dictionary<string, string>>(),
+                It.IsAny<Dictionary<string, double>>()))
+            .Callback<string, Dictionary<string, string>?, Dictionary<string, double>?>(
+                (_, props, _) => eventProperties = props);
+
+        // Act
+        CreateFilter().OnStateApplied(CreateContext(new FailedState(new Exception("boom"))), _transaction.Object);
+
+        // Assert
+        eventProperties.Should().NotBeNull();
+        eventProperties!["RetryCount"].Should().Be("3");
     }
 
     [Fact]
