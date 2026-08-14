@@ -184,11 +184,6 @@ export const useChangeTransportBoxState = () => {
         queryKey: [...QUERY_KEYS.transportBox, "summary"],
       });
 
-      // Also invalidate any transition-related queries
-      queryClient.invalidateQueries({
-        queryKey: [...QUERY_KEYS.transportBoxTransitions, variables.boxId],
-      });
-
       // Invalidate byCode cache so the scan lookup reflects the new state
       queryClient.invalidateQueries({
         queryKey: [...QUERY_KEYS.transportBox, 'byCode'],

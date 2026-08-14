@@ -57,7 +57,6 @@ jest.mock("../../../api/client", () => ({
   QUERY_KEYS: {
     catalog: ["catalog"],
     transportBox: ["transport-boxes"],
-    transportBoxTransitions: ["transportBoxTransitions"],
     stockUpOperations: ["stock-up-operations"],
   },
 }));

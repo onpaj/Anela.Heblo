@@ -14,7 +14,6 @@ jest.mock("../../client", () => ({
   getAuthenticatedApiClient: jest.fn(),
   QUERY_KEYS: {
     transportBox: ["transport-boxes"],
-    transportBoxTransitions: ["transportBoxTransitions"],
   },
 }));
 
