@@ -40,9 +40,9 @@
     },
     {
       "name": "validate-frontend-gates",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-08-14T04:16:14.650905Z"
+      "updated_at": "2026-08-14T04:26:27.081417Z"
     },
     {
       "name": "file-dead-export-tooling-followup-issue",
