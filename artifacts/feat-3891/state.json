@@ -28,9 +28,9 @@
   "tasks": [
     {
       "name": "reject-out-of-batch-ids",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-08-14T08:20:36.425979Z"
+      "updated_at": "2026-08-14T09:19:34.792131Z"
     }
   ]
 }
