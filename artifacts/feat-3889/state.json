@@ -22,7 +22,7 @@
     },
     "developing": {
       "status": "in_progress",
-      "updated_at": "2026-08-13T23:25:17.919973Z"
+      "updated_at": "2026-08-14T02:16:02.203200Z"
     }
   },
   "tasks": [
@@ -34,9 +34,9 @@
     },
     {
       "name": "remove-dead-transitions-hook-and-plumbing",
-      "status": "pending",
+      "status": "completed",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-08-14T02:23:21.619782Z"
     },
     {
       "name": "validate-frontend-gates",
