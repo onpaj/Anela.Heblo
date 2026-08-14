@@ -28,9 +28,9 @@
   "tasks": [
     {
       "name": "rewrite-daily-arch-review-doc",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-08-14T12:25:09.698745Z"
+      "updated_at": "2026-08-14T12:28:00.709045Z"
     }
   ]
 }
