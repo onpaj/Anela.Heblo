@@ -22,7 +22,7 @@
     },
     "developing": {
       "status": "in_progress",
-      "updated_at": "2026-08-15T05:16:12.209642Z"
+      "updated_at": "2026-08-15T06:15:37.701726Z"
     }
   },
   "tasks": [
@@ -40,9 +40,9 @@
     },
     {
       "name": "add-ragfeatureoptions-toembeddingoptions-helper",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-08-15T06:15:38.011557Z"
     },
     {
       "name": "pass-embedding-options-from-knowledgebase-indexing-strategy",
