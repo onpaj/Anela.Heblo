@@ -62,7 +62,8 @@ public class OpenAiEmbeddingGenerator : IEmbeddingGenerator<string, Embedding<fl
 
         _logger.LogDebug("Generating embeddings for {Count} inputs", inputList.Count);
 
-        var embeddingOptions = new global::OpenAI.Embeddings.EmbeddingGenerationOptions { Dimensions = _options.EmbeddingDimensions };
+        var dimensions = options?.Dimensions ?? _options.EmbeddingDimensions;
+        var embeddingOptions = new global::OpenAI.Embeddings.EmbeddingGenerationOptions { Dimensions = dimensions };
         var embeddings = new GeneratedEmbeddings<Embedding<float>>();
 
         foreach (var chunk in inputList.Chunk(MaxBatchSize))

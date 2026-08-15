@@ -7,6 +7,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using OpenAI;
 using OpenAI.Embeddings;
+using MeaiOptions = Microsoft.Extensions.AI.EmbeddingGenerationOptions;
 
 namespace Anela.Heblo.Adapters.OpenAI.Tests;
 
@@ -31,10 +32,23 @@ public class OpenAiEmbeddingGeneratorTests
     // Reads the "input" array off the outgoing request body and returns embeddings whose
     // vector encodes the numeric suffix of each input string (e.g. "text-7" -> [7,7,7]),
     // so assertions can tell "the embedding for input N" apart from array position alone.
-    private static HttpResponseMessage BuildEmbeddingResponse(HttpRequestMessage request, bool reverseOrder = false)
+    // When capturedModels/capturedDimensions are supplied, the "model"/"dimensions" fields of
+    // the same request body are recorded so per-call override tests can assert on what was sent.
+    private static HttpResponseMessage BuildEmbeddingResponse(
+        HttpRequestMessage request,
+        bool reverseOrder = false,
+        List<string>? capturedModels = null,
+        List<int?>? capturedDimensions = null)
     {
         var body = request.Content!.ReadAsStringAsync().GetAwaiter().GetResult();
         using var doc = JsonDocument.Parse(body);
+
+        capturedModels?.Add(doc.RootElement.GetProperty("model").GetString()!);
+        capturedDimensions?.Add(
+            doc.RootElement.TryGetProperty("dimensions", out var dimensionsElement)
+                ? dimensionsElement.GetInt32()
+                : null);
+
         var inputs = doc.RootElement.GetProperty("input").EnumerateArray()
             .Select(e => e.GetString()!)
             .ToList();
@@ -197,5 +211,29 @@ public class OpenAiEmbeddingGeneratorTests
         handler.CallCount.Should().Be(2);
         first[0].Vector.Span[0].Should().Be(0f);
         second[0].Vector.Span[0].Should().Be(1f);
+    }
+
+    [Fact]
+    public async Task GenerateAsync_DimensionsOverride_SendsOverriddenDimensions()
+    {
+        var dimensions = new List<int?>();
+        var handler = new StatefulHandler(req => BuildEmbeddingResponse(req, capturedDimensions: dimensions));
+        var generator = BuildGenerator(handler, dimensions: 3);
+
+        await generator.GenerateAsync(MakeInputs(1), new MeaiOptions { Dimensions = 3072 });
+
+        dimensions.Should().ContainSingle().Which.Should().Be(3072);
+    }
+
+    [Fact]
+    public async Task GenerateAsync_NoDimensionsOverride_SendsConfiguredDimensions()
+    {
+        var dimensions = new List<int?>();
+        var handler = new StatefulHandler(req => BuildEmbeddingResponse(req, capturedDimensions: dimensions));
+        var generator = BuildGenerator(handler, dimensions: 7);
+
+        await generator.GenerateAsync(MakeInputs(1));
+
+        dimensions.Should().ContainSingle().Which.Should().Be(7);
     }
 }
