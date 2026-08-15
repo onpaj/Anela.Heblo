@@ -82,9 +82,9 @@
     },
     {
       "name": "verify-config-parity-and-run-full-validation",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-08-15T21:15:13.519697Z"
+      "updated_at": "2026-08-15T21:53:36.038391Z"
     }
   ]
 }
