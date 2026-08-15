@@ -28,9 +28,9 @@
   "tasks": [
     {
       "name": "relocate-keyed-chatclient-to-meetingtasks-module",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-08-15T01:14:39.039938Z"
+      "updated_at": "2026-08-15T01:38:02.878662Z"
     }
   ]
 }
