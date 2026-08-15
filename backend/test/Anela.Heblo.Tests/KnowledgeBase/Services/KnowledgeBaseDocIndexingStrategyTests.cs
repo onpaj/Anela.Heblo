@@ -180,4 +180,37 @@ public class KnowledgeBaseDocIndexingStrategyTests
                 It.IsAny<CancellationToken>()),
             Times.Never);
     }
+
+    [Fact]
+    public async Task CreateChunksAsync_PassesKnowledgeBaseModelAndDimensionsToEmbeddingGenerator()
+    {
+        EmbeddingGenerationOptions? capturedOptions = null;
+        _embeddingGenerator
+            .Setup(e => e.GenerateAsync(
+                It.IsAny<IEnumerable<string>>(),
+                It.IsAny<EmbeddingGenerationOptions?>(),
+                It.IsAny<CancellationToken>()))
+            .Callback<IEnumerable<string>, EmbeddingGenerationOptions?, CancellationToken>(
+                (_, opts, _) => capturedOptions = opts)
+            .ReturnsAsync(_generatedEmbeddings);
+
+        var options = Options.Create(new KnowledgeBaseOptions
+        {
+            ChunkSize = 512,
+            ChunkOverlap = 50,
+            EmbeddingModel = "text-embedding-3-small",
+            EmbeddingDimensions = 3072,
+        });
+        var strategy = new KnowledgeBaseDocIndexingStrategy(
+            new WordWindowChunker(),
+            _summarizer.Object,
+            _embeddingGenerator.Object,
+            options);
+
+        await strategy.CreateChunksAsync("word1 word2 word3", Guid.NewGuid(), CancellationToken.None);
+
+        Assert.NotNull(capturedOptions);
+        Assert.Equal("text-embedding-3-small", capturedOptions!.ModelId);
+        Assert.Equal(3072, capturedOptions.Dimensions);
+    }
 }
