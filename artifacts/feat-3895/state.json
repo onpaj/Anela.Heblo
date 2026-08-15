@@ -22,7 +22,7 @@
     },
     "developing": {
       "status": "in_progress",
-      "updated_at": "2026-08-15T07:16:58.218969Z"
+      "updated_at": "2026-08-15T08:14:44.077712Z"
     }
   },
   "tasks": [
@@ -52,9 +52,9 @@
     },
     {
       "name": "pass-embedding-options-from-conversation-indexing-strategy",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-08-15T08:14:43.907849Z"
     },
     {
       "name": "pass-embedding-options-from-search-documents-handler",
