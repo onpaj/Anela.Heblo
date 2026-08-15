@@ -28,9 +28,9 @@
   "tasks": [
     {
       "name": "honor-options-dimensions-in-embedding-generator",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-08-15T04:15:14.923801Z"
+      "updated_at": "2026-08-15T04:21:00.485018Z"
     },
     {
       "name": "add-per-model-embedding-client-cache",
