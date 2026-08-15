@@ -26,6 +26,26 @@ designated branch instead — the skills' branch naming is a default, not a
 hard requirement, and the environment's explicit branch pin takes
 precedence.
 
+Confirmed again 2026-08-15 on a `/plan-next-task` scheduled run: this
+session had `USE_GH_API=1` set (routing skill scripts through
+`.claude/skills/_lib/gh_api.sh`'s curl+REST layer instead of the `gh`
+CLI), and `claim_issue.sh`'s ref-creation call still failed — but with a
+different, more specific symptom worth knowing: `gh_api.sh`'s shared
+`req()` function calls `curl -d "$body"` without ever setting
+`-H "Content-Type: application/json"`. curl defaults `-d` to
+`application/x-www-form-urlencoded`, and GitHub's git-refs-creation
+endpoint hard-rejects that with `403: Form-encoded request bodies are not
+accepted on this endpoint. Send the documented JSON body.` — a real bug in
+the shared library (not a rate limit, despite `req()`'s retry loop logging
+it as "GitHub API 403 (rate limit?)"), and it likely affects every POST/
+PATCH call in that library that sends a body, not just ref creation. Don't
+spend time debugging/fixing it inline unless that's the actual task — it's
+orthogonal to whatever GitHub issue you were sent to plan/implement.
+Recognize the symptom (a POST/PATCH through `gh_api.sh` failing with this
+exact "Form-encoded" message) and fall through to this note's established
+workaround (MCP tools, direct implementation on the designated branch)
+rather than retrying or treating it as transient.
+
 When the designated-branch override applies, also skip the full
 AgentHarness multi-agent `orchestrator`/`agentharness checkpoint` pipeline
 (analyst → architect → designer → planner → developer → reviewer with a

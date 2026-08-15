@@ -23,6 +23,11 @@ _Update this file at the end of significant sessions._
 - Shoptet test environment hydration (issue #444): added `SHOPTET_HYDRATE` env var gate, Rider launch profile, non-hardcoded storage
 - MCP server: 15 tools across Catalog, Manufacturing, Batch Planning, Knowledge Base
 
+- Frontend dead-export detector (issue #3927, PR #3932, `claude/beautiful-darwin-4uaqqg`,
+  2026-08-15): added `knip` as a non-blocking frontend CI check (`frontend/knip.json`,
+  `.github/workflows/ci-feature-branch.yml`). Initial backlog triaged into follow-up
+  issue #3931.
+
 ## Pending / Known Issues
 
 - Memory directory (issue #405): adding cross-session knowledge accumulation — this PR
