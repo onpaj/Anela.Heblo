@@ -58,7 +58,7 @@ public class LeafletIndexingService : ILeafletIndexingService
         }
 
         var inputs = chunks.Select(c => c.Content).ToList();
-        var generated = await _embeddings.GenerateAsync(inputs, cancellationToken: ct);
+        var generated = await _embeddings.GenerateAsync(inputs, _options.ToEmbeddingOptions(), ct);
         var vectors = generated.ToList();
 
         if (vectors.Count != chunks.Count)
