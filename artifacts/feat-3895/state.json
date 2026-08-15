@@ -64,9 +64,9 @@
     },
     {
       "name": "pass-embedding-options-from-leaflet-indexing-service",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-08-15T11:17:30.801470Z"
     },
     {
       "name": "pass-embedding-options-from-generate-leaflet-handler",
