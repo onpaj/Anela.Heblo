@@ -38,6 +38,12 @@ public static class MeetingTasksModule
         {
             services.AddScoped<IMeetingTaskExporter, NoOpMeetingTaskExporter>();
         }
+        // MeetingTasks-scoped alias for the default IChatClient, keyed for extraction use.
+        // Kept in this module (not the generic Anthropic adapter) so the adapter has no
+        // compile-time knowledge of MeetingTasks. Mirrors KnowledgeBaseModule's keyed-client pattern.
+        services.AddKeyedSingleton<IChatClient>(MeetingTasksConstants.ExtractionChatClientKey,
+            (sp, _) => sp.GetRequiredService<IChatClient>());
+
         services.AddScoped<IMeetingTaskExtractor>(sp =>
             new ClaudeMeetingTaskExtractor(
                 sp.GetRequiredKeyedService<IChatClient>(MeetingTasksConstants.ExtractionChatClientKey),

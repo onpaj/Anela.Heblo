@@ -21,16 +21,16 @@
       "updated_at": "2026-08-10T21:28:42.552476Z"
     },
     "developing": {
-      "status": "pending",
-      "updated_at": null
+      "status": "in_progress",
+      "updated_at": "2026-08-15T01:14:38.871853Z"
     }
   },
   "tasks": [
     {
       "name": "relocate-keyed-chatclient-to-meetingtasks-module",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-08-15T01:14:39.039938Z"
     }
   ]
 }
