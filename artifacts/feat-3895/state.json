@@ -21,16 +21,16 @@
       "updated_at": "2026-08-10T23:37:58.197524Z"
     },
     "developing": {
-      "status": "pending",
-      "updated_at": null
+      "status": "in_progress",
+      "updated_at": "2026-08-15T04:15:14.726278Z"
     }
   },
   "tasks": [
     {
       "name": "honor-options-dimensions-in-embedding-generator",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-08-15T04:15:14.923801Z"
     },
     {
       "name": "add-per-model-embedding-client-cache",
