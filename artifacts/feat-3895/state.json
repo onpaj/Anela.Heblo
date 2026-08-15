@@ -76,9 +76,9 @@
     },
     {
       "name": "rebind-adapter-embedding-defaults-to-openai-config-keys",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-08-15T20:15:11.808450Z"
+      "updated_at": "2026-08-15T20:18:32.119531Z"
     },
     {
       "name": "verify-config-parity-and-run-full-validation",
