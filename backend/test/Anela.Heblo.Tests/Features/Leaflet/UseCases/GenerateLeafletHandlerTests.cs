@@ -560,4 +560,41 @@ public class GenerateLeafletHandlerTests
                 It.IsAny<CancellationToken>()),
             Times.Once);
     }
+
+    [Fact]
+    public async Task Handle_passes_leaflet_model_and_dimensions_to_topic_embedding()
+    {
+        // Arrange
+        EmbeddingGenerationOptions? capturedOptions = null;
+        _embeddings
+            .Setup(e => e.GenerateAsync(
+                It.IsAny<IEnumerable<string>>(),
+                It.IsAny<EmbeddingGenerationOptions?>(),
+                It.IsAny<CancellationToken>()))
+            .Callback<IEnumerable<string>, EmbeddingGenerationOptions?, CancellationToken>(
+                (_, opts, _) => capturedOptions = opts)
+            .ReturnsAsync(new GeneratedEmbeddings<Embedding<float>>(
+                [new Embedding<float>(new ReadOnlyMemory<float>(DefaultVector))]));
+        SetupChatReturns();
+
+        _kb.Setup(r => r.SearchSimilarAsync(It.IsAny<float[]>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<KnowledgeSearchResult> { KbHit(0.9) });
+        _leaflets.Setup(r => r.SearchSimilarAsync(It.IsAny<float[]>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync([LeafletHit(0.9)]);
+
+        var handler = CreateHandler(new LeafletOptions
+        {
+            EmbeddingModel = "text-embedding-3-small",
+            EmbeddingDimensions = 3072,
+        });
+        var request = new GenerateLeafletRequest { Topic = "retinol", Audience = AudienceType.EndConsumer, Length = LeafletLength.Short };
+
+        // Act
+        await handler.Handle(request, CancellationToken.None);
+
+        // Assert
+        capturedOptions.Should().NotBeNull();
+        capturedOptions!.ModelId.Should().Be("text-embedding-3-small");
+        capturedOptions.Dimensions.Should().Be(3072);
+    }
 }
