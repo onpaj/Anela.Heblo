@@ -1,6 +1,6 @@
 ---
 name: hygiene-all
-description: Sweep every open agent PR, confirming each is mergeable with green CI — flagging any that are still failing or conflicted as needs-work — without ever reviewing or merging any of them. Back-merges only the PRs that cannot merge as they stand, unless told to force it regardless. Use when the user says "hygiene-all", "clean up the PR backlog's branches", "check CI across all open PRs", "backmerge all" (optionally "force"/"no matter what"), or wants the backlog kept current independent of /automerge-all ever running.
+description: Sweep every open agent PR, bringing each current with its base branch and confirming CI passes — flagging any that are still failing or conflicted as needs-work — without ever reviewing or merging any of them. Backmerges only PRs that actually need it unless told to force it regardless. Use when the user says "hygiene-all", "clean up the PR backlog's branches", "check CI across all open PRs", "backmerge all" (optionally "force"/"no matter what"), or wants the backlog kept current independent of /automerge-all ever running.
 ---
 
 You keep the whole open-PR backlog current with its base branch and confirm
@@ -11,14 +11,13 @@ this itself), so it's discoverable by `/rework-pr` and by a human afterward.
 This is safe to run on its own schedule; it never reviews or merges
 anything.
 
-By default, a PR is only back-merged when it cannot merge as it stands
-(GitHub reports it `BEHIND` or `CONFLICTING`); one that is merely some
-commits behind but still mergeable is left untouched. This is the right
-mode for a scheduled sweep (e.g. hourly): it starts no CI runs that the
-next sweep would then see mid-flight and skip. Only add `--force` — which
-back-merges any PR that is behind at all, starting (or cancelling and
-restarting) CI on it — if the invocation explicitly asked for it (e.g.
-"force", "no matter what"). That is for an explicit, on-demand run, not the
+By default, each PR's backmerge only happens if it actually needs one —
+this is the right mode for a scheduled sweep (e.g. hourly), since it never
+cancels a build already in flight on a PR that's otherwise fine. Only add
+`--force` (a PR that's already mergeable with green CI gets left alone
+either way — `--force` never invokes `gh pr update-branch` when there's
+nothing to merge) if the invocation explicitly asked for it (e.g. "force",
+"no matter what") — this is for an explicit, on-demand run, not the
 schedule.
 
 ## 1. Find the candidates

@@ -13,12 +13,6 @@
 # Usage: ensure_pr_linked.sh <pr-url-or-number> <issue-number>
 set -euo pipefail
 
-# When USE_GH_API is set, every `gh` call below routes through the shared
-# curl+REST library instead — for environments where the `gh` CLI itself is
-# not permitted. See .claude/skills/_lib/gh_api.sh for the transport layer;
-# the logic here (what gets read/verified) is unchanged either way.
-LIB=".claude/skills/_lib/gh_api.sh"
-
 PR="${1:-}"
 ISSUE="${2:-}"
 
@@ -37,33 +31,18 @@ fi
 CLOSE_LINK="(clos(e|es|ed)|fix(es|ed)?|resolve(s|d)?) +#${ISSUE}([^0-9]|\$)"
 
 # 1. Guarantee the `agent` label (idempotent add, then verify it landed).
-if [[ -n "${USE_GH_API:-}" ]]; then
-  "$LIB" pr-edit "$PR" --add-label agent
-  labels=$("$LIB" pr-view "$PR" | jq -r '.labels[].name')
-else
-  gh pr edit "$PR" --add-label agent
-  labels=$(gh pr view "$PR" --json labels --jq '.labels[].name')
-fi
-if ! grep -qx agent <<<"$labels"; then
+gh pr edit "$PR" --add-label agent
+if ! gh pr view "$PR" --json labels --jq '.labels[].name' | grep -qx agent; then
   echo "ERROR: agent label missing on $PR" >&2
   exit 1
 fi
 
 # 2. Guarantee a closing link to the issue (inject if absent, preserving body).
-if [[ -n "${USE_GH_API:-}" ]]; then
-  body=$("$LIB" pr-view "$PR" | jq -r '.body')
-else
-  body=$(gh pr view "$PR" --json body --jq '.body')
-fi
+body=$(gh pr view "$PR" --json body --jq '.body')
 if ! grep -qiE "$CLOSE_LINK" <<<"$body"; then
   printf -v new_body 'Closes #%s\n\n%s' "$ISSUE" "$body"
-  if [[ -n "${USE_GH_API:-}" ]]; then
-    "$LIB" pr-edit "$PR" --body "$new_body"
-    body=$("$LIB" pr-view "$PR" | jq -r '.body')
-  else
-    gh pr edit "$PR" --body "$new_body"
-    body=$(gh pr view "$PR" --json body --jq '.body')
-  fi
+  gh pr edit "$PR" --body "$new_body"
+  body=$(gh pr view "$PR" --json body --jq '.body')
   if ! grep -qiE "$CLOSE_LINK" <<<"$body"; then
     echo "ERROR: failed to add Closes #${ISSUE} to $PR" >&2
     exit 1
@@ -72,24 +51,15 @@ fi
 
 # 3. Guarantee the title follows the defined format: "#<issue>: <summary>".
 TITLE_RE="^#${ISSUE}: .+"
-if [[ -n "${USE_GH_API:-}" ]]; then
-  title=$("$LIB" pr-view "$PR" | jq -r '.title')
-else
-  title=$(gh pr view "$PR" --json title --jq '.title')
-fi
+title=$(gh pr view "$PR" --json title --jq '.title')
 if [[ ! "$title" =~ $TITLE_RE ]]; then
   # Strip any leading "#<anything>:" prefix (real number or un-substituted
   # placeholder like "#{issue_id}:"), trim, and keep the remainder as summary.
   summary=$(sed -E 's/^#[^:]*:[[:space:]]*//' <<<"$title")
   summary=$(sed -E 's/^[[:space:]]+|[[:space:]]+$//g' <<<"$summary")
   [[ -z "$summary" ]] && summary="implementation"
-  if [[ -n "${USE_GH_API:-}" ]]; then
-    "$LIB" pr-edit "$PR" --title "#${ISSUE}: ${summary}"
-    title=$("$LIB" pr-view "$PR" | jq -r '.title')
-  else
-    gh pr edit "$PR" --title "#${ISSUE}: ${summary}"
-    title=$(gh pr view "$PR" --json title --jq '.title')
-  fi
+  gh pr edit "$PR" --title "#${ISSUE}: ${summary}"
+  title=$(gh pr view "$PR" --json title --jq '.title')
   if [[ ! "$title" =~ $TITLE_RE ]]; then
     echo "ERROR: failed to set title format on $PR" >&2
     exit 1

@@ -13,11 +13,6 @@ re-implement their logic, re-derive the score thresholds, or hand-write
 `gh` commands they already own. Your only judgement call is the review
 itself.
 
-**If `USE_GH_API` is set in the environment**, every `gh` invocation shown
-below — including the ones the code-reviewer subagent's prompt lists —
-is routed through `.claude/skills/_lib/gh_api.sh` instead -- a curl+REST
-equivalent for environments where the `gh` CLI itself is not permitted.
-
 ## 1. Resolve the target PR
 
 If a PR number was given in your invocation, use it as `{N}`. Otherwise,
@@ -25,12 +20,7 @@ check whether the branch you're currently on already has an open PR — if
 so, treat it as the target, the same as an explicit number:
 
 ```bash
-if [ -n "${USE_GH_API:-}" ]; then
-  CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
-  .claude/skills/_lib/gh_api.sh pr-view "$CURRENT_BRANCH" 2>/dev/null | jq -r 'select(.state == "OPEN") | .number'
-else
-  gh pr view --json number,state -q 'select(.state == "OPEN") | .number' 2>/dev/null
-fi
+gh pr view --json number,state -q 'select(.state == "OPEN") | .number' 2>/dev/null
 ```
 
 If that prints a number, use it as `{N}` and skip the candidate search
@@ -50,12 +40,11 @@ stop.
 .claude/skills/hygiene-pr/update_and_wait.sh --pr {N}
 ```
 
-This single call is cheap when there's nothing to do: if the PR is
-mergeable and its checks are green, it reports `already-clean` immediately
-with no `gh pr update-branch` call and no polling — including when the
-branch is some commits behind `master`, which blocks nothing and so is not
-back-merged. There is no separate "is it already fine" check to do
-yourself — this call *is* that check, plus the fix, in one step.
+This single call is cheap when there's nothing to do: if the branch is
+already current and checks are green, it reports `already-clean`
+immediately with no `gh pr update-branch` call and no polling. There is no
+separate "is it already fine" check to do yourself — this call *is* that
+check, plus the fix, in one step.
 
 Branch on its `status`:
 
@@ -70,9 +59,8 @@ Branch on its `status`:
   and stop — do not proceed to step 3 for this PR.
 - **`ci-running`** → report this PR as skipped (`CI already running from a
   prior push, retry later`) and stop. Nothing was touched this run — no
-  branch update, no polling: the PR needs nothing done to it except for a
-  build someone else started to finish, and this run won't spend its poll
-  window waiting on that.
+  branch update, no polling — precisely so a build already in flight isn't
+  cancelled by this call.
 - **`pending-timeout`** → report this PR as skipped
   (`CI checks pending, retry later`) and stop.
 - **`error`** → report this PR as skipped
@@ -95,11 +83,8 @@ replaced by the PR number:
 > `gh pr edit`, `git push`, or any other state-changing command. Gather context
 > with:
 > - `gh pr view {N} --json title,body,headRefName,additions,deletions,changedFiles,author,files`
->   — or, if `USE_GH_API` is set in the environment, `.claude/skills/_lib/gh_api.sh pr-view {N} files,author`
->   instead (a curl+REST equivalent for environments where the `gh` CLI itself is not permitted)
-> - `gh pr diff {N}` — or `.claude/skills/_lib/gh_api.sh pr-diff {N}` under `USE_GH_API`
-> - `gh issue view <issue> --json title,body` for the issue the PR body links —
->   or `.claude/skills/_lib/gh_api.sh issue-view <issue>` under `USE_GH_API`
+> - `gh pr diff {N}`
+> - `gh issue view <issue> --json title,body` for the issue the PR body links
 > - `Read` and `Grep` on the repo, to check the change fits the code around it
 >
 > Do not run the test suite, or any individual test, yourself — under any
@@ -205,10 +190,9 @@ Determine your mode from your invocation prompt:
   Use the `linkedIssue` field from step 1's candidate object (or the
   `linkedIssue` the caller gave you if invoked with an explicit PR number
   and no candidates.sh lookup was needed — fetch it via
-  `gh pr view {N} --json body` (or `.claude/skills/_lib/gh_api.sh pr-view {N}`
-  under `USE_GH_API`) and the same `Closes #(\d+)` pattern `candidates.sh`
-  uses, if you don't already have it). Pass `--issue` when non-null, omit
-  it when null.
+  `gh pr view {N} --json body` and the same `Closes #(\d+)` pattern
+  `candidates.sh` uses, if you don't already have it). Pass `--issue` when
+  non-null, omit it when null.
 
 - **Orchestrated** (your invocation explicitly says "ORCHESTRATED MODE" —
   this is how `/automerge-all` calls you): do **not** call
@@ -243,7 +227,7 @@ Do not restate these values elsewhere; each lives in exactly one file.
 | `MERGE_THRESHOLD`, `NEEDS_WORK_THRESHOLD` | `parse_verdict.py` |
 | `MAX_CANDIDATES`, `AGENT_LABEL` | `candidates.sh` |
 | `MERGED_ISSUE_LABEL`, `NEEDS_WORK_LABEL`, `HUMAN_REQUIRED_LABEL` | `apply_verdict.sh` |
-| `HYGIENE_POLL_INTERVAL_SECONDS`, `HYGIENE_POLL_MAX_ATTEMPTS`, `HYGIENE_NO_CHECKS_GRACE_ATTEMPTS` | `hygiene-pr/update_and_wait.sh` |
+| `HYGIENE_POLL_INTERVAL_SECONDS`, `HYGIENE_POLL_MAX_ATTEMPTS` | `hygiene-pr/update_and_wait.sh` |
 
 ## Limits worth knowing
 

@@ -9,52 +9,6 @@
 # caller can continue to the next PR after a failure.
 set -uo pipefail
 
-# When USE_GH_API is set, every `gh` call below routes through the shared
-# curl+REST library instead — for environments where the `gh` CLI itself is
-# not permitted. See .claude/skills/_lib/gh_api.sh for the transport layer;
-# the logic here is unchanged either way.
-LIB=".claude/skills/_lib/gh_api.sh"
-
-pr_comment_file() {  # pr, file
-  if [[ -n "${USE_GH_API:-}" ]]; then
-    GH_REPO="$REPO" "$LIB" pr-comment "$1" "$2"
-  else
-    gh pr comment "$1" --repo "$REPO" --body-file "$2"
-  fi
-}
-
-label_create() {  # name, color, description
-  if [[ -n "${USE_GH_API:-}" ]]; then
-    GH_REPO="$REPO" "$LIB" label-create "$1" "$2" "$3" >/dev/null 2>&1 || true
-  else
-    gh label create "$1" --repo "$REPO" --color "$2" --description "$3" >/dev/null 2>&1 || true
-  fi
-}
-
-pr_add_label() {  # pr, label
-  if [[ -n "${USE_GH_API:-}" ]]; then
-    GH_REPO="$REPO" "$LIB" pr-edit "$1" --add-label "$2"
-  else
-    gh pr edit "$1" --repo "$REPO" --add-label "$2"
-  fi
-}
-
-issue_add_label() {  # issue, label
-  if [[ -n "${USE_GH_API:-}" ]]; then
-    GH_REPO="$REPO" "$LIB" issue-edit "$1" --add-label "$2"
-  else
-    gh issue edit "$1" --repo "$REPO" --add-label "$2"
-  fi
-}
-
-pr_merge_squash_delete() {  # pr
-  if [[ -n "${USE_GH_API:-}" ]]; then
-    GH_REPO="$REPO" "$LIB" pr-merge "$1" --squash --delete-branch 2>&1
-  else
-    gh pr merge "$1" --repo "$REPO" --squash --delete-branch 2>&1
-  fi
-}
-
 MERGED_ISSUE_LABEL="agent-merged"
 NEEDS_WORK_LABEL="needs-work"
 HUMAN_REQUIRED_LABEL="human-required"
@@ -107,7 +61,7 @@ if [ -z "$REPO" ]; then
 fi
 
 # Always post the review first: it is the audit trail for whatever follows.
-pr_comment_file "$PR" "$REVIEW_FILE" \
+gh pr comment "$PR" --repo "$REPO" --body-file "$REVIEW_FILE" \
   || fail "could not post review comment"
 
 case "$ACTION" in
@@ -115,8 +69,9 @@ case "$ACTION" in
     # A mid-band score is not "try again next run" — without a label, every
     # future sweep re-reviews and re-comments on this same PR forever. Flag
     # it so candidates.sh excludes it until a human clears the label.
-    label_create "$HUMAN_REQUIRED_LABEL" fbca04 "Agent review is unsure; needs a human decision"
-    if pr_add_label "$PR" "$HUMAN_REQUIRED_LABEL"; then
+    gh label create "$HUMAN_REQUIRED_LABEL" --repo "$REPO" --color fbca04 \
+      --description "Agent review is unsure; needs a human decision" >/dev/null 2>&1 || true
+    if gh pr edit "$PR" --repo "$REPO" --add-label "$HUMAN_REQUIRED_LABEL"; then
       report "ok" "review posted, flagged $HUMAN_REQUIRED_LABEL"
     else
       report "ok" "review posted, but could not add $HUMAN_REQUIRED_LABEL label"
@@ -125,14 +80,15 @@ case "$ACTION" in
 
   needs-work)
     # Label may not exist yet; creating it is best-effort and idempotent.
-    label_create "$NEEDS_WORK_LABEL" d93f0b "Agent review found blocking problems"
-    pr_add_label "$PR" "$NEEDS_WORK_LABEL" \
+    gh label create "$NEEDS_WORK_LABEL" --repo "$REPO" --color d93f0b \
+      --description "Agent review found blocking problems" >/dev/null 2>&1 || true
+    gh pr edit "$PR" --repo "$REPO" --add-label "$NEEDS_WORK_LABEL" \
       || fail "could not add $NEEDS_WORK_LABEL label"
     report "ok" "review posted, flagged $NEEDS_WORK_LABEL"
     ;;
 
   merge)
-    if ! merge_err=$(pr_merge_squash_delete "$PR"); then
+    if ! merge_err=$(gh pr merge "$PR" --repo "$REPO" --squash --delete-branch 2>&1); then
       # A PR that went unmergeable between listing and merging is not an error
       # in this run — master simply moved underneath it (most commonly because
       # an earlier PR in the same batch just merged ahead of it). Flag it
@@ -147,13 +103,14 @@ case "$ACTION" in
           reject_file=$(mktemp)
           printf 'This PR became unmergeable before the merge completed — the default branch moved underneath it (commonly because an earlier PR in the same batch was just merged).\n\npr: %s\nscore: 0\nverdict: REJECT\nrisk: high\nreasons:\n  - merge conflict: %s\nconcerns: needs a rebase/merge against the current default branch, or /rework-pr\n' \
             "$PR" "$merge_err" > "$reject_file"
-          label_create "$NEEDS_WORK_LABEL" d93f0b "Agent review found blocking problems"
-          if ! pr_comment_file "$PR" "$reject_file"; then
+          gh label create "$NEEDS_WORK_LABEL" --repo "$REPO" --color d93f0b \
+            --description "Agent review found blocking problems" >/dev/null 2>&1 || true
+          if ! gh pr comment "$PR" --repo "$REPO" --body-file "$reject_file"; then
             rm -f "$reject_file"
             fail "became unmergeable, and could not post the needs-work comment: ${merge_err}"
           fi
           rm -f "$reject_file"
-          if pr_add_label "$PR" "$NEEDS_WORK_LABEL"; then
+          if gh pr edit "$PR" --repo "$REPO" --add-label "$NEEDS_WORK_LABEL"; then
             report "needs-work" "became unmergeable before merge (default branch moved underneath it); flagged $NEEDS_WORK_LABEL"
           else
             report "needs-work" "became unmergeable before merge (default branch moved underneath it); could not add $NEEDS_WORK_LABEL label"
@@ -170,8 +127,9 @@ case "$ACTION" in
       # Label may not exist yet; creating it is best-effort and idempotent —
       # mirrors the needs-work path so a missing label can't turn a
       # successful merge into a reported failure.
-      label_create "$MERGED_ISSUE_LABEL" 0e8a16 "Auto-merged by /automerge-pr"
-      if issue_add_label "$ISSUE" "$MERGED_ISSUE_LABEL"; then
+      gh label create "$MERGED_ISSUE_LABEL" --repo "$REPO" --color 0e8a16 \
+        --description "Auto-merged by /automerge-pr" >/dev/null 2>&1 || true
+      if gh issue edit "$ISSUE" --repo "$REPO" --add-label "$MERGED_ISSUE_LABEL"; then
         report "ok" "squash-merged, branch deleted, issue #$ISSUE labelled"
       else
         # The merge already succeeded — a labelling failure must not be

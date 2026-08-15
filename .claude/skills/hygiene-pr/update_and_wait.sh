@@ -27,29 +27,18 @@
 # branch already current) and then polled the CI it's responsible for past
 # POLL_MAX_ATTEMPTS.
 #
-# --force does two things, both of them "back-merge/wait even though nothing
-# requires it": it overrides the `ci-running` short-circuit above, and it
-# treats a PR that is merely behind its base — mergeable, just not current —
-# as needing an update. It still does NOT force a `gh pr update-branch` call
-# when there is nothing at all to merge: a PR already level with its base
-# just polls/confirms whatever CI is doing.
+# --force overrides only the `ci-running` short-circuit above: it proceeds
+# straight to the behind/conflicting check (and the merge-branch update that
+# implies, cancelling any in-flight run) instead of bailing out. It does
+# NOT force a `gh pr update-branch` call when there's nothing to actually
+# merge — a PR already current with its base still just polls/confirms
+# whatever CI is doing, it never gets a pointless update-branch call.
 set -uo pipefail
-
-# When USE_GH_API is set, every `gh` call below routes through the shared
-# curl+REST library instead — for environments where the `gh` CLI itself is
-# not permitted. See .claude/skills/_lib/gh_api.sh for the transport layer;
-# the logic here is unchanged either way.
-LIB=".claude/skills/_lib/gh_api.sh"
 
 NEEDS_WORK_SCRIPT=".claude/skills/automerge-pr/apply_verdict.sh"
 
 POLL_INTERVAL_SECONDS="${HYGIENE_POLL_INTERVAL_SECONDS:-15}"
 POLL_MAX_ATTEMPTS="${HYGIENE_POLL_MAX_ATTEMPTS:-40}"
-# How many polls to give GitHub to create the checks for a commit this run
-# just pushed, before concluding the repo has no PR CI at all. See the poll
-# loop for why an empty rollup right after a push isn't the same as a green
-# one.
-NO_CHECKS_GRACE_ATTEMPTS="${HYGIENE_NO_CHECKS_GRACE_ATTEMPTS:-4}"
 
 PR=""
 FORCE=false
@@ -138,12 +127,8 @@ CI_STATE_FILTER='
 # failure as a 10-minute `pending-timeout`.
 read_state() {
   local raw rc line
-  if [ -n "${USE_GH_API:-}" ]; then
-    raw=$(GH_REPO="$REPO" "$LIB" pr-view "$PR" statusCheckRollup 2>&1)
-  else
-    raw=$(gh pr view "$PR" --repo "$REPO" \
-      --json mergeable,mergeStateStatus,statusCheckRollup,baseRefName,headRefName 2>&1)
-  fi
+  raw=$(gh pr view "$PR" --repo "$REPO" \
+    --json mergeable,mergeStateStatus,statusCheckRollup,baseRefName,headRefName 2>&1)
   rc=$?
   if [ "$rc" -ne 0 ]; then
     report "error" "gh pr view failed (exit $rc): $raw"
@@ -157,31 +142,21 @@ read_state() {
 }
 
 # How many commits the head branch is behind its base, straight from the
-# compare API — consulted only under --force. GitHub sets
-# mergeStateStatus=BEHIND exactly when being behind actually blocks the merge
-# (the base branch requires branches to be up to date), so anywhere else a
-# nonzero behind_by describes a PR that merges perfectly well as-is.
-# Back-merging it anyway buys nothing and costs a fresh CI run — whose
-# in-flight state then makes the next sweep skip the PR as `ci-running`,
-# which is how a whole backlog ended up permanently skipped.
+# compare API. This is the only staleness signal that works on a repo
+# without branch protection: GitHub only ever sets mergeStateStatus=BEHIND
+# when the base branch requires branches to be up to date before merging.
 # Supplementary, so a failure here falls back to 0 (not behind) rather than
 # erroring out — read_state() above already covers the primary failure mode.
 behind_count() {  # base_ref, head_ref
-  if [ -n "${USE_GH_API:-}" ]; then
-    GH_REPO="$REPO" "$LIB" compare-behind-by "$1" "$2" 2>/dev/null || echo 0
-  else
-    gh api "repos/$REPO/compare/$1...$2" --jq '.behind_by // 0' 2>/dev/null || echo 0
-  fi
+  gh api "repos/$REPO/compare/$1...$2" --jq '.behind_by // 0' 2>/dev/null || echo 0
 }
 
 read_state
 
 is_behind=false
 [ "$merge_state" = "BEHIND" ] && is_behind=true
-if $FORCE && ! $is_behind; then
-  behind=$(behind_count "$base_ref" "$head_ref")
-  [ "$behind" -gt 0 ] 2>/dev/null && is_behind=true
-fi
+behind=$(behind_count "$base_ref" "$head_ref")
+[ "$behind" -gt 0 ] 2>/dev/null && is_behind=true
 is_conflicting=false
 [ "$mergeable" = "CONFLICTING" ] && is_conflicting=true
 
@@ -207,12 +182,7 @@ if ! $is_behind && ! $is_conflicting; then
       ;;
   esac
 else
-  if [ -n "${USE_GH_API:-}" ]; then
-    update_err=$(GH_REPO="$REPO" "$LIB" pr-update-branch "$PR" 2>&1) && update_ok=1 || update_ok=0
-  else
-    update_err=$(gh pr update-branch "$PR" --repo "$REPO" 2>&1) && update_ok=1 || update_ok=0
-  fi
-  if [ "$update_ok" -eq 0 ]; then
+  if ! update_err=$(gh pr update-branch "$PR" --repo "$REPO" 2>&1); then
     report_and_flag_needs_work "conflict" "gh pr update-branch failed: $update_err"
   fi
   did_update=true
@@ -224,29 +194,12 @@ while [ "$attempt" -lt "$POLL_MAX_ATTEMPTS" ]; do
   read_state
   case "$ci_state" in
     success|none)
-      # An empty rollup right after this run pushed a merge commit means
-      # GitHub has not created that head's workflow runs yet — not that the
-      # PR has no CI. Accepting it as green (as this loop used to) ended the
-      # run seconds before the CI it triggered existed: the caller then
-      # reviewed and merged on checks that never ran, and the next sweep
-      # found that same run mid-flight and skipped the PR as `ci-running`.
-      # Give the checks a bounded window to appear; if none ever do, the
-      # repo genuinely has no PR CI and `fixed` was right after all.
-      if [ "$ci_state" = "none" ] && $did_update \
-         && [ "$attempt" -lt "$NO_CHECKS_GRACE_ATTEMPTS" ]; then
-        awaiting_new_checks=true
+      if $did_update; then
+        report "fixed" "branch updated, checks are $ci_state"
       else
-        awaiting_new_checks=false
+        report "fixed" "branch was already current; checks finished as $ci_state"
       fi
-      if ! $awaiting_new_checks; then
-        if $did_update; then
-          report "fixed" "branch updated, checks are $ci_state"
-        else
-          report "fixed" "branch was already current; checks finished as $ci_state"
-        fi
-        exit 0
-      fi
-      ;;
+      exit 0 ;;
     failure)
       report_and_flag_needs_work "still-failing" "branch is current with base, but checks are failing" ;;
   esac

@@ -8,28 +8,6 @@
 # successfully — a failed revision must not look resolved.
 set -uo pipefail
 
-# When USE_GH_API is set, every `gh` call below routes through the shared
-# curl+REST library instead — for environments where the `gh` CLI itself is
-# not permitted. See .claude/skills/_lib/gh_api.sh for the transport layer;
-# the logic here is unchanged either way.
-LIB=".claude/skills/_lib/gh_api.sh"
-
-pr_remove_label() {  # pr, label
-  if [[ -n "${USE_GH_API:-}" ]]; then
-    GH_REPO="$REPO" "$LIB" pr-edit "$1" --remove-label "$2"
-  else
-    gh pr edit "$1" --repo "$REPO" --remove-label "$2"
-  fi
-}
-
-pr_comment_file() {  # pr, file
-  if [[ -n "${USE_GH_API:-}" ]]; then
-    GH_REPO="$REPO" "$LIB" pr-comment "$1" "$2"
-  else
-    gh pr comment "$1" --repo "$REPO" --body-file "$2"
-  fi
-}
-
 NEEDS_WORK_LABEL="needs-work"
 AGENT_WIP_LABEL="agent-wip"
 
@@ -71,13 +49,13 @@ fi
 # else releases $AGENT_WIP_LABEL — a PR left carrying it is invisible to
 # every future find_candidate.sh/list_candidates.sh run, permanently. Losing
 # the audit comment is recoverable; leaking the claim is not.
-pr_remove_label "$PR" "$AGENT_WIP_LABEL" \
+gh pr edit "$PR" --repo "$REPO" --remove-label "$AGENT_WIP_LABEL" \
   || fail "could not remove $AGENT_WIP_LABEL label"
 
-pr_comment_file "$PR" "$SUMMARY_FILE" \
+gh pr comment "$PR" --repo "$REPO" --body-file "$SUMMARY_FILE" \
   || fail "$AGENT_WIP_LABEL released, but could not post revision summary comment"
 
-pr_remove_label "$PR" "$NEEDS_WORK_LABEL" \
+gh pr edit "$PR" --repo "$REPO" --remove-label "$NEEDS_WORK_LABEL" \
   || fail "$AGENT_WIP_LABEL released and revision summary posted, but could not remove $NEEDS_WORK_LABEL label"
 
 report "ok" "$AGENT_WIP_LABEL released, revision summary posted, $NEEDS_WORK_LABEL removed"
