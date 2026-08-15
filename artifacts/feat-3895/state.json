@@ -70,9 +70,9 @@
     },
     {
       "name": "pass-embedding-options-from-generate-leaflet-handler",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-08-15T12:18:01.497865Z"
+      "updated_at": "2026-08-15T13:18:01.155753Z"
     },
     {
       "name": "rebind-adapter-embedding-defaults-to-openai-config-keys",
