@@ -34,9 +34,9 @@
     },
     {
       "name": "add-per-model-embedding-client-cache",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-08-15T05:16:12.507206Z"
+      "updated_at": "2026-08-15T05:22:09.103846Z"
     },
     {
       "name": "add-ragfeatureoptions-toembeddingoptions-helper",
