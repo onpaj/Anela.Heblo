@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -24,7 +25,17 @@ public class OpenAiEmbeddingGenerator : IEmbeddingGenerator<string, Embedding<fl
 
     private readonly OpenAiEmbeddingOptions _options;
     private readonly ILogger<OpenAiEmbeddingGenerator> _logger;
-    private readonly Lazy<EmbeddingClient> _client;
+    private readonly Func<string, EmbeddingClient> _clientFactory;
+
+    // The SDK's EmbeddingClient is bound to a single model at construction, so serving per-call
+    // ModelId overrides without rebuilding an HTTP pipeline every call requires one cached client
+    // per distinct model. Entries are Lazy<> rather than bare values because ConcurrentDictionary's
+    // GetOrAdd factory delegate can run more than once under contention — Lazy<T> (default
+    // ExecutionAndPublication mode) guarantees the EmbeddingClient constructor runs at most once
+    // per model, matching the single-client guarantee this replaced.
+    // No eviction: keys come only from operator-controlled config (RagFeatureOptions.EmbeddingModel),
+    // never from user input, so the set of distinct models seen per process is small and bounded.
+    private readonly ConcurrentDictionary<string, Lazy<EmbeddingClient>> _clients = new();
 
     public OpenAiEmbeddingGenerator(
         IOptions<OpenAiEmbeddingOptions> options,
@@ -36,14 +47,22 @@ public class OpenAiEmbeddingGenerator : IEmbeddingGenerator<string, Embedding<fl
     // run during DI construction: OpenAI:ApiKey is unset in test/local environments, and eagerly
     // building the client here would make every consumer of IEmbeddingGenerator unresolvable.
     // Construction is deferred to first use, by which point GenerateAsync has already validated the key.
+    //
+    // Test seam: `client` injects one pre-built client for the default model (seeded under
+    // _options.EmbeddingModel, so no-override calls resolve to it exactly as before);
+    // `clientFactory` overrides construction for every model, which is what override-path tests need.
     internal OpenAiEmbeddingGenerator(
         IOptions<OpenAiEmbeddingOptions> options,
         ILogger<OpenAiEmbeddingGenerator> logger,
-        EmbeddingClient? client)
+        EmbeddingClient? client,
+        Func<string, EmbeddingClient>? clientFactory = null)
     {
         _options = options.Value;
         _logger = logger;
-        _client = new Lazy<EmbeddingClient>(() => client ?? new EmbeddingClient(_options.EmbeddingModel, _options.ApiKey));
+        _clientFactory = clientFactory ?? (model => new EmbeddingClient(model, _options.ApiKey));
+
+        if (client != null)
+            _clients[_options.EmbeddingModel] = new Lazy<EmbeddingClient>(() => client);
     }
 
     public EmbeddingGeneratorMetadata Metadata => new("OpenAiEmbeddingGenerator");
@@ -62,14 +81,17 @@ public class OpenAiEmbeddingGenerator : IEmbeddingGenerator<string, Embedding<fl
 
         _logger.LogDebug("Generating embeddings for {Count} inputs", inputList.Count);
 
+        var model = options?.ModelId ?? _options.EmbeddingModel;
         var dimensions = options?.Dimensions ?? _options.EmbeddingDimensions;
+        var client = _clients.GetOrAdd(model, m => new Lazy<EmbeddingClient>(() => _clientFactory(m))).Value;
+
         var embeddingOptions = new global::OpenAI.Embeddings.EmbeddingGenerationOptions { Dimensions = dimensions };
         var embeddings = new GeneratedEmbeddings<Embedding<float>>();
 
         foreach (var chunk in inputList.Chunk(MaxBatchSize))
         {
             var result = await Pipeline.ExecuteAsync(
-                async token => await _client.Value.GenerateEmbeddingsAsync(chunk, embeddingOptions, cancellationToken: token),
+                async token => await client.GenerateEmbeddingsAsync(chunk, embeddingOptions, cancellationToken: token),
                 cancellationToken);
 
             foreach (var item in result.Value.OrderBy(e => e.Index))
