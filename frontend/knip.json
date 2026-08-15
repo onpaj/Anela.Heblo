@@ -1,0 +1,12 @@
+{
+  "$schema": "https://unpkg.com/knip@6/schema.json",
+  "entry": [
+    "src/index.tsx",
+    "src/setupTests.ts",
+    "src/**/*.test.{ts,tsx}"
+  ],
+  "project": ["src/**/*.{ts,tsx}"],
+  "ignore": ["src/api/generated/**"],
+  "playwright": false,
+  "jest": false
+}
