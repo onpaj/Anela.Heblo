@@ -1,7 +1,9 @@
+using Anela.Heblo.Application.Features.KnowledgeBase;
 using Anela.Heblo.Application.Features.KnowledgeBase.Services;
 using Anela.Heblo.Domain.Features.KnowledgeBase;
 using Anela.Heblo.Domain.Shared.Rag;
 using Microsoft.Extensions.AI;
+using Microsoft.Extensions.Options;
 using Moq;
 using Xunit;
 
@@ -32,7 +34,8 @@ public class ConversationIndexingStrategyTests
 
         _strategy = new ConversationIndexingStrategy(
             _summarizer.Object,
-            _embeddingGenerator.Object);
+            _embeddingGenerator.Object,
+            Options.Create(new KnowledgeBaseOptions()));
     }
 
     [Fact]
@@ -178,5 +181,38 @@ public class ConversationIndexingStrategyTests
 
         Assert.Equal(topicSummary, capturedEmbeddingInput);
         Assert.NotEqual(fullText, capturedEmbeddingInput);
+    }
+
+    [Fact]
+    public async Task CreateChunksAsync_PassesKnowledgeBaseModelAndDimensionsToEmbeddingGenerator()
+    {
+        _summarizer
+            .Setup(s => s.SummarizeTopicsAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<string> { "Problém zákazníka: akné" });
+
+        EmbeddingGenerationOptions? capturedOptions = null;
+        _embeddingGenerator
+            .Setup(e => e.GenerateAsync(
+                It.IsAny<IEnumerable<string>>(),
+                It.IsAny<EmbeddingGenerationOptions?>(),
+                It.IsAny<CancellationToken>()))
+            .Callback<IEnumerable<string>, EmbeddingGenerationOptions?, CancellationToken>(
+                (_, opts, _) => capturedOptions = opts)
+            .ReturnsAsync(_generatedEmbeddings);
+
+        var strategy = new ConversationIndexingStrategy(
+            _summarizer.Object,
+            _embeddingGenerator.Object,
+            Options.Create(new KnowledgeBaseOptions
+            {
+                EmbeddingModel = "text-embedding-3-small",
+                EmbeddingDimensions = 3072,
+            }));
+
+        await strategy.CreateChunksAsync("transcript", Guid.NewGuid(), CancellationToken.None);
+
+        Assert.NotNull(capturedOptions);
+        Assert.Equal("text-embedding-3-small", capturedOptions!.ModelId);
+        Assert.Equal(3072, capturedOptions.Dimensions);
     }
 }

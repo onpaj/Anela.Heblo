@@ -311,4 +311,44 @@ public class SearchDocumentsHandlerTests
                 It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
             Times.Once);
     }
+
+    [Fact]
+    public async Task Handle_PassesKnowledgeBaseModelAndDimensionsToEmbeddingGenerator()
+    {
+        var vector = new ReadOnlyMemory<float>(new float[] { 0.1f, 0.2f, 0.3f });
+        var generated = new GeneratedEmbeddings<Embedding<float>>([new Embedding<float>(vector)]);
+
+        EmbeddingGenerationOptions? capturedOptions = null;
+        _embeddingGenerator
+            .Setup(s => s.GenerateAsync(
+                It.IsAny<IEnumerable<string>>(),
+                It.IsAny<EmbeddingGenerationOptions?>(),
+                It.IsAny<CancellationToken>()))
+            .Callback<IEnumerable<string>, EmbeddingGenerationOptions?, CancellationToken>(
+                (_, opts, _) => capturedOptions = opts)
+            .ReturnsAsync(generated);
+
+        _expander
+            .Setup(e => e.ExpandAsync(It.IsAny<string>(), It.IsAny<RagQueryExpansionConfig>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((string q, RagQueryExpansionConfig _, CancellationToken _) => q);
+
+        _repository
+            .Setup(r => r.SearchSimilarAsync(It.IsAny<float[]>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync([]);
+
+        var options = Options.Create(new KnowledgeBaseOptions
+        {
+            QueryExpansionPrompt = "Expand:",
+            EmbeddingModel = "text-embedding-3-small",
+            EmbeddingDimensions = 3072,
+        });
+        var handler = new SearchDocumentsHandler(
+            _embeddingGenerator.Object, _repository.Object, options, _expander.Object, _recorder, _logger.Object);
+
+        await handler.Handle(new SearchDocumentsRequest { Query = "phenoxyethanol", TopK = 5 }, default);
+
+        Assert.NotNull(capturedOptions);
+        Assert.Equal("text-embedding-3-small", capturedOptions!.ModelId);
+        Assert.Equal(3072, capturedOptions.Dimensions);
+    }
 }

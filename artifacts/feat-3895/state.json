@@ -1,0 +1,94 @@
+{
+  "feature_id": "feat-3895",
+  "issue_number": 3895,
+  "created_at": "2026-08-10T23:17:46.250594Z",
+  "max_revisions": 3,
+  "phases": {
+    "analyzing": {
+      "status": "completed",
+      "updated_at": "2026-08-10T23:22:11.112642Z"
+    },
+    "architecting": {
+      "status": "completed",
+      "updated_at": "2026-08-10T23:25:31.898204Z"
+    },
+    "designing": {
+      "status": "completed",
+      "updated_at": "2026-08-10T23:26:42.067607Z"
+    },
+    "planning": {
+      "status": "completed",
+      "updated_at": "2026-08-10T23:37:58.197524Z"
+    },
+    "developing": {
+      "status": "in_progress",
+      "updated_at": "2026-08-15T21:15:13.237535Z"
+    },
+    "code-review": {
+      "status": "completed",
+      "updated_at": "2026-08-15T22:29:07.305399Z"
+    }
+  },
+  "tasks": [
+    {
+      "name": "honor-options-dimensions-in-embedding-generator",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-08-15T04:21:00.485018Z"
+    },
+    {
+      "name": "add-per-model-embedding-client-cache",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-08-15T05:22:09.103846Z"
+    },
+    {
+      "name": "add-ragfeatureoptions-toembeddingoptions-helper",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-08-15T06:47:51.191862Z"
+    },
+    {
+      "name": "pass-embedding-options-from-knowledgebase-indexing-strategy",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-08-15T07:52:54.383874Z"
+    },
+    {
+      "name": "pass-embedding-options-from-conversation-indexing-strategy",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-08-15T08:52:58.110867Z"
+    },
+    {
+      "name": "pass-embedding-options-from-search-documents-handler",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-08-15T10:14:09.450814Z"
+    },
+    {
+      "name": "pass-embedding-options-from-leaflet-indexing-service",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-08-15T11:53:40.328832Z"
+    },
+    {
+      "name": "pass-embedding-options-from-generate-leaflet-handler",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-08-15T13:18:01.155753Z"
+    },
+    {
+      "name": "rebind-adapter-embedding-defaults-to-openai-config-keys",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-08-15T20:18:32.119531Z"
+    },
+    {
+      "name": "verify-config-parity-and-run-full-validation",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-08-15T21:53:36.038391Z"
+    }
+  ]
+}

@@ -44,7 +44,8 @@ public class SearchDocumentsHandler : IRequestHandler<SearchDocumentsRequest, Se
         {
             var embeddings = await _embeddingGenerator.GenerateAsync(
                 [queryToEmbed],
-                cancellationToken: cancellationToken);
+                _options.ToEmbeddingOptions(),
+                cancellationToken);
             queryEmbedding = embeddings[0].Vector.ToArray();
         }
         catch (Exception ex) when (ex is IOException or HttpRequestException or TimeoutException or TaskCanceledException)

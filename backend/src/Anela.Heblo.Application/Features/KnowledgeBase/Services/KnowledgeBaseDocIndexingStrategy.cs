@@ -41,7 +41,7 @@ public class KnowledgeBaseDocIndexingStrategy : IIndexingStrategy
             summaries.Add(await _summarizer.SummarizeAsync(chunkTexts[i], ct));
         }
 
-        var embeddings = await _embeddingGenerator.GenerateAsync(summaries, cancellationToken: ct);
+        var embeddings = await _embeddingGenerator.GenerateAsync(summaries, _options.ToEmbeddingOptions(), ct);
         var chunks = new List<KnowledgeBaseChunk>(chunkTexts.Count);
 
         for (var i = 0; i < chunkTexts.Count; i++)
