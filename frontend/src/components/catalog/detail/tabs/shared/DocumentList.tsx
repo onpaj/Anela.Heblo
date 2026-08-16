@@ -1,4 +1,4 @@
-import type { CatalogDocumentDto } from '../../../../../api/hooks/useCatalogDocuments';
+import { type CatalogDocumentDto } from '../../../../../api/generated/api-client';
 
 function formatFileSize(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;
@@ -51,8 +51,8 @@ export default function DocumentList({ files, isLoading, onUploadClick }: Docume
             {file.name}
           </a>
           <div className="flex items-center gap-4 text-xs text-gray-500 ml-4 shrink-0 dark:text-graphite-muted">
-            <span>{formatFileSize(file.sizeBytes)}</span>
-            <span>{new Date(file.modifiedAt).toLocaleDateString('cs-CZ')}</span>
+            <span>{formatFileSize(file.sizeBytes ?? 0)}</span>
+            <span>{file.modifiedAt ? file.modifiedAt.toLocaleDateString('cs-CZ') : ''}</span>
           </div>
         </li>
       ))}

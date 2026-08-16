@@ -1,5 +1,9 @@
 # Logeto Absence Hours Implementation Plan
 
+> **Status 2026-08-14:** Tasks 1 and 2 are already implemented — delivered by
+> `docs/superpowers/plans/2026-08-14-logeto-contract-hours-single-source.md`.
+> Start from Task 3.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Fill each opted-in worker's net daily contracted hours into Logeto absence records (Dovolená, Nemoc, …) that were entered with no time at all, for past days only.

@@ -2,7 +2,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using System.Reflection;
 using Anela.Heblo.Domain.Features.Configuration;
-using Anela.Heblo.Domain.Shared;
+using Anela.Heblo.Application.Shared;
 using MediatR;
 
 namespace Anela.Heblo.Application.Features.Configuration;

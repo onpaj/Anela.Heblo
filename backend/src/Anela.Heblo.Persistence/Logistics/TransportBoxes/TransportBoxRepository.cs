@@ -95,18 +95,10 @@ public class TransportBoxRepository : BaseRepository<TransportBox, int>, ITransp
 
     public async Task<bool> IsBoxCodeActiveAsync(string boxCode)
     {
-        var activeStates = new[]
-        {
-            TransportBoxState.New,
-            TransportBoxState.Opened,
-            TransportBoxState.InTransit,
-            TransportBoxState.Received,
-            TransportBoxState.Reserve,
-        };
-
         var upperBoxCode = boxCode.ToUpper();
         var exists = await DbSet
-            .Where(x => x.Code == upperBoxCode && activeStates.Contains(x.State))
+            .Where(x => x.Code == upperBoxCode)
+            .Where(TransportBoxStateRules.OccupiesCodePredicate)
             .AnyAsync();
 
         _logger.LogDebug("Checked if box code {BoxCode} is active: {IsActive}", boxCode, exists);
@@ -120,9 +112,10 @@ public class TransportBoxRepository : BaseRepository<TransportBox, int>, ITransp
         var transportBox = await DbSet
             .Include(x => x.Items)
             .Include(x => x.StateLog)
-            .OrderBy(o => o.State == TransportBoxState.Closed ? 1 : 0)
+            .Where(x => x.Code == upperBoxCode)
+            .OrderByDescending(TransportBoxStateRules.OccupiesCodePredicate)
             .ThenByDescending(o => o.Id)
-            .FirstOrDefaultAsync(x => x.Code == upperBoxCode);
+            .FirstOrDefaultAsync();
 
         _logger.LogDebug("Retrieved transport box by code {BoxCode}: {Found}",
             boxCode, transportBox != null);

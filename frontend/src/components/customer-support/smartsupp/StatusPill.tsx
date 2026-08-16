@@ -1,7 +1,7 @@
 import React from "react";
 
 interface StatusPillProps {
-  status: string;
+  status?: string;
 }
 
 interface PillStyle {
@@ -9,8 +9,8 @@ interface PillStyle {
   className: string;
 }
 
-function resolvePill(status: string): PillStyle {
-  switch (status.toLowerCase()) {
+function resolvePill(status?: string): PillStyle {
+  switch ((status ?? "").toLowerCase()) {
     case "open":
       return {
         label: "Aktivní",
@@ -29,7 +29,7 @@ function resolvePill(status: string): PillStyle {
       };
     default:
       return {
-        label: status,
+        label: status ?? "",
         className: "bg-slate-100 dark:bg-graphite-surface-2 text-slate-600 dark:text-graphite-muted ring-1 ring-slate-200 dark:ring-graphite-border",
       };
   }

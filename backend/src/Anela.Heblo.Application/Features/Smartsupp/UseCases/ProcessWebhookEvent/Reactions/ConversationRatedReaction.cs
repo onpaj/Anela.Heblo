@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Anela.Heblo.Application.Features.Smartsupp.Infrastructure;
 using Anela.Heblo.Application.Features.Smartsupp.UseCases.ProcessWebhookEvent.Mappers;
 using Anela.Heblo.Domain.Features.Smartsupp;
 
@@ -7,8 +8,13 @@ namespace Anela.Heblo.Application.Features.Smartsupp.UseCases.ProcessWebhookEven
 public sealed class ConversationRatedReaction : ISmartsuppWebhookReaction
 {
     private readonly ISmartsuppRepository _repository;
+    private readonly ISmartsuppContactEnricher _contactEnricher;
 
-    public ConversationRatedReaction(ISmartsuppRepository repository) => _repository = repository;
+    public ConversationRatedReaction(ISmartsuppRepository repository, ISmartsuppContactEnricher contactEnricher)
+    {
+        _repository = repository;
+        _contactEnricher = contactEnricher;
+    }
 
     public string EventName => "conversation.rated";
 
@@ -23,6 +29,7 @@ public sealed class ConversationRatedReaction : ISmartsuppWebhookReaction
             conversation.Rating = rv.GetInt32();
 
         conversation.RatingText = SmartsuppPayloadMapper.TryGetString(ctx.Data, "rating_text");
+        conversation = await _contactEnricher.EnrichContactAsync(conversation, cancellationToken);
         await _repository.UpsertConversationAsync(conversation, cancellationToken);
     }
 }

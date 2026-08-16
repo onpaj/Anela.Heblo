@@ -281,6 +281,62 @@ public class TransportBoxUniquenessTests : IDisposable
         secondResult.Success.Should().BeTrue();
     }
 
+    [Fact]
+    public async Task OpenTransportBox_WhenCodeHeldByQuarantinedBox_ShouldPreventDuplicate()
+    {
+        // Arrange - existing box holds B001 in Quarantine
+        var quarantined = new TransportBox();
+        quarantined.Open("B001", DateTime.UtcNow, TestUser);
+        quarantined.ToQuarantine(DateTime.UtcNow, TestUser);
+        await _repository.AddAsync(quarantined);
+        await _repository.SaveChangesAsync();
+
+        var freshBox = new TransportBox();
+        await _repository.AddAsync(freshBox);
+        await _repository.SaveChangesAsync();
+
+        // Act
+        var result = await _handler.Handle(new ChangeTransportBoxStateRequest
+        {
+            BoxId = freshBox.Id,
+            NewState = TransportBoxState.Opened,
+            BoxCode = "B001"
+        }, CancellationToken.None);
+
+        // Assert - response only (rejected box's tracked Code is intentionally not asserted)
+        result.Success.Should().BeFalse();
+        result.ErrorCode.Should().Be(ErrorCodes.TransportBoxDuplicateActiveBoxFound);
+        result.Params.Should().ContainKey("code").WhoseValue.Should().Be("B001");
+    }
+
+    [Fact]
+    public async Task OpenTransportBox_WhenCodeHeldByErroredBox_ShouldPreventDuplicate()
+    {
+        // Arrange - existing box holds B001 in Error
+        var errored = new TransportBox();
+        errored.Open("B001", DateTime.UtcNow, TestUser);
+        errored.Error(DateTime.UtcNow, TestUser, "boom");
+        await _repository.AddAsync(errored);
+        await _repository.SaveChangesAsync();
+
+        var freshBox = new TransportBox();
+        await _repository.AddAsync(freshBox);
+        await _repository.SaveChangesAsync();
+
+        // Act
+        var result = await _handler.Handle(new ChangeTransportBoxStateRequest
+        {
+            BoxId = freshBox.Id,
+            NewState = TransportBoxState.Opened,
+            BoxCode = "B001"
+        }, CancellationToken.None);
+
+        // Assert - response only (rejected box's tracked Code is intentionally not asserted)
+        result.Success.Should().BeFalse();
+        result.ErrorCode.Should().Be(ErrorCodes.TransportBoxDuplicateActiveBoxFound);
+        result.Params.Should().ContainKey("code").WhoseValue.Should().Be("B001");
+    }
+
     public void Dispose()
     {
         _dbContext.Database.EnsureDeleted();

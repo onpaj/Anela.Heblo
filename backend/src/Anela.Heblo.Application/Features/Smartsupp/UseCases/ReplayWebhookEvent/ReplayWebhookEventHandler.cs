@@ -1,6 +1,7 @@
 using System.Text.Json;
 using Anela.Heblo.Application.Features.Smartsupp.UseCases.ProcessWebhookEvent;
 using Anela.Heblo.Application.Shared;
+using Anela.Heblo.Domain.Features.Users;
 using Anela.Heblo.Persistence;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
@@ -12,11 +13,16 @@ public class ReplayWebhookEventHandler
 {
     private readonly ApplicationDbContext _context;
     private readonly IMediator _mediator;
+    private readonly ICurrentUserService _currentUserService;
 
-    public ReplayWebhookEventHandler(ApplicationDbContext context, IMediator mediator)
+    public ReplayWebhookEventHandler(
+        ApplicationDbContext context,
+        IMediator mediator,
+        ICurrentUserService currentUserService)
     {
         _context = context;
         _mediator = mediator;
+        _currentUserService = currentUserService;
     }
 
     public async Task<ReplayWebhookEventResponse> Handle(
@@ -53,7 +59,7 @@ public class ReplayWebhookEventHandler
 
         entry.ReplayCount += 1;
         entry.LastReplayedAt = DateTime.UtcNow;
-        entry.LastReplayedBy = request.ReplayedBy;
+        entry.LastReplayedBy = _currentUserService.GetCurrentUser().Name ?? "unknown";
         await _context.SaveChangesAsync(cancellationToken);
 
         return new ReplayWebhookEventResponse

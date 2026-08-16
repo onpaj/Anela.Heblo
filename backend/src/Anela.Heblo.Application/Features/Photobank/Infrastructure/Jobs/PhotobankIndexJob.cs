@@ -178,7 +178,19 @@ public class PhotobankIndexJob : IRecurringJob
             photo.FolderPath = item.FolderPath;
             photo.SharePointWebUrl = item.WebUrl;
             photo.FileSizeBytes = item.FileSizeBytes;
-            photo.ModifiedAt = item.LastModifiedAt ?? DateTime.UtcNow;
+            // NOTE: this only fixes the in-memory Kind of the Graph-sourced value (relevant to
+            // anything that reads `photo.ModifiedAt` before SaveChangesAsync, e.g. API responses
+            // serialized within this request). It does NOT change what reaches Npgsql:
+            // ApplicationDbContext.OnModelCreating installs a global DateTime value converter that
+            // unconditionally re-stamps every DateTime/DateTime? property to Kind=Unspecified right
+            // before every write, regardless of the Kind assigned here. If the recurring
+            // "Cannot write DateTime with Kind=Unspecified to ... 'timestamp with time zone'"
+            // exception is still occurring, the cause is schema drift on the physical column (see
+            // PhotobankSchemaHealthCheck / docs/development/setup.md "Photobank column-type drift"),
+            // not an application-layer Kind bug — this line does not remediate that.
+            photo.ModifiedAt = item.LastModifiedAt.HasValue
+                ? DateTime.SpecifyKind(item.LastModifiedAt.Value, DateTimeKind.Utc)
+                : DateTime.UtcNow;
             photo.DriveId = driveId;
 
             if (pathChanged)

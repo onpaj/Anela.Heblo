@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { RefreshCw, Upload } from 'lucide-react';
 import { usePifDocuments } from '../../../../api/hooks/useCatalogDocuments';
+import { FolderStatus } from '../../../../api/generated/api-client';
 import DocumentList from './shared/DocumentList';
 import FolderStatusBanner from './shared/FolderStatusBanner';
 import PifUploadDialog from './shared/PifUploadDialog';
@@ -21,7 +22,7 @@ export default function PifDocumentsTab({ productCode }: PifDocumentsTabProps) {
     );
   }
 
-  const folderStatus = data?.folderStatus ?? 'NotFound';
+  const folderStatus = data?.folderStatus ?? FolderStatus.NotFound;
 
   return (
     <div className="space-y-4">

@@ -77,6 +77,11 @@ public class OpenOrResumeBoxByCodeHandlerTests
         return box;
     }
 
+    private static TransportBox ReceivedBox(string code) { var b = InTransitBox(code); b.Receive(FixedTime, "Test User"); return b; }
+    private static TransportBox ReserveBox(string code) { var b = OpenedBox(code); b.ToReserve(FixedTime, "Test User", "L1"); return b; }
+    private static TransportBox QuarantineBox(string code) { var b = OpenedBox(code); b.ToQuarantine(FixedTime, "Test User"); return b; }
+    private static TransportBox ErrorBox(string code) { var b = OpenedBox(code); b.Error(FixedTime, "Test User", "boom"); return b; }
+
     [Fact]
     public async Task Handle_EmptyCode_ReturnsRequiredFieldMissing()
     {
@@ -162,5 +167,82 @@ public class OpenOrResumeBoxByCodeHandlerTests
         result.Success.Should().BeFalse();
         result.ErrorCode.Should().Be(ErrorCodes.TransportBoxDuplicateActiveBoxFound);
         _repositoryMock.Verify(r => r.AddAsync(It.IsAny<TransportBox>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task Handle_BoxBusyInQuarantine_ReturnsDuplicateActiveBoxFound()
+    {
+        _repositoryMock.Setup(r => r.GetByCodeAsync("B001")).ReturnsAsync(QuarantineBox("B001"));
+
+        var result = await _handler.Handle(new OpenOrResumeBoxByCodeRequest { BoxCode = "B001" }, CancellationToken.None);
+
+        result.Success.Should().BeFalse();
+        result.ErrorCode.Should().Be(ErrorCodes.TransportBoxDuplicateActiveBoxFound);
+        result.Params.Should().ContainKey("state").WhoseValue.Should().Be("Quarantine");
+        result.Params.Should().ContainKey("code").WhoseValue.Should().Be("B001");
+        _repositoryMock.Verify(r => r.AddAsync(It.IsAny<TransportBox>(), It.IsAny<CancellationToken>()), Times.Never);
+        _repositoryMock.Verify(r => r.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task Handle_BoxBusyInError_ReturnsDuplicateActiveBoxFound()
+    {
+        _repositoryMock.Setup(r => r.GetByCodeAsync("B001")).ReturnsAsync(ErrorBox("B001"));
+
+        var result = await _handler.Handle(new OpenOrResumeBoxByCodeRequest { BoxCode = "B001" }, CancellationToken.None);
+
+        result.Success.Should().BeFalse();
+        result.ErrorCode.Should().Be(ErrorCodes.TransportBoxDuplicateActiveBoxFound);
+        result.Params.Should().ContainKey("state").WhoseValue.Should().Be("Error");
+        result.Params.Should().ContainKey("code").WhoseValue.Should().Be("B001");
+        _repositoryMock.Verify(r => r.AddAsync(It.IsAny<TransportBox>(), It.IsAny<CancellationToken>()), Times.Never);
+        _repositoryMock.Verify(r => r.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task Handle_BoxBusyInReserve_ReturnsDuplicateActiveBoxFound()
+    {
+        _repositoryMock.Setup(r => r.GetByCodeAsync("B001")).ReturnsAsync(ReserveBox("B001"));
+
+        var result = await _handler.Handle(new OpenOrResumeBoxByCodeRequest { BoxCode = "B001" }, CancellationToken.None);
+
+        result.Success.Should().BeFalse();
+        result.ErrorCode.Should().Be(ErrorCodes.TransportBoxDuplicateActiveBoxFound);
+        result.Params.Should().ContainKey("state").WhoseValue.Should().Be("Reserve");
+        result.Params.Should().ContainKey("code").WhoseValue.Should().Be("B001");
+        _repositoryMock.Verify(r => r.AddAsync(It.IsAny<TransportBox>(), It.IsAny<CancellationToken>()), Times.Never);
+        _repositoryMock.Verify(r => r.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task Handle_BoxBusyInReceived_ReturnsDuplicateActiveBoxFound()
+    {
+        _repositoryMock.Setup(r => r.GetByCodeAsync("B001")).ReturnsAsync(ReceivedBox("B001"));
+
+        var result = await _handler.Handle(new OpenOrResumeBoxByCodeRequest { BoxCode = "B001" }, CancellationToken.None);
+
+        result.Success.Should().BeFalse();
+        result.ErrorCode.Should().Be(ErrorCodes.TransportBoxDuplicateActiveBoxFound);
+        result.Params.Should().ContainKey("state").WhoseValue.Should().Be("Received");
+        result.Params.Should().ContainKey("code").WhoseValue.Should().Be("B001");
+        _repositoryMock.Verify(r => r.AddAsync(It.IsAny<TransportBox>(), It.IsAny<CancellationToken>()), Times.Never);
+        _repositoryMock.Verify(r => r.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task Handle_QuarantineBoxResolvedOverNewerStockedBox_DoesNotMintThirdBox()
+    {
+        // A code shared by a lower-Id Quarantine box and a higher-Id Stocked box: the fixed
+        // GetByCodeAsync ordering (TransportBoxStateRules.OccupiesCodePredicate) now returns the
+        // Quarantine box first, so the handler must deny rather than mint a third box for the code.
+        _repositoryMock.Setup(r => r.GetByCodeAsync("B001")).ReturnsAsync(QuarantineBox("B001"));
+
+        var result = await _handler.Handle(new OpenOrResumeBoxByCodeRequest { BoxCode = "B001" }, CancellationToken.None);
+
+        result.Success.Should().BeFalse();
+        result.ErrorCode.Should().Be(ErrorCodes.TransportBoxDuplicateActiveBoxFound);
+        result.Params.Should().ContainKey("state").WhoseValue.Should().Be("Quarantine");
+        _repositoryMock.Verify(r => r.AddAsync(It.IsAny<TransportBox>(), It.IsAny<CancellationToken>()), Times.Never);
+        _repositoryMock.Verify(r => r.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Never);
     }
 }

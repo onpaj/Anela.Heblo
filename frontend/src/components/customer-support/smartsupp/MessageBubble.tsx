@@ -8,7 +8,7 @@ interface MessageBubbleProps {
   agentNames?: Record<string, string>;
 }
 
-function formatTime(dateStr: string): string {
+function formatTime(dateStr: Date | string): string {
   return new Date(dateStr).toLocaleTimeString("cs-CZ", { hour: "2-digit", minute: "2-digit" });
 }
 
@@ -21,7 +21,7 @@ function formatResponseTime(seconds: number): string {
 }
 
 const MessageBubble: React.FC<MessageBubbleProps> = ({ message, agentNames }) => {
-  const authorType = message.authorType.toLowerCase();
+  const authorType = (message.authorType ?? "").toLowerCase();
   const isVisitor = authorType === "visitor" || authorType === "contact";
   const isBot = authorType === "bot";
   const isSystem = authorType === "system" || (message.subType ?? "").toLowerCase() === "system";
@@ -63,7 +63,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message, agentNames }) =>
       >
         <p className="text-sm whitespace-pre-wrap break-words">{message.content ?? ""}</p>
         <div className={`flex items-center gap-1.5 text-xs mt-1 ${isVisitor ? "text-gray-400 dark:text-graphite-faint justify-end" : "text-blue-200 justify-end"}`}>
-          <span>{formatTime(message.createdAt)}</span>
+          <span>{formatTime(message.createdAt ?? new Date(0))}</span>
           {!isVisitor && <MessageDeliveryIcon status={message.deliveryStatus} />}
         </div>
       </div>
