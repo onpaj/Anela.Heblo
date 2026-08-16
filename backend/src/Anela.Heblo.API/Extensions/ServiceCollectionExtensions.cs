@@ -354,6 +354,12 @@ public static class ServiceCollectionExtensions
         // Register Hangfire dashboard authorization filter
         services.AddTransient<HangfireDashboardTokenAuthorizationFilter>();
 
+        // Hangfire storage singleton — resolved lazily after Hangfire is configured above.
+        // Consumed by HangfireBackgroundWorker and HangfireFailedJobCounter below. Moved here
+        // from DashboardModule (Application layer), which had no local consumer of JobStorage
+        // and no declared dependency relationship with this method.
+        services.AddSingleton(_ => JobStorage.Current);
+
         // Register IBackgroundWorker implementation
         services.AddTransient<IBackgroundWorker, HangfireBackgroundWorker>();
 
