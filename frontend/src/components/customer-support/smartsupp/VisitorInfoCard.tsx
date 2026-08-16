@@ -25,7 +25,8 @@ function VisitorInfoCard({ conversationId }: VisitorInfoCardProps) {
   if (isLoading) return null;
   if (!data?.visitorInfo) return null;
 
-  const { os, browser, browserVersion, pages } = data.visitorInfo;
+  const { os, browser, browserVersion, pages: pagesData } = data.visitorInfo;
+  const pages = pagesData ?? [];
   const deviceLabel = buildDeviceLabel(browser, browserVersion, os);
 
   const visiblePages = expanded ? pages : pages.slice(0, INITIAL_PAGE_LIMIT);

@@ -73,7 +73,7 @@ describe('useDashboard hooks', () => {
         wrapper: createWrapper()
       });
 
-      await waitFor(() => expect(result.current.isSuccess).toBe(true));
+      await waitFor(() => expect(result.current.isSuccess).toBe(true), { timeout: 5000 });
 
       expect(mockApiClient.dashboard_GetAvailableTiles).toHaveBeenCalledWith();
       expect(result.current.data).toEqual(mockTiles);

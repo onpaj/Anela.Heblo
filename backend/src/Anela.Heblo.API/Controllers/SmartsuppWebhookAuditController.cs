@@ -64,12 +64,7 @@ public class SmartsuppWebhookAuditController : BaseApiController
         Guid id,
         CancellationToken cancellationToken)
     {
-        var replayedBy = User.Identity?.Name ?? "unknown";
-        var response = await _mediator.Send(new ReplayWebhookEventRequest
-        {
-            Id = id,
-            ReplayedBy = replayedBy,
-        }, cancellationToken);
+        var response = await _mediator.Send(new ReplayWebhookEventRequest { Id = id }, cancellationToken);
         return HandleResponse(response);
     }
 }

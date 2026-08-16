@@ -329,6 +329,21 @@ const resources = {
         LabelTextUnreadable: "Na fotce nejsou čitelné ingredience — jděte blíž a držte telefon v klidu.",
         LabelOcrServiceUnavailable: "Služba rozpoznávání není dostupná, zkuste to znovu.",
 
+        // Overtime ledger module errors
+        OvertimeEmployeeNotFound: "Zaměstnanec nenalezen v evidenci přesčasů",
+        OvertimeMonthAlreadyClosed: "Měsíc {year}/{month} je již uzavřen",
+        OvertimeAdjustmentNotFound: "Korekce nenalezena",
+        OvertimeAdjustmentMonthClosed: "Korekci nelze měnit — měsíc je uzavřen",
+        OvertimeMonthNotReviewed: "Někteří zaměstnanci nejsou zkontrolováni: {names}",
+        OvertimeContractHoursMissing: "Chybí denní úvazek pro: {names}",
+        OvertimePreviousMonthOpen: "Nelze uzavřít {year}/{month} — existuje neuzavřený starší měsíc",
+        OvertimeExportPublishFailed: "Nahrání reportu na SharePoint selhalo",
+
+        // Mind Maps module errors (35XX)
+        MindMapUpdateInProgress: "Mapa se právě aktualizuje, zkuste to za chvíli",
+        MindMapMeetingAlreadyAttached: "Tato porada je už k mapě připojena",
+        MindMapInvalidDocument: "Neplatný dokument myšlenkové mapy",
+
         // External Service errors
         ExternalServiceError: "Chyba externí služby",
         FlexiApiError: "Chyba ABRA Flexi API",

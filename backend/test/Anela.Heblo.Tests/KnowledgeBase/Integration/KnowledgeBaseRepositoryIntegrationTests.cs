@@ -4,6 +4,7 @@ using Anela.Heblo.Domain.Shared.Rag;
 using Anela.Heblo.Persistence;
 using Anela.Heblo.Persistence.KnowledgeBase;
 using Anela.Heblo.Persistence.Rag;
+using Anela.Heblo.Tests.Common;
 using DotNet.Testcontainers.Configurations;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -40,6 +41,7 @@ public class KnowledgeBaseRepositoryIntegrationTests : IAsyncLifetime
 
         var options = new DbContextOptionsBuilder<ApplicationDbContext>()
             .UseNpgsql(dataSource)
+            .AllowManyServiceProviders()
             .Options;
 
         _context = new ApplicationDbContext(options);
@@ -469,6 +471,7 @@ public class KnowledgeBaseRepositoryIntegrationTests : IAsyncLifetime
             .UseNpgsql(dataSource)
             .UseLoggerFactory(loggerFactory)
             .EnableSensitiveDataLogging()
+            .AllowManyServiceProviders()
             .Options;
 
         await using var ctx = new ApplicationDbContext(options);

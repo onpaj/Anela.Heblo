@@ -8,19 +8,7 @@ jest.mock("../../../../../api/client", () => ({
   getAuthenticatedApiClient: jest.fn(),
 }));
 
-const mockFetch = jest.fn();
-
-function setApiResponse(status: number, body: unknown): void {
-  (getAuthenticatedApiClient as jest.Mock).mockReturnValue({
-    baseUrl: "http://api.test",
-    http: { fetch: mockFetch },
-  });
-  mockFetch.mockResolvedValue({
-    ok: status >= 200 && status < 300,
-    status,
-    json: async () => body,
-  });
-}
+const mockGenerateDraftReply = jest.fn();
 
 function wrapper({ children }: { children: React.ReactNode }) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
@@ -28,12 +16,15 @@ function wrapper({ children }: { children: React.ReactNode }) {
 }
 
 beforeEach(() => {
-  mockFetch.mockReset();
+  mockGenerateDraftReply.mockReset();
+  (getAuthenticatedApiClient as jest.Mock).mockReturnValue({
+    smartsupp_GenerateDraftReply: mockGenerateDraftReply,
+  });
 });
 
 describe("useGenerateDraftReply", () => {
   it("returns answer and sources on success", async () => {
-    setApiResponse(200, {
+    mockGenerateDraftReply.mockResolvedValue({
       success: true,
       answer: "Dobrý den, balíky odesíláme do 24 hodin.",
       sources: [{ documentId: "d1", filename: "doprava.pdf", excerpt: "...", score: 0.9 }],
@@ -47,21 +38,24 @@ describe("useGenerateDraftReply", () => {
     expect(result.current.result!.sources).toHaveLength(1);
   });
 
-  it("posts the topic in the request body", async () => {
-    setApiResponse(200, { success: true, answer: "x", sources: [] });
+  it("passes the topic through the typed client", async () => {
+    mockGenerateDraftReply.mockResolvedValue({ success: true, answer: "x", sources: [] });
 
     const { result } = renderHook(() => useGenerateDraftReply("c1"), { wrapper });
     act(() => result.current.generate("Reklamace"));
 
     await waitFor(() => expect(result.current.result).not.toBeNull());
-    expect(mockFetch).toHaveBeenCalledWith(
-      "http://api.test/api/smartsupp/conversations/c1/draft-reply",
-      expect.objectContaining({ method: "POST", body: JSON.stringify({ topic: "Reklamace" }) }),
+    expect(mockGenerateDraftReply).toHaveBeenCalledWith(
+      "c1",
+      expect.objectContaining({ topic: "Reklamace" }),
     );
   });
 
-  it("surfaces a Czech message for a known error code", async () => {
-    setApiResponse(503, { success: false, errorCode: "SmartsuppDraftReplyAiUnavailable" });
+  it("surfaces a Czech message for a known error code on the typed response", async () => {
+    mockGenerateDraftReply.mockResolvedValue({
+      success: false,
+      errorCode: "SmartsuppDraftReplyAiUnavailable",
+    });
 
     const { result } = renderHook(() => useGenerateDraftReply("c1"), { wrapper });
     act(() => result.current.generate(undefined));
@@ -70,8 +64,8 @@ describe("useGenerateDraftReply", () => {
     expect(result.current.error).toMatch(/nedostupná/i);
   });
 
-  it("surfaces a generic message for an unknown failure", async () => {
-    setApiResponse(500, { success: false });
+  it("surfaces a generic message when the call throws (untyped 400/404/503)", async () => {
+    mockGenerateDraftReply.mockRejectedValue(new Error("boom"));
 
     const { result } = renderHook(() => useGenerateDraftReply("c1"), { wrapper });
     act(() => result.current.generate(undefined));

@@ -210,6 +210,162 @@ namespace Anela.Heblo.Persistence.Migrations
                     b.ToTable("ArticleSources", (string)null);
                 });
 
+            modelBuilder.Entity("Anela.Heblo.Domain.Features.Attendance.Overtime.OvertimeAdjustment", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("CreatedBy")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<decimal>("Hours")
+                        .HasPrecision(8, 2)
+                        .HasColumnType("numeric(8,2)");
+
+                    b.Property<int>("Month")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Note")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<Guid>("PersonId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)");
+
+                    b.Property<int>("Year")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PersonId", "Year", "Month");
+
+                    b.ToTable("OvertimeAdjustments", "public");
+                });
+
+            modelBuilder.Entity("Anela.Heblo.Domain.Features.Attendance.Overtime.OvertimeEmployee", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<DateOnly>("BaselineDate")
+                        .HasColumnType("date");
+
+                    b.Property<decimal>("BaselineHours")
+                        .HasPrecision(8, 2)
+                        .HasColumnType("numeric(8,2)");
+
+                    b.Property<string>("DisplayName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<Guid>("PersonId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PersonId")
+                        .IsUnique();
+
+                    b.ToTable("OvertimeEmployees", "public");
+                });
+
+            modelBuilder.Entity("Anela.Heblo.Domain.Features.Attendance.Overtime.OvertimeMonthlyStatement", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<decimal>("BalanceAfter")
+                        .HasPrecision(8, 2)
+                        .HasColumnType("numeric(8,2)");
+
+                    b.Property<DateTime?>("ClosedAtUtc")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("ClosedBy")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<decimal>("CompTimeHours")
+                        .HasPrecision(8, 2)
+                        .HasColumnType("numeric(8,2)");
+
+                    b.Property<decimal>("DeltaHours")
+                        .HasPrecision(8, 2)
+                        .HasColumnType("numeric(8,2)");
+
+                    b.Property<decimal>("DoctorHours")
+                        .HasPrecision(8, 2)
+                        .HasColumnType("numeric(8,2)");
+
+                    b.Property<bool>("IsReviewed")
+                        .HasColumnType("boolean");
+
+                    b.Property<int>("Month")
+                        .HasColumnType("integer");
+
+                    b.Property<decimal>("OtherAbsenceHours")
+                        .HasPrecision(8, 2)
+                        .HasColumnType("numeric(8,2)");
+
+                    b.Property<Guid>("PersonId")
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("RequiredHours")
+                        .HasPrecision(8, 2)
+                        .HasColumnType("numeric(8,2)");
+
+                    b.Property<decimal>("SickHours")
+                        .HasPrecision(8, 2)
+                        .HasColumnType("numeric(8,2)");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<decimal>("VacationHours")
+                        .HasPrecision(8, 2)
+                        .HasColumnType("numeric(8,2)");
+
+                    b.Property<decimal>("WorkedHours")
+                        .HasPrecision(8, 2)
+                        .HasColumnType("numeric(8,2)");
+
+                    b.Property<int>("Year")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PersonId", "Year", "Month")
+                        .IsUnique();
+
+                    b.ToTable("OvertimeMonthlyStatements", "public");
+                });
+
             modelBuilder.Entity("Anela.Heblo.Domain.Features.Authorization.Entities.AppUser", b =>
                 {
                     b.Property<Guid>("Id")
@@ -2830,6 +2986,104 @@ namespace Anela.Heblo.Persistence.Migrations
                     b.ToTable("ProposedTasks", "public");
                 });
 
+            modelBuilder.Entity("Anela.Heblo.Domain.Features.MindMaps.MindMap", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp");
+
+                    b.Property<string>("CurrentJson")
+                        .IsRequired()
+                        .HasColumnType("jsonb");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<string>("LastError")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("MindMaps", "public");
+                });
+
+            modelBuilder.Entity("Anela.Heblo.Domain.Features.MindMaps.MindMapMeeting", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("AttachedAt")
+                        .HasColumnType("timestamp");
+
+                    b.Property<Guid>("MeetingTranscriptId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("MindMapId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("ProcessedAt")
+                        .HasColumnType("timestamp");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("MeetingTranscriptId");
+
+                    b.HasIndex("MindMapId", "MeetingTranscriptId")
+                        .IsUnique()
+                        .HasDatabaseName("UX_MindMapMeetings_MindMapId_MeetingTranscriptId");
+
+                    b.ToTable("MindMapMeetings", "public");
+                });
+
+            modelBuilder.Entity("Anela.Heblo.Domain.Features.MindMaps.MindMapVersion", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp");
+
+                    b.Property<string>("Json")
+                        .IsRequired()
+                        .HasColumnType("jsonb");
+
+                    b.Property<Guid>("MindMapId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("TriggerMeetingId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("VersionNumber")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("MindMapId", "VersionNumber")
+                        .IsUnique()
+                        .HasDatabaseName("UX_MindMapVersions_MindMapId_VersionNumber");
+
+                    b.ToTable("MindMapVersions", "public");
+                });
+
             modelBuilder.Entity("Anela.Heblo.Domain.Features.Packaging.Package", b =>
                 {
                     b.Property<int>("Id")
@@ -4236,6 +4490,36 @@ namespace Anela.Heblo.Persistence.Migrations
                     b.Navigation("MeetingTranscript");
                 });
 
+            modelBuilder.Entity("Anela.Heblo.Domain.Features.MindMaps.MindMapMeeting", b =>
+                {
+                    b.HasOne("Anela.Heblo.Domain.Features.MeetingTasks.MeetingTranscript", "MeetingTranscript")
+                        .WithMany()
+                        .HasForeignKey("MeetingTranscriptId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Anela.Heblo.Domain.Features.MindMaps.MindMap", "MindMap")
+                        .WithMany("Meetings")
+                        .HasForeignKey("MindMapId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("MeetingTranscript");
+
+                    b.Navigation("MindMap");
+                });
+
+            modelBuilder.Entity("Anela.Heblo.Domain.Features.MindMaps.MindMapVersion", b =>
+                {
+                    b.HasOne("Anela.Heblo.Domain.Features.MindMaps.MindMap", "MindMap")
+                        .WithMany("Versions")
+                        .HasForeignKey("MindMapId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("MindMap");
+                });
+
             modelBuilder.Entity("Anela.Heblo.Domain.Features.PackingMaterials.PackingMaterialAllocation", b =>
                 {
                     b.HasOne("Anela.Heblo.Domain.Features.PackingMaterials.PackingMaterial", null)
@@ -4419,6 +4703,13 @@ namespace Anela.Heblo.Persistence.Migrations
                     b.Navigation("AccessGrants");
 
                     b.Navigation("Tasks");
+                });
+
+            modelBuilder.Entity("Anela.Heblo.Domain.Features.MindMaps.MindMap", b =>
+                {
+                    b.Navigation("Meetings");
+
+                    b.Navigation("Versions");
                 });
 
             modelBuilder.Entity("Anela.Heblo.Domain.Features.PackingMaterials.PackingMaterial", b =>

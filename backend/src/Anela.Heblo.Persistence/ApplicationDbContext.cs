@@ -1,4 +1,5 @@
 using Anela.Heblo.Domain.Features.Article;
+using Anela.Heblo.Domain.Features.Attendance.Overtime;
 using Anela.Heblo.Domain.Features.BackgroundJobs;
 using Anela.Heblo.Domain.Features.FeatureFlags;
 using Anela.Heblo.Domain.Features.Smartsupp;
@@ -6,6 +7,7 @@ using Anela.Heblo.Domain.Features.Photobank;
 using Anela.Heblo.Domain.Features.DataQuality;
 using Anela.Heblo.Domain.Features.Marketing;
 using Anela.Heblo.Domain.Features.MeetingTasks;
+using Anela.Heblo.Domain.Features.MindMaps;
 using Anela.Heblo.Domain.Features.MarketingInvoices;
 using Anela.Heblo.Domain.Features.Bank;
 using Anela.Heblo.Domain.Features.GridLayouts;
@@ -131,6 +133,11 @@ public class ApplicationDbContext : DbContext
     public DbSet<MeetingAccessGrant> MeetingAccessGrants { get; set; } = null!;
     public DbSet<DeletedPlaudRecording> DeletedPlaudRecordings { get; set; } = null!;
 
+    // Mind Maps module
+    public DbSet<MindMap> MindMaps { get; set; } = null!;
+    public DbSet<MindMapMeeting> MindMapMeetings { get; set; } = null!;
+    public DbSet<MindMapVersion> MindMapVersions { get; set; } = null!;
+
     // Data Quality module
     public DbSet<DqtRun> DqtRuns { get; set; } = null!;
     public DbSet<InvoiceDqtResult> InvoiceDqtResults { get; set; } = null!;
@@ -163,6 +170,11 @@ public class ApplicationDbContext : DbContext
 
     // Feature Flags module
     public DbSet<FeatureFlagOverride> FeatureFlagOverrides { get; set; } = null!;
+
+    // Overtime Ledger module
+    public DbSet<OvertimeEmployee> OvertimeEmployees { get; set; } = null!;
+    public DbSet<OvertimeMonthlyStatement> OvertimeMonthlyStatements { get; set; } = null!;
+    public DbSet<OvertimeAdjustment> OvertimeAdjustments { get; set; } = null!;
 
     // Authorization (in-app permissions)
     public DbSet<Anela.Heblo.Domain.Features.Authorization.Entities.AppUser> AppUsers { get; set; } = null!;

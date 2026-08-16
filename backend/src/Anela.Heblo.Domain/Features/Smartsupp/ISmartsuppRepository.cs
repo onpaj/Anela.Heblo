@@ -65,4 +65,6 @@ public interface ISmartsuppRepository
         int? visitsCount,
         DateTime fetchedAt,
         CancellationToken cancellationToken);
+
+    Task<bool> ContactExistsAsync(string contactId, CancellationToken cancellationToken);
 }

@@ -1,6 +1,6 @@
 using Anela.Heblo.Application.Features.CatalogDocuments.Infrastructure;
 using Anela.Heblo.Application.Features.CatalogDocuments.Services;
-using Anela.Heblo.Domain.Shared;
+using Anela.Heblo.Application.Shared;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 

@@ -11,8 +11,8 @@ namespace Anela.Heblo.Tests.Features.Smartsupp;
 
 internal static class SmartsuppRepositoryTestFactory
 {
-    public static SmartsuppRepository New(ApplicationDbContext db, ISmartsuppApiClient? apiClient = null) =>
-        new(db, apiClient ?? Mock.Of<ISmartsuppApiClient>(), NullLogger<SmartsuppRepository>.Instance);
+    public static SmartsuppRepository New(ApplicationDbContext db) =>
+        new(db, NullLogger<SmartsuppRepository>.Instance);
 }
 
 public class SmartsuppRepositoryMessageDeliveryTests

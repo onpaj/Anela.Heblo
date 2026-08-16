@@ -491,6 +491,46 @@
       "value": "anela.org_chart.read"
     },
     {
+      "id": "2ab41278-b08f-5727-9827-440cc743a017",
+      "allowedMemberTypes": [
+        "User"
+      ],
+      "description": "Anela_MindMaps Read",
+      "displayName": "anela.mind_maps.read",
+      "isEnabled": true,
+      "value": "anela.mind_maps.read"
+    },
+    {
+      "id": "dab9d323-6f54-5704-b964-1be77da3c9b1",
+      "allowedMemberTypes": [
+        "User"
+      ],
+      "description": "Anela_MindMaps Write",
+      "displayName": "anela.mind_maps.write",
+      "isEnabled": true,
+      "value": "anela.mind_maps.write"
+    },
+    {
+      "id": "d4c4dfd1-2581-5de3-8c46-63c526985133",
+      "allowedMemberTypes": [
+        "User"
+      ],
+      "description": "Attendance_Overtime Read",
+      "displayName": "attendance.overtime.read",
+      "isEnabled": true,
+      "value": "attendance.overtime.read"
+    },
+    {
+      "id": "94190e5e-2004-595f-a4ca-cf504395f4a9",
+      "allowedMemberTypes": [
+        "User"
+      ],
+      "description": "Attendance_Overtime Write",
+      "displayName": "attendance.overtime.write",
+      "isEnabled": true,
+      "value": "attendance.overtime.write"
+    },
+    {
       "id": "1ac66a37-e738-5283-bbd0-7d65d2bbd41e",
       "allowedMemberTypes": [
         "User"
@@ -623,6 +663,10 @@
         "anela.meetings.read",
         "anela.meetings.write",
         "anela.org_chart.read",
+        "anela.mind_maps.read",
+        "anela.mind_maps.write",
+        "attendance.overtime.read",
+        "attendance.overtime.write",
         "admin.data_quality.read",
         "admin.data_quality.write",
         "admin.administration.read",
@@ -664,6 +708,7 @@
         "marketing.marketing_calendar.read",
         "anela.meetings.read",
         "anela.org_chart.read",
+        "anela.mind_maps.read",
         "admin.data_quality.read",
         "admin.administration.read",
         "admin.feature_flags.read"
