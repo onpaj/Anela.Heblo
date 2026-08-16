@@ -4,6 +4,7 @@ using Anela.Heblo.Application.Features.Logistics.Services;
 using Anela.Heblo.Domain.Features.Logistics.Transport;
 using FluentAssertions;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Time.Testing;
 using Moq;
 using Xunit;
 
@@ -11,9 +12,12 @@ namespace Anela.Heblo.Tests.Features.Logistics.Services;
 
 public class TransportBoxCompletionServiceTests
 {
+    private static readonly DateTimeOffset FrozenNow = new(2026, 1, 15, 12, 0, 0, TimeSpan.Zero);
+
     private readonly Mock<ILogger<TransportBoxCompletionService>> _loggerMock;
     private readonly Mock<ITransportBoxRepository> _transportBoxRepositoryMock;
     private readonly Mock<ILogisticsStockOperationQueryService> _stockOperationQueryServiceMock;
+    private readonly FakeTimeProvider _timeProvider;
     private readonly TransportBoxCompletionService _service;
 
     public TransportBoxCompletionServiceTests()
@@ -21,10 +25,12 @@ public class TransportBoxCompletionServiceTests
         _loggerMock = new Mock<ILogger<TransportBoxCompletionService>>();
         _transportBoxRepositoryMock = new Mock<ITransportBoxRepository>();
         _stockOperationQueryServiceMock = new Mock<ILogisticsStockOperationQueryService>();
+        _timeProvider = new FakeTimeProvider(FrozenNow);
         _service = new TransportBoxCompletionService(
             _loggerMock.Object,
             _transportBoxRepositoryMock.Object,
-            _stockOperationQueryServiceMock.Object);
+            _stockOperationQueryServiceMock.Object,
+            _timeProvider);
     }
 
     [Fact]
@@ -66,6 +72,14 @@ public class TransportBoxCompletionServiceTests
         await _service.CompleteReceivedBoxesAsync(CancellationToken.None);
 
         box.State.Should().Be(TransportBoxState.Stocked);
+        box.LastStateChanged.Should().Be(FrozenNow.UtcDateTime);
+
+        box.StateLog.Should().ContainSingle();
+        var stateLogEntry = box.StateLog.Single();
+        stateLogEntry.State.Should().Be(TransportBoxState.Stocked);
+        stateLogEntry.StateDate.Should().Be(FrozenNow.UtcDateTime);
+        stateLogEntry.User.Should().Be("System");
+
         _transportBoxRepositoryMock.Verify(
             x => x.UpdateAsync(box, It.IsAny<CancellationToken>()),
             Times.Once);
@@ -99,6 +113,13 @@ public class TransportBoxCompletionServiceTests
         await _service.CompleteReceivedBoxesAsync(CancellationToken.None);
 
         box.State.Should().Be(TransportBoxState.Error);
+        box.LastStateChanged.Should().Be(FrozenNow.UtcDateTime);
+
+        box.StateLog.Should().ContainSingle();
+        var stateLogEntry = box.StateLog.Single();
+        stateLogEntry.State.Should().Be(TransportBoxState.Error);
+        stateLogEntry.StateDate.Should().Be(FrozenNow.UtcDateTime);
+        stateLogEntry.User.Should().Be("System");
     }
 
     [Fact]
@@ -144,6 +165,14 @@ public class TransportBoxCompletionServiceTests
         await _service.CompleteReceivedBoxesAsync(CancellationToken.None);
 
         box.State.Should().Be(TransportBoxState.Error);
+        box.LastStateChanged.Should().Be(FrozenNow.UtcDateTime);
+
+        box.StateLog.Should().ContainSingle();
+        var stateLogEntry = box.StateLog.Single();
+        stateLogEntry.State.Should().Be(TransportBoxState.Error);
+        stateLogEntry.StateDate.Should().Be(FrozenNow.UtcDateTime);
+        stateLogEntry.User.Should().Be("System");
+        stateLogEntry.Description.Should().Be("No stock-up operations found for this box");
     }
 
     [Fact]
@@ -212,6 +241,42 @@ public class TransportBoxCompletionServiceTests
         _transportBoxRepositoryMock.Verify(
             x => x.UpdateAsync(It.IsAny<TransportBox>(), It.IsAny<CancellationToken>()),
             Times.Never);
+    }
+
+    [Fact]
+    public async Task CompleteReceivedBoxesAsync_ClockAdvanced_WritesAdvancedTimestamp()
+    {
+        var box = CreateBox(1, "BOX-001", TransportBoxState.Received);
+        _transportBoxRepositoryMock
+            .Setup(x => x.GetReceivedBoxesAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<TransportBox> { box });
+
+        SetupQueryReturns(box.Id, new List<LogisticsStockOperationStatus>
+        {
+            CreateStatus("BOX-000001-PROD1", LogisticsStockOperationState.Completed),
+        });
+
+        _transportBoxRepositoryMock
+            .Setup(x => x.UpdateAsync(It.IsAny<TransportBox>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+        _transportBoxRepositoryMock
+            .Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(1);
+
+        _timeProvider.Advance(TimeSpan.FromHours(1));
+
+        await _service.CompleteReceivedBoxesAsync(CancellationToken.None);
+
+        var expectedTimestamp = FrozenNow.UtcDateTime.AddHours(1);
+
+        box.State.Should().Be(TransportBoxState.Stocked);
+        box.LastStateChanged.Should().Be(expectedTimestamp);
+
+        box.StateLog.Should().ContainSingle();
+        var stateLogEntry = box.StateLog.Single();
+        stateLogEntry.State.Should().Be(TransportBoxState.Stocked);
+        stateLogEntry.StateDate.Should().Be(expectedTimestamp);
+        stateLogEntry.User.Should().Be("System");
     }
 
     private void SetupQueryReturns(int sourceId, IReadOnlyList<LogisticsStockOperationStatus> operations)
