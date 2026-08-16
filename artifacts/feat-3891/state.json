@@ -1,0 +1,40 @@
+{
+  "feature_id": "feat-3891",
+  "issue_number": 3891,
+  "created_at": "2026-08-10T10:54:06.978371Z",
+  "max_revisions": 3,
+  "phases": {
+    "analyzing": {
+      "status": "completed",
+      "updated_at": "2026-08-10T10:56:16.765371Z"
+    },
+    "architecting": {
+      "status": "completed",
+      "updated_at": "2026-08-10T10:57:00.427691Z"
+    },
+    "designing": {
+      "status": "completed",
+      "updated_at": "2026-08-10T10:57:24.638828Z"
+    },
+    "planning": {
+      "status": "completed",
+      "updated_at": "2026-08-10T10:58:38.583992Z"
+    },
+    "developing": {
+      "status": "in_progress",
+      "updated_at": "2026-08-14T08:20:36.121337Z"
+    },
+    "code-review": {
+      "status": "completed",
+      "updated_at": "2026-08-14T10:29:49.422563Z"
+    }
+  },
+  "tasks": [
+    {
+      "name": "reject-out-of-batch-ids",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-08-14T09:19:34.792131Z"
+    }
+  ]
+}
