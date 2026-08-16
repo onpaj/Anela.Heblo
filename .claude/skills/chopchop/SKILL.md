@@ -34,11 +34,20 @@ reported to the user. If you want to work on another issue, that is a
 
 ## What you do
 
+**If `USE_GH_API` is set in the environment**, every `gh` invocation shown
+below is routed through `.claude/skills/_lib/gh_api.sh` instead -- a
+curl+REST equivalent for environments where the `gh` CLI itself is not
+permitted.
+
 1. **List candidate issues.** Get all open issues labelled `agent`, oldest
    first, using the `gh` CLI:
 ```bash
-gh issue list --label agent --state open --json number,title,createdAt \
-  --limit 200 --search "sort:created-asc"
+if [ -n "${USE_GH_API:-}" ]; then
+  .claude/skills/_lib/gh_api.sh issue-list open agent | jq 'sort_by(.createdAt)'
+else
+  gh issue list --label agent --state open --json number,title,createdAt \
+    --limit 200 --search "sort:created-asc"
+fi
 ```
    If the list is empty, tell the user there's nothing to do ("No `agent` issues
    waiting — you're all caught up.") and stop.
@@ -55,8 +64,14 @@ git ls-remote --heads origin "feature/${N}-*"
    Non-empty output → taken, skip to the next-oldest. If empty, also check for
    a PR whose head branch was since deleted:
 ```bash
-gh pr list --state all --json number,headRefName \
-  --jq "[.[] | select(.headRefName | startswith(\"feature/${N}-\"))] | length"
+if [ -n "${USE_GH_API:-}" ]; then
+  REPO=$(.claude/skills/_lib/gh_api.sh repo)
+  .claude/skills/_lib/gh_api.sh paginate "repos/$REPO/pulls?state=all" \
+    | jq "[.[] | select(.head.ref | startswith(\"feature/${N}-\"))] | length"
+else
+  gh pr list --state all --json number,headRefName \
+    --jq "[.[] | select(.headRefName | startswith(\"feature/${N}-\"))] | length"
+fi
 ```
    - If both checks come up empty, this issue is a **candidate** — try to claim
      it (next step).
@@ -115,6 +130,8 @@ BRANCH=$(.claude/skills/oneshot/claim_issue.sh "$N")
   the default branch. To release it, delete the remote branch and restore the
   `agent` label:
   `git push origin --delete {branch} && gh issue edit {N} --add-label agent --remove-label agent-wip`
+  (or `.claude/skills/_lib/gh_api.sh issue-edit {N} --add-label agent --remove-label agent-wip`
+  under `USE_GH_API`)
 - Step 1's list can be stale by the time you reach step 3 — that's expected
   and harmless: the atomic claim is the real gate, and a lost race (exit
   `3`) simply moves you to the next candidate. Because you claim **before**
