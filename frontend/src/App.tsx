@@ -33,6 +33,8 @@ import InvoiceImportStatistics from "./components/pages/automation/InvoiceImport
 import BackgroundTasks from "./components/pages/automation/BackgroundTasks";
 import MeetingTasksPage from "./components/pages/automation/MeetingTasksPage";
 import MeetingTaskDetailPage from "./components/pages/automation/MeetingTaskDetailPage";
+import MindMapListPage from "./components/pages/automation/mindmaps/MindMapListPage";
+import MindMapDetailPage from "./components/pages/automation/mindmaps/MindMapDetailPage";
 import OrgChartPage from "./pages/OrgChartPage";
 import FeatureFlagsAdminPage from "./pages/FeatureFlagsAdminPage";
 import AccessManagementPage from "./pages/AccessManagementPage";
@@ -43,6 +45,7 @@ import PackingMaterialsPage from "./pages/PackingMaterialsPage";
 import StockOperationsPage from "./pages/StockOperationsPage";
 import RecurringJobsPage from "./pages/RecurringJobsPage";
 import KnowledgeBasePage from "./pages/KnowledgeBasePage";
+import OvertimePage from "./pages/OvertimePage";
 import KnowledgeBaseFeedbackPage from "./pages/KnowledgeBaseFeedbackPage";
 import MarketingFeedbackPage from "./pages/MarketingFeedbackPage";
 import ArticlesPage from "./pages/ArticlesPage";
@@ -443,6 +446,8 @@ function App() {
                         <Route path="/automation/background-tasks" element={guard("/automation/background-tasks", <BackgroundTasks />)} />
                         <Route path="/automation/meeting-tasks" element={guard("/automation/meeting-tasks", <MeetingTasksPage />)} />
                         <Route path="/automation/meeting-tasks/:id" element={<MeetingTaskDetailPage />} />
+                        <Route path="/automation/mind-maps" element={guard("/automation/mind-maps", <MindMapListPage />)} />
+                        <Route path="/automation/mind-maps/:id" element={<MindMapDetailPage />} />
                         <Route path="/customer/issued-invoices" element={guard("/customer/issued-invoices", <IssuedInvoicesPage />)} />
                         <Route path="/customer/bank-statements-overview" element={guard("/customer/bank-statements-overview", <BankStatementsOverviewPage />)} />
                         <Route path="/customer/smartsupp" element={guard("/customer/smartsupp", <SmartsuppChatsPage />)} />
@@ -451,6 +456,7 @@ function App() {
                         <Route path="/orgchart" element={<OrgChartPage />} />
                         <Route path="/stock-up-operations" element={guard("/stock-up-operations", <StockOperationsPage />)} />
                         <Route path="/recurring-jobs" element={guard("/recurring-jobs", <RecurringJobsPage />)} />
+                        <Route path="/overtime" element={guard("/overtime", <OvertimePage />)} />
                         <Route path="/knowledge-base" element={guard("/knowledge-base", <KnowledgeBasePage />)} />
                         <Route path="/knowledge-base/feedback" element={<KnowledgeBaseFeedbackPage />} />
                         <Route path="/marketing/feedback" element={guard("/marketing/feedback", <MarketingFeedbackPage />)} />

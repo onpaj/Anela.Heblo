@@ -1,5 +1,41 @@
+import React from "react";
+import { render, waitFor } from "@testing-library/react";
 import { CarrierMix } from "../../../../api/hooks/usePackingStatistics";
-import { buildCarrierSlices, MAX_CARRIERS, OTHER_KEY, OTHER_LABEL } from "../PackingCharts";
+import {
+  buildCarrierSlices,
+  MAX_CARRIERS,
+  OTHER_KEY,
+  OTHER_LABEL,
+  ThroughputChart,
+  CarrierMixChart,
+  PackerLeaderboard,
+} from "../PackingCharts";
+import { GRAPHITE } from "../../../common/reactSelectDarkStyles";
+
+// jsdom reports 0 width/height for the container, so recharts' ResponsiveContainer
+// never renders its children. Bypass it with a fixed-size wrapper so the SVG
+// primitives under test actually mount. Mirrors BankStatementImportChart.test.tsx.
+jest.mock("recharts", () => {
+  const actual = jest.requireActual("recharts");
+  const ReactLib = require("react");
+  return {
+    ...actual,
+    ResponsiveContainer: ({ children }: any) =>
+      ReactLib.createElement(
+        "div",
+        { style: { width: 800, height: 400 } },
+        ReactLib.cloneElement(children, { width: 800, height: 400 }),
+      ),
+  };
+});
+
+jest.mock("../../../../contexts/ThemeContext", () => ({
+  useTheme: jest.fn(),
+}));
+
+const { useTheme } = jest.requireMock("../../../../contexts/ThemeContext") as {
+  useTheme: jest.Mock;
+};
 
 const carrier = (code: string, name: string, packageCount: number): CarrierMix => ({
   code,
@@ -95,5 +131,123 @@ describe("buildCarrierSlices", () => {
 
     expect(result).toHaveLength(6);
     expect(result.some((s) => s.name === OTHER_LABEL)).toBe(false);
+  });
+});
+
+describe("ThroughputChart theme-aware colors", () => {
+  const data = [{ date: "2026-07-17", orderCount: 3, packageCount: 6 }];
+
+  it("renders light-mode colors when theme is light", async () => {
+    useTheme.mockReturnValue({ theme: "light", toggle: jest.fn() });
+    const { container } = render(<ThroughputChart data={data} />);
+
+    expect(
+      container.querySelector(".recharts-cartesian-grid-horizontal line")?.getAttribute("stroke"),
+    ).toBe("#f0f0f0");
+    expect(
+      container.querySelector(".recharts-xAxis .recharts-cartesian-axis-line")?.getAttribute("stroke"),
+    ).toBe("#6b7280");
+    expect(container.querySelector(".recharts-default-tooltip")).toHaveStyle({
+      backgroundColor: "rgb(255, 255, 255)",
+      border: "1px solid #ccc",
+    });
+
+    await waitFor(() =>
+      expect(container.querySelector(".recharts-rectangle")).not.toBeNull(),
+    );
+    expect(container.querySelector(".recharts-rectangle")?.getAttribute("fill")).toBe("#2563eb");
+  });
+
+  it("switches to dark-mode colors when theme is dark", async () => {
+    useTheme.mockReturnValue({ theme: "dark", toggle: jest.fn() });
+    const { container } = render(<ThroughputChart data={data} />);
+
+    expect(
+      container.querySelector(".recharts-cartesian-grid-horizontal line")?.getAttribute("stroke"),
+    ).toBe(GRAPHITE.border);
+    expect(
+      container.querySelector(".recharts-xAxis .recharts-cartesian-axis-line")?.getAttribute("stroke"),
+    ).toBe(GRAPHITE.muted);
+    expect(container.querySelector(".recharts-default-tooltip")).toHaveStyle({
+      backgroundColor: "rgb(32, 35, 39)",
+      border: `1px solid ${GRAPHITE.border.toLowerCase()}`,
+    });
+    expect(container.querySelector(".recharts-tooltip-label")).toHaveStyle({
+      color: "rgb(154, 160, 170)",
+    });
+
+    await waitFor(() =>
+      expect(container.querySelector(".recharts-rectangle")).not.toBeNull(),
+    );
+    expect(container.querySelector(".recharts-rectangle")?.getAttribute("fill")).toBe(
+      GRAPHITE.accent,
+    );
+  });
+});
+
+describe("CarrierMixChart theme-aware tooltip", () => {
+  const data: CarrierMix[] = [{ code: "DPD", name: "DPD", packageCount: 3 }];
+
+  it("uses the plain recharts tooltip style in light mode", () => {
+    useTheme.mockReturnValue({ theme: "light", toggle: jest.fn() });
+    const { container } = render(<CarrierMixChart data={data} />);
+
+    expect(container.querySelector(".recharts-default-tooltip")).toHaveStyle({
+      backgroundColor: "rgb(255, 255, 255)",
+      border: "1px solid #ccc",
+    });
+  });
+
+  it("uses Graphite tooltip colors in dark mode", () => {
+    useTheme.mockReturnValue({ theme: "dark", toggle: jest.fn() });
+    const { container } = render(<CarrierMixChart data={data} />);
+
+    expect(container.querySelector(".recharts-default-tooltip")).toHaveStyle({
+      backgroundColor: "rgb(32, 35, 39)",
+      border: `1px solid ${GRAPHITE.border.toLowerCase()}`,
+    });
+    expect(container.querySelector(".recharts-tooltip-label")).toHaveStyle({
+      color: "rgb(154, 160, 170)",
+    });
+  });
+});
+
+describe("PackerLeaderboard theme-aware colors", () => {
+  const data = [{ packerId: "1", packerName: "Petr", orderCount: 3, packageCount: 6 }];
+
+  it("renders light-mode bar/grid/axis colors", async () => {
+    useTheme.mockReturnValue({ theme: "light", toggle: jest.fn() });
+    const { container } = render(<PackerLeaderboard data={data} />);
+
+    expect(
+      container.querySelector(".recharts-cartesian-grid-vertical line")?.getAttribute("stroke"),
+    ).toBe("#f0f0f0");
+    expect(
+      container.querySelector(".recharts-xAxis .recharts-cartesian-axis-line")?.getAttribute("stroke"),
+    ).toBe("#6b7280");
+
+    await waitFor(() =>
+      expect(container.querySelector(".recharts-rectangle")).not.toBeNull(),
+    );
+    expect(container.querySelector(".recharts-rectangle")?.getAttribute("fill")).toBe("#2563eb");
+  });
+
+  it("switches to Graphite bar/grid/axis colors in dark mode", async () => {
+    useTheme.mockReturnValue({ theme: "dark", toggle: jest.fn() });
+    const { container } = render(<PackerLeaderboard data={data} />);
+
+    expect(
+      container.querySelector(".recharts-cartesian-grid-vertical line")?.getAttribute("stroke"),
+    ).toBe(GRAPHITE.border);
+    expect(
+      container.querySelector(".recharts-xAxis .recharts-cartesian-axis-line")?.getAttribute("stroke"),
+    ).toBe(GRAPHITE.muted);
+
+    await waitFor(() =>
+      expect(container.querySelector(".recharts-rectangle")).not.toBeNull(),
+    );
+    expect(container.querySelector(".recharts-rectangle")?.getAttribute("fill")).toBe(
+      GRAPHITE.accent,
+    );
   });
 });

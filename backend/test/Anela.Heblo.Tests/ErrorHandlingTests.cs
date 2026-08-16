@@ -96,6 +96,8 @@ public class ErrorHandlingTests
         var catalogDocumentsErrors = errorCodes.Where(code => code >= 3100 && code < 3200).ToList(); // 31XX range (CatalogDocuments)
         var authorizationErrors = errorCodes.Where(code => code >= 3200 && code < 3300).ToList(); // 32XX range (Authorization)
         var labelIdentificationErrors = errorCodes.Where(code => code >= 3300 && code < 3400).ToList(); // 33XX range (Label Identification)
+        var overtimeErrors = errorCodes.Where(code => code >= 3400 && code < 3500).ToList(); // 34XX range (Overtime)
+        var mindMapErrors = errorCodes.Where(code => code >= 3500 && code < 3600).ToList(); // 35XX range (Mind Maps)
         var externalServiceErrors = errorCodes.Where(code => code >= 9000 && code < 9100).ToList(); // 90XX range
 
         // Ensure we have some errors in the expected categories
@@ -122,6 +124,8 @@ public class ErrorHandlingTests
         Assert.True(catalogDocumentsErrors.Count > 0, "Should have CatalogDocuments errors in 31XX range");
         Assert.True(authorizationErrors.Count > 0, "Should have Authorization errors in 32XX range");
         Assert.True(labelIdentificationErrors.Count > 0, "Should have Label Identification errors in 33XX range");
+        Assert.True(overtimeErrors.Count > 0, "Should have Overtime errors in 34XX range");
+        Assert.True(mindMapErrors.Count > 0, "Should have Mind Maps errors in 35XX range");
         Assert.True(externalServiceErrors.Count > 0, "Should have external service errors in 90XX range");
 
         // Ensure all error codes fall into defined module ranges
@@ -130,7 +134,7 @@ public class ErrorHandlingTests
                               configErrors.Count + journalErrors.Count + analyticsErrors.Count +
                               fileStorageErrors.Count + backgroundJobsErrors.Count + knowledgeBaseErrors.Count +
                               shoptetOrdersErrors.Count + dataQualityErrors.Count + marketingErrors.Count +
-                              articleErrors.Count + leafletErrors.Count + photobankErrors.Count + smartsuppErrors.Count + inventoryErrors.Count + range29xxErrors.Count + packagingErrors.Count + catalogDocumentsErrors.Count + authorizationErrors.Count + labelIdentificationErrors.Count + externalServiceErrors.Count;
+                              articleErrors.Count + leafletErrors.Count + photobankErrors.Count + smartsuppErrors.Count + inventoryErrors.Count + range29xxErrors.Count + packagingErrors.Count + catalogDocumentsErrors.Count + authorizationErrors.Count + labelIdentificationErrors.Count + overtimeErrors.Count + mindMapErrors.Count + externalServiceErrors.Count;
 
         Assert.Equal(errorCodes.Count, categorizedCount);
     }

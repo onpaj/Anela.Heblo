@@ -59,14 +59,15 @@ public class OpenOrResumeBoxByCodeHandler : IRequestHandler<OpenOrResumeBoxByCod
             }
 
             // A box with this code is busy in a non-resumable state.
-            if (existing != null && existing.State != TransportBoxState.Closed && existing.State != TransportBoxState.Stocked)
+            if (existing != null && TransportBoxStateRules.OccupiesCode(existing.State))
             {
                 return new OpenOrResumeBoxByCodeResponse(ErrorCodes.TransportBoxDuplicateActiveBoxFound,
                     new Dictionary<string, string> { { "code", code }, { "state", existing.State.ToString() } });
             }
 
             // No box, or only a Closed/Stocked box with this code — create and open a fresh one.
-            // GetByCodeAsync returns any active box first, so reaching here means none exists.
+            // GetByCodeAsync orders on TransportBoxStateRules.OccupiesCodePredicate, so any
+            // code-occupying box outranks a released one; reaching here means none exists.
             var box = new TransportBox
             {
                 CreatorId = Guid.TryParse(user.Id, out var userId) ? userId : null,

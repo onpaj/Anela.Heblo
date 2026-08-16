@@ -1,12 +1,10 @@
 import { useMutation } from "@tanstack/react-query";
-import { getClientAndBaseUrl, apiPost } from "../../../../api/smartsuppClient";
-
-export interface SubmitDraftReplyFeedbackRequest {
-  logId: string;
-  precisionScore: number;
-  styleScore: number;
-  comment?: string;
-}
+import { getAuthenticatedApiClient } from "../../../../api/client";
+import {
+  ErrorCodes,
+  SubmitDraftReplyFeedbackRequest,
+  type ISubmitDraftReplyFeedbackRequest,
+} from "../../../../api/generated/api-client";
 
 export interface SubmitDraftReplyFeedbackResult {
   alreadySubmitted?: true;
@@ -14,27 +12,31 @@ export interface SubmitDraftReplyFeedbackResult {
 
 /**
  * Submit precision/style feedback for a generated Smartsupp draft reply.
- * Returns { alreadySubmitted: true } on 409 instead of throwing.
+ * Returns { alreadySubmitted: true } on the "already submitted"/"log not found" conflict outcomes
+ * instead of throwing (both are mapped to HTTP 409 by the backend's ErrorCodes attribute).
  */
 export function useSubmitDraftReplyFeedback() {
-  return useMutation<SubmitDraftReplyFeedbackResult, Error, SubmitDraftReplyFeedbackRequest>({
+  return useMutation<SubmitDraftReplyFeedbackResult, Error, ISubmitDraftReplyFeedbackRequest>({
     mutationFn: async (payload) => {
-      const { apiClient, baseUrl } = getClientAndBaseUrl();
-      const response = await apiPost(
-        apiClient,
-        `${baseUrl}/api/smartsupp/draft-reply/feedback`,
-        payload,
-      );
-
-      if (response.status === 409) {
-        return { alreadySubmitted: true };
+      const request = new SubmitDraftReplyFeedbackRequest(payload);
+      try {
+        await getAuthenticatedApiClient().smartsupp_SubmitDraftReplyFeedback(request);
+        return {};
+      } catch (e: unknown) {
+        // The generated client's 403/409 branches parse a ProblemDetails-shaped object rather
+        // than throwing a SwaggerException, so `.status` is not reliably populated here — only
+        // the raw JSON body's own fields (blanket-copied onto the thrown object by
+        // ProblemDetails.init()) survive, which is why this branches on errorCode instead of
+        // HTTP status. See docs/development/api-client-generation.md.
+        const err = e as { errorCode?: string };
+        if (
+          err.errorCode === ErrorCodes.SmartsuppDraftReplyFeedbackAlreadySubmitted ||
+          err.errorCode === ErrorCodes.SmartsuppDraftReplyFeedbackLogNotFound
+        ) {
+          return { alreadySubmitted: true };
+        }
+        throw e;
       }
-
-      if (!response.ok) {
-        throw new Error(`Submit feedback failed: ${response.status}`);
-      }
-
-      return {};
     },
   });
 }

@@ -1,0 +1,40 @@
+{
+  "feature_id": "feat-3836",
+  "issue_number": 3836,
+  "created_at": "2026-08-11T05:19:55.030924Z",
+  "max_revisions": 3,
+  "phases": {
+    "analyzing": {
+      "status": "completed",
+      "updated_at": "2026-08-11T05:21:52.550663Z"
+    },
+    "architecting": {
+      "status": "completed",
+      "updated_at": "2026-08-11T05:23:53.433683Z"
+    },
+    "designing": {
+      "status": "completed",
+      "updated_at": "2026-08-11T05:24:52.251679Z"
+    },
+    "planning": {
+      "status": "completed",
+      "updated_at": "2026-08-11T05:28:17.637079Z"
+    },
+    "developing": {
+      "status": "in_progress",
+      "updated_at": "2026-08-11T09:18:37.504329Z"
+    },
+    "code-review": {
+      "status": "completed",
+      "updated_at": "2026-08-11T11:32:11.088827Z"
+    }
+  },
+  "tasks": [
+    {
+      "name": "fix-webhook-replay-identity-resolution",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-08-11T10:25:28.237346Z"
+    }
+  ]
+}

@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { getAuthenticatedApiClient, QUERY_KEYS } from "../client";
 import { BaseResponse } from "../../types/errors";
+import { toDateOnlyString } from "../../utils/dateUtils";
 
 interface ApiClientWithInternals {
   baseUrl: string;
@@ -71,7 +72,14 @@ export const useAddBoxItem = () => {
       boxFillRequest(`/api/transport-boxes/${input.boxId}/items`, {
         method: "POST",
         headers: JSON_HEADERS,
-        body: JSON.stringify(input),
+        // expirationDate must go out as a DateOnly string — a raw Date serializes
+        // to a full ISO timestamp the backend's DateOnly? cannot bind.
+        body: JSON.stringify({
+          ...input,
+          expirationDate: input.expirationDate
+            ? toDateOnlyString(input.expirationDate)
+            : undefined,
+        }),
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.manufacturedProductInventory });

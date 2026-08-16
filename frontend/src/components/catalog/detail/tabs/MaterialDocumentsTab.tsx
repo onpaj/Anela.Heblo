@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { RefreshCw, Upload } from 'lucide-react';
 import { useMaterialDocuments } from '../../../../api/hooks/useCatalogDocuments';
+import { FolderStatus } from '../../../../api/generated/api-client';
 import DocumentList from './shared/DocumentList';
 import FolderStatusBanner from './shared/FolderStatusBanner';
 import MaterialUploadDialog from './shared/MaterialUploadDialog';
@@ -21,7 +22,7 @@ export default function MaterialDocumentsTab({ productCode }: MaterialDocumentsT
     );
   }
 
-  const folderStatus = data?.folderStatus ?? 'NotFound';
+  const folderStatus = data?.folderStatus ?? FolderStatus.NotFound;
 
   return (
     <div className="space-y-4">

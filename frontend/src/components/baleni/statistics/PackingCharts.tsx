@@ -20,10 +20,12 @@ import {
   PackagesPerOrderBucket,
   PackerThroughput,
 } from "../../../api/hooks/usePackingStatistics";
+import { useTheme } from "../../../contexts/ThemeContext";
+import { GRAPHITE } from "../../common/reactSelectDarkStyles";
 
 const CARRIER_COLORS = ["#2563eb", "#0ea5e9", "#14b8a6", "#f59e0b", "#a855f7", "#ec4899", "#64748b"];
 const EmptyState: React.FC = () => (
-  <p className="text-sm text-neutral-gray italic">Žádná data k zobrazení.</p>
+  <p className="text-sm text-neutral-gray italic dark:text-graphite-muted">Žádná data k zobrazení.</p>
 );
 
 export const MAX_CARRIERS = 6;
@@ -81,6 +83,8 @@ function sliceColor(slice: CarrierSlice, index: number): string {
 }
 
 export const ThroughputChart: React.FC<{ data: DailyThroughput[] }> = ({ data }) => {
+  const { theme } = useTheme();
+  const isDark = theme === "dark";
   if (data.length === 0) return <EmptyState />;
   const chartData = data.map((d) => ({
     ...d,
@@ -90,20 +94,23 @@ export const ThroughputChart: React.FC<{ data: DailyThroughput[] }> = ({ data })
     <div className="h-72 w-full">
       <ResponsiveContainer width="100%" height="100%">
         <BarChart data={chartData} margin={{ top: 10, right: 20, left: 0, bottom: 10 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-          <XAxis dataKey="label" tick={{ fontSize: 11 }} stroke="#6b7280" />
-          <YAxis tick={{ fontSize: 11 }} stroke="#6b7280" allowDecimals={false} />
+          <CartesianGrid strokeDasharray="3 3" stroke={isDark ? GRAPHITE.border : "#f0f0f0"} />
+          <XAxis dataKey="label" tick={{ fontSize: 11 }} stroke={isDark ? GRAPHITE.muted : "#6b7280"} />
+          <YAxis tick={{ fontSize: 11 }} stroke={isDark ? GRAPHITE.muted : "#6b7280"} allowDecimals={false} />
           <Tooltip
             formatter={(value, name) => [
               value,
               name === "packageCount" ? "Balíků" : "Objednávek",
             ]}
             labelFormatter={(label) => `Den ${label}`}
+            contentStyle={isDark ? { backgroundColor: GRAPHITE.surface, border: `1px solid ${GRAPHITE.border}`, borderRadius: 8 } : undefined}
+            itemStyle={isDark ? { color: GRAPHITE.text } : undefined}
+            labelStyle={isDark ? { color: GRAPHITE.muted } : undefined}
           />
           <Legend
             formatter={(value) => (value === "packageCount" ? "Balíků" : "Objednávek")}
           />
-          <Bar dataKey="packageCount" fill="#2563eb" radius={[2, 2, 0, 0]} />
+          <Bar dataKey="packageCount" fill={isDark ? GRAPHITE.accent : "#2563eb"} radius={[2, 2, 0, 0]} />
           <Bar dataKey="orderCount" fill="#93c5fd" radius={[2, 2, 0, 0]} />
         </BarChart>
       </ResponsiveContainer>
@@ -112,6 +119,8 @@ export const ThroughputChart: React.FC<{ data: DailyThroughput[] }> = ({ data })
 };
 
 export const CarrierMixChart: React.FC<{ data: CarrierMix[] }> = ({ data }) => {
+  const { theme } = useTheme();
+  const isDark = theme === "dark";
   if (data.length === 0) return <EmptyState />;
   const slices = buildCarrierSlices(data);
   return (
@@ -132,7 +141,12 @@ export const CarrierMixChart: React.FC<{ data: CarrierMix[] }> = ({ data }) => {
               <Cell key={entry.key} fill={sliceColor(entry, index)} />
             ))}
           </Pie>
-          <Tooltip formatter={(value) => [value, "Balíků"]} />
+          <Tooltip
+            formatter={(value) => [value, "Balíků"]}
+            contentStyle={isDark ? { backgroundColor: GRAPHITE.surface, border: `1px solid ${GRAPHITE.border}`, borderRadius: 8 } : undefined}
+            itemStyle={isDark ? { color: GRAPHITE.text } : undefined}
+            labelStyle={isDark ? { color: GRAPHITE.muted } : undefined}
+          />
           <Legend
             layout="horizontal"
             verticalAlign="bottom"
@@ -153,6 +167,8 @@ export const CarrierMixChart: React.FC<{ data: CarrierMix[] }> = ({ data }) => {
 };
 
 export const PackerLeaderboard: React.FC<{ data: PackerThroughput[] }> = ({ data }) => {
+  const { theme } = useTheme();
+  const isDark = theme === "dark";
   if (data.length === 0) return <EmptyState />;
   return (
     <div className="w-full" style={{ height: Math.max(160, data.length * 44) }}>
@@ -162,17 +178,22 @@ export const PackerLeaderboard: React.FC<{ data: PackerThroughput[] }> = ({ data
           data={data}
           margin={{ top: 5, right: 20, left: 10, bottom: 5 }}
         >
-          <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" horizontal={false} />
-          <XAxis type="number" tick={{ fontSize: 11 }} stroke="#6b7280" allowDecimals={false} />
+          <CartesianGrid strokeDasharray="3 3" stroke={isDark ? GRAPHITE.border : "#f0f0f0"} horizontal={false} />
+          <XAxis type="number" tick={{ fontSize: 11 }} stroke={isDark ? GRAPHITE.muted : "#6b7280"} allowDecimals={false} />
           <YAxis
             type="category"
             dataKey="packerName"
             width={120}
             tick={{ fontSize: 12 }}
-            stroke="#6b7280"
+            stroke={isDark ? GRAPHITE.muted : "#6b7280"}
           />
-          <Tooltip formatter={(value) => [value, "Objednávek"]} />
-          <Bar dataKey="orderCount" fill="#2563eb" radius={[0, 4, 4, 0]} />
+          <Tooltip
+            formatter={(value) => [value, "Objednávek"]}
+            contentStyle={isDark ? { backgroundColor: GRAPHITE.surface, border: `1px solid ${GRAPHITE.border}`, borderRadius: 8 } : undefined}
+            itemStyle={isDark ? { color: GRAPHITE.text } : undefined}
+            labelStyle={isDark ? { color: GRAPHITE.muted } : undefined}
+          />
+          <Bar dataKey="orderCount" fill={isDark ? GRAPHITE.accent : "#2563eb"} radius={[0, 4, 4, 0]} />
         </BarChart>
       </ResponsiveContainer>
     </div>
@@ -180,6 +201,8 @@ export const PackerLeaderboard: React.FC<{ data: PackerThroughput[] }> = ({ data
 };
 
 export const PackagesPerOrderChart: React.FC<{ data: PackagesPerOrderBucket[] }> = ({ data }) => {
+  const { theme } = useTheme();
+  const isDark = theme === "dark";
   if (data.length === 0) return <EmptyState />;
   const chartData = data.map((b) => ({
     ...b,
@@ -189,15 +212,20 @@ export const PackagesPerOrderChart: React.FC<{ data: PackagesPerOrderBucket[] }>
     <div className="h-60 w-full">
       <ResponsiveContainer width="100%" height="100%">
         <BarChart data={chartData} margin={{ top: 10, right: 20, left: 0, bottom: 10 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+          <CartesianGrid strokeDasharray="3 3" stroke={isDark ? GRAPHITE.border : "#f0f0f0"} />
           <XAxis
             dataKey="label"
             tick={{ fontSize: 12 }}
-            stroke="#6b7280"
+            stroke={isDark ? GRAPHITE.muted : "#6b7280"}
             label={{ value: "Balíků v objednávce", position: "insideBottom", offset: -5, fontSize: 11 }}
           />
-          <YAxis tick={{ fontSize: 11 }} stroke="#6b7280" allowDecimals={false} />
-          <Tooltip formatter={(value) => [value, "Objednávek"]} />
+          <YAxis tick={{ fontSize: 11 }} stroke={isDark ? GRAPHITE.muted : "#6b7280"} allowDecimals={false} />
+          <Tooltip
+            formatter={(value) => [value, "Objednávek"]}
+            contentStyle={isDark ? { backgroundColor: GRAPHITE.surface, border: `1px solid ${GRAPHITE.border}`, borderRadius: 8 } : undefined}
+            itemStyle={isDark ? { color: GRAPHITE.text } : undefined}
+            labelStyle={isDark ? { color: GRAPHITE.muted } : undefined}
+          />
           <Bar dataKey="orderCount" fill="#0ea5e9" radius={[2, 2, 0, 0]} />
         </BarChart>
       </ResponsiveContainer>

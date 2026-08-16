@@ -40,7 +40,7 @@ function OtherConversationRow({
   return (
     <button
       data-testid={`other-conversation-${conv.id}`}
-      onClick={() => onSelect?.(conv.id)}
+      onClick={() => onSelect?.(conv.id ?? "")}
       className="w-full text-left py-1.5 border-b border-gray-50 dark:border-graphite-border last:border-0"
     >
       <div className="flex items-center justify-between mb-0.5">
@@ -70,9 +70,9 @@ function ContactDetailsPanel({ conversation, onSelectConversation }: ContactDeta
     conversation.referer ||
     conversation.channel;
 
-  const infoEntries = mergedInfoEntries(conversation.variables, conversation.contactProperties);
+  const infoEntries = mergedInfoEntries(conversation.variables ?? {}, conversation.contactProperties ?? {});
 
-  const { data: visitorData, isLoading: visitorLoading } = useSmartsuppVisitorInfo(conversation.id);
+  const { data: visitorData, isLoading: visitorLoading } = useSmartsuppVisitorInfo(conversation.id ?? null);
   const visitorInfo = visitorData?.visitorInfo;
 
   return (
@@ -131,10 +131,10 @@ function ContactDetailsPanel({ conversation, onSelectConversation }: ContactDeta
       )}
 
       {/* Assigned agents */}
-      {conversation.assignedAgentIds.length > 0 && (
+      {(conversation.assignedAgentIds ?? []).length > 0 && (
         <Section title="Přiřazení operátoři">
           <div className="flex flex-wrap gap-1.5">
-            {conversation.assignedAgentIds.map((id) => (
+            {(conversation.assignedAgentIds ?? []).map((id) => (
               <AgentBadge key={id} agentId={id} name={id} />
             ))}
           </div>
@@ -184,10 +184,10 @@ function ContactDetailsPanel({ conversation, onSelectConversation }: ContactDeta
       )}
 
       {/* Contact tags */}
-      {conversation.contactTags.length > 0 && (
+      {(conversation.contactTags ?? []).length > 0 && (
         <Section title="Štítky kontaktu">
           <div className="flex flex-wrap gap-1.5">
-            {conversation.contactTags.map((t) => (
+            {(conversation.contactTags ?? []).map((t) => (
               <span
                 key={t}
                 className="inline-flex items-center rounded-full px-2 py-0.5 text-xs bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300"
@@ -200,10 +200,10 @@ function ContactDetailsPanel({ conversation, onSelectConversation }: ContactDeta
       )}
 
       {/* Conversation tags */}
-      {conversation.tags.length > 0 && (
+      {(conversation.tags ?? []).length > 0 && (
         <Section title="Štítky">
           <div className="flex flex-wrap gap-1.5">
-            {conversation.tags.map((t) => (
+            {(conversation.tags ?? []).map((t) => (
               <span
                 key={t}
                 className="inline-flex items-center rounded-full px-2 py-0.5 text-xs bg-gray-100 dark:bg-graphite-surface-2 text-gray-700 dark:text-graphite-muted"
@@ -216,19 +216,19 @@ function ContactDetailsPanel({ conversation, onSelectConversation }: ContactDeta
       )}
 
       {/* Other conversations */}
-      {conversation.otherConversations.length > 0 && (
-        <Section title={`Jiné konverzace (${conversation.otherConversations.length})`}>
-          {conversation.otherConversations.map((c) => (
+      {(conversation.otherConversations ?? []).length > 0 && (
+        <Section title={`Jiné konverzace (${(conversation.otherConversations ?? []).length})`}>
+          {(conversation.otherConversations ?? []).map((c) => (
             <OtherConversationRow key={c.id} conv={c} onSelect={onSelectConversation} />
           ))}
         </Section>
       )}
 
       {/* Visitor info — OS, browser, browsing history */}
-      <VisitorInfoCard conversationId={conversation.id} />
+      <VisitorInfoCard conversationId={conversation.id ?? null} />
 
       {/* Shoptet Zákazník — rendered when resolved */}
-      <ShoptetCustomerCard conversationId={conversation.id} />
+      <ShoptetCustomerCard conversationId={conversation.id ?? null} />
 
       {/* Informace o kontaktu — merged variables + contactProperties, Shoptet keys first */}
       {infoEntries.length > 0 && (

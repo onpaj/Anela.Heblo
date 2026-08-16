@@ -104,6 +104,12 @@ const Sidebar: React.FC<SidebarProps> = ({
           key: "/automation/meeting-tasks",
         },
         {
+          id: "mind-maps",
+          name: "Myšlenkové mapy",
+          href: "/automation/mind-maps",
+          key: "/automation/mind-maps",
+        },
+        {
           id: "struktura",
           name: "Struktura",
           href: "#",
@@ -351,6 +357,12 @@ const Sidebar: React.FC<SidebarProps> = ({
           name: "Recurring Jobs",
           href: "/recurring-jobs",
           key: "/recurring-jobs",
+        },
+        {
+          id: "overtime",
+          name: "Evidence přesčasů",
+          href: "/overtime",
+          key: "/overtime",
         },
         {
           id: "hangfire",

@@ -3,6 +3,7 @@ using FluentAssertions;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Microsoft.Extensions.Time.Testing;
 using Moq;
 using Xunit;
 
@@ -10,6 +11,16 @@ namespace Anela.Heblo.Tests.Features.Catalog.Infrastructure;
 
 public sealed class CatalogMergeSchedulerTests
 {
+    /// <summary>Fixed fake epoch. Never DateTimeOffset.UtcNow — that reintroduces wall-clock dependence.</summary>
+    private static readonly DateTimeOffset TestStart = new(2026, 1, 1, 0, 0, 0, TimeSpan.Zero);
+
+    /// <summary>Production-like values from CatalogCacheOptions. Free under a fake clock.</summary>
+    private static readonly TimeSpan Debounce = TimeSpan.FromSeconds(5);
+    private static readonly TimeSpan MaxInterval = TimeSpan.FromMinutes(30);
+
+    /// <summary>Failure-only budget. Never used as a wait — only as the losing branch of WhenAny.</summary>
+    private static readonly TimeSpan SignalTimeout = TimeSpan.FromSeconds(5);
+
     private sealed class FakeApplicationLifetime : IHostApplicationLifetime
     {
         private readonly CancellationTokenSource _started = new();
@@ -28,15 +39,52 @@ public sealed class CatalogMergeSchedulerTests
         public void StopApplication() => _stopping.Cancel();
     }
 
-    private (CatalogMergeScheduler sut, Mock<ILogger<CatalogMergeScheduler>> logger)
+    private static CatalogCacheOptions Options_(TimeSpan? debounce = null, TimeSpan? maxInterval = null) => new()
+    {
+        DebounceDelay = debounce ?? Debounce,
+        MaxMergeInterval = maxInterval ?? MaxInterval
+    };
+
+    private (CatalogMergeScheduler sut, Mock<ILogger<CatalogMergeScheduler>> logger, FakeTimeProvider time)
         CreateScheduler(CatalogCacheOptions options, IHostApplicationLifetime? lifetime = null)
     {
+        var time = new FakeTimeProvider(TestStart);
         var logger = new Mock<ILogger<CatalogMergeScheduler>>();
         var sut = new CatalogMergeScheduler(
             logger.Object,
             Options.Create(options),
-            lifetime ?? new FakeApplicationLifetime());
-        return (sut, logger);
+            lifetime ?? new FakeApplicationLifetime(),
+            time);
+        return (sut, logger, time);
+    }
+
+    private static TaskCompletionSource<bool> NewSignal() =>
+        new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+    /// <summary>
+    /// Deterministic barrier for "a merge has fully completed".
+    /// Step 1: await the signal raised from inside the merge callback — proves ExecuteMergeAsync
+    ///         acquired the semaphore and entered the callback.
+    /// Step 2: await WaitForCurrentMergeAsync — waits on the same semaphore, which is only released
+    ///         in the finally block, after _lastMergeCompleted / _mergeScheduled / _firstPendingInvalidation
+    ///         have all been written.
+    /// No polling, no sleeping. The Task.Delay is a failure timeout only.
+    /// </summary>
+    private static async Task WaitForMergeAsync(
+        CatalogMergeScheduler sut,
+        TaskCompletionSource<bool> callbackEntered,
+        string because)
+    {
+        var winner = await Task.WhenAny(callbackEntered.Task, Task.Delay(SignalTimeout));
+        winner.Should().Be(callbackEntered.Task, because);
+        await sut.WaitForCurrentMergeAsync();
+    }
+
+    /// <summary>Awaits a signal with a failure-only budget, without touching the scheduler's semaphore.</summary>
+    private static async Task AwaitSignalAsync(TaskCompletionSource<bool> signal, string because)
+    {
+        var winner = await Task.WhenAny(signal.Task, Task.Delay(SignalTimeout));
+        winner.Should().Be(signal.Task, because);
     }
 
     private static void VerifyLogged(
@@ -56,48 +104,43 @@ public sealed class CatalogMergeSchedulerTests
     [Fact]
     public async Task ScheduleMerge_FiresCallbackOnce_AfterDebounceDelay()
     {
-        var opts = new CatalogCacheOptions
-        {
-            DebounceDelay = TimeSpan.FromMilliseconds(100),
-            MaxMergeInterval = TimeSpan.FromMinutes(30)
-        };
-        var (sut, _) = CreateScheduler(opts);
-        var callbackFired = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var opts = Options_();
+        var (sut, _, time) = CreateScheduler(opts);
+        var callbackEntered = NewSignal();
         var invocations = 0;
-        var testStart = DateTime.UtcNow;
 
         using (sut)
         {
             sut.SetMergeCallback(_ =>
             {
                 Interlocked.Increment(ref invocations);
-                callbackFired.TrySetResult(true);
+                callbackEntered.TrySetResult(true);
                 return Task.CompletedTask;
             });
 
             sut.ScheduleMerge("source-a");
 
-            var completed = await Task.WhenAny(callbackFired.Task, Task.Delay(2000));
-            completed.Should().Be(callbackFired.Task, "callback should fire within 2 seconds");
+            // Not yet due — one tick short of the debounce delay.
+            time.Advance(Debounce - TimeSpan.FromTicks(1));
+            invocations.Should().Be(0, "the debounce delay has not elapsed on the fake clock");
 
-            await Task.Delay(50); // let ExecuteMergeAsync finish its post-callback bookkeeping
+            time.Advance(TimeSpan.FromTicks(1));
+            await WaitForMergeAsync(sut, callbackEntered, "the debounce timer should have fired the merge");
 
             invocations.Should().Be(1);
             sut.HasPendingMerge().Should().BeFalse();
-            sut.GetLastMergeTime().Should().BeAfter(testStart);
+            sut.GetLastMergeTime().Should().Be(TestStart.Add(Debounce).UtcDateTime);
+            sut.GetLastMergeTime().Kind.Should().Be(DateTimeKind.Utc,
+                "GetLastMergeTime must keep the Kind that DateTime.UtcNow produced");
         }
     }
 
     [Fact]
     public async Task ScheduleMerge_BurstOfCalls_CollapseToSingleCallback()
     {
-        var opts = new CatalogCacheOptions
-        {
-            DebounceDelay = TimeSpan.FromMilliseconds(150),
-            MaxMergeInterval = TimeSpan.FromMinutes(30)
-        };
-        var (sut, _) = CreateScheduler(opts);
-        var callbackFired = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var opts = Options_();
+        var (sut, _, time) = CreateScheduler(opts);
+        var callbackEntered = NewSignal();
         var invocations = 0;
 
         using (sut)
@@ -105,36 +148,40 @@ public sealed class CatalogMergeSchedulerTests
             sut.SetMergeCallback(_ =>
             {
                 Interlocked.Increment(ref invocations);
-                callbackFired.TrySetResult(true);
+                callbackEntered.TrySetResult(true);
                 return Task.CompletedTask;
             });
 
+            // Five invalidations, each one second apart — every one resets the 5s debounce window,
+            // so the timer never becomes due during the burst.
             for (int i = 0; i < 5; i++)
             {
                 sut.ScheduleMerge($"source-{i}");
-                await Task.Delay(30);
+                time.Advance(TimeSpan.FromSeconds(1));
             }
 
-            var completed = await Task.WhenAny(callbackFired.Task, Task.Delay(2000));
-            completed.Should().Be(callbackFired.Task, "single callback should fire within 2 seconds");
+            invocations.Should().Be(0, "each ScheduleMerge resets the debounce window");
 
-            await Task.Delay(450); // extra window to confirm no second callback
+            time.Advance(Debounce);
+            await WaitForMergeAsync(sut, callbackEntered, "a single merge should fire after the burst settles");
 
             invocations.Should().Be(1);
             sut.HasPendingMerge().Should().BeFalse();
+
+            // The timer period is Timeout.InfiniteTimeSpan — advancing further must not fire it again.
+            time.Advance(Debounce * 2);
+            invocations.Should().Be(1, "the debounce timer is one-shot");
         }
     }
 
     [Fact]
     public async Task ScheduleMerge_BeyondMaxMergeInterval_ForcesImmediateExecution()
     {
-        var opts = new CatalogCacheOptions
-        {
-            DebounceDelay = TimeSpan.FromSeconds(10), // intentionally long
-            MaxMergeInterval = TimeSpan.FromMilliseconds(50)
-        };
-        var (sut, logger) = CreateScheduler(opts);
-        var callbackFired = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+        // DebounceDelay is deliberately LONGER than the advance below, so the debounce timer
+        // never becomes due and cannot reset _firstPendingInvalidation before the force path runs.
+        var opts = Options_(debounce: TimeSpan.FromHours(1), maxInterval: MaxInterval);
+        var (sut, logger, time) = CreateScheduler(opts);
+        var callbackEntered = NewSignal();
         var invocations = 0;
 
         using (sut)
@@ -142,18 +189,17 @@ public sealed class CatalogMergeSchedulerTests
             sut.SetMergeCallback(_ =>
             {
                 Interlocked.Increment(ref invocations);
-                callbackFired.TrySetResult(true);
+                callbackEntered.TrySetResult(true);
                 return Task.CompletedTask;
             });
 
-            sut.ScheduleMerge("source-a"); // seeds _firstPendingInvalidation + arms debounce
-            await Task.Delay(60); // wait > MaxMergeInterval (50ms)
-            sut.ScheduleMerge("source-b"); // triggers force path
+            sut.ScheduleMerge("source-a");           // seeds _firstPendingInvalidation, arms a 1h debounce
+            time.Advance(MaxInterval + TimeSpan.FromMinutes(1));
+            invocations.Should().Be(0, "the 1h debounce timer is not due yet");
 
-            var completed = await Task.WhenAny(callbackFired.Task, Task.Delay(1000));
-            completed.Should().Be(callbackFired.Task, "callback should fire within 1 second via force path");
+            sut.ScheduleMerge("source-b");           // 31 min since first invalidation -> force path
 
-            await Task.Delay(50);
+            await WaitForMergeAsync(sut, callbackEntered, "the max-interval force path should run the merge");
 
             invocations.Should().Be(1);
         }
@@ -164,43 +210,50 @@ public sealed class CatalogMergeSchedulerTests
     [Fact]
     public async Task ExecuteMergeAsync_WhenMergeAlreadyInProgress_SkipsSecondInvocation()
     {
-        var opts = new CatalogCacheOptions
-        {
-            DebounceDelay = TimeSpan.FromMilliseconds(50),
-            MaxMergeInterval = TimeSpan.FromMilliseconds(1)
-        };
-        var (sut, logger) = CreateScheduler(opts);
-        var gatingTcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var opts = Options_(debounce: Debounce, maxInterval: MaxInterval);
+        var (sut, logger, time) = CreateScheduler(opts);
+        var callbackEntered = NewSignal();
+        var gate = NewSignal();
+        var skipLogged = NewSignal();
         var invocations = 0;
+
+        // Signal as soon as the scheduler logs the skip, so we never have to poll or sleep for it.
+        logger.Setup(l => l.Log(
+                LogLevel.Debug,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((v, _) => v.ToString()!.Contains("Merge already in progress, skipping")),
+                It.IsAny<Exception?>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()!))
+            .Callback(() => skipLogged.TrySetResult(true));
 
         using (sut)
         {
             sut.SetMergeCallback(async _ =>
             {
                 Interlocked.Increment(ref invocations);
-                await gatingTcs.Task;
+                callbackEntered.TrySetResult(true);
+                await gate.Task;                     // hold the merge semaphore open
             });
 
             sut.ScheduleMerge("source-a");
+            time.Advance(Debounce);                  // fires the debounce timer
+            await AwaitSignalAsync(callbackEntered, "the first merge should have entered the callback");
+            sut.IsMergeInProgress.Should().BeTrue("the first merge holds the semaphore");
 
-            // Poll until first merge acquires the semaphore
-            var deadline = DateTime.UtcNow.AddSeconds(2);
-            while (!sut.IsMergeInProgress && DateTime.UtcNow < deadline)
-            {
-                await Task.Delay(10);
-            }
-            sut.IsMergeInProgress.Should().BeTrue("first merge should be in progress");
-
-            // Trigger second execute via force path (MaxMergeInterval = 1ms, enough time elapsed)
+            // Reach the force path while the first merge is still gated. The debounce timer already
+            // fired and is one-shot, so this advance arms nothing new.
+            time.Advance(MaxInterval + TimeSpan.FromMinutes(1));
             sut.ScheduleMerge("source-b");
-            await Task.Delay(200); // let second ExecuteMergeAsync run and skip
+
+            // The second ExecuteMergeAsync blocks on _mergeSemaphore.WaitAsync(100) — a REAL 100 ms
+            // wait on the contended path. That literal is out of scope for this change (spec.r1.md).
+            await AwaitSignalAsync(skipLogged, "the second merge should log that it is skipping");
 
             invocations.Should().Be(1, "second invocation should be skipped");
-
             VerifyLogged(logger, LogLevel.Debug, "Merge already in progress, skipping");
 
-            gatingTcs.TrySetResult(true); // release first merge
-            await Task.Delay(100); // let merge complete before Dispose
+            gate.TrySetResult(true);                 // release the first merge
+            await sut.WaitForCurrentMergeAsync();
 
             sut.IsMergeInProgress.Should().BeFalse("semaphore should be released after merge");
         }
@@ -209,83 +262,69 @@ public sealed class CatalogMergeSchedulerTests
     [Fact]
     public async Task WaitForCurrentMergeAsync_WhenNoMergeInProgress_CompletesImmediately()
     {
-        var opts = new CatalogCacheOptions { DebounceDelay = TimeSpan.FromSeconds(60) };
-        var (sut, _) = CreateScheduler(opts);
+        var (sut, _, _) = CreateScheduler(Options_());
 
         using (sut)
         {
-            var sw = System.Diagnostics.Stopwatch.StartNew();
-            await sut.WaitForCurrentMergeAsync();
-            sw.Stop();
-            sw.ElapsedMilliseconds.Should().BeLessThan(50, "no merge in progress — should return immediately");
+            var waitTask = sut.WaitForCurrentMergeAsync();
+            waitTask.IsCompleted.Should().BeTrue("no merge in progress — should return synchronously");
+            await waitTask;
         }
     }
 
     [Fact]
     public async Task WaitForCurrentMergeAsync_WhenMergeInProgress_BlocksUntilComplete()
     {
-        var opts = new CatalogCacheOptions
-        {
-            DebounceDelay = TimeSpan.FromMilliseconds(50),
-            MaxMergeInterval = TimeSpan.FromMinutes(30)
-        };
-        var (sut, _) = CreateScheduler(opts);
-        var gatingTcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var (sut, _, time) = CreateScheduler(Options_());
+        var callbackEntered = NewSignal();
+        var gate = NewSignal();
 
         using (sut)
         {
-            sut.SetMergeCallback(async _ => await gatingTcs.Task);
-            sut.ScheduleMerge("source-a");
-
-            // Wait until merge holds the semaphore
-            var deadline = DateTime.UtcNow.AddSeconds(2);
-            while (!sut.IsMergeInProgress && DateTime.UtcNow < deadline)
+            sut.SetMergeCallback(async _ =>
             {
-                await Task.Delay(10);
-            }
+                callbackEntered.TrySetResult(true);
+                await gate.Task;
+            });
+
+            sut.ScheduleMerge("source-a");
+            time.Advance(Debounce);
+            await AwaitSignalAsync(callbackEntered, "the merge should have entered the callback");
             sut.IsMergeInProgress.Should().BeTrue();
 
             var waitTask = sut.WaitForCurrentMergeAsync();
-            await Task.Delay(100);
             waitTask.IsCompleted.Should().BeFalse("wait task should block while merge is in progress");
 
-            gatingTcs.TrySetResult(true); // release the merge callback
+            gate.TrySetResult(true);
 
-            var finishedTask = await Task.WhenAny(waitTask, Task.Delay(1000));
-            finishedTask.Should().Be(waitTask, "wait task should complete after merge finishes");
+            var winner = await Task.WhenAny(waitTask, Task.Delay(SignalTimeout));
+            winner.Should().Be(waitTask, "wait task should complete after merge finishes");
+            await waitTask;
 
             sut.IsMergeInProgress.Should().BeFalse();
 
-            // Second WaitForCurrentMergeAsync should complete immediately
-            var sw = System.Diagnostics.Stopwatch.StartNew();
-            await sut.WaitForCurrentMergeAsync();
-            sw.Stop();
-            sw.ElapsedMilliseconds.Should().BeLessThan(50, "semaphore should not be leaked");
+            // Second call must not block — proves the semaphore was not leaked.
+            var second = sut.WaitForCurrentMergeAsync();
+            second.IsCompleted.Should().BeTrue("semaphore should not be leaked");
+            await second;
         }
     }
 
     [Fact]
     public async Task WaitForCurrentMergeAsync_AfterDispose_ReturnsImmediately()
     {
-        var opts = new CatalogCacheOptions { DebounceDelay = TimeSpan.FromSeconds(60) };
-        var (sut, _) = CreateScheduler(opts);
+        var (sut, _, _) = CreateScheduler(Options_());
         sut.Dispose();
 
-        var sw = System.Diagnostics.Stopwatch.StartNew();
-        await sut.WaitForCurrentMergeAsync();
-        sw.Stop();
-        sw.ElapsedMilliseconds.Should().BeLessThan(50, "disposed scheduler should return immediately");
+        var waitTask = sut.WaitForCurrentMergeAsync();
+        waitTask.IsCompleted.Should().BeTrue("disposed scheduler should return synchronously");
+        await waitTask;
     }
 
     [Fact]
-    public async Task ScheduleMerge_AfterDispose_DoesNotFireCallback()
+    public void ScheduleMerge_AfterDispose_DoesNotFireCallback()
     {
-        var opts = new CatalogCacheOptions
-        {
-            DebounceDelay = TimeSpan.FromMilliseconds(100),
-            MaxMergeInterval = TimeSpan.FromMinutes(30)
-        };
-        var (sut, _) = CreateScheduler(opts);
+        var (sut, _, time) = CreateScheduler(Options_());
         var invocations = 0;
 
         sut.SetMergeCallback(_ =>
@@ -297,19 +336,14 @@ public sealed class CatalogMergeSchedulerTests
         sut.Dispose();
         sut.ScheduleMerge("source-x");
 
-        await Task.Delay(300); // > 2 × DebounceDelay
+        time.Advance(Debounce * 2);
         invocations.Should().Be(0);
     }
 
     [Fact]
-    public async Task ScheduleMerge_DisposedBeforeTimerFires_DoesNotFireCallback()
+    public void ScheduleMerge_DisposedBeforeTimerFires_DoesNotFireCallback()
     {
-        var opts = new CatalogCacheOptions
-        {
-            DebounceDelay = TimeSpan.FromMilliseconds(200),
-            MaxMergeInterval = TimeSpan.FromMinutes(30)
-        };
-        var (sut, _) = CreateScheduler(opts);
+        var (sut, _, time) = CreateScheduler(Options_());
         var invocations = 0;
 
         sut.SetMergeCallback(_ =>
@@ -319,17 +353,16 @@ public sealed class CatalogMergeSchedulerTests
         });
 
         sut.ScheduleMerge("source-x");
-        sut.Dispose(); // dispose before DebounceDelay elapses
+        sut.Dispose();                  // disposes the ITimer before it becomes due
 
-        await Task.Delay(500); // well beyond DebounceDelay
+        time.Advance(Debounce * 2);
         invocations.Should().Be(0);
     }
 
     [Fact]
     public void Dispose_CalledTwice_DoesNotThrow()
     {
-        var opts = new CatalogCacheOptions();
-        var (sut, _) = CreateScheduler(opts);
+        var (sut, _, _) = CreateScheduler(Options_());
 
         sut.Dispose();
         var act = () => sut.Dispose();
@@ -337,15 +370,10 @@ public sealed class CatalogMergeSchedulerTests
     }
 
     [Fact]
-    public async Task ScheduleMerge_WhenApplicationStopping_DoesNotFireCallback()
+    public void ScheduleMerge_WhenApplicationStopping_DoesNotFireCallback()
     {
-        var opts = new CatalogCacheOptions
-        {
-            DebounceDelay = TimeSpan.FromMilliseconds(100),
-            MaxMergeInterval = TimeSpan.FromMinutes(30)
-        };
         var lifetime = new FakeApplicationLifetime(stoppingCancelled: true);
-        var (sut, _) = CreateScheduler(opts, lifetime);
+        var (sut, _, time) = CreateScheduler(Options_(), lifetime);
         var invocations = 0;
 
         using (sut)
@@ -357,7 +385,7 @@ public sealed class CatalogMergeSchedulerTests
             });
 
             sut.ScheduleMerge("source-x");
-            await Task.Delay(300); // > 2 × DebounceDelay
+            time.Advance(Debounce * 2);
         }
 
         invocations.Should().Be(0);
@@ -366,60 +394,52 @@ public sealed class CatalogMergeSchedulerTests
     [Fact]
     public async Task WaitForCurrentMergeAsync_WhenApplicationStopping_CompletesImmediately()
     {
-        var opts = new CatalogCacheOptions();
         var lifetime = new FakeApplicationLifetime(stoppingCancelled: true);
-        var (sut, _) = CreateScheduler(opts, lifetime);
+        var (sut, _, _) = CreateScheduler(Options_(), lifetime);
 
         using (sut)
         {
-            var sw = System.Diagnostics.Stopwatch.StartNew();
-            await sut.WaitForCurrentMergeAsync();
-            sw.Stop();
-            sw.ElapsedMilliseconds.Should().BeLessThan(50);
+            var waitTask = sut.WaitForCurrentMergeAsync();
+            waitTask.IsCompleted.Should().BeTrue("a stopping application should short-circuit the wait");
+            await waitTask;
         }
     }
 
     [Fact]
     public async Task ScheduleMerge_WhenCallbackThrows_SchedulerRemainsUsable()
     {
-        var opts = new CatalogCacheOptions
-        {
-            DebounceDelay = TimeSpan.FromMilliseconds(100),
-            MaxMergeInterval = TimeSpan.FromMinutes(30)
-        };
-        var (sut, logger) = CreateScheduler(opts);
-        var firstAttemptDone = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
-        var secondCallbackFired = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var (sut, logger, time) = CreateScheduler(Options_());
+        var firstEntered = NewSignal();
+        var secondEntered = NewSignal();
         var secondInvocations = 0;
 
         using (sut)
         {
             sut.SetMergeCallback(_ =>
             {
-                firstAttemptDone.TrySetResult(true);
+                firstEntered.TrySetResult(true);
                 throw new InvalidOperationException("boom");
             });
 
             sut.ScheduleMerge("source-a");
-            await Task.WhenAny(firstAttemptDone.Task, Task.Delay(2000));
-            firstAttemptDone.Task.IsCompletedSuccessfully.Should().BeTrue("first callback should have fired");
-
-            await Task.Delay(50); // let catch + finally run and release semaphore
+            time.Advance(Debounce);
+            await WaitForMergeAsync(sut, firstEntered, "the first callback should have fired");
 
             sut.IsMergeInProgress.Should().BeFalse("semaphore must be released after a failing callback");
 
             sut.SetMergeCallback(_ =>
             {
                 Interlocked.Increment(ref secondInvocations);
-                secondCallbackFired.TrySetResult(true);
+                secondEntered.TrySetResult(true);
                 return Task.CompletedTask;
             });
 
+            // The failed run left _mergeScheduled true and _firstPendingInvalidation at TestStart,
+            // and only 5s of fake time has passed — well inside MaxInterval — so this takes the
+            // normal debounce path.
             sut.ScheduleMerge("source-b");
-            await Task.WhenAny(secondCallbackFired.Task, Task.Delay(2000));
-            secondCallbackFired.Task.IsCompletedSuccessfully.Should().BeTrue("second callback should succeed");
-
-            await Task.Delay(50);
+            time.Advance(Debounce);
+            await WaitForMergeAsync(sut, secondEntered, "the second callback should succeed");
 
             secondInvocations.Should().Be(1);
         }
