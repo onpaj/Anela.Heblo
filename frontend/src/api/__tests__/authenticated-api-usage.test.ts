@@ -197,6 +197,7 @@ describe("Authenticated API Usage", () => {
     const MIGRATED_HOOKS = new Set([
       "useArticles.ts",
       "useExpeditionListArchive.ts",
+      "useSmartsupp.ts",
     ]);
 
     const hookFiles = getTypeScriptFiles(apiHooksDir);

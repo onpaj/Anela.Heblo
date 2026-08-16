@@ -108,3 +108,6 @@ section "8. Failing dependencies by target" \
 
 section "9. Busiest endpoints (traffic shape)" \
   'requests | summarize count(), p95dur=round(percentile(duration,95),0) by name | order by count_ desc | take 20'
+
+section "10. Hangfire background jobs that exhausted retries (HangfireJobFailed)" \
+  'customEvents | where name == "HangfireJobFailed" | summarize failures=count(), lastSeen=max(timestamp), sampleMessage=any(tostring(customDimensions.ExceptionMessage)) by jobType=tostring(customDimensions.JobType), recurringJobId=tostring(customDimensions.RecurringJobId), exceptionType=tostring(customDimensions.ExceptionType) | order by failures desc | take 25'

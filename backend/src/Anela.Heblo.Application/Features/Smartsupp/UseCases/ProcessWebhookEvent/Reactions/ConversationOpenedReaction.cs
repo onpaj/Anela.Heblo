@@ -1,3 +1,4 @@
+using Anela.Heblo.Application.Features.Smartsupp.Infrastructure;
 using Anela.Heblo.Application.Features.Smartsupp.UseCases.ProcessWebhookEvent.Mappers;
 using Anela.Heblo.Domain.Features.Smartsupp;
 
@@ -6,8 +7,13 @@ namespace Anela.Heblo.Application.Features.Smartsupp.UseCases.ProcessWebhookEven
 public sealed class ConversationOpenedReaction : ISmartsuppWebhookReaction
 {
     private readonly ISmartsuppRepository _repository;
+    private readonly ISmartsuppContactEnricher _contactEnricher;
 
-    public ConversationOpenedReaction(ISmartsuppRepository repository) => _repository = repository;
+    public ConversationOpenedReaction(ISmartsuppRepository repository, ISmartsuppContactEnricher contactEnricher)
+    {
+        _repository = repository;
+        _contactEnricher = contactEnricher;
+    }
 
     public string EventName => "conversation.opened";
 
@@ -15,6 +21,7 @@ public sealed class ConversationOpenedReaction : ISmartsuppWebhookReaction
     {
         var convEl = ctx.GetConversation() ?? ctx.Data;
         var conversation = SmartsuppPayloadMapper.MapConversation(convEl, ctx.Timestamp);
+        conversation = await _contactEnricher.EnrichContactAsync(conversation, cancellationToken);
         await _repository.UpsertConversationAsync(conversation, cancellationToken);
     }
 }

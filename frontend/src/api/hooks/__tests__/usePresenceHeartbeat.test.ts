@@ -1,20 +1,28 @@
 import { renderHook } from "@testing-library/react";
 import { usePresenceHeartbeat, otherActiveViewers } from "../useSmartsupp";
+import { getAuthenticatedApiClient, getApiBaseUrl, getAuthenticatedFetch } from "../../client";
 
-const mockFetch = jest.fn();
+const mockRecordPresence = jest.fn();
+const mockDeleteFetch = jest.fn();
 
 jest.mock("../../client", () => ({
-  getAuthenticatedApiClient: () => ({
-    baseUrl: "http://localhost:5001",
-    http: { fetch: mockFetch },
-  }),
+  getAuthenticatedApiClient: jest.fn(),
+  getApiBaseUrl: jest.fn(),
+  getAuthenticatedFetch: jest.fn(),
   QUERY_KEYS: { smartsupp: ["smartsupp"] },
 }));
 
 beforeEach(() => {
   jest.useFakeTimers();
-  mockFetch.mockReset();
-  mockFetch.mockResolvedValue({ ok: true, json: () => Promise.resolve({}) });
+  mockRecordPresence.mockReset();
+  mockDeleteFetch.mockReset();
+  mockRecordPresence.mockResolvedValue({ success: true });
+  mockDeleteFetch.mockResolvedValue({ ok: true, json: () => Promise.resolve({}) });
+  (getAuthenticatedApiClient as jest.Mock).mockReturnValue({
+    smartsupp_RecordPresence: mockRecordPresence,
+  });
+  (getApiBaseUrl as jest.Mock).mockReturnValue("http://localhost:5001");
+  (getAuthenticatedFetch as jest.Mock).mockReturnValue(mockDeleteFetch);
 });
 
 afterEach(() => {
@@ -23,37 +31,36 @@ afterEach(() => {
 });
 
 describe("usePresenceHeartbeat", () => {
-  it("posts a heartbeat immediately when a conversation is open", () => {
+  it("records a heartbeat immediately when a conversation is open", () => {
     renderHook(() => usePresenceHeartbeat("c1"));
 
-    expect(mockFetch).toHaveBeenCalledTimes(1);
-    const [url, init] = mockFetch.mock.calls[0];
-    expect(url).toBe("http://localhost:5001/api/smartsupp/conversations/c1/presence");
-    expect(init.method).toBe("POST");
+    expect(mockRecordPresence).toHaveBeenCalledTimes(1);
+    expect(mockRecordPresence).toHaveBeenCalledWith("c1");
   });
 
   it("does nothing when conversationId is null", () => {
     renderHook(() => usePresenceHeartbeat(null));
-    expect(mockFetch).not.toHaveBeenCalled();
+    expect(mockRecordPresence).not.toHaveBeenCalled();
   });
 
   it("keeps beating on the interval", () => {
     renderHook(() => usePresenceHeartbeat("c1"));
-    expect(mockFetch).toHaveBeenCalledTimes(1);
+    expect(mockRecordPresence).toHaveBeenCalledTimes(1);
 
     jest.advanceTimersByTime(20_000);
-    expect(mockFetch).toHaveBeenCalledTimes(2);
+    expect(mockRecordPresence).toHaveBeenCalledTimes(2);
   });
 
-  it("sends a DELETE leave on unmount", () => {
+  it("sends a keepalive DELETE leave on unmount via the escape hatch", () => {
     const { unmount } = renderHook(() => usePresenceHeartbeat("c1"));
-    mockFetch.mockClear();
+    mockDeleteFetch.mockClear();
 
     unmount();
 
-    const deleteCall = mockFetch.mock.calls.find(([, init]) => init.method === "DELETE");
-    expect(deleteCall).toBeDefined();
-    expect(deleteCall?.[1].keepalive).toBe(true);
+    expect(mockDeleteFetch).toHaveBeenCalledWith(
+      "http://localhost:5001/api/smartsupp/conversations/c1/presence",
+      expect.objectContaining({ method: "DELETE", keepalive: true }),
+    );
   });
 });
 
@@ -61,8 +68,8 @@ describe("otherActiveViewers", () => {
   it("filters out the current user", () => {
     const viewers = otherActiveViewers({
       activeViewers: [
-        { agentId: "1", displayName: "Me", source: "Heblo", isCurrentUser: true, enteredAt: "" },
-        { agentId: "2", displayName: "Petr", source: "Smartsupp", isCurrentUser: false, enteredAt: "" },
+        { agentId: "1", displayName: "Me", source: "Heblo", isCurrentUser: true, enteredAt: new Date() },
+        { agentId: "2", displayName: "Petr", source: "Smartsupp", isCurrentUser: false, enteredAt: new Date() },
       ],
     });
     expect(viewers).toHaveLength(1);

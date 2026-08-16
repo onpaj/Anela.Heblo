@@ -1,6 +1,7 @@
 using Anela.Heblo.Domain.Features.Leaflet;
 using Anela.Heblo.Persistence;
 using Anela.Heblo.Persistence.Features.Leaflet;
+using Anela.Heblo.Tests.Common;
 using DotNet.Testcontainers.Configurations;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
@@ -35,6 +36,7 @@ public class LeafletRepositoryIntegrationTests : IAsyncLifetime
 
         var options = new DbContextOptionsBuilder<ApplicationDbContext>()
             .UseNpgsql(dataSource)
+            .AllowManyServiceProviders()
             .Options;
 
         _context = new ApplicationDbContext(options);

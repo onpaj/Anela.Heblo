@@ -459,6 +459,14 @@ public enum ErrorCodes
     [HttpStatusCode(HttpStatusCode.ServiceUnavailable)]
     OvertimeExportPublishFailed = 3408,
 
+    // Mind Maps module errors (35XX)
+    [HttpStatusCode(HttpStatusCode.Conflict)]
+    MindMapUpdateInProgress = 3501,
+    [HttpStatusCode(HttpStatusCode.BadRequest)]
+    MindMapMeetingAlreadyAttached = 3502,
+    [HttpStatusCode(HttpStatusCode.BadRequest)]
+    MindMapInvalidDocument = 3503,
+
     // External Service errors (90XX)
     [HttpStatusCode(HttpStatusCode.ServiceUnavailable)]
     ExternalServiceError = 9001,

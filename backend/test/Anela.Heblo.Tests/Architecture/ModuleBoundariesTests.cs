@@ -336,6 +336,16 @@ public class ModuleBoundariesTests
         "Anela.Heblo.Application.Features.Packaging.UseCases.ResetOrderShipment.ResetOrderShipmentHandler -> Anela.Heblo.Application.Features.ShoptetOrders.PackingOrderItem",
 
         "Anela.Heblo.Application.Features.Packaging.UseCases.CompletePackingOrder.CompletePackingOrderHandler -> Anela.Heblo.Application.Features.ShoptetOrders.IEshopOrderClient",
+
+        // ShipmentCreationService.CreateAndPersistAsync(PackingOrder order, ...) — the interface
+        // method parameter and the class's own implementation both reference PackingOrder.
+        "Anela.Heblo.Application.Features.Packaging.Services.IShipmentCreationService -> Anela.Heblo.Application.Features.ShoptetOrders.PackingOrder",
+        "Anela.Heblo.Application.Features.Packaging.Services.ShipmentCreationService -> Anela.Heblo.Application.Features.ShoptetOrders.PackingOrder",
+
+        // order.Items.Sum(i => i.WeightGrams * i.Quantity) inside CreateAndPersistAsync compiles
+        // to a lambda parameter of type PackingOrderItem, captured in a compiler-generated nested
+        // type under ShipmentCreationService; covered via the DeclaringType fallback check below.
+        "Anela.Heblo.Application.Features.Packaging.Services.ShipmentCreationService -> Anela.Heblo.Application.Features.ShoptetOrders.PackingOrderItem",
     };
 
     // Allowlist for ShoptetOrders -> ShipmentLabels. Empty — CompleteDeliveredOrdersJob now consumes

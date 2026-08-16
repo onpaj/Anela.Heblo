@@ -5,7 +5,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Authorization.Policy;
 using Anela.Heblo.API.Infrastructure.Authentication;
 using Anela.Heblo.API.Infrastructure;
-using Anela.Heblo.Domain.Shared;
+using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Domain.Features.Authorization;
 
 namespace Anela.Heblo.API.Extensions;

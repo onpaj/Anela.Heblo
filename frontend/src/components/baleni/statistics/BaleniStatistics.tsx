@@ -29,10 +29,10 @@ const Panel: React.FC<{ title: string; children: React.ReactNode; subtitle?: Rea
   subtitle,
   children,
 }) => (
-  <div className="bg-white border border-border-light rounded-xl p-6 shadow-soft">
+  <div className="bg-white border border-border-light rounded-xl p-6 shadow-soft dark:bg-graphite-surface dark:border-graphite-border dark:shadow-soft-dark">
     <div className="mb-4">
-      <h3 className="text-sm font-semibold text-neutral-slate">{title}</h3>
-      {subtitle && <p className="text-xs text-neutral-gray mt-1">{subtitle}</p>}
+      <h3 className="text-sm font-semibold text-neutral-slate dark:text-graphite-text">{title}</h3>
+      {subtitle && <p className="text-xs text-neutral-gray mt-1 dark:text-graphite-muted">{subtitle}</p>}
     </div>
     {children}
   </div>
@@ -43,12 +43,12 @@ const KpiCard: React.FC<{ label: string; value: React.ReactNode; loading: boolea
   value,
   loading,
 }) => (
-  <div className="bg-white border border-border-light rounded-xl p-5 shadow-soft">
-    <p className="text-sm text-neutral-gray mb-2">{label}</p>
+  <div className="bg-white border border-border-light rounded-xl p-5 shadow-soft dark:bg-graphite-surface dark:border-graphite-border dark:shadow-soft-dark">
+    <p className="text-sm text-neutral-gray mb-2 dark:text-graphite-muted">{label}</p>
     {loading ? (
-      <div className="h-8 w-20 bg-secondary-blue-pale rounded animate-pulse" />
+      <div className="h-8 w-20 bg-secondary-blue-pale rounded animate-pulse dark:bg-graphite-surface-2" />
     ) : (
-      <p className="text-3xl font-bold text-primary-blue">{value}</p>
+      <p className="text-3xl font-bold text-primary-blue dark:text-graphite-accent">{value}</p>
     )}
   </div>
 );
@@ -78,19 +78,19 @@ const BaleniStatistics: React.FC = () => {
   if (error) {
     return (
       <div className="py-6">
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4 dark:bg-red-950/30 dark:border-red-900/50">
           <div className="flex items-center gap-3">
-            <AlertCircle className="h-5 w-5 text-red-600" />
+            <AlertCircle className="h-5 w-5 text-red-600 dark:text-red-400" />
             <div>
-              <h3 className="text-sm font-medium text-red-800">Chyba při načítání statistik</h3>
-              <p className="text-sm text-red-700 mt-1">
+              <h3 className="text-sm font-medium text-red-800 dark:text-red-400">Chyba při načítání statistik</h3>
+              <p className="text-sm text-red-700 mt-1 dark:text-red-400">
                 {error instanceof Error ? error.message : "Neočekávaná chyba"}
               </p>
             </div>
           </div>
           <button
             onClick={() => refetch()}
-            className="mt-3 px-3 py-1 text-sm bg-red-100 text-red-800 rounded hover:bg-red-200 transition-colors"
+            className="mt-3 px-3 py-1 text-sm bg-red-100 text-red-800 rounded hover:bg-red-200 transition-colors dark:bg-red-900/30 dark:text-red-300 dark:hover:bg-red-900/50"
           >
             Zkusit znovu
           </button>
@@ -107,12 +107,12 @@ const BaleniStatistics: React.FC = () => {
       {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-neutral-slate flex items-center gap-3">
-            <BarChart3 className="h-6 w-6 text-primary-blue" />
+          <h1 className="text-2xl font-bold text-neutral-slate flex items-center gap-3 dark:text-graphite-text">
+            <BarChart3 className="h-6 w-6 text-primary-blue dark:text-graphite-accent" />
             Statistiky balicí stanice
           </h1>
           {data && (
-            <p className="text-sm text-neutral-gray mt-1">
+            <p className="text-sm text-neutral-gray mt-1 dark:text-graphite-muted">
               {formatDay(data.fromDate)} – {formatDay(data.toDate)}
             </p>
           )}
@@ -125,8 +125,8 @@ const BaleniStatistics: React.FC = () => {
               onClick={() => setRangeDays(preset.days)}
               className={`px-3 py-2 rounded-lg border text-sm transition-colors ${
                 rangeDays === preset.days
-                  ? "bg-secondary-blue-pale border-primary-blue text-primary-blue"
-                  : "bg-white border-border-light text-neutral-gray hover:bg-secondary-blue-pale"
+                  ? "bg-secondary-blue-pale border-primary-blue text-primary-blue dark:bg-graphite-accent/10 dark:border-graphite-accent dark:text-graphite-accent"
+                  : "bg-white border-border-light text-neutral-gray hover:bg-secondary-blue-pale dark:bg-graphite-surface dark:border-graphite-border dark:text-graphite-muted dark:hover:bg-white/5"
               }`}
             >
               {preset.label}
@@ -135,7 +135,7 @@ const BaleniStatistics: React.FC = () => {
           <button
             onClick={() => refetch()}
             disabled={isFetching}
-            className="flex items-center gap-2 px-3 py-2 rounded-lg border border-border-light text-neutral-gray hover:bg-secondary-blue-pale transition-colors disabled:opacity-50"
+            className="flex items-center gap-2 px-3 py-2 rounded-lg border border-border-light text-neutral-gray hover:bg-secondary-blue-pale transition-colors disabled:opacity-50 dark:border-graphite-border dark:text-graphite-muted dark:hover:bg-white/5"
             aria-label="Obnovit"
           >
             <RefreshCw className={`h-4 w-4 ${isFetching ? "animate-spin" : ""}`} />
@@ -170,10 +170,10 @@ const BaleniStatistics: React.FC = () => {
       </div>
 
       {isLoading || !data ? (
-        <div className="flex items-center justify-center h-72 bg-white border border-border-light rounded-xl shadow-soft">
+        <div className="flex items-center justify-center h-72 bg-white border border-border-light rounded-xl shadow-soft dark:bg-graphite-surface dark:border-graphite-border dark:shadow-soft-dark">
           <div className="text-center">
-            <RefreshCw className="h-8 w-8 text-primary-blue animate-spin mx-auto mb-4" />
-            <p className="text-neutral-gray">Načítání dat...</p>
+            <RefreshCw className="h-8 w-8 text-primary-blue animate-spin mx-auto mb-4 dark:text-graphite-accent" />
+            <p className="text-neutral-gray dark:text-graphite-muted">Načítání dat...</p>
           </div>
         </div>
       ) : (

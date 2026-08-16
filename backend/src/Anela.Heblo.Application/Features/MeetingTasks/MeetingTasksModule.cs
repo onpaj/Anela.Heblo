@@ -1,5 +1,5 @@
 using Anela.Heblo.Application.Features.MeetingTasks.Services;
-using Anela.Heblo.Domain.Shared;
+using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Domain.Features.MeetingTasks;
 using Anela.Heblo.Persistence.MeetingTasks;
 using Microsoft.Extensions.AI;

@@ -1,9 +1,9 @@
 import { useQuery } from "@tanstack/react-query";
-import { getClientAndBaseUrl, apiGet } from "../../../../api/smartsuppClient";
-import type {
-  RagFeedbackLogSummary,
-  RagFeedbackStats,
-} from "../../../feedback/ragFeedbackTypes";
+import { getAuthenticatedApiClient } from "../../../../api/client";
+import {
+  toLocalFeedbackListResponse,
+  type LocalFeedbackListResponse,
+} from "../../../feedback/ragFeedbackMapping";
 
 export interface DraftReplyFeedbackListParams {
   pageNumber?: number;
@@ -14,15 +14,7 @@ export interface DraftReplyFeedbackListParams {
   userId?: string;
 }
 
-export interface DraftReplyFeedbackListResponse {
-  success: boolean;
-  logs: RagFeedbackLogSummary[];
-  totalCount: number;
-  pageNumber: number;
-  pageSize: number;
-  totalPages: number;
-  stats: RagFeedbackStats;
-}
+export type DraftReplyFeedbackListResponse = LocalFeedbackListResponse;
 
 const QUERY_KEY = ["smartsupp", "draft-reply", "feedback-list"] as const;
 
@@ -30,26 +22,15 @@ export function useSmartsuppDraftReplyFeedbackListQuery(params: DraftReplyFeedba
   return useQuery<DraftReplyFeedbackListResponse>({
     queryKey: [...QUERY_KEY, params],
     queryFn: async () => {
-      const { apiClient, baseUrl } = getClientAndBaseUrl();
-
-      const search = new URLSearchParams();
-      if (params.pageNumber !== undefined) search.append("pageNumber", String(params.pageNumber));
-      if (params.pageSize !== undefined) search.append("pageSize", String(params.pageSize));
-      if (params.sortBy !== undefined) search.append("sortBy", params.sortBy);
-      if (params.sortDescending !== undefined)
-        search.append("sortDescending", String(params.sortDescending));
-      if (params.hasFeedback !== undefined) search.append("hasFeedback", String(params.hasFeedback));
-      if (params.userId !== undefined) search.append("userId", params.userId);
-
-      const query = search.toString();
-      const url = `${baseUrl}/api/smartsupp/draft-reply/feedback/list${query ? `?${query}` : ""}`;
-      const response = await apiGet(apiClient, url);
-
-      if (!response.ok) {
-        throw new Error(`Failed to fetch Smartsupp feedback list: ${response.status}`);
-      }
-
-      return (await response.json()) as DraftReplyFeedbackListResponse;
+      const generated = await getAuthenticatedApiClient().smartsupp_GetDraftReplyFeedbackList(
+        params.pageNumber,
+        params.pageSize,
+        params.sortBy,
+        params.sortDescending,
+        params.hasFeedback,
+        params.userId,
+      );
+      return toLocalFeedbackListResponse(generated);
     },
     staleTime: 2 * 60 * 1000,
     gcTime: 5 * 60 * 1000,

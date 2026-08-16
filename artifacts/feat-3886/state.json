@@ -1,0 +1,46 @@
+{
+  "feature_id": "feat-3886",
+  "issue_number": 3886,
+  "created_at": "2026-08-07T16:19:23.886297Z",
+  "max_revisions": 3,
+  "phases": {
+    "analyzing": {
+      "status": "completed",
+      "updated_at": "2026-08-07T16:21:57.055156Z"
+    },
+    "architecting": {
+      "status": "completed",
+      "updated_at": "2026-08-07T16:25:09.972029Z"
+    },
+    "designing": {
+      "status": "completed",
+      "updated_at": "2026-08-07T16:26:18.434336Z"
+    },
+    "planning": {
+      "status": "completed",
+      "updated_at": "2026-08-07T16:30:53.346311Z"
+    },
+    "developing": {
+      "status": "in_progress",
+      "updated_at": "2026-08-10T15:21:32.518857Z"
+    },
+    "code-review": {
+      "status": "completed",
+      "updated_at": "2026-08-10T17:20:17.181139Z"
+    }
+  },
+  "tasks": [
+    {
+      "name": "inject-timeprovider-into-catalog-merge-scheduler",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-08-10T14:09:31.877442Z"
+    },
+    {
+      "name": "convert-merge-scheduler-tests-to-fake-time-provider",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-08-10T15:46:36.611311Z"
+    }
+  ]
+}
