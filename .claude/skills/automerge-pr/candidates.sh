@@ -7,6 +7,12 @@
 # merged by anyone, so it is filtered out before any subagent is spawned.
 set -euo pipefail
 
+# When USE_GH_API is set, the `gh pr list` call below routes through the
+# shared curl+REST library instead — for environments where the `gh` CLI
+# itself is not permitted. See .claude/skills/_lib/gh_api.sh for the
+# transport layer; the eligibility logic below is unchanged either way.
+LIB=".claude/skills/_lib/gh_api.sh"
+
 AGENT_LABEL="agent"
 MAX_CANDIDATES=20
 
@@ -28,12 +34,16 @@ if [ -z "$REPO" ]; then
   fi
 fi
 
-gh pr list \
-  --repo "$REPO" \
-  --state open \
-  --label "$AGENT_LABEL" \
-  --limit 100 \
-  --json number,title,isDraft,mergeable,reviewDecision,headRefName,additions,deletions,changedFiles,body,labels,createdAt \
+if [ -n "${USE_GH_API:-}" ]; then
+  GH_REPO="$REPO" "$LIB" pr-list open "$AGENT_LABEL"
+else
+  gh pr list \
+    --repo "$REPO" \
+    --state open \
+    --label "$AGENT_LABEL" \
+    --limit 100 \
+    --json number,title,isDraft,mergeable,reviewDecision,headRefName,additions,deletions,changedFiles,body,labels,createdAt
+fi \
 | jq --argjson max "$MAX_CANDIDATES" '
     # Must match NEEDS_WORK_LABEL / HUMAN_REQUIRED_LABEL in apply_verdict.sh —
     # the values are duplicated here (bash has no shared-constant mechanism
