@@ -53,7 +53,7 @@ public class BreakInsertionService
 
         var people = (await _client.GetPeopleAsync(cancellationToken))
             .Where(p => !p.Inactive
-                && string.Equals(p.Note?.Trim(), options.NoteMarker, StringComparison.OrdinalIgnoreCase))
+                && IntegrationNote.Parse(p.Note, options.NoteMarker).IsEnrolled)
             .ToList();
 
         if (people.Count == 0)

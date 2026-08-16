@@ -1,9 +1,9 @@
+using Anela.Heblo.Application.Features.Packaging.Services;
 using Anela.Heblo.Application.Features.ShipmentLabels;
 using Anela.Heblo.Application.Features.ShoptetOrders;
 using Anela.Heblo.Application.Shared;
 using MediatR;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
 
 namespace Anela.Heblo.Application.Features.Packaging.UseCases.ResetOrderShipment;
 
@@ -11,18 +11,18 @@ public class ResetOrderShipmentHandler : IRequestHandler<ResetOrderShipmentReque
 {
     private readonly IShipmentClient _shipmentClient;
     private readonly IPackingOrderClient _orderClient;
-    private readonly ShipmentLabelsSettings _shipmentSettings;
+    private readonly IShipmentCreationService _shipmentCreationService;
     private readonly ILogger<ResetOrderShipmentHandler> _logger;
 
     public ResetOrderShipmentHandler(
         IShipmentClient shipmentClient,
         IPackingOrderClient orderClient,
-        IOptions<ShipmentLabelsSettings> shipmentSettings,
+        IShipmentCreationService shipmentCreationService,
         ILogger<ResetOrderShipmentHandler> logger)
     {
         _shipmentClient = shipmentClient;
         _orderClient = orderClient;
-        _shipmentSettings = shipmentSettings.Value;
+        _shipmentCreationService = shipmentCreationService;
         _logger = logger;
     }
 
@@ -59,73 +59,26 @@ public class ResetOrderShipmentHandler : IRequestHandler<ResetOrderShipmentReque
         if (order is null)
             return new ResetOrderShipmentResponse(ErrorCodes.ShoptetOrderNotFound);
 
-        var totalWeightGrams = order.Items.Sum(i => i.WeightGrams * i.Quantity);
-        if (totalWeightGrams == 0)
-        {
-            // Carriers reject a 0 kg package; fall back to a default package weight.
-            _logger.LogWarning(
-                "Order {OrderCode} has no known item weights; using fallback package weight {Fallback}g",
-                request.OrderCode, _shipmentSettings.FallbackPackageWeightGrams);
-            totalWeightGrams = _shipmentSettings.FallbackPackageWeightGrams;
-        }
+        // Reset never supplies an explicit packer today (ResetOrderShipmentRequest has no
+        // PackingUserId field) — the shared service falls back to the current user's email.
+        var result = await _shipmentCreationService.CreateAndPersistAsync(order, request.NumberOfPackages, null, ct);
+        if (!result.IsSuccess)
+            return new ResetOrderShipmentResponse(result.ErrorCode!.Value);
 
-        var n = request.NumberOfPackages;
-        var perPackageWeightGrams = Math.Max(totalWeightGrams / n, _shipmentSettings.MinPackageWeightGrams);
-
-        var options = await _shipmentClient.GetShippingOptionsAsync(request.OrderCode, ct);
-        if (options.Count == 0)
-            return new ResetOrderShipmentResponse(ErrorCodes.ShipmentCarrierNotResolved);
-
-        var command = new CreateShipmentCommand
-        {
-            OrderCode = request.OrderCode,
-            CarrierCode = options[0].CarrierCode,
-            PackageCount = n,
-            Package = new ShipmentPackage
+        var packages = result.Labels
+            .Select(label => new ResetShipmentPackage
             {
-                WidthCm = _shipmentSettings.DefaultPackageWidthCm,
-                HeightCm = _shipmentSettings.DefaultPackageHeightCm,
-                DepthCm = _shipmentSettings.DefaultPackageDepthCm,
-                WeightGrams = perPackageWeightGrams,
-            },
-        };
-
-        CreatedShipment createdShipment;
-        try
-        {
-            createdShipment = await _shipmentClient.CreateShipmentAsync(command, ct);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Failed to create replacement shipment for order {OrderCode}", request.OrderCode);
-            return new ResetOrderShipmentResponse(ErrorCodes.ShipmentCreationFailed);
-        }
-
-        // Shoptet generates labels asynchronously, so the response may contain fewer labels than the
-        // requested `n`. Always produce exactly `n` entries (mirroring ScanPackingOrderHandler) so the
-        // FE shows the correct "X/N" counter; packages with no label yet get null tracking + URLs.
-        var newLabels = await _shipmentClient.GetLabelsByOrderCodeAsync(request.OrderCode, ct);
-        var createdPackages = newLabels
-            .Where(l => l.ShipmentGuid == createdShipment.ShipmentGuid)
-            .ToList();
-        var packages = Enumerable.Range(1, n)
-            .Select(i =>
-            {
-                var label = i <= createdPackages.Count ? createdPackages[i - 1] : null;
-                return new ResetShipmentPackage
-                {
-                    TrackingNumber = label?.TrackingNumber,
-                    LabelUrl = label?.LabelUrl,
-                    LabelZpl = label?.LabelZpl,
-                };
+                TrackingNumber = label.TrackingNumber,
+                LabelUrl = label.LabelUrl,
+                LabelZpl = label.LabelZpl,
             })
             .ToList();
 
         return new ResetOrderShipmentResponse(new ResetShipmentData
         {
-            ShipmentGuid = createdShipment.ShipmentGuid,
+            ShipmentGuid = result.ShipmentGuid,
             Packages = packages,
-            PendingCompletion = n >= 2,
+            PendingCompletion = request.NumberOfPackages >= 2,
         });
     }
 }

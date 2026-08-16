@@ -6,6 +6,7 @@ import {
   useTransportBoxByIdQuery,
   useTransportBoxByCodeQuery,
   useChangeTransportBoxState,
+  useAddItemToBox,
 } from "../useTransportBoxes";
 import * as clientModule from "../../client";
 
@@ -361,6 +362,56 @@ describe("useTransportBoxes hooks", () => {
       expect(
         mockApiClient.transportBox_GetTransportBoxByCode,
       ).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("useAddItemToBox", () => {
+    const setFetch = () => {
+      const fetchMock = jest
+        .fn()
+        .mockResolvedValue({ ok: true, json: async () => ({ success: true }) });
+      mockGetAuthenticatedApiClient.mockReturnValue({
+        baseUrl: "http://test",
+        http: { fetch: fetchMock },
+      } as unknown as ReturnType<typeof clientModule.getAuthenticatedApiClient>);
+      return fetchMock;
+    };
+
+    it("should send expirationDate as a DateOnly string", async () => {
+      const fetchMock = setFetch();
+
+      const { result } = renderHook(() => useAddItemToBox(), {
+        wrapper: createWrapper,
+      });
+      await result.current.mutateAsync({
+        boxId: 7,
+        productCode: "P-1",
+        productName: "Product 1",
+        amount: 2,
+        sourceInventoryId: 55,
+        lotNumber: "L-1",
+        expirationDate: new Date(2027, 4, 31),
+      });
+
+      const [, init] = fetchMock.mock.calls[0];
+      expect(JSON.parse(init.body).expirationDate).toBe("2027-05-31");
+    });
+
+    it("should omit expirationDate when not provided", async () => {
+      const fetchMock = setFetch();
+
+      const { result } = renderHook(() => useAddItemToBox(), {
+        wrapper: createWrapper,
+      });
+      await result.current.mutateAsync({
+        boxId: 7,
+        productCode: "P-1",
+        productName: "Product 1",
+        amount: 2,
+      });
+
+      const [, init] = fetchMock.mock.calls[0];
+      expect(JSON.parse(init.body)).not.toHaveProperty("expirationDate");
     });
   });
 });

@@ -8,7 +8,6 @@ using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
 using Npgsql;
-using NSubstitute;
 using Xunit;
 
 namespace Anela.Heblo.Tests.Persistence.Smartsupp;
@@ -123,10 +122,8 @@ public class SmartsuppRepositoryUpsertIntegrationTests : IAsyncLifetime
 
     private SmartsuppRepository CreateRepository(ApplicationDbContext? context = null)
     {
-        var apiClient = Substitute.For<ISmartsuppApiClient>();
         return new SmartsuppRepository(
             context ?? _context,
-            apiClient,
             NullLogger<SmartsuppRepository>.Instance);
     }
 

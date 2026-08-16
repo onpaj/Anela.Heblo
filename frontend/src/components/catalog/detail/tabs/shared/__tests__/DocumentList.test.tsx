@@ -1,14 +1,15 @@
 import { render, screen } from '@testing-library/react';
 import DocumentList from '../DocumentList';
-import type { CatalogDocumentDto } from '../../../../../../api/hooks/useCatalogDocuments';
+import { CatalogDocumentDto, type ICatalogDocumentDto } from '../../../../../../api/generated/api-client';
 
-const makeFile = (overrides?: Partial<CatalogDocumentDto>): CatalogDocumentDto => ({
-  name: 'COA__L001__Bisabolol.pdf',
-  webUrl: 'https://sp.example.com/file.pdf',
-  sizeBytes: 102400,
-  modifiedAt: '2026-05-01T12:00:00Z',
-  ...overrides,
-});
+const makeFile = (overrides?: Partial<ICatalogDocumentDto>): CatalogDocumentDto =>
+  new CatalogDocumentDto({
+    name: 'COA__L001__Bisabolol.pdf',
+    webUrl: 'https://sp.example.com/file.pdf',
+    sizeBytes: 102400,
+    modifiedAt: new Date('2026-05-01T12:00:00Z'),
+    ...overrides,
+  });
 
 describe('DocumentList', () => {
   it('shows empty state when no files', () => {

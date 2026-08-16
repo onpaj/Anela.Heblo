@@ -1,3 +1,4 @@
+using Anela.Heblo.Application.Features.Packaging.Services;
 using Anela.Heblo.Application.Features.Packaging.UseCases.ScanPackingOrder;
 using Anela.Heblo.Application.Features.ShipmentLabels;
 using Anela.Heblo.Application.Features.ShoptetOrders;
@@ -7,7 +8,6 @@ using Anela.Heblo.Domain.Features.Packaging;
 using Anela.Heblo.Domain.Features.Users;
 using FluentAssertions;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
 using Moq;
 
 namespace Anela.Heblo.Tests.Application.Packaging;
@@ -20,16 +20,9 @@ public class ScanPackingOrderHandlerTests
     private readonly Mock<IPackageRepository> _packageRepository = new();
     private readonly Mock<ICurrentUserService> _currentUserService = new();
     private readonly Mock<IAuthorizationRepository> _authRepo = new();
+    private readonly Mock<IShipmentCreationService> _shipmentCreationService = new();
 
-    private static readonly ShipmentLabelsSettings DefaultLabelSettings = new()
-    {
-        DefaultPackageWidthCm = 30,
-        DefaultPackageHeightCm = 20,
-        DefaultPackageDepthCm = 15,
-        MinPackageWeightGrams = 100,
-    };
-
-    private ScanPackingOrderHandler CreateHandler(ShipmentLabelsSettings? labelSettings = null)
+    private ScanPackingOrderHandler CreateHandler()
     {
         _currentUserService.Setup(c => c.GetCurrentUser())
             .Returns(new CurrentUser("uid-1", "Operator", "op@example.com", IsAuthenticated: true));
@@ -37,11 +30,11 @@ public class ScanPackingOrderHandlerTests
             _shipmentClient.Object,
             _orderClient.Object,
             _eshopOrderClient.Object,
-            Options.Create(labelSettings ?? DefaultLabelSettings),
             new Mock<ILogger<ScanPackingOrderHandler>>().Object,
             _packageRepository.Object,
             _currentUserService.Object,
-            _authRepo.Object);
+            _authRepo.Object,
+            _shipmentCreationService.Object);
     }
 
     private static PackingOrder EligibleOrder(params (string name, int qty, int weightGrams)[] items) =>
@@ -56,6 +49,16 @@ public class ScanPackingOrderHandlerTests
                 Quantity = i.qty,
                 WeightGrams = i.weightGrams,
             }).ToList(),
+        };
+
+    private static ShipmentCreationResult SuccessResult(Guid shipmentGuid, params ShipmentLabel[] labels) =>
+        new()
+        {
+            IsSuccess = true,
+            ShipmentGuid = shipmentGuid,
+            CarrierCode = "PPL",
+            CarrierName = "PPL",
+            Labels = labels,
         };
 
     // Test 1: Order not found → ErrorCodes.ShoptetOrderNotFound
@@ -94,8 +97,8 @@ public class ScanPackingOrderHandlerTests
         response.Order!.Eligibility.IsEligible.Should().BeFalse();
         response.Shipment.Should().BeNull();
 
-        _shipmentClient.Verify(
-            c => c.CreateShipmentAsync(It.IsAny<CreateShipmentCommand>(), It.IsAny<CancellationToken>()),
+        _shipmentCreationService.Verify(
+            s => s.CreateAndPersistAsync(It.IsAny<PackingOrder>(), It.IsAny<int>(), It.IsAny<Guid?>(), It.IsAny<CancellationToken>()),
             Times.Never);
     }
 
@@ -132,8 +135,8 @@ public class ScanPackingOrderHandlerTests
         response.Shipment.Packages.Should().ContainSingle()
             .Which.TrackingNumber.Should().Be("TRK-1");
 
-        _shipmentClient.Verify(
-            c => c.CreateShipmentAsync(It.IsAny<CreateShipmentCommand>(), It.IsAny<CancellationToken>()),
+        _shipmentCreationService.Verify(
+            s => s.CreateAndPersistAsync(It.IsAny<PackingOrder>(), It.IsAny<int>(), It.IsAny<Guid?>(), It.IsAny<CancellationToken>()),
             Times.Never);
         _eshopOrderClient.Verify(
             c => c.MarkAsPackedAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()),
@@ -177,100 +180,12 @@ public class ScanPackingOrderHandlerTests
         response.Shipment.Packages[0].LabelUrl.Should().Be("https://example.com/label.pdf");
         response.Shipment.Packages[0].LabelZpl.Should().Be("^XA...^XZ");
 
-        _shipmentClient.Verify(
-            c => c.CreateShipmentAsync(It.IsAny<CreateShipmentCommand>(), It.IsAny<CancellationToken>()),
+        _shipmentCreationService.Verify(
+            s => s.CreateAndPersistAsync(It.IsAny<PackingOrder>(), It.IsAny<int>(), It.IsAny<Guid?>(), It.IsAny<CancellationToken>()),
             Times.Never);
     }
 
-    // Test 4: All items have WeightGrams = 0 → carriers reject 0 kg, so fall back to default package weight
-    [Fact]
-    public async Task Handle_AllItemsHaveZeroWeight_UsesFallbackPackageWeight()
-    {
-        var shipmentGuid = Guid.NewGuid();
-        CreateShipmentCommand? captured = null;
-
-        _orderClient
-            .Setup(c => c.GetPackingOrderAsync("0001234", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(EligibleOrder(("P001", 2, 0), ("P002", 1, 0)));
-
-        _shipmentClient
-            .SetupSequence(c => c.GetLabelsByOrderCodeAsync("0001234", It.IsAny<CancellationToken>()))
-            .ReturnsAsync([])
-            .ReturnsAsync(new List<ShipmentLabel>
-            {
-                new() { ShipmentGuid = shipmentGuid, OrderCode = "0001234", PackageName = "P1" },
-            });
-
-        _shipmentClient
-            .Setup(c => c.GetShippingOptionsAsync("0001234", It.IsAny<CancellationToken>()))
-            .ReturnsAsync([new ShippingOption { CarrierCode = "1", Name = "PPL" }]);
-
-        _shipmentClient
-            .Setup(c => c.CreateShipmentAsync(It.IsAny<CreateShipmentCommand>(), It.IsAny<CancellationToken>()))
-            .Callback<CreateShipmentCommand, CancellationToken>((cmd, _) => captured = cmd)
-            .ReturnsAsync(new CreatedShipment { ShipmentGuid = shipmentGuid });
-
-        var response = await CreateHandler().Handle(
-            new ScanPackingOrderRequest { OrderCode = "0001234" },
-            CancellationToken.None);
-
-        response.Success.Should().BeTrue();
-        captured!.Package.WeightGrams.Should().Be(1000); // FallbackPackageWeightGrams
-    }
-
-    // Test 5: No shipping options returned → carrier not resolved error
-    [Fact]
-    public async Task Handle_NoShippingOptions_ReturnsShipmentCarrierNotResolved()
-    {
-        _orderClient
-            .Setup(c => c.GetPackingOrderAsync("0001234", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(EligibleOrder(("P001", 1, 300)));
-
-        _shipmentClient
-            .Setup(c => c.GetLabelsByOrderCodeAsync("0001234", It.IsAny<CancellationToken>()))
-            .ReturnsAsync([]);
-
-        _shipmentClient
-            .Setup(c => c.GetShippingOptionsAsync("0001234", It.IsAny<CancellationToken>()))
-            .ReturnsAsync([]);
-
-        var response = await CreateHandler().Handle(
-            new ScanPackingOrderRequest { OrderCode = "0001234" },
-            CancellationToken.None);
-
-        response.Success.Should().BeFalse();
-        response.ErrorCode.Should().Be(ErrorCodes.ShipmentCarrierNotResolved);
-    }
-
-    // Test 6: CreateShipmentAsync throws → creation failed error
-    [Fact]
-    public async Task Handle_CreateShipmentThrows_ReturnsShipmentCreationFailed()
-    {
-        _orderClient
-            .Setup(c => c.GetPackingOrderAsync("0001234", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(EligibleOrder(("P001", 1, 500)));
-
-        _shipmentClient
-            .Setup(c => c.GetLabelsByOrderCodeAsync("0001234", It.IsAny<CancellationToken>()))
-            .ReturnsAsync([]);
-
-        _shipmentClient
-            .Setup(c => c.GetShippingOptionsAsync("0001234", It.IsAny<CancellationToken>()))
-            .ReturnsAsync([new ShippingOption { CarrierCode = "PPL", Name = "PPL" }]);
-
-        _shipmentClient
-            .Setup(c => c.CreateShipmentAsync(It.IsAny<CreateShipmentCommand>(), It.IsAny<CancellationToken>()))
-            .ThrowsAsync(new HttpRequestException("Shipment API unavailable"));
-
-        var response = await CreateHandler().Handle(
-            new ScanPackingOrderRequest { OrderCode = "0001234" },
-            CancellationToken.None);
-
-        response.Success.Should().BeFalse();
-        response.ErrorCode.Should().Be(ErrorCodes.ShipmentCreationFailed);
-    }
-
-    // Test 7: Eligible order, no existing shipment → creates new shipment, AlreadyExisted = false
+    // Test 4: Eligible order, no existing shipment → delegates to IShipmentCreationService and maps its result
     [Fact]
     public async Task Handle_NoExistingShipment_CreatesNewShipmentWithAlreadyExistedFalse()
     {
@@ -295,17 +210,13 @@ public class ScanPackingOrderHandlerTests
             .ReturnsAsync(order);
 
         _shipmentClient
-            .SetupSequence(c => c.GetLabelsByOrderCodeAsync("0001234", It.IsAny<CancellationToken>()))
-            .ReturnsAsync([])
-            .ReturnsAsync([new ShipmentLabel { ShipmentGuid = shipmentGuid, OrderCode = "0001234", PackageName = "P1", LabelUrl = "https://carrier.example.com/new-label.pdf" }]);
+            .Setup(c => c.GetLabelsByOrderCodeAsync("0001234", It.IsAny<CancellationToken>()))
+            .ReturnsAsync([]);
 
-        _shipmentClient
-            .Setup(c => c.GetShippingOptionsAsync("0001234", It.IsAny<CancellationToken>()))
-            .ReturnsAsync([new ShippingOption { CarrierCode = "PPL", Name = "PPL" }]);
-
-        _shipmentClient
-            .Setup(c => c.CreateShipmentAsync(It.IsAny<CreateShipmentCommand>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new CreatedShipment { ShipmentGuid = shipmentGuid });
+        _shipmentCreationService
+            .Setup(s => s.CreateAndPersistAsync(order, 1, null, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(SuccessResult(shipmentGuid,
+                new ShipmentLabel { ShipmentGuid = shipmentGuid, OrderCode = "0001234", PackageName = "P1", LabelUrl = "https://carrier.example.com/new-label.pdf" }));
 
         var response = await CreateHandler().Handle(
             new ScanPackingOrderRequest { OrderCode = "0001234" },
@@ -316,10 +227,6 @@ public class ScanPackingOrderHandlerTests
         response.Shipment.Should().NotBeNull();
         response.Shipment!.AlreadyExisted.Should().BeFalse();
         response.Shipment.ShipmentGuid.Should().Be(shipmentGuid);
-
-        _shipmentClient.Verify(
-            c => c.CreateShipmentAsync(It.IsAny<CreateShipmentCommand>(), It.IsAny<CancellationToken>()),
-            Times.Once);
 
         response.Shipment.Packages[0].LabelUrl.Should().Be("https://carrier.example.com/new-label.pdf");
         response.Shipment.Packages[0].LabelZpl.Should().BeNull();
@@ -384,23 +291,20 @@ public class ScanPackingOrderHandlerTests
     public async Task Handle_NewSinglePackageShipment_DefersMarkAsPacked()
     {
         var shipmentGuid = Guid.NewGuid();
+        var order = EligibleOrder(("P001", 1, 400));
 
         _orderClient
             .Setup(c => c.GetPackingOrderAsync("0001234", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(EligibleOrder(("P001", 1, 400)));
+            .ReturnsAsync(order);
 
         _shipmentClient
-            .SetupSequence(c => c.GetLabelsByOrderCodeAsync("0001234", It.IsAny<CancellationToken>()))
-            .ReturnsAsync([])
-            .ReturnsAsync([new ShipmentLabel { ShipmentGuid = shipmentGuid, OrderCode = "0001234", PackageName = "P1", LabelUrl = "https://carrier.example.com/new-label.pdf" }]);
+            .Setup(c => c.GetLabelsByOrderCodeAsync("0001234", It.IsAny<CancellationToken>()))
+            .ReturnsAsync([]);
 
-        _shipmentClient
-            .Setup(c => c.GetShippingOptionsAsync("0001234", It.IsAny<CancellationToken>()))
-            .ReturnsAsync([new ShippingOption { CarrierCode = "PPL", Name = "PPL" }]);
-
-        _shipmentClient
-            .Setup(c => c.CreateShipmentAsync(It.IsAny<CreateShipmentCommand>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new CreatedShipment { ShipmentGuid = shipmentGuid });
+        _shipmentCreationService
+            .Setup(s => s.CreateAndPersistAsync(order, 1, null, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(SuccessResult(shipmentGuid,
+                new ShipmentLabel { ShipmentGuid = shipmentGuid, OrderCode = "0001234", PackageName = "P1", LabelUrl = "https://carrier.example.com/new-label.pdf" }));
 
         var response = await CreateHandler().Handle(
             new ScanPackingOrderRequest { OrderCode = "0001234" },
@@ -477,9 +381,9 @@ public class ScanPackingOrderHandlerTests
     public void InternalPackingOrderItem_StillExposesWeightGrams_ForShipmentMath()
     {
         // Anchor the symmetric guarantee: WeightGrams must remain on the internal adapter
-        // contract because ScanPackingOrderHandler and ResetOrderShipmentHandler depend on it.
+        // contract because ShipmentCreationService depends on it.
         typeof(PackingOrderItem).GetProperty("WeightGrams").Should().NotBeNull(
-            "PackingOrderItem is the internal Application contract and ScanPackingOrderHandler.cs:102 reads WeightGrams.");
+            "PackingOrderItem is the internal Application contract and ShipmentCreationService reads WeightGrams.");
     }
 
     // Multi-package: out-of-range count is rejected before any work
@@ -497,122 +401,73 @@ public class ScanPackingOrderHandlerTests
             Times.Never);
     }
 
-    // Multi-package: creates N packages, splits weight evenly, does NOT mark packed
+    // Multi-package: NumberOfPackages and PackingUserId are forwarded to the shared service, and
+    // the response reflects however many labels the service returns; MarkAsPacked stays deferred.
     [Fact]
-    public async Task Handle_MultiPackage_CreatesNPackages_SplitsWeight_AndDefersMarkAsPacked()
+    public async Task Handle_MultiPackage_PassesNumberOfPackagesAndPackerToService_AndDefersMarkAsPacked()
     {
         var shipmentGuid = Guid.NewGuid();
-        CreateShipmentCommand? captured = null;
+        var packerId = Guid.NewGuid();
+        var order = EligibleOrder(("P001", 1, 900));
 
         _orderClient
             .Setup(c => c.GetPackingOrderAsync("0001234", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(EligibleOrder(("P001", 1, 900)));
+            .ReturnsAsync(order);
 
         _shipmentClient
-            .SetupSequence(c => c.GetLabelsByOrderCodeAsync("0001234", It.IsAny<CancellationToken>()))
-            .ReturnsAsync([])
-            .ReturnsAsync(new List<ShipmentLabel>
-            {
-                new() { ShipmentGuid = shipmentGuid, OrderCode = "0001234", PackageName = "P1", LabelUrl = "https://c/1.pdf" },
-                new() { ShipmentGuid = shipmentGuid, OrderCode = "0001234", PackageName = "P2", LabelUrl = "https://c/2.pdf" },
-                new() { ShipmentGuid = shipmentGuid, OrderCode = "0001234", PackageName = "P3", LabelUrl = "https://c/3.pdf" },
-            });
+            .Setup(c => c.GetLabelsByOrderCodeAsync("0001234", It.IsAny<CancellationToken>()))
+            .ReturnsAsync([]);
 
-        _shipmentClient
-            .Setup(c => c.GetShippingOptionsAsync("0001234", It.IsAny<CancellationToken>()))
-            .ReturnsAsync([new ShippingOption { CarrierCode = "1", Name = "PPL" }]);
-
-        _shipmentClient
-            .Setup(c => c.CreateShipmentAsync(It.IsAny<CreateShipmentCommand>(), It.IsAny<CancellationToken>()))
-            .Callback<CreateShipmentCommand, CancellationToken>((cmd, _) => captured = cmd)
-            .ReturnsAsync(new CreatedShipment { ShipmentGuid = shipmentGuid });
+        _shipmentCreationService
+            .Setup(s => s.CreateAndPersistAsync(order, 3, packerId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(SuccessResult(shipmentGuid,
+                new ShipmentLabel { ShipmentGuid = shipmentGuid, OrderCode = "0001234", PackageName = "P1", LabelUrl = "https://c/1.pdf" },
+                new ShipmentLabel { ShipmentGuid = shipmentGuid, OrderCode = "0001234", PackageName = "P2", LabelUrl = "https://c/2.pdf" },
+                new ShipmentLabel { ShipmentGuid = shipmentGuid, OrderCode = "0001234", PackageName = "P3", LabelUrl = "https://c/3.pdf" }));
 
         var response = await CreateHandler().Handle(
-            new ScanPackingOrderRequest { OrderCode = "0001234", NumberOfPackages = 3 },
+            new ScanPackingOrderRequest { OrderCode = "0001234", NumberOfPackages = 3, PackingUserId = packerId },
             CancellationToken.None);
 
         response.Success.Should().BeTrue();
-        captured.Should().NotBeNull();
-        captured!.PackageCount.Should().Be(3);
-        captured.Package.WeightGrams.Should().Be(300); // 900 / 3
         response.Shipment!.PendingCompletion.Should().BeTrue();
         response.Shipment.Packages.Should().HaveCount(3);
+        response.Shipment.Packages[0].LabelUrl.Should().Be("https://c/1.pdf");
 
+        _shipmentCreationService.Verify(
+            s => s.CreateAndPersistAsync(order, 3, packerId, It.IsAny<CancellationToken>()),
+            Times.Once);
         _eshopOrderClient.Verify(
             c => c.MarkAsPackedAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()),
             Times.Never);
     }
 
-    // Multi-package: Shoptet returns fewer labels than requested → response still has N packages
-    [Fact]
-    public async Task Handle_MultiPackage_ShoptetReturnsFewerLabelsThanRequested_ResponseHasNPackages()
+    // Error mapping: whatever error code the shared service returns is surfaced unchanged.
+    [Theory]
+    [InlineData(ErrorCodes.ShipmentCarrierNotResolved)]
+    [InlineData(ErrorCodes.ShipmentCreationFailed)]
+    [InlineData(ErrorCodes.PackingUserNotEligible)]
+    public async Task Handle_WhenShipmentCreationServiceFails_ReturnsMappedErrorCode(ErrorCodes errorCode)
     {
-        var shipmentGuid = Guid.NewGuid();
+        var order = EligibleOrder(("P001", 1, 400));
 
         _orderClient
             .Setup(c => c.GetPackingOrderAsync("0001234", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(EligibleOrder(("P001", 1, 900)));
+            .ReturnsAsync(order);
 
         _shipmentClient
-            .SetupSequence(c => c.GetLabelsByOrderCodeAsync("0001234", It.IsAny<CancellationToken>()))
-            .ReturnsAsync([])
-            .ReturnsAsync(new List<ShipmentLabel>
-            {
-                new() { ShipmentGuid = shipmentGuid, OrderCode = "0001234", PackageName = "P1", LabelUrl = "https://c/1.pdf" },
-            }); // only 1 label ready, even though 3 were requested
+            .Setup(c => c.GetLabelsByOrderCodeAsync("0001234", It.IsAny<CancellationToken>()))
+            .ReturnsAsync([]);
 
-        _shipmentClient
-            .Setup(c => c.GetShippingOptionsAsync("0001234", It.IsAny<CancellationToken>()))
-            .ReturnsAsync([new ShippingOption { CarrierCode = "1", Name = "PPL" }]);
-
-        _shipmentClient
-            .Setup(c => c.CreateShipmentAsync(It.IsAny<CreateShipmentCommand>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new CreatedShipment { ShipmentGuid = shipmentGuid });
+        _shipmentCreationService
+            .Setup(s => s.CreateAndPersistAsync(order, 1, null, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new ShipmentCreationResult { IsSuccess = false, ErrorCode = errorCode });
 
         var response = await CreateHandler().Handle(
-            new ScanPackingOrderRequest { OrderCode = "0001234", NumberOfPackages = 3 },
+            new ScanPackingOrderRequest { OrderCode = "0001234" },
             CancellationToken.None);
 
-        response.Success.Should().BeTrue();
-        response.Shipment!.Packages.Should().HaveCount(3);
-        response.Shipment.Packages[0].LabelUrl.Should().Be("https://c/1.pdf");
-        response.Shipment.Packages[1].LabelUrl.Should().BeNull();
-        response.Shipment.Packages[2].LabelUrl.Should().BeNull();
+        response.Success.Should().BeFalse();
+        response.ErrorCode.Should().Be(errorCode);
     }
-
-    // Multi-package: per-package weight is floored at MinPackageWeightGrams
-    [Fact]
-    public async Task Handle_MultiPackage_FloorsPerPackageWeightAtMinimum()
-    {
-        var shipmentGuid = Guid.NewGuid();
-        CreateShipmentCommand? captured = null;
-
-        _orderClient
-            .Setup(c => c.GetPackingOrderAsync("0001234", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(EligibleOrder(("P001", 1, 120))); // 120 / 3 = 40 < min 100
-
-        _shipmentClient
-            .SetupSequence(c => c.GetLabelsByOrderCodeAsync("0001234", It.IsAny<CancellationToken>()))
-            .ReturnsAsync([])
-            .ReturnsAsync(new List<ShipmentLabel>
-            {
-                new() { ShipmentGuid = shipmentGuid, OrderCode = "0001234", PackageName = "P1" },
-            });
-
-        _shipmentClient
-            .Setup(c => c.GetShippingOptionsAsync("0001234", It.IsAny<CancellationToken>()))
-            .ReturnsAsync([new ShippingOption { CarrierCode = "1", Name = "PPL" }]);
-
-        _shipmentClient
-            .Setup(c => c.CreateShipmentAsync(It.IsAny<CreateShipmentCommand>(), It.IsAny<CancellationToken>()))
-            .Callback<CreateShipmentCommand, CancellationToken>((cmd, _) => captured = cmd)
-            .ReturnsAsync(new CreatedShipment { ShipmentGuid = shipmentGuid });
-
-        await CreateHandler().Handle(
-            new ScanPackingOrderRequest { OrderCode = "0001234", NumberOfPackages = 3 },
-            CancellationToken.None);
-
-        captured!.Package.WeightGrams.Should().Be(100);
-    }
-
 }

@@ -6,6 +6,7 @@ using Anela.Heblo.Xcc.Telemetry;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Npgsql;
@@ -121,7 +122,9 @@ public static class PersistenceModule
         });
 
         // Register telemetry services
-        services.AddScoped<ITelemetryService, NoOpTelemetryService>(); // Default to NoOp, can be overridden by API layer
+        // TryAdd so the API layer's earlier singleton registration (real TelemetryService when
+        // App Insights is configured) wins; AddScoped here silently overrode it (last wins).
+        services.TryAddScoped<ITelemetryService, NoOpTelemetryService>(); // Default to NoOp when the API layer did not register one
 
         // NOTE: Repository bindings live in each module's {Feature}Module.cs (vertical-slice
         // composition), not here. PersistenceModule owns only shared infrastructure: the

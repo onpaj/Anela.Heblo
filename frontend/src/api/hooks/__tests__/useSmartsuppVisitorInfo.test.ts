@@ -2,17 +2,21 @@ import { renderHook, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import React from "react";
 import { useSmartsuppVisitorInfo } from "../useSmartsupp";
+import { getApiBaseUrl, getAuthenticatedFetch } from "../../client";
 
 const mockFetch = jest.fn();
 
 jest.mock("../../client", () => ({
-  getAuthenticatedApiClient: () => ({
-    baseUrl: "http://localhost:5001",
-    http: { fetch: mockFetch },
-  }),
+  getAuthenticatedApiClient: jest.fn(),
+  getApiBaseUrl: jest.fn(),
+  getAuthenticatedFetch: jest.fn(),
 }));
 
-beforeEach(() => mockFetch.mockReset());
+beforeEach(() => {
+  mockFetch.mockReset();
+  (getApiBaseUrl as jest.Mock).mockReturnValue("http://localhost:5001");
+  (getAuthenticatedFetch as jest.Mock).mockReturnValue(mockFetch);
+});
 
 function Wrapper({ children }: { children: React.ReactNode }) {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
@@ -58,5 +62,17 @@ describe("useSmartsuppVisitorInfo", () => {
     expect(result.current.data?.visitorInfo?.os).toBe("OS X");
     expect(result.current.data?.visitorInfo?.visitsCount).toBe(321);
     expect(result.current.data?.visitorInfo?.pages).toHaveLength(1);
+  });
+
+  it("calls the visitor-info endpoint through the authenticated-fetch escape hatch", async () => {
+    mockFetch.mockResolvedValue({ status: 404, ok: false });
+
+    renderHook(() => useSmartsuppVisitorInfo("c1"), { wrapper: Wrapper });
+
+    await waitFor(() => expect(mockFetch).toHaveBeenCalled());
+    expect(mockFetch).toHaveBeenCalledWith(
+      "http://localhost:5001/api/smartsupp/conversations/c1/visitor-info",
+      { method: "GET" },
+    );
   });
 });

@@ -1,3 +1,4 @@
+using Anela.Heblo.Application.Features.Smartsupp.Infrastructure;
 using Anela.Heblo.Domain.Features.Smartsupp;
 using Anela.Heblo.Persistence;
 using MediatR;
@@ -11,17 +12,20 @@ public class RefreshOrphanContactsHandler
 {
     private readonly ISmartsuppRepository _repository;
     private readonly ISmartsuppApiClient _apiClient;
+    private readonly ISmartsuppContactEnricher _contactEnricher;
     private readonly ApplicationDbContext _db;
     private readonly ILogger<RefreshOrphanContactsHandler> _logger;
 
     public RefreshOrphanContactsHandler(
         ISmartsuppRepository repository,
         ISmartsuppApiClient apiClient,
+        ISmartsuppContactEnricher contactEnricher,
         ApplicationDbContext db,
         ILogger<RefreshOrphanContactsHandler> logger)
     {
         _repository = repository;
         _apiClient = apiClient;
+        _contactEnricher = contactEnricher;
         _db = db;
         _logger = logger;
     }
@@ -53,11 +57,12 @@ public class RefreshOrphanContactsHandler
                     continue;
                 }
 
-                // Re-attach the contact_id Smartsupp still knows about and let UpsertConversationAsync
-                // pull the contact via REST (same path as the runtime fix).
+                // Re-attach the contact_id Smartsupp still knows about and let the contact
+                // enricher pull the contact via REST (same path as the runtime fix, #3878).
                 local.ContactId = remote.ContactId;
                 local.SyncedAt = DateTime.SpecifyKind(DateTime.UtcNow, DateTimeKind.Unspecified);
 
+                local = await _contactEnricher.EnrichContactAsync(local, cancellationToken);
                 await _repository.UpsertConversationAsync(local, cancellationToken);
                 await _repository.SaveChangesAsync(cancellationToken);
 
