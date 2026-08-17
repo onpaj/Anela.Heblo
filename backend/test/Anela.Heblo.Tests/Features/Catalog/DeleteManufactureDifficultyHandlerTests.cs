@@ -50,4 +50,50 @@ public class DeleteManufactureDifficultyHandlerTests
             r => r.RefreshManufactureDifficultySettingsData(It.IsAny<string>(), It.IsAny<CancellationToken>()),
             Times.Never);
     }
+
+    [Fact]
+    public async Task Handle_ExistingEntry_DeletesRefreshesCacheInOrderAndReturnsSuccess()
+    {
+        // Arrange
+        var request = new DeleteManufactureDifficultyRequest { Id = 11 };
+        var existing = new ManufactureDifficultySetting
+        {
+            Id = 11,
+            ProductCode = "PROD-HAPPY",
+            DifficultyValue = 2,
+            ValidFrom = new DateTime(2024, 1, 1),
+            ValidTo = new DateTime(2024, 12, 31)
+        };
+
+        _repositoryMock
+            .Setup(r => r.GetByIdAsync(request.Id, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(existing);
+
+        var callSequence = new MockSequence();
+        _repositoryMock
+            .InSequence(callSequence)
+            .Setup(r => r.DeleteAsync(request.Id, It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+        _catalogRepositoryMock
+            .InSequence(callSequence)
+            .Setup(r => r.RefreshManufactureDifficultySettingsData(existing.ProductCode, It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
+        // Act
+        var response = await _handler.Handle(request, CancellationToken.None);
+
+        // Assert
+        response.Success.Should().BeTrue();
+        response.Message.Should().Be("Manufacture difficulty deleted successfully");
+
+        _repositoryMock.Verify(
+            r => r.DeleteAsync(request.Id, It.IsAny<CancellationToken>()),
+            Times.Once);
+
+        // Crux of the original coverage gap: the cache refresh must receive the
+        // deleted entity's ProductCode, not any value derived from the request.
+        _catalogRepositoryMock.Verify(
+            r => r.RefreshManufactureDifficultySettingsData(existing.ProductCode, It.IsAny<CancellationToken>()),
+            Times.Once);
+    }
 }
