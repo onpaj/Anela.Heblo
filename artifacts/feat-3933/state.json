@@ -22,7 +22,7 @@
     },
     "developing": {
       "status": "in_progress",
-      "updated_at": "2026-08-17T09:14:43.598141Z"
+      "updated_at": "2026-08-17T10:16:42.992157Z"
     }
   },
   "tasks": [
@@ -34,9 +34,9 @@
     },
     {
       "name": "add-with-details-dispatch-tests",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-08-17T10:16:43.189747Z"
     },
     {
       "name": "add-not-found-and-exception-tests",
