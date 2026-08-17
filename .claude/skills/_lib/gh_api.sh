@@ -87,7 +87,7 @@ req() {
     -H "Accept: ${accept}"
     -H "X-GitHub-Api-Version: 2022-11-28"
     -w $'\n__HTTP_CODE__%{http_code}')
-  [[ -n "$body" ]] && args+=(-d "$body")
+  [[ -n "$body" ]] && args+=(-H "Content-Type: application/json" -d "$body")
 
   local out code delay=3 attempt
   for attempt in 1 2 3 4; do
