@@ -122,4 +122,55 @@ public class GetIssuedInvoiceDetailHandlerTests
         _repositoryMock.Verify(r => r.GetByIdAsync("INV-TEST-002", It.IsAny<CancellationToken>()), Times.Once);
         _repositoryMock.Verify(r => r.GetByIdWithSyncHistoryAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
     }
+
+    [Fact]
+    public async Task Handle_InvoiceNotFound_ReturnsResourceNotFoundError()
+    {
+        // Arrange
+        var request = new GetIssuedInvoiceDetailRequest
+        {
+            InvoiceId = "INV-TEST-003",
+            WithDetails = false
+        };
+
+        _repositoryMock
+            .Setup(r => r.GetByIdAsync("INV-TEST-003", It.IsAny<CancellationToken>()))
+            .ReturnsAsync((IssuedInvoice?)null);
+
+        // Act
+        var response = await _handler.Handle(request, CancellationToken.None);
+
+        // Assert
+        response.Should().NotBeNull();
+        response.Success.Should().BeFalse();
+        response.ErrorCode.Should().Be(ErrorCodes.ResourceNotFound);
+        response.Invoice.Should().BeNull();
+        response.Params.Should().ContainKey("ErrorMessage").WhoseValue.Should().Be("Faktura nebyla nalezena");
+        _mapperMock.Verify(m => m.Map<IssuedInvoiceDetailDto>(It.IsAny<object>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task Handle_RepositoryThrows_ReturnsExceptionError()
+    {
+        // Arrange
+        var request = new GetIssuedInvoiceDetailRequest
+        {
+            InvoiceId = "INV-TEST-004",
+            WithDetails = false
+        };
+
+        _repositoryMock
+            .Setup(r => r.GetByIdAsync("INV-TEST-004", It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new InvalidOperationException("simulated failure"));
+
+        // Act
+        var response = await _handler.Handle(request, CancellationToken.None);
+
+        // Assert
+        response.Should().NotBeNull();
+        response.Success.Should().BeFalse();
+        response.ErrorCode.Should().Be(ErrorCodes.Exception);
+        response.Invoice.Should().BeNull();
+        response.Params.Should().ContainKey("ErrorMessage").WhoseValue.Should().Be("Chyba při načítání detailu faktury");
+    }
 }

@@ -22,7 +22,7 @@
     },
     "developing": {
       "status": "in_progress",
-      "updated_at": "2026-08-17T10:16:42.992157Z"
+      "updated_at": "2026-08-17T11:22:04.611363Z"
     }
   },
   "tasks": [
@@ -40,9 +40,9 @@
     },
     {
       "name": "add-not-found-and-exception-tests",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-08-17T11:22:04.859993Z"
     }
   ]
 }
