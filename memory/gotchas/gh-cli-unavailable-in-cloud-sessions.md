@@ -38,13 +38,35 @@ endpoint hard-rejects that with `403: Form-encoded request bodies are not
 accepted on this endpoint. Send the documented JSON body.` — a real bug in
 the shared library (not a rate limit, despite `req()`'s retry loop logging
 it as "GitHub API 403 (rate limit?)"), and it likely affects every POST/
-PATCH call in that library that sends a body, not just ref creation. Don't
-spend time debugging/fixing it inline unless that's the actual task — it's
-orthogonal to whatever GitHub issue you were sent to plan/implement.
-Recognize the symptom (a POST/PATCH through `gh_api.sh` failing with this
-exact "Form-encoded" message) and fall through to this note's established
-workaround (MCP tools, direct implementation on the designated branch)
-rather than retrying or treating it as transient.
+PATCH call in that library that sends a body, not just ref creation.
+
+**Fixed 2026-08-17** (PR #3944): `req()` now adds
+`-H "Content-Type: application/json"` whenever a body is passed. If you
+hit the "Form-encoded" 403 again after this fix has merged, the failure is
+something else (e.g. the proxy write-block below) — don't assume it's this
+same bug recurring.
+
+That same 2026-08-17 run hit a second, more fundamental wall *after* this
+Content-Type fix: even with correct JSON, both `gh_api.sh` (raw curl) and
+the `gh` CLI itself got `403: Write access to this GitHub API path is not
+permitted through this proxy` (doc link points at
+`docs/claude-code/github-actions`) — this session's egress proxy blocks
+*all* direct REST/CLI writes to the GitHub API, not just malformed ones.
+This is a session-level proxy policy, not a bug to fix — the system
+prompt's own "GitHub Integration" section already names the correct path
+for this environment: use the `mcp__github__*` MCP tools for every write
+(branch creation, label edits, PR creation). Reads (`gh api user`,
+`gh_api.sh`'s GET-based helpers) work fine through the same proxy — only
+writes are blocked. Don't spend time re-diagnosing this pattern; recognize
+"403 ... not permitted through this proxy" and switch straight to the MCP
+tools (`create_branch`, `issue_write` for labels, `create_pull_request`).
+
+Don't spend time debugging/fixing library bugs like the Content-Type one
+inline unless that's the actual task — it's orthogonal to whatever GitHub
+issue you were sent to plan/implement. Recognize either symptom above and
+fall through to this note's established workaround (MCP tools, direct
+implementation on the designated branch) rather than retrying or treating
+it as transient.
 
 When the designated-branch override applies, also skip the full
 AgentHarness multi-agent `orchestrator`/`agentharness checkpoint` pipeline

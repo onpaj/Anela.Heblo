@@ -28,6 +28,14 @@ _Update this file at the end of significant sessions._
   `.github/workflows/ci-feature-branch.yml`). Initial backlog triaged into follow-up
   issue #3931.
 
+- Coverage-gap fix for `UpdatePurchaseOrderInvoiceAcquiredHandler` (issue #3934,
+  PR #3944, `claude/beautiful-darwin-nadsgf`, 2026-08-17): a scheduled `/plan-next-task`
+  run couldn't use the AgentHarness branch-per-issue pipeline (designated-branch
+  session, see `memory/gotchas/gh-cli-unavailable-in-cloud-sessions.md`), so it
+  implemented the missing unit tests directly instead. Also fixed a real bug in
+  `.claude/skills/_lib/gh_api.sh` (missing `Content-Type: application/json` on
+  POST/PATCH) as part of the same PR.
+
 ## Pending / Known Issues
 
 - Memory directory (issue #405): adding cross-session knowledge accumulation — this PR
