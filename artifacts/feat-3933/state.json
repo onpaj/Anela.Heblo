@@ -34,9 +34,9 @@
     },
     {
       "name": "add-with-details-dispatch-tests",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-08-17T10:16:43.189747Z"
+      "updated_at": "2026-08-17T10:35:31.346879Z"
     },
     {
       "name": "add-not-found-and-exception-tests",

@@ -1,0 +1,13 @@
+/home/user/worktrees/feature-3933-Coverage-Gap-Invoices-Getissuedinvoicedetailhandle/backend/src/Anela.Heblo.Xcc/bin/Debug/net8.0/Anela.Heblo.Xcc.deps.json
+/home/user/worktrees/feature-3933-Coverage-Gap-Invoices-Getissuedinvoicedetailhandle/backend/src/Anela.Heblo.Xcc/bin/Debug/net8.0/Anela.Heblo.Xcc.dll
+/home/user/worktrees/feature-3933-Coverage-Gap-Invoices-Getissuedinvoicedetailhandle/backend/src/Anela.Heblo.Xcc/bin/Debug/net8.0/Anela.Heblo.Xcc.pdb
+/home/user/worktrees/feature-3933-Coverage-Gap-Invoices-Getissuedinvoicedetailhandle/backend/src/Anela.Heblo.Xcc/obj/Debug/net8.0/Anela.Heblo.Xcc.csproj.AssemblyReference.cache
+/home/user/worktrees/feature-3933-Coverage-Gap-Invoices-Getissuedinvoicedetailhandle/backend/src/Anela.Heblo.Xcc/obj/Debug/net8.0/Anela.Heblo.Xcc.GeneratedMSBuildEditorConfig.editorconfig
+/home/user/worktrees/feature-3933-Coverage-Gap-Invoices-Getissuedinvoicedetailhandle/backend/src/Anela.Heblo.Xcc/obj/Debug/net8.0/Anela.Heblo.Xcc.AssemblyInfoInputs.cache
+/home/user/worktrees/feature-3933-Coverage-Gap-Invoices-Getissuedinvoicedetailhandle/backend/src/Anela.Heblo.Xcc/obj/Debug/net8.0/Anela.Heblo.Xcc.AssemblyInfo.cs
+/home/user/worktrees/feature-3933-Coverage-Gap-Invoices-Getissuedinvoicedetailhandle/backend/src/Anela.Heblo.Xcc/obj/Debug/net8.0/Anela.Heblo.Xcc.csproj.CoreCompileInputs.cache
+/home/user/worktrees/feature-3933-Coverage-Gap-Invoices-Getissuedinvoicedetailhandle/backend/src/Anela.Heblo.Xcc/obj/Debug/net8.0/Anela.Heblo.Xcc.sourcelink.json
+/home/user/worktrees/feature-3933-Coverage-Gap-Invoices-Getissuedinvoicedetailhandle/backend/src/Anela.Heblo.Xcc/obj/Debug/net8.0/Anela.Heblo.Xcc.dll
+/home/user/worktrees/feature-3933-Coverage-Gap-Invoices-Getissuedinvoicedetailhandle/backend/src/Anela.Heblo.Xcc/obj/Debug/net8.0/refint/Anela.Heblo.Xcc.dll
+/home/user/worktrees/feature-3933-Coverage-Gap-Invoices-Getissuedinvoicedetailhandle/backend/src/Anela.Heblo.Xcc/obj/Debug/net8.0/Anela.Heblo.Xcc.pdb
+/home/user/worktrees/feature-3933-Coverage-Gap-Invoices-Getissuedinvoicedetailhandle/backend/src/Anela.Heblo.Xcc/obj/Debug/net8.0/ref/Anela.Heblo.Xcc.dll
