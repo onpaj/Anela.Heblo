@@ -28,9 +28,9 @@
   "tasks": [
     {
       "name": "setup-test-file",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-08-17T20:15:01.410890Z"
+      "updated_at": "2026-08-17T20:20:33.977823Z"
     },
     {
       "name": "not-found-path-test",
