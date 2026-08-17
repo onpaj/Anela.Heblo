@@ -40,9 +40,9 @@
     },
     {
       "name": "happy-path-cache-refresh-test",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-08-17T22:18:50.831835Z"
+      "updated_at": "2026-08-17T22:19:53.925025Z"
     },
     {
       "name": "exception-path-tests",
