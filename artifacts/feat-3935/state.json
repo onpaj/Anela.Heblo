@@ -22,7 +22,7 @@
     },
     "developing": {
       "status": "in_progress",
-      "updated_at": "2026-08-17T20:15:01.155418Z"
+      "updated_at": "2026-08-17T21:14:55.738358Z"
     }
   },
   "tasks": [
@@ -34,9 +34,9 @@
     },
     {
       "name": "not-found-path-test",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-08-17T21:14:56.055867Z"
     },
     {
       "name": "happy-path-cache-refresh-test",
