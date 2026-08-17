@@ -22,7 +22,7 @@
     },
     "developing": {
       "status": "in_progress",
-      "updated_at": "2026-08-17T22:18:50.647006Z"
+      "updated_at": "2026-08-17T23:16:07.299052Z"
     }
   },
   "tasks": [
@@ -46,9 +46,9 @@
     },
     {
       "name": "exception-path-tests",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-08-17T23:16:07.605718Z"
     },
     {
       "name": "full-suite-and-coverage-verification",
