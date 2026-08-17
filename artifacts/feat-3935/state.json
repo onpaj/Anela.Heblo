@@ -34,9 +34,9 @@
     },
     {
       "name": "not-found-path-test",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-08-17T21:14:56.055867Z"
+      "updated_at": "2026-08-17T21:34:34.007564Z"
     },
     {
       "name": "happy-path-cache-refresh-test",
