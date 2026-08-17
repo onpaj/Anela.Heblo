@@ -28,9 +28,9 @@
   "tasks": [
     {
       "name": "extend-null-invoice-id-validation-test",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-08-17T09:14:43.776499Z"
+      "updated_at": "2026-08-17T09:37:14.343345Z"
     },
     {
       "name": "add-with-details-dispatch-tests",
