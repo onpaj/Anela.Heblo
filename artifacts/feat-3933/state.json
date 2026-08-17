@@ -25,5 +25,24 @@
       "updated_at": null
     }
   },
-  "tasks": []
+  "tasks": [
+    {
+      "name": "extend-null-invoice-id-validation-test",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    },
+    {
+      "name": "add-with-details-dispatch-tests",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    },
+    {
+      "name": "add-not-found-and-exception-tests",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    }
+  ]
 }
