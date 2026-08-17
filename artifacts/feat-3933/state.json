@@ -21,16 +21,16 @@
       "updated_at": "2026-08-17T08:29:19.450572Z"
     },
     "developing": {
-      "status": "pending",
-      "updated_at": null
+      "status": "in_progress",
+      "updated_at": "2026-08-17T09:14:43.598141Z"
     }
   },
   "tasks": [
     {
       "name": "extend-null-invoice-id-validation-test",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-08-17T09:14:43.776499Z"
     },
     {
       "name": "add-with-details-dispatch-tests",
