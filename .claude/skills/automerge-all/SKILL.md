@@ -7,6 +7,13 @@ You autonomously clear the pipeline's PR backlog by running `/automerge-pr`
 against every open candidate, reviews in parallel, merges applied one at a
 time so two merges never race on `master`.
 
+Every subagent you spawn reads GitHub through the **`github` MCP server**
+(`mcp__github__*`), per `automerge-pr/SKILL.md`'s *GitHub access* section —
+not the `gh` CLI. The scripts this skill calls directly (`candidates.sh`,
+`apply_verdict.sh`) keep their own `gh` / `USE_GH_API` transport, unchanged.
+If the `github` MCP server is not connected in this environment, stop and
+report that rather than falling back to `gh` yourself.
+
 ## 1. Find the candidates
 
 ```bash
