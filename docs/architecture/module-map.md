@@ -255,7 +255,7 @@ handling.
 - `frontend/src/components/pages/TransportBoxList.tsx`, `TransportBoxDetail.tsx`, `TransportBoxReceive.tsx`,
   `AddItemToBoxModal.tsx`, `LocationSelectionModal.tsx`
 - `frontend/src/components/transport/`
-- `frontend/src/api/hooks/useTransportBoxes.ts`, `useTransportBoxReceive.ts`, `useTransportBoxTransitions.ts`
+- `frontend/src/api/hooks/useTransportBoxes.ts`, `useTransportBoxReceive.ts`
 - `frontend/test/e2e/transport/`
 
 **Depends on:** #1, #5.
