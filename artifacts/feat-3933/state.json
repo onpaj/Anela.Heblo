@@ -40,9 +40,9 @@
     },
     {
       "name": "add-not-found-and-exception-tests",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-08-17T11:22:04.859993Z"
+      "updated_at": "2026-08-17T11:30:14.464276Z"
     }
   ]
 }
