@@ -25,5 +25,24 @@
       "updated_at": null
     }
   },
-  "tasks": []
+  "tasks": [
+    {
+      "name": "refresh-orphan-contacts-skip-tests",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    },
+    {
+      "name": "refresh-orphan-contacts-failure-isolation-tests",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    },
+    {
+      "name": "refresh-orphan-contacts-happy-path-test",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    }
+  ]
 }
