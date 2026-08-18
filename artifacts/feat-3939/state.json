@@ -22,7 +22,7 @@
     },
     "developing": {
       "status": "in_progress",
-      "updated_at": "2026-08-18T20:14:37.181833Z"
+      "updated_at": "2026-08-18T22:14:41.726304Z"
     }
   },
   "tasks": [
@@ -52,9 +52,9 @@
     },
     {
       "name": "add-null-detail-guard-test",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-08-18T22:14:42.048792Z"
     },
     {
       "name": "final-validation",
