@@ -171,4 +171,34 @@ public class RefreshOrphanContactsHandlerTests
             It.Is<SmartsuppConversation>(c => c.Id == "conv-ok"), It.IsAny<CancellationToken>()), Times.Once);
         _repo.Verify(r => r.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
     }
+
+    [Fact]
+    public async Task Handle_IncrementsUpdated_WhenItemProcessedSuccessfully()
+    {
+        // Arrange
+        SetupIds("conv-ok");
+        using var db = CreateContext();
+        db.SmartsuppConversations.Add(MakeLocalConversation("conv-ok"));
+        await db.SaveChangesAsync();
+        db.ChangeTracker.Clear();
+
+        _apiClient.Setup(a => a.GetConversationAsync("conv-ok", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new SmartsuppConversationData { Id = "conv-ok", ContactId = "contact-1" });
+        _enricher.Setup(e => e.EnrichContactAsync(It.IsAny<SmartsuppConversation>(), It.IsAny<CancellationToken>()))
+            .Returns<SmartsuppConversation, CancellationToken>((c, _) => Task.FromResult(c));
+
+        // Act
+        var response = await CreateHandler(db).Handle(new RefreshOrphanContactsRequest(), CancellationToken.None);
+
+        // Assert
+        response.Scanned.Should().Be(1);
+        response.Updated.Should().Be(1);
+        response.SkippedNoContactId.Should().Be(0);
+        response.Failed.Should().Be(0);
+        response.FailedIds.Should().BeEmpty();
+        _repo.Verify(r => r.UpsertConversationAsync(
+            It.Is<SmartsuppConversation>(c => c.Id == "conv-ok" && c.ContactId == "contact-1"),
+            It.IsAny<CancellationToken>()), Times.Once);
+        _repo.Verify(r => r.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
+    }
 }

@@ -22,7 +22,7 @@
     },
     "developing": {
       "status": "in_progress",
-      "updated_at": "2026-08-18T08:15:13.206342Z"
+      "updated_at": "2026-08-18T09:14:54.944622Z"
     }
   },
   "tasks": [
@@ -40,9 +40,9 @@
     },
     {
       "name": "refresh-orphan-contacts-happy-path-test",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-08-18T09:14:55.179481Z"
     }
   ]
 }
