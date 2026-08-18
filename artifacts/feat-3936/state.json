@@ -28,9 +28,9 @@
   "tasks": [
     {
       "name": "add-plaudpollingjob-unit-tests",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-08-18T04:14:57.114194Z"
+      "updated_at": "2026-08-18T05:09:03.324606Z"
     }
   ]
 }
