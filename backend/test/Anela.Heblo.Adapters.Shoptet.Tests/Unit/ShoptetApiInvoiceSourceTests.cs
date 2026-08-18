@@ -122,4 +122,37 @@ public class ShoptetApiInvoiceSourceTests
         client.Verify(x => x.GetInvoiceAsync("A", It.IsAny<CancellationToken>()), Times.Once);
         client.Verify(x => x.GetInvoiceAsync("B", It.IsAny<CancellationToken>()), Times.Never);
     }
+
+    [Theory]
+    [InlineData("czk", "CZK")]
+    [InlineData("CZK", "czk")]
+    public async Task GetAllAsync_ListModeCurrencyFilter_IsCaseInsensitive(string summaryCurrency, string queryCurrency)
+    {
+        // Arrange
+        var dto = BuildDto("A", orderCode: "ORD-A", currency: summaryCurrency);
+
+        var client = new Mock<IShoptetInvoiceClient>();
+        client.Setup(x => x.ListInvoicesAsync(It.IsAny<DateTime?>(), It.IsAny<DateTime?>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<ShoptetInvoiceDto> { dto });
+        client.Setup(x => x.GetInvoiceAsync("A", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(dto);
+
+        var query = new IssuedInvoiceSourceQuery
+        {
+            RequestId = "REQ-4",
+            Currency = queryCurrency,
+        };
+
+        var source = BuildSource(client);
+
+        // Act
+        var result = await source.GetAllAsync(query);
+
+        // Assert
+        var batch = result.Single();
+        batch.Invoices.Should().HaveCount(1);
+        batch.Invoices[0].OrderCode.Should().Be("A");
+
+        client.Verify(x => x.GetInvoiceAsync("A", It.IsAny<CancellationToken>()), Times.Once);
+    }
 }
