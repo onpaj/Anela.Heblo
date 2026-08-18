@@ -34,9 +34,9 @@
     },
     {
       "name": "refresh-orphan-contacts-failure-isolation-tests",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-08-18T08:15:13.391149Z"
+      "updated_at": "2026-08-18T08:40:20.367623Z"
     },
     {
       "name": "refresh-orphan-contacts-happy-path-test",
