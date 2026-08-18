@@ -22,7 +22,7 @@
     },
     "developing": {
       "status": "in_progress",
-      "updated_at": "2026-08-18T13:20:10.000462Z"
+      "updated_at": "2026-08-18T16:48:14.778483Z"
     }
   },
   "tasks": [
@@ -34,9 +34,9 @@
     },
     {
       "name": "add-single-fetch-null-test",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-08-18T16:48:14.969161Z"
     },
     {
       "name": "add-currency-filter-exclude-test",
