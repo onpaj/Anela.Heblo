@@ -64,4 +64,32 @@ public class ShoptetApiInvoiceSourceTests
             x => x.GetInvoiceAsync("INV-1", It.IsAny<CancellationToken>()),
             Times.Once);
     }
+
+    [Fact]
+    public async Task GetAllAsync_SingleInvoiceModeNotFound_ReturnsBatchWithEmptyInvoiceList()
+    {
+        // Arrange
+        var client = new Mock<IShoptetInvoiceClient>();
+        client.Setup(x => x.GetInvoiceAsync("INV-1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync((ShoptetInvoiceDto?)null);
+
+        var query = new IssuedInvoiceSourceQuery
+        {
+            RequestId = "REQ-2",
+            InvoiceId = "INV-1",
+        };
+
+        var source = BuildSource(client);
+
+        // Act
+        var result = await source.GetAllAsync(query);
+
+        // Assert — GetAllAsync must not throw (proven by the successful await above) and must return
+        // an empty, non-null Invoices list rather than null.
+        result.Should().HaveCount(1);
+        var batch = result.Single();
+        batch.BatchId.Should().Be("REQ-2");
+        batch.Invoices.Should().NotBeNull();
+        batch.Invoices.Should().BeEmpty();
+    }
 }
