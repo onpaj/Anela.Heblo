@@ -25,5 +25,42 @@
       "updated_at": null
     }
   },
-  "tasks": []
+  "tasks": [
+    {
+      "name": "scaffold-invoice-source-test-file",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    },
+    {
+      "name": "add-single-fetch-null-test",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    },
+    {
+      "name": "add-currency-filter-exclude-test",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    },
+    {
+      "name": "add-currency-filter-case-insensitive-theory",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    },
+    {
+      "name": "add-null-detail-guard-test",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    },
+    {
+      "name": "final-validation",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    }
+  ]
 }
