@@ -18,8 +18,11 @@ const MAX_COUNT = 200;
 const FEED_STEP_DOTS = 4;
 const FEED_STEPS = [1, 3, 5];
 // Editing the printer pitch/drift calibration has its own permission: it affects every
-// printed label, so it is not granted by plain material-containers write access.
-const CALIBRATION_PERMISSION = "manufacture.label_calibration.write";
+// printed label, so it is not granted by plain material-containers write access. Both
+// levels are needed to use the form — the API requires Read to load the current values
+// and Write to save them, so holding only one leaves an unusable form.
+export const CALIBRATION_READ_PERMISSION = "manufacture.label_calibration.read";
+export const CALIBRATION_WRITE_PERMISSION = "manufacture.label_calibration.write";
 
 /** Line 1 default: ISO calendar week (2 digits) + ISO week-year (2 digits), e.g. "2926". */
 export const defaultLotNumber = (date: Date = new Date()): string => {
@@ -65,7 +68,9 @@ function LotLabelPrintModal({
   const [pendingConfirm, setPendingConfirm] = useState<(() => void) | null>(null);
 
   const { hasPermission } = usePermissionsContext();
-  const canCalibrate = hasPermission(CALIBRATION_PERMISSION);
+  const canCalibrate =
+    hasPermission(CALIBRATION_READ_PERMISSION) &&
+    hasPermission(CALIBRATION_WRITE_PERMISSION);
 
   const printLotLabels = usePrintLotLabels();
   const printCalibration = usePrintLotCalibrationLabel();
@@ -340,6 +345,15 @@ function LotLabelPrintModal({
 
               {canCalibrate && (
                 <div className="mt-3 pt-3 border-t border-gray-200 dark:border-graphite-border space-y-3">
+                  {calibration.isError && (
+                    <div
+                      className="text-sm text-red-600 dark:text-red-400"
+                      data-testid="calibration-load-error"
+                    >
+                      Kalibraci se nepodařilo načíst:{" "}
+                      {(calibration.error as Error)?.message}
+                    </div>
+                  )}
                   <div>
                     <label
                       htmlFor="pitchDots"

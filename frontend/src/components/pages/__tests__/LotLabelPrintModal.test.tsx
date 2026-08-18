@@ -4,6 +4,8 @@ import "@testing-library/jest-dom";
 import LotLabelPrintModal, {
   defaultLotNumber,
   formatExpiration,
+  CALIBRATION_READ_PERMISSION,
+  CALIBRATION_WRITE_PERMISSION,
 } from "../LotLabelPrintModal";
 import * as useMaterialContainersHooks from "../../../api/hooks/useMaterialContainers";
 import * as permissionsContext from "../../../auth/PermissionsContext";
@@ -18,11 +20,20 @@ const mockPermissions = permissionsContext as jest.Mocked<
   typeof permissionsContext
 >;
 
-const setPermission = (granted: boolean) => {
+// Grants an explicit set of permission strings. The component's literals must match
+// exactly, so an agnostic `() => true` mock would hide a typo in them.
+const setGrantedPermissions = (granted: string[]) => {
   (mockPermissions.usePermissionsContext as jest.Mock) = jest
     .fn()
-    .mockReturnValue({ hasPermission: () => granted });
+    .mockReturnValue({
+      hasPermission: (permission: string) => granted.includes(permission),
+    });
 };
+
+const setPermission = (granted: boolean) =>
+  setGrantedPermissions(
+    granted ? [CALIBRATION_READ_PERMISSION, CALIBRATION_WRITE_PERMISSION] : [],
+  );
 
 describe("lot label helpers", () => {
   it("defaultLotNumber composes ISO week + 2-digit ISO week-year", () => {
@@ -265,6 +276,49 @@ describe("LotLabelPrintModal", () => {
     expect(mockSaveCalibration).toHaveBeenLastCalledWith(
       { pitchDots: 152, driftDotsPer100Labels: 40 },
       expect.objectContaining({ onError: expect.any(Function) }),
+    );
+  });
+
+  it("hides the calibration fields when write is granted without read", () => {
+    // The API needs Read to load the current values, so a write-only grant would
+    // otherwise render an inert form that can never be saved.
+    setGrantedPermissions([CALIBRATION_WRITE_PERMISSION]);
+    render(<LotLabelPrintModal isOpen={true} onClose={jest.fn()} />);
+    fireEvent.click(screen.getByRole("button", { name: /Kalibrace/i }));
+    expect(screen.queryByLabelText(/Rozteč štítků/i)).not.toBeInTheDocument();
+  });
+
+  it("hides the calibration fields when read is granted without write", () => {
+    setGrantedPermissions([CALIBRATION_READ_PERMISSION]);
+    render(<LotLabelPrintModal isOpen={true} onClose={jest.fn()} />);
+    fireEvent.click(screen.getByRole("button", { name: /Kalibrace/i }));
+    expect(screen.queryByLabelText(/Rozteč štítků/i)).not.toBeInTheDocument();
+  });
+
+  it("only enables the calibration query once both permissions are held", () => {
+    setGrantedPermissions([CALIBRATION_WRITE_PERMISSION]);
+    render(<LotLabelPrintModal isOpen={true} onClose={jest.fn()} />);
+    expect(mockHooks.useLotLabelCalibration).toHaveBeenLastCalledWith(false);
+
+    setPermission(true);
+    render(<LotLabelPrintModal isOpen={true} onClose={jest.fn()} />);
+    expect(mockHooks.useLotLabelCalibration).toHaveBeenLastCalledWith(true);
+  });
+
+  it("surfaces a calibration load failure instead of showing an empty form", () => {
+    setPermission(true);
+    (mockHooks.useLotLabelCalibration as jest.Mock) = jest.fn().mockReturnValue({
+      data: undefined,
+      isLoading: false,
+      isError: true,
+      error: new Error("Forbidden"),
+    });
+
+    render(<LotLabelPrintModal isOpen={true} onClose={jest.fn()} />);
+    fireEvent.click(screen.getByRole("button", { name: /Kalibrace/i }));
+
+    expect(screen.getByTestId("calibration-load-error")).toHaveTextContent(
+      "Forbidden",
     );
   });
 
