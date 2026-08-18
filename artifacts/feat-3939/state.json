@@ -34,9 +34,9 @@
     },
     {
       "name": "add-single-fetch-null-test",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-08-18T16:48:14.969161Z"
+      "updated_at": "2026-08-18T17:40:51.153375Z"
     },
     {
       "name": "add-currency-filter-exclude-test",
