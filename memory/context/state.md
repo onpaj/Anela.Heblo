@@ -38,6 +38,18 @@ _Update this file at the end of significant sessions._
 
 ## Pending / Known Issues
 
+- `/plan-next-task` run (2026-08-18, cloud designated-branch session `claude/beautiful-darwin-od539d`):
+  nothing to plan this cycle. All 3 open `agent`-labeled issues (#3877, #3892, #3894) already have
+  open draft PRs (#3920, #3909, #3913) and are labeled `agent-completed`, but still carry the `agent`
+  label too — `find_candidate.sh` correctly skips them ("already has a feature/N-* branch"), just with
+  a slightly misleading reason string since these aren't actually stuck claims, they're just missing a
+  label cleanup step somewhere upstream (`agent` never gets removed once `agent-completed` is added).
+  Not actioned here — out of scope for this skill and not urgent. No `agent-planning` issues existed to
+  reclaim either. `gh` GraphQL is blocked in this session (confirms the existing
+  `memory/gotchas/gh-cli-unavailable-in-cloud-sessions.md` note) — REST reads via `gh api` and the
+  `mcp__github__*` tools both worked fine.
+
+
 - Memory directory (issue #405): adding cross-session knowledge accumulation — this PR
 - Database migrations are manual (not automated in deployment)
 - Branch `feature/meeting-mindmap`: MindMaps feature (project/workstream mind maps + Claude-rewrite
