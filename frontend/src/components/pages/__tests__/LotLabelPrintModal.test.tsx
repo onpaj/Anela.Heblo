@@ -9,6 +9,7 @@ import LotLabelPrintModal, {
 } from "../LotLabelPrintModal";
 import * as useMaterialContainersHooks from "../../../api/hooks/useMaterialContainers";
 import * as permissionsContext from "../../../auth/PermissionsContext";
+import { ACCESS_ROLES } from "../../../auth/accessMatrix.generated";
 
 jest.mock("../../../api/hooks/useMaterialContainers");
 jest.mock("../../../auth/PermissionsContext");
@@ -34,6 +35,17 @@ const setPermission = (granted: boolean) =>
   setGrantedPermissions(
     granted ? [CALIBRATION_READ_PERMISSION, CALIBRATION_WRITE_PERMISSION] : [],
   );
+
+describe("calibration permission literals", () => {
+  // A typo here cannot fail any other test — the gate would just evaluate to false and
+  // the form would silently disappear for everyone. Pin them to the generated matrix.
+  it.each([CALIBRATION_READ_PERMISSION, CALIBRATION_WRITE_PERMISSION])(
+    "%s exists in the generated access matrix",
+    (permission) => {
+      expect(ACCESS_ROLES).toContain(permission);
+    },
+  );
+});
 
 describe("lot label helpers", () => {
   it("defaultLotNumber composes ISO week + 2-digit ISO week-year", () => {
