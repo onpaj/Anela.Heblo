@@ -291,6 +291,26 @@
       "value": "manufacture.material_containers.write"
     },
     {
+      "id": "a1acef2e-cd12-53be-9d93-9b931cff76f5",
+      "allowedMemberTypes": [
+        "User"
+      ],
+      "description": "Manufacture_LabelCalibration Read",
+      "displayName": "manufacture.label_calibration.read",
+      "isEnabled": true,
+      "value": "manufacture.label_calibration.read"
+    },
+    {
+      "id": "812fe97e-97fa-52b7-a535-b17b9c820d24",
+      "allowedMemberTypes": [
+        "User"
+      ],
+      "description": "Manufacture_LabelCalibration Write",
+      "displayName": "manufacture.label_calibration.write",
+      "isEnabled": true,
+      "value": "manufacture.label_calibration.write"
+    },
+    {
       "id": "9968d427-1784-5791-84a4-d24005de71b7",
       "allowedMemberTypes": [
         "User"
@@ -643,6 +663,8 @@
         "manufacture.product_inventory.write",
         "manufacture.material_containers.read",
         "manufacture.material_containers.write",
+        "manufacture.label_calibration.read",
+        "manufacture.label_calibration.write",
         "warehouse.logistics.read",
         "warehouse.logistics.write",
         "warehouse.expedition.read",
@@ -762,6 +784,8 @@
         "manufacture.material_inventory.write",
         "manufacture.material_containers.read",
         "manufacture.material_containers.write",
+        "manufacture.label_calibration.read",
+        "manufacture.label_calibration.write",
         "manufacture.product_inventory.read",
         "manufacture.product_inventory.write"
       ]

@@ -34,6 +34,8 @@ public static class AccessRoles
     public const string ManufactureProductInventoryWrite = "manufacture.product_inventory.write";
     public const string ManufactureMaterialContainersRead = "manufacture.material_containers.read";
     public const string ManufactureMaterialContainersWrite = "manufacture.material_containers.write";
+    public const string ManufactureLabelCalibrationRead = "manufacture.label_calibration.read";
+    public const string ManufactureLabelCalibrationWrite = "manufacture.label_calibration.write";
     public const string WarehouseLogisticsRead = "warehouse.logistics.read";
     public const string WarehouseLogisticsWrite = "warehouse.logistics.write";
     public const string WarehouseExpeditionRead = "warehouse.expedition.read";
@@ -97,6 +99,8 @@ public static class AccessRoles
         (Feature.Manufacture_ProductInventory, AccessLevel.Write) => ManufactureProductInventoryWrite,
         (Feature.Manufacture_MaterialContainers, AccessLevel.Read) => ManufactureMaterialContainersRead,
         (Feature.Manufacture_MaterialContainers, AccessLevel.Write) => ManufactureMaterialContainersWrite,
+        (Feature.Manufacture_LabelCalibration, AccessLevel.Read) => ManufactureLabelCalibrationRead,
+        (Feature.Manufacture_LabelCalibration, AccessLevel.Write) => ManufactureLabelCalibrationWrite,
         (Feature.Warehouse_Logistics, AccessLevel.Read) => WarehouseLogisticsRead,
         (Feature.Warehouse_Logistics, AccessLevel.Write) => WarehouseLogisticsWrite,
         (Feature.Warehouse_Expedition, AccessLevel.Read) => WarehouseExpeditionRead,

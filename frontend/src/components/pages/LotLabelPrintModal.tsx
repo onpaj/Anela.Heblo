@@ -17,8 +17,12 @@ const MAX_COUNT = 200;
 // increment; buttons feed 1, 3, or 5 steps forward.
 const FEED_STEP_DOTS = 4;
 const FEED_STEPS = [1, 3, 5];
-// Editing the printer pitch calibration is an admin action, not for operators.
-const CALIBRATION_PERMISSION = "admin.administration.write";
+// Editing the printer pitch/drift calibration has its own permission: it affects every
+// printed label, so it is not granted by plain material-containers write access. Both
+// levels are needed to use the form — the API requires Read to load the current values
+// and Write to save them, so holding only one leaves an unusable form.
+export const CALIBRATION_READ_PERMISSION = "manufacture.label_calibration.read";
+export const CALIBRATION_WRITE_PERMISSION = "manufacture.label_calibration.write";
 
 /** Line 1 default: ISO calendar week (2 digits) + ISO week-year (2 digits), e.g. "2926". */
 export const defaultLotNumber = (date: Date = new Date()): string => {
@@ -58,13 +62,18 @@ function LotLabelPrintModal({
   const [activeTab, setActiveTab] = useState<"print" | "calibration">("print");
   const [pitchDots, setPitchDots] = useState<number | "">("");
   const [driftPer100, setDriftPer100] = useState<number | "">("");
+  // True once the user edits either calibration field, until the modal reopens or the
+  // values are saved. Blocks a background refetch from overwriting unsaved input.
+  const [isCalibrationDirty, setIsCalibrationDirty] = useState(false);
   const [error, setError] = useState<string | null>(null);
   // Set when a print was blocked because the media type changed; holds the closure that
   // re-runs the same action confirmed. Non-null while the confirmation dialog is shown.
   const [pendingConfirm, setPendingConfirm] = useState<(() => void) | null>(null);
 
   const { hasPermission } = usePermissionsContext();
-  const canCalibrate = hasPermission(CALIBRATION_PERMISSION);
+  const canCalibrate =
+    hasPermission(CALIBRATION_READ_PERMISSION) &&
+    hasPermission(CALIBRATION_WRITE_PERMISSION);
 
   const printLotLabels = usePrintLotLabels();
   const printCalibration = usePrintLotCalibrationLabel();
@@ -88,21 +97,24 @@ function LotLabelPrintModal({
       setError(null);
       setPendingConfirm(null);
       setActiveTab("print");
+      setIsCalibrationDirty(false);
     }
   }, [isOpen, initialLotNumber, initialExpirationMonth, initialCount]);
 
-  // Populate the calibration fields once the persisted values load.
+  // Populate the calibration fields once the persisted values load. The query refetches
+  // on window focus, so this must not run while the user has unsaved edits — otherwise
+  // alt-tabbing away and back would silently replace what they typed.
   useEffect(() => {
-    if (calibration.data?.pitchDots != null) {
+    if (!isCalibrationDirty && calibration.data?.pitchDots != null) {
       setPitchDots(calibration.data.pitchDots);
     }
-  }, [calibration.data?.pitchDots]);
+  }, [calibration.data?.pitchDots, isCalibrationDirty]);
 
   useEffect(() => {
-    if (calibration.data?.driftDotsPer100Labels != null) {
+    if (!isCalibrationDirty && calibration.data?.driftDotsPer100Labels != null) {
       setDriftPer100(calibration.data.driftDotsPer100Labels);
     }
-  }, [calibration.data?.driftDotsPer100Labels]);
+  }, [calibration.data?.driftDotsPer100Labels, isCalibrationDirty]);
 
   if (!isOpen) return null;
 
@@ -177,14 +189,16 @@ function LotLabelPrintModal({
 
   const handleFeed = (dots: number) => runFeed(dots, false);
 
-  // Persists the printer calibration (pitch + drift correction, admin only) so it
-  // applies to every print.
+  // Persists the printer calibration (pitch + drift correction) so it applies to every
+  // print. Requires the dedicated label-calibration permission, not plain operator access.
   const handleSaveCalibration = () => {
     if (pitchDots === "" || driftPer100 === "") return;
     setError(null);
     saveCalibration.mutate(
       { pitchDots, driftDotsPer100Labels: driftPer100 },
       {
+        // Saved values are now the server's; let a refetch repopulate the fields again.
+        onSuccess: () => setIsCalibrationDirty(false),
         onError: (err) =>
           setError(`Chyba při uložení kalibrace: ${(err as Error).message}`),
       },
@@ -339,6 +353,15 @@ function LotLabelPrintModal({
 
               {canCalibrate && (
                 <div className="mt-3 pt-3 border-t border-gray-200 dark:border-graphite-border space-y-3">
+                  {calibration.isError && (
+                    <div
+                      className="text-sm text-red-600 dark:text-red-400"
+                      data-testid="calibration-load-error"
+                    >
+                      Kalibraci se nepodařilo načíst:{" "}
+                      {(calibration.error as Error)?.message}
+                    </div>
+                  )}
                   <div>
                     <label
                       htmlFor="pitchDots"
@@ -350,9 +373,10 @@ function LotLabelPrintModal({
                       id="pitchDots"
                       type="number"
                       value={pitchDots}
-                      onChange={(e) =>
-                        setPitchDots(e.target.value === "" ? "" : Number(e.target.value))
-                      }
+                      onChange={(e) => {
+                        setIsCalibrationDirty(true);
+                        setPitchDots(e.target.value === "" ? "" : Number(e.target.value));
+                      }}
                       className="w-28 px-3 py-1.5 text-sm border border-gray-300 dark:border-graphite-border rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:bg-graphite-surface-2 dark:text-graphite-text"
                       disabled={saveCalibration.isPending || calibration.isLoading}
                     />
@@ -369,9 +393,10 @@ function LotLabelPrintModal({
                       type="number"
                       min={0}
                       value={driftPer100}
-                      onChange={(e) =>
-                        setDriftPer100(e.target.value === "" ? "" : Number(e.target.value))
-                      }
+                      onChange={(e) => {
+                        setIsCalibrationDirty(true);
+                        setDriftPer100(e.target.value === "" ? "" : Number(e.target.value));
+                      }}
                       className="w-28 px-3 py-1.5 text-sm border border-gray-300 dark:border-graphite-border rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:bg-graphite-surface-2 dark:text-graphite-text"
                       disabled={saveCalibration.isPending || calibration.isLoading}
                     />

@@ -24,6 +24,7 @@ public enum Feature
     Manufacture_MaterialInventory,
     Manufacture_ProductInventory,
     Manufacture_MaterialContainers,
+    Manufacture_LabelCalibration,
     Warehouse_Logistics,
     Warehouse_Expedition,
     Warehouse_Packaging,
