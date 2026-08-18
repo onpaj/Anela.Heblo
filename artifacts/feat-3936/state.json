@@ -21,16 +21,16 @@
       "updated_at": "2026-08-17T11:34:03.168528Z"
     },
     "developing": {
-      "status": "pending",
-      "updated_at": null
+      "status": "in_progress",
+      "updated_at": "2026-08-18T04:14:56.878772Z"
     }
   },
   "tasks": [
     {
       "name": "add-plaudpollingjob-unit-tests",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-08-18T04:14:57.114194Z"
     }
   ]
 }
