@@ -25,6 +25,7 @@ public static class AccessMatrix
         new FeatureDefinition(Feature.Manufacture_MaterialInventory, "Inventura materiálu", HasWrite: true),
         new FeatureDefinition(Feature.Manufacture_ProductInventory, "Inventura produktů", HasWrite: true),
         new FeatureDefinition(Feature.Manufacture_MaterialContainers, "Kontejnery materiálu", HasWrite: true),
+        new FeatureDefinition(Feature.Manufacture_LabelCalibration, "Kalibrace štítků", HasWrite: true),
         new FeatureDefinition(Feature.Warehouse_Logistics, "Logistika", HasWrite: true),
         new FeatureDefinition(Feature.Warehouse_Expedition, "Expedice", HasWrite: true),
         new FeatureDefinition(Feature.Warehouse_Packaging, "Balení", HasWrite: true),

@@ -121,6 +121,7 @@ public class LotsController : BaseApiController
     }
 
     [HttpGet("label-calibration")]
+    [FeatureAuthorize(Feature.Manufacture_LabelCalibration, AccessLevel.Read)]
     public async Task<ActionResult<GetLotLabelCalibrationResponse>> GetLabelCalibration(
         CancellationToken cancellationToken)
     {
@@ -128,10 +129,10 @@ public class LotsController : BaseApiController
         return HandleResponse(response);
     }
 
-    // Changing the calibration is an administrative action, gated above the normal
-    // material-containers write access so operators cannot alter it.
+    // Changing the calibration affects every printed label, so it sits behind its own
+    // feature rather than the normal material-containers write access every operator has.
     [HttpPut("label-calibration")]
-    [FeatureAuthorize(Feature.Admin_Administration, AccessLevel.Write)]
+    [FeatureAuthorize(Feature.Manufacture_LabelCalibration, AccessLevel.Write)]
     public async Task<ActionResult<SetLotLabelCalibrationResponse>> SetLabelCalibration(
         [FromBody] SetLotLabelCalibrationRequest request,
         CancellationToken cancellationToken)

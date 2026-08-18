@@ -80,6 +80,8 @@ export const ACCESS_ROLES = [
   "manufacture.product_inventory.write",
   "manufacture.material_containers.read",
   "manufacture.material_containers.write",
+  "manufacture.label_calibration.read",
+  "manufacture.label_calibration.write",
   "warehouse.logistics.read",
   "warehouse.logistics.write",
   "warehouse.expedition.read",

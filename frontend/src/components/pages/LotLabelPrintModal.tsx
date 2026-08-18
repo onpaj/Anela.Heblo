@@ -17,8 +17,9 @@ const MAX_COUNT = 200;
 // increment; buttons feed 1, 3, or 5 steps forward.
 const FEED_STEP_DOTS = 4;
 const FEED_STEPS = [1, 3, 5];
-// Editing the printer pitch calibration is an admin action, not for operators.
-const CALIBRATION_PERMISSION = "admin.administration.write";
+// Editing the printer pitch/drift calibration has its own permission: it affects every
+// printed label, so it is not granted by plain material-containers write access.
+const CALIBRATION_PERMISSION = "manufacture.label_calibration.write";
 
 /** Line 1 default: ISO calendar week (2 digits) + ISO week-year (2 digits), e.g. "2926". */
 export const defaultLotNumber = (date: Date = new Date()): string => {

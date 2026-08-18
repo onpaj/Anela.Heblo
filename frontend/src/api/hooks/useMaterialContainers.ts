@@ -93,6 +93,9 @@ export const useFeedLotMedia = () =>
     },
   });
 
+// The calibration drives every printed label, so it must never be served from cache:
+// the app-wide staleTime would otherwise show a pitch/drift the printer no longer uses
+// after someone else (or another tab) changed it. Always read it fresh from the server.
 export const useLotLabelCalibration = (enabled: boolean) =>
   useQuery({
     enabled,
@@ -101,6 +104,10 @@ export const useLotLabelCalibration = (enabled: boolean) =>
       const apiClient = getAuthenticatedApiClient();
       return apiClient.lots_GetLabelCalibration();
     },
+    staleTime: 0,
+    gcTime: 0,
+    refetchOnMount: 'always',
+    refetchOnWindowFocus: true,
   });
 
 export const useSetLotLabelCalibration = () => {
