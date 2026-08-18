@@ -155,4 +155,44 @@ public class ShoptetApiInvoiceSourceTests
 
         client.Verify(x => x.GetInvoiceAsync("A", It.IsAny<CancellationToken>()), Times.Once);
     }
+
+    [Fact]
+    public async Task GetAllAsync_ListModeNullDetail_ExcludesAffectedCodeWithoutAbortingBatch()
+    {
+        // Arrange
+        var dtoB = BuildDto("B", orderCode: "ORD-B", currency: "CZK");
+
+        var client = new Mock<IShoptetInvoiceClient>();
+        client.Setup(x => x.ListInvoicesAsync(It.IsAny<DateTime?>(), It.IsAny<DateTime?>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<ShoptetInvoiceDto>
+            {
+                BuildDto("A", orderCode: "ORD-A", currency: "CZK"),
+                dtoB,
+            });
+        client.Setup(x => x.GetInvoiceAsync("A", It.IsAny<CancellationToken>()))
+            .ReturnsAsync((ShoptetInvoiceDto?)null);
+        client.Setup(x => x.GetInvoiceAsync("B", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(dtoB);
+
+        var query = new IssuedInvoiceSourceQuery
+        {
+            RequestId = "REQ-5",
+            Currency = "CZK",
+        };
+
+        var source = BuildSource(client);
+
+        // Act — GetAllAsync must not throw despite "A"'s detail fetch returning null; proven by the
+        // successful await below (an unguarded NullReferenceException would fail this test).
+        var result = await source.GetAllAsync(query);
+
+        // Assert
+        var batch = result.Single();
+        batch.Invoices.Should().HaveCount(1);
+        batch.Invoices[0].OrderCode.Should().Be("B");
+
+        // Both codes were sent to GetInvoiceAsync — the loop must not short-circuit/abort on the null result.
+        client.Verify(x => x.GetInvoiceAsync("A", It.IsAny<CancellationToken>()), Times.Once);
+        client.Verify(x => x.GetInvoiceAsync("B", It.IsAny<CancellationToken>()), Times.Once);
+    }
 }
