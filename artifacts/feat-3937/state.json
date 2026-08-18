@@ -40,9 +40,9 @@
     },
     {
       "name": "refresh-orphan-contacts-happy-path-test",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-08-18T09:14:55.179481Z"
+      "updated_at": "2026-08-18T10:15:09.817510Z"
     }
   ]
 }
