@@ -22,7 +22,7 @@
     },
     "developing": {
       "status": "in_progress",
-      "updated_at": "2026-08-18T16:48:14.778483Z"
+      "updated_at": "2026-08-18T20:14:37.181833Z"
     }
   },
   "tasks": [
@@ -40,9 +40,9 @@
     },
     {
       "name": "add-currency-filter-exclude-test",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-08-18T20:14:37.443945Z"
     },
     {
       "name": "add-currency-filter-case-insensitive-theory",
