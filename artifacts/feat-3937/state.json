@@ -21,16 +21,16 @@
       "updated_at": "2026-08-17T20:22:39.652184Z"
     },
     "developing": {
-      "status": "pending",
-      "updated_at": null
+      "status": "in_progress",
+      "updated_at": "2026-08-18T05:14:52.679002Z"
     }
   },
   "tasks": [
     {
       "name": "refresh-orphan-contacts-skip-tests",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-08-18T05:14:52.898132Z"
     },
     {
       "name": "refresh-orphan-contacts-failure-isolation-tests",
