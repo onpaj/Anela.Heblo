@@ -95,7 +95,14 @@ export const useFeedLotMedia = () =>
 
 // The calibration drives every printed label, so it must never be served from cache:
 // the app-wide staleTime would otherwise show a pitch/drift the printer no longer uses
-// after someone else (or another tab) changed it. Always read it fresh from the server.
+// after someone else (or another tab) changed it.
+//
+// staleTime: 0 is what does the work here. The only caller keeps this hook mounted and
+// toggles `enabled` when its modal opens, so the query is refetched on re-enable rather
+// than on remount. refetchOnMount still covers a caller that mounts the hook on demand,
+// and gcTime: 0 keeps no stale value around for the next consumer to read.
+// refetchOnWindowFocus is spelled out even though it matches the current global default:
+// this hook's freshness guarantee must not silently disappear if that default changes.
 export const useLotLabelCalibration = (enabled: boolean) =>
   useQuery({
     enabled,
