@@ -40,9 +40,9 @@
     },
     {
       "name": "add-currency-filter-exclude-test",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-08-18T20:14:37.443945Z"
+      "updated_at": "2026-08-18T20:34:16.452943Z"
     },
     {
       "name": "add-currency-filter-case-insensitive-theory",
