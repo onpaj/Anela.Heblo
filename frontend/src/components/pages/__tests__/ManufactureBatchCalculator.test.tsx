@@ -280,4 +280,86 @@ describe('ManufactureBatchCalculator', () => {
     // selection before the mount-time effect's own call resolves, which is racy with
     // React Testing Library's async utilities.
   });
+
+  describe('calculation-mode toggle', () => {
+    const templateWithIngredient = {
+      success: true,
+      productCode: 'SEMI001',
+      productName: 'Test Semi Product',
+      originalBatchSize: 200,
+      newBatchSize: 100,
+      scaleFactor: 0.5,
+      ingredients: [
+        {
+          productCode: 'ING001',
+          productName: 'Ingredient One',
+          originalAmount: 50,
+          calculatedAmount: 25,
+          stockTotal: 100,
+        },
+      ],
+    };
+
+    const renderWithSelectedProduct = async () => {
+      mockGetBatchTemplate.mockResolvedValue(templateWithIngredient);
+
+      render(
+        <BrowserRouter>
+          <ManufactureBatchCalculator />
+        </BrowserRouter>,
+      );
+
+      triggerProductSelect(testProduct);
+
+      await screen.findByLabelText('Podle velikosti dávky');
+    };
+
+    it('defaults to batch-size mode once a template loads', async () => {
+      await renderWithSelectedProduct();
+
+      expect(screen.getByLabelText('Podle velikosti dávky')).toBeChecked();
+      expect(screen.getByText('Požadovaná velikost dávky (g)')).toBeInTheDocument();
+      expect(screen.queryByText('Požadované množství (g)')).not.toBeInTheDocument();
+      expect(screen.queryByRole('combobox')).not.toBeInTheDocument();
+    });
+
+    it('switches to ingredient mode when "Podle ingredience" is clicked', async () => {
+      await renderWithSelectedProduct();
+
+      fireEvent.click(screen.getByLabelText('Podle ingredience'));
+
+      expect(screen.queryByText('Požadovaná velikost dávky (g)')).not.toBeInTheDocument();
+      expect(screen.getByText('Požadované množství (g)')).toBeInTheDocument();
+      expect(screen.getByRole('combobox')).toBeInTheDocument();
+    });
+
+    it('invokes calculateBySize (not calculateByIngredient) when computing in batch-size mode', async () => {
+      await renderWithSelectedProduct();
+      mockCalculateBySize.mockClear();
+
+      const batchSizeInput = screen.getByPlaceholderText('0.00');
+      fireEvent.change(batchSizeInput, { target: { value: '150' } });
+      fireEvent.click(screen.getByRole('button', { name: /Vypočítat/i }));
+
+      await waitFor(() => {
+        expect(mockCalculateBySize).toHaveBeenCalledWith('SEMI001', 150);
+      });
+      expect(mockCalculateByIngredient).not.toHaveBeenCalled();
+    });
+
+    it('invokes calculateByIngredient (not calculateBySize) when computing in ingredient mode', async () => {
+      await renderWithSelectedProduct();
+      mockCalculateBySize.mockClear();
+
+      fireEvent.click(screen.getByLabelText('Podle ingredience'));
+      fireEvent.change(screen.getByRole('combobox'), { target: { value: 'ING001' } });
+      fireEvent.change(screen.getByPlaceholderText('0.00'), { target: { value: '30' } });
+      fireEvent.click(screen.getByRole('button', { name: /Vypočítat/i }));
+
+      await waitFor(() => {
+        expect(mockCalculateByIngredient).toHaveBeenCalledWith('SEMI001', 'ING001', 30);
+      });
+      expect(mockCalculateBySize).not.toHaveBeenCalled();
+    });
+  });
 });
