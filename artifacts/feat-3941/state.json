@@ -28,9 +28,9 @@
   "tasks": [
     {
       "name": "test-infrastructure-mocks",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-08-19T06:18:28.391268Z"
+      "updated_at": "2026-08-19T06:23:07.477868Z"
     },
     {
       "name": "computepercentage-infinity-tests",
