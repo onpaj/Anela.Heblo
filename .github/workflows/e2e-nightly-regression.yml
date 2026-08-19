@@ -221,6 +221,13 @@ jobs:
     name: 🎭 Run E2E Tests (${{ matrix.module }})
     runs-on: ubuntu-latest
     needs: validate-staging-health
+    # Backstop against hangs *outside* Playwright. Playwright's own globalTimeout is the
+    # in-test ceiling and reports honestly when it fires; this only catches a job wedged
+    # before or around the test run. Without it GitHub's 360-min default applies, which
+    # marks the job `cancelled` (not `failure`) — and a cancelled scheduled run sends no
+    # failure notification, so a red nightly goes unnoticed. Per-module suites peak around
+    # 35 min; the "all" fallback runs the whole sequential suite.
+    timeout-minutes: ${{ (matrix.module == 'all') && 150 || 75 }}
     strategy:
       fail-fast: false
       # Cap concurrent module jobs so we don't overwhelm the single shared staging
@@ -260,9 +267,18 @@ jobs:
 
       - name: 🎭 Install Playwright browsers
         working-directory: ./frontend
+        # `--with-deps` shells out to apt, which has hung indefinitely on archive.ubuntu.com
+        # and burned the full 6h job cap (runs 32090981015, 32207878070). apt is the only part
+        # that can hang, so cap it and fall back to the CDN-only install — the ubuntu-24.04
+        # image already carries Chromium's system libs via its preinstalled Chrome/Edge.
+        timeout-minutes: 10
         run: |
-          # Always install chromium for modular execution
-          npx playwright install --with-deps chromium
+          if timeout -k 30 300 npx playwright install --with-deps chromium; then
+            echo "✅ Playwright chromium + system deps installed"
+          else
+            echo "⚠️ --with-deps failed or exceeded 300s (apt hang) — falling back to browser-only install"
+            npx playwright install chromium
+          fi
 
       - name: 📂 List E2E test files for module
         working-directory: ./frontend
