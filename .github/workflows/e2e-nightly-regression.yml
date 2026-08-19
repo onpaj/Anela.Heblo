@@ -272,14 +272,28 @@ jobs:
         working-directory: ./frontend
         # `--with-deps` shells out to apt, which has hung indefinitely on archive.ubuntu.com
         # and burned the full 6h job cap (runs 32090981015, 32207878070). apt is the only part
-        # that can hang, so cap it and fall back to the CDN-only install — the ubuntu-24.04
+        # that can hang, so cap it and fall back to the CDN-only install — the current runner
         # image already carries Chromium's system libs via its preinstalled Chrome/Edge.
+        #
+        # The inner `timeout` only reaps the `npx`/node process: apt runs under sudo as root,
+        # so neither its TERM nor its KILL can reach it and a hung apt is merely orphaned.
+        # `timeout-minutes` below is the real enforcement — the runner kills the whole tree.
         timeout-minutes: 10
         run: |
           if timeout -k 30 300 npx playwright install --with-deps chromium; then
             echo "✅ Playwright chromium + system deps installed"
           else
-            echo "⚠️ --with-deps failed or exceeded 300s (apt hang) — falling back to browser-only install"
+            rc=$?
+            # 124 is the apt hang this guard exists for. Any other code means `--with-deps`
+            # genuinely failed, and the CDN-only fallback may leave a lib missing — which
+            # resurfaces later as an opaque "host is missing dependencies" test error.
+            # Annotate either way so the degraded path is visible in the run summary and
+            # not buried in step logs.
+            if [ "$rc" -eq 124 ]; then
+              echo "::warning::Playwright --with-deps exceeded 300s (apt hang) — using browser-only fallback"
+            else
+              echo "::warning::Playwright --with-deps failed with exit $rc — using browser-only fallback; a missing system lib may surface as a Chromium launch error"
+            fi
             npx playwright install chromium
           fi
 
