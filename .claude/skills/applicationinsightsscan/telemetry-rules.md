@@ -27,12 +27,6 @@ from this checkout's `origin` remote, or `GH_REPO` if set).
   high volume to real users (distinct from a user simply lacking a feature).
 - **Real frontend errors** — browser exceptions with an app stack
   (`TypeError: ... is not a function`), not third-party/extension noise.
-- **Failed background jobs** — every `HangfireJobFailed` custom event is
-  issue-worthy by default. It is emitted only when a Hangfire job has
-  exhausted all automatic retries, so it is never transient noise; these
-  failures are otherwise invisible (nothing user-facing breaks). Include the
-  `JobType`, `RecurringJobId`, `ExceptionType`, and `ExceptionMessage`
-  dimensions in the issue so a code-fixing agent can act on it.
 
 ## What it skips (do not file)
 
@@ -90,7 +84,6 @@ the same key.
 | `dep-fail` | `<type>:<target>` | `dep-fail:HTTP:payments.example.com` |
 | `dep-latency` | `<type>:<target>` | `dep-latency:HTTP:payments.example.com` |
 | `frontend` | `<error>@<symbol>` | `frontend:TypeError-r.filter@Yq1` |
-| `job-fail` | `<JobType or RecurringJobId>` : `<ExceptionType>` | `job-fail:CatalogSyncJob:HttpRequestException` |
 
 To dedup, search issues (open **and** closed) for the exact
 `telemetry-signal:` line:
