@@ -28,9 +28,9 @@
   "tasks": [
     {
       "name": "write-tests",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-08-19T08:19:41.137452Z"
+      "updated_at": "2026-08-19T08:32:01.981420Z"
     }
   ]
 }
