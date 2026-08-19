@@ -22,7 +22,7 @@
     },
     "developing": {
       "status": "in_progress",
-      "updated_at": "2026-08-19T06:18:28.154211Z"
+      "updated_at": "2026-08-19T07:16:20.762712Z"
     }
   },
   "tasks": [
@@ -34,9 +34,9 @@
     },
     {
       "name": "computepercentage-infinity-tests",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-08-19T07:16:21.020357Z"
     },
     {
       "name": "batch-size-fallback-precedence-tests",

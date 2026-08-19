@@ -128,6 +128,14 @@ describe('computePercentage helper', () => {
   it('returns negative percentage when calculatedAmount is negative', () => {
     expect(computePercentage(-50, 1000)).toBe('-5.00%');
   });
+
+  it('returns "N/A" when newBatchSize is Infinity', () => {
+    expect(computePercentage(100, Infinity)).toBe('N/A');
+  });
+
+  it('returns "N/A" when newBatchSize is -Infinity', () => {
+    expect(computePercentage(100, -Infinity)).toBe('N/A');
+  });
 });
 
 describe('ManufactureBatchCalculator', () => {
