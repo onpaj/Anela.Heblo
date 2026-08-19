@@ -22,7 +22,7 @@
     },
     "developing": {
       "status": "in_progress",
-      "updated_at": "2026-08-19T08:14:27.096753Z"
+      "updated_at": "2026-08-19T09:14:00.057164Z"
     }
   },
   "tasks": [
@@ -46,9 +46,9 @@
     },
     {
       "name": "url-parameter-autoselection-tests",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-08-19T09:14:00.318610Z"
     },
     {
       "name": "calculation-mode-toggle-tests",
