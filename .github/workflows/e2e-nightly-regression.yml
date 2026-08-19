@@ -221,13 +221,16 @@ jobs:
     name: 🎭 Run E2E Tests (${{ matrix.module }})
     runs-on: ubuntu-latest
     needs: validate-staging-health
-    # Backstop against hangs *outside* Playwright. Playwright's own globalTimeout is the
-    # in-test ceiling and reports honestly when it fires; this only catches a job wedged
-    # before or around the test run. Without it GitHub's 360-min default applies, which
-    # marks the job `cancelled` (not `failure`) — and a cancelled scheduled run sends no
-    # failure notification, so a red nightly goes unnoticed. Per-module suites peak around
-    # 35 min; the "all" fallback runs the whole sequential suite.
-    timeout-minutes: ${{ (matrix.module == 'all') && 150 || 75 }}
+    # Outer backstop only — these caps MUST stay above Playwright's globalTimeout
+    # (90 min, see frontend/playwright.config.ts). globalTimeout truncates the run but still
+    # writes results.json, so the truncation is reported honestly as DIDNOTRUN and the nightly
+    # goes red. A job cap *below* it would kill the job first: no results.json, no artifact,
+    # and the module silently vanishes from the aggregate — a broken night reporting green.
+    # 110 = the 90-min ceiling plus ~20 min of checkout / npm install / browser install.
+    # Without any cap GitHub's 360-min default applies, which marks the job `cancelled`
+    # (not `failure`) — and a cancelled scheduled run sends no failure notification.
+    # Note: the `&& x || y` idiom relies on x being truthy; keep both values non-zero.
+    timeout-minutes: ${{ (matrix.module == 'all') && 150 || 110 }}
     strategy:
       fail-fast: false
       # Cap concurrent module jobs so we don't overwhelm the single shared staging
@@ -235,7 +238,7 @@ jobs:
       max-parallel: 2
       matrix:
         # Per-module fan-out is the default (scheduled runs and manual runs alike): each module is a
-        # small suite that finishes well under the 60-min globalTimeout, so every test actually runs
+        # small suite that finishes well under the 90-min globalTimeout, so every test actually runs
         # and reports honestly. A manual run with enable_parallel=false falls back to a single "all"
         # job. Keep this list in sync with the `projects` array in frontend/playwright.config.ts.
         module: ${{ fromJSON((github.event_name == 'schedule' || github.event.inputs.enable_parallel != 'false') && '["catalog", "issued-invoices", "stock-operations", "transport", "manufacturing", "core", "marketing", "mindmaps", "finance", "baleni", "leaflet-generator", "terminal"]' || '["all"]') }}
