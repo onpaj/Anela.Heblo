@@ -10,15 +10,18 @@ public class TransportBoxCompletionService : ITransportBoxCompletionService
     private readonly ILogger<TransportBoxCompletionService> _logger;
     private readonly ITransportBoxRepository _transportBoxRepository;
     private readonly ILogisticsStockOperationQueryService _stockOperationQueryService;
+    private readonly TimeProvider _timeProvider;
 
     public TransportBoxCompletionService(
         ILogger<TransportBoxCompletionService> logger,
         ITransportBoxRepository transportBoxRepository,
-        ILogisticsStockOperationQueryService stockOperationQueryService)
+        ILogisticsStockOperationQueryService stockOperationQueryService,
+        TimeProvider timeProvider)
     {
         _logger = logger;
         _transportBoxRepository = transportBoxRepository;
         _stockOperationQueryService = stockOperationQueryService;
+        _timeProvider = timeProvider;
     }
 
     public async Task CompleteReceivedBoxesAsync(CancellationToken cancellationToken = default)
@@ -88,7 +91,7 @@ public class TransportBoxCompletionService : ITransportBoxCompletionService
                 "Box {BoxId} ({BoxCode}) has no StockUpOperations, marking as Error",
                 box.Id, box.Code);
 
-            box.Error(DateTime.UtcNow, "System",
+            box.Error(_timeProvider.GetUtcNow().UtcDateTime, "System",
                 "No stock-up operations found for this box");
             await _transportBoxRepository.UpdateAsync(box, cancellationToken);
             await _transportBoxRepository.SaveChangesAsync(cancellationToken);
@@ -108,7 +111,7 @@ public class TransportBoxCompletionService : ITransportBoxCompletionService
                 "All {Count} stock-up operations for box {BoxId} ({BoxCode}) completed, marking as Stocked",
                 operations.Count, box.Id, box.Code);
 
-            box.ToPick(DateTime.UtcNow, "System");
+            box.ToPick(_timeProvider.GetUtcNow().UtcDateTime, "System");
             await _transportBoxRepository.UpdateAsync(box, cancellationToken);
             await _transportBoxRepository.SaveChangesAsync(cancellationToken);
 
@@ -128,7 +131,7 @@ public class TransportBoxCompletionService : ITransportBoxCompletionService
                 "Box {BoxId} ({BoxCode}) has {FailedCount} failed stock-up operations, marking as Error",
                 box.Id, box.Code, failedOps.Count);
 
-            box.Error(DateTime.UtcNow, "System", errorMessage);
+            box.Error(_timeProvider.GetUtcNow().UtcDateTime, "System", errorMessage);
             await _transportBoxRepository.UpdateAsync(box, cancellationToken);
             await _transportBoxRepository.SaveChangesAsync(cancellationToken);
 

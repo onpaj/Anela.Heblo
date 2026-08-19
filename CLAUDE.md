@@ -12,7 +12,7 @@ MediatR + MVC controllers, Vertical Slice organization, single Docker image, Azu
 Read the relevant doc **before** implementation work touches that area. No architectural changes without consulting these first — when in doubt, ask.
 
 **Architecture**
-- `docs/📘 Architecture Documentation – MVP Work.md` — modules, data flow, business logic
+- `docs/architecture/📘 Architecture Documentation – MVP Work.md` — modules, data flow, business logic
 - `docs/architecture/filesystem.md` — directory layout, component placement, naming conventions
 - `docs/architecture/development_guidelines.md` — DTO/contract rules, module boundaries, persistence
 - `docs/architecture/infrastructure.md` — deployment, CI/CD, Docker

@@ -26,6 +26,7 @@ using Anela.Heblo.Application.Features.LabelIdentification;
 using Anela.Heblo.Application.Features.Article;
 using Anela.Heblo.Application.Features.Leaflet;
 using Anela.Heblo.Application.Features.MeetingTasks;
+using Anela.Heblo.Application.Features.MindMaps;
 using Anela.Heblo.Application.Features.Purchase;
 using Anela.Heblo.Application.Features.FinancialOverview;
 using Anela.Heblo.Application.Features.Journal;
@@ -119,6 +120,7 @@ public static class ApplicationModule
         services.AddDataQualityModule();
         services.AddPhotobankModule(configuration);
         services.AddMeetingTasksModule(configuration);
+        services.AddMindMapsModule(configuration);
         services.AddSmartsuppModule(configuration);
         services.AddInventoryModule();
         // services.AddOrdersModule();

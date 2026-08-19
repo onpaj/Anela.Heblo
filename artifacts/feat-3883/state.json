@@ -1,0 +1,40 @@
+{
+  "feature_id": "feat-3883",
+  "issue_number": 3883,
+  "created_at": "2026-08-12T07:18:21.468783Z",
+  "max_revisions": 3,
+  "phases": {
+    "analyzing": {
+      "status": "completed",
+      "updated_at": "2026-08-12T07:19:58.394786Z"
+    },
+    "architecting": {
+      "status": "completed",
+      "updated_at": "2026-08-12T07:21:01.647112Z"
+    },
+    "designing": {
+      "status": "completed",
+      "updated_at": "2026-08-12T07:21:28.623842Z"
+    },
+    "planning": {
+      "status": "completed",
+      "updated_at": "2026-08-12T07:25:13.631405Z"
+    },
+    "developing": {
+      "status": "in_progress",
+      "updated_at": "2026-08-13T04:15:45.807523Z"
+    },
+    "code-review": {
+      "status": "completed",
+      "updated_at": "2026-08-13T07:34:27.814039Z"
+    }
+  },
+  "tasks": [
+    {
+      "name": "fix-authorization-header-logging-leak",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-08-13T05:08:50.550925Z"
+    }
+  ]
+}

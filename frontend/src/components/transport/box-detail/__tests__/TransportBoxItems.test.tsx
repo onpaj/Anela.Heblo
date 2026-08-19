@@ -2,10 +2,13 @@ import React from "react";
 import { render, screen, fireEvent } from "@testing-library/react";
 import TransportBoxItems from "../TransportBoxItems";
 import { TransportBoxDto, TransportBoxItemDto } from "../../../../api/generated/api-client";
+import type { ManufacturedProductInventoryItem } from "../../../../api/hooks/useManufacturedProductInventory";
+
+let mockInventoryItems: ManufacturedProductInventoryItem[] = [];
 
 jest.mock("../../../../api/hooks/useManufacturedProductInventory", () => ({
   useManufacturedProductInventoryQuery: () => ({
-    data: { items: [] },
+    data: { items: mockInventoryItems },
     isLoading: false,
     error: null,
   }),
@@ -91,6 +94,92 @@ describe("TransportBoxItems — product thumbnails", () => {
 
     expect(screen.queryByRole("img")).not.toBeInTheDocument();
     expect(screen.getByTestId("product-thumbnail-placeholder")).toBeInTheDocument();
+  });
+});
+
+describe("TransportBoxItems — manufactured product rows", () => {
+  const editableProps = {
+    ...defaultProps,
+    isFormEditable: (field: "items" | "notes" | "boxNumber") => field === "items",
+  };
+
+  function makeInventoryItem(
+    overrides: Partial<ManufacturedProductInventoryItem> = {},
+  ): ManufacturedProductInventoryItem {
+    return {
+      id: 100,
+      productCode: "P001",
+      productName: "Test Product",
+      lotNumber: "L1",
+      expirationDate: undefined,
+      amount: 10,
+      manufactureOrderId: undefined,
+      ...overrides,
+    } as ManufacturedProductInventoryItem;
+  }
+
+  afterEach(() => {
+    mockInventoryItems = [];
+  });
+
+  it("prefills the amount with the stock left on the manufacture warehouse", () => {
+    mockInventoryItems = [makeInventoryItem({ amount: 10 })];
+
+    render(<TransportBoxItems {...editableProps} transportBox={makeBox([])} />);
+
+    const input = screen.getByRole("spinbutton") as HTMLInputElement;
+    expect(input.value).toBe("10");
+  });
+
+  it("prefills the last added amount when it is lower than the remaining stock", () => {
+    mockInventoryItems = [makeInventoryItem({ amount: 10 })];
+
+    render(
+      <TransportBoxItems
+        {...editableProps}
+        transportBox={makeBox([])}
+        lastManufacturedItems={[
+          {
+            productCode: "P001",
+            productName: "Test Product",
+            lotNumber: "L1",
+            addedAmount: 3,
+          },
+        ]}
+      />,
+    );
+
+    const input = screen.getByRole("spinbutton") as HTMLInputElement;
+    expect(input.value).toBe("3");
+  });
+
+  it("steps the amount by whole numbers", () => {
+    mockInventoryItems = [makeInventoryItem({ amount: 10 })];
+
+    render(<TransportBoxItems {...editableProps} transportBox={makeBox([])} />);
+
+    const input = screen.getByRole("spinbutton") as HTMLInputElement;
+    expect(input).toHaveAttribute("step", "1");
+    expect(input).toHaveAttribute("min", "1");
+  });
+
+  it("adds the prefilled amount without editing the input", () => {
+    mockInventoryItems = [makeInventoryItem({ amount: 10 })];
+    const handleAddManufacturedItem = jest.fn();
+
+    render(
+      <TransportBoxItems
+        {...editableProps}
+        transportBox={makeBox([])}
+        handleAddManufacturedItem={handleAddManufacturedItem}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Přidat" }));
+
+    expect(handleAddManufacturedItem).toHaveBeenCalledWith(
+      expect.objectContaining({ amount: 10 }),
+    );
   });
 });
 

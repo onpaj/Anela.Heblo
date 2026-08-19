@@ -16,7 +16,7 @@ function getInitials(name?: string | null): string {
     : name.slice(0, 2).toUpperCase();
 }
 
-function formatRelativeTime(dateStr?: string | null): string {
+function formatRelativeTime(dateStr?: Date | string | null): string {
   if (!dateStr) return "";
   const diff = Date.now() - new Date(dateStr).getTime();
   const minutes = Math.floor(diff / 60_000);

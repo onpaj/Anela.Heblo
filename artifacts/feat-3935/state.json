@@ -1,0 +1,64 @@
+{
+  "feature_id": "feat-3935",
+  "issue_number": 3935,
+  "created_at": "2026-08-17T10:22:39.897505Z",
+  "max_revisions": 3,
+  "phases": {
+    "analyzing": {
+      "status": "completed",
+      "updated_at": "2026-08-17T10:24:47.383224Z"
+    },
+    "architecting": {
+      "status": "completed",
+      "updated_at": "2026-08-17T10:25:32.761703Z"
+    },
+    "designing": {
+      "status": "completed",
+      "updated_at": "2026-08-17T10:25:52.491257Z"
+    },
+    "planning": {
+      "status": "completed",
+      "updated_at": "2026-08-17T10:27:03.089526Z"
+    },
+    "developing": {
+      "status": "in_progress",
+      "updated_at": "2026-08-18T00:15:34.767998Z"
+    },
+    "code-review": {
+      "status": "completed",
+      "updated_at": "2026-08-18T02:26:17.122209Z"
+    }
+  },
+  "tasks": [
+    {
+      "name": "setup-test-file",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-08-17T20:20:33.977823Z"
+    },
+    {
+      "name": "not-found-path-test",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-08-17T21:34:34.007564Z"
+    },
+    {
+      "name": "happy-path-cache-refresh-test",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-08-17T22:19:53.925025Z"
+    },
+    {
+      "name": "exception-path-tests",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-08-17T23:44:19.888353Z"
+    },
+    {
+      "name": "full-suite-and-coverage-verification",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-08-18T01:16:39.350190Z"
+    }
+  ]
+}

@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using Microsoft.Extensions.AI;
 
 namespace Anela.Heblo.Application.Shared.Rag;
 
@@ -34,4 +35,12 @@ public abstract class RagFeatureOptions
 
     public RagQueryExpansionConfig ToExpansionConfig() =>
         new(QueryExpansionEnabled, QueryExpansionModel, QueryExpansionPrompt);
+
+    /// <summary>
+    /// Turns this feature's embedding config into the per-call options every
+    /// <see cref="IEmbeddingGenerator{TInput,TEmbedding}"/> call site must pass, so a feature's
+    /// own EmbeddingModel/EmbeddingDimensions reach the API instead of the adapter-wide fallback.
+    /// </summary>
+    public EmbeddingGenerationOptions ToEmbeddingOptions() =>
+        new() { ModelId = EmbeddingModel, Dimensions = EmbeddingDimensions };
 }

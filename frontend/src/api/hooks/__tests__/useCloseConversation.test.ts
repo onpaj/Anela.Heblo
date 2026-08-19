@@ -2,18 +2,14 @@ import React from "react";
 import { renderHook, act, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useCloseConversation } from "../useSmartsupp";
-
-const mockFetch = jest.fn();
+import { getAuthenticatedApiClient } from "../../client";
 
 jest.mock("../../client", () => ({
-  getAuthenticatedApiClient: () => ({
-    baseUrl: "http://localhost:5001",
-    http: { fetch: mockFetch },
-  }),
-  QUERY_KEYS: {
-    smartsupp: ["smartsupp"],
-  },
+  getAuthenticatedApiClient: jest.fn(),
+  QUERY_KEYS: { smartsupp: ["smartsupp"] },
 }));
+
+const mockCloseConversation = jest.fn();
 
 function wrapper({ children }: { children: React.ReactNode }) {
   const qc = new QueryClient({
@@ -24,14 +20,14 @@ function wrapper({ children }: { children: React.ReactNode }) {
 
 beforeEach(() => {
   jest.clearAllMocks();
+  (getAuthenticatedApiClient as jest.Mock).mockReturnValue({
+    smartsupp_CloseConversation: mockCloseConversation,
+  });
 });
 
 describe("useCloseConversation", () => {
-  it("calls POST to the close endpoint with the conversation id", async () => {
-    mockFetch.mockResolvedValue({
-      ok: true,
-      json: async () => ({ success: true }),
-    });
+  it("calls the typed client with the conversation id", async () => {
+    mockCloseConversation.mockResolvedValue({ success: true });
 
     const { result } = renderHook(() => useCloseConversation(), { wrapper });
 
@@ -41,16 +37,13 @@ describe("useCloseConversation", () => {
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
-    expect(mockFetch).toHaveBeenCalledWith(
-      "http://localhost:5001/api/smartsupp/conversations/conv-1/close",
-      expect.objectContaining({ method: "POST" }),
-    );
+    expect(mockCloseConversation).toHaveBeenCalledWith("conv-1");
   });
 
-  it("sets error message when API returns non-ok with SmartsuppCloseConversationUnavailable", async () => {
-    mockFetch.mockResolvedValue({
-      ok: false,
-      json: async () => ({ errorCode: "SmartsuppCloseConversationUnavailable" }),
+  it("sets error message when the typed response carries SmartsuppCloseConversationUnavailable", async () => {
+    mockCloseConversation.mockResolvedValue({
+      success: false,
+      errorCode: "SmartsuppCloseConversationUnavailable",
     });
 
     const { result } = renderHook(() => useCloseConversation(), { wrapper });
@@ -64,11 +57,8 @@ describe("useCloseConversation", () => {
     expect(result.current.error?.message).toContain("nedostupná");
   });
 
-  it("sets generic error message when API returns non-ok with no error code", async () => {
-    mockFetch.mockResolvedValue({
-      ok: false,
-      json: async () => ({}),
-    });
+  it("sets a generic error message when the call throws (untyped 404/503)", async () => {
+    mockCloseConversation.mockRejectedValue(new Error("boom"));
 
     const { result } = renderHook(() => useCloseConversation(), { wrapper });
 

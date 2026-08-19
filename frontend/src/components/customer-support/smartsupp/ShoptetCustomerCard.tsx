@@ -15,7 +15,7 @@ function ShoptetCustomerCard({ conversationId }: ShoptetCustomerCardProps) {
   const { customer, recentOrders, cartUpdatedAt } = data.contactInfo;
 
   const hasCustomer = customer != null;
-  const hasOrders = recentOrders.length > 0;
+  const hasOrders = (recentOrders ?? []).length > 0;
 
   if (!hasCustomer && !hasOrders && !cartUpdatedAt) return null;
 
@@ -58,7 +58,7 @@ function ShoptetCustomerCard({ conversationId }: ShoptetCustomerCardProps) {
       {hasOrders && (
         <Section title="Poslední objednávky">
           <div className="space-y-2">
-            {recentOrders.map((order) => (
+            {(recentOrders ?? []).map((order) => (
               <div key={order.code} className="border-b border-gray-50 dark:border-graphite-border pb-1.5 last:border-0">
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-medium text-gray-800 dark:text-graphite-text">{order.code}</span>

@@ -1,10 +1,10 @@
 import React from "react";
 
 interface DaySeparatorProps {
-  date: string;
+  date: Date | string;
 }
 
-function formatDayLabel(dateStr: string): string {
+function formatDayLabel(dateStr: Date | string): string {
   const target = new Date(dateStr);
   const today = new Date();
   const yesterday = new Date();

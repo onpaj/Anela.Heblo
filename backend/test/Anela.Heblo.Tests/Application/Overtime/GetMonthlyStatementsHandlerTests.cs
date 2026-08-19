@@ -114,8 +114,12 @@ public class GetMonthlyStatementsHandlerTests
         // (unique PersonId/Year/Month index) by the time this request's AddAsync runs.
         var winningStatement = new OvertimeMonthlyStatement
         {
-            PersonId = Person, Year = 2026, Month = 8, Status = OvertimeStatementStatus.Open,
-            WorkedHours = 8.00m, IsReviewed = true
+            PersonId = Person,
+            Year = 2026,
+            Month = 8,
+            Status = OvertimeStatementStatus.Open,
+            WorkedHours = 8.00m,
+            IsReviewed = true
         };
         _statements.SetupSequence(r => r.GetByMonthAsync(2026, 8, It.IsAny<CancellationToken>()))
             .ReturnsAsync(new List<OvertimeMonthlyStatement>())

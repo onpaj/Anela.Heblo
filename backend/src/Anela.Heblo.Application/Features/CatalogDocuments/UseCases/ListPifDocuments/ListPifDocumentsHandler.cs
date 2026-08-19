@@ -26,10 +26,7 @@ public class ListPifDocumentsHandler : IRequestHandler<ListPifDocumentsRequest, 
     public async Task<ListCatalogDocumentsResponse> Handle(
         ListPifDocumentsRequest request, CancellationToken cancellationToken)
     {
-        var shortCode = request.ProductCode.Length >= 6
-            ? request.ProductCode[..6]
-            : request.ProductCode;
-        var prefix = $"{shortCode}__";
+        var prefix = PifFolderPrefixBuilder.Build(request.ProductCode);
         var driveId = _options.PIF.DriveId;
         var basePath = _options.PIF.BasePath;
 

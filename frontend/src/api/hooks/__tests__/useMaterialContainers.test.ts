@@ -10,6 +10,7 @@ import {
   usePrintLotLabels,
   usePrintLotCalibrationLabel,
   useFeedLotMedia,
+  useLotLabelCalibration,
 } from '../useMaterialContainers';
 import * as clientModule from '../../client';
 
@@ -253,6 +254,83 @@ describe('usePrintLotCalibrationLabel', () => {
     expect(mockPrintCalibration).toHaveBeenCalledWith(
       expect.objectContaining({ mediaChangeConfirmed: false }),
     );
+  });
+});
+
+describe('useLotLabelCalibration', () => {
+  let mockGetCalibration: jest.Mock;
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockGetCalibration = jest.fn();
+    mockGetAuthenticatedApiClient.mockReturnValue({
+      lots_GetLabelCalibration: mockGetCalibration,
+    } as any);
+  });
+
+  // The calibration drives every printed label, so a value cached under the app-wide
+  // 5 minute staleTime would show a pitch/drift the printer no longer uses.
+  it('refetches on every mount even under the app-wide staleTime', async () => {
+    mockGetCalibration
+      .mockResolvedValueOnce({ success: true, pitchDots: 148, driftDotsPer100Labels: 25 })
+      .mockResolvedValueOnce({ success: true, pitchDots: 148, driftDotsPer100Labels: 40 });
+
+    const queryClient = new QueryClient({
+      defaultOptions: {
+        queries: { retry: false, staleTime: 5 * 60 * 1000, gcTime: 10 * 60 * 1000 },
+      },
+    });
+    const wrapper = ({ children }: { children: React.ReactNode }) =>
+      React.createElement(QueryClientProvider, { client: queryClient }, children);
+
+    const { result: firstResult, unmount } = renderHook(
+      () => useLotLabelCalibration(true),
+      { wrapper },
+    );
+    await waitFor(() => expect(firstResult.current.isSuccess).toBe(true));
+    expect(firstResult.current.data?.driftDotsPer100Labels).toBe(25);
+    unmount();
+
+    const { result: secondResult } = renderHook(
+      () => useLotLabelCalibration(true),
+      { wrapper },
+    );
+    await waitFor(() =>
+      expect(secondResult.current.data?.driftDotsPer100Labels).toBe(40),
+    );
+    expect(mockGetCalibration).toHaveBeenCalledTimes(2);
+  });
+
+  // The real caller renders the modal unconditionally and toggles `enabled` when it
+  // opens, so the hook never unmounts — this is the path that has to stay fresh.
+  it('refetches when re-enabled without unmounting', async () => {
+    mockGetCalibration
+      .mockResolvedValueOnce({ success: true, pitchDots: 148, driftDotsPer100Labels: 25 })
+      .mockResolvedValueOnce({ success: true, pitchDots: 148, driftDotsPer100Labels: 40 });
+
+    const queryClient = new QueryClient({
+      defaultOptions: {
+        queries: { retry: false, staleTime: 5 * 60 * 1000, gcTime: 10 * 60 * 1000 },
+      },
+    });
+    const wrapper = ({ children }: { children: React.ReactNode }) =>
+      React.createElement(QueryClientProvider, { client: queryClient }, children);
+
+    const { result, rerender } = renderHook(
+      ({ enabled }: { enabled: boolean }) => useLotLabelCalibration(enabled),
+      { wrapper, initialProps: { enabled: true } },
+    );
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(result.current.data?.driftDotsPer100Labels).toBe(25);
+
+    // Modal closes, then reopens after someone else changed the calibration.
+    rerender({ enabled: false });
+    rerender({ enabled: true });
+
+    await waitFor(() =>
+      expect(result.current.data?.driftDotsPer100Labels).toBe(40),
+    );
+    expect(mockGetCalibration).toHaveBeenCalledTimes(2);
   });
 });
 

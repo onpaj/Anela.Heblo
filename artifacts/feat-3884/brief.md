@@ -1,0 +1,10 @@
+**Where:** `backend/src/Anela.Heblo.API/Controllers/E2ETestController.cs:40-54`.
+
+**What's wrong:** the class doc-comment states *"E2E Test Controller - ONLY for Staging Environment"*. Every other action in the file enforces that: `CreateE2ESession` (line 68), `GetAuthStatus` (line 134), and `GetE2EApp` (line 172) each open with an identical `// CRITICAL SECURITY: Only allow in Staging or Development environment` guard that returns `NotFound` outside those environments, and the latter two also carry `[Authorize(AuthenticationSchemes = "E2ETestCookies")]`. `GetEnvironmentInfo` has **neither** — no `[Authorize]`, no `[AllowAnonymous]` (which would at least make the intent explicit), and no environment check in the body.
+
+There is no fallback closing this gap: `AuthenticationExtensions.ConfigureAuthorizationPolicies` (`backend/src/Anela.Heblo.API/Extensions/AuthenticationExtensions.cs:104-121`) sets `options.DefaultPolicy`, which ASP.NET Core only applies to `[Authorize]` attributes that name no explicit policy — it does not protect endpoints with no `[Authorize]` attribute at all. No `FallbackPolicy` is registered anywhere in `Program.cs` or this part's extensions.
+
+**Concrete consequence:** `GET /api/E2ETest/env-info` is anonymously reachable in every environment, including Production, and returns `EnvironmentName`, `IsProduction`, `IsStaging`, and the raw `ASPNETCORE_ENVIRONMENT` variable to any unauthenticated caller. This is the same category of gap the project has already found and fixed twice: closed #3805 (`DepartmentsController` had no authorization attribute) and closed #3785 (`DiagnosticsController` leaked config in Production). The information disclosed here is lower-sensitivity than those two, but the inconsistency is self-evident within a single 217-line file: three of four actions gate on environment for this exact reason, and this one was missed.
+
+**Suggested direction:** apply the same environment guard (or an explicit `[Authorize]`) that its three sibling actions already use.
+

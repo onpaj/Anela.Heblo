@@ -12,7 +12,7 @@
 #   ./scripts/run-playwright-tests.sh core                         # Run core module only
 #   ./scripts/run-playwright-tests.sh auth                         # Run tests matching "auth" pattern
 #
-# Available modules: catalog, issued-invoices, stock-operations, transport, manufacturing, core
+# Available modules: catalog, issued-invoices, stock-operations, transport, manufacturing, core, mindmaps
 
 set -e
 
@@ -78,7 +78,7 @@ export PLAYWRIGHT_BASE_URL="$STAGING_URL"
 export CI=false  # Disable CI mode for better debugging
 
 # Define available modules
-MODULES=("catalog" "issued-invoices" "stock-operations" "transport" "manufacturing" "core" "marketing" "finance" "baleni" "leaflet-generator" "terminal")
+MODULES=("catalog" "issued-invoices" "stock-operations" "transport" "manufacturing" "core" "marketing" "mindmaps" "finance" "baleni" "leaflet-generator" "terminal")
 
 # Build test command
 PLAYWRIGHT_CMD=(npx playwright test)
