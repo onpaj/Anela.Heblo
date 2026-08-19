@@ -40,9 +40,9 @@
     },
     {
       "name": "batch-size-fallback-precedence-tests",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-08-19T08:14:27.460570Z"
+      "updated_at": "2026-08-19T08:18:38.246778Z"
     },
     {
       "name": "url-parameter-autoselection-tests",
