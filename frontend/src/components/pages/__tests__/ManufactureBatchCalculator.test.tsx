@@ -1,23 +1,48 @@
 import React from 'react';
-import { render, screen } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
-import { BrowserRouter } from 'react-router-dom';
+import { BrowserRouter, MemoryRouter, Routes, Route } from 'react-router-dom';
 import ManufactureBatchCalculator, { computePercentage } from '../ManufactureBatchCalculator';
+import { CatalogItemDto, ProductType } from '../../../api/generated/api-client';
 
-// Mock the API hook
+// Mock the API hook — module-scoped jest.fn() refs so each test can configure
+// resolved values independently, without leaking state between tests.
+const mockGetBatchTemplate = jest.fn();
+const mockCalculateBySize = jest.fn();
+const mockCalculateByIngredient = jest.fn();
+
 jest.mock('../../../api/hooks/useManufactureBatch', () => ({
   useManufactureBatch: () => ({
-    getBatchTemplate: jest.fn().mockResolvedValue({ success: false }),
-    calculateBySize: jest.fn().mockResolvedValue({ success: false }),
-    calculateByIngredient: jest.fn().mockResolvedValue({ success: false }),
+    getBatchTemplate: mockGetBatchTemplate,
+    calculateBySize: mockCalculateBySize,
+    calculateByIngredient: mockCalculateByIngredient,
     isLoading: false,
   }),
 }));
 
-// Mock CatalogAutocomplete component
+// Mock CatalogAutocomplete component — renders the seeded `value.productName` (so
+// tests can assert what the calculator passes as `value`) and exposes a button that
+// invokes the real `onSelect` prop with a test-configured product, so tests can
+// simulate a manual product selection without reproducing the real search UI.
+let mockAutocompleteProduct: CatalogItemDto | null = null;
 jest.mock('../../common/CatalogAutocomplete', () => {
-  return function MockCatalogAutocomplete() {
-    return <div data-testid="catalog-autocomplete" />;
+  return function MockCatalogAutocomplete(props: {
+    value?: { productName?: string } | null;
+    onSelect: (item: any) => void;
+  }) {
+    return (
+      <div data-testid="catalog-autocomplete">
+        {props.value?.productName && (
+          <span data-testid="catalog-autocomplete-value">{props.value.productName}</span>
+        )}
+        <button
+          data-testid="catalog-autocomplete-select"
+          onClick={() => props.onSelect(mockAutocompleteProduct)}
+        >
+          select
+        </button>
+      </div>
+    );
   };
 });
 
@@ -40,6 +65,26 @@ jest.mock('../CatalogDetail', () => {
   return function MockCatalogDetail() {
     return null;
   };
+});
+
+beforeEach(() => {
+  mockGetBatchTemplate.mockReset().mockResolvedValue({ success: false });
+  mockCalculateBySize.mockReset().mockResolvedValue({ success: false });
+  mockCalculateByIngredient.mockReset().mockResolvedValue({ success: false });
+  mockAutocompleteProduct = null;
+});
+
+// Selects a product through the mocked CatalogAutocomplete's onSelect callback,
+// exactly as a manual pick through the real component would.
+const triggerProductSelect = (product: CatalogItemDto) => {
+  mockAutocompleteProduct = product;
+  fireEvent.click(screen.getByTestId('catalog-autocomplete-select'));
+};
+
+const testProduct = new CatalogItemDto({
+  productCode: 'SEMI001',
+  productName: 'Test Semi Product',
+  type: ProductType.SemiProduct,
 });
 
 describe('computePercentage helper', () => {
