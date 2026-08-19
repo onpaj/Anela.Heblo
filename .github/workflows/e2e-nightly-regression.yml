@@ -52,6 +52,9 @@ jobs:
   deploy-staging:
     name: 🚀 Deploy main to Staging
     runs-on: ubuntu-latest
+    # Without a cap, a wedged deploy inherits the 360-min default and reports
+    # `cancelled` rather than `failure`, which sends no notification on a scheduled run.
+    timeout-minutes: 30
     # Always deploy on the nightly schedule; on manual runs honor the deploy_staging toggle (default true)
     if: github.event_name == 'schedule' || github.event.inputs.deploy_staging != 'false'
     steps:
@@ -153,6 +156,9 @@ jobs:
   validate-staging-health:
     name: 🏥 Validate Staging Health
     runs-on: ubuntu-latest
+    # Health polling only. Its curl calls have no --max-time, so a stalled connection
+    # would otherwise wedge this job — and it gates the whole nightly via `needs`.
+    timeout-minutes: 15
     needs: deploy-staging
     # Run after a successful deploy, or when the deploy was intentionally skipped (manual run, deploy_staging=false)
     if: always() && needs.deploy-staging.result != 'failure' && needs.deploy-staging.result != 'cancelled'
@@ -434,6 +440,8 @@ jobs:
   aggregate-results:
     name: 📊 Aggregate Test Results
     runs-on: ubuntu-latest
+    # Pure artifact download + shell aggregation; minutes at most.
+    timeout-minutes: 15
     needs: run-e2e-tests
     if: always()
 
