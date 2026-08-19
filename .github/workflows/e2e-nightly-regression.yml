@@ -379,8 +379,11 @@ jobs:
             echo "📊 Module ${{ matrix.module }}: $PASSED passed, $FAILED failed, $SKIPPED skipped, $DIDNOTRUN did-not-run (of $TOTAL)"
           else
             echo "⚠️ No results.json found for module ${{ matrix.module }} — the run may have crashed before producing results."
+            # Record this as DIDNOTRUN=1, not as all zeros. "No results at all" is the
+            # strongest signal something broke; encoding it as zeros makes the module
+            # invisible to the aggregate and lets a crashed run report green.
             {
-              echo "TOTAL=0"; echo "PASSED=0"; echo "FAILED=0"; echo "SKIPPED=0"; echo "DIDNOTRUN=0"
+              echo "TOTAL=1"; echo "PASSED=0"; echo "FAILED=0"; echo "SKIPPED=0"; echo "DIDNOTRUN=1"
               echo "MODULE=${{ matrix.module }}"
             } >> frontend/test-results/module-summary.env
           fi
@@ -549,6 +552,17 @@ jobs:
 
       - name: 🚦 Fail the workflow on real test failures or tests that never ran
         run: |
+          # A module job killed by its timeout-minutes cap (or cancelled) never reaches its
+          # results-parsing step, so it uploads no artifact and the aggregate loop above
+          # never sees it. Its absence is indistinguishable from "not scheduled", so check
+          # the job result directly — otherwise a dead module reports as green.
+          MODULE_JOBS_RESULT="${{ needs.run-e2e-tests.result }}"
+          if [ "$MODULE_JOBS_RESULT" != "success" ]; then
+            echo "❌ E2E nightly is RED: the module test jobs finished as '$MODULE_JOBS_RESULT'."
+            echo "   At least one module job failed, was cancelled, or hit its timeout cap."
+            exit 1
+          fi
+
           TOTAL="${{ steps.summary.outputs.grand_total }}"
           FAILED="${{ steps.summary.outputs.grand_failed }}"
           DIDNOTRUN="${{ steps.summary.outputs.grand_didnotrun }}"
