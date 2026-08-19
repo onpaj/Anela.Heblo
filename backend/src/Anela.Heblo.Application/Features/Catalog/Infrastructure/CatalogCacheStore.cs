@@ -347,6 +347,103 @@ public sealed class CatalogCacheStore
 
     #endregion
 
+    #region Stock Taking Write-Back
+
+    /// <summary>
+    /// Applies a completed ERP stock taking for a single product to the merged catalog cache
+    /// AND to the ERP stock / lots source caches.
+    ///
+    /// Patching the source caches is what makes the new values stick: every merge rebuilds the
+    /// aggregates from the source caches, so a merged-cache-only patch is silently reverted as
+    /// soon as any data source refreshes.
+    /// </summary>
+    /// <param name="productCode">Product the stock taking was submitted for.</param>
+    /// <param name="newStock">New ERP stock level as confirmed by the ERP.</param>
+    /// <param name="lots">Freshly loaded lots for the product, or null to leave lots untouched.</param>
+    public void ApplyErpStockTaking(string productCode, decimal newStock, IReadOnlyList<CatalogLot>? lots)
+    {
+        if (string.IsNullOrWhiteSpace(productCode))
+        {
+            throw new ArgumentException("Product code is required", nameof(productCode));
+        }
+
+        ApplyStockTakingToErpSource(productCode, newStock);
+        ApplyStockTakingToLotsSource(productCode, lots);
+        ApplyStockTakingToMergedCache(CurrentCatalogCacheKey, productCode, newStock, lots);
+        ApplyStockTakingToMergedCache(StaleCatalogCacheKey, productCode, newStock, lots);
+
+        _logger.LogInformation(
+            "Applied ERP stock taking to catalog caches for {ProductCode}: stock {NewStock}, lots {LotCount}",
+            productCode, newStock, lots?.Count.ToString() ?? "unchanged");
+    }
+
+    private void ApplyStockTakingToErpSource(string productCode, decimal newStock)
+    {
+        var current = _cache.Get<List<ErpStock>>(CachedErpStockDataKey);
+        if (current == null)
+        {
+            return;
+        }
+
+        var index = current.FindIndex(s => s.ProductCode == productCode);
+        if (index < 0)
+        {
+            _logger.LogWarning(
+                "Product {ProductCode} is missing from the ERP stock source cache; its stock taking result will be reverted by the next merge",
+                productCode);
+            return;
+        }
+
+        var updated = new List<ErpStock>(current);
+        var replacement = current[index].Clone();
+        replacement.Stock = newStock;
+        updated[index] = replacement;
+
+        _cache.Set(CachedErpStockDataKey, updated);
+    }
+
+    private void ApplyStockTakingToLotsSource(string productCode, IReadOnlyList<CatalogLot>? lots)
+    {
+        if (lots == null)
+        {
+            return;
+        }
+
+        var current = _cache.Get<List<CatalogLot>>(CachedLotsDataKey);
+        if (current == null)
+        {
+            return;
+        }
+
+        var updated = current.Where(l => l.ProductCode != productCode).ToList();
+        updated.AddRange(lots);
+
+        _cache.Set(CachedLotsDataKey, updated);
+    }
+
+    private void ApplyStockTakingToMergedCache(
+        string cacheKey,
+        string productCode,
+        decimal newStock,
+        IReadOnlyList<CatalogLot>? lots)
+    {
+        var products = _cache.Get<List<CatalogAggregate>>(cacheKey);
+        var product = products?.FirstOrDefault(p => p.ProductCode == productCode);
+        if (product == null)
+        {
+            return;
+        }
+
+        product.Stock.Erp = newStock;
+
+        if (lots != null)
+        {
+            product.Stock.Lots = lots.ToList();
+        }
+    }
+
+    #endregion
+
     /// <summary>
     /// Gets the load date for a specific data source.
     /// </summary>
