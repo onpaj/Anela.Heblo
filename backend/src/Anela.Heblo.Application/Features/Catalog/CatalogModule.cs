@@ -68,6 +68,7 @@ public static class CatalogModule
         // Cross-module contract: Catalog implements Manufacture's IManufactureCatalogSource via adapter.
         // DI registration is owned by the provider (Catalog), not the consumer (Manufacture).
         services.AddScoped<IManufactureCatalogSource, CatalogManufactureCatalogSourceAdapter>();
+        services.AddScoped<IManufactureCatalogStockSync, CatalogManufactureStockSyncAdapter>();
 
         // Cross-module contract: Catalog implements ShoptetOrders' IPackingProductSource via adapter.
         // DI registration is owned by the provider (Catalog), not the consumer (ShoptetOrders).

@@ -222,8 +222,10 @@ public class ModuleBoundariesTests
         "Anela.Heblo.Application.Features.Manufacture.UseCases.SubmitManufactureStockTaking.SubmitManufactureStockTakingHandler -> Anela.Heblo.Domain.Features.Catalog.Stock.ErpStockTakingLot",
         "Anela.Heblo.Application.Features.Manufacture.UseCases.SubmitManufactureStockTaking.SubmitManufactureStockTakingHandler -> Anela.Heblo.Domain.Features.Catalog.Stock.IErpStockDomainService",
         "Anela.Heblo.Application.Features.Manufacture.UseCases.SubmitManufactureStockTaking.SubmitManufactureStockTakingHandler+<>c -> Anela.Heblo.Domain.Features.Catalog.Stock.ErpStockTakingLot",
-        "Anela.Heblo.Application.Features.Manufacture.UseCases.SubmitManufactureStockTaking.SubmitManufactureStockTakingHandler+<Handle>d__4 -> Anela.Heblo.Domain.Features.Catalog.Stock.ErpStockTakingRequest",
-        "Anela.Heblo.Application.Features.Manufacture.UseCases.SubmitManufactureStockTaking.SubmitManufactureStockTakingHandler+<Handle>d__4 -> Anela.Heblo.Domain.Features.Catalog.Stock.StockTakingRecord",
+        // Declared on the handler itself so the entries survive renumbering of the Handle state
+        // machine (+<Handle>d__N), which shifts whenever a method or await is added.
+        "Anela.Heblo.Application.Features.Manufacture.UseCases.SubmitManufactureStockTaking.SubmitManufactureStockTakingHandler -> Anela.Heblo.Domain.Features.Catalog.Stock.ErpStockTakingRequest",
+        "Anela.Heblo.Application.Features.Manufacture.UseCases.SubmitManufactureStockTaking.SubmitManufactureStockTakingHandler -> Anela.Heblo.Domain.Features.Catalog.Stock.StockTakingRecord",
 
         // Follow-up (same as ProductCatalogSnapshot): GetManufactureStockTakingHistoryHandler reads
         // CatalogAggregate via IManufactureCatalogSource and projects StockTakingRecord. The DTO

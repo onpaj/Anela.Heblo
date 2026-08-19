@@ -12,15 +12,18 @@ public class SubmitManufactureStockTakingHandler : IRequestHandler<SubmitManufac
     private readonly IManufactureCatalogSource _catalogSource;
     private readonly ILogger<SubmitManufactureStockTakingHandler> _logger;
     private readonly IErpStockDomainService _erpStockDomainService;
+    private readonly IManufactureCatalogStockSync _catalogStockSync;
 
     public SubmitManufactureStockTakingHandler(
         IManufactureCatalogSource catalogSource,
         ILogger<SubmitManufactureStockTakingHandler> logger,
-        IErpStockDomainService erpStockDomainService)
+        IErpStockDomainService erpStockDomainService,
+        IManufactureCatalogStockSync catalogStockSync)
     {
         _catalogSource = catalogSource;
         _logger = logger;
         _erpStockDomainService = erpStockDomainService;
+        _catalogStockSync = catalogStockSync;
     }
 
     public async Task<SubmitManufactureStockTakingResponse> Handle(SubmitManufactureStockTakingRequest request, CancellationToken cancellationToken)
@@ -83,6 +86,29 @@ public class SubmitManufactureStockTakingHandler : IRequestHandler<SubmitManufac
                 request.ProductCode, stockTakingRecord.Id);
 
             product.SyncStockTaking(stockTakingRecord);
+
+            // Write the confirmed stock level and the reloaded lots back into the catalog caches.
+            // Without this the merged cache patch above is reverted by the next catalog merge,
+            // which rebuilds every aggregate from the (still stale) ERP source data.
+            try
+            {
+                await _catalogStockSync.SyncErpStockTakingAsync(
+                    request.ProductCode,
+                    (decimal)stockTakingRecord.AmountNew,
+                    cancellationToken);
+            }
+            catch (Exception ex)
+            {
+                // The stock taking is already committed in the ERP - never fail the request just
+                // because the local cache refresh did not go through. Nothing cheap recovers
+                // this: the ERP *source* cache is what stays stale, so scheduling a merge or
+                // invalidating the merged cache would not help - only the next full ERP stock
+                // refresh does.
+                _logger.LogWarning(ex,
+                    "Failed to refresh catalog cache for {ProductCode} after stock taking. " +
+                    "The new value shows up after the next background data refresh",
+                    request.ProductCode);
+            }
 
             // Map domain result to response
             return new SubmitManufactureStockTakingResponse

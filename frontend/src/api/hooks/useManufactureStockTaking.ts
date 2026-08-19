@@ -90,8 +90,11 @@ export const useSubmitManufactureStockTaking = () => {
       queryClient.invalidateQueries({ 
         queryKey: [...QUERY_KEYS.catalog, "manufacture-inventory"] 
       });
+      // Catalog detail feeds the inventory modal (stock level + lots). Its key is
+      // [catalog, "detail", productCode, monthsBack] - a [catalog, productCode] prefix
+      // matches nothing, which left the modal showing pre-inventory values.
       queryClient.invalidateQueries({ 
-        queryKey: [...QUERY_KEYS.catalog, variables.productCode] 
+        queryKey: [...QUERY_KEYS.catalog, "detail", variables.productCode] 
       });
       queryClient.invalidateQueries({ 
         queryKey: [...QUERY_KEYS.stockTaking, "history", variables.productCode] 
