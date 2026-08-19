@@ -22,7 +22,7 @@
     },
     "developing": {
       "status": "in_progress",
-      "updated_at": "2026-08-19T07:16:20.762712Z"
+      "updated_at": "2026-08-19T08:14:27.096753Z"
     }
   },
   "tasks": [
@@ -40,9 +40,9 @@
     },
     {
       "name": "batch-size-fallback-precedence-tests",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-08-19T08:14:27.460570Z"
     },
     {
       "name": "url-parameter-autoselection-tests",

@@ -152,4 +152,86 @@ describe('ManufactureBatchCalculator', () => {
     // No percentage column header should appear before a calculation is run
     expect(screen.queryByRole('columnheader', { name: '%' })).not.toBeInTheDocument();
   });
+
+  describe('batch-size fallback precedence', () => {
+    it('prefills batch size with newBatchSize (MMQ) when both newBatchSize and originalBatchSize are present', async () => {
+      mockGetBatchTemplate.mockResolvedValue({
+        success: true,
+        productCode: 'SEMI001',
+        productName: 'Test Semi Product',
+        originalBatchSize: 200,
+        newBatchSize: 100,
+        scaleFactor: 0.5,
+        ingredients: [],
+      });
+
+      render(
+        <BrowserRouter>
+          <ManufactureBatchCalculator />
+        </BrowserRouter>,
+      );
+
+      triggerProductSelect(testProduct);
+
+      await waitFor(() => {
+        expect(mockCalculateBySize).toHaveBeenCalledWith('SEMI001', 100);
+      });
+      expect(screen.getByDisplayValue('100')).toBeInTheDocument();
+    });
+
+    it('falls back to originalBatchSize (BOM) when newBatchSize is falsy', async () => {
+      mockGetBatchTemplate.mockResolvedValue({
+        success: true,
+        productCode: 'SEMI001',
+        productName: 'Test Semi Product',
+        originalBatchSize: 200,
+        newBatchSize: 0,
+        scaleFactor: 1,
+        ingredients: [],
+      });
+
+      render(
+        <BrowserRouter>
+          <ManufactureBatchCalculator />
+        </BrowserRouter>,
+      );
+
+      triggerProductSelect(testProduct);
+
+      await waitFor(() => {
+        expect(mockCalculateBySize).toHaveBeenCalledWith('SEMI001', 200);
+      });
+      expect(screen.getByDisplayValue('200')).toBeInTheDocument();
+    });
+
+    it('leaves batch size empty and does not auto-calculate when both newBatchSize and originalBatchSize are falsy', async () => {
+      mockGetBatchTemplate.mockResolvedValue({
+        success: true,
+        productCode: 'SEMI001',
+        productName: 'Test Semi Product',
+        originalBatchSize: 0,
+        newBatchSize: 0,
+        scaleFactor: 0,
+        ingredients: [],
+      });
+
+      render(
+        <BrowserRouter>
+          <ManufactureBatchCalculator />
+        </BrowserRouter>,
+      );
+
+      triggerProductSelect(testProduct);
+
+      await waitFor(() => {
+        expect(mockGetBatchTemplate).toHaveBeenCalledWith('SEMI001');
+      });
+
+      const batchSizeInput = await screen.findByPlaceholderText('0.00');
+      await waitFor(() => {
+        expect(batchSizeInput).toHaveValue(null);
+      });
+      expect(mockCalculateBySize).not.toHaveBeenCalled();
+    });
+  });
 });
