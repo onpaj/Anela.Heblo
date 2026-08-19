@@ -50,6 +50,13 @@ public sealed class CatalogCacheStore
 
     private readonly SemaphoreSlim _cacheReplacementSemaphore = new(1, 1);
 
+    /// <summary>
+    /// Guards read-modify-write access to the ERP stock and lots source caches. Every other
+    /// writer replaces those slots wholesale, so only the stock taking write-back needs it -
+    /// but the wholesale writers must take it too, or a full refresh landing mid-patch is lost.
+    /// </summary>
+    private readonly object _sourceCacheLock = new();
+
     public CatalogCacheStore(
         IMemoryCache cache,
         TimeProvider timeProvider,
@@ -239,7 +246,10 @@ public sealed class CatalogCacheStore
 
     public void SetErpStockData(IList<ErpStock> value)
     {
-        _cache.Set(CachedErpStockDataKey, value);
+        lock (_sourceCacheLock)
+        {
+            _cache.Set(CachedErpStockDataKey, value);
+        }
         InvalidateSourceData(CachedErpStockDataKey);
         SetLoadDateInCache(CachedErpStockDataKey);
     }
@@ -299,7 +309,10 @@ public sealed class CatalogCacheStore
 
     public void SetLotsData(IList<CatalogLot> value)
     {
-        _cache.Set(CachedLotsDataKey, value);
+        lock (_sourceCacheLock)
+        {
+            _cache.Set(CachedLotsDataKey, value);
+        }
         InvalidateSourceData(CachedLotsDataKey);
         SetLoadDateInCache(CachedLotsDataKey);
     }
@@ -367,8 +380,14 @@ public sealed class CatalogCacheStore
             throw new ArgumentException("Product code is required", nameof(productCode));
         }
 
-        ApplyStockTakingToErpSource(productCode, newStock);
-        ApplyStockTakingToLotsSource(productCode, lots);
+        // One lock for both source caches so a concurrent full refresh cannot land between
+        // the read and the write of either one and get reverted.
+        lock (_sourceCacheLock)
+        {
+            ApplyStockTakingToErpSource(productCode, newStock);
+            ApplyStockTakingToLotsSource(productCode, lots);
+        }
+
         ApplyStockTakingToMergedCache(CurrentCatalogCacheKey, productCode, newStock, lots);
         ApplyStockTakingToMergedCache(StaleCatalogCacheKey, productCode, newStock, lots);
 
@@ -382,6 +401,11 @@ public sealed class CatalogCacheStore
         var current = _cache.Get<List<ErpStock>>(CachedErpStockDataKey);
         if (current == null)
         {
+            // Happens before the first ERP refresh completes after a restart. The merged-cache
+            // patch below still shows the new value, but the first merge afterwards reverts it.
+            _logger.LogWarning(
+                "ERP stock source cache is not populated yet; the stock taking result for {ProductCode} will be reverted by the next merge",
+                productCode);
             return;
         }
 

@@ -41,6 +41,99 @@ public class CatalogCacheStoreStockTakingTests
     }
 
     [Fact]
+    public void ApplyErpStockTaking_HoldsOffAConcurrentFullErpRefresh()
+    {
+        // Arrange - the source-cache patch is a read-modify-write. If a full refresh can land
+        // between its read and its write, the pre-refresh snapshot is written back and every
+        // other product's ERP stock silently reverts. Guarding it means the two are mutually
+        // exclusive, which is what this asserts: the refresh cannot complete mid-patch.
+        var refreshStarted = new ManualResetEventSlim(false);
+        var refreshCompleted = new ManualResetEventSlim(false);
+
+        var cache = new HookedMemoryCache(CachedErpStockDataKeyName, onRead: () =>
+        {
+            Task.Run(() =>
+            {
+                refreshStarted.Set();
+                StoreUnderTest!.SetErpStockData(new List<ErpStock>());
+                refreshCompleted.Set();
+            });
+
+            // Give the refresh thread a real chance to get in - it must be actively trying
+            // to write, otherwise "did not complete" would prove nothing.
+            refreshStarted.Wait(TimeSpan.FromSeconds(5));
+            Thread.Sleep(50);
+        });
+
+        var store = new CatalogCacheStore(
+            cache,
+            TimeProvider.System,
+            Options.Create(_cacheOptions),
+            _schedulerMock.Object,
+            Mock.Of<ILogger<CatalogCacheStore>>());
+        StoreUnderTest = store;
+
+        store.SetErpStockData(new List<ErpStock>
+        {
+            new() { ProductCode = ProductCode, ProductId = 1, Stock = 10 },
+        });
+        cache.ArmHook();
+
+        // Act
+        store.ApplyErpStockTaking(ProductCode, newStock: 42.5m, lots: null);
+        refreshCompleted.Wait(TimeSpan.FromSeconds(5)).Should().BeTrue();
+
+        // Assert - the refresh was held off until the patch had written, so it lands last and
+        // survives. Unguarded, the refresh slips into the window and the patch writes its stale
+        // snapshot over it, resurrecting the product the refresh had dropped.
+        store.GetErpStockData().Should().BeEmpty(
+            "a full ERP refresh must not be overwritten by the stock taking patch's stale snapshot");
+    }
+
+    /// <summary>Set by the mutual-exclusion test so its cache hook can call back into the store.</summary>
+    private CatalogCacheStore? StoreUnderTest { get; set; }
+
+    private const string CachedErpStockDataKeyName = "CachedErpStockData";
+
+    /// <summary>
+    /// MemoryCache that runs a one-shot callback when a given key is read, so a test can pin
+    /// another thread inside the read-modify-write window of the stock taking patch.
+    /// </summary>
+    private sealed class HookedMemoryCache : IMemoryCache
+    {
+        private readonly IMemoryCache _inner = new MemoryCache(new MemoryCacheOptions());
+        private readonly string _hookedKey;
+        private readonly Action _onRead;
+        private int _armed;
+
+        public HookedMemoryCache(string hookedKey, Action onRead)
+        {
+            _hookedKey = hookedKey;
+            _onRead = onRead;
+        }
+
+        public void ArmHook() => Interlocked.Exchange(ref _armed, 1);
+
+        public bool TryGetValue(object key, out object? value)
+        {
+            if (key as string != _hookedKey || Interlocked.Exchange(ref _armed, 0) != 1)
+            {
+                return _inner.TryGetValue(key, out value);
+            }
+
+            // Read first, then run the callback: the caller now holds a snapshot taken before
+            // whatever the callback does, which is exactly the read-modify-write window.
+            var found = _inner.TryGetValue(key, out value);
+            _onRead();
+            return found;
+        }
+
+        public ICacheEntry CreateEntry(object key) => _inner.CreateEntry(key);
+        public void Remove(object key) => _inner.Remove(key);
+        public void Dispose() => _inner.Dispose();
+    }
+
+    [Fact]
     public void ApplyErpStockTaking_UpdatesErpStockSourceCache()
     {
         // Arrange
