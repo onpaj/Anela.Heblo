@@ -373,7 +373,7 @@ public sealed class CatalogCacheStore
     /// <param name="productCode">Product the stock taking was submitted for.</param>
     /// <param name="newStock">New ERP stock level as confirmed by the ERP.</param>
     /// <param name="lots">Freshly loaded lots for the product, or null to leave lots untouched.</param>
-    public void ApplyErpStockTaking(string productCode, decimal newStock, IReadOnlyList<CatalogLot>? lots)
+    public async Task ApplyErpStockTakingAsync(string productCode, decimal newStock, IReadOnlyList<CatalogLot>? lots)
     {
         if (string.IsNullOrWhiteSpace(productCode))
         {
@@ -388,8 +388,17 @@ public sealed class CatalogCacheStore
             ApplyStockTakingToLotsSource(productCode, lots);
         }
 
-        ApplyStockTakingToMergedCache(CurrentCatalogCacheKey, productCode, newStock, lots);
-        ApplyStockTakingToMergedCache(StaleCatalogCacheKey, productCode, newStock, lots);
+        // Same guard the merge uses, so a merge completing mid-patch is not reverted either.
+        await _cacheReplacementSemaphore.WaitAsync();
+        try
+        {
+            ApplyStockTakingToMergedCache(CurrentCatalogCacheKey, productCode, newStock, lots);
+            ApplyStockTakingToMergedCache(StaleCatalogCacheKey, productCode, newStock, lots);
+        }
+        finally
+        {
+            _cacheReplacementSemaphore.Release();
+        }
 
         _logger.LogInformation(
             "Applied ERP stock taking to catalog caches for {ProductCode}: stock {NewStock}, lots {LotCount}",
@@ -452,18 +461,40 @@ public sealed class CatalogCacheStore
         IReadOnlyList<CatalogLot>? lots)
     {
         var products = _cache.Get<List<CatalogAggregate>>(cacheKey);
-        var product = products?.FirstOrDefault(p => p.ProductCode == productCode);
-        if (product == null)
+        if (products == null)
         {
             return;
         }
 
-        product.Stock.Erp = newStock;
+        var index = products.FindIndex(p => p.ProductCode == productCode);
+        if (index < 0)
+        {
+            return;
+        }
+
+        // Never mutate an aggregate that is live in the cache: CatalogRepository hands the same
+        // list reference to concurrent readers and CatalogMergeService clones from it. Patch a
+        // clone and swap the list, the same way ReplaceCacheAtomicallyAsync does. Clone() deep
+        // copies Stock, so writing to the clone's Stock cannot reach the cached instance.
+        var patched = products[index].Clone();
+        patched.Stock.Erp = newStock;
 
         if (lots != null)
         {
-            product.Stock.Lots = lots.ToList();
+            patched.Stock.Lots = lots.ToList();
         }
+
+        var updated = new List<CatalogAggregate>(products) { [index] = patched };
+
+        if (cacheKey == StaleCatalogCacheKey)
+        {
+            // Re-setting drops the entry's expiry, so reapply it. This does restart the stale
+            // retention window, which is acceptable for the rare stock taking write-back.
+            _cache.Set(cacheKey, updated, _cacheOptions.Value.StaleDataRetentionPeriod);
+            return;
+        }
+
+        _cache.Set(cacheKey, updated);
     }
 
     #endregion

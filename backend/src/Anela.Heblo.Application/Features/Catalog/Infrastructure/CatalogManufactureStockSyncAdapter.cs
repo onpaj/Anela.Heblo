@@ -32,7 +32,7 @@ internal sealed class CatalogManufactureStockSyncAdapter : IManufactureCatalogSt
         CancellationToken cancellationToken = default)
     {
         var lots = await LoadLotsAsync(productCode, cancellationToken);
-        _cacheStore.ApplyErpStockTaking(productCode, newStockAmount, lots);
+        await _cacheStore.ApplyErpStockTakingAsync(productCode, newStockAmount, lots);
     }
 
     /// <summary>

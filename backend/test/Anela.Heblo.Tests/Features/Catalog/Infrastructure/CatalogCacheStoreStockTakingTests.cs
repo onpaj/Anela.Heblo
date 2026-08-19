@@ -41,7 +41,7 @@ public class CatalogCacheStoreStockTakingTests
     }
 
     [Fact]
-    public void ApplyErpStockTaking_HoldsOffAConcurrentFullErpRefresh()
+    public async Task ApplyErpStockTaking_HoldsOffAConcurrentFullErpRefresh()
     {
         // Arrange - the source-cache patch is a read-modify-write. If a full refresh can land
         // between its read and its write, the pre-refresh snapshot is written back and every
@@ -80,7 +80,7 @@ public class CatalogCacheStoreStockTakingTests
         cache.ArmHook();
 
         // Act
-        store.ApplyErpStockTaking(ProductCode, newStock: 42.5m, lots: null);
+        await store.ApplyErpStockTakingAsync(ProductCode, newStock: 42.5m, lots: null);
         refreshCompleted.Wait(TimeSpan.FromSeconds(5)).Should().BeTrue();
 
         // Assert - the refresh was held off until the patch had written, so it lands last and
@@ -134,7 +134,7 @@ public class CatalogCacheStoreStockTakingTests
     }
 
     [Fact]
-    public void ApplyErpStockTaking_UpdatesErpStockSourceCache()
+    public async Task ApplyErpStockTaking_UpdatesErpStockSourceCache()
     {
         // Arrange
         var (store, _) = Create();
@@ -145,7 +145,7 @@ public class CatalogCacheStoreStockTakingTests
         });
 
         // Act
-        store.ApplyErpStockTaking(ProductCode, newStock: 42.5m, lots: null);
+        await store.ApplyErpStockTakingAsync(ProductCode, newStock: 42.5m, lots: null);
 
         // Assert
         store.GetErpStockData().Single(s => s.ProductCode == ProductCode).Stock.Should().Be(42.5m);
@@ -153,7 +153,7 @@ public class CatalogCacheStoreStockTakingTests
     }
 
     [Fact]
-    public void ApplyErpStockTaking_DoesNotMutateThePreviouslyCachedErpStockList()
+    public async Task ApplyErpStockTaking_DoesNotMutateThePreviouslyCachedErpStockList()
     {
         // Arrange
         var (store, _) = Create();
@@ -162,7 +162,7 @@ public class CatalogCacheStoreStockTakingTests
         store.SetErpStockData(originalList);
 
         // Act
-        store.ApplyErpStockTaking(ProductCode, newStock: 42.5m, lots: null);
+        await store.ApplyErpStockTakingAsync(ProductCode, newStock: 42.5m, lots: null);
 
         // Assert - readers holding the previous snapshot are unaffected
         original.Stock.Should().Be(10);
@@ -170,7 +170,7 @@ public class CatalogCacheStoreStockTakingTests
     }
 
     [Fact]
-    public void ApplyErpStockTaking_ReplacesOnlyTheProductsLotsInTheSourceCache()
+    public async Task ApplyErpStockTaking_ReplacesOnlyTheProductsLotsInTheSourceCache()
     {
         // Arrange
         var (store, _) = Create();
@@ -187,7 +187,7 @@ public class CatalogCacheStoreStockTakingTests
         };
 
         // Act
-        store.ApplyErpStockTaking(ProductCode, newStock: 12m, lots: newLots);
+        await store.ApplyErpStockTakingAsync(ProductCode, newStock: 12m, lots: newLots);
 
         // Assert
         var lots = store.GetLotsData();
@@ -196,7 +196,7 @@ public class CatalogCacheStoreStockTakingTests
     }
 
     [Fact]
-    public void ApplyErpStockTaking_WithNullLots_LeavesLotsSourceCacheUntouched()
+    public async Task ApplyErpStockTaking_WithNullLots_LeavesLotsSourceCacheUntouched()
     {
         // Arrange
         var (store, _) = Create();
@@ -206,7 +206,7 @@ public class CatalogCacheStoreStockTakingTests
         });
 
         // Act
-        store.ApplyErpStockTaking(ProductCode, newStock: 12m, lots: null);
+        await store.ApplyErpStockTakingAsync(ProductCode, newStock: 12m, lots: null);
 
         // Assert
         store.GetLotsData().Should().ContainSingle().Which.Lot.Should().Be("OLD-A");
@@ -228,7 +228,7 @@ public class CatalogCacheStoreStockTakingTests
         await merge.ExecutePriorityMergeAsync();
 
         // Act - stock taking confirms 42.5 in a single new lot, then an unrelated merge runs
-        store.ApplyErpStockTaking(
+        await store.ApplyErpStockTakingAsync(
             ProductCode,
             newStock: 42.5m,
             lots: new List<CatalogLot> { new() { ProductCode = ProductCode, Lot = "NEW-A", Amount = 42.5m } });
@@ -252,14 +252,38 @@ public class CatalogCacheStoreStockTakingTests
         await merge.ExecutePriorityMergeAsync();
 
         // Act
-        store.ApplyErpStockTaking(ProductCode, newStock: 42.5m, lots: new List<CatalogLot>());
+        await store.ApplyErpStockTakingAsync(ProductCode, newStock: 42.5m, lots: new List<CatalogLot>());
 
         // Assert - visible without waiting for a merge
         store.TryGetCurrent()!.Single(p => p.ProductCode == ProductCode).Stock.Erp.Should().Be(42.5m);
     }
 
     [Fact]
-    public void ApplyErpStockTaking_ProductMissingFromErpSourceCache_DoesNotThrow()
+    public async Task ApplyErpStockTaking_DoesNotMutateTheAggregateHandedToConcurrentReaders()
+    {
+        // Arrange - CatalogRepository returns the cached list itself, and CatalogMergeService
+        // clones from it, so patching an aggregate in place would race with anyone mid-read.
+        var (store, merge) = Create();
+        store.SetErpStockData(new List<ErpStock>
+        {
+            new() { ProductCode = ProductCode, ProductName = "Material 1", ProductId = 1, Stock = 10 },
+        });
+        await merge.ExecutePriorityMergeAsync();
+
+        var readerSnapshot = store.GetCatalogData();
+        var readerAggregate = readerSnapshot.Single(p => p.ProductCode == ProductCode);
+
+        // Act
+        await store.ApplyErpStockTakingAsync(ProductCode, newStock: 42.5m, lots: new List<CatalogLot>());
+
+        // Assert - the reader's instance is untouched; the patch went into a fresh one
+        readerAggregate.Stock.Erp.Should().Be(10);
+        store.TryGetCurrent()!.Single(p => p.ProductCode == ProductCode).Stock.Erp.Should().Be(42.5m);
+        store.TryGetCurrent().Should().NotBeSameAs(readerSnapshot);
+    }
+
+    [Fact]
+    public async Task ApplyErpStockTaking_ProductMissingFromErpSourceCache_DoesNotThrow()
     {
         // Arrange
         var (store, _) = Create();
@@ -269,25 +293,25 @@ public class CatalogCacheStoreStockTakingTests
         });
 
         // Act
-        var act = () => store.ApplyErpStockTaking(ProductCode, newStock: 42.5m, lots: null);
+        var act = async () => await store.ApplyErpStockTakingAsync(ProductCode, newStock: 42.5m, lots: null);
 
         // Assert
-        act.Should().NotThrow();
+        await act.Should().NotThrowAsync();
         store.GetErpStockData().Should().ContainSingle().Which.Stock.Should().Be(20);
     }
 
     [Theory]
     [InlineData("")]
     [InlineData("   ")]
-    public void ApplyErpStockTaking_WithBlankProductCode_Throws(string productCode)
+    public async Task ApplyErpStockTaking_WithBlankProductCode_Throws(string productCode)
     {
         // Arrange
         var (store, _) = Create();
 
         // Act
-        var act = () => store.ApplyErpStockTaking(productCode, newStock: 1m, lots: null);
+        var act = async () => await store.ApplyErpStockTakingAsync(productCode, newStock: 1m, lots: null);
 
         // Assert
-        act.Should().Throw<ArgumentException>().WithParameterName("productCode");
+        await act.Should().ThrowAsync<ArgumentException>().WithParameterName("productCode");
     }
 }
