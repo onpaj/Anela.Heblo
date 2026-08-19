@@ -46,9 +46,9 @@
     },
     {
       "name": "url-parameter-autoselection-tests",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-08-19T09:14:00.318610Z"
+      "updated_at": "2026-08-19T09:17:16.040543Z"
     },
     {
       "name": "calculation-mode-toggle-tests",
