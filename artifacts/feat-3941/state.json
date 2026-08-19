@@ -34,9 +34,9 @@
     },
     {
       "name": "computepercentage-infinity-tests",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-08-19T07:16:21.020357Z"
+      "updated_at": "2026-08-19T07:21:33.424239Z"
     },
     {
       "name": "batch-size-fallback-precedence-tests",
