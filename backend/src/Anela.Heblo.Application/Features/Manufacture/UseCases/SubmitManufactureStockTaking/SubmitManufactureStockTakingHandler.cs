@@ -100,7 +100,10 @@ public class SubmitManufactureStockTakingHandler : IRequestHandler<SubmitManufac
             catch (Exception ex)
             {
                 // The stock taking is already committed in the ERP - never fail the request just
-                // because the local cache refresh did not go through.
+                // because the local cache refresh did not go through. Nothing cheap recovers
+                // this: the ERP *source* cache is what stays stale, so scheduling a merge or
+                // invalidating the merged cache would not help - only the next full ERP stock
+                // refresh does.
                 _logger.LogWarning(ex,
                     "Failed to refresh catalog cache for {ProductCode} after stock taking. " +
                     "The new value shows up after the next background data refresh",
