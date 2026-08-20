@@ -1,11 +1,28 @@
 #!/usr/bin/env bash
 # List open `agent` PRs that are mechanically mergeable.
 #
+#   candidates.sh [--include-conflicting]
+#
 # Emits JSON: {"candidates": [...], "skipped": [...], "truncated": N}
 #
 # Eligibility here is fact, not judgement: a draft or conflicted PR cannot be
 # merged by anyone, so it is filtered out before any subagent is spawned.
+#
+# --include-conflicting keeps CONFLICTING PRs in the candidate list. That is
+# /hygiene-all's mode: resolving a conflict is hygiene-pr's own job now, so
+# the sweep feeding it has to see the conflicted PRs rather than filtering
+# out exactly the ones it exists to fix. /automerge-all keeps the default —
+# it reviews and merges, and can do neither until hygiene has fixed the
+# conflict first.
 set -euo pipefail
+
+INCLUDE_CONFLICTING=false
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --include-conflicting) INCLUDE_CONFLICTING=true; shift ;;
+    *) echo "unknown argument: $1" >&2; exit 1 ;;
+  esac
+done
 
 # When USE_GH_API is set, the `gh pr list` call below routes through the
 # shared curl+REST library instead — for environments where the `gh` CLI
@@ -44,7 +61,7 @@ else
     --limit 100 \
     --json number,title,isDraft,mergeable,reviewDecision,headRefName,additions,deletions,changedFiles,body,labels,createdAt
 fi \
-| jq --argjson max "$MAX_CANDIDATES" '
+| jq --argjson max "$MAX_CANDIDATES" --argjson include_conflicting "$INCLUDE_CONFLICTING" '
     # Must match NEEDS_WORK_LABEL / HUMAN_REQUIRED_LABEL in apply_verdict.sh —
     # the values are duplicated here (bash has no shared-constant mechanism
     # across these standalone scripts, the same tradeoff already made for
@@ -55,15 +72,22 @@ fi \
 
     def has_label($name): (.labels // [] | map(.name) | any(. == $name));
 
-    def reason:
-      if .isDraft then "draft"
-      elif .mergeable == "CONFLICTING" then "CONFLICTING (merge conflicts)"
-      elif .mergeable == "UNKNOWN" then "UNKNOWN (mergeability not computed, retry)"
-      elif .mergeable != "MERGEABLE" then "not mergeable: \(.mergeable)"
-      elif .reviewDecision == "CHANGES_REQUESTED" then "CHANGES_REQUESTED"
+    # Split out so an included CONFLICTING PR still goes through them: a
+    # conflicted PR that is also already needs-work or human-required is no
+    # more a job for this sweep than a mergeable one in the same state.
+    def review_reason:
+      if .reviewDecision == "CHANGES_REQUESTED" then "CHANGES_REQUESTED"
       elif has_label(needs_work_label) then "needs-work (rejected by a previous run)"
       elif has_label(human_required_label) then "human-required (mid-confidence review already posted; awaiting a human)"
       else null end;
+
+    def reason:
+      if .isDraft then "draft"
+      elif .mergeable == "CONFLICTING" then
+        (if $include_conflicting then review_reason else "CONFLICTING (merge conflicts)" end)
+      elif .mergeable == "UNKNOWN" then "UNKNOWN (mergeability not computed, retry)"
+      elif .mergeable != "MERGEABLE" then "not mergeable: \(.mergeable)"
+      else review_reason end;
 
     def linked_issue:
       ([(.body // "") | scan("[Cc]loses #([0-9]+)")]) as $matches
