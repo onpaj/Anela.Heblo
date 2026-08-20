@@ -1,13 +1,21 @@
 #!/usr/bin/env bash
 # Bring one PR's branch current with its base branch and wait for CI to
-# resolve. Read-only for every outcome except still-failing/conflict: those
-# two mean the PR cannot be merged as-is regardless of who's asking, so this
-# script flags it `needs-work` itself (via apply_verdict.sh, the same
-# mechanism /automerge-pr uses for a code-review rejection) rather than
-# leaving that to a caller that might never run — hygiene-pr/hygiene-all
-# are meant to be usable standalone, and a status-only report with no
-# durable label left a still-failing PR invisible to /rework-pr's own
-# candidate search and to a human who wasn't staring at that one output.
+# resolve. Read-only for every outcome except still-failing: that one means
+# the PR cannot be merged as-is regardless of who's asking, so this script
+# flags it `needs-work` itself (via _lib/flag_needs_work.sh, the same
+# apply_verdict.sh mechanism /automerge-pr uses for a code-review rejection)
+# rather than leaving that to a caller that might never run —
+# hygiene-pr/hygiene-all are meant to be usable standalone, and a
+# status-only report with no durable label left a still-failing PR invisible
+# to /rework-pr's own candidate search and to a human who wasn't staring at
+# that one output.
+#
+# `conflict` is deliberately NOT flagged here. Resolving a conflict is
+# hygiene-pr's job now (see resolve_conflict.sh, which the skill drives
+# around its own judgement about the conflicting hunks); flagging the PR at
+# this point would reject it before that attempt had even been made. The
+# needs-work flag for a conflict is raised by `resolve_conflict.sh --step
+# abort`, once the resolution has actually been tried and declined.
 #
 #   update_and_wait.sh --pr N [--force]
 #
@@ -41,7 +49,7 @@ set -uo pipefail
 # the logic here is unchanged either way.
 LIB=".claude/skills/_lib/gh_api.sh"
 
-NEEDS_WORK_SCRIPT=".claude/skills/automerge-pr/apply_verdict.sh"
+FLAG_NEEDS_WORK=".claude/skills/_lib/flag_needs_work.sh"
 
 POLL_INTERVAL_SECONDS="${HYGIENE_POLL_INTERVAL_SECONDS:-15}"
 POLL_MAX_ATTEMPTS="${HYGIENE_POLL_MAX_ATTEMPTS:-40}"
@@ -68,26 +76,19 @@ report() {  # status, detail
     '{pr: $pr, status: $status, detail: $detail}'
 }
 
-# Flags the PR needs-work and reports, for the two outcomes that mean it
-# cannot be merged as-is (still-failing, conflict). Reuses apply_verdict.sh
-# rather than reimplementing label/comment logic, so this stays the one
-# place that owns it. The block below must keep a literal `verdict: REJECT`
-# line — rework-pr/find_candidate.sh and list_candidates.sh count comment
-# bodies matching that pattern toward the revision-attempt cap; breaking it
-# would let a permanently broken build bounce between hygiene/automerge-pr
-# and /rework-pr forever without ever hitting the cap. A labelling failure
-# is noted in `detail`, not swallowed — but it never masks the underlying
-# finding, which is real regardless of whether the flag landed.
+# Flags the PR needs-work and reports, for the outcome that means it cannot
+# be merged as-is however long anyone waits (still-failing). The comment
+# block itself lives in _lib/flag_needs_work.sh, shared with
+# resolve_conflict.sh, so both hygiene rejections leave an identical trail.
+# A labelling failure is noted in `detail`, not swallowed — but it never
+# masks the underlying finding, which is real regardless of whether the flag
+# landed.
 report_and_flag_needs_work() {  # status, detail
-  local status="$1" detail="$2" tmpfile verdict_out label_note=""
-  tmpfile=$(mktemp)
-  printf 'Hygiene check found this PR cannot be merged as-is.\n\npr: %s\nscore: 0\nverdict: REJECT\nrisk: high\nreasons:\n  - %s: %s\nconcerns: needs a human, or /rework-pr, to resolve\n' \
-    "$PR" "$status" "$detail" > "$tmpfile"
-  if ! verdict_out=$(GH_REPO="$REPO" "$NEEDS_WORK_SCRIPT" \
-      --pr "$PR" --action needs-work --review-file "$tmpfile" 2>&1); then
-    label_note=" (could not flag needs-work: $verdict_out)"
+  local status="$1" detail="$2" flag_out label_note=""
+  if ! flag_out=$(GH_REPO="$REPO" "$FLAG_NEEDS_WORK" \
+      --pr "$PR" --status "$status" --detail "$detail" 2>&1); then
+    label_note=" (could not flag needs-work: $flag_out)"
   fi
-  rm -f "$tmpfile"
   report "$status" "$detail$label_note"
   exit 0
 }
@@ -213,7 +214,11 @@ else
     update_err=$(gh pr update-branch "$PR" --repo "$REPO" 2>&1) && update_ok=1 || update_ok=0
   fi
   if [ "$update_ok" -eq 0 ]; then
-    report_and_flag_needs_work "conflict" "gh pr update-branch failed: $update_err"
+    # No needs-work flag here: the caller's next move is to try to resolve
+    # the conflict (resolve_conflict.sh), and only its `abort` step rejects
+    # the PR. Reporting `conflict` is this script's whole contribution.
+    report "conflict" "gh pr update-branch failed: $update_err"
+    exit 0
   fi
   did_update=true
 fi
