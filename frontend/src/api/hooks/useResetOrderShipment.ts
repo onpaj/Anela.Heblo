@@ -1,5 +1,6 @@
 import { useMutation } from '@tanstack/react-query';
 import { getAuthenticatedApiClient } from '../client';
+import { callApi } from '../apiErrorEnvelope';
 import type { ResetShipmentData } from '../generated/api-client';
 import type { ScanShipment } from './useScanPackingOrder';
 import { mapShipmentPackages } from './useScanPackingOrder';
@@ -33,12 +34,10 @@ const resetOrderShipment = async ({
   numberOfPackages = 1,
 }: ResetOrderShipmentVariables): Promise<ScanShipment> => {
   const apiClient = getAuthenticatedApiClient(false);
-  const response = await apiClient.packaging_ResetShipment(orderCode, numberOfPackages);
-
-  if (!response.success) {
-    const message = (response.errorCode && RESET_ERROR_MESSAGES[response.errorCode]) ?? GENERIC_RESET_ERROR;
-    throw new Error(message);
-  }
+  const response = await callApi(
+    () => apiClient.packaging_ResetShipment(orderCode, numberOfPackages),
+    ({ errorCode }) => (errorCode && RESET_ERROR_MESSAGES[errorCode]) ?? GENERIC_RESET_ERROR,
+  );
 
   if (!response.shipment) {
     throw new Error(GENERIC_RESET_ERROR);

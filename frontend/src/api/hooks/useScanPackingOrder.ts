@@ -1,5 +1,6 @@
 import { useMutation } from '@tanstack/react-query';
 import { getAuthenticatedApiClient } from '../client';
+import { callApi } from '../apiErrorEnvelope';
 import { startNewTelemetryOperation } from '../../telemetry/appInsights';
 import { ScanOrderBody } from '../generated/api-client';
 import type { ScanOrderData, ScanShipmentData } from '../generated/api-client';
@@ -119,16 +120,15 @@ const scanPackingOrder = async ({
   packingUserId = null,
 }: ScanPackingOrderVariables): Promise<ScanPackingOrderResult> => {
   const apiClient = getAuthenticatedApiClient(false);
-  const response = await apiClient.packaging_ScanOrder(
-    orderCode,
-    numberOfPackages,
-    new ScanOrderBody({ packingUserId: packingUserId ?? undefined }),
+  const response = await callApi(
+    () =>
+      apiClient.packaging_ScanOrder(
+        orderCode,
+        numberOfPackages,
+        new ScanOrderBody({ packingUserId: packingUserId ?? undefined }),
+      ),
+    ({ errorCode }) => (errorCode && SCAN_ERROR_MESSAGES[errorCode]) ?? GENERIC_SCAN_ERROR,
   );
-
-  if (!response.success) {
-    const message = (response.errorCode && SCAN_ERROR_MESSAGES[response.errorCode]) ?? GENERIC_SCAN_ERROR;
-    throw new Error(message);
-  }
 
   if (!response.order) {
     throw new Error(GENERIC_SCAN_ERROR);
