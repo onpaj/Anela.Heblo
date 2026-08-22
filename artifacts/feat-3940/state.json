@@ -1,0 +1,40 @@
+{
+  "feature_id": "feat-3940",
+  "issue_number": 3940,
+  "created_at": "2026-08-17T22:17:09.390376Z",
+  "max_revisions": 3,
+  "phases": {
+    "analyzing": {
+      "status": "completed",
+      "updated_at": "2026-08-17T22:18:51.121045Z"
+    },
+    "architecting": {
+      "status": "completed",
+      "updated_at": "2026-08-17T22:20:39.758379Z"
+    },
+    "designing": {
+      "status": "completed",
+      "updated_at": "2026-08-17T22:21:18.890605Z"
+    },
+    "planning": {
+      "status": "completed",
+      "updated_at": "2026-08-17T22:22:56.861954Z"
+    },
+    "developing": {
+      "status": "in_progress",
+      "updated_at": "2026-08-19T02:14:29.941854Z"
+    },
+    "code-review": {
+      "status": "completed",
+      "updated_at": "2026-08-19T04:15:43.290852Z"
+    }
+  },
+  "tasks": [
+    {
+      "name": "add-createjournaltaghandler-tests",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-08-19T03:26:47.222434Z"
+    }
+  ]
+}
