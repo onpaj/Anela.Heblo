@@ -48,6 +48,12 @@ public sealed class SmartsuppRepository : ISmartsuppRepository
             .Include(c => c.Contact)
             .FirstOrDefaultAsync(c => c.Id == id, cancellationToken);
 
+    public async Task<SmartsuppConversation?> FindConversationByIdAsync(
+        string conversationId,
+        CancellationToken cancellationToken) =>
+        await _db.SmartsuppConversations
+            .FirstOrDefaultAsync(c => c.Id == conversationId, cancellationToken);
+
     public async Task UpsertContactAsync(
         SmartsuppContact contact,
         CancellationToken cancellationToken)

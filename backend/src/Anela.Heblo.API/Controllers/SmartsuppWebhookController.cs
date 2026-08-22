@@ -5,7 +5,6 @@ using Anela.Heblo.Adapters.Smartsupp;
 using Anela.Heblo.API.Webhooks.Smartsupp;
 using Anela.Heblo.Application.Features.Smartsupp.UseCases.ProcessWebhookEvent;
 using Anela.Heblo.Domain.Features.Smartsupp;
-using Anela.Heblo.Persistence.Smartsupp;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -24,14 +23,14 @@ public class SmartsuppWebhookController : ControllerBase
     private readonly IMediator _mediator;
     private readonly SmartsuppOptions _options;
     private readonly ISmartsuppWebhookMetrics _metrics;
-    private readonly ISmartsuppWebhookAuditWriter _audit;
+    private readonly ISmartsuppWebhookAuditRepository _audit;
     private readonly ILogger<SmartsuppWebhookController> _logger;
 
     public SmartsuppWebhookController(
         IMediator mediator,
         IOptions<SmartsuppOptions> options,
         ISmartsuppWebhookMetrics metrics,
-        ISmartsuppWebhookAuditWriter audit,
+        ISmartsuppWebhookAuditRepository audit,
         ILogger<SmartsuppWebhookController> logger)
     {
         _mediator = mediator;

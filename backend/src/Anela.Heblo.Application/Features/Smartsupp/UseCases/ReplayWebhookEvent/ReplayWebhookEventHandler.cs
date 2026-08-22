@@ -1,26 +1,25 @@
 using System.Text.Json;
 using Anela.Heblo.Application.Features.Smartsupp.UseCases.ProcessWebhookEvent;
 using Anela.Heblo.Application.Shared;
+using Anela.Heblo.Domain.Features.Smartsupp;
 using Anela.Heblo.Domain.Features.Users;
-using Anela.Heblo.Persistence;
 using MediatR;
-using Microsoft.EntityFrameworkCore;
 
 namespace Anela.Heblo.Application.Features.Smartsupp.UseCases.ReplayWebhookEvent;
 
 public class ReplayWebhookEventHandler
     : IRequestHandler<ReplayWebhookEventRequest, ReplayWebhookEventResponse>
 {
-    private readonly ApplicationDbContext _context;
+    private readonly ISmartsuppWebhookAuditRepository _repository;
     private readonly IMediator _mediator;
     private readonly ICurrentUserService _currentUserService;
 
     public ReplayWebhookEventHandler(
-        ApplicationDbContext context,
+        ISmartsuppWebhookAuditRepository repository,
         IMediator mediator,
         ICurrentUserService currentUserService)
     {
-        _context = context;
+        _repository = repository;
         _mediator = mediator;
         _currentUserService = currentUserService;
     }
@@ -29,8 +28,7 @@ public class ReplayWebhookEventHandler
         ReplayWebhookEventRequest request,
         CancellationToken cancellationToken)
     {
-        var entry = await _context.SmartsuppWebhookAuditEntries
-            .SingleOrDefaultAsync(e => e.Id == request.Id, cancellationToken);
+        var entry = await _repository.GetForReplayAsync(request.Id, cancellationToken);
 
         if (entry is null)
             return new ReplayWebhookEventResponse(ErrorCodes.ResourceNotFound);
@@ -60,7 +58,7 @@ public class ReplayWebhookEventHandler
         entry.ReplayCount += 1;
         entry.LastReplayedAt = DateTime.UtcNow;
         entry.LastReplayedBy = _currentUserService.GetCurrentUser().Name ?? "unknown";
-        await _context.SaveChangesAsync(cancellationToken);
+        await _repository.SaveChangesAsync(cancellationToken);
 
         return new ReplayWebhookEventResponse
         {

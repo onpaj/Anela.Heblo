@@ -1,8 +1,6 @@
 using Anela.Heblo.Application.Features.Smartsupp.Infrastructure;
 using Anela.Heblo.Domain.Features.Smartsupp;
-using Anela.Heblo.Persistence;
 using MediatR;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
 namespace Anela.Heblo.Application.Features.Smartsupp.UseCases.RefreshOrphanContacts;
@@ -13,20 +11,17 @@ public class RefreshOrphanContactsHandler
     private readonly ISmartsuppRepository _repository;
     private readonly ISmartsuppApiClient _apiClient;
     private readonly ISmartsuppContactEnricher _contactEnricher;
-    private readonly ApplicationDbContext _db;
     private readonly ILogger<RefreshOrphanContactsHandler> _logger;
 
     public RefreshOrphanContactsHandler(
         ISmartsuppRepository repository,
         ISmartsuppApiClient apiClient,
         ISmartsuppContactEnricher contactEnricher,
-        ApplicationDbContext db,
         ILogger<RefreshOrphanContactsHandler> logger)
     {
         _repository = repository;
         _apiClient = apiClient;
         _contactEnricher = contactEnricher;
-        _db = db;
         _logger = logger;
     }
 
@@ -49,8 +44,7 @@ public class RefreshOrphanContactsHandler
                     continue;
                 }
 
-                var local = await _db.SmartsuppConversations
-                    .FirstOrDefaultAsync(c => c.Id == conversationId, cancellationToken);
+                var local = await _repository.FindConversationByIdAsync(conversationId, cancellationToken);
                 if (local is null)
                 {
                     response.SkippedNoContactId++;
@@ -75,7 +69,6 @@ public class RefreshOrphanContactsHandler
                 _logger.LogError(ex,
                     "smartsupp: orphan-contacts backfill failed for conversation {ConversationId}",
                     conversationId);
-                _db.ChangeTracker.Clear();
             }
         }
 

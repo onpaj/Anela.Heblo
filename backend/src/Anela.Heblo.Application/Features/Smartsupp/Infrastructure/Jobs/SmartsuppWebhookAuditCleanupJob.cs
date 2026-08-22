@@ -1,7 +1,5 @@
 using Anela.Heblo.Domain.Features.BackgroundJobs;
 using Anela.Heblo.Domain.Features.Smartsupp;
-using Anela.Heblo.Persistence;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
 namespace Anela.Heblo.Application.Features.Smartsupp.Infrastructure.Jobs;
@@ -14,7 +12,7 @@ public class SmartsuppWebhookAuditCleanupJob : IRecurringJob
     // day is certainly dead — purge it so the table never accumulates abandoned rows.
     private const int PresenceRetentionDays = 1;
 
-    private readonly ApplicationDbContext _context;
+    private readonly ISmartsuppWebhookAuditRepository _auditRepository;
     private readonly ISmartsuppPresenceRepository _presenceRepository;
     private readonly ILogger<SmartsuppWebhookAuditCleanupJob> _logger;
 
@@ -28,11 +26,11 @@ public class SmartsuppWebhookAuditCleanupJob : IRecurringJob
     };
 
     public SmartsuppWebhookAuditCleanupJob(
-        ApplicationDbContext context,
+        ISmartsuppWebhookAuditRepository auditRepository,
         ISmartsuppPresenceRepository presenceRepository,
         ILogger<SmartsuppWebhookAuditCleanupJob> logger)
     {
-        _context = context;
+        _auditRepository = auditRepository;
         _presenceRepository = presenceRepository;
         _logger = logger;
     }
@@ -48,19 +46,15 @@ public class SmartsuppWebhookAuditCleanupJob : IRecurringJob
 
         var cutoff = DateTime.UtcNow.AddDays(-RetentionDays);
 
-        var stale = await _context.SmartsuppWebhookAuditEntries
-            .Where(e => e.ReceivedAt < cutoff)
-            .ToListAsync(cancellationToken);
+        var deletedCount = await _auditRepository.PurgeOlderThanAsync(cutoff, cancellationToken);
 
-        if (stale.Count == 0)
+        if (deletedCount == 0)
         {
             _logger.LogInformation("smartsupp webhook audit cleanup: nothing to delete");
             return;
         }
 
-        _context.SmartsuppWebhookAuditEntries.RemoveRange(stale);
-        await _context.SaveChangesAsync(cancellationToken);
         _logger.LogInformation("smartsupp webhook audit cleanup: deleted {Count} entries older than {Cutoff:o}",
-            stale.Count, cutoff);
+            deletedCount, cutoff);
     }
 }

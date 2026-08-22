@@ -1,6 +1,7 @@
 using Anela.Heblo.Application.Features.Smartsupp.UseCases.ListWebhookAudit;
 using Anela.Heblo.Domain.Features.Smartsupp;
 using Anela.Heblo.Persistence;
+using Anela.Heblo.Persistence.Smartsupp;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 using Xunit;
@@ -35,7 +36,7 @@ public class ListWebhookAuditHandlerTests
         ctx.SmartsuppWebhookAuditEntries.Add(MakeEntry(DateTime.UtcNow.AddMinutes(-1), "b", SmartsuppWebhookProcessingStatus.Success));
         await ctx.SaveChangesAsync();
 
-        var handler = new ListWebhookAuditHandler(ctx);
+        var handler = new ListWebhookAuditHandler(new SmartsuppWebhookAuditRepository(ctx));
         var response = await handler.Handle(new ListWebhookAuditRequest(), default);
 
         response.Items.Should().HaveCount(2);
@@ -54,7 +55,7 @@ public class ListWebhookAuditHandlerTests
             MakeEntry(DateTime.UtcNow, "conv.closed", SmartsuppWebhookProcessingStatus.Success));
         await ctx.SaveChangesAsync();
 
-        var handler = new ListWebhookAuditHandler(ctx);
+        var handler = new ListWebhookAuditHandler(new SmartsuppWebhookAuditRepository(ctx));
         var response = await handler.Handle(new ListWebhookAuditRequest
         {
             EventName = "conv.opened",
@@ -73,7 +74,7 @@ public class ListWebhookAuditHandlerTests
             ctx.SmartsuppWebhookAuditEntries.Add(MakeEntry(DateTime.UtcNow.AddSeconds(-i), $"e{i}", SmartsuppWebhookProcessingStatus.Success));
         await ctx.SaveChangesAsync();
 
-        var handler = new ListWebhookAuditHandler(ctx);
+        var handler = new ListWebhookAuditHandler(new SmartsuppWebhookAuditRepository(ctx));
         var response = await handler.Handle(new ListWebhookAuditRequest { Take = 9999 }, default);
 
         response.PageSize.Should().Be(200);

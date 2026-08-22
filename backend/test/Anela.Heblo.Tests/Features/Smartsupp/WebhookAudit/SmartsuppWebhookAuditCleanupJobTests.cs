@@ -1,6 +1,7 @@
 using Anela.Heblo.Application.Features.Smartsupp.Infrastructure.Jobs;
 using Anela.Heblo.Domain.Features.Smartsupp;
 using Anela.Heblo.Persistence;
+using Anela.Heblo.Persistence.Smartsupp;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -45,7 +46,7 @@ public class SmartsuppWebhookAuditCleanupJobTests
         await ctx.SaveChangesAsync();
 
         var job = new SmartsuppWebhookAuditCleanupJob(
-            ctx, CreatePresenceRepo(), NullLogger<SmartsuppWebhookAuditCleanupJob>.Instance);
+            new SmartsuppWebhookAuditRepository(ctx), CreatePresenceRepo(), NullLogger<SmartsuppWebhookAuditCleanupJob>.Instance);
         await job.ExecuteAsync(default);
 
         var ages = await ctx.SmartsuppWebhookAuditEntries
@@ -60,7 +61,7 @@ public class SmartsuppWebhookAuditCleanupJobTests
     {
         using var ctx = CreateContext();
         var job = new SmartsuppWebhookAuditCleanupJob(
-            ctx, CreatePresenceRepo(), NullLogger<SmartsuppWebhookAuditCleanupJob>.Instance);
+            new SmartsuppWebhookAuditRepository(ctx), CreatePresenceRepo(), NullLogger<SmartsuppWebhookAuditCleanupJob>.Instance);
 
         job.Metadata.JobName.Should().Be("smartsupp-webhook-audit-cleanup");
         job.Metadata.CronExpression.Should().NotBeNullOrWhiteSpace();

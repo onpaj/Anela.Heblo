@@ -5,6 +5,7 @@ using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Domain.Features.Smartsupp;
 using Anela.Heblo.Domain.Features.Users;
 using Anela.Heblo.Persistence;
+using Anela.Heblo.Persistence.Smartsupp;
 using FluentAssertions;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
@@ -54,7 +55,8 @@ public class ReplayWebhookEventHandlerTests
 
         var currentUserService = CreateCurrentUserServiceMock("ondra@anela.cz");
 
-        var handler = new ReplayWebhookEventHandler(ctx, mediator.Object, currentUserService.Object);
+        var handler = new ReplayWebhookEventHandler(
+            new SmartsuppWebhookAuditRepository(ctx), mediator.Object, currentUserService.Object);
         var response = await handler.Handle(
             new ReplayWebhookEventRequest { Id = id }, default);
 
@@ -82,7 +84,8 @@ public class ReplayWebhookEventHandlerTests
     {
         using var ctx = CreateContext();
         var currentUserService = CreateCurrentUserServiceMock();
-        var handler = new ReplayWebhookEventHandler(ctx, Mock.Of<IMediator>(), currentUserService.Object);
+        var handler = new ReplayWebhookEventHandler(
+            new SmartsuppWebhookAuditRepository(ctx), Mock.Of<IMediator>(), currentUserService.Object);
 
         var response = await handler.Handle(
             new ReplayWebhookEventRequest { Id = Guid.NewGuid() }, default);
@@ -107,7 +110,8 @@ public class ReplayWebhookEventHandlerTests
         await ctx.SaveChangesAsync();
 
         var currentUserService = CreateCurrentUserServiceMock();
-        var handler = new ReplayWebhookEventHandler(ctx, Mock.Of<IMediator>(), currentUserService.Object);
+        var handler = new ReplayWebhookEventHandler(
+            new SmartsuppWebhookAuditRepository(ctx), Mock.Of<IMediator>(), currentUserService.Object);
         var response = await handler.Handle(
             new ReplayWebhookEventRequest { Id = id }, default);
 

@@ -1,0 +1,46 @@
+{
+  "feature_id": "feat-3877",
+  "issue_number": 3877,
+  "created_at": "2026-08-12T01:14:53.204990Z",
+  "max_revisions": 3,
+  "phases": {
+    "analyzing": {
+      "status": "completed",
+      "updated_at": "2026-08-12T01:17:22.075974Z"
+    },
+    "architecting": {
+      "status": "completed",
+      "updated_at": "2026-08-12T01:19:34.908576Z"
+    },
+    "designing": {
+      "status": "completed",
+      "updated_at": "2026-08-12T01:20:08.383645Z"
+    },
+    "planning": {
+      "status": "completed",
+      "updated_at": "2026-08-12T01:24:51.557991Z"
+    },
+    "developing": {
+      "status": "in_progress",
+      "updated_at": "2026-08-12T13:15:45.710886Z"
+    },
+    "code-review": {
+      "status": "completed",
+      "updated_at": "2026-08-12T20:18:25.415409Z"
+    }
+  },
+  "tasks": [
+    {
+      "name": "create-smartsupp-webhook-audit-repository",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-08-12T12:56:24.990591Z"
+    },
+    {
+      "name": "encapsulate-refresh-orphan-contacts-lookup",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-08-12T13:46:06.001663Z"
+    }
+  ]
+}

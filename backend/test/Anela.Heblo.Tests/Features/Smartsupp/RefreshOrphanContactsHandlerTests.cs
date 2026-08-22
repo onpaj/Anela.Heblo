@@ -1,9 +1,7 @@
 using Anela.Heblo.Application.Features.Smartsupp.Infrastructure;
 using Anela.Heblo.Application.Features.Smartsupp.UseCases.RefreshOrphanContacts;
 using Anela.Heblo.Domain.Features.Smartsupp;
-using Anela.Heblo.Persistence;
 using FluentAssertions;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Moq;
 using Xunit;
@@ -17,16 +15,19 @@ public class RefreshOrphanContactsHandlerTests
     private readonly Mock<ISmartsuppContactEnricher> _enricher = new();
     private readonly Mock<ILogger<RefreshOrphanContactsHandler>> _logger = new();
 
-    private static ApplicationDbContext CreateContext() =>
-        new(new DbContextOptionsBuilder<ApplicationDbContext>()
-            .UseInMemoryDatabase($"orphan_{Guid.NewGuid()}").Options);
-
-    private RefreshOrphanContactsHandler CreateHandler(ApplicationDbContext db) =>
-        new(_repo.Object, _apiClient.Object, _enricher.Object, db, _logger.Object);
+    private RefreshOrphanContactsHandler CreateHandler() =>
+        new(_repo.Object, _apiClient.Object, _enricher.Object, _logger.Object);
 
     private void SetupIds(params string[] ids) =>
         _repo.Setup(r => r.ListOrphanContactConversationIdsAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(ids.ToList());
+
+    // The handler reaches local rows through ISmartsuppRepository now, not
+    // ApplicationDbContext, so "seeding" is a mock setup rather than an
+    // in-memory DbContext.
+    private void SetupLocalConversation(string id) =>
+        _repo.Setup(r => r.FindConversationByIdAsync(id, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(MakeLocalConversation(id));
 
     private static SmartsuppConversation MakeLocalConversation(string id) => new()
     {
@@ -45,10 +46,9 @@ public class RefreshOrphanContactsHandlerTests
         SetupIds("conv-1");
         _apiClient.Setup(a => a.GetConversationAsync("conv-1", It.IsAny<CancellationToken>()))
             .ReturnsAsync(new SmartsuppConversationData { Id = "conv-1", ContactId = null });
-        using var db = CreateContext();
 
         // Act
-        var response = await CreateHandler(db).Handle(new RefreshOrphanContactsRequest(), CancellationToken.None);
+        var response = await CreateHandler().Handle(new RefreshOrphanContactsRequest(), CancellationToken.None);
 
         // Assert
         response.Scanned.Should().Be(1);
@@ -66,10 +66,11 @@ public class RefreshOrphanContactsHandlerTests
         SetupIds("conv-1");
         _apiClient.Setup(a => a.GetConversationAsync("conv-1", It.IsAny<CancellationToken>()))
             .ReturnsAsync(new SmartsuppConversationData { Id = "conv-1", ContactId = "contact-1" });
-        using var db = CreateContext(); // no local row seeded for "conv-1"
+        _repo.Setup(r => r.FindConversationByIdAsync("conv-1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync((SmartsuppConversation?)null);
 
         // Act
-        var response = await CreateHandler(db).Handle(new RefreshOrphanContactsRequest(), CancellationToken.None);
+        var response = await CreateHandler().Handle(new RefreshOrphanContactsRequest(), CancellationToken.None);
 
         // Assert
         response.SkippedNoContactId.Should().Be(1);
@@ -80,31 +81,23 @@ public class RefreshOrphanContactsHandlerTests
     }
 
     [Fact]
-    public async Task Handle_ClearsChangeTracker_WhenEnrichContactAsyncThrows()
+    public async Task Handle_IsolatesFailure_WhenEnrichContactAsyncThrows()
     {
         // Arrange
         SetupIds("conv-fail");
-        using var db = CreateContext();
-        db.SmartsuppConversations.Add(MakeLocalConversation("conv-fail"));
-        await db.SaveChangesAsync();
-        db.ChangeTracker.Clear(); // reset tracking noise from seeding, isolate the handler's own effect
-
+        SetupLocalConversation("conv-fail");
         _apiClient.Setup(a => a.GetConversationAsync("conv-fail", It.IsAny<CancellationToken>()))
             .ReturnsAsync(new SmartsuppConversationData { Id = "conv-fail", ContactId = "contact-1" });
         _enricher.Setup(e => e.EnrichContactAsync(It.IsAny<SmartsuppConversation>(), It.IsAny<CancellationToken>()))
             .ThrowsAsync(new InvalidOperationException("enrichment boom"));
 
         // Act
-        var response = await CreateHandler(db).Handle(new RefreshOrphanContactsRequest(), CancellationToken.None);
+        var response = await CreateHandler().Handle(new RefreshOrphanContactsRequest(), CancellationToken.None);
 
         // Assert
         response.Failed.Should().Be(1);
         response.FailedIds.Should().ContainSingle().Which.Should().Be("conv-fail");
         response.Updated.Should().Be(0);
-        // Without ChangeTracker.Clear(), the entity mutated by `local.ContactId = remote.ContactId`
-        // just before the throw would still be tracked as Modified. An empty tracker here proves
-        // the handler's catch block actually called _db.ChangeTracker.Clear().
-        db.ChangeTracker.Entries().Should().BeEmpty();
         _repo.Verify(r => r.UpsertConversationAsync(It.IsAny<SmartsuppConversation>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
@@ -113,11 +106,7 @@ public class RefreshOrphanContactsHandlerTests
     {
         // Arrange
         SetupIds("conv-fail");
-        using var db = CreateContext();
-        db.SmartsuppConversations.Add(MakeLocalConversation("conv-fail"));
-        await db.SaveChangesAsync();
-        db.ChangeTracker.Clear();
-
+        SetupLocalConversation("conv-fail");
         _apiClient.Setup(a => a.GetConversationAsync("conv-fail", It.IsAny<CancellationToken>()))
             .ReturnsAsync(new SmartsuppConversationData { Id = "conv-fail", ContactId = "contact-1" });
         _enricher.Setup(e => e.EnrichContactAsync(It.IsAny<SmartsuppConversation>(), It.IsAny<CancellationToken>()))
@@ -126,13 +115,12 @@ public class RefreshOrphanContactsHandlerTests
             .ThrowsAsync(new InvalidOperationException("upsert boom"));
 
         // Act
-        var response = await CreateHandler(db).Handle(new RefreshOrphanContactsRequest(), CancellationToken.None);
+        var response = await CreateHandler().Handle(new RefreshOrphanContactsRequest(), CancellationToken.None);
 
         // Assert
         response.Failed.Should().Be(1);
         response.FailedIds.Should().ContainSingle().Which.Should().Be("conv-fail");
         response.Updated.Should().Be(0);
-        db.ChangeTracker.Entries().Should().BeEmpty();
         _repo.Verify(r => r.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Never);
     }
 
@@ -141,11 +129,8 @@ public class RefreshOrphanContactsHandlerTests
     {
         // Arrange
         SetupIds("conv-fail", "conv-ok");
-        using var db = CreateContext();
-        db.SmartsuppConversations.Add(MakeLocalConversation("conv-fail"));
-        db.SmartsuppConversations.Add(MakeLocalConversation("conv-ok"));
-        await db.SaveChangesAsync();
-        db.ChangeTracker.Clear();
+        SetupLocalConversation("conv-fail");
+        SetupLocalConversation("conv-ok");
 
         _apiClient.Setup(a => a.GetConversationAsync("conv-fail", It.IsAny<CancellationToken>()))
             .ReturnsAsync(new SmartsuppConversationData { Id = "conv-fail", ContactId = "contact-1" });
@@ -160,7 +145,7 @@ public class RefreshOrphanContactsHandlerTests
             .Returns<SmartsuppConversation, CancellationToken>((c, _) => Task.FromResult(c));
 
         // Act
-        var response = await CreateHandler(db).Handle(new RefreshOrphanContactsRequest(), CancellationToken.None);
+        var response = await CreateHandler().Handle(new RefreshOrphanContactsRequest(), CancellationToken.None);
 
         // Assert
         response.Scanned.Should().Be(2);
@@ -177,18 +162,14 @@ public class RefreshOrphanContactsHandlerTests
     {
         // Arrange
         SetupIds("conv-ok");
-        using var db = CreateContext();
-        db.SmartsuppConversations.Add(MakeLocalConversation("conv-ok"));
-        await db.SaveChangesAsync();
-        db.ChangeTracker.Clear();
-
+        SetupLocalConversation("conv-ok");
         _apiClient.Setup(a => a.GetConversationAsync("conv-ok", It.IsAny<CancellationToken>()))
             .ReturnsAsync(new SmartsuppConversationData { Id = "conv-ok", ContactId = "contact-1" });
         _enricher.Setup(e => e.EnrichContactAsync(It.IsAny<SmartsuppConversation>(), It.IsAny<CancellationToken>()))
             .Returns<SmartsuppConversation, CancellationToken>((c, _) => Task.FromResult(c));
 
         // Act
-        var response = await CreateHandler(db).Handle(new RefreshOrphanContactsRequest(), CancellationToken.None);
+        var response = await CreateHandler().Handle(new RefreshOrphanContactsRequest(), CancellationToken.None);
 
         // Assert
         response.Scanned.Should().Be(1);

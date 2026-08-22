@@ -1,27 +1,24 @@
 using Anela.Heblo.Application.Shared;
-using Anela.Heblo.Persistence;
+using Anela.Heblo.Domain.Features.Smartsupp;
 using MediatR;
-using Microsoft.EntityFrameworkCore;
 
 namespace Anela.Heblo.Application.Features.Smartsupp.UseCases.GetWebhookAuditEntry;
 
 public class GetWebhookAuditEntryHandler
     : IRequestHandler<GetWebhookAuditEntryRequest, GetWebhookAuditEntryResponse>
 {
-    private readonly ApplicationDbContext _context;
+    private readonly ISmartsuppWebhookAuditRepository _repository;
 
-    public GetWebhookAuditEntryHandler(ApplicationDbContext context)
+    public GetWebhookAuditEntryHandler(ISmartsuppWebhookAuditRepository repository)
     {
-        _context = context;
+        _repository = repository;
     }
 
     public async Task<GetWebhookAuditEntryResponse> Handle(
         GetWebhookAuditEntryRequest request,
         CancellationToken cancellationToken)
     {
-        var entry = await _context.SmartsuppWebhookAuditEntries
-            .AsNoTracking()
-            .SingleOrDefaultAsync(e => e.Id == request.Id, cancellationToken);
+        var entry = await _repository.GetByIdAsync(request.Id, cancellationToken);
 
         if (entry is null)
             return new GetWebhookAuditEntryResponse(ErrorCodes.ResourceNotFound);

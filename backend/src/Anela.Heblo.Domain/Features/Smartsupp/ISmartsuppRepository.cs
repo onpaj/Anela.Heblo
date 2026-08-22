@@ -14,6 +14,15 @@ public interface ISmartsuppRepository
         string id,
         CancellationToken cancellationToken);
 
+    /// <summary>
+    /// Tracked, bare lookup by primary key (no Includes) — for callers that need to mutate the
+    /// returned entity in place before calling UpsertConversationAsync/SaveChangesAsync. Use
+    /// GetConversationAsync instead for read-only display (no-tracking, includes Messages/Contact).
+    /// </summary>
+    Task<SmartsuppConversation?> FindConversationByIdAsync(
+        string conversationId,
+        CancellationToken cancellationToken);
+
     Task UpsertContactAsync(
         SmartsuppContact contact,
         CancellationToken cancellationToken);
