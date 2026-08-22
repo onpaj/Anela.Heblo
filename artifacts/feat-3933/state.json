@@ -1,0 +1,52 @@
+{
+  "feature_id": "feat-3933",
+  "issue_number": 3933,
+  "created_at": "2026-08-17T08:22:19.976022Z",
+  "max_revisions": 3,
+  "phases": {
+    "analyzing": {
+      "status": "completed",
+      "updated_at": "2026-08-17T08:24:40.497095Z"
+    },
+    "architecting": {
+      "status": "completed",
+      "updated_at": "2026-08-17T08:26:23.620989Z"
+    },
+    "designing": {
+      "status": "completed",
+      "updated_at": "2026-08-17T08:26:59.169472Z"
+    },
+    "planning": {
+      "status": "completed",
+      "updated_at": "2026-08-17T08:29:19.450572Z"
+    },
+    "developing": {
+      "status": "in_progress",
+      "updated_at": "2026-08-17T11:22:04.611363Z"
+    },
+    "code-review": {
+      "status": "completed",
+      "updated_at": "2026-08-17T12:24:29.759390Z"
+    }
+  },
+  "tasks": [
+    {
+      "name": "extend-null-invoice-id-validation-test",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-08-17T09:37:14.343345Z"
+    },
+    {
+      "name": "add-with-details-dispatch-tests",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-08-17T10:35:31.346879Z"
+    },
+    {
+      "name": "add-not-found-and-exception-tests",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-08-17T11:30:14.464276Z"
+    }
+  ]
+}
