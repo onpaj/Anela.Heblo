@@ -8,7 +8,6 @@ namespace Anela.Heblo.Adapters.Anthropic;
 
 public static class AnthropicAdapterServiceCollectionExtensions
 {
-    public const string MeetingExtractionClientKey = "meeting-extractor";
     public const string MindMapUpdaterClientKey = "mindmap-updater";
 
     public static IServiceCollection AddAnthropicAdapter(this IServiceCollection services, IConfiguration configuration)
@@ -33,12 +32,6 @@ public static class AnthropicAdapterServiceCollectionExtensions
                 sp.GetRequiredService<IHttpClientFactory>(),
                 sp.GetRequiredService<ILogger<AnthropicChatClient>>()))
             .UseLogging();
-
-        services.AddKeyedSingleton<IChatClient>(MeetingExtractionClientKey, (sp, _) =>
-            new AnthropicChatClient(
-                sp.GetRequiredService<IOptions<AnthropicOptions>>(),
-                sp.GetRequiredService<IHttpClientFactory>(),
-                sp.GetRequiredService<ILogger<AnthropicChatClient>>()));
 
         services.AddKeyedSingleton<IChatClient>(MindMapUpdaterClientKey, (sp, _) =>
             new AnthropicChatClient(
