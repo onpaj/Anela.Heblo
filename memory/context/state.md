@@ -52,6 +52,20 @@ _Update this file at the end of significant sessions._
   3. Run `./scripts/run-playwright-tests.sh mindmaps` post-deploy to confirm the nightly E2E
      scenario (now also wired into the nightly workflow matrix).
 
+- `/plan-next-task` scheduled run, 2026-08-22: `find_candidate.sh` found nothing to
+  plan — the only 3 open `agent`-labeled issues (#3877, #3892, #3894) already have
+  in-flight draft/ready PRs (#3920, #3909, #3913) from earlier planning runs; they
+  still carry the stale `agent` label alongside `agent-completed`, so `find_candidate.sh`
+  reports them as "skipped (branch already exists)" every cycle — cosmetic noise, not a
+  bug, since it correctly avoids replanning them. No `agent-planning` issues exist either.
+  Backlog otherwise has only `groomed`-but-not-`agent` issues (coverage-gap items, two
+  epics, a telemetry item) awaiting grooming approval, plus `agent-blocked` #3681.
+  Separately noticed (out of scope for this run): PR #3920 (issue #3877) has a real merge
+  conflict with `main` (`mergeable: CONFLICTING`) — a `backmerge-prs`/`hygiene-pr` candidate.
+  This was also a designated-branch cloud session (see
+  `memory/gotchas/gh-cli-unavailable-in-cloud-sessions.md`), but since no candidate was
+  claimed, the branch-pin workaround never came into play.
+
 ## Key Infrastructure Notes
 
 - CI runs: frontend Jest + backend .NET tests on PR
