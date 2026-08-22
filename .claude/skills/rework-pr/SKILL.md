@@ -330,7 +330,7 @@ Do not restate these values elsewhere; each lives in exactly one file.
 |----------|----------------|
 | `MAX_REVISION_ATTEMPTS` | `find_candidate.sh`, `list_candidates.sh` |
 | `NEEDS_WORK_LABEL` | `find_candidate.sh`, `list_candidates.sh`, `finish_revision.sh` (must match `automerge-pr/apply_verdict.sh`'s copy) |
-| `AGENT_WIP_LABEL` | `find_candidate.sh`, `list_candidates.sh`, `finish_revision.sh` (must match this file's own `agent-wip` literal in steps 2 and 6) |
+| `AGENT_WIP_LABEL` | `find_candidate.sh`, `list_candidates.sh`, `finish_revision.sh` (must match this file's own `agent-wip` literal in steps 2 and 6, and `hygiene-pr/resolve_conflict.sh`'s copy) |
 | push retry cap (`3`) | this file, step 6 — no script owns it |
 
 ## Limits worth knowing
@@ -345,13 +345,16 @@ REJECT` comments, whether from a code review or a hygiene auto-reject), not
 `/rework-pr` runs — a PR a human re-labelled `needs-work` by hand always
 looks like zero prior attempts to this skill.
 
-The `agent-wip` claim only protects against other `rework-pr` runs. It does
-not stop `hygiene-pr` from running `gh pr update-branch` on this PR
-concurrently, or `automerge-pr` from reactively calling `hygiene-pr` on it
-mid-revision. Running `/rework-all` at the same time as `/hygiene-all` or
-`/automerge-all` on overlapping PRs is not covered by this design; treat
-that combination as running one family at a time until a real conflict is
-observed.
+The `agent-wip` claim is shared with `hygiene-pr`: its conflict-resolution
+step (`resolve_conflict.sh --step prepare`) takes the same label before it
+touches a branch and skips any PR already carrying it, so the two skills
+cannot push to one branch at once. The claim does **not** stop `hygiene-pr`
+from running `gh pr update-branch` on this PR concurrently — that path never
+claims anything — nor `automerge-pr` from reactively calling `hygiene-pr` on
+it mid-revision. Running `/rework-all` at the same time as `/hygiene-all` or
+`/automerge-all` on overlapping PRs is still not fully covered by this
+design; treat that combination as running one family at a time until a real
+conflict is observed.
 
 Push retries are capped at 3, not unbounded — a PR under sustained
 concurrent writes from something other than this skill will still end up
