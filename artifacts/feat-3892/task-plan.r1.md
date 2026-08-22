@@ -1,3 +1,47 @@
+# Correct `docs/routines/daily-arch-review.md` Implementation Plan
+
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+
+**Goal:** Rewrite `docs/routines/daily-arch-review.md` so every factual claim in it matches the arch-review
+mechanism that actually runs today (`docs/architecture/module-map.md` + `.claude/skills/arch-review/pick-module.sh`
++ `.claude/skills/arch-review/SKILL.md` + `.agents/arch-review.md`), replacing the stale description of a 29-module
+deterministic day-of-year rotation and an ad-hoc label list.
+
+**Architecture:** Single-file documentation edit, no code/config/skill changes. Per `spec.r1.md` and
+`arch-review.r1.md`: correct in place (do not relocate/retire the doc), describe the mechanism by pointing at its
+four source-of-truth files rather than duplicating their contents (so the doc degrades gracefully instead of
+going stale again).
+
+**Tech Stack:** Markdown only.
+
+---
+
+## File Map
+
+| Action | Path |
+|--------|------|
+| Edit | `docs/routines/daily-arch-review.md` |
+
+---
+
+### task: rewrite-daily-arch-review-doc
+
+**Files:**
+- Edit: `docs/routines/daily-arch-review.md`
+
+**Context — do not skip:** before editing, re-read these four files to confirm they still say what this plan
+assumes (they were last verified during the architecting phase of this issue; if any has changed since, stop and
+flag it rather than writing a doc that's wrong on arrival):
+- `docs/architecture/module-map.md` (part count, group structure)
+- `.claude/skills/arch-review/pick-module.sh` (selection algorithm, currently line ~125: `index=$(( RANDOM % count + 1 ))`)
+- `.claude/skills/arch-review/SKILL.md` (label pipeline, step "5c. Build the label set structurally")
+- `.agents/arch-review.md` (reviewer persona: scope rule in section 1, finding criteria in section 3)
+
+- [ ] **Step 1: Replace the full contents of `docs/routines/daily-arch-review.md`**
+
+Replace the entire file with:
+
+```markdown
 # Daily Architecture Review Routine
 
 ## Overview
@@ -99,3 +143,39 @@ https://github.com/onpaj/Anela.Heblo/issues?q=label%3Aarch-review+is%3Aopen
 
 Aim to review and close/resolve them periodically. Issues with no activity after ~90 days are candidates for
 closing as "won't fix" or "stale".
+```
+
+- [ ] **Step 2: Verify the rewrite against the spec's acceptance criteria**
+
+Run these checks against the new `docs/routines/daily-arch-review.md` and confirm every one passes before
+considering the task done:
+
+```bash
+# No stale facts remain
+grep -n "29 modul" docs/routines/daily-arch-review.md && echo "FAIL: stale module count" || echo "OK: no stale module count"
+grep -n "dayOfYear" docs/routines/daily-arch-review.md && echo "OK: mentioned only as superseded context" || true
+grep -niE "refactoring|complexity" docs/routines/daily-arch-review.md && echo "FAIL: stale example labels present" || echo "OK: no stale example labels"
+
+# New facts present
+grep -n "docs/architecture/module-map.md" docs/routines/daily-arch-review.md && echo "OK: map referenced" || echo "FAIL: map not referenced"
+grep -n "pick-module.sh" docs/routines/daily-arch-review.md && echo "OK: picker referenced" || echo "FAIL: picker not referenced"
+grep -n "with replacement" docs/routines/daily-arch-review.md && echo "OK: mechanism stated" || echo "FAIL: mechanism not stated"
+grep -n '`agent`' docs/routines/daily-arch-review.md && echo "OK: required agent label present" || echo "FAIL: agent label missing"
+grep -n ".agents/arch-review.md" docs/routines/daily-arch-review.md && echo "OK: persona referenced" || echo "FAIL: persona not referenced"
+
+# File count unchanged — only this one file touched
+git status --porcelain docs/routines/daily-arch-review.md
+git diff --stat -- docs/ .claude/ .agents/ | grep -v "daily-arch-review.md" && echo "FAIL: unexpected files touched" || echo "OK: only the target doc changed"
+```
+
+Manually re-read the rewritten file top to bottom and confirm:
+- Every path/filename it references exists in the repo exactly as spelled (`docs/architecture/module-map.md`,
+  `.claude/skills/arch-review/pick-module.sh`, `.claude/skills/arch-review/SKILL.md`, `.agents/arch-review.md`).
+- The `## Routine details` table, `## Managing the routine`, and `## Triage` sections are unchanged from the
+  original file (spec FR-4/FR-5 — no edits there beyond what Step 1 already specifies).
+- No inline duplication of the module-map's 52-row table or the persona's full finding-criteria prose — both are
+  referenced by path, not copied in full (spec FR-1/FR-3, arch-review.r1.md Decision 2).
+
+**Definition of done:** all `grep`/`git diff --stat` checks above print their `OK:` line, `git status --porcelain`
+shows only `docs/routines/daily-arch-review.md` modified, and the manual re-read finds no remaining inaccuracy.
+No test suite applies to a documentation-only change — this verification step is the acceptance gate.
