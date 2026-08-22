@@ -39,11 +39,20 @@ prompt, with `{N}` replaced by the PR number:
 > /tmp/automerge-verdict-{N}.json`.
 >
 > This does NOT apply to step 2's hygiene check — if step 2 reports
-> `still-failing` or `conflict`, the script itself already flagged the PR
-> `needs-work` and posted the reason (nothing for you to do there); just
-> follow step 2 as written and, instead of continuing to step 3, end your
-> final message with exactly one line:
-> `HYGIENE_REJECTED: {status} — {detail}`.
+> `still-failing`, the script itself already flagged the PR `needs-work`
+> and posted the reason (nothing for you to do there); just follow step 2
+> as written and, instead of continuing to step 3, end your final message
+> with exactly one line: `HYGIENE_REJECTED: {status} — {detail}`.
+>
+> If step 2 reports `conflict`, follow its `conflict` bullet as written —
+> that means actually resolving the conflict via `hygiene-pr`'s step 3,
+> which is hygiene's job now and is not optional. Then:
+> `conflict-resolved` with a follow-up status of `already-clean`/`fixed` →
+> continue to step 3 (review) normally; `conflict-unresolved` → the PR is
+> already flagged, end with `HYGIENE_REJECTED: conflict-unresolved —
+> {detail}`; `conflict-claimed-elsewhere` or `conflict-not-open` → end with
+> `SKIPPED: {that status} — {detail}` (nothing was touched, nothing is
+> flagged).
 >
 > If step 2 reports `ci-running`, end your final message with exactly one
 > line: `SKIPPED: CI already running from a prior push, retry later`.
@@ -137,3 +146,11 @@ parallel — a PR flagged `needs-work` on hygiene grounds during the parallel
 phase is already resolved by the time step 4 runs; only real review
 verdicts (`merge`/`comment`/`needs-work` from a completed review) go
 through the serial queue.
+
+A conflict resolution pushed during the parallel phase is likewise not
+serialised: each subagent works in its own per-branch worktree and claims
+its own PR (`agent-wip`), so two of them cannot touch one branch — but they
+resolve against whatever `master` was when their `prepare` ran, which for a
+long batch may predate merges this same run performs in step 4. A PR that
+goes stale again that way is `BEHIND`/`CONFLICTING` for the next sweep to
+pick up, not something this run retries.
