@@ -1,0 +1,70 @@
+{
+  "feature_id": "feat-3939",
+  "issue_number": 3939,
+  "created_at": "2026-08-18T02:11:45.525888Z",
+  "max_revisions": 3,
+  "phases": {
+    "analyzing": {
+      "status": "completed",
+      "updated_at": "2026-08-18T02:14:13.323487Z"
+    },
+    "architecting": {
+      "status": "completed",
+      "updated_at": "2026-08-18T02:18:52.682109Z"
+    },
+    "designing": {
+      "status": "completed",
+      "updated_at": "2026-08-18T02:20:00.384336Z"
+    },
+    "planning": {
+      "status": "completed",
+      "updated_at": "2026-08-18T02:35:22.061219Z"
+    },
+    "developing": {
+      "status": "in_progress",
+      "updated_at": "2026-08-18T23:13:56.325114Z"
+    },
+    "code-review": {
+      "status": "completed",
+      "updated_at": "2026-08-19T00:21:07.996264Z"
+    }
+  },
+  "tasks": [
+    {
+      "name": "scaffold-invoice-source-test-file",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-08-18T13:50:53.903948Z"
+    },
+    {
+      "name": "add-single-fetch-null-test",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-08-18T17:40:51.153375Z"
+    },
+    {
+      "name": "add-currency-filter-exclude-test",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-08-18T20:34:16.452943Z"
+    },
+    {
+      "name": "add-currency-filter-case-insensitive-theory",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-08-18T21:19:10.996895Z"
+    },
+    {
+      "name": "add-null-detail-guard-test",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-08-18T22:35:29.807566Z"
+    },
+    {
+      "name": "final-validation",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-08-18T23:41:05.392733Z"
+    }
+  ]
+}
