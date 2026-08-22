@@ -23,10 +23,34 @@ _Update this file at the end of significant sessions._
 - Shoptet test environment hydration (issue #444): added `SHOPTET_HYDRATE` env var gate, Rider launch profile, non-hardcoded storage
 - MCP server: 15 tools across Catalog, Manufacturing, Batch Planning, Knowledge Base
 
+- Frontend dead-export detector (issue #3927, PR #3932, `claude/beautiful-darwin-4uaqqg`,
+  2026-08-15): added `knip` as a non-blocking frontend CI check (`frontend/knip.json`,
+  `.github/workflows/ci-feature-branch.yml`). Initial backlog triaged into follow-up
+  issue #3931.
+
+- Coverage-gap fix for `UpdatePurchaseOrderInvoiceAcquiredHandler` (issue #3934,
+  PR #3944, `claude/beautiful-darwin-nadsgf`, 2026-08-17): a scheduled `/plan-next-task`
+  run couldn't use the AgentHarness branch-per-issue pipeline (designated-branch
+  session, see `memory/gotchas/gh-cli-unavailable-in-cloud-sessions.md`), so it
+  implemented the missing unit tests directly instead. Also fixed a real bug in
+  `.claude/skills/_lib/gh_api.sh` (missing `Content-Type: application/json` on
+  POST/PATCH) as part of the same PR.
+
 ## Pending / Known Issues
 
 - Memory directory (issue #405): adding cross-session knowledge accumulation — this PR
 - Database migrations are manual (not automated in deployment)
+- Branch `feature/meeting-mindmap`: MindMaps feature (project/workstream mind maps + Claude-rewrite
+  Hangfire job with server-side edit guard) complete through Task 15 (final validation gate,
+  2026-08-10). Backend build/format/tests and frontend lint/build/tests all green; zero MindMap
+  test failures. Pending before it's usable end-to-end:
+  1. Apply migration `AddMindMapsTables` manually to staging (`Heblo_TST`).
+  2. Upload and assign the two new Entra app roles (`anela.mind_maps.read`,
+     `anela.mind_maps.write`) to the Entra app registration — they currently exist only in
+     `access-matrix-entra.generated.json`, which nothing consumes automatically. Without this
+     every MindMaps endpoint returns 403 and the E2E scenario fails on its first click.
+  3. Run `./scripts/run-playwright-tests.sh mindmaps` post-deploy to confirm the nightly E2E
+     scenario (now also wired into the nightly workflow matrix).
 
 ## Key Infrastructure Notes
 

@@ -7,6 +7,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using OpenAI;
 using OpenAI.Embeddings;
+using MeaiOptions = Microsoft.Extensions.AI.EmbeddingGenerationOptions;
 
 namespace Anela.Heblo.Adapters.OpenAI.Tests;
 
@@ -28,13 +29,73 @@ public class OpenAiEmbeddingGeneratorTests
         return new OpenAiEmbeddingGenerator(options, NullLogger<OpenAiEmbeddingGenerator>.Instance, client);
     }
 
+    // Builds a fake-transport EmbeddingClient per requested model and records which models were
+    // asked for, so cache-reuse assertions can count actual client constructions (not HTTP calls).
+    private sealed class RecordingClientFactory
+    {
+        private readonly HttpMessageHandler _handler;
+        private readonly string _apiKey;
+
+        public RecordingClientFactory(HttpMessageHandler handler, string apiKey)
+        {
+            _handler = handler;
+            _apiKey = apiKey;
+        }
+
+        public List<string> RequestedModels { get; } = new();
+
+        public EmbeddingClient Create(string model)
+        {
+            RequestedModels.Add(model);
+            return new EmbeddingClient(
+                model,
+                new ApiKeyCredential(_apiKey),
+                new OpenAIClientOptions { Transport = new HttpClientPipelineTransport(new HttpClient(_handler)) });
+        }
+    }
+
+    // Unlike BuildGenerator (which injects one pre-built client bound to the default model), this
+    // routes every distinct resolved model through the factory, so override paths stay on the fake
+    // transport instead of constructing a real client against api.openai.com.
+    private static OpenAiEmbeddingGenerator BuildGeneratorWithFactory(
+        RecordingClientFactory factory,
+        string defaultModel = "text-embedding-3-small",
+        int dimensions = 3)
+    {
+        var options = Options.Create(new OpenAiEmbeddingOptions
+        {
+            ApiKey = "test-key",
+            EmbeddingModel = defaultModel,
+            EmbeddingDimensions = dimensions,
+        });
+
+        return new OpenAiEmbeddingGenerator(
+            options,
+            NullLogger<OpenAiEmbeddingGenerator>.Instance,
+            client: null,
+            clientFactory: factory.Create);
+    }
+
     // Reads the "input" array off the outgoing request body and returns embeddings whose
     // vector encodes the numeric suffix of each input string (e.g. "text-7" -> [7,7,7]),
     // so assertions can tell "the embedding for input N" apart from array position alone.
-    private static HttpResponseMessage BuildEmbeddingResponse(HttpRequestMessage request, bool reverseOrder = false)
+    // When capturedModels/capturedDimensions are supplied, the "model"/"dimensions" fields of
+    // the same request body are recorded so per-call override tests can assert on what was sent.
+    private static HttpResponseMessage BuildEmbeddingResponse(
+        HttpRequestMessage request,
+        bool reverseOrder = false,
+        List<string>? capturedModels = null,
+        List<int?>? capturedDimensions = null)
     {
         var body = request.Content!.ReadAsStringAsync().GetAwaiter().GetResult();
         using var doc = JsonDocument.Parse(body);
+
+        capturedModels?.Add(doc.RootElement.GetProperty("model").GetString()!);
+        capturedDimensions?.Add(
+            doc.RootElement.TryGetProperty("dimensions", out var dimensionsElement)
+                ? dimensionsElement.GetInt32()
+                : null);
+
         var inputs = doc.RootElement.GetProperty("input").EnumerateArray()
             .Select(e => e.GetString()!)
             .ToList();
@@ -197,5 +258,88 @@ public class OpenAiEmbeddingGeneratorTests
         handler.CallCount.Should().Be(2);
         first[0].Vector.Span[0].Should().Be(0f);
         second[0].Vector.Span[0].Should().Be(1f);
+    }
+
+    [Fact]
+    public async Task GenerateAsync_DimensionsOverride_SendsOverriddenDimensions()
+    {
+        var dimensions = new List<int?>();
+        var handler = new StatefulHandler(req => BuildEmbeddingResponse(req, capturedDimensions: dimensions));
+        var generator = BuildGenerator(handler, dimensions: 3);
+
+        await generator.GenerateAsync(MakeInputs(1), new MeaiOptions { Dimensions = 3072 });
+
+        dimensions.Should().ContainSingle().Which.Should().Be(3072);
+    }
+
+    [Fact]
+    public async Task GenerateAsync_NoDimensionsOverride_SendsConfiguredDimensions()
+    {
+        var dimensions = new List<int?>();
+        var handler = new StatefulHandler(req => BuildEmbeddingResponse(req, capturedDimensions: dimensions));
+        var generator = BuildGenerator(handler, dimensions: 7);
+
+        await generator.GenerateAsync(MakeInputs(1));
+
+        dimensions.Should().ContainSingle().Which.Should().Be(7);
+    }
+
+    [Fact]
+    public async Task GenerateAsync_ModelIdOverride_UsesOverriddenModel()
+    {
+        var models = new List<string>();
+        var handler = new StatefulHandler(req => BuildEmbeddingResponse(req, capturedModels: models));
+        var factory = new RecordingClientFactory(handler, "test-key");
+        var generator = BuildGeneratorWithFactory(factory, defaultModel: "text-embedding-3-large");
+
+        await generator.GenerateAsync(MakeInputs(1), new MeaiOptions { ModelId = "text-embedding-3-small" });
+
+        models.Should().ContainSingle().Which.Should().Be("text-embedding-3-small");
+        factory.RequestedModels.Should().Equal("text-embedding-3-small");
+    }
+
+    [Fact]
+    public async Task GenerateAsync_NoModelIdOverride_UsesConfiguredModel()
+    {
+        var models = new List<string>();
+        var handler = new StatefulHandler(req => BuildEmbeddingResponse(req, capturedModels: models));
+        var factory = new RecordingClientFactory(handler, "test-key");
+        var generator = BuildGeneratorWithFactory(factory, defaultModel: "text-embedding-3-large");
+
+        await generator.GenerateAsync(MakeInputs(1));
+
+        models.Should().ContainSingle().Which.Should().Be("text-embedding-3-large");
+        factory.RequestedModels.Should().Equal("text-embedding-3-large");
+    }
+
+    [Fact]
+    public async Task GenerateAsync_SameModelIdTwice_ConstructsClientOnce()
+    {
+        var handler = new StatefulHandler(req => BuildEmbeddingResponse(req));
+        var factory = new RecordingClientFactory(handler, "test-key");
+        var generator = BuildGeneratorWithFactory(factory, defaultModel: "text-embedding-3-large");
+
+        await generator.GenerateAsync(MakeInputs(1), new MeaiOptions { ModelId = "text-embedding-3-small" });
+        await generator.GenerateAsync(new List<string> { "text-1" }, new MeaiOptions { ModelId = "text-embedding-3-small" });
+
+        handler.CallCount.Should().Be(2, "each call still issues its own HTTP request");
+        factory.RequestedModels.Should().Equal("text-embedding-3-small");
+    }
+
+    [Fact]
+    public async Task GenerateAsync_DifferentModelIds_ResolveIndependently()
+    {
+        var models = new List<string>();
+        var handler = new StatefulHandler(req => BuildEmbeddingResponse(req, capturedModels: models));
+        var factory = new RecordingClientFactory(handler, "test-key");
+        var generator = BuildGeneratorWithFactory(factory, defaultModel: "text-embedding-3-large");
+
+        await generator.GenerateAsync(MakeInputs(1), new MeaiOptions { ModelId = "text-embedding-3-small" });
+        await generator.GenerateAsync(new List<string> { "text-1" }, new MeaiOptions { ModelId = "text-embedding-3-large" });
+        await generator.GenerateAsync(new List<string> { "text-2" }, new MeaiOptions { ModelId = "text-embedding-3-small" });
+
+        models.Should().Equal("text-embedding-3-small", "text-embedding-3-large", "text-embedding-3-small");
+        factory.RequestedModels.Should().Equal(
+            "text-embedding-3-small", "text-embedding-3-large");
     }
 }

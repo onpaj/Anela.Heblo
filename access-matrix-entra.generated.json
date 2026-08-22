@@ -291,6 +291,26 @@
       "value": "manufacture.material_containers.write"
     },
     {
+      "id": "a1acef2e-cd12-53be-9d93-9b931cff76f5",
+      "allowedMemberTypes": [
+        "User"
+      ],
+      "description": "Manufacture_LabelCalibration Read",
+      "displayName": "manufacture.label_calibration.read",
+      "isEnabled": true,
+      "value": "manufacture.label_calibration.read"
+    },
+    {
+      "id": "812fe97e-97fa-52b7-a535-b17b9c820d24",
+      "allowedMemberTypes": [
+        "User"
+      ],
+      "description": "Manufacture_LabelCalibration Write",
+      "displayName": "manufacture.label_calibration.write",
+      "isEnabled": true,
+      "value": "manufacture.label_calibration.write"
+    },
+    {
       "id": "9968d427-1784-5791-84a4-d24005de71b7",
       "allowedMemberTypes": [
         "User"
@@ -491,6 +511,26 @@
       "value": "anela.org_chart.read"
     },
     {
+      "id": "2ab41278-b08f-5727-9827-440cc743a017",
+      "allowedMemberTypes": [
+        "User"
+      ],
+      "description": "Anela_MindMaps Read",
+      "displayName": "anela.mind_maps.read",
+      "isEnabled": true,
+      "value": "anela.mind_maps.read"
+    },
+    {
+      "id": "dab9d323-6f54-5704-b964-1be77da3c9b1",
+      "allowedMemberTypes": [
+        "User"
+      ],
+      "description": "Anela_MindMaps Write",
+      "displayName": "anela.mind_maps.write",
+      "isEnabled": true,
+      "value": "anela.mind_maps.write"
+    },
+    {
       "id": "d4c4dfd1-2581-5de3-8c46-63c526985133",
       "allowedMemberTypes": [
         "User"
@@ -623,6 +663,8 @@
         "manufacture.product_inventory.write",
         "manufacture.material_containers.read",
         "manufacture.material_containers.write",
+        "manufacture.label_calibration.read",
+        "manufacture.label_calibration.write",
         "warehouse.logistics.read",
         "warehouse.logistics.write",
         "warehouse.expedition.read",
@@ -643,6 +685,8 @@
         "anela.meetings.read",
         "anela.meetings.write",
         "anela.org_chart.read",
+        "anela.mind_maps.read",
+        "anela.mind_maps.write",
         "attendance.overtime.read",
         "attendance.overtime.write",
         "admin.data_quality.read",
@@ -686,6 +730,7 @@
         "marketing.marketing_calendar.read",
         "anela.meetings.read",
         "anela.org_chart.read",
+        "anela.mind_maps.read",
         "admin.data_quality.read",
         "admin.administration.read",
         "admin.feature_flags.read"
@@ -739,6 +784,8 @@
         "manufacture.material_inventory.write",
         "manufacture.material_containers.read",
         "manufacture.material_containers.write",
+        "manufacture.label_calibration.read",
+        "manufacture.label_calibration.write",
         "manufacture.product_inventory.read",
         "manufacture.product_inventory.write"
       ]

@@ -3,7 +3,7 @@ using Anela.Heblo.Adapters.Microsoft365.UserManagement;
 using Anela.Heblo.Application.Features.Marketing.Services;
 using Anela.Heblo.Application.Features.Photobank.Services;
 using Anela.Heblo.Application.Features.UserManagement.Services;
-using Anela.Heblo.Domain.Shared;
+using Anela.Heblo.Application.Shared;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 

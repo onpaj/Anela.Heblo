@@ -1,4 +1,5 @@
 using Anela.Heblo.Application.Common.Behaviors;
+using Anela.Heblo.Application.Features.Smartsupp.Infrastructure;
 using Anela.Heblo.Application.Features.Smartsupp.Pipeline;
 using Anela.Heblo.Application.Features.Smartsupp.Presence;
 using Anela.Heblo.Application.Features.Smartsupp.UseCases.GenerateDraftReply;
@@ -21,6 +22,7 @@ public static class SmartsuppModule
     public static IServiceCollection AddSmartsuppModule(this IServiceCollection services, IConfiguration configuration)
     {
         services.AddScoped<ISmartsuppRepository, SmartsuppRepository>();
+        services.AddScoped<ISmartsuppContactEnricher, SmartsuppContactEnricher>();
         services.AddScoped<ISmartsuppPresenceRepository, SmartsuppPresenceRepository>();
         services.AddScoped<ISmartsuppPresenceService, SmartsuppPresenceService>();
         services.AddScoped<ISmartsuppWebhookAuditRepository, SmartsuppWebhookAuditRepository>();

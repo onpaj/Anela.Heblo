@@ -14,6 +14,7 @@ public class SubmitManufactureStockTakingHandlerTests
 {
     private readonly Mock<IManufactureCatalogSource> _catalogRepositoryMock;
     private readonly Mock<IErpStockDomainService> _erpStockDomainServiceMock;
+    private readonly Mock<IManufactureCatalogStockSync> _catalogStockSyncMock;
     private readonly Mock<ILogger<SubmitManufactureStockTakingHandler>> _loggerMock;
     private readonly SubmitManufactureStockTakingHandler _handler;
 
@@ -21,12 +22,14 @@ public class SubmitManufactureStockTakingHandlerTests
     {
         _catalogRepositoryMock = new Mock<IManufactureCatalogSource>();
         _erpStockDomainServiceMock = new Mock<IErpStockDomainService>();
+        _catalogStockSyncMock = new Mock<IManufactureCatalogStockSync>();
         _loggerMock = new Mock<ILogger<SubmitManufactureStockTakingHandler>>();
 
         _handler = new SubmitManufactureStockTakingHandler(
             _catalogRepositoryMock.Object,
             _loggerMock.Object,
-            _erpStockDomainServiceMock.Object);
+            _erpStockDomainServiceMock.Object,
+            _catalogStockSyncMock.Object);
     }
 
     #region Product with lots (HasLots = true) tests
@@ -340,6 +343,97 @@ public class SubmitManufactureStockTakingHandlerTests
         response.ErrorCode.Should().Be(ErrorCodes.StockTakingFailed);
         response.Params["ProductCode"].Should().Be(productCode);
         response.Params["Error"].Should().Be("Stock taking failed in ERP");
+    }
+
+    [Fact]
+    public async Task Handle_SuccessfulStockTaking_RefreshesCatalogCacheWithConfirmedAmount()
+    {
+        // Arrange
+        var productCode = "MAT001";
+        var request = new SubmitManufactureStockTakingRequest
+        {
+            ProductCode = productCode,
+            TargetAmount = 100m
+        };
+
+        var product = CreateMaterialWithoutLots(productCode);
+        var stockTakingRecord = CreateSuccessfulStockTakingRecord(productCode);
+
+        _catalogRepositoryMock.Setup(x => x.GetByIdAsync(productCode, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(product);
+
+        _erpStockDomainServiceMock.Setup(x => x.SubmitStockTakingAsync(It.IsAny<ErpStockTakingRequest>()))
+            .ReturnsAsync(stockTakingRecord);
+
+        // Act
+        var response = await _handler.Handle(request, CancellationToken.None);
+
+        // Assert - the amount confirmed by the ERP is written back, not the requested target
+        response.Success.Should().BeTrue();
+        _catalogStockSyncMock.Verify(
+            x => x.SyncErpStockTakingAsync(productCode, 50.0m, It.IsAny<CancellationToken>()),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task Handle_CatalogCacheRefreshFails_StillReturnsSuccess()
+    {
+        // Arrange - the stock taking is already committed in the ERP, so a cache refresh
+        // failure must not make the caller retry and post it twice
+        var productCode = "MAT001";
+        var request = new SubmitManufactureStockTakingRequest
+        {
+            ProductCode = productCode,
+            TargetAmount = 100m
+        };
+
+        var product = CreateMaterialWithoutLots(productCode);
+        var stockTakingRecord = CreateSuccessfulStockTakingRecord(productCode);
+
+        _catalogRepositoryMock.Setup(x => x.GetByIdAsync(productCode, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(product);
+
+        _erpStockDomainServiceMock.Setup(x => x.SubmitStockTakingAsync(It.IsAny<ErpStockTakingRequest>()))
+            .ReturnsAsync(stockTakingRecord);
+
+        _catalogStockSyncMock
+            .Setup(x => x.SyncErpStockTakingAsync(productCode, It.IsAny<decimal>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new InvalidOperationException("cache unavailable"));
+
+        // Act
+        var response = await _handler.Handle(request, CancellationToken.None);
+
+        // Assert
+        response.Should().NotBeNull();
+        response.Success.Should().BeTrue();
+        response.AmountNew.Should().Be(stockTakingRecord.AmountNew);
+    }
+
+    [Fact]
+    public async Task Handle_FailedStockTaking_DoesNotRefreshCatalogCache()
+    {
+        // Arrange
+        var productCode = "MAT001";
+        var request = new SubmitManufactureStockTakingRequest
+        {
+            ProductCode = productCode,
+            TargetAmount = 100m
+        };
+
+        _catalogRepositoryMock.Setup(x => x.GetByIdAsync(productCode, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(CreateMaterialWithoutLots(productCode));
+
+        _erpStockDomainServiceMock.Setup(x => x.SubmitStockTakingAsync(It.IsAny<ErpStockTakingRequest>()))
+            .ReturnsAsync(CreateFailedStockTakingRecord());
+
+        // Act
+        var response = await _handler.Handle(request, CancellationToken.None);
+
+        // Assert
+        response.Success.Should().BeFalse();
+        _catalogStockSyncMock.Verify(
+            x => x.SyncErpStockTakingAsync(It.IsAny<string>(), It.IsAny<decimal>(), It.IsAny<CancellationToken>()),
+            Times.Never);
     }
 
     #endregion

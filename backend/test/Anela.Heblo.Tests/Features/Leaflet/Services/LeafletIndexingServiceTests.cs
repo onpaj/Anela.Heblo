@@ -226,4 +226,51 @@ public class LeafletIndexingServiceTests
         chunks[0].Summary.Should().Be("summary one");
         chunks[1].Summary.Should().Be("summary two");
     }
+
+    [Fact]
+    public async Task IndexAsync_passes_leaflet_model_and_dimensions_to_embedding_generator()
+    {
+        // Arrange
+        var document = CreateDocument();
+        var options = new LeafletOptions
+        {
+            ChunkSize = 800,
+            ChunkOverlap = 80,
+            EmbeddingModel = "text-embedding-3-small",
+            EmbeddingDimensions = 3072,
+        };
+        var service = new LeafletIndexingService(
+            _chunker.Object,
+            _embeddings.Object,
+            _summarizer.Object,
+            _repo.Object,
+            _logger.Object,
+            Options.Create(options));
+
+        _chunker
+            .Setup(c => c.Chunk(It.IsAny<string>(), It.IsAny<int>(), It.IsAny<int>()))
+            .Returns(new[] { "chunk content 0" });
+
+        EmbeddingGenerationOptions? capturedOptions = null;
+        _embeddings
+            .Setup(e => e.GenerateAsync(
+                It.IsAny<IEnumerable<string>>(),
+                It.IsAny<EmbeddingGenerationOptions?>(),
+                It.IsAny<CancellationToken>()))
+            .Callback<IEnumerable<string>, EmbeddingGenerationOptions?, CancellationToken>(
+                (_, opts, _) => capturedOptions = opts)
+            .ReturnsAsync(CreateEmbeddings(1));
+
+        _repo
+            .Setup(r => r.AddChunksAsync(It.IsAny<IEnumerable<LeafletChunk>>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
+        // Act
+        await service.IndexAsync("some text content", document);
+
+        // Assert
+        capturedOptions.Should().NotBeNull();
+        capturedOptions!.ModelId.Should().Be("text-embedding-3-small");
+        capturedOptions.Dimensions.Should().Be(3072);
+    }
 }

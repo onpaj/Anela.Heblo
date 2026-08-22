@@ -10,6 +10,7 @@ import {
   TransportBoxDto,
   ErrorCodes,
 } from "../generated/api-client";
+import { toDateOnlyString } from "../../utils/dateUtils";
 
 // Type-safe interface for accessing API client internals
 interface ApiClientWithInternals {
@@ -184,11 +185,6 @@ export const useChangeTransportBoxState = () => {
         queryKey: [...QUERY_KEYS.transportBox, "summary"],
       });
 
-      // Also invalidate any transition-related queries
-      queryClient.invalidateQueries({
-        queryKey: [...QUERY_KEYS.transportBoxTransitions, variables.boxId],
-      });
-
       // Invalidate byCode cache so the scan lookup reflects the new state
       queryClient.invalidateQueries({
         queryKey: [...QUERY_KEYS.transportBox, 'byCode'],
@@ -219,7 +215,8 @@ export const useAddItemToBox = () => {
       };
       if (input.sourceInventoryId !== undefined) body["sourceInventoryId"] = input.sourceInventoryId;
       if (input.lotNumber !== undefined) body["lotNumber"] = input.lotNumber;
-      if (input.expirationDate !== undefined) body["expirationDate"] = input.expirationDate;
+      if (input.expirationDate !== undefined)
+        body["expirationDate"] = toDateOnlyString(input.expirationDate);
       if (input.allowNegativeStock) body["allowNegativeStock"] = true;
 
       const response = await apiClient.http.fetch(url, {

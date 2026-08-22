@@ -7,6 +7,7 @@ using Anela.Heblo.Domain.Features.Photobank;
 using Anela.Heblo.Domain.Features.DataQuality;
 using Anela.Heblo.Domain.Features.Marketing;
 using Anela.Heblo.Domain.Features.MeetingTasks;
+using Anela.Heblo.Domain.Features.MindMaps;
 using Anela.Heblo.Domain.Features.MarketingInvoices;
 using Anela.Heblo.Domain.Features.Bank;
 using Anela.Heblo.Domain.Features.GridLayouts;
@@ -131,6 +132,11 @@ public class ApplicationDbContext : DbContext
     public DbSet<ProposedTask> ProposedTasks { get; set; } = null!;
     public DbSet<MeetingAccessGrant> MeetingAccessGrants { get; set; } = null!;
     public DbSet<DeletedPlaudRecording> DeletedPlaudRecordings { get; set; } = null!;
+
+    // Mind Maps module
+    public DbSet<MindMap> MindMaps { get; set; } = null!;
+    public DbSet<MindMapMeeting> MindMapMeetings { get; set; } = null!;
+    public DbSet<MindMapVersion> MindMapVersions { get; set; } = null!;
 
     // Data Quality module
     public DbSet<DqtRun> DqtRuns { get; set; } = null!;

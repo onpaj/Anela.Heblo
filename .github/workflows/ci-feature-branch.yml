@@ -49,6 +49,20 @@ jobs:
           JEST_JUNIT_OUTPUT_DIR: ./test-results
           JEST_JUNIT_OUTPUT_NAME: junit.xml
 
+      - name: 🔍 Dead export detection (knip, non-blocking)
+        working-directory: ./frontend
+        continue-on-error: true
+        run: npm run knip | tee knip-report.txt
+
+      - name: 📦 Persist knip report
+        if: success() || failure()
+        continue-on-error: true
+        uses: actions/upload-artifact@v4
+        with:
+          name: knip-report
+          path: frontend/knip-report.txt
+          retention-days: 14
+
       - name: 📊 Upload coverage reports
         continue-on-error: true
         run: echo "Coverage upload skipped (codecov-action unavailable from codeload)"

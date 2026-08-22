@@ -47,8 +47,10 @@ public class GenerateLeafletHandler : IRequestHandler<GenerateLeafletRequest, Ge
         var queryToEmbed = await _expander.ExpandAsync(
             request.Topic, _options.ToExpansionConfig(), ct);
 
+        var embeddingOptions = _options.ToEmbeddingOptions();
+
         var topicVector = (await ChatRetry.RetryOnceAsync(
-                () => _embeddings.GenerateAsync([queryToEmbed], cancellationToken: ct),
+                () => _embeddings.GenerateAsync([queryToEmbed], embeddingOptions, ct),
                 _logger,
                 ct))
             .First().Vector.ToArray();

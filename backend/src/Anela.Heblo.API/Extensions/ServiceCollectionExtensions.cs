@@ -2,6 +2,7 @@ using System.Reflection;
 using Npgsql;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Anela.Heblo.API.HealthChecks.DataQuality;
+using Anela.Heblo.API.HealthChecks.Photobank;
 using Microsoft.ApplicationInsights.Extensibility;
 using Anela.Heblo.Xcc;
 using Anela.Heblo.Xcc.Telemetry;
@@ -104,6 +105,10 @@ public static class ServiceCollectionExtensions
                 name: "data-quality-schema",
                 failureStatus: HealthStatus.Unhealthy,
                 tags: new[] { "ready", "db", "schema" })
+            .AddCheck<PhotobankSchemaHealthCheck>(
+                name: "photobank-schema",
+                failureStatus: HealthStatus.Unhealthy,
+                tags: new[] { "ready", "db", "schema" })
             .AddCheck<HomeAssistantConditionsHealthCheck>(
                 name: "homeassistant-conditions",
                 failureStatus: HealthStatus.Degraded,
@@ -145,7 +150,12 @@ public static class ServiceCollectionExtensions
         {
             logging.LoggingFields = Microsoft.AspNetCore.HttpLogging.HttpLoggingFields.All;
             logging.RequestHeaders.Add("User-Agent");
-            logging.RequestHeaders.Add("Authorization");
+            // Authorization is intentionally NOT added here: HttpLoggingMiddleware logs the
+            // real value of any header explicitly listed in RequestHeaders, and Authorization
+            // carries the live bearer token (Entra ID access token, or the mock-auth token) for
+            // every authenticated request. Leaving it unlisted keeps it redacted by the
+            // middleware's own default behavior, matching RequestLoggingMiddleware.IsSensitiveHeader
+            // below, which excludes the same header for the same reason. See issue #3883.
             logging.ResponseHeaders.Add("Content-Type");
             logging.MediaTypeOptions.AddText("application/json");
             logging.RequestBodyLogLimit = 4096;
@@ -348,6 +358,12 @@ public static class ServiceCollectionExtensions
 
         // Register Hangfire dashboard authorization filter
         services.AddTransient<HangfireDashboardTokenAuthorizationFilter>();
+
+        // Hangfire storage singleton — resolved lazily after Hangfire is configured above.
+        // Consumed by HangfireBackgroundWorker and HangfireFailedJobCounter below. Moved here
+        // from DashboardModule (Application layer), which had no local consumer of JobStorage
+        // and no declared dependency relationship with this method.
+        services.AddSingleton(_ => JobStorage.Current);
 
         // Register IBackgroundWorker implementation
         services.AddTransient<IBackgroundWorker, HangfireBackgroundWorker>();

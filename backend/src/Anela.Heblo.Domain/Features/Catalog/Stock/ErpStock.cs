@@ -17,4 +17,9 @@ public class ErpStock
     public string? SupplierName { get; set; }
 
     public decimal Price { get; set; }
+
+    /// <summary>
+    /// Shallow copy. All members are value types or strings, so this is a full copy.
+    /// </summary>
+    public ErpStock Clone() => (ErpStock)MemberwiseClone();
 }

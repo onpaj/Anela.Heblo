@@ -487,7 +487,6 @@ export const QUERY_KEYS = {
   marketingCalendar: ["marketing-calendar"] as const,
   photobank: ["photobank"] as const,
   transportBox: ["transport-boxes"] as const,
-  transportBoxTransitions: ["transportBoxTransitions"] as const,
   manufactureOutput: ["manufacture-output"] as const,
   manufactureDifficulty: ["manufacture-difficulty-settings"] as const,
   manufactureOrders: ["manufacture-orders"] as const,

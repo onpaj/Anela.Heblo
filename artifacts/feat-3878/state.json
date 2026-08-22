@@ -1,0 +1,52 @@
+{
+  "feature_id": "feat-3878",
+  "issue_number": 3878,
+  "created_at": "2026-08-12T03:15:07.857061Z",
+  "max_revisions": 3,
+  "phases": {
+    "analyzing": {
+      "status": "completed",
+      "updated_at": "2026-08-12T03:17:25.276914Z"
+    },
+    "architecting": {
+      "status": "completed",
+      "updated_at": "2026-08-12T03:18:35.389465Z"
+    },
+    "designing": {
+      "status": "completed",
+      "updated_at": "2026-08-12T03:20:49.248943Z"
+    },
+    "planning": {
+      "status": "completed",
+      "updated_at": "2026-08-12T03:25:47.568756Z"
+    },
+    "developing": {
+      "status": "in_progress",
+      "updated_at": "2026-08-13T00:14:43.346659Z"
+    },
+    "code-review": {
+      "status": "completed",
+      "updated_at": "2026-08-13T01:32:11.856020Z"
+    }
+  },
+  "tasks": [
+    {
+      "name": "add-smartsupp-contact-enricher",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-08-12T22:46:30.750729Z"
+    },
+    {
+      "name": "wire-reactions-to-contact-enricher",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-08-12T23:27:59.750166Z"
+    },
+    {
+      "name": "remove-rest-dependency-from-smartsupp-repository",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-08-13T00:24:52.276271Z"
+    }
+  ]
+}

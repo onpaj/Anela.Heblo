@@ -3,6 +3,7 @@ using Anela.Heblo.Application.Features.Smartsupp.UseCases.ProcessWebhookEvent;
 using Anela.Heblo.Application.Features.Smartsupp.UseCases.ReplayWebhookEvent;
 using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Domain.Features.Smartsupp;
+using Anela.Heblo.Domain.Features.Users;
 using Anela.Heblo.Persistence;
 using Anela.Heblo.Persistence.Smartsupp;
 using FluentAssertions;
@@ -18,6 +19,14 @@ public class ReplayWebhookEventHandlerTests
     private static ApplicationDbContext CreateContext() =>
         new(new DbContextOptionsBuilder<ApplicationDbContext>()
             .UseInMemoryDatabase($"audit_{Guid.NewGuid()}").Options);
+
+    private static Mock<ICurrentUserService> CreateCurrentUserServiceMock(string? name = "ondra@anela.cz")
+    {
+        var mock = new Mock<ICurrentUserService>();
+        mock.Setup(x => x.GetCurrentUser())
+            .Returns(new CurrentUser(Id: "user-1", Name: name, Email: "ondra@anela.cz", IsAuthenticated: true));
+        return mock;
+    }
 
     [Fact]
     public async Task Handle_DispatchesProcessWebhookEvent_AndIncrementsReplayCount()
@@ -44,9 +53,12 @@ public class ReplayWebhookEventHandlerTests
             .Setup(m => m.Send(It.IsAny<ProcessWebhookEventRequest>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new ProcessWebhookEventResponse { Handled = true });
 
-        var handler = new ReplayWebhookEventHandler(new SmartsuppWebhookAuditRepository(ctx), mediator.Object);
+        var currentUserService = CreateCurrentUserServiceMock("ondra@anela.cz");
+
+        var handler = new ReplayWebhookEventHandler(
+            new SmartsuppWebhookAuditRepository(ctx), mediator.Object, currentUserService.Object);
         var response = await handler.Handle(
-            new ReplayWebhookEventRequest { Id = id, ReplayedBy = "ondra@anela.cz" }, default);
+            new ReplayWebhookEventRequest { Id = id }, default);
 
         response.Success.Should().BeTrue();
         response.ReplayCount.Should().Be(1);
@@ -71,10 +83,12 @@ public class ReplayWebhookEventHandlerTests
     public async Task Handle_ReturnsResourceNotFound_WhenIdMissing()
     {
         using var ctx = CreateContext();
-        var handler = new ReplayWebhookEventHandler(new SmartsuppWebhookAuditRepository(ctx), Mock.Of<IMediator>());
+        var currentUserService = CreateCurrentUserServiceMock();
+        var handler = new ReplayWebhookEventHandler(
+            new SmartsuppWebhookAuditRepository(ctx), Mock.Of<IMediator>(), currentUserService.Object);
 
         var response = await handler.Handle(
-            new ReplayWebhookEventRequest { Id = Guid.NewGuid(), ReplayedBy = "x" }, default);
+            new ReplayWebhookEventRequest { Id = Guid.NewGuid() }, default);
 
         response.Success.Should().BeFalse();
         response.ErrorCode.Should().Be(ErrorCodes.ResourceNotFound);
@@ -95,9 +109,11 @@ public class ReplayWebhookEventHandlerTests
         });
         await ctx.SaveChangesAsync();
 
-        var handler = new ReplayWebhookEventHandler(new SmartsuppWebhookAuditRepository(ctx), Mock.Of<IMediator>());
+        var currentUserService = CreateCurrentUserServiceMock();
+        var handler = new ReplayWebhookEventHandler(
+            new SmartsuppWebhookAuditRepository(ctx), Mock.Of<IMediator>(), currentUserService.Object);
         var response = await handler.Handle(
-            new ReplayWebhookEventRequest { Id = id, ReplayedBy = "x" }, default);
+            new ReplayWebhookEventRequest { Id = id }, default);
 
         response.Success.Should().BeFalse();
         response.ErrorCode.Should().Be(ErrorCodes.InvalidOperation);

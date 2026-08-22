@@ -402,4 +402,7 @@ internal sealed class NoOpSmartsuppRepository : ISmartsuppRepository
 
     public Task UpdateVisitorCacheAsync(string conversationId, string? userAgent, string? os, string? browser,
         string? browserVersion, int? visitsCount, DateTime fetchedAt, CancellationToken cancellationToken) => Task.CompletedTask;
+
+    public Task<bool> ContactExistsAsync(string contactId, CancellationToken cancellationToken) =>
+        Task.FromResult(false);
 }

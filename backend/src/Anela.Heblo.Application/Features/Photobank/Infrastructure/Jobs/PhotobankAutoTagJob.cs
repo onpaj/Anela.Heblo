@@ -105,6 +105,7 @@ public class PhotobankAutoTagJob : IRecurringJob
         CancellationToken ct)
     {
         var batchIds = batch.Select(p => p.Id).ToList();
+        var batchIdSet = new HashSet<int>(batchIds);
 
         var systemPrompt = BuildSystemPrompt(tagsByName.Keys);
         var userPrompt = BuildUserPrompt(batch);
@@ -132,7 +133,7 @@ public class PhotobankAutoTagJob : IRecurringJob
 
         foreach (var result in parsed.Results ?? [])
         {
-            await ApplyTagsForPhotoAsync(result, tagsByName, ct);
+            await ApplyTagsForPhotoAsync(result, batchIdSet, tagsByName, ct);
         }
 
         await _photoTagRepository.SaveChangesAsync(ct);
@@ -142,9 +143,18 @@ public class PhotobankAutoTagJob : IRecurringJob
 
     private async Task ApplyTagsForPhotoAsync(
         AutoTagResult result,
+        HashSet<int> batchIds,
         Dictionary<string, int> tagsByName,
         CancellationToken ct)
     {
+        if (!batchIds.Contains(result.Id))
+        {
+            _logger.LogWarning(
+                "AI tagging result id {ResultId} is not in the sent batch (batch size {BatchSize}); dropping result.",
+                result.Id, batchIds.Count);
+            return;
+        }
+
         var validTags = (result.Tags ?? [])
             .Where(name => tagsByName.ContainsKey(name))
             .Distinct()

@@ -147,6 +147,11 @@ export default defineConfig({
       use: { ...devices['Desktop Chrome'] },
     },
     {
+      name: 'mindmaps',
+      testDir: './test/e2e/mindmaps',
+      use: { ...devices['Desktop Chrome'] },
+    },
+    {
       name: 'finance',
       testDir: './test/e2e/finance',
       use: { ...devices['Desktop Chrome'] },

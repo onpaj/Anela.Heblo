@@ -1,5 +1,7 @@
 import React from "react";
 import { HourBucket } from "../../../api/hooks/usePackingStatistics";
+import { useTheme } from "../../../contexts/ThemeContext";
+import { GRAPHITE } from "../../common/reactSelectDarkStyles";
 
 interface PackingHourHeatmapProps {
   data: HourBucket[];
@@ -16,6 +18,8 @@ const cellKey = (dayOfWeek: number, hour: number): string => `${dayOfWeek}-${hou
  * so this is a simple CSS grid with opacity scaled to each cell's share of the max.
  */
 const PackingHourHeatmap: React.FC<PackingHourHeatmapProps> = ({ data }) => {
+  const { theme } = useTheme();
+  const isDark = theme === "dark";
   const counts = React.useMemo(() => {
     const map = new Map<string, number>();
     for (const bucket of data) {
@@ -46,7 +50,7 @@ const PackingHourHeatmap: React.FC<PackingHourHeatmapProps> = ({ data }) => {
 
   if (data.length === 0) {
     return (
-      <p className="text-sm text-neutral-gray italic">Žádná data k zobrazení.</p>
+      <p className="text-sm text-neutral-gray italic dark:text-graphite-muted">Žádná data k zobrazení.</p>
     );
   }
 
@@ -57,7 +61,7 @@ const PackingHourHeatmap: React.FC<PackingHourHeatmapProps> = ({ data }) => {
           <tr>
             <th className="w-8" />
             {hours.map((hour) => (
-              <th key={hour} className="text-xs font-normal text-neutral-gray text-center w-7">
+              <th key={hour} className="text-xs font-normal text-neutral-gray text-center w-7 dark:text-graphite-muted">
                 {hour}
               </th>
             ))}
@@ -68,7 +72,7 @@ const PackingHourHeatmap: React.FC<PackingHourHeatmapProps> = ({ data }) => {
             const dayOfWeek = index + 1; // ISO 1..7
             return (
               <tr key={dayOfWeek}>
-                <td className="text-xs text-neutral-gray pr-1 text-right">{label}</td>
+                <td className="text-xs text-neutral-gray pr-1 text-right dark:text-graphite-muted">{label}</td>
                 {hours.map((hour) => {
                   const count = counts.get(cellKey(dayOfWeek, hour)) ?? 0;
                   const intensity = maxCount > 0 ? count / maxCount : 0;
@@ -80,8 +84,12 @@ const PackingHourHeatmap: React.FC<PackingHourHeatmapProps> = ({ data }) => {
                       style={{
                         backgroundColor:
                           count === 0
-                            ? "var(--heatmap-empty, #f1f5f9)"
-                            : `rgba(37, 99, 235, ${0.15 + intensity * 0.85})`,
+                            ? isDark
+                              ? GRAPHITE.surface2
+                              : "#f1f5f9"
+                            : isDark
+                              ? `rgba(56, 189, 248, ${0.35 + intensity * 0.65})`
+                              : `rgba(37, 99, 235, ${0.15 + intensity * 0.85})`,
                       }}
                     />
                   );

@@ -1,5 +1,6 @@
 using System.Text.Json;
 using Anela.Heblo.Application.Features.Smartsupp;
+using Anela.Heblo.Application.Features.Smartsupp.Infrastructure;
 using Anela.Heblo.Application.Features.Smartsupp.UseCases.ProcessWebhookEvent;
 using Anela.Heblo.Application.Features.Smartsupp.UseCases.ProcessWebhookEvent.Reactions;
 using Anela.Heblo.Domain.Features.Smartsupp;
@@ -12,6 +13,14 @@ namespace Anela.Heblo.Tests.Features.Smartsupp.Reactions;
 public class ConversationReactionsTests
 {
     private readonly Mock<ISmartsuppRepository> _repo = new();
+    private readonly Mock<ISmartsuppContactEnricher> _enricher = new();
+
+    public ConversationReactionsTests()
+    {
+        _enricher
+            .Setup(e => e.EnrichContactAsync(It.IsAny<SmartsuppConversation>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((SmartsuppConversation c, CancellationToken _) => c);
+    }
 
     private static JsonElement Parse(string json) =>
         JsonDocument.Parse(json).RootElement.Clone();
@@ -45,7 +54,7 @@ public class ConversationReactionsTests
     [Fact]
     public async Task ConversationOpenedReaction_UpsertsConversation()
     {
-        var reaction = new ConversationOpenedReaction(_repo.Object);
+        var reaction = new ConversationOpenedReaction(_repo.Object, _enricher.Object);
         var ctx = MakeCtx("conversation.opened", $@"{{""conversation"":{ConvJson()}}}");
 
         await reaction.HandleAsync(ctx, CancellationToken.None);
@@ -58,14 +67,14 @@ public class ConversationReactionsTests
     [Fact]
     public void ConversationOpenedReaction_HasCorrectEventName()
     {
-        var reaction = new ConversationOpenedReaction(_repo.Object);
+        var reaction = new ConversationOpenedReaction(_repo.Object, _enricher.Object);
         reaction.EventName.Should().Be("conversation.opened");
     }
 
     [Fact]
     public async Task ConversationClosedReaction_UpsertsConversationWithCloseType()
     {
-        var reaction = new ConversationClosedReaction(_repo.Object);
+        var reaction = new ConversationClosedReaction(_repo.Object, _enricher.Object);
         var ctx = MakeCtx("conversation.closed", $@"{{
             ""conversation"":{ConvJson(status: "closed")},
             ""close_type"":""agent"",
@@ -86,7 +95,7 @@ public class ConversationReactionsTests
     [Fact]
     public async Task ConversationClosedByContactReaction_UpsertsConversation_WithContactCloseType()
     {
-        var reaction = new ConversationClosedByContactReaction(_repo.Object);
+        var reaction = new ConversationClosedByContactReaction(_repo.Object, _enricher.Object);
         var ctx = MakeCtx("conversation.closed_by_contact", $@"{{""conversation"":{ConvJson()}}}");
 
         await reaction.HandleAsync(ctx, CancellationToken.None);
@@ -99,7 +108,7 @@ public class ConversationReactionsTests
     [Fact]
     public async Task ConversationClosedReaction_UnspecifiedTimestamp_StampsLastClosedAtAsUtc()
     {
-        var reaction = new ConversationClosedReaction(_repo.Object);
+        var reaction = new ConversationClosedReaction(_repo.Object, _enricher.Object);
         var ctx = MakeCtx("conversation.closed", $@"{{
             ""conversation"":{ConvJson(status: "closed")},
             ""close_type"":""agent"",
@@ -117,7 +126,7 @@ public class ConversationReactionsTests
     [Fact]
     public async Task ConversationClosedByContactReaction_UnspecifiedTimestamp_StampsLastClosedAtAsUtc()
     {
-        var reaction = new ConversationClosedByContactReaction(_repo.Object);
+        var reaction = new ConversationClosedByContactReaction(_repo.Object, _enricher.Object);
         var ctx = MakeCtx("conversation.closed_by_contact", $@"{{""conversation"":{ConvJson()}}}");
         ctx.Timestamp = DateTime.SpecifyKind(ctx.Timestamp, DateTimeKind.Unspecified);
 
@@ -131,7 +140,7 @@ public class ConversationReactionsTests
     [Fact]
     public async Task ConversationContactRepliedReaction_UpsertsConversationAndMessage()
     {
-        var reaction = new ConversationContactRepliedReaction(_repo.Object);
+        var reaction = new ConversationContactRepliedReaction(_repo.Object, _enricher.Object);
         var ctx = MakeCtx("conversation.contact_replied", $@"{{
             ""conversation"":{ConvJson()},
             ""message"":{MsgJson(subType: "contact")}
@@ -146,7 +155,7 @@ public class ConversationReactionsTests
     [Fact]
     public async Task ConversationAgentRepliedReaction_UpsertsConversationAndMessage()
     {
-        var reaction = new ConversationAgentRepliedReaction(_repo.Object);
+        var reaction = new ConversationAgentRepliedReaction(_repo.Object, _enricher.Object);
         var ctx = MakeCtx("conversation.agent_replied", $@"{{
             ""conversation"":{ConvJson()},
             ""message"":{MsgJson(subType: "agent")}
@@ -161,7 +170,7 @@ public class ConversationReactionsTests
     [Fact]
     public async Task ConversationBotRepliedReaction_UpsertsConversationAndMessage()
     {
-        var reaction = new ConversationBotRepliedReaction(_repo.Object);
+        var reaction = new ConversationBotRepliedReaction(_repo.Object, _enricher.Object);
         var ctx = MakeCtx("conversation.bot_replied", $@"{{
             ""conversation"":{ConvJson()},
             ""message"":{MsgJson(subType: "bot")}
@@ -176,7 +185,7 @@ public class ConversationReactionsTests
     [Fact]
     public async Task ConversationAgentAssignedReaction_UpsertsConversationWithAssignedAgent()
     {
-        var reaction = new ConversationAgentAssignedReaction(_repo.Object);
+        var reaction = new ConversationAgentAssignedReaction(_repo.Object, _enricher.Object);
         var ctx = MakeCtx("conversation.agent_assigned", $@"{{
             ""conversation"":{ConvJson()},
             ""assigned"":""456"",
@@ -191,7 +200,7 @@ public class ConversationReactionsTests
     [Fact]
     public async Task ConversationAgentUnassignedReaction_UpsertsConversation()
     {
-        var reaction = new ConversationAgentUnassignedReaction(_repo.Object);
+        var reaction = new ConversationAgentUnassignedReaction(_repo.Object, _enricher.Object);
         var ctx = MakeCtx("conversation.agent_unassigned", $@"{{
             ""conversation"":{ConvJson()},
             ""unassigned"":""456"",
@@ -287,7 +296,7 @@ public class ConversationReactionsTests
     [Fact]
     public async Task ConversationRatedReaction_UpsertsConversationWithRating()
     {
-        var reaction = new ConversationRatedReaction(_repo.Object);
+        var reaction = new ConversationRatedReaction(_repo.Object, _enricher.Object);
         var ctx = MakeCtx("conversation.rated", $@"{{
             ""conversation"":{ConvJson()},
             ""rating_value"":5,

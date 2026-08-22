@@ -1,4 +1,4 @@
-import type { FolderStatus } from '../../../../../api/hooks/useCatalogDocuments';
+import { type FolderStatus } from '../../../../../api/generated/api-client';
 
 interface FolderStatusBannerProps {
   status: FolderStatus;
