@@ -76,7 +76,13 @@ Before declaring any task done:
 - OpenAPI TypeScript client is auto-generated on build.
 - Docker images are pushed to Docker Hub.
 - E2E suite runs **nightly**, not in PR CI.
-- GitHub access via `gh` CLI only — never use MCP GitHub tools.
+- **GitHub access depends on who is asking.** Interactive/manual work (you, answering a
+  question or driving a task by hand) uses the `gh` CLI. The pipeline skills
+  (`/automerge-pr`, `/automerge-all`, `/hygiene-pr`, `/hygiene-all`, `/rework-pr`,
+  `/rework-all`) use the `github` MCP server (`mcp__github__*`) for their own reads and
+  writes, falling back to `.claude/skills/_lib/gh_api.sh` (curl+REST, `USE_GH_API=1`)
+  when MCP is not connected — they run where `gh` is blocked. Never use the
+  `mcp__plugin_everything-claude-code_github__*` plugin tools in either mode.
 
 ## Memory
 
