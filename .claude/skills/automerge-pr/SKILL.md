@@ -21,7 +21,8 @@ GitHub access here is split in two, and the split is deliberate:
   MCP server** — the `mcp__github__*` tools. Do not shell out to `gh`, and
   do not hand-write `curl` calls against `api.github.com`.
 - **Everything the scripts do** (`candidates.sh`, `apply_verdict.sh`,
-  `hygiene-pr/update_and_wait.sh`) stays inside those scripts. They keep
+  `hygiene-pr/update_and_wait.sh`, `hygiene-pr/resolve_conflict.sh`) stays
+  inside those scripts. They keep
   their own transport — `gh` by default, or `.claude/skills/_lib/gh_api.sh`
   when `USE_GH_API` is set. That is their business, not yours: never
   reimplement a script's GitHub call as an MCP call to "check its work".
@@ -85,14 +86,29 @@ yourself — this call *is* that check, plus the fix, in one step.
 Branch on its `status`:
 
 - **`already-clean` or `fixed`** → continue to step 3 (review).
-- **`still-failing` or `conflict`** → **skip the review entirely.** The
-  script itself already flagged this PR `needs-work` and posted a comment
-  explaining why (via `apply_verdict.sh`, the same mechanism this skill
-  uses for a code-review rejection) — that happens inside
+- **`still-failing`** → **skip the review entirely.** The script itself
+  already flagged this PR `needs-work` and posted a comment explaining why
+  (via `_lib/flag_needs_work.sh` → `apply_verdict.sh`, the same mechanism
+  this skill uses for a code-review rejection) — that happens inside
   `update_and_wait.sh` now, not here, so hygiene-pr/hygiene-all produce the
   same durable trail even when run standalone. Do not post anything
   yourself. Report this PR (number, hygiene status, action: `needs-work`)
   and stop — do not proceed to step 3 for this PR.
+- **`conflict`** → nothing has been flagged: resolving the conflict is
+  hygiene's job, and it has not been attempted yet. Follow
+  **`.claude/skills/hygiene-pr/SKILL.md` step 3** for this PR — it is the
+  one owner of that procedure; do not improvise your own `git merge`.
+  Then:
+  - it reported `conflict-resolved` → re-read the follow-up
+    `update_and_wait.sh --force` status it gives you and branch on it here
+    exactly as if it had come from step 2 (`already-clean`/`fixed` →
+    continue to step 3; anything else → its own bullet above).
+  - it reported `conflict-unresolved` → the PR is already flagged
+    `needs-work`. Report it (number, `conflict-unresolved`, action:
+    `needs-work`) and stop.
+  - it reported `conflict-claimed-elsewhere` or `conflict-not-open` →
+    report this PR as skipped with that reason and stop. Nothing was
+    touched and nothing is flagged.
 - **`ci-running`** → report this PR as skipped (`CI already running from a
   prior push, retry later`) and stop. Nothing was touched this run — no
   branch update, no polling: the PR needs nothing done to it except for a
@@ -279,6 +295,7 @@ Do not restate these values elsewhere; each lives in exactly one file.
 | `MAX_CANDIDATES`, `AGENT_LABEL` | `candidates.sh` |
 | `MERGED_ISSUE_LABEL`, `NEEDS_WORK_LABEL`, `HUMAN_REQUIRED_LABEL` | `apply_verdict.sh` |
 | `HYGIENE_POLL_INTERVAL_SECONDS`, `HYGIENE_POLL_MAX_ATTEMPTS`, `HYGIENE_NO_CHECKS_GRACE_ATTEMPTS` | `hygiene-pr/update_and_wait.sh` |
+| the needs-work comment block (`verdict: REJECT`) | `_lib/flag_needs_work.sh` |
 
 ## Limits worth knowing
 
@@ -306,7 +323,10 @@ labelled `human-required` and excluded from future candidate lists by
 either act on it directly (merge, close, push a fix) or remove the label
 to send it through another automated pass.
 
-`hygiene-pr` only resolves conflicts it can fast-forward/merge cleanly. A
-genuinely `CONFLICTING` PR reports `conflict` here and gets flagged
-`needs-work` without ever reaching review — `/rework-pr` is what actually
-resolves real conflicts.
+A PR whose conflict step 2 resolved is reviewed on the diff *including* that
+resolution — the merge commit this run just pushed is part of what the
+reviewer scores, and a wrong reconciliation can therefore be merged by this
+skill on the strength of a review that had no independent view of the
+conflicting hunks. `/rework-pr` also resolves conflicts, as part of revising
+a rejected PR; the two are different entry points to the same judgement
+call, not a fallback chain.
