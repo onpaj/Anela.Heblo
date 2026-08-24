@@ -22,7 +22,7 @@
     },
     "developing": {
       "status": "in_progress",
-      "updated_at": "2026-08-24T06:16:49.656998Z"
+      "updated_at": "2026-08-24T07:17:03.985692Z"
     }
   },
   "tasks": [
@@ -34,9 +34,9 @@
     },
     {
       "name": "add-vat-classification-rule-tests",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-08-24T07:17:04.175157Z"
     }
   ]
 }
