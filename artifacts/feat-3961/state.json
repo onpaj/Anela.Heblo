@@ -28,9 +28,9 @@
   "tasks": [
     {
       "name": "add-shippingmethodmapper-tests",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-08-24T11:15:09.055002Z"
+      "updated_at": "2026-08-24T12:05:11.521939Z"
     }
   ]
 }
