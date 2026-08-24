@@ -34,9 +34,9 @@
     },
     {
       "name": "add-vat-classification-rule-tests",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-08-24T07:17:04.175157Z"
+      "updated_at": "2026-08-24T08:37:39.211814Z"
     }
   ]
 }
