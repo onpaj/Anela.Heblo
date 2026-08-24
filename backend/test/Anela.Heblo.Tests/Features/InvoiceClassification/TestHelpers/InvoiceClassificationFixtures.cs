@@ -8,12 +8,14 @@ internal static class InvoiceClassificationFixtures
         decimal totalAmount = 0m,
         string companyName = "",
         string description = "",
+        string companyVat = "",
         params string[] itemNames)
     {
         return new ReceivedInvoice
         {
             CompanyName = companyName,
             Description = description,
+            CompanyVat = companyVat,
             TotalAmount = totalAmount,
             Items = itemNames
                 .Select(name => new ReceivedInvoiceItem { Name = name })
