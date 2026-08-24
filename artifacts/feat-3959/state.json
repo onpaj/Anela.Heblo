@@ -28,9 +28,9 @@
   "tasks": [
     {
       "name": "extend-invoice-classification-fixture",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-08-24T06:16:50.151776Z"
+      "updated_at": "2026-08-24T06:59:04.140210Z"
     },
     {
       "name": "add-vat-classification-rule-tests",
