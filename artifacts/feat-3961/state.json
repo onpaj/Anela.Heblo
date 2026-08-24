@@ -21,16 +21,16 @@
       "updated_at": "2026-08-24T07:23:45.140493Z"
     },
     "developing": {
-      "status": "pending",
-      "updated_at": null
+      "status": "in_progress",
+      "updated_at": "2026-08-24T11:15:08.747713Z"
     }
   },
   "tasks": [
     {
       "name": "add-shippingmethodmapper-tests",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-08-24T11:15:09.055002Z"
     }
   ]
 }
