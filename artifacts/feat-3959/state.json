@@ -21,16 +21,16 @@
       "updated_at": "2026-08-24T05:20:43.852391Z"
     },
     "developing": {
-      "status": "pending",
-      "updated_at": null
+      "status": "in_progress",
+      "updated_at": "2026-08-24T06:16:49.656998Z"
     }
   },
   "tasks": [
     {
       "name": "extend-invoice-classification-fixture",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-08-24T06:16:50.151776Z"
     },
     {
       "name": "add-vat-classification-rule-tests",
