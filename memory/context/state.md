@@ -36,6 +36,20 @@ _Update this file at the end of significant sessions._
   `.claude/skills/_lib/gh_api.sh` (missing `Content-Type: application/json` on
   POST/PATCH) as part of the same PR.
 
+- Coverage-gap fix for `ShippingMethodMapper` (issue #3961, PR #3964,
+  `claude/beautiful-darwin-7pcjww`, 2026-08-24): same pattern again on a scheduled
+  `/plan-next-task` run — designated-branch session, gh CLI/API writes blocked
+  (`403 Write access ... not permitted through this proxy`, and `gh_api.sh`'s
+  Content-Type fix from #3944 was locally reverted, uncommitted, in this
+  session's working tree — left untouched as unrelated/out of scope). Used
+  `mcp__github__*` tools for branch creation, label edits, and PR creation;
+  implemented the missing unit tests directly instead of running the AgentHarness
+  planning pipeline. Left one harmless empty orphan branch
+  (`feature/3961-Coverage-Gap-Invoices-Shippingmethodmapper-All-Thr`, created via
+  MCP before pivoting to the designated-branch approach) — couldn't delete it,
+  remote branch deletion (`git push --delete` and REST) is also blocked by the
+  proxy's write restriction; it has no unique commits and doesn't block anything.
+
 ## Pending / Known Issues
 
 - Memory directory (issue #405): adding cross-session knowledge accumulation — this PR
