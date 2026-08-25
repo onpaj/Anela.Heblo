@@ -84,3 +84,17 @@ the project's real build/tests, and open the PR with
 `mcp__github__create_pull_request` + `issue_write` for the label — same
 outcome (labeled PR, `Closes #N`, `#N: <summary>` title) without the
 pipeline machinery.
+
+**Recurring regression (seen again 2026-08-25):** every session's
+SessionStart hook runs `agentharness init`, which re-copies its bundled
+skill/agent scaffolding over the repo's own copies — including
+`.claude/skills/_lib/gh_api.sh` from an AgentHarness package version whose
+bundled template still lacks the `Content-Type: application/json` header.
+This silently reintroduces the exact bug PR #3944 fixed, as an *uncommitted
+local diff* at the start of every session (confirm with
+`git diff .claude/skills/_lib/gh_api.sh` before assuming the fix is live).
+Do not commit that reverted diff — it undoes merged work. Just
+`git checkout -- .claude/skills/_lib/gh_api.sh` to restore the fixed
+version before relying on `USE_GH_API=1`. The real fix is upstream (bump
+the AgentHarness package so its bundled template carries the fix), not
+something to patch per-session.
