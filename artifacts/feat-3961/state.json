@@ -1,0 +1,40 @@
+{
+  "feature_id": "feat-3961",
+  "issue_number": 3961,
+  "created_at": "2026-08-24T07:14:38.433001Z",
+  "max_revisions": 3,
+  "phases": {
+    "analyzing": {
+      "status": "completed",
+      "updated_at": "2026-08-24T07:16:55.825943Z"
+    },
+    "architecting": {
+      "status": "completed",
+      "updated_at": "2026-08-24T07:19:08.659778Z"
+    },
+    "designing": {
+      "status": "completed",
+      "updated_at": "2026-08-24T07:20:12.377122Z"
+    },
+    "planning": {
+      "status": "completed",
+      "updated_at": "2026-08-24T07:23:45.140493Z"
+    },
+    "developing": {
+      "status": "in_progress",
+      "updated_at": "2026-08-24T11:15:08.747713Z"
+    },
+    "code-review": {
+      "status": "completed",
+      "updated_at": "2026-08-24T12:19:32.196566Z"
+    }
+  },
+  "tasks": [
+    {
+      "name": "add-shippingmethodmapper-tests",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-08-24T12:05:11.521939Z"
+    }
+  ]
+}
