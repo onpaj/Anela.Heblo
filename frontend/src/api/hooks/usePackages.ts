@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { getAuthenticatedApiClient } from "../client";
 import type { Carriers, PackageDto as GeneratedPackageDto } from "../generated/api-client";
 import { getErrorMessage } from "../../utils/errorHandler";
+import { callApi } from "../apiErrorEnvelope";
 
 const GENERIC_DELETE_ERROR = "Nepodařilo se smazat balík.";
 
@@ -89,13 +90,11 @@ export const useDeletePackageMutation = () => {
   return useMutation({
     mutationFn: async (id: number): Promise<void> => {
       const apiClient = getAuthenticatedApiClient();
-      const response = await apiClient.packaging_DeletePackage(id);
-      if (!response.success) {
-        const message = response.errorCode
-          ? getErrorMessage(response.errorCode, response.params)
-          : GENERIC_DELETE_ERROR;
-        throw new Error(message);
-      }
+      await callApi(
+        () => apiClient.packaging_DeletePackage(id),
+        ({ errorCode, params }) =>
+          errorCode ? getErrorMessage(errorCode, params) : GENERIC_DELETE_ERROR,
+      );
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: packageKeys.all });
