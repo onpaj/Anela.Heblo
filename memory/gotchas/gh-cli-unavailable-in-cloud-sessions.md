@@ -68,6 +68,18 @@ fall through to this note's established workaround (MCP tools, direct
 implementation on the designated branch) rather than retrying or treating
 it as transient.
 
+**Regression risk from the SessionStart setup hook (seen 2026-08-26):** the
+cloud-session startup hook writes/refreshes `.claude/skills/_lib/gh_api.sh`
+(and likely other packaged skill files) from a template that predates the
+Content-Type fix above, silently reverting `req()` back to the broken
+`curl -d "$body"` (no `-H "Content-Type: application/json"`) every time a
+fresh session starts — even though the fix is committed on this branch. If
+`git status` shows `gh_api.sh` modified at session start with no edits made
+yet, this is why: diff it, and if the only change is the missing
+Content-Type header, `git checkout -- .claude/skills/_lib/gh_api.sh` to
+restore the fixed version rather than committing the reverted one. Don't
+mistake this hook-caused diff for in-progress work to commit and push.
+
 When the designated-branch override applies, also skip the full
 AgentHarness multi-agent `orchestrator`/`agentharness checkpoint` pipeline
 (analyst → architect → designer → planner → developer → reviewer with a
