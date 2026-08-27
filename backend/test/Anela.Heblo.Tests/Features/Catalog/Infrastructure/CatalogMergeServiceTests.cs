@@ -30,6 +30,7 @@ public class CatalogMergeServiceTests
             Mock.Of<ILogger<CatalogCacheStore>>());
         var service = new CatalogMergeService(
             store,
+            new BundleSalesExpander(),
             _timeProviderMock.Object,
             Mock.Of<ILogger<CatalogMergeService>>());
         return (store, service);
@@ -257,5 +258,64 @@ public class CatalogMergeServiceTests
         staleAfterSecondPass.Should().NotBeSameAs(currentAfterSecondPass);
         staleAfterSecondPass.Stock.Should().NotBeSameAs(currentAfterSecondPass.Stock);
         currentAfterSecondPass.Stock.Erp.Should().Be(99);
+    }
+
+    private static void SeedBundleSale(CatalogCacheStore store)
+    {
+        store.SetErpStockData(new List<ErpStock>
+        {
+            new() { ProductCode = "BAL001", ProductName = "Balíček", ProductId = 1, ProductTypeId = (int)ProductType.Product },
+            new() { ProductCode = "KRM001", ProductName = "Krém",    ProductId = 2, ProductTypeId = (int)ProductType.Product },
+        });
+        store.SetSalesData(new List<CatalogSaleRecord>
+        {
+            new()
+            {
+                Date = new DateTime(2026, 8, 20),
+                ProductCode = "BAL001",
+                ProductName = "Balíček",
+                AmountB2C = 5,
+                AmountTotal = 5,
+                SumB2C = 2500,
+                SumTotal = 2500,
+            },
+        });
+        store.SetSetPartsData(new List<CatalogSetPart>
+        {
+            new() { SetCode = "BAL001", ComponentCode = "KRM001", ComponentName = "Krém", Amount = 2 },
+        });
+    }
+
+    [Fact]
+    public async Task Merge_AddsBundleQuantitiesToComponentSalesHistory()
+    {
+        // Arrange
+        var (store, service) = Create();
+        SeedBundleSale(store);
+
+        // Act
+        var result = await service.ExecutePriorityMergeAsync();
+
+        // Assert
+        var component = result.Single(p => p.ProductCode == "KRM001");
+        component.GetTotalSold(new DateTime(2026, 8, 1), new DateTime(2026, 8, 31))
+            .Should().Be(10);
+    }
+
+    [Fact]
+    public async Task Merge_DoesNotAddRevenueToComponentFromBundleSale()
+    {
+        // Arrange
+        var (store, service) = Create();
+        SeedBundleSale(store);
+
+        // Act
+        var result = await service.ExecutePriorityMergeAsync();
+
+        // Assert
+        result.Single(p => p.ProductCode == "KRM001")
+            .SaleHistorySummary.MonthlyData["2026-08"].TotalB2C.Should().Be(0);
+        result.Single(p => p.ProductCode == "BAL001")
+            .SaleHistorySummary.MonthlyData["2026-08"].TotalB2C.Should().Be(2500);
     }
 }

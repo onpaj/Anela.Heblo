@@ -143,11 +143,13 @@ public class CatalogRepositoryCacheOptimizationTests
 
         _mergeService = new CatalogMergeService(
             _cacheStore,
+            new BundleSalesExpander(),
             _timeProviderMock.Object,
             new Mock<ILogger<CatalogMergeService>>().Object);
 
         _refreshService = new CatalogDataRefreshService(
             _salesClientMock.Object,
+            new Mock<ICatalogSetPartsClient>().Object,
             _attributesClientMock.Object,
             _eshopStockClientMock.Object,
             _consumedMaterialClientMock.Object,

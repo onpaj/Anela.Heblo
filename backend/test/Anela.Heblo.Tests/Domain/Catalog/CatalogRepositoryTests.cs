@@ -123,11 +123,13 @@ public class CatalogRepositoryTests
 
         _mergeService = new CatalogMergeService(
             _cacheStore,
+            new BundleSalesExpander(),
             _timeProviderMock.Object,
             new Mock<ILogger<CatalogMergeService>>().Object);
 
         _refreshService = new CatalogDataRefreshService(
             _salesClientMock.Object,
+            new Mock<ICatalogSetPartsClient>().Object,
             _attributesClientMock.Object,
             _eshopStockClientMock.Object,
             _consumedMaterialClientMock.Object,
@@ -643,5 +645,43 @@ public class CatalogRepositoryTests
         _marginServiceMock.Verify(
             x => x.GetMarginAsync(product, CatalogConstants.MARGIN_HISTORY_FLOOR_DATE, expectedDateTo, It.IsAny<CancellationToken>()),
             Times.Once);
+    }
+
+    [Fact]
+    public async Task GetProductsWithSalesInPeriod_ExcludesProductWhoseOnlySalesAreSyntheticBundleComponents()
+    {
+        // Arrange - one product sold directly, one sold only as part of a bundle. The synthetic
+        // record carries no revenue, so treating it as "has sales" would put a zero-revenue product
+        // into the margin/analytics stream.
+        var from = new DateTime(2026, 1, 1);
+        var to = new DateTime(2026, 1, 31);
+
+        var directlySold = new CatalogAggregate
+        {
+            ProductCode = "KRM001",
+            Type = ProductType.Product,
+            SalesHistory = new List<CatalogSaleRecord>
+            {
+                new() { Date = new DateTime(2026, 1, 10), ProductCode = "KRM001", AmountTotal = 5, SumTotal = 500 },
+            },
+        };
+
+        var bundleComponentOnly = new CatalogAggregate
+        {
+            ProductCode = "MYD001",
+            Type = ProductType.Product,
+            SalesHistory = new List<CatalogSaleRecord>
+            {
+                new() { Date = new DateTime(2026, 1, 12), ProductCode = "MYD001", AmountTotal = 3, SourceBundleCode = "BAL001" },
+            },
+        };
+
+        _cache.Set("CatalogData_Current", new List<CatalogAggregate> { directlySold, bundleComponentOnly });
+
+        // Act
+        var result = await _repository.GetProductsWithSalesInPeriod(from, to, new[] { ProductType.Product });
+
+        // Assert
+        result.Should().ContainSingle().Which.ProductCode.Should().Be("KRM001");
     }
 }

@@ -18,15 +18,18 @@ namespace Anela.Heblo.Application.Features.Catalog.Infrastructure;
 public sealed class CatalogMergeService
 {
     private readonly CatalogCacheStore _cacheStore;
+    private readonly BundleSalesExpander _bundleExpander;
     private readonly TimeProvider _timeProvider;
     private readonly ILogger<CatalogMergeService> _logger;
 
     public CatalogMergeService(
         CatalogCacheStore cacheStore,
+        BundleSalesExpander bundleExpander,
         TimeProvider timeProvider,
         ILogger<CatalogMergeService> logger)
     {
         _cacheStore = cacheStore ?? throw new ArgumentNullException(nameof(cacheStore));
+        _bundleExpander = bundleExpander ?? throw new ArgumentNullException(nameof(bundleExpander));
         _timeProvider = timeProvider ?? throw new ArgumentNullException(nameof(timeProvider));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
@@ -110,7 +113,8 @@ public sealed class CatalogMergeService
         var inQuarantineData = _cacheStore.GetInQuarantineData();
         var orderedData = _cacheStore.GetOrderedData();
         var plannedData = _cacheStore.GetPlannedData();
-        var salesMap = _cacheStore.GetSalesData()
+        var salesMap = _bundleExpander
+            .Expand(_cacheStore.GetSalesData(), _cacheStore.GetSetPartsData())
             .GroupBy(s => s.ProductCode)
             .ToDictionary(k => k.Key, v => v.ToList());
         var manufactureDifficultyData = _cacheStore.GetManufactureDifficultySettingsData();
@@ -282,13 +286,6 @@ public sealed class CatalogMergeService
         }
     }
 
-    private static ProductType GetProductType(ErpStock s)
-    {
-        var type = (ProductType?)s.ProductTypeId ?? ProductType.UNDEFINED;
-
-        if (type == ProductType.Product && (s.ProductCode.StartsWith("BAL") || s.ProductCode.StartsWith("SET")))
-            return ProductType.Set;
-
-        return type;
-    }
+    private static ProductType GetProductType(ErpStock s) =>
+        BundleProductRule.Resolve((ProductType?)s.ProductTypeId ?? ProductType.UNDEFINED, s.ProductCode);
 }

@@ -15,4 +15,11 @@ public record CatalogSaleRecord
     public decimal SumTotal { get; set; }
     public decimal SumB2B { get; set; }
     public decimal SumB2C { get; set; }
+
+    /// <summary>
+    /// Set when this record was derived from a bundle sale rather than an invoice line.
+    /// Such records carry quantity only — all Sum* values are zero, so the bundle's own record
+    /// keeps the full revenue. Null on records that came straight from the ERP.
+    /// </summary>
+    public string? SourceBundleCode { get; set; }
 }

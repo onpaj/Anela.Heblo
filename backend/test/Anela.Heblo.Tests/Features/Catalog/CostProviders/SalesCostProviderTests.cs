@@ -175,6 +175,67 @@ public class SalesCostProviderTests
     }
 
     [Fact]
+    internal async Task RefreshAsync_ExcludesSyntheticBundleComponentSalesFromCostPerPieceDenominator()
+    {
+        // Arrange — PROD-A has a real sale plus a synthetic component-sale record derived from a
+        // bundle sale (SourceBundleCode set). The synthetic record must NOT count toward the
+        // company-wide total-sold-pieces denominator used to compute cost-per-piece: including it
+        // would lower cost-per-piece (and thus raise M2 margin) for every product in the catalog.
+        var now = DateTime.UtcNow;
+        var saleDate = new DateTime(now.Year, now.Month, 1).AddMonths(-1).AddDays(14);
+
+        var realSaleProduct = new CatalogAggregate
+        {
+            ProductCode = "PROD-A",
+            SalesHistory = new List<CatalogSaleRecord>
+            {
+                new CatalogSaleRecord { Date = saleDate, ProductCode = "PROD-A", ProductName = "PROD-A", AmountTotal = 10 },
+                new CatalogSaleRecord { Date = saleDate, ProductCode = "PROD-A", ProductName = "PROD-A", AmountTotal = 1000, SourceBundleCode = "BUNDLE001" }
+            }
+        };
+
+        var products = new List<CatalogAggregate> { realSaleProduct };
+        var warehouseCost = 600m;
+        var marketingCost = 600m;
+
+        // Expected denominator excludes the synthetic 1000-unit record: only the real 10 units count.
+        var expectedTotalSoldPieces = 10.0;
+        var expectedCostPerPiece = (decimal)((double)(warehouseCost + marketingCost) / expectedTotalSoldPieces);
+
+        var repoMock = new Mock<ICatalogRepository>();
+        repoMock.Setup(r => r.WaitForCurrentMergeAsync(It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);
+        repoMock.Setup(r => r.GetAllAsync(It.IsAny<CancellationToken>())).ReturnsAsync(products);
+
+        var ledgerMock = new Mock<ILedgerService>();
+        ledgerMock.Setup(s => s.GetDirectCosts(It.IsAny<DateTime>(), It.IsAny<DateTime>(), "SKLAD", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<CostStatistics>
+            {
+                new() { Date = saleDate, Cost = warehouseCost, Department = "SKLAD" }
+            });
+        ledgerMock.Setup(s => s.GetDirectCosts(It.IsAny<DateTime>(), It.IsAny<DateTime>(), "MARKETING", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<CostStatistics>
+            {
+                new() { Date = saleDate, Cost = marketingCost, Department = "MARKETING" }
+            });
+
+        CostCacheData? captured = null;
+        var cacheMock = new Mock<ISalesCostCache>();
+        cacheMock.Setup(c => c.SetCachedDataAsync(It.IsAny<CostCacheData>(), It.IsAny<CancellationToken>()))
+            .Callback<CostCacheData, CancellationToken>((d, _) => captured = d)
+            .Returns(Task.CompletedTask);
+
+        var provider = CreateProvider(cacheMock: cacheMock, repoMock: repoMock, ledgerMock: ledgerMock);
+
+        // Act
+        await provider.RefreshAsync();
+
+        // Assert
+        captured.Should().NotBeNull();
+        captured!.ProductCosts.Should().ContainKey("PROD-A");
+        captured.ProductCosts["PROD-A"].Should().AllSatisfy(mc => mc.Cost.Should().Be(expectedCostPerPiece));
+    }
+
+    [Fact]
     internal async Task RefreshAsync_WritesZeroCostsAndLogsWarning_WhenNoSalesInPeriod()
     {
         // Arrange

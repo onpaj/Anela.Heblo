@@ -103,11 +103,13 @@ public class CatalogRepositoryStaleDataAndChangesPendingTests
 
         var mergeService = new CatalogMergeService(
             cacheStore,
+            new BundleSalesExpander(),
             _timeProviderMock.Object,
             new Mock<ILogger<CatalogMergeService>>().Object);
 
         var refreshService = new CatalogDataRefreshService(
             _salesClientMock.Object,
+            new Mock<ICatalogSetPartsClient>().Object,
             _attributesClientMock.Object,
             _eshopStockClientMock.Object,
             _consumedMaterialClientMock.Object,
