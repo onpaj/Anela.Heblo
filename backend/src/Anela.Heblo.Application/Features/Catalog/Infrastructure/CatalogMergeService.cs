@@ -282,13 +282,6 @@ public sealed class CatalogMergeService
         }
     }
 
-    private static ProductType GetProductType(ErpStock s)
-    {
-        var type = (ProductType?)s.ProductTypeId ?? ProductType.UNDEFINED;
-
-        if (type == ProductType.Product && (s.ProductCode.StartsWith("BAL") || s.ProductCode.StartsWith("SET")))
-            return ProductType.Set;
-
-        return type;
-    }
+    private static ProductType GetProductType(ErpStock s) =>
+        BundleProductRule.Resolve((ProductType?)s.ProductTypeId ?? ProductType.UNDEFINED, s.ProductCode);
 }
