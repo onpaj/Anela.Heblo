@@ -60,6 +60,7 @@ public static class FlexiAdapterServiceCollectionExtensions
 
         services.AddSingleton<ICatalogAttributesClient, FlexiProductAttributesQueryClient>();
         services.AddSingleton<ICatalogSalesClient, FlexiCatalogSalesClient>();
+        services.AddSingleton<ICatalogSetPartsClient, FlexiCatalogSetPartsClient>();
         services.AddSingleton<IConsumedMaterialsClient, FlexiConsumedMaterialsQueryClient>();
         services.AddSingleton<IErpStockClient, FlexiStockClient>();
         services.AddScoped<IProductPriceErpClient, FlexiProductPriceErpClient>();
