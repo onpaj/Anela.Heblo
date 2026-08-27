@@ -179,6 +179,7 @@ public class TestCatalogRepository : ICatalogRepository
     public Task RefreshOrderedData(CancellationToken ct) => Task.CompletedTask;
     public Task RefreshPlannedData(CancellationToken ct) => Task.CompletedTask;
     public Task RefreshSalesData(CancellationToken ct) => Task.CompletedTask;
+    public Task RefreshSetPartsData(CancellationToken ct) => Task.CompletedTask;
     public Task RefreshAttributesData(CancellationToken ct) => Task.CompletedTask;
     public Task RefreshErpStockData(CancellationToken ct) => Task.CompletedTask;
     public Task RefreshEshopStockData(CancellationToken ct) => Task.CompletedTask;

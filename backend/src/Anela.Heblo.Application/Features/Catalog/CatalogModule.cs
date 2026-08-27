@@ -191,6 +191,11 @@ public static class CatalogModule
         );
 
         services.RegisterRefreshTask<ICatalogRepository>(
+            nameof(ICatalogRepository.RefreshSetPartsData),
+            (r, ct) => r.RefreshSetPartsData(ct)
+        );
+
+        services.RegisterRefreshTask<ICatalogRepository>(
             nameof(ICatalogRepository.RefreshAttributesData),
             (r, ct) => r.RefreshAttributesData(ct)
         );

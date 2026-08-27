@@ -22,6 +22,7 @@ namespace Anela.Heblo.Application.Features.Catalog.Infrastructure;
 public sealed class CatalogDataRefreshService
 {
     private readonly ICatalogSalesClient _salesClient;
+    private readonly ICatalogSetPartsClient _setPartsClient;
     private readonly ICatalogAttributesClient _attributesClient;
     private readonly IEshopStockClient _eshopStockClient;
     private readonly IConsumedMaterialsClient _consumedMaterialClient;
@@ -44,6 +45,7 @@ public sealed class CatalogDataRefreshService
 
     public CatalogDataRefreshService(
         ICatalogSalesClient salesClient,
+        ICatalogSetPartsClient setPartsClient,
         ICatalogAttributesClient attributesClient,
         IEshopStockClient eshopStockClient,
         IConsumedMaterialsClient consumedMaterialClient,
@@ -65,6 +67,7 @@ public sealed class CatalogDataRefreshService
         ILogger<CatalogDataRefreshService> logger)
     {
         _salesClient = salesClient ?? throw new ArgumentNullException(nameof(salesClient));
+        _setPartsClient = setPartsClient ?? throw new ArgumentNullException(nameof(setPartsClient));
         _attributesClient = attributesClient ?? throw new ArgumentNullException(nameof(attributesClient));
         _eshopStockClient = eshopStockClient ?? throw new ArgumentNullException(nameof(eshopStockClient));
         _consumedMaterialClient = consumedMaterialClient ?? throw new ArgumentNullException(nameof(consumedMaterialClient));
@@ -133,6 +136,27 @@ public sealed class CatalogDataRefreshService
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
             _logger.LogWarning(ex, "RefreshSalesData failed after all retries — retaining stale cache. Items in cache: {Count}", _cacheStore.GetSalesData().Count);
+        }
+    }
+
+    public async Task RefreshSetPartsData(CancellationToken ct)
+    {
+        try
+        {
+            var bundleCodes = _cacheStore.GetErpStockData()
+                .Where(s => BundleProductRule.Resolve((ProductType?)s.ProductTypeId ?? ProductType.UNDEFINED, s.ProductCode) == ProductType.Set)
+                .Select(s => s.ProductCode)
+                .ToList();
+
+            _cacheStore.SetSetPartsData(await _resilienceService.ExecuteWithResilienceAsync(
+                async (cancellationToken) => (IList<CatalogSetPart>)(await _setPartsClient.GetAsync(
+                    bundleCodes,
+                    cancellationToken)).ToList(),
+                "RefreshSetPartsData", ct));
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            _logger.LogWarning(ex, "RefreshSetPartsData failed after all retries — retaining stale cache. Items in cache: {Count}", _cacheStore.GetSetPartsData().Count);
         }
     }
 

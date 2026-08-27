@@ -128,6 +128,7 @@ public class CatalogRepositoryTests
 
         _refreshService = new CatalogDataRefreshService(
             _salesClientMock.Object,
+            new Mock<ICatalogSetPartsClient>().Object,
             _attributesClientMock.Object,
             _eshopStockClientMock.Object,
             _consumedMaterialClientMock.Object,

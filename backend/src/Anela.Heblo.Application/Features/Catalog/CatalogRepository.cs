@@ -111,6 +111,7 @@ public sealed class CatalogRepository : ICatalogRepository
     public Task RefreshOrderedData(CancellationToken ct) => _refreshService.RefreshOrderedData(ct);
     public Task RefreshPlannedData(CancellationToken ct) => _refreshService.RefreshPlannedData(ct);
     public Task RefreshSalesData(CancellationToken ct) => _refreshService.RefreshSalesData(ct);
+    public Task RefreshSetPartsData(CancellationToken ct) => _refreshService.RefreshSetPartsData(ct);
     public Task RefreshAttributesData(CancellationToken ct) => _refreshService.RefreshAttributesData(ct);
     public Task RefreshErpStockData(CancellationToken ct) => _refreshService.RefreshErpStockData(ct);
     public Task RefreshEshopStockData(CancellationToken ct) => _refreshService.RefreshEshopStockData(ct);

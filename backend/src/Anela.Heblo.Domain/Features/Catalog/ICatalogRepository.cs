@@ -10,6 +10,7 @@ public interface ICatalogRepository : IReadOnlyRepository<CatalogAggregate, stri
     Task RefreshOrderedData(CancellationToken ct);
     Task RefreshPlannedData(CancellationToken ct);
     Task RefreshSalesData(CancellationToken ct);
+    Task RefreshSetPartsData(CancellationToken ct);
     Task RefreshAttributesData(CancellationToken ct);
     Task RefreshErpStockData(CancellationToken ct);
     Task RefreshEshopStockData(CancellationToken ct);

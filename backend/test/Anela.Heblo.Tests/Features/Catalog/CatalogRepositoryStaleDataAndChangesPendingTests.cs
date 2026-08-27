@@ -108,6 +108,7 @@ public class CatalogRepositoryStaleDataAndChangesPendingTests
 
         var refreshService = new CatalogDataRefreshService(
             _salesClientMock.Object,
+            new Mock<ICatalogSetPartsClient>().Object,
             _attributesClientMock.Object,
             _eshopStockClientMock.Object,
             _consumedMaterialClientMock.Object,
