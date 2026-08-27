@@ -24,8 +24,10 @@ public sealed class BundleSalesExpander
             .GroupBy(p => p.SetCode, StringComparer.Ordinal)
             .ToDictionary(g => g.Key, g => g.ToList(), StringComparer.Ordinal);
 
+        // A copy even in the no-op case: returning the caller's list would alias the sales cache's
+        // own instance into the merge.
         if (partsBySet.Count == 0)
-            return salesList;
+            return salesList.ToList();
 
         var expanded = new List<CatalogSaleRecord>(salesList);
 
