@@ -219,9 +219,13 @@ behaviour rather than throwing.
 `RefreshSetPartsData` issues one Flexi call per bundle per refresh. At ~20 bundles this is
 negligible; at several hundred it needs batching or a longer refresh interval.
 
-**The bundle count is not yet known.** The first implementation step is to count
-`BAL`/`SET`-prefixed products in the catalog and record the number here. If it exceeds ~50, the
-client gains batching before the refresh task is wired up.
+**The bundle count is still unmeasured** (as of implementation, 2026-08-27). Counting it needs the
+Gift Package screen against deployed staging, which the implementation environment cannot reach.
+Implemented without batching: `FlexiCatalogSetPartsClient` loops set codes sequentially.
+
+`ICatalogSetPartsClient` takes `IEnumerable<string>`, so batching stays an internal detail of that
+one class and can be added later without touching any caller. If the catalog refresh becomes slow,
+count the bundles and batch there.
 
 ## Assembly-Lag Caveat
 
