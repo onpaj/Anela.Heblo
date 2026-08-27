@@ -98,7 +98,9 @@ public sealed class CatalogRepository : ICatalogRepository
     {
         var products = _cacheStore.GetCatalogData()
             .Where(p => productTypes.Contains(p.Type))
-            .Where(p => p.SalesHistory.Any(s => s.Date >= fromDate && s.Date <= toDate))
+            // Synthetic bundle-component records carry no revenue, so a product whose only in-period
+            // sales are synthetic would enter the margin/analytics stream with an empty history.
+            .Where(p => p.SalesHistory.Any(s => s.SourceBundleCode == null && s.Date >= fromDate && s.Date <= toDate))
             .ToList();
         return Task.FromResult(products);
     }
