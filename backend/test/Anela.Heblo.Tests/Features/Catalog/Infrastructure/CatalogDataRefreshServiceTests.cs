@@ -280,7 +280,13 @@ public sealed class CatalogDataRefreshServiceTests
     [Fact]
     public async Task RefreshSetPartsData_WhenResilienceThrows_RetainsStaleCacheAndLogsWarning()
     {
-        // Arrange
+        // Arrange — a bundle-coded product must exist in ERP stock, otherwise the empty-bundleCodes
+        // guard (see RefreshSetPartsData_WhenNoBundleCodedProductsExist_...) returns before the
+        // resilience call this test is exercising is ever reached.
+        _cacheStore.SetErpStockData(new List<ErpStock>
+        {
+            new() { ProductCode = "BAL001", ProductName = "Balíček", ProductTypeId = (int)ProductType.Product },
+        });
         _cacheStore.SetSetPartsData(new List<CatalogSetPart>
         {
             new() { SetCode = "BAL001", ComponentCode = "KRM001", ComponentName = "Krém", Amount = 2 },
@@ -306,6 +312,54 @@ public sealed class CatalogDataRefreshServiceTests
                 It.Is<LogLevel>(l => l == LogLevel.Warning),
                 It.IsAny<EventId>(),
                 It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains("retaining stale cache")),
+                It.IsAny<Exception>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task RefreshSetPartsData_WhenNoBundleCodedProductsExist_RetainsExistingCacheAndLogsWarning()
+    {
+        // Arrange — ERP stock has no bundle-coded products (BundleProductRule never resolves to Set).
+        _cacheStore.SetErpStockData(new List<ErpStock>
+        {
+            new() { ProductCode = "KRM001", ProductName = "Krém", ProductTypeId = (int)ProductType.Product },
+        });
+
+        // Previously good parts cache must survive this refresh untouched.
+        _cacheStore.SetSetPartsData(new List<CatalogSetPart>
+        {
+            new() { SetCode = "BAL001", ComponentCode = "KRM001", ComponentName = "Krém", Amount = 2 },
+        });
+
+        var setPartsClient = new Mock<ICatalogSetPartsClient>();
+        var resilienceServiceMock = new Mock<ICatalogResilienceService>();
+        resilienceServiceMock.Setup(r => r.ExecuteWithResilienceAsync(
+                It.IsAny<Func<CancellationToken, Task<IList<CatalogSetPart>>>>(),
+                It.IsAny<string>(),
+                It.IsAny<CancellationToken>()))
+            .Returns<Func<CancellationToken, Task<IList<CatalogSetPart>>>, string, CancellationToken>(
+                (op, _, ct) => op(ct));
+
+        var service = CreateService(
+            setPartsClient: setPartsClient.Object,
+            resilienceService: resilienceServiceMock.Object);
+
+        // Act
+        await service.RefreshSetPartsData(CancellationToken.None);
+
+        // Assert — client never called, previously good cache retained, warning logged.
+        setPartsClient.Verify(
+            c => c.GetAsync(It.IsAny<IEnumerable<string>>(), It.IsAny<CancellationToken>()),
+            Times.Never);
+        _cacheStore.GetSetPartsData().Should().HaveCount(1, "previously populated set-parts cache must not be cleared");
+        _cacheStore.GetSetPartsData().Single().SetCode.Should().Be("BAL001");
+
+        _serviceLoggerMock.Verify(
+            x => x.Log(
+                It.Is<LogLevel>(l => l == LogLevel.Warning),
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains("no bundle-coded products")),
                 It.IsAny<Exception>(),
                 It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
             Times.Once);

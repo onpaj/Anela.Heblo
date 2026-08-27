@@ -231,6 +231,48 @@ public sealed class CatalogAnalyticsSourceAdapterTests
     }
 
     [Fact]
+    public async Task StreamProductsWithSalesAsync_ExcludesSynthenticBundleComponentRecordsFromSalesHistory()
+    {
+        // Arrange — a real sale plus a synthetic component-sale record derived from a bundle sale
+        // (SourceBundleCode set, quantity only). The synthetic record must never reach analytics/margin,
+        // since margin is computed from quantity (AmountB2B/AmountB2C), not from Sum* (which is zero here).
+        var product = CreateCatalogAggregate("PROD001", "Test", ProductType.Product);
+        product.SalesHistory = new List<CatalogSaleRecord>
+        {
+            new CatalogSaleRecord { Date = new DateTime(2024, 6, 15), AmountB2B = 10, AmountB2C = 8, SumB2B = 100, SumB2C = 80, SourceBundleCode = null },
+            new CatalogSaleRecord { Date = new DateTime(2024, 6, 16), AmountB2B = 5, AmountB2C = 3, SumB2B = 0, SumB2C = 0, SourceBundleCode = "BUNDLE001" }
+        };
+
+        var repoMock = new Mock<ICatalogRepository>();
+        repoMock
+            .Setup(r => r.GetProductsWithSalesInPeriod(
+                It.IsAny<DateTime>(),
+                It.IsAny<DateTime>(),
+                It.IsAny<ProductType[]>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<CatalogAggregate> { product });
+
+        var adapter = new CatalogAnalyticsSourceAdapter(repoMock.Object);
+        var fromDate = new DateTime(2024, 1, 1);
+        var toDate = new DateTime(2024, 12, 31);
+
+        // Act
+        var result = new List<AnalyticsProduct>();
+        await foreach (var item in adapter.StreamProductsWithSalesAsync(
+            fromDate, toDate, new[] { AnalyticsProductType.Product }))
+        {
+            result.Add(item);
+        }
+
+        // Assert — only the real (non-synthetic) sale is present
+        result.Should().HaveCount(1);
+        result[0].SalesHistory.Should().HaveCount(1);
+        result[0].SalesHistory[0].Date.Should().Be(new DateTime(2024, 6, 15));
+        result[0].SalesHistory[0].AmountB2B.Should().Be(10);
+        result[0].SalesHistory[0].AmountB2C.Should().Be(8);
+    }
+
+    [Fact]
     public async Task GetProductAnalysisDataAsync_ReturnsNullWhenRepositoryReturnsNull()
     {
         // Arrange

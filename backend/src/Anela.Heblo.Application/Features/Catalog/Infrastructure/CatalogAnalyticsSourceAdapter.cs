@@ -55,7 +55,7 @@ internal sealed class CatalogAnalyticsSourceAdapter : IAnalyticsProductSource
         DateTime toDate)
     {
         var salesHistory = product.SalesHistory
-            .Where(s => s.Date >= fromDate && s.Date <= toDate)
+            .Where(s => s.Date >= fromDate && s.Date <= toDate && s.SourceBundleCode == null)
             .Select(s => new SalesDataPoint
             {
                 Date = s.Date,

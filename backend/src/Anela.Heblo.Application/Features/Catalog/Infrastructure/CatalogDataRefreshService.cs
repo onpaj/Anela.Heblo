@@ -148,11 +148,26 @@ public sealed class CatalogDataRefreshService
                 .Select(s => s.ProductCode)
                 .ToList();
 
-            _cacheStore.SetSetPartsData(await _resilienceService.ExecuteWithResilienceAsync(
+            if (bundleCodes.Count == 0)
+            {
+                _logger.LogWarning(
+                    "RefreshSetPartsData found no bundle-coded products in ERP stock — bundle sales expansion will be inactive. Retaining existing set-parts cache. Items in cache: {Count}",
+                    _cacheStore.GetSetPartsData().Count);
+                return;
+            }
+
+            var setParts = (IList<CatalogSetPart>)(await _resilienceService.ExecuteWithResilienceAsync(
                 async (cancellationToken) => (IList<CatalogSetPart>)(await _setPartsClient.GetAsync(
                     bundleCodes,
                     cancellationToken)).ToList(),
                 "RefreshSetPartsData", ct));
+
+            _cacheStore.SetSetPartsData(setParts);
+
+            _logger.LogInformation(
+                "RefreshSetPartsData refreshed successfully: {BundleCount} bundles resolved, {PartCount} parts retrieved",
+                bundleCodes.Count,
+                setParts.Count);
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {

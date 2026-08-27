@@ -20,7 +20,12 @@ detail screen.
 **Goal**: a sold bundle contributes its BoM quantities to each component's sales history, so
 manufacturing and purchasing plan against real demand.
 
-**Non-goal**: changing revenue, margin, or financial reporting in any way.
+**Non-goal**: changing revenue, margin, or financial reporting in any way. This holds only because
+every consumer of `SalesHistory` that derives money from *quantity* (not `Sum*`) explicitly filters
+out synthetic rows via `SourceBundleCode == null` — currently `CatalogAnalyticsSourceAdapter`
+(margin/analytics) and `SalesCostProvider` (company-wide cost-per-piece). Any future consumer that
+derives revenue, margin, or cost from `SalesHistory` quantities must apply the same filter, or this
+non-goal is silently violated.
 
 ## Decisions Taken
 
@@ -184,6 +189,8 @@ Why `AmountB2B`/`AmountB2C` and not `AmountTotal`: `CatalogAggregate.GetTotalSol
 | Same component twice in one BoM | Two records; they aggregate correctly downstream. |
 | Set BoM changed since an old sale | Today's BoM is applied to the whole history window. Accepted approximation — Flexi has no BoM versioning. Documented, not fixed. |
 | Materials listed in a bundle BoM | They gain sales figures. Harmless for planning: `PurchaseMaterialCatalogAdapter` uses `GetConsumed` for `ProductType.Material`, not `GetTotalSold`. |
+| Synthetic component records reaching margin/cost code | `MarginCalculator` and `SalesCostProvider` derive revenue/cost from sale *quantity*, not `Sum*` — a plain `Sum*` check does not protect them. `CatalogAnalyticsSourceAdapter.MapToAnalyticsProduct` and `SalesCostProvider.CalculateTotalSoldPieces` both filter `SourceBundleCode == null` before those records reach margin/cost calculation. Without this, synthetic rows would inflate margin for the affected product and lower the company-wide cost-per-piece for every product. |
+| No bundle-coded products found in ERP stock | `RefreshSetPartsData` logs a warning and returns without writing the cache, so a previously populated set-parts cache is retained rather than silently wiped to empty. |
 
 ## Error Handling
 

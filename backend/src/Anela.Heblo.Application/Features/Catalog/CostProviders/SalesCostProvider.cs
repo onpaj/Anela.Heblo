@@ -174,7 +174,7 @@ public class SalesCostProvider : ISalesCostProvider
         foreach (var product in products)
         {
             var productSold = product.SalesHistory
-                .Where(s => s.Date >= from && s.Date <= to)
+                .Where(s => s.Date >= from && s.Date <= to && s.SourceBundleCode == null)
                 .Sum(s => s.AmountTotal);
 
             totalSold += productSold;
