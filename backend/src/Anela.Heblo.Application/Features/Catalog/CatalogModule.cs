@@ -88,6 +88,7 @@ public static class CatalogModule
         services.AddMemoryCache(); // Required for IMemoryCache injection
         // CatalogRepository decomposed collaborators
         services.AddSingleton<CatalogCacheStore>();
+        services.AddSingleton<BundleSalesExpander>();
         services.AddSingleton<CatalogMergeService>();
         services.AddTransient<CatalogDataRefreshService>();
         services.AddHostedService<CatalogMergeCallbackWiring>();

@@ -123,6 +123,7 @@ public class CatalogRepositoryTests
 
         _mergeService = new CatalogMergeService(
             _cacheStore,
+            new BundleSalesExpander(),
             _timeProviderMock.Object,
             new Mock<ILogger<CatalogMergeService>>().Object);
 
