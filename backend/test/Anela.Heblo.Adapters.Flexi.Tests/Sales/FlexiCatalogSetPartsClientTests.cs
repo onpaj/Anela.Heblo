@@ -69,6 +69,35 @@ public sealed class FlexiCatalogSetPartsClientTests
             Times.Once);
     }
 
+    [Fact]
+    public async Task GetAsync_LogsWarningAndSkipsSetWhenReturnedRowsHaveNoProducts()
+    {
+        // Arrange
+        _productSetsClient
+            .Setup(c => c.GetAsync("BAL004", 0, 0, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<ProductSetFlexiDto>
+            {
+                new() { Quantity = 1, ProductList = null! },
+                new() { Quantity = 2, ProductList = new List<ProductSetsProductFlexiDto>() },
+            });
+
+        var sut = new FlexiCatalogSetPartsClient(_productSetsClient.Object, _logger.Object);
+
+        // Act
+        var result = await sut.GetAsync(new[] { "BAL004" }, CancellationToken.None);
+
+        // Assert
+        result.Should().BeEmpty();
+        _logger.Verify(
+            l => l.Log(
+                LogLevel.Warning,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains("BAL004")),
+                It.IsAny<Exception>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Once);
+    }
+
     private static ProductSetFlexiDto BuildDto(double quantity, string code, string name) =>
         new()
         {

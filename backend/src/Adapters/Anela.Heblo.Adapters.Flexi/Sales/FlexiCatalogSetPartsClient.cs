@@ -31,15 +31,7 @@ public class FlexiCatalogSetPartsClient : ICatalogSetPartsClient
         {
             var setParts = await _productSetsClient.GetAsync(setCode, cancellationToken: cancellationToken);
 
-            if (setParts.Count == 0)
-            {
-                _logger.LogWarning(
-                    "Bundle {SetCode} has no components in Flexi — its sales will not be expanded onto any product.",
-                    setCode);
-                continue;
-            }
-
-            parts.AddRange(setParts
+            var components = setParts
                 .Where(p => p.ProductList is { Count: > 0 })
                 .Select(p => new CatalogSetPart
                 {
@@ -47,7 +39,18 @@ public class FlexiCatalogSetPartsClient : ICatalogSetPartsClient
                     ComponentCode = p.Product.Code,
                     ComponentName = p.Product.Name,
                     Amount = p.Quantity,
-                }));
+                })
+                .ToList();
+
+            if (components.Count == 0)
+            {
+                _logger.LogWarning(
+                    "Bundle {SetCode} has no components in Flexi — its sales will not be expanded onto any product.",
+                    setCode);
+                continue;
+            }
+
+            parts.AddRange(components);
         }
 
         return parts;
