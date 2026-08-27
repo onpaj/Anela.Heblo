@@ -278,6 +278,86 @@ public sealed class CatalogDataRefreshServiceTests
     }
 
     [Fact]
+    public async Task RefreshSetPartsData_WhenOneBundleFails_KeepsPartsFromTheOthers()
+    {
+        // Arrange — two bundles, one of which Flexi cannot resolve. Without per-bundle isolation
+        // the broken one would take the whole refresh down and leave every bundle unexpanded.
+        _cacheStore.SetErpStockData(new List<ErpStock>
+        {
+            new() { ProductCode = "BAL001", ProductName = "Balíček 1", ProductTypeId = (int)ProductType.Product },
+            new() { ProductCode = "BAL002", ProductName = "Balíček 2", ProductTypeId = (int)ProductType.Product },
+        });
+
+        var setPartsClient = new Mock<ICatalogSetPartsClient>();
+        setPartsClient
+            .Setup(c => c.GetAsync(It.Is<IEnumerable<string>>(codes => codes.Contains("BAL001")), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new InvalidOperationException("Broken bundle definition"));
+        setPartsClient
+            .Setup(c => c.GetAsync(It.Is<IEnumerable<string>>(codes => codes.Contains("BAL002")), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<CatalogSetPart>
+            {
+                new() { SetCode = "BAL002", ComponentCode = "MYD001", ComponentName = "Mýdlo", Amount = 3 },
+            });
+
+        var service = CreateService(
+            setPartsClient: setPartsClient.Object,
+            resilienceService: CreatePassThroughResilienceService());
+
+        // Act
+        await service.RefreshSetPartsData(CancellationToken.None);
+
+        // Assert
+        _cacheStore.GetSetPartsData().Should().ContainSingle()
+            .Which.SetCode.Should().Be("BAL002");
+    }
+
+    [Fact]
+    public async Task RefreshSetPartsData_FetchesEachBundleSeparately()
+    {
+        // Arrange — the resilience pipeline ends in a fixed timeout, so all bundles must not share
+        // one execution budget. Each bundle gets its own call.
+        _cacheStore.SetErpStockData(new List<ErpStock>
+        {
+            new() { ProductCode = "BAL001", ProductName = "Balíček 1", ProductTypeId = (int)ProductType.Product },
+            new() { ProductCode = "BAL002", ProductName = "Balíček 2", ProductTypeId = (int)ProductType.Product },
+        });
+
+        var setPartsClient = new Mock<ICatalogSetPartsClient>();
+        setPartsClient
+            .Setup(c => c.GetAsync(It.IsAny<IEnumerable<string>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<CatalogSetPart>());
+
+        var service = CreateService(
+            setPartsClient: setPartsClient.Object,
+            resilienceService: CreatePassThroughResilienceService());
+
+        // Act
+        await service.RefreshSetPartsData(CancellationToken.None);
+
+        // Assert
+        setPartsClient.Verify(
+            c => c.GetAsync(It.Is<IEnumerable<string>>(codes => codes.SequenceEqual(new[] { "BAL001" })),
+                            It.IsAny<CancellationToken>()),
+            Times.Once);
+        setPartsClient.Verify(
+            c => c.GetAsync(It.Is<IEnumerable<string>>(codes => codes.SequenceEqual(new[] { "BAL002" })),
+                            It.IsAny<CancellationToken>()),
+            Times.Once);
+    }
+
+    private static ICatalogResilienceService CreatePassThroughResilienceService()
+    {
+        var mock = new Mock<ICatalogResilienceService>();
+        mock.Setup(r => r.ExecuteWithResilienceAsync(
+                It.IsAny<Func<CancellationToken, Task<IList<CatalogSetPart>>>>(),
+                It.IsAny<string>(),
+                It.IsAny<CancellationToken>()))
+            .Returns<Func<CancellationToken, Task<IList<CatalogSetPart>>>, string, CancellationToken>(
+                (op, _, ct) => op(ct));
+        return mock.Object;
+    }
+
+    [Fact]
     public async Task RefreshSetPartsData_WhenResilienceThrows_RetainsStaleCacheAndLogsWarning()
     {
         // Arrange — a bundle-coded product must exist in ERP stock, otherwise the empty-bundleCodes
