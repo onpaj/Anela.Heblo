@@ -139,6 +139,13 @@ public sealed class CatalogDataRefreshService
         }
     }
 
+    /// <summary>
+    /// Reads the ERP stock cache to decide which products are bundles, so it must run after
+    /// RefreshErpStockData has populated it. A hydration tier runs its tasks concurrently, so this
+    /// task is configured one tier later than RefreshErpStockData rather than relying on ordering
+    /// within a tier — otherwise a cold start can leave bundle expansion inactive until the next
+    /// scheduled run.
+    /// </summary>
     public async Task RefreshSetPartsData(CancellationToken ct)
     {
         try
