@@ -98,6 +98,88 @@ public sealed class FlexiCatalogSetPartsClientTests
             Times.Once);
     }
 
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("   ")]
+    public async Task GetAsync_SkipsComponentWithBlankCode(string? blankCode)
+    {
+        // Arrange
+        _productSetsClient
+            .Setup(c => c.GetAsync("BAL005", 0, 0, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<ProductSetFlexiDto>
+            {
+                BuildDto(quantity: 1, code: blankCode!, name: "Archivovaný"),
+                BuildDto(quantity: 3, code: "KRM001", name: "Krém"),
+            });
+
+        var sut = new FlexiCatalogSetPartsClient(_productSetsClient.Object, _logger.Object);
+
+        // Act
+        var result = await sut.GetAsync(new[] { "BAL005" }, CancellationToken.None);
+
+        // Assert
+        result.Should().BeEquivalentTo(new[]
+        {
+            new CatalogSetPart { SetCode = "BAL005", ComponentCode = "KRM001", ComponentName = "Krém", Amount = 3 },
+        });
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(-2)]
+    public async Task GetAsync_SkipsComponentWithNonPositiveQuantity(double quantity)
+    {
+        // Arrange
+        _productSetsClient
+            .Setup(c => c.GetAsync("BAL006", 0, 0, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<ProductSetFlexiDto>
+            {
+                BuildDto(quantity: quantity, code: "MYD001", name: "Mýdlo"),
+                BuildDto(quantity: 1, code: "KRM001", name: "Krém"),
+            });
+
+        var sut = new FlexiCatalogSetPartsClient(_productSetsClient.Object, _logger.Object);
+
+        // Act
+        var result = await sut.GetAsync(new[] { "BAL006" }, CancellationToken.None);
+
+        // Assert
+        result.Should().BeEquivalentTo(new[]
+        {
+            new CatalogSetPart { SetCode = "BAL006", ComponentCode = "KRM001", ComponentName = "Krém", Amount = 1 },
+        });
+    }
+
+    [Fact]
+    public async Task GetAsync_LogsWarningAndSkipsSetWhenEveryComponentIsUnusable()
+    {
+        // Arrange
+        _productSetsClient
+            .Setup(c => c.GetAsync("BAL007", 0, 0, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<ProductSetFlexiDto>
+            {
+                BuildDto(quantity: 1, code: null!, name: "Archivovaný"),
+                BuildDto(quantity: 0, code: "MYD001", name: "Mýdlo"),
+            });
+
+        var sut = new FlexiCatalogSetPartsClient(_productSetsClient.Object, _logger.Object);
+
+        // Act
+        var result = await sut.GetAsync(new[] { "BAL007" }, CancellationToken.None);
+
+        // Assert
+        result.Should().BeEmpty();
+        _logger.Verify(
+            l => l.Log(
+                LogLevel.Warning,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains("BAL007")),
+                It.IsAny<Exception>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Once);
+    }
+
     private static ProductSetFlexiDto BuildDto(double quantity, string code, string name) =>
         new()
         {
