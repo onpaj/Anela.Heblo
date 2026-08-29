@@ -84,3 +84,24 @@ the project's real build/tests, and open the PR with
 `mcp__github__create_pull_request` + `issue_write` for the label — same
 outcome (labeled PR, `Closes #N`, `#N: <summary>` title) without the
 pipeline machinery.
+
+**Update 2026-08-29** — on a `/plan-next-task` run targeting a fresh
+planning-only cycle (issue #3968, PR #3977), the proxy write-block turned
+out to be narrower than "all direct REST/CLI writes": `git/refs` creation
+(branch creation via `gh api .../git/refs` or raw curl) is blocked, but
+`gh_api.sh` (`USE_GH_API=1`, PATCH/POST to `issues`, `pulls`, labels)
+worked fine for issue label edits, PR creation (`.../pulls`), and
+`ensure_pr_linked.sh`'s PATCH-based repairs -- no MCP detour was needed for
+any of that. Only branch creation itself needed
+`mcp__github__create_branch`. So the actual per-endpoint rule seen twice
+now: `git/refs` writes go through MCP; issue/PR/label writes can go
+through `gh_api.sh` directly. Don't assume "writes are blocked" applies
+uniformly -- probe the specific failing call before falling back to the
+designated-branch/no-pipeline workaround; this time the full four-phase
+planning pipeline (analyst -> architect -> designer -> planner +
+task-context extraction) ran to completion in its own
+`feature/{issue}-{slug}` branch/worktree exactly as `/plan-next-task`
+intends, just with `create_branch` swapped to MCP and every other write
+left on `gh`/`gh_api.sh`. Also: `gh issue view` (GraphQL) is blocked, but
+`gh api repos/{owner}/{repo}/issues/{n}` (REST) works fine for reading the
+same data -- use that instead of switching to MCP for issue reads.
