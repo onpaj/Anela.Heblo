@@ -25,5 +25,18 @@
       "updated_at": null
     }
   },
-  "tasks": []
+  "tasks": [
+    {
+      "name": "add-filter-positions-with-tests",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    },
+    {
+      "name": "wire-org-chart-page-to-filter-positions",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    }
+  ]
 }
