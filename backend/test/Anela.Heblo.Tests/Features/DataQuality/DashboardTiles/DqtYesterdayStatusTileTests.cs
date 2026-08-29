@@ -158,15 +158,16 @@ public class DqtYesterdayStatusTileTests
             DqtTestType.IssuedInvoiceComparison,
             yesterday,
             yesterday,
-            DqtTriggerType.Scheduled);
+            DqtTriggerType.Scheduled,
+            DateTime.UtcNow);
 
         if (status == DqtRunStatus.Completed)
         {
-            run.Complete(totalChecked, totalMismatches);
+            run.Complete(totalChecked, totalMismatches, DateTime.UtcNow);
         }
         else if (status == DqtRunStatus.Failed)
         {
-            run.Fail("simulated failure");
+            run.Fail("simulated failure", DateTime.UtcNow);
         }
         // Running: leave as-is (DqtRun.Start sets Status = Running).
         return run;

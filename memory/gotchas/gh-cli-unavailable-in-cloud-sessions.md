@@ -84,3 +84,35 @@ the project's real build/tests, and open the PR with
 `mcp__github__create_pull_request` + `issue_write` for the label — same
 outcome (labeled PR, `Closes #N`, `#N: <summary>` title) without the
 pipeline machinery.
+
+**Confirmed a third time 2026-08-29** on a `/plan-next-task` run for issue
+#3969 (PR #3978, `claude/beautiful-darwin-2p00ks`): identical shape to
+#3944 and #3961. `claim_issue.sh`'s `create-ref` step failed with the
+"Form-encoded ... Send the documented JSON body" error again — the
+Content-Type fix from #3944 had been *reverted* on main in the interim
+(commit `60da06c`, "fix(skills): remove redundant Content-Type header",
+reasoning "curl infers application/json from context" — false; curl does
+not do this, `-d` alone defaults to `application/x-www-form-urlencoded`,
+confirmed empirically again this run). No merged PR was found for that
+revert commit via `gh api commits/{sha}/pulls`, so it's unclear which
+process landed it directly. Re-applied the fix (PR #3978) and this time
+added an inline comment in `gh_api.sh` itself pointing back to this note,
+since relying on memory alone let it regress twice already. **If you find
+yourself about to remove that `Content-Type: application/json` header
+because "curl infers it" — don't. That premise is false. Verify with a
+real `curl -d` call against `git/refs` before touching that line.**
+
+After the Content-Type fix, `create_ref` still failed — this time with the
+proxy's own `403 Write access to this GitHub API path is not permitted
+through this proxy` (matching the second symptom documented above). Both
+`gh_api.sh` (raw curl) and `gh api` (the CLI's own preconfigured routing)
+hit this identically for `git/refs` writes specifically; ordinary REST
+writes (`issues`, `labels`, `pulls`) worked fine through both `gh_api.sh`
+curl and `gh api` — only the git-data API is blocked. Confirms: reach for
+`mcp__github__create_branch` for ref/branch creation specifically, but
+`gh api -X PATCH/POST` (or `gh_api.sh`) is fine for labels, issue edits,
+PR creation/editing once the Content-Type fix is in place. No working
+`mcp__github__delete_branch`/similar was found, so an orphan
+`feature/{N}-*` branch created via MCP before pivoting to the
+designated-branch approach can't be cleaned up (same as the #3961 note
+below) — leave it, it's harmless.

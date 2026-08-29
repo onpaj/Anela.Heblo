@@ -87,7 +87,13 @@ req() {
     -H "Accept: ${accept}"
     -H "X-GitHub-Api-Version: 2022-11-28"
     -w $'\n__HTTP_CODE__%{http_code}')
-  [[ -n "$body" ]] && args+=(-d "$body")
+  # Do NOT remove this header: curl -d alone defaults to
+  # application/x-www-form-urlencoded, and GitHub's git-data endpoints
+  # (e.g. git/refs) hard-reject that with a "Send the documented JSON
+  # body" 403. This exact header has been added and mistakenly reverted
+  # more than once (see memory/gotchas/gh-cli-unavailable-in-cloud-sessions.md) —
+  # curl does NOT infer JSON from body content on its own.
+  [[ -n "$body" ]] && args+=(-H "Content-Type: application/json" -d "$body")
 
   local out code delay=3 attempt
   for attempt in 1 2 3 4; do
