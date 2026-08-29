@@ -86,3 +86,32 @@ export function buildTree(positions: Position[]): Position[] {
 export function getChildren(parentId: string, positions: Position[]): Position[] {
   return positions.filter((p) => p.parentPositionId === parentId);
 }
+
+export function filterPositions(
+  positions: Position[],
+  departmentFilter: string,
+  levelFilter: string,
+): Position[] {
+  let result = positions;
+
+  if (departmentFilter !== 'all') {
+    const departmentPositions = positions.filter((p) => p.department === departmentFilter);
+
+    const parentPositionIds = new Set<string>();
+    departmentPositions.forEach((p) => {
+      const parents = getAllParentPositionIds(p.id!, positions);
+      parents.forEach((id) => parentPositionIds.add(id));
+    });
+
+    result = positions.filter(
+      (p) => p.department === departmentFilter || parentPositionIds.has(p.id!),
+    );
+  }
+
+  if (levelFilter !== 'all') {
+    const maxLevel = parseInt(levelFilter, 10);
+    result = result.filter((p) => !p.level || p.level <= maxLevel);
+  }
+
+  return result;
+}

@@ -94,6 +94,21 @@ _Update this file at the end of significant sessions._
   `-p:UseSharedCompilation=false` in addition; see the updated
   `memory/gotchas/dotnet-build-hangs-nodereuse-accessmatrixgen.md` entry.
 
+- `OrgChartPage` filtering-logic extraction (issue #3975, PR #3985,
+  `claude/beautiful-darwin-kz1l9n`, 2026-08-29): sixth occurrence of the same scheduled
+  `/plan-next-task` pattern — designated-branch session, `gh auth status` invalid
+  (`GITHUB_TOKEN` rejected), implemented directly instead of the AgentHarness pipeline;
+  used `mcp__github__*` for PR creation/labeling (plain `git push` to origin worked fine,
+  unlike git-data-API writes in earlier sessions). Also hit the standard uncommitted
+  `gh_api.sh` Content-Type-header regression on session start (from `agentharness init`'s
+  bundled template) — restored via `git checkout --`, did not recommit, matching the
+  documented fix. Extracted the department/level filtering IIFE out of `OrgChartPage.tsx`
+  into a new pure `filterPositions()` in `orgChartUtils.ts`, with 5 new unit tests.
+  Deliberately did **not** follow the issue's suggested `useMemo` wrap: that call site is
+  after the component's `if (!orgData) return` early return, so adding a hook there would
+  violate React's Rules of Hooks (conditional hook call across renders) — kept it a plain
+  function call instead and noted this in the PR body.
+
 ## Pending / Known Issues
 
 - Memory directory (issue #405): adding cross-session knowledge accumulation — this PR

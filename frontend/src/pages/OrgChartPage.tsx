@@ -4,9 +4,9 @@ import { PositionCard } from '../components/OrgChart/PositionCard';
 import { useScreenView } from '../telemetry/useScreenView';
 import {
   calculateLevels,
-  getAllParentPositionIds,
   buildTree,
   getChildren as orgChartGetChildren,
+  filterPositions,
   Position,
   OrganizationData,
 } from './orgChartUtils';
@@ -130,38 +130,11 @@ const OrgChartPage: React.FC = () => {
   const departments = Array.from(new Set(orgData.organization.positions.map((p) => p.department)));
 
   // Filter positions based on department and level
-  const filteredPositions = (() => {
-    const allPositions = orgData.organization.positions;
-
-    // First, find positions that match the department filter
-    let matchingPositions = allPositions;
-
-    if (filters.department !== 'all') {
-      // Find all positions in the selected department
-      const departmentPositions = allPositions.filter(pos => pos.department === filters.department);
-
-      // Collect all parent position IDs for these department positions
-      const parentPositionIds = new Set<string>();
-      departmentPositions.forEach(pos => {
-        const parents = getAllParentPositionIds(pos.id!, allPositions);
-        parents.forEach(id => parentPositionIds.add(id));
-      });
-
-      // Include department positions + all their parents
-      matchingPositions = allPositions.filter(pos =>
-        pos.department === filters.department || parentPositionIds.has(pos.id!)
-      );
-    }
-
-    // Apply level filter (show selected level and all parent levels)
-    if (filters.level !== 'all') {
-      matchingPositions = matchingPositions.filter(pos =>
-        !pos.level || pos.level <= parseInt(filters.level)
-      );
-    }
-
-    return matchingPositions;
-  })();
+  const filteredPositions = filterPositions(
+    orgData.organization.positions,
+    filters.department,
+    filters.level,
+  );
 
   const totalEmployees = filteredPositions.reduce((sum, pos) => sum + (pos.employees?.length || 0), 0);
 
