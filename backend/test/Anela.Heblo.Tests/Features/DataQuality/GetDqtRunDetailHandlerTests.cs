@@ -39,7 +39,7 @@ public class GetDqtRunDetailHandlerTests
     [Fact]
     public async Task Handle_RunExists_ReturnsMappedDetail()
     {
-        var run = DqtRun.Start(DqtTestType.IssuedInvoiceComparison, new DateOnly(2026, 1, 1), new DateOnly(2026, 1, 31), DqtTriggerType.Manual);
+        var run = DqtRun.Start(DqtTestType.IssuedInvoiceComparison, new DateOnly(2026, 1, 1), new DateOnly(2026, 1, 31), DqtTriggerType.Manual, DateTime.UtcNow);
         var dto = new DqtRunDto { Id = run.Id };
         var resultDtos = new List<InvoiceDqtResultDto>();
 
@@ -71,7 +71,7 @@ public class GetDqtRunDetailHandlerTests
     [InlineData(DqtTestType.LotSumVsErpStock)]
     public async Task Handle_DriftTestType_ReturnsMappedDriftResults(DqtTestType testType)
     {
-        var run = DqtRun.Start(testType, new DateOnly(2026, 1, 1), new DateOnly(2026, 1, 31), DqtTriggerType.Manual);
+        var run = DqtRun.Start(testType, new DateOnly(2026, 1, 1), new DateOnly(2026, 1, 31), DqtTriggerType.Manual, DateTime.UtcNow);
         var dto = new DqtRunDto { Id = run.Id };
         var driftItems = new List<DqtDriftResult>();
         var driftDtos = new List<DqtDriftResultDto>();
@@ -109,7 +109,7 @@ public class GetDqtRunDetailHandlerTests
         // (DqtTestType)999 is an explicit out-of-range cast — no such DqtTestType value exists
         // today. This is the standard way to test an enum-dispatch fail-fast path without
         // modifying the DqtTestType enum itself.
-        var run = DqtRun.Start((DqtTestType)999, new DateOnly(2026, 1, 1), new DateOnly(2026, 1, 31), DqtTriggerType.Manual);
+        var run = DqtRun.Start((DqtTestType)999, new DateOnly(2026, 1, 1), new DateOnly(2026, 1, 31), DqtTriggerType.Manual, DateTime.UtcNow);
 
         _repositoryMock
             .Setup(r => r.GetWithResultsAsync(run.Id, 1, 50, It.IsAny<CancellationToken>()))

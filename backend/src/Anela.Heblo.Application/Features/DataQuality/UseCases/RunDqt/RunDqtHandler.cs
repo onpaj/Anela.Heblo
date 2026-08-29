@@ -11,15 +11,18 @@ public class RunDqtHandler : IRequestHandler<RunDqtRequest, RunDqtResponse>
 {
     private readonly IDqtRunRepository _repository;
     private readonly IServiceScopeFactory _scopeFactory;
+    private readonly TimeProvider _timeProvider;
     private readonly ILogger<RunDqtHandler> _logger;
 
     public RunDqtHandler(
         IDqtRunRepository repository,
         IServiceScopeFactory scopeFactory,
+        TimeProvider timeProvider,
         ILogger<RunDqtHandler> logger)
     {
         _repository = repository;
         _scopeFactory = scopeFactory;
+        _timeProvider = timeProvider;
         _logger = logger;
     }
 
@@ -36,7 +39,7 @@ public class RunDqtHandler : IRequestHandler<RunDqtRequest, RunDqtResponse>
 
         try
         {
-            var run = DqtRun.Start(request.TestType, request.DateFrom, request.DateTo, DqtTriggerType.Manual);
+            var run = DqtRun.Start(request.TestType, request.DateFrom, request.DateTo, DqtTriggerType.Manual, _timeProvider.GetUtcNow().DateTime);
             await _repository.AddAsync(run, cancellationToken);
             await _repository.SaveChangesAsync(cancellationToken);
 

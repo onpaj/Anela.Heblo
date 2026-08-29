@@ -9,6 +9,7 @@ public class StockWriteBackDqtComparer : IDriftDqtComparer
 
     private readonly IStockOperationQuery _stockOperations;
     private readonly IStockTakingQuery _stockTakings;
+    private readonly TimeProvider _timeProvider;
     private readonly TimeSpan _stuckThreshold;
 
     public DqtTestType TestType => DqtTestType.StockWriteBackReconciliation;
@@ -16,10 +17,12 @@ public class StockWriteBackDqtComparer : IDriftDqtComparer
     public StockWriteBackDqtComparer(
         IStockOperationQuery stockOperations,
         IStockTakingQuery stockTakings,
+        TimeProvider timeProvider,
         TimeSpan? stuckThreshold = null)
     {
         _stockOperations = stockOperations;
         _stockTakings = stockTakings;
+        _timeProvider = timeProvider;
         _stuckThreshold = stuckThreshold ?? DefaultStuckThreshold;
     }
 
@@ -27,7 +30,7 @@ public class StockWriteBackDqtComparer : IDriftDqtComparer
     {
         var fromUtc = from.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
         var toUtc = to.ToDateTime(TimeOnly.MaxValue, DateTimeKind.Utc);
-        var stuckCutoff = DateTime.UtcNow - _stuckThreshold;
+        var stuckCutoff = _timeProvider.GetUtcNow().DateTime - _stuckThreshold;
 
         var operations = await _stockOperations.GetByCreatedDateRangeAsync(fromUtc, toUtc, ct);
         var stockTakingRecords = await _stockTakings.GetByDateRangeAsync(fromUtc, toUtc, ct);

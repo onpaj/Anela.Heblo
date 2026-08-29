@@ -42,6 +42,7 @@ public class RunDqtHandlerTests
         _sut = new RunDqtHandler(
             _repositoryMock.Object,
             _scopeFactoryMock.Object,
+            TimeProvider.System,
             NullLogger<RunDqtHandler>.Instance);
     }
 

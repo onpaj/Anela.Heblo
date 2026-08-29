@@ -19,11 +19,12 @@ public class InvoiceDqtJobRunnerTests
         _sut = new InvoiceDqtJobRunner(
             _repositoryMock.Object,
             _comparerMock.Object,
+            TimeProvider.System,
             NullLogger<InvoiceDqtJobRunner>.Instance);
     }
 
     private DqtRun CreateRun()
-        => DqtRun.Start(DqtTestType.IssuedInvoiceComparison, From, To, DqtTriggerType.Manual);
+        => DqtRun.Start(DqtTestType.IssuedInvoiceComparison, From, To, DqtTriggerType.Manual, DateTime.UtcNow);
 
     [Fact]
     public async Task RunAsync_RunNotFound_LogsAndReturns()

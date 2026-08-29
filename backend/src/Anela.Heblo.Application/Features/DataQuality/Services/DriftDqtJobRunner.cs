@@ -7,15 +7,18 @@ public class DriftDqtJobRunner : IDriftDqtJobRunner, IDqtJobRunner
 {
     private readonly IDqtRunRepository _repository;
     private readonly IEnumerable<IDriftDqtComparer> _comparers;
+    private readonly TimeProvider _timeProvider;
     private readonly ILogger<DriftDqtJobRunner> _logger;
 
     public DriftDqtJobRunner(
         IDqtRunRepository repository,
         IEnumerable<IDriftDqtComparer> comparers,
+        TimeProvider timeProvider,
         ILogger<DriftDqtJobRunner> logger)
     {
         _repository = repository;
         _comparers = comparers;
+        _timeProvider = timeProvider;
         _logger = logger;
     }
 
@@ -48,7 +51,7 @@ public class DriftDqtJobRunner : IDriftDqtJobRunner, IDqtJobRunner
                 .ToList();
 
             await _repository.AddDriftResultsAsync(entities, ct);
-            run.Complete(result.TotalChecked, result.Mismatches.Count);
+            run.Complete(result.TotalChecked, result.Mismatches.Count, _timeProvider.GetUtcNow().DateTime);
 
             _logger.LogInformation("Drift DQT run {RunId} completed: {Checked} checked, {Mismatches} mismatches",
                 runId, result.TotalChecked, result.Mismatches.Count);
@@ -56,7 +59,7 @@ public class DriftDqtJobRunner : IDriftDqtJobRunner, IDqtJobRunner
         catch (Exception ex)
         {
             _logger.LogError(ex, "Drift DQT run {RunId} ({TestType}) failed", runId, run.TestType);
-            run.Fail(ex.Message);
+            run.Fail(ex.Message, _timeProvider.GetUtcNow().DateTime);
         }
         finally
         {

@@ -27,8 +27,8 @@ public class DqtRunRepositoryTests : IDisposable
     {
         // Arrange
         var yesterday = new DateOnly(2026, 5, 5);
-        var run = DqtRun.Start(DqtTestType.IssuedInvoiceComparison, yesterday, yesterday, DqtTriggerType.Scheduled);
-        run.Complete(totalChecked: 100, totalMismatches: 0);
+        var run = DqtRun.Start(DqtTestType.IssuedInvoiceComparison, yesterday, yesterday, DqtTriggerType.Scheduled, DateTime.UtcNow);
+        run.Complete(totalChecked: 100, totalMismatches: 0, DateTime.UtcNow);
         _context.Set<DqtRun>().Add(run);
         await _context.SaveChangesAsync();
 
@@ -49,7 +49,8 @@ public class DqtRunRepositoryTests : IDisposable
             DqtTestType.IssuedInvoiceComparison,
             new DateOnly(2026, 5, 1),
             new DateOnly(2026, 5, 3),
-            DqtTriggerType.Scheduled);
+            DqtTriggerType.Scheduled,
+            DateTime.UtcNow);
         _context.Set<DqtRun>().Add(run);
         await _context.SaveChangesAsync();
 
@@ -66,7 +67,7 @@ public class DqtRunRepositoryTests : IDisposable
     {
         // Arrange
         var yesterday = new DateOnly(2026, 5, 5);
-        var run = DqtRun.Start(DqtTestType.IssuedInvoiceComparison, yesterday, yesterday, DqtTriggerType.Scheduled);
+        var run = DqtRun.Start(DqtTestType.IssuedInvoiceComparison, yesterday, yesterday, DqtTriggerType.Scheduled, DateTime.UtcNow);
         _context.Set<DqtRun>().Add(run);
         await _context.SaveChangesAsync();
 
@@ -84,13 +85,11 @@ public class DqtRunRepositoryTests : IDisposable
     {
         // Arrange — two runs both cover yesterday; the later StartedAt wins.
         var yesterday = new DateOnly(2026, 5, 5);
-        var earlier = DqtRun.Start(DqtTestType.IssuedInvoiceComparison, yesterday, yesterday, DqtTriggerType.Scheduled);
-        typeof(DqtRun).GetProperty(nameof(DqtRun.StartedAt))!
-            .SetValue(earlier, new DateTime(2026, 5, 6, 6, 0, 0, DateTimeKind.Utc));
+        var earlier = DqtRun.Start(DqtTestType.IssuedInvoiceComparison, yesterday, yesterday, DqtTriggerType.Scheduled,
+            new DateTime(2026, 5, 6, 6, 0, 0, DateTimeKind.Utc));
 
-        var later = DqtRun.Start(DqtTestType.IssuedInvoiceComparison, yesterday, yesterday, DqtTriggerType.Manual);
-        typeof(DqtRun).GetProperty(nameof(DqtRun.StartedAt))!
-            .SetValue(later, new DateTime(2026, 5, 6, 8, 0, 0, DateTimeKind.Utc));
+        var later = DqtRun.Start(DqtTestType.IssuedInvoiceComparison, yesterday, yesterday, DqtTriggerType.Manual,
+            new DateTime(2026, 5, 6, 8, 0, 0, DateTimeKind.Utc));
 
         _context.Set<DqtRun>().AddRange(earlier, later);
         await _context.SaveChangesAsync();
@@ -112,7 +111,8 @@ public class DqtRunRepositoryTests : IDisposable
             DqtTestType.IssuedInvoiceComparison,
             new DateOnly(2026, 5, 1),
             new DateOnly(2026, 5, 7),
-            DqtTriggerType.Manual);
+            DqtTriggerType.Manual,
+            DateTime.UtcNow);
         _context.Set<DqtRun>().Add(run);
         await _context.SaveChangesAsync();
 

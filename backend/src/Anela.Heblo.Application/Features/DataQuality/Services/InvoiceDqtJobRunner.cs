@@ -7,15 +7,18 @@ public class InvoiceDqtJobRunner : IInvoiceDqtJobRunner, IDqtJobRunner
 {
     private readonly IDqtRunRepository _repository;
     private readonly IInvoiceDqtComparer _comparer;
+    private readonly TimeProvider _timeProvider;
     private readonly ILogger<InvoiceDqtJobRunner> _logger;
 
     public InvoiceDqtJobRunner(
         IDqtRunRepository repository,
         IInvoiceDqtComparer comparer,
+        TimeProvider timeProvider,
         ILogger<InvoiceDqtJobRunner> logger)
     {
         _repository = repository;
         _comparer = comparer;
+        _timeProvider = timeProvider;
         _logger = logger;
     }
 
@@ -49,7 +52,7 @@ public class InvoiceDqtJobRunner : IInvoiceDqtJobRunner, IDqtJobRunner
             // to the context until explicitly added here.
             await _repository.AddResultsAsync(resultEntities, cancellationToken);
 
-            run.Complete(result.TotalChecked, result.Mismatches.Count);
+            run.Complete(result.TotalChecked, result.Mismatches.Count, _timeProvider.GetUtcNow().DateTime);
 
             _logger.LogInformation("DQT run {DqtRunId} completed: {Checked} checked, {Mismatches} mismatches",
                 dqtRunId, result.TotalChecked, result.Mismatches.Count);
@@ -57,7 +60,7 @@ public class InvoiceDqtJobRunner : IInvoiceDqtJobRunner, IDqtJobRunner
         catch (Exception ex)
         {
             _logger.LogError(ex, "DQT run {DqtRunId} failed", dqtRunId);
-            run.Fail(ex.Message);
+            run.Fail(ex.Message, _timeProvider.GetUtcNow().DateTime);
         }
         finally
         {
