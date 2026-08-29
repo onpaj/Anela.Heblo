@@ -25,5 +25,24 @@
       "updated_at": null
     }
   },
-  "tasks": []
+  "tasks": [
+    {
+      "name": "synchronous-runner-validation",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    },
+    {
+      "name": "fire-and-forget-safety-net",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    },
+    {
+      "name": "full-validation-gate",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    }
+  ]
 }
