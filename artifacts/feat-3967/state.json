@@ -40,9 +40,9 @@
     },
     {
       "name": "catalog-eshop-stock-source-adapter",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-08-29T08:14:29.823606Z"
+      "updated_at": "2026-08-29T08:53:28.852576Z"
     },
     {
       "name": "catalog-erp-stock-source-adapter",
