@@ -22,7 +22,7 @@
     },
     "developing": {
       "status": "in_progress",
-      "updated_at": "2026-08-29T10:14:51.071770Z"
+      "updated_at": "2026-08-29T11:14:03.248378Z"
     }
   },
   "tasks": [
@@ -58,9 +58,9 @@
     },
     {
       "name": "rewire-product-pairing-comparer",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-08-29T11:14:03.422366Z"
     },
     {
       "name": "retire-dataquality-catalog-allowlist",

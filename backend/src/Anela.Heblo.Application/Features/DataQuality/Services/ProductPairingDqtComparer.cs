@@ -1,6 +1,4 @@
 using Anela.Heblo.Application.Features.DataQuality.Contracts;
-using Anela.Heblo.Domain.Features.Catalog;
-using Anela.Heblo.Domain.Features.Catalog.Stock;
 using Anela.Heblo.Domain.Features.DataQuality;
 using Microsoft.Extensions.Logging;
 
@@ -8,21 +6,21 @@ namespace Anela.Heblo.Application.Features.DataQuality.Services;
 
 public class ProductPairingDqtComparer : IDriftDqtComparer
 {
-    private readonly IEshopStockClient _eshopStockClient;
-    private readonly IErpStockClient _erpStockClient;
+    private readonly IDqtEshopStockSource _eshopStockSource;
+    private readonly IDqtErpStockSource _erpStockSource;
     private readonly IDqtResilienceService _resilienceService;
     private readonly ILogger<ProductPairingDqtComparer> _logger;
 
     public DqtTestType TestType => DqtTestType.ProductPairing;
 
     public ProductPairingDqtComparer(
-        IEshopStockClient eshopStockClient,
-        IErpStockClient erpStockClient,
+        IDqtEshopStockSource eshopStockSource,
+        IDqtErpStockSource erpStockSource,
         IDqtResilienceService resilienceService,
         ILogger<ProductPairingDqtComparer> logger)
     {
-        _eshopStockClient = eshopStockClient;
-        _erpStockClient = erpStockClient;
+        _eshopStockSource = eshopStockSource;
+        _erpStockSource = erpStockSource;
         _resilienceService = resilienceService;
         _logger = logger;
     }
@@ -30,11 +28,11 @@ public class ProductPairingDqtComparer : IDriftDqtComparer
     public async Task<DriftComparisonResult> CompareAsync(DateOnly from, DateOnly to, CancellationToken ct = default)
     {
         // Date range is intentionally unused — product pairing is a current-state snapshot
-        List<EshopStock> eshopProducts;
+        IReadOnlyList<DqtEshopStockItem> eshopProducts;
         try
         {
             eshopProducts = await _resilienceService.ExecuteWithResilienceAsync(
-                async cancellationToken => await _eshopStockClient.ListAsync(cancellationToken),
+                async cancellationToken => await _eshopStockSource.ListAsync(cancellationToken),
                 "ProductPairingDqtComparer.EshopList",
                 ct);
         }
@@ -47,11 +45,11 @@ public class ProductPairingDqtComparer : IDriftDqtComparer
             throw;
         }
 
-        IReadOnlyList<ErpStock> erpProducts;
+        IReadOnlyList<DqtErpStockItem> erpProducts;
         try
         {
             erpProducts = await _resilienceService.ExecuteWithResilienceAsync(
-                async cancellationToken => await _erpStockClient.ListAsync(cancellationToken),
+                async cancellationToken => await _erpStockSource.ListAsync(cancellationToken),
                 "ProductPairingDqtComparer.ErpList",
                 ct);
         }
@@ -64,7 +62,7 @@ public class ProductPairingDqtComparer : IDriftDqtComparer
             throw;
         }
 
-        var sellableErpProducts = erpProducts.Where(IsSellable).ToList();
+        var sellableErpProducts = erpProducts.Where(p => p.IsSellable).ToList();
 
         var erpCodeSet = sellableErpProducts
             .Select(p => p.ProductCode)
@@ -128,8 +126,4 @@ public class ProductPairingDqtComparer : IDriftDqtComparer
 
         return new DriftComparisonResult { Mismatches = mismatches, TotalChecked = totalChecked };
     }
-
-    private static bool IsSellable(ErpStock product) =>
-        product.ProductTypeId == (int)ProductType.Goods ||
-        product.ProductTypeId == (int)ProductType.Product;
 }
