@@ -58,9 +58,9 @@
     },
     {
       "name": "rewire-product-pairing-comparer",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-08-29T11:14:03.422366Z"
+      "updated_at": "2026-08-29T11:54:22.872156Z"
     },
     {
       "name": "retire-dataquality-catalog-allowlist",
