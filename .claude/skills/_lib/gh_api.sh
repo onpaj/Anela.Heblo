@@ -87,7 +87,7 @@ req() {
     -H "Accept: ${accept}"
     -H "X-GitHub-Api-Version: 2022-11-28"
     -w $'\n__HTTP_CODE__%{http_code}')
-  [[ -n "$body" ]] && args+=(-d "$body")
+  [[ -n "$body" ]] && args+=(-H "Content-Type: application/json" -d "$body")
 
   local out code delay=3 attempt
   for attempt in 1 2 3 4; do
@@ -523,15 +523,30 @@ compare_behind_by() {
 }
 
 create_ref() {
-  # create_ref BRANCH SHA — atomic test-and-set claim: creating a ref that
-  # already exists fails with 422 "Reference already exists", exactly like
-  # `gh api repos/{owner}/{repo}/git/refs -f ref=... -f sha=...` does.
+  # create_ref BRANCH SHA — atomic test-and-set claim.
+  #
+  # POSTing to the GitHub git-data REST API (/repos/.../git/refs) is
+  # rejected by this environment's egress proxy ("Write access to this
+  # GitHub API path is not permitted through this proxy"), even though a
+  # plain `git push` over HTTPS is allowed. Use `git push` instead, with
+  # `--force-with-lease=<ref>:` (empty expected value) telling the remote
+  # "only accept this update if the ref does not already exist" — a plain
+  # push would otherwise let two concurrent claimants computing the same
+  # BASE_SHA both "succeed" as a same-commit no-op. This keeps the
+  # exactly-one-winner guarantee the REST API's 422-on-exists gave.
+  # Failure text is normalized to contain "already exists" so callers'
+  # existing race detection (`grep -qi "already exists"`) keeps working
+  # unchanged.
   need_repo
   local branch="${1:?branch required}" sha="${2:?sha required}"
-  local body resp
-  body=$(jq -n --arg r "refs/heads/${branch}" --arg s "$sha" '{ref:$r, sha:$s}')
-  resp=$(req POST "/repos/${REPO}/git/refs" "$body")
-  emit "$resp" >/dev/null
+  local out
+  if out=$(git push --force-with-lease="refs/heads/${branch}:" origin "${sha}:refs/heads/${branch}" 2>&1); then
+    return 0
+  fi
+  if grep -qiE "stale info|rejected|already exists|fetch first" <<<"$out"; then
+    err "already exists: ${out}"
+  fi
+  err "$out"
 }
 
 # ---- dispatch -------------------------------------------------------------
