@@ -28,9 +28,9 @@
   "tasks": [
     {
       "name": "add-dqt-invoice-snapshot-contracts-and-mapper",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-08-29T21:15:13.390385Z"
+      "updated_at": "2026-08-29T21:34:10.938722Z"
     },
     {
       "name": "route-invoice-dqt-comparer-through-dqt-contracts",
