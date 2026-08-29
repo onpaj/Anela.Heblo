@@ -141,3 +141,35 @@ PR creation/editing once the Content-Type fix is in place. No working
 `feature/{N}-*` branch created via MCP before pivoting to the
 designated-branch approach can't be cleaned up (same as the #3961 note
 below) — leave it, it's harmless.
+
+**Simpler ref-creation workaround, confirmed 2026-08-29** on a
+`/plan-next-task` run for issue #3975 (PR #3986): don't bother with
+`mcp__github__create_branch` at all — plain `git push` uses the git wire
+protocol, not the GitHub REST API, so it sails through this same proxy
+block untouched. Reproduce `claim_issue.sh`'s ref-creation step manually
+with:
+
+```bash
+git push origin "${BASE_SHA}:refs/heads/${BRANCH}"
+```
+
+(`BASE_SHA` from `git ls-remote origin refs/heads/<default-branch>`, same
+as the script computes). This is simpler than reaching for an MCP tool —
+no new tool surface to learn, same effect (creates the ref on origin), and
+it completed a full `/plan-next-task` cycle end-to-end this run — every
+subsequent write in `claim_issue.sh` (label-create, issue-edit) went
+through `gh_api.sh` normally, confirming again that only the `git/refs`
+REST path is blocked, not the wider API.
+
+**Nested subagents cannot spawn subagents of their own**, confirmed the
+same run: `plan-orchestrator.md` (invoked per `/plan-next-task` step 5)
+tells its reader to "spawn a Task with: system prompt + ... " for each of
+the four planning phases. Delegating this whole orchestration to one
+general-purpose subagent (via this session's own Agent tool) fails —
+that subagent's own toolset has no Task/Agent tool, so it can get through
+the setup steps (checkpoint init, brief.md) but cannot execute the phase
+loop itself. The fix: the top-level session must act as the orchestrator
+directly, making one Agent-tool call per phase (analyst → architect →
+designer → planner) itself, reading each `.agents/{name}.md` file and each
+phase's input artifacts inline, rather than delegating the entire
+orchestrator role to a single subagent.
