@@ -81,6 +81,19 @@ _Update this file at the end of significant sessions._
   shutdown`, retried with `DOTNET_CLI_DISABLE_BUILD_SERVERS=1 MSBUILDDISABLENODEREUSE=1
   -nodeReuse:false`, which worked cleanly (11/11 passed).
 
+- `OrgChartController` cancellation-swallowing fix (issue #3974, PR #3984,
+  `claude/beautiful-darwin-q83em9`, 2026-08-29): fifth occurrence of the same
+  scheduled `/plan-next-task` pattern — designated-branch session, `gh_api.sh`'s
+  `create-ref` call hit the proxy's git-data write block again, so implemented
+  directly instead of the AgentHarness pipeline; used `mcp__github__*` for PR
+  creation/labeling. Added `catch (OperationCanceledException) { throw; }`
+  before the generic `catch (Exception)` in `GetOrganizationStructure` so
+  client disconnects propagate instead of logging a spurious 500. Also hit the
+  documented `dotnet test` nodeReuse deadlock again, but this time the
+  previously-documented fix alone wasn't enough — needed
+  `-p:UseSharedCompilation=false` in addition; see the updated
+  `memory/gotchas/dotnet-build-hangs-nodereuse-accessmatrixgen.md` entry.
+
 ## Pending / Known Issues
 
 - Memory directory (issue #405): adding cross-session knowledge accumulation — this PR
