@@ -22,7 +22,7 @@
     },
     "developing": {
       "status": "in_progress",
-      "updated_at": "2026-08-29T07:14:04.000669Z"
+      "updated_at": "2026-08-29T08:14:29.655347Z"
     }
   },
   "tasks": [
@@ -40,9 +40,9 @@
     },
     {
       "name": "catalog-eshop-stock-source-adapter",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-08-29T08:14:29.823606Z"
     },
     {
       "name": "catalog-erp-stock-source-adapter",
