@@ -64,6 +64,23 @@ _Update this file at the end of significant sessions._
   (`feature/3969-Arch-Review-Dataquality-Dqtrun-And-Stockwritebackd`, same
   can't-delete-via-proxy reason as #3961's).
 
+- Raw-response logging for meeting-task JSON parse failures (issue #3972, PR #3981,
+  `claude/beautiful-darwin-iv1zpr`, 2026-08-29): fourth occurrence of the same scheduled
+  `/plan-next-task` pattern — designated-branch session, `gh auth status` invalid/`gh api`
+  writes to git-data blocked, so implemented directly and used `mcp__github__*` for PR
+  creation/labeling instead of the AgentHarness pipeline. This time `gh_api.sh`'s
+  Content-Type fix was *not* reverted on `main` — the working tree just had an
+  uncommitted local diff removing it (already matched `git diff HEAD` after restoring,
+  nothing to commit) — so the "revert on main" failure mode from #3961/#3969 didn't
+  recur; worth noting in case it's actually container/session-image drift rather than a
+  repo-history revert. Fix: `ClaudeMeetingTaskExtractor.ExtractAsync`'s
+  `catch (JsonException)` now logs the raw (fence-stripped) response text so the next
+  malformed-JSON occurrence's actual payload is visible in telemetry. Also hit the
+  documented `dotnet test` nodeReuse deadlock (`memory/gotchas/dotnet-build-hangs-nodereuse-accessmatrixgen.md`)
+  on the first test run attempt — killed the stuck process tree, `dotnet build-server
+  shutdown`, retried with `DOTNET_CLI_DISABLE_BUILD_SERVERS=1 MSBUILDDISABLENODEREUSE=1
+  -nodeReuse:false`, which worked cleanly (11/11 passed).
+
 ## Pending / Known Issues
 
 - Memory directory (issue #405): adding cross-session knowledge accumulation — this PR
