@@ -70,9 +70,9 @@
     },
     {
       "name": "full-verification",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 2,
-      "updated_at": "2026-08-29T20:15:11.528355Z"
+      "updated_at": "2026-08-29T21:05:29.717543Z"
     }
   ]
 }
