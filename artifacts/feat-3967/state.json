@@ -34,9 +34,9 @@
     },
     {
       "name": "dqt-erp-stock-contract",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-08-29T07:14:04.234392Z"
+      "updated_at": "2026-08-29T07:17:26.076990Z"
     },
     {
       "name": "catalog-eshop-stock-source-adapter",
