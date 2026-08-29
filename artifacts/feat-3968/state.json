@@ -25,5 +25,24 @@
       "updated_at": null
     }
   },
-  "tasks": []
+  "tasks": [
+    {
+      "name": "add-dqt-invoice-snapshot-contracts-and-mapper",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    },
+    {
+      "name": "route-invoice-dqt-comparer-through-dqt-contracts",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    },
+    {
+      "name": "close-dataquality-invoices-boundary-allowlist",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    }
+  ]
 }
