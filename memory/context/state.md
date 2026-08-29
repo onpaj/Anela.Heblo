@@ -50,6 +50,20 @@ _Update this file at the end of significant sessions._
   remote branch deletion (`git push --delete` and REST) is also blocked by the
   proxy's write restriction; it has no unique commits and doesn't block anything.
 
+- `DqtRun`/`StockWriteBackDqtComparer` TimeProvider fix (issue #3969, PR #3978,
+  `claude/beautiful-darwin-2p00ks`, 2026-08-29): third occurrence of the same
+  scheduled `/plan-next-task` pattern — designated-branch session, implemented
+  directly instead of the AgentHarness pipeline. `DqtRun.Start()`/`Complete()`/
+  `Fail()` now take explicit timestamp params; 4 recurring jobs, `RunDqtHandler`,
+  `DriftDqtJobRunner`, `InvoiceDqtJobRunner` pass `TimeProvider`; comparer now
+  injects `TimeProvider` too. Also found `gh_api.sh`'s Content-Type fix from
+  #3944 had been reverted *on main* (commit `60da06c`, no linked PR found) —
+  re-applied it (this time with an inline code comment pointing at
+  `memory/gotchas/gh-cli-unavailable-in-cloud-sessions.md` so it stops
+  flip-flopping) and left one more harmless orphan branch
+  (`feature/3969-Arch-Review-Dataquality-Dqtrun-And-Stockwritebackd`, same
+  can't-delete-via-proxy reason as #3961's).
+
 ## Pending / Known Issues
 
 - Memory directory (issue #405): adding cross-session knowledge accumulation — this PR
