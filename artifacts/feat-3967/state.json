@@ -64,9 +64,9 @@
     },
     {
       "name": "retire-dataquality-catalog-allowlist",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-08-29T12:14:37.187407Z"
+      "updated_at": "2026-08-29T12:35:27.787647Z"
     },
     {
       "name": "full-verification",
