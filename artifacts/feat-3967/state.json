@@ -52,9 +52,9 @@
     },
     {
       "name": "catalog-module-di-registration",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-08-29T10:14:51.306342Z"
+      "updated_at": "2026-08-29T10:18:34.420236Z"
     },
     {
       "name": "rewire-product-pairing-comparer",
