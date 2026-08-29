@@ -46,9 +46,9 @@
     },
     {
       "name": "catalog-erp-stock-source-adapter",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-08-29T09:14:37.244081Z"
+      "updated_at": "2026-08-29T09:47:09.622248Z"
     },
     {
       "name": "catalog-module-di-registration",
