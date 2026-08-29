@@ -21,16 +21,16 @@
       "updated_at": "2026-08-29T06:32:04.277397Z"
     },
     "developing": {
-      "status": "pending",
-      "updated_at": null
+      "status": "in_progress",
+      "updated_at": "2026-08-29T21:15:13.187788Z"
     }
   },
   "tasks": [
     {
       "name": "add-dqt-invoice-snapshot-contracts-and-mapper",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-08-29T21:15:13.390385Z"
     },
     {
       "name": "route-invoice-dqt-comparer-through-dqt-contracts",
