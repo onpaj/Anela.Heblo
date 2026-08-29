@@ -75,7 +75,7 @@ public sealed class ClaudeMeetingTaskExtractor : IMeetingTaskExtractor
             }
             catch (JsonException ex)
             {
-                _logger.LogError(ex, "Meeting task extraction returned malformed JSON — transcript will be imported without tasks");
+                _logger.LogError(ex, "Meeting task extraction returned malformed JSON — transcript will be imported without tasks. Raw response: {RawResponse}", text);
                 return new MeetingExtractionResult([], []);
             }
         }
