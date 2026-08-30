@@ -177,6 +177,30 @@ _Update this file at the end of significant sessions._
   label. Sibling candidate #3990 (`[Range]` dead-code attributes on `ListArticlesRequest`)
   left for a future run.
 
+- `ListArticlesRequest` `[Range]` dead-code fix (issue #3990, PR #3999,
+  `claude/beautiful-darwin-b7bqkw`, 2026-08-30): tenth occurrence of the same scheduled
+  `/plan-next-task` pattern — designated-branch session. `claim_issue.sh`'s `create-ref`
+  hit both documented walls in sequence: first the standard uncommitted `gh_api.sh`
+  Content-Type-header regression (from `agentharness init`'s bundled template — restored
+  via `git checkout --`), then after that the proxy's `403 Write access ... not permitted
+  through this proxy` for git-refs writes. Same session also had the `git add -A` (missing
+  `-f` for gitignored `artifacts/`) regression reappear in `.claude/agents/orchestrator.md`,
+  `.claude/agents/plan-orchestrator.md`, and `.claude/skills/oneshot/SKILL.md` — restored
+  all three via `git checkout --`, no recommit needed (already fixed on `main`). Implemented
+  issue #3990 directly on the designated branch instead of running the AgentHarness
+  pipeline: removed the dead `[Range(1, int.MaxValue)]`/`[Range(1, 100)]` attributes (and
+  the now-unused `System.ComponentModel.DataAnnotations` import) from `ListArticlesRequest`,
+  since `ArticlesController.List` manually constructs the request instead of binding it, so
+  ASP.NET Core model validation never runs; tightened the handler's clamping comment to
+  match. `dotnet build` (API project): 0 errors; `dotnet format --verify-no-changes`: clean.
+  A filtered `dotnet test --filter ListArticles` run was left running in the background
+  (very slow on this session's constrained single-core CPU, ~10 minutes just to compile)
+  rather than blocking the PR on it, given the change is a pure attribute/comment removal
+  with no logic change and the full solution build already succeeded — it finished after
+  the PR was already open, confirming all 7 `ListArticlesHandlerTests` still pass. Plain
+  `git push` to origin worked fine; PR opened via `mcp__github__create_pull_request` +
+  `issue_write` for the `agent` label.
+
 ## Pending / Known Issues
 
 - Memory directory (issue #405): adding cross-session knowledge accumulation — this PR
