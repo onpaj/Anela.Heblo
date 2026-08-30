@@ -194,12 +194,12 @@ _Update this file at the end of significant sessions._
   ASP.NET Core model validation never runs; tightened the handler's clamping comment to
   match. `dotnet build` (API project): 0 errors; `dotnet format --verify-no-changes`: clean.
   A filtered `dotnet test --filter ListArticles` run was left running in the background
-  (very slow on this session's constrained single-core CPU, still compiling after 9+
-  minutes) — didn't block on it given the change is a pure attribute/comment removal with
-  no logic change and the full solution build already succeeded; worth checking its
-  result in a future session if it's still relevant. Plain `git push` to origin worked
-  fine; PR opened via `mcp__github__create_pull_request` + `issue_write` for the `agent`
-  label.
+  (very slow on this session's constrained single-core CPU, ~10 minutes just to compile)
+  rather than blocking the PR on it, given the change is a pure attribute/comment removal
+  with no logic change and the full solution build already succeeded — it finished after
+  the PR was already open, confirming all 7 `ListArticlesHandlerTests` still pass. Plain
+  `git push` to origin worked fine; PR opened via `mcp__github__create_pull_request` +
+  `issue_write` for the `agent` label.
 
 ## Pending / Known Issues
 
