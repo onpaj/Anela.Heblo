@@ -1,6 +1,5 @@
 using Anela.Heblo.Application.Features.DataQuality.Contracts;
 using Anela.Heblo.Application.Features.DataQuality.Services;
-using Anela.Heblo.Domain.Features.Catalog.Stock;
 using Anela.Heblo.Domain.Features.DataQuality;
 using FluentAssertions;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -10,8 +9,8 @@ namespace Anela.Heblo.Tests.Features.DataQuality;
 
 public class ProductPairingDqtComparerTests
 {
-    private readonly Mock<IEshopStockClient> _eshopMock = new();
-    private readonly Mock<IErpStockClient> _erpMock = new();
+    private readonly Mock<IDqtEshopStockSource> _eshopMock = new();
+    private readonly Mock<IDqtErpStockSource> _erpMock = new();
     private readonly Mock<IDqtResilienceService> _resilienceMock = new();
     private static readonly DateOnly Today = DateOnly.FromDateTime(DateTime.Today);
 
@@ -20,38 +19,38 @@ public class ProductPairingDqtComparerTests
         // Pass-through resilience: invoke the inner operation directly.
         _resilienceMock
             .Setup(r => r.ExecuteWithResilienceAsync(
-                It.IsAny<Func<CancellationToken, Task<List<EshopStock>>>>(),
+                It.IsAny<Func<CancellationToken, Task<IReadOnlyList<DqtEshopStockItem>>>>(),
                 It.IsAny<string>(),
                 It.IsAny<CancellationToken>()))
-            .Returns<Func<CancellationToken, Task<List<EshopStock>>>, string, CancellationToken>(
+            .Returns<Func<CancellationToken, Task<IReadOnlyList<DqtEshopStockItem>>>, string, CancellationToken>(
                 (op, _, ct) => op(ct));
 
         _resilienceMock
             .Setup(r => r.ExecuteWithResilienceAsync(
-                It.IsAny<Func<CancellationToken, Task<IReadOnlyList<ErpStock>>>>(),
+                It.IsAny<Func<CancellationToken, Task<IReadOnlyList<DqtErpStockItem>>>>(),
                 It.IsAny<string>(),
                 It.IsAny<CancellationToken>()))
-            .Returns<Func<CancellationToken, Task<IReadOnlyList<ErpStock>>>, string, CancellationToken>(
+            .Returns<Func<CancellationToken, Task<IReadOnlyList<DqtErpStockItem>>>, string, CancellationToken>(
                 (op, _, ct) => op(ct));
     }
 
     private ProductPairingDqtComparer CreateSut() =>
         new(_eshopMock.Object, _erpMock.Object, _resilienceMock.Object, NullLogger<ProductPairingDqtComparer>.Instance);
 
-    private void SetupEshop(params EshopStock[] products) =>
+    private void SetupEshop(params DqtEshopStockItem[] products) =>
         _eshopMock.Setup(c => c.ListAsync(It.IsAny<CancellationToken>()))
-            .ReturnsAsync(products.ToList());
+            .ReturnsAsync((IReadOnlyList<DqtEshopStockItem>)products.ToList());
 
-    private void SetupErp(params ErpStock[] products) =>
+    private void SetupErp(params DqtErpStockItem[] products) =>
         _erpMock.Setup(c => c.ListAsync(It.IsAny<CancellationToken>()))
-            .ReturnsAsync((IReadOnlyList<ErpStock>)products.ToList());
+            .ReturnsAsync((IReadOnlyList<DqtErpStockItem>)products.ToList());
 
     [Fact]
     public async Task CompareAsync_ReturnsEmpty_WhenAllProductsPaired()
     {
         // Arrange
-        SetupEshop(new EshopStock { Code = "P001", PairCode = "", Name = "Product 1" });
-        SetupErp(new ErpStock { ProductCode = "P001", ProductName = "Product 1", ProductTypeId = 1 }); // Goods=1
+        SetupEshop(new DqtEshopStockItem { Code = "P001", PairCode = "", Name = "Product 1" });
+        SetupErp(new DqtErpStockItem { ProductCode = "P001", ProductName = "Product 1", IsSellable = true }); // Goods
 
         // Act
         var result = await CreateSut().CompareAsync(Today, Today, CancellationToken.None);
@@ -65,7 +64,7 @@ public class ProductPairingDqtComparerTests
     public async Task CompareAsync_ReturnsMissingInErp_WhenShoptetProductNotInErp()
     {
         // Arrange
-        SetupEshop(new EshopStock { Code = "ESHOP_ONLY", PairCode = "", Name = "Eshop Only" });
+        SetupEshop(new DqtEshopStockItem { Code = "ESHOP_ONLY", PairCode = "", Name = "Eshop Only" });
         SetupErp(); // Empty ERP
 
         // Act
@@ -82,7 +81,7 @@ public class ProductPairingDqtComparerTests
     public async Task CompareAsync_ReturnsMissingInErpAndPairCodeUnresolved_WhenPairCodeNotInErp()
     {
         // Arrange
-        SetupEshop(new EshopStock { Code = "ESHOP001", PairCode = "ERP001", Name = "Pair Code Product" });
+        SetupEshop(new DqtEshopStockItem { Code = "ESHOP001", PairCode = "ERP001", Name = "Pair Code Product" });
         SetupErp(); // ERP001 not in ERP
 
         // Act
@@ -100,8 +99,8 @@ public class ProductPairingDqtComparerTests
         // Arrange
         SetupEshop(); // Empty Shoptet
         SetupErp(
-            new ErpStock { ProductCode = "PROD001", ProductName = "Sellable", ProductTypeId = 8 },  // Product=8
-            new ErpStock { ProductCode = "MAT001", ProductName = "Material", ProductTypeId = 3 }   // Material=3, not sellable
+            new DqtErpStockItem { ProductCode = "PROD001", ProductName = "Sellable", IsSellable = true },  // Product
+            new DqtErpStockItem { ProductCode = "MAT001", ProductName = "Material", IsSellable = false }   // Material, not sellable
         );
 
         // Act
@@ -118,20 +117,20 @@ public class ProductPairingDqtComparerTests
     public async Task CompareAsync_WrapsBothListCalls_WithResilience()
     {
         // Arrange
-        SetupEshop(new EshopStock { Code = "P001", PairCode = "", Name = "Product 1" });
-        SetupErp(new ErpStock { ProductCode = "P001", ProductName = "Product 1", ProductTypeId = 1 });
+        SetupEshop(new DqtEshopStockItem { Code = "P001", PairCode = "", Name = "Product 1" });
+        SetupErp(new DqtErpStockItem { ProductCode = "P001", ProductName = "Product 1", IsSellable = true });
 
         // Act
         _ = await CreateSut().CompareAsync(Today, Today, CancellationToken.None);
 
         // Assert
         _resilienceMock.Verify(r => r.ExecuteWithResilienceAsync(
-            It.IsAny<Func<CancellationToken, Task<List<EshopStock>>>>(),
+            It.IsAny<Func<CancellationToken, Task<IReadOnlyList<DqtEshopStockItem>>>>(),
             "ProductPairingDqtComparer.EshopList",
             It.IsAny<CancellationToken>()), Times.Once);
 
         _resilienceMock.Verify(r => r.ExecuteWithResilienceAsync(
-            It.IsAny<Func<CancellationToken, Task<IReadOnlyList<ErpStock>>>>(),
+            It.IsAny<Func<CancellationToken, Task<IReadOnlyList<DqtErpStockItem>>>>(),
             "ProductPairingDqtComparer.ErpList",
             It.IsAny<CancellationToken>()), Times.Once);
     }

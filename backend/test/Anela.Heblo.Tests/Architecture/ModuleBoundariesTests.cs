@@ -125,23 +125,12 @@ public class ModuleBoundariesTests
         "Anela.Heblo.Application.Features.Catalog.UseCases.GetProductComposition.GetProductCompositionHandler -> Anela.Heblo.Domain.Features.Manufacture.Ingredient",
     };
 
-    // Allowlist for DataQuality -> Catalog. Pre-existing ProductPairingDqtComparer references
-    // are out of scope for the 2026-06-03 StockWriteBackDqtComparer decoupling.
-    // Track follow-up: introduce DataQuality-owned IProductPairingQuery contract and Catalog-side
-    // adapter that surfaces eshop/erp product snapshots without leaking Catalog types.
-    private static readonly HashSet<string> DataQualityCatalogAllowlist = new(StringComparer.Ordinal)
-    {
-        // ProductPairingDqtComparer reads eshop/erp catalog clients to compare product pairing.
-        "Anela.Heblo.Application.Features.DataQuality.Services.ProductPairingDqtComparer -> Anela.Heblo.Domain.Features.Catalog.Stock.IEshopStockClient",
-        "Anela.Heblo.Application.Features.DataQuality.Services.ProductPairingDqtComparer -> Anela.Heblo.Domain.Features.Catalog.Stock.IErpStockClient",
-        "Anela.Heblo.Application.Features.DataQuality.Services.ProductPairingDqtComparer -> Anela.Heblo.Domain.Features.Catalog.Stock.ErpStock",
-        "Anela.Heblo.Application.Features.DataQuality.Services.ProductPairingDqtComparer -> Anela.Heblo.Domain.Features.Catalog.ProductType",
-
-        // Compiler-generated async state machines and lambdas for CompareAsync capture EshopStock.
-        // The declaring-type check covers nested types (<CompareAsync>d__6, <<CompareAsync>b__6_1>d)
-        // via this single parent entry.
-        "Anela.Heblo.Application.Features.DataQuality.Services.ProductPairingDqtComparer -> Anela.Heblo.Domain.Features.Catalog.Stock.EshopStock",
-    };
+    // Allowlist for DataQuality -> Catalog. Empty — ProductPairingDqtComparer now consumes
+    // the DataQuality-owned IDqtEshopStockSource/IDqtErpStockSource contracts; the Catalog
+    // adapters (DataQualityEshopStockSourceAdapter, DataQualityErpStockSourceAdapter) live in
+    // Catalog.Infrastructure and implement them there, so no DataQuality type needs to
+    // reference Catalog directly.
+    private static readonly HashSet<string> DataQualityCatalogAllowlist = new(StringComparer.Ordinal);
 
     // Allowlist for DataQuality -> Invoices. The DataQuality module owns IInvoiceShoptetSource
     // and IInvoiceErpClient (in Application/Features/DataQuality/Contracts/) and consumes
