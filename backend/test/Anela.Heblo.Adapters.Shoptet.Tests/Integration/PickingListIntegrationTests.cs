@@ -18,9 +18,9 @@ namespace Anela.Heblo.Adapters.Shoptet.Tests.Integration;
 [Trait("Category", "Integration")]
 public class PickingListIntegrationTests
 {
-    // Must match PrintPickingListRequest.DefaultSourceStateId (-2 = "Vyřizuje se").
+    // Must match ExpeditionPickingRequest.DefaultSourceStateId (-2 = "Vyřizuje se").
     // Use statusId= query parameter (not status=) — the correct param name supports negative system IDs.
-    private const int SourceStateId = PrintPickingListRequest.DefaultSourceStateId;
+    private const int SourceStateId = ExpeditionPickingRequest.DefaultSourceStateId;
 
     private readonly IConfiguration _configuration;
     private readonly IEshopOrderClient _orderClient;
@@ -85,7 +85,7 @@ public class PickingListIntegrationTests
             var request = new PrintPickingListRequest
             {
                 SourceStateId = SourceStateId,
-                DesiredStateId = PrintPickingListRequest.DefaultDesiredStateId,
+                DesiredStateId = ExpeditionPickingRequest.DefaultDesiredStateId,
                 Carriers = ExpeditionPickingRequest.DefaultCarriers,
                 ChangeOrderState = false,
                 SendToPrinter = false,
