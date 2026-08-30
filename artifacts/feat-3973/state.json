@@ -40,9 +40,9 @@
     },
     {
       "name": "full-validation-gate",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-08-30T09:14:13.370479Z"
+      "updated_at": "2026-08-30T10:17:36.625081Z"
     }
   ]
 }
