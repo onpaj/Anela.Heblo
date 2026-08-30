@@ -34,9 +34,9 @@
     },
     {
       "name": "fire-and-forget-safety-net",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-08-30T08:14:06.836237Z"
+      "updated_at": "2026-08-30T08:58:41.340499Z"
     },
     {
       "name": "full-validation-gate",
