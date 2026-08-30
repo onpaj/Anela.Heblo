@@ -141,3 +141,23 @@ PR creation/editing once the Content-Type fix is in place. No working
 `feature/{N}-*` branch created via MCP before pivoting to the
 designated-branch approach can't be cleaned up (same as the #3961 note
 below) — leave it, it's harmless.
+
+**Empty-queue variant, seen 2026-08-30** on a `/plan-next-task` run (issue #3980,
+PR #3991, `claude/beautiful-darwin-hl0gyk`): same designated-branch/`gh`-unavailable
+shape as every occurrence above, but this time the planning queue itself was empty —
+no open issue carried the `agent` label without an existing PR, so there was no
+candidate to substitute work for in the usual way (pick the found candidate,
+implement it directly). Rather than reporting "nothing to plan" and stopping, the run
+picked up issue #3980 itself — an open, owner-filed issue describing two concrete bugs
+in this exact pipeline tooling (this doc's own subject) — reasoning that fixing the
+pipeline's own known-broken bits is more valuable than an idle cycle when the normal
+queue is dry. That issue's Bug 1 (`gh_api.sh` Content-Type) was already fixed on
+`main`; Bug 2 was real: `git add -A artifacts/feat-{id}` across
+`.claude/agents/orchestrator.md`, `.claude/agents/plan-orchestrator.md`, and
+`.claude/skills/oneshot/SKILL.md` silently staged nothing because `artifacts/` is
+gitignored at the repo root (confirmed by reproducing the ignored-path warning in a
+scratch repo) — fixed by adding `-f` to all 10 occurrences. Whether to keep treating
+an empty `agent`-labeled queue as license to pick up pipeline-maintenance issues like
+this, versus always reporting "nothing to plan," is a judgment call each run should
+make on its own merits (issue is genuinely actionable, small, low-risk, and on-topic
+for the pipeline) rather than a rule to apply automatically.

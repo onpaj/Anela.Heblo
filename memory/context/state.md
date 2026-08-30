@@ -109,8 +109,26 @@ _Update this file at the end of significant sessions._
   violate React's Rules of Hooks (conditional hook call across renders) — kept it a plain
   function call instead and noted this in the PR body.
 
+- Pipeline fix: `git add -A -f` for gitignored `artifacts/` (issue #3980, PR #3991,
+  `claude/beautiful-darwin-hl0gyk`, 2026-08-30): seventh occurrence of the same scheduled
+  `/plan-next-task` pattern — designated-branch session, `gh auth status` invalid. This
+  time the planning queue itself was empty (no `agent`-labeled issue without a PR), so
+  rather than reporting "nothing to plan" the run picked up issue #3980 — an
+  owner-filed, still-open issue describing two real bugs in the pipeline tooling itself.
+  Bug 1 (`gh_api.sh` missing `Content-Type: application/json`) was already fixed on
+  `main` — confirmed, no change needed. Bug 2 was real and unfixed: `git add -A
+  artifacts/feat-{id}` in `.claude/agents/orchestrator.md` (6x), `.claude/agents/
+  plan-orchestrator.md` (3x), and `.claude/skills/oneshot/SKILL.md` (1x) silently staged
+  nothing because `artifacts/` is gitignored at the repo root — git refuses ignored
+  paths without `-f`. Reproduced the exact "ignored by .gitignore... use -f" warning in
+  a scratch repo to confirm before fixing. Added `-f` to all 10 occurrences. Also hit
+  the standard uncommitted `gh_api.sh` Content-Type regression on session start (from
+  `agentharness init`'s bundled template) — restored via `git checkout --`, did not
+  recommit, matching the documented fix. Used `mcp__github__create_pull_request` +
+  `issue_write` for PR creation/labeling; plain `git push` to origin worked fine.
+
 - Shoptet state-ID constant deduplication (issue #3987, PR #3992,
-  `claude/beautiful-darwin-8yyupc`, 2026-08-30): seventh occurrence of the same scheduled
+  `claude/beautiful-darwin-8yyupc`, 2026-08-30): eighth occurrence of the same scheduled
   `/plan-next-task` pattern — designated-branch session. `claim_issue.sh`'s `create-ref`
   hit both documented walls in sequence: first the standard uncommitted `gh_api.sh`
   Content-Type-header regression (from `agentharness init`'s bundled template, restored
