@@ -34,9 +34,9 @@
     },
     {
       "name": "route-invoice-dqt-comparer-through-dqt-contracts",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-08-30T00:13:35.948247Z"
+      "updated_at": "2026-08-30T01:00:07.396534Z"
     },
     {
       "name": "close-dataquality-invoices-boundary-allowlist",
