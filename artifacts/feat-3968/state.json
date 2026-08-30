@@ -22,7 +22,7 @@
     },
     "developing": {
       "status": "in_progress",
-      "updated_at": "2026-08-30T00:13:35.781160Z"
+      "updated_at": "2026-08-30T01:14:12.629931Z"
     }
   },
   "tasks": [
@@ -40,9 +40,9 @@
     },
     {
       "name": "close-dataquality-invoices-boundary-allowlist",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-08-30T01:14:12.863036Z"
     }
   ]
 }
