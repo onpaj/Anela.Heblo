@@ -1,6 +1,5 @@
 using Anela.Heblo.Application.Features.DataQuality.Contracts;
 using Anela.Heblo.Domain.Features.DataQuality;
-using Anela.Heblo.Domain.Features.Invoices;
 
 namespace Anela.Heblo.Application.Features.DataQuality.Services;
 
@@ -19,15 +18,14 @@ public class InvoiceDqtComparer : IInvoiceDqtComparer
 
     public async Task<InvoiceDqtComparisonResult> CompareAsync(DateOnly from, DateOnly to, CancellationToken ct = default)
     {
-        var shoptetQuery = new IssuedInvoiceSourceQuery
+        var shoptetQuery = new DqtInvoiceSourceQuery
         {
             RequestId = $"dqt-{from:yyyy-MM-dd}-{to:yyyy-MM-dd}",
-            DateFrom = from.ToDateTime(TimeOnly.MinValue),
-            DateTo = to.ToDateTime(TimeOnly.MinValue)
+            DateFrom = from,
+            DateTo = to
         };
 
-        var shoptetBatches = await _shoptetSource.GetAllAsync(shoptetQuery, ct);
-        var shoptetInvoices = shoptetBatches.SelectMany(b => b.Invoices).ToList();
+        var shoptetInvoices = await _shoptetSource.GetAllAsync(shoptetQuery, ct);
 
         var flexiInvoices = await _flexiClient.GetAllAsync(from, to, ct);
 
@@ -80,18 +78,18 @@ public class InvoiceDqtComparer : IInvoiceDqtComparer
             string? flexiVal = null;
             string? details = duplicateDetail;
 
-            if (Math.Abs(shoptetInvoice!.Price.TotalWithVat - flexiInvoice!.Price.TotalWithVat) > Tolerance)
+            if (Math.Abs(shoptetInvoice!.TotalWithVat - flexiInvoice!.TotalWithVat) > Tolerance)
             {
                 flags |= InvoiceMismatchType.TotalWithVatDiffers;
-                shoptetVal = shoptetInvoice.Price.TotalWithVat.ToString("F2");
-                flexiVal = flexiInvoice.Price.TotalWithVat.ToString("F2");
+                shoptetVal = shoptetInvoice.TotalWithVat.ToString("F2");
+                flexiVal = flexiInvoice.TotalWithVat.ToString("F2");
             }
 
-            if (Math.Abs(shoptetInvoice.Price.TotalWithoutVat - flexiInvoice.Price.TotalWithoutVat) > Tolerance)
+            if (Math.Abs(shoptetInvoice.TotalWithoutVat - flexiInvoice.TotalWithoutVat) > Tolerance)
             {
                 flags |= InvoiceMismatchType.TotalWithoutVatDiffers;
-                shoptetVal ??= shoptetInvoice.Price.TotalWithoutVat.ToString("F2");
-                flexiVal ??= flexiInvoice.Price.TotalWithoutVat.ToString("F2");
+                shoptetVal ??= shoptetInvoice.TotalWithoutVat.ToString("F2");
+                flexiVal ??= flexiInvoice.TotalWithoutVat.ToString("F2");
             }
 
             var itemDiff = CompareItems(shoptetInvoice.Items, flexiInvoice.Items);
@@ -121,7 +119,7 @@ public class InvoiceDqtComparer : IInvoiceDqtComparer
         };
     }
 
-    private static string? CompareItems(List<IssuedInvoiceDetailItem> shoptetItems, List<IssuedInvoiceDetailItem> flexiItems)
+    private static string? CompareItems(List<DqtInvoiceItem> shoptetItems, List<DqtInvoiceItem> flexiItems)
     {
         // Items without a product code (unidentifiable shipping/billing/discount lines) cannot
         // be matched cross-system — skip them to avoid duplicate-key crashes.
@@ -166,11 +164,11 @@ public class InvoiceDqtComparer : IInvoiceDqtComparer
             if (sItem!.Amount != fItem!.Amount)
                 diffs.Add($"Item {code}: Amount shoptet={sItem.Amount} flexi={fItem.Amount}");
 
-            if (Math.Abs(sItem.ItemPrice.WithVat - fItem.ItemPrice.WithVat) > Tolerance)
-                diffs.Add($"Item {code}: WithVat shoptet={sItem.ItemPrice.WithVat:F2} flexi={fItem.ItemPrice.WithVat:F2}");
+            if (Math.Abs(sItem.WithVat - fItem.WithVat) > Tolerance)
+                diffs.Add($"Item {code}: WithVat shoptet={sItem.WithVat:F2} flexi={fItem.WithVat:F2}");
 
-            if (Math.Abs(sItem.ItemPrice.WithoutVat - fItem.ItemPrice.WithoutVat) > Tolerance)
-                diffs.Add($"Item {code}: WithoutVat shoptet={sItem.ItemPrice.WithoutVat:F2} flexi={fItem.ItemPrice.WithoutVat:F2}");
+            if (Math.Abs(sItem.WithoutVat - fItem.WithoutVat) > Tolerance)
+                diffs.Add($"Item {code}: WithoutVat shoptet={sItem.WithoutVat:F2} flexi={fItem.WithoutVat:F2}");
         }
 
         return diffs.Count > 0 ? string.Join("; ", diffs) : null;
