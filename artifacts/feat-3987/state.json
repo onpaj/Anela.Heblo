@@ -25,5 +25,24 @@
       "updated_at": null
     }
   },
-  "tasks": []
+  "tasks": [
+    {
+      "name": "add-shoptet-status-comments-to-expedition-picking-request",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    },
+    {
+      "name": "retarget-picking-list-integration-test-to-expedition-picking-request",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    },
+    {
+      "name": "consolidate-print-picking-list-request-constants-onto-expedition-picking-request",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    }
+  ]
 }
