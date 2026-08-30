@@ -40,9 +40,9 @@
     },
     {
       "name": "close-dataquality-invoices-boundary-allowlist",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-08-30T01:14:12.863036Z"
+      "updated_at": "2026-08-30T01:56:01.381295Z"
     }
   ]
 }
