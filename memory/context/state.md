@@ -126,6 +126,22 @@ _Update this file at the end of significant sessions._
   `agentharness init`'s bundled template) — restored via `git checkout --`, did not
   recommit, matching the documented fix. Used `mcp__github__create_pull_request` +
   `issue_write` for PR creation/labeling; plain `git push` to origin worked fine.
+- Duplication fix: Shoptet state-ID constants (issue #3987, PR #3994,
+  `claude/beautiful-darwin-d887cw`, 2026-08-30): eighth occurrence of the same
+  scheduled `/plan-next-task` designated-branch pattern. `claim_issue.sh`'s ref-creation
+  call failed with the "Form-encoded... Send the documented JSON body" 403 — the same
+  recurring `gh_api.sh` Content-Type regression (from `agentharness init`'s bundled
+  template overwriting it on session start), not a new bug; `git checkout --` restored
+  the already-fixed `main` version, no recommit needed. Per the documented workaround,
+  implemented issue #3987 directly on the designated branch instead of running the
+  pipeline: `PrintPickingListRequest`'s three duplicate `Default*StateId` consts now
+  reference `ExpeditionPickingRequest`'s instead of redeclaring them. Confirmed via
+  `ModuleBoundariesTests` that only "ExpeditionList -> Logistics" is a restricted
+  direction — the reverse (Logistics -> ExpeditionList, which
+  `LogisticsExpeditionPickingAdapter` already does) is unrestricted, so this introduced
+  no boundary violation. `dotnet build`/`format`/tests all green (143 tests total across
+  boundary + directly-affected suites). PR opened via `mcp__github__create_pull_request`
+  + `issue_write` for the `agent` label.
 
 ## Pending / Known Issues
 
