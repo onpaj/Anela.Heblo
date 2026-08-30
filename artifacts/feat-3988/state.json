@@ -34,9 +34,9 @@
     },
     {
       "name": "wire-handler-desired-state-name",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-08-30T20:14:30.470887Z"
+      "updated_at": "2026-08-30T21:42:46.429217Z"
     }
   ]
 }
