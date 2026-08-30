@@ -217,4 +217,70 @@ public class RunDqtHandlerTests
         _invoiceJobRunnerMock.Verify(j => j.RunAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()), Times.Never);
         _driftJobRunnerMock.Verify(j => j.RunAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()), Times.Never);
     }
+
+    [Fact]
+    public async Task Handle_RunnerLookupThrowsInsideFireAndForgetTask_FailsTheRun()
+    {
+        // Arrange: both runners pass CanHandle at the synchronous pre-check (so the run IS
+        // persisted), but the fire-and-forget task's own lookup throws — simulating a runner
+        // deregistered/misbehaving between the pre-check and the background task running.
+        // We force this by having the scope factory return a *second*, different scope on the
+        // second CreateScope() call (the pre-check consumes the first) whose service provider
+        // has an empty runner list.
+        var run = default(DqtRun);
+        _repositoryMock.Setup(r => r.AddAsync(It.IsAny<DqtRun>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((DqtRun r, CancellationToken _) => { run = r; return r; });
+        _repositoryMock.Setup(r => r.GetByIdAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((Guid id, CancellationToken _) => run);
+        _repositoryMock.Setup(r => r.SaveChangesAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(1);
+
+        var emptyScopeMock = new Mock<IServiceScope>();
+        var emptyProviderMock = new Mock<IServiceProvider>();
+        emptyProviderMock.Setup(sp => sp.GetService(typeof(IEnumerable<IDqtJobRunner>)))
+            .Returns(new List<IDqtJobRunner>());
+        emptyProviderMock.Setup(sp => sp.GetService(typeof(IDqtRunRepository)))
+            .Returns(_repositoryMock.Object);
+        emptyScopeMock.Setup(s => s.ServiceProvider).Returns(emptyProviderMock.Object);
+
+        var callCount = 0;
+        _scopeFactoryMock.Setup(f => f.CreateScope()).Returns(() =>
+        {
+            callCount++;
+            if (callCount == 1)
+            {
+                // First call: the synchronous pre-check scope — return the normal wired scope
+                // so the pre-check sees a matching runner and the run gets persisted.
+                var scopeMock = new Mock<IServiceScope>();
+                var providerMock = new Mock<IServiceProvider>();
+                providerMock.Setup(sp => sp.GetService(typeof(IEnumerable<IDqtJobRunner>)))
+                    .Returns(new List<IDqtJobRunner> { _invoiceJobRunnerMock.Object });
+                scopeMock.Setup(s => s.ServiceProvider).Returns(providerMock.Object);
+                return scopeMock.Object;
+            }
+            // Second call: the fire-and-forget task's own scope — empty runner list, so its
+            // internal lookup throws InvalidOperationException before RunAsync is reached.
+            return emptyScopeMock.Object;
+        });
+
+        var request = new RunDqtRequest
+        {
+            TestType = DqtTestType.IssuedInvoiceComparison,
+            DateFrom = From,
+            DateTo = To
+        };
+
+        // Act
+        var response = await _sut.Handle(request, CancellationToken.None);
+        await Task.Delay(100); // allow the fire-and-forget Task.Run to run its catch block
+
+        // Assert: Handle() itself still reports success (the run was legitimately accepted —
+        // the failure happens asynchronously), but the run is now recorded as Failed instead
+        // of being stuck in Running forever with no diagnostic trail.
+        Assert.True(response.Success);
+        Assert.NotNull(run);
+        Assert.Equal(DqtRunStatus.Failed, run!.Status);
+        Assert.Contains("IssuedInvoiceComparison", run.ErrorMessage);
+        _repositoryMock.Verify(r => r.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.AtLeastOnce);
+    }
 }
