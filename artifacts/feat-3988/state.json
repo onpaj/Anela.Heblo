@@ -21,16 +21,16 @@
       "updated_at": "2026-08-30T10:18:55.469565Z"
     },
     "developing": {
-      "status": "pending",
-      "updated_at": null
+      "status": "in_progress",
+      "updated_at": "2026-08-30T13:14:18.151448Z"
     }
   },
   "tasks": [
     {
       "name": "add-desired-state-name-option",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-08-30T13:14:18.336416Z"
     },
     {
       "name": "wire-handler-desired-state-name",
