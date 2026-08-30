@@ -28,9 +28,9 @@
   "tasks": [
     {
       "name": "synchronous-runner-validation",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-08-30T07:14:43.244839Z"
+      "updated_at": "2026-08-30T07:45:50.517784Z"
     },
     {
       "name": "fire-and-forget-safety-net",
