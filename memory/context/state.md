@@ -158,6 +158,25 @@ _Update this file at the end of significant sessions._
   dependency direction already established by `LogisticsExpeditionPickingAdapter`. No
   orphan branch left behind this time since `create-ref` failed before creating anything.
 
+- `SubmitArticleFeedbackRequest.ArticleId` JsonIgnore fix (issue #3989, PR #3997,
+  `claude/beautiful-darwin-nxtvgf`, 2026-08-30): ninth occurrence of the same scheduled
+  `/plan-next-task` pattern — designated-branch session, `gh auth status` invalid
+  (`GITHUB_TOKEN` rejected). Also hit the standard uncommitted `gh_api.sh` Content-Type
+  regression (plus `git add -A` for `artifacts/feat-*` reverted to missing `-f`, and an
+  `orchestrator.md`/`plan-orchestrator.md` diff of the same shape) on session start, from
+  `agentharness init`'s bundled template overwriting `.claude/agents/orchestrator.md`,
+  `.claude/agents/plan-orchestrator.md`, `.claude/skills/_lib/gh_api.sh`, and
+  `.claude/skills/oneshot/SKILL.md` — restored all four via `git checkout --`, matching
+  main, no recommit needed. Implemented issue #3989 directly on the designated branch
+  instead of running the AgentHarness pipeline: marked `SubmitArticleFeedbackRequest
+  .ArticleId` with `[JsonIgnore]` so it's excluded from the request body's OpenAPI schema
+  (the controller already overwrote it from the route param, so client-sent values were
+  silently discarded but still misleadingly exposed as a writable body field). `dotnet
+  build`/`format`/targeted tests all green (18/18). Plain `git push` to origin worked
+  fine; PR opened via `mcp__github__create_pull_request` + `issue_write` for the `agent`
+  label. Sibling candidate #3990 (`[Range]` dead-code attributes on `ListArticlesRequest`)
+  left for a future run.
+
 ## Pending / Known Issues
 
 - Memory directory (issue #405): adding cross-session knowledge accumulation — this PR
