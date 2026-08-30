@@ -109,6 +109,24 @@ _Update this file at the end of significant sessions._
   violate React's Rules of Hooks (conditional hook call across renders) — kept it a plain
   function call instead and noted this in the PR body.
 
+- Removed duplicated Shoptet state-ID constants from `PrintPickingListRequest` (issue #3987,
+  PR #3993, `claude/beautiful-darwin-4l0fwf`, 2026-08-30): seventh occurrence of the same
+  scheduled `/plan-next-task` pattern — designated-branch session, `claim_issue.sh`'s
+  `create-ref` step hit the "Form-encoded ... Send the documented JSON body" 403 again
+  (the `gh_api.sh` Content-Type-header regression from `agentharness init`'s bundled
+  template, restored via `git checkout --`, not recommitted, matching the documented fix),
+  so implemented directly instead of the AgentHarness pipeline. This time plain `git push`
+  to origin worked fine (unlike some earlier sessions' git-data-API proxy block); used
+  `mcp__github__create_pull_request`/`issue_write` for PR creation/labeling regardless,
+  per the established workaround. Fix: `PrintPickingListRequest` (Logistics module) no
+  longer declares its own copies of `DefaultSourceStateId`/`DefaultDesiredStateId`/
+  `DefaultNoteStateId` — they now reference `ExpeditionPickingRequest`'s (ExpeditionList
+  module) constants directly, since `LogisticsExpeditionPickingAdapter` already bridges
+  the two modules and depends on `ExpeditionList.Contracts`. Updated the one test file
+  (`PickingListIntegrationTests.cs`) that referenced the removed constants. Build clean,
+  426/428 tests pass (2 pre-existing Docker/Testcontainers failures unrelated, no Docker
+  in this environment).
+
 ## Pending / Known Issues
 
 - Memory directory (issue #405): adding cross-session knowledge accumulation — this PR
