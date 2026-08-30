@@ -28,9 +28,9 @@
   "tasks": [
     {
       "name": "remove-hangfire-attribute-from-product-pairing-dqt-job",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-08-30T04:13:43.266102Z"
+      "updated_at": "2026-08-30T04:58:39.052948Z"
     }
   ]
 }
