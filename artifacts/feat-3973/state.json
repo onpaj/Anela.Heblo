@@ -22,7 +22,7 @@
     },
     "developing": {
       "status": "in_progress",
-      "updated_at": "2026-08-30T07:14:42.961040Z"
+      "updated_at": "2026-08-30T08:14:06.586533Z"
     }
   },
   "tasks": [
@@ -34,9 +34,9 @@
     },
     {
       "name": "fire-and-forget-safety-net",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-08-30T08:14:06.836237Z"
     },
     {
       "name": "full-validation-gate",

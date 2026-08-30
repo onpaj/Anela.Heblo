@@ -1,0 +1,77 @@
+{
+  "Version": 1,
+  "Hash": "WdOBXfiVEHTxi7rjH4gRKN74IKY5LFCS9VL5CJ0xSfE=",
+  "Source": "SmartsuppWebhookReplay",
+  "BasePath": "_content/SmartsuppWebhookReplay",
+  "Mode": "Default",
+  "ManifestType": "Build",
+  "ReferencedProjectsConfiguration": [],
+  "DiscoveryPatterns": [
+    {
+      "Name": "SmartsuppWebhookReplay/wwwroot",
+      "Source": "SmartsuppWebhookReplay",
+      "ContentRoot": "/home/user/worktrees/feature-3973-Arch-Review-Dataquality-Rundqthandler-Fire-And-For/backend/tools/SmartsuppWebhookReplay/wwwroot/",
+      "BasePath": "_content/SmartsuppWebhookReplay",
+      "Pattern": "**"
+    }
+  ],
+  "Assets": [
+    {
+      "Identity": "/home/user/worktrees/feature-3973-Arch-Review-Dataquality-Rundqthandler-Fire-And-For/backend/tools/SmartsuppWebhookReplay/wwwroot/app.css",
+      "SourceId": "SmartsuppWebhookReplay",
+      "SourceType": "Discovered",
+      "ContentRoot": "/home/user/worktrees/feature-3973-Arch-Review-Dataquality-Rundqthandler-Fire-And-For/backend/tools/SmartsuppWebhookReplay/wwwroot/",
+      "BasePath": "_content/SmartsuppWebhookReplay",
+      "RelativePath": "app.css",
+      "AssetKind": "All",
+      "AssetMode": "All",
+      "AssetRole": "Primary",
+      "AssetMergeBehavior": "PreferTarget",
+      "AssetMergeSource": "",
+      "RelatedAsset": "",
+      "AssetTraitName": "",
+      "AssetTraitValue": "",
+      "CopyToOutputDirectory": "Never",
+      "CopyToPublishDirectory": "PreserveNewest",
+      "OriginalItemSpec": "wwwroot/app.css"
+    },
+    {
+      "Identity": "/home/user/worktrees/feature-3973-Arch-Review-Dataquality-Rundqthandler-Fire-And-For/backend/tools/SmartsuppWebhookReplay/wwwroot/app.js",
+      "SourceId": "SmartsuppWebhookReplay",
+      "SourceType": "Discovered",
+      "ContentRoot": "/home/user/worktrees/feature-3973-Arch-Review-Dataquality-Rundqthandler-Fire-And-For/backend/tools/SmartsuppWebhookReplay/wwwroot/",
+      "BasePath": "_content/SmartsuppWebhookReplay",
+      "RelativePath": "app.js",
+      "AssetKind": "All",
+      "AssetMode": "All",
+      "AssetRole": "Primary",
+      "AssetMergeBehavior": "PreferTarget",
+      "AssetMergeSource": "",
+      "RelatedAsset": "",
+      "AssetTraitName": "",
+      "AssetTraitValue": "",
+      "CopyToOutputDirectory": "Never",
+      "CopyToPublishDirectory": "PreserveNewest",
+      "OriginalItemSpec": "wwwroot/app.js"
+    },
+    {
+      "Identity": "/home/user/worktrees/feature-3973-Arch-Review-Dataquality-Rundqthandler-Fire-And-For/backend/tools/SmartsuppWebhookReplay/wwwroot/index.html",
+      "SourceId": "SmartsuppWebhookReplay",
+      "SourceType": "Discovered",
+      "ContentRoot": "/home/user/worktrees/feature-3973-Arch-Review-Dataquality-Rundqthandler-Fire-And-For/backend/tools/SmartsuppWebhookReplay/wwwroot/",
+      "BasePath": "_content/SmartsuppWebhookReplay",
+      "RelativePath": "index.html",
+      "AssetKind": "All",
+      "AssetMode": "All",
+      "AssetRole": "Primary",
+      "AssetMergeBehavior": "PreferTarget",
+      "AssetMergeSource": "",
+      "RelatedAsset": "",
+      "AssetTraitName": "",
+      "AssetTraitValue": "",
+      "CopyToOutputDirectory": "Never",
+      "CopyToPublishDirectory": "PreserveNewest",
+      "OriginalItemSpec": "wwwroot/index.html"
+    }
+  ]
+}

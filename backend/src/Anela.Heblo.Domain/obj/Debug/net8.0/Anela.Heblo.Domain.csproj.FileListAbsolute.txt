@@ -1,0 +1,16 @@
+/home/user/worktrees/feature-3973-Arch-Review-Dataquality-Rundqthandler-Fire-And-For/backend/src/Anela.Heblo.Domain/bin/Debug/net8.0/Anela.Heblo.Domain.deps.json
+/home/user/worktrees/feature-3973-Arch-Review-Dataquality-Rundqthandler-Fire-And-For/backend/src/Anela.Heblo.Domain/bin/Debug/net8.0/Anela.Heblo.Domain.dll
+/home/user/worktrees/feature-3973-Arch-Review-Dataquality-Rundqthandler-Fire-And-For/backend/src/Anela.Heblo.Domain/bin/Debug/net8.0/Anela.Heblo.Domain.pdb
+/home/user/worktrees/feature-3973-Arch-Review-Dataquality-Rundqthandler-Fire-And-For/backend/src/Anela.Heblo.Domain/bin/Debug/net8.0/Anela.Heblo.Xcc.dll
+/home/user/worktrees/feature-3973-Arch-Review-Dataquality-Rundqthandler-Fire-And-For/backend/src/Anela.Heblo.Domain/bin/Debug/net8.0/Anela.Heblo.Xcc.pdb
+/home/user/worktrees/feature-3973-Arch-Review-Dataquality-Rundqthandler-Fire-And-For/backend/src/Anela.Heblo.Domain/obj/Debug/net8.0/Anela.Heblo.Domain.csproj.AssemblyReference.cache
+/home/user/worktrees/feature-3973-Arch-Review-Dataquality-Rundqthandler-Fire-And-For/backend/src/Anela.Heblo.Domain/obj/Debug/net8.0/Anela.Heblo.Domain.GeneratedMSBuildEditorConfig.editorconfig
+/home/user/worktrees/feature-3973-Arch-Review-Dataquality-Rundqthandler-Fire-And-For/backend/src/Anela.Heblo.Domain/obj/Debug/net8.0/Anela.Heblo.Domain.AssemblyInfoInputs.cache
+/home/user/worktrees/feature-3973-Arch-Review-Dataquality-Rundqthandler-Fire-And-For/backend/src/Anela.Heblo.Domain/obj/Debug/net8.0/Anela.Heblo.Domain.AssemblyInfo.cs
+/home/user/worktrees/feature-3973-Arch-Review-Dataquality-Rundqthandler-Fire-And-For/backend/src/Anela.Heblo.Domain/obj/Debug/net8.0/Anela.Heblo.Domain.csproj.CoreCompileInputs.cache
+/home/user/worktrees/feature-3973-Arch-Review-Dataquality-Rundqthandler-Fire-And-For/backend/src/Anela.Heblo.Domain/obj/Debug/net8.0/Anela.Heblo.Domain.sourcelink.json
+/home/user/worktrees/feature-3973-Arch-Review-Dataquality-Rundqthandler-Fire-And-For/backend/src/Anela.Heblo.Domain/obj/Debug/net8.0/Anela.He.7646B55A.Up2Date
+/home/user/worktrees/feature-3973-Arch-Review-Dataquality-Rundqthandler-Fire-And-For/backend/src/Anela.Heblo.Domain/obj/Debug/net8.0/Anela.Heblo.Domain.dll
+/home/user/worktrees/feature-3973-Arch-Review-Dataquality-Rundqthandler-Fire-And-For/backend/src/Anela.Heblo.Domain/obj/Debug/net8.0/refint/Anela.Heblo.Domain.dll
+/home/user/worktrees/feature-3973-Arch-Review-Dataquality-Rundqthandler-Fire-And-For/backend/src/Anela.Heblo.Domain/obj/Debug/net8.0/Anela.Heblo.Domain.pdb
+/home/user/worktrees/feature-3973-Arch-Review-Dataquality-Rundqthandler-Fire-And-For/backend/src/Anela.Heblo.Domain/obj/Debug/net8.0/ref/Anela.Heblo.Domain.dll
