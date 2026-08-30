@@ -143,27 +143,11 @@ public class ModuleBoundariesTests
         "Anela.Heblo.Application.Features.DataQuality.Services.ProductPairingDqtComparer -> Anela.Heblo.Domain.Features.Catalog.Stock.EshopStock",
     };
 
-    // Allowlist for DataQuality -> Invoices. The DataQuality module owns IInvoiceShoptetSource
-    // and IInvoiceErpClient (in Application/Features/DataQuality/Contracts/) and consumes
-    // them via InvoiceDqtComparer. Shared invoice domain DTOs are referenced on the contracts
-    // and inside the comparer; lifting these to a shared kernel is a separate follow-up.
-    // Follow-up: extract a DataQuality-owned snapshot DTO and map in the adapters.
-    private static readonly HashSet<string> DataQualityInvoicesAllowlist = new(StringComparer.Ordinal)
-    {
-        // IInvoiceShoptetSource exposes IssuedInvoiceDetailBatch and IssuedInvoiceSourceQuery.
-        "Anela.Heblo.Application.Features.DataQuality.Contracts.IInvoiceShoptetSource -> Anela.Heblo.Domain.Features.Invoices.IssuedInvoiceDetailBatch",
-        "Anela.Heblo.Application.Features.DataQuality.Contracts.IInvoiceShoptetSource -> Anela.Heblo.Domain.Features.Invoices.IssuedInvoiceSourceQuery",
-
-        // IInvoiceErpClient exposes IssuedInvoiceDetail.
-        "Anela.Heblo.Application.Features.DataQuality.Contracts.IInvoiceErpClient -> Anela.Heblo.Domain.Features.Invoices.IssuedInvoiceDetail",
-
-        // InvoiceDqtComparer consumes shared invoice DTOs internally.
-        "Anela.Heblo.Application.Features.DataQuality.Services.InvoiceDqtComparer -> Anela.Heblo.Domain.Features.Invoices.IssuedInvoiceDetail",
-        "Anela.Heblo.Application.Features.DataQuality.Services.InvoiceDqtComparer -> Anela.Heblo.Domain.Features.Invoices.IssuedInvoiceDetailBatch",
-        "Anela.Heblo.Application.Features.DataQuality.Services.InvoiceDqtComparer -> Anela.Heblo.Domain.Features.Invoices.IssuedInvoiceDetailItem",
-        "Anela.Heblo.Application.Features.DataQuality.Services.InvoiceDqtComparer -> Anela.Heblo.Domain.Features.Invoices.IssuedInvoiceSourceQuery",
-        "Anela.Heblo.Application.Features.DataQuality.Services.InvoiceDqtComparer -> Anela.Heblo.Domain.Features.Invoices.InvoicePrice",
-    };
+    // Allowlist for DataQuality -> Invoices. Empty — IInvoiceShoptetSource/IInvoiceErpClient now
+    // expose DataQuality-owned DqtInvoiceSnapshot/DqtInvoiceItem/DqtInvoiceSourceQuery types;
+    // InvoiceShoptetSourceAdapter/InvoiceErpClientAdapter (Invoices.Infrastructure) map from
+    // Invoices domain types to the DataQuality shape via InvoiceDqtSnapshotMapper.
+    private static readonly HashSet<string> DataQualityInvoicesAllowlist = new(StringComparer.Ordinal);
 
     // Allowlist for Manufacture -> Catalog. Each group below is a deliberate pragmatic leak
     // tracked under the same follow-up: introduce Manufacture-owned ProductCatalogSnapshot DTO
