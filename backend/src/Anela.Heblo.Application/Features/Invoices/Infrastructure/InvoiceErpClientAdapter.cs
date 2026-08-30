@@ -5,7 +5,8 @@ namespace Anela.Heblo.Application.Features.Invoices.Infrastructure;
 
 /// <summary>
 /// Provider-side adapter binding the DataQuality contract IInvoiceErpClient
-/// to the Invoices-module IIssuedInvoiceClient. Pure delegation, no business logic.
+/// to the Invoices-module IIssuedInvoiceClient, mapping to DataQuality's
+/// consumer-owned snapshot contracts via InvoiceDqtSnapshotMapper.
 /// </summary>
 internal sealed class InvoiceErpClientAdapter : IInvoiceErpClient
 {
@@ -16,9 +17,15 @@ internal sealed class InvoiceErpClientAdapter : IInvoiceErpClient
         _inner = inner;
     }
 
-    public Task<List<IssuedInvoiceDetail>> GetAllAsync(
+    public async Task<List<DqtInvoiceSnapshot>> GetAllAsync(
         DateOnly from,
         DateOnly to,
         CancellationToken ct)
-        => _inner.GetAllAsync(from, to, ct);
+    {
+        var invoices = await _inner.GetAllAsync(from, to, ct);
+
+        return invoices
+            .Select(i => i.ToDqtSnapshot())
+            .ToList();
+    }
 }

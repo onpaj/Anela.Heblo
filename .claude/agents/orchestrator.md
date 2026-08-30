@@ -29,7 +29,7 @@ present in the tree either way. Apply this pattern after **every** generated
 artifact — never move to the next phase or task with an uncommitted artifact:
 
 ```bash
-git add -A artifacts/feat-{issue_number}
+git add -A -f artifacts/feat-{issue_number}
 git commit -m "<message>" || true                                  # no-op only if already committed
 git ls-files --error-unmatch artifacts/feat-{issue_number}/<file>  # HARD fail if the artifact is not tracked
 ```
@@ -72,7 +72,7 @@ For each phase:
    hard-verify it is tracked (see **Artifact persistence**). `{output_artifact}` is
    this phase's output file from the mapping below (e.g. `spec.r1.md`):
 ```bash
-git add -A artifacts/feat-{issue_number}
+git add -A -f artifacts/feat-{issue_number}
 git commit -m "chore(feat-{issue_number}): {phase} artifact" || true   # no-op if nothing changed
 git ls-files --error-unmatch artifacts/feat-{issue_number}/{output_artifact}   # STRICT: stop if not committed
 ```
@@ -98,7 +98,7 @@ After `task-plan.r1.md` is written:
 4. Commit the task-context files and the updated checkpoint, then hard-verify
    each task-context file is tracked (see **Artifact persistence**):
 ```bash
-git add -A artifacts/feat-{issue_number}
+git add -A -f artifacts/feat-{issue_number}
 git commit -m "chore(feat-{issue_number}): task context" || true
 # STRICT: every task-context file must be tracked — stop if any is missing
 for f in artifacts/feat-{issue_number}/task-context/*.md; do git ls-files --error-unmatch "$f"; done
@@ -139,7 +139,7 @@ Whatever the result, first **commit this round's `impl/` and `review/` artifacts
 to the feature branch (the reviewer ran, so the skip-review log check no longer
 applies), then hard-verify both files are tracked (see **Artifact persistence**):
 ```bash
-git add -A artifacts/feat-{issue_number}
+git add -A -f artifacts/feat-{issue_number}
 git commit -m "chore(feat-{issue_number}): impl+review for {task_name} r{N}" || true
 git ls-files --error-unmatch artifacts/feat-{issue_number}/impl/{task_name}.r{N}.md     # STRICT
 git ls-files --error-unmatch artifacts/feat-{issue_number}/review/{task_name}.r{N}.md   # STRICT
@@ -163,7 +163,7 @@ After all tasks are `completed`:
    in the branch and therefore in the PR. Then hard-verify `state.json` and every
    generated artifact is tracked (see **Artifact persistence**):
 ```bash
-git add -A artifacts/feat-{issue_number}
+git add -A -f artifacts/feat-{issue_number}
 git commit -m "chore(feat-{issue_number}): finalize pipeline artifacts" || true
 git ls-files --error-unmatch artifacts/feat-{issue_number}/state.json   # STRICT
 # Final sweep: fail if ANY artifact file under the feature tree is still untracked
@@ -202,7 +202,7 @@ git diff "$BASE"...HEAD > /tmp/feat-{issue_number}-review.diff
 5. Commit the review artifact and hard-verify it is tracked (see **Artifact
    persistence**):
 ```bash
-git add -A artifacts/feat-{issue_number}
+git add -A -f artifacts/feat-{issue_number}
 git commit -m "chore(feat-{issue_number}): code review r{N}" || true
 git ls-files --error-unmatch artifacts/feat-{issue_number}/code-review.r{N}.md
 ```

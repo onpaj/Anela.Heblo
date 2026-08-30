@@ -160,7 +160,7 @@ public sealed class ClaudeMeetingTaskExtractorTests
             x => x.Log(
                 LogLevel.Error,
                 It.IsAny<EventId>(),
-                It.Is<It.IsAnyType>((v, _) => v.ToString()!.Contains("malformed JSON")),
+                It.Is<It.IsAnyType>((v, _) => v.ToString()!.Contains("malformed JSON") && v.ToString()!.Contains("not-valid-json{{{")),
                 It.IsAny<Exception>(),
                 It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
             Times.Once);

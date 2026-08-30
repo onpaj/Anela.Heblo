@@ -4,8 +4,8 @@ namespace Anela.Heblo.Application.Features.ExpeditionList.Contracts;
 
 public class ExpeditionPickingRequest
 {
-    public const int DefaultSourceStateId = -2;
-    public const int DefaultDesiredStateId = 26;
+    public const int DefaultSourceStateId = -2; // Vyrizuje se
+    public const int DefaultDesiredStateId = 26; // Bali se
     public const int DefaultNoteStateId = 35; // Poznámka — orders with incomplete address
 
     public IList<Carriers> Carriers { get; set; } = new List<Carriers>();

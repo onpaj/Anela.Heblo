@@ -102,6 +102,31 @@ yourself about to remove that `Content-Type: application/json` header
 because "curl infers it" — don't. That premise is false. Verify with a
 real `curl -d` call against `git/refs` before touching that line.**
 
+**Root cause of the repeated regression, found 2026-08-29** on a `/plan-next-task`
+run for issue #3974 (PR #3984, `claude/beautiful-darwin-q83em9`): it is
+**not** a human or agent reverting the fix on `main` between sessions — every
+fresh cloud-session container re-runs the repo's `SessionStart` setup hook,
+which does `pip install`/`agentharness init` and that step *unconditionally
+overwrites* `.claude/skills/_lib/gh_api.sh` (and the other `.claude/agents/`
+and `.claude/skills/` files) from AgentHarness's own bundled template —
+visible in the hook's own output as `wrote .claude/skills/_lib/gh_api.sh`.
+The bundled template still lacks the `Content-Type: application/json` fix,
+so it silently reintroduces the bug as an **uncommitted working-tree change**
+on session start, every single time, regardless of what's committed on
+`main`. `git diff` after a fresh session start shows exactly the same
+7-line removal each time. This also means the fix committed to `main`
+(with its warning comment) was never actually wrong or reverted upstream —
+confirmed by checking `git log`/`git show HEAD:...` after restoring: HEAD
+already had the correct version. **The correct move when you see this diff
+is `git checkout -- .claude/skills/_lib/gh_api.sh`** (or `git restore`) to
+discard the tool-injected regression — not a new commit "re-fixing" it,
+since nothing on `main` is actually broken. If `agentharness init` ever gets
+run again mid-session (e.g. via `/update-agentharness`), expect the same
+uncommitted diff to reappear and just restore it the same way. A durable
+fix would be upstreaming the Content-Type header into AgentHarness's own
+template so `agentharness init` stops shipping the broken version, but
+that's out of scope for a single repo session.
+
 After the Content-Type fix, `create_ref` still failed — this time with the
 proxy's own `403 Write access to this GitHub API path is not permitted
 through this proxy` (matching the second symptom documented above). Both
@@ -149,3 +174,23 @@ worked end to end:
   subagent's own tool output before interrupting it — in this case the
   subagent correctly declined an unverified stop instruction and finished
   the job, which was the right call.
+
+**Empty-queue variant, seen 2026-08-30** on a `/plan-next-task` run (issue #3980,
+PR #3991, `claude/beautiful-darwin-hl0gyk`): same designated-branch/`gh`-unavailable
+shape as every occurrence above, but this time the planning queue itself was empty —
+no open issue carried the `agent` label without an existing PR, so there was no
+candidate to substitute work for in the usual way (pick the found candidate,
+implement it directly). Rather than reporting "nothing to plan" and stopping, the run
+picked up issue #3980 itself — an open, owner-filed issue describing two concrete bugs
+in this exact pipeline tooling (this doc's own subject) — reasoning that fixing the
+pipeline's own known-broken bits is more valuable than an idle cycle when the normal
+queue is dry. That issue's Bug 1 (`gh_api.sh` Content-Type) was already fixed on
+`main`; Bug 2 was real: `git add -A artifacts/feat-{id}` across
+`.claude/agents/orchestrator.md`, `.claude/agents/plan-orchestrator.md`, and
+`.claude/skills/oneshot/SKILL.md` silently staged nothing because `artifacts/` is
+gitignored at the repo root (confirmed by reproducing the ignored-path warning in a
+scratch repo) — fixed by adding `-f` to all 10 occurrences. Whether to keep treating
+an empty `agent`-labeled queue as license to pick up pipeline-maintenance issues like
+this, versus always reporting "nothing to plan," is a judgment call each run should
+make on its own merits (issue is genuinely actionable, small, low-risk, and on-topic
+for the pipeline) rather than a rule to apply automatically.
