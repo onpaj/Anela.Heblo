@@ -127,6 +127,21 @@ _Update this file at the end of significant sessions._
   recommit, matching the documented fix. Used `mcp__github__create_pull_request` +
   `issue_write` for PR creation/labeling; plain `git push` to origin worked fine.
 
+- Shoptet state-ID constant deduplication (issue #3987, PR #3992,
+  `claude/beautiful-darwin-8yyupc`, 2026-08-30): eighth occurrence of the same scheduled
+  `/plan-next-task` pattern — designated-branch session. `claim_issue.sh`'s `create-ref`
+  hit both documented walls in sequence: first the standard uncommitted `gh_api.sh`
+  Content-Type-header regression (from `agentharness init`'s bundled template, restored
+  via `git checkout --`), then after that the proxy's `403 Write access ... not permitted
+  through this proxy` for git-refs writes. Implemented directly instead of the AgentHarness
+  pipeline; plain `git push` to origin worked fine; used `mcp__github__create_pull_request`
+  + `issue_write` for PR creation/labeling. Fix: `PrintPickingListRequest`
+  (Logistics/Picking) now references `ExpeditionPickingRequest`'s (ExpeditionList)
+  `DefaultSourceStateId`/`DefaultDesiredStateId`/`DefaultNoteStateId` consts directly
+  instead of redeclaring identical values, matching the existing Logistics→ExpeditionList
+  dependency direction already established by `LogisticsExpeditionPickingAdapter`. No
+  orphan branch left behind this time since `create-ref` failed before creating anything.
+
 ## Pending / Known Issues
 
 - Memory directory (issue #405): adding cross-session knowledge accumulation — this PR
