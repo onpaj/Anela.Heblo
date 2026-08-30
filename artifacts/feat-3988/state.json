@@ -28,9 +28,9 @@
   "tasks": [
     {
       "name": "add-desired-state-name-option",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-08-30T13:14:18.336416Z"
+      "updated_at": "2026-08-30T13:18:38.925585Z"
     },
     {
       "name": "wire-handler-desired-state-name",
