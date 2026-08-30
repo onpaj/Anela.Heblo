@@ -61,7 +61,7 @@ public class PrintExpeditionOrderHandler : IRequestHandler<PrintExpeditionOrderR
                 new Dictionary<string, string>
                 {
                     { "orderCode", request.OrderCode },
-                    { "currentStatusName", "Balí se" },
+                    { "currentStatusName", _options.Value.DesiredStateName },
                 });
         }
 
