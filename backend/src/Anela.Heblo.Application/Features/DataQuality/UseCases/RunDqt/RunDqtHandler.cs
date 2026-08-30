@@ -39,6 +39,22 @@ public class RunDqtHandler : IRequestHandler<RunDqtRequest, RunDqtResponse>
 
         try
         {
+            using (var validationScope = _scopeFactory.CreateScope())
+            {
+                var hasRunner = validationScope.ServiceProvider
+                    .GetServices<IDqtJobRunner>()
+                    .Any(r => r.CanHandle(request.TestType));
+
+                if (!hasRunner)
+                {
+                    return new RunDqtResponse
+                    {
+                        Success = false,
+                        ErrorCode = ErrorCodes.DqtUnsupportedTestType
+                    };
+                }
+            }
+
             var run = DqtRun.Start(request.TestType, request.DateFrom, request.DateTo, DqtTriggerType.Manual, _timeProvider.GetUtcNow().DateTime);
             await _repository.AddAsync(run, cancellationToken);
             await _repository.SaveChangesAsync(cancellationToken);

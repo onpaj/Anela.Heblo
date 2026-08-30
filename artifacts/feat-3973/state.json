@@ -21,16 +21,16 @@
       "updated_at": "2026-08-29T12:22:22.239551Z"
     },
     "developing": {
-      "status": "pending",
-      "updated_at": null
+      "status": "in_progress",
+      "updated_at": "2026-08-30T07:14:42.961040Z"
     }
   },
   "tasks": [
     {
       "name": "synchronous-runner-validation",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-08-30T07:14:43.244839Z"
     },
     {
       "name": "fire-and-forget-safety-net",

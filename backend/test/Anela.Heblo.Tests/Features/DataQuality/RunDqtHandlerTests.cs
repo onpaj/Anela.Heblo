@@ -191,13 +191,11 @@ public class RunDqtHandlerTests
     }
 
     [Fact]
-    public async Task Handle_NoRunnerCanHandleTestType_NeitherRunnerInvoked()
+    public async Task Handle_NoRunnerCanHandleTestType_ReturnsUnsupportedTestTypeErrorWithoutPersisting()
     {
         // Arrange: simulate "no IDqtJobRunner registered for this TestType" by making both
         // mocks explicitly reject StockWriteBackReconciliation (overrides the constructor's
         // default wiring — Moq uses the most recently configured matching setup).
-        _repositoryMock.Setup(r => r.AddAsync(It.IsAny<DqtRun>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync((DqtRun run, CancellationToken _) => run);
         _invoiceJobRunnerMock.Setup(r => r.CanHandle(DqtTestType.StockWriteBackReconciliation)).Returns(false);
         _driftJobRunnerMock.Setup(r => r.CanHandle(DqtTestType.StockWriteBackReconciliation)).Returns(false);
 
@@ -210,13 +208,12 @@ public class RunDqtHandlerTests
 
         // Act
         var response = await _sut.Handle(request, CancellationToken.None);
-        await Task.Delay(100); // allow the fire-and-forget Task.Run to throw internally
 
-        // Assert: Handle() itself still succeeds — the InvalidOperationException is thrown
-        // inside the fire-and-forget Task.Run and is not observed by the caller. This is a
-        // pre-existing, out-of-scope characteristic of the fire-and-forget design, not a
-        // regression introduced by this change. We can only assert that neither runner ran.
-        Assert.True(response.Success);
+        // Assert: rejected synchronously before any DqtRun is ever created.
+        Assert.False(response.Success);
+        Assert.Equal(ErrorCodes.DqtUnsupportedTestType, response.ErrorCode);
+        Assert.Null(response.DqtRunId);
+        _repositoryMock.Verify(r => r.AddAsync(It.IsAny<DqtRun>(), It.IsAny<CancellationToken>()), Times.Never);
         _invoiceJobRunnerMock.Verify(j => j.RunAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()), Times.Never);
         _driftJobRunnerMock.Verify(j => j.RunAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()), Times.Never);
     }
