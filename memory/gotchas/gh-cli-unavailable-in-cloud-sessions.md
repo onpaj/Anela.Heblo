@@ -194,3 +194,34 @@ an empty `agent`-labeled queue as license to pick up pipeline-maintenance issues
 this, versus always reporting "nothing to plan," is a judgment call each run should
 make on its own merits (issue is genuinely actionable, small, low-risk, and on-topic
 for the pipeline) rather than a rule to apply automatically.
+
+**`-f` flag regressed a second time, seen 2026-08-31** on a `/plan-next-task` run for
+issue #4005 (`claude/beautiful-darwin-5n7woh`): despite the 2026-08-30 fix above adding
+`-f` to all 10 occurrences, `main` (at commit `76e2331`) was back to missing it —
+commit `72784c2` ("chore: update orchestrator and oneshot skill templates (remove -f
+from git add)", message says "Applied by session-start hook") had reverted it later
+the same day. Confirmed the SessionStart hook's `agentharness init` step really does
+overwrite these `.claude/agents/*.md`/`.claude/skills/**` files from its own bundled
+template on every session start — unlike the `gh_api.sh` case (an uncommitted
+per-session diff), this time the hook's output got *committed* to `main` directly, so
+the regression persists across sessions until someone re-fixes it. Re-applied the `-f`
+fix (all 3 files, `git add -A artifacts/...` → `git add -A -f artifacts/...`) in the
+same commit as a `gh_api.sh` Content-Type fix. **Don't stop at re-fixing the working
+tree this time — same root cause as the `gh_api.sh` note below: the durable fix is
+upstreaming `-f` (and the Content-Type header) into AgentHarness's own bundled
+templates so `agentharness init`/the SessionStart hook stops shipping the broken
+version. Until that happens, expect both regressions to keep reappearing — check for
+both (`grep -n 'git add -A artifacts' .claude/agents/*.md .claude/skills/oneshot/SKILL.md`
+and the `gh_api.sh` `req()` body) near the start of any `/plan-next-task` or
+`/implement-next-task` run, before trusting either mechanism to work.**
+
+**Self-correction, same run**: initially misdiagnosed the `gh_api.sh` symptom as "the
+Content-Type header is missing" from a plain `Read` of the working tree and committed
+a fix — but `git show HEAD:.claude/skills/_lib/gh_api.sh` proved `main` already had
+the correct header *and* its warning comment; the `Read` was seeing the SessionStart
+hook's uncommitted regression (as documented above), and the "fix" commit clobbered
+the comment while leaving the functional line equivalent. Caught it by diffing against
+the actual HEAD blob before assuming the working tree matched it, and pushed a
+follow-up commit restoring the comment verbatim. Lesson reinforced: for this specific
+file, always check `git show HEAD:<path>` before treating a `Read` result as evidence
+of what's committed — the working tree lies here more often than not.
