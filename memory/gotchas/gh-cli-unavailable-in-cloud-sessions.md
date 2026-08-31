@@ -194,3 +194,55 @@ an empty `agent`-labeled queue as license to pick up pipeline-maintenance issues
 this, versus always reporting "nothing to plan," is a judgment call each run should
 make on its own merits (issue is genuinely actionable, small, low-risk, and on-topic
 for the pipeline) rather than a rule to apply automatically.
+
+**Both known regressions recurred simultaneously, 2026-08-31** on a
+`/plan-next-task` run for issue #4003 (`claude/beautiful-darwin-5qip42`):
+
+1. `gh_api.sh`'s Content-Type header (the fix from #3944/#3978) was again
+   missing at session start — but confirmed once more to be an
+   **uncommitted working-tree artifact** of the SessionStart hook's
+   `agentharness init` overwrite, not a real regression: `git show
+   HEAD:.claude/skills/_lib/gh_api.sh` already had the header plus its
+   warning comment. Fixed correctly this time with `git reset --hard
+   HEAD~1` after first (wrongly) committing a "fix" that stripped the
+   comment — caught by diffing against `HEAD~1` before pushing. **Lesson:
+   before committing any fix to a file matching a known gotcha, check `git
+   show HEAD:<path>` first — if HEAD already has the fix, the working-tree
+   diff is just the hook's injected regression; discard it with `git
+   checkout --`/`git reset`, don't recommit.**
+2. The `-f` flag on `git add -A -f artifacts/feat-{id}` (the fix from the
+   2026-08-30 entry above) had been stripped again too — but this time it
+   really was committed to `main` (commit `72784c2`, "chore: update
+   orchestrator and oneshot skill templates (remove -f from git add)",
+   also attributed to "Applied by session-start hook"), not just a
+   working-tree artifact. Re-fixed for real with a new commit (`52b2791`)
+   restoring `-f` in `orchestrator.md`, `plan-orchestrator.md`, and
+   `oneshot/SKILL.md`, pushed to the designated branch. **The two
+   regressions look identical at first glance (both blamed on "session-start
+   hook", both touch pipeline template files) but need different fixes —
+   always check whether the bad state is only in the working tree
+   (discard it) or actually committed on the branch/`main` (needs a real
+   fix commit) before deciding which.**
+
+Also confirmed the git-refs-write-blocked-by-proxy workaround from the
+2026-08-29 entry still holds exactly as documented: `claim_issue.sh`'s
+`create-ref` (via `gh_api.sh`) got `403: Write access ... not permitted
+through this proxy`; switched to a plain `git push origin
+<default-branch-tip-sha>:refs/heads/feature/{id}-{slug}` and it worked
+immediately. The subsequent label swap (`agent` -> `agent-planning`) via
+`gh_api.sh issue-edit` (ordinary REST, not git-data) also worked fine, as
+documented. Did not need `mcp__github__create_branch` this time — plain
+`git push` is the simpler of the two documented workarounds and needs no
+tool-availability check first.
+
+**Recurring root cause worth flagging upstream**: three separate sessions
+now (2026-08-29, 2026-08-30, 2026-08-31) have hit template regressions
+self-attributed to "session-start hook" / `agentharness init` unconditionally
+overwriting `.claude/agents/*.md`, `.claude/skills/_lib/gh_api.sh`, and
+`.claude/skills/oneshot/SKILL.md` from AgentHarness's own bundled versions,
+which lag behind fixes made directly in this repo. Each occurrence costs a
+run some amount of re-diagnosis time. A durable fix is upstreaming these
+specific fixes (Content-Type header, `-f` flag) into AgentHarness's bundled
+template so `agentharness init` stops shipping stale/broken versions — still
+out of scope for a single repo session, but worth escalating to the human
+maintainer if it keeps recurring.
