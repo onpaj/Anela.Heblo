@@ -194,3 +194,36 @@ an empty `agent`-labeled queue as license to pick up pipeline-maintenance issues
 this, versus always reporting "nothing to plan," is a judgment call each run should
 make on its own merits (issue is genuinely actionable, small, low-risk, and on-topic
 for the pipeline) rather than a rule to apply automatically.
+
+**Content-Type regression recurred yet again, 2026-08-31** on a `/plan-next-task`
+run (`claude/beautiful-darwin-bdi3f7`, no PR — queue was genuinely empty, see below).
+This time the source was caught red-handed: the session's own `SessionStart` hook
+output showed `agentharness init` re-copying its packaged `.claude/skills/_lib/gh_api.sh`
+over the repo's committed, fixed copy at container boot, silently dropping the
+`Content-Type: application/json` header (and the protective comment) again — before
+any planning work even started. `git diff` after the hook ran showed exactly the same
+one-line regression as every prior occurrence. Fixed this time with a plain
+`git checkout -- .claude/skills/_lib/gh_api.sh` (no new commit needed — the repo's
+HEAD already had the correct version; the hook's overwrite was never committed, just
+left as an uncommitted working-tree change that the stop hook then flagged). This
+confirms the regression's actual root cause: it is not something landing on `main`
+via a rogue PR each time (per 2026-08-29's note above, no such PR could be found) — it's
+`agentharness init` (invoked by the repo's own `SessionStart` hook on every fresh
+session) unconditionally overwriting this file from the upstream AgentHarness package,
+which still ships the broken version. **If a future session wants to actually stop
+this from recurring**, the fix belongs upstream (in the `agentharness` PyPI package /
+`onpaj/harness` repo's packaged `gh_api.sh`), not in this repo — reapplying the header
+here only survives until the next `agentharness init` run. Until then: after any
+session-start setup that runs `agentharness init`, expect `.claude/skills/_lib/gh_api.sh`
+to need `git checkout --` (not a new commit) before finishing, and check for this
+specific diff (a dropped `Content-Type` header) rather than assuming any uncommitted
+change here is real work.
+
+Also worth recording: this same run's planning queue was empty in the ordinary sense
+(only #4006/#4007 carried `agent`, both already fully past planning — draft PRs
+#4016/#4018 open, labeled `agent-ready-for-dev` — just with a stray leftover `agent`
+label from `claim_issue.sh`'s label-swap step having silently failed at claim time).
+Unlike the 2026-08-30 empty-queue variant above, this run did not pick up a
+pipeline-maintenance issue in place of planning — it reported "nothing to plan" and
+stopped, per the skill's literal instructions, since the only actionable finding
+(the stray `agent` label) was cosmetic and non-blocking, not a substitute unit of work.
