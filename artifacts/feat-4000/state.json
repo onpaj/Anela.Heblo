@@ -22,7 +22,7 @@
     },
     "developing": {
       "status": "in_progress",
-      "updated_at": "2026-08-31T08:14:44.915886Z"
+      "updated_at": "2026-08-31T09:15:34.937036Z"
     }
   },
   "tasks": [
@@ -46,9 +46,9 @@
     },
     {
       "name": "update-archive-page-tests",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-08-31T09:15:35.215284Z"
     },
     {
       "name": "validate-full-build-and-import-confinement",
