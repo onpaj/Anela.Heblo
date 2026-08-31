@@ -12,8 +12,8 @@ The data already exists in the in-memory catalog cache. `CatalogAggregate` carri
 |---|---|
 | `SaleHistorySummary.MonthlyData` | pre-aggregated per month, keyed `"yyyy-MM"` |
 | `ConsumedHistorySummary.MonthlyData` | pre-aggregated per month, keyed `"yyyy-MM"` |
-| `PurchaseHistory` | individual records with `Date` + `Amount` |
-| `ManufactureHistory` | individual records with `Date` + `Amount` |
+| `PurchaseHistorySummary.MonthlyData` | pre-aggregated per month, keyed `"yyyy-MM"` |
+| `ManufactureHistory` | individual records with `Date` + `Amount`; no summary exists |
 
 `ICatalogRepository.GetByIdsAsync(IEnumerable<string> ids)` already returns many aggregates in one
 call from that cache.
@@ -119,8 +119,12 @@ The handler resolves aggregates via `GetByIdsAsync`, then builds the dense month
 |---|---|---|
 | `Sales` | `SaleHistorySummary.MonthlyData[key]` | `TotalAmount` |
 | `Consumption` | `ConsumedHistorySummary.MonthlyData[key]` | `TotalAmount` |
-| `Purchase` | `PurchaseHistory` grouped by `Date` year+month | `Sum(Amount)` |
+| `Purchase` | `PurchaseHistorySummary.MonthlyData[key]` | `TotalAmount` |
 | `Manufacture` | `ManufactureHistory` grouped by `Date` year+month | `Sum(Amount)` |
+
+Three of the four metrics come straight from a pre-aggregated summary keyed exactly `"yyyy-MM"`,
+so the projection is a dictionary lookup per month. Only `Manufacture` has no summary on the
+aggregate and needs grouping over raw records.
 
 Months with no data yield `0`, not a gap — a missing month and a zero month mean the same thing
 here, and a dense array keeps the frontend free of null handling.
