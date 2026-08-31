@@ -292,6 +292,29 @@ _Update this file at the end of significant sessions._
   left for a future run; #4003 (the sibling arch-review duplication finding) already had an
   open PR (#4011) before this run started.
 
+- Pipeline fix (planning only): `git add -A -f` regression restored again (issue #4017,
+  PR #4021, `claude/beautiful-darwin-zjibk7` session, 2026-08-31): twelfth occurrence of
+  the same scheduled `/plan-next-task` pattern, but this time the **full AgentHarness
+  planning pipeline actually ran end to end** (analyst → architect → designer → planner
+  via manually-orchestrated subagents, `agentharness checkpoint`, branch/worktree per
+  issue) rather than pivoting to direct implementation — confirming the #3973 correction
+  still holds even in a designated-branch session. `claim_issue.sh`'s `create-ref` hit the
+  standard `gh_api.sh` Content-Type-header regression first (from `agentharness init`'s
+  bundled template overwriting it on session start) — restored via `git checkout --`,
+  matching `main`'s already-fixed version, no recommit needed. After that,
+  `mcp__github__create_branch` (not plain `git push`, though that was separately confirmed
+  to work too) created the claim branch, since the refs API itself is proxy-blocked for
+  writes. Ran the 4 planning phases as subagents, each committing/pushing its artifact with
+  `git add -f artifacts/feat-4017` (required since `artifacts/` is gitignored) +
+  `git ls-files --error-unmatch` hard-verification, matching the orchestrator's documented
+  pattern exactly. Task Extraction produced one task (`restore-git-add-f-flags`, 10
+  occurrences: 6 in `orchestrator.md`, 3 in `plan-orchestrator.md`, 1 in `oneshot/SKILL.md`)
+  — the actual code fix itself is **not yet applied**, since planning-only creates the spec/
+  plan and hands off to `/implement-next-task` via the `agent-ready-for-dev` label, it
+  doesn't implement. PR opened via `mcp__github__create_pull_request` (`draft:true`) +
+  `issue_write` for the `agent` label on the PR and the `agent-ready-for-dev` label swap on
+  the issue (label auto-created, didn't exist before). Worktree cleaned up after.
+
 ## Pending / Known Issues
 
 - Memory directory (issue #405): adding cross-session knowledge accumulation — this PR
