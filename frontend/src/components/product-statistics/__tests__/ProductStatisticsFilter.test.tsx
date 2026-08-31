@@ -56,6 +56,14 @@ describe("ProductStatisticsFilter", () => {
     ).toBeInTheDocument();
   });
 
+  test("shows an error when dateFrom is empty", () => {
+    render(<ProductStatisticsFilter {...baseProps} dateFrom="" />);
+
+    expect(
+      screen.getByText('Datum "Od" musí být dříve než "Do".'),
+    ).toBeInTheDocument();
+  });
+
   test("shows the selection cap message when the maximum is reached", () => {
     const selectedProducts = Array.from(
       { length: MAX_SELECTED_PRODUCTS },

@@ -47,7 +47,7 @@ const ProductStatisticsFilter: React.FC<ProductStatisticsFilterProps> = ({
   onDateFromChange,
   onDateToChange,
 }) => {
-  const isRangeInverted = Boolean(dateFrom && dateTo && dateFrom > dateTo);
+  const isRangeInverted = Boolean(!dateFrom || !dateTo || dateFrom > dateTo);
   const isAtCap = selectedProducts.length >= MAX_SELECTED_PRODUCTS;
 
   const handleProductsChange = (items: CatalogItemDto[]) => {
@@ -63,7 +63,7 @@ const ProductStatisticsFilter: React.FC<ProductStatisticsFilterProps> = ({
   };
 
   return (
-    <div className="bg-white dark:bg-graphite-surface border border-gray-200 dark:border-graphite-border rounded-lg p-4 mb-4">
+    <div className="flex-shrink-0 bg-white dark:bg-graphite-surface border border-gray-200 dark:border-graphite-border rounded-lg p-4 mb-4">
       <div className="flex flex-col lg:flex-row lg:items-start gap-4">
         <div className="flex-1 min-w-0">
           <label className="block text-sm font-medium text-gray-700 dark:text-graphite-text mb-1">

@@ -118,4 +118,46 @@ public class GetProductStatisticsRequestValidatorTests
 
         _validator.Validate(request).IsValid.Should().BeTrue();
     }
+
+    [Fact]
+    public void Validate_OutOfRangeMetric_Fails()
+    {
+        var request = Valid();
+        request.Metric = (ProductStatisticsMetric)99;
+
+        _validator.Validate(request).IsValid.Should().BeFalse();
+    }
+
+    [Theory]
+    [InlineData(ProductStatisticsMetric.Sales)]
+    [InlineData(ProductStatisticsMetric.Purchase)]
+    [InlineData(ProductStatisticsMetric.Consumption)]
+    [InlineData(ProductStatisticsMetric.Manufacture)]
+    public void Validate_DefinedMetric_Passes(ProductStatisticsMetric metric)
+    {
+        var request = Valid();
+        request.Metric = metric;
+
+        _validator.Validate(request).IsValid.Should().BeTrue();
+    }
+
+    [Fact]
+    public void Validate_120MonthSpan_Passes()
+    {
+        var request = Valid();
+        request.DateFrom = "2015-01";
+        request.DateTo = "2024-12";
+
+        _validator.Validate(request).IsValid.Should().BeTrue();
+    }
+
+    [Fact]
+    public void Validate_121MonthSpan_Fails()
+    {
+        var request = Valid();
+        request.DateFrom = "2015-01";
+        request.DateTo = "2025-01";
+
+        _validator.Validate(request).IsValid.Should().BeFalse();
+    }
 }

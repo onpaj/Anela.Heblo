@@ -107,7 +107,7 @@ const ProductStatistics: React.FC = () => {
   };
 
   return (
-    <div className={`flex flex-col ${PAGE_CONTAINER_HEIGHT}`}>
+    <div className="flex flex-col w-full" style={{ height: PAGE_CONTAINER_HEIGHT }}>
       <h1 className="text-xl font-semibold text-gray-900 dark:text-graphite-text mb-4">
         Statistiky produktů
       </h1>
@@ -137,7 +137,7 @@ const ProductStatistics: React.FC = () => {
         ))}
       </div>
 
-      <div className="flex-1 overflow-auto">{renderContent()}</div>
+      <div className="flex-1 overflow-auto min-h-0">{renderContent()}</div>
     </div>
   );
 };
