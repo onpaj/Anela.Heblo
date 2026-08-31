@@ -238,6 +238,24 @@ _Update this file at the end of significant sessions._
   `git push` to origin worked fine; PR opened via `mcp__github__create_pull_request` +
   `issue_write` for the `agent` label.
 
+- `IJournalRepository.GetEntriesByProductAsync` dead-code removal (issue #4004, PR #4012,
+  `claude/beautiful-darwin-0bk7eu`, 2026-08-31): eleventh occurrence of the same scheduled
+  `/plan-next-task` pattern — designated-branch session, `gh auth status` invalid
+  (`GITHUB_TOKEN` rejected). Also hit the standard uncommitted `gh_api.sh` Content-Type
+  regression on session start (from `agentharness init`'s bundled template) — restored via
+  `git checkout --`, matching `main`, no recommit needed. Implemented issue #4004 directly
+  on the designated branch instead of running the AgentHarness pipeline: removed the unused
+  `GetEntriesByProductAsync` from `IJournalRepository` and its `JournalRepository`
+  implementation (no production caller — `SearchJournalEntriesHandler`'s
+  `productCodePrefix` filter already covers the use case), plus the five now-orphaned
+  integration test cases and the `CreateEntryWithFamily` helper they alone used from
+  `JournalRepositoryIntegrationTests`. `dotnet build Anela.Heblo.sln`: 0 errors; `dotnet
+  format --verify-no-changes`: clean; `dotnet test --filter Journal`: 95/95 passed. Plain
+  `git push` to origin worked fine; PR opened via `mcp__github__create_pull_request` +
+  `issue_write` for the `agent` label. Sibling candidates #4005–#4008 (coverage-gap issues)
+  left for a future run; #4003 (the sibling arch-review duplication finding) already had an
+  open PR (#4011) before this run started.
+
 ## Pending / Known Issues
 
 - Memory directory (issue #405): adding cross-session knowledge accumulation — this PR
