@@ -28,6 +28,11 @@ public static class MonthRange
             return false;
         }
 
+        if (parsedYear < 1 || parsedYear > 9999)
+        {
+            return false;
+        }
+
         if (!int.TryParse(month.AsSpan(5, 2), NumberStyles.None, CultureInfo.InvariantCulture, out var parsedMonth))
         {
             return false;

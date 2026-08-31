@@ -64,6 +64,7 @@ public class MonthRangeTests
     [InlineData("2025-1", false, 0, 0)]
     [InlineData("nonsense", false, 0, 0)]
     [InlineData("", false, 0, 0)]
+    [InlineData("0000-01", false, 0, 0)]
     public void TryParse_ValidatesFormat(string input, bool expectedOk, int expectedYear, int expectedMonth)
     {
         var ok = MonthRange.TryParse(input, out var year, out var month);
@@ -77,5 +78,21 @@ public class MonthRangeTests
     public void Key_FromDate_PadsToFourTwoFormat()
     {
         MonthRange.Key(new DateTime(2025, 7, 19)).Should().Be("2025-07");
+    }
+
+    [Fact]
+    public void Expand_InvalidYearZero_ReturnsEmpty()
+    {
+        var result = MonthRange.Expand("0000-01", "2025-01");
+
+        result.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void Expand_RangeEntirelyBeforeHistoryFloor_ReturnsEmpty()
+    {
+        var result = MonthRange.Expand("2019-01", "2019-06");
+
+        result.Should().BeEmpty();
     }
 }
