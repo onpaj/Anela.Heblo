@@ -28,9 +28,9 @@
   "tasks": [
     {
       "name": "null-guard-telemetry-filter",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-08-31T21:13:52.651434Z"
+      "updated_at": "2026-08-31T22:32:32.659686Z"
     }
   ]
 }
