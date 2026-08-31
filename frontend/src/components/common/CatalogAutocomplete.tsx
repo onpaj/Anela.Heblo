@@ -20,6 +20,11 @@ interface CatalogAutocompleteProps<T = CatalogItemDto> {
   value?: T | null;
   onSelect: (item: T | null) => void;
 
+  // Multi-select mode. When true, `values`/`onSelectMany` replace `value`/`onSelect`.
+  isMulti?: boolean;
+  values?: T[];
+  onSelectMany?: (items: T[]) => void;
+
   // Search and filtering
   placeholder?: string;
   searchMinLength?: number;
@@ -57,6 +62,9 @@ interface CatalogSelectOption {
 export function CatalogAutocomplete<T = CatalogItemDto>({
   value,
   onSelect,
+  isMulti = false,
+  values,
+  onSelectMany,
   placeholder = "Vyberte položku z katalogu...",
   searchMinLength = 2,
   limit = 50,
@@ -108,6 +116,24 @@ export function CatalogAutocomplete<T = CatalogItemDto>({
     } as CatalogSelectOption;
   };
 
+  // Convert current multi values to select options
+  const getSelectValues = (): CatalogSelectOption[] => {
+    if (!values) return [];
+
+    return values.map((item) => {
+      const catalogItem = item as any;
+      const code = catalogItem.productCode || catalogItem.value || "";
+      const name = catalogItem.productName || String(item);
+
+      return {
+        productCode: code,
+        productName: name,
+        value: code,
+        label: `${name} (${code})`,
+      } as CatalogSelectOption;
+    });
+  };
+
   // State for search input with debouncing
   const [searchTerm, setSearchTerm] = useState("");
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
@@ -149,6 +175,25 @@ export function CatalogAutocomplete<T = CatalogItemDto>({
       | MultiValue<CatalogSelectOption>,
     actionMeta: ActionMeta<CatalogSelectOption>,
   ) => {
+    const toAdapted = (option: CatalogSelectOption): T => {
+      const catalogItem =
+        option.data ||
+        new CatalogItemDto({
+          productCode: option.productCode,
+          productName: option.productName,
+          type: option.type,
+        });
+
+      return itemAdapter ? itemAdapter(catalogItem) : (catalogItem as T);
+    };
+
+    if (isMulti) {
+      const selectedOptions =
+        (newValue as MultiValue<CatalogSelectOption>) || [];
+      onSelectMany?.(selectedOptions.map(toAdapted));
+      return;
+    }
+
     const selectedOption = newValue as SingleValue<CatalogSelectOption>;
 
     if (!selectedOption) {
@@ -156,17 +201,7 @@ export function CatalogAutocomplete<T = CatalogItemDto>({
       return;
     }
 
-    // Use complete catalog item data if available, otherwise create new instance
-    const catalogItem = selectedOption.data || new CatalogItemDto({
-      productCode: selectedOption.productCode,
-      productName: selectedOption.productName,
-      type: selectedOption.type,
-    });
-
-    const adaptedItem = itemAdapter
-      ? itemAdapter(catalogItem)
-      : (catalogItem as T);
-    onSelect(adaptedItem);
+    onSelect(toAdapted(selectedOption));
   };
 
   // Size-dependent styles
@@ -383,7 +418,8 @@ export function CatalogAutocomplete<T = CatalogItemDto>({
   return (
     <div className={className}>
       <Select
-        value={getSelectValue()}
+        value={isMulti ? getSelectValues() : getSelectValue()}
+        isMulti={isMulti}
         onChange={handleChange}
         options={options}
         placeholder={placeholder}
@@ -393,10 +429,11 @@ export function CatalogAutocomplete<T = CatalogItemDto>({
         isLoading={isLoading}
         onInputChange={handleInputChange}
         styles={customStyles}
-        components={{
-          Option: CustomOption,
-          SingleValue: CustomSingleValue,
-        }}
+        components={
+          isMulti
+            ? { Option: CustomOption }
+            : { Option: CustomOption, SingleValue: CustomSingleValue }
+        }
         noOptionsMessage={({ inputValue }) =>
           inputValue
             ? "Žádné položky nenalezeny"
