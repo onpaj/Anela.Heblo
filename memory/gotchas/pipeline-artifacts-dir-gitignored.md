@@ -17,3 +17,22 @@ committing. Modifications to *already-tracked* artifact files (e.g. editing
 `state.json` after it was force-added once) stage fine with plain `git add`
 since git already tracks them — only newly created files under `artifacts/`
 need the `-f`.
+
+**Regression, 2026-08-31**: this exact fix (PR #3991, commit `45fb0ef`,
+which added `-f` to `git add -A` in `.claude/agents/orchestrator.md`,
+`.claude/agents/plan-orchestrator.md`, and `.claude/skills/oneshot/SKILL.md`)
+was reverted by a later commit `72784c2` — "chore: update orchestrator and
+oneshot skill templates (remove -f from git add)", whose own message says
+**"Applied by session-start hook"**. `.gitignore` still excludes `artifacts/`
+at the time of writing, so this reintroduced the exact silent-artifact-loss
+bug this file documents. This is a *different flip-flop mechanism* than the
+`gh_api.sh` Content-Type header one (that one was repeated manual edits
+across sessions) — here a **session-start hook itself** is the thing
+undoing the fix, which means simply re-fixing the templates again is not
+durable; whatever hook logic is auto-applying this "remove -f" change needs
+to be found and stopped, or every future planning/oneshot run will hit this
+same silent data loss again. Worked around for issue #4000's `/plan-next-task`
+run by force-adding (`git add -A -f artifacts/feat-4000`) directly in the
+session rather than editing the templates. Flagged to the user rather than
+"fixed" in-place, since editing the templates again would just be reverted
+by the same hook at the next session start.
