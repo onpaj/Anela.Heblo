@@ -23,9 +23,5 @@ namespace Anela.Heblo.Domain.Features.Journal
             string sortBy,
             string sortDirection,
             CancellationToken cancellationToken = default);
-
-        Task<List<JournalEntry>> GetEntriesByProductAsync(
-            string productCode,
-            CancellationToken cancellationToken = default);
     }
 }
