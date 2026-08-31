@@ -31,7 +31,7 @@ namespace Anela.Heblo.Application.Features.Journal.UseCases.SearchJournalEntries
                 sortDirection: request.SortDirection,
                 cancellationToken: cancellationToken);
 
-            var entryDtos = result.Items.Select(JournalEntryMapper.ToSearchDto).ToList();
+            var entryDtos = result.Items.Select(JournalEntryMapper.ToDto).ToList();
 
             return new SearchJournalEntriesResponse
             {
