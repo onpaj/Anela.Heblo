@@ -44,12 +44,11 @@ describe("ProductStatisticsTable", () => {
   test("totals each product column in the footer", () => {
     render(<ProductStatisticsTable months={months} series={series} />);
 
-    // Narrow to the tfoot specifically: getByRole("row", { name: /Celkem/ })
-    // would also match the header row, since it too contains the text
-    // "Celkem" (its last column header) and role-name matching is substring-based.
-    const footerRow = within(
-      document.querySelector("tfoot") as HTMLElement,
-    ).getByRole("row");
+    // Take the last row rather than getByRole("row", { name: /Celkem/ }): the header
+    // row also contains "Celkem" (its last column header) and role-name matching is
+    // substring-based, so the name query matches both. The totals row is always last.
+    const rows = screen.getAllByRole("row");
+    const footerRow = rows[rows.length - 1];
     const cells = within(footerRow).getAllByRole("cell");
 
     expect(cells[1]).toHaveTextContent("361");

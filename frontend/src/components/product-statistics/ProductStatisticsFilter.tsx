@@ -1,7 +1,11 @@
-import React from "react";
+import React, { useState } from "react";
 import { AlertCircle } from "lucide-react";
 import { CatalogAutocomplete } from "../common/CatalogAutocomplete";
 import { CatalogItemDto } from "../../api/generated/api-client";
+import {
+  getMonthRangeError,
+  HISTORY_FLOOR_MONTH,
+} from "../../api/hooks/useProductStatistics";
 
 export const MAX_SELECTED_PRODUCTS = 10;
 
@@ -47,8 +51,13 @@ const ProductStatisticsFilter: React.FC<ProductStatisticsFilterProps> = ({
   onDateFromChange,
   onDateToChange,
 }) => {
-  const isRangeInverted = Boolean(!dateFrom || !dateTo || dateFrom > dateTo);
+  // Same rule the query enforces, so a range the filter accepts always fires a request.
+  const rangeError = getMonthRangeError(dateFrom, dateTo);
   const isAtCap = selectedProducts.length >= MAX_SELECTED_PRODUCTS;
+
+  // react-select appends new picks, so the product dropped by the cap is the one just
+  // clicked. Without this the click looks like a broken control rather than a refusal.
+  const [wasCapExceeded, setWasCapExceeded] = useState(false);
 
   const handleProductsChange = (items: CatalogItemDto[]) => {
     const mapped = items
@@ -58,6 +67,8 @@ const ProductStatisticsFilter: React.FC<ProductStatisticsFilterProps> = ({
         productName: item.productName ?? (item.productCode as string),
       }));
 
+    setWasCapExceeded(mapped.length > MAX_SELECTED_PRODUCTS);
+
     // Cap defensively: the backend rejects more than MAX_SELECTED_PRODUCTS anyway.
     onProductsChange(mapped.slice(0, MAX_SELECTED_PRODUCTS));
   };
@@ -66,11 +77,15 @@ const ProductStatisticsFilter: React.FC<ProductStatisticsFilterProps> = ({
     <div className="flex-shrink-0 bg-white dark:bg-graphite-surface border border-gray-200 dark:border-graphite-border rounded-lg p-4 mb-4">
       <div className="flex flex-col lg:flex-row lg:items-start gap-4">
         <div className="flex-1 min-w-0">
-          <label className="block text-sm font-medium text-gray-700 dark:text-graphite-text mb-1">
+          <label
+            htmlFor="product-statistics-products"
+            className="block text-sm font-medium text-gray-700 dark:text-graphite-text mb-1"
+          >
             Produkty
           </label>
           <CatalogAutocomplete<CatalogItemDto>
             isMulti
+            inputId="product-statistics-products"
             values={selectedProducts.map(
               (product) =>
                 new CatalogItemDto({
@@ -82,10 +97,18 @@ const ProductStatisticsFilter: React.FC<ProductStatisticsFilterProps> = ({
             onSelectMany={handleProductsChange}
             placeholder="Vyberte produkty..."
           />
-          {isAtCap && (
-            <div className="mt-1 text-sm text-gray-500 dark:text-graphite-muted">
-              Maximálně {MAX_SELECTED_PRODUCTS} produktů.
+          {wasCapExceeded ? (
+            <div className="mt-1 flex items-center text-sm text-red-600 dark:text-red-400">
+              <AlertCircle className="h-4 w-4 mr-1" />
+              Porovnat lze nejvýše {MAX_SELECTED_PRODUCTS} produktů, další výběr
+              byl ignorován.
             </div>
+          ) : (
+            isAtCap && (
+              <div className="mt-1 text-sm text-gray-500 dark:text-graphite-muted">
+                Maximálně {MAX_SELECTED_PRODUCTS} produktů.
+              </div>
+            )
           )}
         </div>
 
@@ -99,6 +122,8 @@ const ProductStatisticsFilter: React.FC<ProductStatisticsFilterProps> = ({
           <input
             id="product-statistics-date-from"
             type="month"
+            min={HISTORY_FLOOR_MONTH}
+            max={defaultDateTo()}
             value={dateFrom}
             onChange={(event) => onDateFromChange(event.target.value)}
             className="border border-gray-300 dark:border-graphite-border dark:bg-graphite-surface-2 dark:text-graphite-text rounded-md px-3 py-1.5 text-sm"
@@ -115,6 +140,8 @@ const ProductStatisticsFilter: React.FC<ProductStatisticsFilterProps> = ({
           <input
             id="product-statistics-date-to"
             type="month"
+            min={HISTORY_FLOOR_MONTH}
+            max={defaultDateTo()}
             value={dateTo}
             onChange={(event) => onDateToChange(event.target.value)}
             className="border border-gray-300 dark:border-graphite-border dark:bg-graphite-surface-2 dark:text-graphite-text rounded-md px-3 py-1.5 text-sm"
@@ -122,10 +149,10 @@ const ProductStatisticsFilter: React.FC<ProductStatisticsFilterProps> = ({
         </div>
       </div>
 
-      {isRangeInverted && (
+      {rangeError && (
         <div className="mt-2 flex items-center text-sm text-red-600 dark:text-red-400">
           <AlertCircle className="h-4 w-4 mr-1" />
-          Datum &quot;Od&quot; musí být dříve než &quot;Do&quot;.
+          {rangeError}
         </div>
       )}
     </div>

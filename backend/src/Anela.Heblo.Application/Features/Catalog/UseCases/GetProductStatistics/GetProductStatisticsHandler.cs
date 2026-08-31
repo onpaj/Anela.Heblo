@@ -63,7 +63,7 @@ public class GetProductStatisticsHandler
         ProductStatisticsMetric metric,
         List<string> months)
     {
-        var byMonth = BuildMonthLookup(item, metric);
+        var byMonth = BuildMonthLookup(item, metric, months);
 
         // Dense output: a month with no data is 0, not a gap. Frontend never handles nulls.
         return months
@@ -73,7 +73,8 @@ public class GetProductStatisticsHandler
 
     private static Dictionary<string, double> BuildMonthLookup(
         CatalogAggregate item,
-        ProductStatisticsMetric metric)
+        ProductStatisticsMetric metric,
+        List<string> months)
     {
         switch (metric)
         {
@@ -90,9 +91,15 @@ public class GetProductStatisticsHandler
                     .ToDictionary(kvp => kvp.Key, kvp => kvp.Value.TotalAmount);
 
             case ProductStatisticsMetric.Manufacture:
-                // The only metric without a pre-aggregated summary on the aggregate.
+                // The only metric without a pre-aggregated summary on the aggregate, so it is
+                // aggregated per request. Records outside the requested window are dropped before
+                // grouping: ProjectMetric only ever reads the requested months, and history runs
+                // for years, so grouping all of it would allocate a dictionary mostly thrown away.
+                var requestedMonths = months.ToHashSet(StringComparer.Ordinal);
                 return item.ManufactureHistory
-                    .GroupBy(record => MonthRange.Key(record.Date))
+                    .Select(record => new { Month = MonthRange.Key(record.Date), record.Amount })
+                    .Where(record => requestedMonths.Contains(record.Month))
+                    .GroupBy(record => record.Month)
                     .ToDictionary(group => group.Key, group => group.Sum(record => record.Amount));
 
             default:

@@ -1,7 +1,13 @@
 import { renderHook, waitFor } from "@testing-library/react";
 import React from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { useProductStatistics } from "../useProductStatistics";
+import {
+  useProductStatistics,
+  getMonthRangeError,
+  isValidMonthRange,
+  HISTORY_FLOOR_MONTH,
+  MAX_RANGE_MONTHS,
+} from "../useProductStatistics";
 import { ProductStatisticsMetric } from "../../generated/api-client";
 
 const mockGetProductStatistics = jest.fn();
@@ -97,5 +103,57 @@ describe("useProductStatistics", () => {
     rerender({ metric: ProductStatisticsMetric.Purchase });
 
     await waitFor(() => expect(mockGetProductStatistics).toHaveBeenCalledTimes(2));
+  });
+});
+
+describe("getMonthRangeError", () => {
+  test("returns null for a range inside the supported window", () => {
+    expect(getMonthRangeError("2024-01", "2024-12")).toBeNull();
+  });
+
+  test("returns null when the range is a single month", () => {
+    expect(getMonthRangeError("2024-03", "2024-03")).toBeNull();
+  });
+
+  test.each(["2025-1", "2025-13", "202-01", "", "03/2025"])(
+    "rejects the malformed month %s",
+    (month) => {
+      expect(getMonthRangeError(month, "2025-06")).toBe(
+        "Zadejte období ve formátu RRRR-MM.",
+      );
+    },
+  );
+
+  test("rejects an inverted range", () => {
+    expect(getMonthRangeError("2025-06", "2025-01")).toBe(
+      'Datum "Od" musí být dříve než "Do".',
+    );
+  });
+
+  test("rejects a range ending before the first month with history", () => {
+    expect(getMonthRangeError("2015-01", "2019-12")).toBe(
+      `Data jsou k dispozici až od ${HISTORY_FLOOR_MONTH}.`,
+    );
+  });
+
+  test("accepts a range ending exactly at the first month with history", () => {
+    expect(getMonthRangeError("2019-01", HISTORY_FLOOR_MONTH)).toBeNull();
+  });
+
+  test("accepts a span of exactly the maximum months", () => {
+    // 2020-01..2029-12 inclusive is 120 months.
+    expect(getMonthRangeError("2020-01", "2029-12")).toBeNull();
+  });
+
+  test("rejects a span one month past the maximum", () => {
+    expect(getMonthRangeError("2020-01", "2030-01")).toBe(
+      `Rozsah nesmí přesáhnout ${MAX_RANGE_MONTHS} měsíců.`,
+    );
+  });
+
+  test("isValidMonthRange agrees with getMonthRangeError", () => {
+    expect(isValidMonthRange("2024-01", "2024-12")).toBe(true);
+    expect(isValidMonthRange("2025-1", "2025-06")).toBe(false);
+    expect(isValidMonthRange("2020-01", "2030-01")).toBe(false);
   });
 });

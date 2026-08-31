@@ -160,4 +160,62 @@ public class GetProductStatisticsRequestValidatorTests
 
         _validator.Validate(request).IsValid.Should().BeFalse();
     }
+
+    [Fact]
+    public void Validate_DuplicateProductCodes_Fails()
+    {
+        var request = Valid();
+        request.ProductCodes = new List<string> { "PROD-A", "PROD-B", "PROD-A" };
+
+        var result = _validator.Validate(request);
+
+        result.IsValid.Should().BeFalse();
+        result.Errors.Should().Contain(e => e.ErrorMessage == "Product codes must be unique");
+    }
+
+    [Fact]
+    public void Validate_DuplicateProductCodesUnderTheCap_StillFails()
+    {
+        // Without a uniqueness rule the cap alone lets ten copies of one code through,
+        // and the handler would emit ten identical series for it.
+        var request = Valid();
+        request.ProductCodes = Enumerable.Repeat("PROD-A", 10).ToList();
+
+        _validator.Validate(request).IsValid.Should().BeFalse();
+    }
+
+    [Fact]
+    public void Validate_ProductCodesDifferingOnlyByCase_Passes()
+    {
+        var request = Valid();
+        request.ProductCodes = new List<string> { "PROD-A", "prod-a" };
+
+        _validator.Validate(request).IsValid.Should().BeTrue();
+    }
+
+    [Fact]
+    public void Validate_RangeEntirelyBeforeHistoryFloor_Fails()
+    {
+        // MonthRange.Expand clamps DateFrom up to the 2020-01 floor; without this rule the
+        // clamped lower bound overshoots DateTo and the caller gets an empty 200, not an error.
+        var request = Valid();
+        request.DateFrom = "2015-01";
+        request.DateTo = "2019-06";
+
+        var result = _validator.Validate(request);
+
+        result.IsValid.Should().BeFalse();
+        result.Errors.Should().Contain(e =>
+            e.ErrorMessage == "DateTo cannot be earlier than 2020-01, the first month with history");
+    }
+
+    [Fact]
+    public void Validate_RangeEndingExactlyAtHistoryFloor_Passes()
+    {
+        var request = Valid();
+        request.DateFrom = "2015-01";
+        request.DateTo = "2020-01";
+
+        _validator.Validate(request).IsValid.Should().BeTrue();
+    }
 }

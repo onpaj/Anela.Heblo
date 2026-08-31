@@ -35,12 +35,15 @@ export interface ProductStatisticsChartProps {
   months: string[];
   series: ProductStatisticsSeries[];
   yAxisLabel: string;
+  /** Palette slot per product code. Falls back to series order when a code is absent. */
+  colorIndexByProduct?: ReadonlyMap<string, number>;
 }
 
 const ProductStatisticsChart: React.FC<ProductStatisticsChartProps> = ({
   months,
   series,
   yAxisLabel,
+  colorIndexByProduct,
 }) => {
   const hasData = series.some((item) =>
     item.values.some((value) => value !== 0),
@@ -53,7 +56,7 @@ const ProductStatisticsChart: React.FC<ProductStatisticsChartProps> = ({
           <BarChart3 className="h-12 w-12 mx-auto mb-2 text-gray-300 dark:text-graphite-faint" />
           <p>Žádná data pro zobrazení grafu</p>
           <p className="text-sm">
-            Vyberte produkty a období pro zobrazení statistik
+            Vybrané produkty nemají v tomto období žádný pohyb.
           </p>
         </div>
       </div>
@@ -63,7 +66,9 @@ const ProductStatisticsChart: React.FC<ProductStatisticsChartProps> = ({
   const chartData = {
     labels: months,
     datasets: series.map((item, index) => {
-      const color = getSeriesColor(index);
+      const color = getSeriesColor(
+        colorIndexByProduct?.get(item.productCode) ?? index,
+      );
 
       return {
         label: `${item.productName} (${item.productCode})`,

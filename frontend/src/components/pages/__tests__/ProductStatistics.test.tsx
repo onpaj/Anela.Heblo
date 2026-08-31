@@ -60,10 +60,34 @@ describe("ProductStatistics page", () => {
   test("renders all four metric tabs", () => {
     render(<ProductStatistics />);
 
-    expect(screen.getByRole("button", { name: "Prodeje" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Nákupy" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Spotřeba" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Výroba" })).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: "Prodeje" })).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: "Nákupy" })).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: "Spotřeba" })).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: "Výroba" })).toBeInTheDocument();
+  });
+
+  test("marks only the active metric tab as selected", () => {
+    render(<ProductStatistics />);
+
+    expect(screen.getByRole("tab", { name: "Prodeje" })).toHaveAttribute(
+      "aria-selected",
+      "true",
+    );
+    expect(screen.getByRole("tab", { name: "Nákupy" })).toHaveAttribute(
+      "aria-selected",
+      "false",
+    );
+
+    fireEvent.click(screen.getByRole("tab", { name: "Nákupy" }));
+
+    expect(screen.getByRole("tab", { name: "Prodeje" })).toHaveAttribute(
+      "aria-selected",
+      "false",
+    );
+    expect(screen.getByRole("tab", { name: "Nákupy" })).toHaveAttribute(
+      "aria-selected",
+      "true",
+    );
   });
 
   test("queries the Sales metric by default", () => {
@@ -80,7 +104,7 @@ describe("ProductStatistics page", () => {
   test("switching tabs re-queries with the new metric", () => {
     render(<ProductStatistics />);
 
-    fireEvent.click(screen.getByRole("button", { name: "Výroba" }));
+    fireEvent.click(screen.getByRole("tab", { name: "Výroba" }));
 
     expect(mockUseProductStatistics).toHaveBeenLastCalledWith(
       [],
@@ -99,7 +123,7 @@ describe("ProductStatistics page", () => {
 
     expect(screen.getByTestId("chart")).toHaveTextContent("Kusů prodáno");
 
-    fireEvent.click(screen.getByRole("button", { name: "Spotřeba" }));
+    fireEvent.click(screen.getByRole("tab", { name: "Spotřeba" }));
 
     expect(screen.getByTestId("chart")).toHaveTextContent(
       "Množství spotřebováno",
@@ -110,7 +134,7 @@ describe("ProductStatistics page", () => {
     render(<ProductStatistics />);
 
     fireEvent.click(screen.getByText("vybrat produkt"));
-    fireEvent.click(screen.getByRole("button", { name: "Nákupy" }));
+    fireEvent.click(screen.getByRole("tab", { name: "Nákupy" }));
 
     expect(mockUseProductStatistics).toHaveBeenLastCalledWith(
       ["PROD-A"],

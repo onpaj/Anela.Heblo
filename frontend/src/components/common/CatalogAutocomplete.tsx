@@ -25,6 +25,9 @@ interface CatalogAutocompleteProps<T = CatalogItemDto> {
   values?: T[];
   onSelectMany?: (items: T[]) => void;
 
+  // Id given to the inner search input, so a <label htmlFor> can name the control.
+  inputId?: string;
+
   // Search and filtering
   placeholder?: string;
   searchMinLength?: number;
@@ -65,6 +68,7 @@ export function CatalogAutocomplete<T = CatalogItemDto>({
   isMulti = false,
   values,
   onSelectMany,
+  inputId,
   placeholder = "Vyberte položku z katalogu...",
   searchMinLength = 2,
   limit = 50,
@@ -123,11 +127,14 @@ export function CatalogAutocomplete<T = CatalogItemDto>({
     return values.map((item) => {
       const catalogItem = item as any;
       const code = catalogItem.productCode || catalogItem.value || "";
-      const name = catalogItem.productName || String(item);
+      // Fall back to the code, not String(item) — that renders "[object Object]".
+      const name = catalogItem.productName || code;
 
       return {
         productCode: code,
         productName: name,
+        // Carried so removing one chip does not rebuild the survivors with type undefined.
+        type: catalogItem.type,
         value: code,
         label: `${name} (${code})`,
       } as CatalogSelectOption;
@@ -418,6 +425,7 @@ export function CatalogAutocomplete<T = CatalogItemDto>({
   return (
     <div className={className}>
       <Select
+        inputId={inputId}
         value={isMulti ? getSelectValues() : getSelectValue()}
         isMulti={isMulti}
         onChange={handleChange}

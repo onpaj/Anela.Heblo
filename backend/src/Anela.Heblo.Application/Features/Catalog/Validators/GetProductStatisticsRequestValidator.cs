@@ -18,13 +18,23 @@ public class GetProductStatisticsRequestValidator : AbstractValidator<GetProduct
     /// </summary>
     public const int MaxMonths = 120;
 
+    /// <summary>
+    /// Earliest month any history reaches. <see cref="MonthRange.Expand"/> clamps the lower
+    /// bound to it, so a range ending before it would silently expand to no months at all.
+    /// </summary>
+    private static readonly string HistoryFloorMonth = MonthRange.Key(
+        CatalogConstants.HISTORY_FLOOR_DATE.Year,
+        CatalogConstants.HISTORY_FLOOR_DATE.Month);
+
     public GetProductStatisticsRequestValidator()
     {
         RuleFor(x => x.ProductCodes)
             .NotEmpty()
             .WithMessage("At least one product code is required")
             .Must(codes => codes == null || codes.Count <= MaxProducts)
-            .WithMessage($"At most {MaxProducts} product codes can be requested at once");
+            .WithMessage($"At most {MaxProducts} product codes can be requested at once")
+            .Must(HaveDistinctCodes)
+            .WithMessage("Product codes must be unique");
 
         RuleForEach(x => x.ProductCodes)
             .NotEmpty()
@@ -53,10 +63,22 @@ public class GetProductStatisticsRequestValidator : AbstractValidator<GetProduct
             .Must(HaveSpanWithinLimit)
             .WithMessage($"Date range cannot span more than {MaxMonths} months")
             .When(x => BeAValidMonth(x.DateFrom) && BeAValidMonth(x.DateTo));
+
+        RuleFor(x => x.DateTo)
+            .Must(EndAtOrAfterHistoryFloor)
+            .WithMessage($"DateTo cannot be earlier than {HistoryFloorMonth}, the first month with history")
+            .When(x => BeAValidMonth(x.DateTo));
     }
 
     private static bool BeAValidMonth(string? month) =>
         month != null && MonthRange.TryParse(month, out _, out _);
+
+    private static bool HaveDistinctCodes(List<string> codes) =>
+        codes == null || codes.Distinct(StringComparer.Ordinal).Count() == codes.Count;
+
+    // "yyyy-MM" is fixed-width and zero-padded, so ordinal string order is chronological order.
+    private static bool EndAtOrAfterHistoryFloor(string dateTo) =>
+        string.CompareOrdinal(dateTo, HistoryFloorMonth) >= 0;
 
     private static bool HaveOrderedRange(GetProductStatisticsRequest request) =>
         string.CompareOrdinal(request.DateFrom, request.DateTo) <= 0;
