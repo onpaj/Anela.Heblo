@@ -27,7 +27,12 @@ const formatDateTime = (iso: string | null): string => {
   });
 };
 
-const ExpeditionJobControlsBar: React.FC = () => {
+interface ExpeditionJobControlsBarProps {
+  /** Rendered as the first child of the button group (e.g. the archive page's "Obnovit" button). */
+  refreshButton?: React.ReactNode;
+}
+
+const ExpeditionJobControlsBar: React.FC<ExpeditionJobControlsBarProps> = ({ refreshButton }) => {
   const { showSuccess, showError } = useToast();
   const queryClient = useQueryClient();
   const [isPrintOrderModalOpen, setIsPrintOrderModalOpen] = useState(false);
@@ -118,6 +123,7 @@ const ExpeditionJobControlsBar: React.FC = () => {
         </div>
       )}
       <div className="flex items-center gap-2">
+        {refreshButton}
         <button
           onClick={() => setIsPrintOrderModalOpen(true)}
           className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 disabled:opacity-50 transition-colors"

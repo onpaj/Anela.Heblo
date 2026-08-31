@@ -102,15 +102,18 @@ const ExpeditionListArchivePage: React.FC = () => {
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-semibold text-gray-900 dark:text-graphite-text">Archiv expedičních listů</h1>
         <div className="flex items-center gap-4">
-          <ExpeditionJobControlsBar />
-          <button
-            onClick={handleRefresh}
-            disabled={isRefreshing}
-            className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 dark:text-graphite-muted bg-white dark:bg-graphite-surface border border-gray-300 dark:border-graphite-border rounded-lg hover:bg-gray-50 dark:hover:bg-white/5 disabled:opacity-50 transition-colors"
-          >
-            <RefreshCw size={14} className={isRefreshing ? "animate-spin" : ""} />
-            Obnovit
-          </button>
+          <ExpeditionJobControlsBar
+            refreshButton={
+              <button
+                onClick={handleRefresh}
+                disabled={isRefreshing}
+                className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 dark:text-graphite-muted bg-white dark:bg-graphite-surface border border-gray-300 dark:border-graphite-border rounded-lg hover:bg-gray-50 dark:hover:bg-white/5 disabled:opacity-50 transition-colors"
+              >
+                <RefreshCw size={14} className={isRefreshing ? "animate-spin" : ""} />
+                Obnovit
+              </button>
+            }
+          />
         </div>
       </div>
 

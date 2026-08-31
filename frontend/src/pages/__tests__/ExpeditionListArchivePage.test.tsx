@@ -14,7 +14,7 @@ jest.mock("../../api/hooks/useExpeditionListArchive", () => ({
 
 jest.mock("../../components/pages/ExpeditionListArchive/ExpeditionJobControlsBar", () => ({
   __esModule: true,
-  default: () => null,
+  default: ({ refreshButton }: { refreshButton?: React.ReactNode }) => <>{refreshButton}</>,
 }));
 
 jest.mock("../../api/client", () => ({
