@@ -22,7 +22,7 @@
     },
     "developing": {
       "status": "in_progress",
-      "updated_at": "2026-08-31T07:15:24.425426Z"
+      "updated_at": "2026-08-31T08:14:44.915886Z"
     }
   },
   "tasks": [
@@ -40,9 +40,9 @@
     },
     {
       "name": "wire-controls-bar-into-page",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-08-31T08:14:45.192769Z"
     },
     {
       "name": "update-archive-page-tests",
