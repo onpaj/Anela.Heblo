@@ -8,7 +8,7 @@ import {
   Loader2,
   AlertCircle,
 } from "lucide-react";
-import type { SearchJournalEntryDto } from "../../../../api/generated/api-client";
+import type { JournalEntryDto } from "../../../../api/generated/api-client";
 import { useJournalEntriesByProduct } from "../../../../api/hooks/useJournal";
 import { format } from "date-fns";
 import { truncateContent } from "../../../pages/Journal/journalPreview";
@@ -16,7 +16,7 @@ import { truncateContent } from "../../../pages/Journal/journalPreview";
 interface JournalTabProps {
   productCode: string;
   onAddEntry: () => void;
-  onEditEntry: (entry: SearchJournalEntryDto) => void;
+  onEditEntry: (entry: JournalEntryDto) => void;
   onViewAllEntries: () => void;
 }
 

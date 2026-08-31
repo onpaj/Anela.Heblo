@@ -15754,7 +15754,6 @@ export interface ISubmitArticleFeedbackResponse extends IBaseResponse {
 }
 
 export class SubmitArticleFeedbackRequest implements ISubmitArticleFeedbackRequest {
-    articleId?: string;
     precisionScore?: number;
     styleScore?: number;
     comment?: string | undefined;
@@ -15770,7 +15769,6 @@ export class SubmitArticleFeedbackRequest implements ISubmitArticleFeedbackReque
 
     init(_data?: any) {
         if (_data) {
-            this.articleId = _data["articleId"];
             this.precisionScore = _data["precisionScore"];
             this.styleScore = _data["styleScore"];
             this.comment = _data["comment"];
@@ -15786,7 +15784,6 @@ export class SubmitArticleFeedbackRequest implements ISubmitArticleFeedbackReque
 
     toJSON(data?: any) {
         data = typeof data === 'object' ? data : {};
-        data["articleId"] = this.articleId;
         data["precisionScore"] = this.precisionScore;
         data["styleScore"] = this.styleScore;
         data["comment"] = this.comment;
@@ -15795,7 +15792,6 @@ export class SubmitArticleFeedbackRequest implements ISubmitArticleFeedbackReque
 }
 
 export interface ISubmitArticleFeedbackRequest {
-    articleId?: string;
     precisionScore?: number;
     styleScore?: number;
     comment?: string | undefined;
@@ -24155,7 +24151,7 @@ export interface IJournalEntryTagDto {
 }
 
 export class SearchJournalEntriesResponse extends BaseResponse implements ISearchJournalEntriesResponse {
-    entries?: SearchJournalEntryDto[];
+    entries?: JournalEntryDto[];
     totalCount?: number;
     pageNumber?: number;
     pageSize?: number;
@@ -24173,7 +24169,7 @@ export class SearchJournalEntriesResponse extends BaseResponse implements ISearc
             if (Array.isArray(_data["entries"])) {
                 this.entries = [] as any;
                 for (let item of _data["entries"])
-                    this.entries!.push(SearchJournalEntryDto.fromJS(item));
+                    this.entries!.push(JournalEntryDto.fromJS(item));
             }
             this.totalCount = _data["totalCount"];
             this.pageNumber = _data["pageNumber"];
@@ -24210,109 +24206,13 @@ export class SearchJournalEntriesResponse extends BaseResponse implements ISearc
 }
 
 export interface ISearchJournalEntriesResponse extends IBaseResponse {
-    entries?: SearchJournalEntryDto[];
+    entries?: JournalEntryDto[];
     totalCount?: number;
     pageNumber?: number;
     pageSize?: number;
     totalPages?: number;
     hasNextPage?: boolean;
     hasPreviousPage?: boolean;
-}
-
-export class SearchJournalEntryDto implements ISearchJournalEntryDto {
-    id?: number;
-    title?: string;
-    content?: string;
-    entryDate?: Date;
-    createdAt?: Date;
-    modifiedAt?: Date;
-    createdByUserId?: string;
-    createdByUsername?: string | undefined;
-    modifiedByUserId?: string | undefined;
-    modifiedByUsername?: string | undefined;
-    associatedProducts?: string[];
-    tags?: JournalEntryTagDto[];
-
-    constructor(data?: ISearchJournalEntryDto) {
-        if (data) {
-            for (var property in data) {
-                if (data.hasOwnProperty(property))
-                    (<any>this)[property] = (<any>data)[property];
-            }
-        }
-    }
-
-    init(_data?: any) {
-        if (_data) {
-            this.id = _data["id"];
-            this.title = _data["title"];
-            this.content = _data["content"];
-            this.entryDate = _data["entryDate"] ? new Date(_data["entryDate"].toString()) : <any>undefined;
-            this.createdAt = _data["createdAt"] ? new Date(_data["createdAt"].toString()) : <any>undefined;
-            this.modifiedAt = _data["modifiedAt"] ? new Date(_data["modifiedAt"].toString()) : <any>undefined;
-            this.createdByUserId = _data["createdByUserId"];
-            this.createdByUsername = _data["createdByUsername"];
-            this.modifiedByUserId = _data["modifiedByUserId"];
-            this.modifiedByUsername = _data["modifiedByUsername"];
-            if (Array.isArray(_data["associatedProducts"])) {
-                this.associatedProducts = [] as any;
-                for (let item of _data["associatedProducts"])
-                    this.associatedProducts!.push(item);
-            }
-            if (Array.isArray(_data["tags"])) {
-                this.tags = [] as any;
-                for (let item of _data["tags"])
-                    this.tags!.push(JournalEntryTagDto.fromJS(item));
-            }
-        }
-    }
-
-    static fromJS(data: any): SearchJournalEntryDto {
-        data = typeof data === 'object' ? data : {};
-        let result = new SearchJournalEntryDto();
-        result.init(data);
-        return result;
-    }
-
-    toJSON(data?: any) {
-        data = typeof data === 'object' ? data : {};
-        data["id"] = this.id;
-        data["title"] = this.title;
-        data["content"] = this.content;
-        data["entryDate"] = this.entryDate ? this.entryDate.toISOString() : <any>undefined;
-        data["createdAt"] = this.createdAt ? this.createdAt.toISOString() : <any>undefined;
-        data["modifiedAt"] = this.modifiedAt ? this.modifiedAt.toISOString() : <any>undefined;
-        data["createdByUserId"] = this.createdByUserId;
-        data["createdByUsername"] = this.createdByUsername;
-        data["modifiedByUserId"] = this.modifiedByUserId;
-        data["modifiedByUsername"] = this.modifiedByUsername;
-        if (Array.isArray(this.associatedProducts)) {
-            data["associatedProducts"] = [];
-            for (let item of this.associatedProducts)
-                data["associatedProducts"].push(item);
-        }
-        if (Array.isArray(this.tags)) {
-            data["tags"] = [];
-            for (let item of this.tags)
-                data["tags"].push(item.toJSON());
-        }
-        return data;
-    }
-}
-
-export interface ISearchJournalEntryDto {
-    id?: number;
-    title?: string;
-    content?: string;
-    entryDate?: Date;
-    createdAt?: Date;
-    modifiedAt?: Date;
-    createdByUserId?: string;
-    createdByUsername?: string | undefined;
-    modifiedByUserId?: string | undefined;
-    modifiedByUsername?: string | undefined;
-    associatedProducts?: string[];
-    tags?: JournalEntryTagDto[];
 }
 
 export class GetJournalEntryResponse extends BaseResponse implements IGetJournalEntryResponse {

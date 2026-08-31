@@ -1,6 +1,6 @@
 import React from "react";
 import { CatalogItemDto } from "../../../api/hooks/useCatalog";
-import { SearchJournalEntryDto } from "../../../api/generated/api-client";
+import { JournalEntryDto } from "../../../api/generated/api-client";
 import JournalEntryModal from "../../JournalEntryModal";
 import ManufactureDifficultyModal from "../../ManufactureDifficultyModal";
 
@@ -8,7 +8,7 @@ interface CatalogDetailModalsProps {
   item: CatalogItemDto;
   showJournalModal: boolean;
   onCloseJournalModal: () => void;
-  selectedJournalEntry?: SearchJournalEntryDto;
+  selectedJournalEntry?: JournalEntryDto;
   showManufactureDifficultyModal: boolean;
   onCloseManufactureDifficultyModal: () => void;
   refetchCatalogDetail: () => void;
