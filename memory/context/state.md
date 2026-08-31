@@ -238,6 +238,42 @@ _Update this file at the end of significant sessions._
   `git push` to origin worked fine; PR opened via `mcp__github__create_pull_request` +
   `issue_write` for the `agent` label.
 
+- `SearchJournalEntryDto` duplication removal (issue #4003, PR #4011,
+  `claude/beautiful-darwin-80ze9r`, 2026-08-31): eleventh occurrence of the same scheduled
+  `/plan-next-task` pattern — designated-branch session. `claim_issue.sh`'s `create-ref` hit
+  the standard uncommitted `gh_api.sh` Content-Type-header regression first (`agentharness
+  init`'s bundled template — restored via `git checkout --`). New wrinkle this time: the
+  designated branch's own HEAD (many commits ahead of `origin/main`, chained from prior
+  sessions' work) already carried a *committed* regression of the `git add -A -f` fix from
+  #3991 — a stray commit `72784c2` ("chore: update orchestrator and oneshot skill templates
+  (remove -f from git add)"), apparently created by a previous session's SessionStart-hook
+  diff getting committed instead of restored. Left it alone (out of scope for this issue;
+  not touching the AgentHarness pipeline anyway since it's being skipped). Implemented
+  #4003 directly instead of the pipeline: deleted `SearchJournalEntryDto.cs` (verified via
+  `git log --follow` it was an exact duplicate since its introduction in #3919 — a 2026-05-13
+  plan doc proposing a real `ContentPreview`/`HighlightedTerms` split for it was never
+  actually implemented, so it wasn't a case of removing an intentional design), switched
+  `SearchJournalEntriesResponse.Entries` to `List<JournalEntryDto>`, removed
+  `JournalEntryMapper.ToSearchDto()` in favor of `ToDto()`, and updated 5 frontend files
+  (`JournalList.tsx`, `CatalogDetail.tsx`, `CatalogDetailTabs.tsx`, `JournalTab.tsx`,
+  `CatalogDetailModals.tsx`) to consume `JournalEntryDto` instead. Regenerating
+  `frontend/src/api/generated/api-client.ts` required `dotnet tool restore` first (nswag
+  wasn't restored) and the specific `dotnet msbuild backend/src/Anela.Heblo.API
+  -t:GenerateFrontendClientManual` target — a plain `dotnet build` of the API project does
+  NOT trigger NSwag regeneration despite completing successfully. That regeneration also
+  surfaced a real, pre-existing, unrelated break: the committed `api-client.ts` was stale
+  (dated Aug 24, predating several already-merged backend contract changes on this branch,
+  including #3989's `SubmitArticleFeedbackRequest.ArticleId` `[JsonIgnore]`), so
+  `useArticles.ts` was still constructing the request with an `articleId` field the
+  generated type no longer has — fixed by removing it (the value was already discarded
+  server-side per #3989). `dotnet build`/`format --verify-no-changes`: clean;
+  `dotnet test --filter Features.Journal`: 94/94 passed; `npm run build`: compiled
+  successfully. `npm run lint` has a large pre-existing backlog (236 `testing-library`
+  errors, all in test files untouched by this change) — left alone as out of scope. Plain
+  `git push` worked fine; PR opened via `mcp__github__create_pull_request` +
+  `issue_write` for the `agent` label; subscribed to PR activity since the PR was created
+  in this session.
+
 ## Pending / Known Issues
 
 - Memory directory (issue #405): adding cross-session knowledge accumulation — this PR

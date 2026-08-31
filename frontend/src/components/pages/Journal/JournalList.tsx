@@ -17,10 +17,7 @@ import {
 } from "lucide-react";
 import { format } from "date-fns";
 // Import removed - using default date format for now to fix Jest test issues
-import type {
-  JournalEntryDto,
-  SearchJournalEntryDto,
-} from "../../../api/generated/api-client";
+import type { JournalEntryDto } from "../../../api/generated/api-client";
 import JournalEntryModal from "../../JournalEntryModal";
 import { useScreenView } from '../../../telemetry/useScreenView';
 import { truncateContent } from "./journalPreview";
@@ -419,7 +416,7 @@ const JournalList: React.FC = () => {
               </thead>
               <tbody className="bg-white dark:bg-graphite-surface divide-y divide-gray-200 dark:divide-graphite-border">
                 {isSearchMode
-                  ? (entries as SearchJournalEntryDto[]).map((entry) => (
+                  ? (entries as JournalEntryDto[]).map((entry) => (
                       <JournalRow
                         key={entry.id!}
                         id={entry.id!}

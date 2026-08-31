@@ -9,7 +9,7 @@ import {
   FolderOpen,
 } from "lucide-react";
 import { CatalogItemDto, ProductType } from "../../../api/hooks/useCatalog";
-import { SearchJournalEntryDto } from "../../../api/generated/api-client";
+import { JournalEntryDto } from "../../../api/generated/api-client";
 import BasicInfoTab from "./tabs/BasicInfoTab/BasicInfoTab";
 import PurchaseHistoryTab from "./tabs/PurchaseHistoryTab";
 import MarginsTab from "./tabs/MarginsTab/MarginsTab";
@@ -27,10 +27,10 @@ interface CatalogDetailTabsProps {
   ) => void;
   detailData: any;
   isLoading: boolean;
-  journalEntries: SearchJournalEntryDto[];
+  journalEntries: JournalEntryDto[];
   onManufactureDifficultyClick: () => void;
   onAddJournalEntry: () => void;
-  onEditJournalEntry: (entry: SearchJournalEntryDto) => void;
+  onEditJournalEntry: (entry: JournalEntryDto) => void;
   onViewAllEntries: () => void;
 }
 
