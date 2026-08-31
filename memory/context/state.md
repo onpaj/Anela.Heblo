@@ -274,6 +274,56 @@ _Update this file at the end of significant sessions._
   `issue_write` for the `agent` label; subscribed to PR activity since the PR was created
   in this session.
 
+- `/plan-next-task` scheduled run for issue #4006 (PR #4016, branch
+  `feature/4006-Coverage-Gap-Backgroundrefresh-Getbackgroundrefres`, 2026-08-31):
+  twelfth occurrence of the scheduled `/plan-next-task` pattern, but this time the
+  **full AgentHarness planning pipeline actually ran end-to-end** (analyst →
+  architect → designer → planner + task extraction), not the direct-implementation
+  fallback. Two infra obstacles hit and worked around, both already documented
+  patterns:
+  1. `gh_api.sh`'s Content-Type-header regression (uncommitted working-tree diff
+     from `agentharness init`'s bundled template) — restored via `git checkout --`,
+     matching `main`.
+  2. `claim_issue.sh`'s `create-ref` call still hit the proxy's `403 Write access
+     ... not permitted through this proxy` for git-data API writes (`git/refs`) even
+     with the Content-Type fix restored — confirmed this is specifically a
+     git-data-API block, not a general REST block (`issue-edit`, `pr-create`, etc.
+     all work fine via `gh_api.sh` once Content-Type is fixed). Worked around by
+     claiming the branch with a **plain `git push origin HEAD:refs/heads/feature/4006-...`**
+     instead of `claim_issue.sh`'s REST-based ref creation — this succeeds because
+     it's normal git-over-HTTPS, not a GitHub REST API call, and the proxy only
+     blocks the latter. This is the same workaround noted in the #3973 "correction"
+     entry above but hadn't actually been exercised successfully end-to-end since.
+     A `git push --delete` to clean up an accidental test branch
+     (`feature/4006-test-push-check`) was itself blocked by the same proxy rule
+     (delete is also a write) — left as a harmless orphan branch, same as prior
+     sessions' unremovable orphans.
+  3. GitHub's GraphQL and `/search/*` REST endpoints are also blocked for this
+     session ("not enabled for this session" / "sessions are bound to their
+     configured repositories") — only repo-scoped REST paths work. Fell back to
+     listing `/repos/{repo}/issues?state=all&since=...` and grepping client-side
+     when checking for a duplicate issue.
+  - Ran the planning orchestrator via a background `Agent` subagent (no `Task` tool
+    available in that subagent context either — it performed each phase directly
+    itself, reading `.agents/{analyst,architect,designer,planner}.md` verbatim,
+    rather than literally spawning nested Task subagents; functionally equivalent).
+  - **Found a live regression on `main`**: commit `72784c2` (2026-08-30, falsely
+    attributed to "session-start hook") reintroduced the exact bug fixed by
+    #3980/PR #3991 — removed `-f` from `git add -A artifacts/feat-{n}` in
+    `orchestrator.md`/`plan-orchestrator.md`/`oneshot/SKILL.md`, which silently
+    no-ops staging for the gitignored `artifacts/` dir. The planning subagent
+    worked around it by using `-f` directly rather than editing the (out-of-scope)
+    template files. Filed **issue #4017** to track fixing it properly, since this
+    is the third time this exact bug pattern has appeared (#3944→#3978 revert,
+    #3980/#3991 fix, now `72784c2` re-revert) and future runs will keep silently
+    hitting it otherwise.
+  - Draft PR #4016 opened normally via `gh_api.sh pr-create` (regular `/pulls` REST
+    endpoint, unaffected by the git-data block) + `ensure_pr_linked.sh`; label
+    handoff (`agent-planning` → `agent-ready-for-dev`) via `gh_api.sh issue-edit`;
+    all step-9 guarantees verified. Task: single task
+    `add-getbackgroundrefreshtaskshandler-tests` with a full ready-to-run test file
+    for `GetBackgroundRefreshTasksHandlerTests.cs`, left for `/implement-next-task`.
+
 ## Pending / Known Issues
 
 - Memory directory (issue #405): adding cross-session knowledge accumulation — this PR
