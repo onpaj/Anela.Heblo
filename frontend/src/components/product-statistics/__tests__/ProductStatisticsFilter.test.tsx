@@ -71,6 +71,32 @@ describe("ProductStatisticsFilter", () => {
     ).toBeInTheDocument();
   });
 
+  test("does not show the inverted-range error for a valid range", () => {
+    render(<ProductStatisticsFilter {...baseProps} />);
+
+    expect(
+      screen.queryByText('Datum "Od" musí být dříve než "Do".'),
+    ).not.toBeInTheDocument();
+  });
+
+  test("does not show the inverted-range error when dateFrom equals dateTo", () => {
+    render(
+      <ProductStatisticsFilter {...baseProps} dateFrom="2025-03" dateTo="2025-03" />,
+    );
+
+    expect(
+      screen.queryByText('Datum "Od" musí být dříve než "Do".'),
+    ).not.toBeInTheDocument();
+  });
+
+  test("does not show the selection cap message below the maximum", () => {
+    render(<ProductStatisticsFilter {...baseProps} />);
+
+    expect(
+      screen.queryByText(`Maximálně ${MAX_SELECTED_PRODUCTS} produktů.`),
+    ).not.toBeInTheDocument();
+  });
+
   test("defaultDateTo returns the current month and defaultDateFrom is twelve months earlier", () => {
     const now = new Date(2025, 7, 15); // August 2025
 
