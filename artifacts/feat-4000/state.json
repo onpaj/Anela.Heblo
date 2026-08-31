@@ -46,9 +46,9 @@
     },
     {
       "name": "update-archive-page-tests",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-08-31T09:15:35.215284Z"
+      "updated_at": "2026-08-31T09:21:03.253590Z"
     },
     {
       "name": "validate-full-build-and-import-confinement",
