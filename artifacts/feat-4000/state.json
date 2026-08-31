@@ -25,5 +25,36 @@
       "updated_at": null
     }
   },
-  "tasks": []
+  "tasks": [
+    {
+      "name": "create-expedition-job-controls-bar-failing-tests",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    },
+    {
+      "name": "implement-expedition-job-controls-bar",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    },
+    {
+      "name": "wire-controls-bar-into-page",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    },
+    {
+      "name": "update-archive-page-tests",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    },
+    {
+      "name": "validate-full-build-and-import-confinement",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    }
+  ]
 }
