@@ -28,9 +28,9 @@
   "tasks": [
     {
       "name": "create-expedition-job-controls-bar-failing-tests",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-08-31T06:15:13.519497Z"
+      "updated_at": "2026-08-31T06:17:51.166577Z"
     },
     {
       "name": "implement-expedition-job-controls-bar",
