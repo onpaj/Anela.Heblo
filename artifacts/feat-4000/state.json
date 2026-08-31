@@ -21,16 +21,16 @@
       "updated_at": "2026-08-31T05:32:27.953063Z"
     },
     "developing": {
-      "status": "pending",
-      "updated_at": null
+      "status": "in_progress",
+      "updated_at": "2026-08-31T06:15:12.762471Z"
     }
   },
   "tasks": [
     {
       "name": "create-expedition-job-controls-bar-failing-tests",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-08-31T06:15:13.519497Z"
     },
     {
       "name": "implement-expedition-job-controls-bar",
