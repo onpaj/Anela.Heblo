@@ -34,9 +34,9 @@
     },
     {
       "name": "implement-expedition-job-controls-bar",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-08-31T07:15:24.597575Z"
+      "updated_at": "2026-08-31T07:22:56.496572Z"
     },
     {
       "name": "wire-controls-bar-into-page",
