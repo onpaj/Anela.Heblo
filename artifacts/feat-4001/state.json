@@ -21,16 +21,16 @@
       "updated_at": "2026-08-31T06:20:35.952737Z"
     },
     "developing": {
-      "status": "pending",
-      "updated_at": null
+      "status": "in_progress",
+      "updated_at": "2026-08-31T21:13:52.445056Z"
     }
   },
   "tasks": [
     {
       "name": "null-guard-telemetry-filter",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-08-31T21:13:52.651434Z"
     }
   ]
 }
