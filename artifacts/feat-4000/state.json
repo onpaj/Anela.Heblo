@@ -40,9 +40,9 @@
     },
     {
       "name": "wire-controls-bar-into-page",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-08-31T08:14:45.192769Z"
+      "updated_at": "2026-08-31T08:20:44.340397Z"
     },
     {
       "name": "update-archive-page-tests",
