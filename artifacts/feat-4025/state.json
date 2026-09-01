@@ -25,5 +25,18 @@
       "updated_at": null
     }
   },
-  "tasks": []
+  "tasks": [
+    {
+      "name": "replace-direct-hasday-test-with-two-call-test",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    },
+    {
+      "name": "narrow-interface-and-privatize-method",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    }
+  ]
 }
