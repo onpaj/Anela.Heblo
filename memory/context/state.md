@@ -292,6 +292,24 @@ _Update this file at the end of significant sessions._
   left for a future run; #4003 (the sibling arch-review duplication finding) already had an
   open PR (#4011) before this run started.
 
+- FileStorage dead-code removal planning (issue #4022, PR #4028, draft,
+  `claude/beautiful-darwin-lcinvl`, 2026-09-01): twelfth occurrence of the
+  scheduled `/plan-next-task` pattern, but this run actually completed the
+  **full AgentHarness planning pipeline** end-to-end (branch/worktree per
+  issue, analyst → architect → designer → planner via sequential subagent
+  Task calls, `agentharness checkpoint`, task extraction) rather than
+  pivoting to direct implementation — confirming the #3973 correction
+  still holds. Hit the standard uncommitted `gh_api.sh` Content-Type
+  regression on session start (`agentharness init`'s bundled template) —
+  restored via `git checkout --`, no recommit needed. `mcp__github__create_branch`
+  claimed the ref (git-data API writes are proxy-blocked); ordinary REST
+  writes (labels, PR body/title) worked fine via `gh_api.sh`/`USE_GH_API=1`
+  once the Content-Type fix was restored, confirmed by running
+  `ensure_pr_linked.sh` directly. `git add -f -A artifacts/feat-4022`
+  worked around the `artifacts/` gitignore as expected. Draft PR #4028
+  opened via `mcp__github__create_pull_request`, labeled `agent`; issue
+  #4022 relabeled `agent-ready-for-dev`. Ready for `/implement-next-task`.
+
 ## Pending / Known Issues
 
 - Memory directory (issue #405): adding cross-session knowledge accumulation — this PR
