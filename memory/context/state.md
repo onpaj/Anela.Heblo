@@ -310,6 +310,29 @@ _Update this file at the end of significant sessions._
   left for a future run; #4003 (the sibling arch-review duplication finding) already had an
   open PR (#4011) before this run started.
 
+- Full AgentHarness planning pipeline run for `GetConsumptionHistoryHandler`
+  targeted-lookup fix (issue #4027, PR #4032 draft, `claude/beautiful-darwin-crmfp9`,
+  2026-09-01): first `/plan-next-task` run since #3973 to actually complete the real
+  analyst → architect → designer → planner pipeline end-to-end (all 11 runs in between,
+  #3944 through #4004, pivoted to implementing directly after hitting a `gh`/proxy wall).
+  Restored the usual `gh_api.sh` Content-Type regression via `git checkout --`; when
+  `claim_issue.sh`'s `create-ref` still hit the proxy's git-data write block, claimed the
+  branch with a plain `git push origin origin/main:refs/heads/feature/4027-...` instead of
+  giving up on the pipeline (per the `#3973` correction already in the gotcha doc). Hit a
+  new wall running `plan-orchestrator` as a subagent: nested agent spawning is disabled in
+  this session (a subagent cannot call the Agent/Task tool itself), so the orchestrator
+  subagent correctly stopped rather than fabricating artifacts. Recovered by having the
+  top-level session act as orchestrator directly — four sequential top-level Agent calls
+  (analyst/architect/designer/planner), each committed+pushed+hard-verified in between —
+  producing `spec.r1.md`, `arch-review.r1.md` (Skip Design: true — backend-only),
+  `design.r1.md`, and a 3-task `task-plan.r1.md` (`add-repository-method`,
+  `add-query-count-test`, `wire-handler-to-targeted-lookup`), plus task-context files.
+  Draft PR opened via `mcp__github__create_pull_request`, linked/labeled via
+  `ensure_pr_linked.sh` (ordinary REST writes through `gh_api.sh` work fine), issue label
+  swapped `agent-planning` → `agent-ready-for-dev`. Full writeup and the nested-agent-spawn
+  workaround are in `memory/gotchas/gh-cli-unavailable-in-cloud-sessions.md`. No code
+  implementation happened yet — that's `/implement-next-task`'s job against this PR.
+
 ## Pending / Known Issues
 
 - Memory directory (issue #405): adding cross-session knowledge accumulation — this PR

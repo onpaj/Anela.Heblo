@@ -194,3 +194,52 @@ an empty `agent`-labeled queue as license to pick up pipeline-maintenance issues
 this, versus always reporting "nothing to plan," is a judgment call each run should
 make on its own merits (issue is genuinely actionable, small, low-risk, and on-topic
 for the pipeline) rather than a rule to apply automatically.
+
+**Nested-agent-spawn limitation found 2026-09-01** on a `/plan-next-task` run for issue
+#4027 (PR #4032, `claude/beautiful-darwin-crmfp9`): unlike the 11 designated-branch runs
+logged in `memory/context/state.md` between #3944 and #4004 (all of which hit a `gh`/proxy
+wall and pivoted to implementing the issue directly instead of running the AgentHarness
+planning pipeline), this run successfully completed the **full** analyst → architect →
+designer → planner pipeline and opened a real draft PR with all artifacts committed. Two
+things made this possible:
+1. Same `gh_api.sh` Content-Type regression as always (`agentharness init`'s bundled
+   template overwrote the fix on session start) — fixed with `git checkout --
+   .claude/skills/_lib/gh_api.sh` before doing anything else, per the established pattern.
+2. `claim_issue.sh`'s `create-ref` call still hit the proxy's `403 Write access ... not
+   permitted through this proxy` for git-refs writes even after the Content-Type fix — but
+   this time, instead of abandoning the pipeline, the branch was claimed with a plain
+   `git push origin origin/<default-branch>:refs/heads/feature/{id}-{slug}` (ordinary git
+   push over the git protocol, not the REST git-data API — not proxy-blocked), exactly as
+   the 2026-08-29 `#3973` correction above already documented. This is the reliable
+   workaround for `claim_issue.sh`'s ref-creation step; don't re-abandon the pipeline over
+   this specific 403 in future runs.
+
+The **new** finding: `.claude/agents/plan-orchestrator.md` is written assuming it will run
+*as a Task-tool subagent* that itself spawns four more Task-tool subagents (one per
+phase). In this session, invoking `plan-orchestrator` as a subagent (via the top-level
+session's Agent tool) and then having *that subagent* try to call the Agent/Task tool
+again to spawn the analyst/architect/designer/planner failed outright: `No such tool
+available: Task. Task is disabled for this session, in subagents as well as here.` --
+nested agent spawning (a subagent spawning its own sub-subagents) is not available, even
+though the top-level session's own Agent tool works fine. The orchestrator subagent
+correctly stopped and reported this as a genuine blocker rather than fabricating phase
+artifacts itself (the orchestrator doc explicitly forbids that).
+
+**Fix/workaround**: don't delegate the orchestrator role to a subagent in this kind of
+session. Instead, the top-level session itself must act as the orchestrator directly,
+reading `.claude/agents/plan-orchestrator.md` for the process and calling its own Agent
+tool once per phase (analyst → architect → designer → planner), each as a *sibling*
+top-level agent call (not nested), handling the `agentharness checkpoint`
+init/status/phase/tasks calls and the stage/commit/push/verify artifact-persistence
+pattern itself between agent calls. This worked cleanly end-to-end for #4027: four
+sequential Agent-tool calls (one per phase) each writing to the correct
+`artifacts/feat-4027/*.md` path, with the top-level session doing the checkpoint/commit/
+push/verify bookkeeping after each one, followed by task extraction (splitting
+`task-plan.r1.md` on `### task: name` headers into `task-context/*.md` files) and PR
+creation via `mcp__github__create_pull_request` + `ensure_pr_linked.sh` (via `gh_api.sh`,
+which works fine for ordinary REST writes) + the `agent-planning` → `agent-ready-for-dev`
+label swap. If a future session finds the Agent/Task tool available *inside* subagents,
+delegating the whole orchestrator role to one subagent (as originally designed) should
+also work and would save top-level context — but don't assume that's the case; check for
+the "Task is disabled" error early (after Setup, before spawning phase 1) and pivot to
+direct top-level orchestration immediately rather than retrying.
