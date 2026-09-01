@@ -310,6 +310,23 @@ _Update this file at the end of significant sessions._
   left for a future run; #4003 (the sibling arch-review duplication finding) already had an
   open PR (#4011) before this run started.
 
+- Planned (not implemented) issue #4026 → draft PR #4031 (branch
+  `feature/4026-Arch-Review-Packingmaterials-Groupby-Parameter-Use`, 2026-09-01): a
+  `/plan-next-task` scheduled run that, unlike most prior occurrences logged above, **did**
+  run the real AgentHarness planning pipeline end-to-end (dedicated worktree, branch,
+  `plan-orchestrator` subagent driving analyst → architect → designer → planner,
+  `agentharness checkpoint`) rather than falling back to direct implementation — confirming
+  the 2026-08-29 correction still holds. Standard `gh_api.sh` Content-Type regression from
+  `agentharness init`'s bundled template hit first — restored via `git checkout --`, no
+  recommit needed. `claim_issue.sh`'s `create-ref` then hit the proxy's git-data write block
+  (`403 Write access ... not permitted through this proxy`) — worked around with a plain
+  `git push origin origin/main:refs/heads/feature/{id}-{slug}`, same as documented. All
+  ordinary REST writes (label swaps, PR creation via `mcp__github__create_pull_request`,
+  `ensure_pr_linked.sh` via `gh_api.sh`+`USE_GH_API=1`) worked fine. Plan: add
+  `ConsumptionGroupBy` enum, retype `GetDailyConsumptionBreakdownRequest.GroupBy` +
+  handler dispatch + controller param, update tests. Issue now `agent-ready-for-dev`,
+  PR is draft, ready for `/implement-next-task`.
+
 ## Pending / Known Issues
 
 - Memory directory (issue #405): adding cross-session knowledge accumulation — this PR
