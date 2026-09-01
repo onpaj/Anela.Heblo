@@ -34,9 +34,9 @@
     },
     {
       "name": "date-defaulting-test",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-09-01T10:15:48.495223Z"
+      "updated_at": "2026-09-01T10:38:44.865416Z"
     },
     {
       "name": "explicit-dates-test",
