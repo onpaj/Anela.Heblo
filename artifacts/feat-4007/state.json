@@ -1,0 +1,40 @@
+{
+  "feature_id": "feat-4007",
+  "issue_number": 4007,
+  "created_at": "2026-08-31T13:17:24.039336Z",
+  "max_revisions": 3,
+  "phases": {
+    "analyzing": {
+      "status": "completed",
+      "updated_at": "2026-08-31T13:18:26.888640Z"
+    },
+    "architecting": {
+      "status": "completed",
+      "updated_at": "2026-08-31T13:19:14.407619Z"
+    },
+    "designing": {
+      "status": "completed",
+      "updated_at": "2026-08-31T13:19:35.541616Z"
+    },
+    "planning": {
+      "status": "completed",
+      "updated_at": "2026-08-31T13:21:16.590497Z"
+    },
+    "developing": {
+      "status": "in_progress",
+      "updated_at": "2026-09-01T06:15:52.484622Z"
+    },
+    "code-review": {
+      "status": "completed",
+      "updated_at": "2026-09-01T07:16:49.615681Z"
+    }
+  },
+  "tasks": [
+    {
+      "name": "add-update-transport-box-description-handler-tests",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-09-01T06:57:52.763809Z"
+    }
+  ]
+}
