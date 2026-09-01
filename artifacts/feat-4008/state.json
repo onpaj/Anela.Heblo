@@ -46,9 +46,9 @@
     },
     {
       "name": "exception-path-test",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-09-01T12:15:57.678255Z"
+      "updated_at": "2026-09-01T12:42:54.668762Z"
     },
     {
       "name": "happy-path-mapping-test",
