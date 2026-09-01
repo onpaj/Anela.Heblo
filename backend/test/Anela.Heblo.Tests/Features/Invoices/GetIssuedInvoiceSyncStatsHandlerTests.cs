@@ -23,4 +23,36 @@ public class GetIssuedInvoiceSyncStatsHandlerTests
             _repositoryMock.Object,
             Mock.Of<ILogger<GetIssuedInvoiceSyncStatsHandler>>());
     }
+
+    [Fact]
+    public async Task Handle_BothDatesNull_DefaultsToTrailing30DayWindow()
+    {
+        // Arrange
+        var request = new GetIssuedInvoiceSyncStatsRequest
+        {
+            FromDate = null,
+            ToDate = null
+        };
+        var expectedFrom = DateTime.Now.Date.AddDays(-30);
+        var expectedTo = DateTime.Now.Date;
+
+        _repositoryMock
+            .Setup(r => r.GetSyncStatsAsync(
+                It.Is<DateTime>(d => d.Date == expectedFrom),
+                It.Is<DateTime>(d => d.Date == expectedTo),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new IssuedInvoiceSyncStats());
+
+        // Act
+        var response = await _handler.Handle(request, CancellationToken.None);
+
+        // Assert
+        response.Success.Should().BeTrue();
+        _repositoryMock.Verify(
+            r => r.GetSyncStatsAsync(
+                It.Is<DateTime>(d => d.Date == expectedFrom),
+                It.Is<DateTime>(d => d.Date == expectedTo),
+                It.IsAny<CancellationToken>()),
+            Times.Once);
+    }
 }
