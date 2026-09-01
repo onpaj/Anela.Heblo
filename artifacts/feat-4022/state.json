@@ -25,5 +25,18 @@
       "updated_at": null
     }
   },
-  "tasks": []
+  "tasks": [
+    {
+      "name": "remove-duplicate-handler-level-invalid-url-tests",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    },
+    {
+      "name": "remove-dead-url-validation-block-from-handler",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    }
+  ]
 }
