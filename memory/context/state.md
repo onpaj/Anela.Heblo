@@ -310,6 +310,32 @@ _Update this file at the end of significant sessions._
   left for a future run; #4003 (the sibling arch-review duplication finding) already had an
   open PR (#4011) before this run started.
 
+- `/implement-next-task` scheduled run, issue #4008 (`GetIssuedInvoiceSyncStatsHandler`
+  coverage gap), 2026-09-01: unlike the `/plan-next-task` occurrences above, this run
+  used the real AgentHarness implementing pipeline successfully end to end (worktree
+  attached to the existing `feature/4008-...` branch/PR, `implement-orchestrator.md`
+  followed for one bounded dev-task+review unit: `happy-path-mapping-test`). Hit the
+  standard uncommitted `gh_api.sh` Content-Type regression on session start (from
+  `agentharness init`'s bundled template) — restored via `git checkout --`, no recommit
+  needed. Found a **new, unfixed instance of the `artifacts/` gitignore `-f` bug**
+  (previously fixed only in `orchestrator.md`/`plan-orchestrator.md` per #3991):
+  `implement-orchestrator.md`'s "Handling Review Result" section instructs plain `git add
+  -A` (lines ~91, ~170, ~225) to stage new `impl/{task}.r{N}.md` and
+  `review/{task}.r{N}.md` artifact files, but `artifacts/` is gitignored at the repo root
+  so `git add -A` silently stages nothing for those *new* files (already-tracked files
+  like `state.json` still pick up their diffs fine, which is what makes the bug easy to
+  miss — the commit "succeeds" but the STRICT `git ls-files --error-unmatch` verification
+  step right after it would have caught it, and did here). Worked around by `git add -f`
+  on the two specific artifact paths, then committed and pushed. **Not fixed upstream in
+  this run** (out of scope for one bounded implementing-unit) — a future maintenance pass
+  should add `-f` to `implement-orchestrator.md`'s three `git add -A` call sites the same
+  way #3991 fixed `orchestrator.md`/`plan-orchestrator.md`, and note that even after that
+  fix lands on `main`, `agentharness init` will keep reintroducing it as an uncommitted
+  working-tree diff each fresh session (same drift pattern as `gh_api.sh`) unless it's
+  also upstreamed into AgentHarness's own bundled template. Issue #4008 now has 5/6 tasks
+  complete (`full-suite-verification` still pending) and remains labeled
+  `agent-implementing` for the next scheduled run.
+
 ## Pending / Known Issues
 
 - Memory directory (issue #405): adding cross-session knowledge accumulation — this PR
