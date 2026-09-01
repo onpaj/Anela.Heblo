@@ -40,9 +40,9 @@
     },
     {
       "name": "explicit-dates-test",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-09-01T11:13:37.512126Z"
+      "updated_at": "2026-09-01T11:35:26.641947Z"
     },
     {
       "name": "exception-path-test",
