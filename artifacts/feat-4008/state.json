@@ -21,16 +21,16 @@
       "updated_at": "2026-08-31T20:17:12.275413Z"
     },
     "developing": {
-      "status": "pending",
-      "updated_at": null
+      "status": "in_progress",
+      "updated_at": "2026-09-01T09:15:29.656280Z"
     }
   },
   "tasks": [
     {
       "name": "setup-test-file",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-09-01T09:15:29.839941Z"
     },
     {
       "name": "date-defaulting-test",
