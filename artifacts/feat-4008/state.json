@@ -22,7 +22,7 @@
     },
     "developing": {
       "status": "in_progress",
-      "updated_at": "2026-09-01T09:15:29.656280Z"
+      "updated_at": "2026-09-01T10:15:48.321563Z"
     }
   },
   "tasks": [
@@ -34,9 +34,9 @@
     },
     {
       "name": "date-defaulting-test",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-09-01T10:15:48.495223Z"
     },
     {
       "name": "explicit-dates-test",
