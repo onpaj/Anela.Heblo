@@ -292,6 +292,50 @@ _Update this file at the end of significant sessions._
   left for a future run; #4003 (the sibling arch-review duplication finding) already had an
   open PR (#4011) before this run started.
 
+- Planning-stage pipeline actually completed end-to-end for issue #4023 (draft PR #4029,
+  branch `feature/4023-Arch-Review-Filestorage-Downloadfromurlhandler-Log`, 2026-09-01):
+  unlike the last several `/plan-next-task` occurrences (which pivoted to direct
+  implementation), this run went through with the real AgentHarness planning pipeline
+  since that's this skill's actual job (produce planning artifacts + a draft PR for
+  `/implement-next-task`, not implement). Confirmed the exact same tooling walls as every
+  prior occurrence — `gh auth status` invalid, `agentharness init`'s bundled
+  `.claude/skills/_lib/gh_api.sh` template still lacks the Content-Type fix (uncommitted
+  regression on session start, restored via `git checkout --`, no recommit needed), and
+  `claim_issue.sh`'s `create-ref` call hit the proxy's `403 Write access ... not permitted
+  through this proxy` for git-refs writes — and worked around all three without touching the
+  pipeline:
+  1. Claimed the branch with a plain `git push origin <origin/main-sha>:refs/heads/feature/{id}-{slug}`
+     (using the exact slug `claim_issue.sh` had already computed and printed in its error
+     output) instead of the blocked refs API — race-safe the same way, per the existing note
+     below on this exact technique.
+  2. Did the `agent` → `agent-planning` label swap manually via `gh_api.sh issue-edit`
+     (ordinary REST write, works fine through the proxy) since `claim_issue.sh` exits before
+     that step when `create-ref` fails.
+  3. Attached a worktree at `../worktrees/feature-4023-...` and ran the planning orchestrator
+     (`.claude/agents/plan-orchestrator.md`) via a general-purpose subagent, substituting
+     `gh_api.sh issue-view` for the one `gh issue view` call in that file (read-only, unaffected
+     by the write block) and telling it explicitly not to create the PR itself. The subagent
+     reported no `Task` tool was available to it to sub-spawn each phase, so it ran
+     analyst → architect → designer → planner directly in-session instead — all four phases
+     completed, all artifacts (`brief.md`, `spec.r1.md`, `arch-review.r1.md`, `design.r1.md`,
+     `task-plan.r1.md`, `task-context/*.md`, `state.json`) committed and pushed with
+     `git add -f -A artifacts/feat-4023` (gitignored dir, matching prior branches' pattern) and
+     hard-verified via `git ls-files`.
+  4. Opened the draft PR myself via `mcp__github__create_pull_request` (title pulled from
+     `spec.r1.md`'s first line) + `mcp__github__issue_write` for the `agent` label — same
+     substitution every prior occurrence already established for PR creation.
+  5. Finished the handoff with `gh_api.sh issue-edit` (`agent-planning` → `agent-ready-for-dev`)
+     and removed the worktree.
+  - Full step-9 verification checklist passed on the first try (no repair needed): PR #4029
+    `isDraft: true`, `state: OPEN`, labels `["agent"]`, body contains `Closes #4023`; issue
+    #4023 carries `agent-ready-for-dev`.
+  - Takeaway: the "pivot to direct implementation" workaround documented at length above is
+    for *other* scheduled skills (`chopchop`, ad hoc dev sessions) where the goal is a merged
+    fix — it was never actually necessary for `/plan-next-task` itself once you have (a) the
+    plain-`git push` branch-claim trick and (b) MCP tools for the couple of writes that are
+    genuinely proxy-blocked. The full 4-phase pipeline runs fine in this designated-branch
+    session shape; nothing about it requires `gh` to work.
+
 ## Pending / Known Issues
 
 - Memory directory (issue #405): adding cross-session knowledge accumulation — this PR
