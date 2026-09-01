@@ -22,7 +22,7 @@
     },
     "developing": {
       "status": "in_progress",
-      "updated_at": "2026-09-01T11:13:37.213088Z"
+      "updated_at": "2026-09-01T12:15:57.418546Z"
     }
   },
   "tasks": [
@@ -46,9 +46,9 @@
     },
     {
       "name": "exception-path-test",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-09-01T12:15:57.678255Z"
     },
     {
       "name": "happy-path-mapping-test",

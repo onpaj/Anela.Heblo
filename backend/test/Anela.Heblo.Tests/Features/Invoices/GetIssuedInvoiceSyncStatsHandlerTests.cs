@@ -81,4 +81,32 @@ public class GetIssuedInvoiceSyncStatsHandlerTests
             r => r.GetSyncStatsAsync(explicitFrom, explicitTo, It.IsAny<CancellationToken>()),
             Times.Once);
     }
+
+    [Fact]
+    public async Task Handle_RepositoryThrows_ReturnsStructuredFailure()
+    {
+        // Arrange
+        var request = new GetIssuedInvoiceSyncStatsRequest();
+
+        _repositoryMock
+            .Setup(r => r.GetSyncStatsAsync(It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new InvalidOperationException("repository failure"));
+
+        // Act
+        var response = await _handler.Handle(request, CancellationToken.None);
+
+        // Assert
+        response.Success.Should().BeFalse();
+        response.ErrorCode.Should().Be(ErrorCodes.Exception);
+        response.Params.Should().NotBeNull();
+        response.Params.Should().ContainKey("ErrorMessage")
+            .WhoseValue.Should().Be("Chyba při načítání statistik synchronizace faktur");
+        response.TotalInvoices.Should().Be(0);
+        response.SyncedInvoices.Should().Be(0);
+        response.UnsyncedInvoices.Should().Be(0);
+        response.InvoicesWithErrors.Should().Be(0);
+        response.CriticalErrors.Should().Be(0);
+        response.LastSyncTime.Should().BeNull();
+        response.SyncSuccessRate.Should().Be(0);
+    }
 }
