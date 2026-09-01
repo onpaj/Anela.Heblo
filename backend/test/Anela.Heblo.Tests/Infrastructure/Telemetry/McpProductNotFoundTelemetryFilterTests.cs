@@ -88,4 +88,17 @@ public class McpProductNotFoundTelemetryFilterTests
 
         _next.Verify(n => n.Process(trace), Times.Once);
     }
+
+    [Fact]
+    public void Process_ForwardsExceptionTelemetryWithNullMessage()
+    {
+        var exception = new McpException("[ProductNotFound] ProductNotFound: productCode: SA014");
+        var exc = new ExceptionTelemetry(exception);
+        exc.Message = null;
+
+        Action act = () => _filter.Process(exc);
+
+        act.Should().NotThrow();
+        _next.Verify(n => n.Process(exc), Times.Once);
+    }
 }
