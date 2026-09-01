@@ -28,9 +28,9 @@
   "tasks": [
     {
       "name": "submit-draft-reply-feedback-handler-tests",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-09-01T01:14:17.165775Z"
+      "updated_at": "2026-09-01T02:06:25.283024Z"
     }
   ]
 }
