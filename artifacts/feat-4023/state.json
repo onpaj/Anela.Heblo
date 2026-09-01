@@ -25,5 +25,12 @@
       "updated_at": null
     }
   },
-  "tasks": []
+  "tasks": [
+    {
+      "name": "fix-download-from-url-log-labels",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    }
+  ]
 }
