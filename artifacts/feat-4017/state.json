@@ -28,9 +28,9 @@
   "tasks": [
     {
       "name": "restore-git-add-f-flags",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-09-01T21:15:00.365080Z"
+      "updated_at": "2026-09-01T21:20:00.091816Z"
     }
   ]
 }
