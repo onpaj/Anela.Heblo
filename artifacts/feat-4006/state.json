@@ -28,9 +28,9 @@
   "tasks": [
     {
       "name": "add-getbackgroundrefreshtaskshandler-tests",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-09-01T02:14:47.940046Z"
+      "updated_at": "2026-09-01T02:52:19.514571Z"
     }
   ]
 }
