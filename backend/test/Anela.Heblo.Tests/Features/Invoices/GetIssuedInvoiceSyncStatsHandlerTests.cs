@@ -55,4 +55,30 @@ public class GetIssuedInvoiceSyncStatsHandlerTests
                 It.IsAny<CancellationToken>()),
             Times.Once);
     }
+
+    [Fact]
+    public async Task Handle_ExplicitDates_PassesThemThroughUnchanged()
+    {
+        // Arrange
+        var explicitFrom = new DateTime(2026, 1, 5);
+        var explicitTo = new DateTime(2026, 1, 20);
+        var request = new GetIssuedInvoiceSyncStatsRequest
+        {
+            FromDate = explicitFrom,
+            ToDate = explicitTo
+        };
+
+        _repositoryMock
+            .Setup(r => r.GetSyncStatsAsync(explicitFrom, explicitTo, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new IssuedInvoiceSyncStats());
+
+        // Act
+        var response = await _handler.Handle(request, CancellationToken.None);
+
+        // Assert
+        response.Success.Should().BeTrue();
+        _repositoryMock.Verify(
+            r => r.GetSyncStatsAsync(explicitFrom, explicitTo, It.IsAny<CancellationToken>()),
+            Times.Once);
+    }
 }
