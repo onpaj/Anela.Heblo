@@ -28,9 +28,9 @@
   "tasks": [
     {
       "name": "setup-test-file",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-09-01T09:15:29.839941Z"
+      "updated_at": "2026-09-01T09:19:06.481161Z"
     },
     {
       "name": "date-defaulting-test",
