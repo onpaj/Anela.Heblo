@@ -28,9 +28,9 @@
   "tasks": [
     {
       "name": "replace-direct-hasday-test-with-two-call-test",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-09-02T09:14:22.751940Z"
+      "updated_at": "2026-09-02T09:45:20.552458Z"
     },
     {
       "name": "narrow-interface-and-privatize-method",
