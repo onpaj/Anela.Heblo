@@ -46,9 +46,9 @@
     },
     {
       "name": "retype-controller-groupby-param",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-09-02T21:14:25.170980Z"
+      "updated_at": "2026-09-02T21:21:07.406375Z"
     },
     {
       "name": "update-groupby-tests",
