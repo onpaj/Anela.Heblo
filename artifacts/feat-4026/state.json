@@ -21,16 +21,16 @@
       "updated_at": "2026-09-01T08:20:52.819670Z"
     },
     "developing": {
-      "status": "pending",
-      "updated_at": null
+      "status": "in_progress",
+      "updated_at": "2026-09-02T13:19:01.783200Z"
     }
   },
   "tasks": [
     {
       "name": "add-consumption-groupby-enum",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-09-02T13:19:02.049366Z"
     },
     {
       "name": "retype-request-groupby",
