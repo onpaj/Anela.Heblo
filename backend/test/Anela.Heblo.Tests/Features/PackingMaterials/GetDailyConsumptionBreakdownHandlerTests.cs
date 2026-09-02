@@ -1,4 +1,5 @@
 using Anela.Heblo.Application.Features.PackingMaterials.UseCases.GetDailyConsumptionBreakdown;
+using Anela.Heblo.Application.Features.PackingMaterials.Contracts;
 using Anela.Heblo.Domain.Features.PackingMaterials;
 using Anela.Heblo.Domain.Features.PackingMaterials.Enums;
 using Microsoft.Extensions.Logging;
@@ -69,7 +70,7 @@ public class GetDailyConsumptionBreakdownHandlerTests
 
         // Act
         var response = await handler.Handle(
-            new GetDailyConsumptionBreakdownRequest { Date = TestDate, GroupBy = "material" },
+            new GetDailyConsumptionBreakdownRequest { Date = TestDate, GroupBy = ConsumptionGroupBy.Material },
             CancellationToken.None);
 
         // Assert
@@ -113,7 +114,7 @@ public class GetDailyConsumptionBreakdownHandlerTests
 
         // Act
         var response = await handler.Handle(
-            new GetDailyConsumptionBreakdownRequest { Date = TestDate, GroupBy = "order" },
+            new GetDailyConsumptionBreakdownRequest { Date = TestDate, GroupBy = ConsumptionGroupBy.Order },
             CancellationToken.None);
 
         // Assert
@@ -153,7 +154,7 @@ public class GetDailyConsumptionBreakdownHandlerTests
 
         // Act
         var response = await handler.Handle(
-            new GetDailyConsumptionBreakdownRequest { Date = TestDate, GroupBy = "product" },
+            new GetDailyConsumptionBreakdownRequest { Date = TestDate, GroupBy = ConsumptionGroupBy.Product },
             CancellationToken.None);
 
         // Assert
@@ -162,21 +163,25 @@ public class GetDailyConsumptionBreakdownHandlerTests
     }
 
     [Fact]
-    public async Task GroupBy_InvalidValue_ReturnsError()
+    public async Task GroupBy_OutOfRangeEnumValue_ReturnsFailureResponse()
     {
-        // Arrange
-        var repo = BuildRepo(Array.Empty<PackingMaterial>(), Array.Empty<PackingMaterialConsumption>());
+        // Arrange: an out-of-range enum value can only occur via an unchecked cast — ASP.NET Core's
+        // model binder can never produce one for a real HTTP request, but the handler's switch must
+        // still fail (not silently succeed) if it ever receives one, e.g. from a future internal caller.
+        // The discard arm of the switch throws ArgumentOutOfRangeException, which Handle's surrounding
+        // try/catch converts into a Success=false response rather than letting it propagate.
+        var repo = BuildRepo(Array.Empty<PackingMaterial>(), new[] { MakeConsumption(1, 5m, invoiceId: "INV-1") });
         var handler = BuildHandler(repo);
+        var outOfRangeGroupBy = (ConsumptionGroupBy)99;
 
         // Act
         var response = await handler.Handle(
-            new GetDailyConsumptionBreakdownRequest { Date = TestDate, GroupBy = "invalid" },
+            new GetDailyConsumptionBreakdownRequest { Date = TestDate, GroupBy = outOfRangeGroupBy },
             CancellationToken.None);
 
         // Assert
         Assert.False(response.Success);
         Assert.NotNull(response.Error);
-        Assert.Contains("invalid", response.Error, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]
@@ -193,7 +198,7 @@ public class GetDailyConsumptionBreakdownHandlerTests
 
         // Act
         var response = await handler.Handle(
-            new GetDailyConsumptionBreakdownRequest { Date = TestDate, GroupBy = "material" },
+            new GetDailyConsumptionBreakdownRequest { Date = TestDate, GroupBy = ConsumptionGroupBy.Material },
             CancellationToken.None);
 
         // Assert
