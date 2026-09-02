@@ -115,7 +115,7 @@ public sealed class DownloadFromUrlHandler : IRequestHandler<DownloadFromUrlRequ
         catch (Exception ex)
         {
             sw.Stop();
-            _logger.LogError(ex, "Unexpected failure during ProductExportDownload for URL: {RedactedUrl}", redactedUrl);
+            _logger.LogError(ex, "Unexpected failure during DownloadFromUrl for URL: {RedactedUrl}", redactedUrl);
             return Failure(redactedUrl, "retry-exhausted", attemptCount, sw.ElapsedMilliseconds, ex.Message);
         }
     }
@@ -138,11 +138,11 @@ public sealed class DownloadFromUrlHandler : IRequestHandler<DownloadFromUrlRequ
         }
         catch (OperationCanceledException)
         {
-            _logger.LogDebug("HEAD probe timed out for ProductExportDownload");
+            _logger.LogDebug("HEAD probe timed out for DownloadFromUrl");
         }
         catch (Exception ex)
         {
-            _logger.LogDebug(ex, "HEAD probe failed for ProductExportDownload");
+            _logger.LogDebug(ex, "HEAD probe failed for DownloadFromUrl");
         }
 
         return 0L;
