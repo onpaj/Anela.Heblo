@@ -28,9 +28,9 @@
   "tasks": [
     {
       "name": "remove-duplicate-handler-level-invalid-url-tests",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-09-02T02:14:46.514757Z"
+      "updated_at": "2026-09-02T02:40:43.292701Z"
     },
     {
       "name": "remove-dead-url-validation-block-from-handler",
