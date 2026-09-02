@@ -34,9 +34,9 @@
     },
     {
       "name": "retype-request-groupby",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-09-02T13:44:24.204576Z"
+      "updated_at": "2026-09-02T13:47:36.188669Z"
     },
     {
       "name": "retype-handler-groupby-dispatch",
