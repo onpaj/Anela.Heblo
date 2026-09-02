@@ -52,9 +52,9 @@
     },
     {
       "name": "update-groupby-tests",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-09-02T22:15:28.490752Z"
+      "updated_at": "2026-09-02T22:44:53.210886Z"
     },
     {
       "name": "final-validation",
