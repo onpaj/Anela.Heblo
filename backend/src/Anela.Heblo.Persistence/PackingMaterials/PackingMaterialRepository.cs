@@ -43,6 +43,24 @@ public class PackingMaterialRepository : BaseRepository<PackingMaterial, int>, I
                 g => (IReadOnlyList<PackingMaterialLog>)g.ToList());
     }
 
+    public async Task<IReadOnlyDictionary<int, string>> GetMaterialNamesByIdsAsync(
+        IEnumerable<int> packingMaterialIds,
+        CancellationToken cancellationToken = default)
+    {
+        var ids = packingMaterialIds as IReadOnlyCollection<int> ?? packingMaterialIds.ToArray();
+        if (ids.Count == 0)
+        {
+            return new Dictionary<int, string>();
+        }
+
+        var rows = await DbSet
+            .Where(m => ids.Contains(m.Id))
+            .Select(m => new { m.Id, m.Name })
+            .ToListAsync(cancellationToken);
+
+        return rows.ToDictionary(r => r.Id, r => r.Name);
+    }
+
     public async Task<bool> HasDailyProcessingBeenRunAsync(DateOnly date, CancellationToken cancellationToken = default)
     {
         return await Context.Set<PackingMaterialDailyRun>()

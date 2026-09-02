@@ -35,6 +35,18 @@ public interface IPackingMaterialRepository : IRepository<PackingMaterial, int>
         DateTime fromDate,
         CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// Resolves display names for a set of packing materials by id. Ids with no matching
+    /// material are simply absent from the result (no exception). When <paramref name="packingMaterialIds"/>
+    /// is empty, returns an empty dictionary without executing a database query.
+    /// </summary>
+    /// <param name="packingMaterialIds">The packing material identifiers to resolve names for.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>Dictionary of <c>Id -> Name</c> for the ids that exist.</returns>
+    Task<IReadOnlyDictionary<int, string>> GetMaterialNamesByIdsAsync(
+        IEnumerable<int> packingMaterialIds,
+        CancellationToken cancellationToken = default);
+
     Task<bool> HasDailyProcessingBeenRunAsync(DateOnly date, CancellationToken cancellationToken = default);
     Task<IEnumerable<PackingMaterial>> GetAllWithAllocationsAsync(CancellationToken cancellationToken = default);
     Task<PackingMaterial?> GetByIdWithAllocationsAsync(int id, CancellationToken cancellationToken = default);

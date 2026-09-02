@@ -155,6 +155,11 @@ public class PackingMaterialsListQueryCountTests : IDisposable
         public Task<int> CountAsync(System.Linq.Expressions.Expression<System.Func<PackingMaterial, bool>>? predicate = null, CancellationToken cancellationToken = default)
             => _inner.CountAsync(predicate, cancellationToken);
 
+        public Task<IReadOnlyDictionary<int, string>> GetMaterialNamesByIdsAsync(
+            IEnumerable<int> packingMaterialIds,
+            CancellationToken cancellationToken = default)
+            => _inner.GetMaterialNamesByIdsAsync(packingMaterialIds, cancellationToken);
+
         public Task<(IReadOnlyList<MaterialConsumptionHistoryRecord> Items, int TotalCount)> GetConsumptionHistoryAsync(
             MaterialConsumptionHistoryFilter filter,
             int skip,
