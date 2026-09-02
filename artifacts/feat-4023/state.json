@@ -28,9 +28,9 @@
   "tasks": [
     {
       "name": "fix-download-from-url-log-labels",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-09-02T06:17:22.718963Z"
+      "updated_at": "2026-09-02T06:45:42.059788Z"
     }
   ]
 }
