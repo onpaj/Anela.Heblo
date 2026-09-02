@@ -21,16 +21,16 @@
       "updated_at": "2026-09-01T09:27:59.817976Z"
     },
     "developing": {
-      "status": "pending",
-      "updated_at": null
+      "status": "in_progress",
+      "updated_at": "2026-09-02T13:26:47.915936Z"
     }
   },
   "tasks": [
     {
       "name": "add-repository-method",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-09-02T13:26:48.165797Z"
     },
     {
       "name": "add-query-count-test",
