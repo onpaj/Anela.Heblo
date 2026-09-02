@@ -148,7 +148,7 @@ public class PackingMaterialsController : BaseApiController
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<GetDailyConsumptionBreakdownResponse>> GetDailyConsumptionBreakdown(
         [FromQuery] string? date,
-        [FromQuery] string groupBy = "material",
+        [FromQuery] ConsumptionGroupBy groupBy = ConsumptionGroupBy.Material,
         CancellationToken cancellationToken = default)
     {
         if (!DateOnly.TryParseExact(date, "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out var parsedDate))
