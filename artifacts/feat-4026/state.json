@@ -22,7 +22,7 @@
     },
     "developing": {
       "status": "in_progress",
-      "updated_at": "2026-09-02T20:14:15.814961Z"
+      "updated_at": "2026-09-02T21:14:24.933449Z"
     }
   },
   "tasks": [
@@ -46,9 +46,9 @@
     },
     {
       "name": "retype-controller-groupby-param",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-09-02T21:14:25.170980Z"
     },
     {
       "name": "update-groupby-tests",
