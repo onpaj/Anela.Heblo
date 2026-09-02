@@ -40,9 +40,9 @@
     },
     {
       "name": "retype-handler-groupby-dispatch",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-09-02T20:14:16.048850Z"
+      "updated_at": "2026-09-02T20:19:31.488215Z"
     },
     {
       "name": "retype-controller-groupby-param",
