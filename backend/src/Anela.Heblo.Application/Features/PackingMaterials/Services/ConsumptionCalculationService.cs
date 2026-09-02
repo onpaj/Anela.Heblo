@@ -92,7 +92,7 @@ public class ConsumptionCalculationService : IConsumptionCalculationService
         return new ProcessDailyConsumptionResult(true, processedCount);
     }
 
-    public async Task<bool> HasDayAlreadyBeenProcessedAsync(
+    private async Task<bool> HasDayAlreadyBeenProcessedAsync(
         DateOnly date,
         CancellationToken cancellationToken = default)
     {
