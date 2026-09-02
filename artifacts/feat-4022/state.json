@@ -34,9 +34,9 @@
     },
     {
       "name": "remove-dead-url-validation-block-from-handler",
-      "status": "pending",
+      "status": "completed",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-09-02T04:02:25.858210Z"
     }
   ]
 }
