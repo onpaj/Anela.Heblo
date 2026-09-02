@@ -28,9 +28,9 @@
   "tasks": [
     {
       "name": "add-consumption-groupby-enum",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-09-02T13:19:02.049366Z"
+      "updated_at": "2026-09-02T13:24:20.869684Z"
     },
     {
       "name": "retype-request-groupby",
