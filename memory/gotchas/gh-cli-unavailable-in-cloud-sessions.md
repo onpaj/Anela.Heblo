@@ -194,3 +194,33 @@ an empty `agent`-labeled queue as license to pick up pipeline-maintenance issues
 this, versus always reporting "nothing to plan," is a judgment call each run should
 make on its own merits (issue is genuinely actionable, small, low-risk, and on-topic
 for the pipeline) rather than a rule to apply automatically.
+
+**`apply_verdict.sh --action merge` partial-failure pattern, seen 2026-09-02** on an
+`/automerge-all` run (PR #4021, closing #4017, `USE_GH_API=1`): the script reported
+overall failure ("merge failed: GitHub API 403 ... Write access to this GitHub API
+path is not permitted through this proxy") and exited 1, which the automerge-all
+skill correctly treats as "this PR failed, continue to the next." But checking the
+PR afterward via `mcp__github__pull_request_read` showed it had already been
+squash-merged successfully 2 seconds after the review comment posted. Root cause:
+`gh_api.sh`'s `pr_merge()` (used by `apply_verdict.sh`'s `pr_merge_squash_delete`)
+does the merge PUT first (`/repos/{repo}/pulls/{n}/merge`, succeeds fine, an
+ordinary REST write) and, when `--delete-branch` is passed, then does a second call,
+`DELETE /repos/{repo}/git/refs/heads/{branch}`, to remove the head branch. That
+second call is a git-data endpoint and hits the same proxy write-block this doc
+already documents for `create-ref` (confirms the block covers git-data DELETE, not
+just POST). `emit()` on that non-2xx, non-404 response prints the proxy error and
+calls `exit 1`, aborting the whole `gh_api.sh` subprocess before `apply_verdict.sh`'s
+`merge` branch ever reaches its issue-labelling step. Net effect: the PR merge
+itself succeeds in this environment even though the script reports "failed" — only
+the trailing branch-delete and (as a consequence of the early exit) the linked-issue
+`agent-merged` label never happen. When this exact error text appears after a
+`merge` action, verify via `mcp__github__pull_request_read` (method `get`) whether
+`merged: true` already happened before treating the PR as unmerged. If it did merge,
+manually finish the two skipped steps: add the `agent-merged` label to the linked
+issue via `mcp__github__issue_write` (labels field is not additive, read current
+labels first and pass the full desired set), and leave the head branch undeleted
+(same as the earlier orphan-branch note above — no working
+`mcp__github__delete_branch` equivalent was found, and leaving it is harmless). A
+durable fix would be having `gh_api.sh`'s `pr_merge()` treat the delete-branch 403 as
+best-effort (matching how it already treats a 404 there) instead of a hard exit,
+but that's out of scope for a single review run.
