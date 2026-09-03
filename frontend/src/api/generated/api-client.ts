@@ -32879,6 +32879,7 @@ export class ImportFromOutlookResponse extends BaseResponse implements IImportFr
     updated?: number;
     skipped?: number;
     failed?: number;
+    deleted?: number;
     unmappedCategories!: string[];
     items?: ImportedItemDto[];
 
@@ -32896,6 +32897,7 @@ export class ImportFromOutlookResponse extends BaseResponse implements IImportFr
             this.updated = _data["updated"];
             this.skipped = _data["skipped"];
             this.failed = _data["failed"];
+            this.deleted = _data["deleted"];
             if (Array.isArray(_data["unmappedCategories"])) {
                 this.unmappedCategories = [] as any;
                 for (let item of _data["unmappedCategories"])
@@ -32922,6 +32924,7 @@ export class ImportFromOutlookResponse extends BaseResponse implements IImportFr
         data["updated"] = this.updated;
         data["skipped"] = this.skipped;
         data["failed"] = this.failed;
+        data["deleted"] = this.deleted;
         if (Array.isArray(this.unmappedCategories)) {
             data["unmappedCategories"] = [];
             for (let item of this.unmappedCategories)
@@ -32942,6 +32945,7 @@ export interface IImportFromOutlookResponse extends IBaseResponse {
     updated?: number;
     skipped?: number;
     failed?: number;
+    deleted?: number;
     unmappedCategories: string[];
     items?: ImportedItemDto[];
 }
