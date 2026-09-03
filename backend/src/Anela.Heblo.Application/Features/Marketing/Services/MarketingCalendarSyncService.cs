@@ -62,6 +62,8 @@ namespace Anela.Heblo.Application.Features.Marketing.Services
                 }
             }
 
+            await ReconcileOrphansAsync(fromUtc, toUtc, eventIds, run, cancellationToken);
+
             await PersistAsync(run, cancellationToken);
             run.ReportStaged();
 
@@ -151,6 +153,65 @@ namespace Anela.Heblo.Application.Features.Marketing.Services
             run.PendingCreates.Add((action, evt));
         }
 
+        /// <summary>
+        /// Actions in the window whose event was not returned by calendarView are
+        /// confirmed one by one: 404 ⇒ deleted in Outlook ⇒ soft-delete here;
+        /// found ⇒ moved outside the window ⇒ treat as a normal update.
+        /// </summary>
+        private async Task ReconcileOrphansAsync(
+            DateTime fromUtc,
+            DateTime toUtc,
+            IReadOnlyCollection<string> fetchedEventIds,
+            SyncRun run,
+            CancellationToken cancellationToken)
+        {
+            var fetched = new HashSet<string>(fetchedEventIds, StringComparer.OrdinalIgnoreCase);
+            var windowActions = await _repository.GetSyncedInWindowAsync(fromUtc, toUtc, cancellationToken);
+            var orphans = windowActions.Where(a => !fetched.Contains(a.OutlookEventId!)).ToList();
+
+            foreach (var orphan in orphans)
+            {
+                try
+                {
+                    await ReconcileOrphanAsync(orphan, run, cancellationToken);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex,
+                        "Failed to reconcile marketing action {ActionId} (Outlook event {EventId})",
+                        orphan.Id,
+                        orphan.OutlookEventId);
+                    run.AddFailed(orphan.OutlookEventId!, orphan.Title, ex.Message);
+                }
+            }
+        }
+
+        private async Task ReconcileOrphanAsync(MarketingAction orphan, SyncRun run, CancellationToken cancellationToken)
+        {
+            var evt = await _outlookSync.GetEventAsync(orphan.OutlookEventId!, cancellationToken);
+
+            if (evt is not null)
+            {
+                var mapping = _mapper.MapToActionType(evt.Categories ?? Array.Empty<string>());
+                await StageUpdateAsync(orphan, evt, mapping.ActionType, run, cancellationToken);
+                return;
+            }
+
+            if (run.DryRun)
+            {
+                run.AddWouldDelete(orphan);
+                return;
+            }
+
+            orphan.SoftDelete(run.Actor.UserId, run.Actor.Username, run.UtcNow);
+
+            // Inline, per-orphan — same reasoning as StageCreateAsync/StageUpdateAsync
+            // (see Task 4's PersistAsync comment): a failure here is caught by this
+            // orphan's own try/catch in ReconcileOrphansAsync, not the whole batch.
+            await _repository.UpdateAsync(orphan, cancellationToken);
+            run.PendingDeletes.Add(orphan);
+        }
+
         // Persistence is deferred until the loop completes so that a single
         // SaveChangesAsync covers the whole run. Saving per-event used to leave the
         // shared DbContext dirty after a failed save, poisoning every subsequent
@@ -196,9 +257,10 @@ namespace Anela.Heblo.Application.Features.Marketing.Services
             public HashSet<string> UnmappedCategories { get; } = new(StringComparer.OrdinalIgnoreCase);
             public List<(MarketingAction action, OutlookEventDto evt)> PendingCreates { get; } = new();
             public List<(MarketingAction action, OutlookEventDto evt)> PendingUpdates { get; } = new();
+            public List<MarketingAction> PendingDeletes { get; } = new();
 
             public bool HasPendingWrites => PendingCount > 0;
-            public int PendingCount => PendingCreates.Count + PendingUpdates.Count;
+            public int PendingCount => PendingCreates.Count + PendingUpdates.Count + PendingDeletes.Count;
 
             public void AddSkipped(OutlookEventDto evt)
             {
@@ -224,6 +286,12 @@ namespace Anela.Heblo.Application.Features.Marketing.Services
                 Response.Items.Add(Item(eventId, subject, ImportStatus.Failed, error: error));
             }
 
+            public void AddWouldDelete(MarketingAction action)
+            {
+                Response.Deleted++;
+                Response.Items.Add(Item(action.OutlookEventId!, action.Title, ImportStatus.WouldDelete, actionId: action.Id));
+            }
+
             public void FailAllPending(string error)
             {
                 foreach (var (_, evt) in PendingCreates.Concat(PendingUpdates))
@@ -233,6 +301,13 @@ namespace Anela.Heblo.Application.Features.Marketing.Services
 
                 PendingCreates.Clear();
                 PendingUpdates.Clear();
+
+                foreach (var action in PendingDeletes)
+                {
+                    AddFailed(action.OutlookEventId!, action.Title, error);
+                }
+
+                PendingDeletes.Clear();
             }
 
             /// <summary>Turns the surviving staged writes into Created/Updated items.</summary>
@@ -248,6 +323,12 @@ namespace Anela.Heblo.Application.Features.Marketing.Services
                 {
                     Response.Updated++;
                     Response.Items.Add(Item(evt.Id, evt.Subject, ImportStatus.Updated, actionId: action.Id));
+                }
+
+                foreach (var action in PendingDeletes)
+                {
+                    Response.Deleted++;
+                    Response.Items.Add(Item(action.OutlookEventId!, action.Title, ImportStatus.Deleted, actionId: action.Id));
                 }
             }
 
