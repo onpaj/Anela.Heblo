@@ -126,4 +126,46 @@ public class PriceSyncDeciderTests
         decision.Action.Should().Be(PriceSyncAction.Push);
         decision.PriceToPush.Should().Be(190.01m);
     }
+
+    [Fact]
+    public void a_within_tolerance_remote_difference_yields_none_when_tolerance_is_supplied()
+    {
+        // Arrange: 189.99 vs LastPushed 190.00 is exactly the Flexi with-VAT round-trip
+        // rounding error, which a supplied tolerance must absorb as "no drift".
+        const decimal heblo = 190.00m, lastPushed = 190.00m, remote = 189.99m;
+
+        // Act
+        var decision = PriceSyncDecider.Decide(heblo, lastPushed, remote, remoteTolerance: 0.01m);
+
+        // Assert
+        decision.Action.Should().Be(PriceSyncAction.None);
+    }
+
+    [Fact]
+    public void the_same_within_tolerance_difference_still_conflicts_with_zero_tolerance()
+    {
+        // Arrange
+        const decimal heblo = 190.00m, lastPushed = 190.00m, remote = 189.99m;
+
+        // Act
+        var decision = PriceSyncDecider.Decide(heblo, lastPushed, remote, remoteTolerance: 0m);
+
+        // Assert
+        decision.Action.Should().Be(PriceSyncAction.Conflict);
+        decision.RemoteValue.Should().Be(189.99m);
+    }
+
+    [Fact]
+    public void a_genuine_large_drift_still_conflicts_even_with_tolerance()
+    {
+        // Arrange
+        const decimal heblo = 190.00m, lastPushed = 190.00m, remote = 175.00m;
+
+        // Act
+        var decision = PriceSyncDecider.Decide(heblo, lastPushed, remote, remoteTolerance: 0.01m);
+
+        // Assert
+        decision.Action.Should().Be(PriceSyncAction.Conflict);
+        decision.RemoteValue.Should().Be(175.00m);
+    }
 }

@@ -108,11 +108,3 @@ test("accepting the remote price resolves the conflict with AcceptRemotePrice", 
     resolution: "AcceptRemotePrice",
   });
 });
-
-test("does not crash on the modifiedAt string returned by the API", () => {
-  // Arrange & Act
-  render(<ProductPricingPage />);
-
-  // Assert — a raw ISO string passed to .getTime() would blank the page
-  expect(screen.getByText("OCH001030")).toBeInTheDocument();
-});

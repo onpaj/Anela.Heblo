@@ -24,7 +24,7 @@ public class ProductPricingController : BaseApiController
 
     [HttpGet("prices")]
     public async Task<ActionResult<GetProductPricesResponse>> GetPrices(CancellationToken cancellationToken = default)
-        => Ok(await _mediator.Send(new GetProductPricesRequest(), cancellationToken));
+        => HandleResponse(await _mediator.Send(new GetProductPricesRequest(), cancellationToken));
 
     [HttpPut("prices/{productCode}")]
     [FeatureAuthorize(Feature.Products_Catalog, AccessLevel.Write)]
@@ -34,22 +34,22 @@ public class ProductPricingController : BaseApiController
         CancellationToken cancellationToken = default)
     {
         request.ProductCode = productCode;
-        return Ok(await _mediator.Send(request, cancellationToken));
+        return HandleResponse(await _mediator.Send(request, cancellationToken));
     }
 
     [HttpPost("sync")]
     [FeatureAuthorize(Feature.Products_Catalog, AccessLevel.Write)]
     public async Task<ActionResult<TriggerPriceSyncResponse>> TriggerSync(CancellationToken cancellationToken = default)
-        => Ok(await _mediator.Send(new TriggerPriceSyncRequest(), cancellationToken));
+        => HandleResponse(await _mediator.Send(new TriggerPriceSyncRequest(), cancellationToken));
 
     [HttpGet("conflicts")]
     public async Task<ActionResult<GetPriceSyncConflictsResponse>> GetConflicts(CancellationToken cancellationToken = default)
-        => Ok(await _mediator.Send(new GetPriceSyncConflictsRequest(), cancellationToken));
+        => HandleResponse(await _mediator.Send(new GetPriceSyncConflictsRequest(), cancellationToken));
 
     [HttpPost("conflicts/resolve")]
     [FeatureAuthorize(Feature.Products_Catalog, AccessLevel.Write)]
     public async Task<ActionResult<ResolvePriceSyncConflictResponse>> ResolveConflict(
         [FromBody] ResolvePriceSyncConflictRequest request,
         CancellationToken cancellationToken = default)
-        => Ok(await _mediator.Send(request, cancellationToken));
+        => HandleResponse(await _mediator.Send(request, cancellationToken));
 }

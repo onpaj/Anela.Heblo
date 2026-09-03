@@ -63,17 +63,27 @@ const EditablePriceCell: React.FC<EditablePriceCellProps> = ({ productCode, pric
   };
 
   return (
-    <input
-      type="number"
-      step="0.01"
-      min="0"
-      aria-label={`Cena s DPH pro ${productCode}`}
-      value={value}
-      onChange={(e) => setValue(e.target.value)}
-      onBlur={handleBlur}
-      disabled={setPrice.isPending}
-      className="w-24 px-2 py-1 text-sm text-right border border-gray-300 dark:border-graphite-border rounded-md bg-white dark:bg-graphite-surface text-gray-900 dark:text-graphite-text disabled:opacity-50"
-    />
+    <div className="flex flex-col items-end gap-1">
+      <input
+        type="number"
+        step="0.01"
+        min="0"
+        aria-label={`Cena s DPH pro ${productCode}`}
+        value={value}
+        onChange={(e) => setValue(e.target.value)}
+        onBlur={handleBlur}
+        disabled={setPrice.isPending}
+        className="w-24 px-2 py-1 text-sm text-right border border-gray-300 dark:border-graphite-border rounded-md bg-white dark:bg-graphite-surface text-gray-900 dark:text-graphite-text disabled:opacity-50"
+      />
+      {setPrice.isError && (
+        <span
+          data-testid={`set-price-error-${productCode}`}
+          className="text-xs text-red-600 dark:text-red-400"
+        >
+          {setPrice.error?.message ?? "Cenu se nepodařilo uložit."}
+        </span>
+      )}
+    </div>
   );
 };
 

@@ -15,7 +15,8 @@ public static class PriceSyncDecider
     public static PriceSyncDecision Decide(
         decimal hebloPriceWithVat,
         decimal? lastPushedPriceWithVat,
-        decimal? remotePriceWithVat)
+        decimal? remotePriceWithVat,
+        decimal remoteTolerance = 0m)
     {
         if (remotePriceWithVat is null)
         {
@@ -33,8 +34,10 @@ public static class PriceSyncDecider
         var lastPushed = Normalize(lastPushedPriceWithVat.Value);
 
         // Remote drift is checked first: when both sides moved it is still a conflict,
-        // and a human decides which wins.
-        if (remote != lastPushed)
+        // and a human decides which wins. A target with a lossy round-trip (e.g. Flexi
+        // reconstructing a with-VAT price from a without-VAT store) supplies a small
+        // tolerance so its own rounding error never reads as a downstream edit.
+        if (Math.Abs(remote - lastPushed) > remoteTolerance)
         {
             return new PriceSyncDecision { Action = PriceSyncAction.Conflict, RemoteValue = remote };
         }

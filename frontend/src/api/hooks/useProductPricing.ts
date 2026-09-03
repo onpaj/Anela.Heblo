@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { getAuthenticatedApiClient } from "../client";
+import { callApi } from "../apiErrorEnvelope";
 import {
   ProductPriceDto,
   PriceSyncConflictDto,
@@ -7,7 +8,9 @@ import {
   PriceSyncTarget,
   PriceConflictResolution,
   SetProductPriceRequest,
+  SetProductPriceResponse,
   ResolvePriceSyncConflictRequest,
+  ResolvePriceSyncConflictResponse,
 } from "../generated/api-client";
 
 export {
@@ -34,6 +37,17 @@ export interface ResolvePriceConflictInput {
   resolution: PriceConflictResolution;
 }
 
+const GENERIC_SET_PRICE_ERROR = "Cenu se nepodařilo uložit.";
+const SET_PRICE_ERROR_MESSAGES: Partial<Record<string, string>> = {
+  ProductPriceNotFound: "Cena produktu nebyla nalezena.",
+};
+
+const GENERIC_RESOLVE_CONFLICT_ERROR = "Konflikt se nepodařilo vyřešit.";
+const RESOLVE_CONFLICT_ERROR_MESSAGES: Partial<Record<string, string>> = {
+  ProductPriceNotFound: "Cena produktu nebyla nalezena.",
+  ProductPriceConflictNotFound: "Konflikt cen nebyl nalezen.",
+};
+
 export const useProductPrices = () =>
   useQuery({
     queryKey: QUERY_KEYS.prices,
@@ -46,11 +60,15 @@ export const useProductPrices = () =>
 export const useSetProductPrice = () => {
   const queryClient = useQueryClient();
 
-  return useMutation({
+  return useMutation<SetProductPriceResponse, Error, SetProductPriceInput>({
     mutationFn: ({ productCode, priceWithVat }: SetProductPriceInput) =>
-      getAuthenticatedApiClient().productPricing_SetPrice(
-        productCode,
-        new SetProductPriceRequest({ productCode, priceWithVat }),
+      callApi(
+        () =>
+          getAuthenticatedApiClient().productPricing_SetPrice(
+            productCode,
+            new SetProductPriceRequest({ productCode, priceWithVat }),
+          ),
+        ({ errorCode }) => (errorCode && SET_PRICE_ERROR_MESSAGES[errorCode]) ?? GENERIC_SET_PRICE_ERROR,
       ),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: QUERY_KEYS.prices }),
   });
@@ -68,10 +86,15 @@ export const usePriceSyncConflicts = () =>
 export const useResolvePriceConflict = () => {
   const queryClient = useQueryClient();
 
-  return useMutation({
+  return useMutation<ResolvePriceSyncConflictResponse, Error, ResolvePriceConflictInput>({
     mutationFn: (input: ResolvePriceConflictInput) =>
-      getAuthenticatedApiClient().productPricing_ResolveConflict(
-        new ResolvePriceSyncConflictRequest(input),
+      callApi(
+        () =>
+          getAuthenticatedApiClient().productPricing_ResolveConflict(
+            new ResolvePriceSyncConflictRequest(input),
+          ),
+        ({ errorCode }) =>
+          (errorCode && RESOLVE_CONFLICT_ERROR_MESSAGES[errorCode]) ?? GENERIC_RESOLVE_CONFLICT_ERROR,
       ),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.prices });

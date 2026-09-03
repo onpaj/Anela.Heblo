@@ -14747,8 +14747,6 @@ export enum ErrorCodes {
     MindMapMeetingAlreadyAttached = "MindMapMeetingAlreadyAttached",
     MindMapInvalidDocument = "MindMapInvalidDocument",
     ProductPriceNotFound = "ProductPriceNotFound",
-    ProductPriceSyncConflict = "ProductPriceSyncConflict",
-    ProductPriceInvalidValue = "ProductPriceInvalidValue",
     ProductPriceConflictNotFound = "ProductPriceConflictNotFound",
     ExternalServiceError = "ExternalServiceError",
     FlexiApiError = "FlexiApiError",

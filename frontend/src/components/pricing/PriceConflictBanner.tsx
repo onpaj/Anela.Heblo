@@ -69,6 +69,14 @@ const PriceConflictBanner: React.FC<PriceConflictBannerProps> = ({
           Převzít externí cenu
         </button>
       </div>
+      {resolveConflict.isError && (
+        <div
+          data-testid={`price-conflict-error-${productCode}-${target}`}
+          className="w-full text-xs text-red-700 dark:text-red-400"
+        >
+          {resolveConflict.error?.message ?? "Konflikt se nepodařilo vyřešit."}
+        </div>
+      )}
     </div>
   );
 };

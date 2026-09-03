@@ -9,6 +9,19 @@ public class ProductPriceSyncService : IProductPriceSyncService
 {
     private const string SeedModifiedBy = "price-sync";
 
+    /// <summary>
+    /// Flexi stores <c>cenaZakl</c> without VAT and reconstructs the with-VAT price as
+    /// <c>cena * (100 + vat) / 100</c> on read, which does not round-trip a with-VAT price
+    /// exactly (e.g. 190.00 -> cenaZakl 157.02 -> 189.99). Comparing the remote read against
+    /// LastPushed with this tolerance absorbs that rounding noise instead of raising a
+    /// permanent Conflict on every run. Shoptet stores the with-VAT price directly, so it
+    /// gets no tolerance.
+    /// </summary>
+    private const decimal FlexiRoundTripTolerance = 0.01m;
+
+    /// <summary>Column is varchar(2000); an untruncated remote error body would fail this row's own save.</summary>
+    private const int LastErrorMaxLength = 2000;
+
     /// <summary>Assumption A3: only sellable types carry a retail price.</summary>
     private static readonly ProductType[] PricedProductTypes =
     {
@@ -70,8 +83,6 @@ public class ProductPriceSyncService : IProductPriceSyncService
         {
             _logger.LogWarning("Price sync skipped for Flexi: ERP price read failed");
         }
-
-        await _repository.SaveChangesAsync(ct);
 
         _logger.LogInformation(
             "Price sync finished: {Pushed} pushed, {Conflicts} conflicts, {Failed} failed, {Seeded} seeded, {Unchanged} unchanged",
@@ -155,16 +166,24 @@ public class ProductPriceSyncService : IProductPriceSyncService
             {
                 context.Result.Failed++;
                 await FailAsync(state, $"No master price row for {productCode}; refusing to push.", ct);
+                await _repository.SaveChangesAsync(ct);
                 continue;
             }
 
             remotePrices.TryGetValue(productCode, out var remoteValue);
             var remote = remotePrices.ContainsKey(productCode) ? remoteValue : (decimal?)null;
 
+            var remoteTolerance = target == PriceSyncTarget.Flexi ? FlexiRoundTripTolerance : 0m;
             var decision = PriceSyncDecider.Decide(
-                hebloPrice?.PriceWithVat ?? 0m, state.LastPushedPriceWithVat, remote);
+                hebloPrice?.PriceWithVat ?? 0m, state.LastPushedPriceWithVat, remote, remoteTolerance);
 
             await ApplyDecisionAsync(decision, target, productCode, hebloPrice, context, state, ct);
+
+            // Saved per product rather than once for the whole run: a cancellation, DB
+            // error, or restart mid-run must not lose a LastPushed update whose remote
+            // write has already landed, which would otherwise manufacture a false conflict
+            // on the next run.
+            await _repository.SaveChangesAsync(ct);
         }
     }
 
@@ -276,8 +295,37 @@ public class ProductPriceSyncService : IProductPriceSyncService
         ProductPriceSyncState state,
         CancellationToken ct)
     {
-        var seededPrice = hebloPrice?.PriceWithVat;
-        if (seededPrice is null || Math.Round(seededPrice.Value, 2) == Math.Round(decision.RemoteValue!.Value, 2))
+        if (hebloPrice is null)
+        {
+            // Spec §7: present in Flexi, absent from Heblo's master table -> seed the master
+            // row from Flexi, mirroring SeedFromEshopAsync. Without this, the next run's
+            // missing-master-row guard in SyncTargetAsync would mark this state Failed
+            // forever and the product would never appear in the grid. The Shoptet state is
+            // deliberately left untouched: once the master row exists, the next run's
+            // Shoptet pass sees it on its own and reconciles independently.
+            context.Result.Seeded++;
+            context.ErpPrices.TryGetValue(state.ProductCode, out var erp);
+
+            var seeded = new ProductPrice
+            {
+                ProductCode = state.ProductCode,
+                PriceWithVat = decision.RemoteValue!.Value,
+                VatRate = DeriveVatRate(erp),
+                ModifiedAt = DateTime.UtcNow,
+                ModifiedBy = SeedModifiedBy,
+            };
+
+            await _repository.UpsertAsync(seeded, ct);
+            context.Prices[state.ProductCode] = seeded;
+
+            state.LastPushedPriceWithVat = decision.RemoteValue;
+            state.LastPushedAt = DateTime.UtcNow;
+            state.Status = PriceSyncStatus.InSync;
+            await _repository.UpsertSyncStateAsync(state, ct);
+            return;
+        }
+
+        if (Math.Round(hebloPrice.PriceWithVat, 2) == Math.Round(decision.RemoteValue!.Value, 2))
         {
             state.LastPushedPriceWithVat = decision.RemoteValue;
             state.LastPushedAt = DateTime.UtcNow;
@@ -356,7 +404,7 @@ public class ProductPriceSyncService : IProductPriceSyncService
     private async Task FailAsync(ProductPriceSyncState state, string error, CancellationToken ct)
     {
         state.Status = PriceSyncStatus.Failed;
-        state.LastError = error;
+        state.LastError = error.Length > LastErrorMaxLength ? error[..LastErrorMaxLength] : error;
         await _repository.UpsertSyncStateAsync(state, ct);
     }
 

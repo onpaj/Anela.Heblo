@@ -14,9 +14,11 @@ public class ProductPriceSyncJob : IRecurringJob
     {
         JobName = "product-price-sync",
         DisplayName = "Product Price Sync",
-        Description = "Pushes Heblo retail prices to Shoptet and Flexi and detects downstream drift",
+        Description = "Pushes Heblo retail prices to Shoptet and Flexi and detects downstream drift. " +
+            "Ships disabled: this writes to a live e-shop and a live ERP with no sandbox, so the first " +
+            "run must be a deliberate manual trigger. Enable only after that manual run is verified.",
         CronExpression = "0 * * * *", // Hourly — a price edit reaches both systems within the hour
-        DefaultIsEnabled = true,
+        DefaultIsEnabled = false,
     };
 
     public ProductPriceSyncJob(

@@ -346,8 +346,6 @@ const resources = {
 
         // Product Pricing module errors (36XX)
         ProductPriceNotFound: "Cena produktu nebyla nalezena",
-        ProductPriceSyncConflict: "Cena byla mezitím změněna v jiném systému, vyřešte konflikt",
-        ProductPriceInvalidValue: "Neplatná cena",
         ProductPriceConflictNotFound: "Konflikt cen nebyl nalezen",
 
         // External Service errors

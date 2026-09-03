@@ -146,3 +146,6 @@ update: it decides from the identifier. `PUT /c/{firma}/cenik/code:XXX.json` wit
 unknown code **creates a new price list item** rather than failing. Always address writes
 by the internal numeric `idcenik` (read as `ProductPriceFlexiDto.ProductId` from user
 query 41). A product with no known `idcenik` must be reported as a failure, never created.
+The SDK's own `PriceListClient` / `PriceListFlexiDto` address records by `code:`
+(`Id => $"code:{ProductCode}"`) and must therefore never be used for ceník writes — that
+is exactly the create-on-unknown-code hazard described above.

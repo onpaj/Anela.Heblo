@@ -82,6 +82,27 @@ public class ProductPriceSyncServiceTests
                 },
             });
 
+    /// <summary>
+    /// Builds the ERP fixture the way production actually flows: from a without-VAT
+    /// <c>cenaZakl</c> upward to the with-VAT price Flexi reconstructs on read
+    /// (<c>cena * (100 + vat) / 100</c>). <see cref="GivenErp"/> instead builds backward from
+    /// a with-VAT price, which round-trips exactly and so can never reproduce the Flexi
+    /// rounding-drift bug this fixture exists to exercise.
+    /// </summary>
+    private void GivenErpFromCenaZakl(string code, int erpItemId, decimal cenaZakl, decimal vatRate = 21m) =>
+        _erpReader
+            .Setup(c => c.GetAllAsync(It.IsAny<bool>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<ProductPriceErp>
+            {
+                new()
+                {
+                    ProductCode = code,
+                    ErpItemId = erpItemId,
+                    PriceWithoutVat = cenaZakl,
+                    PriceWithVat = Math.Round(cenaZakl * (100 + vatRate) / 100m, 2, MidpointRounding.AwayFromZero),
+                },
+            });
+
     [Fact]
     public async Task pushes_to_both_targets_when_only_heblo_changed()
     {
@@ -172,6 +193,40 @@ public class ProductPriceSyncServiceTests
                                It.IsAny<CancellationToken>()),
             Times.Once);
         _savedStates.Single(s => s.Target == PriceSyncTarget.Flexi).Status.Should().Be(PriceSyncStatus.Conflict);
+    }
+
+    [Fact]
+    public async Task seeds_the_master_row_from_flexi_when_present_only_in_flexi()
+    {
+        // Arrange: spec §7 — present in Flexi, absent from Heblo's master table and from
+        // Shoptet. Before I3's fix, ReconcileErpSeedAsync wrote the Flexi state InSync
+        // without ever creating the master row, so the next run's missing-master-row guard
+        // marked it Failed forever and it never appeared in the grid (which iterates
+        // ProductPrices). The Shoptet state must stay untouched: it never saw this product
+        // this run (absent from both the master table and Shoptet's remote list).
+        _repository.Setup(r => r.GetAllAsync(It.IsAny<CancellationToken>())).ReturnsAsync(new List<ProductPrice>());
+        _repository
+            .Setup(r => r.GetSyncStatesAsync(It.IsAny<PriceSyncTarget>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<ProductPriceSyncState>());
+        _eshop.Setup(c => c.GetPricesWithVatAsync(It.IsAny<CancellationToken>()))
+              .ReturnsAsync(new Dictionary<string, decimal>());
+        GivenErp("A", erpItemId: 500, priceWithVat: 190.00m);
+        var service = CreateService();
+
+        // Act
+        var result = await service.SyncAsync(CancellationToken.None);
+
+        // Assert
+        result.Seeded.Should().Be(1);
+        result.Failed.Should().Be(0);
+        _repository.Verify(
+            r => r.UpsertAsync(It.Is<ProductPrice>(p => p.ProductCode == "A" && p.PriceWithVat == 190.00m),
+                               It.IsAny<CancellationToken>()),
+            Times.Once);
+        var flexiState = _savedStates.Single(s => s.ProductCode == "A" && s.Target == PriceSyncTarget.Flexi);
+        flexiState.Status.Should().Be(PriceSyncStatus.InSync);
+        flexiState.LastPushedPriceWithVat.Should().Be(190.00m);
+        _savedStates.Should().NotContain(s => s.Target == PriceSyncTarget.Shoptet);
     }
 
     [Fact]
@@ -359,6 +414,35 @@ public class ProductPriceSyncServiceTests
         result.Pushed.Should().Be(1);
         _eshop.Verify(c => c.SetPriceWithVatAsync("A", 210.00m, It.IsAny<CancellationToken>()), Times.Once);
         _savedStates.Should().NotContain(s => s.Target == PriceSyncTarget.Flexi);
+    }
+
+    [Fact]
+    public async Task flexi_with_vat_round_trip_rounding_does_not_manufacture_a_conflict()
+    {
+        // Arrange: Heblo pushed 190.00, which was written to Flexi as cenaZakl 157.02
+        // (190.00 / 1.21 rounded). Reading it back reconstructs 157.02 * 1.21 = 189.9942,
+        // rounded to 189.99 — a haler short of the 190.00 that was actually pushed. Without
+        // the Flexi round-trip tolerance this manufactures a permanent Conflict every run.
+        GivenHebloPrice("A", 190.00m);
+        GivenSyncState("A", PriceSyncTarget.Shoptet, lastPushed: 190.00m);
+        GivenSyncState("A", PriceSyncTarget.Flexi, lastPushed: 190.00m);
+        _eshop.Setup(c => c.GetPricesWithVatAsync(It.IsAny<CancellationToken>()))
+              .ReturnsAsync(new Dictionary<string, decimal> { ["A"] = 190.00m });
+        GivenErpFromCenaZakl("A", erpItemId: 147, cenaZakl: 157.02m);
+        var service = CreateService();
+
+        // Act
+        var result = await service.SyncAsync(CancellationToken.None);
+
+        // Assert
+        result.Conflicts.Should().Be(0);
+        result.Pushed.Should().Be(0);
+        _erpWriter.Verify(
+            w => w.SetPriceWithoutVatAsync(It.IsAny<int>(), It.IsAny<decimal>(), It.IsAny<CancellationToken>()),
+            Times.Never);
+        // Both targets land on PriceSyncAction.None (heblo == lastPushed and, with the
+        // tolerance, remote == lastPushed too), which touches no state at all.
+        _savedStates.Should().BeEmpty();
     }
 
     [Fact]

@@ -219,8 +219,10 @@ token-authenticated `HttpClient` registration (`ShoptetApiSettings.ApiToken`).
 
 - **Resolve the list:** `GET /api/pricelists` → the default price list id.
   Overridable via config `Shoptet:DefaultPriceListId`.
-- **Read:** `GET /api/pricelists/{id}/snapshot`, paginated, `itemsPerPage` max
-  100, `page` from 1.
+- **Read:** `GET /api/pricelists/{id}`, paginated, `itemsPerPage` max
+  100, `page` from 1. Not the `/snapshot` variant: a snapshot is asynchronous and
+  requires a registered `job:finished` webhook (the same precondition that rules
+  out the batch write endpoint below), so the plain per-page read is used instead.
 - **Write:** per-item `PATCH /api/pricelists/{id}`, sending `priceWithVat` and
   letting Shoptet recalculate the stored form.
 

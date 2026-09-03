@@ -52,7 +52,15 @@ public class FlexiProductPriceWriter : IErpPriceWriter
 
         var url = $"{_connection.Server.TrimEnd('/')}/c/{_connection.Company}/cenik/{erpItemId}.json";
 
-        using var client = _httpClientFactory.CreateClient();
+        // Named the same way every Rem.FlexiBeeSDK ResourceClient names its client (its own
+        // type name via IHttpClientFactory) and given the same 5-minute timeout that
+        // ResourceClient.GetClient() applies to every other synchronous Flexi call, instead
+        // of an unnamed client stuck on the default 100s timeout. Flexi has no adapter-wide
+        // Polly policy registered on its HttpClient (the one circuit breaker in this codebase,
+        // ManufactureErpResilienceService, is scoped to the manufacture-submit call only), so
+        // matching this timeout convention is what "the adapter's configured client" means here.
+        using var client = _httpClientFactory.CreateClient(nameof(FlexiProductPriceWriter));
+        client.Timeout = TimeSpan.FromMinutes(5);
         using var request = new HttpRequestMessage(HttpMethod.Put, url)
         {
             Content = new StringContent(JsonSerializer.Serialize(payload), Encoding.UTF8, "application/json"),
