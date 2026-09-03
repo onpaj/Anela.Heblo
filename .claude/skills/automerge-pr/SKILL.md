@@ -40,9 +40,14 @@ below. `git` itself is fine to run — it is not a GitHub API call.
 
 **If the `github` MCP server is not available** in this environment (common
 in headless or scheduled runs, where an interactively-authenticated MCP
-server may not be connected), stop and report that as the reason rather
-than falling back to `gh` yourself. The scripts still work without MCP; the
-review step does not.
+server may not be connected), fall back to `.claude/skills/_lib/gh_api.sh` —
+the same curl+REST transport the scripts use under `USE_GH_API`, needing
+only `GITHUB_TOKEN` (or `GIT_PAT`) and network access to `api.github.com`.
+
+**Never fall back to the `gh` CLI.** These skills are built to run where
+`gh` is blocked, so a step that "helpfully" shells out to `gh` fails the
+whole run instead of degrading to something that works. Reach for `gh` only
+if the human invoking you says it is available.
 
 ## 1. Resolve the target PR
 
