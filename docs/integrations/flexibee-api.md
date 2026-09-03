@@ -133,3 +133,16 @@ background/unattributed share (`FlexiAnalyticsSyncJob`, `FlexiStockClient`,
 batching/caching/rate-limiting those background sync clients — not further tuning
 the confirm-path timeout ceiling, which has already been tuned twice (#2987, this
 issue) without moving the headline number.
+
+## Ceník price writes
+
+`PUT /c/{firma}/cenik/{idcenik}.json` with body
+`{"winstrom":{"cenik":{"cenaZakl":"157.02"}}}` updates an item's base selling price.
+`cenaZakl` is **excluding VAT**; `cenanakup` is the purchase price and is computed from
+the BoM — never written by Heblo.
+
+**Addressing by `code:` is dangerous.** Flexi makes no distinction between create and
+update: it decides from the identifier. `PUT /c/{firma}/cenik/code:XXX.json` with an
+unknown code **creates a new price list item** rather than failing. Always address writes
+by the internal numeric `idcenik` (read as `ProductPriceFlexiDto.ProductId` from user
+query 41). A product with no known `idcenik` must be reported as a failure, never created.
