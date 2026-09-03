@@ -147,7 +147,7 @@ artifacts/feat-{issue_id}/state.json          # checkpoint state
    files must end up in the commit, not just the code), then stage the rest of
    the worktree so nothing is left behind:
 ```bash
-git add -A -f artifacts/feat-{issue_id}    # ensure all generated .md artifacts are staged
+git add -A artifacts/feat-{issue_id}    # ensure all generated .md artifacts are staged
 git add -A                              # stage code + everything else
 git commit --allow-empty -m "implement feat-{issue_id}"
 ```

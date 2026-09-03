@@ -41,7 +41,7 @@ commit, push, hard-verify) after **every** generated artifact -- never move
 to the next phase with an uncommitted or unpushed artifact:
 
 ```bash
-git add -A -f artifacts/feat-{issue_number}
+git add -A artifacts/feat-{issue_number}
 git commit -m "<message>" || true                                  # no-op only if already committed
 git push                                                            # REQUIRED -- see above
 git ls-files --error-unmatch artifacts/feat-{issue_number}/<file>  # HARD fail if the artifact is not tracked
@@ -99,7 +99,7 @@ For each phase:
    (e.g. `spec.r1.md`):
 
 ```bash
-git add -A -f artifacts/feat-{issue_number}
+git add -A artifacts/feat-{issue_number}
 git commit -m "chore(feat-{issue_number}): {phase} artifact" || true   # no-op if nothing changed
 git push                                                                # REQUIRED -- see Artifact persistence
 git ls-files --error-unmatch artifacts/feat-{issue_number}/{output_artifact}   # STRICT: stop if not committed
@@ -139,7 +139,7 @@ After `task-plan.r1.md` is written:
    persistence**):
 
 ```bash
-git add -A -f artifacts/feat-{issue_number}
+git add -A artifacts/feat-{issue_number}
 git commit -m "chore(feat-{issue_number}): task context" || true
 git push   # REQUIRED -- see Artifact persistence; non-fast-forward means another worker won the race, stop without retrying
 # STRICT: every task-context file must be tracked -- stop if any is missing
