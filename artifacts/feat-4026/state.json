@@ -1,0 +1,70 @@
+{
+  "feature_id": "feat-4026",
+  "issue_number": 4026,
+  "created_at": "2026-09-01T08:14:26.770694Z",
+  "max_revisions": 3,
+  "phases": {
+    "analyzing": {
+      "status": "completed",
+      "updated_at": "2026-09-01T08:17:22.566934Z"
+    },
+    "architecting": {
+      "status": "completed",
+      "updated_at": "2026-09-01T08:18:52.693743Z"
+    },
+    "designing": {
+      "status": "completed",
+      "updated_at": "2026-09-01T08:19:23.236255Z"
+    },
+    "planning": {
+      "status": "completed",
+      "updated_at": "2026-09-01T08:20:52.819670Z"
+    },
+    "developing": {
+      "status": "in_progress",
+      "updated_at": "2026-09-02T23:15:01.511823Z"
+    },
+    "code-review": {
+      "status": "completed",
+      "updated_at": "2026-09-03T00:18:25.301664Z"
+    }
+  },
+  "tasks": [
+    {
+      "name": "add-consumption-groupby-enum",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-09-02T13:24:20.869684Z"
+    },
+    {
+      "name": "retype-request-groupby",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-09-02T13:47:36.188669Z"
+    },
+    {
+      "name": "retype-handler-groupby-dispatch",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-09-02T20:19:31.488215Z"
+    },
+    {
+      "name": "retype-controller-groupby-param",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-09-02T21:21:07.406375Z"
+    },
+    {
+      "name": "update-groupby-tests",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-09-02T22:44:53.210886Z"
+    },
+    {
+      "name": "final-validation",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-09-02T23:56:39.824097Z"
+    }
+  ]
+}
