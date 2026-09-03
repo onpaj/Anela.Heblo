@@ -43,8 +43,16 @@ namespace Anela.Heblo.Application.Features.Marketing.Services
 
         public Task<OutlookEventDto?> GetEventAsync(string outlookEventId, CancellationToken ct)
         {
-            _logger.LogWarning("Outlook sync disabled (mock auth active (UseMockAuth or BypassJwtValidation)) — returning null for GetEvent {OutlookEventId}", outlookEventId);
-            return Task.FromResult<OutlookEventDto?>(null);
+            // Unlike ListEventsAsync's empty-list no-op, a null here would be read by
+            // MarketingCalendarSyncService.ReconcileOrphanAsync as positive confirmation
+            // that the Outlook event was deleted, causing it to soft-delete the
+            // corresponding marketing action. Throw instead so the caller treats this
+            // as a failed confirmation rather than a deletion.
+            _logger.LogWarning("Outlook sync disabled (mock auth active (UseMockAuth or BypassJwtValidation)) — refusing to confirm GetEvent {OutlookEventId}", outlookEventId);
+            throw new InvalidOperationException(
+                "Outlook sync is disabled (mock auth active — UseMockAuth or BypassJwtValidation). " +
+                $"Cannot confirm the state of Outlook event {outlookEventId}; refusing to let the marketing " +
+                "calendar sync interpret this as \"deleted in Outlook\" and soft-delete the corresponding action.");
         }
     }
 }
