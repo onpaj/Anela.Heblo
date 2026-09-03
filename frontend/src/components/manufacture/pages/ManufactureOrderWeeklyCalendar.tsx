@@ -83,7 +83,7 @@ export const getVisibleCalendarProducts = <T extends { plannedQuantity?: number;
 ): T[] =>
   (products ?? []).filter((product) => {
     const quantity = getProductDisplayQuantity(product, orderState);
-    return quantity !== undefined && quantity !== null && quantity !== 0;
+    return quantity !== undefined && quantity !== 0;
   });
 
 export const getWeightToleranceStatus = (
