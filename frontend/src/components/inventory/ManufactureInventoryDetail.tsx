@@ -111,20 +111,28 @@ const ManufactureInventoryModal: React.FC<ManufactureInventoryModalProps> = ({
   const currentStock = Math.round((effectiveItem?.stock?.erp || 0) * 100) / 100;
 
   // Helper functions for the total quantity input (materials without lots)
+  const normalizeQuantity = (value: number) => Math.round(Math.max(0, value) * 100) / 100;
+
+  // The quantity the user currently sees, whether still being typed or already
+  // committed. Everything that reads the entered amount must use this, otherwise
+  // an uncommitted draft would be silently dropped.
+  const effectiveNewQuantity =
+    newQuantityInput !== undefined
+      ? normalizeQuantity(parseFloat(newQuantityInput) || 0)
+      : newQuantity;
+
   const commitNewQuantity = (newAmount: number) => {
-    setNewQuantity(Math.round(Math.max(0, newAmount) * 100) / 100);
+    setNewQuantity(normalizeQuantity(newAmount));
     setNewQuantityInput(undefined);
   };
 
   const commitNewQuantityInput = () => {
     if (newQuantityInput === undefined) return;
-    const value = parseFloat(newQuantityInput);
-    commitNewQuantity(isNaN(value) ? 0 : value);
+    commitNewQuantity(effectiveNewQuantity);
   };
 
   const adjustNewQuantity = (delta: number) => {
-    const current = newQuantityInput !== undefined ? parseFloat(newQuantityInput) : newQuantity;
-    commitNewQuantity((isNaN(current) ? 0 : current) + delta);
+    commitNewQuantity(effectiveNewQuantity + delta);
   };
 
   // Helper functions for lot management
@@ -214,17 +222,17 @@ const ManufactureInventoryModal: React.FC<ManufactureInventoryModalProps> = ({
       } else {
         // Simple stock taking
         const currentStock = Math.round((effectiveItem?.stock?.erp || 0) * 100) / 100;
-        const isSoftStockTaking = newQuantity === currentStock;
+        const isSoftStockTaking = effectiveNewQuantity === currentStock;
         
         await submitStockTaking.mutateAsync({
           productCode: effectiveItem.productCode,
-          targetAmount: newQuantity,
+          targetAmount: effectiveNewQuantity,
           softStockTaking: isSoftStockTaking,
         });
 
         // Show success toaster only if stock actually changed
         if (!isSoftStockTaking) {
-          const difference = newQuantity - currentStock;
+          const difference = effectiveNewQuantity - currentStock;
           const differenceText = difference > 0 ? `+${difference.toFixed(2)}` : difference.toFixed(2);
           
           showSuccess(
@@ -718,11 +726,11 @@ const ManufactureInventoryModal: React.FC<ManufactureInventoryModalProps> = ({
                       )}
 
                       {/* Difference Display */}
-                      {newQuantity !== currentStock && (
+                      {effectiveNewQuantity !== currentStock && (
                         <div className="mt-4 p-3 bg-yellow-50 rounded-lg border border-yellow-200 dark:bg-amber-900/30 dark:border-amber-900/40">
                           <div className="text-center">
                             <span className="text-sm font-medium text-yellow-800 dark:text-amber-300">
-                              Rozdíl: {newQuantity > currentStock ? "+" : ""}{(newQuantity - currentStock).toFixed(2)}
+                              Rozdíl: {effectiveNewQuantity > currentStock ? "+" : ""}{(effectiveNewQuantity - currentStock).toFixed(2)}
                             </span>
                           </div>
                         </div>

@@ -1,13 +1,17 @@
 import React from 'react';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ToastProvider } from '../../../contexts/ToastContext';
 import ManufactureInventoryModal from '../ManufactureInventoryDetail';
 
+// Module-scope spy so the submitted payload can be asserted. The name must start
+// with "mock" for Babel to allow it inside the hoisted jest.mock factory.
+const mockMutateAsync = jest.fn().mockResolvedValue({});
+
 jest.mock('../../../api/hooks/useManufactureStockTaking', () => ({
   useSubmitManufactureStockTaking: () => ({
     mutate: jest.fn(),
-    mutateAsync: jest.fn().mockResolvedValue({}),
+    mutateAsync: (...args: any[]) => mockMutateAsync(...args),
     isPending: false,
     isError: false,
     error: null,
@@ -70,6 +74,10 @@ const typeAtEnd = (input: HTMLInputElement, characters: string) => {
 };
 
 describe('ManufactureInventoryModal - quantity input for materials without lots', () => {
+  beforeEach(() => {
+    mockMutateAsync.mockClear();
+  });
+
   const setupQuantityInput = () => {
     render(
       <ManufactureInventoryModal
@@ -156,5 +164,52 @@ describe('ManufactureInventoryModal - quantity input for materials without lots'
 
     // Assert
     expect(input.value).toBe('1499.00');
+  });
+
+  it('submits the typed value even when it was never committed by a blur', async () => {
+    // Arrange
+    const input = setupQuantityInput();
+    fireEvent.change(input, { target: { value: '' } });
+    typeAtEnd(input, '1500');
+
+    // Act - click submit directly, without blurring the field first
+    fireEvent.click(screen.getByText('Zinventarizovat materiál'));
+
+    // Assert
+    await waitFor(() => expect(mockMutateAsync).toHaveBeenCalledTimes(1));
+    expect(mockMutateAsync).toHaveBeenCalledWith({
+      productCode: 'MAT-001',
+      targetAmount: 1500,
+      softStockTaking: false,
+    });
+  });
+
+  it('submits the unchanged stock as a soft stock taking', async () => {
+    // Arrange
+    setupQuantityInput();
+
+    // Act
+    fireEvent.click(screen.getByText('Zinventarizovat materiál'));
+
+    // Assert
+    await waitFor(() => expect(mockMutateAsync).toHaveBeenCalledTimes(1));
+    expect(mockMutateAsync).toHaveBeenCalledWith({
+      productCode: 'MAT-001',
+      targetAmount: 5,
+      softStockTaking: true,
+    });
+  });
+
+  it('shows the difference while the new value is still being typed', () => {
+    // Arrange
+    const input = setupQuantityInput();
+    expect(screen.queryByText(/Rozdíl:/)).not.toBeInTheDocument();
+
+    // Act
+    fireEvent.change(input, { target: { value: '' } });
+    typeAtEnd(input, '1500');
+
+    // Assert
+    expect(screen.getByText(/Rozdíl: \+1495\.00/)).toBeInTheDocument();
   });
 });
