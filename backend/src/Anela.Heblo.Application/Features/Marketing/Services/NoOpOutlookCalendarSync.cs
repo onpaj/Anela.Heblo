@@ -40,5 +40,11 @@ namespace Anela.Heblo.Application.Features.Marketing.Services
             _logger.LogWarning("Outlook sync disabled (mock auth active (UseMockAuth or BypassJwtValidation)) — returning empty list for ListEvents");
             return Task.FromResult<IReadOnlyList<OutlookEventDto>>(Array.Empty<OutlookEventDto>());
         }
+
+        public Task<OutlookEventDto?> GetEventAsync(string outlookEventId, CancellationToken ct)
+        {
+            _logger.LogWarning("Outlook sync disabled (mock auth active (UseMockAuth or BypassJwtValidation)) — returning null for GetEvent {OutlookEventId}", outlookEventId);
+            return Task.FromResult<OutlookEventDto?>(null);
+        }
     }
 }
