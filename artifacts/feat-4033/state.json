@@ -22,7 +22,7 @@
     },
     "developing": {
       "status": "in_progress",
-      "updated_at": "2026-09-03T07:17:13.161290Z"
+      "updated_at": "2026-09-03T08:15:38.936216Z"
     }
   },
   "tasks": [
@@ -34,9 +34,9 @@
     },
     {
       "name": "make-implementation-private",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-09-03T08:15:39.131291Z"
     },
     {
       "name": "build-and-verify",
