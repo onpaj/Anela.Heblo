@@ -94,7 +94,7 @@ public class MarketingCalendarSyncServiceTests
     // ─── Reconciliation ───────────────────────────────────────────────────────
 
     [Fact]
-    public async Task SyncAsync_WhenOrphanConfirmedGone_SoftDeletesWithActor()
+    public async Task SyncAsync_WhenOrphanConfirmedGone_SoftDeletesAttributedToTheSync()
     {
         // Arrange — Heblo has an action in the window; Outlook no longer lists it and GET returns 404
         var orphan = BuildSyncedAction(7, "evt-gone");
@@ -112,10 +112,47 @@ public class MarketingCalendarSyncServiceTests
         result.Deleted.Should().Be(1);
         result.Items.Should().ContainSingle(i => i.Status == ImportStatus.Deleted && i.OutlookEventId == "evt-gone" && i.CreatedActionId == 7);
         orphan.IsDeleted.Should().BeTrue();
-        orphan.DeletedByUserId.Should().Be(Actor.UserId);
-        orphan.DeletedByUsername.Should().Be(Actor.Username);
+        // Attributed to the sync, not to the human who triggered this run — otherwise the
+        // delete is indistinguishable from a manual Heblo delete and can never be restored.
+        orphan.DeletedByUserId.Should().Be(SyncActor.SystemUserId);
+        orphan.DeletedByUsername.Should().Be(SyncActor.System.Username);
         _repositoryMock.Verify(x => x.UpdateAsync(orphan, It.IsAny<CancellationToken>()), Times.Once);
         _repositoryMock.Verify(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task SyncAsync_RestoresActionDeletedByAnEarlierUserTriggeredSync()
+    {
+        // Arrange — a *manual* import (human actor) reconciled this action away; the Outlook
+        // event has since reappeared under the same id.
+        var orphan = BuildSyncedAction(11, "evt-roundtrip");
+        _repositoryMock
+            .Setup(x => x.GetSyncedInWindowAsync(WindowFrom, WindowTo, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<MarketingAction> { orphan });
+        _outlookSyncMock
+            .Setup(s => s.GetEventAsync("evt-roundtrip", It.IsAny<CancellationToken>()))
+            .ReturnsAsync((OutlookEventDto?)null);
+        await SyncAsync();
+        orphan.IsDeleted.Should().BeTrue();
+
+        // The event comes back: it is listed again by the next run.
+        _repositoryMock
+            .Setup(x => x.GetSyncedInWindowAsync(WindowFrom, WindowTo, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<MarketingAction>());
+        _outlookSyncMock
+            .Setup(s => s.ListEventsAsync(WindowFrom, WindowTo, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<OutlookEventDto> { BuildEvent("evt-roundtrip") });
+        _repositoryMock
+            .Setup(x => x.GetByOutlookEventIdsAsync(It.IsAny<IReadOnlyCollection<string>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<MarketingAction> { orphan });
+
+        // Act
+        var result = await SyncAsync();
+
+        // Assert — restored rather than left permanently invisible
+        orphan.IsDeleted.Should().BeFalse();
+        orphan.DeletedByUserId.Should().BeNull();
+        result.Updated.Should().Be(1);
     }
 
     [Fact]

@@ -52,6 +52,12 @@ namespace Anela.Heblo.Application.Features.Marketing.Services
                 {
                     await ProcessEventAsync(evt, existingByEventId, run, cancellationToken);
                 }
+                catch (OperationCanceledException)
+                {
+                    // Shutdown/cancellation aborts the run; reporting it as a per-event
+                    // failure would fabricate a wall of failures for a healthy calendar.
+                    throw;
+                }
                 catch (Exception ex)
                 {
                     _logger.LogWarning(ex,
@@ -142,9 +148,10 @@ namespace Anela.Heblo.Application.Features.Marketing.Services
 
             OutlookEventImportMapper.ApplyChanges(existing, evt, actionType, run.Actor, run.UtcNow);
 
-            // AddAsync/UpdateAsync stay per-event (not deferred to PersistAsync) so a
-            // failure here is caught by this event's own try/catch in SyncAsync and
-            // only that event is reported Failed — the rest of the batch still commits.
+            // Staging only: AddAsync/UpdateAsync just attach to the change tracker and do
+            // not hit the database. Every real persistence failure therefore surfaces in
+            // the single SaveChangesAsync in PersistAsync and fails the whole batch — the
+            // per-event try/catch in SyncAsync isolates mapping/Graph errors, not save errors.
             await _repository.UpdateAsync(existing, cancellationToken);
             run.PendingUpdates.Add((existing, evt));
         }
@@ -189,6 +196,10 @@ namespace Anela.Heblo.Application.Features.Marketing.Services
                 {
                     await ReconcileOrphanAsync(orphan, run, cancellationToken);
                 }
+                catch (OperationCanceledException)
+                {
+                    throw;
+                }
                 catch (Exception ex)
                 {
                     _logger.LogWarning(ex,
@@ -218,11 +229,16 @@ namespace Anela.Heblo.Application.Features.Marketing.Services
                 return;
             }
 
-            orphan.SoftDelete(run.Actor.UserId, run.Actor.Username, run.UtcNow);
+            // Attributed to the sync, never to run.Actor: a reconciliation delete is made by
+            // the sync regardless of who triggered the run. Stamping the human who pressed
+            // Import would make it indistinguishable from a manual Heblo delete, and the
+            // restore rule below (DeletedByUserId == SystemUserId) would then hide the
+            // action forever if its Outlook event came back.
+            orphan.SoftDelete(SyncActor.SystemUserId, SyncActor.System.Username, run.UtcNow);
 
-            // Inline, per-orphan — same reasoning as StageCreateAsync/StageUpdateAsync
-            // (see Task 4's PersistAsync comment): a failure here is caught by this
-            // orphan's own try/catch in ReconcileOrphansAsync, not the whole batch.
+            // Staging only — same as StageCreateAsync/StageUpdateAsync: UpdateAsync does not
+            // touch the database, so a save failure fails the whole batch in PersistAsync.
+            // This orphan's try/catch isolates Graph lookup errors, not save errors.
             await _repository.UpdateAsync(orphan, cancellationToken);
             run.PendingDeletes.Add(orphan);
         }
@@ -251,6 +267,11 @@ namespace Anela.Heblo.Application.Features.Marketing.Services
                     "Failed to persist Outlook import batch of {Count} action(s); no changes were saved",
                     run.PendingCount);
 
+                // Detach before reporting: a failed SaveChanges leaves the staged entities
+                // tracked as Added/Modified, which would poison any later SaveChangesAsync
+                // in this same DI scope (a known trap in this codebase).
+                _repository.DetachRange(run.StagedActions);
+
                 run.FailAllPending(ex.Message);
             }
         }
@@ -273,6 +294,11 @@ namespace Anela.Heblo.Application.Features.Marketing.Services
             public List<(MarketingAction action, OutlookEventDto evt)> PendingCreates { get; } = new();
             public List<(MarketingAction action, OutlookEventDto evt)> PendingUpdates { get; } = new();
             public List<MarketingAction> PendingDeletes { get; } = new();
+
+            public IEnumerable<MarketingAction> StagedActions =>
+                PendingCreates.Select(p => p.action)
+                    .Concat(PendingUpdates.Select(p => p.action))
+                    .Concat(PendingDeletes);
 
             public bool HasPendingWrites => PendingCount > 0;
             public int PendingCount => PendingCreates.Count + PendingUpdates.Count + PendingDeletes.Count;

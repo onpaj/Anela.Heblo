@@ -13,6 +13,7 @@ public class MarketingActionRepositoryGetSyncedInWindowTests : IDisposable
     private static readonly DateTime WindowTo = new(2026, 6, 30, 0, 0, 0, DateTimeKind.Utc);
     private static readonly DateTime InsideWindow = new(2026, 6, 15, 9, 0, 0, DateTimeKind.Utc);
     private static readonly DateTime OutsideWindow = new(2026, 8, 15, 9, 0, 0, DateTimeKind.Utc);
+    private static readonly DateTime BeforeWindow = new(2026, 4, 15, 9, 0, 0, DateTimeKind.Utc);
 
     private readonly ApplicationDbContext _context;
     private readonly MarketingActionRepository _repository;
@@ -58,14 +59,67 @@ public class MarketingActionRepositoryGetSyncedInWindowTests : IDisposable
         result.Should().HaveCount(2);
     }
 
-    private async Task<MarketingAction> SeedAsync(DateTime startDate, string? outlookEventId, bool deleted = false)
+    [Fact]
+    public async Task GetSyncedInWindowAsync_ReturnsLongActionStartingBeforeWindowButEndingInside()
+    {
+        // Arrange - a multi-week campaign that began before the window and is still
+        // running inside it. Graph's calendarView returns such an event because it
+        // overlaps the window, so reconciliation must consider it too.
+        var overlapping = await SeedAsync(
+            startDate: BeforeWindow,
+            outlookEventId: "evt-overlapping",
+            endDate: InsideWindow);
+
+        // Act
+        var result = await _repository.GetSyncedInWindowAsync(WindowFrom, WindowTo);
+
+        // Assert
+        result.Should().ContainSingle(a => a.Id == overlapping.Id);
+    }
+
+    [Fact]
+    public async Task GetSyncedInWindowAsync_ExcludesActionEndingBeforeWindowStarts()
+    {
+        // Arrange
+        await SeedAsync(
+            startDate: BeforeWindow,
+            outlookEventId: "evt-finished",
+            endDate: BeforeWindow.AddDays(1));
+
+        // Act
+        var result = await _repository.GetSyncedInWindowAsync(WindowFrom, WindowTo);
+
+        // Assert
+        result.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task GetSyncedInWindowAsync_ExcludesOldOpenEndedActionStartingLongBeforeWindow()
+    {
+        // Arrange - an old action with no EndDate. Treating a missing EndDate as "still
+        // running" would pull every historical action into the orphan candidate set and
+        // put them one Graph 404 away from being soft-deleted.
+        await SeedAsync(startDate: BeforeWindow, outlookEventId: "evt-old-open-ended");
+
+        // Act
+        var result = await _repository.GetSyncedInWindowAsync(WindowFrom, WindowTo);
+
+        // Assert
+        result.Should().BeEmpty();
+    }
+
+    private async Task<MarketingAction> SeedAsync(
+        DateTime startDate,
+        string? outlookEventId,
+        bool deleted = false,
+        DateTime? endDate = null)
     {
         var action = new MarketingAction(
             title: $"Action {Guid.NewGuid():N}",
             description: null,
             actionType: MarketingActionType.Blog,
             startDate: startDate,
-            endDate: null,
+            endDate: endDate,
             createdByUserId: "seed-user",
             createdByUsername: "Seeder",
             utcNow: DateTime.UtcNow);

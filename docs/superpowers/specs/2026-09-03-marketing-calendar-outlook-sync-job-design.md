@@ -85,7 +85,9 @@ event restores the row: new domain method
 — `GET {CalendarEventsBaseUrl}/{id}?$select=id,subject,body,start,end,categories`
 with the **app** token (same as `ListEventsAsync`). Returns `null` on 404,
 throws `OutlookCalendarSyncException` otherwise. `NoOpOutlookCalendarSync`
-returns `null`.
+**throws** `InvalidOperationException` — deliberately not `null`, because `null`
+means "confirmed deleted in Outlook", so a no-op adapter returning it would
+soft-delete every synced action under mock auth.
 
 ### `MarketingCalendarSyncJob` (new, `Features/Marketing/Infrastructure/Jobs/`)
 

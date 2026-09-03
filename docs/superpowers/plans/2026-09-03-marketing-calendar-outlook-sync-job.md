@@ -322,7 +322,7 @@ git commit -m "feat: add GetSyncedInWindowAsync to marketing action repository"
 - Test: `backend/test/Anela.Heblo.Tests/Marketing/OutlookCalendarSyncServiceTests.cs` (append a `GetEventAsync` section)
 
 **Interfaces:**
-- Produces: `Task<OutlookEventDto?> GetEventAsync(string outlookEventId, CancellationToken ct)` — `null` on HTTP 404, the event on 2xx, `OutlookCalendarSyncException` otherwise. Uses the app token (same as `ListEventsAsync`).
+- Produces: `Task<OutlookEventDto?> GetEventAsync(string outlookEventId, CancellationToken ct)` — `null` on HTTP 404, the event on 2xx, `OutlookCalendarSyncException` otherwise. Uses the app token (same as `ListEventsAsync`). Note: the `NoOpOutlookCalendarSync` implementation throws rather than returning `null`, since `null` is the "confirmed deleted" signal.
 
 - [ ] **Step 1: Write the failing tests**
 

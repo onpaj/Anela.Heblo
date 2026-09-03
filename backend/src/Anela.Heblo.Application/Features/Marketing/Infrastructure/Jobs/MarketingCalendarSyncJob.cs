@@ -45,6 +45,12 @@ public class MarketingCalendarSyncJob : IRecurringJob
         _logger = logger;
     }
 
+    private const int MarketingCalendarSyncLockTimeoutSeconds = 600;
+
+    // A run can outlast the hourly cadence (one Graph GET per orphan over a 13-month
+    // window), and two overlapping runs race on the same rows and on the unique
+    // IX_MarketingActions_OutlookEventId index — which would fail the whole batch.
+    [DisableConcurrentExecution(MarketingCalendarSyncLockTimeoutSeconds)]
     [AutomaticRetry(Attempts = 0, OnAttemptsExceeded = AttemptsExceededAction.Fail)]
     public async Task ExecuteAsync(CancellationToken cancellationToken = default)
     {
