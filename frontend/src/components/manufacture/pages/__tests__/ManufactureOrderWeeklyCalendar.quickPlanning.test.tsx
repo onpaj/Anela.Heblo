@@ -184,12 +184,13 @@ describe("getVisibleCalendarProducts", () => {
       { productCode: "MAS001180", plannedQuantity: 50 },
       { productCode: "MAS001015", plannedQuantity: 0 },
     ];
+    const snapshot = products.map((p) => ({ ...p }));
 
     // Act
     getVisibleCalendarProducts(products, "Planned" as any);
 
     // Assert
-    expect(products).toHaveLength(2);
+    expect(products).toEqual(snapshot);
   });
 });
 
