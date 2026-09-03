@@ -696,7 +696,7 @@ namespace Anela.Heblo.Application.Features.Marketing.Services
             {
                 try
                 {
-                    ProcessEvent(evt, existingByEventId, run);
+                    await ProcessEventAsync(evt, existingByEventId, run, cancellationToken);
                 }
                 catch (Exception ex)
                 {
@@ -726,10 +726,11 @@ namespace Anela.Heblo.Application.Features.Marketing.Services
             return response;
         }
 
-        private void ProcessEvent(
+        private async Task ProcessEventAsync(
             OutlookEventDto evt,
             IReadOnlyDictionary<string, MarketingAction> existingByEventId,
-            SyncRun run)
+            SyncRun run,
+            CancellationToken cancellationToken)
         {
             var mapping = _mapper.MapToActionType(evt.Categories ?? Array.Empty<string>());
 
@@ -743,14 +744,19 @@ namespace Anela.Heblo.Application.Features.Marketing.Services
 
             if (existingByEventId.TryGetValue(evt.Id, out var existing))
             {
-                StageUpdate(existing, evt, mapping.ActionType, run);
+                await StageUpdateAsync(existing, evt, mapping.ActionType, run, cancellationToken);
                 return;
             }
 
-            StageCreate(evt, mapping.ActionType, run);
+            await StageCreateAsync(evt, mapping.ActionType, run, cancellationToken);
         }
 
-        private void StageUpdate(MarketingAction existing, OutlookEventDto evt, MarketingActionType actionType, SyncRun run)
+        private async Task StageUpdateAsync(
+            MarketingAction existing,
+            OutlookEventDto evt,
+            MarketingActionType actionType,
+            SyncRun run,
+            CancellationToken cancellationToken)
         {
             if (!OutlookEventImportMapper.HasChanges(existing, evt, actionType))
             {
@@ -766,10 +772,18 @@ namespace Anela.Heblo.Application.Features.Marketing.Services
                 return;
             }
 
+            // AddAsync/UpdateAsync stay per-event (not deferred to PersistAsync) so a
+            // failure here is caught by this event's own try/catch in SyncAsync and
+            // only that event is reported Failed — the rest of the batch still commits.
+            await _repository.UpdateAsync(existing, cancellationToken);
             run.PendingUpdates.Add((existing, evt));
         }
 
-        private void StageCreate(OutlookEventDto evt, MarketingActionType actionType, SyncRun run)
+        private async Task StageCreateAsync(
+            OutlookEventDto evt,
+            MarketingActionType actionType,
+            SyncRun run,
+            CancellationToken cancellationToken)
         {
             var action = OutlookEventImportMapper.BuildAction(evt, run.Actor, run.UtcNow, actionType);
 
@@ -779,13 +793,19 @@ namespace Anela.Heblo.Application.Features.Marketing.Services
                 return;
             }
 
+            await _repository.AddAsync(action, cancellationToken);
             run.PendingCreates.Add((action, evt));
         }
 
         // Persistence is deferred until the loop completes so that a single
         // SaveChangesAsync covers the whole run. Saving per-event used to leave the
         // shared DbContext dirty after a failed save, poisoning every subsequent
-        // event in the run (and costing N round-trips).
+        // event in the run (and costing N round-trips). AddAsync/UpdateAsync
+        // themselves are NOT deferred here — they run inline, per-event, inside
+        // StageCreateAsync/StageUpdateAsync (and, from Task 5, inline in
+        // ReconcileOrphanAsync for deletes) so that one event's repository
+        // failure is caught by that event's own try/catch in SyncAsync and only
+        // that event is reported Failed, instead of aborting the whole batch.
         private async Task PersistAsync(SyncRun run, CancellationToken cancellationToken)
         {
             if (run.DryRun || !run.HasPendingWrites)
@@ -795,16 +815,6 @@ namespace Anela.Heblo.Application.Features.Marketing.Services
 
             try
             {
-                foreach (var (action, _) in run.PendingCreates)
-                {
-                    await _repository.AddAsync(action, cancellationToken);
-                }
-
-                foreach (var (action, _) in run.PendingUpdates)
-                {
-                    await _repository.UpdateAsync(action, cancellationToken);
-                }
-
                 await _repository.SaveChangesAsync(cancellationToken);
             }
             catch (Exception ex)
@@ -913,7 +923,7 @@ namespace Anela.Heblo.Application.Features.Marketing.Services
 }
 ```
 
-Note the one intentional ordering change: `AddAsync`/`UpdateAsync` are now called in `PersistAsync` rather than inline during the loop. The existing tests only verify *whether* they were called (and never in dry-run), so they remain valid; a `Times.Never` on `SaveChangesAsync` in dry-run still holds.
+`AddAsync`/`UpdateAsync` are called inline, per event, inside `StageCreateAsync`/`StageUpdateAsync` — exactly where the original handler called them, inside that event's own try/catch in the `foreach` loop. Only `SaveChangesAsync` is deferred to `PersistAsync`, matching the original handler's structure. (**Ruling recorded during Task 4 review:** an earlier draft of this section deferred `AddAsync`/`UpdateAsync` into `PersistAsync` alongside `SaveChangesAsync`; that broke per-event failure isolation — one event's `AddAsync` throwing would fail the *entire* batch via `FailAllPending` instead of just that event. The code above is the corrected, binding version.) The existing tests only verify *whether* `AddAsync`/`UpdateAsync`/`SaveChangesAsync` were called (and never in dry-run), so they remain valid; a `Times.Never` on `SaveChangesAsync` in dry-run still holds.
 
 - [ ] **Step 5: Slim the handler**
 
@@ -1303,7 +1313,7 @@ In `MarketingCalendarSyncService.SyncAsync`, insert between the `foreach (var ev
             await ReconcileOrphansAsync(fromUtc, toUtc, eventIds, run, cancellationToken);
 ```
 
-Add these methods to the service (after `StageCreate`):
+Add these methods to the service (after `StageCreateAsync`):
 
 ```csharp
         /// <summary>
@@ -1346,7 +1356,7 @@ Add these methods to the service (after `StageCreate`):
             if (evt is not null)
             {
                 var mapping = _mapper.MapToActionType(evt.Categories ?? Array.Empty<string>());
-                StageUpdate(orphan, evt, mapping.ActionType, run);
+                await StageUpdateAsync(orphan, evt, mapping.ActionType, run, cancellationToken);
                 return;
             }
 
@@ -1357,6 +1367,11 @@ Add these methods to the service (after `StageCreate`):
             }
 
             orphan.SoftDelete(run.Actor.UserId, run.Actor.Username, run.UtcNow);
+
+            // Inline, per-orphan — same reasoning as StageCreateAsync/StageUpdateAsync
+            // (see Task 4's PersistAsync comment): a failure here is caught by this
+            // orphan's own try/catch in ReconcileOrphansAsync, not the whole batch.
+            await _repository.UpdateAsync(orphan, cancellationToken);
             run.PendingDeletes.Add(orphan);
         }
 ```
@@ -1396,14 +1411,7 @@ In `ReportStaged`, append:
                 }
 ```
 
-In `PersistAsync`, after the `PendingUpdates` loop and before `SaveChangesAsync`:
-
-```csharp
-                foreach (var action in run.PendingDeletes)
-                {
-                    await _repository.UpdateAsync(action, cancellationToken);
-                }
-```
+`PersistAsync` itself needs no change: it already only calls `SaveChangesAsync` (per the Task 4 ruling — `AddAsync`/`UpdateAsync` run inline in `StageCreateAsync`/`StageUpdateAsync`, and now `ReconcileOrphanAsync` for deletes, never in `PersistAsync`). `SaveChangesAsync` still commits the whole run — creates, updates, and now deletes — in one round-trip, because `_repository.UpdateAsync` on a tracked entity marks it Modified without hitting the database.
 
 - [ ] **Step 4: Run to verify they pass**
 
@@ -1515,10 +1523,15 @@ Expected: the two `SyncDeleted…` tests fail (`Skipped == 1`, `IsDeleted == tru
 
 - [ ] **Step 3: Implement**
 
-Replace `StageUpdate` in `MarketingCalendarSyncService`:
+Replace `StageUpdateAsync` in `MarketingCalendarSyncService`:
 
 ```csharp
-        private void StageUpdate(MarketingAction existing, OutlookEventDto evt, MarketingActionType actionType, SyncRun run)
+        private async Task StageUpdateAsync(
+            MarketingAction existing,
+            OutlookEventDto evt,
+            MarketingActionType actionType,
+            SyncRun run,
+            CancellationToken cancellationToken)
         {
             var needsRestore = existing.IsDeleted
                 && existing.DeletedByUserId == SyncActor.SystemUserId;
@@ -1543,6 +1556,7 @@ Replace `StageUpdate` in `MarketingCalendarSyncService`:
             }
 
             OutlookEventImportMapper.ApplyChanges(existing, evt, actionType, run.Actor, run.UtcNow);
+            await _repository.UpdateAsync(existing, cancellationToken);
             run.PendingUpdates.Add((existing, evt));
         }
 ```
