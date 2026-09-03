@@ -75,6 +75,17 @@ export const getProductDisplayQuantity = (
   return product.plannedQuantity;
 };
 
+// Products (and the direct semiproduct "residual" row) with a zero or missing
+// quantity are not manufactured on that day, so they are left out of the card.
+export const getVisibleCalendarProducts = <T extends { plannedQuantity?: number; actualQuantity?: number | null }>(
+  products: T[] | undefined,
+  orderState: ManufactureOrderState | undefined
+): T[] =>
+  (products ?? []).filter((product) => {
+    const quantity = getProductDisplayQuantity(product, orderState);
+    return quantity !== undefined && quantity !== 0;
+  });
+
 export const getWeightToleranceStatus = (
   weightWithinTolerance: boolean | undefined | null,
   orderState: ManufactureOrderState | undefined
@@ -526,6 +537,7 @@ const ManufactureOrderWeeklyCalendar: React.FC<ManufactureOrderWeeklyCalendarPro
                           const isDraggable = canDragOrder(event);
                           const isCompletedOrCancelled = event.state === ManufactureOrderState.Completed || 
                                                         event.state === ManufactureOrderState.Cancelled;
+                          const visibleProducts = getVisibleCalendarProducts(event.products, event.state);
                           
                           return (
                           <div
@@ -631,14 +643,14 @@ const ManufactureOrderWeeklyCalendar: React.FC<ManufactureOrderWeeklyCalendarPro
                             )}
 
                             {/* Products List */}
-                            {event.products && event.products.length > 0 && (
+                            {visibleProducts.length > 0 && (
                               <div className="flex-1 flex flex-col">
                                 <div className="text-xs font-medium mb-1 flex items-center space-x-1">
                                   <Package className="h-3 w-3" />
-                                  <span>Produkty ({event.products.length}):</span>
+                                  <span>Produkty ({visibleProducts.length}):</span>
                                 </div>
                                 <div className="space-y-1 flex-1">
-                                  {event.products.map((product, idx) => {
+                                  {visibleProducts.map((product, idx) => {
                                     // Direct semiproduct output only exists for MultiPhase orders.
                                     // For SinglePhase the semiproduct is a placeholder pointing at the
                                     // first product, so this sentinel would wrongly tag the real product
