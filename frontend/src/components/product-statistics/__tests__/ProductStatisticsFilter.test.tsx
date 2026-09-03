@@ -5,6 +5,7 @@ import ProductStatisticsFilter, {
   defaultDateTo,
   MAX_SELECTED_PRODUCTS,
 } from "../ProductStatisticsFilter";
+import { TimePeriod, resolveTimePeriod, getTimePeriodDisplayText } from "../../../utils/timePeriod";
 
 // The mock exposes onSelectMany so tests can drive the real handleProductsChange —
 // the cap and the blank-code filter live there, not in react-select.
@@ -216,5 +217,74 @@ describe("ProductStatisticsFilter", () => {
     expect(onProductsChange).toHaveBeenCalledWith([
       { productCode: "PROD-A", productName: "PROD-A" },
     ]);
+  });
+
+  describe("quick period buckets", () => {
+    // The buckets resolve against the real clock, so expectations are derived from the
+    // same helper the page uses rather than hardcoded months.
+    const monthOf = (date: Date) =>
+      `${date.getFullYear()}-${`${date.getMonth() + 1}`.padStart(2, "0")}`;
+
+    const y2y = resolveTimePeriod(TimePeriod.Y2Y).primary!;
+
+    test("renders a button per shared time period bucket", () => {
+      render(<ProductStatisticsFilter {...baseProps} />);
+
+      for (const period of [
+        TimePeriod.Y2Y,
+        TimePeriod.PreviousQuarter,
+        TimePeriod.FutureQuarter,
+        TimePeriod.PreviousSeason,
+        TimePeriod.Q9M,
+      ]) {
+        expect(
+          screen.getByRole("button", {
+            name: getTimePeriodDisplayText(period),
+          }),
+        ).toBeInTheDocument();
+      }
+    });
+
+    test("applies the month of each end of the picked bucket", () => {
+      const onDateFromChange = jest.fn();
+      const onDateToChange = jest.fn();
+      render(
+        <ProductStatisticsFilter
+          {...baseProps}
+          onDateFromChange={onDateFromChange}
+          onDateToChange={onDateToChange}
+        />,
+      );
+
+      fireEvent.click(
+        screen.getByRole("button", {
+          name: getTimePeriodDisplayText(TimePeriod.Y2Y),
+        }),
+      );
+
+      expect(onDateFromChange).toHaveBeenCalledWith(monthOf(y2y.from));
+      expect(onDateToChange).toHaveBeenCalledWith(monthOf(y2y.to));
+    });
+
+    test("marks the bucket matching the current range as pressed", () => {
+      render(
+        <ProductStatisticsFilter
+          {...baseProps}
+          dateFrom={monthOf(y2y.from)}
+          dateTo={monthOf(y2y.to)}
+        />,
+      );
+
+      expect(
+        screen.getByRole("button", {
+          name: getTimePeriodDisplayText(TimePeriod.Y2Y),
+        }),
+      ).toHaveAttribute("aria-pressed", "true");
+      expect(
+        screen.getByRole("button", {
+          name: getTimePeriodDisplayText(TimePeriod.PreviousSeason),
+        }),
+      ).toHaveAttribute("aria-pressed", "false");
+    });
   });
 });
