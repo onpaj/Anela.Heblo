@@ -1,0 +1,29 @@
+{
+  "feature_id": "feat-4043",
+  "issue_number": 4043,
+  "created_at": "2026-09-03T08:13:31.713429Z",
+  "max_revisions": 3,
+  "phases": {
+    "analyzing": {
+      "status": "pending",
+      "updated_at": null
+    },
+    "architecting": {
+      "status": "pending",
+      "updated_at": null
+    },
+    "designing": {
+      "status": "pending",
+      "updated_at": null
+    },
+    "planning": {
+      "status": "pending",
+      "updated_at": null
+    },
+    "developing": {
+      "status": "pending",
+      "updated_at": null
+    }
+  },
+  "tasks": []
+}
