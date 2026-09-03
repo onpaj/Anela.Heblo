@@ -21,16 +21,16 @@
       "updated_at": "2026-09-02T07:19:42.134509Z"
     },
     "developing": {
-      "status": "pending",
-      "updated_at": null
+      "status": "in_progress",
+      "updated_at": "2026-09-03T22:19:03.513531Z"
     }
   },
   "tasks": [
     {
       "name": "replace-applyenrichment-call-with-inline-cooling-loop",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-09-03T22:19:03.725232Z"
     }
   ]
 }
