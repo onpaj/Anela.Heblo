@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { AlertCircle } from "lucide-react";
+import { AlertCircle, ListChecks } from "lucide-react";
 import { CatalogAutocomplete } from "../common/CatalogAutocomplete";
 import { CatalogItemDto } from "../../api/generated/api-client";
 import {
@@ -11,6 +11,7 @@ import {
   resolveTimePeriod,
   getTimePeriodDisplayText,
 } from "../../utils/timePeriod";
+import ProductPickerModal from "./ProductPickerModal";
 
 export const MAX_SELECTED_PRODUCTS = 10;
 
@@ -94,6 +95,14 @@ const ProductStatisticsFilter: React.FC<ProductStatisticsFilterProps> = ({
   // react-select appends new picks, so the product dropped by the cap is the one just
   // clicked. Without this the click looks like a broken control rather than a refusal.
   const [wasCapExceeded, setWasCapExceeded] = useState(false);
+  const [isPickerOpen, setIsPickerOpen] = useState(false);
+
+  // The picker enforces the same cap, so a confirmed selection never trips the warning.
+  const handlePickerConfirm = (products: SelectedProduct[]) => {
+    setWasCapExceeded(false);
+    onProductsChange(products);
+    setIsPickerOpen(false);
+  };
 
   const handleQuickPeriod = (range: QuickPeriodRange) => {
     onDateFromChange(range.dateFrom);
@@ -138,6 +147,14 @@ const ProductStatisticsFilter: React.FC<ProductStatisticsFilterProps> = ({
             onSelectMany={handleProductsChange}
             placeholder="Vyberte produkty..."
           />
+          <button
+            type="button"
+            onClick={() => setIsPickerOpen(true)}
+            className="mt-2 inline-flex items-center px-3 py-1.5 text-sm font-medium text-gray-700 dark:text-graphite-text bg-white dark:bg-graphite-surface-2 border border-gray-300 dark:border-graphite-border rounded-md hover:bg-gray-50 dark:hover:bg-graphite-hover"
+          >
+            <ListChecks className="h-4 w-4 mr-1.5" />
+            Vybrat z katalogu
+          </button>
           {wasCapExceeded ? (
             <div className="mt-1 flex items-center text-sm text-red-600 dark:text-red-400">
               <AlertCircle className="h-4 w-4 mr-1" />
@@ -223,6 +240,14 @@ const ProductStatisticsFilter: React.FC<ProductStatisticsFilterProps> = ({
           </div>
         </div>
       </div>
+
+      <ProductPickerModal
+        isOpen={isPickerOpen}
+        selectedProducts={selectedProducts}
+        maxProducts={MAX_SELECTED_PRODUCTS}
+        onConfirm={handlePickerConfirm}
+        onClose={() => setIsPickerOpen(false)}
+      />
 
       {rangeError && (
         <div className="mt-2 flex items-center text-sm text-red-600 dark:text-red-400">

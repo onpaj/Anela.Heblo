@@ -18,6 +18,16 @@ const mockAutocomplete = ({ values, onSelectMany }: any) => {
   );
 };
 
+// The picker modal queries the catalog; these tests have no QueryClientProvider and
+// only exercise products that are already selected, so an empty result set is enough.
+jest.mock("../../../api/hooks/useCatalogAutocomplete", () => ({
+  useCatalogAutocomplete: () => ({
+    data: { items: [] },
+    isLoading: false,
+    isError: false,
+  }),
+}));
+
 jest.mock("../../common/CatalogAutocomplete", () => ({
   __esModule: true,
   default: (props: any) => mockAutocomplete(props),
@@ -285,6 +295,42 @@ describe("ProductStatisticsFilter", () => {
           name: getTimePeriodDisplayText(TimePeriod.PreviousSeason),
         }),
       ).toHaveAttribute("aria-pressed", "false");
+    });
+  });
+
+  describe("catalog picker", () => {
+    test("opens the picker modal", () => {
+      render(<ProductStatisticsFilter {...baseProps} />);
+
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+
+      fireEvent.click(screen.getByRole("button", { name: /Vybrat z katalogu/ }));
+
+      expect(
+        screen.getByRole("dialog", { name: "Vybrat produkty" }),
+      ).toBeInTheDocument();
+    });
+
+    test("confirming the picker applies its selection", () => {
+      const onProductsChange = jest.fn();
+      render(
+        <ProductStatisticsFilter
+          {...baseProps}
+          selectedProducts={[
+            { productCode: "AKL027", productName: "Demineralizovaná voda" },
+          ]}
+          onProductsChange={onProductsChange}
+        />,
+      );
+
+      fireEvent.click(screen.getByRole("button", { name: /Vybrat z katalogu/ }));
+      fireEvent.click(
+        screen.getByRole("checkbox", { name: "Demineralizovaná voda (AKL027)" }),
+      );
+      fireEvent.click(screen.getByRole("button", { name: "Potvrdit" }));
+
+      expect(onProductsChange).toHaveBeenCalledWith([]);
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
     });
   });
 });
