@@ -1,5 +1,6 @@
 using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Domain.Features.ProductPricing;
+using Anela.Heblo.Domain.Features.Users;
 using MediatR;
 
 namespace Anela.Heblo.Application.Features.ProductPricing.UseCases.SetProductPrice;
@@ -9,10 +10,12 @@ public class SetProductPriceHandler : IRequestHandler<SetProductPriceRequest, Se
     private static readonly PriceSyncTarget[] AllTargets = { PriceSyncTarget.Shoptet, PriceSyncTarget.Flexi };
 
     private readonly IProductPriceRepository _repository;
+    private readonly ICurrentUserService _currentUserService;
 
-    public SetProductPriceHandler(IProductPriceRepository repository)
+    public SetProductPriceHandler(IProductPriceRepository repository, ICurrentUserService currentUserService)
     {
         _repository = repository;
+        _currentUserService = currentUserService;
     }
 
     public async Task<SetProductPriceResponse> Handle(
@@ -28,6 +31,7 @@ public class SetProductPriceHandler : IRequestHandler<SetProductPriceRequest, Se
 
         price.PriceWithVat = request.PriceWithVat;
         price.ModifiedAt = DateTime.UtcNow;
+        price.ModifiedBy = _currentUserService.GetCurrentUser().Email;
         await _repository.UpsertAsync(price, cancellationToken);
 
         // The push itself is the job's work — Flexi's p95 is ~6.7s and must not block a save.
