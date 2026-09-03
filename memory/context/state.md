@@ -310,6 +310,31 @@ _Update this file at the end of significant sessions._
   left for a future run; #4003 (the sibling arch-review duplication finding) already had an
   open PR (#4011) before this run started.
 
+- `RecurringJobSeeder` TimeProvider planning (issue #4043, PR #4047, `feature/4043-Arch-Review-
+  Backgroundjobs-Recurringjobseeder-Uses`, 2026-09-03): a scheduled `/plan-next-task` run — this
+  time the full AgentHarness planning pipeline (branch-per-issue via `mcp__github__create_branch`,
+  dedicated worktree, `plan-orchestrator` subagent running analyst → architect → designer →
+  planner) worked end to end and should be the default to try first, not a fallback. Hit the two
+  standard walls: (1) `gh` CLI token invalid — used `.claude/skills/_lib/gh_api.sh` (`USE_GH_API=1`)
+  for reads and `mcp__github__*` for writes throughout; (2) the raw-curl `create-ref` POST for
+  `claim_issue.sh` hit the proxy's `403 Write access ... not permitted through this proxy` on
+  `git/refs` specifically — worked around by calling `mcp__github__create_branch` directly instead
+  of running `claim_issue.sh` as a black box. Also hit the standard uncommitted `gh_api.sh`
+  Content-Type/`-f` regression on session start (`agentharness init`'s bundled template
+  overwriting `.claude/agents/orchestrator.md`, `.claude/agents/plan-orchestrator.md`,
+  `.claude/skills/_lib/gh_api.sh`, `.claude/skills/oneshot/SKILL.md`) — restored all four via
+  `git checkout --` on the **primary checkout** (this session's designated branch,
+  `claude/beautiful-darwin-8n3xl5`) before doing anything else; not recommitted, matching `main`.
+  The planning subagent itself had no `Task` tool available, so it performed each phase's role
+  directly (grounded in real code reads of `RecurringJobSeeder.cs` etc.) rather than literally
+  spawning nested Tasks — produced the same artifact set (`brief.md`, `spec.r1.md`,
+  `arch-review.r1.md`, `design.r1.md`, `task-plan.r1.md`, `state.json`, one task-context file),
+  all committed and pushed with `git ls-files --error-unmatch` verification after each phase, as
+  the orchestrator doc requires. Draft PR opened via `mcp__github__create_pull_request`;
+  `ensure_pr_linked.sh` (`agent` label, `Closes #4043`, `#4043: <summary>` title) and the
+  `agent-planning` → `agent-ready-for-dev` label swap both worked fine via `gh_api.sh` REST writes
+  (labels/PR edits, not git-data) once the Content-Type fix was restored.
+
 ## Pending / Known Issues
 
 - Memory directory (issue #405): adding cross-session knowledge accumulation — this PR
