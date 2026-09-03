@@ -75,8 +75,8 @@ export const getProductDisplayQuantity = (
   return product.plannedQuantity;
 };
 
-// Products (and the direct semiproduct "residual" row) with a zero quantity are
-// not manufactured on that day, so they are left out of the calendar card.
+// Products (and the direct semiproduct "residual" row) with a zero or missing
+// quantity are not manufactured on that day, so they are left out of the card.
 export const getVisibleCalendarProducts = <T extends { plannedQuantity?: number; actualQuantity?: number | null }>(
   products: T[] | undefined,
   orderState: ManufactureOrderState | undefined

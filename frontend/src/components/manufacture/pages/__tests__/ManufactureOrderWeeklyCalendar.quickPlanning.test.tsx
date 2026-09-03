@@ -163,6 +163,17 @@ describe("getVisibleCalendarProducts", () => {
     expect(visible).toEqual([]);
   });
 
+  it("hides a product with no quantity at all", () => {
+    // Arrange
+    const products = [{ productCode: "MAS001180" }];
+
+    // Act
+    const visible = getVisibleCalendarProducts(products, "Planned" as any);
+
+    // Assert
+    expect(visible).toEqual([]);
+  });
+
   it("returns an empty array when there are no products", () => {
     expect(getVisibleCalendarProducts(undefined, "Planned" as any)).toEqual([]);
   });
