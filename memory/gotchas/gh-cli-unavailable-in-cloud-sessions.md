@@ -194,3 +194,20 @@ an empty `agent`-labeled queue as license to pick up pipeline-maintenance issues
 this, versus always reporting "nothing to plan," is a judgment call each run should
 make on its own merits (issue is genuinely actionable, small, low-risk, and on-topic
 for the pipeline) rather than a rule to apply automatically.
+
+**Root cause of the repeat-revert loop, fixed 2026-09-03.** Both fixes above kept
+reappearing as regressions because they only ever lived in this repo. The
+SessionStart hook runs `agentharness init --force`
+(`scripts/setup-cloud-env.sh:179`), which overwrites `.agents/`, `.claude/` and
+`.pipeline/` from the installed AgentHarness build — so every cloud session
+silently reverted the Content-Type header and the `git add -A -f` flags back to
+upstream's versions in the working tree. PR #3956 (`chore: update agentharness
+scaffolding to 0.32.0`) was exactly that revert, committed. It was closed
+unmerged; its only non-redundant hunk was the Content-Type regression.
+
+The durable fix is to send local scaffolding fixes **upstream to
+`onpaj/harness`** (`agentharness/data/skills/`, `agentharness/data/claude-agents/`,
+plus harness's own mirrored `.claude/skills/` copy — keep the two in sync), not
+just to this repo. Both fixes now live upstream, so `init` is a no-op for them.
+Before committing anything after a session start, check `git status` — a dirty
+`.claude/` tree is the hook's revert, not your work.
