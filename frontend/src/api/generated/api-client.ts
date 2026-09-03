@@ -10279,7 +10279,7 @@ export class ApiClient {
         return Promise.resolve<ProcessDailyConsumptionResponse>(null as any);
     }
 
-    packingMaterials_GetDailyConsumptionBreakdown(date: string | null | undefined, groupBy: string | undefined): Promise<GetDailyConsumptionBreakdownResponse> {
+    packingMaterials_GetDailyConsumptionBreakdown(date: string | null | undefined, groupBy: ConsumptionGroupBy | undefined): Promise<GetDailyConsumptionBreakdownResponse> {
         let url_ = this.baseUrl + "/api/packing-materials/consumption?";
         if (date !== undefined && date !== null)
             url_ += "date=" + encodeURIComponent("" + date) + "&";
@@ -11961,7 +11961,7 @@ export class ApiClient {
         return Promise.resolve<RecalculatePurchasePriceResponse>(null as any);
     }
 
-    purchaseStockAnalysis_GetStockAnalysis(fromDate: Date | null | undefined, toDate: Date | null | undefined, stockStatus: StockStatusFilter | undefined, onlyConfigured: boolean | undefined, searchTerm: string | null | undefined, pageNumber: number | undefined, pageSize: number | undefined, sortBy: StockAnalysisSortBy | undefined, sortDescending: boolean | undefined, isExport: boolean | undefined): Promise<GetPurchaseStockAnalysisResponse> {
+    purchaseStockAnalysis_GetStockAnalysis(fromDate: Date | null | undefined, toDate: Date | null | undefined, stockStatus: StockStatusFilter | undefined, materialCategory: MaterialCategoryFilter | undefined, onlyConfigured: boolean | undefined, searchTerm: string | null | undefined, pageNumber: number | undefined, pageSize: number | undefined, sortBy: StockAnalysisSortBy | undefined, sortDescending: boolean | undefined, isExport: boolean | undefined): Promise<GetPurchaseStockAnalysisResponse> {
         let url_ = this.baseUrl + "/api/purchase-stock-analysis?";
         if (fromDate !== undefined && fromDate !== null)
             url_ += "FromDate=" + encodeURIComponent(fromDate ? "" + fromDate.toISOString() : "") + "&";
@@ -11971,6 +11971,10 @@ export class ApiClient {
             throw new Error("The parameter 'stockStatus' cannot be null.");
         else if (stockStatus !== undefined)
             url_ += "StockStatus=" + encodeURIComponent("" + stockStatus) + "&";
+        if (materialCategory === null)
+            throw new Error("The parameter 'materialCategory' cannot be null.");
+        else if (materialCategory !== undefined)
+            url_ += "MaterialCategory=" + encodeURIComponent("" + materialCategory) + "&";
         if (onlyConfigured === null)
             throw new Error("The parameter 'onlyConfigured' cannot be null.");
         else if (onlyConfigured !== undefined)
@@ -37742,6 +37746,12 @@ export interface IConsumptionDetailDto {
     amount?: number;
 }
 
+export enum ConsumptionGroupBy {
+    Material = "Material",
+    Product = "Product",
+    Order = "Order",
+}
+
 export class GetConsumptionHistoryResponse extends BaseResponse implements IGetConsumptionHistoryResponse {
     items?: MaterialConsumptionHistoryItemDto[];
     totalCount?: number;
@@ -41213,6 +41223,13 @@ export enum StockStatusFilter {
     Optimal = "Optimal",
     Overstocked = "Overstocked",
     NotConfigured = "NotConfigured",
+}
+
+export enum MaterialCategoryFilter {
+    All = "All",
+    Labels = "Labels",
+    Packaging = "Packaging",
+    Other = "Other",
 }
 
 export enum StockAnalysisSortBy {
