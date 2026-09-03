@@ -21,16 +21,16 @@
       "updated_at": "2026-09-02T06:17:59.353067Z"
     },
     "developing": {
-      "status": "pending",
-      "updated_at": null
+      "status": "in_progress",
+      "updated_at": "2026-09-03T10:15:32.972049Z"
     }
   },
   "tasks": [
     {
       "name": "remove-redundant-whenall",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-09-03T10:15:33.317481Z"
     }
   ]
 }
