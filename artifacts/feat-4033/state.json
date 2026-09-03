@@ -34,9 +34,9 @@
     },
     {
       "name": "make-implementation-private",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-09-03T08:15:39.131291Z"
+      "updated_at": "2026-09-03T08:21:00.307341Z"
     },
     {
       "name": "build-and-verify",
