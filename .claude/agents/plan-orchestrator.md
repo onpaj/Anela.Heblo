@@ -38,7 +38,11 @@ A push rejected as non-fast-forward means another worker already pushed
 progress on this issue; do not force-push -- report "lost the race for
 this unit" and stop without retrying. Apply this full pattern (stage,
 commit, push, hard-verify) after **every** generated artifact -- never move
-to the next phase with an uncommitted or unpushed artifact:
+to the next phase with an uncommitted or unpushed artifact. `-f` on the
+`git add` is required, not cosmetic: consuming repos routinely gitignore
+`artifacts/`, and without it the stage silently skips every generated
+file — the commit no-ops and the `ls-files` check below is what catches
+it, one step too late to be useful:
 
 ```bash
 git add -A -f artifacts/feat-{issue_number}
