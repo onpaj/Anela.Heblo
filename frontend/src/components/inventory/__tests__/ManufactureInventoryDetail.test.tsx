@@ -142,6 +142,31 @@ describe('ManufactureInventoryModal - quantity input for materials without lots'
     expect(input.value).toBe('0.00');
   });
 
+  it('clamps a negative value to zero on blur', () => {
+    // Arrange
+    const input = setupQuantityInput();
+    fireEvent.change(input, { target: { value: '-7' } });
+
+    // Act
+    fireEvent.blur(input);
+
+    // Assert
+    expect(input.value).toBe('0.00');
+  });
+
+  it('does not decrement below zero', () => {
+    // Arrange
+    const input = setupQuantityInput();
+    fireEvent.change(input, { target: { value: '0' } });
+    fireEvent.blur(input);
+
+    // Act
+    fireEvent.click(screen.getByRole('button', { name: 'Snížit množství' }));
+
+    // Assert
+    expect(input.value).toBe('0.00');
+  });
+
   it('increments from the value currently typed in the field', () => {
     // Arrange
     const input = setupQuantityInput();
@@ -149,7 +174,7 @@ describe('ManufactureInventoryModal - quantity input for materials without lots'
     typeAtEnd(input, '1500');
 
     // Act
-    fireEvent.click(screen.getByTitle('Zvýšit množství'));
+    fireEvent.click(screen.getByRole('button', { name: 'Zvýšit množství' }));
 
     // Assert
     expect(input.value).toBe('1501.00');
@@ -162,7 +187,7 @@ describe('ManufactureInventoryModal - quantity input for materials without lots'
     typeAtEnd(input, '1500');
 
     // Act
-    fireEvent.click(screen.getByTitle('Snížit množství'));
+    fireEvent.click(screen.getByRole('button', { name: 'Snížit množství' }));
 
     // Assert
     expect(input.value).toBe('1499.00');
