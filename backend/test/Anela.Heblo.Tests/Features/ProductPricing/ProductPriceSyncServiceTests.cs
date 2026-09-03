@@ -289,4 +289,98 @@ public class ProductPriceSyncServiceTests
         _savedStates.Should().NotContain(s => s.Target == PriceSyncTarget.Shoptet);
         result.Pushed.Should().Be(1); // Flexi still ran
     }
+
+    [Fact]
+    public async Task never_pushes_when_the_master_price_row_is_missing()
+    {
+        // Arrange: a sync state was already pushed once, but the master ProductPrice row
+        // for "A" no longer exists. Without the guard, Decide would see a 0m Heblo price
+        // and, since remote hasn't drifted from the last-pushed value, compute Push(0).
+        _repository.Setup(r => r.GetAllAsync(It.IsAny<CancellationToken>())).ReturnsAsync(new List<ProductPrice>());
+        GivenSyncState("A", PriceSyncTarget.Shoptet, lastPushed: 190.00m);
+        GivenSyncState("A", PriceSyncTarget.Flexi, lastPushed: 190.00m);
+        _eshop.Setup(c => c.GetPricesWithVatAsync(It.IsAny<CancellationToken>()))
+              .ReturnsAsync(new Dictionary<string, decimal> { ["A"] = 190.00m });
+        GivenErp("A", erpItemId: 147, priceWithVat: 190.00m);
+        var service = CreateService();
+
+        // Act
+        var result = await service.SyncAsync(CancellationToken.None);
+
+        // Assert
+        result.Failed.Should().Be(2);
+        _eshop.Verify(c => c.SetPriceWithVatAsync(It.IsAny<string>(), It.IsAny<decimal>(), It.IsAny<CancellationToken>()), Times.Never);
+        _erpWriter.Verify(w => w.SetPriceWithoutVatAsync(It.IsAny<int>(), It.IsAny<decimal>(), It.IsAny<CancellationToken>()), Times.Never);
+        _savedStates.Should().OnlyContain(s => s.Status == PriceSyncStatus.Failed);
+    }
+
+    [Fact]
+    public async Task refuses_to_push_a_non_positive_price()
+    {
+        // Arrange: a genuine zero master price with no remote drift forces Decide into
+        // Push(0) directly — exercising the guard inside PushAsync itself, distinct from
+        // the missing-master-row guard above.
+        GivenHebloPrice("A", 0.00m);
+        GivenSyncState("A", PriceSyncTarget.Shoptet, lastPushed: 190.00m);
+        GivenSyncState("A", PriceSyncTarget.Flexi, lastPushed: 190.00m);
+        _eshop.Setup(c => c.GetPricesWithVatAsync(It.IsAny<CancellationToken>()))
+              .ReturnsAsync(new Dictionary<string, decimal> { ["A"] = 190.00m });
+        GivenErp("A", erpItemId: 147, priceWithVat: 190.00m);
+        var service = CreateService();
+
+        // Act
+        var result = await service.SyncAsync(CancellationToken.None);
+
+        // Assert
+        result.Failed.Should().Be(2);
+        _eshop.Verify(c => c.SetPriceWithVatAsync(It.IsAny<string>(), It.IsAny<decimal>(), It.IsAny<CancellationToken>()), Times.Never);
+        _erpWriter.Verify(w => w.SetPriceWithoutVatAsync(It.IsAny<int>(), It.IsAny<decimal>(), It.IsAny<CancellationToken>()), Times.Never);
+        _savedStates.Should().OnlyContain(s => s.LastError != null && s.LastError.Contains("non-positive"));
+    }
+
+    [Fact]
+    public async Task an_erp_read_failure_skips_flexi_but_still_syncs_shoptet()
+    {
+        // Arrange
+        GivenHebloPrice("A", 210.00m);
+        GivenSyncState("A", PriceSyncTarget.Shoptet, lastPushed: 190.00m);
+        GivenSyncState("A", PriceSyncTarget.Flexi, lastPushed: 190.00m);
+        _eshop.Setup(c => c.GetPricesWithVatAsync(It.IsAny<CancellationToken>()))
+              .ReturnsAsync(new Dictionary<string, decimal> { ["A"] = 190.00m });
+        _erpReader
+            .Setup(c => c.GetAllAsync(It.IsAny<bool>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new HttpRequestException("503 Service Unavailable"));
+        var service = CreateService();
+
+        // Act
+        var result = await service.SyncAsync(CancellationToken.None);
+
+        // Assert
+        result.Pushed.Should().Be(1);
+        _eshop.Verify(c => c.SetPriceWithVatAsync("A", 210.00m, It.IsAny<CancellationToken>()), Times.Once);
+        _savedStates.Should().NotContain(s => s.Target == PriceSyncTarget.Flexi);
+    }
+
+    [Fact]
+    public async Task an_erp_read_failure_defers_seeding()
+    {
+        // Arrange
+        _repository.Setup(r => r.GetAllAsync(It.IsAny<CancellationToken>())).ReturnsAsync(new List<ProductPrice>());
+        GivenSyncState("A", PriceSyncTarget.Shoptet, lastPushed: null);
+        GivenSyncState("A", PriceSyncTarget.Flexi, lastPushed: null);
+        _eshop.Setup(c => c.GetPricesWithVatAsync(It.IsAny<CancellationToken>()))
+              .ReturnsAsync(new Dictionary<string, decimal> { ["A"] = 190.00m });
+        _erpReader
+            .Setup(c => c.GetAllAsync(It.IsAny<bool>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new HttpRequestException("503 Service Unavailable"));
+        var service = CreateService();
+
+        // Act
+        var result = await service.SyncAsync(CancellationToken.None);
+
+        // Assert
+        result.Seeded.Should().Be(0);
+        _repository.Verify(r => r.UpsertAsync(It.IsAny<ProductPrice>(), It.IsAny<CancellationToken>()), Times.Never);
+        _savedStates.Should().BeEmpty();
+    }
 }

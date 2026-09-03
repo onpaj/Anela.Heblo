@@ -41,13 +41,35 @@ public class ProductPriceSyncService : IProductPriceSyncService
     public async Task<PriceSyncRunResult> SyncAsync(CancellationToken ct)
     {
         var result = new PriceSyncRunResult();
-        var prices = (await _repository.GetAllAsync(ct)).ToDictionary(p => p.ProductCode, StringComparer.OrdinalIgnoreCase);
 
-        var erpPrices = await ReadErpPricesAsync(ct);
+        // Our own master table and the in-scope product list are inputs we must trust to
+        // reconcile anything at all; if either read fails, there is nothing safe to compare
+        // against, so letting the exception abort the whole run is the correct behavior here
+        // (unlike a single target's remote-price read, which is isolated below).
+        var prices = (await _repository.GetAllAsync(ct)).ToDictionary(p => p.ProductCode, StringComparer.OrdinalIgnoreCase);
         var inScope = await ReadInScopeProductCodesAsync(ct);
 
-        await SyncTargetAsync(PriceSyncTarget.Shoptet, prices, erpPrices, inScope, result, ct);
-        await SyncTargetAsync(PriceSyncTarget.Flexi, prices, erpPrices, inScope, result, ct);
+        var (erpPrices, erpAvailable) = await TryReadErpPricesAsync(ct);
+
+        var context = new PriceSyncContext
+        {
+            Prices = prices,
+            ErpPrices = erpPrices,
+            InScopeProductCodes = inScope,
+            ErpAvailable = erpAvailable,
+            Result = result,
+        };
+
+        await SyncTargetAsync(PriceSyncTarget.Shoptet, context, ct);
+
+        if (erpAvailable)
+        {
+            await SyncTargetAsync(PriceSyncTarget.Flexi, context, ct);
+        }
+        else
+        {
+            _logger.LogWarning("Price sync skipped for Flexi: ERP price read failed");
+        }
 
         await _repository.SaveChangesAsync(ct);
 
@@ -68,30 +90,36 @@ public class ProductPriceSyncService : IProductPriceSyncService
             .ToHashSet(StringComparer.OrdinalIgnoreCase);
     }
 
-    private async Task<IReadOnlyDictionary<string, ProductPriceErp>> ReadErpPricesAsync(CancellationToken ct)
+    private async Task<(IReadOnlyDictionary<string, ProductPriceErp> ErpPrices, bool Available)> TryReadErpPricesAsync(CancellationToken ct)
     {
-        var erpPrices = await _erpReader.GetAllAsync(forceReload: false, ct);
+        try
+        {
+            var erpPrices = await _erpReader.GetAllAsync(forceReload: false, ct);
+            var byCode = erpPrices
+                .Where(p => !string.IsNullOrWhiteSpace(p.ProductCode))
+                .GroupBy(p => p.ProductCode, StringComparer.OrdinalIgnoreCase)
+                .ToDictionary(g => g.Key, g => g.First(), StringComparer.OrdinalIgnoreCase);
 
-        return erpPrices
-            .Where(p => !string.IsNullOrWhiteSpace(p.ProductCode))
-            .GroupBy(p => p.ProductCode, StringComparer.OrdinalIgnoreCase)
-            .ToDictionary(g => g.Key, g => g.First(), StringComparer.OrdinalIgnoreCase);
+            return (byCode, true);
+        }
+        catch (Exception ex)
+        {
+            // Flexi's prices come entirely from this read, and seeding needs its VAT rate,
+            // so a failure here is handled by the caller: skip Flexi outright and defer any
+            // Shoptet seed rather than guess a VAT rate.
+            _logger.LogError(ex, "Price sync: ERP price read failed");
+            return (new Dictionary<string, ProductPriceErp>(StringComparer.OrdinalIgnoreCase), false);
+        }
     }
 
-    private async Task SyncTargetAsync(
-        PriceSyncTarget target,
-        IDictionary<string, ProductPrice> prices,
-        IReadOnlyDictionary<string, ProductPriceErp> erpPrices,
-        IReadOnlySet<string> inScopeProductCodes,
-        PriceSyncRunResult result,
-        CancellationToken ct)
+    private async Task SyncTargetAsync(PriceSyncTarget target, PriceSyncContext context, CancellationToken ct)
     {
         IReadOnlyDictionary<string, decimal> remotePrices;
         try
         {
             remotePrices = target == PriceSyncTarget.Shoptet
                 ? await _eshopClient.GetPricesWithVatAsync(ct)
-                : erpPrices.ToDictionary(e => e.Key, e => e.Value.PriceWithVat, StringComparer.OrdinalIgnoreCase);
+                : context.ErpPrices.ToDictionary(e => e.Key, e => e.Value.PriceWithVat, StringComparer.OrdinalIgnoreCase);
         }
         catch (Exception ex)
         {
@@ -105,9 +133,9 @@ public class ProductPriceSyncService : IProductPriceSyncService
             .ToDictionary(s => s.ProductCode, StringComparer.OrdinalIgnoreCase);
 
         // Materials and semi-products have no selling price and are never synced (A3).
-        var productCodes = prices.Keys
+        var productCodes = context.Prices.Keys
             .Union(remotePrices.Keys, StringComparer.OrdinalIgnoreCase)
-            .Where(inScopeProductCodes.Contains)
+            .Where(context.InScopeProductCodes.Contains)
             .ToList();
 
         foreach (var productCode in productCodes)
@@ -118,14 +146,25 @@ public class ProductPriceSyncService : IProductPriceSyncService
             state ??= new ProductPriceSyncState { ProductCode = productCode, Target = target };
             state.Target = target;
 
-            prices.TryGetValue(productCode, out var hebloPrice);
+            context.Prices.TryGetValue(productCode, out var hebloPrice);
+
+            // A sync state that has already been pushed but has no matching master row
+            // would otherwise fall back to a 0m Heblo price below and could compute a
+            // Push(0) — a real zero price hitting production. Refuse instead.
+            if (hebloPrice is null && state.LastPushedPriceWithVat is not null)
+            {
+                context.Result.Failed++;
+                await FailAsync(state, $"No master price row for {productCode}; refusing to push.", ct);
+                continue;
+            }
+
             remotePrices.TryGetValue(productCode, out var remoteValue);
             var remote = remotePrices.ContainsKey(productCode) ? remoteValue : (decimal?)null;
 
             var decision = PriceSyncDecider.Decide(
                 hebloPrice?.PriceWithVat ?? 0m, state.LastPushedPriceWithVat, remote);
 
-            await ApplyDecisionAsync(decision, target, productCode, hebloPrice, prices, erpPrices, state, result, ct);
+            await ApplyDecisionAsync(decision, target, productCode, hebloPrice, context, state, ct);
         }
     }
 
@@ -134,29 +173,27 @@ public class ProductPriceSyncService : IProductPriceSyncService
         PriceSyncTarget target,
         string productCode,
         ProductPrice? hebloPrice,
-        IDictionary<string, ProductPrice> prices,
-        IReadOnlyDictionary<string, ProductPriceErp> erpPrices,
+        PriceSyncContext context,
         ProductPriceSyncState state,
-        PriceSyncRunResult result,
         CancellationToken ct)
     {
         switch (decision.Action)
         {
             case PriceSyncAction.None:
-                result.Unchanged++;
+                context.Result.Unchanged++;
                 return;
 
             case PriceSyncAction.MissingRemote:
-                result.Failed++;
+                context.Result.Failed++;
                 await FailAsync(state, $"Product {productCode} does not exist in {target}.", ct);
                 return;
 
             case PriceSyncAction.Seed:
-                await SeedAsync(decision, target, productCode, hebloPrice, prices, erpPrices, state, result, ct);
+                await SeedAsync(decision, target, productCode, hebloPrice, context, state, ct);
                 return;
 
             case PriceSyncAction.Conflict:
-                result.Conflicts++;
+                context.Result.Conflicts++;
                 state.Status = PriceSyncStatus.Conflict;
                 state.RemoteValueAtConflict = decision.RemoteValue;
                 state.ConflictDetectedAt = DateTime.UtcNow;
@@ -165,7 +202,7 @@ public class ProductPriceSyncService : IProductPriceSyncService
                 return;
 
             case PriceSyncAction.Push:
-                await PushAsync(decision, target, productCode, hebloPrice, erpPrices, state, result, ct);
+                await PushAsync(decision, target, productCode, hebloPrice, context, state, ct);
                 return;
         }
     }
@@ -175,10 +212,8 @@ public class ProductPriceSyncService : IProductPriceSyncService
         PriceSyncTarget target,
         string productCode,
         ProductPrice? hebloPrice,
-        IDictionary<string, ProductPrice> prices,
-        IReadOnlyDictionary<string, ProductPriceErp> erpPrices,
+        PriceSyncContext context,
         ProductPriceSyncState state,
-        PriceSyncRunResult result,
         CancellationToken ct)
     {
         // Shoptet is today's retail truth, so it seeds the master value. Flexi only ever
@@ -186,32 +221,61 @@ public class ProductPriceSyncService : IProductPriceSyncService
         // human to reconcile.
         if (target == PriceSyncTarget.Shoptet)
         {
-            result.Seeded++;
-            erpPrices.TryGetValue(productCode, out var erp);
-
-            var seeded = new ProductPrice
-            {
-                ProductCode = productCode,
-                PriceWithVat = decision.RemoteValue!.Value,
-                VatRate = DeriveVatRate(erp),
-                ModifiedAt = DateTime.UtcNow,
-                ModifiedBy = SeedModifiedBy,
-            };
-
-            await _repository.UpsertAsync(seeded, ct);
-
-            // Shoptet is synced first, so the seeded master value must be visible to the
-            // Flexi pass in this same run — otherwise Flexi would silently adopt its own
-            // value instead of raising the reconciliation conflict.
-            prices[productCode] = seeded;
-
-            state.LastPushedPriceWithVat = decision.RemoteValue;
-            state.LastPushedAt = DateTime.UtcNow;
-            state.Status = PriceSyncStatus.InSync;
-            await _repository.UpsertSyncStateAsync(state, ct);
+            await SeedFromEshopAsync(decision, productCode, context, state, ct);
             return;
         }
 
+        await ReconcileErpSeedAsync(decision, hebloPrice, context, state, ct);
+    }
+
+    private async Task SeedFromEshopAsync(
+        PriceSyncDecision decision,
+        string productCode,
+        PriceSyncContext context,
+        ProductPriceSyncState state,
+        CancellationToken ct)
+    {
+        if (!context.ErpAvailable)
+        {
+            // Seeding needs the ERP VAT rate; guessing the standard rate would persist a
+            // wrong rate for a reduced-VAT product. Leave the state untouched and retry
+            // the seed on the next run.
+            _logger.LogWarning("Price sync: deferring seed for {ProductCode}; ERP price read failed", productCode);
+            return;
+        }
+
+        context.Result.Seeded++;
+        context.ErpPrices.TryGetValue(productCode, out var erp);
+
+        var seeded = new ProductPrice
+        {
+            ProductCode = productCode,
+            PriceWithVat = decision.RemoteValue!.Value,
+            VatRate = DeriveVatRate(erp),
+            ModifiedAt = DateTime.UtcNow,
+            ModifiedBy = SeedModifiedBy,
+        };
+
+        await _repository.UpsertAsync(seeded, ct);
+
+        // Shoptet is synced first, so the seeded master value must be visible to the
+        // Flexi pass in this same run — otherwise Flexi would silently adopt its own
+        // value instead of raising the reconciliation conflict.
+        context.Prices[productCode] = seeded;
+
+        state.LastPushedPriceWithVat = decision.RemoteValue;
+        state.LastPushedAt = DateTime.UtcNow;
+        state.Status = PriceSyncStatus.InSync;
+        await _repository.UpsertSyncStateAsync(state, ct);
+    }
+
+    private async Task ReconcileErpSeedAsync(
+        PriceSyncDecision decision,
+        ProductPrice? hebloPrice,
+        PriceSyncContext context,
+        ProductPriceSyncState state,
+        CancellationToken ct)
+    {
         var seededPrice = hebloPrice?.PriceWithVat;
         if (seededPrice is null || Math.Round(seededPrice.Value, 2) == Math.Round(decision.RemoteValue!.Value, 2))
         {
@@ -222,7 +286,7 @@ public class ProductPriceSyncService : IProductPriceSyncService
             return;
         }
 
-        result.Conflicts++;
+        context.Result.Conflicts++;
         state.Status = PriceSyncStatus.Conflict;
         state.RemoteValueAtConflict = decision.RemoteValue;
         state.ConflictDetectedAt = DateTime.UtcNow;
@@ -234,11 +298,20 @@ public class ProductPriceSyncService : IProductPriceSyncService
         PriceSyncTarget target,
         string productCode,
         ProductPrice? hebloPrice,
-        IReadOnlyDictionary<string, ProductPriceErp> erpPrices,
+        PriceSyncContext context,
         ProductPriceSyncState state,
-        PriceSyncRunResult result,
         CancellationToken ct)
     {
+        if (decision.PriceToPush is not > 0m)
+        {
+            // Belt and braces alongside the missing-master-row guard above: never let a
+            // non-positive value reach a live price write. Shoptet treats a literal 0 as a
+            // genuine free price, not "clear", and there is no runtime zero-guard downstream.
+            context.Result.Failed++;
+            await FailAsync(state, $"Refusing to push a non-positive price for {productCode}.", ct);
+            return;
+        }
+
         try
         {
             if (target == PriceSyncTarget.Shoptet)
@@ -247,9 +320,9 @@ public class ProductPriceSyncService : IProductPriceSyncService
             }
             else
             {
-                if (!erpPrices.TryGetValue(productCode, out var erp) || erp.ErpItemId <= 0)
+                if (!context.ErpPrices.TryGetValue(productCode, out var erp) || erp.ErpItemId <= 0)
                 {
-                    result.Failed++;
+                    context.Result.Failed++;
                     await FailAsync(
                         state,
                         $"No Flexi ceník id known for {productCode}; refusing to write by code (Flexi would create a new item).",
@@ -263,7 +336,7 @@ public class ProductPriceSyncService : IProductPriceSyncService
                 await _erpWriter.SetPriceWithoutVatAsync(erp.ErpItemId, priceWithoutVat, ct);
             }
 
-            result.Pushed++;
+            context.Result.Pushed++;
             state.LastPushedPriceWithVat = decision.PriceToPush;
             state.LastPushedAt = DateTime.UtcNow;
             state.Status = PriceSyncStatus.InSync;
@@ -275,7 +348,7 @@ public class ProductPriceSyncService : IProductPriceSyncService
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to push {ProductCode} to {Target}", productCode, target);
-            result.Failed++;
+            context.Result.Failed++;
             await FailAsync(state, ex.Message, ct);
         }
     }
@@ -291,4 +364,19 @@ public class ProductPriceSyncService : IProductPriceSyncService
         erp is null
             ? VatRateCalculator.StandardVatRate
             : VatRateCalculator.FromPrices(erp.PriceWithVat, erp.PriceWithoutVat);
+
+    /// <summary>
+    /// Per-run state threaded through the sync pipeline: the master prices being reconciled
+    /// (mutated in place when Shoptet seeds a value the same run's Flexi pass must see), the
+    /// ERP snapshot and whether it was actually readable this run, the in-scope product codes,
+    /// and the running result counters.
+    /// </summary>
+    private sealed class PriceSyncContext
+    {
+        public required IDictionary<string, ProductPrice> Prices { get; init; }
+        public required IReadOnlyDictionary<string, ProductPriceErp> ErpPrices { get; init; }
+        public required IReadOnlySet<string> InScopeProductCodes { get; init; }
+        public required bool ErpAvailable { get; init; }
+        public required PriceSyncRunResult Result { get; init; }
+    }
 }
