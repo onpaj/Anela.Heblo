@@ -21,11 +21,49 @@ that is a different entry point, for a PR whose code was rejected.
 judgement call is step 3: what the reconciled content of a conflicting hunk
 should be.
 
-**If `USE_GH_API` is set in the environment**, every `gh` invocation shown
-below is routed through `.claude/skills/_lib/gh_api.sh` instead -- a
-curl+REST equivalent for environments where the `gh` CLI itself is not
-permitted (`update_and_wait.sh` and `resolve_conflict.sh` already branch on
-it internally).
+## GitHub access: MCP first, REST fallback, never `gh`
+
+GitHub access here is split in two, and the split is deliberate:
+
+- **Everything *you* read or write directly** goes through the **`github`
+  MCP server** — the `mcp__github__*` tools.
+- **If the `github` MCP server is not connected** (common in headless or
+  scheduled runs, where an interactively-authenticated MCP server may not
+  be present), use `.claude/skills/_lib/gh_api.sh` instead — the same
+  curl+REST transport the scripts use under `USE_GH_API`, needing only
+  `GITHUB_TOKEN` (or `GIT_PAT`). Each step below gives both forms.
+- **Never shell out to the `gh` CLI**, and never hand-write `curl` against
+  `api.github.com`. This skill is built to run where `gh` is blocked, so a
+  step that falls back to `gh` fails the run instead of degrading to
+  something that works.
+- **Everything the scripts do** stays inside those scripts. They keep their
+  own transport — `gh` by default, `gh_api.sh` when `USE_GH_API` is set, so
+  set `USE_GH_API=1` in any environment without `gh`. That is their
+  business, not yours: never reimplement a script's GitHub call as an MCP
+  call to "check its work".
+
+Every `mcp__github__*` call needs `owner` and `repo`. Resolve them once, at
+the start of the run, from `GH_REPO` (format `owner/repo`) if it is set,
+otherwise from the `origin` remote:
+
+```bash
+echo "${GH_REPO:-$(git remote get-url origin)}"
+```
+
+Parse `owner` and `repo` out of that and reuse them for every MCP call
+below. `git` itself is fine to run — it is not a GitHub API call.
+
+**Label writes stay on `gh_api.sh` even when MCP is available**
+(`gh_api.sh pr-edit {N} --add-label L` / `--remove-label L`). It uses
+GitHub's additive `POST`/`DELETE .../issues/{n}/labels` endpoints, which
+touch only the named label; the MCP issue-update tools take a whole label
+array and would silently drop every other label on the PR.
+
+**Where a value feeds a shell variable** (a head ref, the default branch —
+anything a later `git` command interpolates), use `gh_api.sh` even when MCP
+is available. An MCP result cannot be piped into `$(...)`, and transcribing
+it by hand into a shell variable is how typos reach `git`. MCP is for what
+*you* read and act on directly.
 
 ## 1. Resolve the target PR
 
@@ -33,13 +71,20 @@ If a PR number was given in your invocation, use it. Otherwise, check
 whether the branch you're currently on already has an open PR — if so,
 treat it as the target, the same as an explicit number:
 
+Get the current branch with `git rev-parse --abbrev-ref HEAD`, then call:
+
+**`mcp__github__list_pull_requests`**
+- `owner`, `repo` — as resolved above
+- `state`: `"open"`
+- `head`: `"{owner}:{current-branch}"`
+- `fields`: `["number", "state"]`
+
+If that returns exactly one PR, use its `.number`. Without MCP:
+
 ```bash
-if [ -n "${USE_GH_API:-}" ]; then
-  CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
-  .claude/skills/_lib/gh_api.sh pr-view "$CURRENT_BRANCH" 2>/dev/null | jq -r 'select(.state == "OPEN") | .number'
-else
-  gh pr view --json number,state -q 'select(.state == "OPEN") | .number' 2>/dev/null
-fi
+CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
+.claude/skills/_lib/gh_api.sh pr-view "$CURRENT_BRANCH" 2>/dev/null \
+  | jq -r 'select(.state == "OPEN") | .number'
 ```
 
 If that prints a number, use it as `{N}` and skip the candidate search
@@ -132,8 +177,8 @@ its `status`:
 by you until `--step finish` reports `pushed` or you run `--step abort`.**
 Release it on ANY exit before then — an unexpected error, a tool failure,
 running out of turns — by running `--step abort` (or, if the conflict itself
-was fine and only something incidental went wrong, `gh pr edit {N} --repo
-"$REPO" --remove-label agent-wip`). Nothing sweeps a leaked `agent-wip`
+was fine and only something incidental went wrong,
+`.claude/skills/_lib/gh_api.sh pr-edit {N} --remove-label agent-wip`). Nothing sweeps a leaked `agent-wip`
 label: it takes the PR out of `/rework-pr`'s backlog permanently, with no
 TTL.
 
