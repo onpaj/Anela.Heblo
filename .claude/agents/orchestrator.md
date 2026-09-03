@@ -26,7 +26,11 @@ artifact is lost. After each commit, hard-verify with `git ls-files
 *not* committed. The `|| true` on the commit only absorbs the idempotent
 "nothing changed" case on resume; the `ls-files` check still confirms the file is
 present in the tree either way. Apply this pattern after **every** generated
-artifact — never move to the next phase or task with an uncommitted artifact:
+artifact — never move to the next phase or task with an uncommitted artifact.
+`-f` on the `git add` is required, not cosmetic: consuming repos routinely
+gitignore `artifacts/`, and without it the stage silently skips every
+generated file — the commit no-ops and the `ls-files` check below is what
+catches it, one step too late to be useful:
 
 ```bash
 git add -A -f artifacts/feat-{issue_number}
