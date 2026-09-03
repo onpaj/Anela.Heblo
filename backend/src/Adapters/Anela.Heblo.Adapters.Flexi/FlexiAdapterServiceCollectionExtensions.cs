@@ -25,6 +25,7 @@ using Anela.Heblo.Domain.Features.Catalog.Price;
 using Anela.Heblo.Domain.Features.Catalog.PurchaseHistory;
 using Anela.Heblo.Domain.Features.Catalog.Sales;
 using Anela.Heblo.Domain.Features.Catalog.Stock;
+using Anela.Heblo.Domain.Features.ProductPricing;
 using Anela.Heblo.Domain.Features.Bank;
 using Anela.Heblo.Domain.Features.InvoiceClassification;
 using Anela.Heblo.Domain.Features.Invoices;
@@ -64,6 +65,7 @@ public static class FlexiAdapterServiceCollectionExtensions
         services.AddSingleton<IConsumedMaterialsClient, FlexiConsumedMaterialsQueryClient>();
         services.AddSingleton<IErpStockClient, FlexiStockClient>();
         services.AddScoped<IProductPriceErpClient, FlexiProductPriceErpClient>();
+        services.AddScoped<IErpPriceWriter, FlexiProductPriceWriter>();
         services.AddSingleton<IPurchaseHistoryClient, FlexiPurchaseHistoryQueryClient>();
 
         services.AddSingleton<IManufactureHistoryClient, FlexiManufactureHistoryClient>();
