@@ -37,6 +37,50 @@ If that does not produce an `owner/name` pair, stop and say so — do not
 fall back to implicit resolution. Use `--repo "$REPO"` on every `gh`
 invocation below.
 
+## GitHub access: MCP first, REST fallback, never `gh`
+
+GitHub access here is split in two, and the split is deliberate:
+
+- **Everything *you* read or write directly** goes through the **`github`
+  MCP server** — the `mcp__github__*` tools.
+- **If the `github` MCP server is not connected** (common in headless or
+  scheduled runs, where an interactively-authenticated MCP server may not
+  be present), use `.claude/skills/_lib/gh_api.sh` instead — the same
+  curl+REST transport the scripts use under `USE_GH_API`, needing only
+  `GITHUB_TOKEN` (or `GIT_PAT`). Each step below gives both forms.
+- **Never shell out to the `gh` CLI**, and never hand-write `curl` against
+  `api.github.com`. This skill is built to run where `gh` is blocked, so a
+  step that falls back to `gh` fails the run instead of degrading to
+  something that works.
+- **Everything the scripts do** stays inside those scripts. They keep their
+  own transport — `gh` by default, `gh_api.sh` when `USE_GH_API` is set, so
+  set `USE_GH_API=1` in any environment without `gh`. That is their
+  business, not yours: never reimplement a script's GitHub call as an MCP
+  call to "check its work".
+
+Every `mcp__github__*` call needs `owner` and `repo`. Resolve them once, at
+the start of the run, from `GH_REPO` (format `owner/repo`) if it is set,
+otherwise from the `origin` remote:
+
+```bash
+echo "${GH_REPO:-$(git remote get-url origin)}"
+```
+
+Parse `owner` and `repo` out of that and reuse them for every MCP call
+below. `git` itself is fine to run — it is not a GitHub API call.
+
+**Label writes stay on `gh_api.sh` even when MCP is available**
+(`gh_api.sh pr-edit {N} --add-label L` / `--remove-label L`). It uses
+GitHub's additive `POST`/`DELETE .../issues/{n}/labels` endpoints, which
+touch only the named label; the MCP issue-update tools take a whole label
+array and would silently drop every other label on the PR.
+
+**Where a value feeds a shell variable** (a head ref, the default branch —
+anything a later `git` command interpolates), use `gh_api.sh` even when MCP
+is available. An MCP result cannot be piped into `$(...)`, and transcribing
+it by hand into a shell variable is how typos reach `git`. MCP is for what
+*you* read and act on directly.
+
 ## 1. Resolve the target PR
 
 If a PR number was given in your invocation, use it as `{N}` and skip to
@@ -47,13 +91,15 @@ Otherwise, check whether the branch you're currently on already has an
 open PR — if so, treat it exactly like an explicit number (skip to step 2,
 still confirming `OPEN` there, and skip candidate search entirely):
 
+Get the current branch with `git rev-parse --abbrev-ref HEAD`, then call
+**`mcp__github__list_pull_requests`** with `owner`, `repo`, `state: "open"`,
+`head: "{owner}:{current-branch}"`, `fields: ["number", "state"]`. Without
+MCP:
+
 ```bash
-if [ -n "${USE_GH_API:-}" ]; then
-  CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
-  GH_REPO="$REPO" .claude/skills/_lib/gh_api.sh pr-view "$CURRENT_BRANCH" 2>/dev/null | jq -r 'select(.state == "OPEN") | .number'
-else
-  gh pr view --repo "$REPO" --json number,state -q 'select(.state == "OPEN") | .number' 2>/dev/null
-fi
+CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
+GH_REPO="$REPO" .claude/skills/_lib/gh_api.sh pr-view "$CURRENT_BRANCH" 2>/dev/null \
+  | jq -r 'select(.state == "OPEN") | .number'
 ```
 
 If that prints a number, use it as `{N}`. Otherwise, fall back to the
@@ -75,12 +121,12 @@ stop. Otherwise set `{N}` from `.candidate.number`.
 
 ## 2. Confirm it's open and unclaimed, then claim it
 
+Read the PR with **`mcp__github__pull_request_read`** (`method: "get"`,
+`pullNumber: {N}`) — you need its `state`, its labels, and its head ref.
+Without MCP:
+
 ```bash
-if [ -n "${USE_GH_API:-}" ]; then
-  GH_REPO="$REPO" .claude/skills/_lib/gh_api.sh pr-view {N}
-else
-  gh pr view {N} --repo "$REPO" --json state,labels
-fi
+GH_REPO="$REPO" .claude/skills/_lib/gh_api.sh pr-view {N}
 ```
 
 If `.state` is not `OPEN`, report this PR as skipped (not pushed to) and
@@ -98,14 +144,9 @@ may not exist in the repo yet — create it best-effort first, the same
 pattern `apply_verdict.sh` already uses for `needs-work`/`agent-merged`:
 
 ```bash
-if [ -n "${USE_GH_API:-}" ]; then
-  GH_REPO="$REPO" .claude/skills/_lib/gh_api.sh label-create agent-wip fbca04 "Claimed by an in-progress /rework-pr run" >/dev/null 2>&1 || true
-  GH_REPO="$REPO" .claude/skills/_lib/gh_api.sh pr-edit {N} --add-label agent-wip
-else
-  gh label create agent-wip --repo "$REPO" --color fbca04 \
-    --description "Claimed by an in-progress /rework-pr run" >/dev/null 2>&1 || true
-  gh pr edit {N} --repo "$REPO" --add-label agent-wip
-fi
+GH_REPO="$REPO" .claude/skills/_lib/gh_api.sh label-create agent-wip fbca04 \
+  "Claimed by an in-progress /rework-pr run" >/dev/null 2>&1 || true
+GH_REPO="$REPO" .claude/skills/_lib/gh_api.sh pr-edit {N} --add-label agent-wip
 ```
 
 This check-then-claim narrows the race but is not a true atomic lock —
@@ -117,11 +158,7 @@ including a script exiting non-zero, a `git` command failing, an unexpected
 error, or running out of turns mid-task:
 
 ```bash
-if [ -n "${USE_GH_API:-}" ]; then
-  GH_REPO="$REPO" .claude/skills/_lib/gh_api.sh pr-edit {N} --remove-label agent-wip
-else
-  gh pr edit {N} --repo "$REPO" --remove-label agent-wip
-fi
+GH_REPO="$REPO" .claude/skills/_lib/gh_api.sh pr-edit {N} --remove-label agent-wip
 ```
 
 The four paths called out below are the common cases, **not an exhaustive
@@ -152,9 +189,8 @@ worktree convention:
 ```bash
 HEAD_REF=$(jq -r '.candidate.headRefName // empty' /tmp/rework-candidate.json)
 # If you took the explicit-PR-number or current-branch path in step 1,
-# HEAD_REF came from step 2's PR view instead (`.headRefName` on either
-# `gh pr view {N} --repo "$REPO" --json headRefName` or the API-mode
-# `gh_api.sh pr-view {N}` object, which already includes it).
+# HEAD_REF came from step 2's PR view instead — `.headRefName` on the
+# `gh_api.sh pr-view {N}` object, or `.head.ref` from pull_request_read.
 WORKTREE="../worktrees/$(echo "$HEAD_REF" | sed 's#/#-#')"
 
 if [ -d "$WORKTREE" ]; then
@@ -171,11 +207,7 @@ the primary checkout.
 ## 4. Sync with the default branch — merge, not rebase
 
 ```bash
-if [ -n "${USE_GH_API:-}" ]; then
-  DEFAULT_BRANCH=$(GH_REPO="$REPO" .claude/skills/_lib/gh_api.sh default-branch)
-else
-  DEFAULT_BRANCH=$(gh repo view "$REPO" --json defaultBranchRef --jq .defaultBranchRef.name)
-fi
+DEFAULT_BRANCH=$(GH_REPO="$REPO" .claude/skills/_lib/gh_api.sh default-branch)
 git -C "$WORKTREE" fetch origin "$DEFAULT_BRANCH"
 git -C "$WORKTREE" merge "origin/$DEFAULT_BRANCH" --no-edit
 ```
@@ -183,8 +215,7 @@ git -C "$WORKTREE" merge "origin/$DEFAULT_BRANCH" --no-edit
 Use `merge`, never `rebase`, here: these branches are periodically synced
 via merge commits already in their history, and replaying their original
 linear commits with `git rebase` manufactures false conflicts on history a
-plain `git merge` reconciles cleanly. `defaultBranchRefName` is **not** a
-valid `gh repo view` field — always use `defaultBranchRef.name`.
+plain `git merge` reconciles cleanly.
 
 If the merge reports conflicts, resolve them as a judgement call — same
 tier as reading review feedback in step 5. If a conflict's intent is
@@ -203,22 +234,31 @@ Gather the PR's full review history before touching any code — not just
 the latest `/automerge-pr` block, so context from earlier rounds or a
 human's inline notes is not lost:
 
+This is read and interpreted by you directly, never parsed by a later `jq`
+filter, so it is squarely MCP's half of the split:
+
+- **`mcp__github__pull_request_read`** (`method: "get"`, `pullNumber: {N}`)
+  — title and body
+- **`mcp__github__issue_read`** (`method: "get_comments"`,
+  `issue_number: {N}`) — the PR's conversation comments, where every
+  `/automerge-pr` and hygiene rejection lands
+- **`mcp__github__pull_request_read`** (`method: "get_reviews"`,
+  `pullNumber: {N}`) — formal reviews
+- **`mcp__github__pull_request_read`** (`method: "get_review_comments"`,
+  `pullNumber: {N}`) — inline review comments
+- **`mcp__github__pull_request_read`** (`method: "get_diff"`,
+  `pullNumber: {N}`) — the diff you are about to change
+
+Without MCP, the same information as separate REST calls (no single call
+reproduces `gh`'s combined `comments,reviews` shape, which does not matter
+here):
+
 ```bash
-if [ -n "${USE_GH_API:-}" ]; then
-  # No single API-mode call reproduces gh's combined `comments,reviews`
-  # shape exactly -- this step is read and interpreted by you directly, not
-  # parsed by a later jq filter, so fetching the equivalent information as
-  # separate calls is fine here.
-  GH_REPO="$REPO" .claude/skills/_lib/gh_api.sh pr-view {N}
-  GH_REPO="$REPO" .claude/skills/_lib/gh_api.sh GET "repos/$REPO/issues/{N}/comments"
-  GH_REPO="$REPO" .claude/skills/_lib/gh_api.sh GET "repos/$REPO/pulls/{N}/reviews"
-  GH_REPO="$REPO" .claude/skills/_lib/gh_api.sh GET "repos/$REPO/pulls/{N}/comments"
-  GH_REPO="$REPO" .claude/skills/_lib/gh_api.sh pr-diff {N}
-else
-  gh pr view {N} --repo "$REPO" --json title,body,comments,reviews
-  gh api "repos/$REPO/pulls/{N}/comments"
-  gh pr diff {N} --repo "$REPO"
-fi
+GH_REPO="$REPO" .claude/skills/_lib/gh_api.sh pr-view {N}
+GH_REPO="$REPO" .claude/skills/_lib/gh_api.sh GET "repos/$REPO/issues/{N}/comments"
+GH_REPO="$REPO" .claude/skills/_lib/gh_api.sh GET "repos/$REPO/pulls/{N}/reviews"
+GH_REPO="$REPO" .claude/skills/_lib/gh_api.sh GET "repos/$REPO/pulls/{N}/comments"
+GH_REPO="$REPO" .claude/skills/_lib/gh_api.sh pr-diff {N}
 ```
 
 This includes any hygiene needs-work comment (`Hygiene check found this PR
@@ -243,11 +283,7 @@ wrote to the branch mid-run — not necessarily this skill):
 
 ```bash
 release_agent_wip_claim() {
-  if [ -n "${USE_GH_API:-}" ]; then
-    GH_REPO="$REPO" .claude/skills/_lib/gh_api.sh pr-edit {N} --remove-label agent-wip
-  else
-    gh pr edit {N} --repo "$REPO" --remove-label agent-wip
-  fi
+  GH_REPO="$REPO" .claude/skills/_lib/gh_api.sh pr-edit {N} --remove-label agent-wip
 }
 
 attempt=1
