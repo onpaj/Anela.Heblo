@@ -26,6 +26,7 @@ const ManufactureInventoryModal: React.FC<ManufactureInventoryModalProps> = ({
   onClose,
 }) => {
   const [newQuantity, setNewQuantity] = useState<number>(0);
+  const [newQuantityInput, setNewQuantityInput] = useState<string | undefined>(undefined); // Temporary input value for editing
   const [activeTab, setActiveTab] = useState<'inventory' | 'history'>('inventory');
   const [editableLots, setEditableLots] = useState<EditableLot[]>([]);
   
@@ -63,6 +64,7 @@ const ManufactureInventoryModal: React.FC<ManufactureInventoryModalProps> = ({
       // For materials, use ERP stock instead of eshop stock
       const currentStock = Math.round((effectiveItem.stock?.erp || 0) * 100) / 100;
       setNewQuantity(currentStock);
+      setNewQuantityInput(undefined);
 
       // Initialize editable lots if the item has lots
       if (effectiveItem.hasLots && effectiveItem.lots) {
@@ -107,6 +109,23 @@ const ManufactureInventoryModal: React.FC<ManufactureInventoryModalProps> = ({
 
   // For materials, use ERP stock instead of eshop stock
   const currentStock = Math.round((effectiveItem?.stock?.erp || 0) * 100) / 100;
+
+  // Helper functions for the total quantity input (materials without lots)
+  const commitNewQuantity = (newAmount: number) => {
+    setNewQuantity(Math.round(Math.max(0, newAmount) * 100) / 100);
+    setNewQuantityInput(undefined);
+  };
+
+  const commitNewQuantityInput = () => {
+    if (newQuantityInput === undefined) return;
+    const value = parseFloat(newQuantityInput);
+    commitNewQuantity(isNaN(value) ? 0 : value);
+  };
+
+  const adjustNewQuantity = (delta: number) => {
+    const current = newQuantityInput !== undefined ? parseFloat(newQuantityInput) : newQuantity;
+    commitNewQuantity((isNaN(current) ? 0 : current) + delta);
+  };
 
   // Helper functions for lot management
   const updateLotAmount = (index: number, newAmount: number) => {
@@ -622,10 +641,8 @@ const ManufactureInventoryModal: React.FC<ManufactureInventoryModalProps> = ({
                         </label>
                         <div className="flex items-center space-x-3 mb-4">
                           <button
-                            onClick={() => {
-                              const newValue = Math.max(0, newQuantity - 1);
-                              setNewQuantity(Math.round(newValue * 100) / 100);
-                            }}
+                            onClick={() => adjustNewQuantity(-1)}
+                            title="Snížit množství"
                             className="w-32 h-12 flex items-center justify-center bg-white border border-gray-300 rounded-lg text-gray-600 hover:bg-gray-50 hover:text-gray-900 touch-manipulation text-xl font-semibold dark:bg-graphite-surface-2 dark:border-graphite-border dark:text-graphite-muted dark:hover:bg-white/5 dark:hover:text-graphite-text"
                             type="button"
                           >
@@ -635,19 +652,20 @@ const ManufactureInventoryModal: React.FC<ManufactureInventoryModalProps> = ({
                             type="number"
                             min="0"
                             step="0.01"
-                            value={newQuantity.toFixed(2)}
-                            onChange={(e) => {
-                              const value = parseFloat(e.target.value);
-                              const roundedValue = Math.round(Math.max(0, isNaN(value) ? 0 : value) * 100) / 100;
-                              setNewQuantity(roundedValue);
+                            value={newQuantityInput !== undefined ? newQuantityInput : newQuantity.toFixed(2)}
+                            onChange={(e) => setNewQuantityInput(e.target.value)}
+                            onBlur={() => commitNewQuantityInput()}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') {
+                                commitNewQuantityInput();
+                                e.currentTarget.blur();
+                              }
                             }}
                             className="flex-1 text-center border border-gray-300 rounded-lg px-4 py-3 text-xl font-bold focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent touch-manipulation dark:bg-graphite-surface-2 dark:border-graphite-border dark:text-graphite-text dark:placeholder-graphite-faint"
                           />
                           <button
-                            onClick={() => {
-                              const newValue = newQuantity + 1;
-                              setNewQuantity(Math.round(newValue * 100) / 100);
-                            }}
+                            onClick={() => adjustNewQuantity(1)}
+                            title="Zvýšit množství"
                             className="w-32 h-12 flex items-center justify-center bg-white border border-gray-300 rounded-lg text-gray-600 hover:bg-gray-50 hover:text-gray-900 touch-manipulation text-xl font-semibold dark:bg-graphite-surface-2 dark:border-graphite-border dark:text-graphite-muted dark:hover:bg-white/5 dark:hover:text-graphite-text"
                             type="button"
                           >
