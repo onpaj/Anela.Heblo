@@ -11,8 +11,10 @@ Every subagent you spawn reads GitHub through the **`github` MCP server**
 (`mcp__github__*`), per `automerge-pr/SKILL.md`'s *GitHub access* section —
 not the `gh` CLI. The scripts this skill calls directly (`candidates.sh`,
 `apply_verdict.sh`) keep their own `gh` / `USE_GH_API` transport, unchanged.
-If the `github` MCP server is not connected in this environment, stop and
-report that rather than falling back to `gh` yourself.
+If the `github` MCP server is not connected in this environment, the
+subagents fall back to `.claude/skills/_lib/gh_api.sh` (curl+REST) per that
+same section — never to the `gh` CLI, which is blocked wherever this runs
+unattended.
 
 ## 1. Find the candidates
 
