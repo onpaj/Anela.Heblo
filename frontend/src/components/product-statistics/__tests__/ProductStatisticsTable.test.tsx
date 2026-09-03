@@ -1,5 +1,6 @@
 import React from "react";
 import { render, screen, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import ProductStatisticsTable from "../ProductStatisticsTable";
 
 const months = ["2025-01", "2025-02", "2025-03"];
@@ -9,16 +10,51 @@ const series = [
 ];
 
 describe("ProductStatisticsTable", () => {
-  test("renders a column per product plus a total column", () => {
+  test("renders a tab per product with the first one selected", () => {
     render(<ProductStatisticsTable months={months} series={series} />);
 
-    const headers = screen.getAllByRole("columnheader");
-    expect(headers.map((h) => h.textContent)).toEqual([
-      "Měsíc",
+    const tabs = screen.getAllByRole("tab");
+    expect(tabs.map((tab) => tab.textContent)).toEqual([
       "Krém (PROD-A)",
       "Mýdlo (PROD-B)",
-      "Celkem",
     ]);
+    expect(tabs[0]).toHaveAttribute("aria-selected", "true");
+    expect(tabs[1]).toHaveAttribute("aria-selected", "false");
+  });
+
+  test("renders only the selected product's table", () => {
+    render(<ProductStatisticsTable months={months} series={series} />);
+
+    expect(screen.getAllByRole("table")).toHaveLength(1);
+
+    const headers = screen.getAllByRole("columnheader");
+    expect(headers.map((h) => h.textContent)).toEqual(["Měsíc", "Množství"]);
+
+    const marchRow = screen.getByRole("row", { name: /2025-03/ });
+    expect(within(marchRow).getAllByRole("cell")[1]).toHaveTextContent("143");
+  });
+
+  test("switches the table when another product tab is clicked", async () => {
+    const user = userEvent.setup();
+    render(<ProductStatisticsTable months={months} series={series} />);
+
+    await user.click(screen.getByRole("tab", { name: "Mýdlo (PROD-B)" }));
+
+    const marchRow = screen.getByRole("row", { name: /2025-03/ });
+    expect(within(marchRow).getAllByRole("cell")[1]).toHaveTextContent("40");
+  });
+
+  test("falls back to the first tab when the selected product is removed", async () => {
+    const user = userEvent.setup();
+    const { rerender } = render(
+      <ProductStatisticsTable months={months} series={series} />,
+    );
+
+    await user.click(screen.getByRole("tab", { name: "Mýdlo (PROD-B)" }));
+    rerender(<ProductStatisticsTable months={months} series={[series[0]]} />);
+
+    const marchRow = screen.getByRole("row", { name: /2025-03/ });
+    expect(within(marchRow).getAllByRole("cell")[1]).toHaveTextContent("143");
   });
 
   test("renders months newest first", () => {
@@ -32,28 +68,15 @@ describe("ProductStatisticsTable", () => {
     expect(firstCells).toEqual(["2025-03", "2025-02", "2025-01"]);
   });
 
-  test("totals each row across products", () => {
+  test("totals the selected product in the footer", () => {
     render(<ProductStatisticsTable months={months} series={series} />);
 
-    const marchRow = screen.getByRole("row", { name: /2025-03/ });
-    const cells = within(marchRow).getAllByRole("cell");
-
-    expect(cells[cells.length - 1]).toHaveTextContent("183");
-  });
-
-  test("totals each product column in the footer", () => {
-    render(<ProductStatisticsTable months={months} series={series} />);
-
-    // Take the last row rather than getByRole("row", { name: /Celkem/ }): the header
-    // row also contains "Celkem" (its last column header) and role-name matching is
-    // substring-based, so the name query matches both. The totals row is always last.
+    // The totals row is always last; the header row also contains "Celkem"-like
+    // text, so index rather than name-match it.
     const rows = screen.getAllByRole("row");
-    const footerRow = rows[rows.length - 1];
-    const cells = within(footerRow).getAllByRole("cell");
+    const footerCells = within(rows[rows.length - 1]).getAllByRole("cell");
 
-    expect(cells[1]).toHaveTextContent("361");
-    expect(cells[2]).toHaveTextContent("136");
-    expect(cells[3]).toHaveTextContent("497");
+    expect(footerCells[1]).toHaveTextContent("361");
   });
 
   test("renders months with no data as zero", () => {

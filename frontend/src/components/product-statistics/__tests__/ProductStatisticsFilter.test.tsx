@@ -5,6 +5,7 @@ import ProductStatisticsFilter, {
   defaultDateTo,
   MAX_SELECTED_PRODUCTS,
 } from "../ProductStatisticsFilter";
+import { TimePeriod, resolveTimePeriod, getTimePeriodDisplayText } from "../../../utils/timePeriod";
 
 // The mock exposes onSelectMany so tests can drive the real handleProductsChange —
 // the cap and the blank-code filter live there, not in react-select.
@@ -16,6 +17,16 @@ const mockAutocomplete = ({ values, onSelectMany }: any) => {
     <div data-testid="catalog-autocomplete">{values?.length ?? 0} vybráno</div>
   );
 };
+
+// The picker modal queries the catalog; these tests have no QueryClientProvider and
+// only exercise products that are already selected, so an empty result set is enough.
+jest.mock("../../../api/hooks/useCatalogAutocomplete", () => ({
+  useCatalogAutocomplete: () => ({
+    data: { items: [] },
+    isLoading: false,
+    isError: false,
+  }),
+}));
 
 jest.mock("../../common/CatalogAutocomplete", () => ({
   __esModule: true,
@@ -216,5 +227,110 @@ describe("ProductStatisticsFilter", () => {
     expect(onProductsChange).toHaveBeenCalledWith([
       { productCode: "PROD-A", productName: "PROD-A" },
     ]);
+  });
+
+  describe("quick period buckets", () => {
+    // The buckets resolve against the real clock, so expectations are derived from the
+    // same helper the page uses rather than hardcoded months.
+    const monthOf = (date: Date) =>
+      `${date.getFullYear()}-${`${date.getMonth() + 1}`.padStart(2, "0")}`;
+
+    const y2y = resolveTimePeriod(TimePeriod.Y2Y).primary!;
+
+    test("renders a button per shared time period bucket", () => {
+      render(<ProductStatisticsFilter {...baseProps} />);
+
+      for (const period of [
+        TimePeriod.Y2Y,
+        TimePeriod.PreviousQuarter,
+        TimePeriod.FutureQuarter,
+        TimePeriod.PreviousSeason,
+        TimePeriod.Q9M,
+      ]) {
+        expect(
+          screen.getByRole("button", {
+            name: getTimePeriodDisplayText(period),
+          }),
+        ).toBeInTheDocument();
+      }
+    });
+
+    test("applies the month of each end of the picked bucket", () => {
+      const onDateFromChange = jest.fn();
+      const onDateToChange = jest.fn();
+      render(
+        <ProductStatisticsFilter
+          {...baseProps}
+          onDateFromChange={onDateFromChange}
+          onDateToChange={onDateToChange}
+        />,
+      );
+
+      fireEvent.click(
+        screen.getByRole("button", {
+          name: getTimePeriodDisplayText(TimePeriod.Y2Y),
+        }),
+      );
+
+      expect(onDateFromChange).toHaveBeenCalledWith(monthOf(y2y.from));
+      expect(onDateToChange).toHaveBeenCalledWith(monthOf(y2y.to));
+    });
+
+    test("marks the bucket matching the current range as pressed", () => {
+      render(
+        <ProductStatisticsFilter
+          {...baseProps}
+          dateFrom={monthOf(y2y.from)}
+          dateTo={monthOf(y2y.to)}
+        />,
+      );
+
+      expect(
+        screen.getByRole("button", {
+          name: getTimePeriodDisplayText(TimePeriod.Y2Y),
+        }),
+      ).toHaveAttribute("aria-pressed", "true");
+      expect(
+        screen.getByRole("button", {
+          name: getTimePeriodDisplayText(TimePeriod.PreviousSeason),
+        }),
+      ).toHaveAttribute("aria-pressed", "false");
+    });
+  });
+
+  describe("catalog picker", () => {
+    test("opens the picker modal", () => {
+      render(<ProductStatisticsFilter {...baseProps} />);
+
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+
+      fireEvent.click(screen.getByRole("button", { name: /Vybrat z katalogu/ }));
+
+      expect(
+        screen.getByRole("dialog", { name: "Vybrat produkty" }),
+      ).toBeInTheDocument();
+    });
+
+    test("confirming the picker applies its selection", () => {
+      const onProductsChange = jest.fn();
+      render(
+        <ProductStatisticsFilter
+          {...baseProps}
+          selectedProducts={[
+            { productCode: "AKL027", productName: "Demineralizovaná voda" },
+          ]}
+          onProductsChange={onProductsChange}
+        />,
+      );
+
+      fireEvent.click(screen.getByRole("button", { name: /Vybrat z katalogu/ }));
+      fireEvent.click(
+        screen.getByRole("checkbox", { name: "Demineralizovaná voda (AKL027)" }),
+      );
+      fireEvent.click(screen.getByRole("button", { name: "Potvrdit" }));
+
+      expect(onProductsChange).toHaveBeenCalledWith([]);
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    });
   });
 });

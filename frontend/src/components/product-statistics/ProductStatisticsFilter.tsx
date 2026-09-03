@@ -1,11 +1,17 @@
 import React, { useState } from "react";
-import { AlertCircle } from "lucide-react";
+import { AlertCircle, ListChecks } from "lucide-react";
 import { CatalogAutocomplete } from "../common/CatalogAutocomplete";
 import { CatalogItemDto } from "../../api/generated/api-client";
 import {
   getMonthRangeError,
   HISTORY_FLOOR_MONTH,
 } from "../../api/hooks/useProductStatistics";
+import {
+  TimePeriod,
+  resolveTimePeriod,
+  getTimePeriodDisplayText,
+} from "../../utils/timePeriod";
+import ProductPickerModal from "./ProductPickerModal";
 
 export const MAX_SELECTED_PRODUCTS = 10;
 
@@ -43,6 +49,37 @@ export function defaultDateFrom(now: Date = new Date()): string {
   return toMonthKey(from);
 }
 
+/**
+ * The shared time-period buckets, minus CustomPeriod, which has no range of its own.
+ * They resolve to day-precision ranges; this page only keeps the month of each end.
+ */
+const QUICK_PERIODS: TimePeriod[] = [
+  TimePeriod.Y2Y,
+  TimePeriod.PreviousQuarter,
+  TimePeriod.FutureQuarter,
+  TimePeriod.PreviousSeason,
+  TimePeriod.Q9M,
+];
+
+interface QuickPeriodRange {
+  dateFrom: string;
+  dateTo: string;
+}
+
+function resolveQuickPeriodMonths(
+  period: TimePeriod,
+): QuickPeriodRange | null {
+  const { primary } = resolveTimePeriod(period);
+  if (!primary) {
+    return null;
+  }
+
+  return {
+    dateFrom: toMonthKey(primary.from),
+    dateTo: toMonthKey(primary.to),
+  };
+}
+
 const ProductStatisticsFilter: React.FC<ProductStatisticsFilterProps> = ({
   selectedProducts,
   onProductsChange,
@@ -58,6 +95,19 @@ const ProductStatisticsFilter: React.FC<ProductStatisticsFilterProps> = ({
   // react-select appends new picks, so the product dropped by the cap is the one just
   // clicked. Without this the click looks like a broken control rather than a refusal.
   const [wasCapExceeded, setWasCapExceeded] = useState(false);
+  const [isPickerOpen, setIsPickerOpen] = useState(false);
+
+  // The picker enforces the same cap, so a confirmed selection never trips the warning.
+  const handlePickerConfirm = (products: SelectedProduct[]) => {
+    setWasCapExceeded(false);
+    onProductsChange(products);
+    setIsPickerOpen(false);
+  };
+
+  const handleQuickPeriod = (range: QuickPeriodRange) => {
+    onDateFromChange(range.dateFrom);
+    onDateToChange(range.dateTo);
+  };
 
   const handleProductsChange = (items: CatalogItemDto[]) => {
     const mapped = items
@@ -97,6 +147,14 @@ const ProductStatisticsFilter: React.FC<ProductStatisticsFilterProps> = ({
             onSelectMany={handleProductsChange}
             placeholder="Vyberte produkty..."
           />
+          <button
+            type="button"
+            onClick={() => setIsPickerOpen(true)}
+            className="mt-2 inline-flex items-center px-3 py-1.5 text-sm font-medium text-gray-700 dark:text-graphite-text bg-white dark:bg-graphite-surface-2 border border-gray-300 dark:border-graphite-border rounded-md hover:bg-gray-50 dark:hover:bg-graphite-hover"
+          >
+            <ListChecks className="h-4 w-4 mr-1.5" />
+            Vybrat z katalogu
+          </button>
           {wasCapExceeded ? (
             <div className="mt-1 flex items-center text-sm text-red-600 dark:text-red-400">
               <AlertCircle className="h-4 w-4 mr-1" />
@@ -147,7 +205,49 @@ const ProductStatisticsFilter: React.FC<ProductStatisticsFilterProps> = ({
             className="border border-gray-300 dark:border-graphite-border dark:bg-graphite-surface-2 dark:text-graphite-text rounded-md px-3 py-1.5 text-sm"
           />
         </div>
+
+        <div>
+          <span className="block text-sm font-medium text-gray-700 dark:text-graphite-text mb-1">
+            Rychlé volby
+          </span>
+          <div className="flex flex-wrap gap-1.5">
+            {QUICK_PERIODS.map((period) => {
+              const range = resolveQuickPeriodMonths(period);
+              if (!range) {
+                return null;
+              }
+
+              const isActive =
+                range.dateFrom === dateFrom && range.dateTo === dateTo;
+
+              return (
+                <button
+                  key={period}
+                  type="button"
+                  onClick={() => handleQuickPeriod(range)}
+                  aria-pressed={isActive}
+                  title={`${range.dateFrom} – ${range.dateTo}`}
+                  className={`px-2 py-1.5 text-sm rounded-md border transition-colors whitespace-nowrap ${
+                    isActive
+                      ? "border-indigo-500 bg-indigo-50 text-indigo-700 dark:bg-graphite-surface-2 dark:border-graphite-accent dark:text-graphite-accent"
+                      : "border-gray-300 bg-white text-gray-700 hover:bg-gray-50 dark:bg-graphite-surface-2 dark:border-graphite-border dark:text-graphite-muted dark:hover:bg-graphite-hover"
+                  }`}
+                >
+                  {getTimePeriodDisplayText(period)}
+                </button>
+              );
+            })}
+          </div>
+        </div>
       </div>
+
+      <ProductPickerModal
+        isOpen={isPickerOpen}
+        selectedProducts={selectedProducts}
+        maxProducts={MAX_SELECTED_PRODUCTS}
+        onConfirm={handlePickerConfirm}
+        onClose={() => setIsPickerOpen(false)}
+      />
 
       {rangeError && (
         <div className="mt-2 flex items-center text-sm text-red-600 dark:text-red-400">
