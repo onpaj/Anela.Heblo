@@ -357,7 +357,7 @@ describe("PurchaseStockAnalysis", () => {
 
     await waitFor(() => {
       expect(mockUsePurchaseStockAnalysisQuery).toHaveBeenLastCalledWith(
-        expect.objectContaining({ materialCategory: "Labels" }),
+        expect.objectContaining({ materialCategory: "Labels", pageNumber: 1 }),
       );
     });
     expect(screen.getByRole("button", { name: "Etikety" })).toHaveAttribute(
