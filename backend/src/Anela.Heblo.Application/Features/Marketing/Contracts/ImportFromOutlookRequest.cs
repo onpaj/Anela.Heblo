@@ -21,6 +21,7 @@ namespace Anela.Heblo.Application.Features.Marketing.Contracts
         public int Updated { get; set; }
         public int Skipped { get; set; }
         public int Failed { get; set; }
+        public int Deleted { get; set; }
         [Required]
         public List<string> UnmappedCategories { get; set; } = new();
         public List<ImportedItemDto> Items { get; set; } = new();
@@ -38,6 +39,8 @@ namespace Anela.Heblo.Application.Features.Marketing.Contracts
 
         /// <summary>
         /// One of <see cref="ImportStatus.Created"/>, <see cref="ImportStatus.WouldCreate"/>,
+        /// <see cref="ImportStatus.Updated"/>, <see cref="ImportStatus.WouldUpdate"/>,
+        /// <see cref="ImportStatus.Deleted"/>, <see cref="ImportStatus.WouldDelete"/>,
         /// <see cref="ImportStatus.Skipped"/>, or <see cref="ImportStatus.Failed"/>.
         /// </summary>
         public string Status { get; set; } = string.Empty;
@@ -51,6 +54,8 @@ namespace Anela.Heblo.Application.Features.Marketing.Contracts
         public const string WouldCreate = "WouldCreate";
         public const string Updated = "Updated";
         public const string WouldUpdate = "WouldUpdate";
+        public const string Deleted = "Deleted";
+        public const string WouldDelete = "WouldDelete";
         public const string Skipped = "Skipped";
         public const string Failed = "Failed";
     }

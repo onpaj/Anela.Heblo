@@ -1,0 +1,272 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
+using Anela.Heblo.Application.Features.Marketing.Contracts;
+using Anela.Heblo.Application.Features.Marketing.UseCases.ImportFromOutlook;
+using Anela.Heblo.Domain.Features.Marketing;
+using Microsoft.Extensions.Logging;
+
+namespace Anela.Heblo.Application.Features.Marketing.Services
+{
+    public class MarketingCalendarSyncService : IMarketingCalendarSyncService
+    {
+        private readonly IMarketingActionRepository _repository;
+        private readonly IOutlookCalendarSync _outlookSync;
+        private readonly IMarketingCategoryMapper _mapper;
+        private readonly ILogger<MarketingCalendarSyncService> _logger;
+
+        public MarketingCalendarSyncService(
+            IMarketingActionRepository repository,
+            IOutlookCalendarSync outlookSync,
+            IMarketingCategoryMapper mapper,
+            ILogger<MarketingCalendarSyncService> logger)
+        {
+            _repository = repository;
+            _outlookSync = outlookSync;
+            _mapper = mapper;
+            _logger = logger;
+        }
+
+        public async Task<ImportFromOutlookResponse> SyncAsync(
+            DateTime fromUtc,
+            DateTime toUtc,
+            SyncActor actor,
+            bool dryRun,
+            CancellationToken cancellationToken)
+        {
+            var events = await _outlookSync.ListEventsAsync(fromUtc, toUtc, cancellationToken);
+
+            var eventIds = events.Select(e => e.Id).Where(id => !string.IsNullOrEmpty(id)).ToList();
+            var existingActions = await _repository.GetByOutlookEventIdsAsync(eventIds, cancellationToken);
+            var existingByEventId = existingActions
+                .GroupBy(a => a.OutlookEventId!, StringComparer.OrdinalIgnoreCase)
+                .ToDictionary(g => g.Key, g => g.First(), StringComparer.OrdinalIgnoreCase);
+
+            var run = new SyncRun(actor, dryRun, DateTime.UtcNow);
+
+            foreach (var evt in events)
+            {
+                try
+                {
+                    await ProcessEventAsync(evt, existingByEventId, run, cancellationToken);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex,
+                        "Failed to import Outlook event {EventId} (subject: {Subject})",
+                        evt.Id,
+                        evt.Subject);
+                    run.AddFailed(evt.Id, evt.Subject, ex.Message);
+                }
+            }
+
+            await PersistAsync(run, cancellationToken);
+            run.ReportStaged();
+
+            var response = run.Response;
+            response.UnmappedCategories = run.UnmappedCategories.ToList();
+
+            if (run.UnmappedCategories.Count > 0)
+            {
+                _logger.LogInformation(
+                    "Marketing import completed with {Count} unmapped Outlook categor{Plural}: {Categories}",
+                    run.UnmappedCategories.Count,
+                    run.UnmappedCategories.Count == 1 ? "y" : "ies",
+                    string.Join(", ", run.UnmappedCategories));
+            }
+
+            return response;
+        }
+
+        private async Task ProcessEventAsync(
+            OutlookEventDto evt,
+            IReadOnlyDictionary<string, MarketingAction> existingByEventId,
+            SyncRun run,
+            CancellationToken cancellationToken)
+        {
+            var mapping = _mapper.MapToActionType(evt.Categories ?? Array.Empty<string>());
+
+            if (mapping.MatchedCategory is null && mapping.UnmappedCategories.Count > 0)
+            {
+                foreach (var name in mapping.UnmappedCategories)
+                {
+                    run.UnmappedCategories.Add(name);
+                }
+            }
+
+            if (existingByEventId.TryGetValue(evt.Id, out var existing))
+            {
+                await StageUpdateAsync(existing, evt, mapping.ActionType, run, cancellationToken);
+                return;
+            }
+
+            await StageCreateAsync(evt, mapping.ActionType, run, cancellationToken);
+        }
+
+        private async Task StageUpdateAsync(
+            MarketingAction existing,
+            OutlookEventDto evt,
+            MarketingActionType actionType,
+            SyncRun run,
+            CancellationToken cancellationToken)
+        {
+            if (!OutlookEventImportMapper.HasChanges(existing, evt, actionType))
+            {
+                run.AddSkipped(evt);
+                return;
+            }
+
+            OutlookEventImportMapper.ApplyChanges(existing, evt, actionType, run.Actor, run.UtcNow);
+
+            if (run.DryRun)
+            {
+                run.AddWouldUpdate(evt);
+                return;
+            }
+
+            // AddAsync/UpdateAsync stay per-event (not deferred to PersistAsync) so a
+            // failure here is caught by this event's own try/catch in SyncAsync and
+            // only that event is reported Failed — the rest of the batch still commits.
+            await _repository.UpdateAsync(existing, cancellationToken);
+            run.PendingUpdates.Add((existing, evt));
+        }
+
+        private async Task StageCreateAsync(
+            OutlookEventDto evt,
+            MarketingActionType actionType,
+            SyncRun run,
+            CancellationToken cancellationToken)
+        {
+            var action = OutlookEventImportMapper.BuildAction(evt, run.Actor, run.UtcNow, actionType);
+
+            if (run.DryRun)
+            {
+                run.AddWouldCreate(evt);
+                return;
+            }
+
+            await _repository.AddAsync(action, cancellationToken);
+            run.PendingCreates.Add((action, evt));
+        }
+
+        // Persistence is deferred until the loop completes so that a single
+        // SaveChangesAsync covers the whole run. Saving per-event used to leave the
+        // shared DbContext dirty after a failed save, poisoning every subsequent
+        // event in the run (and costing N round-trips).
+        private async Task PersistAsync(SyncRun run, CancellationToken cancellationToken)
+        {
+            if (run.DryRun || !run.HasPendingWrites)
+            {
+                return;
+            }
+
+            try
+            {
+                await _repository.SaveChangesAsync(cancellationToken);
+            }
+            catch (Exception ex)
+            {
+                // The batch is atomic: if the single save fails, none of the staged
+                // writes were persisted. Report them all as failed instead of
+                // claiming success for unwritten rows.
+                _logger.LogError(ex,
+                    "Failed to persist Outlook import batch of {Count} action(s); no changes were saved",
+                    run.PendingCount);
+
+                run.FailAllPending(ex.Message);
+            }
+        }
+
+        /// <summary>Mutable bookkeeping for one SyncAsync call.</summary>
+        private sealed class SyncRun
+        {
+            public SyncRun(SyncActor actor, bool dryRun, DateTime utcNow)
+            {
+                Actor = actor;
+                DryRun = dryRun;
+                UtcNow = utcNow;
+            }
+
+            public SyncActor Actor { get; }
+            public bool DryRun { get; }
+            public DateTime UtcNow { get; }
+            public ImportFromOutlookResponse Response { get; } = new();
+            public HashSet<string> UnmappedCategories { get; } = new(StringComparer.OrdinalIgnoreCase);
+            public List<(MarketingAction action, OutlookEventDto evt)> PendingCreates { get; } = new();
+            public List<(MarketingAction action, OutlookEventDto evt)> PendingUpdates { get; } = new();
+
+            public bool HasPendingWrites => PendingCount > 0;
+            public int PendingCount => PendingCreates.Count + PendingUpdates.Count;
+
+            public void AddSkipped(OutlookEventDto evt)
+            {
+                Response.Skipped++;
+                Response.Items.Add(Item(evt.Id, evt.Subject, ImportStatus.Skipped));
+            }
+
+            public void AddWouldCreate(OutlookEventDto evt)
+            {
+                Response.Created++;
+                Response.Items.Add(Item(evt.Id, evt.Subject, ImportStatus.WouldCreate));
+            }
+
+            public void AddWouldUpdate(OutlookEventDto evt)
+            {
+                Response.Updated++;
+                Response.Items.Add(Item(evt.Id, evt.Subject, ImportStatus.WouldUpdate));
+            }
+
+            public void AddFailed(string eventId, string subject, string error)
+            {
+                Response.Failed++;
+                Response.Items.Add(Item(eventId, subject, ImportStatus.Failed, error: error));
+            }
+
+            public void FailAllPending(string error)
+            {
+                foreach (var (_, evt) in PendingCreates.Concat(PendingUpdates))
+                {
+                    AddFailed(evt.Id, evt.Subject, error);
+                }
+
+                PendingCreates.Clear();
+                PendingUpdates.Clear();
+            }
+
+            /// <summary>Turns the surviving staged writes into Created/Updated items.</summary>
+            public void ReportStaged()
+            {
+                foreach (var (action, evt) in PendingCreates)
+                {
+                    Response.Created++;
+                    Response.Items.Add(Item(evt.Id, evt.Subject, ImportStatus.Created, actionId: action.Id));
+                }
+
+                foreach (var (action, evt) in PendingUpdates)
+                {
+                    Response.Updated++;
+                    Response.Items.Add(Item(evt.Id, evt.Subject, ImportStatus.Updated, actionId: action.Id));
+                }
+            }
+
+            private static ImportedItemDto Item(
+                string eventId,
+                string subject,
+                string status,
+                string? error = null,
+                int? actionId = null)
+            {
+                return new ImportedItemDto
+                {
+                    OutlookEventId = eventId,
+                    Subject = subject,
+                    Status = status,
+                    Error = error,
+                    CreatedActionId = actionId,
+                };
+            }
+        }
+    }
+}
