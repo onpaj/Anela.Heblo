@@ -344,6 +344,12 @@ const resources = {
         MindMapMeetingAlreadyAttached: "Tato porada je už k mapě připojena",
         MindMapInvalidDocument: "Neplatný dokument myšlenkové mapy",
 
+        // Product Pricing module errors (36XX)
+        ProductPriceNotFound: "Cena produktu nebyla nalezena",
+        ProductPriceSyncConflict: "Cena byla mezitím změněna v jiném systému, vyřešte konflikt",
+        ProductPriceInvalidValue: "Neplatná cena",
+        ProductPriceConflictNotFound: "Konflikt cen nebyl nalezen",
+
         // External Service errors
         ExternalServiceError: "Chyba externí služby",
         FlexiApiError: "Chyba ABRA Flexi API",

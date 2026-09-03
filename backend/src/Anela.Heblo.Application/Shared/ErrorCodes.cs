@@ -467,6 +467,12 @@ public enum ErrorCodes
     [HttpStatusCode(HttpStatusCode.BadRequest)]
     MindMapInvalidDocument = 3503,
 
+    // Product Pricing (36XX)
+    ProductPriceNotFound = 3601,
+    ProductPriceSyncConflict = 3602,
+    ProductPriceInvalidValue = 3603,
+    ProductPriceConflictNotFound = 3604,
+
     // External Service errors (90XX)
     [HttpStatusCode(HttpStatusCode.ServiceUnavailable)]
     ExternalServiceError = 9001,
