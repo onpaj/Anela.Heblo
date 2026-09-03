@@ -25,6 +25,16 @@ restarting) CI on it — if the invocation explicitly asked for it (e.g.
 "force", "no matter what"). That is for an explicit, on-demand run, not the
 schedule.
 
+## GitHub access
+
+Every subagent you spawn reads and writes GitHub through the **`github` MCP
+server** (`mcp__github__*`), per `hygiene-pr`/SKILL.md`'s *GitHub access* section,
+falling back to `.claude/skills/_lib/gh_api.sh` (curl+REST) when MCP is not
+connected — never to the `gh` CLI, which is blocked wherever this runs
+unattended. The scripts this skill calls directly keep their own
+`gh` / `USE_GH_API` transport, unchanged; set `USE_GH_API=1` in any
+environment without `gh`.
+
 ## 1. Find the candidates
 
 ```bash
