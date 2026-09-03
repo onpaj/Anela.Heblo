@@ -66,6 +66,7 @@ public static class FlexiAdapterServiceCollectionExtensions
         services.AddSingleton<IErpStockClient, FlexiStockClient>();
         services.AddScoped<IProductPriceErpClient, FlexiProductPriceErpClient>();
         services.AddScoped<IErpPriceWriter, FlexiProductPriceWriter>();
+        services.AddScoped<IProductVatRateProvider, FlexiProductVatRateProvider>();
         services.AddSingleton<IPurchaseHistoryClient, FlexiPurchaseHistoryQueryClient>();
 
         services.AddSingleton<IManufactureHistoryClient, FlexiManufactureHistoryClient>();

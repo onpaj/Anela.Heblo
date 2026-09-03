@@ -13,6 +13,7 @@ using Anela.Heblo.Application.Features.ShipmentLabels;
 using Anela.Heblo.Application.Features.ShoptetCustomers;
 using Anela.Heblo.Application.Features.ShoptetOrders;
 using Anela.Heblo.Domain.Features.Catalog.EshopUrl;
+using Anela.Heblo.Domain.Features.Catalog.Price;
 using Anela.Heblo.Domain.Features.Catalog.Stock;
 using Anela.Heblo.Domain.Features.Logistics;
 using Anela.Heblo.Domain.Features.ProductPricing;
@@ -121,6 +122,8 @@ public static class ShoptetApiAdapterServiceCollectionExtensions
             client.BaseAddress = new Uri(settings.BaseUrl);
             client.DefaultRequestHeaders.Add("Shoptet-Private-API-Token", settings.ApiToken);
         });
+
+        services.AddScoped<IProductPriceEshopClient, ShoptetEshopPriceClient>();
 
         services.Configure<ShoptetStockClientOptions>(
             configuration.GetSection(ShoptetStockClientOptions.SettingsKey));
