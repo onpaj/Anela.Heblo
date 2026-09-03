@@ -1898,6 +1898,56 @@ export class ApiClient {
         return Promise.resolve<GetCatalogDetailResponse>(null as any);
     }
 
+    catalog_GetProductStatistics(productCodes: string[] | undefined, metric: ProductStatisticsMetric | undefined, dateFrom: string | undefined, dateTo: string | undefined): Promise<GetProductStatisticsResponse> {
+        let url_ = this.baseUrl + "/api/Catalog/product-statistics?";
+        if (productCodes === null)
+            throw new Error("The parameter 'productCodes' cannot be null.");
+        else if (productCodes !== undefined)
+            productCodes && productCodes.forEach(item => { url_ += "ProductCodes=" + encodeURIComponent("" + item) + "&"; });
+        if (metric === null)
+            throw new Error("The parameter 'metric' cannot be null.");
+        else if (metric !== undefined)
+            url_ += "Metric=" + encodeURIComponent("" + metric) + "&";
+        if (dateFrom === null)
+            throw new Error("The parameter 'dateFrom' cannot be null.");
+        else if (dateFrom !== undefined)
+            url_ += "DateFrom=" + encodeURIComponent("" + dateFrom) + "&";
+        if (dateTo === null)
+            throw new Error("The parameter 'dateTo' cannot be null.");
+        else if (dateTo !== undefined)
+            url_ += "DateTo=" + encodeURIComponent("" + dateTo) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processCatalog_GetProductStatistics(_response);
+        });
+    }
+
+    protected processCatalog_GetProductStatistics(response: Response): Promise<GetProductStatisticsResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = GetProductStatisticsResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<GetProductStatisticsResponse>(null as any);
+    }
+
     catalog_GetComposition(productCode: string): Promise<GetProductCompositionResponse> {
         let url_ = this.baseUrl + "/api/Catalog/{productCode}/composition";
         if (productCode === undefined || productCode === null)
@@ -19115,6 +19165,118 @@ export interface IMarginLevelDto {
     amount?: number;
     costLevel?: number;
     costTotal?: number;
+}
+
+export class GetProductStatisticsResponse extends BaseResponse implements IGetProductStatisticsResponse {
+    months?: string[];
+    products?: ProductStatisticsSeriesDto[];
+
+    constructor(data?: IGetProductStatisticsResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            if (Array.isArray(_data["months"])) {
+                this.months = [] as any;
+                for (let item of _data["months"])
+                    this.months!.push(item);
+            }
+            if (Array.isArray(_data["products"])) {
+                this.products = [] as any;
+                for (let item of _data["products"])
+                    this.products!.push(ProductStatisticsSeriesDto.fromJS(item));
+            }
+        }
+    }
+
+    static override fromJS(data: any): GetProductStatisticsResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new GetProductStatisticsResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        if (Array.isArray(this.months)) {
+            data["months"] = [];
+            for (let item of this.months)
+                data["months"].push(item);
+        }
+        if (Array.isArray(this.products)) {
+            data["products"] = [];
+            for (let item of this.products)
+                data["products"].push(item.toJSON());
+        }
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IGetProductStatisticsResponse extends IBaseResponse {
+    months?: string[];
+    products?: ProductStatisticsSeriesDto[];
+}
+
+export class ProductStatisticsSeriesDto implements IProductStatisticsSeriesDto {
+    productCode?: string;
+    productName?: string;
+    values?: number[];
+
+    constructor(data?: IProductStatisticsSeriesDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.productCode = _data["productCode"];
+            this.productName = _data["productName"];
+            if (Array.isArray(_data["values"])) {
+                this.values = [] as any;
+                for (let item of _data["values"])
+                    this.values!.push(item);
+            }
+        }
+    }
+
+    static fromJS(data: any): ProductStatisticsSeriesDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new ProductStatisticsSeriesDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["productCode"] = this.productCode;
+        data["productName"] = this.productName;
+        if (Array.isArray(this.values)) {
+            data["values"] = [];
+            for (let item of this.values)
+                data["values"].push(item);
+        }
+        return data;
+    }
+}
+
+export interface IProductStatisticsSeriesDto {
+    productCode?: string;
+    productName?: string;
+    values?: number[];
+}
+
+export enum ProductStatisticsMetric {
+    Sales = "Sales",
+    Purchase = "Purchase",
+    Consumption = "Consumption",
+    Manufacture = "Manufacture",
 }
 
 export class GetProductCompositionResponse extends BaseResponse implements IGetProductCompositionResponse {
