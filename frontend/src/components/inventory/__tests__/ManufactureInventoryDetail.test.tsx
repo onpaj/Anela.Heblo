@@ -78,16 +78,18 @@ describe('ManufactureInventoryModal - quantity input for materials without lots'
     mockMutateAsync.mockClear();
   });
 
-  const setupQuantityInput = () => {
+  const renderModal = (item: unknown = mockMaterialWithoutLots) =>
     render(
       <ManufactureInventoryModal
-        item={mockMaterialWithoutLots as any}
+        item={item as any}
         isOpen={true}
         onClose={jest.fn()}
       />,
       { wrapper: createWrapper() },
     );
 
+  const setupQuantityInput = () => {
+    renderModal();
     return screen.getByRole('spinbutton') as HTMLInputElement;
   };
 
@@ -198,6 +200,46 @@ describe('ManufactureInventoryModal - quantity input for materials without lots'
       targetAmount: 5,
       softStockTaking: true,
     });
+  });
+
+  it('keeps the typed value when the item is refetched with the same stock', () => {
+    // Arrange
+    const { rerender } = renderModal();
+    const input = screen.getByRole('spinbutton') as HTMLInputElement;
+    fireEvent.change(input, { target: { value: '' } });
+    typeAtEnd(input, '1500');
+
+    // Act - a background refetch hands down an equal but brand new object
+    rerender(
+      <ManufactureInventoryModal
+        item={{ ...mockMaterialWithoutLots, stock: { ...mockMaterialWithoutLots.stock } } as any}
+        isOpen={true}
+        onClose={jest.fn()}
+      />,
+    );
+
+    // Assert
+    expect((screen.getByRole('spinbutton') as HTMLInputElement).value).toBe('1500');
+  });
+
+  it('resets the field when the stock of the shown material changes', () => {
+    // Arrange
+    const { rerender } = renderModal();
+    const input = screen.getByRole('spinbutton') as HTMLInputElement;
+    fireEvent.change(input, { target: { value: '' } });
+    typeAtEnd(input, '1500');
+
+    // Act
+    rerender(
+      <ManufactureInventoryModal
+        item={{ ...mockMaterialWithoutLots, stock: { ...mockMaterialWithoutLots.stock, erp: 42 } } as any}
+        isOpen={true}
+        onClose={jest.fn()}
+      />,
+    );
+
+    // Assert
+    expect((screen.getByRole('spinbutton') as HTMLInputElement).value).toBe('42.00');
   });
 
   it('shows the difference while the new value is still being typed', () => {

@@ -58,26 +58,33 @@ const ManufactureInventoryModal: React.FC<ManufactureInventoryModalProps> = ({
     pageSize: 20,
   });
 
-  // Reset quantity when effective item changes (either from prop or API)
-  useEffect(() => {
-    if (effectiveItem) {
-      // For materials, use ERP stock instead of eshop stock
-      const currentStock = Math.round((effectiveItem.stock?.erp || 0) * 100) / 100;
-      setNewQuantity(currentStock);
-      setNewQuantityInput(undefined);
+  // For materials, use ERP stock instead of eshop stock
+  const effectiveProductCode = effectiveItem?.productCode;
+  const effectiveErpStock = effectiveItem?.stock?.erp;
 
-      // Initialize editable lots if the item has lots
-      if (effectiveItem.hasLots && effectiveItem.lots) {
-        const lots: EditableLot[] = effectiveItem.lots.map(lot => ({
-          lotCode: lot.lotCode || null,
-          amount: lot.amount ?? 0,
-          expiration: lot.expiration || null,
-          originalAmount: lot.amount ?? 0,
-        }));
-        setEditableLots(lots);
-      } else {
-        setEditableLots([]);
-      }
+  // Reset quantity when the modal opens or the underlying stock actually changes.
+  // Keyed on the values rather than on the item identity so that a background
+  // refetch returning the same stock cannot wipe a quantity being typed.
+  useEffect(() => {
+    if (!effectiveProductCode) return;
+    setNewQuantity(Math.round((effectiveErpStock || 0) * 100) / 100);
+    setNewQuantityInput(undefined);
+  }, [isOpen, effectiveProductCode, effectiveErpStock]);
+
+  // Initialize editable lots if the item has lots
+  useEffect(() => {
+    if (!effectiveItem) return;
+
+    if (effectiveItem.hasLots && effectiveItem.lots) {
+      const lots: EditableLot[] = effectiveItem.lots.map(lot => ({
+        lotCode: lot.lotCode || null,
+        amount: lot.amount ?? 0,
+        expiration: lot.expiration || null,
+        originalAmount: lot.amount ?? 0,
+      }));
+      setEditableLots(lots);
+    } else {
+      setEditableLots([]);
     }
   }, [effectiveItem]);
 
