@@ -1,14 +1,11 @@
-// Note: This test uses a CountingRepositoryWrapper instead of SQLite + DbCommandInterceptor
-// because ApplicationDbContext.OnModelCreating contains PostgreSQL-specific column type
-// annotations (decimal(18,6), timestamp without time zone) that prevent EnsureCreated()
-// from succeeding with the SQLite provider. The repository wrapper approach provides
-// equivalent guarantees at the repository method level: it proves the handler calls
-// GetAllAsync exactly once and GetRecentLogsForMaterialsAsync exactly once, which
-// with the known single-query implementations of those methods, is equivalent to
-// exactly two DB round-trips.
+// Note: Uses a CountingRepositoryWrapper instead of SQLite + DbCommandInterceptor for the
+// same reason as PackingMaterialsListQueryCountTests.cs (ApplicationDbContext.OnModelCreating
+// has PostgreSQL-specific column type annotations incompatible with SQLite's EnsureCreated()).
+// The wrapper proves the handler calls GetAllAsync zero times and GetMaterialNamesByIdsAsync
+// exactly once, with the correct page-scoped id set.
 
 using Anela.Heblo.Application.Features.PackingMaterials.Contracts;
-using Anela.Heblo.Application.Features.PackingMaterials.UseCases.GetPackingMaterialsList;
+using Anela.Heblo.Application.Features.PackingMaterials.UseCases.GetConsumptionHistory;
 using Anela.Heblo.Domain.Features.PackingMaterials;
 using Anela.Heblo.Domain.Features.PackingMaterials.Enums;
 using Anela.Heblo.Persistence;
@@ -20,14 +17,14 @@ using Xunit;
 
 namespace Anela.Heblo.Tests.Features.PackingMaterials;
 
-public class PackingMaterialsListQueryCountTests : IDisposable
+public class GetConsumptionHistoryQueryCountTests : IDisposable
 {
     private readonly ApplicationDbContext _context;
 
-    public PackingMaterialsListQueryCountTests()
+    public GetConsumptionHistoryQueryCountTests()
     {
         var options = new DbContextOptionsBuilder<ApplicationDbContext>()
-            .UseInMemoryDatabase(databaseName: $"PackingMaterialsList_QueryCount_{Guid.NewGuid()}")
+            .UseInMemoryDatabase(databaseName: $"GetConsumptionHistory_QueryCount_{Guid.NewGuid()}")
             .Options;
 
         _context = new ApplicationDbContext(options);
@@ -35,7 +32,7 @@ public class PackingMaterialsListQueryCountTests : IDisposable
     }
 
     [Fact]
-    public async Task Handle_IssuesExactlyTwoReaderExecutions()
+    public async Task Handle_NeverCallsGetAllAsync_AndCallsGetMaterialNamesByIdsAsyncExactlyOnceWithPageScopedIds()
     {
         // Arrange
         var m1 = new PackingMaterial("M1", 1m, ConsumptionType.PerDay, 100m);
@@ -43,21 +40,31 @@ public class PackingMaterialsListQueryCountTests : IDisposable
         await _context.PackingMaterials.AddRangeAsync(m1, m2);
         await _context.SaveChangesAsync();
 
+        await _context.Set<PackingMaterialConsumption>().AddRangeAsync(
+            new PackingMaterialConsumption(m1.Id, new DateOnly(2026, 1, 10), ConsumptionType.PerOrder, 5m, "INV-1"),
+            new PackingMaterialConsumption(m2.Id, new DateOnly(2026, 1, 11), ConsumptionType.PerOrder, 3m, "INV-2"));
+        await _context.SaveChangesAsync();
+
         var countingRepository = new CountingRepositoryWrapper(new PackingMaterialRepository(_context));
-        var handler = new GetPackingMaterialsListHandler(
+        var handler = new GetConsumptionHistoryHandler(
             countingRepository,
-            NullLogger<GetPackingMaterialsListHandler>.Instance);
+            NullLogger<GetConsumptionHistoryHandler>.Instance);
 
         // Act
-        await handler.Handle(new GetPackingMaterialsListRequest(), CancellationToken.None);
+        var response = await handler.Handle(new GetConsumptionHistoryRequest(), CancellationToken.None);
 
         // Assert
-        countingRepository.GetAllAsyncCallCount.Should().Be(1,
-            "GetAllAsync should be called exactly once for fetching materials");
-        countingRepository.GetRecentLogsForMaterialsAsyncCallCount.Should().Be(1,
-            "GetRecentLogsForMaterialsAsync should be called exactly once for fetching logs");
-        countingRepository.TotalDataAccessOperations.Should().Be(2,
-            "the list handler should issue exactly two data access operations");
+        response.Items.Should().HaveCount(2);
+
+        countingRepository.GetAllAsyncCallCount.Should().Be(0,
+            "GetConsumptionHistoryHandler must never load the full packing-materials table");
+        countingRepository.GetMaterialNamesByIdsAsyncCallCount.Should().Be(1,
+            "material names must be resolved with a single targeted lookup per request");
+
+        countingRepository.LastMaterialNamesByIdsAsyncIds.Should().NotBeNull();
+        var expectedIds = response.Items.Select(i => i.PackingMaterialId).Distinct().ToHashSet();
+        countingRepository.LastMaterialNamesByIdsAsyncIds!.ToHashSet().Should().BeSubsetOf(expectedIds);
+        countingRepository.LastMaterialNamesByIdsAsyncIds!.Count.Should().BeLessThanOrEqualTo(expectedIds.Count);
     }
 
     public void Dispose()
@@ -66,16 +73,16 @@ public class PackingMaterialsListQueryCountTests : IDisposable
     }
 
     /// <summary>
-    /// Wrapper around PackingMaterialRepository that tracks method calls to verify
-    /// the handler uses exactly two data access operations (one for materials, one for logs).
+    /// Wrapper around PackingMaterialRepository that tracks calls to GetAllAsync and
+    /// GetMaterialNamesByIdsAsync to verify GetConsumptionHistoryHandler's data access pattern.
     /// </summary>
     private sealed class CountingRepositoryWrapper : IPackingMaterialRepository
     {
         private readonly PackingMaterialRepository _inner;
 
         public int GetAllAsyncCallCount { get; private set; }
-        public int GetRecentLogsForMaterialsAsyncCallCount { get; private set; }
-        public int TotalDataAccessOperations => GetAllAsyncCallCount + GetRecentLogsForMaterialsAsyncCallCount;
+        public int GetMaterialNamesByIdsAsyncCallCount { get; private set; }
+        public IReadOnlyCollection<int>? LastMaterialNamesByIdsAsyncIds { get; private set; }
 
         public CountingRepositoryWrapper(PackingMaterialRepository inner)
         {
@@ -88,13 +95,14 @@ public class PackingMaterialsListQueryCountTests : IDisposable
             return await _inner.GetAllAsync(cancellationToken);
         }
 
-        public async Task<IReadOnlyDictionary<int, IReadOnlyList<PackingMaterialLog>>> GetRecentLogsForMaterialsAsync(
+        public async Task<IReadOnlyDictionary<int, string>> GetMaterialNamesByIdsAsync(
             IEnumerable<int> packingMaterialIds,
-            DateTime fromDate,
             CancellationToken cancellationToken = default)
         {
-            GetRecentLogsForMaterialsAsyncCallCount++;
-            return await _inner.GetRecentLogsForMaterialsAsync(packingMaterialIds, fromDate, cancellationToken);
+            GetMaterialNamesByIdsAsyncCallCount++;
+            var ids = packingMaterialIds as IReadOnlyCollection<int> ?? packingMaterialIds.ToArray();
+            LastMaterialNamesByIdsAsyncIds = ids;
+            return await _inner.GetMaterialNamesByIdsAsync(ids, cancellationToken);
         }
 
         // Delegate all other methods to inner repository
@@ -103,6 +111,12 @@ public class PackingMaterialsListQueryCountTests : IDisposable
 
         public Task<IEnumerable<PackingMaterialLog>> GetRecentLogsAsync(int packingMaterialId, DateTime fromDate, CancellationToken cancellationToken = default)
             => _inner.GetRecentLogsAsync(packingMaterialId, fromDate, cancellationToken);
+
+        public Task<IReadOnlyDictionary<int, IReadOnlyList<PackingMaterialLog>>> GetRecentLogsForMaterialsAsync(
+            IEnumerable<int> packingMaterialIds,
+            DateTime fromDate,
+            CancellationToken cancellationToken = default)
+            => _inner.GetRecentLogsForMaterialsAsync(packingMaterialIds, fromDate, cancellationToken);
 
         public Task<bool> HasDailyProcessingBeenRunAsync(DateOnly date, CancellationToken cancellationToken = default)
             => _inner.HasDailyProcessingBeenRunAsync(date, cancellationToken);
@@ -154,11 +168,6 @@ public class PackingMaterialsListQueryCountTests : IDisposable
 
         public Task<int> CountAsync(System.Linq.Expressions.Expression<System.Func<PackingMaterial, bool>>? predicate = null, CancellationToken cancellationToken = default)
             => _inner.CountAsync(predicate, cancellationToken);
-
-        public Task<IReadOnlyDictionary<int, string>> GetMaterialNamesByIdsAsync(
-            IEnumerable<int> packingMaterialIds,
-            CancellationToken cancellationToken = default)
-            => _inner.GetMaterialNamesByIdsAsync(packingMaterialIds, cancellationToken);
 
         public Task<(IReadOnlyList<MaterialConsumptionHistoryRecord> Items, int TotalCount)> GetConsumptionHistoryAsync(
             MaterialConsumptionHistoryFilter filter,
