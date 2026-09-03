@@ -56,13 +56,20 @@ const PurchaseStockAnalysis: React.FC = () => {
   // State for filters - initialize from URL parameters
   const [filters, setFilters] = useState<GetPurchaseStockAnalysisRequest>(() => {
     const stockStatusParam = searchParams.get('StockStatus');
-    
+
     // Map URL parameter to enum value
     let stockStatus = StockStatusFilter.All;
     if (stockStatusParam && Object.values(StockStatusFilter).includes(stockStatusParam as StockStatusFilter)) {
       stockStatus = stockStatusParam as StockStatusFilter;
     }
-    
+
+    const materialCategoryParam = searchParams.get('MaterialCategory');
+
+    let materialCategory = DEFAULT_MATERIAL_CATEGORY;
+    if (materialCategoryParam && Object.values(MaterialCategoryFilter).includes(materialCategoryParam as MaterialCategoryFilter)) {
+      materialCategory = materialCategoryParam as MaterialCategoryFilter;
+    }
+
     return {
       fromDate: new Date(
         new Date().getFullYear() - 1,
@@ -71,7 +78,7 @@ const PurchaseStockAnalysis: React.FC = () => {
       ),
       toDate: new Date(),
       stockStatus: stockStatus,
-      materialCategory: DEFAULT_MATERIAL_CATEGORY,
+      materialCategory: materialCategory,
       onlyConfigured: true,
       searchTerm: searchParams.get('searchTerm') || "",
       pageNumber: 1,

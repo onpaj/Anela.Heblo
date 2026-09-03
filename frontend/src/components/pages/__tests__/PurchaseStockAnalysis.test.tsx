@@ -6,6 +6,7 @@ import {
   StockSeverity,
   usePurchaseStockAnalysisQuery,
 } from "../../../api/hooks/usePurchaseStockAnalysis";
+import { MemoryRouter } from "react-router-dom";
 import { TestRouterWrapper } from "../../../test-utils/router-wrapper";
 import { PurchasePlanningListProvider } from "../../../contexts/PurchasePlanningListContext";
 import { ToastProvider } from "../../../contexts/ToastContext";
@@ -56,7 +57,10 @@ const mockUsePurchaseStockAnalysisQuery =
   >;
 
 // Test wrapper with providers
-const TestWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+const TestWrapper: React.FC<{
+  children: React.ReactNode;
+  initialEntries?: string[];
+}> = ({ children, initialEntries }) => {
   const queryClient = new QueryClient({
     defaultOptions: {
       queries: {
@@ -65,12 +69,16 @@ const TestWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     },
   });
 
+  const router = initialEntries ? (
+    <MemoryRouter initialEntries={initialEntries}>{children}</MemoryRouter>
+  ) : (
+    <TestRouterWrapper>{children}</TestRouterWrapper>
+  );
+
   return (
     <QueryClientProvider client={queryClient}>
       <ToastProvider>
-        <PurchasePlanningListProvider>
-          <TestRouterWrapper>{children}</TestRouterWrapper>
-        </PurchasePlanningListProvider>
+        <PurchasePlanningListProvider>{router}</PurchasePlanningListProvider>
       </ToastProvider>
     </QueryClientProvider>
   );
@@ -301,6 +309,32 @@ describe("PurchaseStockAnalysis", () => {
     );
     expect(mockUsePurchaseStockAnalysisQuery).toHaveBeenCalledWith(
       expect.objectContaining({ materialCategory: "Other" }),
+    );
+  });
+
+  it("seeds the material category filter from the MaterialCategory URL parameter", () => {
+    mockUsePurchaseStockAnalysisQuery.mockReturnValue({
+      data: mockResponse,
+      isLoading: false,
+      error: null,
+      isRefetching: false,
+      refetch: jest.fn(),
+    } as any);
+
+    render(
+      <TestWrapper
+        initialEntries={["/?StockStatus=Critical&MaterialCategory=All"]}
+      >
+        <PurchaseStockAnalysis />
+      </TestWrapper>,
+    );
+
+    expect(screen.getByRole("button", { name: "Vše" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+    expect(mockUsePurchaseStockAnalysisQuery).toHaveBeenCalledWith(
+      expect.objectContaining({ materialCategory: "All" }),
     );
   });
 
