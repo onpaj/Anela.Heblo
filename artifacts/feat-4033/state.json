@@ -28,9 +28,9 @@
   "tasks": [
     {
       "name": "remove-interface-member",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-09-03T07:17:13.390495Z"
+      "updated_at": "2026-09-03T07:24:12.946504Z"
     },
     {
       "name": "make-implementation-private",
