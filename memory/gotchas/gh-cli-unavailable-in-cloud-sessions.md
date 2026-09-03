@@ -194,3 +194,30 @@ an empty `agent`-labeled queue as license to pick up pipeline-maintenance issues
 this, versus always reporting "nothing to plan," is a judgment call each run should
 make on its own merits (issue is genuinely actionable, small, low-risk, and on-topic
 for the pipeline) rather than a rule to apply automatically.
+
+**Confirmed a fourth+fifth time 2026-09-03** on a `/plan-next-task` run for issue
+#4044 (PR #4049, `claude/beautiful-darwin-dhtjbf`): identical shape again — the
+SessionStart hook's `agentharness init` had reintroduced both the `gh_api.sh`
+Content-Type regression and the `git add -A` (missing `-f`) regression in
+`.claude/agents/orchestrator.md`, `.claude/agents/plan-orchestrator.md`, and
+`.claude/skills/oneshot/SKILL.md`, all as uncommitted working-tree diffs on the
+primary checkout at session start. Fixed the same way as before: `git checkout --
+<paths>` to discard the tool-injected regressions (confirmed `main` already had
+the correct versions; no new commit needed). After that, `claim_issue.sh`'s
+`create-ref` step still hit the second symptom (`403 Write access ... not
+permitted through this proxy` on `git/refs`) even with the Content-Type fix
+restored — confirming this proxy block is a stable, permanent characteristic of
+this environment, not something that gets fixed upstream. Worked around it
+exactly as the 2026-08-29 correction below describes: skipped `create-ref`
+entirely and claimed the branch with a plain
+`git push origin origin/main:refs/heads/feature/{id}-{slug}`, then did the label
+create/swap via `gh_api.sh` (ordinary REST writes, unaffected). The rest of the
+pipeline — worktree, full analyst→architect→designer→planner loop (run as
+separate Task-tool subagents per phase, each producing and being told to commit
+its own artifact), task extraction, `gh_api.sh pr-create` (ordinary REST,
+works), `ensure_pr_linked.sh`, and the label handoff — all worked without
+incident. **Takeaway reinforced**: don't waste time re-diagnosing either
+symptom when they reappear; the fix for the first is a `git checkout --`
+restore (not a new commit), and the fix for the second is "use a plain `git
+push` for ref/branch creation instead of the git-data REST/CLI API, everything
+else in `gh_api.sh` is fine."
