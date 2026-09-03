@@ -433,7 +433,7 @@ dotnet build Anela.Heblo.sln -c Debug
 dotnet test backend/test/Anela.Heblo.Tests/Anela.Heblo.Tests.csproj -c Debug --no-build \
   -p:UseSharedCompilation=false --filter "FullyQualifiedName~ProductPricing"
 ```
-Expected: PASS, 13 tests.
+Expected: PASS, 14 tests (10 decider + 4 entity).
 
 - [ ] **Step 5: Commit**
 
@@ -832,7 +832,9 @@ dotnet ef migrations add AddProductPricing \
   --startup-project backend/src/Anela.Heblo.API
 ```
 
-Open the generated migration and confirm it creates exactly two tables — `ProductPrices` (PK `ProductCode`) and `ProductPriceSyncStates` (composite PK `ProductCode` + `Target`, index on `Status`) — and touches nothing else. If it contains unrelated changes, delete it, pull the latest `main`, and regenerate.
+Open the generated migration and confirm it creates exactly two tables — `ProductPrices` (PK `ProductCode`) and `ProductPriceSyncStates` (composite PK `ProductCode` + `Target`, index on `Status`) — and touches nothing else.
+
+`ProductPrice` inherits `Entity<string>` and exposes `ProductCode` as an alias over `Id`. Confirm the migration emits a single `ProductCode` column and **no** shadow `Id` column. If EF rejects `builder.Ignore(e => e.ProductCode)`, drop the `Ignore` call and keep only the `HasColumnName("ProductCode")` mapping — report which variant worked. If it contains unrelated changes, delete it, pull the latest `main`, and regenerate.
 
 > Migrations in this project are applied **manually**, not by the deployment. Note in the PR that this migration needs running.
 
@@ -856,6 +858,7 @@ Reads the default price list via the REST API and writes single prices back. Rep
 **Files:**
 - Create: `backend/src/Anela.Heblo.Domain/Features/ProductPricing/IEshopPriceListClient.cs`
 - Create: `backend/src/Adapters/Anela.Heblo.Adapters.ShoptetApi/Pricing/ShoptetPriceListClient.cs`
+- (Task 5 adds `VatRateCalculator` in the same namespace — Task 6 depends on it)
 - Create: `backend/src/Adapters/Anela.Heblo.Adapters.ShoptetApi/Pricing/Model/PriceListResponse.cs`
 - Create: `backend/src/Adapters/Anela.Heblo.Adapters.ShoptetApi/Pricing/Model/PriceListSnapshotResponse.cs`
 - Modify: `backend/src/Adapters/Anela.Heblo.Adapters.ShoptetApi/Orders/ShoptetApiSettings.cs` (add `DefaultPriceListId`)
@@ -1779,6 +1782,29 @@ Expected: FAIL — `ShoptetEshopPriceClient` and `IProductVatRateProvider` do no
 
 - [ ] **Step 3: Write the replacement and delete the CSV path**
 
+`backend/src/Anela.Heblo.Domain/Features/ProductPricing/VatRateCalculator.cs` — the single home for
+this formula; Task 6 uses it too, so do not re-derive it there:
+
+```csharp
+namespace Anela.Heblo.Domain.Features.ProductPricing;
+
+public static class VatRateCalculator
+{
+    public const decimal StandardVatRate = 21m;
+
+    /// <summary>Recovers the VAT rate from a price pair, falling back to the standard rate.</summary>
+    public static decimal FromPrices(decimal priceWithVat, decimal priceWithoutVat)
+    {
+        if (priceWithoutVat <= 0)
+        {
+            return StandardVatRate;
+        }
+
+        return Math.Round((priceWithVat / priceWithoutVat - 1) * 100m, 0);
+    }
+}
+```
+
 `backend/src/Anela.Heblo.Domain/Features/ProductPricing/IProductVatRateProvider.cs`:
 
 ```csharp
@@ -1817,7 +1843,7 @@ public class FlexiProductVatRateProvider : IProductVatRateProvider
             .GroupBy(p => p.ProductCode)
             .ToDictionary(
                 g => g.Key,
-                g => Math.Round((g.First().PriceWithVat / g.First().PriceWithoutVat - 1) * 100m, 0),
+                g => VatRateCalculator.FromPrices(g.First().PriceWithVat, g.First().PriceWithoutVat),
                 StringComparer.OrdinalIgnoreCase);
     }
 }
@@ -1843,8 +1869,6 @@ namespace Anela.Heblo.Adapters.ShoptetApi.Pricing;
 /// </summary>
 public class ShoptetEshopPriceClient : IProductPriceEshopClient
 {
-    private const decimal StandardVatRate = 21m;
-
     private readonly IEshopPriceListClient _priceListClient;
     private readonly IProductVatRateProvider _vatRateProvider;
 
@@ -1863,7 +1887,7 @@ public class ShoptetEshopPriceClient : IProductPriceEshopClient
 
         return prices.Select(entry =>
         {
-            var vatRate = vatRates.TryGetValue(entry.Key, out var rate) ? rate : StandardVatRate;
+            var vatRate = vatRates.TryGetValue(entry.Key, out var rate) ? rate : VatRateCalculator.StandardVatRate;
 
             return new ProductPriceEshop
             {
@@ -1968,9 +1992,11 @@ public class ProductPriceSyncServiceTests
     private readonly Mock<ICatalogRepository> _catalog = new();
     private readonly List<ProductPriceSyncState> _savedStates = new();
 
+    private bool _inScopeConfigured;
+
     private ProductPriceSyncService CreateService()
     {
-        if (_catalog.Invocations.Count == 0)
+        if (!_inScopeConfigured)
         {
             GivenInScope(("A", ProductType.Product), ("B", ProductType.Product));
         }
@@ -1989,12 +2015,15 @@ public class ProductPriceSyncServiceTests
             NullLogger<ProductPriceSyncService>.Instance);
     }
 
-    private void GivenInScope(params (string Code, ProductType Type)[] products) =>
+    private void GivenInScope(params (string Code, ProductType Type)[] products)
+    {
+        _inScopeConfigured = true;
         _catalog
             .Setup(c => c.GetAllAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(products
                 .Select(p => new CatalogAggregate { ProductCode = p.Code, Type = p.Type })
                 .ToList());
+    }
 
     private void GivenHebloPrice(string code, decimal priceWithVat) =>
         _repository
@@ -2559,17 +2588,10 @@ public class ProductPriceSyncService : IProductPriceSyncService
         await _repository.UpsertSyncStateAsync(state, ct);
     }
 
-    private static decimal DeriveVatRate(ProductPriceErp? erp)
-    {
-        const decimal standardVatRate = 21m;
-
-        if (erp is null || erp.PriceWithoutVat <= 0)
-        {
-            return standardVatRate;
-        }
-
-        return Math.Round((erp.PriceWithVat / erp.PriceWithoutVat - 1) * 100m, 0);
-    }
+    private static decimal DeriveVatRate(ProductPriceErp? erp) =>
+        erp is null
+            ? VatRateCalculator.StandardVatRate
+            : VatRateCalculator.FromPrices(erp.PriceWithVat, erp.PriceWithoutVat);
 }
 ```
 
@@ -2758,14 +2780,10 @@ public class ProductPriceSyncJob : IRecurringJob
 `backend/src/Anela.Heblo.Application/Features/ProductPricing/ProductPricingModule.cs`:
 
 ```csharp
-using Anela.Heblo.Application.Common.Behaviors;
 using Anela.Heblo.Application.Features.ProductPricing.Infrastructure.Jobs;
 using Anela.Heblo.Application.Features.ProductPricing.Services;
-using Anela.Heblo.Application.Features.ProductPricing.UseCases.SetProductPrice;
 using Anela.Heblo.Domain.Features.ProductPricing;
 using Anela.Heblo.Persistence.ProductPricing;
-using FluentValidation;
-using MediatR;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Anela.Heblo.Application.Features.ProductPricing;
@@ -2779,18 +2797,15 @@ public static class ProductPricingModule
 
         services.AddScoped<ProductPriceSyncJob>();
 
-        // Validators are registered manually — there is no AddValidatorsFromAssembly here.
-        services.AddScoped<IValidator<SetProductPriceRequest>, SetProductPriceRequestValidator>();
-        services.AddScoped<
-            IPipelineBehavior<SetProductPriceRequest, SetProductPriceResponse>,
-            ValidationBehavior<SetProductPriceRequest, SetProductPriceResponse>>();
+        // Validator registrations are added by Tasks 8 and 9 as their use cases land.
+        // There is no AddValidatorsFromAssembly in this project — each one is explicit.
 
         return services;
     }
 }
 ```
 
-> `SetProductPriceRequest`/`Response`/`Validator` arrive in Task 8. Write this module file in Task 8 instead if you prefer a compiling tree at every commit; otherwise stub the validator registration out here and add it back in Task 8.
+> This module registers no validators yet, so the tree compiles at this commit. Tasks 8 and 9 add their own validator + `ValidationBehavior` pairs here as they create the use cases.
 
 Add to `ApplicationModule.cs` beside the other module calls:
 
@@ -2859,7 +2874,7 @@ git commit -m "feat: product price sync recurring job and error codes"
 - Test: `backend/test/Anela.Heblo.Tests/Features/ProductPricing/GetProductPricesHandlerTests.cs`
 
 **Interfaces:**
-- Consumes: `IProductPriceRepository`, `IProductPriceSyncService`, `ICatalogRepository` (for product names and `ProductType` filtering), `ICurrentUserService` (follow whatever the neighbouring handlers use for the current user id — read `PackingMaterials` handlers first).
+- Consumes: `IProductPriceRepository`, `IProductPriceSyncService`, `ICatalogRepository.GetAllAsync` (product names for the grid), `ICurrentUserService` (follow whatever the neighbouring handlers use for the current user id — read `PackingMaterials` handlers first).
 - Produces: `SetProductPriceRequest { string ProductCode; decimal PriceWithVat; }`, `SetProductPriceResponse : BaseResponse`, `GetProductPricesResponse : BaseResponse { List<ProductPriceDto> Prices; }`, `TriggerPriceSyncResponse : BaseResponse { int Pushed; int Conflicts; int Failed; }`.
 
 - [ ] **Step 1: Write the failing handler tests**
@@ -2964,6 +2979,7 @@ Create `backend/test/Anela.Heblo.Tests/Features/ProductPricing/GetProductPricesH
 
 ```csharp
 using Anela.Heblo.Application.Features.ProductPricing.UseCases.GetProductPrices;
+using Anela.Heblo.Domain.Features.Catalog;
 using Anela.Heblo.Domain.Features.ProductPricing;
 using FluentAssertions;
 using Moq;
@@ -3000,7 +3016,14 @@ public class GetProductPricesHandlerTests
                     Status = PriceSyncStatus.Conflict, RemoteValueAtConflict = 175.00m,
                 },
             });
-        var handler = new GetProductPricesHandler(repository.Object);
+        var catalog = new Mock<ICatalogRepository>();
+        catalog
+            .Setup(c => c.GetAllAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<CatalogAggregate>
+            {
+                new() { ProductCode = "A", ProductName = "Olej na obličej" },
+            });
+        var handler = new GetProductPricesHandler(repository.Object, catalog.Object);
 
         // Act
         var response = await handler.Handle(new GetProductPricesRequest(), CancellationToken.None);
@@ -3008,6 +3031,7 @@ public class GetProductPricesHandlerTests
         // Assert
         response.Success.Should().BeTrue();
         var price = response.Prices.Should().ContainSingle().Subject;
+        price.ProductName.Should().Be("Olej na obličej");
         price.PriceWithoutVat.Should().Be(157.02m);
         price.ShoptetStatus.Should().Be(PriceSyncStatus.InSync);
         price.FlexiStatus.Should().Be(PriceSyncStatus.Conflict);
@@ -3035,6 +3059,7 @@ namespace Anela.Heblo.Application.Features.ProductPricing.Contracts;
 public class ProductPriceDto
 {
     public string ProductCode { get; set; } = string.Empty;
+    public string ProductName { get; set; } = string.Empty;
     public decimal PriceWithVat { get; set; }
     public decimal PriceWithoutVat { get; set; }
     public decimal VatRate { get; set; }
@@ -3078,6 +3103,7 @@ public class GetProductPricesResponse : BaseResponse
 
 ```csharp
 using Anela.Heblo.Application.Features.ProductPricing.Contracts;
+using Anela.Heblo.Domain.Features.Catalog;
 using Anela.Heblo.Domain.Features.ProductPricing;
 using MediatR;
 
@@ -3086,16 +3112,23 @@ namespace Anela.Heblo.Application.Features.ProductPricing.UseCases.GetProductPri
 public class GetProductPricesHandler : IRequestHandler<GetProductPricesRequest, GetProductPricesResponse>
 {
     private readonly IProductPriceRepository _repository;
+    private readonly ICatalogRepository _catalogRepository;
 
-    public GetProductPricesHandler(IProductPriceRepository repository)
+    public GetProductPricesHandler(
+        IProductPriceRepository repository,
+        ICatalogRepository catalogRepository)
     {
         _repository = repository;
+        _catalogRepository = catalogRepository;
     }
 
     public async Task<GetProductPricesResponse> Handle(
         GetProductPricesRequest request, CancellationToken cancellationToken)
     {
         var prices = await _repository.GetAllAsync(cancellationToken);
+        var productNames = (await _catalogRepository.GetAllAsync(cancellationToken))
+            .GroupBy(p => p.ProductCode, StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(g => g.Key, g => g.First().ProductName, StringComparer.OrdinalIgnoreCase);
         var shoptetStates = (await _repository.GetSyncStatesAsync(PriceSyncTarget.Shoptet, cancellationToken))
             .ToDictionary(s => s.ProductCode, StringComparer.OrdinalIgnoreCase);
         var flexiStates = (await _repository.GetSyncStatesAsync(PriceSyncTarget.Flexi, cancellationToken))
@@ -3108,9 +3141,12 @@ public class GetProductPricesHandler : IRequestHandler<GetProductPricesRequest, 
                 shoptetStates.TryGetValue(price.ProductCode, out var shoptet);
                 flexiStates.TryGetValue(price.ProductCode, out var flexi);
 
+                productNames.TryGetValue(price.ProductCode, out var productName);
+
                 return new ProductPriceDto
                 {
                     ProductCode = price.ProductCode,
+                    ProductName = productName ?? string.Empty,
                     PriceWithVat = price.PriceWithVat,
                     PriceWithoutVat = price.PriceWithoutVat,
                     VatRate = price.VatRate,
