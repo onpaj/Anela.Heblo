@@ -966,7 +966,11 @@ const PurchaseStockAnalysis: React.FC = () => {
                 <label className="block text-xs font-medium text-gray-700 dark:text-graphite-muted mb-1">
                   Typ materiálu
                 </label>
-                <div className="inline-flex rounded-md border border-gray-300 dark:border-graphite-border overflow-hidden">
+                <div
+                  role="group"
+                  aria-label="Typ materiálu"
+                  className="inline-flex rounded-md border border-gray-300 dark:border-graphite-border overflow-hidden"
+                >
                   {MATERIAL_CATEGORY_OPTIONS.map((option) => (
                     <button
                       key={option.value}
