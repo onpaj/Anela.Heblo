@@ -31,7 +31,7 @@ public class ShoptetPriceListClientTests
         new(HttpStatusCode.OK) { Content = new StringContent(body, Encoding.UTF8, "application/json") };
 
     [Fact]
-    public async Task reads_all_pages_of_the_snapshot()
+    public async Task reads_all_pages_of_the_price_list()
     {
         // Arrange
         var page1 = """
@@ -55,7 +55,7 @@ public class ShoptetPriceListClientTests
     }
 
     [Fact]
-    public async Task requests_the_snapshot_with_the_maximum_page_size()
+    public async Task requests_the_price_list_detail_with_the_maximum_page_size()
     {
         // Arrange
         var recorded = new List<HttpRequestMessage>();
@@ -68,7 +68,7 @@ public class ShoptetPriceListClientTests
 
         // Assert
         recorded.Should().ContainSingle();
-        recorded[0].RequestUri!.ToString().Should().Contain("/api/pricelists/1/snapshot");
+        recorded[0].RequestUri!.AbsolutePath.Should().Be("/api/pricelists/1");
         recorded[0].RequestUri!.Query.Should().Contain("itemsPerPage=100");
     }
 
@@ -87,7 +87,7 @@ public class ShoptetPriceListClientTests
         await client.GetPricesWithVatAsync(CancellationToken.None);
 
         // Assert
-        recorded.Last().RequestUri!.AbsolutePath.Should().Be("/api/pricelists/3/snapshot");
+        recorded.Last().RequestUri!.AbsolutePath.Should().Be("/api/pricelists/3");
     }
 
     [Fact]

@@ -12,7 +12,7 @@ namespace Anela.Heblo.Adapters.ShoptetApi.Pricing;
 
 public class ShoptetPriceListClient : IEshopPriceListClient
 {
-    /// <summary>Shoptet caps the snapshot page size at 100.</summary>
+    /// <summary>Shoptet caps the price list detail page size at 100.</summary>
     private const int MaxItemsPerPage = 100;
 
     private readonly HttpClient _httpClient;
@@ -39,7 +39,7 @@ public class ShoptetPriceListClient : IEshopPriceListClient
         int pageCount;
         do
         {
-            var url = $"/api/pricelists/{priceListId}/snapshot?itemsPerPage={MaxItemsPerPage}&page={page}";
+            var url = $"/api/pricelists/{priceListId}?itemsPerPage={MaxItemsPerPage}&page={page}";
             var snapshot = await GetAsync<PriceListSnapshotResponse>(url, ct);
 
             foreach (var item in snapshot.Data?.Items ?? new List<PriceListSnapshotItem>())

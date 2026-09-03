@@ -1327,9 +1327,15 @@ Base: `https://api.myshoptet.com`, header `Shoptet-Private-API-Token`.
 | Method | Path | Purpose |
 |---|---|---|
 | GET | `/api/pricelists` | All price lists configured on the e-shop. Identifies the default one. |
-| GET | `/api/pricelists/{id}/snapshot` | All items of one price list. Paginated: `itemsPerPage` default and **max 100**, `page` from 1. |
+| GET | `/api/pricelists/{id}` | All items of one price list, synchronous. Paginated: `itemsPerPage` default and **max 100**, `page` from 1. |
 | PATCH | `/api/pricelists/{id}` | Update prices of individual items. |
 | PATCH | `/api/pricelists/{id}/batch` | Async bulk update, JSONL body, max 100 MB. **Not used — see below.** |
+
+**`GET /api/pricelists/{id}/snapshot` is deliberately not used for the bulk read.** Like
+`GET /api/products/snapshot` (§4.3), snapshot endpoints require a registered `job:finished`
+webhook and return unusable results without webhook infrastructure. The synchronous
+`GET /api/pricelists/{id}` returns the same `data.pricelist[]` / `data.paginator` shape and
+needs no webhook, so Heblo reads through it instead.
 
 **Item price fields on PATCH:**
 
