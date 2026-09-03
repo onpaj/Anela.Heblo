@@ -194,3 +194,23 @@ an empty `agent`-labeled queue as license to pick up pipeline-maintenance issues
 this, versus always reporting "nothing to plan," is a judgment call each run should
 make on its own merits (issue is genuinely actionable, small, low-risk, and on-topic
 for the pipeline) rather than a rule to apply automatically.
+
+**Both fixes above got silently reverted again, 2026-09-03**, this time not by a
+Claude session but by the `SessionStart` hook itself: its `agentharness init` step
+re-copies `.claude/agents/*.md` and `.claude/skills/**` from the upstream
+`github.com/onpaj/harness` package (pinned to `master`, currently `agentharness==0.32.0`)
+on every session start, overwriting the local, already-fixed copies with whatever
+older version the upstream package still carries. Symptom: a `/plan-next-task` run
+that did nothing but `find_candidate.sh` (empty queue, nothing claimed) still found
+4 files modified-but-uncommitted at the end: `.claude/skills/_lib/gh_api.sh` (Content-Type
+header stripped again) and `.claude/agents/orchestrator.md`, `.claude/agents/plan-orchestrator.md`,
+`.claude/skills/oneshot/SKILL.md` (`-f` dropped from `git add -A -f artifacts/feat-{n}` again).
+Confirmed via `git show HEAD:<file>` that the committed versions on both `main` and
+this session's branch already had the correct fix — the working-tree diff was purely
+the hook's overwrite, not anything this session or a prior one did. **Do not commit
+this diff** if you see it again; verify against `HEAD` first (the file's own comments
+and this doc usually explain why the "old" version is actually correct), then
+`git checkout -- <path>` to discard the hook's overwrite before the stop hook's
+uncommitted-changes check runs. The upstream `harness` package itself is the real
+place to fix this (its `master` branch lags this repo's own fixes to the templates
+it distributes), but that's outside this repo.
