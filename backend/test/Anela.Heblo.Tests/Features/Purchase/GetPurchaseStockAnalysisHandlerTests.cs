@@ -474,4 +474,88 @@ public class GetPurchaseStockAnalysisHandlerTests
         response.Summary.AnalysisPeriodStart.Should().Be(fromDate);
         response.Summary.AnalysisPeriodEnd.Should().Be(toDate);
     }
+
+    private List<MaterialStockSnapshot> CreateCategoryTestSnapshots()
+    {
+        return new List<MaterialStockSnapshot>
+        {
+            MakeSnapshot("ETI001", "Etiketa 1", MaterialProductType.Material, available: 10m),
+            MakeSnapshot("eti002", "Etiketa 2", MaterialProductType.Material, available: 10m),
+            MakeSnapshot("VIC001", "Vicko 1", MaterialProductType.Material, available: 10m),
+            MakeSnapshot("LAH001", "Lahev 1", MaterialProductType.Material, available: 10m),
+            MakeSnapshot("MAT001", "Material 1", MaterialProductType.Material, available: 10m),
+            MakeSnapshot("GOD001", "Zbozi 1", MaterialProductType.Goods, available: 10m),
+        };
+    }
+
+    private GetPurchaseStockAnalysisRequest CreateCategoryRequest(MaterialCategoryFilter category)
+    {
+        _materialCatalogMock
+            .Setup(x => x.GetStockAnalysisSnapshotsAsync(It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(CreateCategoryTestSnapshots());
+
+        _stockSeverityCalculatorMock.Setup(x => x.DetermineStockSeverity(
+            It.IsAny<double>(), It.IsAny<double>(), It.IsAny<double>(), It.IsAny<bool>(), It.IsAny<bool>()))
+            .Returns(StockSeverity.Optimal);
+
+        return new GetPurchaseStockAnalysisRequest
+        {
+            MaterialCategory = category,
+            PageNumber = 1,
+            PageSize = 50
+        };
+    }
+
+    [Fact]
+    public async Task Handle_MaterialCategoryAll_ReturnsEveryMaterial()
+    {
+        var request = CreateCategoryRequest(MaterialCategoryFilter.All);
+
+        var response = await _handler.Handle(request, CancellationToken.None);
+
+        response.Items.Select(i => i.ProductCode).Should()
+            .BeEquivalentTo("ETI001", "eti002", "VIC001", "LAH001", "MAT001", "GOD001");
+    }
+
+    [Fact]
+    public async Task Handle_MaterialCategoryLabels_ReturnsOnlyEtiCodesRegardlessOfCase()
+    {
+        var request = CreateCategoryRequest(MaterialCategoryFilter.Labels);
+
+        var response = await _handler.Handle(request, CancellationToken.None);
+
+        response.Items.Select(i => i.ProductCode).Should().BeEquivalentTo("ETI001", "eti002");
+    }
+
+    [Fact]
+    public async Task Handle_MaterialCategoryPackaging_ReturnsVicAndLahCodes()
+    {
+        var request = CreateCategoryRequest(MaterialCategoryFilter.Packaging);
+
+        var response = await _handler.Handle(request, CancellationToken.None);
+
+        response.Items.Select(i => i.ProductCode).Should().BeEquivalentTo("VIC001", "LAH001");
+    }
+
+    [Fact]
+    public async Task Handle_MaterialCategoryOther_ExcludesLabelsAndPackaging()
+    {
+        var request = CreateCategoryRequest(MaterialCategoryFilter.Other);
+
+        var response = await _handler.Handle(request, CancellationToken.None);
+
+        response.Items.Select(i => i.ProductCode).Should().BeEquivalentTo("MAT001", "GOD001");
+    }
+
+    [Fact]
+    public async Task Handle_MaterialCategoryFiltered_SummaryCountsOnlySelectedCategory()
+    {
+        var request = CreateCategoryRequest(MaterialCategoryFilter.Labels);
+
+        var response = await _handler.Handle(request, CancellationToken.None);
+
+        response.TotalCount.Should().Be(2);
+        response.Summary.TotalProducts.Should().Be(2);
+        response.Summary.OptimalCount.Should().Be(2);
+    }
 }

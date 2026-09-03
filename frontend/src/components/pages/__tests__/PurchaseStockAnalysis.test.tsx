@@ -280,6 +280,58 @@ describe("PurchaseStockAnalysis", () => {
     criticalButton && fireEvent.click(criticalButton);
   });
 
+  it("defaults the material category filter to Ostatní", () => {
+    mockUsePurchaseStockAnalysisQuery.mockReturnValue({
+      data: mockResponse,
+      isLoading: false,
+      error: null,
+      isRefetching: false,
+      refetch: jest.fn(),
+    } as any);
+
+    render(
+      <TestWrapper>
+        <PurchaseStockAnalysis />
+      </TestWrapper>,
+    );
+
+    expect(screen.getByRole("button", { name: "Ostatní" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+    expect(mockUsePurchaseStockAnalysisQuery).toHaveBeenCalledWith(
+      expect.objectContaining({ materialCategory: "Other" }),
+    );
+  });
+
+  it("switches the material category filter to Etikety", async () => {
+    mockUsePurchaseStockAnalysisQuery.mockReturnValue({
+      data: mockResponse,
+      isLoading: false,
+      error: null,
+      isRefetching: false,
+      refetch: jest.fn(),
+    } as any);
+
+    render(
+      <TestWrapper>
+        <PurchaseStockAnalysis />
+      </TestWrapper>,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Etikety" }));
+
+    await waitFor(() => {
+      expect(mockUsePurchaseStockAnalysisQuery).toHaveBeenLastCalledWith(
+        expect.objectContaining({ materialCategory: "Labels" }),
+      );
+    });
+    expect(screen.getByRole("button", { name: "Etikety" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+  });
+
   it("handles date filters correctly", async () => {
     // Skip this test - component doesn't have date filters implemented in UI
     expect(true).toBe(true);
