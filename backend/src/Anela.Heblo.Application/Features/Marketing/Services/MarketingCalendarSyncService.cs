@@ -118,19 +118,29 @@ namespace Anela.Heblo.Application.Features.Marketing.Services
             SyncRun run,
             CancellationToken cancellationToken)
         {
-            if (!OutlookEventImportMapper.HasChanges(existing, evt, actionType))
+            var needsRestore = existing.IsDeleted
+                && existing.DeletedByUserId == SyncActor.SystemUserId;
+
+            if (!needsRestore && !OutlookEventImportMapper.HasChanges(existing, evt, actionType))
             {
                 run.AddSkipped(evt);
                 return;
             }
-
-            OutlookEventImportMapper.ApplyChanges(existing, evt, actionType, run.Actor, run.UtcNow);
 
             if (run.DryRun)
             {
                 run.AddWouldUpdate(evt);
                 return;
             }
+
+            if (needsRestore)
+            {
+                // Only deletions made by the sync itself are reversible; a person deleting
+                // an imported action in Heblo keeps it hidden even if Outlook still has it.
+                existing.Restore(run.Actor.UserId, run.Actor.Username, run.UtcNow);
+            }
+
+            OutlookEventImportMapper.ApplyChanges(existing, evt, actionType, run.Actor, run.UtcNow);
 
             // AddAsync/UpdateAsync stay per-event (not deferred to PersistAsync) so a
             // failure here is caught by this event's own try/catch in SyncAsync and

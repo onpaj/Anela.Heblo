@@ -284,4 +284,78 @@ public class MarketingCalendarSyncServiceTests
         result.Failed.Should().Be(1);
         result.Items.Should().ContainSingle(i => i.Status == ImportStatus.Failed && i.OutlookEventId == "evt-gone" && i.Error == "DB down");
     }
+
+    // ─── Restore on reappearance ──────────────────────────────────────────────
+
+    [Fact]
+    public async Task SyncAsync_WhenSyncDeletedActionReappearsInOutlook_RestoresIt()
+    {
+        // Arrange — the sync job deleted it earlier; the event is back in the list, unchanged
+        var restored = BuildSyncedAction(20, "evt-back");
+        restored.SoftDelete(SyncActor.SystemUserId, "Outlook sync", DateTime.UtcNow.AddHours(-1));
+        _outlookSyncMock
+            .Setup(s => s.ListEventsAsync(It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<OutlookEventDto> { BuildEvent(id: "evt-back") });
+        _repositoryMock
+            .Setup(x => x.GetByOutlookEventIdsAsync(It.IsAny<IReadOnlyCollection<string>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<MarketingAction> { restored });
+
+        // Act
+        var result = await SyncAsync();
+
+        // Assert
+        result.Updated.Should().Be(1);
+        result.Skipped.Should().Be(0);
+        result.Items.Should().ContainSingle(i => i.Status == ImportStatus.Updated && i.OutlookEventId == "evt-back");
+        restored.IsDeleted.Should().BeFalse();
+        restored.DeletedByUserId.Should().BeNull();
+        restored.ModifiedByUserId.Should().Be(Actor.UserId);
+        _repositoryMock.Verify(x => x.UpdateAsync(restored, It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task SyncAsync_WhenUserDeletedActionReappearsInOutlook_StaysDeleted()
+    {
+        // Arrange — a person deleted it in Heblo; existing "must not be re-created" behaviour is kept
+        var userDeleted = BuildSyncedAction(21, "evt-hidden");
+        userDeleted.SoftDelete("user-9", "Some Person", DateTime.UtcNow.AddHours(-1));
+        _outlookSyncMock
+            .Setup(s => s.ListEventsAsync(It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<OutlookEventDto> { BuildEvent(id: "evt-hidden") });
+        _repositoryMock
+            .Setup(x => x.GetByOutlookEventIdsAsync(It.IsAny<IReadOnlyCollection<string>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<MarketingAction> { userDeleted });
+
+        // Act
+        var result = await SyncAsync();
+
+        // Assert
+        result.Skipped.Should().Be(1);
+        result.Created.Should().Be(0);
+        userDeleted.IsDeleted.Should().BeTrue();
+        _repositoryMock.Verify(x => x.AddAsync(It.IsAny<MarketingAction>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task SyncAsync_WhenSyncDeletedActionReappearsInDryRun_ReportsWouldUpdateWithoutRestoring()
+    {
+        // Arrange
+        var restored = BuildSyncedAction(22, "evt-back");
+        restored.SoftDelete(SyncActor.SystemUserId, "Outlook sync", DateTime.UtcNow.AddHours(-1));
+        _outlookSyncMock
+            .Setup(s => s.ListEventsAsync(It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<OutlookEventDto> { BuildEvent(id: "evt-back") });
+        _repositoryMock
+            .Setup(x => x.GetByOutlookEventIdsAsync(It.IsAny<IReadOnlyCollection<string>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<MarketingAction> { restored });
+
+        // Act
+        var result = await SyncAsync(dryRun: true);
+
+        // Assert
+        result.Updated.Should().Be(1);
+        result.Items.Should().ContainSingle(i => i.Status == ImportStatus.WouldUpdate);
+        restored.IsDeleted.Should().BeTrue();
+        _repositoryMock.Verify(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Never);
+    }
 }
