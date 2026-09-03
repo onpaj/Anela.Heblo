@@ -2181,12 +2181,15 @@ public class ProductPriceSyncServiceTests
                 new() { ProductCode = "A", PriceWithVat = 210.00m, VatRate = 21m },
                 new() { ProductCode = "B", PriceWithVat = 310.00m, VatRate = 21m },
             });
+        // Mimic production: GetSyncStatesAsync(target) returns only that target's rows.
+        // A single shared list would hand the SAME instances to both passes, so the Flexi
+        // pass would mutate the very objects the Shoptet assertion inspects.
         _repository
             .Setup(r => r.GetSyncStatesAsync(It.IsAny<PriceSyncTarget>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new List<ProductPriceSyncState>
+            .ReturnsAsync((PriceSyncTarget target, CancellationToken _) => new List<ProductPriceSyncState>
             {
-                new() { ProductCode = "A", LastPushedPriceWithVat = 190.00m },
-                new() { ProductCode = "B", LastPushedPriceWithVat = 290.00m },
+                new() { ProductCode = "A", Target = target, LastPushedPriceWithVat = 190.00m },
+                new() { ProductCode = "B", Target = target, LastPushedPriceWithVat = 290.00m },
             });
         _eshop.Setup(c => c.GetPricesWithVatAsync(It.IsAny<CancellationToken>()))
               .ReturnsAsync(new Dictionary<string, decimal> { ["A"] = 190.00m, ["B"] = 290.00m });
@@ -2418,6 +2421,10 @@ public class ProductPriceSyncService : IProductPriceSyncService
 
             states.TryGetValue(productCode, out var state);
             state ??= new ProductPriceSyncState { ProductCode = productCode, Target = target };
+
+            // The row came from a query already filtered to this target; asserting it keeps
+            // the target correct even if a caller hands back a loosely-populated row.
+            state.Target = target;
 
             prices.TryGetValue(productCode, out var hebloPrice);
             remotePrices.TryGetValue(productCode, out var remoteValue);
