@@ -288,7 +288,7 @@ describe("PurchaseStockAnalysis", () => {
     criticalButton && fireEvent.click(criticalButton);
   });
 
-  it("defaults the material category filter to Ostatní", () => {
+  it("defaults the material category filter to Suroviny", () => {
     mockUsePurchaseStockAnalysisQuery.mockReturnValue({
       data: mockResponse,
       isLoading: false,
@@ -303,7 +303,7 @@ describe("PurchaseStockAnalysis", () => {
       </TestWrapper>,
     );
 
-    expect(screen.getByRole("button", { name: "Ostatní" })).toHaveAttribute(
+    expect(screen.getByRole("button", { name: "Suroviny" })).toHaveAttribute(
       "aria-pressed",
       "true",
     );

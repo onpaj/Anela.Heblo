@@ -44,10 +44,10 @@ const MATERIAL_CATEGORY_OPTIONS: ReadonlyArray<{
   value: MaterialCategoryFilter;
   label: string;
 }> = [
-  { value: MaterialCategoryFilter.All, label: "Vše" },
+  { value: MaterialCategoryFilter.Other, label: "Suroviny" },
   { value: MaterialCategoryFilter.Labels, label: "Etikety" },
   { value: MaterialCategoryFilter.Packaging, label: "Obaly" },
-  { value: MaterialCategoryFilter.Other, label: "Ostatní" },
+  { value: MaterialCategoryFilter.All, label: "Vše" },
 ];
 
 const PurchaseStockAnalysis: React.FC = () => {
@@ -116,10 +116,6 @@ const PurchaseStockAnalysis: React.FC = () => {
   // Pagination calculations
   const totalCount = data?.totalCount || 0;
   const totalPages = Math.ceil(totalCount / filters.pageSize!);
-
-  const materialCategoryLabel =
-    MATERIAL_CATEGORY_OPTIONS.find((o) => o.value === filters.materialCategory)
-      ?.label ?? "";
 
   // Handler for filter changes
   const handleFilterChange = (
@@ -564,7 +560,7 @@ const PurchaseStockAnalysis: React.FC = () => {
               <span>Filtry a nastavení</span>
               {summary && (
                 <span className="text-xs text-gray-500 dark:text-graphite-muted">
-                  ({summary.totalProducts} produktů · {materialCategoryLabel})
+                  ({summary.totalProducts} produktů)
                 </span>
               )}
             </button>
@@ -656,6 +652,30 @@ const PurchaseStockAnalysis: React.FC = () => {
                   </div>
                 </>
               )}
+
+              {/* Material category - always visible */}
+              <div
+                role="group"
+                aria-label="Typ materiálu"
+                className="inline-flex rounded-md border border-gray-300 dark:border-graphite-border overflow-hidden"
+              >
+                {MATERIAL_CATEGORY_OPTIONS.map((option) => (
+                  <button
+                    key={option.value}
+                    onClick={() =>
+                      handleFilterChange({ materialCategory: option.value })
+                    }
+                    aria-pressed={filters.materialCategory === option.value}
+                    className={`px-2.5 py-1 text-xs transition-colors border-r last:border-r-0 border-gray-300 dark:border-graphite-border ${
+                      filters.materialCategory === option.value
+                        ? "bg-indigo-600 text-white"
+                        : "bg-white dark:bg-graphite-surface-2 text-gray-700 dark:text-graphite-muted hover:bg-gray-100 dark:hover:bg-graphite-hover"
+                    }`}
+                  >
+                    {option.label}
+                  </button>
+                ))}
+              </div>
 
               {/* Action buttons - always visible */}
               <button
@@ -958,35 +978,6 @@ const PurchaseStockAnalysis: React.FC = () => {
                       </span>
                     </label>
                   </div>
-                </div>
-              </div>
-
-              {/* Material category */}
-              <div className="mt-3">
-                <label className="block text-xs font-medium text-gray-700 dark:text-graphite-muted mb-1">
-                  Typ materiálu
-                </label>
-                <div
-                  role="group"
-                  aria-label="Typ materiálu"
-                  className="inline-flex rounded-md border border-gray-300 dark:border-graphite-border overflow-hidden"
-                >
-                  {MATERIAL_CATEGORY_OPTIONS.map((option) => (
-                    <button
-                      key={option.value}
-                      onClick={() =>
-                        handleFilterChange({ materialCategory: option.value })
-                      }
-                      aria-pressed={filters.materialCategory === option.value}
-                      className={`px-3 py-1.5 text-xs transition-colors border-r last:border-r-0 border-gray-300 dark:border-graphite-border ${
-                        filters.materialCategory === option.value
-                          ? "bg-indigo-600 text-white"
-                          : "bg-white dark:bg-graphite-surface-2 text-gray-700 dark:text-graphite-muted hover:bg-gray-100 dark:hover:bg-graphite-hover"
-                      }`}
-                    >
-                      {option.label}
-                    </button>
-                  ))}
                 </div>
               </div>
             </div>
