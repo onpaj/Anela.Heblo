@@ -1,11 +1,15 @@
 ---
 name: hygiene-all
-description: Sweep every open agent PR, confirming each is mergeable with green CI and resolving any merge conflicts with its base — flagging as needs-work only the ones still failing or beyond resolving — without ever reviewing or merging any of them. Back-merges only the PRs that cannot merge as they stand, unless told to force it regardless. Use when the user says "hygiene-all", "clean up the PR backlog's branches", "check CI across all open PRs", "resolve conflicts across open PRs", "backmerge all" (optionally "force"/"no matter what"), or wants the backlog kept current independent of /automerge-all ever running.
+description: Sweep every open PR — labelled or not, whoever opened it — confirming each is mergeable with green CI and resolving any merge conflicts with its base, flagging as needs-work only the ones still failing or beyond resolving, without ever reviewing or merging any of them. Back-merges only the PRs that cannot merge as they stand, unless told to force it regardless. Use when the user says "hygiene-all", "clean up the PR backlog's branches", "check CI across all open PRs", "resolve conflicts across open PRs", "backmerge all" (optionally "force"/"no matter what"), or wants the backlog kept current independent of /automerge-all ever running.
 ---
 
 You keep the whole open-PR backlog current with its base branch, resolve
 the conflicts that stop it from getting there, and confirm CI status across
-all of it — independent of review or merge decisions. Any PR still failing,
+all of it — independent of review or merge decisions. "Whole backlog" is
+literal: every open PR, not just the pipeline's `agent`-labelled ones. A
+stale branch, a merge conflict and a red build are the same problem
+whoever opened the PR, and an unlabelled PR is the one most likely to rot
+unnoticed precisely because no other skill looks at it. Any PR still failing,
 or whose conflict could not be resolved, gets flagged `needs-work` with an
 explanatory comment (each `hygiene-pr` subagent does this itself), so it's
 discoverable by `/rework-pr` and by a human afterward. This is safe to run
@@ -24,15 +28,26 @@ schedule.
 ## 1. Find the candidates
 
 ```bash
-.claude/skills/automerge-pr/candidates.sh --include-conflicting
+.claude/skills/automerge-pr/candidates.sh --include-conflicting --all-open
 ```
 
-Same eligibility query `/automerge-all` uses, minus the conflicted filter:
-draft, `UNKNOWN`-mergeability, `CHANGES_REQUESTED`, already-`needs-work` and
-`human-required` PRs are still skipped (those aren't this skill's problem to
-fix), but a `CONFLICTING` PR is a candidate here — resolving that conflict is
-exactly what each subagent is being sent to do. If `candidates` is empty,
-print `No agent PRs to check.`, list `skipped` with reasons, and stop.
+Same eligibility query `/automerge-all` uses, minus two of its filters:
+
+- `--all-open` drops the `agent` label requirement, so an unlabelled or
+  human-opened PR is a candidate too. Without it those PRs are invisible to
+  every skill in this family — they do not even reach `skipped`.
+- `--include-conflicting` keeps `CONFLICTING` PRs, because resolving that
+  conflict is exactly what each subagent is being sent to do.
+
+Draft, `UNKNOWN`-mergeability, `CHANGES_REQUESTED`, already-`needs-work` and
+`human-required` PRs are still skipped — those aren't this skill's problem
+to fix. If `candidates` is empty, print `No PRs to check.`, list `skipped`
+with reasons, and stop.
+
+Because the sweep now reaches PRs a person may be actively working on, each
+subagent pushes only a merge commit from the base branch and never rewrites
+history — `hygiene-pr` already guarantees that, and it is what makes running
+this over someone's in-flight branch safe.
 
 ## 2. Check each candidate — one subagent per PR, fully in parallel
 

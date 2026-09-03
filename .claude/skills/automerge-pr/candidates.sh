@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
-# List open `agent` PRs that are mechanically mergeable.
+# List open PRs that are mechanically mergeable — `agent`-labelled ones by
+# default, every open PR with --all-open.
 #
-#   candidates.sh [--include-conflicting]
+#   candidates.sh [--include-conflicting] [--all-open]
 #
 # Emits JSON: {"candidates": [...], "skipped": [...], "truncated": N}
 #
@@ -14,12 +15,23 @@
 # out exactly the ones it exists to fix. /automerge-all keeps the default —
 # it reviews and merges, and can do neither until hygiene has fixed the
 # conflict first.
+#
+# --all-open drops the `agent` label filter, so every open PR is a candidate
+# regardless of who opened it or whether the pipeline labelled it. That is
+# also /hygiene-all's mode: back-merging a base branch and reporting CI is
+# not pipeline-specific work, and a PR nobody labelled is exactly the one
+# that otherwise goes stale unnoticed — it does not even appear in
+# `skipped`, because the label filter removes it before this script ever
+# sees it. /automerge-all keeps the default: it reviews and merges
+# autonomously, which is only ever delegated for `agent` PRs.
 set -euo pipefail
 
 INCLUDE_CONFLICTING=false
+ALL_OPEN=false
 while [ $# -gt 0 ]; do
   case "$1" in
     --include-conflicting) INCLUDE_CONFLICTING=true; shift ;;
+    --all-open) ALL_OPEN=true; shift ;;
     *) echo "unknown argument: $1" >&2; exit 1 ;;
   esac
 done
@@ -51,13 +63,20 @@ if [ -z "$REPO" ]; then
   fi
 fi
 
+# An empty LABEL_FILTER means "every open PR" — `gh pr list` takes that as an
+# omitted --label flag, gh_api.sh's pr-list as an omitted LABEL_CSV argument.
+LABEL_FILTER="$AGENT_LABEL"
+$ALL_OPEN && LABEL_FILTER=""
+
 if [ -n "${USE_GH_API:-}" ]; then
-  GH_REPO="$REPO" "$LIB" pr-list open "$AGENT_LABEL"
+  GH_REPO="$REPO" "$LIB" pr-list open "$LABEL_FILTER"
 else
+  label_args=()
+  [ -n "$LABEL_FILTER" ] && label_args=(--label "$LABEL_FILTER")
   gh pr list \
     --repo "$REPO" \
     --state open \
-    --label "$AGENT_LABEL" \
+    "${label_args[@]+"${label_args[@]}"}" \
     --limit 100 \
     --json number,title,isDraft,mergeable,reviewDecision,headRefName,additions,deletions,changedFiles,body,labels,createdAt
 fi \
