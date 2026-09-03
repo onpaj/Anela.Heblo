@@ -89,14 +89,7 @@ namespace Anela.Heblo.Application.Features.Marketing.Services
             CancellationToken cancellationToken)
         {
             var mapping = _mapper.MapToActionType(evt.Categories ?? Array.Empty<string>());
-
-            if (mapping.MatchedCategory is null && mapping.UnmappedCategories.Count > 0)
-            {
-                foreach (var name in mapping.UnmappedCategories)
-                {
-                    run.UnmappedCategories.Add(name);
-                }
-            }
+            HarvestUnmappedCategories(mapping, run);
 
             if (existingByEventId.TryGetValue(evt.Id, out var existing))
             {
@@ -105,6 +98,17 @@ namespace Anela.Heblo.Application.Features.Marketing.Services
             }
 
             await StageCreateAsync(evt, mapping.ActionType, run, cancellationToken);
+        }
+
+        private static void HarvestUnmappedCategories(CategoryMappingResult mapping, SyncRun run)
+        {
+            if (mapping.MatchedCategory is null && mapping.UnmappedCategories.Count > 0)
+            {
+                foreach (var name in mapping.UnmappedCategories)
+                {
+                    run.UnmappedCategories.Add(name);
+                }
+            }
         }
 
         private async Task StageUpdateAsync(
@@ -193,6 +197,7 @@ namespace Anela.Heblo.Application.Features.Marketing.Services
             if (evt is not null)
             {
                 var mapping = _mapper.MapToActionType(evt.Categories ?? Array.Empty<string>());
+                HarvestUnmappedCategories(mapping, run);
                 await StageUpdateAsync(orphan, evt, mapping.ActionType, run, cancellationToken);
                 return;
             }

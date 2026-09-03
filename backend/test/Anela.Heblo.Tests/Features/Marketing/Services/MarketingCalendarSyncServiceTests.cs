@@ -142,6 +142,30 @@ public class MarketingCalendarSyncServiceTests
     }
 
     [Fact]
+    public async Task SyncAsync_WhenOrphanStillExistsWithUnmappedCategory_HarvestsUnmappedCategory()
+    {
+        // Arrange — event moved outside the window and carries a category with no mapping
+        var moved = BuildSyncedAction(16, "evt-unmapped-category", title: "Old Title");
+        _repositoryMock
+            .Setup(x => x.GetSyncedInWindowAsync(WindowFrom, WindowTo, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<MarketingAction> { moved });
+        var evt = BuildEvent(id: "evt-unmapped-category", subject: "New Title");
+        evt.Categories = new[] { "Mystery Category" };
+        _outlookSyncMock
+            .Setup(s => s.GetEventAsync("evt-unmapped-category", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(evt);
+        _mapperMock
+            .Setup(m => m.MapToActionType(It.Is<IReadOnlyList<string>>(c => c.Contains("Mystery Category"))))
+            .Returns(new CategoryMappingResult(MarketingActionType.SocialMedia, null, new List<string> { "Mystery Category" }));
+
+        // Act
+        var result = await SyncAsync();
+
+        // Assert
+        result.UnmappedCategories.Should().Contain("Mystery Category");
+    }
+
+    [Fact]
     public async Task SyncAsync_WhenOrphanStillExistsAndUnchanged_SkipsIt()
     {
         // Arrange
