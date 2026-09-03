@@ -34,9 +34,9 @@
     },
     {
       "name": "add-query-count-test",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-09-03T02:14:01.309466Z"
+      "updated_at": "2026-09-03T02:38:05.282657Z"
     },
     {
       "name": "wire-handler-to-targeted-lookup",
