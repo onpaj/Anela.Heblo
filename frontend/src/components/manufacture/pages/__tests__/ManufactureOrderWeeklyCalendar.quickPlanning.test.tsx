@@ -1,6 +1,6 @@
 // Mock the ManufactureOrderState enum first
 import React from "react";
-import { getWeightToleranceStatus, getProductDisplayQuantity } from "../ManufactureOrderWeeklyCalendar";
+import { getWeightToleranceStatus, getProductDisplayQuantity, getVisibleCalendarProducts } from "../ManufactureOrderWeeklyCalendar";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { BrowserRouter } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -109,6 +109,76 @@ describe("getProductDisplayQuantity", () => {
 
   it("falls back to planned quantity for completed orders with no actual quantity", () => {
     expect(getProductDisplayQuantity({ plannedQuantity: 10, actualQuantity: null }, "Completed" as any)).toBe(10);
+  });
+});
+
+describe("getVisibleCalendarProducts", () => {
+  it("hides products with a zero planned quantity for non-completed orders", () => {
+    // Arrange
+    const products = [
+      { productCode: "MAS001180", plannedQuantity: 50 },
+      { productCode: "MAS001015", plannedQuantity: 0 },
+    ];
+
+    // Act
+    const visible = getVisibleCalendarProducts(products, "Planned" as any);
+
+    // Assert
+    expect(visible.map((p) => p.productCode)).toEqual(["MAS001180"]);
+  });
+
+  it("hides the residual (direct semiproduct) row when its quantity is zero", () => {
+    // Arrange - the residual row is the product sharing the semiproduct code
+    const products = [
+      { productCode: "MAS001500", plannedQuantity: 26 },
+      { productCode: "MAS001001M", plannedQuantity: 0 },
+    ];
+
+    // Act
+    const visible = getVisibleCalendarProducts(products, "Planned" as any);
+
+    // Assert
+    expect(visible.map((p) => p.productCode)).toEqual(["MAS001500"]);
+  });
+
+  it("keeps a product whose actual quantity is zero while the order is not completed", () => {
+    // Arrange
+    const products = [{ productCode: "MAS001180", plannedQuantity: 50, actualQuantity: 0 }];
+
+    // Act
+    const visible = getVisibleCalendarProducts(products, "SemiProductManufactured" as any);
+
+    // Assert
+    expect(visible).toHaveLength(1);
+  });
+
+  it("hides a completed product that was not actually manufactured", () => {
+    // Arrange
+    const products = [{ productCode: "MAS001180", plannedQuantity: 50, actualQuantity: 0 }];
+
+    // Act
+    const visible = getVisibleCalendarProducts(products, "Completed" as any);
+
+    // Assert
+    expect(visible).toEqual([]);
+  });
+
+  it("returns an empty array when there are no products", () => {
+    expect(getVisibleCalendarProducts(undefined, "Planned" as any)).toEqual([]);
+  });
+
+  it("does not mutate the source array", () => {
+    // Arrange
+    const products = [
+      { productCode: "MAS001180", plannedQuantity: 50 },
+      { productCode: "MAS001015", plannedQuantity: 0 },
+    ];
+
+    // Act
+    getVisibleCalendarProducts(products, "Planned" as any);
+
+    // Assert
+    expect(products).toHaveLength(2);
   });
 });
 
