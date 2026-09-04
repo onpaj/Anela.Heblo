@@ -327,6 +327,43 @@ public class McpBadRequestMiddlewareTests
             Times.Never);
     }
 
+    // ── POST /mcp 400 diagnostics logging ────────────────────────────────────
+
+    [Fact]
+    public async Task PostBadRequest_NoSessionHeader_LogsOneWarningWithSessionAbsent()
+    {
+        // Arrange
+        var loggerMock = new Mock<ILogger<McpBadRequestMiddleware>>();
+        var next = new RequestDelegate(ctx =>
+        {
+            ctx.Response.StatusCode = StatusCodes.Status400BadRequest;
+            return Task.CompletedTask;
+        });
+        var middleware = new McpBadRequestMiddleware(next, loggerMock.Object);
+        var context = CreateContext("POST", "/mcp");
+        context.Request.Headers["User-Agent"] = "test-client";
+        context.Request.Headers["Accept"] = "application/json";
+        // Deliberately no Mcp-Session-Id.
+
+        // Act
+        await middleware.InvokeAsync(context);
+
+        // Assert — exactly one warning, EventName=McpBadRequest, McpSessionIdPresent=false.
+        loggerMock.Verify(l => l.Log(
+            LogLevel.Warning,
+            It.Is<EventId>(e => e.Name == "McpBadRequest" && e.Id == 5932),
+            It.Is<It.IsAnyType>((state, _) =>
+                state.ToString()!.Contains("HTTPMethod") &&
+                state.ToString()!.Contains("POST") &&
+                state.ToString()!.Contains("McpSessionIdPresent=False")),
+            It.IsAny<Exception>(),
+            It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Once);
+
+        // POST response was NOT rewritten.
+        Assert.Equal(StatusCodes.Status400BadRequest, context.Response.StatusCode);
+    }
+
     // ── HasValidMcpAcceptHeader static helper ────────────────────────────────
 
     [Theory]

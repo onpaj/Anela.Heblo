@@ -38,6 +38,12 @@ public class McpBadRequestMiddleware
 
     public async Task InvokeAsync(HttpContext context)
     {
+        if (IsMcpPostRequest(context))
+        {
+            await HandlePostAsync(context);
+            return;
+        }
+
         if (!IsMcpGetRequest(context))
         {
             await _next(context);
@@ -101,6 +107,23 @@ public class McpBadRequestMiddleware
     private static bool IsMcpGetRequest(HttpContext context)
         => context.Request.Method == HttpMethods.Get
            && context.Request.Path.StartsWithSegments("/mcp");
+
+    private static bool IsMcpPostRequest(HttpContext context)
+        => context.Request.Method == HttpMethods.Post
+           && context.Request.Path.StartsWithSegments("/mcp");
+
+    private async Task HandlePostAsync(HttpContext context)
+    {
+        var start = Stopwatch.GetTimestamp();
+        await _next(context);
+
+        // Log structured diagnostics for POST requests that get 400, without
+        // touching the response — the MCP SDK's own validation stands as-is.
+        if (context.Response.StatusCode == StatusCodes.Status400BadRequest)
+        {
+            LogBadMcpRequest(context, PostBadRequestEvent, Stopwatch.GetElapsedTime(start).TotalMilliseconds);
+        }
+    }
 
     internal static bool HasValidMcpAcceptHeader(HttpContext context)
     {
