@@ -20,7 +20,10 @@ public class ProductPriceRepository : IProductPriceRepository
 
     public async Task UpsertAsync(ProductPrice price, CancellationToken ct)
     {
-        var existing = await _context.ProductPrices.FirstOrDefaultAsync(p => p.Id == price.Id, ct);
+        // FindAsync, not a LINQ query: the sync service bulk-loads every price up front, so
+        // the row is already tracked and this resolves from the change tracker. A LINQ query
+        // always round-trips, costing one extra SELECT per product per run.
+        var existing = await _context.ProductPrices.FindAsync(new object?[] { price.Id }, ct);
         if (existing is null)
         {
             _context.ProductPrices.Add(price);
@@ -49,7 +52,10 @@ public class ProductPriceRepository : IProductPriceRepository
 
     public async Task UpsertSyncStateAsync(ProductPriceSyncState state, CancellationToken ct)
     {
-        var existing = await GetSyncStateAsync(state.ProductCode, state.Target, ct);
+        // See UpsertAsync: the sync states for this target are already tracked by the caller's
+        // bulk read, so resolve from the change tracker instead of re-querying per product.
+        var existing = await _context.ProductPriceSyncStates
+            .FindAsync(new object?[] { state.ProductCode, state.Target }, ct);
         if (existing is null)
         {
             _context.ProductPriceSyncStates.Add(state);
