@@ -25,6 +25,19 @@ public class ProductPriceFlexiDto
     [JsonProperty("idKusovnik")]
     public int? BoMId { get; set; }
 
+    /// <summary>
+    /// Says which VAT semantics <see cref="Price"/> (<c>cenaZakl</c>) was entered under:
+    /// "typCeny.bezDph" (excl-VAT) or "typCeny.sDph" (incl-VAT). User query 41 may not expose
+    /// this field at all — it can come back null. Never assume it is excl-VAT without checking.
+    /// </summary>
+    [JsonProperty("typCenyDphK")]
+    public string? TypCenyDphK { get; set; }
+
+    /// <summary>True only when <see cref="TypCenyDphK"/> is explicitly "typCeny.sDph". A null
+    /// value (the field is absent from query 41) is treated as excl-VAT by the caller, with a
+    /// logged warning — never silently here.</summary>
+    public bool IsPriceIncludingVat => TypCenyDphK == "typCeny.sDph";
+
     public decimal Vat
     {
         get

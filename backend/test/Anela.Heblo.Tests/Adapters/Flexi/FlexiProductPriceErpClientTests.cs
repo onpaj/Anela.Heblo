@@ -213,6 +213,105 @@ public class FlexiProductPriceErpClientTests
             Times.Once);
     }
 
+    [Fact]
+    public void MapToProductPrices_WhenPriceIncludesVat_DerivesPriceWithoutVatByDividing()
+    {
+        // Arrange: typCenyDphK = typCeny.sDph means cenaZakl IS the with-VAT price.
+        // Grossing it up (today's default behavior) would double-count VAT.
+        var dto = new ProductPriceFlexiDto
+        {
+            ProductId = 1,
+            ProductCode = "A",
+            Price = 447.70m,
+            PurchasePrice = 0m,
+            VatLevel = "základní",
+            ProductType = "Zboží",
+            TypCenyDphK = "typCeny.sDph",
+        };
+
+        // Act
+        var result = _client.MapToProductPrices(new[] { dto }).Single();
+
+        // Assert
+        result.PriceWithVat.Should().Be(447.70m);
+        result.PriceWithoutVat.Should().Be(370.00m);
+        _clientLoggerMock.Verify(
+            x => x.Log(
+                LogLevel.Warning,
+                It.IsAny<EventId>(),
+                It.IsAny<It.IsAnyType>(),
+                It.IsAny<Exception?>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Never);
+    }
+
+    [Fact]
+    public void MapToProductPrices_WhenPriceExcludesVat_GrossesUpAsBefore()
+    {
+        // Arrange: typCenyDphK = typCeny.bezDph is today's observed real-item value.
+        var dto = new ProductPriceFlexiDto
+        {
+            ProductId = 1,
+            ProductCode = "A",
+            Price = 370.00m,
+            PurchasePrice = 0m,
+            VatLevel = "základní",
+            ProductType = "Zboží",
+            TypCenyDphK = "typCeny.bezDph",
+        };
+
+        // Act
+        var result = _client.MapToProductPrices(new[] { dto }).Single();
+
+        // Assert
+        result.PriceWithoutVat.Should().Be(370.00m);
+        result.PriceWithVat.Should().Be(447.70m);
+    }
+
+    [Fact]
+    public void MapToProductPrices_WhenPriceTypeIsAbsent_AssumesExclVatAndWarnsOnce()
+    {
+        // Arrange: user query 41 may not expose typCenyDphK at all. Treat as bezDph
+        // (today's behavior) but log a warning — never assume silently. Two items missing
+        // the field must warn only once for the whole batch.
+        var dtoA = new ProductPriceFlexiDto
+        {
+            ProductId = 1,
+            ProductCode = "A",
+            Price = 370.00m,
+            PurchasePrice = 0m,
+            VatLevel = "základní",
+            ProductType = "Zboží",
+            TypCenyDphK = null,
+        };
+        var dtoB = new ProductPriceFlexiDto
+        {
+            ProductId = 2,
+            ProductCode = "B",
+            Price = 100.00m,
+            PurchasePrice = 0m,
+            VatLevel = "základní",
+            ProductType = "Zboží",
+            TypCenyDphK = null,
+        };
+
+        // Act
+        var results = _client.MapToProductPrices(new[] { dtoA, dtoB }).ToList();
+
+        // Assert
+        results[0].PriceWithoutVat.Should().Be(370.00m);
+        results[0].PriceWithVat.Should().Be(447.70m);
+        results[1].PriceWithoutVat.Should().Be(100.00m);
+        _clientLoggerMock.Verify(
+            x => x.Log(
+                LogLevel.Warning,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((v, _) => v.ToString()!.Contains("typCenyDphK")),
+                It.IsAny<Exception?>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Once);
+    }
+
     private sealed class ThrowingHttpMessageHandler : HttpMessageHandler
     {
         private readonly Exception _exception;

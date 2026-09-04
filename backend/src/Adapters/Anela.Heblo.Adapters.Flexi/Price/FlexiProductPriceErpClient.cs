@@ -94,18 +94,55 @@ public class FlexiProductPriceErpClient : UserQueryClient<ProductPriceFlexiDto>,
             }
         }
 
-        var prices = data!.Select(s => new ProductPriceErp()
-        {
-            ProductCode = s.ProductCode,
-            PriceWithoutVat = s.Price,
-            PriceWithVat = s.Price * ((100 + s.Vat) / 100),
-            PurchasePrice = s.PurchasePrice,
-            PurchasePriceWithVat = s.PurchasePrice * ((100 + s.Vat) / 100),
-            BoMId = s.BoMId,
-            ErpItemId = s.ProductId
-        }).ToList();
+        return MapToProductPrices(data!).ToList();
+    }
 
-        return prices;
+    /// <summary>
+    /// Projects the raw Flexi rows to <see cref="ProductPriceErp"/>, deriving the with-VAT
+    /// price from each item's own price-type flag instead of unconditionally grossing up
+    /// (that double-counts VAT for an item entered "s DPH"). User query 41 may not expose
+    /// <c>typCenyDphK</c> at all; when it is absent, excl-VAT semantics (today's behavior) is
+    /// assumed and a warning is logged once for the whole batch — never silently.
+    /// </summary>
+    internal IEnumerable<ProductPriceErp> MapToProductPrices(IEnumerable<ProductPriceFlexiDto> data)
+    {
+        var warnedAboutUnknownPriceType = false;
+
+        foreach (var s in data)
+        {
+            if (s.TypCenyDphK is null && !warnedAboutUnknownPriceType)
+            {
+                _clientLogger.LogWarning(
+                    "FlexiBee uzivatelsky-dotaz/41: typCenyDphK is missing for one or more items " +
+                    "(e.g. {ProductCode}); assuming excl-VAT (bez DPH) semantics for cenaZakl.",
+                    s.ProductCode);
+                warnedAboutUnknownPriceType = true;
+            }
+
+            decimal priceWithVat;
+            decimal priceWithoutVat;
+            if (s.IsPriceIncludingVat)
+            {
+                priceWithVat = s.Price;
+                priceWithoutVat = Math.Round(s.Price / (1 + s.Vat / 100m), 2, MidpointRounding.AwayFromZero);
+            }
+            else
+            {
+                priceWithoutVat = s.Price;
+                priceWithVat = s.Price * ((100 + s.Vat) / 100);
+            }
+
+            yield return new ProductPriceErp
+            {
+                ProductCode = s.ProductCode,
+                PriceWithoutVat = priceWithoutVat,
+                PriceWithVat = priceWithVat,
+                PurchasePrice = s.PurchasePrice,
+                PurchasePriceWithVat = s.PurchasePrice * ((100 + s.Vat) / 100),
+                BoMId = s.BoMId,
+                ErpItemId = s.ProductId
+            };
+        }
     }
 
     public async Task RecalculatePurchasePrice(int bomId, CancellationToken cancellationToken)
