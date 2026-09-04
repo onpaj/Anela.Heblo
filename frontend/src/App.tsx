@@ -13,6 +13,7 @@ import ManufactureOutput from "./components/pages/ManufactureOutput";
 import ManufactureBatchCalculator from "./components/pages/ManufactureBatchCalculator";
 import BatchPlanningCalculator from "./components/pages/ManufactureBatchPlanning";
 import ProductMarginsList from "./components/pages/ProductMarginsList";
+import ProductStatistics from "./components/pages/ProductStatistics";
 import ProductMarginSummary from "./components/pages/ProductMarginSummary";
 import FinancialOverview from "./components/pages/FinancialOverview";
 import BankStatementImportPage from "./pages/customer/BankStatementImportPage";
@@ -427,6 +428,7 @@ function App() {
                         <Route path="/manufacturing/orders/:id" element={<ManufactureOrderDetail />} />
                         <Route path="/products/margins" element={guard("/products/margins", <ProductMarginsList />)} />
                         <Route path="/products/pricing" element={guard("/products/pricing", <ProductPricingPage />)} />
+                        <Route path="/products/statistics" element={guard("/products/statistics", <ProductStatistics />)} />
                         <Route path="/journal" element={guard("/journal", <JournalList />)} />
                         <Route path="/marketing/calendar" element={guard("/marketing/calendar", <MarketingCalendarPage />)} />
                         <Route path="/marketing/photobank" element={guard("/marketing/photobank", <PhotobankPage />)} />

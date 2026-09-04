@@ -48,6 +48,7 @@ const ImportFromOutlookModal: React.FC<ImportFromOutlookModalProps> = ({ isOpen,
         created: data?.created ?? 0,
         skipped: data?.skipped ?? 0,
         failed: data?.failed ?? 0,
+        deleted: data?.deleted ?? 0,
         unmappedCategories: data?.unmappedCategories ?? [],
       });
     } catch {
@@ -106,6 +107,7 @@ const ImportFromOutlookModal: React.FC<ImportFromOutlookModalProps> = ({ isOpen,
             <div className='rounded-lg bg-gray-50 dark:bg-graphite-surface-2 border border-gray-200 dark:border-graphite-border p-3 text-sm text-gray-700 dark:text-graphite-muted'>
               <p>Vytvořeno: <strong>{result.created}</strong></p>
               <p>Přeskočeno: <strong>{result.skipped}</strong></p>
+              <p>Smazáno: <strong>{result.deleted}</strong></p>
               <p>Chyb: <strong>{result.failed}</strong></p>
             </div>
           )}

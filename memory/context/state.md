@@ -14,6 +14,21 @@ _Update this file at the end of significant sessions._
 
 ## Recently Completed
 
+- Hygiene coverage gap + AgentHarness drift (PR #3956 triage, branch
+  `claude/pr-3956-resolver-coverage-oaq9qj`, 2026-09-03): `/hygiene-all`,
+  `/automerge-all` and `/rework-all` all filtered on `--label agent`, so an
+  unlabelled PR was invisible to every one of them — #3956 sat conflicted and
+  untouched for two weeks. Added `candidates.sh --all-open` (label filter
+  dropped) wired into `/hygiene-all`, and made `gh_api.sh`'s `pr-list` accept an
+  optional label. Closed #3956 unmerged: 11 of its 12 files were already on
+  `main` and the 12th was the `gh_api.sh` Content-Type regression. Root cause of
+  that recurring regression — the SessionStart hook's `agentharness init
+  --force` reverting local scaffolding fixes every session — is now fixed
+  upstream in `onpaj/harness` (branch `claude/hygiene-all-any-label`: hygiene
+  `--all-open`, the Content-Type header, and `git add -A -f` at all 11 sites),
+  so the two repos' skill copies are byte-identical and `init` is a no-op for
+  them. See `memory/gotchas/gh-cli-unavailable-in-cloud-sessions.md`.
+
 - Telemetry brainstorm routine (branch `claude/laughing-babbage-yeu5pw`, 2026-06-12):
   `docs/routines/telemetry-anomaly/telemetry-digest.sh` (curated App Insights KQL set →
   Markdown digest) + `docs/routines/telemetry-anomaly/README.md` (routine def) +

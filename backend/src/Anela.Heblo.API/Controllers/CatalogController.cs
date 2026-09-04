@@ -5,6 +5,7 @@ using Anela.Heblo.Application.Features.Catalog.UseCases.GetCatalogDetail;
 using Anela.Heblo.Application.Features.Catalog.UseCases.GetManufactureDifficultySettings;
 using Anela.Heblo.Application.Features.Catalog.UseCases.GetMaterialForPurchase;
 using Anela.Heblo.Application.Features.Catalog.UseCases.GetProductComposition;
+using Anela.Heblo.Application.Features.Catalog.UseCases.GetProductStatistics;
 using Anela.Heblo.Application.Features.Catalog.UseCases.GetProductUsage;
 using Anela.Heblo.Application.Features.Catalog.UseCases.GetWarehouseStatistics;
 using Anela.Heblo.Application.Features.Catalog.UseCases.RecalculateProductWeight;
@@ -42,6 +43,14 @@ public class CatalogController : BaseApiController
     public async Task<ActionResult<GetCatalogDetailResponse>> GetCatalogDetail(string productCode, [FromQuery] int monthsBack = 13)
     {
         var request = new GetCatalogDetailRequest { ProductCode = productCode, MonthsBack = monthsBack };
+        var response = await _mediator.Send(request);
+        return HandleResponse(response);
+    }
+
+    [HttpGet("product-statistics")]
+    public async Task<ActionResult<GetProductStatisticsResponse>> GetProductStatistics(
+        [FromQuery] GetProductStatisticsRequest request)
+    {
         var response = await _mediator.Send(request);
         return HandleResponse(response);
     }

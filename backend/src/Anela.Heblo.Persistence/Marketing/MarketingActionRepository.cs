@@ -134,5 +134,30 @@ namespace Anela.Heblo.Persistence.Marketing
                 .Where(x => x.OutlookEventId != null && outlookEventIds.Contains(x.OutlookEventId))
                 .ToListAsync(cancellationToken);
         }
+
+        public void DetachRange(IEnumerable<MarketingAction> actions)
+        {
+            foreach (var action in actions)
+            {
+                var entry = Context.Entry(action);
+                if (entry.State != EntityState.Detached)
+                {
+                    entry.State = EntityState.Detached;
+                }
+            }
+        }
+
+        public async Task<List<MarketingAction>> GetSyncedInWindowAsync(
+            DateTime fromUtc,
+            DateTime toUtc,
+            CancellationToken cancellationToken = default)
+        {
+            return await Context.Set<MarketingAction>()
+                .Where(x => !x.IsDeleted &&
+                    x.OutlookEventId != null &&
+                    x.StartDate <= toUtc &&
+                    (x.EndDate ?? x.StartDate) >= fromUtc)
+                .ToListAsync(cancellationToken);
+        }
     }
 }

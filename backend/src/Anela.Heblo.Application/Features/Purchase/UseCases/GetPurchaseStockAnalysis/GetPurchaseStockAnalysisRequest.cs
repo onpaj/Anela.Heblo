@@ -12,6 +12,8 @@ public class GetPurchaseStockAnalysisRequest : IRequest<GetPurchaseStockAnalysis
 
     public StockStatusFilter StockStatus { get; set; } = StockStatusFilter.All;
 
+    public MaterialCategoryFilter MaterialCategory { get; set; } = MaterialCategoryFilter.All;
+
     public bool OnlyConfigured { get; set; } = false;
 
     public string? SearchTerm { get; set; }

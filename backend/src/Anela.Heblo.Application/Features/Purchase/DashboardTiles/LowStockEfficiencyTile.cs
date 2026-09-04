@@ -69,7 +69,13 @@ public class LowStockEfficiencyTile : ITile
                 },
                 drillDown = new
                 {
-                    filters = new { StockStatus = StockStatusFilter.Critical.ToString() },
+                    filters = new
+                    {
+                        StockStatus = StockStatusFilter.Critical.ToString(),
+                        // The tile counts across every material category, so the drill-down
+                        // must ask for all of them rather than the page's default category.
+                        MaterialCategory = MaterialCategoryFilter.All.ToString()
+                    },
                     enabled = true,
                     tooltip = "Zobrazit všechny materiály s kritickou zásobou"
                 }

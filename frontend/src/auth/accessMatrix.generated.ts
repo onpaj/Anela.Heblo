@@ -6,6 +6,7 @@ export const ACCESS_ROUTES: Record<string, MenuRequirement> = {
   "/products/margins": { permissions: ["products.product_margins.read"] },
   "/catalog": { permissions: ["products.catalog.read"] },
   "/products/pricing": { permissions: ["products.catalog.read"] },
+  "/products/statistics": { permissions: ["products.catalog.read"] },
   "/journal": { permissions: ["products.journal.read"] },
   "/customer/issued-invoices": { permissions: ["customer.bank_statements.read"] },
   "/customer/bank-statements-overview": { permissions: ["customer.bank_statements.read"] },

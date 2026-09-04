@@ -37,6 +37,10 @@ namespace Anela.Heblo.Application.Features.Marketing
             // the real OutlookCalendarSyncService in production (last registration wins).
             services.AddScoped<IOutlookCalendarSync, NoOpOutlookCalendarSync>();
 
+            services.AddScoped<IMarketingCalendarSyncService, MarketingCalendarSyncService>();
+
+            // MarketingCalendarSyncJob is auto-discovered via the IRecurringJob assembly scan in AddRecurringJobs().
+
             // MediatR handlers are auto-registered by assembly scan
             return services;
         }

@@ -16,6 +16,16 @@ claiming) is what protects against a *different* concurrent run — another
 on the same PR; it narrows that race but is not a true lock (see that
 skill's own caveat).
 
+## GitHub access
+
+Every subagent you spawn reads and writes GitHub through the **`github` MCP
+server** (`mcp__github__*`), per `rework-pr`/SKILL.md`'s *GitHub access* section,
+falling back to `.claude/skills/_lib/gh_api.sh` (curl+REST) when MCP is not
+connected — never to the `gh` CLI, which is blocked wherever this runs
+unattended. The scripts this skill calls directly keep their own
+`gh` / `USE_GH_API` transport, unchanged; set `USE_GH_API=1` in any
+environment without `gh`.
+
 ## 1. Find the candidates
 
 ```bash

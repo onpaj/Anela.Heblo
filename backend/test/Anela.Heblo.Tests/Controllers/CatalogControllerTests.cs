@@ -1,6 +1,7 @@
 using Anela.Heblo.API.Controllers;
 using Anela.Heblo.Application.Features.Catalog.Contracts;
 // using Anela.Heblo.Application.Features.Catalog.UseCases.RefreshData;
+using Anela.Heblo.Application.Features.Catalog.UseCases.GetProductStatistics;
 using FluentAssertions;
 using Anela.Heblo.Domain.Features.Catalog;
 using MediatR;
@@ -310,6 +311,56 @@ public class CatalogControllerTests
         response.Subject.PageSize.Should().Be(5);
 
         _mediatorMock.Verify(m => m.Send(It.IsAny<GetCatalogListRequest>(), It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task GetProductStatistics_PassesRequestToMediatorAndReturnsOk()
+    {
+        // Arrange
+        var expected = new GetProductStatisticsResponse
+        {
+            Months = new List<string> { "2025-01", "2025-02" },
+            Products = new List<ProductStatisticsSeriesDto>
+            {
+                new()
+                {
+                    ProductCode = "PROD-A",
+                    ProductName = "Krém",
+                    Values = new List<double> { 1, 2 },
+                },
+            },
+        };
+
+        _mediatorMock
+            .Setup(m => m.Send(It.IsAny<GetProductStatisticsRequest>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(expected);
+
+        var request = new GetProductStatisticsRequest
+        {
+            ProductCodes = new List<string> { "PROD-A" },
+            Metric = ProductStatisticsMetric.Sales,
+            DateFrom = "2025-01",
+            DateTo = "2025-02",
+        };
+
+        // Act
+        var result = await _controller.GetProductStatistics(request);
+
+        // Assert
+        var okResult = result.Result.Should().BeOfType<OkObjectResult>();
+        var response = okResult.Subject.Value.Should().BeOfType<GetProductStatisticsResponse>();
+
+        response.Subject.Months.Should().HaveCount(2);
+        response.Subject.Products.Should().ContainSingle();
+
+        _mediatorMock.Verify(
+            m => m.Send(
+                It.Is<GetProductStatisticsRequest>(r =>
+                    r.Metric == ProductStatisticsMetric.Sales &&
+                    r.DateFrom == "2025-01" &&
+                    r.DateTo == "2025-02"),
+                It.IsAny<CancellationToken>()),
+            Times.Once);
     }
 
 }

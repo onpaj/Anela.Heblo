@@ -59,6 +59,10 @@ public class ImportFromOutlookHandlerTests
             .Setup(x => x.UpdateAsync(It.IsAny<MarketingAction>(), It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
 
+        _repositoryMock
+            .Setup(x => x.GetSyncedInWindowAsync(It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<MarketingAction>());
+
         // Default: nothing mapped — return General with all categories as unmapped
         _mapperMock
             .Setup(m => m.MapToActionType(It.IsAny<IReadOnlyList<string>>()))
@@ -71,12 +75,13 @@ public class ImportFromOutlookHandlerTests
                     nonEmpty);
             });
 
-        _handler = new ImportFromOutlookHandler(
+        var syncService = new MarketingCalendarSyncService(
             _repositoryMock.Object,
-            _currentUserServiceMock.Object,
             _outlookSyncMock.Object,
             _mapperMock.Object,
-            NullLogger<ImportFromOutlookHandler>.Instance);
+            NullLogger<MarketingCalendarSyncService>.Instance);
+
+        _handler = new ImportFromOutlookHandler(syncService, _currentUserServiceMock.Object);
     }
 
     private static ImportFromOutlookRequest BuildRequest(bool dryRun = false)

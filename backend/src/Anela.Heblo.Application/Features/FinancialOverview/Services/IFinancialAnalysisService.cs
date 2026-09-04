@@ -25,11 +25,6 @@ public interface IFinancialAnalysisService
         CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Gets the cache status for monitoring
-    /// </summary>
-    FinancialAnalysisCacheStatus GetCacheStatus();
-
-    /// <summary>
     /// Gets year-over-year financial comparison data, aligning each year's partial month
     /// to the same cutoff day for a fair comparison.
     /// </summary>

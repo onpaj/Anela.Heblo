@@ -339,7 +339,7 @@ public class FinancialAnalysisService : IFinancialAnalysisService
         }
     }
 
-    public FinancialAnalysisCacheStatus GetCacheStatus()
+    private FinancialAnalysisCacheStatus GetCacheStatus()
     {
         var lastRefresh = _memoryCache.Get<DateTime?>(LAST_REFRESH_CACHE_KEY) ?? DateTime.MinValue;
 
