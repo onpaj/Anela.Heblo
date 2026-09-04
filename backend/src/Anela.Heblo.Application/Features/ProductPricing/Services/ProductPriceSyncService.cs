@@ -297,31 +297,17 @@ public class ProductPriceSyncService : IProductPriceSyncService
     {
         if (hebloPrice is null)
         {
-            // Spec §7: present in Flexi, absent from Heblo's master table -> seed the master
-            // row from Flexi, mirroring SeedFromEshopAsync. Without this, the next run's
-            // missing-master-row guard in SyncTargetAsync would mark this state Failed
-            // forever and the product would never appear in the grid. The Shoptet state is
-            // deliberately left untouched: once the master row exists, the next run's
-            // Shoptet pass sees it on its own and reconciles independently.
-            context.Result.Seeded++;
-            context.ErpPrices.TryGetValue(state.ProductCode, out var erp);
-
-            var seeded = new ProductPrice
-            {
-                ProductCode = state.ProductCode,
-                PriceWithVat = decision.RemoteValue!.Value,
-                VatRate = DeriveVatRate(erp),
-                ModifiedAt = DateTime.UtcNow,
-                ModifiedBy = SeedModifiedBy,
-            };
-
-            await _repository.UpsertAsync(seeded, ct);
-            context.Prices[state.ProductCode] = seeded;
-
-            state.LastPushedPriceWithVat = decision.RemoteValue;
-            state.LastPushedAt = DateTime.UtcNow;
-            state.Status = PriceSyncStatus.InSync;
-            await _repository.UpsertSyncStateAsync(state, ct);
+            // Shoptet is the only seed source for the master price row (SeedFromEshopAsync).
+            // A product present only in Flexi has never been priced in Shoptet's retail list,
+            // so there is nothing to adopt as the master value — seeding it from ERP data here
+            // would make Flexi the source of truth, the exact inversion this sync exists to
+            // prevent. Record it Failed instead; a human adds the product to Shoptet's retail
+            // list, and the next run's normal Shoptet seed picks it up from there.
+            context.Result.Failed++;
+            await FailAsync(
+                state,
+                $"No master price; product {state.ProductCode} not present in the Shoptet retail price list.",
+                ct);
             return;
         }
 

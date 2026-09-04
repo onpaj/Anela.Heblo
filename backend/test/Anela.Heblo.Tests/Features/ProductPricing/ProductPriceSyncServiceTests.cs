@@ -196,14 +196,13 @@ public class ProductPriceSyncServiceTests
     }
 
     [Fact]
-    public async Task seeds_the_master_row_from_flexi_when_present_only_in_flexi()
+    public async Task does_not_seed_the_master_row_from_flexi_and_records_failed_when_present_only_in_flexi()
     {
-        // Arrange: spec §7 — present in Flexi, absent from Heblo's master table and from
-        // Shoptet. Before I3's fix, ReconcileErpSeedAsync wrote the Flexi state InSync
-        // without ever creating the master row, so the next run's missing-master-row guard
-        // marked it Failed forever and it never appeared in the grid (which iterates
-        // ProductPrices). The Shoptet state must stay untouched: it never saw this product
-        // this run (absent from both the master table and Shoptet's remote list).
+        // Arrange: present in Flexi, absent from Heblo's master table and from Shoptet.
+        // Shoptet is the only seed source for the master row — seeding it from Flexi would
+        // make Flexi the source of truth, the exact inversion this sync exists to prevent.
+        // The Shoptet state must stay untouched: it never saw this product this run (absent
+        // from both the master table and Shoptet's remote list).
         _repository.Setup(r => r.GetAllAsync(It.IsAny<CancellationToken>())).ReturnsAsync(new List<ProductPrice>());
         _repository
             .Setup(r => r.GetSyncStatesAsync(It.IsAny<PriceSyncTarget>(), It.IsAny<CancellationToken>()))
@@ -217,15 +216,12 @@ public class ProductPriceSyncServiceTests
         var result = await service.SyncAsync(CancellationToken.None);
 
         // Assert
-        result.Seeded.Should().Be(1);
-        result.Failed.Should().Be(0);
-        _repository.Verify(
-            r => r.UpsertAsync(It.Is<ProductPrice>(p => p.ProductCode == "A" && p.PriceWithVat == 190.00m),
-                               It.IsAny<CancellationToken>()),
-            Times.Once);
+        result.Seeded.Should().Be(0);
+        result.Failed.Should().Be(1);
+        _repository.Verify(r => r.UpsertAsync(It.IsAny<ProductPrice>(), It.IsAny<CancellationToken>()), Times.Never);
         var flexiState = _savedStates.Single(s => s.ProductCode == "A" && s.Target == PriceSyncTarget.Flexi);
-        flexiState.Status.Should().Be(PriceSyncStatus.InSync);
-        flexiState.LastPushedPriceWithVat.Should().Be(190.00m);
+        flexiState.Status.Should().Be(PriceSyncStatus.Failed);
+        flexiState.LastError.Should().Contain("Shoptet retail price list");
         _savedStates.Should().NotContain(s => s.Target == PriceSyncTarget.Shoptet);
     }
 
