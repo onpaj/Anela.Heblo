@@ -42,7 +42,14 @@ public class ShoptetPriceListClient : IEshopPriceListClient
             var url = $"/api/pricelists/{priceListId}?itemsPerPage={MaxItemsPerPage}&page={page}";
             var snapshot = await GetAsync<PriceListSnapshotResponse>(url, ct);
 
-            foreach (var item in snapshot.Data?.Items ?? new List<PriceListSnapshotItem>())
+            // A 200 whose body carries no `data` block is a malformed response, not an empty
+            // price list. Swallowing it would hand the sync an empty snapshot, and every
+            // in-scope product would then decide MissingRemote and be marked Failed in a
+            // single run — the exact mass-failure the caller's try/catch exists to prevent.
+            var data = snapshot.Data
+                ?? throw new HttpRequestException($"Shoptet returned no data block for {url}");
+
+            foreach (var item in data.Items)
             {
                 if (string.IsNullOrWhiteSpace(item.Code) || !TryParsePrice(item.PriceWithVat, out var price))
                 {
@@ -52,7 +59,7 @@ public class ShoptetPriceListClient : IEshopPriceListClient
                 prices[item.Code] = price;
             }
 
-            pageCount = snapshot.Data?.Paginator?.PageCount ?? 1;
+            pageCount = data.Paginator?.PageCount ?? 1;
             page++;
         }
         while (page <= pageCount);

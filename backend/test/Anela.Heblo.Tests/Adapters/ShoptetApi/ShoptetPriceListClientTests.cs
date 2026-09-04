@@ -130,6 +130,22 @@ public class ShoptetPriceListClientTests
         (await act.Should().ThrowAsync<HttpRequestException>()).And.Message.Should().Contain("Invalid price");
     }
 
+    [Fact]
+    public async Task throws_when_a_200_carries_no_data_block()
+    {
+        // Arrange
+        // Returning an empty snapshot here would make every product decide MissingRemote
+        // and be marked Failed in one run, instead of leaving the sync states untouched.
+        var client = CreateClient(_ => Json("""{"data":null,"errors":null}"""));
+
+        // Act
+        var act = () => client.GetPricesWithVatAsync(CancellationToken.None);
+
+        // Assert
+        (await act.Should().ThrowAsync<HttpRequestException>())
+            .And.Message.Should().Contain("no data block");
+    }
+
     private sealed class StubHandler : HttpMessageHandler
     {
         private readonly Func<HttpRequestMessage, HttpResponseMessage> _responder;
