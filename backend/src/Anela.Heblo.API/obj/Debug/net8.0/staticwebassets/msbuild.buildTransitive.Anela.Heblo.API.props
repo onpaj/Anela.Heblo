@@ -1,0 +1,3 @@
+﻿<Project>
+  <Import Project="../buildMultiTargeting/Anela.Heblo.API.props" />
+</Project>

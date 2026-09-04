@@ -1,0 +1,33 @@
+{
+  "Files": [
+    {
+      "Id": "/home/user/worktrees/feature-4042-Post-Mcp-35-8-Bad-Request-Rate-59-165-In-P7d-No-Di/backend/tools/SmartsuppWebhookReplay/wwwroot/app.css",
+      "PackagePath": "staticwebassets/app.css"
+    },
+    {
+      "Id": "/home/user/worktrees/feature-4042-Post-Mcp-35-8-Bad-Request-Rate-59-165-In-P7d-No-Di/backend/tools/SmartsuppWebhookReplay/wwwroot/app.js",
+      "PackagePath": "staticwebassets/app.js"
+    },
+    {
+      "Id": "/home/user/worktrees/feature-4042-Post-Mcp-35-8-Bad-Request-Rate-59-165-In-P7d-No-Di/backend/tools/SmartsuppWebhookReplay/wwwroot/index.html",
+      "PackagePath": "staticwebassets/index.html"
+    },
+    {
+      "Id": "obj/Debug/net8.0/staticwebassets/msbuild.SmartsuppWebhookReplay.Microsoft.AspNetCore.StaticWebAssets.props",
+      "PackagePath": "build\\Microsoft.AspNetCore.StaticWebAssets.props"
+    },
+    {
+      "Id": "obj/Debug/net8.0/staticwebassets/msbuild.build.SmartsuppWebhookReplay.props",
+      "PackagePath": "build\\SmartsuppWebhookReplay.props"
+    },
+    {
+      "Id": "obj/Debug/net8.0/staticwebassets/msbuild.buildMultiTargeting.SmartsuppWebhookReplay.props",
+      "PackagePath": "buildMultiTargeting\\SmartsuppWebhookReplay.props"
+    },
+    {
+      "Id": "obj/Debug/net8.0/staticwebassets/msbuild.buildTransitive.SmartsuppWebhookReplay.props",
+      "PackagePath": "buildTransitive\\SmartsuppWebhookReplay.props"
+    }
+  ],
+  "ElementsToRemove": []
+}
