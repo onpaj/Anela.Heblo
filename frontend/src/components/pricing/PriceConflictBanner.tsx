@@ -13,6 +13,7 @@ interface PriceConflictBannerProps {
   remotePrice: number | null;
   /** True while this row's price is being saved — resolving now would race that save. */
   disabled?: boolean;
+  canWrite: boolean;
 }
 
 const TARGET_LABELS: Record<PriceSyncTarget, string> = {
@@ -26,6 +27,7 @@ const PriceConflictBanner: React.FC<PriceConflictBannerProps> = ({
   hebloPrice,
   remotePrice,
   disabled = false,
+  canWrite,
 }) => {
   const resolveConflict = useResolvePriceConflict();
   const isBusy = disabled || resolveConflict.isPending;
@@ -55,24 +57,26 @@ const PriceConflictBanner: React.FC<PriceConflictBannerProps> = ({
         {" "}
         {TARGET_LABELS[target]} {remotePrice !== null ? formatCurrency(remotePrice) : "neznámá cena"}
       </div>
-      <div className="flex gap-2 ml-auto">
-        <button
-          type="button"
-          onClick={handleKeepHeblo}
-          disabled={isBusy}
-          className="px-3 py-1.5 text-xs font-medium text-amber-800 dark:text-amber-200 bg-white dark:bg-graphite-surface border border-amber-300 dark:border-amber-900/40 rounded-md hover:bg-amber-100 dark:hover:bg-amber-900/30 transition-colors disabled:opacity-50"
-        >
-          Ponechat cenu z Hebla
-        </button>
-        <button
-          type="button"
-          onClick={handleAcceptRemote}
-          disabled={isBusy}
-          className="px-3 py-1.5 text-xs font-medium text-white bg-amber-600 hover:bg-amber-700 rounded-md transition-colors disabled:opacity-50"
-        >
-          Převzít externí cenu
-        </button>
-      </div>
+      {canWrite && (
+        <div className="flex gap-2 ml-auto">
+          <button
+            type="button"
+            onClick={handleKeepHeblo}
+            disabled={isBusy}
+            className="px-3 py-1.5 text-xs font-medium text-amber-800 dark:text-amber-200 bg-white dark:bg-graphite-surface border border-amber-300 dark:border-amber-900/40 rounded-md hover:bg-amber-100 dark:hover:bg-amber-900/30 transition-colors disabled:opacity-50"
+          >
+            Ponechat cenu z Hebla
+          </button>
+          <button
+            type="button"
+            onClick={handleAcceptRemote}
+            disabled={isBusy}
+            className="px-3 py-1.5 text-xs font-medium text-white bg-amber-600 hover:bg-amber-700 rounded-md transition-colors disabled:opacity-50"
+          >
+            Převzít externí cenu
+          </button>
+        </div>
+      )}
       {resolveConflict.isError && (
         <div
           data-testid={`price-conflict-error-${productCode}-${target}`}

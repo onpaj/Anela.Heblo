@@ -8,6 +8,7 @@ import PriceConflictBanner from "./PriceConflictBanner";
 
 interface ProductPriceGridProps {
   prices: ProductPriceDto[];
+  canWrite: boolean;
 }
 
 const STATUS_LABELS: Record<PriceSyncStatus, string> = {
@@ -44,6 +45,7 @@ interface EditablePriceCellProps {
   productCode: string;
   priceWithVat: number;
   setPrice: SetPriceMutation;
+  canWrite: boolean;
 }
 
 // Accepts the Czech decimal comma and rejects anything the backend validator would
@@ -61,6 +63,7 @@ const EditablePriceCell: React.FC<EditablePriceCellProps> = ({
   productCode,
   priceWithVat,
   setPrice,
+  canWrite,
 }) => {
   const [value, setValue] = useState(String(priceWithVat));
   const isFocusedRef = useRef(false);
@@ -95,6 +98,14 @@ const EditablePriceCell: React.FC<EditablePriceCellProps> = ({
     );
   };
 
+  if (!canWrite) {
+    return (
+      <span className="text-sm text-gray-900 dark:text-graphite-text">
+        {formatCurrency(priceWithVat)}
+      </span>
+    );
+  }
+
   return (
     <div className="flex flex-col items-end gap-1">
       <input
@@ -122,7 +133,7 @@ const EditablePriceCell: React.FC<EditablePriceCellProps> = ({
 
 const GRID_COLUMN_COUNT = 7;
 
-const ProductPriceGrid: React.FC<ProductPriceGridProps> = ({ prices }) => {
+const ProductPriceGrid: React.FC<ProductPriceGridProps> = ({ prices, canWrite }) => {
   return (
     <div className="bg-white dark:bg-graphite-surface rounded-lg shadow dark:shadow-soft-dark overflow-hidden">
       <div className="overflow-x-auto">
@@ -163,7 +174,9 @@ const ProductPriceGrid: React.FC<ProductPriceGridProps> = ({ prices }) => {
                 </td>
               </tr>
             ) : (
-              prices.map((price) => <ProductPriceRow key={price.productCode} price={price} />)
+              prices.map((price) => (
+                <ProductPriceRow key={price.productCode} price={price} canWrite={canWrite} />
+              ))
             )}
           </tbody>
         </table>
@@ -174,12 +187,13 @@ const ProductPriceGrid: React.FC<ProductPriceGridProps> = ({ prices }) => {
 
 interface ProductPriceRowProps {
   price: ProductPriceDto;
+  canWrite: boolean;
 }
 
 // The price mutation lives here rather than in the cell so the conflict banners in the
 // same row can see it: mousedown on a banner button blurs the input first, firing a save
 // that would otherwise race the resolution over the same sync state.
-const ProductPriceRow: React.FC<ProductPriceRowProps> = ({ price }) => {
+const ProductPriceRow: React.FC<ProductPriceRowProps> = ({ price, canWrite }) => {
   const setPrice = useSetProductPrice();
 
   return (
@@ -196,6 +210,7 @@ const ProductPriceRow: React.FC<ProductPriceRowProps> = ({ price }) => {
             productCode={price.productCode!}
             priceWithVat={price.priceWithVat!}
             setPrice={setPrice}
+            canWrite={canWrite}
           />
         </td>
         <td className="px-6 py-4 whitespace-nowrap text-right text-sm text-gray-900 dark:text-graphite-text">
@@ -220,6 +235,7 @@ const ProductPriceRow: React.FC<ProductPriceRowProps> = ({ price }) => {
               hebloPrice={price.priceWithVat!}
               remotePrice={price.shoptetRemoteValue ?? null}
               disabled={setPrice.isPending}
+              canWrite={canWrite}
             />
           </td>
         </tr>
@@ -233,6 +249,7 @@ const ProductPriceRow: React.FC<ProductPriceRowProps> = ({ price }) => {
               hebloPrice={price.priceWithVat!}
               remotePrice={price.flexiRemoteValue ?? null}
               disabled={setPrice.isPending}
+              canWrite={canWrite}
             />
           </td>
         </tr>

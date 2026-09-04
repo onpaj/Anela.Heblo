@@ -17,8 +17,9 @@ jest.mock("../../api/hooks/useProductPricing", () => ({
 
 // Shell components read these contexts; without mocks the page fails to render.
 jest.mock("../../auth/useAuth", () => ({ useAuth: () => ({ user: { name: "Test" } }) }));
+let mockCanWrite = true;
 jest.mock("../../auth/PermissionsContext", () => ({
-  usePermissionsContext: () => ({ hasPermission: () => true }),
+  usePermissionsContext: () => ({ hasPermission: () => mockCanWrite }),
 }));
 
 const inSyncRow = {
@@ -46,6 +47,7 @@ const conflictedRow = {
 beforeEach(() => {
   jest.clearAllMocks();
   mockPrices = [inSyncRow];
+  mockCanWrite = true;
 });
 
 test("renders a row per product with its price and both sync statuses", () => {
@@ -144,4 +146,20 @@ test("accepting the remote price resolves the conflict with AcceptRemotePrice", 
     target: "Flexi",
     resolution: "AcceptRemotePrice",
   });
+});
+
+test("a read-only user gets no write controls", () => {
+  // Arrange
+  mockCanWrite = false;
+  mockPrices = [conflictedRow];
+
+  // Act
+  render(<ProductPricingPage />);
+
+  // Assert
+  expect(screen.queryByLabelText("Cena s DPH pro TON002030")).not.toBeInTheDocument();
+  expect(screen.queryByRole("button", { name: "Synchronizovat", exact: true })).not.toBeInTheDocument();
+  const banner = screen.getByTestId("price-conflict-TON002030-Flexi");
+  expect(within(banner).queryByRole("button")).not.toBeInTheDocument();
+  expect(within(banner).getByText(/175/)).toBeInTheDocument();
 });

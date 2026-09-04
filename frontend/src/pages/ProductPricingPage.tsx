@@ -87,7 +87,7 @@ const ProductPricingPage: React.FC = () => {
         </div>
       )}
 
-      <ProductPriceGrid prices={prices} />
+      <ProductPriceGrid prices={prices} canWrite={canWrite} />
     </div>
   );
 };
