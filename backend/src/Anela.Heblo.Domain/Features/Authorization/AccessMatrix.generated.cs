@@ -49,6 +49,8 @@ public static class AccessMatrix
     {
         new MenuPath("/finance/overview", new FeaturePermission[] { new FeaturePermission(Feature.Finance_FinancialOverview, AccessLevel.Read) }),
         new MenuPath("/analytics/product-margin-summary", new FeaturePermission[] { new FeaturePermission(Feature.Finance_MarginAnalysis, AccessLevel.Read) }),
+        new MenuPath("/automation/invoice-import-statistics", new FeaturePermission[] { new FeaturePermission(Feature.Finance_MarginAnalysis, AccessLevel.Read) }),
+        new MenuPath("/finance/bank-statements", new FeaturePermission[] { new FeaturePermission(Feature.Finance_MarginAnalysis, AccessLevel.Read) }),
         new MenuPath("/products/margins", new FeaturePermission[] { new FeaturePermission(Feature.Products_ProductMargins, AccessLevel.Read) }),
         new MenuPath("/catalog", new FeaturePermission[] { new FeaturePermission(Feature.Products_Catalog, AccessLevel.Read) }),
         new MenuPath("/journal", new FeaturePermission[] { new FeaturePermission(Feature.Products_Journal, AccessLevel.Read) }),
