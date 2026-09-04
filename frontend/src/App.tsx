@@ -412,7 +412,7 @@ function App() {
                       <Route element={<Layout statusBar={<StatusBar />}><ErrorBoundary><Outlet /></ErrorBoundary></Layout>}>
                         <Route path="/" element={<Dashboard />} />
                         <Route path="/finance/overview" element={guard("/finance/overview", <FinancialOverview />)} />
-                        <Route path="/finance/bank-statements" element={<BankStatementImportPage />} />
+                        <Route path="/finance/bank-statements" element={guard("/finance/bank-statements", <BankStatementImportPage />)} />
                         <Route path="/analytics/product-margin-summary" element={guard("/analytics/product-margin-summary", <ProductMarginSummary />)} />
                         <Route path="/catalog" element={guard("/catalog", <CatalogList />)} />
                         <Route path="/purchase/orders" element={guard("/purchase/orders", <PurchaseOrderList />)} />
@@ -442,7 +442,7 @@ function App() {
                         <Route path="/logistics/warehouse-statistics" element={<WarehouseStatistics />} />
                         <Route path="/logistics/packing-materials" element={guard("/logistics/packing-materials", <PackingMaterialsPage />)} />
                         <Route path="/logistics/expedition-archive" element={guard("/logistics/expedition-archive", <ExpeditionListArchivePage />)} />
-                        <Route path="/automation/invoice-import-statistics" element={<InvoiceImportStatistics />} />
+                        <Route path="/automation/invoice-import-statistics" element={guard("/automation/invoice-import-statistics", <InvoiceImportStatistics />)} />
                         <Route path="/automation/background-tasks" element={guard("/automation/background-tasks", <BackgroundTasks />)} />
                         <Route path="/automation/meeting-tasks" element={guard("/automation/meeting-tasks", <MeetingTasksPage />)} />
                         <Route path="/automation/meeting-tasks/:id" element={<MeetingTaskDetailPage />} />
