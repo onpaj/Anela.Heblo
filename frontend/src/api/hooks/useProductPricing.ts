@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { getAuthenticatedApiClient } from "../client";
 import { callApi } from "../apiErrorEnvelope";
+import { getErrorMessage } from "../../utils/errorHandler";
 import {
   ProductPriceDto,
   PriceSyncConflictDto,
@@ -38,15 +39,7 @@ export interface ResolvePriceConflictInput {
 }
 
 const GENERIC_SET_PRICE_ERROR = "Cenu se nepodařilo uložit.";
-const SET_PRICE_ERROR_MESSAGES: Partial<Record<string, string>> = {
-  ProductPriceNotFound: "Cena produktu nebyla nalezena.",
-};
-
 const GENERIC_RESOLVE_CONFLICT_ERROR = "Konflikt se nepodařilo vyřešit.";
-const RESOLVE_CONFLICT_ERROR_MESSAGES: Partial<Record<string, string>> = {
-  ProductPriceNotFound: "Cena produktu nebyla nalezena.",
-  ProductPriceConflictNotFound: "Konflikt cen nebyl nalezen.",
-};
 
 export const useProductPrices = () =>
   useQuery({
@@ -68,7 +61,8 @@ export const useSetProductPrice = () => {
             productCode,
             new SetProductPriceRequest({ productCode, priceWithVat }),
           ),
-        ({ errorCode }) => (errorCode && SET_PRICE_ERROR_MESSAGES[errorCode]) ?? GENERIC_SET_PRICE_ERROR,
+        ({ errorCode, params }) =>
+          errorCode ? getErrorMessage(errorCode, params) : GENERIC_SET_PRICE_ERROR,
       ),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: QUERY_KEYS.prices }),
   });
@@ -93,8 +87,8 @@ export const useResolvePriceConflict = () => {
           getAuthenticatedApiClient().productPricing_ResolveConflict(
             new ResolvePriceSyncConflictRequest(input),
           ),
-        ({ errorCode }) =>
-          (errorCode && RESOLVE_CONFLICT_ERROR_MESSAGES[errorCode]) ?? GENERIC_RESOLVE_CONFLICT_ERROR,
+        ({ errorCode, params }) =>
+          errorCode ? getErrorMessage(errorCode, params) : GENERIC_RESOLVE_CONFLICT_ERROR,
       ),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.prices });
