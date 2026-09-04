@@ -149,3 +149,27 @@ query 41). A product with no known `idcenik` must be reported as a failure, neve
 The SDK's own `PriceListClient` / `PriceListFlexiDto` address records by `code:`
 (`Id => $"code:{ProductCode}"`) and must therefore never be used for ceník writes — that
 is exactly the create-on-unknown-code hazard described above.
+
+
+## Ceník VAT semantics — VERIFIED LIVE 2026-09-04 (anela_cosmetics_test)
+
+A ceník item carries **both** price columns plus a flag saying which one was entered:
+
+| Field | Meaning |
+|---|---|
+| `typCenyDphK` | `typCeny.bezDph` or `typCeny.sDph` (`@showAs`: "bez DPH" / "s DPH"). Says which column is authoritative. |
+| `cenaZakl` | The entered base price. **Its VAT meaning follows `typCenyDphK`** — it is not inherently excl-VAT. |
+| `cenaZaklBezDph` | Base price excluding VAT (computed when type is `sDph`). |
+| `cenaZaklVcDph` | Base price including VAT (computed when type is `bezDph`). |
+| `szbDph` | VAT percentage, e.g. `21.0`. `typSzbDphK` is the rate class (`typSzbDph.dphZakl`). |
+| `nakupCena` | Purchase price. Never written by Heblo. |
+| `cena2` … `cena5` | Price-level (wholesale tier) prices — relevant to the multi-price-list spec. |
+
+Observed for `MAS001180`: `typCenyDphK = typCeny.bezDph`, `cenaZakl = 370.0`,
+`cenaZaklBezDph = 370.0`, `cenaZaklVcDph = 447.7`, `szbDph = 21.0`.
+
+> **Reading `cenaZakl` without `typCenyDphK` is unsafe.** Grossing it up by the VAT rate is
+> only correct when the type is `bezDph`; for an `sDph` item it double-counts VAT.
+> **User query 41 does not expose `typCenyDphK`**, so the query-41 read cannot determine a
+> product's price type — it must come from the `cenik` evidence directly, or query 41 must be
+> extended server-side.

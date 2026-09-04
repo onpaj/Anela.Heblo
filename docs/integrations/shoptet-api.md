@@ -1337,6 +1337,48 @@ webhook and return unusable results without webhook infrastructure. The synchron
 `GET /api/pricelists/{id}` returns the same `data.pricelist[]` / `data.paginator` shape and
 needs no webhook, so Heblo reads through it instead.
 
+### GET response shape — VERIFIED LIVE 2026-09-04
+
+**`GET /api/pricelists` returns NO `default` flag.** Each entry is only `{id, name}`. Any
+code branching on a `default` property silently finds nothing. The retail list must be
+configured explicitly. On the Anela store:
+
+| id | name | role |
+|---|---|---|
+| 1 | Hlavní ceník | **retail / source of truth** |
+| 32 | Bezobal | |
+| 38 | Velkoobchodní ceník | wholesale |
+| 39 | Velkoobchodní 35% | wholesale |
+
+**`GET /api/pricelists/{id}` item shape — there is NO `priceWithVat` field on read.**
+The price is nested, and its VAT meaning comes from sibling fields:
+
+```json
+{
+  "code": "MAS001180",
+  "currencyCode": "CZK",
+  "includingVat": true,
+  "vatRate": "21.00",
+  "price": { "price": "390.00", "commonPrice": null, "buyPrice": "199.18",
+             "priceRatio": "1.000", "actionPrice": null },
+  "sales": { ... },
+  "orderableAmount": { "minimumAmount": null, "maximumAmount": null },
+  "prices": { "purchasePrice": { "price": null, "vatRate": "21.00", "includingVat": true } }
+}
+```
+
+- `price.price` is a **string or null**; `null` means no price set in that list.
+- `includingVat` is a real boolean. On this store it is `true` — **Shoptet retail prices are
+  stored INCLUDING VAT.** Never assume; read the flag per item.
+- `vatRate` is a string percentage (`"21.00"`).
+- The read field names differ from the PATCH field names (below). Reading `priceWithVat`
+  yields null for every item.
+
+**Filtering:** `?code=MAS001180` (singular) works and returns `totalCount: 1`. `codes=` is
+rejected: `{"errorCode":"invalid-parameter","message":"Unsupported query parameters found: codes"}`.
+
+**Paginator** carries `totalCount`, `page`, `pageCount`, `itemsOnPage`, `itemsPerPage`.
+
 **Item price fields on PATCH:**
 
 | Field | Meaning |
