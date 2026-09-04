@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useSetProductPrice } from "../../api/hooks/useProductPricing";
 // Enums/DTOs are imported from the generated client directly (not from the hooks
 // module) so this component keeps working when tests mock ../../api/hooks/useProductPricing.
@@ -57,13 +57,23 @@ const parsePrice = (raw: string): number | null => {
 const EditablePriceCell: React.FC<EditablePriceCellProps> = ({ productCode, priceWithVat }) => {
   const setPrice = useSetProductPrice();
   const [value, setValue] = useState(String(priceWithVat));
+  const isFocusedRef = useRef(false);
 
-  // Keep the input aligned with the latest server value (e.g. after a successful save).
+  // Keep the input aligned with the latest server value (e.g. after a successful save),
+  // but never while the user is typing in it: saving another row, resolving a conflict
+  // or a completed sync all invalidate the price query, and a refetch landing mid-edit
+  // would otherwise silently replace what was typed.
   useEffect(() => {
+    if (isFocusedRef.current) return;
     setValue(String(priceWithVat));
   }, [priceWithVat]);
 
+  const handleFocus = () => {
+    isFocusedRef.current = true;
+  };
+
   const handleBlur = () => {
+    isFocusedRef.current = false;
     const parsed = parsePrice(value);
     if (parsed === null) {
       setValue(String(priceWithVat));
@@ -87,6 +97,7 @@ const EditablePriceCell: React.FC<EditablePriceCellProps> = ({ productCode, pric
         aria-label={`Cena s DPH pro ${productCode}`}
         value={value}
         onChange={(e) => setValue(e.target.value)}
+        onFocus={handleFocus}
         onBlur={handleBlur}
         disabled={setPrice.isPending}
         className="w-24 px-2 py-1 text-sm text-right border border-gray-300 dark:border-graphite-border rounded-md bg-white dark:bg-graphite-surface text-gray-900 dark:text-graphite-text disabled:opacity-50"
