@@ -28,9 +28,9 @@
   "tasks": [
     {
       "name": "add-access-matrix-entries",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-09-04T04:16:27.995987Z"
+      "updated_at": "2026-09-04T04:18:28.729775Z"
     },
     {
       "name": "regenerate-access-matrix-artifacts",
