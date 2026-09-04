@@ -64,9 +64,9 @@
     },
     {
       "name": "post-500-no-log-test",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-09-04T22:14:48.096891Z"
+      "updated_at": "2026-09-04T22:35:47.085082Z"
     },
     {
       "name": "post-headerless-probe-not-rewritten-test",
