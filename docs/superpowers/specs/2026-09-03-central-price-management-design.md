@@ -207,8 +207,13 @@ to individual products later as they appear in the catalogue. The rule:
 The result is a one-time worklist of exactly the products the double-entry has
 already desynchronised — information worth surfacing rather than discarding.
 
-Products present in Flexi but absent from Shoptet's price list are seeded from
-Flexi with a `Failed` Shoptet state, so they show up as needing attention.
+**Correction (2026-09-04):** Shoptet is the *only* seed source for `ProductPrices`.
+Products present in Flexi but absent from Shoptet's retail price list are **not**
+seeded from Flexi — that would make Flexi the source of truth, the inversion this
+design exists to prevent. Their Flexi target is recorded `Failed` ("no master
+price; product not present in the Shoptet retail price list") and nothing is
+pushed, so they still show up as needing attention, without ever creating a
+master row from ERP data.
 
 ## 8. Adapters
 
@@ -217,12 +222,23 @@ Flexi with a `Failed` Shoptet state, so they show up as needing attention.
 New client in `Anela.Heblo.Adapters.ShoptetApi/Pricing/`, using the existing
 token-authenticated `HttpClient` registration (`ShoptetApiSettings.ApiToken`).
 
-- **Resolve the list:** `GET /api/pricelists` → the default price list id.
-  Overridable via config `Shoptet:DefaultPriceListId`.
+- **Resolve the list:** **Correction (2026-09-04):** `GET /api/pricelists`
+  returns no `default` flag — each entry is only `{id, name}`. The retail list
+  cannot be discovered automatically; it must be configured explicitly via
+  `Shoptet:DefaultPriceListId` (the client throws a clear exception if it is
+  unset). On the Anela store, id 1 is "Hlavní ceník" — retail, the source of
+  truth for this sync; 32 is Bezobal; 38 and 39 are the two wholesale lists and
+  must never be used here.
 - **Read:** `GET /api/pricelists/{id}`, paginated, `itemsPerPage` max
   100, `page` from 1. Not the `/snapshot` variant: a snapshot is asynchronous and
   requires a registered `job:finished` webhook (the same precondition that rules
   out the batch write endpoint below), so the plain per-page read is used instead.
+  **Correction (2026-09-04):** there is no `priceWithVat` field on read. The
+  price is nested at `price.price` (string or null; null means unpriced in that
+  list), with sibling `includingVat` (bool) and `vatRate` (string percentage) —
+  the with-VAT price must be derived per item from those two fields, never
+  assumed. On the Anela store `includingVat` is `true`: Shoptet stores the
+  retail price **including VAT**.
 - **Write:** per-item `PATCH /api/pricelists/{id}`, sending `priceWithVat` and
   letting Shoptet recalculate the stored form.
 
@@ -264,7 +280,13 @@ New writer in `Anela.Heblo.Adapters.Flexi/Price/`.
   list item. A product with no known `idcenik` is a `Failed` sync, never a create.
 - Price sent is derived from the canonical with-VAT value using the product's
   `VatRate`, rounded to 2 decimals.
-- **Read stays as-is:** user query `41` via `FlexiProductPriceErpClient`.
+- **Read:** user query `41` via `FlexiProductPriceErpClient`. **Correction
+  (2026-09-04):** `cenaZakl`'s VAT meaning is not fixed — it follows the item's
+  `typCenyDphK` (`typCeny.bezDph` / `typCeny.sDph`), so it is not excl-VAT by
+  definition. Query 41 may not expose `typCenyDphK` at all; when absent, the
+  read assumes excl-VAT (today's behavior, the observed value for real items)
+  and logs a warning once per run rather than assuming silently. The *write*
+  path above is unaffected for now — it still always sends the excl-VAT value.
 - `cenaNakup` is never written (A2).
 
 ## 9. Application surface
