@@ -1,0 +1,3 @@
+﻿<Project>
+  <Import Project="../build/Anela.Heblo.API.props" />
+</Project>

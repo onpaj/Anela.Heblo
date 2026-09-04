@@ -1,0 +1,13 @@
+{
+  "enabled": false,
+  "server": {
+    "url": "https://reportportal.invalid/api/v1",
+    "project": "heblo",
+    "apiKey": "override-via-env"
+  },
+  "launch": {
+    "name": "heblo-backend",
+    "description": "Anela Heblo backend (xUnit) test run",
+    "attributes": [ "layer:backend" ]
+  }
+}
