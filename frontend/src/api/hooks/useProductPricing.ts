@@ -64,7 +64,12 @@ export const useSetProductPrice = () => {
         ({ errorCode, params }) =>
           errorCode ? getErrorMessage(errorCode, params) : GENERIC_SET_PRICE_ERROR,
       ),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: QUERY_KEYS.prices }),
+    // Setting a price resets BOTH sync states to Pending, which changes the
+    // conflict list as well as the price list.
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.prices });
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.conflicts });
+    },
   });
 };
 
