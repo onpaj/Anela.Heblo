@@ -391,6 +391,32 @@ public class McpBadRequestMiddlewareTests
     }
 
     [Fact]
+    public async Task PostHeaderlessBodyless_400_LoggedButNotRewritten()
+    {
+        var loggerMock = new Mock<ILogger<McpBadRequestMiddleware>>();
+        var next = new RequestDelegate(ctx =>
+        {
+            ctx.Response.StatusCode = StatusCodes.Status400BadRequest;
+            return Task.CompletedTask;
+        });
+        var middleware = new McpBadRequestMiddleware(next, loggerMock.Object);
+        // No Accept, no User-Agent, no body — the GET equivalent short-circuits to 404;
+        // POST must NOT short-circuit.
+        var context = CreateContext("POST", "/mcp");
+
+        await middleware.InvokeAsync(context);
+
+        Assert.Equal(StatusCodes.Status400BadRequest, context.Response.StatusCode);
+        loggerMock.Verify(l => l.Log(
+            LogLevel.Warning,
+            It.Is<EventId>(e => e.Name == "McpBadRequest" && e.Id == 5932),
+            It.IsAny<It.IsAnyType>(),
+            It.IsAny<Exception>(),
+            It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Once);
+    }
+
+    [Fact]
     public async Task PostSuccess200_EmitsNoLog()
     {
         var loggerMock = new Mock<ILogger<McpBadRequestMiddleware>>();
