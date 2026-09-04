@@ -112,6 +112,8 @@ const EditablePriceCell: React.FC<EditablePriceCellProps> = ({
         type="text"
         inputMode="decimal"
         aria-label={`Cena s DPH pro ${productCode}`}
+        aria-invalid={setPrice.isError}
+        aria-describedby={setPrice.isError ? `set-price-error-${productCode}` : undefined}
         value={value}
         onChange={(e) => setValue(e.target.value)}
         onFocus={handleFocus}
@@ -121,7 +123,9 @@ const EditablePriceCell: React.FC<EditablePriceCellProps> = ({
       />
       {setPrice.isError && (
         <span
+          id={`set-price-error-${productCode}`}
           data-testid={`set-price-error-${productCode}`}
+          role="alert"
           className="text-xs text-red-600 dark:text-red-400"
         >
           {setPrice.error?.message ?? "Cenu se nepodařilo uložit."}

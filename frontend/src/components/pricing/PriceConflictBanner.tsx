@@ -80,6 +80,7 @@ const PriceConflictBanner: React.FC<PriceConflictBannerProps> = ({
       {resolveConflict.isError && (
         <div
           data-testid={`price-conflict-error-${productCode}-${target}`}
+          role="alert"
           className="w-full text-xs text-red-700 dark:text-red-400"
         >
           {resolveConflict.error?.message ?? "Konflikt se nepodařilo vyřešit."}
