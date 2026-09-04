@@ -17,6 +17,7 @@ public static class ProductPricingModule
     {
         services.AddScoped<IProductPriceRepository, ProductPriceRepository>();
         services.AddScoped<IProductPriceSyncService, ProductPriceSyncService>();
+        services.AddScoped<IPriceDivergenceReportService, PriceDivergenceReportService>();
 
         services.AddScoped<ProductPriceSyncJob>();
 

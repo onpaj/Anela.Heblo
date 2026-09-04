@@ -1,4 +1,5 @@
 using Anela.Heblo.API.Infrastructure;
+using Anela.Heblo.Application.Features.ProductPricing.UseCases.GetPriceDivergenceReport;
 using Anela.Heblo.Application.Features.ProductPricing.UseCases.GetPriceSyncConflicts;
 using Anela.Heblo.Application.Features.ProductPricing.UseCases.GetProductPrices;
 using Anela.Heblo.Application.Features.ProductPricing.UseCases.ResolvePriceSyncConflict;
@@ -45,6 +46,11 @@ public class ProductPricingController : BaseApiController
     [HttpGet("conflicts")]
     public async Task<ActionResult<GetPriceSyncConflictsResponse>> GetConflicts(CancellationToken cancellationToken = default)
         => HandleResponse(await _mediator.Send(new GetPriceSyncConflictsRequest(), cancellationToken));
+
+    /// <summary>Read-only comparison of Shoptet, Flexi and Heblo master prices. Never writes anywhere.</summary>
+    [HttpGet("divergence")]
+    public async Task<ActionResult<GetPriceDivergenceReportResponse>> GetDivergenceReport(CancellationToken cancellationToken = default)
+        => HandleResponse(await _mediator.Send(new GetPriceDivergenceReportRequest(), cancellationToken));
 
     [HttpPost("conflicts/resolve")]
     [FeatureAuthorize(Feature.Products_Catalog, AccessLevel.Write)]

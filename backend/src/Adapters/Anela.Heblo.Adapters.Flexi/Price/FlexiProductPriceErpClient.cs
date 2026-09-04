@@ -140,7 +140,13 @@ public class FlexiProductPriceErpClient : UserQueryClient<ProductPriceFlexiDto>,
                 PurchasePrice = s.PurchasePrice,
                 PurchasePriceWithVat = s.PurchasePrice * ((100 + s.Vat) / 100),
                 BoMId = s.BoMId,
-                ErpItemId = s.ProductId
+                ErpItemId = s.ProductId,
+                ErpPriceType = s.TypCenyDphK switch
+                {
+                    "typCeny.bezDph" => "bezDph",
+                    "typCeny.sDph" => "sDph",
+                    _ => null
+                }
             };
         }
     }
