@@ -14,6 +14,31 @@ _Update this file at the end of significant sessions._
 
 ## Recently Completed
 
+- `/plan-next-task` run on issue #4058 (PR #4064, branch
+  `feature/4058-Telemetry-Claudemeetingtaskextractor-Jsonreaderexc`, 2026-09-04):
+  planned hardening `ClaudeMeetingTaskExtractor` against malformed LLM JSON
+  responses (retry the raw-response bug this time, not just log it — #3972/#3981
+  was diagnostics-only). New gotcha: with `USE_GH_API=1` set, `gh_api.sh`'s
+  curl+REST fallback can read fine but gets a hard 403 ("Write access to this
+  GitHub API path is not permitted through this proxy") on *write* calls
+  (branch/ref creation, label edits, PR creation) — this session's egress
+  policy allows GitHub writes only through the connected `mcp__github__*`
+  tools. Worked around it end-to-end via `mcp__github__create_branch` (ref
+  creation for the claim), `mcp__github__issue_write` (label swaps), and
+  `mcp__github__create_pull_request` (draft PR) in place of the blocked
+  `claim_issue.sh`/`ensure_pr_linked.sh` write calls; plain `git commit`/`git
+  push` were unaffected (different transport, not the REST API). Also hit the
+  same recurring `agentharness init` session-start template-overwrite
+  regression as prior runs (`.claude/agents/implement-orchestrator.md` had its
+  `-f` flags on `git add -A` stripped back out, undoing merged PR #4037) —
+  restored via `git checkout --`, matching `main`, no recommit needed.
+  Separately, the planning sub-orchestrator agent reported no `Task`/`Agent`
+  subagent-spawning tool was available to it once inside its own background
+  run, so it executed all four phases (analyst/architect/designer/planner)
+  itself directly rather than spawning nested subagents — worth checking
+  whether nested Agent-tool access is reliably available to background agents
+  before relying on it again.
+
 - Hygiene coverage gap + AgentHarness drift (PR #3956 triage, branch
   `claude/pr-3956-resolver-coverage-oaq9qj`, 2026-09-03): `/hygiene-all`,
   `/automerge-all` and `/rework-all` all filtered on `--label agent`, so an
