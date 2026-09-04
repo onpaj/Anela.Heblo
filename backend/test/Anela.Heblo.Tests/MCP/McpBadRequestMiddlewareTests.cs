@@ -390,6 +390,31 @@ public class McpBadRequestMiddlewareTests
             Times.Once);
     }
 
+    [Fact]
+    public async Task PostSuccess200_EmitsNoLog()
+    {
+        var loggerMock = new Mock<ILogger<McpBadRequestMiddleware>>();
+        var next = new RequestDelegate(ctx =>
+        {
+            ctx.Response.StatusCode = StatusCodes.Status200OK;
+            return Task.CompletedTask;
+        });
+        var middleware = new McpBadRequestMiddleware(next, loggerMock.Object);
+        var context = CreateContext("POST", "/mcp");
+        context.Request.Headers["Mcp-Session-Id"] = "abcdef1234567890";
+
+        await middleware.InvokeAsync(context);
+
+        loggerMock.Verify(l => l.Log(
+            It.IsAny<LogLevel>(),
+            It.IsAny<EventId>(),
+            It.IsAny<It.IsAnyType>(),
+            It.IsAny<Exception>(),
+            It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Never);
+        Assert.Equal(StatusCodes.Status200OK, context.Response.StatusCode);
+    }
+
     // ── HasValidMcpAcceptHeader static helper ────────────────────────────────
 
     [Theory]
