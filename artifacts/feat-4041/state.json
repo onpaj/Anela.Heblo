@@ -21,16 +21,16 @@
       "updated_at": "2026-09-03T06:27:44.330019Z"
     },
     "developing": {
-      "status": "pending",
-      "updated_at": null
+      "status": "in_progress",
+      "updated_at": "2026-09-04T04:16:27.751572Z"
     }
   },
   "tasks": [
     {
       "name": "add-access-matrix-entries",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-09-04T04:16:27.995987Z"
     },
     {
       "name": "regenerate-access-matrix-artifacts",
