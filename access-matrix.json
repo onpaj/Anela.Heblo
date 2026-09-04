@@ -41,6 +41,8 @@
   "menuPaths": [
     { "path": "/finance/overview", "requires": [{ "feature": "Finance_FinancialOverview", "level": "Read" }] },
     { "path": "/analytics/product-margin-summary", "requires": [{ "feature": "Finance_MarginAnalysis", "level": "Read" }] },
+    { "path": "/automation/invoice-import-statistics", "requires": [{ "feature": "Finance_MarginAnalysis", "level": "Read" }] },
+    { "path": "/finance/bank-statements", "requires": [{ "feature": "Finance_MarginAnalysis", "level": "Read" }] },
     { "path": "/products/margins", "requires": [{ "feature": "Products_ProductMargins", "level": "Read" }] },
     { "path": "/catalog", "requires": [{ "feature": "Products_Catalog", "level": "Read" }] },
     { "path": "/journal", "requires": [{ "feature": "Products_Journal", "level": "Read" }] },
