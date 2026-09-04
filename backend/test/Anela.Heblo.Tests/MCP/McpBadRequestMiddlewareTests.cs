@@ -228,11 +228,57 @@ public class McpBadRequestMiddlewareTests
         _loggerMock.Verify(
             x => x.Log(
                 LogLevel.Warning,
-                It.IsAny<EventId>(),
+                It.Is<EventId>(e => e.Name == "McpBadRequest"),
                 It.Is<It.IsAnyType>((v, _) =>
                     v.ToString()!.Contains("400") &&
-                    v.ToString()!.Contains("mcp-client/2.0")),
+                    v.ToString()!.Contains("mcp-client/2.0") &&
+                    v.ToString()!.Contains("ContentType") &&
+                    v.ToString()!.Contains("McpSessionIdPresent") &&
+                    v.ToString()!.Contains("McpSessionIdPrefix") &&
+                    v.ToString()!.Contains("RemoteIp") &&
+                    v.ToString()!.Contains("ElapsedMs")),
                 null,
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task GetBadRequest_Log_IncludesAllUnionFields()
+    {
+        // Arrange: GET /mcp that reaches next() and gets a 400 back
+        var middleware = CreateMiddleware(ctx =>
+        {
+            ctx.Response.StatusCode = StatusCodes.Status400BadRequest;
+            return Task.CompletedTask;
+        });
+        var context = CreateContext(
+            "GET", "/mcp",
+            responseStatus: 400,
+            acceptHeader: "application/json, text/event-stream",
+            userAgent: "test-agent");
+        context.Request.Headers["Mcp-Session-Id"] = "abcdef1234567890";
+
+        // Act
+        await middleware.InvokeAsync(context);
+
+        // Assert — one warning log call, whose state contains every union-schema field.
+        _loggerMock.Verify(
+            x => x.Log(
+                LogLevel.Warning,
+                It.Is<EventId>(e => e.Name == "McpBadRequest"),
+                It.Is<It.IsAnyType>((state, _) =>
+                    state.ToString()!.Contains("HTTPMethod") &&
+                    state.ToString()!.Contains("Path") &&
+                    state.ToString()!.Contains("StatusCode") &&
+                    state.ToString()!.Contains("UserAgent") &&
+                    state.ToString()!.Contains("Origin") &&
+                    state.ToString()!.Contains("Accept") &&
+                    state.ToString()!.Contains("ContentType") &&
+                    state.ToString()!.Contains("McpSessionIdPresent") &&
+                    state.ToString()!.Contains("McpSessionIdPrefix") &&
+                    state.ToString()!.Contains("RemoteIp") &&
+                    state.ToString()!.Contains("ElapsedMs")),
+                It.IsAny<Exception>(),
                 It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
             Times.Once);
     }

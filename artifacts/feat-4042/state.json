@@ -22,7 +22,7 @@
     },
     "developing": {
       "status": "in_progress",
-      "updated_at": "2026-09-04T11:21:23.623124Z"
+      "updated_at": "2026-09-04T12:17:23.259234Z"
     }
   },
   "tasks": [
@@ -40,9 +40,9 @@
     },
     {
       "name": "extract-log-helper-widen-fields",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-09-04T12:17:23.522388Z"
     },
     {
       "name": "add-post-diagnostics-logging",

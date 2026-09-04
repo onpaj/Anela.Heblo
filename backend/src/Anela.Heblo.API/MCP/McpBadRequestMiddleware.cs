@@ -1,3 +1,5 @@
+using System.Diagnostics;
+
 namespace Anela.Heblo.API.MCP;
 
 /// <summary>
@@ -22,6 +24,9 @@ public class McpBadRequestMiddleware
         "application/json",
     ];
 
+    private static readonly EventId GetBadRequestEvent = new(5931, "McpBadRequest");
+    private static readonly EventId PostBadRequestEvent = new(5932, "McpBadRequest");
+
     private readonly RequestDelegate _next;
     private readonly ILogger<McpBadRequestMiddleware> _logger;
 
@@ -38,6 +43,8 @@ public class McpBadRequestMiddleware
             await _next(context);
             return;
         }
+
+        var getStart = Stopwatch.GetTimestamp();
 
         // Short-circuit probes/scanners that don't send a valid MCP Accept header.
         // Returning 404 instead of 400 avoids advertising that an MCP endpoint exists.
@@ -63,17 +70,32 @@ public class McpBadRequestMiddleware
         // Log structured diagnostics for well-formed requests that still get 400.
         if (context.Response.StatusCode == StatusCodes.Status400BadRequest)
         {
-            var userAgent = context.Request.Headers.UserAgent.FirstOrDefault() ?? "unknown";
-            var acceptHeader = context.Request.Headers.Accept.ToString();
-            var origin = context.Request.Headers.Origin.FirstOrDefault() ?? "none";
-
-            _logger.LogWarning(
-                "MCP GET /mcp returned 400 — MCP protocol validation failed. " +
-                "UserAgent: {UserAgent}, Accept: {Accept}, Origin: {Origin}",
-                userAgent,
-                acceptHeader,
-                origin);
+            LogBadMcpRequest(context, GetBadRequestEvent, Stopwatch.GetElapsedTime(getStart).TotalMilliseconds);
         }
+    }
+
+    private void LogBadMcpRequest(HttpContext ctx, EventId eventId, double elapsedMs)
+    {
+        var req = ctx.Request;
+        var sessionIdRaw = req.Headers["Mcp-Session-Id"].ToString();
+        var sessionIdPresent = !string.IsNullOrEmpty(sessionIdRaw);
+        var path = (req.Path.Value ?? string.Empty) + (req.QueryString.Value ?? string.Empty);
+
+        _logger.Log(
+            LogLevel.Warning,
+            eventId,
+            "MCP bad request: HTTPMethod={HTTPMethod} Path={Path} StatusCode={StatusCode} UserAgent={UserAgent} Origin={Origin} Accept={Accept} ContentType={ContentType} McpSessionIdPresent={McpSessionIdPresent} McpSessionIdPrefix={McpSessionIdPrefix} RemoteIp={RemoteIp} ElapsedMs={ElapsedMs}",
+            req.Method,
+            path,
+            ctx.Response.StatusCode,
+            req.Headers.UserAgent.Count > 0 ? req.Headers.UserAgent.ToString() : "(missing)",
+            req.Headers.Origin.Count > 0 ? req.Headers.Origin.ToString() : "(missing)",
+            req.Headers.Accept.Count > 0 ? req.Headers.Accept.ToString() : "(missing)",
+            req.Headers.ContentType.Count > 0 ? req.Headers.ContentType.ToString() : "(missing)",
+            sessionIdPresent,
+            McpTelemetryHelpers.TruncateSessionId(sessionIdRaw),
+            ctx.Connection.RemoteIpAddress?.ToString() ?? "(unknown)",
+            elapsedMs);
     }
 
     private static bool IsMcpGetRequest(HttpContext context)
