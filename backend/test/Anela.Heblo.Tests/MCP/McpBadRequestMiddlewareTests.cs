@@ -364,6 +364,32 @@ public class McpBadRequestMiddlewareTests
         Assert.Equal(StatusCodes.Status400BadRequest, context.Response.StatusCode);
     }
 
+    [Fact]
+    public async Task PostBadRequest_WithSessionHeader_LogsPresenceAndEightCharPrefix()
+    {
+        var loggerMock = new Mock<ILogger<McpBadRequestMiddleware>>();
+        var next = new RequestDelegate(ctx =>
+        {
+            ctx.Response.StatusCode = StatusCodes.Status400BadRequest;
+            return Task.CompletedTask;
+        });
+        var middleware = new McpBadRequestMiddleware(next, loggerMock.Object);
+        var context = CreateContext("POST", "/mcp");
+        context.Request.Headers["Mcp-Session-Id"] = "abcdef1234567890";
+
+        await middleware.InvokeAsync(context);
+
+        loggerMock.Verify(l => l.Log(
+            LogLevel.Warning,
+            It.Is<EventId>(e => e.Name == "McpBadRequest" && e.Id == 5932),
+            It.Is<It.IsAnyType>((state, _) =>
+                state.ToString()!.Contains("McpSessionIdPresent=True") &&
+                state.ToString()!.Contains("McpSessionIdPrefix=abcdef12")),
+            It.IsAny<Exception>(),
+            It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Once);
+    }
+
     // ── HasValidMcpAcceptHeader static helper ────────────────────────────────
 
     [Theory]
