@@ -69,6 +69,16 @@ const ProductPricingPage: React.FC = () => {
         )}
       </div>
 
+      {triggerSync.isError && (
+        <div
+          data-testid="trigger-sync-error"
+          role="alert"
+          className="mb-4 px-4 py-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-900/40 rounded-md text-sm text-red-800 dark:text-red-300"
+        >
+          {triggerSync.error?.message ?? "Synchronizaci se nepodařilo spustit."}
+        </div>
+      )}
+
       {triggerSync.isSuccess && triggerSync.data && (
         <div className="mb-4 px-4 py-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-900/40 rounded-md text-sm text-blue-800 dark:text-blue-300">
           Synchronizace dokončena: {triggerSync.data.pushed} odesláno, {triggerSync.data.conflicts} konfliktů,{" "}

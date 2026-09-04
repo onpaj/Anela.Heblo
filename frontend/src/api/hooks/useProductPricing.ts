@@ -40,6 +40,7 @@ export interface ResolvePriceConflictInput {
 
 const GENERIC_SET_PRICE_ERROR = "Cenu se nepodařilo uložit.";
 const GENERIC_RESOLVE_CONFLICT_ERROR = "Konflikt se nepodařilo vyřešit.";
+const GENERIC_TRIGGER_SYNC_ERROR = "Synchronizaci se nepodařilo spustit.";
 
 export const useProductPrices = () =>
   useQuery({
@@ -106,7 +107,12 @@ export const useTriggerPriceSync = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: () => getAuthenticatedApiClient().productPricing_TriggerSync(),
+    mutationFn: () =>
+      callApi(
+        () => getAuthenticatedApiClient().productPricing_TriggerSync(),
+        ({ errorCode, params }) =>
+          errorCode ? getErrorMessage(errorCode, params) : GENERIC_TRIGGER_SYNC_ERROR,
+      ),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.prices });
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.conflicts });
