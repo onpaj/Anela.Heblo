@@ -468,7 +468,9 @@ public enum ErrorCodes
     MindMapInvalidDocument = 3503,
 
     // Product Pricing (36XX)
+    [HttpStatusCode(HttpStatusCode.NotFound)]
     ProductPriceNotFound = 3601,
+    [HttpStatusCode(HttpStatusCode.NotFound)]
     ProductPriceConflictNotFound = 3604,
 
     // External Service errors (90XX)
