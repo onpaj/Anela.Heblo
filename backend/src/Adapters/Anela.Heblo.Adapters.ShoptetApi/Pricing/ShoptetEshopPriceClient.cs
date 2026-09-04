@@ -34,6 +34,10 @@ public class ShoptetEshopPriceClient : IProductPriceEshopClient
                 ProductCode = entry.Key,
                 PriceWithVat = entry.Value,
                 PriceWithoutVat = Math.Round(entry.Value / (1 + vatRate / 100m), 2, MidpointRounding.AwayFromZero),
+                // Deliberately null: the price list endpoint carries no purchase price, and
+                // the CSV export that used to supply one is gone. CurrentPurchasePrice
+                // therefore falls through to the ERP value, which is the source of truth.
+                // Do not try to source a purchase price from Shoptet again.
                 PurchasePrice = null,
             };
         }).ToList();
