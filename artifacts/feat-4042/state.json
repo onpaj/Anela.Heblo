@@ -22,7 +22,7 @@
     },
     "developing": {
       "status": "in_progress",
-      "updated_at": "2026-09-04T21:14:58.056909Z"
+      "updated_at": "2026-09-04T22:14:47.858455Z"
     }
   },
   "tasks": [
@@ -64,9 +64,9 @@
     },
     {
       "name": "post-500-no-log-test",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-09-04T22:14:48.096891Z"
     },
     {
       "name": "post-headerless-probe-not-rewritten-test",

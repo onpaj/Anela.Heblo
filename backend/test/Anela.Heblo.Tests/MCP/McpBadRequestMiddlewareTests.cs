@@ -415,6 +415,29 @@ public class McpBadRequestMiddlewareTests
         Assert.Equal(StatusCodes.Status200OK, context.Response.StatusCode);
     }
 
+    [Fact]
+    public async Task PostServerError500_EmitsNoLog()
+    {
+        var loggerMock = new Mock<ILogger<McpBadRequestMiddleware>>();
+        var next = new RequestDelegate(ctx =>
+        {
+            ctx.Response.StatusCode = StatusCodes.Status500InternalServerError;
+            return Task.CompletedTask;
+        });
+        var middleware = new McpBadRequestMiddleware(next, loggerMock.Object);
+        var context = CreateContext("POST", "/mcp");
+
+        await middleware.InvokeAsync(context);
+
+        loggerMock.Verify(l => l.Log(
+            It.IsAny<LogLevel>(),
+            It.IsAny<EventId>(),
+            It.IsAny<It.IsAnyType>(),
+            It.IsAny<Exception>(),
+            It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Never);
+    }
+
     // ── HasValidMcpAcceptHeader static helper ────────────────────────────────
 
     [Theory]
