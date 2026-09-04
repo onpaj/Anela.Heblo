@@ -74,6 +74,7 @@ test("saving an inline edit sends the new price", () => {
   // Assert
   expect(mockSetPrice).toHaveBeenCalledWith(
     expect.objectContaining({ productCode: "OCH001030", priceWithVat: 210 }),
+    expect.anything(),
   );
 });
 
@@ -89,6 +90,7 @@ test("a Czech decimal comma is saved as a decimal price", () => {
   // Assert
   expect(mockSetPrice).toHaveBeenCalledWith(
     expect.objectContaining({ productCode: "OCH001030", priceWithVat: 190.5 }),
+    expect.anything(),
   );
 });
 

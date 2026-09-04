@@ -70,7 +70,13 @@ const EditablePriceCell: React.FC<EditablePriceCellProps> = ({ productCode, pric
       return;
     }
     if (parsed === priceWithVat) return;
-    setPrice.mutate({ productCode, priceWithVat: parsed });
+    // The server value does not change when a save is rejected, so the sync effect
+    // below never fires — restore the input here or the row would keep showing a
+    // value the server refused next to the old derived columns.
+    setPrice.mutate(
+      { productCode, priceWithVat: parsed },
+      { onError: () => setValue(String(priceWithVat)) },
+    );
   };
 
   return (
