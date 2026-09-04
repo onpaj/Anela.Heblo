@@ -11821,6 +11821,40 @@ export class ApiClient {
         return Promise.resolve<GetPriceSyncConflictsResponse>(null as any);
     }
 
+    productPricing_GetDivergenceReport(): Promise<GetPriceDivergenceReportResponse> {
+        let url_ = this.baseUrl + "/api/product-pricing/divergence";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processProductPricing_GetDivergenceReport(_response);
+        });
+    }
+
+    protected processProductPricing_GetDivergenceReport(response: Response): Promise<GetPriceDivergenceReportResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = GetPriceDivergenceReportResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<GetPriceDivergenceReportResponse>(null as any);
+    }
+
     productPricing_ResolveConflict(request: ResolvePriceSyncConflictRequest): Promise<ResolvePriceSyncConflictResponse> {
         let url_ = this.baseUrl + "/api/product-pricing/conflicts/resolve";
         url_ = url_.replace(/[?&]$/, "");
@@ -40425,6 +40459,187 @@ export interface IPriceSyncConflictDto {
 export enum PriceSyncTarget {
     Shoptet = "Shoptet",
     Flexi = "Flexi",
+}
+
+export class GetPriceDivergenceReportResponse extends BaseResponse implements IGetPriceDivergenceReportResponse {
+    rows?: PriceDivergenceRowDto[];
+    summary?: PriceDivergenceSummaryDto;
+
+    constructor(data?: IGetPriceDivergenceReportResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            if (Array.isArray(_data["rows"])) {
+                this.rows = [] as any;
+                for (let item of _data["rows"])
+                    this.rows!.push(PriceDivergenceRowDto.fromJS(item));
+            }
+            this.summary = _data["summary"] ? PriceDivergenceSummaryDto.fromJS(_data["summary"]) : <any>undefined;
+        }
+    }
+
+    static override fromJS(data: any): GetPriceDivergenceReportResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new GetPriceDivergenceReportResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        if (Array.isArray(this.rows)) {
+            data["rows"] = [];
+            for (let item of this.rows)
+                data["rows"].push(item.toJSON());
+        }
+        data["summary"] = this.summary ? this.summary.toJSON() : <any>undefined;
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IGetPriceDivergenceReportResponse extends IBaseResponse {
+    rows?: PriceDivergenceRowDto[];
+    summary?: PriceDivergenceSummaryDto;
+}
+
+export class PriceDivergenceRowDto implements IPriceDivergenceRowDto {
+    productCode?: string;
+    productName?: string;
+    shoptetPriceWithVat?: number | undefined;
+    flexiPriceWithVat?: number | undefined;
+    flexiPriceWithoutVat?: number | undefined;
+    flexiPriceType?: string | undefined;
+    hebloMasterPriceWithVat?: number | undefined;
+    differenceWithVat?: number | undefined;
+    differencePercent?: number | undefined;
+    kind?: PriceDivergenceKind;
+
+    constructor(data?: IPriceDivergenceRowDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.productCode = _data["productCode"];
+            this.productName = _data["productName"];
+            this.shoptetPriceWithVat = _data["shoptetPriceWithVat"];
+            this.flexiPriceWithVat = _data["flexiPriceWithVat"];
+            this.flexiPriceWithoutVat = _data["flexiPriceWithoutVat"];
+            this.flexiPriceType = _data["flexiPriceType"];
+            this.hebloMasterPriceWithVat = _data["hebloMasterPriceWithVat"];
+            this.differenceWithVat = _data["differenceWithVat"];
+            this.differencePercent = _data["differencePercent"];
+            this.kind = _data["kind"];
+        }
+    }
+
+    static fromJS(data: any): PriceDivergenceRowDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new PriceDivergenceRowDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["productCode"] = this.productCode;
+        data["productName"] = this.productName;
+        data["shoptetPriceWithVat"] = this.shoptetPriceWithVat;
+        data["flexiPriceWithVat"] = this.flexiPriceWithVat;
+        data["flexiPriceWithoutVat"] = this.flexiPriceWithoutVat;
+        data["flexiPriceType"] = this.flexiPriceType;
+        data["hebloMasterPriceWithVat"] = this.hebloMasterPriceWithVat;
+        data["differenceWithVat"] = this.differenceWithVat;
+        data["differencePercent"] = this.differencePercent;
+        data["kind"] = this.kind;
+        return data;
+    }
+}
+
+export interface IPriceDivergenceRowDto {
+    productCode?: string;
+    productName?: string;
+    shoptetPriceWithVat?: number | undefined;
+    flexiPriceWithVat?: number | undefined;
+    flexiPriceWithoutVat?: number | undefined;
+    flexiPriceType?: string | undefined;
+    hebloMasterPriceWithVat?: number | undefined;
+    differenceWithVat?: number | undefined;
+    differencePercent?: number | undefined;
+    kind?: PriceDivergenceKind;
+}
+
+export enum PriceDivergenceKind {
+    InAgreement = "InAgreement",
+    FlexiDiffers = "FlexiDiffers",
+    MissingInShoptet = "MissingInShoptet",
+    MissingInFlexi = "MissingInFlexi",
+    FlexiPriceTypeUnknown = "FlexiPriceTypeUnknown",
+}
+
+export class PriceDivergenceSummaryDto implements IPriceDivergenceSummaryDto {
+    totalInScope?: number;
+    inAgreementCount?: number;
+    flexiDiffersCount?: number;
+    missingInShoptetCount?: number;
+    missingInFlexiCount?: number;
+    flexiPriceTypeUnknownCount?: number;
+
+    constructor(data?: IPriceDivergenceSummaryDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.totalInScope = _data["totalInScope"];
+            this.inAgreementCount = _data["inAgreementCount"];
+            this.flexiDiffersCount = _data["flexiDiffersCount"];
+            this.missingInShoptetCount = _data["missingInShoptetCount"];
+            this.missingInFlexiCount = _data["missingInFlexiCount"];
+            this.flexiPriceTypeUnknownCount = _data["flexiPriceTypeUnknownCount"];
+        }
+    }
+
+    static fromJS(data: any): PriceDivergenceSummaryDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new PriceDivergenceSummaryDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["totalInScope"] = this.totalInScope;
+        data["inAgreementCount"] = this.inAgreementCount;
+        data["flexiDiffersCount"] = this.flexiDiffersCount;
+        data["missingInShoptetCount"] = this.missingInShoptetCount;
+        data["missingInFlexiCount"] = this.missingInFlexiCount;
+        data["flexiPriceTypeUnknownCount"] = this.flexiPriceTypeUnknownCount;
+        return data;
+    }
+}
+
+export interface IPriceDivergenceSummaryDto {
+    totalInScope?: number;
+    inAgreementCount?: number;
+    flexiDiffersCount?: number;
+    missingInShoptetCount?: number;
+    missingInFlexiCount?: number;
+    flexiPriceTypeUnknownCount?: number;
 }
 
 export class ResolvePriceSyncConflictResponse extends BaseResponse implements IResolvePriceSyncConflictResponse {

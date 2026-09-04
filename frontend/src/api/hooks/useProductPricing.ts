@@ -8,6 +8,9 @@ import {
   PriceSyncStatus,
   PriceSyncTarget,
   PriceConflictResolution,
+  PriceDivergenceRowDto,
+  PriceDivergenceSummaryDto,
+  PriceDivergenceKind,
   SetProductPriceRequest,
   SetProductPriceResponse,
   ResolvePriceSyncConflictRequest,
@@ -20,11 +23,15 @@ export {
   PriceSyncStatus,
   PriceSyncTarget,
   PriceConflictResolution,
+  PriceDivergenceRowDto,
+  PriceDivergenceSummaryDto,
+  PriceDivergenceKind,
 };
 
 const QUERY_KEYS = {
   prices: ["product-pricing", "prices"] as const,
   conflicts: ["product-pricing", "conflicts"] as const,
+  divergence: ["product-pricing", "divergence"] as const,
 };
 
 export interface SetProductPriceInput {
@@ -102,6 +109,21 @@ export const useResolvePriceConflict = () => {
     },
   });
 };
+
+// Read-only: fetches the divergence report and never mutates anything. There is no
+// invalidation on any other mutation here on purpose — this view is a dry-run comparison,
+// not part of the sync/conflict workflow.
+export const usePriceDivergenceReport = () =>
+  useQuery({
+    queryKey: QUERY_KEYS.divergence,
+    queryFn: async () => {
+      const response = await getAuthenticatedApiClient().productPricing_GetDivergenceReport();
+      return {
+        rows: response.rows ?? [],
+        summary: response.summary,
+      };
+    },
+  });
 
 export const useTriggerPriceSync = () => {
   const queryClient = useQueryClient();
