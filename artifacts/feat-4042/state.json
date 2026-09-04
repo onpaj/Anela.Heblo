@@ -34,9 +34,9 @@
     },
     {
       "name": "add-mcp-telemetry-helpers",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-09-04T11:21:23.865685Z"
+      "updated_at": "2026-09-04T11:58:26.688467Z"
     },
     {
       "name": "extract-log-helper-widen-fields",
