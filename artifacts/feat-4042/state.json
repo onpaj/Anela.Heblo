@@ -40,9 +40,9 @@
     },
     {
       "name": "extract-log-helper-widen-fields",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-09-04T12:17:23.522388Z"
+      "updated_at": "2026-09-04T12:26:23.628168Z"
     },
     {
       "name": "add-post-diagnostics-logging",
