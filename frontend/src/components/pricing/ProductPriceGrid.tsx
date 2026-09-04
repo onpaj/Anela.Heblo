@@ -43,6 +43,17 @@ interface EditablePriceCellProps {
   priceWithVat: number;
 }
 
+// Accepts the Czech decimal comma and rejects anything the backend validator would
+// refuse (`GreaterThan(0)`). `Number("")` is 0, not NaN, so an empty field has to be
+// rejected explicitly or a cleared input would submit a zero price.
+const parsePrice = (raw: string): number | null => {
+  const normalized = raw.trim().replace(",", ".");
+  if (normalized === "") return null;
+  const parsed = Number(normalized);
+  if (!Number.isFinite(parsed) || parsed <= 0) return null;
+  return parsed;
+};
+
 const EditablePriceCell: React.FC<EditablePriceCellProps> = ({ productCode, priceWithVat }) => {
   const setPrice = useSetProductPrice();
   const [value, setValue] = useState(String(priceWithVat));
@@ -53,8 +64,8 @@ const EditablePriceCell: React.FC<EditablePriceCellProps> = ({ productCode, pric
   }, [priceWithVat]);
 
   const handleBlur = () => {
-    const parsed = Number(value);
-    if (Number.isNaN(parsed) || parsed < 0) {
+    const parsed = parsePrice(value);
+    if (parsed === null) {
       setValue(String(priceWithVat));
       return;
     }
@@ -65,9 +76,8 @@ const EditablePriceCell: React.FC<EditablePriceCellProps> = ({ productCode, pric
   return (
     <div className="flex flex-col items-end gap-1">
       <input
-        type="number"
-        step="0.01"
-        min="0"
+        type="text"
+        inputMode="decimal"
         aria-label={`Cena s DPH pro ${productCode}`}
         value={value}
         onChange={(e) => setValue(e.target.value)}

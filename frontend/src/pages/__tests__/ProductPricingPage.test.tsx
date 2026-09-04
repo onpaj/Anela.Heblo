@@ -77,6 +77,41 @@ test("saving an inline edit sends the new price", () => {
   );
 });
 
+test("a Czech decimal comma is saved as a decimal price", () => {
+  // Arrange
+  render(<ProductPricingPage />);
+  const input = screen.getByLabelText("Cena s DPH pro OCH001030");
+
+  // Act
+  fireEvent.change(input, { target: { value: "190,5" } });
+  fireEvent.blur(input);
+
+  // Assert
+  expect(mockSetPrice).toHaveBeenCalledWith(
+    expect.objectContaining({ productCode: "OCH001030", priceWithVat: 190.5 }),
+  );
+});
+
+test.each([
+  ["an empty field", ""],
+  ["whitespace only", "   "],
+  ["a non-numeric value", "abc"],
+  ["zero", "0"],
+  ["a negative value", "-5"],
+])("%s is rejected without sending a price", (_label, typed) => {
+  // Arrange
+  render(<ProductPricingPage />);
+  const input = screen.getByLabelText("Cena s DPH pro OCH001030") as HTMLInputElement;
+
+  // Act
+  fireEvent.change(input, { target: { value: typed } });
+  fireEvent.blur(input);
+
+  // Assert
+  expect(mockSetPrice).not.toHaveBeenCalled();
+  expect(input.value).toBe("190");
+});
+
 test("a conflicted row shows both values and the two resolution actions", () => {
   // Arrange
   mockPrices = [conflictedRow];
