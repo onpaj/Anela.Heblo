@@ -32,8 +32,12 @@ public class ShoptetApiSettings
     public int DefaultItemWeightGrams { get; set; } = 0;
 
     /// <summary>
-    /// Shoptet price list to sync retail prices with. When null the client resolves the
-    /// e-shop's default list via GET /api/pricelists. Configure as Shoptet:DefaultPriceListId.
+    /// Shoptet price list to sync retail prices with. Must be configured explicitly —
+    /// GET /api/pricelists returns no `default` flag, so the retail list cannot be discovered
+    /// automatically; a null value makes the price sync throw rather than guess.
+    /// Configure as Shoptet:DefaultPriceListId. On the Anela store: id 1 is "Hlavní ceník"
+    /// (retail, the source of truth for the price sync); 32 is Bezobal; 38 and 39 are the two
+    /// wholesale lists (Velkoobchodní ceník / Velkoobchodní 35%) and must never be used here.
     /// </summary>
     public int? DefaultPriceListId { get; set; }
 }

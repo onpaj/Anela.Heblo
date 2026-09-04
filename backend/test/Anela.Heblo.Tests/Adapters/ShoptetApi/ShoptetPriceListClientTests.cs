@@ -35,11 +35,13 @@ public class ShoptetPriceListClientTests
     {
         // Arrange
         var page1 = """
-        {"data":{"pricelist":[{"code":"A","priceWithVat":"190.00"},{"code":"B","priceWithVat":"250.50"}],
+        {"data":{"pricelist":[
+            {"code":"A","includingVat":true,"vatRate":"21.00","price":{"price":"190.00"}},
+            {"code":"B","includingVat":true,"vatRate":"21.00","price":{"price":"250.50"}}],
          "paginator":{"page":1,"pageCount":2}},"errors":null}
         """;
         var page2 = """
-        {"data":{"pricelist":[{"code":"C","priceWithVat":"99.00"}],
+        {"data":{"pricelist":[{"code":"C","includingVat":true,"vatRate":"21.00","price":{"price":"99.00"}}],
          "paginator":{"page":2,"pageCount":2}},"errors":null}
         """;
         var client = CreateClient(req =>
@@ -73,21 +75,87 @@ public class ShoptetPriceListClientTests
     }
 
     [Fact]
-    public async Task resolves_the_default_price_list_when_none_is_configured()
+    public async Task throws_when_no_price_list_id_is_configured()
     {
         // Arrange
-        var recorded = new List<HttpRequestMessage>();
-        var client = CreateClient(req =>
-                req.RequestUri!.AbsolutePath == "/api/pricelists"
-                    ? Json("""{"data":{"pricelists":[{"id":7,"name":"Velkoobchod","default":false},{"id":3,"name":"Základní","default":true}]},"errors":null}""")
-                    : Json("""{"data":{"pricelist":[],"paginator":{"page":1,"pageCount":1}},"errors":null}"""),
-            recorded, defaultPriceListId: null);
+        var client = CreateClient(
+            _ => Json("""{"data":{"pricelist":[],"paginator":{"page":1,"pageCount":1}},"errors":null}"""),
+            defaultPriceListId: null);
 
         // Act
-        await client.GetPricesWithVatAsync(CancellationToken.None);
+        var act = () => client.GetPricesWithVatAsync(CancellationToken.None);
 
         // Assert
-        recorded.Last().RequestUri!.AbsolutePath.Should().Be("/api/pricelists/3");
+        (await act.Should().ThrowAsync<InvalidOperationException>())
+            .And.Message.Should().Contain("Shoptet:DefaultPriceListId");
+    }
+
+    [Fact]
+    public async Task derives_the_with_vat_price_when_the_list_stores_prices_excluding_vat()
+    {
+        // Arrange
+        var client = CreateClient(_ => Json("""
+            {"data":{"pricelist":[{"code":"A","includingVat":false,"vatRate":"21.00","price":{"price":"100.00"}}],
+             "paginator":{"page":1,"pageCount":1}},"errors":null}
+            """));
+
+        // Act
+        var prices = await client.GetPricesWithVatAsync(CancellationToken.None);
+
+        // Assert
+        prices["A"].Should().Be(121.00m);
+    }
+
+    [Fact]
+    public async Task skips_an_item_with_a_null_price_as_legitimately_unpriced()
+    {
+        // Arrange
+        var client = CreateClient(_ => Json("""
+            {"data":{"pricelist":[{"code":"A","includingVat":true,"vatRate":"21.00","price":{"price":null}}],
+             "paginator":{"page":1,"pageCount":1}},"errors":null}
+            """));
+
+        // Act
+        var prices = await client.GetPricesWithVatAsync(CancellationToken.None);
+
+        // Assert
+        prices.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task skips_but_counts_an_item_with_an_unparseable_price_and_keeps_reading_the_rest()
+    {
+        // Arrange: a non-null price that cannot be interpreted must be logged and skipped,
+        // not silently dropped and not allowed to blow up the whole run.
+        var client = CreateClient(_ => Json("""
+            {"data":{"pricelist":[
+                {"code":"BAD","includingVat":true,"vatRate":"21.00","price":{"price":"not-a-number"}},
+                {"code":"OK","includingVat":true,"vatRate":"21.00","price":{"price":"50.00"}}],
+             "paginator":{"page":1,"pageCount":1}},"errors":null}
+            """));
+
+        // Act
+        var prices = await client.GetPricesWithVatAsync(CancellationToken.None);
+
+        // Assert
+        prices.Should().ContainKey("OK");
+        prices.Should().NotContainKey("BAD");
+    }
+
+    [Fact]
+    public async Task skips_an_item_excluding_vat_with_an_unparseable_vat_rate()
+    {
+        // Arrange
+        var client = CreateClient(_ => Json("""
+            {"data":{"pricelist":[{"code":"A","includingVat":false,"vatRate":null,"price":{"price":"100.00"}}],
+             "paginator":{"page":1,"pageCount":1}},"errors":null}
+            """));
+
+        // Act
+        var prices = await client.GetPricesWithVatAsync(CancellationToken.None);
+
+        // Assert
+        prices.Should().BeEmpty();
     }
 
     [Fact]
