@@ -11,6 +11,8 @@ interface PriceConflictBannerProps {
   target: PriceSyncTarget;
   hebloPrice: number;
   remotePrice: number | null;
+  /** True while this row's price is being saved — resolving now would race that save. */
+  disabled?: boolean;
 }
 
 const TARGET_LABELS: Record<PriceSyncTarget, string> = {
@@ -23,8 +25,10 @@ const PriceConflictBanner: React.FC<PriceConflictBannerProps> = ({
   target,
   hebloPrice,
   remotePrice,
+  disabled = false,
 }) => {
   const resolveConflict = useResolvePriceConflict();
+  const isBusy = disabled || resolveConflict.isPending;
 
   const handleKeepHeblo = () =>
     resolveConflict.mutate({
@@ -55,16 +59,16 @@ const PriceConflictBanner: React.FC<PriceConflictBannerProps> = ({
         <button
           type="button"
           onClick={handleKeepHeblo}
-          disabled={resolveConflict.isPending}
-          className="px-3 py-1.5 text-xs font-medium text-amber-800 dark:text-amber-200 bg-white dark:bg-graphite-surface border border-amber-300 dark:border-amber-900/40 rounded-md hover:bg-amber-100 dark:hover:bg-amber-900/30 transition-colors"
+          disabled={isBusy}
+          className="px-3 py-1.5 text-xs font-medium text-amber-800 dark:text-amber-200 bg-white dark:bg-graphite-surface border border-amber-300 dark:border-amber-900/40 rounded-md hover:bg-amber-100 dark:hover:bg-amber-900/30 transition-colors disabled:opacity-50"
         >
           Ponechat cenu z Hebla
         </button>
         <button
           type="button"
           onClick={handleAcceptRemote}
-          disabled={resolveConflict.isPending}
-          className="px-3 py-1.5 text-xs font-medium text-white bg-amber-600 hover:bg-amber-700 rounded-md transition-colors"
+          disabled={isBusy}
+          className="px-3 py-1.5 text-xs font-medium text-white bg-amber-600 hover:bg-amber-700 rounded-md transition-colors disabled:opacity-50"
         >
           Převzít externí cenu
         </button>

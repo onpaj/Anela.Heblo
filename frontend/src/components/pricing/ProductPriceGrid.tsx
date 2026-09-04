@@ -38,9 +38,12 @@ const SyncStatusChip: React.FC<SyncStatusChipProps> = ({ status, testId }) => (
   </span>
 );
 
+type SetPriceMutation = ReturnType<typeof useSetProductPrice>;
+
 interface EditablePriceCellProps {
   productCode: string;
   priceWithVat: number;
+  setPrice: SetPriceMutation;
 }
 
 // Accepts the Czech decimal comma and rejects anything the backend validator would
@@ -54,8 +57,11 @@ const parsePrice = (raw: string): number | null => {
   return parsed;
 };
 
-const EditablePriceCell: React.FC<EditablePriceCellProps> = ({ productCode, priceWithVat }) => {
-  const setPrice = useSetProductPrice();
+const EditablePriceCell: React.FC<EditablePriceCellProps> = ({
+  productCode,
+  priceWithVat,
+  setPrice,
+}) => {
   const [value, setValue] = useState(String(priceWithVat));
   const isFocusedRef = useRef(false);
 
@@ -157,62 +163,81 @@ const ProductPriceGrid: React.FC<ProductPriceGridProps> = ({ prices }) => {
                 </td>
               </tr>
             ) : (
-              prices.map((price) => (
-                <React.Fragment key={price.productCode}>
-                  <tr className="hover:bg-gray-50 dark:hover:bg-white/5">
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-graphite-text">
-                      {price.productCode}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-graphite-text">
-                      {price.productName}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right">
-                      <EditablePriceCell productCode={price.productCode!} priceWithVat={price.priceWithVat!} />
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm text-gray-900 dark:text-graphite-text">
-                      {formatCurrency(price.priceWithoutVat ?? 0)}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm text-gray-900 dark:text-graphite-text">
-                      {price.vatRate}%
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <SyncStatusChip status={price.shoptetStatus!} testId="sync-status-shoptet" />
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <SyncStatusChip status={price.flexiStatus!} testId="sync-status-flexi" />
-                    </td>
-                  </tr>
-                  {price.shoptetStatus === PriceSyncStatus.Conflict && (
-                    <tr>
-                      <td colSpan={GRID_COLUMN_COUNT} className="px-6 pb-3">
-                        <PriceConflictBanner
-                          productCode={price.productCode!}
-                          target={PriceSyncTarget.Shoptet}
-                          hebloPrice={price.priceWithVat!}
-                          remotePrice={price.shoptetRemoteValue ?? null}
-                        />
-                      </td>
-                    </tr>
-                  )}
-                  {price.flexiStatus === PriceSyncStatus.Conflict && (
-                    <tr>
-                      <td colSpan={GRID_COLUMN_COUNT} className="px-6 pb-3">
-                        <PriceConflictBanner
-                          productCode={price.productCode!}
-                          target={PriceSyncTarget.Flexi}
-                          hebloPrice={price.priceWithVat!}
-                          remotePrice={price.flexiRemoteValue ?? null}
-                        />
-                      </td>
-                    </tr>
-                  )}
-                </React.Fragment>
-              ))
+              prices.map((price) => <ProductPriceRow key={price.productCode} price={price} />)
             )}
           </tbody>
         </table>
       </div>
     </div>
+  );
+};
+
+interface ProductPriceRowProps {
+  price: ProductPriceDto;
+}
+
+// The price mutation lives here rather than in the cell so the conflict banners in the
+// same row can see it: mousedown on a banner button blurs the input first, firing a save
+// that would otherwise race the resolution over the same sync state.
+const ProductPriceRow: React.FC<ProductPriceRowProps> = ({ price }) => {
+  const setPrice = useSetProductPrice();
+
+  return (
+    <React.Fragment>
+      <tr className="hover:bg-gray-50 dark:hover:bg-white/5">
+        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-graphite-text">
+          {price.productCode}
+        </td>
+        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-graphite-text">
+          {price.productName}
+        </td>
+        <td className="px-6 py-4 whitespace-nowrap text-right">
+          <EditablePriceCell
+            productCode={price.productCode!}
+            priceWithVat={price.priceWithVat!}
+            setPrice={setPrice}
+          />
+        </td>
+        <td className="px-6 py-4 whitespace-nowrap text-right text-sm text-gray-900 dark:text-graphite-text">
+          {formatCurrency(price.priceWithoutVat ?? 0)}
+        </td>
+        <td className="px-6 py-4 whitespace-nowrap text-right text-sm text-gray-900 dark:text-graphite-text">
+          {price.vatRate}%
+        </td>
+        <td className="px-6 py-4 whitespace-nowrap">
+          <SyncStatusChip status={price.shoptetStatus!} testId="sync-status-shoptet" />
+        </td>
+        <td className="px-6 py-4 whitespace-nowrap">
+          <SyncStatusChip status={price.flexiStatus!} testId="sync-status-flexi" />
+        </td>
+      </tr>
+      {price.shoptetStatus === PriceSyncStatus.Conflict && (
+        <tr>
+          <td colSpan={GRID_COLUMN_COUNT} className="px-6 pb-3">
+            <PriceConflictBanner
+              productCode={price.productCode!}
+              target={PriceSyncTarget.Shoptet}
+              hebloPrice={price.priceWithVat!}
+              remotePrice={price.shoptetRemoteValue ?? null}
+              disabled={setPrice.isPending}
+            />
+          </td>
+        </tr>
+      )}
+      {price.flexiStatus === PriceSyncStatus.Conflict && (
+        <tr>
+          <td colSpan={GRID_COLUMN_COUNT} className="px-6 pb-3">
+            <PriceConflictBanner
+              productCode={price.productCode!}
+              target={PriceSyncTarget.Flexi}
+              hebloPrice={price.priceWithVat!}
+              remotePrice={price.flexiRemoteValue ?? null}
+              disabled={setPrice.isPending}
+            />
+          </td>
+        </tr>
+      )}
+    </React.Fragment>
   );
 };
 
