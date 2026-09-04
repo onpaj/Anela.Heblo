@@ -52,9 +52,9 @@
     },
     {
       "name": "post-session-header-present-test",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-09-04T20:14:05.331607Z"
+      "updated_at": "2026-09-04T20:31:57.437631Z"
     },
     {
       "name": "post-happy-path-no-log-test",
