@@ -22,7 +22,7 @@
     },
     "developing": {
       "status": "in_progress",
-      "updated_at": "2026-09-04T10:23:57.997775Z"
+      "updated_at": "2026-09-04T11:21:23.623124Z"
     }
   },
   "tasks": [
@@ -34,9 +34,9 @@
     },
     {
       "name": "add-mcp-telemetry-helpers",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-09-04T11:21:23.865685Z"
     },
     {
       "name": "extract-log-helper-widen-fields",
