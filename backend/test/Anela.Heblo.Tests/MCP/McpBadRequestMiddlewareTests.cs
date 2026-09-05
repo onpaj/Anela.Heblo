@@ -464,6 +464,35 @@ public class McpBadRequestMiddlewareTests
             Times.Never);
     }
 
+    // ── non-/mcp paths never trigger the middleware ──────────────────────────
+
+    [Theory]
+    [InlineData("GET", "/api/foo", 400)]
+    [InlineData("POST", "/api/foo", 400)]
+    [InlineData("POST", "/health", 500)]
+    [InlineData("POST", "/mcpx", 400)]  // path prefix must be a segment match, not a raw prefix
+    public async Task NonMcpPath_NeverLogs(string method, string path, int status)
+    {
+        var loggerMock = new Mock<ILogger<McpBadRequestMiddleware>>();
+        var next = new RequestDelegate(ctx =>
+        {
+            ctx.Response.StatusCode = status;
+            return Task.CompletedTask;
+        });
+        var middleware = new McpBadRequestMiddleware(next, loggerMock.Object);
+        var context = CreateContext(method, path);
+
+        await middleware.InvokeAsync(context);
+
+        loggerMock.Verify(l => l.Log(
+            It.IsAny<LogLevel>(),
+            It.IsAny<EventId>(),
+            It.IsAny<It.IsAnyType>(),
+            It.IsAny<Exception>(),
+            It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Never);
+    }
+
     // ── HasValidMcpAcceptHeader static helper ────────────────────────────────
 
     [Theory]
