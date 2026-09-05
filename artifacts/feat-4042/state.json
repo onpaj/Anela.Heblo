@@ -22,7 +22,7 @@
     },
     "developing": {
       "status": "in_progress",
-      "updated_at": "2026-09-04T23:14:03.314885Z"
+      "updated_at": "2026-09-05T01:15:30.911693Z"
     }
   },
   "tasks": [
@@ -76,9 +76,9 @@
     },
     {
       "name": "non-mcp-path-ignored-test",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-09-05T01:15:31.112648Z"
     },
     {
       "name": "post-session-header-edge-cases",
