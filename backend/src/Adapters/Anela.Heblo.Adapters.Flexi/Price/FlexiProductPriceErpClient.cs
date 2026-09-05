@@ -101,7 +101,8 @@ public class FlexiProductPriceErpClient : UserQueryClient<ProductPriceFlexiDto>,
             PriceWithVat = s.Price * ((100 + s.Vat) / 100),
             PurchasePrice = s.PurchasePrice,
             PurchasePriceWithVat = s.PurchasePrice * ((100 + s.Vat) / 100),
-            BoMId = s.BoMId
+            BoMId = s.BoMId,
+            ErpItemId = s.ProductId
         }).ToList();
 
         return prices;

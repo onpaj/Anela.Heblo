@@ -1319,3 +1319,48 @@ URL / tracking number once ready.
 **To verify on staging before relying on it:** create a multi-package shipment for a test
 order, confirm Shoptet returns N distinct package names and N printable labels, and that the
 order can still be marked packed (status 52) afterwards.
+
+## Price lists API
+
+Base: `https://api.myshoptet.com`, header `Shoptet-Private-API-Token`.
+
+| Method | Path | Purpose |
+|---|---|---|
+| GET | `/api/pricelists` | All price lists configured on the e-shop. Identifies the default one. |
+| GET | `/api/pricelists/{id}` | All items of one price list, synchronous. Paginated: `itemsPerPage` default and **max 100**, `page` from 1. |
+| PATCH | `/api/pricelists/{id}` | Update prices of individual items. |
+| PATCH | `/api/pricelists/{id}/batch` | Async bulk update, JSONL body, max 100 MB. **Not used — see below.** |
+
+**`GET /api/pricelists/{id}/snapshot` is deliberately not used for the bulk read.** Like
+`GET /api/products/snapshot` (§4.3), snapshot endpoints require a registered `job:finished`
+webhook and return unusable results without webhook infrastructure. The synchronous
+`GET /api/pricelists/{id}` returns the same `data.pricelist[]` / `data.paginator` shape and
+needs no webhook, so Heblo reads through it instead.
+
+**Item price fields on PATCH:**
+
+| Field | Meaning |
+|---|---|
+| `price` | Sets the stored price directly, no recalculation. Interpretation depends on the list's `includingVat`. |
+| `priceWithVat` | Sets the price including VAT; Shoptet recalculates the stored form. |
+| `priceWithoutVat` | Sets the price excluding VAT; Shoptet recalculates. |
+| `buyPrice` | **Writable only on the default price list**; stays `null` on all others. |
+| `vatRate`, `includingVat` | Optional; changing either triggers recalculation of the stored prices. |
+
+**Zero vs null (rollout from 2026-09-14, feature-flagged per e-shop).** A literal `0`
+in `data.price.price`, `data.price.commonPrice`, `data.price.buyPrice` or
+`data.prices.purchasePrice.price` used to *clear* the price. After the flag flips, `0`
+means a genuine zero price and only `null` clears it. Never send `0` to mean "no price" —
+omit the product instead. CSV/XML import/export gained the same empty-cell vs `0`
+distinction.
+
+**Async endpoints require a webhook.** Every async endpoint — including
+`PATCH /api/pricelists/{id}/batch` — returns **403 and never queues the job** unless the
+`job:finished` webhook is registered for the e-shop. The response is `202` with a `jobId`;
+the result is then read from `GET /api/system/jobs/{jobId}`, whose `log` attribute
+identifies rows by their 1-based position in the uploaded file. A failed job is marked
+failed 3 hours after creation and emits **no** `job:finished` webhook.
+
+**Why Heblo uses per-item PATCH, not batch:** the price sync pushes only *changed*
+prices — a handful per run — so the batch endpoint's inbound-webhook dependency buys
+nothing. Batch remains the option if a bulk repricing is ever needed.

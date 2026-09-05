@@ -43,6 +43,7 @@
     { "path": "/analytics/product-margin-summary", "requires": [{ "feature": "Finance_MarginAnalysis", "level": "Read" }] },
     { "path": "/products/margins", "requires": [{ "feature": "Products_ProductMargins", "level": "Read" }] },
     { "path": "/catalog", "requires": [{ "feature": "Products_Catalog", "level": "Read" }] },
+    { "path": "/products/pricing", "requires": [{ "feature": "Products_Catalog", "level": "Read" }] },
     { "path": "/products/statistics", "requires": [{ "feature": "Products_Catalog", "level": "Read" }] },
     { "path": "/journal", "requires": [{ "feature": "Products_Journal", "level": "Read" }] },
     { "path": "/customer/issued-invoices", "requires": [{ "feature": "Customer_BankStatements", "level": "Read" }] },

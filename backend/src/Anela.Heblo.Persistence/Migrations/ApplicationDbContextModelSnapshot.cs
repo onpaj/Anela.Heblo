@@ -3529,6 +3529,68 @@ namespace Anela.Heblo.Persistence.Migrations
                     b.ToTable("PhotobankTagRules", "public");
                 });
 
+            modelBuilder.Entity("Anela.Heblo.Domain.Features.ProductPricing.ProductPrice", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasColumnName("ProductCode");
+
+                    b.Property<DateTime>("ModifiedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("ModifiedBy")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<decimal>("PriceWithVat")
+                        .HasColumnType("decimal(18,4)");
+
+                    b.Property<decimal>("VatRate")
+                        .HasColumnType("decimal(5,2)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("ProductPrices", "public");
+                });
+
+            modelBuilder.Entity("Anela.Heblo.Domain.Features.ProductPricing.ProductPriceSyncState", b =>
+                {
+                    b.Property<string>("ProductCode")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<int>("Target")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("ConflictDetectedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("LastError")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<DateTime?>("LastPushedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<decimal?>("LastPushedPriceWithVat")
+                        .HasColumnType("decimal(18,4)");
+
+                    b.Property<decimal?>("RemoteValueAtConflict")
+                        .HasColumnType("decimal(18,4)");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("integer");
+
+                    b.HasKey("ProductCode", "Target");
+
+                    b.HasIndex("Status")
+                        .HasDatabaseName("IX_ProductPriceSyncStates_Status");
+
+                    b.ToTable("ProductPriceSyncStates", "public");
+                });
+
             modelBuilder.Entity("Anela.Heblo.Domain.Features.Purchase.PurchaseOrder", b =>
                 {
                     b.Property<int>("Id")

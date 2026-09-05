@@ -1,8 +1,6 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using System.Text;
-using Anela.Heblo.Adapters.Shoptet.Price;
-using Anela.Heblo.Domain.Features.Catalog.Price;
 using Anela.Heblo.Domain.Features.Catalog.Stock;
 using Anela.Heblo.Domain.Features.Logistics.StockTaking;
 using Anela.Heblo.Persistence.Logistics.StockTaking;
@@ -18,10 +16,6 @@ public static class ShoptetAdapterServiceCollectionExtensions
         Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
 
         services.AddHttpClient();
-
-        services.AddSingleton<IProductPriceEshopClient, ShoptetPriceClient>();
-
-        services.Configure<ProductPriceOptions>(configuration.GetSection(ProductPriceOptions.ConfigKey));
 
         services.TryAddSingleton(TimeProvider.System);
 

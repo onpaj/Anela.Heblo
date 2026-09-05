@@ -10,4 +10,7 @@ public class ProductPriceErp
 
     public int? BoMId { get; set; }
     public bool HasBoM => BoMId != null;
+
+    /// <summary>Internal ERP price list id (Flexi <c>idcenik</c>). 0 when unknown.</summary>
+    public int ErpItemId { get; set; }
 }
