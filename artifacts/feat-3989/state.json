@@ -1,0 +1,54 @@
+{
+  "feature_id": "feat-3989",
+  "issue_number": 3989,
+  "created_at": "2026-08-30T12:16:02.890372Z",
+  "max_revisions": 3,
+  "phases": {
+    "analyzing": {
+      "status": "completed",
+      "updated_at": "2026-08-30T12:18:01.600585Z"
+    },
+    "architecting": {
+      "status": "completed",
+      "updated_at": "2026-08-30T12:20:20.728178Z"
+    },
+    "designing": {
+      "status": "completed",
+      "updated_at": "2026-08-30T12:21:12.259177Z"
+    },
+    "planning": {
+      "status": "completed",
+      "updated_at": "2026-08-30T12:25:59.807657Z"
+    },
+    "developing": {
+      "status": "pending",
+      "updated_at": null
+    }
+  },
+  "tasks": [
+    {
+      "name": "backend-json-ignore-article-id",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    },
+    {
+      "name": "regenerate-frontend-api-client",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    },
+    {
+      "name": "update-frontend-hook-and-test-for-articleid-removal",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    },
+    {
+      "name": "update-api-client-generation-docs-snippet",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    }
+  ]
+}
