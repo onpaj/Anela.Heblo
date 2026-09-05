@@ -1,0 +1,36 @@
+{
+  "feature_id": "feat-4061",
+  "issue_number": 4061,
+  "created_at": "2026-09-04T09:19:17.609990Z",
+  "max_revisions": 3,
+  "phases": {
+    "analyzing": {
+      "status": "completed",
+      "updated_at": "2026-09-04T09:20:33.037007Z"
+    },
+    "architecting": {
+      "status": "completed",
+      "updated_at": "2026-09-04T09:21:25.226415Z"
+    },
+    "designing": {
+      "status": "completed",
+      "updated_at": "2026-09-04T09:21:56.741657Z"
+    },
+    "planning": {
+      "status": "completed",
+      "updated_at": "2026-09-04T09:26:20.804446Z"
+    },
+    "developing": {
+      "status": "pending",
+      "updated_at": null
+    }
+  },
+  "tasks": [
+    {
+      "name": "default-initialize-bank-account-settings-accounts",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    }
+  ]
+}
