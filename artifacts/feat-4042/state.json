@@ -82,9 +82,9 @@
     },
     {
       "name": "post-session-header-edge-cases",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-09-05T02:16:02.248390Z"
+      "updated_at": "2026-09-05T03:03:42.609494Z"
     },
     {
       "name": "pii-guard-authorization-header-test",
