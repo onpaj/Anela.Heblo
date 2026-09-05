@@ -70,9 +70,9 @@
     },
     {
       "name": "post-headerless-probe-not-rewritten-test",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-09-04T23:14:03.512220Z"
+      "updated_at": "2026-09-05T00:08:00.511293Z"
     },
     {
       "name": "non-mcp-path-ignored-test",
