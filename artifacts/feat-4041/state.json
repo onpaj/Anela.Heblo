@@ -1,0 +1,58 @@
+{
+  "feature_id": "feat-4041",
+  "issue_number": 4041,
+  "created_at": "2026-09-03T06:15:33.298650Z",
+  "max_revisions": 3,
+  "phases": {
+    "analyzing": {
+      "status": "completed",
+      "updated_at": "2026-09-03T06:19:10.889630Z"
+    },
+    "architecting": {
+      "status": "completed",
+      "updated_at": "2026-09-03T06:22:08.929448Z"
+    },
+    "designing": {
+      "status": "completed",
+      "updated_at": "2026-09-03T06:23:10.948130Z"
+    },
+    "planning": {
+      "status": "completed",
+      "updated_at": "2026-09-03T06:27:44.330019Z"
+    },
+    "developing": {
+      "status": "in_progress",
+      "updated_at": "2026-09-04T07:18:10.697007Z"
+    },
+    "code-review": {
+      "status": "completed",
+      "updated_at": "2026-09-04T08:18:49.373586Z"
+    }
+  },
+  "tasks": [
+    {
+      "name": "add-access-matrix-entries",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-09-04T04:18:28.729775Z"
+    },
+    {
+      "name": "regenerate-access-matrix-artifacts",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-09-04T05:27:05.184349Z"
+    },
+    {
+      "name": "guard-routes-in-app-tsx",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-09-04T06:27:14.564289Z"
+    },
+    {
+      "name": "validate-and-run-tests",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-09-04T07:34:35.376493Z"
+    }
+  ]
+}

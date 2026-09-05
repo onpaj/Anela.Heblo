@@ -3,6 +3,8 @@ export interface MenuRequirement { permissions: string[]; }
 export const ACCESS_ROUTES: Record<string, MenuRequirement> = {
   "/finance/overview": { permissions: ["finance.financial_overview.read"] },
   "/analytics/product-margin-summary": { permissions: ["finance.margin_analysis.read"] },
+  "/automation/invoice-import-statistics": { permissions: ["finance.margin_analysis.read"] },
+  "/finance/bank-statements": { permissions: ["finance.margin_analysis.read"] },
   "/products/margins": { permissions: ["products.product_margins.read"] },
   "/catalog": { permissions: ["products.catalog.read"] },
   "/products/statistics": { permissions: ["products.catalog.read"] },
