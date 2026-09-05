@@ -1,0 +1,78 @@
+{
+  "feature_id": "feat-3972",
+  "issue_number": 3972,
+  "created_at": "2026-08-29T11:14:22.796084Z",
+  "max_revisions": 3,
+  "phases": {
+    "analyzing": {
+      "status": "completed",
+      "updated_at": "2026-08-29T11:17:19.022520Z"
+    },
+    "architecting": {
+      "status": "completed",
+      "updated_at": "2026-08-29T11:22:04.520838Z"
+    },
+    "designing": {
+      "status": "completed",
+      "updated_at": "2026-08-29T11:23:43.230206Z"
+    },
+    "planning": {
+      "status": "completed",
+      "updated_at": "2026-08-29T11:40:06.527683Z"
+    },
+    "developing": {
+      "status": "pending",
+      "updated_at": null
+    }
+  },
+  "tasks": [
+    {
+      "name": "log-raw-response-and-flag-degraded-result",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    },
+    {
+      "name": "add-partial-extraction-parser-primitives",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    },
+    {
+      "name": "wire-partial-recovery-into-extractor",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    },
+    {
+      "name": "add-tasksextractiondegraded-domain-and-migration",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    },
+    {
+      "name": "thread-degraded-flag-through-handlers-and-dto",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    },
+    {
+      "name": "regenerate-openapi-client-and-update-meeting-tasks-hook",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    },
+    {
+      "name": "add-degraded-warning-banner-to-detail-page",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    },
+    {
+      "name": "add-degraded-indicator-to-list-page",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    }
+  ]
+}
