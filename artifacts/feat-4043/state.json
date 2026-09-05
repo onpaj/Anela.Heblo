@@ -1,0 +1,40 @@
+{
+  "feature_id": "feat-4043",
+  "issue_number": 4043,
+  "created_at": "2026-09-03T08:13:31.713429Z",
+  "max_revisions": 3,
+  "phases": {
+    "analyzing": {
+      "status": "completed",
+      "updated_at": "2026-09-03T08:14:43.365239Z"
+    },
+    "architecting": {
+      "status": "completed",
+      "updated_at": "2026-09-03T08:15:31.565420Z"
+    },
+    "designing": {
+      "status": "completed",
+      "updated_at": "2026-09-03T08:15:55.834651Z"
+    },
+    "planning": {
+      "status": "completed",
+      "updated_at": "2026-09-03T08:17:29.798749Z"
+    },
+    "developing": {
+      "status": "in_progress",
+      "updated_at": "2026-09-05T00:14:42.100809Z"
+    },
+    "code-review": {
+      "status": "completed",
+      "updated_at": "2026-09-05T10:16:12.926063Z"
+    }
+  },
+  "tasks": [
+    {
+      "name": "add-timeprovider-to-recurring-job-seeder",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-09-05T00:34:06.577913Z"
+    }
+  ]
+}
