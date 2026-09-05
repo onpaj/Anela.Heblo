@@ -1,0 +1,96 @@
+{
+  "feature_id": "feat-4071",
+  "issue_number": 4071,
+  "created_at": "2026-09-05T07:13:12.376662Z",
+  "max_revisions": 3,
+  "phases": {
+    "analyzing": {
+      "status": "completed",
+      "updated_at": "2026-09-05T07:16:19.647361Z"
+    },
+    "architecting": {
+      "status": "completed",
+      "updated_at": "2026-09-05T07:17:31.072759Z"
+    },
+    "designing": {
+      "status": "completed",
+      "updated_at": "2026-09-05T07:17:54.324686Z"
+    },
+    "planning": {
+      "status": "completed",
+      "updated_at": "2026-09-05T07:20:59.893676Z"
+    },
+    "developing": {
+      "status": "pending",
+      "updated_at": null
+    }
+  },
+  "tasks": [
+    {
+      "name": "create-side-effect-interface",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    },
+    {
+      "name": "extract-new-to-opened-side-effect",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    },
+    {
+      "name": "extract-open-to-reserve-side-effect",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    },
+    {
+      "name": "extract-open-to-quarantine-side-effect",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    },
+    {
+      "name": "extract-received-side-effect",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    },
+    {
+      "name": "extract-inventory-restorer",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    },
+    {
+      "name": "refactor-handler-orchestration",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    },
+    {
+      "name": "register-di",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    },
+    {
+      "name": "update-existing-tests",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    },
+    {
+      "name": "add-dispatch-uniqueness-test",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    },
+    {
+      "name": "full-verification",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    }
+  ]
+}
