@@ -28,9 +28,9 @@
   "tasks": [
     {
       "name": "add-abra-invoice-id-domain-property",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-09-05T21:14:25.514069Z"
+      "updated_at": "2026-09-05T21:16:53.822123Z"
     },
     {
       "name": "map-abra-invoice-id-from-flexibee-id",
