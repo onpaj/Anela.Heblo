@@ -1,0 +1,48 @@
+{
+  "feature_id": "feat-4073",
+  "issue_number": 4073,
+  "created_at": "2026-09-05T09:11:11.104330Z",
+  "max_revisions": 3,
+  "phases": {
+    "analyzing": {
+      "status": "completed",
+      "updated_at": "2026-09-05T09:13:00.325652Z"
+    },
+    "architecting": {
+      "status": "completed",
+      "updated_at": "2026-09-05T09:13:53.092076Z"
+    },
+    "designing": {
+      "status": "completed",
+      "updated_at": "2026-09-05T09:14:12.645854Z"
+    },
+    "planning": {
+      "status": "completed",
+      "updated_at": "2026-09-05T09:15:17.214493Z"
+    },
+    "developing": {
+      "status": "pending",
+      "updated_at": null
+    }
+  },
+  "tasks": [
+    {
+      "name": "add-subfeature-registrations-to-logistics-module",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    },
+    {
+      "name": "remove-duplicate-registrations-from-application-module",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    },
+    {
+      "name": "verify-full-build-format-and-test-suite",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    }
+  ]
+}
