@@ -464,6 +464,84 @@ public class McpBadRequestMiddlewareTests
             Times.Never);
     }
 
+    [Fact]
+    public async Task PostBadRequest_LowercaseSessionHeader_TreatedAsPresent()
+    {
+        var loggerMock = new Mock<ILogger<McpBadRequestMiddleware>>();
+        var next = new RequestDelegate(ctx =>
+        {
+            ctx.Response.StatusCode = StatusCodes.Status400BadRequest;
+            return Task.CompletedTask;
+        });
+        var middleware = new McpBadRequestMiddleware(next, loggerMock.Object);
+        var context = CreateContext("POST", "/mcp");
+        context.Request.Headers["mcp-session-id"] = "abcdef1234567890"; // lowercase
+
+        await middleware.InvokeAsync(context);
+
+        loggerMock.Verify(l => l.Log(
+            LogLevel.Warning,
+            It.Is<EventId>(e => e.Name == "McpBadRequest"),
+            It.Is<It.IsAnyType>((state, _) =>
+                state.ToString()!.Contains("McpSessionIdPresent=True") &&
+                state.ToString()!.Contains("McpSessionIdPrefix=abcdef12")),
+            It.IsAny<Exception>(),
+            It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task PostBadRequest_ShortSessionId_LogsFullValueNoOverflow()
+    {
+        var loggerMock = new Mock<ILogger<McpBadRequestMiddleware>>();
+        var next = new RequestDelegate(ctx =>
+        {
+            ctx.Response.StatusCode = StatusCodes.Status400BadRequest;
+            return Task.CompletedTask;
+        });
+        var middleware = new McpBadRequestMiddleware(next, loggerMock.Object);
+        var context = CreateContext("POST", "/mcp");
+        context.Request.Headers["Mcp-Session-Id"] = "abc"; // shorter than 8 chars
+
+        await middleware.InvokeAsync(context);
+
+        loggerMock.Verify(l => l.Log(
+            LogLevel.Warning,
+            It.Is<EventId>(e => e.Name == "McpBadRequest"),
+            It.Is<It.IsAnyType>((state, _) =>
+                state.ToString()!.Contains("McpSessionIdPresent=True") &&
+                state.ToString()!.Contains("McpSessionIdPrefix=abc")),
+            It.IsAny<Exception>(),
+            It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task PostBadRequest_EmptySessionId_TreatedAsAbsent()
+    {
+        var loggerMock = new Mock<ILogger<McpBadRequestMiddleware>>();
+        var next = new RequestDelegate(ctx =>
+        {
+            ctx.Response.StatusCode = StatusCodes.Status400BadRequest;
+            return Task.CompletedTask;
+        });
+        var middleware = new McpBadRequestMiddleware(next, loggerMock.Object);
+        var context = CreateContext("POST", "/mcp");
+        context.Request.Headers["Mcp-Session-Id"] = ""; // present but empty
+
+        await middleware.InvokeAsync(context);
+
+        loggerMock.Verify(l => l.Log(
+            LogLevel.Warning,
+            It.Is<EventId>(e => e.Name == "McpBadRequest"),
+            It.Is<It.IsAnyType>((state, _) =>
+                state.ToString()!.Contains("McpSessionIdPresent=False") &&
+                state.ToString()!.Contains("McpSessionIdPrefix=(missing)")),
+            It.IsAny<Exception>(),
+            It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Once);
+    }
+
     // ── non-/mcp paths never trigger the middleware ──────────────────────────
 
     [Theory]
