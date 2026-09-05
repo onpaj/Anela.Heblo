@@ -25,5 +25,24 @@
       "updated_at": null
     }
   },
-  "tasks": []
+  "tasks": [
+    {
+      "name": "add-daily-counts-repository-method",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    },
+    {
+      "name": "rewire-adapter-to-repository",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    },
+    {
+      "name": "validate-full-solution",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    }
+  ]
 }
