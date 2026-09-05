@@ -1,0 +1,54 @@
+{
+  "feature_id": "feat-4072",
+  "issue_number": 4072,
+  "created_at": "2026-09-05T08:11:15.681901Z",
+  "max_revisions": 3,
+  "phases": {
+    "analyzing": {
+      "status": "completed",
+      "updated_at": "2026-09-05T08:13:30.401092Z"
+    },
+    "architecting": {
+      "status": "completed",
+      "updated_at": "2026-09-05T08:15:54.849556Z"
+    },
+    "designing": {
+      "status": "completed",
+      "updated_at": "2026-09-05T08:16:46.447254Z"
+    },
+    "planning": {
+      "status": "completed",
+      "updated_at": "2026-09-05T08:19:44.161283Z"
+    },
+    "developing": {
+      "status": "pending",
+      "updated_at": null
+    }
+  },
+  "tasks": [
+    {
+      "name": "rewrite-zero-threshold-test",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    },
+    {
+      "name": "rewrite-empty-text-test",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    },
+    {
+      "name": "rewrite-max-length-test",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    },
+    {
+      "name": "final-verification",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    }
+  ]
+}
