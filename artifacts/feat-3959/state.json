@@ -1,0 +1,46 @@
+{
+  "feature_id": "feat-3959",
+  "issue_number": 3959,
+  "created_at": "2026-08-24T05:14:08.580012Z",
+  "max_revisions": 3,
+  "phases": {
+    "analyzing": {
+      "status": "completed",
+      "updated_at": "2026-08-24T05:15:49.552900Z"
+    },
+    "architecting": {
+      "status": "completed",
+      "updated_at": "2026-08-24T05:17:23.427742Z"
+    },
+    "designing": {
+      "status": "completed",
+      "updated_at": "2026-08-24T05:18:03.898199Z"
+    },
+    "planning": {
+      "status": "completed",
+      "updated_at": "2026-08-24T05:20:43.852391Z"
+    },
+    "developing": {
+      "status": "in_progress",
+      "updated_at": "2026-08-24T07:17:03.985692Z"
+    },
+    "code-review": {
+      "status": "completed",
+      "updated_at": "2026-08-24T09:20:15.546468Z"
+    }
+  },
+  "tasks": [
+    {
+      "name": "extend-invoice-classification-fixture",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-08-24T06:59:04.140210Z"
+    },
+    {
+      "name": "add-vat-classification-rule-tests",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-08-24T08:37:39.211814Z"
+    }
+  ]
+}
