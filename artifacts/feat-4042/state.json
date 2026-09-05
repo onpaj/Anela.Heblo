@@ -76,9 +76,9 @@
     },
     {
       "name": "non-mcp-path-ignored-test",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-09-05T01:15:31.112648Z"
+      "updated_at": "2026-09-05T01:41:24.279310Z"
     },
     {
       "name": "post-session-header-edge-cases",
