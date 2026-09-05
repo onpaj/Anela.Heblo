@@ -25,5 +25,24 @@
       "updated_at": null
     }
   },
-  "tasks": []
+  "tasks": [
+    {
+      "name": "add-subfeature-registrations-to-logistics-module",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    },
+    {
+      "name": "remove-duplicate-registrations-from-application-module",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    },
+    {
+      "name": "verify-full-build-format-and-test-suite",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    }
+  ]
 }
