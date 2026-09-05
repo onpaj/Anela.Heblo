@@ -1,0 +1,36 @@
+{
+  "feature_id": "feat-4069",
+  "issue_number": 4069,
+  "created_at": "2026-09-05T06:13:42.146137Z",
+  "max_revisions": 3,
+  "phases": {
+    "analyzing": {
+      "status": "completed",
+      "updated_at": "2026-09-05T06:15:09.014323Z"
+    },
+    "architecting": {
+      "status": "completed",
+      "updated_at": "2026-09-05T06:18:03.560088Z"
+    },
+    "designing": {
+      "status": "completed",
+      "updated_at": "2026-09-05T06:18:51.572393Z"
+    },
+    "planning": {
+      "status": "completed",
+      "updated_at": "2026-09-05T06:20:21.908657Z"
+    },
+    "developing": {
+      "status": "pending",
+      "updated_at": null
+    }
+  },
+  "tasks": [
+    {
+      "name": "extract-invoice-import-prefix-constant",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    }
+  ]
+}
