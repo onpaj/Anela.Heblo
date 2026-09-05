@@ -1,0 +1,48 @@
+{
+  "feature_id": "feat-3987",
+  "issue_number": 3987,
+  "created_at": "2026-08-30T09:12:18.212719Z",
+  "max_revisions": 3,
+  "phases": {
+    "analyzing": {
+      "status": "completed",
+      "updated_at": "2026-08-30T09:14:37.254720Z"
+    },
+    "architecting": {
+      "status": "completed",
+      "updated_at": "2026-08-30T09:18:06.899487Z"
+    },
+    "designing": {
+      "status": "completed",
+      "updated_at": "2026-08-30T09:18:54.887431Z"
+    },
+    "planning": {
+      "status": "completed",
+      "updated_at": "2026-08-30T09:23:46.750040Z"
+    },
+    "developing": {
+      "status": "pending",
+      "updated_at": null
+    }
+  },
+  "tasks": [
+    {
+      "name": "add-shoptet-status-comments-to-expedition-picking-request",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    },
+    {
+      "name": "retarget-picking-list-integration-test-to-expedition-picking-request",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    },
+    {
+      "name": "consolidate-print-picking-list-request-constants-onto-expedition-picking-request",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    }
+  ]
+}
