@@ -25,5 +25,24 @@
       "updated_at": null
     }
   },
-  "tasks": []
+  "tasks": [
+    {
+      "name": "refactor-service-remove-current-user-dependency",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    },
+    {
+      "name": "inject-current-user-into-create-handler",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    },
+    {
+      "name": "inject-current-user-into-disassemble-handler",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    }
+  ]
 }
