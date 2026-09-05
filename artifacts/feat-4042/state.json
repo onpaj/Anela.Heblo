@@ -1,0 +1,124 @@
+{
+  "feature_id": "feat-4042",
+  "issue_number": 4042,
+  "created_at": "2026-09-03T10:12:16.561335Z",
+  "max_revisions": 3,
+  "phases": {
+    "analyzing": {
+      "status": "completed",
+      "updated_at": "2026-09-03T10:55:10.108360Z"
+    },
+    "architecting": {
+      "status": "completed",
+      "updated_at": "2026-09-03T10:59:51.116649Z"
+    },
+    "designing": {
+      "status": "completed",
+      "updated_at": "2026-09-03T11:01:29.448895Z"
+    },
+    "planning": {
+      "status": "completed",
+      "updated_at": "2026-09-03T11:06:25.108965Z"
+    },
+    "developing": {
+      "status": "in_progress",
+      "updated_at": "2026-09-05T07:14:45.799227Z"
+    },
+    "code-review": {
+      "status": "completed",
+      "updated_at": "2026-09-05T08:20:15.948842Z"
+    }
+  },
+  "tasks": [
+    {
+      "name": "read-existing-middleware-and-tests",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-09-04T10:44:53.755393Z"
+    },
+    {
+      "name": "add-mcp-telemetry-helpers",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-09-04T11:58:26.688467Z"
+    },
+    {
+      "name": "extract-log-helper-widen-fields",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-09-04T12:26:23.628168Z"
+    },
+    {
+      "name": "add-post-diagnostics-logging",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-09-04T13:37:17.819391Z"
+    },
+    {
+      "name": "post-session-header-present-test",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-09-04T20:31:57.437631Z"
+    },
+    {
+      "name": "post-happy-path-no-log-test",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-09-04T21:50:48.386814Z"
+    },
+    {
+      "name": "post-500-no-log-test",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-09-04T22:35:47.085082Z"
+    },
+    {
+      "name": "post-headerless-probe-not-rewritten-test",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-09-05T00:08:00.511293Z"
+    },
+    {
+      "name": "non-mcp-path-ignored-test",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-09-05T01:41:24.279310Z"
+    },
+    {
+      "name": "post-session-header-edge-cases",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-09-05T03:03:42.609494Z"
+    },
+    {
+      "name": "pii-guard-authorization-header-test",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-09-05T03:34:15.820096Z"
+    },
+    {
+      "name": "get-existing-behavior-regression-test",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-09-05T04:45:10.635342Z"
+    },
+    {
+      "name": "consolidate-truncateid-in-diagnostics-middleware",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-09-05T05:35:55.342308Z"
+    },
+    {
+      "name": "update-mcp-server-docs",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-09-05T06:17:26.294782Z"
+    },
+    {
+      "name": "final-validation",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-09-05T07:44:55.445032Z"
+    }
+  ]
+}

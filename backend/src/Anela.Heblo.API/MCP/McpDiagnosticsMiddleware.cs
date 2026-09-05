@@ -51,6 +51,7 @@ public class McpDiagnosticsMiddleware
         => context.Request.Method == HttpMethods.Get
            && context.Request.Path.StartsWithSegments("/mcp");
 
+    // TODO(#4042): consolidate with McpTelemetryHelpers.TruncateSessionId
     internal static string TruncateId(string id)
         => id.Length > 8 ? id[..8] + "***" : "***";
 }
