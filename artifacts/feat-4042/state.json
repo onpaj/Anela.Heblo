@@ -88,9 +88,9 @@
     },
     {
       "name": "pii-guard-authorization-header-test",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-09-05T03:16:25.912656Z"
+      "updated_at": "2026-09-05T03:34:15.820096Z"
     },
     {
       "name": "get-existing-behavior-regression-test",
