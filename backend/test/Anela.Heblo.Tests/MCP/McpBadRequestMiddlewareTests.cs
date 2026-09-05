@@ -542,6 +542,40 @@ public class McpBadRequestMiddlewareTests
             Times.Once);
     }
 
+    // ── PII guard: sensitive headers must never reach the log ───────────────
+
+    [Fact]
+    public async Task PostBadRequest_WithAuthorizationHeader_LogNeverContainsBearer()
+    {
+        var loggerMock = new Mock<ILogger<McpBadRequestMiddleware>>();
+        var next = new RequestDelegate(ctx =>
+        {
+            ctx.Response.StatusCode = StatusCodes.Status400BadRequest;
+            return Task.CompletedTask;
+        });
+        var middleware = new McpBadRequestMiddleware(next, loggerMock.Object);
+        var context = CreateContext("POST", "/mcp");
+        context.Request.Headers["Authorization"] = "Bearer supersecrettoken";
+        context.Request.Headers["Cookie"] = "session=secret";
+        context.Request.Headers["X-Api-Key"] = "topsecret";
+
+        await middleware.InvokeAsync(context);
+
+        // Assert that no log call contains any of the sensitive substrings anywhere in its
+        // formatted state.
+        loggerMock.Verify(l => l.Log(
+            It.IsAny<LogLevel>(),
+            It.IsAny<EventId>(),
+            It.Is<It.IsAnyType>((state, _) =>
+                state.ToString()!.Contains("Bearer") ||
+                state.ToString()!.Contains("supersecrettoken") ||
+                state.ToString()!.Contains("session=secret") ||
+                state.ToString()!.Contains("topsecret")),
+            It.IsAny<Exception>(),
+            It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Never);
+    }
+
     // ── non-/mcp paths never trigger the middleware ──────────────────────────
 
     [Theory]
