@@ -21,16 +21,16 @@
       "updated_at": "2026-09-03T08:17:29.798749Z"
     },
     "developing": {
-      "status": "pending",
-      "updated_at": null
+      "status": "in_progress",
+      "updated_at": "2026-09-05T00:14:42.100809Z"
     }
   },
   "tasks": [
     {
       "name": "add-timeprovider-to-recurring-job-seeder",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-09-05T00:14:42.266517Z"
     }
   ]
 }
