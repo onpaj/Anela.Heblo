@@ -106,9 +106,9 @@
     },
     {
       "name": "update-mcp-server-docs",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-09-05T06:14:19.535724Z"
+      "updated_at": "2026-09-05T06:17:26.294782Z"
     },
     {
       "name": "final-validation",
