@@ -21,16 +21,16 @@
       "updated_at": "2026-09-03T09:17:14.153311Z"
     },
     "developing": {
-      "status": "pending",
-      "updated_at": null
+      "status": "in_progress",
+      "updated_at": "2026-09-05T12:15:00.284270Z"
     }
   },
   "tasks": [
     {
       "name": "move-recurring-job-status-checker",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-09-05T12:15:00.520544Z"
     }
   ]
 }
