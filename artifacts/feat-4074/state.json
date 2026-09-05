@@ -1,0 +1,48 @@
+{
+  "feature_id": "feat-4074",
+  "issue_number": 4074,
+  "created_at": "2026-09-05T10:12:33.658120Z",
+  "max_revisions": 3,
+  "phases": {
+    "analyzing": {
+      "status": "completed",
+      "updated_at": "2026-09-05T10:15:41.972524Z"
+    },
+    "architecting": {
+      "status": "completed",
+      "updated_at": "2026-09-05T10:17:53.587201Z"
+    },
+    "designing": {
+      "status": "completed",
+      "updated_at": "2026-09-05T10:18:48.018688Z"
+    },
+    "planning": {
+      "status": "completed",
+      "updated_at": "2026-09-05T10:25:21.032701Z"
+    },
+    "developing": {
+      "status": "pending",
+      "updated_at": null
+    }
+  },
+  "tasks": [
+    {
+      "name": "refactor-service-remove-current-user-dependency",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    },
+    {
+      "name": "inject-current-user-into-create-handler",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    },
+    {
+      "name": "inject-current-user-into-disassemble-handler",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    }
+  ]
+}
