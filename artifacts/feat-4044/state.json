@@ -28,9 +28,9 @@
   "tasks": [
     {
       "name": "move-recurring-job-status-checker",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-09-05T12:15:00.520544Z"
+      "updated_at": "2026-09-05T12:42:07.537879Z"
     }
   ]
 }
