@@ -1,0 +1,54 @@
+{
+  "feature_id": "feat-4003",
+  "issue_number": 4003,
+  "created_at": "2026-08-31T09:21:58.362690Z",
+  "max_revisions": 3,
+  "phases": {
+    "analyzing": {
+      "status": "completed",
+      "updated_at": "2026-08-31T09:24:33.862544Z"
+    },
+    "architecting": {
+      "status": "completed",
+      "updated_at": "2026-08-31T09:25:30.909462Z"
+    },
+    "designing": {
+      "status": "completed",
+      "updated_at": "2026-08-31T09:26:17.456294Z"
+    },
+    "planning": {
+      "status": "completed",
+      "updated_at": "2026-08-31T09:28:24.062992Z"
+    },
+    "developing": {
+      "status": "pending",
+      "updated_at": null
+    }
+  },
+  "tasks": [
+    {
+      "name": "remove-backend-duplicate-dto",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    },
+    {
+      "name": "regenerate-openapi-client",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    },
+    {
+      "name": "update-frontend-consumers",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    },
+    {
+      "name": "final-verification",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    }
+  ]
+}
