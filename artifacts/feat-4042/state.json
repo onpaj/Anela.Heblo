@@ -100,9 +100,9 @@
     },
     {
       "name": "consolidate-truncateid-in-diagnostics-middleware",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-09-05T05:14:11.576357Z"
+      "updated_at": "2026-09-05T05:35:55.342308Z"
     },
     {
       "name": "update-mcp-server-docs",
