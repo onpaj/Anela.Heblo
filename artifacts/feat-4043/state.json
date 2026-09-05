@@ -28,9 +28,9 @@
   "tasks": [
     {
       "name": "add-timeprovider-to-recurring-job-seeder",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-09-05T00:14:42.266517Z"
+      "updated_at": "2026-09-05T00:34:06.577913Z"
     }
   ]
 }
