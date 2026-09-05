@@ -112,9 +112,9 @@
     },
     {
       "name": "final-validation",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-09-05T07:14:46.034343Z"
+      "updated_at": "2026-09-05T07:44:55.445032Z"
     }
   ]
 }
