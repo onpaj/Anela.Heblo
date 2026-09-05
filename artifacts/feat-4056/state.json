@@ -22,7 +22,7 @@
     },
     "developing": {
       "status": "in_progress",
-      "updated_at": "2026-09-05T21:14:25.340018Z"
+      "updated_at": "2026-09-05T22:14:16.596434Z"
     }
   },
   "tasks": [
@@ -34,9 +34,9 @@
     },
     {
       "name": "map-abra-invoice-id-from-flexibee-id",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-09-05T22:14:16.767563Z"
     },
     {
       "name": "update-invoice-classification-service-tests-for-abra-invoice-id",
