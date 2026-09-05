@@ -51,6 +51,7 @@ import KnowledgeBaseFeedbackPage from "./pages/KnowledgeBaseFeedbackPage";
 import MarketingFeedbackPage from "./pages/MarketingFeedbackPage";
 import ArticlesPage from "./pages/ArticlesPage";
 import ExpeditionListArchivePage from "./pages/ExpeditionListArchivePage";
+import CampaignsPage from "./components/pages/Campaigns/CampaignsPage";
 import MarketingCalendarPage from "./components/marketing/pages/MarketingCalendarPage";
 import PhotobankPage from "./components/marketing/photobank/pages/PhotobankPage";
 import PhotobankSettingsPage from "./components/marketing/photobank/pages/PhotobankSettingsPage";
@@ -461,6 +462,7 @@ function App() {
                         <Route path="/overtime" element={guard("/overtime", <OvertimePage />)} />
                         <Route path="/knowledge-base" element={guard("/knowledge-base", <KnowledgeBasePage />)} />
                         <Route path="/knowledge-base/feedback" element={<KnowledgeBaseFeedbackPage />} />
+                        <Route path="/campaigns" element={<CampaignsPage />} />
                         <Route path="/marketing/feedback" element={guard("/marketing/feedback", <MarketingFeedbackPage />)} />
                         <Route path="/articles" element={guard("/articles", <ArticlesPage />)} />
                         <Route path="/automation/data-quality" element={guard("/automation/data-quality", <DataQualityPage />)} />
