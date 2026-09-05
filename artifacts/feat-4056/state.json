@@ -21,16 +21,16 @@
       "updated_at": "2026-09-04T06:25:42.802073Z"
     },
     "developing": {
-      "status": "pending",
-      "updated_at": null
+      "status": "in_progress",
+      "updated_at": "2026-09-05T21:14:25.340018Z"
     }
   },
   "tasks": [
     {
       "name": "add-abra-invoice-id-domain-property",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-09-05T21:14:25.514069Z"
     },
     {
       "name": "map-abra-invoice-id-from-flexibee-id",
