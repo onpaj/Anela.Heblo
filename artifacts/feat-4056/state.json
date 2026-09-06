@@ -40,9 +40,9 @@
     },
     {
       "name": "update-invoice-classification-service-tests-for-abra-invoice-id",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-09-06T00:14:21.486590Z"
+      "updated_at": "2026-09-06T00:52:36.777177Z"
     },
     {
       "name": "fix-classification-history-call-site",
