@@ -123,10 +123,12 @@ cases are required — this FR is a mechanical adaptation of the five existing t
 Add a new `ModuleBoundaryRule` to `ModuleBoundariesTests.cs` — e.g. `"Shared.Users -> Authorization"`
 — with `InspectedNamespacePrefix: "Anela.Heblo.Application.Shared.Users"` and
 `ForbiddenNamespacePrefixes` covering `Anela.Heblo.Domain.Features.Authorization`,
-`Anela.Heblo.Application.Features.Authorization`, and `Anela.Heblo.Persistence.Authorization`, with an
-empty allowlist (or, if the adapter must live inside `Shared.Users` rather than `Features.Authorization`
-— see Open Questions — an allowlist entry scoped to that one adapter class, following the existing
-`AuthorizationUserManagementAllowlist` precedent).
+`Anela.Heblo.Application.Features.Authorization`, and `Anela.Heblo.Persistence.Features.Authorization`
+(note: unlike KnowledgeBase, Authorization's persistence types live under the `Features.` sub-namespace
+— verify against `Anela.Heblo.Persistence.Features.Authorization.AuthorizationRepository` before
+finalizing), with an empty allowlist (or, if the adapter must live inside `Shared.Users` rather than
+`Features.Authorization` — see Open Questions — an allowlist entry scoped to that one adapter class,
+following the existing `AuthorizationUserManagementAllowlist` precedent).
 
 **Acceptance criteria:**
 - The new rule is added to `ModuleBoundariesTests.Rules()` following the existing `ModuleBoundaryRule` record shape.
