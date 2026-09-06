@@ -22,7 +22,7 @@
     },
     "developing": {
       "status": "in_progress",
-      "updated_at": "2026-09-06T00:14:21.307142Z"
+      "updated_at": "2026-09-06T01:14:01.819951Z"
     }
   },
   "tasks": [
@@ -46,9 +46,9 @@
     },
     {
       "name": "fix-classification-history-call-site",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-09-06T01:14:02.089945Z"
     }
   ]
 }
