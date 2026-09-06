@@ -245,9 +245,11 @@ const ImportTab: React.FC = () => {
     );
   };
 
-  // Status indicator for import result
-  const getImportStatusIcon = (importResult: string | undefined) => {
-    if (importResult === "OK") {
+  // Status indicator for import result. Driven by errorType (null/undefined = success),
+  // not by comparing importResult to the backend's internal "OK" success sentinel —
+  // see BankStatementImportDto.ErrorType on the backend.
+  const getImportStatusIcon = (errorType: string | null | undefined) => {
+    if (errorType == null) {
       return (
         <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-emerald-900/30 dark:text-emerald-300">
           <CheckCircle className="h-3 w-3 mr-1" />
@@ -258,7 +260,7 @@ const ImportTab: React.FC = () => {
       return (
         <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300">
           <AlertCircle className="h-3 w-3 mr-1" />
-          {importResult || "Chyba"}
+          {errorType || "Chyba"}
         </span>
       );
     }
@@ -491,7 +493,7 @@ const ImportTab: React.FC = () => {
                     </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-center">
-                    {getImportStatusIcon(statement.importResult)}
+                    {getImportStatusIcon(statement.errorType)}
                   </td>
                 </tr>
               ))}
