@@ -46,9 +46,9 @@
     },
     {
       "name": "fix-classification-history-call-site",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-09-06T01:14:02.089945Z"
+      "updated_at": "2026-09-06T01:36:38.691209Z"
     }
   ]
 }
