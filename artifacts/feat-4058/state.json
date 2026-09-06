@@ -46,9 +46,9 @@
     },
     {
       "name": "reimport-handler-surfaces-failure",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-09-06T08:14:41.402389Z"
+      "updated_at": "2026-09-06T08:39:40.183748Z"
     },
     {
       "name": "full-verification",
