@@ -40,9 +40,9 @@
     },
     {
       "name": "ingest-handler-surfaces-failure",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-09-06T06:14:46.258234Z"
+      "updated_at": "2026-09-06T07:14:37.167915Z"
     },
     {
       "name": "reimport-handler-surfaces-failure",
