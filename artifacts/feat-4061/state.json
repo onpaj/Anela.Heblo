@@ -28,9 +28,9 @@
   "tasks": [
     {
       "name": "default-initialize-bank-account-settings-accounts",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-09-06T12:48:13.481007Z"
+      "updated_at": "2026-09-06T13:04:15.364961Z"
     }
   ]
 }
