@@ -52,9 +52,9 @@
     },
     {
       "name": "full-verification",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-09-06T09:13:49.055873Z"
+      "updated_at": "2026-09-06T10:11:13.608430Z"
     }
   ]
 }
