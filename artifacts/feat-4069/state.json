@@ -28,9 +28,9 @@
   "tasks": [
     {
       "name": "extract-invoice-import-prefix-constant",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-09-06T23:14:27.032878Z"
+      "updated_at": "2026-09-06T23:50:37.679533Z"
     }
   ]
 }
