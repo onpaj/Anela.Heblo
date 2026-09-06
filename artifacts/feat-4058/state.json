@@ -28,9 +28,9 @@
   "tasks": [
     {
       "name": "extraction-failure-exception",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-09-06T00:53:56.976846Z"
+      "updated_at": "2026-09-06T01:23:39.383989Z"
     },
     {
       "name": "extractor-retry-and-recovery",
