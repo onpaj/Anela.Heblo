@@ -1,3 +1,163 @@
+### task: extractor-retry-and-recovery
+
+**Files:**
+- Modify: `backend/src/Anela.Heblo.Application/Features/MeetingTasks/Services/ClaudeMeetingTaskExtractor.cs`
+- Modify: `backend/test/Anela.Heblo.Tests/Features/MeetingTasks/ClaudeMeetingTaskExtractorTests.cs`
+
+This task depends on `extraction-failure-exception` (uses `MeetingTaskExtractionFailedException`).
+
+- [ ] **Step 1: Write the failing tests**
+
+Add these tests to `ClaudeMeetingTaskExtractorTests.cs` (keep existing tests in the file — they will be adjusted in Step 1b below, not deleted):
+
+```csharp
+    [Fact]
+    public async Task ExtractAsync_WhenFirstAttemptMalformed_RetriesAndReturnsSecondAttemptResult()
+    {
+        var callCount = 0;
+        _mockChatClient
+            .Setup(x => x.GetResponseAsync(
+                It.IsAny<IEnumerable<ChatMessage>>(),
+                It.IsAny<ChatOptions?>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(() =>
+            {
+                callCount++;
+                var text = callCount == 1
+                    ? "not-valid-json{{{"
+                    : """{"participants":["Bob"],"tasks":[{"title":"Action","description":"Do it","assignee":"Bob","assigneeEmail":null,"dueDate":null}]}""";
+                return new ChatResponse([new ChatMessage(ChatRole.Assistant, text)]);
+            });
+
+        var result = await _extractor.ExtractAsync("summary", "transcript", CancellationToken.None);
+
+        result.Tasks.Should().HaveCount(1);
+        result.Tasks[0].Title.Should().Be("Action");
+        callCount.Should().Be(2);
+    }
+
+    [Fact]
+    public async Task ExtractAsync_WhenAllAttemptsMalformed_ThrowsAfterExhaustingRetries()
+    {
+        _mockChatClient
+            .Setup(x => x.GetResponseAsync(
+                It.IsAny<IEnumerable<ChatMessage>>(),
+                It.IsAny<ChatOptions?>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new ChatResponse([new ChatMessage(ChatRole.Assistant, "not-valid-json{{{")]));
+
+        var act = async () => await _extractor.ExtractAsync("summary", "transcript", CancellationToken.None);
+
+        var ex = await act.Should().ThrowAsync<MeetingTaskExtractionFailedException>();
+        ex.Which.AttemptCount.Should().Be(3);
+        ex.Which.LastRawResponse.Should().Be("not-valid-json{{{");
+
+        _mockChatClient.Verify(x => x.GetResponseAsync(
+            It.IsAny<IEnumerable<ChatMessage>>(), It.IsAny<ChatOptions?>(), It.IsAny<CancellationToken>()),
+            Times.Exactly(3));
+    }
+
+    [Fact]
+    public async Task ExtractAsync_WithJsonEmbeddedInProseText_ExtractsAndParsesIt()
+    {
+        SetupResponse("Here is the extracted result:\n" +
+            """{"participants":["Bob"],"tasks":[{"title":"Action","description":"Do it","assignee":"Bob","assigneeEmail":null,"dueDate":null}]}""" +
+            "\nLet me know if you need anything else.");
+
+        var result = await _extractor.ExtractAsync("summary", "transcript", CancellationToken.None);
+
+        result.Tasks.Should().HaveCount(1);
+        result.Tasks[0].Title.Should().Be("Action");
+    }
+
+    [Fact]
+    public async Task ExtractAsync_WhenTaskHasEmptyTitle_RetriesAndSucceedsOnNextAttempt()
+    {
+        var callCount = 0;
+        _mockChatClient
+            .Setup(x => x.GetResponseAsync(
+                It.IsAny<IEnumerable<ChatMessage>>(),
+                It.IsAny<ChatOptions?>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(() =>
+            {
+                callCount++;
+                var text = callCount == 1
+                    ? """{"participants":[],"tasks":[{"title":"","description":"D","assignee":"","assigneeEmail":null,"dueDate":null}]}"""
+                    : """{"participants":[],"tasks":[{"title":"Real title","description":"D","assignee":"","assigneeEmail":null,"dueDate":null}]}""";
+                return new ChatResponse([new ChatMessage(ChatRole.Assistant, text)]);
+            });
+
+        var result = await _extractor.ExtractAsync("summary", "transcript", CancellationToken.None);
+
+        result.Tasks.Should().ContainSingle(t => t.Title == "Real title");
+    }
+
+    [Fact]
+    public async Task ExtractAsync_WhenChatClientThrowsOnFirstAttemptButSucceedsOnRetry_ReturnsResult()
+    {
+        var callCount = 0;
+        _mockChatClient
+            .Setup(x => x.GetResponseAsync(
+                It.IsAny<IEnumerable<ChatMessage>>(),
+                It.IsAny<ChatOptions?>(),
+                It.IsAny<CancellationToken>()))
+            .Returns(() =>
+            {
+                callCount++;
+                if (callCount == 1)
+                    throw new HttpRequestException("transient");
+                return Task.FromResult(new ChatResponse([new ChatMessage(ChatRole.Assistant, EmptyPayload)]));
+            });
+
+        var result = await _extractor.ExtractAsync("summary", "transcript", CancellationToken.None);
+
+        result.Tasks.Should().BeEmpty();
+        callCount.Should().Be(2);
+    }
+```
+
+- [ ] **Step 1b: Update the two existing tests whose expected behavior changes**
+
+Replace `ExtractAsync_WhenJsonInvalid_LogsErrorAndReturnsEmpty` (which previously asserted a single malformed response immediately returns an empty result) — that behavior is now `ExtractAsync_WhenAllAttemptsMalformed_ThrowsAfterExhaustingRetries` above. Delete the old test body and replace it with:
+
+```csharp
+    [Fact]
+    public async Task ExtractAsync_WhenAllAttemptsMalformed_LogsFinalErrorWithRawResponseAndAttemptCount()
+    {
+        _mockChatClient
+            .Setup(x => x.GetResponseAsync(
+                It.IsAny<IEnumerable<ChatMessage>>(),
+                It.IsAny<ChatOptions?>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new ChatResponse([new ChatMessage(ChatRole.Assistant, "not-valid-json{{{")]));
+
+        var act = async () => await _extractor.ExtractAsync("summary", "transcript", CancellationToken.None);
+        await act.Should().ThrowAsync<MeetingTaskExtractionFailedException>();
+
+        _mockLogger.Verify(
+            x => x.Log(
+                LogLevel.Error,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((v, _) => v.ToString()!.Contains("not-valid-json{{{")),
+                It.IsAny<Exception>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Once);
+    }
+```
+
+`ExtractAsync_WhenApiThrows_LogsErrorAndReturnsEmpty` / `ExtractAsync_WhenChatClientThrows_ReturnsEmptyResult` (transport failure on every attempt) keep asserting an empty result, per the design's documented scope boundary (transport failure on the *final* attempt still falls through to the existing "log + empty result" path, only content/parse failures throw the new exception) — but the chat client mock must now return the `HttpRequestException` on **every** call (not just once), since the extractor will retry a transient transport failure. Update both to use `.ThrowsAsync(new HttpRequestException("API error"))` as they already do (this already throws on every call by default with Moq's `.ThrowsAsync`, so no change needed there) and add an assertion that `GetResponseAsync` was called 3 times (`Times.Exactly(3)`), to lock in that transport retries happen before falling back to the empty-result path.
+
+- [ ] **Step 2: Run tests to verify they fail**
+
+Run: `dotnet test backend/test/Anela.Heblo.Tests/Anela.Heblo.Tests.csproj --filter "FullyQualifiedName~ClaudeMeetingTaskExtractorTests"`
+Expected: FAIL — new tests fail because retry/recovery logic doesn't exist yet; `ExtractAsync_WhenAllAttemptsMalformed_*` tests fail because the current code returns an empty result instead of throwing.
+
+- [ ] **Step 3: Write minimal implementation**
+
+Replace the body of `ClaudeMeetingTaskExtractor.cs` from the `MaxOutputTokens` constant declaration through the end of `ExtractAsync`, and add the new private helpers, so the full file reads:
+
+```csharp
 using System.Text;
 using System.Text.Json;
 using Microsoft.Extensions.AI;
@@ -266,3 +426,18 @@ public sealed class ClaudeMeetingTaskExtractor : IMeetingTaskExtractor
         return trimmed.Trim();
     }
 }
+```
+
+Note the `catch (Exception ex) when (attempt < MaxAttempts)` / final `catch (Exception ex)` pair: this deliberately keeps a transient transport failure on the *last* attempt following the pre-existing "log + empty result" contract (out of scope for this issue per the architecture review), while still retrying transport failures on earlier attempts so a single blip doesn't need to consume the JSON-repair budget.
+
+- [ ] **Step 4: Run tests to verify they pass**
+
+Run: `dotnet test backend/test/Anela.Heblo.Tests/Anela.Heblo.Tests.csproj --filter "FullyQualifiedName~ClaudeMeetingTaskExtractorTests"`
+Expected: PASS (all tests, old and new)
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add backend/src/Anela.Heblo.Application/Features/MeetingTasks/Services/ClaudeMeetingTaskExtractor.cs backend/test/Anela.Heblo.Tests/Features/MeetingTasks/ClaudeMeetingTaskExtractorTests.cs
+git commit -m "fix(meeting-tasks): retry and recover malformed Claude JSON responses instead of silently dropping tasks"
+```
