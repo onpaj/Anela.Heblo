@@ -34,9 +34,9 @@
     },
     {
       "name": "extractor-retry-and-recovery",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-09-06T04:14:02.373442Z"
+      "updated_at": "2026-09-06T05:10:22.106569Z"
     },
     {
       "name": "ingest-handler-surfaces-failure",
