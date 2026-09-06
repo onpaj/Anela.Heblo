@@ -22,7 +22,7 @@
     },
     "developing": {
       "status": "in_progress",
-      "updated_at": "2026-09-06T06:14:45.992050Z"
+      "updated_at": "2026-09-06T08:14:41.169646Z"
     }
   },
   "tasks": [
@@ -46,9 +46,9 @@
     },
     {
       "name": "reimport-handler-surfaces-failure",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-09-06T08:14:41.402389Z"
     },
     {
       "name": "full-verification",
