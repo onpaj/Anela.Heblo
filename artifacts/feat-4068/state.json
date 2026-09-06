@@ -34,9 +34,9 @@
     },
     {
       "name": "rewire-adapter-to-repository",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-09-06T20:15:01.724742Z"
+      "updated_at": "2026-09-06T20:53:59.983851Z"
     },
     {
       "name": "validate-full-solution",
