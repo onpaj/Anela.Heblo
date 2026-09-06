@@ -1,0 +1,13 @@
+/Users/pajgrtondrej/orca/workspaces/Anela.Heblo/worktrees/feature-4061-Arch-Review-Bank-Bankaccountsettings-Accounts-Has/backend/src/Anela.Heblo.Xcc/bin/Debug/net8.0/Anela.Heblo.Xcc.deps.json
+/Users/pajgrtondrej/orca/workspaces/Anela.Heblo/worktrees/feature-4061-Arch-Review-Bank-Bankaccountsettings-Accounts-Has/backend/src/Anela.Heblo.Xcc/bin/Debug/net8.0/Anela.Heblo.Xcc.dll
+/Users/pajgrtondrej/orca/workspaces/Anela.Heblo/worktrees/feature-4061-Arch-Review-Bank-Bankaccountsettings-Accounts-Has/backend/src/Anela.Heblo.Xcc/bin/Debug/net8.0/Anela.Heblo.Xcc.pdb
+/Users/pajgrtondrej/orca/workspaces/Anela.Heblo/worktrees/feature-4061-Arch-Review-Bank-Bankaccountsettings-Accounts-Has/backend/src/Anela.Heblo.Xcc/obj/Debug/net8.0/Anela.Heblo.Xcc.csproj.AssemblyReference.cache
+/Users/pajgrtondrej/orca/workspaces/Anela.Heblo/worktrees/feature-4061-Arch-Review-Bank-Bankaccountsettings-Accounts-Has/backend/src/Anela.Heblo.Xcc/obj/Debug/net8.0/Anela.Heblo.Xcc.GeneratedMSBuildEditorConfig.editorconfig
+/Users/pajgrtondrej/orca/workspaces/Anela.Heblo/worktrees/feature-4061-Arch-Review-Bank-Bankaccountsettings-Accounts-Has/backend/src/Anela.Heblo.Xcc/obj/Debug/net8.0/Anela.Heblo.Xcc.AssemblyInfoInputs.cache
+/Users/pajgrtondrej/orca/workspaces/Anela.Heblo/worktrees/feature-4061-Arch-Review-Bank-Bankaccountsettings-Accounts-Has/backend/src/Anela.Heblo.Xcc/obj/Debug/net8.0/Anela.Heblo.Xcc.AssemblyInfo.cs
+/Users/pajgrtondrej/orca/workspaces/Anela.Heblo/worktrees/feature-4061-Arch-Review-Bank-Bankaccountsettings-Accounts-Has/backend/src/Anela.Heblo.Xcc/obj/Debug/net8.0/Anela.Heblo.Xcc.csproj.CoreCompileInputs.cache
+/Users/pajgrtondrej/orca/workspaces/Anela.Heblo/worktrees/feature-4061-Arch-Review-Bank-Bankaccountsettings-Accounts-Has/backend/src/Anela.Heblo.Xcc/obj/Debug/net8.0/Anela.Heblo.Xcc.sourcelink.json
+/Users/pajgrtondrej/orca/workspaces/Anela.Heblo/worktrees/feature-4061-Arch-Review-Bank-Bankaccountsettings-Accounts-Has/backend/src/Anela.Heblo.Xcc/obj/Debug/net8.0/Anela.Heblo.Xcc.dll
+/Users/pajgrtondrej/orca/workspaces/Anela.Heblo/worktrees/feature-4061-Arch-Review-Bank-Bankaccountsettings-Accounts-Has/backend/src/Anela.Heblo.Xcc/obj/Debug/net8.0/refint/Anela.Heblo.Xcc.dll
+/Users/pajgrtondrej/orca/workspaces/Anela.Heblo/worktrees/feature-4061-Arch-Review-Bank-Bankaccountsettings-Accounts-Has/backend/src/Anela.Heblo.Xcc/obj/Debug/net8.0/Anela.Heblo.Xcc.pdb
+/Users/pajgrtondrej/orca/workspaces/Anela.Heblo/worktrees/feature-4061-Arch-Review-Bank-Bankaccountsettings-Accounts-Has/backend/src/Anela.Heblo.Xcc/obj/Debug/net8.0/ref/Anela.Heblo.Xcc.dll

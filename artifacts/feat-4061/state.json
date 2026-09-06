@@ -21,16 +21,16 @@
       "updated_at": "2026-09-04T09:26:20.804446Z"
     },
     "developing": {
-      "status": "pending",
-      "updated_at": null
+      "status": "in_progress",
+      "updated_at": "2026-09-06T12:48:13.404355Z"
     }
   },
   "tasks": [
     {
       "name": "default-initialize-bank-account-settings-accounts",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-09-06T12:48:13.481007Z"
     }
   ]
 }

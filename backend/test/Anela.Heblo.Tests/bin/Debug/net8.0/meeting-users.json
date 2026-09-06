@@ -1,0 +1,107 @@
+[
+  {
+    "email": "adam@anela.cz",
+    "displayName": "Adam Bartoš",
+    "aliases": ["Adam", "Bartoš"]
+  },
+  {
+    "email": "andrea@anela.cz",
+    "displayName": "Andrea Pajgrt Bartošová",
+    "aliases": ["Andrea", "Pajgrt", "Bartošová", "Andy"]
+  },
+  {
+    "email": "anna@anela.cz",
+    "displayName": "Anna Císlerová",
+    "aliases": ["Anna", "Císlerová"]
+  },
+  {
+    "email": "bara@anela.cz",
+    "displayName": "Bára Kocmánková",
+    "aliases": ["Bára", "Kocmánková"]
+  },
+  {
+    "email": "baru@anela.cz",
+    "displayName": "Bára Petrová",
+    "aliases": ["Baru", "Petrová"]
+  },
+  {
+    "email": "eliska@anela.cz",
+    "displayName": "Eliška Stofferová",
+    "aliases": ["Eliška", "Stofferová"]
+  },
+  {
+    "email": "janka@anela.cz",
+    "displayName": "Janka Kovaříková",
+    "aliases": ["Janka", "Jana", "Kovaříková"]
+  },
+  {
+    "email": "klara@anela.cz",
+    "displayName": "Klára Dernerová",
+    "aliases": ["Klára", "Dernerová"]
+  },
+  {
+    "email": "lenka@anela.cz",
+    "displayName": "Lenka Rossyová",
+    "aliases": ["Lenka", "Rossyová"]
+  },
+  {
+    "email": "liba@anela.cz",
+    "displayName": "Libuše Štěpánová",
+    "aliases": ["Liba", "Libuše", "Štěpánová"]
+  },
+  {
+    "email": "linda@anela.cz",
+    "displayName": "Linda Rosenbaumová",
+    "aliases": ["Linda", "Rosenbaumová"]
+  },
+  {
+    "email": "lydie@anela.cz",
+    "displayName": "Lydie Fellnerová",
+    "aliases": ["Lydie", "Fellnerová"]
+  },
+  {
+    "email": "majda@anela.cz",
+    "displayName": "Magdalena Grulichová",
+    "aliases": ["Majda", "Magdalena", "Grulichová"]
+  },
+  {
+    "email": "marketa@anela.cz",
+    "displayName": "Markéta Černá",
+    "aliases": ["Markéta", "Černá"]
+  },
+  {
+    "email": "mirka@anela.cz",
+    "displayName": "Mirka Moravcová",
+    "aliases": ["Mirka", "Moravcová"]
+  },
+  {
+    "email": "olina@anela.cz",
+    "displayName": "Olga Petrová",
+    "aliases": ["Olina", "Olga", "Petrová"]
+  },
+  {
+    "email": "ondra@anela.cz",
+    "displayName": "Ondřej Pajgrt",
+    "aliases": ["Ondra", "Ondřej", "Pajgrt"]
+  },
+  {
+    "email": "pepi@anela.cz",
+    "displayName": "Petra Hrdličková",
+    "aliases": ["Pepi", "Hrdličková"]
+  },
+  {
+    "email": "petra@anela.cz",
+    "displayName": "Petra Zilvarová",
+    "aliases": ["Petra", "Peta", "Zilvarová"]
+  },
+  {
+    "email": "renata@anela.cz",
+    "displayName": "Renata Ksandrová",
+    "aliases": ["Renata", "Ksandrová"]
+  },
+  {
+    "email": "verca@anela.cz",
+    "displayName": "Veronika Krivčíková",
+    "aliases": ["Verca", "Veronika", "Krivčíková"]
+  }
+]
