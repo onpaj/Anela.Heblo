@@ -22,7 +22,7 @@
     },
     "developing": {
       "status": "in_progress",
-      "updated_at": "2026-09-06T00:53:56.830087Z"
+      "updated_at": "2026-09-06T04:14:02.202241Z"
     }
   },
   "tasks": [
@@ -34,9 +34,9 @@
     },
     {
       "name": "extractor-retry-and-recovery",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-09-06T04:14:02.373442Z"
     },
     {
       "name": "ingest-handler-surfaces-failure",
