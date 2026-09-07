@@ -34,9 +34,9 @@
     },
     {
       "name": "rewrite-empty-text-test",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-09-07T23:14:33.065205Z"
+      "updated_at": "2026-09-07T23:38:36.055815Z"
     },
     {
       "name": "rewrite-max-length-test",
