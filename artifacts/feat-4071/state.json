@@ -21,8 +21,8 @@
       "updated_at": "2026-09-05T07:20:59.893676Z"
     },
     "developing": {
-      "status": "in_progress",
-      "updated_at": "2026-09-07T22:14:15.523938Z"
+      "status": "failed",
+      "updated_at": "2026-09-07T23:03:09.999196Z"
     }
   },
   "tasks": [
@@ -88,9 +88,9 @@
     },
     {
       "name": "full-verification",
-      "status": "in_progress",
+      "status": "failed",
       "revision": 3,
-      "updated_at": "2026-09-07T22:14:15.855551Z"
+      "updated_at": "2026-09-07T23:03:09.719689Z"
     }
   ]
 }
