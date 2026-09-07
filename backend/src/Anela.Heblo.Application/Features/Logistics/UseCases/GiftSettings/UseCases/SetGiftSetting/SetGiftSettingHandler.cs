@@ -32,14 +32,6 @@ public sealed class SetGiftSettingHandler : IRequestHandler<SetGiftSettingComman
 
         if (command.IsEnabled)
         {
-            if (command.ThresholdCzk <= 0)
-                return new SetGiftSettingResponse
-                {
-                    Success = false,
-                    ErrorCode = ErrorCodes.ValidationError,
-                    Params = new Dictionary<string, string> { { "message", "ThresholdCzk must be greater than zero when enabled." } },
-                };
-
             if (string.IsNullOrEmpty(command.Text))
                 return new SetGiftSettingResponse
                 {

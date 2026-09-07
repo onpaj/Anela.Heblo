@@ -21,16 +21,16 @@
       "updated_at": "2026-09-05T08:19:44.161283Z"
     },
     "developing": {
-      "status": "pending",
-      "updated_at": null
+      "status": "in_progress",
+      "updated_at": "2026-09-07T08:00:42.053056Z"
     }
   },
   "tasks": [
     {
       "name": "rewrite-zero-threshold-test",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-09-07T08:00:42.136948Z"
     },
     {
       "name": "rewrite-empty-text-test",
