@@ -28,9 +28,9 @@
   "tasks": [
     {
       "name": "rewrite-zero-threshold-test",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-09-07T08:00:42.136948Z"
+      "updated_at": "2026-09-07T08:07:43.355021Z"
     },
     {
       "name": "rewrite-empty-text-test",
