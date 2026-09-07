@@ -25,5 +25,18 @@
       "updated_at": null
     }
   },
-  "tasks": []
+  "tasks": [
+    {
+      "name": "convert-consumeinventoryresult-to-class",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    },
+    {
+      "name": "update-consumeinventoryresult-test-call-sites",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    }
+  ]
 }
