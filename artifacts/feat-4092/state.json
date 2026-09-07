@@ -25,5 +25,36 @@
       "updated_at": null
     }
   },
-  "tasks": []
+  "tasks": [
+    {
+      "name": "scaffold-test-class-and-disabled-path",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    },
+    {
+      "name": "unknown-timezone-path",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    },
+    {
+      "name": "invalid-cron-path",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    },
+    {
+      "name": "happy-path-utc-and-nonutc",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    },
+    {
+      "name": "dst-boundary-cases",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    }
+  ]
 }
