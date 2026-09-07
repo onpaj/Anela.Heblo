@@ -22,7 +22,7 @@
     },
     "developing": {
       "status": "in_progress",
-      "updated_at": "2026-09-07T06:17:08.169273Z"
+      "updated_at": "2026-09-07T07:17:41.657557Z"
     }
   },
   "tasks": [
@@ -46,9 +46,9 @@
     },
     {
       "name": "extract-open-to-quarantine-side-effect",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-09-07T07:17:41.861794Z"
     },
     {
       "name": "extract-received-side-effect",
