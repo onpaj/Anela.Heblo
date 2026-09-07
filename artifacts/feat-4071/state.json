@@ -22,7 +22,7 @@
     },
     "developing": {
       "status": "in_progress",
-      "updated_at": "2026-09-07T11:17:38.262051Z"
+      "updated_at": "2026-09-07T12:16:39.824686Z"
     }
   },
   "tasks": [
@@ -82,9 +82,9 @@
     },
     {
       "name": "add-dispatch-uniqueness-test",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-09-07T12:16:40.022473Z"
     },
     {
       "name": "full-verification",
