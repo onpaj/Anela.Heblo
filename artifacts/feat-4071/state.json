@@ -40,9 +40,9 @@
     },
     {
       "name": "extract-open-to-reserve-side-effect",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-09-07T06:17:08.491347Z"
+      "updated_at": "2026-09-07T06:42:27.567334Z"
     },
     {
       "name": "extract-open-to-quarantine-side-effect",
