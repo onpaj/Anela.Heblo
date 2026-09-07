@@ -9,6 +9,7 @@ using Anela.Heblo.Domain.Features.Users;
 using FluentAssertions;
 using MediatR;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using Xunit;
 
@@ -54,14 +55,23 @@ public class ChangeTransportBoxStateHandlerTests
                 It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
 
+        var sideEffects = new ITransportBoxTransitionSideEffect[]
+        {
+            new NewToOpenedSideEffect(_repositoryMock.Object, _currentUserServiceMock.Object, _timeProviderMock.Object),
+            new OpenToReserveSideEffect(),
+            new OpenToQuarantineSideEffect(),
+            new ReceivedSideEffect(_stockUpProcessingServiceMock.Object, NullLogger<ReceivedSideEffect>.Instance),
+        };
+        var inventoryRestorer = new TransportBoxInventoryRestorer(_inventoryReservationServiceMock.Object);
+
         _handler = new ChangeTransportBoxStateHandler(
             _repositoryMock.Object,
-            _inventoryReservationServiceMock.Object,
             _mediatorMock.Object,
             _loggerMock.Object,
             _currentUserServiceMock.Object,
-            _stockUpProcessingServiceMock.Object,
-            _timeProviderMock.Object);
+            _timeProviderMock.Object,
+            sideEffects,
+            inventoryRestorer);
     }
 
     [Fact]
