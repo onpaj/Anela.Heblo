@@ -58,9 +58,9 @@
     },
     {
       "name": "extract-inventory-restorer",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-09-07T09:13:41.012659Z"
+      "updated_at": "2026-09-07T09:55:33.041419Z"
     },
     {
       "name": "refactor-handler-orchestration",
