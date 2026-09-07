@@ -30,17 +30,6 @@ public sealed class SetGiftSettingHandler : IRequestHandler<SetGiftSettingComman
             };
         }
 
-        if (command.IsEnabled)
-        {
-            if (string.IsNullOrEmpty(command.Text))
-                return new SetGiftSettingResponse
-                {
-                    Success = false,
-                    ErrorCode = ErrorCodes.ValidationError,
-                    Params = new Dictionary<string, string> { { "message", "Text is required when enabled." } },
-                };
-        }
-
         if (command.Text?.Length > MaxTextLength)
             return new SetGiftSettingResponse
             {
