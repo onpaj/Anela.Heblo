@@ -46,9 +46,9 @@
     },
     {
       "name": "extract-open-to-quarantine-side-effect",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-09-07T07:17:41.861794Z"
+      "updated_at": "2026-09-07T07:52:08.550485Z"
     },
     {
       "name": "extract-received-side-effect",
