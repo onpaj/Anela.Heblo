@@ -25,5 +25,12 @@
       "updated_at": null
     }
   },
-  "tasks": []
+  "tasks": [
+    {
+      "name": "extract-index-document-handler-phases",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    }
+  ]
 }
