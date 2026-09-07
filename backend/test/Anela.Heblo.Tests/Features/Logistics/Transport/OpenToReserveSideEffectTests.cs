@@ -41,7 +41,9 @@ public class OpenToReserveSideEffectTests
         var box = new TransportBox();
         var request = new ChangeTransportBoxStateRequest
         {
-            BoxId = 1, NewState = TransportBoxState.Reserve, Location = "A1"
+            BoxId = 1,
+            NewState = TransportBoxState.Reserve,
+            Location = "A1"
         };
 
         var result = await _sut.ExecuteAsync(box, request, CancellationToken.None);
