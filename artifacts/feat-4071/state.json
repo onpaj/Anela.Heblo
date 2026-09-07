@@ -70,9 +70,9 @@
     },
     {
       "name": "register-di",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-09-07T10:38:11.698653Z"
+      "updated_at": "2026-09-07T10:41:01.842316Z"
     },
     {
       "name": "update-existing-tests",
