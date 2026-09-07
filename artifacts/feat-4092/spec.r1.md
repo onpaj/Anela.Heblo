@@ -35,11 +35,13 @@ Given valid, enabled inputs, `Calculate` converts `utcNow` into the job's local 
 - At least one non-UTC timezone case (e.g. `"Europe/Prague"` or the IANA-equivalent available on the test host) is covered to confirm the local-time round trip, not only the degenerate UTC-to-UTC case.
 - No log call is made on the happy path (only warnings are logged on the error branches).
 
-### FR-5: DST boundary behavior does not throw
-Around a DST transition (spring-forward gap or autumn-fall ambiguous hour) in a timezone that observes DST, `Calculate` must not throw for a `utcNow`/CRON combination whose computed local next-occurrence falls in or near the transition. The exact returned instant is not asserted beyond being a valid, non-throwing `DateTime?` result (spec intentionally does not pin down .NET's ambiguous/skipped-time resolution semantics — see Open Questions).
+### FR-5: DST boundary behavior is characterized, not assumed
+Verified by direct experimentation against the actual `TimeZoneInfo`/`NCrontab.Advanced` combination used by `Calculate` (see Open Questions / arch-review Decision 3 for the evidence): the two DST edge cases behave *differently*, and neither is caught by `Calculate`'s existing `try`/`catch` blocks (which only catch `TimeZoneNotFoundException` and `CrontabException`):
+- **Autumn ambiguous hour** (e.g. the repeated 02:00–03:00 local hour when clocks fall back): `TimeZoneInfo.ConvertTimeToUtc` resolves an ambiguous unspecified-kind `DateTime` using the zone's **standard** (non-DST) offset, per documented .NET behavior. No exception. `Calculate` returns a concrete `DateTime`.
+- **Spring-forward gap** (e.g. the skipped 02:00–03:00 local hour when clocks jump forward): `TimeZoneInfo.ConvertTimeToUtc` throws `System.ArgumentException` ("The supplied DateTime represents an invalid time...") for any local time inside the gap. This exception is **not caught** by `Calculate` — it propagates to the caller uncaught. This is existing, current behavior of the production code; fixing it is explicitly out of scope for this coverage-only ticket (see Out of Scope).
 **Acceptance criteria:**
-- At least one test drives `utcNow` and a CRON expression such that the computed local `nextLocal` falls within a known DST transition window for a DST-observing IANA timezone (e.g. `"Europe/Prague"` spring-forward around late March, or autumn ambiguous hour around late October).
-- The call completes without throwing and returns a `DateTime?` (either a concrete value or, if the environment's `TimeZoneInfo`/CRON library combination legitimately cannot resolve it, a graceful `null` is acceptable) — the test asserts "does not throw", not a specific offset.
+- A test drives `utcNow` and a CRON expression such that the computed local `nextLocal` falls within the autumn ambiguous hour for a DST-observing IANA timezone (e.g. `"Europe/Prague"`, last Sunday of October). The call does not throw and returns the expected UTC instant resolved at the timezone's standard offset.
+- A test drives `utcNow` and a CRON expression such that the computed local `nextLocal` falls within the spring-forward gap for the same timezone (e.g. last Sunday of March). The test asserts that `Calculate` throws `System.ArgumentException` — this documents current behavior as a regression guard (if a future change starts catching this exception, the test forces a deliberate update rather than a silent behavior change) and is explicitly **not** endorsing this as desired behavior.
 
 ## Non-Functional Requirements
 
@@ -70,10 +72,10 @@ Not applicable — this is a test-only addition. No production code, controller,
 - The host running the DST test (FR-5) must have the IANA timezone database available (true on Linux CI and typical dev containers per the codebase's existing use of IANA ids like `"Europe/Prague"`).
 
 ## Out of Scope
-- Any change to `RecurringJobNextRunCalculator.cs` production code or its public contract.
+- Any change to `RecurringJobNextRunCalculator.cs` production code or its public contract — **including** adding a `catch (ArgumentException)` around the spring-forward-gap case identified in FR-5. That is a legitimate follow-up bug ("recurring jobs whose schedule lands in a DST spring-forward gap throw instead of degrading to null like the other error paths") but is explicitly not part of this coverage-only ticket. Recommend filing it as a separate issue after this PR merges.
 - Testing callers of `Calculate` (e.g. the recurring job scheduler/service that invokes it) — out of scope for this coverage-gap ticket.
 - Adding a CRON-validity gate upstream of `Calculate` (mentioned in the brief as a related concern, but not part of this ticket).
 - Property-based/fuzz testing of arbitrary CRON expressions or timezones — the suggested approach calls for a small, targeted test class, not exhaustive coverage.
 
 ## Open Questions
-None.
+None. (FR-5's DST behavior was resolved by direct experimentation rather than left as a question — see FR-5 for the verified, cited behavior of `TimeZoneInfo.ConvertTimeToUtc` in both DST edge cases.)

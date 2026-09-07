@@ -20,8 +20,8 @@
 | `Calculate_ReturnsNull_AndLogsWarning_WhenCronInvalid` | FR-3 | `Mock<ILogger>` (verify `Log(Warning, ...)` once) | Result is `null`; warning logged exactly once, referencing the bad CRON string |
 | `Calculate_ReturnsExpectedUtcInstant_ForUtcTimezone` | FR-4 | `NullLogger.Instance` | Returned `DateTime` equals the independently-computed expected UTC instant; `.Kind == DateTimeKind.Utc` |
 | `Calculate_ReturnsExpectedUtcInstant_ForNonUtcTimezone` | FR-4 | `NullLogger.Instance` | Same, using `timeZoneId = "Europe/Prague"` (matches `RecurringJobMetadata.DefaultTimeZoneId`) with a winter `utcNow` so the CET (UTC+1) offset is unambiguous |
-| `Calculate_DoesNotThrow_AroundDstSpringForwardGap` | FR-5 | `NullLogger.Instance` | Invoking `Calculate` with `utcNow`/CRON chosen so `nextLocal` falls in the spring-forward gap does not throw; result is a valid `DateTime?` (concrete value or `null`) |
-| `Calculate_DoesNotThrow_AroundDstAutumnAmbiguousHour` (optional, recommended) | FR-5 | `NullLogger.Instance` | Same for the autumn ambiguous-hour case |
+| `Calculate_ReturnsExpectedUtcInstant_AroundDstAutumnAmbiguousHour` | FR-5 | `NullLogger.Instance` | `nextLocal` falls in the repeated (ambiguous) autumn hour; `Calculate` does not throw and resolves the ambiguous local time at the zone's standard (non-DST) offset |
+| `Calculate_Throws_AroundDstSpringForwardGap` | FR-5 | `NullLogger.Instance` | `nextLocal` falls in the skipped spring-forward hour; `Calculate` throws `System.ArgumentException` — this characterizes existing, uncaught production behavior (see arch-review.r1.md Decision 3); the exception is **not** caught by `Calculate` today, and fixing that is explicitly out of scope for this ticket |
 
 ## Data Schemas
 Not applicable — no persisted data, no API request/response shapes, no event payloads. Inputs and outputs are plain in-memory values matching `Calculate`'s existing signature:
@@ -42,5 +42,5 @@ Representative literal fixtures used across the test methods (illustrative, not 
 - Invalid CRON: `cronExpression = "not a cron"`, `timeZoneId = "UTC"`.
 - UTC happy path: `utcNow = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc)`, `cronExpression = "0 6 * * *"`, `timeZoneId = "UTC"` → expected `2026-01-01T06:00:00Z`.
 - Non-UTC happy path: `timeZoneId = "Europe/Prague"`, a winter `utcNow` chosen strictly before the expected local occurrence to avoid CRON-boundary ambiguity.
-- DST spring-forward: `timeZoneId = "Europe/Prague"`, `utcNow`/`cronExpression` chosen so the computed local next-occurrence falls within the last-Sunday-of-March 02:00–03:00 gap.
-- DST autumn ambiguity: same idea for the last-Sunday-of-October repeated 02:00–03:00 hour.
+- DST autumn ambiguity: `timeZoneId = "Europe/Prague"`, `utcNow`/`cronExpression` chosen so the computed local next-occurrence falls within the last-Sunday-of-October (2026-10-25) repeated 02:00–03:00 hour; expect a concrete UTC result (standard/CET offset), no throw.
+- DST spring-forward gap: same idea for the last-Sunday-of-March (2026-03-29) skipped 02:00–03:00 hour; expect `Calculate` to throw `System.ArgumentException` (verified, current behavior — see arch-review.r1.md Decision 3).
