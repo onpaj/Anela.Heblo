@@ -52,9 +52,9 @@
     },
     {
       "name": "extract-received-side-effect",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-09-07T08:15:04.291102Z"
+      "updated_at": "2026-09-07T08:42:42.945896Z"
     },
     {
       "name": "extract-inventory-restorer",
