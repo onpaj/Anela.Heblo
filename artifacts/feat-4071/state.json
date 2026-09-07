@@ -22,7 +22,7 @@
     },
     "developing": {
       "status": "in_progress",
-      "updated_at": "2026-09-07T08:15:04.046446Z"
+      "updated_at": "2026-09-07T09:13:40.797469Z"
     }
   },
   "tasks": [
@@ -58,9 +58,9 @@
     },
     {
       "name": "extract-inventory-restorer",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-09-07T09:13:41.012659Z"
     },
     {
       "name": "refactor-handler-orchestration",
