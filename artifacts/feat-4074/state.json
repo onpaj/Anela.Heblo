@@ -34,9 +34,9 @@
     },
     {
       "name": "inject-current-user-into-create-handler",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-09-08T10:14:18.192714Z"
+      "updated_at": "2026-09-08T11:37:50.131554Z"
     },
     {
       "name": "inject-current-user-into-disassemble-handler",
