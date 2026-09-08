@@ -21,16 +21,16 @@
       "updated_at": "2026-09-05T10:25:21.032701Z"
     },
     "developing": {
-      "status": "pending",
-      "updated_at": null
+      "status": "in_progress",
+      "updated_at": "2026-09-08T09:14:10.250949Z"
     }
   },
   "tasks": [
     {
       "name": "refactor-service-remove-current-user-dependency",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-09-08T09:14:10.444325Z"
     },
     {
       "name": "inject-current-user-into-create-handler",

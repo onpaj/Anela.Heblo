@@ -4,7 +4,6 @@ using Anela.Heblo.Application.Features.Logistics.UseCases.GiftPackageManufacture
 using Anela.Heblo.Application.Features.Logistics.UseCases.GiftPackageManufacture.Services;
 using Anela.Heblo.Domain.Features.Logistics.GiftPackageManufacture;
 using Anela.Heblo.Domain.Features.Manufacture;
-using Anela.Heblo.Domain.Features.Users;
 using AutoMapper;
 using FluentAssertions;
 using Microsoft.Extensions.Logging;
@@ -17,7 +16,6 @@ public class GiftPackageManufactureServiceTests
     private readonly Mock<IManufactureClient> _manufactureClientMock;
     private readonly Mock<IGiftPackageManufactureRepository> _giftPackageRepositoryMock;
     private readonly Mock<ILogisticsCatalogSource> _catalogSourceMock;
-    private readonly Mock<ICurrentUserService> _currentUserServiceMock;
     private readonly Mock<ILogisticsStockOperationService> _stockOperationServiceMock;
     private readonly Mock<IMapper> _mapperMock;
     private readonly Mock<TimeProvider> _timeProviderMock;
@@ -30,7 +28,6 @@ public class GiftPackageManufactureServiceTests
         _manufactureClientMock = new Mock<IManufactureClient>();
         _giftPackageRepositoryMock = new Mock<IGiftPackageManufactureRepository>();
         _catalogSourceMock = new Mock<ILogisticsCatalogSource>();
-        _currentUserServiceMock = new Mock<ICurrentUserService>();
         _stockOperationServiceMock = new Mock<ILogisticsStockOperationService>();
         _mapperMock = new Mock<IMapper>();
         _timeProviderMock = new Mock<TimeProvider>();
@@ -43,7 +40,6 @@ public class GiftPackageManufactureServiceTests
             _manufactureClientMock.Object,
             _giftPackageRepositoryMock.Object,
             _catalogSourceMock.Object,
-            _currentUserServiceMock.Object,
             _stockOperationServiceMock.Object,
             _mapperMock.Object,
             _timeProviderMock.Object,
@@ -187,9 +183,6 @@ public class GiftPackageManufactureServiceTests
         _mapperMock.Setup(x => x.Map<GiftPackageManufactureDto>(It.IsAny<GiftPackageManufactureLog>()))
             .Returns(expectedManufactureDto);
 
-        _currentUserServiceMock.Setup(x => x.GetCurrentUser())
-            .Returns(new CurrentUser(Id: "test-user-id", Name: userId, Email: "test@example.com", IsAuthenticated: true));
-
         _stockOperationServiceMock
             .Setup(x => x.CreateOperationAsync(
                 It.IsAny<string>(),
@@ -201,7 +194,7 @@ public class GiftPackageManufactureServiceTests
             .Returns(Task.CompletedTask);
 
         // Act
-        var result = await _service.CreateManufactureAsync(giftPackageCode, quantity, false, CancellationToken.None);
+        var result = await _service.CreateManufactureAsync(giftPackageCode, quantity, false, userId, CancellationToken.None);
 
         // Assert
         result.Should().NotBeNull();
