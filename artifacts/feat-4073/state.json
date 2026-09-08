@@ -28,9 +28,9 @@
   "tasks": [
     {
       "name": "add-subfeature-registrations-to-logistics-module",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-09-08T01:14:45.707785Z"
+      "updated_at": "2026-09-08T01:18:52.313359Z"
     },
     {
       "name": "remove-duplicate-registrations-from-application-module",
