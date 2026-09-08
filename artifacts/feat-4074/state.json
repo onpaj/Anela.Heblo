@@ -28,9 +28,9 @@
   "tasks": [
     {
       "name": "refactor-service-remove-current-user-dependency",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-09-08T09:14:10.444325Z"
+      "updated_at": "2026-09-08T09:18:00.271234Z"
     },
     {
       "name": "inject-current-user-into-create-handler",
