@@ -178,3 +178,107 @@ describe('ImportTab filters', () => {
     expect(listCalls.length).toBeGreaterThanOrEqual(2);
   });
 });
+
+describe('ImportTab status badge', () => {
+  let mockGetBankStatements: jest.Mock;
+  let mockGetAccounts: jest.Mock;
+
+  function baseStatement(overrides: Partial<{
+    id: number;
+    transferId: string;
+    account: string;
+    statementDate: Date;
+    importDate: Date;
+    itemCount: number;
+    currency: string;
+    importResult: string;
+    errorType: string | null | undefined;
+  }>) {
+    return {
+      id: 1,
+      transferId: 'TX-1',
+      account: 'Shoptet',
+      statementDate: new Date('2026-01-01'),
+      importDate: new Date('2026-01-02'),
+      itemCount: 3,
+      currency: 'CZK',
+      importResult: 'OK',
+      errorType: null,
+      ...overrides,
+    };
+  }
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+
+    mockGetAccounts = jest.fn().mockResolvedValue([]);
+
+    const mockClient = {
+      bankStatements_GetBankStatements: mockGetBankStatements,
+      bankStatements_GetAccounts: mockGetAccounts,
+      bankStatements_ImportStatements: jest.fn(),
+    };
+    mockAuthenticatedApiClient(mockClient);
+  });
+
+  function renderComponentWithWrapper() {
+    const { wrapper } = createQueryClientWrapper();
+    return render(<ImportTab />, { wrapper });
+  }
+
+  it('renders the success badge when errorType is null, regardless of importResult text', async () => {
+    mockGetBankStatements = jest.fn().mockResolvedValue({
+      items: [baseStatement({ importResult: 'OK', errorType: null })],
+      totalCount: 1,
+    });
+    const mockClient = {
+      bankStatements_GetBankStatements: mockGetBankStatements,
+      bankStatements_GetAccounts: mockGetAccounts,
+      bankStatements_ImportStatements: jest.fn(),
+    };
+    mockAuthenticatedApiClient(mockClient);
+
+    renderComponentWithWrapper();
+
+    expect(await screen.findByText('Úspěch')).toBeInTheDocument();
+    expect(screen.queryByText(/Chyba/)).not.toBeInTheDocument();
+  });
+
+  it('renders the error badge with the errorType text when errorType is set', async () => {
+    mockGetBankStatements = jest.fn().mockResolvedValue({
+      items: [baseStatement({ importResult: 'ParseError', errorType: 'ParseError' })],
+      totalCount: 1,
+    });
+    const mockClient = {
+      bankStatements_GetBankStatements: mockGetBankStatements,
+      bankStatements_GetAccounts: mockGetAccounts,
+      bankStatements_ImportStatements: jest.fn(),
+    };
+    mockAuthenticatedApiClient(mockClient);
+
+    renderComponentWithWrapper();
+
+    expect(await screen.findByText('ParseError')).toBeInTheDocument();
+    expect(screen.queryByText('Úspěch')).not.toBeInTheDocument();
+  });
+
+  it('falls back to "Chyba" when errorType is set but empty', async () => {
+    mockGetBankStatements = jest.fn().mockResolvedValue({
+      items: [baseStatement({ importResult: '', errorType: '' })],
+      totalCount: 1,
+    });
+    const mockClient = {
+      bankStatements_GetBankStatements: mockGetBankStatements,
+      bankStatements_GetAccounts: mockGetAccounts,
+      bankStatements_ImportStatements: jest.fn(),
+    };
+    mockAuthenticatedApiClient(mockClient);
+
+    renderComponentWithWrapper();
+
+    // Empty errorType is falsy, so with a naive `!errorType` success check this
+    // would wrongly render "Úspěch". Per spec FR-1, only null/undefined mean
+    // success; an empty string must still resolve to the error badge fallback text.
+    expect(await screen.findByText('Chyba')).toBeInTheDocument();
+  });
+});

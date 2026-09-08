@@ -565,4 +565,47 @@ public sealed class ReimportMeetingTranscriptHandlerTests
         entity.Summary.Should().Be("New summary");
         entity.Subject.Should().Be("Fallback Headline");
     }
+
+    [Fact]
+    public async Task Handle_WhenExtractionFailsAfterRetries_ReturnsExceptionErrorAndDoesNotReplaceTasks()
+    {
+        // Arrange
+        var id = Guid.NewGuid();
+        var entity = new MeetingTranscript
+        {
+            Id = id,
+            PlaudRecordingId = "rec_extract_fail",
+            Subject = "Old Subject",
+            Summary = "Old summary",
+            RawTranscript = "Old transcript",
+            Tasks = new List<ProposedTask>()
+        };
+
+        _mockRepository
+            .Setup(r => r.GetByIdAsync(id, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(entity);
+        _mockPlaudClient
+            .Setup(c => c.GetFileDetailAsync("rec_extract_fail", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new PlaudFileDetail { TranscriptAvailable = true, SummaryAvailable = true, AudioAvailable = true });
+        _mockPlaudClient
+            .Setup(c => c.GetTranscriptAsync("rec_extract_fail", It.IsAny<CancellationToken>()))
+            .ReturnsAsync("New transcript");
+        _mockPlaudClient
+            .Setup(c => c.GetSummaryAsync("rec_extract_fail", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new PlaudSummaryResult("Headline", "New summary"));
+        _mockExtractor
+            .Setup(x => x.ExtractAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new MeetingTaskExtractionFailedException("boom", 3, "not-json"));
+
+        // Act
+        var response = await _handler.Handle(new ReimportMeetingTranscriptRequest { Id = id }, CancellationToken.None);
+
+        // Assert
+        response.Success.Should().BeFalse();
+        response.ErrorCode.Should().Be(ErrorCodes.Exception);
+        _mockRepository.Verify(
+            x => x.ReplacePendingTasksAsync(It.IsAny<MeetingTranscript>(), It.IsAny<IReadOnlyList<ProposedTask>>(), It.IsAny<CancellationToken>()),
+            Times.Never);
+        _mockRepository.Verify(r => r.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Never);
+    }
 }

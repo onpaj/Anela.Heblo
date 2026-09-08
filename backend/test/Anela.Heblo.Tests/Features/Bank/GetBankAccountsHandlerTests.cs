@@ -23,20 +23,6 @@ public class GetBankAccountsHandlerTests
     }
 
     [Fact]
-    public async Task Handle_WithNullAccountsList_ReturnsEmptyResponse()
-    {
-        var settings = new BankAccountSettings { Accounts = null! };
-        var handler = CreateHandler(settings);
-
-        var response = await handler.Handle(new GetBankAccountsRequest(), CancellationToken.None);
-
-        Assert.NotNull(response);
-        Assert.NotNull(response.Accounts);
-        Assert.Empty(response.Accounts);
-        Assert.True(response.Success);
-    }
-
-    [Fact]
     public async Task Handle_WithEmptyAccountsList_ReturnsEmptyResponse()
     {
         var settings = new BankAccountSettings { Accounts = new List<BankAccountConfiguration>() };

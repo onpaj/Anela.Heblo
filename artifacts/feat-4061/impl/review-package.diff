@@ -1,0 +1,114 @@
+diff --git a/backend/src/Anela.Heblo.Application/Features/Bank/UseCases/GetBankAccounts/GetBankAccountsHandler.cs b/backend/src/Anela.Heblo.Application/Features/Bank/UseCases/GetBankAccounts/GetBankAccountsHandler.cs
+index 7392aa0f3..f5f5c711a 100644
+--- a/backend/src/Anela.Heblo.Application/Features/Bank/UseCases/GetBankAccounts/GetBankAccountsHandler.cs
++++ b/backend/src/Anela.Heblo.Application/Features/Bank/UseCases/GetBankAccounts/GetBankAccountsHandler.cs
+@@ -14,21 +14,21 @@ public class GetBankAccountsHandler : IRequestHandler<GetBankAccountsRequest, Ge
+     public GetBankAccountsHandler(
+         IOptions<BankAccountSettings> bankSettings,
+         ILogger<GetBankAccountsHandler> logger)
+     {
+         _bankSettings = bankSettings?.Value ?? throw new ArgumentNullException(nameof(bankSettings));
+         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+     }
+ 
+     public Task<GetBankAccountsResponse> Handle(GetBankAccountsRequest request, CancellationToken cancellationToken)
+     {
+-        var accounts = (_bankSettings.Accounts ?? new List<BankAccountConfiguration>())
++        var accounts = _bankSettings.Accounts
+             .Select(a => new BankAccountDto
+             {
+                 Name = a.Name,
+                 AccountNumber = a.AccountNumber,
+                 Provider = a.Provider.ToString(),
+                 Currency = a.Currency.ToString(),
+             })
+             .ToList();
+ 
+         _logger.LogInformation("Retrieved {Count} bank accounts", accounts.Count);
+diff --git a/backend/src/Anela.Heblo.Application/Features/Bank/UseCases/ImportBankStatement/ImportBankStatementHandler.cs b/backend/src/Anela.Heblo.Application/Features/Bank/UseCases/ImportBankStatement/ImportBankStatementHandler.cs
+index b0ead6650..3c9e6884c 100644
+--- a/backend/src/Anela.Heblo.Application/Features/Bank/UseCases/ImportBankStatement/ImportBankStatementHandler.cs
++++ b/backend/src/Anela.Heblo.Application/Features/Bank/UseCases/ImportBankStatement/ImportBankStatementHandler.cs
+@@ -44,26 +44,24 @@ public class ImportBankStatementHandler : IRequestHandler<ImportBankStatementReq
+ 
+     public async Task<BankStatementImportResultDto> Handle(ImportBankStatementRequest request, CancellationToken cancellationToken)
+     {
+         var runStartedAt = DateTime.UtcNow;
+         var totalSw = Stopwatch.StartNew();
+ 
+         _logger.LogInformation(
+             "Bank import START - Account: {AccountName}, DateFrom: {DateFrom}, DateTo: {DateTo}",
+             request.AccountName, request.DateFrom, request.DateTo);
+ 
+-        var accountSetting = _bankSettings.Accounts?.SingleOrDefault(a => a.Name == request.AccountName);
++        var accountSetting = _bankSettings.Accounts.SingleOrDefault(a => a.Name == request.AccountName);
+         if (accountSetting == null)
+         {
+-            var availableAccounts = _bankSettings.Accounts != null
+-                ? string.Join(", ", _bankSettings.Accounts.Select(a => a.Name))
+-                : "None";
++            var availableAccounts = string.Join(", ", _bankSettings.Accounts.Select(a => a.Name));
+ 
+             _logger.LogError(
+                 "Bank import FAILED - Account not found: {AccountName}. Available accounts: {AvailableAccounts}",
+                 request.AccountName, availableAccounts);
+ 
+             throw new ArgumentException(
+                 $"Account name {request.AccountName} not found in {BankAccountSettings.ConfigurationKey} configuration. Available accounts: {availableAccounts}");
+         }
+ 
+         var state = await _stateRepository.GetByAccountAsync(accountSetting.Name, cancellationToken)
+diff --git a/backend/src/Anela.Heblo.Domain/Features/Bank/BankAccountSettings.cs b/backend/src/Anela.Heblo.Domain/Features/Bank/BankAccountSettings.cs
+index c15dc982a..8bce1027b 100644
+--- a/backend/src/Anela.Heblo.Domain/Features/Bank/BankAccountSettings.cs
++++ b/backend/src/Anela.Heblo.Domain/Features/Bank/BankAccountSettings.cs
+@@ -1,8 +1,8 @@
+ namespace Anela.Heblo.Domain.Features.Bank;
+ 
+ public class BankAccountSettings
+ {
+     public const string ConfigurationKey = "BankAccounts";
+ 
+-    public List<BankAccountConfiguration> Accounts { get; set; }
++    public List<BankAccountConfiguration> Accounts { get; set; } = new();
+ }
+\ No newline at end of file
+diff --git a/backend/test/Anela.Heblo.Tests/Features/Bank/GetBankAccountsHandlerTests.cs b/backend/test/Anela.Heblo.Tests/Features/Bank/GetBankAccountsHandlerTests.cs
+index 870ad0cfa..a443d7bd8 100644
+--- a/backend/test/Anela.Heblo.Tests/Features/Bank/GetBankAccountsHandlerTests.cs
++++ b/backend/test/Anela.Heblo.Tests/Features/Bank/GetBankAccountsHandlerTests.cs
+@@ -15,34 +15,20 @@ public class GetBankAccountsHandlerTests
+     public GetBankAccountsHandlerTests()
+     {
+         _mockLogger = new Mock<ILogger<GetBankAccountsHandler>>();
+     }
+ 
+     private GetBankAccountsHandler CreateHandler(BankAccountSettings settings)
+     {
+         return new GetBankAccountsHandler(Options.Create(settings), _mockLogger.Object);
+     }
+ 
+-    [Fact]
+-    public async Task Handle_WithNullAccountsList_ReturnsEmptyResponse()
+-    {
+-        var settings = new BankAccountSettings { Accounts = null! };
+-        var handler = CreateHandler(settings);
+-
+-        var response = await handler.Handle(new GetBankAccountsRequest(), CancellationToken.None);
+-
+-        Assert.NotNull(response);
+-        Assert.NotNull(response.Accounts);
+-        Assert.Empty(response.Accounts);
+-        Assert.True(response.Success);
+-    }
+-
+     [Fact]
+     public async Task Handle_WithEmptyAccountsList_ReturnsEmptyResponse()
+     {
+         var settings = new BankAccountSettings { Accounts = new List<BankAccountConfiguration>() };
+         var handler = CreateHandler(settings);
+ 
+         var response = await handler.Handle(new GetBankAccountsRequest(), CancellationToken.None);
+ 
+         Assert.NotNull(response.Accounts);
+         Assert.Empty(response.Accounts);

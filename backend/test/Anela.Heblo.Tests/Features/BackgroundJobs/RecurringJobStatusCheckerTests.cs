@@ -1,6 +1,6 @@
 using System.Threading;
 using System.Threading.Tasks;
-using Anela.Heblo.Application.Features.BackgroundJobs;
+using Anela.Heblo.Application.Features.BackgroundJobs.Services;
 using Anela.Heblo.Domain.Features.BackgroundJobs;
 using FluentAssertions;
 using Microsoft.Extensions.Logging.Abstractions;

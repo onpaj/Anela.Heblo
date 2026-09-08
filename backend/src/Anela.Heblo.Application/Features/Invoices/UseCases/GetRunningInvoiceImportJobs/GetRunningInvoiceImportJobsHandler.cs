@@ -1,3 +1,4 @@
+using Anela.Heblo.Application.Features.Invoices.Services;
 using Anela.Heblo.Xcc;
 using Anela.Heblo.Xcc.Services;
 using MediatR;
@@ -52,7 +53,7 @@ public class GetRunningInvoiceImportJobsHandler
             var invoiceImportJobs = runningJobs
                 .Concat(pendingJobs)
                 .Where(job => job.JobName != null &&
-                              job.JobName.StartsWith("Import faktur:", StringComparison.OrdinalIgnoreCase))
+                              job.JobName.StartsWith(InvoiceImportServiceConstants.ImportPrefix, StringComparison.OrdinalIgnoreCase))
                 .ToList();
 
             _logger.LogDebug("Found {Count} running/pending invoice import jobs", invoiceImportJobs.Count);

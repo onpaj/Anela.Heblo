@@ -2,6 +2,7 @@ using Anela.Heblo.Application.Features.Catalog.Contracts;
 using Anela.Heblo.Application.Features.Logistics.DashboardTiles;
 using Anela.Heblo.Application.Features.Logistics.Infrastructure;
 using Anela.Heblo.Application.Features.Logistics.Services;
+using Anela.Heblo.Application.Features.Logistics.UseCases.ChangeTransportBoxState;
 using Anela.Heblo.Application.Features.Logistics.UseCases.GiftPackageManufacture;
 using Anela.Heblo.Application.Features.Logistics.UseCases.GiftSettings;
 using Anela.Heblo.Domain.Features.Logistics.Transport;
@@ -28,6 +29,14 @@ public static class LogisticsModule
 
         // Register transport box completion service
         services.AddTransient<ITransportBoxCompletionService, TransportBoxCompletionService>();
+
+        // Register transport box state-transition side effects (dispatched by
+        // ChangeTransportBoxStateHandler via IEnumerable<ITransportBoxTransitionSideEffect>)
+        services.AddTransient<ITransportBoxTransitionSideEffect, NewToOpenedSideEffect>();
+        services.AddTransient<ITransportBoxTransitionSideEffect, OpenToReserveSideEffect>();
+        services.AddTransient<ITransportBoxTransitionSideEffect, OpenToQuarantineSideEffect>();
+        services.AddTransient<ITransportBoxTransitionSideEffect, ReceivedSideEffect>();
+        services.AddTransient<ITransportBoxInventoryRestorer, TransportBoxInventoryRestorer>();
 
         // Cross-module contract: Logistics implements Catalog's ICatalogTransportSource via adapter.
         // DI registration is owned by the provider (Logistics), not the consumer (Catalog).
