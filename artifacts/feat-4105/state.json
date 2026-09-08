@@ -25,5 +25,24 @@
       "updated_at": null
     }
   },
-  "tasks": []
+  "tasks": [
+    {
+      "name": "move-summary-to-contracts",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    },
+    {
+      "name": "update-leaflet-consumers",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    },
+    {
+      "name": "verify-full-build-and-format",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    }
+  ]
 }
