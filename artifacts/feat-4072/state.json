@@ -40,9 +40,9 @@
     },
     {
       "name": "rewrite-max-length-test",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-09-08T00:14:37.515328Z"
+      "updated_at": "2026-09-08T01:07:17.782482Z"
     },
     {
       "name": "final-verification",
