@@ -34,9 +34,9 @@
     },
     {
       "name": "refactor-get-journal-entries-handler",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-09-08T23:15:40.093739Z"
+      "updated_at": "2026-09-08T23:42:20.016305Z"
     },
     {
       "name": "refactor-search-journal-entries-handler",
