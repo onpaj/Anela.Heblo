@@ -6,6 +6,6 @@ namespace Anela.Heblo.Application.Features.Invoices.Services;
 
 public interface IInvoiceImportService
 {
-    [DisplayName("Import faktur: {0}")]
+    [DisplayName(InvoiceImportServiceConstants.DisplayNameFormat)]
     Task<ImportResultDto> ImportInvoicesAsync(string description, IssuedInvoiceSourceQuery query, CancellationToken cancellationToken = default);
 }

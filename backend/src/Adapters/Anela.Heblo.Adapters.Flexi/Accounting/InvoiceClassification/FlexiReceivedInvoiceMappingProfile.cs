@@ -1,3 +1,4 @@
+using System.Globalization;
 using Anela.Heblo.Adapters.Flexi.Common;
 using Anela.Heblo.Domain.Features.InvoiceClassification;
 using Rem.FlexiBeeSDK.Model.Invoices;
@@ -9,6 +10,7 @@ public class FlexiReceivedInvoiceMappingProfile : BaseFlexiProfile
     public FlexiReceivedInvoiceMappingProfile()
     {
         CreateMap<ReceivedInvoiceFlexiDto, ReceivedInvoice>()
+            .ForMember(dest => dest.AbraInvoiceId, opt => opt.MapFrom(src => src.Id.ToString(CultureInfo.InvariantCulture)))
             .ForMember(dest => dest.InvoiceNumber, opt => opt.MapFrom(src => src.Code))
             .ForMember(dest => dest.CompanyName, opt => opt.MapFrom(src => src.CompanyName))
             .ForMember(dest => dest.CompanyVat, opt => opt.MapFrom(src => src.CompanyId))

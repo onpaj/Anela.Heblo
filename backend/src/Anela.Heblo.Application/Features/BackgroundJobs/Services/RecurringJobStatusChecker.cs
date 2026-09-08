@@ -1,7 +1,7 @@
 using Anela.Heblo.Domain.Features.BackgroundJobs;
 using Microsoft.Extensions.Logging;
 
-namespace Anela.Heblo.Application.Features.BackgroundJobs;
+namespace Anela.Heblo.Application.Features.BackgroundJobs.Services;
 
 public class RecurringJobStatusChecker : IRecurringJobStatusChecker
 {

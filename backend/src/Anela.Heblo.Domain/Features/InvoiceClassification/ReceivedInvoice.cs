@@ -2,6 +2,8 @@ namespace Anela.Heblo.Domain.Features.InvoiceClassification;
 
 public class ReceivedInvoice
 {
+    public string AbraInvoiceId { get; set; } = string.Empty;
+
     public string InvoiceNumber { get; set; } = string.Empty;
 
     public string CompanyName { get; set; } = string.Empty;

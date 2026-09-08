@@ -4,5 +4,5 @@ public class BankAccountSettings
 {
     public const string ConfigurationKey = "BankAccounts";
 
-    public List<BankAccountConfiguration> Accounts { get; set; }
+    public List<BankAccountConfiguration> Accounts { get; set; } = new();
 }

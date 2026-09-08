@@ -60,7 +60,20 @@ public sealed class IngestPlaudRecordingHandler : IRequestHandler<IngestPlaudRec
         var summaryResult = await _plaudClient.GetSummaryAsync(request.PlaudRecordingId, cancellationToken);
 
         // Extract tasks and participants using the meeting task extractor
-        var extraction = await _extractor.ExtractAsync(summaryResult.MarkdownContent, transcript, cancellationToken);
+        MeetingExtractionResult extraction;
+        try
+        {
+            extraction = await _extractor.ExtractAsync(summaryResult.MarkdownContent, transcript, cancellationToken);
+        }
+        catch (MeetingTaskExtractionFailedException ex)
+        {
+            _logger.LogError(
+                ex,
+                "Failed to extract tasks for recording {RecordingId} after {AttemptCount} attempts",
+                request.PlaudRecordingId,
+                ex.AttemptCount);
+            return new IngestPlaudRecordingResponse { Success = false };
+        }
 
         // Prefer the human-set recording name; fall back to the summary headline
         var subject = !string.IsNullOrWhiteSpace(request.Name)
