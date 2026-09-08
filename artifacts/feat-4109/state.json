@@ -25,5 +25,18 @@
       "updated_at": null
     }
   },
-  "tasks": []
+  "tasks": [
+    {
+      "name": "add-journalentry-create-factory",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    },
+    {
+      "name": "use-create-factory-in-handler",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    }
+  ]
 }
