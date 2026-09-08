@@ -34,9 +34,9 @@
     },
     {
       "name": "remove-duplicate-registrations-from-application-module",
-      "status": "pending",
+      "status": "completed",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-09-08T05:17:54.926262Z"
     },
     {
       "name": "verify-full-build-format-and-test-suite",
