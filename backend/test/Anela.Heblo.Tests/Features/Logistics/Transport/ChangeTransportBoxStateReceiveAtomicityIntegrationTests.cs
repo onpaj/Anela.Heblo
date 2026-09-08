@@ -136,14 +136,23 @@ public class ChangeTransportBoxStateReceiveAtomicityIntegrationTests : IAsyncLif
         mediator.Setup(x => x.Send(It.IsAny<GetTransportBoxByIdRequest>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new GetTransportBoxByIdResponse());
 
+        var sideEffects = new ITransportBoxTransitionSideEffect[]
+        {
+            new NewToOpenedSideEffect(transportBoxRepository, currentUserService.Object, TimeProvider.System),
+            new OpenToReserveSideEffect(),
+            new OpenToQuarantineSideEffect(),
+            new ReceivedSideEffect(adapter, NullLogger<ReceivedSideEffect>.Instance),
+        };
+        var inventoryRestorer = new TransportBoxInventoryRestorer(Mock.Of<IInventoryReservationService>());
+
         return new ChangeTransportBoxStateHandler(
             transportBoxRepository,
-            Mock.Of<IInventoryReservationService>(),
             mediator.Object,
             NullLogger<ChangeTransportBoxStateHandler>.Instance,
             currentUserService.Object,
-            adapter,
-            TimeProvider.System);
+            TimeProvider.System,
+            sideEffects,
+            inventoryRestorer);
     }
 
     private static async Task<TransportBox> SeedBoxInTransitAsync(
