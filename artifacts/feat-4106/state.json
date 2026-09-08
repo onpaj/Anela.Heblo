@@ -25,5 +25,24 @@
       "updated_at": null
     }
   },
-  "tasks": []
+  "tasks": [
+    {
+      "name": "add-generate-leaflet-mutation-hook",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    },
+    {
+      "name": "refactor-leaflet-generate-tab-to-use-mutation-hook",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    },
+    {
+      "name": "verify-leaflet-generate-refactor",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    }
+  ]
 }
