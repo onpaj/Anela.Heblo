@@ -21,16 +21,16 @@
       "updated_at": "2026-09-05T09:15:17.214493Z"
     },
     "developing": {
-      "status": "pending",
-      "updated_at": null
+      "status": "in_progress",
+      "updated_at": "2026-09-08T01:14:45.544422Z"
     }
   },
   "tasks": [
     {
       "name": "add-subfeature-registrations-to-logistics-module",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-09-08T01:14:45.707785Z"
     },
     {
       "name": "remove-duplicate-registrations-from-application-module",
