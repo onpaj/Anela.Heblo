@@ -40,9 +40,9 @@
     },
     {
       "name": "inject-current-user-into-disassemble-handler",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-09-08T12:16:42.298180Z"
+      "updated_at": "2026-09-08T13:40:39.128948Z"
     }
   ]
 }
