@@ -22,7 +22,7 @@
     },
     "developing": {
       "status": "in_progress",
-      "updated_at": "2026-09-09T08:14:38.963262Z"
+      "updated_at": "2026-09-09T11:17:32.006003Z"
     }
   },
   "tasks": [
@@ -34,9 +34,9 @@
     },
     {
       "name": "update-upload-document-tests",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-09-09T11:17:32.289368Z"
     },
     {
       "name": "verify-full-build-and-format",
