@@ -46,9 +46,9 @@
     },
     {
       "name": "add-module-boundary-rule",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-09-09T08:09:45.249214Z"
+      "updated_at": "2026-09-09T08:13:15.923344Z"
     },
     {
       "name": "verify-full-suite",
