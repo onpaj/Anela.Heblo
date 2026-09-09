@@ -28,9 +28,9 @@
   "tasks": [
     {
       "name": "migrate-upload-document-request-to-bytes",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-09-09T08:14:39.161863Z"
+      "updated_at": "2026-09-09T08:20:02.179865Z"
     },
     {
       "name": "update-upload-document-tests",
