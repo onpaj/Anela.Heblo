@@ -21,16 +21,16 @@
       "updated_at": "2026-09-06T06:17:29.089058Z"
     },
     "developing": {
-      "status": "pending",
-      "updated_at": null
+      "status": "in_progress",
+      "updated_at": "2026-09-09T05:14:57.820518Z"
     }
   },
   "tasks": [
     {
       "name": "add-user-directory-contract",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-09-09T05:14:58.012416Z"
     },
     {
       "name": "add-authorization-directory-adapter",
