@@ -28,9 +28,9 @@
   "tasks": [
     {
       "name": "add-user-directory-contract",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-09-09T05:14:58.012416Z"
+      "updated_at": "2026-09-09T05:18:55.966907Z"
     },
     {
       "name": "add-authorization-directory-adapter",
