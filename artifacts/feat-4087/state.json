@@ -28,9 +28,9 @@
   "tasks": [
     {
       "name": "extract-index-document-handler-phases",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-09-09T13:17:53.073218Z"
+      "updated_at": "2026-09-09T15:04:08.092374Z"
     }
   ]
 }
