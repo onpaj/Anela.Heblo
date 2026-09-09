@@ -21,16 +21,16 @@
       "updated_at": "2026-09-07T06:18:14.842063Z"
     },
     "developing": {
-      "status": "pending",
-      "updated_at": null
+      "status": "in_progress",
+      "updated_at": "2026-09-09T13:17:52.861395Z"
     }
   },
   "tasks": [
     {
       "name": "extract-index-document-handler-phases",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-09-09T13:17:53.073218Z"
     }
   ]
 }
