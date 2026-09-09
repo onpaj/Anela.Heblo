@@ -25,5 +25,36 @@
       "updated_at": null
     }
   },
-  "tasks": []
+  "tasks": [
+    {
+      "name": "add-execute-in-transaction-repository-method",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    },
+    {
+      "name": "wrap-create-manufacture-async-in-transaction",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    },
+    {
+      "name": "wrap-disassemble-gift-package-async-in-transaction",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    },
+    {
+      "name": "add-gift-package-manufacture-atomicity-integration-tests",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    },
+    {
+      "name": "run-full-suite-and-validate-build",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    }
+  ]
 }
