@@ -4,7 +4,6 @@ using Anela.Heblo.Application.Features.Logistics.Contracts.Models;
 using Anela.Heblo.Application.Features.Logistics.UseCases.GiftPackageManufacture.Contracts;
 using Anela.Heblo.Domain.Features.Logistics.GiftPackageManufacture;
 using Anela.Heblo.Domain.Features.Manufacture;
-using Anela.Heblo.Domain.Features.Users;
 using AutoMapper;
 using Microsoft.Extensions.Logging;
 
@@ -15,7 +14,6 @@ public class GiftPackageManufactureService : IGiftPackageManufactureService
     private readonly IManufactureClient _manufactureClient;
     private readonly IGiftPackageManufactureRepository _giftPackageRepository;
     private readonly ILogisticsCatalogSource _catalogSource;
-    private readonly ICurrentUserService _currentUserService;
     private readonly ILogisticsStockOperationService _stockOperationService;
     private readonly IMapper _mapper;
     private readonly TimeProvider _timeProvider;
@@ -25,7 +23,6 @@ public class GiftPackageManufactureService : IGiftPackageManufactureService
         IManufactureClient manufactureClient,
         IGiftPackageManufactureRepository giftPackageRepository,
         ILogisticsCatalogSource catalogSource,
-        ICurrentUserService currentUserService,
         ILogisticsStockOperationService stockOperationService,
         IMapper mapper,
         TimeProvider timeProvider,
@@ -34,7 +31,6 @@ public class GiftPackageManufactureService : IGiftPackageManufactureService
         _manufactureClient = manufactureClient;
         _giftPackageRepository = giftPackageRepository;
         _catalogSource = catalogSource;
-        _currentUserService = currentUserService;
         _stockOperationService = stockOperationService;
         _mapper = mapper;
         _timeProvider = timeProvider;
@@ -144,6 +140,7 @@ public class GiftPackageManufactureService : IGiftPackageManufactureService
         string giftPackageCode,
         int quantity,
         bool allowStockOverride,
+        string userName,
         CancellationToken cancellationToken = default)
     {
         // Create the manufacture log
@@ -152,7 +149,7 @@ public class GiftPackageManufactureService : IGiftPackageManufactureService
             quantity,
             allowStockOverride,
             _timeProvider.GetUtcNow().DateTime,
-            _currentUserService.GetCurrentUser().Name ?? "System");
+            userName);
 
         // CRITICAL: Save the log FIRST to get the ID for DocumentNumber
         await _giftPackageRepository.AddAsync(manufactureLog);
@@ -210,6 +207,7 @@ public class GiftPackageManufactureService : IGiftPackageManufactureService
     public async Task<GiftPackageDisassemblyDto> DisassembleGiftPackageAsync(
         string giftPackageCode,
         int quantity,
+        string userName,
         CancellationToken cancellationToken = default)
     {
         // 1. Validate quantity
@@ -233,7 +231,7 @@ public class GiftPackageManufactureService : IGiftPackageManufactureService
             giftPackageCode,
             quantity,
             _timeProvider.GetUtcNow().DateTime,
-            _currentUserService.GetCurrentUser().Name ?? "System",
+            userName,
             GiftPackageOperationType.Disassembly);
 
         // CRITICAL: Save the log FIRST to get the ID for DocumentNumber
