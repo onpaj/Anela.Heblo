@@ -40,9 +40,9 @@
     },
     {
       "name": "update-user-display-name-resolver",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-09-09T07:16:04.182307Z"
+      "updated_at": "2026-09-09T07:58:53.813517Z"
     },
     {
       "name": "add-module-boundary-rule",
