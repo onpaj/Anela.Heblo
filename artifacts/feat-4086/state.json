@@ -34,9 +34,9 @@
     },
     {
       "name": "update-upload-document-tests",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-09-09T11:17:32.289368Z"
+      "updated_at": "2026-09-09T11:41:33.154343Z"
     },
     {
       "name": "verify-full-build-and-format",
