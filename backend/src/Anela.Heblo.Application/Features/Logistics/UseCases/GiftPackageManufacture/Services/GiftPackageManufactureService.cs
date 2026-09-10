@@ -109,13 +109,7 @@ public class GiftPackageManufactureService : IGiftPackageManufactureService
 
         // Map ProductPart objects to GiftPackageIngredientDto with stock data
         var ingredientCodes = productParts.Select(p => p.ProductCode).Distinct().ToList();
-        var ingredientCatalog = new Dictionary<string, LogisticsCatalogItem>(StringComparer.Ordinal);
-        foreach (var code in ingredientCodes)
-        {
-            var item = await _catalogSource.GetCatalogItemAsync(code, cancellationToken);
-            if (item != null)
-                ingredientCatalog[code] = item;
-        }
+        var ingredientCatalog = await _catalogSource.GetCatalogItemsAsync(ingredientCodes, cancellationToken);
 
         var ingredients = new List<GiftPackageIngredientDto>();
         foreach (var part in productParts)

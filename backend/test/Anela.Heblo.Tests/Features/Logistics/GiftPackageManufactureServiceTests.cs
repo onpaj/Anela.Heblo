@@ -113,11 +113,12 @@ public class GiftPackageManufactureServiceTests
             .ReturnsAsync(CreateTestProductParts());
 
         _catalogSourceMock
-            .Setup(x => x.GetCatalogItemAsync("ING001", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new LogisticsCatalogItem { ProductCode = "ING001", AvailableStock = 100m });
-        _catalogSourceMock
-            .Setup(x => x.GetCatalogItemAsync("ING002", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new LogisticsCatalogItem { ProductCode = "ING002", AvailableStock = 75m });
+            .Setup(x => x.GetCatalogItemsAsync(It.IsAny<IReadOnlyList<string>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Dictionary<string, LogisticsCatalogItem>
+            {
+                ["ING001"] = new LogisticsCatalogItem { ProductCode = "ING001", AvailableStock = 100m },
+                ["ING002"] = new LogisticsCatalogItem { ProductCode = "ING002", AvailableStock = 75m },
+            });
 
         // Act
         var result = await _service.GetGiftPackageDetailAsync(giftPackageCode);
@@ -170,11 +171,12 @@ public class GiftPackageManufactureServiceTests
             .ReturnsAsync(CreateTestProductParts());
 
         _catalogSourceMock
-            .Setup(x => x.GetCatalogItemAsync("ING001", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new LogisticsCatalogItem { ProductCode = "ING001", AvailableStock = 100m });
-        _catalogSourceMock
-            .Setup(x => x.GetCatalogItemAsync("ING002", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new LogisticsCatalogItem { ProductCode = "ING002", AvailableStock = 75m });
+            .Setup(x => x.GetCatalogItemsAsync(It.IsAny<IReadOnlyList<string>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Dictionary<string, LogisticsCatalogItem>
+            {
+                ["ING001"] = new LogisticsCatalogItem { ProductCode = "ING001", AvailableStock = 100m },
+                ["ING002"] = new LogisticsCatalogItem { ProductCode = "ING002", AvailableStock = 75m },
+            });
 
         var expectedManufactureDto = new GiftPackageManufactureDto
         {
@@ -286,9 +288,11 @@ public class GiftPackageManufactureServiceTests
             .Setup(x => x.GetSetPartsAsync(giftPackageCode, It.IsAny<CancellationToken>()))
             .ReturnsAsync(CreateTestProductParts());
         _catalogSourceMock
-            .Setup(x => x.GetCatalogItemAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync((string code, CancellationToken _) =>
-                new LogisticsCatalogItem { ProductCode = code, AvailableStock = 50m });
+            .Setup(x => x.GetCatalogItemsAsync(It.IsAny<IReadOnlyList<string>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((IReadOnlyList<string> codes, CancellationToken _) =>
+                (IReadOnlyDictionary<string, LogisticsCatalogItem>)codes.ToDictionary(
+                    code => code,
+                    code => new LogisticsCatalogItem { ProductCode = code, AvailableStock = 50m }));
 
         // Act
         var result = await _service.GetGiftPackageDetailAsync(giftPackageCode, 1.0m, customFromDate, customToDate);
@@ -300,7 +304,7 @@ public class GiftPackageManufactureServiceTests
     }
 
     [Fact]
-    public async Task GetGiftPackageDetailAsync_CallsGetCatalogItemAsyncPerIngredient()
+    public async Task GetGiftPackageDetailAsync_CallsGetCatalogItemsAsyncOncePerInvocation()
     {
         // Arrange
         var giftPackageCode = "SET001";
@@ -313,9 +317,11 @@ public class GiftPackageManufactureServiceTests
             .Setup(x => x.GetSetPartsAsync(giftPackageCode, It.IsAny<CancellationToken>()))
             .ReturnsAsync(CreateTestProductParts());
         _catalogSourceMock
-            .Setup(x => x.GetCatalogItemAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync((string code, CancellationToken _) =>
-                new LogisticsCatalogItem { ProductCode = code, AvailableStock = 50m });
+            .Setup(x => x.GetCatalogItemsAsync(It.IsAny<IReadOnlyList<string>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((IReadOnlyList<string> codes, CancellationToken _) =>
+                (IReadOnlyDictionary<string, LogisticsCatalogItem>)codes.ToDictionary(
+                    code => code,
+                    code => new LogisticsCatalogItem { ProductCode = code, AvailableStock = 50m }));
 
         // Act
         var result = await _service.GetGiftPackageDetailAsync(giftPackageCode);
@@ -323,7 +329,8 @@ public class GiftPackageManufactureServiceTests
         // Assert
         result.Should().NotBeNull();
         result.Ingredients.Should().HaveCount(2);
-        _catalogSourceMock.Verify(x => x.GetCatalogItemAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Exactly(2));
+        _catalogSourceMock.Verify(x => x.GetCatalogItemsAsync(It.IsAny<IReadOnlyList<string>>(), It.IsAny<CancellationToken>()), Times.Once);
+        _catalogSourceMock.Verify(x => x.GetCatalogItemAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]
@@ -340,8 +347,8 @@ public class GiftPackageManufactureServiceTests
             .Setup(x => x.GetSetPartsAsync(giftPackageCode, It.IsAny<CancellationToken>()))
             .ReturnsAsync(CreateTestProductParts());
         _catalogSourceMock
-            .Setup(x => x.GetCatalogItemAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync((LogisticsCatalogItem?)null);
+            .Setup(x => x.GetCatalogItemsAsync(It.IsAny<IReadOnlyList<string>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((IReadOnlyDictionary<string, LogisticsCatalogItem>)new Dictionary<string, LogisticsCatalogItem>());
 
         // Act
         var result = await _service.GetGiftPackageDetailAsync(giftPackageCode);
