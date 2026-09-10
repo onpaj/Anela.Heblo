@@ -364,6 +364,7 @@ const resources = {
           ProductPairing: "Párování produktů",
           StockWriteBackReconciliation: "Zpětný zápis skladu",
           LotSumVsErpStock: "Šarže vs. ERP sklad",
+          PriceComparison: "Kontrola cen",
         },
         productPairingMismatches: {
           MissingInErp: "Chybí v ERP",
@@ -374,6 +375,12 @@ const resources = {
           OperationFailed: "Operace selhala",
           OperationStuck: "Operace zaseknutá",
           StockTakingErrored: "Chyba inventury",
+        },
+        priceComparisonMismatches: {
+          Unknown: "Neznámá neshoda",
+          PriceDiffers: "Rozdílná cena",
+          MissingInFlexi: "Chybí ve Flexi",
+          FlexiPriceTypeUnknown: "Neznámý typ ceny ve Flexi",
         },
       },
     },
@@ -492,6 +499,7 @@ const resources = {
           ProductPairing: "Product Pairing",
           StockWriteBackReconciliation: "Stock Write-Back Reconciliation",
           LotSumVsErpStock: "Lot Sum vs. ERP Stock",
+          PriceComparison: "Price Comparison",
         },
         productPairingMismatches: {
           MissingInErp: "Missing in ERP",
@@ -502,6 +510,12 @@ const resources = {
           OperationFailed: "Operation failed",
           OperationStuck: "Operation stuck",
           StockTakingErrored: "Stock-taking errored",
+        },
+        priceComparisonMismatches: {
+          Unknown: "Unknown mismatch",
+          PriceDiffers: "Price differs",
+          MissingInFlexi: "Missing in Flexi",
+          FlexiPriceTypeUnknown: "Unknown Flexi price type",
         },
       },
     },

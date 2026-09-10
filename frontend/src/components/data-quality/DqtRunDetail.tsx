@@ -40,6 +40,15 @@ const LOT_STOCK_FLAGS: Record<number, string> = {
   4: 'Šarže bez skladu',
 };
 
+// PriceComparisonMismatch is a plain enum value (0-3), not a bitmask like the flag maps
+// above, so it is rendered via direct lookup rather than decodeMismatchFlags.
+const PRICE_COMPARISON_MISMATCH_LABELS: Record<number, string> = {
+  0: 'Neznámá neshoda',
+  1: 'Rozdílná cena',
+  2: 'Chybí ve Flexi',
+  3: 'Neznámý typ ceny ve Flexi',
+};
+
 function decodeMismatchFlags(code: number, labels: Record<number, string>): string[] {
   return Object.entries(labels)
     .filter(([flag]) => (code & Number(flag)) !== 0)
@@ -157,7 +166,8 @@ const DqtRunDetail: React.FC<DqtRunDetailProps> = ({ runId }) => {
   const isDriftTestType =
     run?.testType === 'ProductPairing' ||
     run?.testType === 'StockWriteBackReconciliation' ||
-    run?.testType === 'LotSumVsErpStock';
+    run?.testType === 'LotSumVsErpStock' ||
+    run?.testType === 'PriceComparison';
 
   const hasNoResults = isDriftTestType ? driftResults.length === 0 : results.length === 0;
 
@@ -178,7 +188,11 @@ const DqtRunDetail: React.FC<DqtRunDetailProps> = ({ runId }) => {
     }
 
     const isLotStock = run?.testType === 'LotSumVsErpStock';
-    const hebloHeader = isLotStock ? 'ERP' : 'Heblo';
+    const isPriceComparison = run?.testType === 'PriceComparison';
+    // DqtDriftResult's columns are named for the Heblo-vs-Shoptet checks that came first;
+    // for PriceComparison, ShoptetValue carries the Shoptet price and HebloValue the Flexi
+    // price, so the headers must read Shoptet/Flexi, not Shoptet/Heblo.
+    const hebloHeader = isLotStock ? 'ERP' : isPriceComparison ? 'Flexi' : 'Heblo';
     const shoptetHeader = isLotStock ? 'Šarže' : 'Shoptet';
 
     return (
@@ -195,7 +209,9 @@ const DqtRunDetail: React.FC<DqtRunDetailProps> = ({ runId }) => {
           </thead>
           <tbody>
             {driftResults.map((row: DqtDriftResultDto, i: number) => {
-              const flagLabels = decodeMismatchFlags(row.mismatchCode ?? 0, flagMap);
+              const flagLabels = isPriceComparison
+                ? [PRICE_COMPARISON_MISMATCH_LABELS[row.mismatchCode ?? 0] ?? String(row.mismatchCode)]
+                : decodeMismatchFlags(row.mismatchCode ?? 0, flagMap);
               return (
                 <tr key={i} className="border-b last:border-0">
                   <td className="py-1.5 pr-4 font-mono text-xs">{row.entityKey}</td>
