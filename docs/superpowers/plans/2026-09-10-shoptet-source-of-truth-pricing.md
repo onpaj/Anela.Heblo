@@ -1870,10 +1870,20 @@ git commit -m "docs: describe Shoptet as the retail price source of truth"
 ```bash
 dotnet build Anela.Heblo.sln -v q --nologo
 dotnet format backend/src/Anela.Heblo.Application/Anela.Heblo.Application.csproj --verify-no-changes --verbosity minimal
+dotnet format backend/src/Anela.Heblo.Persistence/Anela.Heblo.Persistence.csproj --verify-no-changes --verbosity minimal
+dotnet format backend/test/Anela.Heblo.Tests/Anela.Heblo.Tests.csproj --verify-no-changes --verbosity minimal
 dotnet build backend/test/Anela.Heblo.Tests/Anela.Heblo.Tests.csproj -v q --nologo
 dotnet test backend/test/Anela.Heblo.Tests/Anela.Heblo.Tests.csproj --no-build -p:UseSharedCompilation=false
 ```
 Expected: 0 errors, 0 failures. `dotnet format` produces no output.
+
+**Known blocker at the time of writing:** the test project currently FAILS `dotnet format` with ~30
+`WHITESPACE` errors, all in `Features/ProductPricing/PriceComparisonServiceTests.cs` (multi-property
+object initialisers on one line). The file entered on this branch in commit `37c14cebb`, before this
+plan's work began, and CI does not gate on `dotnet format` — but `CLAUDE.md` makes it a completion
+gate, so the branch cannot be called done while it fails. Fix it in the final review's fix wave:
+run `dotnet format backend/test/Anela.Heblo.Tests/Anela.Heblo.Tests.csproj` (without
+`--verify-no-changes`) and commit the whitespace-only result separately from any behavioural change.
 
 - [ ] **Full frontend build and test**
 
