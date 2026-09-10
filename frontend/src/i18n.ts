@@ -345,8 +345,10 @@ const resources = {
         MindMapInvalidDocument: "Neplatný dokument myšlenkové mapy",
 
         // Product Pricing module errors (36XX)
-        ProductPriceNotFound: "Cena produktu nebyla nalezena",
-        ProductPriceConflictNotFound: "Konflikt cen nebyl nalezen",
+        ProductPriceNotFoundInShoptet: "Produkt není v maloobchodním ceníku Shoptetu",
+        ProductPriceFlexiItemIdUnknown: "Produkt nemá ceníkovou položku ve Flexi, cena nebyla nikde změněna",
+        ProductPriceShoptetWriteFailed: "Zápis ceny do Shoptetu selhal, cena nebyla nikde změněna",
+        ProductPriceFlexiWriteFailed: "Cena byla změněna v Shoptetu, ale zápis do Flexi selhal — ceny se nyní liší",
 
         // External Service errors
         ExternalServiceError: "Chyba externí služby",

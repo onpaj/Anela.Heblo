@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Linq;
 using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
@@ -91,6 +92,29 @@ public class ShoptetPriceListClient : IEshopPriceListClient
 
         _logger.LogInformation("Read {Count} prices from Shoptet price list {PriceListId}", prices.Count, priceListId);
         return prices;
+    }
+
+    public async Task<decimal?> GetPriceWithVatAsync(string productCode, CancellationToken ct)
+    {
+        var priceListId = ResolvePriceListId();
+
+        // `code=` (singular) is supported and returns totalCount 1; `codes=` is rejected outright.
+        var url = $"/api/pricelists/{priceListId}?code={Uri.EscapeDataString(productCode)}";
+        var snapshot = await GetAsync<PriceListSnapshotResponse>(url, ct);
+
+        var data = snapshot.Data
+            ?? throw new HttpRequestException($"Shoptet returned no data block for {url}");
+
+        var item = data.Items.FirstOrDefault(i =>
+            string.Equals(i.Code, productCode, StringComparison.OrdinalIgnoreCase));
+
+        var rawPrice = item?.Price?.Price;
+        if (item is null || rawPrice is null)
+        {
+            return null;
+        }
+
+        return TryComputePriceWithVat(item, rawPrice, out var priceWithVat) ? priceWithVat : null;
     }
 
     public async Task SetPriceWithVatAsync(string productCode, decimal priceWithVat, CancellationToken ct)

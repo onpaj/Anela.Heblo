@@ -205,6 +205,39 @@ public class ShoptetPriceListClientTests
     }
 
     [Fact]
+    public async Task reads_one_products_price_by_code()
+    {
+        // Arrange
+        var recorded = new List<HttpRequestMessage>();
+        var client = CreateClient(_ => Json("""
+            {"data":{"pricelist":[{"code":"DEO007005","includingVat":true,"vatRate":"21.00",
+             "price":{"price":"390.00"}}],"paginator":{"page":1,"pageCount":1}},"errors":null}
+            """), recorded);
+
+        // Act
+        var price = await client.GetPriceWithVatAsync("DEO007005", CancellationToken.None);
+
+        // Assert
+        price.Should().Be(390.00m);
+        recorded[0].RequestUri!.Query.Should().Contain("code=DEO007005");
+    }
+
+    [Fact]
+    public async Task returns_null_when_the_product_is_absent_from_the_price_list()
+    {
+        // Arrange
+        var client = CreateClient(_ => Json("""
+            {"data":{"pricelist":[],"paginator":{"page":1,"pageCount":1}},"errors":null}
+            """));
+
+        // Act
+        var price = await client.GetPriceWithVatAsync("NOPE", CancellationToken.None);
+
+        // Assert
+        price.Should().BeNull();
+    }
+
+    [Fact]
     public async Task throws_when_a_200_carries_no_data_block()
     {
         // Arrange

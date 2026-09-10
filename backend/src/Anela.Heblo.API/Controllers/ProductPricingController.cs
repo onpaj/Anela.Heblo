@@ -1,5 +1,6 @@
 using Anela.Heblo.API.Infrastructure;
 using Anela.Heblo.Application.Features.ProductPricing.UseCases.GetPriceDivergenceReport;
+using Anela.Heblo.Application.Features.ProductPricing.UseCases.SetProductPrice;
 using Anela.Heblo.Domain.Features.Authorization;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
@@ -22,4 +23,15 @@ public class ProductPricingController : BaseApiController
     [HttpGet("divergence")]
     public async Task<ActionResult<GetPriceDivergenceReportResponse>> GetDivergenceReport(CancellationToken cancellationToken = default)
         => HandleResponse(await _mediator.Send(new GetPriceDivergenceReportRequest(), cancellationToken));
+
+    [HttpPut("prices/{productCode}")]
+    [FeatureAuthorize(Feature.Products_Catalog, AccessLevel.Write)]
+    public async Task<ActionResult<SetProductPriceResponse>> SetPrice(
+        string productCode,
+        [FromBody] SetProductPriceRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        request.ProductCode = productCode;
+        return HandleResponse(await _mediator.Send(request, cancellationToken));
+    }
 }
