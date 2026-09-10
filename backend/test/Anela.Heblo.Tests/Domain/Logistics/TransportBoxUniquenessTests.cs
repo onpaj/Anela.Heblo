@@ -8,8 +8,8 @@ using Anela.Heblo.Domain.Features.Users;
 using Anela.Heblo.Persistence;
 using Anela.Heblo.Persistence.Logistics.TransportBoxes;
 using Anela.Heblo.Persistence.Repositories;
+using AutoMapper;
 using FluentAssertions;
-using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
@@ -22,7 +22,7 @@ public class TransportBoxUniquenessTests : IDisposable
     private readonly TransportBoxRepository _repository;
     private readonly ChangeTransportBoxStateHandler _handler;
     private readonly Mock<ICurrentUserService> _mockUserService;
-    private readonly Mock<IMediator> _mockMediator;
+    private readonly Mock<IMapper> _mockMapper;
     private readonly Mock<ILogisticsStockOperationService> _mockStockUpProcessingService;
     private readonly Mock<IInventoryReservationService> _mockInventoryReservationService;
 
@@ -39,7 +39,7 @@ public class TransportBoxUniquenessTests : IDisposable
 
         _repository = new TransportBoxRepository(_dbContext, NullLogger<TransportBoxRepository>.Instance);
         _mockUserService = new Mock<ICurrentUserService>();
-        _mockMediator = new Mock<IMediator>();
+        _mockMapper = new Mock<IMapper>();
         _mockStockUpProcessingService = new Mock<ILogisticsStockOperationService>();
         _mockInventoryReservationService = new Mock<IInventoryReservationService>();
 
@@ -56,10 +56,14 @@ public class TransportBoxUniquenessTests : IDisposable
                 It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
 
+        _mockMapper
+            .Setup(x => x.Map<TransportBoxDto>(It.IsAny<TransportBox>()))
+            .Returns(new TransportBoxDto());
+
         _handler = new ChangeTransportBoxStateHandler(
             _repository,
             _mockInventoryReservationService.Object,
-            _mockMediator.Object,
+            _mockMapper.Object,
             NullLogger<ChangeTransportBoxStateHandler>.Instance,
             _mockUserService.Object,
             _mockStockUpProcessingService.Object,
