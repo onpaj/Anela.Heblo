@@ -241,8 +241,10 @@ public class ShoptetPriceListClientTests
     public async Task throws_when_a_200_carries_no_data_block()
     {
         // Arrange
-        // Returning an empty snapshot here would make every product decide MissingRemote
-        // and be marked Failed in one run, instead of leaving the sync states untouched.
+        // A 200 with no `data` block is a malformed response, not an empty price list.
+        // Returning an empty snapshot would hand the comparison a Shoptet side with nothing
+        // in it, classifying every in-scope product MissingInShoptet — which is exactly the
+        // "compared nothing, reported healthy" state the caller must never be handed.
         var client = CreateClient(_ => Json("""{"data":null,"errors":null}"""));
 
         // Act

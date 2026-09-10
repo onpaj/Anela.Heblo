@@ -44,9 +44,9 @@ public class ShoptetPriceListClient : IEshopPriceListClient
             var snapshot = await GetAsync<PriceListSnapshotResponse>(url, ct);
 
             // A 200 whose body carries no `data` block is a malformed response, not an empty
-            // price list. Swallowing it would hand the sync an empty snapshot, and every
-            // in-scope product would then decide MissingRemote and be marked Failed in a
-            // single run — the exact mass-failure the caller's try/catch exists to prevent.
+            // price list. Swallowing it would hand the comparison an empty Shoptet side, and
+            // every in-scope product would then classify MissingInShoptet — a run that
+            // compared nothing while reporting zero mismatches.
             var data = snapshot.Data
                 ?? throw new HttpRequestException($"Shoptet returned no data block for {url}");
 

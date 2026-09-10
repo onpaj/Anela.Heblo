@@ -254,8 +254,8 @@ public class PriceComparisonServiceTests
     [Fact]
     public async Task excludes_out_of_scope_product_types_from_the_report()
     {
-        // Arrange — materials and semi-products carry no retail price (assumption A3,
-        // matching ProductPriceSyncService) and must not appear in the report at all.
+        // Arrange — only sellable types carry a retail price (assumption A3: Product, Goods,
+        // Set), so materials and semi-products must not appear in the report at all.
         WithDefaults();
         GivenCatalog(
             ("MAT001", ProductType.Material, "Surovina"),
