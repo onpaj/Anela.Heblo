@@ -14,7 +14,12 @@ public class FlexiProductPriceErpClient : UserQueryClient<ProductPriceFlexiDto>,
     private readonly IMemoryCache _cache;
     private readonly IBoMClient _bomClient;
     private readonly ILogger<FlexiProductPriceErpClient> _clientLogger;
-    private const string CacheKey = "FlexiProductPrices";
+    /// <summary>
+    /// Cache key for the whole ceník read. Shared with <see cref="FlexiProductPriceWriter"/>,
+    /// which evicts this entry after a successful price write so the next comparison does not
+    /// render a change that fully succeeded as a divergence.
+    /// </summary>
+    internal const string CacheKey = "FlexiProductPrices";
 
     public FlexiProductPriceErpClient(
         FlexiBeeSettings connection,
@@ -49,19 +54,24 @@ public class FlexiProductPriceErpClient : UserQueryClient<ProductPriceFlexiDto>,
 
         IList<ProductPriceFlexiDto>? data = null;
 
-        // Safe cache access with disposed object protection
-        try
+        // Safe cache access with disposed object protection. forceReload skips the lookup
+        // entirely (and the fresh result below replaces the entry) — it used to be accepted
+        // and silently dropped, so no caller could ever get a fresh read out of this client.
+        if (!forceReload)
         {
-            if (!_cache.TryGetValue(CacheKey, out data))
+            try
             {
-                // Cache miss - load from source
+                if (!_cache.TryGetValue(CacheKey, out data))
+                {
+                    // Cache miss - load from source
+                    data = null;
+                }
+            }
+            catch (ObjectDisposedException)
+            {
+                // Cache is disposed, skip caching and load from source
                 data = null;
             }
-        }
-        catch (ObjectDisposedException)
-        {
-            // Cache is disposed, skip caching and load from source
-            data = null;
         }
 
         if (data == null)

@@ -313,6 +313,78 @@ public class FlexiProductPriceErpClientTests
     }
 
     [Fact]
+    public async Task GetAllAsync_WithoutForceReload_ServesTheCachedEntry()
+    {
+        // Arrange: a live cache entry and an HTTP client that would blow up if used.
+        using var cache = new MemoryCache(new MemoryCacheOptions());
+        cache.Set(FlexiProductPriceErpClient.CacheKey, new List<ProductPriceFlexiDto>
+        {
+            new()
+            {
+                ProductId = 1,
+                ProductCode = "A",
+                Price = 100m,
+                PurchasePrice = 0m,
+                VatLevel = "dphZakl",
+                ProductType = "Zbo\u017e\u00ed",
+                TypCenyDphK = "typCeny.bezDph",
+            },
+        });
+        var client = CreateClientWith(cache, new ThrowingHttpMessageHandler(new HttpRequestException("network")));
+
+        // Act
+        var result = await client.GetAllAsync(false, CancellationToken.None);
+
+        // Assert
+        result.Should().ContainSingle().Which.ProductCode.Should().Be("A");
+    }
+
+    [Fact]
+    public async Task GetAllAsync_WithForceReload_BypassesTheCachedEntry()
+    {
+        // Arrange: forceReload was accepted and silently dropped, so nothing could ever get
+        // a fresh read out of this client. Same cache entry as above; reaching the network
+        // is what proves the cache was bypassed.
+        using var cache = new MemoryCache(new MemoryCacheOptions());
+        cache.Set(FlexiProductPriceErpClient.CacheKey, new List<ProductPriceFlexiDto>
+        {
+            new()
+            {
+                ProductId = 1,
+                ProductCode = "A",
+                Price = 100m,
+                PurchasePrice = 0m,
+                VatLevel = "dphZakl",
+                ProductType = "Zbo\u017e\u00ed",
+                TypCenyDphK = "typCeny.bezDph",
+            },
+        });
+        var client = CreateClientWith(cache, new ThrowingHttpMessageHandler(new HttpRequestException("network")));
+
+        // Act
+        var act = async () => await client.GetAllAsync(true, CancellationToken.None);
+
+        // Assert
+        await act.Should().ThrowAsync<HttpRequestException>();
+    }
+
+    private FlexiProductPriceErpClient CreateClientWith(IMemoryCache cache, HttpMessageHandler handler)
+    {
+        var httpClient = new HttpClient(handler) { BaseAddress = new Uri("https://test.flexibee.com/") };
+        var factory = new Mock<IHttpClientFactory>();
+        factory.Setup(x => x.CreateClient(It.IsAny<string>())).Returns(httpClient);
+
+        return new FlexiProductPriceErpClient(
+            _flexiBeeSettings,
+            factory.Object,
+            _resultHandlerMock.Object,
+            cache,
+            _loggerMock.Object,
+            _bomClientMock.Object,
+            _clientLoggerMock.Object);
+    }
+
+    [Fact]
     public void MapToProductPrices_CarriesTheRecognisedVatBandThrough()
     {
         // Arrange: a genuinely 12% item. The write path must see 12, not a rate recovered

@@ -2,6 +2,7 @@ using System.Net;
 using System.Text;
 using Anela.Heblo.Adapters.Flexi.Price;
 using FluentAssertions;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging.Abstractions;
 using Rem.FlexiBeeSDK.Client;
 using Xunit;
@@ -11,7 +12,11 @@ namespace Anela.Heblo.Tests.Adapters.Flexi;
 public class FlexiProductPriceWriterTests
 {
     private static (FlexiProductPriceWriter Writer, List<HttpRequestMessage> Requests, List<string> Bodies) Create(
-        HttpStatusCode status = HttpStatusCode.OK, string responseBody = "{}")
+        HttpStatusCode status = HttpStatusCode.OK, string responseBody = "{}") =>
+        CreateWithCache(new MemoryCache(new MemoryCacheOptions()), status, responseBody);
+
+    private static (FlexiProductPriceWriter Writer, List<HttpRequestMessage> Requests, List<string> Bodies) CreateWithCache(
+        IMemoryCache cache, HttpStatusCode status = HttpStatusCode.OK, string responseBody = "{}")
     {
         var requests = new List<HttpRequestMessage>();
         var bodies = new List<string>();
@@ -19,7 +24,7 @@ public class FlexiProductPriceWriterTests
         var factory = new StubHttpClientFactory(new HttpClient(handler));
         var settings = new FlexiBeeSettings { Server = "https://petra-tesarikova.flexibee.eu", Company = "anela" };
 
-        return (new FlexiProductPriceWriter(factory, settings, NullLogger<FlexiProductPriceWriter>.Instance),
+        return (new FlexiProductPriceWriter(factory, settings, cache, NullLogger<FlexiProductPriceWriter>.Instance),
                 requests, bodies);
     }
 
@@ -91,6 +96,40 @@ public class FlexiProductPriceWriterTests
 
         // Assert
         (await act.Should().ThrowAsync<HttpRequestException>()).And.Message.Should().Contain("success");
+    }
+
+    [Fact]
+    public async Task evicts_the_cached_flexi_price_read_after_a_successful_write()
+    {
+        // Arrange: the ERP read is served from a 5-minute IMemoryCache entry. Left in place,
+        // the comparison screen refetched right after a successful save would read Shoptet
+        // live (new price) and Flexi from cache (old price), and render the change the
+        // operator just made as a FlexiDiffers divergence.
+        using var cache = new MemoryCache(new MemoryCacheOptions());
+        cache.Set(FlexiProductPriceErpClient.CacheKey, new List<ProductPriceFlexiDto>());
+        var (writer, _, _) = CreateWithCache(cache);
+
+        // Act
+        await writer.SetPriceWithoutVatAsync(147, 157.02m, CancellationToken.None);
+
+        // Assert
+        cache.TryGetValue(FlexiProductPriceErpClient.CacheKey, out _).Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task keeps_the_cached_flexi_price_read_when_the_write_is_rejected()
+    {
+        // Arrange: a rejected write changed nothing in Flexi, so the cached read is still true.
+        using var cache = new MemoryCache(new MemoryCacheOptions());
+        cache.Set(FlexiProductPriceErpClient.CacheKey, new List<ProductPriceFlexiDto>());
+        var (writer, _, _) = CreateWithCache(cache, HttpStatusCode.BadRequest, "{}");
+
+        // Act
+        var act = () => writer.SetPriceWithoutVatAsync(147, 157.02m, CancellationToken.None);
+
+        // Assert
+        await act.Should().ThrowAsync<HttpRequestException>();
+        cache.TryGetValue(FlexiProductPriceErpClient.CacheKey, out _).Should().BeTrue();
     }
 
     private sealed class StubHttpClientFactory : IHttpClientFactory

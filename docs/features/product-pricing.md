@@ -161,7 +161,12 @@ price to Shoptet, then to Flexi, in that order, with a pre-flight before either 
 3. **Write Shoptet** (`PATCH /api/pricelists/{id}`, `priceWithVat.price`, never the flat
    `price` field — see the integration doc for the object-vs-scalar 422 gotcha).
 4. **Write Flexi** (excl-VAT price, computed from the requested with-VAT price and the
-   resolved VAT rate, rounded to 2 decimals, away-from-zero).
+   resolved VAT rate, rounded to 2 decimals, away-from-zero). A successful write evicts the
+   Flexi ceník read's 5-minute memory-cache entry (`FlexiProductPriceWriter` →
+   `FlexiProductPriceErpClient.CacheKey`). Without that, the refetch the frontend triggers
+   immediately after a successful save would read Shoptet live (new price) and Flexi from
+   cache (old price), and render a change that fully succeeded as a `FlexiDiffers`
+   divergence.
 
 There is no server-side price ceiling — any fixed ceiling would be an arbitrary magic
 number. The frontend's own confirmation step (see below) is the only guard against a

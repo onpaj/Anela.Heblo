@@ -3,6 +3,7 @@ using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
 using Anela.Heblo.Domain.Features.ProductPricing;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 using Rem.FlexiBeeSDK.Client;
 
@@ -18,15 +19,18 @@ public class FlexiProductPriceWriter : IErpPriceWriter
 {
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly FlexiBeeSettings _connection;
+    private readonly IMemoryCache _cache;
     private readonly ILogger<FlexiProductPriceWriter> _logger;
 
     public FlexiProductPriceWriter(
         IHttpClientFactory httpClientFactory,
         FlexiBeeSettings connection,
+        IMemoryCache cache,
         ILogger<FlexiProductPriceWriter> logger)
     {
         _httpClientFactory = httpClientFactory;
         _connection = connection;
+        _cache = cache;
         _logger = logger;
     }
 
@@ -78,7 +82,27 @@ public class FlexiProductPriceWriter : IErpPriceWriter
                 $"Flexi ceník write failed for id {erpItemId} with {(int)response.StatusCode}: {body}");
         }
 
+        // Flexi now holds a price the cached ceník read does not. Left in place, the very
+        // next comparison — the one the frontend triggers right after a successful save —
+        // would read Shoptet live (new price) and Flexi from a cache entry up to 5 minutes
+        // old (previous price), and render a change that fully succeeded as a FlexiDiffers
+        // divergence, on the screen that exists to surface real divergence.
+        InvalidateCachedErpPrices();
+
         _logger.LogInformation(
             "Updated Flexi ceník {ErpItemId} base price to {Price}", erpItemId, priceWithoutVat);
+    }
+
+    private void InvalidateCachedErpPrices()
+    {
+        try
+        {
+            _cache.Remove(FlexiProductPriceErpClient.CacheKey);
+        }
+        catch (ObjectDisposedException)
+        {
+            // Same accommodation FlexiProductPriceErpClient makes: a disposed cache is not a
+            // reason to report a completed live price write as a failure.
+        }
     }
 }
