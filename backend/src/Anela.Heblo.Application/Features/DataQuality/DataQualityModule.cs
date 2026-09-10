@@ -25,6 +25,7 @@ public static class DataQualityModule
         // Register dashboard tiles
         services.RegisterTile<DataQualityStatusTile>();
         services.RegisterTile<DqtYesterdayStatusTile>();
+        services.RegisterTile<PriceComparisonStatusTile>();
 
         return services;
     }
