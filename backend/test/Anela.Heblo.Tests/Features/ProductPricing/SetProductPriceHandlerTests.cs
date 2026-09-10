@@ -134,6 +134,42 @@ public class SetProductPriceHandlerTests
     }
 
     [Fact]
+    public async Task reports_an_erp_read_failure_separately_from_a_missing_cenik_item()
+    {
+        // Arrange: a Flexi outage, timeout or 500 — not a data-quality fact about the
+        // product. Reporting it as "the product has no cen\u00edk item" sends every operator
+        // hunting in Flexi for something that is actually there.
+        _erpReader.Setup(c => c.GetAllAsync(false, It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new HttpRequestException("Flexi 500"));
+
+        // Act
+        var response = await CreateSut().Handle(Request(), CancellationToken.None);
+
+        // Assert
+        response.ErrorCode.Should().Be(ErrorCodes.ProductPriceErpReadFailed);
+        _eshop.Verify(c => c.SetPriceWithVatAsync(It.IsAny<string>(), It.IsAny<decimal>(),
+            It.IsAny<CancellationToken>()), Times.Never);
+        _erpWriter.VerifyNoOtherCalls();
+    }
+
+    [Fact]
+    public async Task reports_a_vat_rate_read_failure_as_an_erp_read_failure()
+    {
+        // Arrange
+        _vatRates.Setup(v => v.GetVatRatesAsync(It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new HttpRequestException("Flexi timeout"));
+
+        // Act
+        var response = await CreateSut().Handle(Request(), CancellationToken.None);
+
+        // Assert
+        response.ErrorCode.Should().Be(ErrorCodes.ProductPriceErpReadFailed);
+        _eshop.Verify(c => c.SetPriceWithVatAsync(It.IsAny<string>(), It.IsAny<decimal>(),
+            It.IsAny<CancellationToken>()), Times.Never);
+        _erpWriter.VerifyNoOtherCalls();
+    }
+
+    [Fact]
     public async Task never_writes_flexi_when_the_shoptet_write_fails()
     {
         // Arrange

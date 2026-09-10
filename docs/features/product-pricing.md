@@ -180,8 +180,15 @@ just typed. The next nightly DQT run — or the operator reopening the pricing s
 what actually surfaces the divergence for a human to resolve, typically by re-editing the
 price once Flexi is reachable again.
 
-Every other failure mode (product not in Shoptet, Flexi item id unknown, unsupported Flexi
-price type, Shoptet write itself failing) leaves **nothing** written on either side.
+Every other failure mode (product not in Shoptet, Flexi read failing, Flexi item id
+unknown, unsupported Flexi price type, unrecognised Flexi VAT band, Shoptet write itself
+failing) leaves **nothing** written on either side.
+
+A *failed* Flexi read and a product that genuinely has no ceník item / no recognisable VAT
+band are reported as three different codes on purpose (`ProductPriceErpReadFailed`,
+`ProductPriceFlexiItemIdUnknown`, `ProductPriceFlexiVatRateUnknown`). Collapsing them, as
+an earlier revision did, tells every operator during a Flexi outage to go hunting in Flexi
+for a ceník item that is actually there.
 
 ### Frontend: inline editing with confirmations
 
@@ -246,6 +253,7 @@ applicable. The log is:
 | `ProductPriceFlexiWriteFailed` | Shoptet was written successfully but the Flexi write failed — **the two systems now diverge**. |
 | `ProductPriceFlexiPriceTypeUnsupported` | Item's Flexi price type is not `bezDph`; refused outright, nothing written. |
 | `ProductPriceFlexiVatRateUnknown` | Flexi's VAT band for the item was not one the adapter recognises, so no rate can be trusted; refused outright, nothing written. |
+| `ProductPriceErpReadFailed` | The Flexi read itself failed (outage, timeout, 5xx) — distinct from any fact about the product; nothing written. |
 
 ## Known constraints
 

@@ -351,6 +351,7 @@ const resources = {
         ProductPriceFlexiWriteFailed: "Cena byla změněna v Shoptetu, ale zápis do Flexi selhal — ceny se nyní liší",
         ProductPriceFlexiPriceTypeUnsupported: "Položka má ve Flexi typ ceny s DPH nebo neznámý; cenu nelze bezpečně zapsat a nebyla nikde změněna",
         ProductPriceFlexiVatRateUnknown: "Sazbu DPH položky ve Flexi se nepodařilo určit; cena nebyla nikde změněna",
+        ProductPriceErpReadFailed: "ERP Flexi se nepodařilo načíst; cena nebyla nikde změněna",
 
         // External Service errors
         ExternalServiceError: "Chyba externí služby",

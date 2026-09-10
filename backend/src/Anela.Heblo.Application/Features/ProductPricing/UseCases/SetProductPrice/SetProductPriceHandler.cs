@@ -89,6 +89,10 @@ public class SetProductPriceHandler : IRequestHandler<SetProductPriceRequest, Se
         }
 
         // 2. Pre-flight the Flexi leg while nothing has been written yet.
+        //    A throwing read is a Flexi outage/timeout/500, not a fact about this product —
+        //    it gets its own code so an operator is not told to go looking in Flexi for a
+        //    ceník item that is actually there. ProductPriceFlexiItemIdUnknown stays for the
+        //    genuine "the read resolved fine, this product simply has no id" case below.
         ProductPriceErp? erpMatch;
         try
         {
@@ -97,7 +101,7 @@ public class SetProductPriceHandler : IRequestHandler<SetProductPriceRequest, Se
         catch (Exception ex)
         {
             return await FailAsync(request, oldPrice, false, false,
-                ErrorCodes.ProductPriceFlexiItemIdUnknown, ex.Message);
+                ErrorCodes.ProductPriceErpReadFailed, ex.Message);
         }
 
         if (erpMatch is not { ErpItemId: > 0 })
@@ -123,7 +127,7 @@ public class SetProductPriceHandler : IRequestHandler<SetProductPriceRequest, Se
         catch (Exception ex)
         {
             return await FailAsync(request, oldPrice, false, false,
-                ErrorCodes.ProductPriceFlexiItemIdUnknown, ex.Message);
+                ErrorCodes.ProductPriceErpReadFailed, ex.Message);
         }
 
         // A missing rate means the ERP's own VAT band was not one the adapter recognises (see
