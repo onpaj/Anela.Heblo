@@ -1,4 +1,6 @@
 using Anela.Heblo.Application.Common.Behaviors;
+using Anela.Heblo.Application.Features.DataQuality.Contracts;
+using Anela.Heblo.Application.Features.ProductPricing.Infrastructure;
 using Anela.Heblo.Application.Features.ProductPricing.Services;
 using Anela.Heblo.Application.Features.ProductPricing.UseCases.SetProductPrice;
 using Anela.Heblo.Domain.Features.ProductPricing;
@@ -15,6 +17,10 @@ public static class ProductPricingModule
     {
         services.AddScoped<IPriceComparisonService, PriceComparisonService>();
         services.AddScoped<IProductPriceChangeLogRepository, ProductPriceChangeLogRepository>();
+
+        // Provider registers the binding for DataQuality's consumer-owned contract (see
+        // ILeafletKnowledgeSource pattern in development_guidelines.md).
+        services.AddScoped<IPriceComparisonSource, PriceComparisonDqtAdapter>();
 
         services.AddScoped<IValidator<SetProductPriceRequest>, SetProductPriceRequestValidator>();
         services.AddScoped<
