@@ -18,7 +18,10 @@ public class PriceComparisonDqtJob : IRecurringJob
         JobName = "daily-price-comparison-dqt",
         DisplayName = "Daily Price Comparison Data Quality Test",
         Description = "Compares retail prices between Shoptet (source of truth) and ABRA Flexi",
-        CronExpression = "0 6 * * *", // Daily at 6:00 AM, alongside the other DQT checks
+        // The other DQT checks are deliberately staggered (05:00 invoices, 06:00 product
+        // pairing, 07:00 stock write-back, 08:00 lot stock); 06:00 collided exactly with
+        // product pairing, so this one runs after all of them.
+        CronExpression = "0 9 * * *", // Daily at 9:00 AM, after the other DQT checks
         DefaultIsEnabled = true
     };
 

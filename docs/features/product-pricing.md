@@ -131,7 +131,9 @@ The comparison also runs as a scheduled data-quality check, wired into the share
   the DQT framework's from/to bounds are ignored, the same accommodation the other drift
   comparers make.
 - **Job**: `PriceComparisonDqtJob`, Hangfire recurring job `daily-price-comparison-dqt`,
-  `0 6 * * *` (06:00 daily, alongside the other DQT checks).
+  `0 9 * * *` (09:00 daily). The DQT checks are deliberately staggered — 05:00 invoices,
+  06:00 product pairing, 07:00 stock write-back, 08:00 lot stock — so this one runs after
+  all of them rather than colliding with product pairing at 06:00.
 - **Source**: `PriceComparisonDqtAdapter` implements DataQuality's consumer-owned
   `IPriceComparisonSource` contract, translating `PriceComparisonService`'s rows into
   `PriceDivergence` records. `FlexiDiffers`, `MissingInFlexi`, and `FlexiPriceTypeUnknown`
