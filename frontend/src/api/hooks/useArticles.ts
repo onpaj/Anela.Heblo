@@ -217,7 +217,6 @@ export const useSubmitArticleFeedbackMutation = (articleId: string) => {
     mutationFn: async (payload: SubmitArticleFeedbackPayload): Promise<SubmitArticleFeedbackResult> => {
       const client = getAuthenticatedApiClient();
       const request = new SubmitArticleFeedbackRequest({
-        articleId,
         precisionScore: payload.precisionScore,
         styleScore: payload.styleScore,
         comment: payload.comment,

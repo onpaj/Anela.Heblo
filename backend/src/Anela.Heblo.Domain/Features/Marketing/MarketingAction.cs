@@ -213,6 +213,17 @@ namespace Anela.Heblo.Domain.Features.Marketing
             ModifiedByUsername = username;
         }
 
+        public void Restore(string userId, string username, DateTime utcNow)
+        {
+            IsDeleted = false;
+            DeletedAt = null;
+            DeletedByUserId = null;
+            DeletedByUsername = null;
+            ModifiedAt = utcNow;
+            ModifiedByUserId = userId;
+            ModifiedByUsername = username;
+        }
+
         public void MarkOutlookSynced(string eventId, DateTime utcNow)
         {
             if (string.IsNullOrWhiteSpace(eventId))

@@ -34,7 +34,7 @@ public class InvoiceImportService : IInvoiceImportService
         _logger = logger;
     }
 
-    [DisplayName("Import faktur: {0}")]
+    [DisplayName(InvoiceImportServiceConstants.DisplayNameFormat)]
     public async Task<ImportResultDto> ImportInvoicesAsync(string description, IssuedInvoiceSourceQuery query, CancellationToken cancellationToken = default)
     {
         _logger.LogInformation("Starting async invoice import with query: {Query}", JsonSerializer.Serialize(query));

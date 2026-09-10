@@ -87,12 +87,10 @@ req() {
     -H "Accept: ${accept}"
     -H "X-GitHub-Api-Version: 2022-11-28"
     -w $'\n__HTTP_CODE__%{http_code}')
-  # Do NOT remove this header: curl -d alone defaults to
+  # Do NOT remove this header: `curl -d` alone defaults to
   # application/x-www-form-urlencoded, and GitHub's git-data endpoints
   # (e.g. git/refs) hard-reject that with a "Send the documented JSON
-  # body" 403. This exact header has been added and mistakenly reverted
-  # more than once (see memory/gotchas/gh-cli-unavailable-in-cloud-sessions.md) —
-  # curl does NOT infer JSON from body content on its own.
+  # body" 403. curl does NOT infer JSON from the body's content.
   [[ -n "$body" ]] && args+=(-H "Content-Type: application/json" -d "$body")
 
   local out code delay=3 attempt
@@ -488,17 +486,25 @@ pr_diff() {
 }
 
 pr_list() {
-  # pr_list STATE LABEL_CSV — mirrors `gh pr list --state S --label L1
+  # pr_list STATE [LABEL_CSV] — mirrors `gh pr list --state S --label L1
   # --label L2 --limit 100 --json <full common set>`, including
   # reviewDecision. Uses the /issues search endpoint for label-AND
   # filtering (the /pulls endpoint has no label filter), then enriches
   # each match with the full PR object — the same per-candidate cost
   # rework-pr's own comment-history lookups already pay.
+  #
+  # An empty or omitted LABEL_CSV drops the label filter entirely, so every
+  # open PR is returned — the transport-level equivalent of `gh pr list`
+  # without any --label flag. The /issues endpoint returns issues as well
+  # as PRs, which the has("pull_request") filter below already removes.
   need_repo
-  local state="${1:?state required}" labels_csv="${2:?labels required}"
-  local enc_labels resp numbers out
-  enc_labels=$(jq -rn --arg l "$labels_csv" '$l|@uri')
-  resp=$(req GET "/repos/${REPO}/issues?state=${state}&labels=${enc_labels}&per_page=100")
+  local state="${1:?state required}" labels_csv="${2:-}"
+  local enc_labels resp numbers out label_query=""
+  if [[ -n "$labels_csv" ]]; then
+    enc_labels=$(jq -rn --arg l "$labels_csv" '$l|@uri')
+    label_query="&labels=${enc_labels}"
+  fi
+  resp=$(req GET "/repos/${REPO}/issues?state=${state}${label_query}&per_page=100")
   numbers=$(emit "$resp" | jq -r '[.[] | select(has("pull_request"))] | .[].number')
   out="[]"
   for n in $numbers; do

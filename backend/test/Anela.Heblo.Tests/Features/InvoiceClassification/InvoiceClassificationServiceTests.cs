@@ -32,6 +32,7 @@ public class InvoiceClassificationServiceTests
         // Arrange
         var invoice = new ReceivedInvoice
         {
+            AbraInvoiceId = "ABRA-001",
             InvoiceNumber = "INV-001",
             InvoiceDate = DateTime.UtcNow,
             CompanyName = "Test Company",
@@ -73,7 +74,7 @@ public class InvoiceClassificationServiceTests
         result.ErrorMessage.Should().BeNull();
 
         capturedHistory.Should().NotBeNull();
-        capturedHistory.AbraInvoiceId.Should().Be(invoice.InvoiceNumber);
+        capturedHistory.AbraInvoiceId.Should().Be(invoice.AbraInvoiceId);
         capturedHistory.InvoiceNumber.Should().Be(invoice.InvoiceNumber);
         capturedHistory.InvoiceDate.Should().Be(invoice.InvoiceDate);
         capturedHistory.CompanyName.Should().Be(invoice.CompanyName);
@@ -103,6 +104,7 @@ public class InvoiceClassificationServiceTests
         // Arrange
         var invoice = new ReceivedInvoice
         {
+            AbraInvoiceId = "ABRA-002",
             InvoiceNumber = "INV-002",
             InvoiceDate = DateTime.UtcNow,
             CompanyName = "Test Company",
@@ -153,7 +155,7 @@ public class InvoiceClassificationServiceTests
         result.ErrorMessage.Should().BeNull();
 
         capturedHistory.Should().NotBeNull();
-        capturedHistory.AbraInvoiceId.Should().Be(invoice.InvoiceNumber);
+        capturedHistory.AbraInvoiceId.Should().Be(invoice.AbraInvoiceId);
         capturedHistory.InvoiceNumber.Should().Be(invoice.InvoiceNumber);
         capturedHistory.InvoiceDate.Should().Be(invoice.InvoiceDate);
         capturedHistory.CompanyName.Should().Be(invoice.CompanyName);
@@ -184,6 +186,7 @@ public class InvoiceClassificationServiceTests
         // Arrange
         var invoice = new ReceivedInvoice
         {
+            AbraInvoiceId = "ABRA-003",
             InvoiceNumber = "INV-003",
             InvoiceDate = DateTime.UtcNow,
             CompanyName = "Test Company",
@@ -234,7 +237,7 @@ public class InvoiceClassificationServiceTests
         result.ErrorMessage.Should().Be("Failed to update invoice classification in ABRA");
 
         capturedHistory.Should().NotBeNull();
-        capturedHistory.AbraInvoiceId.Should().Be(invoice.InvoiceNumber);
+        capturedHistory.AbraInvoiceId.Should().Be(invoice.AbraInvoiceId);
         capturedHistory.InvoiceNumber.Should().Be(invoice.InvoiceNumber);
         capturedHistory.InvoiceDate.Should().Be(invoice.InvoiceDate);
         capturedHistory.CompanyName.Should().Be(invoice.CompanyName);
@@ -265,6 +268,7 @@ public class InvoiceClassificationServiceTests
         // Arrange
         var invoice = new ReceivedInvoice
         {
+            AbraInvoiceId = "ABRA-004",
             InvoiceNumber = "INV-004",
             InvoiceDate = DateTime.UtcNow,
             CompanyName = "Test Company",
@@ -296,7 +300,7 @@ public class InvoiceClassificationServiceTests
             .And.Contain("Database connection failed");
 
         capturedHistory.Should().NotBeNull();
-        capturedHistory.AbraInvoiceId.Should().Be(invoice.InvoiceNumber);
+        capturedHistory.AbraInvoiceId.Should().Be(invoice.AbraInvoiceId);
         capturedHistory.InvoiceNumber.Should().Be(invoice.InvoiceNumber);
         capturedHistory.InvoiceDate.Should().Be(invoice.InvoiceDate);
         capturedHistory.CompanyName.Should().Be(invoice.CompanyName);

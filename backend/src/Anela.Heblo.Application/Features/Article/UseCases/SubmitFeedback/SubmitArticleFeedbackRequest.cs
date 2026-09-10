@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using System.Text.Json.Serialization;
 using Anela.Heblo.Application.Shared;
 using MediatR;
 
@@ -6,6 +7,7 @@ namespace Anela.Heblo.Application.Features.Article.UseCases.SubmitFeedback;
 
 public class SubmitArticleFeedbackRequest : IRequest<SubmitArticleFeedbackResponse>
 {
+    [JsonIgnore]
     public Guid ArticleId { get; set; }
 
     [Range(1, 5)]

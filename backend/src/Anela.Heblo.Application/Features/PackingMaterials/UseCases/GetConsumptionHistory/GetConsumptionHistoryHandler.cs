@@ -45,8 +45,8 @@ public class GetConsumptionHistoryHandler
         var (records, totalCount) = await _repository.GetConsumptionHistoryAsync(
             filter, skip, pageSize, ascending: !request.SortDescending, cancellationToken);
 
-        var materialNames = (await _repository.GetAllAsync(cancellationToken))
-            .ToDictionary(m => m.Id, m => m.Name);
+        var materialIds = records.Select(r => r.PackingMaterialId).Distinct();
+        var materialNames = await _repository.GetMaterialNamesByIdsAsync(materialIds, cancellationToken);
 
         var items = records.Select(r => MapToDto(r, materialNames)).ToList();
 

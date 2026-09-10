@@ -58,6 +58,7 @@ public class PlaudPollingJob : IRecurringJob
         int ingested = 0;
         int skipped = 0;
         int notGenerated = 0;
+        int failed = 0;
 
         foreach (var recording in readyRecordings)
         {
@@ -79,6 +80,10 @@ public class PlaudPollingJob : IRecurringJob
                     else
                         skipped++;
                 }
+                else if (!response.Success)
+                {
+                    failed++;
+                }
                 else
                 {
                     ingested++;
@@ -91,7 +96,7 @@ public class PlaudPollingJob : IRecurringJob
         }
 
         _logger.LogInformation(
-            "{JobName} complete. {Ingested} new recordings ingested, {Skipped} already known, {NotGenerated} not yet generated",
-            Metadata.JobName, ingested, skipped, notGenerated);
+            "{JobName} complete. {Ingested} new recordings ingested, {Skipped} already known, {NotGenerated} not yet generated, {Failed} failed",
+            Metadata.JobName, ingested, skipped, notGenerated, failed);
     }
 }

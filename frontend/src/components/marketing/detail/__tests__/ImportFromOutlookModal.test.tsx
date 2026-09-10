@@ -108,3 +108,36 @@ describe('ImportFromOutlookModal — UnmappedCategoriesPanel integration', () =>
     expect(screen.getByText('Vytvořeno:')).toBeInTheDocument();
   });
 });
+
+describe('ImportFromOutlookModal — deleted count', () => {
+  it('renders the deleted count from the response', async () => {
+    mockMutateAsync.mockResolvedValue({
+      created: 1,
+      skipped: 2,
+      failed: 0,
+      deleted: 3,
+      unmappedCategories: [],
+    });
+
+    render(<ImportFromOutlookModal {...defaultProps} />);
+    await triggerImport();
+
+    const deletedLine = screen.getByText('Smazáno:');
+    expect(deletedLine).toBeInTheDocument();
+    expect(deletedLine).toHaveTextContent('Smazáno: 3');
+  });
+
+  it('shows zero deleted when the field is missing', async () => {
+    mockMutateAsync.mockResolvedValue({
+      created: 1,
+      skipped: 0,
+      failed: 0,
+      unmappedCategories: [],
+    } as any);
+
+    render(<ImportFromOutlookModal {...defaultProps} />);
+    await triggerImport();
+
+    expect(screen.getByText('Smazáno:')).toHaveTextContent('Smazáno: 0');
+  });
+});

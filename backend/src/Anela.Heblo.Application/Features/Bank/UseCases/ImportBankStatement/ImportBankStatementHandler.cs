@@ -51,12 +51,10 @@ public class ImportBankStatementHandler : IRequestHandler<ImportBankStatementReq
             "Bank import START - Account: {AccountName}, DateFrom: {DateFrom}, DateTo: {DateTo}",
             request.AccountName, request.DateFrom, request.DateTo);
 
-        var accountSetting = _bankSettings.Accounts?.SingleOrDefault(a => a.Name == request.AccountName);
+        var accountSetting = _bankSettings.Accounts.SingleOrDefault(a => a.Name == request.AccountName);
         if (accountSetting == null)
         {
-            var availableAccounts = _bankSettings.Accounts != null
-                ? string.Join(", ", _bankSettings.Accounts.Select(a => a.Name))
-                : "None";
+            var availableAccounts = string.Join(", ", _bankSettings.Accounts.Select(a => a.Name));
 
             _logger.LogError(
                 "Bank import FAILED - Account not found: {AccountName}. Available accounts: {AvailableAccounts}",

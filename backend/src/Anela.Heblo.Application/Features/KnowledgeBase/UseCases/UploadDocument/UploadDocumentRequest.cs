@@ -5,7 +5,7 @@ namespace Anela.Heblo.Application.Features.KnowledgeBase.UseCases.UploadDocument
 
 public class UploadDocumentRequest : IRequest<UploadDocumentResponse>
 {
-    public Stream FileStream { get; set; } = default!;
+    public byte[] Content { get; set; } = [];
     public string Filename { get; set; } = default!;
     public string ContentType { get; set; } = default!;
     public DocumentType DocumentType { get; set; } = DocumentType.KnowledgeBase;

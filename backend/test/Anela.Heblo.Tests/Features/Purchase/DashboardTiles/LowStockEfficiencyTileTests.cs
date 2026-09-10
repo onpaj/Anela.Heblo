@@ -1,3 +1,4 @@
+using Anela.Heblo.Application.Features.Purchase.Contracts;
 using Anela.Heblo.Application.Features.Purchase.DashboardTiles;
 using Anela.Heblo.Application.Features.Purchase.UseCases.GetPurchaseStockAnalysis;
 using Anela.Heblo.Application.Shared;
@@ -53,6 +54,26 @@ public class LowStockEfficiencyTileTests
 
         doc.RootElement.GetProperty("status").GetString().Should().Be("success");
         doc.RootElement.GetProperty("data").GetProperty("count").GetInt32().Should().Be(1);
+    }
+
+    [Fact]
+    public async Task LoadDataAsync_DrillDownFilters_RequestAllMaterialCategories()
+    {
+        // Arrange
+        _mediatorMock
+            .Setup(x => x.Send(It.IsAny<GetPurchaseStockAnalysisRequest>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new GetPurchaseStockAnalysisResponse { Items = new List<StockAnalysisItemDto>() });
+
+        // Act
+        var result = await _tile.LoadDataAsync();
+
+        // Assert
+        var json = JsonSerializer.Serialize(result);
+        using var doc = JsonDocument.Parse(json);
+
+        var filters = doc.RootElement.GetProperty("drillDown").GetProperty("filters");
+        filters.GetProperty("StockStatus").GetString().Should().Be(nameof(StockStatusFilter.Critical));
+        filters.GetProperty("MaterialCategory").GetString().Should().Be(nameof(MaterialCategoryFilter.All));
     }
 
     [Fact]

@@ -1,0 +1,40 @@
+{
+  "feature_id": "feat-4023",
+  "issue_number": 4023,
+  "created_at": "2026-09-01T06:12:48.379252Z",
+  "max_revisions": 3,
+  "phases": {
+    "analyzing": {
+      "status": "completed",
+      "updated_at": "2026-09-01T06:13:46.183347Z"
+    },
+    "architecting": {
+      "status": "completed",
+      "updated_at": "2026-09-01T06:14:25.590378Z"
+    },
+    "designing": {
+      "status": "completed",
+      "updated_at": "2026-09-01T06:14:42.563507Z"
+    },
+    "planning": {
+      "status": "completed",
+      "updated_at": "2026-09-01T06:15:28.964422Z"
+    },
+    "developing": {
+      "status": "in_progress",
+      "updated_at": "2026-09-02T06:17:22.535941Z"
+    },
+    "code-review": {
+      "status": "completed",
+      "updated_at": "2026-09-02T07:23:53.788804Z"
+    }
+  },
+  "tasks": [
+    {
+      "name": "fix-download-from-url-log-labels",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-09-02T06:45:42.059788Z"
+    }
+  ]
+}

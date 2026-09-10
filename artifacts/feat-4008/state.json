@@ -1,0 +1,70 @@
+{
+  "feature_id": "feat-4008",
+  "issue_number": 4008,
+  "created_at": "2026-08-31T20:12:49.913685Z",
+  "max_revisions": 3,
+  "phases": {
+    "analyzing": {
+      "status": "completed",
+      "updated_at": "2026-08-31T20:14:37.285311Z"
+    },
+    "architecting": {
+      "status": "completed",
+      "updated_at": "2026-08-31T20:15:23.892176Z"
+    },
+    "designing": {
+      "status": "completed",
+      "updated_at": "2026-08-31T20:15:47.130017Z"
+    },
+    "planning": {
+      "status": "completed",
+      "updated_at": "2026-08-31T20:17:12.275413Z"
+    },
+    "developing": {
+      "status": "in_progress",
+      "updated_at": "2026-09-01T20:14:24.240203Z"
+    },
+    "code-review": {
+      "status": "completed",
+      "updated_at": "2026-09-01T22:25:39.139103Z"
+    }
+  },
+  "tasks": [
+    {
+      "name": "setup-test-file",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-09-01T09:19:06.481161Z"
+    },
+    {
+      "name": "date-defaulting-test",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-09-01T10:38:44.865416Z"
+    },
+    {
+      "name": "explicit-dates-test",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-09-01T11:35:26.641947Z"
+    },
+    {
+      "name": "exception-path-test",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-09-01T12:42:54.668762Z"
+    },
+    {
+      "name": "happy-path-mapping-test",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-09-01T13:25:28.096410Z"
+    },
+    {
+      "name": "full-suite-verification",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-09-01T21:04:38.356914Z"
+    }
+  ]
+}

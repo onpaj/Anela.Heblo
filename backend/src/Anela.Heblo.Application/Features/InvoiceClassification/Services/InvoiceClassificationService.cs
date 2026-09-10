@@ -99,7 +99,7 @@ public class InvoiceClassificationService : IInvoiceClassificationService
         ClassificationResult result, string? accountingTemplateCode, string? department, string? errorMessage, string processedBy)
     {
         var history = new ClassificationHistory(
-            invoice.InvoiceNumber, // AbraInvoiceId
+            invoice.AbraInvoiceId, // AbraInvoiceId
             invoice.InvoiceNumber, // InvoiceNumber
             invoice.InvoiceDate,   // InvoiceDate
             invoice.CompanyName,   // CompanyName

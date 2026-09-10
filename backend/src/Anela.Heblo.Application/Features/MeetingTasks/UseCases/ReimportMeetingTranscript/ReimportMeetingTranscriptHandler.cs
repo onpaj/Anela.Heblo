@@ -88,7 +88,19 @@ public sealed class ReimportMeetingTranscriptHandler
             transcript.Subject = summaryResult.Headline;
         // else: leave transcript.Subject unchanged
 
-        var extraction = await _extractor.ExtractAsync(summaryResult.MarkdownContent, rawTranscript, cancellationToken);
+        MeetingExtractionResult extraction;
+        try
+        {
+            extraction = await _extractor.ExtractAsync(summaryResult.MarkdownContent, rawTranscript, cancellationToken);
+        }
+        catch (MeetingTaskExtractionFailedException ex)
+        {
+            _logger.LogError(ex,
+                "Meeting task extraction failed for transcript {TranscriptId} after {AttemptCount} attempts",
+                transcript.Id, ex.AttemptCount);
+            return new ReimportMeetingTranscriptResponse(ErrorCodes.Exception);
+        }
+
         transcript.Participants = extraction.Participants;
         var newTasks = extraction.Tasks
             .Select(t => new ProposedTask

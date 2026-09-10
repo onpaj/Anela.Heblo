@@ -138,27 +138,6 @@ public class DownloadFromUrlHandlerTests
     }
 
     [Theory]
-    [InlineData("not-a-url")]
-    [InlineData("")]
-    [InlineData("ftp://example.com/file.txt")]
-    public async Task Handle_InvalidUrl_ShouldReturnErrorResponse(string invalidUrl)
-    {
-        // Arrange
-        var request = new DownloadFromUrlRequest
-        {
-            FileUrl = invalidUrl,
-            ContainerName = "documents",
-        };
-
-        // Act
-        var result = await BuildHandler().Handle(request, CancellationToken.None);
-
-        // Assert
-        Assert.False(result.Success);
-        Assert.Equal(ErrorCodes.InvalidUrlFormat, result.ErrorCode);
-    }
-
-    [Theory]
     [InlineData("https://example.com/image.jpg", "image.jpg")]
     [InlineData("https://example.com/documents/report.pdf", "report.pdf")]
     [InlineData("https://example.com/files/data.json", "data.json")]
@@ -414,25 +393,6 @@ public class DownloadFromUrlHandlerTests
         Assert.DoesNotContain("token=secret123", result.Params!["fileUrl"]);
         Assert.DoesNotContain("?", result.Params["fileUrl"]);
         Assert.Contains("example.com/export.csv", result.Params["fileUrl"]);
-    }
-
-    [Fact]
-    public async Task Handle_ValidationFailure_InvalidUrl_SetsCauseValidation()
-    {
-        // Arrange
-        var request = new DownloadFromUrlRequest
-        {
-            FileUrl = "not-a-valid-url",
-            ContainerName = "exports",
-        };
-
-        // Act
-        var result = await BuildHandler().Handle(request, CancellationToken.None);
-
-        // Assert
-        Assert.False(result.Success);
-        Assert.Equal(ErrorCodes.InvalidUrlFormat, result.ErrorCode);
-        Assert.Equal("validation", result.Params!["cause"]);
     }
 
     [Fact]

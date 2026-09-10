@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { FileText, Printer, ExternalLink, ChevronLeft, ChevronRight, Play, RefreshCw } from "lucide-react";
+import { FileText, Printer, ExternalLink, ChevronLeft, ChevronRight, RefreshCw } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { getAuthenticatedFetch, QUERY_KEYS } from "../api/client";
 import {
@@ -9,21 +9,11 @@ import {
   getExpeditionListDownloadUrl,
   ExpeditionListItemDto,
 } from "../api/hooks/useExpeditionListArchive";
-import { useRunExpeditionListPrintFix } from "../api/hooks/useExpeditionList";
-import {
-  useTriggerRecurringJobMutation,
-  useRecurringJobQuery,
-  useUpdateRecurringJobStatusMutation,
-} from "../api/hooks/useRecurringJobs";
-import { usePermissionsContext } from "../auth/PermissionsContext";
 import { useToast } from "../contexts/ToastContext";
 import { useScreenView } from "../telemetry/useScreenView";
-import PrintOrderModal from "../components/modals/PrintOrderModal";
+import ExpeditionJobControlsBar from "../components/pages/ExpeditionListArchive/ExpeditionJobControlsBar";
 
 const PAGE_SIZE = 20;
-const PRINT_JOB_NAME = "print-picking-list";
-const TRIGGER_JOBS_PERMISSION = "jobs.trigger.read";
-const DISABLE_JOBS_PERMISSION = "jobs.disable.read";
 
 const formatFileSize = (bytes: number | null): string => {
   if (bytes === null) return "–";
@@ -50,21 +40,12 @@ const ExpeditionListArchivePage: React.FC = () => {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [selectedDate, setSelectedDate] = useState<string>("");
   const [reprintConfirm, setReprintConfirm] = useState<ExpeditionListItemDto | null>(null);
-  const [isPrintOrderModalOpen, setIsPrintOrderModalOpen] = useState(false);
 
   useScreenView('Logistics', 'ExpeditionArchive');
 
   const { data: datesData, isLoading: datesLoading } = useExpeditionDates(page, PAGE_SIZE);
   const { data: itemsData, isLoading: itemsLoading } = useExpeditionListsByDate(selectedDate);
   const reprintMutation = useReprintExpeditionList();
-  const triggerJobMutation = useTriggerRecurringJobMutation();
-  const runFixMutation = useRunExpeditionListPrintFix();
-
-  const { hasPermission } = usePermissionsContext();
-  const canTriggerJob = hasPermission(TRIGGER_JOBS_PERMISSION);
-  const canToggleJob = hasPermission(DISABLE_JOBS_PERMISSION);
-  const { data: printJob } = useRecurringJobQuery(PRINT_JOB_NAME, canTriggerJob || canToggleJob);
-  const updateStatusMutation = useUpdateRecurringJobStatusMutation();
 
   // Auto-select the first (most recent) date when dates load
   useEffect(() => {
@@ -98,48 +79,6 @@ const ExpeditionListArchivePage: React.FC = () => {
     setIsRefreshing(false);
   };
 
-  const handleRunJob = async () => {
-    try {
-      await triggerJobMutation.mutateAsync(PRINT_JOB_NAME);
-      showSuccess('Spuštěno', 'Tisk expedičního listu byl spuštěn.');
-    } catch {
-      showError('Chyba', 'Nepodařilo se spustit tisk expedičního listu.');
-    }
-  };
-
-  const handleToggleJob = async () => {
-    if (!printJob) return;
-    try {
-      await updateStatusMutation.mutateAsync({
-        jobName: PRINT_JOB_NAME,
-        isEnabled: !printJob.isEnabled,
-      });
-      showSuccess(
-        'Uloženo',
-        printJob.isEnabled
-          ? 'Expediční robot byl vypnut.'
-          : 'Expediční robot byl zapnut.',
-      );
-    } catch {
-      showError('Chyba', 'Nepodařilo se změnit nastavení expedičního robota.');
-    }
-  };
-
-  const handleRunFix = async () => {
-    try {
-      const result = await runFixMutation.mutateAsync();
-      showSuccess('Spuštěno', `Tisk oprav dokončen. Celkem objednávek: ${result.totalCount}.`);
-    } catch {
-      showError('Chyba', 'Nepodařilo se spustit tisk oprav.');
-    }
-  };
-
-  const handlePrintOrderSuccess = async (orderCode: string) => {
-    setIsPrintOrderModalOpen(false);
-    showSuccess("Zakázka vytištěna", `Zakázka ${orderCode} byla odeslána na tisk a převedena do stavu „Balí se".`);
-    await queryClient.invalidateQueries({ queryKey: QUERY_KEYS.expeditionListArchive });
-  };
-
   const handleReprintConfirm = async () => {
     if (!reprintConfirm) return;
     try {
@@ -163,78 +102,18 @@ const ExpeditionListArchivePage: React.FC = () => {
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-semibold text-gray-900 dark:text-graphite-text">Archiv expedičních listů</h1>
         <div className="flex items-center gap-4">
-          {(canTriggerJob || canToggleJob) && (
-            <div className="flex items-center gap-3">
-              {canToggleJob && (
-                <div className="flex items-center gap-2">
-                  <span className="text-sm font-medium text-gray-700 dark:text-graphite-muted">Expediční robot</span>
-                  <button
-                    type="button"
-                    role="switch"
-                    aria-checked={printJob?.isEnabled ?? false}
-                    aria-label="Expediční robot"
-                    onClick={handleToggleJob}
-                    disabled={!printJob || updateStatusMutation.isPending}
-                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed ${
-                      printJob?.isEnabled ? "bg-indigo-600" : "bg-gray-200"
-                    }`}
-                  >
-                    <span
-                      className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                        printJob?.isEnabled ? "translate-x-6" : "translate-x-1"
-                      }`}
-                    />
-                  </button>
-                </div>
-              )}
-              <span className="text-sm text-gray-500 dark:text-graphite-muted whitespace-nowrap">
-                Další běh: {formatDateTime(printJob?.nextRunAt ? printJob.nextRunAt.toISOString() : null)}
-              </span>
-            </div>
-          )}
-          <div className="flex items-center gap-2">
-          <button
-            onClick={handleRefresh}
-            disabled={isRefreshing}
-            className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 dark:text-graphite-muted bg-white dark:bg-graphite-surface border border-gray-300 dark:border-graphite-border rounded-lg hover:bg-gray-50 dark:hover:bg-white/5 disabled:opacity-50 transition-colors"
-          >
-            <RefreshCw size={14} className={isRefreshing ? "animate-spin" : ""} />
-            Obnovit
-          </button>
-          <button
-            onClick={() => setIsPrintOrderModalOpen(true)}
-            className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 disabled:opacity-50 transition-colors"
-          >
-            <Printer size={14} />
-            Tisknout zakázku
-          </button>
-          <button
-            onClick={handleRunFix}
-            disabled={runFixMutation.isPending}
-            className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-amber-600 rounded-lg hover:bg-amber-700 disabled:opacity-50 transition-colors"
-          >
-            {runFixMutation.isPending ? (
-              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white" />
-            ) : (
-              <Play size={14} />
-            )}
-            Spustit tisk oprav
-          </button>
-          {canTriggerJob && (
-            <button
-              onClick={handleRunJob}
-              disabled={triggerJobMutation.isPending}
-              className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 disabled:opacity-50 transition-colors"
-            >
-              {triggerJobMutation.isPending ? (
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white" />
-              ) : (
-                <Play size={14} />
-              )}
-              Spustit tisk
-            </button>
-          )}
-          </div>
+          <ExpeditionJobControlsBar
+            refreshButton={
+              <button
+                onClick={handleRefresh}
+                disabled={isRefreshing}
+                className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 dark:text-graphite-muted bg-white dark:bg-graphite-surface border border-gray-300 dark:border-graphite-border rounded-lg hover:bg-gray-50 dark:hover:bg-white/5 disabled:opacity-50 transition-colors"
+              >
+                <RefreshCw size={14} className={isRefreshing ? "animate-spin" : ""} />
+                Obnovit
+              </button>
+            }
+          />
         </div>
       </div>
 
@@ -360,12 +239,6 @@ const ExpeditionListArchivePage: React.FC = () => {
           )}
         </div>
       </div>
-
-      <PrintOrderModal
-        isOpen={isPrintOrderModalOpen}
-        onClose={() => setIsPrintOrderModalOpen(false)}
-        onSuccess={handlePrintOrderSuccess}
-      />
 
       {/* Reprint confirmation dialog */}
       {reprintConfirm && (

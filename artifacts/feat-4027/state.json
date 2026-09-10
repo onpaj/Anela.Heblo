@@ -1,0 +1,52 @@
+{
+  "feature_id": "feat-4027",
+  "issue_number": 4027,
+  "created_at": "2026-09-01T09:14:36.002620Z",
+  "max_revisions": 3,
+  "phases": {
+    "analyzing": {
+      "status": "completed",
+      "updated_at": "2026-09-01T09:18:48.048192Z"
+    },
+    "architecting": {
+      "status": "completed",
+      "updated_at": "2026-09-01T09:21:04.334877Z"
+    },
+    "designing": {
+      "status": "completed",
+      "updated_at": "2026-09-01T09:21:59.302642Z"
+    },
+    "planning": {
+      "status": "completed",
+      "updated_at": "2026-09-01T09:27:59.817976Z"
+    },
+    "developing": {
+      "status": "in_progress",
+      "updated_at": "2026-09-03T04:14:21.690320Z"
+    },
+    "code-review": {
+      "status": "completed",
+      "updated_at": "2026-09-03T05:21:11.861803Z"
+    }
+  },
+  "tasks": [
+    {
+      "name": "add-repository-method",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-09-02T13:43:41.206406Z"
+    },
+    {
+      "name": "add-query-count-test",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-09-03T02:38:05.282657Z"
+    },
+    {
+      "name": "wire-handler-to-targeted-lookup",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-09-03T04:29:03.902467Z"
+    }
+  ]
+}

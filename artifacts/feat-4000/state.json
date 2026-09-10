@@ -1,0 +1,64 @@
+{
+  "feature_id": "feat-4000",
+  "issue_number": 4000,
+  "created_at": "2026-08-31T05:15:06.618025Z",
+  "max_revisions": 3,
+  "phases": {
+    "analyzing": {
+      "status": "completed",
+      "updated_at": "2026-08-31T05:19:58.337472Z"
+    },
+    "architecting": {
+      "status": "completed",
+      "updated_at": "2026-08-31T05:24:05.164499Z"
+    },
+    "designing": {
+      "status": "completed",
+      "updated_at": "2026-08-31T05:25:33.780138Z"
+    },
+    "planning": {
+      "status": "completed",
+      "updated_at": "2026-08-31T05:32:27.953063Z"
+    },
+    "developing": {
+      "status": "in_progress",
+      "updated_at": "2026-08-31T10:16:16.732915Z"
+    },
+    "code-review": {
+      "status": "completed",
+      "updated_at": "2026-08-31T13:17:41.033123Z"
+    }
+  },
+  "tasks": [
+    {
+      "name": "create-expedition-job-controls-bar-failing-tests",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-08-31T06:17:51.166577Z"
+    },
+    {
+      "name": "implement-expedition-job-controls-bar",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-08-31T07:22:56.496572Z"
+    },
+    {
+      "name": "wire-controls-bar-into-page",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-08-31T08:20:44.340397Z"
+    },
+    {
+      "name": "update-archive-page-tests",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-08-31T09:21:03.253590Z"
+    },
+    {
+      "name": "validate-full-build-and-import-confinement",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-08-31T10:25:45.597852Z"
+    }
+  ]
+}

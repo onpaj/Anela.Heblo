@@ -20,6 +20,7 @@ import {
   usePurchaseStockAnalysisQuery,
   GetPurchaseStockAnalysisRequest,
   StockStatusFilter,
+  MaterialCategoryFilter,
   StockAnalysisSortBy,
   formatNumber,
   formatCurrency,
@@ -37,19 +38,38 @@ import { usePurchasePlanningList } from "../../contexts/PurchasePlanningListCont
 import PurchasePlanningListPanel from "../common/PurchasePlanningListPanel";
 import { useScreenView } from "../../telemetry/useScreenView";
 
+const DEFAULT_MATERIAL_CATEGORY = MaterialCategoryFilter.Other;
+
+const MATERIAL_CATEGORY_OPTIONS: ReadonlyArray<{
+  value: MaterialCategoryFilter;
+  label: string;
+}> = [
+  { value: MaterialCategoryFilter.Other, label: "Suroviny" },
+  { value: MaterialCategoryFilter.Labels, label: "Etikety" },
+  { value: MaterialCategoryFilter.Packaging, label: "Obaly" },
+  { value: MaterialCategoryFilter.All, label: "Vše" },
+];
+
 const PurchaseStockAnalysis: React.FC = () => {
   const [searchParams] = useSearchParams();
   
   // State for filters - initialize from URL parameters
   const [filters, setFilters] = useState<GetPurchaseStockAnalysisRequest>(() => {
     const stockStatusParam = searchParams.get('StockStatus');
-    
+
     // Map URL parameter to enum value
     let stockStatus = StockStatusFilter.All;
     if (stockStatusParam && Object.values(StockStatusFilter).includes(stockStatusParam as StockStatusFilter)) {
       stockStatus = stockStatusParam as StockStatusFilter;
     }
-    
+
+    const materialCategoryParam = searchParams.get('MaterialCategory');
+
+    let materialCategory = DEFAULT_MATERIAL_CATEGORY;
+    if (materialCategoryParam && Object.values(MaterialCategoryFilter).includes(materialCategoryParam as MaterialCategoryFilter)) {
+      materialCategory = materialCategoryParam as MaterialCategoryFilter;
+    }
+
     return {
       fromDate: new Date(
         new Date().getFullYear() - 1,
@@ -58,6 +78,7 @@ const PurchaseStockAnalysis: React.FC = () => {
       ),
       toDate: new Date(),
       stockStatus: stockStatus,
+      materialCategory: materialCategory,
       onlyConfigured: true,
       searchTerm: searchParams.get('searchTerm') || "",
       pageNumber: 1,
@@ -134,6 +155,7 @@ const PurchaseStockAnalysis: React.FC = () => {
         filters.fromDate ?? null,
         filters.toDate ?? null,
         filters.stockStatus,
+        filters.materialCategory,
         filters.onlyConfigured,
         filters.searchTerm ?? null,
         undefined, // pageNumber — skipped on export
@@ -630,6 +652,30 @@ const PurchaseStockAnalysis: React.FC = () => {
                   </div>
                 </>
               )}
+
+              {/* Material category - always visible */}
+              <div
+                role="group"
+                aria-label="Typ materiálu"
+                className="inline-flex rounded-md border border-gray-300 dark:border-graphite-border overflow-hidden"
+              >
+                {MATERIAL_CATEGORY_OPTIONS.map((option) => (
+                  <button
+                    key={option.value}
+                    onClick={() =>
+                      handleFilterChange({ materialCategory: option.value })
+                    }
+                    aria-pressed={filters.materialCategory === option.value}
+                    className={`px-2.5 py-1 text-xs transition-colors border-r last:border-r-0 border-gray-300 dark:border-graphite-border ${
+                      filters.materialCategory === option.value
+                        ? "bg-indigo-600 text-white"
+                        : "bg-white dark:bg-graphite-surface-2 text-gray-700 dark:text-graphite-muted hover:bg-gray-100 dark:hover:bg-graphite-hover"
+                    }`}
+                  >
+                    {option.label}
+                  </button>
+                ))}
+              </div>
 
               {/* Action buttons - always visible */}
               <button

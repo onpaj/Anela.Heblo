@@ -169,6 +169,7 @@ const Sidebar: React.FC<SidebarProps> = ({
       items: [
         { id: "catalog", name: "Katalog", href: "/catalog", key: "/catalog" },
         { id: "marze-produktu", name: "Marže", href: "/products/margins", key: "/products/margins" },
+        { id: "statistiky-produktu", name: "Statistiky", href: "/products/statistics", key: "/products/statistics" },
         { id: "journal", name: "Deník", href: "/journal", key: "/journal" },
       ],
     },

@@ -25,6 +25,8 @@ public sealed class ClaudeMeetingTaskExtractor : IMeetingTaskExtractor
     private const string NoUsersNote =
         "\n\nSeznam známých uživatelů je prázdný — assigneeEmail vždy nastav na null.";
 
+    private const int MaxAttempts = 3;
+
     private static readonly JsonSerializerOptions JsonOptions =
         new() { PropertyNameCaseInsensitive = true };
 
@@ -55,35 +57,159 @@ public sealed class ClaudeMeetingTaskExtractor : IMeetingTaskExtractor
 
         var chatOptions = new ChatOptions { MaxOutputTokens = 8192 };
 
-        try
-        {
-            var response = await _chatClient.GetResponseAsync(messages, chatOptions, ct);
-            var text = StripMarkdownCodeFence(response.Text ?? string.Empty);
+        string? lastRawResponse = null;
+        string lastFailureReason = "unknown";
 
+        for (var attempt = 1; attempt <= MaxAttempts; attempt++)
+        {
+            string text;
             try
             {
-                var payload = JsonSerializer.Deserialize<ExtractionPayload>(text, JsonOptions);
-                var tasks = payload?.Tasks ?? [];
-                var participants = NormalizeParticipants(payload?.Participants);
-
-                if (tasks.Count == 0)
-                {
-                    _logger.LogWarning("Meeting task extraction completed with no tasks — Claude returned an empty array");
-                }
-
-                return new MeetingExtractionResult(tasks, participants);
+                var response = await _chatClient.GetResponseAsync(messages, chatOptions, ct);
+                text = StripMarkdownCodeFence(response.Text ?? string.Empty);
             }
-            catch (JsonException ex)
+            catch (Exception ex) when (attempt < MaxAttempts)
             {
-                _logger.LogError(ex, "Meeting task extraction returned malformed JSON — transcript will be imported without tasks. Raw response: {RawResponse}", text);
+                lastFailureReason = ex.Message;
+                _logger.LogWarning(ex,
+                    "Meeting task extraction attempt {Attempt}/{MaxAttempts} failed with a transport error, retrying",
+                    attempt, MaxAttempts);
+                continue;
+            }
+            catch (Exception ex)
+            {
+                // Final attempt's transport failure: preserve the pre-existing
+                // "log + empty result" contract rather than the new throwing path —
+                // this issue's fingerprint is a content/parse failure, not transport.
+                _logger.LogError(ex, "Meeting task extraction failed — transcript will be imported without tasks");
                 return new MeetingExtractionResult([], []);
             }
+
+            lastRawResponse = text;
+
+            if (TryParseAndValidate(text, out var result, out var failureReason))
+                return result;
+
+            lastFailureReason = failureReason!;
+
+            if (attempt < MaxAttempts)
+            {
+                _logger.LogWarning(
+                    "Meeting task extraction attempt {Attempt}/{MaxAttempts} produced an invalid response ({Reason}), retrying",
+                    attempt, MaxAttempts, failureReason);
+            }
         }
-        catch (Exception ex)
+
+        _logger.LogError(
+            "Meeting task extraction failed after {MaxAttempts} attempts ({Reason}) — raw response: {RawResponse}",
+            MaxAttempts, lastFailureReason, lastRawResponse);
+        throw new MeetingTaskExtractionFailedException(
+            $"Meeting task extraction failed after {MaxAttempts} attempts: {lastFailureReason}",
+            MaxAttempts,
+            lastRawResponse);
+    }
+
+    private bool TryParseAndValidate(string text, out MeetingExtractionResult result, out string? failureReason)
+    {
+        result = null!;
+        failureReason = null;
+
+        if (!TryDeserialize(text, out var payload))
         {
-            _logger.LogError(ex, "Meeting task extraction failed — transcript will be imported without tasks");
-            return new MeetingExtractionResult([], []);
+            var embedded = ExtractEmbeddedJsonObject(text);
+            if (embedded is null || !TryDeserialize(embedded, out payload))
+            {
+                failureReason = "malformed JSON";
+                return false;
+            }
         }
+
+        if (payload!.Tasks?.Any(t => string.IsNullOrWhiteSpace(t.Title)) == true)
+        {
+            failureReason = "task with empty title";
+            return false;
+        }
+
+        var tasks = payload.Tasks ?? [];
+        var participants = NormalizeParticipants(payload.Participants);
+
+        if (tasks.Count == 0)
+        {
+            _logger.LogWarning("Meeting task extraction completed with no tasks — Claude returned an empty array");
+        }
+
+        result = new MeetingExtractionResult(tasks, participants);
+        return true;
+    }
+
+    private static bool TryDeserialize(string text, out ExtractionPayload? payload)
+    {
+        try
+        {
+            payload = JsonSerializer.Deserialize<ExtractionPayload>(text, JsonOptions);
+            return payload is not null;
+        }
+        catch (JsonException)
+        {
+            payload = null;
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// Scans for the first top-level '{' and its matching closing '}', tracking
+    /// string/escape state so braces inside quoted string values (e.g. a task
+    /// description) don't throw off the match. Returns null if no balanced
+    /// top-level object is found.
+    /// </summary>
+    private static string? ExtractEmbeddedJsonObject(string text)
+    {
+        var start = text.IndexOf('{');
+        if (start < 0)
+            return null;
+
+        var depth = 0;
+        var inString = false;
+        var escapeNext = false;
+
+        for (var i = start; i < text.Length; i++)
+        {
+            var c = text[i];
+
+            if (escapeNext)
+            {
+                escapeNext = false;
+                continue;
+            }
+
+            if (c == '\\' && inString)
+            {
+                escapeNext = true;
+                continue;
+            }
+
+            if (c == '"')
+            {
+                inString = !inString;
+                continue;
+            }
+
+            if (inString)
+                continue;
+
+            if (c == '{')
+            {
+                depth++;
+            }
+            else if (c == '}')
+            {
+                depth--;
+                if (depth == 0)
+                    return text[start..(i + 1)];
+            }
+        }
+
+        return null;
     }
 
     private static List<string> NormalizeParticipants(List<string>? participants)

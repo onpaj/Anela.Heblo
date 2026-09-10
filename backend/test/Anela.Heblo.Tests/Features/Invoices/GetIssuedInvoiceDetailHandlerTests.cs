@@ -35,7 +35,7 @@ public class GetIssuedInvoiceDetailHandlerTests
     [InlineData("")]
     [InlineData("   ")]
     [InlineData(null)]
-    public async Task Handle_EmptyOrWhitespaceInvoiceId_ReturnsValidationError(string invoiceId)
+    public async Task Handle_EmptyOrWhitespaceInvoiceId_ReturnsValidationError(string? invoiceId)
     {
         // Arrange
         var request = new GetIssuedInvoiceDetailRequest
