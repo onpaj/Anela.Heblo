@@ -4,6 +4,7 @@ using Anela.Heblo.Application.Features.Logistics.UseCases.GetTransportBoxById;
 using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Domain.Features.Logistics.Transport;
 using Anela.Heblo.Domain.Features.Users;
+using AutoMapper;
 using MediatR;
 using Microsoft.Extensions.Logging;
 
@@ -13,7 +14,7 @@ public class ChangeTransportBoxStateHandler : IRequestHandler<ChangeTransportBox
 {
     private readonly ITransportBoxRepository _repository;
     private readonly IInventoryReservationService _inventoryReservationService;
-    private readonly IMediator _mediator;
+    private readonly IMapper _mapper;
     private readonly ILogger<ChangeTransportBoxStateHandler> _logger;
     private readonly ICurrentUserService _currentUserService;
     private readonly ILogisticsStockOperationService _stockOperationService;
@@ -38,7 +39,7 @@ public class ChangeTransportBoxStateHandler : IRequestHandler<ChangeTransportBox
     public ChangeTransportBoxStateHandler(
         ITransportBoxRepository repository,
         IInventoryReservationService inventoryReservationService,
-        IMediator mediator,
+        IMapper mapper,
         ILogger<ChangeTransportBoxStateHandler> logger,
         ICurrentUserService currentUserService,
         ILogisticsStockOperationService stockOperationService,
@@ -46,7 +47,7 @@ public class ChangeTransportBoxStateHandler : IRequestHandler<ChangeTransportBox
     {
         _repository = repository;
         _inventoryReservationService = inventoryReservationService;
-        _mediator = mediator;
+        _mapper = mapper;
         _logger = logger;
         _currentUserService = currentUserService;
         _stockOperationService = stockOperationService;
@@ -134,9 +135,9 @@ public class ChangeTransportBoxStateHandler : IRequestHandler<ChangeTransportBox
             await _repository.UpdateAsync(box, cancellationToken);
             await _repository.SaveChangesAsync(cancellationToken);
 
-            // Get updated box details
-            var updatedBoxRequest = new GetTransportBoxByIdRequest { Id = request.BoxId };
-            var updatedBox = await _mediator.Send(updatedBoxRequest, cancellationToken);
+            // Map the already-updated box directly — avoids a redundant DB read and MediatR round-trip
+            var updatedBoxDto = _mapper.Map<TransportBoxDto>(box);
+            var updatedBox = new GetTransportBoxByIdResponse { TransportBox = updatedBoxDto };
 
             _logger.LogInformation("Transport box {BoxId} state changed to {NewState}", request.BoxId, request.NewState);
 
