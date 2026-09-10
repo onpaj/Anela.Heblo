@@ -1377,6 +1377,14 @@ The price is nested, and its VAT meaning comes from sibling fields:
 **Filtering:** `?code=MAS001180` (singular) works and returns `totalCount: 1`. `codes=` is
 rejected: `{"errorCode":"invalid-parameter","message":"Unsupported query parameters found: codes"}`.
 
+**Single-product read for the price write-through path.** `GET /api/pricelists/{id}?code=X`
+is also how `ShoptetPriceListClient.GetPriceWithVatAsync` fetches one product's current price
+as the pre-write read before `SetProductPriceHandler` (see `docs/features/product-pricing.md`)
+pushes a new price to Shoptet — reading the current price to log as `OldPriceWithVat` without
+paging through the whole price list. The write path depends on this `code=` singular filter
+behaving as documented above; if Shoptet ever changed it to reject or ignore the parameter, the
+pre-flight read (and therefore every price write) would break.
+
 **Paginator** carries `totalCount`, `page`, `pageCount`, `itemsOnPage`, `itemsPerPage`.
 
 **Item price fields on PATCH — `price`, `priceWithVat` and `priceWithoutVat` are OBJECTS,
