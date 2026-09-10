@@ -98,6 +98,12 @@ public class ShoptetPriceListClient : IEshopPriceListClient
         var priceListId = ResolvePriceListId();
 
         // priceWithVat (never `price`) so Shoptet recalculates the stored form itself.
+        // It is an object group with the same members as the read-side `price`
+        // (price/commonPrice/buyPrice/priceRatio/actionPrice), NOT a scalar: sending the
+        // amount flat returns 422 `invalid-request-data` — "String value found, but an
+        // object is required" at `data[0].priceWithVat`. Only `price` is sent, so the
+        // other members stay untouched. The schema is `additionalProperties: false` and
+        // requires exactly 2 decimals (`^(-)?[0-9]+\.[0-9]{2}$`), which F2 satisfies.
         // Never send 0 to mean "no price" — from 2026-09-14 that is a genuine zero price.
         var payload = new
         {
@@ -106,7 +112,10 @@ public class ShoptetPriceListClient : IEshopPriceListClient
                 new
                 {
                     code = productCode,
-                    priceWithVat = priceWithVat.ToString("F2", CultureInfo.InvariantCulture),
+                    priceWithVat = new
+                    {
+                        price = priceWithVat.ToString("F2", CultureInfo.InvariantCulture),
+                    },
                 },
             },
         };

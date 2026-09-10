@@ -1379,15 +1379,37 @@ rejected: `{"errorCode":"invalid-parameter","message":"Unsupported query paramet
 
 **Paginator** carries `totalCount`, `page`, `pageCount`, `itemsOnPage`, `itemsPerPage`.
 
-**Item price fields on PATCH:**
+**Item price fields on PATCH — `price`, `priceWithVat` and `priceWithoutVat` are OBJECTS,
+not scalars.** _(Corrected 2026-09-10 after a live 422; the earlier table listed them as flat
+fields.)_ Each is a sibling **group** with the same members as the read-side `price` object:
+`price`, `commonPrice`, `buyPrice`, `priceRatio`, `actionPrice`. Sending the amount flat
+returns 422:
 
-| Field | Meaning |
+```json
+{"errors":[{"errorCode":"invalid-request-data",
+            "message":"String value found, but an object is required",
+            "instance":"data[0].priceWithVat"}]}
+```
+
+Correct body — only the members you send are changed:
+
+```json
+{"data":[{"code":"DEO007005","priceWithVat":{"price":"390.00"}}]}
+```
+
+| Group / field | Meaning |
 |---|---|
-| `price` | Sets the stored price directly, no recalculation. Interpretation depends on the list's `includingVat`. |
-| `priceWithVat` | Sets the price including VAT; Shoptet recalculates the stored form. |
-| `priceWithoutVat` | Sets the price excluding VAT; Shoptet recalculates. |
-| `buyPrice` | **Writable only on the default price list**; stays `null` on all others. |
-| `vatRate`, `includingVat` | Optional; changing either triggers recalculation of the stored prices. |
+| `price.*` | Sets the stored price directly, no recalculation. Interpretation depends on the list's `includingVat`. |
+| `priceWithVat.*` | Sets the price including VAT; Shoptet recalculates the stored form. |
+| `priceWithoutVat.*` | Sets the price excluding VAT; Shoptet recalculates. |
+| `*.buyPrice` | **Writable only on the default price list**; stays `null` on all others. |
+| `vatRate`, `includingVat` | Flat item-level fields (not in a group). Optional; changing either triggers recalculation. |
+
+Schema constraints (from the [OpenAPI spec](https://api.docs.shoptet.com/_bundle/Shoptet%20API/openapi.json)):
+`additionalProperties: false` on the item and on every group — an unknown key is a 422, not
+an ignored field. Each item needs `code` plus at least one more property (`minProperties: 2`).
+Every amount is a **string with exactly 2 decimals** (`^(-)?[0-9]+\.[0-9]{2}$`); `vatRate`
+matches `^[0-9]+\.[0-9]{2}$` and `priceRatio` takes 4 decimals.
 
 **Zero vs null (rollout from 2026-09-14, feature-flagged per e-shop).** A literal `0`
 in `data.price.price`, `data.price.commonPrice`, `data.price.buyPrice` or

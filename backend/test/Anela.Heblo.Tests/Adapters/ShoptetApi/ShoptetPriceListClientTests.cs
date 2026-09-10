@@ -1,5 +1,6 @@
 using System.Net;
 using System.Text;
+using System.Text.Json;
 using Anela.Heblo.Adapters.ShoptetApi.Orders;
 using Anela.Heblo.Adapters.ShoptetApi.Pricing;
 using FluentAssertions;
@@ -178,7 +179,12 @@ public class ShoptetPriceListClientTests
         recorded.Should().ContainSingle();
         recorded[0].Method.Should().Be(HttpMethod.Patch);
         recorded[0].RequestUri!.AbsolutePath.Should().Be("/api/pricelists/1");
-        bodies[0].Should().Contain("OCH001030").And.Contain("210.00");
+        // Structural, not substring: `priceWithVat` is an object group (same members as the
+        // read-side `price`), not a scalar. A `Contain("210.00")` assertion passes for the
+        // flat-string shape Shoptet rejects with 422 invalid-request-data.
+        var item = JsonDocument.Parse(bodies[0]).RootElement.GetProperty("data")[0];
+        item.GetProperty("code").GetString().Should().Be("OCH001030");
+        item.GetProperty("priceWithVat").GetProperty("price").GetString().Should().Be("210.00");
         bodies[0].Should().NotContain("buyPrice");
     }
 
