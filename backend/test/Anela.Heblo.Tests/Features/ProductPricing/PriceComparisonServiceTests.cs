@@ -287,6 +287,8 @@ public class PriceComparisonServiceTests
     }
 
     [Theory]
+    [InlineData(189.98)] // 0.02 difference — the value immediately outside the 0.01 tolerance
+    [InlineData(190.02)]
     [InlineData(189.97)]
     [InlineData(190.03)]
     public async Task reports_a_flexi_price_beyond_the_tolerance_as_divergent(double flexiPriceWithVat)
