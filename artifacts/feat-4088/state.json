@@ -34,9 +34,9 @@
     },
     {
       "name": "update-consumeinventoryresult-test-call-sites",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-09-10T01:14:19.294498Z"
+      "updated_at": "2026-09-10T01:47:33.415719Z"
     }
   ]
 }
