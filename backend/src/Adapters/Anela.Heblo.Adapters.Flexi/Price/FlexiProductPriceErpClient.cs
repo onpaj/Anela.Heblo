@@ -103,13 +103,30 @@ public class FlexiProductPriceErpClient : UserQueryClient<ProductPriceFlexiDto>,
     /// (that double-counts VAT for an item entered "s DPH"). User query 41 may not expose
     /// <c>typCenyDphK</c> at all; when it is absent, excl-VAT semantics (today's behavior) is
     /// assumed and a warning is logged once for the whole batch — never silently.
+    ///
+    /// The same "warn once, never silently" treatment applies to an unrecognised VAT band
+    /// (<c>typszbdphk</c>): the read path keeps its 21% fallback so the comparison screen is
+    /// unchanged, but <see cref="ProductPriceErp.VatRate"/> is left null so the write path can
+    /// refuse. The warning carries the raw value because nobody here can see query 41's
+    /// definition — the first live run is how we learn which vocabulary it actually returns.
     /// </summary>
     internal IEnumerable<ProductPriceErp> MapToProductPrices(IEnumerable<ProductPriceFlexiDto> data)
     {
         var warnedAboutUnknownPriceType = false;
+        var warnedAboutUnknownVatLevel = false;
 
         foreach (var s in data)
         {
+            if (s.VatRate is null && !warnedAboutUnknownVatLevel)
+            {
+                _clientLogger.LogWarning(
+                    "FlexiBee uzivatelsky-dotaz/41: unrecognised typszbdphk value '{VatLevel}' " +
+                    "for one or more items (e.g. {ProductCode}); the read falls back to 21% but " +
+                    "price writes for these items are refused.",
+                    s.VatLevel, s.ProductCode);
+                warnedAboutUnknownVatLevel = true;
+            }
+
             if (s.TypCenyDphK is null && !warnedAboutUnknownPriceType)
             {
                 _clientLogger.LogWarning(
@@ -141,6 +158,7 @@ public class FlexiProductPriceErpClient : UserQueryClient<ProductPriceFlexiDto>,
                 PurchasePriceWithVat = s.PurchasePrice * ((100 + s.Vat) / 100),
                 BoMId = s.BoMId,
                 ErpItemId = s.ProductId,
+                VatRate = s.VatRate,
                 ErpPriceType = s.TypCenyDphK switch
                 {
                     "typCeny.bezDph" => "bezDph",

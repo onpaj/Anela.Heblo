@@ -117,15 +117,17 @@ public class SetProductPriceHandlerTests
     [Fact]
     public async Task aborts_before_touching_shoptet_when_the_flexi_vat_rate_is_unknown()
     {
-        // Arrange
+        // Arrange: the provider omits a product whose Flexi VAT band it could not recognise,
+        // rather than handing back a fabricated 21 that would be written into a live ERP.
         _vatRates.Setup(v => v.GetVatRatesAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(new Dictionary<string, decimal>());
 
         // Act
         var response = await CreateSut().Handle(Request(), CancellationToken.None);
 
-        // Assert
-        response.ErrorCode.Should().Be(ErrorCodes.ProductPriceFlexiItemIdUnknown);
+        // Assert: its own code — "no cen\u00edk item" would send the operator hunting for
+        // something that exists.
+        response.ErrorCode.Should().Be(ErrorCodes.ProductPriceFlexiVatRateUnknown);
         _eshop.Verify(c => c.SetPriceWithVatAsync(It.IsAny<string>(), It.IsAny<decimal>(),
             It.IsAny<CancellationToken>()), Times.Never);
         _erpWriter.VerifyNoOtherCalls();

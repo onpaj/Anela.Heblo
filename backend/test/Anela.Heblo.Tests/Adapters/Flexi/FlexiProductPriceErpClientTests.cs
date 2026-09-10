@@ -312,6 +312,94 @@ public class FlexiProductPriceErpClientTests
             Times.Once);
     }
 
+    [Fact]
+    public void MapToProductPrices_CarriesTheRecognisedVatBandThrough()
+    {
+        // Arrange: a genuinely 12% item. The write path must see 12, not a rate recovered
+        // arithmetically from prices Heblo itself grossed up.
+        var dto = new ProductPriceFlexiDto
+        {
+            ProductId = 1,
+            ProductCode = "A",
+            Price = 100.00m,
+            PurchasePrice = 0m,
+            VatLevel = "typSzbDph.dphSniz",
+            ProductType = "Zbo\u017e\u00ed",
+            TypCenyDphK = "typCeny.bezDph",
+        };
+
+        // Act
+        var result = _client.MapToProductPrices(new[] { dto }).Single();
+
+        // Assert
+        result.VatRate.Should().Be(12m);
+        result.PriceWithVat.Should().Be(112.00m);
+    }
+
+    [Fact]
+    public void MapToProductPrices_WhenTheVatBandIsUnrecognised_ReportsNoRateButKeepsTheReadPathAt21()
+    {
+        // Arrange
+        var dto = new ProductPriceFlexiDto
+        {
+            ProductId = 1,
+            ProductCode = "A",
+            Price = 100.00m,
+            PurchasePrice = 0m,
+            VatLevel = "ovobozeno",
+            ProductType = "Zbo\u017e\u00ed",
+            TypCenyDphK = "typCeny.bezDph",
+        };
+
+        // Act
+        var result = _client.MapToProductPrices(new[] { dto }).Single();
+
+        // Assert: the comparison screen still sees today's numbers; only the write path
+        // learns that the band is unknown.
+        result.VatRate.Should().BeNull();
+        result.PriceWithVat.Should().Be(121.00m);
+    }
+
+    [Fact]
+    public void MapToProductPrices_WhenTheVatBandIsUnrecognised_LogsTheRawValueOncePerRun()
+    {
+        // Arrange: the first live run has to tell us which vocabulary query 41 really uses,
+        // and must not flood the log with one line per catalogue row.
+        var dtoA = new ProductPriceFlexiDto
+        {
+            ProductId = 1,
+            ProductCode = "A",
+            Price = 100.00m,
+            PurchasePrice = 0m,
+            VatLevel = "ovobozeno",
+            ProductType = "Zbo\u017e\u00ed",
+            TypCenyDphK = "typCeny.bezDph",
+        };
+        var dtoB = new ProductPriceFlexiDto
+        {
+            ProductId = 2,
+            ProductCode = "B",
+            Price = 200.00m,
+            PurchasePrice = 0m,
+            VatLevel = "ovobozeno",
+            ProductType = "Zbo\u017e\u00ed",
+            TypCenyDphK = "typCeny.bezDph",
+        };
+
+        // Act
+        _client.MapToProductPrices(new[] { dtoA, dtoB }).ToList();
+
+        // Assert
+        _clientLoggerMock.Verify(
+            x => x.Log(
+                LogLevel.Warning,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((v, _) => v.ToString()!.Contains("ovobozeno")),
+                It.IsAny<Exception?>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Once);
+    }
+
     private sealed class ThrowingHttpMessageHandler : HttpMessageHandler
     {
         private readonly Exception _exception;

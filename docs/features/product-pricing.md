@@ -90,6 +90,34 @@ refused for the same reason `PriceComparisonService` already reports it as untru
 be incoherent. `sDph` write semantics are also unverified against the live ERP — there is
 no sandbox — so the handler declines rather than encode a guess into a live write.
 
+### The VAT band, and why an unrecognised one refuses the write
+
+Flexi reports each item's VAT band in `typszbdphk`. Heblo recognises **two vocabularies**
+for it — the enum form the rest of the Flexi adapter uses (`typSzbDph.dphZakl`,
+`typSzbDph.dphSniz`, `typSzbDph.dphSniz2`, `typSzbDph.dphOsv`, and their bare `dphZakl`
+forms) and the Czech labels (`základní`, `snížená`, `druhá snížená`, `osvobozeno`, with
+accent-free spellings), matched case-insensitively after trimming. User query 41's
+definition is not visible from this repository, so which vocabulary it actually returns is
+not knowable here; recognising both removes the guess in either direction.
+
+- **Read path** (`ProductPriceFlexiDto.Vat`, the comparison screen): an unrecognised band
+  falls back to 21%, exactly as before, so the comparison behaves unchanged.
+- **Write path** (`ProductPriceFlexiDto.VatRate`, `ProductPriceErp.VatRate`): an
+  unrecognised band yields *no* rate. `FlexiProductVatRateProvider` omits the product
+  entirely and `SetProductPriceHandler` refuses with `ProductPriceFlexiVatRateUnknown`,
+  writing nothing anywhere.
+
+The reason the write is stricter: a wrong VAT rate produces a wrong `cenaZakl`, which Flexi
+then reconstructs at its *real* rate — a 12% item priced as if it were 21% ends up ~7%
+under-priced in the ERP. The comparison cannot catch it either, because the read applies the
+same wrong rate to the same `cenaZakl` and reproduces the requested price, marking the row
+`InAgreement`. The provider also never recovers a rate arithmetically from the
+with/without-VAT pair: both of those numbers are derived from the band in question, so the
+result would be Heblo's own assumption returned as if it were a measurement.
+
+An unrecognised `typszbdphk` value is logged once per run at warning level, raw — that log
+line is how we find out which vocabulary Flexi really uses.
+
 ## Nightly DQT check and dashboard tile
 
 The comparison also runs as a scheduled data-quality check, wired into the shared DQT
@@ -124,7 +152,8 @@ price to Shoptet, then to Flexi, in that order, with a pre-flight before either 
    `OldPriceWithVat` in the change log. A product with no row in the retail list cannot be
    priced at all and fails here.
 2. **Pre-flight the Flexi leg** — resolve the Flexi ceník item id, confirm its price type is
-   `bezDph` (refusing otherwise, see above), and resolve the product's VAT rate. All of this
+   `bezDph` (refusing otherwise, see above), and resolve the product's VAT rate from Flexi's
+   own VAT band (refusing when that band is unrecognised, see below). All of this
    runs *before* anything is written, on purpose: a missing ceník id, an unsupported price
    type, or a missing VAT rate is knowable up front and guarantees the Flexi leg cannot
    succeed, so discovering it only after Shoptet was already written would manufacture an
@@ -216,6 +245,7 @@ applicable. The log is:
 | `ProductPriceShoptetWriteFailed` | The Shoptet write itself failed; nothing written. |
 | `ProductPriceFlexiWriteFailed` | Shoptet was written successfully but the Flexi write failed — **the two systems now diverge**. |
 | `ProductPriceFlexiPriceTypeUnsupported` | Item's Flexi price type is not `bezDph`; refused outright, nothing written. |
+| `ProductPriceFlexiVatRateUnknown` | Flexi's VAT band for the item was not one the adapter recognises, so no rate can be trusted; refused outright, nothing written. |
 
 ## Known constraints
 

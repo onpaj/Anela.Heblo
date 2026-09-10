@@ -478,6 +478,8 @@ public enum ErrorCodes
     ProductPriceFlexiWriteFailed = 3606,
     [HttpStatusCode(HttpStatusCode.UnprocessableEntity)]
     ProductPriceFlexiPriceTypeUnsupported = 3607,
+    [HttpStatusCode(HttpStatusCode.UnprocessableEntity)]
+    ProductPriceFlexiVatRateUnknown = 3608,
 
     // External Service errors (90XX)
     [HttpStatusCode(HttpStatusCode.ServiceUnavailable)]

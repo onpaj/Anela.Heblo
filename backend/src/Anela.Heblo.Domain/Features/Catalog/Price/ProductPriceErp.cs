@@ -20,4 +20,12 @@ public class ProductPriceErp
     /// return <c>typCenyDphK</c>) — a real, reportable "unknown" state, not an error.
     /// </summary>
     public string? ErpPriceType { get; set; }
+
+    /// <summary>
+    /// The VAT rate the ERP's own VAT band positively identifies, or null when the band was
+    /// not one the adapter recognises. Null is a real, reportable state — the write path
+    /// refuses on it rather than assuming a rate, because an assumed rate turns straight
+    /// into a wrong excl-VAT price in a live ERP with nothing anywhere reporting it.
+    /// </summary>
+    public decimal? VatRate { get; set; }
 }

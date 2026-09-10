@@ -126,11 +126,17 @@ public class SetProductPriceHandler : IRequestHandler<SetProductPriceRequest, Se
                 ErrorCodes.ProductPriceFlexiItemIdUnknown, ex.Message);
         }
 
+        // A missing rate means the ERP's own VAT band was not one the adapter recognises (see
+        // ProductPriceFlexiDto.VatRatesByLevel). Assuming a rate here would compute the wrong
+        // cenaZakl, under-price the item in the live ERP, and stay invisible to the comparison
+        // screen — which would reconstruct the same wrong number from the same wrong rate and
+        // classify the row InAgreement. Its own code, because "no ceník item" would send the
+        // operator hunting in Flexi for something that is actually there.
         if (vatRate is null)
         {
             return await FailAsync(request, oldPrice, false, false,
-                ErrorCodes.ProductPriceFlexiItemIdUnknown,
-                $"No Flexi VAT rate for {code}; nothing was written.");
+                ErrorCodes.ProductPriceFlexiVatRateUnknown,
+                $"No recognised Flexi VAT band for {code}; nothing was written.");
         }
 
         var priceWithoutVat = Math.Round(
