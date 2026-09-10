@@ -21,16 +21,16 @@
       "updated_at": "2026-09-07T10:21:12.425935Z"
     },
     "developing": {
-      "status": "pending",
-      "updated_at": null
+      "status": "in_progress",
+      "updated_at": "2026-09-10T13:17:20.851886Z"
     }
   },
   "tasks": [
     {
       "name": "scaffold-test-class-and-disabled-path",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-09-10T13:17:21.241340Z"
     },
     {
       "name": "unknown-timezone-path",
