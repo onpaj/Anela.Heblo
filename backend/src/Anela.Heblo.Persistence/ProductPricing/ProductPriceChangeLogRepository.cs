@@ -13,12 +13,23 @@ public class ProductPriceChangeLogRepository : IProductPriceChangeLogRepository
 
     public async Task AppendAsync(ProductPriceChangeLog entry, CancellationToken ct)
     {
-        if (entry.ErrorMessage is { Length: > ErrorMessageMaxLength })
-        {
-            entry.ErrorMessage = entry.ErrorMessage[..ErrorMessageMaxLength];
-        }
+        var errorMessage = entry.ErrorMessage is { Length: > ErrorMessageMaxLength }
+            ? entry.ErrorMessage[..ErrorMessageMaxLength]
+            : entry.ErrorMessage;
 
-        _context.ProductPriceChangeLogs.Add(entry);
+        var toPersist = new ProductPriceChangeLog
+        {
+            ProductCode = entry.ProductCode,
+            OldPriceWithVat = entry.OldPriceWithVat,
+            NewPriceWithVat = entry.NewPriceWithVat,
+            ChangedAt = entry.ChangedAt,
+            ChangedBy = entry.ChangedBy,
+            ShoptetSucceeded = entry.ShoptetSucceeded,
+            FlexiSucceeded = entry.FlexiSucceeded,
+            ErrorMessage = errorMessage,
+        };
+
+        _context.ProductPriceChangeLogs.Add(toPersist);
         await _context.SaveChangesAsync(ct);
     }
 }

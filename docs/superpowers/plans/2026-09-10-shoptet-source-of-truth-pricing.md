@@ -491,6 +491,14 @@ public class ProductPriceChangeLogConfiguration : IEntityTypeConfiguration<Produ
         builder.Property(e => e.OldPriceWithVat).HasPrecision(18, 2);
         builder.Property(e => e.NewPriceWithVat).HasPrecision(18, 2);
         builder.Property(e => e.ChangedBy).HasMaxLength(256).IsRequired();
+
+        // MANDATORY. Without this the property gets Npgsql's default `timestamp with time
+        // zone`, and ApplicationDbContext's global converter (which stamps every DateTime
+        // Kind=Unspecified on write) then makes Npgsql throw on every insert. The InMemory
+        // test cannot detect it. See Extensions/DateTimeConfigurationExtensions.cs — the
+        // documented standard, used by 25 other configurations. Two prior migrations exist
+        // purely to undo this same mistake for other entities.
+        builder.Property(e => e.ChangedAt).AsUtcTimestamp();
         builder.Property(e => e.ErrorMessage).HasMaxLength(2000);
         builder.HasIndex(e => new { e.ProductCode, e.ChangedAt });
     }
@@ -719,7 +727,8 @@ public class SetProductPriceHandlerTests
 
     private SetProductPriceHandler CreateSut() => new(
         _eshop.Object, _erpWriter.Object, _erpReader.Object,
-        _vatRates.Object, _changeLog.Object, _currentUser.Object);
+        _vatRates.Object, _changeLog.Object, _currentUser.Object,
+        NullLogger<SetProductPriceHandler>.Instance);
 
     private static SetProductPriceRequest Request(decimal price = 210.00m) =>
         new() { ProductCode = "A", PriceWithVat = price };
@@ -890,6 +899,7 @@ using Anela.Heblo.Domain.Features.Catalog.Price;
 using Anela.Heblo.Domain.Features.ProductPricing;
 using Anela.Heblo.Domain.Features.Users;
 using MediatR;
+using Microsoft.Extensions.Logging;
 
 namespace Anela.Heblo.Application.Features.ProductPricing.UseCases.SetProductPrice;
 
@@ -911,6 +921,7 @@ public class SetProductPriceHandler : IRequestHandler<SetProductPriceRequest, Se
     private readonly IProductVatRateProvider _vatRateProvider;
     private readonly IProductPriceChangeLogRepository _changeLog;
     private readonly ICurrentUserService _currentUserService;
+    private readonly ILogger<SetProductPriceHandler> _logger;
 
     public SetProductPriceHandler(
         IEshopPriceListClient eshopClient,
@@ -918,7 +929,8 @@ public class SetProductPriceHandler : IRequestHandler<SetProductPriceRequest, Se
         IProductPriceErpClient erpReader,
         IProductVatRateProvider vatRateProvider,
         IProductPriceChangeLogRepository changeLog,
-        ICurrentUserService currentUserService)
+        ICurrentUserService currentUserService,
+        ILogger<SetProductPriceHandler> logger)
     {
         _eshopClient = eshopClient;
         _erpWriter = erpWriter;
@@ -926,6 +938,7 @@ public class SetProductPriceHandler : IRequestHandler<SetProductPriceRequest, Se
         _vatRateProvider = vatRateProvider;
         _changeLog = changeLog;
         _currentUserService = currentUserService;
+        _logger = logger;
     }
 
     public async Task<SetProductPriceResponse> Handle(
@@ -1008,20 +1021,39 @@ public class SetProductPriceHandler : IRequestHandler<SetProductPriceRequest, Se
             errorCode, new Dictionary<string, string> { ["ProductCode"] = request.ProductCode });
     }
 
-    private Task AppendAsync(
+    /// <summary>
+    /// The log is history, never read to decide anything, so it must never be able to change
+    /// the outcome of the operation it records. Both remote writes have already landed by the
+    /// time this runs on the success path — letting a failed INSERT surface would report a
+    /// completed price change as an error and invite a pointless retry. On the failure paths
+    /// it would mask the real error code. So: log the logging failure, and carry on.
+    /// </summary>
+    private async Task AppendAsync(
         SetProductPriceRequest request, decimal? oldPrice, bool shoptetOk, bool flexiOk,
-        string? error, CancellationToken ct) =>
-        _changeLog.AppendAsync(new ProductPriceChangeLog
+        string? error, CancellationToken ct)
+    {
+        try
         {
-            ProductCode = request.ProductCode,
-            OldPriceWithVat = oldPrice,
-            NewPriceWithVat = request.PriceWithVat,
-            ChangedAt = DateTime.UtcNow,
-            ChangedBy = _currentUserService.GetCurrentUser().Email,
-            ShoptetSucceeded = shoptetOk,
-            FlexiSucceeded = flexiOk,
-            ErrorMessage = error,
-        }, ct);
+            await _changeLog.AppendAsync(new ProductPriceChangeLog
+            {
+                ProductCode = request.ProductCode,
+                OldPriceWithVat = oldPrice,
+                NewPriceWithVat = request.PriceWithVat,
+                ChangedAt = DateTime.UtcNow,
+                ChangedBy = _currentUserService.GetCurrentUser().Email,
+                ShoptetSucceeded = shoptetOk,
+                FlexiSucceeded = flexiOk,
+                ErrorMessage = error,
+            }, ct);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(
+                ex, "Failed to append the price change log row for {ProductCode} " +
+                    "(shoptet={ShoptetOk}, flexi={FlexiOk}); the price write itself is unaffected.",
+                request.ProductCode, shoptetOk, flexiOk);
+        }
+    }
 }
 ```
 
