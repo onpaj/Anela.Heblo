@@ -28,9 +28,9 @@
   "tasks": [
     {
       "name": "convert-consumeinventoryresult-to-class",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-09-10T00:15:01.239934Z"
+      "updated_at": "2026-09-10T00:20:11.488976Z"
     },
     {
       "name": "update-consumeinventoryresult-test-call-sites",
