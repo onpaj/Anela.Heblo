@@ -1,3 +1,22 @@
+### task: extract-index-document-handler-phases
+
+**Files:**
+- Modify: `backend/src/Anela.Heblo.Application/Features/KnowledgeBase/UseCases/IndexDocument/IndexDocumentHandler.cs` (entire file)
+- Test (read-only, must pass unmodified): `backend/test/Anela.Heblo.Tests/KnowledgeBase/UseCases/IndexDocumentHandlerTests.cs`
+
+This is the entire change — one file, one class, no independent sub-boundaries (confirmed by `arch-review.r1.md` Component Overview: all four extracted methods live on the same class using the same three injected fields). Per spec NFR-1, the existing 13-test suite is the behavioral contract; it must pass unmodified before and after — this task does not add or edit any test.
+
+- [ ] **Step 1: Run the existing tests to confirm the pre-refactor baseline is green**
+
+Run: `dotnet test backend/test/Anela.Heblo.Tests/Anela.Heblo.Tests.csproj --filter "FullyQualifiedName~Anela.Heblo.Tests.KnowledgeBase.UseCases.IndexDocumentHandlerTests"`
+
+Expected: PASS — all 13 tests in `IndexDocumentHandlerTests` succeed against the current (pre-refactor) `IndexDocumentHandler.cs`. This establishes the baseline the refactor must not break.
+
+- [ ] **Step 2: Replace `IndexDocumentHandler.cs` with the phase-extracted version**
+
+Replace the full contents of `backend/src/Anela.Heblo.Application/Features/KnowledgeBase/UseCases/IndexDocument/IndexDocumentHandler.cs` with:
+
+```csharp
 using System.Security.Cryptography;
 using Anela.Heblo.Application.Features.KnowledgeBase;
 using Anela.Heblo.Application.Features.KnowledgeBase.Services;
@@ -167,3 +186,41 @@ public class IndexDocumentHandler : IRequestHandler<IndexDocumentRequest, IndexD
         };
     }
 }
+```
+
+Notes on equivalence with the pre-refactor code (verify while editing, do not deviate):
+- `contentType` is computed once in `Handle` and threaded into `CreateAndPersistDocumentAsync`; `IndexWithErrorHandlingAsync` reads it back off `document.ContentType` (set identically) rather than taking it as a second parameter — the value passed to `_indexingService.IndexChunksAsync` is therefore unchanged.
+- The error-path log messages use `document.Filename`/`document.Filename` instead of `request.Filename` — these are the same string (`document.Filename = request.Filename` in `CreateAndPersistDocumentAsync`), so log output text is byte-for-byte identical.
+- The nested try/catch around the Failed-status save (log + swallow only that inner exception, then `throw;` the original) is preserved verbatim inside `IndexWithErrorHandlingAsync`.
+- `BuildResponse` is reused for both the duplicate-by-hash path (inside `TryResolveDuplicateAsync`) and the newly-created-document path (in `Handle`) — field mapping is identical to both original inline constructions.
+
+- [ ] **Step 3: Run the tests again to confirm the refactor is behavior-preserving**
+
+Run: `dotnet test backend/test/Anela.Heblo.Tests/Anela.Heblo.Tests.csproj --filter "FullyQualifiedName~Anela.Heblo.Tests.KnowledgeBase.UseCases.IndexDocumentHandlerTests"`
+
+Expected: PASS — all 13 tests still succeed, unmodified, against the refactored handler. If any test fails, the failure identifies exactly which behavior drifted (see spec.r1.md Acceptance Criteria per FR for which test maps to which phase) — fix the extracted method, do not touch the test.
+
+- [ ] **Step 4: Run the full backend build**
+
+Run: `dotnet build`
+
+Expected: Build succeeds with no new warnings or errors.
+
+- [ ] **Step 5: Run the full backend test suite**
+
+Run: `dotnet test`
+
+Expected: PASS — no regressions outside `IndexDocumentHandlerTests` (this handler has no other direct consumers whose tests could be affected by a purely-private-method-internal refactor, but this is the mechanical whole-suite check called for by `CLAUDE.md`'s validation gate).
+
+- [ ] **Step 6: Run code formatting check**
+
+Run: `dotnet format --verify-no-changes`
+
+Expected: No formatting violations reported. If it reports violations, run `dotnet format` (without `--verify-no-changes`) to apply them, then re-run Step 3 and Step 5 to confirm tests are still green after formatting.
+
+- [ ] **Step 7: Commit**
+
+```bash
+git add backend/src/Anela.Heblo.Application/Features/KnowledgeBase/UseCases/IndexDocument/IndexDocumentHandler.cs
+git commit -m "refactor(knowledgebase): extract IndexDocumentHandler.Handle phases into private methods"
+```
