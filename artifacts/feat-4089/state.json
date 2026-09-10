@@ -34,9 +34,9 @@
     },
     {
       "name": "swap-giftpackage-service-to-batch-lookup",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-09-10T05:15:50.681980Z"
+      "updated_at": "2026-09-10T06:44:33.195732Z"
     }
   ]
 }
