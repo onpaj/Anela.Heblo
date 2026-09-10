@@ -43,6 +43,17 @@ public class FlexiProductPriceWriter : IErpPriceWriter
                 "A Flexi ceník id is required. Writing by code would create a new price list item.");
         }
 
+        // Same reason the id is guarded: this writer is reachable by any future caller that
+        // has not been through SetProductPriceRequestValidator, and a zero or negative
+        // cenaZakl lands in a live ERP.
+        if (priceWithoutVat <= 0m)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(priceWithoutVat),
+                priceWithoutVat,
+                "A Flexi ceník base price must be positive.");
+        }
+
         var payload = new
         {
             winstrom = new

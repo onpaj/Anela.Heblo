@@ -253,6 +253,25 @@ public class ShoptetPriceListClientTests
             .And.Message.Should().Contain("no data block");
     }
 
+    [Theory]
+    [InlineData(0)]
+    [InlineData(-1)]
+    [InlineData(-0.01)]
+    public async Task rejects_a_non_positive_price_before_dispatching_the_write(decimal priceWithVat)
+    {
+        // Arrange: Shoptet treats a literal 0 as a genuine free price (from 2026-09-14), not
+        // as "clear the price", so a zero must never leave this process.
+        var recorded = new List<HttpRequestMessage>();
+        var client = CreateClient(_ => Json("{}"), recorded);
+
+        // Act
+        var act = () => client.SetPriceWithVatAsync("A", priceWithVat, CancellationToken.None);
+
+        // Assert
+        await act.Should().ThrowAsync<ArgumentOutOfRangeException>();
+        recorded.Should().BeEmpty();
+    }
+
     private sealed class StubHandler : HttpMessageHandler
     {
         private readonly Func<HttpRequestMessage, HttpResponseMessage> _responder;

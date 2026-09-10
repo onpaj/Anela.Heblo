@@ -98,6 +98,23 @@ public class FlexiProductPriceWriterTests
         (await act.Should().ThrowAsync<HttpRequestException>()).And.Message.Should().Contain("success");
     }
 
+    [Theory]
+    [InlineData(0)]
+    [InlineData(-1)]
+    [InlineData(-0.01)]
+    public async Task rejects_a_non_positive_price_without_calling_flexi(decimal priceWithoutVat)
+    {
+        // Arrange
+        var (writer, requests, _) = Create();
+
+        // Act
+        var act = () => writer.SetPriceWithoutVatAsync(147, priceWithoutVat, CancellationToken.None);
+
+        // Assert
+        await act.Should().ThrowAsync<ArgumentOutOfRangeException>();
+        requests.Should().BeEmpty();
+    }
+
     [Fact]
     public async Task evicts_the_cached_flexi_price_read_after_a_successful_write()
     {

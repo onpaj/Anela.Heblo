@@ -119,6 +119,18 @@ public class ShoptetPriceListClient : IEshopPriceListClient
 
     public async Task SetPriceWithVatAsync(string productCode, decimal priceWithVat, CancellationToken ct)
     {
+        // Rejected before dispatch, not merely at the application boundary: Shoptet treats a
+        // literal 0 as a genuine free price on the live shop (from 2026-09-14) rather than as
+        // "clear the price", and this client is reachable by any future caller that has not
+        // been through SetProductPriceRequestValidator.
+        if (priceWithVat <= 0m)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(priceWithVat),
+                priceWithVat,
+                "A Shoptet retail price must be positive; 0 would set a genuine free price on the live shop.");
+        }
+
         var priceListId = ResolvePriceListId();
 
         // priceWithVat (never `price`) so Shoptet recalculates the stored form itself.
