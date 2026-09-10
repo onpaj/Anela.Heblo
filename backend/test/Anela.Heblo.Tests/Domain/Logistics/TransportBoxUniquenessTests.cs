@@ -60,14 +60,23 @@ public class TransportBoxUniquenessTests : IDisposable
             .Setup(x => x.Map<TransportBoxDto>(It.IsAny<TransportBox>()))
             .Returns(new TransportBoxDto());
 
+        var sideEffects = new ITransportBoxTransitionSideEffect[]
+        {
+            new NewToOpenedSideEffect(_repository, _mockUserService.Object, TimeProvider.System),
+            new OpenToReserveSideEffect(),
+            new OpenToQuarantineSideEffect(),
+            new ReceivedSideEffect(_mockStockUpProcessingService.Object, NullLogger<ReceivedSideEffect>.Instance),
+        };
+        var inventoryRestorer = new TransportBoxInventoryRestorer(_mockInventoryReservationService.Object);
+
         _handler = new ChangeTransportBoxStateHandler(
             _repository,
-            _mockInventoryReservationService.Object,
             _mockMapper.Object,
             NullLogger<ChangeTransportBoxStateHandler>.Instance,
             _mockUserService.Object,
-            _mockStockUpProcessingService.Object,
-            TimeProvider.System);
+            TimeProvider.System,
+            sideEffects,
+            inventoryRestorer);
     }
 
     [Fact]

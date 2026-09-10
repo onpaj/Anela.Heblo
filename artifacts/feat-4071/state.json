@@ -1,0 +1,96 @@
+{
+  "feature_id": "feat-4071",
+  "issue_number": 4071,
+  "created_at": "2026-09-05T07:13:12.376662Z",
+  "max_revisions": 3,
+  "phases": {
+    "analyzing": {
+      "status": "completed",
+      "updated_at": "2026-09-05T07:16:19.647361Z"
+    },
+    "architecting": {
+      "status": "completed",
+      "updated_at": "2026-09-05T07:17:31.072759Z"
+    },
+    "designing": {
+      "status": "completed",
+      "updated_at": "2026-09-05T07:17:54.324686Z"
+    },
+    "planning": {
+      "status": "completed",
+      "updated_at": "2026-09-05T07:20:59.893676Z"
+    },
+    "developing": {
+      "status": "failed",
+      "updated_at": "2026-09-07T23:03:09.999196Z"
+    }
+  },
+  "tasks": [
+    {
+      "name": "create-side-effect-interface",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-09-07T05:19:36.927280Z"
+    },
+    {
+      "name": "extract-new-to-opened-side-effect",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-09-07T05:43:29.410662Z"
+    },
+    {
+      "name": "extract-open-to-reserve-side-effect",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-09-07T06:42:27.567334Z"
+    },
+    {
+      "name": "extract-open-to-quarantine-side-effect",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-09-07T07:52:08.550485Z"
+    },
+    {
+      "name": "extract-received-side-effect",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-09-07T08:42:42.945896Z"
+    },
+    {
+      "name": "extract-inventory-restorer",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-09-07T09:55:33.041419Z"
+    },
+    {
+      "name": "refactor-handler-orchestration",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-09-07T10:21:39.783879Z"
+    },
+    {
+      "name": "register-di",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-09-07T10:41:01.842316Z"
+    },
+    {
+      "name": "update-existing-tests",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-09-07T11:52:36.102030Z"
+    },
+    {
+      "name": "add-dispatch-uniqueness-test",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-09-07T12:37:44.674513Z"
+    },
+    {
+      "name": "full-verification",
+      "status": "failed",
+      "revision": 3,
+      "updated_at": "2026-09-07T23:03:09.719689Z"
+    }
+  ]
+}

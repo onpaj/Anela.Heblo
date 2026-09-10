@@ -8,6 +8,7 @@ using Anela.Heblo.Domain.Features.Users;
 using AutoMapper;
 using FluentAssertions;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using Xunit;
 
@@ -57,14 +58,23 @@ public class ChangeTransportBoxStateHandlerTests
             .Setup(x => x.Map<TransportBoxDto>(It.IsAny<TransportBox>()))
             .Returns(new TransportBoxDto());
 
+        var sideEffects = new ITransportBoxTransitionSideEffect[]
+        {
+            new NewToOpenedSideEffect(_repositoryMock.Object, _currentUserServiceMock.Object, _timeProviderMock.Object),
+            new OpenToReserveSideEffect(),
+            new OpenToQuarantineSideEffect(),
+            new ReceivedSideEffect(_stockUpProcessingServiceMock.Object, NullLogger<ReceivedSideEffect>.Instance),
+        };
+        var inventoryRestorer = new TransportBoxInventoryRestorer(_inventoryReservationServiceMock.Object);
+
         _handler = new ChangeTransportBoxStateHandler(
             _repositoryMock.Object,
-            _inventoryReservationServiceMock.Object,
             _mapperMock.Object,
             _loggerMock.Object,
             _currentUserServiceMock.Object,
-            _stockUpProcessingServiceMock.Object,
-            _timeProviderMock.Object);
+            _timeProviderMock.Object,
+            sideEffects,
+            inventoryRestorer);
     }
 
     [Fact]
