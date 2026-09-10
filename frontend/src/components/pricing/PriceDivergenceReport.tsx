@@ -44,7 +44,7 @@ const SummaryTile: React.FC<SummaryTileProps> = ({ label, value, emphasize }) =>
   </div>
 );
 
-const DIVERGENT_COLUMN_COUNT = 9;
+const DIVERGENT_COLUMN_COUNT = 8;
 
 const PriceDivergenceReport: React.FC = () => {
   const { data, isLoading, error } = usePriceDivergenceReport();
@@ -123,7 +123,6 @@ const PriceDivergenceReport: React.FC = () => {
                 <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 dark:text-graphite-muted uppercase tracking-wider">Shoptet (s DPH)</th>
                 <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 dark:text-graphite-muted uppercase tracking-wider">Flexi (s DPH)</th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-graphite-muted uppercase tracking-wider">Typ ceny Flexi</th>
-                <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 dark:text-graphite-muted uppercase tracking-wider">Heblo (master)</th>
                 <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 dark:text-graphite-muted uppercase tracking-wider">Rozdíl</th>
                 <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 dark:text-graphite-muted uppercase tracking-wider">Rozdíl %</th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-graphite-muted uppercase tracking-wider">Stav</th>
@@ -161,9 +160,6 @@ const DivergenceRow: React.FC<{ row: PriceDivergenceRowDto }> = ({ row }) => (
     </td>
     <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 dark:text-graphite-text">
       {row.flexiPriceType ?? "neznámý"}
-    </td>
-    <td className="px-4 py-3 whitespace-nowrap text-right text-sm text-gray-900 dark:text-graphite-text">
-      {row.hebloMasterPriceWithVat != null ? formatCurrency(row.hebloMasterPriceWithVat) : "—"}
     </td>
     <td className="px-4 py-3 whitespace-nowrap text-right text-sm text-gray-900 dark:text-graphite-text">
       {row.differenceWithVat != null ? formatCurrency(row.differenceWithVat) : "—"}

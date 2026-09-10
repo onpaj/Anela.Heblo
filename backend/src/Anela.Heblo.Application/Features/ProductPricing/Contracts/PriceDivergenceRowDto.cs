@@ -1,6 +1,6 @@
 namespace Anela.Heblo.Application.Features.ProductPricing.Contracts;
 
-/// <summary>One in-scope product's price comparison across Shoptet, Flexi and Heblo's master table.</summary>
+/// <summary>One in-scope product's price comparison across Shoptet and Flexi.</summary>
 public class PriceDivergenceRowDto
 {
     public string ProductCode { get; set; } = string.Empty;
@@ -15,9 +15,6 @@ public class PriceDivergenceRowDto
 
     /// <summary>"bezDph", "sDph", or null when Flexi did not expose the price type.</summary>
     public string? FlexiPriceType { get; set; }
-
-    /// <summary>The current <c>ProductPrices</c> master row, if any.</summary>
-    public decimal? HebloMasterPriceWithVat { get; set; }
 
     /// <summary>Flexi minus Shoptet, rounded to 2 decimals. Null when either side is missing.</summary>
     public decimal? DifferenceWithVat { get; set; }

@@ -1,10 +1,5 @@
 using Anela.Heblo.API.Infrastructure;
 using Anela.Heblo.Application.Features.ProductPricing.UseCases.GetPriceDivergenceReport;
-using Anela.Heblo.Application.Features.ProductPricing.UseCases.GetPriceSyncConflicts;
-using Anela.Heblo.Application.Features.ProductPricing.UseCases.GetProductPrices;
-using Anela.Heblo.Application.Features.ProductPricing.UseCases.ResolvePriceSyncConflict;
-using Anela.Heblo.Application.Features.ProductPricing.UseCases.SetProductPrice;
-using Anela.Heblo.Application.Features.ProductPricing.UseCases.TriggerPriceSync;
 using Anela.Heblo.Domain.Features.Authorization;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
@@ -23,39 +18,8 @@ public class ProductPricingController : BaseApiController
         _mediator = mediator;
     }
 
-    [HttpGet("prices")]
-    public async Task<ActionResult<GetProductPricesResponse>> GetPrices(CancellationToken cancellationToken = default)
-        => HandleResponse(await _mediator.Send(new GetProductPricesRequest(), cancellationToken));
-
-    [HttpPut("prices/{productCode}")]
-    [FeatureAuthorize(Feature.Products_Catalog, AccessLevel.Write)]
-    public async Task<ActionResult<SetProductPriceResponse>> SetPrice(
-        string productCode,
-        [FromBody] SetProductPriceRequest request,
-        CancellationToken cancellationToken = default)
-    {
-        request.ProductCode = productCode;
-        return HandleResponse(await _mediator.Send(request, cancellationToken));
-    }
-
-    [HttpPost("sync")]
-    [FeatureAuthorize(Feature.Products_Catalog, AccessLevel.Write)]
-    public async Task<ActionResult<TriggerPriceSyncResponse>> TriggerSync(CancellationToken cancellationToken = default)
-        => HandleResponse(await _mediator.Send(new TriggerPriceSyncRequest(), cancellationToken));
-
-    [HttpGet("conflicts")]
-    public async Task<ActionResult<GetPriceSyncConflictsResponse>> GetConflicts(CancellationToken cancellationToken = default)
-        => HandleResponse(await _mediator.Send(new GetPriceSyncConflictsRequest(), cancellationToken));
-
-    /// <summary>Read-only comparison of Shoptet, Flexi and Heblo master prices. Never writes anywhere.</summary>
+    /// <summary>Read-only comparison of Shoptet and Flexi prices. Never writes anywhere.</summary>
     [HttpGet("divergence")]
     public async Task<ActionResult<GetPriceDivergenceReportResponse>> GetDivergenceReport(CancellationToken cancellationToken = default)
         => HandleResponse(await _mediator.Send(new GetPriceDivergenceReportRequest(), cancellationToken));
-
-    [HttpPost("conflicts/resolve")]
-    [FeatureAuthorize(Feature.Products_Catalog, AccessLevel.Write)]
-    public async Task<ActionResult<ResolvePriceSyncConflictResponse>> ResolveConflict(
-        [FromBody] ResolvePriceSyncConflictRequest request,
-        CancellationToken cancellationToken = default)
-        => HandleResponse(await _mediator.Send(request, cancellationToken));
 }

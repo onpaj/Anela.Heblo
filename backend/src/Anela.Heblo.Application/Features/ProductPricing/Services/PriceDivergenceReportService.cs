@@ -6,13 +6,11 @@ using Anela.Heblo.Domain.Features.ProductPricing;
 namespace Anela.Heblo.Application.Features.ProductPricing.Services;
 
 /// <summary>
-/// Builds the price divergence report: a pure read-and-compare of Shoptet, Flexi and the
-/// Heblo master price table. This type deliberately depends on nothing but read methods —
-/// <see cref="IEshopPriceListClient.GetPricesWithVatAsync"/>, <see cref="IProductPriceErpClient.GetAllAsync"/>,
-/// <see cref="IProductPriceRepository.GetAllAsync"/> and <see cref="ICatalogRepository.GetAllAsync"/> —
-/// so no write path (<c>SetPriceWithVatAsync</c>, <c>IErpPriceWriter</c>, <c>UpsertAsync</c>,
-/// <c>UpsertSyncStateAsync</c>, <c>SaveChangesAsync</c>) is even reachable from here. It is a
-/// separate class from <see cref="ProductPriceSyncService"/> for exactly that reason.
+/// Builds the price divergence report: a pure read-and-compare of Shoptet and Flexi.
+/// This type deliberately depends on nothing but read methods —
+/// <see cref="IEshopPriceListClient.GetPricesWithVatAsync"/>, <see cref="IProductPriceErpClient.GetAllAsync"/>
+/// and <see cref="ICatalogRepository.GetAllAsync"/> —
+/// so no write path (<c>SetPriceWithVatAsync</c>, <c>IErpPriceWriter</c>) is even reachable from here.
 /// </summary>
 public class PriceDivergenceReportService : IPriceDivergenceReportService
 {
@@ -20,7 +18,7 @@ public class PriceDivergenceReportService : IPriceDivergenceReportService
     /// convention used for every money value in this codebase.</summary>
     private const int PriceDecimals = 2;
 
-    /// <summary>Assumption A3 (matches ProductPriceSyncService): only sellable types carry a retail price.</summary>
+    /// <summary>Assumption A3: only sellable types carry a retail price.</summary>
     private static readonly ProductType[] PricedProductTypes =
     {
         ProductType.Product, ProductType.Goods, ProductType.Set,
@@ -29,18 +27,15 @@ public class PriceDivergenceReportService : IPriceDivergenceReportService
     private readonly ICatalogRepository _catalogRepository;
     private readonly IEshopPriceListClient _eshopClient;
     private readonly IProductPriceErpClient _erpClient;
-    private readonly IProductPriceRepository _priceRepository;
 
     public PriceDivergenceReportService(
         ICatalogRepository catalogRepository,
         IEshopPriceListClient eshopClient,
-        IProductPriceErpClient erpClient,
-        IProductPriceRepository priceRepository)
+        IProductPriceErpClient erpClient)
     {
         _catalogRepository = catalogRepository;
         _eshopClient = eshopClient;
         _erpClient = erpClient;
-        _priceRepository = priceRepository;
     }
 
     public async Task<PriceDivergenceReportResult> BuildReportAsync(CancellationToken ct)
@@ -59,11 +54,8 @@ public class PriceDivergenceReportService : IPriceDivergenceReportService
             .GroupBy(p => p.ProductCode, StringComparer.OrdinalIgnoreCase)
             .ToDictionary(g => g.Key, g => g.First(), StringComparer.OrdinalIgnoreCase);
 
-        var masterPrices = (await _priceRepository.GetAllAsync(ct))
-            .ToDictionary(p => p.ProductCode, StringComparer.OrdinalIgnoreCase);
-
         var rows = inScopeProducts
-            .Select(product => BuildRow(product, shoptetPrices, erpPrices, masterPrices))
+            .Select(product => BuildRow(product, shoptetPrices, erpPrices))
             .ToList();
 
         return new PriceDivergenceReportResult
@@ -76,14 +68,12 @@ public class PriceDivergenceReportService : IPriceDivergenceReportService
     private static PriceDivergenceRowDto BuildRow(
         CatalogAggregate product,
         IReadOnlyDictionary<string, decimal> shoptetPrices,
-        IReadOnlyDictionary<string, ProductPriceErp> erpPrices,
-        IReadOnlyDictionary<string, ProductPrice> masterPrices)
+        IReadOnlyDictionary<string, ProductPriceErp> erpPrices)
     {
         shoptetPrices.TryGetValue(product.ProductCode, out var shoptetPrice);
         var hasShoptetPrice = shoptetPrices.ContainsKey(product.ProductCode);
 
         erpPrices.TryGetValue(product.ProductCode, out var erp);
-        masterPrices.TryGetValue(product.ProductCode, out var masterPrice);
 
         var shoptetPriceWithVat = hasShoptetPrice ? shoptetPrice : (decimal?)null;
         var flexiPriceWithVat = erp?.PriceWithVat;
@@ -98,7 +88,6 @@ public class PriceDivergenceReportService : IPriceDivergenceReportService
             FlexiPriceWithVat = flexiPriceWithVat,
             FlexiPriceWithoutVat = erp?.PriceWithoutVat,
             FlexiPriceType = erp?.ErpPriceType,
-            HebloMasterPriceWithVat = masterPrice?.PriceWithVat,
             DifferenceWithVat = differenceWithVat,
             DifferencePercent = differencePercent,
             Kind = ClassifyRow(shoptetPriceWithVat, erp),

@@ -14,10 +14,9 @@ public class PriceDivergenceReportServiceTests
     private readonly Mock<ICatalogRepository> _catalog = new();
     private readonly Mock<IEshopPriceListClient> _eshop = new();
     private readonly Mock<IProductPriceErpClient> _erp = new();
-    private readonly Mock<IProductPriceRepository> _priceRepository = new();
 
     private PriceDivergenceReportService CreateService() => new(
-        _catalog.Object, _eshop.Object, _erp.Object, _priceRepository.Object);
+        _catalog.Object, _eshop.Object, _erp.Object);
 
     private void GivenCatalog(params (string Code, ProductType Type, string Name)[] products) =>
         _catalog
@@ -36,19 +35,12 @@ public class PriceDivergenceReportServiceTests
             .Setup(e => e.GetAllAsync(It.IsAny<bool>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(prices);
 
-    private void GivenMasterPrices(params ProductPrice[] prices) =>
-        _priceRepository
-            .Setup(r => r.GetAllAsync(It.IsAny<CancellationToken>()))
-            .ReturnsAsync(prices);
-
     private PriceDivergenceReportServiceTests WithDefaults()
     {
         _eshop.Setup(e => e.GetPricesWithVatAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(new Dictionary<string, decimal>());
         _erp.Setup(e => e.GetAllAsync(It.IsAny<bool>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new List<ProductPriceErp>());
-        _priceRepository.Setup(r => r.GetAllAsync(It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new List<ProductPrice>());
         return this;
     }
 
@@ -208,19 +200,23 @@ public class PriceDivergenceReportServiceTests
     }
 
     [Fact]
-    public async Task reports_heblo_master_price_alongside_the_comparison()
+    public async Task classifies_a_product_as_in_agreement_when_shoptet_and_flexi_match()
     {
         // Arrange
-        WithDefaults();
-        GivenCatalog(("MST001", ProductType.Product, "Master"));
-        GivenShoptetPrices(("MST001", 100.00m));
-        GivenMasterPrices(new ProductPrice { ProductCode = "MST001", PriceWithVat = 105.00m, VatRate = 21m });
+        GivenCatalog(("A", ProductType.Product, "Alpha"));
+        GivenShoptetPrices(("A", 390.00m));
+        GivenErpPrices(new ProductPriceErp
+        {
+            ProductCode = "A", PriceWithVat = 390.00m, PriceWithoutVat = 322.31m,
+            ErpItemId = 11, ErpPriceType = "bezDph",
+        });
 
         // Act
         var result = await CreateService().BuildReportAsync(CancellationToken.None);
 
         // Assert
-        result.Rows.Should().ContainSingle().Which.HebloMasterPriceWithVat.Should().Be(105.00m);
+        result.Rows.Should().ContainSingle()
+            .Which.Kind.Should().Be(PriceDivergenceKind.InAgreement);
     }
 
     [Fact]
@@ -245,7 +241,7 @@ public class PriceDivergenceReportServiceTests
     public async Task never_calls_any_write_method_on_any_dependency()
     {
         // Arrange — the constraint this whole feature exists to guarantee: building the
-        // report must never write to Shoptet, Flexi, or the ProductPrices/sync-state tables.
+        // report must never write to Shoptet or Flexi.
         WithDefaults();
         GivenCatalog(("MAS001180", ProductType.Product, "Maska"));
         GivenShoptetPrices(("MAS001180", 390.00m));
@@ -261,11 +257,5 @@ public class PriceDivergenceReportServiceTests
         _eshop.Verify(
             e => e.SetPriceWithVatAsync(It.IsAny<string>(), It.IsAny<decimal>(), It.IsAny<CancellationToken>()),
             Times.Never);
-        _priceRepository.Verify(
-            r => r.UpsertAsync(It.IsAny<ProductPrice>(), It.IsAny<CancellationToken>()), Times.Never);
-        _priceRepository.Verify(
-            r => r.UpsertSyncStateAsync(It.IsAny<ProductPriceSyncState>(), It.IsAny<CancellationToken>()),
-            Times.Never);
-        _priceRepository.Verify(r => r.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Never);
     }
 }
