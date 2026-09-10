@@ -12,7 +12,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Anela.Heblo.Persistence.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20260910161447_AddProductPriceChangeLog")]
+    [Migration("20260910162428_AddProductPriceChangeLog")]
     partial class AddProductPriceChangeLog
     {
         /// <inheritdoc />
@@ -3541,7 +3541,7 @@ namespace Anela.Heblo.Persistence.Migrations
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
                     b.Property<DateTime>("ChangedAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp");
 
                     b.Property<string>("ChangedBy")
                         .IsRequired()

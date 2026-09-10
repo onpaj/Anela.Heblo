@@ -21,7 +21,7 @@ namespace Anela.Heblo.Persistence.Migrations
                     ProductCode = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: false),
                     OldPriceWithVat = table.Column<decimal>(type: "numeric(18,2)", precision: 18, scale: 2, nullable: true),
                     NewPriceWithVat = table.Column<decimal>(type: "numeric(18,2)", precision: 18, scale: 2, nullable: false),
-                    ChangedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    ChangedAt = table.Column<DateTime>(type: "timestamp", nullable: false),
                     ChangedBy = table.Column<string>(type: "character varying(256)", maxLength: 256, nullable: false),
                     ShoptetSucceeded = table.Column<bool>(type: "boolean", nullable: false),
                     FlexiSucceeded = table.Column<bool>(type: "boolean", nullable: false),
