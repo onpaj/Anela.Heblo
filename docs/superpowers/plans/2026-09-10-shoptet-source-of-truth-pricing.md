@@ -101,29 +101,25 @@ Everything here is inseparable: `PriceDivergenceReportService` and `SetProductPr
 
 - [ ] **Step 1: Update the report service test to the new constructor and drop master-price assertions**
 
-In `PriceDivergenceReportServiceTests.cs`, remove the `Mock<IProductPriceRepository>` field, its `GetAllAsync` setup, and the fourth constructor argument. Delete any assertion referencing `HebloMasterPriceWithVat`. Add this test, which pins the behaviour that must survive the deletion:
+This file already has its own fixture style — `CreateService()` plus `GivenCatalog` / `GivenShoptetPrices` / `GivenErpPrices` / `GivenMasterPrices` helpers. **Use those helpers; do not introduce a different style.**
+
+Remove the `Mock<IProductPriceRepository> _priceRepository` field, the whole `GivenMasterPrices` helper and every call to it, and the fourth argument of `CreateService()`. Delete any assertion referencing `HebloMasterPriceWithVat`. Then add this test, which pins the behaviour that must survive the deletion:
 
 ```csharp
 [Fact]
 public async Task classifies_a_product_as_in_agreement_when_shoptet_and_flexi_match()
 {
     // Arrange
-    _catalog.Setup(c => c.GetAllAsync(It.IsAny<CancellationToken>()))
-        .ReturnsAsync(new List<CatalogAggregate>
-        {
-            new() { ProductCode = "A", ProductName = "Alpha", Type = ProductType.Product },
-        });
-    _eshop.Setup(c => c.GetPricesWithVatAsync(It.IsAny<CancellationToken>()))
-        .ReturnsAsync(new Dictionary<string, decimal> { ["A"] = 390.00m });
-    _erp.Setup(c => c.GetAllAsync(false, It.IsAny<CancellationToken>()))
-        .ReturnsAsync(new List<ProductPriceErp>
-        {
-            new() { ProductCode = "A", PriceWithVat = 390.00m, PriceWithoutVat = 322.31m,
-                    ErpItemId = 11, ErpPriceType = "bezDph" },
-        });
+    GivenCatalog(("A", ProductType.Product, "Alpha"));
+    GivenShoptetPrices(("A", 390.00m));
+    GivenErpPrices(new ProductPriceErp
+    {
+        ProductCode = "A", PriceWithVat = 390.00m, PriceWithoutVat = 322.31m,
+        ErpItemId = 11, ErpPriceType = "bezDph",
+    });
 
     // Act
-    var result = await CreateSut().BuildReportAsync(CancellationToken.None);
+    var result = await CreateService().BuildReportAsync(CancellationToken.None);
 
     // Assert
     result.Rows.Should().ContainSingle()
@@ -208,7 +204,9 @@ In `ApplicationDbContext.cs` delete lines 62-63 (`ProductPrices`, `ProductPriceS
 
 In `ProductPricingPage.tsx`: remove the tab bar, the `useProductPrices` / `useTriggerPriceSync` usage, the sync button, the success and error banners, and render `<PriceDivergenceReport />` directly under the header.
 
-In `useProductPricing.ts`: delete `useProductPrices`, `useTriggerPriceSync`, `useResolvePriceSyncConflict`, `useSetProductPrice`, `usePriceSyncConflicts`, the `QUERY_KEYS.prices` / `.conflicts` entries, the `SetProductPriceInput` / `ResolvePriceConflictInput` interfaces, the `GENERIC_*` constants for those flows, and every re-export of a deleted generated type (`ProductPriceDto`, `PriceSyncConflictDto`, `PriceSyncStatus`, `PriceSyncTarget`, `PriceConflictResolution`). Keep `useDivergenceReport` and the divergence re-exports.
+In `useProductPricing.ts`, delete exactly these exported hooks — **the names matter, verify each against the file before deleting**: `useProductPrices`, `useSetProductPrice`, `usePriceSyncConflicts`, `useResolvePriceConflict`, `useTriggerPriceSync`. Also delete the `QUERY_KEYS.prices` / `.conflicts` entries, the `SetProductPriceInput` / `ResolvePriceConflictInput` interfaces, the `GENERIC_*` constants for those flows, and every re-export of a deleted generated type (`ProductPriceDto`, `PriceSyncConflictDto`, `PriceSyncStatus`, `PriceSyncTarget`, `PriceConflictResolution`).
+
+**Keep `usePriceDivergenceReport`** (note the full name) and the divergence re-exports (`PriceDivergenceRowDto`, `PriceDivergenceSummaryDto`, `PriceDivergenceKind`).
 
 Delete `frontend/src/pages/__tests__/ProductPricingPage.test.tsx` assertions covering the grid, sync button and conflicts; keep only those asserting the header and the comparison table render.
 
@@ -264,17 +262,19 @@ Flexi stores `cenaZakl` excluding VAT and reconstructs the with-VAT price on rea
 
 - [ ] **Step 1: Write the failing tolerance tests**
 
+**The theory parameter must be `double`, not `decimal`.** C# forbids `decimal` as an attribute argument, so `[InlineData(189.99)]` on a `decimal` parameter is a compile error. Take a `double` and cast at the use site.
+
 ```csharp
 [Theory]
 [InlineData(189.99)] // Flexi's round-trip loss on a 190.00 with-VAT price
 [InlineData(190.01)]
-public async Task treats_a_flexi_price_within_one_hundredth_as_in_agreement(decimal flexiPriceWithVat)
+public async Task treats_a_flexi_price_within_one_hundredth_as_in_agreement(double flexiPriceWithVat)
 {
     // Arrange
-    ArrangeSingleProduct(shoptetPriceWithVat: 190.00m, flexiPriceWithVat: flexiPriceWithVat);
+    ArrangeSingleProduct(shoptetPriceWithVat: 190.00m, flexiPriceWithVat: (decimal)flexiPriceWithVat);
 
     // Act
-    var result = await CreateSut().BuildReportAsync(CancellationToken.None);
+    var result = await CreateService().BuildReportAsync(CancellationToken.None);
 
     // Assert
     result.Rows.Should().ContainSingle()
@@ -284,13 +284,13 @@ public async Task treats_a_flexi_price_within_one_hundredth_as_in_agreement(deci
 [Theory]
 [InlineData(189.97)]
 [InlineData(190.03)]
-public async Task reports_a_flexi_price_beyond_the_tolerance_as_divergent(decimal flexiPriceWithVat)
+public async Task reports_a_flexi_price_beyond_the_tolerance_as_divergent(double flexiPriceWithVat)
 {
     // Arrange
-    ArrangeSingleProduct(shoptetPriceWithVat: 190.00m, flexiPriceWithVat: flexiPriceWithVat);
+    ArrangeSingleProduct(shoptetPriceWithVat: 190.00m, flexiPriceWithVat: (decimal)flexiPriceWithVat);
 
     // Act
-    var result = await CreateSut().BuildReportAsync(CancellationToken.None);
+    var result = await CreateService().BuildReportAsync(CancellationToken.None);
 
     // Assert
     result.Rows.Should().ContainSingle()
@@ -298,24 +298,18 @@ public async Task reports_a_flexi_price_beyond_the_tolerance_as_divergent(decima
 }
 ```
 
-Add the helper the tests share:
+Add the helper the tests share, built on the file's existing `Given*` helpers:
 
 ```csharp
 private void ArrangeSingleProduct(decimal shoptetPriceWithVat, decimal flexiPriceWithVat)
 {
-    _catalog.Setup(c => c.GetAllAsync(It.IsAny<CancellationToken>()))
-        .ReturnsAsync(new List<CatalogAggregate>
-        {
-            new() { ProductCode = "A", ProductName = "Alpha", Type = ProductType.Product },
-        });
-    _eshop.Setup(c => c.GetPricesWithVatAsync(It.IsAny<CancellationToken>()))
-        .ReturnsAsync(new Dictionary<string, decimal> { ["A"] = shoptetPriceWithVat });
-    _erp.Setup(c => c.GetAllAsync(false, It.IsAny<CancellationToken>()))
-        .ReturnsAsync(new List<ProductPriceErp>
-        {
-            new() { ProductCode = "A", PriceWithVat = flexiPriceWithVat,
-                    PriceWithoutVat = 157.02m, ErpItemId = 11, ErpPriceType = "bezDph" },
-        });
+    GivenCatalog(("A", ProductType.Product, "Alpha"));
+    GivenShoptetPrices(("A", shoptetPriceWithVat));
+    GivenErpPrices(new ProductPriceErp
+    {
+        ProductCode = "A", PriceWithVat = flexiPriceWithVat, PriceWithoutVat = 157.02m,
+        ErpItemId = 11, ErpPriceType = "bezDph",
+    });
 }
 ```
 
@@ -673,7 +667,7 @@ Expected: PASS.
 
 - [ ] **Step 5: Add the three error codes and their Czech strings**
 
-In `ErrorCodes.cs`, in the `36XX` block (`ProductPriceNotFound = 3601` stays; `ProductPriceConflictNotFound = 3604` is now unused — delete it and its i18n entry):
+In `ErrorCodes.cs`, in the `36XX` block. **Delete both existing codes** — `ProductPriceNotFound = 3601` and `ProductPriceConflictNotFound = 3604` — because Task 1 deleted their only two users (`SetProductPriceHandler` and `ResolvePriceSyncConflictHandler`); verify with `grep -rn "ProductPriceNotFound\b\|ProductPriceConflictNotFound" backend/src` that nothing references them. The four new codes keep the 36XX bucket non-empty, so `ErrorHandlingTests` still passes. Add:
 
 ```csharp
     [HttpStatusCode(HttpStatusCode.NotFound)]
@@ -686,7 +680,7 @@ In `ErrorCodes.cs`, in the `36XX` block (`ProductPriceNotFound = 3601` stays; `P
     ProductPriceFlexiWriteFailed = 3606,
 ```
 
-In `frontend/src/i18n.ts`, replacing the `ProductPriceConflictNotFound` line:
+In `frontend/src/i18n.ts`, replacing **both** the `ProductPriceNotFound` and `ProductPriceConflictNotFound` lines:
 
 ```ts
         ProductPriceNotFoundInShoptet: "Produkt není v maloobchodním ceníku Shoptetu",
@@ -1089,6 +1083,7 @@ outcome appends a change-log row."
 DataQuality already has an `IDriftDqtComparer` abstraction with three implementations driven by a shared `DriftDqtJobRunner`, which handles run lifecycle, per-mismatch result persistence and failure recording. Price comparison plugs in as a fourth.
 
 **Files:**
+- Create: `backend/src/Anela.Heblo.Domain/Features/DataQuality/PriceComparisonMismatch.cs`
 - Create: `backend/src/Anela.Heblo.Application/Features/DataQuality/Contracts/IPriceComparisonSource.cs`
 - Create: `backend/src/Anela.Heblo.Application/Features/DataQuality/Services/PriceComparisonDqtComparer.cs`
 - Create: `backend/src/Anela.Heblo.Application/Features/DataQuality/Infrastructure/Jobs/PriceComparisonDqtJob.cs`
@@ -1154,6 +1149,7 @@ public class PriceComparisonDqtComparerTests
 
         // Assert
         var mismatch = result.Mismatches.Single();
+        mismatch.MismatchCode.Should().Be((int)PriceComparisonMismatch.PriceDiffers);
         mismatch.ShoptetValue.Should().Be("250.00");
         mismatch.HebloValue.Should().Be("200.00");
         mismatch.Details.Should().Be("FlexiDiffers");
@@ -1242,7 +1238,7 @@ public class PriceComparisonDqtComparer : IDriftDqtComparer
             .Select(d => new DriftMismatch
             {
                 EntityKey = d.ProductCode,
-                MismatchCode = (int)DqtTestType.PriceComparison,
+                MismatchCode = (int)MapMismatch(d.Kind),
                 ShoptetValue = Format(d.ShoptetPriceWithVat),
                 HebloValue = Format(d.FlexiPriceWithVat),
                 Details = d.Kind,
@@ -1252,8 +1248,36 @@ public class PriceComparisonDqtComparer : IDriftDqtComparer
         return new DriftComparisonResult { Mismatches = mismatches, TotalChecked = divergences.Count };
     }
 
+    /// <summary>
+    /// Maps ProductPricing's classification name onto this check's own mismatch enum. The
+    /// string crosses the module boundary so DataQuality never depends on ProductPricing's
+    /// enum; the mapping back to an int lives here because MismatchCode is this module's
+    /// vocabulary, exactly as the sibling drift comparers do it.
+    /// </summary>
+    private static PriceComparisonMismatch MapMismatch(string kind) => kind switch
+    {
+        "FlexiDiffers" => PriceComparisonMismatch.PriceDiffers,
+        "MissingInFlexi" => PriceComparisonMismatch.MissingInFlexi,
+        "FlexiPriceTypeUnknown" => PriceComparisonMismatch.FlexiPriceTypeUnknown,
+        _ => PriceComparisonMismatch.Unknown,
+    };
+
     private static string? Format(decimal? value) =>
         value?.ToString("F2", CultureInfo.InvariantCulture);
+}
+```
+
+Every DQT check owns a mismatch enum beside its siblings (`ProductPairingMismatch`, `StockWriteBackMismatch`, `LotStockReconciliationMismatch`), and `MismatchCode` is `(int)` of that enum. Create `backend/src/Anela.Heblo.Domain/Features/DataQuality/PriceComparisonMismatch.cs`:
+
+```csharp
+namespace Anela.Heblo.Domain.Features.DataQuality;
+
+public enum PriceComparisonMismatch
+{
+    Unknown = 0,
+    PriceDiffers = 1,
+    MissingInFlexi = 2,
+    FlexiPriceTypeUnknown = 3
 }
 ```
 
@@ -1422,7 +1446,7 @@ per-product result persistence and failure recording come for free."
 - Create: `backend/src/Anela.Heblo.Application/Features/DataQuality/DashboardTiles/PriceComparisonStatusTile.cs`
 - Create: `frontend/src/components/dashboard/tiles/PriceComparisonTile.tsx`
 - Modify: `DataQualityModule.cs`, `frontend/src/components/dashboard/drillDownRoutes.ts`
-- Test: `backend/test/Anela.Heblo.Tests/Features/DataQuality/PriceComparisonStatusTileTests.cs`, `frontend/src/components/dashboard/__tests__/drillDownRoutes.test.tsx`
+- Test: `backend/test/Anela.Heblo.Tests/Features/DataQuality/DashboardTiles/PriceComparisonStatusTileTests.cs` (tile tests live under `Features/<Module>/DashboardTiles/` in this repo), `frontend/src/components/dashboard/__tests__/drillDownRoutes.test.tsx`
 
 **Interfaces:**
 - Consumes: `IDqtRunRepository.GetLatestByTestTypeAsync(DqtTestType, CancellationToken)`; `DqtTestType.PriceComparison` (Task 5)
@@ -1630,7 +1654,7 @@ git commit -m "feat: price comparison dashboard tile"
 
 - [ ] **Step 1: Write the failing inline-edit test**
 
-In `PriceDivergenceReport.test.tsx`:
+`PriceDivergenceReport.test.tsx` currently calls `render(<PriceDivergenceReport />)` with no props and no helper. **Introduce the `renderReport` helper these tests use** — it mocks `usePriceDivergenceReport` to return the given rows, mocks `useSetProductPrice` to return the given `setPrice` mutation, and renders the component with `canWrite`. Convert the existing tests in the file to it so there is one render path, not two.
 
 ```tsx
 it('saves an edited Shoptet price and reloads the comparison', async () => {
