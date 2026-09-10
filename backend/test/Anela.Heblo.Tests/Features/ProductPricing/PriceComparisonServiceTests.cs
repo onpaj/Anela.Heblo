@@ -41,8 +41,11 @@ public class PriceComparisonServiceTests
         GivenShoptetPrices(("A", shoptetPriceWithVat));
         GivenErpPrices(new ProductPriceErp
         {
-            ProductCode = "A", PriceWithVat = flexiPriceWithVat, PriceWithoutVat = 157.02m,
-            ErpItemId = 11, ErpPriceType = "bezDph",
+            ProductCode = "A",
+            PriceWithVat = flexiPriceWithVat,
+            PriceWithoutVat = 157.02m,
+            ErpItemId = 11,
+            ErpPriceType = "bezDph",
         });
     }
 
@@ -64,7 +67,10 @@ public class PriceComparisonServiceTests
         GivenShoptetPrices(("MAS001180", 390.00m));
         GivenErpPrices(new ProductPriceErp
         {
-            ProductCode = "MAS001180", PriceWithVat = 390.00m, PriceWithoutVat = 322.31m, ErpPriceType = "bezDph",
+            ProductCode = "MAS001180",
+            PriceWithVat = 390.00m,
+            PriceWithoutVat = 322.31m,
+            ErpPriceType = "bezDph",
         });
 
         // Act
@@ -88,7 +94,10 @@ public class PriceComparisonServiceTests
         GivenShoptetPrices(("MAS001180", 390.00m));
         GivenErpPrices(new ProductPriceErp
         {
-            ProductCode = "MAS001180", PriceWithVat = 447.70m, PriceWithoutVat = 370.00m, ErpPriceType = "bezDph",
+            ProductCode = "MAS001180",
+            PriceWithVat = 447.70m,
+            PriceWithoutVat = 370.00m,
+            ErpPriceType = "bezDph",
         });
 
         // Act
@@ -111,7 +120,10 @@ public class PriceComparisonServiceTests
         GivenCatalog(("ABC001", ProductType.Goods, "Widget"));
         GivenErpPrices(new ProductPriceErp
         {
-            ProductCode = "ABC001", PriceWithVat = 100.00m, PriceWithoutVat = 82.64m, ErpPriceType = "bezDph",
+            ProductCode = "ABC001",
+            PriceWithVat = 100.00m,
+            PriceWithoutVat = 82.64m,
+            ErpPriceType = "bezDph",
         });
 
         // Act
@@ -156,7 +168,10 @@ public class PriceComparisonServiceTests
         GivenShoptetPrices(("XYZ001", 199.00m));
         GivenErpPrices(new ProductPriceErp
         {
-            ProductCode = "XYZ001", PriceWithVat = 199.00m, PriceWithoutVat = 164.46m, ErpPriceType = null,
+            ProductCode = "XYZ001",
+            PriceWithVat = 199.00m,
+            PriceWithoutVat = 164.46m,
+            ErpPriceType = null,
         });
 
         // Act
@@ -181,7 +196,10 @@ public class PriceComparisonServiceTests
         GivenShoptetPrices(("XYZ002", 199.00m));
         GivenErpPrices(new ProductPriceErp
         {
-            ProductCode = "XYZ002", PriceWithVat = 250.00m, PriceWithoutVat = 206.61m, ErpPriceType = null,
+            ProductCode = "XYZ002",
+            PriceWithVat = 250.00m,
+            PriceWithoutVat = 206.61m,
+            ErpPriceType = null,
         });
 
         // Act
@@ -218,8 +236,11 @@ public class PriceComparisonServiceTests
         GivenShoptetPrices(("A", 390.00m));
         GivenErpPrices(new ProductPriceErp
         {
-            ProductCode = "A", PriceWithVat = 390.00m, PriceWithoutVat = 322.31m,
-            ErpItemId = 11, ErpPriceType = "bezDph",
+            ProductCode = "A",
+            PriceWithVat = 390.00m,
+            PriceWithoutVat = 322.31m,
+            ErpItemId = 11,
+            ErpPriceType = "bezDph",
         });
 
         // Act
@@ -258,7 +279,10 @@ public class PriceComparisonServiceTests
         GivenShoptetPrices(("MAS001180", 390.00m));
         GivenErpPrices(new ProductPriceErp
         {
-            ProductCode = "MAS001180", PriceWithVat = 447.70m, PriceWithoutVat = 370.00m, ErpPriceType = "bezDph",
+            ProductCode = "MAS001180",
+            PriceWithVat = 447.70m,
+            PriceWithoutVat = 370.00m,
+            ErpPriceType = "bezDph",
         });
 
         // Act
