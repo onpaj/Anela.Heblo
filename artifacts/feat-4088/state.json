@@ -21,16 +21,16 @@
       "updated_at": "2026-09-07T07:20:47.037180Z"
     },
     "developing": {
-      "status": "pending",
-      "updated_at": null
+      "status": "in_progress",
+      "updated_at": "2026-09-10T00:15:00.967636Z"
     }
   },
   "tasks": [
     {
       "name": "convert-consumeinventoryresult-to-class",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-09-10T00:15:01.239934Z"
     },
     {
       "name": "update-consumeinventoryresult-test-call-sites",
