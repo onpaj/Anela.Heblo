@@ -1,5 +1,5 @@
 import React from "react";
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import PriceDivergenceReport from "../PriceDivergenceReport";
 import * as hooks from "../../../api/hooks/useProductPricing";
@@ -87,14 +87,36 @@ const renderReport = ({
   return render(<PriceDivergenceReport canWrite={canWrite} />);
 };
 
-test("renders the summary counts prominently", () => {
-  // Arrange & Act
-  renderReport({ rows: [inAgreementRow, divergentRow] });
+// Reads the number rendered directly beneath a summary tile's label, so the assertion is
+// about that specific count rather than about the substring appearing anywhere on the page.
+const summaryCountFor = (label: string): string | null => {
+  const summary = screen.getByTestId("divergence-summary");
+  const labelNode = within(summary).getByText(label);
+  return labelNode.nextElementSibling?.textContent ?? null;
+};
+
+test("renders each summary count under its own label", () => {
+  // Arrange & Act — deliberately distinct values so no two tiles can satisfy each other's
+  // assertion.
+  renderReport({
+    rows: [inAgreementRow, divergentRow],
+    summary: {
+      totalInScope: 412,
+      inAgreementCount: 380,
+      flexiDiffersCount: 17,
+      missingInShoptetCount: 9,
+      missingInFlexiCount: 4,
+      flexiPriceTypeUnknownCount: 2,
+    },
+  });
 
   // Assert
-  const summary = screen.getByTestId("divergence-summary");
-  expect(summary).toHaveTextContent("2");
-  expect(summary).toHaveTextContent("1");
+  expect(summaryCountFor("Celkem v rozsahu")).toBe("412");
+  expect(summaryCountFor("Ve shodě")).toBe("380");
+  expect(summaryCountFor("Flexi se liší")).toBe("17");
+  expect(summaryCountFor("Chybí v Shoptetu")).toBe("9");
+  expect(summaryCountFor("Chybí ve Flexi")).toBe("4");
+  expect(summaryCountFor("Neznámý typ ceny")).toBe("2");
 });
 
 test("renders a row per product returned by the report", () => {

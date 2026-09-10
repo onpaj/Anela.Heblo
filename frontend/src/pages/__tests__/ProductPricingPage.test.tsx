@@ -2,10 +2,25 @@ import React from "react";
 import { render, screen } from "@testing-library/react";
 import ProductPricingPage from "../ProductPricingPage";
 import { usePermissionsContext } from "../../auth/PermissionsContext";
+import { PriceDivergenceKind } from "../../api/generated/api-client";
+
+// `mock`-prefixed so the jest.mock factory below may reference it; only read lazily, when
+// the hook is called during render.
+const mockDivergenceRow = {
+  productCode: "MAS001180",
+  productName: "Maska",
+  shoptetPriceWithVat: 390.0,
+  flexiPriceWithVat: 390.0,
+  flexiPriceWithoutVat: 322.31,
+  flexiPriceType: "bezDph",
+  differenceWithVat: 0,
+  differencePercent: 0,
+  kind: PriceDivergenceKind.InAgreement,
+};
 
 jest.mock("../../api/hooks/useProductPricing", () => ({
   usePriceDivergenceReport: () => ({
-    data: { rows: [], summary: undefined },
+    data: { rows: [mockDivergenceRow], summary: undefined },
     isLoading: false,
     error: null,
   }),
@@ -20,6 +35,8 @@ jest.mock("../../auth/PermissionsContext", () => ({
 }));
 
 const mockUsePermissionsContext = usePermissionsContext as jest.Mock;
+
+const EDIT_AFFORDANCE_LABEL = `Upravit cenu ${mockDivergenceRow.productName}`;
 
 beforeEach(() => {
   mockUsePermissionsContext.mockReturnValue({
@@ -52,8 +69,33 @@ test("passes write permission down so the operator can edit prices", () => {
   // Act
   render(<ProductPricingPage />);
 
-  // Assert — no rows are rendered, so we only assert the page renders without throwing
-  // when write access is granted (row-level edit affordances are covered in
-  // PriceDivergenceReport.test.tsx).
-  expect(screen.getByRole("table")).toBeInTheDocument();
+  // Assert — the edit affordance itself must appear, not merely the table.
+  expect(
+    screen.getByRole("button", { name: EDIT_AFFORDANCE_LABEL, exact: true }),
+  ).toBeInTheDocument();
+});
+
+test("withholds the edit affordance from a read-only viewer", () => {
+  // Arrange: the default beforeEach grants no permission.
+
+  // Act
+  render(<ProductPricingPage />);
+
+  // Assert — this is the half that makes the test above mean something: an always-visible
+  // pencil would otherwise satisfy the writer case too.
+  expect(
+    screen.queryByRole("button", { name: EDIT_AFFORDANCE_LABEL, exact: true }),
+  ).not.toBeInTheDocument();
+});
+
+test("asks the permission system specifically for the catalog write permission", () => {
+  // Arrange
+  const hasPermission = jest.fn().mockReturnValue(false);
+  mockUsePermissionsContext.mockReturnValue({ hasPermission });
+
+  // Act
+  render(<ProductPricingPage />);
+
+  // Assert
+  expect(hasPermission).toHaveBeenCalledWith("products.catalog.write");
 });
