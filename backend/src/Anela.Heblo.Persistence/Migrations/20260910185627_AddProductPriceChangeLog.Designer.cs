@@ -12,7 +12,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Anela.Heblo.Persistence.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20260910162428_AddProductPriceChangeLog")]
+    [Migration("20260910185627_AddProductPriceChangeLog")]
     partial class AddProductPriceChangeLog
     {
         /// <inheritdoc />
@@ -3575,7 +3575,7 @@ namespace Anela.Heblo.Persistence.Migrations
 
                     b.HasIndex("ProductCode", "ChangedAt");
 
-                    b.ToTable("ProductPriceChangeLogs", (string)null);
+                    b.ToTable("ProductPriceChangeLogs", "public");
                 });
 
             modelBuilder.Entity("Anela.Heblo.Domain.Features.Purchase.PurchaseOrder", b =>

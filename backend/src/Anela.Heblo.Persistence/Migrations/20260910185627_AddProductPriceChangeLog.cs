@@ -14,6 +14,7 @@ namespace Anela.Heblo.Persistence.Migrations
         {
             migrationBuilder.CreateTable(
                 name: "ProductPriceChangeLogs",
+                schema: "public",
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "integer", nullable: false)
@@ -34,6 +35,7 @@ namespace Anela.Heblo.Persistence.Migrations
 
             migrationBuilder.CreateIndex(
                 name: "IX_ProductPriceChangeLogs_ProductCode_ChangedAt",
+                schema: "public",
                 table: "ProductPriceChangeLogs",
                 columns: new[] { "ProductCode", "ChangedAt" });
         }
@@ -42,7 +44,8 @@ namespace Anela.Heblo.Persistence.Migrations
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropTable(
-                name: "ProductPriceChangeLogs");
+                name: "ProductPriceChangeLogs",
+                schema: "public");
         }
     }
 }

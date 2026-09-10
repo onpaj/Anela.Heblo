@@ -3572,7 +3572,7 @@ namespace Anela.Heblo.Persistence.Migrations
 
                     b.HasIndex("ProductCode", "ChangedAt");
 
-                    b.ToTable("ProductPriceChangeLogs", (string)null);
+                    b.ToTable("ProductPriceChangeLogs", "public");
                 });
 
             modelBuilder.Entity("Anela.Heblo.Domain.Features.Purchase.PurchaseOrder", b =>

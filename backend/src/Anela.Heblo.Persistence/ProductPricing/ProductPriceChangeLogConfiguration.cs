@@ -9,7 +9,7 @@ public class ProductPriceChangeLogConfiguration : IEntityTypeConfiguration<Produ
 {
     public void Configure(EntityTypeBuilder<ProductPriceChangeLog> builder)
     {
-        builder.ToTable("ProductPriceChangeLogs");
+        builder.ToTable("ProductPriceChangeLogs", "public");
         builder.HasKey(e => e.Id);
         builder.Property(e => e.ProductCode).HasMaxLength(50).IsRequired();
         builder.Property(e => e.OldPriceWithVat).HasPrecision(18, 2);

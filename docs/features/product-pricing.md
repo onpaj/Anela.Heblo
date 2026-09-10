@@ -25,9 +25,12 @@ price" concept elsewhere in the codebase or docs, it is stale.
   `PriceComparisonService` (the live comparison), `GetPriceDivergenceReport` and
   `SetProductPrice` use cases, `PriceComparisonDqtAdapter` (bridges into DataQuality).
 - **Persistence** (`Anela.Heblo.Persistence/ProductPricing/`): `ProductPriceChangeLogRepository`,
-  EF configuration. Migration `20260903130253_AddProductPricing` creates the
-  `product_price_change_logs` table — the *only* table this feature owns. There is no
-  master-price table.
+  EF configuration. Migration `20260910185627_AddProductPriceChangeLog` creates the
+  `ProductPriceChangeLogs` table in the `public` schema — the *only* table this feature owns.
+  There is no master-price table: `20260903130253_AddProductPricing` created the old
+  `ProductPrices` / `ProductPriceSyncStates` master tables and
+  `20260910155013_DropProductPriceMasterTables` drops them again on this branch.
+  **Migrations are applied by hand here**, so every table names its schema explicitly.
 - **Adapters**: `ShoptetPriceListClient` (`Anela.Heblo.Adapters.ShoptetApi/Pricing/`) reads
   and writes the Shoptet retail price list; the Flexi side reuses the existing ERP price
   read/write clients.
