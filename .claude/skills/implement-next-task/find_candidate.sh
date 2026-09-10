@@ -2,9 +2,26 @@
 # Find the next issue for the implementing stage: a SINGLE merged pool of
 # every `agent-ready-for-dev` issue (always eligible -- a just-finished
 # planning handoff is never "stale") plus every `agent-implementing` issue
-# whose branch has had no commit in the staleness window (i.e. looks
-# abandoned, not just slow) -- the oldest-by-createdAt across that
-# combined eligible set wins, regardless of which label it carries.
+# that looks genuinely abandoned rather than merely slow -- the
+# oldest-by-createdAt across that combined eligible set wins, regardless of
+# which label it carries.
+#
+# "Genuinely abandoned" requires BOTH of these, deliberately conservative:
+#
+#   1. No live lease. `_lib/lease.sh` holds a compare-and-set git ref for
+#      the duration of a worker's unit of work. This is the real liveness
+#      signal and the reason this check exists at all.
+#   2. No commit on the branch inside the staleness window (the old test,
+#      kept only as a fallback).
+#
+# Commit age alone was the original test, and it was wrong: a unit of work
+# -- above all a full build+test verification pass -- routinely runs much
+# longer than the staleness window without committing anything, so a
+# healthy worker got declared dead and its issue was handed to a second
+# worker that then raced it. Requiring the lease check too makes that
+# impossible for any worker running a lease-aware skill, while the
+# retained commit-age check still protects issues picked up by an older
+# worker that never took a lease at all.
 #
 # This is deliberately NOT the same strict-tiered pattern
 # plan-next-task/find_candidate.sh uses (fresh `agent` issues always beat
@@ -25,6 +42,26 @@ set -euo pipefail
 # not permitted. See .claude/skills/_lib/gh_api.sh for the transport layer;
 # the logic here is unchanged either way.
 LIB=".claude/skills/_lib/gh_api.sh"
+
+# Resolved relative to THIS script rather than to the caller's cwd, so the
+# lease check works no matter which directory the skill runs from.
+# LEASE_SH is overridable so tests can substitute a stub.
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+LEASE_SH="${LEASE_SH:-$SCRIPT_DIR/../_lib/lease.sh}"
+
+# Echo the lease state ("held"/"expired"/"absent") for a feature id, plus
+# the holder on a second line. A missing or failing lease script yields
+# "absent", which alone can no longer cause a reclaim -- the commit-age
+# check below still has to agree -- so degrading this way is safe.
+lease_state_for() {  # feature-id
+  local out state holder
+  if [ ! -x "$LEASE_SH" ]; then echo "absent"; echo ""; return; fi
+  out=$(LEASE_NOW_OVERRIDE="${NOW_OVERRIDE:-}" "$LEASE_SH" status "$1" 2>/dev/null) || { echo "absent"; echo ""; return; }
+  state=$(echo "$out" | jq -r '.state // "absent"' 2>/dev/null) || state="absent"
+  holder=$(echo "$out" | jq -r '.holder // ""' 2>/dev/null) || holder=""
+  echo "$state"
+  echo "$holder"
+}
 
 issue_list_json() {  # state, label
   if [[ -n "${USE_GH_API:-}" ]]; then
@@ -83,6 +120,18 @@ skipped="[]"
 
 for n in $sorted_implementing_numbers; do
   issue_obj=$(echo "$implementing_json" | jq --argjson n "$n" '.[] | select(.number == $n)')
+
+  # Lease gate: a live lease means a worker is mid-unit right now. Never
+  # preempt it, however long ago its last commit was.
+  lease_out=$(lease_state_for "feat-${n}")
+  lease_state=$(echo "$lease_out" | sed -n 1p)
+  lease_holder=$(echo "$lease_out" | sed -n 2p)
+  if [ "$lease_state" = "held" ]; then
+    skipped=$(echo "$skipped" | jq --argjson n "$n" --arg holder "$lease_holder" \
+      '. + [{number: $n, reason: ("lease held by " + (if $holder == "" then "another worker" else $holder end))}]')
+    continue
+  fi
+
   ref=$(git ls-remote --heads origin "feature/${n}-*" | head -1 | awk '{print $2}' | sed 's#refs/heads/##')
   if [ -z "$ref" ]; then
     skipped=$(echo "$skipped" | jq --argjson n "$n" \
