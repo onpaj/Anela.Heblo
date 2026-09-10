@@ -1,4 +1,5 @@
 using Anela.Heblo.Domain.Features.ProductPricing;
+using Microsoft.EntityFrameworkCore;
 
 namespace Anela.Heblo.Persistence.ProductPricing;
 
@@ -30,6 +31,20 @@ public class ProductPriceChangeLogRepository : IProductPriceChangeLogRepository
         };
 
         _context.ProductPriceChangeLogs.Add(toPersist);
-        await _context.SaveChangesAsync(ct);
+
+        try
+        {
+            await _context.SaveChangesAsync(ct);
+        }
+        catch
+        {
+            // A failed SaveChanges leaves the Added entity tracked; left alone it would
+            // resurface at a later, unrelated SaveChanges on this same (scoped) context and
+            // get inserted then, attributed to whatever triggered that save. Detach it here so
+            // the failure is fully contained to this call, then let the caller decide what to
+            // do with the exception (SetProductPriceHandler logs and swallows it).
+            _context.Entry(toPersist).State = EntityState.Detached;
+            throw;
+        }
     }
 }

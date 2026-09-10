@@ -14698,6 +14698,7 @@ export enum ErrorCodes {
     ProductPriceFlexiItemIdUnknown = "ProductPriceFlexiItemIdUnknown",
     ProductPriceShoptetWriteFailed = "ProductPriceShoptetWriteFailed",
     ProductPriceFlexiWriteFailed = "ProductPriceFlexiWriteFailed",
+    ProductPriceFlexiPriceTypeUnsupported = "ProductPriceFlexiPriceTypeUnsupported",
     ExternalServiceError = "ExternalServiceError",
     FlexiApiError = "FlexiApiError",
     ShoptetApiError = "ShoptetApiError",

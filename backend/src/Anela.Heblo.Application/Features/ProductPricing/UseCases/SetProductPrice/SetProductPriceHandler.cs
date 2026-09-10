@@ -10,14 +10,32 @@ namespace Anela.Heblo.Application.Features.ProductPricing.UseCases.SetProductPri
 /// <summary>
 /// Writes a retail price through to Shoptet (the source of truth) and then to Flexi.
 ///
-/// The Flexi pre-flight runs BEFORE the Shoptet write on purpose: a missing ceník id or VAT
-/// rate is knowable up front and guarantees the Flexi leg cannot succeed, so discovering it
-/// afterwards would manufacture an avoidable divergence. The only partial failure this can
-/// produce is a genuine Flexi write error, which is not knowable in advance.
+/// The Flexi pre-flight runs BEFORE the Shoptet write on purpose: a missing ceník id, an
+/// unsupported price type, or a missing VAT rate is knowable up front and guarantees the
+/// Flexi leg cannot succeed, so discovering it afterwards would manufacture an avoidable
+/// divergence. The only partial failure this can produce is a genuine Flexi write error,
+/// which is not knowable in advance.
 /// </summary>
 public class SetProductPriceHandler : IRequestHandler<SetProductPriceRequest, SetProductPriceResponse>
 {
     private const int PriceDecimals = 2;
+
+    /// <summary>
+    /// The only Flexi price type this handler is willing to write to. <c>cenaZakl</c>'s VAT
+    /// meaning depends on the item's own price type (see
+    /// <c>FlexiProductPriceErpClient.MapToProductPrices</c> /
+    /// <c>ProductPriceFlexiDto.IsPriceIncludingVat</c>): for a "bez DPH" item it is the
+    /// excl-VAT price this handler computes; for a "s DPH" item it IS the with-VAT price, so
+    /// writing our excl-VAT number there would silently under-price the item by the VAT rate,
+    /// with no error anywhere and no divergence for the comparison screen to catch. Null means
+    /// the ERP read did not expose the price type at all — <see cref="Services.PriceComparisonService"/>
+    /// already refuses to trust that state (reports it as FlexiPriceTypeUnknown), so writing to
+    /// it under an assumption the comparison itself rejects would be incoherent. And "s DPH"
+    /// write semantics are unverified against the live ERP (there is no sandbox) — refuse
+    /// rather than encode a guess into a live write. Do not "simplify" this into a branch that
+    /// grosses the price up for "s DPH" items.
+    /// </summary>
+    private const string SupportedFlexiPriceType = "bezDph";
 
     private readonly IEshopPriceListClient _eshopClient;
     private readonly IErpPriceWriter _erpWriter;
@@ -50,24 +68,69 @@ public class SetProductPriceHandler : IRequestHandler<SetProductPriceRequest, Se
     {
         var code = request.ProductCode;
 
-        // 1. Shoptet is authoritative: a product with no row in the retail list cannot be priced.
-        var oldPrice = await _eshopClient.GetPriceWithVatAsync(code, cancellationToken);
+        // 1. Shoptet is authoritative: a product with no row in the retail list cannot be
+        //    priced. A read failure is distinct from a genuine absence, but both leave nothing
+        //    written, so both are reported the same way to the operator.
+        decimal? oldPrice;
+        try
+        {
+            oldPrice = await _eshopClient.GetPriceWithVatAsync(code, cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            return await FailAsync(request, null, false, false,
+                ErrorCodes.ProductPriceShoptetWriteFailed, ex.Message);
+        }
+
         if (oldPrice is null)
         {
             return await FailAsync(request, null, false, false,
-                ErrorCodes.ProductPriceNotFoundInShoptet, $"{code} is not in the Shoptet retail price list.",
-                cancellationToken);
+                ErrorCodes.ProductPriceNotFoundInShoptet, $"{code} is not in the Shoptet retail price list.");
         }
 
         // 2. Pre-flight the Flexi leg while nothing has been written yet.
-        var erpItemId = await ResolveErpItemIdAsync(code, cancellationToken);
-        var vatRate = await ResolveVatRateAsync(code, cancellationToken);
-        if (erpItemId is null || vatRate is null)
+        ProductPriceErp? erpMatch;
+        try
+        {
+            erpMatch = await ResolveErpMatchAsync(code, cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            return await FailAsync(request, oldPrice, false, false,
+                ErrorCodes.ProductPriceFlexiItemIdUnknown, ex.Message);
+        }
+
+        if (erpMatch is not { ErpItemId: > 0 })
         {
             return await FailAsync(request, oldPrice, false, false,
                 ErrorCodes.ProductPriceFlexiItemIdUnknown,
-                $"No Flexi ceník id or VAT rate for {code}; nothing was written.",
-                cancellationToken);
+                $"No Flexi ceník id for {code}; nothing was written.");
+        }
+
+        if (erpMatch.ErpPriceType != SupportedFlexiPriceType)
+        {
+            return await FailAsync(request, oldPrice, false, false,
+                ErrorCodes.ProductPriceFlexiPriceTypeUnsupported,
+                $"{code}'s Flexi price type is '{erpMatch.ErpPriceType ?? "unknown"}', not " +
+                $"'{SupportedFlexiPriceType}'; the price cannot be safely written and nothing was written.");
+        }
+
+        decimal? vatRate;
+        try
+        {
+            vatRate = await ResolveVatRateAsync(code, cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            return await FailAsync(request, oldPrice, false, false,
+                ErrorCodes.ProductPriceFlexiItemIdUnknown, ex.Message);
+        }
+
+        if (vatRate is null)
+        {
+            return await FailAsync(request, oldPrice, false, false,
+                ErrorCodes.ProductPriceFlexiItemIdUnknown,
+                $"No Flexi VAT rate for {code}; nothing was written.");
         }
 
         var priceWithoutVat = Math.Round(
@@ -81,32 +144,30 @@ public class SetProductPriceHandler : IRequestHandler<SetProductPriceRequest, Se
         catch (Exception ex)
         {
             return await FailAsync(request, oldPrice, false, false,
-                ErrorCodes.ProductPriceShoptetWriteFailed, ex.Message, cancellationToken);
+                ErrorCodes.ProductPriceShoptetWriteFailed, ex.Message);
         }
 
         // 4. Write Flexi. A failure here leaves the two systems divergent by design (D2):
         //    no rollback, no retry queue — the comparison screen is the safety net.
         try
         {
-            await _erpWriter.SetPriceWithoutVatAsync(erpItemId.Value, priceWithoutVat, cancellationToken);
+            await _erpWriter.SetPriceWithoutVatAsync(erpMatch.ErpItemId, priceWithoutVat, cancellationToken);
         }
         catch (Exception ex)
         {
             return await FailAsync(request, oldPrice, true, false,
-                ErrorCodes.ProductPriceFlexiWriteFailed, ex.Message, cancellationToken);
+                ErrorCodes.ProductPriceFlexiWriteFailed, ex.Message);
         }
 
-        await AppendAsync(request, oldPrice, true, true, null, cancellationToken);
+        await AppendAsync(request, oldPrice, true, true, null);
         return new SetProductPriceResponse { PriceWithVat = request.PriceWithVat };
     }
 
-    private async Task<int?> ResolveErpItemIdAsync(string code, CancellationToken ct)
+    private async Task<ProductPriceErp?> ResolveErpMatchAsync(string code, CancellationToken ct)
     {
         var erpPrices = await _erpReader.GetAllAsync(forceReload: false, ct);
-        var match = erpPrices.FirstOrDefault(p =>
+        return erpPrices.FirstOrDefault(p =>
             string.Equals(p.ProductCode, code, StringComparison.OrdinalIgnoreCase));
-
-        return match is { ErpItemId: > 0 } ? match.ErpItemId : null;
     }
 
     private async Task<decimal?> ResolveVatRateAsync(string code, CancellationToken ct)
@@ -117,9 +178,9 @@ public class SetProductPriceHandler : IRequestHandler<SetProductPriceRequest, Se
 
     private async Task<SetProductPriceResponse> FailAsync(
         SetProductPriceRequest request, decimal? oldPrice, bool shoptetOk, bool flexiOk,
-        ErrorCodes errorCode, string error, CancellationToken ct)
+        ErrorCodes errorCode, string error)
     {
-        await AppendAsync(request, oldPrice, shoptetOk, flexiOk, error, ct);
+        await AppendAsync(request, oldPrice, shoptetOk, flexiOk, error);
 
         return new SetProductPriceResponse(
             errorCode, new Dictionary<string, string> { ["ProductCode"] = request.ProductCode });
@@ -131,24 +192,33 @@ public class SetProductPriceHandler : IRequestHandler<SetProductPriceRequest, Se
     /// time this runs on the success path — letting a failed INSERT surface would report a
     /// completed price change as an error and invite a pointless retry. On the failure paths
     /// it would mask the real error code. So: log the logging failure, and carry on.
+    ///
+    /// Always appends with <see cref="CancellationToken.None"/>, never the request's token:
+    /// once step 3 (the Shoptet write) has landed, this row is the only record of a possible
+    /// partial-failure state, and it must not be lost to the same cancellation that aborted
+    /// the Flexi call or the caller's own request.
     /// </summary>
     private async Task AppendAsync(
-        SetProductPriceRequest request, decimal? oldPrice, bool shoptetOk, bool flexiOk,
-        string? error, CancellationToken ct)
+        SetProductPriceRequest request, decimal? oldPrice, bool shoptetOk, bool flexiOk, string? error)
     {
         try
         {
+            var currentUser = _currentUserService.GetCurrentUser();
+
             await _changeLog.AppendAsync(new ProductPriceChangeLog
             {
                 ProductCode = request.ProductCode,
                 OldPriceWithVat = oldPrice,
                 NewPriceWithVat = request.PriceWithVat,
                 ChangedAt = DateTime.UtcNow,
-                ChangedBy = _currentUserService.GetCurrentUser().Email,
+                // Entra access tokens can omit an email claim; fall back rather than write a
+                // null into an IsRequired() column, which would fail the insert and, being
+                // swallowed below, silently drop the audit row for a live price change.
+                ChangedBy = currentUser.Email ?? currentUser.Name ?? currentUser.Id ?? "unknown",
                 ShoptetSucceeded = shoptetOk,
                 FlexiSucceeded = flexiOk,
                 ErrorMessage = error,
-            }, ct);
+            }, CancellationToken.None);
         }
         catch (Exception ex)
         {

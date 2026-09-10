@@ -476,6 +476,8 @@ public enum ErrorCodes
     ProductPriceShoptetWriteFailed = 3605,
     [HttpStatusCode(HttpStatusCode.BadGateway)]
     ProductPriceFlexiWriteFailed = 3606,
+    [HttpStatusCode(HttpStatusCode.UnprocessableEntity)]
+    ProductPriceFlexiPriceTypeUnsupported = 3607,
 
     // External Service errors (90XX)
     [HttpStatusCode(HttpStatusCode.ServiceUnavailable)]
