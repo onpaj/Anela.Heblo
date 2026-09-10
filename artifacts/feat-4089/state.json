@@ -21,16 +21,16 @@
       "updated_at": "2026-09-07T08:22:43.122426Z"
     },
     "developing": {
-      "status": "pending",
-      "updated_at": null
+      "status": "in_progress",
+      "updated_at": "2026-09-10T04:14:17.872960Z"
     }
   },
   "tasks": [
     {
       "name": "add-batch-catalog-lookup-method",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-09-10T04:14:18.124618Z"
     },
     {
       "name": "swap-giftpackage-service-to-batch-lookup",
