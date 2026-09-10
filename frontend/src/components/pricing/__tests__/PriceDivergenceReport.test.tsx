@@ -138,7 +138,20 @@ test("makes clear the view is read-only when the operator cannot write prices", 
   renderReport({ rows: [inAgreementRow], canWrite: false });
 
   // Assert
-  expect(screen.getByTestId("divergence-readonly-banner")).toHaveTextContent(/pouze čtení/i);
+  const banner = screen.getByTestId("divergence-readonly-banner");
+  expect(banner).toHaveTextContent(/pouze čtení/i);
+  expect(banner).not.toHaveTextContent(/živého/i);
+});
+
+test("warns write-capable operators that saving writes straight to the live Shoptet and Flexi systems", () => {
+  // Arrange & Act
+  renderReport({ rows: [inAgreementRow], canWrite: true });
+
+  // Assert — the read-only reassurance would be actively misleading for someone who can
+  // write real prices to production, so it must be replaced, not merely supplemented.
+  const banner = screen.getByTestId("divergence-readonly-banner");
+  expect(banner).toHaveTextContent(/živého/i);
+  expect(banner).not.toHaveTextContent(/pouze čtení/i);
 });
 
 test("shows a loading state while the report is fetching", () => {
@@ -374,6 +387,136 @@ test("does not ask for confirmation when the price change is within 50%", async 
 
   // Assert
   await waitFor(() => expect(setPrice).toHaveBeenCalledWith({ productCode: "A", priceWithVat: 250 }));
+  expect(confirmSpy).not.toHaveBeenCalled();
+
+  confirmSpy.mockRestore();
+});
+
+test("always confirms a first price on a row with no Shoptet baseline, and skips the save when declined", async () => {
+  // Arrange — a MissingInShoptet row has no shoptetPriceWithVat by construction, so the
+  // 50%-change ratio has nothing to compare against. That must not mean "no confirmation":
+  // any magnitude here goes straight to the live shop with zero safety net otherwise.
+  const setPrice = jest.fn();
+  const confirmSpy = jest.spyOn(window, "confirm").mockReturnValue(false);
+  renderReport({
+    canWrite: true,
+    setPrice,
+    rows: [
+      {
+        productCode: "A",
+        productName: "Alpha",
+        shoptetPriceWithVat: null,
+        flexiPriceWithVat: 200,
+        kind: PriceDivergenceKind.MissingInShoptet,
+      },
+    ],
+  });
+
+  // Act
+  await userEvent.click(screen.getByRole("button", { name: "Upravit cenu Alpha", exact: true }));
+  const input = screen.getByRole("spinbutton", { name: "Cena s DPH", exact: true });
+  await userEvent.type(input, "350");
+  await userEvent.click(screen.getByRole("button", { name: "Uložit", exact: true }));
+
+  // Assert
+  expect(confirmSpy).toHaveBeenCalledTimes(1);
+  const confirmMessage = confirmSpy.mock.calls[0][0];
+  expect(confirmMessage).toEqual(expect.stringContaining("Alpha"));
+  expect(confirmMessage).toEqual(expect.stringContaining(formatCurrency(350)));
+  expect(setPrice).not.toHaveBeenCalled();
+
+  confirmSpy.mockRestore();
+});
+
+test("saves a first price on a row with no Shoptet baseline once the operator confirms", async () => {
+  // Arrange
+  const setPrice = jest.fn().mockResolvedValue({ priceWithVat: 350 });
+  const confirmSpy = jest.spyOn(window, "confirm").mockReturnValue(true);
+  renderReport({
+    canWrite: true,
+    setPrice,
+    rows: [
+      {
+        productCode: "A",
+        productName: "Alpha",
+        shoptetPriceWithVat: null,
+        flexiPriceWithVat: 200,
+        kind: PriceDivergenceKind.MissingInShoptet,
+      },
+    ],
+  });
+
+  // Act
+  await userEvent.click(screen.getByRole("button", { name: "Upravit cenu Alpha", exact: true }));
+  const input = screen.getByRole("spinbutton", { name: "Cena s DPH", exact: true });
+  await userEvent.type(input, "350");
+  await userEvent.click(screen.getByRole("button", { name: "Uložit", exact: true }));
+
+  // Assert
+  await waitFor(() => expect(setPrice).toHaveBeenCalledWith({ productCode: "A", priceWithVat: 350 }));
+
+  confirmSpy.mockRestore();
+});
+
+test("rejects a blank price draft without calling the mutation or prompting for confirmation", async () => {
+  // Arrange — Number("") is 0, which is finite, so without an explicit blank check this
+  // would otherwise slip past validation and fire a live request carrying 0.
+  const setPrice = jest.fn();
+  const confirmSpy = jest.spyOn(window, "confirm").mockReturnValue(true);
+  renderReport({
+    canWrite: true,
+    setPrice,
+    rows: [
+      {
+        productCode: "A",
+        productName: "Alpha",
+        shoptetPriceWithVat: 190,
+        flexiPriceWithVat: 190,
+        kind: PriceDivergenceKind.InAgreement,
+      },
+    ],
+  });
+
+  // Act
+  await userEvent.click(screen.getByRole("button", { name: "Upravit cenu Alpha", exact: true }));
+  const input = screen.getByRole("spinbutton", { name: "Cena s DPH", exact: true });
+  await userEvent.clear(input);
+  await userEvent.click(screen.getByRole("button", { name: "Uložit", exact: true }));
+
+  // Assert
+  expect(setPrice).not.toHaveBeenCalled();
+  expect(confirmSpy).not.toHaveBeenCalled();
+
+  confirmSpy.mockRestore();
+});
+
+test("rejects a price draft below the minimum billable amount without calling the mutation", async () => {
+  // Arrange
+  const setPrice = jest.fn();
+  const confirmSpy = jest.spyOn(window, "confirm").mockReturnValue(true);
+  renderReport({
+    canWrite: true,
+    setPrice,
+    rows: [
+      {
+        productCode: "A",
+        productName: "Alpha",
+        shoptetPriceWithVat: 190,
+        flexiPriceWithVat: 190,
+        kind: PriceDivergenceKind.InAgreement,
+      },
+    ],
+  });
+
+  // Act
+  await userEvent.click(screen.getByRole("button", { name: "Upravit cenu Alpha", exact: true }));
+  const input = screen.getByRole("spinbutton", { name: "Cena s DPH", exact: true });
+  await userEvent.clear(input);
+  await userEvent.type(input, "0");
+  await userEvent.click(screen.getByRole("button", { name: "Uložit", exact: true }));
+
+  // Assert
+  expect(setPrice).not.toHaveBeenCalled();
   expect(confirmSpy).not.toHaveBeenCalled();
 
   confirmSpy.mockRestore();

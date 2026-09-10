@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Loader2, AlertCircle, ShieldCheck, Pencil } from "lucide-react";
+import { Loader2, AlertCircle, AlertTriangle, ShieldCheck, Pencil } from "lucide-react";
 import { usePriceDivergenceReport, useSetProductPrice } from "../../api/hooks/useProductPricing";
 // Imported from the generated client directly (not from the hooks module) so this
 // component keeps working when tests mock ../../api/hooks/useProductPricing.
@@ -54,6 +54,11 @@ const GENERIC_SET_PRICE_ERROR = "Cenu se nepodařilo uložit.";
 // mistyped price reaching the live shop.
 const LARGE_CHANGE_CONFIRM_THRESHOLD = 0.5;
 
+// Mirrors the backend's GreaterThanOrEqualTo(0.01m) validator. Rejecting client-side avoids
+// an avoidable round-trip to two live systems on obviously-invalid input (a blank field
+// coerces to 0 via `Number("")`, which is finite and would otherwise slip past the guard).
+const MIN_PRICE_WITH_VAT = 0.01;
+
 const readErrorCode = (error: unknown): string | undefined => {
   if (error && typeof error === "object" && "errorCode" in error) {
     const value = (error as { errorCode?: unknown }).errorCode;
@@ -95,10 +100,14 @@ const PriceDivergenceReport: React.FC<PriceDivergenceReportProps> = ({ canWrite 
     if (!productCode) return;
 
     const priceWithVat = Number(draftValue);
-    if (!Number.isFinite(priceWithVat)) return;
+    const isDraftUsable =
+      draftValue.trim() !== "" && Number.isFinite(priceWithVat) && priceWithVat >= MIN_PRICE_WITH_VAT;
+    if (!isDraftUsable) return;
 
     const currentPrice = row.shoptetPriceWithVat;
-    if (currentPrice != null && currentPrice > 0) {
+    const hasShoptetBaseline = currentPrice != null && currentPrice > 0;
+
+    if (hasShoptetBaseline) {
       const changeRatio = Math.abs(priceWithVat - currentPrice) / currentPrice;
       if (changeRatio > LARGE_CHANGE_CONFIRM_THRESHOLD) {
         const confirmed = window.confirm(
@@ -107,6 +116,17 @@ const PriceDivergenceReport: React.FC<PriceDivergenceReportProps> = ({ canWrite 
         );
         if (!confirmed) return;
       }
+    } else {
+      // No Shoptet price to compare against (e.g. a MissingInShoptet row) — there is no
+      // ratio to gate on, and deliberately no server-side ceiling either, so the operator's
+      // confirmation is the only guard. Always ask, and name this explicitly as a first
+      // price going straight onto the live shop.
+      const confirmed = window.confirm(
+        `Produkt ${row.productName} nemá v Shoptetu žádnou cenu k porovnání. Nastavuje se ` +
+          `první cena ${formatCurrency(priceWithVat)} přímo v živém e-shopu. Opravdu chcete ` +
+          `cenu uložit?`,
+      );
+      if (!confirmed) return;
     }
 
     try {
@@ -150,15 +170,28 @@ const PriceDivergenceReport: React.FC<PriceDivergenceReportProps> = ({ canWrite 
 
   return (
     <div>
-      <div
-        data-testid="divergence-readonly-banner"
-        className="mb-4 flex items-center gap-2 px-4 py-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-900/40 rounded-md text-sm text-blue-800 dark:text-blue-300"
-      >
-        <ShieldCheck className="h-4 w-4 flex-shrink-0" />
-        <span>
-          Pouze čtení — tato kontrola pouze porovnává ceny, nic se nezapisuje do Shoptetu, Flexi ani do Hebla.
-        </span>
-      </div>
+      {canWrite ? (
+        <div
+          data-testid="divergence-readonly-banner"
+          className="mb-4 flex items-center gap-2 px-4 py-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-900/40 rounded-md text-sm text-amber-800 dark:text-amber-300"
+        >
+          <AlertTriangle className="h-4 w-4 flex-shrink-0" />
+          <span>
+            Pozor — uložení zapisuje cenu přímo do živého Shoptetu a živého ERP Flexi. Ani jeden systém nemá
+            testovací prostředí.
+          </span>
+        </div>
+      ) : (
+        <div
+          data-testid="divergence-readonly-banner"
+          className="mb-4 flex items-center gap-2 px-4 py-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-900/40 rounded-md text-sm text-blue-800 dark:text-blue-300"
+        >
+          <ShieldCheck className="h-4 w-4 flex-shrink-0" />
+          <span>
+            Pouze čtení — tato kontrola pouze porovnává ceny, nic se nezapisuje do Shoptetu, Flexi ani do Hebla.
+          </span>
+        </div>
+      )}
 
       <div
         data-testid="divergence-summary"
