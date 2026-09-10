@@ -22,7 +22,7 @@
     },
     "developing": {
       "status": "in_progress",
-      "updated_at": "2026-09-10T04:14:17.872960Z"
+      "updated_at": "2026-09-10T05:15:50.509706Z"
     }
   },
   "tasks": [
@@ -34,9 +34,9 @@
     },
     {
       "name": "swap-giftpackage-service-to-batch-lookup",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-09-10T05:15:50.681980Z"
     }
   ]
 }
