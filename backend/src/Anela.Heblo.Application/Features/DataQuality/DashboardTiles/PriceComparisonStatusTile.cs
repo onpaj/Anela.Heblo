@@ -44,9 +44,14 @@ public class PriceComparisonStatusTile : ITile
                 return new { status = "no_data", data = (object?)null, drillDown };
             }
 
-            var status = run.Status == DqtRunStatus.Failed
-                ? "error"
-                : run.TotalMismatches > 0 ? "warning" : "success";
+            var status = run.Status switch
+            {
+                DqtRunStatus.Failed => "error",
+                DqtRunStatus.Running => "warning",
+                DqtRunStatus.Completed when run.TotalMismatches > 0 => "warning",
+                DqtRunStatus.Completed => "success",
+                _ => "error"
+            };
 
             return new
             {
@@ -54,6 +59,7 @@ public class PriceComparisonStatusTile : ITile
                 data = new
                 {
                     runId = run.Id,
+                    runStatus = run.Status.ToString(),
                     totalChecked = run.TotalChecked,
                     totalMismatches = run.TotalMismatches,
                     completedAt = run.CompletedAt,

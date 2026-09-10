@@ -57,6 +57,29 @@ describe('PriceComparisonTile', () => {
     expect(screen.getByText('ze 400 produktů')).toBeInTheDocument();
   });
 
+  it('renders a distinct running state instead of a clean "vše OK" result', () => {
+    renderTile({
+      status: 'warning',
+      data: { runStatus: 'Running', totalMismatches: 0, totalChecked: 0 },
+      drillDown,
+    });
+
+    expect(screen.getByText('Kontrola probíhá')).toBeInTheDocument();
+    expect(screen.queryByText('vše OK')).not.toBeInTheDocument();
+    expect(screen.queryByText('neshod')).not.toBeInTheDocument();
+  });
+
+  it('navigates on click while a run is still in progress', () => {
+    renderTile({
+      status: 'warning',
+      data: { runStatus: 'Running', totalMismatches: 0, totalChecked: 0 },
+      drillDown,
+    });
+
+    fireEvent.click(screen.getByText('Kontrola probíhá'));
+    expect(mockNavigate).toHaveBeenCalledWith('/products/pricing');
+  });
+
   it('does not navigate when the route key is unknown', () => {
     const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
     renderTile({

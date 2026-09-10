@@ -47,6 +47,22 @@ public class PriceComparisonStatusTileTests
         StatusOf(data).Should().Be(expected);
     }
 
+    [Fact]
+    public async Task reports_warning_while_a_run_is_still_in_progress()
+    {
+        // Arrange
+        var run = DqtRun.Start(DqtTestType.PriceComparison, new DateOnly(2026, 9, 10),
+            new DateOnly(2026, 9, 10), DqtTriggerType.Scheduled, DateTime.UtcNow);
+        _repository.Setup(r => r.GetLatestByTestTypeAsync(DqtTestType.PriceComparison, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(run);
+
+        // Act
+        var data = await CreateSut().LoadDataAsync();
+
+        // Assert
+        StatusOf(data).Should().Be("warning");
+    }
+
     private static string StatusOf(object data) =>
         (string)data.GetType().GetProperty("status")!.GetValue(data)!;
 }

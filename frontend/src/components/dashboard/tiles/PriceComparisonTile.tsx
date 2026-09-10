@@ -10,6 +10,7 @@ interface PriceComparisonTileProps {
   data: {
     status?: string;
     data?: {
+      runStatus?: string;
       totalChecked?: number;
       totalMismatches?: number;
       completedAt?: string;
@@ -55,6 +56,19 @@ export const PriceComparisonTile: React.FC<PriceComparisonTileProps> = ({ data }
         <Clock className="h-10 w-10 text-gray-400 dark:text-graphite-faint mb-2" />
         <p className="text-sm text-gray-500 dark:text-graphite-muted">Žádná data</p>
         <p className="text-xs text-gray-400 dark:text-graphite-faint mt-1">Spusťte první kontrolu</p>
+      </div>
+    );
+  }
+
+  if (data.data?.runStatus === 'Running') {
+    return (
+      <div
+        className="flex flex-col items-center justify-center h-full leading-relaxed min-h-44 cursor-pointer hover:bg-gray-50 dark:hover:bg-white/5 active:bg-gray-100 dark:active:bg-white/10 transition-colors duration-200 rounded-lg"
+        onClick={handleClick}
+        style={{ touchAction: 'manipulation' }}
+      >
+        <Clock className="h-10 w-10 text-amber-500 dark:text-amber-400 mb-2" />
+        <p className="text-sm text-gray-500 dark:text-graphite-muted">Kontrola probíhá</p>
       </div>
     );
   }
