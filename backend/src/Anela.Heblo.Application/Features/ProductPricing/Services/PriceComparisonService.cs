@@ -12,11 +12,20 @@ namespace Anela.Heblo.Application.Features.ProductPricing.Services;
 /// and <see cref="ICatalogRepository.GetAllAsync"/> —
 /// so no write path (<c>SetPriceWithVatAsync</c>, <c>IErpPriceWriter</c>) is even reachable from here.
 /// </summary>
-public class PriceDivergenceReportService : IPriceDivergenceReportService
+public class PriceComparisonService : IPriceComparisonService
 {
     /// <summary>Prices agree when they match to 2 decimals, away-from-zero rounded — the same
     /// convention used for every money value in this codebase.</summary>
     private const int PriceDecimals = 2;
+
+    /// <summary>
+    /// Flexi stores <c>cenaZakl</c> excluding VAT and reconstructs the with-VAT price as
+    /// <c>cena * (100 + vat) / 100</c> on read, which does not round-trip exactly
+    /// (190.00 -> cenaZakl 157.02 -> 189.99). Without this tolerance a large share of the
+    /// catalogue would report as divergent by one haléř and the dashboard tile would be
+    /// permanently orange. Shoptet stores the with-VAT price directly and gets no tolerance.
+    /// </summary>
+    private const decimal FlexiRoundTripTolerance = 0.01m;
 
     /// <summary>Assumption A3: only sellable types carry a retail price.</summary>
     private static readonly ProductType[] PricedProductTypes =
@@ -28,7 +37,7 @@ public class PriceDivergenceReportService : IPriceDivergenceReportService
     private readonly IEshopPriceListClient _eshopClient;
     private readonly IProductPriceErpClient _erpClient;
 
-    public PriceDivergenceReportService(
+    public PriceComparisonService(
         ICatalogRepository catalogRepository,
         IEshopPriceListClient eshopClient,
         IProductPriceErpClient erpClient)
@@ -38,7 +47,7 @@ public class PriceDivergenceReportService : IPriceDivergenceReportService
         _erpClient = erpClient;
     }
 
-    public async Task<PriceDivergenceReportResult> BuildReportAsync(CancellationToken ct)
+    public async Task<PriceComparisonResult> BuildReportAsync(CancellationToken ct)
     {
         var inScopeProducts = (await _catalogRepository.GetAllAsync(ct))
             .Where(p => PricedProductTypes.Contains(p.Type))
@@ -58,7 +67,7 @@ public class PriceDivergenceReportService : IPriceDivergenceReportService
             .Select(product => BuildRow(product, shoptetPrices, erpPrices))
             .ToList();
 
-        return new PriceDivergenceReportResult
+        return new PriceComparisonResult
         {
             Rows = rows,
             Summary = BuildSummary(rows),
@@ -130,9 +139,10 @@ public class PriceDivergenceReportService : IPriceDivergenceReportService
             : PriceDivergenceKind.FlexiDiffers;
     }
 
-    private static bool PricesAgree(decimal a, decimal b) =>
-        Math.Round(a, PriceDecimals, MidpointRounding.AwayFromZero) ==
-        Math.Round(b, PriceDecimals, MidpointRounding.AwayFromZero);
+    private static bool PricesAgree(decimal shoptetPriceWithVat, decimal flexiPriceWithVat) =>
+        Math.Abs(Math.Round(shoptetPriceWithVat, PriceDecimals, MidpointRounding.AwayFromZero)
+               - Math.Round(flexiPriceWithVat, PriceDecimals, MidpointRounding.AwayFromZero))
+        <= FlexiRoundTripTolerance;
 
     private static (decimal? DifferenceWithVat, decimal? DifferencePercent) CalculateDifference(
         decimal? shoptetPriceWithVat, decimal? flexiPriceWithVat)

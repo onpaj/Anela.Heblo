@@ -9,13 +9,13 @@ using Xunit;
 
 namespace Anela.Heblo.Tests.Features.ProductPricing;
 
-public class PriceDivergenceReportServiceTests
+public class PriceComparisonServiceTests
 {
     private readonly Mock<ICatalogRepository> _catalog = new();
     private readonly Mock<IEshopPriceListClient> _eshop = new();
     private readonly Mock<IProductPriceErpClient> _erp = new();
 
-    private PriceDivergenceReportService CreateService() => new(
+    private PriceComparisonService CreateService() => new(
         _catalog.Object, _eshop.Object, _erp.Object);
 
     private void GivenCatalog(params (string Code, ProductType Type, string Name)[] products) =>
@@ -35,7 +35,18 @@ public class PriceDivergenceReportServiceTests
             .Setup(e => e.GetAllAsync(It.IsAny<bool>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(prices);
 
-    private PriceDivergenceReportServiceTests WithDefaults()
+    private void ArrangeSingleProduct(decimal shoptetPriceWithVat, decimal flexiPriceWithVat)
+    {
+        GivenCatalog(("A", ProductType.Product, "Alpha"));
+        GivenShoptetPrices(("A", shoptetPriceWithVat));
+        GivenErpPrices(new ProductPriceErp
+        {
+            ProductCode = "A", PriceWithVat = flexiPriceWithVat, PriceWithoutVat = 157.02m,
+            ErpItemId = 11, ErpPriceType = "bezDph",
+        });
+    }
+
+    private PriceComparisonServiceTests WithDefaults()
     {
         _eshop.Setup(e => e.GetPricesWithVatAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(new Dictionary<string, decimal>());
@@ -257,5 +268,37 @@ public class PriceDivergenceReportServiceTests
         _eshop.Verify(
             e => e.SetPriceWithVatAsync(It.IsAny<string>(), It.IsAny<decimal>(), It.IsAny<CancellationToken>()),
             Times.Never);
+    }
+
+    [Theory]
+    [InlineData(189.99)] // Flexi's round-trip loss on a 190.00 with-VAT price
+    [InlineData(190.01)]
+    public async Task treats_a_flexi_price_within_one_hundredth_as_in_agreement(double flexiPriceWithVat)
+    {
+        // Arrange
+        ArrangeSingleProduct(shoptetPriceWithVat: 190.00m, flexiPriceWithVat: (decimal)flexiPriceWithVat);
+
+        // Act
+        var result = await CreateService().BuildReportAsync(CancellationToken.None);
+
+        // Assert
+        result.Rows.Should().ContainSingle()
+            .Which.Kind.Should().Be(PriceDivergenceKind.InAgreement);
+    }
+
+    [Theory]
+    [InlineData(189.97)]
+    [InlineData(190.03)]
+    public async Task reports_a_flexi_price_beyond_the_tolerance_as_divergent(double flexiPriceWithVat)
+    {
+        // Arrange
+        ArrangeSingleProduct(shoptetPriceWithVat: 190.00m, flexiPriceWithVat: (decimal)flexiPriceWithVat);
+
+        // Act
+        var result = await CreateService().BuildReportAsync(CancellationToken.None);
+
+        // Assert
+        result.Rows.Should().ContainSingle()
+            .Which.Kind.Should().Be(PriceDivergenceKind.FlexiDiffers);
     }
 }

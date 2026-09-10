@@ -13,8 +13,8 @@ public class GetPriceDivergenceReportHandlerTests
     public async Task returns_rows_and_summary_from_the_report_service_unchanged()
     {
         // Arrange
-        var reportService = new Mock<IPriceDivergenceReportService>();
-        var report = new PriceDivergenceReportResult
+        var reportService = new Mock<IPriceComparisonService>();
+        var report = new PriceComparisonResult
         {
             Rows = new List<PriceDivergenceRowDto>
             {

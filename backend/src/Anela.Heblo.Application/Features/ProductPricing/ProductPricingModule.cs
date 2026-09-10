@@ -7,7 +7,7 @@ public static class ProductPricingModule
 {
     public static IServiceCollection AddProductPricingModule(this IServiceCollection services)
     {
-        services.AddScoped<IPriceDivergenceReportService, PriceDivergenceReportService>();
+        services.AddScoped<IPriceComparisonService, PriceComparisonService>();
 
         // MediatR handlers are automatically registered by assembly scan.
 

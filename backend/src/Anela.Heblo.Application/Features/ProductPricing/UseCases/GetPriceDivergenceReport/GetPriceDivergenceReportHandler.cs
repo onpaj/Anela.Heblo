@@ -6,9 +6,9 @@ namespace Anela.Heblo.Application.Features.ProductPricing.UseCases.GetPriceDiver
 public class GetPriceDivergenceReportHandler
     : IRequestHandler<GetPriceDivergenceReportRequest, GetPriceDivergenceReportResponse>
 {
-    private readonly IPriceDivergenceReportService _reportService;
+    private readonly IPriceComparisonService _reportService;
 
-    public GetPriceDivergenceReportHandler(IPriceDivergenceReportService reportService)
+    public GetPriceDivergenceReportHandler(IPriceComparisonService reportService)
     {
         _reportService = reportService;
     }
