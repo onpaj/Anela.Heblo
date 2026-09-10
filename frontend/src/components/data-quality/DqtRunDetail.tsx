@@ -40,13 +40,16 @@ const LOT_STOCK_FLAGS: Record<number, string> = {
   4: 'Šarže bez skladu',
 };
 
-// PriceComparisonMismatch is a plain enum value (0-3), not a bitmask like the flag maps
+// PriceComparisonMismatch is a plain enum value (0-4), not a bitmask like the flag maps
 // above, so it is rendered via direct lookup rather than decodeMismatchFlags.
+// Code 4 (MissingInShoptet) is an informational row, not a mismatch: it is persisted and
+// listed here so the count is visible, but it is excluded from the run's mismatch total.
 const PRICE_COMPARISON_MISMATCH_LABELS: Record<number, string> = {
   0: 'Neznámá neshoda',
   1: 'Rozdílná cena',
   2: 'Chybí ve Flexi',
   3: 'Neznámý typ ceny ve Flexi',
+  4: 'Chybí v Shoptetu (bez ceny)',
 };
 
 function decodeMismatchFlags(code: number, labels: Record<number, string>): string[] {

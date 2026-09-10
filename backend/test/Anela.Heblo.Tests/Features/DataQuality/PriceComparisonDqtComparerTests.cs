@@ -66,6 +66,98 @@ public class PriceComparisonDqtComparerTests
         mismatch.Details.Should().Be("FlexiDiffers");
     }
 
+    [Fact]
+    public async Task fails_the_run_when_not_one_product_had_a_shoptet_price()
+    {
+        // Arrange: a valid-but-empty or truncated Shoptet read classifies EVERY row as
+        // MissingInShoptet, which is excluded from the mismatch count — so the run would
+        // complete with zero mismatches and the dashboard tile would render green "vše OK"
+        // having compared precisely nothing. Reachable with no exception at all: a wrong
+        // Shoptet:DefaultPriceListId, a paginator that truncates to the first page, or every
+        // price being unreadable (logged, not thrown).
+        _source.Setup(s => s.GetDivergencesAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<PriceDivergence>
+            {
+                new() { ProductCode = "A", ShoptetPriceWithVat = null, FlexiPriceWithVat = 190m,
+                        Kind = "MissingInShoptet", IsMismatch = false },
+                new() { ProductCode = "B", ShoptetPriceWithVat = null, FlexiPriceWithVat = 250m,
+                        Kind = "MissingInShoptet", IsMismatch = false },
+            });
+
+        // Act
+        var act = () => CreateSut().CompareAsync(
+            new DateOnly(2026, 9, 10), new DateOnly(2026, 9, 10), CancellationToken.None);
+
+        // Assert: throwing is what makes DriftDqtJobRunner record the run Failed and the tile
+        // go red, instead of reporting a healthy zero.
+        (await act.Should().ThrowAsync<InvalidOperationException>())
+            .And.Message.Should().Contain("Shoptet");
+    }
+
+    [Fact]
+    public async Task fails_the_run_when_there_is_nothing_in_scope_at_all()
+    {
+        // Arrange: zero rows is the same defect — a green tile over zero comparisons.
+        _source.Setup(s => s.GetDivergencesAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<PriceDivergence>());
+
+        // Act
+        var act = () => CreateSut().CompareAsync(
+            new DateOnly(2026, 9, 10), new DateOnly(2026, 9, 10), CancellationToken.None);
+
+        // Assert
+        await act.Should().ThrowAsync<InvalidOperationException>();
+    }
+
+    [Fact]
+    public async Task does_not_fail_a_normal_mixed_result()
+    {
+        // Arrange: some products legitimately have no Shoptet price. As long as at least one
+        // was actually compared, the run is a real comparison.
+        _source.Setup(s => s.GetDivergencesAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<PriceDivergence>
+            {
+                new() { ProductCode = "A", ShoptetPriceWithVat = 190m, FlexiPriceWithVat = 190m,
+                        Kind = "InAgreement", IsMismatch = false },
+                new() { ProductCode = "B", ShoptetPriceWithVat = 250m, FlexiPriceWithVat = 200m,
+                        Kind = "FlexiDiffers", IsMismatch = true },
+                new() { ProductCode = "C", ShoptetPriceWithVat = null, FlexiPriceWithVat = 100m,
+                        Kind = "MissingInShoptet", IsMismatch = false },
+            });
+
+        // Act
+        var result = await CreateSut().CompareAsync(
+            new DateOnly(2026, 9, 10), new DateOnly(2026, 9, 10), CancellationToken.None);
+
+        // Assert
+        result.TotalChecked.Should().Be(3);
+        result.Mismatches.Should().ContainSingle().Which.EntityKey.Should().Be("B");
+    }
+
+    [Fact]
+    public async Task records_missing_in_shoptet_rows_as_observable_but_not_as_mismatches()
+    {
+        // Arrange
+        _source.Setup(s => s.GetDivergencesAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<PriceDivergence>
+            {
+                new() { ProductCode = "A", ShoptetPriceWithVat = 190m, FlexiPriceWithVat = 190m,
+                        Kind = "InAgreement", IsMismatch = false },
+                new() { ProductCode = "C", ShoptetPriceWithVat = null, FlexiPriceWithVat = 100m,
+                        Kind = "MissingInShoptet", IsMismatch = false },
+            });
+
+        // Act
+        var result = await CreateSut().CompareAsync(
+            new DateOnly(2026, 9, 10), new DateOnly(2026, 9, 10), CancellationToken.None);
+
+        // Assert
+        result.Mismatches.Should().BeEmpty();
+        var informational = result.Informational.Should().ContainSingle().Subject;
+        informational.EntityKey.Should().Be("C");
+        informational.MismatchCode.Should().Be((int)PriceComparisonMismatch.MissingInShoptet);
+    }
+
     /// <summary>
     /// Guards the seam between PriceComparisonDqtAdapter (which calls PriceDivergenceKind.ToString()
     /// to cross the module boundary) and PriceComparisonDqtComparer.MapMismatch (which switches on

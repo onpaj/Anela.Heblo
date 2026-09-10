@@ -63,6 +63,34 @@ public class PriceComparisonStatusTileTests
         StatusOf(data).Should().Be("warning");
     }
 
+    [Fact]
+    public async Task surfaces_how_many_products_had_no_shoptet_price()
+    {
+        // Arrange: MissingInShoptet is excluded from the mismatch count on purpose, so
+        // without this the tile can read "0 neshod / v\u0161e OK" while most of the catalogue
+        // was never compared at all.
+        var run = DqtRun.Start(DqtTestType.PriceComparison, new DateOnly(2026, 9, 10),
+            new DateOnly(2026, 9, 10), DqtTriggerType.Scheduled, DateTime.UtcNow);
+        run.Complete(totalChecked: 400, totalMismatches: 0, DateTime.UtcNow);
+        _repository.Setup(r => r.GetLatestByTestTypeAsync(DqtTestType.PriceComparison, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(run);
+        _repository.Setup(r => r.CountDriftResultsByMismatchCodeAsync(
+                run.Id, (int)PriceComparisonMismatch.MissingInShoptet, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(37);
+
+        // Act
+        var data = await CreateSut().LoadDataAsync();
+
+        // Assert
+        MissingInShoptetOf(data).Should().Be(37);
+    }
+
+    private static int MissingInShoptetOf(object data)
+    {
+        var payload = data.GetType().GetProperty("data")!.GetValue(data)!;
+        return (int)payload.GetType().GetProperty("missingInShoptet")!.GetValue(payload)!;
+    }
+
     private static string StatusOf(object data) =>
         (string)data.GetType().GetProperty("status")!.GetValue(data)!;
 }

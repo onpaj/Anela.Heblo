@@ -57,6 +57,38 @@ describe('PriceComparisonTile', () => {
     expect(screen.getByText('ze 400 produktů')).toBeInTheDocument();
   });
 
+  it('surfaces how many products had no Shoptet price at all', () => {
+    // MissingInShoptet is excluded from the mismatch count on purpose, so without this the
+    // tile can read "0 / vše OK" while most of the catalogue was never compared.
+    renderTile({
+      status: 'success',
+      data: {
+        totalMismatches: 0,
+        totalChecked: 400,
+        missingInShoptet: 37,
+        completedAt: '2026-09-10T09:00:00Z',
+      },
+      drillDown,
+    });
+
+    expect(screen.getByText('37 bez ceny v Shoptetu')).toBeInTheDocument();
+  });
+
+  it('omits the missing-in-Shoptet line when every product had a Shoptet price', () => {
+    renderTile({
+      status: 'success',
+      data: {
+        totalMismatches: 0,
+        totalChecked: 400,
+        missingInShoptet: 0,
+        completedAt: '2026-09-10T09:00:00Z',
+      },
+      drillDown,
+    });
+
+    expect(screen.queryByText(/bez ceny v Shoptetu/)).not.toBeInTheDocument();
+  });
+
   it('renders a distinct running state instead of a clean "vše OK" result', () => {
     renderTile({
       status: 'warning',

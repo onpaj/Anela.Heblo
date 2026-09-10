@@ -13,6 +13,9 @@ interface PriceComparisonTileProps {
       runStatus?: string;
       totalChecked?: number;
       totalMismatches?: number;
+      /// Products with no Shoptet price at all. Not a mismatch (Shoptet is the source of
+      /// truth), but shown so a green tile cannot hide a comparison that compared little.
+      missingInShoptet?: number;
       completedAt?: string;
     };
     error?: string;
@@ -75,6 +78,7 @@ export const PriceComparisonTile: React.FC<PriceComparisonTileProps> = ({ data }
 
   const totalMismatches = data.data?.totalMismatches ?? 0;
   const totalChecked = data.data?.totalChecked ?? 0;
+  const missingInShoptet = data.data?.missingInShoptet ?? 0;
 
   const hasMismatches = totalMismatches > 0;
   const iconColor = hasMismatches ? 'text-red-500 dark:text-red-400' : 'text-green-500 dark:text-emerald-400';
@@ -102,6 +106,11 @@ export const PriceComparisonTile: React.FC<PriceComparisonTileProps> = ({ data }
       {totalChecked > 0 && (
         <div className="text-xs text-gray-400 dark:text-graphite-faint mt-1">
           ze {totalChecked} produktů
+        </div>
+      )}
+      {missingInShoptet > 0 && (
+        <div className="text-xs text-amber-600 dark:text-amber-400 mt-1">
+          {missingInShoptet} bez ceny v Shoptetu
         </div>
       )}
     </div>

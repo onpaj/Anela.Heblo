@@ -44,6 +44,14 @@ public class PriceComparisonStatusTile : ITile
                 return new { status = "no_data", data = (object?)null, drillDown };
             }
 
+            // MissingInShoptet is excluded from the mismatch count by design; surfacing the
+            // count here is what keeps it from being invisible on the one screen that is
+            // supposed to say whether the price data is trustworthy.
+            var missingInShoptet = run.Status == DqtRunStatus.Completed
+                ? await _repository.CountDriftResultsByMismatchCodeAsync(
+                    run.Id, (int)PriceComparisonMismatch.MissingInShoptet, cancellationToken)
+                : 0;
+
             var status = run.Status switch
             {
                 DqtRunStatus.Failed => "error",
@@ -62,6 +70,7 @@ public class PriceComparisonStatusTile : ITile
                     runStatus = run.Status.ToString(),
                     totalChecked = run.TotalChecked,
                     totalMismatches = run.TotalMismatches,
+                    missingInShoptet,
                     completedAt = run.CompletedAt,
                 },
                 drillDown

@@ -137,13 +137,28 @@ The comparison also runs as a scheduled data-quality check, wired into the share
   `PriceDivergence` records. `FlexiDiffers`, `MissingInFlexi`, and `FlexiPriceTypeUnknown`
   all count as mismatches; `MissingInShoptet` does not (Shoptet is authoritative — a
   product it has never priced has no comparison to fail) and neither does `InAgreement`.
+- **Guard against a green tile over nothing**: because `MissingInShoptet` is excluded from
+  the mismatch count, an empty or truncated Shoptet read would classify *every* row that way,
+  produce zero mismatches, complete the run, and render the tile green "vše OK" having
+  compared nothing — reachable with no exception at all (a wrong or emptied
+  `Shoptet:DefaultPriceListId`, a paginator truncating the read to the first 100 items, or
+  every price being unreadable, which is logged rather than thrown). So
+  `PriceComparisonDqtComparer` **throws** when not one in-scope product had a Shoptet price,
+  which makes `DriftDqtJobRunner` record the run `Failed` and the tile go red — the same path
+  a read *failure* already takes.
+- **MissingInShoptet is recorded, not hidden**: those rows are persisted as *informational*
+  drift results (`DriftComparisonResult.Informational`, `PriceComparisonMismatch
+  .MissingInShoptet` = 4). `DriftDqtJobRunner` persists them alongside the mismatches but
+  leaves them out of `TotalMismatches`, so they are listed in the run detail and counted on
+  the tile without turning it amber on their own.
 - **Result shaping**: `DqtDriftResult`'s generic `HebloValue`/`ShoptetValue` columns are
   named for the Heblo-vs-Shoptet checks that came first. For this check, `ShoptetValue`
   carries the Shoptet price and `HebloValue` carries the Flexi price — the frontend labels
   these columns "Shoptet" and "Flexi", not "Heblo", for exactly that reason.
 - **Dashboard tile**: `PriceComparisonStatusTile` (tile id `pricecomparisonstatus`, title
   "Kontrola cen"), reads the latest `PriceComparison` run and shows total checked / total
-  mismatches with a status color (green/amber/red), drilling down to `/products/pricing`.
+  mismatches with a status color (green/amber/red), plus "N bez ceny v Shoptetu" whenever any
+  product had no Shoptet price at all, drilling down to `/products/pricing`.
 
 ## Write-through price edit
 
