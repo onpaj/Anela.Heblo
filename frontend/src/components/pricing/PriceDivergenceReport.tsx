@@ -1,10 +1,12 @@
 import React, { useState } from "react";
-import { Loader2, AlertCircle, ShieldCheck } from "lucide-react";
-import { usePriceDivergenceReport } from "../../api/hooks/useProductPricing";
+import { Loader2, AlertCircle, ShieldCheck, Pencil } from "lucide-react";
+import { usePriceDivergenceReport, useSetProductPrice } from "../../api/hooks/useProductPricing";
 // Imported from the generated client directly (not from the hooks module) so this
 // component keeps working when tests mock ../../api/hooks/useProductPricing.
 import { PriceDivergenceKind, PriceDivergenceRowDto } from "../../api/generated/api-client";
+import { ErrorCodes } from "../../types/errors";
 import { formatCurrency } from "../../utils/formatters";
+import { getErrorMessage } from "../../utils/errorHandler";
 
 const KIND_LABELS: Record<PriceDivergenceKind, string> = {
   [PriceDivergenceKind.InAgreement]: "Ve shodě",
@@ -45,15 +47,84 @@ const SummaryTile: React.FC<SummaryTileProps> = ({ label, value, emphasize }) =>
 );
 
 const DIVERGENT_COLUMN_COUNT = 8;
+const GENERIC_SET_PRICE_ERROR = "Cenu se nepodařilo uložit.";
 
-const PriceDivergenceReport: React.FC = () => {
+// No server-side price ceiling is deliberately enforced (any ceiling would be an
+// arbitrary magic number) — the operator's own confirmation is the only guard against a
+// mistyped price reaching the live shop.
+const LARGE_CHANGE_CONFIRM_THRESHOLD = 0.5;
+
+const readErrorCode = (error: unknown): string | undefined => {
+  if (error && typeof error === "object" && "errorCode" in error) {
+    const value = (error as { errorCode?: unknown }).errorCode;
+    return typeof value === "string" ? value : undefined;
+  }
+  return undefined;
+};
+
+interface PriceDivergenceReportProps {
+  canWrite: boolean;
+}
+
+const PriceDivergenceReport: React.FC<PriceDivergenceReportProps> = ({ canWrite }) => {
   const { data, isLoading, error } = usePriceDivergenceReport();
+  const { mutateAsync: setPrice, isPending } = useSetProductPrice();
   const [showDivergentOnly, setShowDivergentOnly] = useState(false);
+  const [editingCode, setEditingCode] = useState<string | null>(null);
+  const [draftValue, setDraftValue] = useState("");
+  const [rowErrors, setRowErrors] = useState<Record<string, string>>({});
 
   const rows = data?.rows ?? [];
   const summary = data?.summary;
 
   const visibleRows = showDivergentOnly ? rows.filter((row) => isDivergent(row.kind)) : rows;
+
+  const startEdit = (row: PriceDivergenceRowDto) => {
+    if (!row.productCode) return;
+    setEditingCode(row.productCode);
+    setDraftValue(row.shoptetPriceWithVat != null ? String(row.shoptetPriceWithVat) : "");
+  };
+
+  const cancelEdit = () => {
+    setEditingCode(null);
+    setDraftValue("");
+  };
+
+  const saveEdit = async (row: PriceDivergenceRowDto) => {
+    const productCode = row.productCode;
+    if (!productCode) return;
+
+    const priceWithVat = Number(draftValue);
+    if (!Number.isFinite(priceWithVat)) return;
+
+    const currentPrice = row.shoptetPriceWithVat;
+    if (currentPrice != null && currentPrice > 0) {
+      const changeRatio = Math.abs(priceWithVat - currentPrice) / currentPrice;
+      if (changeRatio > LARGE_CHANGE_CONFIRM_THRESHOLD) {
+        const confirmed = window.confirm(
+          `Nová cena ${formatCurrency(priceWithVat)} se liší od aktuální ceny v Shoptetu ` +
+            `${formatCurrency(currentPrice)} o více než 50 %. Opravdu chcete cenu uložit?`,
+        );
+        if (!confirmed) return;
+      }
+    }
+
+    try {
+      await setPrice({ productCode, priceWithVat });
+      setRowErrors((prev) => {
+        const { [productCode]: _removed, ...rest } = prev;
+        return rest;
+      });
+      setEditingCode(null);
+      setDraftValue("");
+    } catch (err) {
+      const errorCode = readErrorCode(err);
+      const message = errorCode ? getErrorMessage(errorCode as ErrorCodes) : GENERIC_SET_PRICE_ERROR;
+      setRowErrors((prev) => ({ ...prev, [productCode]: message }));
+      setEditingCode(null);
+      setDraftValue("");
+    }
+  };
 
   if (isLoading) {
     return (
@@ -136,7 +207,21 @@ const PriceDivergenceReport: React.FC = () => {
                   </td>
                 </tr>
               ) : (
-                visibleRows.map((row) => <DivergenceRow key={row.productCode} row={row} />)
+                visibleRows.map((row) => (
+                  <DivergenceRow
+                    key={row.productCode}
+                    row={row}
+                    canWrite={canWrite}
+                    isEditing={editingCode === row.productCode}
+                    isSaving={isPending && editingCode === row.productCode}
+                    draftValue={draftValue}
+                    rowError={row.productCode ? rowErrors[row.productCode] : undefined}
+                    onDraftChange={setDraftValue}
+                    onEdit={() => startEdit(row)}
+                    onCancel={cancelEdit}
+                    onSave={() => saveEdit(row)}
+                  />
+                ))
               )}
             </tbody>
           </table>
@@ -146,38 +231,114 @@ const PriceDivergenceReport: React.FC = () => {
   );
 };
 
-const DivergenceRow: React.FC<{ row: PriceDivergenceRowDto }> = ({ row }) => (
-  <tr className="hover:bg-gray-50 dark:hover:bg-white/5">
-    <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-graphite-text">
-      {row.productCode}
-    </td>
-    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 dark:text-graphite-text">{row.productName}</td>
-    <td className="px-4 py-3 whitespace-nowrap text-right text-sm text-gray-900 dark:text-graphite-text">
-      {row.shoptetPriceWithVat != null ? formatCurrency(row.shoptetPriceWithVat) : "—"}
-    </td>
-    <td className="px-4 py-3 whitespace-nowrap text-right text-sm text-gray-900 dark:text-graphite-text">
-      {row.flexiPriceWithVat != null ? formatCurrency(row.flexiPriceWithVat) : "—"}
-    </td>
-    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 dark:text-graphite-text">
-      {row.flexiPriceType ?? "neznámý"}
-    </td>
-    <td className="px-4 py-3 whitespace-nowrap text-right text-sm text-gray-900 dark:text-graphite-text">
-      {row.differenceWithVat != null ? formatCurrency(row.differenceWithVat) : "—"}
-    </td>
-    <td className="px-4 py-3 whitespace-nowrap text-right text-sm text-gray-900 dark:text-graphite-text">
-      {row.differencePercent != null ? `${row.differencePercent} %` : "—"}
-    </td>
-    <td className="px-4 py-3 whitespace-nowrap">
-      <span
-        data-testid={`divergence-kind-${row.productCode}`}
-        className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-          row.kind !== undefined ? KIND_BADGE_STYLES[row.kind] : ""
-        }`}
-      >
-        {row.kind !== undefined ? KIND_LABELS[row.kind] : "—"}
-      </span>
-    </td>
-  </tr>
+interface DivergenceRowProps {
+  row: PriceDivergenceRowDto;
+  canWrite: boolean;
+  isEditing: boolean;
+  isSaving: boolean;
+  draftValue: string;
+  rowError?: string;
+  onDraftChange: (value: string) => void;
+  onEdit: () => void;
+  onCancel: () => void;
+  onSave: () => void;
+}
+
+const DivergenceRow: React.FC<DivergenceRowProps> = ({
+  row,
+  canWrite,
+  isEditing,
+  isSaving,
+  draftValue,
+  rowError,
+  onDraftChange,
+  onEdit,
+  onCancel,
+  onSave,
+}) => (
+  <>
+    <tr className="hover:bg-gray-50 dark:hover:bg-white/5">
+      <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-graphite-text">
+        {row.productCode}
+      </td>
+      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 dark:text-graphite-text">{row.productName}</td>
+      <td className="px-4 py-3 whitespace-nowrap text-right text-sm text-gray-900 dark:text-graphite-text">
+        {isEditing ? (
+          <div className="flex items-center justify-end gap-2">
+            <input
+              type="number"
+              aria-label="Cena s DPH"
+              value={draftValue}
+              onChange={(e) => onDraftChange(e.target.value)}
+              disabled={isSaving}
+              className="w-24 rounded border border-gray-300 dark:border-graphite-border px-2 py-1 text-right bg-white dark:bg-graphite-surface-2 text-gray-900 dark:text-graphite-text disabled:opacity-50"
+            />
+            <button
+              type="button"
+              onClick={onSave}
+              disabled={isSaving}
+              className="text-indigo-600 dark:text-indigo-400 hover:underline disabled:opacity-50"
+            >
+              Uložit
+            </button>
+            <button
+              type="button"
+              onClick={onCancel}
+              disabled={isSaving}
+              className="text-gray-500 dark:text-graphite-muted hover:underline disabled:opacity-50"
+            >
+              Zrušit
+            </button>
+          </div>
+        ) : (
+          <div className="flex items-center justify-end gap-2">
+            <span>{row.shoptetPriceWithVat != null ? formatCurrency(row.shoptetPriceWithVat) : "—"}</span>
+            {canWrite && (
+              <button
+                type="button"
+                aria-label={`Upravit cenu ${row.productName}`}
+                onClick={onEdit}
+                className="text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400"
+              >
+                <Pencil className="h-4 w-4" />
+              </button>
+            )}
+          </div>
+        )}
+      </td>
+      <td className="px-4 py-3 whitespace-nowrap text-right text-sm text-gray-900 dark:text-graphite-text">
+        {row.flexiPriceWithVat != null ? formatCurrency(row.flexiPriceWithVat) : "—"}
+      </td>
+      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 dark:text-graphite-text">
+        {row.flexiPriceType ?? "neznámý"}
+      </td>
+      <td className="px-4 py-3 whitespace-nowrap text-right text-sm text-gray-900 dark:text-graphite-text">
+        {row.differenceWithVat != null ? formatCurrency(row.differenceWithVat) : "—"}
+      </td>
+      <td className="px-4 py-3 whitespace-nowrap text-right text-sm text-gray-900 dark:text-graphite-text">
+        {row.differencePercent != null ? `${row.differencePercent} %` : "—"}
+      </td>
+      <td className="px-4 py-3 whitespace-nowrap">
+        <span
+          data-testid={`divergence-kind-${row.productCode}`}
+          className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+            row.kind !== undefined ? KIND_BADGE_STYLES[row.kind] : ""
+          }`}
+        >
+          {row.kind !== undefined ? KIND_LABELS[row.kind] : "—"}
+        </span>
+      </td>
+    </tr>
+    {rowError && (
+      <tr>
+        <td colSpan={DIVERGENT_COLUMN_COUNT} className="px-4 py-2">
+          <div role="alert" className="text-sm text-red-800 dark:text-red-300">
+            {rowError}
+          </div>
+        </td>
+      </tr>
+    )}
+  </>
 );
 
 export default PriceDivergenceReport;

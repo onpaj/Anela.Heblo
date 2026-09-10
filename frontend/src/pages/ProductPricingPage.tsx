@@ -2,9 +2,11 @@ import React from "react";
 import { DollarSign } from "lucide-react";
 import { useScreenView } from "../telemetry/useScreenView";
 import PriceDivergenceReport from "../components/pricing/PriceDivergenceReport";
+import { usePermissionsContext } from "../auth/PermissionsContext";
 
 const ProductPricingPage: React.FC = () => {
   useScreenView("Catalog", "ProductPricing");
+  const { hasPermission } = usePermissionsContext();
 
   return (
     <div className="p-6">
@@ -20,7 +22,7 @@ const ProductPricingPage: React.FC = () => {
         </div>
       </div>
 
-      <PriceDivergenceReport />
+      <PriceDivergenceReport canWrite={hasPermission("products.catalog.write")} />
     </div>
   );
 };
