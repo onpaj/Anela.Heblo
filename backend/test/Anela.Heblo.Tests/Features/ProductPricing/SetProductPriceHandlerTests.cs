@@ -253,6 +253,46 @@ public class SetProductPriceHandlerTests
     }
 
     [Fact]
+    public async Task appends_a_change_log_row_when_flexi_has_no_cenik_id()
+    {
+        // Arrange: the spec promises a row for every outcome, including the pre-flight
+        // refusals — this leg had none.
+        _erpReader.Setup(c => c.GetAllAsync(false, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<ProductPriceErp> { new() { ProductCode = "A", ErpItemId = 0 } });
+
+        // Act
+        await CreateSut().Handle(Request(), CancellationToken.None);
+
+        // Assert
+        _changeLog.Verify(l => l.AppendAsync(
+            It.Is<ProductPriceChangeLog>(e =>
+                !e.ShoptetSucceeded && !e.FlexiSucceeded && e.OldPriceWithVat == 190.00m &&
+                e.ErrorMessage != null),
+            It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task appends_a_change_log_row_when_the_flexi_price_type_is_unsupported()
+    {
+        // Arrange
+        _erpReader.Setup(c => c.GetAllAsync(false, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<ProductPriceErp>
+            {
+                new() { ProductCode = "A", ErpItemId = 11, ErpPriceType = "sDph" },
+            });
+
+        // Act
+        await CreateSut().Handle(Request(), CancellationToken.None);
+
+        // Assert
+        _changeLog.Verify(l => l.AppendAsync(
+            It.Is<ProductPriceChangeLog>(e =>
+                !e.ShoptetSucceeded && !e.FlexiSucceeded && e.OldPriceWithVat == 190.00m &&
+                e.ErrorMessage != null),
+            It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
     public async Task records_the_old_and_new_price_on_success()
     {
         // Act
