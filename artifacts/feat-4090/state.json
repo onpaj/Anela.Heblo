@@ -28,9 +28,9 @@
   "tasks": [
     {
       "name": "remove-mediator-dependency",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-09-10T09:14:10.412194Z"
+      "updated_at": "2026-09-10T09:18:36.908606Z"
     },
     {
       "name": "update-handler-tests",
