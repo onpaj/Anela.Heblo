@@ -5,7 +5,8 @@ namespace Anela.Heblo.Application.Features.Invoices.Infrastructure;
 
 /// <summary>
 /// Provider-side adapter binding the DataQuality contract IInvoiceShoptetSource
-/// to the Invoices-module IIssuedInvoiceSource. Pure delegation, no business logic.
+/// to the Invoices-module IIssuedInvoiceSource, mapping to/from DataQuality's
+/// consumer-owned snapshot contracts via InvoiceDqtSnapshotMapper.
 /// </summary>
 internal sealed class InvoiceShoptetSourceAdapter : IInvoiceShoptetSource
 {
@@ -16,8 +17,22 @@ internal sealed class InvoiceShoptetSourceAdapter : IInvoiceShoptetSource
         _inner = inner;
     }
 
-    public Task<List<IssuedInvoiceDetailBatch>> GetAllAsync(
-        IssuedInvoiceSourceQuery query,
+    public async Task<List<DqtInvoiceSnapshot>> GetAllAsync(
+        DqtInvoiceSourceQuery query,
         CancellationToken ct = default)
-        => _inner.GetAllAsync(query, ct);
+    {
+        var innerQuery = new IssuedInvoiceSourceQuery
+        {
+            RequestId = query.RequestId,
+            DateFrom = query.DateFrom.ToDateTime(TimeOnly.MinValue),
+            DateTo = query.DateTo.ToDateTime(TimeOnly.MinValue)
+        };
+
+        var batches = await _inner.GetAllAsync(innerQuery, ct);
+
+        return batches
+            .SelectMany(b => b.Invoices)
+            .Select(i => i.ToDqtSnapshot())
+            .ToList();
+    }
 }

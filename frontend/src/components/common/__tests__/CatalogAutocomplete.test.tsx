@@ -122,3 +122,107 @@ describe("CatalogAutocomplete", () => {
     expect(mockOnSelect).toHaveBeenCalledWith("TEST001");
   });
 });
+
+describe("CatalogAutocomplete multi-select", () => {
+  let MockSelect: jest.Mock;
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    MockSelect = jest.requireMock("react-select").default as jest.Mock;
+
+    mockUseCatalogAutocomplete.mockReturnValue({
+      data: { items: [] },
+      isLoading: false,
+      error: null,
+    } as any);
+  });
+
+  it("renders a multi-value option for every selected value in isMulti mode", () => {
+    render(
+      <TestWrapper>
+        <CatalogAutocomplete
+          isMulti
+          values={[
+            { productCode: "PROD-A", productName: "Krém" } as any,
+            { productCode: "PROD-B", productName: "Mýdlo" } as any,
+          ]}
+          onSelect={jest.fn()}
+          onSelectMany={jest.fn()}
+        />
+      </TestWrapper>
+    );
+
+    expect(MockSelect).toHaveBeenCalled();
+    const selectProps = MockSelect.mock.calls[0][0];
+
+    // One select option per selected value == one chip rendered by react-select in multi mode
+    expect(selectProps.isMulti).toBe(true);
+    expect(selectProps.value).toHaveLength(2);
+    expect(selectProps.value[0]).toEqual(
+      expect.objectContaining({ label: expect.stringContaining("Krém") })
+    );
+    expect(selectProps.value[1]).toEqual(
+      expect.objectContaining({ label: expect.stringContaining("Mýdlo") })
+    );
+  });
+
+  it("calls onSelectMany with an empty array when the selection is cleared", () => {
+    const onSelectMany = jest.fn();
+
+    render(
+      <TestWrapper>
+        <CatalogAutocomplete
+          isMulti
+          values={[{ productCode: "PROD-A", productName: "Krém" } as any]}
+          onSelect={jest.fn()}
+          onSelectMany={onSelectMany}
+        />
+      </TestWrapper>
+    );
+
+    const selectProps = MockSelect.mock.calls[0][0];
+
+    // Removing the last remaining chip is reported by react-select as an empty MultiValue array
+    act(() => {
+      selectProps.onChange([], { action: "remove-value" });
+    });
+
+    expect(onSelectMany).toHaveBeenCalledWith([]);
+  });
+
+  it("single-select mode still calls onSelect and ignores onSelectMany, without multi-value chips", () => {
+    const onSelect = jest.fn();
+    const onSelectMany = jest.fn();
+
+    render(
+      <TestWrapper>
+        <CatalogAutocomplete
+          value={{ productCode: "PROD-A", productName: "Krém" } as any}
+          onSelect={onSelect}
+          onSelectMany={onSelectMany}
+        />
+      </TestWrapper>
+    );
+
+    const selectProps = MockSelect.mock.calls[0][0];
+
+    // No multi-value chips in single mode: isMulti is falsy and value is a single option, not an array
+    expect(selectProps.isMulti).toBeFalsy();
+    expect(Array.isArray(selectProps.value)).toBe(false);
+
+    act(() => {
+      selectProps.onChange(
+        {
+          value: "PROD-B",
+          label: "Mýdlo (PROD-B)",
+          productCode: "PROD-B",
+          productName: "Mýdlo",
+        },
+        { action: "select-option" }
+      );
+    });
+
+    expect(onSelect).toHaveBeenCalled();
+    expect(onSelectMany).not.toHaveBeenCalled();
+  });
+});

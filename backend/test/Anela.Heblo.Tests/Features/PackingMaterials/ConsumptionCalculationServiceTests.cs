@@ -232,20 +232,31 @@ public class ConsumptionCalculationServiceTests
     }
 
     [Fact]
-    public async Task HasDayAlreadyBeenProcessedAsync_ShouldReturnCorrectValue()
+    public async Task ProcessDailyConsumptionAsync_CalledTwiceForSameDate_SecondCallReturnsWasRunFalse()
     {
         // Arrange
+        var date = new DateOnly(2025, 6, 15);
+        var material = new PackingMaterial("Tape", 3m, ConsumptionType.PerDay, 100m);
         var materialRepo = new MockPackingMaterialRepository();
+        materialRepo.SetMaterials(new[] { material });
         var invoiceSource = new MockInvoiceConsumptionSource();
         var service = BuildService(materialRepo, invoiceSource, _mockLogger);
-        var date = DateOnly.FromDateTime(DateTime.Today);
+
+        // Act — first call: a genuine, unprocessed run
+        var firstResult = await service.ProcessDailyConsumptionAsync(date);
+
+        // The mock's AddDailyRunAsync does not auto-flip HasDailyProcessingBeenRunAsync,
+        // so simulate the persisted idempotency state a real repository would now report
+        // for this date before the second call.
         materialRepo.SetHasDailyProcessingBeenRun(date, true);
 
-        // Act
-        var result = await service.HasDayAlreadyBeenProcessedAsync(date);
+        // Act — second call: same date, should be a no-op
+        var secondResult = await service.ProcessDailyConsumptionAsync(date);
 
         // Assert
-        Assert.True(result);
+        Assert.True(firstResult.WasRun);
+        Assert.False(secondResult.WasRun);
+        Assert.Equal(0, secondResult.MaterialsProcessed);
     }
 
     [Fact]

@@ -196,4 +196,46 @@ public class CatalogCacheStoreTests
         result.Should().HaveCount(1);
         result.First().ProductCode.Should().Be("STALE001");
     }
+
+    [Fact]
+    public void SetSetPartsData_RoundTripsThroughCache()
+    {
+        // Arrange
+        var store = new CatalogCacheStore(
+            _memoryCache,
+            _timeProvider,
+            _cacheOptions,
+            _mergeSchedulerMock.Object,
+            _loggerMock.Object);
+
+        var parts = new List<CatalogSetPart>
+        {
+            new() { SetCode = "BAL001", ComponentCode = "KRM001", ComponentName = "Krém", Amount = 2 },
+        };
+
+        // Act
+        store.SetSetPartsData(parts);
+        var result = store.GetSetPartsData();
+
+        // Assert
+        result.Should().BeEquivalentTo(parts);
+    }
+
+    [Fact]
+    public void GetSetPartsData_ReturnsEmptyWhenNeverSet()
+    {
+        // Arrange
+        var store = new CatalogCacheStore(
+            _memoryCache,
+            _timeProvider,
+            _cacheOptions,
+            _mergeSchedulerMock.Object,
+            _loggerMock.Object);
+
+        // Act
+        var result = store.GetSetPartsData();
+
+        // Assert
+        result.Should().BeEmpty();
+    }
 }

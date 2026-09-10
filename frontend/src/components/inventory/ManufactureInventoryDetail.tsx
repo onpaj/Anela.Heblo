@@ -26,6 +26,7 @@ const ManufactureInventoryModal: React.FC<ManufactureInventoryModalProps> = ({
   onClose,
 }) => {
   const [newQuantity, setNewQuantity] = useState<number>(0);
+  const [newQuantityInput, setNewQuantityInput] = useState<string | undefined>(undefined); // Temporary input value for editing
   const [activeTab, setActiveTab] = useState<'inventory' | 'history'>('inventory');
   const [editableLots, setEditableLots] = useState<EditableLot[]>([]);
   
@@ -57,25 +58,33 @@ const ManufactureInventoryModal: React.FC<ManufactureInventoryModalProps> = ({
     pageSize: 20,
   });
 
-  // Reset quantity when effective item changes (either from prop or API)
-  useEffect(() => {
-    if (effectiveItem) {
-      // For materials, use ERP stock instead of eshop stock
-      const currentStock = Math.round((effectiveItem.stock?.erp || 0) * 100) / 100;
-      setNewQuantity(currentStock);
+  // For materials, use ERP stock instead of eshop stock
+  const effectiveProductCode = effectiveItem?.productCode;
+  const effectiveErpStock = effectiveItem?.stock?.erp;
 
-      // Initialize editable lots if the item has lots
-      if (effectiveItem.hasLots && effectiveItem.lots) {
-        const lots: EditableLot[] = effectiveItem.lots.map(lot => ({
-          lotCode: lot.lotCode || null,
-          amount: lot.amount ?? 0,
-          expiration: lot.expiration || null,
-          originalAmount: lot.amount ?? 0,
-        }));
-        setEditableLots(lots);
-      } else {
-        setEditableLots([]);
-      }
+  // Reset quantity when the modal opens or the underlying stock actually changes.
+  // Keyed on the values rather than on the item identity so that a background
+  // refetch returning the same stock cannot wipe a quantity being typed.
+  useEffect(() => {
+    if (!effectiveProductCode) return;
+    setNewQuantity(Math.round((effectiveErpStock || 0) * 100) / 100);
+    setNewQuantityInput(undefined);
+  }, [isOpen, effectiveProductCode, effectiveErpStock]);
+
+  // Initialize editable lots if the item has lots
+  useEffect(() => {
+    if (!effectiveItem) return;
+
+    if (effectiveItem.hasLots && effectiveItem.lots) {
+      const lots: EditableLot[] = effectiveItem.lots.map(lot => ({
+        lotCode: lot.lotCode || null,
+        amount: lot.amount ?? 0,
+        expiration: lot.expiration || null,
+        originalAmount: lot.amount ?? 0,
+      }));
+      setEditableLots(lots);
+    } else {
+      setEditableLots([]);
     }
   }, [effectiveItem]);
 
@@ -107,6 +116,31 @@ const ManufactureInventoryModal: React.FC<ManufactureInventoryModalProps> = ({
 
   // For materials, use ERP stock instead of eshop stock
   const currentStock = Math.round((effectiveItem?.stock?.erp || 0) * 100) / 100;
+
+  // Helper functions for the total quantity input (materials without lots)
+  const normalizeQuantity = (value: number) => Math.round(Math.max(0, value) * 100) / 100;
+
+  // The quantity the user currently sees, whether still being typed or already
+  // committed. Everything that reads the entered amount must use this, otherwise
+  // an uncommitted draft would be silently dropped.
+  const effectiveNewQuantity =
+    newQuantityInput !== undefined
+      ? normalizeQuantity(parseFloat(newQuantityInput) || 0)
+      : newQuantity;
+
+  const commitNewQuantity = (newAmount: number) => {
+    setNewQuantity(normalizeQuantity(newAmount));
+    setNewQuantityInput(undefined);
+  };
+
+  const commitNewQuantityInput = () => {
+    if (newQuantityInput === undefined) return;
+    commitNewQuantity(effectiveNewQuantity);
+  };
+
+  const adjustNewQuantity = (delta: number) => {
+    commitNewQuantity(effectiveNewQuantity + delta);
+  };
 
   // Helper functions for lot management
   const updateLotAmount = (index: number, newAmount: number) => {
@@ -195,17 +229,17 @@ const ManufactureInventoryModal: React.FC<ManufactureInventoryModalProps> = ({
       } else {
         // Simple stock taking
         const currentStock = Math.round((effectiveItem?.stock?.erp || 0) * 100) / 100;
-        const isSoftStockTaking = newQuantity === currentStock;
+        const isSoftStockTaking = effectiveNewQuantity === currentStock;
         
         await submitStockTaking.mutateAsync({
           productCode: effectiveItem.productCode,
-          targetAmount: newQuantity,
+          targetAmount: effectiveNewQuantity,
           softStockTaking: isSoftStockTaking,
         });
 
         // Show success toaster only if stock actually changed
         if (!isSoftStockTaking) {
-          const difference = newQuantity - currentStock;
+          const difference = effectiveNewQuantity - currentStock;
           const differenceText = difference > 0 ? `+${difference.toFixed(2)}` : difference.toFixed(2);
           
           showSuccess(
@@ -622,10 +656,8 @@ const ManufactureInventoryModal: React.FC<ManufactureInventoryModalProps> = ({
                         </label>
                         <div className="flex items-center space-x-3 mb-4">
                           <button
-                            onClick={() => {
-                              const newValue = Math.max(0, newQuantity - 1);
-                              setNewQuantity(Math.round(newValue * 100) / 100);
-                            }}
+                            onClick={() => adjustNewQuantity(-1)}
+                            title="Snížit množství"
                             className="w-32 h-12 flex items-center justify-center bg-white border border-gray-300 rounded-lg text-gray-600 hover:bg-gray-50 hover:text-gray-900 touch-manipulation text-xl font-semibold dark:bg-graphite-surface-2 dark:border-graphite-border dark:text-graphite-muted dark:hover:bg-white/5 dark:hover:text-graphite-text"
                             type="button"
                           >
@@ -635,19 +667,20 @@ const ManufactureInventoryModal: React.FC<ManufactureInventoryModalProps> = ({
                             type="number"
                             min="0"
                             step="0.01"
-                            value={newQuantity.toFixed(2)}
-                            onChange={(e) => {
-                              const value = parseFloat(e.target.value);
-                              const roundedValue = Math.round(Math.max(0, isNaN(value) ? 0 : value) * 100) / 100;
-                              setNewQuantity(roundedValue);
+                            value={newQuantityInput !== undefined ? newQuantityInput : newQuantity.toFixed(2)}
+                            onChange={(e) => setNewQuantityInput(e.target.value)}
+                            onBlur={() => commitNewQuantityInput()}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') {
+                                commitNewQuantityInput();
+                                e.currentTarget.blur();
+                              }
                             }}
                             className="flex-1 text-center border border-gray-300 rounded-lg px-4 py-3 text-xl font-bold focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent touch-manipulation dark:bg-graphite-surface-2 dark:border-graphite-border dark:text-graphite-text dark:placeholder-graphite-faint"
                           />
                           <button
-                            onClick={() => {
-                              const newValue = newQuantity + 1;
-                              setNewQuantity(Math.round(newValue * 100) / 100);
-                            }}
+                            onClick={() => adjustNewQuantity(1)}
+                            title="Zvýšit množství"
                             className="w-32 h-12 flex items-center justify-center bg-white border border-gray-300 rounded-lg text-gray-600 hover:bg-gray-50 hover:text-gray-900 touch-manipulation text-xl font-semibold dark:bg-graphite-surface-2 dark:border-graphite-border dark:text-graphite-muted dark:hover:bg-white/5 dark:hover:text-graphite-text"
                             type="button"
                           >
@@ -700,11 +733,11 @@ const ManufactureInventoryModal: React.FC<ManufactureInventoryModalProps> = ({
                       )}
 
                       {/* Difference Display */}
-                      {newQuantity !== currentStock && (
+                      {effectiveNewQuantity !== currentStock && (
                         <div className="mt-4 p-3 bg-yellow-50 rounded-lg border border-yellow-200 dark:bg-amber-900/30 dark:border-amber-900/40">
                           <div className="text-center">
                             <span className="text-sm font-medium text-yellow-800 dark:text-amber-300">
-                              Rozdíl: {newQuantity > currentStock ? "+" : ""}{(newQuantity - currentStock).toFixed(2)}
+                              Rozdíl: {effectiveNewQuantity > currentStock ? "+" : ""}{(effectiveNewQuantity - currentStock).toFixed(2)}
                             </span>
                           </div>
                         </div>

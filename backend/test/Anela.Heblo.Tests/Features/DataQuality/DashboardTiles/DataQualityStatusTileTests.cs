@@ -104,8 +104,9 @@ public class DataQualityStatusTileTests
             DqtTestType.IssuedInvoiceComparison,
             date,
             date,
-            DqtTriggerType.Scheduled);
-        run.Complete(totalChecked, totalMismatches);
+            DqtTriggerType.Scheduled,
+            DateTime.UtcNow);
+        run.Complete(totalChecked, totalMismatches, DateTime.UtcNow);
         return run;
     }
 

@@ -26,7 +26,7 @@ public sealed class McpProductNotFoundTelemetryFilter : ITelemetryProcessor
     public void Process(ITelemetry item)
     {
         if (item is ExceptionTelemetry exc
-            && exc.Message.Contains(ProductNotFoundMarker, StringComparison.Ordinal)
+            && exc.Message?.Contains(ProductNotFoundMarker, StringComparison.Ordinal) == true
             && IsMcpException(exc))
         {
             var trace = new TraceTelemetry(exc.Message, SeverityLevel.Warning);

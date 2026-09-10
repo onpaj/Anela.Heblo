@@ -110,6 +110,9 @@ public sealed class ClaudeMeetingTaskExtractorTests
 
         result.Tasks.Should().BeEmpty();
         result.Participants.Should().BeEmpty();
+        _mockChatClient.Verify(x => x.GetResponseAsync(
+            It.IsAny<IEnumerable<ChatMessage>>(), It.IsAny<ChatOptions?>(), It.IsAny<CancellationToken>()),
+            Times.Exactly(3));
     }
 
     [Fact]
@@ -143,7 +146,7 @@ public sealed class ClaudeMeetingTaskExtractorTests
     }
 
     [Fact]
-    public async Task ExtractAsync_WhenJsonInvalid_LogsErrorAndReturnsEmpty()
+    public async Task ExtractAsync_WhenAllAttemptsMalformed_LogsFinalErrorWithRawResponseAndAttemptCount()
     {
         _mockChatClient
             .Setup(x => x.GetResponseAsync(
@@ -152,18 +155,122 @@ public sealed class ClaudeMeetingTaskExtractorTests
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(new ChatResponse([new ChatMessage(ChatRole.Assistant, "not-valid-json{{{")]));
 
-        var result = await _extractor.ExtractAsync("summary", "transcript", CancellationToken.None);
+        var act = async () => await _extractor.ExtractAsync("summary", "transcript", CancellationToken.None);
+        await act.Should().ThrowAsync<MeetingTaskExtractionFailedException>();
 
-        result.Tasks.Should().BeEmpty();
-        result.Participants.Should().BeEmpty();
         _mockLogger.Verify(
             x => x.Log(
                 LogLevel.Error,
                 It.IsAny<EventId>(),
-                It.Is<It.IsAnyType>((v, _) => v.ToString()!.Contains("malformed JSON")),
+                It.Is<It.IsAnyType>((v, _) => v.ToString()!.Contains("not-valid-json{{{")),
                 It.IsAny<Exception>(),
                 It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
             Times.Once);
+    }
+
+    [Fact]
+    public async Task ExtractAsync_WhenFirstAttemptMalformed_RetriesAndReturnsSecondAttemptResult()
+    {
+        var callCount = 0;
+        _mockChatClient
+            .Setup(x => x.GetResponseAsync(
+                It.IsAny<IEnumerable<ChatMessage>>(),
+                It.IsAny<ChatOptions?>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(() =>
+            {
+                callCount++;
+                var text = callCount == 1
+                    ? "not-valid-json{{{"
+                    : """{"participants":["Bob"],"tasks":[{"title":"Action","description":"Do it","assignee":"Bob","assigneeEmail":null,"dueDate":null}]}""";
+                return new ChatResponse([new ChatMessage(ChatRole.Assistant, text)]);
+            });
+
+        var result = await _extractor.ExtractAsync("summary", "transcript", CancellationToken.None);
+
+        result.Tasks.Should().HaveCount(1);
+        result.Tasks[0].Title.Should().Be("Action");
+        callCount.Should().Be(2);
+    }
+
+    [Fact]
+    public async Task ExtractAsync_WhenAllAttemptsMalformed_ThrowsAfterExhaustingRetries()
+    {
+        _mockChatClient
+            .Setup(x => x.GetResponseAsync(
+                It.IsAny<IEnumerable<ChatMessage>>(),
+                It.IsAny<ChatOptions?>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new ChatResponse([new ChatMessage(ChatRole.Assistant, "not-valid-json{{{")]));
+
+        var act = async () => await _extractor.ExtractAsync("summary", "transcript", CancellationToken.None);
+
+        var ex = await act.Should().ThrowAsync<MeetingTaskExtractionFailedException>();
+        ex.Which.AttemptCount.Should().Be(3);
+        ex.Which.LastRawResponse.Should().Be("not-valid-json{{{");
+
+        _mockChatClient.Verify(x => x.GetResponseAsync(
+            It.IsAny<IEnumerable<ChatMessage>>(), It.IsAny<ChatOptions?>(), It.IsAny<CancellationToken>()),
+            Times.Exactly(3));
+    }
+
+    [Fact]
+    public async Task ExtractAsync_WithJsonEmbeddedInProseText_ExtractsAndParsesIt()
+    {
+        SetupResponse("Here is the extracted result:\n" +
+            """{"participants":["Bob"],"tasks":[{"title":"Action","description":"Do it","assignee":"Bob","assigneeEmail":null,"dueDate":null}]}""" +
+            "\nLet me know if you need anything else.");
+
+        var result = await _extractor.ExtractAsync("summary", "transcript", CancellationToken.None);
+
+        result.Tasks.Should().HaveCount(1);
+        result.Tasks[0].Title.Should().Be("Action");
+    }
+
+    [Fact]
+    public async Task ExtractAsync_WhenTaskHasEmptyTitle_RetriesAndSucceedsOnNextAttempt()
+    {
+        var callCount = 0;
+        _mockChatClient
+            .Setup(x => x.GetResponseAsync(
+                It.IsAny<IEnumerable<ChatMessage>>(),
+                It.IsAny<ChatOptions?>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(() =>
+            {
+                callCount++;
+                var text = callCount == 1
+                    ? """{"participants":[],"tasks":[{"title":"","description":"D","assignee":"","assigneeEmail":null,"dueDate":null}]}"""
+                    : """{"participants":[],"tasks":[{"title":"Real title","description":"D","assignee":"","assigneeEmail":null,"dueDate":null}]}""";
+                return new ChatResponse([new ChatMessage(ChatRole.Assistant, text)]);
+            });
+
+        var result = await _extractor.ExtractAsync("summary", "transcript", CancellationToken.None);
+
+        result.Tasks.Should().ContainSingle(t => t.Title == "Real title");
+    }
+
+    [Fact]
+    public async Task ExtractAsync_WhenChatClientThrowsOnFirstAttemptButSucceedsOnRetry_ReturnsResult()
+    {
+        var callCount = 0;
+        _mockChatClient
+            .Setup(x => x.GetResponseAsync(
+                It.IsAny<IEnumerable<ChatMessage>>(),
+                It.IsAny<ChatOptions?>(),
+                It.IsAny<CancellationToken>()))
+            .Returns(() =>
+            {
+                callCount++;
+                if (callCount == 1)
+                    throw new HttpRequestException("transient");
+                return Task.FromResult(new ChatResponse([new ChatMessage(ChatRole.Assistant, EmptyPayload)]));
+            });
+
+        var result = await _extractor.ExtractAsync("summary", "transcript", CancellationToken.None);
+
+        result.Tasks.Should().BeEmpty();
+        callCount.Should().Be(2);
     }
 
     [Fact]
@@ -205,5 +312,8 @@ public sealed class ClaudeMeetingTaskExtractorTests
                 It.IsAny<Exception>(),
                 It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
             Times.Once);
+        _mockChatClient.Verify(x => x.GetResponseAsync(
+            It.IsAny<IEnumerable<ChatMessage>>(), It.IsAny<ChatOptions?>(), It.IsAny<CancellationToken>()),
+            Times.Exactly(3));
     }
 }

@@ -2,7 +2,6 @@ using System;
 using System.Text.RegularExpressions;
 using Anela.Heblo.Application.Features.Marketing.Services;
 using Anela.Heblo.Domain.Features.Marketing;
-using Anela.Heblo.Domain.Features.Users;
 
 namespace Anela.Heblo.Application.Features.Marketing.UseCases.ImportFromOutlook
 {
@@ -25,22 +24,18 @@ namespace Anela.Heblo.Application.Features.Marketing.UseCases.ImportFromOutlook
 
         internal static MarketingAction BuildAction(
             OutlookEventDto evt,
-            CurrentUser currentUser,
+            SyncActor actor,
             DateTime utcNow,
             MarketingActionType actionType)
         {
-            var createdByUserId = currentUser.Id
-                ?? throw new InvalidOperationException(
-                    "Outlook import requires an authenticated user context for createdByUserId.");
-
             var action = new MarketingAction(
                 title: ParseTitle(evt.Subject),
                 description: ParseDescription(evt.BodyText),
                 actionType: actionType,
                 startDate: evt.StartUtc,
                 endDate: ParseEndDate(evt),
-                createdByUserId: createdByUserId,
-                createdByUsername: currentUser.Name,
+                createdByUserId: actor.UserId,
+                createdByUsername: actor.Username,
                 utcNow: utcNow);
 
             action.MarkOutlookSynced(evt.Id, utcNow);
@@ -67,21 +62,17 @@ namespace Anela.Heblo.Application.Features.Marketing.UseCases.ImportFromOutlook
             MarketingAction existing,
             OutlookEventDto evt,
             MarketingActionType actionType,
-            CurrentUser currentUser,
+            SyncActor actor,
             DateTime utcNow)
         {
-            var modifiedByUserId = currentUser.Id
-                ?? throw new InvalidOperationException(
-                    "Outlook import requires an authenticated user context for modifiedByUserId.");
-
             existing.UpdateDetails(
                 title: ParseTitle(evt.Subject),
                 description: ParseDescription(evt.BodyText),
                 actionType: actionType,
                 startDate: evt.StartUtc,
                 endDate: ParseEndDate(evt),
-                modifiedByUserId: modifiedByUserId,
-                modifiedByUsername: currentUser.Name,
+                modifiedByUserId: actor.UserId,
+                modifiedByUsername: actor.Username,
                 utcNow: utcNow);
 
             existing.MarkOutlookSynced(evt.Id, utcNow);

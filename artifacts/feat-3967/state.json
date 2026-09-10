@@ -1,0 +1,82 @@
+{
+  "feature_id": "feat-3967",
+  "issue_number": 3967,
+  "created_at": "2026-08-29T05:17:33.924834Z",
+  "max_revisions": 3,
+  "phases": {
+    "analyzing": {
+      "status": "completed",
+      "updated_at": "2026-08-29T05:21:15.431778Z"
+    },
+    "architecting": {
+      "status": "completed",
+      "updated_at": "2026-08-29T05:23:30.131317Z"
+    },
+    "designing": {
+      "status": "completed",
+      "updated_at": "2026-08-29T05:24:38.961797Z"
+    },
+    "planning": {
+      "status": "completed",
+      "updated_at": "2026-08-29T05:30:18.764810Z"
+    },
+    "developing": {
+      "status": "in_progress",
+      "updated_at": "2026-08-29T20:15:11.251493Z"
+    },
+    "code-review": {
+      "status": "completed",
+      "updated_at": "2026-08-29T22:24:40.224899Z"
+    }
+  },
+  "tasks": [
+    {
+      "name": "dqt-eshop-stock-contract",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-08-29T06:19:55.027005Z"
+    },
+    {
+      "name": "dqt-erp-stock-contract",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-08-29T07:17:26.076990Z"
+    },
+    {
+      "name": "catalog-eshop-stock-source-adapter",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-08-29T08:53:28.852576Z"
+    },
+    {
+      "name": "catalog-erp-stock-source-adapter",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-08-29T09:47:09.622248Z"
+    },
+    {
+      "name": "catalog-module-di-registration",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-08-29T10:18:34.420236Z"
+    },
+    {
+      "name": "rewire-product-pairing-comparer",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-08-29T11:54:22.872156Z"
+    },
+    {
+      "name": "retire-dataquality-catalog-allowlist",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-08-29T12:35:27.787647Z"
+    },
+    {
+      "name": "full-verification",
+      "status": "completed",
+      "revision": 2,
+      "updated_at": "2026-08-29T21:05:29.717543Z"
+    }
+  ]
+}

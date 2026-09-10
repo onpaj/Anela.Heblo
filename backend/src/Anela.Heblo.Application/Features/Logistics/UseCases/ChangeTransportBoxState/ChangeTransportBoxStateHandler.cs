@@ -12,45 +12,29 @@ namespace Anela.Heblo.Application.Features.Logistics.UseCases.ChangeTransportBox
 public class ChangeTransportBoxStateHandler : IRequestHandler<ChangeTransportBoxStateRequest, ChangeTransportBoxStateResponse>
 {
     private readonly ITransportBoxRepository _repository;
-    private readonly IInventoryReservationService _inventoryReservationService;
     private readonly IMediator _mediator;
     private readonly ILogger<ChangeTransportBoxStateHandler> _logger;
     private readonly ICurrentUserService _currentUserService;
-    private readonly ILogisticsStockOperationService _stockOperationService;
     private readonly TimeProvider _timeProvider;
-
-
-    private static readonly
-        Dictionary<Tuple<TransportBoxState, TransportBoxState>,
-            Func<ChangeTransportBoxStateHandler, Func<TransportBox, ChangeTransportBoxStateRequest, CancellationToken, Task<ChangeTransportBoxStateResponse?>>>> CallBackMap = new()
-        {
-            { new Tuple<TransportBoxState, TransportBoxState>(TransportBoxState.New, TransportBoxState.Opened), h => h.HandleNewToOpened },
-            { new Tuple<TransportBoxState, TransportBoxState>(TransportBoxState.Opened, TransportBoxState.Reserve), h => h.HandleOpenToReserve },
-            { new Tuple<TransportBoxState, TransportBoxState>(TransportBoxState.Opened, TransportBoxState.Quarantine), h => h.HandleOpenToQuarantine },
-            { new Tuple<TransportBoxState, TransportBoxState>(TransportBoxState.InTransit, TransportBoxState.Received), h => h.HandleReceived },
-            { new Tuple<TransportBoxState, TransportBoxState>(TransportBoxState.Reserve, TransportBoxState.Received), h => h.HandleReceived },
-            { new Tuple<TransportBoxState, TransportBoxState>(TransportBoxState.Quarantine, TransportBoxState.Received), h => h.HandleReceived },
-        };
-
-
-
+    private readonly IEnumerable<ITransportBoxTransitionSideEffect> _sideEffects;
+    private readonly ITransportBoxInventoryRestorer _inventoryRestorer;
 
     public ChangeTransportBoxStateHandler(
         ITransportBoxRepository repository,
-        IInventoryReservationService inventoryReservationService,
         IMediator mediator,
         ILogger<ChangeTransportBoxStateHandler> logger,
         ICurrentUserService currentUserService,
-        ILogisticsStockOperationService stockOperationService,
-        TimeProvider timeProvider)
+        TimeProvider timeProvider,
+        IEnumerable<ITransportBoxTransitionSideEffect> sideEffects,
+        ITransportBoxInventoryRestorer inventoryRestorer)
     {
         _repository = repository;
-        _inventoryReservationService = inventoryReservationService;
         _mediator = mediator;
         _logger = logger;
         _currentUserService = currentUserService;
-        _stockOperationService = stockOperationService;
         _timeProvider = timeProvider;
+        _sideEffects = sideEffects;
+        _inventoryRestorer = inventoryRestorer;
     }
 
     public async Task<ChangeTransportBoxStateResponse> Handle(ChangeTransportBoxStateRequest request, CancellationToken cancellationToken)
@@ -103,13 +87,13 @@ public class ChangeTransportBoxStateHandler : IRequestHandler<ChangeTransportBox
             }
 
 
-            if (CallBackMap.TryGetValue(new Tuple<TransportBoxState, TransportBoxState>(box.State, request.NewState), out var callbackFactory))
+            var sideEffect = _sideEffects.FirstOrDefault(s => s.Supports(box.State, request.NewState));
+            if (sideEffect != null)
             {
-                var callback = callbackFactory(this);
-                var callbackResult = await callback(box, request, cancellationToken);
-                if (callbackResult != null)
+                var sideEffectResult = await sideEffect.ExecuteAsync(box, request, cancellationToken);
+                if (sideEffectResult != null)
                 {
-                    return callbackResult;
+                    return sideEffectResult;
                 }
             }
 
@@ -127,7 +111,7 @@ public class ChangeTransportBoxStateHandler : IRequestHandler<ChangeTransportBox
 
             if (itemsToRestore != null)
             {
-                await RestoreInventoryForItemsAsync(itemsToRestore, userName, currentTime, box.Id, box.Code, cancellationToken);
+                await _inventoryRestorer.RestoreAsync(itemsToRestore, userName, currentTime, box.Id, box.Code, cancellationToken);
             }
 
             // Save changes
@@ -208,122 +192,6 @@ public class ChangeTransportBoxStateHandler : IRequestHandler<ChangeTransportBox
                 ErrorCode = ErrorCodes.TransportBoxStateChangeError,
                 Params = new Dictionary<string, string> { { "boxId", request.BoxId.ToString() } }
             };
-        }
-    }
-
-    private async Task<ChangeTransportBoxStateResponse?> HandleNewToOpened(TransportBox box, ChangeTransportBoxStateRequest request, CancellationToken cancellationToken)
-    {
-        if (string.IsNullOrEmpty(request.BoxCode))
-        {
-            return new ChangeTransportBoxStateResponse
-            {
-                Success = false,
-                ErrorCode = ErrorCodes.RequiredFieldMissing,
-                Params = new Dictionary<string, string> { { "field", "BoxCode" } }
-            };
-        }
-
-        // Check if another active box with the same code already exists
-        var normalizedCode = request.BoxCode.ToUpper();
-        var isCodeActive = await _repository.IsBoxCodeActiveAsync(normalizedCode);
-        if (isCodeActive)
-        {
-            return new ChangeTransportBoxStateResponse
-            {
-                Success = false,
-                ErrorCode = ErrorCodes.TransportBoxDuplicateActiveBoxFound,
-                Params = new Dictionary<string, string> { { "code", normalizedCode } }
-            };
-        }
-
-        // Close all stocked boxes
-        var (stocked, _) = await _repository.GetPagedListAsync(skip: 0, take: 0, code: request.BoxCode, state: TransportBoxState.Stocked);
-        foreach (var s in stocked)
-        {
-            s.Close(_timeProvider.GetUtcNow().UtcDateTime, _currentUserService.GetCurrentUser().Name ?? "System");
-            await _repository.UpdateAsync(s, cancellationToken);
-        }
-
-        return null;
-    }
-
-    private async Task<ChangeTransportBoxStateResponse?> HandleOpenToQuarantine(
-        TransportBox box, ChangeTransportBoxStateRequest request, CancellationToken cancellationToken)
-    {
-        // No location required for Quarantine — ToQuarantine() clears Location = null
-        await Task.CompletedTask;
-        return null;
-    }
-
-    private async Task<ChangeTransportBoxStateResponse?> HandleOpenToReserve(TransportBox box, ChangeTransportBoxStateRequest request, CancellationToken cancellationToken)
-    {
-        if (string.IsNullOrEmpty(request.Location))
-        {
-            return new ChangeTransportBoxStateResponse
-            {
-                Success = false,
-                ErrorCode = ErrorCodes.RequiredFieldMissing,
-                Params = new Dictionary<string, string> { { "field", "Location" } }
-            };
-        }
-
-        return null;
-    }
-
-    private async Task<ChangeTransportBoxStateResponse?> HandleReceived(TransportBox box, ChangeTransportBoxStateRequest request, CancellationToken cancellationToken)
-    {
-        var aggregated = box.Items
-            .GroupBy(i => i.ProductCode)
-            .Select(g => new
-            {
-                ProductCode = g.Key,
-                Amount = (int)Math.Round(g.Sum(i => i.Amount), MidpointRounding.AwayFromZero),
-                LineCount = g.Count()
-            })
-            .ToList();
-
-        foreach (var group in aggregated)
-        {
-            var documentNumber = $"BOX-{box.Id:000000}-{group.ProductCode}";
-
-            await _stockOperationService.StageOperationAsync(
-                documentNumber,
-                group.ProductCode,
-                group.Amount,
-                LogisticsStockOperationSource.TransportBox,
-                box.Id,
-                cancellationToken);
-
-            _logger.LogDebug("Staged StockUpOperation {DocumentNumber} for product {ProductCode}, amount {Amount} (aggregated from {LineCount} item line(s))",
-                documentNumber, group.ProductCode, group.Amount, group.LineCount);
-        }
-
-        _logger.LogInformation("Staged {OperationCount} StockUpOperation(s) from {ItemCount} item line(s) for box {BoxId} ({BoxCode})",
-            aggregated.Count, box.Items.Count, box.Id, box.Code);
-
-        return null;
-    }
-
-    private async Task RestoreInventoryForItemsAsync(
-        IReadOnlyList<TransportBoxItem> items,
-        string userName,
-        DateTime timestamp,
-        int boxId,
-        string? boxCode,
-        CancellationToken cancellationToken)
-    {
-        foreach (var item in items)
-        {
-            if (item.SourceInventoryId == null) continue;
-
-            await _inventoryReservationService.RestoreAsync(
-                inventoryId: item.SourceInventoryId.Value,
-                amount: (decimal)item.Amount,
-                userName: userName,
-                timestamp: timestamp,
-                boxId: boxId,
-                boxCode: boxCode,
-                cancellationToken: cancellationToken);
         }
     }
 }

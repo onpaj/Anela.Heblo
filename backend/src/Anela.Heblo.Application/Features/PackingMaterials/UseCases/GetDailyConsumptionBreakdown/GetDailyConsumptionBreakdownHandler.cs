@@ -8,11 +8,6 @@ namespace Anela.Heblo.Application.Features.PackingMaterials.UseCases.GetDailyCon
 public class GetDailyConsumptionBreakdownHandler
     : IRequestHandler<GetDailyConsumptionBreakdownRequest, GetDailyConsumptionBreakdownResponse>
 {
-    private static readonly HashSet<string> ValidGroupByValues = new(StringComparer.OrdinalIgnoreCase)
-    {
-        "material", "product", "order"
-    };
-
     private readonly IPackingMaterialRepository _repository;
     private readonly ILogger<GetDailyConsumptionBreakdownHandler> _logger;
 
@@ -28,17 +23,6 @@ public class GetDailyConsumptionBreakdownHandler
         GetDailyConsumptionBreakdownRequest request,
         CancellationToken cancellationToken)
     {
-        if (!ValidGroupByValues.Contains(request.GroupBy))
-        {
-            return new GetDailyConsumptionBreakdownResponse
-            {
-                Success = false,
-                Error = $"Invalid GroupBy value '{request.GroupBy}'. Must be one of: material, product, order.",
-                Date = request.Date,
-                GroupBy = request.GroupBy
-            };
-        }
-
         try
         {
             _logger.LogInformation("Loading daily consumption breakdown for {Date} grouped by {GroupBy}", request.Date, request.GroupBy);
@@ -46,23 +30,23 @@ public class GetDailyConsumptionBreakdownHandler
             var consumptions = (await _repository.GetConsumptionsByDateAsync(request.Date, cancellationToken)).ToList();
 
             if (consumptions.Count == 0)
-                return new GetDailyConsumptionBreakdownResponse { Success = true, Date = request.Date, GroupBy = request.GroupBy };
+                return new GetDailyConsumptionBreakdownResponse { Success = true, Date = request.Date, GroupBy = request.GroupBy.ToString() };
 
             var materials = (await _repository.GetAllWithAllocationsAsync(cancellationToken)).ToList();
 
-            var groups = request.GroupBy.ToLowerInvariant() switch
+            var groups = request.GroupBy switch
             {
-                "material" => BuildGroupByMaterial(consumptions, materials),
-                "product" => BuildGroupByProduct(consumptions, materials),
-                "order" => BuildGroupByOrder(consumptions, materials),
-                _ => throw new InvalidOperationException($"Unhandled GroupBy value: {request.GroupBy}")
+                ConsumptionGroupBy.Material => BuildGroupByMaterial(consumptions, materials),
+                ConsumptionGroupBy.Product => BuildGroupByProduct(consumptions, materials),
+                ConsumptionGroupBy.Order => BuildGroupByOrder(consumptions, materials),
+                _ => throw new ArgumentOutOfRangeException(nameof(request.GroupBy), request.GroupBy, "Unhandled GroupBy value.")
             };
 
             return new GetDailyConsumptionBreakdownResponse
             {
                 Success = true,
                 Date = request.Date,
-                GroupBy = request.GroupBy,
+                GroupBy = request.GroupBy.ToString(),
                 Groups = groups
             };
         }
@@ -75,7 +59,7 @@ public class GetDailyConsumptionBreakdownHandler
                 Success = false,
                 Error = "An unexpected error occurred while loading the breakdown.",
                 Date = request.Date,
-                GroupBy = request.GroupBy
+                GroupBy = request.GroupBy.ToString()
             };
         }
     }

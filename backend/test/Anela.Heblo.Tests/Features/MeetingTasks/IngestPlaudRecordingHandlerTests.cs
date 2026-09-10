@@ -420,6 +420,59 @@ public sealed class IngestPlaudRecordingHandlerTests
     }
 
     [Fact]
+    public async Task Handle_WhenExtractionFailsAfterRetries_ReturnsFailureWithoutPersistingTranscript()
+    {
+        // Arrange
+        var recordingId = "rec_extraction_failed";
+        var recordingName = "Test Meeting";
+        var plaudCreatedAt = DateTime.UtcNow;
+        const string transcript = "transcript text";
+        const string summary = "summary text";
+
+        var request = new IngestPlaudRecordingRequest
+        {
+            PlaudRecordingId = recordingId,
+            Name = recordingName,
+            PlaudCreatedAt = plaudCreatedAt
+        };
+
+        _mockRepository
+            .Setup(r => r.ExistsByPlaudIdAsync(recordingId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(false);
+
+        _mockRepository
+            .Setup(r => r.IsPlaudRecordingDeletedAsync(recordingId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(false);
+
+        _mockPlaudClient
+            .Setup(c => c.GetFileDetailAsync(recordingId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new PlaudFileDetail { TranscriptAvailable = true, SummaryAvailable = true, AudioAvailable = true });
+
+        _mockPlaudClient
+            .Setup(c => c.GetTranscriptAsync(recordingId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(transcript);
+
+        _mockPlaudClient
+            .Setup(c => c.GetSummaryAsync(recordingId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new PlaudSummaryResult("Test Headline", summary));
+
+        _mockExtractor
+            .Setup(e => e.ExtractAsync(summary, transcript, It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new MeetingTaskExtractionFailedException("boom", 3, "not-json"));
+
+        // Act
+        var response = await _handler.Handle(request, CancellationToken.None);
+
+        // Assert
+        response.Success.Should().BeFalse();
+        response.Skipped.Should().BeFalse();
+
+        _mockRepository.Verify(
+            r => r.AddAsync(It.IsAny<MeetingTranscript>(), It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
+
+    [Fact]
     public async Task Handle_WhenRecordingWasDeletedByUser_SkipsWithoutCallingPlaud()
     {
         // Arrange

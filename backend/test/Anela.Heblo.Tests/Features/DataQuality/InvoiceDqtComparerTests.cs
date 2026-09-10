@@ -1,7 +1,6 @@
 using Anela.Heblo.Application.Features.DataQuality.Contracts;
 using Anela.Heblo.Application.Features.DataQuality.Services;
 using Anela.Heblo.Domain.Features.DataQuality;
-using Anela.Heblo.Domain.Features.Invoices;
 using Moq;
 
 namespace Anela.Heblo.Tests.Features.DataQuality;
@@ -20,40 +19,37 @@ public class InvoiceDqtComparerTests
         _sut = new InvoiceDqtComparer(_sourceMock.Object, _clientMock.Object);
     }
 
-    private void SetupShoptet(params IssuedInvoiceDetail[] invoices)
+    private void SetupShoptet(params DqtInvoiceSnapshot[] invoices)
     {
-        var batch = new IssuedInvoiceDetailBatch { Invoices = invoices.ToList() };
-        _sourceMock.Setup(s => s.GetAllAsync(It.IsAny<IssuedInvoiceSourceQuery>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new List<IssuedInvoiceDetailBatch> { batch });
+        _sourceMock.Setup(s => s.GetAllAsync(It.IsAny<DqtInvoiceSourceQuery>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(invoices.ToList());
     }
 
-    private void SetupFlexi(params IssuedInvoiceDetail[] invoices)
+    private void SetupFlexi(params DqtInvoiceSnapshot[] invoices)
     {
         _clientMock.Setup(c => c.GetAllAsync(From, To, It.IsAny<CancellationToken>()))
             .ReturnsAsync(invoices.ToList());
     }
 
-    private static IssuedInvoiceDetail MakeInvoice(string code, decimal totalWithVat = 100m, decimal totalWithoutVat = 80m, List<IssuedInvoiceDetailItem>? items = null)
+    private static DqtInvoiceSnapshot MakeInvoice(string code, decimal totalWithVat = 100m, decimal totalWithoutVat = 80m, List<DqtInvoiceItem>? items = null)
     {
-        return new IssuedInvoiceDetail
+        return new DqtInvoiceSnapshot
         {
             Code = code,
-            Price = new InvoicePrice { TotalWithVat = totalWithVat, TotalWithoutVat = totalWithoutVat },
-            Items = items ?? new List<IssuedInvoiceDetailItem>()
+            TotalWithVat = totalWithVat,
+            TotalWithoutVat = totalWithoutVat,
+            Items = items ?? new List<DqtInvoiceItem>()
         };
     }
 
-    private static IssuedInvoiceDetailItem MakeItem(string code, decimal amount = 1m, decimal withVat = 100m, decimal withoutVat = 80m)
+    private static DqtInvoiceItem MakeItem(string code, decimal amount = 1m, decimal withVat = 100m, decimal withoutVat = 80m)
     {
-        return new IssuedInvoiceDetailItem
+        return new DqtInvoiceItem
         {
             Code = code,
-            Name = code,
-            VariantName = string.Empty,
-            AmountUnit = "ks",
             Amount = amount,
-            ItemPrice = new InvoicePrice { WithVat = withVat, WithoutVat = withoutVat },
-            BuyPrice = new InvoicePrice()
+            WithVat = withVat,
+            WithoutVat = withoutVat
         };
     }
 
@@ -159,8 +155,8 @@ public class InvoiceDqtComparerTests
     [Fact]
     public async Task ItemsDiffer_ByProductCode()
     {
-        var shoptetItems = new List<IssuedInvoiceDetailItem> { MakeItem("PROD-A"), MakeItem("PROD-B") };
-        var flexiItems = new List<IssuedInvoiceDetailItem> { MakeItem("PROD-A") };
+        var shoptetItems = new List<DqtInvoiceItem> { MakeItem("PROD-A"), MakeItem("PROD-B") };
+        var flexiItems = new List<DqtInvoiceItem> { MakeItem("PROD-A") };
 
         SetupShoptet(MakeInvoice("INV-007", items: shoptetItems));
         SetupFlexi(MakeInvoice("INV-007", items: flexiItems));
@@ -175,8 +171,8 @@ public class InvoiceDqtComparerTests
     [Fact]
     public async Task ItemsDiffer_ByAmount()
     {
-        var shoptetItems = new List<IssuedInvoiceDetailItem> { MakeItem("PROD-C", amount: 2m) };
-        var flexiItems = new List<IssuedInvoiceDetailItem> { MakeItem("PROD-C", amount: 3m) };
+        var shoptetItems = new List<DqtInvoiceItem> { MakeItem("PROD-C", amount: 2m) };
+        var flexiItems = new List<DqtInvoiceItem> { MakeItem("PROD-C", amount: 3m) };
 
         SetupShoptet(MakeInvoice("INV-008", items: shoptetItems));
         SetupFlexi(MakeInvoice("INV-008", items: flexiItems));
@@ -191,8 +187,8 @@ public class InvoiceDqtComparerTests
     [Fact]
     public async Task ItemPriceDiffers()
     {
-        var shoptetItems = new List<IssuedInvoiceDetailItem> { MakeItem("PROD-D", withVat: 50m) };
-        var flexiItems = new List<IssuedInvoiceDetailItem> { MakeItem("PROD-D", withVat: 60m) };
+        var shoptetItems = new List<DqtInvoiceItem> { MakeItem("PROD-D", withVat: 50m) };
+        var flexiItems = new List<DqtInvoiceItem> { MakeItem("PROD-D", withVat: 60m) };
 
         SetupShoptet(MakeInvoice("INV-009", items: shoptetItems));
         SetupFlexi(MakeInvoice("INV-009", items: flexiItems));
@@ -209,8 +205,8 @@ public class InvoiceDqtComparerTests
     {
         // INV-010: missing in Flexi
         // INV-011: total mismatch + item diff
-        var shoptetItems = new List<IssuedInvoiceDetailItem> { MakeItem("PROD-X", withVat: 50m) };
-        var flexiItems = new List<IssuedInvoiceDetailItem> { MakeItem("PROD-X", withVat: 60m) };
+        var shoptetItems = new List<DqtInvoiceItem> { MakeItem("PROD-X", withVat: 50m) };
+        var flexiItems = new List<DqtInvoiceItem> { MakeItem("PROD-X", withVat: 60m) };
 
         SetupShoptet(
             MakeInvoice("INV-010"),
@@ -265,8 +261,8 @@ public class InvoiceDqtComparerTests
     public async Task DuplicateItemCodeWithinInvoice_DoesNotThrow_AndReportsDuplicate()
     {
         // Production crash: duplicate product codes (e.g. BAL0005M) within an invoice → ToDictionary threw.
-        var shoptetItems = new List<IssuedInvoiceDetailItem> { MakeItem("BAL0005M"), MakeItem("BAL0005M") };
-        var flexiItems = new List<IssuedInvoiceDetailItem> { MakeItem("BAL0005M") };
+        var shoptetItems = new List<DqtInvoiceItem> { MakeItem("BAL0005M"), MakeItem("BAL0005M") };
+        var flexiItems = new List<DqtInvoiceItem> { MakeItem("BAL0005M") };
 
         SetupShoptet(MakeInvoice("INV-ITEMDUP", items: shoptetItems));
         SetupFlexi(MakeInvoice("INV-ITEMDUP", items: flexiItems));

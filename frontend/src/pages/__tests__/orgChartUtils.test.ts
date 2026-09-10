@@ -3,6 +3,7 @@ import {
   getAllParentPositionIds,
   buildTree,
   getChildren,
+  filterPositions,
   OrganizationData,
   Position,
 } from '../orgChartUtils';
@@ -212,5 +213,84 @@ describe('getChildren', () => {
 
     // Assert
     expect(children).toEqual([]);
+  });
+});
+
+describe('filterPositions', () => {
+  it('returns all positions when both filters are "all"', () => {
+    // Arrange
+    const positions = [
+      makePosition({ id: 'a', department: 'Eng' }),
+      makePosition({ id: 'b', department: 'Sales', parentPositionId: 'a' }),
+    ];
+
+    // Act
+    const result = filterPositions(positions, 'all', 'all');
+
+    // Assert
+    expect(result.map((p) => p.id).sort()).toEqual(['a', 'b']);
+  });
+
+  it('includes department matches plus all their ancestors', () => {
+    // Arrange — 'c' is in Sales; its ancestors 'a' and 'b' are in other departments
+    // and must be pulled in so the tree stays connected.
+    const positions = [
+      makePosition({ id: 'a', department: 'Exec' }),
+      makePosition({ id: 'b', department: 'Eng', parentPositionId: 'a' }),
+      makePosition({ id: 'c', department: 'Sales', parentPositionId: 'b' }),
+      makePosition({ id: 'd', department: 'Eng', parentPositionId: 'a' }),
+    ];
+
+    // Act
+    const result = filterPositions(positions, 'Sales', 'all');
+
+    // Assert
+    expect(result.map((p) => p.id).sort()).toEqual(['a', 'b', 'c']);
+  });
+
+  it('excludes positions above the selected level while keeping unlevel positions', () => {
+    // Arrange
+    const positions = [
+      makePosition({ id: 'a', level: 1 }),
+      makePosition({ id: 'b', level: 2 }),
+      makePosition({ id: 'c', level: 3 }),
+      makePosition({ id: 'd' }), // no level assigned
+    ];
+
+    // Act
+    const result = filterPositions(positions, 'all', '2');
+
+    // Assert
+    expect(result.map((p) => p.id).sort()).toEqual(['a', 'b', 'd']);
+  });
+
+  it('applies department and level filters together', () => {
+    // Arrange
+    const positions = [
+      makePosition({ id: 'a', department: 'Exec', level: 1 }),
+      makePosition({ id: 'b', department: 'Sales', level: 2, parentPositionId: 'a' }),
+      makePosition({ id: 'c', department: 'Sales', level: 3, parentPositionId: 'b' }),
+    ];
+
+    // Act
+    const result = filterPositions(positions, 'Sales', '2');
+
+    // Assert — department filter pulls in 'a' (ancestor) and 'b'; level filter then
+    // drops 'c' (level 3 > max level 2).
+    expect(result.map((p) => p.id).sort()).toEqual(['a', 'b']);
+  });
+
+  it('does not mutate the input array', () => {
+    // Arrange
+    const positions = [
+      makePosition({ id: 'a', department: 'Eng' }),
+      makePosition({ id: 'b', department: 'Sales' }),
+    ];
+
+    // Act
+    filterPositions(positions, 'Eng', 'all');
+
+    // Assert
+    expect(positions.map((p) => p.id)).toEqual(['a', 'b']);
   });
 });

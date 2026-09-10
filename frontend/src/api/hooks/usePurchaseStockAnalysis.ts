@@ -3,6 +3,7 @@ import { getAuthenticatedApiClient } from "../client";
 import {
   GetPurchaseStockAnalysisResponse,
   StockStatusFilter,
+  MaterialCategoryFilter,
   StockAnalysisSortBy,
   StockSeverity,
   StockAnalysisItemDto,
@@ -15,6 +16,7 @@ export interface GetPurchaseStockAnalysisRequest {
   fromDate?: Date;
   toDate?: Date;
   stockStatus?: StockStatusFilter;
+  materialCategory?: MaterialCategoryFilter;
   onlyConfigured?: boolean;
   searchTerm?: string;
   pageNumber?: number;
@@ -26,6 +28,7 @@ export interface GetPurchaseStockAnalysisRequest {
 // Export types from generated client
 export {
   StockStatusFilter,
+  MaterialCategoryFilter,
   StockAnalysisSortBy,
   StockSeverity,
   StockAnalysisItemDto,
@@ -55,6 +58,7 @@ export const usePurchaseStockAnalysisQuery = (
         request.fromDate ?? null,
         request.toDate ?? null,
         request.stockStatus,
+        request.materialCategory,
         request.onlyConfigured,
         request.searchTerm ?? null,
         request.pageNumber,

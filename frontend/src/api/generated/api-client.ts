@@ -1898,6 +1898,56 @@ export class ApiClient {
         return Promise.resolve<GetCatalogDetailResponse>(null as any);
     }
 
+    catalog_GetProductStatistics(productCodes: string[] | undefined, metric: ProductStatisticsMetric | undefined, dateFrom: string | undefined, dateTo: string | undefined): Promise<GetProductStatisticsResponse> {
+        let url_ = this.baseUrl + "/api/Catalog/product-statistics?";
+        if (productCodes === null)
+            throw new Error("The parameter 'productCodes' cannot be null.");
+        else if (productCodes !== undefined)
+            productCodes && productCodes.forEach(item => { url_ += "ProductCodes=" + encodeURIComponent("" + item) + "&"; });
+        if (metric === null)
+            throw new Error("The parameter 'metric' cannot be null.");
+        else if (metric !== undefined)
+            url_ += "Metric=" + encodeURIComponent("" + metric) + "&";
+        if (dateFrom === null)
+            throw new Error("The parameter 'dateFrom' cannot be null.");
+        else if (dateFrom !== undefined)
+            url_ += "DateFrom=" + encodeURIComponent("" + dateFrom) + "&";
+        if (dateTo === null)
+            throw new Error("The parameter 'dateTo' cannot be null.");
+        else if (dateTo !== undefined)
+            url_ += "DateTo=" + encodeURIComponent("" + dateTo) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processCatalog_GetProductStatistics(_response);
+        });
+    }
+
+    protected processCatalog_GetProductStatistics(response: Response): Promise<GetProductStatisticsResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = GetProductStatisticsResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<GetProductStatisticsResponse>(null as any);
+    }
+
     catalog_GetComposition(productCode: string): Promise<GetProductCompositionResponse> {
         let url_ = this.baseUrl + "/api/Catalog/{productCode}/composition";
         if (productCode === undefined || productCode === null)
@@ -10279,7 +10329,7 @@ export class ApiClient {
         return Promise.resolve<ProcessDailyConsumptionResponse>(null as any);
     }
 
-    packingMaterials_GetDailyConsumptionBreakdown(date: string | null | undefined, groupBy: string | undefined): Promise<GetDailyConsumptionBreakdownResponse> {
+    packingMaterials_GetDailyConsumptionBreakdown(date: string | null | undefined, groupBy: ConsumptionGroupBy | undefined): Promise<GetDailyConsumptionBreakdownResponse> {
         let url_ = this.baseUrl + "/api/packing-materials/consumption?";
         if (date !== undefined && date !== null)
             url_ += "date=" + encodeURIComponent("" + date) + "&";
@@ -11961,7 +12011,7 @@ export class ApiClient {
         return Promise.resolve<RecalculatePurchasePriceResponse>(null as any);
     }
 
-    purchaseStockAnalysis_GetStockAnalysis(fromDate: Date | null | undefined, toDate: Date | null | undefined, stockStatus: StockStatusFilter | undefined, onlyConfigured: boolean | undefined, searchTerm: string | null | undefined, pageNumber: number | undefined, pageSize: number | undefined, sortBy: StockAnalysisSortBy | undefined, sortDescending: boolean | undefined, isExport: boolean | undefined): Promise<GetPurchaseStockAnalysisResponse> {
+    purchaseStockAnalysis_GetStockAnalysis(fromDate: Date | null | undefined, toDate: Date | null | undefined, stockStatus: StockStatusFilter | undefined, materialCategory: MaterialCategoryFilter | undefined, onlyConfigured: boolean | undefined, searchTerm: string | null | undefined, pageNumber: number | undefined, pageSize: number | undefined, sortBy: StockAnalysisSortBy | undefined, sortDescending: boolean | undefined, isExport: boolean | undefined): Promise<GetPurchaseStockAnalysisResponse> {
         let url_ = this.baseUrl + "/api/purchase-stock-analysis?";
         if (fromDate !== undefined && fromDate !== null)
             url_ += "FromDate=" + encodeURIComponent(fromDate ? "" + fromDate.toISOString() : "") + "&";
@@ -11971,6 +12021,10 @@ export class ApiClient {
             throw new Error("The parameter 'stockStatus' cannot be null.");
         else if (stockStatus !== undefined)
             url_ += "StockStatus=" + encodeURIComponent("" + stockStatus) + "&";
+        if (materialCategory === null)
+            throw new Error("The parameter 'materialCategory' cannot be null.");
+        else if (materialCategory !== undefined)
+            url_ += "MaterialCategory=" + encodeURIComponent("" + materialCategory) + "&";
         if (onlyConfigured === null)
             throw new Error("The parameter 'onlyConfigured' cannot be null.");
         else if (onlyConfigured !== undefined)
@@ -15754,7 +15808,6 @@ export interface ISubmitArticleFeedbackResponse extends IBaseResponse {
 }
 
 export class SubmitArticleFeedbackRequest implements ISubmitArticleFeedbackRequest {
-    articleId?: string;
     precisionScore?: number;
     styleScore?: number;
     comment?: string | undefined;
@@ -15770,7 +15823,6 @@ export class SubmitArticleFeedbackRequest implements ISubmitArticleFeedbackReque
 
     init(_data?: any) {
         if (_data) {
-            this.articleId = _data["articleId"];
             this.precisionScore = _data["precisionScore"];
             this.styleScore = _data["styleScore"];
             this.comment = _data["comment"];
@@ -15786,7 +15838,6 @@ export class SubmitArticleFeedbackRequest implements ISubmitArticleFeedbackReque
 
     toJSON(data?: any) {
         data = typeof data === 'object' ? data : {};
-        data["articleId"] = this.articleId;
         data["precisionScore"] = this.precisionScore;
         data["styleScore"] = this.styleScore;
         data["comment"] = this.comment;
@@ -15795,7 +15846,6 @@ export class SubmitArticleFeedbackRequest implements ISubmitArticleFeedbackReque
 }
 
 export interface ISubmitArticleFeedbackRequest {
-    articleId?: string;
     precisionScore?: number;
     styleScore?: number;
     comment?: string | undefined;
@@ -19115,6 +19165,118 @@ export interface IMarginLevelDto {
     amount?: number;
     costLevel?: number;
     costTotal?: number;
+}
+
+export class GetProductStatisticsResponse extends BaseResponse implements IGetProductStatisticsResponse {
+    months?: string[];
+    products?: ProductStatisticsSeriesDto[];
+
+    constructor(data?: IGetProductStatisticsResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            if (Array.isArray(_data["months"])) {
+                this.months = [] as any;
+                for (let item of _data["months"])
+                    this.months!.push(item);
+            }
+            if (Array.isArray(_data["products"])) {
+                this.products = [] as any;
+                for (let item of _data["products"])
+                    this.products!.push(ProductStatisticsSeriesDto.fromJS(item));
+            }
+        }
+    }
+
+    static override fromJS(data: any): GetProductStatisticsResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new GetProductStatisticsResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        if (Array.isArray(this.months)) {
+            data["months"] = [];
+            for (let item of this.months)
+                data["months"].push(item);
+        }
+        if (Array.isArray(this.products)) {
+            data["products"] = [];
+            for (let item of this.products)
+                data["products"].push(item.toJSON());
+        }
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IGetProductStatisticsResponse extends IBaseResponse {
+    months?: string[];
+    products?: ProductStatisticsSeriesDto[];
+}
+
+export class ProductStatisticsSeriesDto implements IProductStatisticsSeriesDto {
+    productCode?: string;
+    productName?: string;
+    values?: number[];
+
+    constructor(data?: IProductStatisticsSeriesDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.productCode = _data["productCode"];
+            this.productName = _data["productName"];
+            if (Array.isArray(_data["values"])) {
+                this.values = [] as any;
+                for (let item of _data["values"])
+                    this.values!.push(item);
+            }
+        }
+    }
+
+    static fromJS(data: any): ProductStatisticsSeriesDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new ProductStatisticsSeriesDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["productCode"] = this.productCode;
+        data["productName"] = this.productName;
+        if (Array.isArray(this.values)) {
+            data["values"] = [];
+            for (let item of this.values)
+                data["values"].push(item);
+        }
+        return data;
+    }
+}
+
+export interface IProductStatisticsSeriesDto {
+    productCode?: string;
+    productName?: string;
+    values?: number[];
+}
+
+export enum ProductStatisticsMetric {
+    Sales = "Sales",
+    Purchase = "Purchase",
+    Consumption = "Consumption",
+    Manufacture = "Manufacture",
 }
 
 export class GetProductCompositionResponse extends BaseResponse implements IGetProductCompositionResponse {
@@ -24155,7 +24317,7 @@ export interface IJournalEntryTagDto {
 }
 
 export class SearchJournalEntriesResponse extends BaseResponse implements ISearchJournalEntriesResponse {
-    entries?: SearchJournalEntryDto[];
+    entries?: JournalEntryDto[];
     totalCount?: number;
     pageNumber?: number;
     pageSize?: number;
@@ -24173,7 +24335,7 @@ export class SearchJournalEntriesResponse extends BaseResponse implements ISearc
             if (Array.isArray(_data["entries"])) {
                 this.entries = [] as any;
                 for (let item of _data["entries"])
-                    this.entries!.push(SearchJournalEntryDto.fromJS(item));
+                    this.entries!.push(JournalEntryDto.fromJS(item));
             }
             this.totalCount = _data["totalCount"];
             this.pageNumber = _data["pageNumber"];
@@ -24210,109 +24372,13 @@ export class SearchJournalEntriesResponse extends BaseResponse implements ISearc
 }
 
 export interface ISearchJournalEntriesResponse extends IBaseResponse {
-    entries?: SearchJournalEntryDto[];
+    entries?: JournalEntryDto[];
     totalCount?: number;
     pageNumber?: number;
     pageSize?: number;
     totalPages?: number;
     hasNextPage?: boolean;
     hasPreviousPage?: boolean;
-}
-
-export class SearchJournalEntryDto implements ISearchJournalEntryDto {
-    id?: number;
-    title?: string;
-    content?: string;
-    entryDate?: Date;
-    createdAt?: Date;
-    modifiedAt?: Date;
-    createdByUserId?: string;
-    createdByUsername?: string | undefined;
-    modifiedByUserId?: string | undefined;
-    modifiedByUsername?: string | undefined;
-    associatedProducts?: string[];
-    tags?: JournalEntryTagDto[];
-
-    constructor(data?: ISearchJournalEntryDto) {
-        if (data) {
-            for (var property in data) {
-                if (data.hasOwnProperty(property))
-                    (<any>this)[property] = (<any>data)[property];
-            }
-        }
-    }
-
-    init(_data?: any) {
-        if (_data) {
-            this.id = _data["id"];
-            this.title = _data["title"];
-            this.content = _data["content"];
-            this.entryDate = _data["entryDate"] ? new Date(_data["entryDate"].toString()) : <any>undefined;
-            this.createdAt = _data["createdAt"] ? new Date(_data["createdAt"].toString()) : <any>undefined;
-            this.modifiedAt = _data["modifiedAt"] ? new Date(_data["modifiedAt"].toString()) : <any>undefined;
-            this.createdByUserId = _data["createdByUserId"];
-            this.createdByUsername = _data["createdByUsername"];
-            this.modifiedByUserId = _data["modifiedByUserId"];
-            this.modifiedByUsername = _data["modifiedByUsername"];
-            if (Array.isArray(_data["associatedProducts"])) {
-                this.associatedProducts = [] as any;
-                for (let item of _data["associatedProducts"])
-                    this.associatedProducts!.push(item);
-            }
-            if (Array.isArray(_data["tags"])) {
-                this.tags = [] as any;
-                for (let item of _data["tags"])
-                    this.tags!.push(JournalEntryTagDto.fromJS(item));
-            }
-        }
-    }
-
-    static fromJS(data: any): SearchJournalEntryDto {
-        data = typeof data === 'object' ? data : {};
-        let result = new SearchJournalEntryDto();
-        result.init(data);
-        return result;
-    }
-
-    toJSON(data?: any) {
-        data = typeof data === 'object' ? data : {};
-        data["id"] = this.id;
-        data["title"] = this.title;
-        data["content"] = this.content;
-        data["entryDate"] = this.entryDate ? this.entryDate.toISOString() : <any>undefined;
-        data["createdAt"] = this.createdAt ? this.createdAt.toISOString() : <any>undefined;
-        data["modifiedAt"] = this.modifiedAt ? this.modifiedAt.toISOString() : <any>undefined;
-        data["createdByUserId"] = this.createdByUserId;
-        data["createdByUsername"] = this.createdByUsername;
-        data["modifiedByUserId"] = this.modifiedByUserId;
-        data["modifiedByUsername"] = this.modifiedByUsername;
-        if (Array.isArray(this.associatedProducts)) {
-            data["associatedProducts"] = [];
-            for (let item of this.associatedProducts)
-                data["associatedProducts"].push(item);
-        }
-        if (Array.isArray(this.tags)) {
-            data["tags"] = [];
-            for (let item of this.tags)
-                data["tags"].push(item.toJSON());
-        }
-        return data;
-    }
-}
-
-export interface ISearchJournalEntryDto {
-    id?: number;
-    title?: string;
-    content?: string;
-    entryDate?: Date;
-    createdAt?: Date;
-    modifiedAt?: Date;
-    createdByUserId?: string;
-    createdByUsername?: string | undefined;
-    modifiedByUserId?: string | undefined;
-    modifiedByUsername?: string | undefined;
-    associatedProducts?: string[];
-    tags?: JournalEntryTagDto[];
 }
 
 export class GetJournalEntryResponse extends BaseResponse implements IGetJournalEntryResponse {
@@ -32813,6 +32879,7 @@ export class ImportFromOutlookResponse extends BaseResponse implements IImportFr
     updated?: number;
     skipped?: number;
     failed?: number;
+    deleted?: number;
     unmappedCategories!: string[];
     items?: ImportedItemDto[];
 
@@ -32830,6 +32897,7 @@ export class ImportFromOutlookResponse extends BaseResponse implements IImportFr
             this.updated = _data["updated"];
             this.skipped = _data["skipped"];
             this.failed = _data["failed"];
+            this.deleted = _data["deleted"];
             if (Array.isArray(_data["unmappedCategories"])) {
                 this.unmappedCategories = [] as any;
                 for (let item of _data["unmappedCategories"])
@@ -32856,6 +32924,7 @@ export class ImportFromOutlookResponse extends BaseResponse implements IImportFr
         data["updated"] = this.updated;
         data["skipped"] = this.skipped;
         data["failed"] = this.failed;
+        data["deleted"] = this.deleted;
         if (Array.isArray(this.unmappedCategories)) {
             data["unmappedCategories"] = [];
             for (let item of this.unmappedCategories)
@@ -32876,6 +32945,7 @@ export interface IImportFromOutlookResponse extends IBaseResponse {
     updated?: number;
     skipped?: number;
     failed?: number;
+    deleted?: number;
     unmappedCategories: string[];
     items?: ImportedItemDto[];
 }
@@ -37842,6 +37912,12 @@ export interface IConsumptionDetailDto {
     amount?: number;
 }
 
+export enum ConsumptionGroupBy {
+    Material = "Material",
+    Product = "Product",
+    Order = "Order",
+}
+
 export class GetConsumptionHistoryResponse extends BaseResponse implements IGetConsumptionHistoryResponse {
     items?: MaterialConsumptionHistoryItemDto[];
     totalCount?: number;
@@ -41313,6 +41389,13 @@ export enum StockStatusFilter {
     Optimal = "Optimal",
     Overstocked = "Overstocked",
     NotConfigured = "NotConfigured",
+}
+
+export enum MaterialCategoryFilter {
+    All = "All",
+    Labels = "Labels",
+    Packaging = "Packaging",
+    Other = "Other",
 }
 
 export enum StockAnalysisSortBy {

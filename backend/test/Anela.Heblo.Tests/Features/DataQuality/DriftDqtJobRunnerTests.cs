@@ -17,7 +17,7 @@ public class DriftDqtJobRunnerTests
     }
 
     private DriftDqtJobRunner CreateSut() =>
-        new(_repoMock.Object, new[] { _comparerMock.Object }, NullLogger<DriftDqtJobRunner>.Instance);
+        new(_repoMock.Object, new[] { _comparerMock.Object }, TimeProvider.System, NullLogger<DriftDqtJobRunner>.Instance);
 
     [Fact]
     public async Task RunAsync_PersistsDriftResultsAndCompletesRun_WhenComparerSucceeds()
@@ -27,7 +27,8 @@ public class DriftDqtJobRunnerTests
             DqtTestType.ProductPairing,
             DateOnly.FromDateTime(DateTime.Today),
             DateOnly.FromDateTime(DateTime.Today),
-            DqtTriggerType.Scheduled);
+            DqtTriggerType.Scheduled,
+            DateTime.UtcNow);
 
         _repoMock.Setup(r => r.GetByIdAsync(run.Id, It.IsAny<CancellationToken>()))
             .ReturnsAsync(run);
@@ -69,7 +70,8 @@ public class DriftDqtJobRunnerTests
             DqtTestType.ProductPairing,
             DateOnly.FromDateTime(DateTime.Today),
             DateOnly.FromDateTime(DateTime.Today),
-            DqtTriggerType.Scheduled);
+            DqtTriggerType.Scheduled,
+            DateTime.UtcNow);
 
         _repoMock.Setup(r => r.GetByIdAsync(run.Id, It.IsAny<CancellationToken>()))
             .ReturnsAsync(run);
@@ -95,7 +97,8 @@ public class DriftDqtJobRunnerTests
             DqtTestType.StockWriteBackReconciliation,
             DateOnly.FromDateTime(DateTime.Today),
             DateOnly.FromDateTime(DateTime.Today),
-            DqtTriggerType.Scheduled);
+            DqtTriggerType.Scheduled,
+            DateTime.UtcNow);
 
         _repoMock.Setup(r => r.GetByIdAsync(run.Id, It.IsAny<CancellationToken>()))
             .ReturnsAsync(run);

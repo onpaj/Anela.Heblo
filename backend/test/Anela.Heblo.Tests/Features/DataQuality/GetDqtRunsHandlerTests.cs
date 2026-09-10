@@ -21,7 +21,7 @@ public class GetDqtRunsHandlerTests
     [Fact]
     public async Task Handle_ReturnsPagedRuns()
     {
-        var run = DqtRun.Start(DqtTestType.IssuedInvoiceComparison, new DateOnly(2026, 1, 1), new DateOnly(2026, 1, 31), DqtTriggerType.Manual);
+        var run = DqtRun.Start(DqtTestType.IssuedInvoiceComparison, new DateOnly(2026, 1, 1), new DateOnly(2026, 1, 31), DqtTriggerType.Manual, DateTime.UtcNow);
         var runs = new List<DqtRun> { run };
         var dtos = new List<DqtRunDto> { new DqtRunDto { Id = run.Id } };
 

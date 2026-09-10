@@ -1,5 +1,3 @@
-using Anela.Heblo.Domain.Features.Invoices;
-
 namespace Anela.Heblo.Application.Features.DataQuality.Contracts;
 
 /// <summary>
@@ -8,7 +6,7 @@ namespace Anela.Heblo.Application.Features.DataQuality.Contracts;
 /// </summary>
 public interface IInvoiceShoptetSource
 {
-    Task<List<IssuedInvoiceDetailBatch>> GetAllAsync(
-        IssuedInvoiceSourceQuery query,
+    Task<List<DqtInvoiceSnapshot>> GetAllAsync(
+        DqtInvoiceSourceQuery query,
         CancellationToken ct = default);
 }

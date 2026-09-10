@@ -73,11 +73,11 @@ public class ShoptetApiPackingOrderClient : IPackingOrderClient, IPackingOrderCo
         var catalogItems = await _productSource.GetByCodesAsync(productCodes, ct);
         var coolingByCode = catalogItems.ToDictionary(kv => kv.Key, kv => kv.Value.Cooling);
 
-        ShoptetApiExpeditionListSource.ApplyEnrichment(
-            order.Items,
-            new Dictionary<string, decimal>(),
-            new Dictionary<string, string>(),
-            coolingByCode);
+        foreach (var item in order.Items)
+        {
+            if (coolingByCode.TryGetValue(item.ProductCode, out var cooling))
+                item.Cooling = cooling;
+        }
 
         var items = order.Items.Select(i =>
         {

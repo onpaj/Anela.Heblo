@@ -19,7 +19,7 @@ public class DqtRun : Entity<Guid>
 
     private DqtRun() { } // EF Core
 
-    public static DqtRun Start(DqtTestType testType, DateOnly dateFrom, DateOnly dateTo, DqtTriggerType triggerType)
+    public static DqtRun Start(DqtTestType testType, DateOnly dateFrom, DateOnly dateTo, DqtTriggerType triggerType, DateTime startedAt)
     {
         return new DqtRun
         {
@@ -28,23 +28,23 @@ public class DqtRun : Entity<Guid>
             DateFrom = dateFrom,
             DateTo = dateTo,
             Status = DqtRunStatus.Running,
-            StartedAt = DateTime.UtcNow,
+            StartedAt = startedAt,
             TriggerType = triggerType
         };
     }
 
-    public void Complete(int totalChecked, int totalMismatches)
+    public void Complete(int totalChecked, int totalMismatches, DateTime completedAt)
     {
         Status = DqtRunStatus.Completed;
-        CompletedAt = DateTime.UtcNow;
+        CompletedAt = completedAt;
         TotalChecked = totalChecked;
         TotalMismatches = totalMismatches;
     }
 
-    public void Fail(string errorMessage)
+    public void Fail(string errorMessage, DateTime completedAt)
     {
         Status = DqtRunStatus.Failed;
-        CompletedAt = DateTime.UtcNow;
+        CompletedAt = completedAt;
         ErrorMessage = errorMessage;
     }
 }

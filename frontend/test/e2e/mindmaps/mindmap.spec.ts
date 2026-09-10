@@ -87,9 +87,10 @@ test.describe('Mind maps', () => {
       await titleInput.blur();
       // The dialog's `fixed inset-0` backdrop covers the save button, so it must be
       // closed first — otherwise Playwright's actionability check on the save click
-      // below would fail as intercepted. "Zavřít" resolves unambiguously to the
-      // footer button; the X button's accessible name is "Zavřít detail uzlu".
-      await page.getByRole('button', { name: 'Zavřít' }).click();
+      // below would fail as intercepted. `exact` is required: getByRole matches the
+      // accessible name as a substring by default, so a bare "Zavřít" also picks up the
+      // header's X button ("Zavřít detail uzlu") and trips strict mode.
+      await page.getByRole('button', { name: 'Zavřít', exact: true }).click();
       await page.getByTestId('mindmap-save-button').click();
       await expect(nodes(page).filter({ hasText: 'Ručně upravený uzel' })).toContainText('🔒', {
         timeout: 15000,

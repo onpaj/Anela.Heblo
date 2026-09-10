@@ -13,6 +13,7 @@ using Anela.Heblo.Application.Features.ShoptetOrders.Contracts;
 using Anela.Heblo.Application.Features.Catalog.UseCases.CreateManufactureDifficulty;
 using Anela.Heblo.Application.Features.Catalog.UseCases.GetCatalogDetail;
 using Anela.Heblo.Application.Features.Catalog.UseCases.GetManufactureDifficultySettings;
+using Anela.Heblo.Application.Features.Catalog.UseCases.GetProductStatistics;
 using Anela.Heblo.Application.Features.Catalog.UseCases.RecalculateProductWeight;
 using Anela.Heblo.Application.Features.Catalog.UseCases.SubmitStockTaking;
 using Anela.Heblo.Application.Features.Catalog.UseCases.UpdateManufactureDifficulty;
@@ -64,6 +65,8 @@ public static class CatalogModule
         services.AddScoped<IMaterialLotStockQuery, DataQualityMaterialLotStockQueryAdapter>();
         // DataQuality owns the resilience contract; Catalog (this module) provides the adapter implementation.
         services.AddScoped<IDqtResilienceService, DataQualityResilienceAdapter>();
+        services.AddScoped<IDqtEshopStockSource, DataQualityEshopStockSourceAdapter>();
+        services.AddScoped<IDqtErpStockSource, DataQualityErpStockSourceAdapter>();
 
         // Cross-module contract: Catalog implements Manufacture's IManufactureCatalogSource via adapter.
         // DI registration is owned by the provider (Catalog), not the consumer (Manufacture).
@@ -88,6 +91,7 @@ public static class CatalogModule
         services.AddMemoryCache(); // Required for IMemoryCache injection
         // CatalogRepository decomposed collaborators
         services.AddSingleton<CatalogCacheStore>();
+        services.AddSingleton<BundleSalesExpander>();
         services.AddSingleton<CatalogMergeService>();
         services.AddTransient<CatalogDataRefreshService>();
         services.AddHostedService<CatalogMergeCallbackWiring>();
@@ -127,6 +131,7 @@ public static class CatalogModule
 
         // Register FluentValidation validators for catalog requests
         services.AddScoped<IValidator<GetCatalogDetailRequest>, GetCatalogDetailRequestValidator>();
+        services.AddScoped<IValidator<GetProductStatisticsRequest>, GetProductStatisticsRequestValidator>();
         services.AddScoped<IValidator<CreateManufactureDifficultyRequest>, CreateManufactureDifficultyRequestValidator>();
         services.AddScoped<IValidator<UpdateManufactureDifficultyRequest>, UpdateManufactureDifficultyRequestValidator>();
         services.AddScoped<IValidator<GetManufactureDifficultySettingsRequest>, GetManufactureDifficultyHistoryRequestValidator>();
@@ -136,6 +141,7 @@ public static class CatalogModule
 
         // Register MediatR validation behavior only for catalog requests
         services.AddScoped<IPipelineBehavior<GetCatalogDetailRequest, GetCatalogDetailResponse>, ValidationBehavior<GetCatalogDetailRequest, GetCatalogDetailResponse>>();
+        services.AddScoped<IPipelineBehavior<GetProductStatisticsRequest, GetProductStatisticsResponse>, ValidationBehavior<GetProductStatisticsRequest, GetProductStatisticsResponse>>();
         services.AddScoped<IPipelineBehavior<CreateManufactureDifficultyRequest, CreateManufactureDifficultyResponse>, ValidationBehavior<CreateManufactureDifficultyRequest, CreateManufactureDifficultyResponse>>();
         services.AddScoped<IPipelineBehavior<UpdateManufactureDifficultyRequest, UpdateManufactureDifficultyResponse>, ValidationBehavior<UpdateManufactureDifficultyRequest, UpdateManufactureDifficultyResponse>>();
         services.AddScoped<IPipelineBehavior<GetManufactureDifficultySettingsRequest, GetManufactureDifficultySettingsResponse>, ValidationBehavior<GetManufactureDifficultySettingsRequest, GetManufactureDifficultySettingsResponse>>();
@@ -188,6 +194,11 @@ public static class CatalogModule
         services.RegisterRefreshTask<ICatalogRepository>(
             nameof(ICatalogRepository.RefreshSalesData),
             (r, ct) => r.RefreshSalesData(ct)
+        );
+
+        services.RegisterRefreshTask<ICatalogRepository>(
+            nameof(ICatalogRepository.RefreshSetPartsData),
+            (r, ct) => r.RefreshSetPartsData(ct)
         );
 
         services.RegisterRefreshTask<ICatalogRepository>(

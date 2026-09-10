@@ -35,6 +35,7 @@ public class CatalogCacheStoreStockTakingTests
             Mock.Of<ILogger<CatalogCacheStore>>());
         var merge = new CatalogMergeService(
             store,
+            new BundleSalesExpander(),
             TimeProvider.System,
             Mock.Of<ILogger<CatalogMergeService>>());
         return (store, merge);

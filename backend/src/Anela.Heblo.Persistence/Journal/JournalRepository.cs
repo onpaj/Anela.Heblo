@@ -136,20 +136,6 @@ namespace Anela.Heblo.Persistence.Journal
             };
         }
 
-        public async Task<List<JournalEntry>> GetEntriesByProductAsync(
-            string productCode,
-            CancellationToken cancellationToken = default)
-        {
-            return await Context.Set<JournalEntry>()
-                .Include(x => x.ProductAssociations)
-                .Include(x => x.TagAssignments)
-                    .ThenInclude(x => x.Tag)
-                .Where(x => x.ProductAssociations.Any(pa => productCode.StartsWith(pa.ProductCodePrefix)))
-                .OrderByDescending(x => x.EntryDate)
-                .ThenByDescending(x => x.CreatedAt)
-                .ToListAsync(cancellationToken);
-        }
-
         private static IQueryable<JournalEntry> ApplySort(
             IQueryable<JournalEntry> query,
             string? sortBy,

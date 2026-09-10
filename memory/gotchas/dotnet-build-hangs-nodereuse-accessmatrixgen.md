@@ -46,3 +46,57 @@ without checking with the owner first — the argument-order bug in
 `Anela.Heblo.API.csproj`'s `GenerateAccessMatrix` target vs.
 `Anela.Heblo.AccessMatrixGen/Program.cs`'s expected arg order looks like a
 separate, pre-existing bug worth its own fix, orthogonal to this workaround.
+
+**Confirmed again 2026-08-29** (issue #3974, PR #3984): the documented fix
+above (`dotnet build-server shutdown` + `DOTNET_CLI_DISABLE_BUILD_SERVERS=1
+MSBUILDDISABLENODEREUSE=1 ... -nodeReuse:false`, without also disabling
+shared compilation) was **not sufficient on its own** this time — `dotnet
+test` still deadlocked at the identical point (confirmed via
+`/proc/<pid>/wchan` = `futex_do_wait` on every process in the tree, frozen
+`ps %cpu` decaying over repeated samples) even with `-m:1 -nodeReuse:false`
+plus the `MSBUILDDISABLENODEREUSE=1` env var alone, across two separate
+attempts. What finally worked was adding `-p:UseSharedCompilation=false` on
+top of the existing flags:
+
+```bash
+dotnet build-server shutdown
+MSBUILDDISABLENODEREUSE=1 DOTNET_CLI_DISABLE_BUILD_SERVERS=1 \
+  dotnet test <csproj> --filter "..." -m:1 -nodeReuse:false -p:UseSharedCompilation=false
+```
+
+This makes sense given the root cause: the `GenerateAccessMatrix` target's
+`<Exec>` spawns a **nested** `dotnet run --project .../AccessMatrixGen`
+from inside the outer build. That nested process gets its own MSBuild node,
+but by default it still tries to reuse the *same* VBCSCompiler (Roslyn
+shared compilation) pipe as the outer build — `-nodeReuse:false` alone only
+stops MSBuild *node* reuse, not the separate VBCSCompiler server. Disabling
+`UseSharedCompilation` forces each nested/outer build to spin up its own
+`csc.dll` process instead of contending over one shared compiler pipe,
+which is what actually broke the deadlock this time. If the previously
+undocumented flag combo still doesn't get you unstuck, add
+`-p:UseSharedCompilation=false` before concluding the environment is
+unfixable.
+
+**Confirmed again 2026-09-10** (task: update-consumeinventoryresult-test-call-sites):
+`dotnet test` on both a single test project and `Anela.Heblo.sln` hung twice in a
+row at the same point, textbook symptoms (`futex_do_wait`/`ep_poll` on every
+thread, CPU jiffies frozen across repeated `/proc/<pid>/stat` samples). Didn't
+try the `-m:1 -nodeReuse:false -p:UseSharedCompilation=false` combo above this
+time; instead used two simpler fallbacks that also worked and are worth
+knowing as lighter-weight alternatives:
+1. **Per-test-class runs:** `dotnet build <csproj>` (plain build, no test verb)
+   completed fine every time, fast (13–32s incremental). Once built, run the
+   already-built assembly directly against `vstest.console.dll`, bypassing
+   `dotnet test`'s own build-then-run pipeline entirely:
+   ```bash
+   dotnet build backend/test/Anela.Heblo.Tests/Anela.Heblo.Tests.csproj
+   cd backend/test/Anela.Heblo.Tests/bin/Debug/net8.0
+   dotnet exec /usr/local/dotnet/sdk/8.0.424/vstest.console.dll \
+     Anela.Heblo.Tests.dll --TestCaseFilter:"FullyQualifiedName~<ClassName>"
+   ```
+2. **Full-solution regression gate:** `dotnet build Anela.Heblo.sln` (0 errors,
+   ~21s) followed by `dotnet test Anela.Heblo.sln --no-build` ran to completion
+   without hanging (whereas plain `dotnet test Anela.Heblo.sln` hung both times
+   it was tried). `--no-build` skips the implicit build step entirely, so it
+   never touches the `GenerateAccessMatrix`/nested-`dotnet run` codepath that
+   triggers the deadlock.

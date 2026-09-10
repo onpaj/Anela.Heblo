@@ -1,0 +1,40 @@
+{
+  "feature_id": "feat-4036",
+  "issue_number": 4036,
+  "created_at": "2026-09-02T01:12:31.529468Z",
+  "max_revisions": 3,
+  "phases": {
+    "analyzing": {
+      "status": "completed",
+      "updated_at": "2026-09-02T01:13:53.133680Z"
+    },
+    "architecting": {
+      "status": "completed",
+      "updated_at": "2026-09-02T01:15:32.896459Z"
+    },
+    "designing": {
+      "status": "completed",
+      "updated_at": "2026-09-02T01:16:25.683342Z"
+    },
+    "planning": {
+      "status": "completed",
+      "updated_at": "2026-09-02T01:18:32.601407Z"
+    },
+    "developing": {
+      "status": "in_progress",
+      "updated_at": "2026-09-04T01:14:39.024294Z"
+    },
+    "code-review": {
+      "status": "completed",
+      "updated_at": "2026-09-04T02:19:19.934188Z"
+    }
+  },
+  "tasks": [
+    {
+      "name": "add-force-flag-to-git-add-in-implement-orchestrator",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-09-04T01:17:44.567291Z"
+    }
+  ]
+}

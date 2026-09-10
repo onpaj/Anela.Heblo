@@ -23,6 +23,7 @@ public sealed class CatalogCacheStore
 
     // Per-source cache keys
     private const string CachedSalesDataKey = "CachedSalesData";
+    private const string CachedSetPartsDataKey = "CachedSetPartsData";
     private const string CachedCatalogAttributesDataKey = "CachedCatalogAttributesData";
     private const string CachedInTransportDataKey = "CachedInTransportData";
     private const string CachedManufacturedDataKey = "CachedManufacturedData";
@@ -169,6 +170,16 @@ public sealed class CatalogCacheStore
         _cache.Set(CachedSalesDataKey, value);
         InvalidateSourceData(CachedSalesDataKey);
         SetLoadDateInCache(CachedSalesDataKey);
+    }
+
+    public IList<CatalogSetPart> GetSetPartsData() =>
+        _cache.Get<List<CatalogSetPart>>(CachedSetPartsDataKey) ?? new List<CatalogSetPart>();
+
+    public void SetSetPartsData(IList<CatalogSetPart> value)
+    {
+        _cache.Set(CachedSetPartsDataKey, value);
+        InvalidateSourceData(CachedSetPartsDataKey);
+        SetLoadDateInCache(CachedSetPartsDataKey);
     }
 
     public IList<CatalogAttributes> GetCatalogAttributesData() =>

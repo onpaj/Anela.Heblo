@@ -84,6 +84,29 @@ public class OrgChartControllerTests
     }
 
     [Fact]
+    public async Task GetOrganizationStructure_Rethrows_WhenHandlerThrowsOperationCanceled()
+    {
+        // Arrange
+        _mediator
+            .Setup(m => m.Send(It.IsAny<GetOrganizationStructureRequest>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new OperationCanceledException());
+
+        // Act
+        var act = async () => await _controller.GetOrganizationStructure(CancellationToken.None);
+
+        // Assert — client disconnection should propagate, not be turned into a logged 500.
+        await act.Should().ThrowAsync<OperationCanceledException>();
+        _logger.Verify(
+            l => l.Log(
+                LogLevel.Error,
+                It.IsAny<EventId>(),
+                It.IsAny<It.IsAnyType>(),
+                It.IsAny<Exception>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Never);
+    }
+
+    [Fact]
     public async Task GetOrganizationStructure_LogsExceptionWithFullDetail_WhenHandlerThrows()
     {
         // Arrange

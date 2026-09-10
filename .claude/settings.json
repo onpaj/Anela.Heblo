@@ -3,6 +3,9 @@
     "ralph-loop@claude-plugins-official": true,
     "superpowers@claude-plugins-official": true
   },
+  "env": {
+    "USE_GH_API": "1"
+  },
   "hooks": {
     "SessionStart": [
       {

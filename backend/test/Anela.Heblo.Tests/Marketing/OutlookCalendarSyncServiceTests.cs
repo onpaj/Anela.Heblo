@@ -294,6 +294,82 @@ namespace Anela.Heblo.Tests.Marketing
             result[1].Subject.Should().Be("Brand Campaign");
         }
 
+        // ─── GetEventAsync ────────────────────────────────────────────────────────
+
+        [Fact]
+        public async Task GetEventAsync_WhenFound_ReturnsParsedEvent()
+        {
+            // Arrange
+            var graphResponse = new
+            {
+                id = "evt-a",
+                subject = "Promotion Week",
+                body = new { content = "Body text", contentType = "text" },
+                start = new { dateTime = "2026-04-01T08:00:00.0000000", timeZone = "UTC" },
+                end = new { dateTime = "2026-04-07T18:00:00.0000000", timeZone = "UTC" },
+                categories = new[] { "Promotion" }
+            };
+            var handler = new FakeHttpMessageHandler(HttpStatusCode.OK, JsonSerializer.Serialize(graphResponse));
+            var service = CreateService(handler);
+
+            // Act
+            var result = await service.GetEventAsync("evt-a", CancellationToken.None);
+
+            // Assert
+            handler.LastMethod.Should().Be(HttpMethod.Get);
+            handler.LastRequestUri!.ToString().Should().Contain("/calendar/events/evt-a");
+            handler.LastRequestUri.ToString().Should().Contain("$select=");
+            result.Should().NotBeNull();
+            result!.Id.Should().Be("evt-a");
+            result.Subject.Should().Be("Promotion Week");
+            result.Categories.Should().Contain("Promotion");
+        }
+
+        [Fact]
+        public async Task GetEventAsync_WhenNotFound_ReturnsNull()
+        {
+            // Arrange
+            var handler = new FakeHttpMessageHandler(HttpStatusCode.NotFound, "{\"error\":{\"code\":\"ErrorItemNotFound\"}}");
+            var service = CreateService(handler);
+
+            // Act
+            var result = await service.GetEventAsync("evt-gone", CancellationToken.None);
+
+            // Assert
+            result.Should().BeNull();
+        }
+
+        [Fact]
+        public async Task GetEventAsync_WhenServerError_ThrowsOutlookCalendarSyncException()
+        {
+            // Arrange
+            var handler = new FakeHttpMessageHandler(HttpStatusCode.InternalServerError, "{\"error\":{\"code\":\"Boom\"}}");
+            var service = CreateService(handler);
+
+            // Act
+            var act = async () => await service.GetEventAsync("evt-x", CancellationToken.None);
+
+            // Assert
+            await act.Should().ThrowAsync<OutlookCalendarSyncException>();
+        }
+
+        [Fact]
+        public async Task GetEventAsync_UsesAppToken()
+        {
+            // Arrange
+            var handler = new FakeHttpMessageHandler(HttpStatusCode.NotFound, "{}");
+            var service = CreateService(handler);
+
+            // Act
+            await service.GetEventAsync("evt-x", CancellationToken.None);
+
+            // Assert
+            _tokenAcquisition.Verify(
+                t => t.GetAccessTokenForAppAsync("https://graph.microsoft.com/.default", null, null),
+                Times.Once);
+            handler.LastRequestHeaders!.Authorization!.Parameter.Should().Be(FakeToken);
+        }
+
         // ─── BuildEventBody (mapper integration) ──────────────────────────────────
 
         [Fact]

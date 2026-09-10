@@ -157,6 +157,35 @@ namespace Anela.Heblo.Adapters.Microsoft365
             return allEvents.AsReadOnly();
         }
 
+        public async Task<OutlookEventDto?> GetEventAsync(string outlookEventId, CancellationToken ct)
+        {
+            _logger.LogDebug("Fetching Outlook event {EventId} in mailbox {Mailbox}", outlookEventId, _options.GroupId);
+
+            var token = await _tokenAcquisition.GetAccessTokenForAppAsync(GraphScope);
+            using var client = _httpClientFactory.CreateClient("MicrosoftGraph");
+
+            var select = "id,subject,body,start,end,categories";
+            var url = $"{BuildBaseUrl()}/{Uri.EscapeDataString(outlookEventId)}?$select={select}";
+            var request = CreateRequest(HttpMethod.Get, url, token);
+
+            var response = await client.SendAsync(request, ct);
+
+            if (response.StatusCode == HttpStatusCode.NotFound)
+            {
+                _logger.LogDebug("Outlook event {EventId} not found (404)", outlookEventId);
+                return null;
+            }
+
+            if (!response.IsSuccessStatusCode)
+            {
+                await ThrowCalendarSyncException(response, "GetEvent", ct);
+            }
+
+            var stream = await response.Content.ReadAsStreamAsync(ct);
+            return await JsonSerializer.DeserializeAsync<OutlookEventDto>(stream, JsonOptions, ct)
+                ?? throw new InvalidOperationException("Graph GetEvent response deserialised to null.");
+        }
+
         private async Task<string> GetDelegatedTokenAsync()
         {
             try

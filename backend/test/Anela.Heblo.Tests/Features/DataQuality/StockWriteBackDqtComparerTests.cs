@@ -8,12 +8,20 @@ namespace Anela.Heblo.Tests.Features.DataQuality;
 
 public class StockWriteBackDqtComparerTests
 {
+    private static readonly DateTimeOffset FixedNow = new(2026, 5, 6, 10, 0, 0, TimeSpan.Zero);
+    private static readonly DateOnly Today = DateOnly.FromDateTime(FixedNow.UtcDateTime);
+
     private readonly Mock<IStockOperationQuery> _stockOperationsMock = new();
     private readonly Mock<IStockTakingQuery> _stockTakingsMock = new();
-    private static readonly DateOnly Today = DateOnly.FromDateTime(DateTime.UtcNow);
+    private readonly Mock<TimeProvider> _timeProviderMock = new();
+
+    public StockWriteBackDqtComparerTests()
+    {
+        _timeProviderMock.Setup(t => t.GetUtcNow()).Returns(FixedNow);
+    }
 
     private StockWriteBackDqtComparer CreateSut(TimeSpan? stuckThreshold = null) =>
-        new(_stockOperationsMock.Object, _stockTakingsMock.Object, stuckThreshold);
+        new(_stockOperationsMock.Object, _stockTakingsMock.Object, _timeProviderMock.Object, stuckThreshold);
 
     private void SetupNoStockTaking() =>
         _stockTakingsMock.Setup(q => q.GetByDateRangeAsync(
@@ -35,7 +43,7 @@ public class StockWriteBackDqtComparerTests
             Amount = 1,
             DocumentNumber = "OP001",
             State = StockOperationStateSnapshot.Completed,
-            CreatedAtUtc = DateTime.UtcNow,
+            CreatedAtUtc = FixedNow.UtcDateTime,
         });
         SetupNoStockTaking();
 
@@ -56,7 +64,7 @@ public class StockWriteBackDqtComparerTests
             Amount = 5,
             DocumentNumber = "OP002",
             State = StockOperationStateSnapshot.Failed,
-            CreatedAtUtc = DateTime.UtcNow,
+            CreatedAtUtc = FixedNow.UtcDateTime,
             ErrorMessage = "HTTP 500 from Shoptet",
         });
         SetupNoStockTaking();
@@ -82,7 +90,7 @@ public class StockWriteBackDqtComparerTests
             Amount = 2,
             DocumentNumber = "OP003",
             State = StockOperationStateSnapshot.Pending,
-            CreatedAtUtc = DateTime.UtcNow,
+            CreatedAtUtc = FixedNow.UtcDateTime,
         });
         SetupNoStockTaking();
 

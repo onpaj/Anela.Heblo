@@ -45,6 +45,10 @@ public class OrgChartController : ControllerBase
             var result = await _mediator.Send(request, cancellationToken);
             return Ok(result);
         }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error fetching organizational structure");

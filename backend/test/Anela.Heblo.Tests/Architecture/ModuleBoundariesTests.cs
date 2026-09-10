@@ -125,45 +125,18 @@ public class ModuleBoundariesTests
         "Anela.Heblo.Application.Features.Catalog.UseCases.GetProductComposition.GetProductCompositionHandler -> Anela.Heblo.Domain.Features.Manufacture.Ingredient",
     };
 
-    // Allowlist for DataQuality -> Catalog. Pre-existing ProductPairingDqtComparer references
-    // are out of scope for the 2026-06-03 StockWriteBackDqtComparer decoupling.
-    // Track follow-up: introduce DataQuality-owned IProductPairingQuery contract and Catalog-side
-    // adapter that surfaces eshop/erp product snapshots without leaking Catalog types.
-    private static readonly HashSet<string> DataQualityCatalogAllowlist = new(StringComparer.Ordinal)
-    {
-        // ProductPairingDqtComparer reads eshop/erp catalog clients to compare product pairing.
-        "Anela.Heblo.Application.Features.DataQuality.Services.ProductPairingDqtComparer -> Anela.Heblo.Domain.Features.Catalog.Stock.IEshopStockClient",
-        "Anela.Heblo.Application.Features.DataQuality.Services.ProductPairingDqtComparer -> Anela.Heblo.Domain.Features.Catalog.Stock.IErpStockClient",
-        "Anela.Heblo.Application.Features.DataQuality.Services.ProductPairingDqtComparer -> Anela.Heblo.Domain.Features.Catalog.Stock.ErpStock",
-        "Anela.Heblo.Application.Features.DataQuality.Services.ProductPairingDqtComparer -> Anela.Heblo.Domain.Features.Catalog.ProductType",
+    // Allowlist for DataQuality -> Catalog. Empty — ProductPairingDqtComparer now consumes
+    // the DataQuality-owned IDqtEshopStockSource/IDqtErpStockSource contracts; the Catalog
+    // adapters (DataQualityEshopStockSourceAdapter, DataQualityErpStockSourceAdapter) live in
+    // Catalog.Infrastructure and implement them there, so no DataQuality type needs to
+    // reference Catalog directly.
+    private static readonly HashSet<string> DataQualityCatalogAllowlist = new(StringComparer.Ordinal);
 
-        // Compiler-generated async state machines and lambdas for CompareAsync capture EshopStock.
-        // The declaring-type check covers nested types (<CompareAsync>d__6, <<CompareAsync>b__6_1>d)
-        // via this single parent entry.
-        "Anela.Heblo.Application.Features.DataQuality.Services.ProductPairingDqtComparer -> Anela.Heblo.Domain.Features.Catalog.Stock.EshopStock",
-    };
-
-    // Allowlist for DataQuality -> Invoices. The DataQuality module owns IInvoiceShoptetSource
-    // and IInvoiceErpClient (in Application/Features/DataQuality/Contracts/) and consumes
-    // them via InvoiceDqtComparer. Shared invoice domain DTOs are referenced on the contracts
-    // and inside the comparer; lifting these to a shared kernel is a separate follow-up.
-    // Follow-up: extract a DataQuality-owned snapshot DTO and map in the adapters.
-    private static readonly HashSet<string> DataQualityInvoicesAllowlist = new(StringComparer.Ordinal)
-    {
-        // IInvoiceShoptetSource exposes IssuedInvoiceDetailBatch and IssuedInvoiceSourceQuery.
-        "Anela.Heblo.Application.Features.DataQuality.Contracts.IInvoiceShoptetSource -> Anela.Heblo.Domain.Features.Invoices.IssuedInvoiceDetailBatch",
-        "Anela.Heblo.Application.Features.DataQuality.Contracts.IInvoiceShoptetSource -> Anela.Heblo.Domain.Features.Invoices.IssuedInvoiceSourceQuery",
-
-        // IInvoiceErpClient exposes IssuedInvoiceDetail.
-        "Anela.Heblo.Application.Features.DataQuality.Contracts.IInvoiceErpClient -> Anela.Heblo.Domain.Features.Invoices.IssuedInvoiceDetail",
-
-        // InvoiceDqtComparer consumes shared invoice DTOs internally.
-        "Anela.Heblo.Application.Features.DataQuality.Services.InvoiceDqtComparer -> Anela.Heblo.Domain.Features.Invoices.IssuedInvoiceDetail",
-        "Anela.Heblo.Application.Features.DataQuality.Services.InvoiceDqtComparer -> Anela.Heblo.Domain.Features.Invoices.IssuedInvoiceDetailBatch",
-        "Anela.Heblo.Application.Features.DataQuality.Services.InvoiceDqtComparer -> Anela.Heblo.Domain.Features.Invoices.IssuedInvoiceDetailItem",
-        "Anela.Heblo.Application.Features.DataQuality.Services.InvoiceDqtComparer -> Anela.Heblo.Domain.Features.Invoices.IssuedInvoiceSourceQuery",
-        "Anela.Heblo.Application.Features.DataQuality.Services.InvoiceDqtComparer -> Anela.Heblo.Domain.Features.Invoices.InvoicePrice",
-    };
+    // Allowlist for DataQuality -> Invoices. Empty — IInvoiceShoptetSource/IInvoiceErpClient now
+    // expose DataQuality-owned DqtInvoiceSnapshot/DqtInvoiceItem/DqtInvoiceSourceQuery types;
+    // InvoiceShoptetSourceAdapter/InvoiceErpClientAdapter (Invoices.Infrastructure) map from
+    // Invoices domain types to the DataQuality shape via InvoiceDqtSnapshotMapper.
+    private static readonly HashSet<string> DataQualityInvoicesAllowlist = new(StringComparer.Ordinal);
 
     // Allowlist for Manufacture -> Catalog. Each group below is a deliberate pragmatic leak
     // tracked under the same follow-up: introduce Manufacture-owned ProductCatalogSnapshot DTO
@@ -382,6 +355,12 @@ public class ModuleBoundariesTests
     // Authorization.Contracts.
     private static readonly HashSet<string> AuthorizationUserManagementAllowlist = new(StringComparer.Ordinal);
 
+    // Allowlist for Shared.Users -> Authorization. Empty — AuthorizationUserDirectorySourceAdapter
+    // (Authorization-owned, in Features.Authorization.Infrastructure) is the sole implementer of
+    // Shared.Users.Contracts.IUserDirectorySource; it lives outside this rule's inspected namespace
+    // prefix, so nothing under Shared.Users itself may ever reference Authorization directly.
+    private static readonly HashSet<string> SharedUsersAuthorizationAllowlist = new(StringComparer.Ordinal);
+
     public static TheoryData<ModuleBoundaryRule> Rules() => new()
     {
         new ModuleBoundaryRule(
@@ -394,6 +373,17 @@ public class ModuleBoundariesTests
                 "Anela.Heblo.Persistence.UserManagement",
             },
             Allowlist: AuthorizationUserManagementAllowlist),
+
+        new ModuleBoundaryRule(
+            Name: "Shared.Users -> Authorization",
+            InspectedNamespacePrefix: "Anela.Heblo.Application.Shared.Users",
+            ForbiddenNamespacePrefixes: new[]
+            {
+                "Anela.Heblo.Domain.Features.Authorization",
+                "Anela.Heblo.Application.Features.Authorization",
+                "Anela.Heblo.Persistence.Features.Authorization",
+            },
+            Allowlist: SharedUsersAuthorizationAllowlist),
 
         new ModuleBoundaryRule(
             Name: "Leaflet -> KnowledgeBase",

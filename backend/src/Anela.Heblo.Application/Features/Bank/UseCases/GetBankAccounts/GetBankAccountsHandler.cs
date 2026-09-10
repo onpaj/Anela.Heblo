@@ -21,7 +21,7 @@ public class GetBankAccountsHandler : IRequestHandler<GetBankAccountsRequest, Ge
 
     public Task<GetBankAccountsResponse> Handle(GetBankAccountsRequest request, CancellationToken cancellationToken)
     {
-        var accounts = (_bankSettings.Accounts ?? new List<BankAccountConfiguration>())
+        var accounts = _bankSettings.Accounts
             .Select(a => new BankAccountDto
             {
                 Name = a.Name,

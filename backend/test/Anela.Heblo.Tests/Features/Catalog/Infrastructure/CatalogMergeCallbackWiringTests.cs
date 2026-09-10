@@ -29,6 +29,7 @@ public sealed class CatalogMergeCallbackWiringTests
 
         _mergeService = new CatalogMergeService(
             _cacheStore,
+            new BundleSalesExpander(),
             TimeProvider.System,
             Mock.Of<ILogger<CatalogMergeService>>());
 

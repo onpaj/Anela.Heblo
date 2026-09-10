@@ -42,22 +42,6 @@ public sealed class DownloadFromUrlHandler : IRequestHandler<DownloadFromUrlRequ
             request.FileUrl,
             request.ContainerName);
 
-        if (!Uri.TryCreate(request.FileUrl, UriKind.Absolute, out var uri) ||
-            (uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps))
-        {
-            _logger.LogWarning("Invalid URL format or unsupported scheme: {FileUrl}", request.FileUrl);
-            return new DownloadFromUrlResponse
-            {
-                Success = false,
-                ErrorCode = ErrorCodes.InvalidUrlFormat,
-                Params = new Dictionary<string, string>
-                {
-                    ["fileUrl"] = request.FileUrl,
-                    ["cause"] = "validation",
-                },
-            };
-        }
-
         var redactedUrl = RedactUrl(request.FileUrl);
         var sw = Stopwatch.StartNew();
         int attemptCount = 0;
@@ -115,7 +99,7 @@ public sealed class DownloadFromUrlHandler : IRequestHandler<DownloadFromUrlRequ
         catch (Exception ex)
         {
             sw.Stop();
-            _logger.LogError(ex, "Unexpected failure during ProductExportDownload for URL: {RedactedUrl}", redactedUrl);
+            _logger.LogError(ex, "Unexpected failure during DownloadFromUrl for URL: {RedactedUrl}", redactedUrl);
             return Failure(redactedUrl, "retry-exhausted", attemptCount, sw.ElapsedMilliseconds, ex.Message);
         }
     }
@@ -138,11 +122,11 @@ public sealed class DownloadFromUrlHandler : IRequestHandler<DownloadFromUrlRequ
         }
         catch (OperationCanceledException)
         {
-            _logger.LogDebug("HEAD probe timed out for ProductExportDownload");
+            _logger.LogDebug("HEAD probe timed out for DownloadFromUrl");
         }
         catch (Exception ex)
         {
-            _logger.LogDebug(ex, "HEAD probe failed for ProductExportDownload");
+            _logger.LogDebug(ex, "HEAD probe failed for DownloadFromUrl");
         }
 
         return 0L;

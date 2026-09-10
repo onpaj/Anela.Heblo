@@ -41,8 +41,11 @@ public class GetPurchaseStockAnalysisHandler : IRequestHandler<GetPurchaseStockA
 
         var snapshots = await _materialCatalog.GetStockAnalysisSnapshotsAsync(fromDate, toDate, cancellationToken);
 
-        // First, analyze ALL items for summary calculation
-        var allAnalysisItems = snapshots.Select(s => AnalyzeStockItem(s, fromDate, toDate)).ToList();
+        // First, analyze ALL items of the selected material category for summary calculation
+        var allAnalysisItems = snapshots
+            .Where(s => MaterialCategoryResolver.Matches(s.ProductCode, request.MaterialCategory))
+            .Select(s => AnalyzeStockItem(s, fromDate, toDate))
+            .ToList();
 
         // Then filter items for display
         var analysisItems = allAnalysisItems

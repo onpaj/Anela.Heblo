@@ -5,10 +5,12 @@ namespace Anela.Heblo.Application.Features.BackgroundJobs.Services;
 public class RecurringJobSeeder : IRecurringJobSeeder
 {
     private readonly IRecurringJobConfigurationRepository _repository;
+    private readonly TimeProvider _timeProvider;
 
-    public RecurringJobSeeder(IRecurringJobConfigurationRepository repository)
+    public RecurringJobSeeder(IRecurringJobConfigurationRepository repository, TimeProvider timeProvider)
     {
         _repository = repository;
+        _timeProvider = timeProvider;
     }
 
     /// <summary>
@@ -22,6 +24,8 @@ public class RecurringJobSeeder : IRecurringJobSeeder
     /// <param name="cancellationToken">Cancellation token</param>
     public async Task SeedDefaultConfigurationsAsync(IEnumerable<IRecurringJob> jobs, CancellationToken cancellationToken = default)
     {
+        var now = _timeProvider.GetUtcNow().UtcDateTime;
+
         // Create configurations from discovered job metadata
         var defaultConfigurations = jobs.Select(job => new RecurringJobConfiguration(
             job.Metadata.JobName,
@@ -31,7 +35,7 @@ public class RecurringJobSeeder : IRecurringJobSeeder
             job.Metadata.TimeZoneId,
             job.Metadata.DefaultIsEnabled,
             "System",
-            DateTime.UtcNow
+            now
         )).ToArray();
 
         foreach (var config in defaultConfigurations)
@@ -49,7 +53,7 @@ public class RecurringJobSeeder : IRecurringJobSeeder
                     existing.CronExpression,   // preserve admin override
                     config.TimeZoneId,
                     "System",
-                    DateTime.UtcNow);
+                    now);
                 await _repository.UpdateAsync(existing, cancellationToken);
             }
         }

@@ -3,6 +3,7 @@ import { renderHook, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useScanPackingOrder } from '../useScanPackingOrder';
 import { getAuthenticatedApiClient } from '../../client';
+import { SwaggerException } from '../../generated/api-client';
 
 jest.mock('../../client', () => ({
   ...jest.requireActual('../../client'),
@@ -122,6 +123,37 @@ describe('useScanPackingOrder', () => {
 
     const { result } = renderHook(() => useScanPackingOrder(), { wrapper });
     result.current.mutate({ orderCode: 'x' });
+
+    await waitFor(() => expect(result.current.isError).toBe(true));
+    expect(result.current.error?.message).toBe('Chyba při skenování objednávky.');
+  });
+
+  // ShoptetOrderNotFound maps to HTTP 404, and the generated client rejects with a
+  // SwaggerException for every non-200 — so this, not the resolved envelope above, is the
+  // shape the packing screen actually receives in production.
+  it('throws the curated Czech message when the client rejects with a non-200 carrying the envelope', async () => {
+    mockPackaging_ScanOrder.mockRejectedValue(
+      new SwaggerException(
+        'An unexpected server error occurred.',
+        404,
+        JSON.stringify({ success: false, errorCode: 'ShoptetOrderNotFound' }),
+        {},
+        null,
+      ),
+    );
+
+    const { result } = renderHook(() => useScanPackingOrder(), { wrapper });
+    result.current.mutate({ orderCode: '00000000' });
+
+    await waitFor(() => expect(result.current.isError).toBe(true));
+    expect(result.current.error?.message).toBe('Objednávka nebyla nalezena.');
+  });
+
+  it('throws a generic message when the rejection carries no error envelope', async () => {
+    mockPackaging_ScanOrder.mockRejectedValue(new TypeError('Failed to fetch'));
+
+    const { result } = renderHook(() => useScanPackingOrder(), { wrapper });
+    result.current.mutate({ orderCode: '250001' });
 
     await waitFor(() => expect(result.current.isError).toBe(true));
     expect(result.current.error?.message).toBe('Chyba při skenování objednávky.');

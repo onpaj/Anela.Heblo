@@ -76,6 +76,17 @@ public class MockPackingMaterialRepository : IPackingMaterialRepository
         return Task.FromResult<IReadOnlyDictionary<int, IReadOnlyList<PackingMaterialLog>>>(dict);
     }
 
+    public Task<IReadOnlyDictionary<int, string>> GetMaterialNamesByIdsAsync(
+        IEnumerable<int> packingMaterialIds,
+        CancellationToken cancellationToken = default)
+    {
+        var ids = packingMaterialIds.ToHashSet();
+        var dict = _materials
+            .Where(m => ids.Contains(m.Id))
+            .ToDictionary(m => m.Id, m => m.Name);
+        return Task.FromResult<IReadOnlyDictionary<int, string>>(dict);
+    }
+
     public Task<bool> HasDailyProcessingBeenRunAsync(DateOnly date, CancellationToken cancellationToken = default)
     {
         return Task.FromResult(_dailyProcessingStatus.TryGetValue(date, out var hasRun) && hasRun);

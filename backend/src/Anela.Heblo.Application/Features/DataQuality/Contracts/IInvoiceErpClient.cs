@@ -1,5 +1,3 @@
-using Anela.Heblo.Domain.Features.Invoices;
-
 namespace Anela.Heblo.Application.Features.DataQuality.Contracts;
 
 /// <summary>
@@ -8,7 +6,7 @@ namespace Anela.Heblo.Application.Features.DataQuality.Contracts;
 /// </summary>
 public interface IInvoiceErpClient
 {
-    Task<List<IssuedInvoiceDetail>> GetAllAsync(
+    Task<List<DqtInvoiceSnapshot>> GetAllAsync(
         DateOnly from,
         DateOnly to,
         CancellationToken ct);

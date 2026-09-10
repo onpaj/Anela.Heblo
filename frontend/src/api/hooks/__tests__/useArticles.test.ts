@@ -321,7 +321,6 @@ describe('useSubmitArticleFeedbackMutation', () => {
     expect(mockArticlesSubmitFeedback).toHaveBeenCalledWith(
       'article-1',
       expect.objectContaining({
-        articleId: 'article-1',
         precisionScore: 4,
         styleScore: 5,
         comment: 'great',

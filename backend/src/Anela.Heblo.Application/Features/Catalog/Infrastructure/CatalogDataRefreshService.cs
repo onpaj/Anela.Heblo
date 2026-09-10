@@ -22,6 +22,7 @@ namespace Anela.Heblo.Application.Features.Catalog.Infrastructure;
 public sealed class CatalogDataRefreshService
 {
     private readonly ICatalogSalesClient _salesClient;
+    private readonly ICatalogSetPartsClient _setPartsClient;
     private readonly ICatalogAttributesClient _attributesClient;
     private readonly IEshopStockClient _eshopStockClient;
     private readonly IConsumedMaterialsClient _consumedMaterialClient;
@@ -44,6 +45,7 @@ public sealed class CatalogDataRefreshService
 
     public CatalogDataRefreshService(
         ICatalogSalesClient salesClient,
+        ICatalogSetPartsClient setPartsClient,
         ICatalogAttributesClient attributesClient,
         IEshopStockClient eshopStockClient,
         IConsumedMaterialsClient consumedMaterialClient,
@@ -65,6 +67,7 @@ public sealed class CatalogDataRefreshService
         ILogger<CatalogDataRefreshService> logger)
     {
         _salesClient = salesClient ?? throw new ArgumentNullException(nameof(salesClient));
+        _setPartsClient = setPartsClient ?? throw new ArgumentNullException(nameof(setPartsClient));
         _attributesClient = attributesClient ?? throw new ArgumentNullException(nameof(attributesClient));
         _eshopStockClient = eshopStockClient ?? throw new ArgumentNullException(nameof(eshopStockClient));
         _consumedMaterialClient = consumedMaterialClient ?? throw new ArgumentNullException(nameof(consumedMaterialClient));
@@ -134,6 +137,93 @@ public sealed class CatalogDataRefreshService
         {
             _logger.LogWarning(ex, "RefreshSalesData failed after all retries — retaining stale cache. Items in cache: {Count}", _cacheStore.GetSalesData().Count);
         }
+    }
+
+    /// <summary>
+    /// Reads the ERP stock cache to decide which products are bundles, so it must run after
+    /// RefreshErpStockData has populated it. A hydration tier runs its tasks concurrently, so this
+    /// task is configured one tier later than RefreshErpStockData rather than relying on ordering
+    /// within a tier — otherwise a cold start can leave bundle expansion inactive until the next
+    /// scheduled run.
+    /// </summary>
+    public async Task RefreshSetPartsData(CancellationToken ct)
+    {
+        try
+        {
+            var bundleCodes = _cacheStore.GetErpStockData()
+                .Where(s => BundleProductRule.Resolve((ProductType?)s.ProductTypeId ?? ProductType.UNDEFINED, s.ProductCode) == ProductType.Set)
+                .Select(s => s.ProductCode)
+                .ToList();
+
+            if (bundleCodes.Count == 0)
+            {
+                _logger.LogWarning(
+                    "RefreshSetPartsData found no bundle-coded products in ERP stock — bundle sales expansion will be inactive. Retaining existing set-parts cache. Items in cache: {Count}",
+                    _cacheStore.GetSetPartsData().Count);
+                return;
+            }
+
+            var (setParts, failedCount) = await FetchSetPartsPerBundleAsync(bundleCodes, ct);
+
+            if (failedCount == bundleCodes.Count)
+            {
+                _logger.LogWarning(
+                    "RefreshSetPartsData could not fetch any of {BundleCount} bundles — retaining stale cache. Items in cache: {Count}",
+                    bundleCodes.Count,
+                    _cacheStore.GetSetPartsData().Count);
+                return;
+            }
+
+            _cacheStore.SetSetPartsData(setParts);
+
+            _logger.LogInformation(
+                "RefreshSetPartsData refreshed successfully: {BundleCount} bundles resolved ({FailedCount} failed), {PartCount} parts retrieved",
+                bundleCodes.Count,
+                failedCount,
+                setParts.Count);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            _logger.LogWarning(ex, "RefreshSetPartsData failed after all retries — retaining stale cache. Items in cache: {Count}", _cacheStore.GetSetPartsData().Count);
+        }
+    }
+
+    /// <summary>
+    /// Fetches set parts one bundle at a time. Flexi has no batch endpoint for bundle composition,
+    /// so a single resilience execution around the whole loop would spend one 30s timeout budget on
+    /// N sequential calls and start failing outright once the bundle count grows. Per-bundle
+    /// execution also keeps one broken bundle definition from blocking every other bundle.
+    /// </summary>
+    private async Task<(IList<CatalogSetPart> Parts, int FailedCount)> FetchSetPartsPerBundleAsync(
+        IReadOnlyList<string> bundleCodes,
+        CancellationToken ct)
+    {
+        var parts = new List<CatalogSetPart>();
+        var failedCount = 0;
+
+        foreach (var bundleCode in bundleCodes)
+        {
+            try
+            {
+                var bundleParts = await _resilienceService.ExecuteWithResilienceAsync(
+                    async (cancellationToken) => (IList<CatalogSetPart>)(await _setPartsClient.GetAsync(
+                        new[] { bundleCode },
+                        cancellationToken)).ToList(),
+                    "RefreshSetPartsData", ct);
+
+                parts.AddRange(bundleParts);
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException)
+            {
+                failedCount++;
+                _logger.LogWarning(
+                    ex,
+                    "RefreshSetPartsData could not fetch bundle {SetCode} — its sales will not be expanded this cycle.",
+                    bundleCode);
+            }
+        }
+
+        return (parts, failedCount);
     }
 
     public async Task RefreshAttributesData(CancellationToken ct)
