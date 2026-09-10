@@ -159,7 +159,12 @@ Shoptet stores the with-VAT price directly and gets no tolerance.
 2. **Pre-flight the Flexi leg.** Resolve the numeric ceník id via `IProductPriceErpClient` and
    the VAT rate via `IProductVatRateProvider`, and compute the price excluding VAT, rounded to
    2 decimals away from zero. Either missing → `ProductPriceFlexiItemIdUnknown`, and **nothing
-   is written anywhere**.
+   is written anywhere**. Also refuse any item whose `ErpPriceType` is not exactly `"bezDph"` →
+   `ProductPriceFlexiPriceTypeUnsupported`. `cenaZakl`'s VAT meaning depends on the item's own
+   `typCenyDphK` — for an `"sDph"` item it holds the *with-VAT* price — so writing the
+   excluding-VAT figure would silently underprice it in the live ERP by the VAT rate while
+   reporting success. The read path already branches on this; the write path refuses rather than
+   branching, because the `sDph` write semantics are unverified against a system with no sandbox.
 3. **Write Shoptet.** `SetPriceWithVatAsync(productCode, priceWithVat)`. On failure →
    `ProductPriceShoptetWriteFailed`; nothing has changed anywhere.
 4. **Write Flexi.** `SetPriceWithoutVatAsync(erpItemId, priceWithoutVat)`, addressed by the
@@ -247,6 +252,7 @@ New codes, all in the ProductPricing module range:
 |---|---|---|
 | `ProductPriceNotFoundInShoptet` | 404 | Not in the retail price list; nothing written |
 | `ProductPriceFlexiItemIdUnknown` | 422 | No numeric ceník id or no VAT rate; pre-flight abort, nothing written |
+| `ProductPriceFlexiPriceTypeUnsupported` | 422 | Flexi price type is `sDph` or unknown; pre-flight abort, nothing written |
 | `ProductPriceShoptetWriteFailed` | 502 | Shoptet rejected the write; nothing written |
 | `ProductPriceFlexiWriteFailed` | 502 | Flexi rejected the write; **Shoptet already updated** — the only partial-failure state |
 

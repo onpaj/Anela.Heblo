@@ -686,6 +686,8 @@ In `ErrorCodes.cs`, in the `36XX` block. **Delete both existing codes** — `Pro
     ProductPriceShoptetWriteFailed = 3605,
     [HttpStatusCode(HttpStatusCode.BadGateway)]
     ProductPriceFlexiWriteFailed = 3606,
+    [HttpStatusCode(HttpStatusCode.UnprocessableEntity)]
+    ProductPriceFlexiPriceTypeUnsupported = 3607,
 ```
 
 In `frontend/src/i18n.ts`, replacing **both** the `ProductPriceNotFound` and `ProductPriceConflictNotFound` lines:
@@ -695,6 +697,7 @@ In `frontend/src/i18n.ts`, replacing **both** the `ProductPriceNotFound` and `Pr
         ProductPriceFlexiItemIdUnknown: "Produkt nemá ceníkovou položku ve Flexi, cena nebyla nikde změněna",
         ProductPriceShoptetWriteFailed: "Zápis ceny do Shoptetu selhal, cena nebyla nikde změněna",
         ProductPriceFlexiWriteFailed: "Cena byla změněna v Shoptetu, ale zápis do Flexi selhal — ceny se nyní liší",
+        ProductPriceFlexiPriceTypeUnsupported: "Položka má ve Flexi typ ceny s DPH nebo neznámý; cenu nelze bezpečně zapsat a nebyla nikde změněna",
 ```
 
 - [ ] **Step 6: Write the failing handler tests**
@@ -963,6 +966,22 @@ public class SetProductPriceHandler : IRequestHandler<SetProductPriceRequest, Se
             return await FailAsync(request, oldPrice, false, false,
                 ErrorCodes.ProductPriceFlexiItemIdUnknown,
                 $"No Flexi ceník id or VAT rate for {code}; nothing was written.",
+                cancellationToken);
+        }
+
+        // cenaZakl's VAT meaning depends on the item's own typCenyDphK: for a "typCeny.sDph"
+        // item cenaZakl holds the WITH-VAT price, so sending the excluding-VAT figure would
+        // silently underprice it in the live ERP by the VAT rate — reported as success, and
+        // repeated on every later edit. The read path already branches on this
+        // (FlexiProductPriceErpClient, IsPriceIncludingVat); the write path REFUSES rather than
+        // branching, because the sDph write semantics are unverified against the live ERP and
+        // there is no sandbox. PriceComparisonService likewise refuses to trust null-price-type
+        // rows. Do not "simplify" this away.
+        if (erpPriceType != BezDphPriceType)
+        {
+            return await FailAsync(request, oldPrice, false, false,
+                ErrorCodes.ProductPriceFlexiPriceTypeUnsupported,
+                $"Flexi price type for {code} is '{erpPriceType ?? "unknown"}', not bezDph; nothing was written.",
                 cancellationToken);
         }
 
@@ -1683,6 +1702,12 @@ git commit -m "feat: price comparison dashboard tile"
 **Interfaces:**
 - Consumes: `PUT /api/product-pricing/prices/{productCode}` (Task 4); `PriceDivergenceRowDto` without `HebloMasterPriceWithVat` (Task 1)
 - Produces: `useSetProductPrice()` mutation returning `SetProductPriceResponse`, invalidating `QUERY_KEYS.divergence` on success
+
+**Confirm large changes before saving.** There is deliberately no server-side price ceiling — any
+ceiling would be an arbitrary magic number — so the guard against a mistyped `21000` for `210`
+reaching the live shop is the operator's own confirmation. When the new price differs from the
+current Shoptet price by more than 50%, require an explicit confirmation naming both the old and
+the new value before the mutation fires. Add a test for it.
 
 - [ ] **Step 1: Write the failing inline-edit test**
 
