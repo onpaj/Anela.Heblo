@@ -87,15 +87,12 @@ const renderReport = ({
   return render(<PriceDivergenceReport canWrite={canWrite} />);
 };
 
-// Reads the number rendered directly beneath a summary tile's label, so the assertion is
-// about that specific count rather than about the substring appearing anywhere on the page.
-const summaryCountFor = (label: string): string | null => {
-  const summary = screen.getByTestId("divergence-summary");
-  const labelNode = within(summary).getByText(label);
-  return labelNode.nextElementSibling?.textContent ?? null;
-};
+// Reads one named summary count, so the assertion is about that specific tile rather than
+// about a substring appearing anywhere on the page.
+const summaryCount = (testId: string): string | null =>
+  within(screen.getByTestId("divergence-summary")).getByTestId(testId).textContent;
 
-test("renders each summary count under its own label", () => {
+test("renders each summary count in its own labelled tile", () => {
   // Arrange & Act — deliberately distinct values so no two tiles can satisfy each other's
   // assertion.
   renderReport({
@@ -111,12 +108,12 @@ test("renders each summary count under its own label", () => {
   });
 
   // Assert
-  expect(summaryCountFor("Celkem v rozsahu")).toBe("412");
-  expect(summaryCountFor("Ve shodě")).toBe("380");
-  expect(summaryCountFor("Flexi se liší")).toBe("17");
-  expect(summaryCountFor("Chybí v Shoptetu")).toBe("9");
-  expect(summaryCountFor("Chybí ve Flexi")).toBe("4");
-  expect(summaryCountFor("Neznámý typ ceny")).toBe("2");
+  expect(summaryCount("summary-total-in-scope")).toBe("412");
+  expect(summaryCount("summary-in-agreement")).toBe("380");
+  expect(summaryCount("summary-flexi-differs")).toBe("17");
+  expect(summaryCount("summary-missing-in-shoptet")).toBe("9");
+  expect(summaryCount("summary-missing-in-flexi")).toBe("4");
+  expect(summaryCount("summary-flexi-price-type-unknown")).toBe("2");
 });
 
 test("renders a row per product returned by the report", () => {

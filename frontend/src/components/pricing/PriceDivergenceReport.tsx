@@ -30,13 +30,16 @@ const isDivergent = (kind: PriceDivergenceKind | undefined) => kind !== PriceDiv
 interface SummaryTileProps {
   label: string;
   value: number;
+  /** Identifies this tile's number so a test can assert the count under a specific label. */
+  testId: string;
   emphasize?: boolean;
 }
 
-const SummaryTile: React.FC<SummaryTileProps> = ({ label, value, emphasize }) => (
+const SummaryTile: React.FC<SummaryTileProps> = ({ label, value, testId, emphasize }) => (
   <div className="bg-white dark:bg-graphite-surface rounded-lg shadow dark:shadow-soft-dark px-4 py-3">
     <div className="text-xs text-gray-500 dark:text-graphite-muted uppercase tracking-wider">{label}</div>
     <div
+      data-testid={testId}
       className={`text-2xl font-bold ${
         emphasize ? "text-amber-600 dark:text-amber-400" : "text-gray-900 dark:text-graphite-text"
       }`}
@@ -197,12 +200,12 @@ const PriceDivergenceReport: React.FC<PriceDivergenceReportProps> = ({ canWrite 
         data-testid="divergence-summary"
         className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mb-6"
       >
-        <SummaryTile label="Celkem v rozsahu" value={summary?.totalInScope ?? 0} />
-        <SummaryTile label="Ve shodě" value={summary?.inAgreementCount ?? 0} />
-        <SummaryTile label="Flexi se liší" value={summary?.flexiDiffersCount ?? 0} emphasize />
-        <SummaryTile label="Chybí v Shoptetu" value={summary?.missingInShoptetCount ?? 0} emphasize />
-        <SummaryTile label="Chybí ve Flexi" value={summary?.missingInFlexiCount ?? 0} emphasize />
-        <SummaryTile label="Neznámý typ ceny" value={summary?.flexiPriceTypeUnknownCount ?? 0} emphasize />
+        <SummaryTile testId="summary-total-in-scope" label="Celkem v rozsahu" value={summary?.totalInScope ?? 0} />
+        <SummaryTile testId="summary-in-agreement" label="Ve shodě" value={summary?.inAgreementCount ?? 0} />
+        <SummaryTile testId="summary-flexi-differs" label="Flexi se liší" value={summary?.flexiDiffersCount ?? 0} emphasize />
+        <SummaryTile testId="summary-missing-in-shoptet" label="Chybí v Shoptetu" value={summary?.missingInShoptetCount ?? 0} emphasize />
+        <SummaryTile testId="summary-missing-in-flexi" label="Chybí ve Flexi" value={summary?.missingInFlexiCount ?? 0} emphasize />
+        <SummaryTile testId="summary-flexi-price-type-unknown" label="Neznámý typ ceny" value={summary?.flexiPriceTypeUnknownCount ?? 0} emphasize />
       </div>
 
       <div className="flex items-center mb-4">
