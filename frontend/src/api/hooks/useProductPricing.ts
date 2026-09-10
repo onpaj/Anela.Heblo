@@ -16,8 +16,9 @@ const QUERY_KEYS = {
 };
 
 // Fetches the divergence report. `useSetProductPrice` below invalidates this query on a
-// successful write so an edited row reloads from live Shoptet/Flexi data instead of
-// trusting the value the operator just typed.
+// successful write, and also on a `ProductPriceFlexiWriteFailed` partial failure, so an
+// edited row reloads from live Shoptet/Flexi data instead of trusting the value the
+// operator just typed or silently showing a stale "in agreement" state.
 export const usePriceDivergenceReport = () =>
   useQuery({
     queryKey: QUERY_KEYS.divergence,
@@ -66,6 +67,16 @@ const setProductPrice = async ({
   }
 };
 
+// The one failure mode where Shoptet was already written even though the mutation as a
+// whole failed. Without a refetch here, the row would keep rendering its pre-edit Shoptet
+// price next to the pre-edit Flexi price — the two would still match, so the row would
+// render InAgreement (green) even though the live systems have actually diverged. The
+// persistent row-level alert would then be the only thing contradicting the row it sits in.
+// The other four error codes all mean nothing was written anywhere, so invalidating on
+// those would just be a pointless pair of live API calls against Shoptet and Flexi on every
+// validation-style failure.
+const FLEXI_WRITE_FAILED_ERROR_CODE = "ProductPriceFlexiWriteFailed";
+
 export const useSetProductPrice = () => {
   const queryClient = useQueryClient();
 
@@ -74,6 +85,12 @@ export const useSetProductPrice = () => {
     onSuccess: () => {
       // Reload from live Shoptet/Flexi data rather than trusting the local value.
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.divergence });
+    },
+    onError: (error) => {
+      const errorCode = (error as { errorCode?: string })?.errorCode;
+      if (errorCode === FLEXI_WRITE_FAILED_ERROR_CODE) {
+        queryClient.invalidateQueries({ queryKey: QUERY_KEYS.divergence });
+      }
     },
   });
 };
