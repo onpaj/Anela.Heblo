@@ -110,9 +110,11 @@ public class FlexiProductPriceErpClient : UserQueryClient<ProductPriceFlexiDto>,
     /// <summary>
     /// Projects the raw Flexi rows to <see cref="ProductPriceErp"/>, deriving the with-VAT
     /// price from each item's own price-type flag instead of unconditionally grossing up
-    /// (that double-counts VAT for an item entered "s DPH"). User query 41 may not expose
-    /// <c>typCenyDphK</c> at all; when it is absent, excl-VAT semantics (today's behavior) is
-    /// assumed and a warning is logged once for the whole batch — never silently.
+    /// (that double-counts VAT for an item entered "s DPH" — 285.00 read back as 344.85).
+    /// User query 41 has selected <c>typcenydphk</c> since 2026-09-11, but a Flexi company
+    /// whose own copy of the query has not been extended still returns nothing; when the field
+    /// is absent, excl-VAT semantics is assumed and a warning is logged once for the whole
+    /// batch — never silently.
     ///
     /// The same "warn once, never silently" treatment applies to an unrecognised VAT band
     /// (<c>typszbdphk</c>): the read path keeps its 21% fallback so the comparison screen is

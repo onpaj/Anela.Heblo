@@ -27,15 +27,21 @@ public class ProductPriceFlexiDto
 
     /// <summary>
     /// Says which VAT semantics <see cref="Price"/> (<c>cenaZakl</c>) was entered under:
-    /// "typCeny.bezDph" (excl-VAT) or "typCeny.sDph" (incl-VAT). User query 41 may not expose
-    /// this field at all — it can come back null. Never assume it is excl-VAT without checking.
+    /// "typCeny.bezDph" (excl-VAT) or "typCeny.sDph" (incl-VAT).
+    ///
+    /// User query 41 selects it as <c>typcenydphk</c> (lower-cased, like every column that
+    /// query returns) since 2026-09-11; it binds here only through Newtonsoft's
+    /// case-insensitive fallback, which <c>ProductPriceFlexiDtoWireShapeTests</c> pins against
+    /// a verbatim response. It can still come back null from a Flexi company whose own copy of
+    /// query 41 has not been extended, so the null case stays a real, handled state — never
+    /// assume excl-VAT without checking.
     /// </summary>
     [JsonProperty("typCenyDphK")]
     public string? TypCenyDphK { get; set; }
 
     /// <summary>True only when <see cref="TypCenyDphK"/> is explicitly "typCeny.sDph". A null
-    /// value (the field is absent from query 41) is treated as excl-VAT by the caller, with a
-    /// logged warning — never silently here.</summary>
+    /// value (query 41 not extended in this company) is treated as excl-VAT by the caller, with
+    /// a logged warning — never silently here.</summary>
     public bool IsPriceIncludingVat => TypCenyDphK == "typCeny.sDph";
 
     /// <summary>
@@ -48,14 +54,14 @@ public class ProductPriceFlexiDto
     /// <summary>
     /// Recognised <c>typszbdphk</c> values and the rate each stands for.
     ///
-    /// BOTH vocabularies are listed on purpose. Flexi user query 41's definition is not
-    /// visible from this repository, so nobody here can say whether it returns the enum
-    /// vocabulary the rest of this adapter uses (<c>typSzbDph.dphZakl</c> and friends — see
-    /// <c>Invoices/FlexiInvoiceMappingProfile</c>) or the Czech labels the original mapping
-    /// was written against. The original mapping recognised only two Czech literals, one of
-    /// them misspelled ("ovobozeno"), with an unconditional <c>_ =&gt; 21</c> fallback — so a
-    /// genuinely 12% item was silently priced as if it were 21%. Recognising both
-    /// vocabularies removes the guess in either direction.
+    /// Verified live 2026-09-11 (anela_cosmetics_test): query 41 returns the ENUM vocabulary
+    /// the rest of this adapter uses — <c>typSzbDph.dphZakl</c>, <c>typSzbDph.dphSniz</c> and
+    /// friends (see <c>Invoices/FlexiInvoiceMappingProfile</c>) — not the Czech labels the
+    /// original mapping was written against. The Czech labels are kept anyway: they cost
+    /// nothing and each Flexi company holds its own copy of the query. The original mapping
+    /// recognised only two Czech literals, one of them misspelled ("ovobozeno"), with an
+    /// unconditional <c>_ =&gt; 21</c> fallback — so a genuinely 12% item was silently priced
+    /// as if it were 21%. Recognising both vocabularies removes the guess in either direction.
     ///
     /// Do NOT "simplify" this back to a switch with a catch-all: anything not listed here is
     /// deliberately reported as unrecognised (<see cref="VatRate"/> is null), which makes

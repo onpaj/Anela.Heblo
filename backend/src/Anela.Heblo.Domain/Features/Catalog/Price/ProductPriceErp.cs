@@ -16,8 +16,9 @@ public class ProductPriceErp
 
     /// <summary>
     /// Which VAT semantics Flexi's base price was entered under: "bezDph" (excl-VAT) or
-    /// "sDph" (incl-VAT). Null means the ERP read did not expose it (user query 41 may not
-    /// return <c>typCenyDphK</c>) — a real, reportable "unknown" state, not an error.
+    /// "sDph" (incl-VAT). Null means the ERP read did not expose it (a Flexi company whose
+    /// copy of user query 41 does not select <c>typcenydphk</c>) — a real, reportable
+    /// "unknown" state, not an error.
     /// </summary>
     public string? ErpPriceType { get; set; }
 
