@@ -34,9 +34,9 @@
     },
     {
       "name": "use-create-factory-in-handler",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-09-11T17:04:59.937909Z"
+      "updated_at": "2026-09-11T17:12:19.421032Z"
     }
   ]
 }
