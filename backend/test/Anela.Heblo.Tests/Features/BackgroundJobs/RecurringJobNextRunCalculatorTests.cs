@@ -90,4 +90,46 @@ public class RecurringJobNextRunCalculatorTests
                 It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
             Times.Once);
     }
+
+    [Fact]
+    public void Calculate_ReturnsExpectedUtcInstant_ForUtcTimezone()
+    {
+        // Arrange
+        var utcNow = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+
+        // Act
+        var result = RecurringJobNextRunCalculator.Calculate(
+            cronExpression: "0 6 * * *",
+            isEnabled: true,
+            timeZoneId: "UTC",
+            utcNow: utcNow,
+            logger: NullLogger.Instance,
+            jobName: "test-job");
+
+        // Assert
+        result.Should().Be(new DateTime(2026, 1, 1, 6, 0, 0, DateTimeKind.Utc));
+        result!.Value.Kind.Should().Be(DateTimeKind.Utc);
+    }
+
+    [Fact]
+    public void Calculate_ReturnsExpectedUtcInstant_ForNonUtcTimezone()
+    {
+        // Arrange
+        // 2026-01-01T04:59:00Z = 2026-01-01T05:59:00 local Europe/Prague time
+        // (CET = UTC+1 in winter, no DST in effect on this date).
+        var utcNow = new DateTime(2026, 1, 1, 4, 59, 0, DateTimeKind.Utc);
+
+        // Act
+        var result = RecurringJobNextRunCalculator.Calculate(
+            cronExpression: "0 6 * * *",
+            isEnabled: true,
+            timeZoneId: "Europe/Prague",
+            utcNow: utcNow,
+            logger: NullLogger.Instance,
+            jobName: "test-job");
+
+        // Assert
+        result.Should().Be(new DateTime(2026, 1, 1, 5, 0, 0, DateTimeKind.Utc));
+        result!.Value.Kind.Should().Be(DateTimeKind.Utc);
+    }
 }
