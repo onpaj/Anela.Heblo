@@ -21,16 +21,16 @@
       "updated_at": "2026-09-09T05:27:26.370978Z"
     },
     "developing": {
-      "status": "pending",
-      "updated_at": null
+      "status": "in_progress",
+      "updated_at": "2026-09-11T16:45:08.075000Z"
     }
   },
   "tasks": [
     {
       "name": "add-gift-package-query-service-interface",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-09-11T16:45:08.425709Z"
     },
     {
       "name": "implement-query-interface-on-concrete-service",
