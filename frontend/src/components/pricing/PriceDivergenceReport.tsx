@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Loader2, AlertCircle, AlertTriangle, ShieldCheck, Pencil } from "lucide-react";
+import { Loader2, AlertCircle, AlertTriangle, ShieldCheck, Pencil, Search, Filter } from "lucide-react";
 import { usePriceDivergenceReport, useSetProductPrice } from "../../api/hooks/useProductPricing";
 // Imported from the generated client directly (not from the hooks module) so this
 // component keeps working when tests mock ../../api/hooks/useProductPricing.
@@ -78,6 +78,12 @@ const PriceDivergenceReport: React.FC<PriceDivergenceReportProps> = ({ canWrite 
   const { data, isLoading, error } = usePriceDivergenceReport();
   const { mutateAsync: setPrice, isPending } = useSetProductPrice();
   const [showDivergentOnly, setShowDivergentOnly] = useState(false);
+  // Input vs applied, mirroring CatalogList: typing does not re-filter until Enter, so the
+  // table does not churn on every keystroke.
+  const [productNameInput, setProductNameInput] = useState("");
+  const [productCodeInput, setProductCodeInput] = useState("");
+  const [productNameFilter, setProductNameFilter] = useState("");
+  const [productCodeFilter, setProductCodeFilter] = useState("");
   const [editingCode, setEditingCode] = useState<string | null>(null);
   const [draftValue, setDraftValue] = useState("");
   const [rowErrors, setRowErrors] = useState<Record<string, string>>({});
@@ -85,7 +91,29 @@ const PriceDivergenceReport: React.FC<PriceDivergenceReportProps> = ({ canWrite 
   const rows = data?.rows ?? [];
   const summary = data?.summary;
 
-  const visibleRows = showDivergentOnly ? rows.filter((row) => isDivergent(row.kind)) : rows;
+  const applyFilters = () => {
+    setProductNameFilter(productNameInput);
+    setProductCodeFilter(productCodeInput);
+  };
+
+  const handleFilterKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
+    if (event.key === "Enter") {
+      applyFilters();
+    }
+  };
+
+  // Filtering is client-side on purpose: unlike CatalogList this screen is not paginated and
+  // already holds every row, so a round-trip per apply would re-read the whole Shoptet price
+  // list and a Flexi query for data that is already here.
+  const matchesText = (value: string | undefined, filter: string) =>
+    filter === "" || (value ?? "").toLowerCase().includes(filter.toLowerCase());
+
+  const visibleRows = rows.filter(
+    (row) =>
+      (!showDivergentOnly || isDivergent(row.kind)) &&
+      matchesText(row.productName, productNameFilter) &&
+      matchesText(row.productCode, productCodeFilter),
+  );
 
   const startEdit = (row: PriceDivergenceRowDto) => {
     if (!row.productCode) return;
@@ -208,7 +236,46 @@ const PriceDivergenceReport: React.FC<PriceDivergenceReportProps> = ({ canWrite 
         <SummaryTile testId="summary-flexi-price-type-unknown" label="Neznámý typ ceny" value={summary?.flexiPriceTypeUnknownCount ?? 0} emphasize />
       </div>
 
-      <div className="flex items-center mb-4">
+      <div className="flex flex-wrap items-center gap-4 mb-4">
+        <div className="flex items-center">
+          <Filter className="h-4 w-4 text-gray-400 dark:text-graphite-faint mr-2" />
+          <span className="text-sm font-medium text-gray-900 dark:text-graphite-text">Filtry:</span>
+        </div>
+
+        <div className="flex-1 max-w-xs">
+          <div className="relative">
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <Search className="h-4 w-4 text-gray-400 dark:text-graphite-faint" />
+            </div>
+            <input
+              type="text"
+              id="priceProductName"
+              value={productNameInput}
+              onChange={(e) => setProductNameInput(e.target.value)}
+              onKeyDown={handleFilterKeyDown}
+              className="focus:ring-indigo-500 focus:border-indigo-500 block w-full pl-10 pr-3 py-2 sm:text-sm border-gray-300 dark:border-graphite-border dark:bg-graphite-surface-2 dark:text-graphite-text dark:placeholder-graphite-faint rounded-md"
+              placeholder="Název produktu..."
+            />
+          </div>
+        </div>
+
+        <div className="flex-1 max-w-xs">
+          <div className="relative">
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <Search className="h-4 w-4 text-gray-400 dark:text-graphite-faint" />
+            </div>
+            <input
+              type="text"
+              id="priceProductCode"
+              value={productCodeInput}
+              onChange={(e) => setProductCodeInput(e.target.value)}
+              onKeyDown={handleFilterKeyDown}
+              className="focus:ring-indigo-500 focus:border-indigo-500 block w-full pl-10 pr-3 py-2 sm:text-sm border-gray-300 dark:border-graphite-border dark:bg-graphite-surface-2 dark:text-graphite-text dark:placeholder-graphite-faint rounded-md"
+              placeholder="Kód produktu..."
+            />
+          </div>
+        </div>
+
         <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-graphite-text cursor-pointer">
           <input
             type="checkbox"

@@ -42,6 +42,10 @@ const divergentRow = {
   kind: PriceDivergenceKind.FlexiDiffers,
 };
 
+// Builds a row from the in-agreement fixture so a filtering test can state only the fields
+// it actually cares about.
+const makeRow = (overrides: Record<string, unknown>) => ({ ...inAgreementRow, ...overrides });
+
 const sampleSummary = {
   totalInScope: 2,
   inAgreementCount: 1,
@@ -539,4 +543,67 @@ test("rejects a price draft below the minimum billable amount without calling th
   expect(confirmSpy).not.toHaveBeenCalled();
 
   confirmSpy.mockRestore();
+});
+
+describe("filtering", () => {
+  it("filters the table by product name", async () => {
+    renderReport({
+      rows: [
+        makeRow({ productCode: "AAA001", productName: "Alpha krém" }),
+        makeRow({ productCode: "BBB002", productName: "Beta mýdlo" }),
+      ],
+    });
+
+    const input = screen.getByPlaceholderText("Název produktu...");
+    await userEvent.type(input, "Beta{Enter}");
+
+    expect(screen.queryByText("Alpha krém")).not.toBeInTheDocument();
+    expect(screen.getByText("Beta mýdlo")).toBeInTheDocument();
+  });
+
+  it("filters the table by product code", async () => {
+    renderReport({
+      rows: [
+        makeRow({ productCode: "AAA001", productName: "Alpha krém" }),
+        makeRow({ productCode: "BBB002", productName: "Beta mýdlo" }),
+      ],
+    });
+
+    const input = screen.getByPlaceholderText("Kód produktu...");
+    await userEvent.type(input, "BBB{Enter}");
+
+    expect(screen.queryByText("Alpha krém")).not.toBeInTheDocument();
+    expect(screen.getByText("Beta mýdlo")).toBeInTheDocument();
+  });
+
+  it("does not apply a typed filter until it is submitted", async () => {
+    renderReport({
+      rows: [
+        makeRow({ productCode: "AAA001", productName: "Alpha krém" }),
+        makeRow({ productCode: "BBB002", productName: "Beta mýdlo" }),
+      ],
+    });
+
+    await userEvent.type(screen.getByPlaceholderText("Název produktu..."), "Beta");
+
+    expect(screen.getByText("Alpha krém")).toBeInTheDocument();
+    expect(screen.getByText("Beta mýdlo")).toBeInTheDocument();
+  });
+
+  it("combines the text filter with the divergent-only filter", async () => {
+    renderReport({
+      rows: [
+        makeRow({ productCode: "AAA001", productName: "Alpha krém", kind: PriceDivergenceKind.InAgreement }),
+        makeRow({ productCode: "AAA002", productName: "Alpha mýdlo", kind: PriceDivergenceKind.FlexiDiffers }),
+        makeRow({ productCode: "BBB003", productName: "Beta krém", kind: PriceDivergenceKind.FlexiDiffers }),
+      ],
+    });
+
+    await userEvent.type(screen.getByPlaceholderText("Název produktu..."), "Alpha{Enter}");
+    await userEvent.click(screen.getByRole("checkbox", { name: /pouze rozdílné/i }));
+
+    expect(screen.queryByText("Alpha krém")).not.toBeInTheDocument();
+    expect(screen.getByText("Alpha mýdlo")).toBeInTheDocument();
+    expect(screen.queryByText("Beta krém")).not.toBeInTheDocument();
+  });
 });
