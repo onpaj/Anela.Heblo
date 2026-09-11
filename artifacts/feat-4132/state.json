@@ -28,9 +28,9 @@
   "tasks": [
     {
       "name": "relocate-outlookeventdto-and-update-production-usings",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-09-11T20:21:04.716516Z"
+      "updated_at": "2026-09-11T20:26:22.391835Z"
     },
     {
       "name": "update-outlookeventdto-test-usings",
