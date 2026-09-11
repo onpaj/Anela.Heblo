@@ -22,7 +22,7 @@
     },
     "developing": {
       "status": "in_progress",
-      "updated_at": "2026-09-11T17:13:59.336646Z"
+      "updated_at": "2026-09-11T17:21:52.713114Z"
     }
   },
   "tasks": [
@@ -46,9 +46,9 @@
     },
     {
       "name": "add-gift-package-manufacture-atomicity-integration-tests",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-09-11T17:21:52.921522Z"
     },
     {
       "name": "run-full-suite-and-validate-build",
