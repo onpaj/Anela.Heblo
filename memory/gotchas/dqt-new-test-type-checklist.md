@@ -26,3 +26,14 @@ unquoted it gets eaten by zsh and the grep silently finds nothing, which is how 
 missed the first time.)
 
 Seen 2026-07-08 on the LotSumVsErpStock (Šarže vs. ERP sklad) check, PR #3553.
+
+**Missed again, item 5 only, 2026-09-10, on the PriceComparison (Kontrola cen) check.**
+Items 1-4 (enum, comparer, job, `GetDqtRunDetailHandler` branch) were done in the same PR
+that added the check; the frontend (`DqtRunDetail.tsx`'s `isDriftTestType`, `i18n.ts`,
+`DqtRunsTable.tsx`, `RunDqtButton.tsx`) was not, and the gap shipped and sat live for a
+week before being caught in a later documentation task. Symptom was worse than a crash: the
+run-detail screen fell through to `results.length` (the invoice-result array, always empty
+for a drift run) and confidently rendered "Žádné neshody nalezeny pro tento test" while the
+backend held a full set of real price mismatches. This is now the checklist's own second
+recorded miss of the exact same item — treat item 5 as the one this checklist is worst at
+enforcing, not a one-off.

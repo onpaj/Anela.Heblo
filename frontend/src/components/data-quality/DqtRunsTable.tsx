@@ -23,6 +23,7 @@ const TEST_TYPE_LABELS: Record<string, string> = {
   ProductPairing: 'Párování produktů',
   StockWriteBackReconciliation: 'Zpětný zápis skladu',
   LotSumVsErpStock: 'Šarže vs. ERP sklad',
+  PriceComparison: 'Kontrola cen',
 };
 
 const StatusIcon: React.FC<{ run: DqtRunDto }> = ({ run }) => {

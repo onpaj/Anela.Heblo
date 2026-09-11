@@ -35,6 +35,7 @@ const TEST_TYPE_OPTIONS: TestTypeOption[] = [
   { value: DqtTestType.ProductPairing, label: 'Párování produktů' },
   { value: DqtTestType.StockWriteBackReconciliation, label: 'Zpětný zápis skladu' },
   { value: DqtTestType.LotSumVsErpStock, label: 'Šarže vs. ERP sklad' },
+  { value: DqtTestType.PriceComparison, label: 'Kontrola cen' },
 ];
 
 const RunDqtButton: React.FC = () => {

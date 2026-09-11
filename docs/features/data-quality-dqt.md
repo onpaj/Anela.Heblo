@@ -4,6 +4,14 @@
 
 The DQT feature runs automated data quality checks that compare issued invoices between Shoptet and Abra Flexi for a defined time period. It surfaces mismatches on a dashboard tile and a dedicated `/data-quality` page, and runs automatically on a daily Hangfire schedule.
 
+This document covers the original test type, `IssuedInvoiceComparison`, in detail. The DQT
+framework also runs several **drift** test types on the same run/result infrastructure —
+`ProductPairing`, `StockWriteBackReconciliation`, `LotSumVsErpStock`, and
+`PriceComparison` — each with its own `IDriftDqtComparer` and Hangfire job. Of these,
+`PriceComparison` (Shoptet-vs-Flexi retail price drift) is documented in full in
+`docs/features/product-pricing.md`; see that doc for its comparison logic, tolerance, and
+dashboard tile. The remaining drift types are not yet documented here.
+
 ## How it works
 
 The comparison is a **bulk load → in-memory join**:

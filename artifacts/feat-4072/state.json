@@ -1,0 +1,58 @@
+{
+  "feature_id": "feat-4072",
+  "issue_number": 4072,
+  "created_at": "2026-09-05T08:11:15.681901Z",
+  "max_revisions": 3,
+  "phases": {
+    "analyzing": {
+      "status": "completed",
+      "updated_at": "2026-09-05T08:13:30.401092Z"
+    },
+    "architecting": {
+      "status": "completed",
+      "updated_at": "2026-09-05T08:15:54.849556Z"
+    },
+    "designing": {
+      "status": "completed",
+      "updated_at": "2026-09-05T08:16:46.447254Z"
+    },
+    "planning": {
+      "status": "completed",
+      "updated_at": "2026-09-05T08:19:44.161283Z"
+    },
+    "developing": {
+      "status": "in_progress",
+      "updated_at": "2026-09-08T02:14:21.700469Z"
+    },
+    "code-review": {
+      "status": "completed",
+      "updated_at": "2026-09-08T03:16:11.737699Z"
+    }
+  },
+  "tasks": [
+    {
+      "name": "rewrite-zero-threshold-test",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-09-07T08:07:43.355021Z"
+    },
+    {
+      "name": "rewrite-empty-text-test",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-09-07T23:38:36.055815Z"
+    },
+    {
+      "name": "rewrite-max-length-test",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-09-08T01:07:17.782482Z"
+    },
+    {
+      "name": "final-verification",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-09-08T02:57:26.213788Z"
+    }
+  ]
+}

@@ -29,6 +29,13 @@ describe('drillDownRoutes', () => {
     });
   });
 
+  it('resolves the price comparison tile to the pricing screen', () => {
+    expect(DASHBOARD_DRILLDOWN_ROUTES.productPricing).toEqual({
+      type: 'react-router',
+      path: '/products/pricing',
+    });
+  });
+
   it('resolves a react-router key to the registered path with strategy "react-router"', () => {
     const result = resolveDrillDown({ routeKey: 'dataQuality', enabled: true });
 
