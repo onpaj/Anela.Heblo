@@ -9,6 +9,9 @@ namespace Anela.Heblo.Tests.Features.ProductPricing;
 /// The 0.01 floor is the only thing between a mistyped or cleared price and a PATCH that
 /// Shoptet treats as a genuine free price on the live shop (from 2026-09-14). Both adapters
 /// serialize with ToString("F2"), so anything under 0.01 reaches the wire as "0.00".
+///
+/// The 1 000 000 ceiling is the other end of the same guard: the UI's large-change
+/// confirmation cannot protect a caller that is not the UI.
 /// </summary>
 public class SetProductPriceRequestValidatorTests
 {
@@ -16,6 +19,32 @@ public class SetProductPriceRequestValidatorTests
 
     private static SetProductPriceRequest Request(string code = "MAS001180", decimal price = 190.00m) =>
         new() { ProductCode = code, PriceWithVat = price };
+
+    [Theory]
+    [InlineData(1_000_000.01)]
+    [InlineData(9_999_999.99)]
+    public void rejects_a_price_above_the_sanity_ceiling(decimal price)
+    {
+        // Act
+        var result = _validator.Validate(Request(price: price));
+
+        // Assert
+        result.IsValid.Should().BeFalse();
+        result.Errors.Should().Contain(e => e.PropertyName == nameof(SetProductPriceRequest.PriceWithVat));
+    }
+
+    [Theory]
+    [InlineData(0.01)]
+    [InlineData(190.00)]
+    [InlineData(1_000_000)]
+    public void accepts_a_price_inside_the_bounds(decimal price)
+    {
+        // Act
+        var result = _validator.Validate(Request(price: price));
+
+        // Assert
+        result.IsValid.Should().BeTrue();
+    }
 
     [Theory]
     [InlineData(0)]
