@@ -1,6 +1,5 @@
 using Anela.Heblo.Application.Shared.Users;
-using Anela.Heblo.Domain.Features.Authorization;
-using Anela.Heblo.Domain.Features.Authorization.Entities;
+using Anela.Heblo.Application.Shared.Users.Contracts;
 using FluentAssertions;
 using Microsoft.Extensions.Caching.Memory;
 using Moq;
@@ -10,20 +9,19 @@ namespace Anela.Heblo.Tests.Shared.Users;
 
 public class UserDisplayNameResolverTests
 {
-    private readonly Mock<IAuthorizationRepository> _repository = new();
+    private readonly Mock<IUserDirectorySource> _directorySource = new();
 
     private UserDisplayNameResolver CreateResolver() =>
-        new(_repository.Object, new MemoryCache(new MemoryCacheOptions()));
+        new(_directorySource.Object, new MemoryCache(new MemoryCacheOptions()));
 
-    private void SetupUsers(params AppUser[] users) =>
-        _repository
-            .Setup(r => r.GetAllUsersAsync(It.IsAny<CancellationToken>()))
+    private void SetupUsers(params UserDirectoryEntry[] users) =>
+        _directorySource
+            .Setup(r => r.GetAllAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(users.ToList());
 
-    private static AppUser User(string? entraObjectId, string email, string displayName) =>
+    private static UserDirectoryEntry User(string? entraObjectId, string email, string displayName) =>
         new()
         {
-            Id = Guid.NewGuid(),
             EntraObjectId = entraObjectId,
             Email = email,
             DisplayName = displayName,
@@ -77,7 +75,7 @@ public class UserDisplayNameResolverTests
         var result = await CreateResolver().ResolveAsync([]);
 
         result.Should().BeEmpty();
-        _repository.Verify(r => r.GetAllUsersAsync(It.IsAny<CancellationToken>()), Times.Never);
+        _directorySource.Verify(r => r.GetAllAsync(It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]
@@ -89,6 +87,6 @@ public class UserDisplayNameResolverTests
         await resolver.ResolveAsync(["oid-1"]);
         await resolver.ResolveAsync(["oid-1"]);
 
-        _repository.Verify(r => r.GetAllUsersAsync(It.IsAny<CancellationToken>()), Times.Once);
+        _directorySource.Verify(r => r.GetAllAsync(It.IsAny<CancellationToken>()), Times.Once);
     }
 }

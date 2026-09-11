@@ -1,0 +1,40 @@
+{
+  "feature_id": "feat-4087",
+  "issue_number": 4087,
+  "created_at": "2026-09-07T06:13:45.132041Z",
+  "max_revisions": 3,
+  "phases": {
+    "analyzing": {
+      "status": "completed",
+      "updated_at": "2026-09-07T06:14:57.363278Z"
+    },
+    "architecting": {
+      "status": "completed",
+      "updated_at": "2026-09-07T06:15:49.354890Z"
+    },
+    "designing": {
+      "status": "completed",
+      "updated_at": "2026-09-07T06:16:10.756309Z"
+    },
+    "planning": {
+      "status": "completed",
+      "updated_at": "2026-09-07T06:18:14.842063Z"
+    },
+    "developing": {
+      "status": "in_progress",
+      "updated_at": "2026-09-09T13:17:52.861395Z"
+    },
+    "code-review": {
+      "status": "completed",
+      "updated_at": "2026-09-09T22:15:50.368950Z"
+    }
+  },
+  "tasks": [
+    {
+      "name": "extract-index-document-handler-phases",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-09-09T15:04:08.092374Z"
+    }
+  ]
+}

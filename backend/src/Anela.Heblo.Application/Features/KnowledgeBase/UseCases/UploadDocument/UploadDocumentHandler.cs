@@ -24,10 +24,6 @@ public class UploadDocumentHandler : IRequestHandler<UploadDocumentRequest, Uplo
         UploadDocumentRequest request,
         CancellationToken cancellationToken)
     {
-        using var ms = new MemoryStream();
-        await request.FileStream.CopyToAsync(ms, cancellationToken);
-        var fileBytes = ms.ToArray();
-
         var contentType = ContentTypeResolver.Resolve(request.ContentType, request.Filename);
 
         if (!_extractors.Any(e => e.CanHandle(contentType)))
@@ -46,7 +42,7 @@ public class UploadDocumentHandler : IRequestHandler<UploadDocumentRequest, Uplo
             Filename = request.Filename,
             SourcePath = sourcePath,
             ContentType = contentType,
-            Content = fileBytes,
+            Content = request.Content,
             DocumentType = request.DocumentType,
         }, cancellationToken);
 

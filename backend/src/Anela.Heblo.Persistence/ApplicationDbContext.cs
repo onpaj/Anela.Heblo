@@ -30,6 +30,7 @@ using Anela.Heblo.Domain.Features.PackingMaterials;
 using Anela.Heblo.Domain.Features.Packaging;
 using Anela.Heblo.Domain.Features.Dashboard;
 using Anela.Heblo.Domain.Features.Purchase;
+using Anela.Heblo.Domain.Features.ProductPricing;
 using Microsoft.EntityFrameworkCore;
 
 namespace Anela.Heblo.Persistence;
@@ -175,6 +176,9 @@ public class ApplicationDbContext : DbContext
     public DbSet<OvertimeEmployee> OvertimeEmployees { get; set; } = null!;
     public DbSet<OvertimeMonthlyStatement> OvertimeMonthlyStatements { get; set; } = null!;
     public DbSet<OvertimeAdjustment> OvertimeAdjustments { get; set; } = null!;
+
+    // Product Pricing module
+    public DbSet<ProductPriceChangeLog> ProductPriceChangeLogs { get; set; } = null!;
 
     // Authorization (in-app permissions)
     public DbSet<Anela.Heblo.Domain.Features.Authorization.Entities.AppUser> AppUsers { get; set; } = null!;

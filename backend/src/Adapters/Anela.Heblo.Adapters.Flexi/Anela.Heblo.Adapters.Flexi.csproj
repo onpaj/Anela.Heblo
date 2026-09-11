@@ -13,6 +13,7 @@
 
   <ItemGroup>
     <InternalsVisibleTo Include="Anela.Heblo.Adapters.Flexi.Tests" />
+    <InternalsVisibleTo Include="Anela.Heblo.Tests" />
     <InternalsVisibleTo Include="DynamicProxyGenAssembly2" />
   </ItemGroup>
 
