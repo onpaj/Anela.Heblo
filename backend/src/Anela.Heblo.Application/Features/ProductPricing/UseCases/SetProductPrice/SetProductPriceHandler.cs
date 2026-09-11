@@ -116,7 +116,7 @@ public class SetProductPriceHandler : IRequestHandler<SetProductPriceRequest, Se
         //    no rollback, no retry queue — the comparison screen is the safety net.
         try
         {
-            await _erpWriter.SetBasePriceAsync(erpMatch.ErpItemId, basePrice, cancellationToken);
+            await _erpWriter.SetPriceWithVatAsync(erpMatch.ErpItemId, basePrice, cancellationToken);
         }
         catch (Exception ex)
         {

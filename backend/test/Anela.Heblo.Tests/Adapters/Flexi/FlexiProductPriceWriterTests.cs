@@ -1,3 +1,4 @@
+using System.Text.Json;
 using System.Net;
 using System.Text;
 using Anela.Heblo.Adapters.Flexi.Price;
@@ -35,7 +36,7 @@ public class FlexiProductPriceWriterTests
         var (writer, requests, _) = Create();
 
         // Act
-        await writer.SetBasePriceAsync(147, 157.02m, CancellationToken.None);
+        await writer.SetPriceWithVatAsync(147, 157.02m, CancellationToken.None);
 
         // Assert
         requests.Should().ContainSingle();
@@ -51,11 +52,33 @@ public class FlexiProductPriceWriterTests
         var (writer, _, bodies) = Create();
 
         // Act
-        await writer.SetBasePriceAsync(147, 157.019m, CancellationToken.None);
+        await writer.SetPriceWithVatAsync(147, 157.019m, CancellationToken.None);
+
+        // Assert — structural, not substring: a malformed payload shape is the failure mode
+        // that a Contain() assertion has already let through to a live system once.
+        var cenik = JsonDocument.Parse(bodies[0]).RootElement
+            .GetProperty("winstrom").GetProperty("cenik");
+        cenik.GetProperty("cenaZakl").GetString().Should().Be("157.02");
+    }
+
+    [Fact]
+    public async Task declares_the_price_as_including_vat_so_flexi_does_not_gross_it_up()
+    {
+        // Arrange: Flexi interprets cenaZakl through the item's own typCenyDphK. Writing the
+        // operator's with-VAT number without saying so leaves a "bezDph" item grossing it up
+        // again — the live symptom that sent 287 in as a base price and showed 347.27 with
+        // VAT. Declaring the flag in the same PUT removes the dependency on how the item
+        // happened to be configured, and needs no VAT rate at all.
+        var (writer, _, bodies) = Create();
+
+        // Act
+        await writer.SetPriceWithVatAsync(147, 287.00m, CancellationToken.None);
 
         // Assert
-        bodies[0].Should().Contain("\"cenaZakl\":\"157.02\"");
-        bodies[0].Should().Contain("winstrom").And.Contain("cenik");
+        var cenik = JsonDocument.Parse(bodies[0]).RootElement
+            .GetProperty("winstrom").GetProperty("cenik");
+        cenik.GetProperty("cenaZakl").GetString().Should().Be("287.00");
+        cenik.GetProperty("typCenyDphK").GetString().Should().Be("typCeny.sDph");
     }
 
     [Fact]
@@ -65,7 +88,7 @@ public class FlexiProductPriceWriterTests
         var (writer, _, bodies) = Create();
 
         // Act
-        await writer.SetBasePriceAsync(147, 157.02m, CancellationToken.None);
+        await writer.SetPriceWithVatAsync(147, 157.02m, CancellationToken.None);
 
         // Assert
         bodies[0].Should().NotContain("cenanakup").And.NotContain("cenaNakup");
@@ -78,7 +101,7 @@ public class FlexiProductPriceWriterTests
         var (writer, requests, _) = Create();
 
         // Act
-        var act = () => writer.SetBasePriceAsync(0, 157.02m, CancellationToken.None);
+        var act = () => writer.SetPriceWithVatAsync(0, 157.02m, CancellationToken.None);
 
         // Assert
         await act.Should().ThrowAsync<ArgumentOutOfRangeException>();
@@ -92,7 +115,7 @@ public class FlexiProductPriceWriterTests
         var (writer, _, _) = Create(HttpStatusCode.BadRequest, "{\"winstrom\":{\"success\":\"false\"}}");
 
         // Act
-        var act = () => writer.SetBasePriceAsync(147, 157.02m, CancellationToken.None);
+        var act = () => writer.SetPriceWithVatAsync(147, 157.02m, CancellationToken.None);
 
         // Assert
         (await act.Should().ThrowAsync<HttpRequestException>()).And.Message.Should().Contain("success");
@@ -108,7 +131,7 @@ public class FlexiProductPriceWriterTests
         var (writer, requests, _) = Create();
 
         // Act
-        var act = () => writer.SetBasePriceAsync(147, priceWithoutVat, CancellationToken.None);
+        var act = () => writer.SetPriceWithVatAsync(147, priceWithoutVat, CancellationToken.None);
 
         // Assert
         await act.Should().ThrowAsync<ArgumentOutOfRangeException>();
@@ -127,7 +150,7 @@ public class FlexiProductPriceWriterTests
         var (writer, _, _) = CreateWithCache(cache);
 
         // Act
-        await writer.SetBasePriceAsync(147, 157.02m, CancellationToken.None);
+        await writer.SetPriceWithVatAsync(147, 157.02m, CancellationToken.None);
 
         // Assert
         cache.TryGetValue(FlexiProductPriceErpClient.CacheKey, out _).Should().BeFalse();
@@ -142,7 +165,7 @@ public class FlexiProductPriceWriterTests
         var (writer, _, _) = CreateWithCache(cache, HttpStatusCode.BadRequest, "{}");
 
         // Act
-        var act = () => writer.SetBasePriceAsync(147, 157.02m, CancellationToken.None);
+        var act = () => writer.SetPriceWithVatAsync(147, 157.02m, CancellationToken.None);
 
         // Assert
         await act.Should().ThrowAsync<HttpRequestException>();

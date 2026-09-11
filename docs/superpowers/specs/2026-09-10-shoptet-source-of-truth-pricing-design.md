@@ -160,13 +160,15 @@ Shoptet stores the with-VAT price directly and gets no tolerance.
    the VAT rate via `IProductVatRateProvider`, and compute the price excluding VAT, rounded to
    2 decimals away from zero. Either missing → `ProductPriceFlexiItemIdUnknown`, and **nothing
    is written anywhere**. The operator always enters a price *including*
-   VAT, and that is what is written to `cenaZakl` for every price type, unconverted — so the
-   write path consults no VAT rate at all.
-   *(Superseded twice. It first refused every non-`bezDph` item outright, on the grounds that
-   the `sDph` write semantics were unverified — which left those products unpriceable. It then
-   converted to excl-VAT for `bezDph` items only. A live save on 2026-09-11 showed that
-   conversion writing the wrong figure: Shoptet correct, Flexi holding the price without VAT.
-   Do not reintroduce it without re-testing against the live ERP.)*
+   VAT, and the write declares that: the PUT carries `cenaZakl` together with
+   `typCenyDphK: "typCeny.sDph"`, so Flexi stores the number as entered rather than
+   reinterpreting it. No VAT rate is consulted on the write path at all. The trade-off,
+   accepted knowingly: an edited item's price type in Flexi becomes `sDph`.
+   *(Superseded three times, all on live-ERP evidence. It first refused every non-`bezDph`
+   item outright as unverified, leaving those products unpriceable. It then converted to
+   excl-VAT for `bezDph` items, which wrote the wrong figure. It then wrote the with-VAT
+   figure without the flag, which a `bezDph` item grossed straight back up — 287.00 stored as
+   a base price, displayed as 347.27 with VAT.)*
 3. **Write Shoptet.** `SetPriceWithVatAsync(productCode, priceWithVat)`. On failure →
    `ProductPriceShoptetWriteFailed`; nothing has changed anywhere.
 4. **Write Flexi.** `SetPriceWithoutVatAsync(erpItemId, priceWithoutVat)`, addressed by the

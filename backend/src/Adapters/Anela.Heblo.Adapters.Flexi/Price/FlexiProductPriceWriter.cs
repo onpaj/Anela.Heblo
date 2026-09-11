@@ -10,16 +10,19 @@ using Rem.FlexiBeeSDK.Client;
 namespace Anela.Heblo.Adapters.Flexi.Price;
 
 /// <summary>
-/// Writes <c>cenaZakl</c> to a Flexi ceník item.
+/// Writes a Flexi ceník item's selling price, INCLUDING VAT.
 ///
-/// <c>cenaZakl</c> does NOT have a fixed VAT meaning — it depends on the item's own
-/// <c>typCenyDphK</c>: excluding VAT for <c>bezDph</c>, including VAT for <c>sDph</c>. This
-/// writer stores whatever value the caller computed and takes no view on which it is; see
-/// <c>SetProductPriceHandler</c>, which owns that decision.
+/// Flexi interprets <c>cenaZakl</c> through the item's own <c>typCenyDphK</c>: for a
+/// <c>bezDph</c> item it is the price excluding VAT and Flexi grosses it up on read. So the
+/// price and the flag are written TOGETHER — <c>typCeny.sDph</c> declares "this number
+/// includes VAT", which makes the write self-describing instead of dependent on how the item
+/// happened to be configured, and removes any need for a VAT rate.
+///
+/// Verified against the live ERP 2026-09-11: writing cenaZakl alone put 287 in as a base
+/// price on a bezDph item, which Flexi then showed as 347.27 including VAT.
 ///
 /// Addressed by the internal numeric id only: Flexi does not distinguish create from
 /// update, so a PUT to <c>cenik/code:UNKNOWN.json</c> silently creates a new item.
-/// </summary>
 public class FlexiProductPriceWriter : IErpPriceWriter
 {
     private readonly IHttpClientFactory _httpClientFactory;
@@ -39,7 +42,10 @@ public class FlexiProductPriceWriter : IErpPriceWriter
         _logger = logger;
     }
 
-    public async Task SetBasePriceAsync(int erpItemId, decimal basePrice, CancellationToken ct)
+    /// <summary>Flexi's enum value for "price is entered including VAT".</summary>
+    private const string IncludingVatPriceType = "typCeny.sDph";
+
+    public async Task SetPriceWithVatAsync(int erpItemId, decimal priceWithVat, CancellationToken ct)
     {
         if (erpItemId <= 0)
         {
@@ -51,11 +57,11 @@ public class FlexiProductPriceWriter : IErpPriceWriter
         // Same reason the id is guarded: this writer is reachable by any future caller that
         // has not been through SetProductPriceRequestValidator, and a zero or negative
         // cenaZakl lands in a live ERP.
-        if (basePrice <= 0m)
+        if (priceWithVat <= 0m)
         {
             throw new ArgumentOutOfRangeException(
-                nameof(basePrice),
-                basePrice,
+                nameof(priceWithVat),
+                priceWithVat,
                 "A Flexi ceník base price must be positive.");
         }
 
@@ -65,7 +71,10 @@ public class FlexiProductPriceWriter : IErpPriceWriter
             {
                 cenik = new
                 {
-                    cenaZakl = basePrice.ToString("F2", CultureInfo.InvariantCulture),
+                    cenaZakl = priceWithVat.ToString("F2", CultureInfo.InvariantCulture),
+                    // Declares what cenaZakl above means. Without it Flexi falls back to the
+                    // item's existing price type and a "bezDph" item grosses the number up.
+                    typCenyDphK = IncludingVatPriceType,
                 },
             },
         };
@@ -106,7 +115,7 @@ public class FlexiProductPriceWriter : IErpPriceWriter
         InvalidateCachedErpPrices();
 
         _logger.LogInformation(
-            "Updated Flexi ceník {ErpItemId} base price to {Price}", erpItemId, basePrice);
+            "Updated Flexi ceník {ErpItemId} base price to {Price}", erpItemId, priceWithVat);
     }
 
     private void InvalidateCachedErpPrices()

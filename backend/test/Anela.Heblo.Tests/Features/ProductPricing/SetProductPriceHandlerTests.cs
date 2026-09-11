@@ -52,7 +52,7 @@ public class SetProductPriceHandlerTests
         _eshop.Setup(c => c.SetPriceWithVatAsync("A", 210.00m, It.IsAny<CancellationToken>()))
             .Callback(() => callOrder.Add("shoptet"))
             .Returns(Task.CompletedTask);
-        _erpWriter.Setup(w => w.SetBasePriceAsync(11, 210.00m, It.IsAny<CancellationToken>()))
+        _erpWriter.Setup(w => w.SetPriceWithVatAsync(11, 210.00m, It.IsAny<CancellationToken>()))
             .Callback(() => callOrder.Add("flexi"))
             .Returns(Task.CompletedTask);
 
@@ -62,7 +62,7 @@ public class SetProductPriceHandlerTests
         // Assert
         response.Success.Should().BeTrue();
         _eshop.Verify(c => c.SetPriceWithVatAsync("A", 210.00m, It.IsAny<CancellationToken>()), Times.Once);
-        _erpWriter.Verify(w => w.SetBasePriceAsync(11, 210.00m, It.IsAny<CancellationToken>()), Times.Once);
+        _erpWriter.Verify(w => w.SetPriceWithVatAsync(11, 210.00m, It.IsAny<CancellationToken>()), Times.Once);
         callOrder.Should().Equal("shoptet", "flexi");
     }
 
@@ -108,7 +108,7 @@ public class SetProductPriceHandlerTests
 
         // Assert
         response.Success.Should().BeTrue();
-        _erpWriter.Verify(w => w.SetBasePriceAsync(11, 210.00m, It.IsAny<CancellationToken>()), Times.Once);
+        _erpWriter.Verify(w => w.SetPriceWithVatAsync(11, 210.00m, It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Theory]
@@ -130,7 +130,7 @@ public class SetProductPriceHandlerTests
 
         // Assert
         response.Success.Should().BeTrue();
-        _erpWriter.Verify(w => w.SetBasePriceAsync(11, 210.00m, It.IsAny<CancellationToken>()), Times.Once);
+        _erpWriter.Verify(w => w.SetPriceWithVatAsync(11, 210.00m, It.IsAny<CancellationToken>()), Times.Once);
     }
 
 
@@ -173,7 +173,7 @@ public class SetProductPriceHandlerTests
     public async Task reports_the_partial_failure_when_only_flexi_fails()
     {
         // Arrange
-        _erpWriter.Setup(w => w.SetBasePriceAsync(11, It.IsAny<decimal>(), It.IsAny<CancellationToken>()))
+        _erpWriter.Setup(w => w.SetPriceWithVatAsync(11, It.IsAny<decimal>(), It.IsAny<CancellationToken>()))
             .ThrowsAsync(new HttpRequestException("Flexi timeout"));
 
         // Act

@@ -85,19 +85,26 @@ Flexi's `cenaZakl` field means different things depending on the item's own pric
 The comparison surfaces this as `FlexiPriceType` (`"bezDph"`, `"sDph"`, or `null`) on every
 row so an operator can see it.
 
-**The operator always enters a price including VAT, and that is exactly what is written to
-`cenaZakl` — for every price type, with no conversion.** The write path therefore needs no
-VAT rate at all.
+**The operator always enters a price including VAT, and the write says so explicitly.** The
+PUT carries the price *and* the price-type flag together:
 
-> **Verified against the live ERP, 2026-09-11.** This originally converted the entered price
-> to excl-VAT for a `bezDph` item. A real save showed Shoptet correct and Flexi holding the
-> price *without* VAT — the wrong figure. Do not reintroduce the conversion without
-> re-testing against the live ERP.
+```json
+{"winstrom": {"cenik": {"cenaZakl": "287.00", "typCenyDphK": "typCeny.sDph"}}}
+```
 
-Because the read path still interprets `cenaZakl` per the item's price type, a product Flexi
-genuinely reports as `bezDph` will be grossed up on the next read and show as divergent in the
-comparison. That is deliberate: the comparison is the place such a disagreement should surface,
-rather than the write silently guessing which convention an item uses.
+`typCeny.sDph` declares "this number includes VAT", so Flexi stores it as entered instead of
+reinterpreting it through whatever the item was previously configured as. The write therefore
+needs **no VAT rate at all** and cannot be silently wrong because a rate was mis-read.
+
+> **Two live-ERP findings got us here (2026-09-11).** Writing the converted excl-VAT figure
+> put the wrong number in Flexi. Writing the with-VAT figure *without* the flag was no better:
+> on a `bezDph` item, `cenaZakl = 287.00` was taken as a base price and shown as 347.27
+> including VAT. Only writing both fields together makes the result independent of the item's
+> existing configuration. Do not drop `typCenyDphK` from the payload.
+
+**This changes ERP master data beyond the price:** an edited item's price type becomes
+`sDph`. That is deliberate and was chosen knowingly — if every price is entered including
+VAT, that is the setting those items should carry.
 
 ### The VAT band (read path only)
 
