@@ -76,3 +76,27 @@ which is what actually broke the deadlock this time. If the previously
 undocumented flag combo still doesn't get you unstuck, add
 `-p:UseSharedCompilation=false` before concluding the environment is
 unfixable.
+
+**Confirmed again 2026-09-10** (task: update-consumeinventoryresult-test-call-sites):
+`dotnet test` on both a single test project and `Anela.Heblo.sln` hung twice in a
+row at the same point, textbook symptoms (`futex_do_wait`/`ep_poll` on every
+thread, CPU jiffies frozen across repeated `/proc/<pid>/stat` samples). Didn't
+try the `-m:1 -nodeReuse:false -p:UseSharedCompilation=false` combo above this
+time; instead used two simpler fallbacks that also worked and are worth
+knowing as lighter-weight alternatives:
+1. **Per-test-class runs:** `dotnet build <csproj>` (plain build, no test verb)
+   completed fine every time, fast (13–32s incremental). Once built, run the
+   already-built assembly directly against `vstest.console.dll`, bypassing
+   `dotnet test`'s own build-then-run pipeline entirely:
+   ```bash
+   dotnet build backend/test/Anela.Heblo.Tests/Anela.Heblo.Tests.csproj
+   cd backend/test/Anela.Heblo.Tests/bin/Debug/net8.0
+   dotnet exec /usr/local/dotnet/sdk/8.0.424/vstest.console.dll \
+     Anela.Heblo.Tests.dll --TestCaseFilter:"FullyQualifiedName~<ClassName>"
+   ```
+2. **Full-solution regression gate:** `dotnet build Anela.Heblo.sln` (0 errors,
+   ~21s) followed by `dotnet test Anela.Heblo.sln --no-build` ran to completion
+   without hanging (whereas plain `dotnet test Anela.Heblo.sln` hung both times
+   it was tried). `--no-build` skips the implicit build step entirely, so it
+   never touches the `GenerateAccessMatrix`/nested-`dotnet run` codepath that
+   triggers the deadlock.

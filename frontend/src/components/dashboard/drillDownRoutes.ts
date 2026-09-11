@@ -1,6 +1,6 @@
 import { getConfig } from '../../config/runtimeConfig';
 
-export type DashboardDrillDownRouteKey = 'dataQuality' | 'hangfireFailedJobs';
+export type DashboardDrillDownRouteKey = 'dataQuality' | 'hangfireFailedJobs' | 'productPricing';
 
 export type DrillDownTarget =
   | { type: 'react-router'; path: string }
@@ -22,6 +22,7 @@ export interface DrillDownResolution {
 export const DASHBOARD_DRILLDOWN_ROUTES: Record<DashboardDrillDownRouteKey, DrillDownTarget> = {
   dataQuality: { type: 'react-router', path: '/automation/data-quality' },
   hangfireFailedJobs: { type: 'external', path: '/hangfire/jobs/failed' },
+  productPricing: { type: 'react-router', path: '/products/pricing' },
 };
 
 const isKnownRouteKey = (key: string): key is DashboardDrillDownRouteKey =>

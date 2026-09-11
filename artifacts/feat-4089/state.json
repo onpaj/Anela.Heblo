@@ -1,0 +1,46 @@
+{
+  "feature_id": "feat-4089",
+  "issue_number": 4089,
+  "created_at": "2026-09-07T08:12:27.385769Z",
+  "max_revisions": 3,
+  "phases": {
+    "analyzing": {
+      "status": "completed",
+      "updated_at": "2026-09-07T08:14:51.289346Z"
+    },
+    "architecting": {
+      "status": "completed",
+      "updated_at": "2026-09-07T08:16:46.982370Z"
+    },
+    "designing": {
+      "status": "completed",
+      "updated_at": "2026-09-07T08:17:41.009926Z"
+    },
+    "planning": {
+      "status": "completed",
+      "updated_at": "2026-09-07T08:22:43.122426Z"
+    },
+    "developing": {
+      "status": "in_progress",
+      "updated_at": "2026-09-10T05:15:50.509706Z"
+    },
+    "code-review": {
+      "status": "completed",
+      "updated_at": "2026-09-10T07:17:21.026935Z"
+    }
+  },
+  "tasks": [
+    {
+      "name": "add-batch-catalog-lookup-method",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-09-10T04:37:42.807198Z"
+    },
+    {
+      "name": "swap-giftpackage-service-to-batch-lookup",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-09-10T06:44:33.195732Z"
+    }
+  ]
+}

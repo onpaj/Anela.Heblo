@@ -1,8 +1,8 @@
 using Anela.Heblo.Application.Features.Catalog.Infrastructure;
 using Anela.Heblo.Application.Features.Catalog.Services;
+using Anela.Heblo.Application.Features.Logistics;
 using Anela.Heblo.Application.Features.Logistics.Contracts;
 using Anela.Heblo.Application.Features.Logistics.UseCases.ChangeTransportBoxState;
-using Anela.Heblo.Application.Features.Logistics.UseCases.GetTransportBoxById;
 using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Domain.Features.Catalog.Stock;
 using Anela.Heblo.Domain.Features.Logistics.Transport;
@@ -11,8 +11,8 @@ using Anela.Heblo.Persistence;
 using Anela.Heblo.Persistence.Catalog.Stock;
 using Anela.Heblo.Persistence.Logistics.TransportBoxes;
 using Anela.Heblo.Tests.Common;
+using AutoMapper;
 using FluentAssertions;
-using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -132,18 +132,29 @@ public class ChangeTransportBoxStateReceiveAtomicityIntegrationTests : IAsyncLif
         currentUserService.Setup(x => x.GetCurrentUser())
             .Returns(new CurrentUser("tester", "Tester", "tester@test.com", true));
 
-        var mediator = new Mock<IMediator>();
-        mediator.Setup(x => x.Send(It.IsAny<GetTransportBoxByIdRequest>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new GetTransportBoxByIdResponse());
+        var mapperConfig = new MapperConfiguration(cfg =>
+        {
+            cfg.AddProfile<TransportBoxMappingProfile>();
+        }, NullLoggerFactory.Instance);
+        var mapper = mapperConfig.CreateMapper();
+
+        var sideEffects = new ITransportBoxTransitionSideEffect[]
+        {
+            new NewToOpenedSideEffect(transportBoxRepository, currentUserService.Object, TimeProvider.System),
+            new OpenToReserveSideEffect(),
+            new OpenToQuarantineSideEffect(),
+            new ReceivedSideEffect(adapter, NullLogger<ReceivedSideEffect>.Instance),
+        };
+        var inventoryRestorer = new TransportBoxInventoryRestorer(Mock.Of<IInventoryReservationService>());
 
         return new ChangeTransportBoxStateHandler(
             transportBoxRepository,
-            Mock.Of<IInventoryReservationService>(),
-            mediator.Object,
+            mapper,
             NullLogger<ChangeTransportBoxStateHandler>.Instance,
             currentUserService.Object,
-            adapter,
-            TimeProvider.System);
+            TimeProvider.System,
+            sideEffects,
+            inventoryRestorer);
     }
 
     private static async Task<TransportBox> SeedBoxInTransitAsync(
