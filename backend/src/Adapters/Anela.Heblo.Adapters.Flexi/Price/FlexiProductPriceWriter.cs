@@ -23,6 +23,7 @@ namespace Anela.Heblo.Adapters.Flexi.Price;
 ///
 /// Addressed by the internal numeric id only: Flexi does not distinguish create from
 /// update, so a PUT to <c>cenik/code:UNKNOWN.json</c> silently creates a new item.
+/// </summary>
 public class FlexiProductPriceWriter : IErpPriceWriter
 {
     private readonly IHttpClientFactory _httpClientFactory;

@@ -18,8 +18,6 @@ namespace Anela.Heblo.Application.Features.ProductPricing.UseCases.SetProductPri
 /// </summary>
 public class SetProductPriceHandler : IRequestHandler<SetProductPriceRequest, SetProductPriceResponse>
 {
-    private const int PriceDecimals = 2;
-
     private readonly IEshopPriceListClient _eshopClient;
     private readonly IErpPriceWriter _erpWriter;
     private readonly IProductPriceErpClient _erpReader;
