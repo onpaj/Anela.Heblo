@@ -17,13 +17,20 @@
       "updated_at": "2026-09-11T10:18:12.158584Z"
     },
     "planning": {
-      "status": "in_progress",
-      "updated_at": "2026-09-11T10:18:39.459922Z"
+      "status": "completed",
+      "updated_at": "2026-09-11T10:20:49.655083Z"
     },
     "developing": {
       "status": "pending",
       "updated_at": null
     }
   },
-  "tasks": []
+  "tasks": [
+    {
+      "name": "inject-timeprovider-and-test",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    }
+  ]
 }
