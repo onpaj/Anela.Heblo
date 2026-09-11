@@ -51,7 +51,6 @@ public class FeatureFlagsController : BaseApiController
         {
             Key = key,
             IsEnabled = body.IsEnabled,
-            UpdatedBy = updatedBy,
         }, ct));
     }
 
