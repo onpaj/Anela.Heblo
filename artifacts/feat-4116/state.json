@@ -46,9 +46,9 @@
     },
     {
       "name": "add-gift-package-manufacture-atomicity-integration-tests",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-09-11T17:21:52.921522Z"
+      "updated_at": "2026-09-11T17:37:01.092125Z"
     },
     {
       "name": "run-full-suite-and-validate-build",
