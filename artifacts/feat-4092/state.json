@@ -40,9 +40,9 @@
     },
     {
       "name": "invalid-cron-path",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-09-11T16:35:19.331135Z"
+      "updated_at": "2026-09-11T16:40:09.029761Z"
     },
     {
       "name": "happy-path-utc-and-nonutc",
