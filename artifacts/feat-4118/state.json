@@ -21,16 +21,16 @@
       "updated_at": "2026-09-09T09:18:07.314774Z"
     },
     "developing": {
-      "status": "pending",
-      "updated_at": null
+      "status": "in_progress",
+      "updated_at": "2026-09-11T20:20:31.138718Z"
     }
   },
   "tasks": [
     {
       "name": "add-domain-cron-format-validation",
-      "status": "pending",
+      "status": "completed",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-09-11T21:56:41.496535Z"
     }
   ]
 }
