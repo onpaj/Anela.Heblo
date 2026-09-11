@@ -173,8 +173,12 @@ public class PriceComparisonService : IPriceComparisonService
     ///    FlexiProductPriceErpClient.MapToProductPrices), so any agreement it happens to show
     ///    cannot be trusted. This is checked, and reported, even when the numbers match —
     ///    that is the whole point of calling it out separately from FlexiDiffers/InAgreement.
-    /// 4. <see cref="PriceDivergenceKind.FlexiDiffers"/> — both known, prices disagree.
-    /// 5. <see cref="PriceDivergenceKind.InAgreement"/> — both known, prices match to 2 decimals.
+    /// 4. <see cref="PriceDivergenceKind.FlexiVatRateUnknown"/> — the price type is known but
+    ///    Flexi's VAT band is not, so a "bez DPH" item was grossed up by the read path's 21%
+    ///    assumption (see ProductPriceFlexiDto.Vat). Same reasoning as case 3: reported even
+    ///    when the numbers match, because an assumed rate can agree by coincidence.
+    /// 5. <see cref="PriceDivergenceKind.FlexiDiffers"/> — both known, prices disagree.
+    /// 6. <see cref="PriceDivergenceKind.InAgreement"/> — both known, prices match to 2 decimals.
     /// </summary>
     private static PriceDivergenceKind ClassifyRow(decimal? shoptetPriceWithVat, ProductPriceErp? erp)
     {
@@ -191,6 +195,11 @@ public class PriceComparisonService : IPriceComparisonService
         if (erp.ErpPriceType is null)
         {
             return PriceDivergenceKind.FlexiPriceTypeUnknown;
+        }
+
+        if (erp.VatRate is null)
+        {
+            return PriceDivergenceKind.FlexiVatRateUnknown;
         }
 
         return PricesAgree(shoptetPriceWithVat.Value, erp.PriceWithVat)
@@ -236,5 +245,6 @@ public class PriceComparisonService : IPriceComparisonService
             MissingInShoptetCount = rows.Count(r => r.Kind == PriceDivergenceKind.MissingInShoptet),
             MissingInFlexiCount = rows.Count(r => r.Kind == PriceDivergenceKind.MissingInFlexi),
             FlexiPriceTypeUnknownCount = rows.Count(r => r.Kind == PriceDivergenceKind.FlexiPriceTypeUnknown),
+            FlexiVatRateUnknownCount = rows.Count(r => r.Kind == PriceDivergenceKind.FlexiVatRateUnknown),
         };
 }

@@ -8,16 +8,17 @@ namespace Anela.Heblo.Application.Features.ProductPricing.Infrastructure;
 public class PriceComparisonDqtAdapter : IPriceComparisonSource
 {
     /// <summary>
-    /// FlexiPriceTypeUnknown counts as a mismatch: Flexi's with-VAT figure was derived from an
-    /// assumed price type, so any agreement it shows is untrustworthy. MissingInShoptet does
-    /// not — Shoptet is the source of truth, and a product it has never priced has no
-    /// comparison to fail.
+    /// FlexiPriceTypeUnknown and FlexiVatRateUnknown both count as mismatches: Flexi's with-VAT
+    /// figure was derived from an assumed price type or an assumed VAT rate, so any agreement it
+    /// shows is untrustworthy. MissingInShoptet does not — Shoptet is the source of truth, and a
+    /// product it has never priced has no comparison to fail.
     /// </summary>
     private static readonly PriceDivergenceKind[] MismatchKinds =
     {
         PriceDivergenceKind.FlexiDiffers,
         PriceDivergenceKind.MissingInFlexi,
         PriceDivergenceKind.FlexiPriceTypeUnknown,
+        PriceDivergenceKind.FlexiVatRateUnknown,
     };
 
     private readonly IPriceComparisonService _comparisonService;

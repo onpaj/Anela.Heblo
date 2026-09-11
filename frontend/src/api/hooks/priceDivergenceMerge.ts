@@ -29,6 +29,7 @@ export const tallySummary = (rows: PriceDivergenceRowDto[]): PriceDivergenceSumm
     missingInShoptetCount: countOfKind(rows, PriceDivergenceKind.MissingInShoptet),
     missingInFlexiCount: countOfKind(rows, PriceDivergenceKind.MissingInFlexi),
     flexiPriceTypeUnknownCount: countOfKind(rows, PriceDivergenceKind.FlexiPriceTypeUnknown),
+    flexiVatRateUnknownCount: countOfKind(rows, PriceDivergenceKind.FlexiVatRateUnknown),
   });
 
 /**

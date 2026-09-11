@@ -94,6 +94,7 @@ public class PriceComparisonDqtComparer : IDriftDqtComparer
         "FlexiDiffers" => PriceComparisonMismatch.PriceDiffers,
         "MissingInFlexi" => PriceComparisonMismatch.MissingInFlexi,
         "FlexiPriceTypeUnknown" => PriceComparisonMismatch.FlexiPriceTypeUnknown,
+        "FlexiVatRateUnknown" => PriceComparisonMismatch.FlexiVatRateUnknown,
         "MissingInShoptet" => PriceComparisonMismatch.MissingInShoptet,
         _ => PriceComparisonMismatch.Unknown,
     };

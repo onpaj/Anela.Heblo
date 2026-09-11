@@ -54,6 +54,7 @@ public class PriceComparisonServiceScopedTests
                     PriceWithoutVat = p.PriceWithVat,
                     ErpItemId = 1,
                     ErpPriceType = "bezDph",
+                    VatRate = 21m,
                 })
                 .ToList());
 

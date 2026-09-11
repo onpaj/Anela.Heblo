@@ -9,4 +9,5 @@ public class PriceDivergenceSummaryDto
     public int MissingInShoptetCount { get; set; }
     public int MissingInFlexiCount { get; set; }
     public int FlexiPriceTypeUnknownCount { get; set; }
+    public int FlexiVatRateUnknownCount { get; set; }
 }

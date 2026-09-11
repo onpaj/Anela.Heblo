@@ -46,6 +46,7 @@ public class PriceComparisonServiceTests
             PriceWithoutVat = 157.02m,
             ErpItemId = 11,
             ErpPriceType = "bezDph",
+            VatRate = 21m,
         });
     }
 
@@ -71,6 +72,7 @@ public class PriceComparisonServiceTests
             PriceWithVat = 390.00m,
             PriceWithoutVat = 322.31m,
             ErpPriceType = "bezDph",
+            VatRate = 21m,
         });
 
         // Act
@@ -98,6 +100,7 @@ public class PriceComparisonServiceTests
             PriceWithVat = 447.70m,
             PriceWithoutVat = 370.00m,
             ErpPriceType = "bezDph",
+            VatRate = 21m,
         });
 
         // Act
@@ -124,6 +127,7 @@ public class PriceComparisonServiceTests
             PriceWithVat = 100.00m,
             PriceWithoutVat = 82.64m,
             ErpPriceType = "bezDph",
+            VatRate = 21m,
         });
 
         // Act
@@ -186,6 +190,61 @@ public class PriceComparisonServiceTests
     }
 
     [Fact]
+    public async Task classifies_unrecognised_flexi_vat_band_even_when_prices_happen_to_agree()
+    {
+        // Arrange — the price type is known, so the old classification would have called this
+        // InAgreement. But an unrecognised band means the read path grossed the "bez DPH" base
+        // up by its 21% fallback, so the with-VAT figure agreeing with Shoptet proves nothing:
+        // a genuinely 12% item would have grossed up to a different number entirely.
+        WithDefaults();
+        GivenCatalog(("XYZ010", ProductType.Product, "Krem"));
+        GivenShoptetPrices(("XYZ010", 199.00m));
+        GivenErpPrices(new ProductPriceErp
+        {
+            ProductCode = "XYZ010",
+            PriceWithVat = 199.00m,
+            PriceWithoutVat = 164.46m,
+            ErpPriceType = "bezDph",
+            VatRate = null,
+        });
+
+        // Act
+        var result = await CreateService().BuildReportAsync(CancellationToken.None);
+
+        // Assert
+        var row = result.Rows.Should().ContainSingle().Subject;
+        row.Kind.Should().Be(PriceDivergenceKind.FlexiVatRateUnknown);
+        result.Summary.FlexiVatRateUnknownCount.Should().Be(1);
+        result.Summary.InAgreementCount.Should().Be(0);
+    }
+
+    [Fact]
+    public async Task classifies_unknown_price_type_over_unrecognised_vat_band_when_both_apply()
+    {
+        // Arrange — both unknowns at once. The price type wins: until it is known, nothing can
+        // say whether the VAT rate was even load-bearing for the with-VAT figure.
+        WithDefaults();
+        GivenCatalog(("XYZ011", ProductType.Product, "Krem"));
+        GivenShoptetPrices(("XYZ011", 199.00m));
+        GivenErpPrices(new ProductPriceErp
+        {
+            ProductCode = "XYZ011",
+            PriceWithVat = 250.00m,
+            PriceWithoutVat = 206.61m,
+            ErpPriceType = null,
+            VatRate = null,
+        });
+
+        // Act
+        var result = await CreateService().BuildReportAsync(CancellationToken.None);
+
+        // Assert
+        var row = result.Rows.Should().ContainSingle().Subject;
+        row.Kind.Should().Be(PriceDivergenceKind.FlexiPriceTypeUnknown);
+        result.Summary.FlexiVatRateUnknownCount.Should().Be(0);
+    }
+
+    [Fact]
     public async Task classifies_unknown_flexi_price_type_over_flexi_differs_when_both_apply()
     {
         // Arrange — precedence check: values disagree AND the price type is unknown.
@@ -241,6 +300,7 @@ public class PriceComparisonServiceTests
             PriceWithoutVat = 322.31m,
             ErpItemId = 11,
             ErpPriceType = "bezDph",
+            VatRate = 21m,
         });
 
         // Act
@@ -283,6 +343,7 @@ public class PriceComparisonServiceTests
             PriceWithVat = 447.70m,
             PriceWithoutVat = 370.00m,
             ErpPriceType = "bezDph",
+            VatRate = 21m,
         });
 
         // Act

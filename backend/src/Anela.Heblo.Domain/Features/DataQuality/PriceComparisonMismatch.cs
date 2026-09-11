@@ -14,5 +14,12 @@ public enum PriceComparisonMismatch
     /// classifies every row this way, produces zero mismatches, and renders a green
     /// "vše OK" tile over a comparison that compared nothing.
     /// </summary>
-    MissingInShoptet = 4
+    MissingInShoptet = 4,
+
+    /// <summary>
+    /// Flexi's VAT band was not one the adapter recognises, so its with-VAT price was derived
+    /// from the read path's 21% assumption. A mismatch like FlexiPriceTypeUnknown: the numbers
+    /// may happen to agree, but nothing here knows whether they really do.
+    /// </summary>
+    FlexiVatRateUnknown = 5
 }

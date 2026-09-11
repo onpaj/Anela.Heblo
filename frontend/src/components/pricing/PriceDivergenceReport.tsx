@@ -20,6 +20,7 @@ const KIND_LABELS: Record<PriceDivergenceKind, string> = {
   [PriceDivergenceKind.MissingInShoptet]: "Chybí v Shoptetu",
   [PriceDivergenceKind.MissingInFlexi]: "Chybí ve Flexi",
   [PriceDivergenceKind.FlexiPriceTypeUnknown]: "Neznámý typ ceny (Flexi)",
+  [PriceDivergenceKind.FlexiVatRateUnknown]: "Neznámá sazba DPH (Flexi)",
 };
 
 const KIND_BADGE_STYLES: Record<PriceDivergenceKind, string> = {
@@ -28,6 +29,8 @@ const KIND_BADGE_STYLES: Record<PriceDivergenceKind, string> = {
   [PriceDivergenceKind.MissingInShoptet]: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300",
   [PriceDivergenceKind.MissingInFlexi]: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300",
   [PriceDivergenceKind.FlexiPriceTypeUnknown]:
+    "bg-gray-200 text-gray-800 dark:bg-graphite-surface-2 dark:text-graphite-muted",
+  [PriceDivergenceKind.FlexiVatRateUnknown]:
     "bg-gray-200 text-gray-800 dark:bg-graphite-surface-2 dark:text-graphite-muted",
 };
 
@@ -287,6 +290,7 @@ const PriceDivergenceReport: React.FC<PriceDivergenceReportProps> = ({ canWrite 
         <SummaryTile testId="summary-missing-in-shoptet" label="Chybí v Shoptetu" value={summary?.missingInShoptetCount ?? 0} emphasize />
         <SummaryTile testId="summary-missing-in-flexi" label="Chybí ve Flexi" value={summary?.missingInFlexiCount ?? 0} emphasize />
         <SummaryTile testId="summary-flexi-price-type-unknown" label="Neznámý typ ceny" value={summary?.flexiPriceTypeUnknownCount ?? 0} emphasize />
+        <SummaryTile testId="summary-flexi-vat-rate-unknown" label="Neznámá sazba DPH" value={summary?.flexiVatRateUnknownCount ?? 0} emphasize />
       </div>
 
       <div className="flex flex-wrap items-center gap-4 mb-4">

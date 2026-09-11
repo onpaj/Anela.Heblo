@@ -40138,6 +40138,7 @@ export enum PriceDivergenceKind {
     MissingInShoptet = "MissingInShoptet",
     MissingInFlexi = "MissingInFlexi",
     FlexiPriceTypeUnknown = "FlexiPriceTypeUnknown",
+    FlexiVatRateUnknown = "FlexiVatRateUnknown",
 }
 
 export class PriceDivergenceSummaryDto implements IPriceDivergenceSummaryDto {
@@ -40147,6 +40148,7 @@ export class PriceDivergenceSummaryDto implements IPriceDivergenceSummaryDto {
     missingInShoptetCount?: number;
     missingInFlexiCount?: number;
     flexiPriceTypeUnknownCount?: number;
+    flexiVatRateUnknownCount?: number;
 
     constructor(data?: IPriceDivergenceSummaryDto) {
         if (data) {
@@ -40165,6 +40167,7 @@ export class PriceDivergenceSummaryDto implements IPriceDivergenceSummaryDto {
             this.missingInShoptetCount = _data["missingInShoptetCount"];
             this.missingInFlexiCount = _data["missingInFlexiCount"];
             this.flexiPriceTypeUnknownCount = _data["flexiPriceTypeUnknownCount"];
+            this.flexiVatRateUnknownCount = _data["flexiVatRateUnknownCount"];
         }
     }
 
@@ -40183,6 +40186,7 @@ export class PriceDivergenceSummaryDto implements IPriceDivergenceSummaryDto {
         data["missingInShoptetCount"] = this.missingInShoptetCount;
         data["missingInFlexiCount"] = this.missingInFlexiCount;
         data["flexiPriceTypeUnknownCount"] = this.flexiPriceTypeUnknownCount;
+        data["flexiVatRateUnknownCount"] = this.flexiVatRateUnknownCount;
         return data;
     }
 }
@@ -40194,6 +40198,7 @@ export interface IPriceDivergenceSummaryDto {
     missingInShoptetCount?: number;
     missingInFlexiCount?: number;
     flexiPriceTypeUnknownCount?: number;
+    flexiVatRateUnknownCount?: number;
 }
 
 export class SyncProductPricesResponse extends BaseResponse implements ISyncProductPricesResponse {
