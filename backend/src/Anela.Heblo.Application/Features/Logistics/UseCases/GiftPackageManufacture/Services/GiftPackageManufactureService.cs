@@ -9,7 +9,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Anela.Heblo.Application.Features.Logistics.UseCases.GiftPackageManufacture.Services;
 
-public class GiftPackageManufactureService : IGiftPackageManufactureService
+public class GiftPackageManufactureService : IGiftPackageManufactureService, IGiftPackageQueryService
 {
     private readonly IManufactureClient _manufactureClient;
     private readonly IGiftPackageManufactureRepository _giftPackageRepository;
