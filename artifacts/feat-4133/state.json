@@ -25,5 +25,18 @@
       "updated_at": null
     }
   },
-  "tasks": []
+  "tasks": [
+    {
+      "name": "convert-get-purchase-order-requests",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    },
+    {
+      "name": "convert-update-purchase-order-status-request",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    }
+  ]
 }
