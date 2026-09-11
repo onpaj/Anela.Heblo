@@ -30,4 +30,10 @@ public class ShoptetApiSettings
     /// rather than inflating it (e.g. 50 pcs × 500 g = 25 kg on order 126014878).
     /// </summary>
     public int DefaultItemWeightGrams { get; set; } = 0;
+
+    /// <summary>
+    /// Shoptet price list to sync retail prices with. When null the client resolves the
+    /// e-shop's default list via GET /api/pricelists. Configure as Shoptet:DefaultPriceListId.
+    /// </summary>
+    public int? DefaultPriceListId { get; set; }
 }
