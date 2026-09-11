@@ -129,17 +129,36 @@ export const useSyncProductPrices = () => {
       }
     },
     onSuccess: async (syncedRows) => {
+      // Read before cancelling: a refetch in flight (or one already queued by an invalidate)
+      // is one the cancel below is about to throw away, and that has to be made good.
+      const stateBeforeCancel = queryClient.getQueryState<PriceDivergenceReportData>(
+        QUERY_KEYS.divergence,
+      );
+      const discardedAPendingRefetch =
+        stateBeforeCancel?.fetchStatus === "fetching" || stateBeforeCancel?.isInvalidated === true;
+
       // A price save invalidates this query, and that whole-catalogue refetch across two live
       // systems is slow. React Query does not discard a resolved fetch because a
       // `setQueryData` happened meanwhile, so without this cancel the refetch lands last and
       // silently replaces the freshly force-reloaded prices with Flexi's five-minute cache —
-      // exactly what the sync exists to defeat. The cancelled refetch is no loss: it would
-      // carry staler data for the synced rows than what just arrived.
+      // exactly what the sync exists to defeat.
       await queryClient.cancelQueries({ queryKey: QUERY_KEYS.divergence });
 
       queryClient.setQueryData<PriceDivergenceReportData>(QUERY_KEYS.divergence, (current) =>
         current ? mergeSyncedRows(current, syncedRows) : current,
       );
+
+      if (!discardedAPendingRefetch) return;
+
+      // That refetch was not necessarily stale news. A save that landed AFTER this sync's
+      // backend read is invisible to the merged rows, and `setQueryData` marks the report
+      // fresh for the whole five-minute `staleTime`, so neither a remount nor a window focus
+      // would ever correct it — the operator would watch their own write appear not to apply.
+      //
+      // Refetching now costs nothing in freshness: this sync force-reloaded Flexi's ceník
+      // cache, so the refetch reads the same prices it just wrote there, plus the rows the
+      // selection left out. The merged rows stay on screen while it runs in the background.
+      await queryClient.invalidateQueries({ queryKey: QUERY_KEYS.divergence });
     },
   });
 };

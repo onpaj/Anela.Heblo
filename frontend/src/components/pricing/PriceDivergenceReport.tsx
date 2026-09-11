@@ -508,7 +508,10 @@ const DivergenceRow: React.FC<DivergenceRowProps> = ({
           </div>
         )}
       </td>
-      <td className="px-4 py-3 whitespace-nowrap text-right text-sm text-gray-900 dark:text-graphite-text">
+      <td
+        data-testid={`divergence-flexi-price-${row.productCode}`}
+        className="px-4 py-3 whitespace-nowrap text-right text-sm text-gray-900 dark:text-graphite-text"
+      >
         {row.flexiPriceWithVat != null ? formatCurrency(row.flexiPriceWithVat) : "—"}
       </td>
       <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 dark:text-graphite-text">

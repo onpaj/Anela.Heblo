@@ -81,7 +81,10 @@ describe("PriceDivergenceReport sync racing an in-flight report refetch", () => 
     const productPricing_GetDivergenceReport = jest
       .fn()
       .mockResolvedValueOnce(reportWith(PriceDivergenceKind.InAgreement, 200))
-      .mockReturnValueOnce(slowRefetch);
+      .mockReturnValueOnce(slowRefetch)
+      // The make-good refetch the sync schedules because it cancelled one. It reads Flexi's
+      // cache AFTER the sync force-reloaded it, so it agrees with the synced rows.
+      .mockResolvedValue(reportWith(PriceDivergenceKind.FlexiDiffers, 260));
     const productPricing_SetPrice = jest
       .fn()
       .mockResolvedValue(SetProductPriceResponse.fromJS({ success: true, priceWithVat: 210 }));
@@ -123,5 +126,77 @@ describe("PriceDivergenceReport sync racing an in-flight report refetch", () => 
     expect(productPricing_Sync).toHaveBeenCalledTimes(1);
     expect(screen.getByTestId("divergence-kind-A")).toHaveTextContent("Flexi se liší");
     expect(screen.getByTestId("divergence-kind-A")).not.toHaveTextContent("Ve shodě");
+  });
+
+  /**
+   * The mirror of the case above, and the one the cancel alone gets wrong. Here the operator
+   * saves WHILE the sync is in flight, so the save's refetch carries a price the sync's
+   * backend read never saw. Cancelling it and marking the merged report fresh would hide the
+   * operator's own write for the whole five-minute staleTime — no remount and no window focus
+   * would correct it, because the cache believes it is current.
+   */
+  it("does not strand a save that landed while the sync was in flight", async () => {
+    // Arrange
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+    });
+
+    let resolveSync: (value: SyncProductPricesResponse) => void = () => {};
+    const pendingSync = new Promise<SyncProductPricesResponse>((resolve) => {
+      resolveSync = resolve;
+    });
+
+    // The save's refetch never resolves on its own: it has to be genuinely in flight when the
+    // sync cancels it, otherwise it would land first and the assertion below would hold
+    // however the hook behaves.
+    const neverResolves = new Promise<GetPriceDivergenceReportResponse>(() => {});
+
+    const productPricing_GetDivergenceReport = jest
+      .fn()
+      .mockResolvedValueOnce(reportWith(PriceDivergenceKind.InAgreement, 200))
+      .mockReturnValueOnce(neverResolves)
+      // Only the make-good refetch can produce this: it is the third call, and it reads the
+      // price the operator actually saved.
+      .mockResolvedValue(reportWith(PriceDivergenceKind.FlexiDiffers, 999));
+    const productPricing_SetPrice = jest
+      .fn()
+      .mockResolvedValue(SetProductPriceResponse.fromJS({ success: true, priceWithVat: 210 }));
+    const productPricing_Sync = jest.fn().mockReturnValue(pendingSync);
+
+    mockGetAuthenticatedApiClient.mockReturnValue({
+      productPricing_GetDivergenceReport,
+      productPricing_SetPrice,
+      productPricing_Sync,
+    } as unknown as ReturnType<typeof getAuthenticatedApiClient>);
+
+    const wrapper = ({ children }: { children: ReactNode }) =>
+      React.createElement(QueryClientProvider, { client: queryClient }, children);
+
+    render(<PriceDivergenceReport canWrite />, { wrapper });
+    await screen.findByText("Alpha");
+
+    // Act — start the sync, and while it hangs, save a price. The save's invalidate starts the
+    // refetch that the sync's onSuccess is about to cancel.
+    await userEvent.click(screen.getByTestId("sync-prices-button"));
+    await waitFor(() => expect(productPricing_Sync).toHaveBeenCalledTimes(1));
+
+    await userEvent.click(screen.getByRole("button", { name: "Upravit cenu Alpha", exact: true }));
+    const input = screen.getByRole("spinbutton", { name: "Cena s DPH", exact: true });
+    await userEvent.clear(input);
+    await userEvent.type(input, "210");
+    await userEvent.click(screen.getByRole("button", { name: "Uložit", exact: true }));
+    await waitFor(() => expect(productPricing_GetDivergenceReport).toHaveBeenCalledTimes(2));
+
+    // ...now the sync resolves, carrying rows read BEFORE that save.
+    resolveSync(syncResponse);
+    await waitFor(() => expect(queryClient.isFetching({ queryKey: ["product-pricing", "divergence"] })).toBe(0));
+
+    // Assert — the cancelled refetch is made good, so the report ends on the post-save truth
+    // (999) rather than on the sync's pre-save rows (260 Kc), which the cache would otherwise
+    // treat as fresh for five minutes with nothing left to correct it.
+    expect(productPricing_GetDivergenceReport).toHaveBeenCalledTimes(3);
+    await waitFor(() =>
+      expect(screen.getByTestId("divergence-flexi-price-A")).toHaveTextContent("999"),
+    );
   });
 });
