@@ -86,7 +86,7 @@ public class BreakInsertionServiceTests
 
         summary.BreaksInserted.Should().Be(1);
         _client.Verify(c => c.CreateTimeEntryAsync(
-            It.Is<LogetoCreateTimeEntryRequest>(r =>
+            It.Is<LogetoTimeEntryRequest>(r =>
                 r.Person == Worker
                 && r.Activity == BreakActivity
                 && r.Date == Day
@@ -168,7 +168,7 @@ public class BreakInsertionServiceTests
         summary.BreaksInserted.Should().Be(0);
         summary.SkippedExistingBreak.Should().Be(1);
         _client.Verify(c => c.CreateTimeEntryAsync(
-            It.IsAny<LogetoCreateTimeEntryRequest>(), It.IsAny<bool>(), It.IsAny<CancellationToken>()), Times.Never);
+            It.IsAny<LogetoTimeEntryRequest>(), It.IsAny<bool>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]
@@ -304,7 +304,7 @@ public class BreakInsertionServiceTests
         SetupDefaults(entryDay2, WorkEntry(8, 0, 16, 30));
 
         _client.SetupSequence(c => c.CreateTimeEntryAsync(
-                It.IsAny<LogetoCreateTimeEntryRequest>(), It.IsAny<bool>(), It.IsAny<CancellationToken>()))
+                It.IsAny<LogetoTimeEntryRequest>(), It.IsAny<bool>(), It.IsAny<CancellationToken>()))
             .ThrowsAsync(new InvalidOperationException("boom"))
             .Returns(Task.CompletedTask);
 
@@ -333,7 +333,7 @@ public class BreakInsertionServiceTests
         summary.BreaksInserted.Should().Be(0);
         summary.SkippedInProgress.Should().Be(1);
         _client.Verify(c => c.CreateTimeEntryAsync(
-            It.IsAny<LogetoCreateTimeEntryRequest>(), It.IsAny<bool>(), It.IsAny<CancellationToken>()), Times.Never);
+            It.IsAny<LogetoTimeEntryRequest>(), It.IsAny<bool>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]
@@ -402,7 +402,7 @@ public class BreakInsertionServiceTests
 
         summary.BreaksInserted.Should().Be(1);
         _client.Verify(c => c.CreateTimeEntryAsync(
-            It.Is<LogetoCreateTimeEntryRequest>(r =>
+            It.Is<LogetoTimeEntryRequest>(r =>
                 r.Date == Today
                 && r.From == "2026-08-04T11:30:00"
                 && r.To == "2026-08-04T12:00:00"),
@@ -421,14 +421,14 @@ public class BreakInsertionServiceTests
 
         summary.BreaksInserted.Should().Be(1);
         _client.Verify(c => c.CreateTimeEntryAsync(
-            It.Is<LogetoCreateTimeEntryRequest>(r =>
+            It.Is<LogetoTimeEntryRequest>(r =>
                 r.Date == Day
                 && r.From == "2026-08-03T11:30:00" // preferred window sits strictly inside the morning shift
                 && r.To == "2026-08-03T12:00:00"),
             true,
             It.IsAny<CancellationToken>()), Times.Once);
         _client.Verify(c => c.CreateTimeEntryAsync(
-            It.IsAny<LogetoCreateTimeEntryRequest>(), It.IsAny<bool>(), It.IsAny<CancellationToken>()), Times.Once);
+            It.IsAny<LogetoTimeEntryRequest>(), It.IsAny<bool>(), It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
@@ -443,7 +443,7 @@ public class BreakInsertionServiceTests
 
         summary.BreaksInserted.Should().Be(1);
         _client.Verify(c => c.CreateTimeEntryAsync(
-            It.Is<LogetoCreateTimeEntryRequest>(r =>
+            It.Is<LogetoTimeEntryRequest>(r =>
                 r.Date == Day
                 && r.From == "2026-08-03T08:45:00"
                 && r.To == "2026-08-03T09:15:00"),
@@ -490,7 +490,7 @@ public class BreakInsertionServiceTests
         summary.DaysScanned.Should().Be(1); // only the in-window day was scanned
         summary.BreaksInserted.Should().Be(1);
         _client.Verify(c => c.CreateTimeEntryAsync(
-            It.Is<LogetoCreateTimeEntryRequest>(r => r.Date == outsideDate),
+            It.Is<LogetoTimeEntryRequest>(r => r.Date == outsideDate),
             It.IsAny<bool>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 

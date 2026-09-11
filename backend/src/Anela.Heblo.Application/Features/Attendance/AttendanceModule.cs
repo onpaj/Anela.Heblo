@@ -13,10 +13,15 @@ public static class AttendanceModule
         services.AddOptions<BreakInsertionOptions>()
             .Bind(configuration.GetSection(BreakInsertionOptions.ConfigKey));
 
+        services.AddOptions<AbsenceHoursOptions>()
+            .Bind(configuration.GetSection(AbsenceHoursOptions.ConfigKey));
+
         services.TryAddSingleton(TimeProvider.System);
         services.AddScoped<Services.BreakInsertionService>();
+        services.AddScoped<Services.AbsenceHoursService>();
 
-        // BreakInsertionJob is auto-discovered via the IRecurringJob assembly scan in AddRecurringJobs().
+        // BreakInsertionJob and AbsenceHoursJob are auto-discovered via the IRecurringJob
+        // assembly scan in AddRecurringJobs().
 
         return services;
     }

@@ -1,5 +1,6 @@
 using System.Net;
 using System.Text;
+using System.Text.Json;
 using Anela.Heblo.Adapters.Logeto;
 using Anela.Heblo.Domain.Features.Attendance;
 using FluentAssertions;
@@ -176,7 +177,7 @@ public class LogetoClientTests
         var handler = new StubHandler(Json("""{"Guid":"33333333-3333-3333-3333-333333333333"}""", HttpStatusCode.Created));
         var client = CreateClient(handler);
 
-        await client.CreateTimeEntryAsync(new LogetoCreateTimeEntryRequest
+        await client.CreateTimeEntryAsync(new LogetoTimeEntryRequest
         {
             Person = Guid.Parse("11111111-1111-1111-1111-111111111111"),
             Activity = Guid.Parse("22222222-2222-2222-2222-222222222222"),
@@ -192,6 +193,85 @@ public class LogetoClientTests
         handler.Requests[0].RequestUri!.PathAndQuery.Should().Be("/api/v2/TimeTracking?merge=true");
         handler.RequestBodies[0].Should().Contain("\"Person\"").And.Contain("\"Billable\":false");
         handler.RequestBodies[0].Should().NotContain("\"ExternalKey\"", "null members must be omitted");
+    }
+
+    [Fact]
+    public async Task UpdateTimeEntryAsync_PutsToTheRecordUrlWithMergeFalse()
+    {
+        var handler = new StubHandler(Json("""{"Guid":"33333333-3333-3333-3333-333333333333"}"""));
+        var client = CreateClient(handler);
+        var guid = Guid.Parse("33333333-3333-3333-3333-333333333333");
+
+        await client.UpdateTimeEntryAsync(guid, new LogetoTimeEntryRequest
+        {
+            Person = Guid.Parse("11111111-1111-1111-1111-111111111111"),
+            Activity = Guid.Parse("22222222-2222-2222-2222-222222222222"),
+            Date = new DateOnly(2026, 8, 3),
+            Hours = "06:24:00",
+            Billable = false
+        }, CancellationToken.None);
+
+        handler.Requests[0].Method.Should().Be(HttpMethod.Put);
+        handler.Requests[0].RequestUri!.PathAndQuery.Should()
+            .Be($"/api/v2/TimeTracking/{guid}?merge=false");
+        handler.Requests[0].Headers.GetValues("AccessKey").Should().ContainSingle()
+            .Which.Should().Be("test-key");
+    }
+
+    [Fact]
+    public async Task UpdateTimeEntryAsync_SerializesFullReplacementBody_AndOmitsNulls()
+    {
+        var handler = new StubHandler(Json("""{"Guid":"33333333-3333-3333-3333-333333333333"}"""));
+        var client = CreateClient(handler);
+
+        await client.UpdateTimeEntryAsync(Guid.Parse("33333333-3333-3333-3333-333333333333"),
+            new LogetoTimeEntryRequest
+            {
+                Person = Guid.Parse("11111111-1111-1111-1111-111111111111"),
+                Activity = Guid.Parse("22222222-2222-2222-2222-222222222222"),
+                Date = new DateOnly(2026, 8, 3),
+                Hours = "06:24:00",
+                Billable = false,
+                Description = "Dovolená",
+                Contract = Guid.Parse("44444444-4444-4444-4444-444444444444"),
+                Subcontract = null,
+                ExternalKey = null
+            }, CancellationToken.None);
+
+        // Assert on the parsed document, not on substrings: a Contain() check passes on a body
+        // whose shape is wrong (nested, differently cased, or carrying extra members).
+        var body = JsonDocument.Parse(handler.RequestBodies[0]).RootElement;
+        body.GetProperty("Person").GetString().Should().Be("11111111-1111-1111-1111-111111111111");
+        body.GetProperty("Activity").GetString().Should().Be("22222222-2222-2222-2222-222222222222");
+        body.GetProperty("Date").GetString().Should().Be("2026-08-03");
+        body.GetProperty("Hours").GetString().Should().Be("06:24:00");
+        body.GetProperty("Billable").GetBoolean().Should().BeFalse();
+        body.GetProperty("Description").GetString().Should().Be("Dovolená");
+        body.GetProperty("Contract").GetString().Should().Be("44444444-4444-4444-4444-444444444444");
+        body.TryGetProperty("Subcontract", out _).Should().BeFalse("null members must be omitted");
+        body.TryGetProperty("ExternalKey", out _).Should().BeFalse("no ExternalKey of our own is ever stamped");
+    }
+
+    [Fact]
+    public async Task UpdateTimeEntryAsync_ErrorResponse_ThrowsLogetoApiException()
+    {
+        var handler = new StubHandler(Json(
+            """{"Error":{"Code":"InvalidTime","Message":"Seconds must be zero"}}""",
+            HttpStatusCode.BadRequest));
+        var client = CreateClient(handler);
+
+        var act = () => client.UpdateTimeEntryAsync(Guid.NewGuid(), new LogetoTimeEntryRequest
+        {
+            Person = Guid.NewGuid(),
+            Activity = Guid.NewGuid(),
+            Date = new DateOnly(2026, 8, 3),
+            Hours = "06:24:30",
+            Billable = false
+        }, CancellationToken.None);
+
+        var ex = await act.Should().ThrowAsync<LogetoApiException>();
+        ex.Which.StatusCode.Should().Be(400);
+        ex.Which.ApiErrorCode.Should().Be("InvalidTime");
     }
 
     [Fact]
