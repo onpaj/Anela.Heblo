@@ -231,6 +231,45 @@ public class GiftPackageManufactureServiceTests
     }
 
     [Fact]
+    public async Task DisassembleGiftPackageAsync_WithZeroQuantity_ThrowsArgumentExceptionBeforeAnyRepositoryCall()
+    {
+        await _service.Invoking(x => x.DisassembleGiftPackageAsync("SET001", 0, "tester", CancellationToken.None))
+            .Should().ThrowAsync<ArgumentException>();
+
+        _giftPackageRepositoryMock.Verify(
+            x => x.ExecuteInTransactionAsync(
+                It.IsAny<Func<CancellationToken, Task<GiftPackageDisassemblyDto>>>(),
+                It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
+
+    [Fact]
+    public async Task DisassembleGiftPackageAsync_WithQuantityExceedingAvailableStock_ThrowsInvalidOperationExceptionBeforeAnyRepositoryCall()
+    {
+        var giftPackageCode = "SET001";
+        var product = CreateGiftPackageItem(giftPackageCode, "Test Gift Set 1", 100, 50);
+
+        _catalogSourceMock
+            .Setup(x => x.GetGiftPackageAsync(giftPackageCode, It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(product);
+        _manufactureClientMock
+            .Setup(x => x.GetSetPartsAsync(giftPackageCode, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(CreateTestProductParts());
+        _catalogSourceMock
+            .Setup(x => x.GetCatalogItemAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((string code, CancellationToken _) => new LogisticsCatalogItem { ProductCode = code, AvailableStock = 50m });
+
+        await _service.Invoking(x => x.DisassembleGiftPackageAsync(giftPackageCode, 999, "tester", CancellationToken.None))
+            .Should().ThrowAsync<InvalidOperationException>();
+
+        _giftPackageRepositoryMock.Verify(
+            x => x.ExecuteInTransactionAsync(
+                It.IsAny<Func<CancellationToken, Task<GiftPackageDisassemblyDto>>>(),
+                It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
+
+    [Fact]
     public async Task GetAvailableGiftPackagesAsync_WithZeroDaysDiff_ShouldUseDaysDiffAsOne()
     {
         // Arrange

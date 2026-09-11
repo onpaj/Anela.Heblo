@@ -235,75 +235,80 @@ public class GiftPackageManufactureService : IGiftPackageManufactureService
                 $"Nelze rozebrat {quantity} ks. Dostupné množství: {giftPackage.AvailableStock} ks");
         }
 
-        // 2. Create log entry with OperationType.Disassembly
-        var disassemblyLog = new GiftPackageManufactureLog(
-            giftPackageCode,
-            quantity,
-            _timeProvider.GetUtcNow().DateTime,
-            userName,
-            GiftPackageOperationType.Disassembly);
-
-        // CRITICAL: Save the log FIRST to get the ID for DocumentNumber
-        await _giftPackageRepository.AddAsync(disassemblyLog);
-        await _giftPackageRepository.SaveChangesAsync(cancellationToken);
-
-        _logger.LogInformation("Created GiftPackageDisassemblyLog {LogId} for {GiftPackageCode}, quantity: {Quantity}",
-            disassemblyLog.Id, giftPackageCode, quantity);
-
-        // 3. Stock-DOWN for finished product (negative amount)
-        var packageDocNumber = $"GPD-{disassemblyLog.Id:000000}-{giftPackageCode}";
-
-        _logger.LogDebug("Creating stock-down operation for package: {DocumentNumber} - {ProductCode}, Amount: {Amount}",
-            packageDocNumber, giftPackageCode, -quantity);
-
-        await _stockOperationService.CreateOperationAsync(
-            packageDocNumber,
-            giftPackageCode,
-            -quantity,  // Negative = removal from stock
-            LogisticsStockOperationSource.GiftPackageManufacture,
-            disassemblyLog.Id,
-            cancellationToken);
-
-        // 4. Stock-UP for each component (positive amounts)
-        var returnedComponents = new List<GiftPackageDisassemblyItemDto>();
-
-        foreach (var ingredient in giftPackage.Ingredients ?? new List<GiftPackageIngredientDto>())
+        // Cross-repository note: see CreateManufactureAsync above — same shared ApplicationDbContext
+        // caveat applies to this call site.
+        return await _giftPackageRepository.ExecuteInTransactionAsync(async ct =>
         {
-            var returnedQuantity = (int)(ingredient.RequiredQuantity * quantity);
-            disassemblyLog.AddConsumedItem(ingredient.ProductCode, returnedQuantity);
+            // 2. Create log entry with OperationType.Disassembly
+            var disassemblyLog = new GiftPackageManufactureLog(
+                giftPackageCode,
+                quantity,
+                _timeProvider.GetUtcNow().DateTime,
+                userName,
+                GiftPackageOperationType.Disassembly);
 
-            // DocumentNumber format: GPD-{logId:000000}-{productCode}
-            var documentNumber = $"GPD-{disassemblyLog.Id:000000}-{ingredient.ProductCode}";
+            // CRITICAL: Save the log FIRST to get the ID for DocumentNumber
+            await _giftPackageRepository.AddAsync(disassemblyLog, ct);
+            await _giftPackageRepository.SaveChangesAsync(ct);
 
-            _logger.LogDebug("Creating stock-up operation for component: {DocumentNumber} - {ProductCode}, Amount: {Amount}",
-                documentNumber, ingredient.ProductCode, returnedQuantity);
+            _logger.LogInformation("Created GiftPackageDisassemblyLog {LogId} for {GiftPackageCode}, quantity: {Quantity}",
+                disassemblyLog.Id, giftPackageCode, quantity);
+
+            // 3. Stock-DOWN for finished product (negative amount)
+            var packageDocNumber = $"GPD-{disassemblyLog.Id:000000}-{giftPackageCode}";
+
+            _logger.LogDebug("Creating stock-down operation for package: {DocumentNumber} - {ProductCode}, Amount: {Amount}",
+                packageDocNumber, giftPackageCode, -quantity);
 
             await _stockOperationService.CreateOperationAsync(
-                documentNumber,
-                ingredient.ProductCode,
-                returnedQuantity,  // Positive = return to stock
+                packageDocNumber,
+                giftPackageCode,
+                -quantity,  // Negative = removal from stock
                 LogisticsStockOperationSource.GiftPackageManufacture,
                 disassemblyLog.Id,
-                cancellationToken);
+                ct);
 
-            returnedComponents.Add(new GiftPackageDisassemblyItemDto
+            // 4. Stock-UP for each component (positive amounts)
+            var returnedComponents = new List<GiftPackageDisassemblyItemDto>();
+
+            foreach (var ingredient in giftPackage.Ingredients ?? new List<GiftPackageIngredientDto>())
             {
-                ProductCode = ingredient.ProductCode,
-                QuantityReturned = returnedQuantity
-            });
-        }
+                var returnedQuantity = (int)(ingredient.RequiredQuantity * quantity);
+                disassemblyLog.AddConsumedItem(ingredient.ProductCode, returnedQuantity);
 
-        _logger.LogInformation("Successfully completed GiftPackageDisassembly {LogId} for {GiftPackageCode}",
-            disassemblyLog.Id, giftPackageCode);
+                // DocumentNumber format: GPD-{logId:000000}-{productCode}
+                var documentNumber = $"GPD-{disassemblyLog.Id:000000}-{ingredient.ProductCode}";
 
-        return new GiftPackageDisassemblyDto
-        {
-            GiftPackageCode = giftPackageCode,
-            QuantityDisassembled = quantity,
-            DisassembledAt = disassemblyLog.CreatedAt,
-            DisassembledBy = disassemblyLog.CreatedBy,
-            ReturnedComponents = returnedComponents
-        };
+                _logger.LogDebug("Creating stock-up operation for component: {DocumentNumber} - {ProductCode}, Amount: {Amount}",
+                    documentNumber, ingredient.ProductCode, returnedQuantity);
+
+                await _stockOperationService.CreateOperationAsync(
+                    documentNumber,
+                    ingredient.ProductCode,
+                    returnedQuantity,  // Positive = return to stock
+                    LogisticsStockOperationSource.GiftPackageManufacture,
+                    disassemblyLog.Id,
+                    ct);
+
+                returnedComponents.Add(new GiftPackageDisassemblyItemDto
+                {
+                    ProductCode = ingredient.ProductCode,
+                    QuantityReturned = returnedQuantity
+                });
+            }
+
+            _logger.LogInformation("Successfully completed GiftPackageDisassembly {LogId} for {GiftPackageCode}",
+                disassemblyLog.Id, giftPackageCode);
+
+            return new GiftPackageDisassemblyDto
+            {
+                GiftPackageCode = giftPackageCode,
+                QuantityDisassembled = quantity,
+                DisassembledAt = disassemblyLog.CreatedAt,
+                DisassembledBy = disassemblyLog.CreatedBy,
+                ReturnedComponents = returnedComponents
+            };
+        }, cancellationToken);
     }
 
     private (DateTime From, DateTime To, int Days) ResolveDateRange(DateTime? fromDate, DateTime? toDate)
