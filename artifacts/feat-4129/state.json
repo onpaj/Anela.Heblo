@@ -28,9 +28,9 @@
   "tasks": [
     {
       "name": "handler-identity-resolution",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-09-11T20:21:23.461041Z"
+      "updated_at": "2026-09-11T21:01:53.509471Z"
     },
     {
       "name": "controller-simplification",
