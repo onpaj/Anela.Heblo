@@ -46,9 +46,9 @@
     },
     {
       "name": "narrow-manufacture-interface-and-update-query-handlers",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-09-11T17:17:23.458402Z"
+      "updated_at": "2026-09-11T17:22:32.138403Z"
     },
     {
       "name": "verify-full-solution",
