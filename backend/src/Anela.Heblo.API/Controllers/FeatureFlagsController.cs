@@ -42,17 +42,11 @@ public class FeatureFlagsController : BaseApiController
         string key,
         [FromBody] UpsertFlagOverrideBodyDto body,
         CancellationToken ct)
-    {
-        var name = User.Identity?.Name;
-        if (name is null)
-            Logger.LogWarning("UpsertFlagOverride: User.Identity.Name resolved to null for authenticated request");
-        var updatedBy = name ?? "unknown";
-        return HandleResponse(await _mediator.Send(new UpsertFlagOverrideRequest
+        => HandleResponse(await _mediator.Send(new UpsertFlagOverrideRequest
         {
             Key = key,
             IsEnabled = body.IsEnabled,
         }, ct));
-    }
 
     [HttpDelete("admin/{key}")]
     [FeatureAuthorize(Feature.Admin_FeatureFlags, AccessLevel.Write)]
