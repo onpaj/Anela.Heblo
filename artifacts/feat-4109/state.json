@@ -28,9 +28,9 @@
   "tasks": [
     {
       "name": "add-journalentry-create-factory",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-09-11T16:44:32.697125Z"
+      "updated_at": "2026-09-11T16:55:55.765863Z"
     },
     {
       "name": "use-create-factory-in-handler",
