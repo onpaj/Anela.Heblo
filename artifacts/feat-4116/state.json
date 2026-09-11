@@ -28,9 +28,9 @@
   "tasks": [
     {
       "name": "add-execute-in-transaction-repository-method",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-09-11T16:44:40.869652Z"
+      "updated_at": "2026-09-11T16:50:45.545839Z"
     },
     {
       "name": "wrap-create-manufacture-async-in-transaction",
