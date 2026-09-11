@@ -54,11 +54,14 @@ public class RecurringJobNextRunCalculatorTests
 
         // Assert
         result.Should().BeNull();
+        // Warning logged with the unknown timezone and the job name
         logger.Verify(
             x => x.Log(
                 LogLevel.Warning,
                 It.IsAny<EventId>(),
-                It.Is<It.IsAnyType>((state, t) => true),
+                It.Is<It.IsAnyType>((v, t) =>
+                    v.ToString()!.Contains("Not/A/Real/Zone") &&
+                    v.ToString()!.Contains("test-job")),
                 It.IsAny<Exception>(),
                 It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
             Times.Once);
@@ -81,11 +84,14 @@ public class RecurringJobNextRunCalculatorTests
 
         // Assert
         result.Should().BeNull();
+        // Warning logged with the invalid cron expression and the job name
         logger.Verify(
             x => x.Log(
                 LogLevel.Warning,
                 It.IsAny<EventId>(),
-                It.Is<It.IsAnyType>((state, t) => true),
+                It.Is<It.IsAnyType>((v, t) =>
+                    v.ToString()!.Contains("not a cron") &&
+                    v.ToString()!.Contains("test-job")),
                 It.IsAny<Exception>(),
                 It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
             Times.Once);
