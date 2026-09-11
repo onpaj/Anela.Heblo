@@ -255,6 +255,10 @@ public class ModuleBoundariesTests
             // HeurekaProductFeedClient implements IProductEshopUrlSource and returns ProductEshopUrl.
             // The adapter is the mapping boundary; out of scope for this PR.
             "Anela.Heblo.Adapters.ShoptetApi.EshopUrl.HeurekaProductFeedClient -> Anela.Heblo.Domain.Features.Catalog.EshopUrl.ProductEshopUrl",
+
+            // ShoptetEshopPriceClient implements IProductPriceEshopClient and returns ProductPriceEshop.
+            // The adapter is the mapping boundary; out of scope for this PR.
+            "Anela.Heblo.Adapters.ShoptetApi.Pricing.ShoptetEshopPriceClient -> Anela.Heblo.Domain.Features.Catalog.Price.ProductPriceEshop",
         };
 
     // Allowlist for ShoptetApi Adapters -> Logistics.
@@ -355,6 +359,12 @@ public class ModuleBoundariesTests
     // Authorization.Contracts.
     private static readonly HashSet<string> AuthorizationUserManagementAllowlist = new(StringComparer.Ordinal);
 
+    // Allowlist for Shared.Users -> Authorization. Empty — AuthorizationUserDirectorySourceAdapter
+    // (Authorization-owned, in Features.Authorization.Infrastructure) is the sole implementer of
+    // Shared.Users.Contracts.IUserDirectorySource; it lives outside this rule's inspected namespace
+    // prefix, so nothing under Shared.Users itself may ever reference Authorization directly.
+    private static readonly HashSet<string> SharedUsersAuthorizationAllowlist = new(StringComparer.Ordinal);
+
     public static TheoryData<ModuleBoundaryRule> Rules() => new()
     {
         new ModuleBoundaryRule(
@@ -367,6 +377,17 @@ public class ModuleBoundariesTests
                 "Anela.Heblo.Persistence.UserManagement",
             },
             Allowlist: AuthorizationUserManagementAllowlist),
+
+        new ModuleBoundaryRule(
+            Name: "Shared.Users -> Authorization",
+            InspectedNamespacePrefix: "Anela.Heblo.Application.Shared.Users",
+            ForbiddenNamespacePrefixes: new[]
+            {
+                "Anela.Heblo.Domain.Features.Authorization",
+                "Anela.Heblo.Application.Features.Authorization",
+                "Anela.Heblo.Persistence.Features.Authorization",
+            },
+            Allowlist: SharedUsersAuthorizationAllowlist),
 
         new ModuleBoundaryRule(
             Name: "Leaflet -> KnowledgeBase",

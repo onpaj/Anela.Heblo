@@ -3,6 +3,8 @@ using Anela.Heblo.Application.Features.Logistics.DashboardTiles;
 using Anela.Heblo.Application.Features.Logistics.Infrastructure;
 using Anela.Heblo.Application.Features.Logistics.Services;
 using Anela.Heblo.Application.Features.Logistics.UseCases.ChangeTransportBoxState;
+using Anela.Heblo.Application.Features.Logistics.UseCases.GiftPackageManufacture;
+using Anela.Heblo.Application.Features.Logistics.UseCases.GiftSettings;
 using Anela.Heblo.Domain.Features.Logistics.Transport;
 using Anela.Heblo.Persistence;
 using Anela.Heblo.Persistence.Logistics.TransportBoxes;
@@ -59,6 +61,10 @@ public static class LogisticsModule
             nameof(ITransportBoxCompletionService.CompleteReceivedBoxesAsync),
             (service, ct) => service.CompleteReceivedBoxesAsync(ct)
         );
+
+        // Register Logistics sub-feature modules
+        services.AddGiftPackageManufactureModule();
+        services.AddGiftSettingsModule();
 
         return services;
     }

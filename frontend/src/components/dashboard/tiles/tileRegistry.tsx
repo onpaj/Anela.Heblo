@@ -11,6 +11,7 @@ import { MaterialExpirationSummaryTile } from './MaterialExpirationSummaryTile';
 import { LowStockAlertTile } from './LowStockAlertTile';
 import { DataQualityTile } from './DataQualityTile';
 import { DqtYesterdayStatusTile } from './DqtYesterdayStatusTile';
+import { PriceComparisonTile } from './PriceComparisonTile';
 import { WeatherForecastTile } from './WeatherForecastTile';
 import { FailedJobsTile } from './FailedJobsTile';
 import { PackingStatsTile } from './PackingStatsTile';
@@ -143,6 +144,7 @@ export const TILE_RENDERERS: Record<string, TileRenderer> = {
   // Data quality tile
   dataqualitystatus: ({ data }) => <DataQualityTile data={data} />,
   dqtyesterdaystatus: ({ data }) => <DqtYesterdayStatusTile data={data} />,
+  pricecomparisonstatus: ({ data }) => <PriceComparisonTile data={data} />,
   weatherforecast: ({ data }) => <WeatherForecastTile data={data} />,
   failedjobs: ({ data }) => <FailedJobsTile data={data} />,
   packingstats: ({ data }) => <PackingStatsTile data={data} />,
