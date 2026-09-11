@@ -1,0 +1,7 @@
+## Goal
+
+Fix the code review findings below
+
+## Blocking (correctness)
+- `backend/test/Anela.Heblo.Tests/Features/BackgroundJobs/RecurringJobNextRunCalculatorTests.cs:57-65` and `:84-92` — `Calculate_ReturnsNull_AndLogsWarning_WhenTimezoneUnknown` and `Calculate_ReturnsNull_AndLogsWarning_WhenCronInvalid` verify only `LogLevel.Warning` + `Times.Once`, using `It.Is<It.IsAnyType>((state, t) => true)` — a predicate that matches any log state. This does not verify FR-2/FR-3's explicit acceptance criteria that the warning "reference the supplied `timeZoneId`/`cronExpression` and `jobName`" (spec.r1.md lines 21, 28). A regression that logs a warning with an unrelated or empty message (e.g. drops the timezone id or job name from the template) would still pass this test — the message content is never asserted, only that *some* warning fired. This is not a hypothetical: the sibling test file in the very same directory (`GetRecurringJobsListHandlerTests.cs:259-265`) and `UpdateRecurringJobStatusHandlerTests.cs:302-308`) establish the exact pattern needed here — `It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains("NOT_A_CRON") && v.ToString()!.Contains("Job1"))` — which this new test should follow (asserting the log message contains the supplied `timeZoneId`/`cronExpression` value and `"test-job"`). As written this is a vacuous assertion relative to the spec's stated acceptance criteria and NFR-3's "consistency with existing conventions" requirement, and should be fixed before merge.
+
