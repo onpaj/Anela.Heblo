@@ -11,7 +11,7 @@ import {
 import { PriceDivergenceKind, PriceDivergenceRowDto } from "../../api/generated/api-client";
 import { countChangedRows } from "../../api/hooks/priceDivergenceMerge";
 import { ErrorCodes } from "../../types/errors";
-import { formatCurrency } from "../../utils/formatters";
+import { formatCurrency, formatPercentage } from "../../utils/formatters";
 import { getErrorMessage } from "../../utils/errorHandler";
 
 const KIND_LABELS: Record<PriceDivergenceKind, string> = {
@@ -542,7 +542,7 @@ const DivergenceRow: React.FC<DivergenceRowProps> = ({
         {row.differenceWithVat != null ? formatCurrency(row.differenceWithVat) : "—"}
       </td>
       <td className="px-4 py-3 whitespace-nowrap text-right text-sm text-gray-900 dark:text-graphite-text">
-        {row.differencePercent != null ? `${row.differencePercent} %` : "—"}
+        {row.differencePercent != null ? formatPercentage(row.differencePercent) : "—"}
       </td>
       <td className="px-4 py-3 whitespace-nowrap">
         <span

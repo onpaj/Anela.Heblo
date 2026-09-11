@@ -651,3 +651,25 @@ describe("filtering", () => {
     expect(screen.queryByText("Beta krém")).not.toBeInTheDocument();
   });
 });
+
+// The money columns go through formatCurrency (cs-CZ), so a raw `${n} %` would render a
+// decimal point beside a decimal comma in the very same row.
+test("formats the difference percentage in the same locale as the money columns", async () => {
+  // Arrange & Act
+  renderReport({
+    rows: [
+      {
+        productCode: "A",
+        productName: "Alpha",
+        shoptetPriceWithVat: 210,
+        flexiPriceWithVat: 260,
+        differenceWithVat: 50,
+        differencePercent: 23.81,
+        kind: PriceDivergenceKind.FlexiDiffers,
+      },
+    ],
+  });
+
+  // Assert
+  expect(await screen.findByText("23,81 %")).toBeInTheDocument();
+});
