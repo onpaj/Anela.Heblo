@@ -34,9 +34,9 @@
     },
     {
       "name": "wrap-create-manufacture-async-in-transaction",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-09-11T17:04:57.363158Z"
+      "updated_at": "2026-09-11T17:12:40.498547Z"
     },
     {
       "name": "wrap-disassemble-gift-package-async-in-transaction",
