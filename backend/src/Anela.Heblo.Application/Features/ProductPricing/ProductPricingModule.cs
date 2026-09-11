@@ -3,6 +3,7 @@ using Anela.Heblo.Application.Features.DataQuality.Contracts;
 using Anela.Heblo.Application.Features.ProductPricing.Infrastructure;
 using Anela.Heblo.Application.Features.ProductPricing.Services;
 using Anela.Heblo.Application.Features.ProductPricing.UseCases.SetProductPrice;
+using Anela.Heblo.Application.Features.ProductPricing.UseCases.SyncProductPrices;
 using Anela.Heblo.Domain.Features.ProductPricing;
 using Anela.Heblo.Persistence.ProductPricing;
 using FluentValidation;
@@ -26,6 +27,11 @@ public static class ProductPricingModule
         services.AddScoped<
             IPipelineBehavior<SetProductPriceRequest, SetProductPriceResponse>,
             ValidationBehavior<SetProductPriceRequest, SetProductPriceResponse>>();
+
+        services.AddScoped<IValidator<SyncProductPricesRequest>, SyncProductPricesRequestValidator>();
+        services.AddScoped<
+            IPipelineBehavior<SyncProductPricesRequest, SyncProductPricesResponse>,
+            ValidationBehavior<SyncProductPricesRequest, SyncProductPricesResponse>>();
 
         // MediatR handlers are automatically registered by assembly scan.
 

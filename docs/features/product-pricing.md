@@ -35,8 +35,8 @@ price" concept elsewhere in the codebase or docs, it is stale.
   and writes the Shoptet retail price list; the Flexi side reuses the existing ERP price
   read/write clients.
 - **API**: `ProductPricingController` — `GET /api/product-pricing/divergence`,
-  `PUT /api/product-pricing/prices/{productCode}`. Gated by `Feature.Products_Catalog`
-  (write requires `AccessLevel.Write`).
+  `POST /api/product-pricing/sync`, `PUT /api/product-pricing/prices/{productCode}`. Gated by
+  `Feature.Products_Catalog` (write requires `AccessLevel.Write`).
 - **Frontend**: `frontend/src/pages/ProductPricingPage.tsx` at `/products/pricing`, backed
   by `PriceDivergenceReport.tsx` and `useProductPricing.ts`.
 
@@ -134,6 +134,73 @@ result would be Heblo's own assumption returned as if it were a measurement.
 
 An unrecognised `typszbdphk` value is logged once per run at warning level, raw — that log
 line is how we find out which vocabulary Flexi really uses.
+
+## Manual sync of the products on screen
+
+The report is only as fresh as its two reads, and the Flexi leg is served from a five-minute
+`IMemoryCache` — so a price changed directly in Flexi (or in Shoptet's own admin) can keep
+rendering stale for minutes. `POST /api/product-pricing/sync` re-reads both systems for one
+named selection of products and returns their fresh comparison rows.
+
+It is a **read**, despite the POST: nothing is written to either system, and it stays on the
+read permission alongside the divergence report. POST only because a selection of product
+codes belongs in a body rather than a query string.
+
+`PriceComparisonService.BuildScopedReportAsync` backs it, and differs from the unscoped
+report in exactly two ways:
+
+- **Flexi is read with `forceReload: true`**, bypassing the five-minute ceník cache. This is
+  the whole point of the button; without it the operator would press sync and be shown the
+  same stale numbers. The ERP read cannot be narrowed further — user query 41 is a
+  whole-ceník read with no per-product form, so a selection scopes the rows, not the query.
+- **Shoptet is read per product code** (`GetPriceWithVatAsync`, `?code=`) when the selection
+  is at most `MaxProductsReadIndividually` (25) products. Beyond that, one request per
+  product costs more than the paginated whole-list read, so it falls back to
+  `GetPricesWithVatAsync` and filters — which is what keeps a sync with no filter applied
+  from becoming one HTTP request per product in the catalogue. A cost heuristic only: both
+  routes produce identical rows.
+
+Codes that are not priced catalog products are ignored rather than rejected, so the caller
+never has to keep its selection in step with the catalogue. The validator caps a request at
+10,000 codes — deliberately far above the whole priced catalogue, so syncing with no filter
+still works; it bounds one request, it is not a business limit on the selection.
+
+`useSyncProductPrices` cancels any in-flight divergence refetch before writing the merged
+report. A price save invalidates that query, and its whole-catalogue refetch reads Flexi from
+the five-minute cache — landing after the sync it would silently replace the force-reloaded
+prices with exactly the stale ones the sync exists to defeat.
+`PriceDivergenceReport.syncRace.test.tsx` pins that ordering.
+
+A Shoptet or Flexi read failure propagates, exactly as `GetPriceDivergenceReportHandler`
+leaves it — there is no partial state to report and nothing was written, so no error code of
+its own was added.
+
+### Frontend: syncing what the filters left on screen
+
+`PriceDivergenceReport` puts a `Synchronizovat (N)` button in the filter bar, where N is the
+number of rows the name/code/`pouze rozdílné` filters left visible. Those codes are exactly
+what the sync covers.
+
+`useSyncProductPrices` folds the response into the cached report with `setQueryData`, not
+`invalidateQueries`: invalidating would refetch the whole catalogue from both live systems
+and throw away the very scoping the operator asked for by filtering. `mergeSyncedRows`
+(`frontend/src/api/hooks/priceDivergenceMerge.ts`) replaces rows by product code, leaves
+everything else identical, and re-tallies the six summary tiles over the merged rows — the
+server-side summary counted the catalogue as it stood before the sync, so leaving it alone
+would let a tile contradict the very row that was just refreshed. The tally counts the
+`kind` the backend already assigned; it never decides for itself whether a row agrees, so
+the comparison rules stay in `PriceComparisonService` alone.
+
+A sync that finds both systems holding what the report already showed leaves the table
+byte-for-byte identical — which is indistinguishable from a button that does nothing, and was
+reported as exactly that. So a successful sync also writes a status line under the filter bar:
+`Synchronizováno v HH:MM — beze změn`, or the number of rows that actually moved.
+`countChangedRows` (same module as the merge) compares the synced rows against the ones the
+report was showing on the two live prices, the Flexi price type and the backend's verdict; it
+counts only rows the report holds, so it can never claim a change the operator cannot find in
+the table. The line carries `role="status"`, since for an operator who cannot see the table
+stay the same it is the only evidence the button did anything. A later failure clears it, so a
+stale confirmation never sits next to a fresh error.
 
 ## Nightly DQT check and dashboard tile
 
@@ -276,6 +343,7 @@ applicable. The log is:
 | Endpoint | Method | Auth | Description |
 |---|---|---|---|
 | `/api/product-pricing/divergence` | GET | `Products_Catalog` (read) | Live Shoptet-vs-Flexi comparison. Never writes anywhere. |
+| `/api/product-pricing/sync` | POST | `Products_Catalog` (read) | Re-reads both systems for the named products, bypassing Flexi's ceník cache. Never writes anywhere. |
 | `/api/product-pricing/prices/{productCode}` | PUT | `Products_Catalog` (write) | Write-through price edit: Shoptet, then Flexi, with pre-flight. |
 
 ## Error codes (36XX module range)

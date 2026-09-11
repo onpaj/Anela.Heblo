@@ -9,4 +9,16 @@ namespace Anela.Heblo.Application.Features.ProductPricing.Services;
 public interface IPriceComparisonService
 {
     Task<PriceComparisonResult> BuildReportAsync(CancellationToken ct);
+
+    /// <summary>
+    /// Rebuilds the report for one selection of products, reading both sources fresh — the
+    /// manual "sync" the comparison screen offers for the rows currently on display.
+    /// Codes that are not priced catalog products are ignored.
+    ///
+    /// Flexi's ceník cache is bypassed however small the selection: the ERP has no per-product
+    /// price read, so the whole ceník is re-read and the shared five-minute cache entry is
+    /// repopulated for every other reader too. Intended, not incidental.
+    /// </summary>
+    Task<PriceComparisonResult> BuildScopedReportAsync(
+        IReadOnlyCollection<string> productCodes, CancellationToken ct);
 }

@@ -8,7 +8,8 @@ namespace Anela.Heblo.Application.Features.ProductPricing.Services;
 /// <summary>
 /// Builds the price divergence report: a pure read-and-compare of Shoptet and Flexi.
 /// This type deliberately depends on nothing but read methods —
-/// <see cref="IEshopPriceListClient.GetPricesWithVatAsync"/>, <see cref="IProductPriceErpClient.GetAllAsync"/>
+/// <see cref="IEshopPriceListClient.GetPricesWithVatAsync"/>,
+/// <see cref="IEshopPriceListClient.GetPriceWithVatAsync"/>, <see cref="IProductPriceErpClient.GetAllAsync"/>
 /// and <see cref="ICatalogRepository.GetAllAsync"/> —
 /// so no write path (<c>SetPriceWithVatAsync</c>, <c>IErpPriceWriter</c>) is even reachable from here.
 /// </summary>
@@ -26,6 +27,15 @@ public class PriceComparisonService : IPriceComparisonService
     /// permanently orange. Shoptet stores the with-VAT price directly and gets no tolerance.
     /// </summary>
     private const decimal FlexiRoundTripTolerance = 0.01m;
+
+    /// <summary>
+    /// Shoptet pages its price list at 100 items, so the whole list costs one request per 100
+    /// products while a selection costs one request per product. Up to this many, reading the
+    /// selection one product at a time is the cheaper and noticeably faster call — beyond it,
+    /// it stops being, and a sync with no filter applied would turn into one HTTP request per
+    /// product in the catalogue. A cost heuristic only: both routes produce identical rows.
+    /// </summary>
+    private const int MaxProductsReadIndividually = 25;
 
     /// <summary>Assumption A3: only sellable types carry a retail price.</summary>
     private static readonly ProductType[] PricedProductTypes =
@@ -47,18 +57,30 @@ public class PriceComparisonService : IPriceComparisonService
         _erpClient = erpClient;
     }
 
-    public async Task<PriceComparisonResult> BuildReportAsync(CancellationToken ct)
+    public Task<PriceComparisonResult> BuildReportAsync(CancellationToken ct) =>
+        BuildAsync(productCodes: null, forceReload: false, ct);
+
+    public Task<PriceComparisonResult> BuildScopedReportAsync(
+        IReadOnlyCollection<string> productCodes, CancellationToken ct) =>
+        BuildAsync(productCodes, forceReload: true, ct);
+
+    private async Task<PriceComparisonResult> BuildAsync(
+        IReadOnlyCollection<string>? productCodes, bool forceReload, CancellationToken ct)
     {
-        var inScopeProducts = (await _catalogRepository.GetAllAsync(ct))
+        var pricedProducts = (await _catalogRepository.GetAllAsync(ct))
             .Where(p => PricedProductTypes.Contains(p.Type))
             .GroupBy(p => p.ProductCode, StringComparer.OrdinalIgnoreCase)
             .Select(g => g.First())
             .ToList();
 
-        var shoptetPrices = new Dictionary<string, decimal>(
-            await _eshopClient.GetPricesWithVatAsync(ct), StringComparer.OrdinalIgnoreCase);
+        var inScopeProducts = productCodes is null
+            ? pricedProducts
+            : RestrictToRequested(pricedProducts, productCodes);
 
-        var erpPrices = (await _erpClient.GetAllAsync(forceReload: false, ct))
+        var shoptetPrices = await ReadShoptetPricesAsync(
+            inScopeProducts, isScoped: productCodes is not null, ct);
+
+        var erpPrices = (await _erpClient.GetAllAsync(forceReload, ct))
             .Where(p => !string.IsNullOrWhiteSpace(p.ProductCode))
             .GroupBy(p => p.ProductCode, StringComparer.OrdinalIgnoreCase)
             .ToDictionary(g => g.Key, g => g.First(), StringComparer.OrdinalIgnoreCase);
@@ -72,6 +94,43 @@ public class PriceComparisonService : IPriceComparisonService
             Rows = rows,
             Summary = BuildSummary(rows),
         };
+    }
+
+    private static List<CatalogAggregate> RestrictToRequested(
+        IEnumerable<CatalogAggregate> pricedProducts, IReadOnlyCollection<string> productCodes)
+    {
+        var requested = new HashSet<string>(productCodes, StringComparer.OrdinalIgnoreCase);
+        return pricedProducts.Where(p => requested.Contains(p.ProductCode)).ToList();
+    }
+
+    /// <summary>
+    /// Reads the Shoptet side by whichever route costs fewer requests for this selection
+    /// (see <see cref="MaxProductsReadIndividually"/>). Both routes are keyed the same way, so
+    /// no caller can tell which one ran. The whole report is never read per code, however few
+    /// priced products the catalogue happens to hold — that path exists for a sync, not a load.
+    /// </summary>
+    private async Task<IReadOnlyDictionary<string, decimal>> ReadShoptetPricesAsync(
+        IReadOnlyCollection<CatalogAggregate> inScopeProducts, bool isScoped, CancellationToken ct)
+    {
+        if (!isScoped || inScopeProducts.Count > MaxProductsReadIndividually)
+        {
+            return new Dictionary<string, decimal>(
+                await _eshopClient.GetPricesWithVatAsync(ct), StringComparer.OrdinalIgnoreCase);
+        }
+
+        // Sequential on purpose: this route only runs for a handful of products, and the live
+        // shop gains nothing from a burst of parallel reads.
+        var prices = new Dictionary<string, decimal>(StringComparer.OrdinalIgnoreCase);
+        foreach (var product in inScopeProducts)
+        {
+            var price = await _eshopClient.GetPriceWithVatAsync(product.ProductCode, ct);
+            if (price is not null)
+            {
+                prices[product.ProductCode] = price.Value;
+            }
+        }
+
+        return prices;
     }
 
     private static PriceDivergenceRowDto BuildRow(

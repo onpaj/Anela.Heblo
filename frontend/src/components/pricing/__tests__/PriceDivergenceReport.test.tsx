@@ -12,11 +12,13 @@ jest.mock("../../../api/hooks/useProductPricing", () => {
     ...actual,
     usePriceDivergenceReport: jest.fn(),
     useSetProductPrice: jest.fn(),
+    useSyncProductPrices: jest.fn(),
   };
 });
 
 const mockUsePriceDivergenceReport = hooks.usePriceDivergenceReport as jest.Mock;
 const mockUseSetProductPrice = hooks.useSetProductPrice as jest.Mock;
+const mockUseSyncProductPrices = hooks.useSyncProductPrices as jest.Mock;
 
 const inAgreementRow = {
   productCode: "MAS001180",
@@ -86,6 +88,10 @@ const renderReport = ({
   mockUseSetProductPrice.mockReturnValue({
     mutateAsync: setPrice,
     isPending,
+  });
+  mockUseSyncProductPrices.mockReturnValue({
+    mutateAsync: jest.fn(),
+    isPending: false,
   });
 
   return render(<PriceDivergenceReport canWrite={canWrite} />);

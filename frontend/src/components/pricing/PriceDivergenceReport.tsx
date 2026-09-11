@@ -1,9 +1,15 @@
 import React, { useState } from "react";
-import { Loader2, AlertCircle, AlertTriangle, ShieldCheck, Pencil, Search, Filter } from "lucide-react";
-import { usePriceDivergenceReport, useSetProductPrice } from "../../api/hooks/useProductPricing";
+import { Loader2, AlertCircle, AlertTriangle, ShieldCheck, Pencil, Search, Filter, RefreshCw } from "lucide-react";
+import {
+  usePriceDivergenceReport,
+  useSetProductPrice,
+  useSyncProductPrices,
+  GENERIC_SYNC_ERROR,
+} from "../../api/hooks/useProductPricing";
 // Imported from the generated client directly (not from the hooks module) so this
 // component keeps working when tests mock ../../api/hooks/useProductPricing.
 import { PriceDivergenceKind, PriceDivergenceRowDto } from "../../api/generated/api-client";
+import { countChangedRows } from "../../api/hooks/priceDivergenceMerge";
 import { ErrorCodes } from "../../types/errors";
 import { formatCurrency } from "../../utils/formatters";
 import { getErrorMessage } from "../../utils/errorHandler";
@@ -62,6 +68,25 @@ const LARGE_CHANGE_CONFIRM_THRESHOLD = 0.5;
 // coerces to 0 via `Number("")`, which is finite and would otherwise slip past the guard).
 const MIN_PRICE_WITH_VAT = 0.01;
 
+/** What the last sync did, so a run that changed nothing is still visibly a run. */
+interface SyncStatus {
+  at: Date;
+  changedCount: number;
+}
+
+// Czech counts one, a few (2-4) and many (5+) differently, and each form needs its own verb.
+const FEW_UPPER_BOUND = 5;
+
+const changedRowsLabel = (count: number): string => {
+  if (count === 0) return "beze změn";
+  if (count === 1) return "1 řádek se změnil";
+  if (count < FEW_UPPER_BOUND) return `${count} řádky se změnily`;
+  return `${count} řádků se změnilo`;
+};
+
+const formatSyncTime = (at: Date): string =>
+  at.toLocaleTimeString("cs-CZ", { hour: "2-digit", minute: "2-digit" });
+
 const readErrorCode = (error: unknown): string | undefined => {
   if (error && typeof error === "object" && "errorCode" in error) {
     const value = (error as { errorCode?: unknown }).errorCode;
@@ -77,6 +102,7 @@ interface PriceDivergenceReportProps {
 const PriceDivergenceReport: React.FC<PriceDivergenceReportProps> = ({ canWrite }) => {
   const { data, isLoading, error } = usePriceDivergenceReport();
   const { mutateAsync: setPrice, isPending } = useSetProductPrice();
+  const { mutateAsync: syncPrices, isPending: isSyncing } = useSyncProductPrices();
   const [showDivergentOnly, setShowDivergentOnly] = useState(false);
   // Input vs applied, mirroring CatalogList: typing does not re-filter until Enter, so the
   // table does not churn on every keystroke.
@@ -87,6 +113,8 @@ const PriceDivergenceReport: React.FC<PriceDivergenceReportProps> = ({ canWrite 
   const [editingCode, setEditingCode] = useState<string | null>(null);
   const [draftValue, setDraftValue] = useState("");
   const [rowErrors, setRowErrors] = useState<Record<string, string>>({});
+  const [syncError, setSyncError] = useState<string | null>(null);
+  const [syncStatus, setSyncStatus] = useState<SyncStatus | null>(null);
 
   const rows = data?.rows ?? [];
   const summary = data?.summary;
@@ -114,6 +142,31 @@ const PriceDivergenceReport: React.FC<PriceDivergenceReportProps> = ({ canWrite 
       matchesText(row.productName, productNameFilter) &&
       matchesText(row.productCode, productCodeFilter),
   );
+
+  // Only rows the filters left on screen: the sync re-reads two live systems, so it covers
+  // what the operator is actually looking at rather than the whole catalogue.
+  const visibleProductCodes = visibleRows
+    .map((row) => row.productCode)
+    .filter((code): code is string => !!code);
+
+  const handleSync = async () => {
+    // Both cleared up front, not only on success: leaving the previous failure on screen for
+    // the duration of the retry makes a running sync look like it has already failed again,
+    // and a stale confirmation next to a fresh failure reads as both at once.
+    setSyncError(null);
+    setSyncStatus(null);
+    // Captured before the await: `rows` re-reads the cache the sync itself is about to
+    // rewrite, so comparing against it afterwards would compare the merged rows with
+    // themselves and always report no change.
+    const rowsBeforeSync = rows;
+    try {
+      const syncedRows = await syncPrices(visibleProductCodes);
+      setSyncStatus({ at: new Date(), changedCount: countChangedRows(rowsBeforeSync, syncedRows) });
+    } catch (err) {
+      const errorCode = readErrorCode(err);
+      setSyncError(errorCode ? getErrorMessage(errorCode as ErrorCodes) : GENERIC_SYNC_ERROR);
+    }
+  };
 
   const startEdit = (row: PriceDivergenceRowDto) => {
     if (!row.productCode) return;
@@ -285,7 +338,49 @@ const PriceDivergenceReport: React.FC<PriceDivergenceReportProps> = ({ canWrite 
           />
           Zobrazit pouze rozdílné
         </label>
+
+        <button
+          type="button"
+          data-testid="sync-prices-button"
+          onClick={handleSync}
+          disabled={isSyncing || visibleProductCodes.length === 0}
+          aria-busy={isSyncing}
+          title="Znovu načte ceny zobrazených produktů ze Shoptetu a z Flexi. Nic nezapisuje."
+          className="inline-flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-md border border-gray-300 dark:border-graphite-border bg-white dark:bg-graphite-surface-2 text-gray-700 dark:text-graphite-text hover:bg-gray-50 dark:hover:bg-graphite-surface disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {isSyncing ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <RefreshCw className="h-4 w-4" />
+          )}
+          {/* The label carries the state too, not just the spinner: a spinner swap alone
+              changes nothing a screen reader announces. */}
+          {isSyncing ? "Synchronizuji…" : `Synchronizovat (${visibleProductCodes.length})`}
+        </button>
       </div>
+
+      {/* The table is identical whenever the two systems held what the report already showed,
+          so without this line a successful sync is indistinguishable from a dead button. */}
+      {syncStatus && (
+        <div
+          role="status"
+          data-testid="sync-prices-status"
+          className="mb-4 text-sm text-gray-500 dark:text-graphite-muted"
+        >
+          Synchronizováno v {formatSyncTime(syncStatus.at)} — {changedRowsLabel(syncStatus.changedCount)}
+        </div>
+      )}
+
+      {syncError && (
+        <div
+          role="alert"
+          data-testid="sync-prices-error"
+          className="mb-4 flex items-center gap-2 px-4 py-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-900/40 rounded-md text-sm text-red-700 dark:text-red-300"
+        >
+          <AlertCircle className="h-4 w-4 flex-shrink-0" />
+          <span>{syncError}</span>
+        </div>
+      )}
 
       <div className="bg-white dark:bg-graphite-surface rounded-lg shadow dark:shadow-soft-dark overflow-hidden">
         <div className="overflow-x-auto">

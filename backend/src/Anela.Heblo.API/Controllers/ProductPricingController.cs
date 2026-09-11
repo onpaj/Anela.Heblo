@@ -1,6 +1,7 @@
 using Anela.Heblo.API.Infrastructure;
 using Anela.Heblo.Application.Features.ProductPricing.UseCases.GetPriceDivergenceReport;
 using Anela.Heblo.Application.Features.ProductPricing.UseCases.SetProductPrice;
+using Anela.Heblo.Application.Features.ProductPricing.UseCases.SyncProductPrices;
 using Anela.Heblo.Domain.Features.Authorization;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
@@ -23,6 +24,17 @@ public class ProductPricingController : BaseApiController
     [HttpGet("divergence")]
     public async Task<ActionResult<GetPriceDivergenceReportResponse>> GetDivergenceReport(CancellationToken cancellationToken = default)
         => HandleResponse(await _mediator.Send(new GetPriceDivergenceReportRequest(), cancellationToken));
+
+    /// <summary>
+    /// Re-reads Shoptet and Flexi for the named products and returns their fresh comparison
+    /// rows. A read like the divergence report — it writes nowhere — so it stays on the read
+    /// permission; POST only because the selection belongs in a body, not a query string.
+    /// </summary>
+    [HttpPost("sync")]
+    public async Task<ActionResult<SyncProductPricesResponse>> Sync(
+        [FromBody] SyncProductPricesRequest request,
+        CancellationToken cancellationToken = default)
+        => HandleResponse(await _mediator.Send(request, cancellationToken));
 
     [HttpPut("prices/{productCode}")]
     [FeatureAuthorize(Feature.Products_Catalog, AccessLevel.Write)]

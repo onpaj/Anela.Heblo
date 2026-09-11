@@ -11712,6 +11712,44 @@ export class ApiClient {
         return Promise.resolve<GetPriceDivergenceReportResponse>(null as any);
     }
 
+    productPricing_Sync(request: SyncProductPricesRequest): Promise<SyncProductPricesResponse> {
+        let url_ = this.baseUrl + "/api/product-pricing/sync";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: RequestInit = {
+            body: content_,
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processProductPricing_Sync(_response);
+        });
+    }
+
+    protected processProductPricing_Sync(response: Response): Promise<SyncProductPricesResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = SyncProductPricesResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<SyncProductPricesResponse>(null as any);
+    }
+
     productPricing_SetPrice(productCode: string, request: SetProductPriceRequest): Promise<SetProductPriceResponse> {
         let url_ = this.baseUrl + "/api/product-pricing/prices/{productCode}";
         if (productCode === undefined || productCode === null)
@@ -40156,6 +40194,91 @@ export interface IPriceDivergenceSummaryDto {
     missingInShoptetCount?: number;
     missingInFlexiCount?: number;
     flexiPriceTypeUnknownCount?: number;
+}
+
+export class SyncProductPricesResponse extends BaseResponse implements ISyncProductPricesResponse {
+    rows?: PriceDivergenceRowDto[];
+
+    constructor(data?: ISyncProductPricesResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            if (Array.isArray(_data["rows"])) {
+                this.rows = [] as any;
+                for (let item of _data["rows"])
+                    this.rows!.push(PriceDivergenceRowDto.fromJS(item));
+            }
+        }
+    }
+
+    static override fromJS(data: any): SyncProductPricesResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new SyncProductPricesResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        if (Array.isArray(this.rows)) {
+            data["rows"] = [];
+            for (let item of this.rows)
+                data["rows"].push(item.toJSON());
+        }
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface ISyncProductPricesResponse extends IBaseResponse {
+    rows?: PriceDivergenceRowDto[];
+}
+
+export class SyncProductPricesRequest implements ISyncProductPricesRequest {
+    productCodes?: string[];
+
+    constructor(data?: ISyncProductPricesRequest) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            if (Array.isArray(_data["productCodes"])) {
+                this.productCodes = [] as any;
+                for (let item of _data["productCodes"])
+                    this.productCodes!.push(item);
+            }
+        }
+    }
+
+    static fromJS(data: any): SyncProductPricesRequest {
+        data = typeof data === 'object' ? data : {};
+        let result = new SyncProductPricesRequest();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        if (Array.isArray(this.productCodes)) {
+            data["productCodes"] = [];
+            for (let item of this.productCodes)
+                data["productCodes"].push(item);
+        }
+        return data;
+    }
+}
+
+export interface ISyncProductPricesRequest {
+    productCodes?: string[];
 }
 
 export class SetProductPriceResponse extends BaseResponse implements ISetProductPriceResponse {

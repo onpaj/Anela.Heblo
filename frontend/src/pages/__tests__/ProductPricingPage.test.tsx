@@ -18,13 +18,20 @@ const mockDivergenceRow = {
   kind: PriceDivergenceKind.InAgreement,
 };
 
+// Spread over the real module so the constants the report imports stay in step with it;
+// only the hooks themselves are replaced.
 jest.mock("../../api/hooks/useProductPricing", () => ({
+  ...jest.requireActual("../../api/hooks/useProductPricing"),
   usePriceDivergenceReport: () => ({
     data: { rows: [mockDivergenceRow], summary: undefined },
     isLoading: false,
     error: null,
   }),
   useSetProductPrice: () => ({
+    mutateAsync: jest.fn(),
+    isPending: false,
+  }),
+  useSyncProductPrices: () => ({
     mutateAsync: jest.fn(),
     isPending: false,
   }),
