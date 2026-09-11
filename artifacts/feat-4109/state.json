@@ -21,16 +21,16 @@
       "updated_at": "2026-09-08T10:18:48.024484Z"
     },
     "developing": {
-      "status": "pending",
-      "updated_at": null
+      "status": "in_progress",
+      "updated_at": "2026-09-11T16:44:32.599034Z"
     }
   },
   "tasks": [
     {
       "name": "add-journalentry-create-factory",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-09-11T16:44:32.697125Z"
     },
     {
       "name": "use-create-factory-in-handler",
