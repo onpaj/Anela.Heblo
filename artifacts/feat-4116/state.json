@@ -22,7 +22,7 @@
     },
     "developing": {
       "status": "in_progress",
-      "updated_at": "2026-09-11T17:04:57.264570Z"
+      "updated_at": "2026-09-11T17:13:59.336646Z"
     }
   },
   "tasks": [
@@ -40,9 +40,9 @@
     },
     {
       "name": "wrap-disassemble-gift-package-async-in-transaction",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-09-11T17:13:59.543097Z"
     },
     {
       "name": "add-gift-package-manufacture-atomicity-integration-tests",
