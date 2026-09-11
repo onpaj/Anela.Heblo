@@ -28,9 +28,9 @@
   "tasks": [
     {
       "name": "add-generate-leaflet-mutation-hook",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-09-11T16:44:53.111238Z"
+      "updated_at": "2026-09-11T16:57:46.479928Z"
     },
     {
       "name": "refactor-leaflet-generate-tab-to-use-mutation-hook",
