@@ -234,4 +234,85 @@ public class SearchJournalEntriesHandlerTests
         hit.Content.Should().Be(content);
         hit.Content.Should().HaveLength(250);
     }
+
+    [Fact]
+    public async Task Handle_MiddlePage_ReturnsCorrectPaginationMetadata()
+    {
+        // Arrange
+        var request = new SearchJournalEntriesRequest
+        {
+            PageNumber = 2,
+            PageSize = 10
+        };
+
+        _repositoryMock
+            .Setup(x => x.SearchEntriesAsync(
+                It.IsAny<string?>(),
+                It.IsAny<DateTime?>(),
+                It.IsAny<DateTime?>(),
+                It.IsAny<string?>(),
+                It.IsAny<IReadOnlyCollection<int>?>(),
+                It.IsAny<string?>(),
+                It.IsAny<int>(),
+                It.IsAny<int>(),
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new PagedResult<JournalEntry>
+            {
+                Items = new List<JournalEntry>(),
+                TotalCount = 25,
+                PageNumber = 2,
+                PageSize = 10
+            });
+
+        // Act
+        var result = await _handler.Handle(request, CancellationToken.None);
+
+        // Assert
+        result.TotalCount.Should().Be(25);
+        result.TotalPages.Should().Be(3);
+        result.HasNextPage.Should().BeTrue();
+        result.HasPreviousPage.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task Handle_FirstPageExactMultiple_HasNoNextOrPreviousPage()
+    {
+        // Arrange: TotalCount is an exact multiple of PageSize and this is the only/last page.
+        var request = new SearchJournalEntriesRequest
+        {
+            PageNumber = 1,
+            PageSize = 10
+        };
+
+        _repositoryMock
+            .Setup(x => x.SearchEntriesAsync(
+                It.IsAny<string?>(),
+                It.IsAny<DateTime?>(),
+                It.IsAny<DateTime?>(),
+                It.IsAny<string?>(),
+                It.IsAny<IReadOnlyCollection<int>?>(),
+                It.IsAny<string?>(),
+                It.IsAny<int>(),
+                It.IsAny<int>(),
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new PagedResult<JournalEntry>
+            {
+                Items = new List<JournalEntry>(),
+                TotalCount = 10,
+                PageNumber = 1,
+                PageSize = 10
+            });
+
+        // Act
+        var result = await _handler.Handle(request, CancellationToken.None);
+
+        // Assert
+        result.TotalPages.Should().Be(1);
+        result.HasNextPage.Should().BeFalse();
+        result.HasPreviousPage.Should().BeFalse();
+    }
 }

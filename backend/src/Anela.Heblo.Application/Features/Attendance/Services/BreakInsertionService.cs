@@ -197,7 +197,7 @@ public class BreakInsertionService
             return;
         }
 
-        var request = new LogetoCreateTimeEntryRequest
+        var request = new LogetoTimeEntryRequest
         {
             Person = person.Guid,
             Activity = breakActivity.Guid,
