@@ -87,6 +87,11 @@ public class DqtRunRepository : BaseRepository<DqtRun, Guid>, IDqtRunRepository
         return (items, totalCount);
     }
 
+    public Task<int> CountDriftResultsByMismatchCodeAsync(
+        Guid runId, int mismatchCode, CancellationToken ct = default) =>
+        Context.Set<DqtDriftResult>()
+            .CountAsync(r => r.DqtRunId == runId && r.MismatchCode == mismatchCode, ct);
+
     public async Task<DqtRun?> GetWithResultsAsync(Guid id, int resultPage, int resultPageSize, CancellationToken cancellationToken = default)
     {
         var run = await DbSet

@@ -108,10 +108,11 @@ public class PrintExpeditionOrderHandlerTests
         var handler = new PrintExpeditionOrderHandler(
             _service.Object,
             _client.Object,
-            Options.Create(new PrintPickingListOptions { DesiredStateId = 99 }),
+            Options.Create(new PrintPickingListOptions { DesiredStateId = 99, DesiredStateName = "Custom State" }),
             new Mock<ILogger<PrintExpeditionOrderHandler>>().Object);
 
-        // Status 99 (the configured DesiredStateId) must now be rejected as invalid state.
+        // Status 99 (the configured DesiredStateId) must now be rejected as invalid state,
+        // reported with the configured DesiredStateName — not the old hardcoded "Balí se".
         _client.Setup(c => c.GetOrderStatusIdAsync("0001234", It.IsAny<CancellationToken>()))
             .ReturnsAsync(99);
 
@@ -120,7 +121,7 @@ public class PrintExpeditionOrderHandlerTests
 
         result.Success.Should().BeFalse();
         result.ErrorCode.Should().Be(ErrorCodes.ExpeditionOrderInvalidState);
-        result.Params!["currentStatusName"].Should().Be("Balí se");
+        result.Params!["currentStatusName"].Should().Be("Custom State");
         _service.Verify(s => s.PrintPickingListAsync(It.IsAny<ExpeditionPickingRequest>(), It.IsAny<IList<string>?>(), It.IsAny<CancellationToken>()), Times.Never);
 
         // Status 26 (the old hardcoded value) must no longer be special-cased and should proceed to print.

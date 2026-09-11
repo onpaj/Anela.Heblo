@@ -42,6 +42,7 @@ import AccessManagementPage from "./pages/AccessManagementPage";
 import GroupDetailPage from "./pages/GroupDetailPage";
 import UserDetailPage from "./pages/UserDetailPage";
 import InvoiceClassificationPage from "./pages/InvoiceClassification/InvoiceClassificationPage";
+import ProductPricingPage from "./pages/ProductPricingPage";
 import PackingMaterialsPage from "./pages/PackingMaterialsPage";
 import StockOperationsPage from "./pages/StockOperationsPage";
 import RecurringJobsPage from "./pages/RecurringJobsPage";
@@ -426,6 +427,7 @@ function App() {
                         <Route path="/manufacturing/orders" element={guard("/manufacturing/orders", <ManufactureOrderList />)} />
                         <Route path="/manufacturing/orders/:id" element={<ManufactureOrderDetail />} />
                         <Route path="/products/margins" element={guard("/products/margins", <ProductMarginsList />)} />
+                        <Route path="/products/pricing" element={guard("/products/pricing", <ProductPricingPage />)} />
                         <Route path="/products/statistics" element={guard("/products/statistics", <ProductStatistics />)} />
                         <Route path="/journal" element={guard("/journal", <JournalList />)} />
                         <Route path="/marketing/calendar" element={guard("/marketing/calendar", <MarketingCalendarPage />)} />

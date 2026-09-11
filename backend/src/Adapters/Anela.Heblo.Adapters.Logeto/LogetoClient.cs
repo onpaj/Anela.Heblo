@@ -52,10 +52,19 @@ public class LogetoClient : ILogetoClient
             cancellationToken);
 
     public async Task CreateTimeEntryAsync(
-        LogetoCreateTimeEntryRequest request, bool merge, CancellationToken cancellationToken)
+        LogetoTimeEntryRequest request, bool merge, CancellationToken cancellationToken)
     {
         var url = $"/api/v2/TimeTracking?merge={(merge ? "true" : "false")}";
         var response = await _httpClient.PostAsJsonAsync(url, request, JsonOptions, cancellationToken);
+        await EnsureSuccessAsync(response, cancellationToken);
+    }
+
+    public async Task UpdateTimeEntryAsync(
+        Guid guid, LogetoTimeEntryRequest request, CancellationToken cancellationToken)
+    {
+        // merge=false: the body is a full replacement of the record, never a patch.
+        var url = $"/api/v2/TimeTracking/{guid}?merge=false";
+        var response = await _httpClient.PutAsJsonAsync(url, request, JsonOptions, cancellationToken);
         await EnsureSuccessAsync(response, cancellationToken);
     }
 

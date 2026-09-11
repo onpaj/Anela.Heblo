@@ -30,10 +30,34 @@ public class IndexDocumentHandler : IRequestHandler<IndexDocumentRequest, IndexD
 
         var contentType = ContentTypeResolver.Resolve(request.ContentType, request.Filename);
         var contentHash = Convert.ToHexString(SHA256.HashData(request.Content));
-
         var useGraphIdentity = !string.IsNullOrEmpty(request.GraphItemId) && !string.IsNullOrEmpty(request.DriveId);
 
-        // Duplicate detection by hash — same content already indexed, skip
+        var duplicateResponse = await TryResolveDuplicateAsync(request, contentHash, useGraphIdentity, cancellationToken);
+        if (duplicateResponse is not null)
+        {
+            return duplicateResponse;
+        }
+
+        var document = await CreateAndPersistDocumentAsync(request, contentType, contentHash, useGraphIdentity, cancellationToken);
+        await IndexWithErrorHandlingAsync(document, request.Content, cancellationToken);
+
+        _logger.LogInformation("Indexed document {Filename}", request.Filename);
+
+        return BuildResponse(document, wasDuplicate: false);
+    }
+
+    // Duplicate detection by hash (same content already indexed) followed by, if no hash
+    // match, duplicate detection by identity (stable GraphItemId for OneDrive-sourced docs,
+    // SourcePath fallback for manually uploaded docs). Returns a response when the caller
+    // should short-circuit (hash match); returns null when the caller should proceed to
+    // create a new document (no match, or identity match — whose stale document this method
+    // has already deleted).
+    private async Task<IndexDocumentResponse?> TryResolveDuplicateAsync(
+        IndexDocumentRequest request,
+        string contentHash,
+        bool useGraphIdentity,
+        CancellationToken cancellationToken)
+    {
         var existingByHash = await _repository.GetDocumentByHashAsync(contentHash, cancellationToken);
         if (existingByHash is not null)
         {
@@ -57,20 +81,9 @@ public class IndexDocumentHandler : IRequestHandler<IndexDocumentRequest, IndexD
                     existingByHash.Id, request.DriveId!, request.GraphItemId!, cancellationToken);
             }
 
-            return new IndexDocumentResponse
-            {
-                DocumentId = existingByHash.Id,
-                Status = existingByHash.Status,
-                WasDuplicate = true,
-                Filename = existingByHash.Filename,
-                ContentType = existingByHash.ContentType,
-                CreatedAt = existingByHash.CreatedAt,
-                IndexedAt = existingByHash.IndexedAt,
-            };
+            return BuildResponse(existingByHash, wasDuplicate: true);
         }
 
-        // Duplicate detection by identity: use stable GraphItemId for OneDrive-sourced docs,
-        // fall back to SourcePath for manually uploaded docs (upload flow).
         var existingByIdentity = useGraphIdentity
             ? await _repository.GetDocumentByGraphItemIdAsync(request.DriveId!, request.GraphItemId!, cancellationToken)
             : await _repository.GetDocumentBySourcePathAsync(request.SourcePath, cancellationToken);
@@ -83,6 +96,16 @@ public class IndexDocumentHandler : IRequestHandler<IndexDocumentRequest, IndexD
             await _repository.DeleteDocumentAsync(existingByIdentity.Id, cancellationToken);
         }
 
+        return null;
+    }
+
+    private async Task<KnowledgeBaseDocument> CreateAndPersistDocumentAsync(
+        IndexDocumentRequest request,
+        string contentType,
+        string contentHash,
+        bool useGraphIdentity,
+        CancellationToken cancellationToken)
+    {
         var document = new KnowledgeBaseDocument
         {
             Id = Guid.NewGuid(),
@@ -100,14 +123,22 @@ public class IndexDocumentHandler : IRequestHandler<IndexDocumentRequest, IndexD
         await _repository.AddDocumentAsync(document, cancellationToken);
         await _repository.SaveChangesAsync(cancellationToken);
 
+        return document;
+    }
+
+    private async Task IndexWithErrorHandlingAsync(
+        KnowledgeBaseDocument document,
+        byte[] content,
+        CancellationToken cancellationToken)
+    {
         try
         {
-            await _indexingService.IndexChunksAsync(request.Content, contentType, document, cancellationToken);
+            await _indexingService.IndexChunksAsync(content, document.ContentType, document, cancellationToken);
             await _repository.SaveChangesAsync(cancellationToken);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to index document {Filename}", request.Filename);
+            _logger.LogError(ex, "Failed to index document {Filename}", document.Filename);
             document.Status = DocumentStatus.Failed;
             try
             {
@@ -115,19 +146,20 @@ public class IndexDocumentHandler : IRequestHandler<IndexDocumentRequest, IndexD
             }
             catch (Exception saveEx)
             {
-                _logger.LogError(saveEx, "Failed to persist Failed status for document {Filename}", request.Filename);
+                _logger.LogError(saveEx, "Failed to persist Failed status for document {Filename}", document.Filename);
             }
 
             throw;
         }
+    }
 
-        _logger.LogInformation("Indexed document {Filename}", request.Filename);
-
+    private static IndexDocumentResponse BuildResponse(KnowledgeBaseDocument document, bool wasDuplicate)
+    {
         return new IndexDocumentResponse
         {
             DocumentId = document.Id,
             Status = document.Status,
-            WasDuplicate = false,
+            WasDuplicate = wasDuplicate,
             Filename = document.Filename,
             ContentType = document.ContentType,
             CreatedAt = document.CreatedAt,

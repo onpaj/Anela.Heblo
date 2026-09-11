@@ -198,4 +198,70 @@ public class LogisticsCatalogSourceAdapterTests
         result.EshopStock.Should().Be(7m);
         result.AvailableStock.Should().Be(aggregate.Stock.Available);
     }
+
+    [Fact]
+    public async Task GetCatalogItemsAsync_ReturnsDictionaryKeyedByProductCode()
+    {
+        var ct = CancellationToken.None;
+        var aggregate1 = MakeAggregate(
+            code: "PROD-1",
+            type: ProductType.Product,
+            image: "product1.png",
+            eshopStock: 7m,
+            erpStock: 12m);
+        var aggregate2 = MakeAggregate(
+            code: "PROD-2",
+            type: ProductType.Product,
+            image: "product2.png",
+            eshopStock: 3m,
+            erpStock: 5m);
+
+        _repository
+            .Setup(r => r.GetByIdsAsync(It.IsAny<IEnumerable<string>>(), ct))
+            .ReturnsAsync(new Dictionary<string, CatalogAggregate>
+            {
+                ["PROD-1"] = aggregate1,
+                ["PROD-2"] = aggregate2,
+            });
+
+        var result = await CreateAdapter().GetCatalogItemsAsync(new List<string> { "PROD-1", "PROD-2" }, ct);
+
+        result.Should().HaveCount(2);
+        result["PROD-1"].ProductCode.Should().Be("PROD-1");
+        result["PROD-1"].Image.Should().Be("product1.png");
+        result["PROD-1"].EshopStock.Should().Be(7m);
+        result["PROD-1"].AvailableStock.Should().Be(aggregate1.Stock.Available);
+        result["PROD-2"].ProductCode.Should().Be("PROD-2");
+        result["PROD-2"].Image.Should().Be("product2.png");
+    }
+
+    [Fact]
+    public async Task GetCatalogItemsAsync_OmitsCodesNotFoundInRepository()
+    {
+        var ct = CancellationToken.None;
+        var aggregate = MakeAggregate(code: "PROD-1", type: ProductType.Product);
+
+        _repository
+            .Setup(r => r.GetByIdsAsync(It.IsAny<IEnumerable<string>>(), ct))
+            .ReturnsAsync(new Dictionary<string, CatalogAggregate> { ["PROD-1"] = aggregate });
+
+        var result = await CreateAdapter().GetCatalogItemsAsync(new List<string> { "PROD-1", "MISSING" }, ct);
+
+        result.Should().ContainSingle();
+        result.Should().ContainKey("PROD-1");
+        result.Should().NotContainKey("MISSING");
+    }
+
+    [Fact]
+    public async Task GetCatalogItemsAsync_WithEmptyCodes_ReturnsEmptyDictionary()
+    {
+        var ct = CancellationToken.None;
+        _repository
+            .Setup(r => r.GetByIdsAsync(It.IsAny<IEnumerable<string>>(), ct))
+            .ReturnsAsync(new Dictionary<string, CatalogAggregate>());
+
+        var result = await CreateAdapter().GetCatalogItemsAsync(new List<string>(), ct);
+
+        result.Should().BeEmpty();
+    }
 }

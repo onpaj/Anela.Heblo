@@ -2,6 +2,7 @@ using Anela.Heblo.Application.Features.Logistics.UseCases.GiftPackageManufacture
 using Anela.Heblo.Application.Features.Logistics.UseCases.GiftPackageManufacture.Services;
 using Anela.Heblo.Application.Features.Logistics.UseCases.GiftPackageManufacture.UseCases.DisassembleGiftPackage;
 using Anela.Heblo.Application.Shared;
+using Anela.Heblo.Domain.Features.Users;
 using FluentAssertions;
 using Moq;
 
@@ -10,9 +11,15 @@ namespace Anela.Heblo.Tests.Application.GiftPackageManufacture;
 public class DisassembleGiftPackageHandlerTests
 {
     private readonly Mock<IGiftPackageManufactureService> _serviceMock = new();
+    private readonly Mock<ICurrentUserService> _currentUserServiceMock = new();
 
-    private DisassembleGiftPackageHandler CreateSut() =>
-        new(_serviceMock.Object);
+    private DisassembleGiftPackageHandler CreateSut()
+    {
+        _currentUserServiceMock
+            .Setup(x => x.GetCurrentUser())
+            .Returns(new CurrentUser(Id: "user-1", Name: "test-user", Email: "test-user@example.com", IsAuthenticated: true));
+        return new(_serviceMock.Object, _currentUserServiceMock.Object);
+    }
 
     [Fact]
     public async Task Handle_ReturnsSuccessWithDisassembly_WhenServiceSucceeds()
@@ -28,7 +35,7 @@ public class DisassembleGiftPackageHandlerTests
         };
 
         _serviceMock
-            .Setup(s => s.DisassembleGiftPackageAsync("SET001", 2, It.IsAny<CancellationToken>()))
+            .Setup(s => s.DisassembleGiftPackageAsync("SET001", 2, "test-user", It.IsAny<CancellationToken>()))
             .ReturnsAsync(disassembly);
 
         var request = new DisassembleGiftPackageRequest
@@ -47,7 +54,7 @@ public class DisassembleGiftPackageHandlerTests
         result.Disassembly.QuantityDisassembled.Should().Be(2);
 
         _serviceMock.Verify(
-            s => s.DisassembleGiftPackageAsync("SET001", 2, It.IsAny<CancellationToken>()),
+            s => s.DisassembleGiftPackageAsync("SET001", 2, "test-user", It.IsAny<CancellationToken>()),
             Times.Once);
     }
 
@@ -57,7 +64,7 @@ public class DisassembleGiftPackageHandlerTests
         // Arrange
         _serviceMock
             .Setup(s => s.DisassembleGiftPackageAsync(
-                It.IsAny<string>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
+                It.IsAny<string>(), It.IsAny<int>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ThrowsAsync(new InvalidOperationException("Package SET001 does not exist"));
 
         var request = new DisassembleGiftPackageRequest
@@ -83,7 +90,7 @@ public class DisassembleGiftPackageHandlerTests
         // Use single-argument constructor — two-argument ctor appends " (Parameter 'name')" to Message.
         _serviceMock
             .Setup(s => s.DisassembleGiftPackageAsync(
-                It.IsAny<string>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
+                It.IsAny<string>(), It.IsAny<int>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ThrowsAsync(new ArgumentException("Quantity must be greater than zero"));
 
         var request = new DisassembleGiftPackageRequest
@@ -101,5 +108,43 @@ public class DisassembleGiftPackageHandlerTests
         result.ErrorCode.Should().NotBe(ErrorCodes.InvalidOperation);
         result.Params.Should().ContainKey("ErrorMessage")
             .WhoseValue.Should().Be("Quantity must be greater than zero");
+    }
+
+    [Fact]
+    public async Task Handle_ForwardsSystemFallback_WhenCurrentUserNameIsNull()
+    {
+        // Arrange
+        _currentUserServiceMock
+            .Setup(x => x.GetCurrentUser())
+            .Returns(new CurrentUser(Id: "user-1", Name: null, Email: null, IsAuthenticated: true));
+
+        var disassembly = new GiftPackageDisassemblyDto
+        {
+            GiftPackageCode = "SET001",
+            QuantityDisassembled = 1,
+            DisassembledAt = new DateTime(2026, 1, 1, 12, 0, 0, DateTimeKind.Utc),
+            DisassembledBy = "System",
+            ReturnedComponents = new List<GiftPackageDisassemblyItemDto>()
+        };
+
+        _serviceMock
+            .Setup(s => s.DisassembleGiftPackageAsync("SET001", 1, "System", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(disassembly);
+
+        var request = new DisassembleGiftPackageRequest
+        {
+            GiftPackageCode = "SET001",
+            Quantity = 1
+        };
+
+        // Act
+        var handler = new DisassembleGiftPackageHandler(_serviceMock.Object, _currentUserServiceMock.Object);
+        var result = await handler.Handle(request, CancellationToken.None);
+
+        // Assert
+        result.Success.Should().BeTrue();
+        _serviceMock.Verify(
+            s => s.DisassembleGiftPackageAsync("SET001", 1, "System", It.IsAny<CancellationToken>()),
+            Times.Once);
     }
 }

@@ -133,3 +133,81 @@ background/unattributed share (`FlexiAnalyticsSyncJob`, `FlexiStockClient`,
 batching/caching/rate-limiting those background sync clients — not further tuning
 the confirm-path timeout ceiling, which has already been tuned twice (#2987, this
 issue) without moving the headline number.
+
+## Ceník price writes
+
+`PUT /c/{firma}/cenik/{idcenik}.json` with body
+`{"winstrom":{"cenik":{"cenaZakl":"285.00","typCenyDphK":"typCeny.sDph"}}}` updates an
+item's base selling price. `cenanakup` is the purchase price and is computed from the
+BoM — never written by Heblo.
+
+**Always write `typCenyDphK` together with `cenaZakl`.** `cenaZakl` has no inherent VAT
+meaning (see §"Ceník VAT semantics"): sent alone it is interpreted through whatever price
+type the item already carries, so the same number lands as a different price depending on
+how that item happened to be configured. Verified live 2026-09-11: writing `cenaZakl`
+alone put 287 in as a *base* price on a `bezDph` item, which Flexi then showed as 347.27
+including VAT. Heblo always writes the operator's with-VAT figure unconverted and declares
+`typCeny.sDph` alongside it, which makes the write self-describing and needs no VAT rate.
+
+**Addressing by `code:` is dangerous.** Flexi makes no distinction between create and
+update: it decides from the identifier. `PUT /c/{firma}/cenik/code:XXX.json` with an
+unknown code **creates a new price list item** rather than failing. Always address writes
+by the internal numeric `idcenik` (read as `ProductPriceFlexiDto.ProductId` from user
+query 41). A product with no known `idcenik` must be reported as a failure, never created.
+The SDK's own `PriceListClient` / `PriceListFlexiDto` address records by `code:`
+(`Id => $"code:{ProductCode}"`) and must therefore never be used for ceník writes — that
+is exactly the create-on-unknown-code hazard described above.
+
+
+## Ceník VAT semantics — VERIFIED LIVE 2026-09-04 (anela_cosmetics_test)
+
+A ceník item carries **both** price columns plus a flag saying which one was entered:
+
+| Field | Meaning |
+|---|---|
+| `typCenyDphK` | `typCeny.bezDph` or `typCeny.sDph` (`@showAs`: "bez DPH" / "s DPH"). Says which column is authoritative. |
+| `cenaZakl` | The entered base price. **Its VAT meaning follows `typCenyDphK`** — it is not inherently excl-VAT. |
+| `cenaZaklBezDph` | Base price excluding VAT (computed when type is `sDph`). |
+| `cenaZaklVcDph` | Base price including VAT (computed when type is `bezDph`). |
+| `szbDph` | VAT percentage, e.g. `21.0`. `typSzbDphK` is the rate class (`typSzbDph.dphZakl`). |
+| `nakupCena` | Purchase price. Never written by Heblo. |
+| `cena2` … `cena5` | Price-level (wholesale tier) prices — relevant to the multi-price-list spec. |
+
+Observed for `MAS001180`: `typCenyDphK = typCeny.bezDph`, `cenaZakl = 370.0`,
+`cenaZaklBezDph = 370.0`, `cenaZaklVcDph = 447.7`, `szbDph = 21.0`.
+
+> **Reading `cenaZakl` without `typCenyDphK` is unsafe.** Grossing it up by the VAT rate is
+> only correct when the type is `bezDph`; for an `sDph` item it double-counts VAT.
+
+### User query 41 exposes the price type — VERIFIED LIVE 2026-09-11 (anela_cosmetics_test)
+
+Query 41 (`CENIK`, "Ceny produktu") is the read behind `FlexiProductPriceErpClient` and,
+through it, the catalogue's ERP price, margins, stock valuation and the price comparison
+screen. It is executed as `GET /c/{firma}/uzivatelsky-dotaz/41/call.json?limit=0` and
+returns its rows under `winstrom.DotazView`.
+
+It **did not** originally select `typcenydphk`, so the adapter saw a null price type,
+assumed excl-VAT and grossed every `sDph` item up a second time — `OCH005100` held at 285.00
+incl. VAT rendered as 344.85. The query was extended server-side on 2026-09-11 to select it.
+
+| Column | Notes |
+|---|---|
+| `idcenik` | Ceník primary key. The only safe write address (see above). |
+| `kod` | Product code. |
+| `cena` | `cenazakl` aliased. **Raw** — its VAT meaning follows `typcenydphk`. |
+| `cenanakup` | `nakupcena`. |
+| `typszbdphk` | VAT band, enum vocabulary (`typSzbDph.dphZakl`, `typSzbDph.dphSniz`, …). |
+| `typzasobyk` | Stock type, enum vocabulary (`typZasoby.vyrobek`, `typZasoby.material`, …). |
+| `idkusovnik` | BoM id at `hladina = 1`, or `""`. |
+| `typcenydphk` | `typCeny.bezDph` / `typCeny.sDph`. **Added 2026-09-11.** |
+
+> **Columns come back lower-cased**, unlike the `cenik` evidence's camelCase. The DTO's
+> `[JsonProperty("typCenyDphK")]` / `[JsonProperty("idKusovnik")]` bind only via Newtonsoft's
+> case-insensitive fallback — pinned by `ProductPriceFlexiDtoWireShapeTests` against a
+> verbatim response, because a silent unbind reads as "price type unknown" and resurrects the
+> double-VAT bug with nothing failing.
+
+> **This query is per-company.** Each Flexi company holds its own copy of query 41, so the
+> extension must be applied to the production company separately. Until it is, that company's
+> reads fall back to the excl-VAT assumption; the adapter logs a warning once per batch and
+> the comparison screen reports the rows as "Neznámý typ ceny (Flexi)" rather than failing.

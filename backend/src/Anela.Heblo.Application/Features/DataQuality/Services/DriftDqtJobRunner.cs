@@ -44,7 +44,11 @@ public class DriftDqtJobRunner : IDriftDqtJobRunner, IDqtJobRunner
 
             var result = await comparer.CompareAsync(run.DateFrom, run.DateTo, ct);
 
+            // Informational rows are persisted alongside the mismatches so they are visible
+            // in the run detail, but they are deliberately excluded from TotalMismatches:
+            // they are observations, not failures.
             var entities = result.Mismatches
+                .Concat(result.Informational)
                 .Select(m => DqtDriftResult.Create(
                     run.Id, run.TestType, m.EntityKey, m.MismatchCode,
                     m.HebloValue, m.ShoptetValue, m.Details))
