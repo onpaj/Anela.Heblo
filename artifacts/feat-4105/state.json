@@ -28,9 +28,9 @@
   "tasks": [
     {
       "name": "move-summary-to-contracts",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-09-11T15:28:00.016804Z"
+      "updated_at": "2026-09-11T15:35:15.099074Z"
     },
     {
       "name": "update-leaflet-consumers",
