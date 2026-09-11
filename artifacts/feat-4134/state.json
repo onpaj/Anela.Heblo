@@ -25,5 +25,18 @@
       "updated_at": null
     }
   },
-  "tasks": []
+  "tasks": [
+    {
+      "name": "remove-redundant-updateasync-in-status-handler",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    },
+    {
+      "name": "remove-redundant-updateasync-in-invoice-acquired-handler",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    }
+  ]
 }
