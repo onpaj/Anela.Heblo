@@ -22,7 +22,7 @@
     },
     "developing": {
       "status": "in_progress",
-      "updated_at": "2026-09-11T17:11:51.413931Z"
+      "updated_at": "2026-09-11T17:17:23.376030Z"
     }
   },
   "tasks": [
@@ -46,9 +46,9 @@
     },
     {
       "name": "narrow-manufacture-interface-and-update-query-handlers",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-09-11T17:17:23.458402Z"
     },
     {
       "name": "verify-full-solution",
