@@ -21,16 +21,16 @@
       "updated_at": "2026-09-07T20:15:45.871400Z"
     },
     "developing": {
-      "status": "pending",
-      "updated_at": null
+      "status": "in_progress",
+      "updated_at": "2026-09-11T15:27:38.531165Z"
     }
   },
   "tasks": [
     {
       "name": "add-blobpathvalidator-tests",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-09-11T15:27:38.634082Z"
     }
   ]
 }
