@@ -55,7 +55,7 @@ public class SetProductPriceHandlerTests
         _eshop.Setup(c => c.SetPriceWithVatAsync("A", 210.00m, It.IsAny<CancellationToken>()))
             .Callback(() => callOrder.Add("shoptet"))
             .Returns(Task.CompletedTask);
-        _erpWriter.Setup(w => w.SetPriceWithoutVatAsync(11, 173.55m, It.IsAny<CancellationToken>()))
+        _erpWriter.Setup(w => w.SetBasePriceAsync(11, 173.55m, It.IsAny<CancellationToken>()))
             .Callback(() => callOrder.Add("flexi"))
             .Returns(Task.CompletedTask);
 
@@ -65,7 +65,7 @@ public class SetProductPriceHandlerTests
         // Assert
         response.Success.Should().BeTrue();
         _eshop.Verify(c => c.SetPriceWithVatAsync("A", 210.00m, It.IsAny<CancellationToken>()), Times.Once);
-        _erpWriter.Verify(w => w.SetPriceWithoutVatAsync(11, 173.55m, It.IsAny<CancellationToken>()), Times.Once);
+        _erpWriter.Verify(w => w.SetBasePriceAsync(11, 173.55m, It.IsAny<CancellationToken>()), Times.Once);
         callOrder.Should().Equal("shoptet", "flexi");
     }
 
@@ -92,12 +92,13 @@ public class SetProductPriceHandlerTests
     [Theory]
     [InlineData("sDph")]
     [InlineData(null)]
-    public async Task refuses_to_write_when_the_flexi_price_type_is_not_bez_dph(string? erpPriceType)
+    [InlineData("somethingUnrecognised")]
+    public async Task writes_the_operators_with_vat_price_straight_to_cenazakl_unless_the_item_is_bez_dph(
+        string? erpPriceType)
     {
-        // Arrange: cenaZakl's VAT meaning depends on the item's own price type. For "sDph" it
-        // IS the with-VAT price, so writing our excl-VAT number there would silently
-        // under-price the item. Null means the ERP read never exposed the price type, which
-        // PriceComparisonService itself already refuses to trust.
+        // Arrange: cenaZakl's VAT meaning is the item's own. Only "bezDph" stores an excl-VAT
+        // number needing conversion; for everything else cenaZakl IS the with-VAT price, and
+        // the operator always enters with VAT — so their number goes through untouched.
         _erpReader.Setup(c => c.GetAllAsync(false, It.IsAny<CancellationToken>()))
             .ReturnsAsync(new List<ProductPriceErp>
             {
@@ -108,17 +109,41 @@ public class SetProductPriceHandlerTests
         var response = await CreateSut().Handle(Request(), CancellationToken.None);
 
         // Assert
-        response.ErrorCode.Should().Be(ErrorCodes.ProductPriceFlexiPriceTypeUnsupported);
-        _eshop.Verify(c => c.SetPriceWithVatAsync(It.IsAny<string>(), It.IsAny<decimal>(),
-            It.IsAny<CancellationToken>()), Times.Never);
-        _erpWriter.VerifyNoOtherCalls();
+        response.Success.Should().BeTrue();
+        _erpWriter.Verify(w => w.SetBasePriceAsync(11, 210.00m, It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Theory]
+    [InlineData("sDph")]
+    [InlineData(null)]
+    public async Task does_not_need_a_vat_rate_at_all_when_cenazakl_already_holds_the_with_vat_price(
+        string? erpPriceType)
+    {
+        // Arrange: an unrecognised VAT band blocks only the bezDph conversion. These items
+        // need no rate, so the band must not block them.
+        _erpReader.Setup(c => c.GetAllAsync(false, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<ProductPriceErp>
+            {
+                new() { ProductCode = "A", ErpItemId = 11, ErpPriceType = erpPriceType },
+            });
+        _vatRates.Setup(v => v.GetVatRatesAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Dictionary<string, decimal>());
+
+        // Act
+        var response = await CreateSut().Handle(Request(), CancellationToken.None);
+
+        // Assert
+        response.Success.Should().BeTrue();
+        _erpWriter.Verify(w => w.SetBasePriceAsync(11, 210.00m, It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
     public async Task aborts_before_touching_shoptet_when_the_flexi_vat_rate_is_unknown()
     {
-        // Arrange: the provider omits a product whose Flexi VAT band it could not recognise,
-        // rather than handing back a fabricated 21 that would be written into a live ERP.
+        // Arrange: a "bezDph" item (the fixture default) needs the rate to convert the
+        // operator's with-VAT price into cenaZakl. The provider omits a product whose Flexi
+        // VAT band it could not recognise, rather than handing back a fabricated 21 that
+        // would be written into a live ERP.
         _vatRates.Setup(v => v.GetVatRatesAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(new Dictionary<string, decimal>());
 
@@ -188,7 +213,7 @@ public class SetProductPriceHandlerTests
     public async Task reports_the_partial_failure_when_only_flexi_fails()
     {
         // Arrange
-        _erpWriter.Setup(w => w.SetPriceWithoutVatAsync(11, It.IsAny<decimal>(), It.IsAny<CancellationToken>()))
+        _erpWriter.Setup(w => w.SetBasePriceAsync(11, It.IsAny<decimal>(), It.IsAny<CancellationToken>()))
             .ThrowsAsync(new HttpRequestException("Flexi timeout"));
 
         // Act
@@ -272,14 +297,11 @@ public class SetProductPriceHandlerTests
     }
 
     [Fact]
-    public async Task appends_a_change_log_row_when_the_flexi_price_type_is_unsupported()
+    public async Task appends_a_change_log_row_when_a_bez_dph_items_vat_band_is_unrecognised()
     {
-        // Arrange
-        _erpReader.Setup(c => c.GetAllAsync(false, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new List<ProductPriceErp>
-            {
-                new() { ProductCode = "A", ErpItemId = 11, ErpPriceType = "sDph" },
-            });
+        // Arrange: the fixture's product is "bezDph", so the conversion needs a rate.
+        _vatRates.Setup(v => v.GetVatRatesAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Dictionary<string, decimal>());
 
         // Act
         await CreateSut().Handle(Request(), CancellationToken.None);

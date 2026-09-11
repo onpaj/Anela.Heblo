@@ -83,7 +83,6 @@ describe("useSetProductPrice", () => {
   it.each([
     "ProductPriceNotFoundInShoptet",
     "ProductPriceFlexiItemIdUnknown",
-    "ProductPriceFlexiPriceTypeUnsupported",
     "ProductPriceShoptetWriteFailed",
   ])(
     "does not invalidate the divergence report when nothing was written anywhere (%s)",

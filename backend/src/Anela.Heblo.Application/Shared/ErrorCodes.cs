@@ -477,8 +477,6 @@ public enum ErrorCodes
     [HttpStatusCode(HttpStatusCode.BadGateway)]
     ProductPriceFlexiWriteFailed = 3606,
     [HttpStatusCode(HttpStatusCode.UnprocessableEntity)]
-    ProductPriceFlexiPriceTypeUnsupported = 3607,
-    [HttpStatusCode(HttpStatusCode.UnprocessableEntity)]
     ProductPriceFlexiVatRateUnknown = 3608,
     [HttpStatusCode(HttpStatusCode.BadGateway)]
     ProductPriceErpReadFailed = 3609,

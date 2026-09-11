@@ -14698,7 +14698,6 @@ export enum ErrorCodes {
     ProductPriceFlexiItemIdUnknown = "ProductPriceFlexiItemIdUnknown",
     ProductPriceShoptetWriteFailed = "ProductPriceShoptetWriteFailed",
     ProductPriceFlexiWriteFailed = "ProductPriceFlexiWriteFailed",
-    ProductPriceFlexiPriceTypeUnsupported = "ProductPriceFlexiPriceTypeUnsupported",
     ProductPriceFlexiVatRateUnknown = "ProductPriceFlexiVatRateUnknown",
     ProductPriceErpReadFailed = "ProductPriceErpReadFailed",
     ExternalServiceError = "ExternalServiceError",

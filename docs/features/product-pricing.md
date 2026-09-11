@@ -58,7 +58,7 @@ condition gets the first that applies):
 |---|---|
 | `MissingInShoptet` | Shoptet is the source of truth; a product absent from it has no comparison to make at all. |
 | `MissingInFlexi` | Shoptet has a price but the ERP read has nothing for this product. |
-| `FlexiPriceTypeUnknown` | Both sides have a price, but Flexi's with-VAT figure was derived from an *assumed* price type — see [Flexi price type](#flexi-price-type-and-why-a-write-can-be-refused-outright) below. Reported even when the numbers happen to agree, because that agreement cannot be trusted. |
+| `FlexiPriceTypeUnknown` | Both sides have a price, but Flexi's with-VAT figure was derived from an *assumed* price type — see [Flexi price type](#flexi-price-type-and-what-the-write-stores-in-cenazakl) below. Reported even when the numbers happen to agree, because that agreement cannot be trusted. |
 | `FlexiDiffers` | Both known, prices disagree (outside tolerance). |
 | `InAgreement` | Both known, prices match to 2 decimals within tolerance. |
 
@@ -73,7 +73,7 @@ Shoptet and Flexi prices as in agreement when they round to within **0.01** of e
 (`FlexiRoundTripTolerance`, both sides rounded to 2 decimals first). Shoptet, which stores
 the with-VAT price directly, gets no such allowance — it is the exact source of truth.
 
-### Flexi price type, and why a write can be refused outright
+### Flexi price type, and what the write stores in `cenaZakl`
 
 Flexi's `cenaZakl` field means different things depending on the item's own price type:
 
@@ -83,15 +83,27 @@ Flexi's `cenaZakl` field means different things depending on the item's own pric
 - Unknown/unset — the ERP read did not expose a usable price type at all.
 
 The comparison surfaces this as `FlexiPriceType` (`"bezDph"`, `"sDph"`, or `null`) on every
-row so an operator can see it. The **write path is stricter than the read path**: when
-setting a price, `SetProductPriceHandler` refuses outright unless the item's Flexi price
-type is exactly `bezDph`. Writing the excl-VAT figure into an `sDph` item would silently
-under-price it by the VAT rate with no error and no divergence for the comparison to catch
-— the exact failure mode a write-through exists to prevent. An unknown price type is
-refused for the same reason `PriceComparisonService` already reports it as untrustworthy
-(`FlexiPriceTypeUnknown`): writing under an assumption the read side itself rejects would
-be incoherent. `sDph` write semantics are also unverified against the live ERP — there is
-no sandbox — so the handler declines rather than encode a guess into a live write.
+row so an operator can see it.
+
+**The operator always enters a price including VAT**, so the write mirrors the read's own
+interpretation rather than assuming one convention:
+
+| Flexi price type | What is written to `cenaZakl` | VAT rate needed? |
+|---|---|---|
+| `bezDph` | the entered price converted to excl-VAT | yes |
+| `sDph` | the entered price, unchanged | no |
+| unknown / anything else | the entered price, unchanged | no |
+
+Only the `bezDph` branch needs a VAT rate at all, so an unrecognised VAT band (below) blocks
+only those items.
+
+> **Unknown price type is treated as `sDph` on write, but as `bezDph` on read.** The read
+> path grosses an unknown-type `cenaZakl` up by the VAT rate, so after a successful save such
+> a row will keep reporting a divergence in the comparison — the Flexi column will read about
+> one VAT rate higher than Shoptet. The row is already flagged `FlexiPriceTypeUnknown` for
+> exactly this untrustworthiness. Aligning the read with the write would remove the artefact,
+> but it also changes catalog margin figures (`IProductVatRateProvider` feeds
+> `ShoptetEshopPriceClient`), so it is a deliberate open question rather than an oversight.
 
 ### The VAT band, and why an unrecognised one refuses the write
 
@@ -171,13 +183,12 @@ price to Shoptet, then to Flexi, in that order, with a pre-flight before either 
    (`GET /api/pricelists/{id}?code=X` — see `docs/integrations/shoptet-api.md`) to record as
    `OldPriceWithVat` in the change log. A product with no row in the retail list cannot be
    priced at all and fails here.
-2. **Pre-flight the Flexi leg** — resolve the Flexi ceník item id, confirm its price type is
-   `bezDph` (refusing otherwise, see above), and resolve the product's VAT rate from Flexi's
-   own VAT band (refusing when that band is unrecognised, see below). All of this
-   runs *before* anything is written, on purpose: a missing ceník id, an unsupported price
-   type, or a missing VAT rate is knowable up front and guarantees the Flexi leg cannot
-   succeed, so discovering it only after Shoptet was already written would manufacture an
-   avoidable divergence.
+2. **Pre-flight the Flexi leg** — resolve the Flexi ceník item id, and for a `bezDph` item
+   also resolve its VAT rate from Flexi's own VAT band (refusing when that band is
+   unrecognised, see below). All of this runs *before* anything is written, on purpose: a
+   missing ceník id, or a missing VAT rate for an item that needs one, is knowable up front
+   and guarantees the Flexi leg cannot succeed, so discovering it only after Shoptet was
+   already written would manufacture an avoidable divergence.
 3. **Write Shoptet** (`PATCH /api/pricelists/{id}`, `priceWithVat.price`, never the flat
    `price` field — see the integration doc for the object-vs-scalar 422 gotcha).
 4. **Write Flexi** (excl-VAT price, computed from the requested with-VAT price and the
@@ -276,8 +287,7 @@ applicable. The log is:
 | `ProductPriceFlexiItemIdUnknown` | No Flexi ceník item (or VAT rate) resolvable for the product; nothing written. |
 | `ProductPriceShoptetWriteFailed` | The Shoptet write itself failed; nothing written. |
 | `ProductPriceFlexiWriteFailed` | Shoptet was written successfully but the Flexi write failed — **the two systems now diverge**. |
-| `ProductPriceFlexiPriceTypeUnsupported` | Item's Flexi price type is not `bezDph`; refused outright, nothing written. |
-| `ProductPriceFlexiVatRateUnknown` | Flexi's VAT band for the item was not one the adapter recognises, so no rate can be trusted; refused outright, nothing written. |
+| `ProductPriceFlexiVatRateUnknown` | A `bezDph` item whose Flexi VAT band was not one the adapter recognises, so no rate can be trusted for the conversion; refused outright, nothing written. Items whose `cenaZakl` already holds the with-VAT price need no rate and are unaffected. |
 | `ProductPriceErpReadFailed` | The Flexi read itself failed (outage, timeout, 5xx) — distinct from any fact about the product; nothing written. |
 
 ## Known constraints

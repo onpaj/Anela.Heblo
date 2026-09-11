@@ -10,7 +10,12 @@ using Rem.FlexiBeeSDK.Client;
 namespace Anela.Heblo.Adapters.Flexi.Price;
 
 /// <summary>
-/// Writes <c>cenaZakl</c> (base price, excluding VAT) to a Flexi ceník item.
+/// Writes <c>cenaZakl</c> to a Flexi ceník item.
+///
+/// <c>cenaZakl</c> does NOT have a fixed VAT meaning — it depends on the item's own
+/// <c>typCenyDphK</c>: excluding VAT for <c>bezDph</c>, including VAT for <c>sDph</c>. This
+/// writer stores whatever value the caller computed and takes no view on which it is; see
+/// <c>SetProductPriceHandler</c>, which owns that decision.
 ///
 /// Addressed by the internal numeric id only: Flexi does not distinguish create from
 /// update, so a PUT to <c>cenik/code:UNKNOWN.json</c> silently creates a new item.
@@ -34,7 +39,7 @@ public class FlexiProductPriceWriter : IErpPriceWriter
         _logger = logger;
     }
 
-    public async Task SetPriceWithoutVatAsync(int erpItemId, decimal priceWithoutVat, CancellationToken ct)
+    public async Task SetBasePriceAsync(int erpItemId, decimal basePrice, CancellationToken ct)
     {
         if (erpItemId <= 0)
         {
@@ -46,11 +51,11 @@ public class FlexiProductPriceWriter : IErpPriceWriter
         // Same reason the id is guarded: this writer is reachable by any future caller that
         // has not been through SetProductPriceRequestValidator, and a zero or negative
         // cenaZakl lands in a live ERP.
-        if (priceWithoutVat <= 0m)
+        if (basePrice <= 0m)
         {
             throw new ArgumentOutOfRangeException(
-                nameof(priceWithoutVat),
-                priceWithoutVat,
+                nameof(basePrice),
+                basePrice,
                 "A Flexi ceník base price must be positive.");
         }
 
@@ -60,7 +65,7 @@ public class FlexiProductPriceWriter : IErpPriceWriter
             {
                 cenik = new
                 {
-                    cenaZakl = priceWithoutVat.ToString("F2", CultureInfo.InvariantCulture),
+                    cenaZakl = basePrice.ToString("F2", CultureInfo.InvariantCulture),
                 },
             },
         };
@@ -101,7 +106,7 @@ public class FlexiProductPriceWriter : IErpPriceWriter
         InvalidateCachedErpPrices();
 
         _logger.LogInformation(
-            "Updated Flexi ceník {ErpItemId} base price to {Price}", erpItemId, priceWithoutVat);
+            "Updated Flexi ceník {ErpItemId} base price to {Price}", erpItemId, basePrice);
     }
 
     private void InvalidateCachedErpPrices()

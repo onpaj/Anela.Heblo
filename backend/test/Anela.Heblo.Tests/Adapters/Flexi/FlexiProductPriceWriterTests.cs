@@ -35,7 +35,7 @@ public class FlexiProductPriceWriterTests
         var (writer, requests, _) = Create();
 
         // Act
-        await writer.SetPriceWithoutVatAsync(147, 157.02m, CancellationToken.None);
+        await writer.SetBasePriceAsync(147, 157.02m, CancellationToken.None);
 
         // Assert
         requests.Should().ContainSingle();
@@ -51,7 +51,7 @@ public class FlexiProductPriceWriterTests
         var (writer, _, bodies) = Create();
 
         // Act
-        await writer.SetPriceWithoutVatAsync(147, 157.019m, CancellationToken.None);
+        await writer.SetBasePriceAsync(147, 157.019m, CancellationToken.None);
 
         // Assert
         bodies[0].Should().Contain("\"cenaZakl\":\"157.02\"");
@@ -65,7 +65,7 @@ public class FlexiProductPriceWriterTests
         var (writer, _, bodies) = Create();
 
         // Act
-        await writer.SetPriceWithoutVatAsync(147, 157.02m, CancellationToken.None);
+        await writer.SetBasePriceAsync(147, 157.02m, CancellationToken.None);
 
         // Assert
         bodies[0].Should().NotContain("cenanakup").And.NotContain("cenaNakup");
@@ -78,7 +78,7 @@ public class FlexiProductPriceWriterTests
         var (writer, requests, _) = Create();
 
         // Act
-        var act = () => writer.SetPriceWithoutVatAsync(0, 157.02m, CancellationToken.None);
+        var act = () => writer.SetBasePriceAsync(0, 157.02m, CancellationToken.None);
 
         // Assert
         await act.Should().ThrowAsync<ArgumentOutOfRangeException>();
@@ -92,7 +92,7 @@ public class FlexiProductPriceWriterTests
         var (writer, _, _) = Create(HttpStatusCode.BadRequest, "{\"winstrom\":{\"success\":\"false\"}}");
 
         // Act
-        var act = () => writer.SetPriceWithoutVatAsync(147, 157.02m, CancellationToken.None);
+        var act = () => writer.SetBasePriceAsync(147, 157.02m, CancellationToken.None);
 
         // Assert
         (await act.Should().ThrowAsync<HttpRequestException>()).And.Message.Should().Contain("success");
@@ -108,7 +108,7 @@ public class FlexiProductPriceWriterTests
         var (writer, requests, _) = Create();
 
         // Act
-        var act = () => writer.SetPriceWithoutVatAsync(147, priceWithoutVat, CancellationToken.None);
+        var act = () => writer.SetBasePriceAsync(147, priceWithoutVat, CancellationToken.None);
 
         // Assert
         await act.Should().ThrowAsync<ArgumentOutOfRangeException>();
@@ -127,7 +127,7 @@ public class FlexiProductPriceWriterTests
         var (writer, _, _) = CreateWithCache(cache);
 
         // Act
-        await writer.SetPriceWithoutVatAsync(147, 157.02m, CancellationToken.None);
+        await writer.SetBasePriceAsync(147, 157.02m, CancellationToken.None);
 
         // Assert
         cache.TryGetValue(FlexiProductPriceErpClient.CacheKey, out _).Should().BeFalse();
@@ -142,7 +142,7 @@ public class FlexiProductPriceWriterTests
         var (writer, _, _) = CreateWithCache(cache, HttpStatusCode.BadRequest, "{}");
 
         // Act
-        var act = () => writer.SetPriceWithoutVatAsync(147, 157.02m, CancellationToken.None);
+        var act = () => writer.SetBasePriceAsync(147, 157.02m, CancellationToken.None);
 
         // Assert
         await act.Should().ThrowAsync<HttpRequestException>();
