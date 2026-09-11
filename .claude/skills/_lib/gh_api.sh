@@ -335,10 +335,18 @@ pr_view() {
     local runs_resp status_resp rollup
     runs_resp=$(req GET "/repos/${REPO}/commits/${sha}/check-runs")
     status_resp=$(req GET "/repos/${REPO}/commits/${sha}/status")
+    # The check-runs endpoint returns every run ever created for this sha,
+    # including ones a later push superseded (GitHub cancels the earlier
+    # in-flight run rather than deleting its record). `gh`'s GraphQL-backed
+    # statusCheckRollup only ever surfaces the latest run per check name;
+    # without the same dedup here, a stale CANCELLED entry from an earlier,
+    # superseded run sat alongside the current SUCCESS one and made the
+    # overall state read as "failure" even though every check currently
+    # passed — flagging clean PRs `still-failing`.
     rollup=$(jq -cn \
       --argjson runs "$(emit "$runs_resp")" \
       --argjson status "$(emit "$status_resp")" \
-      '[($runs.check_runs // [])[] | {__typename:"CheckRun",
+      '[($runs.check_runs // []) | group_by(.name) | .[] | max_by(.started_at) | {__typename:"CheckRun",
           status: (.status | ascii_upcase),
           conclusion: (if .conclusion then (.conclusion | ascii_upcase) else null end)}]
        + [($status.statuses // [])[] | {__typename:"StatusContext", state: (.state | ascii_upcase)}]')
