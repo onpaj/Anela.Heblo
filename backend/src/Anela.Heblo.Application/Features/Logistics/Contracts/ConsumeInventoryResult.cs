@@ -12,7 +12,14 @@ public enum ConsumeInventoryOutcome
 
 /// <summary>
 /// Logistics-owned result of attempting to consume inventory.
-/// Sealed record with an outcome discriminator — extensible to carry an optional
+/// Sealed class with an outcome discriminator — extensible to carry an optional
 /// available-amount field without breaking the contract.
 /// </summary>
-public sealed record ConsumeInventoryResult(ConsumeInventoryOutcome Outcome);
+public sealed class ConsumeInventoryResult
+{
+    public ConsumeInventoryOutcome Outcome { get; init; }
+
+    public static ConsumeInventoryResult Success() => new() { Outcome = ConsumeInventoryOutcome.Success };
+    public static ConsumeInventoryResult InventoryNotFound() => new() { Outcome = ConsumeInventoryOutcome.InventoryNotFound };
+    public static ConsumeInventoryResult InsufficientStock() => new() { Outcome = ConsumeInventoryOutcome.InsufficientStock };
+}

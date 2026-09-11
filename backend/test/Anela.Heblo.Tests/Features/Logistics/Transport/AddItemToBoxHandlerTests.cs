@@ -172,7 +172,7 @@ public class AddItemToBoxHandlerTests
             .Setup(x => x.TryConsumeAsync(
                 42, 10m, It.IsAny<string>(), It.IsAny<DateTime>(),
                 1, "B001", false, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new ConsumeInventoryResult(ConsumeInventoryOutcome.Success));
+            .ReturnsAsync(ConsumeInventoryResult.Success());
 
         _repositoryMock
             .Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
@@ -219,7 +219,7 @@ public class AddItemToBoxHandlerTests
             .Setup(x => x.TryConsumeAsync(
                 42, 100m, It.IsAny<string>(), It.IsAny<DateTime>(),
                 1, "B001", false, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new ConsumeInventoryResult(ConsumeInventoryOutcome.InsufficientStock));
+            .ReturnsAsync(ConsumeInventoryResult.InsufficientStock());
 
         // Act
         var result = await _handler.Handle(request, CancellationToken.None);
@@ -257,7 +257,7 @@ public class AddItemToBoxHandlerTests
             .Setup(x => x.TryConsumeAsync(
                 999, 5m, It.IsAny<string>(), It.IsAny<DateTime>(),
                 1, "B001", false, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new ConsumeInventoryResult(ConsumeInventoryOutcome.InventoryNotFound));
+            .ReturnsAsync(ConsumeInventoryResult.InventoryNotFound());
 
         // Act
         var result = await _handler.Handle(request, CancellationToken.None);

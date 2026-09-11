@@ -344,6 +344,13 @@ const resources = {
         MindMapMeetingAlreadyAttached: "Tato porada je už k mapě připojena",
         MindMapInvalidDocument: "Neplatný dokument myšlenkové mapy",
 
+        // Product Pricing module errors (36XX)
+        ProductPriceNotFoundInShoptet: "Produkt není v maloobchodním ceníku Shoptetu",
+        ProductPriceFlexiItemIdUnknown: "Produkt nemá ceníkovou položku ve Flexi, cena nebyla nikde změněna",
+        ProductPriceShoptetWriteFailed: "Zápis ceny do Shoptetu selhal, cena nebyla nikde změněna",
+        ProductPriceFlexiWriteFailed: "Cena byla změněna v Shoptetu, ale zápis do Flexi selhal — ceny se nyní liší",
+        ProductPriceErpReadFailed: "ERP Flexi se nepodařilo načíst; cena nebyla nikde změněna",
+
         // External Service errors
         ExternalServiceError: "Chyba externí služby",
         FlexiApiError: "Chyba ABRA Flexi API",
@@ -357,6 +364,7 @@ const resources = {
           ProductPairing: "Párování produktů",
           StockWriteBackReconciliation: "Zpětný zápis skladu",
           LotSumVsErpStock: "Šarže vs. ERP sklad",
+          PriceComparison: "Kontrola cen",
         },
         productPairingMismatches: {
           MissingInErp: "Chybí v ERP",
@@ -367,6 +375,13 @@ const resources = {
           OperationFailed: "Operace selhala",
           OperationStuck: "Operace zaseknutá",
           StockTakingErrored: "Chyba inventury",
+        },
+        priceComparisonMismatches: {
+          Unknown: "Neznámá neshoda",
+          PriceDiffers: "Rozdílná cena",
+          MissingInFlexi: "Chybí ve Flexi",
+          FlexiPriceTypeUnknown: "Neznámý typ ceny ve Flexi",
+          FlexiVatRateUnknown: "Neznámá sazba DPH ve Flexi",
         },
       },
     },
@@ -485,6 +500,7 @@ const resources = {
           ProductPairing: "Product Pairing",
           StockWriteBackReconciliation: "Stock Write-Back Reconciliation",
           LotSumVsErpStock: "Lot Sum vs. ERP Stock",
+          PriceComparison: "Price Comparison",
         },
         productPairingMismatches: {
           MissingInErp: "Missing in ERP",
@@ -495,6 +511,13 @@ const resources = {
           OperationFailed: "Operation failed",
           OperationStuck: "Operation stuck",
           StockTakingErrored: "Stock-taking errored",
+        },
+        priceComparisonMismatches: {
+          Unknown: "Unknown mismatch",
+          PriceDiffers: "Price differs",
+          MissingInFlexi: "Missing in Flexi",
+          FlexiPriceTypeUnknown: "Unknown Flexi price type",
+          FlexiVatRateUnknown: "Unknown Flexi VAT rate",
         },
       },
     },

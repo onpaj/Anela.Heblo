@@ -1319,3 +1319,120 @@ URL / tracking number once ready.
 **To verify on staging before relying on it:** create a multi-package shipment for a test
 order, confirm Shoptet returns N distinct package names and N printable labels, and that the
 order can still be marked packed (status 52) afterwards.
+
+## Price lists API
+
+Base: `https://api.myshoptet.com`, header `Shoptet-Private-API-Token`.
+
+| Method | Path | Purpose |
+|---|---|---|
+| GET | `/api/pricelists` | All price lists configured on the e-shop. Identifies the default one. |
+| GET | `/api/pricelists/{id}` | All items of one price list, synchronous. Paginated: `itemsPerPage` default and **max 100**, `page` from 1. |
+| PATCH | `/api/pricelists/{id}` | Update prices of individual items. |
+| PATCH | `/api/pricelists/{id}/batch` | Async bulk update, JSONL body, max 100 MB. **Not used — see below.** |
+
+**`GET /api/pricelists/{id}/snapshot` is deliberately not used for the bulk read.** Like
+`GET /api/products/snapshot` (§4.3), snapshot endpoints require a registered `job:finished`
+webhook and return unusable results without webhook infrastructure. The synchronous
+`GET /api/pricelists/{id}` returns the same `data.pricelist[]` / `data.paginator` shape and
+needs no webhook, so Heblo reads through it instead.
+
+### GET response shape — VERIFIED LIVE 2026-09-04
+
+**`GET /api/pricelists` returns NO `default` flag.** Each entry is only `{id, name}`. Any
+code branching on a `default` property silently finds nothing. The retail list must be
+configured explicitly. On the Anela store:
+
+| id | name | role |
+|---|---|---|
+| 1 | Hlavní ceník | **retail / source of truth** |
+| 32 | Bezobal | |
+| 38 | Velkoobchodní ceník | wholesale |
+| 39 | Velkoobchodní 35% | wholesale |
+
+**`GET /api/pricelists/{id}` item shape — there is NO `priceWithVat` field on read.**
+The price is nested, and its VAT meaning comes from sibling fields:
+
+```json
+{
+  "code": "MAS001180",
+  "currencyCode": "CZK",
+  "includingVat": true,
+  "vatRate": "21.00",
+  "price": { "price": "390.00", "commonPrice": null, "buyPrice": "199.18",
+             "priceRatio": "1.000", "actionPrice": null },
+  "sales": { ... },
+  "orderableAmount": { "minimumAmount": null, "maximumAmount": null },
+  "prices": { "purchasePrice": { "price": null, "vatRate": "21.00", "includingVat": true } }
+}
+```
+
+- `price.price` is a **string or null**; `null` means no price set in that list.
+- `includingVat` is a real boolean. On this store it is `true` — **Shoptet retail prices are
+  stored INCLUDING VAT.** Never assume; read the flag per item.
+- `vatRate` is a string percentage (`"21.00"`).
+- The read field names differ from the PATCH field names (below). Reading `priceWithVat`
+  yields null for every item.
+
+**Filtering:** `?code=MAS001180` (singular) works and returns `totalCount: 1`. `codes=` is
+rejected: `{"errorCode":"invalid-parameter","message":"Unsupported query parameters found: codes"}`.
+
+**Single-product read for the price write-through path.** `GET /api/pricelists/{id}?code=X`
+is also how `ShoptetPriceListClient.GetPriceWithVatAsync` fetches one product's current price
+as the pre-write read before `SetProductPriceHandler` (see `docs/features/product-pricing.md`)
+pushes a new price to Shoptet — reading the current price to log as `OldPriceWithVat` without
+paging through the whole price list. The write path depends on this `code=` singular filter
+behaving as documented above; if Shoptet ever changed it to reject or ignore the parameter, the
+pre-flight read (and therefore every price write) would break.
+
+**Paginator** carries `totalCount`, `page`, `pageCount`, `itemsOnPage`, `itemsPerPage`.
+
+**Item price fields on PATCH — `price`, `priceWithVat` and `priceWithoutVat` are OBJECTS,
+not scalars.** _(Corrected 2026-09-10 after a live 422; the earlier table listed them as flat
+fields.)_ Each is a sibling **group** with the same members as the read-side `price` object:
+`price`, `commonPrice`, `buyPrice`, `priceRatio`, `actionPrice`. Sending the amount flat
+returns 422:
+
+```json
+{"errors":[{"errorCode":"invalid-request-data",
+            "message":"String value found, but an object is required",
+            "instance":"data[0].priceWithVat"}]}
+```
+
+Correct body — only the members you send are changed:
+
+```json
+{"data":[{"code":"DEO007005","priceWithVat":{"price":"390.00"}}]}
+```
+
+| Group / field | Meaning |
+|---|---|
+| `price.*` | Sets the stored price directly, no recalculation. Interpretation depends on the list's `includingVat`. |
+| `priceWithVat.*` | Sets the price including VAT; Shoptet recalculates the stored form. |
+| `priceWithoutVat.*` | Sets the price excluding VAT; Shoptet recalculates. |
+| `*.buyPrice` | **Writable only on the default price list**; stays `null` on all others. |
+| `vatRate`, `includingVat` | Flat item-level fields (not in a group). Optional; changing either triggers recalculation. |
+
+Schema constraints (from the [OpenAPI spec](https://api.docs.shoptet.com/_bundle/Shoptet%20API/openapi.json)):
+`additionalProperties: false` on the item and on every group — an unknown key is a 422, not
+an ignored field. Each item needs `code` plus at least one more property (`minProperties: 2`).
+Every amount is a **string with exactly 2 decimals** (`^(-)?[0-9]+\.[0-9]{2}$`); `vatRate`
+matches `^[0-9]+\.[0-9]{2}$` and `priceRatio` takes 4 decimals.
+
+**Zero vs null (rollout from 2026-09-14, feature-flagged per e-shop).** A literal `0`
+in `data.price.price`, `data.price.commonPrice`, `data.price.buyPrice` or
+`data.prices.purchasePrice.price` used to *clear* the price. After the flag flips, `0`
+means a genuine zero price and only `null` clears it. Never send `0` to mean "no price" —
+omit the product instead. CSV/XML import/export gained the same empty-cell vs `0`
+distinction.
+
+**Async endpoints require a webhook.** Every async endpoint — including
+`PATCH /api/pricelists/{id}/batch` — returns **403 and never queues the job** unless the
+`job:finished` webhook is registered for the e-shop. The response is `202` with a `jobId`;
+the result is then read from `GET /api/system/jobs/{jobId}`, whose `log` attribute
+identifies rows by their 1-based position in the uploaded file. A failed job is marked
+failed 3 hours after creation and emits **no** `job:finished` webhook.
+
+**Why Heblo uses per-item PATCH, not batch:** the price sync pushes only *changed*
+prices — a handful per run — so the batch endpoint's inbound-webhook dependency buys
+nothing. Batch remains the option if a bulk repricing is ever needed.
