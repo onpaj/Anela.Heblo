@@ -63,4 +63,31 @@ public class RecurringJobNextRunCalculatorTests
                 It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
             Times.Once);
     }
+
+    [Fact]
+    public void Calculate_ReturnsNull_AndLogsWarning_WhenCronInvalid()
+    {
+        // Arrange
+        var logger = new Mock<ILogger>();
+
+        // Act
+        var result = RecurringJobNextRunCalculator.Calculate(
+            cronExpression: "not a cron",
+            isEnabled: true,
+            timeZoneId: "UTC",
+            utcNow: new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc),
+            logger: logger.Object,
+            jobName: "test-job");
+
+        // Assert
+        result.Should().BeNull();
+        logger.Verify(
+            x => x.Log(
+                LogLevel.Warning,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((state, t) => true),
+                It.IsAny<Exception>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Once);
+    }
 }
