@@ -52,9 +52,9 @@
     },
     {
       "name": "run-full-suite-and-validate-build",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-09-11T17:38:49.884714Z"
+      "updated_at": "2026-09-11T17:43:33.024097Z"
     }
   ]
 }
