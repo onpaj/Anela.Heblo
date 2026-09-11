@@ -515,6 +515,44 @@ test("rejects a blank price draft without calling the mutation or prompting for 
   // Assert
   expect(setPrice).not.toHaveBeenCalled();
   expect(confirmSpy).not.toHaveBeenCalled();
+  // ...and says so. Without this the click is swallowed: nothing saves, nothing changes on
+  // screen, and "Uložit" reads as a dead button.
+  expect(await screen.findByRole("alert")).toHaveTextContent("Zadejte cenu");
+
+  confirmSpy.mockRestore();
+});
+
+test("rejects a price draft above the ceiling and keeps the row editable so it can be corrected", async () => {
+  // Arrange — the server refuses anything over 1 000 000; catching it here turns a validation
+  // error from two live systems into a message next to the field the operator is typing in.
+  const setPrice = jest.fn();
+  const confirmSpy = jest.spyOn(window, "confirm").mockReturnValue(true);
+  renderReport({
+    canWrite: true,
+    setPrice,
+    rows: [
+      {
+        productCode: "A",
+        productName: "Alpha",
+        shoptetPriceWithVat: 190,
+        flexiPriceWithVat: 190,
+        kind: PriceDivergenceKind.InAgreement,
+      },
+    ],
+  });
+
+  // Act — a mistyped extra digit.
+  await userEvent.click(screen.getByRole("button", { name: "Upravit cenu Alpha", exact: true }));
+  const input = screen.getByRole("spinbutton", { name: "Cena s DPH", exact: true });
+  await userEvent.clear(input);
+  await userEvent.type(input, "1900000");
+  await userEvent.click(screen.getByRole("button", { name: "Uložit", exact: true }));
+
+  // Assert
+  expect(setPrice).not.toHaveBeenCalled();
+  expect(await screen.findByRole("alert")).toHaveTextContent("Zadejte cenu");
+  // Still editable: the point of refusing here is that the value can be fixed in place.
+  expect(screen.getByRole("spinbutton", { name: "Cena s DPH", exact: true })).toBeInTheDocument();
 
   confirmSpy.mockRestore();
 });

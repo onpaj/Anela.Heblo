@@ -71,6 +71,13 @@ const LARGE_CHANGE_CONFIRM_THRESHOLD = 0.5;
 // coerces to 0 via `Number("")`, which is finite and would otherwise slip past the guard).
 const MIN_PRICE_WITH_VAT = 0.01;
 
+// Mirrors SetProductPriceRequestValidator's ceiling so a mistyped extra digit is refused here
+// with a message the operator can read, rather than as a validation error from the server.
+const MAX_PRICE_WITH_VAT = 1_000_000;
+
+const INVALID_PRICE_ERROR =
+  `Zadejte cenu mezi ${MIN_PRICE_WITH_VAT} a ${MAX_PRICE_WITH_VAT} Kč (desetinná tečka).`;
+
 /** What the last sync did, so a run that changed nothing is still visibly a run. */
 interface SyncStatus {
   at: Date;
@@ -188,8 +195,18 @@ const PriceDivergenceReport: React.FC<PriceDivergenceReportProps> = ({ canWrite 
 
     const priceWithVat = Number(draftValue);
     const isDraftUsable =
-      draftValue.trim() !== "" && Number.isFinite(priceWithVat) && priceWithVat >= MIN_PRICE_WITH_VAT;
-    if (!isDraftUsable) return;
+      draftValue.trim() !== "" &&
+      Number.isFinite(priceWithVat) &&
+      priceWithVat >= MIN_PRICE_WITH_VAT &&
+      priceWithVat <= MAX_PRICE_WITH_VAT;
+    if (!isDraftUsable) {
+      // Returning silently made "Uložit" a dead button: <input type="number"> reports an
+      // empty value for anything the browser cannot parse — the Czech decimal comma in
+      // "420,50", for one — so the operator saw a click that did nothing and no reason why.
+      // The row stays in edit mode so the value can be corrected in place.
+      setRowErrors((prev) => ({ ...prev, [productCode]: INVALID_PRICE_ERROR }));
+      return;
+    }
 
     const currentPrice = row.shoptetPriceWithVat;
     const hasShoptetBaseline = currentPrice != null && currentPrice > 0;
@@ -205,9 +222,9 @@ const PriceDivergenceReport: React.FC<PriceDivergenceReportProps> = ({ canWrite 
       }
     } else {
       // No Shoptet price to compare against (e.g. a MissingInShoptet row) — there is no
-      // ratio to gate on, and deliberately no server-side ceiling either, so the operator's
-      // confirmation is the only guard. Always ask, and name this explicitly as a first
-      // price going straight onto the live shop.
+      // ratio to gate on, so the operator's confirmation is the only judgement of whether the
+      // number is right (the server's ceiling catches only absurd ones). Always ask, and name
+      // this explicitly as a first price going straight onto the live shop.
       const confirmed = window.confirm(
         `Produkt ${row.productName} nemá v Shoptetu žádnou cenu k porovnání. Nastavuje se ` +
           `první cena ${formatCurrency(priceWithVat)} přímo v živém e-shopu. Opravdu chcete ` +
