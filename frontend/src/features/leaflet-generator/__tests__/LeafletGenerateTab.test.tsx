@@ -1,15 +1,18 @@
 import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import LeafletGenerateTab from '../LeafletGenerateTab';
 import { getAuthenticatedApiClient } from '../../../api/client';
 import { ErrorCodes, GenerateLeafletResponse } from '../../../api/generated/api-client';
 
 jest.mock('../../../api/client', () => ({
   getAuthenticatedApiClient: jest.fn(),
+  QUERY_KEYS: { leaflet: ['leaflet'] },
 }));
 
 jest.mock('../../../api/hooks/useLeaflet', () => ({
+  ...jest.requireActual('../../../api/hooks/useLeaflet'),
   useSubmitLeafletFeedbackMutation: () => ({
     mutate: jest.fn(),
     isPending: false,
@@ -32,6 +35,13 @@ beforeEach(() => {
   });
 });
 
+function createWrapper({ children }: { children: React.ReactNode }) {
+  const queryClient = new QueryClient({
+    defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+  });
+  return <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>;
+}
+
 async function fillAndSubmit() {
   fireEvent.change(screen.getByLabelText('Téma'), { target: { value: 'Bisabolol' } });
   fireEvent.click(screen.getByRole('button', { name: 'Vygenerovat leták' }));
@@ -45,7 +55,7 @@ describe('LeafletGenerateTab', () => {
     });
     mockGenerate.mockRejectedValue(errorResponse);
 
-    render(<LeafletGenerateTab />);
+    render(<LeafletGenerateTab />, { wrapper: createWrapper });
     await fillAndSubmit();
 
     const banner = await screen.findByRole('alert');
@@ -56,7 +66,7 @@ describe('LeafletGenerateTab', () => {
   it('shows the transient failure banner for a generic error', async () => {
     mockGenerate.mockRejectedValue(new Error('network down'));
 
-    render(<LeafletGenerateTab />);
+    render(<LeafletGenerateTab />, { wrapper: createWrapper });
     await fillAndSubmit();
 
     const banner = await screen.findByRole('alert');
