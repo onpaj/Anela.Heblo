@@ -28,9 +28,9 @@
   "tasks": [
     {
       "name": "fix-journal-entrydate-sort-warning",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-09-11T16:44:59.415797Z"
+      "updated_at": "2026-09-11T17:01:32.437451Z"
     }
   ]
 }
