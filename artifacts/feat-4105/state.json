@@ -21,16 +21,16 @@
       "updated_at": "2026-09-08T05:18:46.893671Z"
     },
     "developing": {
-      "status": "pending",
-      "updated_at": null
+      "status": "in_progress",
+      "updated_at": "2026-09-11T15:27:59.937531Z"
     }
   },
   "tasks": [
     {
       "name": "move-summary-to-contracts",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-09-11T15:28:00.016804Z"
     },
     {
       "name": "update-leaflet-consumers",
