@@ -284,12 +284,26 @@ _resolve_pr_number() {
   need_repo
   local ref="$1"
   if [[ "$ref" =~ ^[0-9]+$ ]]; then echo "$ref"; return 0; fi
-  if [[ "$ref" =~ /pull/([0-9]+) ]]; then echo "${BASH_REMATCH[1]}"; return 0; fi
-  local owner enc resp n
+  # ANCHORED, deliberately. Matching `/pull/<n>` anywhere in the ref meant
+  # any ref merely containing that substring short-circuited to <n> -- and a
+  # head branch is a legitimate ref form here, its name chosen by whoever can
+  # push. A branch called `feature/12-x/pull/99` resolved to the unrelated PR
+  # #99, aiming this transport's writes (pr-close, pr-merge, pr-edit) at it.
+  if [[ "$ref" =~ ^https?://[^/]+/[^/]+/[^/]+/pull/([0-9]+)/?$ ]]; then echo "${BASH_REMATCH[1]}"; return 0; fi
+  local owner enc resp body n
   owner="${REPO%%/*}"
   enc=$(jq -rn --arg h "${owner}:${ref}" '$h|@uri')
   resp=$(req GET "/repos/${REPO}/pulls?head=${enc}&state=all&per_page=1")
-  n=$(emit "$resp" | jq -r '.[0].number // empty')
+  # Take emit's status before reading the body. `emit` err+exits on a
+  # non-2xx, but inside a command substitution that exit kills only the
+  # subshell -- so piping it straight into jq turned every failed request
+  # (a 404 on a renamed repo, a revoked token, a 5xx) into an empty result
+  # and then into "no PR found for branch", which reads as a confirmed
+  # "this branch has no PR". Callers that act on that distinction --
+  # reap_orphans.sh strips a stage label on it -- were being told a
+  # transport failure was a fact about the branch.
+  body=$(emit "$resp") || exit 1
+  n=$(echo "$body" | jq -r '.[0].number // empty')
   [[ -n "$n" ]] || err "no PR found for branch '${ref}'"
   echo "$n"
 }
@@ -451,6 +465,18 @@ pr_merge() {
   fi
 }
 
+pr_close() {
+  # pr_close REF — mirrors `gh pr close REF`. The head branch is
+  # deliberately left in place (see pr_merge --delete-branch for the
+  # opposite); a reaped PR stays recoverable from its branch.
+  need_repo
+  local ref="${1:?pr ref required}"
+  local n resp
+  n=$(_resolve_pr_number "$ref")
+  resp=$(req PATCH "/repos/${REPO}/pulls/${n}" '{"state":"closed"}')
+  emit "$resp" >/dev/null
+}
+
 pr_ready() {
   # No REST endpoint exists for undrafting a PR — GraphQL only.
   need_repo
@@ -567,6 +593,7 @@ case "$cmd" in
   pr-create)             pr_create "$@" ;;
   pr-comment)            pr_comment "$@" ;;
   pr-merge)              pr_merge "$@" ;;
+  pr-close)              pr_close "$@" ;;
   pr-ready)              pr_ready "$@" ;;
   pr-update-branch)      pr_update_branch "$@" ;;
   pr-diff)               pr_diff "$@" ;;
@@ -574,5 +601,5 @@ case "$cmd" in
   ""|-h|--help)
     sed -n '2,20p' "$0" ;;
   *)
-    err "unknown command '${cmd}'. Try: repo, default-branch, GET, POST, PATCH, PUT, DELETE, paginate, graphql, issue-view, issue-list, issue-edit, issue-create, label-create, pr-view, pr-edit, pr-create, pr-comment, pr-merge, pr-ready, pr-update-branch, pr-diff, pr-list, compare-behind-by, create-ref." ;;
+    err "unknown command '${cmd}'. Try: repo, default-branch, GET, POST, PATCH, PUT, DELETE, paginate, graphql, issue-view, issue-list, issue-edit, issue-create, label-create, pr-view, pr-edit, pr-create, pr-comment, pr-merge, pr-close, pr-ready, pr-update-branch, pr-diff, pr-list, compare-behind-by, create-ref." ;;
 esac
