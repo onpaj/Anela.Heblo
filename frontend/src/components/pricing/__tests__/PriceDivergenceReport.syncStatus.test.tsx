@@ -54,7 +54,9 @@ const renderReport = (syncPrices: jest.Mock) => {
 };
 
 const syncButton = () => screen.getByTestId("sync-prices-button");
-const syncStatus = () => screen.queryByTestId("sync-prices-status");
+// The region is always in the DOM so screen readers can announce into it; "no status" is an
+// empty region, not an absent one.
+const syncStatus = () => screen.getByTestId("sync-prices-status");
 
 beforeEach(() => {
   jest.clearAllMocks();
@@ -65,7 +67,7 @@ test("shows no sync status before the operator has synced anything", () => {
   renderReport(jest.fn());
 
   // Assert
-  expect(syncStatus()).not.toBeInTheDocument();
+  expect(syncStatus()).toBeEmptyDOMElement();
 });
 
 test("confirms a sync that changed nothing, so an unchanged table is not a dead button", async () => {
@@ -75,10 +77,10 @@ test("confirms a sync that changed nothing, so an unchanged table is not a dead 
   // Act
   await userEvent.click(syncButton());
 
-  // Assert
-  const status = await screen.findByTestId("sync-prices-status");
-  expect(status).toHaveTextContent(/Synchronizováno v \d{1,2}:\d{2}/);
-  expect(status).toHaveTextContent("beze změn");
+  // Assert — waiting on the TEXT, not on the region: the region is mounted from the start, so
+  // finding it proves nothing about whether the sync reported anything.
+  await waitFor(() => expect(syncStatus()).toHaveTextContent(/Synchronizováno v \d{1,2}:\d{2}/));
+  expect(syncStatus()).toHaveTextContent("beze změn");
 });
 
 test("names how many rows the sync actually changed", async () => {
@@ -90,7 +92,7 @@ test("names how many rows the sync actually changed", async () => {
   await userEvent.click(syncButton());
 
   // Assert
-  expect(await screen.findByTestId("sync-prices-status")).toHaveTextContent("1 řádek se změnil");
+  await waitFor(() => expect(syncStatus()).toHaveTextContent("1 řádek se změnil"));
 });
 
 test("uses the Czech plural the count calls for", async () => {
@@ -102,7 +104,7 @@ test("uses the Czech plural the count calls for", async () => {
   await userEvent.click(syncButton());
 
   // Assert
-  expect(await screen.findByTestId("sync-prices-status")).toHaveTextContent("2 řádky se změnily");
+  await waitFor(() => expect(syncStatus()).toHaveTextContent("2 řádky se změnily"));
 });
 
 // A stale "Synchronizováno v 16:42" sitting next to a failure alert reads as if the sync had
@@ -114,12 +116,12 @@ test("drops the previous confirmation when a later sync fails", async () => {
 
   // Act
   await userEvent.click(syncButton());
-  await screen.findByTestId("sync-prices-status");
+  await waitFor(() => expect(syncStatus()).toHaveTextContent("Synchronizováno v"));
   await userEvent.click(syncButton());
 
   // Assert
   expect(await screen.findByRole("alert")).toHaveTextContent("Ceny se nepodařilo synchronizovat.");
-  await waitFor(() => expect(syncStatus()).not.toBeInTheDocument());
+  await waitFor(() => expect(syncStatus()).toBeEmptyDOMElement());
 });
 
 // The line has to reach a screen reader: for an operator who cannot see the table stay the
@@ -131,6 +133,7 @@ test("announces the confirmation to assistive technology", async () => {
   // Act
   await userEvent.click(syncButton());
 
-  // Assert
-  expect(await screen.findByRole("status")).toHaveTextContent("beze změn");
+  // Assert — the region must already exist for the announcement to land, so this waits for
+  // its text to change rather than for the region to appear.
+  await waitFor(() => expect(screen.getByRole("status")).toHaveTextContent("beze změn"));
 });

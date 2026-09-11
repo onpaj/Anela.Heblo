@@ -381,16 +381,20 @@ const PriceDivergenceReport: React.FC<PriceDivergenceReportProps> = ({ canWrite 
       </div>
 
       {/* The table is identical whenever the two systems held what the report already showed,
-          so without this line a successful sync is indistinguishable from a dead button. */}
-      {syncStatus && (
-        <div
-          role="status"
-          data-testid="sync-prices-status"
-          className="mb-4 text-sm text-gray-500 dark:text-graphite-muted"
-        >
-          Synchronizováno v {formatSyncTime(syncStatus.at)} — {changedRowsLabel(syncStatus.changedCount)}
-        </div>
-      )}
+          so without this line a successful sync is indistinguishable from a dead button.
+
+          The region is mounted unconditionally and only its text is toggled: a live region
+          that appears at the same moment as its content is not announced, which would leave
+          the first sync — the one most likely to change nothing — silent for exactly the
+          operator who cannot see that the table stayed the same. */}
+      <div
+        role="status"
+        data-testid="sync-prices-status"
+        className="mb-4 text-sm text-gray-500 dark:text-graphite-muted"
+      >
+        {syncStatus &&
+          `Synchronizováno v ${formatSyncTime(syncStatus.at)} — ${changedRowsLabel(syncStatus.changedCount)}`}
+      </div>
 
       {syncError && (
         <div
