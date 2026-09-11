@@ -1,10 +1,10 @@
-using Anela.Heblo.Domain.Features.Authorization;
+using Anela.Heblo.Application.Shared.Users.Contracts;
 using Microsoft.Extensions.Caching.Memory;
 
 namespace Anela.Heblo.Application.Shared.Users;
 
 /// <summary>
-/// Resolves user identifiers to display names by looking up the AppUser directory.
+/// Resolves user identifiers to display names by looking up the user directory.
 /// The directory is small and changes rarely, so the whole identifier→name lookup is
 /// cached briefly to avoid a full-table scan on every feedback page load.
 /// </summary>
@@ -13,12 +13,12 @@ public sealed class UserDisplayNameResolver : IUserDisplayNameResolver
     private const string CacheKey = "UserDisplayNameResolver:Lookup";
     private static readonly TimeSpan CacheTtl = TimeSpan.FromMinutes(5);
 
-    private readonly IAuthorizationRepository _repository;
+    private readonly IUserDirectorySource _directorySource;
     private readonly IMemoryCache _cache;
 
-    public UserDisplayNameResolver(IAuthorizationRepository repository, IMemoryCache cache)
+    public UserDisplayNameResolver(IUserDirectorySource directorySource, IMemoryCache cache)
     {
-        _repository = repository;
+        _directorySource = directorySource;
         _cache = cache;
     }
 
@@ -55,7 +55,7 @@ public sealed class UserDisplayNameResolver : IUserDisplayNameResolver
             return cached;
         }
 
-        var users = await _repository.GetAllUsersAsync(cancellationToken);
+        var users = await _directorySource.GetAllAsync(cancellationToken);
 
         var lookup = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         foreach (var user in users)
