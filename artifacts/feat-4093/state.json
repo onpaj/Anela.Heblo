@@ -28,9 +28,9 @@
   "tasks": [
     {
       "name": "add-blobpathvalidator-tests",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-09-11T15:27:38.634082Z"
+      "updated_at": "2026-09-11T15:44:41.203715Z"
     }
   ]
 }
