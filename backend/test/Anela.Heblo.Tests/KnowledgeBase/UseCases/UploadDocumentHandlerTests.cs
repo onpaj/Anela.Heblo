@@ -44,7 +44,7 @@ public class UploadDocumentHandlerTests
 
         var request = new UploadDocumentRequest
         {
-            FileStream = new MemoryStream("pdf content"u8.ToArray()),
+            Content = "pdf content"u8.ToArray(),
             Filename = "guide.pdf",
             ContentType = "application/pdf",
         };
@@ -67,7 +67,7 @@ public class UploadDocumentHandlerTests
 
         var request = new UploadDocumentRequest
         {
-            FileStream = new MemoryStream("plain text"u8.ToArray()),
+            Content = "plain text"u8.ToArray(),
             Filename = "readme.txt",
             ContentType = "application/octet-stream",
         };
@@ -94,7 +94,7 @@ public class UploadDocumentHandlerTests
 
         var request = new UploadDocumentRequest
         {
-            FileStream = new MemoryStream("docx bytes"u8.ToArray()),
+            Content = "docx bytes"u8.ToArray(),
             Filename = "document.docx",
             ContentType = "application/octet-stream",
         };
@@ -118,7 +118,7 @@ public class UploadDocumentHandlerTests
 
         var request = new UploadDocumentRequest
         {
-            FileStream = new MemoryStream("binary"u8.ToArray()),
+            Content = "binary"u8.ToArray(),
             Filename = "archive.zip",
             ContentType = "application/zip",
         };
@@ -140,7 +140,7 @@ public class UploadDocumentHandlerTests
 
         var request = new UploadDocumentRequest
         {
-            FileStream = new MemoryStream("content"u8.ToArray()),
+            Content = "content"u8.ToArray(),
             Filename = "doc.pdf",
             ContentType = "application/pdf",
         };

@@ -69,6 +69,7 @@ public class GetDqtRunDetailHandlerTests
     [InlineData(DqtTestType.ProductPairing)]
     [InlineData(DqtTestType.StockWriteBackReconciliation)]
     [InlineData(DqtTestType.LotSumVsErpStock)]
+    [InlineData(DqtTestType.PriceComparison)]
     public async Task Handle_DriftTestType_ReturnsMappedDriftResults(DqtTestType testType)
     {
         var run = DqtRun.Start(testType, new DateOnly(2026, 1, 1), new DateOnly(2026, 1, 31), DqtTriggerType.Manual, DateTime.UtcNow);
