@@ -40,9 +40,9 @@
     },
     {
       "name": "wire-shared-instance-di-registration",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-09-11T17:11:51.500574Z"
+      "updated_at": "2026-09-11T17:15:53.645206Z"
     },
     {
       "name": "narrow-manufacture-interface-and-update-query-handlers",
