@@ -106,6 +106,16 @@ EXISTING_BRANCH=$(git ls-remote --heads origin "feature/${ISSUE_ID}-*" | head -1
 
 ## What you do
 
+> **Orphan reaping happens elsewhere.** An `agent-planning` issue closed
+> from outside the pipeline strands its branch and draft PR exactly the way
+> an implementing-stage one does -- candidate selection below only ever
+> queries `--state open`. `_lib/reap_orphans.sh` sweeps that, for this
+> stage's label as well as the implementing stage's, but it is invoked from
+> `/implement-next-task` step 1, not from here, so it runs once per cycle
+> rather than twice. A repo that disables or rarely runs the implementing
+> stage therefore stops reaping planning orphans too, and should call
+> `.claude/skills/_lib/reap_orphans.sh` from its own schedule instead.
+
 1. **Check concurrency.** Refuse to start a new planning cycle if too many
    are already running on this machine:
 
