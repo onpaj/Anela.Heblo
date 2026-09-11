@@ -34,9 +34,9 @@
     },
     {
       "name": "refactor-leaflet-generate-tab-to-use-mutation-hook",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-09-11T17:04:53.241109Z"
+      "updated_at": "2026-09-11T17:12:32.354850Z"
     },
     {
       "name": "verify-leaflet-generate-refactor",
