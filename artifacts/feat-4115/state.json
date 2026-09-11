@@ -34,9 +34,9 @@
     },
     {
       "name": "implement-query-interface-on-concrete-service",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-09-11T17:04:59.111268Z"
+      "updated_at": "2026-09-11T17:09:59.942688Z"
     },
     {
       "name": "wire-shared-instance-di-registration",
