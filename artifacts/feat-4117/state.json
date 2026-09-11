@@ -21,16 +21,16 @@
       "updated_at": "2026-09-09T07:20:01.776475Z"
     },
     "developing": {
-      "status": "pending",
-      "updated_at": null
+      "status": "in_progress",
+      "updated_at": "2026-09-11T20:19:59.030400Z"
     }
   },
   "tasks": [
     {
       "name": "entity-remove-dataannotations-and-swap-exception",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-09-11T20:19:59.223237Z"
     },
     {
       "name": "tests-update-for-argumentexception",
