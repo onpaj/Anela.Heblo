@@ -22,7 +22,7 @@
     },
     "developing": {
       "status": "in_progress",
-      "updated_at": "2026-09-11T15:27:59.937531Z"
+      "updated_at": "2026-09-11T16:35:43.195863Z"
     }
   },
   "tasks": [
@@ -34,9 +34,9 @@
     },
     {
       "name": "update-leaflet-consumers",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-09-11T16:35:43.302570Z"
     },
     {
       "name": "verify-full-build-and-format",
