@@ -1,3 +1,4 @@
+using Anela.Heblo.Domain.Features.Analytics;
 using Anela.Heblo.Domain.Features.Invoices;
 using Anela.Heblo.Persistence.Repositories;
 using Anela.Heblo.Xcc.Persistance;
@@ -166,6 +167,93 @@ public class IssuedInvoiceRepository : BaseRepository<IssuedInvoice, string>, II
         return await DbSet
             .Where(x => x.InvoiceDate >= start && x.InvoiceDate <= end)
             .ToListAsync(cancellationToken);
+    }
+
+    public async Task<IReadOnlyList<DailyInvoiceCount>> GetDailyCountsAsync(
+        DateTime startDate,
+        DateTime endDate,
+        ImportDateType dateType,
+        CancellationToken cancellationToken = default)
+    {
+        if (startDate.Kind != DateTimeKind.Utc)
+            startDate = startDate.ToUniversalTime();
+        if (endDate.Kind != DateTimeKind.Utc)
+            endDate = endDate.ToUniversalTime();
+
+        var startDateUnspecified = DateTime.SpecifyKind(startDate, DateTimeKind.Unspecified);
+        var endDateUnspecified = DateTime.SpecifyKind(endDate, DateTimeKind.Unspecified);
+
+        List<DailyInvoiceCount> results;
+
+        if (dateType == ImportDateType.InvoiceDate)
+        {
+            var rawResults = await DbSet
+                .Where(i => i.InvoiceDate >= startDateUnspecified && i.InvoiceDate <= endDateUnspecified)
+                .GroupBy(i => new { Year = i.InvoiceDate.Year, Month = i.InvoiceDate.Month, Day = i.InvoiceDate.Day })
+                .Select(g => new
+                {
+                    Year = g.Key.Year,
+                    Month = g.Key.Month,
+                    Day = g.Key.Day,
+                    Count = g.Count()
+                })
+                .OrderBy(d => new DateTime(d.Year, d.Month, d.Day))
+                .ToListAsync(cancellationToken);
+
+            results = rawResults.Select(r => new DailyInvoiceCount
+            {
+                Date = DateTime.SpecifyKind(new DateTime(r.Year, r.Month, r.Day), DateTimeKind.Utc),
+                Count = r.Count
+            }).ToList();
+        }
+        else
+        {
+            var rawResults = await DbSet
+                .Where(i => i.LastSyncTime.HasValue &&
+                            i.LastSyncTime.Value >= startDateUnspecified &&
+                            i.LastSyncTime.Value <= endDateUnspecified)
+                .GroupBy(i => new { Year = i.LastSyncTime!.Value.Year, Month = i.LastSyncTime!.Value.Month, Day = i.LastSyncTime!.Value.Day })
+                .Select(g => new
+                {
+                    Year = g.Key.Year,
+                    Month = g.Key.Month,
+                    Day = g.Key.Day,
+                    Count = g.Count()
+                })
+                .OrderBy(d => new DateTime(d.Year, d.Month, d.Day))
+                .ToListAsync(cancellationToken);
+
+            results = rawResults.Select(r => new DailyInvoiceCount
+            {
+                Date = DateTime.SpecifyKind(new DateTime(r.Year, r.Month, r.Day), DateTimeKind.Utc),
+                Count = r.Count
+            }).ToList();
+        }
+
+        var resultsByDate = results.ToDictionary(r => r.Date.Date);
+        var filledResults = new List<DailyInvoiceCount>();
+        var currentDate = DateTime.SpecifyKind(startDate.Date, DateTimeKind.Utc);
+        var endDateOnly = DateTime.SpecifyKind(endDate.Date, DateTimeKind.Utc);
+
+        while (currentDate <= endDateOnly)
+        {
+            if (resultsByDate.TryGetValue(currentDate.Date, out var existingResult))
+            {
+                filledResults.Add(existingResult);
+            }
+            else
+            {
+                filledResults.Add(new DailyInvoiceCount
+                {
+                    Date = currentDate,
+                    Count = 0
+                });
+            }
+
+            currentDate = currentDate.AddDays(1);
+        }
+
+        return filledResults;
     }
 
     public Task RevertTrackedChangesAsync(IssuedInvoice entity, CancellationToken cancellationToken = default)

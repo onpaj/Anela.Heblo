@@ -54,8 +54,11 @@ public class SetGiftSettingHandlerTests
     }
 
     [Fact]
-    public async Task Handle_ReturnsFailure_WhenEnabledWithZeroThreshold()
+    public async Task Handle_SavesSetting_WhenEnabledWithZeroThreshold()
     {
+        // ThresholdCzk <= 0 while enabled is rejected end-to-end by ValidationBehavior +
+        // SetGiftSettingValidator before the handler ever runs (see SetGiftSettingValidatorTests).
+        // The handler itself no longer re-validates this, so calling it directly succeeds.
         var command = new SetGiftSettingCommand
         {
             IsEnabled = true,
@@ -65,13 +68,16 @@ public class SetGiftSettingHandlerTests
 
         var result = await _sut.Handle(command, CancellationToken.None);
 
-        result.Success.Should().BeFalse();
-        _repositoryMock.Verify(r => r.SaveAsync(It.IsAny<GiftSetting>(), It.IsAny<CancellationToken>()), Times.Never);
+        result.Success.Should().BeTrue();
+        _repositoryMock.Verify(r => r.SaveAsync(It.Is<GiftSetting>(g => g.ModifiedBy == "user-1"), It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
-    public async Task Handle_ReturnsFailure_WhenEnabledWithEmptyText()
+    public async Task Handle_SavesSetting_WhenEnabledWithEmptyText()
     {
+        // Empty Text while enabled is rejected end-to-end by ValidationBehavior +
+        // SetGiftSettingValidator before the handler ever runs (see SetGiftSettingValidatorTests).
+        // The handler itself no longer re-validates this, so calling it directly succeeds.
         var command = new SetGiftSettingCommand
         {
             IsEnabled = true,
@@ -81,13 +87,16 @@ public class SetGiftSettingHandlerTests
 
         var result = await _sut.Handle(command, CancellationToken.None);
 
-        result.Success.Should().BeFalse();
-        _repositoryMock.Verify(r => r.SaveAsync(It.IsAny<GiftSetting>(), It.IsAny<CancellationToken>()), Times.Never);
+        result.Success.Should().BeTrue();
+        _repositoryMock.Verify(r => r.SaveAsync(It.Is<GiftSetting>(g => g.ModifiedBy == "user-1"), It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
-    public async Task Handle_ReturnsFailure_WhenTextExceedsMaxLength()
+    public async Task Handle_SavesSetting_WhenTextExceedsMaxLength()
     {
+        // Text longer than 50 chars is rejected end-to-end by ValidationBehavior +
+        // SetGiftSettingValidator before the handler ever runs (see SetGiftSettingValidatorTests).
+        // The handler itself no longer re-validates this, so calling it directly succeeds.
         var command = new SetGiftSettingCommand
         {
             IsEnabled = false,
@@ -97,8 +106,8 @@ public class SetGiftSettingHandlerTests
 
         var result = await _sut.Handle(command, CancellationToken.None);
 
-        result.Success.Should().BeFalse();
-        _repositoryMock.Verify(r => r.SaveAsync(It.IsAny<GiftSetting>(), It.IsAny<CancellationToken>()), Times.Never);
+        result.Success.Should().BeTrue();
+        _repositoryMock.Verify(r => r.SaveAsync(It.Is<GiftSetting>(g => g.ModifiedBy == "user-1"), It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]

@@ -12,4 +12,7 @@ public interface ILogisticsCatalogSource
 
     Task<LogisticsCatalogItem?> GetCatalogItemAsync(
         string code, CancellationToken cancellationToken);
+
+    Task<IReadOnlyDictionary<string, LogisticsCatalogItem>> GetCatalogItemsAsync(
+        IReadOnlyList<string> codes, CancellationToken cancellationToken);
 }

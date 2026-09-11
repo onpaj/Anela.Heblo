@@ -13,6 +13,8 @@ public class MaterialCategoryResolverTests
     [InlineData("ETIKETA-X", true)]
     [InlineData("VIC001", false)]
     [InlineData("LAH001", false)]
+    [InlineData("KEL001", false)]
+    [InlineData("UZA001", false)]
     [InlineData("MAT001", false)]
     [InlineData("", false)]
     public void Matches_Labels_AcceptsOnlyEtiPrefix(string productCode, bool expected)
@@ -25,9 +27,13 @@ public class MaterialCategoryResolverTests
     [InlineData("vic001", true)]
     [InlineData("LAH001", true)]
     [InlineData("lah001", true)]
+    [InlineData("KEL001", true)]
+    [InlineData("kel001", true)]
+    [InlineData("UZA001", true)]
+    [InlineData("uza001", true)]
     [InlineData("ETI001", false)]
     [InlineData("MAT001", false)]
-    public void Matches_Packaging_AcceptsVicAndLahPrefixes(string productCode, bool expected)
+    public void Matches_Packaging_AcceptsPackagingPrefixes(string productCode, bool expected)
     {
         MaterialCategoryResolver.Matches(productCode, MaterialCategoryFilter.Packaging).Should().Be(expected);
     }
@@ -39,6 +45,8 @@ public class MaterialCategoryResolverTests
     [InlineData("ETI001", false)]
     [InlineData("VIC001", false)]
     [InlineData("LAH001", false)]
+    [InlineData("KEL001", false)]
+    [InlineData("UZA001", false)]
     public void Matches_Other_ExcludesLabelsAndPackaging(string productCode, bool expected)
     {
         MaterialCategoryResolver.Matches(productCode, MaterialCategoryFilter.Other).Should().Be(expected);

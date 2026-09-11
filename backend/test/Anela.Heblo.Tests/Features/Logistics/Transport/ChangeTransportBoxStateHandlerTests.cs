@@ -2,13 +2,13 @@ using System.ComponentModel.DataAnnotations;
 using Anela.Heblo.Application.Features.Logistics.Contracts;
 using Anela.Heblo.Application.Features.Logistics.UseCases;
 using Anela.Heblo.Application.Features.Logistics.UseCases.ChangeTransportBoxState;
-using Anela.Heblo.Application.Features.Logistics.UseCases.GetTransportBoxById;
 using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Domain.Features.Logistics.Transport;
 using Anela.Heblo.Domain.Features.Users;
+using AutoMapper;
 using FluentAssertions;
-using MediatR;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using Xunit;
 
@@ -18,7 +18,7 @@ public class ChangeTransportBoxStateHandlerTests
 {
     private readonly Mock<ITransportBoxRepository> _repositoryMock;
     private readonly Mock<IInventoryReservationService> _inventoryReservationServiceMock;
-    private readonly Mock<IMediator> _mediatorMock;
+    private readonly Mock<IMapper> _mapperMock;
     private readonly Mock<ILogger<ChangeTransportBoxStateHandler>> _loggerMock;
     private readonly Mock<ICurrentUserService> _currentUserServiceMock;
     private readonly Mock<ILogisticsStockOperationService> _stockUpProcessingServiceMock;
@@ -29,7 +29,7 @@ public class ChangeTransportBoxStateHandlerTests
     {
         _repositoryMock = new Mock<ITransportBoxRepository>();
         _inventoryReservationServiceMock = new Mock<IInventoryReservationService>();
-        _mediatorMock = new Mock<IMediator>();
+        _mapperMock = new Mock<IMapper>();
         _loggerMock = new Mock<ILogger<ChangeTransportBoxStateHandler>>();
         _currentUserServiceMock = new Mock<ICurrentUserService>();
         _stockUpProcessingServiceMock = new Mock<ILogisticsStockOperationService>();
@@ -54,14 +54,27 @@ public class ChangeTransportBoxStateHandlerTests
                 It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
 
+        _mapperMock
+            .Setup(x => x.Map<TransportBoxDto>(It.IsAny<TransportBox>()))
+            .Returns(new TransportBoxDto());
+
+        var sideEffects = new ITransportBoxTransitionSideEffect[]
+        {
+            new NewToOpenedSideEffect(_repositoryMock.Object, _currentUserServiceMock.Object, _timeProviderMock.Object),
+            new OpenToReserveSideEffect(),
+            new OpenToQuarantineSideEffect(),
+            new ReceivedSideEffect(_stockUpProcessingServiceMock.Object, NullLogger<ReceivedSideEffect>.Instance),
+        };
+        var inventoryRestorer = new TransportBoxInventoryRestorer(_inventoryReservationServiceMock.Object);
+
         _handler = new ChangeTransportBoxStateHandler(
             _repositoryMock.Object,
-            _inventoryReservationServiceMock.Object,
-            _mediatorMock.Object,
+            _mapperMock.Object,
             _loggerMock.Object,
             _currentUserServiceMock.Object,
-            _stockUpProcessingServiceMock.Object,
-            _timeProviderMock.Object);
+            _timeProviderMock.Object,
+            sideEffects,
+            inventoryRestorer);
     }
 
     [Fact]
@@ -101,8 +114,6 @@ public class ChangeTransportBoxStateHandlerTests
             BoxCode = "B999"
         };
 
-        var updatedBoxResponse = new GetTransportBoxByIdResponse();
-
         _repositoryMock
             .Setup(x => x.GetByIdWithDetailsAsync(1))
             .ReturnsAsync(box);
@@ -125,19 +136,15 @@ public class ChangeTransportBoxStateHandlerTests
             .Setup(x => x.GetPagedListAsync(It.IsAny<int>(), It.IsAny<int>(), It.IsAny<string>(), It.IsAny<TransportBoxState?>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<bool>(), It.IsAny<bool>()))
             .ReturnsAsync((new List<TransportBox>(), 0));
 
-        _mediatorMock
-            .Setup(x => x.Send(It.IsAny<GetTransportBoxByIdRequest>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(updatedBoxResponse);
-
         // Act
         var result = await _handler.Handle(request, CancellationToken.None);
 
         // Assert
         result.ErrorCode.Should().BeNull();
-        result.UpdatedBox.Should().Be(updatedBoxResponse);
+        result.UpdatedBox.Should().NotBeNull();
 
         _repositoryMock.Verify(x => x.UpdateAsync(It.IsAny<TransportBox>(), It.IsAny<CancellationToken>()), Times.Once);
-        _mediatorMock.Verify(x => x.Send(It.IsAny<GetTransportBoxByIdRequest>(), It.IsAny<CancellationToken>()), Times.Once);
+        _mapperMock.Verify(x => x.Map<TransportBoxDto>(box), Times.Once);
     }
 
 
@@ -153,8 +160,6 @@ public class ChangeTransportBoxStateHandlerTests
             NewState = TransportBoxState.InTransit
         };
 
-        var updatedBoxResponse = new GetTransportBoxByIdResponse();
-
         _repositoryMock
             .Setup(x => x.GetByIdWithDetailsAsync(1))
             .ReturnsAsync(() => box);
@@ -167,16 +172,12 @@ public class ChangeTransportBoxStateHandlerTests
             .Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(1);
 
-        _mediatorMock
-            .Setup(x => x.Send(It.IsAny<GetTransportBoxByIdRequest>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(updatedBoxResponse);
-
         // Act
         var result = await _handler.Handle(request, CancellationToken.None);
 
         // Assert
         result.ErrorCode.Should().BeNull();
-        result.UpdatedBox.Should().Be(updatedBoxResponse);
+        result.UpdatedBox.Should().NotBeNull();
 
         _repositoryMock.Verify(x => x.UpdateAsync(It.IsAny<TransportBox>(), It.IsAny<CancellationToken>()), Times.Once);
     }
@@ -197,8 +198,6 @@ public class ChangeTransportBoxStateHandlerTests
             NewState = newState
         };
 
-        var updatedBoxResponse = new GetTransportBoxByIdResponse();
-
         _repositoryMock
             .Setup(x => x.GetByIdWithDetailsAsync(1))
             .ReturnsAsync(box);
@@ -211,16 +210,12 @@ public class ChangeTransportBoxStateHandlerTests
             .Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(1);
 
-        _mediatorMock
-            .Setup(x => x.Send(It.IsAny<GetTransportBoxByIdRequest>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(updatedBoxResponse);
-
         // Act
         var result = await _handler.Handle(request, CancellationToken.None);
 
         // Assert
         result.ErrorCode.Should().BeNull();
-        result.UpdatedBox.Should().Be(updatedBoxResponse);
+        result.UpdatedBox.Should().NotBeNull();
 
         _repositoryMock.Verify(x => x.UpdateAsync(It.IsAny<TransportBox>(), It.IsAny<CancellationToken>()), Times.Once);
     }
@@ -256,9 +251,6 @@ public class ChangeTransportBoxStateHandlerTests
         _repositoryMock.Setup(x => x.GetByIdWithDetailsAsync(1)).ReturnsAsync(box);
         _repositoryMock.Setup(x => x.UpdateAsync(It.IsAny<TransportBox>(), It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);
         _repositoryMock.Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>())).ReturnsAsync(1);
-        _mediatorMock
-            .Setup(x => x.Send(It.IsAny<GetTransportBoxByIdRequest>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new GetTransportBoxByIdResponse { TransportBox = new Anela.Heblo.Application.Features.Logistics.Contracts.TransportBoxDto() });
 
         var request = new ChangeTransportBoxStateRequest
         {
@@ -282,9 +274,6 @@ public class ChangeTransportBoxStateHandlerTests
         _repositoryMock.Setup(x => x.GetByIdWithDetailsAsync(1)).ReturnsAsync(box);
         _repositoryMock.Setup(x => x.UpdateAsync(It.IsAny<TransportBox>(), It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);
         _repositoryMock.Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>())).ReturnsAsync(1);
-        _mediatorMock
-            .Setup(x => x.Send(It.IsAny<GetTransportBoxByIdRequest>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new GetTransportBoxByIdResponse { TransportBox = new Anela.Heblo.Application.Features.Logistics.Contracts.TransportBoxDto() });
 
         var request = new ChangeTransportBoxStateRequest
         {
@@ -311,9 +300,6 @@ public class ChangeTransportBoxStateHandlerTests
         _repositoryMock.Setup(x => x.GetByIdWithDetailsAsync(1)).ReturnsAsync(box);
         _repositoryMock.Setup(x => x.UpdateAsync(It.IsAny<TransportBox>(), It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);
         _repositoryMock.Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>())).ReturnsAsync(1);
-        _mediatorMock
-            .Setup(x => x.Send(It.IsAny<GetTransportBoxByIdRequest>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new GetTransportBoxByIdResponse { TransportBox = new Anela.Heblo.Application.Features.Logistics.Contracts.TransportBoxDto() });
 
         var request = new ChangeTransportBoxStateRequest
         {
@@ -496,12 +482,6 @@ public class ChangeTransportBoxStateHandlerTests
         _repositoryMock
             .Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(1);
-        _mediatorMock
-            .Setup(x => x.Send(It.IsAny<GetTransportBoxByIdRequest>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new GetTransportBoxByIdResponse
-            {
-                TransportBox = new Anela.Heblo.Application.Features.Logistics.Contracts.TransportBoxDto()
-            });
 
         var request = new ChangeTransportBoxStateRequest
         {
@@ -592,7 +572,6 @@ public class ChangeTransportBoxStateHandlerTests
     {
         // Arrange — box in Opened state with a valid Location
         var box = CreateTestBox(TransportBoxState.Opened);
-        var updatedBoxResponse = new GetTransportBoxByIdResponse();
 
         _repositoryMock
             .Setup(x => x.GetByIdWithDetailsAsync(1))
@@ -603,9 +582,6 @@ public class ChangeTransportBoxStateHandlerTests
         _repositoryMock
             .Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(1);
-        _mediatorMock
-            .Setup(x => x.Send(It.IsAny<GetTransportBoxByIdRequest>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(updatedBoxResponse);
 
         var request = new ChangeTransportBoxStateRequest
         {
@@ -620,9 +596,9 @@ public class ChangeTransportBoxStateHandlerTests
         // Assert
         result.Success.Should().BeTrue();
         result.ErrorCode.Should().BeNull();
-        result.UpdatedBox.Should().Be(updatedBoxResponse);
+        result.UpdatedBox.Should().NotBeNull();
         _repositoryMock.Verify(x => x.UpdateAsync(It.IsAny<TransportBox>(), It.IsAny<CancellationToken>()), Times.Once);
-        _mediatorMock.Verify(x => x.Send(It.IsAny<GetTransportBoxByIdRequest>(), It.IsAny<CancellationToken>()), Times.Once);
+        _mapperMock.Verify(x => x.Map<TransportBoxDto>(box), Times.Once);
     }
 
     [Fact]
@@ -751,9 +727,6 @@ public class ChangeTransportBoxStateHandlerTests
         _repositoryMock.Setup(x => x.GetByIdWithDetailsAsync(1)).ReturnsAsync(box);
         _repositoryMock.Setup(x => x.UpdateAsync(It.IsAny<TransportBox>(), It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);
         _repositoryMock.Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>())).ReturnsAsync(1);
-        _mediatorMock
-            .Setup(x => x.Send(It.IsAny<GetTransportBoxByIdRequest>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new GetTransportBoxByIdResponse { TransportBox = new Anela.Heblo.Application.Features.Logistics.Contracts.TransportBoxDto() });
     }
 
     private TransportBox CreateTestBoxWithMultipleItems(TransportBoxState state, IEnumerable<(string ProductCode, double Amount, string? LotNumber)> items)

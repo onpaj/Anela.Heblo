@@ -3,6 +3,7 @@ using Anela.Heblo.Domain.Features.BackgroundJobs;
 using Anela.Heblo.Persistence;
 using Anela.Heblo.Persistence.BackgroundJobs;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Time.Testing;
 using Xunit;
 
 namespace Anela.Heblo.Tests.Features.BackgroundJobs;
@@ -11,7 +12,9 @@ public class RecurringJobSeederTests : IDisposable
 {
     private readonly ApplicationDbContext _context;
     private readonly RecurringJobConfigurationRepository _repository;
+    private readonly FakeTimeProvider _timeProvider;
     private readonly RecurringJobSeeder _seeder;
+    private static readonly DateTimeOffset FixedTime = new(2025, 6, 1, 3, 0, 0, TimeSpan.Zero);
 
     public RecurringJobSeederTests()
     {
@@ -21,7 +24,8 @@ public class RecurringJobSeederTests : IDisposable
 
         _context = new ApplicationDbContext(options);
         _repository = new RecurringJobConfigurationRepository(_context);
-        _seeder = new RecurringJobSeeder(_repository);
+        _timeProvider = new FakeTimeProvider(FixedTime);
+        _seeder = new RecurringJobSeeder(_repository, _timeProvider);
     }
 
     [Fact]
@@ -54,6 +58,9 @@ public class RecurringJobSeederTests : IDisposable
 
         var nonDefaultTimeZoneJob = configurations.Single(c => c.JobName == "invoice-classification");
         Assert.Equal("America/New_York", nonDefaultTimeZoneJob.TimeZoneId);
+
+        // Verify LastModifiedAt is sourced from the injected TimeProvider, not wall-clock time
+        Assert.All(configurations, c => Assert.Equal(FixedTime.UtcDateTime, c.LastModifiedAt));
     }
 
     [Fact]
@@ -115,6 +122,7 @@ public class RecurringJobSeederTests : IDisposable
         Assert.NotNull(updated);
         Assert.Equal("Purchase Price Recalculation", updated!.DisplayName);
         Assert.Equal("Recalculates purchase prices for all materials and products", updated.Description);
+        Assert.Equal(FixedTime.UtcDateTime, updated.LastModifiedAt);
     }
 
     [Fact]

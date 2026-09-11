@@ -4,14 +4,15 @@ namespace Anela.Heblo.Application.Features.Purchase.Services;
 
 /// <summary>
 /// Splits materials into categories by their product code prefix.
-/// Labels are "ETI...", packaging is "VIC..." (caps) and "LAH..." (bottles),
+/// Labels are "ETI...", packaging is "VIC..." (caps), "LAH..." (bottles),
+/// "KEL..." (beakers) and "UZA..." (closures),
 /// everything else falls into <see cref="MaterialCategoryFilter.Other"/>.
 /// </summary>
 public static class MaterialCategoryResolver
 {
     private const string LabelPrefix = "ETI";
 
-    private static readonly string[] PackagingPrefixes = { "VIC", "LAH" };
+    private static readonly string[] PackagingPrefixes = { "VIC", "LAH", "KEL", "UZA" };
 
     public static bool Matches(string productCode, MaterialCategoryFilter category) => category switch
     {

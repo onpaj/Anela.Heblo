@@ -88,7 +88,7 @@ sometimes left uncommitted when a session died. This template always
 stages the whole worktree:
 
 ```bash
-git add -A -f
+git add -A
 git commit -m "chore(feat-{issue_number}): impl+review for {task_name} r{N}" || true
 git ls-files --error-unmatch artifacts/feat-{issue_number}/impl/{task_name}.r{N}.md     # STRICT
 git ls-files --error-unmatch artifacts/feat-{issue_number}/review/{task_name}.r{N}.md   # STRICT
@@ -106,7 +106,7 @@ Then act on the status:
 
 - **PASS**: Run `agentharness checkpoint task feat-{issue_number}
   {task_name} completed`, commit the checkpoint update
-  (`git add -A -f && git commit -m "chore(feat-{issue_number}): {task_name}
+  (`git add -A && git commit -m "chore(feat-{issue_number}): {task_name}
   passed review" || true && git push`), and **stop this invocation here** --
   do NOT continue to the next task. Print: `Task {task_name} complete for
   feat-{issue_number}. More work may remain -- next invocation will check.`
@@ -130,7 +130,7 @@ Then act on the status:
     with no human ever seeing it. `failed` is a valid, already-supported
     task status, and `all_tasks_complete()` already treats it as terminal,
     so this alone stops `next_pending_task()` from returning it again.
-    Commit and push the checkpoint update (`git add -A -f && git commit -m
+    Commit and push the checkpoint update (`git add -A && git commit -m
     "chore(feat-{issue_number}): {task_name} failed after max revisions"
     || true && git push`), then stop with exactly this message (parsed by
     `/implement-next-task`'s SKILL.md to distinguish this from a genuine
@@ -167,7 +167,7 @@ for a code-review fix; the NEXT code-review round is what verifies it.
    is tracked:
 
 ```bash
-git add -A -f
+git add -A
 git commit -m "chore(feat-{issue_number}): code review fix r{N}" || true
 git ls-files --error-unmatch artifacts/feat-{issue_number}/impl/code-review-fixes.r{N}.md   # STRICT
 git push
@@ -222,7 +222,7 @@ git diff "$BASE"...HEAD > /tmp/feat-{issue_number}-review.diff
 5. Commit and push the review artifact, then hard-verify it is tracked:
 
 ```bash
-git add -A -f
+git add -A
 git commit -m "chore(feat-{issue_number}): code review r{N}" || true
 git ls-files --error-unmatch artifacts/feat-{issue_number}/code-review.r{N}.md
 git push

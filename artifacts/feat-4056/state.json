@@ -1,0 +1,58 @@
+{
+  "feature_id": "feat-4056",
+  "issue_number": 4056,
+  "created_at": "2026-09-04T06:14:17.719489Z",
+  "max_revisions": 3,
+  "phases": {
+    "analyzing": {
+      "status": "completed",
+      "updated_at": "2026-09-04T06:19:00.189579Z"
+    },
+    "architecting": {
+      "status": "completed",
+      "updated_at": "2026-09-04T06:21:18.856599Z"
+    },
+    "designing": {
+      "status": "completed",
+      "updated_at": "2026-09-04T06:22:08.940366Z"
+    },
+    "planning": {
+      "status": "completed",
+      "updated_at": "2026-09-04T06:25:42.802073Z"
+    },
+    "developing": {
+      "status": "in_progress",
+      "updated_at": "2026-09-06T01:14:01.819951Z"
+    },
+    "code-review": {
+      "status": "completed",
+      "updated_at": "2026-09-06T02:16:20.285251Z"
+    }
+  },
+  "tasks": [
+    {
+      "name": "add-abra-invoice-id-domain-property",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-09-05T21:16:53.822123Z"
+    },
+    {
+      "name": "map-abra-invoice-id-from-flexibee-id",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-09-05T22:19:16.472084Z"
+    },
+    {
+      "name": "update-invoice-classification-service-tests-for-abra-invoice-id",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-09-06T00:52:36.777177Z"
+    },
+    {
+      "name": "fix-classification-history-call-site",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-09-06T01:36:38.691209Z"
+    }
+  ]
+}
