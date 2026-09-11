@@ -60,7 +60,8 @@ public class DraftReplyLoggingBehaviorTests
             .Returns(Task.CompletedTask);
 
         var behavior = CreateBehavior();
-        var result = await behavior.Handle(request, () => Task.FromResult(expectedResponse), default);
+        using var cts = new CancellationTokenSource();
+        var result = await behavior.Handle(request, () => Task.FromResult(expectedResponse), cts.Token);
 
         Assert.Equal(expectedResponse, result);
         Assert.NotNull(capturedLog);
@@ -71,7 +72,7 @@ public class DraftReplyLoggingBehaviorTests
         Assert.Equal(0, capturedLog.SourceCount);
         Assert.Equal("user-1", capturedLog.UserId);
         Assert.True(capturedLog.DurationMs >= 0);
-        _repository.Verify(r => r.SaveAsync(It.IsAny<RagInteractionLog>(), default), Times.Once);
+        _repository.Verify(r => r.SaveAsync(It.IsAny<RagInteractionLog>(), cts.Token), Times.Once);
     }
 
     [Fact]
