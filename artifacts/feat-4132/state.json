@@ -21,16 +21,16 @@
       "updated_at": "2026-09-11T06:19:29.030662Z"
     },
     "developing": {
-      "status": "pending",
-      "updated_at": null
+      "status": "in_progress",
+      "updated_at": "2026-09-11T20:21:04.527686Z"
     }
   },
   "tasks": [
     {
       "name": "relocate-outlookeventdto-and-update-production-usings",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-09-11T20:21:04.716516Z"
     },
     {
       "name": "update-outlookeventdto-test-usings",
