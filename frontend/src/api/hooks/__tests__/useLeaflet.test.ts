@@ -1,8 +1,9 @@
 import { renderHook, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import React from "react";
-import { useSubmitLeafletFeedbackMutation } from "../useLeaflet";
+import { useGenerateLeafletMutation, useSubmitLeafletFeedbackMutation } from "../useLeaflet";
 import * as clientModule from "../../client";
+import { AudienceType, ErrorCodes, GenerateLeafletResponse, LeafletLength } from "../../generated/api-client";
 
 jest.mock("../../client", () => ({
   getAuthenticatedApiClient: jest.fn(),
@@ -72,5 +73,53 @@ describe("useSubmitLeafletFeedbackMutation", () => {
     const res = await result.current.mutateAsync(feedbackParams);
 
     await waitFor(() => expect(res).toEqual(body));
+  });
+});
+
+describe("useGenerateLeafletMutation", () => {
+  const generateParams = {
+    topic: "Bisabolol",
+    audience: AudienceType.EndConsumer,
+    length: LeafletLength.Medium,
+  };
+
+  it("resolves with the GenerateLeafletResponse returned by leaflet_Generate", async () => {
+    const successResponse = new GenerateLeafletResponse({
+      success: true,
+      content: "Generated leaflet content",
+      id: "gen-1",
+      kbSourceCount: 3,
+      leafletSourceCount: 2,
+    });
+    const mockLeafletGenerate = jest.fn().mockResolvedValue(successResponse);
+    mockGetClient.mockReturnValue({
+      leaflet_Generate: mockLeafletGenerate,
+    } as unknown as ReturnType<typeof clientModule.getAuthenticatedApiClient>);
+
+    const { result } = renderHook(() => useGenerateLeafletMutation(), {
+      wrapper: createWrapper,
+    });
+
+    const res = await result.current.mutateAsync(generateParams);
+
+    expect(mockLeafletGenerate).toHaveBeenCalledTimes(1);
+    expect(res).toBe(successResponse);
+  });
+
+  it("propagates a rejected GenerateLeafletResponse (422) unchanged out of mutateAsync", async () => {
+    const errorResponse = new GenerateLeafletResponse({
+      success: false,
+      errorCode: ErrorCodes.LeafletEmptyRetrieval,
+    });
+    const mockLeafletGenerate = jest.fn().mockRejectedValue(errorResponse);
+    mockGetClient.mockReturnValue({
+      leaflet_Generate: mockLeafletGenerate,
+    } as unknown as ReturnType<typeof clientModule.getAuthenticatedApiClient>);
+
+    const { result } = renderHook(() => useGenerateLeafletMutation(), {
+      wrapper: createWrapper,
+    });
+
+    await expect(result.current.mutateAsync(generateParams)).rejects.toBe(errorResponse);
   });
 });
