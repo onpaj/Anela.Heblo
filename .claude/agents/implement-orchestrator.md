@@ -39,6 +39,27 @@ never do more than one unit of slow work per invocation.
    remain but `N >= max_revisions`): the unit is **finishing** -- go to
    **Finishing** below.
 
+## Staging rule
+
+**Every** commit this template makes stages in exactly two steps, in this
+order, and never one without the other:
+
+```bash
+git add -A -f artifacts/feat-{issue_number}   # artifacts/ is gitignored in many repos
+git add -A                                    # the developer's real code, and everything else
+```
+
+`git add -A` honours `.gitignore`, and consuming repos routinely ignore
+`artifacts/`. Without the force-add, `state.json` and the `impl/` and
+`review/` markdown are silently dropped from every commit -- and because
+`state.json` on the pushed branch is what the *next* invocation reads to
+decide what to do, losing it makes the next invocation redo work that was
+already finished. Without the plain `git add -A`, the developer's source
+changes are left uncommitted and vanish when the session ends.
+
+Wherever the steps below say "commit and push", they mean both staging
+lines, then `git commit`, then `git push`.
+
 ## Reading Agent System Prompts
 
 Same as `plan-orchestrator.md`: read `.agents/{agent_name}.md`, strip YAML
@@ -81,13 +102,17 @@ frontmatter, prepend any `context_files:` contents.
 
 Whatever the result, commit **everything** this round touched -- artifacts
 *and* the developer's real source-code changes -- then hard-verify the
-artifact files are tracked. This is the one change from the old
-orchestrator's commit step: that one only ever staged
+artifact files are tracked, using the **two-line staging rule** above.
+
+Both lines are load-bearing, and each one exists because dropping it broke
+the pipeline before. The old orchestrator's commit step only ever staged
 `artifacts/feat-{issue_number}`, which is why developer code changes were
-sometimes left uncommitted when a session died. This template always
-stages the whole worktree:
+sometimes left uncommitted when a session died -- hence the plain
+`git add -A`. And a plain `git add -A` on its own silently drops the
+artifacts in any repo that gitignores `artifacts/` -- hence the force-add.
 
 ```bash
+git add -A -f artifacts/feat-{issue_number}
 git add -A
 git commit -m "chore(feat-{issue_number}): impl+review for {task_name} r{N}" || true
 git ls-files --error-unmatch artifacts/feat-{issue_number}/impl/{task_name}.r{N}.md     # STRICT
@@ -106,8 +131,9 @@ Then act on the status:
 
 - **PASS**: Run `agentharness checkpoint task feat-{issue_number}
   {task_name} completed`, commit the checkpoint update
-  (`git add -A && git commit -m "chore(feat-{issue_number}): {task_name}
-  passed review" || true && git push`), and **stop this invocation here** --
+  (`git add -A -f artifacts/feat-{issue_number} && git add -A && git
+  commit -m "chore(feat-{issue_number}): {task_name} passed review" ||
+  true && git push`), and **stop this invocation here** --
   do NOT continue to the next task. Print: `Task {task_name} complete for
   feat-{issue_number}. More work may remain -- next invocation will check.`
 - **REVISION_NEEDED**: Check current revision N against `max_revisions`
@@ -130,7 +156,8 @@ Then act on the status:
     with no human ever seeing it. `failed` is a valid, already-supported
     task status, and `all_tasks_complete()` already treats it as terminal,
     so this alone stops `next_pending_task()` from returning it again.
-    Commit and push the checkpoint update (`git add -A && git commit -m
+    Commit and push the checkpoint update (`git add -A -f
+    artifacts/feat-{issue_number} && git add -A && git commit -m
     "chore(feat-{issue_number}): {task_name} failed after max revisions"
     || true && git push`), then stop with exactly this message (parsed by
     `/implement-next-task`'s SKILL.md to distinguish this from a genuine
@@ -167,6 +194,7 @@ for a code-review fix; the NEXT code-review round is what verifies it.
    is tracked:
 
 ```bash
+git add -A -f artifacts/feat-{issue_number}
 git add -A
 git commit -m "chore(feat-{issue_number}): code review fix r{N}" || true
 git ls-files --error-unmatch artifacts/feat-{issue_number}/impl/code-review-fixes.r{N}.md   # STRICT
@@ -222,6 +250,7 @@ git diff "$BASE"...HEAD > /tmp/feat-{issue_number}-review.diff
 5. Commit and push the review artifact, then hard-verify it is tracked:
 
 ```bash
+git add -A -f artifacts/feat-{issue_number}
 git add -A
 git commit -m "chore(feat-{issue_number}): code review r{N}" || true
 git ls-files --error-unmatch artifacts/feat-{issue_number}/code-review.r{N}.md
@@ -240,16 +269,22 @@ git push
      `agentharness checkpoint phase feat-{issue_number} code-review
      completed`. If `artifacts/feat-{issue_number}/task-context/code-review-fixes.md`
      exists (leftover from an earlier round's fix that's now been verified
-     clean), delete it (`git rm -f` or plain `rm` + `git add -A`) so
-     **Determine the next unit** step 2 stops matching on stale content.
-     Commit and push, print `Code review clean for feat-{issue_number}.
-     Next invocation will finish.`
+     clean), delete it (`git rm -f`, or plain `rm` followed by the
+     **Staging rule**'s two lines) so **Determine the next unit** step 2
+     stops matching on stale content.
+     Commit and push per the **Staging rule** -- the checkpoint update
+     rewrites `state.json` under `artifacts/`, so the force-add is what
+     gets the completed phase onto the branch at all. Print `Code review
+     clean for feat-{issue_number}. Next invocation will finish.`
    - **CHANGES_REQUESTED** with Blocking findings and `N < max_revisions`:
      write the Blocking findings into a synthetic task-context file
      `artifacts/feat-{issue_number}/task-context/code-review-fixes.md`
      (overwriting any stale content from an earlier round) containing a
      `## Goal` of "Fix the code review findings below" and the verbatim
-     Blocking list from `code-review.r{N}.md`, commit and push it, print
+     Blocking list from `code-review.r{N}.md`, commit and push it per the
+     **Staging rule** (it lives under `artifacts/`, so without the
+     force-add the next invocation never sees it and re-runs code review
+     against the same unfixed diff), print
      `Code review round {N} requested changes for feat-{issue_number}.
      Next invocation will dispatch a fix.` (the next invocation's
      **Determine the next unit** step 2 sees this synthetic task-context
@@ -260,8 +295,8 @@ git push
      `artifacts/feat-{issue_number}/task-context/code-review-fixes.md`
      exists, delete it the same way as the CLEAN branch above -- revisions
      are exhausted, no further fix pass should ever be dispatched for this
-     issue. Commit and push. The unresolved Blocking findings stay in
-     `code-review.r{N}.md` and are surfaced on the PR by
+     issue. Commit and push per the **Staging rule**. The unresolved
+     Blocking findings stay in `code-review.r{N}.md` and are surfaced by
      `/implement-next-task`'s Finishing step below.
 
 ## Finishing
