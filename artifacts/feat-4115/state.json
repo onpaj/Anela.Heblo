@@ -28,9 +28,9 @@
   "tasks": [
     {
       "name": "add-gift-package-query-service-interface",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-09-11T16:45:08.425709Z"
+      "updated_at": "2026-09-11T16:49:21.028036Z"
     },
     {
       "name": "implement-query-interface-on-concrete-service",
