@@ -159,16 +159,14 @@ Shoptet stores the with-VAT price directly and gets no tolerance.
 2. **Pre-flight the Flexi leg.** Resolve the numeric ceník id via `IProductPriceErpClient` and
    the VAT rate via `IProductVatRateProvider`, and compute the price excluding VAT, rounded to
    2 decimals away from zero. Either missing → `ProductPriceFlexiItemIdUnknown`, and **nothing
-   is written anywhere**. `cenaZakl`'s VAT meaning depends on the item's own
-   `typCenyDphK`, and the operator always enters a price *including* VAT, so the write mirrors
-   the read's interpretation: a `"bezDph"` item gets the converted excluding-VAT figure, while
-   an `"sDph"` item — and an item whose price type the ERP never exposed — gets the entered
-   with-VAT price stored unchanged. Only the `bezDph` branch needs a VAT rate, so an
-   unrecognised VAT band blocks only those items.
-   *(Superseded 2026-09-11: this originally refused every non-`bezDph` item outright, on the
-   grounds that the `sDph` write semantics were unverified. The product owner confirmed them —
-   `cenaZakl` holds the with-VAT price for `sDph` — and refusing left those products
-   unpriceable through Heblo.)*
+   is written anywhere**. The operator always enters a price *including*
+   VAT, and that is what is written to `cenaZakl` for every price type, unconverted — so the
+   write path consults no VAT rate at all.
+   *(Superseded twice. It first refused every non-`bezDph` item outright, on the grounds that
+   the `sDph` write semantics were unverified — which left those products unpriceable. It then
+   converted to excl-VAT for `bezDph` items only. A live save on 2026-09-11 showed that
+   conversion writing the wrong figure: Shoptet correct, Flexi holding the price without VAT.
+   Do not reintroduce it without re-testing against the live ERP.)*
 3. **Write Shoptet.** `SetPriceWithVatAsync(productCode, priceWithVat)`. On failure →
    `ProductPriceShoptetWriteFailed`; nothing has changed anywhere.
 4. **Write Flexi.** `SetPriceWithoutVatAsync(erpItemId, priceWithoutVat)`, addressed by the

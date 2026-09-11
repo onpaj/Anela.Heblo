@@ -15,7 +15,6 @@ public class SetProductPriceHandlerTests
     private readonly Mock<IEshopPriceListClient> _eshop = new();
     private readonly Mock<IErpPriceWriter> _erpWriter = new();
     private readonly Mock<IProductPriceErpClient> _erpReader = new();
-    private readonly Mock<IProductVatRateProvider> _vatRates = new();
     private readonly Mock<IProductPriceChangeLogRepository> _changeLog = new();
     private readonly Mock<ICurrentUserService> _currentUser = new();
 
@@ -32,8 +31,6 @@ public class SetProductPriceHandlerTests
                     ErpPriceType = "bezDph",
                 },
             });
-        _vatRates.Setup(v => v.GetVatRatesAsync(It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new Dictionary<string, decimal> { ["A"] = 21m });
         // CurrentUser is a positional record: (Id, Name, Email, IsAuthenticated).
         _currentUser.Setup(u => u.GetCurrentUser())
             .Returns(new CurrentUser("u1", "Ondra", "ondra@anela.cz", true));
@@ -41,7 +38,7 @@ public class SetProductPriceHandlerTests
 
     private SetProductPriceHandler CreateSut() => new(
         _eshop.Object, _erpWriter.Object, _erpReader.Object,
-        _vatRates.Object, _changeLog.Object, _currentUser.Object,
+        _changeLog.Object, _currentUser.Object,
         NullLogger<SetProductPriceHandler>.Instance);
 
     private static SetProductPriceRequest Request(decimal price = 210.00m) =>
@@ -55,7 +52,7 @@ public class SetProductPriceHandlerTests
         _eshop.Setup(c => c.SetPriceWithVatAsync("A", 210.00m, It.IsAny<CancellationToken>()))
             .Callback(() => callOrder.Add("shoptet"))
             .Returns(Task.CompletedTask);
-        _erpWriter.Setup(w => w.SetBasePriceAsync(11, 173.55m, It.IsAny<CancellationToken>()))
+        _erpWriter.Setup(w => w.SetBasePriceAsync(11, 210.00m, It.IsAny<CancellationToken>()))
             .Callback(() => callOrder.Add("flexi"))
             .Returns(Task.CompletedTask);
 
@@ -65,7 +62,7 @@ public class SetProductPriceHandlerTests
         // Assert
         response.Success.Should().BeTrue();
         _eshop.Verify(c => c.SetPriceWithVatAsync("A", 210.00m, It.IsAny<CancellationToken>()), Times.Once);
-        _erpWriter.Verify(w => w.SetBasePriceAsync(11, 173.55m, It.IsAny<CancellationToken>()), Times.Once);
+        _erpWriter.Verify(w => w.SetBasePriceAsync(11, 210.00m, It.IsAny<CancellationToken>()), Times.Once);
         callOrder.Should().Equal("shoptet", "flexi");
     }
 
@@ -90,15 +87,16 @@ public class SetProductPriceHandlerTests
     }
 
     [Theory]
+    [InlineData("bezDph")]
     [InlineData("sDph")]
     [InlineData(null)]
     [InlineData("somethingUnrecognised")]
-    public async Task writes_the_operators_with_vat_price_straight_to_cenazakl_unless_the_item_is_bez_dph(
+    public async Task writes_the_operators_with_vat_price_straight_to_cenazakl_for_every_price_type(
         string? erpPriceType)
     {
-        // Arrange: cenaZakl's VAT meaning is the item's own. Only "bezDph" stores an excl-VAT
-        // number needing conversion; for everything else cenaZakl IS the with-VAT price, and
-        // the operator always enters with VAT — so their number goes through untouched.
+        // Arrange: the operator always enters a price INCLUDING VAT and that is the number
+        // Flexi must end up holding, whatever the item's price type says. Confirmed against
+        // the live ERP: converting to excl-VAT wrote the wrong figure.
         _erpReader.Setup(c => c.GetAllAsync(false, It.IsAny<CancellationToken>()))
             .ReturnsAsync(new List<ProductPriceErp>
             {
@@ -114,20 +112,18 @@ public class SetProductPriceHandlerTests
     }
 
     [Theory]
+    [InlineData("bezDph")]
     [InlineData("sDph")]
     [InlineData(null)]
-    public async Task does_not_need_a_vat_rate_at_all_when_cenazakl_already_holds_the_with_vat_price(
-        string? erpPriceType)
+    public async Task never_needs_a_vat_rate_because_nothing_is_converted(string? erpPriceType)
     {
-        // Arrange: an unrecognised VAT band blocks only the bezDph conversion. These items
-        // need no rate, so the band must not block them.
+        // Arrange: with no conversion there is nothing a VAT rate could be needed for, so an
+        // unrecognised VAT band must never block a write.
         _erpReader.Setup(c => c.GetAllAsync(false, It.IsAny<CancellationToken>()))
             .ReturnsAsync(new List<ProductPriceErp>
             {
                 new() { ProductCode = "A", ErpItemId = 11, ErpPriceType = erpPriceType },
             });
-        _vatRates.Setup(v => v.GetVatRatesAsync(It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new Dictionary<string, decimal>());
 
         // Act
         var response = await CreateSut().Handle(Request(), CancellationToken.None);
@@ -137,26 +133,6 @@ public class SetProductPriceHandlerTests
         _erpWriter.Verify(w => w.SetBasePriceAsync(11, 210.00m, It.IsAny<CancellationToken>()), Times.Once);
     }
 
-    [Fact]
-    public async Task aborts_before_touching_shoptet_when_the_flexi_vat_rate_is_unknown()
-    {
-        // Arrange: a "bezDph" item (the fixture default) needs the rate to convert the
-        // operator's with-VAT price into cenaZakl. The provider omits a product whose Flexi
-        // VAT band it could not recognise, rather than handing back a fabricated 21 that
-        // would be written into a live ERP.
-        _vatRates.Setup(v => v.GetVatRatesAsync(It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new Dictionary<string, decimal>());
-
-        // Act
-        var response = await CreateSut().Handle(Request(), CancellationToken.None);
-
-        // Assert: its own code — "no cen\u00edk item" would send the operator hunting for
-        // something that exists.
-        response.ErrorCode.Should().Be(ErrorCodes.ProductPriceFlexiVatRateUnknown);
-        _eshop.Verify(c => c.SetPriceWithVatAsync(It.IsAny<string>(), It.IsAny<decimal>(),
-            It.IsAny<CancellationToken>()), Times.Never);
-        _erpWriter.VerifyNoOtherCalls();
-    }
 
     [Fact]
     public async Task reports_an_erp_read_failure_separately_from_a_missing_cenik_item()
@@ -177,22 +153,6 @@ public class SetProductPriceHandlerTests
         _erpWriter.VerifyNoOtherCalls();
     }
 
-    [Fact]
-    public async Task reports_a_vat_rate_read_failure_as_an_erp_read_failure()
-    {
-        // Arrange
-        _vatRates.Setup(v => v.GetVatRatesAsync(It.IsAny<CancellationToken>()))
-            .ThrowsAsync(new HttpRequestException("Flexi timeout"));
-
-        // Act
-        var response = await CreateSut().Handle(Request(), CancellationToken.None);
-
-        // Assert
-        response.ErrorCode.Should().Be(ErrorCodes.ProductPriceErpReadFailed);
-        _eshop.Verify(c => c.SetPriceWithVatAsync(It.IsAny<string>(), It.IsAny<decimal>(),
-            It.IsAny<CancellationToken>()), Times.Never);
-        _erpWriter.VerifyNoOtherCalls();
-    }
 
     [Fact]
     public async Task never_writes_flexi_when_the_shoptet_write_fails()
@@ -296,23 +256,6 @@ public class SetProductPriceHandlerTests
             It.IsAny<CancellationToken>()), Times.Once);
     }
 
-    [Fact]
-    public async Task appends_a_change_log_row_when_a_bez_dph_items_vat_band_is_unrecognised()
-    {
-        // Arrange: the fixture's product is "bezDph", so the conversion needs a rate.
-        _vatRates.Setup(v => v.GetVatRatesAsync(It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new Dictionary<string, decimal>());
-
-        // Act
-        await CreateSut().Handle(Request(), CancellationToken.None);
-
-        // Assert
-        _changeLog.Verify(l => l.AppendAsync(
-            It.Is<ProductPriceChangeLog>(e =>
-                !e.ShoptetSucceeded && !e.FlexiSucceeded && e.OldPriceWithVat == 190.00m &&
-                e.ErrorMessage != null),
-            It.IsAny<CancellationToken>()), Times.Once);
-    }
 
     [Fact]
     public async Task records_the_old_and_new_price_on_success()

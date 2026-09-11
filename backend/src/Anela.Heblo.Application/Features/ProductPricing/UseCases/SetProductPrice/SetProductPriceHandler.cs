@@ -20,28 +20,9 @@ public class SetProductPriceHandler : IRequestHandler<SetProductPriceRequest, Se
 {
     private const int PriceDecimals = 2;
 
-    /// <summary>
-    /// The one Flexi price type whose <c>cenaZakl</c> holds a price EXCLUDING VAT, and so the
-    /// only one needing conversion. <c>cenaZakl</c>'s VAT meaning is the item's own (see
-    /// <c>FlexiProductPriceErpClient.MapToProductPrices</c> /
-    /// <c>ProductPriceFlexiDto.IsPriceIncludingVat</c>) — for "sDph" it already IS the with-VAT
-    /// price, so the operator's number is stored untouched.
-    /// </summary>
-    private const string ExcludingVatPriceType = "bezDph";
-
-    /// <summary>
-    /// True only for an item Flexi stores excluding VAT. Everything else — "sDph", and the
-    /// null the ERP read returns when query 41 omits <c>typCenyDphK</c> — is treated as
-    /// already storing the with-VAT price, so the operator's number is written through
-    /// unchanged. Confirmed with the product owner: the operator always enters with VAT.
-    /// </summary>
-    private static bool IsStoredExcludingVat(string? erpPriceType) =>
-        string.Equals(erpPriceType, ExcludingVatPriceType, StringComparison.OrdinalIgnoreCase);
-
     private readonly IEshopPriceListClient _eshopClient;
     private readonly IErpPriceWriter _erpWriter;
     private readonly IProductPriceErpClient _erpReader;
-    private readonly IProductVatRateProvider _vatRateProvider;
     private readonly IProductPriceChangeLogRepository _changeLog;
     private readonly ICurrentUserService _currentUserService;
     private readonly ILogger<SetProductPriceHandler> _logger;
@@ -50,7 +31,6 @@ public class SetProductPriceHandler : IRequestHandler<SetProductPriceRequest, Se
         IEshopPriceListClient eshopClient,
         IErpPriceWriter erpWriter,
         IProductPriceErpClient erpReader,
-        IProductVatRateProvider vatRateProvider,
         IProductPriceChangeLogRepository changeLog,
         ICurrentUserService currentUserService,
         ILogger<SetProductPriceHandler> logger)
@@ -58,7 +38,6 @@ public class SetProductPriceHandler : IRequestHandler<SetProductPriceRequest, Se
         _eshopClient = eshopClient;
         _erpWriter = erpWriter;
         _erpReader = erpReader;
-        _vatRateProvider = vatRateProvider;
         _changeLog = changeLog;
         _currentUserService = currentUserService;
         _logger = logger;
@@ -112,49 +91,15 @@ public class SetProductPriceHandler : IRequestHandler<SetProductPriceRequest, Se
                 $"No Flexi ceník id for {code}; nothing was written.");
         }
 
-        // The operator always enters a price INCLUDING VAT. What has to land in cenaZakl
-        // depends on the item's own price type, mirroring how the read path interprets it
-        // (FlexiProductPriceErpClient, IsPriceIncludingVat):
+        // The operator always enters a price INCLUDING VAT, and that is exactly what Flexi
+        // must end up holding — cenaZakl is written through unchanged, with no conversion and
+        // therefore no VAT rate involved at all.
         //
-        //   bezDph          -> cenaZakl is the excl-VAT price, so convert using the VAT rate.
-        //   sDph / anything -> cenaZakl already IS the with-VAT price, so store it untouched.
-        //
-        // Only the bezDph branch needs a VAT rate at all, so an unrecognised VAT band must not
-        // block the others.
-        decimal basePrice;
-        if (IsStoredExcludingVat(erpMatch.ErpPriceType))
-        {
-            decimal? vatRate;
-            try
-            {
-                vatRate = await ResolveVatRateAsync(code, cancellationToken);
-            }
-            catch (Exception ex)
-            {
-                return await FailAsync(request, oldPrice, false, false,
-                    ErrorCodes.ProductPriceErpReadFailed, ex.Message);
-            }
-
-            // A missing rate means the ERP's own VAT band was not one the adapter recognises
-            // (see ProductPriceFlexiDto.VatRatesByLevel). Assuming a rate here would compute
-            // the wrong cenaZakl, under-price the item in the live ERP, and stay invisible to
-            // the comparison screen — which would reconstruct the same wrong number from the
-            // same wrong rate and classify the row InAgreement. Its own code, because "no
-            // ceník item" would send the operator hunting for something that is there.
-            if (vatRate is null)
-            {
-                return await FailAsync(request, oldPrice, false, false,
-                    ErrorCodes.ProductPriceFlexiVatRateUnknown,
-                    $"No recognised Flexi VAT band for {code}; nothing was written.");
-            }
-
-            basePrice = Math.Round(
-                request.PriceWithVat / (1 + vatRate.Value / 100m), PriceDecimals, MidpointRounding.AwayFromZero);
-        }
-        else
-        {
-            basePrice = request.PriceWithVat;
-        }
+        // This was originally branched on the item's typCenyDphK, converting to excl-VAT for
+        // a "bezDph" item. Verified against the live ERP on 2026-09-11: that wrote the wrong
+        // figure — Shoptet was correct, Flexi ended up holding the price without VAT. Do not
+        // reintroduce the conversion without re-testing against the live ERP.
+        var basePrice = request.PriceWithVat;
 
         // 3. Write Shoptet.
         try
@@ -188,12 +133,6 @@ public class SetProductPriceHandler : IRequestHandler<SetProductPriceRequest, Se
         var erpPrices = await _erpReader.GetAllAsync(forceReload: false, ct);
         return erpPrices.FirstOrDefault(p =>
             string.Equals(p.ProductCode, code, StringComparison.OrdinalIgnoreCase));
-    }
-
-    private async Task<decimal?> ResolveVatRateAsync(string code, CancellationToken ct)
-    {
-        var rates = await _vatRateProvider.GetVatRatesAsync(ct);
-        return rates.TryGetValue(code, out var rate) && rate >= 0 ? rate : null;
     }
 
     private async Task<SetProductPriceResponse> FailAsync(

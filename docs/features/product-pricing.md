@@ -85,27 +85,21 @@ Flexi's `cenaZakl` field means different things depending on the item's own pric
 The comparison surfaces this as `FlexiPriceType` (`"bezDph"`, `"sDph"`, or `null`) on every
 row so an operator can see it.
 
-**The operator always enters a price including VAT**, so the write mirrors the read's own
-interpretation rather than assuming one convention:
+**The operator always enters a price including VAT, and that is exactly what is written to
+`cenaZakl` — for every price type, with no conversion.** The write path therefore needs no
+VAT rate at all.
 
-| Flexi price type | What is written to `cenaZakl` | VAT rate needed? |
-|---|---|---|
-| `bezDph` | the entered price converted to excl-VAT | yes |
-| `sDph` | the entered price, unchanged | no |
-| unknown / anything else | the entered price, unchanged | no |
+> **Verified against the live ERP, 2026-09-11.** This originally converted the entered price
+> to excl-VAT for a `bezDph` item. A real save showed Shoptet correct and Flexi holding the
+> price *without* VAT — the wrong figure. Do not reintroduce the conversion without
+> re-testing against the live ERP.
 
-Only the `bezDph` branch needs a VAT rate at all, so an unrecognised VAT band (below) blocks
-only those items.
+Because the read path still interprets `cenaZakl` per the item's price type, a product Flexi
+genuinely reports as `bezDph` will be grossed up on the next read and show as divergent in the
+comparison. That is deliberate: the comparison is the place such a disagreement should surface,
+rather than the write silently guessing which convention an item uses.
 
-> **Unknown price type is treated as `sDph` on write, but as `bezDph` on read.** The read
-> path grosses an unknown-type `cenaZakl` up by the VAT rate, so after a successful save such
-> a row will keep reporting a divergence in the comparison — the Flexi column will read about
-> one VAT rate higher than Shoptet. The row is already flagged `FlexiPriceTypeUnknown` for
-> exactly this untrustworthiness. Aligning the read with the write would remove the artefact,
-> but it also changes catalog margin figures (`IProductVatRateProvider` feeds
-> `ShoptetEshopPriceClient`), so it is a deliberate open question rather than an oversight.
-
-### The VAT band, and why an unrecognised one refuses the write
+### The VAT band (read path only)
 
 Flexi reports each item's VAT band in `typszbdphk`. Heblo recognises **two vocabularies**
 for it — the enum form the rest of the Flexi adapter uses (`typSzbDph.dphZakl`,
@@ -117,10 +111,11 @@ not knowable here; recognising both removes the guess in either direction.
 
 - **Read path** (`ProductPriceFlexiDto.Vat`, the comparison screen): an unrecognised band
   falls back to 21%, exactly as before, so the comparison behaves unchanged.
-- **Write path** (`ProductPriceFlexiDto.VatRate`, `ProductPriceErp.VatRate`): an
-  unrecognised band yields *no* rate. `FlexiProductVatRateProvider` omits the product
-  entirely and `SetProductPriceHandler` refuses with `ProductPriceFlexiVatRateUnknown`,
-  writing nothing anywhere.
+- **Write path**: unaffected — nothing is converted, so no rate is consulted and an
+  unrecognised band can never block a price edit.
+- **Catalog margins**: `IProductVatRateProvider` still feeds `ShoptetEshopPriceClient`, so a
+  recognised-vs-unrecognised band still moves margin figures. That is why the band mapping
+  recognises both vocabularies rather than falling through to 21% for everything.
 
 The reason the write is stricter: a wrong VAT rate produces a wrong `cenaZakl`, which Flexi
 then reconstructs at its *real* rate — a 12% item priced as if it were 21% ends up ~7%
@@ -183,12 +178,10 @@ price to Shoptet, then to Flexi, in that order, with a pre-flight before either 
    (`GET /api/pricelists/{id}?code=X` — see `docs/integrations/shoptet-api.md`) to record as
    `OldPriceWithVat` in the change log. A product with no row in the retail list cannot be
    priced at all and fails here.
-2. **Pre-flight the Flexi leg** — resolve the Flexi ceník item id, and for a `bezDph` item
-   also resolve its VAT rate from Flexi's own VAT band (refusing when that band is
-   unrecognised, see below). All of this runs *before* anything is written, on purpose: a
-   missing ceník id, or a missing VAT rate for an item that needs one, is knowable up front
-   and guarantees the Flexi leg cannot succeed, so discovering it only after Shoptet was
-   already written would manufacture an avoidable divergence.
+2. **Pre-flight the Flexi leg** — resolve the Flexi ceník item id. This runs *before*
+   anything is written, on purpose: a missing ceník id is knowable up front and guarantees the
+   Flexi leg cannot succeed, so discovering it only after Shoptet was already written would
+   manufacture an avoidable divergence.
 3. **Write Shoptet** (`PATCH /api/pricelists/{id}`, `priceWithVat.price`, never the flat
    `price` field — see the integration doc for the object-vs-scalar 422 gotcha).
 4. **Write Flexi** (excl-VAT price, computed from the requested with-VAT price and the
@@ -220,11 +213,10 @@ Every other failure mode (product not in Shoptet, Flexi read failing, Flexi item
 unknown, unsupported Flexi price type, unrecognised Flexi VAT band, Shoptet write itself
 failing) leaves **nothing** written on either side.
 
-A *failed* Flexi read and a product that genuinely has no ceník item / no recognisable VAT
-band are reported as three different codes on purpose (`ProductPriceErpReadFailed`,
-`ProductPriceFlexiItemIdUnknown`, `ProductPriceFlexiVatRateUnknown`). Collapsing them, as
-an earlier revision did, tells every operator during a Flexi outage to go hunting in Flexi
-for a ceník item that is actually there.
+A *failed* Flexi read and a product that genuinely has no ceník item are reported as two
+different codes on purpose (`ProductPriceErpReadFailed`, `ProductPriceFlexiItemIdUnknown`).
+Collapsing them, as an earlier revision did, tells every operator during a Flexi outage to go
+hunting in Flexi for a ceník item that is actually there.
 
 ### Frontend: inline editing with confirmations
 
@@ -287,7 +279,6 @@ applicable. The log is:
 | `ProductPriceFlexiItemIdUnknown` | No Flexi ceník item (or VAT rate) resolvable for the product; nothing written. |
 | `ProductPriceShoptetWriteFailed` | The Shoptet write itself failed; nothing written. |
 | `ProductPriceFlexiWriteFailed` | Shoptet was written successfully but the Flexi write failed — **the two systems now diverge**. |
-| `ProductPriceFlexiVatRateUnknown` | A `bezDph` item whose Flexi VAT band was not one the adapter recognises, so no rate can be trusted for the conversion; refused outright, nothing written. Items whose `cenaZakl` already holds the with-VAT price need no rate and are unaffected. |
 | `ProductPriceErpReadFailed` | The Flexi read itself failed (outage, timeout, 5xx) — distinct from any fact about the product; nothing written. |
 
 ## Known constraints

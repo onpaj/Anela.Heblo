@@ -349,7 +349,6 @@ const resources = {
         ProductPriceFlexiItemIdUnknown: "Produkt nemá ceníkovou položku ve Flexi, cena nebyla nikde změněna",
         ProductPriceShoptetWriteFailed: "Zápis ceny do Shoptetu selhal, cena nebyla nikde změněna",
         ProductPriceFlexiWriteFailed: "Cena byla změněna v Shoptetu, ale zápis do Flexi selhal — ceny se nyní liší",
-        ProductPriceFlexiVatRateUnknown: "Sazbu DPH položky ve Flexi se nepodařilo určit; cena nebyla nikde změněna",
         ProductPriceErpReadFailed: "ERP Flexi se nepodařilo načíst; cena nebyla nikde změněna",
 
         // External Service errors
