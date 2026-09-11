@@ -28,9 +28,9 @@
   "tasks": [
     {
       "name": "entity-remove-dataannotations-and-swap-exception",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-09-11T20:19:59.223237Z"
+      "updated_at": "2026-09-11T20:21:32.741112Z"
     },
     {
       "name": "tests-update-for-argumentexception",
