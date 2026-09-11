@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using Anela.Heblo.Application.Features.BackgroundJobs;
 using FluentAssertions;
 using Microsoft.Extensions.Logging;
@@ -55,16 +56,7 @@ public class RecurringJobNextRunCalculatorTests
         // Assert
         result.Should().BeNull();
         // Warning logged with the unknown timezone and the job name
-        logger.Verify(
-            x => x.Log(
-                LogLevel.Warning,
-                It.IsAny<EventId>(),
-                It.Is<It.IsAnyType>((v, t) =>
-                    v.ToString()!.Contains("Not/A/Real/Zone") &&
-                    v.ToString()!.Contains("test-job")),
-                It.IsAny<Exception>(),
-                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
-            Times.Once);
+        VerifyWarningLogged(logger, "Not/A/Real/Zone", "test-job");
     }
 
     [Fact]
@@ -85,16 +77,7 @@ public class RecurringJobNextRunCalculatorTests
         // Assert
         result.Should().BeNull();
         // Warning logged with the invalid cron expression and the job name
-        logger.Verify(
-            x => x.Log(
-                LogLevel.Warning,
-                It.IsAny<EventId>(),
-                It.Is<It.IsAnyType>((v, t) =>
-                    v.ToString()!.Contains("not a cron") &&
-                    v.ToString()!.Contains("test-job")),
-                It.IsAny<Exception>(),
-                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
-            Times.Once);
+        VerifyWarningLogged(logger, "not a cron", "test-job");
     }
 
     [Fact]
@@ -188,5 +171,22 @@ public class RecurringJobNextRunCalculatorTests
 
         // Assert
         act.Should().Throw<ArgumentException>();
+    }
+
+    /// <summary>
+    /// Verifies exactly one Warning-level log call whose message contains every
+    /// expected substring. Extracted to avoid duplicating the Mock&lt;ILogger&gt;
+    /// verification lambda across tests that check a warning message's content.
+    /// </summary>
+    private static void VerifyWarningLogged(Mock<ILogger> logger, params string[] expectedSubstrings)
+    {
+        logger.Verify(
+            x => x.Log(
+                LogLevel.Warning,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((v, t) => expectedSubstrings.All(s => v.ToString()!.Contains(s))),
+                It.IsAny<Exception>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Once);
     }
 }
