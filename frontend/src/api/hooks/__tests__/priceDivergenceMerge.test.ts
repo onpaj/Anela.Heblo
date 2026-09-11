@@ -168,4 +168,20 @@ describe("countChangedRows", () => {
     // Assert
     expect(changed).toBe(0);
   });
+
+  test("counts a product renamed in the catalogue, because the merge shows the new name", () => {
+    // Arrange — same prices, same verdict, different name. The merge swaps the whole row, so
+    // the Nazev cell visibly changes; reporting "beze zmen" over it would contradict the table.
+    const previous = [row("A", PriceDivergenceKind.InAgreement, 100)];
+    const renamed = PriceDivergenceRowDto.fromJS({
+      productCode: "A",
+      productName: "Maska pleťová (nový název)",
+      shoptetPriceWithVat: 100,
+      flexiPriceWithVat: 100,
+      kind: PriceDivergenceKind.InAgreement,
+    });
+
+    // Act & Assert
+    expect(countChangedRows(previous, [renamed])).toBe(1);
+  });
 });

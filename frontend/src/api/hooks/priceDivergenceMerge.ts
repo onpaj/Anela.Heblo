@@ -34,14 +34,17 @@ export const tallySummary = (rows: PriceDivergenceRowDto[]): PriceDivergenceSumm
 
 /**
  * Everything a sync can move on a row: the two live prices, the Flexi price type the
- * with-VAT figure was derived from, and the verdict the backend drew from them. The
- * difference columns are computed from the prices, so comparing them too would only ever
- * agree with this.
+ * with-VAT figure was derived from, the verdict the backend drew from them, and the product
+ * name — the merge swaps the whole row, so a product renamed in the catalogue between the
+ * report load and the sync visibly changes on screen, and reporting "beze změn" over a cell
+ * the operator just watched change would read as a lie. The difference columns are computed
+ * from the prices, so comparing them too would only ever agree with this.
  */
 const hasSameComparison = (a: PriceDivergenceRowDto, b: PriceDivergenceRowDto) =>
   a.shoptetPriceWithVat === b.shoptetPriceWithVat &&
   a.flexiPriceWithVat === b.flexiPriceWithVat &&
   a.flexiPriceType === b.flexiPriceType &&
+  a.productName === b.productName &&
   a.kind === b.kind;
 
 /**
