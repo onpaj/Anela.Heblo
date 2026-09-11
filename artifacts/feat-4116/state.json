@@ -21,16 +21,16 @@
       "updated_at": "2026-09-09T07:03:49.063066Z"
     },
     "developing": {
-      "status": "pending",
-      "updated_at": null
+      "status": "in_progress",
+      "updated_at": "2026-09-11T16:44:40.783823Z"
     }
   },
   "tasks": [
     {
       "name": "add-execute-in-transaction-repository-method",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-09-11T16:44:40.869652Z"
     },
     {
       "name": "wrap-create-manufacture-async-in-transaction",

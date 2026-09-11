@@ -98,4 +98,36 @@ public class BaseRepository<TEntity, TKey> : IRepository<TEntity, TKey>
     {
         return await Context.SaveChangesAsync(cancellationToken);
     }
+
+    /// <summary>
+    /// Runs <paramref name="operation"/> inside a single all-or-nothing database transaction,
+    /// opened via <see cref="Microsoft.EntityFrameworkCore.Storage.IExecutionStrategy"/> so it is
+    /// safe under a retrying execution strategy (e.g. PollyExecutionStrategy) — EF Core forbids
+    /// calling BeginTransactionAsync directly when the configured strategy retries on failure.
+    /// Everything the transaction must cover (entity adds, SaveChangesAsync calls) must happen
+    /// inside <paramref name="operation"/>, since a retry re-runs the whole delegate from a clean
+    /// change tracker. This wraps the entire underlying DbContext, not just <typeparamref name="TEntity"/>
+    /// — the same whole-context semantics <see cref="SaveChangesAsync"/> already has.
+    /// </summary>
+    public virtual async Task<TResult> ExecuteInTransactionAsync<TResult>(
+        Func<CancellationToken, Task<TResult>> operation,
+        CancellationToken cancellationToken = default)
+    {
+        var strategy = Context.Database.CreateExecutionStrategy();
+        return await strategy.ExecuteAsync(async () =>
+        {
+            await using var transaction = await Context.Database.BeginTransactionAsync(cancellationToken);
+            try
+            {
+                var result = await operation(cancellationToken);
+                await transaction.CommitAsync(cancellationToken);
+                return result;
+            }
+            catch
+            {
+                await transaction.RollbackAsync(cancellationToken);
+                throw;
+            }
+        });
+    }
 }
