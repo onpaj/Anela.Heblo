@@ -249,19 +249,25 @@ public class GiftPackageManufactureAtomicityIntegrationTests : IAsyncLifetime
     }
 
     /// <summary>
-    /// Throws a non-transient exception on the Nth SavingChangesAsync call. Non-transient (per
-    /// TransientErrorClassifier.IsTransient) so PollyExecutionStrategy's retry pipeline does not
-    /// mask it by retrying — the same reasoning as the transport-box atomicity test's own
-    /// ThrowOnFirstSaveInterceptor, generalized to a configurable call number.
+    /// Throws on the Nth SavingChangesAsync call seen by this context. By default the exception is
+    /// non-transient (per TransientErrorClassifier.IsTransient) so PollyExecutionStrategy's retry
+    /// pipeline does not mask it by retrying — the same reasoning as the transport-box atomicity
+    /// test's own ThrowOnFirstSaveInterceptor, generalized to a configurable call number.
+    /// Pass <paramref name="exceptionFactory"/> to throw a *transient* exception instead, which
+    /// makes the strategy retry the whole delegate; because the counter keeps running across
+    /// attempts, the throw happens exactly once and the retry is allowed to succeed.
     /// </summary>
     private sealed class ThrowOnNthSaveInterceptor : SaveChangesInterceptor
     {
         private readonly int _failOnCallNumber;
+        private readonly Func<Exception> _exceptionFactory;
         private int _callCount;
 
-        public ThrowOnNthSaveInterceptor(int failOnCallNumber)
+        public ThrowOnNthSaveInterceptor(int failOnCallNumber, Func<Exception>? exceptionFactory = null)
         {
             _failOnCallNumber = failOnCallNumber;
+            _exceptionFactory = exceptionFactory
+                ?? (() => new InvalidOperationException($"Simulated failure on save #{failOnCallNumber}"));
         }
 
         public override InterceptionResult<int> SavingChanges(DbContextEventData eventData, InterceptionResult<int> result)
@@ -269,7 +275,7 @@ public class GiftPackageManufactureAtomicityIntegrationTests : IAsyncLifetime
             _callCount++;
             if (_callCount == _failOnCallNumber)
             {
-                throw new InvalidOperationException($"Simulated failure on save #{_failOnCallNumber}");
+                throw _exceptionFactory();
             }
 
             return base.SavingChanges(eventData, result);
@@ -281,7 +287,7 @@ public class GiftPackageManufactureAtomicityIntegrationTests : IAsyncLifetime
             _callCount++;
             if (_callCount == _failOnCallNumber)
             {
-                throw new InvalidOperationException($"Simulated failure on save #{_failOnCallNumber}");
+                throw _exceptionFactory();
             }
 
             return base.SavingChangesAsync(eventData, result, cancellationToken);
@@ -316,6 +322,60 @@ public class GiftPackageManufactureAtomicityIntegrationTests : IAsyncLifetime
         (await readContext.Set<GiftPackageManufactureLog>().CountAsync()).Should().Be(0);
         (await readContext.Set<GiftPackageManufactureItem>().CountAsync()).Should().Be(0);
         (await readContext.Set<StockUpOperation>().CountAsync()).Should().Be(0);
+    }
+
+    [Fact]
+    public async Task CreateManufactureAsync_TransientFailureOnFinalSave_RetryCommitsExactlyOneConsistentSet()
+    {
+        // Regression test for the retry path, not just the rollback path. A TimeoutException is
+        // transient per TransientErrorClassifier, so PollyExecutionStrategy retries the whole
+        // delegate. Attempt 1 fails on save #4 (the output stock-up) and rolls back; the
+        // interceptor's counter keeps running, so attempt 2 (saves #5-#8) is allowed to succeed.
+        //
+        // Attempt 1 leaves the change tracker in a mixed state: the log, its items and the two
+        // ingredient stock-downs were accepted by their SaveChangesAsync calls (Added -> Unchanged,
+        // so a retry would never re-insert them) while the output StockUpOperation is still Added,
+        // carrying DocumentNumber/SourceId built from attempt 1's now-rolled-back log id. Unless
+        // ExecuteInTransactionAsync clears the tracker at the start of each attempt, attempt 2's
+        // first SaveChangesAsync flushes that leftover row alongside the new log, committing an
+        // orphan StockUpOperation whose SourceId points at a log row that never existed — exactly
+        // the NFR-3 invariant this feature establishes. The SourceId/DocumentNumber assertions
+        // below fail (4 stock ops, one orphan) without the ChangeTracker.Clear().
+        var manufactureClientMock = new Mock<IManufactureClient>();
+        var catalogSourceMock = new Mock<ILogisticsCatalogSource>();
+        var mapperMock = new Mock<IMapper>();
+        SetupTwoIngredientBom(manufactureClientMock, catalogSourceMock, "SET001");
+        mapperMock
+            .Setup(m => m.Map<GiftPackageManufactureDto>(It.IsAny<GiftPackageManufactureLog>()))
+            .Returns((GiftPackageManufactureLog log) => new GiftPackageManufactureDto { Id = log.Id, GiftPackageCode = log.GiftPackageCode });
+
+        await using var context = CreateContext(new ThrowOnNthSaveInterceptor(
+            failOnCallNumber: 4,
+            exceptionFactory: () => new TimeoutException("Simulated transient failure on save #4")));
+        var service = CreateService(context, manufactureClientMock, catalogSourceMock, mapperMock);
+
+        var result = await service.CreateManufactureAsync("SET001", 5, false, "tester", CancellationToken.None);
+
+        result.Id.Should().BeGreaterThan(0);
+
+        await using var readContext = CreateContext();
+        var logs = await readContext.Set<GiftPackageManufactureLog>()
+            .Include(x => x.ConsumedItems)
+            .ToListAsync();
+        logs.Should().HaveCount(1, "the rolled-back attempt must leave no log row behind");
+        logs[0].ConsumedItems.Should().HaveCount(2);
+
+        var allStockOps = await readContext.Set<StockUpOperation>().ToListAsync();
+        allStockOps.Should().HaveCount(3, "the retry must not also flush the failed attempt's leftover stock-up");
+        allStockOps.Should().OnlyContain(
+            op => op.SourceId == logs[0].Id,
+            "every committed stock operation must reference the log that actually committed");
+        allStockOps.Select(op => op.DocumentNumber).Should().BeEquivalentTo(new[]
+        {
+            $"GPM-{logs[0].Id:000000}-SET001",
+            $"GPM-{logs[0].Id:000000}-ING001",
+            $"GPM-{logs[0].Id:000000}-ING002",
+        });
     }
 
     [Fact]
