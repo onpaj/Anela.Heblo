@@ -172,10 +172,24 @@ const PriceDivergenceReport: React.FC<PriceDivergenceReportProps> = ({ canWrite 
     try {
       const syncedRows = await syncPrices(visibleProductCodes);
       setSyncStatus({ at: new Date(), changedCount: countChangedRows(rowsBeforeSync, syncedRows) });
+      // A row-level save failure only ever cleared on a later successful save of that same
+      // row, so a red alert about a write that failed minutes ago would sit under a row the
+      // sync has just re-read from both live systems — describing prices no longer on screen.
+      // A synced row's comparison is current by definition, so its old failure is spent.
+      clearErrorsForSyncedRows(syncedRows);
     } catch (err) {
       const errorCode = readErrorCode(err);
       setSyncError(errorCode ? getErrorMessage(errorCode as ErrorCodes) : GENERIC_SYNC_ERROR);
     }
+  };
+
+  const clearErrorsForSyncedRows = (syncedRows: PriceDivergenceRowDto[]) => {
+    const syncedCodes = new Set(
+      syncedRows.map((row) => row.productCode).filter((code): code is string => !!code),
+    );
+    setRowErrors((prev) =>
+      Object.fromEntries(Object.entries(prev).filter(([code]) => !syncedCodes.has(code))),
+    );
   };
 
   const startEdit = (row: PriceDivergenceRowDto) => {

@@ -66,6 +66,7 @@ interface RenderReportOptions {
   rows?: unknown[];
   summary?: typeof sampleSummary;
   setPrice?: jest.Mock;
+  syncPrices?: jest.Mock;
   isPending?: boolean;
   isLoading?: boolean;
   error?: Error | null;
@@ -76,6 +77,7 @@ const renderReport = ({
   rows = [],
   summary = sampleSummary,
   setPrice = jest.fn(),
+  syncPrices = jest.fn().mockResolvedValue([]),
   isPending = false,
   isLoading = false,
   error = null,
@@ -90,7 +92,7 @@ const renderReport = ({
     isPending,
   });
   mockUseSyncProductPrices.mockReturnValue({
-    mutateAsync: jest.fn(),
+    mutateAsync: syncPrices,
     isPending: false,
   });
 
@@ -672,4 +674,34 @@ test("formats the difference percentage in the same locale as the money columns"
 
   // Assert
   expect(await screen.findByText("23,81 %")).toBeInTheDocument();
+});
+
+// A row-level save failure only ever cleared on a later successful save of the SAME row, so
+// it outlived the prices it was about.
+test("clears a row's save failure once a sync has re-read that row", async () => {
+  // Arrange — the save fails, leaving a red alert under the row.
+  const setPrice = jest.fn().mockRejectedValue(new Error("boom"));
+  const synced = [{ ...inAgreementRow, shoptetPriceWithVat: 410, flexiPriceWithVat: 410 }];
+  const confirmSpy = jest.spyOn(window, "confirm").mockReturnValue(true);
+  renderReport({
+    canWrite: true,
+    setPrice,
+    syncPrices: jest.fn().mockResolvedValue(synced),
+    rows: [inAgreementRow],
+  });
+
+  await userEvent.click(screen.getByRole("button", { name: "Upravit cenu Maska", exact: true }));
+  const input = screen.getByRole("spinbutton", { name: "Cena s DPH", exact: true });
+  await userEvent.clear(input);
+  await userEvent.type(input, "410");
+  await userEvent.click(screen.getByRole("button", { name: "Uložit", exact: true }));
+  expect(await screen.findByRole("alert")).toBeInTheDocument();
+
+  // Act — sync, which re-reads this very row from both live systems.
+  await userEvent.click(screen.getByTestId("sync-prices-button"));
+
+  // Assert — the alert is gone: it described a comparison no longer on screen.
+  await waitFor(() => expect(screen.queryByRole("alert")).not.toBeInTheDocument());
+
+  confirmSpy.mockRestore();
 });
