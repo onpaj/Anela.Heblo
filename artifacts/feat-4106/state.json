@@ -21,16 +21,16 @@
       "updated_at": "2026-09-08T06:28:24.337719Z"
     },
     "developing": {
-      "status": "pending",
-      "updated_at": null
+      "status": "in_progress",
+      "updated_at": "2026-09-11T16:44:52.743906Z"
     }
   },
   "tasks": [
     {
       "name": "add-generate-leaflet-mutation-hook",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-09-11T16:44:53.111238Z"
     },
     {
       "name": "refactor-leaflet-generate-tab-to-use-mutation-hook",
