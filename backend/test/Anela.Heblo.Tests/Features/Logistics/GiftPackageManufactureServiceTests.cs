@@ -36,6 +36,25 @@ public class GiftPackageManufactureServiceTests
         _timeProviderMock.Setup(x => x.GetUtcNow())
             .Returns(new DateTimeOffset(_testDateTime, TimeSpan.Zero));
 
+        // CreateManufactureAsync/DisassembleGiftPackageAsync now wrap their writes in
+        // _giftPackageRepository.ExecuteInTransactionAsync(...). Moq does not invoke a delegate
+        // parameter on an unstubbed call (it returns a completed Task<TResult> with a default
+        // result instead), so every return-type overload actually used must be stubbed to run
+        // the delegate, or the wrapped method body never executes.
+        _giftPackageRepositoryMock
+            .Setup(x => x.ExecuteInTransactionAsync(
+                It.IsAny<Func<CancellationToken, Task<GiftPackageManufactureDto>>>(),
+                It.IsAny<CancellationToken>()))
+            .Returns<Func<CancellationToken, Task<GiftPackageManufactureDto>>, CancellationToken>(
+                (operation, ct) => operation(ct));
+
+        _giftPackageRepositoryMock
+            .Setup(x => x.ExecuteInTransactionAsync(
+                It.IsAny<Func<CancellationToken, Task<GiftPackageDisassemblyDto>>>(),
+                It.IsAny<CancellationToken>()))
+            .Returns<Func<CancellationToken, Task<GiftPackageDisassemblyDto>>, CancellationToken>(
+                (operation, ct) => operation(ct));
+
         _service = new GiftPackageManufactureService(
             _manufactureClientMock.Object,
             _giftPackageRepositoryMock.Object,
