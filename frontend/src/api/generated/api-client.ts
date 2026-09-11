@@ -11678,8 +11678,8 @@ export class ApiClient {
         return Promise.resolve<GetProductMarginsResponse>(null as any);
     }
 
-    productPricing_GetPrices(): Promise<GetProductPricesResponse> {
-        let url_ = this.baseUrl + "/api/product-pricing/prices";
+    productPricing_GetDivergenceReport(): Promise<GetPriceDivergenceReportResponse> {
+        let url_ = this.baseUrl + "/api/product-pricing/divergence";
         url_ = url_.replace(/[?&]$/, "");
 
         let options_: RequestInit = {
@@ -11690,18 +11690,18 @@ export class ApiClient {
         };
 
         return this.http.fetch(url_, options_).then((_response: Response) => {
-            return this.processProductPricing_GetPrices(_response);
+            return this.processProductPricing_GetDivergenceReport(_response);
         });
     }
 
-    protected processProductPricing_GetPrices(response: Response): Promise<GetProductPricesResponse> {
+    protected processProductPricing_GetDivergenceReport(response: Response): Promise<GetPriceDivergenceReportResponse> {
         const status = response.status;
         let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
         if (status === 200) {
             return response.text().then((_responseText) => {
             let result200: any = null;
             let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
-            result200 = GetProductPricesResponse.fromJS(resultData200);
+            result200 = GetPriceDivergenceReportResponse.fromJS(resultData200);
             return result200;
             });
         } else if (status !== 200 && status !== 204) {
@@ -11709,7 +11709,45 @@ export class ApiClient {
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
             });
         }
-        return Promise.resolve<GetProductPricesResponse>(null as any);
+        return Promise.resolve<GetPriceDivergenceReportResponse>(null as any);
+    }
+
+    productPricing_Sync(request: SyncProductPricesRequest): Promise<SyncProductPricesResponse> {
+        let url_ = this.baseUrl + "/api/product-pricing/sync";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: RequestInit = {
+            body: content_,
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processProductPricing_Sync(_response);
+        });
+    }
+
+    protected processProductPricing_Sync(response: Response): Promise<SyncProductPricesResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = SyncProductPricesResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<SyncProductPricesResponse>(null as any);
     }
 
     productPricing_SetPrice(productCode: string, request: SetProductPriceRequest): Promise<SetProductPriceResponse> {
@@ -11751,112 +11789,6 @@ export class ApiClient {
             });
         }
         return Promise.resolve<SetProductPriceResponse>(null as any);
-    }
-
-    productPricing_TriggerSync(): Promise<TriggerPriceSyncResponse> {
-        let url_ = this.baseUrl + "/api/product-pricing/sync";
-        url_ = url_.replace(/[?&]$/, "");
-
-        let options_: RequestInit = {
-            method: "POST",
-            headers: {
-                "Accept": "application/json"
-            }
-        };
-
-        return this.http.fetch(url_, options_).then((_response: Response) => {
-            return this.processProductPricing_TriggerSync(_response);
-        });
-    }
-
-    protected processProductPricing_TriggerSync(response: Response): Promise<TriggerPriceSyncResponse> {
-        const status = response.status;
-        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
-        if (status === 200) {
-            return response.text().then((_responseText) => {
-            let result200: any = null;
-            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
-            result200 = TriggerPriceSyncResponse.fromJS(resultData200);
-            return result200;
-            });
-        } else if (status !== 200 && status !== 204) {
-            return response.text().then((_responseText) => {
-            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
-            });
-        }
-        return Promise.resolve<TriggerPriceSyncResponse>(null as any);
-    }
-
-    productPricing_GetConflicts(): Promise<GetPriceSyncConflictsResponse> {
-        let url_ = this.baseUrl + "/api/product-pricing/conflicts";
-        url_ = url_.replace(/[?&]$/, "");
-
-        let options_: RequestInit = {
-            method: "GET",
-            headers: {
-                "Accept": "application/json"
-            }
-        };
-
-        return this.http.fetch(url_, options_).then((_response: Response) => {
-            return this.processProductPricing_GetConflicts(_response);
-        });
-    }
-
-    protected processProductPricing_GetConflicts(response: Response): Promise<GetPriceSyncConflictsResponse> {
-        const status = response.status;
-        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
-        if (status === 200) {
-            return response.text().then((_responseText) => {
-            let result200: any = null;
-            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
-            result200 = GetPriceSyncConflictsResponse.fromJS(resultData200);
-            return result200;
-            });
-        } else if (status !== 200 && status !== 204) {
-            return response.text().then((_responseText) => {
-            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
-            });
-        }
-        return Promise.resolve<GetPriceSyncConflictsResponse>(null as any);
-    }
-
-    productPricing_ResolveConflict(request: ResolvePriceSyncConflictRequest): Promise<ResolvePriceSyncConflictResponse> {
-        let url_ = this.baseUrl + "/api/product-pricing/conflicts/resolve";
-        url_ = url_.replace(/[?&]$/, "");
-
-        const content_ = JSON.stringify(request);
-
-        let options_: RequestInit = {
-            body: content_,
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-                "Accept": "application/json"
-            }
-        };
-
-        return this.http.fetch(url_, options_).then((_response: Response) => {
-            return this.processProductPricing_ResolveConflict(_response);
-        });
-    }
-
-    protected processProductPricing_ResolveConflict(response: Response): Promise<ResolvePriceSyncConflictResponse> {
-        const status = response.status;
-        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
-        if (status === 200) {
-            return response.text().then((_responseText) => {
-            let result200: any = null;
-            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
-            result200 = ResolvePriceSyncConflictResponse.fromJS(resultData200);
-            return result200;
-            });
-        } else if (status !== 200 && status !== 204) {
-            return response.text().then((_responseText) => {
-            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
-            });
-        }
-        return Promise.resolve<ResolvePriceSyncConflictResponse>(null as any);
     }
 
     purchaseOrders_GetPurchaseOrders(searchTerm: string | null | undefined, status: string | null | undefined, fromDate: Date | null | undefined, toDate: Date | null | undefined, activeOrdersOnly: boolean | null | undefined, pageNumber: number | undefined, pageSize: number | undefined, sortBy: string | undefined, sortDescending: boolean | undefined): Promise<GetPurchaseOrdersResponse> {
@@ -14800,8 +14732,11 @@ export enum ErrorCodes {
     MindMapUpdateInProgress = "MindMapUpdateInProgress",
     MindMapMeetingAlreadyAttached = "MindMapMeetingAlreadyAttached",
     MindMapInvalidDocument = "MindMapInvalidDocument",
-    ProductPriceNotFound = "ProductPriceNotFound",
-    ProductPriceConflictNotFound = "ProductPriceConflictNotFound",
+    ProductPriceNotFoundInShoptet = "ProductPriceNotFoundInShoptet",
+    ProductPriceFlexiItemIdUnknown = "ProductPriceFlexiItemIdUnknown",
+    ProductPriceShoptetWriteFailed = "ProductPriceShoptetWriteFailed",
+    ProductPriceFlexiWriteFailed = "ProductPriceFlexiWriteFailed",
+    ProductPriceErpReadFailed = "ProductPriceErpReadFailed",
     ExternalServiceError = "ExternalServiceError",
     FlexiApiError = "FlexiApiError",
     ShoptetApiError = "ShoptetApiError",
@@ -21054,6 +20989,7 @@ export enum DqtTestType {
     ProductPairing = "ProductPairing",
     StockWriteBackReconciliation = "StockWriteBackReconciliation",
     LotSumVsErpStock = "LotSumVsErpStock",
+    PriceComparison = "PriceComparison",
 }
 
 export enum DqtRunStatus {
@@ -40083,61 +40019,63 @@ export interface IMonthlyMarginDto {
     m2?: MarginLevelDto;
 }
 
-export class GetProductPricesResponse extends BaseResponse implements IGetProductPricesResponse {
-    prices?: ProductPriceDto[];
+export class GetPriceDivergenceReportResponse extends BaseResponse implements IGetPriceDivergenceReportResponse {
+    rows?: PriceDivergenceRowDto[];
+    summary?: PriceDivergenceSummaryDto;
 
-    constructor(data?: IGetProductPricesResponse) {
+    constructor(data?: IGetPriceDivergenceReportResponse) {
         super(data);
     }
 
     override init(_data?: any) {
         super.init(_data);
         if (_data) {
-            if (Array.isArray(_data["prices"])) {
-                this.prices = [] as any;
-                for (let item of _data["prices"])
-                    this.prices!.push(ProductPriceDto.fromJS(item));
+            if (Array.isArray(_data["rows"])) {
+                this.rows = [] as any;
+                for (let item of _data["rows"])
+                    this.rows!.push(PriceDivergenceRowDto.fromJS(item));
             }
+            this.summary = _data["summary"] ? PriceDivergenceSummaryDto.fromJS(_data["summary"]) : <any>undefined;
         }
     }
 
-    static override fromJS(data: any): GetProductPricesResponse {
+    static override fromJS(data: any): GetPriceDivergenceReportResponse {
         data = typeof data === 'object' ? data : {};
-        let result = new GetProductPricesResponse();
+        let result = new GetPriceDivergenceReportResponse();
         result.init(data);
         return result;
     }
 
     override toJSON(data?: any) {
         data = typeof data === 'object' ? data : {};
-        if (Array.isArray(this.prices)) {
-            data["prices"] = [];
-            for (let item of this.prices)
-                data["prices"].push(item.toJSON());
+        if (Array.isArray(this.rows)) {
+            data["rows"] = [];
+            for (let item of this.rows)
+                data["rows"].push(item.toJSON());
         }
+        data["summary"] = this.summary ? this.summary.toJSON() : <any>undefined;
         super.toJSON(data);
         return data;
     }
 }
 
-export interface IGetProductPricesResponse extends IBaseResponse {
-    prices?: ProductPriceDto[];
+export interface IGetPriceDivergenceReportResponse extends IBaseResponse {
+    rows?: PriceDivergenceRowDto[];
+    summary?: PriceDivergenceSummaryDto;
 }
 
-export class ProductPriceDto implements IProductPriceDto {
+export class PriceDivergenceRowDto implements IPriceDivergenceRowDto {
     productCode?: string;
     productName?: string;
-    priceWithVat?: number;
-    priceWithoutVat?: number;
-    vatRate?: number;
-    modifiedAt?: Date;
-    modifiedBy?: string;
-    shoptetStatus?: PriceSyncStatus;
-    shoptetRemoteValue?: number | undefined;
-    flexiStatus?: PriceSyncStatus;
-    flexiRemoteValue?: number | undefined;
+    shoptetPriceWithVat?: number | undefined;
+    flexiPriceWithVat?: number | undefined;
+    flexiPriceWithoutVat?: number | undefined;
+    flexiPriceType?: string | undefined;
+    differenceWithVat?: number | undefined;
+    differencePercent?: number | undefined;
+    kind?: PriceDivergenceKind;
 
-    constructor(data?: IProductPriceDto) {
+    constructor(data?: IPriceDivergenceRowDto) {
         if (data) {
             for (var property in data) {
                 if (data.hasOwnProperty(property))
@@ -40150,21 +40088,19 @@ export class ProductPriceDto implements IProductPriceDto {
         if (_data) {
             this.productCode = _data["productCode"];
             this.productName = _data["productName"];
-            this.priceWithVat = _data["priceWithVat"];
-            this.priceWithoutVat = _data["priceWithoutVat"];
-            this.vatRate = _data["vatRate"];
-            this.modifiedAt = _data["modifiedAt"] ? new Date(_data["modifiedAt"].toString()) : <any>undefined;
-            this.modifiedBy = _data["modifiedBy"];
-            this.shoptetStatus = _data["shoptetStatus"];
-            this.shoptetRemoteValue = _data["shoptetRemoteValue"];
-            this.flexiStatus = _data["flexiStatus"];
-            this.flexiRemoteValue = _data["flexiRemoteValue"];
+            this.shoptetPriceWithVat = _data["shoptetPriceWithVat"];
+            this.flexiPriceWithVat = _data["flexiPriceWithVat"];
+            this.flexiPriceWithoutVat = _data["flexiPriceWithoutVat"];
+            this.flexiPriceType = _data["flexiPriceType"];
+            this.differenceWithVat = _data["differenceWithVat"];
+            this.differencePercent = _data["differencePercent"];
+            this.kind = _data["kind"];
         }
     }
 
-    static fromJS(data: any): ProductPriceDto {
+    static fromJS(data: any): PriceDivergenceRowDto {
         data = typeof data === 'object' ? data : {};
-        let result = new ProductPriceDto();
+        let result = new PriceDivergenceRowDto();
         result.init(data);
         return result;
     }
@@ -40173,38 +40109,181 @@ export class ProductPriceDto implements IProductPriceDto {
         data = typeof data === 'object' ? data : {};
         data["productCode"] = this.productCode;
         data["productName"] = this.productName;
-        data["priceWithVat"] = this.priceWithVat;
-        data["priceWithoutVat"] = this.priceWithoutVat;
-        data["vatRate"] = this.vatRate;
-        data["modifiedAt"] = this.modifiedAt ? this.modifiedAt.toISOString() : <any>undefined;
-        data["modifiedBy"] = this.modifiedBy;
-        data["shoptetStatus"] = this.shoptetStatus;
-        data["shoptetRemoteValue"] = this.shoptetRemoteValue;
-        data["flexiStatus"] = this.flexiStatus;
-        data["flexiRemoteValue"] = this.flexiRemoteValue;
+        data["shoptetPriceWithVat"] = this.shoptetPriceWithVat;
+        data["flexiPriceWithVat"] = this.flexiPriceWithVat;
+        data["flexiPriceWithoutVat"] = this.flexiPriceWithoutVat;
+        data["flexiPriceType"] = this.flexiPriceType;
+        data["differenceWithVat"] = this.differenceWithVat;
+        data["differencePercent"] = this.differencePercent;
+        data["kind"] = this.kind;
         return data;
     }
 }
 
-export interface IProductPriceDto {
+export interface IPriceDivergenceRowDto {
     productCode?: string;
     productName?: string;
-    priceWithVat?: number;
-    priceWithoutVat?: number;
-    vatRate?: number;
-    modifiedAt?: Date;
-    modifiedBy?: string;
-    shoptetStatus?: PriceSyncStatus;
-    shoptetRemoteValue?: number | undefined;
-    flexiStatus?: PriceSyncStatus;
-    flexiRemoteValue?: number | undefined;
+    shoptetPriceWithVat?: number | undefined;
+    flexiPriceWithVat?: number | undefined;
+    flexiPriceWithoutVat?: number | undefined;
+    flexiPriceType?: string | undefined;
+    differenceWithVat?: number | undefined;
+    differencePercent?: number | undefined;
+    kind?: PriceDivergenceKind;
 }
 
-export enum PriceSyncStatus {
-    InSync = "InSync",
-    Pending = "Pending",
-    Conflict = "Conflict",
-    Failed = "Failed",
+export enum PriceDivergenceKind {
+    InAgreement = "InAgreement",
+    FlexiDiffers = "FlexiDiffers",
+    MissingInShoptet = "MissingInShoptet",
+    MissingInFlexi = "MissingInFlexi",
+    FlexiPriceTypeUnknown = "FlexiPriceTypeUnknown",
+    FlexiVatRateUnknown = "FlexiVatRateUnknown",
+}
+
+export class PriceDivergenceSummaryDto implements IPriceDivergenceSummaryDto {
+    totalInScope?: number;
+    inAgreementCount?: number;
+    flexiDiffersCount?: number;
+    missingInShoptetCount?: number;
+    missingInFlexiCount?: number;
+    flexiPriceTypeUnknownCount?: number;
+    flexiVatRateUnknownCount?: number;
+
+    constructor(data?: IPriceDivergenceSummaryDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.totalInScope = _data["totalInScope"];
+            this.inAgreementCount = _data["inAgreementCount"];
+            this.flexiDiffersCount = _data["flexiDiffersCount"];
+            this.missingInShoptetCount = _data["missingInShoptetCount"];
+            this.missingInFlexiCount = _data["missingInFlexiCount"];
+            this.flexiPriceTypeUnknownCount = _data["flexiPriceTypeUnknownCount"];
+            this.flexiVatRateUnknownCount = _data["flexiVatRateUnknownCount"];
+        }
+    }
+
+    static fromJS(data: any): PriceDivergenceSummaryDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new PriceDivergenceSummaryDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["totalInScope"] = this.totalInScope;
+        data["inAgreementCount"] = this.inAgreementCount;
+        data["flexiDiffersCount"] = this.flexiDiffersCount;
+        data["missingInShoptetCount"] = this.missingInShoptetCount;
+        data["missingInFlexiCount"] = this.missingInFlexiCount;
+        data["flexiPriceTypeUnknownCount"] = this.flexiPriceTypeUnknownCount;
+        data["flexiVatRateUnknownCount"] = this.flexiVatRateUnknownCount;
+        return data;
+    }
+}
+
+export interface IPriceDivergenceSummaryDto {
+    totalInScope?: number;
+    inAgreementCount?: number;
+    flexiDiffersCount?: number;
+    missingInShoptetCount?: number;
+    missingInFlexiCount?: number;
+    flexiPriceTypeUnknownCount?: number;
+    flexiVatRateUnknownCount?: number;
+}
+
+export class SyncProductPricesResponse extends BaseResponse implements ISyncProductPricesResponse {
+    rows?: PriceDivergenceRowDto[];
+
+    constructor(data?: ISyncProductPricesResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            if (Array.isArray(_data["rows"])) {
+                this.rows = [] as any;
+                for (let item of _data["rows"])
+                    this.rows!.push(PriceDivergenceRowDto.fromJS(item));
+            }
+        }
+    }
+
+    static override fromJS(data: any): SyncProductPricesResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new SyncProductPricesResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        if (Array.isArray(this.rows)) {
+            data["rows"] = [];
+            for (let item of this.rows)
+                data["rows"].push(item.toJSON());
+        }
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface ISyncProductPricesResponse extends IBaseResponse {
+    rows?: PriceDivergenceRowDto[];
+}
+
+export class SyncProductPricesRequest implements ISyncProductPricesRequest {
+    productCodes?: string[];
+
+    constructor(data?: ISyncProductPricesRequest) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            if (Array.isArray(_data["productCodes"])) {
+                this.productCodes = [] as any;
+                for (let item of _data["productCodes"])
+                    this.productCodes!.push(item);
+            }
+        }
+    }
+
+    static fromJS(data: any): SyncProductPricesRequest {
+        data = typeof data === 'object' ? data : {};
+        let result = new SyncProductPricesRequest();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        if (Array.isArray(this.productCodes)) {
+            data["productCodes"] = [];
+            for (let item of this.productCodes)
+                data["productCodes"].push(item);
+        }
+        return data;
+    }
+}
+
+export interface ISyncProductPricesRequest {
+    productCodes?: string[];
 }
 
 export class SetProductPriceResponse extends BaseResponse implements ISetProductPriceResponse {
@@ -40278,229 +40357,6 @@ export class SetProductPriceRequest implements ISetProductPriceRequest {
 export interface ISetProductPriceRequest {
     productCode?: string;
     priceWithVat?: number;
-}
-
-export class TriggerPriceSyncResponse extends BaseResponse implements ITriggerPriceSyncResponse {
-    pushed?: number;
-    conflicts?: number;
-    failed?: number;
-    seeded?: number;
-    unchanged?: number;
-
-    constructor(data?: ITriggerPriceSyncResponse) {
-        super(data);
-    }
-
-    override init(_data?: any) {
-        super.init(_data);
-        if (_data) {
-            this.pushed = _data["pushed"];
-            this.conflicts = _data["conflicts"];
-            this.failed = _data["failed"];
-            this.seeded = _data["seeded"];
-            this.unchanged = _data["unchanged"];
-        }
-    }
-
-    static override fromJS(data: any): TriggerPriceSyncResponse {
-        data = typeof data === 'object' ? data : {};
-        let result = new TriggerPriceSyncResponse();
-        result.init(data);
-        return result;
-    }
-
-    override toJSON(data?: any) {
-        data = typeof data === 'object' ? data : {};
-        data["pushed"] = this.pushed;
-        data["conflicts"] = this.conflicts;
-        data["failed"] = this.failed;
-        data["seeded"] = this.seeded;
-        data["unchanged"] = this.unchanged;
-        super.toJSON(data);
-        return data;
-    }
-}
-
-export interface ITriggerPriceSyncResponse extends IBaseResponse {
-    pushed?: number;
-    conflicts?: number;
-    failed?: number;
-    seeded?: number;
-    unchanged?: number;
-}
-
-export class GetPriceSyncConflictsResponse extends BaseResponse implements IGetPriceSyncConflictsResponse {
-    conflicts?: PriceSyncConflictDto[];
-
-    constructor(data?: IGetPriceSyncConflictsResponse) {
-        super(data);
-    }
-
-    override init(_data?: any) {
-        super.init(_data);
-        if (_data) {
-            if (Array.isArray(_data["conflicts"])) {
-                this.conflicts = [] as any;
-                for (let item of _data["conflicts"])
-                    this.conflicts!.push(PriceSyncConflictDto.fromJS(item));
-            }
-        }
-    }
-
-    static override fromJS(data: any): GetPriceSyncConflictsResponse {
-        data = typeof data === 'object' ? data : {};
-        let result = new GetPriceSyncConflictsResponse();
-        result.init(data);
-        return result;
-    }
-
-    override toJSON(data?: any) {
-        data = typeof data === 'object' ? data : {};
-        if (Array.isArray(this.conflicts)) {
-            data["conflicts"] = [];
-            for (let item of this.conflicts)
-                data["conflicts"].push(item.toJSON());
-        }
-        super.toJSON(data);
-        return data;
-    }
-}
-
-export interface IGetPriceSyncConflictsResponse extends IBaseResponse {
-    conflicts?: PriceSyncConflictDto[];
-}
-
-export class PriceSyncConflictDto implements IPriceSyncConflictDto {
-    productCode?: string;
-    target?: PriceSyncTarget;
-    hebloPriceWithVat?: number;
-    remotePriceWithVat?: number | undefined;
-    conflictDetectedAt?: Date | undefined;
-
-    constructor(data?: IPriceSyncConflictDto) {
-        if (data) {
-            for (var property in data) {
-                if (data.hasOwnProperty(property))
-                    (<any>this)[property] = (<any>data)[property];
-            }
-        }
-    }
-
-    init(_data?: any) {
-        if (_data) {
-            this.productCode = _data["productCode"];
-            this.target = _data["target"];
-            this.hebloPriceWithVat = _data["hebloPriceWithVat"];
-            this.remotePriceWithVat = _data["remotePriceWithVat"];
-            this.conflictDetectedAt = _data["conflictDetectedAt"] ? new Date(_data["conflictDetectedAt"].toString()) : <any>undefined;
-        }
-    }
-
-    static fromJS(data: any): PriceSyncConflictDto {
-        data = typeof data === 'object' ? data : {};
-        let result = new PriceSyncConflictDto();
-        result.init(data);
-        return result;
-    }
-
-    toJSON(data?: any) {
-        data = typeof data === 'object' ? data : {};
-        data["productCode"] = this.productCode;
-        data["target"] = this.target;
-        data["hebloPriceWithVat"] = this.hebloPriceWithVat;
-        data["remotePriceWithVat"] = this.remotePriceWithVat;
-        data["conflictDetectedAt"] = this.conflictDetectedAt ? this.conflictDetectedAt.toISOString() : <any>undefined;
-        return data;
-    }
-}
-
-export interface IPriceSyncConflictDto {
-    productCode?: string;
-    target?: PriceSyncTarget;
-    hebloPriceWithVat?: number;
-    remotePriceWithVat?: number | undefined;
-    conflictDetectedAt?: Date | undefined;
-}
-
-export enum PriceSyncTarget {
-    Shoptet = "Shoptet",
-    Flexi = "Flexi",
-}
-
-export class ResolvePriceSyncConflictResponse extends BaseResponse implements IResolvePriceSyncConflictResponse {
-
-    constructor(data?: IResolvePriceSyncConflictResponse) {
-        super(data);
-    }
-
-    override init(_data?: any) {
-        super.init(_data);
-    }
-
-    static override fromJS(data: any): ResolvePriceSyncConflictResponse {
-        data = typeof data === 'object' ? data : {};
-        let result = new ResolvePriceSyncConflictResponse();
-        result.init(data);
-        return result;
-    }
-
-    override toJSON(data?: any) {
-        data = typeof data === 'object' ? data : {};
-        super.toJSON(data);
-        return data;
-    }
-}
-
-export interface IResolvePriceSyncConflictResponse extends IBaseResponse {
-}
-
-export class ResolvePriceSyncConflictRequest implements IResolvePriceSyncConflictRequest {
-    productCode?: string;
-    target?: PriceSyncTarget;
-    resolution?: PriceConflictResolution;
-
-    constructor(data?: IResolvePriceSyncConflictRequest) {
-        if (data) {
-            for (var property in data) {
-                if (data.hasOwnProperty(property))
-                    (<any>this)[property] = (<any>data)[property];
-            }
-        }
-    }
-
-    init(_data?: any) {
-        if (_data) {
-            this.productCode = _data["productCode"];
-            this.target = _data["target"];
-            this.resolution = _data["resolution"];
-        }
-    }
-
-    static fromJS(data: any): ResolvePriceSyncConflictRequest {
-        data = typeof data === 'object' ? data : {};
-        let result = new ResolvePriceSyncConflictRequest();
-        result.init(data);
-        return result;
-    }
-
-    toJSON(data?: any) {
-        data = typeof data === 'object' ? data : {};
-        data["productCode"] = this.productCode;
-        data["target"] = this.target;
-        data["resolution"] = this.resolution;
-        return data;
-    }
-}
-
-export interface IResolvePriceSyncConflictRequest {
-    productCode?: string;
-    target?: PriceSyncTarget;
-    resolution?: PriceConflictResolution;
-}
-
-export enum PriceConflictResolution {
-    KeepHebloPrice = "KeepHebloPrice",
-    AcceptRemotePrice = "AcceptRemotePrice",
 }
 
 export class GetPurchaseOrdersResponse extends BaseResponse implements IGetPurchaseOrdersResponse {

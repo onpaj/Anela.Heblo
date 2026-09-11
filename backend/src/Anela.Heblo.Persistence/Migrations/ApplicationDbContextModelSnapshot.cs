@@ -3529,66 +3529,50 @@ namespace Anela.Heblo.Persistence.Migrations
                     b.ToTable("PhotobankTagRules", "public");
                 });
 
-            modelBuilder.Entity("Anela.Heblo.Domain.Features.ProductPricing.ProductPrice", b =>
+            modelBuilder.Entity("Anela.Heblo.Domain.Features.ProductPricing.ProductPriceChangeLog", b =>
                 {
-                    b.Property<string>("Id")
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)")
-                        .HasColumnName("ProductCode");
-
-                    b.Property<DateTime>("ModifiedAt")
-                        .HasColumnType("timestamp without time zone");
-
-                    b.Property<string>("ModifiedBy")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("character varying(200)");
-
-                    b.Property<decimal>("PriceWithVat")
-                        .HasColumnType("decimal(18,4)");
-
-                    b.Property<decimal>("VatRate")
-                        .HasColumnType("decimal(5,2)");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("ProductPrices", "public");
-                });
-
-            modelBuilder.Entity("Anela.Heblo.Domain.Features.ProductPricing.ProductPriceSyncState", b =>
-                {
-                    b.Property<string>("ProductCode")
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)");
-
-                    b.Property<int>("Target")
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
                         .HasColumnType("integer");
 
-                    b.Property<DateTime?>("ConflictDetectedAt")
-                        .HasColumnType("timestamp without time zone");
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
-                    b.Property<string>("LastError")
+                    b.Property<DateTime>("ChangedAt")
+                        .HasColumnType("timestamp");
+
+                    b.Property<string>("ChangedBy")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)");
+
+                    b.Property<string>("ErrorMessage")
                         .HasMaxLength(2000)
                         .HasColumnType("character varying(2000)");
 
-                    b.Property<DateTime?>("LastPushedAt")
-                        .HasColumnType("timestamp without time zone");
+                    b.Property<bool>("FlexiSucceeded")
+                        .HasColumnType("boolean");
 
-                    b.Property<decimal?>("LastPushedPriceWithVat")
-                        .HasColumnType("decimal(18,4)");
+                    b.Property<decimal>("NewPriceWithVat")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
 
-                    b.Property<decimal?>("RemoteValueAtConflict")
-                        .HasColumnType("decimal(18,4)");
+                    b.Property<decimal?>("OldPriceWithVat")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
 
-                    b.Property<int>("Status")
-                        .HasColumnType("integer");
+                    b.Property<string>("ProductCode")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
 
-                    b.HasKey("ProductCode", "Target");
+                    b.Property<bool>("ShoptetSucceeded")
+                        .HasColumnType("boolean");
 
-                    b.HasIndex("Status")
-                        .HasDatabaseName("IX_ProductPriceSyncStates_Status");
+                    b.HasKey("Id");
 
-                    b.ToTable("ProductPriceSyncStates", "public");
+                    b.HasIndex("ProductCode", "ChangedAt");
+
+                    b.ToTable("ProductPriceChangeLogs", "public");
                 });
 
             modelBuilder.Entity("Anela.Heblo.Domain.Features.Purchase.PurchaseOrder", b =>

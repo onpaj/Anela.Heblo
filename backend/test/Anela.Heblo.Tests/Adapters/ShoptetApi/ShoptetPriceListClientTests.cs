@@ -1,5 +1,6 @@
 using System.Net;
 using System.Text;
+using System.Text.Json;
 using Anela.Heblo.Adapters.ShoptetApi.Orders;
 using Anela.Heblo.Adapters.ShoptetApi.Pricing;
 using FluentAssertions;
@@ -35,11 +36,13 @@ public class ShoptetPriceListClientTests
     {
         // Arrange
         var page1 = """
-        {"data":{"pricelist":[{"code":"A","priceWithVat":"190.00"},{"code":"B","priceWithVat":"250.50"}],
+        {"data":{"pricelist":[
+            {"code":"A","includingVat":true,"vatRate":"21.00","price":{"price":"190.00"}},
+            {"code":"B","includingVat":true,"vatRate":"21.00","price":{"price":"250.50"}}],
          "paginator":{"page":1,"pageCount":2}},"errors":null}
         """;
         var page2 = """
-        {"data":{"pricelist":[{"code":"C","priceWithVat":"99.00"}],
+        {"data":{"pricelist":[{"code":"C","includingVat":true,"vatRate":"21.00","price":{"price":"99.00"}}],
          "paginator":{"page":2,"pageCount":2}},"errors":null}
         """;
         var client = CreateClient(req =>
@@ -73,21 +76,87 @@ public class ShoptetPriceListClientTests
     }
 
     [Fact]
-    public async Task resolves_the_default_price_list_when_none_is_configured()
+    public async Task throws_when_no_price_list_id_is_configured()
     {
         // Arrange
-        var recorded = new List<HttpRequestMessage>();
-        var client = CreateClient(req =>
-                req.RequestUri!.AbsolutePath == "/api/pricelists"
-                    ? Json("""{"data":{"pricelists":[{"id":7,"name":"Velkoobchod","default":false},{"id":3,"name":"Základní","default":true}]},"errors":null}""")
-                    : Json("""{"data":{"pricelist":[],"paginator":{"page":1,"pageCount":1}},"errors":null}"""),
-            recorded, defaultPriceListId: null);
+        var client = CreateClient(
+            _ => Json("""{"data":{"pricelist":[],"paginator":{"page":1,"pageCount":1}},"errors":null}"""),
+            defaultPriceListId: null);
 
         // Act
-        await client.GetPricesWithVatAsync(CancellationToken.None);
+        var act = () => client.GetPricesWithVatAsync(CancellationToken.None);
 
         // Assert
-        recorded.Last().RequestUri!.AbsolutePath.Should().Be("/api/pricelists/3");
+        (await act.Should().ThrowAsync<InvalidOperationException>())
+            .And.Message.Should().Contain("Shoptet:DefaultPriceListId");
+    }
+
+    [Fact]
+    public async Task derives_the_with_vat_price_when_the_list_stores_prices_excluding_vat()
+    {
+        // Arrange
+        var client = CreateClient(_ => Json("""
+            {"data":{"pricelist":[{"code":"A","includingVat":false,"vatRate":"21.00","price":{"price":"100.00"}}],
+             "paginator":{"page":1,"pageCount":1}},"errors":null}
+            """));
+
+        // Act
+        var prices = await client.GetPricesWithVatAsync(CancellationToken.None);
+
+        // Assert
+        prices["A"].Should().Be(121.00m);
+    }
+
+    [Fact]
+    public async Task skips_an_item_with_a_null_price_as_legitimately_unpriced()
+    {
+        // Arrange
+        var client = CreateClient(_ => Json("""
+            {"data":{"pricelist":[{"code":"A","includingVat":true,"vatRate":"21.00","price":{"price":null}}],
+             "paginator":{"page":1,"pageCount":1}},"errors":null}
+            """));
+
+        // Act
+        var prices = await client.GetPricesWithVatAsync(CancellationToken.None);
+
+        // Assert
+        prices.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task skips_but_counts_an_item_with_an_unparseable_price_and_keeps_reading_the_rest()
+    {
+        // Arrange: a non-null price that cannot be interpreted must be logged and skipped,
+        // not silently dropped and not allowed to blow up the whole run.
+        var client = CreateClient(_ => Json("""
+            {"data":{"pricelist":[
+                {"code":"BAD","includingVat":true,"vatRate":"21.00","price":{"price":"not-a-number"}},
+                {"code":"OK","includingVat":true,"vatRate":"21.00","price":{"price":"50.00"}}],
+             "paginator":{"page":1,"pageCount":1}},"errors":null}
+            """));
+
+        // Act
+        var prices = await client.GetPricesWithVatAsync(CancellationToken.None);
+
+        // Assert
+        prices.Should().ContainKey("OK");
+        prices.Should().NotContainKey("BAD");
+    }
+
+    [Fact]
+    public async Task skips_an_item_excluding_vat_with_an_unparseable_vat_rate()
+    {
+        // Arrange
+        var client = CreateClient(_ => Json("""
+            {"data":{"pricelist":[{"code":"A","includingVat":false,"vatRate":null,"price":{"price":"100.00"}}],
+             "paginator":{"page":1,"pageCount":1}},"errors":null}
+            """));
+
+        // Act
+        var prices = await client.GetPricesWithVatAsync(CancellationToken.None);
+
+        // Assert
+        prices.Should().BeEmpty();
     }
 
     [Fact]
@@ -110,7 +179,12 @@ public class ShoptetPriceListClientTests
         recorded.Should().ContainSingle();
         recorded[0].Method.Should().Be(HttpMethod.Patch);
         recorded[0].RequestUri!.AbsolutePath.Should().Be("/api/pricelists/1");
-        bodies[0].Should().Contain("OCH001030").And.Contain("210.00");
+        // Structural, not substring: `priceWithVat` is an object group (same members as the
+        // read-side `price`), not a scalar. A `Contain("210.00")` assertion passes for the
+        // flat-string shape Shoptet rejects with 422 invalid-request-data.
+        var item = JsonDocument.Parse(bodies[0]).RootElement.GetProperty("data")[0];
+        item.GetProperty("code").GetString().Should().Be("OCH001030");
+        item.GetProperty("priceWithVat").GetProperty("price").GetString().Should().Be("210.00");
         bodies[0].Should().NotContain("buyPrice");
     }
 
@@ -131,11 +205,46 @@ public class ShoptetPriceListClientTests
     }
 
     [Fact]
+    public async Task reads_one_products_price_by_code()
+    {
+        // Arrange
+        var recorded = new List<HttpRequestMessage>();
+        var client = CreateClient(_ => Json("""
+            {"data":{"pricelist":[{"code":"DEO007005","includingVat":true,"vatRate":"21.00",
+             "price":{"price":"390.00"}}],"paginator":{"page":1,"pageCount":1}},"errors":null}
+            """), recorded);
+
+        // Act
+        var price = await client.GetPriceWithVatAsync("DEO007005", CancellationToken.None);
+
+        // Assert
+        price.Should().Be(390.00m);
+        recorded[0].RequestUri!.Query.Should().Contain("code=DEO007005");
+    }
+
+    [Fact]
+    public async Task returns_null_when_the_product_is_absent_from_the_price_list()
+    {
+        // Arrange
+        var client = CreateClient(_ => Json("""
+            {"data":{"pricelist":[],"paginator":{"page":1,"pageCount":1}},"errors":null}
+            """));
+
+        // Act
+        var price = await client.GetPriceWithVatAsync("NOPE", CancellationToken.None);
+
+        // Assert
+        price.Should().BeNull();
+    }
+
+    [Fact]
     public async Task throws_when_a_200_carries_no_data_block()
     {
         // Arrange
-        // Returning an empty snapshot here would make every product decide MissingRemote
-        // and be marked Failed in one run, instead of leaving the sync states untouched.
+        // A 200 with no `data` block is a malformed response, not an empty price list.
+        // Returning an empty snapshot would hand the comparison a Shoptet side with nothing
+        // in it, classifying every in-scope product MissingInShoptet — which is exactly the
+        // "compared nothing, reported healthy" state the caller must never be handed.
         var client = CreateClient(_ => Json("""{"data":null,"errors":null}"""));
 
         // Act
@@ -144,6 +253,25 @@ public class ShoptetPriceListClientTests
         // Assert
         (await act.Should().ThrowAsync<HttpRequestException>())
             .And.Message.Should().Contain("no data block");
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(-1)]
+    [InlineData(-0.01)]
+    public async Task rejects_a_non_positive_price_before_dispatching_the_write(decimal priceWithVat)
+    {
+        // Arrange: Shoptet treats a literal 0 as a genuine free price (from 2026-09-14), not
+        // as "clear the price", so a zero must never leave this process.
+        var recorded = new List<HttpRequestMessage>();
+        var client = CreateClient(_ => Json("{}"), recorded);
+
+        // Act
+        var act = () => client.SetPriceWithVatAsync("A", priceWithVat, CancellationToken.None);
+
+        // Assert
+        await act.Should().ThrowAsync<ArgumentOutOfRangeException>();
+        recorded.Should().BeEmpty();
     }
 
     private sealed class StubHandler : HttpMessageHandler

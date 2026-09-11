@@ -1,8 +1,9 @@
 using Anela.Heblo.Application.Common.Behaviors;
-using Anela.Heblo.Application.Features.ProductPricing.Infrastructure.Jobs;
+using Anela.Heblo.Application.Features.DataQuality.Contracts;
+using Anela.Heblo.Application.Features.ProductPricing.Infrastructure;
 using Anela.Heblo.Application.Features.ProductPricing.Services;
-using Anela.Heblo.Application.Features.ProductPricing.UseCases.ResolvePriceSyncConflict;
 using Anela.Heblo.Application.Features.ProductPricing.UseCases.SetProductPrice;
+using Anela.Heblo.Application.Features.ProductPricing.UseCases.SyncProductPrices;
 using Anela.Heblo.Domain.Features.ProductPricing;
 using Anela.Heblo.Persistence.ProductPricing;
 using FluentValidation;
@@ -15,22 +16,22 @@ public static class ProductPricingModule
 {
     public static IServiceCollection AddProductPricingModule(this IServiceCollection services)
     {
-        services.AddScoped<IProductPriceRepository, ProductPriceRepository>();
-        services.AddScoped<IProductPriceSyncService, ProductPriceSyncService>();
+        services.AddScoped<IPriceComparisonService, PriceComparisonService>();
+        services.AddScoped<IProductPriceChangeLogRepository, ProductPriceChangeLogRepository>();
 
-        services.AddScoped<ProductPriceSyncJob>();
+        // Provider registers the binding for DataQuality's consumer-owned contract (see
+        // ILeafletKnowledgeSource pattern in development_guidelines.md).
+        services.AddScoped<IPriceComparisonSource, PriceComparisonDqtAdapter>();
 
-        // Validator registrations are added by Tasks 8 and 9 as their use cases land.
-        // There is no AddValidatorsFromAssembly in this project — each one is explicit.
         services.AddScoped<IValidator<SetProductPriceRequest>, SetProductPriceRequestValidator>();
         services.AddScoped<
             IPipelineBehavior<SetProductPriceRequest, SetProductPriceResponse>,
             ValidationBehavior<SetProductPriceRequest, SetProductPriceResponse>>();
 
-        services.AddScoped<IValidator<ResolvePriceSyncConflictRequest>, ResolvePriceSyncConflictRequestValidator>();
+        services.AddScoped<IValidator<SyncProductPricesRequest>, SyncProductPricesRequestValidator>();
         services.AddScoped<
-            IPipelineBehavior<ResolvePriceSyncConflictRequest, ResolvePriceSyncConflictResponse>,
-            ValidationBehavior<ResolvePriceSyncConflictRequest, ResolvePriceSyncConflictResponse>>();
+            IPipelineBehavior<SyncProductPricesRequest, SyncProductPricesResponse>,
+            ValidationBehavior<SyncProductPricesRequest, SyncProductPricesResponse>>();
 
         // MediatR handlers are automatically registered by assembly scan.
 

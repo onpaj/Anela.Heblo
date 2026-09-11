@@ -1,165 +1,108 @@
 import React from "react";
-import { render, screen, fireEvent, within } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import ProductPricingPage from "../ProductPricingPage";
+import { usePermissionsContext } from "../../auth/PermissionsContext";
+import { PriceDivergenceKind } from "../../api/generated/api-client";
 
-const mockSetPrice = jest.fn();
-const mockResolveConflict = jest.fn();
-const mockTriggerSync = jest.fn();
-let mockPrices: any[] = [];
+// `mock`-prefixed so the jest.mock factory below may reference it; only read lazily, when
+// the hook is called during render.
+const mockDivergenceRow = {
+  productCode: "MAS001180",
+  productName: "Maska",
+  shoptetPriceWithVat: 390.0,
+  flexiPriceWithVat: 390.0,
+  flexiPriceWithoutVat: 322.31,
+  flexiPriceType: "bezDph",
+  differenceWithVat: 0,
+  differencePercent: 0,
+  kind: PriceDivergenceKind.InAgreement,
+};
 
+// Spread over the real module so the constants the report imports stay in step with it;
+// only the hooks themselves are replaced.
 jest.mock("../../api/hooks/useProductPricing", () => ({
-  useProductPrices: () => ({ data: mockPrices, isLoading: false, error: null }),
-  useSetProductPrice: () => ({ mutate: mockSetPrice, isPending: false }),
-  usePriceSyncConflicts: () => ({ data: [], isLoading: false, error: null }),
-  useResolvePriceConflict: () => ({ mutate: mockResolveConflict, isPending: false }),
-  useTriggerPriceSync: () => ({ mutate: mockTriggerSync, isPending: false }),
+  ...jest.requireActual("../../api/hooks/useProductPricing"),
+  usePriceDivergenceReport: () => ({
+    data: { rows: [mockDivergenceRow], summary: undefined },
+    isLoading: false,
+    error: null,
+  }),
+  useSetProductPrice: () => ({
+    mutateAsync: jest.fn(),
+    isPending: false,
+  }),
+  useSyncProductPrices: () => ({
+    mutateAsync: jest.fn(),
+    isPending: false,
+  }),
 }));
 
-// Shell components read these contexts; without mocks the page fails to render.
-jest.mock("../../auth/useAuth", () => ({ useAuth: () => ({ user: { name: "Test" } }) }));
-let mockCanWrite = true;
 jest.mock("../../auth/PermissionsContext", () => ({
-  usePermissionsContext: () => ({ hasPermission: () => mockCanWrite }),
+  usePermissionsContext: jest.fn(),
 }));
 
-const inSyncRow = {
-  productCode: "OCH001030",
-  productName: "Olej na obličej",
-  priceWithVat: 190,
-  priceWithoutVat: 157.02,
-  vatRate: 21,
-  modifiedAt: "2026-09-03T10:00:00",
-  shoptetStatus: "InSync",
-  shoptetRemoteValue: null,
-  flexiStatus: "InSync",
-  flexiRemoteValue: null,
-};
+const mockUsePermissionsContext = usePermissionsContext as jest.Mock;
 
-const conflictedRow = {
-  ...inSyncRow,
-  productCode: "TON002030",
-  productName: "Tonikum",
-  priceWithVat: 210,
-  flexiStatus: "Conflict",
-  flexiRemoteValue: 175,
-};
+const EDIT_AFFORDANCE_LABEL = `Upravit cenu ${mockDivergenceRow.productName}`;
 
 beforeEach(() => {
-  jest.clearAllMocks();
-  mockPrices = [inSyncRow];
-  mockCanWrite = true;
-});
-
-test("renders a row per product with its price and both sync statuses", () => {
-  // Arrange
-  mockPrices = [inSyncRow, conflictedRow];
-
-  // Act
-  render(<ProductPricingPage />);
-
-  // Assert
-  expect(screen.getByText("OCH001030")).toBeInTheDocument();
-  expect(screen.getByText("TON002030")).toBeInTheDocument();
-  expect(screen.getAllByTestId("sync-status-shoptet")).toHaveLength(2);
-  expect(screen.getAllByTestId("sync-status-flexi")).toHaveLength(2);
-});
-
-test("saving an inline edit sends the new price", () => {
-  // Arrange
-  render(<ProductPricingPage />);
-  const input = screen.getByLabelText("Cena s DPH pro OCH001030");
-
-  // Act
-  fireEvent.change(input, { target: { value: "210" } });
-  fireEvent.blur(input);
-
-  // Assert
-  expect(mockSetPrice).toHaveBeenCalledWith(
-    expect.objectContaining({ productCode: "OCH001030", priceWithVat: 210 }),
-    expect.anything(),
-  );
-});
-
-test("a Czech decimal comma is saved as a decimal price", () => {
-  // Arrange
-  render(<ProductPricingPage />);
-  const input = screen.getByLabelText("Cena s DPH pro OCH001030");
-
-  // Act
-  fireEvent.change(input, { target: { value: "190,5" } });
-  fireEvent.blur(input);
-
-  // Assert
-  expect(mockSetPrice).toHaveBeenCalledWith(
-    expect.objectContaining({ productCode: "OCH001030", priceWithVat: 190.5 }),
-    expect.anything(),
-  );
-});
-
-test.each([
-  ["an empty field", ""],
-  ["whitespace only", "   "],
-  ["a non-numeric value", "abc"],
-  ["zero", "0"],
-  ["a negative value", "-5"],
-])("%s is rejected without sending a price", (_label, typed) => {
-  // Arrange
-  render(<ProductPricingPage />);
-  const input = screen.getByLabelText("Cena s DPH pro OCH001030") as HTMLInputElement;
-
-  // Act
-  fireEvent.change(input, { target: { value: typed } });
-  fireEvent.blur(input);
-
-  // Assert
-  expect(mockSetPrice).not.toHaveBeenCalled();
-  expect(input.value).toBe("190");
-});
-
-test("a conflicted row shows both values and the two resolution actions", () => {
-  // Arrange
-  mockPrices = [conflictedRow];
-
-  // Act
-  render(<ProductPricingPage />);
-  const banner = screen.getByTestId("price-conflict-TON002030-Flexi");
-
-  // Assert
-  expect(within(banner).getByText(/210/)).toBeInTheDocument();
-  expect(within(banner).getByText(/175/)).toBeInTheDocument();
-  expect(within(banner).getByRole("button", { name: "Ponechat cenu z Hebla", exact: true })).toBeInTheDocument();
-  expect(within(banner).getByRole("button", { name: "Převzít externí cenu", exact: true })).toBeInTheDocument();
-});
-
-test("accepting the remote price resolves the conflict with AcceptRemotePrice", () => {
-  // Arrange
-  mockPrices = [conflictedRow];
-  render(<ProductPricingPage />);
-  const banner = screen.getByTestId("price-conflict-TON002030-Flexi");
-
-  // Act
-  fireEvent.click(within(banner).getByRole("button", { name: "Převzít externí cenu", exact: true }));
-
-  // Assert
-  expect(mockResolveConflict).toHaveBeenCalledWith({
-    productCode: "TON002030",
-    target: "Flexi",
-    resolution: "AcceptRemotePrice",
+  mockUsePermissionsContext.mockReturnValue({
+    hasPermission: () => false,
   });
 });
 
-test("a read-only user gets no write controls", () => {
+test("renders the page header", () => {
+  // Act
+  render(<ProductPricingPage />);
+
+  // Assert
+  expect(screen.getByRole("heading", { name: "Ceny produktů" })).toBeInTheDocument();
+});
+
+test("renders the Shoptet-vs-Flexi comparison table", () => {
+  // Act
+  render(<ProductPricingPage />);
+
+  // Assert
+  expect(screen.getByRole("table")).toBeInTheDocument();
+});
+
+test("passes write permission down so the operator can edit prices", () => {
   // Arrange
-  mockCanWrite = false;
-  mockPrices = [conflictedRow];
+  mockUsePermissionsContext.mockReturnValue({
+    hasPermission: (permission: string) => permission === "products.catalog.write",
+  });
+
+  // Act
+  render(<ProductPricingPage />);
+
+  // Assert — the edit affordance itself must appear, not merely the table.
+  expect(
+    screen.getByRole("button", { name: EDIT_AFFORDANCE_LABEL, exact: true }),
+  ).toBeInTheDocument();
+});
+
+test("withholds the edit affordance from a read-only viewer", () => {
+  // Arrange: the default beforeEach grants no permission.
+
+  // Act
+  render(<ProductPricingPage />);
+
+  // Assert — this is the half that makes the test above mean something: an always-visible
+  // pencil would otherwise satisfy the writer case too.
+  expect(
+    screen.queryByRole("button", { name: EDIT_AFFORDANCE_LABEL, exact: true }),
+  ).not.toBeInTheDocument();
+});
+
+test("asks the permission system specifically for the catalog write permission", () => {
+  // Arrange
+  const hasPermission = jest.fn().mockReturnValue(false);
+  mockUsePermissionsContext.mockReturnValue({ hasPermission });
 
   // Act
   render(<ProductPricingPage />);
 
   // Assert
-  expect(screen.queryByLabelText("Cena s DPH pro TON002030")).not.toBeInTheDocument();
-  expect(screen.queryByRole("button", { name: "Synchronizovat", exact: true })).not.toBeInTheDocument();
-  const banner = screen.getByTestId("price-conflict-TON002030-Flexi");
-  expect(within(banner).queryByRole("button")).not.toBeInTheDocument();
-  expect(within(banner).getByText(/175/)).toBeInTheDocument();
+  expect(hasPermission).toHaveBeenCalledWith("products.catalog.write");
 });

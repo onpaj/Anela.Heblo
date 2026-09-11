@@ -3,13 +3,23 @@ using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
 using Anela.Heblo.Domain.Features.ProductPricing;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 using Rem.FlexiBeeSDK.Client;
 
 namespace Anela.Heblo.Adapters.Flexi.Price;
 
 /// <summary>
-/// Writes <c>cenaZakl</c> (base price, excluding VAT) to a Flexi ceník item.
+/// Writes a Flexi ceník item's selling price, INCLUDING VAT.
+///
+/// Flexi interprets <c>cenaZakl</c> through the item's own <c>typCenyDphK</c>: for a
+/// <c>bezDph</c> item it is the price excluding VAT and Flexi grosses it up on read. So the
+/// price and the flag are written TOGETHER — <c>typCeny.sDph</c> declares "this number
+/// includes VAT", which makes the write self-describing instead of dependent on how the item
+/// happened to be configured, and removes any need for a VAT rate.
+///
+/// Verified against the live ERP 2026-09-11: writing cenaZakl alone put 287 in as a base
+/// price on a bezDph item, which Flexi then showed as 347.27 including VAT.
 ///
 /// Addressed by the internal numeric id only: Flexi does not distinguish create from
 /// update, so a PUT to <c>cenik/code:UNKNOWN.json</c> silently creates a new item.
@@ -18,19 +28,25 @@ public class FlexiProductPriceWriter : IErpPriceWriter
 {
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly FlexiBeeSettings _connection;
+    private readonly IMemoryCache _cache;
     private readonly ILogger<FlexiProductPriceWriter> _logger;
 
     public FlexiProductPriceWriter(
         IHttpClientFactory httpClientFactory,
         FlexiBeeSettings connection,
+        IMemoryCache cache,
         ILogger<FlexiProductPriceWriter> logger)
     {
         _httpClientFactory = httpClientFactory;
         _connection = connection;
+        _cache = cache;
         _logger = logger;
     }
 
-    public async Task SetPriceWithoutVatAsync(int erpItemId, decimal priceWithoutVat, CancellationToken ct)
+    /// <summary>Flexi's enum value for "price is entered including VAT".</summary>
+    private const string IncludingVatPriceType = "typCeny.sDph";
+
+    public async Task SetPriceWithVatAsync(int erpItemId, decimal priceWithVat, CancellationToken ct)
     {
         if (erpItemId <= 0)
         {
@@ -39,13 +55,27 @@ public class FlexiProductPriceWriter : IErpPriceWriter
                 "A Flexi ceník id is required. Writing by code would create a new price list item.");
         }
 
+        // Same reason the id is guarded: this writer is reachable by any future caller that
+        // has not been through SetProductPriceRequestValidator, and a zero or negative
+        // cenaZakl lands in a live ERP.
+        if (priceWithVat <= 0m)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(priceWithVat),
+                priceWithVat,
+                "A Flexi ceník base price must be positive.");
+        }
+
         var payload = new
         {
             winstrom = new
             {
                 cenik = new
                 {
-                    cenaZakl = priceWithoutVat.ToString("F2", CultureInfo.InvariantCulture),
+                    cenaZakl = priceWithVat.ToString("F2", CultureInfo.InvariantCulture),
+                    // Declares what cenaZakl above means. Without it Flexi falls back to the
+                    // item's existing price type and a "bezDph" item grosses the number up.
+                    typCenyDphK = IncludingVatPriceType,
                 },
             },
         };
@@ -78,7 +108,27 @@ public class FlexiProductPriceWriter : IErpPriceWriter
                 $"Flexi ceník write failed for id {erpItemId} with {(int)response.StatusCode}: {body}");
         }
 
+        // Flexi now holds a price the cached ceník read does not. Left in place, the very
+        // next comparison — the one the frontend triggers right after a successful save —
+        // would read Shoptet live (new price) and Flexi from a cache entry up to 5 minutes
+        // old (previous price), and render a change that fully succeeded as a FlexiDiffers
+        // divergence, on the screen that exists to surface real divergence.
+        InvalidateCachedErpPrices();
+
         _logger.LogInformation(
-            "Updated Flexi ceník {ErpItemId} base price to {Price}", erpItemId, priceWithoutVat);
+            "Updated Flexi ceník {ErpItemId} base price to {Price}", erpItemId, priceWithVat);
+    }
+
+    private void InvalidateCachedErpPrices()
+    {
+        try
+        {
+            _cache.Remove(FlexiProductPriceErpClient.CacheKey);
+        }
+        catch (ObjectDisposedException)
+        {
+            // Same accommodation FlexiProductPriceErpClient makes: a disposed cache is not a
+            // reason to report a completed live price write as a failure.
+        }
     }
 }

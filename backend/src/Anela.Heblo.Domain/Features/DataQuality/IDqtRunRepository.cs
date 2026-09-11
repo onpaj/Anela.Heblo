@@ -20,4 +20,8 @@ public interface IDqtRunRepository : IRepository<DqtRun, Guid>
     Task AddDriftResultsAsync(IEnumerable<DqtDriftResult> results, CancellationToken ct = default);
     Task<(List<DqtDriftResult> Items, int TotalCount)> GetDriftResultsAsync(
         Guid runId, int page, int pageSize, CancellationToken ct = default);
+
+    /// <summary>How many drift results of one run carry a given mismatch code.</summary>
+    Task<int> CountDriftResultsByMismatchCodeAsync(
+        Guid runId, int mismatchCode, CancellationToken ct = default);
 }
