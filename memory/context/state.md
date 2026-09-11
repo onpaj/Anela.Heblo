@@ -325,6 +325,25 @@ _Update this file at the end of significant sessions._
   left for a future run; #4003 (the sibling arch-review duplication finding) already had an
   open PR (#4011) before this run started.
 
+- Scheduled "fan out implementation on oldest 5 unleased drafts" run, 2026-09-11
+  (`claude/eloquent-thompson-dxae3u`): selected the 5 oldest open draft PRs with no
+  held lease (issues 4117, 4118, 4129, 4131, 4132 — arch-review cleanup tasks) via
+  `mcp__github__list_pull_requests`/`list_issues`, dispatched one parallel background
+  agent per issue to run one `implement-next-task` bounded unit each. All 5 declined
+  safely with zero code/GitHub-state changes: `_lib/lease.sh acquire` returned exit 3
+  ("lost the race to acquire") for every one, even though none had a real held lease.
+  Root cause confirmed independently by multiple agents: pushing to the custom
+  `refs/agent-leases/*` namespace gets a bare `HTTP 403` from GitHub in this session,
+  while plain `refs/heads/*` branch creation works but ref deletion doesn't — so the
+  lease mechanism can never acquire in a cloud/remote session, indistinguishable from
+  real contention. See the new entry in
+  `memory/gotchas/gh-cli-unavailable-in-cloud-sessions.md`. No implementation
+  progress was made on any of the 5 issues this run; only pre-existing AgentHarness
+  scaffolding drift + `frontend/package-lock.json` (from session setup) was committed
+  (`b0bf5ad53`). Needs a human decision: either fix repo ruleset/token permissions to
+  allow `refs/agent-leases/*` writes, or give `_lib/lease.sh` a fallback lock strategy
+  for these sessions.
+
 ## Pending / Known Issues
 
 - Memory directory (issue #405): adding cross-session knowledge accumulation — this PR

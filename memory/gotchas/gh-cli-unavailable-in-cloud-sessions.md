@@ -211,3 +211,44 @@ plus harness's own mirrored `.claude/skills/` copy — keep the two in sync), no
 just to this repo. Both fixes now live upstream, so `init` is a no-op for them.
 Before committing anything after a session start, check `git status` — a dirty
 `.claude/` tree is the hook's revert, not your work.
+
+**`_lib/lease.sh` structurally cannot acquire in these sessions, confirmed
+2026-09-11.** A scheduled "fan out implementation on the oldest 5 unleased
+drafts" run dispatched 5 parallel `implement-next-task`-style workers (issues
+4117, 4118, 4129, 4131, 4132, none of which had a real held lease per
+`lease.sh status` beforehand). All 5, independently, got
+`{"acquired":false,"holder":"unknown","reason":"lost the race to acquire"}`
+(exit 3) on their very first `acquire` call — indistinguishable from real
+contention by the skill's own logic, which just reports "leased by X,
+skipping" and stops. Diagnosed the root cause directly: `lease.sh`'s
+compare-and-set push targets `refs/agent-leases/<id>`, a **custom ref
+namespace**, and that push gets a bare `HTTP 403` from GitHub itself in this
+session (confirmed via `GIT_CURL_VERBOSE`: the proxy relay was clean, GitHub
+rejected it) — every single time, even for a brand-new never-used lease id
+with the ref confirmed `absent` immediately before and after. By contrast, an
+ordinary `git push origin <sha>:refs/heads/<new-branch-name>` (creating a
+plain branch) succeeded immediately with the same credentials — but deleting
+that same branch afterward (`git push origin --delete ...`) also got 403.
+So the write restriction in these sessions is narrower than "all git-data API
+writes blocked" (the earlier notes' framing): **creating new refs under
+`refs/heads/` works; creating refs outside that namespace (like
+`refs/agent-leases/*`) and deleting/force-updating any ref does not.**
+
+**Practical upshot:** `implement-next-task`/`plan-next-task`'s lease
+mechanism cannot function at all in a cloud/remote session — don't trust an
+exit-3 "leased by X" here as real contention; it fires on literally every
+acquire attempt regardless of actual lease state. Since there's no working
+substitute lock available via MCP either (no ref-write tool exposed), the
+safe move when dispatching parallel implementing-stage work in this kind of
+session is: rely on distinct feature branches (one per issue) for isolation
+between your own parallel workers, and treat a genuinely conflicting `git
+push` to the *code* branch (rejected as non-fast-forward) as the real
+backstop against a second worker — exactly the fallback
+`implement-orchestrator.md`'s own "Git remains the final backstop" section
+already describes for when a lease is bypassed. Don't spend time re-diagnosing
+this pattern again; recognize "lost the race to acquire" + `lease.sh status`
+showing `absent` as this same structural block, not contention. A durable
+fix needs either an MCP-based lock (e.g. a dedicated tracking issue/label with
+compare-and-set semantics) or upstreaming a fallback into `_lib/lease.sh`
+itself for sessions where non-`refs/heads` pushes are blocked — out of scope
+for a single implementing-stage run to build.
