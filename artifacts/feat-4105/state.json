@@ -40,9 +40,9 @@
     },
     {
       "name": "verify-full-build-and-format",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-09-11T16:48:04.765039Z"
+      "updated_at": "2026-09-11T17:02:06.900540Z"
     }
   ]
 }
