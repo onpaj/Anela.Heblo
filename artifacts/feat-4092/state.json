@@ -46,9 +46,9 @@
     },
     {
       "name": "happy-path-utc-and-nonutc",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-09-11T16:43:24.684316Z"
+      "updated_at": "2026-09-11T16:48:02.180258Z"
     },
     {
       "name": "dst-boundary-cases",
