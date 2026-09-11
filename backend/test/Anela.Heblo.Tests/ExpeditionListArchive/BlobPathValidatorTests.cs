@@ -6,7 +6,7 @@ namespace Anela.Heblo.Tests.ExpeditionListArchive;
 public class BlobPathValidatorTests
 {
     [Theory]
-    [InlineData(null!)]
+    [InlineData(null)]
     [InlineData("")]
     [InlineData("   ")]
     public void IsValid_NullOrWhitespace_ReturnsFalse(string? blobPath)
