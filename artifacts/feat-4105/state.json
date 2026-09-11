@@ -34,9 +34,9 @@
     },
     {
       "name": "update-leaflet-consumers",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-09-11T16:35:43.302570Z"
+      "updated_at": "2026-09-11T16:44:44.988982Z"
     },
     {
       "name": "verify-full-build-and-format",
