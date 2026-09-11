@@ -22,7 +22,7 @@
     },
     "developing": {
       "status": "in_progress",
-      "updated_at": "2026-09-11T16:45:08.075000Z"
+      "updated_at": "2026-09-11T17:04:58.950557Z"
     }
   },
   "tasks": [
@@ -34,9 +34,9 @@
     },
     {
       "name": "implement-query-interface-on-concrete-service",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-09-11T17:04:59.111268Z"
     },
     {
       "name": "wire-shared-instance-di-registration",
