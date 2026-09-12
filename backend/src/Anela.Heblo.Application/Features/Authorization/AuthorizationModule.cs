@@ -1,7 +1,9 @@
 using Anela.Heblo.Application.Common.Behaviors;
+using Anela.Heblo.Application.Features.Authorization.Infrastructure;
 using Anela.Heblo.Application.Features.Authorization.UseCases.AddGroupMember;
 using Anela.Heblo.Application.Features.Authorization.UseCases.CreateLocalUser;
 using Anela.Heblo.Application.Features.Authorization.UseCases.UpdateUser;
+using Anela.Heblo.Application.Shared.Users.Contracts;
 using Anela.Heblo.Domain.Features.Authorization;
 using Anela.Heblo.Persistence.Features.Authorization;
 using FluentValidation;
@@ -16,6 +18,7 @@ public static class AuthorizationModule
     {
         services.AddMemoryCache();
         services.AddScoped<IAuthorizationRepository, AuthorizationRepository>();
+        services.AddScoped<IUserDirectorySource, AuthorizationUserDirectorySourceAdapter>();
         services.AddScoped<IPermissionResolver, PermissionResolver>();
         services.AddScoped<IValidator<AddGroupMemberRequest>, AddGroupMemberValidator>();
         services.AddTransient<IPipelineBehavior<AddGroupMemberRequest, AddGroupMemberResponse>,

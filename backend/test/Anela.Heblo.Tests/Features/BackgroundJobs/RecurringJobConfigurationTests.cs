@@ -263,4 +263,96 @@ public class RecurringJobConfigurationTests
         // Act & Assert
         Assert.Throws<ArgumentException>(() => config.Disable("", DateTime.UtcNow));
     }
+
+    [Fact]
+    public void Constructor_ShouldThrowValidationException_WhenCronExpressionIsMalformed()
+    {
+        // Arrange & Act & Assert
+        Assert.Throws<ValidationException>(() => new RecurringJobConfiguration(
+            jobName: "test-job",
+            displayName: "Test Job",
+            description: "Test description",
+            cronExpression: "not-a-cron",
+            timeZoneId: "Europe/Prague",
+            isEnabled: true,
+            lastModifiedBy: "system",
+            lastModifiedAt: DateTime.UtcNow
+        ));
+    }
+
+    [Fact]
+    public void UpdateConfiguration_ShouldThrowValidationException_WhenCronExpressionIsMalformed()
+    {
+        // Arrange
+        var config = new RecurringJobConfiguration(
+            jobName: "test-job",
+            displayName: "Test Job",
+            description: "Test description",
+            cronExpression: "0 0 * * *",
+            timeZoneId: "Europe/Prague",
+            isEnabled: true,
+            lastModifiedBy: "system",
+            lastModifiedAt: DateTime.UtcNow
+        );
+
+        // Act & Assert
+        Assert.Throws<ValidationException>(() => config.UpdateConfiguration(
+            displayName: "Updated Job",
+            description: "Updated description",
+            cronExpression: "not-a-cron",
+            timeZoneId: "Europe/Prague",
+            modifiedBy: "admin",
+            modifiedAt: DateTime.UtcNow
+        ));
+
+        // CronExpression must remain unchanged after the throw
+        Assert.Equal("0 0 * * *", config.CronExpression);
+    }
+
+    [Fact]
+    public void UpdateCronExpression_ShouldThrowValidationException_WhenCronExpressionIsMalformed()
+    {
+        // Arrange
+        var config = new RecurringJobConfiguration(
+            jobName: "test-job",
+            displayName: "Test Job",
+            description: "Test description",
+            cronExpression: "0 0 * * *",
+            timeZoneId: "Europe/Prague",
+            isEnabled: true,
+            lastModifiedBy: "system",
+            lastModifiedAt: DateTime.UtcNow
+        );
+
+        // Act & Assert
+        Assert.Throws<ValidationException>(() => config.UpdateCronExpression("not-a-cron", "admin", DateTime.UtcNow));
+
+        // CronExpression must remain unchanged after the throw
+        Assert.Equal("0 0 * * *", config.CronExpression);
+    }
+
+    [Theory]
+    [InlineData("0 2 * * *")]           // 5-field standard, existing test fixture value
+    [InlineData("*/15 * * * *")]        // 5-field standard, from RagFeatureOptions default
+    [InlineData("0 6,18 * * *")]        // 5-field standard, from MetaAdsInvoiceImportJob
+    [InlineData("15 6,18 * * *")]       // 5-field standard, from GoogleAdsInvoiceImportJob
+    [InlineData("0 * * * *")]           // 5-field standard, from CompleteDeliveredOrdersJob
+    [InlineData("0 0 0 * * *")]         // 6-field Quartz-style (leading seconds)
+    public void Constructor_ShouldAccept_KnownValidCronExpressions(string cronExpression)
+    {
+        // Arrange & Act
+        var config = new RecurringJobConfiguration(
+            jobName: "test-job",
+            displayName: "Test Job",
+            description: "Test description",
+            cronExpression: cronExpression,
+            timeZoneId: "Europe/Prague",
+            isEnabled: true,
+            lastModifiedBy: "system",
+            lastModifiedAt: DateTime.UtcNow
+        );
+
+        // Assert
+        Assert.Equal(cronExpression, config.CronExpression);
+    }
 }

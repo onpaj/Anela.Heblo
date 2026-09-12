@@ -1,0 +1,52 @@
+{
+  "feature_id": "feat-4086",
+  "issue_number": 4086,
+  "created_at": "2026-09-07T05:13:10.706751Z",
+  "max_revisions": 3,
+  "phases": {
+    "analyzing": {
+      "status": "completed",
+      "updated_at": "2026-09-07T05:14:36.779246Z"
+    },
+    "architecting": {
+      "status": "completed",
+      "updated_at": "2026-09-07T05:15:24.097413Z"
+    },
+    "designing": {
+      "status": "completed",
+      "updated_at": "2026-09-07T05:15:47.758476Z"
+    },
+    "planning": {
+      "status": "completed",
+      "updated_at": "2026-09-07T05:17:16.098109Z"
+    },
+    "developing": {
+      "status": "in_progress",
+      "updated_at": "2026-09-09T12:17:50.761494Z"
+    },
+    "code-review": {
+      "status": "completed",
+      "updated_at": "2026-09-09T20:16:05.611410Z"
+    }
+  },
+  "tasks": [
+    {
+      "name": "migrate-upload-document-request-to-bytes",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-09-09T08:20:02.179865Z"
+    },
+    {
+      "name": "update-upload-document-tests",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-09-09T11:41:33.154343Z"
+    },
+    {
+      "name": "verify-full-build-and-format",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-09-09T13:09:57.603268Z"
+    }
+  ]
+}

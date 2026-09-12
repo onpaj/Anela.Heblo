@@ -1,8 +1,8 @@
 using Anela.Heblo.Application.Features.Catalog.Infrastructure;
 using Anela.Heblo.Application.Features.Catalog.Services;
+using Anela.Heblo.Application.Features.Logistics;
 using Anela.Heblo.Application.Features.Logistics.Contracts;
 using Anela.Heblo.Application.Features.Logistics.UseCases.ChangeTransportBoxState;
-using Anela.Heblo.Application.Features.Logistics.UseCases.GetTransportBoxById;
 using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Domain.Features.Catalog.Stock;
 using Anela.Heblo.Domain.Features.Logistics.Transport;
@@ -11,8 +11,8 @@ using Anela.Heblo.Persistence;
 using Anela.Heblo.Persistence.Catalog.Stock;
 using Anela.Heblo.Persistence.Logistics.TransportBoxes;
 using Anela.Heblo.Tests.Common;
+using AutoMapper;
 using FluentAssertions;
-using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -132,9 +132,11 @@ public class ChangeTransportBoxStateReceiveAtomicityIntegrationTests : IAsyncLif
         currentUserService.Setup(x => x.GetCurrentUser())
             .Returns(new CurrentUser("tester", "Tester", "tester@test.com", true));
 
-        var mediator = new Mock<IMediator>();
-        mediator.Setup(x => x.Send(It.IsAny<GetTransportBoxByIdRequest>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new GetTransportBoxByIdResponse());
+        var mapperConfig = new MapperConfiguration(cfg =>
+        {
+            cfg.AddProfile<TransportBoxMappingProfile>();
+        }, NullLoggerFactory.Instance);
+        var mapper = mapperConfig.CreateMapper();
 
         var sideEffects = new ITransportBoxTransitionSideEffect[]
         {
@@ -147,7 +149,7 @@ public class ChangeTransportBoxStateReceiveAtomicityIntegrationTests : IAsyncLif
 
         return new ChangeTransportBoxStateHandler(
             transportBoxRepository,
-            mediator.Object,
+            mapper,
             NullLogger<ChangeTransportBoxStateHandler>.Instance,
             currentUserService.Object,
             TimeProvider.System,

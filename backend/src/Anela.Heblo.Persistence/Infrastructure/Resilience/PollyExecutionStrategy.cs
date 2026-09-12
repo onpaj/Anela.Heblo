@@ -6,7 +6,10 @@ namespace Anela.Heblo.Persistence.Infrastructure.Resilience;
 
 /// <summary>
 /// EF Core execution strategy delegating to the singleton Polly ResiliencePipeline.
-/// EF Core resets its change tracker before each retry so transient mid-call failures replay safely.
+/// EF Core does NOT reset its change tracker between retries — a retried delegate sees whatever the
+/// failed attempt left tracked, including entities a rolled-back SaveChangesAsync already accepted.
+/// Callers that issue more than one SaveChangesAsync per attempt must therefore clear the tracker
+/// themselves at the start of each attempt (see BaseRepository.ExecuteInTransactionAsync).
 /// EnableRetryOnFailure must not be used alongside this strategy — there is exactly one retry layer.
 /// </summary>
 public sealed class PollyExecutionStrategy : IExecutionStrategy

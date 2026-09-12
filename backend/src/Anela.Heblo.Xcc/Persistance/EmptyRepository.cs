@@ -84,4 +84,14 @@ public class EmptyRepository<TEntity, TKey> : IRepository<TEntity, TKey>
         // Return 0 as no changes are saved
         return Task.FromResult(0);
     }
+
+    /// <summary>
+    /// No-op pass-through: invokes <paramref name="operation"/> directly with no real transaction.
+    /// Provides no isolation if ever mixed with real repositories in the same logical operation —
+    /// it only "succeeds" because it has nothing of its own to roll back.
+    /// </summary>
+    public Task<TResult> ExecuteInTransactionAsync<TResult>(
+        Func<CancellationToken, Task<TResult>> operation,
+        CancellationToken cancellationToken = default)
+        => operation(cancellationToken);
 }
