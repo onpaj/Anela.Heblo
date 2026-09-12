@@ -55,6 +55,16 @@ code quality reviewer. Do not advance until both reviewers pass.
    current branch, then write the output summary below.
 4. **Never wait for interactive input.** If a skill would prompt you with a menu
    or a question, take the non-interactive path (commit in place) and continue.
+5. **Run builds and tests in the foreground, with an explicit timeout.** Never
+   background a build or test command (no `&`, no `run_in_background`) and then
+   wait for it to report back. Nothing delivers that completion notification in
+   a non-interactive run, so the task stalls until a human rescues it. Run the
+   command in the foreground with a timeout long enough for a cold build (a
+   full `dotnet build`, `cargo build`, or `npm ci && npm test` can take several
+   minutes), read its exit code and output directly, and act on that. If it
+   times out, treat the timeout as the result — re-run it with a longer one or
+   narrow its scope; do not park it in the background. Brief every subagent you
+   dispatch on this same rule.
 
 ## When you receive review feedback (revision round)
 

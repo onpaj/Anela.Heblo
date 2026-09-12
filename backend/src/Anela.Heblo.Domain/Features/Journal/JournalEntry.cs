@@ -150,6 +150,25 @@ namespace Anela.Heblo.Domain.Features.Journal
             }
         }
 
+        public static JournalEntry Create(
+            string title, string content, DateTime entryDate,
+            string userId, string username, DateTime now)
+        {
+            var entry = new JournalEntry
+            {
+                CreatedAt = now,
+                ModifiedAt = now,
+                CreatedByUserId = userId,
+                CreatedByUsername = username
+            };
+
+            entry.Title = title.Trim();
+            entry.Content = content.Trim();
+            entry.EntryDate = entryDate.Date;
+
+            return entry;
+        }
+
         public void Update(string title, string content, DateTime entryDate, string userId, string username)
         {
             Title = title.Trim();
