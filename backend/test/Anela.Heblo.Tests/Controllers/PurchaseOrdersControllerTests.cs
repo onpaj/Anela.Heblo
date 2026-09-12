@@ -329,7 +329,7 @@ public class PurchaseOrdersControllerTests : IClassFixture<PurchaseOrdersTestFac
         var createdOrder = await createResponse.Content.ReadFromJsonAsync<CreatePurchaseOrderResponse>();
         var orderId = createdOrder!.Id;
 
-        var statusRequest = new UpdatePurchaseOrderStatusRequest(orderId, "InTransit");
+        var statusRequest = new UpdatePurchaseOrderStatusRequest { Id = orderId, Status = "InTransit" };
         var statusResponse = await _client.PutAsJsonAsync($"/api/purchase-orders/{orderId}/status", statusRequest);
 
         statusResponse.StatusCode.Should().Be(HttpStatusCode.OK);
@@ -360,7 +360,7 @@ public class PurchaseOrdersControllerTests : IClassFixture<PurchaseOrdersTestFac
         var createdOrder = await createResponse.Content.ReadFromJsonAsync<CreatePurchaseOrderResponse>();
         var orderId = createdOrder!.Id;
 
-        var statusRequest = new UpdatePurchaseOrderStatusRequest(orderId, "Completed");
+        var statusRequest = new UpdatePurchaseOrderStatusRequest { Id = orderId, Status = "Completed" };
         var statusResponse = await _client.PutAsJsonAsync($"/api/purchase-orders/{orderId}/status", statusRequest);
 
         statusResponse.StatusCode.Should().Be(HttpStatusCode.BadRequest);
@@ -370,7 +370,7 @@ public class PurchaseOrdersControllerTests : IClassFixture<PurchaseOrdersTestFac
     public async Task UpdatePurchaseOrderStatus_WithNonExistentOrder_ShouldReturnNotFound()
     {
         var nonExistentId = 999999;
-        var statusRequest = new UpdatePurchaseOrderStatusRequest(nonExistentId, "InTransit");
+        var statusRequest = new UpdatePurchaseOrderStatusRequest { Id = nonExistentId, Status = "InTransit" };
 
         var response = await _client.PutAsJsonAsync($"/api/purchase-orders/{nonExistentId}/status", statusRequest);
 
@@ -397,7 +397,7 @@ public class PurchaseOrdersControllerTests : IClassFixture<PurchaseOrdersTestFac
         var createdOrder = await createResponse.Content.ReadFromJsonAsync<CreatePurchaseOrderResponse>();
         var orderId = createdOrder!.Id;
 
-        var statusRequest = new UpdatePurchaseOrderStatusRequest(orderId, "InTransit");
+        var statusRequest = new UpdatePurchaseOrderStatusRequest { Id = orderId, Status = "InTransit" };
         await _client.PutAsJsonAsync($"/api/purchase-orders/{orderId}/status", statusRequest);
 
         var historyResponse = await _client.GetAsync($"/api/purchase-orders/{orderId}/history");

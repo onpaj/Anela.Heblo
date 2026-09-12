@@ -4,4 +4,7 @@ using MediatR;
 
 namespace Anela.Heblo.Application.Features.Purchase.UseCases.GetPurchaseOrderHistory;
 
-public record GetPurchaseOrderHistoryRequest(int Id) : IRequest<ListResponse<PurchaseOrderHistoryDto>>;
+public class GetPurchaseOrderHistoryRequest : IRequest<ListResponse<PurchaseOrderHistoryDto>>
+{
+    public int Id { get; set; }
+}
