@@ -13,7 +13,7 @@ public class GoogleAdsTransactionSource : IMarketingTransactionSource
 
     public string Platform => PlatformName;
 
-    internal GoogleAdsTransactionSource(
+    public GoogleAdsTransactionSource(
         IAccountBudgetFetcher fetcher,
         ILogger<GoogleAdsTransactionSource> logger)
     {

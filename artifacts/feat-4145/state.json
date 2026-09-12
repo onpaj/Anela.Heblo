@@ -1,0 +1,40 @@
+{
+  "feature_id": "feat-4145",
+  "issue_number": 4145,
+  "created_at": "2026-09-12T08:34:58.845749Z",
+  "max_revisions": 3,
+  "phases": {
+    "analyzing": {
+      "status": "completed",
+      "updated_at": "2026-09-12T08:36:36.445159Z"
+    },
+    "architecting": {
+      "status": "completed",
+      "updated_at": "2026-09-12T08:37:16.817041Z"
+    },
+    "designing": {
+      "status": "completed",
+      "updated_at": "2026-09-12T08:37:51.971622Z"
+    },
+    "planning": {
+      "status": "completed",
+      "updated_at": "2026-09-12T08:39:08.458184Z"
+    },
+    "developing": {
+      "status": "in_progress",
+      "updated_at": "2026-09-12T09:00:20.148402Z"
+    },
+    "code-review": {
+      "status": "completed",
+      "updated_at": "2026-09-12T10:24:44.191706Z"
+    }
+  },
+  "tasks": [
+    {
+      "name": "widen-google-ads-transaction-source-constructor",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-09-12T09:19:55.922449Z"
+    }
+  ]
+}
