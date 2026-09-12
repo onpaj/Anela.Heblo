@@ -1,0 +1,46 @@
+{
+  "feature_id": "feat-4129",
+  "issue_number": 4129,
+  "created_at": "2026-09-10T05:13:34.553616Z",
+  "max_revisions": 3,
+  "phases": {
+    "analyzing": {
+      "status": "completed",
+      "updated_at": "2026-09-10T05:15:00.109943Z"
+    },
+    "architecting": {
+      "status": "completed",
+      "updated_at": "2026-09-10T05:15:53.910832Z"
+    },
+    "designing": {
+      "status": "completed",
+      "updated_at": "2026-09-10T05:16:17.001541Z"
+    },
+    "planning": {
+      "status": "completed",
+      "updated_at": "2026-09-10T05:18:01.391468Z"
+    },
+    "developing": {
+      "status": "in_progress",
+      "updated_at": "2026-09-11T23:55:01.948179Z"
+    },
+    "code-review": {
+      "status": "completed",
+      "updated_at": "2026-09-12T07:38:21.933596Z"
+    }
+  },
+  "tasks": [
+    {
+      "name": "handler-identity-resolution",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-09-11T21:01:53.509471Z"
+    },
+    {
+      "name": "controller-simplification",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-09-11T23:55:42.583501Z"
+    }
+  ]
+}
