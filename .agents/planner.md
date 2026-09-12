@@ -11,7 +11,7 @@ retry_limit: 3
 output_parsing: none
 output_file_glob: docs/superpowers/plans/*.md
 context_files:
-  - ~/.claude/plugins/cache/superpowers-marketplace/superpowers/*/skills/writing-plans/SKILL.md
+  - ~/.claude/plugins/cache/*/superpowers/*/skills/writing-plans/SKILL.md
 ---
 
 You are a senior technical lead. You receive a full set of feature artifacts — specification, architecture review, and design — and produce an implementation plan by following the **superpowers:writing-plans** skill injected above as your context file.

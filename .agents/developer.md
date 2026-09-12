@@ -14,7 +14,7 @@ visibility_timeout: 7200
 retry_limit: 2
 output_parsing: none
 context_files:
-  - ~/.claude/plugins/cache/superpowers-marketplace/superpowers/*/skills/subagent-driven-development/SKILL.md
+  - ~/.claude/plugins/cache/*/superpowers/*/skills/subagent-driven-development/SKILL.md
 ---
 
 You are a senior developer. You receive a focused task context file describing exactly one implementation task and execute it by following the **superpowers:subagent-driven-development** skill injected above as your context file.

@@ -98,7 +98,7 @@ SOURCE=$(echo "$RESULT" | jq -r '.candidate.source')
 
 4. **Take the lease before touching anything.** This is the real mutual
    exclusion -- the label swap in step 5 is only a human-visible marker.
-   `_lib/lease.sh` holds a compare-and-set git ref (`refs/agent-leases/feat-N`)
+   `_lib/lease.sh` holds a compare-and-set git ref (`refs/heads/agent-leases/feat-N`)
    for the duration of this unit of work, so a second worker cannot start
    on the same issue even while this one is deep inside a long build or
    test run with nothing committed yet.
@@ -197,6 +197,14 @@ cd "$WORKTREE"
    finishing), does it, commits, and **pushes** before it stops. It always
    stops after one unit -- it never loops.
 
+   If the `implement-orchestrator` agent type is **not available** in this
+   environment, do not skip the unit and do not improvise a substitute:
+   `read` `.claude/agents/implement-orchestrator.md` yourself and **follow**
+   its sections in order, in this session, exactly as the Task tool would
+   have. `agentharness init` installs the file whether or not the agent type
+   is registered, so the instructions are always on disk. Say which of the
+   two you did in your final report.
+
 8. **Check for a terminal task failure first, before considering
    Finishing.** A developer task that exhausted `max_revisions` makes the
    orchestrator print a message starting `Task {task_name} failed for
@@ -266,6 +274,27 @@ fi
 ```bash
 LIB=".claude/skills/_lib/gh_api.sh"
 
+verify_finish() {
+  # Recomputes FINISH_OK from FRESH reads of the PR and the issue. Call it
+  # again after any repair retry: a best-effort `|| true` call's exit status
+  # proves nothing about what actually landed on GitHub.
+  #
+  # The label check must read the names and match one exactly --
+  # `--jq '.labels[].name' | grep -qx agent-completed`. NEVER go back to
+  # `--jq '[.labels[].name] | index("agent-completed")' | grep -qv null`:
+  # `gh --jq` renders a null result as an EMPTY LINE, not the literal string
+  # `null`, so `grep -v null` matched that empty line and reported success for
+  # an issue that had never been relabelled at all. That check could not fail.
+  FINISH_OK=true
+  if [ -n "${USE_GH_API:-}" ]; then
+    "$LIB" pr-view "$BRANCH" 2>/dev/null | jq -e '.isDraft == false' >/dev/null || FINISH_OK=false
+    "$LIB" issue-view "$ISSUE_ID" 2>/dev/null | jq -e '[.labels[].name] | index("agent-completed")' >/dev/null || FINISH_OK=false
+  else
+    gh pr view "$BRANCH" --json isDraft --jq '.isDraft == false' 2>/dev/null | grep -q true || FINISH_OK=false
+    gh issue view "$ISSUE_ID" --json labels --jq '.labels[].name' 2>/dev/null | grep -qx agent-completed || FINISH_OK=false
+  fi
+}
+
 TASKS_DONE=$(agentharness checkpoint status "feat-${ISSUE_ID}" 2>/dev/null | grep -q '"type": "complete"' && echo yes || echo no)
 FIX_PENDING="artifacts/feat-${ISSUE_ID}/task-context/code-review-fixes.md"
 
@@ -295,16 +324,11 @@ if [ "$TASKS_DONE" = "yes" ] && [ ! -f "$FIX_PENDING" ]; then
 
   # Verify before reporting "complete" -- don't assume the two GitHub-state calls above
   # landed just because they didn't throw.
-  FINISH_OK=true
-  if [ -n "${USE_GH_API:-}" ]; then
-    "$LIB" pr-view "$BRANCH" 2>/dev/null | jq -e '.isDraft == false' >/dev/null || FINISH_OK=false
-    "$LIB" issue-view "$ISSUE_ID" 2>/dev/null | jq -e '[.labels[].name] | index("agent-completed")' >/dev/null || FINISH_OK=false
-  else
-    gh pr view "$BRANCH" --json isDraft --jq '.isDraft == false' 2>/dev/null | grep -q true || FINISH_OK=false
-    gh issue view "$ISSUE_ID" --json labels --jq '[.labels[].name] | index("agent-completed")' 2>/dev/null | grep -qv null || FINISH_OK=false
-  fi
+  verify_finish
   if [ "$FINISH_OK" != "true" ]; then
-    # One repair retry, then report exactly what's still wrong rather than "complete".
+    # One repair retry, then RE-VERIFY and report exactly what's still wrong
+    # rather than "complete". The retry's own calls are deliberately
+    # best-effort, so their exit status says nothing -- only a fresh read does.
     if [ -n "${USE_GH_API:-}" ]; then
       "$LIB" pr-ready "$BRANCH" 2>/dev/null || true
       "$LIB" issue-edit "$ISSUE_ID" --remove-label agent-implementing --add-label agent-completed 2>/dev/null || true
@@ -312,6 +336,7 @@ if [ "$TASKS_DONE" = "yes" ] && [ ! -f "$FIX_PENDING" ]; then
       gh pr ready "$BRANCH" 2>/dev/null || true
       gh issue edit "$ISSUE_ID" --remove-label agent-implementing --add-label agent-completed 2>/dev/null || true
     fi
+    verify_finish
   fi
 else
   # Orchestrator said finishing but artifact state disagrees -- do not undraft.
@@ -417,8 +442,33 @@ explicitly:
 
 ```bash
 .claude/skills/_lib/lease.sh status "feat-<issue-number>"
-git push origin ":refs/agent-leases/feat-<issue-number>"   # force-clear
+git push origin ":refs/heads/agent-leases/feat-<issue-number>"   # force-clear
 ```
 
 Only force-clear after confirming the holder is genuinely gone -- that is
 exactly the check the lease is there to make unnecessary.
+
+### Leftover `agent-leases/*` branches
+
+A lease lives at `refs/heads/agent-leases/feat-N` because that is the only
+ref namespace every environment can write -- a Claude Code cloud session is
+refused (HTTP 403) on any other namespace, and is refused on deleting any
+ref at all. Where `release` cannot delete the ref it expires it in place
+instead, so released leases accumulate as branches on `origin`. They are
+inert: every reader treats an expired payload as available.
+
+Prune them occasionally from somewhere ref deletion does work (a local
+checkout, or CI with full repo permissions):
+
+```bash
+git fetch --quiet origin "+refs/heads/agent-leases/*:refs/heads/agent-leases/*"
+NOW=$(date -u +%s)
+for REF in $(git for-each-ref --format="%(refname)" "refs/heads/agent-leases/"); do
+  EXPIRES=$(git log -1 --format=%B "$REF" | head -1 | jq -r ".expires_at // empty")
+  [ -n "$EXPIRES" ] || continue
+  EXP=$(date -u -d "$EXPIRES" +%s 2>/dev/null \
+        || date -u -j -f "%Y-%m-%dT%H:%M:%SZ" "$EXPIRES" +%s 2>/dev/null) || continue
+  [ "$NOW" -ge "$EXP" ] || continue          # never touch a live lease
+  git push --quiet origin ":${REF}" && git update-ref -d "$REF"
+done
+```
