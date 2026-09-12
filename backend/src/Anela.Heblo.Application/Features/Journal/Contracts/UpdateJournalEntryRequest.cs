@@ -10,6 +10,7 @@ namespace Anela.Heblo.Application.Features.Journal.Contracts
     {
         public int Id { get; set; }
 
+        [Required]
         [MaxLength(200)]
         public string Title { get; set; } = null!;
 

@@ -1,0 +1,48 @@
+{
+  "feature_id": "feat-4146",
+  "issue_number": 4146,
+  "created_at": "2026-09-12T08:34:21.532988Z",
+  "max_revisions": 3,
+  "phases": {
+    "analyzing": {
+      "status": "completed",
+      "updated_at": "2026-09-12T08:37:43.620117Z"
+    },
+    "architecting": {
+      "status": "completed",
+      "updated_at": "2026-09-12T08:38:48.165853Z"
+    },
+    "designing": {
+      "status": "completed",
+      "updated_at": "2026-09-12T08:39:11.355396Z"
+    },
+    "planning": {
+      "status": "completed",
+      "updated_at": "2026-09-12T09:17:16.087511Z"
+    },
+    "developing": {
+      "status": "in_progress",
+      "updated_at": "2026-09-12T13:17:27.210065Z"
+    }
+  },
+  "tasks": [
+    {
+      "name": "add-required-title-create",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-09-12T10:48:26.835720Z"
+    },
+    {
+      "name": "add-required-title-update",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-09-12T13:30:00Z"
+    },
+    {
+      "name": "verify-build-and-contract-regen",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-09-12T14:03:47.485871Z"
+    }
+  ]
+}
