@@ -28,9 +28,9 @@
   "tasks": [
     {
       "name": "remove-dead-failed-write",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-09-12T07:51:07.582201Z"
+      "updated_at": "2026-09-12T08:26:30.391500Z"
     }
   ]
 }
