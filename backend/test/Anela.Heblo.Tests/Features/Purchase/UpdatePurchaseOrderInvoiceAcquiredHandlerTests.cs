@@ -83,12 +83,11 @@ public class UpdatePurchaseOrderInvoiceAcquiredHandlerTests
 
         purchaseOrder.InvoiceAcquired.Should().BeTrue();
 
-        _repositoryMock.Verify(x => x.UpdateAsync(purchaseOrder, It.IsAny<CancellationToken>()), Times.Once);
         _repositoryMock.Verify(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
-    public async Task Handle_WhenUpdateAsyncThrows_ShouldReturnUpdateFailedError()
+    public async Task Handle_WhenSaveChangesThrows_ShouldReturnUpdateFailedError()
     {
         var request = new UpdatePurchaseOrderInvoiceAcquiredRequest { Id = ValidOrderId, InvoiceAcquired = true };
         var purchaseOrder = CreateDraftPurchaseOrder();
@@ -98,7 +97,7 @@ public class UpdatePurchaseOrderInvoiceAcquiredHandlerTests
             .ReturnsAsync(purchaseOrder);
 
         _repositoryMock
-            .Setup(x => x.UpdateAsync(It.IsAny<PurchaseOrder>(), It.IsAny<CancellationToken>()))
+            .Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
             .ThrowsAsync(new InvalidOperationException("db unavailable"));
 
         var result = await _handler.Handle(request, CancellationToken.None);
