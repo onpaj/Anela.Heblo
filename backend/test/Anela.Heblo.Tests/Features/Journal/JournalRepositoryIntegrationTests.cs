@@ -319,6 +319,34 @@ public class JournalRepositoryIntegrationTests : IDisposable
     }
 
     [Fact]
+    public async Task GetEntriesAsync_EntryDateSortBy_DoesNotLogWarning_AndSortsByEntryDate()
+    {
+        // Arrange — three entries with distinct EntryDate values.
+        var alpha = CreateEntryWithAuthor("alice", new DateTime(2024, 1, 1), "Alpha");
+        var bravo = CreateEntryWithAuthor("bob", new DateTime(2024, 2, 1), "Bravo");
+        var charlie = CreateEntryWithAuthor("carol", new DateTime(2024, 3, 1), "Charlie");
+
+        await _context.Set<JournalEntry>().AddRangeAsync(alpha, bravo, charlie);
+        await _context.SaveChangesAsync();
+
+        // Act — "EntryDate" is the default SortBy value sent by both request types.
+        var result = await _repository.GetEntriesAsync(1, 10, sortBy: "EntryDate", sortDirection: "ASC");
+
+        // Assert — still sorted by EntryDate ascending, exactly as before the fix.
+        result.Items.Select(x => x.Title).Should().Equal("Alpha", "Bravo", "Charlie");
+
+        // Assert — no "Unknown sort key" warning logged for the default sort key.
+        _loggerMock.Verify(
+            x => x.Log(
+                LogLevel.Warning,
+                It.IsAny<EventId>(),
+                It.IsAny<It.IsAnyType>(),
+                It.IsAny<Exception?>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Never);
+    }
+
+    [Fact]
     public async Task SearchEntriesAsync_SortsByCreatedByUsername_Ascending()
     {
         // Arrange — same setup as GetEntriesAsync_SortsByCreatedByUsername_Ascending.

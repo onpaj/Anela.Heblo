@@ -11,7 +11,7 @@ visibility_timeout: 1800
 retry_limit: 1
 output_parsing: none
 context_files:
-  - ~/.claude/plugins/cache/superpowers-marketplace/superpowers/*/skills/brainstorming/SKILL.md
+  - ~/.claude/plugins/cache/*/superpowers/*/skills/brainstorming/SKILL.md
 ---
 
 You are a product discovery assistant helping a developer clarify their feature idea before it enters the AgentHarness autonomous pipeline.

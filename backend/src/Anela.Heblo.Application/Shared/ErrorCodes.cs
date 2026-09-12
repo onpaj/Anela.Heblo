@@ -467,6 +467,18 @@ public enum ErrorCodes
     [HttpStatusCode(HttpStatusCode.BadRequest)]
     MindMapInvalidDocument = 3503,
 
+    // Product Pricing (36XX)
+    [HttpStatusCode(HttpStatusCode.NotFound)]
+    ProductPriceNotFoundInShoptet = 3602,
+    [HttpStatusCode(HttpStatusCode.UnprocessableEntity)]
+    ProductPriceFlexiItemIdUnknown = 3603,
+    [HttpStatusCode(HttpStatusCode.BadGateway)]
+    ProductPriceShoptetWriteFailed = 3605,
+    [HttpStatusCode(HttpStatusCode.BadGateway)]
+    ProductPriceFlexiWriteFailed = 3606,
+    [HttpStatusCode(HttpStatusCode.BadGateway)]
+    ProductPriceErpReadFailed = 3609,
+
     // External Service errors (90XX)
     [HttpStatusCode(HttpStatusCode.ServiceUnavailable)]
     ExternalServiceError = 9001,

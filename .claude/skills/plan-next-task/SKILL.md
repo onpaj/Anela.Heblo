@@ -106,6 +106,16 @@ EXISTING_BRANCH=$(git ls-remote --heads origin "feature/${ISSUE_ID}-*" | head -1
 
 ## What you do
 
+> **Orphan reaping happens elsewhere.** An `agent-planning` issue closed
+> from outside the pipeline strands its branch and draft PR exactly the way
+> an implementing-stage one does -- candidate selection below only ever
+> queries `--state open`. `_lib/reap_orphans.sh` sweeps that, for this
+> stage's label as well as the implementing stage's, but it is invoked from
+> `/implement-next-task` step 1, not from here, so it runs once per cycle
+> rather than twice. A repo that disables or rarely runs the implementing
+> stage therefore stops reaping planning orphans too, and should call
+> `.claude/skills/_lib/reap_orphans.sh` from its own schedule instead.
+
 1. **Check concurrency.** Refuse to start a new planning cycle if too many
    are already running on this machine:
 
@@ -193,6 +203,14 @@ cd "$WORKTREE"
    architect -> designer -> planner, committing each artifact as it goes,
    and prints `Planning complete for feat-{issue_number}. Ready for
    implementing.` when done.
+
+   If the `plan-orchestrator` agent type is **not available** in this
+   environment, do not skip the unit and do not improvise a substitute:
+   `read` `.claude/agents/plan-orchestrator.md` yourself and **follow**
+   its sections in order, in this session, exactly as the Task tool would
+   have. `agentharness init` installs the file whether or not the agent type
+   is registered, so the instructions are always on disk. Say which of the
+   two you did in your final report.
 
 6. **Open a draft PR.** Base = the repository default branch, head =
    `$BRANCH`, **draft**. Resolve the real default branch instead of
