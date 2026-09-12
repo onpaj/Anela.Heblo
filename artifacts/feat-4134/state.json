@@ -28,9 +28,9 @@
   "tasks": [
     {
       "name": "remove-redundant-updateasync-in-status-handler",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-09-12T07:50:43.393037Z"
+      "updated_at": "2026-09-12T08:13:41.111903Z"
     },
     {
       "name": "remove-redundant-updateasync-in-invoice-acquired-handler",
