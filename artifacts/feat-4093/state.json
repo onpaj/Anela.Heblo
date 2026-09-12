@@ -1,0 +1,40 @@
+{
+  "feature_id": "feat-4093",
+  "issue_number": 4093,
+  "created_at": "2026-09-07T20:11:29.945239Z",
+  "max_revisions": 3,
+  "phases": {
+    "analyzing": {
+      "status": "completed",
+      "updated_at": "2026-09-07T20:13:32.458517Z"
+    },
+    "architecting": {
+      "status": "completed",
+      "updated_at": "2026-09-07T20:14:41.034387Z"
+    },
+    "designing": {
+      "status": "completed",
+      "updated_at": "2026-09-07T20:15:04.133875Z"
+    },
+    "planning": {
+      "status": "completed",
+      "updated_at": "2026-09-07T20:15:45.871400Z"
+    },
+    "developing": {
+      "status": "in_progress",
+      "updated_at": "2026-09-11T15:27:38.531165Z"
+    },
+    "code-review": {
+      "status": "completed",
+      "updated_at": "2026-09-11T16:38:33.884326Z"
+    }
+  },
+  "tasks": [
+    {
+      "name": "add-blobpathvalidator-tests",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-09-11T15:44:41.203715Z"
+    }
+  ]
+}

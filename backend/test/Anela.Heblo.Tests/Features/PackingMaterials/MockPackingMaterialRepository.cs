@@ -142,6 +142,11 @@ public class MockPackingMaterialRepository : IPackingMaterialRepository
         return Task.FromResult(0);
     }
 
+    public Task<TResult> ExecuteInTransactionAsync<TResult>(
+        Func<CancellationToken, Task<TResult>> operation,
+        CancellationToken cancellationToken = default)
+        => operation(cancellationToken);
+
     public Task<IEnumerable<PackingMaterial>> FindAsync(Expression<Func<PackingMaterial, bool>> predicate, CancellationToken cancellationToken = default)
     {
         var compiled = predicate.Compile();

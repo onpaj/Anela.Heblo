@@ -1,5 +1,11 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getAuthenticatedApiClient, QUERY_KEYS } from '../client';
+import {
+  AudienceType,
+  GenerateLeafletRequest,
+  GenerateLeafletResponse,
+  LeafletLength,
+} from '../generated/api-client';
 
 // ---- Types ----
 
@@ -278,6 +284,28 @@ export const useUploadLeafletDocumentMutation = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: leafletKeys.all });
+    },
+  });
+};
+
+export interface GenerateLeafletParams {
+  topic: string;
+  audience: AudienceType;
+  length: LeafletLength;
+}
+
+/**
+ * Generate a new leaflet from a topic/audience/length combination.
+ * Calls the generated client method directly (not a raw http.fetch, unlike the
+ * other hooks in this file) so leaflet_Generate's typed-throw behavior
+ * (422 -> GenerateLeafletResponse, 400 -> ProblemDetails, other -> SwaggerException)
+ * is preserved unchanged for callers.
+ */
+export const useGenerateLeafletMutation = () => {
+  return useMutation({
+    mutationFn: async (params: GenerateLeafletParams): Promise<GenerateLeafletResponse> => {
+      const apiClient = getAuthenticatedApiClient();
+      return apiClient.leaflet_Generate(new GenerateLeafletRequest(params));
     },
   });
 };

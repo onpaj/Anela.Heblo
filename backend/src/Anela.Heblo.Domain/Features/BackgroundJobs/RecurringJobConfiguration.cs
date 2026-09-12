@@ -62,6 +62,7 @@ public class RecurringJobConfiguration : Entity<string>
             throw new ValidationException("Description is required");
         if (string.IsNullOrWhiteSpace(cronExpression))
             throw new ValidationException("CronExpression is required");
+        ValidateCronFormat(cronExpression);
         if (string.IsNullOrWhiteSpace(timeZoneId))
             throw new ValidationException("TimeZoneId is required");
         if (string.IsNullOrWhiteSpace(lastModifiedBy))
@@ -92,6 +93,7 @@ public class RecurringJobConfiguration : Entity<string>
             throw new ValidationException("Description is required");
         if (string.IsNullOrWhiteSpace(cronExpression))
             throw new ValidationException("CronExpression is required");
+        ValidateCronFormat(cronExpression);
         if (string.IsNullOrWhiteSpace(timeZoneId))
             throw new ValidationException("TimeZoneId is required");
         if (string.IsNullOrWhiteSpace(modifiedBy))
@@ -129,11 +131,29 @@ public class RecurringJobConfiguration : Entity<string>
     {
         if (string.IsNullOrWhiteSpace(cronExpression))
             throw new ValidationException("CronExpression is required");
+        ValidateCronFormat(cronExpression);
         if (string.IsNullOrWhiteSpace(modifiedBy))
             throw new ValidationException("ModifiedBy is required");
 
         CronExpression = cronExpression;
         LastModifiedAt = modifiedAt;
         LastModifiedBy = modifiedBy;
+    }
+
+    /// <summary>
+    /// Structural-only check: confirms the value has the field count of a standard
+    /// (5-field) or Quartz-style (6-field, leading seconds) CRON expression. Does
+    /// NOT validate per-field value ranges (e.g. "99 99 * * *" passes this check) —
+    /// that stronger semantic validation is performed by
+    /// UpdateRecurringJobCronHandler.IsValidCronExpression (NCrontab.Advanced) on
+    /// the one user-facing write path. This check exists so the entity itself
+    /// cannot be put into a state with an obviously malformed CronExpression via
+    /// any caller, not only the MediatR handler.
+    /// </summary>
+    private static void ValidateCronFormat(string cronExpression)
+    {
+        var fields = cronExpression.Trim().Split(new[] { ' ', '\t' }, StringSplitOptions.RemoveEmptyEntries);
+        if (fields.Length is not (5 or 6))
+            throw new ValidationException($"'{cronExpression}' is not a valid CRON expression.");
     }
 }

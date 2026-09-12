@@ -1,11 +1,10 @@
 import React, { useState } from 'react';
 import LeafletForm from './LeafletForm';
 import LeafletResult from './LeafletResult';
-import { getAuthenticatedApiClient } from '../../api/client';
+import { useGenerateLeafletMutation } from '../../api/hooks/useLeaflet';
 import {
   AudienceType,
   ErrorCodes,
-  GenerateLeafletRequest,
   GenerateLeafletResponse,
   LeafletLength,
 } from '../../api/generated/api-client';
@@ -20,19 +19,17 @@ const LeafletGenerateTab: React.FC = () => {
   const [audience, setAudience] = useState<AudienceType>(AudienceType.EndConsumer);
   const [length, setLength] = useState<LeafletLength>(LeafletLength.Medium);
   const [result, setResult] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
   const [generationId, setGenerationId] = useState<string | null>(null);
   const [errorBanner, setErrorBanner] = useState<ErrorBanner | null>(null);
+  const generateLeaflet = useGenerateLeafletMutation();
 
   const generate = async () => {
-    setIsLoading(true);
     setGenerationId(null);
     setErrorBanner(null);
     try {
-      const client = getAuthenticatedApiClient();
-      const response = await client.leaflet_Generate(new GenerateLeafletRequest({ topic, audience, length }));
+      const response = await generateLeaflet.mutateAsync({ topic, audience, length });
       setResult(response.content ?? '');
-      setGenerationId((response as any).id ?? null);
+      setGenerationId(response.id ?? null);
     } catch (err: unknown) {
       if (err instanceof GenerateLeafletResponse && err.errorCode === ErrorCodes.LeafletEmptyRetrieval) {
         setErrorBanner({
@@ -45,8 +42,6 @@ const LeafletGenerateTab: React.FC = () => {
           message: 'Generování selhalo. Zkuste to prosím znovu.',
         });
       }
-    } finally {
-      setIsLoading(false);
     }
   };
 
@@ -70,7 +65,7 @@ const LeafletGenerateTab: React.FC = () => {
             topic={topic}
             audience={audience}
             length={length}
-            isLoading={isLoading}
+            isLoading={generateLeaflet.isPending}
             onTopicChange={setTopic}
             onAudienceChange={setAudience}
             onLengthChange={setLength}
@@ -78,7 +73,7 @@ const LeafletGenerateTab: React.FC = () => {
           />
         </div>
         <div>
-          {isLoading ? (
+          {generateLeaflet.isPending ? (
             <div className="animate-pulse space-y-2">
               <div className="h-4 bg-gray-200 dark:bg-graphite-hover rounded w-3/4" />
               <div className="h-4 bg-gray-200 dark:bg-graphite-hover rounded" />

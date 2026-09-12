@@ -30,22 +30,39 @@ detect_repo() {
   echo "$path"
 }
 
-# Local/dev convenience: fall back to a gitignored .env at the repo root for
-# secrets not already present in the environment. Real env vars (e.g. an Orca
-# automation that injects them directly) always win over the .env file.
-ENV_FILE="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)/.env"
-if [[ -f "$ENV_FILE" ]]; then
+# Local/dev convenience: fall back to a gitignored .env for secrets not already
+# present in the environment. Real env vars (e.g. an Orca automation that
+# injects them directly) always win over the .env file.
+#
+# Two candidate roots, in order: the tree this script lives in, then the
+# repository's MAIN worktree. The pipeline runs every unit of work inside a
+# `git worktree add`-created worktree, and `.env` is gitignored — so it is
+# never present in the worktree, only in the main checkout. Resolving it from
+# ${BASH_SOURCE} alone left every USE_GH_API call made from inside a pipeline
+# worktree tokenless, and implement-next-task's `|| true` then swallowed the
+# failure whole.
+_script_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
+_main_root=""
+if _common_dir="$(git -C "$_script_root" rev-parse --git-common-dir 2>/dev/null)"; then
+  # --git-common-dir points at the MAIN worktree's .git for every linked
+  # worktree; it may come back relative, so resolve it against the script root.
+  _main_root="$(cd "$_script_root" && cd "$(dirname "$_common_dir")" 2>/dev/null && pwd)" || _main_root=""
+fi
+
+for _env_file in "$_script_root/.env" ${_main_root:+"$_main_root/.env"}; do
+  [[ -f "$_env_file" ]] || continue
   _pre_gh_repo="${GH_REPO:-}"
   _pre_git_pat="${GIT_PAT:-}"
   _pre_github_token="${GITHUB_TOKEN:-}"
   set -a
   # shellcheck disable=SC1090
-  source "$ENV_FILE"
+  source "$_env_file"
   set +a
   [[ -n "$_pre_gh_repo" ]] && GH_REPO="$_pre_gh_repo"
   [[ -n "$_pre_git_pat" ]] && GIT_PAT="$_pre_git_pat"
   [[ -n "$_pre_github_token" ]] && GITHUB_TOKEN="$_pre_github_token"
-fi
+  break
+done
 
 REPO="${GH_REPO:-$(detect_repo || true)}"
 API="https://api.github.com"
@@ -54,7 +71,7 @@ TOKEN="${GIT_PAT:-${GITHUB_TOKEN:-}}"
 
 err() { echo "Error: $*" >&2; exit 1; }
 need_repo() { [[ -n "$REPO" ]] || err "could not auto-detect the target GitHub repo (no origin remote pointing at github.com). Set GH_REPO=owner/repo."; }
-[[ -n "$TOKEN" ]] || err "no token — set GIT_PAT (or GITHUB_TOKEN)."
+[[ -n "$TOKEN" ]] || err "no token — set GIT_PAT (or GITHUB_TOKEN), or put one in .env at the repo root (also searched in the main worktree when run from a linked one)."
 command -v jq >/dev/null || err "jq is required."
 
 # ---- core REST/GraphQL primitives -----------------------------------------
@@ -284,12 +301,26 @@ _resolve_pr_number() {
   need_repo
   local ref="$1"
   if [[ "$ref" =~ ^[0-9]+$ ]]; then echo "$ref"; return 0; fi
-  if [[ "$ref" =~ /pull/([0-9]+) ]]; then echo "${BASH_REMATCH[1]}"; return 0; fi
-  local owner enc resp n
+  # ANCHORED, deliberately. Matching `/pull/<n>` anywhere in the ref meant
+  # any ref merely containing that substring short-circuited to <n> -- and a
+  # head branch is a legitimate ref form here, its name chosen by whoever can
+  # push. A branch called `feature/12-x/pull/99` resolved to the unrelated PR
+  # #99, aiming this transport's writes (pr-close, pr-merge, pr-edit) at it.
+  if [[ "$ref" =~ ^https?://[^/]+/[^/]+/[^/]+/pull/([0-9]+)/?$ ]]; then echo "${BASH_REMATCH[1]}"; return 0; fi
+  local owner enc resp body n
   owner="${REPO%%/*}"
   enc=$(jq -rn --arg h "${owner}:${ref}" '$h|@uri')
   resp=$(req GET "/repos/${REPO}/pulls?head=${enc}&state=all&per_page=1")
-  n=$(emit "$resp" | jq -r '.[0].number // empty')
+  # Take emit's status before reading the body. `emit` err+exits on a
+  # non-2xx, but inside a command substitution that exit kills only the
+  # subshell -- so piping it straight into jq turned every failed request
+  # (a 404 on a renamed repo, a revoked token, a 5xx) into an empty result
+  # and then into "no PR found for branch", which reads as a confirmed
+  # "this branch has no PR". Callers that act on that distinction --
+  # reap_orphans.sh strips a stage label on it -- were being told a
+  # transport failure was a fact about the branch.
+  body=$(emit "$resp") || exit 1
+  n=$(echo "$body" | jq -r '.[0].number // empty')
   [[ -n "$n" ]] || err "no PR found for branch '${ref}'"
   echo "$n"
 }
@@ -451,6 +482,18 @@ pr_merge() {
   fi
 }
 
+pr_close() {
+  # pr_close REF — mirrors `gh pr close REF`. The head branch is
+  # deliberately left in place (see pr_merge --delete-branch for the
+  # opposite); a reaped PR stays recoverable from its branch.
+  need_repo
+  local ref="${1:?pr ref required}"
+  local n resp
+  n=$(_resolve_pr_number "$ref")
+  resp=$(req PATCH "/repos/${REPO}/pulls/${n}" '{"state":"closed"}')
+  emit "$resp" >/dev/null
+}
+
 pr_ready() {
   # No REST endpoint exists for undrafting a PR — GraphQL only.
   need_repo
@@ -567,6 +610,7 @@ case "$cmd" in
   pr-create)             pr_create "$@" ;;
   pr-comment)            pr_comment "$@" ;;
   pr-merge)              pr_merge "$@" ;;
+  pr-close)              pr_close "$@" ;;
   pr-ready)              pr_ready "$@" ;;
   pr-update-branch)      pr_update_branch "$@" ;;
   pr-diff)               pr_diff "$@" ;;
@@ -574,5 +618,5 @@ case "$cmd" in
   ""|-h|--help)
     sed -n '2,20p' "$0" ;;
   *)
-    err "unknown command '${cmd}'. Try: repo, default-branch, GET, POST, PATCH, PUT, DELETE, paginate, graphql, issue-view, issue-list, issue-edit, issue-create, label-create, pr-view, pr-edit, pr-create, pr-comment, pr-merge, pr-ready, pr-update-branch, pr-diff, pr-list, compare-behind-by, create-ref." ;;
+    err "unknown command '${cmd}'. Try: repo, default-branch, GET, POST, PATCH, PUT, DELETE, paginate, graphql, issue-view, issue-list, issue-edit, issue-create, label-create, pr-view, pr-edit, pr-create, pr-comment, pr-merge, pr-close, pr-ready, pr-update-branch, pr-diff, pr-list, compare-behind-by, create-ref." ;;
 esac

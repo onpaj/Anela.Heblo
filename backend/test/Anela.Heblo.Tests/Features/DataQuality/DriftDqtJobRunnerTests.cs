@@ -20,6 +20,42 @@ public class DriftDqtJobRunnerTests
         new(_repoMock.Object, new[] { _comparerMock.Object }, TimeProvider.System, NullLogger<DriftDqtJobRunner>.Instance);
 
     [Fact]
+    public async Task RunAsync_PersistsInformationalResultsWithoutCountingThemAsMismatches()
+    {
+        // Arrange: a comparer may need to record observations that are not failures — the
+        // price check's MissingInShoptet rows, which must stay visible without turning the
+        // dashboard tile amber.
+        var run = DqtRun.Start(
+            DqtTestType.ProductPairing,
+            DateOnly.FromDateTime(DateTime.Today),
+            DateOnly.FromDateTime(DateTime.Today),
+            DqtTriggerType.Scheduled,
+            DateTime.UtcNow);
+
+        _repoMock.Setup(r => r.GetByIdAsync(run.Id, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(run);
+
+        _comparerMock
+            .Setup(c => c.CompareAsync(It.IsAny<DateOnly>(), It.IsAny<DateOnly>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new DriftComparisonResult
+            {
+                TotalChecked = 10,
+                Mismatches = new[] { new DriftMismatch { EntityKey = "P001", MismatchCode = 1 } },
+                Informational = new[] { new DriftMismatch { EntityKey = "P002", MismatchCode = 4 } },
+            });
+
+        // Act
+        await CreateSut().RunAsync(run.Id);
+
+        // Assert
+        _repoMock.Verify(r => r.AddDriftResultsAsync(
+            It.Is<IEnumerable<DqtDriftResult>>(e => e.Count() == 2),
+            It.IsAny<CancellationToken>()), Times.Once);
+        run.TotalMismatches.Should().Be(1);
+        run.TotalChecked.Should().Be(10);
+    }
+
+    [Fact]
     public async Task RunAsync_PersistsDriftResultsAndCompletesRun_WhenComparerSucceeds()
     {
         // Arrange

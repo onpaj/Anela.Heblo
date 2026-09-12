@@ -20,4 +20,16 @@ public interface IRepository<TEntity, TKey> : IReadOnlyRepository<TEntity, TKey>
 
     // Unit of Work operations
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Runs <paramref name="operation"/> inside a single all-or-nothing database transaction and
+    /// returns its result on success; on any exception the transaction is rolled back and the
+    /// original exception is rethrown unchanged. This wraps the entire underlying DbContext, not
+    /// just <typeparamref name="TEntity"/> — calling it on one repository also covers writes made
+    /// through any other repository sharing the same DbContext instance in the current DI scope
+    /// (the same whole-context semantics <see cref="SaveChangesAsync"/> already has).
+    /// </summary>
+    Task<TResult> ExecuteInTransactionAsync<TResult>(
+        Func<CancellationToken, Task<TResult>> operation,
+        CancellationToken cancellationToken = default);
 }
