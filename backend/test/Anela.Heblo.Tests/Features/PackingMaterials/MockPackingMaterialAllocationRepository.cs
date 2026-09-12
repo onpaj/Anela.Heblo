@@ -94,4 +94,9 @@ public class MockPackingMaterialAllocationRepository : IPackingMaterialAllocatio
 
     public Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
         => Task.FromResult(0);
+
+    public Task<TResult> ExecuteInTransactionAsync<TResult>(
+        Func<CancellationToken, Task<TResult>> operation,
+        CancellationToken cancellationToken = default)
+        => operation(cancellationToken);
 }

@@ -35,6 +35,7 @@ using Anela.Heblo.Application.Features.Logistics;
 using Anela.Heblo.Application.Features.Manufacture;
 using Anela.Heblo.Application.Features.OrgChart;
 using Anela.Heblo.Application.Features.PackingMaterials;
+using Anela.Heblo.Application.Features.ProductPricing;
 using Anela.Heblo.Application.Features.CarrierCooling;
 using Anela.Heblo.Application.Features.WeatherForecast;
 using Anela.Heblo.Application.Features.DataQuality;
@@ -98,6 +99,7 @@ public static class ApplicationModule
         services.AddOrgChartServices(configuration);
         services.AddInvoiceClassificationModule();
         services.AddPackingMaterialsModule();
+        services.AddProductPricingModule();
         services.AddInvoicesModule(configuration);
         services.AddKnowledgeBaseModule(configuration);
         services.AddCatalogDocumentsModule(configuration);

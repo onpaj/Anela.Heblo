@@ -143,6 +143,11 @@ public class PackingMaterialsListQueryCountTests : IDisposable
         public Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
             => _inner.SaveChangesAsync(cancellationToken);
 
+        public Task<TResult> ExecuteInTransactionAsync<TResult>(
+            Func<CancellationToken, Task<TResult>> operation,
+            CancellationToken cancellationToken = default)
+            => _inner.ExecuteInTransactionAsync(operation, cancellationToken);
+
         public Task<IEnumerable<PackingMaterial>> FindAsync(System.Linq.Expressions.Expression<System.Func<PackingMaterial, bool>> predicate, CancellationToken cancellationToken = default)
             => _inner.FindAsync(predicate, cancellationToken);
 

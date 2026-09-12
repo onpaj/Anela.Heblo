@@ -216,6 +216,81 @@ public class JournalEntryTests
             .Should().BeEquivalentTo(new[] { 1, 2 });
     }
 
+    // ----- Create -----
+
+    [Fact]
+    public void Create_TrimsTitleAndContentAndNormalizesEntryDate()
+    {
+        var now = new DateTime(2026, 6, 4, 9, 0, 0, DateTimeKind.Utc);
+
+        var entry = JournalEntry.Create(
+            title: "  My Title  ",
+            content: "  Body text  ",
+            entryDate: new DateTime(2026, 6, 4, 14, 30, 45, DateTimeKind.Utc),
+            userId: "user-1",
+            username: "Alice",
+            now: now);
+
+        entry.Title.Should().Be("My Title");
+        entry.Content.Should().Be("Body text");
+        entry.EntryDate.Should().Be(new DateTime(2026, 6, 4));
+        entry.EntryDate.TimeOfDay.Should().Be(TimeSpan.Zero);
+    }
+
+    [Fact]
+    public void Create_StampsCreatedAndModifiedAuditFieldsFromSuppliedNow()
+    {
+        var now = new DateTime(2026, 6, 4, 9, 0, 0, DateTimeKind.Utc);
+
+        var entry = JournalEntry.Create(
+            title: "t",
+            content: "c",
+            entryDate: DateTime.UtcNow,
+            userId: "user-42",
+            username: "Alice",
+            now: now);
+
+        entry.CreatedAt.Should().Be(now);
+        entry.ModifiedAt.Should().Be(now);
+        entry.CreatedAt.Should().Be(entry.ModifiedAt);
+        entry.CreatedByUserId.Should().Be("user-42");
+        entry.CreatedByUsername.Should().Be("Alice");
+    }
+
+    [Fact]
+    public void Create_LeavesModificationAndDeletionAuditFieldsNull()
+    {
+        var entry = JournalEntry.Create(
+            title: "t",
+            content: "c",
+            entryDate: DateTime.UtcNow,
+            userId: "u",
+            username: "n",
+            now: DateTime.UtcNow);
+
+        entry.ModifiedByUserId.Should().BeNull();
+        entry.ModifiedByUsername.Should().BeNull();
+        entry.IsDeleted.Should().BeFalse();
+        entry.DeletedAt.Should().BeNull();
+        entry.DeletedByUserId.Should().BeNull();
+        entry.DeletedByUsername.Should().BeNull();
+    }
+
+    [Fact]
+    public void Create_ReturnsEntryWithEmptyProductAndTagCollections()
+    {
+        var entry = JournalEntry.Create(
+            title: "t",
+            content: "c",
+            entryDate: DateTime.UtcNow,
+            userId: "u",
+            username: "n",
+            now: DateTime.UtcNow);
+
+        entry.ProductAssociations.Should().NotBeNull().And.BeEmpty();
+        entry.TagAssignments.Should().NotBeNull().And.BeEmpty();
+    }
+
     // ----- Update -----
 
     [Fact]

@@ -151,6 +151,8 @@ namespace Anela.Heblo.Persistence.Journal
 
             return sortBy.ToLowerInvariant() switch
             {
+                "entrydate" => ApplyDefaultSort(query, ascending),
+
                 "title" => ascending
                     ? query.OrderBy(x => x.Title)
                     : query.OrderByDescending(x => x.Title),
