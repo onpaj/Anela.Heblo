@@ -10,6 +10,7 @@ public class PrintPickingListOptions
     public int SourceStateId { get; set; } = -2;
     public int FixSourceStateId { get; set; } = 73;
     public int DesiredStateId { get; set; } = 26;
+    public string DesiredStateName { get; set; } = "Balí se";
     public int NoteStateId { get; set; } = 35;
     public bool SendToPrinterByDefault { get; set; } = false;
     public bool ChangeOrderStateByDefault { get; set; } = true;

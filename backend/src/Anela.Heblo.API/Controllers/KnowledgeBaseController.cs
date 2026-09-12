@@ -136,9 +136,12 @@ public class KnowledgeBaseController : BaseApiController
             return BadRequest(new UploadDocumentResponse { Success = false });
 
         await using var stream = file.OpenReadStream();
+        using var ms = new MemoryStream();
+        await stream.CopyToAsync(ms, ct);
+
         var request = new UploadDocumentRequest
         {
-            FileStream = stream,
+            Content = ms.ToArray(),
             Filename = file.FileName,
             ContentType = file.ContentType,
             DocumentType = parsedDocumentType,

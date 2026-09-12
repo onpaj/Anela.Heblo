@@ -39,7 +39,7 @@ internal sealed class ManufactureInventoryReservationAdapter : IInventoryReserva
         var item = await _inventoryRepository.GetByIdAsync(inventoryId, cancellationToken);
         if (item is null)
         {
-            return new ConsumeInventoryResult(ConsumeInventoryOutcome.InventoryNotFound);
+            return ConsumeInventoryResult.InventoryNotFound();
         }
 
         try
@@ -54,11 +54,11 @@ internal sealed class ManufactureInventoryReservationAdapter : IInventoryReserva
         }
         catch (InvalidOperationException)
         {
-            return new ConsumeInventoryResult(ConsumeInventoryOutcome.InsufficientStock);
+            return ConsumeInventoryResult.InsufficientStock();
         }
 
         await _inventoryRepository.UpdateAsync(item, cancellationToken);
-        return new ConsumeInventoryResult(ConsumeInventoryOutcome.Success);
+        return ConsumeInventoryResult.Success();
     }
 
     public async Task RestoreAsync(

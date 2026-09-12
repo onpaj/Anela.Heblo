@@ -19,7 +19,36 @@ as-is rather than picking one form by hand.
 
 ## What you do
 
-1. **Check concurrency.** This is the resource-heavy stage (real
+1. **Reap orphans first.** Sweep for runs whose GitHub issue was closed
+   out from under them. Every stage selects candidates with `--state open`,
+   so an issue closed from outside the pipeline -- a human closing a
+   duplicate, a `Fixes #N` in someone else's PR, a competing agent whose
+   own PR merged first -- takes its branch and its still-draft PR out of
+   the world the moment it closes, while it is still carrying a stage
+   label. Nothing else ever looks at that pair again, and `automerge-*`,
+   `hygiene-*` and `rework-*` all skip drafts, so without this pass the PR
+   is stranded permanently and silently:
+
+```bash
+.claude/skills/_lib/reap_orphans.sh
+```
+
+   This runs **before** the concurrency gate below on purpose -- it opens
+   no worktree and builds nothing, so a stage sitting at capacity must
+   still get swept. It is safe to run unconditionally and is idempotent:
+   every orphan it acts on loses its stage label, so the next cycle does
+   not find it again. A non-zero exit is not fatal to the cycle -- report
+   it and carry on to the concurrency check; reaping is maintenance, not
+   this cycle's work.
+
+   Report whatever it puts in `.orphans` (usually an empty list) in step
+   12, by `action`: `closed` (artifact-only branch, its PR commented on and
+   closed), `flagged` (holds real work, or the close could not be confirmed
+   -- routed to a human via `agent-needs-human` + `needs-work`),
+   `label-stripped` (no branch or no open PR left to close), `skipped`
+   (branch still receiving commits, so the next cycle will retry it).
+
+2. **Check concurrency.** This is the resource-heavy stage (real
    `dotnet build`/`test` runs, or the equivalent for whatever stack the
    target repo uses), so this cap should generally stay at or below
    Planning's:
@@ -35,7 +64,7 @@ as-is rather than picking one form by hand.
    skill directories always ship together via `agentharness init`, so the
    relative path always resolves.)
 
-2. **Find a candidate.** Check the script's own exit status explicitly --
+3. **Find a candidate.** Check the script's own exit status explicitly --
    do not rely on `.candidate` alone. `find_candidate.sh` can fail (e.g. a
    transient `gh api` error) and still print something to stdout; without
    an exit-status check, a non-zero exit could leave `$RESULT` empty or
@@ -67,9 +96,44 @@ SOURCE=$(echo "$RESULT" | jq -r '.candidate.source')
    If `.candidate` is `null`, report "nothing to implement" (include the
    `.skipped` list if non-empty) and stop.
 
-3. **Claim it, if a fresh handoff.** If `.candidate.source ==
-   "fresh-handoff"`, swap the label (advisory only -- see *Concurrency &
-   conflict handling* below, this is not a hard lock):
+4. **Take the lease before touching anything.** This is the real mutual
+   exclusion -- the label swap in step 5 is only a human-visible marker.
+   `_lib/lease.sh` holds a compare-and-set git ref (`refs/agent-leases/feat-N`)
+   for the duration of this unit of work, so a second worker cannot start
+   on the same issue even while this one is deep inside a long build or
+   test run with nothing committed yet.
+
+   Nothing needs passing to step 11's release: each bash block here is its
+   own process, so `acquire` records the identity it used under the git
+   common dir and `release` reads it back from there.
+
+```bash
+set +e
+LEASE_OUT=$(.claude/skills/_lib/lease.sh acquire "feat-${ISSUE_ID}" "${LEASE_TTL_MINUTES:-120}")
+LEASE_EXIT=$?
+set -e
+if [ "$LEASE_EXIT" -eq 3 ]; then
+  # Another worker holds it. This is a normal, expected outcome under the
+  # hourly trigger -- report it plainly and stop. Claim nothing, create no
+  # worktree, and do NOT fall through to the steps below.
+  echo "Issue #${ISSUE_ID} is leased by $(echo "$LEASE_OUT" | jq -r '.holder') -- skipping this cycle."
+  exit 0
+elif [ "$LEASE_EXIT" -ne 0 ]; then
+  echo "ERROR: could not acquire lease for feat-${ISSUE_ID} (exit $LEASE_EXIT)" >&2
+  exit 1
+fi
+```
+
+   From here on, **every exit path must release the lease** -- see step 11.
+   The lease also self-expires after its TTL (default 120 minutes,
+   `LEASE_TTL_MINUTES`), so a worker that dies outright never wedges the
+   issue permanently. The TTL must stay comfortably longer than the
+   slowest single unit, because nothing refreshes it while the
+   orchestrator's agent call is blocking.
+
+5. **Claim it, if a fresh handoff.** If `.candidate.source ==
+   "fresh-handoff"`, swap the label (a human-visible marker; the lease in
+   step 4 is what actually enforces exclusivity):
 
 ```bash
 if [ "$SOURCE" = "fresh-handoff" ]; then
@@ -87,7 +151,7 @@ fi
    If `.candidate.source == "stale-reclaim"`, the issue already carries
    `agent-implementing` -- no label change needed.
 
-4. **Attach a worktree to the existing branch.** The branch and PR already
+6. **Attach a worktree to the existing branch.** The branch and PR already
    exist (created by `/plan-next-task`) -- never create a new branch
    here, and never re-derive the branch name from the issue's current
    title: issue titles can be edited after the branch was created (routine
@@ -98,7 +162,7 @@ fi
    own stale-reclaim path does:
 
 ```bash
-REPO_ROOT=$(git rev-parse --show-toplevel)   # captured now, from the primary checkout, for step 8's cleanup
+REPO_ROOT=$(git rev-parse --show-toplevel)   # captured now, from the primary checkout, for step 11's cleanup
 BRANCH=$(git ls-remote --heads origin "feature/${ISSUE_ID}-*" | head -1 | awk '{print $2}' | sed 's#refs/heads/##')
 if [ -z "$BRANCH" ]; then
   echo "ERROR: no feature/${ISSUE_ID}-* branch found on origin for issue #${ISSUE_ID}" >&2
@@ -107,12 +171,24 @@ fi
 SLUG=${BRANCH#feature/${ISSUE_ID}-}
 WORKTREE="../worktrees/feature-${ISSUE_ID}-${SLUG}"
 git fetch origin "$BRANCH"
-git worktree add --track -b "$BRANCH" "$WORKTREE" "origin/$BRANCH" 2>/dev/null \
-  || git worktree add "$WORKTREE" "$BRANCH"
+
+# Track whether THIS invocation created the worktree. Step 10 removes it
+# only if so. A pre-existing worktree is left in place and reused: it holds
+# uncommitted work from an earlier run, and force-removing a directory this
+# invocation did not create is how a worker destroys another's in-flight
+# state -- the exact accident the lease exists to prevent.
+WORKTREE_CREATED=false
+if [ -d "$WORKTREE" ]; then
+  echo "Reusing existing worktree $WORKTREE (not created by this invocation; will not be removed)"
+else
+  git worktree add --track -b "$BRANCH" "$WORKTREE" "origin/$BRANCH" 2>/dev/null \
+    || git worktree add "$WORKTREE" "$BRANCH"
+  WORKTREE_CREATED=true
+fi
 cd "$WORKTREE"
 ```
 
-5. **Run the implementing orchestrator for exactly one unit.** Follow
+7. **Run the implementing orchestrator for exactly one unit.** Follow
    `.claude/agents/implement-orchestrator.md`
    (`agentharness/data/claude-agents/implement-orchestrator.md`, installed
    by `agentharness init`) via the Task tool. It reads
@@ -121,14 +197,14 @@ cd "$WORKTREE"
    finishing), does it, commits, and **pushes** before it stops. It always
    stops after one unit -- it never loops.
 
-6. **Check for a terminal task failure first, before considering
+8. **Check for a terminal task failure first, before considering
    Finishing.** A developer task that exhausted `max_revisions` makes the
    orchestrator print a message starting `Task {task_name} failed for
    feat-{issue_number} after {N} revisions -- exceeded max_revisions` and
    mark that task `failed` in `state.json` (see
    `implement-orchestrator.md`'s Handling Review Result, `N >=
    max_revisions` branch). This is belt-and-suspenders, same style as step
-   7's Finishing check: the message text is one signal, but do not rely on
+   9's Finishing check: the message text is one signal, but do not rely on
    it alone -- if this is the ISSUE's only (or last) task, marking it
    `failed` also makes `all_tasks_complete()` true, so `agentharness
    checkpoint status` reports `{"type": "complete"}`, **the exact same
@@ -177,11 +253,11 @@ fi
 ```
 
    If `$FAILED_TASK` is set, this invocation's outcome is the terminal
-   failure above -- skip step 7 (Finishing) entirely, regardless of
+   failure above -- skip step 9 (Finishing) entirely, regardless of
    whether the orchestrator also happened to report finishing this round,
-   and proceed to step 9 (worktree cleanup).
+   and proceed to step 11 (cleanup).
 
-7. **Otherwise, if the unit that just ran was Finishing** (the orchestrator
+9. **Otherwise, if the unit that just ran was Finishing** (the orchestrator
    printed `Pipeline complete for feat-{issue_number}. All tasks passed
    review.`): verify artifact state and undraft the PR. Use
    belt-and-suspenders validation to avoid a false positive if the message
@@ -248,19 +324,33 @@ fi
    either a PR number or branch. The PR was opened against `$BRANCH` by
    `/plan-next-task`.)
 
-8. **Otherwise** (more work remains -- a dev task passed, a revision was
+10. **Otherwise** (more work remains -- a dev task passed, a revision was
    requested, or a code-review round finished with more Blocking
    findings): leave the `agent-implementing` label as-is. Do not undraft
    the PR. The next scheduled invocation (of this same skill, on any
    machine) will pick this issue back up via `find_candidate.sh`.
 
-9. **Always remove the worktree before exiting**, regardless of outcome --
-   nothing depends on it surviving, since progress lives in the pushed
-   branch and `state.json`:
+11. **Clean up: release the lease, and remove the worktree only if this
+    invocation created it.** Once step 4 has taken the lease this runs on
+    **every** exit path out of steps 4-9, the terminal-failure branch
+    included -- an unreleased lease blocks the issue until its TTL
+    expires. (The early returns in steps 1-3 stop before the lease is
+    held, so they have nothing to release.)
 
 ```bash
-cd "$REPO_ROOT"   # back to the primary checkout before removing -- captured in step 4
-git worktree remove "$WORKTREE" --force 2>/dev/null || true
+cd "$REPO_ROOT"   # back to the primary checkout before removing -- captured in step 6
+
+# Remove the worktree ONLY if this invocation created it. A worktree that
+# was already there when we arrived belongs to an earlier (or crashed) run
+# and may hold uncommitted work; `--force` on it destroys that work for no
+# benefit. Leaving it costs nothing -- step 6 reuses it next time.
+if [ "${WORKTREE_CREATED:-false}" = "true" ]; then
+  git worktree remove "$WORKTREE" --force 2>/dev/null || true
+fi
+
+# Release the lease last, once nothing else can still be writing to the
+# worktree or the branch.
+.claude/skills/_lib/lease.sh release "feat-${ISSUE_ID}" >/dev/null 2>&1 || true
 ```
 
    `$REPO_ROOT` is whatever the primary checkout's path actually is in
@@ -271,25 +361,45 @@ git worktree remove "$WORKTREE" --force 2>/dev/null || true
    own target) and leaking the worktree directory, which then breaks the
    next invocation's worktree-attach step.
 
-10. Report: issue number, unit completed, whether the pipeline finished,
+12. Report: issue number, unit completed, whether the pipeline finished,
     a terminal task failure was flagged, or more work remains -- and stop.
-    Only report "finished" if step 7's `$FINISH_OK` check (after its repair
+    Only report "finished" if step 9's `$FINISH_OK` check (after its repair
     retry) actually came back true; otherwise report exactly which of the
     PR-undraft or `agent-completed` label swap is still unconfirmed.
 
 ## Concurrency & conflict handling
 
-**The `agent-ready-for-dev` -> `agent-implementing` claim in step 3 is
-advisory, not a true lock** -- `gh issue edit` has no compare-and-set, so
-two invocations racing on the exact same fresh handoff could both proceed.
-This is accepted, not fixed here, for two reasons: the concurrency cap
-(step 1) and the candidate-selection recency window together make the
-collision window small in practice, and **git itself is the final
-backstop** -- if two workers both do the same unit and both try to push,
-only one push can land; the loser's `implement-orchestrator.md` run
-reports "lost the race for this unit" (see its Handling Review Result
-section) and exits without force-pushing. Worst case is wasted compute on
-one duplicate attempt, never corrupted history or lost work.
+Three mechanisms stack here, and it is worth knowing which one does what.
+
+**The lease (step 4) is the actual lock.** `_lib/lease.sh` stores a lease
+as a git ref on `origin`, and a ref update is genuinely atomic: the lease
+commit is parented on exactly the sha that was read, so a push succeeds
+only if nobody else moved the ref in between. Two workers cannot both
+acquire. It holds for the whole unit of work, so a worker sitting inside a
+long build or test run with nothing yet committed still looks alive.
+
+**The `agent-implementing` label (step 5) is only a marker.** `gh issue
+edit` has no compare-and-set, so the label never enforced anything; it
+exists so a human scanning the issue list can see what the pipeline is
+doing. Do not reason about exclusivity from it.
+
+**Git remains the final backstop.** If a lease is somehow bypassed -- an
+older worker that predates leases, or a lease that expired under a worker
+that was merely very slow rather than dead -- and two workers both do the
+same unit, only one push can land. The loser's `implement-orchestrator.md`
+run reports "lost the race for this unit" (see its Handling Review Result
+section) and exits without force-pushing. Worst case stays wasted compute
+on one duplicate attempt, never corrupted history or lost work.
+
+**Why commit age is no longer trusted on its own.** The original design
+inferred "someone is working on this" from the age of the last commit on
+the feature branch, with a ten-minute window. That is not a liveness
+signal: a full verification unit runs well past ten minutes without
+committing, so healthy workers were repeatedly declared abandoned and
+their issues handed to a second worker. `find_candidate.sh` now requires
+both a dead lease *and* a stale commit before reclaiming, which keeps the
+old check working for pre-lease workers without letting it fire on its
+own.
 
 ## If something looks wrong
 
@@ -299,3 +409,16 @@ advancing, the implementing orchestrator is failing outright on this
 issue's current unit (not just running slow) -- check the most recent
 `artifacts/feat-{issue_number}/impl/*.md` or `review/*.md` file for what
 the developer/reviewer subagent actually reported.
+
+If every cycle instead reports "leased by ..." and nothing ever advances,
+a worker died holding the lease. Confirm no process is really running,
+then check when it expires and either wait for the TTL or clear it
+explicitly:
+
+```bash
+.claude/skills/_lib/lease.sh status "feat-<issue-number>"
+git push origin ":refs/agent-leases/feat-<issue-number>"   # force-clear
+```
+
+Only force-clear after confirming the holder is genuinely gone -- that is
+exactly the check the lease is there to make unnecessary.

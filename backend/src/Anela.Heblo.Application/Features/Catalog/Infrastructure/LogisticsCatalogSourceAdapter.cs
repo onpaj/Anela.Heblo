@@ -48,6 +48,14 @@ internal sealed class LogisticsCatalogSourceAdapter : ILogisticsCatalogSource
         return aggregate is null ? null : ToCatalogItem(aggregate);
     }
 
+    public async Task<IReadOnlyDictionary<string, LogisticsCatalogItem>> GetCatalogItemsAsync(
+        IReadOnlyList<string> codes,
+        CancellationToken cancellationToken)
+    {
+        var aggregates = await _catalogRepository.GetByIdsAsync(codes, cancellationToken);
+        return aggregates.ToDictionary(kv => kv.Key, kv => ToCatalogItem(kv.Value));
+    }
+
     private static LogisticsGiftPackageItem ToGiftPackageItem(
         CatalogAggregate aggregate,
         DateTime fromUtc,

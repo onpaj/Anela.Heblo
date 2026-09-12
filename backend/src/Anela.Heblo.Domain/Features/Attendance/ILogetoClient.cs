@@ -9,5 +9,9 @@ public interface ILogetoClient
     Task<IReadOnlyList<LogetoTimeEntry>> GetTimeTrackingAsync(DateOnly from, DateOnly to, CancellationToken cancellationToken);
 
     /// <summary>Creates a time entry. With merge=true, overlapping records are merged/split by Logeto.</summary>
-    Task CreateTimeEntryAsync(LogetoCreateTimeEntryRequest request, bool merge, CancellationToken cancellationToken);
+    Task CreateTimeEntryAsync(LogetoTimeEntryRequest request, bool merge, CancellationToken cancellationToken);
+
+    /// <summary>Replaces an existing time entry wholesale (merge=false); every preserved field
+    /// must be present in the request.</summary>
+    Task UpdateTimeEntryAsync(Guid guid, LogetoTimeEntryRequest request, CancellationToken cancellationToken);
 }
