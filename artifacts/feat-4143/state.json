@@ -21,16 +21,16 @@
       "updated_at": "2026-09-12T05:14:01.355790Z"
     },
     "developing": {
-      "status": "pending",
-      "updated_at": null
+      "status": "in_progress",
+      "updated_at": "2026-09-12T07:51:07.402362Z"
     }
   },
   "tasks": [
     {
       "name": "remove-dead-failed-write",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-09-12T07:51:07.582201Z"
     }
   ]
 }
