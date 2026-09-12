@@ -265,10 +265,10 @@ public class RecurringJobConfigurationTests
     }
 
     [Fact]
-    public void Constructor_ShouldThrowValidationException_WhenCronExpressionIsMalformed()
+    public void Constructor_ShouldThrowArgumentException_WhenCronExpressionIsMalformed()
     {
         // Arrange & Act & Assert
-        Assert.Throws<ValidationException>(() => new RecurringJobConfiguration(
+        Assert.Throws<ArgumentException>(() => new RecurringJobConfiguration(
             jobName: "test-job",
             displayName: "Test Job",
             description: "Test description",
@@ -281,7 +281,7 @@ public class RecurringJobConfigurationTests
     }
 
     [Fact]
-    public void UpdateConfiguration_ShouldThrowValidationException_WhenCronExpressionIsMalformed()
+    public void UpdateConfiguration_ShouldThrowArgumentException_WhenCronExpressionIsMalformed()
     {
         // Arrange
         var config = new RecurringJobConfiguration(
@@ -296,7 +296,7 @@ public class RecurringJobConfigurationTests
         );
 
         // Act & Assert
-        Assert.Throws<ValidationException>(() => config.UpdateConfiguration(
+        Assert.Throws<ArgumentException>(() => config.UpdateConfiguration(
             displayName: "Updated Job",
             description: "Updated description",
             cronExpression: "not-a-cron",
@@ -310,7 +310,7 @@ public class RecurringJobConfigurationTests
     }
 
     [Fact]
-    public void UpdateCronExpression_ShouldThrowValidationException_WhenCronExpressionIsMalformed()
+    public void UpdateCronExpression_ShouldThrowArgumentException_WhenCronExpressionIsMalformed()
     {
         // Arrange
         var config = new RecurringJobConfiguration(
@@ -325,7 +325,7 @@ public class RecurringJobConfigurationTests
         );
 
         // Act & Assert
-        Assert.Throws<ValidationException>(() => config.UpdateCronExpression("not-a-cron", "admin", DateTime.UtcNow));
+        Assert.Throws<ArgumentException>(() => config.UpdateCronExpression("not-a-cron", "admin", DateTime.UtcNow));
 
         // CronExpression must remain unchanged after the throw
         Assert.Equal("0 0 * * *", config.CronExpression);
