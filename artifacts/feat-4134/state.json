@@ -1,0 +1,46 @@
+{
+  "feature_id": "feat-4134",
+  "issue_number": 4134,
+  "created_at": "2026-09-11T08:16:41.754408Z",
+  "max_revisions": 3,
+  "phases": {
+    "analyzing": {
+      "status": "completed",
+      "updated_at": "2026-09-11T08:18:21.039416Z"
+    },
+    "architecting": {
+      "status": "completed",
+      "updated_at": "2026-09-11T08:19:49.469730Z"
+    },
+    "designing": {
+      "status": "completed",
+      "updated_at": "2026-09-11T08:20:36.399943Z"
+    },
+    "planning": {
+      "status": "completed",
+      "updated_at": "2026-09-11T08:23:42.979034Z"
+    },
+    "developing": {
+      "status": "in_progress",
+      "updated_at": "2026-09-12T08:39:31.247678Z"
+    },
+    "code-review": {
+      "status": "completed",
+      "updated_at": "2026-09-12T10:21:11.100447Z"
+    }
+  },
+  "tasks": [
+    {
+      "name": "remove-redundant-updateasync-in-status-handler",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-09-12T08:13:41.111903Z"
+    },
+    {
+      "name": "remove-redundant-updateasync-in-invoice-acquired-handler",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-09-12T09:18:11.257637Z"
+    }
+  ]
+}
