@@ -1,0 +1,46 @@
+{
+  "feature_id": "feat-4109",
+  "issue_number": 4109,
+  "created_at": "2026-09-08T10:14:10.673718Z",
+  "max_revisions": 3,
+  "phases": {
+    "analyzing": {
+      "status": "completed",
+      "updated_at": "2026-09-08T10:16:07.745432Z"
+    },
+    "architecting": {
+      "status": "completed",
+      "updated_at": "2026-09-08T10:17:18.784697Z"
+    },
+    "designing": {
+      "status": "completed",
+      "updated_at": "2026-09-08T10:17:43.093628Z"
+    },
+    "planning": {
+      "status": "completed",
+      "updated_at": "2026-09-08T10:18:48.024484Z"
+    },
+    "developing": {
+      "status": "in_progress",
+      "updated_at": "2026-09-11T17:04:59.765373Z"
+    },
+    "code-review": {
+      "status": "completed",
+      "updated_at": "2026-09-11T17:14:41.981836Z"
+    }
+  },
+  "tasks": [
+    {
+      "name": "add-journalentry-create-factory",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-09-11T16:55:55.765863Z"
+    },
+    {
+      "name": "use-create-factory-in-handler",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-09-11T17:12:19.421032Z"
+    }
+  ]
+}

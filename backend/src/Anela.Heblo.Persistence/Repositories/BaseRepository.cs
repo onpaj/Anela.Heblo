@@ -98,4 +98,52 @@ public class BaseRepository<TEntity, TKey> : IRepository<TEntity, TKey>
     {
         return await Context.SaveChangesAsync(cancellationToken);
     }
+
+    /// <summary>
+    /// Runs <paramref name="operation"/> inside a single all-or-nothing database transaction,
+    /// opened via <see cref="Microsoft.EntityFrameworkCore.Storage.IExecutionStrategy"/> so it is
+    /// safe under a retrying execution strategy (e.g. PollyExecutionStrategy) — EF Core forbids
+    /// calling BeginTransactionAsync directly when the configured strategy retries on failure.
+    /// Everything the transaction must cover (entity adds, SaveChangesAsync calls) must happen
+    /// inside <paramref name="operation"/>, because each attempt starts from an empty change
+    /// tracker: EF Core does <b>not</b> reset the tracker between execution-strategy attempts, so
+    /// this method clears it explicitly before every attempt. Without that, a transient failure
+    /// part-way through a multi-<see cref="SaveChangesAsync"/> delegate would leave the already
+    /// accepted entities <c>Unchanged</c> (never re-inserted after the rollback) and the failed
+    /// one <c>Added</c> (re-inserted on the next attempt carrying its stale, rolled-back keys).
+    /// The flip side is that <paramref name="operation"/> must re-create everything it writes on
+    /// every invocation, and that any entity tracked by the caller <i>before</i> this call is
+    /// discarded — never stage work outside the delegate. This wraps the entire underlying
+    /// DbContext, not just <typeparamref name="TEntity"/> — the same whole-context semantics
+    /// <see cref="SaveChangesAsync"/> already has.
+    /// </summary>
+    public virtual async Task<TResult> ExecuteInTransactionAsync<TResult>(
+        Func<CancellationToken, Task<TResult>> operation,
+        CancellationToken cancellationToken = default)
+    {
+        var strategy = Context.Database.CreateExecutionStrategy();
+
+        // The token-carrying overload is required: it hands the caller's token to the strategy
+        // (so an aborted request cancels the retry loop and its backoff delays) and gives the
+        // delegate the per-attempt token the strategy's timeout cancels — a captured outer token
+        // would let a timed-out attempt keep running against this same scoped DbContext while the
+        // next attempt started on it.
+        return await strategy.ExecuteAsync(async ct =>
+        {
+            // See the remarks above: EF Core does not do this for us, and a retry that reuses the
+            // previous attempt's tracked state commits rows referencing a rolled-back parent.
+            Context.ChangeTracker.Clear();
+
+            // `await using` rolls an uncommitted transaction back on dispose. There is deliberately
+            // no catch/RollbackAsync here: on the broken-connection failures this strategy exists
+            // for, RollbackAsync itself throws and would replace the original exception, which both
+            // breaks the "exception surfaced unchanged" contract and hides the real error from the
+            // strategy's transient classification.
+            await using var transaction = await Context.Database.BeginTransactionAsync(ct);
+
+            var result = await operation(ct);
+            await transaction.CommitAsync(ct);
+            return result;
+        }, cancellationToken);
+    }
 }

@@ -235,15 +235,17 @@ public class GetRecurringJobsListHandlerTests
     [Fact]
     public async Task Handle_WhenCronExpressionIsInvalid_SetsNextRunAtToNullAndLogsWarning()
     {
-        // Arrange — "NOT_A_CRON" is syntactically invalid and will cause CrontabSchedule.Parse to throw
+        // Arrange — "99 99 * * *" has the field count of a valid 5-field CRON expression (so it
+        // passes RecurringJobConfiguration's own structural ValidateCronFormat check at construction),
+        // but 99 is out of range for both the minute and hour fields, so CrontabSchedule.Parse still throws.
         var request = new GetRecurringJobsListRequest();
         var jobs = new List<RecurringJobConfiguration>
         {
-            new RecurringJobConfiguration("Job1", "Display 1", "Desc", "NOT_A_CRON", "Europe/Prague", true, "User1", DateTime.UtcNow)
+            new RecurringJobConfiguration("Job1", "Display 1", "Desc", "99 99 * * *", "Europe/Prague", true, "User1", DateTime.UtcNow)
         };
         var jobDtos = new List<RecurringJobDto>
         {
-            new RecurringJobDto { JobName = "Job1", CronExpression = "NOT_A_CRON", TimeZoneId = "Europe/Prague", IsEnabled = true }
+            new RecurringJobDto { JobName = "Job1", CronExpression = "99 99 * * *", TimeZoneId = "Europe/Prague", IsEnabled = true }
         };
         _repositoryMock.Setup(r => r.GetAllAsync(It.IsAny<CancellationToken>())).ReturnsAsync(jobs);
         _mapperMock.Setup(m => m.Map<List<RecurringJobDto>>(jobs)).Returns(jobDtos);
@@ -260,7 +262,7 @@ public class GetRecurringJobsListHandlerTests
                 LogLevel.Warning,
                 It.IsAny<EventId>(),
                 It.Is<It.IsAnyType>((v, t) =>
-                    v.ToString()!.Contains("NOT_A_CRON") &&
+                    v.ToString()!.Contains("99 99 * * *") &&
                     v.ToString()!.Contains("Job1")),
                 It.IsAny<Exception>(),
                 It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
@@ -330,16 +332,18 @@ public class GetRecurringJobsListHandlerTests
     [Fact]
     public async Task Handle_WhenCronExpressionIsInvalid_SetsNextRunAtToNull_DoesNotThrow()
     {
-        // Arrange — "INVALID_CRON" is syntactically invalid and will cause CrontabSchedule.Parse to throw
+        // Arrange — "60 60 * * *" has the field count of a valid 5-field CRON expression (so it
+        // passes RecurringJobConfiguration's own structural ValidateCronFormat check at construction),
+        // but 60 is out of range for both the minute and hour fields, so CrontabSchedule.Parse still throws.
         // The TimeZoneNotFoundException catch is defensive; the CrontabException is what fires here
         var request = new GetRecurringJobsListRequest();
         var jobs = new List<RecurringJobConfiguration>
         {
-            new RecurringJobConfiguration("Job1", "Display 1", "Desc", "INVALID_CRON", "Europe/Prague", true, "User1", DateTime.UtcNow)
+            new RecurringJobConfiguration("Job1", "Display 1", "Desc", "60 60 * * *", "Europe/Prague", true, "User1", DateTime.UtcNow)
         };
         var jobDtos = new List<RecurringJobDto>
         {
-            new RecurringJobDto { JobName = "Job1", CronExpression = "INVALID_CRON", TimeZoneId = "Europe/Prague", IsEnabled = true }
+            new RecurringJobDto { JobName = "Job1", CronExpression = "60 60 * * *", TimeZoneId = "Europe/Prague", IsEnabled = true }
         };
         _repositoryMock.Setup(r => r.GetAllAsync(It.IsAny<CancellationToken>())).ReturnsAsync(jobs);
         _mapperMock.Setup(m => m.Map<List<RecurringJobDto>>(jobs)).Returns(jobDtos);

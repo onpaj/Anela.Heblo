@@ -255,6 +255,10 @@ public class ModuleBoundariesTests
             // HeurekaProductFeedClient implements IProductEshopUrlSource and returns ProductEshopUrl.
             // The adapter is the mapping boundary; out of scope for this PR.
             "Anela.Heblo.Adapters.ShoptetApi.EshopUrl.HeurekaProductFeedClient -> Anela.Heblo.Domain.Features.Catalog.EshopUrl.ProductEshopUrl",
+
+            // ShoptetEshopPriceClient implements IProductPriceEshopClient and returns ProductPriceEshop.
+            // The adapter is the mapping boundary; out of scope for this PR.
+            "Anela.Heblo.Adapters.ShoptetApi.Pricing.ShoptetEshopPriceClient -> Anela.Heblo.Domain.Features.Catalog.Price.ProductPriceEshop",
         };
 
     // Allowlist for ShoptetApi Adapters -> Logistics.

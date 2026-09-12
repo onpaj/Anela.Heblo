@@ -1,0 +1,64 @@
+{
+  "feature_id": "feat-4116",
+  "issue_number": 4116,
+  "created_at": "2026-09-09T06:16:27.905161Z",
+  "max_revisions": 3,
+  "phases": {
+    "analyzing": {
+      "status": "completed",
+      "updated_at": "2026-09-09T06:23:52.000819Z"
+    },
+    "architecting": {
+      "status": "completed",
+      "updated_at": "2026-09-09T06:31:01.963182Z"
+    },
+    "designing": {
+      "status": "completed",
+      "updated_at": "2026-09-09T06:32:08.026886Z"
+    },
+    "planning": {
+      "status": "completed",
+      "updated_at": "2026-09-09T07:03:49.063066Z"
+    },
+    "developing": {
+      "status": "in_progress",
+      "updated_at": "2026-09-11T17:38:49.811904Z"
+    },
+    "code-review": {
+      "status": "completed",
+      "updated_at": "2026-09-11T17:57:17.932842Z"
+    }
+  },
+  "tasks": [
+    {
+      "name": "add-execute-in-transaction-repository-method",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-09-11T16:50:45.545839Z"
+    },
+    {
+      "name": "wrap-create-manufacture-async-in-transaction",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-09-11T17:12:40.498547Z"
+    },
+    {
+      "name": "wrap-disassemble-gift-package-async-in-transaction",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-09-11T17:18:23.620969Z"
+    },
+    {
+      "name": "add-gift-package-manufacture-atomicity-integration-tests",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-09-11T17:37:01.092125Z"
+    },
+    {
+      "name": "run-full-suite-and-validate-build",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-09-11T17:43:33.024097Z"
+    }
+  ]
+}
