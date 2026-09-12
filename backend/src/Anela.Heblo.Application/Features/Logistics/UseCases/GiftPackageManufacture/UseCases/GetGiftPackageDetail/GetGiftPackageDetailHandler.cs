@@ -6,9 +6,9 @@ namespace Anela.Heblo.Application.Features.Logistics.UseCases.GiftPackageManufac
 
 public class GetGiftPackageDetailHandler : IRequestHandler<GetGiftPackageDetailRequest, GetGiftPackageDetailResponse>
 {
-    private readonly IGiftPackageManufactureService _giftPackageService;
+    private readonly IGiftPackageQueryService _giftPackageService;
 
-    public GetGiftPackageDetailHandler(IGiftPackageManufactureService giftPackageService)
+    public GetGiftPackageDetailHandler(IGiftPackageQueryService giftPackageService)
     {
         _giftPackageService = giftPackageService;
     }

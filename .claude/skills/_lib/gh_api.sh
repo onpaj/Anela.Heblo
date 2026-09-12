@@ -348,6 +348,16 @@ pr_view() {
     # backlog as `ci-running` — including genuinely failing ones, which
     # therefore never got flagged `still-failing` either. `conclusion` is
     # null while a check is still running, so it can't be upcased blindly.
+    #
+    # The commits/{sha}/check-runs endpoint also returns EVERY check run
+    # ever reported for that sha, not just the latest per job name — a
+    # re-triggered workflow leaves its earlier, superseded run's CheckRuns
+    # (typically CANCELLED) sitting alongside the new run's. gh's own
+    # GraphQL statusCheckRollup already coalesces to one entry per check
+    # name; without doing the same here, a stale CANCELLED conclusion next
+    # to a passing re-run made the whole PR read as `still-failing` even
+    # though every check that actually finished had succeeded. Group by
+    # name and keep only the most recently started run per name.
     sha=$(echo "$pr" | jq -r '.head.sha')
     local runs_resp status_resp rollup
     runs_resp=$(req GET "/repos/${REPO}/commits/${sha}/check-runs")
@@ -355,7 +365,7 @@ pr_view() {
     rollup=$(jq -cn \
       --argjson runs "$(emit "$runs_resp")" \
       --argjson status "$(emit "$status_resp")" \
-      '[($runs.check_runs // [])[] | {__typename:"CheckRun",
+      '[($runs.check_runs // []) | group_by(.name) | map(max_by(.started_at))[] | {__typename:"CheckRun",
           status: (.status | ascii_upcase),
           conclusion: (if .conclusion then (.conclusion | ascii_upcase) else null end)}]
        + [($status.statuses // [])[] | {__typename:"StatusContext", state: (.state | ascii_upcase)}]')
