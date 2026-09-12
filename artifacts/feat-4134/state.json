@@ -21,16 +21,16 @@
       "updated_at": "2026-09-11T08:23:42.979034Z"
     },
     "developing": {
-      "status": "pending",
-      "updated_at": null
+      "status": "in_progress",
+      "updated_at": "2026-09-12T07:50:43.215279Z"
     }
   },
   "tasks": [
     {
       "name": "remove-redundant-updateasync-in-status-handler",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-09-12T07:50:43.393037Z"
     },
     {
       "name": "remove-redundant-updateasync-in-invoice-acquired-handler",

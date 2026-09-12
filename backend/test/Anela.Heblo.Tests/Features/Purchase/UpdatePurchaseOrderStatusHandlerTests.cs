@@ -173,7 +173,6 @@ public class UpdatePurchaseOrderStatusHandlerTests
         await _handler.Handle(request, CancellationToken.None);
 
         _repositoryMock.Verify(x => x.GetByIdAsync(ValidOrderId, It.IsAny<CancellationToken>()), Times.Once);
-        _repositoryMock.Verify(x => x.UpdateAsync(purchaseOrder, It.IsAny<CancellationToken>()), Times.Once);
         _repositoryMock.Verify(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
     }
 
