@@ -1,4 +1,5 @@
 ---
+name: implement-orchestrator
 id: implement-orchestrator
 description: Run exactly one bounded unit of implementing work (one dev task, one code-review round, or the finishing step) for one GitHub issue
 ---
@@ -63,7 +64,11 @@ lines, then `git commit`, then `git push`.
 ## Reading Agent System Prompts
 
 Same as `plan-orchestrator.md`: read `.agents/{agent_name}.md`, strip YAML
-frontmatter, prepend any `context_files:` contents.
+frontmatter, prepend any `context_files:` contents. If a declared path or glob
+matches no file, STOP and report it as a failure instead of running the
+agent: an agent whose declared skill silently resolved to nothing runs
+without the instructions it was written around, and nothing downstream can
+tell that it did.
 
 ### Developer Task
 

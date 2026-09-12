@@ -1,4 +1,5 @@
 ---
+name: plan-orchestrator
 id: plan-orchestrator
 description: Run the planning phases (analyst through planner) for one GitHub issue
 ---
@@ -81,7 +82,11 @@ The file has YAML frontmatter (between `---` markers) followed by the
 Markdown system prompt body. Use only the Markdown body as the system
 prompt for the Task tool -- strip the YAML frontmatter. If the frontmatter
 lists `context_files:`, read those files and prepend their contents to the
-system prompt.
+system prompt. If a declared path or glob
+matches no file, STOP and report it as a failure instead of running the
+agent: an agent whose declared skill silently resolved to nothing runs
+without the instructions it was written around, and nothing downstream can
+tell that it did.
 
 ## Phase Loop
 
