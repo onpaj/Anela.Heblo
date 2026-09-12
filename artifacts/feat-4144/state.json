@@ -34,9 +34,9 @@
     },
     {
       "name": "verify-and-commit-marketing-import-result-move",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-09-12T09:00:17.120250Z"
+      "updated_at": "2026-09-12T09:21:37.221821Z"
     }
   ]
 }
