@@ -22,7 +22,7 @@
     },
     "developing": {
       "status": "in_progress",
-      "updated_at": "2026-09-12T08:40:42.373210Z"
+      "updated_at": "2026-09-12T09:00:16.861505Z"
     }
   },
   "tasks": [
@@ -34,9 +34,9 @@
     },
     {
       "name": "verify-and-commit-marketing-import-result-move",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-09-12T09:00:17.120250Z"
     }
   ]
 }
