@@ -28,9 +28,9 @@
   "tasks": [
     {
       "name": "widen-google-ads-transaction-source-constructor",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-09-12T09:19:11.161130Z"
+      "updated_at": "2026-09-12T09:19:55.922449Z"
     }
   ]
 }
