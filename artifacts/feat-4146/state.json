@@ -22,7 +22,7 @@
     },
     "developing": {
       "status": "in_progress",
-      "updated_at": "2026-09-12T11:17:15.708499Z"
+      "updated_at": "2026-09-12T13:17:27.210065Z"
     }
   },
   "tasks": [
@@ -36,13 +36,13 @@
       "name": "add-required-title-update",
       "status": "completed",
       "revision": 1,
-      "updated_at": "2026-09-12T13:30:00.000000Z"
+      "updated_at": "2026-09-12T13:30:00Z"
     },
     {
       "name": "verify-build-and-contract-regen",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-09-12T13:17:27.414026Z"
     }
   ]
 }
