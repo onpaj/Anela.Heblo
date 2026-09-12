@@ -17,13 +17,26 @@
       "updated_at": "2026-09-12T06:16:22.831042Z"
     },
     "planning": {
-      "status": "in_progress",
-      "updated_at": "2026-09-12T06:16:25.415948Z"
+      "status": "completed",
+      "updated_at": "2026-09-12T06:18:33.932925Z"
     },
     "developing": {
       "status": "pending",
       "updated_at": null
     }
   },
-  "tasks": []
+  "tasks": [
+    {
+      "name": "move-marketing-import-result-to-contracts",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    },
+    {
+      "name": "verify-and-commit-marketing-import-result-move",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    }
+  ]
 }
