@@ -1,5 +1,5 @@
 using System.Text.Json.Serialization;
-using Anela.Heblo.Application.Features.Marketing.Services;
+using Anela.Heblo.Application.Features.Marketing.Infrastructure;
 
 namespace Anela.Heblo.Adapters.Microsoft365
 {

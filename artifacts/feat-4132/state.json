@@ -1,0 +1,46 @@
+{
+  "feature_id": "feat-4132",
+  "issue_number": 4132,
+  "created_at": "2026-09-11T06:12:46.164475Z",
+  "max_revisions": 3,
+  "phases": {
+    "analyzing": {
+      "status": "completed",
+      "updated_at": "2026-09-11T06:16:33.578566Z"
+    },
+    "architecting": {
+      "status": "completed",
+      "updated_at": "2026-09-11T06:17:30.036104Z"
+    },
+    "designing": {
+      "status": "completed",
+      "updated_at": "2026-09-11T06:17:52.082036Z"
+    },
+    "planning": {
+      "status": "completed",
+      "updated_at": "2026-09-11T06:19:29.030662Z"
+    },
+    "developing": {
+      "status": "in_progress",
+      "updated_at": "2026-09-12T00:25:06.782420Z"
+    },
+    "code-review": {
+      "status": "completed",
+      "updated_at": "2026-09-12T07:41:44.867296Z"
+    }
+  },
+  "tasks": [
+    {
+      "name": "relocate-outlookeventdto-and-update-production-usings",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-09-11T20:26:22.391835Z"
+    },
+    {
+      "name": "update-outlookeventdto-test-usings",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-09-12T00:25:49.365006Z"
+    }
+  ]
+}

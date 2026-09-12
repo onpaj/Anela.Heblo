@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using Anela.Heblo.Application.Features.Marketing.Contracts;
+using Anela.Heblo.Application.Features.Marketing.Infrastructure;
 using Anela.Heblo.Application.Features.Marketing.Services;
 using Anela.Heblo.Application.Features.Marketing.UseCases.ImportFromOutlook;
 using Anela.Heblo.Application.Shared;

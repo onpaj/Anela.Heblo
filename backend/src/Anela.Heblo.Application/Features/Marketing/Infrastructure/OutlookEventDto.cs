@@ -1,6 +1,6 @@
 using System.Text.Json.Serialization;
 
-namespace Anela.Heblo.Application.Features.Marketing.Services
+namespace Anela.Heblo.Application.Features.Marketing.Infrastructure
 {
     public class OutlookEventDto
     {

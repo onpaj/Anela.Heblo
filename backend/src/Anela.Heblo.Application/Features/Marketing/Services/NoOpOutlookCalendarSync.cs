@@ -1,3 +1,4 @@
+using Anela.Heblo.Application.Features.Marketing.Infrastructure;
 using Anela.Heblo.Domain.Features.Marketing;
 using Microsoft.Extensions.Logging;
 

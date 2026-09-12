@@ -1,5 +1,6 @@
 using System;
 using System.Text.RegularExpressions;
+using Anela.Heblo.Application.Features.Marketing.Infrastructure;
 using Anela.Heblo.Application.Features.Marketing.Services;
 using Anela.Heblo.Domain.Features.Marketing;
 
