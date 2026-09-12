@@ -1,4 +1,5 @@
 ---
+name: orchestrator
 id: orchestrator
 description: Orchestrate the full AgentHarness pipeline for a GitHub issue
 ---
@@ -59,7 +60,7 @@ git switch -c "$BRANCH" 2>/dev/null || git switch "$BRANCH"   # create, or attac
 
 ## Reading Agent System Prompts
 
-For each phase or developer/reviewer Task, read the agent file from `.agents/{agent_name}.md`. The file has YAML frontmatter (between `---` markers) followed by the Markdown system prompt body. Use only the Markdown body as the system prompt for the Task tool — strip the YAML frontmatter. If the frontmatter lists `context_files:`, read those files and prepend their contents to the system prompt.
+For each phase or developer/reviewer Task, read the agent file from `.agents/{agent_name}.md`. The file has YAML frontmatter (between `---` markers) followed by the Markdown system prompt body. Use only the Markdown body as the system prompt for the Task tool — strip the YAML frontmatter. If the frontmatter lists `context_files:`, read those files and prepend their contents to the system prompt. If a declared path or glob matches no file, STOP and report it as a failure instead of running the agent: an agent whose declared skill silently resolved to nothing runs without the instructions it was written around, and nothing downstream can tell that it did.
 
 ## Phase Loop
 

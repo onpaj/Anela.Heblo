@@ -204,6 +204,14 @@ cd "$WORKTREE"
    and prints `Planning complete for feat-{issue_number}. Ready for
    implementing.` when done.
 
+   If the `plan-orchestrator` agent type is **not available** in this
+   environment, do not skip the unit and do not improvise a substitute:
+   `read` `.claude/agents/plan-orchestrator.md` yourself and **follow**
+   its sections in order, in this session, exactly as the Task tool would
+   have. `agentharness init` installs the file whether or not the agent type
+   is registered, so the instructions are always on disk. Say which of the
+   two you did in your final report.
+
 6. **Open a draft PR.** Base = the repository default branch, head =
    `$BRANCH`, **draft**. Resolve the real default branch instead of
    hardcoding `master` -- in a repo whose default branch isn't `master`
