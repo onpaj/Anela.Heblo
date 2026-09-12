@@ -21,16 +21,16 @@
       "updated_at": "2026-09-12T09:17:16.087511Z"
     },
     "developing": {
-      "status": "pending",
-      "updated_at": null
+      "status": "in_progress",
+      "updated_at": "2026-09-12T10:18:02.652559Z"
     }
   },
   "tasks": [
     {
       "name": "add-required-title-create",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-09-12T10:18:02.865062Z"
     },
     {
       "name": "add-required-title-update",
