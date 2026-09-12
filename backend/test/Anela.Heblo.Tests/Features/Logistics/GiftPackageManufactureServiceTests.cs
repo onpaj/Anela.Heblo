@@ -258,8 +258,12 @@ public class GiftPackageManufactureServiceTests
             .Setup(x => x.GetSetPartsAsync(giftPackageCode, It.IsAny<CancellationToken>()))
             .ReturnsAsync(CreateTestProductParts());
         _catalogSourceMock
-            .Setup(x => x.GetCatalogItemAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync((string code, CancellationToken _) => new LogisticsCatalogItem { ProductCode = code, AvailableStock = 50m });
+            .Setup(x => x.GetCatalogItemsAsync(It.IsAny<IReadOnlyList<string>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Dictionary<string, LogisticsCatalogItem>
+            {
+                ["ING001"] = new LogisticsCatalogItem { ProductCode = "ING001", AvailableStock = 50m },
+                ["ING002"] = new LogisticsCatalogItem { ProductCode = "ING002", AvailableStock = 50m },
+            });
 
         await _service.Invoking(x => x.DisassembleGiftPackageAsync(giftPackageCode, 999, "tester", CancellationToken.None))
             .Should().ThrowAsync<InvalidOperationException>();
