@@ -28,9 +28,9 @@
   "tasks": [
     {
       "name": "move-marketing-import-result-to-contracts",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-09-12T08:40:42.576264Z"
+      "updated_at": "2026-09-12T08:54:09.798745Z"
     },
     {
       "name": "verify-and-commit-marketing-import-result-move",
