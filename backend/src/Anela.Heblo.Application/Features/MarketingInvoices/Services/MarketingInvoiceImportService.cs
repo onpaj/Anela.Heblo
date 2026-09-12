@@ -104,8 +104,6 @@ public class MarketingInvoiceImportService : IMarketingInvoiceImportService
                     ex,
                     "Failed to persist {Count} marketing transactions for {Platform}",
                     stagedCount, source.Platform);
-                result.Failed += stagedCount;
-                // result.Imported intentionally stays 0 — nothing was committed.
                 throw;
             }
         }
