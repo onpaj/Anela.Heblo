@@ -19,7 +19,7 @@
 # A ref update on the server is genuinely atomic and gives us
 # compare-and-set for free, which no GitHub label or issue comment does:
 #
-#   * Creating `refs/agent-leases/<id>` when it does not exist: two racers
+#   * Creating `refs/heads/agent-leases/<id>` when it does not exist: two racers
 #     both push; the first wins, the second's push is no longer a create
 #     and is not a fast-forward, so the server rejects it.
 #   * Taking over an expired lease: the new lease commit is parented on the
@@ -28,6 +28,18 @@
 #
 # It also works identically with or without the `gh` CLI (unlike everything
 # else in _lib/), and it never touches the feature branch's own history.
+#
+# WHY AN ORDINARY BRANCH REF
+# --------------------------
+# The lease used to live in its own namespace, `refs/agent-leases/*`. That
+# is unwritable from a Claude Code cloud session: its git egress can create
+# and fast-forward refs under `refs/heads/**` and nothing else -- a push
+# creating a custom namespace (or a tag) is answered with HTTP 403, so every
+# acquire there failed on its first step regardless of the credential used.
+# Storing the lease under `refs/heads/agent-leases/<id>` is the one shape
+# that is writable everywhere, so no environment detection is needed. The
+# price is that each live lease shows up as a branch on `origin`; see
+# `cmd_release` for why expired ones can accumulate there.
 #
 # The lease payload is the commit message of an empty-tree commit:
 #   {"lease_id","holder","acquired_at","expires_at","ttl_minutes"}
@@ -63,8 +75,13 @@
 #   lease.sh status  <lease-id>                 # 0, prints JSON
 set -euo pipefail
 
-REF_PREFIX="refs/agent-leases"
+REF_PREFIX="refs/heads/agent-leases"
 DEFAULT_TTL_MINUTES="${LEASE_TTL_MINUTES:-120}"
+
+# How far into the past `cmd_release` stamps expires_at when it has to
+# expire a lease in place rather than delete it. Any positive margin works;
+# this one is comfortably larger than plausible clock skew between workers.
+EXPIRE_IN_PLACE_BACKDATE_SECONDS=60
 
 # Exit code meaning "someone else holds this lease" -- distinct from 1
 # (usage/plumbing error) so callers can branch on contention alone.
@@ -224,16 +241,18 @@ LEASE_SHA=""
 LEASE_PAYLOAD=""
 LEASE_HOLDER=""
 LEASE_EXPIRES=""
+LEASE_ACQUIRED=""
 inspect_lease() {
   local ref="$1" now exp_epoch
   LEASE_SHA="$(fetch_lease_sha "$ref")"
   if [[ -z "$LEASE_SHA" ]]; then
-    LEASE_PAYLOAD=""; LEASE_HOLDER=""; LEASE_EXPIRES=""
+    LEASE_PAYLOAD=""; LEASE_HOLDER=""; LEASE_EXPIRES=""; LEASE_ACQUIRED=""
     LEASE_STATE="absent"; return
   fi
   LEASE_PAYLOAD="$(read_lease_payload "$LEASE_SHA")"
   LEASE_HOLDER="$(echo "$LEASE_PAYLOAD" | jq -r '.holder // ""' 2>/dev/null || echo "")"
   LEASE_EXPIRES="$(echo "$LEASE_PAYLOAD" | jq -r '.expires_at // ""' 2>/dev/null || echo "")"
+  LEASE_ACQUIRED="$(echo "$LEASE_PAYLOAD" | jq -r '.acquired_at // ""' 2>/dev/null || echo "")"
 
   # A lease we cannot parse is treated as expired rather than as a
   # permanent roadblock -- a corrupt payload must never wedge the pipeline
@@ -295,8 +314,7 @@ cmd_renew() {
 
   now="$(now_epoch)"
   expires="$(epoch_to_iso "$((now + ttl * 60))")"
-  payload="$(make_payload "$lease_id" "$me" "$ttl" \
-    "$(echo "$LEASE_PAYLOAD" | jq -r '.acquired_at // ""')" "$expires")"
+  payload="$(make_payload "$lease_id" "$me" "$ttl" "$LEASE_ACQUIRED" "$expires")"
 
   if ! push_lease "$ref" "$LEASE_SHA" "$payload" >/dev/null; then
     jq -nc '{renewed: false, reason: "lost the race to renew"}'
@@ -326,10 +344,42 @@ cmd_release() {
       '{released: false, holder: $holder, reason: "lease is held by another worker"}'
     return $EXIT_HELD
   fi
-  git push --quiet origin ":${ref}" 2>/dev/null || true
-  git update-ref -d "$ref" 2>/dev/null || true
-  forget_holder_id "$lease_id"
-  jq -nc '{released: true}'
+  if git push --quiet origin ":${ref}" 2>/dev/null; then
+    git update-ref -d "$ref" 2>/dev/null || true
+    forget_holder_id "$lease_id"
+    jq -nc '{released: true}'
+    return 0
+  fi
+
+  # Deleting the ref was refused. That is the normal case in a Claude Code
+  # cloud session, whose git egress can create and fast-forward refs under
+  # refs/heads/** but can never delete any ref at all; it is also what a
+  # transient push failure looks like. Either way the lease is still live on
+  # `origin`, so reporting success here -- as this used to -- left every
+  # other worker correctly refusing the issue until the full TTL lapsed,
+  # while this one believed it had freed it.
+  #
+  # Release it by the other available means instead: push an update whose
+  # expires_at is already in the past. `inspect_lease` treats an expired
+  # payload as available, so acquire/status/find_candidate.sh need no
+  # change. The ref survives as a branch and is cleaned up out of band.
+  local now expired_ts payload
+  now="$(now_epoch)"
+  expired_ts="$(epoch_to_iso "$((now - EXPIRE_IN_PLACE_BACKDATE_SECONDS))")"
+  payload="$(make_payload "$lease_id" "$me" 0 "$LEASE_ACQUIRED" "$expired_ts")"
+
+  if push_lease "$ref" "$LEASE_SHA" "$payload" >/dev/null; then
+    # Drop the local mirror too, so a released lease leaves no branch
+    # behind in this checkout even though one remains on `origin`.
+    git update-ref -d "$ref" 2>/dev/null || true
+    forget_holder_id "$lease_id"
+    jq -nc '{released: true,
+             reason: "ref deletion not permitted here; expired the lease in place"}'
+    return 0
+  fi
+
+  jq -nc '{released: false, reason: "could not delete or expire the lease ref"}'
+  return 1
 }
 
 cmd_status() {
