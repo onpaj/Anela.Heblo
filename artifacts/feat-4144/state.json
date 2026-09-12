@@ -1,0 +1,46 @@
+{
+  "feature_id": "feat-4144",
+  "issue_number": 4144,
+  "created_at": "2026-09-12T06:12:17.452114Z",
+  "max_revisions": 3,
+  "phases": {
+    "analyzing": {
+      "status": "completed",
+      "updated_at": "2026-09-12T06:14:25.536936Z"
+    },
+    "architecting": {
+      "status": "completed",
+      "updated_at": "2026-09-12T06:15:39.263515Z"
+    },
+    "designing": {
+      "status": "completed",
+      "updated_at": "2026-09-12T06:16:22.831042Z"
+    },
+    "planning": {
+      "status": "completed",
+      "updated_at": "2026-09-12T06:18:33.932925Z"
+    },
+    "developing": {
+      "status": "in_progress",
+      "updated_at": "2026-09-12T09:00:16.861505Z"
+    },
+    "code-review": {
+      "status": "completed",
+      "updated_at": "2026-09-12T10:27:33.549630Z"
+    }
+  },
+  "tasks": [
+    {
+      "name": "move-marketing-import-result-to-contracts",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-09-12T08:54:09.798745Z"
+    },
+    {
+      "name": "verify-and-commit-marketing-import-result-move",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-09-12T09:21:37.221821Z"
+    }
+  ]
+}
