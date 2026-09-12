@@ -28,9 +28,9 @@
   "tasks": [
     {
       "name": "add-required-title-create",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-09-12T10:18:02.865062Z"
+      "updated_at": "2026-09-12T10:48:26.835720Z"
     },
     {
       "name": "add-required-title-update",
