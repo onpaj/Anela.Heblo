@@ -21,16 +21,16 @@
       "updated_at": "2026-09-13T12:15:26.757514Z"
     },
     "developing": {
-      "status": "pending",
-      "updated_at": null
+      "status": "in_progress",
+      "updated_at": "2026-09-13T13:19:45.741415Z"
     }
   },
   "tasks": [
     {
       "name": "add-dark-mode-wrapper-class",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-09-13T13:19:45.974303Z"
     }
   ]
 }
