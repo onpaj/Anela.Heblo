@@ -325,6 +325,27 @@ _Update this file at the end of significant sessions._
   left for a future run; #4003 (the sibling arch-review duplication finding) already had an
   open PR (#4011) before this run started.
 
+- Scheduled "fan out implementation on the oldest 5 unleased drafts" routine (2026-09-13,
+  designated branch `claude/eloquent-thompson-5a1glr`, no code changes on that branch itself):
+  surveyed all open PRs via `mcp__github__list_pull_requests`/`search_pull_requests` and found
+  only **2 open draft PRs total** in the repo, not 5 — #4161 (issue #4155, `agent-ready-for-dev`,
+  genuine AgentHarness pipeline draft, no lease) and #4162 (a standalone infra-fix PR outside the
+  feat-N/lease scheme, already fully implemented, nothing to "implement"). All other `feat-N`
+  lease refs on `origin` (4134/4135/4143/4144/4145/4146/4154/4156) were expired remnants with no
+  corresponding open `agent-implementing` issue. Drove the one real candidate, feat-4155, through
+  the whole implementing stage manually (acting as `/implement-next-task` + `implement-orchestrator`
+  by hand, one bounded unit per `Agent` call, using `mcp__github__*` tools instead of `gh`/`gh_api.sh`
+  for every GitHub-facing step per this run's instructions): acquired the `feat-4155` lease, swapped
+  the issue label via `issue_write`, attached a worktree to the existing `feature/4155-...` branch,
+  hit the same `.agents/developer.md` `context_files` superpowers-glob bug documented in
+  `memory/gotchas/agent-context-files-superpowers-plugin-missing.md` / fixed (unmerged) in PR #4162
+  — ported that one-line fix directly onto the `feature/4155` branch (commit `9cbd28b3`) rather than
+  waiting on #4162 to merge, since the fix was already known-good — then ran the developer task
+  (PASS), a code-review round (CLEAN), and Finishing: posted the review as a PR comment, marked
+  PR #4161 ready via `update_pull_request(draft:false)`, and swapped the issue label to
+  `agent-completed` via `issue_write`. Lease released (expired in place; ref deletion isn't
+  permitted from this environment, as usual). PR #4161 is now ready for human review/merge.
+
 ## Pending / Known Issues
 
 - Memory directory (issue #405): adding cross-session knowledge accumulation — this PR
