@@ -28,9 +28,9 @@
   "tasks": [
     {
       "name": "remove-duplicate-staleness-check",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-09-13T20:18:31.851704Z"
+      "updated_at": "2026-09-13T21:18:22.109705Z"
     }
   ]
 }
