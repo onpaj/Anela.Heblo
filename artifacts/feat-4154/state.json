@@ -21,16 +21,16 @@
       "updated_at": "2026-09-13T05:22:30.268575Z"
     },
     "developing": {
-      "status": "pending",
-      "updated_at": null
+      "status": "in_progress",
+      "updated_at": "2026-09-13T06:18:14.069046Z"
     }
   },
   "tasks": [
     {
       "name": "map-orgchart-json-model-to-response-contracts",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-09-13T06:18:14.234129Z"
     }
   ]
 }
