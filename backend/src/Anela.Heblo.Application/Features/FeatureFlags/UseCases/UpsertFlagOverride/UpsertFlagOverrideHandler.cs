@@ -1,5 +1,6 @@
 using Anela.Heblo.Application.Features.FeatureFlags.Infrastructure;
 using Anela.Heblo.Application.Shared;
+using Anela.Heblo.Domain.Features.Users;
 using MediatR;
 using Microsoft.Extensions.Caching.Memory;
 
@@ -9,11 +10,16 @@ internal sealed class UpsertFlagOverrideHandler : IRequestHandler<UpsertFlagOver
 {
     private readonly IFeatureFlagOverrideRepository _repo;
     private readonly IMemoryCache _cache;
+    private readonly ICurrentUserService _currentUserService;
 
-    public UpsertFlagOverrideHandler(IFeatureFlagOverrideRepository repo, IMemoryCache cache)
+    public UpsertFlagOverrideHandler(
+        IFeatureFlagOverrideRepository repo,
+        IMemoryCache cache,
+        ICurrentUserService currentUserService)
     {
         _repo = repo;
         _cache = cache;
+        _currentUserService = currentUserService;
     }
 
     public async Task<UpsertFlagOverrideResponse> Handle(
@@ -22,7 +28,8 @@ internal sealed class UpsertFlagOverrideHandler : IRequestHandler<UpsertFlagOver
         if (!FeatureFlagRegistry.ByKey.ContainsKey(request.Key))
             return new UpsertFlagOverrideResponse(ErrorCodes.ResourceNotFound);
 
-        await _repo.UpsertAsync(request.Key, request.IsEnabled, request.UpdatedBy, ct);
+        var updatedBy = _currentUserService.GetCurrentUser().GetDisplayName();
+        await _repo.UpsertAsync(request.Key, request.IsEnabled, updatedBy, ct);
         _cache.Remove(HebloFeatureProvider.CacheKey);
         return new UpsertFlagOverrideResponse();
     }

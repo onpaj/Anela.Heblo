@@ -17,6 +17,11 @@ import {
   useMarketingAction,
   useMoveMarketingAction,
 } from '../../../api/hooks/useMarketingCalendar';
+import type {
+  MarketingActionDto as ApiMarketingActionDto,
+  MarketingActionCalendarDto as ApiMarketingActionCalendarDto,
+  MarketingActionType,
+} from '../../../api/generated/api-client';
 import { formatDateStr } from '../calendar/fullcalendarAdapters';
 import type { CalendarEvent } from '../calendar/fullcalendarAdapters';
 import { PAGE_CONTAINER_HEIGHT } from '../../../constants/layout';
@@ -105,12 +110,12 @@ const MarketingCalendarPage: React.FC = () => {
 
   const calendarEvents: CalendarEvent[] = useMemo(
     () =>
-      ((calendarQuery.data as any)?.actions ?? []).map((a: any) => ({
+      (calendarQuery.data?.actions ?? []).map((a: ApiMarketingActionCalendarDto) => ({
         id: a.id!,
         title: a.title ?? '',
-        actionType: a.actionType ?? 'Other',
-        dateFrom: a.startDate instanceof Date ? formatDateStr(a.startDate) : (a.dateFrom ?? ''),
-        dateTo: a.endDate instanceof Date ? formatDateStr(a.endDate) : (a.dateTo ?? ''),
+        actionType: (a.actionType ?? 'Other') as MarketingActionType,
+        dateFrom: a.startDate ? formatDateStr(a.startDate) : '',
+        dateTo: a.endDate ? formatDateStr(a.endDate) : '',
         associatedProducts: a.associatedProducts ?? [],
         outlookSyncStatus: a.outlookSyncStatus,
       })),
@@ -119,13 +124,13 @@ const MarketingCalendarPage: React.FC = () => {
 
   const listActions: MarketingActionDto[] = useMemo(
     () =>
-      ((listQuery.data as any)?.actions ?? []).map((a: any) => ({
+      (listQuery.data?.actions ?? []).map((a: ApiMarketingActionDto) => ({
         id: a.id,
         title: a.title,
         detail: a.description,
         actionType: a.actionType,
-        dateFrom: a.startDate ?? a.dateFrom,
-        dateTo: a.endDate ?? a.dateTo,
+        dateFrom: a.startDate,
+        dateTo: a.endDate,
         associatedProducts: a.associatedProducts,
         folderLinks: a.folderLinks,
         outlookSyncStatus: a.outlookSyncStatus,
@@ -133,7 +138,7 @@ const MarketingCalendarPage: React.FC = () => {
     [listQuery.data],
   );
 
-  const totalPages: number = (listQuery.data as any)?.totalPages ?? 1;
+  const totalPages: number = listQuery.data?.totalPages ?? 1;
 
   const periodLabel = useMemo(() => {
     const start = visibleRange?.start ?? currentDate;
@@ -189,15 +194,15 @@ const MarketingCalendarPage: React.FC = () => {
   };
 
   React.useEffect(() => {
-    if ((detailQuery.data as any)?.action) {
-      const a = (detailQuery.data as any).action;
+    const a: ApiMarketingActionDto | undefined = detailQuery.data?.action;
+    if (a) {
       setEditingAction({
         id: a.id,
         title: a.title,
-        detail: a.description ?? a.detail,
+        detail: a.description,
         actionType: a.actionType,
-        dateFrom: a.startDate ?? a.dateFrom,
-        dateTo: a.endDate ?? a.dateTo,
+        dateFrom: a.startDate,
+        dateTo: a.endDate,
         associatedProducts: a.associatedProducts,
         folderLinks: a.folderLinks,
       });

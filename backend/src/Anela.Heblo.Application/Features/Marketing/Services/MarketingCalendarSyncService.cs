@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Anela.Heblo.Application.Features.Marketing.Contracts;
+using Anela.Heblo.Application.Features.Marketing.Infrastructure;
 using Anela.Heblo.Application.Features.Marketing.UseCases.ImportFromOutlook;
 using Anela.Heblo.Domain.Features.Marketing;
 using Microsoft.Extensions.Logging;

@@ -13,25 +13,29 @@ public class GetPurchaseStockAnalysisHandler : IRequestHandler<GetPurchaseStockA
     private readonly IStockSeverityCalculator _stockSeverityCalculator;
     private readonly IStockAnalysisCalculator _stockAnalysisCalculator;
     private readonly ILogger<GetPurchaseStockAnalysisHandler> _logger;
+    private readonly TimeProvider _timeProvider;
 
     public GetPurchaseStockAnalysisHandler(
         IMaterialCatalogService materialCatalog,
         IStockSeverityCalculator stockSeverityCalculator,
         IStockAnalysisCalculator stockAnalysisCalculator,
-        ILogger<GetPurchaseStockAnalysisHandler> logger)
+        ILogger<GetPurchaseStockAnalysisHandler> logger,
+        TimeProvider timeProvider)
     {
         _materialCatalog = materialCatalog;
         _stockSeverityCalculator = stockSeverityCalculator;
         _stockAnalysisCalculator = stockAnalysisCalculator;
         _logger = logger;
+        _timeProvider = timeProvider;
     }
 
     public async Task<GetPurchaseStockAnalysisResponse> Handle(
         GetPurchaseStockAnalysisRequest request,
         CancellationToken cancellationToken)
     {
-        var fromDate = request.FromDate ?? DateTime.UtcNow.AddYears(-1);
-        var toDate = request.ToDate ?? DateTime.UtcNow;
+        var now = _timeProvider.GetUtcNow().UtcDateTime;
+        var fromDate = request.FromDate ?? now.AddYears(-1);
+        var toDate = request.ToDate ?? now;
 
         if (fromDate > toDate)
         {

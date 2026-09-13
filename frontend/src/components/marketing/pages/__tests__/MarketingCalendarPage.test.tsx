@@ -3,7 +3,7 @@ import { render, screen, fireEvent } from "@testing-library/react";
 import MarketingCalendarPage from "../MarketingCalendarPage";
 
 // Track every render of the calendar mock so tests can verify mount/unmount and the props it receives.
-const calendarRenderLog: { viewName: string; initialDate: Date; mountId: number }[] = [];
+const calendarRenderLog: { viewName: string; initialDate: Date; mountId: number; events: any[] }[] = [];
 
 jest.mock("../../calendar/MarketingMonthCalendar", () => {
   const React = require("react");
@@ -16,6 +16,7 @@ jest.mock("../../calendar/MarketingMonthCalendar", () => {
         viewName: props.viewName,
         initialDate: new Date(props.initialDate),
         mountId,
+        events: props.events,
       });
       if (props.calendarRef) {
         props.calendarRef.current = {
@@ -43,9 +44,16 @@ jest.mock("../../calendar/MarketingMonthCalendar", () => {
 
 const mockGotoDate = require("../../calendar/MarketingMonthCalendar").__mockGotoDate;
 
+// Capture the props MarketingActionModal receives so tests can assert the
+// mapped `existingAction` once a detail fetch resolves.
+const modalRenderLog: { existingAction: any }[] = [];
+
 jest.mock("../../detail/MarketingActionModal", () => ({
   __esModule: true,
-  default: () => null,
+  default: (props: { existingAction: any }) => {
+    modalRenderLog.push({ existingAction: props.existingAction });
+    return null;
+  },
 }));
 
 jest.mock("../../detail/ImportFromOutlookModal", () => ({
@@ -53,11 +61,18 @@ jest.mock("../../detail/ImportFromOutlookModal", () => ({
   default: () => null,
 }));
 
+// Capture the props MarketingActionGrid receives so tests can assert the
+// mapped `actions` array and `totalPages`.
+const gridRenderLog: { actions: any[]; totalPages: number }[] = [];
+
 jest.mock("../../list/MarketingActionGrid", () => {
   const React = require("react");
   return {
     __esModule: true,
-    default: () => React.createElement("div", { "data-testid": "marketing-action-grid" }),
+    default: (props) => {
+      gridRenderLog.push({ actions: props.actions, totalPages: props.totalPages });
+      return React.createElement("div", { "data-testid": "marketing-action-grid" });
+    },
   };
 });
 
@@ -100,20 +115,45 @@ jest.mock("../../../manufacture/calendar/CalendarNavigation", () => {
 // Capture every call to useMarketingCalendar so we can assert the fetch range.
 const calendarHookCalls: { startDate: Date; endDate: Date }[] = [];
 
+// Mutable per-test fixtures for the typed-mapping tests below. Shaped like the
+// generated MarketingActionCalendarDto / MarketingActionDto that the real
+// NSwag client returns: startDate/endDate as Date objects, actionType as a
+// plain string (not the MarketingActionType enum).
+let mockCalendarActions: any[] = [];
+let mockListActions: any[] = [];
+let mockListTotalPages: number | undefined = 1;
+let mockDetailAction: any = null;
+
 jest.mock("../../../../api/hooks/useMarketingCalendar", () => ({
   useMarketingCalendar: (args) => {
     calendarHookCalls.push({
       startDate: new Date(args.startDate),
       endDate: new Date(args.endDate),
     });
-    return { data: { actions: [] }, isLoading: false, error: null };
+    return { data: { actions: mockCalendarActions }, isLoading: false, error: null };
   },
   useMarketingActions: () => ({
-    data: { actions: [], totalPages: 1 },
+    data: { actions: mockListActions, totalPages: mockListTotalPages },
     isLoading: false,
     error: null,
   }),
-  useMarketingAction: () => ({ data: null, isLoading: false, error: null }),
+  useMarketingAction: () => {
+    // Memoized on mockDetailAction's identity so `data` is referentially
+    // stable across re-renders (the real query client would not hand back a
+    // brand-new object every render either). Without this, the component's
+    // `useEffect(..., [detailQuery.data])` reruns every render, re-triggering
+    // its own setState and causing an infinite render loop in the test.
+    const React = require("react");
+    return React.useMemo(
+      () => ({
+        data: mockDetailAction ? { action: mockDetailAction } : null,
+        isLoading: false,
+        error: null,
+      }),
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+      [mockDetailAction],
+    );
+  },
   useUpdateMarketingAction: () => ({ mutate: jest.fn() }),
   useMoveMarketingAction: () => ({ mutate: jest.fn() }),
 }));
@@ -143,9 +183,15 @@ jest.mock("../../calendar/MobileAgendaView", () => {
 beforeEach(() => {
   calendarRenderLog.length = 0;
   calendarHookCalls.length = 0;
+  gridRenderLog.length = 0;
+  modalRenderLog.length = 0;
   mockGotoDate.mockClear();
   mockIsMobile = false;
   mockHasPermission = () => false;
+  mockCalendarActions = [];
+  mockListActions = [];
+  mockListTotalPages = 1;
+  mockDetailAction = null;
 });
 
 describe("MarketingCalendarPage — default render", () => {
@@ -379,5 +425,117 @@ describe('mobile view', () => {
     mockIsMobile = false;
     render(<MarketingCalendarPage />);
     expect(screen.queryByTestId('mobile-agenda-view')).not.toBeInTheDocument();
+  });
+});
+
+describe("MarketingCalendarPage — typed API response mapping", () => {
+  it("maps calendar action Date fields to YYYY-MM-DD strings and forwards the computed events to the calendar", () => {
+    mockCalendarActions = [
+      {
+        id: 42,
+        title: "Letní kampaň",
+        actionType: "SocialMedia",
+        startDate: new Date(2026, 5, 1),
+        endDate: new Date(2026, 5, 3),
+        associatedProducts: ["PROD-1"],
+        outlookSyncStatus: "Synced",
+      },
+    ];
+    render(<MarketingCalendarPage />);
+
+    const events = calendarRenderLog[calendarRenderLog.length - 1].events;
+    expect(events).toEqual([
+      {
+        id: 42,
+        title: "Letní kampaň",
+        actionType: "SocialMedia",
+        dateFrom: "2026-06-01",
+        dateTo: "2026-06-03",
+        associatedProducts: ["PROD-1"],
+        outlookSyncStatus: "Synced",
+      },
+    ]);
+  });
+
+  it("falls back to empty dateFrom/dateTo strings when a calendar action has no startDate/endDate", () => {
+    mockCalendarActions = [
+      { id: 7, title: "TBD", actionType: "Blog", associatedProducts: [] },
+    ];
+    render(<MarketingCalendarPage />);
+
+    const events = calendarRenderLog[calendarRenderLog.length - 1].events;
+    expect(events[0].dateFrom).toBe("");
+    expect(events[0].dateTo).toBe("");
+  });
+
+  it("maps list action Date fields onto dateFrom/dateTo and forwards totalPages to the grid", () => {
+    mockListActions = [
+      {
+        id: 5,
+        title: "Newsletter Q3",
+        description: "Popis akce",
+        actionType: "Newsletter",
+        startDate: new Date(2026, 6, 10),
+        endDate: new Date(2026, 6, 12),
+        associatedProducts: ["PROD-2"],
+        folderLinks: [{ folderKey: "abc", folderType: "GoogleDrive" }],
+        outlookSyncStatus: "Synced",
+      },
+    ];
+    mockListTotalPages = 3;
+    render(<MarketingCalendarPage />);
+    fireEvent.click(screen.getByRole("button", { name: /Seznam/ }));
+
+    const gridProps = gridRenderLog[gridRenderLog.length - 1];
+    expect(gridProps.totalPages).toBe(3);
+    expect(gridProps.actions).toEqual([
+      {
+        id: 5,
+        title: "Newsletter Q3",
+        detail: "Popis akce",
+        actionType: "Newsletter",
+        dateFrom: new Date(2026, 6, 10),
+        dateTo: new Date(2026, 6, 12),
+        associatedProducts: ["PROD-2"],
+        folderLinks: [{ folderKey: "abc", folderType: "GoogleDrive" }],
+        outlookSyncStatus: "Synced",
+      },
+    ]);
+  });
+
+  it("defaults totalPages to 1 when the list response has no totalPages", () => {
+    mockListActions = [];
+    mockListTotalPages = undefined;
+    render(<MarketingCalendarPage />);
+    fireEvent.click(screen.getByRole("button", { name: /Seznam/ }));
+
+    const gridProps = gridRenderLog[gridRenderLog.length - 1];
+    expect(gridProps.totalPages).toBe(1);
+  });
+
+  it("maps a fetched detail action's Date fields onto the edit modal's existingAction prop", () => {
+    mockDetailAction = {
+      id: 9,
+      title: "Podzimní PR akce",
+      description: "Detailní popis",
+      actionType: "PR",
+      startDate: new Date(2026, 8, 1),
+      endDate: new Date(2026, 8, 5),
+      associatedProducts: ["PROD-3"],
+      folderLinks: [{ folderKey: "xyz", folderType: "SharePoint" }],
+    };
+    render(<MarketingCalendarPage />);
+
+    const lastModalProps = modalRenderLog[modalRenderLog.length - 1];
+    expect(lastModalProps.existingAction).toEqual({
+      id: 9,
+      title: "Podzimní PR akce",
+      detail: "Detailní popis",
+      actionType: "PR",
+      dateFrom: new Date(2026, 8, 1),
+      dateTo: new Date(2026, 8, 5),
+      associatedProducts: ["PROD-3"],
+      folderLinks: [{ folderKey: "xyz", folderType: "SharePoint" }],
+    });
   });
 });

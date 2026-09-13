@@ -48,7 +48,6 @@ public class UpdatePurchaseOrderStatusHandler : IRequestHandler<UpdatePurchaseOr
 
             purchaseOrder.ChangeStatus(newStatus, updatedBy);
 
-            await _repository.UpdateAsync(purchaseOrder, cancellationToken);
             await _repository.SaveChangesAsync(cancellationToken);
 
             _logger.LogInformation("Purchase order {OrderNumber} status updated to {Status}",

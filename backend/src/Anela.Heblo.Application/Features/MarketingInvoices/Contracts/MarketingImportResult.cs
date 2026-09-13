@@ -1,4 +1,4 @@
-namespace Anela.Heblo.Application.Features.MarketingInvoices;
+namespace Anela.Heblo.Application.Features.MarketingInvoices.Contracts;
 
 public class MarketingImportResult
 {
