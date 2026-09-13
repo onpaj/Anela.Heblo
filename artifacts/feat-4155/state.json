@@ -28,9 +28,9 @@
   "tasks": [
     {
       "name": "add-dark-mode-wrapper-class",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-09-13T13:19:45.974303Z"
+      "updated_at": "2026-09-13T13:25:38.291907Z"
     }
   ]
 }
