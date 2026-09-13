@@ -28,9 +28,9 @@
   "tasks": [
     {
       "name": "add-orgchart-success-test",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-09-13T08:16:55.699520Z"
+      "updated_at": "2026-09-13T09:35:21.297394Z"
     }
   ]
 }
