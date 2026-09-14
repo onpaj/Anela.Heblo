@@ -2,6 +2,7 @@ using Anela.Heblo.Application.Features.Invoices.Contracts;
 using Anela.Heblo.Application.Features.Invoices.Infrastructure.Jobs;
 using Anela.Heblo.Application.Features.Invoices.Services;
 using Anela.Heblo.Domain.Features.BackgroundJobs;
+using Anela.Heblo.Domain.Features.Invoices;
 using FluentAssertions;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -24,7 +25,7 @@ public sealed class DailyInvoiceImportJobBaseTests
             .Setup(c => c.IsJobEnabledAsync(TestJobName, It.IsAny<CancellationToken>(), It.IsAny<bool>()))
             .ReturnsAsync(true);
         _importService
-            .Setup(s => s.ImportInvoicesAsync(It.IsAny<string>(), It.IsAny<Anela.Heblo.Domain.Features.Invoices.IssuedInvoiceSourceQuery>(), It.IsAny<CancellationToken>()))
+            .Setup(s => s.ImportInvoicesAsync(It.IsAny<string>(), It.IsAny<IssuedInvoiceSourceQuery>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new ImportResultDto());
     }
 
@@ -45,7 +46,7 @@ public sealed class DailyInvoiceImportJobBaseTests
         await CreateJob().ExecuteAsync(CancellationToken.None);
 
         _importService.Verify(
-            s => s.ImportInvoicesAsync(It.IsAny<string>(), It.IsAny<Anela.Heblo.Domain.Features.Invoices.IssuedInvoiceSourceQuery>(), It.IsAny<CancellationToken>()),
+            s => s.ImportInvoicesAsync(It.IsAny<string>(), It.IsAny<IssuedInvoiceSourceQuery>(), It.IsAny<CancellationToken>()),
             Times.Never);
     }
 
@@ -53,7 +54,7 @@ public sealed class DailyInvoiceImportJobBaseTests
     public async Task ExecuteAsync_LogsWarning_AndCompletes_WhenSomeInvoicesFail()
     {
         _importService
-            .Setup(s => s.ImportInvoicesAsync(It.IsAny<string>(), It.IsAny<Anela.Heblo.Domain.Features.Invoices.IssuedInvoiceSourceQuery>(), It.IsAny<CancellationToken>()))
+            .Setup(s => s.ImportInvoicesAsync(It.IsAny<string>(), It.IsAny<IssuedInvoiceSourceQuery>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new ImportResultDto
             {
                 Succeeded = new List<string> { "INV-001" },
@@ -81,7 +82,7 @@ public sealed class DailyInvoiceImportJobBaseTests
     public async Task ExecuteAsync_Rethrows_WhenImportServiceThrows()
     {
         _importService
-            .Setup(s => s.ImportInvoicesAsync(It.IsAny<string>(), It.IsAny<Anela.Heblo.Domain.Features.Invoices.IssuedInvoiceSourceQuery>(), It.IsAny<CancellationToken>()))
+            .Setup(s => s.ImportInvoicesAsync(It.IsAny<string>(), It.IsAny<IssuedInvoiceSourceQuery>(), It.IsAny<CancellationToken>()))
             .ThrowsAsync(new InvalidOperationException("import service unavailable"));
 
         var act = () => CreateJob().ExecuteAsync(CancellationToken.None);
