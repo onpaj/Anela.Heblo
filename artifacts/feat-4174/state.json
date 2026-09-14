@@ -22,7 +22,7 @@
     },
     "developing": {
       "status": "in_progress",
-      "updated_at": "2026-09-14T22:22:38.609701Z"
+      "updated_at": "2026-09-14T23:17:52.776430Z"
     }
   },
   "tasks": [
@@ -40,9 +40,9 @@
     },
     {
       "name": "case-mismatch-test",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-09-14T23:17:53.026694Z"
     },
     {
       "name": "baseline-fields-test",

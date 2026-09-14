@@ -61,4 +61,27 @@ public class ListFlagsHandlerTests
         dto.UpdatedBy.Should().BeNull();
         dto.UpdatedAt.Should().BeNull();
     }
+
+    [Fact]
+    public async Task Handle_OverrideKeyCaseDiffersFromRegistryKey_IsTreatedAsNoMatch()
+    {
+        _repoMock.Setup(r => r.GetAllAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<FeatureFlagOverride>
+            {
+                new()
+                {
+                    Key = FeatureFlagKeys.LabelPrintingEnabled.ToUpperInvariant(),
+                    IsEnabled = false,
+                    UpdatedBy = "jane@example.com",
+                    UpdatedAt = DateTime.UtcNow,
+                },
+            });
+
+        var response = await CreateHandler().Handle(new ListFlagsRequest(), CancellationToken.None);
+
+        var dto = response.Flags.Single(f => f.Key == FeatureFlagKeys.LabelPrintingEnabled);
+        dto.IsOverridden.Should().BeFalse();
+        dto.UpdatedBy.Should().BeNull();
+        dto.UpdatedAt.Should().BeNull();
+    }
 }
