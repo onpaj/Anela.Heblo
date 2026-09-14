@@ -34,9 +34,9 @@
     },
     {
       "name": "no-override-test",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-09-14T22:22:38.806803Z"
+      "updated_at": "2026-09-14T22:40:00.162643Z"
     },
     {
       "name": "case-mismatch-test",
