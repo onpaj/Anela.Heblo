@@ -22,7 +22,7 @@
     },
     "developing": {
       "status": "in_progress",
-      "updated_at": "2026-09-14T09:16:53.348381Z"
+      "updated_at": "2026-09-14T10:17:22.184067Z"
     }
   },
   "tasks": [
@@ -34,9 +34,9 @@
     },
     {
       "name": "update-flexi-department-client",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-09-14T10:17:22.335551Z"
     },
     {
       "name": "update-flexi-department-query-service-and-tests",
