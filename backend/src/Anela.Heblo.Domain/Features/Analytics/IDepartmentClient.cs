@@ -1,4 +1,4 @@
-namespace Anela.Heblo.Domain.Features.InvoiceClassification;
+namespace Anela.Heblo.Domain.Features.Analytics;
 
 public interface IDepartmentClient
 {
