@@ -23,45 +23,30 @@ public class GetDailyConsumptionBreakdownHandler
         GetDailyConsumptionBreakdownRequest request,
         CancellationToken cancellationToken)
     {
-        try
+        _logger.LogInformation("Loading daily consumption breakdown for {Date} grouped by {GroupBy}", request.Date, request.GroupBy);
+
+        var consumptions = (await _repository.GetConsumptionsByDateAsync(request.Date, cancellationToken)).ToList();
+
+        if (consumptions.Count == 0)
+            return new GetDailyConsumptionBreakdownResponse { Success = true, Date = request.Date, GroupBy = request.GroupBy.ToString() };
+
+        var materials = (await _repository.GetAllWithAllocationsAsync(cancellationToken)).ToList();
+
+        var groups = request.GroupBy switch
         {
-            _logger.LogInformation("Loading daily consumption breakdown for {Date} grouped by {GroupBy}", request.Date, request.GroupBy);
+            ConsumptionGroupBy.Material => BuildGroupByMaterial(consumptions, materials),
+            ConsumptionGroupBy.Product => BuildGroupByProduct(consumptions, materials),
+            ConsumptionGroupBy.Order => BuildGroupByOrder(consumptions, materials),
+            _ => throw new ArgumentOutOfRangeException(nameof(request.GroupBy), request.GroupBy, "Unhandled GroupBy value.")
+        };
 
-            var consumptions = (await _repository.GetConsumptionsByDateAsync(request.Date, cancellationToken)).ToList();
-
-            if (consumptions.Count == 0)
-                return new GetDailyConsumptionBreakdownResponse { Success = true, Date = request.Date, GroupBy = request.GroupBy.ToString() };
-
-            var materials = (await _repository.GetAllWithAllocationsAsync(cancellationToken)).ToList();
-
-            var groups = request.GroupBy switch
-            {
-                ConsumptionGroupBy.Material => BuildGroupByMaterial(consumptions, materials),
-                ConsumptionGroupBy.Product => BuildGroupByProduct(consumptions, materials),
-                ConsumptionGroupBy.Order => BuildGroupByOrder(consumptions, materials),
-                _ => throw new ArgumentOutOfRangeException(nameof(request.GroupBy), request.GroupBy, "Unhandled GroupBy value.")
-            };
-
-            return new GetDailyConsumptionBreakdownResponse
-            {
-                Success = true,
-                Date = request.Date,
-                GroupBy = request.GroupBy.ToString(),
-                Groups = groups
-            };
-        }
-        catch (Exception ex)
+        return new GetDailyConsumptionBreakdownResponse
         {
-            _logger.LogError(ex, "Error loading daily consumption breakdown for {Date}", request.Date);
-
-            return new GetDailyConsumptionBreakdownResponse
-            {
-                Success = false,
-                Error = "An unexpected error occurred while loading the breakdown.",
-                Date = request.Date,
-                GroupBy = request.GroupBy.ToString()
-            };
-        }
+            Success = true,
+            Date = request.Date,
+            GroupBy = request.GroupBy.ToString(),
+            Groups = groups
+        };
     }
 
     private static List<ConsumptionGroupDto> BuildGroupByMaterial(
