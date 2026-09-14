@@ -21,16 +21,16 @@
       "updated_at": "2026-09-14T11:15:55.695417Z"
     },
     "developing": {
-      "status": "pending",
-      "updated_at": null
+      "status": "in_progress",
+      "updated_at": "2026-09-14T12:18:23.871203Z"
     }
   },
   "tasks": [
     {
       "name": "add-transport-box-base-tile-generate-drilldown-filter-tests",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-09-14T12:18:24.057482Z"
     },
     {
       "name": "add-transport-box-base-tile-load-data-async-tests",
