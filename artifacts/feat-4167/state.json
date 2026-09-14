@@ -21,16 +21,16 @@
       "updated_at": "2026-09-14T08:16:08.890196Z"
     },
     "developing": {
-      "status": "pending",
-      "updated_at": null
+      "status": "in_progress",
+      "updated_at": "2026-09-14T09:16:53.348381Z"
     }
   },
   "tasks": [
     {
       "name": "relocate-domain-types",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-09-14T09:16:53.579378Z"
     },
     {
       "name": "update-flexi-department-client",
