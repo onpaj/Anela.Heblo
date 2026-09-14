@@ -21,16 +21,16 @@
       "updated_at": "2026-09-14T07:18:34.468172Z"
     },
     "developing": {
-      "status": "pending",
-      "updated_at": null
+      "status": "in_progress",
+      "updated_at": "2026-09-14T08:53:39.176459Z"
     }
   },
   "tasks": [
     {
       "name": "add-packing-material-mapper",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-09-14T08:53:39.458647Z"
     },
     {
       "name": "wire-create-and-update-handlers",
