@@ -2,6 +2,7 @@ using Anela.Heblo.Application.Features.Logistics.DashboardTiles;
 using Anela.Heblo.Domain.Features.Logistics.Transport;
 using FluentAssertions;
 using Moq;
+using System.Linq.Expressions;
 using System.Text.Json;
 using Xunit;
 
@@ -84,6 +85,56 @@ public class TransportBoxBaseTileTests
         using var doc = JsonDocument.Parse(json);
 
         doc.RootElement.EnumerateObject().Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task LoadDataAsync_RepositorySucceeds_ReturnsSuccessStatusWithCount()
+    {
+        // Arrange
+        var boxes = new List<TransportBox> { new(), new(), new() };
+        _repositoryMock
+            .Setup(x => x.FindAsync(
+                It.IsAny<Expression<Func<TransportBox, bool>>>(),
+                It.IsAny<bool>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(boxes);
+
+        var tile = new TestTransportBoxTile(_repositoryMock.Object, new[] { TransportBoxState.Error });
+
+        // Act
+        var result = await tile.LoadDataAsync();
+
+        // Assert
+        var json = JsonSerializer.Serialize(result);
+        using var doc = JsonDocument.Parse(json);
+
+        doc.RootElement.GetProperty("status").GetString().Should().Be("success");
+        doc.RootElement.GetProperty("data").GetProperty("count").GetInt32().Should().Be(3);
+    }
+
+    [Fact]
+    public async Task LoadDataAsync_RepositoryThrows_ReturnsErrorShapeWithExceptionMessage()
+    {
+        // Arrange
+        _repositoryMock
+            .Setup(x => x.FindAsync(
+                It.IsAny<Expression<Func<TransportBox, bool>>>(),
+                It.IsAny<bool>(),
+                It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new InvalidOperationException("Database connection failed"));
+
+        var tile = new TestTransportBoxTile(_repositoryMock.Object, new[] { TransportBoxState.Error });
+
+        // Act
+        var result = await tile.LoadDataAsync();
+
+        // Assert
+        var json = JsonSerializer.Serialize(result);
+        using var doc = JsonDocument.Parse(json);
+
+        doc.RootElement.GetProperty("status").GetString().Should().Be("error");
+        doc.RootElement.GetProperty("error").GetString().Should().Be("Nepodařilo se načíst počet boxů");
+        doc.RootElement.GetProperty("details").GetString().Should().Be("Database connection failed");
     }
 
     // Test-only concrete subclass: TransportBoxBaseTile is abstract and its FilterStates is
