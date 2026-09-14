@@ -34,9 +34,9 @@
     },
     {
       "name": "add-transport-box-base-tile-load-data-async-tests",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-09-14T13:18:44.053346Z"
+      "updated_at": "2026-09-14T13:39:35.693325Z"
     },
     {
       "name": "verify-transport-box-base-tile-build-format-and-coverage",
