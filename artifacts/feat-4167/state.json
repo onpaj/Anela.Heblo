@@ -22,7 +22,7 @@
     },
     "developing": {
       "status": "in_progress",
-      "updated_at": "2026-09-14T11:20:00.403425Z"
+      "updated_at": "2026-09-14T12:18:13.219628Z"
     }
   },
   "tasks": [
@@ -46,9 +46,9 @@
     },
     {
       "name": "update-di-registration-and-verify",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-09-14T12:18:13.467184Z"
     }
   ]
 }
