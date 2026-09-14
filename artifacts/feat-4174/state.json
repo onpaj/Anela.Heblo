@@ -40,9 +40,9 @@
     },
     {
       "name": "case-mismatch-test",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-09-14T23:17:53.026694Z"
+      "updated_at": "2026-09-14T23:40:08.209639Z"
     },
     {
       "name": "baseline-fields-test",
