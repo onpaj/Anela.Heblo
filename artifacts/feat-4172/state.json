@@ -28,9 +28,9 @@
   "tasks": [
     {
       "name": "add-purchase-orders-in-transit-tile-format-tests",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-09-14T13:18:42.786757Z"
+      "updated_at": "2026-09-14T13:57:24.052024Z"
     }
   ]
 }
