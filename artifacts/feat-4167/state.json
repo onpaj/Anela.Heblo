@@ -28,9 +28,9 @@
   "tasks": [
     {
       "name": "relocate-domain-types",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-09-14T09:16:53.579378Z"
+      "updated_at": "2026-09-14T09:17:59.297313Z"
     },
     {
       "name": "update-flexi-department-client",
