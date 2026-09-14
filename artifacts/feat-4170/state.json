@@ -28,9 +28,9 @@
   "tasks": [
     {
       "name": "add-daily-invoice-import-job-tests",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-09-14T11:20:30.407748Z"
+      "updated_at": "2026-09-14T12:10:48.476882Z"
     }
   ]
 }
