@@ -21,16 +21,16 @@
       "updated_at": "2026-09-14T12:16:58.774120Z"
     },
     "developing": {
-      "status": "pending",
-      "updated_at": null
+      "status": "in_progress",
+      "updated_at": "2026-09-14T13:18:42.600398Z"
     }
   },
   "tasks": [
     {
       "name": "add-purchase-orders-in-transit-tile-format-tests",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-09-14T13:18:42.786757Z"
     }
   ]
 }
