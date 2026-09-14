@@ -22,7 +22,7 @@
     },
     "developing": {
       "status": "in_progress",
-      "updated_at": "2026-09-14T10:17:22.184067Z"
+      "updated_at": "2026-09-14T11:20:00.403425Z"
     }
   },
   "tasks": [
@@ -40,9 +40,9 @@
     },
     {
       "name": "update-flexi-department-query-service-and-tests",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-09-14T11:20:00.587310Z"
     },
     {
       "name": "update-di-registration-and-verify",
