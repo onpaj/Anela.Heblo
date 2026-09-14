@@ -21,16 +21,16 @@
       "updated_at": "2026-09-14T13:16:09.978976Z"
     },
     "developing": {
-      "status": "pending",
-      "updated_at": null
+      "status": "in_progress",
+      "updated_at": "2026-09-14T20:16:56.247291Z"
     }
   },
   "tasks": [
     {
       "name": "critical-gift-packages-tile-error-tests",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-09-14T20:16:56.427029Z"
     }
   ]
 }
