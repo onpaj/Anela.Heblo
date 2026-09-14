@@ -21,16 +21,16 @@
       "updated_at": "2026-09-14T20:17:06.182883Z"
     },
     "developing": {
-      "status": "pending",
-      "updated_at": null
+      "status": "in_progress",
+      "updated_at": "2026-09-14T21:17:36.900105Z"
     }
   },
   "tasks": [
     {
       "name": "scaffold-and-has-override-test",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-09-14T21:17:37.087003Z"
     },
     {
       "name": "no-override-test",
