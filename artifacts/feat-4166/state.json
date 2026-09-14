@@ -34,9 +34,9 @@
     },
     {
       "name": "wire-create-and-update-handlers",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-09-14T09:16:42.879100Z"
+      "updated_at": "2026-09-14T09:43:02.369232Z"
     },
     {
       "name": "wire-quantity-and-list-handlers",
