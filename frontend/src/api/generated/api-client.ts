@@ -24575,7 +24575,7 @@ export interface ICreateJournalEntryResponse extends IBaseResponse {
 }
 
 export class CreateJournalEntryRequest implements ICreateJournalEntryRequest {
-    title?: string;
+    title!: string;
     content!: string;
     entryDate!: Date;
     associatedProducts?: string[] | undefined;
@@ -24635,7 +24635,7 @@ export class CreateJournalEntryRequest implements ICreateJournalEntryRequest {
 }
 
 export interface ICreateJournalEntryRequest {
-    title?: string;
+    title: string;
     content: string;
     entryDate: Date;
     associatedProducts?: string[] | undefined;
@@ -24685,7 +24685,7 @@ export interface IUpdateJournalEntryResponse extends IBaseResponse {
 
 export class UpdateJournalEntryRequest implements IUpdateJournalEntryRequest {
     id?: number;
-    title?: string;
+    title!: string;
     content!: string;
     entryDate!: Date;
     associatedProducts?: string[] | undefined;
@@ -24748,7 +24748,7 @@ export class UpdateJournalEntryRequest implements IUpdateJournalEntryRequest {
 
 export interface IUpdateJournalEntryRequest {
     id?: number;
-    title?: string;
+    title: string;
     content: string;
     entryDate: Date;
     associatedProducts?: string[] | undefined;
