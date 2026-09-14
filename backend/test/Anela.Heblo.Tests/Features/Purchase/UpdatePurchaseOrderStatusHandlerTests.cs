@@ -39,7 +39,7 @@ public class UpdatePurchaseOrderStatusHandlerTests
     [Fact]
     public async Task Handle_WithValidRequestAndDraftOrder_ShouldUpdateStatusToInTransit()
     {
-        var request = new UpdatePurchaseOrderStatusRequest(ValidOrderId, "InTransit");
+        var request = new UpdatePurchaseOrderStatusRequest { Id = ValidOrderId, Status = "InTransit" };
         var purchaseOrder = CreateDraftPurchaseOrder();
 
         _repositoryMock
@@ -69,7 +69,7 @@ public class UpdatePurchaseOrderStatusHandlerTests
     [Fact]
     public async Task Handle_WithValidRequestAndReceivedOrder_ShouldUpdateStatusToCompleted()
     {
-        var request = new UpdatePurchaseOrderStatusRequest(ValidOrderId, "Completed");
+        var request = new UpdatePurchaseOrderStatusRequest { Id = ValidOrderId, Status = "Completed" };
         var purchaseOrder = CreateDraftPurchaseOrder();
         purchaseOrder.ChangeStatus(PurchaseOrderStatus.InTransit, "System");
         purchaseOrder.ChangeStatus(PurchaseOrderStatus.Received, "System");
@@ -96,7 +96,7 @@ public class UpdatePurchaseOrderStatusHandlerTests
     [Fact]
     public async Task Handle_WithNonExistentOrder_ShouldReturnError()
     {
-        var request = new UpdatePurchaseOrderStatusRequest(ValidOrderId, "InTransit");
+        var request = new UpdatePurchaseOrderStatusRequest { Id = ValidOrderId, Status = "InTransit" };
 
         _repositoryMock
             .Setup(x => x.GetByIdAsync(ValidOrderId, It.IsAny<CancellationToken>()))
@@ -114,7 +114,7 @@ public class UpdatePurchaseOrderStatusHandlerTests
     [Fact]
     public async Task Handle_WithInvalidStatus_ShouldReturnError()
     {
-        var request = new UpdatePurchaseOrderStatusRequest(ValidOrderId, "InvalidStatus");
+        var request = new UpdatePurchaseOrderStatusRequest { Id = ValidOrderId, Status = "InvalidStatus" };
         var purchaseOrder = CreateDraftPurchaseOrder();
 
         _repositoryMock
@@ -135,7 +135,7 @@ public class UpdatePurchaseOrderStatusHandlerTests
     [Fact]
     public async Task Handle_WithInvalidStatusTransition_ShouldReturnError()
     {
-        var request = new UpdatePurchaseOrderStatusRequest(ValidOrderId, "Completed");
+        var request = new UpdatePurchaseOrderStatusRequest { Id = ValidOrderId, Status = "Completed" };
         var purchaseOrder = CreateDraftPurchaseOrder();
 
         _repositoryMock
@@ -155,7 +155,7 @@ public class UpdatePurchaseOrderStatusHandlerTests
     [Fact]
     public async Task Handle_ShouldCallRepositoryMethods()
     {
-        var request = new UpdatePurchaseOrderStatusRequest(ValidOrderId, "InTransit");
+        var request = new UpdatePurchaseOrderStatusRequest { Id = ValidOrderId, Status = "InTransit" };
         var purchaseOrder = CreateDraftPurchaseOrder();
 
         _repositoryMock
@@ -173,14 +173,13 @@ public class UpdatePurchaseOrderStatusHandlerTests
         await _handler.Handle(request, CancellationToken.None);
 
         _repositoryMock.Verify(x => x.GetByIdAsync(ValidOrderId, It.IsAny<CancellationToken>()), Times.Once);
-        _repositoryMock.Verify(x => x.UpdateAsync(purchaseOrder, It.IsAny<CancellationToken>()), Times.Once);
         _repositoryMock.Verify(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
     public async Task Handle_ShouldLogInformationMessages()
     {
-        var request = new UpdatePurchaseOrderStatusRequest(ValidOrderId, "InTransit");
+        var request = new UpdatePurchaseOrderStatusRequest { Id = ValidOrderId, Status = "InTransit" };
         var purchaseOrder = CreateDraftPurchaseOrder();
 
         _repositoryMock
@@ -219,7 +218,7 @@ public class UpdatePurchaseOrderStatusHandlerTests
     [Fact]
     public async Task Handle_WhenOrderNotFound_ShouldLogWarning()
     {
-        var request = new UpdatePurchaseOrderStatusRequest(ValidOrderId, "InTransit");
+        var request = new UpdatePurchaseOrderStatusRequest { Id = ValidOrderId, Status = "InTransit" };
 
         _repositoryMock
             .Setup(x => x.GetByIdAsync(ValidOrderId, It.IsAny<CancellationToken>()))
@@ -240,7 +239,7 @@ public class UpdatePurchaseOrderStatusHandlerTests
     [Fact]
     public async Task Handle_WithInvalidStatus_ShouldLogWarning()
     {
-        var request = new UpdatePurchaseOrderStatusRequest(ValidOrderId, "InvalidStatus");
+        var request = new UpdatePurchaseOrderStatusRequest { Id = ValidOrderId, Status = "InvalidStatus" };
         var purchaseOrder = CreateDraftPurchaseOrder();
 
         _repositoryMock
@@ -262,7 +261,7 @@ public class UpdatePurchaseOrderStatusHandlerTests
     [Fact]
     public async Task Handle_WithInvalidTransition_ShouldLogWarning()
     {
-        var request = new UpdatePurchaseOrderStatusRequest(ValidOrderId, "Completed");
+        var request = new UpdatePurchaseOrderStatusRequest { Id = ValidOrderId, Status = "Completed" };
         var purchaseOrder = CreateDraftPurchaseOrder();
 
         _repositoryMock
@@ -284,7 +283,7 @@ public class UpdatePurchaseOrderStatusHandlerTests
     [Fact]
     public async Task Handle_TransitionFromInTransitToReceived_Succeeds()
     {
-        var request = new UpdatePurchaseOrderStatusRequest(ValidOrderId, "Received");
+        var request = new UpdatePurchaseOrderStatusRequest { Id = ValidOrderId, Status = "Received" };
         var purchaseOrder = CreateDraftPurchaseOrder();
         purchaseOrder.ChangeStatus(PurchaseOrderStatus.InTransit, "System");
 
@@ -311,7 +310,7 @@ public class UpdatePurchaseOrderStatusHandlerTests
     [Fact]
     public async Task Handle_TransitionFromReceivedToCompleted_Succeeds()
     {
-        var request = new UpdatePurchaseOrderStatusRequest(ValidOrderId, "Completed");
+        var request = new UpdatePurchaseOrderStatusRequest { Id = ValidOrderId, Status = "Completed" };
         var purchaseOrder = CreateDraftPurchaseOrder();
         purchaseOrder.ChangeStatus(PurchaseOrderStatus.InTransit, "System");
         purchaseOrder.ChangeStatus(PurchaseOrderStatus.Received, "System");
@@ -339,7 +338,7 @@ public class UpdatePurchaseOrderStatusHandlerTests
     [Fact]
     public async Task Handle_TransitionFromReceivedToDraft_ShouldReturnError()
     {
-        var request = new UpdatePurchaseOrderStatusRequest(ValidOrderId, "Draft");
+        var request = new UpdatePurchaseOrderStatusRequest { Id = ValidOrderId, Status = "Draft" };
         var purchaseOrder = CreateDraftPurchaseOrder();
         purchaseOrder.ChangeStatus(PurchaseOrderStatus.InTransit, "System");
         purchaseOrder.ChangeStatus(PurchaseOrderStatus.Received, "System");
@@ -358,7 +357,7 @@ public class UpdatePurchaseOrderStatusHandlerTests
     [Fact]
     public async Task Handle_TransitionFromInTransitToCompleted_Succeeds()
     {
-        var request = new UpdatePurchaseOrderStatusRequest(ValidOrderId, "Completed");
+        var request = new UpdatePurchaseOrderStatusRequest { Id = ValidOrderId, Status = "Completed" };
         var purchaseOrder = CreateDraftPurchaseOrder();
         purchaseOrder.ChangeStatus(PurchaseOrderStatus.InTransit, "System");
 

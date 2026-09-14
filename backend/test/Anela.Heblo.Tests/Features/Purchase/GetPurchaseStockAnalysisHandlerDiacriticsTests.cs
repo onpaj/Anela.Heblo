@@ -14,19 +14,25 @@ public class GetPurchaseStockAnalysisHandlerDiacriticsTests
     private readonly Mock<IMaterialCatalogService> _materialCatalogMock;
     private readonly Mock<IStockSeverityCalculator> _stockSeverityCalculatorMock;
     private readonly Mock<ILogger<GetPurchaseStockAnalysisHandler>> _loggerMock;
+    private readonly Mock<TimeProvider> _timeProviderMock;
     private readonly GetPurchaseStockAnalysisHandler _handler;
+
+    private static readonly DateTimeOffset FixedNow = new(2024, 8, 2, 14, 30, 22, TimeSpan.Zero);
 
     public GetPurchaseStockAnalysisHandlerDiacriticsTests()
     {
         _materialCatalogMock = new Mock<IMaterialCatalogService>();
         _stockSeverityCalculatorMock = new Mock<IStockSeverityCalculator>();
         _loggerMock = new Mock<ILogger<GetPurchaseStockAnalysisHandler>>();
+        _timeProviderMock = new Mock<TimeProvider>();
+        _timeProviderMock.Setup(x => x.GetUtcNow()).Returns(FixedNow);
 
         _handler = new GetPurchaseStockAnalysisHandler(
             _materialCatalogMock.Object,
             _stockSeverityCalculatorMock.Object,
             new StockAnalysisCalculator(),
-            _loggerMock.Object);
+            _loggerMock.Object,
+            _timeProviderMock.Object);
     }
 
     [Theory]

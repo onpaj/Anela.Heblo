@@ -29,7 +29,7 @@ public sealed class GetPurchaseOrderHistoryHandlerTests
             .ReturnsAsync(false);
 
         // Act
-        var response = await _handler.Handle(new GetPurchaseOrderHistoryRequest(missingId), CancellationToken.None);
+        var response = await _handler.Handle(new GetPurchaseOrderHistoryRequest { Id = missingId }, CancellationToken.None);
 
         // Assert
         response.Success.Should().BeFalse();
@@ -49,7 +49,7 @@ public sealed class GetPurchaseOrderHistoryHandlerTests
             .ReturnsAsync(new List<PurchaseOrderHistory>());
 
         // Act
-        var response = await _handler.Handle(new GetPurchaseOrderHistoryRequest(orderId), CancellationToken.None);
+        var response = await _handler.Handle(new GetPurchaseOrderHistoryRequest { Id = orderId }, CancellationToken.None);
 
         // Assert
         response.Success.Should().BeTrue();
@@ -72,7 +72,7 @@ public sealed class GetPurchaseOrderHistoryHandlerTests
             .ReturnsAsync(repoOutput);
 
         // Act
-        var response = await _handler.Handle(new GetPurchaseOrderHistoryRequest(orderId), CancellationToken.None);
+        var response = await _handler.Handle(new GetPurchaseOrderHistoryRequest { Id = orderId }, CancellationToken.None);
 
         // Assert
         response.Success.Should().BeTrue();
@@ -95,7 +95,7 @@ public sealed class GetPurchaseOrderHistoryHandlerTests
             .ReturnsAsync(new List<PurchaseOrderHistory>());
 
         // Act
-        await _handler.Handle(new GetPurchaseOrderHistoryRequest(orderId), CancellationToken.None);
+        await _handler.Handle(new GetPurchaseOrderHistoryRequest { Id = orderId }, CancellationToken.None);
 
         // Assert
         _repositoryMock.Verify(

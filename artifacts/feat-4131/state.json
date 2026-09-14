@@ -1,0 +1,40 @@
+{
+  "feature_id": "feat-4131",
+  "issue_number": 4131,
+  "created_at": "2026-09-11T05:13:14.029730Z",
+  "max_revisions": 3,
+  "phases": {
+    "analyzing": {
+      "status": "completed",
+      "updated_at": "2026-09-11T05:15:51.098001Z"
+    },
+    "architecting": {
+      "status": "completed",
+      "updated_at": "2026-09-11T05:17:42.420390Z"
+    },
+    "designing": {
+      "status": "completed",
+      "updated_at": "2026-09-11T05:18:35.353457Z"
+    },
+    "planning": {
+      "status": "completed",
+      "updated_at": "2026-09-11T05:33:05.568164Z"
+    },
+    "developing": {
+      "status": "in_progress",
+      "updated_at": "2026-09-11T20:20:11.678930Z"
+    },
+    "code-review": {
+      "status": "completed",
+      "updated_at": "2026-09-11T23:38:43.858233Z"
+    }
+  },
+  "tasks": [
+    {
+      "name": "type-safe-marketing-calendar-page-mapping",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-09-11T20:47:30.431118Z"
+    }
+  ]
+}

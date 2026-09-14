@@ -2,4 +2,7 @@ using MediatR;
 
 namespace Anela.Heblo.Application.Features.Purchase.UseCases.GetPurchaseOrderById;
 
-public record GetPurchaseOrderByIdRequest(int Id) : IRequest<GetPurchaseOrderByIdResponse>;
+public class GetPurchaseOrderByIdRequest : IRequest<GetPurchaseOrderByIdResponse>
+{
+    public int Id { get; set; }
+}

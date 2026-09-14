@@ -41,7 +41,6 @@ public class UpdatePurchaseOrderInvoiceAcquiredHandler : IRequestHandler<UpdateP
 
             purchaseOrder.SetInvoiceAcquired(request.InvoiceAcquired, updatedBy);
 
-            await _repository.UpdateAsync(purchaseOrder, cancellationToken);
             await _repository.SaveChangesAsync(cancellationToken);
 
             _logger.LogInformation("Purchase order {OrderNumber} invoice acquired updated to {InvoiceAcquired}",

@@ -1,0 +1,46 @@
+{
+  "feature_id": "feat-4117",
+  "issue_number": 4117,
+  "created_at": "2026-09-09T07:13:09.455154Z",
+  "max_revisions": 3,
+  "phases": {
+    "analyzing": {
+      "status": "completed",
+      "updated_at": "2026-09-09T07:14:56.380002Z"
+    },
+    "architecting": {
+      "status": "completed",
+      "updated_at": "2026-09-09T07:16:15.388286Z"
+    },
+    "designing": {
+      "status": "completed",
+      "updated_at": "2026-09-09T07:16:52.705953Z"
+    },
+    "planning": {
+      "status": "completed",
+      "updated_at": "2026-09-09T07:20:01.776475Z"
+    },
+    "developing": {
+      "status": "in_progress",
+      "updated_at": "2026-09-11T20:19:59.030400Z"
+    },
+    "code-review": {
+      "status": "completed",
+      "updated_at": "2026-09-12T07:26:55.995609Z"
+    }
+  },
+  "tasks": [
+    {
+      "name": "entity-remove-dataannotations-and-swap-exception",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-09-11T20:21:32.741112Z"
+    },
+    {
+      "name": "tests-update-for-argumentexception",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-09-11T23:38:52.724909Z"
+    }
+  ]
+}

@@ -1,0 +1,40 @@
+{
+  "feature_id": "feat-4154",
+  "issue_number": 4154,
+  "created_at": "2026-09-13T05:11:25.199916Z",
+  "max_revisions": 3,
+  "phases": {
+    "analyzing": {
+      "status": "completed",
+      "updated_at": "2026-09-13T05:16:20.493947Z"
+    },
+    "architecting": {
+      "status": "completed",
+      "updated_at": "2026-09-13T05:18:17.689202Z"
+    },
+    "designing": {
+      "status": "completed",
+      "updated_at": "2026-09-13T05:19:05.758084Z"
+    },
+    "planning": {
+      "status": "completed",
+      "updated_at": "2026-09-13T05:22:30.268575Z"
+    },
+    "developing": {
+      "status": "in_progress",
+      "updated_at": "2026-09-13T06:18:14.069046Z"
+    },
+    "code-review": {
+      "status": "completed",
+      "updated_at": "2026-09-13T08:22:37.903161Z"
+    }
+  },
+  "tasks": [
+    {
+      "name": "map-orgchart-json-model-to-response-contracts",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-09-13T07:44:57.587846Z"
+    }
+  ]
+}

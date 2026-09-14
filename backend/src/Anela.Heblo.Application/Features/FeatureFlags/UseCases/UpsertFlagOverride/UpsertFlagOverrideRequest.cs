@@ -7,7 +7,6 @@ public class UpsertFlagOverrideRequest : IRequest<UpsertFlagOverrideResponse>
 {
     public string Key { get; init; } = "";
     public bool IsEnabled { get; init; }
-    public string UpdatedBy { get; init; } = "";
 }
 
 public class UpsertFlagOverrideResponse : BaseResponse

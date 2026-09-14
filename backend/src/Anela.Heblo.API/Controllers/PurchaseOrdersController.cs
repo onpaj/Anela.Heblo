@@ -62,7 +62,7 @@ public class PurchaseOrdersController : BaseApiController
         [FromRoute] int id,
         CancellationToken cancellationToken)
     {
-        var request = new GetPurchaseOrderByIdRequest(id);
+        var request = new GetPurchaseOrderByIdRequest { Id = id };
         var response = await _mediator.Send(request, cancellationToken);
 
         return HandleResponse(response);
@@ -137,7 +137,7 @@ public class PurchaseOrdersController : BaseApiController
         [FromRoute] int id,
         CancellationToken cancellationToken)
     {
-        var response = await _mediator.Send(new GetPurchaseOrderHistoryRequest(id), cancellationToken);
+        var response = await _mediator.Send(new GetPurchaseOrderHistoryRequest { Id = id }, cancellationToken);
         return HandleResponse(response);
     }
 

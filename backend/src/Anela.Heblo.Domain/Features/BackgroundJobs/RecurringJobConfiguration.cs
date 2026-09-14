@@ -1,36 +1,23 @@
-using System.ComponentModel.DataAnnotations;
 using Anela.Heblo.Xcc.Domain;
 
 namespace Anela.Heblo.Domain.Features.BackgroundJobs;
 
 public class RecurringJobConfiguration : Entity<string>
 {
-    [Required]
-    [MaxLength(100)]
     public string JobName { get; private set; }
 
-    [Required]
-    [MaxLength(200)]
     public string DisplayName { get; private set; }
 
-    [Required]
-    [MaxLength(500)]
     public string Description { get; private set; }
 
-    [Required]
-    [MaxLength(50)]
     public string CronExpression { get; private set; }
 
-    [Required]
-    [MaxLength(100)]
     public string TimeZoneId { get; private set; }
 
     public bool IsEnabled { get; private set; }
 
     public DateTime LastModifiedAt { get; private set; }
 
-    [Required]
-    [MaxLength(100)]
     public string LastModifiedBy { get; private set; }
 
     // Private constructor for EF Core
@@ -55,18 +42,18 @@ public class RecurringJobConfiguration : Entity<string>
         DateTime lastModifiedAt)
     {
         if (string.IsNullOrWhiteSpace(jobName))
-            throw new ValidationException("JobName is required");
+            throw new ArgumentException("JobName is required");
         if (string.IsNullOrWhiteSpace(displayName))
-            throw new ValidationException("DisplayName is required");
+            throw new ArgumentException("DisplayName is required");
         if (string.IsNullOrWhiteSpace(description))
-            throw new ValidationException("Description is required");
+            throw new ArgumentException("Description is required");
         if (string.IsNullOrWhiteSpace(cronExpression))
-            throw new ValidationException("CronExpression is required");
+            throw new ArgumentException("CronExpression is required");
         ValidateCronFormat(cronExpression);
         if (string.IsNullOrWhiteSpace(timeZoneId))
-            throw new ValidationException("TimeZoneId is required");
+            throw new ArgumentException("TimeZoneId is required");
         if (string.IsNullOrWhiteSpace(lastModifiedBy))
-            throw new ValidationException("LastModifiedBy is required");
+            throw new ArgumentException("LastModifiedBy is required");
 
         JobName = jobName;
         Id = jobName; // JobName is the primary key
@@ -88,16 +75,16 @@ public class RecurringJobConfiguration : Entity<string>
         DateTime modifiedAt)
     {
         if (string.IsNullOrWhiteSpace(displayName))
-            throw new ValidationException("DisplayName is required");
+            throw new ArgumentException("DisplayName is required");
         if (string.IsNullOrWhiteSpace(description))
-            throw new ValidationException("Description is required");
+            throw new ArgumentException("Description is required");
         if (string.IsNullOrWhiteSpace(cronExpression))
-            throw new ValidationException("CronExpression is required");
+            throw new ArgumentException("CronExpression is required");
         ValidateCronFormat(cronExpression);
         if (string.IsNullOrWhiteSpace(timeZoneId))
-            throw new ValidationException("TimeZoneId is required");
+            throw new ArgumentException("TimeZoneId is required");
         if (string.IsNullOrWhiteSpace(modifiedBy))
-            throw new ValidationException("ModifiedBy is required");
+            throw new ArgumentException("ModifiedBy is required");
 
         DisplayName = displayName;
         Description = description;
@@ -110,7 +97,7 @@ public class RecurringJobConfiguration : Entity<string>
     public void Enable(string modifiedBy, DateTime modifiedAt)
     {
         if (string.IsNullOrWhiteSpace(modifiedBy))
-            throw new ValidationException("ModifiedBy is required");
+            throw new ArgumentException("ModifiedBy is required");
 
         IsEnabled = true;
         LastModifiedAt = modifiedAt;
@@ -120,7 +107,7 @@ public class RecurringJobConfiguration : Entity<string>
     public void Disable(string modifiedBy, DateTime modifiedAt)
     {
         if (string.IsNullOrWhiteSpace(modifiedBy))
-            throw new ValidationException("ModifiedBy is required");
+            throw new ArgumentException("ModifiedBy is required");
 
         IsEnabled = false;
         LastModifiedAt = modifiedAt;
@@ -130,10 +117,10 @@ public class RecurringJobConfiguration : Entity<string>
     public void UpdateCronExpression(string cronExpression, string modifiedBy, DateTime modifiedAt)
     {
         if (string.IsNullOrWhiteSpace(cronExpression))
-            throw new ValidationException("CronExpression is required");
+            throw new ArgumentException("CronExpression is required");
         ValidateCronFormat(cronExpression);
         if (string.IsNullOrWhiteSpace(modifiedBy))
-            throw new ValidationException("ModifiedBy is required");
+            throw new ArgumentException("ModifiedBy is required");
 
         CronExpression = cronExpression;
         LastModifiedAt = modifiedAt;
@@ -154,6 +141,6 @@ public class RecurringJobConfiguration : Entity<string>
     {
         var fields = cronExpression.Trim().Split(new[] { ' ', '\t' }, StringSplitOptions.RemoveEmptyEntries);
         if (fields.Length is not (5 or 6))
-            throw new ValidationException($"'{cronExpression}' is not a valid CRON expression.");
+            throw new ArgumentException($"'{cronExpression}' is not a valid CRON expression.");
     }
 }

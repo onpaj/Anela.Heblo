@@ -1,0 +1,42 @@
+{
+  "feature_id": "feat-4133",
+  "issue_number": 4133,
+  "created_at": "2026-09-11T07:14:36.915727Z",
+  "max_revisions": 3,
+  "phases": {
+    "analyzing": {
+      "status": "completed",
+      "updated_at": "2026-09-11T07:15:56.766299Z"
+    },
+    "architecting": {
+      "status": "completed",
+      "updated_at": "2026-09-11T07:17:01.804610Z"
+    },
+    "designing": {
+      "status": "completed",
+      "updated_at": "2026-09-11T07:17:19.101592Z"
+    },
+    "planning": {
+      "status": "completed",
+      "updated_at": "2026-09-11T07:19:02.209523Z"
+    },
+    "developing": {
+      "status": "completed",
+      "updated_at": "2026-09-12T08:10:00.000000Z"
+    }
+  },
+  "tasks": [
+    {
+      "name": "convert-get-purchase-order-requests",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-09-12T08:10:00.000000Z"
+    },
+    {
+      "name": "convert-update-purchase-order-status-request",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-09-12T08:10:00.000000Z"
+    }
+  ]
+}
