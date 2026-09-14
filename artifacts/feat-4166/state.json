@@ -40,9 +40,9 @@
     },
     {
       "name": "wire-quantity-and-list-handlers",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-09-14T10:17:10.323039Z"
+      "updated_at": "2026-09-14T10:52:15.838383Z"
     },
     {
       "name": "full-validation",
