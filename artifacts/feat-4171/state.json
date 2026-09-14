@@ -40,9 +40,9 @@
     },
     {
       "name": "verify-transport-box-base-tile-build-format-and-coverage",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-09-14T20:16:24.968312Z"
+      "updated_at": "2026-09-14T21:12:47.891069Z"
     }
   ]
 }
