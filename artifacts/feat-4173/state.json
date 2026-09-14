@@ -28,9 +28,9 @@
   "tasks": [
     {
       "name": "critical-gift-packages-tile-error-tests",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-09-14T20:16:56.427029Z"
+      "updated_at": "2026-09-14T20:58:28.420688Z"
     }
   ]
 }
