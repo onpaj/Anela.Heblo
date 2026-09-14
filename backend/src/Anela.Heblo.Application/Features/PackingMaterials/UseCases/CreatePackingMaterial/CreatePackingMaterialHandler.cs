@@ -1,4 +1,5 @@
 using Anela.Heblo.Application.Features.PackingMaterials.Contracts;
+using Anela.Heblo.Application.Features.PackingMaterials.Mapping;
 using Anela.Heblo.Domain.Features.PackingMaterials;
 using Anela.Heblo.Domain.Features.PackingMaterials.Enums;
 using MediatR;
@@ -27,18 +28,7 @@ public class CreatePackingMaterialHandler : IRequestHandler<CreatePackingMateria
         var createdMaterial = await _repository.AddAsync(material, cancellationToken);
         await _repository.SaveChangesAsync(cancellationToken);
 
-        var materialDto = new PackingMaterialDto
-        {
-            Id = createdMaterial.Id,
-            Name = createdMaterial.Name,
-            ConsumptionRate = createdMaterial.ConsumptionRate,
-            ConsumptionType = createdMaterial.ConsumptionType,
-            ConsumptionTypeText = PackingMaterialsTextHelper.ConsumptionTypeText(createdMaterial.ConsumptionType),
-            CurrentQuantity = createdMaterial.CurrentQuantity,
-            ForecastedDays = null, // New material, no history
-            CreatedAt = createdMaterial.CreatedAt,
-            UpdatedAt = createdMaterial.UpdatedAt
-        };
+        var materialDto = PackingMaterialMapper.ToDto(createdMaterial, forecastedDays: null); // New material, no history
 
         return new CreatePackingMaterialResponse
         {
