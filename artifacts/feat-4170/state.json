@@ -21,16 +21,16 @@
       "updated_at": "2026-09-14T10:16:50.411856Z"
     },
     "developing": {
-      "status": "pending",
-      "updated_at": null
+      "status": "in_progress",
+      "updated_at": "2026-09-14T11:20:30.219783Z"
     }
   },
   "tasks": [
     {
       "name": "add-daily-invoice-import-job-tests",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-09-14T11:20:30.407748Z"
     }
   ]
 }
