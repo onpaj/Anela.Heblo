@@ -28,9 +28,9 @@
   "tasks": [
     {
       "name": "scaffold-and-has-override-test",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-09-14T21:17:37.087003Z"
+      "updated_at": "2026-09-14T21:46:29.036070Z"
     },
     {
       "name": "no-override-test",
