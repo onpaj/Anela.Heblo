@@ -25,5 +25,24 @@
       "updated_at": null
     }
   },
-  "tasks": []
+  "tasks": [
+    {
+      "name": "add-transport-box-base-tile-generate-drilldown-filter-tests",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    },
+    {
+      "name": "add-transport-box-base-tile-load-data-async-tests",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    },
+    {
+      "name": "verify-transport-box-base-tile-build-format-and-coverage",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    }
+  ]
 }
