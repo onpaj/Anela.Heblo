@@ -28,9 +28,9 @@
   "tasks": [
     {
       "name": "add-packing-material-mapper",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-09-14T08:53:39.458647Z"
+      "updated_at": "2026-09-14T08:54:11.414107Z"
     },
     {
       "name": "wire-create-and-update-handlers",
