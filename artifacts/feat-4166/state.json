@@ -22,7 +22,7 @@
     },
     "developing": {
       "status": "in_progress",
-      "updated_at": "2026-09-14T08:53:39.176459Z"
+      "updated_at": "2026-09-14T09:16:42.650244Z"
     }
   },
   "tasks": [
@@ -34,9 +34,9 @@
     },
     {
       "name": "wire-create-and-update-handlers",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-09-14T09:16:42.879100Z"
     },
     {
       "name": "wire-quantity-and-list-handlers",
