@@ -47,4 +47,18 @@ public class ListFlagsHandlerTests
         dto.UpdatedBy.Should().Be("jane@example.com");
         dto.UpdatedAt.Should().Be(updatedAt);
     }
+
+    [Fact]
+    public async Task Handle_FlagHasNoOverride_SetsIsOverriddenFalseAndNullsAuthorAndDate()
+    {
+        _repoMock.Setup(r => r.GetAllAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<FeatureFlagOverride>());
+
+        var response = await CreateHandler().Handle(new ListFlagsRequest(), CancellationToken.None);
+
+        var dto = response.Flags.Single(f => f.Key == FeatureFlagKeys.LabelPrintingEnabled);
+        dto.IsOverridden.Should().BeFalse();
+        dto.UpdatedBy.Should().BeNull();
+        dto.UpdatedAt.Should().BeNull();
+    }
 }

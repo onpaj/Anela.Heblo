@@ -22,7 +22,7 @@
     },
     "developing": {
       "status": "in_progress",
-      "updated_at": "2026-09-14T21:17:36.900105Z"
+      "updated_at": "2026-09-14T22:22:38.609701Z"
     }
   },
   "tasks": [
@@ -34,9 +34,9 @@
     },
     {
       "name": "no-override-test",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-09-14T22:22:38.806803Z"
     },
     {
       "name": "case-mismatch-test",
