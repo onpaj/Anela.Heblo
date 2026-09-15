@@ -1,4 +1,5 @@
 using Anela.Heblo.Application.Features.PackingMaterials.Contracts;
+using Anela.Heblo.Application.Features.PackingMaterials.Mapping;
 using Anela.Heblo.Domain.Features.PackingMaterials;
 using Anela.Heblo.Domain.Features.PackingMaterials.Enums;
 using MediatR;
@@ -50,18 +51,7 @@ public class GetPackingMaterialsListHandler : IRequestHandler<GetPackingMaterial
             if (displayForecast.HasValue) withForecast++;
             else withoutForecast++;
 
-            return new PackingMaterialDto
-            {
-                Id = material.Id,
-                Name = material.Name,
-                ConsumptionRate = material.ConsumptionRate,
-                ConsumptionType = material.ConsumptionType,
-                ConsumptionTypeText = PackingMaterialsTextHelper.ConsumptionTypeText(material.ConsumptionType),
-                CurrentQuantity = material.CurrentQuantity,
-                ForecastedDays = displayForecast,
-                CreatedAt = material.CreatedAt,
-                UpdatedAt = material.UpdatedAt
-            };
+            return PackingMaterialMapper.ToDto(material, displayForecast);
         }).ToList();
 
         _logger.LogDebug(

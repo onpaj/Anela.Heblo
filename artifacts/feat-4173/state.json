@@ -1,0 +1,40 @@
+{
+  "feature_id": "feat-4173",
+  "issue_number": 4173,
+  "created_at": "2026-09-14T13:12:06.110819Z",
+  "max_revisions": 3,
+  "phases": {
+    "analyzing": {
+      "status": "completed",
+      "updated_at": "2026-09-14T13:13:48.987057Z"
+    },
+    "architecting": {
+      "status": "completed",
+      "updated_at": "2026-09-14T13:14:33.723412Z"
+    },
+    "designing": {
+      "status": "completed",
+      "updated_at": "2026-09-14T13:14:54.944619Z"
+    },
+    "planning": {
+      "status": "completed",
+      "updated_at": "2026-09-14T13:16:09.978976Z"
+    },
+    "developing": {
+      "status": "in_progress",
+      "updated_at": "2026-09-14T20:16:56.247291Z"
+    },
+    "code-review": {
+      "status": "completed",
+      "updated_at": "2026-09-14T21:18:05.030812Z"
+    }
+  },
+  "tasks": [
+    {
+      "name": "critical-gift-packages-tile-error-tests",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-09-14T20:58:28.420688Z"
+    }
+  ]
+}

@@ -68,7 +68,6 @@ public class ImportBankStatementHandlerTests
             _mockRepository.Object,
             Options.Create(_bankSettings),
             _mockStateRepository.Object,
-            Options.Create(new BankImportWatermarkOptions()),
             _mockMapper.Object,
             _mockLogger.Object);
     }
@@ -82,7 +81,6 @@ public class ImportBankStatementHandlerTests
             _mockRepository.Object,
             Options.Create(_bankSettings),
             _mockStateRepository.Object,
-            Options.Create(new BankImportWatermarkOptions()),
             _mockMapper.Object,
             _mockLogger.Object));
     }
@@ -367,42 +365,16 @@ public class ImportBankStatementHandlerTests
     }
 
     [Fact]
-    public async Task Handle_LogsStaleWarning_WhenWatermarkIsStale()
+    public async Task Handle_DoesNotLogStaleWarning_EvenWhenWatermarkIsStale()
     {
         var from = new DateTime(2026, 6, 10);
         var to = new DateTime(2026, 6, 10);
         var request = new ImportBankStatementRequest("ComgateCZK", from, to);
         var existingState = new BankImportState("ComgateCZK");
-        // 10 days ago; default StaleWarningDays = 3, so 10 > 3 triggers the warning.
+        // 10 days ago; default StaleWarningDays = 3, so this was previously stale-by-threshold.
+        // The handler must NOT log about it - that is BankImportJobBase's responsibility now
+        // (regression test for the duplicate-warning fix, issue #4158).
         existingState.RecordSuccess(DateTime.UtcNow.AddDays(-10), DateTime.UtcNow, DateTime.UtcNow);
-
-        _mockStateRepository
-            .Setup(r => r.GetByAccountAsync("ComgateCZK", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(existingState);
-        _mockBankClient.Setup(x => x.GetStatementsAsync("123456789", from, to))
-            .ReturnsAsync(new List<BankStatementHeader>());
-
-        await _handler.Handle(request, CancellationToken.None);
-
-        _mockLogger.Verify(
-            x => x.Log(
-                LogLevel.Warning,
-                It.IsAny<EventId>(),
-                It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains("stale")),
-                It.IsAny<Exception?>(),
-                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
-            Times.Once);
-    }
-
-    [Fact]
-    public async Task Handle_DoesNotLogWarning_WhenWatermarkIsFresh()
-    {
-        var from = new DateTime(2026, 6, 10);
-        var to = new DateTime(2026, 6, 10);
-        var request = new ImportBankStatementRequest("ComgateCZK", from, to);
-        var existingState = new BankImportState("ComgateCZK");
-        // 1 day ago; default StaleWarningDays = 3, so 1 ≤ 3 → no warning.
-        existingState.RecordSuccess(DateTime.UtcNow.AddDays(-1), DateTime.UtcNow, DateTime.UtcNow);
 
         _mockStateRepository
             .Setup(r => r.GetByAccountAsync("ComgateCZK", It.IsAny<CancellationToken>()))

@@ -27,6 +27,7 @@ using Anela.Heblo.Domain.Features.Catalog.Sales;
 using Anela.Heblo.Domain.Features.Catalog.Stock;
 using Anela.Heblo.Domain.Features.ProductPricing;
 using Anela.Heblo.Domain.Features.Bank;
+using Anela.Heblo.Domain.Features.Analytics;
 using Anela.Heblo.Domain.Features.InvoiceClassification;
 using Anela.Heblo.Domain.Features.Invoices;
 using Anela.Heblo.Domain.Features.Manufacture;

@@ -1,6 +1,6 @@
 using Anela.Heblo.Application.Features.UserManagement.Contracts;
 using Anela.Heblo.Application.Features.UserManagement.Services;
-using Anela.Heblo.Domain.Features.InvoiceClassification;
+using Anela.Heblo.Domain.Features.Analytics;
 
 namespace Anela.Heblo.Adapters.Flexi.Accounting.Departments;
 

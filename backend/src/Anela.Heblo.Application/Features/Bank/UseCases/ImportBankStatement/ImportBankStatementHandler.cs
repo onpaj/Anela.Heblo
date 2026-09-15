@@ -1,7 +1,6 @@
 using System.Diagnostics;
 using Anela.Heblo.Application.Features.Bank.Contracts;
 using Anela.Heblo.Application.Features.Bank.Infrastructure;
-using Anela.Heblo.Application.Features.Bank.Infrastructure.Jobs;
 using Anela.Heblo.Domain.Features.Bank;
 using Anela.Heblo.Domain.Shared;
 using AutoMapper;
@@ -18,7 +17,6 @@ public class ImportBankStatementHandler : IRequestHandler<ImportBankStatementReq
     private readonly IBankStatementImportRepository _repository;
     private readonly IBankImportStateRepository _stateRepository;
     private readonly BankAccountSettings _bankSettings;
-    private readonly BankImportWatermarkOptions _watermarkOptions;
     private readonly IMapper _mapper;
     private readonly ILogger<ImportBankStatementHandler> _logger;
 
@@ -28,7 +26,6 @@ public class ImportBankStatementHandler : IRequestHandler<ImportBankStatementReq
         IBankStatementImportRepository repository,
         IOptions<BankAccountSettings> bankSettings,
         IBankImportStateRepository stateRepository,
-        IOptions<BankImportWatermarkOptions> watermarkOptions,
         IMapper mapper,
         ILogger<ImportBankStatementHandler> logger)
     {
@@ -37,7 +34,6 @@ public class ImportBankStatementHandler : IRequestHandler<ImportBankStatementReq
         _repository = repository ?? throw new ArgumentNullException(nameof(repository));
         _bankSettings = bankSettings.Value ?? throw new ArgumentNullException(nameof(bankSettings));
         _stateRepository = stateRepository ?? throw new ArgumentNullException(nameof(stateRepository));
-        _watermarkOptions = watermarkOptions.Value;
         _mapper = mapper ?? throw new ArgumentNullException(nameof(mapper));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
@@ -66,15 +62,6 @@ public class ImportBankStatementHandler : IRequestHandler<ImportBankStatementReq
 
         var state = await _stateRepository.GetByAccountAsync(accountSetting.Name, cancellationToken)
                     ?? new BankImportState(accountSetting.Name);
-
-        if (state.LastValidImportDate.HasValue)
-        {
-            var daysBehind = (DateTime.UtcNow.Date - state.LastValidImportDate.Value.Date).Days;
-            if (daysBehind > _watermarkOptions.StaleWarningDays)
-                _logger.LogWarning(
-                    "Bank import watermark is {DaysBehind} days stale for account {AccountName}. Last valid date: {LastValidDate}",
-                    daysBehind, request.AccountName, state.LastValidImportDate.Value.Date);
-        }
 
         try
         {

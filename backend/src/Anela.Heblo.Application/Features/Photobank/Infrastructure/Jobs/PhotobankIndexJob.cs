@@ -237,16 +237,49 @@ public class PhotobankIndexJob : IRecurringJob
             tagNamesByPhoto[photo] = tagNames;
         }
 
+        var batchPhotoIds = tagNamesByPhoto.Keys.Select(p => p.Id).ToList();
+
+        var existingRuleTagsByPhoto = batchPhotoIds.Count > 0
+            ? await _photoTagRepository.GetPhotoTagsByPhotosAndSourceAsync(batchPhotoIds, PhotoTagSource.Rule, ct)
+            : new Dictionary<int, List<PhotoTag>>();
+
+        // Scoped to this batch's photo IDs (not the whole table): GetOccupiedTagPairsAsync's
+        // unscoped form is correct for ReapplyRulesHandler (runs once, standalone, over the
+        // whole table), but UpsertPhotoBatchAsync runs once per batch inside IndexRootAsync's
+        // delta loop — an unscoped call here would re-scan the entire non-Rule PhotoTags table
+        // on every batch, turning a large backlog run into O(batches × table_size) work. See
+        // arch-review.r1.md Decision 1.
+        var occupiedNonRulePairs = await _photoTagRepository.GetOccupiedTagPairsByPhotosAsync(batchPhotoIds, ct);
+
+        // Keyed by the Photo reference (not Photo.Id): a newly-created Photo added in Phase A
+        // of *this same batch* still has Id == 0 (the CLR default) until a real SaveChangesAsync
+        // assigns it — Phase A's SaveChangesAsync above only flushes to the database in
+        // production, but even then EF only backfills the tracked entity's Id, so distinct new
+        // Photo instances are guaranteed unique by reference, never by Id, at this point. Keying
+        // this guard on Photo.Id would collapse every distinct new photo sharing Id == 0 into a
+        // single false "duplicate".
+        var addedPairsThisBatch = new HashSet<(Photo Photo, int TagId)>();
+
         foreach (var (photo, tagNames) in tagNamesByPhoto)
         {
-            // Re-apply rule tags: remove existing Rule-source tags, add new ones
-            var existingRuleTags = await _photoTagRepository.GetPhotoTagsByPhotoAndSourceAsync(photo.Id, PhotoTagSource.Rule, ct);
+            // Re-apply rule tags: remove existing Rule-source tags, add new ones.
+            // Both existing-tags-to-remove and occupied-pairs-to-skip now come from the two
+            // bulk queries preloaded above, not from per-photo/per-pair round-trips.
+            var existingRuleTags = existingRuleTagsByPhoto.TryGetValue(photo.Id, out var tags)
+                ? tags
+                : new List<PhotoTag>();
             await _photoTagRepository.RemovePhotoTagsAsync(existingRuleTags, ct);
 
             foreach (var tagName in tagNames)
             {
                 if (!tagIdsByName.TryGetValue(tagName, out var tagId)) continue;
-                if (await _photoTagRepository.PhotoTagExistsAsync(photo.Id, tagId, ct)) continue;
+
+                if (occupiedNonRulePairs.Contains((photo.Id, tagId))) continue;
+                // addedPairsThisBatch replaces the within-batch duplicate-guard role that
+                // PhotoTagExistsAsync's real-DB check used to (coincidentally) serve: that
+                // check could never see this batch's own unflushed inserts, so this explicit
+                // in-memory guard is required now that the per-pair DB check is gone.
+                if (!addedPairsThisBatch.Add((photo, tagId))) continue;
 
                 await _photoTagRepository.AddPhotoTagAsync(new PhotoTag
                 {
