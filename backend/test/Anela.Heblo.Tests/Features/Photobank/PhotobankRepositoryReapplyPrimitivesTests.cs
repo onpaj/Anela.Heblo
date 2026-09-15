@@ -179,6 +179,55 @@ public class PhotobankRepositoryReapplyPrimitivesTests : IDisposable
     }
 
     [Fact]
+    public async System.Threading.Tasks.Task GetOccupiedTagPairsByPhotosAsync_scopesToRequestedPhotoIdsOnly()
+    {
+        // Arrange — three photos, each with a non-Rule tag; only photos 1 and 2 are requested.
+        // A photo-ID-scoped query must return only pairs for the requested photos, never
+        // re-scanning (or returning pairs for) the whole table like the unscoped
+        // GetOccupiedTagPairsAsync(null, ...) does.
+        _context.Photos.AddRange(
+            new Photo { Id = 1, SharePointFileId = "sp-1", FileName = "a.jpg", FolderPath = "P", ModifiedAt = DateTime.UtcNow },
+            new Photo { Id = 2, SharePointFileId = "sp-2", FileName = "b.jpg", FolderPath = "P", ModifiedAt = DateTime.UtcNow },
+            new Photo { Id = 3, SharePointFileId = "sp-3", FileName = "c.jpg", FolderPath = "P", ModifiedAt = DateTime.UtcNow });
+        _context.PhotobankTags.AddRange(
+            new Tag { Id = 10, Name = "products" },
+            new Tag { Id = 11, Name = "ruletag" });
+        _context.PhotoTags.AddRange(
+            new PhotoTag { PhotoId = 1, TagId = 10, Source = PhotoTagSource.Manual, CreatedAt = DateTime.UtcNow },
+            new PhotoTag { PhotoId = 1, TagId = 11, Source = PhotoTagSource.Rule, CreatedAt = DateTime.UtcNow },
+            new PhotoTag { PhotoId = 2, TagId = 10, Source = PhotoTagSource.AI, CreatedAt = DateTime.UtcNow },
+            // Photo 3 has a non-Rule pair too, but is NOT in the requested photoIds below —
+            // it must be excluded from the result even though GetOccupiedTagPairsAsync(null, ...)
+            // would include it.
+            new PhotoTag { PhotoId = 3, TagId = 10, Source = PhotoTagSource.Manual, CreatedAt = DateTime.UtcNow });
+        await _context.SaveChangesAsync(CancellationToken.None);
+
+        // Act
+        var occupied = await _photoTagRepository.GetOccupiedTagPairsByPhotosAsync(new[] { 1, 2 }, CancellationToken.None);
+
+        // Assert
+        occupied.Should().BeEquivalentTo(new HashSet<(int, int)> { (1, 10), (2, 10) });
+        occupied.Should().NotContain((1, 11)); // Rule pair excluded
+        occupied.Should().NotContain((3, 10)); // out-of-scope photo excluded
+    }
+
+    [Fact]
+    public async System.Threading.Tasks.Task GetOccupiedTagPairsByPhotosAsync_emptyPhotoIds_returnsEmptyWithoutQuerying()
+    {
+        // Arrange
+        _context.Photos.Add(new Photo { Id = 1, SharePointFileId = "sp-1", FileName = "a.jpg", FolderPath = "P", ModifiedAt = DateTime.UtcNow });
+        _context.PhotobankTags.Add(new Tag { Id = 10, Name = "products" });
+        _context.PhotoTags.Add(new PhotoTag { PhotoId = 1, TagId = 10, Source = PhotoTagSource.Manual, CreatedAt = DateTime.UtcNow });
+        await _context.SaveChangesAsync(CancellationToken.None);
+
+        // Act
+        var occupied = await _photoTagRepository.GetOccupiedTagPairsByPhotosAsync(Array.Empty<int>(), CancellationToken.None);
+
+        // Assert
+        occupied.Should().BeEmpty();
+    }
+
+    [Fact]
     public async System.Threading.Tasks.Task GetPhotoTagsByPhotosAndSourceAsync_multiplePhotos_returnsOnlyMatchingSourceGroupedByPhotoId()
     {
         // Arrange

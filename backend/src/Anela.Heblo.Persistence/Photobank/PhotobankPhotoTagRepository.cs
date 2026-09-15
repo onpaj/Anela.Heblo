@@ -67,6 +67,20 @@ public class PhotobankPhotoTagRepository : IPhotobankPhotoTagRepository
         return pairs.Select(x => (x.PhotoId, x.TagId)).ToHashSet();
     }
 
+    public async Task<HashSet<(int PhotoId, int TagId)>> GetOccupiedTagPairsByPhotosAsync(
+        IReadOnlyCollection<int> photoIds, CancellationToken cancellationToken)
+    {
+        if (photoIds.Count == 0)
+            return new HashSet<(int PhotoId, int TagId)>();
+
+        var pairs = await _context.PhotoTags
+            .Where(pt => pt.Source != PhotoTagSource.Rule && photoIds.Contains(pt.PhotoId))
+            .Select(pt => new { pt.PhotoId, pt.TagId })
+            .ToListAsync(cancellationToken);
+
+        return pairs.Select(x => (x.PhotoId, x.TagId)).ToHashSet();
+    }
+
     public async Task<List<PhotoTag>> GetPhotoTagsByPhotoAndSourceAsync(int photoId, PhotoTagSource source, CancellationToken cancellationToken)
     {
         return await _context.PhotoTags

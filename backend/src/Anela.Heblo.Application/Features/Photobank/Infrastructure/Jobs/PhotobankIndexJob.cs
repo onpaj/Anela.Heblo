@@ -243,7 +243,13 @@ public class PhotobankIndexJob : IRecurringJob
             ? await _photoTagRepository.GetPhotoTagsByPhotosAndSourceAsync(batchPhotoIds, PhotoTagSource.Rule, ct)
             : new Dictionary<int, List<PhotoTag>>();
 
-        var occupiedNonRulePairs = await _photoTagRepository.GetOccupiedTagPairsAsync(scopeToTagName: null, ct);
+        // Scoped to this batch's photo IDs (not the whole table): GetOccupiedTagPairsAsync's
+        // unscoped form is correct for ReapplyRulesHandler (runs once, standalone, over the
+        // whole table), but UpsertPhotoBatchAsync runs once per batch inside IndexRootAsync's
+        // delta loop — an unscoped call here would re-scan the entire non-Rule PhotoTags table
+        // on every batch, turning a large backlog run into O(batches × table_size) work. See
+        // arch-review.r1.md Decision 1.
+        var occupiedNonRulePairs = await _photoTagRepository.GetOccupiedTagPairsByPhotosAsync(batchPhotoIds, ct);
 
         // Keyed by the Photo reference (not Photo.Id): a newly-created Photo added in Phase A
         // of *this same batch* still has Id == 0 (the CLR default) until a real SaveChangesAsync

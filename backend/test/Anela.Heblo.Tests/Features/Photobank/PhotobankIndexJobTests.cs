@@ -109,7 +109,7 @@ public class PhotobankIndexJobTests
             .ReturnsAsync(new Dictionary<string, int> { ["produkty"] = 42 });
 
         _photoTagRepoMock
-            .Setup(r => r.GetOccupiedTagPairsAsync(It.IsAny<string?>(), It.IsAny<CancellationToken>()))
+            .Setup(r => r.GetOccupiedTagPairsByPhotosAsync(It.IsAny<IReadOnlyCollection<int>>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new HashSet<(int PhotoId, int TagId)>());
 
         PhotoTag? capturedPhotoTag = null;
@@ -309,7 +309,7 @@ public class PhotobankIndexJobTests
             .ReturnsAsync(new Dictionary<string, int> { ["produkty"] = 42 });
 
         _photoTagRepoMock
-            .Setup(r => r.GetOccupiedTagPairsAsync(It.IsAny<string?>(), It.IsAny<CancellationToken>()))
+            .Setup(r => r.GetOccupiedTagPairsByPhotosAsync(It.IsAny<IReadOnlyCollection<int>>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new HashSet<(int PhotoId, int TagId)> { (0, 42) });
 
         _photoRepoMock
@@ -539,7 +539,7 @@ public class PhotobankIndexJobTests
             .Returns(Task.CompletedTask);
 
         _photoTagRepoMock
-            .Setup(r => r.GetOccupiedTagPairsAsync(It.IsAny<string?>(), It.IsAny<CancellationToken>()))
+            .Setup(r => r.GetOccupiedTagPairsByPhotosAsync(It.IsAny<IReadOnlyCollection<int>>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new HashSet<(int PhotoId, int TagId)>());
 
         _photoTagRepoMock
@@ -943,7 +943,7 @@ public class PhotobankIndexJobTests
             .ReturnsAsync(new Dictionary<string, int> { ["tag-a"] = 1, ["tag-b"] = 2 });
 
         _photoTagRepoMock
-            .Setup(r => r.GetOccupiedTagPairsAsync(It.IsAny<string?>(), It.IsAny<CancellationToken>()))
+            .Setup(r => r.GetOccupiedTagPairsByPhotosAsync(It.IsAny<IReadOnlyCollection<int>>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new HashSet<(int PhotoId, int TagId)>());
 
         var addedPhotoTags = new List<PhotoTag>();
@@ -1065,7 +1065,7 @@ public class PhotobankIndexJobTests
         // inserts, so it always returns false here — the fix must avoid relying on this check
         // to prevent the duplicate insert.
         _photoTagRepoMock
-            .Setup(r => r.GetOccupiedTagPairsAsync(It.IsAny<string?>(), It.IsAny<CancellationToken>()))
+            .Setup(r => r.GetOccupiedTagPairsByPhotosAsync(It.IsAny<IReadOnlyCollection<int>>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new HashSet<(int PhotoId, int TagId)>());
 
         _photoTagRepoMock
@@ -1104,8 +1104,10 @@ public class PhotobankIndexJobTests
         // Arrange — three distinct photos (distinct SharePointFileIds), each matching a rule,
         // in a single Graph delta batch. Before this fix, GetPhotoTagsByPhotoAndSourceAsync and
         // PhotoTagExistsAsync would each be called once per photo (and per matched tag). After
-        // the fix, GetPhotoTagsByPhotosAndSourceAsync and GetOccupiedTagPairsAsync must each be
-        // called exactly once for the whole batch, independent of the number of distinct photos.
+        // the fix, GetPhotoTagsByPhotosAndSourceAsync and GetOccupiedTagPairsByPhotosAsync must
+        // each be called exactly once for the whole batch, independent of the number of distinct
+        // photos, and GetOccupiedTagPairsByPhotosAsync's photoIds argument must be scoped to this
+        // batch (not the unscoped GetOccupiedTagPairsAsync, which would scan the whole table).
         var root = new PhotobankIndexRoot
         {
             Id = 1,
@@ -1168,7 +1170,7 @@ public class PhotobankIndexJobTests
             .ReturnsAsync(new Dictionary<string, int> { ["produkty"] = 42 });
 
         _photoTagRepoMock
-            .Setup(r => r.GetOccupiedTagPairsAsync(It.IsAny<string?>(), It.IsAny<CancellationToken>()))
+            .Setup(r => r.GetOccupiedTagPairsByPhotosAsync(It.IsAny<IReadOnlyCollection<int>>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new HashSet<(int PhotoId, int TagId)>());
 
         _photoTagRepoMock
@@ -1198,7 +1200,11 @@ public class PhotobankIndexJobTests
 
         // Assert — exactly one bulk call each, regardless of 3 distinct photos being processed.
         _photoTagRepoMock.Verify(r => r.GetPhotoTagsByPhotosAndSourceAsync(It.IsAny<IReadOnlyCollection<int>>(), PhotoTagSource.Rule, It.IsAny<CancellationToken>()), Times.Once);
-        _photoTagRepoMock.Verify(r => r.GetOccupiedTagPairsAsync(It.IsAny<string?>(), It.IsAny<CancellationToken>()), Times.Once);
+        // Must be the photo-ID-scoped overload (bounded by this batch's 3 photos), never the
+        // unscoped GetOccupiedTagPairsAsync — an unscoped call would re-scan the whole PhotoTags
+        // table on every batch instead of once per run (see arch-review.r1.md Decision 1).
+        _photoTagRepoMock.Verify(r => r.GetOccupiedTagPairsByPhotosAsync(It.Is<IReadOnlyCollection<int>>(ids => ids.Count == 3), It.IsAny<CancellationToken>()), Times.Once);
+        _photoTagRepoMock.Verify(r => r.GetOccupiedTagPairsAsync(It.IsAny<string?>(), It.IsAny<CancellationToken>()), Times.Never);
         _photoTagRepoMock.Verify(r => r.PhotoTagExistsAsync(It.IsAny<int>(), It.IsAny<int>(), It.IsAny<CancellationToken>()), Times.Never);
         _photoTagRepoMock.Verify(r => r.GetPhotoTagsByPhotoAndSourceAsync(It.IsAny<int>(), It.IsAny<PhotoTagSource>(), It.IsAny<CancellationToken>()), Times.Never);
         _photoTagRepoMock.Verify(r => r.AddPhotoTagAsync(It.IsAny<PhotoTag>(), It.IsAny<CancellationToken>()), Times.Exactly(3));
