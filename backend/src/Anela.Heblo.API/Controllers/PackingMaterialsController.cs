@@ -11,6 +11,7 @@ using Anela.Heblo.Application.Features.PackingMaterials.UseCases.GetPackingMater
 using Anela.Heblo.Application.Features.PackingMaterials.UseCases.GetPackingMaterialsList;
 using Anela.Heblo.Application.Features.PackingMaterials.UseCases.ProcessDailyConsumption;
 using Anela.Heblo.Application.Features.PackingMaterials.UseCases.UpdateAllocation;
+using Anela.Heblo.Application.Features.PackingMaterials.UseCases.UpdatePackingMaterial;
 using Anela.Heblo.Application.Features.PackingMaterials.UseCases.UpdatePackingMaterialQuantity;
 using Anela.Heblo.API.Infrastructure;
 using Anela.Heblo.Domain.Features.Authorization;
