@@ -46,9 +46,9 @@
     },
     {
       "name": "relocate-update-packing-material-quantity",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-09-15T05:16:58.764543Z"
+      "updated_at": "2026-09-15T05:23:21.485502Z"
     },
     {
       "name": "final-verification",
