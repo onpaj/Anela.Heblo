@@ -28,9 +28,9 @@
   "tasks": [
     {
       "name": "add-detail-handler-error-code-tests",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-09-15T01:18:00.832928Z"
+      "updated_at": "2026-09-15T02:15:22.593485Z"
     }
   ]
 }
