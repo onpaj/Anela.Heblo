@@ -40,9 +40,9 @@
     },
     {
       "name": "warm-cache-failure-tests",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-09-15T05:17:07.947038Z"
+      "updated_at": "2026-09-15T06:27:12.317958Z"
     }
   ]
 }
