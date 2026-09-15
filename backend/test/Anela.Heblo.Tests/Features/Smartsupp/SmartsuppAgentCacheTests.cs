@@ -95,4 +95,23 @@ public class SmartsuppAgentCacheTests
         first.Should().BeEquivalentTo(second);
         apiClient.Verify(c => c.GetAgentsAsync(It.IsAny<CancellationToken>()), Times.Once);
     }
+
+    [Fact]
+    public async Task GetAgentNamesAsync_ColdCacheApiThrows_ReturnsEmptyDictionaryWithoutThrowing()
+    {
+        // Arrange
+        var (factory, apiClient) = BuildScopeFactory();
+        apiClient.Setup(c => c.GetAgentsAsync(It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new HttpRequestException("Smartsupp API unavailable"));
+        var sut = CreateSut(factory.Object);
+
+        // Act
+        // If GetAgentNamesAsync rethrew instead of falling back, this await would throw and
+        // fail the test — so a passing test also proves FR-1's "must not throw" requirement.
+        var result = await sut.GetAgentNamesAsync();
+
+        // Assert
+        result.Should().NotBeNull();
+        result.Should().BeEmpty();
+    }
 }
