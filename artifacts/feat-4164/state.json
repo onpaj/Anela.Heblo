@@ -22,7 +22,7 @@
     },
     "developing": {
       "status": "in_progress",
-      "updated_at": "2026-09-15T04:16:18.553325Z"
+      "updated_at": "2026-09-15T05:16:58.602831Z"
     }
   },
   "tasks": [
@@ -46,9 +46,9 @@
     },
     {
       "name": "relocate-update-packing-material-quantity",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-09-15T05:16:58.764543Z"
     },
     {
       "name": "final-verification",
