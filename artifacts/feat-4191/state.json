@@ -34,9 +34,9 @@
     },
     {
       "name": "add-dedup-regression-tests-and-verify-suite",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-09-15T10:17:33.864313Z"
+      "updated_at": "2026-09-15T10:46:52.977595Z"
     }
   ]
 }
