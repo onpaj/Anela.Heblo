@@ -28,9 +28,9 @@
   "tasks": [
     {
       "name": "relocate-get-packing-materials-list",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-09-15T02:18:56.514111Z"
+      "updated_at": "2026-09-15T02:46:41.076721Z"
     },
     {
       "name": "relocate-create-packing-material",
