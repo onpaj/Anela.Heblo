@@ -21,16 +21,16 @@
       "updated_at": "2026-09-15T02:19:26.725797Z"
     },
     "developing": {
-      "status": "pending",
-      "updated_at": null
+      "status": "in_progress",
+      "updated_at": "2026-09-15T03:18:14.654570Z"
     }
   },
   "tasks": [
     {
       "name": "scaffold-cache-tests",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-09-15T03:18:14.813465Z"
     },
     {
       "name": "cold-cache-failure-test",
