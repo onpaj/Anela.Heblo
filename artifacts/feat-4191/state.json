@@ -22,7 +22,7 @@
     },
     "developing": {
       "status": "in_progress",
-      "updated_at": "2026-09-15T09:17:46.921106Z"
+      "updated_at": "2026-09-15T10:17:33.689710Z"
     }
   },
   "tasks": [
@@ -34,9 +34,9 @@
     },
     {
       "name": "add-dedup-regression-tests-and-verify-suite",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-09-15T10:17:33.864313Z"
     }
   ]
 }

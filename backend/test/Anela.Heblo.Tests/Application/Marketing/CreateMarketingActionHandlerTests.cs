@@ -191,6 +191,51 @@ public class CreateMarketingActionHandlerTests
     }
 
     [Fact]
+    public async Task Handle_DedupesProductsCaseInsensitively_WhenDuplicateCodesDifferOnlyByCase()
+    {
+        MarketingAction? capturedAction = null;
+        _repository
+            .Setup(x => x.AddAsync(It.IsAny<MarketingAction>(), It.IsAny<CancellationToken>()))
+            .Callback<MarketingAction, CancellationToken>((a, _) => capturedAction = a)
+            .ReturnsAsync((MarketingAction a, CancellationToken _) => a);
+
+        var request = BuildRequest();
+        request.AssociatedProducts = new List<string> { "abc", "ABC" };
+
+        var result = await BuildHandler().Handle(request, CancellationToken.None);
+
+        result.Success.Should().BeTrue();
+        capturedAction!.ProductAssociations.Should().HaveCount(1);
+        capturedAction.ProductAssociations.Single().ProductCodePrefix.Should().Be("ABC");
+    }
+
+    [Fact]
+    public async Task Handle_PersistsBothFolderLinks_WhenSameFolderKeyButDifferentFolderType()
+    {
+        MarketingAction? capturedAction = null;
+        _repository
+            .Setup(x => x.AddAsync(It.IsAny<MarketingAction>(), It.IsAny<CancellationToken>()))
+            .Callback<MarketingAction, CancellationToken>((a, _) => capturedAction = a)
+            .ReturnsAsync((MarketingAction a, CancellationToken _) => a);
+
+        var request = BuildRequest();
+        request.FolderLinks = new List<MarketingFolderLinkRequest>
+        {
+            new() { FolderKey = "key-1", FolderType = MarketingFolderType.General },
+            new() { FolderKey = "key-1", FolderType = MarketingFolderType.Campaign },
+        };
+
+        var result = await BuildHandler().Handle(request, CancellationToken.None);
+
+        result.Success.Should().BeTrue();
+        capturedAction!.FolderLinks.Should().HaveCount(2);
+        capturedAction.FolderLinks.Should().Contain(fl =>
+            fl.FolderKey == "key-1" && fl.FolderType == MarketingFolderType.General);
+        capturedAction.FolderLinks.Should().Contain(fl =>
+            fl.FolderKey == "key-1" && fl.FolderType == MarketingFolderType.Campaign);
+    }
+
+    [Fact]
     public async Task Handle_HonorsRuntimePushEnabledFlip_TrueToFalse()
     {
         var monitor = new TestOptionsMonitor<MarketingCalendarOptions>(
