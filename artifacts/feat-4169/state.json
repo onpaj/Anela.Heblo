@@ -28,9 +28,9 @@
   "tasks": [
     {
       "name": "scaffold-cache-tests",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-09-15T03:18:14.813465Z"
+      "updated_at": "2026-09-15T03:44:06.339768Z"
     },
     {
       "name": "cold-cache-failure-test",
