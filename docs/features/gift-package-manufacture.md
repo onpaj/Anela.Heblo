@@ -612,12 +612,15 @@ var setProducts = catalogData.Where(x => x.Type == ProductType.Set);
 
 // Get ingredient stock levels
 var ingredientProduct = await _catalogRepository.GetByIdAsync(part.ProductCode);
-var availableStock = ingredientProduct?.Stock.Available ?? 0;
+var warehouseStock = ingredientProduct?.Stock.WarehouseStock ?? 0;
 ```
 
 **Data Used**:
 - `ProductType.Set` - Identifies gift packages
-- `Stock.Available` - Current inventory
+- `Stock.WarehouseStock` - Inventory that can be picked from the warehouse. Ingredients use this,
+  **not** `Stock.Available`: `Available` also counts goods in transport and goods written down into
+  the manufacture warehouse, while consumption is booked against the warehouse. Counting them made
+  the screen show stock that could not be picked and drove the warehouse negative.
 - `Properties.StockMinSetup` - Minimum threshold
 - `Properties.OptimalStockDaysSetup` - Target coverage days
 - Sales history via `GetTotalSold(fromDate, toDate)`
@@ -822,9 +825,13 @@ if (product == null || product.Type != ProductType.Set)
 
 ### Stock Validation
 
-**Implementation**: `allowStockOverride` flag (passed to service, enforcement TBD)
+**Implementation**: `CreateManufactureAsync` rejects a run before opening the transaction when any
+ingredient's `WarehouseStock` does not cover what the run would consume, and when `quantity <= 0`.
+`allowStockOverride` skips the availability check (the quantity check always applies).
 
-**Future Enhancement**: Pre-check ingredient availability before creating manufacture log
+Failures surface as `InvalidOperationException` / `ArgumentException`, which
+`CreateGiftPackageManufactureHandler` maps to `ErrorCodes.InvalidOperation` / `ErrorCodes.InvalidValue`
+with the message in `Params["ErrorMessage"]` - the same envelope disassembly uses.
 
 ### Database Constraints
 
@@ -881,23 +888,7 @@ if (product == null || product.Type != ProductType.Set)
 
 ## Future Enhancements
 
-### 1. Stock Validation Enforcement
-
-**Current**: `allowStockOverride` flag exists but validation not enforced
-
-**Enhancement**:
-```csharp
-if (!allowStockOverride)
-{
-    var validation = await ValidateStockAvailability(giftPackageCode, quantity);
-    if (!validation.HasSufficientStock)
-    {
-        throw new InsufficientStockException(validation.Shortages);
-    }
-}
-```
-
-### 2. Batch Manufacturing
+### 1. Batch Manufacturing
 
 **Current**: Single gift package per operation
 
@@ -911,7 +902,7 @@ if (!allowStockOverride)
 }
 ```
 
-### 3. Predictive Analytics
+### 2. Predictive Analytics
 
 **Current**: Simple daily sales × optimal days
 
@@ -920,7 +911,7 @@ if (!allowStockOverride)
 - Machine learning models for demand prediction
 - Trend analysis (growing vs declining products)
 
-### 4. Manufacturing Scheduling
+### 3. Manufacturing Scheduling
 
 **Current**: On-demand manufacturing
 
@@ -929,7 +920,7 @@ if (!allowStockOverride)
 - Optimization algorithms (minimize ingredient waste)
 - Production calendar integration
 
-### 5. Quality Control
+### 4. Quality Control
 
 **Current**: No quality tracking
 

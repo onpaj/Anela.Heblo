@@ -15,7 +15,14 @@ public record StockData
 
     public StockSource PrimaryStockSource { get; set; } = StockSource.Erp;
 
-    public decimal Available => (PrimaryStockSource == StockSource.Erp ? Erp : Eshop) + Transport + Manufactured;
+    /// <summary>
+    /// Stock physically present in the selling warehouse - the e-shop figure for products sold
+    /// online, the ERP figure otherwise. Deliberately excludes goods still in transport and goods
+    /// written down into the manufacture warehouse: neither can be picked from the warehouse yet.
+    /// </summary>
+    public decimal WarehouseStock => PrimaryStockSource == StockSource.Erp ? Erp : Eshop;
+
+    public decimal Available => WarehouseStock + Transport + Manufactured;
 
     /// <summary>
     /// Total stock including both available stock and reserve stock
