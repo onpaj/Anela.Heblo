@@ -12,6 +12,7 @@ import {
 import { useGiftPackageDetail, useDisassembleGiftPackage } from "../../../api/hooks/useGiftPackageManufacturing";
 import { GiftPackage } from "./GiftPackageManufacturingList";
 import { toast } from "react-hot-toast";
+import { readApiErrorEnvelope } from "../../../api/apiErrorEnvelope";
 import DisassemblyTabContent from "./DisassemblyTabContent";
 
 interface GiftPackageManufacturingDetailProps {
@@ -100,8 +101,14 @@ const GiftPackageManufacturingDetail: React.FC<GiftPackageManufacturingDetailPro
     try {
       await onManufacture(quantity);
       onClose();
-    } catch (error) {
+    } catch (error: any) {
+      // The backend refuses a run that would take the warehouse negative. Without a toast the
+      // modal just sat there as if nothing had happened.
       console.error('Manufacturing error:', error);
+      const envelope = readApiErrorEnvelope(error);
+      toast.error(
+        envelope?.params?.['ErrorMessage'] || error?.message || 'Nepodařilo se zadat balíček k výrobě',
+      );
     }
   };
 

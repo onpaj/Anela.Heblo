@@ -1,4 +1,5 @@
 using Anela.Heblo.Application.Features.Logistics.UseCases.GiftPackageManufacture.Services;
+using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Domain.Features.Users;
 using MediatR;
 
@@ -20,16 +21,44 @@ public class CreateGiftPackageManufactureHandler : IRequestHandler<CreateGiftPac
     public async Task<CreateGiftPackageManufactureResponse> Handle(CreateGiftPackageManufactureRequest request, CancellationToken cancellationToken)
     {
         var user = _currentUserService.GetCurrentUser();
-        var manufacture = await _giftPackageService.CreateManufactureAsync(
-            request.GiftPackageCode,
-            request.Quantity,
-            request.AllowStockOverride,
-            user.Name ?? "System",
-            cancellationToken);
 
-        return new CreateGiftPackageManufactureResponse
+        try
         {
-            Manufacture = manufacture
-        };
+            var manufacture = await _giftPackageService.CreateManufactureAsync(
+                request.GiftPackageCode,
+                request.Quantity,
+                request.AllowStockOverride,
+                user.Name ?? "System",
+                cancellationToken);
+
+            return new CreateGiftPackageManufactureResponse
+            {
+                Manufacture = manufacture
+            };
+        }
+        catch (InvalidOperationException ex)
+        {
+            return new CreateGiftPackageManufactureResponse
+            {
+                Success = false,
+                ErrorCode = ErrorCodes.InvalidOperation,
+                Params = new Dictionary<string, string>
+                {
+                    { "ErrorMessage", ex.Message }
+                }
+            };
+        }
+        catch (ArgumentException ex)
+        {
+            return new CreateGiftPackageManufactureResponse
+            {
+                Success = false,
+                ErrorCode = ErrorCodes.InvalidValue,
+                Params = new Dictionary<string, string>
+                {
+                    { "ErrorMessage", ex.Message }
+                }
+            };
+        }
     }
 }

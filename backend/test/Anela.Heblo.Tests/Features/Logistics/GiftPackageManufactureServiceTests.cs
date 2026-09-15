@@ -131,8 +131,8 @@ public class GiftPackageManufactureServiceTests
             .Setup(x => x.GetCatalogItemsAsync(It.IsAny<IReadOnlyList<string>>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new Dictionary<string, LogisticsCatalogItem>
             {
-                ["ING001"] = new LogisticsCatalogItem { ProductCode = "ING001", AvailableStock = 100m },
-                ["ING002"] = new LogisticsCatalogItem { ProductCode = "ING002", AvailableStock = 75m },
+                ["ING001"] = new LogisticsCatalogItem { ProductCode = "ING001", WarehouseStock = 100m },
+                ["ING002"] = new LogisticsCatalogItem { ProductCode = "ING002", WarehouseStock = 75m },
             });
 
         // Act
@@ -189,8 +189,8 @@ public class GiftPackageManufactureServiceTests
             .Setup(x => x.GetCatalogItemsAsync(It.IsAny<IReadOnlyList<string>>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new Dictionary<string, LogisticsCatalogItem>
             {
-                ["ING001"] = new LogisticsCatalogItem { ProductCode = "ING001", AvailableStock = 100m },
-                ["ING002"] = new LogisticsCatalogItem { ProductCode = "ING002", AvailableStock = 75m },
+                ["ING001"] = new LogisticsCatalogItem { ProductCode = "ING001", WarehouseStock = 100m },
+                ["ING002"] = new LogisticsCatalogItem { ProductCode = "ING002", WarehouseStock = 75m },
             });
 
         var expectedManufactureDto = new GiftPackageManufactureDto
@@ -261,8 +261,8 @@ public class GiftPackageManufactureServiceTests
             .Setup(x => x.GetCatalogItemsAsync(It.IsAny<IReadOnlyList<string>>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new Dictionary<string, LogisticsCatalogItem>
             {
-                ["ING001"] = new LogisticsCatalogItem { ProductCode = "ING001", AvailableStock = 50m },
-                ["ING002"] = new LogisticsCatalogItem { ProductCode = "ING002", AvailableStock = 50m },
+                ["ING001"] = new LogisticsCatalogItem { ProductCode = "ING001", WarehouseStock = 50m },
+                ["ING002"] = new LogisticsCatalogItem { ProductCode = "ING002", WarehouseStock = 50m },
             });
 
         await _service.Invoking(x => x.DisassembleGiftPackageAsync(giftPackageCode, 999, "tester", CancellationToken.None))
@@ -347,7 +347,7 @@ public class GiftPackageManufactureServiceTests
             .ReturnsAsync((IReadOnlyList<string> codes, CancellationToken _) =>
                 (IReadOnlyDictionary<string, LogisticsCatalogItem>)codes.ToDictionary(
                     code => code,
-                    code => new LogisticsCatalogItem { ProductCode = code, AvailableStock = 50m }));
+                    code => new LogisticsCatalogItem { ProductCode = code, WarehouseStock = 50m }));
 
         // Act
         var result = await _service.GetGiftPackageDetailAsync(giftPackageCode, 1.0m, customFromDate, customToDate);
@@ -376,7 +376,7 @@ public class GiftPackageManufactureServiceTests
             .ReturnsAsync((IReadOnlyList<string> codes, CancellationToken _) =>
                 (IReadOnlyDictionary<string, LogisticsCatalogItem>)codes.ToDictionary(
                     code => code,
-                    code => new LogisticsCatalogItem { ProductCode = code, AvailableStock = 50m }));
+                    code => new LogisticsCatalogItem { ProductCode = code, WarehouseStock = 50m }));
 
         // Act
         var result = await _service.GetGiftPackageDetailAsync(giftPackageCode);
@@ -456,5 +456,132 @@ public class GiftPackageManufactureServiceTests
             new ProductPart { ProductCode = "ING001", ProductName = "Ingredient 1", Amount = 2.0 },
             new ProductPart { ProductCode = "ING002", ProductName = "Ingredient 2", Amount = 1.5 }
         };
+    }
+
+    [Fact]
+    public async Task GetGiftPackageDetailAsync_ReportsIngredientWarehouseStockNotAvailableStock()
+    {
+        // Arrange - ING001 has 184 pcs in the warehouse and 165 pcs sitting in the manufacture
+        // warehouse; only the 184 can actually be consumed by a gift package.
+        var giftPackageCode = "SET001";
+        ArrangeGiftPackage(giftPackageCode, warehouseStockByCode: new Dictionary<string, decimal>
+        {
+            ["ING001"] = 184m,
+            ["ING002"] = 580m,
+        });
+
+        // Act
+        var result = await _service.GetGiftPackageDetailAsync(giftPackageCode, 1.0m, null, null, CancellationToken.None);
+
+        // Assert
+        result.Ingredients.Should().NotBeNull();
+        result.Ingredients!.Single(i => i.ProductCode == "ING001").AvailableStock.Should().Be(184d);
+    }
+
+    [Fact]
+    public async Task CreateManufactureAsync_WithInsufficientWarehouseStock_ThrowsBeforeAnyStockOperation()
+    {
+        // Arrange - ING001 needs 2 per package, so 100 packages need 200 but only 184 are in stock.
+        var giftPackageCode = "SET001";
+        ArrangeGiftPackage(giftPackageCode, warehouseStockByCode: new Dictionary<string, decimal>
+        {
+            ["ING001"] = 184m,
+            ["ING002"] = 580m,
+        });
+
+        // Act
+        var act = () => _service.CreateManufactureAsync(giftPackageCode, 100, allowStockOverride: false, "tester", CancellationToken.None);
+
+        // Assert
+        var exception = await act.Should().ThrowAsync<InvalidOperationException>();
+        exception.Which.Message.Should().Contain("ING001");
+
+        _stockOperationServiceMock.Verify(
+            x => x.CreateOperationAsync(
+                It.IsAny<string>(), It.IsAny<string>(), It.IsAny<int>(),
+                It.IsAny<LogisticsStockOperationSource>(), It.IsAny<int>(), It.IsAny<CancellationToken>()),
+            Times.Never);
+        _giftPackageRepositoryMock.Verify(
+            x => x.AddAsync(It.IsAny<GiftPackageManufactureLog>(), It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
+
+    [Fact]
+    public async Task CreateManufactureAsync_WithSufficientWarehouseStock_CreatesStockOperations()
+    {
+        // Arrange - 50 packages need 100 of ING001 and 75 of ING002; both are covered.
+        var giftPackageCode = "SET001";
+        ArrangeGiftPackage(giftPackageCode, warehouseStockByCode: new Dictionary<string, decimal>
+        {
+            ["ING001"] = 184m,
+            ["ING002"] = 580m,
+        });
+
+        // Act
+        await _service.CreateManufactureAsync(giftPackageCode, 50, allowStockOverride: false, "tester", CancellationToken.None);
+
+        // Assert - two ingredient consumptions plus the package production
+        _stockOperationServiceMock.Verify(
+            x => x.CreateOperationAsync(
+                It.IsAny<string>(), It.IsAny<string>(), It.IsAny<int>(),
+                It.IsAny<LogisticsStockOperationSource>(), It.IsAny<int>(), It.IsAny<CancellationToken>()),
+            Times.Exactly(3));
+    }
+
+    [Fact]
+    public async Task CreateManufactureAsync_WithStockOverride_ProceedsDespiteInsufficientStock()
+    {
+        // Arrange
+        var giftPackageCode = "SET001";
+        ArrangeGiftPackage(giftPackageCode, warehouseStockByCode: new Dictionary<string, decimal>
+        {
+            ["ING001"] = 184m,
+            ["ING002"] = 580m,
+        });
+
+        // Act
+        await _service.CreateManufactureAsync(giftPackageCode, 100, allowStockOverride: true, "tester", CancellationToken.None);
+
+        // Assert
+        _stockOperationServiceMock.Verify(
+            x => x.CreateOperationAsync(
+                It.IsAny<string>(), It.IsAny<string>(), It.IsAny<int>(),
+                It.IsAny<LogisticsStockOperationSource>(), It.IsAny<int>(), It.IsAny<CancellationToken>()),
+            Times.Exactly(3));
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(-1)]
+    public async Task CreateManufactureAsync_WithNonPositiveQuantity_ThrowsArgumentException(int quantity)
+    {
+        // Arrange
+        var giftPackageCode = "SET001";
+        ArrangeGiftPackage(giftPackageCode, warehouseStockByCode: new Dictionary<string, decimal>
+        {
+            ["ING001"] = 184m,
+            ["ING002"] = 580m,
+        });
+
+        // Act
+        var act = () => _service.CreateManufactureAsync(giftPackageCode, quantity, allowStockOverride: false, "tester", CancellationToken.None);
+
+        // Assert
+        await act.Should().ThrowAsync<ArgumentException>();
+    }
+
+    private void ArrangeGiftPackage(string giftPackageCode, Dictionary<string, decimal> warehouseStockByCode)
+    {
+        _catalogSourceMock
+            .Setup(x => x.GetGiftPackageAsync(giftPackageCode, It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(CreateGiftPackageItem(giftPackageCode, "Test Gift Set 1", 100, 50));
+        _manufactureClientMock
+            .Setup(x => x.GetSetPartsAsync(giftPackageCode, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(CreateTestProductParts());
+        _catalogSourceMock
+            .Setup(x => x.GetCatalogItemsAsync(It.IsAny<IReadOnlyList<string>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(warehouseStockByCode.ToDictionary(
+                kv => kv.Key,
+                kv => new LogisticsCatalogItem { ProductCode = kv.Key, WarehouseStock = kv.Value }));
     }
 }
