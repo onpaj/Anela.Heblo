@@ -114,4 +114,61 @@ public class SmartsuppAgentCacheTests
         result.Should().NotBeNull();
         result.Should().BeEmpty();
     }
+
+    [Fact]
+    public async Task GetAgentNamesAsync_WarmCacheThenApiThrows_ReturnsStaleDictionary()
+    {
+        // Arrange
+        var (factory, apiClient) = BuildScopeFactory();
+        var agents = new List<SmartsuppAgentData>
+        {
+            new() { Id = "agent-1", Name = "Jana Novakova" },
+            new() { Id = "agent-2", Name = null },
+        };
+        apiClient.SetupSequence(c => c.GetAgentsAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(agents)
+            .ThrowsAsync(new HttpRequestException("Smartsupp API unavailable"));
+        var sut = CreateSut(factory.Object);
+
+        // Act
+        var first = await sut.GetAgentNamesAsync();
+        ExpireCache(sut); // bypass the TTL fast-path so the next call re-enters the refresh/catch path
+        var second = await sut.GetAgentNamesAsync();
+
+        // Assert
+        second.Should().BeEquivalentTo(first);
+        second.Should().NotBeEmpty();
+        apiClient.Verify(c => c.GetAgentsAsync(It.IsAny<CancellationToken>()), Times.Exactly(2));
+    }
+
+    [Fact]
+    public async Task GetAgentNamesAsync_RepeatedFailuresAfterWarmSuccess_KeepsReturningOriginalStaleDictionary()
+    {
+        // Arrange
+        var (factory, apiClient) = BuildScopeFactory();
+        var agents = new List<SmartsuppAgentData>
+        {
+            new() { Id = "agent-1", Name = "Jana Novakova" },
+        };
+        apiClient.SetupSequence(c => c.GetAgentsAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(agents)
+            .ThrowsAsync(new HttpRequestException("Smartsupp API unavailable"))
+            .ThrowsAsync(new HttpRequestException("Smartsupp API unavailable"));
+        var sut = CreateSut(factory.Object);
+
+        // Act
+        var first = await sut.GetAgentNamesAsync();
+
+        ExpireCache(sut);
+        var second = await sut.GetAgentNamesAsync();
+
+        ExpireCache(sut);
+        var third = await sut.GetAgentNamesAsync();
+
+        // Assert: every failed refresh keeps returning the one-and-only successful payload —
+        // a failed refresh never clears _cache or advances _cachedAt.
+        second.Should().BeEquivalentTo(first);
+        third.Should().BeEquivalentTo(first);
+        apiClient.Verify(c => c.GetAgentsAsync(It.IsAny<CancellationToken>()), Times.Exactly(3));
+    }
 }
