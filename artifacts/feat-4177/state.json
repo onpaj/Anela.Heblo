@@ -22,7 +22,7 @@
     },
     "developing": {
       "status": "in_progress",
-      "updated_at": "2026-09-15T05:17:30.059908Z"
+      "updated_at": "2026-09-15T06:18:00.629372Z"
     }
   },
   "tasks": [
@@ -40,9 +40,9 @@
     },
     {
       "name": "fr2-no-last-execution-test",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-09-15T06:18:00.846437Z"
     },
     {
       "name": "fr3-happy-path-test",

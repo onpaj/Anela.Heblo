@@ -62,4 +62,27 @@ public class GetTaskStatusHandlerTests
         response.Status.Should().BeNull();
         registry.Verify(r => r.GetLastExecution(It.IsAny<string>()), Times.Never());
     }
+
+    // FR-2: task registered but never executed returns Found = true, Status.LastExecution = null,
+    // with pass-through fields mapped from the registered configuration.
+    [Fact]
+    public async Task Handle_ReturnsFoundWithNullLastExecution_WhenTaskRegisteredButNeverExecuted()
+    {
+        var (sut, registry) = MakeSut();
+        var refreshInterval = TimeSpan.FromMinutes(30);
+        registry.Setup(r => r.GetRegisteredTasks()).Returns(new List<RefreshTaskConfiguration>
+        {
+            MakeTaskConfig(taskId: "task-a", enabled: true, refreshInterval: refreshInterval),
+        });
+        registry.Setup(r => r.GetLastExecution("task-a")).Returns((RefreshTaskExecutionLog?)null);
+
+        var response = await sut.Handle(new GetTaskStatusRequest { TaskId = "task-a" }, default);
+
+        response.Found.Should().BeTrue();
+        response.Status.Should().NotBeNull();
+        response.Status!.LastExecution.Should().BeNull();
+        response.Status.TaskId.Should().Be("task-a");
+        response.Status.Enabled.Should().BeTrue();
+        response.Status.RefreshInterval.Should().Be(refreshInterval);
+    }
 }
