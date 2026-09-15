@@ -40,9 +40,9 @@
     },
     {
       "name": "full-validation-and-cleanup",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-09-15T09:17:19.518089Z"
+      "updated_at": "2026-09-15T09:28:13.307100Z"
     }
   ]
 }
