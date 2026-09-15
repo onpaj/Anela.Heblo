@@ -28,9 +28,9 @@
   "tasks": [
     {
       "name": "replace-loops-with-bulk-replace-calls",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-09-15T09:17:47.271006Z"
+      "updated_at": "2026-09-15T09:20:48.060284Z"
     },
     {
       "name": "add-dedup-regression-tests-and-verify-suite",
