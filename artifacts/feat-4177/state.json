@@ -28,9 +28,9 @@
   "tasks": [
     {
       "name": "setup-test-file",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-09-15T04:16:34.223218Z"
+      "updated_at": "2026-09-15T04:20:53.467678Z"
     },
     {
       "name": "fr1-not-found-test",
