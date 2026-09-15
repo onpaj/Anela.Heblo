@@ -1,0 +1,40 @@
+{
+  "feature_id": "feat-4172",
+  "issue_number": 4172,
+  "created_at": "2026-09-14T12:13:31.593024Z",
+  "max_revisions": 3,
+  "phases": {
+    "analyzing": {
+      "status": "completed",
+      "updated_at": "2026-09-14T12:14:53.547621Z"
+    },
+    "architecting": {
+      "status": "completed",
+      "updated_at": "2026-09-14T12:15:42.314123Z"
+    },
+    "designing": {
+      "status": "completed",
+      "updated_at": "2026-09-14T12:16:09.376282Z"
+    },
+    "planning": {
+      "status": "completed",
+      "updated_at": "2026-09-14T12:16:58.774120Z"
+    },
+    "developing": {
+      "status": "in_progress",
+      "updated_at": "2026-09-14T13:18:42.600398Z"
+    },
+    "code-review": {
+      "status": "completed",
+      "updated_at": "2026-09-14T20:17:28.982406Z"
+    }
+  },
+  "tasks": [
+    {
+      "name": "add-purchase-orders-in-transit-tile-format-tests",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-09-14T13:57:24.052024Z"
+    }
+  ]
+}
