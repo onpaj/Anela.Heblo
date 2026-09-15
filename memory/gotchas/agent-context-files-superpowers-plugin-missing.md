@@ -32,3 +32,16 @@ session start, the same way it has repeatedly reverted the `gh_api.sh` Content-T
 fix (see `memory/gotchas/gh-cli-unavailable-in-cloud-sessions.md`). If this regresses
 again, the permanent fix belongs upstream in `onpaj/harness`, not just in this repo's
 checked-in copy.
+
+**Recurred (2026-09-15, issue #4177, PR #4194):** exactly as predicted — commit
+`d7584a3` ("chore: update skill paths and fix gh_api check-run deduplication",
+applied by session-start-hook) reverted `.agents/planner.md`'s `context_files` back
+to the broken plugin-cache glob, on top of an earlier revert at `340f5b1`. This is
+now at least the third revert/refix cycle for this exact line. This time, rather than
+re-landing another same-shaped repo-local PR (which the hook will just revert again
+next session), the fix was applied *only* to the local worktree's uncommitted working
+copy — enough to unblock the `planner` phase for this one planning run — and
+deliberately **not** committed anywhere. The permanent fix still belongs upstream in
+`onpaj/harness`'s `agentharness init` template; until that lands, expect this to keep
+costing one wasted `analyst`→`architect`→`designer` cycle's worth of LLM calls (the
+planner always fails last) every time a session starts fresh after a hook run.

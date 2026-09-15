@@ -355,6 +355,24 @@ _Update this file at the end of significant sessions._
   `agent-planning` to `agent-ready-for-dev`. See
   `memory/gotchas/agent-context-files-superpowers-plugin-missing.md`.
 
+- `GetTaskStatusHandler` coverage-gap tests planned via the real AgentHarness pipeline
+  (issue #4177, PR #4194, `feature/4177-Coverage-Gap-Backgroundrefresh-Gettaskstatushandle`,
+  2026-09-15): scheduled `/plan-next-task` run picked up a **stale-reclaim** (branch
+  existed, no PR yet, no `state.json` at all — an earlier claim never actually ran
+  planning). `gh` CLI auth was invalid but `gh_api.sh`'s own token path worked fine
+  (`USE_GH_API=1`), so the full worktree pipeline ran. Hit the same
+  `.agents/planner.md` `context_files` plugin-cache-glob bug as #4155/PR #4162 — the
+  session-start-hook's `agentharness init --force` had reverted that fix again on
+  `main` (commit `d7584a3`). This time, rather than re-landing another repo PR the hook
+  will just revert again, patched the file locally in the worktree only (uncommitted)
+  to unblock this one run. Planning completed end-to-end: 4 tasks
+  (`setup-test-file`, `fr1-not-found-test`, `fr2-no-last-execution-test`,
+  `fr3-happy-path-test`), draft PR #4194 opened with `agent` label, issue swapped to
+  `agent-ready-for-dev`. See
+  `memory/gotchas/agent-context-files-superpowers-plugin-missing.md` for the
+  recurrence note — this is the third revert/refix cycle for this exact bug; the real
+  fix belongs upstream in `onpaj/harness`.
+
 ## Pending / Known Issues
 
 - Memory directory (issue #405): adding cross-session knowledge accumulation — this PR
