@@ -179,6 +179,50 @@ public class PhotobankRepositoryReapplyPrimitivesTests : IDisposable
     }
 
     [Fact]
+    public async System.Threading.Tasks.Task GetPhotoTagsByPhotosAndSourceAsync_multiplePhotos_returnsOnlyMatchingSourceGroupedByPhotoId()
+    {
+        // Arrange
+        _context.Photos.AddRange(
+            new Photo { Id = 1, SharePointFileId = "sp-1", FileName = "a.jpg", FolderPath = "P", ModifiedAt = DateTime.UtcNow },
+            new Photo { Id = 2, SharePointFileId = "sp-2", FileName = "b.jpg", FolderPath = "P", ModifiedAt = DateTime.UtcNow },
+            new Photo { Id = 3, SharePointFileId = "sp-3", FileName = "c.jpg", FolderPath = "P", ModifiedAt = DateTime.UtcNow });
+        _context.PhotobankTags.AddRange(
+            new Tag { Id = 10, Name = "products" },
+            new Tag { Id = 11, Name = "events" },
+            new Tag { Id = 12, Name = "manualtag" });
+        _context.PhotoTags.AddRange(
+            new PhotoTag { PhotoId = 1, TagId = 10, Source = PhotoTagSource.Rule, CreatedAt = DateTime.UtcNow },
+            new PhotoTag { PhotoId = 1, TagId = 11, Source = PhotoTagSource.Rule, CreatedAt = DateTime.UtcNow },
+            new PhotoTag { PhotoId = 2, TagId = 10, Source = PhotoTagSource.Rule, CreatedAt = DateTime.UtcNow },
+            new PhotoTag { PhotoId = 2, TagId = 12, Source = PhotoTagSource.Manual, CreatedAt = DateTime.UtcNow },
+            // Photo 3 has no Rule tags at all, and is NOT in the requested photoIds set below.
+            new PhotoTag { PhotoId = 3, TagId = 10, Source = PhotoTagSource.Rule, CreatedAt = DateTime.UtcNow });
+        await _context.SaveChangesAsync(CancellationToken.None);
+
+        // Act — only ask for photos 1 and 2; photo 3's Rule tag must not leak in even though
+        // it matches the source filter, because it is outside the requested photo-ID set.
+        var result = await _photoTagRepository.GetPhotoTagsByPhotosAndSourceAsync(
+            new[] { 1, 2 }, PhotoTagSource.Rule, CancellationToken.None);
+
+        // Assert
+        result.Should().HaveCount(2);
+        result[1].Select(pt => pt.TagId).Should().BeEquivalentTo(new[] { 10, 11 });
+        result[2].Select(pt => pt.TagId).Should().BeEquivalentTo(new[] { 10 }); // Manual tag excluded
+        result.Should().NotContainKey(3);
+    }
+
+    [Fact]
+    public async System.Threading.Tasks.Task GetPhotoTagsByPhotosAndSourceAsync_emptyPhotoIds_returnsEmptyDictionaryWithoutQuerying()
+    {
+        // Act
+        var result = await _photoTagRepository.GetPhotoTagsByPhotosAndSourceAsync(
+            Array.Empty<int>(), PhotoTagSource.Rule, CancellationToken.None);
+
+        // Assert
+        result.Should().BeEmpty();
+    }
+
+    [Fact]
     public async System.Threading.Tasks.Task AddPhotoTagsAsync_stagesRows_persistedAfterSave()
     {
         // Arrange

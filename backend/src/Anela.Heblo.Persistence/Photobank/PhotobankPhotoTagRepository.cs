@@ -74,6 +74,21 @@ public class PhotobankPhotoTagRepository : IPhotobankPhotoTagRepository
             .ToListAsync(cancellationToken);
     }
 
+    public async Task<IReadOnlyDictionary<int, List<PhotoTag>>> GetPhotoTagsByPhotosAndSourceAsync(
+        IReadOnlyCollection<int> photoIds, PhotoTagSource source, CancellationToken cancellationToken)
+    {
+        if (photoIds.Count == 0)
+            return new Dictionary<int, List<PhotoTag>>();
+
+        var rows = await _context.PhotoTags
+            .Where(pt => photoIds.Contains(pt.PhotoId) && pt.Source == source)
+            .ToListAsync(cancellationToken);
+
+        return rows
+            .GroupBy(pt => pt.PhotoId)
+            .ToDictionary(g => g.Key, g => g.ToList());
+    }
+
     public Task RemovePhotoTagsAsync(IEnumerable<PhotoTag> photoTags, CancellationToken cancellationToken)
     {
         _context.PhotoTags.RemoveRange(photoTags);
