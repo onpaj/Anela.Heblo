@@ -34,9 +34,9 @@
     },
     {
       "name": "switch-handler-to-reschedule",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-09-15T12:19:04.140495Z"
+      "updated_at": "2026-09-15T20:16:14.514904Z"
     }
   ]
 }
