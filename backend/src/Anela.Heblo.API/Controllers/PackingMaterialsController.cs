@@ -1,6 +1,7 @@
 using Anela.Heblo.Application.Features.PackingMaterials.Contracts;
 using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Application.Features.PackingMaterials.UseCases.CreateAllocation;
+using Anela.Heblo.Application.Features.PackingMaterials.UseCases.CreatePackingMaterial;
 using Anela.Heblo.Application.Features.PackingMaterials.UseCases.DeleteAllocation;
 using Anela.Heblo.Application.Features.PackingMaterials.UseCases.DeletePackingMaterial;
 using Anela.Heblo.Application.Features.PackingMaterials.UseCases.GetAllocations;
