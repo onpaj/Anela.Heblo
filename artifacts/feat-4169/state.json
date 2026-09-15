@@ -34,9 +34,9 @@
     },
     {
       "name": "cold-cache-failure-test",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-09-15T04:16:16.978847Z"
+      "updated_at": "2026-09-15T04:52:43.166324Z"
     },
     {
       "name": "warm-cache-failure-tests",
