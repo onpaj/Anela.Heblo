@@ -1,10 +1,10 @@
-using Anela.Heblo.Domain.Features.InvoiceClassification;
+using Anela.Heblo.Domain.Features.Analytics;
 using Microsoft.Extensions.Caching.Memory;
 using IDepartmentClient = Rem.FlexiBeeSDK.Client.Clients.Accounting.Departments.IDepartmentClient;
 
 namespace Anela.Heblo.Adapters.Flexi.Accounting.Departments;
 
-public class FlexiDepartmentClient : Domain.Features.InvoiceClassification.IDepartmentClient
+public class FlexiDepartmentClient : Domain.Features.Analytics.IDepartmentClient
 {
     private readonly IDepartmentClient _client;
     private readonly IMemoryCache _cache;
