@@ -40,9 +40,9 @@
     },
     {
       "name": "fr2-no-last-execution-test",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-09-15T06:18:00.846437Z"
+      "updated_at": "2026-09-15T06:36:38.460828Z"
     },
     {
       "name": "fr3-happy-path-test",
