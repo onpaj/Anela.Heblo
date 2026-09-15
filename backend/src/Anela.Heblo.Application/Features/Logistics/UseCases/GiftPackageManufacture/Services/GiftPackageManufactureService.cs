@@ -142,7 +142,7 @@ public class GiftPackageManufactureService : IGiftPackageManufactureService, IGi
     {
         if (quantity <= 0)
         {
-            throw new ArgumentException("Množství musí být větší než 0", nameof(quantity));
+            throw new ArgumentOutOfRangeException(nameof(quantity), quantity, "Množství musí být větší než 0");
         }
 
         // Fetch BOM/ingredient detail BEFORE opening the transaction: this calls out to
@@ -231,6 +231,12 @@ public class GiftPackageManufactureService : IGiftPackageManufactureService, IGi
     /// Refuses a run that would consume more than the warehouse holds. The frontend greys out the
     /// button, but that check alone loses to a stale page, a double submit or a direct API call -
     /// and the resulting stock-down operations take the warehouse negative.
+    /// <para>
+    /// Best effort, not a lock: stock is read from the catalog cache before the transaction opens
+    /// and nothing re-validates inside it, so two concurrent runs draining the same ingredient can
+    /// both pass. Closing that needs a compare-and-decrement on the authoritative stock source,
+    /// which the stock-up ledger does not offer today.
+    /// </para>
     /// </summary>
     private static void EnsureIngredientsAreInStock(GiftPackageDto giftPackage, int quantity)
     {
@@ -253,7 +259,7 @@ public class GiftPackageManufactureService : IGiftPackageManufactureService, IGi
         var detail = string.Join("; ", shortages.Select(
             x => $"{x.ProductName} ({x.ProductCode}): potřeba {x.Required} ks, skladem {x.Available:0.##} ks"));
 
-        throw new InvalidOperationException(
+        throw new InsufficientStockException(
             $"Nelze vyrobit {quantity} ks - nedostatek zásob na skladě. {detail}");
     }
 
