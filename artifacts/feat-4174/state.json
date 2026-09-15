@@ -1,0 +1,64 @@
+{
+  "feature_id": "feat-4174",
+  "issue_number": 4174,
+  "created_at": "2026-09-14T20:11:52.314590Z",
+  "max_revisions": 3,
+  "phases": {
+    "analyzing": {
+      "status": "completed",
+      "updated_at": "2026-09-14T20:13:41.459277Z"
+    },
+    "architecting": {
+      "status": "completed",
+      "updated_at": "2026-09-14T20:14:44.443900Z"
+    },
+    "designing": {
+      "status": "completed",
+      "updated_at": "2026-09-14T20:15:14.553204Z"
+    },
+    "planning": {
+      "status": "completed",
+      "updated_at": "2026-09-14T20:17:06.182883Z"
+    },
+    "developing": {
+      "status": "in_progress",
+      "updated_at": "2026-09-15T01:17:26.795219Z"
+    },
+    "code-review": {
+      "status": "completed",
+      "updated_at": "2026-09-15T02:19:58.459158Z"
+    }
+  },
+  "tasks": [
+    {
+      "name": "scaffold-and-has-override-test",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-09-14T21:46:29.036070Z"
+    },
+    {
+      "name": "no-override-test",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-09-14T22:40:00.162643Z"
+    },
+    {
+      "name": "case-mismatch-test",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-09-14T23:40:08.209639Z"
+    },
+    {
+      "name": "baseline-fields-test",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-09-15T00:35:05.579746Z"
+    },
+    {
+      "name": "full-validation",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-09-15T01:41:48.670471Z"
+    }
+  ]
+}
