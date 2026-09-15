@@ -21,16 +21,16 @@
       "updated_at": "2026-09-15T08:18:42.712177Z"
     },
     "developing": {
-      "status": "pending",
-      "updated_at": null
+      "status": "in_progress",
+      "updated_at": "2026-09-15T09:17:46.921106Z"
     }
   },
   "tasks": [
     {
       "name": "replace-loops-with-bulk-replace-calls",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-09-15T09:17:47.271006Z"
     },
     {
       "name": "add-dedup-regression-tests-and-verify-suite",
