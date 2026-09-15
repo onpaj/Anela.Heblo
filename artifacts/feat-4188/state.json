@@ -21,16 +21,16 @@
       "updated_at": "2026-09-15T06:25:10.526992Z"
     },
     "developing": {
-      "status": "pending",
-      "updated_at": null
+      "status": "in_progress",
+      "updated_at": "2026-09-15T07:19:01.413209Z"
     }
   },
   "tasks": [
     {
       "name": "add-bulk-tag-lookup-repository-method",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-09-15T07:19:01.754618Z"
     },
     {
       "name": "refactor-upsertphotobatch-tag-reconciliation",
