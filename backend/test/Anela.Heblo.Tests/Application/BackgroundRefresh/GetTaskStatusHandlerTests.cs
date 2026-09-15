@@ -44,4 +44,22 @@ public class GetTaskStatusHandlerTests
             ErrorMessage = errorMessage,
             Metadata = metadata,
         };
+
+    // FR-1: task not present in the registry returns Found = false, Status = null,
+    // and never calls GetLastExecution.
+    [Fact]
+    public async Task Handle_ReturnsNotFound_WhenTaskIdIsNotRegistered()
+    {
+        var (sut, registry) = MakeSut();
+        registry.Setup(r => r.GetRegisteredTasks()).Returns(new List<RefreshTaskConfiguration>
+        {
+            MakeTaskConfig(taskId: "other-task"),
+        });
+
+        var response = await sut.Handle(new GetTaskStatusRequest { TaskId = "missing-task" }, default);
+
+        response.Found.Should().BeFalse();
+        response.Status.Should().BeNull();
+        registry.Verify(r => r.GetLastExecution(It.IsAny<string>()), Times.Never());
+    }
 }
