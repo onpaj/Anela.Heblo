@@ -1,6 +1,6 @@
 using MediatR;
 
-namespace Anela.Heblo.Application.Features.PackingMaterials.Contracts;
+namespace Anela.Heblo.Application.Features.PackingMaterials.UseCases.UpdatePackingMaterialQuantity;
 
 public class UpdatePackingMaterialQuantityRequest : IRequest<UpdatePackingMaterialQuantityResponse>
 {
