@@ -21,16 +21,16 @@
       "updated_at": "2026-09-15T01:18:11.073595Z"
     },
     "developing": {
-      "status": "pending",
-      "updated_at": null
+      "status": "in_progress",
+      "updated_at": "2026-09-15T02:18:56.318261Z"
     }
   },
   "tasks": [
     {
       "name": "relocate-get-packing-materials-list",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-09-15T02:18:56.514111Z"
     },
     {
       "name": "relocate-create-packing-material",

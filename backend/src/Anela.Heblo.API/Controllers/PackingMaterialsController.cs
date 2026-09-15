@@ -7,6 +7,7 @@ using Anela.Heblo.Application.Features.PackingMaterials.UseCases.GetAllocations;
 using Anela.Heblo.Application.Features.PackingMaterials.UseCases.GetConsumptionHistory;
 using Anela.Heblo.Application.Features.PackingMaterials.UseCases.GetDailyConsumptionBreakdown;
 using Anela.Heblo.Application.Features.PackingMaterials.UseCases.GetPackingMaterialLogs;
+using Anela.Heblo.Application.Features.PackingMaterials.UseCases.GetPackingMaterialsList;
 using Anela.Heblo.Application.Features.PackingMaterials.UseCases.ProcessDailyConsumption;
 using Anela.Heblo.Application.Features.PackingMaterials.UseCases.UpdateAllocation;
 using Anela.Heblo.Application.Features.PackingMaterials.UseCases.UpdatePackingMaterialQuantity;
