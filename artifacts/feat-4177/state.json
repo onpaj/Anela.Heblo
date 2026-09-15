@@ -46,9 +46,9 @@
     },
     {
       "name": "fr3-happy-path-test",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-09-15T07:18:26.404204Z"
+      "updated_at": "2026-09-15T08:01:00.642520Z"
     }
   ]
 }
