@@ -28,9 +28,9 @@
   "tasks": [
     {
       "name": "add-bulk-tag-lookup-repository-method",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-09-15T07:19:01.754618Z"
+      "updated_at": "2026-09-15T07:37:27.979688Z"
     },
     {
       "name": "refactor-upsertphotobatch-tag-reconciliation",
