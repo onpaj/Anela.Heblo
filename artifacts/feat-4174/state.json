@@ -46,9 +46,9 @@
     },
     {
       "name": "baseline-fields-test",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-09-15T00:15:05.993527Z"
+      "updated_at": "2026-09-15T00:35:05.579746Z"
     },
     {
       "name": "full-validation",
