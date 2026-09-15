@@ -84,4 +84,20 @@ public class ListFlagsHandlerTests
         dto.UpdatedBy.Should().BeNull();
         dto.UpdatedAt.Should().BeNull();
     }
+
+    [Fact]
+    public async Task Handle_AlwaysReturnsOneDtoPerRegisteredFlag_WithFieldsCopiedFromDefinition()
+    {
+        _repoMock.Setup(r => r.GetAllAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<FeatureFlagOverride>());
+
+        var response = await CreateHandler().Handle(new ListFlagsRequest(), CancellationToken.None);
+
+        response.Flags.Should().HaveCount(FeatureFlagRegistry.All.Count);
+
+        var definition = FeatureFlagRegistry.ByKey[FeatureFlagKeys.LabelPrintingEnabled];
+        var dto = response.Flags.Single(f => f.Key == FeatureFlagKeys.LabelPrintingEnabled);
+        dto.Description.Should().Be(definition.Description);
+        dto.DefaultValue.Should().Be(definition.DefaultValue);
+    }
 }
