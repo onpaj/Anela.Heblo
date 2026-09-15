@@ -25,5 +25,24 @@
       "updated_at": null
     }
   },
-  "tasks": []
+  "tasks": [
+    {
+      "name": "scaffold-cache-tests",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    },
+    {
+      "name": "cold-cache-failure-test",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    },
+    {
+      "name": "warm-cache-failure-tests",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    }
+  ]
 }
