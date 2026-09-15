@@ -493,8 +493,10 @@ public class GiftPackageManufactureServiceTests
         var act = () => _service.CreateManufactureAsync(giftPackageCode, 100, allowStockOverride: false, "tester", CancellationToken.None);
 
         // Assert
-        var exception = await act.Should().ThrowAsync<InvalidOperationException>();
+        var exception = await act.Should().ThrowAsync<InsufficientStockException>();
         exception.Which.Message.Should().Contain("ING001");
+        exception.Which.Message.Should().NotContain("ING002",
+            "ING002 has 580 pcs against the 150 the run needs - only genuine shortages belong in the message");
 
         _stockOperationServiceMock.Verify(
             x => x.CreateOperationAsync(
@@ -551,11 +553,14 @@ public class GiftPackageManufactureServiceTests
     }
 
     [Theory]
-    [InlineData(0)]
-    [InlineData(-1)]
-    public async Task CreateManufactureAsync_WithNonPositiveQuantity_ThrowsArgumentException(int quantity)
+    [InlineData(0, false)]
+    [InlineData(-1, false)]
+    [InlineData(0, true)]
+    [InlineData(-1, true)]
+    public async Task CreateManufactureAsync_WithNonPositiveQuantity_ThrowsArgumentException(int quantity, bool allowStockOverride)
     {
-        // Arrange
+        // Arrange - the quantity guard applies even under allowStockOverride, which only waives
+        // the availability check.
         var giftPackageCode = "SET001";
         ArrangeGiftPackage(giftPackageCode, warehouseStockByCode: new Dictionary<string, decimal>
         {
@@ -564,10 +569,15 @@ public class GiftPackageManufactureServiceTests
         });
 
         // Act
-        var act = () => _service.CreateManufactureAsync(giftPackageCode, quantity, allowStockOverride: false, "tester", CancellationToken.None);
+        var act = () => _service.CreateManufactureAsync(giftPackageCode, quantity, allowStockOverride, "tester", CancellationToken.None);
 
         // Assert
-        await act.Should().ThrowAsync<ArgumentException>();
+        await act.Should().ThrowAsync<ArgumentOutOfRangeException>();
+        _stockOperationServiceMock.Verify(
+            x => x.CreateOperationAsync(
+                It.IsAny<string>(), It.IsAny<string>(), It.IsAny<int>(),
+                It.IsAny<LogisticsStockOperationSource>(), It.IsAny<int>(), It.IsAny<CancellationToken>()),
+            Times.Never);
     }
 
     private void ArrangeGiftPackage(string giftPackageCode, Dictionary<string, decimal> warehouseStockByCode)

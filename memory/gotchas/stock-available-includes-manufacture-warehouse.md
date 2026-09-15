@@ -8,7 +8,7 @@ package drove the warehouse negative.
 
 ## Root cause
 `StockData.Available` (`backend/src/Anela.Heblo.Domain/Features/Catalog/Stock/StockData.cs`) is a
-**four-way sum**, and two of its parts are not in the warehouse:
+**three-way sum**, and two of its three terms are not in the warehouse:
 
 ```
 Available = WarehouseStock (Erp or Eshop, per PrimaryStockSource) + Transport + Manufactured
