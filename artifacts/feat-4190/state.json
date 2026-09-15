@@ -21,16 +21,16 @@
       "updated_at": "2026-09-15T10:14:42.448984Z"
     },
     "developing": {
-      "status": "pending",
-      "updated_at": null
+      "status": "in_progress",
+      "updated_at": "2026-09-15T11:17:29.186344Z"
     }
   },
   "tasks": [
     {
       "name": "add-reschedule-domain-method",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-09-15T11:17:29.530798Z"
     },
     {
       "name": "switch-handler-to-reschedule",
