@@ -85,4 +85,40 @@ public class GetTaskStatusHandlerTests
         response.Status.Enabled.Should().BeTrue();
         response.Status.RefreshInterval.Should().Be(refreshInterval);
     }
+
+    // FR-3: happy path -- task registered with a last execution maps every LastExecution field
+    // from the source log, including Status.ToString() and the computed Duration.
+    [Fact]
+    public async Task Handle_ReturnsFoundWithMappedLastExecution_WhenTaskHasExecuted()
+    {
+        var (sut, registry) = MakeSut();
+        var startedAt = new DateTime(2026, 1, 1, 9, 0, 0, DateTimeKind.Utc);
+        var completedAt = new DateTime(2026, 1, 1, 9, 5, 0, DateTimeKind.Utc);
+        var metadata = new Dictionary<string, object> { ["rows"] = 42 };
+        registry.Setup(r => r.GetRegisteredTasks()).Returns(new List<RefreshTaskConfiguration>
+        {
+            MakeTaskConfig(taskId: "task-a", enabled: true),
+        });
+        registry.Setup(r => r.GetLastExecution("task-a")).Returns(MakeExecutionLog(
+            taskId: "task-a",
+            startedAt: startedAt,
+            completedAt: completedAt,
+            status: RefreshTaskExecutionStatus.Failed,
+            errorMessage: "boom",
+            metadata: metadata));
+
+        var response = await sut.Handle(new GetTaskStatusRequest { TaskId = "task-a" }, default);
+
+        response.Found.Should().BeTrue();
+        response.Status.Should().NotBeNull();
+        var lastExecution = response.Status!.LastExecution;
+        lastExecution.Should().NotBeNull();
+        lastExecution!.TaskId.Should().Be("task-a");
+        lastExecution.StartedAt.Should().Be(startedAt);
+        lastExecution.CompletedAt.Should().Be(completedAt);
+        lastExecution.Status.Should().Be(RefreshTaskExecutionStatus.Failed.ToString());
+        lastExecution.ErrorMessage.Should().Be("boom");
+        lastExecution.Duration.Should().Be(completedAt - startedAt);
+        lastExecution.Metadata.Should().BeEquivalentTo(metadata);
+    }
 }
