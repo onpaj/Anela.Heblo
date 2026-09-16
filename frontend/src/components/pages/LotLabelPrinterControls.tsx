@@ -143,6 +143,9 @@ function LotLabelPrinterControls({
               type="button"
               onClick={() => handleNudge(direction, speed)}
               disabled={isBusy}
+              // Keeps the accessible name to the observation itself; the label-count
+              // hint stays visible but is not read out as part of the button's name.
+              aria-label={label}
               className="flex items-center gap-2 px-3 py-2 text-left bg-white dark:bg-graphite-surface-2 border border-gray-300 dark:border-graphite-border rounded-md hover:bg-gray-50 dark:hover:bg-white/5 focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-50"
             >
               <Icon className="h-5 w-5 shrink-0 text-indigo-600 dark:text-graphite-accent" />
