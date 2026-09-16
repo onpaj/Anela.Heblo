@@ -137,6 +137,22 @@ public class StockAnalysisCalculator : IStockAnalysisCalculator
         return descending ? sorted.Reverse().ToList() : sorted.ToList();
     }
 
+    public StockAnalysisSummaryDto CalculateSummary(List<StockAnalysisItemDto> items, DateTime fromDate, DateTime toDate)
+    {
+        return new StockAnalysisSummaryDto
+        {
+            TotalProducts = items.Count,
+            CriticalCount = items.Count(i => i.Severity == StockSeverity.Critical),
+            LowStockCount = items.Count(i => i.Severity == StockSeverity.Low),
+            OptimalCount = items.Count(i => i.Severity == StockSeverity.Optimal),
+            OverstockedCount = items.Count(i => i.Severity == StockSeverity.Overstocked),
+            NotConfiguredCount = items.Count(i => i.Severity == StockSeverity.NotConfigured),
+            TotalInventoryValue = items.Sum(i => (decimal)i.EffectiveStock * (i.LastPurchase?.UnitPrice ?? 0)),
+            AnalysisPeriodStart = fromDate,
+            AnalysisPeriodEnd = toDate
+        };
+    }
+
     private bool ShouldIncludeItem(StockAnalysisItemDto item, GetPurchaseStockAnalysisRequest request)
     {
         if (request.OnlyConfigured && !item.IsConfigured)

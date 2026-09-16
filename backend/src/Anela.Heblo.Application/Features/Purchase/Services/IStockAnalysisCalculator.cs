@@ -53,4 +53,13 @@ public interface IStockAnalysisCalculator
     /// <param name="descending">Whether to reverse the ascending order</param>
     /// <returns>The sorted item list</returns>
     List<StockAnalysisItemDto> SortItems(List<StockAnalysisItemDto> items, StockAnalysisSortBy sortBy, bool descending);
+
+    /// <summary>
+    /// Calculates severity counts and total inventory value across the given (unfiltered) item set.
+    /// </summary>
+    /// <param name="items">The full analyzed item set — callers must pass the unfiltered list, not a status/search-filtered subset</param>
+    /// <param name="fromDate">Start of the analysis period, echoed into the summary</param>
+    /// <param name="toDate">End of the analysis period, echoed into the summary</param>
+    /// <returns>The computed summary</returns>
+    StockAnalysisSummaryDto CalculateSummary(List<StockAnalysisItemDto> items, DateTime fromDate, DateTime toDate);
 }

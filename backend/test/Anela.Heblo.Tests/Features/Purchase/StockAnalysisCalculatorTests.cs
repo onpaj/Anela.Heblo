@@ -407,4 +407,59 @@ public class StockAnalysisCalculatorTests
 
         result.Select(i => i.ProductCode).Should().ContainInOrder("B", "A");
     }
+
+    private static StockAnalysisItemDto MakeSummaryItem(StockSeverity severity, double effectiveStock, double? unitPrice) =>
+        new()
+        {
+            ProductCode = "MAT",
+            ProductName = "Test",
+            ProductNameNormalized = "test",
+            ProductType = "Material",
+            Severity = severity,
+            EffectiveStock = effectiveStock,
+            LastPurchase = unitPrice.HasValue
+                ? new LastPurchaseInfoDto { Date = DateTime.UtcNow, SupplierName = "Acme", Amount = 1, UnitPrice = (decimal)unitPrice.Value, TotalPrice = 1 }
+                : null,
+        };
+
+    [Fact]
+    public void CalculateSummary_CountsEachSeverityBucket()
+    {
+        var items = new List<StockAnalysisItemDto>
+        {
+            MakeSummaryItem(StockSeverity.Critical, 1, 1),
+            MakeSummaryItem(StockSeverity.Critical, 1, 1),
+            MakeSummaryItem(StockSeverity.Low, 1, 1),
+            MakeSummaryItem(StockSeverity.Optimal, 1, 1),
+            MakeSummaryItem(StockSeverity.Overstocked, 1, 1),
+            MakeSummaryItem(StockSeverity.NotConfigured, 1, 1),
+        };
+        var from = new DateTime(2024, 1, 1);
+        var to = new DateTime(2024, 1, 31);
+
+        var summary = _calculator.CalculateSummary(items, from, to);
+
+        summary.TotalProducts.Should().Be(6);
+        summary.CriticalCount.Should().Be(2);
+        summary.LowStockCount.Should().Be(1);
+        summary.OptimalCount.Should().Be(1);
+        summary.OverstockedCount.Should().Be(1);
+        summary.NotConfiguredCount.Should().Be(1);
+        summary.AnalysisPeriodStart.Should().Be(from);
+        summary.AnalysisPeriodEnd.Should().Be(to);
+    }
+
+    [Fact]
+    public void CalculateSummary_TotalInventoryValue_MissingLastPurchaseTreatedAsZeroUnitPrice()
+    {
+        var items = new List<StockAnalysisItemDto>
+        {
+            MakeSummaryItem(StockSeverity.Optimal, effectiveStock: 10, unitPrice: 5),   // 10 * 5 = 50
+            MakeSummaryItem(StockSeverity.Optimal, effectiveStock: 10, unitPrice: null), // 10 * 0 = 0
+        };
+
+        var summary = _calculator.CalculateSummary(items, DateTime.UtcNow, DateTime.UtcNow);
+
+        summary.TotalInventoryValue.Should().Be(50m);
+    }
 }
