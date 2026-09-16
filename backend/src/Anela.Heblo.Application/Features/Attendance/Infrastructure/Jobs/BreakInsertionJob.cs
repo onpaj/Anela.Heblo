@@ -16,7 +16,8 @@ public class BreakInsertionJob : IRecurringJob
         JobName = "logeto-break-insertion",
         DisplayName = "Logeto — insert missing lunch breaks",
         Description = "Walks each opted-in worker's days in Logeto (Výkaz práce) and inserts a 30-minute " +
-                      "break into any ≥6h working day that has none, splitting the work record via merge=true.",
+                      "break into any ≥6h working day that has none, splitting the work record via " +
+                      "merge=true and touching the result so phones pick the change up.",
         CronExpression = "0 3 * * *",
         DefaultIsEnabled = false
     };

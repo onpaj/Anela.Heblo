@@ -166,3 +166,79 @@ all tagged `"SPIKE TEST"` in their description) were deleted via
 1. Task 5, `appsettings.json` snippet: change `"ApiTimesAreUtc": true` → `"ApiTimesAreUtc": false`.
 2. Task 7, `BreakInsertionOptions.cs`: change `ApiTimesAreUtc` default from `true` → `false`.
 3. Task 5, `BreakActivityName` default: confirm `"Oběd"` (lunch) is the intended activity vs. the generic `"Přestávka"` — resolve with user before/during Task 5.
+
+## Finding 4 (2026-09-16): merge=true does not bump the rewritten record's Revision — merge is no longer used
+
+Finding 1 above is correct about *what* `merge=true` produces, but incomplete about
+*how*. When the split rewrites the surviving original work record (advancing its
+`From` past the break), Logeto does **not** bump that record's `Revision` or
+`TimestampChanged`. Only the newly created records get fresh ones.
+
+Verified against the live account over a 45-day window — on **128 of 128**
+auto-break days:
+
+- the work segment starting at the break's end had a `Revision` **lower** than the
+  break's, and
+- its `TimestampChanged` **predated** the break's `TimestampCreated` (it was the
+  worker's own clock-out time, hours before the 03:00 job run).
+
+The stored data is correct — 0 overlapping records across 666 entries. The damage
+is to clients that sync incrementally: the **Logeto mobile app** picks up the new
+break (fresh revision) but never refetches the rewritten work record, so the
+employee sees the pre-split full-day record *next to* the new break — a collision
+that exists only on their device. The web app and any device that had not cached
+the day beforehand render it correctly, which makes it look like a data bug when
+it is not.
+
+**Consequence for this codebase:** `BreakInsertionService` still uses `merge=true`
+— the split stays a single atomic server-side operation — and then *touches* the
+records it produced: it re-reads the day and PUTs each work record adjacent to the
+break back unchanged, which bumps its `Revision`. The same touch runs against days
+that already carry a break whose neighbouring work records still have a `Revision`
+below the break's, so days split before this behaviour existed are healed on the
+next run that sees them.
+
+Two things that made this safe, both confirmed against the live API:
+
+- `GET /swagger/v2/swagger.json` → `TimeTrackingRequest` is
+  `TimesheetRequestBase` + `Date` + `Billable` with `additionalProperties: false`.
+  The writable set is exactly `CustomFields, Person, From, To, Hours, Activity,
+  Contract, Subcontract, Description, ExternalKey, Date, Billable`.
+  `Location`, `EndLocation`, `CostRate`, `BillingRate`, `CostPrice` and
+  `BillingPrice` are **response-only**, so a full-replacement PUT cannot wipe the
+  GPS locations that mobile-entered work records carry.
+- `GET /TimeTracking/CustomFields` and `/CustomFieldsList` → 0 items, so there are
+  no custom fields to preserve either.
+
+## Finding 5 (2026-09-16): every PUT bumps Revision, including a no-op; no write ever moves TimestampChanged
+
+Measured on a throwaway record (created on a future date, then deleted):
+
+| operation | Revision | TimestampChanged |
+|---|---|---|
+| baseline, once settled | 46219 | 13:18:23 |
+| PUT with identical values | **46220** | unchanged |
+| PUT with a real change (`To` −5 min) | **46221** | unchanged |
+
+Two things follow. A **no-op PUT is enough** to refresh a record for syncing
+clients — nothing needs to be altered to make one look changed. And
+`TimestampChanged` is useless as a sync signal from our side: no API write moves
+it, so any fix can only ever change `Revision`.
+
+A freshly created record briefly reports `Revision: -1` before its real revision
+is assigned, so code must not compare against the revision of a record it just
+created — the break's own revision is not yet meaningful at that moment.
+
+Confirmed on real data (Olga Petrová, 2026-09-07 and 2026-09-08, with the user's
+authorisation): touching the stale records moved **only** `Revision`
+(45609 → 46223, 45686 → 46224, 45690 → 46225). Every other field — `From`, `To`,
+`Hours`, `Description`, `Billable`, `PersonChanged`, `TimestampCreated`,
+`TimestampChanged` — came back byte-identical. `Hours` survived even though the
+request omits it. The employee's app then showed the day correctly without
+logging out, which is what confirmed the whole mechanism.
+
+**Still not verified live:** that a PUT against a work record which actually
+carries `Location`/`EndLocation` leaves them intact. The request contract says it
+must, and the records touched so far all had `Location: null`. 88 of the 127
+records still awaiting a backfill touch do carry GPS data, so this needs one
+single-record check before any bulk run.
