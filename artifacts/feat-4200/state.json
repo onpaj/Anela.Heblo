@@ -40,9 +40,9 @@
     },
     {
       "name": "extract-sortitems",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-09-16T09:16:54.895748Z"
+      "updated_at": "2026-09-16T09:50:14.439597Z"
     },
     {
       "name": "extract-calculatesummary",
