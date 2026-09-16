@@ -5,6 +5,7 @@ import {
   usePrintLotLabels,
   usePrintLotCalibrationLabel,
   useFeedLotMedia,
+  useNudgeLotLabelCalibration,
 } from "../../api/hooks/useMaterialContainers";
 import PrinterMediaChangeDialog from "../dialogs/PrinterMediaChangeDialog";
 import LotLabelCalibrationTab from "./LotLabelCalibrationTab";
@@ -67,10 +68,15 @@ function LotLabelPrintModal({
   const printLotLabels = usePrintLotLabels();
   const printCalibration = usePrintLotCalibrationLabel();
   const feedMedia = useFeedLotMedia();
+  // Owned here rather than in the printer controls so the whole modal can honour its
+  // pending state: the batch print consumes the calibration being written, and closing
+  // or switching tabs mid-write would unmount the controls and drop the outcome.
+  const nudgeCalibration = useNudgeLotLabelCalibration();
   const isPrinting =
     printLotLabels.isPending ||
     printCalibration.isPending ||
     feedMedia.isPending;
+  const isBusy = isPrinting || nudgeCalibration.isPending;
 
   useEffect(() => {
     if (isOpen) {
@@ -176,7 +182,7 @@ function LotLabelPrintModal({
           <button
             type="button"
             onClick={onClose}
-            disabled={isPrinting}
+            disabled={isBusy}
             className="text-gray-400 dark:text-graphite-faint hover:text-gray-600 dark:hover:text-graphite-muted transition-colors"
             aria-label="Zavřít"
           >
@@ -193,7 +199,8 @@ function LotLabelPrintModal({
               key={tab.id}
               type="button"
               onClick={() => setActiveTab(tab.id)}
-              className={`py-3 -mb-px border-b-2 text-sm font-medium transition-colors ${
+              disabled={isBusy}
+              className={`py-3 -mb-px border-b-2 text-sm font-medium transition-colors disabled:opacity-50 ${
                 activeTab === tab.id
                   ? "border-indigo-600 text-indigo-600 dark:border-graphite-accent dark:text-graphite-accent"
                   : "border-transparent text-gray-500 dark:text-graphite-muted hover:text-gray-700 dark:hover:text-graphite-text"
@@ -228,7 +235,7 @@ function LotLabelPrintModal({
                   maxLength={8}
                   className="w-full px-3 py-2 border border-gray-300 dark:border-graphite-border rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:bg-graphite-surface-2 dark:text-graphite-text dark:placeholder-graphite-faint"
                   placeholder="např. 2926"
-                  disabled={isPrinting}
+                  disabled={isBusy}
                 />
               </div>
 
@@ -245,7 +252,7 @@ function LotLabelPrintModal({
                   value={expirationMonth}
                   onChange={(e) => setExpirationMonth(e.target.value)}
                   className="w-full px-3 py-2 border border-gray-300 dark:border-graphite-border rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:bg-graphite-surface-2 dark:text-graphite-text"
-                  disabled={isPrinting}
+                  disabled={isBusy}
                 />
                 {expiration && (
                   <p className="text-xs text-gray-500 dark:text-graphite-muted mt-1">
@@ -269,12 +276,13 @@ function LotLabelPrintModal({
                   value={count}
                   onChange={(e) => setCount(Number(e.target.value))}
                   className="w-full px-3 py-2 border border-gray-300 dark:border-graphite-border rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:bg-graphite-surface-2 dark:text-graphite-text"
-                  disabled={isPrinting}
+                  disabled={isBusy}
                 />
               </div>
 
               <LotLabelPrinterControls
-                isPrinting={isPrinting}
+                isBusy={isBusy}
+                nudgeCalibration={nudgeCalibration}
                 onTestPrint={handleTestPrint}
                 onFeed={handleFeed}
                 onError={setError}
@@ -294,7 +302,7 @@ function LotLabelPrintModal({
             <button
               type="button"
               onClick={onClose}
-              disabled={isPrinting}
+              disabled={isBusy}
               className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-graphite-muted bg-white dark:bg-graphite-surface-2 border border-gray-300 dark:border-graphite-border rounded-md hover:bg-gray-50 dark:hover:bg-white/5 focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-50"
             >
               Zrušit
@@ -302,7 +310,7 @@ function LotLabelPrintModal({
             {activeTab === "print" && (
               <button
                 type="submit"
-                disabled={!isValid || isPrinting}
+                disabled={!isValid || isBusy}
                 className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 border border-transparent rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-50 flex items-center"
               >
                 {printLotLabels.isPending ? (

@@ -574,5 +574,28 @@ describe("LotLabelPrintModal", () => {
       expect(screen.getByRole("button", { name: /Nahoru rychle/i })).toBeDisabled();
       expect(screen.getByRole("button", { name: /Dolů pomalu/i })).toBeDisabled();
     });
+
+    it("blocks printing, closing and tab switching while an adjustment is in flight", () => {
+      // The batch print is the one action that consumes the calibration being written;
+      // printing before the write lands would report on a batch with the old pitch.
+      // Closing or switching tabs unmounts the wizard and drops its outcome handlers.
+      (mockHooks.useNudgeLotLabelCalibration as jest.Mock) = jest
+        .fn()
+        .mockReturnValue({ mutate: mockNudgeCalibration, isPending: true });
+
+      render(
+        <LotLabelPrintModal
+          isOpen={true}
+          onClose={jest.fn()}
+          initialLotNumber="2926"
+          initialExpirationMonth="2027-06"
+        />,
+      );
+
+      expect(screen.getByRole("button", { name: /^Vytisknout/i })).toBeDisabled();
+      expect(screen.getByRole("button", { name: /Zrušit/i })).toBeDisabled();
+      expect(screen.getByRole("button", { name: /Zavřít/i })).toBeDisabled();
+      expect(screen.getByRole("button", { name: /Kalibrace/i })).toBeDisabled();
+    });
   });
 });

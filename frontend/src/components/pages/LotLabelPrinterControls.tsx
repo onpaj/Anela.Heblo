@@ -52,9 +52,11 @@ const DRIFT_OPTIONS = [
 ] as const;
 
 interface LotLabelPrinterControlsProps {
-  // A print or media feed started by the parent is in flight; those actions route through
-  // the media-change confirmation dialog, so the parent owns them.
-  isPrinting: boolean;
+  // A print, media feed or nudge is in flight anywhere in the modal. The parent owns all
+  // of them: prints route through the media-change dialog, and the nudge must also block
+  // the batch print that would otherwise consume a calibration still being written.
+  isBusy: boolean;
+  nudgeCalibration: ReturnType<typeof useNudgeLotLabelCalibration>;
   onTestPrint: () => void;
   onFeed: (dots: number) => void;
   // Reported into the modal's shared error banner rather than rendered twice.
@@ -69,7 +71,8 @@ interface LotLabelPrinterControlsProps {
  * accepts an observation rather than a value.
  */
 function LotLabelPrinterControls({
-  isPrinting,
+  isBusy,
+  nudgeCalibration,
   onTestPrint,
   onFeed,
   onError,
@@ -80,8 +83,6 @@ function LotLabelPrinterControls({
   const [nudgeOutcome, setNudgeOutcome] = useState<"adjusted" | "at-limit" | null>(
     null,
   );
-
-  const nudgeCalibration = useNudgeLotLabelCalibration();
 
   // Reports the observed drift; the server turns it into a pitch correction and saves it.
   const handleNudge = (
@@ -100,10 +101,6 @@ function LotLabelPrinterControls({
       },
     );
   };
-
-  // One busy state for the whole panel: a nudge is a database write the media buttons
-  // would otherwise race, and a half-disabled panel reads as broken.
-  const isBusy = isPrinting || nudgeCalibration.isPending;
 
   return (
     <div className="mb-6 pt-4 border-t border-gray-200 dark:border-graphite-border">
