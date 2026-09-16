@@ -34,9 +34,9 @@
     },
     {
       "name": "extract-filteritems",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-09-16T08:17:04.547066Z"
+      "updated_at": "2026-09-16T08:37:30.429839Z"
     },
     {
       "name": "extract-sortitems",
