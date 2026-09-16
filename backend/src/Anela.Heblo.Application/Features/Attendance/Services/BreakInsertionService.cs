@@ -92,18 +92,20 @@ public class BreakInsertionService
                 {
                     summary.Failed++;
                     _logger.LogError(ex,
-                        "Failed to insert break for person {PersonGuid} on {Date}", person.Guid, day.Key);
+                        "Failed to process day {Date} for person {PersonGuid}", day.Key, person.Guid);
                 }
             }
         }
 
         _logger.LogInformation(
             "Break insertion finished: {Scanned} days scanned, {Inserted} breaks inserted, " +
-            "{Touched} records touched, {ExistingBreak} had a break, {InProgress} in progress, " +
-            "{BelowThreshold} below threshold, {HoursOnly} hours-only, {NoSlot} no slot, {Failed} failed",
-            summary.DaysScanned, summary.BreaksInserted, summary.RecordsTouched,
-            summary.SkippedExistingBreak, summary.SkippedInProgress, summary.SkippedBelowThreshold,
-            summary.SkippedHoursOnly, summary.SkippedNoSlot, summary.Failed);
+            "{Healed} stale days healed, {Touched} records touched ({TouchFailed} days failed to " +
+            "touch), {ExistingBreak} already fine, {InProgress} in progress, {BelowThreshold} below " +
+            "threshold, {HoursOnly} hours-only, {NoSlot} no slot, {Failed} failed",
+            summary.DaysScanned, summary.BreaksInserted, summary.DaysHealed, summary.RecordsTouched,
+            summary.TouchFailed, summary.SkippedExistingBreak, summary.SkippedInProgress,
+            summary.SkippedBelowThreshold, summary.SkippedHoursOnly, summary.SkippedNoSlot,
+            summary.Failed);
 
         return summary;
     }
@@ -160,17 +162,30 @@ public class BreakInsertionService
                 .Where(e => e.ExternalKey == AutoBreakExternalKey(person.Guid, date))
                 .ToList();
 
-            var healed = await TouchSplitRecordsAsync(
-                person, date, dayEntries, ownBreaks, typeByActivity,
-                onlyStaleRevisions: true, options, cancellationToken);
+            try
+            {
+                var healed = await TouchSplitRecordsAsync(
+                    person, date, dayEntries, ownBreaks, typeByActivity,
+                    onlyStaleRevisions: true, options, summary, cancellationToken);
 
-            if (healed > 0)
-            {
-                summary.RecordsTouched += healed;
+                // Day-level buckets stay mutually exclusive so they reconcile against DaysScanned;
+                // RecordsTouched counts records and is deliberately a different unit.
+                if (healed > 0)
+                {
+                    summary.DaysHealed++;
+                }
+                else
+                {
+                    summary.SkippedExistingBreak++;
+                }
             }
-            else
+            catch (Exception ex)
             {
-                summary.SkippedExistingBreak++;
+                summary.TouchFailed++;
+                _logger.LogError(ex,
+                    "Failed to refresh the Revision of the work records around the break on {Date} " +
+                    "for person {PersonGuid}. The day stays stale and is retried on the next run.",
+                    date, person.Guid);
             }
 
             return;
@@ -255,27 +270,40 @@ public class BreakInsertionService
 
         // ...but it does not bump the Revision of the record it rewrote in place, so phones never
         // refetch it. Re-read the day and touch the split's output to force a fresh Revision.
-        var afterSplit = (await _client.GetTimeTrackingAsync(date, date, cancellationToken))
-            .Where(e => e.Person == person.Guid && e.Date == date)
-            .ToList();
-
-        var breaksAfterSplit = afterSplit
-            .Where(e => typeByActivity.GetValueOrDefault(e.Activity) == LogetoActivityTypes.Break)
-            .ToList();
-
-        // A record created moments ago may not have its Revision assigned yet, so the freshly split
-        // records are touched unconditionally rather than compared against the break's Revision.
-        var touched = await TouchSplitRecordsAsync(
-            person, date, afterSplit, breaksAfterSplit, typeByActivity,
-            onlyStaleRevisions: false, options, cancellationToken);
-
-        summary.RecordsTouched += touched;
-
-        if (touched == 0)
+        //
+        // The break itself is already written, so a failure from here on must not be reported as a
+        // failed insert: the day is merely left stale, and the healing path picks it up next run.
+        try
         {
-            _logger.LogWarning(
-                "Break was inserted for person {PersonGuid} on {Date} but no work record adjacent to it " +
-                "was found to touch — phones may keep showing the pre-split day until the next run.",
+            var afterSplit = (await _client.GetTimeTrackingAsync(date, date, cancellationToken))
+                .Where(e => e.Person == person.Guid && e.Date == date)
+                .ToList();
+
+            var breaksAfterSplit = afterSplit
+                .Where(e => typeByActivity.GetValueOrDefault(e.Activity) == LogetoActivityTypes.Break)
+                .ToList();
+
+            // A record created moments ago briefly reports Revision -1 before its real revision is
+            // assigned, so the freshly split records are touched unconditionally rather than
+            // compared against the break's revision, which is not yet meaningful.
+            var touched = await TouchSplitRecordsAsync(
+                person, date, afterSplit, breaksAfterSplit, typeByActivity,
+                onlyStaleRevisions: false, options, summary, cancellationToken);
+
+            if (touched == 0)
+            {
+                _logger.LogWarning(
+                    "Break was inserted for person {PersonGuid} on {Date} but no work record adjacent to it " +
+                    "was found to touch — phones may keep showing the pre-split day until the next run.",
+                    person.Guid, date);
+            }
+        }
+        catch (Exception ex)
+        {
+            summary.TouchFailed++;
+            _logger.LogError(ex,
+                "Break was inserted for person {PersonGuid} on {Date}, but refreshing the Revision of " +
+                "the split's work records failed. The day stays stale until a later run heals it.",
                 person.Guid, date);
         }
     }
@@ -294,6 +322,7 @@ public class BreakInsertionService
         IReadOnlyDictionary<Guid, string> typeByActivity,
         bool onlyStaleRevisions,
         BreakInsertionOptions options,
+        BreakInsertionSummary summary,
         CancellationToken cancellationToken)
     {
         var workEntries = dayEntries
@@ -326,7 +355,11 @@ public class BreakInsertionService
         {
             await _client.UpdateTimeEntryAsync(
                 work.Guid, BuildTouchRequest(work, options), cancellationToken);
+
+            // Counted at the write itself: if a later write in this loop throws, the ones that
+            // already landed must still show up in the summary.
             touched++;
+            summary.RecordsTouched++;
 
             _logger.LogInformation(
                 "Touched work record {EntryGuid} ({From}–{To}) for person {PersonGuid} on {Date} " +
@@ -367,7 +400,6 @@ public class BreakInsertionService
             Contract = source.Contract,
             Subcontract = source.Subcontract
         };
-
 }
 
 public class BreakInsertionSummary
@@ -375,8 +407,14 @@ public class BreakInsertionSummary
     public int DaysScanned { get; set; }
     public int BreaksInserted { get; set; }
 
+    /// <summary>Days that already carried our break but whose split was never made visible.</summary>
+    public int DaysHealed { get; set; }
+
     /// <summary>Work records written back unchanged so their Revision refreshes for syncing clients.</summary>
     public int RecordsTouched { get; set; }
+
+    /// <summary>Days whose break is in place but whose Revision refresh failed; retried next run.</summary>
+    public int TouchFailed { get; set; }
 
     public int SkippedExistingBreak { get; set; }
     public int SkippedInProgress { get; set; }

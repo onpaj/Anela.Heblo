@@ -30,7 +30,9 @@ public class RunBreakInsertionHandler : IRequestHandler<RunBreakInsertionRequest
         {
             DaysScanned = summary.DaysScanned,
             BreaksInserted = summary.BreaksInserted,
+            DaysHealed = summary.DaysHealed,
             RecordsTouched = summary.RecordsTouched,
+            TouchFailed = summary.TouchFailed,
             SkippedExistingBreak = summary.SkippedExistingBreak,
             SkippedInProgress = summary.SkippedInProgress,
             SkippedBelowThreshold = summary.SkippedBelowThreshold,

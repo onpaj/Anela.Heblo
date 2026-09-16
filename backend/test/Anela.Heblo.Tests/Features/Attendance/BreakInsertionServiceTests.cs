@@ -563,6 +563,31 @@ public class BreakInsertionServiceTests
             To = new DateTimeOffset(2026, 8, 3, toHour, toMin, 0, TimeSpan.Zero)
         };
 
+    private static LogetoTimeEntry WorkEntryOnRev(
+        DateOnly date, int fromHour, int fromMin, int toHour, int toMin, int revision) => new()
+        {
+            Guid = Guid.NewGuid(),
+            Person = Worker,
+            Date = date,
+            Activity = WorkActivity,
+            Revision = revision,
+            From = new DateTimeOffset(date.Year, date.Month, date.Day, fromHour, fromMin, 0, TimeSpan.Zero),
+            To = new DateTimeOffset(date.Year, date.Month, date.Day, toHour, toMin, 0, TimeSpan.Zero)
+        };
+
+    private static LogetoTimeEntry BreakEntryOnRev(
+        DateOnly date, int fromHour, int fromMin, int toHour, int toMin, int revision) => new()
+        {
+            Guid = Guid.NewGuid(),
+            Person = Worker,
+            Date = date,
+            Activity = BreakActivity,
+            Revision = revision,
+            ExternalKey = $"autobreak-{Worker}-{date:yyyy-MM-dd}",
+            From = new DateTimeOffset(date.Year, date.Month, date.Day, fromHour, fromMin, 0, TimeSpan.Zero),
+            To = new DateTimeOffset(date.Year, date.Month, date.Day, toHour, toMin, 0, TimeSpan.Zero)
+        };
+
     /// <summary>A break a worker entered themselves — no <c>autobreak-</c> key, never split by us.</summary>
     private static LogetoTimeEntry ManualBreakRev(
         int fromHour, int fromMin, int toHour, int toMin, int revision) => new()
@@ -806,5 +831,72 @@ public class BreakInsertionServiceTests
         _client.Verify(c => c.UpdateTimeEntryAsync(
             middle.Guid, It.IsAny<LogetoTimeEntryRequest>(), It.IsAny<CancellationToken>()),
             Times.Once);
+    }
+
+    [Fact]
+    public async Task DoesNotReportAFailedInsert_WhenOnlyTheFollowUpTouchFails()
+    {
+        // Arrange — the break lands, then Logeto rejects the touch.
+        SetupDefaults(WorkEntry(5, 20, 13, 19));
+        SetupPostSplit(
+            WorkEntryRev(5, 20, 11, 30, revision: 13),
+            BreakEntryRev(11, 30, 12, 0, revision: 14),
+            WorkEntryRev(12, 0, 13, 19, revision: 5));
+        _client.Setup(c => c.UpdateTimeEntryAsync(
+                It.IsAny<Guid>(), It.IsAny<LogetoTimeEntryRequest>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new InvalidOperationException("Logeto rejected the write"));
+
+        // Act
+        var summary = await CreateService().RunAsync(CancellationToken.None);
+
+        // Assert — the insert succeeded, so it must not be counted as a failed day.
+        summary.BreaksInserted.Should().Be(1);
+        summary.Failed.Should().Be(0);
+        summary.TouchFailed.Should().Be(1);
+    }
+
+    [Fact]
+    public async Task CountsTouchesThatAlreadyLanded_WhenALaterTouchInTheSameDayFails()
+    {
+        // Arrange — first PUT succeeds, second throws. The first write is real and must be counted.
+        var firstHalf = WorkEntryRev(5, 20, 11, 30, revision: 13);
+        var afterBreak = WorkEntryRev(12, 0, 13, 19, revision: 5);
+        SetupDefaults(WorkEntry(5, 20, 13, 19));
+        SetupPostSplit(firstHalf, BreakEntryRev(11, 30, 12, 0, revision: 14), afterBreak);
+        _client.Setup(c => c.UpdateTimeEntryAsync(
+                afterBreak.Guid, It.IsAny<LogetoTimeEntryRequest>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new InvalidOperationException("Logeto rejected the second write"));
+
+        // Act
+        var summary = await CreateService().RunAsync(CancellationToken.None);
+
+        // Assert
+        summary.RecordsTouched.Should().Be(1);
+        summary.TouchFailed.Should().Be(1);
+        summary.Failed.Should().Be(0);
+    }
+
+    [Fact]
+    public async Task CountsAHealedDaySeparately_FromDaysThatWereAlreadyFine()
+    {
+        // Arrange — one stale day, and one whose neighbours both already outrank the break (so it
+        // was touched on an earlier run). Day-level buckets must not overlap.
+        var staleDay = new DateOnly(2026, 8, 2);
+        SetupDefaults(
+            WorkEntryOnRev(staleDay, 6, 43, 11, 30, revision: 13),
+            BreakEntryOnRev(staleDay, 11, 30, 12, 0, revision: 14),
+            WorkEntryOnRev(staleDay, 12, 0, 13, 50, revision: 5),
+            WorkEntryRev(8, 0, 12, 0, revision: 20),
+            BreakEntryRev(12, 0, 12, 30, revision: 19),
+            WorkEntryRev(12, 30, 16, 30, revision: 22));
+
+        // Act
+        var summary = await CreateService().RunAsync(CancellationToken.None);
+
+        // Assert
+        summary.DaysHealed.Should().Be(1);
+        summary.SkippedExistingBreak.Should().Be(1);
+        summary.RecordsTouched.Should().Be(2);
+        summary.DaysScanned.Should().Be(2);
     }
 }
