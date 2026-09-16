@@ -4,6 +4,7 @@ using Anela.Heblo.Application.Features.Catalog.Inventory.UseCases.GetLot;
 using Anela.Heblo.Application.Features.Catalog.Inventory.UseCases.FeedLotMedia;
 using Anela.Heblo.Application.Features.Catalog.Inventory.UseCases.GetLotLabelCalibration;
 using Anela.Heblo.Application.Features.Catalog.Inventory.UseCases.ListLots;
+using Anela.Heblo.Application.Features.Catalog.Inventory.UseCases.NudgeLotLabelCalibration;
 using Anela.Heblo.Application.Features.Catalog.Inventory.UseCases.PrintLotCalibrationLabel;
 using Anela.Heblo.Application.Features.Catalog.Inventory.UseCases.SetLotLabelCalibration;
 using Anela.Heblo.Application.Features.Catalog.Inventory.UseCases.PrintLotLabels;
@@ -135,6 +136,20 @@ public class LotsController : BaseApiController
     [FeatureAuthorize(Feature.Manufacture_LabelCalibration, AccessLevel.Write)]
     public async Task<ActionResult<SetLotLabelCalibrationResponse>> SetLabelCalibration(
         [FromBody] SetLotLabelCalibrationRequest request,
+        CancellationToken cancellationToken)
+    {
+        var response = await _mediator.Send(request, cancellationToken);
+        return HandleResponse(response);
+    }
+
+    // The nudge is the operator-facing calibration wizard: the caller reports only which
+    // way the text drifts and how fast, and the server derives and clamps the correction.
+    // It cannot set an arbitrary value, so unlike SetLabelCalibration it stays on the
+    // normal material-containers write access every operator printing labels already has.
+    [HttpPost("label-calibration/nudge")]
+    [FeatureAuthorize(Feature.Manufacture_MaterialContainers, AccessLevel.Write)]
+    public async Task<ActionResult<NudgeLotLabelCalibrationResponse>> NudgeLabelCalibration(
+        [FromBody] NudgeLotLabelCalibrationRequest request,
         CancellationToken cancellationToken)
     {
         var response = await _mediator.Send(request, cancellationToken);

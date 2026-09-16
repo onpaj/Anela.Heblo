@@ -6648,6 +6648,44 @@ export class ApiClient {
         return Promise.resolve<SetLotLabelCalibrationResponse>(null as any);
     }
 
+    lots_NudgeLabelCalibration(request: NudgeLotLabelCalibrationRequest): Promise<NudgeLotLabelCalibrationResponse> {
+        let url_ = this.baseUrl + "/api/lots/label-calibration/nudge";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: RequestInit = {
+            body: content_,
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processLots_NudgeLabelCalibration(_response);
+        });
+    }
+
+    protected processLots_NudgeLabelCalibration(response: Response): Promise<NudgeLotLabelCalibrationResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = NudgeLotLabelCalibrationResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<NudgeLotLabelCalibrationResponse>(null as any);
+    }
+
     manufactureBatch_GetBatchTemplate(productCode: string): Promise<CalculatedBatchSizeResponse> {
         let url_ = this.baseUrl + "/api/manufacture-batch/template/{productCode}";
         if (productCode === undefined || productCode === null)
@@ -28151,6 +28189,89 @@ export class SetLotLabelCalibrationRequest implements ISetLotLabelCalibrationReq
 export interface ISetLotLabelCalibrationRequest {
     pitchDots?: number;
     driftDotsPer100Labels?: number;
+}
+
+export class NudgeLotLabelCalibrationResponse extends BaseResponse implements INudgeLotLabelCalibrationResponse {
+    isAtLimit?: boolean;
+
+    constructor(data?: INudgeLotLabelCalibrationResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            this.isAtLimit = _data["isAtLimit"];
+        }
+    }
+
+    static override fromJS(data: any): NudgeLotLabelCalibrationResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new NudgeLotLabelCalibrationResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["isAtLimit"] = this.isAtLimit;
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface INudgeLotLabelCalibrationResponse extends IBaseResponse {
+    isAtLimit?: boolean;
+}
+
+export class NudgeLotLabelCalibrationRequest implements INudgeLotLabelCalibrationRequest {
+    direction?: LabelDriftDirection;
+    speed?: LabelDriftSpeed;
+
+    constructor(data?: INudgeLotLabelCalibrationRequest) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.direction = _data["direction"];
+            this.speed = _data["speed"];
+        }
+    }
+
+    static fromJS(data: any): NudgeLotLabelCalibrationRequest {
+        data = typeof data === 'object' ? data : {};
+        let result = new NudgeLotLabelCalibrationRequest();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["direction"] = this.direction;
+        data["speed"] = this.speed;
+        return data;
+    }
+}
+
+export interface INudgeLotLabelCalibrationRequest {
+    direction?: LabelDriftDirection;
+    speed?: LabelDriftSpeed;
+}
+
+export enum LabelDriftDirection {
+    Up = "Up",
+    Down = "Down",
+}
+
+export enum LabelDriftSpeed {
+    Fast = "Fast",
+    Slow = "Slow",
 }
 
 export class CalculatedBatchSizeResponse extends BaseResponse implements ICalculatedBatchSizeResponse {
