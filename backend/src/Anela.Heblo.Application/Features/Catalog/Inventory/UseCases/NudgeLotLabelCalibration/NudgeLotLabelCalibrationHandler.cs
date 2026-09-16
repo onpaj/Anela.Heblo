@@ -32,6 +32,12 @@ public class NudgeLotLabelCalibrationHandler
             return new NudgeLotLabelCalibrationResponse(ErrorCodes.Unauthorized);
         }
 
+        // Read-modify-write on a single row with no concurrency token: two operators nudging
+        // within the same few milliseconds would have the second write silently replace the
+        // first. Accepted as is. There is one printer, the window is the span of this
+        // handler, and a lost nudge is self-correcting: the drift is still visible on the
+        // next batch and the operator clicks once more. (A token would be unverifiable in
+        // the InMemory-backed tests, the same trade-off the project made elsewhere.)
         var current = await _repository.GetAsync(cancellationToken);
         var corrected = current.Nudge(request.Direction, request.Speed, currentUser.Id);
 
