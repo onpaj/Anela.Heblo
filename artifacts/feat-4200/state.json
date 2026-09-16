@@ -1,0 +1,64 @@
+{
+  "feature_id": "feat-4200",
+  "issue_number": 4200,
+  "created_at": "2026-09-16T06:11:26.796917Z",
+  "max_revisions": 3,
+  "phases": {
+    "analyzing": {
+      "status": "completed",
+      "updated_at": "2026-09-16T06:12:56.291636Z"
+    },
+    "architecting": {
+      "status": "completed",
+      "updated_at": "2026-09-16T06:14:24.578578Z"
+    },
+    "designing": {
+      "status": "completed",
+      "updated_at": "2026-09-16T06:15:07.668243Z"
+    },
+    "planning": {
+      "status": "completed",
+      "updated_at": "2026-09-16T06:18:33.919624Z"
+    },
+    "developing": {
+      "status": "in_progress",
+      "updated_at": "2026-09-16T11:15:51.867574Z"
+    },
+    "code-review": {
+      "status": "completed",
+      "updated_at": "2026-09-16T12:39:25.443750Z"
+    }
+  },
+  "tasks": [
+    {
+      "name": "add-severitycalculator-dependency-and-analyzeitem",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-09-16T07:44:17.881088Z"
+    },
+    {
+      "name": "extract-filteritems",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-09-16T08:37:30.429839Z"
+    },
+    {
+      "name": "extract-sortitems",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-09-16T09:50:14.439597Z"
+    },
+    {
+      "name": "extract-calculatesummary",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-09-16T11:01:27.991205Z"
+    },
+    {
+      "name": "full-suite-validation",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-09-16T12:10:11.151183Z"
+    }
+  ]
+}

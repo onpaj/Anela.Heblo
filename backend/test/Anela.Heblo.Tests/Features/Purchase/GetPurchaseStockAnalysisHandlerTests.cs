@@ -27,7 +27,7 @@ public class GetPurchaseStockAnalysisHandlerTests
         _loggerMock = new Mock<ILogger<GetPurchaseStockAnalysisHandler>>();
         _timeProviderMock = new Mock<TimeProvider>();
         _timeProviderMock.Setup(x => x.GetUtcNow()).Returns(FixedNow);
-        _handler = new GetPurchaseStockAnalysisHandler(_materialCatalogMock.Object, _stockSeverityCalculatorMock.Object, new StockAnalysisCalculator(), _loggerMock.Object, _timeProviderMock.Object);
+        _handler = new GetPurchaseStockAnalysisHandler(_materialCatalogMock.Object, new StockAnalysisCalculator(_stockSeverityCalculatorMock.Object), _loggerMock.Object, _timeProviderMock.Object);
     }
 
     private static MaterialStockSnapshot MakeSnapshot(

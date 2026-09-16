@@ -1,3 +1,6 @@
+using Anela.Heblo.Application.Features.Purchase.Contracts;
+using Anela.Heblo.Application.Features.Purchase.UseCases.GetPurchaseStockAnalysis;
+
 namespace Anela.Heblo.Application.Features.Purchase.Services;
 
 /// <summary>
@@ -23,4 +26,40 @@ public interface IStockAnalysisCalculator
     /// <param name="moq">Minimum order quantity as configured for the material</param>
     /// <returns>Recommended order quantity, or null if no order is needed</returns>
     double? CalculateRecommendedOrderQuantity(double availableStock, double optimalStock, double minStock, string moq);
+
+    /// <summary>
+    /// Analyzes a single material stock snapshot, computing consumption, stockout, efficiency,
+    /// severity, and recommended order quantity for the given period.
+    /// </summary>
+    /// <param name="item">The material stock snapshot to analyze</param>
+    /// <param name="fromDate">Start of the analysis period</param>
+    /// <param name="toDate">End of the analysis period</param>
+    /// <returns>The fully-computed analysis item</returns>
+    StockAnalysisItemDto AnalyzeItem(MaterialStockSnapshot item, DateTime fromDate, DateTime toDate);
+
+    /// <summary>
+    /// Filters analyzed stock items by configured-status and stock-status request filters.
+    /// </summary>
+    /// <param name="items">Analyzed items to filter</param>
+    /// <param name="request">The request carrying the filter criteria</param>
+    /// <returns>The filtered item list</returns>
+    List<StockAnalysisItemDto> FilterItems(List<StockAnalysisItemDto> items, GetPurchaseStockAnalysisRequest request);
+
+    /// <summary>
+    /// Sorts analyzed stock items by the requested sort key and direction.
+    /// </summary>
+    /// <param name="items">Items to sort</param>
+    /// <param name="sortBy">The field to sort by</param>
+    /// <param name="descending">Whether to reverse the ascending order</param>
+    /// <returns>The sorted item list</returns>
+    List<StockAnalysisItemDto> SortItems(List<StockAnalysisItemDto> items, StockAnalysisSortBy sortBy, bool descending);
+
+    /// <summary>
+    /// Calculates severity counts and total inventory value across the given (unfiltered) item set.
+    /// </summary>
+    /// <param name="items">The full analyzed item set — callers must pass the unfiltered list, not a status/search-filtered subset</param>
+    /// <param name="fromDate">Start of the analysis period, echoed into the summary</param>
+    /// <param name="toDate">End of the analysis period, echoed into the summary</param>
+    /// <returns>The computed summary</returns>
+    StockAnalysisSummaryDto CalculateSummary(List<StockAnalysisItemDto> items, DateTime fromDate, DateTime toDate);
 }
