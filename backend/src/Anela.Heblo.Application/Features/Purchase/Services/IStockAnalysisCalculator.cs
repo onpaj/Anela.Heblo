@@ -36,4 +36,12 @@ public interface IStockAnalysisCalculator
     /// <param name="toDate">End of the analysis period</param>
     /// <returns>The fully-computed analysis item</returns>
     StockAnalysisItemDto AnalyzeItem(MaterialStockSnapshot item, DateTime fromDate, DateTime toDate);
+
+    /// <summary>
+    /// Filters analyzed stock items by configured-status and stock-status request filters.
+    /// </summary>
+    /// <param name="items">Analyzed items to filter</param>
+    /// <param name="request">The request carrying the filter criteria</param>
+    /// <returns>The filtered item list</returns>
+    List<StockAnalysisItemDto> FilterItems(List<StockAnalysisItemDto> items, GetPurchaseStockAnalysisRequest request);
 }

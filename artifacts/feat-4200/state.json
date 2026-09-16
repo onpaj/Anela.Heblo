@@ -22,7 +22,7 @@
     },
     "developing": {
       "status": "in_progress",
-      "updated_at": "2026-09-16T07:16:25.897508Z"
+      "updated_at": "2026-09-16T08:17:04.378706Z"
     }
   },
   "tasks": [
@@ -34,9 +34,9 @@
     },
     {
       "name": "extract-filteritems",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-09-16T08:17:04.547066Z"
     },
     {
       "name": "extract-sortitems",

@@ -49,9 +49,7 @@ public class GetPurchaseStockAnalysisHandler : IRequestHandler<GetPurchaseStockA
             .ToList();
 
         // Then filter items for display
-        var analysisItems = allAnalysisItems
-            .Where(item => ShouldIncludeItem(item, request))
-            .ToList();
+        var analysisItems = _stockAnalysisCalculator.FilterItems(allAnalysisItems, request);
 
         if (!string.IsNullOrWhiteSpace(request.SearchTerm))
         {
@@ -85,24 +83,6 @@ public class GetPurchaseStockAnalysisHandler : IRequestHandler<GetPurchaseStockA
             PageNumber = request.PageNumber,
             PageSize = request.PageSize,
             Summary = summary
-        };
-    }
-
-    private bool ShouldIncludeItem(StockAnalysisItemDto item, GetPurchaseStockAnalysisRequest request)
-    {
-        if (request.OnlyConfigured && !item.IsConfigured)
-        {
-            return false;
-        }
-
-        return request.StockStatus switch
-        {
-            StockStatusFilter.Critical => item.Severity == StockSeverity.Critical,
-            StockStatusFilter.Low => item.Severity == StockSeverity.Low,
-            StockStatusFilter.Optimal => item.Severity == StockSeverity.Optimal,
-            StockStatusFilter.Overstocked => item.Severity == StockSeverity.Overstocked,
-            StockStatusFilter.NotConfigured => item.Severity == StockSeverity.NotConfigured,
-            _ => true
         };
     }
 

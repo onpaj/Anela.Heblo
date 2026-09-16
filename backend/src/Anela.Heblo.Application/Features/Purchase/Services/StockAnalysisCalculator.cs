@@ -116,6 +116,29 @@ public class StockAnalysisCalculator : IStockAnalysisCalculator
         };
     }
 
+    public List<StockAnalysisItemDto> FilterItems(List<StockAnalysisItemDto> items, GetPurchaseStockAnalysisRequest request)
+    {
+        return items.Where(item => ShouldIncludeItem(item, request)).ToList();
+    }
+
+    private bool ShouldIncludeItem(StockAnalysisItemDto item, GetPurchaseStockAnalysisRequest request)
+    {
+        if (request.OnlyConfigured && !item.IsConfigured)
+        {
+            return false;
+        }
+
+        return request.StockStatus switch
+        {
+            StockStatusFilter.Critical => item.Severity == StockSeverity.Critical,
+            StockStatusFilter.Low => item.Severity == StockSeverity.Low,
+            StockStatusFilter.Optimal => item.Severity == StockSeverity.Optimal,
+            StockStatusFilter.Overstocked => item.Severity == StockSeverity.Overstocked,
+            StockStatusFilter.NotConfigured => item.Severity == StockSeverity.NotConfigured,
+            _ => true
+        };
+    }
+
     private LastPurchaseInfoDto? GetLastPurchaseInfo(MaterialStockSnapshot item)
     {
         var lastPurchase = item.LastPurchase;

@@ -271,4 +271,55 @@ public class StockAnalysisCalculatorTests
         result.LastPurchase.UnitPrice.Should().Be(12.5m);
         result.LastPurchase.TotalPrice.Should().Be(625m);
     }
+
+    private static StockAnalysisItemDto MakeItem(StockSeverity severity, bool isConfigured = true) =>
+        new()
+        {
+            ProductCode = "MAT001",
+            ProductName = "Test",
+            ProductNameNormalized = "test",
+            ProductType = "Material",
+            Severity = severity,
+            IsConfigured = isConfigured,
+        };
+
+    [Theory]
+    [InlineData(StockStatusFilter.Critical, StockSeverity.Critical, true)]
+    [InlineData(StockStatusFilter.Critical, StockSeverity.Low, false)]
+    [InlineData(StockStatusFilter.Low, StockSeverity.Low, true)]
+    [InlineData(StockStatusFilter.Optimal, StockSeverity.Optimal, true)]
+    [InlineData(StockStatusFilter.Overstocked, StockSeverity.Overstocked, true)]
+    [InlineData(StockStatusFilter.NotConfigured, StockSeverity.NotConfigured, true)]
+    [InlineData(StockStatusFilter.All, StockSeverity.Critical, true)]
+    public void FilterItems_StatusFilter_IncludesOnlyMatchingSeverity(StockStatusFilter filter, StockSeverity severity, bool expectedIncluded)
+    {
+        var items = new List<StockAnalysisItemDto> { MakeItem(severity) };
+        var request = new GetPurchaseStockAnalysisRequest { StockStatus = filter, PageNumber = 1, PageSize = 10 };
+
+        var result = _calculator.FilterItems(items, request);
+
+        result.Should().HaveCount(expectedIncluded ? 1 : 0);
+    }
+
+    [Fact]
+    public void FilterItems_OnlyConfiguredTrue_ExcludesUnconfiguredItems()
+    {
+        var items = new List<StockAnalysisItemDto> { MakeItem(StockSeverity.Optimal, isConfigured: false) };
+        var request = new GetPurchaseStockAnalysisRequest { OnlyConfigured = true, StockStatus = StockStatusFilter.All, PageNumber = 1, PageSize = 10 };
+
+        var result = _calculator.FilterItems(items, request);
+
+        result.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void FilterItems_OnlyConfiguredTrue_KeepsConfiguredItemsMatchingStatus()
+    {
+        var items = new List<StockAnalysisItemDto> { MakeItem(StockSeverity.Critical, isConfigured: true) };
+        var request = new GetPurchaseStockAnalysisRequest { OnlyConfigured = true, StockStatus = StockStatusFilter.Critical, PageNumber = 1, PageSize = 10 };
+
+        var result = _calculator.FilterItems(items, request);
+
+        result.Should().HaveCount(1);
+    }
 }
