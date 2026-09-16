@@ -22,7 +22,7 @@
     },
     "developing": {
       "status": "in_progress",
-      "updated_at": "2026-09-16T09:16:54.660281Z"
+      "updated_at": "2026-09-16T10:17:38.949166Z"
     }
   },
   "tasks": [
@@ -46,9 +46,9 @@
     },
     {
       "name": "extract-calculatesummary",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-09-16T10:17:39.174529Z"
     },
     {
       "name": "full-suite-validation",
