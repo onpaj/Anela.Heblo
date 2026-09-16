@@ -21,16 +21,16 @@
       "updated_at": "2026-09-16T06:18:33.919624Z"
     },
     "developing": {
-      "status": "pending",
-      "updated_at": null
+      "status": "in_progress",
+      "updated_at": "2026-09-16T07:16:25.897508Z"
     }
   },
   "tasks": [
     {
       "name": "add-severitycalculator-dependency-and-analyzeitem",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-09-16T07:16:26.108497Z"
     },
     {
       "name": "extract-filteritems",

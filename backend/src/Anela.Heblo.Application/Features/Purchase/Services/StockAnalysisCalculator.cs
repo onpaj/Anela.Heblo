@@ -1,3 +1,6 @@
+using Anela.Heblo.Application.Features.Purchase.Contracts;
+using Anela.Heblo.Application.Features.Purchase.UseCases.GetPurchaseStockAnalysis;
+
 namespace Anela.Heblo.Application.Features.Purchase.Services;
 
 /// <summary>
@@ -5,6 +8,13 @@ namespace Anela.Heblo.Application.Features.Purchase.Services;
 /// </summary>
 public class StockAnalysisCalculator : IStockAnalysisCalculator
 {
+    private readonly IStockSeverityCalculator _stockSeverityCalculator;
+
+    public StockAnalysisCalculator(IStockSeverityCalculator stockSeverityCalculator)
+    {
+        _stockSeverityCalculator = stockSeverityCalculator;
+    }
+
     /// <summary>
     /// Calculates the stock efficiency percentage based on available stock relative to optimal or minimum stock.
     /// </summary>
@@ -51,5 +61,77 @@ public class StockAnalysisCalculator : IStockAnalysisCalculator
         }
 
         return needed;
+    }
+
+    public StockAnalysisItemDto AnalyzeItem(MaterialStockSnapshot item, DateTime fromDate, DateTime toDate)
+    {
+        var daysDiff = (toDate - fromDate).Days;
+        if (daysDiff <= 0) daysDiff = 1;
+
+        var consumption = item.ConsumptionInPeriod;
+        var dailyConsumption = consumption / (double)daysDiff;
+
+        int? daysUntilStockout = null;
+        if (dailyConsumption > 0)
+        {
+            daysUntilStockout = (int)((double)item.Stock.EffectiveStock / dailyConsumption);
+        }
+
+        var minStock = item.StockMinSetup;
+        var optimalStockDays = item.OptimalStockDaysSetup;
+        var optimalStock = optimalStockDays > 0 ? dailyConsumption * (double)optimalStockDays : 0;
+
+        var stockEfficiency = CalculateStockEfficiency((double)item.Stock.EffectiveStock, (double)minStock, optimalStock);
+        var severity = _stockSeverityCalculator.DetermineStockSeverity((double)item.Stock.EffectiveStock, (double)minStock, optimalStock, item.IsMinStockConfigured, item.IsOptimalStockConfigured);
+
+        var lastPurchase = GetLastPurchaseInfo(item);
+
+        var recommendedQuantity = CalculateRecommendedOrderQuantity(
+            (double)item.Stock.Available,
+            optimalStock,
+            (double)minStock,
+            item.MinimalOrderQuantity);
+
+        return new StockAnalysisItemDto
+        {
+            ProductCode = item.ProductCode,
+            ProductName = item.ProductName,
+            ProductNameNormalized = item.ProductNameNormalized,
+            ProductType = item.ProductType.ToString(),
+            AvailableStock = (double)item.Stock.Available,
+            OrderedStock = (double)item.Stock.Ordered,
+            EffectiveStock = (double)item.Stock.EffectiveStock,
+            MinStockLevel = (double)minStock,
+            OptimalStockLevel = optimalStock,
+            ConsumptionInPeriod = consumption,
+            DailyConsumption = dailyConsumption,
+            DaysUntilStockout = daysUntilStockout,
+            StockEfficiencyPercentage = stockEfficiency,
+            Severity = severity,
+            MinimalOrderQuantity = item.MinimalOrderQuantity,
+            LastPurchase = lastPurchase,
+            Supplier = item.SupplierName,
+            RecommendedOrderQuantity = recommendedQuantity,
+            IsConfigured = item.IsMinStockConfigured || item.IsOptimalStockConfigured
+        };
+    }
+
+    private LastPurchaseInfoDto? GetLastPurchaseInfo(MaterialStockSnapshot item)
+    {
+        var lastPurchase = item.LastPurchase;
+
+        if (lastPurchase == null)
+        {
+            return null;
+        }
+
+        return new LastPurchaseInfoDto
+        {
+            Date = lastPurchase.Date,
+            SupplierName = lastPurchase.SupplierName,
+            Amount = (double)lastPurchase.Amount,
+            UnitPrice = lastPurchase.UnitPrice,
+            TotalPrice = lastPurchase.TotalPrice
+        };
     }
 }

@@ -1,3 +1,6 @@
+using Anela.Heblo.Application.Features.Purchase.Contracts;
+using Anela.Heblo.Application.Features.Purchase.UseCases.GetPurchaseStockAnalysis;
+
 namespace Anela.Heblo.Application.Features.Purchase.Services;
 
 /// <summary>
@@ -23,4 +26,14 @@ public interface IStockAnalysisCalculator
     /// <param name="moq">Minimum order quantity as configured for the material</param>
     /// <returns>Recommended order quantity, or null if no order is needed</returns>
     double? CalculateRecommendedOrderQuantity(double availableStock, double optimalStock, double minStock, string moq);
+
+    /// <summary>
+    /// Analyzes a single material stock snapshot, computing consumption, stockout, efficiency,
+    /// severity, and recommended order quantity for the given period.
+    /// </summary>
+    /// <param name="item">The material stock snapshot to analyze</param>
+    /// <param name="fromDate">Start of the analysis period</param>
+    /// <param name="toDate">End of the analysis period</param>
+    /// <returns>The fully-computed analysis item</returns>
+    StockAnalysisItemDto AnalyzeItem(MaterialStockSnapshot item, DateTime fromDate, DateTime toDate);
 }
