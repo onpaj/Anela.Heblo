@@ -167,7 +167,7 @@ all tagged `"SPIKE TEST"` in their description) were deleted via
 2. Task 7, `BreakInsertionOptions.cs`: change `ApiTimesAreUtc` default from `true` → `false`.
 3. Task 5, `BreakActivityName` default: confirm `"Oběd"` (lunch) is the intended activity vs. the generic `"Přestávka"` — resolve with user before/during Task 5.
 
-## Finding 4 (2026-09-16): merge=true does not bump the rewritten record's Revision — merge is no longer used
+## Finding 4 (2026-09-16): merge=true does not bump the rewritten record's Revision — the record it rewrites must be touched
 
 Finding 1 above is correct about *what* `merge=true` produces, but incomplete about
 *how*. When the split rewrites the surviving original work record (advancing its
@@ -194,9 +194,15 @@ it is not.
 — the split stays a single atomic server-side operation — and then *touches* the
 records it produced: it re-reads the day and PUTs each work record adjacent to the
 break back unchanged, which bumps its `Revision`. The same touch runs against days
-that already carry a break whose neighbouring work records still have a `Revision`
-below the break's, so days split before this behaviour existed are healed on the
-next run that sees them.
+that already carry **a break this job created** — matched on the
+`autobreak-{person}-{date}` `ExternalKey` — whose neighbouring work records still
+have a `Revision` below the break's, so days split before this behaviour existed
+are healed on the next run that sees them.
+
+Breaks a worker entered themselves are never touched. Their own work record is
+always written before the break they add afterwards, so the account-wide counter
+leaves it "below" the break and it would look stale on every run — but we never
+split that day, so there is nothing to make visible.
 
 Two things that made this safe, both confirmed against the live API:
 
@@ -242,3 +248,14 @@ carries `Location`/`EndLocation` leaves them intact. The request contract says i
 must, and the records touched so far all had `Location: null`. 88 of the 127
 records still awaiting a backfill touch do carry GPS data, so this needs one
 single-record check before any bulk run.
+
+The `ExternalKey` guard above limits the exposure: only days this job split are
+ever touched, so a worker's own mobile-entered records are out of reach of the
+sweep entirely. The check is still worth doing before the backfill, because the
+records our own splits produced can carry GPS too.
+
+**Also unverified:** `LogetoTimeConverter.ToApiTime` always formats seconds as
+`:00`. Every record measured so far stored `:00` seconds, so a touch was a true
+no-op — but a record stored with non-zero seconds would have its time shifted by
+up to 59 seconds by the "unchanged" resend. Worth one spot-check on such a record
+if one is ever found.
