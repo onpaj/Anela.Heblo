@@ -784,4 +784,27 @@ public class BreakInsertionServiceTests
             manualAfter.Guid, It.IsAny<LogetoTimeEntryRequest>(), It.IsAny<CancellationToken>()),
             Times.Never);
     }
+
+    [Fact]
+    public async Task TouchesTheSharedRecordOnce_WhenItSitsBetweenTwoOfOurBreaks()
+    {
+        // Arrange — the middle segment is adjacent to the first break's end and the second break's
+        // start, so a naive per-break loop would PUT it twice.
+        var middle = WorkEntryRev(12, 0, 15, 0, revision: 5);
+        SetupDefaults(
+            WorkEntryRev(8, 0, 11, 30, revision: 13),
+            BreakEntryRev(11, 30, 12, 0, revision: 20),
+            middle,
+            BreakEntryRev(15, 0, 15, 15, revision: 21),
+            WorkEntryRev(15, 15, 17, 0, revision: 14));
+
+        // Act
+        var summary = await CreateService().RunAsync(CancellationToken.None);
+
+        // Assert — three distinct records, three writes, not four.
+        summary.RecordsTouched.Should().Be(3);
+        _client.Verify(c => c.UpdateTimeEntryAsync(
+            middle.Guid, It.IsAny<LogetoTimeEntryRequest>(), It.IsAny<CancellationToken>()),
+            Times.Once);
+    }
 }

@@ -301,7 +301,9 @@ public class BreakInsertionService
                 && e.From.HasValue && e.To.HasValue)
             .ToList();
 
-        var touched = 0;
+        // A record between two back-to-back breaks is adjacent to both, so collect the distinct set
+        // first — one PUT is all it takes, and a live write is never worth issuing twice.
+        var toTouch = new Dictionary<Guid, LogetoTimeEntry>();
 
         foreach (var brk in breaks.Where(b => b.From.HasValue && b.To.HasValue))
         {
@@ -314,15 +316,22 @@ public class BreakInsertionService
                     continue;
                 }
 
-                await _client.UpdateTimeEntryAsync(
-                    work.Guid, BuildTouchRequest(work, options), cancellationToken);
-                touched++;
-
-                _logger.LogInformation(
-                    "Touched work record {EntryGuid} ({From}–{To}) for person {PersonGuid} on {Date} " +
-                    "to refresh its Revision",
-                    work.Guid, work.From, work.To, person.Guid, date);
+                toTouch[work.Guid] = work;
             }
+        }
+
+        var touched = 0;
+
+        foreach (var work in toTouch.Values)
+        {
+            await _client.UpdateTimeEntryAsync(
+                work.Guid, BuildTouchRequest(work, options), cancellationToken);
+            touched++;
+
+            _logger.LogInformation(
+                "Touched work record {EntryGuid} ({From}–{To}) for person {PersonGuid} on {Date} " +
+                "to refresh its Revision",
+                work.Guid, work.From, work.To, person.Guid, date);
         }
 
         return touched;
