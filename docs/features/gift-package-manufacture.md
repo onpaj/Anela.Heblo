@@ -829,9 +829,12 @@ if (product == null || product.Type != ProductType.Set)
 ingredient's `WarehouseStock` does not cover what the run would consume, and when `quantity <= 0`.
 `allowStockOverride` skips the availability check (the quantity check always applies).
 
-Failures surface as `InvalidOperationException` / `ArgumentException`, which
+Failures surface as `InsufficientStockException` / `ArgumentOutOfRangeException`, which
 `CreateGiftPackageManufactureHandler` maps to `ErrorCodes.InvalidOperation` / `ErrorCodes.InvalidValue`
-with the message in `Params["ErrorMessage"]` - the same envelope disassembly uses.
+with the message in `Params["ErrorMessage"]` - the same envelope disassembly uses. The handler
+deliberately catches only those two subclasses: a bare `InvalidOperationException` (EF tracking or
+concurrency) bubbles to the global handler as a 500, and a bare `ArgumentException` (unknown package
+code) is turned into a 400 ProblemDetails by `ArgumentExceptionHandler`, not into the envelope.
 
 ### Database Constraints
 
