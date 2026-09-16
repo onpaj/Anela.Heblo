@@ -32,3 +32,10 @@ session start, the same way it has repeatedly reverted the `gh_api.sh` Content-T
 fix (see `memory/gotchas/gh-cli-unavailable-in-cloud-sessions.md`). If this regresses
 again, the permanent fix belongs upstream in `onpaj/harness`, not just in this repo's
 checked-in copy.
+
+**Confirmed recurrence (2026-09-16):** regressed again exactly as predicted, on both
+the session branch and an in-progress feature branch (`feature/4200-...`). Re-fixed
+both places (session branch commit `0ac4995f`, feature branch commit `da637061`). This
+is now a repeating tax on every session that runs planning/brainstorm/developer agents
+in this cloud environment — worth raising upstream in `onpaj/harness` rather than
+re-discovering and re-patching it per session indefinitely.

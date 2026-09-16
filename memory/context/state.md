@@ -355,6 +355,26 @@ _Update this file at the end of significant sessions._
   `agent-planning` to `agent-ready-for-dev`. See
   `memory/gotchas/agent-context-files-superpowers-plugin-missing.md`.
 
+- Scheduled "fan out on oldest lease-free drafts" run (2026-09-16): of 3 open draft PRs
+  (#4203/feat-4200, #4204/feat-4202, #4205/feat-4199), only feat-4200 had no live lease
+  (the other two were held by other concurrent workers) — so only one candidate, not
+  five, was actually eligible. Hit the `agent-context-files-superpowers-plugin-missing`
+  regression again: `agentharness init --force` (SessionStart hook) had reset
+  `.agents/{planner,brainstorm,developer}.md` back to the broken
+  `~/.claude/plugins/cache/...` globs, exactly as that gotcha file warned it would.
+  Reapplied the PR #4162 fix twice — once on the designated session branch
+  (`claude/eloquent-thompson-hoje5p`, commit `0ac4995f`) and once directly on
+  `feature/4200-...` (commit `da637061`) to unblock this run, matching the #4155
+  precedent. With that fixed, ran one implement-orchestrator unit on feat-4200:
+  `extract-calculatesummary` passed review and pushed (commits `7a895ae9`/`b7d41ae0`/
+  `cb60bb8a`). Only `full-suite-validation` remains before feat-4200's PR can be
+  undrafted. **This regression has now recurred at least twice** (#4155 2026-09-13,
+  this run 2026-09-16) purely from the SessionStart `agentharness init --force` hook —
+  the checked-in repo fix cannot hold; it needs the upstream fix in `onpaj/harness`
+  that the gotcha file already calls for, or the regressions will keep costing a full
+  extra investigation+fix cycle on every session that touches planning/brainstorm/
+  developer agents.
+
 ## Pending / Known Issues
 
 - Memory directory (issue #405): adding cross-session knowledge accumulation — this PR
