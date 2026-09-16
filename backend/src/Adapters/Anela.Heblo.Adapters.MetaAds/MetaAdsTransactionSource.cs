@@ -1,4 +1,5 @@
 using System.Net;
+using System.Net.Http.Headers;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Anela.Heblo.Application.Features.MarketingInvoices.Contracts;
@@ -93,11 +94,14 @@ public class MetaAdsTransactionSource : IMarketingTransactionSource
 
     private async Task<MetaTransactionsResponse> FetchPageAsync(string url, CancellationToken ct)
     {
-        _logger.LogDebug("MetaAds: GET {Url}", RedactToken(url));
+        _logger.LogDebug("MetaAds: GET {Url}", url);
 
         return await _pipeline.ExecuteAsync(async innerCt =>
         {
-            var response = await _httpClient.GetAsync(url, innerCt);
+            using var request = new HttpRequestMessage(HttpMethod.Get, url);
+            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", _settings.AccessToken);
+
+            var response = await _httpClient.SendAsync(request, innerCt);
             response.EnsureSuccessStatusCode();
 
             var json = await response.Content.ReadAsStringAsync(innerCt);
@@ -109,18 +113,7 @@ public class MetaAdsTransactionSource : IMarketingTransactionSource
     private string BuildInitialUrl(DateTime from, DateTime to) =>
         $"https://graph.facebook.com/{_settings.ApiVersion}/{_settings.AccountId}/transactions" +
         $"?fields=id,time,amount,currency,payment_type" +
-        $"&access_token={_settings.AccessToken}" +
         $"&time_range={{\"since\":\"{from.ToUniversalTime():yyyy-MM-dd}\",\"until\":\"{to.ToUniversalTime():yyyy-MM-dd}\"}}";
-
-    private static string RedactToken(string url)
-    {
-        var idx = url.IndexOf("access_token=", StringComparison.Ordinal);
-        if (idx < 0) return url;
-        var end = url.IndexOf('&', idx);
-        return end < 0
-            ? url[..idx] + "access_token=***"
-            : url[..idx] + "access_token=***" + url[end..];
-    }
 
     /// <summary>Production resilience pipeline: retry on HTTP 429 with exponential backoff.</summary>
     internal static ResiliencePipeline BuildDefaultPipeline() =>

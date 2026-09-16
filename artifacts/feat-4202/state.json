@@ -22,7 +22,7 @@
     },
     "developing": {
       "status": "in_progress",
-      "updated_at": "2026-09-16T08:17:38.734354Z"
+      "updated_at": "2026-09-16T09:17:09.104081Z"
     }
   },
   "tasks": [
@@ -34,9 +34,9 @@
     },
     {
       "name": "move-access-token-to-authorization-header",
-      "status": "pending",
+      "status": "completed",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-09-16T10:38:50.479012Z"
     }
   ]
 }
