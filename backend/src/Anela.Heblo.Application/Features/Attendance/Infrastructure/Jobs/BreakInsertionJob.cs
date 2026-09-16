@@ -11,14 +11,21 @@ public class BreakInsertionJob : IRecurringJob
     private readonly IRecurringJobStatusChecker _statusChecker;
     private readonly ILogger<BreakInsertionJob> _logger;
 
+    /// <summary>Job identifier, shared with the on-demand entry point so the two cannot drift.</summary>
+    public const string Name = "logeto-break-insertion";
+
+    /// <summary>The job writes to a live external account, so an unseeded row must not enable it.</summary>
+    public const bool DefaultEnabled = false;
+
     public RecurringJobMetadata Metadata { get; } = new()
     {
-        JobName = "logeto-break-insertion",
+        JobName = Name,
         DisplayName = "Logeto — insert missing lunch breaks",
         Description = "Walks each opted-in worker's days in Logeto (Výkaz práce) and inserts a 30-minute " +
-                      "break into any ≥6h working day that has none, splitting the work record via merge=true.",
+                      "break into any ≥6h working day that has none, splitting the work record via " +
+                      "merge=true and touching the result so phones pick the change up.",
         CronExpression = "0 3 * * *",
-        DefaultIsEnabled = false
+        DefaultIsEnabled = DefaultEnabled
     };
 
     public BreakInsertionJob(

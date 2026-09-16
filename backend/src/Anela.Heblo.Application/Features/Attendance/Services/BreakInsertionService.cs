@@ -9,36 +9,73 @@ public class BreakInsertionService
     private readonly ILogetoClient _client;
     private readonly IOptions<BreakInsertionOptions> _options;
     private readonly TimeProvider _timeProvider;
+    private readonly IBreakInsertionRunGate _runGate;
     private readonly ILogger<BreakInsertionService> _logger;
 
     public BreakInsertionService(
         ILogetoClient client,
         IOptions<BreakInsertionOptions> options,
         TimeProvider timeProvider,
+        IBreakInsertionRunGate runGate,
         ILogger<BreakInsertionService> logger)
     {
         _client = client;
         _options = options;
         _timeProvider = timeProvider;
+        _runGate = runGate;
         _logger = logger;
     }
 
-    public async Task<BreakInsertionSummary> RunAsync(CancellationToken cancellationToken)
+    /// <summary>Runs the nightly walk over the configured rolling window.</summary>
+    public Task<BreakInsertionSummary> RunAsync(CancellationToken cancellationToken) =>
+        RunAsync(fromDaysAgo: null, toDaysAgo: null, cancellationToken);
+
+    /// <summary>
+    /// Runs the walk over an explicit window, expressed as whole days before today. Used for a
+    /// deliberate sweep over history — the work is idempotent, so re-covering days already handled
+    /// is free, and the window can be moved back in steps to reach days the nightly job never sees.
+    /// </summary>
+    /// <param name="fromDaysAgo">Oldest day to scan, in days before today. Null uses the configured nightly lookback.</param>
+    /// <param name="toDaysAgo">Newest day to scan, in days before today. Null means today.</param>
+    /// <exception cref="BreakInsertionAlreadyRunningException">Another walk is in flight.</exception>
+    public async Task<BreakInsertionSummary> RunAsync(
+        int? fromDaysAgo, int? toDaysAgo, CancellationToken cancellationToken)
+    {
+        // A manual sweep racing the nightly job is the realistic case; see IBreakInsertionRunGate.
+        if (!_runGate.TryEnter())
+        {
+            throw new BreakInsertionAlreadyRunningException();
+        }
+
+        try
+        {
+            return await RunCoreAsync(fromDaysAgo, toDaysAgo, cancellationToken);
+        }
+        finally
+        {
+            _runGate.Exit();
+        }
+    }
+
+    private async Task<BreakInsertionSummary> RunCoreAsync(
+        int? fromDaysAgo, int? toDaysAgo, CancellationToken cancellationToken)
     {
         var options = _options.Value;
         var summary = new BreakInsertionSummary();
 
         var pragueNow = TimeZoneInfo.ConvertTime(_timeProvider.GetUtcNow(), LogetoTimeConverter.PragueTimeZone);
         var today = DateOnly.FromDateTime(pragueNow.Date);
-        var lookbackDays = Math.Max(options.LookbackDays, 0);
-        var windowStart = today.AddDays(-lookbackDays);
+        var fromDays = Math.Max(fromDaysAgo ?? options.LookbackDays, 0);
+        var toDays = Math.Max(toDaysAgo ?? 0, 0);
+        var windowStart = today.AddDays(-fromDays);
         var from = windowStart < options.StartDate ? options.StartDate : windowStart;
+        var to = today.AddDays(-toDays);
 
-        if (from > today)
+        if (from > to)
         {
             _logger.LogWarning(
-                "Break insertion window is empty: computed from {From} (StartDate {StartDate}) is after today {Today}. Nothing to do.",
-                from, options.StartDate, today);
+                "Break insertion window is empty: computed from {From} (StartDate {StartDate}) is after to {To}. Nothing to do.",
+                from, options.StartDate, to);
             return summary;
         }
 
@@ -62,12 +99,12 @@ public class BreakInsertionService
             return summary;
         }
 
-        var entries = await _client.GetTimeTrackingAsync(from, today, cancellationToken);
+        var entries = await _client.GetTimeTrackingAsync(from, to, cancellationToken);
 
         foreach (var person in people)
         {
             var days = entries
-                .Where(e => e.Person == person.Guid && e.Date >= from && e.Date <= today)
+                .Where(e => e.Person == person.Guid && e.Date >= from && e.Date <= to)
                 .GroupBy(e => e.Date)
                 .OrderBy(g => g.Key);
 
@@ -83,18 +120,20 @@ public class BreakInsertionService
                 {
                     summary.Failed++;
                     _logger.LogError(ex,
-                        "Failed to insert break for person {PersonGuid} on {Date}", person.Guid, day.Key);
+                        "Failed to process day {Date} for person {PersonGuid}", day.Key, person.Guid);
                 }
             }
         }
 
         _logger.LogInformation(
             "Break insertion finished: {Scanned} days scanned, {Inserted} breaks inserted, " +
-            "{ExistingBreak} had a break, {InProgress} in progress, {BelowThreshold} below threshold, " +
-            "{HoursOnly} hours-only, {NoSlot} no slot, {Failed} failed",
-            summary.DaysScanned, summary.BreaksInserted, summary.SkippedExistingBreak,
-            summary.SkippedInProgress, summary.SkippedBelowThreshold, summary.SkippedHoursOnly,
-            summary.SkippedNoSlot, summary.Failed);
+            "{Healed} stale days healed, {Touched} records touched ({TouchFailed} days failed to " +
+            "touch), {ExistingBreak} already fine, {InProgress} in progress, {BelowThreshold} below " +
+            "threshold, {HoursOnly} hours-only, {NoSlot} no slot, {Failed} failed",
+            summary.DaysScanned, summary.BreaksInserted, summary.DaysHealed, summary.RecordsTouched,
+            summary.TouchFailed, summary.SkippedExistingBreak, summary.SkippedInProgress,
+            summary.SkippedBelowThreshold, summary.SkippedHoursOnly, summary.SkippedNoSlot,
+            summary.Failed);
 
         return summary;
     }
@@ -134,9 +173,49 @@ public class BreakInsertionService
             return;
         }
 
-        if (dayEntries.Any(e => typeByActivity.GetValueOrDefault(e.Activity) == LogetoActivityTypes.Break))
+        var existingBreaks = dayEntries
+            .Where(e => typeByActivity.GetValueOrDefault(e.Activity) == LogetoActivityTypes.Break)
+            .ToList();
+
+        if (existingBreaks.Count > 0)
         {
-            summary.SkippedExistingBreak++;
+            // A break is already there. Its split may still be invisible to phones if a previous run
+            // was interrupted before touching, or if the day predates this job's touch behaviour.
+            //
+            // Only breaks this job created are healed. A break a worker entered themselves was never
+            // split by our merge=true call, so the Revision bug does not apply to it — and the
+            // account-wide counter makes their own work record look "stale" purely because it was
+            // written first. Without this guard the job would PUT records it has no business writing.
+            var ownBreaks = existingBreaks
+                .Where(e => e.ExternalKey == AutoBreakExternalKey(person.Guid, date))
+                .ToList();
+
+            try
+            {
+                var healed = await TouchSplitRecordsAsync(
+                    person, date, dayEntries, ownBreaks, typeByActivity,
+                    onlyStaleRevisions: true, options, summary, cancellationToken);
+
+                // Day-level buckets stay mutually exclusive so they reconcile against DaysScanned;
+                // RecordsTouched counts records and is deliberately a different unit.
+                if (healed > 0)
+                {
+                    summary.DaysHealed++;
+                }
+                else
+                {
+                    summary.SkippedExistingBreak++;
+                }
+            }
+            catch (Exception ex)
+            {
+                summary.TouchFailed++;
+                _logger.LogError(ex,
+                    "Failed to refresh the Revision of the work records around the break on {Date} " +
+                    "for person {PersonGuid}. The day stays stale and is retried on the next run.",
+                    date, person.Guid);
+            }
+
             return;
         }
 
@@ -206,26 +285,170 @@ public class BreakInsertionService
             To = LogetoTimeConverter.ToApiTime(slot.End, options.ApiTimesAreUtc),
             Billable = false,
             Description = "Automatická přestávka",
-            ExternalKey = $"autobreak-{person.Guid}-{date:yyyy-MM-dd}"
+            ExternalKey = AutoBreakExternalKey(person.Guid, date)
         };
 
+        // merge=true lets Logeto split the work record around the break in one atomic operation.
         await _client.CreateTimeEntryAsync(request, merge: true, cancellationToken);
         summary.BreaksInserted++;
 
         _logger.LogInformation(
             "Inserted {Minutes}-minute break {From}–{To} for person {PersonGuid} on {Date}",
             options.BreakDurationMinutes, request.From, request.To, person.Guid, date);
+
+        // ...but it does not bump the Revision of the record it rewrote in place, so phones never
+        // refetch it. Re-read the day and touch the split's output to force a fresh Revision.
+        //
+        // The break itself is already written, so a failure from here on must not be reported as a
+        // failed insert: the day is merely left stale, and the healing path picks it up next run.
+        try
+        {
+            var afterSplit = (await _client.GetTimeTrackingAsync(date, date, cancellationToken))
+                .Where(e => e.Person == person.Guid && e.Date == date)
+                .ToList();
+
+            var breaksAfterSplit = afterSplit
+                .Where(e => typeByActivity.GetValueOrDefault(e.Activity) == LogetoActivityTypes.Break)
+                .ToList();
+
+            // A record created moments ago briefly reports Revision -1 before its real revision is
+            // assigned, so the freshly split records are touched unconditionally rather than
+            // compared against the break's revision, which is not yet meaningful.
+            var touched = await TouchSplitRecordsAsync(
+                person, date, afterSplit, breaksAfterSplit, typeByActivity,
+                onlyStaleRevisions: false, options, summary, cancellationToken);
+
+            if (touched == 0)
+            {
+                _logger.LogWarning(
+                    "Break was inserted for person {PersonGuid} on {Date} but no work record adjacent to it " +
+                    "was found to touch — phones may keep showing the pre-split day until the next run.",
+                    person.Guid, date);
+            }
+        }
+        catch (Exception ex)
+        {
+            summary.TouchFailed++;
+            _logger.LogError(ex,
+                "Break was inserted for person {PersonGuid} on {Date}, but refreshing the Revision of " +
+                "the split's work records failed. The day stays stale until a later run heals it.",
+                person.Guid, date);
+        }
     }
+
+    /// <summary>
+    /// Bumps the <c>Revision</c> of the work records sitting either side of a break by writing them
+    /// back unchanged. Logeto rewrites the surviving record in place without bumping it, so clients
+    /// that sync incrementally never refetch it and keep showing the day as it was before the split.
+    /// A no-op PUT changes nothing but the Revision — verified against the live account.
+    /// </summary>
+    private async Task<int> TouchSplitRecordsAsync(
+        LogetoPerson person,
+        DateOnly date,
+        IReadOnlyList<LogetoTimeEntry> dayEntries,
+        IReadOnlyList<LogetoTimeEntry> breaks,
+        IReadOnlyDictionary<Guid, string> typeByActivity,
+        bool onlyStaleRevisions,
+        BreakInsertionOptions options,
+        BreakInsertionSummary summary,
+        CancellationToken cancellationToken)
+    {
+        var workEntries = dayEntries
+            .Where(e => typeByActivity.GetValueOrDefault(e.Activity) == LogetoActivityTypes.Work
+                && e.From.HasValue && e.To.HasValue)
+            .ToList();
+
+        // A record between two back-to-back breaks is adjacent to both, so collect the distinct set
+        // first — one PUT is all it takes, and a live write is never worth issuing twice.
+        var toTouch = new Dictionary<Guid, LogetoTimeEntry>();
+
+        foreach (var brk in breaks.Where(b => b.From.HasValue && b.To.HasValue))
+        {
+            var adjacent = workEntries.Where(w => w.To == brk.From || w.From == brk.To);
+
+            foreach (var work in adjacent)
+            {
+                if (onlyStaleRevisions && work.Revision >= brk.Revision)
+                {
+                    continue;
+                }
+
+                toTouch[work.Guid] = work;
+            }
+        }
+
+        var touched = 0;
+
+        foreach (var work in toTouch.Values)
+        {
+            await _client.UpdateTimeEntryAsync(
+                work.Guid, BuildTouchRequest(work, options), cancellationToken);
+
+            // Counted at the write itself: if a later write in this loop throws, the ones that
+            // already landed must still show up in the summary.
+            touched++;
+            summary.RecordsTouched++;
+
+            _logger.LogInformation(
+                "Touched work record {EntryGuid} ({From}–{To}) for person {PersonGuid} on {Date} " +
+                "to refresh its Revision",
+                work.Guid, work.From, work.To, person.Guid, date);
+        }
+
+        return touched;
+    }
+
+    /// <summary>
+    /// The key this job stamps on every break it creates. It is what tells our own breaks apart from
+    /// the ones workers enter themselves, which must never be touched.
+    /// </summary>
+    private static string AutoBreakExternalKey(Guid personGuid, DateOnly date) =>
+        $"autobreak-{personGuid}-{date:yyyy-MM-dd}";
+
+    /// <summary>
+    /// Resends a record exactly as it stands. A Logeto write is a full replacement, so every writable
+    /// field is included; the response-only fields (Location, EndLocation, the rates) are not part of
+    /// the request contract and are left untouched by the write.
+    /// </summary>
+    private static LogetoTimeEntryRequest BuildTouchRequest(
+        LogetoTimeEntry source, BreakInsertionOptions options) => new()
+        {
+            Person = source.Person,
+            Activity = source.Activity,
+            Date = source.Date,
+            From = LogetoTimeConverter.ToApiTime(
+                LogetoTimeConverter.ToPragueLocal(source.From!.Value, options.ApiTimesAreUtc),
+                options.ApiTimesAreUtc),
+            To = LogetoTimeConverter.ToApiTime(
+                LogetoTimeConverter.ToPragueLocal(source.To!.Value, options.ApiTimesAreUtc),
+                options.ApiTimesAreUtc),
+            Billable = source.Billable,
+            Description = source.Description,
+            ExternalKey = source.ExternalKey,
+            Contract = source.Contract,
+            Subcontract = source.Subcontract
+        };
 }
 
 public class BreakInsertionSummary
 {
     public int DaysScanned { get; set; }
     public int BreaksInserted { get; set; }
+
+    /// <summary>Days that already carried our break but whose split was never made visible.</summary>
+    public int DaysHealed { get; set; }
+
+    /// <summary>Work records written back unchanged so their Revision refreshes for syncing clients.</summary>
+    public int RecordsTouched { get; set; }
+
+    /// <summary>Days whose break is in place but whose Revision refresh failed; retried next run.</summary>
+    public int TouchFailed { get; set; }
+
     public int SkippedExistingBreak { get; set; }
     public int SkippedInProgress { get; set; }
     public int SkippedBelowThreshold { get; set; }
     public int SkippedHoursOnly { get; set; }
     public int SkippedNoSlot { get; set; }
+
     public int Failed { get; set; }
 }
