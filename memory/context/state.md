@@ -14,6 +14,15 @@ _Update this file at the end of significant sessions._
 
 ## Recently Completed
 
+- Lot label calibration wizard (branch `feature/calibration-wizard`, PR #4207, 2026-09-16):
+  operators correct label drift from the print tab by reporting direction + speed; the
+  server derives, clamps and persists the nudge on plain material-containers Write. Two
+  review agents (C#, frontend) ran on the PR; all five findings were fixed in separate
+  commits (modal-wide busy flag during a nudge, out-of-range calibrations step by one
+  nudge instead of snapping to the ceiling, accepted lost-update window documented,
+  aria-label on drift buttons, stale hook comment). Backend + frontend CI green; awaiting
+  merge and a manual check on staging.
+
 - Hygiene coverage gap + AgentHarness drift (PR #3956 triage, branch
   `claude/pr-3956-resolver-coverage-oaq9qj`, 2026-09-03): `/hygiene-all`,
   `/automerge-all` and `/rework-all` all filtered on `--label agent`, so an
