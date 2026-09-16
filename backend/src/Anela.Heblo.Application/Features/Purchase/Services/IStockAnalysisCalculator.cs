@@ -44,4 +44,13 @@ public interface IStockAnalysisCalculator
     /// <param name="request">The request carrying the filter criteria</param>
     /// <returns>The filtered item list</returns>
     List<StockAnalysisItemDto> FilterItems(List<StockAnalysisItemDto> items, GetPurchaseStockAnalysisRequest request);
+
+    /// <summary>
+    /// Sorts analyzed stock items by the requested sort key and direction.
+    /// </summary>
+    /// <param name="items">Items to sort</param>
+    /// <param name="sortBy">The field to sort by</param>
+    /// <param name="descending">Whether to reverse the ascending order</param>
+    /// <returns>The sorted item list</returns>
+    List<StockAnalysisItemDto> SortItems(List<StockAnalysisItemDto> items, StockAnalysisSortBy sortBy, bool descending);
 }

@@ -322,4 +322,89 @@ public class StockAnalysisCalculatorTests
 
         result.Should().HaveCount(1);
     }
+
+    private static StockAnalysisItemDto MakeSortableItem(string code, string name, double available, double consumption, double efficiency, DateTime? lastPurchaseDate) =>
+        new()
+        {
+            ProductCode = code,
+            ProductName = name,
+            ProductNameNormalized = name.NormalizeForSearch(),
+            ProductType = "Material",
+            AvailableStock = available,
+            ConsumptionInPeriod = consumption,
+            StockEfficiencyPercentage = efficiency,
+            LastPurchase = lastPurchaseDate.HasValue
+                ? new LastPurchaseInfoDto { Date = lastPurchaseDate.Value, SupplierName = "Acme", Amount = 1, UnitPrice = 1, TotalPrice = 1 }
+                : null,
+        };
+
+    [Fact]
+    public void SortItems_ByProductCode_Ascending()
+    {
+        var items = new List<StockAnalysisItemDto>
+        {
+            MakeSortableItem("B", "b", 0, 0, 0, null),
+            MakeSortableItem("A", "a", 0, 0, 0, null),
+        };
+
+        var result = _calculator.SortItems(items, StockAnalysisSortBy.ProductCode, descending: false);
+
+        result.Select(i => i.ProductCode).Should().ContainInOrder("A", "B");
+    }
+
+    [Fact]
+    public void SortItems_ByProductCode_Descending_ReversesOrder()
+    {
+        var items = new List<StockAnalysisItemDto>
+        {
+            MakeSortableItem("A", "a", 0, 0, 0, null),
+            MakeSortableItem("B", "b", 0, 0, 0, null),
+        };
+
+        var result = _calculator.SortItems(items, StockAnalysisSortBy.ProductCode, descending: true);
+
+        result.Select(i => i.ProductCode).Should().ContainInOrder("B", "A");
+    }
+
+    [Fact]
+    public void SortItems_ByAvailableStock()
+    {
+        var items = new List<StockAnalysisItemDto>
+        {
+            MakeSortableItem("A", "a", available: 50, 0, 0, null),
+            MakeSortableItem("B", "b", available: 10, 0, 0, null),
+        };
+
+        var result = _calculator.SortItems(items, StockAnalysisSortBy.AvailableStock, descending: false);
+
+        result.Select(i => i.ProductCode).Should().ContainInOrder("B", "A");
+    }
+
+    [Fact]
+    public void SortItems_ByLastPurchaseDate_NullTreatedAsMinValue()
+    {
+        var items = new List<StockAnalysisItemDto>
+        {
+            MakeSortableItem("A", "a", 0, 0, 0, new DateTime(2024, 6, 1)),
+            MakeSortableItem("B", "b", 0, 0, 0, null),
+        };
+
+        var result = _calculator.SortItems(items, StockAnalysisSortBy.LastPurchaseDate, descending: false);
+
+        result.Select(i => i.ProductCode).Should().ContainInOrder("B", "A");
+    }
+
+    [Fact]
+    public void SortItems_DefaultFallback_SortsByStockEfficiency()
+    {
+        var items = new List<StockAnalysisItemDto>
+        {
+            MakeSortableItem("A", "a", 0, 0, efficiency: 80, null),
+            MakeSortableItem("B", "b", 0, 0, efficiency: 20, null),
+        };
+
+        var result = _calculator.SortItems(items, (StockAnalysisSortBy)999, descending: false);
+
+        result.Select(i => i.ProductCode).Should().ContainInOrder("B", "A");
+    }
 }

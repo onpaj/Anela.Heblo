@@ -63,7 +63,7 @@ public class GetPurchaseStockAnalysisHandler : IRequestHandler<GetPurchaseStockA
                 .ToList();
         }
 
-        analysisItems = SortItems(analysisItems, request.SortBy, request.SortDescending);
+        analysisItems = _stockAnalysisCalculator.SortItems(analysisItems, request.SortBy, request.SortDescending);
 
         var totalCount = analysisItems.Count;
         var pagedItems = request.IsExport
@@ -84,22 +84,6 @@ public class GetPurchaseStockAnalysisHandler : IRequestHandler<GetPurchaseStockA
             PageSize = request.PageSize,
             Summary = summary
         };
-    }
-
-    private List<StockAnalysisItemDto> SortItems(List<StockAnalysisItemDto> items, StockAnalysisSortBy sortBy, bool descending)
-    {
-        var sorted = sortBy switch
-        {
-            StockAnalysisSortBy.ProductCode => items.OrderBy(i => i.ProductCode),
-            StockAnalysisSortBy.ProductName => items.OrderBy(i => i.ProductName),
-            StockAnalysisSortBy.AvailableStock => items.OrderBy(i => i.AvailableStock),
-            StockAnalysisSortBy.Consumption => items.OrderBy(i => i.ConsumptionInPeriod),
-            StockAnalysisSortBy.StockEfficiency => items.OrderBy(i => i.StockEfficiencyPercentage),
-            StockAnalysisSortBy.LastPurchaseDate => items.OrderBy(i => i.LastPurchase?.Date ?? DateTime.MinValue),
-            _ => items.OrderBy(i => i.StockEfficiencyPercentage)
-        };
-
-        return descending ? sorted.Reverse().ToList() : sorted.ToList();
     }
 
     private StockAnalysisSummaryDto CalculateSummary(List<StockAnalysisItemDto> items, DateTime fromDate, DateTime toDate)

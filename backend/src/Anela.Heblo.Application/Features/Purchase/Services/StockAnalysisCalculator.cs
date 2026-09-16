@@ -121,6 +121,22 @@ public class StockAnalysisCalculator : IStockAnalysisCalculator
         return items.Where(item => ShouldIncludeItem(item, request)).ToList();
     }
 
+    public List<StockAnalysisItemDto> SortItems(List<StockAnalysisItemDto> items, StockAnalysisSortBy sortBy, bool descending)
+    {
+        var sorted = sortBy switch
+        {
+            StockAnalysisSortBy.ProductCode => items.OrderBy(i => i.ProductCode),
+            StockAnalysisSortBy.ProductName => items.OrderBy(i => i.ProductName),
+            StockAnalysisSortBy.AvailableStock => items.OrderBy(i => i.AvailableStock),
+            StockAnalysisSortBy.Consumption => items.OrderBy(i => i.ConsumptionInPeriod),
+            StockAnalysisSortBy.StockEfficiency => items.OrderBy(i => i.StockEfficiencyPercentage),
+            StockAnalysisSortBy.LastPurchaseDate => items.OrderBy(i => i.LastPurchase?.Date ?? DateTime.MinValue),
+            _ => items.OrderBy(i => i.StockEfficiencyPercentage)
+        };
+
+        return descending ? sorted.Reverse().ToList() : sorted.ToList();
+    }
+
     private bool ShouldIncludeItem(StockAnalysisItemDto item, GetPurchaseStockAnalysisRequest request)
     {
         if (request.OnlyConfigured && !item.IsConfigured)
