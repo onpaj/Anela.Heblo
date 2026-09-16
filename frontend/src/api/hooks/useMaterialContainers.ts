@@ -18,7 +18,13 @@ import {
   GetLotLabelCalibrationResponse,
   SetLotLabelCalibrationRequest,
   SetLotLabelCalibrationResponse,
+  NudgeLotLabelCalibrationRequest,
+  NudgeLotLabelCalibrationResponse,
+  LabelDriftDirection,
+  LabelDriftSpeed,
 } from '../generated/api-client';
+
+const LOT_LABEL_CALIBRATION_QUERY_KEY = [...QUERY_KEYS.materialContainers, 'lot-label-calibration'];
 
 export const useCreateMaterialContainers = () => {
   const queryClient = useQueryClient();
@@ -106,7 +112,7 @@ export const useFeedLotMedia = () =>
 export const useLotLabelCalibration = (enabled: boolean) =>
   useQuery({
     enabled,
-    queryKey: [...QUERY_KEYS.materialContainers, 'lot-label-calibration'],
+    queryKey: LOT_LABEL_CALIBRATION_QUERY_KEY,
     queryFn: (): Promise<GetLotLabelCalibrationResponse> => {
       const apiClient = getAuthenticatedApiClient();
       return apiClient.lots_GetLabelCalibration();
@@ -129,9 +135,27 @@ export const useSetLotLabelCalibration = () => {
       return apiClient.lots_SetLabelCalibration(request);
     },
     onSuccess: () =>
-      queryClient.invalidateQueries({
-        queryKey: [...QUERY_KEYS.materialContainers, 'lot-label-calibration'],
-      }),
+      queryClient.invalidateQueries({ queryKey: LOT_LABEL_CALIBRATION_QUERY_KEY }),
+  });
+};
+
+// The operator-facing calibration wizard. It sends only an observation — which way the
+// printed text drifts and how fast — and the server derives, clamps and persists the
+// correction, so no dot value ever crosses the wire and no calibration permission is
+// needed. The advanced pitch/drift fields read the same record, hence the invalidation.
+export const useNudgeLotLabelCalibration = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (input: {
+      direction: LabelDriftDirection;
+      speed: LabelDriftSpeed;
+    }): Promise<NudgeLotLabelCalibrationResponse> => {
+      const apiClient = getAuthenticatedApiClient();
+      const request = new NudgeLotLabelCalibrationRequest(input);
+      return apiClient.lots_NudgeLabelCalibration(request);
+    },
+    onSuccess: () =>
+      queryClient.invalidateQueries({ queryKey: LOT_LABEL_CALIBRATION_QUERY_KEY }),
   });
 };
 

@@ -1,28 +1,19 @@
 import { useEffect, useState } from "react";
-import { X, Printer, Loader, ChevronDown } from "lucide-react";
+import { X, Printer, Loader } from "lucide-react";
 import { getISOWeek, getISOWeekYear } from "date-fns";
 import {
   usePrintLotLabels,
   usePrintLotCalibrationLabel,
   useFeedLotMedia,
-  useLotLabelCalibration,
-  useSetLotLabelCalibration,
 } from "../../api/hooks/useMaterialContainers";
-import { usePermissionsContext } from "../../auth/PermissionsContext";
 import PrinterMediaChangeDialog from "../dialogs/PrinterMediaChangeDialog";
+import LotLabelCalibrationTab from "./LotLabelCalibrationTab";
+import LotLabelPrinterControls from "./LotLabelPrinterControls";
+
+type LotLabelTab = "print" | "calibration";
 
 const MIN_COUNT = 1;
 const MAX_COUNT = 200;
-// Media nudge: forward-only feed (thermal printers cannot reverse). One step is a fine
-// increment; buttons feed 1, 3, or 5 steps forward.
-const FEED_STEP_DOTS = 4;
-const FEED_STEPS = [1, 3, 5];
-// Editing the printer pitch/drift calibration has its own permission: it affects every
-// printed label, so it is not granted by plain material-containers write access. Both
-// levels are needed to use the form — the API requires Read to load the current values
-// and Write to save them, so holding only one leaves an unusable form.
-export const CALIBRATION_READ_PERMISSION = "manufacture.label_calibration.read";
-export const CALIBRATION_WRITE_PERMISSION = "manufacture.label_calibration.write";
 
 /** Line 1 default: ISO calendar week (2 digits) + ISO week-year (2 digits), e.g. "2926". */
 export const defaultLotNumber = (date: Date = new Date()): string => {
@@ -59,27 +50,23 @@ function LotLabelPrintModal({
   const [lotNumber, setLotNumber] = useState("");
   const [expirationMonth, setExpirationMonth] = useState("");
   const [count, setCount] = useState(MIN_COUNT);
-  const [activeTab, setActiveTab] = useState<"print" | "calibration">("print");
-  const [pitchDots, setPitchDots] = useState<number | "">("");
-  const [driftPer100, setDriftPer100] = useState<number | "">("");
-  // True once the user edits either calibration field, until the modal reopens or the
-  // values are saved. Blocks a background refetch from overwriting unsaved input.
-  const [isCalibrationDirty, setIsCalibrationDirty] = useState(false);
+  const [activeTab, setActiveTab] = useState<LotLabelTab>("print");
   const [error, setError] = useState<string | null>(null);
   // Set when a print was blocked because the media type changed; holds the closure that
   // re-runs the same action confirmed. Non-null while the confirmation dialog is shown.
   const [pendingConfirm, setPendingConfirm] = useState<(() => void) | null>(null);
 
-  const { hasPermission } = usePermissionsContext();
-  const canCalibrate =
-    hasPermission(CALIBRATION_READ_PERMISSION) &&
-    hasPermission(CALIBRATION_WRITE_PERMISSION);
+  // Both tabs are always offered. Only the raw values inside the calibration tab are
+  // permission-gated, exactly as they were before the drift buttons existed -- hiding the
+  // tab itself would make a missing grant look like a broken screen.
+  const tabs: ReadonlyArray<{ id: LotLabelTab; label: string }> = [
+    { id: "print", label: "Tisk" },
+    { id: "calibration", label: "Kalibrace" },
+  ];
 
   const printLotLabels = usePrintLotLabels();
   const printCalibration = usePrintLotCalibrationLabel();
   const feedMedia = useFeedLotMedia();
-  const calibration = useLotLabelCalibration(isOpen && canCalibrate);
-  const saveCalibration = useSetLotLabelCalibration();
   const isPrinting =
     printLotLabels.isPending ||
     printCalibration.isPending ||
@@ -97,24 +84,8 @@ function LotLabelPrintModal({
       setError(null);
       setPendingConfirm(null);
       setActiveTab("print");
-      setIsCalibrationDirty(false);
     }
   }, [isOpen, initialLotNumber, initialExpirationMonth, initialCount]);
-
-  // Populate the calibration fields once the persisted values load. The query refetches
-  // on window focus, so this must not run while the user has unsaved edits — otherwise
-  // alt-tabbing away and back would silently replace what they typed.
-  useEffect(() => {
-    if (!isCalibrationDirty && calibration.data?.pitchDots != null) {
-      setPitchDots(calibration.data.pitchDots);
-    }
-  }, [calibration.data?.pitchDots, isCalibrationDirty]);
-
-  useEffect(() => {
-    if (!isCalibrationDirty && calibration.data?.driftDotsPer100Labels != null) {
-      setDriftPer100(calibration.data.driftDotsPer100Labels);
-    }
-  }, [calibration.data?.driftDotsPer100Labels, isCalibrationDirty]);
 
   if (!isOpen) return null;
 
@@ -189,22 +160,6 @@ function LotLabelPrintModal({
 
   const handleFeed = (dots: number) => runFeed(dots, false);
 
-  // Persists the printer calibration (pitch + drift correction) so it applies to every
-  // print. Requires the dedicated label-calibration permission, not plain operator access.
-  const handleSaveCalibration = () => {
-    if (pitchDots === "" || driftPer100 === "") return;
-    setError(null);
-    saveCalibration.mutate(
-      { pitchDots, driftDotsPer100Labels: driftPer100 },
-      {
-        // Saved values are now the server's; let a refetch repopulate the fields again.
-        onSuccess: () => setIsCalibrationDirty(false),
-        onError: (err) =>
-          setError(`Chyba při uložení kalibrace: ${(err as Error).message}`),
-      },
-    );
-  };
-
   return (
     <div
       className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
@@ -233,12 +188,7 @@ function LotLabelPrintModal({
           className="flex gap-6 px-6 border-b border-gray-200 dark:border-graphite-border"
           aria-label="Tabs"
         >
-          {(
-            [
-              { id: "print", label: "Tisk" },
-              { id: "calibration", label: "Kalibrace" },
-            ] as const
-          ).map((tab) => (
+          {tabs.map((tab) => (
             <button
               key={tab.id}
               type="button"
@@ -322,101 +272,22 @@ function LotLabelPrintModal({
                   disabled={isPrinting}
                 />
               </div>
+
+              <LotLabelPrinterControls
+                isPrinting={isPrinting}
+                onTestPrint={handleTestPrint}
+                onFeed={handleFeed}
+                onError={setError}
+                onClearError={() => setError(null)}
+              />
             </>
           )}
 
           {activeTab === "calibration" && (
-            <div className="mb-6">
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={handleTestPrint}
-                  disabled={isPrinting}
-                  title="Vytiskne kříž pro zarovnání média"
-                  className="px-3 py-1.5 text-sm font-medium text-gray-700 dark:text-graphite-muted bg-white dark:bg-graphite-surface-2 border border-gray-300 dark:border-graphite-border rounded-md hover:bg-gray-50 dark:hover:bg-white/5 focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-50"
-                >
-                  Zkušební kříž
-                </button>
-                {FEED_STEPS.map((steps) => (
-                  <button
-                    key={steps}
-                    type="button"
-                    onClick={() => handleFeed(FEED_STEP_DOTS * steps)}
-                    disabled={isPrinting}
-                    title={`Posunout médium o ${steps} vpřed`}
-                    className="flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-gray-700 dark:text-graphite-muted bg-white dark:bg-graphite-surface-2 border border-gray-300 dark:border-graphite-border rounded-md hover:bg-gray-50 dark:hover:bg-white/5 focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-50"
-                  >
-                    <ChevronDown className="h-4 w-4" />+{steps}
-                  </button>
-                ))}
-              </div>
-
-              {canCalibrate && (
-                <div className="mt-3 pt-3 border-t border-gray-200 dark:border-graphite-border space-y-3">
-                  {calibration.isError && (
-                    <div
-                      className="text-sm text-red-600 dark:text-red-400"
-                      data-testid="calibration-load-error"
-                    >
-                      Kalibraci se nepodařilo načíst:{" "}
-                      {(calibration.error as Error)?.message}
-                    </div>
-                  )}
-                  <div>
-                    <label
-                      htmlFor="pitchDots"
-                      className="block text-xs font-medium text-gray-500 dark:text-graphite-muted mb-1"
-                    >
-                      Rozteč štítků (body)
-                    </label>
-                    <input
-                      id="pitchDots"
-                      type="number"
-                      value={pitchDots}
-                      onChange={(e) => {
-                        setIsCalibrationDirty(true);
-                        setPitchDots(e.target.value === "" ? "" : Number(e.target.value));
-                      }}
-                      className="w-28 px-3 py-1.5 text-sm border border-gray-300 dark:border-graphite-border rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:bg-graphite-surface-2 dark:text-graphite-text"
-                      disabled={saveCalibration.isPending || calibration.isLoading}
-                    />
-                  </div>
-                  <div>
-                    <label
-                      htmlFor="driftPer100"
-                      className="block text-xs font-medium text-gray-500 dark:text-graphite-muted mb-1"
-                    >
-                      Korekce driftu: celkem bodů na 100 štítků (0 = vypnuto)
-                    </label>
-                    <input
-                      id="driftPer100"
-                      type="number"
-                      min={0}
-                      value={driftPer100}
-                      onChange={(e) => {
-                        setIsCalibrationDirty(true);
-                        setDriftPer100(e.target.value === "" ? "" : Number(e.target.value));
-                      }}
-                      className="w-28 px-3 py-1.5 text-sm border border-gray-300 dark:border-graphite-border rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:bg-graphite-surface-2 dark:text-graphite-text"
-                      disabled={saveCalibration.isPending || calibration.isLoading}
-                    />
-                  </div>
-                  <button
-                    type="button"
-                    onClick={handleSaveCalibration}
-                    disabled={
-                      pitchDots === "" ||
-                      driftPer100 === "" ||
-                      saveCalibration.isPending ||
-                      calibration.isLoading
-                    }
-                    className="px-3 py-1.5 text-sm font-medium text-white bg-indigo-600 border border-transparent rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-50"
-                  >
-                    {saveCalibration.isPending ? "Ukládám…" : "Uložit kalibraci"}
-                  </button>
-                </div>
-              )}
-            </div>
+            <LotLabelCalibrationTab
+              onError={setError}
+              onClearError={() => setError(null)}
+            />
           )}
 
           <div className="flex items-center justify-end space-x-3">
