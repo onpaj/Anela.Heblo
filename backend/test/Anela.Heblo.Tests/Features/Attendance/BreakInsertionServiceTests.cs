@@ -899,4 +899,51 @@ public class BreakInsertionServiceTests
         summary.RecordsTouched.Should().Be(2);
         summary.DaysScanned.Should().Be(2);
     }
+
+    [Fact]
+    public async Task TouchesTheSplit_EvenWhenTheFreshBreakStillReportsRevisionMinusOne()
+    {
+        // Arrange — a record created moments ago briefly reports Revision -1 before Logeto assigns
+        // its real one, so the break's revision is meaningless right after the split. The insert
+        // path must therefore touch unconditionally; comparing against -1 would skip every record
+        // (any real revision outranks it) and silently reinstate the original bug.
+        var firstHalf = WorkEntryRev(5, 20, 11, 30, revision: 13);
+        var afterBreak = WorkEntryRev(12, 0, 13, 19, revision: 5);
+        SetupDefaults(WorkEntry(5, 20, 13, 19));
+        SetupPostSplit(firstHalf, BreakEntryRev(11, 30, 12, 0, revision: -1), afterBreak);
+
+        // Act
+        var summary = await CreateService().RunAsync(CancellationToken.None);
+
+        // Assert
+        summary.BreaksInserted.Should().Be(1);
+        summary.RecordsTouched.Should().Be(2);
+        _client.Verify(c => c.UpdateTimeEntryAsync(
+            firstHalf.Guid, It.IsAny<LogetoTimeEntryRequest>(), It.IsAny<CancellationToken>()),
+            Times.Once);
+        _client.Verify(c => c.UpdateTimeEntryAsync(
+            afterBreak.Guid, It.IsAny<LogetoTimeEntryRequest>(), It.IsAny<CancellationToken>()),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task DoesNotHealARecord_WhoseRevisionEqualsTheBreaks()
+    {
+        // Arrange — equality is the boundary of the staleness test: same revision is not behind.
+        var afterBreak = WorkEntryRev(12, 0, 13, 50, revision: 14);
+        SetupDefaults(
+            WorkEntryRev(6, 43, 11, 30, revision: 14),
+            BreakEntryRev(11, 30, 12, 0, revision: 14),
+            afterBreak);
+
+        // Act
+        var summary = await CreateService().RunAsync(CancellationToken.None);
+
+        // Assert
+        summary.RecordsTouched.Should().Be(0);
+        summary.SkippedExistingBreak.Should().Be(1);
+        _client.Verify(c => c.UpdateTimeEntryAsync(
+            It.IsAny<Guid>(), It.IsAny<LogetoTimeEntryRequest>(), It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
 }
