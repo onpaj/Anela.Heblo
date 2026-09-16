@@ -126,6 +126,28 @@ describe("GiftPackageManufacturingDetail - manufacture failure toast", () => {
     expect(toast.error).not.toHaveBeenCalledWith("Network Error");
   });
 
+  it("disables the button while a run is in flight so a double click submits once", async () => {
+    // Arrange - the backend stock check is best-effort, not a lock, so two overlapping
+    // submits can both pass it. Hold the promise open to observe the in-flight state.
+    let resolveRun: () => void = () => undefined;
+    const onManufacture = jest.fn(
+      () => new Promise<void>((resolve) => { resolveRun = resolve; })
+    );
+    renderDetail(onManufacture);
+    const button = screen.getByRole("button", { name: MANUFACTURE_BUTTON });
+
+    // Act
+    fireEvent.click(button);
+    fireEvent.click(button);
+
+    // Assert
+    await waitFor(() => expect(button).toBeDisabled());
+    expect(onManufacture).toHaveBeenCalledTimes(1);
+
+    resolveRun();
+    await waitFor(() => expect(button).not.toBeDisabled());
+  });
+
   it("does not toast and closes the modal when the run succeeds", async () => {
     // Arrange
     const onManufacture = jest.fn().mockResolvedValue(undefined);

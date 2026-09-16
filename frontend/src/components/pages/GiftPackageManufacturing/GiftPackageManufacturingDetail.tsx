@@ -38,6 +38,7 @@ const GiftPackageManufacturingDetail: React.FC<GiftPackageManufacturingDetailPro
   const [quantity, setQuantity] = useState(1);
   const [disassemblyQuantity, setDisassemblyQuantity] = useState(1);
   const [activeTab, setActiveTab] = useState<'manufacture' | 'disassemble'>('manufacture');
+  const [isManufacturing, setIsManufacturing] = useState(false);
 
   // Disassembly mutation
   const disassemblyMutation = useDisassembleGiftPackage();
@@ -96,8 +97,11 @@ const GiftPackageManufacturingDetail: React.FC<GiftPackageManufacturingDetailPro
 
 
   const handleManufacture = async () => {
-    if (!selectedPackage) return;
+    if (!selectedPackage || isManufacturing) return;
 
+    // The backend stock check is best-effort, not a lock: two runs submitted together can
+    // both pass it. Locking the button while a run is in flight closes the double-click case.
+    setIsManufacturing(true);
     try {
       await onManufacture(quantity);
       onClose();
@@ -112,6 +116,8 @@ const GiftPackageManufacturingDetail: React.FC<GiftPackageManufacturingDetailPro
       toast.error(
         envelope?.params?.['ErrorMessage'] || 'Nepodařilo se zadat balíček k výrobě',
       );
+    } finally {
+      setIsManufacturing(false);
     }
   };
 
@@ -410,9 +416,9 @@ const GiftPackageManufacturingDetail: React.FC<GiftPackageManufacturingDetailPro
                 {/* Manufacturing Button */}
                 <button
                   onClick={handleManufacture}
-                  disabled={!validationResults.isValid}
+                  disabled={!validationResults.isValid || isManufacturing}
                   className={`w-full flex items-center justify-center px-6 py-4 text-lg font-semibold rounded-lg transition-colors touch-manipulation ${
-                    validationResults.isValid
+                    validationResults.isValid && !isManufacturing
                       ? 'text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500'
                       : 'text-gray-400 dark:text-graphite-faint bg-gray-200 dark:bg-graphite-hover cursor-not-allowed'
                   }`}
