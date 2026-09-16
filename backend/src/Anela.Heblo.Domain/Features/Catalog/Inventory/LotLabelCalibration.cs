@@ -85,17 +85,23 @@ public class LotLabelCalibration
         };
 
         var current = EffectivePitchHundredths;
+
+        // Only the advanced form can put the pair above the wizard's ceiling, with a drift
+        // of a whole dot or more per label. Two things must not happen there: clamping to
+        // the ceiling, which would cut whole dots in a single click instead of a hair, and
+        // re-deriving the pair from an out-of-range effective pitch, which would produce a
+        // pitch outside its own range. So growing is refused (held at the ceiling) and
+        // shrinking steps the drift alone by one nudge, leaving the pitch where it was.
+        // The drift is at least 100 here, so a single step can never take it negative.
+        if (current > MaxEffectivePitchHundredths)
+        {
+            return delta > 0
+                ? new LotLabelCalibration(PitchDots, DriftDotsPer100Labels, modifiedBy)
+                : new LotLabelCalibration(PitchDots, DriftDotsPer100Labels + delta, modifiedBy);
+        }
+
         var corrected = Math.Clamp(
             current + delta, MinEffectivePitchHundredths, MaxEffectivePitchHundredths);
-
-        // Clamping must never walk the calibration the opposite way from what was reported.
-        // It would, for a value the advanced form put above the wizard's ceiling. Hold the
-        // stored pair exactly as it is instead: re-deriving it from an out-of-range
-        // effective pitch would produce a pitch outside its own range.
-        if (Math.Sign(corrected - current) != Math.Sign(delta))
-        {
-            return new LotLabelCalibration(PitchDots, DriftDotsPer100Labels, modifiedBy);
-        }
 
         return new LotLabelCalibration(corrected / 100, corrected % 100, modifiedBy);
     }

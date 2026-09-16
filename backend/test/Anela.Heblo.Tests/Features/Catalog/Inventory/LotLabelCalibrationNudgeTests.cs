@@ -143,6 +143,37 @@ public class LotLabelCalibrationNudgeTests
         result.DriftDotsPer100Labels.Should().Be(LotLabelCalibration.MaxDriftDotsPer100Labels);
     }
 
+    [Theory]
+    [InlineData(LabelDriftSpeed.Fast, 970)]
+    [InlineData(LabelDriftSpeed.Slow, 985)]
+    public void Nudge_StepsAnOutOfRangeValueByOneNudge_RatherThanSnappingToTheCeiling(
+        LabelDriftSpeed speed, int expectedDriftDotsPer100Labels)
+    {
+        // pitch 400 + drift 1000 is 410 dots per label, nine dots above the wizard's ceiling.
+        // Reporting "up" asks for a hair less gap. Clamping to the ceiling would instead cut
+        // nine whole dots in one click, so the drift steps by exactly one nudge and the
+        // pitch stays where the advanced form put it.
+        var beyondTheWizardsRange = Calibration(
+            LotLabelCalibration.MaxPitchDots, LotLabelCalibration.MaxDriftDotsPer100Labels);
+
+        var result = beyondTheWizardsRange.Nudge(LabelDriftDirection.Up, speed, User);
+
+        result.PitchDots.Should().Be(LotLabelCalibration.MaxPitchDots);
+        result.DriftDotsPer100Labels.Should().Be(expectedDriftDotsPer100Labels);
+    }
+
+    [Fact]
+    public void Nudge_ReturnsToTheWizardsRange_OneStepAtATime()
+    {
+        // Just above the ceiling the single step lands inside the range and reads as a
+        // normal in-range pair, the same result the plain arithmetic would give.
+        var result = Calibration(LotLabelCalibration.MaxPitchDots, 120)
+            .Nudge(LabelDriftDirection.Up, LabelDriftSpeed.Fast, User);
+
+        result.PitchDots.Should().Be(LotLabelCalibration.MaxPitchDots);
+        result.DriftDotsPer100Labels.Should().Be(90);
+    }
+
     [Fact]
     public void Nudge_ClampsAtTheMinimumPitch()
     {
