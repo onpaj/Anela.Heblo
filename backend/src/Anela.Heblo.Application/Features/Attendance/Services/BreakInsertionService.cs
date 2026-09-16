@@ -151,8 +151,17 @@ public class BreakInsertionService
         {
             // A break is already there. Its split may still be invisible to phones if a previous run
             // was interrupted before touching, or if the day predates this job's touch behaviour.
+            //
+            // Only breaks this job created are healed. A break a worker entered themselves was never
+            // split by our merge=true call, so the Revision bug does not apply to it — and the
+            // account-wide counter makes their own work record look "stale" purely because it was
+            // written first. Without this guard the job would PUT records it has no business writing.
+            var ownBreaks = existingBreaks
+                .Where(e => e.ExternalKey == AutoBreakExternalKey(person.Guid, date))
+                .ToList();
+
             var healed = await TouchSplitRecordsAsync(
-                person, date, dayEntries, existingBreaks, typeByActivity,
+                person, date, dayEntries, ownBreaks, typeByActivity,
                 onlyStaleRevisions: true, options, cancellationToken);
 
             if (healed > 0)
@@ -233,7 +242,7 @@ public class BreakInsertionService
             To = LogetoTimeConverter.ToApiTime(slot.End, options.ApiTimesAreUtc),
             Billable = false,
             Description = "Automatická přestávka",
-            ExternalKey = $"autobreak-{person.Guid}-{date:yyyy-MM-dd}"
+            ExternalKey = AutoBreakExternalKey(person.Guid, date)
         };
 
         // merge=true lets Logeto split the work record around the break in one atomic operation.
@@ -318,6 +327,13 @@ public class BreakInsertionService
 
         return touched;
     }
+
+    /// <summary>
+    /// The key this job stamps on every break it creates. It is what tells our own breaks apart from
+    /// the ones workers enter themselves, which must never be touched.
+    /// </summary>
+    private static string AutoBreakExternalKey(Guid personGuid, DateOnly date) =>
+        $"autobreak-{personGuid}-{date:yyyy-MM-dd}";
 
     /// <summary>
     /// Resends a record exactly as it stands. A Logeto write is a full replacement, so every writable

@@ -563,6 +563,20 @@ public class BreakInsertionServiceTests
             To = new DateTimeOffset(2026, 8, 3, toHour, toMin, 0, TimeSpan.Zero)
         };
 
+    /// <summary>A break a worker entered themselves — no <c>autobreak-</c> key, never split by us.</summary>
+    private static LogetoTimeEntry ManualBreakRev(
+        int fromHour, int fromMin, int toHour, int toMin, int revision) => new()
+        {
+            Guid = Guid.NewGuid(),
+            Person = Worker,
+            Date = Day,
+            Activity = BreakActivity,
+            Revision = revision,
+            ExternalKey = null,
+            From = new DateTimeOffset(2026, 8, 3, fromHour, fromMin, 0, TimeSpan.Zero),
+            To = new DateTimeOffset(2026, 8, 3, toHour, toMin, 0, TimeSpan.Zero)
+        };
+
     /// <summary>What the day looks like once Logeto's merge=true split has run. Registered after
     /// the catch-all setup so Moq matches this narrower one for the single-day re-read.</summary>
     private void SetupPostSplit(params LogetoTimeEntry[] entries) =>
@@ -712,5 +726,62 @@ public class BreakInsertionServiceTests
             It.Is<It.IsAnyType>((v, _) => v.ToString()!.Contains("no work record adjacent to it")),
             It.IsAny<Exception>(), It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
             Times.Once);
+    }
+
+    [Fact]
+    public async Task DoesNotTouchAnything_WhenTheBreakWasEnteredByTheWorker()
+    {
+        // Arrange — the worker clocked a full day, then added their own lunch break afterwards.
+        // The account-wide Revision counter therefore leaves both work records "below" the break,
+        // which looks exactly like a stale day — but we never split this day, so nothing is stale.
+        var morning = WorkEntryRev(8, 0, 12, 0, revision: 13);
+        var afternoon = WorkEntryRev(12, 30, 16, 30, revision: 14);
+        SetupDefaults(morning, ManualBreakRev(12, 0, 12, 30, revision: 20), afternoon);
+
+        // Act
+        var summary = await CreateService().RunAsync(CancellationToken.None);
+
+        // Assert
+        summary.SkippedExistingBreak.Should().Be(1);
+        summary.RecordsTouched.Should().Be(0);
+        _client.Verify(c => c.UpdateTimeEntryAsync(
+            It.IsAny<Guid>(), It.IsAny<LogetoTimeEntryRequest>(), It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
+
+    [Fact]
+    public async Task HealsOnlyItsOwnBreak_WhenTheDayAlsoCarriesAManualOne()
+    {
+        // Arrange — a manual morning break sits between two work records we must leave alone; our
+        // own afternoon break, further along the day, has two stale neighbours that do need it.
+        var manualBefore = WorkEntryRev(8, 0, 10, 0, revision: 13);
+        var manualAfter = WorkEntryRev(10, 15, 11, 0, revision: 14);
+        var ourBefore = WorkEntryRev(11, 30, 12, 0, revision: 15);
+        var ourAfter = WorkEntryRev(12, 30, 16, 30, revision: 5);
+        SetupDefaults(
+            manualBefore,
+            ManualBreakRev(10, 0, 10, 15, revision: 20),
+            manualAfter,
+            ourBefore,
+            BreakEntryRev(12, 0, 12, 30, revision: 21),
+            ourAfter);
+
+        // Act
+        var summary = await CreateService().RunAsync(CancellationToken.None);
+
+        // Assert — only the records adjacent to our own break are written.
+        summary.RecordsTouched.Should().Be(2);
+        _client.Verify(c => c.UpdateTimeEntryAsync(
+            ourBefore.Guid, It.IsAny<LogetoTimeEntryRequest>(), It.IsAny<CancellationToken>()),
+            Times.Once);
+        _client.Verify(c => c.UpdateTimeEntryAsync(
+            ourAfter.Guid, It.IsAny<LogetoTimeEntryRequest>(), It.IsAny<CancellationToken>()),
+            Times.Once);
+        _client.Verify(c => c.UpdateTimeEntryAsync(
+            manualBefore.Guid, It.IsAny<LogetoTimeEntryRequest>(), It.IsAny<CancellationToken>()),
+            Times.Never);
+        _client.Verify(c => c.UpdateTimeEntryAsync(
+            manualAfter.Guid, It.IsAny<LogetoTimeEntryRequest>(), It.IsAny<CancellationToken>()),
+            Times.Never);
     }
 }
