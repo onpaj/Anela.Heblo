@@ -2,6 +2,7 @@ using Anela.Heblo.Application.Common.Behaviors;
 using Anela.Heblo.Application.Features.Catalog.Inventory.UseCases.CreateMaterialContainers;
 using Anela.Heblo.Application.Features.Catalog.Inventory.UseCases.CreateLot;
 using Anela.Heblo.Application.Features.Catalog.Inventory.UseCases.FeedLotMedia;
+using Anela.Heblo.Application.Features.Catalog.Inventory.UseCases.NudgeLotLabelCalibration;
 using Anela.Heblo.Application.Features.Catalog.Inventory.UseCases.PrintLotLabels;
 using Anela.Heblo.Application.Features.Catalog.Inventory.UseCases.SetLotLabelCalibration;
 using Anela.Heblo.Application.Features.Catalog.Inventory.UseCases.UpdateLot;
@@ -30,6 +31,7 @@ public static class InventoryModule
         services.AddScoped<IValidator<PrintLotLabelsRequest>, PrintLotLabelsRequestValidator>();
         services.AddScoped<IValidator<FeedLotMediaRequest>, FeedLotMediaRequestValidator>();
         services.AddScoped<IValidator<SetLotLabelCalibrationRequest>, SetLotLabelCalibrationRequestValidator>();
+        services.AddScoped<IValidator<NudgeLotLabelCalibrationRequest>, NudgeLotLabelCalibrationRequestValidator>();
 
         services.AddScoped<IPipelineBehavior<CreateLotRequest, CreateLotResponse>, ValidationBehavior<CreateLotRequest, CreateLotResponse>>();
         services.AddScoped<IPipelineBehavior<UpdateLotRequest, UpdateLotResponse>, ValidationBehavior<UpdateLotRequest, UpdateLotResponse>>();
@@ -37,6 +39,7 @@ public static class InventoryModule
         services.AddScoped<IPipelineBehavior<PrintLotLabelsRequest, PrintLotLabelsResponse>, ValidationBehavior<PrintLotLabelsRequest, PrintLotLabelsResponse>>();
         services.AddScoped<IPipelineBehavior<FeedLotMediaRequest, FeedLotMediaResponse>, ValidationBehavior<FeedLotMediaRequest, FeedLotMediaResponse>>();
         services.AddScoped<IPipelineBehavior<SetLotLabelCalibrationRequest, SetLotLabelCalibrationResponse>, ValidationBehavior<SetLotLabelCalibrationRequest, SetLotLabelCalibrationResponse>>();
+        services.AddScoped<IPipelineBehavior<NudgeLotLabelCalibrationRequest, NudgeLotLabelCalibrationResponse>, ValidationBehavior<NudgeLotLabelCalibrationRequest, NudgeLotLabelCalibrationResponse>>();
 
         return services;
     }

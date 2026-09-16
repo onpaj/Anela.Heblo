@@ -391,6 +391,36 @@
       "value": "warehouse.stock_up.write"
     },
     {
+      "id": "22a16c1f-38fc-5c96-84f5-e342c2002421",
+      "allowedMemberTypes": [
+        "User"
+      ],
+      "description": "Warehouse_GiftPackages Read",
+      "displayName": "warehouse.gift_packages.read",
+      "isEnabled": true,
+      "value": "warehouse.gift_packages.read"
+    },
+    {
+      "id": "4b5a49c8-6f89-51f3-b53a-58d5a0a08920",
+      "allowedMemberTypes": [
+        "User"
+      ],
+      "description": "Warehouse_GiftPackages Write",
+      "displayName": "warehouse.gift_packages.write",
+      "isEnabled": true,
+      "value": "warehouse.gift_packages.write"
+    },
+    {
+      "id": "45d2a5cb-ef94-55b0-81eb-ae4bb725107f",
+      "allowedMemberTypes": [
+        "User"
+      ],
+      "description": "Warehouse_StockOverride Read",
+      "displayName": "warehouse.stock_override.read",
+      "isEnabled": true,
+      "value": "warehouse.stock_override.read"
+    },
+    {
       "id": "16a28dc3-088b-57f3-8575-1bb19884ec19",
       "allowedMemberTypes": [
         "User"
@@ -673,6 +703,8 @@
         "warehouse.packaging.write",
         "warehouse.stock_up.read",
         "warehouse.stock_up.write",
+        "warehouse.gift_packages.read",
+        "warehouse.gift_packages.write",
         "marketing.article.read",
         "marketing.article.write",
         "marketing.leaflet.read",
@@ -724,6 +756,7 @@
         "warehouse.expedition.read",
         "warehouse.packaging.read",
         "warehouse.stock_up.read",
+        "warehouse.gift_packages.read",
         "marketing.article.read",
         "marketing.leaflet.read",
         "marketing.photobank.read",
@@ -811,6 +844,8 @@
         "warehouse.expedition.write",
         "warehouse.logistics.write",
         "warehouse.stock_up.write",
+        "warehouse.gift_packages.read",
+        "warehouse.gift_packages.write",
         "jobs.trigger.read",
         "jobs.disable.read"
       ]
@@ -825,6 +860,8 @@
         "warehouse.packaging.write",
         "warehouse.stock_up.read",
         "warehouse.stock_up.write",
+        "warehouse.gift_packages.read",
+        "warehouse.gift_packages.write",
         "jobs.trigger.read"
       ]
     },
@@ -847,6 +884,14 @@
       "roles": [
         "anela.org_chart.read",
         "products.catalog.read"
+      ]
+    },
+    {
+      "name": "Eshop_Administrator",
+      "roles": [
+        "warehouse.stock_override.read",
+        "products.catalog.read",
+        "products.catalog.write"
       ]
     }
   ]

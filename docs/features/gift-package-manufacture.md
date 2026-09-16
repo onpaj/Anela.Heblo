@@ -612,12 +612,15 @@ var setProducts = catalogData.Where(x => x.Type == ProductType.Set);
 
 // Get ingredient stock levels
 var ingredientProduct = await _catalogRepository.GetByIdAsync(part.ProductCode);
-var availableStock = ingredientProduct?.Stock.Available ?? 0;
+var warehouseStock = ingredientProduct?.Stock.WarehouseStock ?? 0;
 ```
 
 **Data Used**:
 - `ProductType.Set` - Identifies gift packages
-- `Stock.Available` - Current inventory
+- `Stock.WarehouseStock` - Inventory that can be picked from the warehouse. Ingredients use this,
+  **not** `Stock.Available`: `Available` also counts goods in transport and goods written down into
+  the manufacture warehouse, while consumption is booked against the warehouse. Counting them made
+  the screen show stock that could not be picked and drove the warehouse negative.
 - `Properties.StockMinSetup` - Minimum threshold
 - `Properties.OptimalStockDaysSetup` - Target coverage days
 - Sales history via `GetTotalSold(fromDate, toDate)`
@@ -822,9 +825,16 @@ if (product == null || product.Type != ProductType.Set)
 
 ### Stock Validation
 
-**Implementation**: `allowStockOverride` flag (passed to service, enforcement TBD)
+**Implementation**: `CreateManufactureAsync` rejects a run before opening the transaction when any
+ingredient's `WarehouseStock` does not cover what the run would consume, and when `quantity <= 0`.
+`allowStockOverride` skips the availability check (the quantity check always applies).
 
-**Future Enhancement**: Pre-check ingredient availability before creating manufacture log
+Failures surface as `InsufficientStockException` / `ArgumentOutOfRangeException`, which
+`CreateGiftPackageManufactureHandler` maps to `ErrorCodes.InvalidOperation` / `ErrorCodes.InvalidValue`
+with the message in `Params["ErrorMessage"]` - the same envelope disassembly uses. The handler
+deliberately catches only those two subclasses: a bare `InvalidOperationException` (EF tracking or
+concurrency) bubbles to the global handler as a 500, and a bare `ArgumentException` (unknown package
+code) is turned into a 400 ProblemDetails by `ArgumentExceptionHandler`, not into the envelope.
 
 ### Database Constraints
 
@@ -861,7 +871,19 @@ if (product == null || product.Type != ProductType.Set)
 
 ### Authentication & Authorization
 
-**All endpoints require**: `[Authorize]` attribute
+**All endpoints require**: `Warehouse_GiftPackages` — Read at class level on `LogisticsController`,
+Write on `gift-packages/manufacture` and `gift-packages/disassemble`.
+
+The feature has its own permission (added 2026-09-16). It previously inherited
+`Warehouse_Logistics` from the controller while the menu entry was gated on `Warehouse_Packaging`,
+so the three gates disagreed: Skladník could open the screen but got a 403 on the button, and
+Vedoucí skladu held the write role but never saw the menu item.
+
+**`allowStockOverride` needs `Warehouse_StockOverride`** on top of Write. It bypasses
+`EnsureIngredientsAreInStock` entirely, so plain write access must not be enough to book stock
+negative; `CreateGiftPackageManufactureHandler` rejects it with `ErrorCodes.InsufficientPermissions`.
+This cannot be a `[FeatureAuthorize]` attribute because the requirement depends on a request field.
+No UI sets the flag today — the frontend hardcodes `false`.
 
 **User Context**: Captured via `ICurrentUserService.GetCurrentUser()`
 
@@ -881,23 +903,7 @@ if (product == null || product.Type != ProductType.Set)
 
 ## Future Enhancements
 
-### 1. Stock Validation Enforcement
-
-**Current**: `allowStockOverride` flag exists but validation not enforced
-
-**Enhancement**:
-```csharp
-if (!allowStockOverride)
-{
-    var validation = await ValidateStockAvailability(giftPackageCode, quantity);
-    if (!validation.HasSufficientStock)
-    {
-        throw new InsufficientStockException(validation.Shortages);
-    }
-}
-```
-
-### 2. Batch Manufacturing
+### 1. Batch Manufacturing
 
 **Current**: Single gift package per operation
 
@@ -911,7 +917,7 @@ if (!allowStockOverride)
 }
 ```
 
-### 3. Predictive Analytics
+### 2. Predictive Analytics
 
 **Current**: Simple daily sales × optimal days
 
@@ -920,7 +926,7 @@ if (!allowStockOverride)
 - Machine learning models for demand prediction
 - Trend analysis (growing vs declining products)
 
-### 4. Manufacturing Scheduling
+### 3. Manufacturing Scheduling
 
 **Current**: On-demand manufacturing
 
@@ -929,7 +935,7 @@ if (!allowStockOverride)
 - Optimization algorithms (minimize ingredient waste)
 - Production calendar integration
 
-### 5. Quality Control
+### 4. Quality Control
 
 **Current**: No quality tracking
 
