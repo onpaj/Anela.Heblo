@@ -40,6 +40,7 @@ public class BreakInsertionServiceTests
             _client.Object,
             Options.Create(options),
             timeProvider.Object,
+            new BreakInsertionRunGate(),
             logger ?? NullLogger<BreakInsertionService>.Instance);
     }
 

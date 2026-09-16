@@ -21,6 +21,8 @@ public static class AttendanceModule
             .Bind(configuration.GetSection(AbsenceHoursOptions.ConfigKey));
 
         services.TryAddSingleton(TimeProvider.System);
+        // Singleton: the gate's whole job is to be shared between the nightly job and on-demand runs.
+        services.AddSingleton<Services.IBreakInsertionRunGate, Services.BreakInsertionRunGate>();
         services.AddScoped<Services.BreakInsertionService>();
         services.AddScoped<Services.AbsenceHoursService>();
 

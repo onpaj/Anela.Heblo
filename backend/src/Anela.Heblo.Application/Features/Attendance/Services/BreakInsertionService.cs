@@ -9,45 +9,73 @@ public class BreakInsertionService
     private readonly ILogetoClient _client;
     private readonly IOptions<BreakInsertionOptions> _options;
     private readonly TimeProvider _timeProvider;
+    private readonly IBreakInsertionRunGate _runGate;
     private readonly ILogger<BreakInsertionService> _logger;
 
     public BreakInsertionService(
         ILogetoClient client,
         IOptions<BreakInsertionOptions> options,
         TimeProvider timeProvider,
+        IBreakInsertionRunGate runGate,
         ILogger<BreakInsertionService> logger)
     {
         _client = client;
         _options = options;
         _timeProvider = timeProvider;
+        _runGate = runGate;
         _logger = logger;
     }
 
     /// <summary>Runs the nightly walk over the configured rolling window.</summary>
     public Task<BreakInsertionSummary> RunAsync(CancellationToken cancellationToken) =>
-        RunAsync(lookbackDaysOverride: null, cancellationToken);
+        RunAsync(fromDaysAgo: null, toDaysAgo: null, cancellationToken);
 
     /// <summary>
-    /// Runs the walk, optionally over a wider window than the nightly one. Used for a deliberate
-    /// sweep over history — the work is idempotent, so re-covering days already handled is free.
+    /// Runs the walk over an explicit window, expressed as whole days before today. Used for a
+    /// deliberate sweep over history — the work is idempotent, so re-covering days already handled
+    /// is free, and the window can be moved back in steps to reach days the nightly job never sees.
     /// </summary>
+    /// <param name="fromDaysAgo">Oldest day to scan, in days before today. Null uses the configured nightly lookback.</param>
+    /// <param name="toDaysAgo">Newest day to scan, in days before today. Null means today.</param>
+    /// <exception cref="BreakInsertionAlreadyRunningException">Another walk is in flight.</exception>
     public async Task<BreakInsertionSummary> RunAsync(
-        int? lookbackDaysOverride, CancellationToken cancellationToken)
+        int? fromDaysAgo, int? toDaysAgo, CancellationToken cancellationToken)
+    {
+        // A manual sweep racing the nightly job is the realistic case; see IBreakInsertionRunGate.
+        if (!_runGate.TryEnter())
+        {
+            throw new BreakInsertionAlreadyRunningException();
+        }
+
+        try
+        {
+            return await RunCoreAsync(fromDaysAgo, toDaysAgo, cancellationToken);
+        }
+        finally
+        {
+            _runGate.Exit();
+        }
+    }
+
+    private async Task<BreakInsertionSummary> RunCoreAsync(
+        int? fromDaysAgo, int? toDaysAgo, CancellationToken cancellationToken)
     {
         var options = _options.Value;
         var summary = new BreakInsertionSummary();
 
         var pragueNow = TimeZoneInfo.ConvertTime(_timeProvider.GetUtcNow(), LogetoTimeConverter.PragueTimeZone);
         var today = DateOnly.FromDateTime(pragueNow.Date);
-        var lookbackDays = Math.Max(lookbackDaysOverride ?? options.LookbackDays, 0);
-        var windowStart = today.AddDays(-lookbackDays);
+        var fromDays = Math.Max(fromDaysAgo ?? options.LookbackDays, 0);
+        var toDays = Math.Max(toDaysAgo ?? 0, 0);
+        var windowStart = today.AddDays(-fromDays);
         var from = windowStart < options.StartDate ? options.StartDate : windowStart;
+        var to = today.AddDays(-toDays);
 
-        if (from > today)
+        if (from > to)
         {
             _logger.LogWarning(
-                "Break insertion window is empty: computed from {From} (StartDate {StartDate}) is after today {Today}. Nothing to do.",
-                from, options.StartDate, today);
+                "Break insertion window is empty: computed from {From} (StartDate {StartDate}) is after to {To}. Nothing to do.",
+                from, options.StartDate, to);
             return summary;
         }
 
@@ -71,12 +99,12 @@ public class BreakInsertionService
             return summary;
         }
 
-        var entries = await _client.GetTimeTrackingAsync(from, today, cancellationToken);
+        var entries = await _client.GetTimeTrackingAsync(from, to, cancellationToken);
 
         foreach (var person in people)
         {
             var days = entries
-                .Where(e => e.Person == person.Guid && e.Date >= from && e.Date <= today)
+                .Where(e => e.Person == person.Guid && e.Date >= from && e.Date <= to)
                 .GroupBy(e => e.Date)
                 .OrderBy(g => g.Key);
 

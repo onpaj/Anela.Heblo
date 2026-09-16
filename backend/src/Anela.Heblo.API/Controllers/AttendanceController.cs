@@ -11,6 +11,7 @@ namespace Anela.Heblo.API.Controllers;
 /// </summary>
 [ApiController]
 [Route("api/attendance")]
+[FeatureAuthorize(Feature.Jobs_Trigger)]
 public class AttendanceController : BaseApiController
 {
     private readonly IMediator _mediator;
@@ -22,15 +23,17 @@ public class AttendanceController : BaseApiController
 
     /// <summary>
     /// Runs the break-insertion walk immediately and returns what it did. Unlike the generic job
-    /// trigger this takes a lookback, so history can be swept without changing the nightly schedule.
-    /// The walk runs synchronously; see <see cref="RunBreakInsertionValidator.MaxLookbackDays"/>
-    /// for the per-call limit.
+    /// trigger this takes an explicit window, so history can be swept in steps without changing the
+    /// nightly schedule. The walk runs synchronously; see
+    /// <see cref="RunBreakInsertionValidator.MaxWindowDays"/> for the per-call limit.
+    ///
+    /// Refused with 409 when the job is disabled, or when another walk is already in flight.
     /// </summary>
     [HttpPost("break-insertion/run")]
-    [FeatureAuthorize(Feature.Jobs_Trigger)]
     [ProducesResponseType(typeof(RunBreakInsertionResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
     public async Task<ActionResult<RunBreakInsertionResponse>> RunBreakInsertion(
         [FromBody] RunBreakInsertionRequest request, CancellationToken cancellationToken = default)
     {
