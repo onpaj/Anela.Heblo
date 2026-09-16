@@ -28,9 +28,9 @@
   "tasks": [
     {
       "name": "add-bearer-auth-regression-tests",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-09-16T08:17:38.945572Z"
+      "updated_at": "2026-09-16T08:37:16.255639Z"
     },
     {
       "name": "move-access-token-to-authorization-header",
