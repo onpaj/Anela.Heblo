@@ -46,9 +46,9 @@
     },
     {
       "name": "extract-calculatesummary",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-09-16T10:17:39.174529Z"
+      "updated_at": "2026-09-16T11:01:27.991205Z"
     },
     {
       "name": "full-suite-validation",
