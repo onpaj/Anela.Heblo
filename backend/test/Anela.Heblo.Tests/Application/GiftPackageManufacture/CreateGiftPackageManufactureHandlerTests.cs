@@ -2,6 +2,7 @@ using Anela.Heblo.Application.Features.Logistics.UseCases.GiftPackageManufacture
 using Anela.Heblo.Application.Features.Logistics.UseCases.GiftPackageManufacture.Services;
 using Anela.Heblo.Application.Features.Logistics.UseCases.GiftPackageManufacture.UseCases.CreateGiftPackageManufacture;
 using Anela.Heblo.Application.Shared;
+using Anela.Heblo.Domain.Features.Authorization;
 using Anela.Heblo.Domain.Features.Users;
 using FluentAssertions;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -62,6 +63,7 @@ public class CreateGiftPackageManufactureHandlerTests
         _currentUserServiceMock
             .Setup(x => x.GetCurrentUser())
             .Returns(new CurrentUser(Id: "user-1", Name: null, Email: null, IsAuthenticated: true));
+        AllowOverride();
 
         var manufacture = new GiftPackageManufactureDto
         {
@@ -164,16 +166,78 @@ public class CreateGiftPackageManufactureHandlerTests
         await act.Should().ThrowAsync<ArgumentException>();
     }
 
+
+    [Fact]
+    public async Task Handle_WhenOverrideRequestedWithoutPermission_RejectsWithoutCallingService()
+    {
+        // Arrange - allowStockOverride skips the warehouse-stock check entirely, so it is gated by
+        // its own capability rather than by plain write access.
+        ArrangeUser("jane.doe");
+
+        // Act
+        var result = await CreateSut().Handle(CreateRequest(quantity: 3, allowStockOverride: true), CancellationToken.None);
+
+        // Assert
+        result.Success.Should().BeFalse();
+        result.ErrorCode.Should().Be(ErrorCodes.InsufficientPermissions);
+        result.Manufacture.Should().BeNull();
+        _serviceMock.Verify(
+            s => s.CreateManufactureAsync(It.IsAny<string>(), It.IsAny<int>(), It.IsAny<bool>(), It.IsAny<string>(), It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
+
+    [Fact]
+    public async Task Handle_WhenOverrideRequestedWithPermission_PassesOverrideToService()
+    {
+        // Arrange
+        ArrangeUser("jane.doe");
+        AllowOverride();
+        _serviceMock
+            .Setup(s => s.CreateManufactureAsync("SET001", 3, true, "jane.doe", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new GiftPackageManufactureDto { GiftPackageCode = "SET001", QuantityCreated = 3 });
+
+        // Act
+        var result = await CreateSut().Handle(CreateRequest(quantity: 3, allowStockOverride: true), CancellationToken.None);
+
+        // Assert
+        result.Success.Should().BeTrue();
+        _serviceMock.Verify(
+            s => s.CreateManufactureAsync("SET001", 3, true, "jane.doe", It.IsAny<CancellationToken>()),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task Handle_WithoutOverrideRequested_DoesNotRequireTheOverrideCapability()
+    {
+        // Arrange - the ordinary path must stay open to anyone holding gift-package write access.
+        ArrangeUser("jane.doe");
+        _serviceMock
+            .Setup(s => s.CreateManufactureAsync("SET001", 3, false, "jane.doe", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new GiftPackageManufactureDto { GiftPackageCode = "SET001", QuantityCreated = 3 });
+
+        // Act
+        var result = await CreateSut().Handle(CreateRequest(quantity: 3), CancellationToken.None);
+
+        // Assert
+        result.Success.Should().BeTrue();
+        _currentUserServiceMock.Verify(x => x.IsInRole(It.IsAny<string>()), Times.Never);
+    }
+
+    private void AllowOverride() =>
+        _currentUserServiceMock
+            .Setup(x => x.IsInRole(AccessRoles.WarehouseStockOverrideRead))
+            .Returns(true);
+
     private void ArrangeUser(string? name) =>
         _currentUserServiceMock
             .Setup(x => x.GetCurrentUser())
             .Returns(new CurrentUser(Id: "user-1", Name: name, Email: null, IsAuthenticated: true));
 
-    private static CreateGiftPackageManufactureRequest CreateRequest(int quantity) =>
+    private static CreateGiftPackageManufactureRequest CreateRequest(int quantity, bool allowStockOverride = false) =>
         new()
         {
             GiftPackageCode = "SET001",
             Quantity = quantity,
-            AllowStockOverride = false
+            AllowStockOverride = allowStockOverride
         };
 }

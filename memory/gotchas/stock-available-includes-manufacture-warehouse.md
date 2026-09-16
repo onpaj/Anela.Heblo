@@ -43,6 +43,13 @@ CELKEM looks impossible: the missing 165 pcs were the manufacture warehouse.
 `GiftPackageManufactureService.DisassembleGiftPackageAsync`) still uses `Stock.Available`, so
 disassembly can be authorised against packages sitting in the manufacture warehouse.
 
+## Related: the gates disagreed too
+Until 2026-09-16 the screen's three gates used different features — menu `warehouse.packaging.read`,
+page `warehouse.logistics.read`, button `warehouse.logistics.write` — so only Správce could use it
+end to end. Now all three are `Warehouse_GiftPackages`, and `allowStockOverride` needs the separate
+`Warehouse_StockOverride` capability. **Seed groups do not update deployed environments**: grant the
+new roles at `/admin/access` or nobody but `super_user` can open the screen.
+
 ## References
 - Fix: `WarehouseStock` on `StockData`, `LogisticsCatalogItem.WarehouseStock`,
   `EnsureIngredientsAreInStock` in `GiftPackageManufactureService`

@@ -868,7 +868,19 @@ with the message in `Params["ErrorMessage"]` - the same envelope disassembly use
 
 ### Authentication & Authorization
 
-**All endpoints require**: `[Authorize]` attribute
+**All endpoints require**: `Warehouse_GiftPackages` — Read at class level on `LogisticsController`,
+Write on `gift-packages/manufacture` and `gift-packages/disassemble`.
+
+The feature has its own permission (added 2026-09-16). It previously inherited
+`Warehouse_Logistics` from the controller while the menu entry was gated on `Warehouse_Packaging`,
+so the three gates disagreed: Skladník could open the screen but got a 403 on the button, and
+Vedoucí skladu held the write role but never saw the menu item.
+
+**`allowStockOverride` needs `Warehouse_StockOverride`** on top of Write. It bypasses
+`EnsureIngredientsAreInStock` entirely, so plain write access must not be enough to book stock
+negative; `CreateGiftPackageManufactureHandler` rejects it with `ErrorCodes.InsufficientPermissions`.
+This cannot be a `[FeatureAuthorize]` attribute because the requirement depends on a request field.
+No UI sets the flag today — the frontend hardcodes `false`.
 
 **User Context**: Captured via `ICurrentUserService.GetCurrentUser()`
 
