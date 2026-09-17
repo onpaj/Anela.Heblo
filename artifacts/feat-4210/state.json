@@ -22,7 +22,7 @@
     },
     "developing": {
       "status": "in_progress",
-      "updated_at": "2026-09-17T08:16:21.249228Z"
+      "updated_at": "2026-09-17T10:16:58.213146Z"
     }
   },
   "tasks": [
@@ -40,9 +40,9 @@
     },
     {
       "name": "implement-test-client-on-shoptet-order-client",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-09-17T10:16:58.374941Z"
     },
     {
       "name": "register-test-client-in-di",
