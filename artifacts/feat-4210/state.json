@@ -58,9 +58,9 @@
     },
     {
       "name": "update-shoptet-test-environment-hydration-tests",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-09-17T13:16:35.623382Z"
+      "updated_at": "2026-09-17T13:20:39.111106Z"
     },
     {
       "name": "update-picking-list-integration-tests",
