@@ -1,3 +1,4 @@
+using Anela.Heblo.Application.Features.ExpeditionList.Contracts;
 using Anela.Heblo.Application.Features.Packaging.Contracts;
 using Anela.Heblo.Application.Features.ShoptetOrders.Infrastructure;
 using Microsoft.Extensions.Configuration;
@@ -19,6 +20,12 @@ public static class ShoptetOrdersModule
         // (Packaging). Lifetime mirrors IEshopOrderClient's own Transient registration
         // (ShoptetApiAdapterServiceCollectionExtensions).
         services.AddTransient<IPackedOrderStatusUpdater, ShoptetOrdersPackedOrderStatusUpdaterAdapter>();
+
+        // Cross-module contract: ShoptetOrders implements ExpeditionList's IOrderStatusReader via
+        // adapter. DI registration is owned by the provider (ShoptetOrders), not the consumer
+        // (ExpeditionList). Lifetime mirrors IEshopOrderClient's own Transient registration
+        // (ShoptetApiAdapterServiceCollectionExtensions).
+        services.AddTransient<IOrderStatusReader, ShoptetOrdersOrderStatusReaderAdapter>();
 
         return services;
     }
