@@ -21,16 +21,16 @@
       "updated_at": "2026-09-17T05:17:51.014026Z"
     },
     "developing": {
-      "status": "pending",
-      "updated_at": null
+      "status": "in_progress",
+      "updated_at": "2026-09-17T06:17:55.257916Z"
     }
   },
   "tasks": [
     {
       "name": "packaging-contract",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-09-17T06:17:55.405692Z"
     },
     {
       "name": "packaging-adapter",
