@@ -28,9 +28,9 @@
   "tasks": [
     {
       "name": "remove-dead-severity-helpers",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-09-17T08:16:34.623020Z"
+      "updated_at": "2026-09-17T08:22:26.836426Z"
     }
   ]
 }
