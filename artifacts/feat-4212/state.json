@@ -52,9 +52,9 @@
     },
     {
       "name": "full-verification-and-cleanup",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-09-17T13:16:59.178530Z"
+      "updated_at": "2026-09-17T13:58:09.671017Z"
     }
   ]
 }
