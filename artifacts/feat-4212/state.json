@@ -34,9 +34,9 @@
     },
     {
       "name": "manufacture-name-builder-domain-entity",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-09-17T10:17:12.657063Z"
+      "updated_at": "2026-09-17T10:25:57.553984Z"
     },
     {
       "name": "confirm-product-completion-workflow-repository-read",
