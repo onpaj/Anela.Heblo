@@ -34,9 +34,9 @@
     },
     {
       "name": "packaging-adapter",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-09-17T08:15:55.951398Z"
+      "updated_at": "2026-09-17T08:35:40.098153Z"
     },
     {
       "name": "packaging-handlers",
