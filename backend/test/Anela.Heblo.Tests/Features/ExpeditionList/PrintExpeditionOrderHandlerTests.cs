@@ -2,7 +2,6 @@ using Anela.Heblo.Application.Features.ExpeditionList;
 using Anela.Heblo.Application.Features.ExpeditionList.Contracts;
 using Anela.Heblo.Application.Features.ExpeditionList.Services;
 using Anela.Heblo.Application.Features.ExpeditionList.UseCases.PrintExpeditionOrder;
-using Anela.Heblo.Application.Features.ShoptetOrders;
 using Anela.Heblo.Application.Shared;
 using FluentAssertions;
 using Microsoft.Extensions.Logging;
@@ -14,7 +13,7 @@ namespace Anela.Heblo.Tests.Features.ExpeditionList;
 public class PrintExpeditionOrderHandlerTests
 {
     private readonly Mock<IExpeditionListService> _service = new();
-    private readonly Mock<IEshopOrderClient> _client = new();
+    private readonly Mock<IOrderStatusReader> _client = new();
 
     private PrintExpeditionOrderHandler CreateHandler() => new(
         _service.Object,
