@@ -40,9 +40,9 @@
     },
     {
       "name": "confirm-product-completion-workflow-repository-read",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-09-17T11:18:09.991903Z"
+      "updated_at": "2026-09-17T11:46:52.235732Z"
     },
     {
       "name": "confirm-semi-product-workflow-repository-read",
