@@ -28,9 +28,9 @@
   "tasks": [
     {
       "name": "residue-distribution-calculator-domain-entity",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-09-17T09:17:20.915795Z"
+      "updated_at": "2026-09-17T09:22:31.710287Z"
     },
     {
       "name": "manufacture-name-builder-domain-entity",
