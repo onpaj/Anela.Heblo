@@ -58,9 +58,9 @@
     },
     {
       "name": "expeditionlist-handler",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-09-17T12:17:46.727653Z"
+      "updated_at": "2026-09-17T12:22:16.091144Z"
     },
     {
       "name": "module-boundary-enforcement",
