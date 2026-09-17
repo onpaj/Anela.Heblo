@@ -22,7 +22,7 @@
     },
     "developing": {
       "status": "in_progress",
-      "updated_at": "2026-09-17T06:17:55.257916Z"
+      "updated_at": "2026-09-17T08:15:55.755186Z"
     }
   },
   "tasks": [
@@ -34,9 +34,9 @@
     },
     {
       "name": "packaging-adapter",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-09-17T08:15:55.951398Z"
     },
     {
       "name": "packaging-handlers",
