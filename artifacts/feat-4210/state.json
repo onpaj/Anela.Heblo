@@ -52,9 +52,9 @@
     },
     {
       "name": "update-block-order-processing-integration-tests",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-09-17T12:17:33.441154Z"
+      "updated_at": "2026-09-17T12:22:15.168618Z"
     },
     {
       "name": "update-shoptet-test-environment-hydration-tests",
