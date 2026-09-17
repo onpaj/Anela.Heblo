@@ -21,16 +21,16 @@
       "updated_at": "2026-09-17T06:26:18.863393Z"
     },
     "developing": {
-      "status": "pending",
-      "updated_at": null
+      "status": "in_progress",
+      "updated_at": "2026-09-17T08:16:21.249228Z"
     }
   },
   "tasks": [
     {
       "name": "create-shoptet-order-test-client-interface",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-09-17T08:16:21.422049Z"
     },
     {
       "name": "shrink-ieshoporderclient-interface",
