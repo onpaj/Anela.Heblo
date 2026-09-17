@@ -1,5 +1,5 @@
+using Anela.Heblo.Application.Features.Packaging.Contracts;
 using Anela.Heblo.Application.Features.Packaging.UseCases.CompletePackingOrder;
-using Anela.Heblo.Application.Features.ShoptetOrders;
 using Anela.Heblo.Application.Shared;
 using FluentAssertions;
 using Microsoft.Extensions.Logging;
@@ -9,10 +9,10 @@ namespace Anela.Heblo.Tests.Application.Packaging;
 
 public class CompletePackingOrderHandlerTests
 {
-    private readonly Mock<IEshopOrderClient> _eshopOrderClient = new();
+    private readonly Mock<IPackedOrderStatusUpdater> _packedOrderStatusUpdater = new();
 
     private CompletePackingOrderHandler CreateHandler() =>
-        new(_eshopOrderClient.Object, new Mock<ILogger<CompletePackingOrderHandler>>().Object);
+        new(_packedOrderStatusUpdater.Object, new Mock<ILogger<CompletePackingOrderHandler>>().Object);
 
     [Fact]
     public async Task Handle_MarksOrderAsPacked_AndReturnsCompleted()
@@ -23,7 +23,7 @@ public class CompletePackingOrderHandlerTests
 
         response.Success.Should().BeTrue();
         response.Completed.Should().BeTrue();
-        _eshopOrderClient.Verify(
+        _packedOrderStatusUpdater.Verify(
             c => c.MarkAsPackedAsync("0001234", It.IsAny<CancellationToken>()),
             Times.Once);
     }
@@ -31,7 +31,7 @@ public class CompletePackingOrderHandlerTests
     [Fact]
     public async Task Handle_WhenMarkAsPackedThrows_ReturnsPackingCompletionFailed()
     {
-        _eshopOrderClient
+        _packedOrderStatusUpdater
             .Setup(c => c.MarkAsPackedAsync("0001234", It.IsAny<CancellationToken>()))
             .ThrowsAsync(new HttpRequestException("Shoptet down"));
 
