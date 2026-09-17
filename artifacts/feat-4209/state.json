@@ -22,7 +22,7 @@
     },
     "developing": {
       "status": "in_progress",
-      "updated_at": "2026-09-17T09:16:58.944815Z"
+      "updated_at": "2026-09-17T10:16:50.061925Z"
     }
   },
   "tasks": [
@@ -46,9 +46,9 @@
     },
     {
       "name": "expeditionlist-contract",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-09-17T10:16:50.230095Z"
     },
     {
       "name": "expeditionlist-adapter",
