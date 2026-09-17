@@ -46,9 +46,9 @@
     },
     {
       "name": "register-test-client-in-di",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-09-17T11:17:59.734457Z"
+      "updated_at": "2026-09-17T11:21:18.082108Z"
     },
     {
       "name": "update-block-order-processing-integration-tests",
