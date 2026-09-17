@@ -22,7 +22,7 @@
     },
     "developing": {
       "status": "in_progress",
-      "updated_at": "2026-09-17T11:17:59.541488Z"
+      "updated_at": "2026-09-17T12:17:33.274476Z"
     }
   },
   "tasks": [
@@ -52,9 +52,9 @@
     },
     {
       "name": "update-block-order-processing-integration-tests",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-09-17T12:17:33.441154Z"
     },
     {
       "name": "update-shoptet-test-environment-hydration-tests",

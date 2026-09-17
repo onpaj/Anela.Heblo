@@ -1,4 +1,5 @@
 using Anela.Heblo.Adapters.Shoptet.Tests.Integration.Infrastructure;
+using Anela.Heblo.Adapters.ShoptetApi.Orders;
 using Anela.Heblo.Application.Features.ShoptetOrders;
 using Anela.Heblo.Application.Features.ShoptetOrders.UseCases.BlockOrderProcessing;
 using Anela.Heblo.Application.Shared;
@@ -24,6 +25,7 @@ public class BlockOrderProcessingIntegrationTests
 
     private readonly IConfiguration _configuration;
     private readonly IEshopOrderClient _client;
+    private readonly IShoptetOrderTestClient _testClient;
     private readonly ILogger<BlockOrderProcessingHandler> _logger;
     private readonly ITestOutputHelper _output;
 
@@ -33,6 +35,7 @@ public class BlockOrderProcessingIntegrationTests
     {
         _configuration = fixture.Configuration;
         _client = fixture.ServiceProvider.GetRequiredService<IEshopOrderClient>();
+        _testClient = fixture.ServiceProvider.GetRequiredService<IShoptetOrderTestClient>();
         _logger = fixture.ServiceProvider.GetRequiredService<ILogger<BlockOrderProcessingHandler>>();
         _output = output;
     }
@@ -86,7 +89,7 @@ public class BlockOrderProcessingIntegrationTests
         string? code = null;
         try
         {
-            code = await _client.CreateOrderAsync(BuildOrderRequest("BLOCK-ORDER-TEST-APPEND", shippingGuid, paymentGuid), ct);
+            code = await _testClient.CreateOrderAsync(BuildOrderRequest("BLOCK-ORDER-TEST-APPEND", shippingGuid, paymentGuid), ct);
             await _client.UpdateStatusAsync(code, StatusNova, ct);
             await _client.UpdateEshopRemarkAsync(code, "pre-existing note from setup", ct);
             _output.WriteLine($"CREATED  BLOCK-ORDER-TEST-APPEND ({code}) → status {StatusNova} with pre-existing remark");
@@ -106,7 +109,7 @@ public class BlockOrderProcessingIntegrationTests
         {
             if (code != null)
             {
-                await _client.DeleteOrderAsync(code, ct);
+                await _testClient.DeleteOrderAsync(code, ct);
                 _output.WriteLine($"DELETED  {code}");
             }
         }
@@ -148,7 +151,7 @@ public class BlockOrderProcessingIntegrationTests
         string? code = null;
         try
         {
-            code = await _client.CreateOrderAsync(BuildOrderRequest(externalCode, shippingGuid, paymentGuid), ct);
+            code = await _testClient.CreateOrderAsync(BuildOrderRequest(externalCode, shippingGuid, paymentGuid), ct);
             await _client.UpdateStatusAsync(code, statusId, ct);
             _output.WriteLine($"CREATED  {externalCode} ({code}) → status {statusId}");
 
@@ -178,7 +181,7 @@ public class BlockOrderProcessingIntegrationTests
         {
             if (code != null)
             {
-                await _client.DeleteOrderAsync(code, ct);
+                await _testClient.DeleteOrderAsync(code, ct);
                 _output.WriteLine($"DELETED  {code}");
             }
         }
