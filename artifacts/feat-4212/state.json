@@ -21,16 +21,16 @@
       "updated_at": "2026-09-17T08:21:15.271849Z"
     },
     "developing": {
-      "status": "pending",
-      "updated_at": null
+      "status": "in_progress",
+      "updated_at": "2026-09-17T09:17:20.733812Z"
     }
   },
   "tasks": [
     {
       "name": "residue-distribution-calculator-domain-entity",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-09-17T09:17:20.915795Z"
     },
     {
       "name": "manufacture-name-builder-domain-entity",
