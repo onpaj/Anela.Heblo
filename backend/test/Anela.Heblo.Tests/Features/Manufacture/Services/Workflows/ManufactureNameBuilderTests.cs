@@ -1,6 +1,5 @@
 using Anela.Heblo.Application.Features.Manufacture.Services;
 using Anela.Heblo.Application.Features.Manufacture.Services.Workflows;
-using Anela.Heblo.Application.Features.Manufacture.UseCases.UpdateManufactureOrder;
 using Anela.Heblo.Domain.Features.Manufacture;
 using FluentAssertions;
 using Moq;
@@ -93,22 +92,22 @@ public class ManufactureNameBuilderTests
         result.Should().StartWith("XY");
     }
 
-    private static UpdateManufactureOrderDto CreateOrder(
+    private static ManufactureOrder CreateOrder(
         string semiCode,
         string semiName,
         (string code, string name)[] products)
     {
-        return new UpdateManufactureOrderDto
+        return new ManufactureOrder
         {
             OrderNumber = "MO-TEST-001",
-            SemiProduct = new UpdateManufactureOrderSemiProductDto
+            SemiProduct = new ManufactureOrderSemiProduct
             {
                 ProductCode = semiCode,
                 ProductName = semiName,
                 PlannedQuantity = 10m,
                 ActualQuantity = 10m,
             },
-            Products = products.Select(p => new UpdateManufactureOrderProductDto
+            Products = products.Select(p => new ManufactureOrderProduct
             {
                 ProductCode = p.code,
                 ProductName = p.name,
