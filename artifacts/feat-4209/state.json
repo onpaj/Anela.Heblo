@@ -52,9 +52,9 @@
     },
     {
       "name": "expeditionlist-adapter",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-09-17T11:17:40.070947Z"
+      "updated_at": "2026-09-17T11:37:09.110837Z"
     },
     {
       "name": "expeditionlist-handler",
