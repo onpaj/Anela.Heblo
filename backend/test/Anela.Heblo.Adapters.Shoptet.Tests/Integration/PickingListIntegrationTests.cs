@@ -1,4 +1,5 @@
 using Anela.Heblo.Adapters.Shoptet.Tests.Integration.Infrastructure;
+using Anela.Heblo.Adapters.ShoptetApi.Orders;
 using Anela.Heblo.Application.Features.ExpeditionList;
 using Anela.Heblo.Application.Features.ExpeditionList.Contracts;
 using Anela.Heblo.Application.Features.ExpeditionList.Services;
@@ -24,6 +25,7 @@ public class PickingListIntegrationTests
 
     private readonly IConfiguration _configuration;
     private readonly IEshopOrderClient _orderClient;
+    private readonly IShoptetOrderTestClient _testOrderClient;
     private readonly IPickingListSource _source;
     private readonly IPrintQueueSink _sink;
     private readonly ITestOutputHelper _output;
@@ -35,6 +37,7 @@ public class PickingListIntegrationTests
     {
         _configuration = fixture.Configuration;
         _orderClient = fixture.ServiceProvider.GetRequiredService<IEshopOrderClient>();
+        _testOrderClient = fixture.ServiceProvider.GetRequiredService<IShoptetOrderTestClient>();
         _source = fixture.ServiceProvider.GetRequiredService<IPickingListSource>();
         _sink = fixture.ServiceProvider.GetRequiredService<IPrintQueueSink>();
         _output = output;
@@ -58,7 +61,7 @@ public class PickingListIntegrationTests
         var ct = new CancellationTokenSource(TimeSpan.FromMinutes(5)).Token;
 
         // 1. Fetch 20 most recent orders and record their current states
-        var orders = await _orderClient.GetRecentOrdersAsync(20, ct);
+        var orders = await _testOrderClient.GetRecentOrdersAsync(20, ct);
         if (orders.Count == 0)
             throw new InvalidOperationException(
                 "No orders found in the test store. Cannot run picking list test.");
