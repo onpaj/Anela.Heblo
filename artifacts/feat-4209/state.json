@@ -28,9 +28,9 @@
   "tasks": [
     {
       "name": "packaging-contract",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-09-17T06:17:55.405692Z"
+      "updated_at": "2026-09-17T06:19:42.455212Z"
     },
     {
       "name": "packaging-adapter",
