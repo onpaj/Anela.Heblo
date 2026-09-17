@@ -40,9 +40,9 @@
     },
     {
       "name": "implement-test-client-on-shoptet-order-client",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-09-17T10:16:58.374941Z"
+      "updated_at": "2026-09-17T10:19:24.240052Z"
     },
     {
       "name": "register-test-client-in-di",
