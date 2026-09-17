@@ -1,0 +1,138 @@
+### task: shrink-ieshoporderclient-interface
+
+**Files:**
+- Modify: `backend/src/Anela.Heblo.Application/Features/ShoptetOrders/IEshopOrderClient.cs`
+
+- [ ] **Step 1: Remove the 4 relocated method declarations**
+
+The current file (`backend/src/Anela.Heblo.Application/Features/ShoptetOrders/IEshopOrderClient.cs`) is:
+
+```csharp
+namespace Anela.Heblo.Application.Features.ShoptetOrders;
+
+public interface IEshopOrderClient
+{
+    Task<string> CreateOrderAsync(CreateEshopOrderRequest request, CancellationToken ct = default);
+    Task<int> GetOrderStatusIdAsync(string orderCode, CancellationToken ct = default);
+    Task UpdateStatusAsync(string orderCode, int statusId, CancellationToken ct = default);
+    /// <summary>
+    /// Returns the current internal (staff-facing) remark for the given order,
+    /// as returned by GET /api/orders/{code}?include=notes → data.order.notes.eshopRemark.
+    /// Returns an empty string if Shoptet sends null or the notes object is absent.
+    /// </summary>
+    Task<string> GetEshopRemarkAsync(string orderCode, CancellationToken ct = default);
+
+    /// <summary>
+    /// Overwrites the order's internal (staff-facing) remark via
+    /// PATCH /api/orders/{code}/notes with body {"data":{"eshopRemark":"..."}}.
+    /// The caller is responsible for preserving any existing content (read-modify-write).
+    /// </summary>
+    Task UpdateEshopRemarkAsync(string orderCode, string eshopRemark, CancellationToken ct = default);
+
+    /// <summary>
+    /// Read-modify-write helper: appends <paramref name="text"/> to the order's current
+    /// eshop remark, separated by a newline. If the order has no remark yet, the remark
+    /// becomes <paramref name="text"/> verbatim (no leading separator).
+    /// Equivalent to:
+    ///   var current = await GetEshopRemarkAsync(orderCode, ct);
+    ///   var updated = string.IsNullOrEmpty(current) ? text : $"{current}\n{text}";
+    ///   await UpdateEshopRemarkAsync(orderCode, updated, ct);
+    /// </summary>
+    Task AppendEshopRemarkAsync(string orderCode, string text, CancellationToken ct = default);
+
+    Task DeleteOrderAsync(string orderCode, CancellationToken ct = default);
+    Task<List<EshopOrderSummary>> GetRecentOrdersAsync(int count = 20, CancellationToken ct = default);
+
+    /// <summary>
+    /// Returns every order currently in the given Shoptet status, across all pages
+    /// (GET /api/orders?statusId={id}, itemsPerPage=50). Maps to the Application-layer
+    /// <see cref="EshopOrderSummary"/> (code, externalCode, email, statusId).
+    /// </summary>
+    Task<List<EshopOrderSummary>> ListOrdersByStatusAsync(int statusId, CancellationToken ct = default);
+
+    Task<List<EshopOrderSummary>> ListByExternalCodePrefixAsync(string prefix, string? emailFilter = null, CancellationToken ct = default);
+
+    /// <summary>
+    /// Transitions the order to the configured "packed" state
+    /// (Shoptet "Zabaleno", id 52 by default). Called by the Balení screen
+    /// after a successful scan + shipment creation.
+    /// </summary>
+    Task MarkAsPackedAsync(string orderCode, CancellationToken ct = default);
+}
+```
+
+Replace it with this exact content — the 4 relocated method lines (`CreateOrderAsync`, `DeleteOrderAsync`, `GetRecentOrdersAsync`, `ListByExternalCodePrefixAsync`) are removed; every remaining method, its doc comment, and its ordering is otherwise untouched:
+
+```csharp
+namespace Anela.Heblo.Application.Features.ShoptetOrders;
+
+public interface IEshopOrderClient
+{
+    Task<int> GetOrderStatusIdAsync(string orderCode, CancellationToken ct = default);
+    Task UpdateStatusAsync(string orderCode, int statusId, CancellationToken ct = default);
+    /// <summary>
+    /// Returns the current internal (staff-facing) remark for the given order,
+    /// as returned by GET /api/orders/{code}?include=notes → data.order.notes.eshopRemark.
+    /// Returns an empty string if Shoptet sends null or the notes object is absent.
+    /// </summary>
+    Task<string> GetEshopRemarkAsync(string orderCode, CancellationToken ct = default);
+
+    /// <summary>
+    /// Overwrites the order's internal (staff-facing) remark via
+    /// PATCH /api/orders/{code}/notes with body {"data":{"eshopRemark":"..."}}.
+    /// The caller is responsible for preserving any existing content (read-modify-write).
+    /// </summary>
+    Task UpdateEshopRemarkAsync(string orderCode, string eshopRemark, CancellationToken ct = default);
+
+    /// <summary>
+    /// Read-modify-write helper: appends <paramref name="text"/> to the order's current
+    /// eshop remark, separated by a newline. If the order has no remark yet, the remark
+    /// becomes <paramref name="text"/> verbatim (no leading separator).
+    /// Equivalent to:
+    ///   var current = await GetEshopRemarkAsync(orderCode, ct);
+    ///   var updated = string.IsNullOrEmpty(current) ? text : $"{current}\n{text}";
+    ///   await UpdateEshopRemarkAsync(orderCode, updated, ct);
+    /// </summary>
+    Task AppendEshopRemarkAsync(string orderCode, string text, CancellationToken ct = default);
+
+    /// <summary>
+    /// Returns every order currently in the given Shoptet status, across all pages
+    /// (GET /api/orders?statusId={id}, itemsPerPage=50). Maps to the Application-layer
+    /// <see cref="EshopOrderSummary"/> (code, externalCode, email, statusId).
+    /// </summary>
+    Task<List<EshopOrderSummary>> ListOrdersByStatusAsync(int statusId, CancellationToken ct = default);
+
+    /// <summary>
+    /// Transitions the order to the configured "packed" state
+    /// (Shoptet "Zabaleno", id 52 by default). Called by the Balení screen
+    /// after a successful scan + shipment creation.
+    /// </summary>
+    Task MarkAsPackedAsync(string orderCode, CancellationToken ct = default);
+}
+```
+
+- [ ] **Step 2: Try building the Application project — expect it to still succeed (no production callers of the 4 methods)**
+
+Run:
+```bash
+cd backend && dotnet build src/Anela.Heblo.Application/Anela.Heblo.Application.csproj
+```
+Expected: `Build succeeded.` If this fails with "does not implement interface member" or "no such method" errors referencing `CreateOrderAsync`/`DeleteOrderAsync`/`GetRecentOrdersAsync`/`ListByExternalCodePrefixAsync`, STOP — this means the spec's "zero Application-layer callers" claim (FR-2's regression check) was wrong; do not proceed with the remaining tasks until that caller is found and resolved.
+
+- [ ] **Step 3: Grep the Application project for any remaining reference to the 4 removed methods (defense in depth)**
+
+Run:
+```bash
+cd backend && grep -rn "CreateOrderAsync\|DeleteOrderAsync\|GetRecentOrdersAsync\|ListByExternalCodePrefixAsync" src/Anela.Heblo.Application/
+```
+Expected: no output (no matches). This confirms FR-2's acceptance criterion — "No Application-layer production code references the 4 removed methods via `IEshopOrderClient`."
+
+- [ ] **Step 4: Commit**
+
+```bash
+git add backend/src/Anela.Heblo.Application/Features/ShoptetOrders/IEshopOrderClient.cs
+git commit -m "refactor(shoptet-orders): remove test-only lifecycle methods from IEshopOrderClient"
+```
+
+---
+
