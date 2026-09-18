@@ -965,6 +965,7 @@ const BatchPlanningCalculator: React.FC = () => {
                             <td className="px-4 py-3 text-sm text-gray-400 dark:text-graphite-faint">—</td>
                             <td className="px-4 py-3 text-sm text-gray-400 dark:text-graphite-faint">—</td>
                             <td className="px-4 py-3 text-sm text-gray-400 dark:text-graphite-faint">—</td>
+                            <td className="px-4 py-3 text-sm text-gray-400 dark:text-graphite-faint">—</td>
                             <td className="px-4 py-3">
                               <div className="flex items-center space-x-2">
                                 <input

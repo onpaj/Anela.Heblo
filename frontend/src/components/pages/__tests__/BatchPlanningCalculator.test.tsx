@@ -1,5 +1,5 @@
 import React from "react";
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import "@testing-library/jest-dom";
 import { BrowserRouter } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -293,9 +293,45 @@ describe("BatchPlanningCalculator", () => {
       fireEvent.click(screen.getByTestId("select-semiproduct"));
 
       expect(
-        screen.getByRole("columnheader", { name: "Plánováno", exact: true })
+        screen.getByRole("columnheader", { name: "Plánováno" })
       ).toBeInTheDocument();
       expect(screen.getByText("120 ks")).toBeInTheDocument();
+    });
+
+    it("keeps every body row aligned with the header, including the direct output row", () => {
+      mockUseBatchPlanningMutation.mockReturnValue({
+        mutate: jest.fn(),
+        mutateAsync: jest.fn(),
+        // MultiPhase is what makes the amber "Přímý výstup" row render.
+        data: { ...mockSuccessResponse, manufactureType: 2 },
+        isLoading: false,
+        isPending: false,
+        isError: false,
+        isSuccess: true,
+        error: null,
+      });
+
+      const Wrapper = createWrapper();
+      render(
+        <Wrapper>
+          <BatchPlanningCalculator />
+        </Wrapper>
+      );
+
+      fireEvent.click(screen.getByTestId("select-semiproduct"));
+
+      // The direct-output row must render, otherwise this guards nothing.
+      expect(screen.getByText("Přímý výstup")).toBeInTheDocument();
+
+      const columnCount = screen.getAllByRole("columnheader").length;
+      const bodyRows = screen
+        .getAllByRole("row")
+        .filter((row) => within(row).queryAllByRole("cell").length > 0);
+
+      expect(bodyRows.length).toBeGreaterThan(1);
+      bodyRows.forEach((row) => {
+        expect(within(row).getAllByRole("cell")).toHaveLength(columnCount);
+      });
     });
   });
 
