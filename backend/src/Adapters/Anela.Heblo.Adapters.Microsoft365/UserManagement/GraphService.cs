@@ -316,12 +316,12 @@ public class GraphService : IGraphService
     /// </summary>
     private static string? FindAppRoleId(System.Text.Json.JsonElement? appRoles, string appRoleValue)
     {
-        if (appRoles is null)
+        if (appRoles is not { } appRolesValue)
         {
             return null;
         }
 
-        foreach (var role in appRoles.Value.EnumerateArray())
+        foreach (var role in appRolesValue.EnumerateArray())
         {
             if (role.TryGetProperty("value", out var roleName) && roleName.GetString() == appRoleValue)
             {
