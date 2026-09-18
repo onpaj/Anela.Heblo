@@ -22,6 +22,8 @@ public static class MarketingPerformanceModule
         // No-op fallback; the Flexi adapter will override with the real received-invoice
         // implementation when it is registered (last registration wins).
         services.AddScoped<IMonthlyAdCostSource, NoOpMonthlyAdCostSource>();
+        services.AddSingleton<MarketingPerformanceRunGuard>();
+        services.AddScoped<IMarketingPerformanceRefreshService, MarketingPerformanceRefreshService>();
         // MediatR handlers and IRecurringJob implementations are discovered by assembly scan.
         return services;
     }
