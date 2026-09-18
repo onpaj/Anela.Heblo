@@ -211,3 +211,80 @@ incl. VAT rendered as 344.85. The query was extended server-side on 2026-09-11 t
 > extension must be applied to the production company separately. Until it is, that company's
 > reads fall back to the excl-VAT assumption; the adapter logs a warning once per batch and
 > the comparison screen reports the rows as "Neznámý typ ceny (Flexi)" rather than failing.
+
+---
+
+## Received invoices (`faktura-prijata`) — DIČ-based marketing cost attribution — VERIFIED LIVE 2026-09-18 (production)
+
+Verification for the "attribute advertising costs to channel by matching the supplier's
+DIČ on received invoices" feature. All checks were read-only GETs against the production
+FlexiBee instance (`petra-tesarikova.flexibee.eu`), one month of `faktura-prijata`
+(August 2026, filtered on `datUcto`).
+
+### `dic` is a valid column on `faktura-prijata`
+
+Requesting `detail=custom:...,dic,...` returns a normal `HTTP 200` with `dic` populated
+(e.g. `"dic": "CZ8656186011"`). A control request with the same projection minus `dic`
+also returns `HTTP 200`, simply without the field. Adding `dic` to every received-invoice
+column projection (as the SDK change does) is safe — Flexi does not reject the request for
+an unrecognized/extra column, it just omits or includes it as asked.
+
+### Real DIČ values for the three advertising suppliers (August 2026 data + one lookback for Seznam)
+
+| Supplier (as it appears in `nazFirmy`) | `dic` | `ic` | Notes |
+|---|---|---|---|
+| `Meta Platforma Ireland Limited` | `IE9692928F` | *(empty)* | 15 invoices in Aug 2026, `stredisko: MARKETING`. Reverse-charge EU supplier — `ic` empty is expected for a foreign VAT payer. |
+| `GOOGLE IRELAND LIMITED` | `IE6388047V` | `368047` | 1 invoice in Aug 2026 (`PF260871`), `stredisko: MARKETING`. |
+| `Seznam.cz, a.s.` | `CZ26168685` | `26168685` | **No Seznam invoice fell inside August 2026** — the DIČ was confirmed instead from the most recent `faktura-prijata` rows for this supplier (e.g. `Z260063`, `stredisko: MARKETING`/`C`). |
+
+**All three suppliers have a populated, non-empty `dic`.** No critical gap found — the
+channel-matching approach is not blocked by a missing DIČ for any of the three suppliers.
+(Seznam simply had no invoice in the specific sampled month; its DIČ is stable across the
+invoices checked and is not expected to vary.)
+
+### `sumZklCelkem` vs `sumCelkem`
+
+- **Reverse-charge EU (Meta, Google — no Czech VAT on the document):** the two figures are
+  equal, as expected. E.g. Meta `PF260878`: `sumZklCelkem = 20000.0`, `sumCelkem = 20000.0`.
+  Google `PF260871`: `sumZklCelkem = 113366.42`, `sumCelkem = 113366.42`.
+- **Domestic (Seznam, 21% VAT):** `sumCelkem ≈ sumZklCelkem × 1.21`, and in the sampled
+  invoice it is exact. E.g. `Z260063`: `sumZklCelkem = 35000.0`, `sumCelkem = 42350.0`
+  (`35000 × 1.21 = 42350`).
+
+`sumZklCelkem` is confirmed as the correct without-VAT base for both reverse-charge and
+domestic received invoices.
+
+### `storno` invoices
+
+None of the 87 `faktura-prijata` rows in August 2026 have `storno: true`. Cancelled
+invoices do exist elsewhere in the evidence (an earlier, unfiltered sample turned up
+~20), so the feature's exclusion filter (`storno == false`) is still necessary in
+general — this month's data just didn't happen to exercise it.
+
+### Pitfall: the `filter=` query-string parameter is silently ignored on this instance
+
+The commonly-documented shape
+
+```
+GET /c/{firma}/faktura-prijata.json?filter=(datUcto%20gte%20%222026-08-01%22%20and%20datUcto%20lte%20%222026-08-31%22)
+```
+
+returns `HTTP 200` on this server **but the filter has no effect** — it returns the
+entire unfiltered evidence (7660+ rows for `faktura-prijata`), regardless of whether the
+filter references a real column, a nonexistent column, or is malformed. There is no error
+and no indication in the response that filtering did not happen, which makes this
+dangerous to miss.
+
+The shape that actually filters is the Flexi **path-segment filter**, with the expression
+in parentheses immediately before `.json`:
+
+```
+GET /c/{firma}/faktura-prijata/(datUcto gte '2026-08-01' and datUcto lte '2026-08-31').json
+```
+
+Confirmed working live: this returned exactly the 87 rows dated in August 2026 (verified
+against the returned `datUcto` values), versus 7660+ rows with the query-string form.
+Any future FlexiBee read that needs server-side filtering (this feature's monthly window
+included) must use the path-segment form, and should sanity-check row counts/date ranges
+against an unfiltered call during development — a silently-ignored filter is otherwise
+indistinguishable from a correctly-filtered empty-ish result set.
