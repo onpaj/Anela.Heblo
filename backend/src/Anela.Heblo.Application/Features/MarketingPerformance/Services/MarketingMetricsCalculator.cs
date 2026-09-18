@@ -46,8 +46,7 @@ public class MarketingMetricsCalculator
             ChannelCosts = channelCosts,
             TotalCost = totalCost,
             Pno = Ratio(totalCost * Percent, revenueWithoutVat),
-            // Null when cost is 0 (via Ratio's denominator check) or when revenue is 0 — a month with no revenue has no meaningful return to report.
-            Roas = revenueWithoutVat == 0m ? null : Ratio(revenueWithoutVat * Percent, totalCost),
+            Roas = Ratio(revenueWithoutVat * Percent, totalCost),
             Profit = revenueWithoutVat - totalCost,
             AvgOrderValue = Ratio(revenueWithoutVat, orders),
             CostPerOrder = Ratio(totalCost, orders),

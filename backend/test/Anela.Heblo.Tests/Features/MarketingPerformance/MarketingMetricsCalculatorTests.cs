@@ -95,7 +95,7 @@ public class MarketingMetricsCalculatorTests
         var dto = Calc.Build(month, null, false, isPartial: true);
 
         dto.Pno.Should().BeNull();
-        dto.Roas.Should().BeNull();
+        dto.Roas.Should().Be(0m); // spend with no revenue is a real 0% return, not an undefined one
         dto.AvgOrderValue.Should().BeNull();
         dto.CostPerOrder.Should().BeNull();
         dto.Profit.Should().Be(-100m);
