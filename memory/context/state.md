@@ -355,6 +355,40 @@ _Update this file at the end of significant sessions._
   `agent-planning` to `agent-ready-for-dev`. See
   `memory/gotchas/agent-context-files-superpowers-plugin-missing.md`.
 
+- Marketing Performance / "Výkon reklamy" feature (branch `feature/import-advertising-costs`, spec
+  `docs/superpowers/specs/2026-09-18-marketing-performance-design.md`, plan
+  `docs/superpowers/plans/2026-09-18-marketing-performance.md`, 20-task SDD run
+  `.superpowers/sdd/2026-09-18-marketing-performance/`, 2026-09-18): monthly ad-spend vs. e-shop
+  revenue snapshot replacing the hand-maintained `Naklady_reklamy.xlsx`. Shipped: `MarketingPerformance`
+  domain/persistence tables and migration, `IMonthlyRevenueSource`/`IMonthlyAdCostSource` +
+  `ChannelCostBucketer` + `MarketingMetricsCalculator`, `GetMarketingPerformanceMonths`/
+  `GetMarketingPerformanceComparison`/`RecomputeMarketingPerformance` use cases and
+  `MarketingPerformanceController` (routes are `/api/MarketingPerformance/{months,comparison,recompute}`
+  — case follows the controller class name, not lowercase), the `marketing-performance-refresh` Hangfire
+  job, and the `/marketing/performance` screen (trend + year-comparison views, recompute dialog).
+  Documented in `docs/features/marketing-performance.md`, including the Flexi
+  `/faktura-prijata/query` read-path traps (bare-URL POST is a write; `?filter=` GET is silently
+  ignored and full-table-scans) and the recompute check-then-lock race
+  (`RecomputeMarketingPerformanceHandler` checks `MarketingPerformanceRunGuard.IsRunning` before
+  enqueueing, but the guard's lock is only taken inside the job when it starts — two rapid requests
+  can both be accepted, the second silently no-ops).
+  **Not yet done:**
+  - The FlexiBeeSDK change (VAT-ID filter + `dic` projection, `~/Work/GitHub/FlexiBeeSDK`) is
+    committed locally but **not published to NuGet**, so the real Flexi cost adapter is not wired —
+    `IMonthlyAdCostSource` resolves to `NoOpMonthlyAdCostSource` in every environment right now, and
+    ad costs read as zero until the package is published and the adapter is registered.
+  - Staging migration (`AddMarketingPerformance`) has not been applied.
+  - `marketing.performance.read`/`.write` permission grants in `/admin/access` have not been made in
+    any environment (seed groups don't update existing environments).
+  - The historical backfill (recompute 2023-01 → current month) has not been run anywhere.
+  - `docs/architecture/module-map.md` was checked but not touched: it's an exhaustive per-module
+    partition, and `Features/MarketingPerformance` + `MarketingPerformanceController` +
+    `/marketing/performance` are a genuinely new, unassigned module by its own maintenance rules
+    (`docs/architecture/module-map-maintenance.md`'s refresh triggers). Adding it properly means a
+    full refresh pass (new part number, summary table row, part count, "Coverage & known gaps"
+    section) per that doc's own procedure, not a one-line insert — left for a dedicated
+    `/arch-map` refresh rather than bundling it into this feature's docs.
+
 ## Pending / Known Issues
 
 - Memory directory (issue #405): adding cross-session knowledge accumulation — this PR
