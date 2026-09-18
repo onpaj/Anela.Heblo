@@ -22,7 +22,7 @@
     },
     "developing": {
       "status": "in_progress",
-      "updated_at": "2026-09-18T10:15:37.914643Z"
+      "updated_at": "2026-09-18T11:17:16.098145Z"
     }
   },
   "tasks": [
@@ -46,9 +46,9 @@
     },
     {
       "name": "extract-batch-resolve-user-dtos",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-09-18T11:17:16.275571Z"
     },
     {
       "name": "full-suite-validation",
