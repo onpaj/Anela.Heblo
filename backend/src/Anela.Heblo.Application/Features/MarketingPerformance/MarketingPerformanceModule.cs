@@ -1,4 +1,5 @@
 using Anela.Heblo.Application.Features.MarketingPerformance.Configuration;
+using Anela.Heblo.Application.Features.MarketingPerformance.Infrastructure.Jobs;
 using Anela.Heblo.Application.Features.MarketingPerformance.Services;
 using Anela.Heblo.Domain.Features.MarketingPerformance;
 using Anela.Heblo.Persistence.Marketing;
@@ -24,6 +25,8 @@ public static class MarketingPerformanceModule
         services.AddScoped<IMonthlyAdCostSource, NoOpMonthlyAdCostSource>();
         services.AddSingleton<MarketingPerformanceRunGuard>();
         services.AddScoped<IMarketingPerformanceRefreshService, MarketingPerformanceRefreshService>();
+        services.AddScoped<MarketingPerformanceRecomputeJob>();
+        services.AddScoped<IMarketingPerformanceRecomputeEnqueuer, HangfireMarketingPerformanceRecomputeEnqueuer>();
         // MediatR handlers and IRecurringJob implementations are discovered by assembly scan.
         return services;
     }
