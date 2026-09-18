@@ -4,6 +4,16 @@ Monthly snapshot of ad spend vs. e-shop orders/revenue, replacing the manual `Na
 Spec: `docs/superpowers/specs/2026-09-18-marketing-performance-design.md`.
 Plan: `docs/superpowers/plans/2026-09-18-marketing-performance.md`.
 
+> **Ad costs are not flowing yet.** The FlexiBeeSDK change that lets the app query received
+> invoices by VAT ID is committed locally but not published to NuGet, so the real Flexi cost
+> adapter is not registered. `IMonthlyAdCostSource` currently resolves to
+> `NoOpMonthlyAdCostSource`, which returns an empty list — **every channel cost reads zero in
+> every environment right now.** Revenue and order counts (from `IssuedInvoices`) work today and
+> are unaffected. Costs start flowing once the SDK package is published, the real adapter is
+> registered in `MarketingPerformanceModule`, and the recompute/refresh job runs again. See
+> "Known discrepancy vs. the spreadsheet" below for what the cost numbers look like when queried
+> directly against Flexi, and Operations for the outstanding rollout steps.
+
 ## Data
 
 - **Costs**: ABRA Flexi received invoices, one REST call per month (`datUcto` in month, `dic in (…)`), bucketed to
@@ -66,7 +76,9 @@ manual calls work regardless of case — this is purely a "what will you actuall
 Invoice-based numbers run 5–15% above the spreadsheet's order counts (which came from Shoptet statistics).
 Accepted; the app is the definition from now on.
 
-A second, separate discrepancy shows up on the cost side. For August 2026, live Flexi data gives Meta
+A second, separate discrepancy shows up on the cost side. **These are manual-verification figures, not numbers
+the running application currently produces** — see the note at the top of this document: the running app's cost
+side is still zero everywhere. For August 2026, a manual query run directly against Flexi on 2026-09-18 gave Meta
 307 520.35 and Google 113 366.42, while **Seznam had no invoice at all under its VAT ID that month**. The
 spreadsheet's August row reads FB/IG 371 564.6, Google 122 366, S-Klik 11 635 — same ballpark, not equal. This is
 expected: the app filters on accounting date (`datUcto`), while the spreadsheet reflects the owner's own spend
@@ -92,3 +104,13 @@ under a different supplier record than the configured VAT ID.
 - The Flexi cost adapter is not wired yet (see `memory/context/state.md`): `IMonthlyAdCostSource` currently
   resolves to `NoOpMonthlyAdCostSource`, so ad costs read as zero in every environment until the FlexiBeeSDK
   package (VAT-ID filter + `dic` projection) is published to NuGet and the real adapter is registered.
+
+### Validation gates
+
+- `dotnet build` and the backend test suite (`backend/test/Anela.Heblo.Tests`).
+- `CI=false npm run build` from `frontend/` — this DOES pass and is the genuine type gate for this feature,
+  stricter than a plain `tsc` check.
+- `npx eslint` scoped to the files a change touches, not repo-wide `npm run lint`. On a clean checkout,
+  repo-wide `npm run lint` exits non-zero because of roughly 236 pre-existing errors in unrelated files — that
+  failure predates this feature and is not something a change here can or should fix. "Lint is clean" for this
+  feature means scoped-clean, not repo-clean.
