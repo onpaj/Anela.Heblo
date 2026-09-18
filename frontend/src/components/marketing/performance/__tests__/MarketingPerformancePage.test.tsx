@@ -59,4 +59,21 @@ describe('MarketingPerformancePage', () => {
     render(<MarketingPerformancePage />)
     expect(screen.getByText(/Poslední aktualizace:/)).toBeInTheDocument()
   })
+
+  it('shows the stale-data warning in comparison view too', () => {
+    const staleMonth = {
+      ...month,
+      lastError: null,
+      revenueComputedAt: '2026-09-18T03:00:00Z',
+      costsComputedAt: null,
+    }
+    mockComparisonQuery.mockReturnValue({
+      data: { success: true, series: [{ year: 2026, months: [staleMonth], ytdOrders: 0, ytdRevenueWithoutVat: 0, ytdTotalCost: 0 }], anchorYear: 2026, currentMonth: 9, channels: [] },
+      isLoading: false,
+      error: null,
+    })
+    render(<MarketingPerformancePage />)
+    fireEvent.change(screen.getByLabelText('Zobrazení'), { target: { value: 'comparison' } })
+    expect(screen.getByText('některé měsíce mají neúplná data')).toBeInTheDocument()
+  })
 })

@@ -6,6 +6,7 @@ import { useScreenView } from '../../../telemetry/useScreenView'
 import {
   useMarketingPerformanceComparisonQuery,
   useMarketingPerformanceMonthsQuery,
+  type MonthlyMarketingPerformanceDto,
 } from '../../../api/hooks/useMarketingPerformance'
 import { PerformanceToolbar, type PerformancePeriod, type PerformanceViewMode } from './PerformanceToolbar'
 import { PerformanceTrendChart } from './PerformanceTrendChart'
@@ -24,6 +25,9 @@ const rangeForPeriod = (period: PerformancePeriod): { from: string; to: string }
   const from = new Date(to.getFullYear(), to.getMonth() - (period - 1), 1)
   return { from: monthKey(from), to: monthKey(to) }
 }
+
+const isMonthStale = (m: MonthlyMarketingPerformanceDto): boolean =>
+  m.hasData && (Boolean(m.lastError) || !m.revenueComputedAt || !m.costsComputedAt)
 
 const MarketingPerformancePage: React.FC = () => {
   const [viewMode, setViewMode] = useState<PerformanceViewMode>('trend')
@@ -47,8 +51,8 @@ const MarketingPerformancePage: React.FC = () => {
   const lastRefreshAt = viewMode === 'trend' ? months.data?.lastRefreshAt : comparison.data?.lastRefreshAt
   const hasWarnings =
     viewMode === 'trend'
-      ? monthRows.some((m) => m.hasData && (Boolean(m.lastError) || !m.revenueComputedAt || !m.costsComputedAt))
-      : (comparison.data?.series ?? []).some((s) => s.months.some((m) => m.hasData && Boolean(m.lastError)))
+      ? monthRows.some(isMonthStale)
+      : (comparison.data?.series ?? []).some((s) => s.months.some(isMonthStale))
 
   return (
     <div className="flex flex-col w-full" style={{ height: PAGE_CONTAINER_HEIGHT }}>
