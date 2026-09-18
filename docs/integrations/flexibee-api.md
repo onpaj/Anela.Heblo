@@ -221,6 +221,21 @@ DIČ on received invoices" feature. All checks were read-only GETs against the p
 FlexiBee instance (`petra-tesarikova.flexibee.eu`), one month of `faktura-prijata`
 (August 2026, filtered on `datUcto`).
 
+### Use the SDK query path — do not hand-roll HTTP for this
+
+**New code should query received invoices through
+`IReceivedInvoiceClient.SearchAsync(new ReceivedInvoiceRequest(from, to, vatIds: [...],
+dateField: "datUcto"))`, not raw HTTP.** `ReceivedInvoiceRequest` already builds the
+`dic in (...)` / date-range filter for you.
+
+That method POSTs to `/c/{company}/faktura-prijata/query` — the `/query` segment comes
+from `FlexiQuery.IncludeQuerySegment`, which defaults to `true` in
+`ResourceClient.GetUri` — and the filter **is honoured** there. Verified live: that exact
+shape, restricted to the three marketing VAT IDs and the August 2026 `datUcto` range,
+returned `HTTP 200`, `@rowCount: 18`, 18 rows — not a full-table scan. See the traps
+below for what goes wrong if you instead reach for a hand-built GET or POST against the
+bare evidence URL.
+
 ### `dic` is a valid column on `faktura-prijata`
 
 Requesting `detail=custom:...,dic,...` returns a normal `HTTP 200` with `dic` populated
@@ -261,9 +276,10 @@ invoices do exist elsewhere in the evidence (an earlier, unfiltered sample turne
 ~20), so the feature's exclusion filter (`storno == false`) is still necessary in
 general — this month's data just didn't happen to exercise it.
 
-### Pitfall: the `filter=` query-string parameter is silently ignored on this instance
+### Traps: what goes wrong if you hand-build HTTP against `faktura-prijata` instead
 
-The commonly-documented shape
+**Trap 1 — a `?filter=` GET query-string parameter is silently ignored on this
+instance.** The commonly-documented shape
 
 ```
 GET /c/{firma}/faktura-prijata.json?filter=(datUcto%20gte%20%222026-08-01%22%20and%20datUcto%20lte%20%222026-08-31%22)
@@ -275,8 +291,18 @@ filter references a real column, a nonexistent column, or is malformed. There is
 and no indication in the response that filtering did not happen, which makes this
 dangerous to miss.
 
-The shape that actually filters is the Flexi **path-segment filter**, with the expression
-in parentheses immediately before `.json`:
+**Trap 2 — do NOT reach for a POST to the bare evidence URL
+(`/faktura-prijata.json`) to work around Trap 1. That is a WRITE, not a query,** and it
+attempts to *create* a received invoice. Confirmed live: one such probe was interpreted
+as an import attempt and failed validation (`created: 0, failed: 1` — nothing was
+written); another was rejected outright with `"Nalezen nepodporovaný uzel
+add-row-count"`. This is exactly the wrong turn someone would take right after
+discovering Trap 1 — use `IReceivedInvoiceClient.SearchAsync` (above) instead, which
+POSTs to the safe `/query` sub-resource, not the bare evidence URL.
+
+For ad-hoc, throwaway investigation only (never for production code), the shape that
+does actually filter over plain HTTP is the Flexi **path-segment filter**, with the
+expression in parentheses immediately before `.json`:
 
 ```
 GET /c/{firma}/faktura-prijata/(datUcto gte '2026-08-01' and datUcto lte '2026-08-31').json
@@ -284,7 +310,3 @@ GET /c/{firma}/faktura-prijata/(datUcto gte '2026-08-01' and datUcto lte '2026-0
 
 Confirmed working live: this returned exactly the 87 rows dated in August 2026 (verified
 against the returned `datUcto` values), versus 7660+ rows with the query-string form.
-Any future FlexiBee read that needs server-side filtering (this feature's monthly window
-included) must use the path-segment form, and should sanity-check row counts/date ranges
-against an unfiltered call during development — a silently-ignored filter is otherwise
-indistinguishable from a correctly-filtered empty-ish result set.
