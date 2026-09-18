@@ -8315,6 +8315,13 @@ export class ApiClient {
             result409 = RecomputeMarketingPerformanceResponse.fromJS(resultData409);
             return throwException("A server side error occurred.", status, _responseText, _headers, result409);
             });
+        } else if (status === 500) {
+            return response.text().then((_responseText) => {
+            let result500: any = null;
+            let resultData500 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result500 = RecomputeMarketingPerformanceResponse.fromJS(resultData500);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result500);
+            });
         } else if (status === 403) {
             return response.text().then((_responseText) => {
             let result403: any = null;

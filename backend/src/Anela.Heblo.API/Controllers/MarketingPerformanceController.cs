@@ -52,6 +52,7 @@ public class MarketingPerformanceController : BaseApiController
     [ProducesResponseType(typeof(RecomputeMarketingPerformanceResponse), StatusCodes.Status202Accepted)]
     [ProducesResponseType(typeof(RecomputeMarketingPerformanceResponse), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(RecomputeMarketingPerformanceResponse), StatusCodes.Status409Conflict)]
+    [ProducesResponseType(typeof(RecomputeMarketingPerformanceResponse), StatusCodes.Status500InternalServerError)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<ActionResult<RecomputeMarketingPerformanceResponse>> Recompute([FromBody] RecomputeMarketingPerformanceRequest request)
     {
