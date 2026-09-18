@@ -31,7 +31,7 @@ export const buildComparisonChartData = (series: MarketingYearSeriesDto[], metri
       spanGaps: false,
     }
   })
-  return { labels: [...MONTH_LABELS_SHORT], datasets } as ChartData<'bar'>
+  return { labels: [...MONTH_LABELS_SHORT], datasets } as unknown as ChartData<'bar'>
 }
 
 export const PerformanceComparisonChart: React.FC<PerformanceComparisonChartProps> = ({ series, metric, currentMonth }) => {

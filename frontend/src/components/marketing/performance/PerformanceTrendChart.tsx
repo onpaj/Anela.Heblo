@@ -58,7 +58,7 @@ export const buildTrendChartData = (
     spanGaps: false,
   }
 
-  return { labels, datasets: [...channelDatasets, metricDataset] } as ChartData<'bar'>
+  return { labels, datasets: [...channelDatasets, metricDataset] } as unknown as ChartData<'bar'>
 }
 
 export const PerformanceTrendChart: React.FC<PerformanceTrendChartProps> = ({ months, channels, metric }) => {
