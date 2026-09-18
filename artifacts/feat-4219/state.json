@@ -40,9 +40,9 @@
     },
     {
       "name": "extract-collect-role-assignees",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-09-18T10:15:38.094732Z"
+      "updated_at": "2026-09-18T10:19:32.908429Z"
     },
     {
       "name": "extract-batch-resolve-user-dtos",
