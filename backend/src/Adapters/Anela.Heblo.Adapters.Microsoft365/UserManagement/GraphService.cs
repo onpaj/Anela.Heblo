@@ -226,30 +226,17 @@ public class GraphService : IGraphService
 
             var httpClient = _httpClientFactory.CreateClient("MicrosoftGraph");
 
-            // Step 1: resolve the service principal id and app roles for this app registration
-            var spUrl = $"https://graph.microsoft.com/v1.0/servicePrincipals(appId='{clientId}')?$select=id,appRoles";
-            using var spRequest = new HttpRequestMessage(HttpMethod.Get, spUrl);
-            spRequest.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", graphToken);
-            var spResponse = await httpClient.SendAsync(spRequest, cancellationToken);
-            var spJson = await spResponse.Content.ReadAsStringAsync(cancellationToken);
-            if (!spResponse.IsSuccessStatusCode)
+            var (spId, appRoles) = await ResolveServicePrincipalAsync(clientId, graphToken, httpClient, cancellationToken);
+            if (spId is null)
             {
-                _logger.LogError("Failed to resolve service principal. Status: {Status}, Body: {Body}", spResponse.StatusCode, spJson);
-                return new List<UserDto>();
-            }
-            using var spDoc = System.Text.Json.JsonDocument.Parse(spJson);
-            var spId = spDoc.RootElement.TryGetProperty("id", out var spIdProp) ? spIdProp.GetString() : null;
-            if (string.IsNullOrEmpty(spId))
-            {
-                _logger.LogError("Service principal id not found in Graph response for clientId {ClientId}", clientId);
                 return new List<UserDto>();
             }
 
             // Step 2: find the appRoleId for the requested role value
             string? appRoleId = null;
-            if (spDoc.RootElement.TryGetProperty("appRoles", out var appRolesEl))
+            if (appRoles is not null)
             {
-                foreach (var role in appRolesEl.EnumerateArray())
+                foreach (var role in appRoles.Value.EnumerateArray())
                 {
                     if (role.TryGetProperty("value", out var roleName) && roleName.GetString() == appRoleValue)
                     {
@@ -381,5 +368,40 @@ public class GraphService : IGraphService
             _logger.LogError(ex, "Unexpected error fetching app role members for role '{RoleValue}'", appRoleValue);
             throw;
         }
+    }
+
+    /// <summary>
+    /// Resolves the service principal id and its configured app roles for the given Azure AD app
+    /// registration client id. Returns (null, null) and logs the failure when the service principal
+    /// cannot be resolved.
+    /// </summary>
+    private async Task<(string? SpId, System.Text.Json.JsonElement? AppRoles)> ResolveServicePrincipalAsync(
+        string clientId, string graphToken, HttpClient httpClient, CancellationToken cancellationToken)
+    {
+        var spUrl = $"https://graph.microsoft.com/v1.0/servicePrincipals(appId='{clientId}')?$select=id,appRoles";
+        using var spRequest = new HttpRequestMessage(HttpMethod.Get, spUrl);
+        spRequest.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", graphToken);
+        var spResponse = await httpClient.SendAsync(spRequest, cancellationToken);
+        var spJson = await spResponse.Content.ReadAsStringAsync(cancellationToken);
+        if (!spResponse.IsSuccessStatusCode)
+        {
+            _logger.LogError("Failed to resolve service principal. Status: {Status}, Body: {Body}", spResponse.StatusCode, spJson);
+            return (null, null);
+        }
+
+        using var spDoc = System.Text.Json.JsonDocument.Parse(spJson);
+        var spId = spDoc.RootElement.TryGetProperty("id", out var spIdProp) ? spIdProp.GetString() : null;
+        if (string.IsNullOrEmpty(spId))
+        {
+            _logger.LogError("Service principal id not found in Graph response for clientId {ClientId}", clientId);
+            return (null, null);
+        }
+
+        // Clone so the returned JsonElement stays readable after spDoc (and its `using`) goes out of scope.
+        var appRoles = spDoc.RootElement.TryGetProperty("appRoles", out var appRolesEl)
+            ? appRolesEl.Clone()
+            : (System.Text.Json.JsonElement?)null;
+
+        return (spId, appRoles);
     }
 }
