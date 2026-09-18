@@ -891,7 +891,7 @@ const BatchPlanningCalculator: React.FC = () => {
                                 {product.plannedQuantity > 0 ? (
                                   <span className="font-semibold">{product.plannedQuantity.toFixed(0)} ks</span>
                                 ) : (
-                                  <span className="text-gray-400 dark:text-graphite-muted">—</span>
+                                  <span className="text-gray-400 dark:text-graphite-faint">—</span>
                                 )}
                               </td>
                               <td className="px-4 py-3 text-sm text-gray-900 dark:text-graphite-text">
