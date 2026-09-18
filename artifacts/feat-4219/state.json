@@ -34,9 +34,9 @@
     },
     {
       "name": "extract-find-app-role-id",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-09-18T09:15:48.388710Z"
+      "updated_at": "2026-09-18T09:34:10.600625Z"
     },
     {
       "name": "extract-collect-role-assignees",
