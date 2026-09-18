@@ -57,4 +57,15 @@ public class MarketingPerformanceRepository : IMarketingPerformanceRepository
     }
 
     public Task SaveChangesAsync(CancellationToken cancellationToken) => _context.SaveChangesAsync(cancellationToken);
+
+    public void Detach(MarketingPerformanceMonth month)
+    {
+        // Detaching only the parent leaves its ChannelCosts children (still Added/Modified from this failed
+        // save) tracked, ready to poison the next unrelated SaveChangesAsync call. Detach them explicitly too.
+        foreach (var cost in month.ChannelCosts.ToList())
+        {
+            _context.Entry(cost).State = EntityState.Detached;
+        }
+        _context.Entry(month).State = EntityState.Detached;
+    }
 }

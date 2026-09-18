@@ -17,4 +17,9 @@ public interface IMarketingPerformanceRepository
     Task<DateTime?> GetLastComputedAtAsync(CancellationToken cancellationToken);
 
     Task SaveChangesAsync(CancellationToken cancellationToken);
+
+    /// <summary>Detaches a tracked month (and its ChannelCosts children) from the change tracker. Call after a
+    /// failed SaveChangesAsync so that row's still-pending changes don't resurface at a later, unrelated
+    /// SaveChangesAsync for a different month.</summary>
+    void Detach(MarketingPerformanceMonth month);
 }

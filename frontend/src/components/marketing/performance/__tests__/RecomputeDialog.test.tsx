@@ -46,4 +46,14 @@ describe('RecomputeDialog', () => {
     const { container } = renderDialog(false, jest.fn())
     expect(container).toBeEmptyDOMElement()
   })
+
+  it('shows the localized server error when the mutation fails', () => {
+    // The NSwag-generated client throws the parsed response DTO itself on a non-2xx status
+    // (see api-client.ts's throwException), not a wrapper with a `.result` or `.message`.
+    mockMutationState = {
+      error: { success: false, errorCode: 'MarketingPerformanceRecomputeAlreadyRunning' },
+    }
+    renderDialog(true, jest.fn())
+    expect(screen.getByText('Přepočet výkonu reklamy už běží. Počkejte na jeho dokončení.')).toBeInTheDocument()
+  })
 })

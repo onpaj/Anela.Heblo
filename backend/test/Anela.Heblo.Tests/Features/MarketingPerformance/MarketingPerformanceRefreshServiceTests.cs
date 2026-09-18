@@ -35,6 +35,10 @@ public class MarketingPerformanceRefreshServiceTests : IDisposable
                 new() { InvoiceNumber = "A", SupplierVatId = "IE1", AmountWithoutVat = 100m * m.Month, AccountingDate = m.Start },
                 new() { InvoiceNumber = "B", SupplierVatId = "XX", AmountWithoutVat = 5m, AccountingDate = m.Start }, // unmatched
             });
+        // A mocked IMonthlyAdCostSource doesn't get the interface's `IsConfigured => true` default interface
+        // implementation for free — Moq's proxy overrides every member and returns the CLR default (false)
+        // unless explicitly stubbed. Every other test in this fixture models a normally-configured source.
+        _costs.SetupGet(c => c.IsConfigured).Returns(true);
     }
 
     public void Dispose() => _context.Dispose();
@@ -178,5 +182,104 @@ public class MarketingPerformanceRefreshServiceTests : IDisposable
         guard.IsRunning.Should().BeTrue();
         guard.End();
         guard.TryBegin().Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task RefreshWindowAsync_UnconfiguredCostSource_LeavesCostsUnstamped_WithLastError_ButKeepsRevenue()
+    {
+        // The no-op cost source (used until the Flexi adapter is wired) returns an empty invoice list, which is
+        // indistinguishable from a real "no ad spend" month unless the source itself flags that it isn't configured.
+        _costs.SetupGet(c => c.IsConfigured).Returns(false);
+
+        var result = await Service().RefreshWindowAsync(CancellationToken.None);
+
+        var sep = (await _repo.GetForUpdateAsync(new YearMonth(2026, 9), CancellationToken.None))!;
+        sep.RetailOrderCount.Should().Be(9);
+        sep.RevenueComputedAt.Should().NotBeNull("revenue must still persist even though the cost source is unconfigured");
+        sep.CostsComputedAt.Should().BeNull("an unconfigured cost source must not be stamped as successfully computed");
+        sep.LastError.Should().NotBeNull().And.Contain("not configured");
+        result.Months.Single(m => m.Month == new YearMonth(2026, 9)).CostsOk.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task RefreshWindowAsync_OneMonthSaveFails_ContinuesToNextMonth_WithoutPoisoningItsSave()
+    {
+        // The InMemory provider doesn't throw on an ordinary SaveChangesAsync, so a DbUpdateException can't be
+        // provoked from the fixture's real repository. This decorator simulates one at the exact persistence
+        // boundary RefreshMonthAsync calls (IMarketingPerformanceRepository.SaveChangesAsync) for exactly one
+        // month, while every other operation — including the OTHER month's own save — goes through the real
+        // EF-backed repository, so the rest of the production code path (the catch block, Detach, and the
+        // RefreshWindowAsync loop continuing) is genuinely exercised, not stubbed away.
+        var failingRepo = new FailingSaveRepository(_repo, failMonth: new YearMonth(2026, 8));
+        var service = new MarketingPerformanceRefreshService(
+            failingRepo, _revenue.Object, _costs.Object,
+            Options.Create(new MarketingPerformanceOptions
+            {
+                RecomputeWindowMonths = 2,
+                Channels = { new MarketingChannelOptions { Code = "meta", Label = "FB/IG", VatIds = { "IE1" } }, new MarketingChannelOptions { Code = "google", Label = "Google", VatIds = { "IE2" } } },
+            }),
+            _time, NullLogger<MarketingPerformanceRefreshService>.Instance);
+
+        var result = await service.RefreshWindowAsync(CancellationToken.None);
+
+        result.Months.Select(m => m.Month).Should().Equal(new YearMonth(2026, 8), new YearMonth(2026, 9));
+
+        var aug = result.Months.Single(m => m.Month == new YearMonth(2026, 8));
+        aug.RevenueOk.Should().BeFalse();
+        aug.CostsOk.Should().BeFalse();
+        aug.Error.Should().Contain("simulated save failure");
+
+        var sep = result.Months.Single(m => m.Month == new YearMonth(2026, 9));
+        sep.RevenueOk.Should().BeTrue();
+        sep.CostsOk.Should().BeTrue("the failed August save must not poison September's SaveChangesAsync");
+
+        // August's row never actually made it into the database; only September did.
+        _context.MarketingPerformanceMonths.Count().Should().Be(1);
+        (await _repo.GetForUpdateAsync(new YearMonth(2026, 9), CancellationToken.None))!.RetailOrderCount.Should().Be(9);
+    }
+
+    /// <summary>Forwards every repository operation to a real EF-backed repository except SaveChangesAsync for
+    /// one target month, which throws to simulate a persistence failure the InMemory provider won't produce on
+    /// its own.</summary>
+    private sealed class FailingSaveRepository : IMarketingPerformanceRepository
+    {
+        private readonly IMarketingPerformanceRepository _inner;
+        private readonly YearMonth _failMonth;
+        private YearMonth? _pendingMonth;
+
+        public FailingSaveRepository(IMarketingPerformanceRepository inner, YearMonth failMonth)
+        {
+            _inner = inner;
+            _failMonth = failMonth;
+        }
+
+        public Task<List<MarketingPerformanceMonth>> GetRangeAsync(YearMonth from, YearMonth to, CancellationToken cancellationToken) =>
+            _inner.GetRangeAsync(from, to, cancellationToken);
+
+        public Task<MarketingPerformanceMonth?> GetForUpdateAsync(YearMonth month, CancellationToken cancellationToken)
+        {
+            _pendingMonth = month;
+            return _inner.GetForUpdateAsync(month, cancellationToken);
+        }
+
+        public Task AddAsync(MarketingPerformanceMonth month, CancellationToken cancellationToken) =>
+            _inner.AddAsync(month, cancellationToken);
+
+        public Task<int> LockMonthsBeforeAsync(YearMonth cutoff, CancellationToken cancellationToken) =>
+            _inner.LockMonthsBeforeAsync(cutoff, cancellationToken);
+
+        public Task<DateTime?> GetLastComputedAtAsync(CancellationToken cancellationToken) =>
+            _inner.GetLastComputedAtAsync(cancellationToken);
+
+        public Task SaveChangesAsync(CancellationToken cancellationToken)
+        {
+            if (_pendingMonth == _failMonth)
+            {
+                throw new DbUpdateException("simulated save failure");
+            }
+            return _inner.SaveChangesAsync(cancellationToken);
+        }
+
+        public void Detach(MarketingPerformanceMonth month) => _inner.Detach(month);
     }
 }

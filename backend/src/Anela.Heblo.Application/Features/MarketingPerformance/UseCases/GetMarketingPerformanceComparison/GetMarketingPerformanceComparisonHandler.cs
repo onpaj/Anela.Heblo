@@ -40,8 +40,13 @@ public class GetMarketingPerformanceComparisonHandler : IRequestHandler<GetMarke
         var channels = _options.ToDefinitions();
         var calculator = new MarketingMetricsCalculator(_options.VatRate, channels);
 
-        // One extra year back for the oldest series' YoY is intentionally NOT loaded (spec: oldest series has null YoY).
-        var rows = await _repository.GetRangeAsync(new YearMonth(oldestYear, 1), new YearMonth(anchorYear, 12), cancellationToken);
+        // Load one year further back than the oldest displayed year. That extra year is never itself
+        // rendered as a series here - it exists only to supply the oldest displayed year's prior-year
+        // comparison, matching the months endpoint (GetMarketingPerformanceMonthsHandler), which loads
+        // the same extra year for the same reason. Without it, the two views disagree on YoY for the
+        // oldest displayed year: the months/trend view shows real r/r figures while this comparison view
+        // shows null (em-dash) for the same months, because it never had the prior year's rows to compare.
+        var rows = await _repository.GetRangeAsync(new YearMonth(oldestYear - 1, 1), new YearMonth(anchorYear, 12), cancellationToken);
         var byKey = rows.ToDictionary(r => r.Key);
 
         var series = Enumerable.Range(0, years)

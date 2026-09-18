@@ -113,8 +113,20 @@ public class MarketingPerformanceRefreshService : IMarketingPerformanceRefreshSe
                     InvoiceCount = bucket.InvoiceCount,
                 });
             }
-            row.CostsComputedAt = now;
-            costsOk = true;
+            if (_costSource.IsConfigured)
+            {
+                row.CostsComputedAt = now;
+                costsOk = true;
+            }
+            else
+            {
+                // The no-op source returns an empty invoice list, which is indistinguishable from a real
+                // "no ad spend this month" result. Without this guard the month would be stamped as
+                // successfully computed and render 0 Kč cost / 0 % PNO with no warning badge, because the
+                // badge keys off exactly LastError / the two *ComputedAt timestamps. costsOk stays false and
+                // CostsComputedAt stays unset so the unwired state is visible through that same affordance.
+                errors.Add("Costs: ad-cost source is not configured (Flexi adapter not wired) — costs read as zero");
+            }
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
@@ -128,7 +140,35 @@ public class MarketingPerformanceRefreshService : IMarketingPerformanceRefreshSe
         {
             await _repository.AddAsync(row, cancellationToken);
         }
-        await _repository.SaveChangesAsync(cancellationToken);
+
+        try
+        {
+            await _repository.SaveChangesAsync(cancellationToken);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            // SaveChangesAsync deliberately sits outside the two per-step try/catch blocks above: a persistence
+            // failure here (e.g. DbUpdateException) must not escape RefreshMonthAsync. The callers loop over
+            // months with [AutomaticRetry(Attempts = 0)] on the recompute job, so letting this propagate would
+            // abort every remaining month in a backfill with no record of which one failed.
+            _logger.LogError(ex, "Marketing performance: save failed for {Month}", month);
+
+            // A failed SaveChangesAsync leaves this row (and its ChannelCosts children, re-added above) still
+            // tracked in the shared DbContext — a documented poison hazard where the stale tracked entity
+            // resurfaces at a LATER, unrelated SaveChangesAsync call for a different month. Detach both the
+            // row and its children so the next month's save starts clean.
+            _repository.Detach(row);
+
+            errors.Add($"Save: {ex.Message}");
+            return new MonthRefreshOutcome
+            {
+                Month = month,
+                RevenueOk = false,
+                CostsOk = false,
+                Error = string.Join(" | ", errors),
+                UnmatchedVatIdCount = unmatched,
+            };
+        }
 
         _logger.LogInformation("Marketing performance {Month}: revenue={RevenueOk} costs={CostsOk}", month, revenueOk, costsOk);
         return new MonthRefreshOutcome { Month = month, RevenueOk = revenueOk, CostsOk = costsOk, Error = row.LastError, UnmatchedVatIdCount = unmatched };

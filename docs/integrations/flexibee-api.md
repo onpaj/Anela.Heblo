@@ -239,7 +239,10 @@ bare evidence URL.
 ### `dic` is a valid column on `faktura-prijata`
 
 Requesting `detail=custom:...,dic,...` returns a normal `HTTP 200` with `dic` populated
-(e.g. `"dic": "CZ8656186011"`). A control request with the same projection minus `dic`
+(e.g. `"dic": "CZ86…"` — redacted here; the sampled invoice's real value is a 10-digit
+DIČ derived from a natural person's birth number, i.e. it identifies a specific
+individual, not a company, so it is not reproduced in full). A control request with the
+same projection minus `dic`
 also returns `HTTP 200`, simply without the field. Adding `dic` to every received-invoice
 column projection (as the SDK change does) is safe — Flexi does not reject the request for
 an unrecognized/extra column, it just omits or includes it as asked.

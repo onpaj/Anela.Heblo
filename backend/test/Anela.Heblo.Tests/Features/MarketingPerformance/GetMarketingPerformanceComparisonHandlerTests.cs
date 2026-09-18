@@ -31,8 +31,9 @@ public class GetMarketingPerformanceComparisonHandlerTests
     [Fact]
     public async Task Handle_ThreeYears_OneSeriesPerYearNewestFirst_TwelveCellsEach_WithYtd()
     {
-        // The handler loads exactly `years` calendar years and no more, so the oldest series has no prior year to compare against.
-        _repo.Setup(r => r.GetRangeAsync(new YearMonth(2024, 1), new YearMonth(2026, 12), It.IsAny<CancellationToken>()))
+        // The handler loads one extra year further back than the oldest displayed year (2023), purely to
+        // supply that oldest year's prior-year comparison. That extra year is never itself rendered as a series.
+        _repo.Setup(r => r.GetRangeAsync(new YearMonth(2023, 1), new YearMonth(2026, 12), It.IsAny<CancellationToken>()))
              .ReturnsAsync(new List<MarketingPerformanceMonth>
              {
                  Row(2024, 6, 10, 1210m, 100m), Row(2025, 6, 20, 2420m, 200m), Row(2026, 6, 30, 3630m, 300m), Row(2026, 9, 5, 605m, 50m),
@@ -54,7 +55,9 @@ public class GetMarketingPerformanceComparisonHandlerTests
         s2026.YtdRevenueWithoutVat.Should().Be(3500m);
         s2026.YtdTotalCost.Should().Be(350m);
         s2026.YtdPno.Should().Be(10m);
-        response.Series[2].Months[5].YoyOrdersPercent.Should().BeNull("2023 was not loaded for the oldest series' YoY");
+        response.Series[2].Months[5].YoyOrdersPercent.Should().BeNull("the fixture contains no 2023 rows, so there is still nothing to compare against even though 2023 is loaded");
+        response.Series.Should().HaveCount(3, "the extra loaded year (2023) supplies YoY data but is never rendered as its own series");
+        response.Series.Select(s => s.Year).Should().NotContain(2023);
     }
 
     [Theory]

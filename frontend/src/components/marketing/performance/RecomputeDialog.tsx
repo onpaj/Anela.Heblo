@@ -2,6 +2,7 @@ import React, { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { X } from 'lucide-react'
 import { useRecomputeMarketingPerformanceMutation } from '../../../api/hooks/useMarketingPerformance'
+import { extractErrorMessage } from '../../../utils/errorHandler'
 
 interface RecomputeDialogProps {
   isOpen: boolean
@@ -50,8 +51,11 @@ export const RecomputeDialog: React.FC<RecomputeDialogProps> = ({ isOpen, onClos
     onClose()
   }
 
-  // The generated client throws on non-2xx; the thrown SwaggerException carries the BaseResponse body with errorCode.
-  const serverError = mutation.error ? ((mutation.error as { result?: { errorCode?: string } }).result?.errorCode ?? mutation.error.message) : null
+  // The generated client throws on non-2xx by throwing the parsed response DTO itself (it extends
+  // BaseResponse: success/errorCode/params) rather than wrapping it in a SwaggerException with a
+  // `.result` property. extractErrorMessage recognizes that shape and resolves the localized
+  // Czech message (including parameter interpolation) from frontend/src/i18n.ts.
+  const serverError = mutation.error ? extractErrorMessage(mutation.error) : null
 
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto">

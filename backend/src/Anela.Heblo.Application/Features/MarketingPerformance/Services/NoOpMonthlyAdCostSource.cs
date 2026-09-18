@@ -17,6 +17,8 @@ public sealed class NoOpMonthlyAdCostSource : IMonthlyAdCostSource
         _logger = logger;
     }
 
+    public bool IsConfigured => false;
+
     public Task<IReadOnlyList<AdCostInvoice>> GetAsync(YearMonth month, IReadOnlyCollection<string> vatIds, CancellationToken cancellationToken)
     {
         _logger.LogWarning(

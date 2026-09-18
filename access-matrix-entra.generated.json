@@ -780,8 +780,7 @@
         "marketing.leaflet.write",
         "marketing.article.read",
         "marketing.article.write",
-        "marketing.performance.read",
-        "marketing.performance.write"
+        "marketing.performance.read"
       ]
     },
     {
