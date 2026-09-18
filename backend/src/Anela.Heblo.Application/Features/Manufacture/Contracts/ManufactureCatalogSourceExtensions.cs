@@ -19,7 +19,7 @@ public static class ManufactureCatalogSourceExtensions
         {
             await catalogSource.RefreshPlannedDataAsync(cancellationToken);
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not OperationCanceledException)
         {
             logger.LogWarning(ex,
                 "Failed to refresh planned catalog data after updating manufacture order {OrderId}. " +
