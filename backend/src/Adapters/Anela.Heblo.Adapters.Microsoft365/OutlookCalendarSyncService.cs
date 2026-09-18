@@ -28,6 +28,9 @@ namespace Anela.Heblo.Adapters.Microsoft365
         private const string CalendarEventsBaseUrl = "https://graph.microsoft.com/v1.0/groups/{0}/calendar/events";
         private const string CalendarViewBaseUrl = "https://graph.microsoft.com/v1.0/groups/{0}/calendarView";
         private const string TimeZone = "Europe/Prague";
+        // isAllDay drives the exclusive→inclusive end conversion on import; without it
+        // Graph omits the flag and every all-day event is stored one day too long.
+        private const string EventSelect = "id,subject,body,start,end,isAllDay,categories";
         private const int MaxResponseBodyLength = 500;
 
         private static readonly JsonSerializerOptions JsonOptions = new()
@@ -130,9 +133,8 @@ namespace Anela.Heblo.Adapters.Microsoft365
             var token = await _tokenAcquisition.GetAccessTokenForAppAsync(GraphScope);
             using var client = _httpClientFactory.CreateClient("MicrosoftGraph");
 
-            var select = "id,subject,body,start,end,categories";
             var calendarViewBase = string.Format(CalendarViewBaseUrl, Uri.EscapeDataString(_options.GroupId));
-            var url = $"{calendarViewBase}?startDateTime={fromUtc:O}&endDateTime={toUtc:O}&$select={select}";
+            var url = $"{calendarViewBase}?startDateTime={fromUtc:O}&endDateTime={toUtc:O}&$select={EventSelect}";
 
             var allEvents = new List<OutlookEventDto>();
             string? nextUrl = url;
@@ -165,8 +167,7 @@ namespace Anela.Heblo.Adapters.Microsoft365
             var token = await _tokenAcquisition.GetAccessTokenForAppAsync(GraphScope);
             using var client = _httpClientFactory.CreateClient("MicrosoftGraph");
 
-            var select = "id,subject,body,start,end,categories";
-            var url = $"{BuildBaseUrl()}/{Uri.EscapeDataString(outlookEventId)}?$select={select}";
+            var url = $"{BuildBaseUrl()}/{Uri.EscapeDataString(outlookEventId)}?$select={EventSelect}";
             var request = CreateRequest(HttpMethod.Get, url, token);
 
             var response = await client.SendAsync(request, ct);
@@ -210,7 +211,7 @@ namespace Anela.Heblo.Adapters.Microsoft365
 
         private string BuildEventBody(MarketingAction action)
         {
-            var endDate = action.EndDate ?? action.StartDate.AddHours(1);
+            var endDate = BuildGraphEnd(action);
 
             var bodyObj = new
             {
@@ -234,6 +235,24 @@ namespace Anela.Heblo.Adapters.Microsoft365
             };
 
             return JsonSerializer.Serialize(bodyObj);
+        }
+
+        /// <summary>
+        /// Heblo's EndDate is inclusive, Graph's end is exclusive. A date-only action
+        /// (midnight to midnight) is Heblo's shape for an all-day event, so its last day
+        /// has to be pushed as the following midnight or Outlook drops that day.
+        /// </summary>
+        private static DateTime BuildGraphEnd(MarketingAction action)
+        {
+            if (action.EndDate is null)
+            {
+                return action.StartDate.AddHours(1);
+            }
+
+            var isDateOnly = action.StartDate.TimeOfDay == TimeSpan.Zero
+                && action.EndDate.Value.TimeOfDay == TimeSpan.Zero;
+
+            return isDateOnly ? action.EndDate.Value.AddDays(1) : action.EndDate.Value;
         }
 
         private static HttpRequestMessage CreateRequest(HttpMethod method, string url, string token)

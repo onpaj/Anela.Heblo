@@ -93,9 +93,22 @@ namespace Anela.Heblo.Application.Features.Marketing.UseCases.ImportFromOutlook
 
         private static DateTime? ParseEndDate(OutlookEventDto evt)
         {
-            return evt.EndUtc == DateTime.MinValue || evt.EndUtc == evt.StartUtc
-                ? null
-                : evt.EndUtc;
+            if (evt.EndUtc == DateTime.MinValue)
+            {
+                return null;
+            }
+
+            // Graph reports the end as exclusive, so an all-day event ends at midnight of
+            // the day *after* its last day. Heblo's EndDate is inclusive — the calendar
+            // renders StartDate..EndDate as a closed interval — so importing Graph's value
+            // verbatim would stretch every all-day event over one day too many.
+            if (evt.IsAllDay)
+            {
+                var lastDay = evt.EndUtc.AddDays(-1);
+                return lastDay < evt.StartUtc ? evt.StartUtc : lastDay;
+            }
+
+            return evt.EndUtc == evt.StartUtc ? null : evt.EndUtc;
         }
 
         private static string? StripHtml(string? html)

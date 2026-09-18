@@ -168,6 +168,68 @@ namespace Anela.Heblo.Tests.Marketing
             handler.LastRequestBody.Should().Contain("2026-04-01T11:00:00");
         }
 
+        [Fact]
+        public async Task CreateEventAsync_ForDateOnlyAction_SendsGraphsExclusiveEnd()
+        {
+            // Arrange — an all-day action as Heblo stores it: inclusive, midnight to midnight
+            var responseJson = JsonSerializer.Serialize(new { id = "evt-allday" });
+            var handler = new FakeHttpMessageHandler(HttpStatusCode.Created, responseJson);
+            var service = CreateService(handler);
+            var action = BuildAction(
+                startDate: new DateTime(2026, 9, 18, 0, 0, 0, DateTimeKind.Utc),
+                endDate: new DateTime(2026, 9, 18, 0, 0, 0, DateTimeKind.Utc));
+
+            // Act
+            await service.CreateEventAsync(action, CancellationToken.None);
+
+            // Assert — Graph's end is exclusive, so a one-day action ends at the next midnight
+            using var body = JsonDocument.Parse(handler.LastRequestBody!);
+            body.RootElement.GetProperty("start").GetProperty("dateTime").GetString()
+                .Should().StartWith("2026-09-18T00:00:00");
+            body.RootElement.GetProperty("end").GetProperty("dateTime").GetString()
+                .Should().StartWith("2026-09-19T00:00:00");
+        }
+
+        [Fact]
+        public async Task CreateEventAsync_ForMultiDayDateOnlyAction_SendsGraphsExclusiveEnd()
+        {
+            // Arrange — 7.–9. 9. inclusive
+            var responseJson = JsonSerializer.Serialize(new { id = "evt-allday-multi" });
+            var handler = new FakeHttpMessageHandler(HttpStatusCode.Created, responseJson);
+            var service = CreateService(handler);
+            var action = BuildAction(
+                startDate: new DateTime(2026, 9, 7, 0, 0, 0, DateTimeKind.Utc),
+                endDate: new DateTime(2026, 9, 9, 0, 0, 0, DateTimeKind.Utc));
+
+            // Act
+            await service.CreateEventAsync(action, CancellationToken.None);
+
+            // Assert
+            using var body = JsonDocument.Parse(handler.LastRequestBody!);
+            body.RootElement.GetProperty("end").GetProperty("dateTime").GetString()
+                .Should().StartWith("2026-09-10T00:00:00");
+        }
+
+        [Fact]
+        public async Task CreateEventAsync_ForTimedAction_SendsItsEndUnchanged()
+        {
+            // Arrange — a timed meeting must not gain a day
+            var responseJson = JsonSerializer.Serialize(new { id = "evt-timed" });
+            var handler = new FakeHttpMessageHandler(HttpStatusCode.Created, responseJson);
+            var service = CreateService(handler);
+            var action = BuildAction(
+                startDate: new DateTime(2026, 9, 1, 7, 0, 0, DateTimeKind.Utc),
+                endDate: new DateTime(2026, 9, 1, 8, 30, 0, DateTimeKind.Utc));
+
+            // Act
+            await service.CreateEventAsync(action, CancellationToken.None);
+
+            // Assert
+            using var body = JsonDocument.Parse(handler.LastRequestBody!);
+            body.RootElement.GetProperty("end").GetProperty("dateTime").GetString()
+                .Should().StartWith("2026-09-01T08:30:00");
+        }
+
         // ─── UpdateEventAsync ─────────────────────────────────────────────────────
 
         [Fact]
