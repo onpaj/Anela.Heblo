@@ -28561,6 +28561,7 @@ export class BatchPlanItemDto implements IBatchPlanItemDto {
     productName?: string;
     productSize?: string;
     currentStock?: number;
+    plannedQuantity?: number;
     dailySalesRate?: number;
     currentDaysCoverage?: number;
     recommendedUnitsToProduceHumanReadable?: number;
@@ -28589,6 +28590,7 @@ export class BatchPlanItemDto implements IBatchPlanItemDto {
             this.productName = _data["productName"];
             this.productSize = _data["productSize"];
             this.currentStock = _data["currentStock"];
+            this.plannedQuantity = _data["plannedQuantity"];
             this.dailySalesRate = _data["dailySalesRate"];
             this.currentDaysCoverage = _data["currentDaysCoverage"];
             this.recommendedUnitsToProduceHumanReadable = _data["recommendedUnitsToProduceHumanReadable"];
@@ -28617,6 +28619,7 @@ export class BatchPlanItemDto implements IBatchPlanItemDto {
         data["productName"] = this.productName;
         data["productSize"] = this.productSize;
         data["currentStock"] = this.currentStock;
+        data["plannedQuantity"] = this.plannedQuantity;
         data["dailySalesRate"] = this.dailySalesRate;
         data["currentDaysCoverage"] = this.currentDaysCoverage;
         data["recommendedUnitsToProduceHumanReadable"] = this.recommendedUnitsToProduceHumanReadable;
@@ -28638,6 +28641,7 @@ export interface IBatchPlanItemDto {
     productName?: string;
     productSize?: string;
     currentStock?: number;
+    plannedQuantity?: number;
     dailySalesRate?: number;
     currentDaysCoverage?: number;
     recommendedUnitsToProduceHumanReadable?: number;

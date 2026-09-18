@@ -230,6 +230,7 @@ const BatchPlanningCalculator: React.FC = () => {
     productName: product.productName || '',
     netWeight: product.weightPerUnit || 0,
     stockEshopTotal: product.currentStock || 0,
+    plannedQuantity: product.plannedQuantity || 0,
     dailySales: product.dailySalesRate || 0,
     currentCoverage: product.currentDaysCoverage || 0,
     recommendedQuantity: product.recommendedUnitsToProduceHumanReadable || 0,
@@ -843,6 +844,12 @@ const BatchPlanningCalculator: React.FC = () => {
                           <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-graphite-muted uppercase">Název produktu</th>
                           <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-graphite-muted uppercase">Hmotnost</th>
                           <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-graphite-muted uppercase">Sklad eshop celkem</th>
+                          <th
+                            className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-graphite-muted uppercase"
+                            title="Množství z již naplánovaných výrobních zakázek. Zakázky ve stavu Koncept se nezapočítávají a údaj se obnovuje každých 5 minut."
+                          >
+                            Plánováno
+                          </th>
                           <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-graphite-muted uppercase">Denní prodeje</th>
                           <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-graphite-muted uppercase">Zásoba (dny)</th>
                           <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-graphite-muted uppercase">Množství / Fixed</th>
@@ -879,6 +886,13 @@ const BatchPlanningCalculator: React.FC = () => {
                               </td>
                               <td className="px-4 py-3 text-sm text-gray-900 dark:text-graphite-text">
                                 {product.stockEshopTotal.toFixed(0)} ks
+                              </td>
+                              <td className="px-4 py-3 text-sm text-gray-900 dark:text-graphite-text">
+                                {product.plannedQuantity > 0 ? (
+                                  <span className="font-semibold">{product.plannedQuantity.toFixed(0)} ks</span>
+                                ) : (
+                                  <span className="text-gray-400 dark:text-graphite-muted">—</span>
+                                )}
                               </td>
                               <td className="px-4 py-3 text-sm text-gray-900 dark:text-graphite-text">
                                 {product.dailySales.toFixed(2)} ks

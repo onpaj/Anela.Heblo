@@ -1,3 +1,4 @@
+using Anela.Heblo.Application.Features.Manufacture.Contracts;
 using Anela.Heblo.Domain.Features.Manufacture;
 using Anela.Heblo.Domain.Features.Users;
 using MediatR;
@@ -11,17 +12,20 @@ public class UpdateManufactureOrderHandler : IRequestHandler<UpdateManufactureOr
     private readonly ICurrentUserService _currentUserService;
     private readonly TimeProvider _timeProvider;
     private readonly ILogger<UpdateManufactureOrderHandler> _logger;
+    private readonly IManufactureCatalogSource _catalogSource;
 
     public UpdateManufactureOrderHandler(
         IManufactureOrderRepository repository,
         ICurrentUserService currentUserService,
         TimeProvider timeProvider,
-        ILogger<UpdateManufactureOrderHandler> logger)
+        ILogger<UpdateManufactureOrderHandler> logger,
+        IManufactureCatalogSource catalogSource)
     {
         _repository = repository;
         _currentUserService = currentUserService;
         _timeProvider = timeProvider;
         _logger = logger;
+        _catalogSource = catalogSource;
     }
 
     public async Task<UpdateManufactureOrderResponse> Handle(UpdateManufactureOrderRequest request, CancellationToken cancellationToken)
@@ -148,6 +152,10 @@ public class UpdateManufactureOrderHandler : IRequestHandler<UpdateManufactureOr
             }
 
             var updatedOrder = await _repository.UpdateOrderAsync(order, cancellationToken);
+
+            // Quantity edits change the planned totals the catalog caches, so refresh them
+            // instead of waiting for the scheduled background refresh.
+            await _catalogSource.RefreshPlannedDataSafelyAsync(_logger, updatedOrder.Id, cancellationToken);
 
             return new UpdateManufactureOrderResponse
             {

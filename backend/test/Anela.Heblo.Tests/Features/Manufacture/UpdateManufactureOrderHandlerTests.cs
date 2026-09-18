@@ -1,3 +1,4 @@
+using Anela.Heblo.Application.Features.Manufacture.Contracts;
 using Anela.Heblo.Application.Features.Manufacture.UseCases.UpdateManufactureOrder;
 using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Domain.Features.Manufacture;
@@ -15,6 +16,7 @@ public class UpdateManufactureOrderHandlerTests
     private readonly Mock<ICurrentUserService> _currentUserServiceMock;
     private readonly Mock<ILogger<UpdateManufactureOrderHandler>> _loggerMock;
     private readonly Mock<TimeProvider> _timeProviderMock;
+    private readonly Mock<IManufactureCatalogSource> _catalogSourceMock;
     private readonly UpdateManufactureOrderHandler _handler;
 
     private static readonly DateTimeOffset FixedNow =
@@ -31,6 +33,7 @@ public class UpdateManufactureOrderHandlerTests
         _currentUserServiceMock = new Mock<ICurrentUserService>();
         _loggerMock = new Mock<ILogger<UpdateManufactureOrderHandler>>();
         _timeProviderMock = new Mock<TimeProvider>();
+        _catalogSourceMock = new Mock<IManufactureCatalogSource>();
         _timeProviderMock.Setup(x => x.GetUtcNow()).Returns(FixedNow);
 
         _currentUserServiceMock
@@ -41,7 +44,8 @@ public class UpdateManufactureOrderHandlerTests
             _repositoryMock.Object,
             _currentUserServiceMock.Object,
             _timeProviderMock.Object,
-            _loggerMock.Object);
+            _loggerMock.Object,
+            _catalogSourceMock.Object);
     }
 
     [Fact]
@@ -334,6 +338,76 @@ public class UpdateManufactureOrderHandlerTests
                 It.IsAny<Exception>(),
                 It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
             Times.Once);
+    }
+
+    [Fact]
+    public async Task Handle_WithValidRequest_ShouldRefreshPlannedCatalogData()
+    {
+        // Arrange
+        var request = CreateValidRequest();
+
+        _repositoryMock
+            .Setup(x => x.GetOrderByIdAsync(ValidOrderId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(CreateExistingOrder());
+
+        _repositoryMock
+            .Setup(x => x.UpdateOrderAsync(It.IsAny<ManufactureOrder>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((ManufactureOrder order, CancellationToken _) => order);
+
+        // Act
+        var result = await _handler.Handle(request, CancellationToken.None);
+
+        // Assert
+        result.Success.Should().BeTrue();
+        _catalogSourceMock.Verify(
+            x => x.RefreshPlannedDataAsync(It.IsAny<CancellationToken>()),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task Handle_WithNonExistentOrder_ShouldNotRefreshPlannedCatalogData()
+    {
+        // Arrange
+        var request = CreateValidRequest();
+
+        _repositoryMock
+            .Setup(x => x.GetOrderByIdAsync(ValidOrderId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync((ManufactureOrder?)null);
+
+        // Act
+        await _handler.Handle(request, CancellationToken.None);
+
+        // Assert
+        _catalogSourceMock.Verify(
+            x => x.RefreshPlannedDataAsync(It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
+
+    [Fact]
+    public async Task Handle_WhenPlannedDataRefreshFails_ShouldStillReportSuccess()
+    {
+        // Arrange - the order is already saved, so a cache hiccup must not surface
+        // to the caller as a failed request.
+        var request = CreateValidRequest();
+
+        _repositoryMock
+            .Setup(x => x.GetOrderByIdAsync(ValidOrderId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(CreateExistingOrder());
+
+        _repositoryMock
+            .Setup(x => x.UpdateOrderAsync(It.IsAny<ManufactureOrder>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((ManufactureOrder order, CancellationToken _) => order);
+
+        _catalogSourceMock
+            .Setup(x => x.RefreshPlannedDataAsync(It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new InvalidOperationException("cache unavailable"));
+
+        // Act
+        var result = await _handler.Handle(request, CancellationToken.None);
+
+        // Assert
+        result.Success.Should().BeTrue();
+        result.Order.Should().NotBeNull();
     }
 
     private static UpdateManufactureOrderRequest CreateValidRequest()
