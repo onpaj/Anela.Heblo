@@ -46,9 +46,9 @@
     },
     {
       "name": "extract-batch-resolve-user-dtos",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-09-18T11:17:16.275571Z"
+      "updated_at": "2026-09-18T11:36:57.341864Z"
     },
     {
       "name": "full-suite-validation",
