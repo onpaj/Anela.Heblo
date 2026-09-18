@@ -211,7 +211,8 @@ namespace Anela.Heblo.Adapters.Microsoft365
 
         private string BuildEventBody(MarketingAction action)
         {
-            var endDate = BuildGraphEnd(action);
+            var isAllDay = IsDateOnly(action);
+            var endDate = BuildGraphEnd(action, isAllDay);
 
             var bodyObj = new
             {
@@ -231,6 +232,7 @@ namespace Anela.Heblo.Adapters.Microsoft365
                     dateTime = endDate.ToString("O"),
                     timeZone = TimeZone
                 },
+                isAllDay,
                 categories = new[] { _mapper.MapToOutlookCategory(action.ActionType) }
             };
 
@@ -238,21 +240,27 @@ namespace Anela.Heblo.Adapters.Microsoft365
         }
 
         /// <summary>
-        /// Heblo's EndDate is inclusive, Graph's end is exclusive. A date-only action
-        /// (midnight to midnight) is Heblo's shape for an all-day event, so its last day
-        /// has to be pushed as the following midnight or Outlook drops that day.
+        /// A date-only action (midnight to midnight) is Heblo's shape for an all-day event.
+        /// The same answer drives both the exclusive end and the isAllDay flag sent to Graph —
+        /// they must agree, or the event round-trips back through the import as a timed one.
         /// </summary>
-        private static DateTime BuildGraphEnd(MarketingAction action)
+        private static bool IsDateOnly(MarketingAction action) =>
+            action.EndDate is not null
+            && action.StartDate.TimeOfDay == TimeSpan.Zero
+            && action.EndDate.Value.TimeOfDay == TimeSpan.Zero;
+
+        /// <summary>
+        /// Heblo's EndDate is inclusive, Graph's end is exclusive, so an all-day action's
+        /// last day has to be pushed as the following midnight or Outlook drops that day.
+        /// </summary>
+        private static DateTime BuildGraphEnd(MarketingAction action, bool isAllDay)
         {
             if (action.EndDate is null)
             {
                 return action.StartDate.AddHours(1);
             }
 
-            var isDateOnly = action.StartDate.TimeOfDay == TimeSpan.Zero
-                && action.EndDate.Value.TimeOfDay == TimeSpan.Zero;
-
-            return isDateOnly ? action.EndDate.Value.AddDays(1) : action.EndDate.Value;
+            return isAllDay ? action.EndDate.Value.AddDays(1) : action.EndDate.Value;
         }
 
         private static HttpRequestMessage CreateRequest(HttpMethod method, string url, string token)

@@ -1,7 +1,11 @@
+using System.Globalization;
 using System.Net;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using Anela.Heblo.Adapters.Microsoft365;
 using Anela.Heblo.Application.Features.Marketing.Configuration;
+using Anela.Heblo.Application.Features.Marketing.Infrastructure;
+using Anela.Heblo.Application.Features.Marketing.UseCases.ImportFromOutlook;
 using Anela.Heblo.Application.Features.Marketing.Services;
 using Anela.Heblo.Domain.Features.Marketing;
 using Anela.Heblo.Tests.Domain.Marketing;
@@ -188,6 +192,8 @@ namespace Anela.Heblo.Tests.Marketing
                 .Should().StartWith("2026-09-18T00:00:00");
             body.RootElement.GetProperty("end").GetProperty("dateTime").GetString()
                 .Should().StartWith("2026-09-19T00:00:00");
+            // ...and Outlook only treats that span as all-day if the flag says so
+            body.RootElement.GetProperty("isAllDay").GetBoolean().Should().BeTrue();
         }
 
         [Fact]
@@ -208,6 +214,7 @@ namespace Anela.Heblo.Tests.Marketing
             using var body = JsonDocument.Parse(handler.LastRequestBody!);
             body.RootElement.GetProperty("end").GetProperty("dateTime").GetString()
                 .Should().StartWith("2026-09-10T00:00:00");
+            body.RootElement.GetProperty("isAllDay").GetBoolean().Should().BeTrue();
         }
 
         [Fact]
@@ -228,6 +235,47 @@ namespace Anela.Heblo.Tests.Marketing
             using var body = JsonDocument.Parse(handler.LastRequestBody!);
             body.RootElement.GetProperty("end").GetProperty("dateTime").GetString()
                 .Should().StartWith("2026-09-01T08:30:00");
+            body.RootElement.GetProperty("isAllDay").GetBoolean().Should().BeFalse();
+        }
+
+        [Theory]
+        // single-day all-day
+        [InlineData("2026-09-18T00:00:00", "2026-09-18T00:00:00")]
+        // multi-day all-day
+        [InlineData("2026-09-07T00:00:00", "2026-09-09T00:00:00")]
+        // timed, same day
+        [InlineData("2026-09-01T07:00:00", "2026-09-01T08:30:00")]
+        // timed, starting at midnight but ending mid-day — not an all-day event
+        [InlineData("2026-09-01T00:00:00", "2026-09-01T16:00:00")]
+        public async Task CreateEventAsync_ThenImportingWhatWasSent_ReproducesTheOriginalDates(
+            string startText,
+            string endText)
+        {
+            // Arrange — the two halves of the conversion are written independently, so
+            // only a round trip proves they agree on what an all-day event looks like.
+            var start = DateTime.Parse(startText, null, DateTimeStyles.RoundtripKind);
+            var end = DateTime.Parse(endText, null, DateTimeStyles.RoundtripKind);
+            var handler = new FakeHttpMessageHandler(
+                HttpStatusCode.Created,
+                JsonSerializer.Serialize(new { id = "evt-roundtrip" }));
+            var service = CreateService(handler);
+            var action = BuildAction(startDate: start, endDate: end);
+
+            // Act — export to Graph's wire format, then import that exact payload back.
+            // Graph echoes the payload with the id it assigned, which the import requires.
+            await service.CreateEventAsync(action, CancellationToken.None);
+            var sentPayload = JsonNode.Parse(handler.LastRequestBody!)!.AsObject();
+            sentPayload["id"] = "evt-roundtrip";
+            var sentEvent = sentPayload.Deserialize<OutlookEventDto>()!;
+            var reimported = OutlookEventImportMapper.BuildAction(
+                sentEvent,
+                new SyncActor("user-1", "Import User"),
+                DateTime.UtcNow,
+                MarketingActionType.Newsletter);
+
+            // Assert
+            reimported.StartDate.Should().Be(start);
+            reimported.EndDate.Should().Be(end);
         }
 
         // ─── UpdateEventAsync ─────────────────────────────────────────────────────
