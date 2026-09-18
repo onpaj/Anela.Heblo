@@ -25,5 +25,24 @@
       "updated_at": null
     }
   },
-  "tasks": []
+  "tasks": [
+    {
+      "name": "relocate-department-domain-types-and-update-production-consumers",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    },
+    {
+      "name": "update-test-references-for-department-move",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    },
+    {
+      "name": "verify-full-solution-and-module-boundaries",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    }
+  ]
 }
