@@ -34,9 +34,9 @@
     },
     {
       "name": "update-test-references-for-department-move",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-09-18T10:15:56.191369Z"
+      "updated_at": "2026-09-18T10:19:22.924553Z"
     },
     {
       "name": "verify-full-solution-and-module-boundaries",
