@@ -21,16 +21,16 @@
       "updated_at": "2026-09-18T05:31:05.884937Z"
     },
     "developing": {
-      "status": "pending",
-      "updated_at": null
+      "status": "in_progress",
+      "updated_at": "2026-09-18T09:15:47.743225Z"
     }
   },
   "tasks": [
     {
       "name": "relocate-department-domain-types-and-update-production-consumers",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-09-18T09:15:47.878408Z"
     },
     {
       "name": "update-test-references-for-department-move",
