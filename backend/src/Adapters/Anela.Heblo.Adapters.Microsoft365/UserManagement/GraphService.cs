@@ -232,20 +232,7 @@ public class GraphService : IGraphService
                 return new List<UserDto>();
             }
 
-            // Step 2: find the appRoleId for the requested role value
-            string? appRoleId = null;
-            if (appRoles is not null)
-            {
-                foreach (var role in appRoles.Value.EnumerateArray())
-                {
-                    if (role.TryGetProperty("value", out var roleName) && roleName.GetString() == appRoleValue)
-                    {
-                        appRoleId = role.TryGetProperty("id", out var rid) ? rid.GetString() : null;
-                        break;
-                    }
-                }
-            }
-
+            var appRoleId = FindAppRoleId(appRoles, appRoleValue);
             if (string.IsNullOrEmpty(appRoleId))
             {
                 _logger.LogWarning("App role '{RoleValue}' not found on service principal {SpId}", appRoleValue, spId);
@@ -403,5 +390,27 @@ public class GraphService : IGraphService
             : (System.Text.Json.JsonElement?)null;
 
         return (spId, appRoles);
+    }
+
+    /// <summary>
+    /// Finds the appRoleId matching the requested role value within an already-fetched appRoles array.
+    /// Returns null when appRoles is null or contains no matching entry.
+    /// </summary>
+    private static string? FindAppRoleId(System.Text.Json.JsonElement? appRoles, string appRoleValue)
+    {
+        if (appRoles is null)
+        {
+            return null;
+        }
+
+        foreach (var role in appRoles.Value.EnumerateArray())
+        {
+            if (role.TryGetProperty("value", out var roleName) && roleName.GetString() == appRoleValue)
+            {
+                return role.TryGetProperty("id", out var rid) ? rid.GetString() : null;
+            }
+        }
+
+        return null;
     }
 }
