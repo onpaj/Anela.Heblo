@@ -138,6 +138,38 @@ public class MarketingPerformanceRefreshServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task RefreshWindowAsync_AtMonthBoundary_PicksCurrentMonthFromLocalTimeNotUtc()
+    {
+        // The same instant is 30 Sept 2026 22:30 UTC / 1 Oct 2026 00:30 local (+2h) — different calendar months.
+        // FakeTimeProvider.GetUtcNow() returns exactly the DateTimeOffset it is constructed with (it does not
+        // normalize a non-zero offset to +00:00), and GetLocalNow() only diverges from it once a non-UTC
+        // LocalTimeZone is set. So the fixture must be constructed with an already-UTC (offset zero) instant
+        // and given its local zone explicitly via SetLocalTimeZone; otherwise GetLocalNow() and GetUtcNow()
+        // would return the identical value and this test could not distinguish the two code paths.
+        var utcInstant = new DateTimeOffset(2026, 9, 30, 22, 30, 0, TimeSpan.Zero);
+        var boundaryTime = new FakeTimeProvider(utcInstant);
+        boundaryTime.SetLocalTimeZone(TimeZoneInfo.CreateCustomTimeZone("Plus2", TimeSpan.FromHours(2), "Plus2", "Plus2"));
+        var service = new MarketingPerformanceRefreshService(
+            _repo, _revenue.Object, _costs.Object,
+            Options.Create(new MarketingPerformanceOptions
+            {
+                RecomputeWindowMonths = 2,
+                Channels = { new MarketingChannelOptions { Code = "meta", Label = "FB/IG", VatIds = { "IE1" } }, new MarketingChannelOptions { Code = "google", Label = "Google", VatIds = { "IE2" } } },
+            }),
+            boundaryTime, NullLogger<MarketingPerformanceRefreshService>.Instance);
+
+        var result = await service.RefreshWindowAsync(CancellationToken.None);
+
+        // A UTC-based month selection would pick August + September instead of September + October.
+        // This fixture fails if RefreshWindowAsync's current-month lookup ever switches from GetLocalNow() to GetUtcNow().
+        result.Months.Select(m => m.Month).Should().Equal(new YearMonth(2026, 9), new YearMonth(2026, 10));
+
+        // Stored timestamps remain UTC even though month selection is local.
+        var oct = (await _repo.GetForUpdateAsync(new YearMonth(2026, 10), CancellationToken.None))!;
+        oct.RevenueComputedAt.Should().Be(new DateTime(2026, 9, 30, 22, 30, 0, DateTimeKind.Utc));
+    }
+
+    [Fact]
     public void RunGuard_IsExclusive()
     {
         var guard = new MarketingPerformanceRunGuard();
