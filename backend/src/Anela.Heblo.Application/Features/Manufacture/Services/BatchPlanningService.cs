@@ -153,7 +153,7 @@ public class BatchPlanningService : IBatchPlanningService
             ProductName = product.ProductName,
             Weight = product.WeightPerUnit, // Volume per unit is the weight in the batch context
             DailySales = product.DailySalesRate,
-            CurrentStock = product.CurrentStock + product.PlannedQuantity,
+            EffectiveStock = product.CurrentStock + product.PlannedQuantity,
             SuggestedAmount = 0 // Will be set by optimizer
         }).ToList();
 

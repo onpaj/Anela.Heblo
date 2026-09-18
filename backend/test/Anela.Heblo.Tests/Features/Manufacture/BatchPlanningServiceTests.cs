@@ -575,10 +575,10 @@ public class BatchPlanningServiceTests
         // Assert
         Assert.NotNull(capturedBatch);
         var plannedVariant = capturedBatch!.Variants.First(v => v.ProductCode == "PROD001");
-        Assert.Equal(90, plannedVariant.CurrentStock); // stock 50 + planned 40
+        Assert.Equal(90, plannedVariant.EffectiveStock); // stock 50 + planned 40
 
         var unplannedVariant = capturedBatch.Variants.First(v => v.ProductCode == "PROD002");
-        Assert.Equal(25, unplannedVariant.CurrentStock); // stock 25 + planned 0
+        Assert.Equal(25, unplannedVariant.EffectiveStock); // stock 25 + planned 0
     }
 
     [Fact]
