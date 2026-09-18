@@ -53,6 +53,8 @@ public static class AccessRoles
     public const string MarketingPhotobankAdmin = "marketing.photobank.admin";
     public const string MarketingMarketingCalendarRead = "marketing.marketing_calendar.read";
     public const string MarketingMarketingCalendarWrite = "marketing.marketing_calendar.write";
+    public const string MarketingPerformanceRead = "marketing.performance.read";
+    public const string MarketingPerformanceWrite = "marketing.performance.write";
     public const string AnelaMeetingsRead = "anela.meetings.read";
     public const string AnelaMeetingsWrite = "anela.meetings.write";
     public const string AnelaOrgChartRead = "anela.org_chart.read";
@@ -118,6 +120,8 @@ public static class AccessRoles
         (Feature.Marketing_Photobank, AccessLevel.Admin) => MarketingPhotobankAdmin,
         (Feature.Marketing_MarketingCalendar, AccessLevel.Read) => MarketingMarketingCalendarRead,
         (Feature.Marketing_MarketingCalendar, AccessLevel.Write) => MarketingMarketingCalendarWrite,
+        (Feature.Marketing_Performance, AccessLevel.Read) => MarketingPerformanceRead,
+        (Feature.Marketing_Performance, AccessLevel.Write) => MarketingPerformanceWrite,
         (Feature.Anela_Meetings, AccessLevel.Read) => AnelaMeetingsRead,
         (Feature.Anela_Meetings, AccessLevel.Write) => AnelaMeetingsWrite,
         (Feature.Anela_OrgChart, AccessLevel.Read) => AnelaOrgChartRead,
