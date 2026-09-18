@@ -1,4 +1,4 @@
-namespace Anela.Heblo.Domain.Features.Analytics;
+namespace Anela.Heblo.Domain.Features.UserManagement;
 
 public interface IDepartmentClient
 {
