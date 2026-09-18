@@ -384,6 +384,37 @@ public class UpdateManufactureOrderHandlerTests
     }
 
     [Fact]
+    public async Task Handle_WithMetadataOnlyEdit_ShouldNotRefreshPlannedCatalogData()
+    {
+        // Arrange - a note/date edit leaves product quantities untouched, so the planned
+        // totals the catalog caches cannot have changed.
+        var request = new UpdateManufactureOrderRequest
+        {
+            Id = ValidOrderId,
+            PlannedDate = DateOnly.FromDateTime(DateTime.Today.AddDays(10)),
+            ResponsiblePerson = ValidResponsiblePerson,
+            NewNote = "Just a note"
+        };
+
+        _repositoryMock
+            .Setup(x => x.GetOrderByIdAsync(ValidOrderId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(CreateExistingOrder());
+
+        _repositoryMock
+            .Setup(x => x.UpdateOrderAsync(It.IsAny<ManufactureOrder>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((ManufactureOrder order, CancellationToken _) => order);
+
+        // Act
+        var result = await _handler.Handle(request, CancellationToken.None);
+
+        // Assert
+        result.Success.Should().BeTrue();
+        _catalogSourceMock.Verify(
+            x => x.RefreshPlannedDataAsync(It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
+
+    [Fact]
     public async Task Handle_WhenPlannedDataRefreshFails_ShouldStillReportSuccess()
     {
         // Arrange - the order is already saved, so a cache hiccup must not surface

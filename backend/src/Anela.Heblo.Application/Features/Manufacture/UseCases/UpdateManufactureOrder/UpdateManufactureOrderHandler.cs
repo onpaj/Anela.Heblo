@@ -85,7 +85,8 @@ public class UpdateManufactureOrderHandler : IRequestHandler<UpdateManufactureOr
             }
 
             // Update products only if provided
-            if (request.Products.Any())
+            var productsChanged = request.Products.Any();
+            if (productsChanged)
             {
                 // Check if this is updating existing products (by Id) or replacing all products
                 bool isUpdatingExistingProducts = request.Products.All(p => p.Id.HasValue);
@@ -153,9 +154,12 @@ public class UpdateManufactureOrderHandler : IRequestHandler<UpdateManufactureOr
 
             var updatedOrder = await _repository.UpdateOrderAsync(order, cancellationToken);
 
-            // Quantity edits change the planned totals the catalog caches, so refresh them
-            // instead of waiting for the scheduled background refresh.
-            await _catalogSource.RefreshPlannedDataSafelyAsync(_logger, updatedOrder.Id, cancellationToken);
+            // Only product quantities feed the planned totals the catalog caches, so metadata-only
+            // edits (notes, dates, ERP numbers) skip the refresh rather than re-query every open order.
+            if (productsChanged)
+            {
+                await _catalogSource.RefreshPlannedDataSafelyAsync(_logger, updatedOrder.Id, cancellationToken);
+            }
 
             return new UpdateManufactureOrderResponse
             {
