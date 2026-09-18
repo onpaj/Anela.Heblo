@@ -59,4 +59,22 @@ public class ChannelCostBucketerTests
         var result = ChannelCostBucketer.Bucket(new[] { Inv("IE6388047V", 100m), Inv("IE6388047V", -20m) }, Channels);
         result.Buckets.Single(b => b.ChannelCode == "google").CostWithoutVat.Should().Be(80m);
     }
+
+    [Fact]
+    public void Bucket_DuplicateVatIdAcrossChannels_DoesNotThrowAndAssignsToFirstChannel()
+    {
+        var channels = new[]
+        {
+            new MarketingChannelDefinition { Code = "meta", Label = "FB/IG", VatIds = new[] { "IE9692928F" } },
+            new MarketingChannelDefinition { Code = "google", Label = "Google", VatIds = new[] { "IE9692928F" } },
+        };
+
+        var act = () => ChannelCostBucketer.Bucket(new[] { Inv("IE9692928F", 100m) }, channels);
+
+        act.Should().NotThrow();
+        var result = act();
+        result.Buckets.Single(b => b.ChannelCode == "meta").CostWithoutVat.Should().Be(100m);
+        result.Buckets.Single(b => b.ChannelCode == "google").CostWithoutVat.Should().Be(0m);
+        result.UnmatchedVatIds.Should().BeEmpty();
+    }
 }

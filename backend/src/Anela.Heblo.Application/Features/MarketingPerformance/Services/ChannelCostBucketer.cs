@@ -19,11 +19,16 @@ public class ChannelBucketingResult
 /// <summary>Assigns received invoices to channels by supplier DIČ. Pure; one explicit row per configured channel.</summary>
 public static class ChannelCostBucketer
 {
+    /// <remarks>
+    /// Each VAT ID is expected to belong to exactly one channel; <c>MarketingPerformanceOptionsValidator</c> enforces
+    /// that at startup. If a duplicate ever reaches here anyway, the first matching channel wins rather than throwing.
+    /// </remarks>
     public static ChannelBucketingResult Bucket(IReadOnlyList<AdCostInvoice> invoices, IReadOnlyList<MarketingChannelDefinition> channels)
     {
         var channelByVatId = channels
             .SelectMany(ch => ch.VatIds.Select(v => (VatId: v, ch.Code)))
-            .ToDictionary(x => x.VatId, x => x.Code, StringComparer.OrdinalIgnoreCase);
+            .GroupBy(x => x.VatId, StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(g => g.Key, g => g.First().Code, StringComparer.OrdinalIgnoreCase);
 
         var live = invoices.Where(i => !i.IsCancelled).ToList();
         var skippedCancelled = invoices.Count - live.Count;
