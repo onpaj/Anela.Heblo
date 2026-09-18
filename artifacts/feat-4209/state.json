@@ -1,0 +1,76 @@
+{
+  "feature_id": "feat-4209",
+  "issue_number": 4209,
+  "created_at": "2026-09-17T05:11:45.562278Z",
+  "max_revisions": 3,
+  "phases": {
+    "analyzing": {
+      "status": "completed",
+      "updated_at": "2026-09-17T05:12:39.256486Z"
+    },
+    "architecting": {
+      "status": "completed",
+      "updated_at": "2026-09-17T05:14:51.027295Z"
+    },
+    "designing": {
+      "status": "completed",
+      "updated_at": "2026-09-17T05:15:17.979561Z"
+    },
+    "planning": {
+      "status": "completed",
+      "updated_at": "2026-09-17T05:17:51.014026Z"
+    },
+    "developing": {
+      "status": "in_progress",
+      "updated_at": "2026-09-17T13:16:23.249298Z"
+    },
+    "code-review": {
+      "status": "completed",
+      "updated_at": "2026-09-17T20:22:27.543474Z"
+    }
+  },
+  "tasks": [
+    {
+      "name": "packaging-contract",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-09-17T06:19:42.455212Z"
+    },
+    {
+      "name": "packaging-adapter",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-09-17T08:35:40.098153Z"
+    },
+    {
+      "name": "packaging-handlers",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-09-17T09:28:33.685804Z"
+    },
+    {
+      "name": "expeditionlist-contract",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-09-17T10:19:24.022568Z"
+    },
+    {
+      "name": "expeditionlist-adapter",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-09-17T11:37:09.110837Z"
+    },
+    {
+      "name": "expeditionlist-handler",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-09-17T12:22:16.091144Z"
+    },
+    {
+      "name": "module-boundary-enforcement",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-09-17T13:55:34.115808Z"
+    }
+  ]
+}
