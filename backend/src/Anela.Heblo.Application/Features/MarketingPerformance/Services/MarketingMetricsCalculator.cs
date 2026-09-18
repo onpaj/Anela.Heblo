@@ -86,10 +86,20 @@ public class MarketingMetricsCalculator
 
     private static decimal TotalCost(MarketingPerformanceMonth m) => m.ChannelCosts.Sum(c => c.CostWithoutVat);
 
-    /// <summary>Configured order; a channel with no stored row shows as zero; stored rows for unconfigured codes are appended so nothing disappears silently.</summary>
+    /// <summary>
+    /// Configured order; a channel with no stored row shows as zero; stored rows for unconfigured codes are appended so nothing disappears silently.
+    /// Postgres' unique index on (MonthId, ChannelCode) is case-sensitive, so two rows differing only by case (e.g. "meta"/"META") can coexist;
+    /// they are the same logical channel, so their sums are combined rather than picking one and throwing on the duplicate key.
+    /// </summary>
     private List<ChannelCostDto> ChannelCosts(MarketingPerformanceMonth m)
     {
-        var byCode = m.ChannelCosts.ToDictionary(c => c.ChannelCode, StringComparer.OrdinalIgnoreCase);
+        var byCode = m.ChannelCosts
+            .GroupBy(c => c.ChannelCode, StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(
+                g => g.Key,
+                g => (Cost: g.Sum(c => c.CostWithoutVat), Count: g.Sum(c => c.InvoiceCount)),
+                StringComparer.OrdinalIgnoreCase);
+
         var result = _channels.Select(ch =>
         {
             byCode.TryGetValue(ch.Code, out var stored);
@@ -97,15 +107,15 @@ public class MarketingMetricsCalculator
             {
                 ChannelCode = ch.Code,
                 Label = ch.Label,
-                CostWithoutVat = stored?.CostWithoutVat ?? 0m,
-                InvoiceCount = stored?.InvoiceCount ?? 0,
+                CostWithoutVat = stored.Cost,
+                InvoiceCount = stored.Count,
             };
         }).ToList();
 
         var known = new HashSet<string>(_channels.Select(c => c.Code), StringComparer.OrdinalIgnoreCase);
-        result.AddRange(m.ChannelCosts
-            .Where(c => !known.Contains(c.ChannelCode))
-            .Select(c => new ChannelCostDto { ChannelCode = c.ChannelCode, Label = c.ChannelCode, CostWithoutVat = c.CostWithoutVat, InvoiceCount = c.InvoiceCount }));
+        result.AddRange(byCode
+            .Where(kvp => !known.Contains(kvp.Key))
+            .Select(kvp => new ChannelCostDto { ChannelCode = kvp.Key, Label = kvp.Key, CostWithoutVat = kvp.Value.Cost, InvoiceCount = kvp.Value.Count }));
         return result;
     }
 }

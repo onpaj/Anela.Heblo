@@ -88,6 +88,28 @@ public class MarketingMetricsCalculatorTests
     }
 
     [Fact]
+    public void Build_ChannelCostsDifferingOnlyByCase_AreSummedIntoOneRow()
+    {
+        var month = new MarketingPerformanceMonth
+        {
+            Year = 2026, Month = 9,
+            ChannelCosts =
+            {
+                new MarketingPerformanceChannelCost { ChannelCode = "meta", CostWithoutVat = 100m, InvoiceCount = 1 },
+                new MarketingPerformanceChannelCost { ChannelCode = "META", CostWithoutVat = 50m, InvoiceCount = 2 },
+            },
+        };
+
+        var dto = Calc.Build(month, null, false, false);
+
+        dto.ChannelCosts.Should().HaveCount(3);
+        var meta = dto.ChannelCosts.Single(c => c.ChannelCode == "meta");
+        meta.CostWithoutVat.Should().Be(150m);
+        meta.InvoiceCount.Should().Be(3);
+        dto.TotalCost.Should().Be(150m);
+    }
+
+    [Fact]
     public void Build_ZeroRevenueOrOrders_YieldsNullRatiosNotExceptions()
     {
         var month = new MarketingPerformanceMonth { Year = 2026, Month = 9, ChannelCosts = { new() { ChannelCode = "meta", CostWithoutVat = 100m } } };
