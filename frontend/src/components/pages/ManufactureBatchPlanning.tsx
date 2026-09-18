@@ -846,7 +846,7 @@ const BatchPlanningCalculator: React.FC = () => {
                           <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-graphite-muted uppercase">Sklad eshop celkem</th>
                           <th
                             className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-graphite-muted uppercase"
-                            title="Množství z již naplánovaných výrobních zakázek. Zakázky ve stavu Koncept se nezapočítávají a údaj se obnovuje každých 5 minut."
+                            title="Množství z již naplánovaných výrobních zakázek. Zakázky ve stavu Koncept se nezapočítávají. Údaj se aktualizuje po každé změně zakázky."
                           >
                             Plánováno
                           </th>
