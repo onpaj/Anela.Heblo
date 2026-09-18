@@ -31,7 +31,8 @@ public class GetMarketingPerformanceComparisonHandlerTests
     [Fact]
     public async Task Handle_ThreeYears_OneSeriesPerYearNewestFirst_TwelveCellsEach_WithYtd()
     {
-        _repo.Setup(r => r.GetRangeAsync(new YearMonth(2023, 1), new YearMonth(2026, 12), It.IsAny<CancellationToken>()))
+        // The handler loads exactly `years` calendar years and no more, so the oldest series has no prior year to compare against.
+        _repo.Setup(r => r.GetRangeAsync(new YearMonth(2024, 1), new YearMonth(2026, 12), It.IsAny<CancellationToken>()))
              .ReturnsAsync(new List<MarketingPerformanceMonth>
              {
                  Row(2024, 6, 10, 1210m, 100m), Row(2025, 6, 20, 2420m, 200m), Row(2026, 6, 30, 3630m, 300m), Row(2026, 9, 5, 605m, 50m),
