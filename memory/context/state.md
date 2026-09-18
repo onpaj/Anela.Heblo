@@ -364,6 +364,36 @@ _Update this file at the end of significant sessions._
   `agent-planning` to `agent-ready-for-dev`. See
   `memory/gotchas/agent-context-files-superpowers-plugin-missing.md`.
 
+- Scheduled fan-out on lease-free draft PRs (2026-09-18, designated branch
+  `claude/eloquent-thompson-nneq9c`): a scheduled routine asked to pick the oldest five
+  draft PRs with no held lease and fan out `/implement-next-task`-style bounded units on
+  them via `mcp__github__*` (this repo's `gh auth status` is invalid in cloud sessions, as
+  documented). Only 2 draft PRs existed at the time — #4221 (issue #4218,
+  `feature/4218-Arch-Review-Usermanagement-Domain-Features-Analyti`) and #4222 (issue
+  #4219, `feature/4219-Arch-Review-Usermanagement-Graphservice-Getapprole`) — both already
+  `agent-implementing` with expired/available leases; fanned out on both in parallel
+  instead of waiting for 5. Neither parallel worker had the `implement-orchestrator` agent
+  type or a Task-spawning tool available, so both fell back to reading
+  `.claude/agents/implement-orchestrator.md` themselves and executing the Developer/Reviewer
+  steps in-session, per the skill's own documented fallback — worth noting in case that
+  agent type is reliably absent in this environment's parallel/background agents
+  specifically (it has worked in at least one prior direct scheduled run, per the #3973
+  correction entry above). Outcomes: #4218 ran its last dev task
+  (`verify-full-solution-and-module-boundaries`, verification-only) — build/format/
+  `ModuleBoundariesTests` clean, full `dotnet test` had 195 pre-existing sandbox-only
+  failures (no Docker/live FlexiBee/Shoptet creds) unrelated to the change; correctly
+  identified the *next* unit as a Code Review round (not Finishing, since no
+  `code-review.r*.md` exists yet) and left PR #4221 in draft. #4219 completed dev task
+  `extract-batch-resolve-user-dtos` (21/21 targeted tests passed) with
+  `full-suite-validation` still pending; left PR #4222 in draft. No terminal failures, no
+  GitHub label/state writes needed by either unit this round (so the mcp__github__*
+  substitution given to both workers went untested in practice), both leases correctly
+  expired-in-place on release (ref deletion still not permitted here), both worktrees
+  cleaned up. Also hit the standard `agentharness init` `.agents/{brainstorm,developer,
+  planner}.md` `context_files` regression (reverted to the missing `~/.claude/plugins/
+  cache/*/superpowers/*/skills/...` glob) on session start in the primary checkout —
+  restored via `git checkout --`, not recommitted, matching the documented fix.
+
 ## Pending / Known Issues
 
 - Memory directory (issue #405): adding cross-session knowledge accumulation — this PR
