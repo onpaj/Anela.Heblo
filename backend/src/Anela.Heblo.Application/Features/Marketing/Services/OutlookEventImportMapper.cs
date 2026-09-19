@@ -1,10 +1,9 @@
 using System;
 using System.Text.RegularExpressions;
 using Anela.Heblo.Application.Features.Marketing.Infrastructure;
-using Anela.Heblo.Application.Features.Marketing.Services;
 using Anela.Heblo.Domain.Features.Marketing;
 
-namespace Anela.Heblo.Application.Features.Marketing.UseCases.ImportFromOutlook
+namespace Anela.Heblo.Application.Features.Marketing.Services
 {
     internal static class OutlookEventImportMapper
     {
