@@ -34,9 +34,9 @@
     },
     {
       "name": "fix-consumer-using-and-validate",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-09-19T07:14:50.698709Z"
+      "updated_at": "2026-09-19T07:35:03.894852Z"
     }
   ]
 }
