@@ -25,5 +25,18 @@
       "updated_at": null
     }
   },
-  "tasks": []
+  "tasks": [
+    {
+      "name": "relocate-outlook-mapper-to-services",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    },
+    {
+      "name": "fix-consumer-using-and-validate",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    }
+  ]
 }
