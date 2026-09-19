@@ -148,23 +148,36 @@ req_paginate() {
   # req_paginate METHOD PATH — follows Link: rel="next", concatenates JSON
   # array pages into one array. Used where `gh api --paginate` is used today
   # (issue/PR comment lists that can exceed one page).
+  #
+  # Pages are collected as files and merged with `jq -s` rather than folded
+  # page-by-page through `--argjson`: a long-running PR's comment thread
+  # comfortably exceeds this sandbox's actual exec argv limit (~128KB,
+  # observed well under the 2MB `getconf ARG_MAX` reports), and `--argjson`
+  # puts the accumulated JSON on the command line. A file path on the
+  # command line stays tiny no matter how large its contents.
   local method="$1" path="$2"
   local url
   url=$(_api_url "$path")
   [[ "$url" == *"?"* ]] && url="${url}&per_page=100" || url="${url}?per_page=100"
-  local all="[]" hdrfile body
+  local hdrfile page pages=()
   hdrfile=$(mktemp)
   while [[ -n "$url" ]]; do
-    body=$(curl -sS --max-time 30 -X "$method" \
+    page=$(mktemp)
+    pages+=("$page")
+    curl -sS --max-time 30 -X "$method" \
       -H "Authorization: Bearer ${TOKEN}" \
       -H "Accept: application/vnd.github+json" \
       -H "X-GitHub-Api-Version: 2022-11-28" \
-      -D "$hdrfile" "$url")
-    all=$(jq -c -n --argjson a "$all" --argjson b "$body" '$a + $b')
+      -D "$hdrfile" -o "$page" "$url"
     url=$(grep -i '^link:' "$hdrfile" | grep -o '<[^>]*>; rel="next"' | sed -E 's/^<(.*)>.*/\1/' || true)
   done
   rm -f "$hdrfile"
-  printf '%s' "$all"
+  if [[ ${#pages[@]} -eq 0 ]]; then
+    printf '[]'
+  else
+    jq -c -s 'add' "${pages[@]}"
+  fi
+  rm -f "${pages[@]}"
 }
 
 graphql() {
@@ -549,12 +562,20 @@ pr_list() {
   fi
   resp=$(req GET "/repos/${REPO}/issues?state=${state}${label_query}&per_page=100")
   numbers=$(emit "$resp" | jq -r '[.[] | select(has("pull_request"))] | .[].number')
-  out="[]"
+  # Collected as files and merged with `jq -s`, not folded via `--argjson`
+  # — see req_paginate's comment on this sandbox's low exec argv limit.
+  local entries=() entryfile
   for n in $numbers; do
-    local entry
-    entry=$(pr_view "$n" "reviewDecision")
-    out=$(jq -c -n --argjson a "$out" --argjson e "$entry" '$a + [$e]')
+    entryfile=$(mktemp)
+    entries+=("$entryfile")
+    pr_view "$n" "reviewDecision" > "$entryfile"
   done
+  if [[ ${#entries[@]} -eq 0 ]]; then
+    out="[]"
+  else
+    out=$(jq -c -s '.' "${entries[@]}")
+  fi
+  rm -f "${entries[@]}"
   echo "$out"
 }
 
