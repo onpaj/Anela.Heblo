@@ -1,0 +1,52 @@
+{
+  "feature_id": "feat-4105",
+  "issue_number": 4105,
+  "created_at": "2026-09-08T05:14:49.494195Z",
+  "max_revisions": 3,
+  "phases": {
+    "analyzing": {
+      "status": "completed",
+      "updated_at": "2026-09-08T05:16:07.716398Z"
+    },
+    "architecting": {
+      "status": "completed",
+      "updated_at": "2026-09-08T05:16:50.481745Z"
+    },
+    "designing": {
+      "status": "completed",
+      "updated_at": "2026-09-08T05:17:13.627407Z"
+    },
+    "planning": {
+      "status": "completed",
+      "updated_at": "2026-09-08T05:18:46.893671Z"
+    },
+    "developing": {
+      "status": "in_progress",
+      "updated_at": "2026-09-11T16:48:04.605644Z"
+    },
+    "code-review": {
+      "status": "completed",
+      "updated_at": "2026-09-11T17:07:52.065598Z"
+    }
+  },
+  "tasks": [
+    {
+      "name": "move-summary-to-contracts",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-09-11T15:35:15.099074Z"
+    },
+    {
+      "name": "update-leaflet-consumers",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-09-11T16:44:44.988982Z"
+    },
+    {
+      "name": "verify-full-build-and-format",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-09-11T17:02:06.900540Z"
+    }
+  ]
+}
