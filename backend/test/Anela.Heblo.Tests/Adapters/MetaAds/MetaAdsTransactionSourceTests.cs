@@ -1,4 +1,5 @@
 using System.Net;
+using System.Net.Http.Headers;
 using System.Text;
 using Anela.Heblo.Adapters.MetaAds;
 using FluentAssertions;
@@ -117,7 +118,7 @@ public class MetaAdsTransactionSourceTests
                 { "id": "TX-001", "time": 1744300800, "amount": 10000, "currency": "CZK", "payment_type": "THRESHOLD" }
               ],
               "paging": {
-                "next": "https://graph.facebook.com/v21.0/act_123456789/transactions?after=cursor1&access_token=test-token"
+                "next": "https://graph.facebook.com/v21.0/act_123456789/transactions?after=cursor1"
               }
             }
             """;
@@ -263,9 +264,11 @@ public class MetaAdsTransactionSourceTests
     {
         // Arrange
         var capturedUrls = new List<string>();
+        var capturedAuthHeaders = new List<AuthenticationHeaderValue?>();
         var responseBody = """{"data":[],"paging":{"cursors":{"before":"","after":""}}}""";
         var handler = new CapturingSequentialHandler(
             capturedUrls,
+            capturedAuthHeaders,
             (HttpStatusCode.OK, responseBody));
 
         var source = CreateSource(handler);
@@ -286,10 +289,12 @@ public class MetaAdsTransactionSourceTests
     {
         // Arrange
         var capturedUrls = new List<string>();
+        var capturedAuthHeaders = new List<AuthenticationHeaderValue?>();
         var firstPageBody = """{"data":[{"id":"1","time":1709251200,"amount":100,"currency":"CZK","payment_type":"card"}],"paging":{"next":"https://graph.facebook.com/next-page?cursor=abc123"}}""";
         var secondPageBody = """{"data":[],"paging":{"cursors":{"before":"","after":""}}}""";
         var handler = new CapturingSequentialHandler(
             capturedUrls,
+            capturedAuthHeaders,
             (HttpStatusCode.OK, firstPageBody),
             (HttpStatusCode.OK, secondPageBody));
 
@@ -304,6 +309,11 @@ public class MetaAdsTransactionSourceTests
         // Assert
         capturedUrls.Should().HaveCount(2);
         capturedUrls[1].Should().Be("https://graph.facebook.com/next-page?cursor=abc123");
+        capturedUrls.Should().OnlyContain(url => !url.Contains("access_token="),
+            because: "the access token must never appear in the request URL — it is sent via the Authorization header instead");
+        capturedAuthHeaders.Should().HaveCount(2);
+        capturedAuthHeaders.Should().AllSatisfy(header =>
+            header.Should().Be(new AuthenticationHeaderValue("Bearer", "test-token")));
     }
 }
 
@@ -356,21 +366,27 @@ file sealed class SequentialResponseHandler : HttpMessageHandler
     }
 }
 
-/// <summary>Captures every request URL and returns responses in sequence; repeats the last on exhaustion.</summary>
+/// <summary>Captures every request's URL and Authorization header, and returns responses in sequence; repeats the last on exhaustion.</summary>
 file sealed class CapturingSequentialHandler : HttpMessageHandler
 {
     private readonly List<string> _capturedUrls;
+    private readonly List<AuthenticationHeaderValue?> _capturedAuthHeaders;
     private readonly Queue<(HttpStatusCode, string)> _responses;
 
-    public CapturingSequentialHandler(List<string> capturedUrls, params (HttpStatusCode, string)[] responses)
+    public CapturingSequentialHandler(
+        List<string> capturedUrls,
+        List<AuthenticationHeaderValue?> capturedAuthHeaders,
+        params (HttpStatusCode, string)[] responses)
     {
         _capturedUrls = capturedUrls;
+        _capturedAuthHeaders = capturedAuthHeaders;
         _responses = new Queue<(HttpStatusCode, string)>(responses);
     }
 
     protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
     {
         _capturedUrls.Add(request.RequestUri?.ToString() ?? string.Empty);
+        _capturedAuthHeaders.Add(request.Headers.Authorization);
         var (status, body) = _responses.Count > 1 ? _responses.Dequeue() : _responses.Peek();
         var response = new HttpResponseMessage(status)
         {
