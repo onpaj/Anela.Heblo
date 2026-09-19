@@ -1,5 +1,4 @@
 using Anela.Heblo.Application.Features.Manufacture.Contracts;
-using Anela.Heblo.Application.Features.Manufacture.UseCases.UpdateManufactureOrder;
 using Anela.Heblo.Domain.Features.Catalog;
 using Anela.Heblo.Domain.Features.Manufacture;
 
@@ -16,7 +15,7 @@ public class ResidueDistributionCalculator : IResidueDistributionCalculator
         _catalogSource = catalogSource;
     }
 
-    public async Task<ResidueDistribution> CalculateAsync(UpdateManufactureOrderDto order, CancellationToken cancellationToken = default)
+    public async Task<ResidueDistribution> CalculateAsync(ManufactureOrder order, CancellationToken cancellationToken = default)
     {
         // Residue distribution only applies to MultiPhase orders, where leftover semiproduct is spread
         // across the finished products. SinglePhase orders have no real semiproduct (the SemiProduct
@@ -68,7 +67,7 @@ public class ResidueDistributionCalculator : IResidueDistributionCalculator
     }
 
     private async Task<List<ProductCalculationData>> BuildProductDataAsync(
-        UpdateManufactureOrderDto order,
+        ManufactureOrder order,
         CancellationToken cancellationToken)
     {
         var result = new List<ProductCalculationData>();

@@ -1,6 +1,5 @@
 using Anela.Heblo.Application.Features.Manufacture.Contracts;
 using Anela.Heblo.Application.Features.Manufacture.Services;
-using Anela.Heblo.Application.Features.Manufacture.UseCases.UpdateManufactureOrder;
 using Anela.Heblo.Domain.Features.Catalog;
 using Anela.Heblo.Domain.Features.Manufacture;
 using FluentAssertions;
@@ -217,18 +216,18 @@ public class ResidueDistributionCalculatorTests
     public async Task CalculateAsync_SinglePhaseOrder_ReturnsImmediatelyWithEmptyProducts()
     {
         // Single-phase: all products have the same code as the semiproduct
-        var order = new UpdateManufactureOrderDto
+        var order = new ManufactureOrder
         {
-            SemiProduct = new UpdateManufactureOrderSemiProductDto
+            SemiProduct = new ManufactureOrderSemiProduct
             {
                 ProductCode = SemiProductCode,
                 ProductName = "Semi Product",
                 PlannedQuantity = 5000m,
                 ActualQuantity = 4800m
             },
-            Products = new List<UpdateManufactureOrderProductDto>
+            Products = new List<ManufactureOrderProduct>
             {
-                new UpdateManufactureOrderProductDto
+                new ManufactureOrderProduct
                 {
                     ProductCode = SemiProductCode, // same code as semiproduct
                     ProductName = "Semi Product",
@@ -258,19 +257,19 @@ public class ResidueDistributionCalculatorTests
     {
         // Single-phase order with distinct product codes (does NOT match the placeholder semiproduct).
         // The ManufactureType guard must short-circuit before any template/catalog lookups.
-        var order = new UpdateManufactureOrderDto
+        var order = new ManufactureOrder
         {
             ManufactureType = ManufactureType.SinglePhase,
-            SemiProduct = new UpdateManufactureOrderSemiProductDto
+            SemiProduct = new ManufactureOrderSemiProduct
             {
                 ProductCode = ProductCodeA, // single-phase placeholder points at the first product
                 ProductName = "Product A",
                 PlannedQuantity = 100m,
                 ActualQuantity = 100m
             },
-            Products = new List<UpdateManufactureOrderProductDto>
+            Products = new List<ManufactureOrderProduct>
             {
-                new UpdateManufactureOrderProductDto
+                new ManufactureOrderProduct
                 {
                     ProductCode = ProductCodeA,
                     ProductName = "Product A",
@@ -278,7 +277,7 @@ public class ResidueDistributionCalculatorTests
                     ActualQuantity = 60m,
                     SemiProductCode = ProductCodeA
                 },
-                new UpdateManufactureOrderProductDto
+                new ManufactureOrderProduct
                 {
                     ProductCode = ProductCodeB,
                     ProductName = "Product B",
@@ -328,18 +327,18 @@ public class ResidueDistributionCalculatorTests
         // Variants: A = 30 units × 100 g = 3000 g theoretical, B = 80 units × 10 g = 800 g theoretical
         // totalTheoretical = 3800 g, actualSemiProduct for residue = 5000 - 200 = 4800 g
         // difference = 4800 - 3800 = 1000 g, 26.3% — but threshold = 50%, so within threshold
-        var order = new UpdateManufactureOrderDto
+        var order = new ManufactureOrder
         {
-            SemiProduct = new UpdateManufactureOrderSemiProductDto
+            SemiProduct = new ManufactureOrderSemiProduct
             {
                 ProductCode = SemiProductCode,
                 ProductName = "Semi Product",
                 PlannedQuantity = 5000m,
                 ActualQuantity = 5000m
             },
-            Products = new List<UpdateManufactureOrderProductDto>
+            Products = new List<ManufactureOrderProduct>
             {
-                new UpdateManufactureOrderProductDto
+                new ManufactureOrderProduct
                 {
                     ProductCode = ProductCodeA,
                     ProductName = "Product A",
@@ -347,7 +346,7 @@ public class ResidueDistributionCalculatorTests
                     PlannedQuantity = 30m,
                     ActualQuantity = 30m
                 },
-                new UpdateManufactureOrderProductDto
+                new ManufactureOrderProduct
                 {
                     ProductCode = ProductCodeB,
                     ProductName = "Product B",
@@ -356,7 +355,7 @@ public class ResidueDistributionCalculatorTests
                     ActualQuantity = 80m
                 },
                 // Direct semiproduct output row — ProductCode == SemiProductCode
-                new UpdateManufactureOrderProductDto
+                new ManufactureOrderProduct
                 {
                     ProductCode = SemiProductCode,
                     ProductName = "Semi Product (direct)",
@@ -427,7 +426,7 @@ public class ResidueDistributionCalculatorTests
             });
 
         // Inject a zero-quantity direct row
-        order.Products.Add(new UpdateManufactureOrderProductDto
+        order.Products.Add(new ManufactureOrderProduct
         {
             ProductCode = SemiProductCode,
             ProductName = "Semi Product (direct)",
@@ -448,13 +447,13 @@ public class ResidueDistributionCalculatorTests
 
     // ---- Helpers ----
 
-    private UpdateManufactureOrderDto BuildOrder(
+    private ManufactureOrder BuildOrder(
         decimal actualSemiProduct,
         (string code, string name, decimal pieces, double gramsPerUnit)[] products)
     {
         SetupTemplatesForProducts(products);
 
-        var productDtos = products.Select(p => new UpdateManufactureOrderProductDto
+        var productDtos = products.Select(p => new ManufactureOrderProduct
         {
             ProductCode = p.code,
             ProductName = p.name,
@@ -463,9 +462,9 @@ public class ResidueDistributionCalculatorTests
             ActualQuantity = p.pieces
         }).ToList();
 
-        return new UpdateManufactureOrderDto
+        return new ManufactureOrder
         {
-            SemiProduct = new UpdateManufactureOrderSemiProductDto
+            SemiProduct = new ManufactureOrderSemiProduct
             {
                 ProductCode = SemiProductCode,
                 ProductName = "Semi Product",
@@ -476,25 +475,25 @@ public class ResidueDistributionCalculatorTests
         };
     }
 
-    private UpdateManufactureOrderDto BuildOrderWithZeroProduct(
+    private ManufactureOrder BuildOrderWithZeroProduct(
         decimal actualSemiProduct,
         (string code, string name, decimal pieces, double gramsPerUnit) activeProduct,
         string zeroProductCode)
     {
         SetupTemplatesForProducts(new[] { activeProduct });
 
-        return new UpdateManufactureOrderDto
+        return new ManufactureOrder
         {
-            SemiProduct = new UpdateManufactureOrderSemiProductDto
+            SemiProduct = new ManufactureOrderSemiProduct
             {
                 ProductCode = SemiProductCode,
                 ProductName = "Semi Product",
                 PlannedQuantity = actualSemiProduct,
                 ActualQuantity = actualSemiProduct
             },
-            Products = new List<UpdateManufactureOrderProductDto>
+            Products = new List<ManufactureOrderProduct>
             {
-                new UpdateManufactureOrderProductDto
+                new ManufactureOrderProduct
                 {
                     ProductCode = activeProduct.code,
                     ProductName = activeProduct.name,
@@ -502,7 +501,7 @@ public class ResidueDistributionCalculatorTests
                     PlannedQuantity = activeProduct.pieces,
                     ActualQuantity = activeProduct.pieces
                 },
-                new UpdateManufactureOrderProductDto
+                new ManufactureOrderProduct
                 {
                     ProductCode = zeroProductCode,
                     ProductName = "Zero Product",

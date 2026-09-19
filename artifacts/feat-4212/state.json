@@ -1,0 +1,64 @@
+{
+  "feature_id": "feat-4212",
+  "issue_number": 4212,
+  "created_at": "2026-09-17T08:11:50.148568Z",
+  "max_revisions": 3,
+  "phases": {
+    "analyzing": {
+      "status": "completed",
+      "updated_at": "2026-09-17T08:14:27.501488Z"
+    },
+    "architecting": {
+      "status": "completed",
+      "updated_at": "2026-09-17T08:15:43.738145Z"
+    },
+    "designing": {
+      "status": "completed",
+      "updated_at": "2026-09-17T08:16:35.140885Z"
+    },
+    "planning": {
+      "status": "completed",
+      "updated_at": "2026-09-17T08:21:15.271849Z"
+    },
+    "developing": {
+      "status": "in_progress",
+      "updated_at": "2026-09-17T13:16:58.832220Z"
+    },
+    "code-review": {
+      "status": "completed",
+      "updated_at": "2026-09-17T20:35:20.325730Z"
+    }
+  },
+  "tasks": [
+    {
+      "name": "residue-distribution-calculator-domain-entity",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-09-17T09:22:31.710287Z"
+    },
+    {
+      "name": "manufacture-name-builder-domain-entity",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-09-17T10:25:57.553984Z"
+    },
+    {
+      "name": "confirm-product-completion-workflow-repository-read",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-09-17T11:46:52.235732Z"
+    },
+    {
+      "name": "confirm-semi-product-workflow-repository-read",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-09-17T12:37:33.252705Z"
+    },
+    {
+      "name": "full-verification-and-cleanup",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-09-17T13:58:09.671017Z"
+    }
+  ]
+}
