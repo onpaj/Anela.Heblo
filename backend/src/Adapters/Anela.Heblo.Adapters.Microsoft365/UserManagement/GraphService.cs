@@ -226,82 +226,23 @@ public class GraphService : IGraphService
 
             var httpClient = _httpClientFactory.CreateClient("MicrosoftGraph");
 
-            // Step 1: resolve the service principal id and app roles for this app registration
-            var spUrl = $"https://graph.microsoft.com/v1.0/servicePrincipals(appId='{clientId}')?$select=id,appRoles";
-            using var spRequest = new HttpRequestMessage(HttpMethod.Get, spUrl);
-            spRequest.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", graphToken);
-            var spResponse = await httpClient.SendAsync(spRequest, cancellationToken);
-            var spJson = await spResponse.Content.ReadAsStringAsync(cancellationToken);
-            if (!spResponse.IsSuccessStatusCode)
+            var (spId, appRoles) = await ResolveServicePrincipalAsync(clientId, graphToken, httpClient, cancellationToken);
+            if (spId is null)
             {
-                _logger.LogError("Failed to resolve service principal. Status: {Status}, Body: {Body}", spResponse.StatusCode, spJson);
-                return new List<UserDto>();
-            }
-            using var spDoc = System.Text.Json.JsonDocument.Parse(spJson);
-            var spId = spDoc.RootElement.TryGetProperty("id", out var spIdProp) ? spIdProp.GetString() : null;
-            if (string.IsNullOrEmpty(spId))
-            {
-                _logger.LogError("Service principal id not found in Graph response for clientId {ClientId}", clientId);
                 return new List<UserDto>();
             }
 
-            // Step 2: find the appRoleId for the requested role value
-            string? appRoleId = null;
-            if (spDoc.RootElement.TryGetProperty("appRoles", out var appRolesEl))
-            {
-                foreach (var role in appRolesEl.EnumerateArray())
-                {
-                    if (role.TryGetProperty("value", out var roleName) && roleName.GetString() == appRoleValue)
-                    {
-                        appRoleId = role.TryGetProperty("id", out var rid) ? rid.GetString() : null;
-                        break;
-                    }
-                }
-            }
-
+            var appRoleId = FindAppRoleId(appRoles, appRoleValue);
             if (string.IsNullOrEmpty(appRoleId))
             {
                 _logger.LogWarning("App role '{RoleValue}' not found on service principal {SpId}", appRoleValue, spId);
                 return new List<UserDto>();
             }
 
-            // Step 3: get all principals assigned to this role (paginated)
-            var directUserIds = new HashSet<string>();
-            var groupIdsToExpand = new List<string>();
-
-            string? nextLink = $"https://graph.microsoft.com/v1.0/servicePrincipals/{spId}/appRoleAssignedTo?$top=100";
-            while (nextLink != null)
+            var (directUserIds, groupIdsToExpand) = await CollectRoleAssigneesAsync(spId, appRoleId, graphToken, httpClient, cancellationToken);
+            if (directUserIds is null || groupIdsToExpand is null)
             {
-                using var assignRequest = new HttpRequestMessage(HttpMethod.Get, nextLink);
-                assignRequest.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", graphToken);
-                var assignResponse = await httpClient.SendAsync(assignRequest, cancellationToken);
-                var assignJson = await assignResponse.Content.ReadAsStringAsync(cancellationToken);
-                if (!assignResponse.IsSuccessStatusCode)
-                {
-                    _logger.LogError("Failed to get app role assignments. Status: {Status}, Body: {Body}", assignResponse.StatusCode, assignJson);
-                    return new List<UserDto>();
-                }
-
-                using var assignDoc = System.Text.Json.JsonDocument.Parse(assignJson);
-                if (assignDoc.RootElement.TryGetProperty("value", out var assignments))
-                {
-                    foreach (var assignment in assignments.EnumerateArray())
-                    {
-                        var roleId = assignment.TryGetProperty("appRoleId", out var rid) ? rid.GetString() : null;
-                        if (roleId != appRoleId) continue;
-
-                        var principalType = assignment.TryGetProperty("principalType", out var pt) ? pt.GetString() : null;
-                        var principalId = assignment.TryGetProperty("principalId", out var pid) ? pid.GetString() : null;
-                        if (string.IsNullOrEmpty(principalId)) continue;
-
-                        if (principalType == "User")
-                            directUserIds.Add(principalId);
-                        else if (principalType == "Group")
-                            groupIdsToExpand.Add(principalId);
-                    }
-                }
-
-                nextLink = assignDoc.RootElement.TryGetProperty("@odata.nextLink", out var nl) ? nl.GetString() : null;
+                return new List<UserDto>();
             }
 
             // Step 4: expand group members (reuse existing method)
@@ -313,59 +254,10 @@ public class GraphService : IGraphService
                         directUserIds.Add(member.Id);
             }
 
-            // Step 5: resolve display name + email for each user id using Graph $batch
-            var users = new List<UserDto>();
-            var userIdList = directUserIds.ToList();
-            for (var chunkStart = 0; chunkStart < userIdList.Count; chunkStart += GraphBatchSize)
+            var users = await BatchResolveUserDtosAsync(directUserIds, graphToken, httpClient, cancellationToken);
+            if (users is null)
             {
-                var chunk = userIdList.Skip(chunkStart).Take(GraphBatchSize).ToList();
-
-                var batchRequests = chunk.Select((uid, i) => new
-                {
-                    id = i.ToString(),
-                    method = "GET",
-                    url = $"/users/{uid}?$select=id,displayName,mail,userPrincipalName"
-                }).ToList();
-
-                var batchBody = System.Text.Json.JsonSerializer.Serialize(new { requests = batchRequests });
-                using var batchRequest = new HttpRequestMessage(HttpMethod.Post, "https://graph.microsoft.com/v1.0/$batch");
-                batchRequest.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", graphToken);
-                batchRequest.Content = new StringContent(batchBody, System.Text.Encoding.UTF8, "application/json");
-
-                var batchResponse = await httpClient.SendAsync(batchRequest, cancellationToken);
-                var batchJson = await batchResponse.Content.ReadAsStringAsync(cancellationToken);
-
-                if (!batchResponse.IsSuccessStatusCode)
-                {
-                    _logger.LogError("Graph $batch request failed. Status: {Status}, Body: {Body}", batchResponse.StatusCode, batchJson);
-                    return new List<UserDto>();
-                }
-
-                using var batchDoc = System.Text.Json.JsonDocument.Parse(batchJson);
-                if (!batchDoc.RootElement.TryGetProperty("responses", out var responses))
-                    continue;
-
-                foreach (var response in responses.EnumerateArray())
-                {
-                    var status = response.TryGetProperty("status", out var st) ? st.GetInt32() : 0;
-                    if (status != 200)
-                    {
-                        var responseId = response.TryGetProperty("id", out var rid) ? rid.GetString() : "?";
-                        var failedUserId = int.TryParse(responseId, out var idx) && idx < chunk.Count ? chunk[idx] : responseId;
-                        _logger.LogWarning("Could not resolve user {UserId} — batch sub-response status {Status}", failedUserId, status);
-                        continue;
-                    }
-
-                    if (!response.TryGetProperty("body", out var body))
-                        continue;
-
-                    var displayName = body.TryGetProperty("displayName", out var dn) ? dn.GetString() ?? "" : "";
-                    var mail = body.TryGetProperty("mail", out var m) ? m.GetString() : null;
-                    var upn = body.TryGetProperty("userPrincipalName", out var u) ? u.GetString() : null;
-                    var resolvedId = body.TryGetProperty("id", out var idProp) ? idProp.GetString() ?? "" : "";
-                    if (!string.IsNullOrEmpty(resolvedId))
-                        users.Add(new UserDto { Id = resolvedId, DisplayName = displayName, Email = mail ?? upn ?? "" });
-                }
+                return new List<UserDto>();
             }
 
             _cache.Set(cacheKey, users, _cacheExpiration);
@@ -381,5 +273,176 @@ public class GraphService : IGraphService
             _logger.LogError(ex, "Unexpected error fetching app role members for role '{RoleValue}'", appRoleValue);
             throw;
         }
+    }
+
+    /// <summary>
+    /// Resolves the service principal id and its configured app roles for the given Azure AD app
+    /// registration client id. Returns (null, null) and logs the failure when the service principal
+    /// cannot be resolved.
+    /// </summary>
+    private async Task<(string? SpId, System.Text.Json.JsonElement? AppRoles)> ResolveServicePrincipalAsync(
+        string clientId, string graphToken, HttpClient httpClient, CancellationToken cancellationToken)
+    {
+        var spUrl = $"https://graph.microsoft.com/v1.0/servicePrincipals(appId='{clientId}')?$select=id,appRoles";
+        using var spRequest = new HttpRequestMessage(HttpMethod.Get, spUrl);
+        spRequest.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", graphToken);
+        var spResponse = await httpClient.SendAsync(spRequest, cancellationToken);
+        var spJson = await spResponse.Content.ReadAsStringAsync(cancellationToken);
+        if (!spResponse.IsSuccessStatusCode)
+        {
+            _logger.LogError("Failed to resolve service principal. Status: {Status}, Body: {Body}", spResponse.StatusCode, spJson);
+            return (null, null);
+        }
+
+        using var spDoc = System.Text.Json.JsonDocument.Parse(spJson);
+        var spId = spDoc.RootElement.TryGetProperty("id", out var spIdProp) ? spIdProp.GetString() : null;
+        if (string.IsNullOrEmpty(spId))
+        {
+            _logger.LogError("Service principal id not found in Graph response for clientId {ClientId}", clientId);
+            return (null, null);
+        }
+
+        // Clone so the returned JsonElement stays readable after spDoc (and its `using`) goes out of scope.
+        var appRoles = spDoc.RootElement.TryGetProperty("appRoles", out var appRolesEl)
+            ? appRolesEl.Clone()
+            : (System.Text.Json.JsonElement?)null;
+
+        return (spId, appRoles);
+    }
+
+    /// <summary>
+    /// Finds the appRoleId matching the requested role value within an already-fetched appRoles array.
+    /// Returns null when appRoles is null or contains no matching entry.
+    /// </summary>
+    private static string? FindAppRoleId(System.Text.Json.JsonElement? appRoles, string appRoleValue)
+    {
+        if (appRoles is not { } appRolesValue)
+        {
+            return null;
+        }
+
+        foreach (var role in appRolesValue.EnumerateArray())
+        {
+            if (role.TryGetProperty("value", out var roleName) && roleName.GetString() == appRoleValue)
+            {
+                return role.TryGetProperty("id", out var rid) ? rid.GetString() : null;
+            }
+        }
+
+        return null;
+    }
+
+    /// <summary>
+    /// Walks the paginated appRoleAssignedTo collection for the given service principal and app role,
+    /// bucketing assignees into direct user ids and group ids to expand.
+    /// Returns (null, null) and logs the failure when any page request fails.
+    /// </summary>
+    private async Task<(HashSet<string>? DirectUserIds, List<string>? GroupIdsToExpand)> CollectRoleAssigneesAsync(
+        string spId, string appRoleId, string graphToken, HttpClient httpClient, CancellationToken cancellationToken)
+    {
+        var directUserIds = new HashSet<string>();
+        var groupIdsToExpand = new List<string>();
+
+        string? nextLink = $"https://graph.microsoft.com/v1.0/servicePrincipals/{spId}/appRoleAssignedTo?$top=100";
+        while (nextLink != null)
+        {
+            using var assignRequest = new HttpRequestMessage(HttpMethod.Get, nextLink);
+            assignRequest.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", graphToken);
+            var assignResponse = await httpClient.SendAsync(assignRequest, cancellationToken);
+            var assignJson = await assignResponse.Content.ReadAsStringAsync(cancellationToken);
+            if (!assignResponse.IsSuccessStatusCode)
+            {
+                _logger.LogError("Failed to get app role assignments. Status: {Status}, Body: {Body}", assignResponse.StatusCode, assignJson);
+                return (null, null);
+            }
+
+            using var assignDoc = System.Text.Json.JsonDocument.Parse(assignJson);
+            if (assignDoc.RootElement.TryGetProperty("value", out var assignments))
+            {
+                foreach (var assignment in assignments.EnumerateArray())
+                {
+                    var roleId = assignment.TryGetProperty("appRoleId", out var rid) ? rid.GetString() : null;
+                    if (roleId != appRoleId) continue;
+
+                    var principalType = assignment.TryGetProperty("principalType", out var pt) ? pt.GetString() : null;
+                    var principalId = assignment.TryGetProperty("principalId", out var pid) ? pid.GetString() : null;
+                    if (string.IsNullOrEmpty(principalId)) continue;
+
+                    if (principalType == "User")
+                        directUserIds.Add(principalId);
+                    else if (principalType == "Group")
+                        groupIdsToExpand.Add(principalId);
+                }
+            }
+
+            nextLink = assignDoc.RootElement.TryGetProperty("@odata.nextLink", out var nl) ? nl.GetString() : null;
+        }
+
+        return (directUserIds, groupIdsToExpand);
+    }
+
+    /// <summary>
+    /// Resolves display name and email for each user id via Graph $batch, chunked by GraphBatchSize.
+    /// Returns null and logs the failure when a batch request itself fails; individual unresolvable
+    /// users within an otherwise-successful batch are skipped with a warning, not treated as a failure.
+    /// </summary>
+    private async Task<List<UserDto>?> BatchResolveUserDtosAsync(
+        IReadOnlyCollection<string> userIds, string graphToken, HttpClient httpClient, CancellationToken cancellationToken)
+    {
+        var users = new List<UserDto>();
+        var userIdList = userIds.ToList();
+        for (var chunkStart = 0; chunkStart < userIdList.Count; chunkStart += GraphBatchSize)
+        {
+            var chunk = userIdList.Skip(chunkStart).Take(GraphBatchSize).ToList();
+
+            var batchRequests = chunk.Select((uid, i) => new
+            {
+                id = i.ToString(),
+                method = "GET",
+                url = $"/users/{uid}?$select=id,displayName,mail,userPrincipalName"
+            }).ToList();
+
+            var batchBody = System.Text.Json.JsonSerializer.Serialize(new { requests = batchRequests });
+            using var batchRequest = new HttpRequestMessage(HttpMethod.Post, "https://graph.microsoft.com/v1.0/$batch");
+            batchRequest.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", graphToken);
+            batchRequest.Content = new StringContent(batchBody, System.Text.Encoding.UTF8, "application/json");
+
+            var batchResponse = await httpClient.SendAsync(batchRequest, cancellationToken);
+            var batchJson = await batchResponse.Content.ReadAsStringAsync(cancellationToken);
+
+            if (!batchResponse.IsSuccessStatusCode)
+            {
+                _logger.LogError("Graph $batch request failed. Status: {Status}, Body: {Body}", batchResponse.StatusCode, batchJson);
+                return null;
+            }
+
+            using var batchDoc = System.Text.Json.JsonDocument.Parse(batchJson);
+            if (!batchDoc.RootElement.TryGetProperty("responses", out var responses))
+                continue;
+
+            foreach (var response in responses.EnumerateArray())
+            {
+                var status = response.TryGetProperty("status", out var st) ? st.GetInt32() : 0;
+                if (status != 200)
+                {
+                    var responseId = response.TryGetProperty("id", out var rid) ? rid.GetString() : "?";
+                    var failedUserId = int.TryParse(responseId, out var idx) && idx < chunk.Count ? chunk[idx] : responseId;
+                    _logger.LogWarning("Could not resolve user {UserId} — batch sub-response status {Status}", failedUserId, status);
+                    continue;
+                }
+
+                if (!response.TryGetProperty("body", out var body))
+                    continue;
+
+                var displayName = body.TryGetProperty("displayName", out var dn) ? dn.GetString() ?? "" : "";
+                var mail = body.TryGetProperty("mail", out var m) ? m.GetString() : null;
+                var upn = body.TryGetProperty("userPrincipalName", out var u) ? u.GetString() : null;
+                var resolvedId = body.TryGetProperty("id", out var idProp) ? idProp.GetString() ?? "" : "";
+                if (!string.IsNullOrEmpty(resolvedId))
+                    users.Add(new UserDto { Id = resolvedId, DisplayName = displayName, Email = mail ?? upn ?? "" });
+            }
+        }
+
+        return users;
     }
 }
