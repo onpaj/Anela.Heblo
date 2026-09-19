@@ -152,19 +152,25 @@ req_paginate() {
   local url
   url=$(_api_url "$path")
   [[ "$url" == *"?"* ]] && url="${url}&per_page=100" || url="${url}?per_page=100"
-  local all="[]" hdrfile body
+  local hdrfile pagedir page=0
   hdrfile=$(mktemp)
+  pagedir=$(mktemp -d)
   while [[ -n "$url" ]]; do
-    body=$(curl -sS --max-time 30 -X "$method" \
+    curl -sS --max-time 30 -X "$method" \
       -H "Authorization: Bearer ${TOKEN}" \
       -H "Accept: application/vnd.github+json" \
       -H "X-GitHub-Api-Version: 2022-11-28" \
-      -D "$hdrfile" "$url")
-    all=$(jq -c -n --argjson a "$all" --argjson b "$body" '$a + $b')
+      -D "$hdrfile" "$url" > "$pagedir/$page.json"
+    page=$((page + 1))
     url=$(grep -i '^link:' "$hdrfile" | grep -o '<[^>]*>; rel="next"' | sed -E 's/^<(.*)>.*/\1/' || true)
   done
   rm -f "$hdrfile"
-  printf '%s' "$all"
+  # Concatenate via files, never via argv: a large page's JSON passed
+  # through --argjson can exceed this environment's exec argument limit
+  # (observed failing well under the kernel's own ARG_MAX) and fail with
+  # "Argument list too long".
+  jq -s -c 'add' "$pagedir"/*.json
+  rm -rf "$pagedir"
 }
 
 graphql() {
