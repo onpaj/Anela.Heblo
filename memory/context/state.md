@@ -364,6 +364,36 @@ _Update this file at the end of significant sessions._
   `agent-planning` to `agent-ready-for-dev`. See
   `memory/gotchas/agent-context-files-superpowers-plugin-missing.md`.
 
+- `IEshopOrderClient` test-only methods split, planned via the real AgentHarness
+  pipeline (issue #4210, draft PR #4215, `feature/4210-Arch-Review-Shoptetorders-
+  Ieshoporderclient-Expose`, 2026-09-17): a scheduled `/plan-next-task` run, GitHub
+  MCP tools connected and working this time (git-data-API writes for branch/ref
+  creation still proxy-blocked, so used `mcp__github__create_branch`/`issue_write`/
+  `create_pull_request` for those; ordinary REST writes via `gh_api.sh` with
+  `USE_GH_API=1` worked fine for reads and for label/PR-body/title edits). Full
+  pipeline ran (worktree, `plan-orchestrator` subagent x2, analyst → architect →
+  designer → planner). Hit the `agent-context-files-superpowers-plugin-missing.md`
+  regression *again* — `.agents/planner.md`/`developer.md`/`brainstorm.md` back on
+  the broken `~/.claude/plugins/cache/*/...` glob on `main`, despite being fixed
+  once before in PR #4162. Confirmed via `git log` that innocuous "chore: update
+  skill paths..." commits (`d7584a34`, `f7a3e77d`) are a prior session accidentally
+  *committing* the SessionStart hook's `agentharness init --force` revert instead of
+  discarding it — exactly the failure mode the gotcha doc warned about. Fixed
+  locally on the #4210 branch to unblock this run, and separately reapplied the fix
+  to `main` + updated the gotcha doc in its own PR (#4214) — expect this to regress
+  again the next time a session commits the hook's dirty diff without checking
+  `git status` first; the durable fix is upstream in `onpaj/harness`, out of scope
+  here. The `plan-orchestrator` subagent that ran the `planning` phase itself
+  reported the `Task` tool was unavailable in its sandbox, so it wrote
+  `task-plan.r1.md` directly (grounded in the actual current source files) instead
+  of spawning a further subagent — flagged as a deviation, not silently
+  substituted. Planning completed end-to-end: 8 tasks extracted (extract
+  `IShoptetOrderTestClient` in the adapter project, shrink `IEshopOrderClient` to 7
+  methods, implement/register the new interface, update 3 integration test files,
+  final verification). Draft PR #4215 opened with `agent` label, `Closes #4210`,
+  issue swapped `agent-planning` → `agent-ready-for-dev`. See
+  `memory/gotchas/agent-context-files-superpowers-plugin-missing.md`.
+
 ## Pending / Known Issues
 
 - Memory directory (issue #405): adding cross-session knowledge accumulation — this PR
