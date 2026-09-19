@@ -28,9 +28,9 @@
   "tasks": [
     {
       "name": "relocate-outlook-mapper-to-services",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-09-19T06:16:19.989020Z"
+      "updated_at": "2026-09-19T06:17:54.660277Z"
     },
     {
       "name": "fix-consumer-using-and-validate",
