@@ -61,4 +61,18 @@ public class CatalogManufactureCatalogSourceAdapterTests
         result.Should().BeSameAs(expected);
         _repository.Verify(r => r.GetAllAsync(ct), Times.Once);
     }
+
+    [Fact]
+    public async Task RefreshPlannedDataAsync_ForwardsCallToRepository()
+    {
+        // Guards against the adapter being re-pointed at a neighbouring refresh method:
+        // every caller mocks IManufactureCatalogSource, so only this test sees the real wiring.
+        var ct = new CancellationTokenSource().Token;
+        _repository.Setup(r => r.RefreshPlannedData(ct)).Returns(Task.CompletedTask);
+
+        await CreateAdapter().RefreshPlannedDataAsync(ct);
+
+        _repository.Verify(r => r.RefreshPlannedData(ct), Times.Once);
+        _repository.VerifyNoOtherCalls();
+    }
 }
