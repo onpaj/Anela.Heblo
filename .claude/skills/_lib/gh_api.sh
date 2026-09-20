@@ -148,23 +148,35 @@ req_paginate() {
   # req_paginate METHOD PATH — follows Link: rel="next", concatenates JSON
   # array pages into one array. Used where `gh api --paginate` is used today
   # (issue/PR comment lists that can exceed one page).
+  #
+  # Pages are combined via files/stdin (`jq -s`), never as --argjson
+  # arguments: a page's JSON is passed as a single exec argument, and Linux
+  # caps any single argv/envp string at MAX_ARG_STRLEN (128KiB) regardless
+  # of the total argv budget (getconf ARG_MAX, usually 2MiB) — a busy PR's
+  # comment thread (expanded author/app metadata per comment) crosses that
+  # 128KiB per-argument ceiling well before the page hits 100 comments,
+  # and jq's exec then fails with E2BIG ("Argument list too long").
   local method="$1" path="$2"
   local url
   url=$(_api_url "$path")
   [[ "$url" == *"?"* ]] && url="${url}&per_page=100" || url="${url}?per_page=100"
-  local all="[]" hdrfile body
+  local hdrfile allfile bodyfile
   hdrfile=$(mktemp)
+  allfile=$(mktemp)
+  bodyfile=$(mktemp)
+  echo '[]' > "$allfile"
   while [[ -n "$url" ]]; do
-    body=$(curl -sS --max-time 30 -X "$method" \
+    curl -sS --max-time 30 -X "$method" \
       -H "Authorization: Bearer ${TOKEN}" \
       -H "Accept: application/vnd.github+json" \
       -H "X-GitHub-Api-Version: 2022-11-28" \
-      -D "$hdrfile" "$url")
-    all=$(jq -c -n --argjson a "$all" --argjson b "$body" '$a + $b')
+      -D "$hdrfile" -o "$bodyfile" "$url"
+    jq -c -s '.[0] + .[1]' "$allfile" "$bodyfile" > "${allfile}.tmp"
+    mv "${allfile}.tmp" "$allfile"
     url=$(grep -i '^link:' "$hdrfile" | grep -o '<[^>]*>; rel="next"' | sed -E 's/^<(.*)>.*/\1/' || true)
   done
-  rm -f "$hdrfile"
-  printf '%s' "$all"
+  cat "$allfile"
+  rm -f "$hdrfile" "$allfile" "$bodyfile"
 }
 
 graphql() {
