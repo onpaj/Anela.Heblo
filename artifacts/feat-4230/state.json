@@ -34,9 +34,9 @@
     },
     {
       "name": "build-product-color-map",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-09-20T08:21:48.435493Z"
+      "updated_at": "2026-09-20T08:26:26.510246Z"
     },
     {
       "name": "extract-chart-dataset-builder",
