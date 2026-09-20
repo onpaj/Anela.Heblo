@@ -46,9 +46,9 @@
     },
     {
       "name": "register-validation-pipeline",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-09-20T21:16:33.657462Z"
+      "updated_at": "2026-09-20T22:01:16.700742Z"
     }
   ]
 }
