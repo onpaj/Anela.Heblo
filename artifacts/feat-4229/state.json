@@ -40,9 +40,9 @@
     },
     {
       "name": "product-margin-summary-validator",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-09-20T20:16:37.497255Z"
+      "updated_at": "2026-09-20T20:54:01.291907Z"
     },
     {
       "name": "register-validation-pipeline",
