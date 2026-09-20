@@ -56,6 +56,20 @@ public class RecomputeMarketingPerformanceHandlerTests
     }
 
     [Fact]
+    public async Task Handle_MonthBeforeTheSupportedFloor_ReturnsInvalidRange()
+    {
+        // Arrange - "0001-01" parses fine, so without a floor it was accepted.
+        var request = new RecomputeMarketingPerformanceRequest { From = "0001-01", To = "0001-02" };
+
+        // Act
+        var response = await Handler().Handle(request, CancellationToken.None);
+
+        // Assert
+        response.ErrorCode.Should().Be(ErrorCodes.MarketingPerformanceInvalidMonthRange);
+        _enqueuer.Verify(e => e.Enqueue(It.IsAny<YearMonth>(), It.IsAny<YearMonth>()), Times.Never);
+    }
+
+    [Fact]
     public async Task Handle_WhileRunning_ReturnsAlreadyRunning()
     {
         _guard.TryBegin();

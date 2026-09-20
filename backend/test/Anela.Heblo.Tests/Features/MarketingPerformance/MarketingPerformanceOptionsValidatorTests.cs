@@ -45,6 +45,31 @@ public class MarketingPerformanceOptionsValidatorTests
     }
 
     [Fact]
+    public void Validate_VatIdRepeatedWithinOneChannel_SaysSoInsteadOfBlamingTwoChannels()
+    {
+        // Arrange
+        var o = Valid(); o.Channels[0].VatIds.Add("ie9692928f");
+
+        // Act
+        var result = Validator.Validate(null, o);
+
+        // Assert
+        result.FailureMessage.Should().Contain("meta").And.Contain("more than once");
+        result.FailureMessage.Should().NotContain("more than one channel");
+    }
+
+    [Fact]
+    public void Validate_MaxRecomputeRangeMonthsAboveTheCeiling_Fails()
+    {
+        // Arrange - a config typo here is the only thing between one request and
+        // thousands of live ERP queries.
+        var o = Valid(); o.MaxRecomputeRangeMonths = 6000;
+
+        // Act & Assert
+        Validator.Validate(null, o).FailureMessage.Should().Contain("MaxRecomputeRangeMonths");
+    }
+
+    [Fact]
     public void Validate_DuplicateChannelCode_Fails()
     {
         var o = Valid(); o.Channels[1].Code = "META";
