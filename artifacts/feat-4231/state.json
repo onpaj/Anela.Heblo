@@ -22,7 +22,7 @@
     },
     "developing": {
       "status": "in_progress",
-      "updated_at": "2026-09-20T10:16:26.295582Z"
+      "updated_at": "2026-09-20T11:16:44.537063Z"
     }
   },
   "tasks": [
@@ -34,9 +34,9 @@
     },
     {
       "name": "adapter-and-di",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-09-20T11:16:44.816009Z"
     },
     {
       "name": "migrate-download-handler",
