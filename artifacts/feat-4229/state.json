@@ -34,9 +34,9 @@
     },
     {
       "name": "analytics-error-code-and-message",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-09-20T13:17:54.517798Z"
+      "updated_at": "2026-09-20T13:20:30.225492Z"
     },
     {
       "name": "product-margin-summary-validator",
