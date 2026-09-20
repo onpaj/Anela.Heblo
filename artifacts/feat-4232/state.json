@@ -40,9 +40,9 @@
     },
     {
       "name": "verify-build-format-and-openapi-client",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-09-20T21:16:53.233195Z"
+      "updated_at": "2026-09-20T21:41:17.456603Z"
     }
   ]
 }
