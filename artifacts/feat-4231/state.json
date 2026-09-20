@@ -40,9 +40,9 @@
     },
     {
       "name": "migrate-download-handler",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-09-20T12:16:43.592479Z"
+      "updated_at": "2026-09-20T12:35:27.194865Z"
     },
     {
       "name": "migrate-reprint-handler",
