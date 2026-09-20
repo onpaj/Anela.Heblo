@@ -1,6 +1,5 @@
 using Anela.Heblo.Application.Features.ExpeditionListArchive.Contracts;
 using Anela.Heblo.Application.Shared.Printing;
-using Anela.Heblo.Domain.Features.FileStorage;
 using MediatR;
 using Microsoft.Extensions.Options;
 
@@ -8,18 +7,18 @@ namespace Anela.Heblo.Application.Features.ExpeditionListArchive.UseCases.Reprin
 
 public class ReprintExpeditionListHandler : IRequestHandler<ReprintExpeditionListRequest, ReprintExpeditionListResponse>
 {
-    private readonly IBlobStorageService _blobStorageService;
+    private readonly IExpeditionListArchiveBlobStore _blobStore;
     private readonly IPrintQueueSink _cupsSink;
     private readonly ITemporaryFileAccessor _temporaryFileAccessor;
     private readonly string _containerName;
 
     public ReprintExpeditionListHandler(
-        IBlobStorageService blobStorageService,
+        IExpeditionListArchiveBlobStore blobStore,
         IPrintQueueSink cupsSink,
         ITemporaryFileAccessor temporaryFileAccessor,
         IOptions<ExpeditionListArchiveOptions> options)
     {
-        _blobStorageService = blobStorageService;
+        _blobStore = blobStore;
         _cupsSink = cupsSink;
         _temporaryFileAccessor = temporaryFileAccessor;
         _containerName = options.Value.BlobContainerName;
@@ -35,7 +34,7 @@ public class ReprintExpeditionListHandler : IRequestHandler<ReprintExpeditionLis
         string? tempFile = null;
         try
         {
-            await using var blobStream = await _blobStorageService.DownloadAsync(_containerName, request.BlobPath, cancellationToken);
+            await using var blobStream = await _blobStore.DownloadAsync(_containerName, request.BlobPath, cancellationToken);
             tempFile = await _temporaryFileAccessor.CreateFromStreamAsync(blobStream, ".pdf", cancellationToken);
 
             await _cupsSink.SendAsync(new[] { tempFile }, cancellationToken);
