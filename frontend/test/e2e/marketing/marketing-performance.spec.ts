@@ -83,12 +83,23 @@ test.describe('Marketing — Analýzy', () => {
     // while the new query is in flight (MarketingPerformancePage.tsx guards the table on
     // `months.data`, which is undefined for a fresh key) before remounting with fresh data.
     // Poll rather than asserting once, so that gap doesn't register as a spurious failure.
+    let after: string[] = [];
     await expect(async () => {
-      const after = await readColumnValues(page, ordersColumnIndex);
+      after = await readColumnValues(page, ordersColumnIndex);
       expect(after.length).toBe(before.length);
-      const changedRows = after.filter((value, index) => value !== before[index]);
-      expect(changedRows.length).toBeGreaterThan(0);
     }).toPass({ timeout: 15000 });
+
+    // A retained window with no wholesale orders at all makes this assertion
+    // unsatisfiable, which is a data problem, not a regression — say so instead of
+    // failing on an opaque `changedRows.length > 0`.
+    const changedRows = after.filter((value, index) => value !== before[index]);
+    if (changedRows.length === 0) {
+      throw new Error(
+        'Toggling "včetně velkoobchodu" changed no order count. The staging window likely ' +
+          'contains no wholesale (VatPayer) invoices, so this scenario cannot be verified. ' +
+          'Check the retained IssuedInvoices range before treating this as a product bug.',
+      );
+    }
   });
 
   test('comparison view shows YTD cards and the comparison chart', async ({ page }) => {

@@ -223,10 +223,22 @@ FlexiBee instance (`petra-tesarikova.flexibee.eu`), one month of `faktura-prijat
 
 ### Use the SDK query path — do not hand-roll HTTP for this
 
-**New code should query received invoices through
-`IReceivedInvoiceClient.SearchAsync(new ReceivedInvoiceRequest(from, to, vatIds: [...],
-dateField: "datUcto"))`, not raw HTTP.** `ReceivedInvoiceRequest` already builds the
-`dic in (...)` / date-range filter for you.
+**New code should query received invoices through `IReceivedInvoiceClient.SearchAsync`,
+not raw HTTP.**
+
+> ⚠️ **The overload this feature needs does not exist in the pinned package yet.**
+> `Rem.FlexiBeeSDK.Client` is pinned at **0.1.139**, whose `ReceivedInvoiceRequest` has
+> no `vatIds` and no `dateField` parameter — only the `label:` form the existing
+> `FlexiReceivedInvoicesClient.GetUnclassifiedInvoicesAsync` uses. Writing
+> `new ReceivedInvoiceRequest(from, to, vatIds: [...], dateField: "datUcto")` against
+> 0.1.139 **will not compile**. The VAT-ID filter + `dic` projection is committed in the
+> SDK repo but not published to NuGet; bump the package reference to the version that
+> carries it before wiring the adapter. Do **not** work around the missing overload with
+> hand-built HTTP — see the two traps below, either of which hits a live, sandbox-less
+> production store.
+
+Once that version is available, `ReceivedInvoiceRequest` builds the `dic in (...)` /
+date-range filter for you.
 
 That method POSTs to `/c/{company}/faktura-prijata/query` — the `/query` segment comes
 from `FlexiQuery.IncludeQuerySegment`, which defaults to `true` in
