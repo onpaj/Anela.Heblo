@@ -7,7 +7,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace Anela.Heblo.API.Controllers;
 
-/// <summary>Marketing → Výkon reklamy: monthly ad-spend vs. revenue snapshot.</summary>
+/// <summary>Marketing → Analýzy: monthly ad-spend vs. revenue snapshot.</summary>
 [FeatureAuthorize(Feature.Marketing_Performance)]
 [ApiController]
 [Route("api/[controller]")]

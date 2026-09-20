@@ -2,7 +2,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace Anela.Heblo.Application.Features.MarketingPerformance.Contracts;
 
-/// <summary>One month of the "Výkon reklamy" table. Sums come from the snapshot; ratios are derived here.</summary>
+/// <summary>One month of the "Analýzy" table. Sums come from the snapshot; ratios are derived here.</summary>
 public class MonthlyMarketingPerformanceDto
 {
     [Required] public int Year { get; set; }

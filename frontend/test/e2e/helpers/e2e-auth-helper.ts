@@ -498,5 +498,5 @@ export async function navigateToMarketingPerformance(page: any): Promise<void> {
   await waitForLoadingComplete(page);
   const baseUrl = process.env.PLAYWRIGHT_FRONTEND_URL || process.env.PLAYWRIGHT_BASE_URL || 'https://heblo.stg.anela.cz';
   await page.goto(`${baseUrl}/marketing/performance`);
-  await page.getByRole('heading', { name: 'Výkon reklamy', exact: true }).waitFor({ timeout: 15000 });
+  await page.getByRole('heading', { name: 'Analýzy', exact: true }).waitFor({ timeout: 15000 });
 }

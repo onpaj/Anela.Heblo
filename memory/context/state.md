@@ -355,7 +355,7 @@ _Update this file at the end of significant sessions._
   `agent-planning` to `agent-ready-for-dev`. See
   `memory/gotchas/agent-context-files-superpowers-plugin-missing.md`.
 
-- Marketing Performance / "Výkon reklamy" feature (branch `feature/import-advertising-costs`, spec
+- Marketing Performance / "Analýzy" feature (branch `feature/import-advertising-costs`, spec
   `docs/superpowers/specs/2026-09-18-marketing-performance-design.md`, plan
   `docs/superpowers/plans/2026-09-18-marketing-performance.md`, 20-task SDD run
   `.superpowers/sdd/2026-09-18-marketing-performance/`, 2026-09-18): monthly ad-spend vs. e-shop

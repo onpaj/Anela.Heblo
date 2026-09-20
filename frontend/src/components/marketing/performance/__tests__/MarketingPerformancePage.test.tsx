@@ -30,7 +30,7 @@ describe('MarketingPerformancePage', () => {
 
   it('renders heading, table and trend chart by default', () => {
     render(<MarketingPerformancePage />)
-    expect(screen.getByRole('heading', { name: 'Výkon reklamy' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Analýzy' })).toBeInTheDocument()
     expect(screen.getByTestId('performance-table')).toBeInTheDocument()
     expect(screen.getByText(/Vývoj — /)).toBeInTheDocument()
   })

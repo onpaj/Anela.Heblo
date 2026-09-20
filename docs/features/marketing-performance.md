@@ -1,4 +1,4 @@
-# Výkon reklamy (Marketing Performance)
+# Analýzy (Marketing Performance)
 
 Monthly snapshot of ad spend vs. e-shop orders/revenue, replacing the manual `Naklady_reklamy.xlsx`.
 Spec: `docs/superpowers/specs/2026-09-18-marketing-performance-design.md`.
@@ -60,7 +60,7 @@ the job fails only if every month failed.
 
 ## Screen
 
-Marketing → Výkon reklamy (`/marketing/performance`), permission `Marketing_Performance` (read; write for
+Marketing → Analýzy (`/marketing/performance`), permission `Marketing_Performance` (read; write for
 recompute). Views: Vývoj (stacked channel costs + one metric line), Meziroční srovnání (Jan–Dec, one line per
 year, hover shows all years for the month). Switch "včetně velkoobchodu" adds wholesale at read time.
 

@@ -28,7 +28,7 @@
     { "key": "Marketing_Leaflet", "label": "Generátor letáků", "hasWrite": true },
     { "key": "Marketing_Photobank", "label": "Fotobanka", "hasWrite": true, "hasAdmin": true },
     { "key": "Marketing_MarketingCalendar", "label": "Marketingový kalendář", "hasWrite": true },
-    { "key": "Marketing_Performance", "label": "Výkon reklamy", "hasWrite": true },
+    { "key": "Marketing_Performance", "label": "Analýzy", "hasWrite": true },
     { "key": "Anela_Meetings", "label": "Schůzky", "hasWrite": true },
     { "key": "Anela_OrgChart", "label": "Organigram" },
     { "key": "Anela_MindMaps", "label": "Myšlenkové mapy", "hasWrite": true },

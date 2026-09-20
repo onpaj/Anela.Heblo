@@ -34,7 +34,7 @@ public static class AccessMatrix
         new FeatureDefinition(Feature.Marketing_Leaflet, "Generátor letáků", HasWrite: true),
         new FeatureDefinition(Feature.Marketing_Photobank, "Fotobanka", HasWrite: true, HasAdmin: true),
         new FeatureDefinition(Feature.Marketing_MarketingCalendar, "Marketingový kalendář", HasWrite: true),
-        new FeatureDefinition(Feature.Marketing_Performance, "Výkon reklamy", HasWrite: true),
+        new FeatureDefinition(Feature.Marketing_Performance, "Analýzy", HasWrite: true),
         new FeatureDefinition(Feature.Anela_Meetings, "Schůzky", HasWrite: true),
         new FeatureDefinition(Feature.Anela_OrgChart, "Organigram"),
         new FeatureDefinition(Feature.Anela_MindMaps, "Myšlenkové mapy", HasWrite: true),

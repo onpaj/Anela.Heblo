@@ -31,7 +31,7 @@ async function readColumnValues(page: Page, columnIndex: number): Promise<string
   return values;
 }
 
-test.describe('Marketing — Výkon reklamy', () => {
+test.describe('Marketing — Analýzy', () => {
   test.beforeEach(async ({ page }) => {
     await navigateToMarketingPerformance(page);
   });
