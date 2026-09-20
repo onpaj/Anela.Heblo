@@ -28,4 +28,7 @@ internal sealed class CatalogManufactureCatalogSourceAdapter : IManufactureCatal
 
     public Task<IEnumerable<CatalogAggregate>> GetAllAsync(CancellationToken cancellationToken = default) =>
         _repository.GetAllAsync(cancellationToken);
+
+    public Task RefreshPlannedDataAsync(CancellationToken cancellationToken = default) =>
+        _repository.RefreshPlannedData(cancellationToken);
 }

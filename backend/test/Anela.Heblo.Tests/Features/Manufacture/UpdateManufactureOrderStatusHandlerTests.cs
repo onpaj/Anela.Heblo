@@ -1,3 +1,4 @@
+using Anela.Heblo.Application.Features.Manufacture.Contracts;
 using Anela.Heblo.Application.Features.Manufacture.Services;
 using Anela.Heblo.Application.Features.Manufacture.UseCases.UpdateManufactureOrderStatus;
 using Anela.Heblo.Application.Shared;
@@ -18,6 +19,7 @@ public class UpdateManufactureOrderStatusHandlerTests
     private readonly Mock<ICurrentUserService> _currentUserServiceMock;
     private readonly Mock<IManufactureInventoryWriteDownService> _inventoryWriteDownServiceMock;
     private readonly Mock<IManufactureConditionsCaptureService> _conditionsCaptureServiceMock;
+    private readonly Mock<IManufactureCatalogSource> _catalogSourceMock;
     private readonly UpdateManufactureOrderStatusHandler _handler;
 
     private const int ValidOrderId = 1;
@@ -32,6 +34,7 @@ public class UpdateManufactureOrderStatusHandlerTests
         _currentUserServiceMock = new Mock<ICurrentUserService>();
         _inventoryWriteDownServiceMock = new Mock<IManufactureInventoryWriteDownService>();
         _conditionsCaptureServiceMock = new Mock<IManufactureConditionsCaptureService>();
+        _catalogSourceMock = new Mock<IManufactureCatalogSource>();
 
         _currentUserServiceMock
             .Setup(x => x.GetCurrentUser())
@@ -61,7 +64,8 @@ public class UpdateManufactureOrderStatusHandlerTests
             _loggerMock.Object,
             _currentUserServiceMock.Object,
             _inventoryWriteDownServiceMock.Object,
-            _conditionsCaptureServiceMock.Object);
+            _conditionsCaptureServiceMock.Object,
+            _catalogSourceMock.Object);
     }
 
     [Fact]
@@ -578,6 +582,91 @@ public class UpdateManufactureOrderStatusHandlerTests
         _inventoryWriteDownServiceMock.Verify(
             x => x.WriteDownAsync(It.IsAny<ManufactureOrder>(), It.IsAny<string>(), It.IsAny<CancellationToken>()),
             Times.Never);
+    }
+
+    [Fact]
+    public async Task Handle_WithValidTransition_ShouldRefreshPlannedCatalogData()
+    {
+        // Arrange
+        var request = new UpdateManufactureOrderStatusRequest
+        {
+            Id = ValidOrderId,
+            NewState = ManufactureOrderState.Planned,
+            ChangeReason = ValidChangeReason
+        };
+
+        _repositoryMock
+            .Setup(x => x.GetOrderByIdAsync(ValidOrderId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(CreateOrderInState(ManufactureOrderState.Draft));
+
+        _repositoryMock
+            .Setup(x => x.UpdateOrderAsync(It.IsAny<ManufactureOrder>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((ManufactureOrder order, CancellationToken _) => order);
+
+        // Act
+        var result = await _handler.Handle(request, CancellationToken.None);
+
+        // Assert
+        result.Success.Should().BeTrue();
+        _catalogSourceMock.Verify(
+            x => x.RefreshPlannedDataAsync(It.IsAny<CancellationToken>()),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task Handle_WhenOrderNotFound_ShouldNotRefreshPlannedCatalogData()
+    {
+        // Arrange
+        var request = new UpdateManufactureOrderStatusRequest
+        {
+            Id = NonExistentOrderId,
+            NewState = ManufactureOrderState.Planned,
+            ChangeReason = ValidChangeReason
+        };
+
+        _repositoryMock
+            .Setup(x => x.GetOrderByIdAsync(NonExistentOrderId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync((ManufactureOrder?)null);
+
+        // Act
+        await _handler.Handle(request, CancellationToken.None);
+
+        // Assert
+        _catalogSourceMock.Verify(
+            x => x.RefreshPlannedDataAsync(It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
+
+    [Fact]
+    public async Task Handle_WhenPlannedDataRefreshFails_ShouldStillReportSuccess()
+    {
+        // Arrange - the state change is already committed, so a cache hiccup must not
+        // surface to the caller as a failed request.
+        var request = new UpdateManufactureOrderStatusRequest
+        {
+            Id = ValidOrderId,
+            NewState = ManufactureOrderState.Planned,
+            ChangeReason = ValidChangeReason
+        };
+
+        _repositoryMock
+            .Setup(x => x.GetOrderByIdAsync(ValidOrderId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(CreateOrderInState(ManufactureOrderState.Draft));
+
+        _repositoryMock
+            .Setup(x => x.UpdateOrderAsync(It.IsAny<ManufactureOrder>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((ManufactureOrder order, CancellationToken _) => order);
+
+        _catalogSourceMock
+            .Setup(x => x.RefreshPlannedDataAsync(It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new InvalidOperationException("cache unavailable"));
+
+        // Act
+        var result = await _handler.Handle(request, CancellationToken.None);
+
+        // Assert
+        result.Success.Should().BeTrue();
+        result.NewState.Should().Be(ManufactureOrderState.Planned.ToString());
     }
 
     private static ManufactureOrder CreateOrderInState(ManufactureOrderState state)
