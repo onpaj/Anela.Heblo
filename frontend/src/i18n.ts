@@ -235,7 +235,7 @@ const resources = {
 
         // Marketing Performance module errors
         MarketingPerformanceInvalidMonthRange: "Neplatné období: zadejte měsíce ve formátu RRRR-MM, počáteční měsíc nesmí být po koncovém a období nesmí být v budoucnosti.",
-        MarketingPerformanceRangeTooLarge: "Období pro přepočet je příliš dlouhé (maximum {{maxMonths}} měsíců).",
+        MarketingPerformanceRangeTooLarge: "Období pro přepočet je příliš dlouhé (maximum {maxMonths} měsíců).",
         MarketingPerformanceRecomputeAlreadyRunning: "Přepočet výkonu reklamy už běží. Počkejte na jeho dokončení.",
         MarketingPerformanceEnqueueFailed: "Přepočet se nepodařilo zařadit do fronty. Zkuste to prosím znovu.",
 
