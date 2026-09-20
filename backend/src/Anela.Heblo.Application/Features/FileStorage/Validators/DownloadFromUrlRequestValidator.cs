@@ -1,5 +1,5 @@
 using System;
-using Anela.Heblo.Application.Features.FileStorage.UseCases.DownloadFromUrl;
+using Anela.Heblo.Application.Features.FileStorage.Contracts;
 using Anela.Heblo.Application.Shared;
 using FluentValidation;
 
