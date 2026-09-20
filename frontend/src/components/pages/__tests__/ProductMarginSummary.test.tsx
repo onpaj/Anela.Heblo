@@ -295,7 +295,28 @@ describe("ProductMarginSummary", () => {
       return dot.style.backgroundColor.toLowerCase();
     };
 
-    const normalize = (hex: string) => hex.toLowerCase();
+    // jsdom serializes an inline `style.backgroundColor` set from a "#rrggbb" string
+    // back out as "rgb(r, g, b)", while the chart's color comes straight from the raw
+    // JSON payload as "#rrggbb". Normalize both to "rgb(r, g, b)" so the comparison is
+    // about the actual color, not which string format happens to carry it.
+    const normalize = (color: string): string => {
+      const value = color.trim().toLowerCase();
+      if (value.startsWith("#")) {
+        const hex = value.slice(1);
+        const full =
+          hex.length === 3
+            ? hex
+                .split("")
+                .map((ch) => ch + ch)
+                .join("")
+            : hex;
+        const r = parseInt(full.slice(0, 2), 16);
+        const g = parseInt(full.slice(2, 4), 16);
+        const b = parseInt(full.slice(4, 6), 16);
+        return `rgb(${r}, ${g}, ${b})`;
+      }
+      return value;
+    };
 
     expect(normalize(tableColorFor("High Margin Product"))).toBe(
       normalize(chartColorByLabel["High Margin Product"]),

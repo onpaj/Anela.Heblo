@@ -191,14 +191,9 @@ const ProductMarginSummary: React.FC = () => {
 
     return data.topProducts
       .map((product) => {
-        // Find if this product is in top products to get proper color
-        const productIndex = data.topProducts!.findIndex(
-          (tp) => tp.groupKey === product.groupKey,
-        );
-        const color =
-          productIndex >= 0
-            ? PRODUCT_COLORS[productIndex % PRODUCT_COLORS.length]
-            : DEFAULT_COLOR;
+        const color = product.groupKey
+          ? (productColorMap.get(product.groupKey) ?? DEFAULT_COLOR)
+          : DEFAULT_COLOR;
 
         return {
           groupKey: product.groupKey || "",
@@ -206,7 +201,7 @@ const ProductMarginSummary: React.FC = () => {
           colorCode: color,
           totalMargin: product.totalMargin || 0,
           rank: product.rank || 0,
-          
+
           // M0-M2 margin levels - amounts
           m0Amount: product.m0Amount || 0,
           m1Amount: product.m1Amount || 0,
@@ -216,14 +211,14 @@ const ProductMarginSummary: React.FC = () => {
           m0Percentage: product.m0Percentage || 0,
           m1Percentage: product.m1Percentage || 0,
           m2Percentage: product.m2Percentage || 0,
-          
+
           // Pricing
           sellingPrice: product.sellingPrice || 0,
           purchasePrice: product.purchasePrice || 0,
         };
       })
       .sort((a, b) => a.rank - b.rank); // Sort by rank from backend
-  }, [data]);
+  }, [data?.topProducts, productColorMap]);
 
   const chartOptions: ChartOptions<"bar"> = useMemo(
     () => ({
