@@ -55,6 +55,24 @@ describe('MarketingPerformancePage', () => {
     expect(screen.getByRole('heading', { name: 'Přepočítat výkon reklamy' })).toBeInTheDocument()
   })
 
+  it('localizes a thrown API error DTO instead of showing "Neznámá chyba"', () => {
+    // Arrange - the generated client throws the parsed response DTO, not an Error,
+    // so the DTO carries errorCode and has no .message at all.
+    mockMonthsQuery.mockReturnValue({
+      data: undefined,
+      isLoading: false,
+      error: { success: false, errorCode: 'MarketingPerformanceInvalidMonthRange', params: {} },
+      isRefetching: false,
+    })
+
+    // Act
+    render(<MarketingPerformancePage />)
+
+    // Assert
+    expect(screen.getByText(/Neplatné období: zadejte měsíce ve formátu RRRR-MM/)).toBeInTheDocument()
+    expect(screen.queryByText('Neznámá chyba')).not.toBeInTheDocument()
+  })
+
   it('shows the last refresh time in the status line', () => {
     render(<MarketingPerformancePage />)
     expect(screen.getByText(/Poslední aktualizace:/)).toBeInTheDocument()

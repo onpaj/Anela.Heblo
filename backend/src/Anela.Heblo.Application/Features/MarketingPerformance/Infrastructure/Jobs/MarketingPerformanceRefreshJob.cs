@@ -38,7 +38,7 @@ public class MarketingPerformanceRefreshJob : IRecurringJob
         {
             JobName = Name,
             DisplayName = "Marketing — výkon reklamy (měsíční snapshot)",
-            Description = "Denně přepočítá aktuální a předchozí měsíc: náklady na reklamu z přijatých faktur v ABRA Flexi (podle DIČ dodavatele na kanál) a objednávky/tržby z vydaných faktur (CZK, podle DUZP, maloobchod/velkoobchod zvlášť). Starší měsíce uzamkne; ty mění jen ruční přepočet na obrazovce Výkon reklamy.",
+            Description = "Denně přepočítá aktuální a předchozí měsíc: náklady na reklamu z přijatých faktur v ABRA Flexi (podle DIČ dodavatele na kanál) a objednávky/tržby z vydaných faktur (CZK, podle DUZP, maloobchod/velkoobchod zvlášť). Starší měsíce uzamkne; ty mění jen ruční přepočet na obrazovce Analýzy.",
             CronExpression = options.Value.CronExpression,
             DefaultIsEnabled = true,
         };

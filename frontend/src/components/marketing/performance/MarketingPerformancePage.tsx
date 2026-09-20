@@ -2,6 +2,7 @@ import React, { useMemo, useState } from 'react'
 import { AlertTriangle } from 'lucide-react'
 import { PAGE_CONTAINER_HEIGHT } from '../../../constants/layout'
 import { usePermissionsContext } from '../../../auth/PermissionsContext'
+import { extractErrorMessage } from '../../../utils/errorHandler'
 import { useScreenView } from '../../../telemetry/useScreenView'
 import {
   useMarketingPerformanceComparisonQuery,
@@ -95,7 +96,7 @@ const MarketingPerformancePage: React.FC = () => {
               <AlertTriangle className="w-5 h-5 text-red-500 mr-2" />
               <h3 className="text-red-800 dark:text-red-300 font-medium">Chyba při načítání dat</h3>
             </div>
-            <p className="mt-1 text-red-700 dark:text-red-300 text-sm">{active.error.message || 'Neznámá chyba'}</p>
+            <p className="mt-1 text-red-700 dark:text-red-300 text-sm">{extractErrorMessage(active.error)}</p>
           </div>
         )}
 
