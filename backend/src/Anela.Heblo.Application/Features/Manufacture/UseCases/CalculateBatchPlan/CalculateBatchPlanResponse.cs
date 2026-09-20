@@ -36,6 +36,7 @@ public class BatchPlanItemDto
 
     // Current State
     public double CurrentStock { get; set; }
+    public double PlannedQuantity { get; set; }   // Already planned manufacture not yet completed
     public double DailySalesRate { get; set; }
     public double CurrentDaysCoverage { get; set; }
 

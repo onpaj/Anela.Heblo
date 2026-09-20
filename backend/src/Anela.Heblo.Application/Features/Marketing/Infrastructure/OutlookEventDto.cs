@@ -21,6 +21,9 @@ namespace Anela.Heblo.Application.Features.Marketing.Infrastructure
         [JsonPropertyName("end")]
         public GraphEventDateTime? End { get; set; }
 
+        [JsonPropertyName("isAllDay")]
+        public bool IsAllDay { get; set; }
+
         [JsonPropertyName("categories")]
         public string[] Categories { get; set; } = Array.Empty<string>();
 
