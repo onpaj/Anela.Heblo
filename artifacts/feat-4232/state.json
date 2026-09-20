@@ -17,13 +17,32 @@
       "updated_at": "2026-09-20T12:17:55.536678Z"
     },
     "planning": {
-      "status": "in_progress",
-      "updated_at": "2026-09-20T12:18:16.738991Z"
+      "status": "completed",
+      "updated_at": "2026-09-20T12:23:25.801533Z"
     },
     "developing": {
       "status": "pending",
       "updated_at": null
     }
   },
-  "tasks": []
+  "tasks": [
+    {
+      "name": "create-filestorage-contracts-folder",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    },
+    {
+      "name": "update-tests-for-contracts-namespace",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    },
+    {
+      "name": "verify-build-format-and-openapi-client",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    }
+  ]
 }
