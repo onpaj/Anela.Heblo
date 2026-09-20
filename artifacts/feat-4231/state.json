@@ -58,9 +58,9 @@
     },
     {
       "name": "migrate-get-dates-handler",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-09-20T22:17:52.891689Z"
+      "updated_at": "2026-09-20T22:38:08.525883Z"
     },
     {
       "name": "module-boundary-guard",
