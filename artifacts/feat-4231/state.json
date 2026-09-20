@@ -64,9 +64,9 @@
     },
     {
       "name": "module-boundary-guard",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-09-20T23:15:46.688842Z"
+      "updated_at": "2026-09-20T23:34:28.281703Z"
     },
     {
       "name": "final-verification",
