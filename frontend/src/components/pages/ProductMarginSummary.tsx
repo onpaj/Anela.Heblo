@@ -37,6 +37,7 @@ const PRODUCT_COLORS = [
 
 const OTHER_COLOR = "#9CA3AF"; // Gray for "Other"
 const DEFAULT_COLOR = "#9CA3AF"; // Gray for products not in top 15
+const TOP_CHART_PRODUCTS = 15;
 
 const ProductMarginSummary: React.FC = () => {
   const [selectedTimeWindow, setSelectedTimeWindow] =
@@ -63,6 +64,30 @@ const ProductMarginSummary: React.FC = () => {
     }).format(amount);
   }, []);
 
+  // Single canonical productKey -> color mapping, consumed by both chartData and
+  // tableData. Sorted descending by totalMargin; top TOP_CHART_PRODUCTS get a distinct
+  // palette color, the rest fall back to DEFAULT_COLOR. This map is never itself
+  // reassigned DEFAULT_COLOR for a top-N product, so `=== DEFAULT_COLOR` is a safe way
+  // to test "is this product in the top N" elsewhere in this file (see buildChartDatasets).
+  const productColorMap = useMemo(() => {
+    const map = new Map<string, string>();
+    if (!data?.topProducts) return map;
+    const sorted = [...data.topProducts].sort(
+      (a, b) => (b.totalMargin ?? 0) - (a.totalMargin ?? 0),
+    );
+    sorted.forEach((product, index) => {
+      if (product.groupKey) {
+        map.set(
+          product.groupKey,
+          index < TOP_CHART_PRODUCTS
+            ? PRODUCT_COLORS[index % PRODUCT_COLORS.length]
+            : DEFAULT_COLOR,
+        );
+      }
+    });
+    return map;
+  }, [data?.topProducts]);
+
   const chartData = useMemo(() => {
     if (!data?.monthlyData || !data?.topProducts) return null;
 
@@ -72,10 +97,9 @@ const ProductMarginSummary: React.FC = () => {
     const sortedByTotalMargin = [...data.topProducts].sort(
       (a, b) => (b.totalMargin || 0) - (a.totalMargin || 0),
     );
-    const productColorMap = new Map<string, string>();
+    const chartProductColorMap = new Map<string, string>();
 
     // For chart, we want to show only top 15 products and group the rest as "Other"
-    const TOP_CHART_PRODUCTS = 15;
     const topProductsForChart = sortedByTotalMargin.slice(
       0,
       TOP_CHART_PRODUCTS,
@@ -85,7 +109,7 @@ const ProductMarginSummary: React.FC = () => {
     // Assign colors to top products
     topProductsForChart.forEach((product, index) => {
       if (product.groupKey) {
-        productColorMap.set(
+        chartProductColorMap.set(
           product.groupKey,
           PRODUCT_COLORS[index % PRODUCT_COLORS.length],
         );
@@ -146,7 +170,7 @@ const ProductMarginSummary: React.FC = () => {
     // Add top products
     topProductKeys.forEach((productKey) => {
       if (!productKey) return;
-      const color = productColorMap.get(productKey) || DEFAULT_COLOR;
+      const color = chartProductColorMap.get(productKey) || DEFAULT_COLOR;
       const displayName = productDisplayNames.get(productKey) || productKey;
 
       datasets.push({
