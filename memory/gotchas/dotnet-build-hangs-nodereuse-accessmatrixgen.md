@@ -100,3 +100,14 @@ knowing as lighter-weight alternatives:
    it was tried). `--no-build` skips the implicit build step entirely, so it
    never touches the `GenerateAccessMatrix`/nested-`dotnet run` codepath that
    triggers the deadlock.
+
+**Related perf issue, not a hang (observed 2026-09-20, feat-4229):** even when
+`GenerateAccessMatrix` doesn't deadlock, it appears to regenerate
+`Feature.generated.cs`/etc. on every single `dotnet build`/`dotnet test`
+invocation regardless of whether source actually changed, which invalidates
+Domain's up-to-date check and forces a full downstream recompile
+(Domain→...→API→Tests) every time. Under a throttled/shared sandbox CPU, one
+test run this way took ~16 minutes wall-clock, almost entirely compilation.
+Not investigated further (out of scope for that task) — worth a look if
+someone wants faster iterative `dotnet test` loops, possibly by making the
+generator's output writes conditional on content actually changing.
