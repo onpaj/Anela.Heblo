@@ -230,6 +230,12 @@ public class ModuleBoundariesTests
         "Anela.Heblo.Application.Features.ExpeditionList.Contracts.ExpeditionPickingRequest -> Anela.Heblo.Domain.Features.Logistics.Carriers",
     };
 
+    // Allowlist for ExpeditionList -> ShoptetOrders. Empty — PrintExpeditionOrderHandler now consumes
+    // the ExpeditionList-owned IOrderStatusReader contract; the ShoptetOrders adapter
+    // (ShoptetOrdersOrderStatusReaderAdapter) lives in ShoptetOrders.Infrastructure and implements it
+    // there, so no ExpeditionList type needs to reference ShoptetOrders directly.
+    private static readonly HashSet<string> ExpeditionListShoptetOrdersAllowlist = new(StringComparer.Ordinal);
+
     // Allowlist for ShoptetApi Adapters -> Catalog.
     // ShoptetApiExpeditionListSource retains ICatalogRepository injection — out of scope.
     // Track as follow-up; remove when ShoptetApiExpeditionListSource is decoupled.
@@ -290,15 +296,16 @@ public class ModuleBoundariesTests
         };
 
     // Allowlist for Packaging -> ShoptetOrders. The Packaging module legitimately consumes
-    // the IPackingOrderClient / IEshopOrderClient contracts (and their DTOs) defined in
+    // the IPackingOrderClient contract (and its PackingOrder/PackingOrderItem DTOs) defined in
     // Anela.Heblo.Application.Features.ShoptetOrders. Everything else — particularly
-    // ShoptetOrdersSettings, PackingStateId, and PackedStateId — must not be referenced
-    // from Packaging. This rule pins the 2026-06-05 decoupling in place.
+    // ShoptetOrdersSettings, PackingStateId, PackedStateId, and (as of the IEshopOrderClient
+    // decoupling) IEshopOrderClient itself — must not be referenced from Packaging. Packaging now
+    // consumes MarkAsPackedAsync via its own IPackedOrderStatusUpdater contract, implemented by
+    // ShoptetOrders' ShoptetOrdersPackedOrderStatusUpdaterAdapter.
     private static readonly HashSet<string> PackagingShoptetOrdersAllowlist = new(StringComparer.Ordinal)
     {
         // Constructor injections in ScanPackingOrderHandler.
         "Anela.Heblo.Application.Features.Packaging.UseCases.ScanPackingOrder.ScanPackingOrderHandler -> Anela.Heblo.Application.Features.ShoptetOrders.IPackingOrderClient",
-        "Anela.Heblo.Application.Features.Packaging.UseCases.ScanPackingOrder.ScanPackingOrderHandler -> Anela.Heblo.Application.Features.ShoptetOrders.IEshopOrderClient",
 
         // PackingOrder is consumed in Handle and in the private BuildShippingAddress helper;
         // PackingOrderItem flows through ScanOrderData.Items.
@@ -313,8 +320,6 @@ public class ModuleBoundariesTests
         "Anela.Heblo.Application.Features.Packaging.UseCases.ResetOrderShipment.ResetOrderShipmentHandler -> Anela.Heblo.Application.Features.ShoptetOrders.IPackingOrderClient",
         "Anela.Heblo.Application.Features.Packaging.UseCases.ResetOrderShipment.ResetOrderShipmentHandler -> Anela.Heblo.Application.Features.ShoptetOrders.PackingOrder",
         "Anela.Heblo.Application.Features.Packaging.UseCases.ResetOrderShipment.ResetOrderShipmentHandler -> Anela.Heblo.Application.Features.ShoptetOrders.PackingOrderItem",
-
-        "Anela.Heblo.Application.Features.Packaging.UseCases.CompletePackingOrder.CompletePackingOrderHandler -> Anela.Heblo.Application.Features.ShoptetOrders.IEshopOrderClient",
 
         // ShipmentCreationService.CreateAndPersistAsync(PackingOrder order, ...) — the interface
         // method parameter and the class's own implementation both reference PackingOrder.
@@ -645,6 +650,15 @@ public class ModuleBoundariesTests
                 "Anela.Heblo.Persistence.Logistics",
             },
             Allowlist: ExpeditionListLogisticsAllowlist),
+
+        new ModuleBoundaryRule(
+            Name: "ExpeditionList -> ShoptetOrders",
+            InspectedNamespacePrefix: "Anela.Heblo.Application.Features.ExpeditionList",
+            ForbiddenNamespacePrefixes: new[]
+            {
+                "Anela.Heblo.Application.Features.ShoptetOrders",
+            },
+            Allowlist: ExpeditionListShoptetOrdersAllowlist),
 
         new ModuleBoundaryRule(
             Name: "Packaging -> ShoptetOrders",

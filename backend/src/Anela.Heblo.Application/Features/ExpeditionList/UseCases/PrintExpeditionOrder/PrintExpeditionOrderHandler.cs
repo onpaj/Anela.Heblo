@@ -1,6 +1,5 @@
 using Anela.Heblo.Application.Features.ExpeditionList.Contracts;
 using Anela.Heblo.Application.Features.ExpeditionList.Services;
-using Anela.Heblo.Application.Features.ShoptetOrders;
 using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Domain.Features.Logistics;
 using MediatR;
@@ -21,18 +20,18 @@ public class PrintExpeditionOrderHandler : IRequestHandler<PrintExpeditionOrderR
     };
 
     private readonly IExpeditionListService _expeditionListService;
-    private readonly IEshopOrderClient _eshopOrderClient;
+    private readonly IOrderStatusReader _orderStatusReader;
     private readonly IOptions<PrintPickingListOptions> _options;
     private readonly ILogger<PrintExpeditionOrderHandler> _logger;
 
     public PrintExpeditionOrderHandler(
         IExpeditionListService expeditionListService,
-        IEshopOrderClient eshopOrderClient,
+        IOrderStatusReader orderStatusReader,
         IOptions<PrintPickingListOptions> options,
         ILogger<PrintExpeditionOrderHandler> logger)
     {
         _expeditionListService = expeditionListService;
-        _eshopOrderClient = eshopOrderClient;
+        _orderStatusReader = orderStatusReader;
         _options = options;
         _logger = logger;
     }
@@ -44,7 +43,7 @@ public class PrintExpeditionOrderHandler : IRequestHandler<PrintExpeditionOrderR
         int currentStatusId;
         try
         {
-            currentStatusId = await _eshopOrderClient.GetOrderStatusIdAsync(request.OrderCode, cancellationToken);
+            currentStatusId = await _orderStatusReader.GetOrderStatusIdAsync(request.OrderCode, cancellationToken);
         }
         catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
         {

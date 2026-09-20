@@ -206,6 +206,7 @@ const resources = {
         RecurringJobUpdateFailed: "Aktualizace opakované úlohy selhala",
         InvalidCronExpression: "Neplatný výraz CRON",
         RecurringJobDisabled: "Opakovaná úloha je vypnutá",
+        RecurringJobAlreadyRunning: "Úloha už právě běží",
         RecurringJobEnqueueFailed: "Zařazení opakované úlohy do fronty se nezdařilo",
 
         // KnowledgeBase module errors

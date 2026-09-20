@@ -1,3 +1,4 @@
+using Anela.Heblo.Application.Features.Packaging.Contracts;
 using Anela.Heblo.Application.Features.Packaging.Services;
 using Anela.Heblo.Application.Features.ShipmentLabels;
 using Anela.Heblo.Application.Features.ShoptetOrders;
@@ -14,7 +15,7 @@ public class ScanPackingOrderHandler : IRequestHandler<ScanPackingOrderRequest, 
 {
     private readonly IShipmentClient _shipmentClient;
     private readonly IPackingOrderClient _orderClient;
-    private readonly IEshopOrderClient _eshopOrderClient;
+    private readonly IPackedOrderStatusUpdater _packedOrderStatusUpdater;
     private readonly ILogger<ScanPackingOrderHandler> _logger;
     private readonly IPackageRepository _packageRepository;
     private readonly ICurrentUserService _currentUserService;
@@ -24,7 +25,7 @@ public class ScanPackingOrderHandler : IRequestHandler<ScanPackingOrderRequest, 
     public ScanPackingOrderHandler(
         IShipmentClient shipmentClient,
         IPackingOrderClient orderClient,
-        IEshopOrderClient eshopOrderClient,
+        IPackedOrderStatusUpdater packedOrderStatusUpdater,
         ILogger<ScanPackingOrderHandler> logger,
         IPackageRepository packageRepository,
         ICurrentUserService currentUserService,
@@ -33,7 +34,7 @@ public class ScanPackingOrderHandler : IRequestHandler<ScanPackingOrderRequest, 
     {
         _shipmentClient = shipmentClient;
         _orderClient = orderClient;
-        _eshopOrderClient = eshopOrderClient;
+        _packedOrderStatusUpdater = packedOrderStatusUpdater;
         _logger = logger;
         _packageRepository = packageRepository;
         _currentUserService = currentUserService;
@@ -161,7 +162,7 @@ public class ScanPackingOrderHandler : IRequestHandler<ScanPackingOrderRequest, 
     {
         try
         {
-            await _eshopOrderClient.MarkAsPackedAsync(orderCode, ct);
+            await _packedOrderStatusUpdater.MarkAsPackedAsync(orderCode, ct);
         }
         catch (Exception ex)
         {

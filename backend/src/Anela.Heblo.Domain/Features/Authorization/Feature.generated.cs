@@ -29,6 +29,8 @@ public enum Feature
     Warehouse_Expedition,
     Warehouse_Packaging,
     Warehouse_StockUp,
+    Warehouse_GiftPackages,
+    Warehouse_StockOverride,
     Marketing_Article,
     Marketing_Leaflet,
     Marketing_Photobank,

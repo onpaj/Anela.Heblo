@@ -44,6 +44,9 @@ public static class AccessRoles
     public const string WarehousePackagingWrite = "warehouse.packaging.write";
     public const string WarehouseStockUpRead = "warehouse.stock_up.read";
     public const string WarehouseStockUpWrite = "warehouse.stock_up.write";
+    public const string WarehouseGiftPackagesRead = "warehouse.gift_packages.read";
+    public const string WarehouseGiftPackagesWrite = "warehouse.gift_packages.write";
+    public const string WarehouseStockOverrideRead = "warehouse.stock_override.read";
     public const string MarketingArticleRead = "marketing.article.read";
     public const string MarketingArticleWrite = "marketing.article.write";
     public const string MarketingLeafletRead = "marketing.leaflet.read";
@@ -111,6 +114,9 @@ public static class AccessRoles
         (Feature.Warehouse_Packaging, AccessLevel.Write) => WarehousePackagingWrite,
         (Feature.Warehouse_StockUp, AccessLevel.Read) => WarehouseStockUpRead,
         (Feature.Warehouse_StockUp, AccessLevel.Write) => WarehouseStockUpWrite,
+        (Feature.Warehouse_GiftPackages, AccessLevel.Read) => WarehouseGiftPackagesRead,
+        (Feature.Warehouse_GiftPackages, AccessLevel.Write) => WarehouseGiftPackagesWrite,
+        (Feature.Warehouse_StockOverride, AccessLevel.Read) => WarehouseStockOverrideRead,
         (Feature.Marketing_Article, AccessLevel.Read) => MarketingArticleRead,
         (Feature.Marketing_Article, AccessLevel.Write) => MarketingArticleWrite,
         (Feature.Marketing_Leaflet, AccessLevel.Read) => MarketingLeafletRead,
