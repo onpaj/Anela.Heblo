@@ -152,19 +152,26 @@ req_paginate() {
   local url
   url=$(_api_url "$path")
   [[ "$url" == *"?"* ]] && url="${url}&per_page=100" || url="${url}?per_page=100"
-  local all="[]" hdrfile body
+  local all="[]" hdrfile allfile bodyfile
   hdrfile=$(mktemp)
+  allfile=$(mktemp)
+  bodyfile=$(mktemp)
+  printf '%s' "$all" > "$allfile"
   while [[ -n "$url" ]]; do
-    body=$(curl -sS --max-time 30 -X "$method" \
+    curl -sS --max-time 30 -X "$method" \
       -H "Authorization: Bearer ${TOKEN}" \
       -H "Accept: application/vnd.github+json" \
       -H "X-GitHub-Api-Version: 2022-11-28" \
-      -D "$hdrfile" "$url")
-    all=$(jq -c -n --argjson a "$all" --argjson b "$body" '$a + $b')
+      -D "$hdrfile" "$url" -o "$bodyfile"
+    # Pages can be large enough to blow past the sandbox's per-argument exec
+    # limit (seen well under the OS ARG_MAX) when passed via --argjson on the
+    # command line — read both operands as files instead.
+    jq -c -n --slurpfile a "$allfile" --slurpfile b "$bodyfile" '$a[0] + $b[0]' > "${allfile}.new"
+    mv "${allfile}.new" "$allfile"
     url=$(grep -i '^link:' "$hdrfile" | grep -o '<[^>]*>; rel="next"' | sed -E 's/^<(.*)>.*/\1/' || true)
   done
-  rm -f "$hdrfile"
-  printf '%s' "$all"
+  cat "$allfile"
+  rm -f "$hdrfile" "$allfile" "$bodyfile"
 }
 
 graphql() {
