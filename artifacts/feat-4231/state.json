@@ -28,9 +28,9 @@
   "tasks": [
     {
       "name": "contracts-and-dto",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-09-20T10:16:26.551114Z"
+      "updated_at": "2026-09-20T10:18:30.242024Z"
     },
     {
       "name": "adapter-and-di",
