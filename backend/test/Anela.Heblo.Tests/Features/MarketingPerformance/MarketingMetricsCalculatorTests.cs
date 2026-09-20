@@ -19,11 +19,16 @@ public class MarketingMetricsCalculatorTests
     // Spreadsheet row 2026-01: FB/IG 386500, Google 124126, S-Klik 14456, Shoptet s DPH 2 586 556, 2354 orders.
     private static MarketingPerformanceMonth Jan2026() => new()
     {
-        Year = 2026, Month = 1,
-        RetailOrderCount = 2354, RetailRevenueWithVat = 2_586_556m,
-        WholesaleOrderCount = 33, WholesaleRevenueWithVat = 285_591m,
-        SkippedEurInvoiceCount = 2, IsLocked = true,
-        RevenueComputedAt = new DateTime(2026, 9, 1), CostsComputedAt = new DateTime(2026, 9, 1),
+        Year = 2026,
+        Month = 1,
+        RetailOrderCount = 2354,
+        RetailRevenueWithVat = 2_586_556m,
+        WholesaleOrderCount = 33,
+        WholesaleRevenueWithVat = 285_591m,
+        SkippedEurInvoiceCount = 2,
+        IsLocked = true,
+        RevenueComputedAt = new DateTime(2026, 9, 1),
+        CostsComputedAt = new DateTime(2026, 9, 1),
         ChannelCosts =
         {
             new MarketingPerformanceChannelCost { ChannelCode = "meta", CostWithoutVat = 386_500m, InvoiceCount = 2 },
@@ -34,7 +39,10 @@ public class MarketingMetricsCalculatorTests
 
     private static MarketingPerformanceMonth Jan2025() => new()
     {
-        Year = 2025, Month = 1, RetailOrderCount = 3021, RetailRevenueWithVat = 2_802_542m,
+        Year = 2025,
+        Month = 1,
+        RetailOrderCount = 3021,
+        RetailRevenueWithVat = 2_802_542m,
         ChannelCosts = { new MarketingPerformanceChannelCost { ChannelCode = "meta", CostWithoutVat = 583_917m, InvoiceCount = 3 } },
     };
 
@@ -92,7 +100,8 @@ public class MarketingMetricsCalculatorTests
     {
         var month = new MarketingPerformanceMonth
         {
-            Year = 2026, Month = 9,
+            Year = 2026,
+            Month = 9,
             ChannelCosts =
             {
                 new MarketingPerformanceChannelCost { ChannelCode = "meta", CostWithoutVat = 100m, InvoiceCount = 1 },
