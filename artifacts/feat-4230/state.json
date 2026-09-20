@@ -28,9 +28,9 @@
   "tasks": [
     {
       "name": "add-regression-test",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-09-20T08:15:57.674330Z"
+      "updated_at": "2026-09-20T08:20:25.739433Z"
     },
     {
       "name": "build-product-color-map",
