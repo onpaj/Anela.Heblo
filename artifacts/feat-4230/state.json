@@ -46,9 +46,9 @@
     },
     {
       "name": "wire-table-data-to-color-map",
-      "status": "pending",
+      "status": "completed",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-09-20T08:41:28.388258Z"
     },
     {
       "name": "final-validation",
