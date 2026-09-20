@@ -33,6 +33,21 @@ describe('RecomputeDialog', () => {
     jest.useRealTimers()
   })
 
+  it('exposes dialog semantics and closes on Escape', () => {
+    // Arrange
+    const onClose = jest.fn()
+    renderDialog(true, onClose)
+
+    // Act
+    const dialog = screen.getByRole('dialog')
+    fireEvent.keyDown(document, { key: 'Escape' })
+
+    // Assert
+    expect(dialog).toHaveAttribute('aria-modal', 'true')
+    expect(dialog).toHaveAccessibleName('Přepočítat výkon reklamy')
+    expect(onClose).toHaveBeenCalled()
+  })
+
   it('submits the typed range', () => {
     renderDialog(true, jest.fn())
     fireEvent.change(screen.getByLabelText('Od (RRRR-MM)'), { target: { value: '2023-01' } })

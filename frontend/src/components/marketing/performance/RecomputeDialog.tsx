@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useCallback, useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { X } from 'lucide-react'
 import { useRecomputeMarketingPerformanceMutation } from '../../../api/hooks/useMarketingPerformance'
@@ -32,6 +32,24 @@ export const RecomputeDialog: React.FC<RecomputeDialogProps> = ({ isOpen, onClos
   const [validationError, setValidationError] = useState<string | null>(null)
   const mutation = useRecomputeMarketingPerformanceMutation()
 
+  // Depend on reset (stable across renders) rather than the mutation object,
+  // whose identity changes every render and would re-subscribe the listener.
+  const { reset } = mutation
+  const close = useCallback(() => {
+    reset()
+    onClose()
+  }, [reset, onClose])
+
+  // Hook must run before the isOpen early return.
+  useEffect(() => {
+    if (!isOpen) return
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') close()
+    }
+    document.addEventListener('keydown', onKeyDown)
+    return () => document.removeEventListener('keydown', onKeyDown)
+  }, [isOpen, close])
+
   if (!isOpen) return null
 
   const submit = () => {
@@ -47,11 +65,6 @@ export const RecomputeDialog: React.FC<RecomputeDialogProps> = ({ isOpen, onClos
     mutation.mutate({ from, to }, {})
   }
 
-  const close = () => {
-    mutation.reset()
-    onClose()
-  }
-
   // The generated client throws on non-2xx by throwing the parsed response DTO itself (it extends
   // BaseResponse: success/errorCode/params) rather than wrapping it in a SwaggerException with a
   // `.result` property. extractErrorMessage recognizes that shape and resolves the localized
@@ -59,14 +72,14 @@ export const RecomputeDialog: React.FC<RecomputeDialogProps> = ({ isOpen, onClos
   const serverError = mutation.error ? extractErrorMessage(mutation.error) : null
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto">
+    <div className="fixed inset-0 z-50 overflow-y-auto" role="dialog" aria-modal="true" aria-labelledby="recompute-dialog-title">
       <div className="fixed inset-0 bg-black bg-opacity-50 transition-opacity" onClick={close} />
       <div className="flex min-h-full items-center justify-center p-4">
         <div className="relative bg-white dark:bg-graphite-surface rounded-lg shadow-xl dark:shadow-soft-dark max-w-md w-full p-6">
           <button type="button" onClick={close} aria-label="Zavřít" className="absolute top-4 right-4 text-gray-400 dark:text-graphite-faint hover:text-gray-600 dark:hover:text-graphite-muted">
             <X className="h-5 w-5" />
           </button>
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-graphite-text mb-2">Přepočítat výkon reklamy</h3>
+          <h3 id="recompute-dialog-title" className="text-lg font-semibold text-gray-900 dark:text-graphite-text mb-2">Přepočítat výkon reklamy</h3>
           <p className="text-sm text-gray-600 dark:text-graphite-muted mb-4">
             Přepočet znovu načte náklady z ABRA Flexi a tržby z vydaných faktur pro každý měsíc v období, včetně uzamčených měsíců. Běží na pozadí.
           </p>
