@@ -288,8 +288,12 @@ describe("ProductMarginSummary", () => {
     // (the small rounded div immediately preceding the product name in each row).
     const tableColorFor = (displayName: string): string => {
       const nameEl = screen.getByText(displayName);
+      // The color dot has no accessible role/text of its own, so it can only be
+      // located by walking the DOM from the product name's containing row.
+      // eslint-disable-next-line testing-library/no-node-access
       const row = nameEl.closest("tr");
       if (!row) throw new Error(`No <tr> found for ${displayName}`);
+      // eslint-disable-next-line testing-library/no-node-access
       const dot = row.querySelector("div.rounded-full") as HTMLElement | null;
       if (!dot) throw new Error(`No color dot found for ${displayName}`);
       return dot.style.backgroundColor.toLowerCase();
