@@ -28,9 +28,9 @@
   "tasks": [
     {
       "name": "time-window-shared-allowlist",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-09-20T12:17:20.622298Z"
+      "updated_at": "2026-09-20T12:47:32.834642Z"
     },
     {
       "name": "analytics-error-code-and-message",
