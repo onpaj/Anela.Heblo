@@ -22,7 +22,7 @@
     },
     "developing": {
       "status": "in_progress",
-      "updated_at": "2026-09-20T11:16:44.537063Z"
+      "updated_at": "2026-09-20T12:16:43.353873Z"
     }
   },
   "tasks": [
@@ -40,9 +40,9 @@
     },
     {
       "name": "migrate-download-handler",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-09-20T12:16:43.592479Z"
     },
     {
       "name": "migrate-reprint-handler",
