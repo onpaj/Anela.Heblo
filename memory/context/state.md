@@ -374,22 +374,28 @@ _Update this file at the end of significant sessions._
   `GetMarketingPerformanceComparison`/`RecomputeMarketingPerformance` use cases and
   `MarketingPerformanceController` (routes are `/api/MarketingPerformance/{months,comparison,recompute}`
   — case follows the controller class name, not lowercase), the `marketing-performance-refresh` Hangfire
-  job, and the `/marketing/performance` screen (trend + year-comparison views, recompute dialog).
+  job, and the `Analýzy` screen at `/marketing/performance` (trend + year-comparison views,
+  recompute dialog).
   Documented in `docs/features/marketing-performance.md`, including the Flexi
   `/faktura-prijata/query` read-path traps (bare-URL POST is a write; `?filter=` GET is silently
   ignored and full-table-scans) and the recompute check-then-lock race
   (`RecomputeMarketingPerformanceHandler` checks `MarketingPerformanceRunGuard.IsRunning` before
   enqueueing, but the guard's lock is only taken inside the job when it starts — two rapid requests
   can both be accepted, the second silently no-ops).
-  **Not yet done:**
-  - The FlexiBeeSDK change (VAT-ID filter + `dic` projection, `~/Work/GitHub/FlexiBeeSDK`) is
-    committed locally but **not published to NuGet**, so the real Flexi cost adapter is not wired —
-    `IMonthlyAdCostSource` resolves to `NoOpMonthlyAdCostSource` in every environment right now, and
-    ad costs read as zero until the package is published and the adapter is registered.
-  - Staging migration (`AddMarketingPerformance`) has not been applied.
+  The FlexiBeeSDK change (VAT-ID filter + `dic` projection) is now published as **`0.1.141`**
+  (previously pinned `0.1.139`), and the app references it. `FlexiMonthlyAdCostSource` is
+  implemented and registered, overriding `NoOpMonthlyAdCostSource` — advertising costs now flow
+  from ABRA Flexi received invoices, bucketed by supplier VAT ID, instead of reading as zero.
+  Caveats to keep in mind: numbers will not match the old spreadsheet exactly, since the app dates
+  costs by accounting date rather than the owner's spend-accounting convention; and Seznam had no
+  invoice under its configured VAT ID in August 2026, which the owner may want to investigate.
+  **Not yet done (manual owner runbook):**
+  - Staging and production migration (`AddMarketingPerformance`) has not been applied.
   - `marketing.performance.read`/`.write` permission grants in `/admin/access` have not been made in
-    any environment (seed groups don't update existing environments).
-  - The historical backfill (recompute 2023-01 → current month) has not been run anywhere.
+    any environment (seed groups don't update existing environments) — grant `.read` to everyone
+    who needs the screen, `.write` to whoever runs recomputes.
+  - The historical backfill (recompute 2023-01 → current month via the Přepočítat dialog) has not
+    been run anywhere.
   - `docs/architecture/module-map.md` was checked but not touched: it's an exhaustive per-module
     partition, and `Features/MarketingPerformance` + `MarketingPerformanceController` +
     `/marketing/performance` are a genuinely new, unassigned module by its own maintenance rules
