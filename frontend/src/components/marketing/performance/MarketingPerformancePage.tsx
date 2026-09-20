@@ -64,7 +64,7 @@ const MarketingPerformancePage: React.FC = () => {
         </p>
       </div>
 
-      <div className="flex-1 overflow-auto">
+      <div className="flex-shrink-0 mb-4">
         <PerformanceToolbar
           viewMode={viewMode}
           period={period}
@@ -74,7 +74,7 @@ const MarketingPerformancePage: React.FC = () => {
           canRecompute={canRecompute}
           lastRefreshAt={lastRefreshAt}
           hasWarnings={hasWarnings}
-          isRefetching={Boolean(months.isRefetching)}
+          isRefetching={Boolean(active.isRefetching)}
           onViewModeChange={setViewMode}
           onPeriodChange={setPeriod}
           onYearsChange={setYears}
@@ -82,7 +82,9 @@ const MarketingPerformancePage: React.FC = () => {
           onIncludeWholesaleChange={setIncludeWholesale}
           onRecomputeClick={() => setRecomputeOpen(true)}
         />
+      </div>
 
+      <div className="flex-1 overflow-auto min-h-0">
         {active.isLoading && (
           <div className="flex items-center justify-center py-12">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600" />
