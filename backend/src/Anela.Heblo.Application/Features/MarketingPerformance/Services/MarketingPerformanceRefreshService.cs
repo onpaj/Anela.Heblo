@@ -86,7 +86,7 @@ public class MarketingPerformanceRefreshService : IMarketingPerformanceRefreshSe
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
             _logger.LogError(ex, "Marketing performance: revenue step failed for {Month}", month);
-            errors.Add($"Revenue: {ex.Message}");
+            errors.Add($"Revenue: step failed ({ex.GetType().Name}); see server logs");
         }
 
         try
@@ -96,10 +96,17 @@ public class MarketingPerformanceRefreshService : IMarketingPerformanceRefreshSe
             var invoices = await _costSource.GetAsync(month, vatIds, cancellationToken);
             var bucketing = ChannelCostBucketer.Bucket(invoices, channels);
             unmatched = bucketing.UnmatchedVatIds.Count;
+            if (bucketing.SkippedCancelled > 0)
+            {
+                _logger.LogInformation("Marketing performance {Month}: skipped {Count} storno invoice(s)",
+                    month, bucketing.SkippedCancelled);
+            }
             if (unmatched > 0)
             {
-                _logger.LogWarning("Marketing performance {Month}: {Count} invoice supplier DIČ(s) matched no channel: {VatIds}",
-                    month, unmatched, string.Join(", ", bucketing.UnmatchedVatIds));
+                // Count only: a Czech dic can be a natural person's birth-number-derived
+                // identifier, which must not reach logs/telemetry unredacted.
+                _logger.LogWarning("Marketing performance {Month}: {Count} invoice supplier DIČ(s) matched no channel",
+                    month, unmatched);
             }
 
             row.ChannelCosts.Clear();
@@ -131,7 +138,7 @@ public class MarketingPerformanceRefreshService : IMarketingPerformanceRefreshSe
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
             _logger.LogError(ex, "Marketing performance: cost step failed for {Month}", month);
-            errors.Add($"Costs: {ex.Message}");
+            errors.Add($"Costs: step failed ({ex.GetType().Name}); see server logs");
         }
 
         row.LastError = errors.Count == 0 ? null : string.Join(" | ", errors);
@@ -159,7 +166,7 @@ public class MarketingPerformanceRefreshService : IMarketingPerformanceRefreshSe
             // row and its children so the next month's save starts clean.
             _repository.Detach(row);
 
-            errors.Add($"Save: {ex.Message}");
+            errors.Add($"Save: step failed ({ex.GetType().Name}); see server logs");
             return new MonthRefreshOutcome
             {
                 Month = month,

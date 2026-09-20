@@ -108,7 +108,11 @@ public class MarketingPerformanceRefreshServiceTests : IDisposable
         sep.RetailOrderCount.Should().Be(9);
         sep.RevenueComputedAt.Should().NotBeNull();
         sep.CostsComputedAt.Should().BeNull();
-        sep.LastError.Should().Contain("Flexi 503");
+        // LastError is shown to every read-level user, so it names the step and the
+        // exception type but must not leak the exception message (hostnames, URIs,
+        // constraint names). The detail stays in the server log.
+        sep.LastError.Should().Contain("Costs:").And.Contain(nameof(HttpRequestException));
+        sep.LastError.Should().NotContain("Flexi 503");
         result.Months.Single(m => m.Month == new YearMonth(2026, 9)).CostsOk.Should().BeFalse();
         result.Months.Single(m => m.Month == new YearMonth(2026, 8)).CostsOk.Should().BeTrue();
         result.AllFailed.Should().BeFalse();
@@ -123,7 +127,9 @@ public class MarketingPerformanceRefreshServiceTests : IDisposable
         var result = await Service().RefreshWindowAsync(CancellationToken.None);
 
         result.AllFailed.Should().BeTrue();
-        (await _repo.GetForUpdateAsync(new YearMonth(2026, 9), CancellationToken.None))!.LastError.Should().Contain("db").And.Contain("flexi");
+        var lastError = (await _repo.GetForUpdateAsync(new YearMonth(2026, 9), CancellationToken.None))!.LastError!;
+        lastError.Should().Contain("Revenue:").And.Contain("Costs:");
+        lastError.Should().NotContain("db").And.NotContain("flexi");
     }
 
     [Fact]
