@@ -9,7 +9,10 @@ jest.mock('../../../../api/hooks/useMarketingPerformance', () => ({
   useMarketingPerformanceComparisonQuery: (...args: unknown[]) => mockComparisonQuery(...args),
   useRecomputeMarketingPerformanceMutation: () => ({ mutate: jest.fn(), isPending: false, reset: jest.fn() }),
 }))
-jest.mock('../../../../auth/PermissionsContext', () => ({ usePermissionsContext: () => ({ hasPermission: (p: string) => p === 'marketing.performance.write' }) }))
+let mockCanWrite = true
+jest.mock('../../../../auth/PermissionsContext', () => ({
+  usePermissionsContext: () => ({ hasPermission: (p: string) => mockCanWrite && p === 'marketing.performance.write' }),
+}))
 jest.mock('../../../../telemetry/useScreenView', () => ({ useScreenView: jest.fn() }))
 jest.mock('../../../../hooks/useMediaQuery', () => ({ useIsMobile: () => false }))
 jest.mock('react-chartjs-2', () => ({ Chart: () => <canvas data-testid="chart-canvas" /> }))
@@ -24,6 +27,7 @@ const month = {
 describe('MarketingPerformancePage', () => {
   beforeEach(() => {
     jest.clearAllMocks()
+    mockCanWrite = true
     mockMonthsQuery.mockReturnValue({ data: { success: true, months: [month], channels: [{ code: 'meta', label: 'FB/IG' }], lastRefreshAt: '2026-09-18T03:00:00Z' }, isLoading: false, error: null, isRefetching: false })
     mockComparisonQuery.mockReturnValue({ data: undefined, isLoading: false, error: null })
   })
@@ -49,10 +53,21 @@ describe('MarketingPerformancePage', () => {
     expect(mockMonthsQuery).toHaveBeenLastCalledWith(expect.anything(), false)
   })
 
-  it('shows the recompute button only with write permission and opens the dialog', () => {
+  it('opens the recompute dialog when the user has write permission', () => {
     render(<MarketingPerformancePage />)
     fireEvent.click(screen.getByRole('button', { name: 'Přepočítat' }))
     expect(screen.getByRole('heading', { name: 'Přepočítat výkon reklamy' })).toBeInTheDocument()
+  })
+
+  it('hides the recompute button without write permission', () => {
+    // Arrange
+    mockCanWrite = false
+
+    // Act
+    render(<MarketingPerformancePage />)
+
+    // Assert
+    expect(screen.queryByRole('button', { name: 'Přepočítat' })).not.toBeInTheDocument()
   })
 
   it('localizes a thrown API error DTO instead of showing "Neznámá chyba"', () => {

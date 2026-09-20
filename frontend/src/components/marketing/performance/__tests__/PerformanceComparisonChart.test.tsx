@@ -28,7 +28,7 @@ describe('buildComparisonChartData', () => {
 
 describe('PerformanceComparisonChart', () => {
   it('renders with a title', () => {
-    render(<PerformanceComparisonChart series={[series(2026, Array(12).fill(null))]} metric="pno" currentMonth={9} />)
+    render(<PerformanceComparisonChart series={[series(2026, Array(12).fill(null))]} metric="pno" currentMonth={9} anchorYear={2026} />)
     expect(screen.getByText('Meziroční srovnání — PNO')).toBeInTheDocument()
   })
 })

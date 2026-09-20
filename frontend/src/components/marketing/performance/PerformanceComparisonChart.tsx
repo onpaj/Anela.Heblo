@@ -11,6 +11,7 @@ interface PerformanceComparisonChartProps {
   metric: PerformanceMetric
   /** Current (partial) month 1..12; used only for the tooltip hint. */
   currentMonth: number
+  anchorYear: number
 }
 
 export const buildComparisonChartData = (series: MarketingYearSeriesDto[], metric: PerformanceMetric): ChartData<'bar'> => {
@@ -34,7 +35,7 @@ export const buildComparisonChartData = (series: MarketingYearSeriesDto[], metri
   return { labels: [...MONTH_LABELS_SHORT], datasets } as unknown as ChartData<'bar'>
 }
 
-export const PerformanceComparisonChart: React.FC<PerformanceComparisonChartProps> = ({ series, metric, currentMonth }) => {
+export const PerformanceComparisonChart: React.FC<PerformanceComparisonChartProps> = ({ series, metric, currentMonth, anchorYear }) => {
   const chartData = React.useMemo(() => buildComparisonChartData(series, metric), [series, metric])
   const unit = METRIC_UNITS[metric]
 
@@ -53,7 +54,10 @@ export const PerformanceComparisonChart: React.FC<PerformanceComparisonChartProp
               if (value === null || value === undefined) return `${context.dataset.label}: —`
               return `${context.dataset.label}: ${formatMetric(value, unit)}`
             },
-            footer: (items) => (items[0]?.dataIndex === currentMonth - 1 ? 'Aktuální měsíc je neúplný' : ''),
+            // The tooltip is mode:'index', so it lists every year for the hovered month.
+            // Only the anchor year's current month is partial — the same month in earlier
+            // years is complete, so name the year rather than implying all of them.
+            footer: (items) => (items[0]?.dataIndex === currentMonth - 1 ? `Aktuální měsíc (${anchorYear}) je neúplný` : ''),
           },
         },
       },
@@ -62,7 +66,7 @@ export const PerformanceComparisonChart: React.FC<PerformanceComparisonChartProp
       },
       interaction: { intersect: false, mode: 'index' },
     }),
-    [unit, currentMonth],
+    [unit, currentMonth, anchorYear],
   )
 
   return <FinancialChart chartData={chartData} chartOptions={chartOptions} title={`Meziroční srovnání — ${METRIC_LABELS[metric]}`} />

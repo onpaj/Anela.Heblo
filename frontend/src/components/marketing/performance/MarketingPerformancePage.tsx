@@ -129,7 +129,7 @@ const MarketingPerformancePage: React.FC = () => {
                 </div>
               ))}
             </div>
-            <PerformanceComparisonChart series={comparison.data.series} metric={metric} currentMonth={comparison.data.currentMonth} />
+            <PerformanceComparisonChart series={comparison.data.series} metric={metric} currentMonth={comparison.data.currentMonth} anchorYear={comparison.data.anchorYear} />
             <div className="bg-white dark:bg-graphite-surface shadow dark:shadow-soft-dark sm:rounded-md mb-8">
               <div className="px-4 py-5 sm:px-6 border-b border-gray-200 dark:border-graphite-border">
                 <h3 className="text-lg leading-6 font-medium text-gray-900 dark:text-graphite-text">Měsíce podle roku</h3>

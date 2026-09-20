@@ -1,7 +1,7 @@
 import React from 'react'
 import { AlertTriangle, Lock } from 'lucide-react'
 import type { ChannelInfoDto, MonthlyMarketingPerformanceDto } from '../../../api/hooks/useMarketingPerformance'
-import { EMPTY_VALUE, formatCount, formatCzk, formatMetric, formatYoy } from './metrics'
+import { formatCount, formatCzk, formatMetric, formatYoy } from './metrics'
 
 interface PerformanceTableProps {
   months: MonthlyMarketingPerformanceDto[]
@@ -69,12 +69,14 @@ export const PerformanceTable: React.FC<PerformanceTableProps> = ({ months, chan
                   {m.isPartial && <span className="text-xs text-gray-500 dark:text-graphite-muted">(probíhá)</span>}
                   {m.isLocked && (
                     <span title={LOCK_TITLE}>
-                      <Lock className="h-3.5 w-3.5 text-gray-400" aria-label={LOCK_TITLE} />
+                      <Lock className="h-3.5 w-3.5 text-gray-400" aria-hidden="true" />
+                      <span className="sr-only">{LOCK_TITLE}</span>
                     </span>
                   )}
                   {hasWarning(m) && (
                     <span title={m.lastError ?? STALE_TITLE}>
-                      <AlertTriangle className="h-3.5 w-3.5 text-amber-500" aria-label={m.lastError ?? STALE_TITLE} />
+                      <AlertTriangle className="h-3.5 w-3.5 text-amber-500" aria-hidden="true" />
+                      <span className="sr-only">{m.lastError ?? STALE_TITLE}</span>
                     </span>
                   )}
                 </span>
@@ -93,7 +95,7 @@ export const PerformanceTable: React.FC<PerformanceTableProps> = ({ months, chan
               <td className={td}>{formatMetric(m.costPerOrder, 'czk')}</td>
               <td className={td}>{formatYoy(m.yoyCostPercent)}</td>
               <td className={td}>{formatYoy(m.yoyRevenuePercent)}</td>
-              <td className={td}>{formatYoy(m.yoyOrdersPercent) || EMPTY_VALUE}</td>
+              <td className={td}>{formatYoy(m.yoyOrdersPercent)}</td>
             </tr>
           ))}
         </tbody>

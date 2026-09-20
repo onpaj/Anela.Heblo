@@ -62,7 +62,7 @@ export const RecomputeDialog: React.FC<RecomputeDialogProps> = ({ isOpen, onClos
       return
     }
     setValidationError(null)
-    mutation.mutate({ from, to }, {})
+    mutation.mutate({ from, to })
   }
 
   // The generated client throws on non-2xx by throwing the parsed response DTO itself (it extends

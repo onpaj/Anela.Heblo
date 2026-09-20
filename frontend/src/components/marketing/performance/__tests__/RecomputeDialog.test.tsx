@@ -53,7 +53,7 @@ describe('RecomputeDialog', () => {
     fireEvent.change(screen.getByLabelText('Od (RRRR-MM)'), { target: { value: '2023-01' } })
     fireEvent.change(screen.getByLabelText('Do (RRRR-MM)'), { target: { value: '2024-12' } })
     fireEvent.click(screen.getByRole('button', { name: 'Spustit přepočet' }))
-    expect(mockMutate).toHaveBeenCalledWith({ from: '2023-01', to: '2024-12' }, expect.anything())
+    expect(mockMutate).toHaveBeenCalledWith({ from: '2023-01', to: '2024-12' })
   })
 
   it('blocks submit on a malformed month', () => {
