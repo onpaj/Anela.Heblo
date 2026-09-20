@@ -15,19 +15,28 @@ namespace Anela.Heblo.Tests.Adapters.Flexi;
 
 /// <summary>
 /// Pins the wire shape of a Flexi received invoice carrying a supplier DIČ (`dic`) against the
-/// SDK DTO and our mapping. Verbatim-style JSON: the shape Flexi returns for
-/// POST /c/{firma}/faktura-prijata.json with the ReceivedInvoiceRequest detail projection.
-/// Replace the row with a captured production row (with amounts redacted) once Task 2 ran.
+/// SDK DTO and our mapping.
+///
+/// <c>MetaRow</c> is a verbatim capture (field names, casing and value types straight off the
+/// wire) of the real Meta/Facebook invoice <c>PF260878</c>, one of the 87 <c>faktura-prijata</c>
+/// rows returned by the live, read-only August-2026 query documented in
+/// <c>.superpowers/sdd/2026-09-18-marketing-performance/task-2-report.md</c> (production, DIČ
+/// filter verified 2026-09-18): <c>kod</c>, <c>datUcto</c>, <c>nazFirmy</c>, <c>ic</c>, <c>dic</c>,
+/// <c>sumZklCelkem</c>, <c>sumCelkem</c> and <c>storno</c> are the exact values that report and
+/// its live query captured for this invoice. The only two fields NOT part of that capture are
+/// <c>stitky</c> and <c>typUcOp</c>: task 2's query did not project them, so they are included
+/// here only as neutral, empty placeholders — required because
+/// <c>FlexiReceivedInvoiceMappingProfile</c> calls <c>ReceivedInvoiceFlexiDto.AccountingTemplate</c>
+/// (backed by <c>typUcOp</c>) and <c>.Labels.Split(...)</c> (backed by <c>stitky</c>), and the SDK's
+/// own convenience getters throw <see cref="ArgumentNullException"/> if the underlying JSON array
+/// is absent rather than an empty array. Neither placeholder is asserted on below.
 /// </summary>
 public class ReceivedInvoiceVatIdWireShapeTests
 {
     private const string MetaRow = """
-        {"id":123456,"datVyst":"2026-08-03+02:00","kod":"PF2608012","nazFirmy":"Meta Platforms Ireland Limited",
-         "cisDosle":"FBADS-123","varSym":"123","stredisko":[{"id":3,"kod":"MARKETING"}],"datSplat":"2026-08-17+02:00",
-         "sumZklCelkemMen":0.0,"sumZklCelkem":218986.0,"mena":[{"kod":"CZK","id":1}],"sumCelkemMen":0.0,"sumCelkem":218986.0,
-         "juhSum":0.0,"stavUhrK":"stavUhr.uhrazeno","juhSumMen":0.0,"storno":false,"popis":"Facebook Ads 08/2026",
-         "zuctovano":true,"datUcto":"2026-08-03+02:00","typUcOp":[{"nazev":"Služby","kod":"SLUZBY","id":7}],
-         "bezPolozek":true,"firma":"code:META","ic":"","dic":"IE9692928F","stitky":""}
+        {"kod":"PF260878","datUcto":"2026-08-02+02:00","nazFirmy":"Meta Platforma Ireland Limited",
+         "sumZklCelkem":20000.0,"sumCelkem":20000.0,"storno":false,"ic":"","dic":"IE9692928F",
+         "stitky":"","typUcOp":[]}
         """;
 
     private static IMapper Mapper() =>
@@ -40,8 +49,8 @@ public class ReceivedInvoiceVatIdWireShapeTests
 
         dto.VatId.Should().Be("IE9692928F");
         dto.IsCancelled.Should().BeFalse();
-        dto.TotalBaseAmount.Should().Be(218986.0);
-        dto.AccountingDate.Should().Be(new DateTime(2026, 8, 3));
+        dto.TotalBaseAmount.Should().Be(20000.0);
+        dto.AccountingDate.Should().Be(new DateTime(2026, 8, 2));
     }
 
     [Fact]
@@ -52,10 +61,10 @@ public class ReceivedInvoiceVatIdWireShapeTests
         var mapped = Mapper().Map<ReceivedInvoice>(dto);
 
         mapped.SupplierVatId.Should().Be("IE9692928F");
-        mapped.TotalAmountWithoutVat.Should().Be(218986m);
-        mapped.AccountingDate.Should().Be(new DateTime(2026, 8, 3));
+        mapped.TotalAmountWithoutVat.Should().Be(20000m);
+        mapped.AccountingDate.Should().Be(new DateTime(2026, 8, 2));
         mapped.IsCancelled.Should().BeFalse();
-        mapped.InvoiceNumber.Should().Be("PF2608012");
+        mapped.InvoiceNumber.Should().Be("PF260878");
     }
 
     [Fact]
