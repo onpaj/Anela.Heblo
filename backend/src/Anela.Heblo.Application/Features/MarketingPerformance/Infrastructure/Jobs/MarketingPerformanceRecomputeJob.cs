@@ -8,6 +8,8 @@ namespace Anela.Heblo.Application.Features.MarketingPerformance.Infrastructure.J
 /// <summary>Fire-and-forget Hangfire job behind POST /api/marketing-performance/recompute. Ignores month locks.</summary>
 public class MarketingPerformanceRecomputeJob
 {
+    private const int LockTimeoutSeconds = 300;
+
     private readonly IMarketingPerformanceRefreshService _service;
     private readonly MarketingPerformanceRunGuard _guard;
     private readonly ILogger<MarketingPerformanceRecomputeJob> _logger;
@@ -19,18 +21,16 @@ public class MarketingPerformanceRecomputeJob
         _logger = logger;
     }
 
+    [DisableConcurrentExecution(LockTimeoutSeconds)]
     [AutomaticRetry(Attempts = 0)]
     public async Task RunAsync(int fromYear, int fromMonth, int toYear, int toMonth, CancellationToken cancellationToken)
     {
         var from = new YearMonth(fromYear, fromMonth);
         var to = new YearMonth(toYear, toMonth);
 
-        if (!_guard.TryBegin())
-        {
-            _logger.LogWarning("Marketing performance recompute {From}..{To} skipped: another run is active", from, to);
-            return;
-        }
-
+        // The reservation was taken by RecomputeMarketingPerformanceHandler before this job
+        // was enqueued; this job only releases it. Taking it here instead would let two
+        // concurrently accepted requests both return 202 while the second silently no-ops.
         try
         {
             var result = await _service.RecomputeRangeAsync(from, to, cancellationToken);

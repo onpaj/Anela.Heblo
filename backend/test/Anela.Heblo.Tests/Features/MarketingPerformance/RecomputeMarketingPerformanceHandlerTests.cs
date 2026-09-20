@@ -65,10 +65,53 @@ public class RecomputeMarketingPerformanceHandlerTests
     }
 
     [Fact]
-    public async Task Handle_EnqueueReturnsNull_ReturnsEnqueueFailed()
+    public async Task Handle_EnqueueReturnsNull_ReturnsEnqueueFailed_AndReleasesTheReservation()
     {
+        // Arrange
         _enqueuer.Setup(e => e.Enqueue(It.IsAny<YearMonth>(), It.IsAny<YearMonth>())).Returns((string?)null);
+
+        // Act
         var response = await Handler().Handle(new RecomputeMarketingPerformanceRequest { From = "2026-01", To = "2026-02" }, CancellationToken.None);
+
+        // Assert - nothing was enqueued, so nothing will release the guard for us.
         response.ErrorCode.Should().Be(ErrorCodes.MarketingPerformanceEnqueueFailed);
+        _guard.IsRunning.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task Handle_TwoConcurrentRequests_AcceptsOneAndRejectsTheOther()
+    {
+        // Arrange - both requests are handled before either job ever starts, which is
+        // exactly the window the old IsRunning check could not close.
+        _enqueuer.Setup(e => e.Enqueue(It.IsAny<YearMonth>(), It.IsAny<YearMonth>())).Returns("hf-1");
+        var handler = Handler();
+        var request = new RecomputeMarketingPerformanceRequest { From = "2026-01", To = "2026-02" };
+
+        // Act
+        var first = await handler.Handle(request, CancellationToken.None);
+        var second = await handler.Handle(request, CancellationToken.None);
+
+        // Assert
+        first.Success.Should().BeTrue();
+        first.JobId.Should().NotBeNull();
+        second.ErrorCode.Should().Be(ErrorCodes.MarketingPerformanceRecomputeAlreadyRunning);
+        second.JobId.Should().BeNull();
+        _enqueuer.Verify(e => e.Enqueue(It.IsAny<YearMonth>(), It.IsAny<YearMonth>()), Times.Once);
+
+        _guard.End();
+    }
+
+    [Fact]
+    public async Task Handle_EnqueueThrows_ReleasesTheReservation()
+    {
+        // Arrange
+        _enqueuer.Setup(e => e.Enqueue(It.IsAny<YearMonth>(), It.IsAny<YearMonth>())).Throws(new InvalidOperationException("hangfire down"));
+
+        // Act
+        var act = () => Handler().Handle(new RecomputeMarketingPerformanceRequest { From = "2026-01", To = "2026-02" }, CancellationToken.None);
+
+        // Assert
+        await act.Should().ThrowAsync<InvalidOperationException>();
+        _guard.IsRunning.Should().BeFalse();
     }
 }

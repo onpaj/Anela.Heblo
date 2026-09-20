@@ -39,15 +39,33 @@ public class RecomputeMarketingPerformanceHandler : IRequestHandler<RecomputeMar
             return Task.FromResult(new RecomputeMarketingPerformanceResponse(range.Error!.Value, range.Params));
         }
 
-        if (_guard.IsRunning)
+        // Reserve the slot here, not in the job. Merely reading IsRunning was a TOCTOU
+        // race: two requests arriving together both saw "not running", both got a 202
+        // with a real job id, and whichever job started second failed its own TryBegin
+        // and returned without doing anything — reported Succeeded by Hangfire, with the
+        // caller given no way to learn their recompute never happened. The job now
+        // inherits this reservation and only releases it.
+        if (!_guard.TryBegin())
         {
             _logger.LogWarning("Marketing performance recompute {From}..{To} rejected: a run is in progress", range.From, range.To);
             return Task.FromResult(new RecomputeMarketingPerformanceResponse(ErrorCodes.MarketingPerformanceRecomputeAlreadyRunning));
         }
 
-        var jobId = _enqueuer.Enqueue(range.From, range.To);
+        string? jobId;
+        try
+        {
+            jobId = _enqueuer.Enqueue(range.From, range.To);
+        }
+        catch
+        {
+            _guard.End();
+            throw;
+        }
+
         if (jobId is null)
         {
+            // Nothing will run, so nothing will release the reservation.
+            _guard.End();
             return Task.FromResult(new RecomputeMarketingPerformanceResponse(ErrorCodes.MarketingPerformanceEnqueueFailed));
         }
 

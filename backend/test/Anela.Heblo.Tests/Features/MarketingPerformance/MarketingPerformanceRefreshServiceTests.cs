@@ -233,7 +233,8 @@ public class MarketingPerformanceRefreshServiceTests : IDisposable
         var aug = result.Months.Single(m => m.Month == new YearMonth(2026, 8));
         aug.RevenueOk.Should().BeFalse();
         aug.CostsOk.Should().BeFalse();
-        aug.Error.Should().Contain("simulated save failure");
+        aug.Error.Should().Contain("Save:").And.Contain("DbUpdateException");
+        aug.Error.Should().NotContain("simulated save failure", "the exception message stays in the log, not in user-visible LastError");
 
         var sep = result.Months.Single(m => m.Month == new YearMonth(2026, 9));
         sep.RevenueOk.Should().BeTrue();
