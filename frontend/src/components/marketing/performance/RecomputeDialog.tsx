@@ -15,15 +15,16 @@ const ORDER_ERROR = 'Počáteční měsíc nesmí být po koncovém.'
 
 const input = 'mt-1 block w-full rounded-md border-gray-300 dark:border-graphite-border dark:bg-graphite-surface-2 dark:text-graphite-text shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm'
 
+const monthKey = (d: Date): string => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+
+// Anchored on day 1: setMonth(-1) on a 29th-31st overflows back into the
+// current month (2026-03-31 -> 2026-03), which would silently pre-fill a
+// one-month range instead of two.
 const defaultFrom = (): string => {
-  const d = new Date()
-  d.setMonth(d.getMonth() - 1)
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+  const now = new Date()
+  return monthKey(new Date(now.getFullYear(), now.getMonth() - 1, 1))
 }
-const defaultTo = (): string => {
-  const d = new Date()
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
-}
+const defaultTo = (): string => monthKey(new Date())
 
 export const RecomputeDialog: React.FC<RecomputeDialogProps> = ({ isOpen, onClose }) => {
   const [from, setFrom] = useState(defaultFrom)

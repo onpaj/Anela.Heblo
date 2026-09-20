@@ -19,6 +19,20 @@ const renderDialog = (isOpen: boolean, onClose: () => void) =>
 describe('RecomputeDialog', () => {
   beforeEach(() => { jest.clearAllMocks(); mockMutationState = {} })
 
+  it('defaults to the previous month even when today is a 31st', () => {
+    // Arrange - 2026-03-31: setMonth(getMonth() - 1) overflows back to March
+    jest.useFakeTimers().setSystemTime(new Date(2026, 2, 31, 12, 0, 0))
+
+    // Act
+    renderDialog(true, jest.fn())
+
+    // Assert
+    expect(screen.getByLabelText('Od (RRRR-MM)')).toHaveValue('2026-02')
+    expect(screen.getByLabelText('Do (RRRR-MM)')).toHaveValue('2026-03')
+
+    jest.useRealTimers()
+  })
+
   it('submits the typed range', () => {
     renderDialog(true, jest.fn())
     fireEvent.change(screen.getByLabelText('Od (RRRR-MM)'), { target: { value: '2023-01' } })
