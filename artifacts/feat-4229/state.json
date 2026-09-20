@@ -21,16 +21,16 @@
       "updated_at": "2026-09-20T11:17:57.063437Z"
     },
     "developing": {
-      "status": "pending",
-      "updated_at": null
+      "status": "in_progress",
+      "updated_at": "2026-09-20T12:17:20.319824Z"
     }
   },
   "tasks": [
     {
       "name": "time-window-shared-allowlist",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-09-20T12:17:20.622298Z"
     },
     {
       "name": "analytics-error-code-and-message",
