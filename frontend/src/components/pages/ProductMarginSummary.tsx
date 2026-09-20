@@ -43,6 +43,7 @@ function buildChartDatasets(
   monthlyData: NonNullable<
     ReturnType<typeof useProductMarginSummaryQuery>["data"]
   >["monthlyData"],
+  // Expected pre-sorted descending by totalMargin (same order as productColorMap).
   topProducts: NonNullable<
     ReturnType<typeof useProductMarginSummaryQuery>["data"]
   >["topProducts"],
@@ -58,8 +59,7 @@ function buildChartDatasets(
       .filter(
         (p) => p.groupKey && productColorMap.get(p.groupKey) === DEFAULT_COLOR,
       )
-      .map((p) => p.groupKey)
-      .filter(Boolean),
+      .map((p) => p.groupKey),
   );
 
   // Add "Other" category first (will be at bottom of stack)
@@ -84,9 +84,11 @@ function buildChartDatasets(
 
   // Top products, ordered ascending by totalMargin (lowest first) so the highest-margin
   // product renders at the top of the stacked bar, exactly as before this refactor.
+  // `topProducts` is already sorted descending by totalMargin (see productColorMap), so
+  // reversing the filtered result avoids a second O(n log n) sort over the same data.
   const topProductEntries = (topProducts || [])
     .filter((p) => p.groupKey && !otherKeys.has(p.groupKey))
-    .sort((a, b) => (a.totalMargin ?? 0) - (b.totalMargin ?? 0));
+    .reverse();
 
   topProductEntries.forEach((product) => {
     const productKey = product.groupKey;
@@ -136,18 +138,24 @@ const ProductMarginSummary: React.FC = () => {
     }).format(amount);
   }, []);
 
+  // Descending by totalMargin; the single sort backing both productColorMap (below) and
+  // buildChartDatasets's ascending stacking order, so the latter can reverse this instead
+  // of re-sorting the same data.
+  const sortedTopProducts = useMemo(() => {
+    if (!data?.topProducts) return [];
+    return [...data.topProducts].sort(
+      (a, b) => (b.totalMargin ?? 0) - (a.totalMargin ?? 0),
+    );
+  }, [data?.topProducts]);
+
   // Single canonical productKey -> color mapping, consumed by both chartData and
-  // tableData. Sorted descending by totalMargin; top TOP_CHART_PRODUCTS get a distinct
+  // tableData. Top TOP_CHART_PRODUCTS (by sortedTopProducts order) get a distinct
   // palette color, the rest fall back to DEFAULT_COLOR. This map is never itself
   // reassigned DEFAULT_COLOR for a top-N product, so `=== DEFAULT_COLOR` is a safe way
   // to test "is this product in the top N" elsewhere in this file (see buildChartDatasets).
   const productColorMap = useMemo(() => {
     const map = new Map<string, string>();
-    if (!data?.topProducts) return map;
-    const sorted = [...data.topProducts].sort(
-      (a, b) => (b.totalMargin ?? 0) - (a.totalMargin ?? 0),
-    );
-    sorted.forEach((product, index) => {
+    sortedTopProducts.forEach((product, index) => {
       if (product.groupKey) {
         map.set(
           product.groupKey,
@@ -158,7 +166,7 @@ const ProductMarginSummary: React.FC = () => {
       }
     });
     return map;
-  }, [data?.topProducts]);
+  }, [sortedTopProducts]);
 
   const chartData = useMemo(() => {
     if (!data?.monthlyData || !data?.topProducts) return null;
@@ -177,13 +185,13 @@ const ProductMarginSummary: React.FC = () => {
 
     const datasets = buildChartDatasets(
       data.monthlyData,
-      data.topProducts,
+      sortedTopProducts,
       productColorMap,
       productDisplayNames,
     );
 
     return { labels, datasets };
-  }, [data, productColorMap]);
+  }, [data, productColorMap, sortedTopProducts]);
 
   // Prepare table data using topProducts which already contain all M0-M2 data
   const tableData = useMemo(() => {
