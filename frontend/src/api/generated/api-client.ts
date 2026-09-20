@@ -689,6 +689,65 @@ export class ApiClient {
         return Promise.resolve<BackfillArticleRequestedByResponse>(null as any);
     }
 
+    attendance_RunBreakInsertion(request: RunBreakInsertionRequest): Promise<RunBreakInsertionResponse> {
+        let url_ = this.baseUrl + "/api/attendance/break-insertion/run";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: RequestInit = {
+            body: content_,
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processAttendance_RunBreakInsertion(_response);
+        });
+    }
+
+    protected processAttendance_RunBreakInsertion(response: Response): Promise<RunBreakInsertionResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = RunBreakInsertionResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status === 400) {
+            return response.text().then((_responseText) => {
+            let result400: any = null;
+            let resultData400 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result400 = ProblemDetails.fromJS(resultData400);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result400);
+            });
+        } else if (status === 401) {
+            return response.text().then((_responseText) => {
+            let result401: any = null;
+            let resultData401 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result401 = ProblemDetails.fromJS(resultData401);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result401);
+            });
+        } else if (status === 409) {
+            return response.text().then((_responseText) => {
+            let result409: any = null;
+            let resultData409 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result409 = ProblemDetails.fromJS(resultData409);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result409);
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<RunBreakInsertionResponse>(null as any);
+    }
+
     auth_Me(): Promise<GetMeResponse> {
         let url_ = this.baseUrl + "/api/auth/me";
         url_ = url_.replace(/[?&]$/, "");
@@ -14668,6 +14727,7 @@ export enum ErrorCodes {
     InvalidCronExpression = "InvalidCronExpression",
     RecurringJobDisabled = "RecurringJobDisabled",
     RecurringJobEnqueueFailed = "RecurringJobEnqueueFailed",
+    RecurringJobAlreadyRunning = "RecurringJobAlreadyRunning",
     KnowledgeBaseFeedbackLogNotFound = "KnowledgeBaseFeedbackLogNotFound",
     KnowledgeBaseFeedbackAlreadySubmitted = "KnowledgeBaseFeedbackAlreadySubmitted",
     KnowledgeBaseChunkNotFound = "KnowledgeBaseChunkNotFound",
@@ -16331,6 +16391,119 @@ export class BackfillArticleRequestedByCommand implements IBackfillArticleReques
 export interface IBackfillArticleRequestedByCommand {
     groupId?: string;
     dryRun?: boolean;
+}
+
+export class RunBreakInsertionResponse extends BaseResponse implements IRunBreakInsertionResponse {
+    daysScanned?: number;
+    breaksInserted?: number;
+    daysHealed?: number;
+    recordsTouched?: number;
+    touchFailed?: number;
+    skippedExistingBreak?: number;
+    skippedInProgress?: number;
+    skippedBelowThreshold?: number;
+    skippedHoursOnly?: number;
+    skippedNoSlot?: number;
+    failed?: number;
+
+    constructor(data?: IRunBreakInsertionResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            this.daysScanned = _data["daysScanned"];
+            this.breaksInserted = _data["breaksInserted"];
+            this.daysHealed = _data["daysHealed"];
+            this.recordsTouched = _data["recordsTouched"];
+            this.touchFailed = _data["touchFailed"];
+            this.skippedExistingBreak = _data["skippedExistingBreak"];
+            this.skippedInProgress = _data["skippedInProgress"];
+            this.skippedBelowThreshold = _data["skippedBelowThreshold"];
+            this.skippedHoursOnly = _data["skippedHoursOnly"];
+            this.skippedNoSlot = _data["skippedNoSlot"];
+            this.failed = _data["failed"];
+        }
+    }
+
+    static override fromJS(data: any): RunBreakInsertionResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new RunBreakInsertionResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["daysScanned"] = this.daysScanned;
+        data["breaksInserted"] = this.breaksInserted;
+        data["daysHealed"] = this.daysHealed;
+        data["recordsTouched"] = this.recordsTouched;
+        data["touchFailed"] = this.touchFailed;
+        data["skippedExistingBreak"] = this.skippedExistingBreak;
+        data["skippedInProgress"] = this.skippedInProgress;
+        data["skippedBelowThreshold"] = this.skippedBelowThreshold;
+        data["skippedHoursOnly"] = this.skippedHoursOnly;
+        data["skippedNoSlot"] = this.skippedNoSlot;
+        data["failed"] = this.failed;
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IRunBreakInsertionResponse extends IBaseResponse {
+    daysScanned?: number;
+    breaksInserted?: number;
+    daysHealed?: number;
+    recordsTouched?: number;
+    touchFailed?: number;
+    skippedExistingBreak?: number;
+    skippedInProgress?: number;
+    skippedBelowThreshold?: number;
+    skippedHoursOnly?: number;
+    skippedNoSlot?: number;
+    failed?: number;
+}
+
+export class RunBreakInsertionRequest implements IRunBreakInsertionRequest {
+    fromDaysAgo?: number | undefined;
+    toDaysAgo?: number | undefined;
+
+    constructor(data?: IRunBreakInsertionRequest) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.fromDaysAgo = _data["fromDaysAgo"];
+            this.toDaysAgo = _data["toDaysAgo"];
+        }
+    }
+
+    static fromJS(data: any): RunBreakInsertionRequest {
+        data = typeof data === 'object' ? data : {};
+        let result = new RunBreakInsertionRequest();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["fromDaysAgo"] = this.fromDaysAgo;
+        data["toDaysAgo"] = this.toDaysAgo;
+        return data;
+    }
+}
+
+export interface IRunBreakInsertionRequest {
+    fromDaysAgo?: number | undefined;
+    toDaysAgo?: number | undefined;
 }
 
 export class GetMeResponse extends BaseResponse implements IGetMeResponse {
