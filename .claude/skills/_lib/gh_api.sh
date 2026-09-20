@@ -160,7 +160,11 @@ req_paginate() {
       -H "Accept: application/vnd.github+json" \
       -H "X-GitHub-Api-Version: 2022-11-28" \
       -D "$hdrfile" "$url")
-    all=$(jq -c -n --argjson a "$all" --argjson b "$body" '$a + $b')
+    # Piped through stdin rather than --argjson: a page of comments can
+    # exceed Linux's per-argument exec limit (MAX_ARG_STRLEN, 128 KiB),
+    # which --argjson hits well before ARG_MAX since it passes the whole
+    # JSON blob as a single argv entry.
+    all=$(printf '%s\n%s' "$all" "$body" | jq -c -s 'add')
     url=$(grep -i '^link:' "$hdrfile" | grep -o '<[^>]*>; rel="next"' | sed -E 's/^<(.*)>.*/\1/' || true)
   done
   rm -f "$hdrfile"
