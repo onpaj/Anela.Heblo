@@ -34,9 +34,9 @@
     },
     {
       "name": "adapter-and-di",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-09-20T11:16:44.816009Z"
+      "updated_at": "2026-09-20T11:20:51.186760Z"
     },
     {
       "name": "migrate-download-handler",
