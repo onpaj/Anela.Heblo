@@ -21,16 +21,16 @@
       "updated_at": "2026-09-20T07:18:20.718341Z"
     },
     "developing": {
-      "status": "pending",
-      "updated_at": null
+      "status": "in_progress",
+      "updated_at": "2026-09-20T08:15:57.385895Z"
     }
   },
   "tasks": [
     {
       "name": "add-regression-test",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-09-20T08:15:57.674330Z"
     },
     {
       "name": "build-product-color-map",
