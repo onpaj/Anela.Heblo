@@ -28,9 +28,9 @@
   "tasks": [
     {
       "name": "create-filestorage-contracts-folder",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-09-20T13:18:28.457524Z"
+      "updated_at": "2026-09-20T13:21:20.732823Z"
     },
     {
       "name": "update-tests-for-contracts-namespace",
