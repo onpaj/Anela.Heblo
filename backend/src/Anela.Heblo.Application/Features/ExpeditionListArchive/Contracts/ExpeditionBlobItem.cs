@@ -2,7 +2,7 @@ namespace Anela.Heblo.Application.Features.ExpeditionListArchive.Contracts;
 
 /// <summary>
 /// ExpeditionListArchive-owned metadata about a single archived expedition list blob.
-/// Structurally mirrors Anela.Heblo.Domain.Features.FileStorage.BlobItemInfo, but is owned by
+/// Structurally mirrors the FileStorage module's own blob metadata type, but is owned by
 /// this module so ExpeditionListArchive never references the FileStorage domain directly.
 /// </summary>
 public class ExpeditionBlobItem
