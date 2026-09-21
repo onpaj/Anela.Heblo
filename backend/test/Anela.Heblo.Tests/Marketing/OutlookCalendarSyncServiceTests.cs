@@ -118,8 +118,10 @@ namespace Anela.Heblo.Tests.Marketing
             handler.LastRequestBody.Should().Contain("2026-03-01T09:00:00");
             handler.LastRequestBody.Should().Contain("2026-03-01T11:00:00");
 
-            // Assert — timezone
-            handler.LastRequestBody.Should().Contain("Europe/Prague");
+            // Assert — the declared zone matches the (UTC) values actually sent.
+            // See CreateEventAsync_SendsZonelessDateTimeAndDeclaresTheZoneSeparately.
+            handler.LastRequestBody.Should().Contain("UTC");
+            handler.LastRequestBody.Should().NotContain("Europe/Prague");
         }
 
         [Fact]
@@ -571,6 +573,139 @@ namespace Anela.Heblo.Tests.Marketing
             // Assert
             handler.LastRequestBody.Should().Contain("FOOBAR");
             handler.LastRequestBody.Should().NotContain("\"Campaign\"");
+        }
+
+        // ─── Graph time-zone contract ─────────────────────────────────────────────
+        //
+        // Graph's dateTimeTimeZone.dateTime is a *zone-less* wall-clock string; the zone
+        // travels separately in dateTimeTimeZone.timeZone. Emitting an ISO string with a
+        // "Z" designator alongside a timeZone label states two different things at once,
+        // and for an all-day event — which Graph requires to start at midnight *in the
+        // declared zone* — the two readings disagree by the UTC offset.
+
+        [Fact]
+        public async Task CreateEventAsync_SendsZonelessDateTimeAndDeclaresTheZoneSeparately()
+        {
+            // Arrange
+            var responseJson = JsonSerializer.Serialize(new { id = "evt-tz" });
+            var handler = new FakeHttpMessageHandler(HttpStatusCode.Created, responseJson);
+            var service = CreateService(handler);
+            var action = BuildAction();
+
+            // Act
+            await service.CreateEventAsync(action, CancellationToken.None);
+
+            // Assert — exact wire shape, not a substring: no "Z", no offset, zone stated once.
+            var body = JsonNode.Parse(handler.LastRequestBody)!;
+            body["start"]!["dateTime"]!.GetValue<string>().Should().Be("2026-03-01T09:00:00.0000000");
+            body["start"]!["timeZone"]!.GetValue<string>().Should().Be("UTC");
+            body["end"]!["dateTime"]!.GetValue<string>().Should().Be("2026-03-01T11:00:00.0000000");
+            body["end"]!["timeZone"]!.GetValue<string>().Should().Be("UTC");
+        }
+
+        [Fact]
+        public async Task CreateEventAsync_ForAllDayAction_SendsMidnightInTheDeclaredZone()
+        {
+            // Arrange — Graph rejects an all-day event that does not begin at midnight in
+            // the zone it declares. "00:00Z" labelled "Europe/Prague" reads as 02:00 local.
+            var responseJson = JsonSerializer.Serialize(new { id = "evt-allday-tz" });
+            var handler = new FakeHttpMessageHandler(HttpStatusCode.Created, responseJson);
+            var service = CreateService(handler);
+            var action = BuildAction(
+                startDate: new DateTime(2026, 9, 18, 0, 0, 0, DateTimeKind.Utc),
+                endDate: new DateTime(2026, 9, 20, 0, 0, 0, DateTimeKind.Utc));
+
+            // Act
+            await service.CreateEventAsync(action, CancellationToken.None);
+
+            // Assert
+            var body = JsonNode.Parse(handler.LastRequestBody)!;
+            body["isAllDay"]!.GetValue<bool>().Should().BeTrue();
+
+            var zone = body["start"]!["timeZone"]!.GetValue<string>();
+            zone.Should().Be("UTC");
+
+            var start = DateTime.Parse(
+                body["start"]!["dateTime"]!.GetValue<string>(),
+                CultureInfo.InvariantCulture,
+                DateTimeStyles.RoundtripKind);
+            var end = DateTime.Parse(
+                body["end"]!["dateTime"]!.GetValue<string>(),
+                CultureInfo.InvariantCulture,
+                DateTimeStyles.RoundtripKind);
+
+            start.TimeOfDay.Should().Be(TimeSpan.Zero, "Graph requires all-day events to start at midnight in the declared zone");
+            end.TimeOfDay.Should().Be(TimeSpan.Zero, "Graph requires all-day events to end at midnight in the declared zone");
+            start.Should().Be(new DateTime(2026, 9, 18, 0, 0, 0));
+            end.Should().Be(new DateTime(2026, 9, 21, 0, 0, 0));
+        }
+
+        [Fact]
+        public async Task CreateEventAsync_ForNonUtcStartDate_NormalizesToUtcBeforeSending()
+        {
+            // Arrange — a DateTime that is not already UTC must be converted, not relabelled,
+            // otherwise the declared "UTC" zone would misdescribe the wall-clock value.
+            var responseJson = JsonSerializer.Serialize(new { id = "evt-local" });
+            var handler = new FakeHttpMessageHandler(HttpStatusCode.Created, responseJson);
+            var service = CreateService(handler);
+
+            var utcStart = new DateTime(2026, 3, 1, 9, 0, 0, DateTimeKind.Utc);
+            var action = BuildAction(
+                startDate: utcStart.ToLocalTime(),
+                endDate: utcStart.AddHours(2).ToLocalTime());
+
+            // Act
+            await service.CreateEventAsync(action, CancellationToken.None);
+
+            // Assert
+            var body = JsonNode.Parse(handler.LastRequestBody)!;
+            body["start"]!["dateTime"]!.GetValue<string>().Should().Be("2026-03-01T09:00:00.0000000");
+            body["end"]!["dateTime"]!.GetValue<string>().Should().Be("2026-03-01T11:00:00.0000000");
+        }
+
+        [Fact]
+        public async Task ListEventsAsync_AsksGraphToAnswerInUtc()
+        {
+            // Arrange — without this header Graph answers in the mailbox's default zone,
+            // and StartUtc/EndUtc would read those local digits as if they were UTC.
+            var responseJson = JsonSerializer.Serialize(new { value = Array.Empty<object>() });
+            var handler = new FakeHttpMessageHandler(HttpStatusCode.OK, responseJson);
+            var service = CreateService(handler);
+
+            // Act
+            await service.ListEventsAsync(
+                new DateTime(2026, 4, 1, 0, 0, 0, DateTimeKind.Utc),
+                new DateTime(2026, 4, 30, 0, 0, 0, DateTimeKind.Utc),
+                CancellationToken.None);
+
+            // Assert
+            handler.LastRequestHeaders.Should().NotBeNull();
+            handler.LastRequestHeaders!.GetValues("Prefer")
+                .Should().Contain("outlook.timezone=\"UTC\"");
+        }
+
+        [Fact]
+        public async Task GetEventAsync_AsksGraphToAnswerInUtc()
+        {
+            // Arrange
+            var responseJson = JsonSerializer.Serialize(new
+            {
+                id = "evt-1",
+                subject = "S",
+                start = new { dateTime = "2026-04-01T08:00:00.0000000", timeZone = "UTC" },
+                end = new { dateTime = "2026-04-01T09:00:00.0000000", timeZone = "UTC" },
+                categories = Array.Empty<string>()
+            });
+            var handler = new FakeHttpMessageHandler(HttpStatusCode.OK, responseJson);
+            var service = CreateService(handler);
+
+            // Act
+            await service.GetEventAsync("evt-1", CancellationToken.None);
+
+            // Assert
+            handler.LastRequestHeaders.Should().NotBeNull();
+            handler.LastRequestHeaders!.GetValues("Prefer")
+                .Should().Contain("outlook.timezone=\"UTC\"");
         }
     }
 }
