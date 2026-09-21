@@ -23,6 +23,17 @@ jest.mock("react-hot-toast", () => ({
   toast: { success: jest.fn(), error: jest.fn() },
 }));
 
+let mockHasPermission: (perm: string) => boolean = () => true;
+jest.mock("../../../auth/PermissionsContext", () => ({
+  usePermissionsContext: () => ({
+    permissions: [],
+    isSuperUser: false,
+    groups: [],
+    isLoading: false,
+    hasPermission: (p: string) => mockHasPermission(p),
+  }),
+}));
+
 const mockUsePricingBaselineQuery =
   usePricingSimulatorHook.usePricingBaselineQuery as jest.MockedFunction<
     typeof usePricingSimulatorHook.usePricingBaselineQuery
@@ -117,6 +128,7 @@ describe("PriceAnalysis editing", () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    mockHasPermission = () => true;
     mockMutateAsync = jest.fn();
     mockUseRecalculatePricingMutation.mockReturnValue({
       mutateAsync: mockMutateAsync,

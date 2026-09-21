@@ -12,6 +12,17 @@ import { formatCurrency, formatNumber, formatPercentage } from "../../../utils/f
 // and are not exercised until Task 9.
 jest.mock("../../../api/hooks/usePricingSimulator");
 
+let mockHasPermission: (perm: string) => boolean = () => true;
+jest.mock("../../../auth/PermissionsContext", () => ({
+  usePermissionsContext: () => ({
+    permissions: [],
+    isSuperUser: false,
+    groups: [],
+    isLoading: false,
+    hasPermission: (p: string) => mockHasPermission(p),
+  }),
+}));
+
 const mockUsePricingBaselineQuery =
   usePricingSimulatorHook.usePricingBaselineQuery as jest.MockedFunction<
     typeof usePricingSimulatorHook.usePricingBaselineQuery
@@ -116,6 +127,7 @@ const createWrapper = () => {
 describe("PriceAnalysis", () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockHasPermission = () => true;
     mockUseRecalculatePricingMutation.mockReturnValue({
       mutateAsync: jest.fn(),
       isPending: false,

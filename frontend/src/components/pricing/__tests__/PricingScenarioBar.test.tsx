@@ -6,6 +6,18 @@ import { PricingRowDto, PricingTotalsDto, SwaggerException } from "../../../api/
 
 jest.mock("../../../api/hooks/usePricingSimulator");
 
+let mockHasPermission: (perm: string) => boolean = () => true;
+let mockPermissionsLoading = false;
+jest.mock("../../../auth/PermissionsContext", () => ({
+  usePermissionsContext: () => ({
+    permissions: [],
+    isSuperUser: false,
+    groups: [],
+    isLoading: mockPermissionsLoading,
+    hasPermission: (p: string) => mockHasPermission(p),
+  }),
+}));
+
 const mockUsePricingScenariosQuery =
   usePricingSimulatorHook.usePricingScenariosQuery as jest.MockedFunction<
     typeof usePricingSimulatorHook.usePricingScenariosQuery
@@ -100,6 +112,8 @@ describe("PricingScenarioBar", () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    mockHasPermission = () => true;
+    mockPermissionsLoading = false;
 
     mockUsePricingScenariosQuery.mockReturnValue({
       data: { scenarios: scenarioSummaries },
@@ -304,5 +318,58 @@ describe("PricingScenarioBar", () => {
 
     expect(screen.queryByTestId("pricing-scenario-delete-confirm")).not.toBeInTheDocument();
     expect(mockDeleteMutateAsync).not.toHaveBeenCalled();
+  });
+
+  describe("write-permission gate", () => {
+    it("disables the save control and blocks saving when the user lacks finance.price_analysis.write", () => {
+      mockHasPermission = () => false;
+
+      render(<PricingScenarioBar {...defaultProps} />);
+
+      fireEvent.change(screen.getByTestId("pricing-scenario-name-input"), {
+        target: { value: "Podzimní výprodej" },
+      });
+
+      const saveButton = screen.getByTestId("pricing-scenario-save");
+      expect(saveButton).toBeDisabled();
+      expect(saveButton).toHaveAttribute("title", "Nemáte oprávnění k úpravě scénářů.");
+
+      // A disabled button does not dispatch a click event, so this proves saving
+      // genuinely cannot be triggered -- not just that the handler happens to no-op.
+      fireEvent.click(saveButton);
+      expect(mockSaveMutateAsync).not.toHaveBeenCalled();
+    });
+
+    it("enables the save control and allows saving when the user has finance.price_analysis.write", async () => {
+      mockHasPermission = (perm: string) => perm === "finance.price_analysis.write";
+      mockSaveMutateAsync.mockResolvedValue({ success: true, id: "scenario-3" });
+
+      render(<PricingScenarioBar {...defaultProps} />);
+
+      const saveButton = screen.getByTestId("pricing-scenario-save");
+      expect(saveButton).not.toBeDisabled();
+      expect(saveButton).not.toHaveAttribute("title");
+
+      fireEvent.change(screen.getByTestId("pricing-scenario-name-input"), {
+        target: { value: "Podzimní výprodej" },
+      });
+      fireEvent.click(saveButton);
+
+      await waitFor(() => expect(mockSaveMutateAsync).toHaveBeenCalledTimes(1));
+      expect(mockSaveMutateAsync).toHaveBeenCalledWith(
+        expect.objectContaining({ name: "Podzimní výprodej" }),
+      );
+    });
+
+    it("disables the save control while permissions are still loading, even when hasPermission would allow it", () => {
+      mockPermissionsLoading = true;
+      mockHasPermission = () => true;
+
+      render(<PricingScenarioBar {...defaultProps} />);
+
+      const saveButton = screen.getByTestId("pricing-scenario-save");
+      expect(saveButton).toBeDisabled();
+      expect(saveButton).toHaveAttribute("title", "Nemáte oprávnění k úpravě scénářů.");
+    });
   });
 });
