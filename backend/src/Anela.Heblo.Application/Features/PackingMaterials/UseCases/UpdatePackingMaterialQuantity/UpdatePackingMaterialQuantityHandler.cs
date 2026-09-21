@@ -1,4 +1,4 @@
-using Anela.Heblo.Application.Features.PackingMaterials.Contracts;
+using Anela.Heblo.Application.Features.PackingMaterials.Mapping;
 using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Domain.Features.PackingMaterials;
 using Anela.Heblo.Domain.Features.PackingMaterials.Enums;
@@ -46,18 +46,7 @@ public class UpdatePackingMaterialQuantityHandler : IRequestHandler<UpdatePackin
         var forecastedDays = material.CalculateForecastedDays(recentLogs.ToList());
         var displayForecast = forecastedDays == decimal.MaxValue ? null : (decimal?)Math.Round(forecastedDays, 1);
 
-        var materialDto = new PackingMaterialDto
-        {
-            Id = material.Id,
-            Name = material.Name,
-            ConsumptionRate = material.ConsumptionRate,
-            ConsumptionType = material.ConsumptionType,
-            ConsumptionTypeText = PackingMaterialsTextHelper.ConsumptionTypeText(material.ConsumptionType),
-            CurrentQuantity = material.CurrentQuantity,
-            ForecastedDays = displayForecast,
-            CreatedAt = material.CreatedAt,
-            UpdatedAt = material.UpdatedAt
-        };
+        var materialDto = PackingMaterialMapper.ToDto(material, displayForecast);
 
         return new UpdatePackingMaterialQuantityResponse
         {

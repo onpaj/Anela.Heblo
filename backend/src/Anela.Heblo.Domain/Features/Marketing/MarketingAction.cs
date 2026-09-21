@@ -243,6 +243,20 @@ namespace Anela.Heblo.Domain.Features.Marketing
             OutlookSyncError = null;
         }
 
+        public void Reschedule(
+            DateTime startDate,
+            DateTime? endDate,
+            string modifiedByUserId,
+            string? modifiedByUsername,
+            DateTime utcNow)
+        {
+            StartDate = startDate;
+            EndDate = endDate;
+            ModifiedAt = utcNow;
+            ModifiedByUserId = modifiedByUserId;
+            ModifiedByUsername = modifiedByUsername ?? "Unknown User";
+        }
+
         public void UpdateDetails(
             string title,
             string? description,

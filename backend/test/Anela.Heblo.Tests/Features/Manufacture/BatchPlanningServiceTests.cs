@@ -460,6 +460,230 @@ public class BatchPlanningServiceTests
         Assert.Equal(1500, result.TotalVolumeAvailable); // Full volume, nothing reserved
     }
 
+    [Fact]
+    public async Task CalculateBatchPlan_ProductWithPlannedManufacture_ExposesPlannedQuantityOnItem()
+    {
+        // Arrange
+        var request = new CalculateBatchPlanRequest
+        {
+            ProductCode = "SEMI001",
+            ControlMode = BatchPlanControlMode.MmqMultiplier,
+            MmqMultiplier = 1.0
+        };
+
+        var semiproduct = CreateSemiproduct("SEMI001", 1000);
+        var templates = CreateManufactureTemplates();
+        var products = CreateProducts();
+        products.First(p => p.ProductCode == "PROD001").Stock.Planned = 40;
+
+        SetupRepositoryMocks(semiproduct, templates, products);
+
+        // Act
+        var result = await _service.CalculateBatchPlan(request, DefaultRanges, CancellationToken.None);
+
+        // Assert
+        var plannedProduct = result.ProductSizes.First(p => p.ProductCode == "PROD001");
+        Assert.Equal(40, plannedProduct.PlannedQuantity);
+        Assert.Equal(50, plannedProduct.CurrentStock); // Physical stock stays untouched
+
+        var unplannedProduct = result.ProductSizes.First(p => p.ProductCode == "PROD002");
+        Assert.Equal(0, unplannedProduct.PlannedQuantity);
+    }
+
+    [Fact]
+    public async Task CalculateBatchPlan_ProductWithPlannedManufacture_IncludesPlannedInCurrentDaysCoverage()
+    {
+        // Arrange
+        var request = new CalculateBatchPlanRequest
+        {
+            ProductCode = "SEMI001",
+            ControlMode = BatchPlanControlMode.MmqMultiplier,
+            MmqMultiplier = 1.0
+        };
+
+        var semiproduct = CreateSemiproduct("SEMI001", 1000);
+        var templates = CreateManufactureTemplates();
+        var products = CreateProducts();
+        products.First(p => p.ProductCode == "PROD001").Stock.Planned = 40;
+
+        SetupRepositoryMocks(semiproduct, templates, products);
+
+        // Act
+        var result = await _service.CalculateBatchPlan(request, DefaultRanges, CancellationToken.None);
+
+        // Assert
+        var plannedProduct = result.ProductSizes.First(p => p.ProductCode == "PROD001");
+        var coverageFromStockAlone = plannedProduct.CurrentStock / plannedProduct.DailySalesRate;
+        var expectedCoverage = (plannedProduct.CurrentStock + plannedProduct.PlannedQuantity) / plannedProduct.DailySalesRate;
+
+        Assert.Equal(expectedCoverage, plannedProduct.CurrentDaysCoverage, 6);
+        Assert.True(plannedProduct.CurrentDaysCoverage > coverageFromStockAlone);
+    }
+
+    [Fact]
+    public async Task CalculateBatchPlan_ProductWithoutPlannedManufacture_KeepsCoverageBasedOnStockAlone()
+    {
+        // Arrange
+        var request = new CalculateBatchPlanRequest
+        {
+            ProductCode = "SEMI001",
+            ControlMode = BatchPlanControlMode.MmqMultiplier,
+            MmqMultiplier = 1.0
+        };
+
+        var semiproduct = CreateSemiproduct("SEMI001", 1000);
+        var templates = CreateManufactureTemplates();
+        var products = CreateProducts();
+
+        SetupRepositoryMocks(semiproduct, templates, products);
+
+        // Act
+        var result = await _service.CalculateBatchPlan(request, DefaultRanges, CancellationToken.None);
+
+        // Assert
+        var product = result.ProductSizes.First(p => p.ProductCode == "PROD001");
+        Assert.Equal(0, product.PlannedQuantity);
+        Assert.Equal(product.CurrentStock / product.DailySalesRate, product.CurrentDaysCoverage, 6);
+    }
+
+    [Fact]
+    public async Task CalculateBatchPlan_ProductWithPlannedManufacture_PassesStockPlusPlannedToDistributionCalculator()
+    {
+        // Arrange
+        var request = new CalculateBatchPlanRequest
+        {
+            ProductCode = "SEMI001",
+            ControlMode = BatchPlanControlMode.MmqMultiplier,
+            MmqMultiplier = 1.0
+        };
+
+        var semiproduct = CreateSemiproduct("SEMI001", 1000);
+        var templates = CreateManufactureTemplates();
+        var products = CreateProducts();
+        products.First(p => p.ProductCode == "PROD001").Stock.Planned = 40;
+
+        SetupRepositoryMocks(semiproduct, templates, products);
+
+        ProductBatch? capturedBatch = null;
+        _batchDistributionCalculatorMock
+            .Setup(x => x.OptimizeBatch(It.IsAny<ProductBatch>(), It.IsAny<bool>()))
+            .Callback<ProductBatch, bool>((batch, _) => capturedBatch = batch);
+
+        // Act
+        await _service.CalculateBatchPlan(request, DefaultRanges, CancellationToken.None);
+
+        // Assert
+        Assert.NotNull(capturedBatch);
+        var plannedVariant = capturedBatch!.Variants.First(v => v.ProductCode == "PROD001");
+        Assert.Equal(90, plannedVariant.EffectiveStock); // stock 50 + planned 40
+
+        var unplannedVariant = capturedBatch.Variants.First(v => v.ProductCode == "PROD002");
+        Assert.Equal(25, unplannedVariant.EffectiveStock); // stock 25 + planned 0
+    }
+
+    [Fact]
+    public async Task CalculateBatchPlan_OptimizedProductWithPlannedManufacture_IncludesPlannedInFutureStock()
+    {
+        // Arrange
+        var request = new CalculateBatchPlanRequest
+        {
+            ProductCode = "SEMI001",
+            ControlMode = BatchPlanControlMode.MmqMultiplier,
+            MmqMultiplier = 1.0
+        };
+
+        var semiproduct = CreateSemiproduct("SEMI001", 1000);
+        var templates = CreateManufactureTemplates();
+        var products = CreateProducts();
+        products.First(p => p.ProductCode == "PROD001").Stock.Planned = 40;
+
+        SetupRepositoryMocks(semiproduct, templates, products);
+
+        _batchDistributionCalculatorMock
+            .Setup(x => x.OptimizeBatch(It.IsAny<ProductBatch>(), It.IsAny<bool>()))
+            .Callback<ProductBatch, bool>((batch, _) =>
+            {
+                foreach (var variant in batch.Variants)
+                {
+                    variant.SuggestedAmount = 10;
+                }
+            });
+
+        // Act
+        var result = await _service.CalculateBatchPlan(request, DefaultRanges, CancellationToken.None);
+
+        // Assert
+        // PROD001: stock 50 + planned 40 + produced 10 = 100
+        var plannedProduct = result.ProductSizes.First(p => p.ProductCode == "PROD001");
+        Assert.True(plannedProduct.WasOptimized);
+        Assert.Equal(100, plannedProduct.FutureStock);
+        Assert.Equal(plannedProduct.FutureStock / plannedProduct.DailySalesRate, plannedProduct.FutureDaysCoverage, 6);
+    }
+
+    [Fact]
+    public async Task CalculateBatchPlan_FixedProductWithPlannedManufacture_IncludesPlannedInFutureStock()
+    {
+        // Arrange
+        var request = new CalculateBatchPlanRequest
+        {
+            ProductCode = "SEMI001",
+            ControlMode = BatchPlanControlMode.MmqMultiplier,
+            MmqMultiplier = 1.0,
+            ProductConstraints = new List<ProductSizeConstraint>
+            {
+                new ProductSizeConstraint { ProductCode = "PROD001", IsFixed = true, FixedQuantity = 10 }
+            }
+        };
+
+        var semiproduct = CreateSemiproduct("SEMI001", 1000);
+        var templates = CreateManufactureTemplates();
+        var products = CreateProducts();
+        products.First(p => p.ProductCode == "PROD001").Stock.Planned = 40;
+
+        SetupRepositoryMocks(semiproduct, templates, products);
+
+        // Act
+        var result = await _service.CalculateBatchPlan(request, DefaultRanges, CancellationToken.None);
+
+        // Assert
+        // PROD001: stock 50 + planned 40 + fixed 10 = 100
+        var fixedProduct = result.ProductSizes.First(p => p.ProductCode == "PROD001");
+        Assert.True(fixedProduct.IsFixed);
+        Assert.Equal(100, fixedProduct.FutureStock);
+        Assert.Equal(fixedProduct.FutureStock / fixedProduct.DailySalesRate, fixedProduct.FutureDaysCoverage, 6);
+    }
+
+    [Fact]
+    public async Task CalculateBatchPlan_SinglePhaseWithPlannedManufacture_IncludesPlannedInStockFigures()
+    {
+        // Arrange
+        var request = new CalculateBatchPlanRequest
+        {
+            ProductCode = "PROD001",
+            ManufactureType = ManufactureType.SinglePhase,
+            ControlMode = BatchPlanControlMode.MmqMultiplier,
+            MmqMultiplier = 1.0
+        };
+
+        var product = CreateProducts().First(p => p.ProductCode == "PROD001");
+        product.Stock.Planned = 40;
+
+        _catalogRepositoryMock.Setup(x => x.GetByIdAsync("PROD001", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(product);
+
+        // Act
+        var result = await _service.CalculateBatchPlan(request, DefaultRanges, CancellationToken.None);
+
+        // Assert
+        var item = Assert.Single(result.ProductSizes);
+        Assert.Equal(40, item.PlannedQuantity);
+        Assert.Equal(50, item.CurrentStock);
+        Assert.Equal((item.CurrentStock + item.PlannedQuantity) / item.DailySalesRate, item.CurrentDaysCoverage, 6);
+        // MMQ 10 * multiplier 1.0 = 10 units produced => 50 + 40 + 10 = 100
+        Assert.Equal(100, item.FutureStock);
+        Assert.Equal(item.FutureStock / item.DailySalesRate, item.FutureDaysCoverage, 6);
+    }
+
     private CatalogAggregate CreateSemiproduct(string code, double stock)
     {
         return new CatalogAggregate

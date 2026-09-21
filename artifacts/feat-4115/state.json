@@ -1,0 +1,64 @@
+{
+  "feature_id": "feat-4115",
+  "issue_number": 4115,
+  "created_at": "2026-09-09T05:13:20.556579Z",
+  "max_revisions": 3,
+  "phases": {
+    "analyzing": {
+      "status": "completed",
+      "updated_at": "2026-09-09T05:15:32.611013Z"
+    },
+    "architecting": {
+      "status": "completed",
+      "updated_at": "2026-09-09T05:18:35.981581Z"
+    },
+    "designing": {
+      "status": "completed",
+      "updated_at": "2026-09-09T05:19:35.555922Z"
+    },
+    "planning": {
+      "status": "completed",
+      "updated_at": "2026-09-09T05:27:26.370978Z"
+    },
+    "developing": {
+      "status": "in_progress",
+      "updated_at": "2026-09-11T17:23:51.525291Z"
+    },
+    "code-review": {
+      "status": "completed",
+      "updated_at": "2026-09-11T17:32:28.179209Z"
+    }
+  },
+  "tasks": [
+    {
+      "name": "add-gift-package-query-service-interface",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-09-11T16:49:21.028036Z"
+    },
+    {
+      "name": "implement-query-interface-on-concrete-service",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-09-11T17:09:59.942688Z"
+    },
+    {
+      "name": "wire-shared-instance-di-registration",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-09-11T17:15:53.645206Z"
+    },
+    {
+      "name": "narrow-manufacture-interface-and-update-query-handlers",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-09-11T17:22:32.138403Z"
+    },
+    {
+      "name": "verify-full-solution",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-09-11T17:29:39.131585Z"
+    }
+  ]
+}

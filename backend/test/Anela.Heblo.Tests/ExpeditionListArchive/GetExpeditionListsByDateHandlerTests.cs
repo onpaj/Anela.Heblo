@@ -1,7 +1,7 @@
 using Anela.Heblo.Application.Features.ExpeditionListArchive;
+using Anela.Heblo.Application.Features.ExpeditionListArchive.Contracts;
 using Anela.Heblo.Application.Features.ExpeditionListArchive.UseCases.GetExpeditionListsByDate;
 using Anela.Heblo.Application.Shared;
-using Anela.Heblo.Domain.Features.FileStorage;
 using Microsoft.Extensions.Options;
 using Moq;
 using Xunit;
@@ -10,14 +10,14 @@ namespace Anela.Heblo.Tests.ExpeditionListArchive;
 
 public class GetExpeditionListsByDateHandlerTests
 {
-    private readonly Mock<IBlobStorageService> _blobStorageServiceMock;
+    private readonly Mock<IExpeditionListArchiveBlobStore> _blobStoreMock;
     private readonly GetExpeditionListsByDateHandler _handler;
     private const string ContainerName = "expedition-lists";
 
     public GetExpeditionListsByDateHandlerTests()
     {
-        _blobStorageServiceMock = new Mock<IBlobStorageService>();
-        _handler = new GetExpeditionListsByDateHandler(_blobStorageServiceMock.Object, Options.Create(new ExpeditionListArchiveOptions()));
+        _blobStoreMock = new Mock<IExpeditionListArchiveBlobStore>();
+        _handler = new GetExpeditionListsByDateHandler(_blobStoreMock.Object, Options.Create(new ExpeditionListArchiveOptions()));
     }
 
     [Fact]
@@ -25,13 +25,13 @@ public class GetExpeditionListsByDateHandlerTests
     {
         // Arrange
         var date = "2026-03-25";
-        var blobs = new List<BlobItemInfo>
+        var blobs = new List<ExpeditionBlobItem>
         {
             new() { Name = $"{date}/picking-list-001.pdf", FileName = "picking-list-001.pdf", CreatedOn = new DateTimeOffset(2026, 3, 25, 10, 0, 0, TimeSpan.Zero), ContentLength = 512000 },
             new() { Name = $"{date}/picking-list-002.pdf", FileName = "picking-list-002.pdf", CreatedOn = new DateTimeOffset(2026, 3, 25, 14, 0, 0, TimeSpan.Zero), ContentLength = 256000 },
         };
 
-        _blobStorageServiceMock
+        _blobStoreMock
             .Setup(s => s.ListBlobsAsync(ContainerName, date, default))
             .ReturnsAsync(blobs.AsReadOnly());
 
@@ -55,13 +55,13 @@ public class GetExpeditionListsByDateHandlerTests
     {
         // Arrange
         var date = "2026-03-25";
-        var blobs = new List<BlobItemInfo>
+        var blobs = new List<ExpeditionBlobItem>
         {
             new() { Name = $"{date}/picking-list-001.pdf", FileName = "picking-list-001.pdf" },
             new() { Name = $"{date}/picking-list-002.txt", FileName = "picking-list-002.txt" },
         };
 
-        _blobStorageServiceMock
+        _blobStoreMock
             .Setup(s => s.ListBlobsAsync(ContainerName, date, default))
             .ReturnsAsync(blobs.AsReadOnly());
 
@@ -98,7 +98,7 @@ public class GetExpeditionListsByDateHandlerTests
         Assert.Equal("yyyy-MM-dd", result.Params!["ExpectedFormat"]);
         Assert.Empty(result.Items);
 
-        _blobStorageServiceMock.Verify(
+        _blobStoreMock.Verify(
             s => s.ListBlobsAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()),
             Times.Never);
     }

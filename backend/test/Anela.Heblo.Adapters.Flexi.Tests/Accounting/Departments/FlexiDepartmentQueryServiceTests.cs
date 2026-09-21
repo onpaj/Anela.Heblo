@@ -1,5 +1,5 @@
 using Anela.Heblo.Adapters.Flexi.Accounting.Departments;
-using Anela.Heblo.Domain.Features.InvoiceClassification;
+using Anela.Heblo.Domain.Features.UserManagement;
 using FluentAssertions;
 using Moq;
 using Xunit;

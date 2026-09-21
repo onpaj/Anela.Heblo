@@ -3,7 +3,6 @@ using Anela.Heblo.Application.Features.ExpeditionListArchive.Contracts;
 using Anela.Heblo.Application.Features.ExpeditionListArchive.UseCases.ReprintExpeditionList;
 using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Application.Shared.Printing;
-using Anela.Heblo.Domain.Features.FileStorage;
 using Microsoft.Extensions.Options;
 using Moq;
 using Xunit;
@@ -12,7 +11,7 @@ namespace Anela.Heblo.Tests.ExpeditionListArchive;
 
 public class ReprintExpeditionListHandlerTests
 {
-    private readonly Mock<IBlobStorageService> _blobStorageServiceMock;
+    private readonly Mock<IExpeditionListArchiveBlobStore> _blobStoreMock;
     private readonly Mock<IPrintQueueSink> _cupsSinkMock;
     private readonly Mock<ITemporaryFileAccessor> _temporaryFileAccessorMock;
     private readonly ReprintExpeditionListHandler _handler;
@@ -20,11 +19,11 @@ public class ReprintExpeditionListHandlerTests
 
     public ReprintExpeditionListHandlerTests()
     {
-        _blobStorageServiceMock = new Mock<IBlobStorageService>();
+        _blobStoreMock = new Mock<IExpeditionListArchiveBlobStore>();
         _cupsSinkMock = new Mock<IPrintQueueSink>();
         _temporaryFileAccessorMock = new Mock<ITemporaryFileAccessor>();
         _handler = new ReprintExpeditionListHandler(
-            _blobStorageServiceMock.Object,
+            _blobStoreMock.Object,
             _cupsSinkMock.Object,
             _temporaryFileAccessorMock.Object,
             Options.Create(new ExpeditionListArchiveOptions()));
@@ -39,7 +38,7 @@ public class ReprintExpeditionListHandlerTests
         var blobStream = new MemoryStream(pdfContent);
         const string tempPath = "/tmp/generated-guid-001.pdf";
 
-        _blobStorageServiceMock
+        _blobStoreMock
             .Setup(s => s.DownloadAsync(ContainerName, blobPath, default))
             .ReturnsAsync(blobStream);
 
@@ -58,7 +57,7 @@ public class ReprintExpeditionListHandlerTests
 
         // Assert
         Assert.True(result.Success);
-        _blobStorageServiceMock.Verify(s => s.DownloadAsync(ContainerName, blobPath, default), Times.Once);
+        _blobStoreMock.Verify(s => s.DownloadAsync(ContainerName, blobPath, default), Times.Once);
         _temporaryFileAccessorMock.Verify(a => a.CreateFromStreamAsync(blobStream, ".pdf", default), Times.Once);
         _cupsSinkMock.Verify(
             s => s.SendAsync(It.Is<IEnumerable<string>>(paths => paths.Single() == tempPath), default),
@@ -74,7 +73,7 @@ public class ReprintExpeditionListHandlerTests
         var blobStream = new MemoryStream(pdfContent);
         const string tempPath = "/tmp/generated-guid-002.pdf";
 
-        _blobStorageServiceMock
+        _blobStoreMock
             .Setup(s => s.DownloadAsync(ContainerName, blobPath, default))
             .ReturnsAsync(blobStream);
         _temporaryFileAccessorMock
@@ -102,7 +101,7 @@ public class ReprintExpeditionListHandlerTests
         var blobStream = new MemoryStream(new byte[] { 0x25, 0x50, 0x44, 0x46 });
         const string tempPath = "/tmp/generated-guid-003.pdf";
 
-        _blobStorageServiceMock
+        _blobStoreMock
             .Setup(s => s.DownloadAsync(ContainerName, blobPath, default))
             .ReturnsAsync(blobStream);
         _temporaryFileAccessorMock
@@ -126,7 +125,7 @@ public class ReprintExpeditionListHandlerTests
         // Arrange
         var blobPath = "2026-03-25/picking-list-004.pdf";
 
-        _blobStorageServiceMock
+        _blobStoreMock
             .Setup(s => s.DownloadAsync(ContainerName, blobPath, default))
             .ThrowsAsync(new IOException("blob unavailable"));
 
@@ -158,7 +157,7 @@ public class ReprintExpeditionListHandlerTests
         // Assert
         Assert.False(result.Success);
         Assert.Equal(ErrorCodes.InvalidBlobPath, result.ErrorCode);
-        _blobStorageServiceMock.Verify(
+        _blobStoreMock.Verify(
             s => s.DownloadAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()),
             Times.Never);
         _cupsSinkMock.Verify(

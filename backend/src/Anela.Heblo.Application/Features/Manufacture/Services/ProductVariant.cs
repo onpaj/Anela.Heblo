@@ -5,12 +5,16 @@ public class ProductVariant
     public double Volume { get; set; }
     public double Weight { get; set; }
     public double DailySales { get; set; }
-    public double CurrentStock { get; set; }
+    /// <summary>
+    /// Stock the optimizer treats as already on hand: physical stock plus quantities from
+    /// manufacture orders that are already planned but not yet completed.
+    /// </summary>
+    public double EffectiveStock { get; set; }
     public double SuggestedAmount { get; set; }
 
     public double UpstockSuggested => DailySales > 0 ? SuggestedAmount / DailySales : 0;
-    public double UpstockTotal => DailySales > 0 ? (SuggestedAmount + CurrentStock) / DailySales : 0;
-    public double UpstockCurrent => DailySales > 0 ? CurrentStock / DailySales : 0;
+    public double UpstockTotal => DailySales > 0 ? (SuggestedAmount + EffectiveStock) / DailySales : 0;
+    public double UpstockCurrent => DailySales > 0 ? EffectiveStock / DailySales : 0;
     public required string ProductCode { get; set; }
     public required string ProductName { get; set; }
 }

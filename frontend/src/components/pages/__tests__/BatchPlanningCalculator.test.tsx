@@ -1,5 +1,5 @@
 import React from "react";
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import "@testing-library/jest-dom";
 import { BrowserRouter } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -15,6 +15,16 @@ jest.mock("../../../api/hooks/useBatchPlanning", () => ({
     MmqMultiplier: "MmqMultiplier",
     TotalWeight: "TotalWeight", 
     TargetDaysCoverage: "TargetDaysCoverage",
+  },
+  CalculateBatchPlanRequest: jest.fn(function (this: any, data: any) {
+    Object.assign(this, data);
+  }),
+  ProductSizeConstraint: jest.fn(function (this: any, data: any) {
+    Object.assign(this, data);
+  }),
+  ManufactureType: {
+    SinglePhase: 1,
+    MultiPhase: 2,
   },
   getControlModeDisplayName: jest.fn((mode: string) => "MMQ Multiplier"),
   formatVolume: jest.fn((volume: number) => `${volume.toFixed(1)} ml`),
@@ -33,6 +43,17 @@ jest.mock("../../common/CatalogAutocomplete", () => {
           onChange={() => {}}
           placeholder="Vyberte polotovar"
         />
+        <button
+          data-testid="select-semiproduct"
+          onClick={() =>
+            onSelect({
+              productCode: "SEMI001",
+              productName: "Test Semiproduct",
+            })
+          }
+        >
+          select
+        </button>
       </div>
     );
   };
@@ -84,8 +105,9 @@ const mockSuccessResponse = {
       isOptimized: true,
       weightPerUnit: 100,
       currentStock: 500,
+      plannedQuantity: 120,
       dailySalesRate: 10,
-      currentDaysCoverage: 50,
+      currentDaysCoverage: 62,
       recommendedUnitsToProduceHumanReadable: 100,
       futureDaysCoverage: 60,
       enabled: true,
@@ -257,6 +279,59 @@ describe("BatchPlanningCalculator", () => {
       
       // Check for product grid presence
       // The exact text content may differ, but component should handle data properly
+    });
+
+    it("renders the planned manufacture column with the already-planned quantity", () => {
+      const Wrapper = createWrapper();
+      render(
+        <Wrapper>
+          <BatchPlanningCalculator />
+        </Wrapper>
+      );
+
+      // The results table only renders once a semiproduct is selected.
+      fireEvent.click(screen.getByTestId("select-semiproduct"));
+
+      expect(
+        screen.getByRole("columnheader", { name: "Plánováno" })
+      ).toBeInTheDocument();
+      expect(screen.getByText("120 ks")).toBeInTheDocument();
+    });
+
+    it("keeps every body row aligned with the header, including the direct output row", () => {
+      mockUseBatchPlanningMutation.mockReturnValue({
+        mutate: jest.fn(),
+        mutateAsync: jest.fn(),
+        // MultiPhase is what makes the amber "Přímý výstup" row render.
+        data: { ...mockSuccessResponse, manufactureType: 2 },
+        isLoading: false,
+        isPending: false,
+        isError: false,
+        isSuccess: true,
+        error: null,
+      });
+
+      const Wrapper = createWrapper();
+      render(
+        <Wrapper>
+          <BatchPlanningCalculator />
+        </Wrapper>
+      );
+
+      fireEvent.click(screen.getByTestId("select-semiproduct"));
+
+      // The direct-output row must render, otherwise this guards nothing.
+      expect(screen.getByText("Přímý výstup")).toBeInTheDocument();
+
+      const columnCount = screen.getAllByRole("columnheader").length;
+      const bodyRows = screen
+        .getAllByRole("row")
+        .filter((row) => within(row).queryAllByRole("cell").length > 0);
+
+      expect(bodyRows.length).toBeGreaterThan(1);
+      bodyRows.forEach((row) => {
+        expect(within(row).getAllByRole("cell")).toHaveLength(columnCount);
+      });
     });
   });
 

@@ -28,6 +28,9 @@ namespace Anela.Heblo.Adapters.Microsoft365
         private const string CalendarEventsBaseUrl = "https://graph.microsoft.com/v1.0/groups/{0}/calendar/events";
         private const string CalendarViewBaseUrl = "https://graph.microsoft.com/v1.0/groups/{0}/calendarView";
         private const string TimeZone = "Europe/Prague";
+        // isAllDay drives the exclusive→inclusive end conversion on import; without it
+        // Graph omits the flag and every all-day event is stored one day too long.
+        private const string EventSelect = "id,subject,body,start,end,isAllDay,categories";
         private const int MaxResponseBodyLength = 500;
 
         private static readonly JsonSerializerOptions JsonOptions = new()
@@ -130,9 +133,8 @@ namespace Anela.Heblo.Adapters.Microsoft365
             var token = await _tokenAcquisition.GetAccessTokenForAppAsync(GraphScope);
             using var client = _httpClientFactory.CreateClient("MicrosoftGraph");
 
-            var select = "id,subject,body,start,end,categories";
             var calendarViewBase = string.Format(CalendarViewBaseUrl, Uri.EscapeDataString(_options.GroupId));
-            var url = $"{calendarViewBase}?startDateTime={fromUtc:O}&endDateTime={toUtc:O}&$select={select}";
+            var url = $"{calendarViewBase}?startDateTime={fromUtc:O}&endDateTime={toUtc:O}&$select={EventSelect}";
 
             var allEvents = new List<OutlookEventDto>();
             string? nextUrl = url;
@@ -165,8 +167,7 @@ namespace Anela.Heblo.Adapters.Microsoft365
             var token = await _tokenAcquisition.GetAccessTokenForAppAsync(GraphScope);
             using var client = _httpClientFactory.CreateClient("MicrosoftGraph");
 
-            var select = "id,subject,body,start,end,categories";
-            var url = $"{BuildBaseUrl()}/{Uri.EscapeDataString(outlookEventId)}?$select={select}";
+            var url = $"{BuildBaseUrl()}/{Uri.EscapeDataString(outlookEventId)}?$select={EventSelect}";
             var request = CreateRequest(HttpMethod.Get, url, token);
 
             var response = await client.SendAsync(request, ct);
@@ -210,7 +211,8 @@ namespace Anela.Heblo.Adapters.Microsoft365
 
         private string BuildEventBody(MarketingAction action)
         {
-            var endDate = action.EndDate ?? action.StartDate.AddHours(1);
+            var isAllDay = IsDateOnly(action);
+            var endDate = BuildGraphEnd(action, isAllDay);
 
             var bodyObj = new
             {
@@ -230,10 +232,35 @@ namespace Anela.Heblo.Adapters.Microsoft365
                     dateTime = endDate.ToString("O"),
                     timeZone = TimeZone
                 },
+                isAllDay,
                 categories = new[] { _mapper.MapToOutlookCategory(action.ActionType) }
             };
 
             return JsonSerializer.Serialize(bodyObj);
+        }
+
+        /// <summary>
+        /// A date-only action (midnight to midnight) is Heblo's shape for an all-day event.
+        /// The same answer drives both the exclusive end and the isAllDay flag sent to Graph —
+        /// they must agree, or the event round-trips back through the import as a timed one.
+        /// </summary>
+        private static bool IsDateOnly(MarketingAction action) =>
+            action.EndDate is not null
+            && action.StartDate.TimeOfDay == TimeSpan.Zero
+            && action.EndDate.Value.TimeOfDay == TimeSpan.Zero;
+
+        /// <summary>
+        /// Heblo's EndDate is inclusive, Graph's end is exclusive, so an all-day action's
+        /// last day has to be pushed as the following midnight or Outlook drops that day.
+        /// </summary>
+        private static DateTime BuildGraphEnd(MarketingAction action, bool isAllDay)
+        {
+            if (action.EndDate is null)
+            {
+                return action.StartDate.AddHours(1);
+            }
+
+            return isAllDay ? action.EndDate.Value.AddDays(1) : action.EndDate.Value;
         }
 
         private static HttpRequestMessage CreateRequest(HttpMethod method, string url, string token)

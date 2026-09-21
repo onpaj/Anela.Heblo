@@ -14,6 +14,15 @@ _Update this file at the end of significant sessions._
 
 ## Recently Completed
 
+- Lot label calibration wizard (branch `feature/calibration-wizard`, PR #4207, 2026-09-16):
+  operators correct label drift from the print tab by reporting direction + speed; the
+  server derives, clamps and persists the nudge on plain material-containers Write. Two
+  review agents (C#, frontend) ran on the PR; all five findings were fixed in separate
+  commits (modal-wide busy flag during a nudge, out-of-range calibrations step by one
+  nudge instead of snapping to the ceiling, accepted lost-update window documented,
+  aria-label on drift buttons, stale hook comment). Backend + frontend CI green; awaiting
+  merge and a manual check on staging.
+
 - Hygiene coverage gap + AgentHarness drift (PR #3956 triage, branch
   `claude/pr-3956-resolver-coverage-oaq9qj`, 2026-09-03): `/hygiene-all`,
   `/automerge-all` and `/rework-all` all filtered on `--label agent`, so an
@@ -324,6 +333,36 @@ _Update this file at the end of significant sessions._
   `issue_write` for the `agent` label. Sibling candidates #4005–#4008 (coverage-gap issues)
   left for a future run; #4003 (the sibling arch-review duplication finding) already had an
   open PR (#4011) before this run started.
+
+- `OrgChartPage` dark mode wrapper fix planned via the real AgentHarness pipeline (issue
+  #4155, PR #4161, `feature/4155-Arch-Review-Orgchart-Orgchartpage-Outer-Wrapper-Mi`,
+  2026-09-13): a scheduled `/plan-next-task` run — this time the `gh_api.sh` Content-Type
+  regression that blocked ~12 prior scheduled runs (see entries above and
+  `memory/gotchas/gh-cli-unavailable-in-cloud-sessions.md`) was NOT present, so the
+  full AgentHarness fan-out pipeline (worktree, `feature/{id}-slug` branch,
+  analyst → architect → designer → planner via `plan-orchestrator`) actually ran, this
+  time as a **stale-reclaim**: a prior interrupted run had already completed
+  analyzing/architecting/designing and pushed those artifacts, but died before
+  planning. Recovered per plan-next-task's self-heal path (re-add `agent-planning`
+  label, merge `main` to catch up — no-op, already current — re-push). Hit a *new*
+  pipeline bug: `.agents/planner.md` (and, found by inspection, `brainstorm.md` and
+  `developer.md`) declare `context_files` globs under
+  `~/.claude/plugins/cache/*/superpowers/*/skills/.../SKILL.md`; the `superpowers`
+  plugin marketplace isn't registered in this cloud environment (only
+  `claude-plugins-official` is), so the glob resolves to zero files and
+  `plan-orchestrator`'s own strict validation correctly refuses to run the planner
+  without its skill content — this would silently kill every future planning run at
+  the last phase, after burning 3 LLM calls each time. Fixed by repointing all three
+  `context_files` entries at the equivalent skill files already checked into this repo
+  under `.claude/skills/` (`writing-plans`, `brainstorming`,
+  `subagent-driven-development`), which carry the same content — first on the issue's
+  own branch to unblock planning of #4155, then as its own dedicated fix on the
+  designated session branch (PR #4162), matching the established precedent of #3980/#3991
+  for fixing real pipeline-tooling bugs found mid-run. Planning for #4155 completed
+  end-to-end (single task: `add-dark-mode-wrapper-class`, a one-line Tailwind `dark:`
+  class addition), draft PR #4161 opened with `agent` label, issue swapped from
+  `agent-planning` to `agent-ready-for-dev`. See
+  `memory/gotchas/agent-context-files-superpowers-plugin-missing.md`.
 
 ## Pending / Known Issues
 

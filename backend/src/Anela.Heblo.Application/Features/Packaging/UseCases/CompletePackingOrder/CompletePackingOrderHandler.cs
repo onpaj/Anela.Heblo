@@ -1,4 +1,4 @@
-using Anela.Heblo.Application.Features.ShoptetOrders;
+using Anela.Heblo.Application.Features.Packaging.Contracts;
 using Anela.Heblo.Application.Shared;
 using MediatR;
 using Microsoft.Extensions.Logging;
@@ -8,14 +8,14 @@ namespace Anela.Heblo.Application.Features.Packaging.UseCases.CompletePackingOrd
 public class CompletePackingOrderHandler
     : IRequestHandler<CompletePackingOrderRequest, CompletePackingOrderResponse>
 {
-    private readonly IEshopOrderClient _eshopOrderClient;
+    private readonly IPackedOrderStatusUpdater _packedOrderStatusUpdater;
     private readonly ILogger<CompletePackingOrderHandler> _logger;
 
     public CompletePackingOrderHandler(
-        IEshopOrderClient eshopOrderClient,
+        IPackedOrderStatusUpdater packedOrderStatusUpdater,
         ILogger<CompletePackingOrderHandler> logger)
     {
-        _eshopOrderClient = eshopOrderClient;
+        _packedOrderStatusUpdater = packedOrderStatusUpdater;
         _logger = logger;
     }
 
@@ -25,7 +25,7 @@ public class CompletePackingOrderHandler
     {
         try
         {
-            await _eshopOrderClient.MarkAsPackedAsync(request.OrderCode, cancellationToken);
+            await _packedOrderStatusUpdater.MarkAsPackedAsync(request.OrderCode, cancellationToken);
             return new CompletePackingOrderResponse(completed: true);
         }
         catch (Exception ex)

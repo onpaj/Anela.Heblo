@@ -9,7 +9,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Anela.Heblo.Application.Features.Logistics.UseCases.GiftPackageManufacture.Services;
 
-public class GiftPackageManufactureService : IGiftPackageManufactureService
+public class GiftPackageManufactureService : IGiftPackageManufactureService, IGiftPackageQueryService
 {
     private readonly IManufactureClient _manufactureClient;
     private readonly IGiftPackageManufactureRepository _giftPackageRepository;
@@ -117,7 +117,10 @@ public class GiftPackageManufactureService : IGiftPackageManufactureService
                 ProductCode = part.ProductCode,
                 ProductName = part.ProductName,
                 RequiredQuantity = part.Amount,
-                AvailableStock = (double)(ingredientItem?.AvailableStock ?? 0),
+                // Warehouse stock only. Goods in transport or in the manufacture warehouse cannot be
+                // picked for a gift package, and counting them here is what let the warehouse go
+                // negative: consumption below is booked against the warehouse.
+                AvailableStock = (double)(ingredientItem?.WarehouseStock ?? 0),
                 Image = ingredientItem?.Image
             };
 
@@ -137,10 +140,20 @@ public class GiftPackageManufactureService : IGiftPackageManufactureService
         string userName,
         CancellationToken cancellationToken = default)
     {
+        if (quantity <= 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(quantity), quantity, "Množství musí být větší než 0");
+        }
+
         // Fetch BOM/ingredient detail BEFORE opening the transaction: this calls out to
         // IManufactureClient/ILogisticsCatalogSource (other modules) and must not hold a
         // DB transaction open across those cross-module reads.
         var giftPackage = await GetGiftPackageDetailAsync(giftPackageCode, 1.0m, null, null, cancellationToken);
+
+        if (!allowStockOverride)
+        {
+            EnsureIngredientsAreInStock(giftPackage, quantity);
+        }
 
         // Cross-repository note: ExecuteInTransactionAsync is opened via _giftPackageRepository,
         // but it also covers writes made through _stockOperationService (IStockUpOperationRepository)
@@ -166,7 +179,7 @@ public class GiftPackageManufactureService : IGiftPackageManufactureService
             // Stock-up for each ingredient (negative amounts = consumption)
             foreach (var ingredient in giftPackage.Ingredients ?? new List<GiftPackageIngredientDto>())
             {
-                var consumedQuantity = (int)(ingredient.RequiredQuantity * quantity);
+                var consumedQuantity = ConsumedQuantity(ingredient, quantity);
                 manufactureLog.AddConsumedItem(ingredient.ProductCode, consumedQuantity);
 
                 // DocumentNumber format: GPM-{logId:000000}-{productCode}
@@ -205,6 +218,49 @@ public class GiftPackageManufactureService : IGiftPackageManufactureService
 
             return _mapper.Map<GiftPackageManufactureDto>(manufactureLog);
         }, cancellationToken);
+    }
+
+    /// <summary>
+    /// Quantity of one ingredient consumed by a manufacture run. Validation and the stock-down
+    /// operation must agree exactly, so both go through here.
+    /// </summary>
+    private static int ConsumedQuantity(GiftPackageIngredientDto ingredient, int quantity) =>
+        (int)(ingredient.RequiredQuantity * quantity);
+
+    /// <summary>
+    /// Refuses a run that would consume more than the warehouse holds. The frontend greys out the
+    /// button, but that check alone loses to a stale page, a double submit or a direct API call -
+    /// and the resulting stock-down operations take the warehouse negative.
+    /// <para>
+    /// Best effort, not a lock: stock is read from the catalog cache before the transaction opens
+    /// and nothing re-validates inside it, so two concurrent runs draining the same ingredient can
+    /// both pass. Closing that needs a compare-and-decrement on the authoritative stock source,
+    /// which the stock-up ledger does not offer today.
+    /// </para>
+    /// </summary>
+    private static void EnsureIngredientsAreInStock(GiftPackageDto giftPackage, int quantity)
+    {
+        var shortages = (giftPackage.Ingredients ?? new List<GiftPackageIngredientDto>())
+            .Select(ingredient => new
+            {
+                ingredient.ProductCode,
+                ingredient.ProductName,
+                Required = ConsumedQuantity(ingredient, quantity),
+                Available = ingredient.AvailableStock,
+            })
+            .Where(x => x.Required > x.Available)
+            .ToList();
+
+        if (shortages.Count == 0)
+        {
+            return;
+        }
+
+        var detail = string.Join("; ", shortages.Select(
+            x => $"{x.ProductName} ({x.ProductCode}): potřeba {x.Required} ks, skladem {x.Available:0.##} ks"));
+
+        throw new InsufficientStockException(
+            $"Nelze vyrobit {quantity} ks - nedostatek zásob na skladě. {detail}");
     }
 
     public async Task<GiftPackageDisassemblyDto> DisassembleGiftPackageAsync(
