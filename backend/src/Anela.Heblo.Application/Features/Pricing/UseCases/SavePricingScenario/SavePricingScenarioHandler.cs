@@ -41,6 +41,18 @@ public class SavePricingScenarioHandler
             });
         }
 
+        if (request.Id is not null)
+        {
+            var existing = await _repository.GetByIdAsync(request.Id.Value, cancellationToken);
+            if (existing is null)
+            {
+                return new SavePricingScenarioResponse(ErrorCodes.PricingScenarioNotFound, new Dictionary<string, string>
+                {
+                    { "scenarioId", request.Id.Value.ToString() }
+                });
+            }
+        }
+
         var filter = new PricingFilterDto
         {
             ProductCode = request.ProductCode,

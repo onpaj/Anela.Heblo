@@ -109,6 +109,27 @@ public class PricingScenarioHandlersTests
     }
 
     [Fact]
+    public async Task Saving_an_update_to_a_missing_scenario_returns_PricingScenarioNotFound()
+    {
+        var id = Guid.NewGuid();
+        _repository.Setup(r => r.GetByIdAsync(id, It.IsAny<CancellationToken>()))
+                   .ReturnsAsync((PricingScenario?)null);
+
+        var handler = new SavePricingScenarioHandler(
+            _repository.Object, _baseline.Object, _time, CurrentUserStub());
+
+        var response = await handler.Handle(new SavePricingScenarioRequest
+        {
+            Id = id,
+            Name = "Podzim 2026",
+            Overrides = new List<PricingOverrideDto>()
+        }, CancellationToken.None);
+
+        response.Success.Should().BeFalse();
+        response.ErrorCode.Should().Be(ErrorCodes.PricingScenarioNotFound);
+    }
+
+    [Fact]
     public async Task Saving_snapshots_the_current_baseline_alongside_each_override()
     {
         GivenBaseline(Row());
