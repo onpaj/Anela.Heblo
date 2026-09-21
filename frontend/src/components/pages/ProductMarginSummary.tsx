@@ -37,6 +37,81 @@ const PRODUCT_COLORS = [
 
 const OTHER_COLOR = "#9CA3AF"; // Gray for "Other"
 const DEFAULT_COLOR = "#9CA3AF"; // Gray for products not in top 15
+const TOP_CHART_PRODUCTS = 15;
+
+function buildChartDatasets(
+  monthlyData: NonNullable<
+    ReturnType<typeof useProductMarginSummaryQuery>["data"]
+  >["monthlyData"],
+  // Expected pre-sorted descending by totalMargin (same order as productColorMap).
+  topProducts: NonNullable<
+    ReturnType<typeof useProductMarginSummaryQuery>["data"]
+  >["topProducts"],
+  productColorMap: Map<string, string>,
+  productDisplayNames: Map<string, string>,
+): any[] {
+  const datasets: any[] = [];
+
+  // A product is "Other" iff productColorMap did not give it a distinct top-N color.
+  // Safe because DEFAULT_COLOR is never assigned to a top-N product (see productColorMap).
+  const otherKeys = new Set(
+    (topProducts || [])
+      .filter(
+        (p) => p.groupKey && productColorMap.get(p.groupKey) === DEFAULT_COLOR,
+      )
+      .map((p) => p.groupKey),
+  );
+
+  // Add "Other" category first (will be at bottom of stack)
+  if (otherKeys.size > 0) {
+    datasets.push({
+      label: "Ostatní produkty",
+      data: (monthlyData || []).map((month) => {
+        const otherMargin =
+          month.productSegments?.reduce((sum, segment) => {
+            if (segment.groupKey && otherKeys.has(segment.groupKey)) {
+              return sum + (segment.marginContribution || 0);
+            }
+            return sum;
+          }, 0) || 0;
+        return otherMargin;
+      }),
+      backgroundColor: OTHER_COLOR,
+      borderColor: OTHER_COLOR,
+      borderWidth: 1,
+    });
+  }
+
+  // Top products, ordered ascending by totalMargin (lowest first) so the highest-margin
+  // product renders at the top of the stacked bar, exactly as before this refactor.
+  // `topProducts` is already sorted descending by totalMargin (see productColorMap), so
+  // reversing the filtered result avoids a second O(n log n) sort over the same data.
+  const topProductEntries = (topProducts || [])
+    .filter((p) => p.groupKey && !otherKeys.has(p.groupKey))
+    .reverse();
+
+  topProductEntries.forEach((product) => {
+    const productKey = product.groupKey;
+    if (!productKey) return;
+    const color = productColorMap.get(productKey) ?? DEFAULT_COLOR;
+    const displayName = productDisplayNames.get(productKey) || productKey;
+
+    datasets.push({
+      label: displayName,
+      data: (monthlyData || []).map((month) => {
+        const segment = month.productSegments?.find(
+          (s) => s.groupKey === productKey,
+        );
+        return segment?.marginContribution || 0;
+      }),
+      backgroundColor: color,
+      borderColor: color,
+      borderWidth: 1,
+    });
+  });
+
+  return datasets;
+}
 
 const ProductMarginSummary: React.FC = () => {
   const [selectedTimeWindow, setSelectedTimeWindow] =
@@ -63,34 +138,40 @@ const ProductMarginSummary: React.FC = () => {
     }).format(amount);
   }, []);
 
+  // Descending by totalMargin; the single sort backing both productColorMap (below) and
+  // buildChartDatasets's ascending stacking order, so the latter can reverse this instead
+  // of re-sorting the same data.
+  const sortedTopProducts = useMemo(() => {
+    if (!data?.topProducts) return [];
+    return [...data.topProducts].sort(
+      (a, b) => (b.totalMargin ?? 0) - (a.totalMargin ?? 0),
+    );
+  }, [data?.topProducts]);
+
+  // Single canonical productKey -> color mapping, consumed by both chartData and
+  // tableData. Top TOP_CHART_PRODUCTS (by sortedTopProducts order) get a distinct
+  // palette color, the rest fall back to DEFAULT_COLOR. This map is never itself
+  // reassigned DEFAULT_COLOR for a top-N product, so `=== DEFAULT_COLOR` is a safe way
+  // to test "is this product in the top N" elsewhere in this file (see buildChartDatasets).
+  const productColorMap = useMemo(() => {
+    const map = new Map<string, string>();
+    sortedTopProducts.forEach((product, index) => {
+      if (product.groupKey) {
+        map.set(
+          product.groupKey,
+          index < TOP_CHART_PRODUCTS
+            ? PRODUCT_COLORS[index % PRODUCT_COLORS.length]
+            : DEFAULT_COLOR,
+        );
+      }
+    });
+    return map;
+  }, [sortedTopProducts]);
+
   const chartData = useMemo(() => {
     if (!data?.monthlyData || !data?.topProducts) return null;
 
     const labels = data.monthlyData.map((m) => m.monthDisplay);
-
-    // Create a map of products to consistent colors based on total margin ranking
-    const sortedByTotalMargin = [...data.topProducts].sort(
-      (a, b) => (b.totalMargin || 0) - (a.totalMargin || 0),
-    );
-    const productColorMap = new Map<string, string>();
-
-    // For chart, we want to show only top 15 products and group the rest as "Other"
-    const TOP_CHART_PRODUCTS = 15;
-    const topProductsForChart = sortedByTotalMargin.slice(
-      0,
-      TOP_CHART_PRODUCTS,
-    );
-    const otherProductsForChart = sortedByTotalMargin.slice(TOP_CHART_PRODUCTS);
-
-    // Assign colors to top products
-    topProductsForChart.forEach((product, index) => {
-      if (product.groupKey) {
-        productColorMap.set(
-          product.groupKey,
-          PRODUCT_COLORS[index % PRODUCT_COLORS.length],
-        );
-      }
-    });
 
     // Collect product display names
     const productDisplayNames = new Map<string, string>();
@@ -102,69 +183,15 @@ const ProductMarginSummary: React.FC = () => {
       });
     });
 
-    // Create datasets for chart
-    const datasets: any[] = [];
-
-    // Add "Other" category first (will be at bottom of stack)
-    if (otherProductsForChart.length > 0) {
-      const otherKeys = new Set(
-        otherProductsForChart.map((p) => p.groupKey).filter(Boolean),
-      );
-
-      datasets.push({
-        label: "Ostatní produkty",
-        data: data.monthlyData!.map((month) => {
-          // Sum up margin contributions for all "other" products in this month
-          const otherMargin =
-            month.productSegments?.reduce((sum, segment) => {
-              if (segment.groupKey && otherKeys.has(segment.groupKey)) {
-                return sum + (segment.marginContribution || 0);
-              }
-              return sum;
-            }, 0) || 0;
-          return otherMargin;
-        }),
-        backgroundColor: OTHER_COLOR,
-        borderColor: OTHER_COLOR,
-        borderWidth: 1,
-      });
-    }
-
-    // Sort top products by total margin for consistent dataset order
-    // Highest margin products should be added last to appear at the top of the stack
-    const topProductKeys = topProductsForChart
-      .map((p) => p.groupKey)
-      .filter(Boolean);
-    topProductKeys.sort((a, b) => {
-      const aTotal =
-        sortedByTotalMargin.find((p) => p.groupKey === a)?.totalMargin || 0;
-      const bTotal =
-        sortedByTotalMargin.find((p) => p.groupKey === b)?.totalMargin || 0;
-      return aTotal - bTotal; // Lower total margin first, will be at bottom of stack
-    });
-
-    // Add top products
-    topProductKeys.forEach((productKey) => {
-      if (!productKey) return;
-      const color = productColorMap.get(productKey) || DEFAULT_COLOR;
-      const displayName = productDisplayNames.get(productKey) || productKey;
-
-      datasets.push({
-        label: displayName,
-        data: data.monthlyData!.map((month) => {
-          const segment = month.productSegments?.find(
-            (s) => s.groupKey === productKey,
-          );
-          return segment?.marginContribution || 0;
-        }),
-        backgroundColor: color,
-        borderColor: color,
-        borderWidth: 1,
-      });
-    });
+    const datasets = buildChartDatasets(
+      data.monthlyData,
+      sortedTopProducts,
+      productColorMap,
+      productDisplayNames,
+    );
 
     return { labels, datasets };
-  }, [data]);
+  }, [data, productColorMap, sortedTopProducts]);
 
   // Prepare table data using topProducts which already contain all M0-M2 data
   const tableData = useMemo(() => {
@@ -172,14 +199,9 @@ const ProductMarginSummary: React.FC = () => {
 
     return data.topProducts
       .map((product) => {
-        // Find if this product is in top products to get proper color
-        const productIndex = data.topProducts!.findIndex(
-          (tp) => tp.groupKey === product.groupKey,
-        );
-        const color =
-          productIndex >= 0
-            ? PRODUCT_COLORS[productIndex % PRODUCT_COLORS.length]
-            : DEFAULT_COLOR;
+        const color = product.groupKey
+          ? (productColorMap.get(product.groupKey) ?? DEFAULT_COLOR)
+          : DEFAULT_COLOR;
 
         return {
           groupKey: product.groupKey || "",
@@ -187,7 +209,7 @@ const ProductMarginSummary: React.FC = () => {
           colorCode: color,
           totalMargin: product.totalMargin || 0,
           rank: product.rank || 0,
-          
+
           // M0-M2 margin levels - amounts
           m0Amount: product.m0Amount || 0,
           m1Amount: product.m1Amount || 0,
@@ -197,14 +219,14 @@ const ProductMarginSummary: React.FC = () => {
           m0Percentage: product.m0Percentage || 0,
           m1Percentage: product.m1Percentage || 0,
           m2Percentage: product.m2Percentage || 0,
-          
+
           // Pricing
           sellingPrice: product.sellingPrice || 0,
           purchasePrice: product.purchasePrice || 0,
         };
       })
       .sort((a, b) => a.rank - b.rank); // Sort by rank from backend
-  }, [data]);
+  }, [data?.topProducts, productColorMap]);
 
   const chartOptions: ChartOptions<"bar"> = useMemo(
     () => ({
