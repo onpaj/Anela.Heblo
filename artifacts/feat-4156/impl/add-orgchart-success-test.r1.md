@@ -1,5 +1,16 @@
 # Implementation: add-orgchart-success-test
 
+> **Superseded note (added during `/rework-pr`, 2026-09-21):** the test described below
+> was written against the pre-#4159 DTO shape. Before this PR was merged, PR #4159
+> ("Decouple OrgChart Adapter Deserialization from Application Contracts") merged into
+> `main` first and, as part of its own refactor, added an equivalent success-path test
+> (`GetOrganizationStructureAsync_MapsFullJsonGraphToResponseContracts`) that is a
+> superset of the one described here and matches the post-#4159 DTO shape. Resolving
+> this PR's resulting merge conflict took `main`'s version of
+> `OrgChartServiceTests.cs` in full, so this PR's diff against `main` no longer touches
+> that file — the coverage this task set out to add already exists on `main`. This log
+> is kept as a record of what this task's implementation step actually did at the time.
+
 ## What was implemented
 
 Added the missing success-path unit test for `OrgChartService.GetOrganizationStructureAsync`.
