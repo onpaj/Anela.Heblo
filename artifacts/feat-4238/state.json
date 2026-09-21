@@ -34,9 +34,9 @@
     },
     {
       "name": "persistence-migration-isalldy",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-09-21T07:16:46.019756Z"
+      "updated_at": "2026-09-21T07:27:54.692803Z"
     },
     {
       "name": "import-mapper-isalldy",
