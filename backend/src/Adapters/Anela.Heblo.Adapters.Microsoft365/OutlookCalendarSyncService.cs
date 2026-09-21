@@ -211,7 +211,7 @@ namespace Anela.Heblo.Adapters.Microsoft365
 
         private string BuildEventBody(MarketingAction action)
         {
-            var isAllDay = IsDateOnly(action);
+            var isAllDay = action.IsAllDay;
             var endDate = BuildGraphEnd(action, isAllDay);
 
             var bodyObj = new
@@ -238,16 +238,6 @@ namespace Anela.Heblo.Adapters.Microsoft365
 
             return JsonSerializer.Serialize(bodyObj);
         }
-
-        /// <summary>
-        /// A date-only action (midnight to midnight) is Heblo's shape for an all-day event.
-        /// The same answer drives both the exclusive end and the isAllDay flag sent to Graph —
-        /// they must agree, or the event round-trips back through the import as a timed one.
-        /// </summary>
-        private static bool IsDateOnly(MarketingAction action) =>
-            action.EndDate is not null
-            && action.StartDate.TimeOfDay == TimeSpan.Zero
-            && action.EndDate.Value.TimeOfDay == TimeSpan.Zero;
 
         /// <summary>
         /// Heblo's EndDate is inclusive, Graph's end is exclusive, so an all-day action's

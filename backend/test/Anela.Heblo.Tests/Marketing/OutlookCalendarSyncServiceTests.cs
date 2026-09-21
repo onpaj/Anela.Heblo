@@ -69,7 +69,8 @@ namespace Anela.Heblo.Tests.Marketing
         private static MarketingAction BuildAction(
             string? outlookEventId = null,
             DateTime? startDate = null,
-            DateTime? endDate = null)
+            DateTime? endDate = null,
+            bool isAllDay = false)
         {
             var resolvedEndDate = endDate == DateTime.MinValue ? (DateTime?)null : (endDate ?? DefaultEndDate);
 
@@ -80,6 +81,7 @@ namespace Anela.Heblo.Tests.Marketing
                 .WithActionType(MarketingActionType.Newsletter)
                 .WithStartDate(startDate ?? DefaultStartDate)
                 .WithEndDate(resolvedEndDate)
+                .WithIsAllDay(isAllDay)
                 .WithCreatedAt(DateTime.UtcNow)
                 .WithModifiedAt(DateTime.UtcNow)
                 .WithCreatedBy("user-1")
@@ -181,7 +183,8 @@ namespace Anela.Heblo.Tests.Marketing
             var service = CreateService(handler);
             var action = BuildAction(
                 startDate: new DateTime(2026, 9, 18, 0, 0, 0, DateTimeKind.Utc),
-                endDate: new DateTime(2026, 9, 18, 0, 0, 0, DateTimeKind.Utc));
+                endDate: new DateTime(2026, 9, 18, 0, 0, 0, DateTimeKind.Utc),
+                isAllDay: true);
 
             // Act
             await service.CreateEventAsync(action, CancellationToken.None);
@@ -205,7 +208,8 @@ namespace Anela.Heblo.Tests.Marketing
             var service = CreateService(handler);
             var action = BuildAction(
                 startDate: new DateTime(2026, 9, 7, 0, 0, 0, DateTimeKind.Utc),
-                endDate: new DateTime(2026, 9, 9, 0, 0, 0, DateTimeKind.Utc));
+                endDate: new DateTime(2026, 9, 9, 0, 0, 0, DateTimeKind.Utc),
+                isAllDay: true);
 
             // Act
             await service.CreateEventAsync(action, CancellationToken.None);
@@ -226,7 +230,8 @@ namespace Anela.Heblo.Tests.Marketing
             var service = CreateService(handler);
             var action = BuildAction(
                 startDate: new DateTime(2026, 9, 1, 7, 0, 0, DateTimeKind.Utc),
-                endDate: new DateTime(2026, 9, 1, 8, 30, 0, DateTimeKind.Utc));
+                endDate: new DateTime(2026, 9, 1, 8, 30, 0, DateTimeKind.Utc),
+                isAllDay: false);
 
             // Act
             await service.CreateEventAsync(action, CancellationToken.None);
@@ -240,26 +245,30 @@ namespace Anela.Heblo.Tests.Marketing
 
         [Theory]
         // single-day all-day
-        [InlineData("2026-09-18T00:00:00", "2026-09-18T00:00:00")]
+        [InlineData("2026-09-18T00:00:00", "2026-09-18T00:00:00", true)]
         // multi-day all-day
-        [InlineData("2026-09-07T00:00:00", "2026-09-09T00:00:00")]
+        [InlineData("2026-09-07T00:00:00", "2026-09-09T00:00:00", true)]
         // timed, same day
-        [InlineData("2026-09-01T07:00:00", "2026-09-01T08:30:00")]
+        [InlineData("2026-09-01T07:00:00", "2026-09-01T08:30:00", false)]
         // timed, starting at midnight but ending mid-day — not an all-day event
-        [InlineData("2026-09-01T00:00:00", "2026-09-01T16:00:00")]
+        [InlineData("2026-09-01T00:00:00", "2026-09-01T16:00:00", false)]
         public async Task CreateEventAsync_ThenImportingWhatWasSent_ReproducesTheOriginalDates(
             string startText,
-            string endText)
+            string endText,
+            bool isAllDay)
         {
             // Arrange — the two halves of the conversion are written independently, so
             // only a round trip proves they agree on what an all-day event looks like.
+            // IsAllDay is now an explicit, persisted flag (not re-derived from the dates),
+            // so the round trip must be seeded with the same flag a real all-day/timed
+            // action would carry for each of these date shapes.
             var start = DateTime.Parse(startText, null, DateTimeStyles.RoundtripKind);
             var end = DateTime.Parse(endText, null, DateTimeStyles.RoundtripKind);
             var handler = new FakeHttpMessageHandler(
                 HttpStatusCode.Created,
                 JsonSerializer.Serialize(new { id = "evt-roundtrip" }));
             var service = CreateService(handler);
-            var action = BuildAction(startDate: start, endDate: end);
+            var action = BuildAction(startDate: start, endDate: end, isAllDay: isAllDay);
 
             // Act — export to Graph's wire format, then import that exact payload back.
             // Graph echoes the payload with the id it assigned, which the import requires.
@@ -276,6 +285,121 @@ namespace Anela.Heblo.Tests.Marketing
             // Assert
             reimported.StartDate.Should().Be(start);
             reimported.EndDate.Should().Be(end);
+        }
+
+        [Fact]
+        public async Task CreateEventAsync_ForATimedMidnightToMidnightAction_DoesNotExportAsAllDay()
+        {
+            // Regression test for the issue: a genuinely timed 24-hour action whose
+            // dates happen to look like an all-day event (both at midnight) must NOT
+            // export as isAllDay: true just because of its dates — IsAllDay is now an
+            // explicit, persisted flag, not re-derived from the dates on every export.
+            var responseJson = JsonSerializer.Serialize(new { id = "evt-timed-midnight" });
+            var handler = new FakeHttpMessageHandler(HttpStatusCode.Created, responseJson);
+            var service = CreateService(handler);
+            var action = BuildAction(
+                startDate: new DateTime(2026, 9, 18, 0, 0, 0, DateTimeKind.Utc),
+                endDate: new DateTime(2026, 9, 19, 0, 0, 0, DateTimeKind.Utc),
+                isAllDay: false);
+
+            await service.CreateEventAsync(action, CancellationToken.None);
+
+            using var body = JsonDocument.Parse(handler.LastRequestBody!);
+            body.RootElement.GetProperty("isAllDay").GetBoolean().Should().BeFalse();
+            body.RootElement.GetProperty("end").GetProperty("dateTime").GetString()
+                .Should().StartWith("2026-09-19T00:00:00");
+        }
+
+        [Fact]
+        public async Task ImportedTimedMidnightToMidnightEvent_ThenReExported_StaysTimed()
+        {
+            // The exact failure scenario from the issue, walked end-to-end: import a
+            // genuinely timed Graph event whose dates look like an all-day event, then
+            // re-export the resulting MarketingAction and confirm it is still timed —
+            // not silently promoted to a 3-day all-day event on the shared calendar.
+            var importedEvent = new OutlookEventDto
+            {
+                Id = "evt-timed-midnight",
+                Subject = "24-hour timed meeting",
+                Start = new GraphEventDateTime
+                {
+                    DateTimeString = "2026-09-18T00:00:00.0000000",
+                    TimeZone = "UTC"
+                },
+                End = new GraphEventDateTime
+                {
+                    DateTimeString = "2026-09-19T00:00:00.0000000",
+                    TimeZone = "UTC"
+                },
+                IsAllDay = false,
+                Categories = Array.Empty<string>(),
+            };
+
+            var imported = OutlookEventImportMapper.BuildAction(
+                importedEvent,
+                new SyncActor("user-1", "Import User"),
+                DateTime.UtcNow,
+                MarketingActionType.Newsletter);
+
+            imported.IsAllDay.Should().BeFalse();
+            imported.EndDate.Should().Be(new DateTime(2026, 9, 19, 0, 0, 0, DateTimeKind.Utc));
+
+            var handler = new FakeHttpMessageHandler(
+                HttpStatusCode.Created,
+                JsonSerializer.Serialize(new { id = "evt-timed-midnight" }));
+            var service = CreateService(handler);
+
+            await service.CreateEventAsync(imported, CancellationToken.None);
+
+            using var body = JsonDocument.Parse(handler.LastRequestBody!);
+            body.RootElement.GetProperty("isAllDay").GetBoolean().Should().BeFalse();
+            body.RootElement.GetProperty("end").GetProperty("dateTime").GetString()
+                .Should().StartWith("2026-09-19T00:00:00");
+        }
+
+        [Fact]
+        public async Task ImportedGenuineAllDayEvent_ThenReExported_StaysAllDay()
+        {
+            // Companion to the above: a genuine all-day import must still round-trip
+            // as all-day, confirming the fix doesn't overcorrect the other direction.
+            var importedEvent = new OutlookEventDto
+            {
+                Id = "evt-genuine-allday",
+                Subject = "Company holiday",
+                Start = new GraphEventDateTime
+                {
+                    DateTimeString = "2026-09-18T00:00:00.0000000",
+                    TimeZone = "UTC"
+                },
+                End = new GraphEventDateTime
+                {
+                    DateTimeString = "2026-09-19T00:00:00.0000000",
+                    TimeZone = "UTC"
+                },
+                IsAllDay = true,
+                Categories = Array.Empty<string>(),
+            };
+
+            var imported = OutlookEventImportMapper.BuildAction(
+                importedEvent,
+                new SyncActor("user-1", "Import User"),
+                DateTime.UtcNow,
+                MarketingActionType.Newsletter);
+
+            imported.IsAllDay.Should().BeTrue();
+            imported.EndDate.Should().Be(new DateTime(2026, 9, 18, 0, 0, 0, DateTimeKind.Utc));
+
+            var handler = new FakeHttpMessageHandler(
+                HttpStatusCode.Created,
+                JsonSerializer.Serialize(new { id = "evt-genuine-allday" }));
+            var service = CreateService(handler);
+
+            await service.CreateEventAsync(imported, CancellationToken.None);
+
+            using var body = JsonDocument.Parse(handler.LastRequestBody!);
+            body.RootElement.GetProperty("isAllDay").GetBoolean().Should().BeTrue();
+            body.RootElement.GetProperty("end").GetProperty("dateTime").GetString()
+                .Should().StartWith("2026-09-19T00:00:00");
         }
 
         // ─── UpdateEventAsync ─────────────────────────────────────────────────────
