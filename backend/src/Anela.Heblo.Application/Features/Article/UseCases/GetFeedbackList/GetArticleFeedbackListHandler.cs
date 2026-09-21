@@ -7,9 +7,6 @@ namespace Anela.Heblo.Application.Features.Article.UseCases.GetFeedbackList;
 public sealed class GetArticleFeedbackListHandler
     : IRequestHandler<GetArticleFeedbackListRequest, GetArticleFeedbackListResponse>
 {
-    private static readonly int[] AllowedPageSizes = [10, 20, 50];
-    private static readonly string[] AllowedSortColumns = ["CreatedAt", "PrecisionScore", "StyleScore"];
-
     private readonly IArticleRepository _repository;
     private readonly IUserDisplayNameResolver _userDisplayNameResolver;
 
@@ -25,20 +22,16 @@ public sealed class GetArticleFeedbackListHandler
         GetArticleFeedbackListRequest request,
         CancellationToken ct)
     {
-        var page = Math.Max(1, request.Page);
-        var pageSize = AllowedPageSizes.Contains(request.PageSize) ? request.PageSize : 20;
-        var sortBy = AllowedSortColumns.Contains(request.SortBy) ? request.SortBy : "CreatedAt";
-
         // Queries run sequentially: they share the scoped DbContext, which EF Core
         // forbids issuing concurrent operations on (a Task.WhenAll here throws
         // "A second operation was started on this context instance").
         var (items, totalCount) = await _repository.GetFeedbackPagedAsync(
             request.HasFeedback,
             request.RequestedBy,
-            sortBy,
+            request.SortBy,
             request.SortDescending,
-            page,
-            pageSize,
+            request.Page,
+            request.PageSize,
             ct);
 
         var stats = await _repository.GetFeedbackStatsAsync(ct);
@@ -62,8 +55,8 @@ public sealed class GetArticleFeedbackListHandler
                 HasComment = !string.IsNullOrWhiteSpace(a.FeedbackComment),
             }).ToList(),
             TotalCount = totalCount,
-            Page = page,
-            PageSize = pageSize,
+            Page = request.Page,
+            PageSize = request.PageSize,
             Stats = new ArticleFeedbackStatsDto
             {
                 TotalArticles = stats.TotalArticles,

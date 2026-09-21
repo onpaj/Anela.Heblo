@@ -6,6 +6,7 @@ using Anela.Heblo.Application.Features.Attendance.Overtime;
 using Anela.Heblo.Application.Features.FeatureFlags;
 using Anela.Heblo.Application.Features.Configuration;
 using Anela.Heblo.Application.Shared.Rag;
+using Anela.Heblo.Application.Shared.CostPools;
 using Anela.Heblo.Application.Features.Analytics;
 using Anela.Heblo.Application.Features.GridLayouts;
 using Anela.Heblo.Application.Features.MarketingInvoices;
@@ -62,6 +63,9 @@ public static class ApplicationModule
     {
         // Register shared RAG infrastructure
         services.AddSharedRagModule(configuration);
+
+        // Register shared cost pool totals (M1 / M2 / M3 ledger spend)
+        services.AddSharedCostPoolsModule();
 
         // Register MediatR
         services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(typeof(ApplicationModule).Assembly));
