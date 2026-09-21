@@ -1,5 +1,7 @@
 using Anela.Heblo.Application.Common;
 using Anela.Heblo.Application.Features.Catalog.Infrastructure;
+using Anela.Heblo.Application.Shared.CostPools;
+using Anela.Heblo.Domain.Accounting.CostPools;
 using Anela.Heblo.Domain.Accounting.Ledger;
 using Anela.Heblo.Domain.Features.Catalog;
 using Anela.Heblo.Domain.Features.Catalog.Cache;
@@ -14,6 +16,10 @@ namespace Anela.Heblo.Application.Features.Catalog.CostProviders;
 /// <summary>
 /// Sales/Marketing cost provider (M2) - Distributes warehouse and marketing costs across products by sold pieces.
 /// Business logic layer with cache fallback.
+///
+/// The pool is CostPoolDefinition's M2: departments SKLAD + MARKETING on accounts
+/// 50, 51 and 52. It is deliberately narrower than company overhead - centrala,
+/// prodejna and the separate BUVOL activity are in no margin level.
 /// </summary>
 public class SalesCostProvider : ISalesCostProvider
 {
@@ -110,14 +116,21 @@ public class SalesCostProvider : ISalesCostProvider
         var months = GenerateMonthRange(costsFrom, costsTo);
 
         // Krok 1: Načíst náklady SKLAD + MARKETING
-        var warehouseCosts = await _ledgerService.GetDirectCosts(
+        // Ne GetDirectCosts (51+52): v těchto střediscích je i 50x - obalový materiál
+        // expedice a marketingový tisk - a ten do M2 patří. V centrále je stejná
+        // předvolba naopak prodané zboží, proto se rozsah účtů řídí poolem.
+        var accountPrefixes = CostPoolDefinition.AccountPrefixesFor(CostPool.M2);
+
+        var warehouseCosts = await _ledgerService.GetCosts(
             costsFrom,
             costsTo,
+            accountPrefixes,
             WarehouseCostCenter,
             ct);
-        var marketingCosts = await _ledgerService.GetDirectCosts(
+        var marketingCosts = await _ledgerService.GetCosts(
             costsFrom,
             costsTo,
+            accountPrefixes,
             MarketingCostCenter,
             ct);
 

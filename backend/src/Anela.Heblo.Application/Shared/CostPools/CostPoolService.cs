@@ -10,12 +10,12 @@ namespace Anela.Heblo.Application.Shared.CostPools;
 /// <summary>
 /// Computes monthly spend totals per cost pool from the Flexi ledger.
 ///
-/// One unfiltered pull on accounts 51+52, which would replace the three
-/// department-filtered pulls the cost providers make today once that dedup
-/// follow-up lands. Amounts are summed exactly as
-/// LedgerService.GetCosts does - trusting the server-side debit-prefix filter
-/// rather than re-checking client-side - which is what keeps the M2 total here
-/// identical to the margin engine's M2.
+/// One unfiltered pull on every prefix any pool uses, which would replace the
+/// three department-filtered pulls the cost providers make today once that dedup
+/// follow-up lands. Because that pull is wider than what any single pool counts
+/// (50x counts only in M2), entries are bucketed through CostPoolDefinition.Resolve
+/// rather than summed blindly - which is what keeps the M2 total here identical to
+/// the margin engine's M2.
 /// </summary>
 public class CostPoolService : ICostPoolService
 {
@@ -139,10 +139,14 @@ public class CostPoolService : ICostPoolService
         LogOverheadDepartments(ledgerItems);
 
         var totals = ledgerItems
-            .GroupBy(item => (
-                Month: new DateTime(item.Date.Year, item.Date.Month, 1),
-                Pool: CostPoolDefinition.Resolve(item.Department)))
-            .ToDictionary(g => g.Key, g => g.Sum(item => item.Amount));
+            .Select(item => (
+                Item: item,
+                Pool: CostPoolDefinition.Resolve(item.Department, item.DebitAccountNumber)))
+            .Where(x => x.Pool.HasValue)
+            .GroupBy(x => (
+                Month: new DateTime(x.Item.Date.Year, x.Item.Date.Month, 1),
+                Pool: x.Pool!.Value))
+            .ToDictionary(g => g.Key, g => g.Sum(x => x.Item.Amount));
 
         return MonthRange.EnumerateMonths(rangeStart, rangeEnd)
             .SelectMany(month => CostPoolDefinition.All.Select(pool =>
@@ -160,7 +164,7 @@ public class CostPoolService : ICostPoolService
     private void LogOverheadDepartments(IEnumerable<LedgerItem> ledgerItems)
     {
         var overheadDepartments = ledgerItems
-            .Where(item => CostPoolDefinition.Resolve(item.Department) == CostPool.M3)
+            .Where(item => CostPoolDefinition.Resolve(item.Department, item.DebitAccountNumber) == CostPool.M3)
             .Select(item => string.IsNullOrWhiteSpace(item.Department) ? "(none)" : item.Department)
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .OrderBy(d => d, StringComparer.OrdinalIgnoreCase)

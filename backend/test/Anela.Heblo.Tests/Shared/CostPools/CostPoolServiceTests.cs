@@ -219,12 +219,14 @@ public class CostPoolServiceTests
         // Act
         await service.GetMonthlyPoolsAsync(new DateOnly(2026, 7, 1), new DateOnly(2026, 7, 31));
 
-        // Assert - one unfiltered pull on 51+52, which would replace the three
-        // department-filtered ones once the dedup follow-up lands
+        // Assert - one unfiltered pull on every prefix any pool counts, which would
+        // replace the three department-filtered ones once the dedup follow-up lands.
+        // Wider than any single pool's own set (50x counts only in M2), so the
+        // service buckets through CostPoolDefinition.Resolve rather than summing.
         ledgerMock.Verify(l => l.GetLedgerItems(
             new DateTime(2026, 7, 1),
             new DateTime(2026, 7, 31, 23, 59, 59),
-            It.Is<IEnumerable<string>>(p => p.SequenceEqual(new[] { "51", "52" })),
+            It.Is<IEnumerable<string>>(p => p.SequenceEqual(new[] { "50", "51", "52" })),
             null,
             null,
             It.IsAny<CancellationToken>()), Times.Once);
