@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { X, Loader2, AlertCircle } from "lucide-react";
@@ -12,6 +12,13 @@ import { X, Loader2, AlertCircle } from "lucide-react";
  */
 export const MARGIN_LEVELS_DOC_URL = `${process.env.PUBLIC_URL ?? ""}/docs/margin-levels.md`;
 
+/**
+ * SPA fallback vrací index.html se statusem 200 pro každou neznámou cestu, takže
+ * samotné `response.ok` chybějící dokument nepozná — bez téhle kontroly by se
+ * uživateli vykreslil zdroják index.html místo nápovědy.
+ */
+const ACCEPTED_CONTENT_TYPES = ["text/markdown", "text/plain"];
+
 export interface MarginLevelsHelpSheetProps {
   onClose: () => void;
 }
@@ -19,6 +26,8 @@ export interface MarginLevelsHelpSheetProps {
 const MarginLevelsHelpSheet: React.FC<MarginLevelsHelpSheetProps> = ({ onClose }) => {
   const [markdown, setMarkdown] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const dialogRef = useRef<HTMLDivElement>(null);
+  const isBackdropPressed = useRef(false);
 
   useEffect(() => {
     let isActive = true;
@@ -29,11 +38,19 @@ const MarginLevelsHelpSheet: React.FC<MarginLevelsHelpSheetProps> = ({ onClose }
         if (!response.ok) {
           throw new Error(`HTTP ${response.status}`);
         }
+
+        const contentType = response.headers?.get("content-type") ?? "";
+        const isMarkdown = ACCEPTED_CONTENT_TYPES.some((type) => contentType.startsWith(type));
+        if (!isMarkdown) {
+          throw new Error(`Unexpected content-type: ${contentType || "(none)"}`);
+        }
+
         const text = await response.text();
         if (isActive) {
           setMarkdown(text);
         }
       } catch (e) {
+        console.error("Nepodařilo se načíst nápovědu k hladinám marže", MARGIN_LEVELS_DOC_URL, e);
         if (isActive) {
           setError("Dokumentaci se nepodařilo načíst.");
         }
@@ -60,15 +77,39 @@ const MarginLevelsHelpSheet: React.FC<MarginLevelsHelpSheetProps> = ({ onClose }
     return () => document.removeEventListener("keydown", handleKeyDown);
   }, [handleKeyDown]);
 
+  // Dokument je delší než okno, takže se scrolluje. Bez přesunu fokusu dovnitř
+  // by se klávesnicí nedal přečíst — fokus by zůstal na otazníku pod overlayem.
+  useEffect(() => {
+    const trigger = document.activeElement as HTMLElement | null;
+    dialogRef.current?.focus();
+    return () => trigger?.focus?.();
+  }, []);
+
+  // Zavírá se až na mouseup, a jen když obě události patří pozadí. Klik na
+  // `onClick` samotný zavírá i tažení myší při označování textu, které skončí
+  // mimo dialog — a z tohohle dokumentu si lidé text kopírují.
+  const handleBackdropMouseDown = (event: React.MouseEvent<HTMLDivElement>) => {
+    isBackdropPressed.current = event.target === event.currentTarget;
+  };
+
+  const handleBackdropMouseUp = (event: React.MouseEvent<HTMLDivElement>) => {
+    if (isBackdropPressed.current && event.target === event.currentTarget) {
+      onClose();
+    }
+    isBackdropPressed.current = false;
+  };
+
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-6"
-      onClick={onClose}
+      onMouseDown={handleBackdropMouseDown}
+      onMouseUp={handleBackdropMouseUp}
       data-testid="margin-levels-help-sheet"
     >
       <div
-        className="flex max-h-[85%] w-full max-w-3xl flex-col overflow-hidden rounded-xl bg-white shadow-lg dark:bg-graphite-surface dark:shadow-soft-dark"
-        onClick={(e) => e.stopPropagation()}
+        ref={dialogRef}
+        tabIndex={-1}
+        className="flex max-h-[85%] w-full max-w-3xl flex-col overflow-hidden rounded-xl bg-white shadow-lg outline-none dark:bg-graphite-surface dark:shadow-soft-dark"
         role="dialog"
         aria-modal="true"
         aria-label="Hladiny marže"
@@ -85,7 +126,7 @@ const MarginLevelsHelpSheet: React.FC<MarginLevelsHelpSheetProps> = ({ onClose }
           </button>
         </div>
 
-        <div className="overflow-y-auto px-6 py-5">
+        <div className="overflow-y-auto px-6 py-5" tabIndex={0}>
           {error && (
             <div className="flex items-center gap-2 text-sm text-red-600 dark:text-red-400">
               <AlertCircle className="h-4 w-4 flex-shrink-0" />

@@ -141,13 +141,12 @@ Hladiny marže **nepokrývají celou režii firmy**. Mimo ně zůstávají:
 - finanční náklady a daň z příjmů (58x, 59x),
 - **BUVOL** — samostatná činnost, která není režií Anely.
 
-Stav k **21. 9. 2026** za posledních 13 měsíců: M2 rozpočítává **11,9 mil. Kč**,
-zatímco celá nemateriálová režie po odečtu výrobních mezd je **19,4 mil. Kč**.
-Hladiny marže tedy pokrývají zhruba **tři pětiny** režie.
+Dohromady hladiny marže pokrývají zhruba **tři pětiny** nemateriálové režie
+(po odečtu výrobních mezd). Zbylé dvě pětiny nesou položky ze seznamu výše.
 
 **Prakticky to znamená:** marže na hladině M2 **není cenová podlaha**. Je to
 příspěvek na úhradu zbytku režie a zisku. Cenu nelze stavět tak, aby M2 vyšla
-těsně nad nulu — zbylých osm milionů by nemělo z čeho být zaplaceno.
+těsně nad nulu — zbylé dvě pětiny režie by neměly z čeho být zaplaceny.
 
 ---
 

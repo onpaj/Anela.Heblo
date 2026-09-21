@@ -15,9 +15,10 @@ import CatalogDetail from "./CatalogDetail";
 import { PAGE_CONTAINER_HEIGHT } from "../../constants/layout";
 import { useScreenView } from '../../telemetry/useScreenView';
 
-// Lazy: the help sheet pulls in react-markdown + remark-gfm, which are ESM and
-// would otherwise land in this page's bundle - and in the module graph of every
-// test that renders this page.
+// Lazy: keeps react-markdown + remark-gfm out of the module graph of every test
+// that renders this page - they are ESM and each suite would otherwise need its
+// own stub. It saves nothing in the bundle (both are already eager via
+// MeetingTaskDetailPage); the test graph is the whole point.
 const MarginLevelsHelpSheet = lazy(() => import("../margins/MarginLevelsHelpSheet"));
 
 const ProductMarginsList: React.FC = () => {
@@ -271,7 +272,7 @@ const ProductMarginsList: React.FC = () => {
       </div>
 
       {isHelpOpen && (
-        <Suspense fallback={null}>
+        <Suspense fallback={<div className="fixed inset-0 z-50 bg-black/40" />}>
           <MarginLevelsHelpSheet onClose={() => setIsHelpOpen(false)} />
         </Suspense>
       )}
