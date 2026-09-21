@@ -137,6 +137,7 @@ public class CatalogRepositoryStaleDataAndChangesPendingTests
             _mergeSchedulerMock.Object,
             _marginServiceMock.Object,
             _timeProviderMock.Object,
+            optionsMock.Object,
             cacheOptionsMock.Object,
             _loggerMock.Object);
     }

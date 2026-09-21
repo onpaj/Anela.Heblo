@@ -91,6 +91,7 @@ Krok 5: Náklad M1_A pro daný produkt (průměr za období)
 **Poznámky:**
 - `GetHistoricalDifficulty()` vrací hodnotu `ManufactureDifficulty` platnou v daném datu z `ManufactureDifficultySettings`
 - Pokud produkt nemá definovanou `ManufactureDifficulty`, použije se výchozí hodnota (konstanta)
+- Do `totalWeightedPoints` vstupují pouze vyráběné a prodávané typy — `ProductType.Product` a `ProductType.Set`. Zboží a materiál se nakupují, takže nesmí ukrojit část výrobní práce; sada je naopak ERP produkt s prefixem BAL/SET (`BundleProductRule`), kompletuje se vlastními silami a má běžné příjemky, takže svůj podíl práce nese. Vyloučení se týká polotovarů: jejich příjemky (doklady 54/65) jsou v gramech a difficulty typicky nemají nastavenou, takže by každý gram vážil 1 bod, rozpustil jmenovatele a uvěznil náklad na meziproduktu, který se nikdy neprodá. Polotovary, zboží a materiál tedy mají M1_A = 0.
 
 **Implementace:** `ManufactureCostSource.cs`
 
@@ -280,6 +281,8 @@ public class MonthlyMarginHistory
 ```
 
 **Účel:** Uchovává historii marží po měsících. Klíč = první den měsíce.
+
+**Rozsah měsíců:** `dateFrom = dnes - DataSourceOptions.ManufactureCostHistoryDays`, `dateTo = dnes - 1 měsíc` (běžný měsíc není kompletní). Musí odpovídat oknu cost providerů, které je odvozeno ze stejného nastavení — `Averages` je prostý průměr přes `MonthlyData`, takže každý měsíc bez nákladových dat by průměr ředil nulou a poškáloval všechny zobrazené náklady. (`ManufactureHistoryDays` je jiné nastavení, řídí pouze načítání surové výrobní historie do katalogu.)
 
 ### 4.3 MonthlyCost (výstup cost sources)
 
