@@ -500,7 +500,7 @@ public class FlatManufactureCostProviderTests
     }
 
     [Fact]
-    internal async Task ComputeAllCosts_WithSetProduct_ExcludesSetFromCostPool()
+    internal async Task ComputeAllCosts_WithSetProduct_KeepsSetInCostPool()
     {
         // Arrange
         var productCode = "PROD001";
@@ -537,9 +537,10 @@ public class FlatManufactureCostProviderTests
             month
         );
 
-        // A set is assembled from finished products rather than manufactured, so it takes no
-        // share of the VYROBA pool - that labour is already carried by the products it is built
-        // from. 50 pieces at difficulty 2 = 100 weighted points that must stay OUT of the denominator
+        // A set is an ERP product with a BAL/SET code prefix (BundleProductRule): it is assembled
+        // in-house and receipted like any product, so the labour of assembling it belongs in the
+        // pool. Dropping it would hand its share to everything else.
+        // 50 pieces at difficulty 2 = 100 weighted points that must stay IN the denominator
         var set = new CatalogAggregate
         {
             ProductCode = setCode,
@@ -572,9 +573,9 @@ public class FlatManufactureCostProviderTests
         var result = await provider.GetCostsAsync();
 
         // Assert
-        // Denominator = 3500 points (the set's 100 excluded) -> 35 * (36000 / 3500) = 360 per piece
-        Assert.All(result[productCode], cost => Assert.Equal(360m, cost.Cost, 4));
-        Assert.All(result[setCode], cost => Assert.Equal(0m, cost.Cost));
+        // Denominator = 3500 + 100 = 3600 points -> cost per point = 36000 / 3600 = 10
+        Assert.All(result[productCode], cost => Assert.Equal(350m, cost.Cost, 4));
+        Assert.All(result[setCode], cost => Assert.Equal(20m, cost.Cost, 4));
     }
 
     private FlatManufactureCostProvider CreateProvider(

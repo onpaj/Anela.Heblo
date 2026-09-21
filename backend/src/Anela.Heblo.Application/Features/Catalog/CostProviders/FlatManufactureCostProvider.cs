@@ -135,16 +135,17 @@ public class FlatManufactureCostProvider : IFlatManufactureCostProvider
     }
 
     /// <summary>
-    /// The VYROBA pool is distributed across finished products only - nothing else is manufactured,
-    /// so nothing else may take a share of the manufacturing labour.
-    /// Goods and materials are bought rather than made; a set is assembled from finished products
-    /// rather than manufactured, so its labour is already carried by the products it is built from;
-    /// and semi-product receipts are measured in grams of bulk with no difficulty setting, so every
-    /// gram would score one point, swamp the denominator and strand the labour on bulk that is
-    /// never sold.
+    /// The VYROBA pool is distributed across the manufactured types that are actually sold.
+    /// Goods and materials are bought rather than made, so they may not take a share of the
+    /// manufacturing labour. Sets stay in: a set is an ERP product with a BAL/SET code prefix
+    /// (see <see cref="BundleProductRule"/>), assembled in-house and receipted like any other
+    /// product, so the labour of assembling it belongs in the pool it is paid from.
+    /// Semi-products are the exclusion this guards: their receipts are measured in grams of bulk
+    /// and carry no difficulty setting, so every gram would score one point, swamp the denominator
+    /// and strand the labour on bulk that is never sold.
     /// </summary>
     private static bool IsCostBearing(CatalogAggregate product) =>
-        product.Type is ProductType.Product;
+        product.Type is ProductType.Product or ProductType.Set;
 
     private (DateOnly dateFrom, DateOnly dateTo, DateTime costsFrom, DateTime costsTo) GetDateRange()
     {
