@@ -40,9 +40,9 @@
     },
     {
       "name": "full-verification-pass",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-09-21T09:15:59.147510Z"
+      "updated_at": "2026-09-21T09:41:28.496457Z"
     }
   ]
 }
