@@ -8,6 +8,8 @@ public static class AccessRoles
 
     public const string FinanceFinancialOverviewRead = "finance.financial_overview.read";
     public const string FinanceMarginAnalysisRead = "finance.margin_analysis.read";
+    public const string FinancePriceAnalysisRead = "finance.price_analysis.read";
+    public const string FinancePriceAnalysisWrite = "finance.price_analysis.write";
     public const string ProductsProductMarginsRead = "products.product_margins.read";
     public const string ProductsCatalogRead = "products.catalog.read";
     public const string ProductsCatalogWrite = "products.catalog.write";
@@ -78,6 +80,8 @@ public static class AccessRoles
     {
         (Feature.Finance_FinancialOverview, AccessLevel.Read) => FinanceFinancialOverviewRead,
         (Feature.Finance_MarginAnalysis, AccessLevel.Read) => FinanceMarginAnalysisRead,
+        (Feature.Finance_PriceAnalysis, AccessLevel.Read) => FinancePriceAnalysisRead,
+        (Feature.Finance_PriceAnalysis, AccessLevel.Write) => FinancePriceAnalysisWrite,
         (Feature.Products_ProductMargins, AccessLevel.Read) => ProductsProductMarginsRead,
         (Feature.Products_Catalog, AccessLevel.Read) => ProductsCatalogRead,
         (Feature.Products_Catalog, AccessLevel.Write) => ProductsCatalogWrite,

@@ -48,6 +48,7 @@ using Anela.Heblo.Application.Features.ShoptetOrders;
 using Anela.Heblo.Application.Features.Packaging;
 using Anela.Heblo.Application.Features.Authorization;
 using Anela.Heblo.Application.Features.UserManagement;
+using Anela.Heblo.Application.Features.Pricing;
 using Anela.Heblo.Xcc.Services.Dashboard;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -128,6 +129,7 @@ public static class ApplicationModule
         services.AddSmartsuppModule(configuration);
         services.AddInventoryModule();
         // services.AddOrdersModule();
+        services.AddPricingModule();
 
         services.AddAuthorizationModule();
         services.AddFeatureFlagsModule(configuration);

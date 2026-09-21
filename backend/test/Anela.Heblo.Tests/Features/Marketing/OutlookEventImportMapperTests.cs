@@ -99,6 +99,7 @@ public class OutlookEventImportMapperTests
             actionType: MarketingActionType.Event,
             startDate: new DateTime(2026, 9, 18, 0, 0, 0, DateTimeKind.Utc),
             endDate: new DateTime(2026, 9, 19, 0, 0, 0, DateTimeKind.Utc),
+            isAllDay: false,
             createdByUserId: Actor.UserId,
             createdByUsername: Actor.Username,
             utcNow: UtcNow);
@@ -107,6 +108,60 @@ public class OutlookEventImportMapperTests
         var hasChanges = OutlookEventImportMapper.HasChanges(existing, evt, MarketingActionType.Event);
 
         // Assert
+        hasChanges.Should().BeTrue();
+    }
+
+    [Fact]
+    public void BuildAction_SetsIsAllDayFromGraphsFlag_ForAllDayEvent()
+    {
+        var evt = BuildEvent(
+            start: new DateTime(2026, 9, 18, 0, 0, 0, DateTimeKind.Utc),
+            end: new DateTime(2026, 9, 19, 0, 0, 0, DateTimeKind.Utc),
+            isAllDay: true);
+
+        var action = Build(evt);
+
+        action.IsAllDay.Should().BeTrue();
+    }
+
+    [Fact]
+    public void BuildAction_SetsIsAllDayFromGraphsFlag_ForTimedMidnightToMidnightEvent()
+    {
+        // This is the exact failure scenario from the issue: a genuinely timed
+        // 24-hour event whose dates happen to look like an all-day event must
+        // NOT be recorded as all-day, because Graph says isAllDay: false.
+        var evt = BuildEvent(
+            start: new DateTime(2026, 9, 18, 0, 0, 0, DateTimeKind.Utc),
+            end: new DateTime(2026, 9, 19, 0, 0, 0, DateTimeKind.Utc),
+            isAllDay: false);
+
+        var action = Build(evt);
+
+        action.IsAllDay.Should().BeFalse();
+        action.EndDate.Should().Be(new DateTime(2026, 9, 19, 0, 0, 0, DateTimeKind.Utc));
+    }
+
+    [Fact]
+    public void HasChanges_ForToggledIsAllDayWithUnchangedDates_ReportsAChange()
+    {
+        var evt = BuildEvent(
+            start: new DateTime(2026, 9, 1, 0, 0, 0, DateTimeKind.Utc),
+            end: new DateTime(2026, 9, 1, 8, 30, 0, DateTimeKind.Utc),
+            isAllDay: false);
+
+        var existing = new MarketingAction(
+            title: "Linda Odyssea",
+            description: null,
+            actionType: MarketingActionType.Event,
+            startDate: new DateTime(2026, 9, 1, 0, 0, 0, DateTimeKind.Utc),
+            endDate: new DateTime(2026, 9, 1, 8, 30, 0, DateTimeKind.Utc),
+            isAllDay: true,
+            createdByUserId: Actor.UserId,
+            createdByUsername: Actor.Username,
+            utcNow: UtcNow);
+
+        var hasChanges = OutlookEventImportMapper.HasChanges(existing, evt, MarketingActionType.Event);
+
         hasChanges.Should().BeTrue();
     }
 

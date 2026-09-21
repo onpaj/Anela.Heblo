@@ -5,6 +5,7 @@ export const ACCESS_ROUTES: Record<string, MenuRequirement> = {
   "/analytics/product-margin-summary": { permissions: ["finance.margin_analysis.read"] },
   "/automation/invoice-import-statistics": { permissions: ["finance.margin_analysis.read"] },
   "/finance/bank-statements": { permissions: ["finance.margin_analysis.read"] },
+  "/finance/price-analysis": { permissions: ["finance.price_analysis.read"] },
   "/products/margins": { permissions: ["products.product_margins.read"] },
   "/catalog": { permissions: ["products.catalog.read"] },
   "/products/pricing": { permissions: ["products.catalog.read"] },
@@ -59,6 +60,8 @@ export const ACCESS_ROUTES: Record<string, MenuRequirement> = {
 export const ACCESS_ROLES = [
   "finance.financial_overview.read",
   "finance.margin_analysis.read",
+  "finance.price_analysis.read",
+  "finance.price_analysis.write",
   "products.product_margins.read",
   "products.catalog.read",
   "products.catalog.write",

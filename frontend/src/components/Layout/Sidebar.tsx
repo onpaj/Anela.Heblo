@@ -137,6 +137,12 @@ const Sidebar: React.FC<SidebarProps> = ({
           href: "/analytics/product-margin-summary",
           key: "/analytics/product-margin-summary",
         },
+        {
+          id: "analyza-cen",
+          name: "Analýza cen",
+          href: "/finance/price-analysis",
+          key: "/finance/price-analysis",
+        },
       ],
     },
     {

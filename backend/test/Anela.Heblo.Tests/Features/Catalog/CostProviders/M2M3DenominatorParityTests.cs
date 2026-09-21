@@ -1,5 +1,6 @@
 using Anela.Heblo.Application.Common;
 using Anela.Heblo.Application.Features.Catalog.CostProviders;
+using Anela.Heblo.Application.Shared.CostPools;
 using Anela.Heblo.Domain.Accounting.CostPools;
 using Anela.Heblo.Domain.Accounting.Ledger;
 using Anela.Heblo.Domain.Features.Catalog;
@@ -90,12 +91,16 @@ public class M2M3DenominatorParityTests
     {
         var cacheMock = BuildCache<ISalesCostCache>(out var captured);
 
+        // M2 pulls via GetCosts with its own prefix set (50/51/52), not GetDirectCosts -
+        // 50x in SKLAD/MARKETING is expedition packaging and marketing print.
+        var m2Prefixes = CostPoolDefinition.AccountPrefixesFor(CostPool.M2);
+
         var ledgerMock = new Mock<ILedgerService>();
         ledgerMock
-            .Setup(l => l.GetDirectCosts(It.IsAny<DateTime>(), It.IsAny<DateTime>(), "SKLAD", It.IsAny<CancellationToken>()))
+            .Setup(l => l.GetCosts(It.IsAny<DateTime>(), It.IsAny<DateTime>(), m2Prefixes, "SKLAD", It.IsAny<CancellationToken>()))
             .ReturnsAsync(new List<CostStatistics> { new() { Date = month, Cost = SalesPool, Department = "SKLAD" } });
         ledgerMock
-            .Setup(l => l.GetDirectCosts(It.IsAny<DateTime>(), It.IsAny<DateTime>(), "MARKETING", It.IsAny<CancellationToken>()))
+            .Setup(l => l.GetCosts(It.IsAny<DateTime>(), It.IsAny<DateTime>(), m2Prefixes, "MARKETING", It.IsAny<CancellationToken>()))
             .ReturnsAsync(new List<CostStatistics>());
 
         var provider = new SalesCostProvider(

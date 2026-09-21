@@ -50,14 +50,24 @@ keeps them, and serves them to other backend features on demand.
 
 ## Pool definition
 
-Accounts `51` and `52` (the existing `GetDirectCosts` prefix set), bucketed by
-department:
+Bucketed by department, with the account set depending on the pool:
 
 ```
-VYROBA                       -> M1
-SKLAD, MARKETING             -> M2
-everything else              -> M3    (catch-all, including null/empty)
+VYROBA                       -> M1    accounts 51, 52
+SKLAD, MARKETING             -> M2    accounts 50, 51, 52
+BUVOL                        -> none  (separate activity, not Anela overhead)
+everything else              -> M3    accounts 51, 52 (catch-all, incl. null/empty)
 ```
+
+**Why M2 is wider.** 50x in the warehouse and marketing is shipping packaging
+(SERVISBAL, printed tape) and marketing print — real fulfilment and marketing
+spend, ~4.3 % of the M2 pool. The same prefix in centrala is cost of goods sold,
+an order of magnitude larger than every pool combined, so it must not fall into
+the M3 catch-all. Hence the prefix set is per-pool
+(`CostPoolDefinition.AccountPrefixesFor`) rather than global.
+
+**Why BUVOL is excluded.** It shares the ledger but is a separate activity, so
+unlike an unmapped cost centre it must not be absorbed by M3.
 
 M3 is defined as the **complement**, not an explicit department list. A cost
 centre added in Flexi later lands in M3 automatically rather than vanishing from
@@ -75,6 +85,12 @@ miscoded or that a genuine new cost centre needs promoting to its own pool.
 M1 is included even though only M2 and M3 were asked for: it comes free from the
 same grouped query, and without it the balance invariant above cannot be
 asserted.
+
+Note the invariant is over what the pools are *entitled* to, not over the raw
+ledger pull: the single pull asks for the union of every pool's prefixes, so
+entries must be bucketed through `CostPoolDefinition.Resolve(department, account)`,
+which returns null for an excluded department and for an account that pool does
+not count.
 
 ## Architecture
 

@@ -133,6 +133,10 @@ public class ApplicationDbContext : DbContext
     public DbSet<MeetingTranscript> MeetingTranscripts { get; set; } = null!;
     public DbSet<ProposedTask> ProposedTasks { get; set; } = null!;
     public DbSet<MeetingAccessGrant> MeetingAccessGrants { get; set; } = null!;
+
+    // Pricing simulator
+    public DbSet<Anela.Heblo.Domain.Features.Pricing.PricingScenario> PricingScenarios { get; set; } = null!;
+    public DbSet<Anela.Heblo.Domain.Features.Pricing.PricingScenarioItem> PricingScenarioItems { get; set; } = null!;
     public DbSet<DeletedPlaudRecording> DeletedPlaudRecordings { get; set; } = null!;
 
     // Mind Maps module

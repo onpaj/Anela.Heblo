@@ -3,6 +3,7 @@
   "features": [
     { "key": "Finance_FinancialOverview", "label": "Finanční přehled" },
     { "key": "Finance_MarginAnalysis", "label": "Analýza marží" },
+    { "key": "Finance_PriceAnalysis", "label": "Analýza cen", "hasWrite": true },
     { "key": "Products_ProductMargins", "label": "Marže produktů" },
     { "key": "Products_Catalog", "label": "Katalog", "hasWrite": true },
     { "key": "Products_Journal", "label": "Žurnál", "hasWrite": true },
@@ -46,6 +47,7 @@
     { "path": "/analytics/product-margin-summary", "requires": [{ "feature": "Finance_MarginAnalysis", "level": "Read" }] },
     { "path": "/automation/invoice-import-statistics", "requires": [{ "feature": "Finance_MarginAnalysis", "level": "Read" }] },
     { "path": "/finance/bank-statements", "requires": [{ "feature": "Finance_MarginAnalysis", "level": "Read" }] },
+    { "path": "/finance/price-analysis", "requires": [{ "feature": "Finance_PriceAnalysis", "level": "Read" }] },
     { "path": "/products/margins", "requires": [{ "feature": "Products_ProductMargins", "level": "Read" }] },
     { "path": "/catalog", "requires": [{ "feature": "Products_Catalog", "level": "Read" }] },
     { "path": "/products/pricing", "requires": [{ "feature": "Products_Catalog", "level": "Read" }] },

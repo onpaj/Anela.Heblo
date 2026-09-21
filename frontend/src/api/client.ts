@@ -481,6 +481,8 @@ export const QUERY_KEYS = {
   catalog: ["catalog"] as const,
   productMargins: ["productMargins"] as const,
   productMarginSummary: ["productMarginSummary"] as const,
+  pricingBaseline: ["pricing-baseline"] as const,
+  pricingScenarios: ["pricing-scenarios"] as const,
   financialOverview: ["financialOverview"] as const,
   financialComparison: ["financialComparison"] as const,
   journal: ["journal"] as const,

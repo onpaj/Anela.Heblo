@@ -57,6 +57,7 @@ public class MarketingActionRepositoryGetPagedTests : IDisposable
             actionType: MarketingActionType.Blog,
             startDate: DateTime.UtcNow,
             endDate: null,
+            isAllDay: false,
             createdByUserId: "seed-user",
             createdByUsername: "Seeder",
             utcNow: DateTime.UtcNow);
