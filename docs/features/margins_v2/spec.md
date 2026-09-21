@@ -15,17 +15,20 @@ Systém sleduje vícenákladové úrovně pro každý produkt s odpovídajícím
 | Úroveň | Název | Popis |
 |--------|-------|-------|
 | **M0** | Materiálový náklad | Čistý náklad na materiál/nákupní cena |
-| **M1_A** | Plošný výrobní náklad | Rozpočítaný náklad na výrobu (12-měsíční okno) |
-| **M1_B** | Přímý výrobní náklad | Měsíční náklad na výrobu dávky |
-| **M2** | Skladování + Marketing | Náklady na sklad a marketing |
+| **M1** | Výrobní náklad | Rozpočítaný náklad na výrobu (VYROBA) |
+| **M2** | Skladování + Marketing | Náklady na sklad a marketing (SKLAD, MARKETING) |
+| **M3** | Režie | Zbytek přímých nákladů 51+52 (vše mimo VYROBA/SKLAD/MARKETING) |
+
+Úrovně jsou **kumulativní**: `CostTotal` každé úrovně obsahuje všechny úrovně nad ní,
+`CostLevel` pouze její vlastní přírůstek. M3 je tedy pohled „všechny náklady započteny".
 
 ### 1.2 Datové zdroje
 
 | Úroveň | Interface | Implementace | Cache Service | Zdroj dat |
 |--------|-----------|--------------|---------------|-----------|
 | M0 | `IMaterialCostSource` | `PurchasePriceOnlyMaterialCostSource` | `IMaterialCostCache` | Purchase history / BoM |
-| M1_A | `IFlatManufactureCostSource` | `ManufactureCostSource` | `IFlatManufactureCostCache` | `ILedgerService` (VYROBA) |
-| M1_B | `IDirectManufactureCostSource` | `DirectManufactureCostSource` | `IDirectManufactureCostCache` | `ILedgerService` (VYROBA) |
+| M1 | `IFlatManufactureCostSource` | `ManufactureCostSource` | `IFlatManufactureCostCache` | `ILedgerService` (VYROBA) |
+| M3 | `IOverheadCostProvider` | `OverheadCostProvider` | `IOverheadCostCache` | `ICostPoolService` (CostPool.M3) |
 | M2 | `ISalesCostSource` | `SalesCostSource` | `ISalesCostCache` | `ILedgerService` (SKLAD + MARKETING) |
 
 **Poznámka:** Všechny cost sources využívají cache vrstvu pro optimalizaci náročných dotazů na ledger data.
@@ -50,7 +53,7 @@ Systém sleduje vícenákladové úrovně pro každý produkt s odpovídajícím
 
 ---
 
-### 2.2 M1_A - Plošný výrobní náklad
+### 2.2 M1 - Výrobní náklad
 
 **Účel:** Plošně rozpočítaný náklad na výrobu produktu. Využívá abstraktní metriku `ManufactureDifficulty` k fair distribuci nákladů mezi produkty s různou náročností výroby.
 
@@ -83,74 +86,21 @@ Krok 3: Spočítat celkové vážené výrobní body
 Krok 4: Vypočítat cenu jednoho výrobního bodu
   costPerPoint = totalCosts / totalWeightedPoints
 
-Krok 5: Náklad M1_A pro daný produkt (průměr za období)
+Krok 5: Náklad M1 pro daný produkt (průměr za období)
   productDifficulty = GetHistoricalDifficulty(productCode, currentDate)
-  M1_A = costPerPoint × productDifficulty
+  M1 = costPerPoint × productDifficulty
 ```
 
 **Poznámky:**
 - `GetHistoricalDifficulty()` vrací hodnotu `ManufactureDifficulty` platnou v daném datu z `ManufactureDifficultySettings`
 - Pokud produkt nemá definovanou `ManufactureDifficulty`, použije se výchozí hodnota (konstanta)
-- Do `totalWeightedPoints` vstupují pouze vyráběné a prodávané typy — `ProductType.Product` a `ProductType.Set`. Zboží a materiál se nakupují, takže nesmí ukrojit část výrobní práce; sada je naopak ERP produkt s prefixem BAL/SET (`BundleProductRule`), kompletuje se vlastními silami a má běžné příjemky, takže svůj podíl práce nese. Vyloučení se týká polotovarů: jejich příjemky (doklady 54/65) jsou v gramech a difficulty typicky nemají nastavenou, takže by každý gram vážil 1 bod, rozpustil jmenovatele a uvěznil náklad na meziproduktu, který se nikdy neprodá. Polotovary, zboží a materiál tedy mají M1_A = 0.
+- Do `totalWeightedPoints` vstupují pouze vyráběné a prodávané typy — `ProductType.Product` a `ProductType.Set`. Zboží a materiál se nakupují, takže nesmí ukrojit část výrobní práce; sada je naopak ERP produkt s prefixem BAL/SET (`BundleProductRule`), kompletuje se vlastními silami a má běžné příjemky, takže svůj podíl práce nese. Vyloučení se týká polotovarů: jejich příjemky (doklady 54/65) jsou v gramech a difficulty typicky nemají nastavenou, takže by každý gram vážil 1 bod, rozpustil jmenovatele a uvěznil náklad na meziproduktu, který se nikdy neprodá. Polotovary, zboží a materiál tedy mají M1 = 0.
 
 **Implementace:** `ManufactureCostSource.cs`
 
 ---
 
-### 2.3 M1_B - Přímý výrobní náklad (měsíční)
-
-**Účel:** Přímé náklady na výrobní dávku rozpočítané měsíčně. Odráží skutečné náklady v měsíci, kdy k výrobě došlo.
-
-**Charakteristika:**
-- Výroba nemusí probíhat každý měsíc → mohou existovat měsíce s nulovým nákladem
-- Náklad je vázán na konkrétní měsíc výroby
-
-**Zdroj dat:**
-- **Náklady:** `ILedgerService.GetDirectCosts(month, department: "VYROBA")` pro konkrétní měsíc
-- **Výroba:** `ManufactureHistory` z `CatalogAggregate` pro daný měsíc
-- **Náročnost:** `ManufactureDifficulty` (historická hodnota platná v daném měsíci)
-
-**Algoritmus (pro každý měsíc samostatně):**
-
-```
-Vstup:
-- month (měsíc, pro který počítáme)
-- productCode (produkt, pro který počítáme náklad)
-
-Krok 1: Načíst náklady na výrobu za měsíc
-  monthlyCosts = ILedgerService.GetDirectCosts(month, department: "VYROBA")
-
-Krok 2: Načíst výrobní historii všech produktů za měsíc
-  monthlyProduction = allProductsManufactureHistory.Where(m => m.Month == month)
-
-Krok 3: Pokud daný produkt nebyl v měsíci vyroben
-  if !monthlyProduction.Any(m => m.ProductCode == productCode):
-    M1_B[month] = 0  // nebo null
-
-Krok 4: Spočítat celkové vážené výrobní body za měsíc
-  monthlyWeightedPoints = 0
-  pro každý záznam v monthlyProduction:
-    difficulty = GetHistoricalDifficulty(productCode, recordDate)
-    monthlyWeightedPoints += recordAmount × difficulty
-
-Krok 5: Vypočítat podíl produktu na výrobě
-  productProduction = monthlyProduction.Where(m => m.ProductCode == productCode).Sum(amount)
-  productDifficulty = GetHistoricalDifficulty(productCode, month)
-  productWeightedPoints = productProduction × productDifficulty
-
-Krok 6: Rozpočítat náklady na produkt
-  M1_B[month] = monthlyCosts × (productWeightedPoints / monthlyWeightedPoints)
-```
-
-**Poznámky:**
-- Výstup je časová řada: `Dictionary<DateTime, decimal>` (měsíc → náklad)
-- Měsíce bez výroby mají M1_B = 0
-
-**Implementace:** `DirectManufactureCostSource.cs` (nový soubor)
-
----
-
-### 2.4 M2 - Skladování a Marketing
+### 2.3 M2 - Skladování a Marketing
 
 **Účel:** Náklady na skladování a marketing alokované podle podílu na celkovém prodeji.
 
@@ -197,7 +147,48 @@ Krok 4: Rozpočítat náklady na produkt
 - Produkty bez prodeje mají M2 = 0
 - Alokace je proporcionální k objemu prodeje (v Kč)
 
-**Implementace:** `SalesCostSource.cs` (nový soubor)
+**Implementace:** `SalesCostProvider.cs`
+
+---
+
+### 2.4 M3 - Režie
+
+**Účel:** Zbývající přímé náklady společnosti (účty 51+52), které nepatří do žádného
+z předchozích poolů — centrála, režie a jakékoli nezařazené středisko.
+
+**Zdroj dat:**
+- **Náklady:** `ICostPoolService.GetMonthlyPoolsAsync(from, to)`, pouze `CostPool.M3`
+- **Prodeje:** `SalesHistory` z `CatalogAggregate` (stejný jmenovatel jako M2)
+
+`CostPool.M3` je záměrně catch-all: středisko přidané ve FlexiBee spadne sem místo toho,
+aby zmizelo, a součet M1+M2+M3 vždy odpovídá celé účetní knize za období.
+
+**Algoritmus:**
+
+```
+Krok 1: Načíst režijní náklady za období
+  totalCosts = Σ ICostPoolService.GetMonthlyPoolsAsync(from, to)
+                 .Where(p => p.Pool == CostPool.M3).Amount
+
+Krok 2: Spočítat celkový počet prodaných kusů (všechny produkty)
+  totalSoldPieces = Σ produkt.SalesHistory
+    .Where(s => s.Date >= from && s.Date <= to && s.SourceBundleCode == null)
+    .Sum(s => s.AmountTotal)
+
+Krok 3: Vypočítat náklad na kus
+  costPerPiece = totalCosts / totalSoldPieces
+
+Krok 4: Plošně přiřadit všem produktům a všem měsícům okna
+```
+
+**Poznámky:**
+- Synteticky rozpadlé řádky komponent setu (`SourceBundleCode != null`) se do jmenovatele
+  nepočítají — stejné pravidlo jako u M2, jinak by set nafoukl počet kusů
+- Náklad na kus je plošný: stejný pro každý produkt i každý měsíc okna
+- Okno je odvozeno z `DataSourceOptions.ManufactureCostHistoryDays`, stejně jako u ostatních
+  providerů, takže měsíce marže zůstávají podmnožinou měsíců, které provider emituje
+
+**Implementace:** `OverheadCostProvider.cs`
 
 ---
 
@@ -239,18 +230,18 @@ SellingPrice = 100 Kč (bez DPH)
 
 Náklady:
 - M0_cost = 30 Kč (materiál)
-- M1_A_cost = 15 Kč (plošná výroba)
-- M1_B_cost = 5 Kč (přímá výroba)
+- M1_cost = 15 Kč (výroba)
 - M2_cost = 10 Kč (sklad + marketing)
+- M3_cost = 8 Kč (režie)
 
 Marže:
-- M0:    totalCost = 30,                margin = (100 - 30) / 100 = 70%
-- M1_A:  totalCost = 30 + 15 = 45,      margin = (100 - 45) / 100 = 55%
-- M1_B:  totalCost = 30 + 5 = 35,       margin = (100 - 35) / 100 = 65%
-- M2:    totalCost = 30 + 15 + 5 + 10 = 60,  margin = (100 - 60) / 100 = 40%
+- M0:  totalCost = 30,                    margin = (100 - 30) / 100 = 70%
+- M1:  totalCost = 30 + 15 = 45,          margin = (100 - 45) / 100 = 55%
+- M2:  totalCost = 30 + 15 + 10 = 55,     margin = (100 - 55) / 100 = 45%
+- M3:  totalCost = 30 + 15 + 10 + 8 = 63, margin = (100 - 63) / 100 = 37%
 ```
 
-**Poznámka:** M1_A a M1_B jsou nezávislé úrovně (ne sekvenční).
+**Poznámka:** Úrovně jsou sekvenční — každá přidává svou vrstvu nákladů k té předchozí.
 
 ---
 
@@ -262,13 +253,13 @@ Marže:
 public class MarginData
 {
     public MarginLevel M0 { get; init; } = MarginLevel.Zero;     // Materiál
-    public MarginLevel M1_A { get; init; } = MarginLevel.Zero;   // Plošná výroba
-    public MarginLevel M1_B { get; init; } = MarginLevel.Zero;   // Přímá výroba
-    public MarginLevel M2 { get; init; } = MarginLevel.Zero;     // Sklad + Marketing
+    public MarginLevel M1 { get; init; } = MarginLevel.Zero;     // + výroba
+    public MarginLevel M2 { get; init; } = MarginLevel.Zero;     // + sklad a marketing
+    public MarginLevel M3 { get; init; } = MarginLevel.Zero;     // + režie
 }
 ```
 
-**Změna oproti v1:** Struktura používá `M0, M1_A, M1_B, M2` s M2 jako finální úrovní marže.
+**Změna oproti v1:** Struktura používá kumulativní `M0, M1, M2, M3` s M3 jako finální úrovní marže.
 
 ### 4.2 MonthlyMarginHistory
 
@@ -325,8 +316,8 @@ Orchestrátor výpočtu marží:
 public class MarginCalculationService : IMarginCalculationService
 {
     private readonly IMaterialCostSource _materialCostSource;           // M0
-    private readonly IFlatManufactureCostSource _flatManufactureCostSource;   // M1_A
-    private readonly IDirectManufactureCostSource _directManufactureCostSource; // M1_B
+    private readonly IFlatManufactureCostSource _flatManufactureCostSource;   // M1
+    private readonly IOverheadCostProvider _overheadCostProvider; // M3
     private readonly ISalesCostSource _salesCostSource;                 // M2
 
     public async Task<MonthlyMarginHistory> GetMarginAsync(
@@ -378,7 +369,7 @@ public class CostCacheData
 **Implementace:**
 - `MaterialCostCache` : `IMaterialCostCache`
 - `FlatManufactureCostCache` : `IFlatManufactureCostCache`
-- `DirectManufactureCostCache` : `IDirectManufactureCostCache`
+- `OverheadCostCache` : `IOverheadCostCache`
 - `SalesCostCache` : `ISalesCostCache`
 
 #### 5.3.2 Cache Lifecycle
@@ -386,7 +377,7 @@ public class CostCacheData
 **Startup Hydration:**
 1. `TierBasedHydrationOrchestrator` spustí hydrataci při startu aplikace
 2. Tier 1: Catalog refresh (základní data - manufacture/sales history)
-3. Tier 2: Všechny cost cache services paralelně (M0, M1_A, M1_B, M2)
+3. Tier 2: Všechny cost cache services paralelně (M0, M1, M2, M3)
 4. Každý cache service volá `catalogRepository.WaitForCurrentMergeAsync()` před výpočtem
 
 **Periodic Refresh:**
@@ -413,7 +404,7 @@ public class CostCacheOptions
     public TimeSpan RefreshInterval { get; set; } = TimeSpan.FromHours(6);
 
     /// <summary>
-    /// Časové okno pro M1_A (rolling window, default: 12 měsíců)
+    /// Časové okno pro M1 (rolling window, default: 12 měsíců)
     /// </summary>
     public int M1A_RollingWindowMonths { get; set; } = 12;
 
@@ -449,7 +440,7 @@ public class CostCacheOptions
         "HydrationTier": 2
       }
     },
-    "IDirectManufactureCostCache": {
+    "IOverheadCostCache": {
       "RefreshCache": {
         "InitialDelay": "00:00:00",
         "RefreshInterval": "06:00:00",
@@ -489,13 +480,13 @@ public class CostCacheOptions
 // Register cache services (singleton - in-memory cache)
 services.AddSingleton<IMaterialCostCache, MaterialCostCache>();
 services.AddSingleton<IFlatManufactureCostCache, FlatManufactureCostCache>();
-services.AddSingleton<IDirectManufactureCostCache, DirectManufactureCostCache>();
+services.AddSingleton<IOverheadCostCache, OverheadCostCache>();
 services.AddSingleton<ISalesCostCache, SalesCostCache>();
 
 // Register cost sources (transient - inject cache service)
 services.AddTransient<IMaterialCostSource, PurchasePriceOnlyMaterialCostSource>();
 services.AddTransient<IFlatManufactureCostSource, ManufactureCostSource>();
-services.AddTransient<IDirectManufactureCostSource, DirectManufactureCostSource>();
+services.AddTransient<IOverheadCostProvider, OverheadCostProvider>();
 services.AddTransient<ISalesCostSource, SalesCostSource>();
 
 // Register margin calculation service
@@ -525,8 +516,8 @@ private static void RegisterCostCacheRefreshTasks(IServiceCollection services)
         (cache, ct) => cache.RefreshAsync(ct)
     );
 
-    services.RegisterRefreshTask<IDirectManufactureCostCache>(
-        nameof(IDirectManufactureCostCache.RefreshCache),
+    services.RegisterRefreshTask<IOverheadCostProvider>(
+        nameof(IOverheadCostProvider.RefreshAsync),
         (cache, ct) => cache.RefreshAsync(ct)
     );
 
@@ -546,13 +537,13 @@ private static void RegisterCostCacheRefreshTasks(IServiceCollection services)
 | Téma | Rozhodnutí |
 |------|------------|
 | M2 alokace | Podle objemu prodeje (SumB2B + SumB2C) |
-| MarginData struktura | Rozšířit na M0, M1_A, M1_B, M2 |
+| MarginData struktura | Kumulativní M0, M1, M2, M3 |
 | ManufactureDifficulty | Použít historickou hodnotu platnou v měsíci výroby |
-| M1_A okno | 12 měsíců (klouzavé) |
-| M1_B granularita | Po měsících |
+| M1 okno | 12 měsíců (klouzavé) |
+| M3 alokace | Plošně na prodaný kus (stejný jmenovatel jako M2) |
 | **Cache storage** | **IMemoryCache (in-memory, bez expiration)** |
 | **Cache granularita** | **Pre-computed per-product costs (Dictionary<string, List<MonthlyCost>>)** |
-| **Cache organizace** | **Samostatná cache per cost source (M0, M1_A, M1_B, M2)** |
+| **Cache organizace** | **Samostatná cache per cost source (M0, M1, M2, M3)** |
 | **Hydration strategy** | **Tier-based: Tier 1 (catalog) → Tier 2 (cost caches paralelně)** |
 | **Refresh frequency** | **Konfigurovatelný interval (default: 6 hodin)** |
 | **Staleness policy** | **Stale-while-revalidate (vrátit stará data během refresh)** |
@@ -570,19 +561,19 @@ private static void RegisterCostCacheRefreshTasks(IServiceCollection services)
 - `CostCacheData.cs` - **nová třída** pro cached data wrapper
 
 **Application Layer - Cost Sources:**
-- `ManufactureCostSource.cs` - doimplementovat M1_A (inject cache)
-- `DirectManufactureCostSource.cs` - **nový soubor** pro M1_B (inject cache)
+- `ManufactureCostSource.cs` - doimplementovat M1 (inject cache)
+- `OverheadCostProvider.cs` - **nový soubor** pro M3 (inject cache)
 - `SalesCostSource.cs` - **nový soubor** pro M2 (inject cache)
 - `PurchasePriceOnlyMaterialCostSource.cs` - ověřit/doplnit (inject cache)
 
 **Application Layer - Cache Services:**
 - `MaterialCostCache.cs` - **nový soubor** pro M0 cache
-- `FlatManufactureCostCache.cs` - **nový soubor** pro M1_A cache
-- `DirectManufactureCostCache.cs` - **nový soubor** pro M1_B cache
+- `FlatManufactureCostCache.cs` - **nový soubor** pro M1 cache
+- `OverheadCostCache.cs` - **nový soubor** pro M3 cache
 - `SalesCostCache.cs` - **nový soubor** pro M2 cache
 - `IMaterialCostCache.cs` - **nový interface** pro M0 cache
-- `IFlatManufactureCostCache.cs` - **nový interface** pro M1_A cache
-- `IDirectManufactureCostCache.cs` - **nový interface** pro M1_B cache
+- `IFlatManufactureCostCache.cs` - **nový interface** pro M1 cache
+- `IOverheadCostCache.cs` - **nový interface** pro M3 cache
 - `ISalesCostCache.cs` - **nový interface** pro M2 cache
 
 **Application Layer - Configuration:**
@@ -616,8 +607,8 @@ private static void RegisterCostCacheRefreshTasks(IServiceCollection services)
 - Test immutability - cache objects jsou immutable
 
 **Cost Sources:**
-- Test výpočtu M1_A při známých vstupních datech
-- Test výpočtu M1_B pro měsíce s/bez výroby
+- Test výpočtu M1 při známých vstupních datech
+- Test výpočtu M3 (pool → náklad na kus, vyloučení komponent setu)
 - Test M2 alokace podle prodejů
 - Test okrajových případů (nulové náklady, žádná výroba, žádný prodej)
 - Test delegace na cache service
@@ -657,13 +648,13 @@ backend/src/Anela.Heblo.Domain/Features/Catalog/
 │   ├── CostCacheData.cs
 │   ├── IMaterialCostCache.cs
 │   ├── IFlatManufactureCostCache.cs
-│   ├── IDirectManufactureCostCache.cs
+│   ├── IOverheadCostCache.cs
 │   └── ISalesCostCache.cs
 ├── Repositories/
 │   ├── ICostDataSource.cs
 │   ├── IMaterialCostSource.cs
 │   ├── IFlatManufactureCostSource.cs
-│   ├── IDirectManufactureCostSource.cs
+│   ├── IOverheadCostProvider.cs
 │   └── ISalesCostSource.cs
 └── Services/
     └── IMarginCalculationService.cs
@@ -672,14 +663,14 @@ backend/src/Anela.Heblo.Application/Features/Catalog/
 ├── Cache/
 │   ├── MaterialCostCache.cs (nový)
 │   ├── FlatManufactureCostCache.cs (nový)
-│   ├── DirectManufactureCostCache.cs (nový)
+│   ├── OverheadCostCache.cs (nový)
 │   └── SalesCostCache.cs (nový)
 ├── Infrastructure/
 │   └── CostCacheOptions.cs (nový)
 ├── Repositories/
 │   ├── PurchasePriceOnlyMaterialCostSource.cs (upravit - inject cache)
 │   ├── ManufactureCostSource.cs (upravit - inject cache)
-│   ├── DirectManufactureCostSource.cs (nový)
+│   ├── OverheadCostProvider.cs (nový)
 │   └── SalesCostSource.cs (nový)
 ├── Services/
 │   └── MarginCalculationService.cs

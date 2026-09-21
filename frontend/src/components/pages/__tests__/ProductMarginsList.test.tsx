@@ -200,7 +200,7 @@ describe("ProductMarginsList", () => {
     expect(m2Cell).toBeInTheDocument();
   });
 
-  it("handles sorting by M2 percentage by default", () => {
+  it("handles sorting by M3 percentage by default", () => {
     const mockRefetch = jest.fn();
     mockUseProductMargins.mockReturnValue({
       data: mockData,
@@ -211,14 +211,14 @@ describe("ProductMarginsList", () => {
 
     render(<ProductMarginsList />, { wrapper: createWrapper() });
 
-    // Default sorting should be by M2 percentage descending
+    // Default sorting should be by M3 percentage descending (M3 is the final margin level)
     expect(mockUseProductMargins).toHaveBeenCalledWith(
       "", // productCodeFilter
       "", // productNameFilter
       "Product", // productTypeFilter
       1, // pageNumber
       20, // pageSize
-      "m2Percentage", // sortBy
+      "m3Percentage", // sortBy
       true, // sortDescending
     );
   });

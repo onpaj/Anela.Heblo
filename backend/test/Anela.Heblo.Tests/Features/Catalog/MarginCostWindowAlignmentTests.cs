@@ -5,6 +5,7 @@ using Anela.Heblo.Application.Features.Catalog.Contracts;
 using Anela.Heblo.Application.Features.Catalog.CostProviders;
 using Anela.Heblo.Application.Features.Catalog.Infrastructure;
 using Anela.Heblo.Application.Features.Catalog.Services;
+using Anela.Heblo.Domain.Accounting.CostPools;
 using Anela.Heblo.Domain.Accounting.Ledger;
 using Anela.Heblo.Domain.Features.Catalog;
 using Anela.Heblo.Domain.Features.Catalog.CostProviders;
@@ -65,7 +66,14 @@ public class MarginCostWindowAlignmentTests
         var costPerMonth = emittedCosts.Select(c => c.Cost).Distinct().Single();
         costPerMonth.Should().BeGreaterThan(0, "the provider must emit a real cost for the test to be meaningful");
 
-        var repository = CreateRepository(product, flatManufactureCostProvider, options, now, timeProvider);
+        var overheadCostProvider = CreateOverheadCostProvider(product, options, timeProvider);
+        await overheadCostProvider.RefreshAsync();
+
+        var emittedOverheadCosts = (await overheadCostProvider.GetCostsAsync())[ProductCode];
+        var overheadPerMonth = emittedOverheadCosts.Select(c => c.Cost).Distinct().Single();
+        overheadPerMonth.Should().BeGreaterThan(0, "the provider must emit a real cost for the test to be meaningful");
+
+        var repository = CreateRepository(product, flatManufactureCostProvider, overheadCostProvider, options, now, timeProvider);
 
         // Act
         await repository.RefreshMarginData(CancellationToken.None);
@@ -74,8 +82,14 @@ public class MarginCostWindowAlignmentTests
         var months = product.Margins.MonthlyData.Keys.ToList();
         months.Should().NotBeEmpty();
         months.Should().BeSubsetOf(emittedMonths, "a margin month without cost data averages in as a zero");
-        product.Margins.Averages.M1_A.CostLevel.Should().Be(costPerMonth,
+        months.Should().BeSubsetOf(
+            emittedOverheadCosts.Select(c => c.Month).ToList(),
+            "M3 derives its window from the same setting, so it must cover the margin months too");
+
+        product.Margins.Averages.M1.CostLevel.Should().Be(costPerMonth,
             "the average must not be diluted by months the cost providers never covered");
+        product.Margins.Averages.M3.CostLevel.Should().Be(overheadPerMonth,
+            "M3 must be averaged over the same covered months as M1");
     }
 
     private static CatalogAggregate CreateManufacturedProduct(DateTime now)
@@ -93,6 +107,10 @@ public class MarginCostWindowAlignmentTests
             ManufactureHistory = new List<CatalogManufactureRecord>
             {
                 new() { Date = now.AddDays(-10), Amount = 100, ProductCode = ProductCode, PricePerPiece = 79m }
+            },
+            SalesHistory = new List<CatalogSaleRecord>
+            {
+                new() { Date = now.AddDays(-10), AmountTotal = 80, ProductCode = ProductCode, ProductName = ProductCode }
             }
         };
 
@@ -138,9 +156,42 @@ public class MarginCostWindowAlignmentTests
             timeProvider);
     }
 
+    private static OverheadCostProvider CreateOverheadCostProvider(
+        CatalogAggregate product,
+        DataSourceOptions options,
+        TimeProvider timeProvider)
+    {
+        var costPoolServiceMock = new Mock<ICostPoolService>();
+        costPoolServiceMock
+            .Setup(s => s.GetMonthlyPoolsAsync(It.IsAny<DateOnly>(), It.IsAny<DateOnly>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<MonthlyCostPool>
+            {
+                new(new DateTime(timeProvider.GetUtcNow().Year, timeProvider.GetUtcNow().Month, 1), CostPool.M3, 160000m)
+            });
+
+        var catalogRepositoryMock = new Mock<ICatalogRepository>();
+        catalogRepositoryMock.Setup(r => r.GetAllAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<CatalogAggregate> { product });
+        catalogRepositoryMock.Setup(r => r.WaitForCurrentMergeAsync(It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
+        var serviceProviderMock = new Mock<IServiceProvider>();
+        serviceProviderMock.Setup(sp => sp.GetService(typeof(ICatalogRepository)))
+            .Returns(catalogRepositoryMock.Object);
+
+        return new OverheadCostProvider(
+            new OverheadCostCache(new MemoryCache(new MemoryCacheOptions())),
+            serviceProviderMock.Object,
+            costPoolServiceMock.Object,
+            Mock.Of<ILogger<OverheadCostProvider>>(),
+            Options.Create(options),
+            timeProvider);
+    }
+
     private static CatalogRepository CreateRepository(
         CatalogAggregate product,
         IFlatManufactureCostProvider flatManufactureCostProvider,
+        IOverheadCostProvider overheadCostProvider,
         DataSourceOptions options,
         DateTimeOffset now,
         TimeProvider timeProvider)
@@ -195,7 +246,7 @@ public class MarginCostWindowAlignmentTests
         var marginService = new MarginCalculationService(
             CreateEmptyCostProvider<IMaterialCostProvider>(),
             flatManufactureCostProvider,
-            CreateEmptyCostProvider<IDirectManufactureCostProvider>(),
+            overheadCostProvider,
             CreateEmptyCostProvider<ISalesCostProvider>(),
             Mock.Of<ILogger<MarginCalculationService>>());
 

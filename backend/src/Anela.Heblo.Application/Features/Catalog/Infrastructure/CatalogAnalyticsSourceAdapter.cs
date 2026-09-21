@@ -77,7 +77,7 @@ internal sealed class CatalogAnalyticsSourceAdapter : IAnalyticsProductSource
 
         var marginAmount = hasMargin ? latestMarginEntry.Value.M0.Amount : marginData.Averages.M0.Amount;
         var materialCost = hasMargin ? latestMarginEntry.Value.M0.CostLevel : 0m;
-        var handlingCost = hasMargin ? latestMarginEntry.Value.M1_A.CostLevel : 0m;
+        var handlingCost = hasMargin ? latestMarginEntry.Value.M1.CostLevel : 0m;
 
         var latestPurchase = product.PurchaseHistory?.OrderByDescending(p => p.Date).FirstOrDefault();
         var purchasePrice = latestPurchase?.PricePerPiece ?? 0m;
@@ -91,10 +91,10 @@ internal sealed class CatalogAnalyticsSourceAdapter : IAnalyticsProductSource
             ProductCategory = product.ProductCategory,
             MarginAmount = marginAmount,
             M0Amount = hasMargin ? latestMarginEntry.Value.M0.Amount : 0m,
-            M1Amount = hasMargin ? latestMarginEntry.Value.M1_A.Amount : 0m,
+            M1Amount = hasMargin ? latestMarginEntry.Value.M1.Amount : 0m,
             M2Amount = hasMargin ? latestMarginEntry.Value.M2.Amount : 0m,
             M0Percentage = hasMargin ? latestMarginEntry.Value.M0.Percentage : 0m,
-            M1Percentage = hasMargin ? latestMarginEntry.Value.M1_A.Percentage : 0m,
+            M1Percentage = hasMargin ? latestMarginEntry.Value.M1.Percentage : 0m,
             M2Percentage = hasMargin ? latestMarginEntry.Value.M2.Percentage : 0m,
             SellingPrice = product.EshopPrice?.PriceWithoutVat ?? 0m,
             EshopPriceWithoutVat = product.EshopPrice?.PriceWithoutVat,

@@ -508,15 +508,15 @@ export class ApiClient {
     articles_List(status: ArticleStatus | null | undefined, page: number | undefined, pageSize: number | undefined): Promise<ListArticlesResponse> {
         let url_ = this.baseUrl + "/api/Articles?";
         if (status !== undefined && status !== null)
-            url_ += "status=" + encodeURIComponent("" + status) + "&";
+            url_ += "Status=" + encodeURIComponent("" + status) + "&";
         if (page === null)
             throw new Error("The parameter 'page' cannot be null.");
         else if (page !== undefined)
-            url_ += "page=" + encodeURIComponent("" + page) + "&";
+            url_ += "Page=" + encodeURIComponent("" + page) + "&";
         if (pageSize === null)
             throw new Error("The parameter 'pageSize' cannot be null.");
         else if (pageSize !== undefined)
-            url_ += "pageSize=" + encodeURIComponent("" + pageSize) + "&";
+            url_ += "PageSize=" + encodeURIComponent("" + pageSize) + "&";
         url_ = url_.replace(/[?&]$/, "");
 
         let options_: RequestInit = {
@@ -600,25 +600,25 @@ export class ApiClient {
     articles_FeedbackList(hasFeedback: boolean | null | undefined, requestedBy: string | null | undefined, sortBy: string | undefined, sortDescending: boolean | undefined, page: number | undefined, pageSize: number | undefined): Promise<GetArticleFeedbackListResponse> {
         let url_ = this.baseUrl + "/api/Articles/feedback/list?";
         if (hasFeedback !== undefined && hasFeedback !== null)
-            url_ += "hasFeedback=" + encodeURIComponent("" + hasFeedback) + "&";
+            url_ += "HasFeedback=" + encodeURIComponent("" + hasFeedback) + "&";
         if (requestedBy !== undefined && requestedBy !== null)
-            url_ += "requestedBy=" + encodeURIComponent("" + requestedBy) + "&";
+            url_ += "RequestedBy=" + encodeURIComponent("" + requestedBy) + "&";
         if (sortBy === null)
             throw new Error("The parameter 'sortBy' cannot be null.");
         else if (sortBy !== undefined)
-            url_ += "sortBy=" + encodeURIComponent("" + sortBy) + "&";
+            url_ += "SortBy=" + encodeURIComponent("" + sortBy) + "&";
         if (sortDescending === null)
             throw new Error("The parameter 'sortDescending' cannot be null.");
         else if (sortDescending !== undefined)
-            url_ += "sortDescending=" + encodeURIComponent("" + sortDescending) + "&";
+            url_ += "SortDescending=" + encodeURIComponent("" + sortDescending) + "&";
         if (page === null)
             throw new Error("The parameter 'page' cannot be null.");
         else if (page !== undefined)
-            url_ += "page=" + encodeURIComponent("" + page) + "&";
+            url_ += "Page=" + encodeURIComponent("" + page) + "&";
         if (pageSize === null)
             throw new Error("The parameter 'pageSize' cannot be null.");
         else if (pageSize !== undefined)
-            url_ += "pageSize=" + encodeURIComponent("" + pageSize) + "&";
+            url_ += "PageSize=" + encodeURIComponent("" + pageSize) + "&";
         url_ = url_.replace(/[?&]$/, "");
 
         let options_: RequestInit = {
@@ -687,6 +687,65 @@ export class ApiClient {
             });
         }
         return Promise.resolve<BackfillArticleRequestedByResponse>(null as any);
+    }
+
+    attendance_RunBreakInsertion(request: RunBreakInsertionRequest): Promise<RunBreakInsertionResponse> {
+        let url_ = this.baseUrl + "/api/attendance/break-insertion/run";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: RequestInit = {
+            body: content_,
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processAttendance_RunBreakInsertion(_response);
+        });
+    }
+
+    protected processAttendance_RunBreakInsertion(response: Response): Promise<RunBreakInsertionResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = RunBreakInsertionResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status === 400) {
+            return response.text().then((_responseText) => {
+            let result400: any = null;
+            let resultData400 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result400 = ProblemDetails.fromJS(resultData400);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result400);
+            });
+        } else if (status === 401) {
+            return response.text().then((_responseText) => {
+            let result401: any = null;
+            let resultData401 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result401 = ProblemDetails.fromJS(resultData401);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result401);
+            });
+        } else if (status === 409) {
+            return response.text().then((_responseText) => {
+            let result409: any = null;
+            let resultData409 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result409 = ProblemDetails.fromJS(resultData409);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result409);
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<RunBreakInsertionResponse>(null as any);
     }
 
     auth_Me(): Promise<GetMeResponse> {
@@ -14668,6 +14727,7 @@ export enum ErrorCodes {
     InvalidCronExpression = "InvalidCronExpression",
     RecurringJobDisabled = "RecurringJobDisabled",
     RecurringJobEnqueueFailed = "RecurringJobEnqueueFailed",
+    RecurringJobAlreadyRunning = "RecurringJobAlreadyRunning",
     KnowledgeBaseFeedbackLogNotFound = "KnowledgeBaseFeedbackLogNotFound",
     KnowledgeBaseFeedbackAlreadySubmitted = "KnowledgeBaseFeedbackAlreadySubmitted",
     KnowledgeBaseChunkNotFound = "KnowledgeBaseChunkNotFound",
@@ -16331,6 +16391,119 @@ export class BackfillArticleRequestedByCommand implements IBackfillArticleReques
 export interface IBackfillArticleRequestedByCommand {
     groupId?: string;
     dryRun?: boolean;
+}
+
+export class RunBreakInsertionResponse extends BaseResponse implements IRunBreakInsertionResponse {
+    daysScanned?: number;
+    breaksInserted?: number;
+    daysHealed?: number;
+    recordsTouched?: number;
+    touchFailed?: number;
+    skippedExistingBreak?: number;
+    skippedInProgress?: number;
+    skippedBelowThreshold?: number;
+    skippedHoursOnly?: number;
+    skippedNoSlot?: number;
+    failed?: number;
+
+    constructor(data?: IRunBreakInsertionResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            this.daysScanned = _data["daysScanned"];
+            this.breaksInserted = _data["breaksInserted"];
+            this.daysHealed = _data["daysHealed"];
+            this.recordsTouched = _data["recordsTouched"];
+            this.touchFailed = _data["touchFailed"];
+            this.skippedExistingBreak = _data["skippedExistingBreak"];
+            this.skippedInProgress = _data["skippedInProgress"];
+            this.skippedBelowThreshold = _data["skippedBelowThreshold"];
+            this.skippedHoursOnly = _data["skippedHoursOnly"];
+            this.skippedNoSlot = _data["skippedNoSlot"];
+            this.failed = _data["failed"];
+        }
+    }
+
+    static override fromJS(data: any): RunBreakInsertionResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new RunBreakInsertionResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["daysScanned"] = this.daysScanned;
+        data["breaksInserted"] = this.breaksInserted;
+        data["daysHealed"] = this.daysHealed;
+        data["recordsTouched"] = this.recordsTouched;
+        data["touchFailed"] = this.touchFailed;
+        data["skippedExistingBreak"] = this.skippedExistingBreak;
+        data["skippedInProgress"] = this.skippedInProgress;
+        data["skippedBelowThreshold"] = this.skippedBelowThreshold;
+        data["skippedHoursOnly"] = this.skippedHoursOnly;
+        data["skippedNoSlot"] = this.skippedNoSlot;
+        data["failed"] = this.failed;
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IRunBreakInsertionResponse extends IBaseResponse {
+    daysScanned?: number;
+    breaksInserted?: number;
+    daysHealed?: number;
+    recordsTouched?: number;
+    touchFailed?: number;
+    skippedExistingBreak?: number;
+    skippedInProgress?: number;
+    skippedBelowThreshold?: number;
+    skippedHoursOnly?: number;
+    skippedNoSlot?: number;
+    failed?: number;
+}
+
+export class RunBreakInsertionRequest implements IRunBreakInsertionRequest {
+    fromDaysAgo?: number | undefined;
+    toDaysAgo?: number | undefined;
+
+    constructor(data?: IRunBreakInsertionRequest) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.fromDaysAgo = _data["fromDaysAgo"];
+            this.toDaysAgo = _data["toDaysAgo"];
+        }
+    }
+
+    static fromJS(data: any): RunBreakInsertionRequest {
+        data = typeof data === 'object' ? data : {};
+        let result = new RunBreakInsertionRequest();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["fromDaysAgo"] = this.fromDaysAgo;
+        data["toDaysAgo"] = this.toDaysAgo;
+        return data;
+    }
+}
+
+export interface IRunBreakInsertionRequest {
+    fromDaysAgo?: number | undefined;
+    toDaysAgo?: number | undefined;
 }
 
 export class GetMeResponse extends BaseResponse implements IGetMeResponse {
@@ -19226,6 +19399,7 @@ export class MarginHistoryDto implements IMarginHistoryDto {
     m0?: MarginLevelDto;
     m1?: MarginLevelDto;
     m2?: MarginLevelDto;
+    m3?: MarginLevelDto;
 
     constructor(data?: IMarginHistoryDto) {
         if (data) {
@@ -19244,6 +19418,7 @@ export class MarginHistoryDto implements IMarginHistoryDto {
             this.m0 = _data["m0"] ? MarginLevelDto.fromJS(_data["m0"]) : <any>undefined;
             this.m1 = _data["m1"] ? MarginLevelDto.fromJS(_data["m1"]) : <any>undefined;
             this.m2 = _data["m2"] ? MarginLevelDto.fromJS(_data["m2"]) : <any>undefined;
+            this.m3 = _data["m3"] ? MarginLevelDto.fromJS(_data["m3"]) : <any>undefined;
         }
     }
 
@@ -19262,6 +19437,7 @@ export class MarginHistoryDto implements IMarginHistoryDto {
         data["m0"] = this.m0 ? this.m0.toJSON() : <any>undefined;
         data["m1"] = this.m1 ? this.m1.toJSON() : <any>undefined;
         data["m2"] = this.m2 ? this.m2.toJSON() : <any>undefined;
+        data["m3"] = this.m3 ? this.m3.toJSON() : <any>undefined;
         return data;
     }
 }
@@ -19273,6 +19449,7 @@ export interface IMarginHistoryDto {
     m0?: MarginLevelDto;
     m1?: MarginLevelDto;
     m2?: MarginLevelDto;
+    m3?: MarginLevelDto;
 }
 
 export class MarginLevelDto implements IMarginLevelDto {
@@ -40026,6 +40203,7 @@ export class ProductMarginDto implements IProductMarginDto {
     m0?: MarginLevelDto;
     m1?: MarginLevelDto;
     m2?: MarginLevelDto;
+    m3?: MarginLevelDto;
     monthlyHistory?: MonthlyMarginDto[];
 
     constructor(data?: IProductMarginDto) {
@@ -40048,6 +40226,7 @@ export class ProductMarginDto implements IProductMarginDto {
             this.m0 = _data["m0"] ? MarginLevelDto.fromJS(_data["m0"]) : <any>undefined;
             this.m1 = _data["m1"] ? MarginLevelDto.fromJS(_data["m1"]) : <any>undefined;
             this.m2 = _data["m2"] ? MarginLevelDto.fromJS(_data["m2"]) : <any>undefined;
+            this.m3 = _data["m3"] ? MarginLevelDto.fromJS(_data["m3"]) : <any>undefined;
             if (Array.isArray(_data["monthlyHistory"])) {
                 this.monthlyHistory = [] as any;
                 for (let item of _data["monthlyHistory"])
@@ -40074,6 +40253,7 @@ export class ProductMarginDto implements IProductMarginDto {
         data["m0"] = this.m0 ? this.m0.toJSON() : <any>undefined;
         data["m1"] = this.m1 ? this.m1.toJSON() : <any>undefined;
         data["m2"] = this.m2 ? this.m2.toJSON() : <any>undefined;
+        data["m3"] = this.m3 ? this.m3.toJSON() : <any>undefined;
         if (Array.isArray(this.monthlyHistory)) {
             data["monthlyHistory"] = [];
             for (let item of this.monthlyHistory)
@@ -40093,6 +40273,7 @@ export interface IProductMarginDto {
     m0?: MarginLevelDto;
     m1?: MarginLevelDto;
     m2?: MarginLevelDto;
+    m3?: MarginLevelDto;
     monthlyHistory?: MonthlyMarginDto[];
 }
 
@@ -40101,6 +40282,7 @@ export class MonthlyMarginDto implements IMonthlyMarginDto {
     m0?: MarginLevelDto;
     m1?: MarginLevelDto;
     m2?: MarginLevelDto;
+    m3?: MarginLevelDto;
 
     constructor(data?: IMonthlyMarginDto) {
         if (data) {
@@ -40117,6 +40299,7 @@ export class MonthlyMarginDto implements IMonthlyMarginDto {
             this.m0 = _data["m0"] ? MarginLevelDto.fromJS(_data["m0"]) : <any>undefined;
             this.m1 = _data["m1"] ? MarginLevelDto.fromJS(_data["m1"]) : <any>undefined;
             this.m2 = _data["m2"] ? MarginLevelDto.fromJS(_data["m2"]) : <any>undefined;
+            this.m3 = _data["m3"] ? MarginLevelDto.fromJS(_data["m3"]) : <any>undefined;
         }
     }
 
@@ -40133,6 +40316,7 @@ export class MonthlyMarginDto implements IMonthlyMarginDto {
         data["m0"] = this.m0 ? this.m0.toJSON() : <any>undefined;
         data["m1"] = this.m1 ? this.m1.toJSON() : <any>undefined;
         data["m2"] = this.m2 ? this.m2.toJSON() : <any>undefined;
+        data["m3"] = this.m3 ? this.m3.toJSON() : <any>undefined;
         return data;
     }
 }
@@ -40142,6 +40326,7 @@ export interface IMonthlyMarginDto {
     m0?: MarginLevelDto;
     m1?: MarginLevelDto;
     m2?: MarginLevelDto;
+    m3?: MarginLevelDto;
 }
 
 export class GetPriceDivergenceReportResponse extends BaseResponse implements IGetPriceDivergenceReportResponse {

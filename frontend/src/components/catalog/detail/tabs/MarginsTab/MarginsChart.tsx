@@ -42,9 +42,11 @@ const MarginsChart: React.FC<MarginsChartProps> = ({
     const m0PercentageData = new Array(12).fill(0);
     const m1PercentageData = new Array(12).fill(0);
     const m2PercentageData = new Array(12).fill(0);
+    const m3PercentageData = new Array(12).fill(0);
     const m0CostLevelData = new Array(12).fill(0);
     const m1CostLevelData = new Array(12).fill(0);
     const m2CostLevelData = new Array(12).fill(0);
+    const m3CostLevelData = new Array(12).fill(0);
     const now = new Date();
     const currentYear = now.getFullYear();
     const currentMonth = now.getMonth() + 1;
@@ -53,9 +55,11 @@ const MarginsChart: React.FC<MarginsChartProps> = ({
     const m0PercentageMap = new Map<string, number>();
     const m1PercentageMap = new Map<string, number>();
     const m2PercentageMap = new Map<string, number>();
+    const m3PercentageMap = new Map<string, number>();
     const m0CostLevelMap = new Map<string, number>();
     const m1CostLevelMap = new Map<string, number>();
     const m2CostLevelMap = new Map<string, number>();
+    const m3CostLevelMap = new Map<string, number>();
 
     marginHistory.forEach((record) => {
       if (record.date) {
@@ -74,11 +78,13 @@ const MarginsChart: React.FC<MarginsChartProps> = ({
         m0PercentageMap.set(key, record.m0?.percentage || 0);
         m1PercentageMap.set(key, record.m1?.percentage || 0);
         m2PercentageMap.set(key, record.m2?.percentage || 0);
+        m3PercentageMap.set(key, record.m3?.percentage || 0);
 
         // M0-M2 CostLevel properties
         m0CostLevelMap.set(key, record.m0?.costLevel || 0);
         m1CostLevelMap.set(key, record.m1?.costLevel || 0);
         m2CostLevelMap.set(key, record.m2?.costLevel || 0);
+        m3CostLevelMap.set(key, record.m3?.costLevel || 0);
       }
     });
 
@@ -98,18 +104,22 @@ const MarginsChart: React.FC<MarginsChartProps> = ({
       m0PercentageData[i] = m0PercentageMap.get(key) || 0;
       m1PercentageData[i] = m1PercentageMap.get(key) || 0;
       m2PercentageData[i] = m2PercentageMap.get(key) || 0;
+      m3PercentageData[i] = m3PercentageMap.get(key) || 0;
       m0CostLevelData[i] = m0CostLevelMap.get(key) || 0;
       m1CostLevelData[i] = m1CostLevelMap.get(key) || 0;
       m2CostLevelData[i] = m2CostLevelMap.get(key) || 0;
+      m3CostLevelData[i] = m3CostLevelMap.get(key) || 0;
     }
 
     return {
       m0PercentageData,
       m1PercentageData,
       m2PercentageData,
+      m3PercentageData,
       m0CostLevelData,
       m1CostLevelData,
-      m2CostLevelData
+      m2CostLevelData,
+      m3CostLevelData
     };
   };
 
@@ -117,22 +127,26 @@ const MarginsChart: React.FC<MarginsChartProps> = ({
     m0PercentageData,
     m1PercentageData,
     m2PercentageData,
+    m3PercentageData,
     m0CostLevelData,
     m1CostLevelData,
-    m2CostLevelData
+    m2CostLevelData,
+    m3CostLevelData
   } = mapMarginDataToMonthlyArrays();
 
-  // Check if we have M0-M2 data
+  // Check if we have M0-M3 data
   const hasM0M2Data = m0PercentageData.some(value => value > 0) ||
                       m1PercentageData.some(value => value > 0) ||
-                      m2PercentageData.some(value => value > 0);
+                      m2PercentageData.some(value => value > 0) ||
+                      m3PercentageData.some(value => value > 0);
 
   // Generate point styling for percentage line charts (12 months without current)
   const m0Styling = generatePointStyling(12, journalEntries, "rgba(34, 197, 94, 1)"); // Green
   const m1Styling = generatePointStyling(12, journalEntries, "rgba(234, 179, 8, 1)"); // Yellow
   const m2Styling = generatePointStyling(12, journalEntries, "rgba(249, 115, 22, 1)"); // Orange
+  const m3Styling = generatePointStyling(12, journalEntries, "rgba(239, 68, 68, 1)"); // Red
 
-  // Build stacked bar chart datasets for CostLevel (M0 bottom, M2 top)
+  // Build stacked bar chart datasets for CostLevel (M0 bottom, M3 top)
   const costLevelDatasets = hasM0M2Data ? [
     {
       type: 'bar' as const,
@@ -160,6 +174,16 @@ const MarginsChart: React.FC<MarginsChartProps> = ({
       data: m2CostLevelData,
       backgroundColor: "rgba(249, 115, 22, 0.7)", // Orange
       borderColor: "rgba(249, 115, 22, 1)",
+      borderWidth: 1,
+      yAxisID: "y",
+      stack: 'costs',
+    },
+    {
+      type: 'bar' as const,
+      label: "M3 - Režijní náklady (Kč/ks)",
+      data: m3CostLevelData,
+      backgroundColor: "rgba(239, 68, 68, 0.7)", // Red
+      borderColor: "rgba(239, 68, 68, 1)",
       borderWidth: 1,
       yAxisID: "y",
       stack: 'costs',
@@ -200,7 +224,7 @@ const MarginsChart: React.FC<MarginsChartProps> = ({
     },
     {
       type: 'line' as const,
-      label: "M2 - Finální marže (%)",
+      label: "M2 - Marže + prodej (%)",
       data: m2PercentageData,
       backgroundColor: "rgba(249, 115, 22, 0.1)",
       borderColor: "rgba(249, 115, 22, 1)",
@@ -210,6 +234,21 @@ const MarginsChart: React.FC<MarginsChartProps> = ({
       pointBorderColor: m2Styling.pointBackgroundColors,
       pointRadius: m2Styling.pointRadiuses,
       pointHoverRadius: m2Styling.pointHoverRadiuses,
+      yAxisID: "y1",
+      fill: false,
+    },
+    {
+      type: 'line' as const,
+      label: "M3 - Finální marže (%)",
+      data: m3PercentageData,
+      backgroundColor: "rgba(239, 68, 68, 0.1)",
+      borderColor: "rgba(239, 68, 68, 1)",
+      borderWidth: 2,
+      tension: 0.1,
+      pointBackgroundColor: m3Styling.pointBackgroundColors,
+      pointBorderColor: m3Styling.pointBackgroundColors,
+      pointRadius: m3Styling.pointRadiuses,
+      pointHoverRadius: m3Styling.pointHoverRadiuses,
       yAxisID: "y1",
       fill: false,
     },
