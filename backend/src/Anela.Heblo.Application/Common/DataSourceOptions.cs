@@ -20,11 +20,15 @@ public class DataSourceOptions
     ///   65 = V-PRIJEM-POLOTOVAR   (semi-product, current)
     ///   67 = V-PRIJEM-VYROBEK     (product, current)
     ///
-    /// Deliberately defaults to empty: ConfigurationBinder APPENDS to an existing array
-    /// rather than replacing it, so a non-empty default plus the appsettings values would
-    /// bind to {54,56,65,67,54,56,65,67} and double every manufactured amount at the
-    /// group-by. The live values belong in appsettings.json; an empty set is rejected at
-    /// read time rather than silently returning no history.
+    /// The live values belong in appsettings.json; an empty set is rejected at read time
+    /// rather than silently returning no history.
+    ///
+    /// Defaults to empty because ConfigurationBinder MERGES arrays index-wise instead of
+    /// replacing them, so a non-empty default plus the appsettings values would bind to
+    /// {54,56,65,67,54,56,65,67}. That same merge also applies to any environment or Key
+    /// Vault override, which an empty default cannot prevent, so the reader de-duplicates
+    /// before fetching — duplicates would otherwise double every manufactured amount at
+    /// the group-by, with no error anywhere.
     /// </summary>
     public int[] ManufactureDocumentTypeIds { get; set; } = Array.Empty<int>();
 

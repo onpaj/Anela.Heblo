@@ -28,20 +28,48 @@ public class ManufactureDocumentTypeConfigurationTests
     }
 
     [Fact]
-    public void Binding_DoesNotDuplicateIds_BecauseCodeDefaultIsEmpty()
+    public void Binding_MergesIntoExistingArray_WhichIsWhyTheCodeDefaultIsEmpty()
     {
-        // ConfigurationBinder appends to an existing array instead of replacing it. A non-empty
-        // code default would therefore bind to {54,56,65,67,54,56,65,67}, and since the history
-        // group-by SUMS amounts per product+day, every manufactured quantity would double.
+        // Pins the framework behaviour the empty default exists to dodge: ConfigurationBinder
+        // MERGES into an existing array index-wise instead of replacing it. Binding the shipped
+        // four ids onto an already-populated instance therefore yields eight entries, and since
+        // the history group-by SUMS amounts per product+day, every quantity would double.
+        // Asserted against a pre-seeded instance so a framework upgrade that changes this
+        // breaks here loudly rather than in the manufacture numbers.
         var configuration = LoadApiConfiguration();
-        var options = new DataSourceOptions();
+        var seeded = new DataSourceOptions
+        {
+            ManufactureDocumentTypeIds = new[] { 54, 56, 65, 67 }
+        };
 
-        new DataSourceOptions().ManufactureDocumentTypeIds.Should().BeEmpty(
-            "a non-empty code default is silently appended to by the configuration binder");
+        configuration.GetSection(DataSourceOptions.ConfigKey).Bind(seeded);
+
+        seeded.ManufactureDocumentTypeIds.Should().HaveCount(8,
+            "the binder merges rather than replaces, so the code default must stay empty");
+    }
+
+    [Fact]
+    public void EnvironmentOverride_MergesIndexWise_LeavingDuplicatesForTheReaderToDrop()
+    {
+        // The empty code default does NOT close the override route. An operator doing the
+        // natural zero-deploy fix after the next renumbering — setting just the current ids
+        // in Key Vault / App Settings, which layer after appsettings.json — gets an
+        // index-wise merge, not a replacement. FlexiManufactureHistoryClient de-duplicates
+        // for exactly this reason; see GetHistoryAsync_DeduplicatesConfiguredDocumentTypeIds.
+        var configuration = new ConfigurationBuilder()
+            .SetBasePath(FindApiDirectory(AppContext.BaseDirectory))
+            .AddJsonFile("appsettings.json", optional: false)
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                [$"{DataSourceOptions.ConfigKey}:{nameof(DataSourceOptions.ManufactureDocumentTypeIds)}:0"] = "65",
+                [$"{DataSourceOptions.ConfigKey}:{nameof(DataSourceOptions.ManufactureDocumentTypeIds)}:1"] = "67",
+            })
+            .Build();
+        var options = new DataSourceOptions();
 
         configuration.GetSection(DataSourceOptions.ConfigKey).Bind(options);
 
-        options.ManufactureDocumentTypeIds.Should().OnlyHaveUniqueItems();
+        options.ManufactureDocumentTypeIds.Should().Equal(65, 67, 65, 67);
     }
 
     private static IConfigurationRoot LoadApiConfiguration() =>
