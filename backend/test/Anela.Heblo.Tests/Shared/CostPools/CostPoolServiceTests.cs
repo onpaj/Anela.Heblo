@@ -13,7 +13,7 @@ namespace Anela.Heblo.Tests.Shared.CostPools;
 /// <summary>
 /// Tests for CostPoolService.
 /// Collection attribute forces sequential execution: the service guards
-/// RefreshAsync with a static SemaphoreSlim (added in Task 4).
+/// RefreshAsync with a static SemaphoreSlim.
 /// </summary>
 [Collection("CostPoolServiceTests")]
 public class CostPoolServiceTests
