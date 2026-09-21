@@ -524,6 +524,8 @@ export const QUERY_KEYS = {
   materialContainers: ["materialContainers"] as const,
   suppliers: ["suppliers"] as const,
   overtime: ["overtime"] as const,
+  marketingPerformanceMonths: ["marketing-performance", "months"] as const,
+  marketingPerformanceComparison: ["marketing-performance", "comparison"] as const,
   // Add more query keys as needed
   // users: ['users'] as const,
   // products: ['products'] as const,

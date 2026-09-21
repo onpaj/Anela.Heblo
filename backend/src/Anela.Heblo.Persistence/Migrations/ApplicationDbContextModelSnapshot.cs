@@ -2803,6 +2803,89 @@ namespace Anela.Heblo.Persistence.Migrations
                     b.ToTable("ImportedMarketingTransactions", "public");
                 });
 
+            modelBuilder.Entity("Anela.Heblo.Domain.Features.MarketingPerformance.MarketingPerformanceChannelCost", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("ChannelCode")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
+                    b.Property<decimal>("CostWithoutVat")
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<int>("InvoiceCount")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("MonthId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("MonthId", "ChannelCode")
+                        .IsUnique()
+                        .HasDatabaseName("IX_MarketingPerformanceChannelCosts_MonthId_ChannelCode");
+
+                    b.ToTable("MarketingPerformanceChannelCosts", "public");
+                });
+
+            modelBuilder.Entity("Anela.Heblo.Domain.Features.MarketingPerformance.MarketingPerformanceMonth", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime?>("CostsComputedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("IsLocked")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<string>("LastError")
+                        .HasColumnType("text");
+
+                    b.Property<int>("Month")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("RetailOrderCount")
+                        .HasColumnType("integer");
+
+                    b.Property<decimal>("RetailRevenueWithVat")
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<DateTime?>("RevenueComputedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("SkippedEurInvoiceCount")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("WholesaleOrderCount")
+                        .HasColumnType("integer");
+
+                    b.Property<decimal>("WholesaleRevenueWithVat")
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<int>("Year")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Year", "Month")
+                        .IsUnique()
+                        .HasDatabaseName("IX_MarketingPerformanceMonths_Year_Month");
+
+                    b.ToTable("MarketingPerformanceMonths", "public");
+                });
+
             modelBuilder.Entity("Anela.Heblo.Domain.Features.MeetingTasks.DeletedPlaudRecording", b =>
                 {
                     b.Property<Guid>("Id")
@@ -4517,6 +4600,17 @@ namespace Anela.Heblo.Persistence.Migrations
                     b.Navigation("MarketingAction");
                 });
 
+            modelBuilder.Entity("Anela.Heblo.Domain.Features.MarketingPerformance.MarketingPerformanceChannelCost", b =>
+                {
+                    b.HasOne("Anela.Heblo.Domain.Features.MarketingPerformance.MarketingPerformanceMonth", "Month")
+                        .WithMany("ChannelCosts")
+                        .HasForeignKey("MonthId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Month");
+                });
+
             modelBuilder.Entity("Anela.Heblo.Domain.Features.MeetingTasks.MeetingAccessGrant", b =>
                 {
                     b.HasOne("Anela.Heblo.Domain.Features.MeetingTasks.MeetingTranscript", "MeetingTranscript")
@@ -4745,6 +4839,11 @@ namespace Anela.Heblo.Persistence.Migrations
                     b.Navigation("FolderLinks");
 
                     b.Navigation("ProductAssociations");
+                });
+
+            modelBuilder.Entity("Anela.Heblo.Domain.Features.MarketingPerformance.MarketingPerformanceMonth", b =>
+                {
+                    b.Navigation("ChannelCosts");
                 });
 
             modelBuilder.Entity("Anela.Heblo.Domain.Features.MeetingTasks.MeetingTranscript", b =>

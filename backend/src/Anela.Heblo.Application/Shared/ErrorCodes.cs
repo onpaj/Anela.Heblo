@@ -481,6 +481,16 @@ public enum ErrorCodes
     [HttpStatusCode(HttpStatusCode.BadGateway)]
     ProductPriceErpReadFailed = 3609,
 
+    // Marketing Performance module errors (37XX)
+    [HttpStatusCode(HttpStatusCode.BadRequest)]
+    MarketingPerformanceInvalidMonthRange = 3701,
+    [HttpStatusCode(HttpStatusCode.BadRequest)]
+    MarketingPerformanceRangeTooLarge = 3702,
+    [HttpStatusCode(HttpStatusCode.Conflict)]
+    MarketingPerformanceRecomputeAlreadyRunning = 3703,
+    [HttpStatusCode(HttpStatusCode.InternalServerError)]
+    MarketingPerformanceEnqueueFailed = 3704,
+
     // External Service errors (90XX)
     [HttpStatusCode(HttpStatusCode.ServiceUnavailable)]
     ExternalServiceError = 9001,

@@ -153,7 +153,7 @@ public class GetProductMarginsHandler : IRequestHandler<GetProductMarginsRequest
             "manufacturedifficulty" => sortDescending
                 ? products.OrderByDescending(x => x.ManufactureDifficulty ?? 0)
                 : products.OrderBy(x => x.ManufactureDifficulty ?? 0),
-            // M0-M2 margin levels - amounts (using pre-calculated data)
+            // M0-M3 margin levels - amounts (using pre-calculated data)
             "m0amount" => sortDescending
                 ? products.OrderByDescending(x => x.Margins.Averages.M0.Amount)
                 : products.OrderBy(x => x.Margins.Averages.M0.Amount),
@@ -163,7 +163,10 @@ public class GetProductMarginsHandler : IRequestHandler<GetProductMarginsRequest
             "m2amount" => sortDescending
                 ? products.OrderByDescending(x => x.Margins.Averages.M2.Amount)
                 : products.OrderBy(x => x.Margins.Averages.M2.Amount),
-            // M0-M2 margin levels - percentages (using pre-calculated data)
+            "m3amount" => sortDescending
+                ? products.OrderByDescending(x => x.Margins.Averages.M3.Amount)
+                : products.OrderBy(x => x.Margins.Averages.M3.Amount),
+            // M0-M3 margin levels - percentages (using pre-calculated data)
             "m0percentage" => sortDescending
                 ? products.OrderByDescending(x => x.Margins.Averages.M0.Percentage)
                 : products.OrderBy(x => x.Margins.Averages.M0.Percentage),
@@ -173,6 +176,9 @@ public class GetProductMarginsHandler : IRequestHandler<GetProductMarginsRequest
             "m2percentage" => sortDescending
                 ? products.OrderByDescending(x => x.Margins.Averages.M2.Percentage)
                 : products.OrderBy(x => x.Margins.Averages.M2.Percentage),
+            "m3percentage" => sortDescending
+                ? products.OrderByDescending(x => x.Margins.Averages.M3.Percentage)
+                : products.OrderBy(x => x.Margins.Averages.M3.Percentage),
             _ => sortDescending
                 ? products.OrderByDescending(x => x.ProductCode)
                 : products.OrderBy(x => x.ProductCode)
@@ -221,6 +227,13 @@ public class GetProductMarginsHandler : IRequestHandler<GetProductMarginsRequest
                     CostLevel = marginHistory.Averages.M2.CostLevel,
                     CostTotal = marginHistory.Averages.M2.CostTotal
                 },
+                M3 = new MarginLevelDto
+                {
+                    Percentage = marginHistory.Averages.M3.Percentage,
+                    Amount = marginHistory.Averages.M3.Amount,
+                    CostLevel = marginHistory.Averages.M3.CostLevel,
+                    CostTotal = marginHistory.Averages.M3.CostTotal
+                },
 
                 // Monthly history for charts (filtered to last 13 months)
                 MonthlyHistory = filteredMonthlyData.Select(m => new MonthlyMarginDto
@@ -246,6 +259,13 @@ public class GetProductMarginsHandler : IRequestHandler<GetProductMarginsRequest
                         Amount = m.Value.M2.Amount,
                         CostLevel = m.Value.M2.CostLevel,
                         CostTotal = m.Value.M2.CostTotal
+                    },
+                    M3 = new MarginLevelDto
+                    {
+                        Percentage = m.Value.M3.Percentage,
+                        Amount = m.Value.M3.Amount,
+                        CostLevel = m.Value.M3.CostLevel,
+                        CostTotal = m.Value.M3.CostTotal
                     }
                 }).ToList()
             };
