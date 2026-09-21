@@ -1,4 +1,5 @@
 using Anela.Heblo.Application.Features.Pricing.UseCases.GetPricingBaseline;
+using Anela.Heblo.Application.Features.Pricing.UseCases.RecalculatePricing;
 using Anela.Heblo.Domain.Features.Authorization;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
@@ -20,6 +21,14 @@ public class PricingSimulatorController : BaseApiController
     [HttpGet("baseline")]
     public async Task<ActionResult<GetPricingBaselineResponse>> GetBaseline(
         [FromQuery] GetPricingBaselineRequest request)
+    {
+        var response = await _mediator.Send(request);
+        return HandleResponse(response);
+    }
+
+    [HttpPost("recalculate")]
+    public async Task<ActionResult<RecalculatePricingResponse>> Recalculate(
+        [FromBody] RecalculatePricingRequest request)
     {
         var response = await _mediator.Send(request);
         return HandleResponse(response);
