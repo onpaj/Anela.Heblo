@@ -90,7 +90,9 @@ public class CostPoolServiceTests
         var july = new DateTime(2026, 7, 15);
         var service = CreateService(new List<LedgerItem>
         {
-            Entry(july, "VYROBA", 100m),
+            // VYROBA deliberately differs from SKLAD+MARKETING so an M1/M2 swap
+            // in CostPoolDefinition.Resolve would not pass this test by coincidence.
+            Entry(july, "VYROBA", 90m),
             Entry(july, "SKLAD", 30m),
             Entry(july, "MARKETING", 70m),
             Entry(july, "CENTRALA", 500m),
@@ -100,7 +102,7 @@ public class CostPoolServiceTests
         var pools = await service.GetMonthlyPoolsAsync(new DateOnly(2026, 7, 1), new DateOnly(2026, 7, 31));
 
         // Assert
-        AmountFor(pools, 2026, 7, CostPool.M1).Should().Be(100m);
+        AmountFor(pools, 2026, 7, CostPool.M1).Should().Be(90m);
         AmountFor(pools, 2026, 7, CostPool.M2).Should().Be(100m);
         AmountFor(pools, 2026, 7, CostPool.M3).Should().Be(500m);
     }
@@ -217,7 +219,8 @@ public class CostPoolServiceTests
         // Act
         await service.GetMonthlyPoolsAsync(new DateOnly(2026, 7, 1), new DateOnly(2026, 7, 31));
 
-        // Assert - one unfiltered pull on 51+52, not three department-filtered ones
+        // Assert - one unfiltered pull on 51+52, which would replace the three
+        // department-filtered ones once the dedup follow-up lands
         ledgerMock.Verify(l => l.GetLedgerItems(
             new DateTime(2026, 7, 1),
             new DateTime(2026, 7, 31, 23, 59, 59),
@@ -258,6 +261,20 @@ public class CostPoolServiceTests
 
         // Assert
         await act.Should().ThrowAsync<HttpRequestException>();
+    }
+
+    [Fact]
+    public async Task GetMonthlyPoolsAsync_ThrowsWhenFromIsAfterTo()
+    {
+        // Arrange - the interface contract forbids a silently-empty result
+        var service = CreateService(new List<LedgerItem>(), out _);
+
+        // Act
+        var act = () => service.GetMonthlyPoolsAsync(new DateOnly(2026, 8, 1), new DateOnly(2026, 7, 1));
+
+        // Assert
+        await act.Should().ThrowAsync<ArgumentException>()
+            .Where(e => e.ParamName == "from");
     }
 
     [Fact]

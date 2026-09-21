@@ -55,12 +55,17 @@ public class CostPoolServiceCacheTests
     [Fact]
     public async Task GetMonthlyPoolsAsync_ServesFromCache_WhenCachedWindowCoversRange()
     {
-        // Arrange
+        // Arrange - a complete cached payload: every pool present for every month,
+        // matching the documented contract (FilterToRange never backfills)
         var cached = new CostPoolCacheData
         {
             Pools = new[]
             {
+                new MonthlyCostPool(new DateTime(2026, 7, 1), CostPool.M1, 120_000m),
+                new MonthlyCostPool(new DateTime(2026, 7, 1), CostPool.M2, 903_000m),
                 new MonthlyCostPool(new DateTime(2026, 7, 1), CostPool.M3, 903_000m),
+                new MonthlyCostPool(new DateTime(2026, 8, 1), CostPool.M1, 110_000m),
+                new MonthlyCostPool(new DateTime(2026, 8, 1), CostPool.M2, 871_400m),
                 new MonthlyCostPool(new DateTime(2026, 8, 1), CostPool.M3, 871_400m),
             },
             DataFrom = new DateOnly(2026, 1, 1),
@@ -76,8 +81,16 @@ public class CostPoolServiceCacheTests
         var pools = await service.GetMonthlyPoolsAsync(new DateOnly(2026, 7, 1), new DateOnly(2026, 7, 31));
 
         // Assert
-        pools.Should().ContainSingle()
-            .Which.Should().Be(new MonthlyCostPool(new DateTime(2026, 7, 1), CostPool.M3, 903_000m));
+        pools.Should().BeEquivalentTo(new[]
+        {
+            new MonthlyCostPool(new DateTime(2026, 7, 1), CostPool.M1, 120_000m),
+            new MonthlyCostPool(new DateTime(2026, 7, 1), CostPool.M2, 903_000m),
+            new MonthlyCostPool(new DateTime(2026, 7, 1), CostPool.M3, 903_000m),
+        }, options => options.WithStrictOrdering());
+        pools.Select(p => (p.Month, p.Pool)).Should().ContainInOrder(
+            (new DateTime(2026, 7, 1), CostPool.M1),
+            (new DateTime(2026, 7, 1), CostPool.M2),
+            (new DateTime(2026, 7, 1), CostPool.M3));
         ledgerMock.VerifyNoOtherCalls();
     }
 

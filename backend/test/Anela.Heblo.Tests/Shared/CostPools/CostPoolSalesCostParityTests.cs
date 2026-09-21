@@ -49,9 +49,12 @@ public class CostPoolSalesCostParityTests
         var saleDate = DateTime.UtcNow.Date.AddDays(-10);
         var entries = new List<LedgerItem>
         {
+            // VYROBA deliberately differs from SKLAD+MARKETING (M2) so a
+            // wholesale M1/M2 swap in CostPoolDefinition.Resolve would not
+            // pass this test by coincidence.
             Entry(saleDate, "SKLAD", 30_000m),
             Entry(saleDate, "MARKETING", 70_000m),
-            Entry(saleDate, "VYROBA", 100_000m),
+            Entry(saleDate, "VYROBA", 90_000m),
             Entry(saleDate, "CENTRALA", 500_000m),
         };
         var ledger = new FakeLedgerService(entries);

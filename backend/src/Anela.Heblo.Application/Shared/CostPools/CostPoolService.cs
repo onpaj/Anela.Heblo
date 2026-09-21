@@ -9,8 +9,9 @@ namespace Anela.Heblo.Application.Shared.CostPools;
 /// <summary>
 /// Computes monthly spend totals per cost pool from the Flexi ledger.
 ///
-/// One unfiltered pull on accounts 51+52 replaces the three department-filtered
-/// pulls the cost providers make today. Amounts are summed exactly as
+/// One unfiltered pull on accounts 51+52, which would replace the three
+/// department-filtered pulls the cost providers make today once that dedup
+/// follow-up lands. Amounts are summed exactly as
 /// LedgerService.GetCosts does - trusting the server-side debit-prefix filter
 /// rather than re-checking client-side - which is what keeps the M2 total here
 /// identical to the margin engine's M2.
@@ -41,6 +42,11 @@ public class CostPoolService : ICostPoolService
         DateOnly to,
         CancellationToken ct = default)
     {
+        if (from > to)
+        {
+            throw new ArgumentException($"'{nameof(from)}' must not be later than '{nameof(to)}'.", nameof(from));
+        }
+
         var cacheData = await _cache.GetCachedDataAsync(ct);
 
         if (cacheData.Covers(from, to))
