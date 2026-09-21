@@ -32,6 +32,7 @@ using Anela.Heblo.Application.Features.Purchase;
 using Anela.Heblo.Application.Features.FinancialOverview;
 using Anela.Heblo.Application.Features.Journal;
 using Anela.Heblo.Application.Features.Marketing;
+using Anela.Heblo.Application.Features.MarketingPerformance;
 using Anela.Heblo.Application.Features.Logistics;
 using Anela.Heblo.Application.Features.Manufacture;
 using Anela.Heblo.Application.Features.OrgChart;
@@ -97,6 +98,7 @@ public static class ApplicationModule
         services.AddFinancialOverviewModule(configuration);
         services.AddJournalModule();
         services.AddMarketingModule(configuration);
+        services.AddMarketingPerformanceModule(configuration);
         services.AddManufactureModule(configuration);
         services.AddLogisticsModule();
         services.AddUserManagement(configuration);

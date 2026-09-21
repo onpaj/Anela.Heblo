@@ -511,6 +511,26 @@
       "value": "marketing.marketing_calendar.write"
     },
     {
+      "id": "ce2d6934-e883-58cb-9105-63d495f19137",
+      "allowedMemberTypes": [
+        "User"
+      ],
+      "description": "Marketing_Performance Read",
+      "displayName": "marketing.performance.read",
+      "isEnabled": true,
+      "value": "marketing.performance.read"
+    },
+    {
+      "id": "60417f0a-7585-5842-929f-9622eddd6ec1",
+      "allowedMemberTypes": [
+        "User"
+      ],
+      "description": "Marketing_Performance Write",
+      "displayName": "marketing.performance.write",
+      "isEnabled": true,
+      "value": "marketing.performance.write"
+    },
+    {
       "id": "b1762e2c-07ab-5bc8-999a-9c499bef77cc",
       "allowedMemberTypes": [
         "User"
@@ -714,6 +734,8 @@
         "marketing.photobank.admin",
         "marketing.marketing_calendar.read",
         "marketing.marketing_calendar.write",
+        "marketing.performance.read",
+        "marketing.performance.write",
         "anela.meetings.read",
         "anela.meetings.write",
         "anela.org_chart.read",
@@ -761,6 +783,7 @@
         "marketing.leaflet.read",
         "marketing.photobank.read",
         "marketing.marketing_calendar.read",
+        "marketing.performance.read",
         "anela.meetings.read",
         "anela.org_chart.read",
         "anela.mind_maps.read",
@@ -791,7 +814,8 @@
         "marketing.leaflet.read",
         "marketing.leaflet.write",
         "marketing.article.read",
-        "marketing.article.write"
+        "marketing.article.write",
+        "marketing.performance.read"
       ]
     },
     {

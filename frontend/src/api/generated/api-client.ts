@@ -8204,6 +8204,177 @@ export class ApiClient {
         return Promise.resolve<ImportFromOutlookResponse>(null as any);
     }
 
+    marketingPerformance_GetMonths(from: string | null | undefined, to: string | null | undefined, includeWholesale: boolean | undefined): Promise<GetMarketingPerformanceMonthsResponse> {
+        let url_ = this.baseUrl + "/api/MarketingPerformance/months?";
+        if (from !== undefined && from !== null)
+            url_ += "from=" + encodeURIComponent("" + from) + "&";
+        if (to !== undefined && to !== null)
+            url_ += "to=" + encodeURIComponent("" + to) + "&";
+        if (includeWholesale === null)
+            throw new Error("The parameter 'includeWholesale' cannot be null.");
+        else if (includeWholesale !== undefined)
+            url_ += "includeWholesale=" + encodeURIComponent("" + includeWholesale) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processMarketingPerformance_GetMonths(_response);
+        });
+    }
+
+    protected processMarketingPerformance_GetMonths(response: Response): Promise<GetMarketingPerformanceMonthsResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = GetMarketingPerformanceMonthsResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status === 400) {
+            return response.text().then((_responseText) => {
+            let result400: any = null;
+            let resultData400 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result400 = GetMarketingPerformanceMonthsResponse.fromJS(resultData400);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result400);
+            });
+        } else if (status === 403) {
+            return response.text().then((_responseText) => {
+            let result403: any = null;
+            let resultData403 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result403 = ProblemDetails.fromJS(resultData403);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result403);
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<GetMarketingPerformanceMonthsResponse>(null as any);
+    }
+
+    marketingPerformance_GetComparison(years: number | undefined, includeWholesale: boolean | undefined): Promise<GetMarketingPerformanceComparisonResponse> {
+        let url_ = this.baseUrl + "/api/MarketingPerformance/comparison?";
+        if (years === null)
+            throw new Error("The parameter 'years' cannot be null.");
+        else if (years !== undefined)
+            url_ += "years=" + encodeURIComponent("" + years) + "&";
+        if (includeWholesale === null)
+            throw new Error("The parameter 'includeWholesale' cannot be null.");
+        else if (includeWholesale !== undefined)
+            url_ += "includeWholesale=" + encodeURIComponent("" + includeWholesale) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processMarketingPerformance_GetComparison(_response);
+        });
+    }
+
+    protected processMarketingPerformance_GetComparison(response: Response): Promise<GetMarketingPerformanceComparisonResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = GetMarketingPerformanceComparisonResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status === 403) {
+            return response.text().then((_responseText) => {
+            let result403: any = null;
+            let resultData403 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result403 = ProblemDetails.fromJS(resultData403);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result403);
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<GetMarketingPerformanceComparisonResponse>(null as any);
+    }
+
+    marketingPerformance_Recompute(request: RecomputeMarketingPerformanceRequest): Promise<RecomputeMarketingPerformanceResponse> {
+        let url_ = this.baseUrl + "/api/MarketingPerformance/recompute";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: RequestInit = {
+            body: content_,
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processMarketingPerformance_Recompute(_response);
+        });
+    }
+
+    protected processMarketingPerformance_Recompute(response: Response): Promise<RecomputeMarketingPerformanceResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 202) {
+            return response.text().then((_responseText) => {
+            let result202: any = null;
+            let resultData202 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result202 = RecomputeMarketingPerformanceResponse.fromJS(resultData202);
+            return result202;
+            });
+        } else if (status === 400) {
+            return response.text().then((_responseText) => {
+            let result400: any = null;
+            let resultData400 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result400 = RecomputeMarketingPerformanceResponse.fromJS(resultData400);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result400);
+            });
+        } else if (status === 409) {
+            return response.text().then((_responseText) => {
+            let result409: any = null;
+            let resultData409 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result409 = RecomputeMarketingPerformanceResponse.fromJS(resultData409);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result409);
+            });
+        } else if (status === 500) {
+            return response.text().then((_responseText) => {
+            let result500: any = null;
+            let resultData500 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result500 = RecomputeMarketingPerformanceResponse.fromJS(resultData500);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result500);
+            });
+        } else if (status === 403) {
+            return response.text().then((_responseText) => {
+            let result403: any = null;
+            let resultData403 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result403 = ProblemDetails.fromJS(resultData403);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result403);
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<RecomputeMarketingPerformanceResponse>(null as any);
+    }
+
     materialContainers_GetMaterialContainers(materialCode: string | null | undefined, lotCode: string | null | undefined, code: string | null | undefined, page: number | undefined, pageSize: number | undefined): Promise<ListMaterialContainersResponse> {
         let url_ = this.baseUrl + "/api/material-containers?";
         if (materialCode !== undefined && materialCode !== null)
@@ -14775,6 +14946,10 @@ export enum ErrorCodes {
     ProductPriceShoptetWriteFailed = "ProductPriceShoptetWriteFailed",
     ProductPriceFlexiWriteFailed = "ProductPriceFlexiWriteFailed",
     ProductPriceErpReadFailed = "ProductPriceErpReadFailed",
+    MarketingPerformanceInvalidMonthRange = "MarketingPerformanceInvalidMonthRange",
+    MarketingPerformanceRangeTooLarge = "MarketingPerformanceRangeTooLarge",
+    MarketingPerformanceRecomputeAlreadyRunning = "MarketingPerformanceRecomputeAlreadyRunning",
+    MarketingPerformanceEnqueueFailed = "MarketingPerformanceEnqueueFailed",
     ExternalServiceError = "ExternalServiceError",
     FlexiApiError = "FlexiApiError",
     ShoptetApiError = "ShoptetApiError",
@@ -33288,6 +33463,523 @@ export interface IImportFromOutlookRequest {
     fromUtc?: Date;
     toUtc?: Date;
     dryRun?: boolean;
+}
+
+export class GetMarketingPerformanceMonthsResponse extends BaseResponse implements IGetMarketingPerformanceMonthsResponse {
+    months!: MonthlyMarketingPerformanceDto[];
+    channels!: ChannelInfoDto[];
+    from!: string;
+    to!: string;
+    includeWholesale!: boolean;
+    vatRate!: number;
+    lastRefreshAt?: Date | undefined;
+
+    constructor(data?: IGetMarketingPerformanceMonthsResponse) {
+        super(data);
+        if (!data) {
+            this.months = [];
+            this.channels = [];
+        }
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            if (Array.isArray(_data["months"])) {
+                this.months = [] as any;
+                for (let item of _data["months"])
+                    this.months!.push(MonthlyMarketingPerformanceDto.fromJS(item));
+            }
+            if (Array.isArray(_data["channels"])) {
+                this.channels = [] as any;
+                for (let item of _data["channels"])
+                    this.channels!.push(ChannelInfoDto.fromJS(item));
+            }
+            this.from = _data["from"];
+            this.to = _data["to"];
+            this.includeWholesale = _data["includeWholesale"];
+            this.vatRate = _data["vatRate"];
+            this.lastRefreshAt = _data["lastRefreshAt"] ? new Date(_data["lastRefreshAt"].toString()) : <any>undefined;
+        }
+    }
+
+    static override fromJS(data: any): GetMarketingPerformanceMonthsResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new GetMarketingPerformanceMonthsResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        if (Array.isArray(this.months)) {
+            data["months"] = [];
+            for (let item of this.months)
+                data["months"].push(item.toJSON());
+        }
+        if (Array.isArray(this.channels)) {
+            data["channels"] = [];
+            for (let item of this.channels)
+                data["channels"].push(item.toJSON());
+        }
+        data["from"] = this.from;
+        data["to"] = this.to;
+        data["includeWholesale"] = this.includeWholesale;
+        data["vatRate"] = this.vatRate;
+        data["lastRefreshAt"] = this.lastRefreshAt ? this.lastRefreshAt.toISOString() : <any>undefined;
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IGetMarketingPerformanceMonthsResponse extends IBaseResponse {
+    months: MonthlyMarketingPerformanceDto[];
+    channels: ChannelInfoDto[];
+    from: string;
+    to: string;
+    includeWholesale: boolean;
+    vatRate: number;
+    lastRefreshAt?: Date | undefined;
+}
+
+export class MonthlyMarketingPerformanceDto implements IMonthlyMarketingPerformanceDto {
+    year!: number;
+    month!: number;
+    monthYearDisplay!: string;
+    hasData!: boolean;
+    isLocked!: boolean;
+    isPartial!: boolean;
+    orders!: number;
+    revenueWithVat!: number;
+    revenueWithoutVat!: number;
+    channelCosts!: ChannelCostDto[];
+    totalCost!: number;
+    pno?: number | undefined;
+    roas?: number | undefined;
+    profit!: number;
+    avgOrderValue?: number | undefined;
+    costPerOrder?: number | undefined;
+    yoyCostPercent?: number | undefined;
+    yoyRevenuePercent?: number | undefined;
+    yoyOrdersPercent?: number | undefined;
+    skippedEurInvoiceCount!: number;
+    revenueComputedAt?: Date | undefined;
+    costsComputedAt?: Date | undefined;
+    lastError?: string | undefined;
+
+    constructor(data?: IMonthlyMarketingPerformanceDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+        if (!data) {
+            this.channelCosts = [];
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.year = _data["year"];
+            this.month = _data["month"];
+            this.monthYearDisplay = _data["monthYearDisplay"];
+            this.hasData = _data["hasData"];
+            this.isLocked = _data["isLocked"];
+            this.isPartial = _data["isPartial"];
+            this.orders = _data["orders"];
+            this.revenueWithVat = _data["revenueWithVat"];
+            this.revenueWithoutVat = _data["revenueWithoutVat"];
+            if (Array.isArray(_data["channelCosts"])) {
+                this.channelCosts = [] as any;
+                for (let item of _data["channelCosts"])
+                    this.channelCosts!.push(ChannelCostDto.fromJS(item));
+            }
+            this.totalCost = _data["totalCost"];
+            this.pno = _data["pno"];
+            this.roas = _data["roas"];
+            this.profit = _data["profit"];
+            this.avgOrderValue = _data["avgOrderValue"];
+            this.costPerOrder = _data["costPerOrder"];
+            this.yoyCostPercent = _data["yoyCostPercent"];
+            this.yoyRevenuePercent = _data["yoyRevenuePercent"];
+            this.yoyOrdersPercent = _data["yoyOrdersPercent"];
+            this.skippedEurInvoiceCount = _data["skippedEurInvoiceCount"];
+            this.revenueComputedAt = _data["revenueComputedAt"] ? new Date(_data["revenueComputedAt"].toString()) : <any>undefined;
+            this.costsComputedAt = _data["costsComputedAt"] ? new Date(_data["costsComputedAt"].toString()) : <any>undefined;
+            this.lastError = _data["lastError"];
+        }
+    }
+
+    static fromJS(data: any): MonthlyMarketingPerformanceDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new MonthlyMarketingPerformanceDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["year"] = this.year;
+        data["month"] = this.month;
+        data["monthYearDisplay"] = this.monthYearDisplay;
+        data["hasData"] = this.hasData;
+        data["isLocked"] = this.isLocked;
+        data["isPartial"] = this.isPartial;
+        data["orders"] = this.orders;
+        data["revenueWithVat"] = this.revenueWithVat;
+        data["revenueWithoutVat"] = this.revenueWithoutVat;
+        if (Array.isArray(this.channelCosts)) {
+            data["channelCosts"] = [];
+            for (let item of this.channelCosts)
+                data["channelCosts"].push(item.toJSON());
+        }
+        data["totalCost"] = this.totalCost;
+        data["pno"] = this.pno;
+        data["roas"] = this.roas;
+        data["profit"] = this.profit;
+        data["avgOrderValue"] = this.avgOrderValue;
+        data["costPerOrder"] = this.costPerOrder;
+        data["yoyCostPercent"] = this.yoyCostPercent;
+        data["yoyRevenuePercent"] = this.yoyRevenuePercent;
+        data["yoyOrdersPercent"] = this.yoyOrdersPercent;
+        data["skippedEurInvoiceCount"] = this.skippedEurInvoiceCount;
+        data["revenueComputedAt"] = this.revenueComputedAt ? this.revenueComputedAt.toISOString() : <any>undefined;
+        data["costsComputedAt"] = this.costsComputedAt ? this.costsComputedAt.toISOString() : <any>undefined;
+        data["lastError"] = this.lastError;
+        return data;
+    }
+}
+
+export interface IMonthlyMarketingPerformanceDto {
+    year: number;
+    month: number;
+    monthYearDisplay: string;
+    hasData: boolean;
+    isLocked: boolean;
+    isPartial: boolean;
+    orders: number;
+    revenueWithVat: number;
+    revenueWithoutVat: number;
+    channelCosts: ChannelCostDto[];
+    totalCost: number;
+    pno?: number | undefined;
+    roas?: number | undefined;
+    profit: number;
+    avgOrderValue?: number | undefined;
+    costPerOrder?: number | undefined;
+    yoyCostPercent?: number | undefined;
+    yoyRevenuePercent?: number | undefined;
+    yoyOrdersPercent?: number | undefined;
+    skippedEurInvoiceCount: number;
+    revenueComputedAt?: Date | undefined;
+    costsComputedAt?: Date | undefined;
+    lastError?: string | undefined;
+}
+
+export class ChannelCostDto implements IChannelCostDto {
+    channelCode!: string;
+    label!: string;
+    costWithoutVat!: number;
+    invoiceCount!: number;
+
+    constructor(data?: IChannelCostDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.channelCode = _data["channelCode"];
+            this.label = _data["label"];
+            this.costWithoutVat = _data["costWithoutVat"];
+            this.invoiceCount = _data["invoiceCount"];
+        }
+    }
+
+    static fromJS(data: any): ChannelCostDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new ChannelCostDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["channelCode"] = this.channelCode;
+        data["label"] = this.label;
+        data["costWithoutVat"] = this.costWithoutVat;
+        data["invoiceCount"] = this.invoiceCount;
+        return data;
+    }
+}
+
+export interface IChannelCostDto {
+    channelCode: string;
+    label: string;
+    costWithoutVat: number;
+    invoiceCount: number;
+}
+
+export class ChannelInfoDto implements IChannelInfoDto {
+    code!: string;
+    label!: string;
+
+    constructor(data?: IChannelInfoDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.code = _data["code"];
+            this.label = _data["label"];
+        }
+    }
+
+    static fromJS(data: any): ChannelInfoDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new ChannelInfoDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["code"] = this.code;
+        data["label"] = this.label;
+        return data;
+    }
+}
+
+export interface IChannelInfoDto {
+    code: string;
+    label: string;
+}
+
+export class GetMarketingPerformanceComparisonResponse extends BaseResponse implements IGetMarketingPerformanceComparisonResponse {
+    series!: MarketingYearSeriesDto[];
+    anchorYear!: number;
+    currentMonth!: number;
+    channels!: ChannelInfoDto[];
+    includeWholesale!: boolean;
+    lastRefreshAt?: Date | undefined;
+
+    constructor(data?: IGetMarketingPerformanceComparisonResponse) {
+        super(data);
+        if (!data) {
+            this.series = [];
+            this.channels = [];
+        }
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            if (Array.isArray(_data["series"])) {
+                this.series = [] as any;
+                for (let item of _data["series"])
+                    this.series!.push(MarketingYearSeriesDto.fromJS(item));
+            }
+            this.anchorYear = _data["anchorYear"];
+            this.currentMonth = _data["currentMonth"];
+            if (Array.isArray(_data["channels"])) {
+                this.channels = [] as any;
+                for (let item of _data["channels"])
+                    this.channels!.push(ChannelInfoDto.fromJS(item));
+            }
+            this.includeWholesale = _data["includeWholesale"];
+            this.lastRefreshAt = _data["lastRefreshAt"] ? new Date(_data["lastRefreshAt"].toString()) : <any>undefined;
+        }
+    }
+
+    static override fromJS(data: any): GetMarketingPerformanceComparisonResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new GetMarketingPerformanceComparisonResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        if (Array.isArray(this.series)) {
+            data["series"] = [];
+            for (let item of this.series)
+                data["series"].push(item.toJSON());
+        }
+        data["anchorYear"] = this.anchorYear;
+        data["currentMonth"] = this.currentMonth;
+        if (Array.isArray(this.channels)) {
+            data["channels"] = [];
+            for (let item of this.channels)
+                data["channels"].push(item.toJSON());
+        }
+        data["includeWholesale"] = this.includeWholesale;
+        data["lastRefreshAt"] = this.lastRefreshAt ? this.lastRefreshAt.toISOString() : <any>undefined;
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IGetMarketingPerformanceComparisonResponse extends IBaseResponse {
+    series: MarketingYearSeriesDto[];
+    anchorYear: number;
+    currentMonth: number;
+    channels: ChannelInfoDto[];
+    includeWholesale: boolean;
+    lastRefreshAt?: Date | undefined;
+}
+
+export class MarketingYearSeriesDto implements IMarketingYearSeriesDto {
+    year!: number;
+    months!: MonthlyMarketingPerformanceDto[];
+    ytdOrders!: number;
+    ytdRevenueWithoutVat!: number;
+    ytdTotalCost!: number;
+    ytdPno?: number | undefined;
+
+    constructor(data?: IMarketingYearSeriesDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+        if (!data) {
+            this.months = [];
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.year = _data["year"];
+            if (Array.isArray(_data["months"])) {
+                this.months = [] as any;
+                for (let item of _data["months"])
+                    this.months!.push(MonthlyMarketingPerformanceDto.fromJS(item));
+            }
+            this.ytdOrders = _data["ytdOrders"];
+            this.ytdRevenueWithoutVat = _data["ytdRevenueWithoutVat"];
+            this.ytdTotalCost = _data["ytdTotalCost"];
+            this.ytdPno = _data["ytdPno"];
+        }
+    }
+
+    static fromJS(data: any): MarketingYearSeriesDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new MarketingYearSeriesDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["year"] = this.year;
+        if (Array.isArray(this.months)) {
+            data["months"] = [];
+            for (let item of this.months)
+                data["months"].push(item.toJSON());
+        }
+        data["ytdOrders"] = this.ytdOrders;
+        data["ytdRevenueWithoutVat"] = this.ytdRevenueWithoutVat;
+        data["ytdTotalCost"] = this.ytdTotalCost;
+        data["ytdPno"] = this.ytdPno;
+        return data;
+    }
+}
+
+export interface IMarketingYearSeriesDto {
+    year: number;
+    months: MonthlyMarketingPerformanceDto[];
+    ytdOrders: number;
+    ytdRevenueWithoutVat: number;
+    ytdTotalCost: number;
+    ytdPno?: number | undefined;
+}
+
+export class RecomputeMarketingPerformanceResponse extends BaseResponse implements IRecomputeMarketingPerformanceResponse {
+    jobId?: string | undefined;
+    monthCount?: number;
+
+    constructor(data?: IRecomputeMarketingPerformanceResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            this.jobId = _data["jobId"];
+            this.monthCount = _data["monthCount"];
+        }
+    }
+
+    static override fromJS(data: any): RecomputeMarketingPerformanceResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new RecomputeMarketingPerformanceResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["jobId"] = this.jobId;
+        data["monthCount"] = this.monthCount;
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IRecomputeMarketingPerformanceResponse extends IBaseResponse {
+    jobId?: string | undefined;
+    monthCount?: number;
+}
+
+export class RecomputeMarketingPerformanceRequest implements IRecomputeMarketingPerformanceRequest {
+    from?: string;
+    to?: string;
+
+    constructor(data?: IRecomputeMarketingPerformanceRequest) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.from = _data["from"];
+            this.to = _data["to"];
+        }
+    }
+
+    static fromJS(data: any): RecomputeMarketingPerformanceRequest {
+        data = typeof data === 'object' ? data : {};
+        let result = new RecomputeMarketingPerformanceRequest();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["from"] = this.from;
+        data["to"] = this.to;
+        return data;
+    }
+}
+
+export interface IRecomputeMarketingPerformanceRequest {
+    from?: string;
+    to?: string;
 }
 
 export class ListMaterialContainersResponse extends BaseResponse implements IListMaterialContainersResponse {
