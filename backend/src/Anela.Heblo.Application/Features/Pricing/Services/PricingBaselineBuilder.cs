@@ -66,7 +66,7 @@ public class PricingBaselineBuilder : IPricingBaselineBuilder
             ProductName: product.ProductName ?? string.Empty,
             Price: price,
             MaterialCost: latest?.M0.CostLevel ?? 0m,
-            ManufacturingCost: latest?.M1_A.CostLevel ?? 0m,
+            ManufacturingCost: latest?.M1.CostLevel ?? 0m,
             Quantity: product.GetTotalSold(salesFrom, now),
             HasData: hasData);
     }

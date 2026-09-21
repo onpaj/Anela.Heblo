@@ -127,7 +127,7 @@ internal static class CatalogTestData
             m => new MarginData
             {
                 M0 = new MarginLevel(percentage: 0m, amount: 0m, costTotal: m.Material, costLevel: m.Material),
-                M1_A = new MarginLevel(percentage: 0m, amount: 0m, costTotal: m.Material + m.Manufacturing, costLevel: m.Manufacturing)
+                M1 = new MarginLevel(percentage: 0m, amount: 0m, costTotal: m.Material + m.Manufacturing, costLevel: m.Manufacturing)
             });
 
         return product;
