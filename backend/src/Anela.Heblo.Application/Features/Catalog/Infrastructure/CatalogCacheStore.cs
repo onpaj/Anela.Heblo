@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using Anela.Heblo.Domain.Features.Catalog;
 using Anela.Heblo.Domain.Features.Catalog.Attributes;
 using Anela.Heblo.Domain.Features.Catalog.ConsumedMaterials;
@@ -59,12 +60,7 @@ public sealed class CatalogCacheStore
         CachedManufactureHistoryDataKey,
     };
 
-    /// <summary>
-    /// Marks that a source has been loaded at least once in this process. Deliberately separate from
-    /// the load date, which expires after CacheValidityPeriod: the merge guard asks "was this ever
-    /// loaded", not "is it fresh", so a source outage cannot trigger a re-merge on every read.
-    /// </summary>
-    private const string EverLoadedSuffix = "_EverLoaded";
+    private const string LoadDateSuffix = "_LoadDate";
 
     private readonly IMemoryCache _cache;
     private readonly TimeProvider _timeProvider;
@@ -73,6 +69,16 @@ public sealed class CatalogCacheStore
     private readonly ILogger<CatalogCacheStore> _logger;
 
     private readonly SemaphoreSlim _cacheReplacementSemaphore = new(1, 1);
+
+    /// <summary>
+    /// Sources loaded at least once in this process. Deliberately NOT stored in the shared
+    /// IMemoryCache: this is process state, not cached data, and a cache entry could be evicted
+    /// under a future SizeLimit/Compact - which would silently de-stamp the catalog forever.
+    /// Also deliberately separate from the load date, which expires after CacheValidityPeriod:
+    /// the merge guard asks "was this ever loaded", not "is it fresh", so a source outage cannot
+    /// turn every read into a re-merge.
+    /// </summary>
+    private readonly ConcurrentDictionary<string, bool> _everLoadedSources = new();
 
     /// <summary>
     /// Guards read-modify-write access to the ERP stock and lots source caches. Every other
@@ -551,7 +557,7 @@ public sealed class CatalogCacheStore
     /// Gets the load date for a specific data source.
     /// </summary>
     public DateTime? GetLoadDateFromCache(string dataKey) =>
-        _cache.Get<DateTime?>($"{dataKey}_LoadDate");
+        _cache.Get<DateTime?>($"{dataKey}{LoadDateSuffix}");
 
     /// <summary>
     /// Gets the last merge operation timestamp.
@@ -593,15 +599,21 @@ public sealed class CatalogCacheStore
         {
             AbsoluteExpirationRelativeToNow = _cacheOptions.Value.CacheValidityPeriod
         };
-        _cache.Set($"{dataKey}_LoadDate", loadDate, cacheOptions);
-        _cache.Set($"{dataKey}{EverLoadedSuffix}", true);
+        _cache.Set($"{dataKey}{LoadDateSuffix}", loadDate, cacheOptions);
+        _everLoadedSources[dataKey] = true;
     }
+
+    /// <summary>
+    /// True once every required source has been loaded at least once, i.e. once a merge can
+    /// produce an authoritative aggregate. See <see cref="RequiredSourceKeys"/>.
+    /// </summary>
+    public bool AreRequiredSourcesLoaded() => GetMissingRequiredSources().Count == 0;
 
     /// <summary>
     /// Required sources that have never been loaded in this process. See <see cref="RequiredSourceKeys"/>.
     /// </summary>
     private List<string> GetMissingRequiredSources() =>
         RequiredSourceKeys
-            .Where(key => !_cache.TryGetValue($"{key}{EverLoadedSuffix}", out bool _))
+            .Where(key => !_everLoadedSources.ContainsKey(key))
             .ToList();
 }

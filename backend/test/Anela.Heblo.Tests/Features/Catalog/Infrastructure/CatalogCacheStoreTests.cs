@@ -301,6 +301,23 @@ public class CatalogCacheStoreTests
         store.TryGetCurrent().Should().HaveCount(1);
     }
 
+    [Fact]
+    public async Task ReplaceCacheAtomicallyAsync_GrantsValidity_WhenMemoryCacheIsCompacted()
+    {
+        // Arrange - the ever-loaded markers are process state, not cached data, so evicting
+        // everything from the shared IMemoryCache must not de-stamp the catalog.
+        var store = CreateStore();
+        LoadRequiredSources(store, includeSales: true);
+        _memoryCache.Compact(1.0);
+        var merged = new List<CatalogAggregate> { new() { ProductCode = "MAS009050" } };
+
+        // Act
+        await store.ReplaceCacheAtomicallyAsync(merged);
+
+        // Assert
+        store.IsCacheValid().Should().BeTrue();
+    }
+
     private CatalogCacheStore CreateStore() => new(
         _memoryCache,
         _timeProvider,
