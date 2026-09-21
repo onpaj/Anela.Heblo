@@ -91,6 +91,18 @@ public class PricingSimulationCalculator : IPricingSimulationCalculator
                 price = edit.Value;
                 break;
 
+            // The cost cells are the plainest edits there are: they pin exactly the
+            // independent variable the user typed. M0/M1 then fall out of BuildRow's
+            // derivation, which is what keeps Cena / Materiál / Výroba / M0 / M1
+            // readable as one consistent row whichever of them was edited.
+            case PricingEditField.MaterialCost:
+                material = edit.Value;
+                break;
+
+            case PricingEditField.ManufacturingCost:
+                manufacturing = edit.Value;
+                break;
+
             case PricingEditField.M0Amount:
                 // M0 = P - Cm  =>  Cm = P - M0. Manufacturing is untouched, so M1 shifts with M0.
                 material = effectivePrice - edit.Value;
@@ -176,6 +188,8 @@ public class PricingSimulationCalculator : IPricingSimulationCalculator
         // "before" side, so the screen and the exported ceník can never disagree.
         var baselineM0 = baseline.Price - baseline.MaterialCost;
         var baselineM1 = baselineM0 - baseline.ManufacturingCost;
+        var baselineM0Percentage = Percentage(baselineM0, baseline.Price);
+        var baselineM1Percentage = Percentage(baselineM1, baseline.Price);
 
         return new PricingRowDto
         {
@@ -198,6 +212,8 @@ public class PricingSimulationCalculator : IPricingSimulationCalculator
             M1Percentage = Percentage(m1, price),
             BaselineM0Amount = baselineM0,
             BaselineM1Amount = baselineM1,
+            BaselineM0Percentage = baselineM0Percentage,
+            BaselineM1Percentage = baselineM1Percentage,
 
             IsEdited = over is not null,
             IsExcluded = !baseline.HasData

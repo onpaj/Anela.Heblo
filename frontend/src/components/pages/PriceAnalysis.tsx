@@ -61,9 +61,10 @@ const PriceAnalysis: React.FC = () => {
   // truth and is never merged with the baseline. `overrides` (and `overridesRef`,
   // its always-current mirror -- see performRecalculate) hold the server's
   // authoritative override set, replaced wholesale from each response's
-  // `overrides`, never hand-merged. `cellResetTokens` forces exactly one cell to
-  // remount after a NETWORK failure on it (see PricingGrid's doc comment); success
-  // and rejection revert/refresh themselves via ordinary value/error prop changes.
+  // `overrides`, never hand-merged. A cell holds no draft of its own -- it renders
+  // whatever the latest response says and edits through a transient popover -- so a
+  // failed recalculation needs no per-cell revert: the cell is already showing the
+  // server's value.
   const [overrides, setOverrides] = useState<IPricingOverrideDto[]>([]);
   const overridesRef = useRef<IPricingOverrideDto[]>(overrides);
   // Tracks the tail of the current commit queue (see performRecalculate) so an
@@ -75,7 +76,6 @@ const PriceAnalysis: React.FC = () => {
   } | null>(null);
   const [cellErrors, setCellErrors] = useState<Record<string, string>>({});
   const [isTotalsStale, setIsTotalsStale] = useState(false);
-  const [cellResetTokens, setCellResetTokens] = useState<Record<string, number>>({});
   // Name of the currently active (loaded or last-saved) scenario -- used only as the
   // XLSX export's filename hint. PricingScenarioBar owns the save/load/delete flow
   // and its own name input; this is just what PriceAnalysis needs to label an export.
@@ -142,12 +142,6 @@ const PriceAnalysis: React.FC = () => {
         } else {
           setIsTotalsStale(true);
           toast.error(GENERIC_RECALCULATE_FAILURE_TOAST);
-          // No natural value/error prop change exists to revert this cell (the row
-          // is untouched on a network failure) -- force just this one cell to
-          // remount and resync from its unchanged `value`.
-          if (errorKey) {
-            setCellResetTokens((prev) => ({ ...prev, [errorKey]: (prev[errorKey] ?? 0) + 1 }));
-          }
         }
       }
     };
@@ -478,7 +472,6 @@ const PriceAnalysis: React.FC = () => {
         onEdit={handleCellEdit}
         onResetRow={handleResetRow}
         cellErrors={cellErrors}
-        cellResetTokens={cellResetTokens}
       />
     </div>
   );

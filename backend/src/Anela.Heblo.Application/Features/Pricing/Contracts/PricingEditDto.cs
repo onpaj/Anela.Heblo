@@ -3,6 +3,8 @@ namespace Anela.Heblo.Application.Features.Pricing.Contracts;
 public enum PricingEditField
 {
     Price,
+    MaterialCost,
+    ManufacturingCost,
     M0Amount,
     M0Percentage,
     M1Amount,

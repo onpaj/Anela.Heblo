@@ -41428,6 +41428,8 @@ export class PricingRowDto implements IPricingRowDto {
     m1Percentage?: number;
     baselineM0Amount?: number;
     baselineM1Amount?: number;
+    baselineM0Percentage?: number;
+    baselineM1Percentage?: number;
     isEdited?: boolean;
     isExcluded?: boolean;
     baselineDrifted?: boolean;
@@ -41459,6 +41461,8 @@ export class PricingRowDto implements IPricingRowDto {
             this.m1Percentage = _data["m1Percentage"];
             this.baselineM0Amount = _data["baselineM0Amount"];
             this.baselineM1Amount = _data["baselineM1Amount"];
+            this.baselineM0Percentage = _data["baselineM0Percentage"];
+            this.baselineM1Percentage = _data["baselineM1Percentage"];
             this.isEdited = _data["isEdited"];
             this.isExcluded = _data["isExcluded"];
             this.baselineDrifted = _data["baselineDrifted"];
@@ -41490,6 +41494,8 @@ export class PricingRowDto implements IPricingRowDto {
         data["m1Percentage"] = this.m1Percentage;
         data["baselineM0Amount"] = this.baselineM0Amount;
         data["baselineM1Amount"] = this.baselineM1Amount;
+        data["baselineM0Percentage"] = this.baselineM0Percentage;
+        data["baselineM1Percentage"] = this.baselineM1Percentage;
         data["isEdited"] = this.isEdited;
         data["isExcluded"] = this.isExcluded;
         data["baselineDrifted"] = this.baselineDrifted;
@@ -41514,6 +41520,8 @@ export interface IPricingRowDto {
     m1Percentage?: number;
     baselineM0Amount?: number;
     baselineM1Amount?: number;
+    baselineM0Percentage?: number;
+    baselineM1Percentage?: number;
     isEdited?: boolean;
     isExcluded?: boolean;
     baselineDrifted?: boolean;
@@ -41842,6 +41850,8 @@ export interface IPricingEditDto {
 
 export enum PricingEditField {
     Price = "Price",
+    MaterialCost = "MaterialCost",
+    ManufacturingCost = "ManufacturingCost",
     M0Amount = "M0Amount",
     M0Percentage = "M0Percentage",
     M1Amount = "M1Amount",

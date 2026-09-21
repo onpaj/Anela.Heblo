@@ -10,13 +10,15 @@ import {
   PricingEditField,
   SwaggerException,
 } from "../../../api/generated/api-client";
-import { formatCurrency } from "../../../utils/formatters";
+import { formatCurrency, formatPercentage } from "../../../utils/formatters";
 import { toast } from "react-hot-toast";
 
-// Editing/recalculation behaviours added in Task 9. The read-only rendering
-// (filters, totals lines, excluded rows) is already covered by PriceAnalysis.test.tsx;
-// this file is scoped to: commit-on-blur, Enter/Escape, rejected vs network failures,
-// and per-row/global reset.
+// Editing/recalculation behaviours. The read-only rendering (filters, totals lines,
+// excluded rows) is already covered by PriceAnalysis.test.tsx; this file is scoped to:
+// the commit gesture, rejected vs network failures, and per-row/global reset.
+//
+// A cell is a click target that opens a transient two-field editor (value / relative
+// change); nothing is posted until that editor is applied. See PricingEditableCell.
 jest.mock("../../../api/hooks/usePricingSimulator");
 jest.mock("react-hot-toast", () => ({
   __esModule: true,
@@ -123,8 +125,27 @@ const createWrapper = () => {
 describe("PriceAnalysis editing", () => {
   let mockMutateAsync: jest.Mock;
 
-  const priceInput = () =>
-    screen.getByTestId(`pricing-cell-PROD001-${PricingEditField.Price}`) as HTMLInputElement;
+  // What a cell currently displays. Compared against formatCurrency/formatPercentage
+  // output rather than a bare "175", so the non-breaking spaces Intl emits never make
+  // an assertion fail for a value that is in fact correct.
+  const cellText = (field: PricingEditField, productCode = "PROD001") =>
+    screen.getByTestId(`pricing-cell-${productCode}-${field}`).textContent ?? "";
+
+  const openEditor = (field: PricingEditField, productCode = "PROD001") => {
+    fireEvent.click(screen.getByTestId(`pricing-cell-${productCode}-${field}`));
+    return screen.getByTestId(
+      `pricing-editor-value-${productCode}-${field}`,
+    ) as HTMLInputElement;
+  };
+
+  const applyEditor = (field: PricingEditField, productCode = "PROD001") =>
+    fireEvent.click(screen.getByTestId(`pricing-editor-apply-${productCode}-${field}`));
+
+  /** The whole commit gesture: open the cell's editor, type a value, apply it. */
+  const editCell = (field: PricingEditField, value: string, productCode = "PROD001") => {
+    fireEvent.change(openEditor(field, productCode), { target: { value } });
+    applyEditor(field, productCode);
+  };
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -160,7 +181,7 @@ describe("PriceAnalysis editing", () => {
     } as any);
   });
 
-  it("does not call the mutation while typing, only on blur", async () => {
+  it("does not call the mutation while typing, only once the editor is applied", async () => {
     mockMutateAsync.mockResolvedValue({
       rows: [buildRow({ price: 175, isEdited: true })],
       totals: buildTotals(),
@@ -169,14 +190,14 @@ describe("PriceAnalysis editing", () => {
 
     render(<PriceAnalysis />, { wrapper: createWrapper() });
 
-    fireEvent.change(priceInput(), { target: { value: "175" } });
+    fireEvent.change(openEditor(PricingEditField.Price), { target: { value: "175" } });
     expect(mockMutateAsync).not.toHaveBeenCalled();
 
-    fireEvent.blur(priceInput());
+    applyEditor(PricingEditField.Price);
     expect(mockMutateAsync).toHaveBeenCalledTimes(1);
 
-    // Wait for the full round trip (including the reset-token bump) to settle so
-    // no state update from this commit leaks, unflushed, into the next test.
+    // Wait for the full round trip to settle so no state update from this commit
+    // leaks, unflushed, into the next test.
     expect(await screen.findByTestId("pricing-row-reset-PROD001")).toBeInTheDocument();
   });
 
@@ -189,8 +210,7 @@ describe("PriceAnalysis editing", () => {
 
     render(<PriceAnalysis />, { wrapper: createWrapper() });
 
-    fireEvent.change(priceInput(), { target: { value: "175" } });
-    fireEvent.blur(priceInput());
+    editCell(PricingEditField.Price, "175");
 
     expect(mockMutateAsync).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -211,8 +231,7 @@ describe("PriceAnalysis editing", () => {
 
     render(<PriceAnalysis />, { wrapper: createWrapper() });
 
-    fireEvent.change(priceInput(), { target: { value: "175" } });
-    fireEvent.blur(priceInput());
+    editCell(PricingEditField.Price, "175");
 
     await waitFor(() => {
       const lineText = screen.getByTestId("totals-line-Obrat").textContent ?? "";
@@ -223,16 +242,9 @@ describe("PriceAnalysis editing", () => {
       expect(lineText).toContain(formatCurrency(17500));
     });
 
-    // The totals render straight from `recalculated.totals`, but this cell's draft is
-    // its own state, written by PricingEditableCell's passive [value, error] resync
-    // effect -- one render LATER. The totals satisfying the waitFor above therefore does
-    // not imply the cell has resynced (observed: "80" here on 5 of 6 runs), so wait on
-    // the cell's own consequence rather than the totals'. Do not collapse this back to a
-    // synchronous assertion.
-    const m0Input = screen.getByTestId(
-      `pricing-cell-PROD001-${PricingEditField.M0Percentage}`,
-    ) as HTMLInputElement;
-    await waitFor(() => expect(m0Input.value).toBe("82"));
+    // The recalculated M0 % is a pure function of the row the server sent, so the cell
+    // shows it on the same render as the totals -- no draft of its own to resync.
+    expect(cellText(PricingEditField.M0Percentage)).toContain(formatPercentage(82));
   });
 
   it("shows the Czech message inline on a rejected edit, keeps the prior value, and leaves totals unchanged", async () => {
@@ -245,8 +257,7 @@ describe("PriceAnalysis editing", () => {
 
     render(<PriceAnalysis />, { wrapper: createWrapper() });
 
-    fireEvent.change(priceInput(), { target: { value: "999" } });
-    fireEvent.blur(priceInput());
+    editCell(PricingEditField.Price, "999");
 
     expect(
       await screen.findByText(
@@ -254,32 +265,28 @@ describe("PriceAnalysis editing", () => {
       ),
     ).toBeInTheDocument();
 
-    // The error element appears on the render that sets the cell's `error` prop; the
-    // cell's own draft resync is a passive effect that runs after it. Asserting the
-    // input value synchronously after findByText therefore races that effect (observed
-    // flaking under parallel suite load), so poll for it instead.
-    await waitFor(() => expect(priceInput().value).toBe("150"));
+    // The rejected value never entered the grid: the editor was transient and the cell
+    // renders the server's row, so there is nothing to revert.
+    expect(cellText(PricingEditField.Price)).toContain(formatCurrency(150));
     expect(screen.getByTestId("totals-line-Obrat").textContent ?? "").toContain(
       formatCurrency(15000),
     );
   });
 
-  it("reverts the cell and badges totals as stale on a network failure", async () => {
+  it("leaves the cell on the server's value and badges totals as stale on a network failure", async () => {
     mockMutateAsync.mockRejectedValue(new Error("Network Error"));
 
     render(<PriceAnalysis />, { wrapper: createWrapper() });
 
-    fireEvent.change(priceInput(), { target: { value: "999" } });
-    fireEvent.blur(priceInput());
+    editCell(PricingEditField.Price, "999");
 
     await waitFor(() => {
       expect(toast.error).toHaveBeenCalled();
     });
 
-    // toast.error fires inside the catch BEFORE setCellResetTokens (which remounts this
-    // cell to revert it) and alongside setIsTotalsStale, so seeing the toast does not
-    // imply either render has landed. Both assertions wait on their own consequence.
-    await waitFor(() => expect(priceInput().value).toBe("150"));
+    // Nothing to revert: the rejected value only ever lived in the editor, which closed
+    // on apply, so the cell has been showing the untouched server row all along.
+    expect(cellText(PricingEditField.Price)).toContain(formatCurrency(150));
     expect(await screen.findByTestId("totals-stale-badge")).toBeInTheDocument();
   });
 
@@ -307,8 +314,7 @@ describe("PriceAnalysis editing", () => {
 
     render(<PriceAnalysis />, { wrapper: createWrapper() });
 
-    fireEvent.change(priceInput(), { target: { value: "175" } });
-    fireEvent.blur(priceInput());
+    editCell(PricingEditField.Price, "175");
 
     const resetButton = await screen.findByTestId("pricing-row-reset-PROD001");
 
@@ -340,11 +346,7 @@ describe("PriceAnalysis editing", () => {
 
     render(<PriceAnalysis />, { wrapper: createWrapper() });
 
-    const m0AmountInput = screen.getByTestId(
-      `pricing-cell-PROD001-${PricingEditField.M0Amount}`,
-    );
-    fireEvent.change(m0AmountInput, { target: { value: "140" } });
-    fireEvent.blur(m0AmountInput);
+    editCell(PricingEditField.M0Amount, "140");
 
     expect(mockMutateAsync).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -355,7 +357,62 @@ describe("PriceAnalysis editing", () => {
     expect(await screen.findByTestId("pricing-row-reset-PROD001")).toBeInTheDocument();
   });
 
-  it("does not clobber a different cell's in-progress draft when another cell's commit settles", async () => {
+  it.each([
+    ["Materiál", PricingEditField.MaterialCost, "40"],
+    ["Výroba", PricingEditField.ManufacturingCost, "25"],
+  ])(
+    "commits a %s edit as its own field so the margins fall out of it",
+    async (_label, field, typed) => {
+      mockMutateAsync.mockResolvedValue({
+        rows: [buildRow({ isEdited: true })],
+        totals: buildTotals(),
+        overrides: [{ productCode: "PROD001" }],
+      });
+
+      render(<PriceAnalysis />, { wrapper: createWrapper() });
+
+      editCell(field, typed);
+
+      // The cost cells post the cost the user typed, never a margin: M0/M1 are derived
+      // server-side, which is what keeps the five columns consistent with each other.
+      expect(mockMutateAsync).toHaveBeenCalledWith(
+        expect.objectContaining({
+          edit: { productCode: "PROD001", field, value: Number(typed) },
+        }),
+      );
+
+      expect(await screen.findByTestId("pricing-row-reset-PROD001")).toBeInTheDocument();
+    },
+  );
+
+  it("commits the absolute value a relative percentage change implies", async () => {
+    mockMutateAsync.mockResolvedValue({
+      rows: [buildRow({ price: 180, isEdited: true })],
+      totals: buildTotals(),
+      overrides: [{ productCode: "PROD001", price: 180 }],
+    });
+
+    render(<PriceAnalysis />, { wrapper: createWrapper() });
+
+    openEditor(PricingEditField.Price);
+    fireEvent.change(
+      screen.getByTestId(`pricing-editor-relative-PROD001-${PricingEditField.Price}`),
+      { target: { value: "20" } },
+    );
+    applyEditor(PricingEditField.Price);
+
+    // The wire still carries a plain absolute value -- the percentage is a way of
+    // typing it, not a second kind of edit the server has to understand. 150 + 20 %.
+    expect(mockMutateAsync).toHaveBeenCalledWith(
+      expect.objectContaining({
+        edit: { productCode: "PROD001", field: PricingEditField.Price, value: 180 },
+      }),
+    );
+
+    expect(await screen.findByTestId("pricing-row-reset-PROD001")).toBeInTheDocument();
+  });
+
+  it("does not clobber an open editor when another cell's commit settles", async () => {
     let resolveFirst: (value: unknown) => void = () => {};
     const firstPromise = new Promise((resolve) => {
       resolveFirst = resolve;
@@ -365,42 +422,34 @@ describe("PriceAnalysis editing", () => {
     render(<PriceAnalysis />, { wrapper: createWrapper() });
 
     // Commit A: Price, deliberately left in flight.
-    fireEvent.change(priceInput(), { target: { value: "175" } });
-    fireEvent.blur(priceInput());
+    editCell(PricingEditField.Price, "175");
     expect(mockMutateAsync).toHaveBeenCalledTimes(1);
 
-    // Start typing into a DIFFERENT, unrelated cell -- never blurred, never
-    // committed, still focused.
-    const forecastInput = screen.getByTestId(
-      `pricing-cell-PROD001-${PricingEditField.ForecastQuantity}`,
-    ) as HTMLInputElement;
-    // A real .focus() call (not fireEvent.focus, which only dispatches a synthetic
-    // event without moving document.activeElement) so the assertion on focus below
-    // is meaningful, and so PricingEditableCell's own isFocusedRef -- driven by a
-    // real onFocus handler -- sees it too.
-    forecastInput.focus();
-    fireEvent.change(forecastInput, { target: { value: "999" } });
+    // Open a DIFFERENT, unrelated cell's editor and type into it without applying.
+    const forecastDraft = openEditor(PricingEditField.ForecastQuantity);
+    fireEvent.change(forecastDraft, { target: { value: "999" } });
 
-    // A settles successfully. Its response never touches forecastQuantity.
+    // A settles successfully. Its response never touches forecastQuantity, but it does
+    // replace every row -- which re-renders the cell the open editor lives in.
     resolveFirst({
       rows: [buildRow({ price: 175, isEdited: true })],
       totals: buildTotals(),
       overrides: [{ productCode: "PROD001", price: 175 }],
     });
 
-    await waitFor(() => expect(priceInput().value).toBe("175"));
+    await waitFor(() =>
+      expect(cellText(PricingEditField.Price)).toContain(formatCurrency(175)),
+    );
 
-    // The other cell's in-progress, uncommitted draft -- and its focus -- must
-    // have survived A's settle untouched.
-    expect(forecastInput.value).toBe("999");
-    expect(forecastInput).toHaveFocus();
+    // The open editor's uncommitted draft must have survived A's settle untouched.
+    expect(forecastDraft).toHaveValue("999");
     expect(mockMutateAsync).toHaveBeenCalledTimes(1);
   });
 
-  it("does not post a stale value when a focused-but-untyped cell's value changes underneath it", async () => {
+  it("posts nothing for an editor dismissed without applying, and shows the server's value", async () => {
     mockMutateAsync.mockResolvedValueOnce({
-      // Editing the M0 Kč amount recomputes M0 % on the same row -- the exact
-      // sibling-recompute case the resync effect exists for.
+      // Editing the M0 Kč amount recomputes M0 % on the same row -- a sibling field
+      // the user never touched.
       rows: [buildRow({ m0Amount: 140, m0Percentage: 82, isEdited: true })],
       totals: buildTotals(),
       overrides: [{ productCode: "PROD001", materialCost: 5 }],
@@ -408,38 +457,22 @@ describe("PriceAnalysis editing", () => {
 
     render(<PriceAnalysis />, { wrapper: createWrapper() });
 
-    // The user clicks into M0 % -- but never types anything into it.
-    const m0PercentageInput = screen.getByTestId(
-      `pricing-cell-PROD001-${PricingEditField.M0Percentage}`,
-    ) as HTMLInputElement;
-    m0PercentageInput.focus();
+    editCell(PricingEditField.M0Amount, "140");
 
-    // A sibling field on the SAME row (M0 Kč) is committed instead.
-    const m0AmountInput = screen.getByTestId(
-      `pricing-cell-PROD001-${PricingEditField.M0Amount}`,
-    );
-    fireEvent.change(m0AmountInput, { target: { value: "140" } });
-    fireEvent.blur(m0AmountInput);
-
-    // Wait for the full round trip (not just the mock call count -- see the
-    // round-1 report's note on that exact race) via a DOM consequence that can
-    // only appear once the response has actually landed and re-rendered: the
-    // row's own reset control, gated on the NEW row's isEdited flag. M0 %'s
-    // draft was never resynced while it was focused, so it still shows the
-    // OLD "80" internally at this point even though its `value` prop is now 82.
+    // Wait for the full round trip via a DOM consequence that can only appear once the
+    // response has landed: the row's own reset control, gated on the NEW isEdited flag.
     expect(await screen.findByTestId("pricing-row-reset-PROD001")).toBeInTheDocument();
 
-    // The user now clicks away from M0 % WITHOUT ever having typed into it.
-    fireEvent.blur(m0PercentageInput);
+    // The user opens the untouched sibling cell, then closes it again without typing.
+    openEditor(PricingEditField.M0Percentage);
+    fireEvent.click(
+      screen.getByTestId(`pricing-editor-cancel-PROD001-${PricingEditField.M0Percentage}`),
+    );
 
-    // No second edit must be posted -- the cell was never actually touched,
-    // so a stale "80" must not be sent just because it differs from the new
-    // "82". The cell must instead now display the server's fresh value.
+    // Opening and closing a cell is not an edit, so nothing more was posted -- and the
+    // cell shows the server's recomputed 82 %, never a stale 80 %.
     expect(mockMutateAsync).toHaveBeenCalledTimes(1);
-    // The call count above is an invariance check and stays synchronous. The draft,
-    // however, is cell state reached via a different signal (the row's reset control),
-    // so it gets its own wait.
-    await waitFor(() => expect(m0PercentageInput.value).toBe("82"));
+    expect(cellText(PricingEditField.M0Percentage)).toContain(formatPercentage(82));
   });
 
   it("serializes overlapping commits so the second carries the first commit's already-applied override", async () => {
@@ -452,16 +485,11 @@ describe("PriceAnalysis editing", () => {
     render(<PriceAnalysis />, { wrapper: createWrapper() });
 
     // Commit A: Price, left in flight.
-    fireEvent.change(priceInput(), { target: { value: "175" } });
-    fireEvent.blur(priceInput());
+    editCell(PricingEditField.Price, "175");
     expect(mockMutateAsync).toHaveBeenCalledTimes(1);
 
     // Commit B: before A settles, edit a different field on the same row.
-    const forecastInput = screen.getByTestId(
-      `pricing-cell-PROD001-${PricingEditField.ForecastQuantity}`,
-    );
-    fireEvent.change(forecastInput, { target: { value: "120" } });
-    fireEvent.blur(forecastInput);
+    editCell(PricingEditField.ForecastQuantity, "120");
 
     // B must be queued behind A, not sent yet.
     expect(mockMutateAsync).toHaveBeenCalledTimes(1);
@@ -511,15 +539,16 @@ describe("PriceAnalysis editing", () => {
 
     render(<PriceAnalysis />, { wrapper: createWrapper() });
 
-    fireEvent.change(priceInput(), { target: { value: "175" } });
-    fireEvent.blur(priceInput());
+    editCell(PricingEditField.Price, "175");
 
     // Wait for the full first commit to settle (not just the mock call count):
     // the commit queue (see performRecalculate) only lets the SECOND commit fire
     // its request synchronously once the first has fully resolved, including its
     // own internal bookkeeping -- a plain call-count check can win a race against
     // that bookkeeping and make the second commit queue up instead of firing.
-    await waitFor(() => expect(priceInput().value).toBe("175"));
+    await waitFor(() =>
+      expect(cellText(PricingEditField.Price)).toContain(formatCurrency(175)),
+    );
 
     mockMutateAsync.mockResolvedValueOnce({
       rows: [buildRow({ price: 175, forecastQuantity: 120, isEdited: true })],
@@ -527,11 +556,7 @@ describe("PriceAnalysis editing", () => {
       overrides: firstResponseOverrides,
     });
 
-    const forecastInput = screen.getByTestId(
-      `pricing-cell-PROD001-${PricingEditField.ForecastQuantity}`,
-    );
-    fireEvent.change(forecastInput, { target: { value: "120" } });
-    fireEvent.blur(forecastInput);
+    editCell(PricingEditField.ForecastQuantity, "120");
 
     await waitFor(() => {
       expect(mockMutateAsync).toHaveBeenLastCalledWith(
@@ -552,8 +577,7 @@ describe("PriceAnalysis editing", () => {
 
     render(<PriceAnalysis />, { wrapper: createWrapper() });
 
-    fireEvent.change(priceInput(), { target: { value: "175" } });
-    fireEvent.blur(priceInput());
+    editCell(PricingEditField.Price, "175");
     await screen.findByTestId("pricing-row-reset-PROD001");
     expect(screen.getByText("Test Product 1")).toBeInTheDocument();
 
@@ -595,8 +619,7 @@ describe("PriceAnalysis editing", () => {
 
     render(<PriceAnalysis />, { wrapper: createWrapper() });
 
-    fireEvent.change(priceInput(), { target: { value: "175" } });
-    fireEvent.blur(priceInput());
+    editCell(PricingEditField.Price, "175");
     const resetAllButton = await screen.findByTestId("pricing-reset-all");
 
     // Reset everything: overrides are empty again, but `recalculated` still shadows
@@ -644,8 +667,7 @@ describe("PriceAnalysis editing", () => {
 
     render(<PriceAnalysis />, { wrapper: createWrapper() });
 
-    fireEvent.change(priceInput(), { target: { value: "999" } });
-    fireEvent.blur(priceInput());
+    editCell(PricingEditField.Price, "999");
 
     const priceErrorTestId = `pricing-cell-error-PROD001-${PricingEditField.Price}`;
     expect(await screen.findByTestId(priceErrorTestId)).toBeInTheDocument();
@@ -660,11 +682,7 @@ describe("PriceAnalysis editing", () => {
       overrides: [{ productCode: "PROD001", forecastQuantity: 120 }],
     });
 
-    const forecastInput = screen.getByTestId(
-      `pricing-cell-PROD001-${PricingEditField.ForecastQuantity}`,
-    );
-    fireEvent.change(forecastInput, { target: { value: "120" } });
-    fireEvent.blur(forecastInput);
+    editCell(PricingEditField.ForecastQuantity, "120");
 
     await waitFor(() => {
       expect(screen.queryByTestId(priceErrorTestId)).not.toBeInTheDocument();
@@ -680,8 +698,7 @@ describe("PriceAnalysis editing", () => {
 
     render(<PriceAnalysis />, { wrapper: createWrapper() });
 
-    fireEvent.change(priceInput(), { target: { value: "175" } });
-    fireEvent.blur(priceInput());
+    editCell(PricingEditField.Price, "175");
 
     const resetAllButton = await screen.findByTestId("pricing-reset-all");
 

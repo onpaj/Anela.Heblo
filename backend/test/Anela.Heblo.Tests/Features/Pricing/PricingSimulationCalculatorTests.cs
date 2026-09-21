@@ -169,6 +169,108 @@ public class PricingSimulationCalculatorTests
     }
 
     [Fact]
+    public void Editing_material_cost_pins_it_and_shifts_both_margins()
+    {
+        var row = Single(Row(), new PricingEditDto
+        {
+            ProductCode = "P1",
+            Field = PricingEditField.MaterialCost,
+            Value = 150m
+        });
+
+        row.MaterialCost.Should().Be(150m);
+        row.Price.Should().Be(420m);              // untouched
+        row.ManufacturingCost.Should().Be(70m);   // untouched
+        row.M0Amount.Should().Be(270m);           // 420 - 150
+        row.M1Amount.Should().Be(200m);           // 270 - 70
+    }
+
+    [Fact]
+    public void Editing_manufacturing_cost_pins_it_and_leaves_M0_untouched()
+    {
+        var row = Single(Row(), new PricingEditDto
+        {
+            ProductCode = "P1",
+            Field = PricingEditField.ManufacturingCost,
+            Value = 90m
+        });
+
+        row.ManufacturingCost.Should().Be(90m);
+        row.Price.Should().Be(420m);          // untouched
+        row.MaterialCost.Should().Be(175m);   // untouched
+        row.M0Amount.Should().Be(245m);       // M0 does not involve manufacturing
+        row.M1Amount.Should().Be(155m);       // 245 - 90
+    }
+
+    [Fact]
+    public void A_cost_edit_leaves_the_other_inputs_riding_the_live_baseline()
+    {
+        // The override must stay SPARSE (see ApplyEdit): editing only the material cost
+        // may not pin the price, or a later catalogue price change would never reach
+        // this row. Replaying the resulting override against a MOVED baseline is what
+        // proves it -- a densified override would freeze the old price at 420.
+        var edited = _sut.Calculate(new[] { Row() }, NoOverrides(), new PricingEditDto
+        {
+            ProductCode = "P1",
+            Field = PricingEditField.MaterialCost,
+            Value = 150m
+        });
+
+        var moved = _sut.Calculate(new[] { Row(price: 500m) }, edited.Overrides, edit: null).Rows.Single();
+
+        moved.Price.Should().Be(500m);            // followed the baseline
+        moved.MaterialCost.Should().Be(150m);     // stayed pinned
+        moved.ManufacturingCost.Should().Be(70m); // followed the baseline
+    }
+
+    [Fact]
+    public void The_margin_identity_holds_across_a_mixed_edit_sequence()
+    {
+        // M0 = P - Cm and M1 = M0 - Cf must hold after EVERY edit, whichever of the
+        // five cells drove it. This is the invariant that makes the grid's Cena /
+        // Materiál / Výroba / M0 / M1 columns readable as one consistent row.
+        var edits = new[]
+        {
+            new PricingEditDto { ProductCode = "P1", Field = PricingEditField.MaterialCost, Value = 150m },
+            new PricingEditDto { ProductCode = "P1", Field = PricingEditField.M0Amount, Value = 300m },
+            new PricingEditDto { ProductCode = "P1", Field = PricingEditField.Price, Value = 500m },
+            new PricingEditDto { ProductCode = "P1", Field = PricingEditField.ManufacturingCost, Value = 55m },
+            new PricingEditDto { ProductCode = "P1", Field = PricingEditField.M1Percentage, Value = 30m },
+        };
+
+        IReadOnlyList<PricingOverrideDto> overrides = NoOverrides();
+        foreach (var edit in edits)
+        {
+            var result = _sut.Calculate(new[] { Row() }, overrides, edit);
+            overrides = result.Overrides;
+
+            var row = result.Rows.Single();
+            row.M0Amount.Should().Be(row.Price - row.MaterialCost);
+            row.M1Amount.Should().Be(row.M0Amount - row.ManufacturingCost);
+        }
+    }
+
+    [Fact]
+    public void Baseline_margin_percentages_are_derived_from_the_untouched_baseline()
+    {
+        // The "before" side of the M0/M1 % cells. The frontend shows the change against
+        // the real state as a tooltip and must not re-derive a margin rule of its own,
+        // so the baseline percentages come from here -- same Percentage() helper as the
+        // effective ones.
+        var row = Single(Row(), new PricingEditDto
+        {
+            ProductCode = "P1",
+            Field = PricingEditField.Price,
+            Value = 500m
+        });
+
+        row.M0Percentage.Should().BeApproximately(65.00m, 0.01m);          // 325 / 500
+        row.M1Percentage.Should().BeApproximately(51.00m, 0.01m);          // 255 / 500
+        row.BaselineM0Percentage.Should().BeApproximately(58.33m, 0.01m);  // 245 / 420
+        row.BaselineM1Percentage.Should().BeApproximately(41.67m, 0.01m);  // 175 / 420
+    }
+
+    [Fact]
     public void Edit_order_does_not_matter_because_edits_normalise_to_costs()
     {
         // Edit M0 then price ...
@@ -259,6 +361,8 @@ public class PricingSimulationCalculatorTests
     [InlineData(PricingEditField.M0Amount, 500, ErrorCodes.PricingNegativeMaterialCost)]
     [InlineData(PricingEditField.M0Percentage, 120, ErrorCodes.PricingNegativeMaterialCost)]
     [InlineData(PricingEditField.M1Amount, 300, ErrorCodes.PricingNegativeManufacturingCost)]
+    [InlineData(PricingEditField.MaterialCost, -1, ErrorCodes.PricingNegativeMaterialCost)]
+    [InlineData(PricingEditField.ManufacturingCost, -1, ErrorCodes.PricingNegativeManufacturingCost)]
     [InlineData(PricingEditField.ForecastQuantity, -1, ErrorCodes.PricingNegativeQuantity)]
     public void Impossible_edits_are_rejected_with_the_matching_error_code(
         PricingEditField field, decimal value, ErrorCodes expected)

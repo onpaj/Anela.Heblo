@@ -24,10 +24,13 @@ public class PricingRowDto
     public decimal M1Percentage { get; set; }
 
     // Derived from the baseline inputs above using the same M0/M1 formula as the
-    // effective amounts -- the "before" side of the M0/M1 Kč columns. Kept as plain
-    // Kč amounts (no baseline percentage) since only the ceník export needs them.
+    // effective amounts -- the "before" side of the M0/M1 columns. Read by the ceník
+    // export and by the grid's "change against the real state" tooltip, which must
+    // not re-derive a margin rule of its own (see this class's calculator).
     public decimal BaselineM0Amount { get; set; }
     public decimal BaselineM1Amount { get; set; }
+    public decimal BaselineM0Percentage { get; set; }
+    public decimal BaselineM1Percentage { get; set; }
 
     public bool IsEdited { get; set; }
     public bool IsExcluded { get; set; }

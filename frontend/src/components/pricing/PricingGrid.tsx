@@ -1,7 +1,7 @@
 import React from "react";
 import { AlertTriangle, RotateCcw } from "lucide-react";
 import { PricingEditField, PricingRowDto } from "../../api/generated/api-client";
-import { formatCurrency, formatNumber, formatPercentage } from "../../utils/formatters";
+import { formatNumber } from "../../utils/formatters";
 import PricingEditableCell from "./PricingEditableCell";
 
 export interface PricingGridProps {
@@ -13,13 +13,6 @@ export interface PricingGridProps {
   onResetRow?: (productCode: string) => void;
   // Inline error messages for a rejected edit, keyed by pricingCellErrorKey().
   cellErrors?: Record<string, string>;
-  // Bumped by the parent, per cell (keyed by pricingCellErrorKey), ONLY on a
-  // network/unparseable failure -- the one case where neither `value` nor `error`
-  // changes for the affected cell, so PricingEditableCell's own value/error-driven
-  // resync (see that file) has nothing to react to. A success or a rejected edit
-  // never touches this: they revert/refresh themselves via ordinary prop changes,
-  // so routine editing never remounts anything.
-  cellResetTokens?: Record<string, number>;
 }
 
 // Shared key format between PriceAnalysis (writer) and PricingGrid (reader) for the
@@ -36,23 +29,6 @@ const EXCLUDED_ROW_TITLE =
 const DRIFTED_ROW_TITLE =
   "Podklady se od uložení scénáře změnily: cena nebo náklady tohoto produktu se posunuly";
 
-// Read-only rendering for editingDisabled mode. M0Amount/M1Amount are Kč margins
-// (the spec's "margin cells accept either a Kč amount or a percentage"), so they
-// format as currency alongside Price -- everything else that isn't the plain
-// quantity column is a percentage.
-const formatReadOnlyValue = (field: PricingEditField, value: number | undefined): string => {
-  switch (field) {
-    case PricingEditField.ForecastQuantity:
-      return formatNumber(value ?? null);
-    case PricingEditField.Price:
-    case PricingEditField.M0Amount:
-    case PricingEditField.M1Amount:
-      return formatCurrency(value ?? null);
-    default:
-      return formatPercentage(value ?? null);
-  }
-};
-
 // No pagination here on purpose: totals are computed over the whole filtered set,
 // so paging the grid would make the totals bar lie about what it is summing.
 const PricingGrid: React.FC<PricingGridProps> = ({
@@ -61,7 +37,6 @@ const PricingGrid: React.FC<PricingGridProps> = ({
   editingDisabled = false,
   onResetRow,
   cellErrors = {},
-  cellResetTokens = {},
 }) => {
   const handleCommit = onEdit ?? (() => {});
   if (rows.length === 0) {
@@ -153,31 +128,20 @@ const PricingGrid: React.FC<PricingGridProps> = ({
                   ? "bg-indigo-50 dark:bg-indigo-500/10 hover:bg-indigo-100 dark:hover:bg-indigo-500/20 transition-colors duration-150"
                   : "hover:bg-gray-50 dark:hover:bg-white/5 transition-colors duration-150";
 
-              // A per-cell editable column: read-only text while editing is disabled
-              // (or for the always-derived Materiál/Výroba columns), otherwise an
-              // input that commits on blur/Enter. Keyed so only a genuine
-              // network-failure revert (see cellResetTokens) remounts this exact
-              // cell -- a success or rejection resyncs itself via PricingEditableCell's
-              // own value/error-driven effect instead.
-              // An excluded row has no usable baseline, so it is left out of every
-              // total -- editing one changed nothing on screen while still marking the
-              // row edited. Render it read-only instead of offering an input that
-              // cannot affect anything.
-              const renderEditable = (field: PricingEditField, value: number | undefined) =>
-                editingDisabled || isExcluded ? (
-                  formatReadOnlyValue(field, value)
-                ) : (
-                  <PricingEditableCell
-                    key={`${productCode}-${field}-${
-                      cellResetTokens[pricingCellErrorKey(productCode, field)] ?? 0
-                    }`}
-                    value={value}
-                    field={field}
-                    productCode={productCode}
-                    onCommit={handleCommit}
-                    error={cellErrors[pricingCellErrorKey(productCode, field)]}
-                  />
-                );
+              // Every editable column goes through the same cell, which formats its own
+              // value, reports its change against the real state and opens the
+              // value/percentage editor. An excluded row has no usable baseline, so it
+              // is left out of every total -- editing one changed nothing on screen
+              // while still marking the row edited, so it renders read-only.
+              const renderEditable = (field: PricingEditField) => (
+                <PricingEditableCell
+                  row={row}
+                  field={field}
+                  onCommit={handleCommit}
+                  readOnly={editingDisabled || isExcluded}
+                  error={cellErrors[pricingCellErrorKey(productCode, field)]}
+                />
+              );
 
               return (
                 <tr
@@ -204,13 +168,13 @@ const PricingGrid: React.FC<PricingGridProps> = ({
                     {row.productName}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-right text-gray-900 dark:text-graphite-text">
-                    {renderEditable(PricingEditField.Price, row.price)}
+                    {renderEditable(PricingEditField.Price)}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-right text-gray-900 dark:text-graphite-text">
-                    {formatCurrency(row.materialCost ?? null)}
+                    {renderEditable(PricingEditField.MaterialCost)}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-right text-gray-900 dark:text-graphite-text">
-                    {formatCurrency(row.manufacturingCost ?? null)}
+                    {renderEditable(PricingEditField.ManufacturingCost)}
                   </td>
                   <td
                     data-testid={`pricing-row-sold12m-${productCode}`}
@@ -219,27 +183,27 @@ const PricingGrid: React.FC<PricingGridProps> = ({
                     {formatNumber(row.baselineQuantity ?? null)}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-right text-gray-600 dark:text-graphite-muted">
-                    {renderEditable(PricingEditField.ForecastQuantity, row.forecastQuantity)}
+                    {renderEditable(PricingEditField.ForecastQuantity)}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-right font-semibold text-gray-900 dark:text-graphite-text">
                     <div className="flex items-center justify-end gap-1">
-                      <div className="w-20">
-                        {renderEditable(PricingEditField.M0Amount, row.m0Amount)}
+                      <div className="w-28">
+                        {renderEditable(PricingEditField.M0Amount)}
                       </div>
                       <span className="text-gray-400 dark:text-graphite-faint">/</span>
-                      <div className="w-16">
-                        {renderEditable(PricingEditField.M0Percentage, row.m0Percentage)}
+                      <div className="w-24">
+                        {renderEditable(PricingEditField.M0Percentage)}
                       </div>
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-right font-semibold text-gray-900 dark:text-graphite-text">
                     <div className="flex items-center justify-end gap-1">
-                      <div className="w-20">
-                        {renderEditable(PricingEditField.M1Amount, row.m1Amount)}
+                      <div className="w-28">
+                        {renderEditable(PricingEditField.M1Amount)}
                       </div>
                       <span className="text-gray-400 dark:text-graphite-faint">/</span>
-                      <div className="w-16">
-                        {renderEditable(PricingEditField.M1Percentage, row.m1Percentage)}
+                      <div className="w-24">
+                        {renderEditable(PricingEditField.M1Percentage)}
                       </div>
                     </div>
                   </td>

@@ -17,6 +17,24 @@ const product = requireTestData(
   'DAR001 (Dárkové balení) product for the price analysis grid'
 )
 
+/**
+ * Asserts a price cell holds `expected`, read through its own editor rather than the
+ * cell text: the cell renders a locale-formatted amount ("1 234,00 Kč", with
+ * non-breaking spaces), while the editor carries the plain number the API round-trips.
+ * Leaves the grid as it found it by dismissing the editor again.
+ */
+async function expectCellValue(
+  page: Page,
+  productCode: string,
+  expected: string
+): Promise<void> {
+  await page.getByTestId(`pricing-cell-${productCode}-Price`).click()
+  await expect(page.getByTestId(`pricing-editor-value-${productCode}-Price`)).toHaveValue(
+    expected
+  )
+  await page.getByTestId(`pricing-editor-cancel-${productCode}-Price`).click()
+}
+
 async function openPriceAnalysis(page: Page): Promise<void> {
   await page.goto(`${BASE_URL}${PRICE_ANALYSIS_PATH}`)
   await waitForPageLoad(page)
@@ -59,18 +77,25 @@ test.describe('Price Analysis E2E Tests', () => {
     const revenueBeforeText = await revenueValues.nth(0).innerText()
     const revenueAfterTextBeforeEdit = await revenueValues.nth(1).innerText()
 
-    // --- Edit one product's price, commit with Enter (fires blur), wait for recalc ---
+    // --- Edit one product's price through the cell editor, wait for recalc ---
+    // A cell is a click target, not an input: it opens a transient two-field editor
+    // (absolute value / change against the real state) and commits on Použít.
     const priceCell = page.getByTestId(`pricing-cell-${product.code}-Price`)
     await expect(priceCell).toBeVisible()
-    const originalPriceRaw = await priceCell.inputValue()
+    await priceCell.click()
+
+    const priceEditor = page.getByTestId(`pricing-editor-value-${product.code}-Price`)
+    await expect(priceEditor).toBeVisible()
+    // The editor carries the plain number; the cell itself shows it formatted as Kč.
+    const originalPriceRaw = await priceEditor.inputValue()
     const originalPrice = Number(originalPriceRaw.replace(',', '.')) || 0
     const newPrice = Math.round((originalPrice + 25) * 100) / 100
 
     const recalcResponse = page.waitForResponse(
       (resp) => resp.url().includes(RECALCULATE_ENDPOINT) && resp.request().method() === 'POST'
     )
-    await priceCell.fill(String(newPrice))
-    await priceCell.press('Enter')
+    await priceEditor.fill(String(newPrice))
+    await page.getByTestId(`pricing-editor-apply-${product.code}-Price`).click()
     await recalcResponse
 
     // Obrat "po" changed; Obrat "před" (baseline) must never move from an edit -
@@ -106,9 +131,7 @@ test.describe('Price Analysis E2E Tests', () => {
       page.getByRole('heading', { name: 'Analýza cen', exact: true })
     ).toBeVisible({ timeout: 60_000 })
     await expect(page.getByTestId(`pricing-row-${product.code}`)).toBeVisible({ timeout: 30_000 })
-    await expect(page.getByTestId(`pricing-cell-${product.code}-Price`)).toHaveValue(
-      originalPriceRaw
-    )
+    await expectCellValue(page, product.code, originalPriceRaw)
 
     // --- Load the saved scenario ---
     const reloadedSelect = page.getByTestId('pricing-scenario-select')
@@ -124,9 +147,7 @@ test.describe('Price Analysis E2E Tests', () => {
     await scenarioDetailResponse
 
     // Edited price is restored from the loaded scenario.
-    await expect(page.getByTestId(`pricing-cell-${product.code}-Price`)).toHaveValue(
-      String(newPrice)
-    )
+    await expectCellValue(page, product.code, String(newPrice))
 
     // --- Delete the scenario (inline confirmation, never window.confirm) ---
     await page.getByTestId('pricing-scenario-delete').click()
