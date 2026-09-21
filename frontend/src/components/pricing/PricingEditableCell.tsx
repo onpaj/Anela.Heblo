@@ -1,4 +1,4 @@
-import React, { useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { PricingEditField } from "../../api/generated/api-client";
 
 export interface PricingEditableCellProps {
@@ -25,10 +25,15 @@ const formatDraftValue = (value: number | null | undefined): string =>
 
 // Editable numeric cell for the pricing grid. Holds its own draft string so keystrokes
 // never touch parent state or fire the mutation -- only a blur (or Enter) commits.
-// Escape reverts locally without ever calling onCommit. Reverting after a server
-// round-trip (rejected edit or network failure) is the PARENT's job: it re-mounts
-// this component (via a `key` that changes on every settle) so the draft
-// re-initializes from the -- possibly unchanged -- `value` prop.
+// Escape reverts locally without ever calling onCommit.
+//
+// Resyncing after a server round-trip is done via a `useEffect` on [value, error]
+// rather than a parent-forced remount: whenever this cell's OWN `value` prop changes
+// (a successful recalculate touched this field, directly or as a side effect of a
+// sibling field in the same row, e.g. editing the M0 Kč amount recomputes M0 %) or
+// its `error` prop changes (a rejected edit), the draft re-syncs -- but ONLY while
+// the input is not focused, so a settle elsewhere in the grid can never clobber
+// whatever the user is actively typing into a different cell.
 const PricingEditableCell: React.FC<PricingEditableCellProps> = ({
   value,
   field,
@@ -41,6 +46,15 @@ const PricingEditableCell: React.FC<PricingEditableCellProps> = ({
   // field: the second call sees the same parsed value already in flight and
   // skips instead of posting the identical edit twice.
   const sentRef = useRef<number | null>(null);
+  const isFocusedRef = useRef(false);
+
+  useEffect(() => {
+    if (isFocusedRef.current) {
+      return;
+    }
+    setDraft(formatDraftValue(value));
+    sentRef.current = null;
+  }, [value, error]);
 
   const commitIfChanged = () => {
     const parsed = parseDraftValue(draft);
@@ -56,6 +70,15 @@ const PricingEditableCell: React.FC<PricingEditableCellProps> = ({
 
     sentRef.current = parsed;
     onCommit(productCode, field, parsed);
+  };
+
+  const handleFocus = () => {
+    isFocusedRef.current = true;
+  };
+
+  const handleBlur = () => {
+    isFocusedRef.current = false;
+    commitIfChanged();
   };
 
   const handleKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
@@ -77,7 +100,8 @@ const PricingEditableCell: React.FC<PricingEditableCellProps> = ({
         data-testid={`pricing-cell-${productCode}-${field}`}
         value={draft}
         onChange={(event) => setDraft(event.target.value)}
-        onBlur={commitIfChanged}
+        onFocus={handleFocus}
+        onBlur={handleBlur}
         onKeyDown={handleKeyDown}
         className={`w-full rounded border bg-transparent px-2 py-1 text-right text-sm focus:outline-none focus:ring-2 dark:text-graphite-text ${
           error

@@ -269,6 +269,170 @@ describe("PriceAnalysis editing", () => {
     });
   });
 
+  it("commits an M0 Kč margin edit with field M0Amount (the Kč side of the M0 Kč/% pair)", async () => {
+    mockMutateAsync.mockResolvedValue({
+      rows: [buildRow({ m0Amount: 140, isEdited: true })],
+      totals: buildTotals(),
+      overrides: [{ productCode: "PROD001", materialCost: 10 }],
+    });
+
+    render(<PriceAnalysis />, { wrapper: createWrapper() });
+
+    const m0AmountInput = screen.getByTestId(
+      `pricing-cell-PROD001-${PricingEditField.M0Amount}`,
+    );
+    fireEvent.change(m0AmountInput, { target: { value: "140" } });
+    fireEvent.blur(m0AmountInput);
+
+    expect(mockMutateAsync).toHaveBeenCalledWith(
+      expect.objectContaining({
+        edit: { productCode: "PROD001", field: PricingEditField.M0Amount, value: 140 },
+      }),
+    );
+
+    expect(await screen.findByTestId("pricing-row-reset-PROD001")).toBeInTheDocument();
+  });
+
+  it("does not clobber a different cell's in-progress draft when another cell's commit settles", async () => {
+    let resolveFirst: (value: unknown) => void = () => {};
+    const firstPromise = new Promise((resolve) => {
+      resolveFirst = resolve;
+    });
+    mockMutateAsync.mockReturnValueOnce(firstPromise);
+
+    render(<PriceAnalysis />, { wrapper: createWrapper() });
+
+    // Commit A: Price, deliberately left in flight.
+    fireEvent.change(priceInput(), { target: { value: "175" } });
+    fireEvent.blur(priceInput());
+    expect(mockMutateAsync).toHaveBeenCalledTimes(1);
+
+    // Start typing into a DIFFERENT, unrelated cell -- never blurred, never
+    // committed, still focused.
+    const forecastInput = screen.getByTestId(
+      `pricing-cell-PROD001-${PricingEditField.ForecastQuantity}`,
+    ) as HTMLInputElement;
+    // A real .focus() call (not fireEvent.focus, which only dispatches a synthetic
+    // event without moving document.activeElement) so the assertion on focus below
+    // is meaningful, and so PricingEditableCell's own isFocusedRef -- driven by a
+    // real onFocus handler -- sees it too.
+    forecastInput.focus();
+    fireEvent.change(forecastInput, { target: { value: "999" } });
+
+    // A settles successfully. Its response never touches forecastQuantity.
+    resolveFirst({
+      rows: [buildRow({ price: 175, isEdited: true })],
+      totals: buildTotals(),
+      overrides: [{ productCode: "PROD001", price: 175 }],
+    });
+
+    await waitFor(() => expect(priceInput().value).toBe("175"));
+
+    // The other cell's in-progress, uncommitted draft -- and its focus -- must
+    // have survived A's settle untouched.
+    expect(forecastInput.value).toBe("999");
+    expect(forecastInput).toHaveFocus();
+    expect(mockMutateAsync).toHaveBeenCalledTimes(1);
+  });
+
+  it("serializes overlapping commits so the second carries the first commit's already-applied override", async () => {
+    let resolveFirst: (value: unknown) => void = () => {};
+    const firstPromise = new Promise((resolve) => {
+      resolveFirst = resolve;
+    });
+    mockMutateAsync.mockReturnValueOnce(firstPromise);
+
+    render(<PriceAnalysis />, { wrapper: createWrapper() });
+
+    // Commit A: Price, left in flight.
+    fireEvent.change(priceInput(), { target: { value: "175" } });
+    fireEvent.blur(priceInput());
+    expect(mockMutateAsync).toHaveBeenCalledTimes(1);
+
+    // Commit B: before A settles, edit a different field on the same row.
+    const forecastInput = screen.getByTestId(
+      `pricing-cell-PROD001-${PricingEditField.ForecastQuantity}`,
+    );
+    fireEvent.change(forecastInput, { target: { value: "120" } });
+    fireEvent.blur(forecastInput);
+
+    // B must be queued behind A, not sent yet.
+    expect(mockMutateAsync).toHaveBeenCalledTimes(1);
+
+    const firstResponseOverrides = [{ productCode: "PROD001", price: 175 }];
+    mockMutateAsync.mockResolvedValueOnce({
+      rows: [buildRow({ price: 175, forecastQuantity: 120, isEdited: true })],
+      totals: buildTotals(),
+      overrides: [{ productCode: "PROD001", price: 175, forecastQuantity: 120 }],
+    });
+
+    resolveFirst({
+      rows: [buildRow({ price: 175, isEdited: true })],
+      totals: buildTotals(),
+      overrides: firstResponseOverrides,
+    });
+
+    // Once A settles, B's queued request goes out -- and must carry A's
+    // already-committed override, not the pre-A overrides captured when B fired
+    // (which would silently discard A's edit).
+    await waitFor(() => expect(mockMutateAsync).toHaveBeenCalledTimes(2));
+    expect(mockMutateAsync).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        overrides: firstResponseOverrides,
+        edit: {
+          productCode: "PROD001",
+          field: PricingEditField.ForecastQuantity,
+          value: 120,
+        },
+      }),
+    );
+  });
+
+  it("uses the server's authoritative overrides array -- not a client hand-merge -- for the next edit", async () => {
+    // Includes an override for a product the client never touched itself, so this
+    // can only pass if the client echoes the server's array verbatim rather than
+    // re-deriving or hand-merging it from what it thinks it sent.
+    const firstResponseOverrides = [
+      { productCode: "PROD001", price: 175 },
+      { productCode: "PROD999", forecastQuantity: 42 },
+    ];
+    mockMutateAsync.mockResolvedValueOnce({
+      rows: [buildRow({ price: 175, isEdited: true })],
+      totals: buildTotals(),
+      overrides: firstResponseOverrides,
+    });
+
+    render(<PriceAnalysis />, { wrapper: createWrapper() });
+
+    fireEvent.change(priceInput(), { target: { value: "175" } });
+    fireEvent.blur(priceInput());
+
+    // Wait for the full first commit to settle (not just the mock call count):
+    // the commit queue (see performRecalculate) only lets the SECOND commit fire
+    // its request synchronously once the first has fully resolved, including its
+    // own internal bookkeeping -- a plain call-count check can win a race against
+    // that bookkeeping and make the second commit queue up instead of firing.
+    await waitFor(() => expect(priceInput().value).toBe("175"));
+
+    mockMutateAsync.mockResolvedValueOnce({
+      rows: [buildRow({ price: 175, forecastQuantity: 120, isEdited: true })],
+      totals: buildTotals(),
+      overrides: firstResponseOverrides,
+    });
+
+    const forecastInput = screen.getByTestId(
+      `pricing-cell-PROD001-${PricingEditField.ForecastQuantity}`,
+    );
+    fireEvent.change(forecastInput, { target: { value: "120" } });
+    fireEvent.blur(forecastInput);
+
+    await waitFor(() => {
+      expect(mockMutateAsync).toHaveBeenLastCalledWith(
+        expect.objectContaining({ overrides: firstResponseOverrides }),
+      );
+    });
+  });
+
   it("clears every override on global reset", async () => {
     mockMutateAsync.mockResolvedValueOnce({
       rows: [buildRow({ price: 175, isEdited: true })],

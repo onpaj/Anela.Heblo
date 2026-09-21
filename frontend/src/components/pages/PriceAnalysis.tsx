@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useRef, useState } from "react";
 import { Search, Filter, AlertCircle, AlertTriangle, Loader2, RotateCcw } from "lucide-react";
 import { toast } from "react-hot-toast";
 import {
@@ -67,64 +67,99 @@ const PriceAnalysis: React.FC = () => {
 
   // Editing state. `recalculated` shadows the baseline query's rows/totals once the
   // first successful recalculate lands -- the mutation response is the new source of
-  // truth and is never merged with the baseline. `overrides` mirrors the server's
-  // authoritative override set (replaced wholesale from each response's `overrides`,
-  // never hand-merged). `resetToken` forces every PricingEditableCell to remount
-  // after a commit settles, which is how a rejected/failed edit reverts its cell.
+  // truth and is never merged with the baseline. `overrides` (and `overridesRef`,
+  // its always-current mirror -- see performRecalculate) hold the server's
+  // authoritative override set, replaced wholesale from each response's
+  // `overrides`, never hand-merged. `cellResetTokens` forces exactly one cell to
+  // remount after a NETWORK failure on it (see PricingGrid's doc comment); success
+  // and rejection revert/refresh themselves via ordinary value/error prop changes.
   const [overrides, setOverrides] = useState<IPricingOverrideDto[]>([]);
+  const overridesRef = useRef<IPricingOverrideDto[]>(overrides);
+  // Tracks the tail of the current commit queue (see performRecalculate) so an
+  // overlapping second commit is chained behind the first instead of racing it.
+  const inFlightRequestRef = useRef<Promise<void> | null>(null);
   const [recalculated, setRecalculated] = useState<{
     rows: PricingRowDto[];
     totals: PricingTotalsDto | undefined;
   } | null>(null);
   const [cellErrors, setCellErrors] = useState<Record<string, string>>({});
   const [isTotalsStale, setIsTotalsStale] = useState(false);
-  const [resetToken, setResetToken] = useState(0);
+  const [cellResetTokens, setCellResetTokens] = useState<Record<string, number>>({});
 
   const recalculateMutation = useRecalculatePricingMutation();
 
   const rows = recalculated?.rows ?? data?.rows ?? [];
   const totals = recalculated?.totals ?? data?.totals;
 
-  const performRecalculate = async (
-    nextOverrides: IPricingOverrideDto[],
+  // Commits are serialized through `inFlightRequestRef`: a commit fired while a
+  // previous one is still in flight (e.g. blur cell A, then Enter in cell B before
+  // A's response lands) is queued behind it rather than reading `overridesRef` at
+  // the moment it was fired. Without this, B's request would be built from the
+  // overrides captured BEFORE A's edit was applied, silently discarding A's edit
+  // the instant B's response replaces the client's state. When nothing is in
+  // flight, `run()` is invoked directly (not chained through `.then`), which keeps
+  // the mutation call synchronous with the triggering blur/Enter for the common,
+  // non-overlapping case.
+  const performRecalculate = (
+    buildOverrides: (current: IPricingOverrideDto[]) => IPricingOverrideDto[],
     edit: IPricingEditDto | undefined,
     errorKey: string | undefined,
-  ) => {
-    if (errorKey) {
-      setCellErrors((prev) => {
-        if (!(errorKey in prev)) return prev;
-        const { [errorKey]: _removed, ...rest } = prev;
-        return rest;
-      });
-    }
-
-    try {
-      const response = await recalculateMutation.mutateAsync({
-        productCode: filter.productCode,
-        productName: filter.productName,
-        productType: filter.productType,
-        overrides: nextOverrides,
-        edit,
-      });
-      setRecalculated({ rows: response.rows ?? [], totals: response.totals });
-      setOverrides(response.overrides ?? []);
-      setIsTotalsStale(false);
-    } catch (caughtError) {
-      const rejectionMessage = errorKey ? resolvePricingEditErrorMessage(caughtError) : undefined;
-      if (rejectionMessage && errorKey) {
-        setCellErrors((prev) => ({ ...prev, [errorKey]: rejectionMessage }));
-      } else {
-        setIsTotalsStale(true);
-        toast.error(GENERIC_RECALCULATE_FAILURE_TOAST);
+  ): Promise<void> => {
+    const run = async () => {
+      if (errorKey) {
+        setCellErrors((prev) => {
+          if (!(errorKey in prev)) return prev;
+          const { [errorKey]: _removed, ...rest } = prev;
+          return rest;
+        });
       }
-    } finally {
-      setResetToken((token) => token + 1);
-    }
+
+      const nextOverrides = buildOverrides(overridesRef.current);
+
+      try {
+        const response = await recalculateMutation.mutateAsync({
+          productCode: filter.productCode,
+          productName: filter.productName,
+          productType: filter.productType,
+          overrides: nextOverrides,
+          edit,
+        });
+        const responseOverrides = response.overrides ?? [];
+        overridesRef.current = responseOverrides;
+        setRecalculated({ rows: response.rows ?? [], totals: response.totals });
+        setOverrides(responseOverrides);
+        setIsTotalsStale(false);
+      } catch (caughtError) {
+        const rejectionMessage = errorKey ? resolvePricingEditErrorMessage(caughtError) : undefined;
+        if (rejectionMessage && errorKey) {
+          setCellErrors((prev) => ({ ...prev, [errorKey]: rejectionMessage }));
+        } else {
+          setIsTotalsStale(true);
+          toast.error(GENERIC_RECALCULATE_FAILURE_TOAST);
+          // No natural value/error prop change exists to revert this cell (the row
+          // is untouched on a network failure) -- force just this one cell to
+          // remount and resync from its unchanged `value`.
+          if (errorKey) {
+            setCellResetTokens((prev) => ({ ...prev, [errorKey]: (prev[errorKey] ?? 0) + 1 }));
+          }
+        }
+      }
+    };
+
+    const previous = inFlightRequestRef.current;
+    const started: Promise<void> = previous ? previous.then(run, run) : run();
+    const tracked = started.finally(() => {
+      if (inFlightRequestRef.current === tracked) {
+        inFlightRequestRef.current = null;
+      }
+    });
+    inFlightRequestRef.current = tracked;
+    return started;
   };
 
   const handleCellEdit = (productCode: string, field: PricingEditField, value: number) => {
     void performRecalculate(
-      overrides,
+      (current) => current,
       { productCode, field, value },
       pricingCellErrorKey(productCode, field),
     );
@@ -132,14 +167,14 @@ const PriceAnalysis: React.FC = () => {
 
   const handleResetRow = (productCode: string) => {
     void performRecalculate(
-      overrides.filter((override) => override.productCode !== productCode),
+      (current) => current.filter((override) => override.productCode !== productCode),
       undefined,
       undefined,
     );
   };
 
   const handleResetAll = () => {
-    void performRecalculate([], undefined, undefined);
+    void performRecalculate(() => [], undefined, undefined);
   };
 
   const handleApplyFilters = async () => {
@@ -320,7 +355,7 @@ const PriceAnalysis: React.FC = () => {
         onEdit={handleCellEdit}
         onResetRow={handleResetRow}
         cellErrors={cellErrors}
-        resetToken={resetToken}
+        cellResetTokens={cellResetTokens}
       />
     </div>
   );
