@@ -18,4 +18,10 @@ public interface IManufactureCatalogSource
         CancellationToken cancellationToken = default);
 
     Task<IEnumerable<CatalogAggregate>> GetAllAsync(CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Re-reads planned manufacture quantities into the catalog cache. Call after a write that
+    /// changes them, so consumers do not wait for the scheduled background refresh.
+    /// </summary>
+    Task RefreshPlannedDataAsync(CancellationToken cancellationToken = default);
 }

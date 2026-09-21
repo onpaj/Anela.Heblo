@@ -1,6 +1,6 @@
 using Anela.Heblo.Application.Features.ExpeditionListArchive;
+using Anela.Heblo.Application.Features.ExpeditionListArchive.Contracts;
 using Anela.Heblo.Application.Features.ExpeditionListArchive.UseCases.GetExpeditionDates;
-using Anela.Heblo.Domain.Features.FileStorage;
 using Microsoft.Extensions.Options;
 using Moq;
 using Xunit;
@@ -9,14 +9,14 @@ namespace Anela.Heblo.Tests.ExpeditionListArchive;
 
 public class GetExpeditionDatesHandlerTests
 {
-    private readonly Mock<IBlobStorageService> _blobStorageServiceMock;
+    private readonly Mock<IExpeditionListArchiveBlobStore> _blobStoreMock;
     private readonly GetExpeditionDatesHandler _handler;
     private const string ContainerName = "expedition-lists";
 
     public GetExpeditionDatesHandlerTests()
     {
-        _blobStorageServiceMock = new Mock<IBlobStorageService>();
-        _handler = new GetExpeditionDatesHandler(_blobStorageServiceMock.Object, Options.Create(new ExpeditionListArchiveOptions()));
+        _blobStoreMock = new Mock<IExpeditionListArchiveBlobStore>();
+        _handler = new GetExpeditionDatesHandler(_blobStoreMock.Object, Options.Create(new ExpeditionListArchiveOptions()));
     }
 
     [Fact]
@@ -24,7 +24,7 @@ public class GetExpeditionDatesHandlerTests
     {
         // Arrange
         var prefixes = new List<string> { "2026-03-24", "2026-03-25", "2026-03-23" };
-        _blobStorageServiceMock
+        _blobStoreMock
             .Setup(s => s.ListVirtualDirectoriesAsync(ContainerName, It.IsAny<CancellationToken>()))
             .ReturnsAsync(prefixes.AsReadOnly());
 
@@ -52,7 +52,7 @@ public class GetExpeditionDatesHandlerTests
             prefixes.Add($"2026-01-{i:D2}");
         }
 
-        _blobStorageServiceMock
+        _blobStoreMock
             .Setup(s => s.ListVirtualDirectoriesAsync(ContainerName, It.IsAny<CancellationToken>()))
             .ReturnsAsync(prefixes.AsReadOnly());
 
@@ -70,7 +70,7 @@ public class GetExpeditionDatesHandlerTests
     public async Task Handle_EmptyContainer_ReturnsEmptyList()
     {
         // Arrange
-        _blobStorageServiceMock
+        _blobStoreMock
             .Setup(s => s.ListVirtualDirectoriesAsync(ContainerName, It.IsAny<CancellationToken>()))
             .ReturnsAsync(new List<string>().AsReadOnly());
 
@@ -89,7 +89,7 @@ public class GetExpeditionDatesHandlerTests
     {
         // Arrange
         var prefixes = new List<string> { "2026-03-25", "2026-03-24" };
-        _blobStorageServiceMock
+        _blobStoreMock
             .Setup(s => s.ListVirtualDirectoriesAsync(ContainerName, It.IsAny<CancellationToken>()))
             .ReturnsAsync(prefixes.AsReadOnly());
 
@@ -99,10 +99,10 @@ public class GetExpeditionDatesHandlerTests
         await _handler.Handle(request, default);
 
         // Assert
-        _blobStorageServiceMock.Verify(
+        _blobStoreMock.Verify(
             s => s.ListVirtualDirectoriesAsync(ContainerName, It.IsAny<CancellationToken>()),
             Times.Once);
-        _blobStorageServiceMock.Verify(
+        _blobStoreMock.Verify(
             s => s.ListBlobsAsync(It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()),
             Times.Never);
     }
@@ -120,7 +120,7 @@ public class GetExpeditionDatesHandlerTests
             "not-a-date",       // not a date
             "2025-12-31"        // valid
         };
-        _blobStorageServiceMock
+        _blobStoreMock
             .Setup(s => s.ListVirtualDirectoriesAsync(ContainerName, It.IsAny<CancellationToken>()))
             .ReturnsAsync(prefixes.AsReadOnly());
 

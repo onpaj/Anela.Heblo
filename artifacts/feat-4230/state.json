@@ -1,0 +1,64 @@
+{
+  "feature_id": "feat-4230",
+  "issue_number": 4230,
+  "created_at": "2026-09-20T07:12:14.567915Z",
+  "max_revisions": 3,
+  "phases": {
+    "analyzing": {
+      "status": "completed",
+      "updated_at": "2026-09-20T07:13:38.850342Z"
+    },
+    "architecting": {
+      "status": "completed",
+      "updated_at": "2026-09-20T07:15:05.714132Z"
+    },
+    "designing": {
+      "status": "completed",
+      "updated_at": "2026-09-20T07:15:46.565351Z"
+    },
+    "planning": {
+      "status": "completed",
+      "updated_at": "2026-09-20T07:18:20.718341Z"
+    },
+    "developing": {
+      "status": "in_progress",
+      "updated_at": "2026-09-20T08:42:43.007896Z"
+    },
+    "code-review": {
+      "status": "completed",
+      "updated_at": "2026-09-20T08:55:10.383573Z"
+    }
+  },
+  "tasks": [
+    {
+      "name": "add-regression-test",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-09-20T08:20:25.739433Z"
+    },
+    {
+      "name": "build-product-color-map",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-09-20T08:26:26.510246Z"
+    },
+    {
+      "name": "extract-chart-dataset-builder",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-09-20T08:34:10.595456Z"
+    },
+    {
+      "name": "wire-table-data-to-color-map",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-09-20T08:41:28.388258Z"
+    },
+    {
+      "name": "final-validation",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-09-20T08:50:29.370072Z"
+    }
+  ]
+}

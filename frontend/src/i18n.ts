@@ -233,6 +233,12 @@ const resources = {
         MarketingCalendarAccessDenied: "Nemáte oprávnění zapisovat do marketingového kalendáře. Musíte být členem marketingové skupiny.",
         MarketingCalendarSyncFailed: "Nepodařilo se kontaktovat Outlook kalendář. Zkuste to prosím znovu.",
 
+        // Marketing Performance module errors
+        MarketingPerformanceInvalidMonthRange: "Neplatné období: zadejte měsíce ve formátu RRRR-MM, počáteční měsíc nesmí být po koncovém a období nesmí být v budoucnosti.",
+        MarketingPerformanceRangeTooLarge: "Období pro přepočet je příliš dlouhé (maximum {maxMonths} měsíců).",
+        MarketingPerformanceRecomputeAlreadyRunning: "Přepočet výkonu reklamy už běží. Počkejte na jeho dokončení.",
+        MarketingPerformanceEnqueueFailed: "Přepočet se nepodařilo zařadit do fronty. Zkuste to prosím znovu.",
+
         // Photobank module errors
         PhotoNotFound: "Fotka nebyla nalezena",
         PhotobankRootNotFound: "Kořenový adresář fotobanka nebyl nalezen",
@@ -351,6 +357,15 @@ const resources = {
         ProductPriceShoptetWriteFailed: "Zápis ceny do Shoptetu selhal, cena nebyla nikde změněna",
         ProductPriceFlexiWriteFailed: "Cena byla změněna v Shoptetu, ale zápis do Flexi selhal — ceny se nyní liší",
         ProductPriceErpReadFailed: "ERP Flexi se nepodařilo načíst; cena nebyla nikde změněna",
+        // Pricing simulator module errors (38XX)
+        PricingInvalidPrice: "Cena musí být větší než nula",
+        PricingNegativeMaterialCost: "Marže M0 je vyšší než cena — materiálové náklady by byly záporné",
+        PricingNegativeManufacturingCost: "Marže M1 je vyšší než M0 — výrobní náklady by byly záporné",
+        PricingNegativeQuantity: "Množství nesmí být záporné",
+        PricingScenarioNotFound: "Scénář nebyl nalezen",
+        PricingScenarioNameConflict: "Scénář s tímto názvem už existuje",
+        PricingProductNotInBaseline:
+          "Produkt už v aktuální analýze není, úpravu nelze použít — načtěte analýzu znovu",
 
         // External Service errors
         ExternalServiceError: "Chyba externí služby",

@@ -1,0 +1,40 @@
+{
+  "feature_id": "feat-4243",
+  "issue_number": 4243,
+  "created_at": "2026-09-21T07:11:53.948459Z",
+  "max_revisions": 3,
+  "phases": {
+    "analyzing": {
+      "status": "completed",
+      "updated_at": "2026-09-21T07:14:37.725827Z"
+    },
+    "architecting": {
+      "status": "completed",
+      "updated_at": "2026-09-21T07:15:33.422080Z"
+    },
+    "designing": {
+      "status": "completed",
+      "updated_at": "2026-09-21T07:16:03.330680Z"
+    },
+    "planning": {
+      "status": "completed",
+      "updated_at": "2026-09-21T07:18:14.128912Z"
+    },
+    "developing": {
+      "status": "in_progress",
+      "updated_at": "2026-09-21T08:16:43.326138Z"
+    },
+    "code-review": {
+      "status": "completed",
+      "updated_at": "2026-09-21T10:23:04.353345Z"
+    }
+  },
+  "tasks": [
+    {
+      "name": "configuration-constants-defaults",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-09-21T09:17:15.159991Z"
+    }
+  ]
+}

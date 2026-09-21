@@ -16,6 +16,7 @@ import ProductMarginsList from "./components/pages/ProductMarginsList";
 import ProductStatistics from "./components/pages/ProductStatistics";
 import ProductMarginSummary from "./components/pages/ProductMarginSummary";
 import FinancialOverview from "./components/pages/FinancialOverview";
+import PriceAnalysis from "./components/pages/PriceAnalysis";
 import BankStatementImportPage from "./pages/customer/BankStatementImportPage";
 import JournalList from "./components/pages/Journal/JournalList";
 import JournalEntryNew from "./components/pages/JournalEntryNew";
@@ -53,6 +54,7 @@ import MarketingFeedbackPage from "./pages/MarketingFeedbackPage";
 import ArticlesPage from "./pages/ArticlesPage";
 import ExpeditionListArchivePage from "./pages/ExpeditionListArchivePage";
 import MarketingCalendarPage from "./components/marketing/pages/MarketingCalendarPage";
+import MarketingPerformancePage from "./components/marketing/performance/MarketingPerformancePage";
 import PhotobankPage from "./components/marketing/photobank/pages/PhotobankPage";
 import PhotobankSettingsPage from "./components/marketing/photobank/pages/PhotobankSettingsPage";
 import AuthGuard from "./components/auth/AuthGuard";
@@ -415,6 +417,7 @@ function App() {
                         <Route path="/" element={<Dashboard />} />
                         <Route path="/finance/overview" element={guard("/finance/overview", <FinancialOverview />)} />
                         <Route path="/finance/bank-statements" element={guard("/finance/bank-statements", <BankStatementImportPage />)} />
+                        <Route path="/finance/price-analysis" element={guard("/finance/price-analysis", <PriceAnalysis />)} />
                         <Route path="/analytics/product-margin-summary" element={guard("/analytics/product-margin-summary", <ProductMarginSummary />)} />
                         <Route path="/catalog" element={guard("/catalog", <CatalogList />)} />
                         <Route path="/purchase/orders" element={guard("/purchase/orders", <PurchaseOrderList />)} />
@@ -431,6 +434,7 @@ function App() {
                         <Route path="/products/statistics" element={guard("/products/statistics", <ProductStatistics />)} />
                         <Route path="/journal" element={guard("/journal", <JournalList />)} />
                         <Route path="/marketing/calendar" element={guard("/marketing/calendar", <MarketingCalendarPage />)} />
+                        <Route path="/marketing/performance" element={guard("/marketing/performance", <MarketingPerformancePage />)} />
                         <Route path="/marketing/photobank" element={guard("/marketing/photobank", <PhotobankPage />)} />
                         <Route path="/marketing/photobank/settings" element={<PhotobankSettingsPage />} />
                         <Route path="/leaflet-generator" element={guard("/leaflet-generator", <LeafletGeneratorPage />)} />

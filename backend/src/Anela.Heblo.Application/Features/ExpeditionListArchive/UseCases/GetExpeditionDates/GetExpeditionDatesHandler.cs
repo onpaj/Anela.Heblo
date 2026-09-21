@@ -1,4 +1,4 @@
-using Anela.Heblo.Domain.Features.FileStorage;
+using Anela.Heblo.Application.Features.ExpeditionListArchive.Contracts;
 using MediatR;
 using Microsoft.Extensions.Options;
 
@@ -6,18 +6,18 @@ namespace Anela.Heblo.Application.Features.ExpeditionListArchive.UseCases.GetExp
 
 public class GetExpeditionDatesHandler : IRequestHandler<GetExpeditionDatesRequest, GetExpeditionDatesResponse>
 {
-    private readonly IBlobStorageService _blobStorageService;
+    private readonly IExpeditionListArchiveBlobStore _blobStore;
     private readonly string _containerName;
 
-    public GetExpeditionDatesHandler(IBlobStorageService blobStorageService, IOptions<ExpeditionListArchiveOptions> options)
+    public GetExpeditionDatesHandler(IExpeditionListArchiveBlobStore blobStore, IOptions<ExpeditionListArchiveOptions> options)
     {
-        _blobStorageService = blobStorageService;
+        _blobStore = blobStore;
         _containerName = options.Value.BlobContainerName;
     }
 
     public async Task<GetExpeditionDatesResponse> Handle(GetExpeditionDatesRequest request, CancellationToken cancellationToken)
     {
-        var prefixes = await _blobStorageService.ListVirtualDirectoriesAsync(_containerName, cancellationToken);
+        var prefixes = await _blobStore.ListVirtualDirectoriesAsync(_containerName, cancellationToken);
 
         var dates = prefixes
             .Where(IsValidDatePrefix)

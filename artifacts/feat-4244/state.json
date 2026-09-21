@@ -1,0 +1,40 @@
+{
+  "feature_id": "feat-4244",
+  "issue_number": 4244,
+  "created_at": "2026-09-21T08:12:37.643512Z",
+  "max_revisions": 3,
+  "phases": {
+    "analyzing": {
+      "status": "completed",
+      "updated_at": "2026-09-21T08:13:55.489104Z"
+    },
+    "architecting": {
+      "status": "completed",
+      "updated_at": "2026-09-21T08:14:35.714569Z"
+    },
+    "designing": {
+      "status": "completed",
+      "updated_at": "2026-09-21T08:14:53.885729Z"
+    },
+    "planning": {
+      "status": "completed",
+      "updated_at": "2026-09-21T08:15:36.807297Z"
+    },
+    "developing": {
+      "status": "in_progress",
+      "updated_at": "2026-09-21T11:18:21.271537Z"
+    },
+    "code-review": {
+      "status": "completed",
+      "updated_at": "2026-09-21T13:19:27.278883Z"
+    }
+  },
+  "tasks": [
+    {
+      "name": "remove-dead-try-catch",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-09-21T12:30:14.059436Z"
+    }
+  ]
+}

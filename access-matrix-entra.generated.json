@@ -31,6 +31,26 @@
       "value": "finance.margin_analysis.read"
     },
     {
+      "id": "83e81fe0-5039-5867-9841-fdbe9895c860",
+      "allowedMemberTypes": [
+        "User"
+      ],
+      "description": "Finance_PriceAnalysis Read",
+      "displayName": "finance.price_analysis.read",
+      "isEnabled": true,
+      "value": "finance.price_analysis.read"
+    },
+    {
+      "id": "f2afa098-c30a-5fd4-a053-ce03a06d130e",
+      "allowedMemberTypes": [
+        "User"
+      ],
+      "description": "Finance_PriceAnalysis Write",
+      "displayName": "finance.price_analysis.write",
+      "isEnabled": true,
+      "value": "finance.price_analysis.write"
+    },
+    {
       "id": "2f73f3b6-d20e-51f2-a2d2-6fb064fd37ff",
       "allowedMemberTypes": [
         "User"
@@ -511,6 +531,26 @@
       "value": "marketing.marketing_calendar.write"
     },
     {
+      "id": "ce2d6934-e883-58cb-9105-63d495f19137",
+      "allowedMemberTypes": [
+        "User"
+      ],
+      "description": "Marketing_Performance Read",
+      "displayName": "marketing.performance.read",
+      "isEnabled": true,
+      "value": "marketing.performance.read"
+    },
+    {
+      "id": "60417f0a-7585-5842-929f-9622eddd6ec1",
+      "allowedMemberTypes": [
+        "User"
+      ],
+      "description": "Marketing_Performance Write",
+      "displayName": "marketing.performance.write",
+      "isEnabled": true,
+      "value": "marketing.performance.write"
+    },
+    {
       "id": "b1762e2c-07ab-5bc8-999a-9c499bef77cc",
       "allowedMemberTypes": [
         "User"
@@ -714,6 +754,8 @@
         "marketing.photobank.admin",
         "marketing.marketing_calendar.read",
         "marketing.marketing_calendar.write",
+        "marketing.performance.read",
+        "marketing.performance.write",
         "anela.meetings.read",
         "anela.meetings.write",
         "anela.org_chart.read",
@@ -761,6 +803,7 @@
         "marketing.leaflet.read",
         "marketing.photobank.read",
         "marketing.marketing_calendar.read",
+        "marketing.performance.read",
         "anela.meetings.read",
         "anela.org_chart.read",
         "anela.mind_maps.read",
@@ -791,7 +834,8 @@
         "marketing.leaflet.read",
         "marketing.leaflet.write",
         "marketing.article.read",
-        "marketing.article.write"
+        "marketing.article.write",
+        "marketing.performance.read"
       ]
     },
     {

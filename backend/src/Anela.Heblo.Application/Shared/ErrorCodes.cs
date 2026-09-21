@@ -481,6 +481,32 @@ public enum ErrorCodes
     [HttpStatusCode(HttpStatusCode.BadGateway)]
     ProductPriceErpReadFailed = 3609,
 
+    // Marketing Performance module errors (37XX)
+    [HttpStatusCode(HttpStatusCode.BadRequest)]
+    MarketingPerformanceInvalidMonthRange = 3701,
+    [HttpStatusCode(HttpStatusCode.BadRequest)]
+    MarketingPerformanceRangeTooLarge = 3702,
+    [HttpStatusCode(HttpStatusCode.Conflict)]
+    MarketingPerformanceRecomputeAlreadyRunning = 3703,
+    [HttpStatusCode(HttpStatusCode.InternalServerError)]
+    MarketingPerformanceEnqueueFailed = 3704,
+
+    // Pricing simulator module errors (38XX)
+    [HttpStatusCode(HttpStatusCode.BadRequest)]
+    PricingInvalidPrice = 3801,
+    [HttpStatusCode(HttpStatusCode.BadRequest)]
+    PricingNegativeMaterialCost = 3802,
+    [HttpStatusCode(HttpStatusCode.BadRequest)]
+    PricingNegativeManufacturingCost = 3803,
+    [HttpStatusCode(HttpStatusCode.BadRequest)]
+    PricingNegativeQuantity = 3804,
+    [HttpStatusCode(HttpStatusCode.NotFound)]
+    PricingScenarioNotFound = 3805,
+    [HttpStatusCode(HttpStatusCode.Conflict)]
+    PricingScenarioNameConflict = 3806,
+    [HttpStatusCode(HttpStatusCode.BadRequest)]
+    PricingProductNotInBaseline = 3807,
+
     // External Service errors (90XX)
     [HttpStatusCode(HttpStatusCode.ServiceUnavailable)]
     ExternalServiceError = 9001,

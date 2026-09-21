@@ -17,7 +17,7 @@ namespace Anela.Heblo.Tests.Features.Catalog.CostProviders;
 /// Tests for SalesCostProvider.
 /// Uses Collection attribute to ensure sequential execution due to static RefreshLock in the provider.
 /// </summary>
-[Collection("SalesCostProviderTests")]
+[Collection(CostProviderRefreshLockCollection.Name)]
 public class SalesCostProviderTests
 {
     private const int DefaultHistoryDays = 90;
@@ -98,6 +98,40 @@ public class SalesCostProviderTests
     // ===== Tests =====
 
     [Fact]
+    internal async Task RefreshAsync_AsksLedgerForConsumablesServicesAndPersonnel()
+    {
+        // Arrange - 50x in SKLAD/MARKETING is shipping packaging and print, which is
+        // fulfilment and marketing spend; leaving it out understated M2 by ~4%.
+        var now = DateTime.UtcNow;
+        var saleDate = new DateTime(now.Year, now.Month, 1).AddMonths(-1).AddDays(14);
+
+        var repoMock = new Mock<ICatalogRepository>();
+        repoMock.Setup(r => r.WaitForCurrentMergeAsync(It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+        repoMock.Setup(r => r.GetAllAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<CatalogAggregate> { BuildProduct("PROD-A", new[] { (saleDate, 10.0) }) });
+
+        var capturedPrefixes = new List<IReadOnlyList<string>>();
+        var ledgerMock = new Mock<ILedgerService>();
+        ledgerMock
+            .Setup(s => s.GetCosts(
+                It.IsAny<DateTime>(), It.IsAny<DateTime>(),
+                It.IsAny<IEnumerable<string>>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .Callback<DateTime, DateTime, IEnumerable<string>, string?, CancellationToken>(
+                (_, _, prefixes, _, _) => capturedPrefixes.Add(prefixes.ToList()))
+            .ReturnsAsync(new List<CostStatistics>());
+
+        var provider = CreateProvider(repoMock: repoMock, ledgerMock: ledgerMock);
+
+        // Act
+        await provider.RefreshAsync();
+
+        // Assert
+        capturedPrefixes.Should().HaveCount(2);
+        capturedPrefixes.Should().AllSatisfy(p => p.Should().BeEquivalentTo(new[] { "50", "51", "52" }));
+    }
+
+    [Fact]
     internal async Task RefreshAsync_DistributesCostPerPiece_WhenSalesExist()
     {
         // Arrange
@@ -126,12 +160,12 @@ public class SalesCostProviderTests
             .ReturnsAsync(products);
 
         var ledgerMock = new Mock<ILedgerService>();
-        ledgerMock.Setup(s => s.GetDirectCosts(It.IsAny<DateTime>(), It.IsAny<DateTime>(), "SKLAD", It.IsAny<CancellationToken>()))
+        ledgerMock.Setup(s => s.GetCosts(It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.IsAny<IEnumerable<string>>(), "SKLAD", It.IsAny<CancellationToken>()))
             .ReturnsAsync(new List<CostStatistics>
             {
                 new() { Date = saleDate, Cost = warehouseCost, Department = "SKLAD" }
             });
-        ledgerMock.Setup(s => s.GetDirectCosts(It.IsAny<DateTime>(), It.IsAny<DateTime>(), "MARKETING", It.IsAny<CancellationToken>()))
+        ledgerMock.Setup(s => s.GetCosts(It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.IsAny<IEnumerable<string>>(), "MARKETING", It.IsAny<CancellationToken>()))
             .ReturnsAsync(new List<CostStatistics>
             {
                 new() { Date = saleDate, Cost = marketingCost, Department = "MARKETING" }
@@ -165,10 +199,10 @@ public class SalesCostProviderTests
         }
 
         ledgerMock.Verify(
-            s => s.GetDirectCosts(It.IsAny<DateTime>(), It.IsAny<DateTime>(), "SKLAD", It.IsAny<CancellationToken>()),
+            s => s.GetCosts(It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.IsAny<IEnumerable<string>>(), "SKLAD", It.IsAny<CancellationToken>()),
             Times.Once);
         ledgerMock.Verify(
-            s => s.GetDirectCosts(It.IsAny<DateTime>(), It.IsAny<DateTime>(), "MARKETING", It.IsAny<CancellationToken>()),
+            s => s.GetCosts(It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.IsAny<IEnumerable<string>>(), "MARKETING", It.IsAny<CancellationToken>()),
             Times.Once);
 
         callOrder.Should().Equal("WaitForCurrentMergeAsync", "GetAllAsync");
@@ -207,12 +241,12 @@ public class SalesCostProviderTests
         repoMock.Setup(r => r.GetAllAsync(It.IsAny<CancellationToken>())).ReturnsAsync(products);
 
         var ledgerMock = new Mock<ILedgerService>();
-        ledgerMock.Setup(s => s.GetDirectCosts(It.IsAny<DateTime>(), It.IsAny<DateTime>(), "SKLAD", It.IsAny<CancellationToken>()))
+        ledgerMock.Setup(s => s.GetCosts(It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.IsAny<IEnumerable<string>>(), "SKLAD", It.IsAny<CancellationToken>()))
             .ReturnsAsync(new List<CostStatistics>
             {
                 new() { Date = saleDate, Cost = warehouseCost, Department = "SKLAD" }
             });
-        ledgerMock.Setup(s => s.GetDirectCosts(It.IsAny<DateTime>(), It.IsAny<DateTime>(), "MARKETING", It.IsAny<CancellationToken>()))
+        ledgerMock.Setup(s => s.GetCosts(It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.IsAny<IEnumerable<string>>(), "MARKETING", It.IsAny<CancellationToken>()))
             .ReturnsAsync(new List<CostStatistics>
             {
                 new() { Date = saleDate, Cost = marketingCost, Department = "MARKETING" }
@@ -252,7 +286,7 @@ public class SalesCostProviderTests
         repoMock.Setup(r => r.GetAllAsync(It.IsAny<CancellationToken>())).ReturnsAsync(products);
 
         var ledgerMock = new Mock<ILedgerService>();
-        ledgerMock.Setup(s => s.GetDirectCosts(It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+        ledgerMock.Setup(s => s.GetCosts(It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.IsAny<IEnumerable<string>>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new List<CostStatistics>
             {
                 new() { Date = DateTime.UtcNow, Cost = 999m, Department = "SKLAD" }
@@ -381,14 +415,14 @@ public class SalesCostProviderTests
         DateTime? capturedTo = null;
 
         var ledgerMock = new Mock<ILedgerService>();
-        ledgerMock.Setup(s => s.GetDirectCosts(It.IsAny<DateTime>(), It.IsAny<DateTime>(), "SKLAD", It.IsAny<CancellationToken>()))
-            .Callback<DateTime, DateTime, string?, CancellationToken>((from, to, _, _) =>
+        ledgerMock.Setup(s => s.GetCosts(It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.IsAny<IEnumerable<string>>(), "SKLAD", It.IsAny<CancellationToken>()))
+            .Callback<DateTime, DateTime, IEnumerable<string>, string?, CancellationToken>((from, to, _, _, _) =>
             {
                 capturedFrom = from;
                 capturedTo = to;
             })
             .ReturnsAsync(new List<CostStatistics>());
-        ledgerMock.Setup(s => s.GetDirectCosts(It.IsAny<DateTime>(), It.IsAny<DateTime>(), "MARKETING", It.IsAny<CancellationToken>()))
+        ledgerMock.Setup(s => s.GetCosts(It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.IsAny<IEnumerable<string>>(), "MARKETING", It.IsAny<CancellationToken>()))
             .ReturnsAsync(new List<CostStatistics>());
 
         var repoMock = new Mock<ICatalogRepository>();
@@ -447,9 +481,9 @@ public class SalesCostProviderTests
         var gate = new TaskCompletionSource<IList<CostStatistics>>(TaskCreationOptions.RunContinuationsAsynchronously);
 
         var ledgerMock = new Mock<ILedgerService>();
-        ledgerMock.Setup(s => s.GetDirectCosts(It.IsAny<DateTime>(), It.IsAny<DateTime>(), "SKLAD", It.IsAny<CancellationToken>()))
+        ledgerMock.Setup(s => s.GetCosts(It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.IsAny<IEnumerable<string>>(), "SKLAD", It.IsAny<CancellationToken>()))
             .Returns(gate.Task);
-        ledgerMock.Setup(s => s.GetDirectCosts(It.IsAny<DateTime>(), It.IsAny<DateTime>(), "MARKETING", It.IsAny<CancellationToken>()))
+        ledgerMock.Setup(s => s.GetCosts(It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.IsAny<IEnumerable<string>>(), "MARKETING", It.IsAny<CancellationToken>()))
             .ReturnsAsync(new List<CostStatistics>());
 
         var repoMock = new Mock<ICatalogRepository>();
@@ -467,7 +501,7 @@ public class SalesCostProviderTests
         // Act 1 — start first refresh; blocks on gate inside ComputeAllCostsAsync
         var firstRefresh = provider.RefreshAsync();
 
-        while (!ledgerMock.Invocations.Any(i => i.Method.Name == nameof(ILedgerService.GetDirectCosts)))
+        while (!ledgerMock.Invocations.Any(i => i.Method.Name == nameof(ILedgerService.GetCosts)))
         {
             await Task.Yield();
         }
@@ -524,10 +558,10 @@ public class SalesCostProviderTests
         var boom = new InvalidOperationException("ledger offline");
 
         var ledgerMock = new Mock<ILedgerService>();
-        ledgerMock.SetupSequence(s => s.GetDirectCosts(It.IsAny<DateTime>(), It.IsAny<DateTime>(), "SKLAD", It.IsAny<CancellationToken>()))
+        ledgerMock.SetupSequence(s => s.GetCosts(It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.IsAny<IEnumerable<string>>(), "SKLAD", It.IsAny<CancellationToken>()))
             .ThrowsAsync(boom)
             .ReturnsAsync(new List<CostStatistics>());
-        ledgerMock.Setup(s => s.GetDirectCosts(It.IsAny<DateTime>(), It.IsAny<DateTime>(), "MARKETING", It.IsAny<CancellationToken>()))
+        ledgerMock.Setup(s => s.GetCosts(It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.IsAny<IEnumerable<string>>(), "MARKETING", It.IsAny<CancellationToken>()))
             .ReturnsAsync(new List<CostStatistics>());
 
         var repoMock = new Mock<ICatalogRepository>();
@@ -574,7 +608,7 @@ public class SalesCostProviderTests
             .ReturnsAsync(new List<CatalogAggregate>());
 
         var ledgerMock = new Mock<ILedgerService>();
-        ledgerMock.Setup(s => s.GetDirectCosts(It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+        ledgerMock.Setup(s => s.GetCosts(It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.IsAny<IEnumerable<string>>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new List<CostStatistics>());
 
         var cacheMock = new Mock<ISalesCostCache>();

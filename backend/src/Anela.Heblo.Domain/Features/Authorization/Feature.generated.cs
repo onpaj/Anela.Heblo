@@ -8,6 +8,7 @@ public enum Feature
 {
     Finance_FinancialOverview,
     Finance_MarginAnalysis,
+    Finance_PriceAnalysis,
     Products_ProductMargins,
     Products_Catalog,
     Products_Journal,
@@ -35,6 +36,7 @@ public enum Feature
     Marketing_Leaflet,
     Marketing_Photobank,
     Marketing_MarketingCalendar,
+    Marketing_Performance,
     Anela_Meetings,
     Anela_OrgChart,
     Anela_MindMaps,
