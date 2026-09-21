@@ -93,6 +93,14 @@ namespace Anela.Heblo.Application.Features.Marketing.Services
             return stripped?.Length > MaxDescriptionLength ? stripped[..MaxDescriptionLength] : stripped;
         }
 
+        /// <summary>
+        /// The two branches deliberately disagree about when the end is null.
+        /// A timed event whose end equals its start carries no duration, so it maps to a
+        /// null EndDate (a point in time). An all-day event always covers at least one whole
+        /// day, so its end stays non-null even when it collapses to the start day — dropping
+        /// it would lose the "this occupies a day" meaning the calendar renders.
+        /// Do not "fix" the asymmetry: each branch backs one half of the Outlook round trip.
+        /// </summary>
         private static DateTime? ParseEndDate(OutlookEventDto evt)
         {
             if (evt.EndUtc == DateTime.MinValue)
@@ -107,6 +115,11 @@ namespace Anela.Heblo.Application.Features.Marketing.Services
             if (evt.IsAllDay)
             {
                 var lastDay = evt.EndUtc.AddDays(-1);
+
+                // A well-formed all-day event always ends after it starts. A malformed one
+                // (end <= start, reachable if a non-Outlook client writes to the same group
+                // calendar) is clamped to a single day rather than imported as a negative
+                // range, which the calendar cannot render.
                 return lastDay < evt.StartUtc ? evt.StartUtc : lastDay;
             }
 
