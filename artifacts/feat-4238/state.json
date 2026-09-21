@@ -22,7 +22,7 @@
     },
     "developing": {
       "status": "in_progress",
-      "updated_at": "2026-09-21T06:17:53.101106Z"
+      "updated_at": "2026-09-21T07:16:45.689149Z"
     }
   },
   "tasks": [
@@ -34,9 +34,9 @@
     },
     {
       "name": "persistence-migration-isalldy",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-09-21T07:16:46.019756Z"
     },
     {
       "name": "import-mapper-isalldy",
