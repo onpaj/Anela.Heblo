@@ -140,7 +140,11 @@ export const absoluteFromRelative = (
   if (baseline === 0) {
     return null;
   }
-  return baseline * (1 + relativeChange / 100);
+  // Anchored to the MAGNITUDE of the real state, not its signed value. Negative
+  // margins are deliberately permitted, and a signed divisor would invert every sign
+  // on exactly the loss-making rows this screen exists to surface: an M1 of -20 Kč
+  // rising to -10 is a 50 % improvement, not a 50 % cut.
+  return baseline + Math.abs(baseline) * (relativeChange / 100);
 };
 
 /** The inverse of absoluteFromRelative: what relative change produces this value. */
@@ -158,7 +162,8 @@ export const relativeFromAbsolute = (
   if (baseline === 0) {
     return null;
   }
-  return ((absolute - baseline) / baseline) * 100;
+  // Magnitude-anchored, the exact inverse of absoluteFromRelative -- see there.
+  return ((absolute - baseline) / Math.abs(baseline)) * 100;
 };
 
 /** Rounds to what the screen actually prints, so callers compare what the user sees. */

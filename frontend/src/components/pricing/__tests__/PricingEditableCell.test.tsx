@@ -49,6 +49,8 @@ const cell = (field = PricingEditField.Price) =>
   screen.getByTestId(`pricing-cell-${productCode}-${field}`);
 const editor = (field = PricingEditField.Price) =>
   screen.queryByTestId(`pricing-editor-${productCode}-${field}`);
+const valueInput = (field = PricingEditField.Price) =>
+  screen.getByTestId(`pricing-editor-value-${productCode}-${field}`);
 
 describe("PricingEditableCell", () => {
   it("formats its value according to the column it belongs to", () => {
@@ -177,6 +179,79 @@ describe("PricingEditableCell", () => {
     renderCell({ row: row({ price: 504 }), readOnly: true });
 
     expect(cell().getAttribute("title")).toContain("420");
+  });
+
+  it("resyncs an open editor when a recalculation lands underneath it", () => {
+    // A response for an edit made on ANOTHER cell can land while this editor is open.
+    // The cell behind it re-renders from the new row, so an editor still showing the
+    // pre-response number would commit a value the user never saw -- silently undoing
+    // the recalculation they were about to accept.
+    const onCommit = jest.fn();
+    const { rerender } = render(
+      <PricingEditableCell
+        row={row()}
+        field={PricingEditField.M0Amount}
+        onCommit={onCommit}
+      />,
+    );
+
+    fireEvent.click(cell(PricingEditField.M0Amount));
+    expect(valueInput(PricingEditField.M0Amount)).toHaveValue("245");
+
+    rerender(
+      <PricingEditableCell
+        row={row({ price: 520, m0Amount: 345 })}
+        field={PricingEditField.M0Amount}
+        onCommit={onCommit}
+      />,
+    );
+
+    expect(valueInput(PricingEditField.M0Amount)).toHaveValue("345");
+  });
+
+  it("leaves an open editor's draft alone while the value underneath is unchanged", () => {
+    // The counterpart to the resync above: an unrelated re-render must not wipe what
+    // the user is typing.
+    const onCommit = jest.fn();
+    const { rerender } = render(
+      <PricingEditableCell row={row()} field={PricingEditField.Price} onCommit={onCommit} />,
+    );
+
+    fireEvent.click(cell());
+    fireEvent.change(valueInput(), { target: { value: "48" } });
+
+    rerender(
+      <PricingEditableCell
+        row={row()}
+        field={PricingEditField.Price}
+        onCommit={onCommit}
+        error="Cena musí být kladná"
+      />,
+    );
+
+    expect(valueInput()).toHaveValue("48");
+  });
+
+  it("returns focus to the cell when the editor is dismissed", () => {
+    // The grid runs to hundreds of rows, so a keyboard user who presses Escape must
+    // land back on the cell they opened rather than on the document body.
+    renderCell();
+
+    fireEvent.click(cell());
+    fireEvent.keyDown(editor()!, { key: "Escape" });
+
+    expect(cell()).toHaveFocus();
+  });
+
+  it("closes the editor when focus moves to another cell", () => {
+    // Without this, tabbing out of the editor onto the next cell and pressing Enter
+    // leaves TWO editors mounted, the first one holding a now-stale draft.
+    renderCell();
+
+    fireEvent.click(cell());
+    fireEvent.focusIn(document.body);
+
+    expect(editor()).not.toBeInTheDocument();
   });
 
   it("shows a rejected edit's message on the cell", () => {

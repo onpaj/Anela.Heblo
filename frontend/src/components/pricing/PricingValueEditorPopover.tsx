@@ -13,8 +13,14 @@ export interface PricingValueEditorPopoverProps {
   facts: PricingCellFacts;
   /** Called with the absolute value to commit. Never called for a no-op edit. */
   onApply: (value: number) => void;
-  /** Called after an apply and on every way of dismissing the editor. */
-  onClose: () => void;
+  /**
+   * Called after an apply and on every way of dismissing the editor.
+   * `restoreFocus` is true only for a deliberate dismissal (Enter, Escape, the
+   * buttons) — the cases where the user's focus would otherwise be dropped on the
+   * document body. A dismissal caused by focus or a click going somewhere else must
+   * not yank it back.
+   */
+  onClose: (restoreFocus: boolean) => void;
 }
 
 // Tolerates a Czech decimal comma ("45,5") and an explicit sign ("+5", "-3") in
@@ -71,9 +77,11 @@ const PricingValueEditorPopover: React.FC<PricingValueEditorPopoverProps> = ({
   const valueInputRef = useRef<HTMLInputElement>(null);
 
   // A percentage of zero is zero whatever the multiplier, so the relative field would
-  // be a control that silently does nothing. Percentage-point cells are unaffected:
-  // adding points to a 0 % margin is perfectly meaningful.
-  const isRelativeDisabled = kind !== "percentage" && (baseline === null || baseline === 0);
+  // be a control that silently does nothing. Percentage-point cells survive a zero
+  // baseline -- adding points to a 0 % margin is perfectly meaningful -- but not an
+  // unknown one: with no real state to anchor to, every keystroke would blank the
+  // value it is supposed to drive.
+  const isRelativeDisabled = baseline === null || (kind !== "percentage" && baseline === 0);
 
   useEffect(() => {
     valueInputRef.current?.focus();
@@ -85,16 +93,22 @@ const PricingValueEditorPopover: React.FC<PricingValueEditorPopoverProps> = ({
     containerRef.current?.scrollIntoView?.({ block: "nearest", inline: "nearest" });
   }, []);
 
-  // Dismiss on a click anywhere outside. Discarding rather than committing is the
-  // safe default: a stray click elsewhere in the grid must not post an edit.
+  // Dismiss whenever the interaction moves outside, by pointer or by keyboard.
+  // Discarding rather than committing is the safe default: a stray click elsewhere in
+  // the grid must not post an edit. The focus half also keeps a Tab out of the editor
+  // from leaving a second one open behind the user, each holding its own stale draft.
   useEffect(() => {
-    const handlePointerDown = (event: MouseEvent) => {
+    const dismissIfOutside = (event: Event) => {
       if (!containerRef.current?.contains(event.target as Node)) {
-        onClose();
+        onClose(false);
       }
     };
-    document.addEventListener("mousedown", handlePointerDown);
-    return () => document.removeEventListener("mousedown", handlePointerDown);
+    document.addEventListener("mousedown", dismissIfOutside);
+    document.addEventListener("focusin", dismissIfOutside);
+    return () => {
+      document.removeEventListener("mousedown", dismissIfOutside);
+      document.removeEventListener("focusin", dismissIfOutside);
+    };
   }, [onClose]);
 
   const handleValueChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -119,11 +133,11 @@ const PricingValueEditorPopover: React.FC<PricingValueEditorPopoverProps> = ({
     // Committing a value identical to the one already displayed would flag the row as
     // edited and pull it into the ceník export from a gesture that changed nothing.
     if (effective !== null && parsed === roundToDisplay(effective)) {
-      onClose();
+      onClose(true);
       return;
     }
     onApply(parsed);
-    onClose();
+    onClose(true);
   };
 
   const handleKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
@@ -132,7 +146,7 @@ const PricingValueEditorPopover: React.FC<PricingValueEditorPopoverProps> = ({
       apply();
     } else if (event.key === "Escape") {
       event.preventDefault();
-      onClose();
+      onClose(true);
     }
   };
 
@@ -192,7 +206,7 @@ const PricingValueEditorPopover: React.FC<PricingValueEditorPopoverProps> = ({
         <button
           type="button"
           data-testid={`pricing-editor-cancel-${productCode}-${field}`}
-          onClick={onClose}
+          onClick={() => onClose(true)}
           className="rounded px-2 py-1 text-xs text-gray-600 hover:bg-gray-100 dark:text-graphite-muted dark:hover:bg-white/10"
         >
           Zrušit

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useRef, useState } from "react";
 import { PricingEditField, PricingRowDto } from "../../api/generated/api-client";
 import {
   formatPricingValue,
@@ -52,6 +52,7 @@ const PricingEditableCell: React.FC<PricingEditableCellProps> = ({
   readOnly = false,
 }) => {
   const [isEditorOpen, setIsEditorOpen] = useState(false);
+  const cellRef = useRef<HTMLDivElement>(null);
   const facts = pricingCellFacts(row, field);
   const productCode = row.productCode ?? "";
   const isChanged = hasPricingChange(facts);
@@ -59,14 +60,24 @@ const PricingEditableCell: React.FC<PricingEditableCellProps> = ({
   // Up is good on a price or a margin and bad on a cost, so the cue follows the
   // field rather than the sign: colouring a cost increase green would misread the row.
   const isIncrease = (facts.delta ?? 0) > 0;
-  const favourable = isIncreaseFavourable(field) === isIncrease;
+  const isFavourable = isIncreaseFavourable(field) === isIncrease;
   const changeClassName = !isChanged
     ? ""
-    : favourable
+    : isFavourable
       ? " text-emerald-600 dark:text-emerald-400"
       : " text-rose-600 dark:text-rose-400";
 
   const handleApply = (value: number) => onCommit(productCode, field, value);
+
+  const closeEditor = (restoreFocus: boolean) => {
+    setIsEditorOpen(false);
+    // A deliberate dismissal must hand focus back to the cell it came from: the grid
+    // runs to hundreds of rows, and dropping a keyboard user on the document body
+    // loses their place entirely.
+    if (restoreFocus) {
+      cellRef.current?.focus();
+    }
+  };
 
   const handleKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
     if (event.key === "Enter" || event.key === " ") {
@@ -87,8 +98,11 @@ const PricingEditableCell: React.FC<PricingEditableCellProps> = ({
   return (
     <div className="relative inline-block w-full">
       <div
+        ref={cellRef}
         {...interactiveProps}
         aria-label={`${field}-${productCode}`}
+        aria-haspopup={readOnly ? undefined : "dialog"}
+        aria-expanded={readOnly ? undefined : isEditorOpen}
         aria-invalid={error ? true : undefined}
         title={isChanged ? changeTitle(facts) : undefined}
         data-testid={`pricing-cell-${productCode}-${field}`}
@@ -103,11 +117,18 @@ const PricingEditableCell: React.FC<PricingEditableCellProps> = ({
 
       {isEditorOpen && !readOnly && (
         <PricingValueEditorPopover
+          // Remounted when THIS cell's own value moves, which is how a response landing
+          // while the editor is open reaches the drafts inside it. Without the key the
+          // editor would keep showing the pre-response number and commit it on Enter,
+          // silently undoing the recalculation the user was about to accept. Keyed on
+          // this cell's values only, so a commit elsewhere in the grid never disturbs
+          // what the user is typing here.
+          key={`${facts.effective}-${facts.baseline}`}
           productCode={productCode}
           field={field}
           facts={facts}
           onApply={handleApply}
-          onClose={() => setIsEditorOpen(false)}
+          onClose={closeEditor}
         />
       )}
 

@@ -144,6 +144,18 @@ describe("relative <-> absolute conversion", () => {
     expect(absoluteFromRelative(0, 25, "currency")).toBeNull();
   });
 
+  test("a loss-making margin improves by a POSITIVE percentage", () => {
+    // Negative margins are deliberately permitted (see PricingSimulationCalculator),
+    // and on them a signed divisor would invert every sign: an M1 of -20 Kč rising to
+    // -10 is unambiguously a 50 % improvement, not a 50 % cut. Anchoring to the
+    // magnitude of the real state keeps the reported direction matching the cell's
+    // own up/down colouring.
+    expect(relativeFromAbsolute(-20, -10, "currency")).toBeCloseTo(50, 6);
+    expect(relativeFromAbsolute(-20, -30, "currency")).toBeCloseTo(-50, 6);
+    expect(absoluteFromRelative(-20, 50, "currency")).toBeCloseTo(-10, 6);
+    expect(absoluteFromRelative(-20, -50, "currency")).toBeCloseTo(-30, 6);
+  });
+
   test("percentage points still work against a zero baseline margin", () => {
     // Unlike a ratio, adding points to 0 % is perfectly meaningful.
     expect(absoluteFromRelative(0, 12, "percentage")).toBeCloseTo(12, 6);
