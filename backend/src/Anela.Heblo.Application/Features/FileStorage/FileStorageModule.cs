@@ -1,5 +1,6 @@
 using System.Net;
 using Anela.Heblo.Application.Common.Behaviors;
+using Anela.Heblo.Application.Features.ExpeditionListArchive.Contracts;
 using Anela.Heblo.Application.Features.FileStorage.Infrastructure;
 using Anela.Heblo.Application.Features.FileStorage.UseCases.DownloadFromUrl;
 using Anela.Heblo.Application.Features.FileStorage.Validators;
@@ -71,6 +72,12 @@ public static class FileStorageModule
         services.AddScoped<IValidator<DownloadFromUrlRequest>, DownloadFromUrlRequestValidator>();
         services.AddScoped<IPipelineBehavior<DownloadFromUrlRequest, DownloadFromUrlResponse>,
             ValidationResultBehavior<DownloadFromUrlRequest, DownloadFromUrlResponse>>();
+
+        // Provider-owned binding for ExpeditionListArchive's consumer contract (cross-module
+        // communication pattern — see docs/architecture/development_guidelines.md). Singleton
+        // to match the wrapped IBlobStorageService's own Singleton lifetime; the adapter holds
+        // no state of its own.
+        services.AddSingleton<IExpeditionListArchiveBlobStore, ExpeditionListArchiveBlobStoreAdapter>();
 
         return services;
     }

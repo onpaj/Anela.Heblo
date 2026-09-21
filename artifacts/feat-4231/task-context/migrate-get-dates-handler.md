@@ -1,3 +1,69 @@
+### task: migrate-get-dates-handler
+
+**Files:**
+- Modify: `backend/src/Anela.Heblo.Application/Features/ExpeditionListArchive/UseCases/GetExpeditionDates/GetExpeditionDatesHandler.cs`
+- Modify: `backend/test/Anela.Heblo.Tests/ExpeditionListArchive/GetExpeditionDatesHandlerTests.cs`
+
+- [ ] **Step 1: Update the handler**
+
+Replace the full contents of `GetExpeditionDatesHandler.cs`:
+
+```csharp
+using Anela.Heblo.Application.Features.ExpeditionListArchive.Contracts;
+using MediatR;
+using Microsoft.Extensions.Options;
+
+namespace Anela.Heblo.Application.Features.ExpeditionListArchive.UseCases.GetExpeditionDates;
+
+public class GetExpeditionDatesHandler : IRequestHandler<GetExpeditionDatesRequest, GetExpeditionDatesResponse>
+{
+    private readonly IExpeditionListArchiveBlobStore _blobStore;
+    private readonly string _containerName;
+
+    public GetExpeditionDatesHandler(IExpeditionListArchiveBlobStore blobStore, IOptions<ExpeditionListArchiveOptions> options)
+    {
+        _blobStore = blobStore;
+        _containerName = options.Value.BlobContainerName;
+    }
+
+    public async Task<GetExpeditionDatesResponse> Handle(GetExpeditionDatesRequest request, CancellationToken cancellationToken)
+    {
+        var prefixes = await _blobStore.ListVirtualDirectoriesAsync(_containerName, cancellationToken);
+
+        var dates = prefixes
+            .Where(IsValidDatePrefix)
+            .OrderByDescending(d => d, StringComparer.Ordinal)
+            .ToList();
+
+        var totalCount = dates.Count;
+        var pagedDates = dates
+            .Skip((request.Page - 1) * request.PageSize)
+            .Take(request.PageSize)
+            .ToList();
+
+        return new GetExpeditionDatesResponse
+        {
+            Dates = pagedDates,
+            TotalCount = totalCount,
+            Page = request.Page,
+            PageSize = request.PageSize
+        };
+    }
+
+    private static bool IsValidDatePrefix(string prefix)
+    {
+        return DateOnly.TryParseExact(prefix, "yyyy-MM-dd", out _);
+    }
+}
+```
+
+Note: `using Anela.Heblo.Domain.Features.FileStorage;` is removed; only the field/parameter type and name change, plus the call site. All filtering/sorting/pagination logic is unchanged.
+
+- [ ] **Step 2: Update the test**
+
+Replace the full contents of `GetExpeditionDatesHandlerTests.cs`:
+
+```csharp
 using Anela.Heblo.Application.Features.ExpeditionListArchive;
 using Anela.Heblo.Application.Features.ExpeditionListArchive.Contracts;
 using Anela.Heblo.Application.Features.ExpeditionListArchive.UseCases.GetExpeditionDates;
@@ -134,3 +200,20 @@ public class GetExpeditionDatesHandlerTests
         Assert.Equal(new[] { "2026-03-25", "2026-03-24", "2025-12-31" }, result.Dates);
     }
 }
+```
+
+- [ ] **Step 3: Run the test to verify it passes**
+
+Run: `cd backend && dotnet test test/Anela.Heblo.Tests/Anela.Heblo.Tests.csproj --filter "FullyQualifiedName~GetExpeditionDatesHandlerTests"`
+Expected: PASS, 5 tests, 0 failed.
+
+- [ ] **Step 4: Commit**
+
+```bash
+git add backend/src/Anela.Heblo.Application/Features/ExpeditionListArchive/UseCases/GetExpeditionDates/GetExpeditionDatesHandler.cs \
+        backend/test/Anela.Heblo.Tests/ExpeditionListArchive/GetExpeditionDatesHandlerTests.cs
+git commit -m "refactor(expedition-list-archive): migrate GetExpeditionDatesHandler to IExpeditionListArchiveBlobStore"
+```
+
+---
+
