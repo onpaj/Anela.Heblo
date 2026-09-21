@@ -34,9 +34,9 @@
     },
     {
       "name": "feedback-list-boundary-validation",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-09-21T08:16:27.583771Z"
+      "updated_at": "2026-09-21T08:58:02.103877Z"
     },
     {
       "name": "full-verification-pass",
