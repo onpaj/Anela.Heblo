@@ -149,8 +149,7 @@ Hladiny marže **nepokrývají celou režii firmy**. Mimo ně zůstávají:
 - účty **53x–57x** napříč firmou (daně a poplatky, odpisy, kurzové ztráty),
 - finanční náklady a daň z příjmů (58x, 59x),
 - účty **50x mimo sklad a marketing** — v centrále je to prodané zboží, řádově
-  víc než všechny hladiny dohromady,
-- **BUVOL** — samostatná činnost, která není režií Anely.
+  víc než všechny hladiny dohromady.
 
 **Prakticky to znamená:** ani marže na hladině M3 **není cenová podlaha**. Je to
 příspěvek na úhradu zbytku nákladů a zisku.
