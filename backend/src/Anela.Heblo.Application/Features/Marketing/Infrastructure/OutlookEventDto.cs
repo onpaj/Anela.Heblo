@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text.Json.Serialization;
 
 namespace Anela.Heblo.Application.Features.Marketing.Infrastructure
@@ -27,13 +28,36 @@ namespace Anela.Heblo.Application.Features.Marketing.Infrastructure
         [JsonPropertyName("categories")]
         public string[] Categories { get; set; } = Array.Empty<string>();
 
-        public DateTime StartUtc => Start is not null
-            ? DateTime.Parse(Start.DateTimeString, null, System.Globalization.DateTimeStyles.RoundtripKind)
-            : DateTime.MinValue;
+        public DateTime StartUtc => ToUtc(Start);
 
-        public DateTime EndUtc => End is not null
-            ? DateTime.Parse(End.DateTimeString, null, System.Globalization.DateTimeStyles.RoundtripKind)
-            : DateTime.MinValue;
+        public DateTime EndUtc => ToUtc(End);
+
+        /// <summary>
+        /// Graph sends <c>dateTime</c> as a zone-less wall-clock string and names the zone in the
+        /// sibling <c>timeZone</c> field, so parsing alone yields <see cref="DateTimeKind.Unspecified"/>.
+        /// Read requests ask for UTC via a <c>Prefer: outlook.timezone</c> header, so a zone-less
+        /// value is designated UTC; a value that does carry an offset is converted rather than
+        /// relabelled, or the instant would be wrong by that offset.
+        /// </summary>
+        private static DateTime ToUtc(GraphEventDateTime? value)
+        {
+            if (value is null)
+            {
+                return DateTime.MinValue;
+            }
+
+            var parsed = DateTime.Parse(
+                value.DateTimeString,
+                CultureInfo.InvariantCulture,
+                DateTimeStyles.RoundtripKind);
+
+            return parsed.Kind switch
+            {
+                DateTimeKind.Utc => parsed,
+                DateTimeKind.Local => parsed.ToUniversalTime(),
+                _ => DateTime.SpecifyKind(parsed, DateTimeKind.Utc)
+            };
+        }
     }
 
     public class GraphEventBody
