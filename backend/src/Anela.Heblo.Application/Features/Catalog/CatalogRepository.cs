@@ -59,7 +59,7 @@ public sealed class CatalogRepository : ICatalogRepository
 
         if (_cacheOptions.Value.AllowStaleDataDuringMerge && _mergeScheduler.IsMergeInProgress)
         {
-            var stale = _cacheStore.TryGetStale();
+            var stale = _cacheStore.TryGetCompleteStale();
             if (stale != null)
             {
                 _logger.LogWarning("Serving stale data during merge operation");

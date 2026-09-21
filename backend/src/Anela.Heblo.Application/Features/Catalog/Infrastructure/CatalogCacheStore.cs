@@ -19,6 +19,7 @@ public sealed class CatalogCacheStore
 {
     private const string CurrentCatalogCacheKey = "CatalogData_Current";
     private const string StaleCatalogCacheKey = "CatalogData_Stale";
+    private const string StaleCatalogCompleteKey = "CatalogData_StaleComplete";
     private const string CacheUpdateTimeKey = "CatalogData_LastUpdate";
     private const string LastMergeDateTimeKey = "LastMergeDateTime";
 
@@ -152,6 +153,11 @@ public sealed class CatalogCacheStore
             {
                 var staleExpiry = _cacheOptions.Value.StaleDataRetentionPeriod;
                 _cache.Set(StaleCatalogCacheKey, currentCache, staleExpiry);
+
+                // Remember whether the snapshot being demoted was itself merged from complete
+                // sources - it carried a validity stamp exactly when it was. Read back before the
+                // stamp below is rewritten for the incoming data.
+                _cache.Set(StaleCatalogCompleteKey, _cache.TryGetValue(CacheUpdateTimeKey, out _), staleExpiry);
             }
 
             _cache.Set(CurrentCatalogCacheKey, newData);
@@ -202,6 +208,15 @@ public sealed class CatalogCacheStore
     /// </summary>
     public List<CatalogAggregate>? TryGetStale() =>
         _cache.Get<List<CatalogAggregate>>(StaleCatalogCacheKey);
+
+    /// <summary>
+    /// Stale catalog data, but only when the demoted snapshot was itself merged from complete
+    /// sources. A stale snapshot built before its sources loaded carries the same silently empty
+    /// history that <see cref="RequiredSourceKeys"/> guards the current snapshot against, so it
+    /// must not be served as a fallback either.
+    /// </summary>
+    public List<CatalogAggregate>? TryGetCompleteStale() =>
+        _cache.Get<bool?>(StaleCatalogCompleteKey) == true ? TryGetStale() : null;
 
     #region Per-Source Data Accessors
 

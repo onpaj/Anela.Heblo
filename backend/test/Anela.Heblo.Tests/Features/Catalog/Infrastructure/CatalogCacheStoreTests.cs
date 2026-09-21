@@ -318,6 +318,33 @@ public class CatalogCacheStoreTests
         store.IsCacheValid().Should().BeTrue();
     }
 
+    [Fact]
+    public async Task TryGetCompleteStale_ReturnsNull_WhenTheDemotedSnapshotWasBuiltBeforeSourcesLoaded()
+    {
+        // Arrange - a premature merge installs an incomplete snapshot, a second merge demotes it
+        // to stale. Serving that stale snapshot during a merge would reintroduce the empty history.
+        var store = CreateStore();
+        await store.ReplaceCacheAtomicallyAsync(new List<CatalogAggregate> { new() { ProductCode = "MAS009050" } });
+        await store.ReplaceCacheAtomicallyAsync(new List<CatalogAggregate> { new() { ProductCode = "MAS009050" } });
+
+        // Assert
+        store.TryGetStale().Should().NotBeNull("the snapshot was still demoted");
+        store.TryGetCompleteStale().Should().BeNull("it was never merged from complete sources");
+    }
+
+    [Fact]
+    public async Task TryGetCompleteStale_ReturnsData_WhenTheDemotedSnapshotWasComplete()
+    {
+        // Arrange
+        var store = CreateStore();
+        LoadRequiredSources(store, includeSales: true);
+        await store.ReplaceCacheAtomicallyAsync(new List<CatalogAggregate> { new() { ProductCode = "MAS009050" } });
+        await store.ReplaceCacheAtomicallyAsync(new List<CatalogAggregate> { new() { ProductCode = "MAS009050" } });
+
+        // Assert
+        store.TryGetCompleteStale().Should().HaveCount(1);
+    }
+
     private CatalogCacheStore CreateStore() => new(
         _memoryCache,
         _timeProvider,
