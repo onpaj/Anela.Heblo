@@ -28,9 +28,9 @@
   "tasks": [
     {
       "name": "list-articles-boundary-validation",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-09-21T07:24:57.848495Z"
+      "updated_at": "2026-09-21T07:25:18.991368Z"
     },
     {
       "name": "feedback-list-boundary-validation",
