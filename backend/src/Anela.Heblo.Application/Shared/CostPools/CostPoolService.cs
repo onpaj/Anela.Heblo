@@ -136,12 +136,18 @@ public class CostPoolService : ICostPoolService
             department: null,
             cancellationToken: ct);
 
-        LogOverheadDepartments(ledgerItems);
-
-        var totals = ledgerItems
+        // Resolve once and reuse for both the totals and the log lines - the pull is
+        // wider than what the pools count, so both need the same verdict per entry.
+        var resolved = ledgerItems
             .Select(item => (
                 Item: item,
                 Pool: CostPoolDefinition.Resolve(item.Department, item.DebitAccountNumber)))
+            .ToList();
+
+        LogOverheadDepartments(resolved);
+        LogDroppedDepartments(resolved);
+
+        var totals = resolved
             .Where(x => x.Pool.HasValue)
             .GroupBy(x => (
                 Month: new DateTime(x.Item.Date.Year, x.Item.Date.Month, 1),
@@ -161,11 +167,11 @@ public class CostPoolService : ICostPoolService
     /// M3 is a catch-all, so a miscoded entry silently becomes overhead.
     /// Logging the codes that landed there makes a new or wrong one visible.
     /// </summary>
-    private void LogOverheadDepartments(IEnumerable<LedgerItem> ledgerItems)
+    private void LogOverheadDepartments(IEnumerable<(LedgerItem Item, CostPool? Pool)> resolved)
     {
-        var overheadDepartments = ledgerItems
-            .Where(item => CostPoolDefinition.Resolve(item.Department, item.DebitAccountNumber) == CostPool.M3)
-            .Select(item => string.IsNullOrWhiteSpace(item.Department) ? "(none)" : item.Department)
+        var overheadDepartments = resolved
+            .Where(x => x.Pool == CostPool.M3)
+            .Select(x => DepartmentLabel(x.Item))
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .OrderBy(d => d, StringComparer.OrdinalIgnoreCase)
             .ToList();
@@ -179,4 +185,37 @@ public class CostPoolService : ICostPoolService
             "CostPool M3 absorbed spend from departments: {OverheadDepartments}",
             string.Join(", ", overheadDepartments));
     }
+
+    /// <summary>
+    /// The pull asks for the union of every pool's prefixes, so some entries it
+    /// returns belong to no pool: BUVOL, and 50x outside SKLAD/MARKETING.
+    ///
+    /// Without this line the M3 catch-all's whole point would have a hole in it -
+    /// a cost centre added in Flexi that happens to book only on 50x resolves to
+    /// null rather than M3, so it would vanish from the totals AND from the
+    /// overhead log. Logging what was dropped, and how much, keeps it visible.
+    /// </summary>
+    private void LogDroppedDepartments(IEnumerable<(LedgerItem Item, CostPool? Pool)> resolved)
+    {
+        var dropped = resolved
+            .Where(x => !x.Pool.HasValue)
+            .GroupBy(x => DepartmentLabel(x.Item), StringComparer.OrdinalIgnoreCase)
+            .Select(g => new { Department = g.Key, Amount = g.Sum(x => x.Item.Amount) })
+            .OrderBy(d => d.Department, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        if (dropped.Count == 0)
+        {
+            return;
+        }
+
+        _logger.LogInformation(
+            "CostPool dropped spend that belongs to no pool: {DroppedDepartments}. " +
+            "Expected for BUVOL and for account 50x outside SKLAD/MARKETING; " +
+            "any other department here is a cost centre no margin level counts.",
+            string.Join(", ", dropped.Select(d => $"{d.Department}={d.Amount}")));
+    }
+
+    private static string DepartmentLabel(LedgerItem item) =>
+        string.IsNullOrWhiteSpace(item.Department) ? "(none)" : item.Department;
 }

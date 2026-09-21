@@ -129,9 +129,12 @@ public class CostPoolServiceTests
     }
 
     [Fact]
-    public async Task GetMonthlyPoolsAsync_PoolsSumToTheFullLedgerTotal()
+    public async Task GetMonthlyPoolsAsync_PoolsSumToTheFullLedgerTotal_ForAccounts51And52()
     {
-        // Arrange - the balance invariant: nothing may be dropped on the floor
+        // Arrange - the balance invariant, but only over the accounts every pool
+        // counts: Entry() books on 518100. It is NOT true of the ledger as a whole -
+        // see CostPoolSalesCostParityTests.PoolsSumToTheFullLedgerTotal_IncludingSpendNoMarginLevelSeesToday,
+        // where BUVOL and 50x-outside-M2 entries are deliberately dropped.
         var july = new DateTime(2026, 7, 15);
         var entries = new List<LedgerItem>
         {
@@ -306,4 +309,67 @@ public class CostPoolServiceTests
                 It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
             Times.Once);
     }
+
+    [Fact]
+    public async Task GetMonthlyPoolsAsync_LogsAnUnknownDepartmentThatOnlyBooksOnConsumables()
+    {
+        // Arrange - the gap the M3 catch-all alone does not cover: a cost centre added
+        // in Flexi that books on 50x resolves to null, not M3, so it lands in no pool
+        // and would also miss the M3 log line. It must still be visible somewhere.
+        var loggerMock = new Mock<ILogger<CostPoolService>>();
+        var july = new DateTime(2026, 7, 15);
+        var service = CreateService(new List<LedgerItem>
+        {
+            Consumables(july, "WEBDEV", 4_200m),
+        }, loggerMock: loggerMock);
+
+        // Act
+        var pools = await service.GetMonthlyPoolsAsync(new DateOnly(2026, 7, 1), new DateOnly(2026, 7, 31));
+
+        // Assert - counted by no pool ...
+        AmountFor(pools, 2026, 7, CostPool.M1).Should().Be(0m);
+        AmountFor(pools, 2026, 7, CostPool.M2).Should().Be(0m);
+        AmountFor(pools, 2026, 7, CostPool.M3).Should().Be(0m);
+
+        // ... but not silently: the department and its amount reach the log
+        VerifyInformationLogged(loggerMock, "WEBDEV", "4200");
+    }
+
+    [Fact]
+    public async Task GetMonthlyPoolsAsync_LogsExcludedSeparateActivityAsDropped()
+    {
+        // Arrange
+        var loggerMock = new Mock<ILogger<CostPoolService>>();
+        var july = new DateTime(2026, 7, 15);
+        var service = CreateService(new List<LedgerItem>
+        {
+            Entry(july, "BUVOL", 999m),
+        }, loggerMock: loggerMock);
+
+        // Act
+        await service.GetMonthlyPoolsAsync(new DateOnly(2026, 7, 1), new DateOnly(2026, 7, 31));
+
+        // Assert
+        VerifyInformationLogged(loggerMock, "BUVOL", "999");
+    }
+
+    private static LedgerItem Consumables(DateTime date, string? department, decimal amount)
+    {
+        var entry = Entry(date, department, amount);
+        entry.DebitAccountNumber = "501200";
+        entry.DebitAccountName = "Spotreba materialu";
+        return entry;
+    }
+
+    private static void VerifyInformationLogged(
+        Mock<ILogger<CostPoolService>> loggerMock,
+        params string[] contains) =>
+        loggerMock.Verify(
+            l => l.Log(
+                LogLevel.Information,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((v, _) => contains.All(c => v.ToString()!.Contains(c))),
+                It.IsAny<Exception>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Once);
 }

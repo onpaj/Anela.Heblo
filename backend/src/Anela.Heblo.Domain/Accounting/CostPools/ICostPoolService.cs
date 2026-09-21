@@ -1,10 +1,15 @@
 namespace Anela.Heblo.Domain.Accounting.CostPools;
 
 /// <summary>
-/// Monthly company spend totals (accounts 51, 52) split into cost pools.
+/// Monthly company spend totals split into cost pools, on the account set each
+/// pool counts (M2: 50/51/52, the others 51/52).
 ///
 /// Reads the same ILedgerService path the margin engine uses, so the M2 total
 /// here is the same number SalesCostProvider divides by sold pieces.
+///
+/// These totals are not a full ledger breakdown - spend that belongs to no pool
+/// (BUVOL, and 50x outside SKLAD/MARKETING) is absent, so they must not be used
+/// to reconcile against the books.
 /// </summary>
 public interface ICostPoolService
 {

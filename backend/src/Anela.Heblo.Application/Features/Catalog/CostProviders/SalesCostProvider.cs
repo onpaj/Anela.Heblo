@@ -30,8 +30,11 @@ public class SalesCostProvider : ISalesCostProvider
     private readonly ILogger<SalesCostProvider> _logger;
     private readonly DataSourceOptions _options;
 
-    private const string WarehouseCostCenter = "SKLAD";
-    private const string MarketingCostCenter = "MARKETING";
+    // Taken from CostPoolDefinition rather than re-declared: the parity tests assert
+    // this provider's M2 equals CostPoolService's M2, and a second copy of the
+    // department codes would let that invariant break with no compiler signal.
+    private const string WarehouseCostCenter = CostPoolDefinition.WarehouseDepartment;
+    private const string MarketingCostCenter = CostPoolDefinition.MarketingDepartment;
 
     // ICatalogRepository is resolved lazily via IServiceProvider, not injected directly:
     // CatalogRepository -> IMarginCalculationService -> ISalesCostProvider -> ICatalogRepository

@@ -4,7 +4,11 @@ Marže se počítá ve čtyřech hladinách. Každá přidává další vrstvu n
 číslo klesá odshora dolů. Hladina má vždy dvě čísla:
 
 - **náklad hladiny** — kolik přidává právě tato vrstva,
-- **náklad celkem** — součet všech vrstev, ze kterého se počítá procento.
+- **náklad celkem** — součet této a všech předchozích vrstev, ze kterého se
+  počítá procento.
+
+Hladiny jsou **kumulativní**: M0 → M1 → M2 → M3. Poslední hladina M3 je pohled
+„všechny náklady započteny“ a podle ní se přehled ve výchozím stavu řadí.
 
 Marže se počítá z **prodejní ceny bez DPH** (`PriceWithoutVat`):
 
@@ -22,13 +26,9 @@ Produkt bez prodejní ceny nemá marži vůbec — v přehledu se neobjeví.
 | Hladina | Název | Co přidává | Náklad celkem |
 |---|---|---|---|
 | **M0** | Materiálový náklad | materiál / nákupní cena | M0 |
-| **M1_A** | Plošný výrobní náklad | rozpočítaná výrobní práce | M0 + M1_A |
-| **M1_B** | Přímý výrobní náklad | náklad konkrétní dávky | M0 + M1_B |
-| **M2** | Sklad a marketing | skladování + marketing | M0 + M1_A + M1_B + M2 |
-
-**M1_A a M1_B nejsou na sobě postavené** — jsou to dva různé pohledy na tutéž
-výrobní práci. Proto M1_B **nestojí** na M1_A. Do konečného součtu v M2 ale
-vstupují **obě**.
+| **M1** | Výrobní náklad | rozpočítaná výrobní práce (VYROBA) | M0 + M1 |
+| **M2** | Sklad a marketing | skladování + marketing | M0 + M1 + M2 |
+| **M3** | Režie | zbytek přímých nákladů firmy | M0 + M1 + M2 + M3 |
 
 ---
 
@@ -42,9 +42,13 @@ Okno se zaokrouhluje na celé měsíce: od prvního dne měsíce, do kterého sp
 **Měsíční hodnoty.** Náklad se drží po měsících. Průměr v přehledu je průměr
 přes měsíce, které náklad skutečně nesou — měsíc bez dat průměr neředí.
 
-**Zdroj nákladů.** M1_A a M2 čtou účetní deník z FlexiBee (`ucetni-denik`),
+**Zdroj nákladů.** M1, M2 a M3 čtou účetní deník z FlexiBee (`ucetni-denik`),
 vždy podle **střediska** a **předvolby účtu**. M0 čte výrobní a nákupní historii
 produktu.
+
+**Rozsah účtů se liší podle hladiny.** M1 a M3 počítají účty **51x** a **52x**.
+M2 navíc počítá **50x**, protože ve skladu a marketingu je to expediční obalový
+materiál a marketingový tisk. Jinde je 50x prodané zboží, které do režie nepatří.
 
 ---
 
@@ -68,13 +72,13 @@ všechny měsíce.
 
 ---
 
-## M1_A — Plošný výrobní náklad
+## M1 — Výrobní náklad
 
 Celá výrobní práce firmy rozpočítaná na produkty podle náročnosti.
 
 ```
-sazba        = náklady střediska VYROBA / Σ (vyrobené množství × náročnost)
-M1_A na kus  = (vyrobené množství × náročnost) × sazba / vyrobené množství
+sazba      = náklady střediska VYROBA / Σ (vyrobené množství × náročnost)
+M1 na kus  = náročnost × sazba
 ```
 
 **Náklady:** středisko **VYROBA**, účty **51x** (služby) a **52x** (osobní
@@ -87,22 +91,9 @@ od data. Produkt bez nastavené náročnosti má koeficient **1**.
 nevyrábí, takže si výrobní práci nedělí. **Polotovary jsou vyloučené záměrně:**
 jejich příjemky jsou v gramech hmoty a nemají nastavenou náročnost, takže by
 každý gram dostal jeden bod, rozředil jmenovatel a výrobní práce by uvízla na
-hmotě, která se nikdy neprodá. Polotovar proto má M1_A = 0.
+hmotě, která se nikdy neprodá. Polotovar proto má M1 = 0.
 
-Produkt, který se za posledních 365 dní nevyráběl, má M1_A = 0.
-
----
-
-## M1_B — Přímý výrobní náklad
-
-Zamýšlený jako skutečný náklad konkrétní výrobní dávky, tedy alternativa
-k plošnému rozpočtu M1_A.
-
-> **Zatím není implementovaný.** Vrací pevnou konstantu **15 Kč na kus** pro
-> každý produkt a každý měsíc. Není to měřený údaj.
->
-> Přesto se **započítává do součtu v M2** — konečná marže je tedy o těchto
-> 15 Kč nižší, než by odpovídalo skutečnosti. Vlastní řádek v tabulce nemá.
+Produkt, který se za posledních 365 dní nevyráběl, má M1 = 0.
 
 ---
 
@@ -131,30 +122,47 @@ ukrojí nepoměrně víc.
 
 ---
 
+## M3 — Režie
+
+Zbytek přímých nákladů firmy — všechno na účtech 51x a 52x, co si nevzala
+žádná z předchozích hladin. Prakticky jde o **centrálu** (administrativa, IT,
+vedení), **prodejnu** a jakékoli nezařazené středisko.
+
+```
+M3 na kus = režijní náklady / celkový počet prodaných kusů
+```
+
+**Jmenovatel je stejný jako u M2** — tytéž prodané kusy, včetně stejného
+vyloučení komponent rozpadlých z dárkových balíčků. Náklad na kus je plošný:
+stejný pro každý produkt i každý měsíc okna.
+
+**Středisko přidané ve FlexiBee spadne do M3 automaticky.** M3 je definované
+jako doplněk, ne výčtem — nové středisko se tak objeví v režii místo aby
+z výpočtu zmizelo.
+
+---
+
 ## Co v žádné hladině není
 
 Hladiny marže **nepokrývají celou režii firmy**. Mimo ně zůstávají:
 
-- **centrála** — administrativa, IT, vedení, odpisy,
-- **prodejna**,
-- účty **53x–57x** napříč firmou,
+- účty **53x–57x** napříč firmou (daně a poplatky, odpisy, kurzové ztráty),
 - finanční náklady a daň z příjmů (58x, 59x),
+- účty **50x mimo sklad a marketing** — v centrále je to prodané zboží, řádově
+  víc než všechny hladiny dohromady,
 - **BUVOL** — samostatná činnost, která není režií Anely.
 
-Dohromady hladiny marže pokrývají zhruba **tři pětiny** nemateriálové režie
-(po odečtu výrobních mezd). Zbylé dvě pětiny nesou položky ze seznamu výše.
-
-**Prakticky to znamená:** marže na hladině M2 **není cenová podlaha**. Je to
-příspěvek na úhradu zbytku režie a zisku. Cenu nelze stavět tak, aby M2 vyšla
-těsně nad nulu — zbylé dvě pětiny režie by neměly z čeho být zaplaceny.
+**Prakticky to znamená:** ani marže na hladině M3 **není cenová podlaha**. Je to
+příspěvek na úhradu zbytku nákladů a zisku.
 
 ---
 
 ## Na co si dát pozor
 
-- **Konečná marže je podhodnocená** o 15 Kč na kus z nedodělaného M1_B.
-- **M1_A = 0** u produktu znamená „za posledních 365 dní se nevyráběl“, ne
+- **M1 = 0** u produktu znamená „za posledních 365 dní se nevyráběl“, ne
   „nestojí žádnou práci“.
-- **Polotovary** mají M1_A = 0 záměrně; jejich práce je v ceně hotového výrobku.
+- **Polotovary** mají M1 = 0 záměrně; jejich práce je v ceně hotového výrobku.
+- **M2 a M3 se rozpočítávají na kusy**, takže levné malé produkty nesou stejnou
+  částku jako drahé velké.
 - **Změna okna** (`ManufactureCostHistoryDays`) přepočítá **všechny** hladiny
   najednou, ne jen výrobní.
