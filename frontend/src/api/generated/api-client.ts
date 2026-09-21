@@ -508,15 +508,15 @@ export class ApiClient {
     articles_List(status: ArticleStatus | null | undefined, page: number | undefined, pageSize: number | undefined): Promise<ListArticlesResponse> {
         let url_ = this.baseUrl + "/api/Articles?";
         if (status !== undefined && status !== null)
-            url_ += "status=" + encodeURIComponent("" + status) + "&";
+            url_ += "Status=" + encodeURIComponent("" + status) + "&";
         if (page === null)
             throw new Error("The parameter 'page' cannot be null.");
         else if (page !== undefined)
-            url_ += "page=" + encodeURIComponent("" + page) + "&";
+            url_ += "Page=" + encodeURIComponent("" + page) + "&";
         if (pageSize === null)
             throw new Error("The parameter 'pageSize' cannot be null.");
         else if (pageSize !== undefined)
-            url_ += "pageSize=" + encodeURIComponent("" + pageSize) + "&";
+            url_ += "PageSize=" + encodeURIComponent("" + pageSize) + "&";
         url_ = url_.replace(/[?&]$/, "");
 
         let options_: RequestInit = {
@@ -600,25 +600,25 @@ export class ApiClient {
     articles_FeedbackList(hasFeedback: boolean | null | undefined, requestedBy: string | null | undefined, sortBy: string | undefined, sortDescending: boolean | undefined, page: number | undefined, pageSize: number | undefined): Promise<GetArticleFeedbackListResponse> {
         let url_ = this.baseUrl + "/api/Articles/feedback/list?";
         if (hasFeedback !== undefined && hasFeedback !== null)
-            url_ += "hasFeedback=" + encodeURIComponent("" + hasFeedback) + "&";
+            url_ += "HasFeedback=" + encodeURIComponent("" + hasFeedback) + "&";
         if (requestedBy !== undefined && requestedBy !== null)
-            url_ += "requestedBy=" + encodeURIComponent("" + requestedBy) + "&";
+            url_ += "RequestedBy=" + encodeURIComponent("" + requestedBy) + "&";
         if (sortBy === null)
             throw new Error("The parameter 'sortBy' cannot be null.");
         else if (sortBy !== undefined)
-            url_ += "sortBy=" + encodeURIComponent("" + sortBy) + "&";
+            url_ += "SortBy=" + encodeURIComponent("" + sortBy) + "&";
         if (sortDescending === null)
             throw new Error("The parameter 'sortDescending' cannot be null.");
         else if (sortDescending !== undefined)
-            url_ += "sortDescending=" + encodeURIComponent("" + sortDescending) + "&";
+            url_ += "SortDescending=" + encodeURIComponent("" + sortDescending) + "&";
         if (page === null)
             throw new Error("The parameter 'page' cannot be null.");
         else if (page !== undefined)
-            url_ += "page=" + encodeURIComponent("" + page) + "&";
+            url_ += "Page=" + encodeURIComponent("" + page) + "&";
         if (pageSize === null)
             throw new Error("The parameter 'pageSize' cannot be null.");
         else if (pageSize !== undefined)
-            url_ += "pageSize=" + encodeURIComponent("" + pageSize) + "&";
+            url_ += "PageSize=" + encodeURIComponent("" + pageSize) + "&";
         url_ = url_.replace(/[?&]$/, "");
 
         let options_: RequestInit = {
@@ -687,6 +687,65 @@ export class ApiClient {
             });
         }
         return Promise.resolve<BackfillArticleRequestedByResponse>(null as any);
+    }
+
+    attendance_RunBreakInsertion(request: RunBreakInsertionRequest): Promise<RunBreakInsertionResponse> {
+        let url_ = this.baseUrl + "/api/attendance/break-insertion/run";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: RequestInit = {
+            body: content_,
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processAttendance_RunBreakInsertion(_response);
+        });
+    }
+
+    protected processAttendance_RunBreakInsertion(response: Response): Promise<RunBreakInsertionResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = RunBreakInsertionResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status === 400) {
+            return response.text().then((_responseText) => {
+            let result400: any = null;
+            let resultData400 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result400 = ProblemDetails.fromJS(resultData400);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result400);
+            });
+        } else if (status === 401) {
+            return response.text().then((_responseText) => {
+            let result401: any = null;
+            let resultData401 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result401 = ProblemDetails.fromJS(resultData401);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result401);
+            });
+        } else if (status === 409) {
+            return response.text().then((_responseText) => {
+            let result409: any = null;
+            let resultData409 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result409 = ProblemDetails.fromJS(resultData409);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result409);
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<RunBreakInsertionResponse>(null as any);
     }
 
     auth_Me(): Promise<GetMeResponse> {
@@ -11833,6 +11892,271 @@ export class ApiClient {
         return Promise.resolve<void>(null as any);
     }
 
+    pricingScenarios_GetScenarios(): Promise<GetPricingScenariosResponse> {
+        let url_ = this.baseUrl + "/api/pricing-scenarios";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processPricingScenarios_GetScenarios(_response);
+        });
+    }
+
+    protected processPricingScenarios_GetScenarios(response: Response): Promise<GetPricingScenariosResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = GetPricingScenariosResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<GetPricingScenariosResponse>(null as any);
+    }
+
+    pricingScenarios_CreateScenario(request: SavePricingScenarioRequest): Promise<SavePricingScenarioResponse> {
+        let url_ = this.baseUrl + "/api/pricing-scenarios";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: RequestInit = {
+            body: content_,
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processPricingScenarios_CreateScenario(_response);
+        });
+    }
+
+    protected processPricingScenarios_CreateScenario(response: Response): Promise<SavePricingScenarioResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = SavePricingScenarioResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<SavePricingScenarioResponse>(null as any);
+    }
+
+    pricingScenarios_GetScenario(id: string): Promise<GetPricingScenarioResponse> {
+        let url_ = this.baseUrl + "/api/pricing-scenarios/{id}";
+        if (id === undefined || id === null)
+            throw new Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processPricingScenarios_GetScenario(_response);
+        });
+    }
+
+    protected processPricingScenarios_GetScenario(response: Response): Promise<GetPricingScenarioResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = GetPricingScenarioResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<GetPricingScenarioResponse>(null as any);
+    }
+
+    pricingScenarios_UpdateScenario(id: string, request: SavePricingScenarioRequest): Promise<SavePricingScenarioResponse> {
+        let url_ = this.baseUrl + "/api/pricing-scenarios/{id}";
+        if (id === undefined || id === null)
+            throw new Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: RequestInit = {
+            body: content_,
+            method: "PUT",
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processPricingScenarios_UpdateScenario(_response);
+        });
+    }
+
+    protected processPricingScenarios_UpdateScenario(response: Response): Promise<SavePricingScenarioResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = SavePricingScenarioResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<SavePricingScenarioResponse>(null as any);
+    }
+
+    pricingScenarios_DeleteScenario(id: string): Promise<DeletePricingScenarioResponse> {
+        let url_ = this.baseUrl + "/api/pricing-scenarios/{id}";
+        if (id === undefined || id === null)
+            throw new Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "DELETE",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processPricingScenarios_DeleteScenario(_response);
+        });
+    }
+
+    protected processPricingScenarios_DeleteScenario(response: Response): Promise<DeletePricingScenarioResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = DeletePricingScenarioResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<DeletePricingScenarioResponse>(null as any);
+    }
+
+    pricingSimulator_GetBaseline(productCode: string | null | undefined, productName: string | null | undefined, productType: ProductType | null | undefined): Promise<GetPricingBaselineResponse> {
+        let url_ = this.baseUrl + "/api/pricing-simulator/baseline?";
+        if (productCode !== undefined && productCode !== null)
+            url_ += "ProductCode=" + encodeURIComponent("" + productCode) + "&";
+        if (productName !== undefined && productName !== null)
+            url_ += "ProductName=" + encodeURIComponent("" + productName) + "&";
+        if (productType !== undefined && productType !== null)
+            url_ += "ProductType=" + encodeURIComponent("" + productType) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processPricingSimulator_GetBaseline(_response);
+        });
+    }
+
+    protected processPricingSimulator_GetBaseline(response: Response): Promise<GetPricingBaselineResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = GetPricingBaselineResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<GetPricingBaselineResponse>(null as any);
+    }
+
+    pricingSimulator_Recalculate(request: RecalculatePricingRequest): Promise<RecalculatePricingResponse> {
+        let url_ = this.baseUrl + "/api/pricing-simulator/recalculate";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: RequestInit = {
+            body: content_,
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processPricingSimulator_Recalculate(_response);
+        });
+    }
+
+    protected processPricingSimulator_Recalculate(response: Response): Promise<RecalculatePricingResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = RecalculatePricingResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<RecalculatePricingResponse>(null as any);
+    }
+
     productMargins_GetProductMargins(productCode: string | null | undefined, productName: string | null | undefined, productType: ProductType | null | undefined, pageNumber: number | undefined, pageSize: number | undefined, sortBy: string | null | undefined, sortDescending: boolean | undefined): Promise<GetProductMarginsResponse> {
         let url_ = this.baseUrl + "/api/ProductMargins?";
         if (productCode !== undefined && productCode !== null)
@@ -14839,6 +15163,7 @@ export enum ErrorCodes {
     InvalidCronExpression = "InvalidCronExpression",
     RecurringJobDisabled = "RecurringJobDisabled",
     RecurringJobEnqueueFailed = "RecurringJobEnqueueFailed",
+    RecurringJobAlreadyRunning = "RecurringJobAlreadyRunning",
     KnowledgeBaseFeedbackLogNotFound = "KnowledgeBaseFeedbackLogNotFound",
     KnowledgeBaseFeedbackAlreadySubmitted = "KnowledgeBaseFeedbackAlreadySubmitted",
     KnowledgeBaseChunkNotFound = "KnowledgeBaseChunkNotFound",
@@ -14950,6 +15275,13 @@ export enum ErrorCodes {
     MarketingPerformanceRangeTooLarge = "MarketingPerformanceRangeTooLarge",
     MarketingPerformanceRecomputeAlreadyRunning = "MarketingPerformanceRecomputeAlreadyRunning",
     MarketingPerformanceEnqueueFailed = "MarketingPerformanceEnqueueFailed",
+    PricingInvalidPrice = "PricingInvalidPrice",
+    PricingNegativeMaterialCost = "PricingNegativeMaterialCost",
+    PricingNegativeManufacturingCost = "PricingNegativeManufacturingCost",
+    PricingNegativeQuantity = "PricingNegativeQuantity",
+    PricingScenarioNotFound = "PricingScenarioNotFound",
+    PricingScenarioNameConflict = "PricingScenarioNameConflict",
+    PricingProductNotInBaseline = "PricingProductNotInBaseline",
     ExternalServiceError = "ExternalServiceError",
     FlexiApiError = "FlexiApiError",
     ShoptetApiError = "ShoptetApiError",
@@ -16506,6 +16838,119 @@ export class BackfillArticleRequestedByCommand implements IBackfillArticleReques
 export interface IBackfillArticleRequestedByCommand {
     groupId?: string;
     dryRun?: boolean;
+}
+
+export class RunBreakInsertionResponse extends BaseResponse implements IRunBreakInsertionResponse {
+    daysScanned?: number;
+    breaksInserted?: number;
+    daysHealed?: number;
+    recordsTouched?: number;
+    touchFailed?: number;
+    skippedExistingBreak?: number;
+    skippedInProgress?: number;
+    skippedBelowThreshold?: number;
+    skippedHoursOnly?: number;
+    skippedNoSlot?: number;
+    failed?: number;
+
+    constructor(data?: IRunBreakInsertionResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            this.daysScanned = _data["daysScanned"];
+            this.breaksInserted = _data["breaksInserted"];
+            this.daysHealed = _data["daysHealed"];
+            this.recordsTouched = _data["recordsTouched"];
+            this.touchFailed = _data["touchFailed"];
+            this.skippedExistingBreak = _data["skippedExistingBreak"];
+            this.skippedInProgress = _data["skippedInProgress"];
+            this.skippedBelowThreshold = _data["skippedBelowThreshold"];
+            this.skippedHoursOnly = _data["skippedHoursOnly"];
+            this.skippedNoSlot = _data["skippedNoSlot"];
+            this.failed = _data["failed"];
+        }
+    }
+
+    static override fromJS(data: any): RunBreakInsertionResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new RunBreakInsertionResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["daysScanned"] = this.daysScanned;
+        data["breaksInserted"] = this.breaksInserted;
+        data["daysHealed"] = this.daysHealed;
+        data["recordsTouched"] = this.recordsTouched;
+        data["touchFailed"] = this.touchFailed;
+        data["skippedExistingBreak"] = this.skippedExistingBreak;
+        data["skippedInProgress"] = this.skippedInProgress;
+        data["skippedBelowThreshold"] = this.skippedBelowThreshold;
+        data["skippedHoursOnly"] = this.skippedHoursOnly;
+        data["skippedNoSlot"] = this.skippedNoSlot;
+        data["failed"] = this.failed;
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IRunBreakInsertionResponse extends IBaseResponse {
+    daysScanned?: number;
+    breaksInserted?: number;
+    daysHealed?: number;
+    recordsTouched?: number;
+    touchFailed?: number;
+    skippedExistingBreak?: number;
+    skippedInProgress?: number;
+    skippedBelowThreshold?: number;
+    skippedHoursOnly?: number;
+    skippedNoSlot?: number;
+    failed?: number;
+}
+
+export class RunBreakInsertionRequest implements IRunBreakInsertionRequest {
+    fromDaysAgo?: number | undefined;
+    toDaysAgo?: number | undefined;
+
+    constructor(data?: IRunBreakInsertionRequest) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.fromDaysAgo = _data["fromDaysAgo"];
+            this.toDaysAgo = _data["toDaysAgo"];
+        }
+    }
+
+    static fromJS(data: any): RunBreakInsertionRequest {
+        data = typeof data === 'object' ? data : {};
+        let result = new RunBreakInsertionRequest();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["fromDaysAgo"] = this.fromDaysAgo;
+        data["toDaysAgo"] = this.toDaysAgo;
+        return data;
+    }
+}
+
+export interface IRunBreakInsertionRequest {
+    fromDaysAgo?: number | undefined;
+    toDaysAgo?: number | undefined;
 }
 
 export class GetMeResponse extends BaseResponse implements IGetMeResponse {
@@ -40649,6 +41094,759 @@ export interface IReapplyRulesResponse extends IBaseResponse {
 export enum ThumbnailSize {
     Medium = "Medium",
     Large = "Large",
+}
+
+export class GetPricingScenariosResponse extends BaseResponse implements IGetPricingScenariosResponse {
+    scenarios?: PricingScenarioSummaryDto[];
+
+    constructor(data?: IGetPricingScenariosResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            if (Array.isArray(_data["scenarios"])) {
+                this.scenarios = [] as any;
+                for (let item of _data["scenarios"])
+                    this.scenarios!.push(PricingScenarioSummaryDto.fromJS(item));
+            }
+        }
+    }
+
+    static override fromJS(data: any): GetPricingScenariosResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new GetPricingScenariosResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        if (Array.isArray(this.scenarios)) {
+            data["scenarios"] = [];
+            for (let item of this.scenarios)
+                data["scenarios"].push(item.toJSON());
+        }
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IGetPricingScenariosResponse extends IBaseResponse {
+    scenarios?: PricingScenarioSummaryDto[];
+}
+
+export class PricingScenarioSummaryDto implements IPricingScenarioSummaryDto {
+    id?: string;
+    name?: string;
+    description?: string | undefined;
+    createdBy?: string;
+    createdAt?: Date;
+    modifiedAt?: Date;
+    editedProductCount?: number;
+
+    constructor(data?: IPricingScenarioSummaryDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.id = _data["id"];
+            this.name = _data["name"];
+            this.description = _data["description"];
+            this.createdBy = _data["createdBy"];
+            this.createdAt = _data["createdAt"] ? new Date(_data["createdAt"].toString()) : <any>undefined;
+            this.modifiedAt = _data["modifiedAt"] ? new Date(_data["modifiedAt"].toString()) : <any>undefined;
+            this.editedProductCount = _data["editedProductCount"];
+        }
+    }
+
+    static fromJS(data: any): PricingScenarioSummaryDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new PricingScenarioSummaryDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["id"] = this.id;
+        data["name"] = this.name;
+        data["description"] = this.description;
+        data["createdBy"] = this.createdBy;
+        data["createdAt"] = this.createdAt ? this.createdAt.toISOString() : <any>undefined;
+        data["modifiedAt"] = this.modifiedAt ? this.modifiedAt.toISOString() : <any>undefined;
+        data["editedProductCount"] = this.editedProductCount;
+        return data;
+    }
+}
+
+export interface IPricingScenarioSummaryDto {
+    id?: string;
+    name?: string;
+    description?: string | undefined;
+    createdBy?: string;
+    createdAt?: Date;
+    modifiedAt?: Date;
+    editedProductCount?: number;
+}
+
+export class SavePricingScenarioResponse extends BaseResponse implements ISavePricingScenarioResponse {
+    id?: string;
+
+    constructor(data?: ISavePricingScenarioResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            this.id = _data["id"];
+        }
+    }
+
+    static override fromJS(data: any): SavePricingScenarioResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new SavePricingScenarioResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["id"] = this.id;
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface ISavePricingScenarioResponse extends IBaseResponse {
+    id?: string;
+}
+
+export class SavePricingScenarioRequest implements ISavePricingScenarioRequest {
+    id?: string | undefined;
+    name?: string;
+    description?: string | undefined;
+    productCode?: string | undefined;
+    productName?: string | undefined;
+    productType?: ProductType | undefined;
+    overrides?: PricingOverrideDto[];
+
+    constructor(data?: ISavePricingScenarioRequest) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.id = _data["id"];
+            this.name = _data["name"];
+            this.description = _data["description"];
+            this.productCode = _data["productCode"];
+            this.productName = _data["productName"];
+            this.productType = _data["productType"];
+            if (Array.isArray(_data["overrides"])) {
+                this.overrides = [] as any;
+                for (let item of _data["overrides"])
+                    this.overrides!.push(PricingOverrideDto.fromJS(item));
+            }
+        }
+    }
+
+    static fromJS(data: any): SavePricingScenarioRequest {
+        data = typeof data === 'object' ? data : {};
+        let result = new SavePricingScenarioRequest();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["id"] = this.id;
+        data["name"] = this.name;
+        data["description"] = this.description;
+        data["productCode"] = this.productCode;
+        data["productName"] = this.productName;
+        data["productType"] = this.productType;
+        if (Array.isArray(this.overrides)) {
+            data["overrides"] = [];
+            for (let item of this.overrides)
+                data["overrides"].push(item.toJSON());
+        }
+        return data;
+    }
+}
+
+export interface ISavePricingScenarioRequest {
+    id?: string | undefined;
+    name?: string;
+    description?: string | undefined;
+    productCode?: string | undefined;
+    productName?: string | undefined;
+    productType?: ProductType | undefined;
+    overrides?: PricingOverrideDto[];
+}
+
+export class PricingOverrideDto implements IPricingOverrideDto {
+    productCode?: string;
+    price?: number | undefined;
+    materialCost?: number | undefined;
+    manufacturingCost?: number | undefined;
+    forecastQuantity?: number | undefined;
+
+    constructor(data?: IPricingOverrideDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.productCode = _data["productCode"];
+            this.price = _data["price"];
+            this.materialCost = _data["materialCost"];
+            this.manufacturingCost = _data["manufacturingCost"];
+            this.forecastQuantity = _data["forecastQuantity"];
+        }
+    }
+
+    static fromJS(data: any): PricingOverrideDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new PricingOverrideDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["productCode"] = this.productCode;
+        data["price"] = this.price;
+        data["materialCost"] = this.materialCost;
+        data["manufacturingCost"] = this.manufacturingCost;
+        data["forecastQuantity"] = this.forecastQuantity;
+        return data;
+    }
+}
+
+export interface IPricingOverrideDto {
+    productCode?: string;
+    price?: number | undefined;
+    materialCost?: number | undefined;
+    manufacturingCost?: number | undefined;
+    forecastQuantity?: number | undefined;
+}
+
+export class GetPricingScenarioResponse extends BaseResponse implements IGetPricingScenarioResponse {
+    scenario?: PricingScenarioSummaryDto;
+    rows?: PricingRowDto[];
+    totals?: PricingTotalsDto;
+    overrides?: PricingOverrideDto[];
+
+    constructor(data?: IGetPricingScenarioResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            this.scenario = _data["scenario"] ? PricingScenarioSummaryDto.fromJS(_data["scenario"]) : <any>undefined;
+            if (Array.isArray(_data["rows"])) {
+                this.rows = [] as any;
+                for (let item of _data["rows"])
+                    this.rows!.push(PricingRowDto.fromJS(item));
+            }
+            this.totals = _data["totals"] ? PricingTotalsDto.fromJS(_data["totals"]) : <any>undefined;
+            if (Array.isArray(_data["overrides"])) {
+                this.overrides = [] as any;
+                for (let item of _data["overrides"])
+                    this.overrides!.push(PricingOverrideDto.fromJS(item));
+            }
+        }
+    }
+
+    static override fromJS(data: any): GetPricingScenarioResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new GetPricingScenarioResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["scenario"] = this.scenario ? this.scenario.toJSON() : <any>undefined;
+        if (Array.isArray(this.rows)) {
+            data["rows"] = [];
+            for (let item of this.rows)
+                data["rows"].push(item.toJSON());
+        }
+        data["totals"] = this.totals ? this.totals.toJSON() : <any>undefined;
+        if (Array.isArray(this.overrides)) {
+            data["overrides"] = [];
+            for (let item of this.overrides)
+                data["overrides"].push(item.toJSON());
+        }
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IGetPricingScenarioResponse extends IBaseResponse {
+    scenario?: PricingScenarioSummaryDto;
+    rows?: PricingRowDto[];
+    totals?: PricingTotalsDto;
+    overrides?: PricingOverrideDto[];
+}
+
+export class PricingRowDto implements IPricingRowDto {
+    productCode?: string;
+    productName?: string;
+    baselinePrice?: number;
+    baselineMaterialCost?: number;
+    baselineManufacturingCost?: number;
+    baselineQuantity?: number;
+    price?: number;
+    materialCost?: number;
+    manufacturingCost?: number;
+    forecastQuantity?: number;
+    m0Amount?: number;
+    m0Percentage?: number;
+    m1Amount?: number;
+    m1Percentage?: number;
+    baselineM0Amount?: number;
+    baselineM1Amount?: number;
+    isEdited?: boolean;
+    isExcluded?: boolean;
+    baselineDrifted?: boolean;
+
+    constructor(data?: IPricingRowDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.productCode = _data["productCode"];
+            this.productName = _data["productName"];
+            this.baselinePrice = _data["baselinePrice"];
+            this.baselineMaterialCost = _data["baselineMaterialCost"];
+            this.baselineManufacturingCost = _data["baselineManufacturingCost"];
+            this.baselineQuantity = _data["baselineQuantity"];
+            this.price = _data["price"];
+            this.materialCost = _data["materialCost"];
+            this.manufacturingCost = _data["manufacturingCost"];
+            this.forecastQuantity = _data["forecastQuantity"];
+            this.m0Amount = _data["m0Amount"];
+            this.m0Percentage = _data["m0Percentage"];
+            this.m1Amount = _data["m1Amount"];
+            this.m1Percentage = _data["m1Percentage"];
+            this.baselineM0Amount = _data["baselineM0Amount"];
+            this.baselineM1Amount = _data["baselineM1Amount"];
+            this.isEdited = _data["isEdited"];
+            this.isExcluded = _data["isExcluded"];
+            this.baselineDrifted = _data["baselineDrifted"];
+        }
+    }
+
+    static fromJS(data: any): PricingRowDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new PricingRowDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["productCode"] = this.productCode;
+        data["productName"] = this.productName;
+        data["baselinePrice"] = this.baselinePrice;
+        data["baselineMaterialCost"] = this.baselineMaterialCost;
+        data["baselineManufacturingCost"] = this.baselineManufacturingCost;
+        data["baselineQuantity"] = this.baselineQuantity;
+        data["price"] = this.price;
+        data["materialCost"] = this.materialCost;
+        data["manufacturingCost"] = this.manufacturingCost;
+        data["forecastQuantity"] = this.forecastQuantity;
+        data["m0Amount"] = this.m0Amount;
+        data["m0Percentage"] = this.m0Percentage;
+        data["m1Amount"] = this.m1Amount;
+        data["m1Percentage"] = this.m1Percentage;
+        data["baselineM0Amount"] = this.baselineM0Amount;
+        data["baselineM1Amount"] = this.baselineM1Amount;
+        data["isEdited"] = this.isEdited;
+        data["isExcluded"] = this.isExcluded;
+        data["baselineDrifted"] = this.baselineDrifted;
+        return data;
+    }
+}
+
+export interface IPricingRowDto {
+    productCode?: string;
+    productName?: string;
+    baselinePrice?: number;
+    baselineMaterialCost?: number;
+    baselineManufacturingCost?: number;
+    baselineQuantity?: number;
+    price?: number;
+    materialCost?: number;
+    manufacturingCost?: number;
+    forecastQuantity?: number;
+    m0Amount?: number;
+    m0Percentage?: number;
+    m1Amount?: number;
+    m1Percentage?: number;
+    baselineM0Amount?: number;
+    baselineM1Amount?: number;
+    isEdited?: boolean;
+    isExcluded?: boolean;
+    baselineDrifted?: boolean;
+}
+
+export class PricingTotalsDto implements IPricingTotalsDto {
+    revenueBefore?: number;
+    revenueAfter?: number;
+    revenueDelta?: number;
+    revenueDeltaPercentage?: number;
+    m0Before?: number;
+    m0After?: number;
+    m0Delta?: number;
+    m0DeltaPercentage?: number;
+    m1Before?: number;
+    m1After?: number;
+    m1Delta?: number;
+    m1DeltaPercentage?: number;
+    editedProductCount?: number;
+    excludedProductCount?: number;
+
+    constructor(data?: IPricingTotalsDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.revenueBefore = _data["revenueBefore"];
+            this.revenueAfter = _data["revenueAfter"];
+            this.revenueDelta = _data["revenueDelta"];
+            this.revenueDeltaPercentage = _data["revenueDeltaPercentage"];
+            this.m0Before = _data["m0Before"];
+            this.m0After = _data["m0After"];
+            this.m0Delta = _data["m0Delta"];
+            this.m0DeltaPercentage = _data["m0DeltaPercentage"];
+            this.m1Before = _data["m1Before"];
+            this.m1After = _data["m1After"];
+            this.m1Delta = _data["m1Delta"];
+            this.m1DeltaPercentage = _data["m1DeltaPercentage"];
+            this.editedProductCount = _data["editedProductCount"];
+            this.excludedProductCount = _data["excludedProductCount"];
+        }
+    }
+
+    static fromJS(data: any): PricingTotalsDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new PricingTotalsDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["revenueBefore"] = this.revenueBefore;
+        data["revenueAfter"] = this.revenueAfter;
+        data["revenueDelta"] = this.revenueDelta;
+        data["revenueDeltaPercentage"] = this.revenueDeltaPercentage;
+        data["m0Before"] = this.m0Before;
+        data["m0After"] = this.m0After;
+        data["m0Delta"] = this.m0Delta;
+        data["m0DeltaPercentage"] = this.m0DeltaPercentage;
+        data["m1Before"] = this.m1Before;
+        data["m1After"] = this.m1After;
+        data["m1Delta"] = this.m1Delta;
+        data["m1DeltaPercentage"] = this.m1DeltaPercentage;
+        data["editedProductCount"] = this.editedProductCount;
+        data["excludedProductCount"] = this.excludedProductCount;
+        return data;
+    }
+}
+
+export interface IPricingTotalsDto {
+    revenueBefore?: number;
+    revenueAfter?: number;
+    revenueDelta?: number;
+    revenueDeltaPercentage?: number;
+    m0Before?: number;
+    m0After?: number;
+    m0Delta?: number;
+    m0DeltaPercentage?: number;
+    m1Before?: number;
+    m1After?: number;
+    m1Delta?: number;
+    m1DeltaPercentage?: number;
+    editedProductCount?: number;
+    excludedProductCount?: number;
+}
+
+export class DeletePricingScenarioResponse extends BaseResponse implements IDeletePricingScenarioResponse {
+
+    constructor(data?: IDeletePricingScenarioResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+    }
+
+    static override fromJS(data: any): DeletePricingScenarioResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new DeletePricingScenarioResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IDeletePricingScenarioResponse extends IBaseResponse {
+}
+
+export class GetPricingBaselineResponse extends BaseResponse implements IGetPricingBaselineResponse {
+    rows?: PricingRowDto[];
+    totals?: PricingTotalsDto;
+
+    constructor(data?: IGetPricingBaselineResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            if (Array.isArray(_data["rows"])) {
+                this.rows = [] as any;
+                for (let item of _data["rows"])
+                    this.rows!.push(PricingRowDto.fromJS(item));
+            }
+            this.totals = _data["totals"] ? PricingTotalsDto.fromJS(_data["totals"]) : <any>undefined;
+        }
+    }
+
+    static override fromJS(data: any): GetPricingBaselineResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new GetPricingBaselineResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        if (Array.isArray(this.rows)) {
+            data["rows"] = [];
+            for (let item of this.rows)
+                data["rows"].push(item.toJSON());
+        }
+        data["totals"] = this.totals ? this.totals.toJSON() : <any>undefined;
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IGetPricingBaselineResponse extends IBaseResponse {
+    rows?: PricingRowDto[];
+    totals?: PricingTotalsDto;
+}
+
+export class RecalculatePricingResponse extends BaseResponse implements IRecalculatePricingResponse {
+    rows?: PricingRowDto[];
+    totals?: PricingTotalsDto;
+    overrides?: PricingOverrideDto[];
+
+    constructor(data?: IRecalculatePricingResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            if (Array.isArray(_data["rows"])) {
+                this.rows = [] as any;
+                for (let item of _data["rows"])
+                    this.rows!.push(PricingRowDto.fromJS(item));
+            }
+            this.totals = _data["totals"] ? PricingTotalsDto.fromJS(_data["totals"]) : <any>undefined;
+            if (Array.isArray(_data["overrides"])) {
+                this.overrides = [] as any;
+                for (let item of _data["overrides"])
+                    this.overrides!.push(PricingOverrideDto.fromJS(item));
+            }
+        }
+    }
+
+    static override fromJS(data: any): RecalculatePricingResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new RecalculatePricingResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        if (Array.isArray(this.rows)) {
+            data["rows"] = [];
+            for (let item of this.rows)
+                data["rows"].push(item.toJSON());
+        }
+        data["totals"] = this.totals ? this.totals.toJSON() : <any>undefined;
+        if (Array.isArray(this.overrides)) {
+            data["overrides"] = [];
+            for (let item of this.overrides)
+                data["overrides"].push(item.toJSON());
+        }
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IRecalculatePricingResponse extends IBaseResponse {
+    rows?: PricingRowDto[];
+    totals?: PricingTotalsDto;
+    overrides?: PricingOverrideDto[];
+}
+
+export class RecalculatePricingRequest implements IRecalculatePricingRequest {
+    productCode?: string | undefined;
+    productName?: string | undefined;
+    productType?: ProductType | undefined;
+    overrides?: PricingOverrideDto[];
+    edit?: PricingEditDto | undefined;
+
+    constructor(data?: IRecalculatePricingRequest) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.productCode = _data["productCode"];
+            this.productName = _data["productName"];
+            this.productType = _data["productType"];
+            if (Array.isArray(_data["overrides"])) {
+                this.overrides = [] as any;
+                for (let item of _data["overrides"])
+                    this.overrides!.push(PricingOverrideDto.fromJS(item));
+            }
+            this.edit = _data["edit"] ? PricingEditDto.fromJS(_data["edit"]) : <any>undefined;
+        }
+    }
+
+    static fromJS(data: any): RecalculatePricingRequest {
+        data = typeof data === 'object' ? data : {};
+        let result = new RecalculatePricingRequest();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["productCode"] = this.productCode;
+        data["productName"] = this.productName;
+        data["productType"] = this.productType;
+        if (Array.isArray(this.overrides)) {
+            data["overrides"] = [];
+            for (let item of this.overrides)
+                data["overrides"].push(item.toJSON());
+        }
+        data["edit"] = this.edit ? this.edit.toJSON() : <any>undefined;
+        return data;
+    }
+}
+
+export interface IRecalculatePricingRequest {
+    productCode?: string | undefined;
+    productName?: string | undefined;
+    productType?: ProductType | undefined;
+    overrides?: PricingOverrideDto[];
+    edit?: PricingEditDto | undefined;
+}
+
+export class PricingEditDto implements IPricingEditDto {
+    productCode?: string;
+    field?: PricingEditField;
+    value?: number;
+
+    constructor(data?: IPricingEditDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.productCode = _data["productCode"];
+            this.field = _data["field"];
+            this.value = _data["value"];
+        }
+    }
+
+    static fromJS(data: any): PricingEditDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new PricingEditDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["productCode"] = this.productCode;
+        data["field"] = this.field;
+        data["value"] = this.value;
+        return data;
+    }
+}
+
+export interface IPricingEditDto {
+    productCode?: string;
+    field?: PricingEditField;
+    value?: number;
+}
+
+export enum PricingEditField {
+    Price = "Price",
+    M0Amount = "M0Amount",
+    M0Percentage = "M0Percentage",
+    M1Amount = "M1Amount",
+    M1Percentage = "M1Percentage",
+    ForecastQuantity = "ForecastQuantity",
 }
 
 export class GetProductMarginsResponse extends BaseResponse implements IGetProductMarginsResponse {
