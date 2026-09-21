@@ -20,8 +20,20 @@ const parseDraftValue = (raw: string): number | null => {
   return Number.isFinite(parsed) ? parsed : null;
 };
 
-const formatDraftValue = (value: number | null | undefined): string =>
-  value === null || value === undefined ? "" : String(value);
+// Every column routed through this cell is money, a percentage or a quantity, and none of
+// them is meaningful past two decimals. The server sends full-precision decimals -- a
+// percentage is a plain division, so a normal row (P=499, Cm=175) arrives as
+// 64.92985971943888 and would overflow a 64px input. Rounding here is DISPLAY only and can
+// never be committed on its own: commitIfChanged bails unless isDirtyRef was set by a real
+// keystroke, so a resynced (rounded) draft is never posted back as if the user had typed it.
+const MAX_DRAFT_DECIMALS = 2;
+
+const formatDraftValue = (value: number | null | undefined): string => {
+  if (value === null || value === undefined) return "";
+  if (!Number.isFinite(value)) return "";
+  // Number() drops the trailing zeros toFixed adds, so 500 stays "500", not "500.00".
+  return String(Number(value.toFixed(MAX_DRAFT_DECIMALS)));
+};
 
 // Editable numeric cell for the pricing grid. Holds its own draft string so keystrokes
 // never touch parent state or fire the mutation -- only a blur (or Enter) commits.

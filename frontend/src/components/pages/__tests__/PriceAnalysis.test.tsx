@@ -5,7 +5,7 @@ import { BrowserRouter } from "react-router-dom";
 import PriceAnalysis from "../PriceAnalysis";
 import * as usePricingSimulatorHook from "../../../api/hooks/usePricingSimulator";
 import { PricingRowDto, PricingTotalsDto } from "../../../api/generated/api-client";
-import { formatCurrency, formatPercentage } from "../../../utils/formatters";
+import { formatCurrency, formatNumber, formatPercentage } from "../../../utils/formatters";
 
 // Mock the pricing simulator hooks. PriceAnalysis (Task 8) only consumes
 // usePricingBaselineQuery; the other exports are auto-mocked as jest.fn()
@@ -280,6 +280,110 @@ describe("PriceAnalysis", () => {
     render(<PriceAnalysis />, { wrapper: createWrapper() });
 
     expect(screen.queryByTestId("excluded-count")).not.toBeInTheDocument();
+  });
+
+  it("shows the edited-product count when editedProductCount is greater than zero", () => {
+    mockUsePricingBaselineQuery.mockReturnValue({
+      data: {
+        rows: mockData.rows,
+        totals: buildTotals({ editedProductCount: 17 }),
+      },
+      isLoading: false,
+      error: null,
+      refetch: jest.fn(),
+    } as any);
+
+    render(<PriceAnalysis />, { wrapper: createWrapper() });
+
+    // The spec's totals band reads "17 produktů upraveno" beside the excluded count.
+    expect(screen.getByTestId("edited-count")).toHaveTextContent("17 produktů upraveno");
+  });
+
+  it("uses the singular form for a single edited product", () => {
+    mockUsePricingBaselineQuery.mockReturnValue({
+      data: {
+        rows: mockData.rows,
+        totals: buildTotals({ editedProductCount: 1 }),
+      },
+      isLoading: false,
+      error: null,
+      refetch: jest.fn(),
+    } as any);
+
+    render(<PriceAnalysis />, { wrapper: createWrapper() });
+
+    expect(screen.getByTestId("edited-count")).toHaveTextContent("1 produkt upraven");
+  });
+
+  it("hides the edited-product count when nothing is edited", () => {
+    mockUsePricingBaselineQuery.mockReturnValue({
+      data: mockData, // editedProductCount: 0
+      isLoading: false,
+      error: null,
+      refetch: jest.fn(),
+    } as any);
+
+    render(<PriceAnalysis />, { wrapper: createWrapper() });
+
+    expect(screen.queryByTestId("edited-count")).not.toBeInTheDocument();
+  });
+
+  // GetPricingScenarioHandler sets baselineDrifted per row when a reopened scenario's
+  // snapshot no longer matches the catalog. It was computed but never rendered, so a
+  // scenario decided against numbers that have since moved looked identical to a fresh one.
+  it("flags rows whose baseline has drifted since the scenario was saved", () => {
+    mockUsePricingBaselineQuery.mockReturnValue({
+      data: {
+        rows: [
+          buildRow(),
+          buildRow({
+            productCode: "PROD002",
+            productName: "Test Product 2",
+            baselineDrifted: true,
+          }),
+        ],
+        totals: buildTotals(),
+      },
+      isLoading: false,
+      error: null,
+      refetch: jest.fn(),
+    } as any);
+
+    render(<PriceAnalysis />, { wrapper: createWrapper() });
+
+    const driftMarker = screen.getByTestId("pricing-row-drift-PROD002");
+    expect(driftMarker).toBeInTheDocument();
+    expect(driftMarker.getAttribute("title")).toMatch(/změnily/i);
+
+    // Only the drifted row is flagged -- the marker must not be decoration on every row.
+    expect(screen.queryByTestId("pricing-row-drift-PROD001")).not.toBeInTheDocument();
+  });
+
+  // The spec's grid mockup carries a `12m` column: trailing-twelve-month sales are the
+  // anchor for entering a forecast quantity, and baselineQuantity already reaches the row.
+  it("renders the trailing-twelve-month sold quantity as a read-only column", () => {
+    mockUsePricingBaselineQuery.mockReturnValue({
+      data: {
+        rows: [buildRow({ baselineQuantity: 1240, forecastQuantity: 1300 })],
+        totals: buildTotals(),
+      },
+      isLoading: false,
+      error: null,
+      refetch: jest.fn(),
+    } as any);
+
+    render(<PriceAnalysis />, { wrapper: createWrapper() });
+
+    expect(
+      screen.getByRole("columnheader", { name: "Prodáno 12m" }),
+    ).toBeInTheDocument();
+
+    const soldCell = screen.getByTestId("pricing-row-sold12m-PROD001");
+    // Read raw textContent: formatNumber renders Czech thousands separators as
+    // non-breaking spaces, which jest-dom's default normalizer would collapse.
+    expect(soldCell.textContent).toBe(formatNumber(1240));
+    // Read-only: it must not be an editable cell like Prognóza ks next to it.
+    expect(within(soldCell).queryByRole("textbox")).not.toBeInTheDocument();
   });
 
   it("shows an empty state when rows is empty", () => {

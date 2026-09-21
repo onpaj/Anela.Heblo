@@ -1,7 +1,6 @@
 import { exportPricingScenario } from "../exportPricingScenario";
 import { exportToXlsx } from "../../../utils/exportToXlsx";
 import { PricingRowDto } from "../../../api/generated/api-client";
-import { formatCurrency, formatNumber, formatPercentage } from "../../../utils/formatters";
 
 jest.mock("../../../utils/exportToXlsx", () => ({
   exportToXlsx: jest.fn().mockResolvedValue(undefined),
@@ -96,7 +95,7 @@ describe("exportPricingScenario", () => {
     expect(filename).toMatch(/\.xlsx$/);
   });
 
-  it("reads the server-computed baseline margins and formats cells with the shared formatters, computing only the revenue/M1 deltas from numbers the row already carries", async () => {
+  it("reads the server-computed baseline margins and emits every numeric column as a RAW number, computing only the revenue/M1 totals from numbers the row already carries", async () => {
     const row = buildRow({
       productCode: "PROD001",
       productName: "Test Product",
@@ -123,23 +122,69 @@ describe("exportPricingScenario", () => {
 
     expect(valueFor("Kód")).toBe("PROD001");
     expect(valueFor("Název")).toBe("Test Product");
-    expect(valueFor("Cena před")).toBe(formatCurrency(150));
-    expect(valueFor("Cena po")).toBe(formatCurrency(175));
+    // Raw numbers, not formatted strings: a draft ceník is summed, sorted and
+    // filtered in Excel, and "500,00 Kč" as text defeats all three.
+    expect(valueFor("Cena před")).toBe(150);
+    expect(valueFor("Cena po")).toBe(175);
     // M0 před Kč reads row.baselineM0Amount directly -- server-computed by
     // PricingSimulationCalculator, not re-derived here.
-    expect(valueFor("M0 před Kč")).toBe(formatCurrency(120));
-    expect(valueFor("M0 po Kč")).toBe(formatCurrency(145));
-    expect(valueFor("M0 po %")).toBe(formatPercentage(82.86));
+    expect(valueFor("M0 před Kč")).toBe(120);
+    expect(valueFor("M0 po Kč")).toBe(145);
+    expect(valueFor("M0 po %")).toBe(82.86);
     // M1 před Kč reads row.baselineM1Amount directly, same as above.
-    expect(valueFor("M1 před Kč")).toBe(formatCurrency(100));
-    expect(valueFor("M1 po Kč")).toBe(formatCurrency(125));
-    expect(valueFor("M1 po %")).toBe(formatPercentage(71.43));
-    expect(valueFor("Prodáno 12m")).toBe(formatNumber(100));
-    expect(valueFor("Předpověď")).toBe(formatNumber(110));
+    expect(valueFor("M1 před Kč")).toBe(100);
+    expect(valueFor("M1 po Kč")).toBe(125);
+    expect(valueFor("M1 po %")).toBe(71.43);
+    expect(valueFor("Prodáno 12m")).toBe(100);
+    expect(valueFor("Předpověď")).toBe(110);
     // Δ obrat = (price * forecastQuantity) - (baselinePrice * baselineQuantity)
     //         = (175 * 110) - (150 * 100) = 19250 - 15000 = 4250.
-    expect(valueFor("Δ obrat")).toBe(formatCurrency(4250));
-    // Δ M1 = m1Amount - baselineM1Amount = 125 - 100 = 25.
-    expect(valueFor("Δ M1")).toBe(formatCurrency(25));
+    expect(valueFor("Δ obrat")).toBe(4250);
+    // Δ M1 mirrors the backend's m1After - m1Before, per row:
+    //   (m1Amount * forecastQuantity) - (baselineM1Amount * baselineQuantity)
+    //   = (125 * 110) - (100 * 100) = 13750 - 10000 = 3750.
+    // Both Δ columns are totals on the same basis; Δ M1 used to be per-unit (25).
+    expect(valueFor("Δ M1")).toBe(3750);
+  });
+
+  it("emits no formatted string in any numeric column", async () => {
+    const row = buildRow({ isEdited: true });
+
+    await exportPricingScenario([row], "Jarní akce");
+
+    const [, columns] = mockExportToXlsx.mock.calls[0];
+    const textColumns = ["Kód", "Název"];
+
+    columns
+      .filter((c) => !textColumns.includes(c.header))
+      .forEach((column) => {
+        const value = column.value(row);
+        // A string here means the cell lands in Excel as text and cannot be
+        // summed or sorted -- the exact defect this column set exists to avoid.
+        expect(typeof value).toBe("number");
+      });
+  });
+
+  it("keeps Δ M1 on the same quantity-weighted basis as Δ obrat when the forecast quantity moves", async () => {
+    // Quantity alone changes: per-unit M1 is identical before and after, so a
+    // per-unit Δ M1 would report 0 while Δ obrat reports a real change.
+    const row = buildRow({
+      baselinePrice: 150,
+      price: 150,
+      baselineQuantity: 100,
+      forecastQuantity: 120,
+      baselineM1Amount: 100,
+      m1Amount: 100,
+      isEdited: true,
+    });
+
+    await exportPricingScenario([row], "Jarní akce");
+
+    const [, columns] = mockExportToXlsx.mock.calls[0];
+    const valueFor = (header: string) =>
+      columns.find((c) => c.header === header)!.value(row);
+
+    expect(valueFor("Δ obrat")).toBe(150 * 120 - 150 * 100);
+    expect(valueFor("Δ M1")).toBe(100 * 120 - 100 * 100);
   });
 });

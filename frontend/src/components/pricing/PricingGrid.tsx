@@ -1,5 +1,5 @@
 import React from "react";
-import { RotateCcw } from "lucide-react";
+import { AlertTriangle, RotateCcw } from "lucide-react";
 import { PricingEditField, PricingRowDto } from "../../api/generated/api-client";
 import { formatCurrency, formatNumber, formatPercentage } from "../../utils/formatters";
 import PricingEditableCell from "./PricingEditableCell";
@@ -29,6 +29,12 @@ export const pricingCellErrorKey = (productCode: string, field: PricingEditField
 
 const EXCLUDED_ROW_TITLE =
   "Produkt je vyloučen ze souhrnu: chybí cena nebo historie marží";
+
+// A saved scenario snapshots the baseline it was decided against. GetPricingScenarioHandler
+// compares that snapshot with today's catalog and sets BaselineDrifted per row, so a
+// reopened scenario can say which rows were decided against numbers that have since moved.
+const DRIFTED_ROW_TITLE =
+  "Podklady se od uložení scénáře změnily: cena nebo náklady tohoto produktu se posunuly";
 
 // Read-only rendering for editingDisabled mode. M0Amount/M1Amount are Kč margins
 // (the spec's "margin cells accept either a Kč amount or a percentage"), so they
@@ -106,6 +112,12 @@ const PricingGrid: React.FC<PricingGridProps> = ({
                 scope="col"
                 className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-graphite-muted uppercase tracking-wider"
               >
+                Prodáno 12m
+              </th>
+              <th
+                scope="col"
+                className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-graphite-muted uppercase tracking-wider"
+              >
                 Prognóza ks
               </th>
               <th
@@ -132,6 +144,7 @@ const PricingGrid: React.FC<PricingGridProps> = ({
             {rows.map((row) => {
               const isExcluded = row.isExcluded ?? false;
               const isEdited = row.isEdited ?? false;
+              const isBaselineDrifted = row.baselineDrifted ?? false;
               const productCode = row.productCode ?? "";
 
               const rowClassName = isExcluded
@@ -170,7 +183,18 @@ const PricingGrid: React.FC<PricingGridProps> = ({
                   title={isExcluded ? EXCLUDED_ROW_TITLE : undefined}
                 >
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-graphite-text">
-                    {row.productCode}
+                    <span className="inline-flex items-center gap-1">
+                      {row.productCode}
+                      {isBaselineDrifted && (
+                        <span
+                          data-testid={`pricing-row-drift-${productCode}`}
+                          title={DRIFTED_ROW_TITLE}
+                          className="inline-flex text-orange-600 dark:text-amber-400"
+                        >
+                          <AlertTriangle className="h-3.5 w-3.5" aria-hidden="true" />
+                        </span>
+                      )}
+                    </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-graphite-text">
                     {row.productName}
@@ -183,6 +207,12 @@ const PricingGrid: React.FC<PricingGridProps> = ({
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-right text-gray-900 dark:text-graphite-text">
                     {formatCurrency(row.manufacturingCost ?? null)}
+                  </td>
+                  <td
+                    data-testid={`pricing-row-sold12m-${productCode}`}
+                    className="px-6 py-4 whitespace-nowrap text-sm text-right text-gray-900 dark:text-graphite-text"
+                  >
+                    {formatNumber(row.baselineQuantity ?? null)}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-right text-gray-600 dark:text-graphite-muted">
                     {renderEditable(PricingEditField.ForecastQuantity, row.forecastQuantity)}

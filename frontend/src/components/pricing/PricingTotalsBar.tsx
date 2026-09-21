@@ -65,6 +65,7 @@ const PricingTotalsBar: React.FC<PricingTotalsBarProps> = ({
   isRecalculating = false,
 }) => {
   const excludedProductCount = totals.excludedProductCount ?? 0;
+  const editedProductCount = totals.editedProductCount ?? 0;
 
   return (
     <div className="sticky top-0 z-10 flex-shrink-0 bg-white dark:bg-graphite-surface shadow dark:shadow-soft-dark rounded-lg p-4 mb-4">
@@ -77,6 +78,16 @@ const PricingTotalsBar: React.FC<PricingTotalsBarProps> = ({
             <div className="flex items-center gap-1 text-xs text-gray-500 dark:text-graphite-muted">
               <Loader2 className="h-3 w-3 animate-spin" />
               Přepočítávám...
+            </div>
+          )}
+          {editedProductCount > 0 && (
+            <div
+              data-testid="edited-count"
+              className="text-xs font-medium text-indigo-600 dark:text-indigo-400"
+              title="Počet produktů, u kterých je v tomto scénáři alespoň jedna úprava"
+            >
+              {editedProductCount}{" "}
+              {editedProductCount === 1 ? "produkt upraven" : "produktů upraveno"}
             </div>
           )}
           {excludedProductCount > 0 && (

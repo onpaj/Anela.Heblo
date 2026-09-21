@@ -133,6 +133,92 @@ describe("PricingEditableCell", () => {
     ).toHaveTextContent("Cena musí být větší než nula");
   });
 
+  // M0Percentage/M1Percentage are plain decimal divisions server-side, so a normal
+  // row (P=499, Cm=175) arrives as 64.92985971943888 and used to be rendered raw
+  // inside a 64px input.
+  it("renders a full-precision percentage rounded to two decimals", () => {
+    render(
+      <PricingEditableCell
+        value={64.92985971943888}
+        field={PricingEditField.M0Percentage}
+        productCode={productCode}
+        onCommit={jest.fn()}
+      />,
+    );
+
+    const input = screen.getByTestId(
+      `pricing-cell-${productCode}-${PricingEditField.M0Percentage}`,
+    ) as HTMLInputElement;
+    expect(input.value).toBe("64.93");
+  });
+
+  it("renders a whole amount without trailing zeros", () => {
+    render(
+      <PricingEditableCell
+        value={500}
+        field={PricingEditField.Price}
+        productCode={productCode}
+        onCommit={jest.fn()}
+      />,
+    );
+
+    const input = screen.getByTestId(
+      `pricing-cell-${productCode}-${PricingEditField.Price}`,
+    ) as HTMLInputElement;
+    expect(input.value).toBe("500");
+  });
+
+  it("resyncs to the rounded form when the value prop changes while unfocused", () => {
+    const { rerender } = render(
+      <PricingEditableCell
+        value={80}
+        field={PricingEditField.M0Percentage}
+        productCode={productCode}
+        onCommit={jest.fn()}
+      />,
+    );
+
+    rerender(
+      <PricingEditableCell
+        value={82.857142857142857}
+        field={PricingEditField.M0Percentage}
+        productCode={productCode}
+        onCommit={jest.fn()}
+      />,
+    );
+
+    const input = screen.getByTestId(
+      `pricing-cell-${productCode}-${PricingEditField.M0Percentage}`,
+    ) as HTMLInputElement;
+    expect(input.value).toBe("82.86");
+  });
+
+  it("never commits the rounded display value on its own -- only a real keystroke can commit", () => {
+    const onCommit = jest.fn();
+    render(
+      <PricingEditableCell
+        value={64.92985971943888}
+        field={PricingEditField.M0Percentage}
+        productCode={productCode}
+        onCommit={onCommit}
+      />,
+    );
+
+    const input = screen.getByTestId(
+      `pricing-cell-${productCode}-${PricingEditField.M0Percentage}`,
+    ) as HTMLInputElement;
+
+    // The draft ("64.93") genuinely differs from the underlying value
+    // (64.92985971943888). Focusing and leaving must still post nothing: the
+    // dirty flag is set only by onChange, so a rounded display value can never
+    // round-trip back to the server as if the user had typed it.
+    expect(input.value).toBe("64.93");
+    fireEvent.focus(input);
+    fireEvent.blur(input);
+
+    expect(onCommit).not.toHaveBeenCalled();
+  });
+
   it("renders no error element when error is not set", () => {
     render(
       <PricingEditableCell
