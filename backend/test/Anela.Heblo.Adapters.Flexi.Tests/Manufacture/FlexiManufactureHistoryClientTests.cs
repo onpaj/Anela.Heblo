@@ -1,7 +1,9 @@
 using System.Net;
 using Anela.Heblo.Adapters.Flexi.Manufacture;
+using Anela.Heblo.Application.Common;
 using FluentAssertions;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Moq;
 using Rem.FlexiBeeSDK.Client.Clients.Products.StockMovement;
 using Rem.FlexiBeeSDK.Model.Products.StockMovement;
@@ -15,13 +17,28 @@ public class FlexiManufactureHistoryClientTests
     private readonly Mock<ILogger<FlexiManufactureHistoryClient>> _mockLogger;
     private readonly FlexiManufactureHistoryClient _client;
 
+    // Legacy (pre 2026-03-24) and current ids for semi-product and product receipts.
+    private const int LegacySemiProductTypeId = 54;
+    private const int LegacyProductTypeId = 56;
+    private const int CurrentSemiProductTypeId = 65;
+    private const int CurrentProductTypeId = 67;
+
     public FlexiManufactureHistoryClientTests()
     {
         _mockMovementClient = new Mock<IStockItemsMovementClient>();
         _mockLogger = new Mock<ILogger<FlexiManufactureHistoryClient>>();
 
+        var options = Options.Create(new DataSourceOptions
+        {
+            ManufactureDocumentTypeIds = new[]
+            {
+                LegacySemiProductTypeId, LegacyProductTypeId, CurrentSemiProductTypeId, CurrentProductTypeId
+            }
+        });
+
         _client = new FlexiManufactureHistoryClient(
             _mockMovementClient.Object,
+            options,
             _mockLogger.Object);
     }
 
@@ -93,17 +110,20 @@ public class FlexiManufactureHistoryClientTests
             .ThrowsAsync(transient)
             .ThrowsAsync(transient)
             .ReturnsAsync(new List<StockItemMovementFlexiDto>())
+            .ReturnsAsync(new List<StockItemMovementFlexiDto>())
+            .ReturnsAsync(new List<StockItemMovementFlexiDto>())
             .ReturnsAsync(new List<StockItemMovementFlexiDto>());
 
         // Act
         var result = await _client.GetHistoryAsync(DateTime.UtcNow.AddDays(-7), DateTime.UtcNow);
 
-        // Assert — 3 calls for the first document type (2 retries + success), 1 for the second
+        // Assert — 3 calls for the first document type (2 retries + success),
+        // then 1 each for the remaining 3 configured types = 6.
         result.Should().NotBeNull();
         result.Should().BeEmpty();
         _mockMovementClient.Verify(
             x => x.GetAsync(It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.IsAny<StockMovementDirection>(), It.IsAny<string?>(), It.IsAny<int?>(), It.IsAny<string?>(), It.IsAny<int>(), It.IsAny<int>(), It.IsAny<CancellationToken>()),
-            Times.Exactly(4));
+            Times.Exactly(6));
         _mockLogger.Verify(
             x => x.Log(
                 LogLevel.Warning,
@@ -246,19 +266,12 @@ public class FlexiManufactureHistoryClientTests
         var legacyDate = new DateTime(2026, 3, 1);
         var currentDate = new DateTime(2026, 5, 14);
 
-        _mockMovementClient
-            .Setup(x => x.GetAsync(It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.IsAny<StockMovementDirection>(), It.IsAny<string?>(), 56, It.IsAny<string?>(), It.IsAny<int>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new List<StockItemMovementFlexiDto>
-            {
-                BuildMovement("SER003030", legacyDate, amount: 10, pricePerUnit: 5, totalSum: 50)
-            });
-
-        _mockMovementClient
-            .Setup(x => x.GetAsync(It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.IsAny<StockMovementDirection>(), It.IsAny<string?>(), 67, It.IsAny<string?>(), It.IsAny<int>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new List<StockItemMovementFlexiDto>
-            {
-                BuildMovement("SER003030", currentDate, amount: 84, pricePerUnit: 7, totalSum: 588)
-            });
+        SetupMovementsForType(LegacySemiProductTypeId);
+        SetupMovementsForType(CurrentSemiProductTypeId);
+        SetupMovementsForType(LegacyProductTypeId,
+            BuildMovement("SER003030", legacyDate, amount: 10, pricePerUnit: 5, totalSum: 50));
+        SetupMovementsForType(CurrentProductTypeId,
+            BuildMovement("SER003030", currentDate, amount: 84, pricePerUnit: 7, totalSum: 588));
 
         // Act
         var result = await _client.GetHistoryAsync(new DateTime(2026, 1, 1), new DateTime(2026, 9, 21));
@@ -268,6 +281,105 @@ public class FlexiManufactureHistoryClientTests
         result.Should().ContainSingle(r => r.Date == legacyDate && r.Amount == 10);
         result.Should().ContainSingle(r => r.Date == currentDate && r.Amount == 84);
     }
+
+    [Fact]
+    public async Task GetHistoryAsync_UnionsLegacyAndCurrentSemiProductReceiptTypes()
+    {
+        // Arrange — the semi-product receipt type was renumbered in the same cutover:
+        // 54 VYROBA-POLOTOVAR (retired) -> 65 V-PRIJEM-POLOTOVAR (current).
+        var legacyDate = new DateTime(2026, 2, 10);
+        var currentDate = new DateTime(2026, 6, 3);
+
+        SetupMovementsForType(LegacyProductTypeId);
+        SetupMovementsForType(CurrentProductTypeId);
+        SetupMovementsForType(LegacySemiProductTypeId,
+            BuildMovement("POL001000", legacyDate, amount: 20, pricePerUnit: 3, totalSum: 60));
+        SetupMovementsForType(CurrentSemiProductTypeId,
+            BuildMovement("POL001000", currentDate, amount: 45, pricePerUnit: 4, totalSum: 180));
+
+        // Act
+        var result = await _client.GetHistoryAsync(new DateTime(2026, 1, 1), new DateTime(2026, 9, 21));
+
+        // Assert
+        result.Should().HaveCount(2);
+        result.Should().ContainSingle(r => r.Date == legacyDate && r.Amount == 20);
+        result.Should().ContainSingle(r => r.Date == currentDate && r.Amount == 45);
+    }
+
+    [Fact]
+    public async Task GetHistoryAsync_MergesSameProductAndDayAcrossDocumentTypes()
+    {
+        // Arrange — the cutover day itself can carry receipts of both types for one product.
+        // Grouping keys on date + code, so the two streams must merge into a single record.
+        var cutoverDate = new DateTime(2026, 3, 24);
+
+        SetupMovementsForType(LegacySemiProductTypeId);
+        SetupMovementsForType(CurrentSemiProductTypeId);
+        SetupMovementsForType(LegacyProductTypeId,
+            BuildMovement("SER003030", cutoverDate, amount: 10, pricePerUnit: 5, totalSum: 50));
+        SetupMovementsForType(CurrentProductTypeId,
+            BuildMovement("SER003030", cutoverDate, amount: 6, pricePerUnit: 7, totalSum: 42));
+
+        // Act
+        var result = await _client.GetHistoryAsync(new DateTime(2026, 1, 1), new DateTime(2026, 9, 21));
+
+        // Assert — one merged record, amounts summed, not duplicated
+        result.Should().ContainSingle();
+        result[0].Amount.Should().Be(16);
+        result[0].PriceTotal.Should().Be(92m);
+        result[0].PricePerPiece.Should().Be(6m);
+    }
+
+    [Fact]
+    public async Task GetHistoryAsync_QueriesEveryConfiguredDocumentType()
+    {
+        // Arrange — the configured id set is what drives the queries, so an ERP-side
+        // renumbering is a config edit rather than a code change.
+        SetupMovementsForType(LegacySemiProductTypeId);
+        SetupMovementsForType(LegacyProductTypeId);
+        SetupMovementsForType(CurrentSemiProductTypeId);
+        SetupMovementsForType(CurrentProductTypeId);
+
+        // Act
+        await _client.GetHistoryAsync(new DateTime(2026, 1, 1), new DateTime(2026, 9, 21));
+
+        // Assert
+        foreach (var documentTypeId in new[]
+                 {
+                     LegacySemiProductTypeId, LegacyProductTypeId, CurrentSemiProductTypeId, CurrentProductTypeId
+                 })
+        {
+            _mockMovementClient.Verify(
+                x => x.GetAsync(It.IsAny<DateTime>(), It.IsAny<DateTime>(), StockMovementDirection.In, It.IsAny<string?>(), documentTypeId, It.IsAny<string?>(), It.IsAny<int>(), It.IsAny<int>(), It.IsAny<CancellationToken>()),
+                Times.Once);
+        }
+    }
+
+    [Fact]
+    public async Task GetHistoryAsync_WhenNoDocumentTypesConfigured_ThrowsInsteadOfReturningEmpty()
+    {
+        // Arrange — misconfiguration must be loud. Returning an empty history here is exactly
+        // the silent failure this change exists to prevent.
+        var client = new FlexiManufactureHistoryClient(
+            _mockMovementClient.Object,
+            Options.Create(new DataSourceOptions { ManufactureDocumentTypeIds = Array.Empty<int>() }),
+            _mockLogger.Object);
+
+        // Act
+        var act = () => client.GetHistoryAsync(new DateTime(2026, 1, 1), new DateTime(2026, 9, 21));
+
+        // Assert
+        await act.Should().ThrowAsync<InvalidOperationException>()
+            .WithMessage("*ManufactureDocumentTypeIds*");
+        _mockMovementClient.Verify(
+            x => x.GetAsync(It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.IsAny<StockMovementDirection>(), It.IsAny<string?>(), It.IsAny<int?>(), It.IsAny<string?>(), It.IsAny<int>(), It.IsAny<int>(), It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
+
+    private void SetupMovementsForType(int documentTypeId, params StockItemMovementFlexiDto[] movements) =>
+        _mockMovementClient
+            .Setup(x => x.GetAsync(It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.IsAny<StockMovementDirection>(), It.IsAny<string?>(), documentTypeId, It.IsAny<string?>(), It.IsAny<int>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(movements.ToList());
 
     private static StockItemMovementFlexiDto BuildMovement(
         string productCode, DateTime date, double amount, double pricePerUnit, double totalSum) =>

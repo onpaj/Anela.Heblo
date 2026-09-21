@@ -1,6 +1,8 @@
 using System.Net;
+using Anela.Heblo.Application.Common;
 using Anela.Heblo.Domain.Features.Manufacture;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Polly;
 using Polly.Retry;
 using Rem.FlexiBeeSDK.Client.Clients.Products.StockMovement;
@@ -12,19 +14,16 @@ public class FlexiManufactureHistoryClient : IManufactureHistoryClient
 {
     private readonly IStockItemsMovementClient _stockItemsMovementClient;
     private readonly ILogger<FlexiManufactureHistoryClient> _logger;
+    private readonly IOptions<DataSourceOptions> _options;
     private readonly ResiliencePipeline _pipeline;
-
-    // Product receipts moved to a new FlexiBee document type on 2026-03-24 (see "manufacture
-    // directly in flexi"). Both are queried so pre-cutover history stays available:
-    //   56 = VYROBA-PRODUKT     (retired, last document 2026-03-24)
-    //   67 = V-PRIJEM-VYROBEK   (current)
-    private static readonly int[] ManufactureDocumentTypeIds = { 56, 67 };
 
     public FlexiManufactureHistoryClient(
         IStockItemsMovementClient stockItemsMovementClient,
+        IOptions<DataSourceOptions> options,
         ILogger<FlexiManufactureHistoryClient> logger)
     {
         _stockItemsMovementClient = stockItemsMovementClient;
+        _options = options;
         _logger = logger;
         _pipeline = new ResiliencePipelineBuilder()
             .AddRetry(new RetryStrategyOptions
@@ -54,10 +53,20 @@ public class FlexiManufactureHistoryClient : IManufactureHistoryClient
     public async Task<List<ManufactureHistoryRecord>> GetHistoryAsync(DateTime dateFrom, DateTime dateTo, string? productCode = null,
         CancellationToken cancellationToken = default)
     {
+        var documentTypeIds = _options.Value.ManufactureDocumentTypeIds;
+        if (documentTypeIds.Length == 0)
+        {
+            throw new InvalidOperationException(
+                "No manufacture document types configured. Set " +
+                $"{DataSourceOptions.ConfigKey}:{nameof(DataSourceOptions.ManufactureDocumentTypeIds)} " +
+                "to the FlexiBee typ-skladovy-pohyb ids of manufacture receipts (currently 54, 56, 65, 67). " +
+                "Failing loudly because an empty set would silently produce no manufacture history.");
+        }
+
         var movements = new List<StockItemMovementFlexiDto>();
         try
         {
-            foreach (var documentTypeId in ManufactureDocumentTypeIds)
+            foreach (var documentTypeId in documentTypeIds)
             {
                 movements.AddRange(await _pipeline.ExecuteAsync(
                     async ct => await _stockItemsMovementClient.GetAsync(
