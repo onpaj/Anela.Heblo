@@ -1,0 +1,101 @@
+import React, { useRef, useState } from "react";
+import { PricingEditField } from "../../api/generated/api-client";
+
+export interface PricingEditableCellProps {
+  value: number | null | undefined;
+  field: PricingEditField;
+  productCode: string;
+  onCommit: (productCode: string, field: PricingEditField, value: number) => void;
+  error?: string;
+}
+
+// Tolerates a Czech decimal comma ("45,5") in addition to a plain dot. Returns
+// null for anything that isn't a finite number, which callers treat as "discard,
+// don't send" -- the server owns actual business validation (negative costs,
+// zero price, etc.), this is only about not shipping NaN over the wire.
+const parseDraftValue = (raw: string): number | null => {
+  const normalized = raw.trim().replace(",", ".");
+  if (normalized === "") return null;
+  const parsed = Number(normalized);
+  return Number.isFinite(parsed) ? parsed : null;
+};
+
+const formatDraftValue = (value: number | null | undefined): string =>
+  value === null || value === undefined ? "" : String(value);
+
+// Editable numeric cell for the pricing grid. Holds its own draft string so keystrokes
+// never touch parent state or fire the mutation -- only a blur (or Enter) commits.
+// Escape reverts locally without ever calling onCommit. Reverting after a server
+// round-trip (rejected edit or network failure) is the PARENT's job: it re-mounts
+// this component (via a `key` that changes on every settle) so the draft
+// re-initializes from the -- possibly unchanged -- `value` prop.
+const PricingEditableCell: React.FC<PricingEditableCellProps> = ({
+  value,
+  field,
+  productCode,
+  onCommit,
+  error,
+}) => {
+  const [draft, setDraft] = useState(() => formatDraftValue(value));
+  // Guards against a double-fire when Enter commits and then also blurs the
+  // field: the second call sees the same parsed value already in flight and
+  // skips instead of posting the identical edit twice.
+  const sentRef = useRef<number | null>(null);
+
+  const commitIfChanged = () => {
+    const parsed = parseDraftValue(draft);
+    if (parsed === null) {
+      setDraft(formatDraftValue(value));
+      return;
+    }
+
+    const baseline = value ?? null;
+    if (parsed === baseline || parsed === sentRef.current) {
+      return;
+    }
+
+    sentRef.current = parsed;
+    onCommit(productCode, field, parsed);
+  };
+
+  const handleKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
+    if (event.key === "Enter") {
+      commitIfChanged();
+      event.currentTarget.blur();
+    } else if (event.key === "Escape") {
+      setDraft(formatDraftValue(value));
+    }
+  };
+
+  return (
+    <div className="relative inline-block w-full">
+      <input
+        type="text"
+        inputMode="decimal"
+        aria-label={`${field}-${productCode}`}
+        aria-invalid={!!error}
+        data-testid={`pricing-cell-${productCode}-${field}`}
+        value={draft}
+        onChange={(event) => setDraft(event.target.value)}
+        onBlur={commitIfChanged}
+        onKeyDown={handleKeyDown}
+        className={`w-full rounded border bg-transparent px-2 py-1 text-right text-sm focus:outline-none focus:ring-2 dark:text-graphite-text ${
+          error
+            ? "border-red-500 ring-1 ring-red-500 focus:ring-red-500"
+            : "border-transparent focus:ring-indigo-500"
+        }`}
+      />
+      {error && (
+        <div
+          role="alert"
+          data-testid={`pricing-cell-error-${productCode}-${field}`}
+          className="absolute left-0 top-full z-20 mt-1 whitespace-nowrap rounded bg-red-600 px-2 py-1 text-xs text-white shadow-lg"
+        >
+          {error}
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default PricingEditableCell;

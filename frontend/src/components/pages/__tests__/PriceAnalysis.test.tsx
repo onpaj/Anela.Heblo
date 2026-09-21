@@ -16,6 +16,13 @@ const mockUsePricingBaselineQuery =
   usePricingSimulatorHook.usePricingBaselineQuery as jest.MockedFunction<
     typeof usePricingSimulatorHook.usePricingBaselineQuery
   >;
+// Task 9 wires useRecalculatePricingMutation into PriceAnalysis for cell editing;
+// this read-only suite never triggers a commit, but the hook is still called on
+// every render, so it needs a non-undefined return value.
+const mockUseRecalculatePricingMutation =
+  usePricingSimulatorHook.useRecalculatePricingMutation as jest.MockedFunction<
+    typeof usePricingSimulatorHook.useRecalculatePricingMutation
+  >;
 
 // Plain object literals, not `new PricingRowDto(...)`: the generated client's
 // Response subclasses lose fields passed to their constructor (Babel's class-field
@@ -90,6 +97,10 @@ const createWrapper = () => {
 describe("PriceAnalysis", () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockUseRecalculatePricingMutation.mockReturnValue({
+      mutateAsync: jest.fn(),
+      isPending: false,
+    } as any);
   });
 
   it("shows a loading state while the query is pending", () => {

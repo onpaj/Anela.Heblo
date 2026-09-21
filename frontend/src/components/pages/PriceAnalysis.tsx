@@ -1,17 +1,50 @@
 import React, { useState } from "react";
-import { Search, Filter, AlertCircle, Loader2 } from "lucide-react";
+import { Search, Filter, AlertCircle, AlertTriangle, Loader2, RotateCcw } from "lucide-react";
+import { toast } from "react-hot-toast";
 import {
   usePricingBaselineQuery,
+  useRecalculatePricingMutation,
   PricingBaselineFilter,
 } from "../../api/hooks/usePricingSimulator";
-import { ProductType } from "../../api/generated/api-client";
+import {
+  IPricingEditDto,
+  IPricingOverrideDto,
+  PricingEditField,
+  PricingRowDto,
+  PricingTotalsDto,
+  ProductType,
+  SwaggerException,
+} from "../../api/generated/api-client";
 import { PAGE_CONTAINER_HEIGHT } from "../../constants/layout";
 import { useScreenView } from "../../telemetry/useScreenView";
+import { handleApiError } from "../../utils/errorHandler";
 import PricingTotalsBar from "../pricing/PricingTotalsBar";
-import PricingGrid from "../pricing/PricingGrid";
+import PricingGrid, { pricingCellErrorKey } from "../pricing/PricingGrid";
 
-// Read-only screen: filter, sticky totals band and the product grid. Editing (cell
-// overrides, recalculation, scenarios) is Task 9/10 and deliberately not wired here.
+// The generated client throws SwaggerException for any non-2xx response, with
+// `error.response` being the raw body text -- same pattern as
+// LabelIdentificationScreen.resolveIdentifyErrorMessage. A parseable body with a
+// structured errorCode is a REJECTED EDIT (bad price, negative cost, ...): show it
+// inline on the offending cell. Anything else (network failure, 500, unparseable
+// body) is treated as a transient failure: toast + stale totals badge instead.
+const resolvePricingEditErrorMessage = (error: unknown): string | undefined => {
+  if (!(error instanceof SwaggerException)) {
+    return undefined;
+  }
+  try {
+    const parsed = JSON.parse(error.response);
+    if (parsed?.success === false && typeof parsed.errorCode === "string") {
+      return handleApiError({ success: false, errorCode: parsed.errorCode, params: parsed.params });
+    }
+  } catch {
+    // Not JSON -- fall through to the generic network-failure handling.
+  }
+  return undefined;
+};
+
+const GENERIC_RECALCULATE_FAILURE_TOAST =
+  "Přepočet se nezdařil, zkuste to prosím znovu.";
+
 const PriceAnalysis: React.FC = () => {
   // Filter states - separate input values from applied filters, same shape as
   // ProductMarginsList so the two Finance screens behave consistently.
@@ -32,8 +65,82 @@ const PriceAnalysis: React.FC = () => {
 
   const { data, isLoading, error, refetch } = usePricingBaselineQuery(filter);
 
-  const rows = data?.rows ?? [];
-  const totals = data?.totals;
+  // Editing state. `recalculated` shadows the baseline query's rows/totals once the
+  // first successful recalculate lands -- the mutation response is the new source of
+  // truth and is never merged with the baseline. `overrides` mirrors the server's
+  // authoritative override set (replaced wholesale from each response's `overrides`,
+  // never hand-merged). `resetToken` forces every PricingEditableCell to remount
+  // after a commit settles, which is how a rejected/failed edit reverts its cell.
+  const [overrides, setOverrides] = useState<IPricingOverrideDto[]>([]);
+  const [recalculated, setRecalculated] = useState<{
+    rows: PricingRowDto[];
+    totals: PricingTotalsDto | undefined;
+  } | null>(null);
+  const [cellErrors, setCellErrors] = useState<Record<string, string>>({});
+  const [isTotalsStale, setIsTotalsStale] = useState(false);
+  const [resetToken, setResetToken] = useState(0);
+
+  const recalculateMutation = useRecalculatePricingMutation();
+
+  const rows = recalculated?.rows ?? data?.rows ?? [];
+  const totals = recalculated?.totals ?? data?.totals;
+
+  const performRecalculate = async (
+    nextOverrides: IPricingOverrideDto[],
+    edit: IPricingEditDto | undefined,
+    errorKey: string | undefined,
+  ) => {
+    if (errorKey) {
+      setCellErrors((prev) => {
+        if (!(errorKey in prev)) return prev;
+        const { [errorKey]: _removed, ...rest } = prev;
+        return rest;
+      });
+    }
+
+    try {
+      const response = await recalculateMutation.mutateAsync({
+        productCode: filter.productCode,
+        productName: filter.productName,
+        productType: filter.productType,
+        overrides: nextOverrides,
+        edit,
+      });
+      setRecalculated({ rows: response.rows ?? [], totals: response.totals });
+      setOverrides(response.overrides ?? []);
+      setIsTotalsStale(false);
+    } catch (caughtError) {
+      const rejectionMessage = errorKey ? resolvePricingEditErrorMessage(caughtError) : undefined;
+      if (rejectionMessage && errorKey) {
+        setCellErrors((prev) => ({ ...prev, [errorKey]: rejectionMessage }));
+      } else {
+        setIsTotalsStale(true);
+        toast.error(GENERIC_RECALCULATE_FAILURE_TOAST);
+      }
+    } finally {
+      setResetToken((token) => token + 1);
+    }
+  };
+
+  const handleCellEdit = (productCode: string, field: PricingEditField, value: number) => {
+    void performRecalculate(
+      overrides,
+      { productCode, field, value },
+      pricingCellErrorKey(productCode, field),
+    );
+  };
+
+  const handleResetRow = (productCode: string) => {
+    void performRecalculate(
+      overrides.filter((override) => override.productCode !== productCode),
+      undefined,
+      undefined,
+    );
+  };
+
+  const handleResetAll = () => {
+    void performRecalculate([], undefined, undefined);
+  };
 
   const handleApplyFilters = async () => {
     setProductNameFilter(productNameInput);
@@ -175,11 +282,46 @@ const PriceAnalysis: React.FC = () => {
         </div>
       </div>
 
-      {/* Totals band - sticky, stays visible while the grid below scrolls */}
-      {totals && <PricingTotalsBar totals={totals} isRecalculating={false} />}
+      {/* Totals band - sticky, stays visible while the grid below scrolls. Kept
+          rendered from whatever the last successful fetch/recalculate produced
+          while a new recalculate is in flight -- isRecalculating just adds the
+          spinner, it never blanks the numbers. */}
+      {totals && (
+        <div className="flex-shrink-0">
+          <div className="flex items-center justify-between gap-3 mb-2">
+            {isTotalsStale && (
+              <div
+                data-testid="totals-stale-badge"
+                className="flex items-center gap-1 text-xs font-medium text-orange-600 dark:text-amber-400"
+              >
+                <AlertTriangle className="h-3.5 w-3.5" />
+                Souhrn nemusí odpovídat poslední úpravě (přepočet selhal)
+              </div>
+            )}
+            {overrides.length > 0 && (
+              <button
+                type="button"
+                data-testid="pricing-reset-all"
+                onClick={handleResetAll}
+                className="ml-auto inline-flex items-center gap-1 text-xs font-medium text-gray-500 hover:text-indigo-600 dark:text-graphite-muted dark:hover:text-indigo-400"
+              >
+                <RotateCcw className="h-3.5 w-3.5" />
+                Zrušit všechny úpravy
+              </button>
+            )}
+          </div>
+          <PricingTotalsBar totals={totals} isRecalculating={recalculateMutation.isPending} />
+        </div>
+      )}
 
       {/* Product grid - every row, no pagination */}
-      <PricingGrid rows={rows} editingDisabled />
+      <PricingGrid
+        rows={rows}
+        onEdit={handleCellEdit}
+        onResetRow={handleResetRow}
+        cellErrors={cellErrors}
+        resetToken={resetToken}
+      />
     </div>
   );
 };
