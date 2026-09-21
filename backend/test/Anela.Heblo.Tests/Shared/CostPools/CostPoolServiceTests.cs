@@ -35,18 +35,38 @@ public class CostPoolServiceTests
     private static CostPoolService CreateService(
         IList<LedgerItem> ledgerItems,
         Mock<ICostPoolCache>? cacheMock = null,
-        Mock<ILogger<CostPoolService>>? loggerMock = null)
+        Mock<ILogger<CostPoolService>>? loggerMock = null) =>
+        CreateService(ledgerItems, out _, cacheMock, loggerMock);
+
+    /// <summary>
+    /// Overload that exposes the ledger mock for callers that need to Verify calls
+    /// against it, and optionally makes the ledger call throw instead of return.
+    /// </summary>
+    private static CostPoolService CreateService(
+        IList<LedgerItem> ledgerItems,
+        out Mock<ILedgerService> ledgerMock,
+        Mock<ICostPoolCache>? cacheMock = null,
+        Mock<ILogger<CostPoolService>>? loggerMock = null,
+        Exception? ledgerFailure = null)
     {
-        var ledgerMock = new Mock<ILedgerService>();
-        ledgerMock
+        ledgerMock = new Mock<ILedgerService>();
+        var ledgerSetup = ledgerMock
             .Setup(l => l.GetLedgerItems(
                 It.IsAny<DateTime>(),
                 It.IsAny<DateTime>(),
                 It.IsAny<IEnumerable<string>>(),
                 It.IsAny<IEnumerable<string>>(),
                 It.IsAny<string>(),
-                It.IsAny<CancellationToken>()))
-            .ReturnsAsync(ledgerItems);
+                It.IsAny<CancellationToken>()));
+
+        if (ledgerFailure is not null)
+        {
+            ledgerSetup.ThrowsAsync(ledgerFailure);
+        }
+        else
+        {
+            ledgerSetup.ReturnsAsync(ledgerItems);
+        }
 
         var cache = cacheMock ?? new Mock<ICostPoolCache>();
         cache.Setup(c => c.GetCachedDataAsync(It.IsAny<CancellationToken>()))
@@ -192,22 +212,7 @@ public class CostPoolServiceTests
     public async Task GetMonthlyPoolsAsync_QueriesDirectCostAccountsAcrossAllDepartments()
     {
         // Arrange
-        var ledgerMock = new Mock<ILedgerService>();
-        ledgerMock
-            .Setup(l => l.GetLedgerItems(
-                It.IsAny<DateTime>(), It.IsAny<DateTime>(),
-                It.IsAny<IEnumerable<string>>(), It.IsAny<IEnumerable<string>>(),
-                It.IsAny<string>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new List<LedgerItem>());
-
-        var cache = new Mock<ICostPoolCache>();
-        cache.Setup(c => c.GetCachedDataAsync(It.IsAny<CancellationToken>()))
-             .ReturnsAsync(CostPoolCacheData.Empty());
-
-        var service = new CostPoolService(
-            cache.Object, ledgerMock.Object,
-            new Mock<ILogger<CostPoolService>>().Object,
-            Options.Create(new DataSourceOptions()));
+        var service = CreateService(new List<LedgerItem>(), out var ledgerMock);
 
         // Act
         await service.GetMonthlyPoolsAsync(new DateOnly(2026, 7, 1), new DateOnly(2026, 7, 31));
@@ -243,22 +248,10 @@ public class CostPoolServiceTests
     public async Task GetMonthlyPoolsAsync_PropagatesLedgerFailure()
     {
         // Arrange - a wrong zero in a financial calculation is worse than a visible failure
-        var ledgerMock = new Mock<ILedgerService>();
-        ledgerMock
-            .Setup(l => l.GetLedgerItems(
-                It.IsAny<DateTime>(), It.IsAny<DateTime>(),
-                It.IsAny<IEnumerable<string>>(), It.IsAny<IEnumerable<string>>(),
-                It.IsAny<string>(), It.IsAny<CancellationToken>()))
-            .ThrowsAsync(new HttpRequestException("FlexiBee unreachable"));
-
-        var cache = new Mock<ICostPoolCache>();
-        cache.Setup(c => c.GetCachedDataAsync(It.IsAny<CancellationToken>()))
-             .ReturnsAsync(CostPoolCacheData.Empty());
-
-        var service = new CostPoolService(
-            cache.Object, ledgerMock.Object,
-            new Mock<ILogger<CostPoolService>>().Object,
-            Options.Create(new DataSourceOptions()));
+        var service = CreateService(
+            new List<LedgerItem>(),
+            out _,
+            ledgerFailure: new HttpRequestException("FlexiBee unreachable"));
 
         // Act
         var act = () => service.GetMonthlyPoolsAsync(new DateOnly(2026, 7, 1), new DateOnly(2026, 7, 31));
