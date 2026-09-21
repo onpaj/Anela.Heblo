@@ -23,6 +23,7 @@ public class FlatManufactureCostProvider : IFlatManufactureCostProvider
     private readonly ILedgerService _ledgerService;
     private readonly ILogger<FlatManufactureCostProvider> _logger;
     private readonly DataSourceOptions _options;
+    private readonly TimeProvider _timeProvider;
 
     private const string ManufacturingCostCenter = "VYROBA";
 
@@ -34,13 +35,15 @@ public class FlatManufactureCostProvider : IFlatManufactureCostProvider
         IServiceProvider serviceProvider,
         ILedgerService ledgerService,
         ILogger<FlatManufactureCostProvider> logger,
-        IOptions<DataSourceOptions> options)
+        IOptions<DataSourceOptions> options,
+        TimeProvider timeProvider)
     {
         _cache = cache;
         _serviceProvider = serviceProvider;
         _ledgerService = ledgerService;
         _logger = logger;
         _options = options.Value;
+        _timeProvider = timeProvider;
     }
 
     public async Task<Dictionary<string, List<MonthlyCost>>> GetCostsAsync(
@@ -132,17 +135,24 @@ public class FlatManufactureCostProvider : IFlatManufactureCostProvider
     }
 
     /// <summary>
-    /// The VYROBA pool is distributed only across products that are actually sold.
-    /// Semi-product receipts are measured in grams of bulk and carry no difficulty setting,
-    /// so every gram would score one point and swamp the denominator - the labour allocated
-    /// to bulk would then never reach the finished product it is filled into.
+    /// The VYROBA pool is distributed across finished products only - nothing else is manufactured,
+    /// so nothing else may take a share of the manufacturing labour.
+    /// Goods and materials are bought rather than made; a set is assembled from finished products
+    /// rather than manufactured, so its labour is already carried by the products it is built from;
+    /// and semi-product receipts are measured in grams of bulk with no difficulty setting, so every
+    /// gram would score one point, swamp the denominator and strand the labour on bulk that is
+    /// never sold.
     /// </summary>
-    private static bool IsCostBearing(CatalogAggregate product) => product.Type != ProductType.SemiProduct;
+    private static bool IsCostBearing(CatalogAggregate product) =>
+        product.Type is ProductType.Product;
 
     private (DateOnly dateFrom, DateOnly dateTo, DateTime costsFrom, DateTime costsTo) GetDateRange()
     {
-        var dateFrom = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(-_options.ManufactureCostHistoryDays));
-        var dateTo = DateOnly.FromDateTime(DateTime.UtcNow);
+        // Read the clock once: two reads can straddle midnight on the 1st and put dateFrom and
+        // dateTo in different months, which is the window drift this provider exists to avoid.
+        var now = _timeProvider.GetUtcNow().UtcDateTime;
+        var dateFrom = DateOnly.FromDateTime(now.AddDays(-_options.ManufactureCostHistoryDays));
+        var dateTo = DateOnly.FromDateTime(now);
 
         var costsFrom = new DateTime(dateFrom.Year, dateFrom.Month, 1);
         var costsTo = new DateTime(dateTo.Year, dateTo.Month, DateTime.DaysInMonth(dateTo.Year, dateTo.Month), 23, 59, 59);

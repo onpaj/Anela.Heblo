@@ -53,6 +53,7 @@ public class FlatManufactureCostProviderTests
         var product = new CatalogAggregate
         {
             ProductCode = productCode,
+            Type = ProductType.Product,
             ManufactureHistory = new List<CatalogManufactureRecord>
             {
                 new() { Date = month1.AddDays(14), Amount = 10, ProductCode = productCode },
@@ -120,6 +121,7 @@ public class FlatManufactureCostProviderTests
         var product1 = new CatalogAggregate
         {
             ProductCode = product1Code,
+            Type = ProductType.Product,
             ManufactureHistory = new List<CatalogManufactureRecord>
             {
                 new() { Date = month1.AddDays(14), Amount = 10, ProductCode = product1Code }
@@ -137,6 +139,7 @@ public class FlatManufactureCostProviderTests
         var product2 = new CatalogAggregate
         {
             ProductCode = product2Code,
+            Type = ProductType.Product,
             ManufactureHistory = new List<CatalogManufactureRecord>
             {
                 new() { Date = month1.AddDays(14), Amount = 20, ProductCode = product2Code }
@@ -198,6 +201,7 @@ public class FlatManufactureCostProviderTests
         var product = new CatalogAggregate
         {
             ProductCode = productCode,
+            Type = ProductType.Product,
             ManufactureHistory = new List<CatalogManufactureRecord>()
         };
 
@@ -244,6 +248,7 @@ public class FlatManufactureCostProviderTests
         var product = new CatalogAggregate
         {
             ProductCode = productCode,
+            Type = ProductType.Product,
             ManufactureHistory = new List<CatalogManufactureRecord>
             {
                 new() { Date = month1.AddDays(14), Amount = 10, ProductCode = productCode }
@@ -303,6 +308,7 @@ public class FlatManufactureCostProviderTests
         var product1 = new CatalogAggregate
         {
             ProductCode = productCode,
+            Type = ProductType.Product,
             ManufactureHistory = new List<CatalogManufactureRecord>() // No history
         };
         product1.ManufactureDifficultySettings.Assign(
@@ -316,6 +322,7 @@ public class FlatManufactureCostProviderTests
         var product2 = new CatalogAggregate
         {
             ProductCode = otherProductCode,
+            Type = ProductType.Product,
             ManufactureHistory = new List<CatalogManufactureRecord>
             {
                 new() { Date = month1.AddDays(14), Amount = 10, ProductCode = otherProductCode }
@@ -423,12 +430,160 @@ public class FlatManufactureCostProviderTests
         Assert.All(result[semiProductCode], cost => Assert.Equal(0m, cost.Cost));
     }
 
+    [Fact]
+    internal async Task ComputeAllCosts_WithPurchasedGoodsInCatalog_ExcludesGoodsFromCostPool()
+    {
+        // Arrange
+        var productCode = "PROD001";
+        var goodsCode = "GOODS001";
+        var now = DateTime.UtcNow;
+        var month = new DateTime(now.Year, now.Month, 1).AddMonths(-1);
+
+        var ledgerServiceMock = new Mock<ILedgerService>();
+        ledgerServiceMock.Setup(s => s.GetDirectCosts(
+                It.IsAny<DateTime>(),
+                It.IsAny<DateTime>(),
+                "VYROBA",
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<CostStatistics>
+            {
+                new() { Date = month, Cost = 10000m, Department = "VYROBA" }
+            });
+
+        // Manufactured product: 100 pieces at difficulty 35 = 3500 weighted points
+        var product = new CatalogAggregate
+        {
+            ProductCode = productCode,
+            Type = ProductType.Product,
+            ManufactureHistory = new List<CatalogManufactureRecord>
+            {
+                new() { Date = month.AddDays(14), Amount = 100, ProductCode = productCode }
+            }
+        };
+        product.ManufactureDifficultySettings.Assign(
+            new List<ManufactureDifficultySetting>
+            {
+                new() { ProductCode = productCode, DifficultyValue = 35, ValidFrom = month.AddYears(-1), ValidTo = null }
+            },
+            month
+        );
+
+        // Purchased goods are not made in house, so a stray receipt must not take a share of VYROBA
+        var goods = new CatalogAggregate
+        {
+            ProductCode = goodsCode,
+            Type = ProductType.Goods,
+            ManufactureHistory = new List<CatalogManufactureRecord>
+            {
+                new() { Date = month.AddDays(14), Amount = 3500, ProductCode = goodsCode }
+            }
+        };
+
+        var catalogRepositoryMock = new Mock<ICatalogRepository>();
+        catalogRepositoryMock.Setup(r => r.GetAllAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<CatalogAggregate> { product, goods });
+        catalogRepositoryMock.Setup(r => r.WaitForCurrentMergeAsync(It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
+        var provider = CreateProvider(
+            catalogRepository: catalogRepositoryMock.Object,
+            ledgerService: ledgerServiceMock.Object);
+
+        // Act
+        await provider.RefreshAsync();
+        var result = await provider.GetCostsAsync();
+
+        // Assert
+        // Denominator = 3500 points (goods excluded) -> 35 * (10000 / 3500) = 100 per piece
+        Assert.All(result[productCode], cost => Assert.Equal(100m, cost.Cost, 4));
+        Assert.All(result[goodsCode], cost => Assert.Equal(0m, cost.Cost));
+    }
+
+    [Fact]
+    internal async Task ComputeAllCosts_WithSetProduct_ExcludesSetFromCostPool()
+    {
+        // Arrange
+        var productCode = "PROD001";
+        var setCode = "SET001";
+        var now = DateTime.UtcNow;
+        var month = new DateTime(now.Year, now.Month, 1).AddMonths(-1);
+
+        var ledgerServiceMock = new Mock<ILedgerService>();
+        ledgerServiceMock.Setup(s => s.GetDirectCosts(
+                It.IsAny<DateTime>(),
+                It.IsAny<DateTime>(),
+                "VYROBA",
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<CostStatistics>
+            {
+                new() { Date = month, Cost = 36000m, Department = "VYROBA" }
+            });
+
+        // 100 pieces at difficulty 35 = 3500 weighted points
+        var product = new CatalogAggregate
+        {
+            ProductCode = productCode,
+            Type = ProductType.Product,
+            ManufactureHistory = new List<CatalogManufactureRecord>
+            {
+                new() { Date = month.AddDays(14), Amount = 100, ProductCode = productCode }
+            }
+        };
+        product.ManufactureDifficultySettings.Assign(
+            new List<ManufactureDifficultySetting>
+            {
+                new() { ProductCode = productCode, DifficultyValue = 35, ValidFrom = month.AddYears(-1), ValidTo = null }
+            },
+            month
+        );
+
+        // A set is assembled from finished products rather than manufactured, so it takes no
+        // share of the VYROBA pool - that labour is already carried by the products it is built
+        // from. 50 pieces at difficulty 2 = 100 weighted points that must stay OUT of the denominator
+        var set = new CatalogAggregate
+        {
+            ProductCode = setCode,
+            Type = ProductType.Set,
+            ManufactureHistory = new List<CatalogManufactureRecord>
+            {
+                new() { Date = month.AddDays(14), Amount = 50, ProductCode = setCode }
+            }
+        };
+        set.ManufactureDifficultySettings.Assign(
+            new List<ManufactureDifficultySetting>
+            {
+                new() { ProductCode = setCode, DifficultyValue = 2, ValidFrom = month.AddYears(-1), ValidTo = null }
+            },
+            month
+        );
+
+        var catalogRepositoryMock = new Mock<ICatalogRepository>();
+        catalogRepositoryMock.Setup(r => r.GetAllAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<CatalogAggregate> { product, set });
+        catalogRepositoryMock.Setup(r => r.WaitForCurrentMergeAsync(It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
+        var provider = CreateProvider(
+            catalogRepository: catalogRepositoryMock.Object,
+            ledgerService: ledgerServiceMock.Object);
+
+        // Act
+        await provider.RefreshAsync();
+        var result = await provider.GetCostsAsync();
+
+        // Assert
+        // Denominator = 3500 points (the set's 100 excluded) -> 35 * (36000 / 3500) = 360 per piece
+        Assert.All(result[productCode], cost => Assert.Equal(360m, cost.Cost, 4));
+        Assert.All(result[setCode], cost => Assert.Equal(0m, cost.Cost));
+    }
+
     private FlatManufactureCostProvider CreateProvider(
         IFlatManufactureCostCache? cache = null,
         ICatalogRepository? catalogRepository = null,
         ILedgerService? ledgerService = null,
         ILogger<FlatManufactureCostProvider>? logger = null,
-        DataSourceOptions? options = null)
+        DataSourceOptions? options = null,
+        TimeProvider? timeProvider = null)
     {
         var serviceProviderMock = new Mock<IServiceProvider>();
         serviceProviderMock
@@ -440,7 +595,8 @@ public class FlatManufactureCostProviderTests
             serviceProviderMock.Object,
             ledgerService ?? Mock.Of<ILedgerService>(),
             logger ?? Mock.Of<ILogger<FlatManufactureCostProvider>>(),
-            Options.Create(options ?? new DataSourceOptions())
+            Options.Create(options ?? new DataSourceOptions()),
+            timeProvider ?? TimeProvider.System
         );
     }
 }

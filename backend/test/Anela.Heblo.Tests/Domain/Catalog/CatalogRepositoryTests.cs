@@ -632,6 +632,37 @@ public class CatalogRepositoryTests
     }
 
     [Fact]
+    public async Task RefreshMarginData_WithCostWindowShorterThanOneMonth_WarnsInsteadOfFailingSilently()
+    {
+        // Arrange - 20 days of cost history covers no completed month, so the window inverts
+        // (dateFrom 2026-09-01 > dateTo 2026-08-21) and every product ends up without margins.
+        var now = new DateTimeOffset(2026, 9, 21, 0, 0, 0, TimeSpan.Zero);
+        _timeProviderMock.Setup(x => x.GetUtcNow()).Returns(now);
+        _optionsMock.Setup(x => x.Value).Returns(new DataSourceOptions { ManufactureCostHistoryDays = 20 });
+
+        var product = new CatalogAggregate { ProductCode = "MARGIN004" };
+        _cache.Set("CatalogData_Current", new List<CatalogAggregate> { product });
+        _cache.Set("CatalogData_LastUpdate", now.UtcDateTime);
+
+        _marginServiceMock
+            .Setup(x => x.GetMarginAsync(It.IsAny<CatalogAggregate>(), It.IsAny<DateOnly>(), It.IsAny<DateOnly>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new MonthlyMarginHistory());
+
+        // Act
+        await _repository.RefreshMarginData(CancellationToken.None);
+
+        // Assert
+        _loggerMock.Verify(
+            x => x.Log(
+                LogLevel.Warning,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains("ManufactureCostHistoryDays")),
+                It.IsAny<Exception?>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Once);
+    }
+
+    [Fact]
     public async Task GetProductsWithSalesInPeriod_ExcludesProductWhoseOnlySalesAreSyntheticBundleComponents()
     {
         // Arrange - one product sold directly, one sold only as part of a bundle. The synthetic

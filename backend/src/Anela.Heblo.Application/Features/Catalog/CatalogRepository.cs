@@ -146,6 +146,13 @@ public sealed class CatalogRepository : ICatalogRepository
         var dateFrom = today.AddDays(-_dataSourceOptions.Value.ManufactureCostHistoryDays);
         var dateTo = today.AddMonths(-1); // Current month is not accurate
 
+        if (dateFrom > dateTo)
+        {
+            _logger.LogWarning(
+                "DataSourceOptions.ManufactureCostHistoryDays ({Days}) covers no completed month, so margin history will be empty for every product",
+                _dataSourceOptions.Value.ManufactureCostHistoryDays);
+        }
+
         foreach (var product in products)
         {
             product.Margins = await _marginService.GetMarginAsync(product, dateFrom, dateTo, ct);

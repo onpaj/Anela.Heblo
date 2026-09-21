@@ -50,12 +50,14 @@ public class MarginCostWindowAlignmentTests
     public async Task RefreshMarginData_AveragesOverTheMonthsTheCostProvidersEmit_ForAnyCostWindow(
         int manufactureCostHistoryDays)
     {
-        // Arrange
-        var now = DateTimeOffset.UtcNow;
+        // Arrange - a fixed clock, shared by the provider and the repository, so the window this
+        // asserts on does not depend on the day the suite happens to run.
+        var now = new DateTimeOffset(2026, 6, 15, 0, 0, 0, TimeSpan.Zero);
+        var timeProvider = CreateFixedTimeProvider(now);
         var options = new DataSourceOptions { ManufactureCostHistoryDays = manufactureCostHistoryDays };
         var product = CreateManufacturedProduct(now.UtcDateTime);
 
-        var flatManufactureCostProvider = CreateFlatManufactureCostProvider(product, options);
+        var flatManufactureCostProvider = CreateFlatManufactureCostProvider(product, options, timeProvider);
         await flatManufactureCostProvider.RefreshAsync();
 
         var emittedCosts = (await flatManufactureCostProvider.GetCostsAsync())[ProductCode];
@@ -63,7 +65,7 @@ public class MarginCostWindowAlignmentTests
         var costPerMonth = emittedCosts.Select(c => c.Cost).Distinct().Single();
         costPerMonth.Should().BeGreaterThan(0, "the provider must emit a real cost for the test to be meaningful");
 
-        var repository = CreateRepository(product, flatManufactureCostProvider, options, now);
+        var repository = CreateRepository(product, flatManufactureCostProvider, options, now, timeProvider);
 
         // Act
         await repository.RefreshMarginData(CancellationToken.None);
@@ -106,14 +108,15 @@ public class MarginCostWindowAlignmentTests
 
     private static FlatManufactureCostProvider CreateFlatManufactureCostProvider(
         CatalogAggregate product,
-        DataSourceOptions options)
+        DataSourceOptions options,
+        TimeProvider timeProvider)
     {
         var ledgerServiceMock = new Mock<ILedgerService>();
         ledgerServiceMock
             .Setup(s => s.GetDirectCosts(It.IsAny<DateTime>(), It.IsAny<DateTime>(), "VYROBA", It.IsAny<CancellationToken>()))
             .ReturnsAsync(new List<CostStatistics>
             {
-                new() { Date = DateTime.UtcNow, Cost = 350000m, Department = "VYROBA" }
+                new() { Date = timeProvider.GetUtcNow().UtcDateTime, Cost = 350000m, Department = "VYROBA" }
             });
 
         var catalogRepositoryMock = new Mock<ICatalogRepository>();
@@ -131,21 +134,20 @@ public class MarginCostWindowAlignmentTests
             serviceProviderMock.Object,
             ledgerServiceMock.Object,
             Mock.Of<ILogger<FlatManufactureCostProvider>>(),
-            Options.Create(options));
+            Options.Create(options),
+            timeProvider);
     }
 
     private static CatalogRepository CreateRepository(
         CatalogAggregate product,
         IFlatManufactureCostProvider flatManufactureCostProvider,
         DataSourceOptions options,
-        DateTimeOffset now)
+        DateTimeOffset now,
+        TimeProvider timeProvider)
     {
         var cache = new MemoryCache(new MemoryCacheOptions());
         cache.Set("CatalogData_Current", new List<CatalogAggregate> { product });
         cache.Set("CatalogData_LastUpdate", now.UtcDateTime);
-
-        var timeProviderMock = new Mock<TimeProvider>();
-        timeProviderMock.Setup(x => x.GetUtcNow()).Returns(now);
 
         var mergeSchedulerMock = new Mock<ICatalogMergeScheduler>();
         mergeSchedulerMock.Setup(x => x.WaitForCurrentMergeAsync(It.IsAny<CancellationToken>()))
@@ -156,7 +158,7 @@ public class MarginCostWindowAlignmentTests
 
         var cacheStore = new CatalogCacheStore(
             cache,
-            timeProviderMock.Object,
+            timeProvider,
             cacheOptions,
             mergeSchedulerMock.Object,
             Mock.Of<ILogger<CatalogCacheStore>>());
@@ -164,7 +166,7 @@ public class MarginCostWindowAlignmentTests
         var mergeService = new CatalogMergeService(
             cacheStore,
             new BundleSalesExpander(),
-            timeProviderMock.Object,
+            timeProvider,
             Mock.Of<ILogger<CatalogMergeService>>());
 
         var refreshService = new CatalogDataRefreshService(
@@ -185,7 +187,7 @@ public class MarginCostWindowAlignmentTests
             Mock.Of<ICatalogManufactureSource>(),
             Mock.Of<IManufactureDifficultyRepository>(),
             Mock.Of<ICatalogResilienceService>(),
-            timeProviderMock.Object,
+            timeProvider,
             dataSourceOptions,
             cacheStore,
             Mock.Of<ILogger<CatalogDataRefreshService>>());
@@ -203,10 +205,17 @@ public class MarginCostWindowAlignmentTests
             refreshService,
             mergeSchedulerMock.Object,
             marginService,
-            timeProviderMock.Object,
+            timeProvider,
             dataSourceOptions,
             cacheOptions,
             Mock.Of<ILogger<CatalogRepository>>());
+    }
+
+    private static TimeProvider CreateFixedTimeProvider(DateTimeOffset now)
+    {
+        var timeProviderMock = new Mock<TimeProvider>();
+        timeProviderMock.Setup(x => x.GetUtcNow()).Returns(now);
+        return timeProviderMock.Object;
     }
 
     private static TProvider CreateEmptyCostProvider<TProvider>() where TProvider : class, ICostProvider
