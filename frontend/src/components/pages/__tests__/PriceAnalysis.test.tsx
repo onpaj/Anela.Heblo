@@ -1,5 +1,5 @@
 import React from "react";
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter } from "react-router-dom";
 import PriceAnalysis from "../PriceAnalysis";
@@ -133,11 +133,12 @@ describe("PriceAnalysis", () => {
 
     // The excluded row is displayed and flagged, not hidden: it must carry
     // its explanatory title rather than disappear, so a total is never
-    // silently built on partial data.
-    const excludedRow = screen.getByText("Test Product 2").closest("tr");
-    expect(excludedRow).not.toBeNull();
+    // silently built on partial data. Scoped via PricingGrid's own
+    // `data-testid="pricing-row-<code>"` rather than DOM traversal.
+    const excludedRow = screen.getByTestId("pricing-row-PROD002");
+    expect(within(excludedRow).getByText("Test Product 2")).toBeInTheDocument();
     expect(excludedRow).toHaveAttribute("title");
-    expect(excludedRow?.getAttribute("title")).toMatch(/vylouč/i);
+    expect(excludedRow.getAttribute("title")).toMatch(/vylouč/i);
   });
 
   it("renders the three totals lines with distinct before, after and delta % values", () => {
@@ -178,14 +179,13 @@ describe("PriceAnalysis", () => {
       after: number,
       deltaPercentage: number,
     ) => {
-      // The label span's own parent is that totals line's row container (see
-      // PricingTotalsBar's TotalsLine markup), so scoping to its textContent
-      // means a number appearing elsewhere on the page (another line, or the
-      // grid below) cannot satisfy these assertions.
-      const labelElement = screen.getByText(label);
-      const lineContainer = labelElement.parentElement;
-      expect(lineContainer).not.toBeNull();
-      const lineText = lineContainer?.textContent ?? "";
+      // PricingTotalsBar's TotalsLine carries a stable
+      // `data-testid="totals-line-<label>"` on its own row container, so
+      // scoping through it means a number appearing elsewhere on the page
+      // (another line, or the grid below) cannot satisfy these assertions --
+      // with no DOM traversal needed to reach that scope.
+      const line = screen.getByTestId(`totals-line-${label}`);
+      const lineText = line.textContent ?? "";
 
       const beforeText = formatCurrency(before);
       const afterText = formatCurrency(after);

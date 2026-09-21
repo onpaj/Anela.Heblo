@@ -87,6 +87,7 @@ const PricingGrid: React.FC<PricingGridProps> = ({ rows }) => {
               return (
                 <tr
                   key={row.productCode}
+                  data-testid={`pricing-row-${row.productCode}`}
                   className={
                     isExcluded
                       ? "opacity-50 bg-gray-50 dark:bg-white/5"

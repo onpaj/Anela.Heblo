@@ -29,7 +29,10 @@ const TotalsLine: React.FC<TotalsLineProps> = ({
     : "text-red-600 dark:text-red-400";
 
   return (
-    <div className="flex items-center justify-between gap-4 py-1.5">
+    <div
+      data-testid={`totals-line-${label}`}
+      className="flex items-center justify-between gap-4 py-1.5"
+    >
       <span className="w-12 shrink-0 text-sm font-semibold text-gray-900 dark:text-graphite-text">
         {label}
       </span>
