@@ -27,19 +27,23 @@ public class CostPoolSalesCostParityTests
 {
     private const int HistoryDays = 90;
 
-    private static LedgerItem Entry(DateTime date, string department, decimal amount) => new()
-    {
-        Date = date,
-        Department = department,
-        Amount = amount,
-        DocumentNumber = "DOC",
-        ClientName = "CLIENT",
-        VariableSymbol = "VS",
-        DebitAccountNumber = "518100",
-        DebitAccountName = "Ostatni sluzby",
-        CreditAccountNumber = "321100",
-        CreditAccountName = "Dodavatele"
-    };
+    private static LedgerItem Entry(
+        DateTime date,
+        string department,
+        decimal amount,
+        string debitAccountNumber = "518100") => new()
+        {
+            Date = date,
+            Department = department,
+            Amount = amount,
+            DocumentNumber = "DOC",
+            ClientName = "CLIENT",
+            VariableSymbol = "VS",
+            DebitAccountNumber = debitAccountNumber,
+            DebitAccountName = "Ostatni sluzby",
+            CreditAccountNumber = "321100",
+            CreditAccountName = "Dodavatele"
+        };
 
     [Fact]
     public async Task M2PoolTotal_EqualsTheSpendSalesCostProviderDistributes()
@@ -130,6 +134,13 @@ public class CostPoolSalesCostParityTests
             Entry(date, "VYROBA", 100_000m),
             Entry(date, "CENTRALA", 500_000m),
             Entry(date, "ESHOP", 250_000m),
+            // 52x is in scope and must be counted...
+            Entry(date, "CENTRALA", 20_000m, debitAccountNumber: "521100"),
+            // ...while 6xx and 501 are out of scope and must not be, which is
+            // what makes this an "on accounts 51+52" invariant rather than
+            // "whatever the ledger happened to hand back".
+            Entry(date, "CENTRALA", 999_999m, debitAccountNumber: "601000"),
+            Entry(date, "SKLAD", 888_888m, debitAccountNumber: "501100"),
         };
         var poolCacheMock = new Mock<ICostPoolCache>();
         poolCacheMock.Setup(c => c.GetCachedDataAsync(It.IsAny<CancellationToken>()))
@@ -146,8 +157,12 @@ public class CostPoolSalesCostParityTests
             DateOnly.FromDateTime(DateTime.UtcNow.AddDays(-HistoryDays)),
             DateOnly.FromDateTime(DateTime.UtcNow));
 
-        // Assert - 750 000 of this was invisible to the system before this feature
-        pools.Sum(p => p.Amount).Should().Be(950_000m);
-        pools.Where(p => p.Pool == CostPool.M3).Sum(p => p.Amount).Should().Be(750_000m);
+        // Assert - 770 000 of this was invisible to the system before this feature.
+        // The 601000 and 501100 entries are excluded by the 51+52 prefix filter,
+        // so they appear in neither the total nor any individual pool.
+        pools.Sum(p => p.Amount).Should().Be(970_000m);
+        pools.Where(p => p.Pool == CostPool.M3).Sum(p => p.Amount).Should().Be(770_000m);
+        pools.Where(p => p.Pool == CostPool.M2).Sum(p => p.Amount).Should().Be(100_000m);
+        pools.Where(p => p.Pool == CostPool.M1).Sum(p => p.Amount).Should().Be(100_000m);
     }
 }

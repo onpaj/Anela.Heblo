@@ -159,8 +159,42 @@ public class CostPoolServiceCacheTests
         stored.Should().NotBeNull();
         stored!.IsHydrated.Should().BeTrue();
         stored.Pools.Should().NotBeEmpty();
-        stored.DataTo.Should().Be(DateOnly.FromDateTime(DateTime.UtcNow));
-        stored.DataFrom.Should().Be(DateOnly.FromDateTime(DateTime.UtcNow.AddDays(-60)));
+        // The stored window is the whole-month expansion of the configured
+        // window, because that is what Pools actually covers.
+        var rawFrom = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(-60));
+        var rawTo = DateOnly.FromDateTime(DateTime.UtcNow);
+
+        stored.DataFrom.Should().Be(new DateOnly(rawFrom.Year, rawFrom.Month, 1));
+        stored.DataTo.Should().Be(new DateOnly(
+            rawTo.Year, rawTo.Month, DateTime.DaysInMonth(rawTo.Year, rawTo.Month)));
+    }
+
+    [Fact]
+    public async Task RefreshAsync_StoresAWindow_ThatCoversTheWholeBoundaryMonth()
+    {
+        // Arrange - the refresh window starts mid-month (day 15 of some month),
+        // but ComputeAsync widened it to the 1st, so a caller asking for that
+        // whole month must hit the cache rather than pulling the ledger again.
+        var cacheMock = new Mock<ICostPoolCache>();
+        cacheMock.Setup(c => c.GetCachedDataAsync(It.IsAny<CancellationToken>()))
+                 .ReturnsAsync(CostPoolCacheData.Empty());
+        CostPoolCacheData? stored = null;
+        cacheMock.Setup(c => c.SetCachedDataAsync(It.IsAny<CostPoolCacheData>(), It.IsAny<CancellationToken>()))
+                 .Callback<CostPoolCacheData, CancellationToken>((d, _) => stored = d)
+                 .Returns(Task.CompletedTask);
+        var ledgerMock = LedgerReturning(Entry(DateTime.UtcNow.Date, "CENTRALA", 500m));
+        var service = CreateService(cacheMock, ledgerMock, historyDays: 60);
+
+        // Act
+        await service.RefreshAsync();
+
+        // Assert
+        var rawFrom = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(-60));
+        var firstOfBoundaryMonth = new DateOnly(rawFrom.Year, rawFrom.Month, 1);
+
+        stored.Should().NotBeNull();
+        stored!.Covers(firstOfBoundaryMonth, DateOnly.FromDateTime(DateTime.UtcNow))
+              .Should().BeTrue("the boundary month is fully computed, so asking for it must not miss the cache");
     }
 
     [Fact]
