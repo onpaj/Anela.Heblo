@@ -737,7 +737,8 @@ namespace Anela.Heblo.Tests.Marketing
             var service = CreateService(handler);
             var action = BuildAction(
                 startDate: new DateTime(2026, 9, 18, 0, 0, 0, DateTimeKind.Utc),
-                endDate: new DateTime(2026, 9, 20, 0, 0, 0, DateTimeKind.Utc));
+                endDate: new DateTime(2026, 9, 20, 0, 0, 0, DateTimeKind.Utc),
+                isAllDay: true);
 
             // Act
             await service.CreateEventAsync(action, CancellationToken.None);
