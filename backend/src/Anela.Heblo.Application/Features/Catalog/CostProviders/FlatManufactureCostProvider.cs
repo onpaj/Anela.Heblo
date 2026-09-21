@@ -115,7 +115,8 @@ public class FlatManufactureCostProvider : IFlatManufactureCostProvider
             ct);
         var totalCost = (double)manufacturingCosts.Sum(c => c.Cost);
 
-        var weightedTotals = CalculateWeightedManufactureTotals(products, costsFrom, costsTo);
+        var costBearingProducts = products.Where(IsCostBearing).ToList();
+        var weightedTotals = CalculateWeightedManufactureTotals(costBearingProducts, costsFrom, costsTo);
         var totalWeightedPoints = weightedTotals.Values.Sum(s => s.WeightedManufactured);
 
         if (totalWeightedPoints == 0)
@@ -129,6 +130,14 @@ public class FlatManufactureCostProvider : IFlatManufactureCostProvider
 
         return CreateCostCacheData(productCosts, dateFrom, dateTo);
     }
+
+    /// <summary>
+    /// The VYROBA pool is distributed only across products that are actually sold.
+    /// Semi-product receipts are measured in grams of bulk and carry no difficulty setting,
+    /// so every gram would score one point and swamp the denominator - the labour allocated
+    /// to bulk would then never reach the finished product it is filled into.
+    /// </summary>
+    private static bool IsCostBearing(CatalogAggregate product) => product.Type != ProductType.SemiProduct;
 
     private (DateOnly dateFrom, DateOnly dateTo, DateTime costsFrom, DateTime costsTo) GetDateRange()
     {
@@ -214,10 +223,8 @@ public class FlatManufactureCostProvider : IFlatManufactureCostProvider
             if (string.IsNullOrEmpty(product.ProductCode))
                 continue;
 
-            var productWeightedPoints = weightedTotals[product];
-
             decimal productCostPerPiece = 0;
-            if (productWeightedPoints.Manufactured > 0)
+            if (weightedTotals.TryGetValue(product, out var productWeightedPoints) && productWeightedPoints.Manufactured > 0)
                 productCostPerPiece = (decimal)(productWeightedPoints.WeightedManufactured * costPerPoint / productWeightedPoints.Manufactured);
 
             productCosts[product.ProductCode] = months.Select(m => new MonthlyCost(m, productCostPerPiece)).ToList();

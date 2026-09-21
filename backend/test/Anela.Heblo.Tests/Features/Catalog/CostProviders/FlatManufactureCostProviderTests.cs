@@ -350,6 +350,79 @@ public class FlatManufactureCostProviderTests
         Assert.All(costs, cost => Assert.Equal(0m, cost.Cost));
     }
 
+    [Fact]
+    internal async Task ComputeAllCosts_WithSemiProductInCatalog_ExcludesSemiProductFromCostPool()
+    {
+        // Arrange
+        var productCode = "PROD001";
+        var semiProductCode = "SEMI001";
+        var now = DateTime.UtcNow;
+        var month = new DateTime(now.Year, now.Month, 1).AddMonths(-1);
+
+        var ledgerServiceMock = new Mock<ILedgerService>();
+        ledgerServiceMock.Setup(s => s.GetDirectCosts(
+                It.IsAny<DateTime>(),
+                It.IsAny<DateTime>(),
+                "VYROBA",
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<CostStatistics>
+            {
+                new() { Date = month, Cost = 10000m, Department = "VYROBA" }
+            });
+
+        // Finished product: 100 pieces at difficulty 35 = 3500 weighted points
+        var product = new CatalogAggregate
+        {
+            ProductCode = productCode,
+            Type = ProductType.Product,
+            ManufactureHistory = new List<CatalogManufactureRecord>
+            {
+                new() { Date = month.AddDays(14), Amount = 100, ProductCode = productCode }
+            }
+        };
+        product.ManufactureDifficultySettings.Assign(
+            new List<ManufactureDifficultySetting>
+            {
+                new() { ProductCode = productCode, DifficultyValue = 35, ValidFrom = month.AddYears(-1), ValidTo = null }
+            },
+            month
+        );
+
+        // Semi-product: 100 000 grams of bulk at the default difficulty of 1.
+        // Counting it would swamp the denominator (100 000 vs 3500 points).
+        var semiProduct = new CatalogAggregate
+        {
+            ProductCode = semiProductCode,
+            Type = ProductType.SemiProduct,
+            ManufactureHistory = new List<CatalogManufactureRecord>
+            {
+                new() { Date = month.AddDays(14), Amount = 100000, ProductCode = semiProductCode }
+            }
+        };
+
+        var catalogRepositoryMock = new Mock<ICatalogRepository>();
+        catalogRepositoryMock.Setup(r => r.GetAllAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<CatalogAggregate> { product, semiProduct });
+        catalogRepositoryMock.Setup(r => r.WaitForCurrentMergeAsync(It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
+        var provider = CreateProvider(
+            catalogRepository: catalogRepositoryMock.Object,
+            ledgerService: ledgerServiceMock.Object);
+
+        // Act
+        await provider.RefreshAsync();
+        var result = await provider.GetCostsAsync();
+
+        // Assert
+        // Denominator = 3500 points (semi-product excluded) -> cost per point = 10000 / 3500
+        // Product cost per piece = 35 * (10000 / 3500) = 100
+        Assert.All(result[productCode], cost => Assert.Equal(100m, cost.Cost, 4));
+
+        // The whole VYROBA pool lands on what is sold, so the semi-product itself carries no flat cost
+        Assert.All(result[semiProductCode], cost => Assert.Equal(0m, cost.Cost));
+    }
+
     private FlatManufactureCostProvider CreateProvider(
         IFlatManufactureCostCache? cache = null,
         ICatalogRepository? catalogRepository = null,

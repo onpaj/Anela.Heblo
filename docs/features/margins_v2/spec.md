@@ -91,6 +91,7 @@ Krok 5: Náklad M1_A pro daný produkt (průměr za období)
 **Poznámky:**
 - `GetHistoricalDifficulty()` vrací hodnotu `ManufactureDifficulty` platnou v daném datu z `ManufactureDifficultySettings`
 - Pokud produkt nemá definovanou `ManufactureDifficulty`, použije se výchozí hodnota (konstanta)
+- Do `totalWeightedPoints` vstupují pouze produkty, které se prodávají — `ProductType.SemiProduct` je z jmenovatele vyloučen. Příjemky polotovarů (doklady 54/65) jsou v gramech a žádný polotovar nemá `ManufactureDifficultySettings`, takže by každý gram vážil 1 bod a rozpustil výrobní náklad do meziproduktu, který se nikdy neprodá. Polotovary tím pádem mají M1_A = 0.
 
 **Implementace:** `ManufactureCostSource.cs`
 
