@@ -21,6 +21,7 @@ using Anela.Heblo.Domain.Features.Catalog.Services;
 using Anela.Heblo.Domain.Features.Catalog.Stock;
 using Anela.Heblo.Domain.Features.Catalog.ValueObjects;
 using Anela.Heblo.Domain.Features.Manufacture;
+using Anela.Heblo.Tests.Features.Catalog.CostProviders;
 using FluentAssertions;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
@@ -36,10 +37,10 @@ namespace Anela.Heblo.Tests.Features.Catalog;
 /// MonthlyMarginHistory.Averages as zeros and silently scale every displayed cost down
 /// (365/730 days once produced a factor of 0.6 across the whole page).
 ///
-/// Shares the collection of FlatManufactureCostProviderTests because the provider serialises
-/// refreshes on a static lock.
+/// Drives both the flat manufacture and the overhead provider, each of which serialises its refresh
+/// on a static lock, so this shares one collection with both provider suites.
 /// </summary>
-[Collection("FlatManufactureCostProviderTests")]
+[Collection(CostProviderRefreshLockCollection.Name)]
 public class MarginCostWindowAlignmentTests
 {
     private const string ProductCode = "MAS009180";

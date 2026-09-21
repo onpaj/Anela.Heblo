@@ -17,7 +17,7 @@ namespace Anela.Heblo.Tests.Features.Catalog.CostProviders;
 /// Tests for SalesCostProvider.
 /// Uses Collection attribute to ensure sequential execution due to static RefreshLock in the provider.
 /// </summary>
-[Collection("SalesCostProviderTests")]
+[Collection(CostProviderRefreshLockCollection.Name)]
 public class SalesCostProviderTests
 {
     private const int DefaultHistoryDays = 90;

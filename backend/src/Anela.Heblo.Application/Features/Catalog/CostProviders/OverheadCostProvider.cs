@@ -128,6 +128,16 @@ public class OverheadCostProvider : IOverheadCostProvider
             .Where(p => p.Pool == CostPool.M3)
             .Sum(p => p.Amount);
 
+        // CostPoolService emits a zero-amount row per month and pool, so an empty or silently failed
+        // ledger read is indistinguishable downstream from a genuinely empty pool: every product ends
+        // up with M3 == M2 and nothing says why. Say it here.
+        if (totalCost == 0)
+        {
+            _logger.LogWarning(
+                "Overhead cost pool (M3) is empty for period {DateFrom} to {DateTo} - every product will report zero overhead",
+                dateFrom, dateTo);
+        }
+
         // Krok 2: Spočítat celkový počet prodaných kusů
         var totalSoldPieces = CalculateTotalSoldPieces(products, costsFrom, costsTo);
 

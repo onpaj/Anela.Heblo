@@ -20,7 +20,7 @@ namespace Anela.Heblo.Tests.Features.Catalog.CostProviders;
 /// SKLAD/MARKETING - across the same denominator M2 uses, so the two levels stay comparable.
 /// Uses Collection attribute to ensure sequential execution due to static RefreshLock in the provider.
 /// </summary>
-[Collection("OverheadCostProviderTests")]
+[Collection(CostProviderRefreshLockCollection.Name)]
 public class OverheadCostProviderTests
 {
     private const int DefaultHistoryDays = 90;
@@ -455,5 +455,103 @@ public class OverheadCostProviderTests
         VerifyLog(loggerMock, LogLevel.Information, "refresh already in progress", Times.Never());
         VerifyLog(loggerMock, LogLevel.Information, "Starting OverheadCostCache refresh", Times.Exactly(2));
         cacheMock.Verify(c => c.SetCachedDataAsync(It.IsAny<CostCacheData>(), It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    internal async Task RefreshAsync_WhenRefreshAlreadyInProgress_SkipsSecondCallAndLogsInformation()
+    {
+        // Arrange - the first call parks inside the lock on this gate, so the second call is
+        // guaranteed to meet a held lock rather than racing it.
+        var gate = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        var repoMock = new Mock<ICatalogRepository>();
+        repoMock.Setup(r => r.WaitForCurrentMergeAsync(It.IsAny<CancellationToken>())).Returns(gate.Task);
+        repoMock.Setup(r => r.GetAllAsync(It.IsAny<CancellationToken>())).ReturnsAsync(new List<CatalogAggregate>());
+
+        var cacheMock = new Mock<IOverheadCostCache>();
+        cacheMock.Setup(c => c.SetCachedDataAsync(It.IsAny<CostCacheData>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
+        var loggerMock = new Mock<ILogger<OverheadCostProvider>>();
+
+        var provider = CreateProvider(cacheMock: cacheMock, repoMock: repoMock, loggerMock: loggerMock);
+
+        // Act
+        var firstRefresh = provider.RefreshAsync();
+        try
+        {
+            // Must hit the WaitAsync(0) skip path and return promptly instead of blocking.
+            await provider.RefreshAsync();
+        }
+        finally
+        {
+            // Release the gate and drain the first call even if an assertion throws, so the static
+            // RefreshLock is never left acquired for the rest of the collection.
+            gate.TrySetResult();
+            await firstRefresh;
+        }
+
+        // Assert
+        repoMock.Verify(r => r.WaitForCurrentMergeAsync(It.IsAny<CancellationToken>()), Times.Once);
+        repoMock.Verify(r => r.GetAllAsync(It.IsAny<CancellationToken>()), Times.Once);
+        cacheMock.Verify(c => c.SetCachedDataAsync(It.IsAny<CostCacheData>(), It.IsAny<CancellationToken>()), Times.Once);
+        VerifyLog(loggerMock, LogLevel.Information, "OverheadCostCache refresh already in progress, skipping");
+    }
+
+    [Fact]
+    internal async Task GetCostsAsync_WithEmptyProductCodes_ReturnsAllCachedEntries()
+    {
+        // Arrange
+        var cacheMock = new Mock<IOverheadCostCache>();
+        cacheMock.Setup(c => c.GetCachedDataAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(BuildHydratedCacheData(new[] { "PRODUCT-A", "PRODUCT-B" }));
+
+        var provider = CreateProvider(cacheMock: cacheMock);
+
+        // Act - an empty filter means "no filter", same as null
+        var result = await provider.GetCostsAsync(productCodes: new List<string>());
+
+        // Assert
+        result.Should().HaveCount(2);
+        result.Keys.Should().BeEquivalentTo("PRODUCT-A", "PRODUCT-B");
+    }
+
+    [Fact]
+    internal async Task RefreshAsync_LogsWarning_WhenOverheadPoolIsEmpty()
+    {
+        // Arrange - sales exist, so the zero comes from the pool, not from a missing denominator.
+        var now = DateTime.UtcNow;
+        var saleDate = new DateTime(now.Year, now.Month, 1).AddMonths(-1).AddDays(14);
+        var month = new DateTime(saleDate.Year, saleDate.Month, 1);
+
+        var products = new List<CatalogAggregate>
+        {
+            BuildProduct("PRODUCT-A", new[] { (saleDate, 100d) })
+        };
+
+        var repoMock = new Mock<ICatalogRepository>();
+        repoMock.Setup(r => r.WaitForCurrentMergeAsync(It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);
+        repoMock.Setup(r => r.GetAllAsync(It.IsAny<CancellationToken>())).ReturnsAsync(products);
+
+        // CostPoolService emits a zero row rather than no row when the ledger comes back empty.
+        var costPoolMock = BuildCostPoolService(new MonthlyCostPool(month, CostPool.M3, 0m));
+
+        var cacheMock = new Mock<IOverheadCostCache>();
+        cacheMock.Setup(c => c.SetCachedDataAsync(It.IsAny<CostCacheData>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
+        var loggerMock = new Mock<ILogger<OverheadCostProvider>>();
+
+        var provider = CreateProvider(
+            cacheMock: cacheMock,
+            repoMock: repoMock,
+            costPoolMock: costPoolMock,
+            loggerMock: loggerMock);
+
+        // Act
+        await provider.RefreshAsync();
+
+        // Assert
+        VerifyLog(loggerMock, LogLevel.Warning, "Overhead cost pool (M3) is empty");
     }
 }
