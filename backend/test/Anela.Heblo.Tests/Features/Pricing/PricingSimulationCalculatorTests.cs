@@ -41,7 +41,9 @@ public class PricingSimulationCalculatorTests
     {
         var row = Single(Row(), new PricingEditDto
         {
-            ProductCode = "P1", Field = PricingEditField.Price, Value = 500m
+            ProductCode = "P1",
+            Field = PricingEditField.Price,
+            Value = 500m
         });
 
         row.Price.Should().Be(500m);
@@ -57,7 +59,9 @@ public class PricingSimulationCalculatorTests
     {
         var row = Single(Row(), new PricingEditDto
         {
-            ProductCode = "P1", Field = PricingEditField.M0Amount, Value = 265m
+            ProductCode = "P1",
+            Field = PricingEditField.M0Amount,
+            Value = 265m
         });
 
         row.Price.Should().Be(420m);              // price is pinned
@@ -72,7 +76,9 @@ public class PricingSimulationCalculatorTests
     {
         var row = Single(Row(), new PricingEditDto
         {
-            ProductCode = "P1", Field = PricingEditField.M1Amount, Value = 195m
+            ProductCode = "P1",
+            Field = PricingEditField.M1Amount,
+            Value = 195m
         });
 
         row.Price.Should().Be(420m);
@@ -88,11 +94,15 @@ public class PricingSimulationCalculatorTests
         // 50% of 420 = 210
         var byPercentage = Single(Row(), new PricingEditDto
         {
-            ProductCode = "P1", Field = PricingEditField.M0Percentage, Value = 50m
+            ProductCode = "P1",
+            Field = PricingEditField.M0Percentage,
+            Value = 50m
         });
         var byAmount = Single(Row(), new PricingEditDto
         {
-            ProductCode = "P1", Field = PricingEditField.M0Amount, Value = 210m
+            ProductCode = "P1",
+            Field = PricingEditField.M0Amount,
+            Value = 210m
         });
 
         byPercentage.MaterialCost.Should().Be(byAmount.MaterialCost);
@@ -105,11 +115,15 @@ public class PricingSimulationCalculatorTests
         // 40% of 420 = 168
         var byPercentage = Single(Row(), new PricingEditDto
         {
-            ProductCode = "P1", Field = PricingEditField.M1Percentage, Value = 40m
+            ProductCode = "P1",
+            Field = PricingEditField.M1Percentage,
+            Value = 40m
         });
         var byAmount = Single(Row(), new PricingEditDto
         {
-            ProductCode = "P1", Field = PricingEditField.M1Amount, Value = 168m
+            ProductCode = "P1",
+            Field = PricingEditField.M1Amount,
+            Value = 168m
         });
 
         byPercentage.ManufacturingCost.Should().Be(byAmount.ManufacturingCost);
@@ -121,7 +135,9 @@ public class PricingSimulationCalculatorTests
     {
         var row = Single(Row(), new PricingEditDto
         {
-            ProductCode = "P1", Field = PricingEditField.ForecastQuantity, Value = 800m
+            ProductCode = "P1",
+            Field = PricingEditField.ForecastQuantity,
+            Value = 800m
         });
 
         row.ForecastQuantity.Should().Be(800d);
@@ -135,21 +151,29 @@ public class PricingSimulationCalculatorTests
         // Edit M0 then price ...
         var first = _sut.Calculate(new[] { Row() }, NoOverrides(), new PricingEditDto
         {
-            ProductCode = "P1", Field = PricingEditField.M0Amount, Value = 265m
+            ProductCode = "P1",
+            Field = PricingEditField.M0Amount,
+            Value = 265m
         });
         var m0ThenPrice = _sut.Calculate(new[] { Row() }, first.Overrides, new PricingEditDto
         {
-            ProductCode = "P1", Field = PricingEditField.Price, Value = 500m
+            ProductCode = "P1",
+            Field = PricingEditField.Price,
+            Value = 500m
         }).Rows.Single();
 
         // ... versus price then M0, where M0 is set to what the first path produced.
         var second = _sut.Calculate(new[] { Row() }, NoOverrides(), new PricingEditDto
         {
-            ProductCode = "P1", Field = PricingEditField.Price, Value = 500m
+            ProductCode = "P1",
+            Field = PricingEditField.Price,
+            Value = 500m
         });
         var priceThenM0 = _sut.Calculate(new[] { Row() }, second.Overrides, new PricingEditDto
         {
-            ProductCode = "P1", Field = PricingEditField.M0Amount, Value = 345m // 500 - 155
+            ProductCode = "P1",
+            Field = PricingEditField.M0Amount,
+            Value = 345m // 500 - 155
         }).Rows.Single();
 
         m0ThenPrice.MaterialCost.Should().Be(priceThenM0.MaterialCost);
@@ -163,7 +187,9 @@ public class PricingSimulationCalculatorTests
     {
         var edited = _sut.Calculate(new[] { Row() }, NoOverrides(), new PricingEditDto
         {
-            ProductCode = "P1", Field = PricingEditField.M1Amount, Value = 195m
+            ProductCode = "P1",
+            Field = PricingEditField.M1Amount,
+            Value = 195m
         });
 
         var replayed = _sut.Calculate(new[] { Row() }, edited.Overrides, edit: null).Rows.Single();
@@ -180,7 +206,9 @@ public class PricingSimulationCalculatorTests
     {
         var row = Single(Row(), new PricingEditDto
         {
-            ProductCode = "P1", Field = PricingEditField.Price, Value = 200m
+            ProductCode = "P1",
+            Field = PricingEditField.Price,
+            Value = 200m
         });
 
         row.M0Amount.Should().Be(25m);
@@ -193,7 +221,9 @@ public class PricingSimulationCalculatorTests
     {
         var row = Single(Row(), new PricingEditDto
         {
-            ProductCode = "P1", Field = PricingEditField.M0Percentage, Value = 100m
+            ProductCode = "P1",
+            Field = PricingEditField.M0Percentage,
+            Value = 100m
         });
 
         row.MaterialCost.Should().Be(0m);
@@ -212,7 +242,9 @@ public class PricingSimulationCalculatorTests
     {
         var act = () => Single(Row(), new PricingEditDto
         {
-            ProductCode = "P1", Field = field, Value = value
+            ProductCode = "P1",
+            Field = field,
+            Value = value
         });
 
         act.Should().Throw<PricingEditException>()
@@ -242,7 +274,9 @@ public class PricingSimulationCalculatorTests
     {
         var result = _sut.Calculate(new[] { Row() }, NoOverrides(), new PricingEditDto
         {
-            ProductCode = "P1", Field = PricingEditField.M1Amount, Value = 195m
+            ProductCode = "P1",
+            Field = PricingEditField.M1Amount,
+            Value = 195m
         });
 
         result.Totals.RevenueDelta.Should().Be(0m);
@@ -275,7 +309,9 @@ public class PricingSimulationCalculatorTests
 
         var result = _sut.Calculate(baseline, NoOverrides(), new PricingEditDto
         {
-            ProductCode = "P1", Field = PricingEditField.Price, Value = 500m
+            ProductCode = "P1",
+            Field = PricingEditField.Price,
+            Value = 500m
         });
 
         result.Totals.RevenueBefore.Should().Be(0m);

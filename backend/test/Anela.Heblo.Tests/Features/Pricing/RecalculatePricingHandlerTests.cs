@@ -35,7 +35,9 @@ public class RecalculatePricingHandlerTests
             Overrides = new List<PricingOverrideDto>(),
             Edit = new PricingEditDto
             {
-                ProductCode = "P1", Field = PricingEditField.Price, Value = 500m
+                ProductCode = "P1",
+                Field = PricingEditField.Price,
+                Value = 500m
             }
         }, CancellationToken.None);
 
@@ -55,7 +57,9 @@ public class RecalculatePricingHandlerTests
             Overrides = new List<PricingOverrideDto>(),
             Edit = new PricingEditDto
             {
-                ProductCode = "P1", Field = PricingEditField.M0Amount, Value = 500m
+                ProductCode = "P1",
+                Field = PricingEditField.M0Amount,
+                Value = 500m
             }
         }, CancellationToken.None);
 
