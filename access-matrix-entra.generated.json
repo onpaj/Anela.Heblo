@@ -31,6 +31,26 @@
       "value": "finance.margin_analysis.read"
     },
     {
+      "id": "83e81fe0-5039-5867-9841-fdbe9895c860",
+      "allowedMemberTypes": [
+        "User"
+      ],
+      "description": "Finance_PriceAnalysis Read",
+      "displayName": "finance.price_analysis.read",
+      "isEnabled": true,
+      "value": "finance.price_analysis.read"
+    },
+    {
+      "id": "f2afa098-c30a-5fd4-a053-ce03a06d130e",
+      "allowedMemberTypes": [
+        "User"
+      ],
+      "description": "Finance_PriceAnalysis Write",
+      "displayName": "finance.price_analysis.write",
+      "isEnabled": true,
+      "value": "finance.price_analysis.write"
+    },
+    {
       "id": "2f73f3b6-d20e-51f2-a2d2-6fb064fd37ff",
       "allowedMemberTypes": [
         "User"

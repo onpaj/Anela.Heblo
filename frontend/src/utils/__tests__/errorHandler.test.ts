@@ -2,10 +2,12 @@
 import "../../i18n";
 
 import { ErrorCodes } from "../../types/errors";
+import { SwaggerException } from "../../api/generated/api-client";
 import {
   getErrorMessage,
   handleApiError,
   isErrorResponse,
+  resolveSwaggerErrorMessage,
 } from "../errorHandler";
 
 describe("errorHandler", () => {
@@ -185,6 +187,56 @@ describe("errorHandler", () => {
     it("should return false for object without success property", () => {
       const response = { errorCode: ErrorCodes.ValidationError };
       expect(isErrorResponse(response)).toBe(false);
+    });
+  });
+  // resolveSwaggerErrorMessage delegates its envelope parsing to readApiErrorEnvelope
+  // (api/apiErrorEnvelope.ts) rather than re-implementing it. These pin the behaviour
+  // its two call sites depend on: a structured rejection resolves to a Czech message,
+  // anything unstructured resolves to undefined so the caller can fall back.
+  describe("resolveSwaggerErrorMessage", () => {
+    const swaggerException = (status: number, body: string) =>
+      new SwaggerException("Error", status, body, {}, null);
+
+    it("resolves a structured error envelope to its Czech message", () => {
+      const error = swaggerException(
+        400,
+        JSON.stringify({ success: false, errorCode: "ValidationError", params: null }),
+      );
+
+      expect(resolveSwaggerErrorMessage(error)).toBe("Chyba validace");
+    });
+
+    it("formats the message with the envelope's params", () => {
+      const error = swaggerException(
+        404,
+        JSON.stringify({
+          success: false,
+          errorCode: "PurchaseOrderNotFound",
+          params: { id: "123" },
+        }),
+      );
+
+      expect(resolveSwaggerErrorMessage(error)).toBe(
+        "Objednávka nenalezena (ID: 123)",
+      );
+    });
+
+    it("returns undefined for a network failure so the caller falls back to a generic message", () => {
+      expect(resolveSwaggerErrorMessage(new TypeError("Failed to fetch"))).toBeUndefined();
+    });
+
+    it("returns undefined for an unparseable body", () => {
+      expect(
+        resolveSwaggerErrorMessage(swaggerException(502, "<html>Bad Gateway</html>")),
+      ).toBeUndefined();
+    });
+
+    it("returns undefined for a JSON body carrying no error code", () => {
+      expect(
+        resolveSwaggerErrorMessage(
+          swaggerException(500, JSON.stringify({ success: false })),
+        ),
+      ).toBeUndefined();
     });
   });
 });

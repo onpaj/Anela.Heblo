@@ -9,6 +9,7 @@ public static class AccessMatrix
     {
         new FeatureDefinition(Feature.Finance_FinancialOverview, "Finanční přehled"),
         new FeatureDefinition(Feature.Finance_MarginAnalysis, "Analýza marží"),
+        new FeatureDefinition(Feature.Finance_PriceAnalysis, "Analýza cen", HasWrite: true),
         new FeatureDefinition(Feature.Products_ProductMargins, "Marže produktů"),
         new FeatureDefinition(Feature.Products_Catalog, "Katalog", HasWrite: true),
         new FeatureDefinition(Feature.Products_Journal, "Žurnál", HasWrite: true),
@@ -54,6 +55,7 @@ public static class AccessMatrix
         new MenuPath("/analytics/product-margin-summary", new FeaturePermission[] { new FeaturePermission(Feature.Finance_MarginAnalysis, AccessLevel.Read) }),
         new MenuPath("/automation/invoice-import-statistics", new FeaturePermission[] { new FeaturePermission(Feature.Finance_MarginAnalysis, AccessLevel.Read) }),
         new MenuPath("/finance/bank-statements", new FeaturePermission[] { new FeaturePermission(Feature.Finance_MarginAnalysis, AccessLevel.Read) }),
+        new MenuPath("/finance/price-analysis", new FeaturePermission[] { new FeaturePermission(Feature.Finance_PriceAnalysis, AccessLevel.Read) }),
         new MenuPath("/products/margins", new FeaturePermission[] { new FeaturePermission(Feature.Products_ProductMargins, AccessLevel.Read) }),
         new MenuPath("/catalog", new FeaturePermission[] { new FeaturePermission(Feature.Products_Catalog, AccessLevel.Read) }),
         new MenuPath("/products/pricing", new FeaturePermission[] { new FeaturePermission(Feature.Products_Catalog, AccessLevel.Read) }),

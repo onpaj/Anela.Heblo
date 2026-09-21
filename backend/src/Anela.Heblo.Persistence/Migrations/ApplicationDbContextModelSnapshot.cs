@@ -3612,6 +3612,96 @@ namespace Anela.Heblo.Persistence.Migrations
                     b.ToTable("PhotobankTagRules", "public");
                 });
 
+            modelBuilder.Entity("Anela.Heblo.Domain.Features.Pricing.PricingScenario", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp");
+
+                    b.Property<string>("CreatedBy")
+                        .IsRequired()
+                        .HasMaxLength(320)
+                        .HasColumnType("character varying(320)");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<string>("FilterJson")
+                        .IsRequired()
+                        .HasColumnType("jsonb");
+
+                    b.Property<DateTime>("ModifiedAt")
+                        .HasColumnType("timestamp");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Name")
+                        .IsUnique();
+
+                    b.ToTable("PricingScenarios", "public");
+                });
+
+            modelBuilder.Entity("Anela.Heblo.Domain.Features.Pricing.PricingScenarioItem", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("BaselineManufacturingCost")
+                        .HasPrecision(18, 4)
+                        .HasColumnType("numeric(18,4)");
+
+                    b.Property<decimal>("BaselineMaterialCost")
+                        .HasPrecision(18, 4)
+                        .HasColumnType("numeric(18,4)");
+
+                    b.Property<decimal>("BaselinePrice")
+                        .HasPrecision(18, 4)
+                        .HasColumnType("numeric(18,4)");
+
+                    b.Property<double>("BaselineQuantity")
+                        .HasColumnType("double precision");
+
+                    b.Property<double?>("ForecastQuantity")
+                        .HasColumnType("double precision");
+
+                    b.Property<decimal?>("ManufacturingCost")
+                        .HasPrecision(18, 4)
+                        .HasColumnType("numeric(18,4)");
+
+                    b.Property<decimal?>("MaterialCost")
+                        .HasPrecision(18, 4)
+                        .HasColumnType("numeric(18,4)");
+
+                    b.Property<decimal?>("Price")
+                        .HasPrecision(18, 4)
+                        .HasColumnType("numeric(18,4)");
+
+                    b.Property<string>("ProductCode")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<Guid>("ScenarioId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ScenarioId", "ProductCode")
+                        .IsUnique();
+
+                    b.ToTable("PricingScenarioItems", "public");
+                });
+
             modelBuilder.Entity("Anela.Heblo.Domain.Features.ProductPricing.ProductPriceChangeLog", b =>
                 {
                     b.Property<int>("Id")
@@ -4706,6 +4796,17 @@ namespace Anela.Heblo.Persistence.Migrations
                     b.Navigation("Tag");
                 });
 
+            modelBuilder.Entity("Anela.Heblo.Domain.Features.Pricing.PricingScenarioItem", b =>
+                {
+                    b.HasOne("Anela.Heblo.Domain.Features.Pricing.PricingScenario", "Scenario")
+                        .WithMany("Items")
+                        .HasForeignKey("ScenarioId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Scenario");
+                });
+
             modelBuilder.Entity("Anela.Heblo.Domain.Features.Purchase.PurchaseOrderHistory", b =>
                 {
                     b.HasOne("Anela.Heblo.Domain.Features.Purchase.PurchaseOrder", null)
@@ -4872,6 +4973,11 @@ namespace Anela.Heblo.Persistence.Migrations
             modelBuilder.Entity("Anela.Heblo.Domain.Features.Photobank.Tag", b =>
                 {
                     b.Navigation("PhotoTags");
+                });
+
+            modelBuilder.Entity("Anela.Heblo.Domain.Features.Pricing.PricingScenario", b =>
+                {
+                    b.Navigation("Items");
                 });
 
             modelBuilder.Entity("Anela.Heblo.Domain.Features.Purchase.PurchaseOrder", b =>
