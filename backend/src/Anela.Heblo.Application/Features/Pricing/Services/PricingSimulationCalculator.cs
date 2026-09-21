@@ -18,7 +18,14 @@ public class PricingSimulationCalculator : IPricingSimulationCalculator
         IReadOnlyList<PricingOverrideDto> overrides,
         PricingEditDto? edit)
     {
-        var overrideByCode = overrides.ToDictionary(o => o.ProductCode, StringComparer.OrdinalIgnoreCase);
+        var overrideByCode = new Dictionary<string, PricingOverrideDto>(StringComparer.OrdinalIgnoreCase);
+        foreach (var over in overrides)
+        {
+            if (!string.IsNullOrEmpty(over.ProductCode))
+            {
+                overrideByCode[over.ProductCode] = over;
+            }
+        }
 
         if (edit is not null)
         {

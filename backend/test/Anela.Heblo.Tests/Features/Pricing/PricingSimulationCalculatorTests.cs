@@ -100,6 +100,23 @@ public class PricingSimulationCalculatorTests
     }
 
     [Fact]
+    public void Editing_M1_percentage_is_equivalent_to_editing_M1_amount()
+    {
+        // 40% of 420 = 168
+        var byPercentage = Single(Row(), new PricingEditDto
+        {
+            ProductCode = "P1", Field = PricingEditField.M1Percentage, Value = 40m
+        });
+        var byAmount = Single(Row(), new PricingEditDto
+        {
+            ProductCode = "P1", Field = PricingEditField.M1Amount, Value = 168m
+        });
+
+        byPercentage.ManufacturingCost.Should().Be(byAmount.ManufacturingCost);
+        byPercentage.M1Amount.Should().Be(byAmount.M1Amount);
+    }
+
+    [Fact]
     public void Editing_forecast_quantity_does_not_change_the_row_margins()
     {
         var row = Single(Row(), new PricingEditDto
@@ -240,7 +257,7 @@ public class PricingSimulationCalculatorTests
         var baseline = new[]
         {
             Row("P1"),
-            Row("P2", price: 0m, material: 0m, manufacturing: 0m, quantity: 0d, hasData: false)
+            Row("P2", price: 100m, material: 40m, manufacturing: 10m, quantity: 500d, hasData: false)
         };
 
         var result = _sut.Calculate(baseline, NoOverrides(), edit: null);
@@ -248,7 +265,7 @@ public class PricingSimulationCalculatorTests
         result.Rows.Should().HaveCount(2);
         result.Rows.Single(r => r.ProductCode == "P2").IsExcluded.Should().BeTrue();
         result.Totals.ExcludedProductCount.Should().Be(1);
-        result.Totals.RevenueBefore.Should().Be(420_000m);   // P2 contributes nothing
+        result.Totals.RevenueBefore.Should().Be(420_000m);   // P2 is excluded, so it contributes nothing
     }
 
     [Fact]
@@ -263,5 +280,20 @@ public class PricingSimulationCalculatorTests
 
         result.Totals.RevenueBefore.Should().Be(0m);
         result.Totals.RevenueDeltaPercentage.Should().Be(0m);
+    }
+
+    [Fact]
+    public void Duplicate_product_codes_in_overrides_are_resolved_with_last_wins()
+    {
+        var overrides = new List<PricingOverrideDto>
+        {
+            new() { ProductCode = "P1", Price = 450m },
+            new() { ProductCode = "P1", Price = 500m }  // This should win
+        };
+
+        var result = _sut.Calculate(new[] { Row() }, overrides, edit: null);
+
+        result.Rows.Single().Price.Should().Be(500m);
+        result.Overrides.Single(o => o.ProductCode == "P1").Price.Should().Be(500m);
     }
 }
