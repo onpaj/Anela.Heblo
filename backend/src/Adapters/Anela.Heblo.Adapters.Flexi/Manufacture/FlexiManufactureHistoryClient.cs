@@ -14,7 +14,11 @@ public class FlexiManufactureHistoryClient : IManufactureHistoryClient
     private readonly ILogger<FlexiManufactureHistoryClient> _logger;
     private readonly ResiliencePipeline _pipeline;
 
-    private const int ManufactureDocumentTypeId = 56;
+    // Product receipts moved to a new FlexiBee document type on 2026-03-24 (see "manufacture
+    // directly in flexi"). Both are queried so pre-cutover history stays available:
+    //   56 = VYROBA-PRODUKT     (retired, last document 2026-03-24)
+    //   67 = V-PRIJEM-VYROBEK   (current)
+    private static readonly int[] ManufactureDocumentTypeIds = { 56, 67 };
 
     public FlexiManufactureHistoryClient(
         IStockItemsMovementClient stockItemsMovementClient,
@@ -50,17 +54,20 @@ public class FlexiManufactureHistoryClient : IManufactureHistoryClient
     public async Task<List<ManufactureHistoryRecord>> GetHistoryAsync(DateTime dateFrom, DateTime dateTo, string? productCode = null,
         CancellationToken cancellationToken = default)
     {
-        IReadOnlyList<StockItemMovementFlexiDto> movements;
+        var movements = new List<StockItemMovementFlexiDto>();
         try
         {
-            movements = await _pipeline.ExecuteAsync(
-                async ct => await _stockItemsMovementClient.GetAsync(
-                    dateFrom,
-                    dateTo,
-                    StockMovementDirection.In,
-                    documentTypeId: ManufactureDocumentTypeId,
-                    cancellationToken: ct),
-                cancellationToken);
+            foreach (var documentTypeId in ManufactureDocumentTypeIds)
+            {
+                movements.AddRange(await _pipeline.ExecuteAsync(
+                    async ct => await _stockItemsMovementClient.GetAsync(
+                        dateFrom,
+                        dateTo,
+                        StockMovementDirection.In,
+                        documentTypeId: documentTypeId,
+                        cancellationToken: ct),
+                    cancellationToken));
+            }
         }
         catch (OperationCanceledException ex) when (!cancellationToken.IsCancellationRequested)
         {

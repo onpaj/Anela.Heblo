@@ -92,17 +92,18 @@ public class FlexiManufactureHistoryClientTests
             .SetupSequence(x => x.GetAsync(It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.IsAny<StockMovementDirection>(), It.IsAny<string?>(), It.IsAny<int?>(), It.IsAny<string?>(), It.IsAny<int>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
             .ThrowsAsync(transient)
             .ThrowsAsync(transient)
+            .ReturnsAsync(new List<StockItemMovementFlexiDto>())
             .ReturnsAsync(new List<StockItemMovementFlexiDto>());
 
         // Act
         var result = await _client.GetHistoryAsync(DateTime.UtcNow.AddDays(-7), DateTime.UtcNow);
 
-        // Assert
+        // Assert — 3 calls for the first document type (2 retries + success), 1 for the second
         result.Should().NotBeNull();
         result.Should().BeEmpty();
         _mockMovementClient.Verify(
             x => x.GetAsync(It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.IsAny<StockMovementDirection>(), It.IsAny<string?>(), It.IsAny<int?>(), It.IsAny<string?>(), It.IsAny<int>(), It.IsAny<int>(), It.IsAny<CancellationToken>()),
-            Times.Exactly(3));
+            Times.Exactly(4));
         _mockLogger.Verify(
             x => x.Log(
                 LogLevel.Warning,
@@ -236,4 +237,46 @@ public class FlexiManufactureHistoryClientTests
                 It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
             Times.Once);
     }
+
+    [Fact]
+    public async Task GetHistoryAsync_UnionsLegacyAndCurrentProductReceiptTypes()
+    {
+        // Arrange — FlexiBee renamed the product-receipt document type on 2026-03-24:
+        // 56 VYROBA-PRODUKT (retired) -> 67 V-PRIJEM-VYROBEK (current).
+        var legacyDate = new DateTime(2026, 3, 1);
+        var currentDate = new DateTime(2026, 5, 14);
+
+        _mockMovementClient
+            .Setup(x => x.GetAsync(It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.IsAny<StockMovementDirection>(), It.IsAny<string?>(), 56, It.IsAny<string?>(), It.IsAny<int>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<StockItemMovementFlexiDto>
+            {
+                BuildMovement("SER003030", legacyDate, amount: 10, pricePerUnit: 5, totalSum: 50)
+            });
+
+        _mockMovementClient
+            .Setup(x => x.GetAsync(It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.IsAny<StockMovementDirection>(), It.IsAny<string?>(), 67, It.IsAny<string?>(), It.IsAny<int>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<StockItemMovementFlexiDto>
+            {
+                BuildMovement("SER003030", currentDate, amount: 84, pricePerUnit: 7, totalSum: 588)
+            });
+
+        // Act
+        var result = await _client.GetHistoryAsync(new DateTime(2026, 1, 1), new DateTime(2026, 9, 21));
+
+        // Assert — both the pre-cutover and the post-cutover receipt are returned
+        result.Should().HaveCount(2);
+        result.Should().ContainSingle(r => r.Date == legacyDate && r.Amount == 10);
+        result.Should().ContainSingle(r => r.Date == currentDate && r.Amount == 84);
+    }
+
+    private static StockItemMovementFlexiDto BuildMovement(
+        string productCode, DateTime date, double amount, double pricePerUnit, double totalSum) =>
+        new()
+        {
+            Date = date,
+            Amount = amount,
+            PricePerUnit = pricePerUnit,
+            TotalSum = totalSum,
+            Items = new List<StockItemProductFlexiDto> { new() { Code = productCode } }
+        };
 }
