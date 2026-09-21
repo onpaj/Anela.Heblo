@@ -16,6 +16,7 @@ import ProductMarginsList from "./components/pages/ProductMarginsList";
 import ProductStatistics from "./components/pages/ProductStatistics";
 import ProductMarginSummary from "./components/pages/ProductMarginSummary";
 import FinancialOverview from "./components/pages/FinancialOverview";
+import PriceAnalysis from "./components/pages/PriceAnalysis";
 import BankStatementImportPage from "./pages/customer/BankStatementImportPage";
 import JournalList from "./components/pages/Journal/JournalList";
 import JournalEntryNew from "./components/pages/JournalEntryNew";
@@ -416,6 +417,7 @@ function App() {
                         <Route path="/" element={<Dashboard />} />
                         <Route path="/finance/overview" element={guard("/finance/overview", <FinancialOverview />)} />
                         <Route path="/finance/bank-statements" element={guard("/finance/bank-statements", <BankStatementImportPage />)} />
+                        <Route path="/finance/price-analysis" element={guard("/finance/price-analysis", <PriceAnalysis />)} />
                         <Route path="/analytics/product-margin-summary" element={guard("/analytics/product-margin-summary", <ProductMarginSummary />)} />
                         <Route path="/catalog" element={guard("/catalog", <CatalogList />)} />
                         <Route path="/purchase/orders" element={guard("/purchase/orders", <PurchaseOrderList />)} />
