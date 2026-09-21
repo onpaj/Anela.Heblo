@@ -211,10 +211,16 @@ describe("PriceAnalysis editing", () => {
       expect(lineText).toContain(formatCurrency(17500));
     });
 
+    // The totals render straight from `recalculated.totals`, but this cell's draft is
+    // its own state, written by PricingEditableCell's passive [value, error] resync
+    // effect -- one render LATER. The totals satisfying the waitFor above therefore does
+    // not imply the cell has resynced (observed: "80" here on 5 of 6 runs), so wait on
+    // the cell's own consequence rather than the totals'. Do not collapse this back to a
+    // synchronous assertion.
     const m0Input = screen.getByTestId(
       `pricing-cell-PROD001-${PricingEditField.M0Percentage}`,
     ) as HTMLInputElement;
-    expect(m0Input.value).toBe("82");
+    await waitFor(() => expect(m0Input.value).toBe("82"));
   });
 
   it("shows the Czech message inline on a rejected edit, keeps the prior value, and leaves totals unchanged", async () => {
@@ -258,8 +264,11 @@ describe("PriceAnalysis editing", () => {
       expect(toast.error).toHaveBeenCalled();
     });
 
-    expect(priceInput().value).toBe("150");
-    expect(screen.getByTestId("totals-stale-badge")).toBeInTheDocument();
+    // toast.error fires inside the catch BEFORE setCellResetTokens (which remounts this
+    // cell to revert it) and alongside setIsTotalsStale, so seeing the toast does not
+    // imply either render has landed. Both assertions wait on their own consequence.
+    await waitFor(() => expect(priceInput().value).toBe("150"));
+    expect(await screen.findByTestId("totals-stale-badge")).toBeInTheDocument();
   });
 
   it("keeps the previous totals rendered and shows a spinner while a recalculate is in flight", () => {
@@ -415,7 +424,10 @@ describe("PriceAnalysis editing", () => {
     // so a stale "80" must not be sent just because it differs from the new
     // "82". The cell must instead now display the server's fresh value.
     expect(mockMutateAsync).toHaveBeenCalledTimes(1);
-    expect(m0PercentageInput.value).toBe("82");
+    // The call count above is an invariance check and stays synchronous. The draft,
+    // however, is cell state reached via a different signal (the row's reset control),
+    // so it gets its own wait.
+    await waitFor(() => expect(m0PercentageInput.value).toBe("82"));
   });
 
   it("serializes overlapping commits so the second carries the first commit's already-applied override", async () => {
