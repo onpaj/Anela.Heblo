@@ -28,6 +28,11 @@ const buildRow = (overrides: Partial<PricingRowDto> = {}): PricingRowDto =>
     m0Percentage: 80,
     m1Amount: 100,
     m1Percentage: 66.67,
+    // Server-computed by PricingSimulationCalculator.BuildRow, alongside m0Amount/
+    // m1Amount -- see that class's doc comment for why the row is the single source
+    // of truth for both the "before" and "after" side of M0/M1.
+    baselineM0Amount: 120,
+    baselineM1Amount: 100,
     isEdited: false,
     isExcluded: false,
     baselineDrifted: false,
@@ -91,7 +96,7 @@ describe("exportPricingScenario", () => {
     expect(filename).toMatch(/\.xlsx$/);
   });
 
-  it("formats cells with the shared formatters and computes per-row deltas from server-provided baseline and effective numbers, never recomputing margins beyond a before/after read", async () => {
+  it("reads the server-computed baseline margins and formats cells with the shared formatters, computing only the revenue/M1 deltas from numbers the row already carries", async () => {
     const row = buildRow({
       productCode: "PROD001",
       productName: "Test Product",
@@ -99,6 +104,8 @@ describe("exportPricingScenario", () => {
       baselineMaterialCost: 30,
       baselineManufacturingCost: 20,
       baselineQuantity: 100,
+      baselineM0Amount: 120,
+      baselineM1Amount: 100,
       price: 175,
       m0Amount: 145,
       m0Percentage: 82.86,
@@ -118,12 +125,12 @@ describe("exportPricingScenario", () => {
     expect(valueFor("Název")).toBe("Test Product");
     expect(valueFor("Cena před")).toBe(formatCurrency(150));
     expect(valueFor("Cena po")).toBe(formatCurrency(175));
-    // M0 před Kč mirrors the backend's own M0 = Price - MaterialCost formula,
-    // applied to the row's baseline* fields: 150 - 30 = 120.
+    // M0 před Kč reads row.baselineM0Amount directly -- server-computed by
+    // PricingSimulationCalculator, not re-derived here.
     expect(valueFor("M0 před Kč")).toBe(formatCurrency(120));
     expect(valueFor("M0 po Kč")).toBe(formatCurrency(145));
     expect(valueFor("M0 po %")).toBe(formatPercentage(82.86));
-    // M1 před Kč = M0 před Kč - baselineManufacturingCost = 120 - 20 = 100.
+    // M1 před Kč reads row.baselineM1Amount directly, same as above.
     expect(valueFor("M1 před Kč")).toBe(formatCurrency(100));
     expect(valueFor("M1 po Kč")).toBe(formatCurrency(125));
     expect(valueFor("M1 po %")).toBe(formatPercentage(71.43));
@@ -132,7 +139,7 @@ describe("exportPricingScenario", () => {
     // Δ obrat = (price * forecastQuantity) - (baselinePrice * baselineQuantity)
     //         = (175 * 110) - (150 * 100) = 19250 - 15000 = 4250.
     expect(valueFor("Δ obrat")).toBe(formatCurrency(4250));
-    // Δ M1 = m1Amount - M1 před Kč = 125 - 100 = 25.
+    // Δ M1 = m1Amount - baselineM1Amount = 125 - 100 = 25.
     expect(valueFor("Δ M1")).toBe(formatCurrency(25));
   });
 });

@@ -141,6 +141,12 @@ public class PricingSimulationCalculator : IPricingSimulationCalculator
         var m0 = price - material;
         var m1 = price - material - manufacturing;
 
+        // Same M0/M1 formula, applied to the untouched baseline inputs -- the single
+        // place that knows this rule (see the class doc comment) also owns the
+        // "before" side, so the screen and the exported ceník can never disagree.
+        var baselineM0 = baseline.Price - baseline.MaterialCost;
+        var baselineM1 = baselineM0 - baseline.ManufacturingCost;
+
         return new PricingRowDto
         {
             ProductCode = baseline.ProductCode,
@@ -160,6 +166,8 @@ public class PricingSimulationCalculator : IPricingSimulationCalculator
             M0Percentage = Percentage(m0, price),
             M1Amount = m1,
             M1Percentage = Percentage(m1, price),
+            BaselineM0Amount = baselineM0,
+            BaselineM1Amount = baselineM1,
 
             IsEdited = over is not null,
             IsExcluded = !baseline.HasData

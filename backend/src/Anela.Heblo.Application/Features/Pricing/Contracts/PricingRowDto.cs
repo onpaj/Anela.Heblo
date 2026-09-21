@@ -23,6 +23,12 @@ public class PricingRowDto
     public decimal M1Amount { get; set; }
     public decimal M1Percentage { get; set; }
 
+    // Derived from the baseline inputs above using the same M0/M1 formula as the
+    // effective amounts -- the "before" side of the M0/M1 Kč columns. Kept as plain
+    // Kč amounts (no baseline percentage) since only the ceník export needs them.
+    public decimal BaselineM0Amount { get; set; }
+    public decimal BaselineM1Amount { get; set; }
+
     public bool IsEdited { get; set; }
     public bool IsExcluded { get; set; }
 

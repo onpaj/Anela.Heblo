@@ -33,7 +33,30 @@ public class PricingSimulationCalculatorTests
         row.M1Amount.Should().Be(175m);
         row.M0Percentage.Should().BeApproximately(58.33m, 0.01m);
         row.M1Percentage.Should().BeApproximately(41.67m, 0.01m);
+        row.BaselineM0Amount.Should().Be(245m);
+        row.BaselineM1Amount.Should().Be(175m);
         row.IsEdited.Should().BeFalse();
+    }
+
+    [Fact]
+    public void Baseline_M0_and_M1_amounts_stay_pinned_to_the_baseline_when_the_row_is_edited()
+    {
+        // Editing the price shifts the effective M0Amount/M1Amount (see
+        // Editing_price_shifts_both_margins_and_leaves_costs_alone), but
+        // BaselineM0Amount/BaselineM1Amount must keep reporting the untouched
+        // baseline's margin -- the "before" side of the exported ceník's M0/M1 Kč
+        // columns -- regardless of any override applied to this row.
+        var row = Single(Row(), new PricingEditDto
+        {
+            ProductCode = "P1",
+            Field = PricingEditField.Price,
+            Value = 500m
+        });
+
+        row.M0Amount.Should().Be(325m);
+        row.M1Amount.Should().Be(255m);
+        row.BaselineM0Amount.Should().Be(245m);   // unchanged: baseline 420 - 175
+        row.BaselineM1Amount.Should().Be(175m);   // unchanged: 245 - 70
     }
 
     [Fact]
