@@ -21,16 +21,16 @@
       "updated_at": "2026-09-21T08:15:36.807297Z"
     },
     "developing": {
-      "status": "pending",
-      "updated_at": null
+      "status": "in_progress",
+      "updated_at": "2026-09-21T11:18:21.271537Z"
     }
   },
   "tasks": [
     {
       "name": "remove-dead-try-catch",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-09-21T11:18:21.534377Z"
     }
   ]
 }
