@@ -1,5 +1,5 @@
 import { BaseResponse, ErrorCodes } from "../types/errors";
-import { SwaggerException } from "../api/generated/api-client";
+import { readApiErrorEnvelope } from "../api/apiErrorEnvelope";
 import i18n from "../i18n";
 
 /**
@@ -88,27 +88,27 @@ export function isErrorResponse(response: any): response is BaseResponse {
 }
 
 /**
- * The generated API client throws `SwaggerException` for any non-2xx response, with
- * `error.response` being the raw body text (not parsed JSON). When that body parses
- * as a structured `{ success: false, errorCode }` payload, resolves it to the
- * matching Czech message via `handleApiError`; otherwise returns `undefined` so the
- * caller can fall back to a generic failure message (network failure, 500,
- * unparseable body). Shared by every screen using this pattern (previously
- * duplicated per-screen, e.g. LabelIdentificationScreen, PriceAnalysis).
+ * Resolves a failed generated-client call to a Czech message, or `undefined` when the
+ * failure carries no structured error envelope (network failure, 500, unparseable body)
+ * so the caller can fall back to its own generic message.
+ *
+ * The envelope parsing itself is delegated to `readApiErrorEnvelope` — the shared reader
+ * that also understands a directly-thrown envelope and normalises a null `params` — so
+ * this file never re-implements it. Callers: `PriceAnalysis` (a rejected edit gets an
+ * inline cell message, anything else a toast + stale-totals badge) and
+ * `PricingScenarioBar` (save/delete failures).
  */
 export function resolveSwaggerErrorMessage(error: unknown): string | undefined {
-  if (!(error instanceof SwaggerException)) {
+  const envelope = readApiErrorEnvelope(error);
+  if (!envelope?.errorCode) {
     return undefined;
   }
-  try {
-    const parsed = JSON.parse(error.response);
-    if (parsed?.success === false && typeof parsed.errorCode === "string") {
-      return handleApiError({ success: false, errorCode: parsed.errorCode, params: parsed.params });
-    }
-  } catch {
-    // Not JSON -- fall through to the generic network-failure handling.
-  }
-  return undefined;
+
+  return handleApiError({
+    success: false,
+    errorCode: envelope.errorCode,
+    params: envelope.params,
+  });
 }
 
 /**

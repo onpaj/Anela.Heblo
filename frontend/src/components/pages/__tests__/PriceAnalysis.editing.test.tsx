@@ -236,7 +236,11 @@ describe("PriceAnalysis editing", () => {
       ),
     ).toBeInTheDocument();
 
-    expect(priceInput().value).toBe("150");
+    // The error element appears on the render that sets the cell's `error` prop; the
+    // cell's own draft resync is a passive effect that runs after it. Asserting the
+    // input value synchronously after findByText therefore races that effect (observed
+    // flaking under parallel suite load), so poll for it instead.
+    await waitFor(() => expect(priceInput().value).toBe("150"));
     expect(screen.getByTestId("totals-line-Obrat").textContent ?? "").toContain(
       formatCurrency(15000),
     );
@@ -509,6 +513,137 @@ describe("PriceAnalysis editing", () => {
       expect(mockMutateAsync).toHaveBeenLastCalledWith(
         expect.objectContaining({ overrides: firstResponseOverrides }),
       );
+    });
+  });
+
+  // `rows` prefers the recalculated set over the baseline query, so before this fix the
+  // first successful edit shadowed the baseline forever: applying or clearing a filter
+  // refetched `data` and changed nothing at all on screen.
+  it("re-runs the recalculation against the NEW filter after an edit, and updates the displayed rows", async () => {
+    mockMutateAsync.mockResolvedValueOnce({
+      rows: [buildRow({ price: 175, isEdited: true })],
+      totals: buildTotals(),
+      overrides: [{ productCode: "PROD001", price: 175 }],
+    });
+
+    render(<PriceAnalysis />, { wrapper: createWrapper() });
+
+    fireEvent.change(priceInput(), { target: { value: "175" } });
+    fireEvent.blur(priceInput());
+    await screen.findByTestId("pricing-row-reset-PROD001");
+    expect(screen.getByText("Test Product 1")).toBeInTheDocument();
+
+    mockMutateAsync.mockResolvedValueOnce({
+      rows: [buildRow({ productCode: "PROD002", productName: "Filtered Product" })],
+      totals: buildTotals(),
+      overrides: [{ productCode: "PROD001", price: 175 }],
+    });
+
+    fireEvent.change(screen.getByPlaceholderText("Název produktu..."), {
+      target: { value: "Filtered" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Filtrovat" }));
+
+    // The grid must now show the new filter's rows -- the whole point of the fix.
+    await waitFor(() => {
+      expect(screen.getByText("Filtered Product")).toBeInTheDocument();
+    });
+    expect(screen.queryByText("Test Product 1")).not.toBeInTheDocument();
+
+    // ...and the request must carry the NEW filter value. The closure's `filter` still
+    // holds the previous one in that tick, so reading it back from state would have
+    // recalculated against the OLD filter and quietly produced the old rows again.
+    expect(mockMutateAsync).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        productName: "Filtered",
+        overrides: [{ productCode: "PROD001", price: 175 }],
+        edit: undefined,
+      }),
+    );
+  });
+
+  it("falls back to the refetched baseline when the filter changes and no edits remain", async () => {
+    mockMutateAsync.mockResolvedValueOnce({
+      rows: [buildRow({ price: 175, isEdited: true })],
+      totals: buildTotals(),
+      overrides: [{ productCode: "PROD001", price: 175 }],
+    });
+
+    render(<PriceAnalysis />, { wrapper: createWrapper() });
+
+    fireEvent.change(priceInput(), { target: { value: "175" } });
+    fireEvent.blur(priceInput());
+    const resetAllButton = await screen.findByTestId("pricing-reset-all");
+
+    // Reset everything: overrides are empty again, but `recalculated` still shadows
+    // the baseline query.
+    mockMutateAsync.mockResolvedValueOnce({
+      rows: [buildRow({ price: 150, isEdited: false })],
+      totals: buildTotals(),
+      overrides: [],
+    });
+    fireEvent.click(resetAllButton);
+    await waitFor(() => {
+      expect(screen.queryByTestId("pricing-reset-all")).not.toBeInTheDocument();
+    });
+
+    // The baseline query now answers with a different product.
+    mockUsePricingBaselineQuery.mockReturnValue({
+      data: {
+        rows: [buildRow({ productCode: "PROD002", productName: "Filtered Product" })],
+        totals: buildTotals(),
+      },
+      isLoading: false,
+      error: null,
+      refetch: jest.fn(),
+    } as any);
+
+    fireEvent.click(screen.getByRole("button", { name: "Vymazat" }));
+
+    await waitFor(() => {
+      expect(screen.getByText("Filtered Product")).toBeInTheDocument();
+    });
+    expect(screen.queryByText("Test Product 1")).not.toBeInTheDocument();
+    // Nothing left to replay, so no third recalculation was fired.
+    expect(mockMutateAsync).toHaveBeenCalledTimes(2);
+  });
+
+  it("clears a stale cell error once a DIFFERENT cell's edit succeeds", async () => {
+    const body = JSON.stringify({
+      success: false,
+      errorCode: "PricingNegativeMaterialCost",
+      params: null,
+    });
+    mockMutateAsync.mockRejectedValueOnce(
+      new SwaggerException("Bad Request", 400, body, {}, null),
+    );
+
+    render(<PriceAnalysis />, { wrapper: createWrapper() });
+
+    fireEvent.change(priceInput(), { target: { value: "999" } });
+    fireEvent.blur(priceInput());
+
+    const priceErrorTestId = `pricing-cell-error-PROD001-${PricingEditField.Price}`;
+    expect(await screen.findByTestId(priceErrorTestId)).toBeInTheDocument();
+
+    // A successful edit on another cell re-derives every row server-side, so the
+    // rejected value is gone -- the red ring and message must go with it. Only the
+    // committed cell's own key is cleared up-front, so this can only pass if the
+    // success path clears the rest.
+    mockMutateAsync.mockResolvedValueOnce({
+      rows: [buildRow({ forecastQuantity: 120, isEdited: true })],
+      totals: buildTotals(),
+      overrides: [{ productCode: "PROD001", forecastQuantity: 120 }],
+    });
+
+    const forecastInput = screen.getByTestId(
+      `pricing-cell-PROD001-${PricingEditField.ForecastQuantity}`,
+    );
+    fireEvent.change(forecastInput, { target: { value: "120" } });
+    fireEvent.blur(forecastInput);
+
+    await waitFor(() => {
+      expect(screen.queryByTestId(priceErrorTestId)).not.toBeInTheDocument();
     });
   });
 

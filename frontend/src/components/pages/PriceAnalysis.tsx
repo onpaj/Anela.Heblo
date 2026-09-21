@@ -98,6 +98,10 @@ const PriceAnalysis: React.FC = () => {
     buildOverrides: (current: IPricingOverrideDto[]) => IPricingOverrideDto[],
     edit: IPricingEditDto | undefined,
     errorKey: string | undefined,
+    // The filter this recalculation runs against. Defaults to the one currently applied;
+    // applyFilter passes the NEW values explicitly, because its own setState calls have
+    // not reached this render's `filter` yet (see applyFilter's own comment).
+    requestFilter: PricingBaselineFilter = filter,
   ): Promise<void> => {
     const run = async () => {
       if (errorKey) {
@@ -112,9 +116,9 @@ const PriceAnalysis: React.FC = () => {
 
       try {
         const response = await recalculateMutation.mutateAsync({
-          productCode: filter.productCode,
-          productName: filter.productName,
-          productType: filter.productType,
+          productCode: requestFilter.productCode,
+          productName: requestFilter.productName,
+          productType: requestFilter.productType,
           overrides: nextOverrides,
           edit,
         });
@@ -123,6 +127,11 @@ const PriceAnalysis: React.FC = () => {
         setRecalculated({ rows: response.rows ?? [], totals: response.totals });
         setOverrides(responseOverrides);
         setIsTotalsStale(false);
+        // Every row in this response is freshly derived by the server, so no cell can
+        // still be showing a rejected value -- including a cell OTHER than the one just
+        // committed. Without this, a rejected edit on cell A kept its red ring and
+        // message forever once the user moved on and successfully edited cell B.
+        setCellErrors((prev) => (Object.keys(prev).length === 0 ? prev : {}));
       } catch (caughtError) {
         const rejectionMessage = errorKey ? resolvePricingEditErrorMessage(caughtError) : undefined;
         if (rejectionMessage && errorKey) {
@@ -204,16 +213,47 @@ const PriceAnalysis: React.FC = () => {
     }
   };
 
-  const handleApplyFilters = async () => {
-    setProductNameFilter(productNameInput);
-    setProductCodeFilter(productCodeInput);
-    setProductTypeFilter(productTypeInput);
+  // `rows` prefers `recalculated` over the baseline query, so once the first edit lands
+  // a refetched baseline can never reach the screen on its own: applying or clearing a
+  // filter would change nothing at all. Every filter change therefore goes through here.
+  // With edits in play we re-run the recalculation against the NEW filter, so the user's
+  // edits survive the filter change; with no edits there is nothing to recalculate and
+  // dropping `recalculated` lets the refetched baseline through.
+  const applyFilter = async (
+    productName: string,
+    productCode: string,
+    productType: string,
+  ) => {
+    setProductNameFilter(productName);
+    setProductCodeFilter(productCode);
+    setProductTypeFilter(productType);
+
+    // The `filter` captured by this closure still holds the PREVIOUS values -- the
+    // setState calls above only take effect on the next render -- so the new filter is
+    // built here and passed explicitly rather than read back out of state.
+    const nextFilter: PricingBaselineFilter = {
+      productCode: productCode || undefined,
+      productName: productName || undefined,
+      productType: (productType || undefined) as ProductType | undefined,
+    };
+
+    if (overridesRef.current.length > 0) {
+      await performRecalculate((current) => current, undefined, undefined, nextFilter);
+    } else {
+      setRecalculated(null);
+      setCellErrors({});
+      setIsTotalsStale(false);
+    }
+
     await refetch();
   };
 
+  const handleApplyFilters = () =>
+    applyFilter(productNameInput, productCodeInput, productTypeInput);
+
   const handleKeyDown = (event: React.KeyboardEvent) => {
     if (event.key === "Enter") {
-      handleApplyFilters();
+      void handleApplyFilters();
     }
   };
 
@@ -221,10 +261,7 @@ const PriceAnalysis: React.FC = () => {
     setProductNameInput("");
     setProductCodeInput("");
     setProductTypeInput("");
-    setProductNameFilter("");
-    setProductCodeFilter("");
-    setProductTypeFilter("");
-    await refetch();
+    await applyFilter("", "", "");
   };
 
   if (isLoading) {
@@ -313,7 +350,7 @@ const PriceAnalysis: React.FC = () => {
                 value={productTypeInput}
                 onChange={(e) => {
                   setProductTypeInput(e.target.value);
-                  setProductTypeFilter(e.target.value);
+                  void applyFilter(productNameFilter, productCodeFilter, e.target.value);
                 }}
                 className="focus:ring-indigo-500 focus:border-indigo-500 block w-full py-2 px-3 sm:text-sm border-gray-300 dark:border-graphite-border dark:bg-graphite-surface-2 dark:text-graphite-text rounded-md"
               >
@@ -329,7 +366,7 @@ const PriceAnalysis: React.FC = () => {
 
           <div className="flex items-center gap-2">
             <button
-              onClick={handleApplyFilters}
+              onClick={() => void handleApplyFilters()}
               className="bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 px-4 rounded-md transition-colors duration-200 text-sm"
             >
               Filtrovat
