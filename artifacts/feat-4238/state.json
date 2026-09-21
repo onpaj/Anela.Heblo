@@ -40,9 +40,9 @@
     },
     {
       "name": "import-mapper-isalldy",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-09-21T08:16:18.178974Z"
+      "updated_at": "2026-09-21T08:44:51.890758Z"
     },
     {
       "name": "export-service-isalldy",
