@@ -28,9 +28,9 @@
   "tasks": [
     {
       "name": "domain-isalldy-property",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-09-21T06:17:53.287036Z"
+      "updated_at": "2026-09-21T06:22:14.308296Z"
     },
     {
       "name": "persistence-migration-isalldy",
