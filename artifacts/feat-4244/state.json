@@ -28,9 +28,9 @@
   "tasks": [
     {
       "name": "remove-dead-try-catch",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-09-21T11:18:21.534377Z"
+      "updated_at": "2026-09-21T12:30:14.059436Z"
     }
   ]
 }
