@@ -103,14 +103,20 @@ Revisit if deep history (pre-window) is ever needed.
 
 ### Query shape
 
-One unfiltered call replaces the three department-filtered ones:
+One unfiltered call, which is intended to replace the three
+department-filtered ones:
 
 ```csharp
 _ledgerService.GetLedgerItems(from, to, debitAccountPrefix: ["51", "52"])
 ```
 
 then group by `(month, department)` in memory and fold departments into pools.
-This is strictly less Flexi traffic than today's three separate pulls.
+
+**Traffic note.** As shipped this is a *fourth* pull, not a replacement: the
+cost providers keep their three filtered pulls until the dedup follow-up lands,
+and `LedgerService`'s 15-minute memory cache keys on the filter set, so the new
+unfiltered result is held alongside them rather than instead of them. The
+reduction to a single pull is contingent on that follow-up.
 
 Summation matches `LedgerService.GetCosts` exactly — sum `item.Amount` over the
 returned items, trusting the server-side debit-prefix filter rather than

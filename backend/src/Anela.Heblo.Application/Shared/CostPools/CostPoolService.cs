@@ -1,4 +1,5 @@
 using Anela.Heblo.Application.Common;
+using Anela.Heblo.Application.Common.TimePeriods;
 using Anela.Heblo.Domain.Accounting.CostPools;
 using Anela.Heblo.Domain.Accounting.Ledger;
 using Microsoft.Extensions.Logging;
@@ -89,18 +90,25 @@ public class CostPoolService : ICostPoolService
 
             var pools = await ComputeAsync(from, to, ct);
 
+            // ComputeAsync widens the window to whole months, so Pools really does
+            // cover them. Recording the raw from/to instead would make Covers() miss
+            // on the boundary months and trigger a needless live ledger pull.
+            var (rangeStart, rangeEnd) = MonthRange.ToWholeMonths(from, to);
+            var cachedFrom = DateOnly.FromDateTime(rangeStart);
+            var cachedTo = DateOnly.FromDateTime(rangeEnd);
+
             await _cache.SetCachedDataAsync(new CostPoolCacheData
             {
                 Pools = pools,
                 LastUpdated = DateTime.UtcNow,
-                DataFrom = from,
-                DataTo = to,
+                DataFrom = cachedFrom,
+                DataTo = cachedTo,
                 IsHydrated = true
             }, ct);
 
             _logger.LogInformation(
                 "CostPoolCache refreshed successfully: {RowCount} monthly pool totals covering {From} to {To}",
-                pools.Count, from, to);
+                pools.Count, cachedFrom, cachedTo);
         }
         catch (Exception ex)
         {
@@ -118,7 +126,7 @@ public class CostPoolService : ICostPoolService
         DateOnly to,
         CancellationToken ct)
     {
-        var (rangeStart, rangeEnd) = ToWholeMonthRange(from, to);
+        var (rangeStart, rangeEnd) = MonthRange.ToWholeMonths(from, to);
 
         var ledgerItems = await _ledgerService.GetLedgerItems(
             rangeStart,
@@ -136,7 +144,7 @@ public class CostPoolService : ICostPoolService
                 Pool: CostPoolDefinition.Resolve(item.Department)))
             .ToDictionary(g => g.Key, g => g.Sum(item => item.Amount));
 
-        return GenerateMonths(rangeStart, rangeEnd)
+        return MonthRange.EnumerateMonths(rangeStart, rangeEnd)
             .SelectMany(month => CostPoolDefinition.All.Select(pool =>
                 new MonthlyCostPool(
                     month,
@@ -166,30 +174,5 @@ public class CostPoolService : ICostPoolService
         _logger.LogInformation(
             "CostPool M3 absorbed spend from departments: {OverheadDepartments}",
             string.Join(", ", overheadDepartments));
-    }
-
-    /// <summary>
-    /// Expands a date range to whole calendar months, matching the window logic
-    /// the Catalog cost providers use in their GetDateRange helpers.
-    /// </summary>
-    private static (DateTime start, DateTime end) ToWholeMonthRange(DateOnly from, DateOnly to)
-    {
-        var start = new DateTime(from.Year, from.Month, 1);
-        var end = new DateTime(
-            to.Year, to.Month, DateTime.DaysInMonth(to.Year, to.Month), 23, 59, 59);
-
-        return (start, end);
-    }
-
-    private static IEnumerable<DateTime> GenerateMonths(DateTime start, DateTime end)
-    {
-        var current = new DateTime(start.Year, start.Month, 1);
-        var last = new DateTime(end.Year, end.Month, 1);
-
-        while (current <= last)
-        {
-            yield return current;
-            current = current.AddMonths(1);
-        }
     }
 }
