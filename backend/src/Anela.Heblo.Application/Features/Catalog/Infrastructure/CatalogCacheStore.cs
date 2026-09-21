@@ -43,6 +43,29 @@ public sealed class CatalogCacheStore
     private const string CachedEshopUrlDataKey = "CachedEshopUrlData";
     private const string CachedManufactureDifficultySettingsDataKey = "CachedManufactureDifficultySettingsData";
 
+    /// <summary>
+    /// The source caches a merged aggregate is wrong without - not merely sparse. A merge that runs
+    /// before one of these has ever loaded yields aggregates with silently empty history (an empty
+    /// SalesHistory zeroes every product's M2 sales cost, for instance), so such a merge must not be
+    /// granted the CacheValidityPeriod stamp - consumers would treat it as authoritative for hours.
+    /// Decorative sources (prices, URLs, attributes, lots) are deliberately absent: gating on those
+    /// would keep the cache permanently invalid and re-merge on every read.
+    /// </summary>
+    private static readonly string[] RequiredSourceKeys =
+    {
+        CachedErpStockDataKey,
+        CachedSalesDataKey,
+        CachedPurchaseHistoryDataKey,
+        CachedManufactureHistoryDataKey,
+    };
+
+    /// <summary>
+    /// Marks that a source has been loaded at least once in this process. Deliberately separate from
+    /// the load date, which expires after CacheValidityPeriod: the merge guard asks "was this ever
+    /// loaded", not "is it fresh", so a source outage cannot trigger a re-merge on every read.
+    /// </summary>
+    private const string EverLoadedSuffix = "_EverLoaded";
+
     private readonly IMemoryCache _cache;
     private readonly TimeProvider _timeProvider;
     private readonly IOptions<CatalogCacheOptions> _cacheOptions;
@@ -126,7 +149,21 @@ public sealed class CatalogCacheStore
             }
 
             _cache.Set(CurrentCatalogCacheKey, newData);
-            _cache.Set(CacheUpdateTimeKey, _timeProvider.GetUtcNow().DateTime);
+
+            var missingSources = GetMissingRequiredSources();
+            if (missingSources.Count == 0)
+            {
+                _cache.Set(CacheUpdateTimeKey, _timeProvider.GetUtcNow().DateTime);
+            }
+            else
+            {
+                // Serve the data, but withhold validity so the next read re-merges once the
+                // missing sources have landed instead of trusting this merge for hours.
+                _cache.Remove(CacheUpdateTimeKey);
+                _logger.LogWarning(
+                    "Merged catalog cache installed without a validity stamp - these sources have never loaded: {MissingSources}. It will be re-merged on the next read.",
+                    string.Join(", ", missingSources));
+            }
 
             _logger.LogDebug("Cache updated atomically with {ProductCount} products", newData.Count);
         }
@@ -557,5 +594,14 @@ public sealed class CatalogCacheStore
             AbsoluteExpirationRelativeToNow = _cacheOptions.Value.CacheValidityPeriod
         };
         _cache.Set($"{dataKey}_LoadDate", loadDate, cacheOptions);
+        _cache.Set($"{dataKey}{EverLoadedSuffix}", true);
     }
+
+    /// <summary>
+    /// Required sources that have never been loaded in this process. See <see cref="RequiredSourceKeys"/>.
+    /// </summary>
+    private List<string> GetMissingRequiredSources() =>
+        RequiredSourceKeys
+            .Where(key => !_cache.TryGetValue($"{key}{EverLoadedSuffix}", out bool _))
+            .ToList();
 }

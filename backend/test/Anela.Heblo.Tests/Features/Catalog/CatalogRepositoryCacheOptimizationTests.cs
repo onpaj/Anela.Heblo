@@ -342,6 +342,13 @@ public class CatalogRepositoryCacheOptimizationTests
         // We need to ensure the merge operation produces data - let's initialize the repository's data sources
         await _repository.RefreshErpStockData(CancellationToken.None);
 
+        // A merge is only stamped with an update time once every required source has loaded at least
+        // once, so seed the rest - otherwise this asserts the pre-fix behaviour where a merge built
+        // from partial sources was trusted for CacheValidityPeriod.
+        _cacheStore.SetSalesData(new List<CatalogSaleRecord>());
+        _cacheStore.SetPurchaseHistoryData(new List<CatalogPurchaseRecord>());
+        _cacheStore.SetManufactureHistoryData(new List<CatalogManufactureRecord>());
+
         // Act
         await _mergeService.ExecuteBackgroundMergeAsync();
 
