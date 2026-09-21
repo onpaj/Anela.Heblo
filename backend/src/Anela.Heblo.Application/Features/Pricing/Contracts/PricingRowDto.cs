@@ -25,4 +25,10 @@ public class PricingRowDto
 
     public bool IsEdited { get; set; }
     public bool IsExcluded { get; set; }
+
+    /// <summary>
+    /// True when this row came from a saved scenario whose snapshot no longer matches the
+    /// catalog — the cost or price has moved since the scenario was saved.
+    /// </summary>
+    public bool BaselineDrifted { get; set; }
 }
