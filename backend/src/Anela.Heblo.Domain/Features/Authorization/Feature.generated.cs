@@ -8,6 +8,7 @@ public enum Feature
 {
     Finance_FinancialOverview,
     Finance_MarginAnalysis,
+    Finance_PriceAnalysis,
     Products_ProductMargins,
     Products_Catalog,
     Products_Journal,
