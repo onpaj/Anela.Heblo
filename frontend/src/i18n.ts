@@ -357,6 +357,13 @@ const resources = {
         ProductPriceShoptetWriteFailed: "Zápis ceny do Shoptetu selhal, cena nebyla nikde změněna",
         ProductPriceFlexiWriteFailed: "Cena byla změněna v Shoptetu, ale zápis do Flexi selhal — ceny se nyní liší",
         ProductPriceErpReadFailed: "ERP Flexi se nepodařilo načíst; cena nebyla nikde změněna",
+        // Pricing simulator module errors (38XX)
+        PricingInvalidPrice: "Cena musí být větší než nula",
+        PricingNegativeMaterialCost: "Marže M0 je vyšší než cena — materiálové náklady by byly záporné",
+        PricingNegativeManufacturingCost: "Marže M1 je vyšší než M0 — výrobní náklady by byly záporné",
+        PricingNegativeQuantity: "Množství nesmí být záporné",
+        PricingScenarioNotFound: "Scénář nebyl nalezen",
+        PricingScenarioNameConflict: "Scénář s tímto názvem už existuje",
 
         // External Service errors
         ExternalServiceError: "Chyba externí služby",

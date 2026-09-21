@@ -491,6 +491,20 @@ public enum ErrorCodes
     [HttpStatusCode(HttpStatusCode.InternalServerError)]
     MarketingPerformanceEnqueueFailed = 3704,
 
+    // Pricing simulator module errors (38XX)
+    [HttpStatusCode(HttpStatusCode.BadRequest)]
+    PricingInvalidPrice = 3801,
+    [HttpStatusCode(HttpStatusCode.BadRequest)]
+    PricingNegativeMaterialCost = 3802,
+    [HttpStatusCode(HttpStatusCode.BadRequest)]
+    PricingNegativeManufacturingCost = 3803,
+    [HttpStatusCode(HttpStatusCode.BadRequest)]
+    PricingNegativeQuantity = 3804,
+    [HttpStatusCode(HttpStatusCode.NotFound)]
+    PricingScenarioNotFound = 3805,
+    [HttpStatusCode(HttpStatusCode.Conflict)]
+    PricingScenarioNameConflict = 3806,
+
     // External Service errors (90XX)
     [HttpStatusCode(HttpStatusCode.ServiceUnavailable)]
     ExternalServiceError = 9001,
