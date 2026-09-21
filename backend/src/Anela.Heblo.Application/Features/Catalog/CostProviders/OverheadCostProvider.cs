@@ -1,6 +1,6 @@
 using Anela.Heblo.Application.Common;
 using Anela.Heblo.Application.Features.Catalog.Infrastructure;
-using Anela.Heblo.Domain.Accounting.Ledger;
+using Anela.Heblo.Domain.Accounting.CostPools;
 using Anela.Heblo.Domain.Features.Catalog;
 using Anela.Heblo.Domain.Features.Catalog.Cache;
 using Anela.Heblo.Domain.Features.Catalog.CostProviders;
@@ -12,35 +12,39 @@ using Microsoft.Extensions.Options;
 namespace Anela.Heblo.Application.Features.Catalog.CostProviders;
 
 /// <summary>
-/// Flat manufacture cost provider (M1) - Distributes manufacturing costs across products using ManufactureDifficulty.
-/// Business logic layer with cache fallback.
+/// Overhead cost provider (M3) - distributes the overhead pool across products by sold pieces.
+///
+/// The pool is CostPool.M3: accounts 51+52 minus VYROBA (which M1 carries) and minus
+/// SKLAD+MARKETING (which M2 carries). It is a catch-all by design, so a cost centre added in
+/// Flexi lands here instead of vanishing, and M1+M2+M3 always sum to the full ledger.
+///
+/// The denominator is deliberately the one SalesCostProvider uses - company-wide sold pieces,
+/// synthetic bundle-component rows excluded - so M2 and M3 are directly comparable per piece.
 /// </summary>
-public class FlatManufactureCostProvider : IFlatManufactureCostProvider
+public class OverheadCostProvider : IOverheadCostProvider
 {
     private static readonly SemaphoreSlim RefreshLock = new(1, 1);
-    private readonly IFlatManufactureCostCache _cache;
+    private readonly IOverheadCostCache _cache;
     private readonly IServiceProvider _serviceProvider;
-    private readonly ILedgerService _ledgerService;
-    private readonly ILogger<FlatManufactureCostProvider> _logger;
+    private readonly ICostPoolService _costPoolService;
+    private readonly ILogger<OverheadCostProvider> _logger;
     private readonly DataSourceOptions _options;
     private readonly TimeProvider _timeProvider;
 
-    private const string ManufacturingCostCenter = "VYROBA";
-
     // ICatalogRepository is resolved lazily via IServiceProvider, not injected directly:
-    // CatalogRepository -> IMarginCalculationService -> IFlatManufactureCostProvider -> ICatalogRepository
+    // CatalogRepository -> IMarginCalculationService -> IOverheadCostProvider -> ICatalogRepository
     // is a real constructor-time cycle. See ManufactureBasedMaterialCostProvider for the same fix.
-    public FlatManufactureCostProvider(
-        IFlatManufactureCostCache cache,
+    public OverheadCostProvider(
+        IOverheadCostCache cache,
         IServiceProvider serviceProvider,
-        ILedgerService ledgerService,
-        ILogger<FlatManufactureCostProvider> logger,
+        ICostPoolService costPoolService,
+        ILogger<OverheadCostProvider> logger,
         IOptions<DataSourceOptions> options,
         TimeProvider timeProvider)
     {
         _cache = cache;
         _serviceProvider = serviceProvider;
-        _ledgerService = ledgerService;
+        _costPoolService = costPoolService;
         _logger = logger;
         _options = options.Value;
         _timeProvider = timeProvider;
@@ -62,12 +66,12 @@ public class FlatManufactureCostProvider : IFlatManufactureCostProvider
             }
 
             // Fallback - compute directly (cache not hydrated yet)
-            _logger.LogWarning("FlatManufactureCostCache not hydrated yet");
+            _logger.LogWarning("OverheadCostCache not hydrated yet");
             return new Dictionary<string, List<MonthlyCost>>();
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error getting flat manufacture costs");
+            _logger.LogError(ex, "Error getting overhead costs");
             throw;
         }
     }
@@ -76,24 +80,24 @@ public class FlatManufactureCostProvider : IFlatManufactureCostProvider
     {
         if (!await RefreshLock.WaitAsync(0, ct))
         {
-            _logger.LogInformation("FlatManufactureCostCache refresh already in progress, skipping");
+            _logger.LogInformation("OverheadCostCache refresh already in progress, skipping");
             return;
         }
 
         try
         {
-            _logger.LogInformation("Starting FlatManufactureCostCache refresh");
+            _logger.LogInformation("Starting OverheadCostCache refresh");
 
             var data = await ComputeAllCostsAsync(ct);
             await _cache.SetCachedDataAsync(data, ct);
 
             _logger.LogInformation(
-                "FlatManufactureCostCache refreshed successfully: {ProductCount} products",
+                "OverheadCostCache refreshed successfully: {ProductCount} products",
                 data.ProductCosts.Count);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to refresh FlatManufactureCostCache");
+            _logger.LogError(ex, "Failed to refresh OverheadCostCache");
             throw;
         }
         finally
@@ -111,46 +115,52 @@ public class FlatManufactureCostProvider : IFlatManufactureCostProvider
         var (dateFrom, dateTo, costsFrom, costsTo) = GetDateRange();
         var months = GenerateMonthRange(costsFrom, costsTo);
 
-        var manufacturingCosts = await _ledgerService.GetDirectCosts(
-            costsFrom,
-            costsTo,
-            ManufacturingCostCenter,
+        // Krok 1: Načíst režijní náklady (vše mimo VYROBA / SKLAD / MARKETING)
+        var pools = await _costPoolService.GetMonthlyPoolsAsync(
+            DateOnly.FromDateTime(costsFrom),
+            DateOnly.FromDateTime(costsTo),
             ct);
-        var totalCost = (double)manufacturingCosts.Sum(c => c.Cost);
 
-        var costBearingProducts = products.Where(IsCostBearing).ToList();
-        var weightedTotals = CalculateWeightedManufactureTotals(costBearingProducts, costsFrom, costsTo);
-        var totalWeightedPoints = weightedTotals.Values.Sum(s => s.WeightedManufactured);
+        // Only M3. The service returns every pool for the window, and M1/M2 are already carried
+        // by FlatManufactureCostProvider and SalesCostProvider - summing them here would charge
+        // each product the same ledger twice.
+        var totalCost = (double)pools
+            .Where(p => p.Pool == CostPool.M3)
+            .Sum(p => p.Amount);
 
-        if (totalWeightedPoints == 0)
+        // CostPoolService emits a zero-amount row per month and pool, so an empty or silently failed
+        // ledger read is indistinguishable downstream from a genuinely empty pool: every product ends
+        // up with M3 == M2 and nothing says why. Say it here.
+        if (totalCost == 0)
         {
-            _logger.LogWarning("No manufacture history found for period {DateFrom} to {DateTo}", dateFrom, dateTo);
+            _logger.LogWarning(
+                "Overhead cost pool (M3) is empty for period {DateFrom} to {DateTo} - every product will report zero overhead",
+                dateFrom, dateTo);
+        }
+
+        // Krok 2: Spočítat celkový počet prodaných kusů
+        var totalSoldPieces = CalculateTotalSoldPieces(products, costsFrom, costsTo);
+
+        // Krok 3: Vypočítat náklad na kus
+        if (totalSoldPieces == 0)
+        {
+            _logger.LogWarning("No sales history found for period {DateFrom} to {DateTo}", dateFrom, dateTo);
             return CreateCostCacheData(CreateEmptyProductCosts(products, months), dateFrom, dateTo);
         }
 
-        var costPerPoint = totalCost / totalWeightedPoints;
-        var productCosts = CalculateProductCosts(products, weightedTotals, costPerPoint, months);
+        var costPerPiece = totalCost / totalSoldPieces;
+
+        // Krok 4: Vypočítat náklady pro každý produkt
+        var productCosts = CalculateProductCosts(products, costPerPiece, months);
 
         return CreateCostCacheData(productCosts, dateFrom, dateTo);
     }
 
-    /// <summary>
-    /// The VYROBA pool is distributed across the manufactured types that are actually sold.
-    /// Goods and materials are bought rather than made, so they may not take a share of the
-    /// manufacturing labour. Sets stay in: a set is an ERP product with a BAL/SET code prefix
-    /// (see <see cref="BundleProductRule"/>), assembled in-house and receipted like any other
-    /// product, so the labour of assembling it belongs in the pool it is paid from.
-    /// Semi-products are the exclusion this guards: their receipts are measured in grams of bulk
-    /// and carry no difficulty setting, so every gram would score one point, swamp the denominator
-    /// and strand the labour on bulk that is never sold.
-    /// </summary>
-    private static bool IsCostBearing(CatalogAggregate product) =>
-        product.Type is ProductType.Product or ProductType.Set;
-
     private (DateOnly dateFrom, DateOnly dateTo, DateTime costsFrom, DateTime costsTo) GetDateRange()
     {
-        // Read the clock once: two reads can straddle midnight on the 1st and put dateFrom and
-        // dateTo in different months, which is the window drift this provider exists to avoid.
+        // Read the clock once, through the injected provider: two reads can straddle midnight on
+        // the 1st and put dateFrom and dateTo in different months, which would drift this
+        // provider's window away from the margin history window that is aligned to it.
         var now = _timeProvider.GetUtcNow().UtcDateTime;
         var dateFrom = DateOnly.FromDateTime(now.AddDays(-_options.ManufactureCostHistoryDays));
         var dateTo = DateOnly.FromDateTime(now);
@@ -173,35 +183,23 @@ public class FlatManufactureCostProvider : IFlatManufactureCostProvider
         return months;
     }
 
-    private static Dictionary<CatalogAggregate, ManufactureSummary> CalculateWeightedManufactureTotals(
+    private static double CalculateTotalSoldPieces(
         List<CatalogAggregate> products,
         DateTime from,
         DateTime to)
     {
-        var weightedTotals = new Dictionary<CatalogAggregate, ManufactureSummary>();
+        double totalSold = 0;
 
         foreach (var product in products)
         {
-            var history = product.ManufactureHistory
-                .Where(w => w.Date >= from && w.Date <= to)
-                .ToList(); // Materialize to avoid multiple enumeration
+            var productSold = product.SalesHistory
+                .Where(s => s.Date >= from && s.Date <= to && s.SourceBundleCode == null)
+                .Sum(s => s.AmountTotal);
 
-            var weightedPoints = history.Sum(s =>
-            {
-                var difficulty = product.ManufactureDifficultySettings.GetDifficultyForDate(s.Date)?.DifficultyValue ?? 1;
-                return (decimal)(s.Amount * difficulty);
-            });
-
-            var manufactured = history.Sum(s => s.Amount);
-
-            weightedTotals[product] = new ManufactureSummary
-            {
-                WeightedManufactured = (double)weightedPoints,
-                Manufactured = manufactured
-            };
+            totalSold += productSold;
         }
 
-        return weightedTotals;
+        return totalSold;
     }
 
     private static Dictionary<string, List<MonthlyCost>> CreateEmptyProductCosts(
@@ -223,8 +221,7 @@ public class FlatManufactureCostProvider : IFlatManufactureCostProvider
 
     private static Dictionary<string, List<MonthlyCost>> CalculateProductCosts(
         List<CatalogAggregate> products,
-        Dictionary<CatalogAggregate, ManufactureSummary> weightedTotals,
-        double costPerPoint,
+        double costPerPiece,
         List<DateTime> months)
     {
         var productCosts = new Dictionary<string, List<MonthlyCost>>();
@@ -234,11 +231,9 @@ public class FlatManufactureCostProvider : IFlatManufactureCostProvider
             if (string.IsNullOrEmpty(product.ProductCode))
                 continue;
 
-            decimal productCostPerPiece = 0;
-            if (weightedTotals.TryGetValue(product, out var productWeightedPoints) && productWeightedPoints.Manufactured > 0)
-                productCostPerPiece = (decimal)(productWeightedPoints.WeightedManufactured * costPerPoint / productWeightedPoints.Manufactured);
-
-            productCosts[product.ProductCode] = months.Select(m => new MonthlyCost(m, productCostPerPiece)).ToList();
+            // Plošný rozpočet - stejný náklad na kus pro všechny měsíce
+            var costPerPieceDecimal = (decimal)costPerPiece;
+            productCosts[product.ProductCode] = months.Select(m => new MonthlyCost(m, costPerPieceDecimal)).ToList();
         }
 
         return productCosts;
@@ -270,10 +265,4 @@ public class FlatManufactureCostProvider : IFlatManufactureCostProvider
             .Where(kvp => productCodes.Contains(kvp.Key))
             .ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
     }
-}
-
-internal class ManufactureSummary
-{
-    public double WeightedManufactured { get; set; }
-    public double Manufactured { get; set; }
 }

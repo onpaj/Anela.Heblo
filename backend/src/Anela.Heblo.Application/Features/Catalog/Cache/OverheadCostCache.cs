@@ -4,15 +4,15 @@ using Microsoft.Extensions.Caching.Memory;
 namespace Anela.Heblo.Application.Features.Catalog.Cache;
 
 /// <summary>
-/// In-memory cache for M1_B (Direct Manufacturing) cost data.
-/// Pure storage layer - business logic resides in DirectManufactureCostSource.
+/// In-memory cache for M3 (Overhead) cost data.
+/// Pure storage layer - business logic resides in OverheadCostProvider.
 /// </summary>
-public class DirectManufactureCostCache : IDirectManufactureCostCache
+public class OverheadCostCache : IOverheadCostCache
 {
-    private const string CacheKey = "DirectManufactureCostCache_Data";
+    private const string CacheKey = "OverheadCostCache_Data";
     private readonly IMemoryCache _memoryCache;
 
-    public DirectManufactureCostCache(IMemoryCache memoryCache)
+    public OverheadCostCache(IMemoryCache memoryCache)
     {
         _memoryCache = memoryCache;
     }

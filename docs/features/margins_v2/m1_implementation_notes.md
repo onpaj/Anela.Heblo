@@ -1,8 +1,8 @@
-# M1_A Implementation Notes
+# M1 Implementation Notes
 
 ## Overview
 
-Implemented flat manufacture cost calculation (M1_A) that distributes manufacturing costs across products using ManufactureDifficulty metric.
+Implemented flat manufacture cost calculation (M1) that distributes manufacturing costs across products using ManufactureDifficulty metric.
 
 ## Implementation Details
 
@@ -47,7 +47,7 @@ Implemented flat manufacture cost calculation (M1_A) that distributes manufactur
 
 ### Test Files
 
-- `FlatManufactureCostProviderTests.cs`: Unit tests for M1_A calculation
+- `FlatManufactureCostProviderTests.cs`: Unit tests for M1 calculation
 
 ## Configuration
 

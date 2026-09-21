@@ -83,9 +83,9 @@ public static class CatalogModule
 
         // Register cost repositories
         services.AddTransient<IMaterialCostProvider, ManufactureBasedMaterialCostProvider>(); // Product type-based: manufacture history for Set/Product/SemiProduct, purchase price for others
-        services.AddTransient<IFlatManufactureCostProvider, FlatManufactureCostProvider>(); // M1_A: Flat manufacturing cost with ManufactureDifficulty weighting
-        services.AddTransient<IDirectManufactureCostProvider, DirectManufactureCostProvider>(); // STUB - returns constant 15
-        services.AddTransient<ISalesCostProvider, SalesCostProvider>(); // STUB - returns constant 15
+        services.AddTransient<IFlatManufactureCostProvider, FlatManufactureCostProvider>(); // M1: Flat manufacturing cost with ManufactureDifficulty weighting
+        services.AddTransient<IOverheadCostProvider, OverheadCostProvider>(); // M3: overhead pool spread by sold pieces
+        services.AddTransient<ISalesCostProvider, SalesCostProvider>(); // M2: SKLAD + MARKETING pool spread by sold pieces
 
         // Register cache services (scoped - data persists in IMemoryCache singleton)
         services.AddMemoryCache(); // Required for IMemoryCache injection
@@ -97,7 +97,7 @@ public static class CatalogModule
         services.AddHostedService<CatalogMergeCallbackWiring>();
         services.AddScoped<IMaterialCostCache, MaterialCostCache>();
         services.AddScoped<IFlatManufactureCostCache, FlatManufactureCostCache>();
-        services.AddScoped<IDirectManufactureCostCache, DirectManufactureCostCache>();
+        services.AddScoped<IOverheadCostCache, OverheadCostCache>();
         services.AddScoped<ISalesCostCache, SalesCostCache>();
 
         // Register catalog-specific services
@@ -273,7 +273,7 @@ public static class CatalogModule
             (source, ct) => source.RefreshAsync(ct)
         );
 
-        services.RegisterRefreshTask<IDirectManufactureCostProvider>(
+        services.RegisterRefreshTask<IOverheadCostProvider>(
             "RefreshCache",
             (source, ct) => source.RefreshAsync(ct)
         );

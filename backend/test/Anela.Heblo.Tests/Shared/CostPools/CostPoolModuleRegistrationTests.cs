@@ -74,8 +74,18 @@ public class CostPoolModuleRegistrationTests
         // Assert
         config.Enabled.Should().BeTrue();
         config.RefreshInterval.Should().Be(TimeSpan.FromHours(4));
-        config.InitialDelay.Should().Be(TimeSpan.FromMinutes(5));
-        config.HydrationTier.Should().Be(3);
+
+        // The tier is an ordering constraint, not a preference. TierBasedHydrationOrchestrator runs
+        // tiers in sequence but every task inside one tier concurrently, so a dependency can only be
+        // expressed by a strictly lower tier. OverheadCostProvider (M3) reads this cache and sits in
+        // tier 2, which puts this service in tier 1 - otherwise every cold start makes M3 fall back
+        // to CostPoolService.ComputeAsync, a full unfiltered 51+52 ledger pull over
+        // ManufactureCostHistoryDays, on the production readiness path (ReadinessTier = 2).
+        config.HydrationTier.Should().Be(1);
+
+        // InitialDelay is applied during hydration too, and a tier does not complete until all of its
+        // tasks do, so any delay here would push back the whole of tier 1 and every tier after it.
+        config.InitialDelay.Should().Be(TimeSpan.Zero);
     }
 
     private static IConfigurationRoot LoadApiAppSettings() =>
