@@ -9,6 +9,7 @@ using Anela.Heblo.Domain.Features.Marketing;
 using Anela.Heblo.Domain.Features.MeetingTasks;
 using Anela.Heblo.Domain.Features.MindMaps;
 using Anela.Heblo.Domain.Features.MarketingInvoices;
+using Anela.Heblo.Domain.Features.MarketingPerformance;
 using Anela.Heblo.Domain.Features.Bank;
 using Anela.Heblo.Domain.Features.GridLayouts;
 using Anela.Heblo.Domain.Features.KnowledgeBase;
@@ -186,6 +187,10 @@ public class ApplicationDbContext : DbContext
     public DbSet<Anela.Heblo.Domain.Features.Authorization.Entities.GroupPermission> GroupPermissions { get; set; } = null!;
     public DbSet<Anela.Heblo.Domain.Features.Authorization.Entities.GroupParent> GroupParents { get; set; } = null!;
     public DbSet<Anela.Heblo.Domain.Features.Authorization.Entities.UserGroup> UserGroups { get; set; } = null!;
+
+    // Marketing Performance module
+    public DbSet<MarketingPerformanceMonth> MarketingPerformanceMonths { get; set; } = null!;
+    public DbSet<MarketingPerformanceChannelCost> MarketingPerformanceChannelCosts { get; set; } = null!;
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

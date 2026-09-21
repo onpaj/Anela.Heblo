@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using Anela.Heblo.Domain.Features.Catalog;
 using Anela.Heblo.Domain.Features.Catalog.Attributes;
 using Anela.Heblo.Domain.Features.Catalog.ConsumedMaterials;
@@ -18,6 +19,7 @@ public sealed class CatalogCacheStore
 {
     private const string CurrentCatalogCacheKey = "CatalogData_Current";
     private const string StaleCatalogCacheKey = "CatalogData_Stale";
+    private const string StaleCatalogCompleteKey = "CatalogData_StaleComplete";
     private const string CacheUpdateTimeKey = "CatalogData_LastUpdate";
     private const string LastMergeDateTimeKey = "LastMergeDateTime";
 
@@ -43,6 +45,34 @@ public sealed class CatalogCacheStore
     private const string CachedEshopUrlDataKey = "CachedEshopUrlData";
     private const string CachedManufactureDifficultySettingsDataKey = "CachedManufactureDifficultySettingsData";
 
+    /// <summary>
+    /// The source caches a merged aggregate is wrong without - not merely sparse. A merge that runs
+    /// before one of these has ever loaded yields aggregates with silently empty history (an empty
+    /// SalesHistory zeroes every product's M2 sales cost, for instance), so such a merge must not be
+    /// granted the CacheValidityPeriod stamp - consumers would treat it as authoritative for hours.
+    /// Decorative sources (prices, URLs, attributes, lots) are deliberately absent: they change no
+    /// computed figure, so gating on them would only widen the window in which the cache is unstamped.
+    ///
+    /// CachedConsumedData is the deliberate borderline case. It loads on the same pattern as the
+    /// histories below and an empty ConsumedHistory is equally silent, but it feeds only display
+    /// (GetCatalogDetail, GetProductStatistics) and purchase-planning consumption rates
+    /// (PurchaseMaterialCatalogAdapter.GetConsumed) - no cost pool. It is left out to keep this
+    /// guard scoped to the costing bug it was added for; widening it to purchase planning is a
+    /// separate, deliberate decision.
+    ///
+    /// Every source listed here must be a tier 1 refresh task (see CatalogModule), or the cost
+    /// providers in tier 2 would read an unstamped cache that this guard then refuses to re-merge.
+    /// </summary>
+    private static readonly IReadOnlyList<string> RequiredSourceKeys = new[]
+    {
+        CachedErpStockDataKey,
+        CachedSalesDataKey,
+        CachedPurchaseHistoryDataKey,
+        CachedManufactureHistoryDataKey,
+    };
+
+    private const string LoadDateSuffix = "_LoadDate";
+
     private readonly IMemoryCache _cache;
     private readonly TimeProvider _timeProvider;
     private readonly IOptions<CatalogCacheOptions> _cacheOptions;
@@ -50,6 +80,16 @@ public sealed class CatalogCacheStore
     private readonly ILogger<CatalogCacheStore> _logger;
 
     private readonly SemaphoreSlim _cacheReplacementSemaphore = new(1, 1);
+
+    /// <summary>
+    /// Sources loaded at least once in this process. Deliberately NOT stored in the shared
+    /// IMemoryCache: this is process state, not cached data, and a cache entry could be evicted
+    /// under a future SizeLimit/Compact - which would silently de-stamp the catalog forever.
+    /// Also deliberately separate from the load date, which expires after CacheValidityPeriod:
+    /// the merge guard asks "was this ever loaded", not "is it fresh", so a source outage cannot
+    /// turn every read into a re-merge.
+    /// </summary>
+    private readonly ConcurrentDictionary<string, bool> _everLoadedSources = new();
 
     /// <summary>
     /// Guards read-modify-write access to the ERP stock and lots source caches. Every other
@@ -123,10 +163,29 @@ public sealed class CatalogCacheStore
             {
                 var staleExpiry = _cacheOptions.Value.StaleDataRetentionPeriod;
                 _cache.Set(StaleCatalogCacheKey, currentCache, staleExpiry);
+
+                // Remember whether the snapshot being demoted was itself merged from complete
+                // sources - it carried a validity stamp exactly when it was. Read back before the
+                // stamp below is rewritten for the incoming data.
+                _cache.Set(StaleCatalogCompleteKey, _cache.TryGetValue(CacheUpdateTimeKey, out _), staleExpiry);
             }
 
             _cache.Set(CurrentCatalogCacheKey, newData);
-            _cache.Set(CacheUpdateTimeKey, _timeProvider.GetUtcNow().DateTime);
+
+            var missingSources = GetMissingRequiredSources();
+            if (missingSources.Count == 0)
+            {
+                _cache.Set(CacheUpdateTimeKey, _timeProvider.GetUtcNow().DateTime);
+            }
+            else
+            {
+                // Serve the data, but withhold validity so the next read re-merges once the
+                // missing sources have landed instead of trusting this merge for hours.
+                _cache.Remove(CacheUpdateTimeKey);
+                _logger.LogWarning(
+                    "Merged catalog cache installed without a validity stamp - these sources have never loaded: {MissingSources}. It will be re-merged on the next read.",
+                    string.Join(", ", missingSources));
+            }
 
             _logger.LogDebug("Cache updated atomically with {ProductCount} products", newData.Count);
         }
@@ -159,6 +218,15 @@ public sealed class CatalogCacheStore
     /// </summary>
     public List<CatalogAggregate>? TryGetStale() =>
         _cache.Get<List<CatalogAggregate>>(StaleCatalogCacheKey);
+
+    /// <summary>
+    /// Stale catalog data, but only when the demoted snapshot was itself merged from complete
+    /// sources. A stale snapshot built before its sources loaded carries the same silently empty
+    /// history that <see cref="RequiredSourceKeys"/> guards the current snapshot against, so it
+    /// must not be served as a fallback either.
+    /// </summary>
+    public List<CatalogAggregate>? TryGetCompleteStale() =>
+        _cache.Get<bool?>(StaleCatalogCompleteKey) == true ? TryGetStale() : null;
 
     #region Per-Source Data Accessors
 
@@ -514,7 +582,7 @@ public sealed class CatalogCacheStore
     /// Gets the load date for a specific data source.
     /// </summary>
     public DateTime? GetLoadDateFromCache(string dataKey) =>
-        _cache.Get<DateTime?>($"{dataKey}_LoadDate");
+        _cache.Get<DateTime?>($"{dataKey}{LoadDateSuffix}");
 
     /// <summary>
     /// Gets the last merge operation timestamp.
@@ -556,6 +624,21 @@ public sealed class CatalogCacheStore
         {
             AbsoluteExpirationRelativeToNow = _cacheOptions.Value.CacheValidityPeriod
         };
-        _cache.Set($"{dataKey}_LoadDate", loadDate, cacheOptions);
+        _cache.Set($"{dataKey}{LoadDateSuffix}", loadDate, cacheOptions);
+        _everLoadedSources[dataKey] = true;
     }
+
+    /// <summary>
+    /// True once every required source has been loaded at least once, i.e. once a merge can
+    /// produce an authoritative aggregate. See <see cref="RequiredSourceKeys"/>.
+    /// </summary>
+    public bool AreRequiredSourcesLoaded() => GetMissingRequiredSources().Count == 0;
+
+    /// <summary>
+    /// Required sources that have never been loaded in this process. See <see cref="RequiredSourceKeys"/>.
+    /// </summary>
+    private List<string> GetMissingRequiredSources() =>
+        RequiredSourceKeys
+            .Where(key => !_everLoadedSources.ContainsKey(key))
+            .ToList();
 }

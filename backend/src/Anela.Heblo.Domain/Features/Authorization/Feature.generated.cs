@@ -35,6 +35,7 @@ public enum Feature
     Marketing_Leaflet,
     Marketing_Photobank,
     Marketing_MarketingCalendar,
+    Marketing_Performance,
     Anela_Meetings,
     Anela_OrgChart,
     Anela_MindMaps,

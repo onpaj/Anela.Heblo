@@ -13,17 +13,12 @@ public class MonthlyMarginHistory
             if (MonthlyData.Count == 0)
                 return new MarginData();
 
-            var avgM0 = CalculateAverageMargin(m => m.M0);
-            var avgM1A = CalculateAverageMargin(m => m.M1_A);
-            var avgM1B = CalculateAverageMargin(m => m.M1_B);
-            var avgM2 = CalculateAverageMargin(m => m.M2);
-
             return new MarginData
             {
-                M0 = avgM0,
-                M1_A = avgM1A,
-                M1_B = avgM1B,
-                M2 = avgM2
+                M0 = CalculateAverageMargin(m => m.M0),
+                M1 = CalculateAverageMargin(m => m.M1),
+                M2 = CalculateAverageMargin(m => m.M2),
+                M3 = CalculateAverageMargin(m => m.M3)
             };
         }
     }

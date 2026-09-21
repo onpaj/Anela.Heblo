@@ -177,6 +177,7 @@ public class CatalogRepositoryCacheOptimizationTests
             _mergeSchedulerMock.Object,
             _marginServiceMock.Object,
             _timeProviderMock.Object,
+            _optionsMock.Object,
             _cacheOptionsMock.Object,
             _loggerMock.Object);
     }
@@ -341,6 +342,13 @@ public class CatalogRepositoryCacheOptimizationTests
 
         // We need to ensure the merge operation produces data - let's initialize the repository's data sources
         await _repository.RefreshErpStockData(CancellationToken.None);
+
+        // A merge is only stamped with an update time once every required source has loaded at least
+        // once, so seed the rest - otherwise this asserts the pre-fix behaviour where a merge built
+        // from partial sources was trusted for CacheValidityPeriod.
+        _cacheStore.SetSalesData(new List<CatalogSaleRecord>());
+        _cacheStore.SetPurchaseHistoryData(new List<CatalogPurchaseRecord>());
+        _cacheStore.SetManufactureHistoryData(new List<CatalogManufactureRecord>());
 
         // Act
         await _mergeService.ExecuteBackgroundMergeAsync();
@@ -508,5 +516,67 @@ public class CatalogRepositoryCacheOptimizationTests
                 It.IsAny<Exception>(),
                 It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
             Times.Once);
+    }
+
+    [Fact]
+    public async Task GetAllAsync_RemergesAndRecoversSalesHistory_WhenCacheWasMergedBeforeSourcesLoaded()
+    {
+        // Arrange - reproduce the bug: a merge runs with only ERP stock loaded, so every aggregate
+        // gets an empty SalesHistory. Pre-fix this merge was stamped valid for CacheValidityPeriod
+        // and GetAllAsync handed the empty history straight to the M2 cost provider.
+        await _repository.RefreshErpStockData(CancellationToken.None);
+        await _mergeService.ExecuteBackgroundMergeAsync();
+
+        (await _repository.GetAllAsync())
+            .Single(p => p.ProductCode == "TEST001").SalesHistory
+            .Should().BeEmpty("the premature merge had no sales data to work with");
+
+        // Act - the remaining sources land, then a consumer reads
+        _cacheStore.SetSalesData(new List<CatalogSaleRecord>
+        {
+            new() { ProductCode = "TEST001", Date = DateTime.UtcNow.AddDays(-1), AmountB2C = 5, AmountB2B = 0 }
+        });
+        _cacheStore.SetPurchaseHistoryData(new List<CatalogPurchaseRecord>());
+        _cacheStore.SetManufactureHistoryData(new List<CatalogManufactureRecord>());
+
+        var result = await _repository.GetAllAsync();
+
+        // Assert - the read re-merged instead of trusting the premature merge
+        result.Single(p => p.ProductCode == "TEST001").SalesHistory
+            .Should().ContainSingle("the unstamped cache must be re-merged once its sources have landed");
+        _cacheStore.IsCacheValid().Should().BeTrue("the re-merge saw every required source");
+    }
+
+    [Fact]
+    public async Task GetAllAsync_DoesNotRemergeOnEveryRead_WhenARequiredSourceNeverLoads()
+    {
+        // Arrange - ERP stock loaded, sales never arrives (e.g. its refresh failed after retries).
+        // The cache then stays unstamped for the whole process lifetime, so the read path must not
+        // turn every request into a full synchronous merge.
+        await _repository.RefreshErpStockData(CancellationToken.None);
+        await _mergeService.ExecuteBackgroundMergeAsync();
+
+        // A merge re-reads ERP and overwrites ProductName, so renaming the product here is
+        // observable exactly when a read merges. Observing the served data is the only non-vacuous
+        // way to tell the two apart: the test clock is fixed, so every merge would stamp the same
+        // LastMergeDateTime, and a merge over a non-empty catalog never adds new product codes.
+        _cacheStore.SetErpStockData(new List<ErpStock>
+        {
+            new() { ProductCode = "TEST001", ProductName = "Renamed By A Merge", ProductId = 1, Stock = 10 }
+        });
+
+        // Act
+        for (var i = 0; i < 5; i++)
+        {
+            var read = await _repository.GetAllAsync();
+
+            // Assert - data is still served, but no read paid for a merge
+            read.Should().NotBeEmpty("data is still served while validity is withheld");
+            read.Single(p => p.ProductCode == "TEST001").ProductName
+                .Should().NotBe("Renamed By A Merge",
+                    "a merge cannot repair a cache whose required sources never loaded, so reads must not trigger one");
+        }
+
+        _cacheStore.IsCacheValid().Should().BeFalse("sales never loaded");
     }
 }

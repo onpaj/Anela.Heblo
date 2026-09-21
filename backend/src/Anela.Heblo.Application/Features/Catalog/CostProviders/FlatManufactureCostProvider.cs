@@ -12,7 +12,7 @@ using Microsoft.Extensions.Options;
 namespace Anela.Heblo.Application.Features.Catalog.CostProviders;
 
 /// <summary>
-/// Flat manufacture cost provider (M1_A) - Distributes manufacturing costs across products using ManufactureDifficulty.
+/// Flat manufacture cost provider (M1) - Distributes manufacturing costs across products using ManufactureDifficulty.
 /// Business logic layer with cache fallback.
 /// </summary>
 public class FlatManufactureCostProvider : IFlatManufactureCostProvider
@@ -23,6 +23,7 @@ public class FlatManufactureCostProvider : IFlatManufactureCostProvider
     private readonly ILedgerService _ledgerService;
     private readonly ILogger<FlatManufactureCostProvider> _logger;
     private readonly DataSourceOptions _options;
+    private readonly TimeProvider _timeProvider;
 
     private const string ManufacturingCostCenter = "VYROBA";
 
@@ -34,13 +35,15 @@ public class FlatManufactureCostProvider : IFlatManufactureCostProvider
         IServiceProvider serviceProvider,
         ILedgerService ledgerService,
         ILogger<FlatManufactureCostProvider> logger,
-        IOptions<DataSourceOptions> options)
+        IOptions<DataSourceOptions> options,
+        TimeProvider timeProvider)
     {
         _cache = cache;
         _serviceProvider = serviceProvider;
         _ledgerService = ledgerService;
         _logger = logger;
         _options = options.Value;
+        _timeProvider = timeProvider;
     }
 
     public async Task<Dictionary<string, List<MonthlyCost>>> GetCostsAsync(
@@ -115,7 +118,8 @@ public class FlatManufactureCostProvider : IFlatManufactureCostProvider
             ct);
         var totalCost = (double)manufacturingCosts.Sum(c => c.Cost);
 
-        var weightedTotals = CalculateWeightedManufactureTotals(products, costsFrom, costsTo);
+        var costBearingProducts = products.Where(IsCostBearing).ToList();
+        var weightedTotals = CalculateWeightedManufactureTotals(costBearingProducts, costsFrom, costsTo);
         var totalWeightedPoints = weightedTotals.Values.Sum(s => s.WeightedManufactured);
 
         if (totalWeightedPoints == 0)
@@ -130,10 +134,26 @@ public class FlatManufactureCostProvider : IFlatManufactureCostProvider
         return CreateCostCacheData(productCosts, dateFrom, dateTo);
     }
 
+    /// <summary>
+    /// The VYROBA pool is distributed across the manufactured types that are actually sold.
+    /// Goods and materials are bought rather than made, so they may not take a share of the
+    /// manufacturing labour. Sets stay in: a set is an ERP product with a BAL/SET code prefix
+    /// (see <see cref="BundleProductRule"/>), assembled in-house and receipted like any other
+    /// product, so the labour of assembling it belongs in the pool it is paid from.
+    /// Semi-products are the exclusion this guards: their receipts are measured in grams of bulk
+    /// and carry no difficulty setting, so every gram would score one point, swamp the denominator
+    /// and strand the labour on bulk that is never sold.
+    /// </summary>
+    private static bool IsCostBearing(CatalogAggregate product) =>
+        product.Type is ProductType.Product or ProductType.Set;
+
     private (DateOnly dateFrom, DateOnly dateTo, DateTime costsFrom, DateTime costsTo) GetDateRange()
     {
-        var dateFrom = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(-_options.ManufactureCostHistoryDays));
-        var dateTo = DateOnly.FromDateTime(DateTime.UtcNow);
+        // Read the clock once: two reads can straddle midnight on the 1st and put dateFrom and
+        // dateTo in different months, which is the window drift this provider exists to avoid.
+        var now = _timeProvider.GetUtcNow().UtcDateTime;
+        var dateFrom = DateOnly.FromDateTime(now.AddDays(-_options.ManufactureCostHistoryDays));
+        var dateTo = DateOnly.FromDateTime(now);
 
         var costsFrom = new DateTime(dateFrom.Year, dateFrom.Month, 1);
         var costsTo = new DateTime(dateTo.Year, dateTo.Month, DateTime.DaysInMonth(dateTo.Year, dateTo.Month), 23, 59, 59);
@@ -214,10 +234,8 @@ public class FlatManufactureCostProvider : IFlatManufactureCostProvider
             if (string.IsNullOrEmpty(product.ProductCode))
                 continue;
 
-            var productWeightedPoints = weightedTotals[product];
-
             decimal productCostPerPiece = 0;
-            if (productWeightedPoints.Manufactured > 0)
+            if (weightedTotals.TryGetValue(product, out var productWeightedPoints) && productWeightedPoints.Manufactured > 0)
                 productCostPerPiece = (decimal)(productWeightedPoints.WeightedManufactured * costPerPoint / productWeightedPoints.Manufactured);
 
             productCosts[product.ProductCode] = months.Select(m => new MonthlyCost(m, productCostPerPiece)).ToList();

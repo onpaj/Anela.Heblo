@@ -2,6 +2,9 @@ using Anela.Heblo.Application.Common;
 using Anela.Heblo.Application.Features.Catalog.Infrastructure;
 using Anela.Heblo.Domain.Features.Catalog;
 using Anela.Heblo.Domain.Features.Catalog.Sales;
+using Anela.Heblo.Domain.Features.Catalog.ManufactureHistory;
+using Anela.Heblo.Domain.Features.Catalog.PurchaseHistory;
+using Anela.Heblo.Domain.Features.Catalog.Stock;
 using FluentAssertions;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
@@ -237,5 +240,127 @@ public class CatalogCacheStoreTests
 
         // Assert
         result.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task ReplaceCacheAtomicallyAsync_DoesNotGrantValidity_WhenRequiredSourcesNeverLoaded()
+    {
+        // Arrange
+        var store = CreateStore();
+        var merged = new List<CatalogAggregate> { new() { ProductCode = "MAS009050" } };
+
+        // Act - a merge that ran before any source finished loading
+        await store.ReplaceCacheAtomicallyAsync(merged);
+
+        // Assert
+        store.IsCacheValid().Should().BeFalse(
+            "a merge built before its sources loaded must not be trusted for CacheValidityPeriod");
+    }
+
+    [Fact]
+    public async Task ReplaceCacheAtomicallyAsync_DoesNotGrantValidity_WhenOneRequiredSourceIsMissing()
+    {
+        // Arrange - everything loaded except sales, the source that caused zeroed M2 costs
+        var store = CreateStore();
+        LoadRequiredSources(store, includeSales: false);
+        var merged = new List<CatalogAggregate> { new() { ProductCode = "MAS009050" } };
+
+        // Act
+        await store.ReplaceCacheAtomicallyAsync(merged);
+
+        // Assert
+        store.IsCacheValid().Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task ReplaceCacheAtomicallyAsync_GrantsValidity_WhenAllRequiredSourcesLoaded()
+    {
+        // Arrange
+        var store = CreateStore();
+        LoadRequiredSources(store, includeSales: true);
+        var merged = new List<CatalogAggregate> { new() { ProductCode = "MAS009050" } };
+
+        // Act
+        await store.ReplaceCacheAtomicallyAsync(merged);
+
+        // Assert
+        store.IsCacheValid().Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task ReplaceCacheAtomicallyAsync_StillServesData_WhenValidityIsWithheld()
+    {
+        // Arrange
+        var store = CreateStore();
+        var merged = new List<CatalogAggregate> { new() { ProductCode = "MAS009050" } };
+
+        // Act
+        await store.ReplaceCacheAtomicallyAsync(merged);
+
+        // Assert - withholding the stamp must not throw the merged data away
+        store.TryGetCurrent().Should().HaveCount(1);
+    }
+
+    [Fact]
+    public async Task ReplaceCacheAtomicallyAsync_GrantsValidity_WhenMemoryCacheIsCompacted()
+    {
+        // Arrange - the ever-loaded markers are process state, not cached data, so evicting
+        // everything from the shared IMemoryCache must not de-stamp the catalog.
+        var store = CreateStore();
+        LoadRequiredSources(store, includeSales: true);
+        _memoryCache.Compact(1.0);
+        var merged = new List<CatalogAggregate> { new() { ProductCode = "MAS009050" } };
+
+        // Act
+        await store.ReplaceCacheAtomicallyAsync(merged);
+
+        // Assert
+        store.IsCacheValid().Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task TryGetCompleteStale_ReturnsNull_WhenTheDemotedSnapshotWasBuiltBeforeSourcesLoaded()
+    {
+        // Arrange - a premature merge installs an incomplete snapshot, a second merge demotes it
+        // to stale. Serving that stale snapshot during a merge would reintroduce the empty history.
+        var store = CreateStore();
+        await store.ReplaceCacheAtomicallyAsync(new List<CatalogAggregate> { new() { ProductCode = "MAS009050" } });
+        await store.ReplaceCacheAtomicallyAsync(new List<CatalogAggregate> { new() { ProductCode = "MAS009050" } });
+
+        // Assert
+        store.TryGetStale().Should().NotBeNull("the snapshot was still demoted");
+        store.TryGetCompleteStale().Should().BeNull("it was never merged from complete sources");
+    }
+
+    [Fact]
+    public async Task TryGetCompleteStale_ReturnsData_WhenTheDemotedSnapshotWasComplete()
+    {
+        // Arrange
+        var store = CreateStore();
+        LoadRequiredSources(store, includeSales: true);
+        await store.ReplaceCacheAtomicallyAsync(new List<CatalogAggregate> { new() { ProductCode = "MAS009050" } });
+        await store.ReplaceCacheAtomicallyAsync(new List<CatalogAggregate> { new() { ProductCode = "MAS009050" } });
+
+        // Assert
+        store.TryGetCompleteStale().Should().HaveCount(1);
+    }
+
+    private CatalogCacheStore CreateStore() => new(
+        _memoryCache,
+        _timeProvider,
+        _cacheOptions,
+        _mergeSchedulerMock.Object,
+        _loggerMock.Object);
+
+    private static void LoadRequiredSources(CatalogCacheStore store, bool includeSales)
+    {
+        store.SetErpStockData(new List<ErpStock> { new() { ProductCode = "MAS009050" } });
+        store.SetPurchaseHistoryData(new List<CatalogPurchaseRecord>());
+        store.SetManufactureHistoryData(new List<CatalogManufactureRecord>());
+
+        if (includeSales)
+        {
+            store.SetSalesData(new List<CatalogSaleRecord>());
+        }
     }
 }

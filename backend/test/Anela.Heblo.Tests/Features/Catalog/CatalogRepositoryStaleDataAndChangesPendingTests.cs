@@ -137,6 +137,7 @@ public class CatalogRepositoryStaleDataAndChangesPendingTests
             _mergeSchedulerMock.Object,
             _marginServiceMock.Object,
             _timeProviderMock.Object,
+            optionsMock.Object,
             cacheOptionsMock.Object,
             _loggerMock.Object);
     }
@@ -149,6 +150,9 @@ public class CatalogRepositoryStaleDataAndChangesPendingTests
             new CatalogAggregate { ProductCode = "STALE001", ProductName = "Stale Product" }
         };
         _cache.Set("CatalogData_Stale", staleData);
+        // Only a stale snapshot that was itself merged from complete sources may be served as a
+        // fallback; ReplaceCacheAtomicallyAsync sets this flag when it demotes such a snapshot.
+        _cache.Set("CatalogData_StaleComplete", true);
         _cache.Set("CatalogData_LastUpdate", DateTime.UtcNow.AddHours(-10));
 
         _mergeSchedulerMock.Setup(x => x.IsMergeInProgress).Returns(true);

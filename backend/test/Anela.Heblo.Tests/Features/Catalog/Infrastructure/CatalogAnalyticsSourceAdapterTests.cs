@@ -76,13 +76,13 @@ public sealed class CatalogAnalyticsSourceAdapterTests
             [new DateTime(2024, 1, 1)] = new MarginData
             {
                 M0 = new CatalogMarginLevel(10m, 10m, 0m, 5m),
-                M1_A = new CatalogMarginLevel(15m, 20m, 0m, 7m),
+                M1 = new CatalogMarginLevel(15m, 20m, 0m, 7m),
                 M2 = new CatalogMarginLevel(20m, 30m, 0m, 0m)
             },
             [new DateTime(2024, 6, 1)] = new MarginData
             {
                 M0 = new CatalogMarginLevel(12m, 12m, 0m, 6m),
-                M1_A = new CatalogMarginLevel(18m, 22m, 0m, 8m),
+                M1 = new CatalogMarginLevel(18m, 22m, 0m, 8m),
                 M2 = new CatalogMarginLevel(22m, 32m, 0m, 0m)
             }
         };
@@ -111,10 +111,10 @@ public sealed class CatalogAnalyticsSourceAdapterTests
         // Assert
         result.Should().HaveCount(1);
         result[0].M0Amount.Should().Be(12m); // Latest entry
-        result[0].M1Amount.Should().Be(22m); // M1_A.Amount
+        result[0].M1Amount.Should().Be(22m); // M1.Amount
         result[0].M2Amount.Should().Be(32m);
         result[0].MaterialCost.Should().Be(6m); // M0.CostLevel
-        result[0].HandlingCost.Should().Be(8m); // M1_A.CostLevel
+        result[0].HandlingCost.Should().Be(8m); // M1.CostLevel
     }
 
     [Fact]
@@ -340,7 +340,7 @@ public sealed class CatalogAnalyticsSourceAdapterTests
             [new DateTime(2024, 6, 1)] = new MarginData
             {
                 M0 = new CatalogMarginLevel(20m, 20m, 0m, 25m),
-                M1_A = new CatalogMarginLevel(25m, 25m, 0m, 30m),
+                M1 = new CatalogMarginLevel(25m, 25m, 0m, 30m),
                 M2 = new CatalogMarginLevel(30m, 30m, 0m, 0m)
             }
         };

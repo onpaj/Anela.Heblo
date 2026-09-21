@@ -1,4 +1,5 @@
 using System.Linq.Expressions;
+using Anela.Heblo.Application.Common;
 using Anela.Heblo.Application.Features.Catalog.Infrastructure;
 using Anela.Heblo.Domain.Features.Catalog;
 using Anela.Heblo.Domain.Features.Catalog.Services;
@@ -15,6 +16,7 @@ public sealed class CatalogRepository : ICatalogRepository
     private readonly ICatalogMergeScheduler _mergeScheduler;
     private readonly IMarginCalculationService _marginService;
     private readonly TimeProvider _timeProvider;
+    private readonly IOptions<DataSourceOptions> _dataSourceOptions;
     private readonly IOptions<CatalogCacheOptions> _cacheOptions;
     private readonly ILogger<CatalogRepository> _logger;
 
@@ -25,6 +27,7 @@ public sealed class CatalogRepository : ICatalogRepository
         ICatalogMergeScheduler mergeScheduler,
         IMarginCalculationService marginService,
         TimeProvider timeProvider,
+        IOptions<DataSourceOptions> dataSourceOptions,
         IOptions<CatalogCacheOptions> cacheOptions,
         ILogger<CatalogRepository> logger)
     {
@@ -34,6 +37,7 @@ public sealed class CatalogRepository : ICatalogRepository
         _mergeScheduler = mergeScheduler ?? throw new ArgumentNullException(nameof(mergeScheduler));
         _marginService = marginService ?? throw new ArgumentNullException(nameof(marginService));
         _timeProvider = timeProvider ?? throw new ArgumentNullException(nameof(timeProvider));
+        _dataSourceOptions = dataSourceOptions ?? throw new ArgumentNullException(nameof(dataSourceOptions));
         _cacheOptions = cacheOptions ?? throw new ArgumentNullException(nameof(cacheOptions));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
@@ -47,9 +51,19 @@ public sealed class CatalogRepository : ICatalogRepository
         if (current != null && _cacheStore.IsCacheValid())
             return current;
 
+        // Merging again cannot repair a cache whose required sources have still never loaded - it
+        // would read the same empty sources and produce the same aggregate, so a priority merge per
+        // read would be pure cost. Serve what we have; loading a source schedules the merge that
+        // restores validity on its own.
+        if (current != null && !_cacheStore.AreRequiredSourcesLoaded())
+        {
+            _logger.LogDebug("Serving unstamped catalog data - required sources have not loaded yet, so a merge cannot improve it");
+            return current;
+        }
+
         if (_cacheOptions.Value.AllowStaleDataDuringMerge && _mergeScheduler.IsMergeInProgress)
         {
-            var stale = _cacheStore.TryGetStale();
+            var stale = _cacheStore.TryGetCompleteStale();
             if (stale != null)
             {
                 _logger.LogWarning("Serving stale data during merge operation");
@@ -133,9 +147,21 @@ public sealed class CatalogRepository : ICatalogRepository
         await WaitForCurrentMergeAsync(ct);
         var products = await GetAllAsync(ct);
 
-        var twoYearsAgo = DateOnly.FromDateTime(_timeProvider.GetUtcNow().UtcDateTime.AddYears(-2));
-        var dateFrom = twoYearsAgo > CatalogConstants.MARGIN_HISTORY_FLOOR_DATE ? twoYearsAgo : CatalogConstants.MARGIN_HISTORY_FLOOR_DATE;
-        var dateTo = DateOnly.FromDateTime(_timeProvider.GetUtcNow().UtcDateTime).AddMonths(-1); // Current month is not accurate
+        // The window must match what the cost providers can emit: each of them derives its own
+        // window from DataSourceOptions.ManufactureCostHistoryDays, and a margin month with no cost
+        // data enters MonthlyMarginHistory.Averages as a zero, scaling every displayed cost down.
+        // Not ManufactureHistoryDays - that one only controls how much raw manufacture history is
+        // loaded into the catalog.
+        var today = DateOnly.FromDateTime(_timeProvider.GetUtcNow().UtcDateTime);
+        var dateFrom = today.AddDays(-_dataSourceOptions.Value.ManufactureCostHistoryDays);
+        var dateTo = today.AddMonths(-1); // Current month is not accurate
+
+        if (dateFrom > dateTo)
+        {
+            _logger.LogWarning(
+                "DataSourceOptions.ManufactureCostHistoryDays ({Days}) covers no completed month, so margin history will be empty for every product",
+                _dataSourceOptions.Value.ManufactureCostHistoryDays);
+        }
 
         foreach (var product in products)
         {
