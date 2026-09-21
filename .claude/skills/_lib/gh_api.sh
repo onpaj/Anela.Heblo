@@ -148,23 +148,33 @@ req_paginate() {
   # req_paginate METHOD PATH — follows Link: rel="next", concatenates JSON
   # array pages into one array. Used where `gh api --paginate` is used today
   # (issue/PR comment lists that can exceed one page).
+  #
+  # Pages are combined via files + `jq -s`, not `jq --argjson`: a page (or
+  # the running total) routinely exceeds Linux's ~128KB single-argument
+  # limit (MAX_ARG_STRLEN) well before the 2MB total ARG_MAX, which made
+  # `--argjson` fail with "Argument list too long" on any comment thread
+  # with enough history (e.g. a PR with dozens of bot comments).
   local method="$1" path="$2"
   local url
   url=$(_api_url "$path")
   [[ "$url" == *"?"* ]] && url="${url}&per_page=100" || url="${url}?per_page=100"
-  local all="[]" hdrfile body
-  hdrfile=$(mktemp)
+  local allfile hdrfile bodyfile
+  allfile=$(mktemp); hdrfile=$(mktemp); bodyfile=$(mktemp)
+  echo "[]" > "$allfile"
   while [[ -n "$url" ]]; do
-    body=$(curl -sS --max-time 30 -X "$method" \
+    curl -sS --max-time 30 -X "$method" \
       -H "Authorization: Bearer ${TOKEN}" \
       -H "Accept: application/vnd.github+json" \
       -H "X-GitHub-Api-Version: 2022-11-28" \
-      -D "$hdrfile" "$url")
-    all=$(jq -c -n --argjson a "$all" --argjson b "$body" '$a + $b')
+      -D "$hdrfile" "$url" -o "$bodyfile"
+    jq -c -s '.[0] + .[1]' "$allfile" "$bodyfile" > "${allfile}.next"
+    mv "${allfile}.next" "$allfile"
     url=$(grep -i '^link:' "$hdrfile" | grep -o '<[^>]*>; rel="next"' | sed -E 's/^<(.*)>.*/\1/' || true)
   done
-  rm -f "$hdrfile"
-  printf '%s' "$all"
+  local out
+  out=$(cat "$allfile")
+  rm -f "$allfile" "$hdrfile" "$bodyfile"
+  printf '%s' "$out"
 }
 
 graphql() {
@@ -549,12 +559,19 @@ pr_list() {
   fi
   resp=$(req GET "/repos/${REPO}/issues?state=${state}${label_query}&per_page=100")
   numbers=$(emit "$resp" | jq -r '[.[] | select(has("pull_request"))] | .[].number')
-  out="[]"
+  # Same file-based accumulation as req_paginate, for the same reason: the
+  # running array can exceed the ~128KB single-argument limit well before
+  # ARG_MAX, which --argjson does not tolerate.
+  local outfile entryfile
+  outfile=$(mktemp); entryfile=$(mktemp)
+  echo "[]" > "$outfile"
   for n in $numbers; do
-    local entry
-    entry=$(pr_view "$n" "reviewDecision")
-    out=$(jq -c -n --argjson a "$out" --argjson e "$entry" '$a + [$e]')
+    pr_view "$n" "reviewDecision" > "$entryfile"
+    jq -c -s '.[0] + [.[1]]' "$outfile" "$entryfile" > "${outfile}.next"
+    mv "${outfile}.next" "$outfile"
   done
+  out=$(cat "$outfile")
+  rm -f "$outfile" "$entryfile"
   echo "$out"
 }
 
