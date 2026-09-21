@@ -1,7 +1,6 @@
 using Anela.Heblo.Application.Features.ExpeditionListArchive.Contracts;
 using Anela.Heblo.Application.Features.ExpeditionListArchive.UseCases.ReprintExpeditionList;
 using Anela.Heblo.Application.Shared.Printing;
-using Anela.Heblo.Domain.Features.FileStorage;
 using MediatR;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -21,12 +20,12 @@ public static class ExpeditionListArchiveModule
         // This explicit factory overrides MediatR's auto-registration so the correct sink is injected.
         services.AddTransient<IRequestHandler<ReprintExpeditionListRequest, ReprintExpeditionListResponse>>(provider =>
         {
-            var blobStorage = provider.GetRequiredService<IBlobStorageService>();
+            var blobStore = provider.GetRequiredService<IExpeditionListArchiveBlobStore>();
             var cupsSink = provider.GetKeyedService<IPrintQueueSink>("cups")
                 ?? provider.GetRequiredService<IPrintQueueSink>();
             var temporaryFileAccessor = provider.GetRequiredService<ITemporaryFileAccessor>();
             var options = provider.GetRequiredService<IOptions<ExpeditionListArchiveOptions>>();
-            return new ReprintExpeditionListHandler(blobStorage, cupsSink, temporaryFileAccessor, options);
+            return new ReprintExpeditionListHandler(blobStore, cupsSink, temporaryFileAccessor, options);
         });
 
         return services;

@@ -236,6 +236,12 @@ public class ModuleBoundariesTests
     // there, so no ExpeditionList type needs to reference ShoptetOrders directly.
     private static readonly HashSet<string> ExpeditionListShoptetOrdersAllowlist = new(StringComparer.Ordinal);
 
+    // Allowlist for ExpeditionListArchive -> FileStorage. Empty — the four ExpeditionListArchive
+    // handlers now consume the module-owned IExpeditionListArchiveBlobStore contract; the
+    // FileStorage adapter (ExpeditionListArchiveBlobStoreAdapter) lives in FileStorage.Infrastructure
+    // and implements it there, so no ExpeditionListArchive type needs to reference FileStorage directly.
+    private static readonly HashSet<string> ExpeditionListArchiveFileStorageAllowlist = new(StringComparer.Ordinal);
+
     // Allowlist for ShoptetApi Adapters -> Catalog.
     // ShoptetApiExpeditionListSource retains ICatalogRepository injection — out of scope.
     // Track as follow-up; remove when ShoptetApiExpeditionListSource is decoupled.
@@ -492,6 +498,17 @@ public class ModuleBoundariesTests
                 "Anela.Heblo.Persistence.ExpeditionList",
             },
             Allowlist: new HashSet<string>(StringComparer.Ordinal)),
+
+        new ModuleBoundaryRule(
+            Name: "ExpeditionListArchive -> FileStorage",
+            InspectedNamespacePrefix: "Anela.Heblo.Application.Features.ExpeditionListArchive",
+            ForbiddenNamespacePrefixes: new[]
+            {
+                "Anela.Heblo.Domain.Features.FileStorage",
+                "Anela.Heblo.Application.Features.FileStorage",
+                "Anela.Heblo.Persistence.FileStorage",
+            },
+            Allowlist: ExpeditionListArchiveFileStorageAllowlist),
 
         new ModuleBoundaryRule(
             Name: "Analytics (Application) -> Catalog",

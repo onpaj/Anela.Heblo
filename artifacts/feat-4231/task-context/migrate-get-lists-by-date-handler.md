@@ -1,3 +1,74 @@
+### task: migrate-get-lists-by-date-handler
+
+**Files:**
+- Modify: `backend/src/Anela.Heblo.Application/Features/ExpeditionListArchive/UseCases/GetExpeditionListsByDate/GetExpeditionListsByDateHandler.cs`
+- Modify: `backend/test/Anela.Heblo.Tests/ExpeditionListArchive/GetExpeditionListsByDateHandlerTests.cs`
+
+- [ ] **Step 1: Update the handler**
+
+Replace the full contents of `GetExpeditionListsByDateHandler.cs`:
+
+```csharp
+using Anela.Heblo.Application.Features.ExpeditionListArchive.Contracts;
+using Anela.Heblo.Application.Shared;
+using MediatR;
+using Microsoft.Extensions.Options;
+
+namespace Anela.Heblo.Application.Features.ExpeditionListArchive.UseCases.GetExpeditionListsByDate;
+
+public class GetExpeditionListsByDateHandler : IRequestHandler<GetExpeditionListsByDateRequest, GetExpeditionListsByDateResponse>
+{
+    private readonly IExpeditionListArchiveBlobStore _blobStore;
+    private readonly string _containerName;
+
+    public GetExpeditionListsByDateHandler(IExpeditionListArchiveBlobStore blobStore, IOptions<ExpeditionListArchiveOptions> options)
+    {
+        _blobStore = blobStore;
+        _containerName = options.Value.BlobContainerName;
+    }
+
+    public async Task<GetExpeditionListsByDateResponse> Handle(GetExpeditionListsByDateRequest request, CancellationToken cancellationToken)
+    {
+        if (!DateOnly.TryParseExact(request.Date, "yyyy-MM-dd", out _))
+        {
+            return new GetExpeditionListsByDateResponse
+            {
+                Success = false,
+                ErrorCode = ErrorCodes.InvalidFormat,
+                Params = new Dictionary<string, string>
+                {
+                    { "Field", "Date" },
+                    { "ExpectedFormat", "yyyy-MM-dd" }
+                }
+            };
+        }
+
+        var blobs = await _blobStore.ListBlobsAsync(_containerName, request.Date, cancellationToken);
+
+        var items = blobs
+            .Where(b => b.FileName.EndsWith(".pdf", StringComparison.OrdinalIgnoreCase))
+            .Select(b => new ExpeditionListItemDto
+            {
+                BlobPath = b.Name,
+                FileName = b.FileName,
+                ListId = Path.GetFileNameWithoutExtension(b.FileName),
+                CreatedOn = b.CreatedOn,
+                ContentLength = b.ContentLength
+            })
+            .ToList();
+
+        return new GetExpeditionListsByDateResponse { Items = items };
+    }
+}
+```
+
+Note: `using Anela.Heblo.Domain.Features.FileStorage;` is removed; the `blobs` variable is now `IReadOnlyList<ExpeditionBlobItem>` instead of `IReadOnlyList<BlobItemInfo>` (inferred, no explicit type change needed in source), and the `.Select(b => ...)` projection body is untouched since `ExpeditionBlobItem` and `BlobItemInfo` have identical property names/types.
+
+- [ ] **Step 2: Update the test**
+
+Replace the full contents of `GetExpeditionListsByDateHandlerTests.cs`:
+
+```csharp
 using Anela.Heblo.Application.Features.ExpeditionListArchive;
 using Anela.Heblo.Application.Features.ExpeditionListArchive.Contracts;
 using Anela.Heblo.Application.Features.ExpeditionListArchive.UseCases.GetExpeditionListsByDate;
@@ -103,3 +174,20 @@ public class GetExpeditionListsByDateHandlerTests
             Times.Never);
     }
 }
+```
+
+- [ ] **Step 3: Run the test to verify it passes**
+
+Run: `cd backend && dotnet test test/Anela.Heblo.Tests/Anela.Heblo.Tests.csproj --filter "FullyQualifiedName~GetExpeditionListsByDateHandlerTests"`
+Expected: PASS, 3 tests (7 cases with Theory), 0 failed.
+
+- [ ] **Step 4: Commit**
+
+```bash
+git add backend/src/Anela.Heblo.Application/Features/ExpeditionListArchive/UseCases/GetExpeditionListsByDate/GetExpeditionListsByDateHandler.cs \
+        backend/test/Anela.Heblo.Tests/ExpeditionListArchive/GetExpeditionListsByDateHandlerTests.cs
+git commit -m "refactor(expedition-list-archive): migrate GetExpeditionListsByDateHandler to IExpeditionListArchiveBlobStore"
+```
+
+---
+

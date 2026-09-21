@@ -1,3 +1,117 @@
+### task: migrate-reprint-handler
+
+**Files:**
+- Modify: `backend/src/Anela.Heblo.Application/Features/ExpeditionListArchive/UseCases/ReprintExpeditionList/ReprintExpeditionListHandler.cs`
+- Modify: `backend/src/Anela.Heblo.Application/Features/ExpeditionListArchive/ExpeditionListArchiveModule.cs`
+- Modify: `backend/test/Anela.Heblo.Tests/ExpeditionListArchive/ReprintExpeditionListHandlerTests.cs`
+
+- [ ] **Step 1: Update the handler**
+
+Replace the full contents of `ReprintExpeditionListHandler.cs`:
+
+```csharp
+using Anela.Heblo.Application.Features.ExpeditionListArchive.Contracts;
+using Anela.Heblo.Application.Shared.Printing;
+using MediatR;
+using Microsoft.Extensions.Options;
+
+namespace Anela.Heblo.Application.Features.ExpeditionListArchive.UseCases.ReprintExpeditionList;
+
+public class ReprintExpeditionListHandler : IRequestHandler<ReprintExpeditionListRequest, ReprintExpeditionListResponse>
+{
+    private readonly IExpeditionListArchiveBlobStore _blobStore;
+    private readonly IPrintQueueSink _cupsSink;
+    private readonly ITemporaryFileAccessor _temporaryFileAccessor;
+    private readonly string _containerName;
+
+    public ReprintExpeditionListHandler(
+        IExpeditionListArchiveBlobStore blobStore,
+        IPrintQueueSink cupsSink,
+        ITemporaryFileAccessor temporaryFileAccessor,
+        IOptions<ExpeditionListArchiveOptions> options)
+    {
+        _blobStore = blobStore;
+        _cupsSink = cupsSink;
+        _temporaryFileAccessor = temporaryFileAccessor;
+        _containerName = options.Value.BlobContainerName;
+    }
+
+    public async Task<ReprintExpeditionListResponse> Handle(ReprintExpeditionListRequest request, CancellationToken cancellationToken)
+    {
+        if (!BlobPathValidator.IsValid(request.BlobPath))
+        {
+            return ReprintExpeditionListResponse.Fail();
+        }
+
+        string? tempFile = null;
+        try
+        {
+            await using var blobStream = await _blobStore.DownloadAsync(_containerName, request.BlobPath, cancellationToken);
+            tempFile = await _temporaryFileAccessor.CreateFromStreamAsync(blobStream, ".pdf", cancellationToken);
+
+            await _cupsSink.SendAsync(new[] { tempFile }, cancellationToken);
+            return new ReprintExpeditionListResponse { Success = true };
+        }
+        finally
+        {
+            if (tempFile != null)
+            {
+                _temporaryFileAccessor.DeleteIfExists(tempFile);
+            }
+        }
+    }
+}
+```
+
+Note: `using Anela.Heblo.Domain.Features.FileStorage;` is removed entirely; only the field/parameter type and name (`_blobStorageService` → `_blobStore`) and the call site change. All try/finally, error propagation, and cleanup logic is byte-for-byte unchanged.
+
+- [ ] **Step 2: Update the manual DI factory in `ExpeditionListArchiveModule.cs`**
+
+Replace the full contents of `ExpeditionListArchiveModule.cs`:
+
+```csharp
+using Anela.Heblo.Application.Features.ExpeditionListArchive.Contracts;
+using Anela.Heblo.Application.Features.ExpeditionListArchive.UseCases.ReprintExpeditionList;
+using Anela.Heblo.Application.Shared.Printing;
+using MediatR;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
+
+namespace Anela.Heblo.Application.Features.ExpeditionListArchive;
+
+public static class ExpeditionListArchiveModule
+{
+    public static IServiceCollection AddExpeditionListArchiveModule(this IServiceCollection services, IConfiguration configuration)
+    {
+        services.Configure<ExpeditionListArchiveOptions>(configuration.GetSection(ExpeditionListArchiveOptions.ConfigurationKey));
+
+        // ReprintExpeditionListHandler needs the keyed "cups" IPrintQueueSink when available
+        // (production/staging). In environments where only the non-keyed sink is registered
+        // (e.g. FileSystem in development/test), we fall back to the non-keyed registration.
+        // This explicit factory overrides MediatR's auto-registration so the correct sink is injected.
+        services.AddTransient<IRequestHandler<ReprintExpeditionListRequest, ReprintExpeditionListResponse>>(provider =>
+        {
+            var blobStore = provider.GetRequiredService<IExpeditionListArchiveBlobStore>();
+            var cupsSink = provider.GetKeyedService<IPrintQueueSink>("cups")
+                ?? provider.GetRequiredService<IPrintQueueSink>();
+            var temporaryFileAccessor = provider.GetRequiredService<ITemporaryFileAccessor>();
+            var options = provider.GetRequiredService<IOptions<ExpeditionListArchiveOptions>>();
+            return new ReprintExpeditionListHandler(blobStore, cupsSink, temporaryFileAccessor, options);
+        });
+
+        return services;
+    }
+}
+```
+
+Note: `using Anela.Heblo.Domain.Features.FileStorage;` is removed; `provider.GetRequiredService<IBlobStorageService>()` becomes `provider.GetRequiredService<IExpeditionListArchiveBlobStore>()`; the local variable is renamed `blobStore` for clarity, matching the handler's own field name. This resolves correctly because task `adapter-and-di` already registered `IExpeditionListArchiveBlobStore` in `FileStorageModule`, and `FileStorageModule.AddFileStorageModule` and `ExpeditionListArchiveModule.AddExpeditionListArchiveModule` are both called from `ApplicationModule.cs` before the app starts serving requests.
+
+- [ ] **Step 3: Update the test**
+
+Replace the full contents of `ReprintExpeditionListHandlerTests.cs`:
+
+```csharp
 using Anela.Heblo.Application.Features.ExpeditionListArchive;
 using Anela.Heblo.Application.Features.ExpeditionListArchive.Contracts;
 using Anela.Heblo.Application.Features.ExpeditionListArchive.UseCases.ReprintExpeditionList;
@@ -171,3 +285,21 @@ public class ReprintExpeditionListHandlerTests
             Times.Never);
     }
 }
+```
+
+- [ ] **Step 4: Run the test to verify it passes**
+
+Run: `cd backend && dotnet test test/Anela.Heblo.Tests/Anela.Heblo.Tests.csproj --filter "FullyQualifiedName~ReprintExpeditionListHandlerTests"`
+Expected: PASS, 5 tests, 0 failed.
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add backend/src/Anela.Heblo.Application/Features/ExpeditionListArchive/UseCases/ReprintExpeditionList/ReprintExpeditionListHandler.cs \
+        backend/src/Anela.Heblo.Application/Features/ExpeditionListArchive/ExpeditionListArchiveModule.cs \
+        backend/test/Anela.Heblo.Tests/ExpeditionListArchive/ReprintExpeditionListHandlerTests.cs
+git commit -m "refactor(expedition-list-archive): migrate ReprintExpeditionListHandler and its DI factory to IExpeditionListArchiveBlobStore"
+```
+
+---
+
