@@ -23,6 +23,7 @@ namespace Anela.Heblo.Tests.Domain.Marketing
                 actionType: MarketingActionType.Newsletter,
                 startDate: UtcNow,
                 endDate: null,
+                isAllDay: false,
                 modifiedByUserId: "user-1",
                 modifiedByUsername: "alice",
                 utcNow: UtcNow);
@@ -41,6 +42,7 @@ namespace Anela.Heblo.Tests.Domain.Marketing
                 actionType: MarketingActionType.Newsletter,
                 startDate: UtcNow,
                 endDate: null,
+                isAllDay: false,
                 modifiedByUserId: "user-1",
                 modifiedByUsername: null,
                 utcNow: UtcNow);
@@ -59,6 +61,7 @@ namespace Anela.Heblo.Tests.Domain.Marketing
                 actionType: MarketingActionType.Newsletter,
                 startDate: UtcNow,
                 endDate: null,
+                isAllDay: false,
                 modifiedByUserId: "user-1",
                 modifiedByUsername: "alice",
                 utcNow: UtcNow);
@@ -77,6 +80,7 @@ namespace Anela.Heblo.Tests.Domain.Marketing
                 actionType: MarketingActionType.Newsletter,
                 startDate: UtcNow,
                 endDate: null,
+                isAllDay: false,
                 modifiedByUserId: "user-1",
                 modifiedByUsername: "alice",
                 utcNow: UtcNow);
@@ -95,6 +99,7 @@ namespace Anela.Heblo.Tests.Domain.Marketing
                 actionType: MarketingActionType.Newsletter,
                 startDate: UtcNow,
                 endDate: null,
+                isAllDay: false,
                 modifiedByUserId: "user-1",
                 modifiedByUsername: null,
                 utcNow: UtcNow);
@@ -114,6 +119,7 @@ namespace Anela.Heblo.Tests.Domain.Marketing
                 actionType: MarketingActionType.Newsletter,
                 startDate: UtcNow,
                 endDate: null,
+                isAllDay: false,
                 modifiedByUserId: "user-1",
                 modifiedByUsername: "alice",
                 utcNow: moment);
@@ -134,6 +140,7 @@ namespace Anela.Heblo.Tests.Domain.Marketing
                 actionType: MarketingActionType.PR,
                 startDate: start,
                 endDate: end,
+                isAllDay: false,
                 modifiedByUserId: "user-42",
                 modifiedByUsername: "bob",
                 utcNow: UtcNow);
@@ -143,6 +150,25 @@ namespace Anela.Heblo.Tests.Domain.Marketing
             action.EndDate.Should().Be(end);
             action.ModifiedByUserId.Should().Be("user-42");
             action.ModifiedByUsername.Should().Be("bob");
+        }
+
+        [Fact]
+        public void UpdateDetails_SetsIsAllDayExactlyAsPassed()
+        {
+            var action = NewAction();
+
+            action.UpdateDetails(
+                title: "Title",
+                description: null,
+                actionType: MarketingActionType.Newsletter,
+                startDate: UtcNow,
+                endDate: null,
+                isAllDay: true,
+                modifiedByUserId: "user-1",
+                modifiedByUsername: "alice",
+                utcNow: UtcNow);
+
+            action.IsAllDay.Should().BeTrue();
         }
     }
 }

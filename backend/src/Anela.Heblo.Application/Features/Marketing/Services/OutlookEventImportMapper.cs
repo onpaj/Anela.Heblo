@@ -34,6 +34,7 @@ namespace Anela.Heblo.Application.Features.Marketing.Services
                 actionType: actionType,
                 startDate: evt.StartUtc,
                 endDate: ParseEndDate(evt),
+                isAllDay: evt.IsAllDay,
                 createdByUserId: actor.UserId,
                 createdByUsername: actor.Username,
                 utcNow: utcNow);
@@ -55,6 +56,7 @@ namespace Anela.Heblo.Application.Features.Marketing.Services
                 || existing.Description != normalizedDescription
                 || existing.StartDate != evt.StartUtc
                 || existing.EndDate != ParseEndDate(evt)
+                || existing.IsAllDay != evt.IsAllDay
                 || existing.ActionType != actionType;
         }
 
@@ -71,6 +73,7 @@ namespace Anela.Heblo.Application.Features.Marketing.Services
                 actionType: actionType,
                 startDate: evt.StartUtc,
                 endDate: ParseEndDate(evt),
+                isAllDay: evt.IsAllDay,
                 modifiedByUserId: actor.UserId,
                 modifiedByUsername: actor.Username,
                 utcNow: utcNow);

@@ -11,6 +11,7 @@ namespace Anela.Heblo.Tests.Domain.Marketing
         private MarketingActionType _actionType = MarketingActionType.SocialMedia;
         private DateTime _startDate = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc);
         private DateTime? _endDate;
+        private bool _isAllDay;
         private DateTime _createdAt = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc);
         private DateTime _modifiedAt = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc);
         private string _createdByUserId = "user-1";
@@ -26,6 +27,7 @@ namespace Anela.Heblo.Tests.Domain.Marketing
         public MarketingActionTestBuilder WithActionType(MarketingActionType type) { _actionType = type; return this; }
         public MarketingActionTestBuilder WithStartDate(DateTime startDate) { _startDate = startDate; return this; }
         public MarketingActionTestBuilder WithEndDate(DateTime? endDate) { _endDate = endDate; return this; }
+        public MarketingActionTestBuilder WithIsAllDay(bool isAllDay) { _isAllDay = isAllDay; return this; }
         public MarketingActionTestBuilder WithCreatedAt(DateTime createdAt) { _createdAt = createdAt; return this; }
         public MarketingActionTestBuilder WithModifiedAt(DateTime modifiedAt) { _modifiedAt = modifiedAt; return this; }
         public MarketingActionTestBuilder WithCreatedBy(string userId, string? username = null)
@@ -58,6 +60,7 @@ namespace Anela.Heblo.Tests.Domain.Marketing
                 actionType: _actionType,
                 startDate: _startDate,
                 endDate: _endDate,
+                isAllDay: _isAllDay,
                 createdByUserId: _createdByUserId,
                 createdByUsername: _createdByUsername,
                 utcNow: _createdAt);
@@ -70,6 +73,7 @@ namespace Anela.Heblo.Tests.Domain.Marketing
                     actionType: _actionType,
                     startDate: _startDate,
                     endDate: _endDate,
+                    isAllDay: _isAllDay,
                     modifiedByUserId: _modifiedByUserId ?? _createdByUserId,
                     modifiedByUsername: _modifiedByUsername,
                     utcNow: _modifiedAt);

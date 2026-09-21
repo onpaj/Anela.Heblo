@@ -120,6 +120,7 @@ public class MarketingActionRepositoryGetSyncedInWindowTests : IDisposable
             actionType: MarketingActionType.Blog,
             startDate: startDate,
             endDate: endDate,
+            isAllDay: false,
             createdByUserId: "seed-user",
             createdByUsername: "Seeder",
             utcNow: DateTime.UtcNow);
