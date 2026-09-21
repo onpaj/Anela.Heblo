@@ -9,7 +9,10 @@ public class SavePricingScenarioRequestValidator : AbstractValidator<SavePricing
     {
         RuleFor(x => x.Name).NotEmpty().MaximumLength(200);
         RuleFor(x => x.Description).MaximumLength(2000);
-        RuleForEach(x => x.Overrides)
-            .ChildRules(o => o.RuleFor(x => x.ProductCode).NotEmpty());
+
+        RuleForEach(x => x.Overrides).SetValidator(new PricingOverrideDtoValidator());
+        RuleFor(x => x.Overrides)
+            .Must(PricingOverrideDtoValidator.HasDistinctProductCodes)
+            .WithMessage(PricingOverrideDtoValidator.DuplicateProductCodesMessage);
     }
 }

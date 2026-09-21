@@ -28,6 +28,7 @@ public class PricingScenariosController : BaseApiController
     }
 
     [HttpPost]
+    [FeatureAuthorize(Feature.Finance_PriceAnalysis, AccessLevel.Write)]
     public async Task<ActionResult<SavePricingScenarioResponse>> CreateScenario(
         [FromBody] SavePricingScenarioRequest request)
     {
@@ -43,6 +44,7 @@ public class PricingScenariosController : BaseApiController
     }
 
     [HttpPut("{id:guid}")]
+    [FeatureAuthorize(Feature.Finance_PriceAnalysis, AccessLevel.Write)]
     public async Task<ActionResult<SavePricingScenarioResponse>> UpdateScenario(
         Guid id, [FromBody] SavePricingScenarioRequest request)
     {
@@ -52,6 +54,7 @@ public class PricingScenariosController : BaseApiController
     }
 
     [HttpDelete("{id:guid}")]
+    [FeatureAuthorize(Feature.Finance_PriceAnalysis, AccessLevel.Write)]
     public async Task<ActionResult<DeletePricingScenarioResponse>> DeleteScenario(Guid id)
     {
         var response = await _mediator.Send(new DeletePricingScenarioRequest { Id = id });

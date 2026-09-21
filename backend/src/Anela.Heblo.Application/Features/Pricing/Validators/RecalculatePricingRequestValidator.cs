@@ -7,8 +7,10 @@ public class RecalculatePricingRequestValidator : AbstractValidator<RecalculateP
 {
     public RecalculatePricingRequestValidator()
     {
-        RuleForEach(x => x.Overrides)
-            .ChildRules(o => o.RuleFor(x => x.ProductCode).NotEmpty());
+        RuleForEach(x => x.Overrides).SetValidator(new PricingOverrideDtoValidator());
+        RuleFor(x => x.Overrides)
+            .Must(PricingOverrideDtoValidator.HasDistinctProductCodes)
+            .WithMessage(PricingOverrideDtoValidator.DuplicateProductCodesMessage);
 
         When(x => x.Edit is not null, () =>
         {
