@@ -17,6 +17,8 @@ namespace Anela.Heblo.Application.Shared.CostPools;
 /// </summary>
 public class CostPoolService : ICostPoolService
 {
+    private static readonly SemaphoreSlim RefreshLock = new(1, 1);
+
     private readonly ICostPoolCache _cache;
     private readonly ILedgerService _ledgerService;
     private readonly ILogger<CostPoolService> _logger;
@@ -39,12 +41,70 @@ public class CostPoolService : ICostPoolService
         DateOnly to,
         CancellationToken ct = default)
     {
+        var cacheData = await _cache.GetCachedDataAsync(ct);
+
+        if (cacheData.Covers(from, to))
+        {
+            return FilterToRange(cacheData.Pools, from, to);
+        }
+
         return await ComputeAsync(from, to, ct);
     }
 
-    public Task RefreshAsync(CancellationToken ct = default)
+    private static IReadOnlyList<MonthlyCostPool> FilterToRange(
+        IReadOnlyList<MonthlyCostPool> pools,
+        DateOnly from,
+        DateOnly to)
     {
-        throw new NotImplementedException("Implemented in Task 4.");
+        var firstMonth = new DateTime(from.Year, from.Month, 1);
+        var lastMonth = new DateTime(to.Year, to.Month, 1);
+
+        return pools
+            .Where(p => p.Month >= firstMonth && p.Month <= lastMonth)
+            .OrderBy(p => p.Month)
+            .ThenBy(p => p.Pool)
+            .ToList();
+    }
+
+    public async Task RefreshAsync(CancellationToken ct = default)
+    {
+        if (!await RefreshLock.WaitAsync(0, ct))
+        {
+            _logger.LogInformation("CostPoolCache refresh already in progress, skipping");
+            return;
+        }
+
+        try
+        {
+            _logger.LogInformation("Starting CostPoolCache refresh");
+
+            var to = DateOnly.FromDateTime(DateTime.UtcNow);
+            var from = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(-_options.ManufactureCostHistoryDays));
+
+            var pools = await ComputeAsync(from, to, ct);
+
+            await _cache.SetCachedDataAsync(new CostPoolCacheData
+            {
+                Pools = pools,
+                LastUpdated = DateTime.UtcNow,
+                DataFrom = from,
+                DataTo = to,
+                IsHydrated = true
+            }, ct);
+
+            _logger.LogInformation(
+                "CostPoolCache refreshed successfully: {RowCount} monthly pool totals covering {From} to {To}",
+                pools.Count, from, to);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to refresh CostPoolCache");
+            throw;
+        }
+        finally
+        {
+            RefreshLock.Release();
+        }
     }
 
     private async Task<IReadOnlyList<MonthlyCostPool>> ComputeAsync(
