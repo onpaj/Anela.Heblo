@@ -19,7 +19,7 @@ namespace Anela.Heblo.Tests.Features.Catalog.CostProviders;
 /// Tests for FlatManufactureCostProvider.
 /// Uses Collection attribute to ensure sequential execution due to static RefreshLock in the provider.
 /// </summary>
-[Collection("FlatManufactureCostProviderTests")]
+[Collection(CostProviderRefreshLockCollection.Name)]
 public class FlatManufactureCostProviderTests
 {
     private const int DefaultDifficultyValue = 1;

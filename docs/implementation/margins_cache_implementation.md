@@ -6,7 +6,7 @@ Implemented in-memory caching architecture for margin calculation cost sources t
 
 ## Architecture
 
-- **Cache Services**: Singleton services per cost source (M0, M1_A, M1_B, M2)
+- **Cache Services**: Singleton services per cost source (M0, M1, M2, M3)
 - **Storage**: IMemoryCache (in-memory, no expiration)
 - **Hydration**: Tier 2 (after catalog refresh)
 - **Refresh**: Periodic via BackgroundRefreshTaskRegistry (6 hours)
@@ -17,21 +17,21 @@ Implemented in-memory caching architecture for margin calculation cost sources t
 ### Domain Layer
 - `ICostCache` - base cache interface
 - `CostCacheData` - immutable cached data wrapper
-- `IMaterialCostCache`, `IFlatManufactureCostCache`, `IDirectManufactureCostCache`, `ISalesCostCache` - specific cache interfaces
+- `IMaterialCostCache`, `IFlatManufactureCostCache`, `ISalesCostCache`, `IOverheadCostCache` - specific cache interfaces
 
 ### Application Layer
 - `MaterialCostCache` - M0 cache implementation
-- `FlatManufactureCostCache` - M1_A cache implementation
-- `DirectManufactureCostCache` - M1_B cache implementation
+- `FlatManufactureCostCache` - M1 cache implementation
 - `SalesCostCache` - M2 cache implementation
+- `OverheadCostCache` - M3 cache implementation
 - `CostCacheOptions` - configuration options
 
 ### Cost Sources
 Modified to inject cache services and delegate to `GetCachedDataAsync()`:
 - `PurchasePriceOnlyMaterialCostSource`
 - `ManufactureCostSource`
-- `DirectManufactureCostSource`
 - `SalesCostSource`
+- `OverheadCostProvider`
 
 ## Configuration
 
@@ -55,7 +55,4 @@ appsettings.json:
 
 ## Future Work
 
-- Implement real M1_A calculation (currently STUB returning constant 15)
-- Implement real M1_B calculation (currently STUB returning constant 15)
-- Implement real M2 calculation (currently STUB returning constant 15)
 - Add monitoring/health checks for cache staleness

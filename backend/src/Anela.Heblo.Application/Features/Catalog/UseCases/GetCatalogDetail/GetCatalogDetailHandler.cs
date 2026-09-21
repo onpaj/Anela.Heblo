@@ -179,8 +179,8 @@ public class GetCatalogDetailHandler : IRequestHandler<GetCatalogDetailRequest, 
                 {
                     Date = m.Key,
                     MaterialCost = m.Value.M0.CostLevel,
-                    HandlingCost = m.Value.M1_A.CostLevel, // Map ManufacturingCost to HandlingCost
-                    Total = m.Value.M0.CostLevel + m.Value.M1_A.CostLevel
+                    HandlingCost = m.Value.M1.CostLevel, // Map ManufacturingCost to HandlingCost
+                    Total = m.Value.M0.CostLevel + m.Value.M1.CostLevel
                 }).ToList();
         }
         catch (Exception ex)
@@ -197,14 +197,14 @@ public class GetCatalogDetailHandler : IRequestHandler<GetCatalogDetailRequest, 
         // Use pre-calculated margin data from CatalogAggregate.Margins
         var marginHistory = catalogItem.Margins;
 
-        // Filter and convert to DTOs with all M0-M2 margin levels
+        // Filter and convert to DTOs with all M0-M3 margin levels
         return marginHistory.MonthlyData
             .Where(m => m.Key >= fromDate)
             .OrderByDescending(m => m.Key)
             .Select(m => new MarginHistoryDto
             {
                 Date = m.Key,
-                SellingPrice = m.Value.M2.CostTotal + m.Value.M2.Amount, // Reconstructed selling price from M2 (highest level now)
+                SellingPrice = m.Value.M3.CostTotal + m.Value.M3.Amount, // Reconstructed selling price from M3 (highest level)
                 TotalCost = m.Value.M0.CostBase, // Base cost (material + manufacturing)
 
                 // M0 - Material + Manufacturing costs
@@ -219,19 +219,28 @@ public class GetCatalogDetailHandler : IRequestHandler<GetCatalogDetailRequest, 
                 // M1 - M0 + Manufacturing costs (if different)
                 M1 = new MarginLevelDto
                 {
-                    Percentage = m.Value.M1_A.Percentage,
-                    Amount = m.Value.M1_A.Amount,
-                    CostLevel = m.Value.M1_A.CostLevel,
-                    CostTotal = m.Value.M1_A.CostTotal
+                    Percentage = m.Value.M1.Percentage,
+                    Amount = m.Value.M1.Amount,
+                    CostLevel = m.Value.M1.CostLevel,
+                    CostTotal = m.Value.M1.CostTotal
                 },
 
-                // M2 - M1 + Sales costs (final margin level now)
+                // M2 - M1 + Sales costs
                 M2 = new MarginLevelDto
                 {
                     Percentage = m.Value.M2.Percentage,
                     Amount = m.Value.M2.Amount,
                     CostLevel = m.Value.M2.CostLevel,
                     CostTotal = m.Value.M2.CostTotal
+                },
+
+                // M3 - M2 + Overhead (final margin level)
+                M3 = new MarginLevelDto
+                {
+                    Percentage = m.Value.M3.Percentage,
+                    Amount = m.Value.M3.Amount,
+                    CostLevel = m.Value.M3.CostLevel,
+                    CostTotal = m.Value.M3.CostTotal
                 }
             }).ToList();
     }

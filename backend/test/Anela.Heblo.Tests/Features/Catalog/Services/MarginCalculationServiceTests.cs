@@ -22,7 +22,7 @@ public class MarginCalculationServiceTests
 {
     private readonly Mock<IMaterialCostProvider> _materialCostSourceMock;
     private readonly Mock<IFlatManufactureCostProvider> _flatManufactureCostSourceMock;
-    private readonly Mock<IDirectManufactureCostProvider> _directManufactureCostSourceMock;
+    private readonly Mock<IOverheadCostProvider> _overheadCostSourceMock;
     private readonly Mock<ISalesCostProvider> _salesCostSourceMock;
     private readonly Mock<ILogger<MarginCalculationService>> _loggerMock;
     private readonly MarginCalculationService _service;
@@ -31,14 +31,14 @@ public class MarginCalculationServiceTests
     {
         _materialCostSourceMock = new Mock<IMaterialCostProvider>();
         _flatManufactureCostSourceMock = new Mock<IFlatManufactureCostProvider>();
-        _directManufactureCostSourceMock = new Mock<IDirectManufactureCostProvider>();
+        _overheadCostSourceMock = new Mock<IOverheadCostProvider>();
         _salesCostSourceMock = new Mock<ISalesCostProvider>();
         _loggerMock = new Mock<ILogger<MarginCalculationService>>();
 
         _service = new MarginCalculationService(
             _materialCostSourceMock.Object,
             _flatManufactureCostSourceMock.Object,
-            _directManufactureCostSourceMock.Object,
+            _overheadCostSourceMock.Object,
             _salesCostSourceMock.Object,
             _loggerMock.Object);
     }
@@ -70,15 +70,15 @@ public class MarginCalculationServiceTests
         foreach (var marginData in result.MonthlyData.Values)
         {
             marginData.M0.Should().NotBeNull();
-            marginData.M1_A.Should().NotBeNull();
-            marginData.M1_B.Should().NotBeNull();
+            marginData.M1.Should().NotBeNull();
+            marginData.M3.Should().NotBeNull();
             marginData.M2.Should().NotBeNull();
         }
 
         result.Averages.Should().NotBeNull();
         result.Averages.M0.Should().NotBeNull();
-        result.Averages.M1_A.Should().NotBeNull();
-        result.Averages.M1_B.Should().NotBeNull();
+        result.Averages.M1.Should().NotBeNull();
+        result.Averages.M3.Should().NotBeNull();
         result.Averages.M2.Should().NotBeNull();
     }
 
@@ -98,8 +98,8 @@ public class MarginCalculationServiceTests
         result.MonthlyData.Should().BeEmpty();
         result.Averages.Should().NotBeNull();
         result.Averages.M0.Should().BeEquivalentTo(MarginLevel.Zero);
-        result.Averages.M1_A.Should().BeEquivalentTo(MarginLevel.Zero);
-        result.Averages.M1_B.Should().BeEquivalentTo(MarginLevel.Zero);
+        result.Averages.M1.Should().BeEquivalentTo(MarginLevel.Zero);
+        result.Averages.M3.Should().BeEquivalentTo(MarginLevel.Zero);
         result.Averages.M2.Should().BeEquivalentTo(MarginLevel.Zero);
     }
 
@@ -119,8 +119,8 @@ public class MarginCalculationServiceTests
         result.MonthlyData.Should().BeEmpty();
         result.Averages.Should().NotBeNull();
         result.Averages.M0.Should().BeEquivalentTo(MarginLevel.Zero);
-        result.Averages.M1_A.Should().BeEquivalentTo(MarginLevel.Zero);
-        result.Averages.M1_B.Should().BeEquivalentTo(MarginLevel.Zero);
+        result.Averages.M1.Should().BeEquivalentTo(MarginLevel.Zero);
+        result.Averages.M3.Should().BeEquivalentTo(MarginLevel.Zero);
         result.Averages.M2.Should().BeEquivalentTo(MarginLevel.Zero);
     }
 
@@ -140,8 +140,8 @@ public class MarginCalculationServiceTests
         result.MonthlyData.Should().BeEmpty();
         result.Averages.Should().NotBeNull();
         result.Averages.M0.Should().BeEquivalentTo(MarginLevel.Zero);
-        result.Averages.M1_A.Should().BeEquivalentTo(MarginLevel.Zero);
-        result.Averages.M1_B.Should().BeEquivalentTo(MarginLevel.Zero);
+        result.Averages.M1.Should().BeEquivalentTo(MarginLevel.Zero);
+        result.Averages.M3.Should().BeEquivalentTo(MarginLevel.Zero);
         result.Averages.M2.Should().BeEquivalentTo(MarginLevel.Zero);
     }
 
@@ -161,8 +161,8 @@ public class MarginCalculationServiceTests
         result.MonthlyData.Should().BeEmpty();
         result.Averages.Should().NotBeNull();
         result.Averages.M0.Should().BeEquivalentTo(MarginLevel.Zero);
-        result.Averages.M1_A.Should().BeEquivalentTo(MarginLevel.Zero);
-        result.Averages.M1_B.Should().BeEquivalentTo(MarginLevel.Zero);
+        result.Averages.M1.Should().BeEquivalentTo(MarginLevel.Zero);
+        result.Averages.M3.Should().BeEquivalentTo(MarginLevel.Zero);
         result.Averages.M2.Should().BeEquivalentTo(MarginLevel.Zero);
     }
 
@@ -268,6 +268,60 @@ public class MarginCalculationServiceTests
     }
 
     [Fact]
+    public async Task GetMarginAsync_StacksEachCostLayerOntoTheLevelAboveIt()
+    {
+        // The cascade is cumulative: CostTotal carries everything up to and including that level,
+        // CostLevel carries only that level's own increment. M3 is therefore the all-costs-in view.
+        // Arrange
+        var product = CreateTestProduct("PROD001", 1000m);
+        var month = new DateTime(2026, 3, 1);
+        var dateFrom = DateOnly.FromDateTime(month);
+        var dateTo = DateOnly.FromDateTime(month);
+
+        var single = (decimal cost) => new List<MonthlyCost> { new(month, cost) };
+        var dict = (decimal cost) => new Dictionary<string, List<MonthlyCost>> { { "PROD001", single(cost) } };
+
+        _materialCostSourceMock
+            .Setup(x => x.GetCostsAsync(It.IsAny<List<string>>(), It.IsAny<DateOnly?>(), It.IsAny<DateOnly?>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(dict(100m));
+        _flatManufactureCostSourceMock
+            .Setup(x => x.GetCostsAsync(It.IsAny<List<string>>(), It.IsAny<DateOnly?>(), It.IsAny<DateOnly?>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(dict(50m));
+        _salesCostSourceMock
+            .Setup(x => x.GetCostsAsync(It.IsAny<List<string>>(), It.IsAny<DateOnly?>(), It.IsAny<DateOnly?>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(dict(30m));
+        _overheadCostSourceMock
+            .Setup(x => x.GetCostsAsync(It.IsAny<List<string>>(), It.IsAny<DateOnly?>(), It.IsAny<DateOnly?>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(dict(20m));
+
+        // Act
+        var result = await _service.GetMarginAsync(product, dateFrom, dateTo, CancellationToken.None);
+
+        // Assert
+        var margin = result.MonthlyData[month];
+
+        margin.M0.CostLevel.Should().Be(100m);
+        margin.M0.CostTotal.Should().Be(100m);
+        margin.M0.Amount.Should().Be(900m);
+        margin.M0.Percentage.Should().Be(90m);
+
+        margin.M1.CostLevel.Should().Be(50m);
+        margin.M1.CostTotal.Should().Be(150m);
+        margin.M1.Amount.Should().Be(850m);
+        margin.M1.Percentage.Should().Be(85m);
+
+        margin.M2.CostLevel.Should().Be(30m);
+        margin.M2.CostTotal.Should().Be(180m);
+        margin.M2.Amount.Should().Be(820m);
+        margin.M2.Percentage.Should().Be(82m);
+
+        margin.M3.CostLevel.Should().Be(20m);
+        margin.M3.CostTotal.Should().Be(200m);
+        margin.M3.Amount.Should().Be(800m);
+        margin.M3.Percentage.Should().Be(80m);
+    }
+
+    [Fact]
     public async Task GetMarginAsync_WithPartialCostData_OnlyMaterialCosts_ReturnsCorrectMargins()
     {
         // Arrange
@@ -318,8 +372,8 @@ public class MarginCalculationServiceTests
         foreach (var marginData in result.MonthlyData.Values)
         {
             marginData.M0.CostLevel.Should().Be(0);
-            marginData.M1_A.CostLevel.Should().Be(0);
-            marginData.M1_B.CostLevel.Should().Be(0);
+            marginData.M1.CostLevel.Should().Be(0);
+            marginData.M3.CostLevel.Should().Be(0);
             marginData.M2.CostLevel.Should().Be(0);
         }
     }
@@ -348,7 +402,7 @@ public class MarginCalculationServiceTests
             .Setup(x => x.GetCostsAsync(It.IsAny<List<string>>(), It.IsAny<DateOnly?>(), It.IsAny<DateOnly?>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(emptyCostDict);
 
-        _directManufactureCostSourceMock
+        _overheadCostSourceMock
             .Setup(x => x.GetCostsAsync(It.IsAny<List<string>>(), It.IsAny<DateOnly?>(), It.IsAny<DateOnly?>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(emptyCostDict);
 
@@ -367,8 +421,8 @@ public class MarginCalculationServiceTests
         foreach (var marginData in result.MonthlyData.Values)
         {
             marginData.M0.CostLevel.Should().Be(0);
-            marginData.M1_A.CostLevel.Should().Be(0);
-            marginData.M1_B.CostLevel.Should().Be(0);
+            marginData.M1.CostLevel.Should().Be(0);
+            marginData.M3.CostLevel.Should().Be(0);
             marginData.M2.CostLevel.Should().Be(0);
         }
     }
@@ -482,7 +536,7 @@ public class MarginCalculationServiceTests
     {
         var materialCostDict = new Dictionary<string, List<MonthlyCost>> { { productCode, materialCosts } };
         var flatManufactureCostDict = new Dictionary<string, List<MonthlyCost>> { { productCode, manufactureCosts } };
-        var directManufactureCostDict = new Dictionary<string, List<MonthlyCost>> { { productCode, new List<MonthlyCost>() } }; // Empty for now
+        var overheadCostDict = new Dictionary<string, List<MonthlyCost>> { { productCode, new List<MonthlyCost>() } }; // Empty for now
         var salesCostDict = new Dictionary<string, List<MonthlyCost>> { { productCode, salesCosts } };
 
         _materialCostSourceMock
@@ -493,9 +547,9 @@ public class MarginCalculationServiceTests
             .Setup(x => x.GetCostsAsync(It.IsAny<List<string>>(), It.IsAny<DateOnly?>(), It.IsAny<DateOnly?>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(flatManufactureCostDict);
 
-        _directManufactureCostSourceMock
+        _overheadCostSourceMock
             .Setup(x => x.GetCostsAsync(It.IsAny<List<string>>(), It.IsAny<DateOnly?>(), It.IsAny<DateOnly?>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(directManufactureCostDict);
+            .ReturnsAsync(overheadCostDict);
 
         _salesCostSourceMock
             .Setup(x => x.GetCostsAsync(It.IsAny<List<string>>(), It.IsAny<DateOnly?>(), It.IsAny<DateOnly?>(), It.IsAny<CancellationToken>()))

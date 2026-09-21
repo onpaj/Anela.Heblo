@@ -19846,6 +19846,7 @@ export class MarginHistoryDto implements IMarginHistoryDto {
     m0?: MarginLevelDto;
     m1?: MarginLevelDto;
     m2?: MarginLevelDto;
+    m3?: MarginLevelDto;
 
     constructor(data?: IMarginHistoryDto) {
         if (data) {
@@ -19864,6 +19865,7 @@ export class MarginHistoryDto implements IMarginHistoryDto {
             this.m0 = _data["m0"] ? MarginLevelDto.fromJS(_data["m0"]) : <any>undefined;
             this.m1 = _data["m1"] ? MarginLevelDto.fromJS(_data["m1"]) : <any>undefined;
             this.m2 = _data["m2"] ? MarginLevelDto.fromJS(_data["m2"]) : <any>undefined;
+            this.m3 = _data["m3"] ? MarginLevelDto.fromJS(_data["m3"]) : <any>undefined;
         }
     }
 
@@ -19882,6 +19884,7 @@ export class MarginHistoryDto implements IMarginHistoryDto {
         data["m0"] = this.m0 ? this.m0.toJSON() : <any>undefined;
         data["m1"] = this.m1 ? this.m1.toJSON() : <any>undefined;
         data["m2"] = this.m2 ? this.m2.toJSON() : <any>undefined;
+        data["m3"] = this.m3 ? this.m3.toJSON() : <any>undefined;
         return data;
     }
 }
@@ -19893,6 +19896,7 @@ export interface IMarginHistoryDto {
     m0?: MarginLevelDto;
     m1?: MarginLevelDto;
     m2?: MarginLevelDto;
+    m3?: MarginLevelDto;
 }
 
 export class MarginLevelDto implements IMarginLevelDto {
@@ -41926,6 +41930,7 @@ export class ProductMarginDto implements IProductMarginDto {
     m0?: MarginLevelDto;
     m1?: MarginLevelDto;
     m2?: MarginLevelDto;
+    m3?: MarginLevelDto;
     monthlyHistory?: MonthlyMarginDto[];
 
     constructor(data?: IProductMarginDto) {
@@ -41948,6 +41953,7 @@ export class ProductMarginDto implements IProductMarginDto {
             this.m0 = _data["m0"] ? MarginLevelDto.fromJS(_data["m0"]) : <any>undefined;
             this.m1 = _data["m1"] ? MarginLevelDto.fromJS(_data["m1"]) : <any>undefined;
             this.m2 = _data["m2"] ? MarginLevelDto.fromJS(_data["m2"]) : <any>undefined;
+            this.m3 = _data["m3"] ? MarginLevelDto.fromJS(_data["m3"]) : <any>undefined;
             if (Array.isArray(_data["monthlyHistory"])) {
                 this.monthlyHistory = [] as any;
                 for (let item of _data["monthlyHistory"])
@@ -41974,6 +41980,7 @@ export class ProductMarginDto implements IProductMarginDto {
         data["m0"] = this.m0 ? this.m0.toJSON() : <any>undefined;
         data["m1"] = this.m1 ? this.m1.toJSON() : <any>undefined;
         data["m2"] = this.m2 ? this.m2.toJSON() : <any>undefined;
+        data["m3"] = this.m3 ? this.m3.toJSON() : <any>undefined;
         if (Array.isArray(this.monthlyHistory)) {
             data["monthlyHistory"] = [];
             for (let item of this.monthlyHistory)
@@ -41993,6 +42000,7 @@ export interface IProductMarginDto {
     m0?: MarginLevelDto;
     m1?: MarginLevelDto;
     m2?: MarginLevelDto;
+    m3?: MarginLevelDto;
     monthlyHistory?: MonthlyMarginDto[];
 }
 
@@ -42001,6 +42009,7 @@ export class MonthlyMarginDto implements IMonthlyMarginDto {
     m0?: MarginLevelDto;
     m1?: MarginLevelDto;
     m2?: MarginLevelDto;
+    m3?: MarginLevelDto;
 
     constructor(data?: IMonthlyMarginDto) {
         if (data) {
@@ -42017,6 +42026,7 @@ export class MonthlyMarginDto implements IMonthlyMarginDto {
             this.m0 = _data["m0"] ? MarginLevelDto.fromJS(_data["m0"]) : <any>undefined;
             this.m1 = _data["m1"] ? MarginLevelDto.fromJS(_data["m1"]) : <any>undefined;
             this.m2 = _data["m2"] ? MarginLevelDto.fromJS(_data["m2"]) : <any>undefined;
+            this.m3 = _data["m3"] ? MarginLevelDto.fromJS(_data["m3"]) : <any>undefined;
         }
     }
 
@@ -42033,6 +42043,7 @@ export class MonthlyMarginDto implements IMonthlyMarginDto {
         data["m0"] = this.m0 ? this.m0.toJSON() : <any>undefined;
         data["m1"] = this.m1 ? this.m1.toJSON() : <any>undefined;
         data["m2"] = this.m2 ? this.m2.toJSON() : <any>undefined;
+        data["m3"] = this.m3 ? this.m3.toJSON() : <any>undefined;
         return data;
     }
 }
@@ -42042,6 +42053,7 @@ export interface IMonthlyMarginDto {
     m0?: MarginLevelDto;
     m1?: MarginLevelDto;
     m2?: MarginLevelDto;
+    m3?: MarginLevelDto;
 }
 
 export class GetPriceDivergenceReportResponse extends BaseResponse implements IGetPriceDivergenceReportResponse {
