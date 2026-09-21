@@ -14,6 +14,11 @@ public class PricingScenarioRepository : IPricingScenarioRepository
 
     public Task<List<PricingScenario>> GetAllAsync(CancellationToken ct = default)
         => _context.PricingScenarios
+            // Items is what GetPricingScenariosHandler counts for EditedProductCount.
+            // AsNoTracking disables navigation fix-up and no lazy-loading proxies are
+            // configured, so without this Include every scenario in the dropdown
+            // reported "(0)" no matter how many rows it actually held.
+            .Include(s => s.Items)
             .AsNoTracking()
             .OrderByDescending(s => s.ModifiedAt)
             .ToListAsync(ct);

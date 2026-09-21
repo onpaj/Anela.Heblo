@@ -33,6 +33,9 @@ const resolvePricingEditErrorMessage = resolveSwaggerErrorMessage;
 const GENERIC_RECALCULATE_FAILURE_TOAST =
   "Přepočet se nezdařil, zkuste to prosím znovu.";
 
+const GENERIC_EXPORT_FAILURE_TOAST =
+  "Export ceníku se nezdařil, zkuste to prosím znovu.";
+
 const PriceAnalysis: React.FC = () => {
   // Filter states - separate input values from applied filters, same shape as
   // ProductMarginsList so the two Finance screens behave consistently.
@@ -208,9 +211,24 @@ const PriceAnalysis: React.FC = () => {
     setIsExporting(true);
     try {
       await exportPricingScenario(rows, activeScenarioName || "aktualni-analyza");
+    } catch {
+      // Without this the ExcelJS/createObjectURL failure escaped as an unhandled
+      // rejection and the click looked like a no-op: no file, no message.
+      toast.error(GENERIC_EXPORT_FAILURE_TOAST);
     } finally {
       setIsExporting(false);
     }
+  };
+
+  // Handed to PricingScenarioBar so a save waits for the edit its own click just
+  // committed (the blur starts a recalculation) instead of persisting the previous
+  // override set. Returns the overrides as of after the queue drains.
+  const resolveOverridesForSave = async (): Promise<IPricingOverrideDto[]> => {
+    const pending = inFlightRequestRef.current;
+    if (pending) {
+      await pending.catch(() => undefined);
+    }
+    return overridesRef.current;
   };
 
   // `rows` prefers `recalculated` over the baseline query, so once the first edit lands
@@ -236,6 +254,17 @@ const PriceAnalysis: React.FC = () => {
       productName: productName || undefined,
       productType: (productType || undefined) as ProductType | undefined,
     };
+
+    // Drain any commit still in flight BEFORE deciding which branch to take. The
+    // decision reads `overridesRef`, which is only populated from a response -- so
+    // during the very first edit's round trip it still reads empty, we took the
+    // "no edits" branch, and that edit's response then re-shadowed the grid with rows
+    // computed against the OLD filter. Unlike a commit, this path is not itself
+    // chained through `inFlightRequestRef`, so it has to wait explicitly.
+    const pending = inFlightRequestRef.current;
+    if (pending) {
+      await pending.catch(() => undefined);
+    }
 
     if (overridesRef.current.length > 0) {
       await performRecalculate((current) => current, undefined, undefined, nextFilter);
@@ -389,6 +418,7 @@ const PriceAnalysis: React.FC = () => {
             productName={filter.productName}
             productType={filter.productType}
             overrides={overrides}
+            resolveOverrides={resolveOverridesForSave}
             onScenarioLoaded={handleScenarioLoaded}
             onScenarioSaved={handleScenarioSaved}
           />

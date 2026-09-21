@@ -364,6 +364,8 @@ const resources = {
         PricingNegativeQuantity: "Množství nesmí být záporné",
         PricingScenarioNotFound: "Scénář nebyl nalezen",
         PricingScenarioNameConflict: "Scénář s tímto názvem už existuje",
+        PricingProductNotInBaseline:
+          "Produkt už v aktuální analýze není, úpravu nelze použít — načtěte analýzu znovu",
 
         // External Service errors
         ExternalServiceError: "Chyba externí služby",

@@ -159,8 +159,12 @@ const PricingGrid: React.FC<PricingGridProps> = ({
               // network-failure revert (see cellResetTokens) remounts this exact
               // cell -- a success or rejection resyncs itself via PricingEditableCell's
               // own value/error-driven effect instead.
+              // An excluded row has no usable baseline, so it is left out of every
+              // total -- editing one changed nothing on screen while still marking the
+              // row edited. Render it read-only instead of offering an input that
+              // cannot affect anything.
               const renderEditable = (field: PricingEditField, value: number | undefined) =>
-                editingDisabled ? (
+                editingDisabled || isExcluded ? (
                   formatReadOnlyValue(field, value)
                 ) : (
                   <PricingEditableCell

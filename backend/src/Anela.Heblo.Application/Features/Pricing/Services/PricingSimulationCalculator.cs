@@ -32,11 +32,23 @@ public class PricingSimulationCalculator : IPricingSimulationCalculator
             var target = baseline.FirstOrDefault(b =>
                 string.Equals(b.ProductCode, edit.ProductCode, StringComparison.OrdinalIgnoreCase));
 
-            if (target is not null)
+            // An edit naming a product the baseline does not contain used to be dropped
+            // while still returning success -- the client cleared the cell's error and
+            // resynced it to the old value, so the user's edit just vanished. Reject it
+            // so the cell can say why (stale filter, product gone from the catalogue).
+            if (target is null)
             {
-                overrideByCode.TryGetValue(edit.ProductCode, out var existing);
-                overrideByCode[edit.ProductCode] = ApplyEdit(target, existing, edit);
+                throw new PricingEditException(
+                    ErrorCodes.PricingProductNotInBaseline,
+                    new Dictionary<string, string>
+                    {
+                        { "productCode", edit.ProductCode },
+                        { "field", edit.Field.ToString() }
+                    });
             }
+
+            overrideByCode.TryGetValue(edit.ProductCode, out var existing);
+            overrideByCode[edit.ProductCode] = ApplyEdit(target, existing, edit);
         }
 
         var rows = baseline
@@ -56,11 +68,22 @@ public class PricingSimulationCalculator : IPricingSimulationCalculator
     private static PricingOverrideDto ApplyEdit(
         PricingBaselineRow baseline, PricingOverrideDto? existing, PricingEditDto edit)
     {
-        // Start from the row's current effective state, not from the baseline.
-        var price = existing?.Price ?? baseline.Price;
-        var material = existing?.MaterialCost ?? baseline.MaterialCost;
-        var manufacturing = existing?.ManufacturingCost ?? baseline.ManufacturingCost;
-        var quantity = existing?.ForecastQuantity ?? baseline.Quantity;
+        // The override stays SPARSE: a field is pinned only once an edit actually
+        // determines it, and anything still null keeps riding the live baseline via
+        // BuildRow's `over?.X ?? baseline.X`. Densifying it here (writing all four
+        // fields back on every edit) silently froze the untouched ones -- editing only
+        // the forecast quantity pinned that row's price and costs too, so a later
+        // catalogue price change never reached the row even though the scenario
+        // correctly flagged BaselineDrifted.
+        var price = existing?.Price;
+        var material = existing?.MaterialCost;
+        var manufacturing = existing?.ManufacturingCost;
+        var quantity = existing?.ForecastQuantity;
+
+        // Derivations read the row's current EFFECTIVE state (pinned value if there is
+        // one, else the live baseline) without pinning anything by the act of reading.
+        var effectivePrice = price ?? baseline.Price;
+        var effectiveMaterial = material ?? baseline.MaterialCost;
 
         switch (edit.Field)
         {
@@ -70,20 +93,20 @@ public class PricingSimulationCalculator : IPricingSimulationCalculator
 
             case PricingEditField.M0Amount:
                 // M0 = P - Cm  =>  Cm = P - M0. Manufacturing is untouched, so M1 shifts with M0.
-                material = price - edit.Value;
+                material = effectivePrice - edit.Value;
                 break;
 
             case PricingEditField.M0Percentage:
-                material = price - (price * edit.Value / 100m);
+                material = effectivePrice - (effectivePrice * edit.Value / 100m);
                 break;
 
             case PricingEditField.M1Amount:
                 // M1 = P - Cm - Cf  =>  Cf = (P - Cm) - M1. Material is untouched, so M0 holds.
-                manufacturing = (price - material) - edit.Value;
+                manufacturing = (effectivePrice - effectiveMaterial) - edit.Value;
                 break;
 
             case PricingEditField.M1Percentage:
-                manufacturing = (price - material) - (price * edit.Value / 100m);
+                manufacturing = (effectivePrice - effectiveMaterial) - (effectivePrice * edit.Value / 100m);
                 break;
 
             case PricingEditField.ForecastQuantity:
@@ -91,7 +114,14 @@ public class PricingSimulationCalculator : IPricingSimulationCalculator
                 break;
         }
 
-        Validate(edit, price, material, manufacturing, quantity);
+        // Validation needs the concrete row the edit implies, so resolve against the
+        // baseline here -- without writing those fallbacks back into the override.
+        Validate(
+            edit,
+            price ?? baseline.Price,
+            material ?? baseline.MaterialCost,
+            manufacturing ?? baseline.ManufacturingCost,
+            quantity ?? baseline.Quantity);
 
         return new PricingOverrideDto
         {
@@ -205,7 +235,11 @@ public class PricingSimulationCalculator : IPricingSimulationCalculator
             M1Delta = m1After - m1Before,
             M1DeltaPercentage = Percentage(m1After - m1Before, m1Before),
 
-            EditedProductCount = rows.Count(r => r.IsEdited),
+            // Counted over the same population as every other total (`counted`, i.e.
+            // rows with data). Counting edits on excluded rows here read "1 produkt
+            // upraven" next to six deltas of zero, since an excluded row contributes
+            // to none of them.
+            EditedProductCount = counted.Count(r => r.IsEdited),
             ExcludedProductCount = rows.Count(r => r.IsExcluded)
         };
     }

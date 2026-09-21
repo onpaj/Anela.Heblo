@@ -504,6 +504,8 @@ public enum ErrorCodes
     PricingScenarioNotFound = 3805,
     [HttpStatusCode(HttpStatusCode.Conflict)]
     PricingScenarioNameConflict = 3806,
+    [HttpStatusCode(HttpStatusCode.BadRequest)]
+    PricingProductNotInBaseline = 3807,
 
     // External Service errors (90XX)
     [HttpStatusCode(HttpStatusCode.ServiceUnavailable)]

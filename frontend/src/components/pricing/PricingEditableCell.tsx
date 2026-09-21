@@ -94,7 +94,14 @@ const PricingEditableCell: React.FC<PricingEditableCellProps> = ({
     }
 
     const baseline = value ?? null;
-    if (parsed === baseline || parsed === sentRef.current) {
+    // Compare against the ROUNDED baseline too, not just the raw one. The draft the
+    // user sees is `formatDraftValue(value)` -- 2 decimals -- so typing a digit into a
+    // cell showing "64.93" and backspacing it leaves a draft that is dirty and differs
+    // from the full-precision 64.92985971943888 behind it. That posted an edit, flagged
+    // the row as edited and pulled it into the export, from a gesture that changed nothing.
+    const displayedBaseline =
+      baseline === null ? null : Number(baseline.toFixed(MAX_DRAFT_DECIMALS));
+    if (parsed === baseline || parsed === displayedBaseline || parsed === sentRef.current) {
       return;
     }
 

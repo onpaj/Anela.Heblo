@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { Save, Trash2, FolderOpen } from "lucide-react";
 import {
   usePricingScenariosQuery,
@@ -14,6 +14,7 @@ import {
   ProductType,
 } from "../../api/generated/api-client";
 import { resolveSwaggerErrorMessage } from "../../utils/errorHandler";
+import { usePermissionsContext } from "../../auth/PermissionsContext";
 
 export interface PricingScenarioBarProps {
   productCode?: string;
@@ -21,6 +22,11 @@ export interface PricingScenarioBarProps {
   productType?: ProductType;
   // The currently effective overrides -- what gets saved when the user clicks Uložit.
   overrides: IPricingOverrideDto[];
+  // Settles any recalculation still in flight and returns the overrides as of AFTER it
+  // landed. Clicking Uložit blurs the cell being edited, which STARTS a recalculation --
+  // so the `overrides` prop captured at click time is a render behind and would persist
+  // the scenario without the edit the user just made. When omitted, `overrides` is used.
+  resolveOverrides?: () => Promise<IPricingOverrideDto[]>;
   // Fired once a scenario's detail has loaded, with everything needed to replace the
   // grid's rows/totals/overrides wholesale (the server's overrides array is
   // authoritative -- the caller must never hand-merge it).
@@ -36,15 +42,21 @@ export interface PricingScenarioBarProps {
 
 const GENERIC_SAVE_FAILURE = "Scénář se nepodařilo uložit, zkuste to prosím znovu.";
 const GENERIC_DELETE_FAILURE = "Scénář se nepodařilo smazat, zkuste to prosím znovu.";
+const EMPTY_NAME_MESSAGE = "Zadejte název scénáře.";
+const READ_ONLY_TITLE = "Nemáte oprávnění k úpravě scénářů.";
 
 const PricingScenarioBar: React.FC<PricingScenarioBarProps> = ({
   productCode,
   productName,
   productType,
   overrides,
+  resolveOverrides,
   onScenarioLoaded,
   onScenarioSaved,
 }) => {
+  const { hasPermission, isLoading: permissionsLoading } = usePermissionsContext();
+  const canWrite = !permissionsLoading && hasPermission("finance.price_analysis.write");
+
   const [selectedId, setSelectedId] = useState("");
   const [nameInput, setNameInput] = useState("");
   const [saveError, setSaveError] = useState<string | undefined>(undefined);
@@ -61,10 +73,22 @@ const PricingScenarioBar: React.FC<PricingScenarioBarProps> = ({
   // Loading a scenario replaces rows/totals/overrides wholesale in the parent (see
   // PriceAnalysis.handleScenarioLoaded) -- this effect only fires the callback once
   // per newly-selected scenario's data landing, it never merges anything itself.
+  //
+  // Guarded by a ref rather than by the dep array alone: `data` is a NEW object on every
+  // refetch, and a refetch happens without the user selecting anything -- react-query's
+  // default focus refetch once `staleTime` (5 min, App.tsx) has passed, and our own
+  // save/delete invalidation, whose `["pricing-scenarios"]` key prefix-matches the
+  // `["pricing-scenarios", id]` detail query. Re-firing there replayed the SAVED snapshot
+  // over the grid and silently discarded every edit made since the load.
+  const appliedScenarioIdRef = useRef<string | null>(null);
   useEffect(() => {
     if (!selectedId || !scenarioDetailQuery.data?.scenario) {
       return;
     }
+    if (appliedScenarioIdRef.current === selectedId) {
+      return;
+    }
+    appliedScenarioIdRef.current = selectedId;
     const { scenario, rows, totals, overrides: loadedOverrides } = scenarioDetailQuery.data;
     setNameInput(scenario.name ?? "");
     onScenarioLoaded(scenario, rows ?? [], totals, loadedOverrides ?? []);
@@ -74,6 +98,9 @@ const PricingScenarioBar: React.FC<PricingScenarioBarProps> = ({
   }, [selectedId, scenarioDetailQuery.data]);
 
   const handleSelectScenario = (id: string) => {
+    // An explicit pick from the dropdown is the one gesture that MAY replace the grid,
+    // so clear the guard and let the effect apply this scenario's data when it lands.
+    appliedScenarioIdRef.current = null;
     setSelectedId(id);
     setShowDeleteConfirm(false);
     setSaveError(undefined);
@@ -83,20 +110,28 @@ const PricingScenarioBar: React.FC<PricingScenarioBarProps> = ({
   const handleSave = async () => {
     const trimmedName = nameInput.trim();
     if (!trimmedName) {
-      // Blocked client-side -- no request fired for an empty/whitespace-only name.
+      // Blocked client-side -- no request fired for an empty/whitespace-only name. Say so:
+      // returning silently left the user clicking a live button with nothing happening.
+      setSaveError(EMPTY_NAME_MESSAGE);
       return;
     }
     setSaveError(undefined);
     try {
+      // Settle any recalculation still in flight first, so the edit that this very click
+      // committed (blurring the cell starts the request) is part of what gets persisted.
+      const effectiveOverrides = resolveOverrides ? await resolveOverrides() : overrides;
       const response = await saveMutation.mutateAsync({
         id: selectedId || undefined,
         name: trimmedName,
         productCode,
         productName,
         productType,
-        overrides,
+        overrides: effectiveOverrides,
       });
       if (response.id) {
+        // Saving does not re-load the grid -- mark this id applied so the invalidation
+        // that follows cannot replay the server snapshot over the user's live edits.
+        appliedScenarioIdRef.current = response.id;
         setSelectedId(response.id);
       }
       onScenarioSaved?.(trimmedName);
@@ -153,7 +188,8 @@ const PricingScenarioBar: React.FC<PricingScenarioBarProps> = ({
           type="button"
           data-testid="pricing-scenario-save"
           onClick={handleSave}
-          disabled={saveMutation.isPending}
+          disabled={saveMutation.isPending || !canWrite}
+          title={canWrite ? undefined : READ_ONLY_TITLE}
           className="inline-flex items-center gap-1 bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-300 text-white font-medium py-2 px-3 rounded-md transition-colors duration-200 text-sm"
         >
           <Save className="h-4 w-4" />
@@ -165,7 +201,8 @@ const PricingScenarioBar: React.FC<PricingScenarioBarProps> = ({
             type="button"
             data-testid="pricing-scenario-delete"
             onClick={() => setShowDeleteConfirm(true)}
-            disabled={!selectedId}
+            disabled={!selectedId || !canWrite}
+            title={canWrite ? undefined : READ_ONLY_TITLE}
             className="inline-flex items-center gap-1 text-sm font-medium text-red-600 hover:text-red-700 disabled:text-gray-400 disabled:cursor-not-allowed dark:text-red-400 dark:hover:text-red-300 dark:disabled:text-graphite-faint"
           >
             <Trash2 className="h-4 w-4" />
