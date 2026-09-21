@@ -50,10 +50,20 @@ public sealed class CatalogCacheStore
     /// before one of these has ever loaded yields aggregates with silently empty history (an empty
     /// SalesHistory zeroes every product's M2 sales cost, for instance), so such a merge must not be
     /// granted the CacheValidityPeriod stamp - consumers would treat it as authoritative for hours.
-    /// Decorative sources (prices, URLs, attributes, lots) are deliberately absent: gating on those
-    /// would keep the cache permanently invalid and re-merge on every read.
+    /// Decorative sources (prices, URLs, attributes, lots) are deliberately absent: they change no
+    /// computed figure, so gating on them would only widen the window in which the cache is unstamped.
+    ///
+    /// CachedConsumedData is the deliberate borderline case. It loads on the same pattern as the
+    /// histories below and an empty ConsumedHistory is equally silent, but it feeds only display
+    /// (GetCatalogDetail, GetProductStatistics) and purchase-planning consumption rates
+    /// (PurchaseMaterialCatalogAdapter.GetConsumed) - no cost pool. It is left out to keep this
+    /// guard scoped to the costing bug it was added for; widening it to purchase planning is a
+    /// separate, deliberate decision.
+    ///
+    /// Every source listed here must be a tier 1 refresh task (see CatalogModule), or the cost
+    /// providers in tier 2 would read an unstamped cache that this guard then refuses to re-merge.
     /// </summary>
-    private static readonly string[] RequiredSourceKeys =
+    private static readonly IReadOnlyList<string> RequiredSourceKeys = new[]
     {
         CachedErpStockDataKey,
         CachedSalesDataKey,
