@@ -1,5 +1,10 @@
 # Systém výpočtu marží - Dokumentace
 
+> **Definice hladin pro uživatele** žije v `frontend/public/docs/margin-levels.md`.
+> Ten soubor servíruje aplikace pod otazníkem na stránce Marže produktů, takže je
+> to jediná kopie — needitovat sem druhou. Tento dokument popisuje architekturu,
+> ten popisuje význam čísel.
+
 ## 📊 Přehled
 
 Anela Heblo implementuje tříúrovňový systém výpočtu marží (M0-M2) s detailním sledováním nákladů. Každá úroveň postupně přidává další nákladové kategorie pro komplexní analýzu ziskovosti produktů.

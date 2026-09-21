@@ -134,13 +134,19 @@ public class CostPoolSalesCostParityTests
             Entry(date, "VYROBA", 100_000m),
             Entry(date, "CENTRALA", 500_000m),
             Entry(date, "ESHOP", 250_000m),
-            // 52x is in scope and must be counted...
+            // BUVOL is a separate activity, not Anela overhead - excluded outright.
+            Entry(date, "BUVOL", 344_911m),
+            Entry(date, "BUVOL", 449_000m, debitAccountNumber: "521100"),
+            // 52x is in scope everywhere and must be counted...
             Entry(date, "CENTRALA", 20_000m, debitAccountNumber: "521100"),
-            // ...while 6xx and 501 are out of scope and must not be, which is
-            // what makes this an "on accounts 51+52" invariant rather than
-            // "whatever the ledger happened to hand back".
+            // ...6xx is out of scope everywhere and must not be...
             Entry(date, "CENTRALA", 999_999m, debitAccountNumber: "601000"),
+            // ...and 50x counts only inside M2, where it is packaging and print.
+            // In CENTRALA the same prefix is cost of goods sold, which is an
+            // order of magnitude larger than every pool combined, so letting it
+            // fall into the M3 catch-all would swamp the overhead total.
             Entry(date, "SKLAD", 888_888m, debitAccountNumber: "501100"),
+            Entry(date, "CENTRALA", 777_777m, debitAccountNumber: "501100"),
         };
         var poolCacheMock = new Mock<ICostPoolCache>();
         poolCacheMock.Setup(c => c.GetCachedDataAsync(It.IsAny<CancellationToken>()))
@@ -158,11 +164,91 @@ public class CostPoolSalesCostParityTests
             DateOnly.FromDateTime(DateTime.UtcNow));
 
         // Assert - 770 000 of this was invisible to the system before this feature.
-        // The 601000 and 501100 entries are excluded by the 51+52 prefix filter,
-        // so they appear in neither the total nor any individual pool.
-        pools.Sum(p => p.Amount).Should().Be(970_000m);
+        // 601000 is out of scope for every pool; 501100 counts in SKLAD (M2) but
+        // not in CENTRALA, so neither the total nor M3 carries the 777 777; and
+        // BUVOL reaches no pool at all despite being on in-scope accounts.
+        pools.Sum(p => p.Amount).Should().Be(1_858_888m);
         pools.Where(p => p.Pool == CostPool.M3).Sum(p => p.Amount).Should().Be(770_000m);
-        pools.Where(p => p.Pool == CostPool.M2).Sum(p => p.Amount).Should().Be(100_000m);
+        pools.Where(p => p.Pool == CostPool.M2).Sum(p => p.Amount).Should().Be(988_888m);
         pools.Where(p => p.Pool == CostPool.M1).Sum(p => p.Amount).Should().Be(100_000m);
+    }
+
+    [Fact]
+    public async Task M2PoolAndPerPieceCost_BothIncludeConsumablesBookedInWarehouseAndMarketing()
+    {
+        // Arrange - 501 in SKLAD is shipping packaging (cartons, printed tape) and
+        // 504 in MARKETING is print; both are fulfilment/marketing spend and belong
+        // in M2. The same prefix in CENTRALA is cost of goods sold and must not
+        // reach any pool.
+        var saleDate = DateTime.UtcNow.Date.AddDays(-10);
+        var entries = new List<LedgerItem>
+        {
+            Entry(saleDate, "SKLAD", 30_000m),
+            Entry(saleDate, "SKLAD", 4_000m, debitAccountNumber: "501001"),
+            Entry(saleDate, "MARKETING", 70_000m),
+            Entry(saleDate, "MARKETING", 1_000m, debitAccountNumber: "504001"),
+            Entry(saleDate, "VYROBA", 90_000m, debitAccountNumber: "501001"),
+            Entry(saleDate, "CENTRALA", 500_000m, debitAccountNumber: "501001"),
+        };
+        var ledger = new FakeLedgerService(entries);
+
+        var product = new CatalogAggregate
+        {
+            ProductCode = "PROD-1",
+            SalesHistory = new List<CatalogSaleRecord>
+            {
+                new() { Date = saleDate, ProductCode = "PROD-1", ProductName = "PROD-1", AmountTotal = 1 }
+            }
+        };
+
+        var repoMock = new Mock<ICatalogRepository>();
+        repoMock.Setup(r => r.GetAllAsync(It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new List<CatalogAggregate> { product });
+        repoMock.Setup(r => r.WaitForCurrentMergeAsync(It.IsAny<CancellationToken>()))
+                .Returns(Task.CompletedTask);
+
+        var serviceProviderMock = new Mock<IServiceProvider>();
+        serviceProviderMock.Setup(sp => sp.GetService(typeof(ICatalogRepository)))
+                           .Returns(repoMock.Object);
+
+        CostCacheData? salesCosts = null;
+        var salesCacheMock = new Mock<ISalesCostCache>();
+        salesCacheMock.Setup(c => c.SetCachedDataAsync(It.IsAny<CostCacheData>(), It.IsAny<CancellationToken>()))
+                      .Callback<CostCacheData, CancellationToken>((d, _) => salesCosts = d)
+                      .Returns(Task.CompletedTask);
+
+        var options = Options.Create(new DataSourceOptions { ManufactureCostHistoryDays = HistoryDays });
+
+        var salesProvider = new SalesCostProvider(
+            salesCacheMock.Object,
+            serviceProviderMock.Object,
+            ledger,
+            new Mock<ILogger<SalesCostProvider>>().Object,
+            options);
+
+        var poolCacheMock = new Mock<ICostPoolCache>();
+        poolCacheMock.Setup(c => c.GetCachedDataAsync(It.IsAny<CancellationToken>()))
+                     .ReturnsAsync(CostPoolCacheData.Empty());
+
+        var poolService = new CostPoolService(
+            poolCacheMock.Object,
+            ledger,
+            new Mock<ILogger<CostPoolService>>().Object,
+            options);
+
+        // Act
+        await salesProvider.RefreshAsync();
+        var pools = await poolService.GetMonthlyPoolsAsync(
+            DateOnly.FromDateTime(DateTime.UtcNow.AddDays(-HistoryDays)),
+            DateOnly.FromDateTime(DateTime.UtcNow));
+
+        // Assert
+        salesCosts.Should().NotBeNull();
+        var salesCostPerPiece = salesCosts!.ProductCosts["PROD-1"].First().Cost;
+
+        salesCostPerPiece.Should().Be(105_000m);
+        pools.Where(p => p.Pool == CostPool.M2).Sum(p => p.Amount).Should().Be(105_000m);
+        pools.Where(p => p.Pool == CostPool.M1).Sum(p => p.Amount).Should().Be(0m);
+        pools.Where(p => p.Pool == CostPool.M3).Sum(p => p.Amount).Should().Be(0m);
     }
 }

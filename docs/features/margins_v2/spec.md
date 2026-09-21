@@ -27,9 +27,9 @@ Systém sleduje vícenákladové úrovně pro každý produkt s odpovídajícím
 | Úroveň | Interface | Implementace | Cache Service | Zdroj dat |
 |--------|-----------|--------------|---------------|-----------|
 | M0 | `IMaterialCostSource` | `PurchasePriceOnlyMaterialCostSource` | `IMaterialCostCache` | Purchase history / BoM |
-| M1 | `IFlatManufactureCostSource` | `ManufactureCostSource` | `IFlatManufactureCostCache` | `ILedgerService` (VYROBA) |
-| M3 | `IOverheadCostProvider` | `OverheadCostProvider` | `IOverheadCostCache` | `ICostPoolService` (CostPool.M3) |
-| M2 | `ISalesCostSource` | `SalesCostSource` | `ISalesCostCache` | `ILedgerService` (SKLAD + MARKETING) |
+| M1 | `IFlatManufactureCostSource` | `ManufactureCostSource` | `IFlatManufactureCostCache` | `ILedgerService` (VYROBA, účty 51/52) |
+| M2 | `ISalesCostSource` | `SalesCostSource` | `ISalesCostCache` | `ILedgerService` (SKLAD + MARKETING, účty 50/51/52) |
+| M3 | `IOverheadCostProvider` | `OverheadCostProvider` | `IOverheadCostCache` | `ICostPoolService` (CostPool.M3, účty 51/52) |
 
 **Poznámka:** Všechny cost sources využívají cache vrstvu pro optimalizaci náročných dotazů na ledger data.
 
@@ -105,9 +105,13 @@ Krok 5: Náklad M1 pro daný produkt (průměr za období)
 **Účel:** Náklady na skladování a marketing alokované podle podílu na celkovém prodeji.
 
 **Zdroj dat:**
-- **Náklady:**
-  - `ILedgerService.GetDirectCosts(dateFrom, dateTo, department: "SKLAD")`
-  - `ILedgerService.GetDirectCosts(dateFrom, dateTo, department: "MARKETING")`
+- **Náklady** (účty `50`, `51`, `52` — `CostPoolDefinition.AccountPrefixesFor(CostPool.M2)`):
+  - `ILedgerService.GetCosts(dateFrom, dateTo, prefixy, department: "SKLAD")`
+  - `ILedgerService.GetCosts(dateFrom, dateTo, prefixy, department: "MARKETING")`
+
+  Ne `GetDirectCosts` (jen 51+52): v těchto střediscích je na 50x expediční obalový
+  materiál a marketingový tisk, a ten do M2 patří. V centrále je stejná předvolba
+  naopak prodané zboží, proto se rozsah účtů řídí poolem, ne globálním nastavením.
 - **Prodeje:** `SalesHistory` z `CatalogAggregate`
 
 **Algoritmus:**
@@ -154,14 +158,25 @@ Krok 4: Rozpočítat náklady na produkt
 ### 2.4 M3 - Režie
 
 **Účel:** Zbývající přímé náklady společnosti (účty 51+52), které nepatří do žádného
-z předchozích poolů — centrála, režie a jakékoli nezařazené středisko.
+z předchozích poolů — centrála, režie a jakékoli nezařazené středisko. Účty 50x sem
+nepatří (viz níže).
 
 **Zdroj dat:**
 - **Náklady:** `ICostPoolService.GetMonthlyPoolsAsync(from, to)`, pouze `CostPool.M3`
 - **Prodeje:** `SalesHistory` z `CatalogAggregate` (stejný jmenovatel jako M2)
 
 `CostPool.M3` je záměrně catch-all: středisko přidané ve FlexiBee spadne sem místo toho,
-aby zmizelo, a součet M1+M2+M3 vždy odpovídá celé účetní knize za období.
+aby zmizelo.
+
+**Součet M1+M2+M3 ale neodpovídá celé účetní knize.** Mimo pooly zůstává:
+
+- **BUVOL** — samostatná činnost, která není režií Anely, vyloučená ze všech poolů,
+- **účty 50x mimo SKLAD/MARKETING** — v centrále je to prodané zboží, řádově víc než
+  všechny pooly dohromady; do M3 patřit nesmí.
+
+Rozsah účtů je proto **per pool** (`CostPoolDefinition.AccountPrefixesFor`), ne globální,
+a položky se řadí přes `CostPoolDefinition.Resolve(department, account)`, které vrací
+`null` pro položku, která nepatří nikam.
 
 **Algoritmus:**
 

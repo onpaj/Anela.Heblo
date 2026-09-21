@@ -8,6 +8,14 @@ import * as useProductMarginsHook from "../../../api/hooks/useProductMargins";
 
 // Mock the hooks
 jest.mock("../../../api/hooks/useProductMargins");
+// Only this suite opens the help sheet, so only this suite resolves its lazy
+// chunk and needs react-markdown's ESM stubbed. That is what the lazy() in
+// ProductMarginsList buys - every other suite keeps it out of its module graph.
+jest.mock("react-markdown", () => ({
+  __esModule: true,
+  default: ({ children }: { children: string }) => <div data-testid="markdown">{children}</div>,
+}));
+jest.mock("remark-gfm", () => ({ __esModule: true, default: () => {} }));
 jest.mock("../CatalogDetail", () => {
   return function MockCatalogDetail({ isOpen, onClose, productCode }: any) {
     return isOpen ? (
@@ -404,5 +412,40 @@ describe("ProductMarginsList", () => {
 
     // Check pagination info is shown
     expect(screen.getByText(/1-2 z 2/)).toBeInTheDocument();
+  });
+
+  it("opens the margin levels help sheet from the question mark and closes it again", async () => {
+    // Arrange
+    const user = userEvent.setup();
+    mockUseProductMargins.mockReturnValue({
+      data: mockData,
+      isLoading: false,
+      error: null,
+      refetch: jest.fn(),
+    } as any);
+    global.fetch = jest.fn(async () => ({
+      ok: true,
+      headers: new Headers({ "content-type": "text/markdown" }),
+      text: async () => "# Hladiny marže",
+    })) as unknown as typeof fetch;
+
+    render(<ProductMarginsList />, { wrapper: createWrapper() });
+
+    // Act - the sheet is lazy, so it resolves asynchronously
+    await user.click(
+      screen.getByRole("button", { name: "Hladiny marže — nápověda", exact: true }),
+    );
+
+    // Assert
+    const sheet = await screen.findByTestId("margin-levels-help-sheet");
+    expect(sheet).toBeInTheDocument();
+
+    // Act - closing clears the state rather than only hiding the sheet
+    await user.click(await screen.findByLabelText("Zavřít"));
+
+    // Assert
+    await waitFor(() =>
+      expect(screen.queryByTestId("margin-levels-help-sheet")).not.toBeInTheDocument(),
+    );
   });
 });

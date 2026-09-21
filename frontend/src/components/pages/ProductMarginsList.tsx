@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { Suspense, lazy, useState } from "react";
 import {
   Search,
   Filter,
@@ -8,11 +8,18 @@ import {
   ChevronDown,
   ChevronLeft,
   ChevronRight,
+  HelpCircle,
 } from "lucide-react";
 import { useProductMarginsQuery } from "../../api/hooks/useProductMargins";
 import CatalogDetail from "./CatalogDetail";
 import { PAGE_CONTAINER_HEIGHT } from "../../constants/layout";
 import { useScreenView } from '../../telemetry/useScreenView';
+
+// Lazy: keeps react-markdown + remark-gfm out of the module graph of every test
+// that renders this page - they are ESM and each suite would otherwise need its
+// own stub. It saves nothing in the bundle (both are already eager via
+// MeetingTaskDetailPage); the test graph is the whole point.
+const MarginLevelsHelpSheet = lazy(() => import("../margins/MarginLevelsHelpSheet"));
 
 const ProductMarginsList: React.FC = () => {
   // Filter states - separate input values from applied filters
@@ -36,6 +43,7 @@ const ProductMarginsList: React.FC = () => {
     null,
   );
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+  const [isHelpOpen, setIsHelpOpen] = useState(false);
 
   useScreenView('Catalog', 'ProductMargins');
 
@@ -249,8 +257,25 @@ const ProductMarginsList: React.FC = () => {
     >
       {/* Header - Fixed */}
       <div className="flex-shrink-0 mb-3">
-        <h1 className="text-lg font-semibold text-gray-900 dark:text-graphite-text">Marže produktů</h1>
+        <div className="flex items-center gap-2">
+          <h1 className="text-lg font-semibold text-gray-900 dark:text-graphite-text">Marže produktů</h1>
+          <button
+            type="button"
+            onClick={() => setIsHelpOpen(true)}
+            aria-label="Hladiny marže — nápověda"
+            title="Hladiny marže — nápověda"
+            className="text-gray-400 hover:text-gray-600 dark:text-graphite-faint dark:hover:text-graphite-muted"
+          >
+            <HelpCircle className="h-4 w-4" />
+          </button>
+        </div>
       </div>
+
+      {isHelpOpen && (
+        <Suspense fallback={<div className="fixed inset-0 z-50 bg-black/40" />}>
+          <MarginLevelsHelpSheet onClose={() => setIsHelpOpen(false)} />
+        </Suspense>
+      )}
 
       {/* Filters - Fixed */}
       <div className="flex-shrink-0 bg-white dark:bg-graphite-surface shadow dark:shadow-soft-dark rounded-lg p-4 mb-4">
