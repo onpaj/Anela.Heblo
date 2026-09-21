@@ -22,7 +22,7 @@
     },
     "developing": {
       "status": "in_progress",
-      "updated_at": "2026-09-21T07:16:45.689149Z"
+      "updated_at": "2026-09-21T08:16:17.931599Z"
     }
   },
   "tasks": [
@@ -40,9 +40,9 @@
     },
     {
       "name": "import-mapper-isalldy",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-09-21T08:16:18.178974Z"
     },
     {
       "name": "export-service-isalldy",
