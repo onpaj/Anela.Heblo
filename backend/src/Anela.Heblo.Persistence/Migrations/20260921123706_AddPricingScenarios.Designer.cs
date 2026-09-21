@@ -12,7 +12,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Anela.Heblo.Persistence.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20260921181237_AddPricingScenarios")]
+    [Migration("20260921123706_AddPricingScenarios")]
     partial class AddPricingScenarios
     {
         /// <inheritdoc />
