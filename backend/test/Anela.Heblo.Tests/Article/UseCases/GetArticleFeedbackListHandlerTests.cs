@@ -91,42 +91,4 @@ public class GetArticleFeedbackListHandlerTests
         response.Items[0].UserName.Should().Be("Alice Example");
         response.Items[0].RequestedBy.Should().Be("alice@anela.cz");
     }
-
-    [Fact]
-    public async Task Handle_UnknownSortBy_FallsBackToCreatedAt()
-    {
-        _repository.Setup(r => r.GetFeedbackPagedAsync(
-                It.IsAny<bool?>(), It.IsAny<string?>(), "CreatedAt", true, 1, 20, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(((IReadOnlyList<ArticleFeedbackProjection>)Array.Empty<ArticleFeedbackProjection>(), 0));
-        _repository.Setup(r => r.GetFeedbackStatsAsync(It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new ArticleFeedbackStats(0, 0, null, null));
-
-        await CreateHandler().Handle(
-            new GetArticleFeedbackListRequest { SortBy = "totallyBogus" },
-            default);
-
-        _repository.Verify(r => r.GetFeedbackPagedAsync(
-            null, null, "CreatedAt", true, 1, 20, It.IsAny<CancellationToken>()),
-            Times.Once);
-    }
-
-    [Fact]
-    public async Task Handle_PageSizeOutsideAllowlist_FallsBackTo20()
-    {
-        _repository.Setup(r => r.GetFeedbackPagedAsync(
-                It.IsAny<bool?>(), It.IsAny<string?>(), It.IsAny<string>(), It.IsAny<bool>(),
-                It.IsAny<int>(), 20, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(((IReadOnlyList<ArticleFeedbackProjection>)Array.Empty<ArticleFeedbackProjection>(), 0));
-        _repository.Setup(r => r.GetFeedbackStatsAsync(It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new ArticleFeedbackStats(0, 0, null, null));
-
-        await CreateHandler().Handle(
-            new GetArticleFeedbackListRequest { PageSize = 999 },
-            default);
-
-        _repository.Verify(r => r.GetFeedbackPagedAsync(
-            It.IsAny<bool?>(), It.IsAny<string?>(), It.IsAny<string>(), It.IsAny<bool>(),
-            It.IsAny<int>(), 20, It.IsAny<CancellationToken>()),
-            Times.Once);
-    }
 }

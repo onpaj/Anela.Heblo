@@ -76,23 +76,10 @@ public sealed class ArticlesController : BaseApiController
     [HttpGet("feedback/list")]
     [FeatureAuthorize(Feature.Marketing_Article, AccessLevel.Write)]
     public async Task<ActionResult<GetArticleFeedbackListResponse>> FeedbackList(
-        [FromQuery] bool? hasFeedback = null,
-        [FromQuery] string? requestedBy = null,
-        [FromQuery] string sortBy = "CreatedAt",
-        [FromQuery] bool sortDescending = true,
-        [FromQuery] int page = 1,
-        [FromQuery] int pageSize = 20,
+        [FromQuery] GetArticleFeedbackListRequest request,
         CancellationToken ct = default)
     {
-        var result = await _mediator.Send(new GetArticleFeedbackListRequest
-        {
-            HasFeedback = hasFeedback,
-            RequestedBy = requestedBy,
-            SortBy = sortBy,
-            SortDescending = sortDescending,
-            Page = page,
-            PageSize = pageSize,
-        }, ct);
+        var result = await _mediator.Send(request, ct);
         return HandleResponse(result);
     }
 
