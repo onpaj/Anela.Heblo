@@ -47,6 +47,16 @@ public sealed class CatalogRepository : ICatalogRepository
         if (current != null && _cacheStore.IsCacheValid())
             return current;
 
+        // Merging again cannot repair a cache whose required sources have still never loaded - it
+        // would read the same empty sources and produce the same aggregate, so a priority merge per
+        // read would be pure cost. Serve what we have; loading a source schedules the merge that
+        // restores validity on its own.
+        if (current != null && !_cacheStore.AreRequiredSourcesLoaded())
+        {
+            _logger.LogDebug("Serving unstamped catalog data - required sources have not loaded yet, so a merge cannot improve it");
+            return current;
+        }
+
         if (_cacheOptions.Value.AllowStaleDataDuringMerge && _mergeScheduler.IsMergeInProgress)
         {
             var stale = _cacheStore.TryGetStale();
