@@ -21,16 +21,16 @@
       "updated_at": "2026-09-21T06:31:42.916936Z"
     },
     "developing": {
-      "status": "pending",
-      "updated_at": null
+      "status": "in_progress",
+      "updated_at": "2026-09-21T07:24:57.628535Z"
     }
   },
   "tasks": [
     {
       "name": "list-articles-boundary-validation",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-09-21T07:24:57.848495Z"
     },
     {
       "name": "feedback-list-boundary-validation",
