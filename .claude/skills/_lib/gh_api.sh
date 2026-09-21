@@ -148,23 +148,33 @@ req_paginate() {
   # req_paginate METHOD PATH — follows Link: rel="next", concatenates JSON
   # array pages into one array. Used where `gh api --paginate` is used today
   # (issue/PR comment lists that can exceed one page).
+  #
+  # Pages are written straight to temp files and combined with `jq -s add`
+  # reading those files as positional arguments — never passed through
+  # --argjson on the command line. A single page of comments on a
+  # heavily-discussed PR can run past a couple hundred KB, and piping that
+  # through --argjson blew past this environment's effective argv limit
+  # ("Argument list too long" from jq, well under the nominal 2MB ARG_MAX),
+  # aborting the whole script under `set -e`.
   local method="$1" path="$2"
   local url
   url=$(_api_url "$path")
   [[ "$url" == *"?"* ]] && url="${url}&per_page=100" || url="${url}?per_page=100"
-  local all="[]" hdrfile body
+  local hdrfile pagefile
+  local pagefiles=()
   hdrfile=$(mktemp)
   while [[ -n "$url" ]]; do
-    body=$(curl -sS --max-time 30 -X "$method" \
+    pagefile=$(mktemp)
+    pagefiles+=("$pagefile")
+    curl -sS --max-time 30 -X "$method" \
       -H "Authorization: Bearer ${TOKEN}" \
       -H "Accept: application/vnd.github+json" \
       -H "X-GitHub-Api-Version: 2022-11-28" \
-      -D "$hdrfile" "$url")
-    all=$(jq -c -n --argjson a "$all" --argjson b "$body" '$a + $b')
+      -D "$hdrfile" "$url" -o "$pagefile"
     url=$(grep -i '^link:' "$hdrfile" | grep -o '<[^>]*>; rel="next"' | sed -E 's/^<(.*)>.*/\1/' || true)
   done
-  rm -f "$hdrfile"
-  printf '%s' "$all"
+  jq -s -c 'add' "${pagefiles[@]}"
+  rm -f "$hdrfile" "${pagefiles[@]}"
 }
 
 graphql() {
@@ -549,13 +559,22 @@ pr_list() {
   fi
   resp=$(req GET "/repos/${REPO}/issues?state=${state}${label_query}&per_page=100")
   numbers=$(emit "$resp" | jq -r '[.[] | select(has("pull_request"))] | .[].number')
-  out="[]"
+  # Same reasoning as req_paginate: accumulate via temp files + `jq -s`
+  # rather than --argjson, since concatenating many/large PR objects on the
+  # command line can exceed this environment's effective argv limit.
+  local entryfiles=()
   for n in $numbers; do
-    local entry
-    entry=$(pr_view "$n" "reviewDecision")
-    out=$(jq -c -n --argjson a "$out" --argjson e "$entry" '$a + [$e]')
+    local entryfile
+    entryfile=$(mktemp)
+    entryfiles+=("$entryfile")
+    pr_view "$n" "reviewDecision" > "$entryfile"
   done
-  echo "$out"
+  if [[ "${#entryfiles[@]}" -eq 0 ]]; then
+    echo "[]"
+  else
+    jq -s -c '.' "${entryfiles[@]}"
+    rm -f "${entryfiles[@]}"
+  fi
 }
 
 # ---- repo commands ------------------------------------------------------------
