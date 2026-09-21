@@ -1,5 +1,5 @@
 import React, { useRef, useState } from "react";
-import { Search, Filter, AlertCircle, AlertTriangle, Loader2, RotateCcw } from "lucide-react";
+import { Search, Filter, AlertCircle, AlertTriangle, Loader2, RotateCcw, Download } from "lucide-react";
 import { toast } from "react-hot-toast";
 import {
   usePricingBaselineQuery,
@@ -11,36 +11,24 @@ import {
   IPricingOverrideDto,
   PricingEditField,
   PricingRowDto,
+  PricingScenarioSummaryDto,
   PricingTotalsDto,
   ProductType,
-  SwaggerException,
 } from "../../api/generated/api-client";
 import { PAGE_CONTAINER_HEIGHT } from "../../constants/layout";
 import { useScreenView } from "../../telemetry/useScreenView";
-import { handleApiError } from "../../utils/errorHandler";
+import { resolveSwaggerErrorMessage } from "../../utils/errorHandler";
 import PricingTotalsBar from "../pricing/PricingTotalsBar";
 import PricingGrid, { pricingCellErrorKey } from "../pricing/PricingGrid";
+import PricingScenarioBar from "../pricing/PricingScenarioBar";
+import { exportPricingScenario } from "../pricing/exportPricingScenario";
 
-// The generated client throws SwaggerException for any non-2xx response, with
-// `error.response` being the raw body text -- same pattern as
-// LabelIdentificationScreen.resolveIdentifyErrorMessage. A parseable body with a
-// structured errorCode is a REJECTED EDIT (bad price, negative cost, ...): show it
-// inline on the offending cell. Anything else (network failure, 500, unparseable
-// body) is treated as a transient failure: toast + stale totals badge instead.
-const resolvePricingEditErrorMessage = (error: unknown): string | undefined => {
-  if (!(error instanceof SwaggerException)) {
-    return undefined;
-  }
-  try {
-    const parsed = JSON.parse(error.response);
-    if (parsed?.success === false && typeof parsed.errorCode === "string") {
-      return handleApiError({ success: false, errorCode: parsed.errorCode, params: parsed.params });
-    }
-  } catch {
-    // Not JSON -- fall through to the generic network-failure handling.
-  }
-  return undefined;
-};
+// A rejected edit's parseable error body is a REJECTED EDIT (bad price, negative
+// cost, ...): show it inline on the offending cell. Anything else (network failure,
+// 500, unparseable body) is treated as a transient failure: toast + stale totals
+// badge instead. resolveSwaggerErrorMessage is the shared SwaggerException-parsing
+// helper (also used by PricingScenarioBar for save/delete failures).
+const resolvePricingEditErrorMessage = resolveSwaggerErrorMessage;
 
 const GENERIC_RECALCULATE_FAILURE_TOAST =
   "Přepočet se nezdařil, zkuste to prosím znovu.";
@@ -85,11 +73,17 @@ const PriceAnalysis: React.FC = () => {
   const [cellErrors, setCellErrors] = useState<Record<string, string>>({});
   const [isTotalsStale, setIsTotalsStale] = useState(false);
   const [cellResetTokens, setCellResetTokens] = useState<Record<string, number>>({});
+  // Name of the currently active (loaded or last-saved) scenario -- used only as the
+  // XLSX export's filename hint. PricingScenarioBar owns the save/load/delete flow
+  // and its own name input; this is just what PriceAnalysis needs to label an export.
+  const [activeScenarioName, setActiveScenarioName] = useState("");
+  const [isExporting, setIsExporting] = useState(false);
 
   const recalculateMutation = useRecalculatePricingMutation();
 
   const rows = recalculated?.rows ?? data?.rows ?? [];
   const totals = recalculated?.totals ?? data?.totals;
+  const hasEditedRows = rows.some((row) => row.isEdited);
 
   // Commits are serialized through `inFlightRequestRef`: a commit fired while a
   // previous one is still in flight (e.g. blur cell A, then Enter in cell B before
@@ -175,6 +169,39 @@ const PriceAnalysis: React.FC = () => {
 
   const handleResetAll = () => {
     void performRecalculate(() => [], undefined, undefined);
+  };
+
+  // A scenario load replaces rows/totals/overrides wholesale, exactly like a
+  // successful recalculate response -- the server's `overrides` array is
+  // authoritative and is never merged with whatever the client had before.
+  const handleScenarioLoaded = (
+    scenario: PricingScenarioSummaryDto,
+    loadedRows: PricingRowDto[],
+    loadedTotals: PricingTotalsDto | undefined,
+    loadedOverrides: IPricingOverrideDto[],
+  ) => {
+    overridesRef.current = loadedOverrides;
+    setOverrides(loadedOverrides);
+    setRecalculated({ rows: loadedRows, totals: loadedTotals });
+    setCellErrors({});
+    setIsTotalsStale(false);
+    setActiveScenarioName(scenario.name ?? "");
+  };
+
+  const handleScenarioSaved = (name: string) => {
+    setActiveScenarioName(name);
+  };
+
+  const handleExport = async () => {
+    if (!hasEditedRows || isExporting) {
+      return;
+    }
+    setIsExporting(true);
+    try {
+      await exportPricingScenario(rows, activeScenarioName || "aktualni-analyza");
+    } finally {
+      setIsExporting(false);
+    }
   };
 
   const handleApplyFilters = async () => {
@@ -314,6 +341,35 @@ const PriceAnalysis: React.FC = () => {
               Vymazat
             </button>
           </div>
+        </div>
+      </div>
+
+      {/* Scenarios + export - Fixed */}
+      <div className="flex-shrink-0 mb-4">
+        <div className="flex items-start justify-between gap-3 flex-wrap">
+          <PricingScenarioBar
+            productCode={filter.productCode}
+            productName={filter.productName}
+            productType={filter.productType}
+            overrides={overrides}
+            onScenarioLoaded={handleScenarioLoaded}
+            onScenarioSaved={handleScenarioSaved}
+          />
+          <button
+            type="button"
+            data-testid="pricing-export-xlsx"
+            onClick={handleExport}
+            disabled={!hasEditedRows || isExporting}
+            title={
+              hasEditedRows
+                ? undefined
+                : "Nejsou žádné úpravy k exportu"
+            }
+            className="inline-flex items-center gap-1 text-sm font-medium text-indigo-600 hover:text-indigo-700 disabled:text-gray-400 disabled:cursor-not-allowed dark:text-indigo-400 dark:hover:text-indigo-300 dark:disabled:text-graphite-faint"
+          >
+            <Download className="h-4 w-4" />
+            Export ceníku (XLSX)
+          </button>
         </div>
       </div>
 

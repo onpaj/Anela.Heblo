@@ -31,6 +31,25 @@ const mockUseRecalculatePricingMutation =
   usePricingSimulatorHook.useRecalculatePricingMutation as jest.MockedFunction<
     typeof usePricingSimulatorHook.useRecalculatePricingMutation
   >;
+// Task 10 wires PricingScenarioBar (save/load/delete) into PriceAnalysis; it always
+// renders and always calls these four hooks, so every test needs a non-undefined
+// return value even though this suite never drives scenario behaviour.
+const mockUsePricingScenariosQuery =
+  usePricingSimulatorHook.usePricingScenariosQuery as jest.MockedFunction<
+    typeof usePricingSimulatorHook.usePricingScenariosQuery
+  >;
+const mockUsePricingScenarioQuery =
+  usePricingSimulatorHook.usePricingScenarioQuery as jest.MockedFunction<
+    typeof usePricingSimulatorHook.usePricingScenarioQuery
+  >;
+const mockUseSavePricingScenarioMutation =
+  usePricingSimulatorHook.useSavePricingScenarioMutation as jest.MockedFunction<
+    typeof usePricingSimulatorHook.useSavePricingScenarioMutation
+  >;
+const mockUseDeletePricingScenarioMutation =
+  usePricingSimulatorHook.useDeletePricingScenarioMutation as jest.MockedFunction<
+    typeof usePricingSimulatorHook.useDeletePricingScenarioMutation
+  >;
 
 // Plain object literals -- see PriceAnalysis.test.tsx for why (Babel class-field
 // re-initialization drops constructor-assigned fields on the generated Response classes).
@@ -108,6 +127,24 @@ describe("PriceAnalysis editing", () => {
       isLoading: false,
       error: null,
       refetch: jest.fn(),
+    } as any);
+    mockUsePricingScenariosQuery.mockReturnValue({
+      data: { scenarios: [] },
+      isLoading: false,
+      error: null,
+    } as any);
+    mockUsePricingScenarioQuery.mockReturnValue({
+      data: undefined,
+      isLoading: false,
+      error: null,
+    } as any);
+    mockUseSavePricingScenarioMutation.mockReturnValue({
+      mutateAsync: jest.fn(),
+      isPending: false,
+    } as any);
+    mockUseDeletePricingScenarioMutation.mockReturnValue({
+      mutateAsync: jest.fn(),
+      isPending: false,
     } as any);
   });
 
