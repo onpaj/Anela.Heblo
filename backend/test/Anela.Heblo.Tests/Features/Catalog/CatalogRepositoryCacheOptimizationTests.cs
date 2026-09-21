@@ -177,6 +177,7 @@ public class CatalogRepositoryCacheOptimizationTests
             _mergeSchedulerMock.Object,
             _marginServiceMock.Object,
             _timeProviderMock.Object,
+            _optionsMock.Object,
             _cacheOptionsMock.Object,
             _loggerMock.Object);
     }

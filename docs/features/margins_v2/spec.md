@@ -282,6 +282,8 @@ public class MonthlyMarginHistory
 
 **Účel:** Uchovává historii marží po měsících. Klíč = první den měsíce.
 
+**Rozsah měsíců:** `dateFrom = dnes - DataSourceOptions.ManufactureCostHistoryDays`, `dateTo = dnes - 1 měsíc` (běžný měsíc není kompletní). Musí odpovídat oknu cost providerů, které je odvozeno ze stejného nastavení — `Averages` je prostý průměr přes `MonthlyData`, takže každý měsíc bez nákladových dat by průměr ředil nulou a poškáloval všechny zobrazené náklady. (`ManufactureHistoryDays` je jiné nastavení, řídí pouze načítání surové výrobní historie do katalogu.)
+
 ### 4.3 MonthlyCost (výstup cost sources)
 
 ```csharp

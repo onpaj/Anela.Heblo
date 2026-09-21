@@ -157,6 +157,7 @@ public class CatalogRepositoryTests
             _mergeSchedulerMock.Object,
             _marginServiceMock.Object,
             _timeProviderMock.Object,
+            _optionsMock.Object,
             _cacheOptionsMock.Object,
             _loggerMock.Object);
     }
@@ -594,12 +595,19 @@ public class CatalogRepositoryTests
         product.Margins.Should().BeSameAs(marginHistory);
     }
 
-    [Fact]
-    public async Task RefreshMarginData_UsesTwoYearWindow_WhenItIsAfterTheHistoryFloorDate()
+    [Theory]
+    [InlineData(100)]
+    [InlineData(365)]
+    [InlineData(730)]
+    public async Task RefreshMarginData_RequestsExactlyTheCostProviderWindow(int manufactureCostHistoryDays)
     {
-        // Arrange - "now" far enough in the future that now-2y is after the 2025-01-01 floor
-        var now = new DateTimeOffset(2028, 6, 15, 0, 0, 0, TimeSpan.Zero);
+        // Arrange
+        var now = new DateTimeOffset(2026, 6, 15, 0, 0, 0, TimeSpan.Zero);
         _timeProviderMock.Setup(x => x.GetUtcNow()).Returns(now);
+        _optionsMock.Setup(x => x.Value).Returns(new DataSourceOptions
+        {
+            ManufactureCostHistoryDays = manufactureCostHistoryDays
+        });
 
         var product = new CatalogAggregate { ProductCode = "MARGIN002" };
         _cache.Set("CatalogData_Current", new List<CatalogAggregate> { product });
@@ -609,7 +617,9 @@ public class CatalogRepositoryTests
             .Setup(x => x.GetMarginAsync(It.IsAny<CatalogAggregate>(), It.IsAny<DateOnly>(), It.IsAny<DateOnly>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new MonthlyMarginHistory());
 
-        var expectedDateFrom = DateOnly.FromDateTime(now.UtcDateTime.AddYears(-2));
+        // Every cost provider derives its window from ManufactureCostHistoryDays, so the margin
+        // history must not reach further back - months without cost data average in as zeros.
+        var expectedDateFrom = DateOnly.FromDateTime(now.UtcDateTime.AddDays(-manufactureCostHistoryDays));
         var expectedDateTo = DateOnly.FromDateTime(now.UtcDateTime).AddMonths(-1);
 
         // Act
@@ -618,32 +628,6 @@ public class CatalogRepositoryTests
         // Assert
         _marginServiceMock.Verify(
             x => x.GetMarginAsync(product, expectedDateFrom, expectedDateTo, It.IsAny<CancellationToken>()),
-            Times.Once);
-    }
-
-    [Fact]
-    public async Task RefreshMarginData_ClampsDateFromToHistoryFloorDate_WhenTwoYearWindowPredatesIt()
-    {
-        // Arrange - "now" close enough to the 2025-01-01 floor that now-2y predates it
-        var now = new DateTimeOffset(2026, 6, 15, 0, 0, 0, TimeSpan.Zero);
-        _timeProviderMock.Setup(x => x.GetUtcNow()).Returns(now);
-
-        var product = new CatalogAggregate { ProductCode = "MARGIN003" };
-        _cache.Set("CatalogData_Current", new List<CatalogAggregate> { product });
-        _cache.Set("CatalogData_LastUpdate", now.UtcDateTime);
-
-        _marginServiceMock
-            .Setup(x => x.GetMarginAsync(It.IsAny<CatalogAggregate>(), It.IsAny<DateOnly>(), It.IsAny<DateOnly>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new MonthlyMarginHistory());
-
-        var expectedDateTo = DateOnly.FromDateTime(now.UtcDateTime).AddMonths(-1);
-
-        // Act
-        await _repository.RefreshMarginData(CancellationToken.None);
-
-        // Assert
-        _marginServiceMock.Verify(
-            x => x.GetMarginAsync(product, CatalogConstants.MARGIN_HISTORY_FLOOR_DATE, expectedDateTo, It.IsAny<CancellationToken>()),
             Times.Once);
     }
 
