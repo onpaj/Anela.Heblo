@@ -22,8 +22,8 @@ public class ApplicationConfiguration
     public static ApplicationConfiguration CreateWithDefaults(string? version, string? environment, bool useMockAuth)
     {
         return new ApplicationConfiguration(
-            version ?? "1.0.0",
-            environment ?? "Production",
+            version ?? ConfigurationConstants.DEFAULT_VERSION,
+            environment ?? ConfigurationConstants.DEFAULT_ENVIRONMENT,
             useMockAuth
         );
     }
