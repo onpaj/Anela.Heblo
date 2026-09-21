@@ -335,6 +335,48 @@ describe("PriceAnalysis editing", () => {
     expect(mockMutateAsync).toHaveBeenCalledTimes(1);
   });
 
+  it("does not post a stale value when a focused-but-untyped cell's value changes underneath it", async () => {
+    mockMutateAsync.mockResolvedValueOnce({
+      // Editing the M0 Kč amount recomputes M0 % on the same row -- the exact
+      // sibling-recompute case the resync effect exists for.
+      rows: [buildRow({ m0Amount: 140, m0Percentage: 82, isEdited: true })],
+      totals: buildTotals(),
+      overrides: [{ productCode: "PROD001", materialCost: 5 }],
+    });
+
+    render(<PriceAnalysis />, { wrapper: createWrapper() });
+
+    // The user clicks into M0 % -- but never types anything into it.
+    const m0PercentageInput = screen.getByTestId(
+      `pricing-cell-PROD001-${PricingEditField.M0Percentage}`,
+    ) as HTMLInputElement;
+    m0PercentageInput.focus();
+
+    // A sibling field on the SAME row (M0 Kč) is committed instead.
+    const m0AmountInput = screen.getByTestId(
+      `pricing-cell-PROD001-${PricingEditField.M0Amount}`,
+    );
+    fireEvent.change(m0AmountInput, { target: { value: "140" } });
+    fireEvent.blur(m0AmountInput);
+
+    // Wait for the full round trip (not just the mock call count -- see the
+    // round-1 report's note on that exact race) via a DOM consequence that can
+    // only appear once the response has actually landed and re-rendered: the
+    // row's own reset control, gated on the NEW row's isEdited flag. M0 %'s
+    // draft was never resynced while it was focused, so it still shows the
+    // OLD "80" internally at this point even though its `value` prop is now 82.
+    expect(await screen.findByTestId("pricing-row-reset-PROD001")).toBeInTheDocument();
+
+    // The user now clicks away from M0 % WITHOUT ever having typed into it.
+    fireEvent.blur(m0PercentageInput);
+
+    // No second edit must be posted -- the cell was never actually touched,
+    // so a stale "80" must not be sent just because it differs from the new
+    // "82". The cell must instead now display the server's fresh value.
+    expect(mockMutateAsync).toHaveBeenCalledTimes(1);
+    expect(m0PercentageInput.value).toBe("82");
+  });
+
   it("serializes overlapping commits so the second carries the first commit's already-applied override", async () => {
     let resolveFirst: (value: unknown) => void = () => {};
     const firstPromise = new Promise((resolve) => {

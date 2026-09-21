@@ -44,9 +44,21 @@ const PricingEditableCell: React.FC<PricingEditableCellProps> = ({
   const [draft, setDraft] = useState(() => formatDraftValue(value));
   // Guards against a double-fire when Enter commits and then also blurs the
   // field: the second call sees the same parsed value already in flight and
-  // skips instead of posting the identical edit twice.
+  // skips instead of posting the identical edit twice. Also tells a later
+  // non-dirty blur (see handleBlur) not to stomp the optimistic draft with a
+  // stale `value` before the round trip has actually landed.
   const sentRef = useRef<number | null>(null);
   const isFocusedRef = useRef(false);
+  // True only from a real keystroke (set in the input's onChange), never
+  // inferred from a value comparison. This is what stops commitIfChanged from
+  // treating "draft happens to differ from the current value" as a user edit
+  // when it's really just a stale draft the resync effect skipped while this
+  // cell was focused (e.g. editing the M0 Kč amount recomputes M0 % on the
+  // same row while the user had merely clicked into -- not typed into -- the
+  // M0 % cell). Without this guard, blurring an untouched cell after a
+  // sibling's commit would silently re-post the cell's OLD value as if the
+  // user had just typed it, overwriting the server's fresh one.
+  const isDirtyRef = useRef(false);
 
   useEffect(() => {
     if (isFocusedRef.current) {
@@ -54,10 +66,16 @@ const PricingEditableCell: React.FC<PricingEditableCellProps> = ({
     }
     setDraft(formatDraftValue(value));
     sentRef.current = null;
+    isDirtyRef.current = false;
   }, [value, error]);
 
   const commitIfChanged = () => {
+    if (!isDirtyRef.current) {
+      return;
+    }
+
     const parsed = parseDraftValue(draft);
+    isDirtyRef.current = false;
     if (parsed === null) {
       setDraft(formatDraftValue(value));
       return;
@@ -72,12 +90,29 @@ const PricingEditableCell: React.FC<PricingEditableCellProps> = ({
     onCommit(productCode, field, parsed);
   };
 
+  const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    isDirtyRef.current = true;
+    setDraft(event.target.value);
+  };
+
   const handleFocus = () => {
     isFocusedRef.current = true;
   };
 
   const handleBlur = () => {
     isFocusedRef.current = false;
+    if (!isDirtyRef.current) {
+      // Nothing was typed, so there is nothing to commit -- but the resync
+      // effect above skipped this cell while it had focus, so its draft may
+      // still be stale (a sibling commit could have changed `value` in the
+      // meantime). Catch up now, unless a commit from THIS cell is still
+      // awaiting its round trip (sentRef), in which case keep showing what
+      // was just sent rather than snapping back to the pre-commit value.
+      if (sentRef.current === null) {
+        setDraft(formatDraftValue(value));
+      }
+      return;
+    }
     commitIfChanged();
   };
 
@@ -86,6 +121,7 @@ const PricingEditableCell: React.FC<PricingEditableCellProps> = ({
       commitIfChanged();
       event.currentTarget.blur();
     } else if (event.key === "Escape") {
+      isDirtyRef.current = false;
       setDraft(formatDraftValue(value));
     }
   };
@@ -99,7 +135,7 @@ const PricingEditableCell: React.FC<PricingEditableCellProps> = ({
         aria-invalid={!!error}
         data-testid={`pricing-cell-${productCode}-${field}`}
         value={draft}
-        onChange={(event) => setDraft(event.target.value)}
+        onChange={handleChange}
         onFocus={handleFocus}
         onBlur={handleBlur}
         onKeyDown={handleKeyDown}
