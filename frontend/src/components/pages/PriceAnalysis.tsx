@@ -26,6 +26,7 @@ import { filterWorkGroupRows } from "../pricing/pricingWorkGroup";
 import { PricingBulkEdit, applyPricingBulkEdit } from "../pricing/pricingBulkEdit";
 import { usePricingWorkGroup } from "../pricing/usePricingWorkGroup";
 import { computePricingTotals } from "../pricing/pricingTotals";
+import { czechPlural } from "../pricing/czechPlural";
 import {
   DEFAULT_PRICING_SUMMARY_SCOPE,
   PRICING_SUMMARY_SCOPE_OPTIONS,
@@ -44,11 +45,22 @@ const resolvePricingEditErrorMessage = resolveSwaggerErrorMessage;
 const GENERIC_RECALCULATE_FAILURE_TOAST =
   "Přepočet se nezdařil, zkuste to prosím znovu.";
 
-const BULK_EDIT_NOTHING_APPLIED_TOAST =
-  "Změnu nešlo použít na žádný vybraný produkt (výsledná cena nebo náklad by byly neplatné).";
+// A product is passed over for one of two reasons, and the message has to cover both:
+// it has no catalogue value to scale from (a percentage of nothing is nothing -- a new
+// product with no sales history cannot take a forecast change), or the result would be
+// a value the server rejects anyway. Blaming "an invalid value" for the first case told
+// the user their input was wrong when it was not.
+const BULK_EDIT_SKIP_REASON =
+  "nemají použitelnou původní hodnotu, nebo by výsledek nebyl platný";
+
+const BULK_EDIT_NOTHING_APPLIED_TOAST = `Změnu nešlo použít na žádný z vybraných produktů: ${BULK_EDIT_SKIP_REASON}.`;
 
 const bulkEditSkippedToast = (skippedCount: number): string =>
-  `${skippedCount} ${skippedCount === 1 ? "produkt byl vynechán" : "produktů bylo vynecháno"}: výsledná hodnota by byla neplatná.`;
+  `${skippedCount} ${czechPlural(skippedCount, {
+    one: "produkt byl vynechán",
+    few: "produkty byly vynechány",
+    many: "produktů bylo vynecháno",
+  })}: ${BULK_EDIT_SKIP_REASON}.`;
 
 const GENERIC_EXPORT_FAILURE_TOAST =
   "Export ceníku se nezdařil, zkuste to prosím znovu.";

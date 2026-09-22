@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { PricingEditField } from "../../api/generated/api-client";
 import { PricingBulkEdit, PricingBulkEditField } from "./pricingBulkEdit";
+import { czechPlural } from "./czechPlural";
 
 export interface PricingBulkEditPopoverProps {
   field: PricingBulkEditField;
@@ -24,17 +25,14 @@ const FIELD_LABELS: Record<PricingBulkEditField, string> = {
   [PricingEditField.ForecastQuantity]: "Prognóza ks",
 };
 
-// Czech needs three forms, and the boundary between the "2-4" and the "5 and up"
-// form is a grammatical rule, not a tunable.
-const PLURAL_MANY_THRESHOLD = 5;
-
 const INVALID_PERCENT_MESSAGE = "Zadejte změnu v procentech, například 5 nebo -10.";
 
-const productCountLabel = (count: number): string => {
-  if (count === 1) return "1 produkt";
-  if (count > 1 && count < PLURAL_MANY_THRESHOLD) return `${count} produkty`;
-  return `${count} produktů`;
-};
+const productCountLabel = (count: number): string =>
+  `${count} ${czechPlural(count, {
+    one: "produkt",
+    few: "produkty",
+    many: "produktů",
+  })}`;
 
 /**
  * The bulk counterpart of PricingValueEditorPopover: one percentage applied to every
