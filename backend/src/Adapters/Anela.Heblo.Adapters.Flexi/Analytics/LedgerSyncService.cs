@@ -54,10 +54,6 @@ public sealed class LedgerSyncService : IEntitySyncService, ILedgerBackfillServi
 
         var totalFetched = 0;
         var totalUpserted = 0;
-        // Highest LastModified actually written. GetChangedSinceAsync filters on `lastUpdate gte`
-        // and orders by lastUpdate ascending, so on a partial run everything up to this point is
-        // on disk and the next run can pick up from here instead of restarting the whole backfill.
-        DateTimeOffset? ingestedUpTo = null;
 
         try
         {
@@ -77,12 +73,6 @@ public sealed class LedgerSyncService : IEntitySyncService, ILedgerBackfillServi
                 totalUpserted += upserted;
                 skip += batch.Count;
 
-                // `>` against a null nullable is always false, so the first batch needs the
-                // explicit HasValue check or the high-water mark never leaves null.
-                var batchHighWater = entries.Max(e => e.LastModified);
-                if (batchHighWater.HasValue && (!ingestedUpTo.HasValue || batchHighWater > ingestedUpTo))
-                    ingestedUpTo = batchHighWater;
-
                 if (batch.Count < _options.BatchSize)
                     break;
             }
@@ -98,6 +88,24 @@ public sealed class LedgerSyncService : IEntitySyncService, ILedgerBackfillServi
                 "FlexiAnalyticsSync.EntityCompleted {EntityName} rowsFetched={RowsFetched} rowsUpserted={RowsUpserted}",
                 EntityName, totalFetched, totalUpserted);
         }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        {
+            // A caller-requested stop (Ctrl+C in the backfill tool, host shutdown) is not a sync
+            // failure -- recording it as FAILED is indistinguishable from a real Flexi outage to
+            // anyone reading sync_state. Filter on the token, not on the exception type: an HTTP
+            // timeout also surfaces as TaskCanceledException, and that one IS a failure.
+            state.LastRunStatus = "CANCELLED";
+            state.LastRunFinishedAt = DateTimeOffset.UtcNow;
+            state.LastRunRowsFetched = totalFetched;
+            state.LastRunRowsUpserted = totalUpserted;
+
+            _logger.LogWarning(
+                "FlexiAnalyticsSync.EntityCancelled {EntityName} rowsUpserted={RowsUpserted}",
+                EntityName, totalUpserted);
+
+            await _watermarkRepo.SaveAsync(state, CancellationToken.None);
+            throw;
+        }
         catch (Exception ex)
         {
             state.LastRunStatus = "FAILED";
@@ -106,17 +114,19 @@ public sealed class LedgerSyncService : IEntitySyncService, ILedgerBackfillServi
             state.LastRunRowsUpserted = totalUpserted;
             state.LastErrorMessage = ex.Message.Length > 2000 ? ex.Message[..2000] : ex.Message;
 
-            // Keep whatever ground the run did cover, so a backfill too large for one run converges
-            // over several instead of restarting from InitialBackfillFrom every night. Never moves
-            // the watermark backwards.
-            if (ingestedUpTo.HasValue && (!state.Watermark.HasValue || ingestedUpTo > state.Watermark))
-            {
-                state.Watermark = ingestedUpTo;
-            }
+            // The watermark deliberately does NOT advance on failure. It is tempting to keep the
+            // highest LastModified already written so a huge delta converges over several runs,
+            // but that is only sound if the pages arrive ordered by lastUpdate. They do not:
+            // SDK 0.1.141 sends `(lastUpdate gte "...")` with no `order` parameter, and this
+            // entity has no stable implicit sort key either (ucetni-denik is a view, so every
+            // row reports id = -1). With unordered pages, a late-modified row on page 1 would
+            // push the watermark past un-ingested older rows on the failed pages, which the next
+            // delta would then never request again -- silent, permanent loss reported as OK.
+            // Large historical loads are BackfillAsync's job; it walks bounded month windows.
 
             _logger.LogError(ex,
-                "FlexiAnalyticsSync.EntityFailed {EntityName} rowsUpserted={RowsUpserted} ingestedUpTo={IngestedUpTo}",
-                EntityName, totalUpserted, ingestedUpTo);
+                "FlexiAnalyticsSync.EntityFailed {EntityName} rowsUpserted={RowsUpserted}",
+                EntityName, totalUpserted);
         }
 
         await _watermarkRepo.SaveAsync(state, ct);
@@ -126,6 +136,12 @@ public sealed class LedgerSyncService : IEntitySyncService, ILedgerBackfillServi
     /// <inheritdoc />
     public async Task<SyncResult> BackfillAsync(DateOnly from, DateOnly to, CancellationToken ct = default)
     {
+        // Without this an inverted range yields zero windows, ingests nothing, and still reports
+        // OK -- which used to hand the nightly incremental a watermark covering a load that never
+        // happened.
+        if (from > to)
+            throw new ArgumentException($"Backfill range ends before it starts: from={from:O} to={to:O}.", nameof(from));
+
         var state = await _watermarkRepo.GetOrCreateAsync(EntityName, ct);
         state.LastRunStartedAt = DateTimeOffset.UtcNow;
         state.LastRunStatus = "BACKFILL";
@@ -181,10 +197,36 @@ public sealed class LedgerSyncService : IEntitySyncService, ILedgerBackfillServi
                     EntityName, windowFrom, windowTo, windowFetched, totalFetched);
             }
 
-            // Hand over to the nightly incremental: everything posted up to `to` is loaded, and the
-            // watermark starts the next delta from when this backfill began, so anything edited
-            // while it was running is picked up again.
-            state.Watermark = startedAt;
+            // Hand over to the nightly incremental ONLY when this range reached today. The nightly
+            // path filters on `lastUpdate gte watermark`, so a watermark of "now" asserts that
+            // everything posted to date is on disk. Stamping it after a partial range (a single
+            // month, a single year) would silently strand every un-edited row between `to` and now:
+            // the delta would never look that far back again and the run would still read OK.
+            // Leaving it untouched costs a wider first delta, which upserts idempotently.
+            // Zero rows over a whole backfill range is not a legitimate outcome -- you do not run a
+            // backfill over a period you expect to be empty. It is what a rejected WQL filter or
+            // expired auth looks like, because the SDK client logs the error and returns an empty
+            // list rather than throwing. Reporting OK here would stamp the watermark and strand
+            // the entire history behind a green sync_state.
+            if (totalFetched == 0)
+                throw new InvalidOperationException(
+                    $"Backfill of {EntityName} over {from:O}..{to:O} returned no rows at all. " +
+                    "The range is not empty in FlexiBee, so this is almost certainly a rejected query or expired credentials.");
+
+            var reachesToday = to >= DateOnly.FromDateTime(startedAt.UtcDateTime);
+            if (reachesToday && (!state.Watermark.HasValue || startedAt > state.Watermark))
+            {
+                // Taken from when the backfill STARTED, not when it finished, so rows edited while
+                // it was running are re-read by the next delta instead of being missed.
+                state.Watermark = startedAt;
+            }
+            else if (!reachesToday)
+            {
+                _logger.LogInformation(
+                    "FlexiAnalyticsSync.BackfillPartialRange {EntityName} to={To} watermark left at {Watermark}; the nightly delta still covers the gap",
+                    EntityName, to, state.Watermark);
+            }
+
             state.LastRunStatus = "OK";
             state.LastRunFinishedAt = DateTimeOffset.UtcNow;
             state.LastErrorMessage = null;
@@ -192,6 +234,24 @@ public sealed class LedgerSyncService : IEntitySyncService, ILedgerBackfillServi
             _logger.LogInformation(
                 "FlexiAnalyticsSync.BackfillCompleted {EntityName} from={From} to={To} rowsFetched={RowsFetched} rowsUpserted={RowsUpserted}",
                 EntityName, from, to, totalFetched, totalUpserted);
+        }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        {
+            // A caller-requested stop (Ctrl+C in the backfill tool, host shutdown) is not a sync
+            // failure -- recording it as FAILED is indistinguishable from a real Flexi outage to
+            // anyone reading sync_state. Filter on the token, not on the exception type: an HTTP
+            // timeout also surfaces as TaskCanceledException, and that one IS a failure.
+            state.LastRunStatus = "CANCELLED";
+            state.LastRunFinishedAt = DateTimeOffset.UtcNow;
+            state.LastRunRowsFetched = totalFetched;
+            state.LastRunRowsUpserted = totalUpserted;
+
+            _logger.LogWarning(
+                "FlexiAnalyticsSync.BackfillCancelled {EntityName} rowsUpserted={RowsUpserted}",
+                EntityName, totalUpserted);
+
+            await _watermarkRepo.SaveAsync(state, CancellationToken.None);
+            throw;
         }
         catch (Exception ex)
         {

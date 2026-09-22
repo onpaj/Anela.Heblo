@@ -24,6 +24,13 @@
 -- (class 5), negative for revenue (class 6), and corrections net themselves out.
 -- =============================================================================
 
+-- Abort on the first error and apply the whole file or none of it. Without these, a failing DROP
+-- (a future cross-schema view depending on v_posting will cause one) leaves psql carrying on with
+-- the reporting views already dropped and no grants re-applied -- every Metabase question against
+-- flexi_raw breaks until someone notices.
+\set ON_ERROR_STOP on
+BEGIN;
+
 -- -----------------------------------------------------------------------------
 -- Drop first, then recreate. CREATE OR REPLACE VIEW cannot rename or reorder a column, so a
 -- straight replace fails the moment a view's column list changes. Dropping also clears the old
@@ -258,6 +265,16 @@ COMMENT ON VIEW flexi_raw.v_payroll_monthly IS
 -- Deliberately NOT granted: flexi_raw.ledger_entry, contact, department,
 -- accounting_template, sync_state, v_posting and v_payroll_monthly.
 -- There is no GRANT ... ON ALL TABLES IN SCHEMA flexi_raw here, and there must never be one.
+--
+-- Start from nothing rather than from a hand-maintained deny-list. metabase_ro holds a blanket
+-- SELECT across Heblo_V3.public, which is the signature of a GRANT ... ON ALL TABLES setup; if
+-- whoever ran it also set ALTER DEFAULT PRIVILEGES, every CREATE VIEW above would be granted to
+-- metabase_ro at creation and a newly added restricted view would leak silently. These two
+-- statements make the "exactly what this script says" claim in the header actually true, and mean
+-- a new restricted object is private by default instead of needing someone to remember a REVOKE.
+ALTER DEFAULT PRIVILEGES IN SCHEMA flexi_raw REVOKE ALL ON TABLES FROM metabase_ro;
+REVOKE ALL ON ALL TABLES IN SCHEMA flexi_raw FROM metabase_ro;
+
 GRANT USAGE ON SCHEMA flexi_raw TO metabase_ro;
 
 GRANT SELECT ON flexi_raw.v_cost_monthly_total      TO metabase_ro;
@@ -265,7 +282,8 @@ GRANT SELECT ON flexi_raw.v_cost_monthly_by_account TO metabase_ro;
 GRANT SELECT ON flexi_raw.v_marketing_spend_monthly TO metabase_ro;
 GRANT SELECT ON flexi_raw.v_ad_spend_monthly        TO metabase_ro;
 
--- Undo any accidental widening from an earlier run of a modified version of this script.
+-- Belt and braces on top of the blanket REVOKE above: these are the objects whose exposure would
+-- actually matter, spelled out so the intent survives a careless edit.
 REVOKE ALL ON flexi_raw.ledger_entry        FROM metabase_ro;
 REVOKE ALL ON flexi_raw.contact             FROM metabase_ro;
 REVOKE ALL ON flexi_raw.department          FROM metabase_ro;
@@ -273,3 +291,5 @@ REVOKE ALL ON flexi_raw.accounting_template FROM metabase_ro;
 REVOKE ALL ON flexi_raw.sync_state          FROM metabase_ro;
 REVOKE ALL ON flexi_raw.v_posting           FROM metabase_ro;
 REVOKE ALL ON flexi_raw.v_payroll_monthly   FROM metabase_ro;
+
+COMMIT;

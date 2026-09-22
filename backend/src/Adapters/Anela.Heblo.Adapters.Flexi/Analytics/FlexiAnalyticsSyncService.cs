@@ -51,6 +51,13 @@ public sealed class FlexiAnalyticsSyncService : IFlexiAnalyticsSyncService
                     failedServices++;
                 }
             }
+            catch (OperationCanceledException) when (ct.IsCancellationRequested)
+            {
+                // Carrying on round the loop with an already-cancelled token would just fail every
+                // remaining service and report the shutdown as a multi-service outage.
+                _logger.LogWarning("FlexiAnalyticsSync.Cancelled {ServiceName}", serviceName);
+                throw;
+            }
             catch (Exception ex)
             {
                 _logger.LogError(ex,

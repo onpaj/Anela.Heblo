@@ -1,3 +1,4 @@
+using Microsoft.EntityFrameworkCore;
 using Anela.Heblo.Adapters.Flexi.Analytics;
 using Anela.Heblo.Domain.Features.BackgroundJobs;
 using Anela.Heblo.Persistence.Analytics;
@@ -76,7 +77,43 @@ public class FlexiAnalyticsRegistrationTests
 
         services.AddFlexiAdapter(Configuration("Host=localhost;Database=Heblo_V3;Username=u;Password=p"));
 
-        services.Should().Contain(d => d.ServiceType == typeof(ILedgerBackfillService));
+        // Asserting the descriptors merely exist would pass for any implementation at all, which is
+        // not what the comment above claims. Both are registered as factories delegating to the one
+        // scoped LedgerSyncService, so invoke each factory with a provider that hands back a known
+        // instance: if either is ever repointed at its own registration, it stops coming back.
+        var sentinel = LedgerSyncServiceInstance();
+        var provider = new StubProvider(sentinel);
+
+        var backfill = services.Single(d => d.ServiceType == typeof(ILedgerBackfillService));
+        var ledgerEntitySync = services
+            .Where(d => d.ServiceType == typeof(IEntitySyncService))
+            .Single(d => d.ImplementationFactory is not null);
+
+        backfill.ImplementationFactory!(provider).Should().BeSameAs(sentinel);
+        ledgerEntitySync.ImplementationFactory!(provider).Should().BeSameAs(sentinel);
+        backfill.Lifetime.Should().Be(ServiceLifetime.Scoped);
+
         services.Where(d => d.ServiceType == typeof(IEntitySyncService)).Should().HaveCount(4);
+    }
+
+    private static LedgerSyncService LedgerSyncServiceInstance()
+    {
+        var ctx = new AnalyticsDbContext(
+            new Microsoft.EntityFrameworkCore.DbContextOptionsBuilder<AnalyticsDbContext>()
+                .UseInMemoryDatabase(Guid.NewGuid().ToString()).Options);
+
+        return new LedgerSyncService(
+            Moq.Mock.Of<Rem.FlexiBeeSDK.Client.Clients.Accounting.Ledger.ILedgerClient>(),
+            new SyncWatermarkRepository(ctx),
+            ctx,
+            Microsoft.Extensions.Options.Options.Create(new FlexiAnalyticsSyncOptions()),
+            Microsoft.Extensions.Logging.Abstractions.NullLogger<LedgerSyncService>.Instance);
+    }
+
+    /// <summary>Returns the one sentinel for LedgerSyncService, nothing else.</summary>
+    private sealed class StubProvider(LedgerSyncService instance) : IServiceProvider
+    {
+        public object? GetService(Type serviceType) =>
+            serviceType == typeof(LedgerSyncService) ? instance : null;
     }
 }

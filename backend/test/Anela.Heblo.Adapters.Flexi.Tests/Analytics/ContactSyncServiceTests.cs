@@ -48,8 +48,7 @@ public class ContactSyncServiceTests
         // This used to assert the opposite, and that is how the sync stayed broken in silence.
         // ContactListClient logs a failed FlexiBee response and returns an empty list rather than
         // throwing, so "zero contacts" and "the request was rejected" look identical from here.
-        // Anela's address book is never empty, so an empty full refresh is always a failure — and
-        // it matters, because flexi_raw.contact is what v_ad_spend_monthly joins against.
+        // Anela's address book is never empty, so an empty full refresh is always a failure.
         var client = new Mock<IContactListClient>();
         await using var ctx = CreateInMemoryContext();
 

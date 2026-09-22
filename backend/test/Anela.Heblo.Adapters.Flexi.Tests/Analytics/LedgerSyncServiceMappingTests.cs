@@ -1,5 +1,7 @@
 using Anela.Heblo.Adapters.Flexi.Analytics;
 using FluentAssertions;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using Rem.FlexiBeeSDK.Model.Accounting.Ledger;
 using Xunit;
 
@@ -19,6 +21,79 @@ namespace Anela.Heblo.Adapters.Flexi.Tests.Analytics;
 /// </summary>
 public class LedgerSyncServiceMappingTests
 {
+    /// <summary>
+    /// The one row in this file that is NOT hand-built. Every other test here starts from a DTO
+    /// whose properties are already populated, which exercises <c>Map</c> but proves nothing about
+    /// the JSON bindings -- and the bindings are exactly what was broken: <c>idUcetniDenik</c>
+    /// carrying the identity, and <c>mdUcet</c>/<c>dalUcet</c>/<c>stredisko</c>/<c>mena</c>
+    /// arriving as nested arrays rather than <c>@showAs</c> scalars. Those attribute names live in
+    /// the transitive Rem.FlexiBeeSDK.Model package, so an SDK bump can silently change them and
+    /// every hand-built-DTO test in this file stays green while production writes nulls.
+    ///
+    /// Verbatim response body for one row, captured from the live company file on 2026-09-22.
+    /// </summary>
+    private const string RealWorldResponseJson = """
+        {
+          "id": -1,
+          "idUcetniDenik": "19327896679",
+          "datUcto": "2026-06-01+02:00",
+          "doklad": "PF260567",
+          "nazFirmy": "JP Digital,s.r.o.",
+          "popis": "správa reklam na Meta",
+          "sumTuz": 46500.0,
+          "kurz": 1.0,
+          "stredisko": [ { "id": 5, "kod": "MARKETING", "nazev": "Marketing" } ],
+          "mena": [ { "id": 31, "kod": "CZK" } ],
+          "mdUcet": [ { "id": 121, "kod": "518033", "nazev": "Marketing-Performance" } ],
+          "dalUcet": [ { "id": 60, "kod": "321001", "nazev": "Dodavatelé" } ],
+          "idDokl": 107531,
+          "idDokl@evidencePath": "faktura-prijata",
+          "postingPeriod": "2026/06",
+          "firma@ref": "/c/anela/adresar/1152.json",
+          "firma@showAs": "JP: JP Digital,s.r.o.",
+          "lastUpdate": "2026-09-01T04:15:13.000+02:00"
+        }
+        """;
+
+    [Fact]
+    public void Map_FromTheRawResponseBody_FillsTheColumnsTheViewsReadFrom()
+    {
+        var dto = JsonConvert.DeserializeObject<LedgerItemFlexiDto>(RealWorldResponseJson)!;
+
+        var entry = LedgerSyncService.Map(dto);
+
+        // The identity lives in idUcetniDenik, never in `id` -- ucetni-denik is a view.
+        entry.FlexiId.Should().Be(19327896679);
+        // Nested arrays, not @showAs scalars. These four were null in production.
+        entry.AccountDebit.Should().Be("518033");
+        entry.AccountCredit.Should().Be("321001");
+        entry.CostCenter.Should().Be("MARKETING");
+        entry.Currency.Should().Be("CZK");
+        // Mapped for the first time by this PR.
+        entry.Period.Should().Be("2026/06");
+        entry.DocumentType.Should().Be("faktura-prijata");
+        entry.Contact.Should().Be("JP: JP Digital,s.r.o.");
+        entry.Amount.Should().Be(46500.0m);
+    }
+
+    [Fact]
+    public void RawPayload_IsAlwaysValidJson()
+    {
+        // raw_payload is a jsonb column; EF InMemory accepts any string, so nothing else in the
+        // suite would notice the serializer settings producing something Postgres rejects on the
+        // first 500-row batch.
+        var dto = JsonConvert.DeserializeObject<LedgerItemFlexiDto>(RealWorldResponseJson)!;
+
+        FluentActions.Invoking(() => JToken.Parse(LedgerSyncService.Map(dto).RawPayload!))
+            .Should().NotThrow();
+        FluentActions.Invoking(() => JToken.Parse(LedgerSyncService.Map(new LedgerItemFlexiDto
+        {
+            Id = -1,
+            JournalId = "1",
+            AccountingDate = new DateTime(2026, 1, 1),
+        }).RawPayload!)).Should().NotThrow();
+    }
+
     /// <summary>
     /// One real row, transcribed from the live response:
     /// a received invoice for Meta ad management, posted to the MARKETING cost centre.

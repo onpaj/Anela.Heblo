@@ -193,14 +193,16 @@ public class LedgerSyncServiceTests
     }
 
     [Fact]
-    public async Task SyncAsync_WhenAPageFailsPartWayThrough_KeepsTheProgressItAlreadyMade()
+    public async Task SyncAsync_WhenAPageFailsPartWayThrough_DoesNotAdvanceTheWatermark()
     {
-        // The 2020-onward backfill is ~680k rows against a 1-vCore server. Before this, a run that
-        // died half way left the watermark untouched, so the next run restarted from the very
-        // beginning and a job that cannot finish inside RequestTimeoutSeconds never converges.
-        // GetChangedSinceAsync filters on `lastUpdate gte` and orders by lastUpdate ascending, so
-        // everything up to the highest LastModified ingested is safely on disk and the run can
-        // resume from there.
+        // This test used to assert the opposite: that the run kept the highest LastModified it had
+        // written, so a delta too large for one run would converge instead of restarting. That
+        // optimisation was only sound if pages arrive ordered by lastUpdate, and they do not --
+        // SDK 0.1.141 sends `(lastUpdate gte "...")` with no `order` parameter, and ucetni-denik is
+        // a view whose rows all report id = -1, so there is no stable implicit sort either. With
+        // unordered pages a late-modified row on the page that landed would push the watermark past
+        // older rows on the pages that did not, and the next delta would never ask for them again.
+        // Bounded historical loads are BackfillAsync's job.
         var client = new Mock<ILedgerClient>();
         await using var ctx = CreateInMemoryContext();
 
@@ -217,22 +219,20 @@ public class LedgerSyncServiceTests
         var result = await svc.SyncAsync();
 
         result.IsSuccess.Should().BeFalse();
+        // The rows that landed stay -- upserts are idempotent, re-reading them costs nothing.
         (await ctx.LedgerEntries.CountAsync()).Should().Be(10);
 
         var state = await ctx.SyncStates.FindAsync("ledger_entry");
         state!.LastRunStatus.Should().Be("FAILED");
-        // Highest LastUpdate of the page that did land: 2025-01-10 + 1h, Prague-local -> UTC.
-        var expected = TimeZoneInfo.ConvertTimeToUtc(
-            new DateTime(2025, 1, 10, 1, 0, 0, DateTimeKind.Unspecified), TimeZoneInfo.Local);
-        state.Watermark!.Value.UtcDateTime.Should().Be(expected);
+        state.Watermark.Should().BeNull();
         state.LastRunRowsUpserted.Should().Be(10);
     }
 
     [Fact]
-    public async Task SyncAsync_OnFailureNeverMovesTheWatermarkBackwards()
+    public async Task SyncAsync_OnFailureLeavesAnExistingWatermarkExactlyWhereItWas()
     {
-        // A failed run must not rewind an already-advanced watermark just because the rows it
-        // happened to touch are older than where the last successful run finished.
+        // A failed run must neither rewind an already-advanced watermark nor push it forward past
+        // rows it did not ingest.
         var client = new Mock<ILedgerClient>();
         await using var ctx = CreateInMemoryContext();
         var originalWatermark = new DateTimeOffset(2026, 1, 1, 0, 0, 0, TimeSpan.Zero);

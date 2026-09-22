@@ -1,3 +1,4 @@
+using System.Globalization;
 using Anela.Heblo.Adapters.Flexi.Analytics;
 using Anela.Heblo.Persistence.Analytics;
 using Anela.Heblo.Persistence.Infrastructure.Resilience;
@@ -26,8 +27,8 @@ DateOnly from = default, to = default;
 
 if (!incremental
     && (args.Length != 2
-        || !DateOnly.TryParse(args[0], out from)
-        || !DateOnly.TryParse(args[1], out to)))
+        || !DateOnly.TryParseExact(args[0], "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out from)
+        || !DateOnly.TryParseExact(args[1], "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out to)))
 {
     Console.Error.WriteLine("usage: FlexiAnalyticsBackfill <from yyyy-MM-dd> <to yyyy-MM-dd>");
     Console.Error.WriteLine("       FlexiAnalyticsBackfill --incremental");
@@ -61,10 +62,6 @@ services.AddFlexiBee(configuration);
 
 services.AddSingleton<System.Diagnostics.Metrics.IMeterFactory, DefaultMeterFactory>();
 services.AddSingleton<DbResilienceMetrics>();
-services.AddSingleton<IDbResiliencePipelineProvider>(sp => new DbResiliencePipelineProvider(
-    Options.Create(new DbResilienceOptions()),
-    sp.GetRequiredService<DbResilienceMetrics>(),
-    sp.GetRequiredService<ILogger<DbResiliencePipelineProvider>>()));
 services.AddSingleton<NpgsqlConnectionInterceptor>();
 services.AddAnalyticsPersistenceServices(
     connectionString,
@@ -75,9 +72,10 @@ services.Configure<FlexiAnalyticsSyncOptions>(
 services.AddScoped<ISyncWatermarkRepository, SyncWatermarkRepository>();
 services.AddScoped<LedgerSyncService>();
 services.AddScoped<ILedgerBackfillService>(sp => sp.GetRequiredService<LedgerSyncService>());
-// The three dimension tables are full-refresh and small. They are loaded here rather than left to
-// the nightly job because the read views join against flexi_raw.contact — without them
-// v_ad_spend_monthly is empty however complete the ledger is.
+// The three dimension tables are full-refresh and small, and are loaded here so a backfilled
+// database is complete rather than waiting for the first nightly run. Note the read views do NOT
+// join them: v_ad_spend_monthly matches on ledger_entry's own denormalised contact label, for the
+// reason documented in flexi_raw_read_views.sql. They are dimensions for ad-hoc Metabase use.
 services.AddScoped<DepartmentSyncService>();
 services.AddScoped<AccountingTemplateSyncService>();
 services.AddScoped<ContactSyncService>();
@@ -104,9 +102,18 @@ var startedAt = DateTimeOffset.UtcNow;
 
 if (incremental)
 {
-    var report = await scope.ServiceProvider
-        .GetRequiredService<IFlexiAnalyticsSyncService>()
-        .SyncAllAsync(cts.Token);
+    FlexiAnalyticsSyncReport report;
+    try
+    {
+        report = await scope.ServiceProvider
+            .GetRequiredService<IFlexiAnalyticsSyncService>()
+            .SyncAllAsync(cts.Token);
+    }
+    catch (OperationCanceledException) when (cts.IsCancellationRequested)
+    {
+        logger.LogWarning("Incremental sync stopped on request after {Elapsed}.", DateTimeOffset.UtcNow - startedAt);
+        return 130;
+    }
 
     logger.LogInformation(
         "Incremental sync {Outcome}: fetched={Fetched} upserted={Upserted} failedServices={Failed} elapsed={Elapsed}",
@@ -129,12 +136,32 @@ foreach (var dimension in new IEntitySyncService[]
     logger.LogInformation(
         "{Dimension}: fetched={Fetched} upserted={Upserted} success={Success}",
         dimension.GetType().Name, dimensionResult.RowsFetched, dimensionResult.RowsUpserted, dimensionResult.IsSuccess);
+
+    // A dimension that silently refreshed to nothing is the exact failure this PR exists to fix,
+    // so it ends the run rather than being logged and stepped over.
+    if (!dimensionResult.IsSuccess)
+    {
+        logger.LogError("{Dimension} failed; aborting before the ledger backfill.", dimension.GetType().Name);
+        return 1;
+    }
 }
 
 logger.LogInformation("Backfilling flexi_raw.ledger_entry from {From} to {To}.", from, to);
-var result = await scope.ServiceProvider
-    .GetRequiredService<ILedgerBackfillService>()
-    .BackfillAsync(from, to, cts.Token);
+SyncResult result;
+try
+{
+    result = await scope.ServiceProvider
+        .GetRequiredService<ILedgerBackfillService>()
+        .BackfillAsync(from, to, cts.Token);
+}
+catch (OperationCanceledException) when (cts.IsCancellationRequested)
+{
+    // Progress is persisted per month window, so re-running the same range resumes rather than
+    // restarting. 130 is the conventional "terminated by Ctrl+C" exit code.
+    logger.LogWarning("Backfill stopped on request after {Elapsed}. Re-run the same range to resume.",
+        DateTimeOffset.UtcNow - startedAt);
+    return 130;
+}
 var elapsed = DateTimeOffset.UtcNow - startedAt;
 
 logger.LogInformation(

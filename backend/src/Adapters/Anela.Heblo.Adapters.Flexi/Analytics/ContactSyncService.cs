@@ -108,6 +108,19 @@ public sealed class ContactSyncService : IEntitySyncService
                 "FlexiAnalyticsSync.EntityCompleted {EntityName} rowsFetched={RowsFetched} rowsUpserted={RowsUpserted}",
                 EntityName, totalFetched, totalUpserted);
         }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        {
+            // A caller-requested stop is not a sync failure. Filter on the token, not on the
+            // exception type: an HTTP timeout also surfaces as TaskCanceledException, and that
+            // one IS a failure.
+            state.LastRunStatus = "CANCELLED";
+            state.LastRunFinishedAt = DateTimeOffset.UtcNow;
+
+            _logger.LogWarning("FlexiAnalyticsSync.EntityCancelled {EntityName}", EntityName);
+
+            await _watermarkRepo.SaveAsync(state, CancellationToken.None);
+            throw;
+        }
         catch (Exception ex)
         {
             state.LastRunStatus = "FAILED";

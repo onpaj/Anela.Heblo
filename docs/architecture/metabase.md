@@ -168,8 +168,11 @@ Full detail on the sync itself is in ADR-007; the operational summary:
   FlexiAnalyticsSync__BackfillThrottleMilliseconds=250 \
     dotnet run --project backend/tools/Anela.Heblo.FlexiAnalyticsBackfill -- 2020-01-01 2026-09-30
   ```
-  It also refreshes the three dimension tables first, because `v_ad_spend_monthly` joins
-  `flexi_raw.contact` and is empty without them.
+  It also refreshes the three dimension tables first, so a backfilled database is complete without
+  waiting for the first nightly run. The read views do **not** join them — `v_ad_spend_monthly`
+  matches on `ledger_entry`'s own denormalised contact label (see the note in
+  `flexi_raw_read_views.sql` for why a key join was rejected); the dimensions are there for ad-hoc
+  Metabase use. A dimension refresh that fails now aborts the run instead of being logged past.
 - **Running the nightly job by hand** — same tool, `--incremental` instead of a date range. Use it
   to verify the job end to end without waiting for 03:00, or to catch up after an outage:
   ```bash
