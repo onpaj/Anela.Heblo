@@ -1,4 +1,9 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  keepPreviousData,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
 import { getAuthenticatedApiClient, QUERY_KEYS } from "../client";
 import {
   GetPricingBaselineResponse,
@@ -103,6 +108,14 @@ export const usePricingSummaryQuery = (
       );
     },
     enabled,
+    // Every committed edit changes the overrides and therefore the key. Without this
+    // the band would drop to "Načítám souhrn..." and back on each one, so a user
+    // editing five prices in a row watched the numbers disappear five times. The
+    // previous generation stays on screen while the new one loads, with the bar's
+    // own spinner (wired to isFetching) saying it is being brought up to date --
+    // the same rule the grid's totals already follow while a recalculate is in
+    // flight: never blank the numbers, just say they are moving.
+    placeholderData: keepPreviousData,
   });
 };
 
