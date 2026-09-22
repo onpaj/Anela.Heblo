@@ -142,6 +142,13 @@ Krok 5: Plošně přiřadit tento náklad na kus všem měsícům okna
 **Poznámky:**
 - Produkty bez prodeje (nebo bez tržby) v okně mají M2 = 0 — nic nevydělaly,
   takže si neberou žádný podíl na poolu
+- Do jmenovatele vstupuje **jen tržba, která se zase rozúčtuje zpátky**: produkt
+  se zápornou tržbou (vratky převážily prodej), produkt bez kusů a produkt bez
+  `ProductCode` přispívají nulou. Jinak by záporná tržba zmenšila dělitele a
+  zvedla náklad všem, kdo prodávali (1200 / (1000 − 400) = 200 Kč/ks místo 120)
+- Kusy jsou `double`; produkt, jehož prodeje a vratky se v okně vyruší, skončí na
+  zbytku řádu 1e-17, a dělení jím vyrobí náklad 1e17 Kč/ks — proto se cokoli pod
+  tisícinu kusu bere jako nulové množství
 - Tržba na kus je skutečná, ne ceníková: velkoobchod a slevy ji stahují dolů,
   a produkt proto nese odpovídajícím dílem menší náklad
 - Synteticky rozpadlé řádky komponent setu (`SourceBundleCode != null`) nesou kusy,

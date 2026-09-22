@@ -125,7 +125,10 @@ produkt nese odpovídajícím dílem menší náklad.
 takže krém 180 ml odvede víc než deodorant 4,9 ml. Náklad na kus je pak plošný
 přes měsíce okna — stejný pro každý měsíc.
 
-Produkt, který se za okno neprodal, nemá z čeho nést režii a má M2 = 0.
+Produkt, který se za okno neprodal, nemá z čeho nést režii a má M2 = 0. Totéž
+platí, když vratky za okno převáží prodej: takový produkt nese 0 **a nevstupuje
+do jmenovatele** — jinak by zápornou tržbou zmenšil dělitele a zvedl náklad
+všem ostatním.
 
 ---
 
@@ -171,7 +174,7 @@ příspěvek na úhradu zbytku nákladů a zisku.
 - **Polotovary** mají M1 = 0 záměrně; jejich práce je v ceně hotového výrobku.
 - **M2 a M3 se rozpočítávají podle tržeb**, takže levný produkt nese menší část
   skladu, marketingu a režie než drahý.
-- **M2 = M3 = 0** u produktu znamená „za okno se neprodal“ — nic nevydělal,
-  takže si nevzal žádný podíl na režii. Jeho M3 marže je pak stejná jako M1.
+- **M2 = M3 = 0** u produktu znamená „za okno nic nevydělal“ — buď se neprodal,
+  nebo vratky převážily prodej. Jeho M3 marže je pak stejná jako M1.
 - **Změna okna** (`ManufactureCostHistoryDays`) přepočítá **všechny** hladiny
   najednou, ne jen výrobní.
