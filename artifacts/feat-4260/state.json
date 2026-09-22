@@ -22,7 +22,7 @@
     },
     "developing": {
       "status": "in_progress",
-      "updated_at": "2026-09-22T07:15:23.517639Z"
+      "updated_at": "2026-09-22T08:17:34.611764Z"
     }
   },
   "tasks": [
@@ -40,9 +40,9 @@
     },
     {
       "name": "update-existing-tests-to-three-argument-signature",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-09-22T08:17:34.855564Z"
     },
     {
       "name": "add-timezone-forwarding-regression-tests",

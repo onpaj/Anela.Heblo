@@ -39,7 +39,7 @@ public class HangfireRecurringJobSchedulerTests : IDisposable
             _serviceProvider.GetRequiredService<ILogger<HangfireRecurringJobScheduler>>());
 
         // Act
-        scheduler.UpdateCronSchedule("does-not-exist", "0 0 * * *");
+        scheduler.UpdateCronSchedule("does-not-exist", "0 0 * * *", "Europe/Prague");
 
         // Assert — no job was created
         using var connection = JobStorage.Current.GetConnection();
@@ -64,7 +64,7 @@ public class HangfireRecurringJobSchedulerTests : IDisposable
             _serviceProvider.GetRequiredService<ILogger<HangfireRecurringJobScheduler>>());
 
         // Act — update via the runtime scheduler path
-        scheduler.UpdateCronSchedule("parity-test-job", newCron);
+        scheduler.UpdateCronSchedule("parity-test-job", newCron, "Europe/Prague");
 
         // Assert
         using var connection = JobStorage.Current.GetConnection();
@@ -104,7 +104,7 @@ public class HangfireRecurringJobSchedulerTests : IDisposable
         var scheduler = new HangfireRecurringJobScheduler(
             _serviceProvider,
             _serviceProvider.GetRequiredService<ILogger<HangfireRecurringJobScheduler>>());
-        scheduler.UpdateCronSchedule("parity-test-job", "0 7 * * *");
+        scheduler.UpdateCronSchedule("parity-test-job", "0 7 * * *", "Europe/Prague");
 
         // Assert — re-fetch and compare structural metadata
         using (var conn2 = JobStorage.Current.GetConnection())
