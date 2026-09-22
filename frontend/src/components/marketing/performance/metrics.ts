@@ -1,4 +1,4 @@
-import type { MonthlyMarketingPerformanceDto } from '../../../api/hooks/useMarketingPerformance'
+import type { ChannelInfoDto, MonthlyMarketingPerformanceDto } from '../../../api/hooks/useMarketingPerformance'
 import type { Rgb } from '../../charts/comparisonColors'
 
 export type PerformanceMetric =
@@ -53,6 +53,33 @@ export const CHANNEL_COLORS: Rgb[] = [
   [220, 38, 38],   // red — S-Klik
   [107, 114, 128], // gray — any further channel
 ]
+
+/**
+ * The channel list to draw a cost breakdown from.
+ *
+ * `channels` carries only the configured channels, but `totalCost` is the sum of every stored
+ * channel cost — the server deliberately appends rows for codes that are no longer in config so
+ * nothing disappears silently. Drawing the configured list alone would make the stacked columns
+ * add up to less than the "Náklady" card and the "Náklady celkem" table column on the same page.
+ * Configured channels keep their config order (and therefore their colour); orphans follow.
+ */
+export const resolveBreakdownChannels = (
+  channels: ChannelInfoDto[],
+  rows: MonthlyMarketingPerformanceDto[],
+): ChannelInfoDto[] => {
+  const seen = new Set(channels.map((c) => c.code))
+  const orphans: ChannelInfoDto[] = []
+
+  for (const row of rows) {
+    for (const cost of row.channelCosts ?? []) {
+      if (seen.has(cost.channelCode)) continue
+      seen.add(cost.channelCode)
+      orphans.push({ code: cost.channelCode, label: cost.label ?? cost.channelCode } as ChannelInfoDto)
+    }
+  }
+
+  return orphans.length === 0 ? channels : [...channels, ...orphans]
+}
 
 export const MONTH_LABELS_SHORT = [
   'Led', 'Úno', 'Bře', 'Dub', 'Kvě', 'Čvn', 'Čvc', 'Srp', 'Zář', 'Říj', 'Lis', 'Pro',
