@@ -87,6 +87,15 @@ describe("pricingWorkGroup", () => {
   });
 
   describe("toggleWorkGroupProductCode", () => {
+    it("refuses to pin a row that has no product code", () => {
+      // Arrange: the empty key would tick every other code-less row with it, and the
+      // override it leads to is one the server rejects outright.
+      // Act
+      const result = toggleWorkGroupProductCode(["A"], "");
+
+      // Assert
+      expect(result).toEqual(["A"]);
+    });
     it("adds a product code that is not pinned yet", () => {
       // Arrange
       const codes = ["A"];
@@ -169,18 +178,6 @@ describe("pricingWorkGroup", () => {
 
       // Assert
       expect(result).toEqual([]);
-    });
-  });
-
-  describe("toggleWorkGroupProductCode", () => {
-    it("refuses to pin a row that has no product code", () => {
-      // Arrange: the empty key would tick every other code-less row with it, and the
-      // override it leads to is one the server rejects outright.
-      // Act
-      const result = toggleWorkGroupProductCode(["A"], "");
-
-      // Assert
-      expect(result).toEqual(["A"]);
     });
   });
 

@@ -1,5 +1,5 @@
 import React, { useRef, useState } from "react";
-import { Search, Filter, AlertCircle, AlertTriangle, Loader2, RotateCcw, Download } from "lucide-react";
+import { Search, Filter, AlertCircle, Loader2, Download } from "lucide-react";
 import { toast } from "react-hot-toast";
 import {
   usePricingBaselineQuery,
@@ -19,7 +19,7 @@ import {
 import { PAGE_CONTAINER_HEIGHT } from "../../constants/layout";
 import { useScreenView } from "../../telemetry/useScreenView";
 import { resolveSwaggerErrorMessage } from "../../utils/errorHandler";
-import PricingTotalsBar from "../pricing/PricingTotalsBar";
+import PricingSummaryBand from "../pricing/PricingSummaryBand";
 import PricingGrid, { pricingCellErrorKey } from "../pricing/PricingGrid";
 import PricingScenarioBar from "../pricing/PricingScenarioBar";
 import { filterWorkGroupRows } from "../pricing/pricingWorkGroup";
@@ -29,7 +29,6 @@ import { computePricingTotals } from "../pricing/pricingTotals";
 import { czechPlural } from "../pricing/czechPlural";
 import {
   DEFAULT_PRICING_SUMMARY_SCOPE,
-  PRICING_SUMMARY_SCOPE_OPTIONS,
   PricingSummaryScope,
 } from "../pricing/pricingSummaryScope";
 import CatalogDetail from "./CatalogDetail";
@@ -139,25 +138,25 @@ const PriceAnalysis: React.FC = () => {
   // With no name/code filter in play there is nothing to reach past: the main call
   // already covers the whole catalogue, so that second call is skipped entirely.
   const hasNarrowingFilter = Boolean(filter.productCode || filter.productName);
-  const needsWiderSummary = summaryScope !== "filter" && hasNarrowingFilter;
+  const shouldFetchWiderSummary = summaryScope !== "filter" && hasNarrowingFilter;
   const summaryQuery = usePricingSummaryQuery(
     overrides,
     filter.productType,
-    needsWiderSummary,
+    shouldFetchWiderSummary,
   );
   // The work-group total is a pure re-aggregation of rows the server already priced,
   // so ticking one more product into the group costs no further round trip.
-  const summaryRows = needsWiderSummary ? (summaryQuery.data?.rows ?? []) : rows;
+  const summaryRows = shouldFetchWiderSummary ? (summaryQuery.data?.rows ?? []) : rows;
   const displayedTotals =
     summaryScope === "workGroup"
       ? computePricingTotals(
           filterWorkGroupRows(summaryRows, workGroup.pinnedProductCodes),
         )
-      : needsWiderSummary
+      : shouldFetchWiderSummary
         ? summaryQuery.data?.totals
         : totals;
-  const isWiderSummaryPending = needsWiderSummary && !summaryQuery.data;
-  const summaryError = needsWiderSummary ? summaryQuery.error : null;
+  const isWiderSummaryPending = shouldFetchWiderSummary && !summaryQuery.data;
+  const summaryError = shouldFetchWiderSummary ? summaryQuery.error : null;
 
   // Commits are serialized through `inFlightRequestRef`: a commit fired while a
   // previous one is still in flight (e.g. blur cell A, then Enter in cell B before
@@ -566,88 +565,18 @@ const PriceAnalysis: React.FC = () => {
         </div>
       </div>
 
-      {/* Totals band - sticky, stays visible while the grid below scrolls. Kept
-          rendered from whatever the last successful fetch/recalculate produced
-          while a new recalculate is in flight -- isRecalculating just adds the
-          spinner, it never blanks the numbers. Which products it adds up is the
-          scope selector's business, not the grid filter's. */}
-      <div className="flex-shrink-0">
-        <div className="flex items-center justify-between gap-3 mb-2 flex-wrap">
-          <div className="flex items-center gap-3 flex-wrap">
-            {isTotalsStale && (
-              <div
-                data-testid="totals-stale-badge"
-                className="flex items-center gap-1 text-xs font-medium text-orange-600 dark:text-amber-400"
-              >
-                <AlertTriangle className="h-3.5 w-3.5" />
-                Souhrn nemusí odpovídat poslední úpravě (přepočet selhal)
-              </div>
-            )}
-            {overrides.length > 0 && (
-              <button
-                type="button"
-                data-testid="pricing-reset-all"
-                onClick={handleResetAll}
-                className="inline-flex items-center gap-1 text-xs font-medium text-gray-500 hover:text-indigo-600 dark:text-graphite-muted dark:hover:text-indigo-400"
-              >
-                <RotateCcw className="h-3.5 w-3.5" />
-                Zrušit všechny úpravy
-              </button>
-            )}
-          </div>
-          <fieldset className="ml-auto flex items-center gap-4">
-            <legend className="sr-only">Rozsah souhrnu</legend>
-            <span className="text-xs font-medium text-gray-500 dark:text-graphite-muted">
-              Souhrn:
-            </span>
-            {PRICING_SUMMARY_SCOPE_OPTIONS.map((option) => (
-              <label
-                key={option.value}
-                className="flex items-center gap-1.5 text-xs text-gray-600 dark:text-graphite-muted whitespace-nowrap cursor-pointer"
-              >
-                <input
-                  type="radio"
-                  name="pricing-summary-scope"
-                  data-testid={`pricing-summary-scope-${option.value}`}
-                  value={option.value}
-                  checked={summaryScope === option.value}
-                  onChange={() => setSummaryScope(option.value)}
-                  className="h-3.5 w-3.5 border-gray-300 text-indigo-600 focus:ring-indigo-500 dark:border-graphite-border dark:bg-graphite-surface-2"
-                />
-                {option.label}
-              </label>
-            ))}
-          </fieldset>
-        </div>
-        {summaryError ? (
-          <div
-            data-testid="pricing-summary-error"
-            className="flex items-center gap-2 bg-white dark:bg-graphite-surface shadow dark:shadow-soft-dark rounded-lg p-4 mb-4 text-sm text-orange-600 dark:text-amber-400"
-          >
-            <AlertTriangle className="h-4 w-4" />
-            Souhrn pro zvolený rozsah se nepodařilo načíst.
-          </div>
-        ) : isWiderSummaryPending ? (
-          // The wider summary is a different population than the grid, so showing the
-          // filter's numbers under an "all products" label would simply be wrong.
-          <div
-            data-testid="pricing-summary-loading"
-            className="flex items-center gap-2 bg-white dark:bg-graphite-surface shadow dark:shadow-soft-dark rounded-lg p-4 mb-4 text-sm text-gray-500 dark:text-graphite-muted"
-          >
-            <Loader2 className="h-4 w-4 animate-spin" />
-            Načítám souhrn...
-          </div>
-        ) : (
-          displayedTotals && (
-            <PricingTotalsBar
-              totals={displayedTotals}
-              isRecalculating={
-                recalculateMutation.isPending || summaryQuery.isFetching
-              }
-            />
-          )
-        )}
-      </div>
+      <PricingSummaryBand
+        totals={displayedTotals}
+        scope={summaryScope}
+        onScopeChange={setSummaryScope}
+        isLoading={isWiderSummaryPending}
+        isRecalculating={
+          recalculateMutation.isPending || summaryQuery.isFetching
+        }
+        isStale={isTotalsStale}
+        hasError={Boolean(summaryError)}
+        onResetAll={overrides.length > 0 ? handleResetAll : undefined}
+      />
 
       {/* Product grid - every row, no pagination */}
       <PricingGrid
