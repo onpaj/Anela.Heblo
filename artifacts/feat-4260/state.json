@@ -25,5 +25,42 @@
       "updated_at": null
     }
   },
-  "tasks": []
+  "tasks": [
+    {
+      "name": "widen-icronscheduler-port-and-call-site",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    },
+    {
+      "name": "update-hangfire-adapter-to-use-passed-timezone",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    },
+    {
+      "name": "update-existing-tests-to-three-argument-signature",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    },
+    {
+      "name": "add-timezone-forwarding-regression-tests",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    },
+    {
+      "name": "add-seeder-timezone-resync-assertion",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    },
+    {
+      "name": "verify-build-format-and-acceptance-criteria",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    }
+  ]
 }
