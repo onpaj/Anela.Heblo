@@ -3,7 +3,7 @@ import type { ChartData, ChartOptions } from 'chart.js'
 import { FinancialChart } from '../../pages/financial-overview/FinancialChart'
 import type { ChannelInfoDto, MarketingYearSeriesDto } from '../../../api/hooks/useMarketingPerformance'
 import { withYearAlpha } from '../../charts/comparisonColors'
-import { CHANNEL_COLORS, formatMetric, getMetricValue, METRIC_COLORS, METRIC_LABELS, METRIC_UNITS, MONTH_LABELS_SHORT, type PerformanceMetric } from './metrics'
+import { CHANNEL_COLORS, formatMetric, getMetricValue, METRIC_COLORS, METRIC_LABELS, METRIC_UNITS, MONTH_LABELS_SHORT, resolveBreakdownChannels, type PerformanceMetric } from './metrics'
 
 interface PerformanceComparisonChartProps {
   /** Newest year first, as returned by the API. */
@@ -20,9 +20,11 @@ interface PerformanceComparisonChartProps {
  * chart. Each year gets its own stack id, so Chart.js draws the years as adjacent stacked
  * columns within one month rather than stacking every year on top of each other.
  */
-const buildCostBreakdownDatasets = (series: MarketingYearSeriesDto[], channels: ChannelInfoDto[]) =>
-  series.flatMap((s, yearIndex) =>
-    channels.map((channel, channelIndex) => {
+const buildCostBreakdownDatasets = (series: MarketingYearSeriesDto[], channels: ChannelInfoDto[]) => {
+  const breakdown = resolveBreakdownChannels(channels, series.flatMap((s) => s.months))
+
+  return series.flatMap((s, yearIndex) =>
+    breakdown.map((channel, channelIndex) => {
       const color = withYearAlpha(CHANNEL_COLORS[channelIndex % CHANNEL_COLORS.length], yearIndex)
       return {
         type: 'bar' as const,
@@ -30,7 +32,10 @@ const buildCostBreakdownDatasets = (series: MarketingYearSeriesDto[], channels: 
         stack: `year-${s.year}`,
         data: Array.from({ length: 12 }, (_, i) => {
           const cell = s.months.find((m) => m.month === i + 1)
-          if (!cell || !cell.hasData) return 0
+          // null, not 0: a month with no data yet must read as "—" in the tooltip rather than
+          // claiming we spent nothing. A channel missing from a month that *does* have data is a
+          // genuine zero.
+          if (!cell || !cell.hasData) return null
           return cell.channelCosts.find((c) => c.channelCode === channel.code)?.costWithoutVat ?? 0
         }),
         backgroundColor: color,
@@ -39,6 +44,7 @@ const buildCostBreakdownDatasets = (series: MarketingYearSeriesDto[], channels: 
       }
     }),
   )
+}
 
 export const buildComparisonChartData = (
   series: MarketingYearSeriesDto[],
