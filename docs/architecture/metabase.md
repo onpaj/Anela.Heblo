@@ -178,6 +178,36 @@ Full detail on the sync itself is in ADR-007; the operational summary:
 - **Health**: `flexi_raw.sync_state` carries a row per entity with the watermark, last run status,
   row counts and last error.
 
+### Cut-over state (as of 2026-09-22)
+
+The database side is live: `flexi_raw` exists in `Heblo_V3` and `Heblo_TST`, the ledger is
+backfilled, the views and grants are applied, and `AnalyticsDatabase--ConnectionString` is set in
+both Key Vaults.
+
+**The nightly job is not running yet, and the apps must not be restarted until this branch
+deploys.** Key Vault is read at startup, so the running production image would pick the new secret
+up on its next restart — but that image still carries the pre-fix ledger mapping, which maps every
+row's key to `-1` and would fail the first batch on a duplicate key. Nothing would be corrupted
+(the run simply writes nothing and records `FAILED` in `sync_state`), but there is no reason to
+invite it.
+
+Cut-over, in order:
+
+1. Merge and deploy this branch.
+2. Restart `heblo` / `heblo-test` so Key Vault is re-read.
+3. Confirm `flexi-analytics-sync` appears in `public."RecurringJobConfigurations"` and in the
+   Hangfire dashboard's recurring-job list.
+4. Confirm the first nightly run: `SELECT * FROM flexi_raw.sync_state;` should show
+   `last_run_status = 'OK'` with a few hundred rows fetched, not hundreds of thousands.
+
+Until step 2, the sync can be run by hand with the `--incremental` flag described above; that is
+how it was verified on 2026-09-22 (3 ledger rows, 5 seconds, no row growth).
+
+Staging holds the schema, the dimension tables and a single rehearsal month rather than the full
+history. That is deliberate: Metabase reads `Heblo_V3`, so a second 674k-row load would cost an
+hour of the same shared vCore for no consumer. Its watermark is set, so the staging nightly job
+does an incremental delta rather than discovering six years of backlog.
+
 ### Watch the CPU credits, not the disk
 
 All databases on `heblosql` together are ~1 GB against 32 GB of storage, so storage is a non-issue.
