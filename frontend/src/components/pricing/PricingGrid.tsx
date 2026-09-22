@@ -1,10 +1,10 @@
-import React, { useState } from "react";
-import { AlertTriangle, Pencil, RotateCcw } from "lucide-react";
+import React from "react";
+import { AlertTriangle, RotateCcw } from "lucide-react";
 import { PricingEditField, PricingRowDto } from "../../api/generated/api-client";
 import { formatNumber } from "../../utils/formatters";
 import PricingEditableCell from "./PricingEditableCell";
 import { isInWorkGroup } from "./pricingWorkGroup";
-import PricingBulkEditPopover from "./PricingBulkEditPopover";
+import PricingBulkEditHeader from "./PricingBulkEditHeader";
 import { PricingBulkEdit, PricingBulkEditField } from "./pricingBulkEdit";
 
 export interface PricingGridProps {
@@ -53,10 +53,6 @@ const WORK_GROUP_EDITED_TITLE =
 const WORK_GROUP_ALL_TITLE =
   "Přidat všechny zobrazené produkty do pracovní skupiny";
 
-// The change lands on whatever the grid lists, so narrowing the grid IS how the user
-// chooses what to change -- including filtering it down to the work group.
-const BULK_EDIT_TITLE = "Hromadná úprava pro všechny zobrazené produkty";
-
 // The rest of the row is made of inline editors, so only the code and name cells
 // open the product detail -- a click handler on the whole <tr> would fire while
 // the user is editing a value.
@@ -78,9 +74,6 @@ const PricingGrid: React.FC<PricingGridProps> = ({
   onBulkEdit,
 }) => {
   const handleCommit = onEdit ?? (() => {});
-  const [bulkEditField, setBulkEditField] = useState<PricingBulkEditField | null>(
-    null,
-  );
   if (rows.length === 0) {
     return (
       <div className="flex-1 flex items-center justify-center h-64 bg-white dark:bg-graphite-surface shadow dark:shadow-soft-dark rounded-lg text-gray-500 dark:text-graphite-muted">
@@ -89,32 +82,21 @@ const PricingGrid: React.FC<PricingGridProps> = ({
     );
   }
 
-  // An editable column's header doubles as the entry point to the bulk editor: the
-  // single-cell editor changes one product, this one every listed product at once.
+  // A bulk edit can only land on a row with usable data: an excluded row renders
+  // read-only and is left out of every total, so promising the user it is included
+  // would be a lie the toast then has to take back.
+  const bulkEditableRowCount = rows.filter(
+    (row) => !(row.isExcluded ?? false),
+  ).length;
+
   const renderBulkEditHeader = (field: PricingBulkEditField, label: string) => (
-    <>
-      <button
-        type="button"
-        data-testid={`pricing-bulk-edit-${field}`}
-        disabled={editingDisabled}
-        title={BULK_EDIT_TITLE}
-        onClick={() =>
-          setBulkEditField((current) => (current === field ? null : field))
-        }
-        className="inline-flex items-center gap-1 uppercase tracking-wider hover:text-indigo-600 disabled:cursor-not-allowed disabled:hover:text-gray-500 dark:hover:text-indigo-400 dark:disabled:hover:text-graphite-muted"
-      >
-        {label}
-        <Pencil className="h-3 w-3" aria-hidden="true" />
-      </button>
-      {bulkEditField === field && (
-        <PricingBulkEditPopover
-          field={field}
-          productCount={rows.length}
-          onApply={onBulkEdit}
-          onClose={() => setBulkEditField(null)}
-        />
-      )}
-    </>
+    <PricingBulkEditHeader
+      field={field}
+      label={label}
+      disabled={editingDisabled}
+      productCount={bulkEditableRowCount}
+      onApply={onBulkEdit}
+    />
   );
 
   const rowsInWorkGroup = rows.filter((row) =>

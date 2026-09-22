@@ -6,6 +6,12 @@ export interface PricingBulkEditPopoverProps {
   field: PricingBulkEditField;
   /** How many products the change will land on — everything the grid lists. */
   productCount: number;
+  /**
+   * The control this popover hangs off. It is a sibling rather than a descendant, so
+   * outside-dismissal has to be told about it explicitly — otherwise the trigger's
+   * own mousedown reads as a click outside.
+   */
+  anchorRef?: React.RefObject<HTMLElement>;
   onApply: (edit: PricingBulkEdit) => void;
   /** Same contract as the single-cell editor: true only on a deliberate dismissal. */
   onClose: (restoreFocus: boolean) => void;
@@ -33,6 +39,7 @@ const productCountLabel = (count: number): string => {
 const PricingBulkEditPopover: React.FC<PricingBulkEditPopoverProps> = ({
   field,
   productCount,
+  anchorRef,
   onApply,
   onClose,
 }) => {
@@ -48,9 +55,17 @@ const PricingBulkEditPopover: React.FC<PricingBulkEditPopoverProps> = ({
   // discarding rather than committing, exactly like the single-cell editor.
   useEffect(() => {
     const dismissIfOutside = (event: Event) => {
-      if (!containerRef.current?.contains(event.target as Node)) {
-        onClose(false);
+      const target = event.target as Node;
+      if (containerRef.current?.contains(target)) {
+        return;
       }
+      // The trigger closes the popover through its own click handler. Treating its
+      // mousedown as an outside click closed the popover a beat before that click
+      // reopened it, leaving the header unable to close what it had opened.
+      if (anchorRef?.current?.contains(target)) {
+        return;
+      }
+      onClose(false);
     };
     document.addEventListener("mousedown", dismissIfOutside);
     document.addEventListener("focusin", dismissIfOutside);
@@ -58,7 +73,7 @@ const PricingBulkEditPopover: React.FC<PricingBulkEditPopoverProps> = ({
       document.removeEventListener("mousedown", dismissIfOutside);
       document.removeEventListener("focusin", dismissIfOutside);
     };
-  }, [onClose]);
+  }, [anchorRef, onClose]);
 
   const apply = () => {
     const percent = Number(percentDraft.trim().replace(",", "."));
