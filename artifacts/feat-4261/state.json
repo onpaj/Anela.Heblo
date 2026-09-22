@@ -22,7 +22,7 @@
     },
     "developing": {
       "status": "in_progress",
-      "updated_at": "2026-09-22T09:18:28.819430Z"
+      "updated_at": "2026-09-22T10:18:03.319609Z"
     }
   },
   "tasks": [
@@ -34,9 +34,9 @@
     },
     {
       "name": "generate-and-verify-migration",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-09-22T10:18:03.546433Z"
     },
     {
       "name": "full-verification",
