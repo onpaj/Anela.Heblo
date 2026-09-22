@@ -11,6 +11,7 @@ using Anela.Heblo.Adapters.OpenMeteo;
 using Anela.Heblo.Adapters.Plaud;
 using Anela.Heblo.Adapters.SendGrid;
 using Anela.Heblo.Adapters.Comgate;
+using Anela.Heblo.Adapters.Ecomail;
 using Anela.Heblo.Adapters.GoogleAds;
 using Anela.Heblo.Adapters.MetaAds;
 using Anela.Heblo.Adapters.Flexi;
@@ -118,6 +119,7 @@ public partial class Program
         builder.Services.AddShoptetApiAdapter(builder.Configuration);
         builder.Services.AddShoptetPayAdapter(builder.Configuration);
         builder.Services.AddComgateAdapter(builder.Configuration);
+        builder.Services.AddEcomailAdapter(builder.Configuration);
         builder.Services.AddMetaAdsAdapter(builder.Configuration);
         builder.Services.AddGoogleAdsAdapter(builder.Configuration);
         builder.Services.AddAnthropicAdapter(builder.Configuration);
