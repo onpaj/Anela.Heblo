@@ -1,4 +1,4 @@
-import type { MonthlyMarketingPerformanceDto } from '../../../api/hooks/useMarketingPerformance'
+import type { ChannelInfoDto, MarketingYearSeriesDto, MonthlyMarketingPerformanceDto } from '../../../api/hooks/useMarketingPerformance'
 import type { Rgb } from '../../charts/comparisonColors'
 
 export type PerformanceMetric =
@@ -24,6 +24,23 @@ export const METRIC_LABELS: Record<PerformanceMetric, string> = {
   roas: 'ROAS',
   avgOrderValue: 'Průměrná objednávka',
   costPerOrder: 'Cena za nákup',
+}
+
+/** Plain-Czech explanation of each metric for readers who do not work in marketing. */
+export const METRIC_DESCRIPTIONS: Record<PerformanceMetric, string> = {
+  totalCost: 'Kolik stála reklama — součet faktur od FB/IG, Google a S-Kliku za daný měsíc, bez DPH.',
+  revenueWithoutVat: 'Kolik e-shop v daném měsíci prodal, bez DPH. Nejde o zisk, ale o obrat.',
+  orders: 'Počet objednávek z e-shopu za daný měsíc.',
+  pno: 'Podíl nákladů na obratu: kolik procent tržeb bez DPH padne na reklamu. Nižší je lepší.',
+  roas: 'Návratnost reklamy: kolik korun tržeb bez DPH přinesla každá koruna vložená do reklamy, v procentech. 400 % znamená čtyřnásobek. Vyšší je lepší.',
+  avgOrderValue: 'Průměrná hodnota jedné objednávky — tržby bez DPH dělené počtem objednávek.',
+  costPerOrder: 'Kolik stálo získání jedné objednávky — náklady na reklamu dělené počtem objednávek. Nižší je lepší.',
+}
+
+/** Same, for the two chart layouts in the "Zobrazení" selector. */
+export const VIEW_MODE_DESCRIPTIONS: Record<'trend' | 'comparison', string> = {
+  trend: 'Vývoj v čase: měsíce jdou za sebou na jedné ose, takže je vidět dlouhodobý trend a sezónnost.',
+  comparison: 'Meziroční srovnání: leden až prosinec vedle sebe pro několik let najednou, takže je vidět, jak si stejný měsíc vedl oproti loňsku.',
 }
 
 export const METRIC_UNITS: Record<PerformanceMetric, MetricUnit> = {
@@ -53,6 +70,76 @@ export const CHANNEL_COLORS: Rgb[] = [
   [220, 38, 38],   // red — S-Klik
   [107, 114, 128], // gray — any further channel
 ]
+
+/**
+ * Channel codes identify the same logical channel regardless of case.
+ *
+ * The server groups stored costs with `StringComparer.OrdinalIgnoreCase` because the Postgres
+ * unique index on (MonthId, ChannelCode) is case-sensitive and lets "meta"/"META" coexist. It
+ * normalises configured codes to their config casing, but an orphan keeps whatever casing it was
+ * first stored with *in that month* — so the same orphan can arrive as "Sklik" in one month and
+ * "sklik" in the next. Matching case-sensitively here would split it into two legend entries.
+ */
+const normalizeChannelCode = (code: string): string => code.toLowerCase()
+
+/** Cost booked to one channel in one month; 0 when the channel has no row that month. */
+export const findChannelCost = (row: MonthlyMarketingPerformanceDto, code: string): number =>
+  row.channelCosts?.find((c) => normalizeChannelCode(c.channelCode) === normalizeChannelCode(code))
+    ?.costWithoutVat ?? 0
+
+/**
+ * The channel list to draw a cost breakdown from.
+ *
+ * `channels` carries only the configured channels, but `totalCost` is the sum of every stored
+ * channel cost — the server deliberately appends rows for codes that are no longer in config so
+ * nothing disappears silently. Drawing the configured list alone would make the stacked columns
+ * add up to less than the "Náklady" card and the "Náklady celkem" table column on the same page.
+ * Configured channels keep their config order (and therefore their colour); orphans follow.
+ */
+export const resolveBreakdownChannels = (
+  channels: ChannelInfoDto[],
+  rows: MonthlyMarketingPerformanceDto[],
+): ChannelInfoDto[] => {
+  const seen = new Set(channels.map((c) => normalizeChannelCode(c.code)))
+  const orphans: ChannelInfoDto[] = []
+
+  for (const row of rows) {
+    for (const cost of row.channelCosts ?? []) {
+      const key = normalizeChannelCode(cost.channelCode)
+      if (seen.has(key)) continue
+      seen.add(key)
+      // The DTO types `label` as required, but it comes off the wire — fall back to the code
+      // rather than rendering an empty legend entry if the server ever omits it.
+      orphans.push({ code: cost.channelCode, label: cost.label || cost.channelCode } as ChannelInfoDto)
+    }
+  }
+
+  return orphans.length === 0 ? channels : [...channels, ...orphans]
+}
+
+/**
+ * Drops the month still in progress.
+ *
+ * A running month has a full month of revenue missing but can already carry a credit note, so its
+ * ratio metrics land orders of magnitude off (a single -7 350 Kč dobropis produced ROAS -14 610 %)
+ * and flatten every other month in the chart against the axis. Keyed off `isPartial` rather than the
+ * month number, so in the year-over-year view only the anchor year's month is dropped — the same
+ * month in earlier years is finished data and stays.
+ *
+ * Returns the input untouched when nothing is partial, so useMemo consumers keep their reference.
+ */
+export const withoutPartialMonths = (
+  rows: MonthlyMarketingPerformanceDto[],
+): MonthlyMarketingPerformanceDto[] =>
+  rows.some((m) => m.isPartial) ? rows.filter((m) => !m.isPartial) : rows
+
+/** withoutPartialMonths, applied per year. Returns new series objects; never mutates the input. */
+export const withoutPartialMonthsInSeries = (
+  series: MarketingYearSeriesDto[],
+): MarketingYearSeriesDto[] =>
+  series.some((s) => s.months.some((m) => m.isPartial))
+    ? series.map((s) => ({ ...s, months: withoutPartialMonths(s.months) }) as MarketingYearSeriesDto)
+    : series
 
 export const MONTH_LABELS_SHORT = [
   'Led', 'Úno', 'Bře', 'Dub', 'Kvě', 'Čvn', 'Čvc', 'Srp', 'Zář', 'Říj', 'Lis', 'Pro',

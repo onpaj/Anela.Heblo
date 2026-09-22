@@ -15,7 +15,13 @@ jest.mock('../../../../auth/PermissionsContext', () => ({
 }))
 jest.mock('../../../../telemetry/useScreenView', () => ({ useScreenView: jest.fn() }))
 jest.mock('../../../../hooks/useMediaQuery', () => ({ useIsMobile: () => false }))
-jest.mock('react-chartjs-2', () => ({ Chart: () => <canvas data-testid="chart-canvas" /> }))
+const mockChart: { data?: { labels?: unknown[] } } = {}
+jest.mock('react-chartjs-2', () => ({
+  Chart: (props: { data?: { labels?: unknown[] } }) => {
+    mockChart.data = props.data
+    return <canvas data-testid="chart-canvas" />
+  },
+}))
 
 const month = {
   year: 2026, month: 8, monthYearDisplay: '08/2026', hasData: true, isLocked: false, isPartial: false, orders: 1596,
@@ -108,5 +114,74 @@ describe('MarketingPerformancePage', () => {
     render(<MarketingPerformancePage />)
     fireEvent.change(screen.getByLabelText('Zobrazení'), { target: { value: 'comparison' } })
     expect(screen.getByText('některé měsíce mají neúplná data')).toBeInTheDocument()
+  })
+})
+
+describe('MarketingPerformancePage — hiding the running month', () => {
+  const finished = { ...month, year: 2026, month: 8, monthYearDisplay: '08/2026', isPartial: false }
+  // The running month: a credit note and almost no revenue yet, which is what wrecks the ratio metrics.
+  const running = { ...month, year: 2026, month: 9, monthYearDisplay: '09/2026', isPartial: true, totalCost: -7350, roas: -14610.7 }
+
+  beforeEach(() => {
+    jest.clearAllMocks()
+    mockCanWrite = true
+    mockChart.data = undefined
+    mockMonthsQuery.mockReturnValue({
+      data: { success: true, months: [finished, running], channels: [{ code: 'meta', label: 'FB/IG' }], lastRefreshAt: '2026-09-22T10:12:00Z' },
+      isLoading: false, error: null, isRefetching: false,
+    })
+    mockComparisonQuery.mockReturnValue({ data: undefined, isLoading: false, error: null })
+  })
+
+  it('keeps the running month out of the chart by default', () => {
+    render(<MarketingPerformancePage />)
+
+    expect(screen.getByLabelText('skrýt probíhající měsíc')).toBeChecked()
+    expect(mockChart.data?.labels).toEqual(['08/2026'])
+  })
+
+  it('still lists the running month in the table, where the "(probíhá)" tag explains it', () => {
+    render(<MarketingPerformancePage />)
+
+    expect(screen.getByTestId('performance-table')).toHaveTextContent('09/2026')
+  })
+
+  it('puts the running month back in the chart when the checkbox is unticked', () => {
+    // Arrange
+    render(<MarketingPerformancePage />)
+    expect(mockChart.data?.labels).toEqual(['08/2026'])
+
+    // Act
+    fireEvent.click(screen.getByLabelText('skrýt probíhající měsíc'))
+
+    // Assert
+    expect(mockChart.data?.labels).toEqual(['08/2026', '09/2026'])
+  })
+
+  it('drops only the anchor year\'s running month in the comparison view', () => {
+    // Arrange - September exists in both years but is only partial in 2026.
+    mockComparisonQuery.mockReturnValue({
+      data: {
+        success: true, anchorYear: 2026, currentMonth: 9, channels: [{ code: 'meta', label: 'FB/IG' }],
+        series: [
+          { year: 2026, months: [finished, running] },
+          { year: 2025, months: [{ ...month, year: 2025, month: 8, isPartial: false }, { ...month, year: 2025, month: 9, isPartial: false }] },
+        ],
+      },
+      isLoading: false, error: null,
+    })
+    render(<MarketingPerformancePage />)
+
+    // Act
+    fireEvent.change(screen.getByLabelText('Zobrazení'), { target: { value: 'comparison' } })
+
+    // Assert - 2026 loses September, 2025 keeps it. The comparison chart always draws all 12 slots,
+    // so the evidence is in the per-dataset values, not the labels.
+    const datasets = (mockChart.data as unknown as { datasets: { label: string; data: (number | null)[] }[] }).datasets
+    const sep = 8 // zero-based index of September
+    // Asserted by value, not `not.toBeNull()`: optional chaining on a missing dataset yields
+    // `undefined`, which would satisfy `not.toBeNull()` even if the 2025 series vanished entirely.
+    expect(datasets.find((d) => d.label.endsWith('2026'))?.data[sep]).toBeNull()
+    expect(datasets.find((d) => d.label.endsWith('2025'))?.data[sep]).toBe(35.4)
   })
 })
