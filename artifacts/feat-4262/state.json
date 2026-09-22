@@ -28,9 +28,9 @@
   "tasks": [
     {
       "name": "add-validation-exception-and-error-code",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-09-22T08:18:09.464559Z"
+      "updated_at": "2026-09-22T08:22:59.299340Z"
     },
     {
       "name": "parse-shoptet-422-in-shipment-client",
