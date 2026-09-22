@@ -106,6 +106,17 @@ const SCAN_ERROR_MESSAGES: Partial<Record<string, string>> = {
   PackingUserNotEligible: 'Vybraný balič není aktivní nebo nemá oprávnění balit. Vyberte baliče znovu.',
 };
 
+// Shoptet permanently rejected the recipient/shipment data (e.g. missing city/zip) — this is
+// not a "try again" condition, so the wording explicitly says to fix the order in Shoptet.
+// When the backend forwards the Shoptet message (Params["ShoptetMessage"] — see
+// ShipmentCreationService.CreateAndPersistAsync), it's appended so the operator sees exactly
+// which fields are missing instead of only the generic category.
+const SHIPMENT_VALIDATION_FAILED_BASE =
+  'Adresu příjemce nelze použít pro vytvoření zásilky (chybí povinné údaje) — opravte ji v Shoptetu.';
+
+const shipmentValidationFailedDetailed = (detail: string) =>
+  `Adresu příjemce nelze použít pro vytvoření zásilky — opravte v Shoptetu: ${detail}.`;
+
 const GENERIC_SCAN_ERROR = 'Chyba při skenování objednávky.';
 
 export type ScanPackingOrderVariables = {
@@ -127,7 +138,13 @@ const scanPackingOrder = async ({
         numberOfPackages,
         new ScanOrderBody({ packingUserId: packingUserId ?? undefined }),
       ),
-    ({ errorCode }) => (errorCode && SCAN_ERROR_MESSAGES[errorCode]) ?? GENERIC_SCAN_ERROR,
+    ({ errorCode, params }) => {
+      if (errorCode === 'ShipmentValidationFailed') {
+        const detail = params?.ShoptetMessage;
+        return detail ? shipmentValidationFailedDetailed(detail) : SHIPMENT_VALIDATION_FAILED_BASE;
+      }
+      return (errorCode && SCAN_ERROR_MESSAGES[errorCode]) ?? GENERIC_SCAN_ERROR;
+    },
   );
 
   if (!response.order) {
