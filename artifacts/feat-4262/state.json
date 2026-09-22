@@ -22,7 +22,7 @@
     },
     "developing": {
       "status": "in_progress",
-      "updated_at": "2026-09-22T08:18:09.244092Z"
+      "updated_at": "2026-09-22T09:18:07.097615Z"
     }
   },
   "tasks": [
@@ -34,9 +34,9 @@
     },
     {
       "name": "parse-shoptet-422-in-shipment-client",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-09-22T09:18:07.298677Z"
     },
     {
       "name": "map-validation-exception-to-error-code",
