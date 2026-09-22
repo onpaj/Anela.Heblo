@@ -28,9 +28,9 @@
   "tasks": [
     {
       "name": "collapse-jobname-into-computed-property",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-09-22T09:18:28.989913Z"
+      "updated_at": "2026-09-22T09:42:18.433476Z"
     },
     {
       "name": "generate-and-verify-migration",
