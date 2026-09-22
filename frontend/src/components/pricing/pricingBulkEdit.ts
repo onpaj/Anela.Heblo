@@ -124,6 +124,12 @@ export const applyPricingBulkEdit = (
 
   for (const row of rows) {
     const productCode = row.productCode ?? "";
+    // Without a code there is nothing to key an override on: every code-less row
+    // would collide on the same empty key, and the server rejects an override whose
+    // product code is empty anyway.
+    if (productCode.length === 0) {
+      continue;
+    }
 
     if (edit.percent === 0) {
       if (clearField(nextByCode, productCode, edit.field)) {

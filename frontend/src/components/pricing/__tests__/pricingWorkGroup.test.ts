@@ -1,6 +1,7 @@
 import { PricingRowDto } from "../../../api/generated/api-client";
 import {
   PRICING_WORK_GROUP_STORAGE_KEY,
+  applyWorkGroupSelection,
   filterWorkGroupRows,
   isInWorkGroup,
   loadWorkGroupProductCodes,
@@ -170,4 +171,62 @@ describe("pricingWorkGroup", () => {
       expect(result).toEqual([]);
     });
   });
+
+  describe("toggleWorkGroupProductCode", () => {
+    it("refuses to pin a row that has no product code", () => {
+      // Arrange: the empty key would tick every other code-less row with it, and the
+      // override it leads to is one the server rejects outright.
+      // Act
+      const result = toggleWorkGroupProductCode(["A"], "");
+
+      // Assert
+      expect(result).toEqual(["A"]);
+    });
+  });
+
+  describe("applyWorkGroupSelection", () => {
+    it("appends the codes that are not pinned yet, keeping the existing order", () => {
+      // Arrange / Act
+      const result = applyWorkGroupSelection(["A", "B"], ["B", "C"], true);
+
+      // Assert
+      expect(result).toEqual(["A", "B", "C"]);
+    });
+
+    it("pins a repeated code only once", () => {
+      // Arrange / Act
+      const result = applyWorkGroupSelection([], ["A", "A", "B"], true);
+
+      // Assert
+      expect(result).toEqual(["A", "B"]);
+    });
+
+    it("drops the given codes when unpinning and leaves the rest alone", () => {
+      // Arrange / Act
+      const result = applyWorkGroupSelection(["A", "B", "C"], ["A", "C"], false);
+
+      // Assert
+      expect(result).toEqual(["B"]);
+    });
+
+    it("never pins a row that has no product code", () => {
+      // Arrange: an empty key would match every other code-less row at once.
+      // Act
+      const result = applyWorkGroupSelection(["A"], ["", "B"], true);
+
+      // Assert
+      expect(result).toEqual(["A", "B"]);
+    });
+
+    it("leaves the pinned set untouched when nothing is selected", () => {
+      // Arrange / Act
+      const pinned = ["A", "B"];
+      const result = applyWorkGroupSelection(pinned, [], true);
+
+      // Assert
+      expect(result).toEqual(["A", "B"]);
+      expect(result).not.toBe(pinned);
+    });
+  });
+
 });

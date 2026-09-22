@@ -22,10 +22,19 @@ export const filterWorkGroupRows = (
 export const toggleWorkGroupProductCode = (
   pinnedProductCodes: readonly string[],
   productCode: string,
-): string[] =>
-  pinnedProductCodes.includes(productCode)
+): string[] => {
+  // A row with no product code cannot be pinned: the empty key would match every
+  // other code-less row, so one checkbox would tick them all, and the override such
+  // a pin leads to is one the server rejects outright. The two sibling helpers
+  // (applyWorkGroupSelection, loadWorkGroupProductCodes) guard the same way.
+  if (productCode.length === 0) {
+    return [...pinnedProductCodes];
+  }
+
+  return pinnedProductCodes.includes(productCode)
     ? pinnedProductCodes.filter((code) => code !== productCode)
     : [...pinnedProductCodes, productCode];
+};
 
 // Bulk counterpart of toggleWorkGroupProductCode, used by the grid's column header:
 // pinning keeps the existing order and appends what is new, unpinning simply drops
