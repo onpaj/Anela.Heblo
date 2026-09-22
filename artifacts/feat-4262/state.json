@@ -21,16 +21,16 @@
       "updated_at": "2026-09-22T07:20:18.642586Z"
     },
     "developing": {
-      "status": "pending",
-      "updated_at": null
+      "status": "in_progress",
+      "updated_at": "2026-09-22T08:18:09.244092Z"
     }
   },
   "tasks": [
     {
       "name": "add-validation-exception-and-error-code",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-09-22T08:18:09.464559Z"
     },
     {
       "name": "parse-shoptet-422-in-shipment-client",
