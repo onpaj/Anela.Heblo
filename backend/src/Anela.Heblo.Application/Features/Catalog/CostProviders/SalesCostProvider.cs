@@ -30,6 +30,7 @@ public class SalesCostProvider : ISalesCostProvider
     private readonly ILedgerService _ledgerService;
     private readonly ILogger<SalesCostProvider> _logger;
     private readonly DataSourceOptions _options;
+    private readonly TimeProvider _timeProvider;
 
     // Taken from CostPoolDefinition rather than re-declared: the parity tests assert
     // this provider's M2 equals CostPoolService's M2, and a second copy of the
@@ -45,13 +46,15 @@ public class SalesCostProvider : ISalesCostProvider
         IServiceProvider serviceProvider,
         ILedgerService ledgerService,
         ILogger<SalesCostProvider> logger,
-        IOptions<DataSourceOptions> options)
+        IOptions<DataSourceOptions> options,
+        TimeProvider timeProvider)
     {
         _cache = cache;
         _serviceProvider = serviceProvider;
         _ledgerService = ledgerService;
         _logger = logger;
         _options = options.Value;
+        _timeProvider = timeProvider;
     }
 
     public async Task<Dictionary<string, List<MonthlyCost>>> GetCostsAsync(
@@ -164,8 +167,12 @@ public class SalesCostProvider : ISalesCostProvider
 
     private (DateOnly dateFrom, DateOnly dateTo, DateTime costsFrom, DateTime costsTo) GetDateRange()
     {
-        var dateFrom = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(-_options.ManufactureCostHistoryDays));
-        var dateTo = DateOnly.FromDateTime(DateTime.UtcNow);
+        // Read the clock once, through the injected provider: two reads can straddle midnight on
+        // the 1st and put dateFrom and dateTo in different months, which would drift this
+        // provider's window away from the M3 window it is asserted to share a denominator with.
+        var now = _timeProvider.GetUtcNow().UtcDateTime;
+        var dateFrom = DateOnly.FromDateTime(now.AddDays(-_options.ManufactureCostHistoryDays));
+        var dateTo = DateOnly.FromDateTime(now);
 
         var costsFrom = new DateTime(dateFrom.Year, dateFrom.Month, 1);
         var costsTo = new DateTime(dateTo.Year, dateTo.Month, DateTime.DaysInMonth(dateTo.Year, dateTo.Month), 23, 59, 59);
