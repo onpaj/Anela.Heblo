@@ -28,9 +28,9 @@
   "tasks": [
     {
       "name": "widen-icronscheduler-port-and-call-site",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-09-22T06:17:48.839913Z"
+      "updated_at": "2026-09-22T06:20:56.247021Z"
     },
     {
       "name": "update-hangfire-adapter-to-use-passed-timezone",
