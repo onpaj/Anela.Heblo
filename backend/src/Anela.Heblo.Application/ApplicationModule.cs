@@ -16,6 +16,7 @@ using Anela.Heblo.Application.Features.Bank;
 using Anela.Heblo.Application.Features.Catalog;
 using Anela.Heblo.Application.Features.Catalog.Inventory;
 using Anela.Heblo.Application.Features.Dashboard;
+using Anela.Heblo.Application.Features.Ecomail;
 using Anela.Heblo.Application.Features.FileStorage;
 using Anela.Heblo.Application.Features.InvoiceClassification;
 using Anela.Heblo.Application.Features.Invoices;
@@ -100,6 +101,7 @@ public static class ApplicationModule
         services.AddJournalModule();
         services.AddMarketingModule(configuration);
         services.AddMarketingPerformanceModule(configuration);
+        services.AddEcomailModule();
         services.AddManufactureModule(configuration);
         services.AddLogisticsModule();
         services.AddUserManagement(configuration);
