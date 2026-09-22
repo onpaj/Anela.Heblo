@@ -159,6 +159,16 @@ Stejný test `allocatable` platí v kroku 3 i 4 — proto se pool rozdá beze zb
 - Synteticky rozpadlé řádky komponent setu (`SourceBundleCode != null`) nesou kusy,
   ale nulovou tržbu — započítané by srazily tržbu komponenty na kus téměř k nule
 
+> **Otevřená otázka — DPH v `SumTotal`.** `SumTotal` je pole `suma` z FlexiBee
+> UserQuery 37 a nikde (v kódu, dokumentaci ani fixtures) není doloženo, zda je
+> s DPH nebo bez. Dokud se alokovalo na kus, nezáleželo na tom. Teď záleží:
+> je-li `suma` s DPH, sazba i tržba na kus se o faktor (1 + DPH) vykrátí **jen**
+> tehdy, mají-li všechny produkty stejnou sazbu a nejsou-li v okně prodeje s nulovou
+> daní (export, reverse charge). Produkt s jinou sazbou nebo s velkým podílem exportu
+> by nesl systematicky špatný náklad. Ověřit proti FlexiBee a doplnit sem, než se
+> nová čísla M2/M3 budou brát jako pravda. Srov. `IssuedInvoices.Price`, které je
+> s DPH, ačkoli to z názvu neplyne.
+
 **Implementace:** `SalesCostProvider.cs`
 
 ---
