@@ -34,9 +34,9 @@
     },
     {
       "name": "parse-shoptet-422-in-shipment-client",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-09-22T09:18:07.298677Z"
+      "updated_at": "2026-09-22T09:53:52.897041Z"
     },
     {
       "name": "map-validation-exception-to-error-code",
