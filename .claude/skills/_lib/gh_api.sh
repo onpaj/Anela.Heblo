@@ -152,19 +152,27 @@ req_paginate() {
   local url
   url=$(_api_url "$path")
   [[ "$url" == *"?"* ]] && url="${url}&per_page=100" || url="${url}?per_page=100"
-  local all="[]" hdrfile body
+  # Pages are merged through files, not `jq --argjson`: a single comment
+  # thread's page can easily exceed Linux's per-argument MAX_ARG_STRLEN
+  # (128KiB), which fails exec with "Argument list too long" long before
+  # the much larger overall ARG_MAX is anywhere close.
+  local hdrfile accfile pagefile
   hdrfile=$(mktemp)
+  accfile=$(mktemp)
+  echo '[]' > "$accfile"
   while [[ -n "$url" ]]; do
-    body=$(curl -sS --max-time 30 -X "$method" \
+    pagefile=$(mktemp)
+    curl -sS --max-time 30 -X "$method" \
       -H "Authorization: Bearer ${TOKEN}" \
       -H "Accept: application/vnd.github+json" \
       -H "X-GitHub-Api-Version: 2022-11-28" \
-      -D "$hdrfile" "$url")
-    all=$(jq -c -n --argjson a "$all" --argjson b "$body" '$a + $b')
+      -D "$hdrfile" "$url" > "$pagefile"
+    jq -c -s 'add' "$accfile" "$pagefile" > "${accfile}.tmp" && mv "${accfile}.tmp" "$accfile"
+    rm -f "$pagefile"
     url=$(grep -i '^link:' "$hdrfile" | grep -o '<[^>]*>; rel="next"' | sed -E 's/^<(.*)>.*/\1/' || true)
   done
-  rm -f "$hdrfile"
-  printf '%s' "$all"
+  cat "$accfile"
+  rm -f "$hdrfile" "$accfile"
 }
 
 graphql() {
