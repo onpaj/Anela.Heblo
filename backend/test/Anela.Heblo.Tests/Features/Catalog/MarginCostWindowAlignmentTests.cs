@@ -111,7 +111,9 @@ public class MarginCostWindowAlignmentTests
             },
             SalesHistory = new List<CatalogSaleRecord>
             {
-                new() { Date = now.AddDays(-10), AmountTotal = 80, ProductCode = ProductCode, ProductName = ProductCode }
+                // Revenue, not just quantity: M3 is allocated per koruna of turnover, so a sale
+                // without SumTotal would leave this product with no overhead to average.
+                new() { Date = now.AddDays(-10), AmountTotal = 80, SumTotal = 40_000m, ProductCode = ProductCode, ProductName = ProductCode }
             }
         };
 

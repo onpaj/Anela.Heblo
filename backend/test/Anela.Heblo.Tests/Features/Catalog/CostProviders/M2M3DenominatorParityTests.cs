@@ -17,10 +17,9 @@ namespace Anela.Heblo.Tests.Features.Catalog.CostProviders;
 
 /// <summary>
 /// OverheadCostProvider documents that it spreads M3 over "the denominator SalesCostProvider uses,
-/// so M2 and M3 are directly comparable per piece". Nothing in the type system enforces that - the
-/// piece-counting logic is duplicated in both providers, so the next correction to one copy (the way
-/// the SourceBundleCode exclusion was once added) can silently decouple the two levels while the
-/// comment still claims they match.
+/// so M2 and M3 are directly comparable per piece". Nothing in the type system enforces that - a
+/// correction to one provider's share of the allocation (the way the SourceBundleCode exclusion was
+/// once added) can silently decouple the two levels while the comment still claims they match.
 ///
 /// This pins the invariant end to end: feed both providers the same catalogue and a known pool each,
 /// and the per-piece costs must come out in exactly the ratio of those pools. That only holds if the
@@ -34,7 +33,7 @@ public class M2M3DenominatorParityTests
     private const decimal OverheadPool = 3_000m;
 
     [Fact]
-    internal async Task M2AndM3_AllocateOverTheSameSoldPieceDenominator()
+    internal async Task M2AndM3_AllocateOverTheSameSalesRevenueDenominator()
     {
         // Arrange - a catalogue that exercises the parts of the denominator most likely to drift:
         // a normal product, a product whose sales fall outside the window, and a bundle component
@@ -48,15 +47,16 @@ public class M2M3DenominatorParityTests
         {
             BuildProduct("PRODUCT-A", new[]
             {
-                (inWindow, 100d, (string?)null)
+                (inWindow, 100d, 25_000m, (string?)null)
             }),
             BuildProduct("PRODUCT-B", new[]
             {
-                (inWindow, 40d, (string?)null),
+                (inWindow, 40d, 4_000m, (string?)null),
                 // Outside the cost window - must not reach either denominator.
-                (outOfWindow, 999d, (string?)null),
-                // Synthetic bundle component - excluded by both providers, or a set inflates pieces.
-                (inWindow, 500d, (string?)"SET-001")
+                (outOfWindow, 999d, 99_900m, (string?)null),
+                // Synthetic bundle component - excluded by both providers; it carries pieces but
+                // no revenue, so counting it would sink PRODUCT-B's revenue per piece.
+                (inWindow, 500d, 0m, (string?)"SET-001")
             })
         };
 
@@ -79,8 +79,8 @@ public class M2M3DenominatorParityTests
                     "a zero M2 cost would make the ratio vacuous for {0}", productCode);
 
                 ((double)(overheadCost.Cost / salesCost.Cost)).Should().BeApproximately(expectedRatio, 1e-9,
-                    "M3 and M2 divide their pools by the same sold-piece denominator, so their per-piece " +
-                    "costs differ only by the ratio of the pools ({0} for {1})", productCode, salesCost.Month);
+                    "M3 and M2 divide their pools by the same sales-revenue denominator, so their " +
+                    "per-piece costs differ only by the ratio of the pools ({0} for {1})", productCode, salesCost.Month);
             }
         }
     }
@@ -169,7 +169,7 @@ public class M2M3DenominatorParityTests
 
     private static CatalogAggregate BuildProduct(
         string productCode,
-        IEnumerable<(DateTime date, double amount, string? sourceBundleCode)> sales)
+        IEnumerable<(DateTime date, double amount, decimal revenue, string? sourceBundleCode)> sales)
     {
         return new CatalogAggregate
         {
@@ -181,6 +181,7 @@ public class M2M3DenominatorParityTests
                     ProductCode = productCode,
                     ProductName = productCode,
                     AmountTotal = s.amount,
+                    SumTotal = s.revenue,
                     SourceBundleCode = s.sourceBundleCode
                 })
                 .ToList()

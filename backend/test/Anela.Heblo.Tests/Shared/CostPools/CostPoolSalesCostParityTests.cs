@@ -6,6 +6,7 @@ using Anela.Heblo.Domain.Accounting.Ledger;
 using Anela.Heblo.Domain.Features.Catalog;
 using Anela.Heblo.Domain.Features.Catalog.Cache;
 using Anela.Heblo.Domain.Features.Catalog.Sales;
+using Anela.Heblo.Tests.Features.Catalog.CostProviders;
 using FluentAssertions;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -19,10 +20,11 @@ namespace Anela.Heblo.Tests.Shared.CostPools;
 /// the same money SalesCostProvider spreads across products. Both read the same
 /// FakeLedgerService, so agreement here is structural rather than coincidental.
 ///
-/// Shares the SalesCostProviderTests collection because SalesCostProvider guards
-/// RefreshAsync with its own static SemaphoreSlim.
+/// Shares CostProviderRefreshLockCollection because SalesCostProvider guards RefreshAsync
+/// with its own static SemaphoreSlim: refreshing beside another test that refreshes the same
+/// provider makes one of the two skip its refresh and leave its cache unhydrated.
 /// </summary>
-[Collection("SalesCostProviderTests")]
+[Collection(CostProviderRefreshLockCollection.Name)]
 public class CostPoolSalesCostParityTests
 {
     private const int HistoryDays = 90;
@@ -48,8 +50,9 @@ public class CostPoolSalesCostParityTests
     [Fact]
     public async Task M2PoolTotal_EqualsTheSpendSalesCostProviderDistributes()
     {
-        // Arrange - one sold piece makes SalesCostProvider's cost-per-piece
-        // equal its whole pool, so the two numbers are directly comparable.
+        // Arrange - a single sale carrying the company's whole revenue makes
+        // SalesCostProvider's cost-per-piece equal its whole pool, so the two
+        // numbers are directly comparable.
         var saleDate = DateTime.UtcNow.Date.AddDays(-10);
         var entries = new List<LedgerItem>
         {
@@ -68,7 +71,7 @@ public class CostPoolSalesCostParityTests
             ProductCode = "PROD-1",
             SalesHistory = new List<CatalogSaleRecord>
             {
-                new() { Date = saleDate, ProductCode = "PROD-1", ProductName = "PROD-1", AmountTotal = 1 }
+                new() { Date = saleDate, ProductCode = "PROD-1", ProductName = "PROD-1", AmountTotal = 1, SumTotal = 250m }
             }
         };
 
@@ -197,7 +200,7 @@ public class CostPoolSalesCostParityTests
             ProductCode = "PROD-1",
             SalesHistory = new List<CatalogSaleRecord>
             {
-                new() { Date = saleDate, ProductCode = "PROD-1", ProductName = "PROD-1", AmountTotal = 1 }
+                new() { Date = saleDate, ProductCode = "PROD-1", ProductName = "PROD-1", AmountTotal = 1, SumTotal = 250m }
             }
         };
 

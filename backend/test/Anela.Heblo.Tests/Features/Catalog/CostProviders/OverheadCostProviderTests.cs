@@ -17,7 +17,8 @@ namespace Anela.Heblo.Tests.Features.Catalog.CostProviders;
 /// Tests for OverheadCostProvider (M3).
 ///
 /// M3 spreads the overhead pool - everything on accounts 51+52 that is neither VYROBA nor
-/// SKLAD/MARKETING - across the same denominator M2 uses, so the two levels stay comparable.
+/// SKLAD/MARKETING - across the same denominator M2 uses (company-wide sales revenue), so the
+/// two levels stay comparable.
 /// Uses Collection attribute to ensure sequential execution due to static RefreshLock in the provider.
 /// </summary>
 [Collection(CostProviderRefreshLockCollection.Name)]
@@ -29,7 +30,7 @@ public class OverheadCostProviderTests
 
     private static CatalogAggregate BuildProduct(
         string productCode,
-        IEnumerable<(DateTime date, double amount)> sales)
+        IEnumerable<(DateTime date, double amount, decimal revenue)> sales)
     {
         return new CatalogAggregate
         {
@@ -40,7 +41,8 @@ public class OverheadCostProviderTests
                     Date = s.date,
                     ProductCode = productCode,
                     ProductName = productCode,
-                    AmountTotal = s.amount
+                    AmountTotal = s.amount,
+                    SumTotal = s.revenue
                 })
                 .ToList()
         };
@@ -110,23 +112,31 @@ public class OverheadCostProviderTests
     // ===== Tests =====
 
     [Fact]
-    internal async Task RefreshAsync_DistributesOverheadPoolPerSoldPiece()
+    internal async Task RefreshAsync_DistributesOverheadPoolByRevenue()
     {
-        // Arrange
+        // Arrange - PROD-B sells twice the pieces of PROD-A for the same money, so a per-piece
+        // split would hand all three products an identical cost. Allocating by revenue must
+        // charge each piece in proportion to what that piece earns.
         var now = DateTime.UtcNow;
         var saleDate = new DateTime(now.Year, now.Month, 1).AddMonths(-1).AddDays(14);
         var month = new DateTime(saleDate.Year, saleDate.Month, 1);
 
         var products = new List<CatalogAggregate>
         {
-            BuildProduct("PROD-A", new[] { (saleDate, 10.0) }),
-            BuildProduct("PROD-B", new[] { (saleDate, 20.0) }),
-            BuildProduct("PROD-C", new[] { (saleDate, 30.0) })
+            BuildProduct("PROD-A", new[] { (saleDate, 10.0, 1_000m) }),  // 100 Kc / ks
+            BuildProduct("PROD-B", new[] { (saleDate, 20.0, 1_000m) }),  //  50 Kc / ks
+            BuildProduct("PROD-C", new[] { (saleDate, 30.0, 3_000m) })   // 100 Kc / ks
         };
 
         var overheadCost = 1200m;
-        var totalSoldPieces = 60.0;
-        var expectedCostPerPiece = (decimal)((double)overheadCost / totalSoldPieces);
+
+        // 1200 / 5000 Kc trzeb = 0,24 Kc rezie na korunu trzby
+        var expectedCostPerPiece = new Dictionary<string, decimal>
+        {
+            ["PROD-A"] = 24m,
+            ["PROD-B"] = 12m,
+            ["PROD-C"] = 24m
+        };
 
         var repoMock = new Mock<ICatalogRepository>();
         repoMock.Setup(r => r.WaitForCurrentMergeAsync(It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);
@@ -149,10 +159,10 @@ public class OverheadCostProviderTests
         captured.Should().NotBeNull();
         captured!.IsHydrated.Should().BeTrue();
         captured.ProductCosts.Keys.Should().BeEquivalentTo("PROD-A", "PROD-B", "PROD-C");
-        foreach (var monthly in captured.ProductCosts.Values)
+        foreach (var (productCode, monthly) in captured.ProductCosts)
         {
             monthly.Should().NotBeEmpty();
-            monthly.Should().AllSatisfy(mc => mc.Cost.Should().Be(expectedCostPerPiece));
+            monthly.Should().AllSatisfy(mc => mc.Cost.Should().Be(expectedCostPerPiece[productCode]));
         }
     }
 
@@ -168,11 +178,13 @@ public class OverheadCostProviderTests
 
         var products = new List<CatalogAggregate>
         {
-            BuildProduct("PROD-A", new[] { (saleDate, 10.0) })
+            BuildProduct("PROD-A", new[] { (saleDate, 10.0, 1_000m) })
         };
 
         var overheadCost = 500m;
-        var expectedCostPerPiece = (decimal)((double)overheadCost / 10.0);
+
+        // 500 / 1000 Kc trzeb = 0,5 Kc na korunu, tedy 50 Kc na kus za 100 Kc
+        var expectedCostPerPiece = 50m;
 
         var repoMock = new Mock<ICatalogRepository>();
         repoMock.Setup(r => r.WaitForCurrentMergeAsync(It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);
@@ -203,7 +215,8 @@ public class OverheadCostProviderTests
     internal async Task RefreshAsync_ExcludesSyntheticBundleComponentSalesFromDenominator()
     {
         // Same rule as M2: a bundle's synthetic component rows carry quantity but no revenue, so
-        // counting them would inflate the denominator and understate overhead for every product.
+        // counting them would drag the component's revenue per piece down to almost nothing and
+        // leave it carrying next to no overhead.
         var now = DateTime.UtcNow;
         var saleDate = new DateTime(now.Year, now.Month, 1).AddMonths(-1).AddDays(14);
         var month = new DateTime(saleDate.Year, saleDate.Month, 1);
@@ -213,13 +226,16 @@ public class OverheadCostProviderTests
             ProductCode = "PROD-A",
             SalesHistory = new List<CatalogSaleRecord>
             {
-                new() { Date = saleDate, ProductCode = "PROD-A", ProductName = "PROD-A", AmountTotal = 10 },
-                new() { Date = saleDate, ProductCode = "PROD-A", ProductName = "PROD-A", AmountTotal = 1000, SourceBundleCode = "BUNDLE001" }
+                new() { Date = saleDate, ProductCode = "PROD-A", ProductName = "PROD-A", AmountTotal = 10, SumTotal = 1_000m },
+                new() { Date = saleDate, ProductCode = "PROD-A", ProductName = "PROD-A", AmountTotal = 1000, SumTotal = 0m, SourceBundleCode = "BUNDLE001" }
             }
         };
 
         var overheadCost = 1200m;
-        var expectedCostPerPiece = (decimal)((double)overheadCost / 10.0);
+
+        // 1200 / 1000 Kc trzeb = 1,2 Kc na korunu, tedy 120 Kc na kus za 100 Kc.
+        // S zapocitanym synteticky rozpadlym radkem by trzba na kus klesla na 1000/1010.
+        var expectedCostPerPiece = 120m;
 
         var repoMock = new Mock<ICatalogRepository>();
         repoMock.Setup(r => r.WaitForCurrentMergeAsync(It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);
@@ -250,10 +266,10 @@ public class OverheadCostProviderTests
         // Arrange
         var products = new List<CatalogAggregate>
         {
-            BuildProduct("PROD-A", Array.Empty<(DateTime, double)>()),
-            BuildProduct("PROD-B", Array.Empty<(DateTime, double)>()),
-            BuildProduct(string.Empty, Array.Empty<(DateTime, double)>()),
-            BuildProduct(null!, Array.Empty<(DateTime, double)>())
+            BuildProduct("PROD-A", Array.Empty<(DateTime, double, decimal)>()),
+            BuildProduct("PROD-B", Array.Empty<(DateTime, double, decimal)>()),
+            BuildProduct(string.Empty, Array.Empty<(DateTime, double, decimal)>()),
+            BuildProduct(null!, Array.Empty<(DateTime, double, decimal)>())
         };
 
         var repoMock = new Mock<ICatalogRepository>();
@@ -286,7 +302,7 @@ public class OverheadCostProviderTests
             monthly.Should().AllSatisfy(mc => mc.Cost.Should().Be(0m));
         }
 
-        VerifyLog(loggerMock, LogLevel.Warning, "No sales history found");
+        VerifyLog(loggerMock, LogLevel.Warning, "No sales revenue found");
     }
 
     [Fact]
@@ -526,7 +542,7 @@ public class OverheadCostProviderTests
 
         var products = new List<CatalogAggregate>
         {
-            BuildProduct("PRODUCT-A", new[] { (saleDate, 100d) })
+            BuildProduct("PRODUCT-A", new[] { (saleDate, 100d, 10_000m) })
         };
 
         var repoMock = new Mock<ICatalogRepository>();
