@@ -34,9 +34,9 @@
     },
     {
       "name": "generate-and-verify-migration",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-09-22T10:18:03.546433Z"
+      "updated_at": "2026-09-22T10:23:43.223574Z"
     },
     {
       "name": "full-verification",
