@@ -193,8 +193,9 @@ describe("applyPricingBulkEdit", () => {
     expect(result.skippedCount).toBe(0);
   });
 
-  it("skips an excluded product, which has no usable baseline", () => {
-    // Arrange
+  it("passes over an excluded product without reporting it as a refusal", () => {
+    // Arrange: an excluded row renders read-only and is left out of every total, so
+    // it was never among the products the user was promised.
     const excludedRows = [buildRow({ isExcluded: true })];
 
     // Act
@@ -205,7 +206,29 @@ describe("applyPricingBulkEdit", () => {
 
     // Assert
     expect(result.appliedCount).toBe(0);
-    expect(result.skippedCount).toBe(1);
+    expect(result.skippedCount).toBe(0);
+    expect(result.overrides).toEqual([]);
+  });
+
+  it("counts only the real candidates when excluded rows are mixed in", () => {
+    // Arrange
+    const mixedRows = [
+      buildRow(),
+      buildRow({ productCode: "PROD002", isExcluded: true }),
+    ];
+
+    // Act
+    const result = applyPricingBulkEdit(mixedRows, [], {
+      field: PricingEditField.Price,
+      percent: 10,
+    });
+
+    // Assert
+    expect(result.appliedCount).toBe(1);
+    expect(result.skippedCount).toBe(0);
+    expect(result.overrides).toEqual([
+      expect.objectContaining({ productCode: "PROD001", price: 110 }),
+    ]);
   });
 
   it("skips a percentage change against a catalogue value of zero", () => {

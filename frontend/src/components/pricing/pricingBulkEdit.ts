@@ -35,8 +35,11 @@ export interface PricingBulkEditResult {
   overrides: IPricingOverrideDto[];
   // Products whose override this edit actually set or cleared.
   appliedCount: number;
-  // Products that could not take the change: no usable baseline, or a value the
-  // server would reject anyway (a price at or below zero, a negative cost).
+  // Products that were candidates for the change but could not take it: no usable
+  // baseline to scale from, or a value the server would reject anyway (a price at or
+  // below zero, a negative cost). Excluded rows are not candidates and are not
+  // counted here -- they render read-only and are left out of every total, so the
+  // user was never promised them.
   skippedCount: number;
 }
 
@@ -130,8 +133,13 @@ export const applyPricingBulkEdit = (
     }
 
     // An excluded row is left out of every total and renders read-only, so a bulk
-    // edit must not quietly mark it edited either.
-    const target = (row.isExcluded ?? false) ? null : targetValue(row, edit);
+    // edit must not quietly mark it edited either. It is passed over silently rather
+    // than reported as a refusal: nothing about it was ever offered to the user.
+    if (row.isExcluded ?? false) {
+      continue;
+    }
+
+    const target = targetValue(row, edit);
     if (target === null || !isValidValue(edit.field, target)) {
       skippedCount += 1;
       continue;
