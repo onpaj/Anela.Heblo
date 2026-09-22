@@ -22,7 +22,7 @@
     },
     "developing": {
       "status": "in_progress",
-      "updated_at": "2026-09-22T10:18:03.319609Z"
+      "updated_at": "2026-09-22T11:18:56.525649Z"
     }
   },
   "tasks": [
@@ -40,9 +40,9 @@
     },
     {
       "name": "full-verification",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-09-22T11:18:56.706495Z"
     }
   ]
 }
