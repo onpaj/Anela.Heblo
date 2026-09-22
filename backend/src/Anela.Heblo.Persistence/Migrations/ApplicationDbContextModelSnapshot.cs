@@ -510,11 +510,6 @@ namespace Anela.Heblo.Persistence.Migrations
                     b.Property<bool>("IsEnabled")
                         .HasColumnType("boolean");
 
-                    b.Property<string>("JobName")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)");
-
                     b.Property<DateTime>("LastModifiedAt")
                         .HasColumnType("timestamp without time zone");
 
@@ -532,10 +527,6 @@ namespace Anela.Heblo.Persistence.Migrations
 
                     b.HasIndex("IsEnabled")
                         .HasDatabaseName("IX_RecurringJobConfigurations_IsEnabled");
-
-                    b.HasIndex("JobName")
-                        .IsUnique()
-                        .HasDatabaseName("IX_RecurringJobConfigurations_JobName");
 
                     b.ToTable("RecurringJobConfigurations", "public");
                 });
@@ -1134,6 +1125,214 @@ namespace Anela.Heblo.Persistence.Migrations
                         .HasDatabaseName("IX_InvoiceDqtResults_InvoiceCode");
 
                     b.ToTable("InvoiceDqtResults", "public");
+                });
+
+            modelBuilder.Entity("Anela.Heblo.Domain.Features.Ecomail.EcomailAutomationMonth", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("Click")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("ComputedAt")
+                        .HasColumnType("timestamp");
+
+                    b.Property<bool>("IsLocked")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("LastError")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<int>("Month")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("Open")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("PipelineId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("Send")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("Unsub")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("Year")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PipelineId", "Year", "Month")
+                        .IsUnique();
+
+                    b.ToTable("EcomailAutomationMonths", "public");
+                });
+
+            modelBuilder.Entity("Anela.Heblo.Domain.Features.Ecomail.EcomailAutomationSnapshot", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("Bounce")
+                        .HasColumnType("integer");
+
+                    b.Property<DateOnly>("CapturedOn")
+                        .HasColumnType("date");
+
+                    b.Property<int>("Click")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("Conversions")
+                        .HasColumnType("integer");
+
+                    b.Property<decimal>("ConversionsValue")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<int>("Ended")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("Open")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("PipelineId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("Send")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("Triggered")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("Unsub")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PipelineId", "CapturedOn")
+                        .IsUnique();
+
+                    b.ToTable("EcomailAutomationSnapshots", "public");
+                });
+
+            modelBuilder.Entity("Anela.Heblo.Domain.Features.Ecomail.EcomailCampaign", b =>
+                {
+                    b.Property<int>("Id")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("Bounce")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("CampaignType")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
+                    b.Property<int>("Click")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("Conversions")
+                        .HasColumnType("integer");
+
+                    b.Property<decimal>("ConversionsValue")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<int>("Delivery")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("FromEmail")
+                        .HasMaxLength(320)
+                        .HasColumnType("character varying(320)");
+
+                    b.Property<int>("Inject")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("Open")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("ParentId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("Recipients")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("SentAt")
+                        .HasColumnType("timestamp");
+
+                    b.Property<int>("Spam")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Subject")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<DateTime>("SyncedAt")
+                        .HasColumnType("timestamp");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<int>("TotalClick")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("TotalOpen")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("Unsub")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ParentId");
+
+                    b.HasIndex("SentAt");
+
+                    b.HasIndex("Status", "CampaignType");
+
+                    b.ToTable("EcomailCampaigns", "public");
+                });
+
+            modelBuilder.Entity("Anela.Heblo.Domain.Features.Ecomail.EcomailPipeline", b =>
+                {
+                    b.Property<int>("Id")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("CreatedAt")
+                        .HasColumnType("timestamp");
+
+                    b.Property<int?>("ListId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<DateTime>("SyncedAt")
+                        .HasColumnType("timestamp");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("EcomailPipelines", "public");
                 });
 
             modelBuilder.Entity("Anela.Heblo.Domain.Features.FeatureFlags.FeatureFlagOverride", b =>
