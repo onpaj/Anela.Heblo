@@ -1,8 +1,11 @@
-import React from "react";
-import { AlertTriangle, RotateCcw } from "lucide-react";
+import React, { useState } from "react";
+import { AlertTriangle, Pencil, RotateCcw } from "lucide-react";
 import { PricingEditField, PricingRowDto } from "../../api/generated/api-client";
 import { formatNumber } from "../../utils/formatters";
 import PricingEditableCell from "./PricingEditableCell";
+import { isInWorkGroup } from "./pricingWorkGroup";
+import PricingBulkEditPopover from "./PricingBulkEditPopover";
+import { PricingBulkEdit, PricingBulkEditField } from "./pricingBulkEdit";
 
 export interface PricingGridProps {
   rows: PricingRowDto[];
@@ -13,6 +16,15 @@ export interface PricingGridProps {
   onResetRow?: (productCode: string) => void;
   // Inline error messages for a rejected edit, keyed by pricingCellErrorKey().
   cellErrors?: Record<string, string>;
+  // Called when the user clicks a row's product code or name to open its detail.
+  onProductDetail: (productCode: string) => void;
+  // Product codes the user pinned to the work group (edited rows belong to it anyway).
+  workGroupProductCodes: ReadonlySet<string>;
+  onToggleWorkGroup: (productCode: string) => void;
+  // Column header: pins or unpins every row the grid currently lists.
+  onToggleAllWorkGroup: (shouldPin: boolean) => void;
+  // One relative change applied to every product the grid lists at once.
+  onBulkEdit: (edit: PricingBulkEdit) => void;
 }
 
 // Shared key format between PriceAnalysis (writer) and PricingGrid (reader) for the
@@ -29,6 +41,28 @@ const EXCLUDED_ROW_TITLE =
 const DRIFTED_ROW_TITLE =
   "Podklady se od uložení scénáře změnily: cena nebo náklady tohoto produktu se posunuly";
 
+const DETAIL_LINK_TITLE = "Klikněte pro zobrazení detailu produktu";
+
+const WORK_GROUP_TITLE = "Přidat produkt do pracovní skupiny";
+
+// An edited row is in the work group through its own edit, so its checkbox has
+// nothing to toggle -- unpicking it would be undone by the edit on the next render.
+const WORK_GROUP_EDITED_TITLE =
+  "Produkt má úpravu, v pracovní skupině je automaticky";
+
+const WORK_GROUP_ALL_TITLE =
+  "Přidat všechny zobrazené produkty do pracovní skupiny";
+
+// The change lands on whatever the grid lists, so narrowing the grid IS how the user
+// chooses what to change -- including filtering it down to the work group.
+const BULK_EDIT_TITLE = "Hromadná úprava pro všechny zobrazené produkty";
+
+// The rest of the row is made of inline editors, so only the code and name cells
+// open the product detail -- a click handler on the whole <tr> would fire while
+// the user is editing a value.
+const DETAIL_LINK_CLASS_NAME =
+  "text-left hover:text-indigo-600 hover:underline dark:hover:text-indigo-400";
+
 // No pagination here on purpose: totals are computed over the whole filtered set,
 // so paging the grid would make the totals bar lie about what it is summing.
 const PricingGrid: React.FC<PricingGridProps> = ({
@@ -37,8 +71,16 @@ const PricingGrid: React.FC<PricingGridProps> = ({
   editingDisabled = false,
   onResetRow,
   cellErrors = {},
+  onProductDetail,
+  workGroupProductCodes,
+  onToggleWorkGroup,
+  onToggleAllWorkGroup,
+  onBulkEdit,
 }) => {
   const handleCommit = onEdit ?? (() => {});
+  const [bulkEditField, setBulkEditField] = useState<PricingBulkEditField | null>(
+    null,
+  );
   if (rows.length === 0) {
     return (
       <div className="flex-1 flex items-center justify-center h-64 bg-white dark:bg-graphite-surface shadow dark:shadow-soft-dark rounded-lg text-gray-500 dark:text-graphite-muted">
@@ -47,12 +89,68 @@ const PricingGrid: React.FC<PricingGridProps> = ({
     );
   }
 
+  // An editable column's header doubles as the entry point to the bulk editor: the
+  // single-cell editor changes one product, this one every listed product at once.
+  const renderBulkEditHeader = (field: PricingBulkEditField, label: string) => (
+    <>
+      <button
+        type="button"
+        data-testid={`pricing-bulk-edit-${field}`}
+        disabled={editingDisabled}
+        title={BULK_EDIT_TITLE}
+        onClick={() =>
+          setBulkEditField((current) => (current === field ? null : field))
+        }
+        className="inline-flex items-center gap-1 uppercase tracking-wider hover:text-indigo-600 disabled:cursor-not-allowed disabled:hover:text-gray-500 dark:hover:text-indigo-400 dark:disabled:hover:text-graphite-muted"
+      >
+        {label}
+        <Pencil className="h-3 w-3" aria-hidden="true" />
+      </button>
+      {bulkEditField === field && (
+        <PricingBulkEditPopover
+          field={field}
+          productCount={rows.length}
+          onApply={onBulkEdit}
+          onClose={() => setBulkEditField(null)}
+        />
+      )}
+    </>
+  );
+
+  const rowsInWorkGroup = rows.filter((row) =>
+    isInWorkGroup(row, workGroupProductCodes),
+  ).length;
+  const areAllRowsInWorkGroup = rowsInWorkGroup === rows.length;
+  const isWorkGroupPartiallySelected =
+    rowsInWorkGroup > 0 && !areAllRowsInWorkGroup;
+
   return (
     <div className="flex-1 bg-white dark:bg-graphite-surface shadow dark:shadow-soft-dark rounded-lg overflow-hidden flex flex-col min-h-0">
       <div className="flex-1 overflow-auto">
         <table className="min-w-full divide-y divide-gray-200 dark:divide-graphite-border">
           <thead className="bg-gray-50 dark:bg-graphite-surface-2 sticky top-0 z-10">
             <tr>
+              <th
+                scope="col"
+                className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-graphite-muted uppercase tracking-wider"
+              >
+                <input
+                  type="checkbox"
+                  data-testid="pricing-workgroup-all"
+                  aria-label="Pracovní skupina: všechny zobrazené produkty"
+                  title={WORK_GROUP_ALL_TITLE}
+                  checked={areAllRowsInWorkGroup}
+                  // React has no prop for the tri-state, so the partial selection is
+                  // set on the node itself.
+                  ref={(node) => {
+                    if (node) {
+                      node.indeterminate = isWorkGroupPartiallySelected;
+                    }
+                  }}
+                  onChange={() => onToggleAllWorkGroup(!areAllRowsInWorkGroup)}
+                  className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 dark:border-graphite-border dark:bg-graphite-surface-2"
+                />
+              </th>
               <th
                 scope="col"
                 className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-graphite-muted uppercase tracking-wider"
@@ -67,21 +165,21 @@ const PricingGrid: React.FC<PricingGridProps> = ({
               </th>
               <th
                 scope="col"
-                className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-graphite-muted uppercase tracking-wider"
+                className="relative px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-graphite-muted uppercase tracking-wider"
               >
-                Cena
+                {renderBulkEditHeader(PricingEditField.Price, "Cena")}
               </th>
               <th
                 scope="col"
-                className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-graphite-muted uppercase tracking-wider"
+                className="relative px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-graphite-muted uppercase tracking-wider"
               >
-                Materiál
+                {renderBulkEditHeader(PricingEditField.MaterialCost, "Materiál")}
               </th>
               <th
                 scope="col"
-                className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-graphite-muted uppercase tracking-wider"
+                className="relative px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-graphite-muted uppercase tracking-wider"
               >
-                Výroba
+                {renderBulkEditHeader(PricingEditField.ManufacturingCost, "Výroba")}
               </th>
               <th
                 scope="col"
@@ -91,9 +189,9 @@ const PricingGrid: React.FC<PricingGridProps> = ({
               </th>
               <th
                 scope="col"
-                className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-graphite-muted uppercase tracking-wider"
+                className="relative px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-graphite-muted uppercase tracking-wider"
               >
-                Prognóza ks
+                {renderBulkEditHeader(PricingEditField.ForecastQuantity, "Prognóza ks")}
               </th>
               <th
                 scope="col"
@@ -150,8 +248,26 @@ const PricingGrid: React.FC<PricingGridProps> = ({
                   className={rowClassName}
                   title={isExcluded ? EXCLUDED_ROW_TITLE : undefined}
                 >
+                  <td className="px-4 py-4 whitespace-nowrap">
+                    <input
+                      type="checkbox"
+                      data-testid={`pricing-row-workgroup-${productCode}`}
+                      aria-label={`Pracovní skupina: ${productCode}`}
+                      title={isEdited ? WORK_GROUP_EDITED_TITLE : WORK_GROUP_TITLE}
+                      checked={isInWorkGroup(row, workGroupProductCodes)}
+                      disabled={isEdited}
+                      onChange={() => onToggleWorkGroup(productCode)}
+                      className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 disabled:opacity-60 dark:border-graphite-border dark:bg-graphite-surface-2"
+                    />
+                  </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-graphite-text">
-                    <span className="inline-flex items-center gap-1">
+                    <button
+                      type="button"
+                      data-testid={`pricing-row-detail-code-${productCode}`}
+                      title={DETAIL_LINK_TITLE}
+                      onClick={() => onProductDetail(productCode)}
+                      className={`inline-flex items-center gap-1 ${DETAIL_LINK_CLASS_NAME}`}
+                    >
                       {row.productCode}
                       {isBaselineDrifted && (
                         <span
@@ -162,10 +278,18 @@ const PricingGrid: React.FC<PricingGridProps> = ({
                           <AlertTriangle className="h-3.5 w-3.5" aria-hidden="true" />
                         </span>
                       )}
-                    </span>
+                    </button>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-graphite-text">
-                    {row.productName}
+                    <button
+                      type="button"
+                      data-testid={`pricing-row-detail-name-${productCode}`}
+                      title={DETAIL_LINK_TITLE}
+                      onClick={() => onProductDetail(productCode)}
+                      className={DETAIL_LINK_CLASS_NAME}
+                    >
+                      {row.productName}
+                    </button>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-right text-gray-900 dark:text-graphite-text">
                     {renderEditable(PricingEditField.Price)}

@@ -74,6 +74,38 @@ export const useRecalculatePricingMutation = () => {
   });
 };
 
+// The summary band can cover more products than the grid does: all products, or a
+// work group whose members the current name/code filter hides. Those rows are simply
+// not in the filtered baseline, so the totals for such a scope come from a second
+// calculation that drops the name/code filter but keeps the product type and every
+// override the user has made. It is a read (no state is changed), just over a POST
+// endpoint, hence a query rather than a mutation -- and it only runs when a scope
+// actually needs it, because it prices the whole catalogue.
+export const usePricingSummaryQuery = (
+  overrides: IPricingOverrideDto[],
+  productType?: ProductType,
+  enabled = true,
+) => {
+  return useQuery<RecalculatePricingResponse, Error>({
+    queryKey: [
+      ...QUERY_KEYS.pricingBaseline,
+      "summary",
+      productType,
+      JSON.stringify(overrides),
+    ],
+    queryFn: async () => {
+      const apiClient = await getAuthenticatedApiClient();
+      return apiClient.pricingSimulator_Recalculate(
+        new RecalculatePricingRequest({
+          productType,
+          overrides: overrides.map((override) => new PricingOverrideDto(override)),
+        }),
+      );
+    },
+    enabled,
+  });
+};
+
 export const usePricingScenariosQuery = () => {
   return useQuery<GetPricingScenariosResponse, Error>({
     queryKey: QUERY_KEYS.pricingScenarios,

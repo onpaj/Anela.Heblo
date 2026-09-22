@@ -3,6 +3,7 @@ import { Search, Filter, AlertCircle, AlertTriangle, Loader2, RotateCcw, Downloa
 import { toast } from "react-hot-toast";
 import {
   usePricingBaselineQuery,
+  usePricingSummaryQuery,
   useRecalculatePricingMutation,
   PricingBaselineFilter,
 } from "../../api/hooks/usePricingSimulator";
@@ -21,6 +22,16 @@ import { resolveSwaggerErrorMessage } from "../../utils/errorHandler";
 import PricingTotalsBar from "../pricing/PricingTotalsBar";
 import PricingGrid, { pricingCellErrorKey } from "../pricing/PricingGrid";
 import PricingScenarioBar from "../pricing/PricingScenarioBar";
+import { filterWorkGroupRows } from "../pricing/pricingWorkGroup";
+import { PricingBulkEdit, applyPricingBulkEdit } from "../pricing/pricingBulkEdit";
+import { usePricingWorkGroup } from "../pricing/usePricingWorkGroup";
+import { computePricingTotals } from "../pricing/pricingTotals";
+import {
+  DEFAULT_PRICING_SUMMARY_SCOPE,
+  PRICING_SUMMARY_SCOPE_OPTIONS,
+  PricingSummaryScope,
+} from "../pricing/pricingSummaryScope";
+import CatalogDetail from "./CatalogDetail";
 import { exportPricingScenario } from "../pricing/exportPricingScenario";
 
 // A rejected edit's parseable error body is a REJECTED EDIT (bad price, negative
@@ -32,6 +43,12 @@ const resolvePricingEditErrorMessage = resolveSwaggerErrorMessage;
 
 const GENERIC_RECALCULATE_FAILURE_TOAST =
   "Přepočet se nezdařil, zkuste to prosím znovu.";
+
+const BULK_EDIT_NOTHING_APPLIED_TOAST =
+  "Změnu nešlo použít na žádný vybraný produkt (výsledná cena nebo náklad by byly neplatné).";
+
+const bulkEditSkippedToast = (skippedCount: number): string =>
+  `${skippedCount} ${skippedCount === 1 ? "produkt byl vynechán" : "produktů bylo vynecháno"}: výsledná hodnota by byla neplatná.`;
 
 const GENERIC_EXPORT_FAILURE_TOAST =
   "Export ceníku se nezdařil, zkuste to prosím znovu.";
@@ -45,6 +62,18 @@ const PriceAnalysis: React.FC = () => {
   const [productNameFilter, setProductNameFilter] = useState("");
   const [productCodeFilter, setProductCodeFilter] = useState("");
   const [productTypeFilter, setProductTypeFilter] = useState<string>("");
+
+  // Product detail modal, opened from a row's product code / name cell.
+  const [detailProductCode, setDetailProductCode] = useState<string | null>(null);
+
+  // The work group -- the products the user is actually working on (edited rows plus
+  // the ones pinned by hand). The grid and the summary each decide independently
+  // whether they cover the whole filter result or just that group.
+  const workGroup = usePricingWorkGroup();
+  const [isWorkGroupFilterOn, setIsWorkGroupFilterOn] = useState(false);
+  const [summaryScope, setSummaryScope] = useState<PricingSummaryScope>(
+    DEFAULT_PRICING_SUMMARY_SCOPE,
+  );
 
   useScreenView("Finance", "PriceAnalysis");
 
@@ -87,6 +116,36 @@ const PriceAnalysis: React.FC = () => {
   const rows = recalculated?.rows ?? data?.rows ?? [];
   const totals = recalculated?.totals ?? data?.totals;
   const hasEditedRows = rows.some((row) => row.isEdited);
+
+  const visibleRows = isWorkGroupFilterOn
+    ? filterWorkGroupRows(rows, workGroup.pinnedProductCodes)
+    : rows;
+
+  // "Filtrované produkty" is answered by the rows already on screen. The other two
+  // scopes reach past the filter -- a product the name/code filter hides is missing
+  // from `rows` entirely -- and are served from a second, unfiltered calculation.
+  // With no name/code filter in play there is nothing to reach past: the main call
+  // already covers the whole catalogue, so that second call is skipped entirely.
+  const hasNarrowingFilter = Boolean(filter.productCode || filter.productName);
+  const needsWiderSummary = summaryScope !== "filter" && hasNarrowingFilter;
+  const summaryQuery = usePricingSummaryQuery(
+    overrides,
+    filter.productType,
+    needsWiderSummary,
+  );
+  // The work-group total is a pure re-aggregation of rows the server already priced,
+  // so ticking one more product into the group costs no further round trip.
+  const summaryRows = needsWiderSummary ? (summaryQuery.data?.rows ?? []) : rows;
+  const displayedTotals =
+    summaryScope === "workGroup"
+      ? computePricingTotals(
+          filterWorkGroupRows(summaryRows, workGroup.pinnedProductCodes),
+        )
+      : needsWiderSummary
+        ? summaryQuery.data?.totals
+        : totals;
+  const isWiderSummaryPending = needsWiderSummary && !summaryQuery.data;
+  const summaryError = needsWiderSummary ? summaryQuery.error : null;
 
   // Commits are serialized through `inFlightRequestRef`: a commit fired while a
   // previous one is still in flight (e.g. blur cell A, then Enter in cell B before
@@ -170,6 +229,46 @@ const PriceAnalysis: React.FC = () => {
       (current) => current.filter((override) => override.productCode !== productCode),
       undefined,
       undefined,
+    );
+  };
+
+  // A bulk edit acts on every row the grid lists: narrowing the grid -- by filter or
+  // by the work group switch -- is how the user chooses what the change hits.
+  const handleBulkEdit = (edit: PricingBulkEdit) => {
+    // The counts do not depend on the overrides in play, so they can be reported
+    // before the request is queued; the overrides themselves are rebuilt inside the
+    // queue against whatever the previous commit left behind.
+    const { appliedCount, skippedCount } = applyPricingBulkEdit(
+      visibleRows,
+      overridesRef.current,
+      edit,
+    );
+
+    if (appliedCount === 0) {
+      // A reset over rows that carry no override changes nothing and is not a
+      // failure; anything else means every product refused the change.
+      if (skippedCount > 0) {
+        toast.error(BULK_EDIT_NOTHING_APPLIED_TOAST);
+      }
+      return;
+    }
+    if (skippedCount > 0) {
+      toast.error(bulkEditSkippedToast(skippedCount));
+    }
+
+    void performRecalculate(
+      (current) => applyPricingBulkEdit(visibleRows, current, edit).overrides,
+      undefined,
+      undefined,
+    );
+  };
+
+  // The column header acts on what the grid currently lists, not on the whole
+  // catalogue: what you see is what you pick.
+  const handleToggleAllWorkGroup = (shouldPin: boolean) => {
+    workGroup.setProductCodes(
+      visibleRows.map((row) => row.productCode ?? ""),
+      shouldPin,
     );
   };
 
@@ -387,7 +486,17 @@ const PriceAnalysis: React.FC = () => {
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
+            <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-graphite-text whitespace-nowrap">
+              <input
+                type="checkbox"
+                data-testid="pricing-work-group-filter"
+                checked={isWorkGroupFilterOn}
+                onChange={(e) => setIsWorkGroupFilterOn(e.target.checked)}
+                className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 dark:border-graphite-border dark:bg-graphite-surface-2"
+              />
+              Pouze pracovní skupina
+            </label>
             <button
               onClick={() => void handleApplyFilters()}
               className="bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 px-4 rounded-md transition-colors duration-200 text-sm"
@@ -437,10 +546,11 @@ const PriceAnalysis: React.FC = () => {
       {/* Totals band - sticky, stays visible while the grid below scrolls. Kept
           rendered from whatever the last successful fetch/recalculate produced
           while a new recalculate is in flight -- isRecalculating just adds the
-          spinner, it never blanks the numbers. */}
-      {totals && (
-        <div className="flex-shrink-0">
-          <div className="flex items-center justify-between gap-3 mb-2">
+          spinner, it never blanks the numbers. Which products it adds up is the
+          scope selector's business, not the grid filter's. */}
+      <div className="flex-shrink-0">
+        <div className="flex items-center justify-between gap-3 mb-2 flex-wrap">
+          <div className="flex items-center gap-3 flex-wrap">
             {isTotalsStale && (
               <div
                 data-testid="totals-stale-badge"
@@ -455,23 +565,84 @@ const PriceAnalysis: React.FC = () => {
                 type="button"
                 data-testid="pricing-reset-all"
                 onClick={handleResetAll}
-                className="ml-auto inline-flex items-center gap-1 text-xs font-medium text-gray-500 hover:text-indigo-600 dark:text-graphite-muted dark:hover:text-indigo-400"
+                className="inline-flex items-center gap-1 text-xs font-medium text-gray-500 hover:text-indigo-600 dark:text-graphite-muted dark:hover:text-indigo-400"
               >
                 <RotateCcw className="h-3.5 w-3.5" />
                 Zrušit všechny úpravy
               </button>
             )}
           </div>
-          <PricingTotalsBar totals={totals} isRecalculating={recalculateMutation.isPending} />
+          <fieldset className="ml-auto flex items-center gap-4">
+            <legend className="sr-only">Rozsah souhrnu</legend>
+            <span className="text-xs font-medium text-gray-500 dark:text-graphite-muted">
+              Souhrn:
+            </span>
+            {PRICING_SUMMARY_SCOPE_OPTIONS.map((option) => (
+              <label
+                key={option.value}
+                className="flex items-center gap-1.5 text-xs text-gray-600 dark:text-graphite-muted whitespace-nowrap cursor-pointer"
+              >
+                <input
+                  type="radio"
+                  name="pricing-summary-scope"
+                  data-testid={`pricing-summary-scope-${option.value}`}
+                  value={option.value}
+                  checked={summaryScope === option.value}
+                  onChange={() => setSummaryScope(option.value)}
+                  className="h-3.5 w-3.5 border-gray-300 text-indigo-600 focus:ring-indigo-500 dark:border-graphite-border dark:bg-graphite-surface-2"
+                />
+                {option.label}
+              </label>
+            ))}
+          </fieldset>
         </div>
-      )}
+        {summaryError ? (
+          <div
+            data-testid="pricing-summary-error"
+            className="flex items-center gap-2 bg-white dark:bg-graphite-surface shadow dark:shadow-soft-dark rounded-lg p-4 mb-4 text-sm text-orange-600 dark:text-amber-400"
+          >
+            <AlertTriangle className="h-4 w-4" />
+            Souhrn pro zvolený rozsah se nepodařilo načíst.
+          </div>
+        ) : isWiderSummaryPending ? (
+          // The wider summary is a different population than the grid, so showing the
+          // filter's numbers under an "all products" label would simply be wrong.
+          <div
+            data-testid="pricing-summary-loading"
+            className="flex items-center gap-2 bg-white dark:bg-graphite-surface shadow dark:shadow-soft-dark rounded-lg p-4 mb-4 text-sm text-gray-500 dark:text-graphite-muted"
+          >
+            <Loader2 className="h-4 w-4 animate-spin" />
+            Načítám souhrn...
+          </div>
+        ) : (
+          displayedTotals && (
+            <PricingTotalsBar
+              totals={displayedTotals}
+              isRecalculating={
+                recalculateMutation.isPending || summaryQuery.isFetching
+              }
+            />
+          )
+        )}
+      </div>
 
       {/* Product grid - every row, no pagination */}
       <PricingGrid
-        rows={rows}
+        rows={visibleRows}
         onEdit={handleCellEdit}
         onResetRow={handleResetRow}
         cellErrors={cellErrors}
+        onProductDetail={setDetailProductCode}
+        workGroupProductCodes={workGroup.pinnedProductCodes}
+        onToggleWorkGroup={workGroup.toggleProductCode}
+        onToggleAllWorkGroup={handleToggleAllWorkGroup}
+        onBulkEdit={handleBulkEdit}
+      />
+
+      <CatalogDetail
+        productCode={detailProductCode}
+        isOpen={detailProductCode !== null}
+        onClose={() => setDetailProductCode(null)}
       />
     </div>
   );
