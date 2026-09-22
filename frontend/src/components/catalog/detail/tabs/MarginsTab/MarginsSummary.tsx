@@ -145,7 +145,7 @@ const MarginsSummary: React.FC<MarginsSummaryProps> = ({
                   <td className="px-4 py-3">
                     <div className="flex items-center">
                       <div className="w-3 h-3 rounded-full bg-orange-500 mr-2"></div>
-                      <span className="font-medium text-orange-900 dark:text-orange-300">M2</span>
+                      <span className="font-medium text-orange-900 dark:text-orange-300">M2R</span>
                     </div>
                   </td>
                   <td className="px-4 py-3 text-center">
@@ -183,7 +183,7 @@ const MarginsSummary: React.FC<MarginsSummaryProps> = ({
                   <td className="px-4 py-3">
                     <div className="flex items-center">
                       <div className="w-3 h-3 rounded-full bg-red-500 mr-2"></div>
-                      <span className="font-medium text-red-900 dark:text-red-300">M3</span>
+                      <span className="font-medium text-red-900 dark:text-red-300">M3R</span>
                     </div>
                   </td>
                   <td className="px-4 py-3 text-center">
