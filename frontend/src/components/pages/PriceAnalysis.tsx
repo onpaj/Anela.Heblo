@@ -157,7 +157,10 @@ const PriceAnalysis: React.FC = () => {
   // the mutation call synchronous with the triggering blur/Enter for the common,
   // non-overlapping case.
   const performRecalculate = (
-    buildOverrides: (current: IPricingOverrideDto[]) => IPricingOverrideDto[],
+    // Returning null abandons the request: the callback is the only place that knows
+    // the authoritative overrides, so it is also the only place that can find out
+    // there is nothing left to ask the server for.
+    buildOverrides: (current: IPricingOverrideDto[]) => IPricingOverrideDto[] | null,
     edit: IPricingEditDto | undefined,
     errorKey: string | undefined,
     // The filter this recalculation runs against. Defaults to the one currently applied;
@@ -175,6 +178,9 @@ const PriceAnalysis: React.FC = () => {
       }
 
       const nextOverrides = buildOverrides(overridesRef.current);
+      if (nextOverrides === null) {
+        return;
+      }
 
       try {
         const response = await recalculateMutation.mutateAsync({
@@ -235,29 +241,34 @@ const PriceAnalysis: React.FC = () => {
   // A bulk edit acts on every row the grid lists: narrowing the grid -- by filter or
   // by the work group switch -- is how the user chooses what the change hits.
   const handleBulkEdit = (edit: PricingBulkEdit) => {
-    // The counts do not depend on the overrides in play, so they can be reported
-    // before the request is queued; the overrides themselves are rebuilt inside the
-    // queue against whatever the previous commit left behind.
-    const { appliedCount, skippedCount } = applyPricingBulkEdit(
-      visibleRows,
-      overridesRef.current,
-      edit,
-    );
-
-    if (appliedCount === 0) {
-      // A reset over rows that carry no override changes nothing and is not a
-      // failure; anything else means every product refused the change.
-      if (skippedCount > 0) {
-        toast.error(BULK_EDIT_NOTHING_APPLIED_TOAST);
-      }
-      return;
-    }
-    if (skippedCount > 0) {
-      toast.error(bulkEditSkippedToast(skippedCount));
-    }
-
+    // What a bulk edit does depends on the overrides it lands on -- a 0 % reset only
+    // clears what is actually pinned -- so it is worked out inside the queue, against
+    // whatever the previous commit left behind, and never against `overridesRef` as
+    // it stands at click time. That ref is only ever written from a RESPONSE, so a
+    // reset fired while an edit was still in flight used to read an empty override
+    // set, conclude there was nothing to clear and return without a request or a
+    // word to the user, silently dropping the undo.
     void performRecalculate(
-      (current) => applyPricingBulkEdit(visibleRows, current, edit).overrides,
+      (current) => {
+        const { overrides, appliedCount, skippedCount } = applyPricingBulkEdit(
+          visibleRows,
+          current,
+          edit,
+        );
+
+        if (appliedCount === 0) {
+          // A reset over rows that carry no override changes nothing and is not a
+          // failure; anything else means every product refused the change.
+          if (skippedCount > 0) {
+            toast.error(BULK_EDIT_NOTHING_APPLIED_TOAST);
+          }
+          return null;
+        }
+        if (skippedCount > 0) {
+          toast.error(bulkEditSkippedToast(skippedCount));
+        }
+        return overrides;
+      },
       undefined,
       undefined,
     );

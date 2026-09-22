@@ -241,6 +241,45 @@ describe("PriceAnalysis bulk edit", () => {
     expect(mockMutateAsync.mock.calls[1][0].overrides).toEqual([]);
   });
 
+  it("still resets the column when the reset is queued behind an edit in flight", async () => {
+    // Arrange: hold the first recalculation open. The client's override set is only
+    // ever written from a RESPONSE, so while that request is unanswered it still
+    // reads empty -- which is exactly the state a reset used to be measured against
+    // before being discarded as "nothing to clear".
+    let releaseFirstCall: () => void = () => {};
+    const firstCallHeld = new Promise<void>((resolve) => {
+      releaseFirstCall = resolve;
+    });
+    let callIndex = 0;
+    mockMutateAsync.mockImplementation(async (payload: any) => {
+      if (callIndex++ === 0) {
+        await firstCallHeld;
+      }
+      return { rows, totals: buildTotals(), overrides: payload.overrides };
+    });
+
+    renderPage();
+    openBulkEditor();
+    fireEvent.change(screen.getByTestId("pricing-bulk-editor-amount"), {
+      target: { value: "10" },
+    });
+    fireEvent.click(screen.getByTestId("pricing-bulk-editor-apply"));
+    await waitFor(() => expect(mockMutateAsync).toHaveBeenCalledTimes(1));
+
+    // Act: reset the column before that first request has been answered.
+    openBulkEditor();
+    fireEvent.change(screen.getByTestId("pricing-bulk-editor-amount"), {
+      target: { value: "0" },
+    });
+    fireEvent.click(screen.getByTestId("pricing-bulk-editor-apply"));
+    releaseFirstCall();
+
+    // Assert: the reset is built against what the first call left behind, so it
+    // reaches the server and clears the pinned prices instead of vanishing.
+    await waitFor(() => expect(mockMutateAsync).toHaveBeenCalledTimes(2));
+    expect(mockMutateAsync.mock.calls[1][0].overrides).toEqual([]);
+  });
+
   it("says so and posts nothing when no product can take the change", async () => {
     // Arrange
     renderPage();
