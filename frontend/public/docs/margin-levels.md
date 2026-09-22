@@ -99,10 +99,11 @@ Produkt, který se za posledních 365 dní nevyráběl, má M1 = 0.
 
 ## M2 — Sklad a marketing
 
-Náklady skladu a marketingu rozpočítané rovným dílem na prodaný kus.
+Náklady skladu a marketingu rozpočítané podle podílu na tržbách.
 
 ```
-M2 na kus = náklady (SKLAD + MARKETING) / celkový počet prodaných kusů
+sazba     = náklady (SKLAD + MARKETING) / celkové tržby
+M2 na kus = sazba × tržba na kus produktu
 ```
 
 **Náklady:** střediska **SKLAD** a **MARKETING**, účty **50x** (spotřeba —
@@ -111,14 +112,23 @@ nájem skladu, copywriting) a **52x** (osobní náklady skladu a marketingu).
 
 Kurzové ztráty (56x) a daně a poplatky (53x) do M2 nepatří.
 
-**Jmenovatel:** všechny prodané kusy všech položek katalogu za stejné okno.
-Nezapočítávají se položky rozpadlé z dárkových balíčků (ty by se počítaly
-dvakrát — balíček je už započítaný sám za sebe) a položky, které nejsou
-v katalogu (například příspěvek Znesnáze).
+**Jmenovatel:** tržby všech položek katalogu za stejné okno. Nezapočítávají se
+položky rozpadlé z dárkových balíčků (ty nesou kusy, ale žádnou tržbu — tu si
+drží balíček sám za sebe) a položky, které nejsou v katalogu (například
+příspěvek Znesnáze).
 
-**Rozpočítává se na kusy, ne na obrat.** Každý prodaný kus nese stejnou
-částku — deodorant 4,9 ml i krém 180 ml. U levných malých produktů to marži
-ukrojí nepoměrně víc.
+**Tržba na kus je skutečná, ne ceníková:** tržby produktu za okno dělené počtem
+prodaných kusů. Velkoobchodní a zlevněný prodej ji stahují dolů, takže takový
+produkt nese odpovídajícím dílem menší náklad.
+
+**Rozpočítává se na obrat, ne na kusy.** Každá koruna tržby nese stejnou částku,
+takže krém 180 ml odvede víc než deodorant 4,9 ml. Náklad na kus je pak plošný
+přes měsíce okna — stejný pro každý měsíc.
+
+Produkt, který se za okno neprodal, nemá z čeho nést režii a má M2 = 0. Totéž
+platí, když vratky za okno převáží prodej: takový produkt nese 0 **a nevstupuje
+do jmenovatele** — jinak by zápornou tržbou zmenšil dělitele a zvedl náklad
+všem ostatním.
 
 ---
 
@@ -129,12 +139,13 @@ Zbytek přímých nákladů firmy — všechno na účtech 51x a 52x, co si nevz
 vedení), **prodejnu** a jakékoli nezařazené středisko.
 
 ```
-M3 na kus = režijní náklady / celkový počet prodaných kusů
+sazba     = režijní náklady / celkové tržby
+M3 na kus = sazba × tržba na kus produktu
 ```
 
-**Jmenovatel je stejný jako u M2** — tytéž prodané kusy, včetně stejného
-vyloučení komponent rozpadlých z dárkových balíčků. Náklad na kus je plošný:
-stejný pro každý produkt i každý měsíc okna.
+**Jmenovatel je stejný jako u M2** — tytéž tržby, včetně stejného vyloučení
+komponent rozpadlých z dárkových balíčků a stejného pravidla o skutečné tržbě
+na kus. Náklad na kus je plošný přes všechny měsíce okna.
 
 **Středisko přidané ve FlexiBee spadne do M3 automaticky.** M3 je definované
 jako doplněk, ne výčtem — nové středisko se tak objeví v režii místo aby
@@ -161,7 +172,9 @@ příspěvek na úhradu zbytku nákladů a zisku.
 - **M1 = 0** u produktu znamená „za posledních 365 dní se nevyráběl“, ne
   „nestojí žádnou práci“.
 - **Polotovary** mají M1 = 0 záměrně; jejich práce je v ceně hotového výrobku.
-- **M2 a M3 se rozpočítávají na kusy**, takže levné malé produkty nesou stejnou
-  částku jako drahé velké.
+- **M2 a M3 se rozpočítávají podle tržeb**, takže levný produkt nese menší část
+  skladu, marketingu a režie než drahý.
+- **M2 = M3 = 0** u produktu znamená „za okno nic nevydělal“ — buď se neprodal,
+  nebo vratky převážily prodej. Jeho M3 marže je pak stejná jako M1.
 - **Změna okna** (`ManufactureCostHistoryDays`) přepočítá **všechny** hladiny
   najednou, ne jen výrobní.

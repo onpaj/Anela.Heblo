@@ -26,7 +26,7 @@ public class SalesCostProviderTests
 
     private static CatalogAggregate BuildProduct(
         string productCode,
-        IEnumerable<(DateTime date, double amount)> sales)
+        IEnumerable<(DateTime date, double amount, decimal revenue)> sales)
     {
         return new CatalogAggregate
         {
@@ -37,7 +37,8 @@ public class SalesCostProviderTests
                     Date = s.date,
                     ProductCode = productCode,
                     ProductName = productCode,
-                    AmountTotal = s.amount
+                    AmountTotal = s.amount,
+                    SumTotal = s.revenue
                 })
                 .ToList()
         };
@@ -109,7 +110,7 @@ public class SalesCostProviderTests
         repoMock.Setup(r => r.WaitForCurrentMergeAsync(It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
         repoMock.Setup(r => r.GetAllAsync(It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new List<CatalogAggregate> { BuildProduct("PROD-A", new[] { (saleDate, 10.0) }) });
+            .ReturnsAsync(new List<CatalogAggregate> { BuildProduct("PROD-A", new[] { (saleDate, 10.0, 1_000m) }) });
 
         var capturedPrefixes = new List<IReadOnlyList<string>>();
         var ledgerMock = new Mock<ILedgerService>();
@@ -132,22 +133,30 @@ public class SalesCostProviderTests
     }
 
     [Fact]
-    internal async Task RefreshAsync_DistributesCostPerPiece_WhenSalesExist()
+    internal async Task RefreshAsync_DistributesCostByRevenue_WhenSalesExist()
     {
-        // Arrange
+        // Arrange - PROD-B sells twice the pieces of PROD-A for the same money, so a per-piece
+        // split would hand all three products an identical cost. Allocating by revenue must
+        // charge each piece in proportion to what that piece earns.
         var now = DateTime.UtcNow;
         var saleDate = new DateTime(now.Year, now.Month, 1).AddMonths(-1).AddDays(14);
 
         var products = new List<CatalogAggregate>
         {
-            BuildProduct("PROD-A", new[] { (saleDate, 10.0) }),
-            BuildProduct("PROD-B", new[] { (saleDate, 20.0) }),
-            BuildProduct("PROD-C", new[] { (saleDate, 30.0) })
+            BuildProduct("PROD-A", new[] { (saleDate, 10.0, 1_000m) }),  // 100 Kc / ks
+            BuildProduct("PROD-B", new[] { (saleDate, 20.0, 1_000m) }),  //  50 Kc / ks
+            BuildProduct("PROD-C", new[] { (saleDate, 30.0, 3_000m) })   // 100 Kc / ks
         };
         var warehouseCost = 600m;
         var marketingCost = 600m;
-        var totalSoldPieces = 60.0;
-        var expectedCostPerPiece = (decimal)((double)(warehouseCost + marketingCost) / totalSoldPieces);
+
+        // 1200 / 5000 Kc trzeb = 0,24 Kc skladu a marketingu na korunu trzby
+        var expectedCostPerPiece = new Dictionary<string, decimal>
+        {
+            ["PROD-A"] = 24m,
+            ["PROD-B"] = 12m,
+            ["PROD-C"] = 24m
+        };
 
         var callOrder = new List<string>();
 
@@ -192,10 +201,10 @@ public class SalesCostProviderTests
         firstList.Should().NotBeEmpty();
         var monthCount = firstList.Count;
 
-        foreach (var monthly in captured.ProductCosts.Values)
+        foreach (var (productCode, monthly) in captured.ProductCosts)
         {
             monthly.Should().HaveCount(monthCount);
-            monthly.Should().AllSatisfy(mc => mc.Cost.Should().Be(expectedCostPerPiece));
+            monthly.Should().AllSatisfy(mc => mc.Cost.Should().Be(expectedCostPerPiece[productCode]));
         }
 
         ledgerMock.Verify(
@@ -209,12 +218,12 @@ public class SalesCostProviderTests
     }
 
     [Fact]
-    internal async Task RefreshAsync_ExcludesSyntheticBundleComponentSalesFromCostPerPieceDenominator()
+    internal async Task RefreshAsync_ExcludesSyntheticBundleComponentSalesFromRevenueDenominator()
     {
         // Arrange — PROD-A has a real sale plus a synthetic component-sale record derived from a
-        // bundle sale (SourceBundleCode set). The synthetic record must NOT count toward the
-        // company-wide total-sold-pieces denominator used to compute cost-per-piece: including it
-        // would lower cost-per-piece (and thus raise M2 margin) for every product in the catalog.
+        // bundle sale (SourceBundleCode set). The synthetic record carries pieces but no revenue,
+        // so counting it would drag PROD-A's revenue per piece down to almost nothing and leave it
+        // carrying next to no M2 cost — the bundle itself already carries that revenue.
         var now = DateTime.UtcNow;
         var saleDate = new DateTime(now.Year, now.Month, 1).AddMonths(-1).AddDays(14);
 
@@ -223,8 +232,8 @@ public class SalesCostProviderTests
             ProductCode = "PROD-A",
             SalesHistory = new List<CatalogSaleRecord>
             {
-                new CatalogSaleRecord { Date = saleDate, ProductCode = "PROD-A", ProductName = "PROD-A", AmountTotal = 10 },
-                new CatalogSaleRecord { Date = saleDate, ProductCode = "PROD-A", ProductName = "PROD-A", AmountTotal = 1000, SourceBundleCode = "BUNDLE001" }
+                new CatalogSaleRecord { Date = saleDate, ProductCode = "PROD-A", ProductName = "PROD-A", AmountTotal = 10, SumTotal = 1_000m },
+                new CatalogSaleRecord { Date = saleDate, ProductCode = "PROD-A", ProductName = "PROD-A", AmountTotal = 1000, SumTotal = 0m, SourceBundleCode = "BUNDLE001" }
             }
         };
 
@@ -232,9 +241,9 @@ public class SalesCostProviderTests
         var warehouseCost = 600m;
         var marketingCost = 600m;
 
-        // Expected denominator excludes the synthetic 1000-unit record: only the real 10 units count.
-        var expectedTotalSoldPieces = 10.0;
-        var expectedCostPerPiece = (decimal)((double)(warehouseCost + marketingCost) / expectedTotalSoldPieces);
+        // Only the real row counts: 1200 / 1000 Kc trzeb = 1,2 Kc na korunu, tedy 120 Kc na kus
+        // za 100 Kc. S synteticky rozpadlym radkem by trzba na kus klesla na 1000/1010.
+        var expectedCostPerPiece = 120m;
 
         var repoMock = new Mock<ICatalogRepository>();
         repoMock.Setup(r => r.WaitForCurrentMergeAsync(It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);
@@ -270,15 +279,151 @@ public class SalesCostProviderTests
     }
 
     [Fact]
+    internal async Task RefreshAsync_ChargesNothing_ToProductWithoutSalesInWindow()
+    {
+        // Arrange — a dormant product earned nothing in the window, so it takes no share of the
+        // pool. The whole pool still lands on the product that did sell, which is what keeps the
+        // allocation tied to the ledger.
+        var now = DateTime.UtcNow;
+        var saleDate = new DateTime(now.Year, now.Month, 1).AddMonths(-1).AddDays(14);
+
+        var products = new List<CatalogAggregate>
+        {
+            BuildProduct("SOLD", new[] { (saleDate, 10.0, 1_000m) }),
+            BuildProduct("DORMANT", Array.Empty<(DateTime, double, decimal)>())
+        };
+
+        var repoMock = new Mock<ICatalogRepository>();
+        repoMock.Setup(r => r.WaitForCurrentMergeAsync(It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);
+        repoMock.Setup(r => r.GetAllAsync(It.IsAny<CancellationToken>())).ReturnsAsync(products);
+
+        var ledgerMock = new Mock<ILedgerService>();
+        ledgerMock.Setup(s => s.GetCosts(It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.IsAny<IEnumerable<string>>(), "SKLAD", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<CostStatistics>
+            {
+                new() { Date = saleDate, Cost = 1_200m, Department = "SKLAD" }
+            });
+        ledgerMock.Setup(s => s.GetCosts(It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.IsAny<IEnumerable<string>>(), "MARKETING", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<CostStatistics>());
+
+        CostCacheData? captured = null;
+        var cacheMock = new Mock<ISalesCostCache>();
+        cacheMock.Setup(c => c.SetCachedDataAsync(It.IsAny<CostCacheData>(), It.IsAny<CancellationToken>()))
+            .Callback<CostCacheData, CancellationToken>((d, _) => captured = d)
+            .Returns(Task.CompletedTask);
+
+        var provider = CreateProvider(cacheMock: cacheMock, repoMock: repoMock, ledgerMock: ledgerMock);
+
+        // Act
+        await provider.RefreshAsync();
+
+        // Assert
+        captured.Should().NotBeNull();
+        captured!.ProductCosts["DORMANT"].Should().AllSatisfy(mc => mc.Cost.Should().Be(0m));
+        captured.ProductCosts["SOLD"].Should().AllSatisfy(mc => mc.Cost.Should().Be(120m));
+    }
+
+    [Fact]
+    internal async Task RefreshAsync_KeepsReturnHeavyProductOutOfTheDenominator()
+    {
+        // Arrange — RETURNED took more back than it sold in the window, so it earned nothing and is
+        // charged nothing. Its negative revenue must not reach the denominator either: left in, it
+        // would shrink the divisor and inflate the cost of every product that did sell
+        // (1200 / (1000 - 400) = 2 Kc na korunu, tedy 200 Kc/ks misto 120).
+        var now = DateTime.UtcNow;
+        var saleDate = new DateTime(now.Year, now.Month, 1).AddMonths(-1).AddDays(14);
+
+        var products = new List<CatalogAggregate>
+        {
+            BuildProduct("SOLD", new[] { (saleDate, 10.0, 1_000m) }),
+            BuildProduct("RETURNED", new[] { (saleDate, 4.0, 400m), (saleDate, -7.0, -800m) })
+        };
+
+        var repoMock = new Mock<ICatalogRepository>();
+        repoMock.Setup(r => r.WaitForCurrentMergeAsync(It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);
+        repoMock.Setup(r => r.GetAllAsync(It.IsAny<CancellationToken>())).ReturnsAsync(products);
+
+        var ledgerMock = new Mock<ILedgerService>();
+        ledgerMock.Setup(s => s.GetCosts(It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.IsAny<IEnumerable<string>>(), "SKLAD", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<CostStatistics>
+            {
+                new() { Date = saleDate, Cost = 1_200m, Department = "SKLAD" }
+            });
+        ledgerMock.Setup(s => s.GetCosts(It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.IsAny<IEnumerable<string>>(), "MARKETING", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<CostStatistics>());
+
+        CostCacheData? captured = null;
+        var cacheMock = new Mock<ISalesCostCache>();
+        cacheMock.Setup(c => c.SetCachedDataAsync(It.IsAny<CostCacheData>(), It.IsAny<CancellationToken>()))
+            .Callback<CostCacheData, CancellationToken>((d, _) => captured = d)
+            .Returns(Task.CompletedTask);
+
+        var provider = CreateProvider(cacheMock: cacheMock, repoMock: repoMock, ledgerMock: ledgerMock);
+
+        // Act
+        await provider.RefreshAsync();
+
+        // Assert
+        captured.Should().NotBeNull();
+        captured!.ProductCosts["RETURNED"].Should().AllSatisfy(mc => mc.Cost.Should().Be(0m));
+        captured.ProductCosts["SOLD"].Should().AllSatisfy(mc => mc.Cost.Should().Be(120m));
+    }
+
+    [Fact]
+    internal async Task RefreshAsync_ChargesNothing_WhenSalesAndReturnsCancelOutToAFloatingPointResidual()
+    {
+        // Arrange — CANCELLED's quantities are doubles that do not sum back to an exact zero
+        // (0.1 + 0.2 - 0.3 leaves ~5.5e-17). Dividing its revenue by that residual would hand it an
+        // astronomic cost per piece, so anything below a piece of quantity carries nothing.
+        var now = DateTime.UtcNow;
+        var saleDate = new DateTime(now.Year, now.Month, 1).AddMonths(-1).AddDays(14);
+
+        var products = new List<CatalogAggregate>
+        {
+            BuildProduct("SOLD", new[] { (saleDate, 10.0, 1_000m) }),
+            BuildProduct("CANCELLED", new[] { (saleDate, 0.1, 30m), (saleDate, 0.2, 60m), (saleDate, -0.3, -80m) })
+        };
+
+        var repoMock = new Mock<ICatalogRepository>();
+        repoMock.Setup(r => r.WaitForCurrentMergeAsync(It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);
+        repoMock.Setup(r => r.GetAllAsync(It.IsAny<CancellationToken>())).ReturnsAsync(products);
+
+        var ledgerMock = new Mock<ILedgerService>();
+        ledgerMock.Setup(s => s.GetCosts(It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.IsAny<IEnumerable<string>>(), "SKLAD", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<CostStatistics>
+            {
+                new() { Date = saleDate, Cost = 1_200m, Department = "SKLAD" }
+            });
+        ledgerMock.Setup(s => s.GetCosts(It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.IsAny<IEnumerable<string>>(), "MARKETING", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<CostStatistics>());
+
+        CostCacheData? captured = null;
+        var cacheMock = new Mock<ISalesCostCache>();
+        cacheMock.Setup(c => c.SetCachedDataAsync(It.IsAny<CostCacheData>(), It.IsAny<CancellationToken>()))
+            .Callback<CostCacheData, CancellationToken>((d, _) => captured = d)
+            .Returns(Task.CompletedTask);
+
+        var provider = CreateProvider(cacheMock: cacheMock, repoMock: repoMock, ledgerMock: ledgerMock);
+
+        // Act
+        await provider.RefreshAsync();
+
+        // Assert
+        captured.Should().NotBeNull();
+        captured!.ProductCosts["CANCELLED"].Should().AllSatisfy(mc => mc.Cost.Should().Be(0m));
+        captured.ProductCosts["SOLD"].Should().AllSatisfy(mc => mc.Cost.Should().Be(120m));
+    }
+
+    [Fact]
     internal async Task RefreshAsync_WritesZeroCostsAndLogsWarning_WhenNoSalesInPeriod()
     {
         // Arrange
         var products = new List<CatalogAggregate>
         {
-            BuildProduct("PROD-A", Array.Empty<(DateTime, double)>()),
-            BuildProduct("PROD-B", Array.Empty<(DateTime, double)>()),
-            BuildProduct(string.Empty, Array.Empty<(DateTime, double)>()),
-            BuildProduct(null!, Array.Empty<(DateTime, double)>())
+            BuildProduct("PROD-A", Array.Empty<(DateTime, double, decimal)>()),
+            BuildProduct("PROD-B", Array.Empty<(DateTime, double, decimal)>()),
+            BuildProduct(string.Empty, Array.Empty<(DateTime, double, decimal)>()),
+            BuildProduct(null!, Array.Empty<(DateTime, double, decimal)>())
         };
 
         var repoMock = new Mock<ICatalogRepository>();
@@ -316,7 +461,7 @@ public class SalesCostProviderTests
             monthly.Should().AllSatisfy(mc => mc.Cost.Should().Be(0m));
         }
 
-        VerifyLog(loggerMock, LogLevel.Warning, "No sales history found");
+        VerifyLog(loggerMock, LogLevel.Warning, "No sales revenue found");
     }
 
     [Fact]
