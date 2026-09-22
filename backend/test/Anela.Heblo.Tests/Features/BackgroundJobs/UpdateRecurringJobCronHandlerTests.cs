@@ -58,7 +58,7 @@ public class UpdateRecurringJobCronHandlerTests
         result.Success.Should().BeFalse();
         result.ErrorCode.Should().Be(ErrorCodes.RecurringJobNotFound);
         _repositoryMock.Verify(r => r.UpdateAsync(It.IsAny<RecurringJobConfiguration>(), It.IsAny<CancellationToken>()), Times.Never);
-        _schedulerMock.Verify(s => s.UpdateCronSchedule(It.IsAny<string>(), It.IsAny<string>()), Times.Never);
+        _schedulerMock.Verify(s => s.UpdateCronSchedule(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()), Times.Never);
     }
 
     [Fact]
@@ -75,7 +75,7 @@ public class UpdateRecurringJobCronHandlerTests
         result.Success.Should().BeFalse();
         result.ErrorCode.Should().Be(ErrorCodes.InvalidCronExpression);
         _repositoryMock.Verify(r => r.UpdateAsync(It.IsAny<RecurringJobConfiguration>(), It.IsAny<CancellationToken>()), Times.Never);
-        _schedulerMock.Verify(s => s.UpdateCronSchedule(It.IsAny<string>(), It.IsAny<string>()), Times.Never);
+        _schedulerMock.Verify(s => s.UpdateCronSchedule(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()), Times.Never);
     }
 
     [Theory]
@@ -122,7 +122,7 @@ public class UpdateRecurringJobCronHandlerTests
             It.Is<RecurringJobConfiguration>(c => c.CronExpression == newCron),
             It.IsAny<CancellationToken>()), Times.Once);
 
-        _schedulerMock.Verify(s => s.UpdateCronSchedule("my-job", newCron), Times.Once);
+        _schedulerMock.Verify(s => s.UpdateCronSchedule("my-job", newCron, "Europe/Prague"), Times.Once);
     }
 
     [Theory]

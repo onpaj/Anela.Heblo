@@ -71,7 +71,7 @@ public class UpdateRecurringJobCronHandler : IRequestHandler<UpdateRecurringJobC
             job.UpdateCronExpression(request.CronExpression, modifiedBy, now);
             await _repository.UpdateAsync(job, cancellationToken);
 
-            _scheduler.UpdateCronSchedule(job.JobName, job.CronExpression);
+            _scheduler.UpdateCronSchedule(job.JobName, job.CronExpression, job.TimeZoneId);
 
             _logger.LogInformation(
                 "CRON expression for {JobName} updated to {CronExpression} by {ModifiedBy}",
