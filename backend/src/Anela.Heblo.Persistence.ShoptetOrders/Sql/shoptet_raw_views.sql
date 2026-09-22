@@ -121,7 +121,11 @@ WITH base AS (
         o.billing_company,
         o.billing_country_code,
         o.currency_code,
-        o.exchange_rate,
+        -- A missing rate means "no conversion known". Left as NULL it would propagate through
+        -- every division below, so sum(revenue) silently skipped the order while count(*) still
+        -- counted it — revenue quietly undershooting order count with nothing to signal it.
+        -- CZK orders carry 1.0, and 1.0 is also the right assumption for a rate Shoptet omitted.
+        coalesce(o.exchange_rate, 1) AS exchange_rate,
         o.price_with_vat,
         o.price_without_vat,
         o.product_price_with_vat,
@@ -131,8 +135,8 @@ WITH base AS (
         o.discount_with_vat,
         o.product_units,
         -- exchange_rate is order-currency-per-CZK, so dividing converts to CZK.
-        o.price_with_vat    / NULLIF(o.exchange_rate, 0)            AS revenue_czk_with_vat,
-        o.price_without_vat / NULLIF(o.exchange_rate, 0)            AS revenue_czk_without_vat
+        o.price_with_vat    / NULLIF(coalesce(o.exchange_rate, 1), 0) AS revenue_czk_with_vat,
+        o.price_without_vat / NULLIF(coalesce(o.exchange_rate, 1), 0) AS revenue_czk_without_vat
     FROM shoptet_raw."order" o
     LEFT JOIN shoptet_raw.wholesale_shipping w ON w.shipping_guid = o.shipping_guid
     LEFT JOIN shoptet_raw.sales_channel sc     ON sc.sales_channel_guid = o.sales_channel_guid
@@ -254,9 +258,18 @@ GROUP BY order_month, channel;
 -- #18 — repeat purchasing per customer, with the acquisition month as a cohort key.
 -- Customer grain rather than month grain, but bounded by the number of identities (~60k),
 -- not by the number of orders.
+--
+-- The grain is a SURROGATE, not the e-mail address. customer_key is the raw address, and this is
+-- the one granted view whose grain is per-customer — selecting it directly would handed anyone
+-- with the Metabase connection an exportable ~60k-row list of customer e-mails with lifetime
+-- spend attached, which is exactly what withholding the raw tables above is meant to prevent.
+-- md5 keeps every question this view exists to answer (cohorts, repeat rate, order cadence, LTV
+-- distribution), because those group and count identities rather than read them.
+-- To identify an individual customer, join order_fact directly — it is not granted, so that stays
+-- a deliberate act by someone with database access.
 CREATE OR REPLACE VIEW shoptet_raw.v_customer_repeat_purchase AS
 SELECT
-    customer_key,
+    md5(customer_key)                                            AS customer_id,
     min(order_date)                                              AS first_order_date,
     date_trunc('month', min(order_date)::timestamp)::date        AS cohort_month,
     max(order_date)                                              AS last_order_date,
@@ -343,33 +356,44 @@ GROUP BY f.order_month, f.channel, i.product_code, i.variant_name;
 
 -- #10 — which products are bought together. Unordered pairs, one row per pair per month/channel.
 CREATE OR REPLACE VIEW shoptet_raw.v_product_pair_monthly AS
+-- product_name is deliberately NOT part of the DISTINCT: it is descriptive, not identifying, and
+-- one product_code carrying two spellings within a single order would otherwise yield two rows for
+-- that order and count the pair twice. Names are looked up separately.
 WITH order_products AS (
     SELECT DISTINCT
         f.order_month,
         f.channel,
         i.order_code,
-        i.product_code,
-        i.product_name
+        i.product_code
     FROM shoptet_raw.order_item i
     JOIN shoptet_raw.order_fact f ON f.code = i.order_code
     WHERE NOT f.is_cancelled
       AND i.source_array = 'items'
       AND i.item_type IN ('product', 'product-set')
       AND i.product_code IS NOT NULL
+),
+product_name AS (
+    SELECT product_code, max(product_name) AS product_name
+    FROM shoptet_raw.order_item
+    WHERE product_code IS NOT NULL
+    GROUP BY product_code
 )
 SELECT
     a.order_month,
     a.channel,
     a.product_code            AS product_code_a,
-    max(a.product_name)       AS product_name_a,
+    na.product_name           AS product_name_a,
     b.product_code            AS product_code_b,
-    max(b.product_name)       AS product_name_b,
+    nb.product_name           AS product_name_b,
     count(*)                  AS orders_together
 FROM order_products a
 JOIN order_products b
   ON b.order_code = a.order_code
  AND b.product_code > a.product_code
-GROUP BY a.order_month, a.channel, a.product_code, b.product_code;
+LEFT JOIN product_name na ON na.product_code = a.product_code
+LEFT JOIN product_name nb ON nb.product_code = b.product_code
+GROUP BY a.order_month, a.channel, a.product_code, na.product_name,
+         b.product_code, nb.product_name;
 
 -- Operational view so the sync can be watched from Metabase without granting the raw tables.
 CREATE OR REPLACE VIEW shoptet_raw.v_sync_health AS
@@ -407,10 +431,14 @@ GRANT SELECT ON shoptet_raw.v_product_set_component_units_monthly      TO metaba
 GRANT SELECT ON shoptet_raw.v_product_pair_monthly                     TO metabase_ro;
 GRANT SELECT ON shoptet_raw.v_sync_health                              TO metabase_ro;
 
--- Explicitly take back anything a future blanket grant might hand out.
+-- Take back anything a blanket grant may already have handed out...
 REVOKE ALL ON shoptet_raw."order"                 FROM metabase_ro;
 REVOKE ALL ON shoptet_raw.order_item              FROM metabase_ro;
 REVOKE ALL ON shoptet_raw.sync_state              FROM metabase_ro;
 REVOKE ALL ON shoptet_raw.wholesale_shipping      FROM metabase_ro;
 REVOKE ALL ON shoptet_raw.sales_channel           FROM metabase_ro;
 REVOKE ALL ON shoptet_raw.order_fact              FROM metabase_ro;
+
+-- ...and stop a FUTURE one reaching these tables at all. A REVOKE run now cannot affect a grant
+-- issued later, which is what the line above was mistakenly documented as doing.
+ALTER DEFAULT PRIVILEGES IN SCHEMA shoptet_raw REVOKE ALL ON TABLES FROM metabase_ro;

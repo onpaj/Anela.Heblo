@@ -4,6 +4,7 @@ using Anela.Heblo.Persistence.ShoptetOrders;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
+using Npgsql;
 
 namespace Anela.Heblo.Adapters.ShoptetApi.Analytics;
 
@@ -20,6 +21,20 @@ public static class ShoptetOrdersAnalyticsServiceCollectionExtensions
         var connectionString = configuration[$"{ShoptetOrdersSyncOptions.ConfigurationKey}:ConnectionString"];
         if (string.IsNullOrWhiteSpace(connectionString))
             return services;
+
+        // A non-blank value still need not be a connection string: a Key Vault placeholder, or a
+        // typo'd secret name resolving to prose, both clear the blank check and then throw inside
+        // NpgsqlDataSourceBuilder — during registration, which takes the whole API down at boot
+        // rather than leaving one reporting job unregistered. Reporting is never worth that.
+        if (!IsParseableConnectionString(connectionString, out var parseError))
+        {
+            LogStartupWarning(
+                $"{ShoptetOrdersSyncOptions.ConfigurationKey}:ConnectionString is set but is not a "
+                + $"valid Npgsql connection string ({parseError}); the shoptet_raw mirror stays "
+                + "unregistered. Check the Key Vault secret "
+                + $"{ShoptetOrdersSyncOptions.ConfigurationKey}--ConnectionString.");
+            return services;
+        }
 
         services.Configure<ShoptetOrdersSyncOptions>(
             configuration.GetSection(ShoptetOrdersSyncOptions.ConfigurationKey));
@@ -61,6 +76,34 @@ public static class ShoptetOrdersAnalyticsServiceCollectionExtensions
 
         return services;
     }
+
+    private static bool IsParseableConnectionString(string value, out string error)
+    {
+        try
+        {
+            var builder = new NpgsqlConnectionStringBuilder(value);
+            if (string.IsNullOrWhiteSpace(builder.Host))
+            {
+                error = "no Host";
+                return false;
+            }
+
+            error = "";
+            return true;
+        }
+        catch (Exception ex) when (ex is ArgumentException or FormatException)
+        {
+            error = ex.Message;
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// Registration runs before the logging pipeline is available, so a misconfiguration that would
+    /// otherwise be invisible is written straight to the console.
+    /// </summary>
+    private static void LogStartupWarning(string message) =>
+        Console.Error.WriteLine($"[ShoptetOrdersSync] {message}");
 
     private static IServiceCollection TryAddTimeProvider(this IServiceCollection services)
     {

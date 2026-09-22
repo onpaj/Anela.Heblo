@@ -31,7 +31,7 @@ public class ShoptetOrdersSyncServiceTests
         var client = new FakeShoptetOrderAnalyticsClient();
         var store = new ShoptetOrderStore(ctx);
         var watermarks = new ShoptetSyncWatermarkRepository(ctx);
-        var ingestor = new ShoptetOrderIngestor(client, store, options, NullLogger<ShoptetOrderIngestor>.Instance);
+        var ingestor = new ShoptetOrderIngestor(client, store, options, clock, NullLogger<ShoptetOrderIngestor>.Instance);
 
         var backfill = new ShoptetOrderBackfillService(
             client, ingestor, watermarks, options, clock,

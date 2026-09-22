@@ -12,7 +12,12 @@ internal sealed class FakeShoptetOrderAnalyticsClient : IShoptetOrderAnalyticsCl
     private const int PageSize = 50;
 
     public List<(DateTimeOffset From, DateTimeOffset To)> CreationWindowsRequested { get; } = new();
+    /// <summary>GET /api/orders?changeTimeFrom — the listing.</summary>
     public List<DateTimeOffset> ChangeQueriesRequested { get; } = new();
+
+    /// <summary>GET /api/orders/changes — the edit/delete log. Recorded separately so a test can
+    /// tell which of the two sources the incremental sync actually read.</summary>
+    public List<DateTimeOffset> ChangeLogQueriesRequested { get; } = new();
     public List<string> DetailsRequested { get; } = new();
 
     /// <summary>Order code → creation instant, used to answer the creation-time listing.</summary>
@@ -28,6 +33,9 @@ internal sealed class FakeShoptetOrderAnalyticsClient : IShoptetOrderAnalyticsCl
     /// backfill's wall-clock budget can actually be reached.
     /// </summary>
     public Action? OnCreationWindow { get; set; }
+
+    /// <summary>Invoked before each detail call, so a test can cancel a run already in flight.</summary>
+    public Action? OnDetail { get; set; }
 
     public Task<ShoptetOrderCodeListData> ListCodesByCreationTimeAsync(
         DateTimeOffset createdFrom, DateTimeOffset createdTo, int page, CancellationToken ct = default)
@@ -53,8 +61,11 @@ internal sealed class FakeShoptetOrderAnalyticsClient : IShoptetOrderAnalyticsCl
         if (page == 1)
             ChangeQueriesRequested.Add(changedFrom);
 
+        // A deleted order stops appearing in the listing altogether — that is exactly why the
+        // change log is the only way to learn about a deletion.
         var matching = Changes
             .Where(c => c.ChangeTime >= changedFrom)
+            .Where(c => !string.Equals(c.ChangeType, "delete", StringComparison.OrdinalIgnoreCase))
             .Select(c => new ShoptetOrderCodeDto { Code = c.Code, ChangeTime = c.ChangeTime })
             .ToList();
 
@@ -65,7 +76,7 @@ internal sealed class FakeShoptetOrderAnalyticsClient : IShoptetOrderAnalyticsCl
         DateTimeOffset changedFrom, int page, int itemsPerPage, CancellationToken ct = default)
     {
         if (page == 1)
-            ChangeQueriesRequested.Add(changedFrom);
+            ChangeLogQueriesRequested.Add(changedFrom);
 
         var matching = Changes.Where(c => c.ChangeTime >= changedFrom).ToList();
 
@@ -90,6 +101,7 @@ internal sealed class FakeShoptetOrderAnalyticsClient : IShoptetOrderAnalyticsCl
         string code, CancellationToken ct = default)
     {
         DetailsRequested.Add(code);
+        OnDetail?.Invoke();
 
         if (!DetailJsonByCode.TryGetValue(code, out var json))
             return Task.FromResult<(ShoptetOrderDetailDto?, string)>((null, "{}"));

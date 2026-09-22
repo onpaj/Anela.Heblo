@@ -93,19 +93,102 @@ public class ShoptetOrderAnalyticsClientTests
     }
 
     [Fact]
+    public async Task An_http_timeout_is_retried_even_though_it_throws_TaskCanceledException()
+    {
+        // Arrange — HttpClient reports its own timeout as TaskCanceledException, which IS an
+        // OperationCanceledException. Telling them apart by exception type would leave every
+        // per-request timeout of a seven-hour backfill unretried, so the filter reads the
+        // caller's token instead. The token here is live: this is a timeout, not a cancellation.
+        var (client, handler) = CreateClient(
+            _ => throw new TaskCanceledException("The request was canceled due to a timeout."),
+            _ => Json(ShoptetOrderTestData.SimpleOrderJson));
+
+        // Act
+        var order = await client.GetOrderAsync("126020373", CancellationToken.None);
+
+        // Assert
+        order.Should().NotBeNull();
+        handler.Requests.Should().HaveCount(2);
+    }
+
+    [Fact]
     public async Task Cancellation_by_the_caller_is_not_retried()
     {
-        // Arrange — an HttpClient timeout surfaces as TaskCanceledException, which is also what
-        // real cancellation throws; only the caller's token tells them apart.
-        var (client, handler) = CreateClient(_ => throw new TaskCanceledException("cancelled"));
+        // Arrange — the same exception type as the timeout above, but with a token that is already
+        // cancelled by the time the failure is classified.
         using var cts = new CancellationTokenSource();
-        await cts.CancelAsync();
+        var (client, handler) = CreateClient(_ =>
+        {
+            cts.Cancel();
+            throw new TaskCanceledException("cancelled");
+        });
 
         // Act
         var act = () => client.GetOrderAsync("126020373", cts.Token);
 
         // Assert
         await act.Should().ThrowAsync<OperationCanceledException>();
+        handler.Requests.Should().HaveCount(1, "a cancelled call must not be retried");
+    }
+
+    [Fact]
+    public async Task A_404_on_a_list_endpoint_throws_rather_than_reading_as_an_empty_window()
+    {
+        // Arrange — 404 is benign only on the detail endpoint. On a listing it must not degrade to
+        // "this window held no orders": the backfill would persist an advanced cursor over a month
+        // it never actually read, and nothing revisits it.
+        var (client, _) = CreateClient(_ => new HttpResponseMessage(HttpStatusCode.NotFound));
+
+        // Act
+        var act = () => client.ListCodesByCreationTimeAsync(
+            DateTimeOffset.UtcNow.AddDays(-30), DateTimeOffset.UtcNow, page: 1);
+
+        // Assert
+        await act.Should().ThrowAsync<HttpRequestException>();
+    }
+
+    [Fact]
+    public async Task A_404_on_the_change_log_throws_rather_than_reading_as_no_changes()
+    {
+        // Arrange — worse than the backfill case: an empty change log looks like a clean night, so
+        // the watermark advances and a whole day of edits and deletions is lost for ever.
+        var (client, _) = CreateClient(_ => new HttpResponseMessage(HttpStatusCode.NotFound));
+
+        // Act
+        var act = () => client.ListChangesAsync(
+            DateTimeOffset.UtcNow.AddDays(-1), page: 1, itemsPerPage: 1000);
+
+        // Assert
+        await act.Should().ThrowAsync<HttpRequestException>();
+    }
+
+    [Fact]
+    public async Task An_unrecognised_list_envelope_throws_rather_than_reading_as_empty()
+    {
+        // Arrange — a 200 whose body is not the data-wrapped shape used to deserialise to null and
+        // then be swallowed into an empty page.
+        var (client, _) = CreateClient(_ => Json("{\"unexpected\":true}"));
+
+        // Act
+        var act = () => client.ListCodesByCreationTimeAsync(
+            DateTimeOffset.UtcNow.AddDays(-30), DateTimeOffset.UtcNow, page: 1);
+
+        // Assert
+        await act.Should().ThrowAsync<ShoptetOrderSyncException>();
+    }
+
+    [Fact]
+    public async Task A_404_on_the_detail_endpoint_is_still_treated_as_a_deleted_order()
+    {
+        // Arrange — the one place a 404 is expected: the order went away between the listing and
+        // this call, which is normal on a multi-hour backfill.
+        var (client, _) = CreateClient(_ => new HttpResponseMessage(HttpStatusCode.NotFound));
+
+        // Act
+        var order = await client.GetOrderAsync("126020373");
+
+        // Assert
+        order.Should().BeNull();
     }
 
     [Fact]

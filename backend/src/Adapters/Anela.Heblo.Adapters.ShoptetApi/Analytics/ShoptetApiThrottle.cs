@@ -31,17 +31,34 @@ public sealed class ShoptetApiThrottle
         await _gate.WaitAsync(ct);
         try
         {
-            var now = DateTimeOffset.UtcNow;
-            var nextAllowed = new DateTimeOffset(Interlocked.Read(ref _nextAllowedTicks), TimeSpan.Zero);
-
-            var delay = nextAllowed - now;
-            if (delay > TimeSpan.Zero)
+            // Re-read after every sleep rather than waiting once: a 429 arriving on another
+            // in-flight request pushes the slot out while this one is parked, and waking up to the
+            // value read before the sleep would discard that back-off entirely.
+            DateTimeOffset now;
+            while (true)
             {
-                await Task.Delay(delay, ct);
                 now = DateTimeOffset.UtcNow;
+                var nextAllowed = new DateTimeOffset(
+                    Interlocked.Read(ref _nextAllowedTicks), TimeSpan.Zero);
+
+                var delay = nextAllowed - now;
+                if (delay <= TimeSpan.Zero)
+                    break;
+
+                await Task.Delay(delay, ct);
             }
 
-            Interlocked.Exchange(ref _nextAllowedTicks, (now + _minInterval).UtcTicks);
+            // Claim the next slot without ever pulling it earlier: Penalize may have pushed it
+            // further out than one interval, and that has to win.
+            var claim = (now + _minInterval).UtcTicks;
+            long current;
+            do
+            {
+                current = Interlocked.Read(ref _nextAllowedTicks);
+                if (current >= claim)
+                    break;
+            }
+            while (Interlocked.CompareExchange(ref _nextAllowedTicks, claim, current) != current);
         }
         finally
         {

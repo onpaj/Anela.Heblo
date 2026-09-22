@@ -21,7 +21,7 @@ unsynced. The Shoptet order is the record that has all of it.
 
 | Table | Grain | Notes |
 |---|---|---|
-| `shoptet_raw."order"` | one row per Shoptet order code | header plus the line rollups the month views need, plus `raw_payload` (the verbatim detail JSON) |
+| `shoptet_raw."order"` | one row per Shoptet order code | header plus the line rollups the month views need, plus `raw_payload` (the verbatim detail JSON) — **the most PII-dense column in `Heblo_V3`**: it holds the full order body, including `email`, `phone`, `birthDate`, `clientIPAddress` and both addresses. The table is not granted to `metabase_ro` and there is no retention policy on it yet. |
 | `shoptet_raw.order_item` | one row per line, keyed `(order_code, line_no)` | every `items[]` line **and** the `product-set-item` components from `completion[]` |
 | `shoptet_raw.sync_state` | one row per sync entity | watermark, last-run status, backfill cursor |
 | `shoptet_raw.wholesale_shipping` | reference | the shipping GUIDs that mark an order as VO |
@@ -84,18 +84,36 @@ packing and expedition flows use.
 at **`30 1 * * *` Europe/Prague** (the 02:00–09:00 band is full of the existing daily imports and
 `flexi-analytics-sync` holds 03:00).
 
-It reads `GET /api/orders/changes?from=<watermark − 2h>`, which reports **edits and deletions**.
+It reads **both** sources from `watermark − 2h` and unions them:
+
+- `GET /api/orders/changes` reports **edits and deletions**. It is the only way to learn about a
+  deletion — `GET /api/orders?changeTimeFrom=` would never notice one, the order just stops
+  appearing.
+- `GET /api/orders?changeTimeFrom=` catches **creations**. The change log's documented `changeType`
+  is only `edit` or `delete`, and this store has not been observed emitting anything for a new
+  order. Relying on the log alone would silently stop ingesting new orders the day the backfill
+  completes, so the listing (where a new order shows up because its `changeTime` equals its
+  `creationTime`) is unioned in. One extra paged listing per night is cheap next to that.
+
 A changed order is re-fetched and upserted with its lines replaced; a deleted one is removed.
-`GET /api/orders?changeTimeFrom=` would never notice a deletion — the order just stops appearing.
 
 The change log keeps a guaranteed 30 days. If the watermark is older than that, the run falls back
-to the order list and logs a warning that deletions in that window were not covered.
+to the order list alone and logs a warning that deletions in that window were not covered. A first
+run with no watermark reaches back to when the backfill ran rather than one change-log window, so
+a long gap between the backfill and the job being armed drops into that same warned fallback
+instead of silently skipping everything edited in between.
+
+**While `backfill_completed` is false the nightly job spends its whole budget on the backfill and
+never runs the incremental at all** — which is what makes that gap possible in the first place.
 
 ### Configuration
 
 Everything hangs off `ShoptetOrdersSync:*`. **An empty `ShoptetOrdersSync:ConnectionString` leaves
 the whole stack unregistered**, so an unconfigured environment is inert — the same gate
-`FlexiAdapterServiceCollectionExtensions` uses for `flexi_raw`.
+`FlexiAdapterServiceCollectionExtensions` uses for `flexi_raw`. A value that is non-blank but not a
+parseable Npgsql connection string (a Key Vault placeholder, a typo'd secret name resolving to
+prose) leaves it unregistered too, with a warning on stderr — rather than throwing during service
+registration and taking the whole API down at boot over a reporting job.
 
 The connection string is a secret and belongs in Key Vault as
 `ShoptetOrdersSync--ConnectionString` (staging `kv-heblo-stg`, production `kv-heblo-prod`),
@@ -183,6 +201,19 @@ and prodejna sales can never be attributed at all.
 `returning_lapsed` is broken out separately on purpose. To switch to a "no order in the last 12
 months counts as new" definition, fold `returning_lapsed` into `new` in that one `CASE` — nothing
 downstream changes and no re-ingest is needed.
+
+### Customer identity is not exposed to Metabase
+
+`v_customer_repeat_purchase` is the one granted view whose grain is per-customer, and it is keyed
+on `md5(customer_key)`, not the e-mail address. Selecting the address there would have handed
+anyone with the Metabase connection an exportable ~60k-row list of customer e-mails with lifetime
+spend attached — exactly what withholding the raw tables is meant to prevent, and Metabase OSS has
+no row-level security to fall back on.
+
+The hash keeps every question the view exists to answer — cohorts, repeat rate, order cadence, LTV
+distribution — because those group and count identities rather than read them. To identify an
+individual customer, join `order_fact` directly: it is not granted, so that stays a deliberate act
+by someone with database access.
 
 ### Product sets
 

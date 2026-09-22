@@ -1,3 +1,4 @@
+using Anela.Heblo.Adapters.ShoptetApi.Analytics.Model;
 using Anela.Heblo.Persistence.ShoptetOrders.Entities;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -26,6 +27,7 @@ public sealed class ShoptetOrderBackfillService : IShoptetEntitySyncService
     private readonly IShoptetSyncWatermarkRepository _watermarkRepo;
     private readonly ShoptetOrdersSyncOptions _options;
     private readonly TimeProvider _timeProvider;
+    private readonly TimeZoneInfo _storeTimeZone;
     private readonly ILogger<ShoptetOrderBackfillService> _logger;
 
     public string EntityName => EntityNameConst;
@@ -44,6 +46,7 @@ public sealed class ShoptetOrderBackfillService : IShoptetEntitySyncService
         _options = options.Value;
         _timeProvider = timeProvider;
         _logger = logger;
+        _storeTimeZone = ShoptetTimeZone.Resolve(_options.StoreTimeZone, logger);
     }
 
     public async Task<ShoptetSyncResult> SyncAsync(CancellationToken ct = default)
@@ -58,7 +61,7 @@ public sealed class ShoptetOrderBackfillService : IShoptetEntitySyncService
         var deadline = _timeProvider.GetUtcNow().AddMinutes(_options.BackfillMaxMinutesPerRun);
 
         state.LastRunStartedAt = _timeProvider.GetUtcNow();
-        state.LastRunStatus = "RUNNING";
+        state.LastRunStatus = ShoptetSyncStatus.Running;
         await _watermarkRepo.SaveAsync(state, ct);
 
         var totalFetched = 0;
@@ -94,10 +97,14 @@ public sealed class ShoptetOrderBackfillService : IShoptetEntitySyncService
                 await _watermarkRepo.SaveAsync(state, ct);
             }
 
-            completed = cursor >= today;
+            // Re-read the clock rather than reusing the `today` snapshotted at run start: a run
+            // that begins at 23:50 and ends at 03:50 would otherwise latch BackfillCompleted while
+            // the hours either side of midnight had never been walked, and nothing revisits them.
+            var todayAtFinish = DateOnly.FromDateTime(_timeProvider.GetUtcNow().UtcDateTime).AddDays(1);
+            completed = cursor >= todayAtFinish;
 
             state.BackfillCompleted = completed;
-            state.LastRunStatus = "OK";
+            state.LastRunStatus = ShoptetSyncStatus.Ok;
             state.LastRunFinishedAt = _timeProvider.GetUtcNow();
             state.LastRunRowsFetched = totalFetched;
             state.LastRunRowsUpserted = totalUpserted;
@@ -105,14 +112,26 @@ public sealed class ShoptetOrderBackfillService : IShoptetEntitySyncService
         }
         catch (Exception ex) when (!ct.IsCancellationRequested)
         {
-            state.LastRunStatus = "FAILED";
+            state.LastRunStatus = ShoptetSyncStatus.Failed;
             state.LastRunFinishedAt = _timeProvider.GetUtcNow();
-            state.LastErrorMessage = Truncate(ex.Message);
+            state.LastErrorMessage = ShoptetSyncStatus.TruncateError(ex.Message);
             _logger.LogError(ex, "ShoptetOrdersSync.BackfillFailed cursor={Cursor}", cursor);
         }
 
-        await _watermarkRepo.SaveAsync(state, ct);
-        return new ShoptetSyncResult(totalFetched, totalUpserted, state.LastRunStatus == "OK", completed);
+        catch (OperationCanceledException)
+        {
+            // The job timeout fired or the operator pressed Ctrl+C. Without this the row would stay
+            // "RUNNING" with no finish time for ever, indistinguishable from a run still in flight.
+            state.LastRunStatus = ShoptetSyncStatus.Cancelled;
+            state.LastRunFinishedAt = _timeProvider.GetUtcNow();
+            _logger.LogWarning("ShoptetOrdersSync.BackfillCancelled cursor={Cursor}", cursor);
+        }
+
+        // CancellationToken.None: the status write is the last thing this run does, and on the
+        // cancellation path the caller's token is already cancelled and would reject it.
+        await _watermarkRepo.SaveAsync(state, CancellationToken.None);
+        return new ShoptetSyncResult(
+            totalFetched, totalUpserted, state.LastRunStatus == ShoptetSyncStatus.Ok, completed);
     }
 
     private async Task<List<string>> ListWindowCodesAsync(DateOnly from, DateOnly to, CancellationToken ct)
@@ -122,18 +141,22 @@ public sealed class ShoptetOrderBackfillService : IShoptetEntitySyncService
 
         var codes = new List<string>();
         var page = 1;
+        ShoptetPaginatorDto? paginator;
+        var description = $"orders created {from}..{to}";
 
         while (true)
         {
             var data = await _client.ListCodesByCreationTimeAsync(fromOffset, toOffset, page, ct);
             codes.AddRange(data.Orders.Select(o => o.Code));
 
-            var paginator = data.Paginator;
-            if (paginator == null || page >= paginator.PageCount || data.Orders.Count == 0)
+            paginator = data.Paginator;
+            if (ShoptetPaging.IsLastPage(paginator, data.Orders.Count, page, description))
                 break;
 
             page++;
         }
+
+        ShoptetPaging.EnsureComplete(paginator, codes.Count, description);
 
         // The window boundary is inclusive on both ends in Shoptet's filter, so an order created
         // exactly at midnight appears in two adjacent windows. Upserts make that harmless, but the
@@ -143,25 +166,10 @@ public sealed class ShoptetOrderBackfillService : IShoptetEntitySyncService
 
     private DateTimeOffset ToStoreOffset(DateOnly date)
     {
-        var storeZone = ResolveZone(_options.StoreTimeZone);
         var local = date.ToDateTime(TimeOnly.MinValue);
-        return new DateTimeOffset(local, storeZone.GetUtcOffset(local));
-    }
-
-    private static TimeZoneInfo ResolveZone(string id)
-    {
-        try
-        {
-            return TimeZoneInfo.FindSystemTimeZoneById(id);
-        }
-        catch (Exception ex) when (ex is TimeZoneNotFoundException or InvalidTimeZoneException)
-        {
-            return TimeZoneInfo.Utc;
-        }
+        return new DateTimeOffset(local, _storeTimeZone.GetUtcOffset(local));
     }
 
     private static DateOnly MinDate(DateOnly a, DateOnly b) => a < b ? a : b;
 
-    private static string Truncate(string message) =>
-        message.Length > 2000 ? message[..2000] : message;
 }

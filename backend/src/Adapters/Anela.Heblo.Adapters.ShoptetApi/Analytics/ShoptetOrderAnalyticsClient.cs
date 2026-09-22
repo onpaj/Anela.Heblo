@@ -60,12 +60,12 @@ public sealed class ShoptetOrderAnalyticsClient : IShoptetOrderAnalyticsClient
         DateTimeOffset changedFrom, int page, int itemsPerPage, CancellationToken ct = default)
     {
         var url = $"/api/orders/changes?from={Encode(changedFrom)}&page={page}&itemsPerPage={itemsPerPage}";
-        var json = await SendAsync(url, ct);
-        if (json == null)
-            return new ShoptetOrderChangeListData();
+        var json = await SendAsync(url, allowNotFound: false, ct);
 
-        var parsed = JsonSerializer.Deserialize<ShoptetOrderChangeListResponse>(json, JsonOptions);
-        return parsed?.Data ?? new ShoptetOrderChangeListData();
+        var parsed = JsonSerializer.Deserialize<ShoptetOrderChangeListResponse>(json!, JsonOptions);
+        return parsed?.Data
+               ?? throw new ShoptetOrderSyncException(
+                   $"Shoptet returned an unrecognised change-log envelope for {url}");
     }
 
     public async Task<ShoptetOrderDetailDto?> GetOrderAsync(string code, CancellationToken ct = default)
@@ -74,7 +74,9 @@ public sealed class ShoptetOrderAnalyticsClient : IShoptetOrderAnalyticsClient
     public async Task<(ShoptetOrderDetailDto? Order, string RawJson)> GetOrderWithRawAsync(
         string code, CancellationToken ct = default)
     {
-        var json = await SendAsync($"/api/orders/{Uri.EscapeDataString(code)}", ct);
+        // The only endpoint where 404 is an expected, benign answer: the order was deleted between
+        // the listing and this call. Every other endpoint treats 404 as a hard failure.
+        var json = await SendAsync($"/api/orders/{Uri.EscapeDataString(code)}", allowNotFound: true, ct);
         if (json == null)
             return (null, "{}");
 
@@ -84,19 +86,22 @@ public sealed class ShoptetOrderAnalyticsClient : IShoptetOrderAnalyticsClient
 
     private async Task<ShoptetOrderCodeListData> GetListAsync(string url, CancellationToken ct)
     {
-        var json = await SendAsync(url, ct);
-        if (json == null)
-            return new ShoptetOrderCodeListData();
+        var json = await SendAsync(url, allowNotFound: false, ct);
 
-        var parsed = JsonSerializer.Deserialize<ShoptetOrderCodeListResponse>(json, JsonOptions);
-        return parsed?.Data ?? new ShoptetOrderCodeListData();
+        // An unrecognised envelope must never degrade to "no orders": the callers advance their
+        // cursor or watermark past whatever they were told, so an empty page is indistinguishable
+        // from a window that genuinely holds nothing and silently skips real orders for ever.
+        var parsed = JsonSerializer.Deserialize<ShoptetOrderCodeListResponse>(json!, JsonOptions);
+        return parsed?.Data
+               ?? throw new ShoptetOrderSyncException(
+                   $"Shoptet returned an unrecognised order-list envelope for {url}");
     }
 
     /// <summary>
-    /// Returns the response body, or null when Shoptet answered 404 (an order deleted between the
-    /// listing and the detail call — normal during a multi-hour backfill).
+    /// Returns the response body. Returns null only when <paramref name="allowNotFound"/> is set
+    /// and Shoptet answered 404; otherwise a 404 throws like any other failure status.
     /// </summary>
-    private async Task<string?> SendAsync(string url, CancellationToken ct)
+    private async Task<string?> SendAsync(string url, bool allowNotFound, CancellationToken ct)
     {
         for (var attempt = 0; ; attempt++)
         {
@@ -124,7 +129,7 @@ public sealed class ShoptetOrderAnalyticsClient : IShoptetOrderAnalyticsClient
 
             using (response)
             {
-                if (response.StatusCode == HttpStatusCode.NotFound)
+                if (allowNotFound && response.StatusCode == HttpStatusCode.NotFound)
                     return null;
 
                 var isRetryableStatus =

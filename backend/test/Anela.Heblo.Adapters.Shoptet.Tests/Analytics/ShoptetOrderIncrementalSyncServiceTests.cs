@@ -30,7 +30,7 @@ public class ShoptetOrderIncrementalSyncServiceTests
         });
         var client = new FakeShoptetOrderAnalyticsClient();
         var store = new ShoptetOrderStore(ctx);
-        var ingestor = new ShoptetOrderIngestor(client, store, opts, NullLogger<ShoptetOrderIngestor>.Instance);
+        var ingestor = new ShoptetOrderIngestor(client, store, opts, clock, NullLogger<ShoptetOrderIngestor>.Instance);
 
         var service = new ShoptetOrderIncrementalSyncService(
             client, ingestor, store,
@@ -60,6 +60,10 @@ public class ShoptetOrderIncrementalSyncServiceTests
         await service.SyncAsync();
 
         // Assert — LedgerSyncService's AddHours(-1) pattern, widened to the configured margin.
+        // Both sources are read from the same point: the log for deletions, the listing for
+        // everything else (including creations, which the log is not documented to report).
+        client.ChangeLogQueriesRequested.Should().ContainSingle()
+            .Which.Should().Be(Now.AddDays(-1).AddHours(-2));
         client.ChangeQueriesRequested.Should().ContainSingle()
             .Which.Should().Be(Now.AddDays(-1).AddHours(-2));
     }
@@ -167,7 +171,79 @@ public class ShoptetOrderIncrementalSyncServiceTests
         await service.SyncAsync();
 
         // Assert
-        client.ChangeQueriesRequested.Should().ContainSingle()
+        client.ChangeLogQueriesRequested.Should().ContainSingle()
             .Which.Should().Be(Now.AddDays(-29));
+    }
+
+    [Fact]
+    public async Task SyncAsync_ingests_a_new_order_the_change_log_never_reported()
+    {
+        // Arrange — the change log's documented changeType is only "edit" or "delete". If a newly
+        // created order is not announced there, relying on the log alone would stop the mirror
+        // taking in new orders the day the backfill completes, silently and for ever. The listing
+        // does carry it, because a new order's changeTime is its creationTime.
+        var dbName = Guid.NewGuid().ToString();
+        await using var ctx = CreateContext(dbName);
+        ctx.SyncStates.Add(new ShoptetSyncState
+        {
+            EntityName = ShoptetOrderIncrementalSyncService.EntityNameConst,
+            Watermark = Now.AddDays(-1),
+        });
+        await ctx.SaveChangesAsync();
+
+        var (service, client) = CreateService(ctx, new FakeTimeProvider(Now));
+        client.AddOrder("NEW1", Now.AddHours(-3), ShoptetOrderTestData.SimpleOrderJson);
+
+        // The listing reports it; the change log deliberately does not.
+        client.Changes.Add(new ShoptetOrderChangeDto
+        {
+            Code = "NEW1",
+            ChangeTime = Now.AddHours(-3),
+            ChangeType = "edit",
+        });
+
+        // Act
+        await service.SyncAsync();
+
+        // Assert
+        await using var verify = CreateContext(dbName);
+        (await verify.Orders.AnyAsync(o => o.Code == "NEW1")).Should()
+            .BeTrue("an order reached only by the change-time listing must still be mirrored");
+    }
+
+    [Fact]
+    public async Task SyncAsync_records_a_terminal_status_when_the_run_is_cancelled()
+    {
+        // Arrange — the job's own timeout, or an operator's Ctrl+C. Without a terminal status the
+        // row stays "RUNNING" with no finish time for ever, which v_sync_health cannot tell apart
+        // from a run still in flight.
+        var dbName = Guid.NewGuid().ToString();
+        await using var ctx = CreateContext(dbName);
+        var (service, client) = CreateService(ctx, new FakeTimeProvider(Now));
+        client.AddOrder("A1", Now.AddHours(-3), ShoptetOrderTestData.SimpleOrderJson);
+        client.Changes.Add(new ShoptetOrderChangeDto
+        {
+            Code = "A1",
+            ChangeTime = Now.AddHours(-3),
+            ChangeType = "edit",
+        });
+
+        // Cancel once the run is already under way — the status is only worth recording for a run
+        // that actually started and persisted "RUNNING".
+        using var cts = new CancellationTokenSource();
+        client.OnDetail = () => cts.Cancel();
+
+        // Act
+        var act = () => service.SyncAsync(cts.Token);
+
+        // Assert
+        await act.Should().NotThrowAsync();
+
+        await using var verify = CreateContext(dbName);
+        var state = await verify.SyncStates
+            .SingleAsync(s => s.EntityName == ShoptetOrderIncrementalSyncService.EntityNameConst);
+        state.LastRunStatus.Should().Be("CANCELLED");
+        state.LastRunFinishedAt.Should().NotBeNull();
+        state.Watermark.Should().BeNull("a cancelled run must not claim it caught up");
     }
 }

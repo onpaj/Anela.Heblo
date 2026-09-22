@@ -27,18 +27,19 @@ public class ShoptetOrderMapperTests
     [Fact]
     public void Map_buckets_the_order_date_by_the_store_timezone_not_utc()
     {
-        // Arrange — 2026-09-21 20:36 Prague is 18:36 UTC; both fall on the 21st, so use a late
-        // evening order where the two would disagree if UTC were used.
+        // Arrange — just after midnight in Prague, which is still the previous day in UTC. The two
+        // have to disagree for this to test anything: 23:30+02:00 is 21:30 UTC on the SAME day, so
+        // a UTC-based order_date would have passed that just as happily.
         var json = ShoptetOrderTestData.SimpleOrderJson
-            .Replace("2026-09-21T20:36:22+0200", "2026-09-21T23:30:00+0200");
+            .Replace("2026-09-21T20:36:22+0200", "2026-09-22T00:30:00+0200");
         var dto = ShoptetOrderTestData.Parse(json);
 
         // Act
         var order = ShoptetOrderMapper.Map(dto, "{}", Prague, SyncedAt);
 
         // Assert
-        order.CreationTime.UtcDateTime.Day.Should().Be(21);
-        order.OrderDate.Should().Be(new DateOnly(2026, 9, 21));
+        order.CreationTime.UtcDateTime.Day.Should().Be(21, "the instant is still 2026-09-21 in UTC");
+        order.OrderDate.Should().Be(new DateOnly(2026, 9, 22), "but the store sold it on the 22nd");
     }
 
     [Fact]

@@ -32,7 +32,8 @@ public class ShoptetOrderBackfillServiceTests
         var opts = Options.Create(options);
         var client = new FakeShoptetOrderAnalyticsClient();
         var ingestor = new ShoptetOrderIngestor(
-            client, new ShoptetOrderStore(ctx), opts, NullLogger<ShoptetOrderIngestor>.Instance);
+            client, new ShoptetOrderStore(ctx), opts, clock,
+            NullLogger<ShoptetOrderIngestor>.Instance);
 
         var service = new ShoptetOrderBackfillService(
             client,
