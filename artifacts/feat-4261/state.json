@@ -17,13 +17,32 @@
       "updated_at": "2026-09-22T08:14:35.783498Z"
     },
     "planning": {
-      "status": "in_progress",
-      "updated_at": "2026-09-22T08:14:38.653063Z"
+      "status": "completed",
+      "updated_at": "2026-09-22T08:16:44.337519Z"
     },
     "developing": {
       "status": "pending",
       "updated_at": null
     }
   },
-  "tasks": []
+  "tasks": [
+    {
+      "name": "collapse-jobname-into-computed-property",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    },
+    {
+      "name": "generate-and-verify-migration",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    },
+    {
+      "name": "full-verification",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    }
+  ]
 }
