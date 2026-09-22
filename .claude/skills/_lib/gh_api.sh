@@ -152,19 +152,29 @@ req_paginate() {
   local url
   url=$(_api_url "$path")
   [[ "$url" == *"?"* ]] && url="${url}&per_page=100" || url="${url}?per_page=100"
-  local all="[]" hdrfile body
+  local hdrfile allfile bodyfile
   hdrfile=$(mktemp)
+  allfile=$(mktemp)
+  echo '[]' > "$allfile"
   while [[ -n "$url" ]]; do
-    body=$(curl -sS --max-time 30 -X "$method" \
+    bodyfile=$(mktemp)
+    curl -sS --max-time 30 -X "$method" \
       -H "Authorization: Bearer ${TOKEN}" \
       -H "Accept: application/vnd.github+json" \
       -H "X-GitHub-Api-Version: 2022-11-28" \
-      -D "$hdrfile" "$url")
-    all=$(jq -c -n --argjson a "$all" --argjson b "$body" '$a + $b')
+      -D "$hdrfile" -o "$bodyfile" "$url"
+    # Merge via --slurpfile, not --argjson on command-line strings: a page's
+    # JSON (e.g. a busy PR's issue comments, each carrying a full bot `app`
+    # object) can exceed the kernel's ~128KB single-argument limit, which
+    # failed every call with "Argument list too long" once it did.
+    jq -c -n --slurpfile a "$allfile" --slurpfile b "$bodyfile" '$a[0] + $b[0]' > "${allfile}.new"
+    mv "${allfile}.new" "$allfile"
+    rm -f "$bodyfile"
     url=$(grep -i '^link:' "$hdrfile" | grep -o '<[^>]*>; rel="next"' | sed -E 's/^<(.*)>.*/\1/' || true)
   done
   rm -f "$hdrfile"
-  printf '%s' "$all"
+  cat "$allfile"
+  rm -f "$allfile"
 }
 
 graphql() {
