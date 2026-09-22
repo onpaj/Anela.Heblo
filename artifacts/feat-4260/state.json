@@ -22,7 +22,7 @@
     },
     "developing": {
       "status": "in_progress",
-      "updated_at": "2026-09-22T08:17:34.611764Z"
+      "updated_at": "2026-09-22T10:09:05.653870Z"
     }
   },
   "tasks": [
@@ -46,9 +46,9 @@
     },
     {
       "name": "add-timezone-forwarding-regression-tests",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-09-22T10:09:05.848659Z"
     },
     {
       "name": "add-seeder-timezone-resync-assertion",

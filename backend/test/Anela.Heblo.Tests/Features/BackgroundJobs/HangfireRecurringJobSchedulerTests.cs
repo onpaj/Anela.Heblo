@@ -119,6 +119,88 @@ public class HangfireRecurringJobSchedulerTests : IDisposable
         }
     }
 
+    [Fact]
+    public async Task UpdateCronSchedule_UsesPassedTimeZone_NotJobMetadataTimeZone()
+    {
+        // Arrange — register via discovery (startup path), which uses the metadata
+        // time zone "Europe/Prague" for parity-test-job
+        var hangfireOptions = Options.Create(new HangfireOptions { SchedulerEnabled = true });
+        var discovery = new RecurringJobDiscoveryService(
+            _serviceProvider,
+            _serviceProvider.GetRequiredService<ILogger<RecurringJobDiscoveryService>>(),
+            _serviceProvider.GetRequiredService<IWebHostEnvironment>(),
+            hangfireOptions);
+        await discovery.StartAsync(CancellationToken.None);
+
+        var scheduler = new HangfireRecurringJobScheduler(
+            _serviceProvider,
+            _serviceProvider.GetRequiredService<ILogger<HangfireRecurringJobScheduler>>());
+
+        // Act — pass a time zone that deliberately differs from the job's metadata value.
+        // "UTC" resolves on Linux containers and on Windows without ICU.
+        scheduler.UpdateCronSchedule("parity-test-job", "0 5 * * *", "UTC");
+
+        // Assert — the argument, not IRecurringJob.Metadata, drove the registration
+        using var connection = JobStorage.Current.GetConnection();
+        var job = Assert.Single(connection.GetRecurringJobs(), j => j.Id == "parity-test-job");
+        Assert.Equal("0 5 * * *", job.Cron);
+        Assert.Equal("UTC", job.TimeZoneId);
+        Assert.NotEqual("Europe/Prague", job.TimeZoneId);
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("   ")]
+    public void UpdateCronSchedule_WithMissingTimeZoneId_ThrowsArgumentException(string? timeZoneId)
+    {
+        // Arrange
+        var scheduler = new HangfireRecurringJobScheduler(
+            _serviceProvider,
+            _serviceProvider.GetRequiredService<ILogger<HangfireRecurringJobScheduler>>());
+
+        // Act + Assert — ThrowsAny, not Throws: ArgumentException.ThrowIfNullOrWhiteSpace(null)
+        // throws ArgumentNullException, and xUnit's Assert.Throws<T> matches the exact type.
+        Assert.ThrowsAny<ArgumentException>(() =>
+            scheduler.UpdateCronSchedule("parity-test-job", "0 6 * * *", timeZoneId!));
+
+        // Assert — the guard runs before any side effect, so nothing was written to storage
+        using var connection = JobStorage.Current.GetConnection();
+        Assert.DoesNotContain(connection.GetRecurringJobs(), j => j.Id == "parity-test-job");
+    }
+
+    [Fact]
+    public async Task UpdateCronSchedule_WithUnresolvableTimeZone_LogsErrorAndLeavesScheduleUnchanged()
+    {
+        // Arrange — register via discovery: cron "0 0 * * *" (metadata default,
+        // the stub repository returns no DB rows), time zone "Europe/Prague"
+        var hangfireOptions = Options.Create(new HangfireOptions { SchedulerEnabled = true });
+        var discovery = new RecurringJobDiscoveryService(
+            _serviceProvider,
+            _serviceProvider.GetRequiredService<ILogger<RecurringJobDiscoveryService>>(),
+            _serviceProvider.GetRequiredService<IWebHostEnvironment>(),
+            hangfireOptions);
+        await discovery.StartAsync(CancellationToken.None);
+
+        var scheduler = new HangfireRecurringJobScheduler(
+            _serviceProvider,
+            _serviceProvider.GetRequiredService<ILogger<HangfireRecurringJobScheduler>>());
+
+        // Act — a bogus zone id makes TimeZoneInfo.FindSystemTimeZoneById throw
+        // TimeZoneNotFoundException inside HangfireJobRegistrationHelper
+        var exception = Record.Exception(() =>
+            scheduler.UpdateCronSchedule("parity-test-job", "0 9 * * *", "Not/AZone"));
+
+        // Assert — fire-and-forget: the failure is logged, never rethrown
+        Assert.Null(exception);
+
+        // Assert — the stored record is untouched: previous cron and previous time zone
+        using var connection = JobStorage.Current.GetConnection();
+        var job = Assert.Single(connection.GetRecurringJobs(), j => j.Id == "parity-test-job");
+        Assert.Equal("0 0 * * *", job.Cron);
+        Assert.Equal("Europe/Prague", job.TimeZoneId);
+    }
+
     public void Dispose()
     {
         using var connection = JobStorage.Current.GetConnection();
