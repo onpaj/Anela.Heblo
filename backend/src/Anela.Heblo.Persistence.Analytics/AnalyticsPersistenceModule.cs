@@ -41,6 +41,13 @@ public static class AnalyticsPersistenceModule
         {
             options.UseNpgsql(dataSource, npgsql =>
             {
+                // Keep this context's migration bookkeeping inside its own schema. EF Core does not
+                // derive the history table's schema from HasDefaultSchema — see the comment on
+                // AnalyticsDbContext.MigrationsHistoryTableName.
+                npgsql.MigrationsHistoryTable(
+                    AnalyticsDbContext.MigrationsHistoryTableName,
+                    AnalyticsDbContext.Schema);
+
                 npgsql.ExecutionStrategy(deps =>
                     new PollyExecutionStrategy(
                         deps,
