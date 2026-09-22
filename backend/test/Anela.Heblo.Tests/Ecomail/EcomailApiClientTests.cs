@@ -288,4 +288,26 @@ public class EcomailNullableDateTimeConverterTests
 
         act.Should().Throw<JsonException>();
     }
+
+    [Fact]
+    public void normalises_a_utc_designated_iso_8601_form_to_unspecified_kind()
+    {
+        // Bare DateTime.TryParse turns a "Z"-suffixed string into Kind=Utc on its own — this
+        // case only passes because of the explicit SpecifyKind normalisation in tier 3.
+        // These columns are `timestamp without time zone`; a Kind=Utc value reaching one
+        // throws at runtime (see the FixMarketingPerformanceTimestampKind migration).
+        var result = JsonSerializer.Deserialize<DateTime?>("\"2026-07-26T05:33:17Z\"", Options);
+
+        result!.Value.Kind.Should().Be(DateTimeKind.Unspecified);
+    }
+
+    [Fact]
+    public void normalises_an_offset_iso_8601_form_to_unspecified_kind()
+    {
+        // Bare DateTime.TryParse turns an offset-suffixed string into Kind=Local on its own —
+        // this case only passes because of the explicit SpecifyKind normalisation in tier 3.
+        var result = JsonSerializer.Deserialize<DateTime?>("\"2026-07-26T05:33:17+02:00\"", Options);
+
+        result!.Value.Kind.Should().Be(DateTimeKind.Unspecified);
+    }
 }
