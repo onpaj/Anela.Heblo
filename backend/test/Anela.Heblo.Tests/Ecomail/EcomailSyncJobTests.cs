@@ -1,5 +1,6 @@
 using Anela.Heblo.Application.Features.Ecomail.Infrastructure.Jobs;
 using Anela.Heblo.Application.Features.Ecomail.Services;
+using Anela.Heblo.Domain.Features.BackgroundJobs;
 using Anela.Heblo.Domain.Features.Ecomail;
 using FluentAssertions;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -11,8 +12,16 @@ namespace Anela.Heblo.Tests.Ecomail;
 
 public class EcomailSyncJobTests
 {
-    private static EcomailSyncJob CreateJob(Mock<IEcomailSyncService> service, EcomailOptions options)
-        => new(service.Object, Options.Create(options), NullLogger<EcomailSyncJob>.Instance);
+    private static Mock<IRecurringJobStatusChecker> StatusChecker(bool enabled)
+    {
+        var mock = new Mock<IRecurringJobStatusChecker>();
+        mock.Setup(s => s.IsJobEnabledAsync(It.IsAny<string>(), It.IsAny<CancellationToken>(), It.IsAny<bool>()))
+            .ReturnsAsync(enabled);
+        return mock;
+    }
+
+    private static EcomailSyncJob CreateJob(Mock<IEcomailSyncService> service, EcomailOptions options, bool jobEnabled = true)
+        => new(service.Object, StatusChecker(jobEnabled).Object, Options.Create(options), NullLogger<EcomailSyncJob>.Instance);
 
     private static Mock<IEcomailSyncService> SucceedingService()
     {
@@ -36,23 +45,39 @@ public class EcomailSyncJobTests
     }
 
     [Fact]
-    public void is_disabled_by_default_when_no_api_key_is_configured()
+    public void default_is_enabled_regardless_of_api_key()
     {
+        // DefaultIsEnabled must not depend on the API key: the seeder persists this value on
+        // first run, so seeding with an empty key would otherwise permanently record the job as
+        // disabled, and it would never start once the secret is added without a manual DB fix.
         var job = CreateJob(SucceedingService(), new EcomailOptions { ApiKey = "" });
 
-        job.Metadata.DefaultIsEnabled.Should().BeFalse(
-            "a developer without Ecomail credentials must not get a failing scheduled job");
+        job.Metadata.DefaultIsEnabled.Should().BeTrue();
     }
 
     [Fact]
     public async Task skips_execution_without_an_api_key()
     {
+        // The empty-API-key check is the runtime no-op that protects a developer with no
+        // credentials — DefaultIsEnabled no longer does that job.
         var service = SucceedingService();
         var job = CreateJob(service, new EcomailOptions { ApiKey = "" });
 
         await job.ExecuteAsync();
 
         service.Verify(s => s.SyncAllAsync(It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task skips_execution_when_disabled_via_the_admin_status_checker()
+    {
+        var service = SucceedingService();
+        var job = CreateJob(service, new EcomailOptions { ApiKey = "k" }, jobEnabled: false);
+
+        await job.ExecuteAsync();
+
+        service.Verify(s => s.SyncAllAsync(It.IsAny<CancellationToken>()), Times.Never,
+            "the admin enable/disable toggle must actually stop the job, not just the API-key check");
     }
 
     [Fact]
@@ -101,6 +126,29 @@ public class EcomailSyncJobTests
 
         await act.Should().ThrowAsync<InvalidOperationException>(
             "metadata upserts are not data — this is the exact scenario that must not slip through green");
+    }
+
+    [Fact]
+    public async Task throws_when_no_data_landed_even_though_nothing_threw()
+    {
+        // The guard no longer requires !report.IsFullSuccess: a run that reports zero real data
+        // with an empty Errors list (e.g. every endpoint returned an empty/unexpected payload
+        // without raising an HTTP error, such as a 403 that got swallowed) must still throw.
+        var service = new Mock<IEcomailSyncService>();
+        service.Setup(s => s.SyncAllAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new EcomailSyncReport(
+                CampaignsUpserted: 0,
+                PipelinesUpserted: 0,
+                SnapshotsWritten: 0,
+                AutomationMonthsComputed: 0,
+                CampaignStatsFetched: 0,
+                Errors: Array.Empty<string>()));
+        var job = CreateJob(service, new EcomailOptions { ApiKey = "k" });
+
+        var act = () => job.ExecuteAsync();
+
+        await act.Should().ThrowAsync<InvalidOperationException>(
+            "a run that reports success while capturing nothing is exactly the failure mode this guard exists to catch");
     }
 
     [Fact]

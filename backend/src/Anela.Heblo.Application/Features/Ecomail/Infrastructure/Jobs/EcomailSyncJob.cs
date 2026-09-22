@@ -1,6 +1,7 @@
 using Anela.Heblo.Application.Features.Ecomail.Services;
 using Anela.Heblo.Domain.Features.BackgroundJobs;
 using Anela.Heblo.Domain.Features.Ecomail;
+using Hangfire;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
@@ -8,7 +9,12 @@ namespace Anela.Heblo.Application.Features.Ecomail.Infrastructure.Jobs;
 
 public sealed class EcomailSyncJob : IRecurringJob
 {
+    // A full run is ~400 API calls with Polly retry/backoff on throttling, so give it generous
+    // headroom over the 6-hour schedule before another run is allowed to start.
+    private const int LockTimeoutSeconds = 1800;
+
     private readonly IEcomailSyncService _syncService;
+    private readonly IRecurringJobStatusChecker _statusChecker;
     private readonly EcomailOptions _options;
     private readonly ILogger<EcomailSyncJob> _logger;
 
@@ -16,10 +22,12 @@ public sealed class EcomailSyncJob : IRecurringJob
 
     public EcomailSyncJob(
         IEcomailSyncService syncService,
+        IRecurringJobStatusChecker statusChecker,
         IOptions<EcomailOptions> options,
         ILogger<EcomailSyncJob> logger)
     {
         _syncService = syncService ?? throw new ArgumentNullException(nameof(syncService));
+        _statusChecker = statusChecker ?? throw new ArgumentNullException(nameof(statusChecker));
         _options = options?.Value ?? throw new ArgumentNullException(nameof(options));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
 
@@ -29,13 +37,25 @@ public sealed class EcomailSyncJob : IRecurringJob
             DisplayName = "Ecomail Sync",
             Description = "Pulls Ecomail campaign and automation statistics, and snapshots cumulative automation counters.",
             CronExpression = _options.CronExpression,
-            DefaultIsEnabled = !string.IsNullOrWhiteSpace(_options.ApiKey),
+            // Always true: the seeder persists this as the job's default on first run, so tying it
+            // to the API key would permanently record the job as disabled when seeded without one,
+            // and it would never start once the secret is added. The empty-key check below is the
+            // runtime no-op that protects a developer without credentials instead.
+            DefaultIsEnabled = true,
             TimeZoneId = _options.TimeZone,
         };
     }
 
+    [DisableConcurrentExecution(LockTimeoutSeconds)]
+    [AutomaticRetry(Attempts = 1)]
     public async Task ExecuteAsync(CancellationToken cancellationToken = default)
     {
+        if (!await _statusChecker.IsJobEnabledAsync(Metadata.JobName, cancellationToken, Metadata.DefaultIsEnabled))
+        {
+            _logger.LogInformation("Job {JobName} is disabled. Skipping.", Metadata.JobName);
+            return;
+        }
+
         if (string.IsNullOrWhiteSpace(_options.ApiKey))
         {
             _logger.LogInformation("Job {JobName} has no API key configured. Skipping execution.", Metadata.JobName);
@@ -51,13 +71,15 @@ public sealed class EcomailSyncJob : IRecurringJob
             Metadata.JobName, report.CampaignsUpserted, report.PipelinesUpserted, report.CampaignStatsFetched,
             report.SnapshotsWritten, report.AutomationMonthsComputed, report.Errors.Count);
 
-        // The run failed and nothing real landed — surface it to Hangfire rather than reporting
-        // success. CampaignsUpserted/PipelinesUpserted are metadata counters: they increment as
-        // soon as a campaign or pipeline is listed, before any stats call, so a run where every
-        // stats/snapshot/event-count call fails would still show them as positive. Only counters
-        // that represent actual statistics landing count as "data" here.
-        if (!report.IsFullSuccess &&
-            report.CampaignStatsFetched == 0 && report.SnapshotsWritten == 0 && report.AutomationMonthsComputed == 0)
+        // A healthy run against this account always captures something — 129 reportable campaigns
+        // and 4 automations, with the current month always inside the recompute window — so zero
+        // data means something is wrong even when nothing threw (e.g. every call returned an
+        // empty/unexpected response without raising an error). Unlike the metadata counters above,
+        // this no longer requires !report.IsFullSuccess: it fires whenever all three real-data
+        // counters are zero, regardless of whether an exception was recorded. Caveat: this also
+        // throws on every run against a genuinely empty Ecomail account — there is no such account
+        // in production.
+        if (report.CampaignStatsFetched == 0 && report.SnapshotsWritten == 0 && report.AutomationMonthsComputed == 0)
         {
             throw new InvalidOperationException(
                 $"Ecomail sync produced no data: {string.Join(" | ", report.Errors)}");

@@ -15,7 +15,7 @@ public class EcomailAutomationSnapshot
 
     public int PipelineId { get; set; }
 
-    /// <summary>Date the counters were read, in Europe/Prague. Maps to a Postgres `date`.</summary>
+    /// <summary>Date the counters were read, in UTC (<c>TimeProvider.GetUtcNow()</c>). Maps to a Postgres `date`.</summary>
     public DateOnly CapturedOn { get; set; }
 
     public int Triggered { get; set; }

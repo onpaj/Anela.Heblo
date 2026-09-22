@@ -6,6 +6,7 @@ using System.Text.Json;
 using Anela.Heblo.Adapters.Ecomail;
 using Anela.Heblo.Domain.Features.Ecomail;
 using FluentAssertions;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using Moq;
@@ -107,6 +108,50 @@ public class EcomailApiClientTests
     }
 
     [Fact]
+    public async Task campaign_paging_stops_at_the_page_cap_and_logs_a_warning()
+    {
+        // Every page is full (never short), so without the cap this would page forever.
+        var fullPage = "[" + string.Join(",", Enumerable.Range(1, 50).Select(i =>
+            $$"""{"id":{{i}},"title":"t","subject":"s","status":3,"campaign_type":"email","recipients":1}""")) + "]";
+
+        var requests = new List<HttpRequestMessage>();
+        var handler = new Mock<HttpMessageHandler>();
+        handler.Protected()
+            .Setup<Task<HttpResponseMessage>>("SendAsync",
+                ItExpr.IsAny<HttpRequestMessage>(), ItExpr.IsAny<CancellationToken>())
+            .Returns((HttpRequestMessage request, CancellationToken _) =>
+            {
+                requests.Add(request);
+                return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
+                {
+                    Content = new StringContent(fullPage, Encoding.UTF8, "application/json")
+                });
+            });
+
+        var factory = new Mock<IHttpClientFactory>();
+        factory.Setup(f => f.CreateClient(It.IsAny<string>()))
+            .Returns(() => new HttpClient(handler.Object) { BaseAddress = new Uri("https://api2.ecomailapp.cz") });
+
+        var mockLogger = new Mock<ILogger<EcomailApiClient>>();
+        var options = Options.Create(new EcomailOptions { ApiKey = "test-key" });
+        var client = new EcomailApiClient(options, factory.Object, mockLogger.Object);
+
+        var campaigns = await client.GetCampaignsAsync();
+
+        requests.Should().HaveCount(200, "paging must stop at the cap even though every page was full");
+        campaigns.Should().HaveCount(200 * 50);
+        mockLogger.Verify(
+            l => l.Log(
+                LogLevel.Warning,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains("200")),
+                null,
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Once,
+            "a runaway paging loop against a live account with no sandbox must be logged, not silently stopped");
+    }
+
+    [Fact]
     public async Task parses_campaign_type_parent_id_and_null_sent_at()
     {
         var (client, _) = CreateClient((HttpStatusCode.OK, CampaignsPage));
@@ -190,6 +235,19 @@ public class EcomailApiClientTests
         var stats = await client.GetCampaignStatsAsync(999999);
 
         stats.Should().BeNull("a deleted campaign must not fail the whole sync");
+    }
+
+    [Fact]
+    public async Task a_forbidden_response_throws_instead_of_being_swallowed_as_empty()
+    {
+        // Unlike 404 (a deleted resource), 403 means a permission/scope problem. This API key is
+        // already known to 403 on some endpoints — silently returning null here would let a scope
+        // change turn into a green, empty run forever.
+        var (client, _) = CreateClient((HttpStatusCode.Forbidden, """{"message":"Forbidden"}"""));
+
+        var act = () => client.GetPipelinesAsync();
+
+        await act.Should().ThrowAsync<HttpRequestException>();
     }
 
     [Fact]

@@ -228,6 +228,30 @@ public class EcomailSyncServiceTests
     }
 
     [Fact]
+    public async Task falls_back_to_known_pipeline_ids_when_listing_fails_so_snapshots_still_run()
+    {
+        using var context = CreateContext();
+        context.EcomailPipelines.Add(new EcomailPipeline
+        {
+            Id = 14720,
+            Name = "Kosik",
+            SyncedAt = Now.AddDays(-1),
+        });
+        await context.SaveChangesAsync();
+
+        var api = ApiWith();
+        api.Setup(a => a.GetPipelinesAsync(It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new HttpRequestException("boom"));
+
+        var report = await CreateService(context, api).SyncAllAsync();
+
+        report.Errors.Should().ContainSingle().Which.Should().Contain("pipelines");
+        context.EcomailAutomationSnapshots.Should().ContainSingle(
+            "the listing call failed, but pipeline 14720 is already known from our own database, " +
+            "so today's unbackfillable snapshot must still be captured, not silently dropped");
+    }
+
+    [Fact]
     public async Task failing_campaign_listing_does_not_abort_pipelines_and_snapshots()
     {
         using var context = CreateContext();

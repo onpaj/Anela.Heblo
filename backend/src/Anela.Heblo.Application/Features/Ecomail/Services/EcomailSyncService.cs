@@ -159,6 +159,13 @@ public class EcomailSyncService : IEcomailSyncService
         {
             _logger.LogWarning(ex, "Ecomail pipelines listing failed");
             errors.Add($"pipelines: {ex.Message}");
+
+            // The listing call is only how we discover NEW pipelines — every pipeline seen before
+            // is already sitting in `existing`, loaded from our own database. Falling back to those
+            // ids keeps snapshots (and automation months) running on a failed listing, because
+            // Ecomail exposes lifetime counters only and a missed snapshot day can never be
+            // recovered.
+            ids = existing.Keys.ToList();
         }
 
         return (ids, count);

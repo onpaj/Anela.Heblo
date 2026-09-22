@@ -16,6 +16,13 @@ public class EcomailApiClient : IEcomailApiClient
     /// <summary>Ecomail rejects per_page above 50 with a 422.</summary>
     private const int PageSize = 50;
 
+    /// <summary>
+    /// Generous headroom over the ~5 pages this account currently returns. Ecomail's paging is
+    /// driven entirely by a short-page check (see below), so if it ever ignored page/per_page the
+    /// loop would run forever against a live account with no sandbox, every 6 hours.
+    /// </summary>
+    private const int MaxCampaignPages = 200;
+
     private static readonly ResiliencePipeline DefaultPipeline = new ResiliencePipelineBuilder()
         .AddRetry(new RetryStrategyOptions
         {
@@ -63,7 +70,7 @@ public class EcomailApiClient : IEcomailApiClient
     {
         var all = new List<EcomailCampaignDto>();
 
-        for (var page = 1; ; page++)
+        for (var page = 1; page <= MaxCampaignPages; page++)
         {
             var url = $"/campaigns?per_page={PageSize}&page={page}";
             var batch = await GetAsync<List<EcomailCampaignDto>>(url, cancellationToken) ?? new List<EcomailCampaignDto>();
@@ -76,6 +83,11 @@ public class EcomailApiClient : IEcomailApiClient
                 return all;
             }
         }
+
+        _logger.LogWarning(
+            "Ecomail campaigns paging hit the {MaxPages}-page cap without a short page; stopping with {Count} campaigns fetched so far",
+            MaxCampaignPages, all.Count);
+        return all;
     }
 
     public async Task<EcomailStatsDto?> GetCampaignStatsAsync(int campaignId, CancellationToken cancellationToken = default)
@@ -123,8 +135,12 @@ public class EcomailApiClient : IEcomailApiClient
                 throw new EcomailThrottledException(retryAfter);
             }
 
-            // A deleted campaign must not fail the whole sync.
-            if (response.StatusCode is HttpStatusCode.NotFound or HttpStatusCode.Forbidden)
+            // A deleted campaign returns 404 and must not fail the whole sync. A 403 is left to
+            // EnsureSuccessStatusCode below on purpose: it means a permission/scope problem, not a
+            // missing resource, and this API key is already known to 403 on some endpoints
+            // (CLUSTER-B-FINDINGS.md). Swallowing it the same way as 404 would let a scope change
+            // on Ecomail's side turn into a silently empty, "successful" run forever.
+            if (response.StatusCode == HttpStatusCode.NotFound)
             {
                 _logger.LogWarning("Ecomail returned {Status} for {Url}; skipping", response.StatusCode, url);
                 return null;
