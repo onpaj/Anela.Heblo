@@ -211,6 +211,71 @@ public class EcomailSyncServiceTests
             "the healthy campaign is still persisted");
     }
 
+    [Fact]
+    public async Task failing_campaign_listing_does_not_abort_pipelines_and_snapshots()
+    {
+        using var context = CreateContext();
+        var api = ApiWith(pipelines: new[] { new EcomailPipelineDto { Id = 14720, Name = "Kosik" } });
+        api.Setup(a => a.GetCampaignsAsync(It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new HttpRequestException("boom"));
+
+        var report = await CreateService(context, api).SyncAllAsync();
+
+        report.Errors.Should().ContainSingle().Which.Should().Contain("campaigns");
+        context.EcomailAutomationSnapshots.Should().ContainSingle(
+            "a transient campaigns-listing failure must not cost an automation snapshot day, " +
+            "since Ecomail exposes lifetime counters only and a missed day can never be backfilled");
+    }
+
+    [Fact]
+    public async Task backfill_from_mid_month_is_normalised_to_calendar_month_boundaries()
+    {
+        const int EventsPerMonth = 4; // send, open, click, unsub
+
+        using var context = CreateContext();
+        var api = ApiWith(pipelines: new[] { new EcomailPipelineDto { Id = 14720, Name = "Kosik" } });
+        var options = new EcomailOptions
+        {
+            ApiKey = "k",
+            RecomputeWindowMonths = 2,
+            BackfillFrom = new DateOnly(2026, 8, 15),
+        };
+
+        await CreateService(context, api, options).SyncAllAsync();
+
+        // Without normalisation the window would run Aug 15 -> Sep 14 and stop after one
+        // iteration entirely (Sep 15 > the Sep 1 loop bound), never reaching a true September window.
+        api.Verify(a => a.GetPipelineEventCountAsync(
+                14720, It.IsAny<string>(), new DateOnly(2026, 8, 1), new DateOnly(2026, 8, 31), It.IsAny<CancellationToken>()),
+            Times.Exactly(EventsPerMonth),
+            "August's window must span the whole calendar month");
+        api.Verify(a => a.GetPipelineEventCountAsync(
+                14720, It.IsAny<string>(), new DateOnly(2026, 9, 1), new DateOnly(2026, 9, 30), It.IsAny<CancellationToken>()),
+            Times.Exactly(EventsPerMonth),
+            "September must still be reached and span the whole calendar month");
+    }
+
+    [Fact]
+    public async Task first_time_automation_month_failure_still_persists_a_row_with_last_error()
+    {
+        using var context = CreateContext();
+        var api = ApiWith(pipelines: new[] { new EcomailPipelineDto { Id = 14720, Name = "Kosik" } });
+        api.Setup(a => a.GetPipelineEventCountAsync(
+                It.IsAny<int>(), It.IsAny<string>(), It.IsAny<DateOnly>(), It.IsAny<DateOnly>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new HttpRequestException("boom"));
+
+        var report = await CreateService(context, api).SyncAllAsync();
+
+        report.IsFullSuccess.Should().BeFalse();
+        var months = context.EcomailAutomationMonths.ToList();
+        months.Should().HaveCount(2,
+            "both backfill months (Aug, Sep) must get a durable row even though their first computation failed");
+        months.Should().OnlyContain(m => m.LastError != null,
+            "LastError is the only discriminator between a failed month and a genuinely zero-event one");
+        months.Should().OnlyContain(m => !m.IsLocked, "an unlocked month is retried on the next run");
+        months.Should().OnlyContain(m => m.Send == 0 && m.Open == 0 && m.Click == 0 && m.Unsub == 0);
+    }
+
     private sealed class FakeTimeProvider : TimeProvider
     {
         private readonly DateTime _now;

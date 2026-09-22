@@ -48,8 +48,22 @@ public class EcomailSyncService : IEcomailSyncService
     private async Task<int> SyncCampaignsAsync(DateTime now, List<string> errors, CancellationToken cancellationToken)
     {
         var existing = await _repository.GetCampaignsByIdAsync(cancellationToken);
-        var remote = await _api.GetCampaignsAsync(cancellationToken);
         var count = 0;
+
+        IReadOnlyList<EcomailCampaignDto> remote;
+        try
+        {
+            remote = await _api.GetCampaignsAsync(cancellationToken);
+        }
+        catch (Exception ex) when (!cancellationToken.IsCancellationRequested)
+        {
+            // A transient failure listing campaigns must not abort the run: pipelines and
+            // snapshots still need to run, because a snapshot day missed here can never be
+            // backfilled (Ecomail exposes lifetime automation counters only).
+            _logger.LogWarning(ex, "Ecomail campaigns listing failed");
+            errors.Add($"campaigns: {ex.Message}");
+            return count;
+        }
 
         foreach (var dto in remote)
         {
@@ -200,11 +214,16 @@ public class EcomailSyncService : IEcomailSyncService
     {
         var existing = await _repository.GetAutomationMonthsAsync(cancellationToken);
         var currentMonth = new DateOnly(today.Year, today.Month, 1);
+
+        // Normalise to the first of the month: AddMonths preserves day-of-month, so a
+        // BackfillFrom that isn't the 1st would otherwise push both the event-count window and
+        // the stored Year/Month label off the true calendar-month boundary.
+        var backfillStart = new DateOnly(_options.BackfillFrom.Year, _options.BackfillFrom.Month, 1);
         var computed = 0;
 
         foreach (var pipelineId in pipelineIds)
         {
-            for (var month = _options.BackfillFrom; month <= currentMonth; month = month.AddMonths(1))
+            for (var month = backfillStart; month <= currentMonth; month = month.AddMonths(1))
             {
                 existing.TryGetValue((pipelineId, month.Year, month.Month), out var entity);
 
@@ -234,16 +253,7 @@ public class EcomailSyncService : IEcomailSyncService
                             pipelineId, eventName, month, to, cancellationToken);
                     }
 
-                    if (entity is null)
-                    {
-                        entity = new EcomailAutomationMonth
-                        {
-                            PipelineId = pipelineId,
-                            Year = month.Year,
-                            Month = month.Month,
-                        };
-                        _repository.AddAutomationMonth(entity);
-                    }
+                    entity ??= AddAutomationMonth(pipelineId, month);
 
                     entity.Send = counts["send"];
                     entity.Open = counts["open"];
@@ -260,14 +270,30 @@ public class EcomailSyncService : IEcomailSyncService
                         "Ecomail pipeline {PipelineId} month {Year}-{Month} failed", pipelineId, month.Year, month.Month);
                     errors.Add($"pipeline {pipelineId} {month:yyyy-MM}: {ex.Message}");
 
-                    if (entity is not null)
-                    {
-                        entity.LastError = ex.Message;
-                    }
+                    // A month that has never computed successfully has no entity yet at this point
+                    // (one is only built after all four event counts succeed above), so without this
+                    // it would leave no durable trace and an operator could never find it again.
+                    // ComputedAt is set only on success, so LastError != null is the discriminator
+                    // between "failed" and "genuinely zero events" — never infer failure from zero
+                    // counts alone. IsLocked stays false so the next run retries it.
+                    entity ??= AddAutomationMonth(pipelineId, month);
+                    entity.LastError = ex.Message;
                 }
             }
         }
 
         return computed;
+    }
+
+    private EcomailAutomationMonth AddAutomationMonth(int pipelineId, DateOnly month)
+    {
+        var entity = new EcomailAutomationMonth
+        {
+            PipelineId = pipelineId,
+            Year = month.Year,
+            Month = month.Month,
+        };
+        _repository.AddAutomationMonth(entity);
+        return entity;
     }
 }
