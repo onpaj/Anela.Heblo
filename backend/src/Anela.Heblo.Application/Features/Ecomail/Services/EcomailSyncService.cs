@@ -35,20 +35,21 @@ public class EcomailSyncService : IEcomailSyncService
         var now = _timeProvider.GetUtcNow().DateTime;
         var today = DateOnly.FromDateTime(now);
 
-        var campaigns = await SyncCampaignsAsync(now, errors, cancellationToken);
+        var (campaigns, campaignStatsFetched) = await SyncCampaignsAsync(now, errors, cancellationToken);
         var (pipelineIds, pipelines) = await SyncPipelinesAsync(now, errors, cancellationToken);
         var snapshots = await SyncSnapshotsAsync(pipelineIds, today, errors, cancellationToken);
         var months = await SyncAutomationMonthsAsync(pipelineIds, today, now, errors, cancellationToken);
 
         await _repository.SaveChangesAsync(cancellationToken);
 
-        return new EcomailSyncReport(campaigns, pipelines, snapshots, months, errors);
+        return new EcomailSyncReport(campaigns, pipelines, snapshots, months, campaignStatsFetched, errors);
     }
 
-    private async Task<int> SyncCampaignsAsync(DateTime now, List<string> errors, CancellationToken cancellationToken)
+    private async Task<(int Count, int StatsFetched)> SyncCampaignsAsync(DateTime now, List<string> errors, CancellationToken cancellationToken)
     {
         var existing = await _repository.GetCampaignsByIdAsync(cancellationToken);
         var count = 0;
+        var statsFetched = 0;
 
         IReadOnlyList<EcomailCampaignDto> remote;
         try
@@ -62,7 +63,7 @@ public class EcomailSyncService : IEcomailSyncService
             // backfilled (Ecomail exposes lifetime automation counters only).
             _logger.LogWarning(ex, "Ecomail campaigns listing failed");
             errors.Add($"campaigns: {ex.Message}");
-            return count;
+            return (count, statsFetched);
         }
 
         foreach (var dto in remote)
@@ -97,6 +98,7 @@ public class EcomailSyncService : IEcomailSyncService
                 if (stats is not null)
                 {
                     ApplyStats(entity, stats);
+                    statsFetched++;
                 }
             }
             catch (Exception ex) when (!cancellationToken.IsCancellationRequested)
@@ -108,7 +110,7 @@ public class EcomailSyncService : IEcomailSyncService
             }
         }
 
-        return count;
+        return (count, statsFetched);
     }
 
     private static void ApplyStats(EcomailCampaign entity, EcomailStatsDto stats)

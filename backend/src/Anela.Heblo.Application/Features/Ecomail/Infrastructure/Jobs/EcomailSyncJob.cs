@@ -47,13 +47,17 @@ public sealed class EcomailSyncJob : IRecurringJob
         var report = await _syncService.SyncAllAsync(cancellationToken);
 
         _logger.LogInformation(
-            "Job {JobName} finished. Campaigns={Campaigns} Pipelines={Pipelines} Snapshots={Snapshots} Months={Months} Errors={Errors}",
-            Metadata.JobName, report.CampaignsUpserted, report.PipelinesUpserted,
+            "Job {JobName} finished. Campaigns={Campaigns} Pipelines={Pipelines} CampaignStats={CampaignStats} Snapshots={Snapshots} Months={Months} Errors={Errors}",
+            Metadata.JobName, report.CampaignsUpserted, report.PipelinesUpserted, report.CampaignStatsFetched,
             report.SnapshotsWritten, report.AutomationMonthsComputed, report.Errors.Count);
 
-        // Nothing landed and something broke — surface it to Hangfire rather than reporting success.
+        // The run failed and nothing real landed — surface it to Hangfire rather than reporting
+        // success. CampaignsUpserted/PipelinesUpserted are metadata counters: they increment as
+        // soon as a campaign or pipeline is listed, before any stats call, so a run where every
+        // stats/snapshot/event-count call fails would still show them as positive. Only counters
+        // that represent actual statistics landing count as "data" here.
         if (!report.IsFullSuccess &&
-            report.CampaignsUpserted == 0 && report.SnapshotsWritten == 0 && report.AutomationMonthsComputed == 0)
+            report.CampaignStatsFetched == 0 && report.SnapshotsWritten == 0 && report.AutomationMonthsComputed == 0)
         {
             throw new InvalidOperationException(
                 $"Ecomail sync produced no data: {string.Join(" | ", report.Errors)}");

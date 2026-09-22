@@ -212,6 +212,22 @@ public class EcomailSyncServiceTests
     }
 
     [Fact]
+    public async Task campaign_stats_fetched_counts_only_stats_that_were_actually_applied()
+    {
+        using var context = CreateContext();
+        var api = ApiWith(campaigns: new[] { Campaign(264, "ab"), Campaign(300, "email") });
+        api.Setup(a => a.GetCampaignStatsAsync(264, It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new HttpRequestException("boom"));
+
+        var report = await CreateService(context, api).SyncAllAsync();
+
+        report.CampaignsUpserted.Should().Be(2,
+            "the metadata counter still counts every listed campaign, including the one whose stats call failed");
+        report.CampaignStatsFetched.Should().Be(1,
+            "only the campaign whose stats were actually applied counts as real data landing");
+    }
+
+    [Fact]
     public async Task failing_campaign_listing_does_not_abort_pipelines_and_snapshots()
     {
         using var context = CreateContext();

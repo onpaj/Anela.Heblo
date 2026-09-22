@@ -18,7 +18,7 @@ public class EcomailSyncJobTests
     {
         var service = new Mock<IEcomailSyncService>();
         service.Setup(s => s.SyncAllAsync(It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new EcomailSyncReport(5, 2, 2, 4, Array.Empty<string>()));
+            .ReturnsAsync(new EcomailSyncReport(5, 2, 2, 4, 3, Array.Empty<string>()));
         return service;
     }
 
@@ -71,12 +71,57 @@ public class EcomailSyncJobTests
     {
         var service = new Mock<IEcomailSyncService>();
         service.Setup(s => s.SyncAllAsync(It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new EcomailSyncReport(0, 0, 0, 0, new[] { "pipelines: boom" }));
+            .ReturnsAsync(new EcomailSyncReport(0, 0, 0, 0, 0, new[] { "pipelines: boom" }));
         var job = CreateJob(service, new EcomailOptions { ApiKey = "k" });
 
         var act = () => job.ExecuteAsync();
 
         await act.Should().ThrowAsync<InvalidOperationException>()
             .WithMessage("*boom*", "a silent failure is how a dead pipeline goes unnoticed for months");
+    }
+
+    [Fact]
+    public async Task throws_when_metadata_was_upserted_but_no_real_data_landed()
+    {
+        // CampaignsUpserted and PipelinesUpserted are metadata counters: they increment as soon as
+        // a campaign/pipeline is listed, before any stats call. A run where every stats/snapshot/
+        // event-count call then fails must still be treated as a failure, not slip through green.
+        var service = new Mock<IEcomailSyncService>();
+        service.Setup(s => s.SyncAllAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new EcomailSyncReport(
+                CampaignsUpserted: 5,
+                PipelinesUpserted: 2,
+                SnapshotsWritten: 0,
+                AutomationMonthsComputed: 0,
+                CampaignStatsFetched: 0,
+                Errors: new[] { "campaign 1: boom", "pipeline 2 snapshot: boom" }));
+        var job = CreateJob(service, new EcomailOptions { ApiKey = "k" });
+
+        var act = () => job.ExecuteAsync();
+
+        await act.Should().ThrowAsync<InvalidOperationException>(
+            "metadata upserts are not data — this is the exact scenario that must not slip through green");
+    }
+
+    [Fact]
+    public async Task does_not_throw_on_a_genuine_partial_success()
+    {
+        // A real data counter is positive (SnapshotsWritten), everything else is zero, and there
+        // are still errors from other parts of the run. This pins the boundary so a later change
+        // cannot quietly make the guard stricter or looser without a test failing.
+        var service = new Mock<IEcomailSyncService>();
+        service.Setup(s => s.SyncAllAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new EcomailSyncReport(
+                CampaignsUpserted: 0,
+                PipelinesUpserted: 0,
+                SnapshotsWritten: 3,
+                AutomationMonthsComputed: 0,
+                CampaignStatsFetched: 0,
+                Errors: new[] { "campaigns: boom" }));
+        var job = CreateJob(service, new EcomailOptions { ApiKey = "k" });
+
+        var act = () => job.ExecuteAsync();
+
+        await act.Should().NotThrowAsync("snapshots were actually written, so this is a partial success, not a dead run");
     }
 }
