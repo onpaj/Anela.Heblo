@@ -37,6 +37,48 @@ describe('buildTrendChartData', () => {
     const data = buildTrendChartData([m(1)], channels, 'totalCost')
     expect(data.datasets.map((d) => d.label)).toEqual(['FB/IG', 'Google'])
   })
+
+  it('leaves the cost bars null for a month with no data instead of reporting zero spend', () => {
+    // Arrange - February has not been computed yet.
+    const rows = [m(1), m(2, false)]
+
+    // Act
+    const data = buildTrendChartData(rows, channels, 'totalCost')
+
+    // Assert - null reads as "—" in the tooltip; 0 would claim we spent nothing that month.
+    expect(data.datasets[0].data).toEqual([60, null])
+    expect(data.datasets[1].data).toEqual([40, null])
+  })
+
+  it('appends a column for a stored channel that is no longer configured', () => {
+    // Arrange - sklik was dropped from config but its invoices are still stored.
+    const withOrphan = {
+      ...m(1),
+      totalCost: 130,
+      channelCosts: [...m(1).channelCosts, { channelCode: 'sklik', label: 'S-Klik', costWithoutVat: 30, invoiceCount: 1 }],
+    } as unknown as MonthlyMarketingPerformanceDto
+
+    // Act
+    const data = buildTrendChartData([withOrphan], channels, 'totalCost')
+
+    // Assert - without the orphan the stack would read 100 against a "Náklady celkem" of 130.
+    expect(data.datasets.map((d) => d.label)).toEqual(['FB/IG', 'Google', 'S-Klik'])
+    const stacked = data.datasets.reduce((sum, d) => sum + Number(d.data[0] ?? 0), 0)
+    expect(stacked).toBe(withOrphan.totalCost)
+  })
+
+  it('treats an orphan channel stored under different casing as one channel', () => {
+    // Arrange - the backend emits each month's first-seen casing for an unconfigured code.
+    const jan = { ...m(1), channelCosts: [{ channelCode: 'Sklik', label: 'S-Klik', costWithoutVat: 30, invoiceCount: 1 }] } as unknown as MonthlyMarketingPerformanceDto
+    const feb = { ...m(2), channelCosts: [{ channelCode: 'sklik', label: 'S-Klik', costWithoutVat: 50, invoiceCount: 1 }] } as unknown as MonthlyMarketingPerformanceDto
+
+    // Act
+    const data = buildTrendChartData([jan, feb], channels, 'totalCost')
+
+    // Assert - one legend entry carrying both months, not two half-empty ones.
+    expect(data.datasets.map((d) => d.label)).toEqual(['FB/IG', 'Google', 'S-Klik'])
+    expect(data.datasets[2].data).toEqual([30, 50])
+  })
 })
 
 describe('PerformanceTrendChart', () => {
