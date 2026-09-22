@@ -1,5 +1,7 @@
 using Anela.Heblo.Adapters.Flexi.Analytics;
+using Anela.Heblo.Persistence.Analytics;
 using FluentAssertions;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Moq;
 
@@ -15,8 +17,14 @@ public sealed class FlexiAnalyticsSyncServiceTests
         return mock;
     }
 
+    // InMemory rejects ExecuteSqlRaw, so the read-model refresh throws here — deliberately. It is
+    // caught and logged inside the orchestrator precisely so a refresh problem cannot turn a
+    // successful ingest into a reported failure, and these tests pin that.
     private static FlexiAnalyticsSyncService CreateSut(IEnumerable<IEntitySyncService> services) =>
-        new(services, Mock.Of<ILogger<FlexiAnalyticsSyncService>>());
+        new(services,
+            new AnalyticsDbContext(new DbContextOptionsBuilder<AnalyticsDbContext>()
+                .UseInMemoryDatabase(Guid.NewGuid().ToString()).Options),
+            Mock.Of<ILogger<FlexiAnalyticsSyncService>>());
 
     [Fact]
     public async Task SyncAllAsync_WhenAllServicesSucceed_ReturnsFullSuccessReport()

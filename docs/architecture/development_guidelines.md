@@ -297,6 +297,54 @@ When module A needs **read-only access** to data in module B, the dependency mus
 - **Decision**: Every frontend component that renders color (background, text, border, ring, shadow, divider, icon, status) **must render correctly in both light and dark mode**. Support is **additive** — keep the light class and append a matching `dark:` variant, or use a design-system class (`.card`, `.input`, `.btn-*`, `.text-h*`, `.text-body*`, `.badge-*`) that already encodes both themes (prefer the latter). Map raw light classes to the `graphite-*` tokens per `docs/design/dark-mode-conversion-guide.md`: surfaces → `graphite-surface`/`surface-2`, text → `graphite-text`/`muted`/`faint`, borders → `graphite-border`, accents → `graphite-accent`; status pills keep their hue at `~900/30` bg + `~300` text. Both themes must meet WCAG 2.1 AA contrast. Applies to all routes, modals, drawers, tab panels, tables, forms, badges, and shared components.
 - **Consequences**: Dark mode stays complete by construction instead of via recurring audits; new screens are theme-correct on first review. Slightly more work per component, and UI reviews must verify both themes (toggle, or the Playwright dev instance on `:3100`). Recommended follow-up (not yet implemented): a lint/CI check that flags light-only color utilities lacking a `dark:` sibling. Cross-session summary in `memory/decisions/light-dark-mode-required.md`.
 
+### ADR-007: Reporting Data Lands in `Heblo_V3`, One Schema per Source; Reports Live in Metabase
+- **Status**: Accepted (2026-09-22)
+- **Context**: Anela has a backlog of 43 reporting metrics spanning three sources — the Flexi
+  general ledger, Shoptet orders and GA4 aggregates. An earlier plan
+  (`docs/superpowers/plans/2026-05-20-flexi-analytics-sync.md`) put the Flexi sync into a separate
+  `anela_analytics` database. That database was never created, `AnalyticsDatabase:ConnectionString`
+  stayed empty in every environment, and the sync stack — written, reviewed and unit-tested in May
+  2026 — never ran anywhere. Meanwhile a Metabase instance (Azure Web App `anelametabase`) was
+  deployed and already reads `Heblo_V3` as `metabase_ro`. **Metabase has no cross-database joins in
+  any edition.** Splitting reporting data across two databases would make every ratio metric (ROAS,
+  PNO, cost per purchase) unanswerable, because the spend side and the revenue side would sit on
+  opposite sides of a join Metabase cannot perform.
+- **Decision**: Reporting data lands in **`Heblo_V3`** (staging: `Heblo_TST`), each source in **its
+  own schema** — `flexi_raw`, `shoptet_raw`, `ga4_agg`. Each schema is owned end to end by its
+  ingestion direction: entities, migrations, sync job, read views and grants. **Reports are built in
+  Metabase, never in the Heblo UI** — no MediatR handlers, controllers, TypeScript client or React
+  pages are written for these metrics. Metabase reads through month-grain `v_*` views only; the raw
+  tables are never granted.
+- **Consequences**:
+  - Two schemas in one database join with plain SQL, so the ratio metrics are answerable.
+  - Zero new infrastructure: `Heblo_V3` is already a Metabase data source.
+  - Moving a schema to its own database later is a connection-string change, not a rewrite, because
+    each source keeps its own `DbContext`, its own migrations and its own schema.
+  - **Every analytics `DbContext` must pin `MigrationsHistoryTable` to its own schema.**
+    `HasDefaultSchema()` does *not* move the history table: EF Core resolves it from
+    `RelationalOptionsExtension.MigrationsHistoryTableSchema`, which defaults to the connection's
+    default schema. `AnalyticsDbContext` was missing the pin and, verified empirically on a scratch
+    database on 2026-09-22, wrote its migration row into `public."__EFMigrationsHistory"` — the main
+    `ApplicationDbContext`'s bookkeeping table. This is the hazard the *Persistence Guidelines*
+    section above already anticipated ("Each DbContext configured with unique history table");
+    `AnalyticsPersistenceModuleTests` now fails if the pin is removed from either the runtime
+    registration or the design-time factory.
+  - The analytics context keeps its **own `NpgsqlDataSource` and its own Polly resilience pipeline**
+    even though it now points at the same server as `ApplicationDbContext`. They are not merged: the
+    request-serving pipeline is tuned to a 3s `TotalTimeBudget`, which a 500-row batch upsert
+    legitimately exceeds, and a separate pool keeps a long backfill from starving request-path
+    connections on a server with a small connection budget.
+  - `AnalyticsDatabase--ConnectionString` duplicates `ConnectionStrings--Production` /
+    `ConnectionStrings--Staging` in Key Vault. The registration stays gated on that key being
+    non-empty so an unconfigured environment (local dev, CI) remains inert. The cost is that the two
+    secrets must be rotated together.
+  - **Confidentiality is enforced in Postgres, not in Metabase.** OSS Metabase has collection-level
+    permissions only — no row-level security, no data sandboxing. Payroll (backlog #35, *"pozor
+    neveřejné"*) therefore lives in a view granted to no role, and no general view includes payroll
+    accounts. See `docs/architecture/metabase.md`.
+- **Supersedes**: `docs/superpowers/plans/2026-05-20-flexi-analytics-sync.md`, whose separate-database
+  premise is the thing being reversed.
+
 ---
 
 ## ⚠️ Common Pitfalls to Avoid
