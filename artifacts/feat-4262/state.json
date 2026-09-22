@@ -25,5 +25,42 @@
       "updated_at": null
     }
   },
-  "tasks": []
+  "tasks": [
+    {
+      "name": "add-validation-exception-and-error-code",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    },
+    {
+      "name": "parse-shoptet-422-in-shipment-client",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    },
+    {
+      "name": "map-validation-exception-to-error-code",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    },
+    {
+      "name": "forward-validation-params-through-scan-response",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    },
+    {
+      "name": "regenerate-frontend-api-client",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    },
+    {
+      "name": "surface-validation-message-in-frontend",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    }
+  ]
 }
