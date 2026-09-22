@@ -1,5 +1,8 @@
+using System.Diagnostics;
 using System.Net;
+using System.Net.Http.Headers;
 using System.Text;
+using System.Text.Json;
 using Anela.Heblo.Adapters.Ecomail;
 using Anela.Heblo.Domain.Features.Ecomail;
 using FluentAssertions;
@@ -187,5 +190,102 @@ public class EcomailApiClientTests
         var stats = await client.GetCampaignStatsAsync(999999);
 
         stats.Should().BeNull("a deleted campaign must not fail the whole sync");
+    }
+
+    [Fact]
+    public async Task honours_ecomails_retry_after_header_instead_of_the_fixed_backoff()
+    {
+        // The pipeline's fixed exponential backoff starts at 2s; Retry-After here is far
+        // shorter. If the client ignored the header (the bug this test guards against), the
+        // call would take >= 2s because Polly would fall back to the fixed exponential delay.
+        var (client, requests) = CreateClientWithRetryAfter(TimeSpan.FromMilliseconds(100));
+
+        var stopwatch = Stopwatch.StartNew();
+        var pipelines = await client.GetPipelinesAsync();
+        stopwatch.Stop();
+
+        pipelines.Should().NotBeNull();
+        requests.Should().HaveCount(2, "the first call was throttled and the retry succeeded");
+        stopwatch.Elapsed.Should().BeLessThan(TimeSpan.FromSeconds(1),
+            "a Retry-After-derived delay should be used instead of the ~2s fixed exponential backoff");
+    }
+
+    private static (EcomailApiClient client, List<HttpRequestMessage> requests) CreateClientWithRetryAfter(
+        TimeSpan retryAfterHeaderValue)
+    {
+        var requests = new List<HttpRequestMessage>();
+        var callCount = 0;
+        var handler = new Mock<HttpMessageHandler>();
+
+        handler.Protected()
+            .Setup<Task<HttpResponseMessage>>("SendAsync",
+                ItExpr.IsAny<HttpRequestMessage>(), ItExpr.IsAny<CancellationToken>())
+            .Returns((HttpRequestMessage request, CancellationToken _) =>
+            {
+                requests.Add(request);
+                callCount++;
+
+                if (callCount == 1)
+                {
+                    var throttled = new HttpResponseMessage(HttpStatusCode.TooManyRequests)
+                    {
+                        Content = new StringContent("{}", Encoding.UTF8, "application/json")
+                    };
+                    throttled.Headers.RetryAfter = new RetryConditionHeaderValue(retryAfterHeaderValue);
+                    return Task.FromResult(throttled);
+                }
+
+                return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
+                {
+                    Content = new StringContent("[]", Encoding.UTF8, "application/json")
+                });
+            });
+
+        var factory = new Mock<IHttpClientFactory>();
+        factory.Setup(f => f.CreateClient(It.IsAny<string>()))
+            .Returns(() => new HttpClient(handler.Object) { BaseAddress = new Uri("https://api2.ecomailapp.cz") });
+
+        var options = Options.Create(new EcomailOptions { ApiKey = "test-key" });
+        return (new EcomailApiClient(options, factory.Object, NullLogger<EcomailApiClient>.Instance), requests);
+    }
+}
+
+public class EcomailNullableDateTimeConverterTests
+{
+    private static readonly JsonSerializerOptions Options = new()
+    {
+        Converters = { new EcomailNullableDateTimeConverter() },
+    };
+
+    [Fact]
+    public void returns_null_for_a_json_null_token()
+    {
+        JsonSerializer.Deserialize<DateTime?>("null", Options).Should().BeNull();
+    }
+
+    [Fact]
+    public void parses_ecomails_space_separated_format()
+    {
+        var result = JsonSerializer.Deserialize<DateTime?>("\"2026-07-26 05:33:17\"", Options);
+
+        result.Should().Be(new DateTime(2026, 7, 26, 5, 33, 17));
+        result!.Value.Kind.Should().Be(DateTimeKind.Unspecified);
+    }
+
+    [Fact]
+    public void falls_back_to_parsing_an_iso_8601_form()
+    {
+        var result = JsonSerializer.Deserialize<DateTime?>("\"2026-07-26T05:33:17\"", Options);
+
+        result.Should().Be(new DateTime(2026, 7, 26, 5, 33, 17));
+        result!.Value.Kind.Should().Be(DateTimeKind.Unspecified, "these columns are timestamp without time zone");
+    }
+
+    [Fact]
+    public void throws_a_json_exception_for_unparseable_input_instead_of_silently_returning_null()
+    {
+        var act = () => JsonSerializer.Deserialize<DateTime?>("\"not-a-timestamp\"", Options);
+
+        act.Should().Throw<JsonException>();
     }
 }

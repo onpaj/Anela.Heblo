@@ -23,6 +23,14 @@ public class EcomailApiClient : IEcomailApiClient
             Delay = TimeSpan.FromSeconds(2),
             BackoffType = DelayBackoffType.Exponential,
             ShouldHandle = new PredicateBuilder().Handle<EcomailThrottledException>(),
+            // Honour Ecomail's own Retry-After when it threw one; fall back to the
+            // exponential backoff above (returning null tells Polly to use its default).
+            DelayGenerator = static args =>
+            {
+                if (args.Outcome.Exception is EcomailThrottledException { RetryAfter: var retryAfter })
+                    return new ValueTask<TimeSpan?>(retryAfter);
+                return new ValueTask<TimeSpan?>((TimeSpan?)null);
+            },
         })
         .Build();
 
