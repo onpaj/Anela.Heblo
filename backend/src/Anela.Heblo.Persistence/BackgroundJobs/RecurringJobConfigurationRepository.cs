@@ -15,14 +15,14 @@ public class RecurringJobConfigurationRepository : IRecurringJobConfigurationRep
     public async Task<List<RecurringJobConfiguration>> GetAllAsync(CancellationToken cancellationToken = default)
     {
         return await _context.RecurringJobConfigurations
-            .OrderBy(c => c.JobName)
+            .OrderBy(c => c.Id)
             .ToListAsync(cancellationToken);
     }
 
     public async Task<RecurringJobConfiguration?> GetByJobNameAsync(string jobName, CancellationToken cancellationToken = default)
     {
         return await _context.RecurringJobConfigurations
-            .FirstOrDefaultAsync(c => c.JobName == jobName, cancellationToken);
+            .FirstOrDefaultAsync(c => c.Id == jobName, cancellationToken);
     }
 
     public async Task AddAsync(RecurringJobConfiguration configuration, CancellationToken cancellationToken = default)

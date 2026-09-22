@@ -21,16 +21,16 @@
       "updated_at": "2026-09-22T08:16:44.337519Z"
     },
     "developing": {
-      "status": "pending",
-      "updated_at": null
+      "status": "in_progress",
+      "updated_at": "2026-09-22T09:18:28.819430Z"
     }
   },
   "tasks": [
     {
       "name": "collapse-jobname-into-computed-property",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-09-22T09:18:28.989913Z"
     },
     {
       "name": "generate-and-verify-migration",
