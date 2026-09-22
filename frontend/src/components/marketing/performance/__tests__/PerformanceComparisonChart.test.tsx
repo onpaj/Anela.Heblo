@@ -3,10 +3,14 @@ import { render, screen } from '@testing-library/react'
 import { buildComparisonChartData, PerformanceComparisonChart } from '../PerformanceComparisonChart'
 import type { ChannelInfoDto, MarketingYearSeriesDto, MonthlyMarketingPerformanceDto } from '../../../../api/hooks/useMarketingPerformance'
 
-const mockChartProps: { current: { options?: { scales?: Record<string, { stacked?: boolean }> } } } = { current: {} }
+type CapturedOptions = {
+  scales?: Record<string, { stacked?: boolean }>
+  plugins?: { tooltip?: { callbacks?: { footer?: (items: { dataIndex: number }[]) => string } } }
+}
+const mockChartProps: { current: { options?: CapturedOptions } } = { current: {} }
 jest.mock('react-chartjs-2', () => ({
   Chart: (props: { options?: unknown }) => {
-    mockChartProps.current = props as { options?: { scales?: Record<string, { stacked?: boolean }> } }
+    mockChartProps.current = props as { options?: CapturedOptions }
     return <canvas data-testid="chart-canvas" />
   },
 }))
@@ -147,24 +151,54 @@ describe('buildComparisonChartData for totalCost', () => {
 
 describe('PerformanceComparisonChart', () => {
   it('renders with a title', () => {
-    render(<PerformanceComparisonChart series={[series(2026, Array(12).fill(null))]} metric="pno" channels={[]} currentMonth={9} anchorYear={2026} />)
+    render(<PerformanceComparisonChart series={[series(2026, Array(12).fill(null))]} metric="pno" channels={[]} currentMonth={9} anchorYear={2026} isCurrentMonthHidden={false} />)
     expect(screen.getByText('Meziroční srovnání — PNO')).toBeInTheDocument()
   })
 
   it('titles the cost breakdown with the cost metric', () => {
-    render(<PerformanceComparisonChart series={[series(2026, Array(12).fill(null))]} metric="totalCost" channels={[]} currentMonth={9} anchorYear={2026} />)
+    render(<PerformanceComparisonChart series={[series(2026, Array(12).fill(null))]} metric="totalCost" channels={[]} currentMonth={9} anchorYear={2026} isCurrentMonthHidden={false} />)
     expect(screen.getByText('Meziroční srovnání — Náklady na reklamu')).toBeInTheDocument()
   })
 
   it('stacks both axes for the cost breakdown and neither for a plain metric', () => {
     const channels = [{ code: 'meta', label: 'FB/IG' }] as ChannelInfoDto[]
 
-    render(<PerformanceComparisonChart series={[series(2026, Array(12).fill(null))]} metric="totalCost" channels={channels} currentMonth={9} anchorYear={2026} />)
+    render(<PerformanceComparisonChart series={[series(2026, Array(12).fill(null))]} metric="totalCost" channels={channels} currentMonth={9} anchorYear={2026} isCurrentMonthHidden={false} />)
     expect(mockChartProps.current.options?.scales?.x?.stacked).toBe(true)
     expect(mockChartProps.current.options?.scales?.y?.stacked).toBe(true)
 
-    render(<PerformanceComparisonChart series={[series(2026, Array(12).fill(null))]} metric="pno" channels={channels} currentMonth={9} anchorYear={2026} />)
+    render(<PerformanceComparisonChart series={[series(2026, Array(12).fill(null))]} metric="pno" channels={channels} currentMonth={9} anchorYear={2026} isCurrentMonthHidden={false} />)
     expect(mockChartProps.current.options?.scales?.x?.stacked).toBe(false)
     expect(mockChartProps.current.options?.scales?.y?.stacked).toBe(false)
+  })
+
+  describe('current-month tooltip footer', () => {
+    const footer = () => mockChartProps.current.options?.plugins?.tooltip?.callbacks?.footer
+    const sep = 8 // zero-based index of September, the current month in these fixtures
+
+    it('calls the running month incomplete while it is still on the chart', () => {
+      // Arrange
+      render(<PerformanceComparisonChart series={[series(2026, Array(12).fill(null))]} metric="pno" channels={[]} currentMonth={9} anchorYear={2026} isCurrentMonthHidden={false} />)
+
+      // Act / Assert
+      expect(footer()?.([{ dataIndex: sep }])).toBe('Aktu\u00e1ln\u00ed m\u011bs\u00edc (2026) je ne\u00fapln\u00fd')
+    })
+
+    it('says the running month is hidden once it has been filtered out', () => {
+      // Arrange - with hiding on, the only 2026 row left at this index is a gap, so calling the
+      // earlier years still drawn there "incomplete" would caption complete data.
+      render(<PerformanceComparisonChart series={[series(2026, Array(12).fill(null))]} metric="pno" channels={[]} currentMonth={9} anchorYear={2026} isCurrentMonthHidden />)
+
+      // Act / Assert
+      expect(footer()?.([{ dataIndex: sep }])).toBe('Aktu\u00e1ln\u00ed m\u011bs\u00edc (2026) je skryt\u00fd, proto\u017ee je ne\u00fapln\u00fd')
+    })
+
+    it('stays silent on every other month', () => {
+      // Arrange
+      render(<PerformanceComparisonChart series={[series(2026, Array(12).fill(null))]} metric="pno" channels={[]} currentMonth={9} anchorYear={2026} isCurrentMonthHidden />)
+
+      // Act / Assert
+      expect(footer()?.([{ dataIndex: 0 }])).toBe('')
+    })
   })
 })

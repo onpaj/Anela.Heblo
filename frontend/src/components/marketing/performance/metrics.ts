@@ -72,6 +72,22 @@ export const CHANNEL_COLORS: Rgb[] = [
 ]
 
 /**
+ * Channel codes identify the same logical channel regardless of case.
+ *
+ * The server groups stored costs with `StringComparer.OrdinalIgnoreCase` because the Postgres
+ * unique index on (MonthId, ChannelCode) is case-sensitive and lets "meta"/"META" coexist. It
+ * normalises configured codes to their config casing, but an orphan keeps whatever casing it was
+ * first stored with *in that month* — so the same orphan can arrive as "Sklik" in one month and
+ * "sklik" in the next. Matching case-sensitively here would split it into two legend entries.
+ */
+const normalizeChannelCode = (code: string): string => code.toLowerCase()
+
+/** Cost booked to one channel in one month; 0 when the channel has no row that month. */
+export const findChannelCost = (row: MonthlyMarketingPerformanceDto, code: string): number =>
+  row.channelCosts?.find((c) => normalizeChannelCode(c.channelCode) === normalizeChannelCode(code))
+    ?.costWithoutVat ?? 0
+
+/**
  * The channel list to draw a cost breakdown from.
  *
  * `channels` carries only the configured channels, but `totalCost` is the sum of every stored
@@ -84,14 +100,17 @@ export const resolveBreakdownChannels = (
   channels: ChannelInfoDto[],
   rows: MonthlyMarketingPerformanceDto[],
 ): ChannelInfoDto[] => {
-  const seen = new Set(channels.map((c) => c.code))
+  const seen = new Set(channels.map((c) => normalizeChannelCode(c.code)))
   const orphans: ChannelInfoDto[] = []
 
   for (const row of rows) {
     for (const cost of row.channelCosts ?? []) {
-      if (seen.has(cost.channelCode)) continue
-      seen.add(cost.channelCode)
-      orphans.push({ code: cost.channelCode, label: cost.label ?? cost.channelCode } as ChannelInfoDto)
+      const key = normalizeChannelCode(cost.channelCode)
+      if (seen.has(key)) continue
+      seen.add(key)
+      // The DTO types `label` as required, but it comes off the wire — fall back to the code
+      // rather than rendering an empty legend entry if the server ever omits it.
+      orphans.push({ code: cost.channelCode, label: cost.label || cost.channelCode } as ChannelInfoDto)
     }
   }
 

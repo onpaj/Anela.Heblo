@@ -179,7 +179,9 @@ describe('MarketingPerformancePage — hiding the running month', () => {
     // so the evidence is in the per-dataset values, not the labels.
     const datasets = (mockChart.data as unknown as { datasets: { label: string; data: (number | null)[] }[] }).datasets
     const sep = 8 // zero-based index of September
+    // Asserted by value, not `not.toBeNull()`: optional chaining on a missing dataset yields
+    // `undefined`, which would satisfy `not.toBeNull()` even if the 2025 series vanished entirely.
     expect(datasets.find((d) => d.label.endsWith('2026'))?.data[sep]).toBeNull()
-    expect(datasets.find((d) => d.label.endsWith('2025'))?.data[sep]).not.toBeNull()
+    expect(datasets.find((d) => d.label.endsWith('2025'))?.data[sep]).toBe(35.4)
   })
 })

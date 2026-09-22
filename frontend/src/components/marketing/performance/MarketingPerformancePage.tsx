@@ -67,7 +67,11 @@ const MarketingPerformancePage: React.FC = () => {
     () => (hideCurrentMonth ? withoutPartialMonthsInSeries(comparisonSeries) : comparisonSeries),
     [hideCurrentMonth, comparisonSeries],
   )
-  const channels = (viewMode === 'trend' ? months.data?.channels : comparison.data?.channels) ?? []
+  // Memoised for the same reason as the rows above: it feeds both charts' useMemo deps.
+  const channels = useMemo(
+    () => (viewMode === 'trend' ? months.data?.channels : comparison.data?.channels) ?? [],
+    [viewMode, months.data?.channels, comparison.data?.channels],
+  )
   const lastRefreshAt = viewMode === 'trend' ? months.data?.lastRefreshAt : comparison.data?.lastRefreshAt
   const hasWarnings =
     viewMode === 'trend'
@@ -150,7 +154,7 @@ const MarketingPerformancePage: React.FC = () => {
                 </div>
               ))}
             </div>
-            <PerformanceComparisonChart series={chartSeries} metric={metric} channels={channels} currentMonth={comparison.data.currentMonth} anchorYear={comparison.data.anchorYear} />
+            <PerformanceComparisonChart series={chartSeries} metric={metric} channels={channels} currentMonth={comparison.data.currentMonth} anchorYear={comparison.data.anchorYear} isCurrentMonthHidden={hideCurrentMonth} />
             <div className="bg-white dark:bg-graphite-surface shadow dark:shadow-soft-dark sm:rounded-md mb-8">
               <div className="px-4 py-5 sm:px-6 border-b border-gray-200 dark:border-graphite-border">
                 <h3 className="text-lg leading-6 font-medium text-gray-900 dark:text-graphite-text">Měsíce podle roku</h3>

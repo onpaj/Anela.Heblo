@@ -60,6 +60,25 @@ describe('PerformanceTable', () => {
     expect(screen.getByTitle('Měsíc je uzamčen — mění ho jen ruční přepočet')).toBeInTheDocument()
   })
 
+  it('gives a de-configured channel its own column so the row still adds up to the total', () => {
+    // Arrange - sklik left the config; its stored cost is still part of totalCost.
+    const withOrphan = month({
+      totalCost: 438069 + 11034,
+      channelCosts: [
+        { channelCode: 'meta', label: 'FB/IG', costWithoutVat: 327126, invoiceCount: 2 },
+        { channelCode: 'google', label: 'Google', costWithoutVat: 99909, invoiceCount: 1 },
+        { channelCode: 'sklik', label: 'S-Klik', costWithoutVat: 11034, invoiceCount: 1 },
+      ],
+    } as Partial<MonthlyMarketingPerformanceDto>)
+
+    // Act
+    render(<PerformanceTable channels={channels} months={[withOrphan]} />)
+
+    // Assert - the orphan follows the configured columns rather than vanishing from the row.
+    const headers = screen.getAllByRole('columnheader').map((h) => norm(h.textContent))
+    expect(headers.slice(0, 5)).toEqual(['M\u011bs\u00edc', 'FB/IG', 'Google', 'S-Klik', 'N\u00e1klady celkem'])
+  })
+
   it('renders an empty state when no month has data', () => {
     render(<PerformanceTable channels={channels} months={[month({ hasData: false })]} />)
     expect(screen.getByText('Zatím nejsou k dispozici žádná data. Spusťte přepočet nebo počkejte na noční úlohu.')).toBeInTheDocument()

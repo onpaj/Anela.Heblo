@@ -40,11 +40,15 @@ describe('metrics', () => {
 })
 
 describe('METRIC_DESCRIPTIONS', () => {
-  it('explains every selectable metric', () => {
+  it('explains every selectable metric with its own distinct text', () => {
     for (const metric of PERFORMANCE_METRICS) {
-      expect(METRIC_DESCRIPTIONS[metric]).toEqual(expect.any(String))
       expect(METRIC_DESCRIPTIONS[metric].length).toBeGreaterThan(20)
     }
+
+    // Distinctness is the assertion with teeth: a length check alone passes when a description is
+    // copy-pasted onto the wrong metric, which is the mistake actually worth catching here.
+    const texts = PERFORMANCE_METRICS.map((m) => METRIC_DESCRIPTIONS[m])
+    expect(new Set(texts).size).toBe(PERFORMANCE_METRICS.length)
   })
 
   it('says which direction is good for the ratio metrics', () => {
@@ -53,9 +57,10 @@ describe('METRIC_DESCRIPTIONS', () => {
     expect(METRIC_DESCRIPTIONS.costPerOrder).toMatch(/Nižší je lepší/)
   })
 
-  it('explains both view modes', () => {
+  it('explains both view modes differently', () => {
     expect(VIEW_MODE_DESCRIPTIONS.trend.length).toBeGreaterThan(20)
     expect(VIEW_MODE_DESCRIPTIONS.comparison.length).toBeGreaterThan(20)
+    expect(VIEW_MODE_DESCRIPTIONS.trend).not.toEqual(VIEW_MODE_DESCRIPTIONS.comparison)
   })
 })
 
@@ -73,9 +78,11 @@ describe('withoutPartialMonths', () => {
   })
 
   it('does not mutate the input', () => {
+    // Asserted by contents, not length: an implementation that replaced elements in place would
+    // keep the length identical and still corrupt the caller's array.
     const rows = [complete, partial]
     withoutPartialMonths(rows)
-    expect(rows).toHaveLength(2)
+    expect(rows).toEqual([complete, partial])
   })
 })
 
@@ -95,7 +102,8 @@ describe('withoutPartialMonthsInSeries', () => {
 
   it('does not mutate the input series', () => {
     withoutPartialMonthsInSeries(series)
-    expect(series[0].months).toHaveLength(2)
+    expect(series[0].months.map((m) => m.month)).toEqual([8, 9])
+    expect(series[1].months.map((m) => m.month)).toEqual([8, 9])
   })
 
   it('returns the same array instance when no month is partial', () => {
