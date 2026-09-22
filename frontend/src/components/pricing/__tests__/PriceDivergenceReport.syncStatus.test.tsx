@@ -45,6 +45,14 @@ const summary = {
   flexiPriceTypeUnknownCount: 0,
 };
 
+// What the real `mutateAsync` resolves: the post-write rows plus what reached the live ERP.
+const outcome = (syncedRows = rows, writtenCount = 0, failedCount = 0, remainingCount = 0) => ({
+  rows: syncedRows,
+  writtenCount,
+  failedCount,
+  remainingCount,
+});
+
 const renderReport = (syncPrices: jest.Mock) => {
   mockUsePriceDivergenceReport.mockReturnValue({ data: { rows, summary }, isLoading: false, error: null });
   mockUseSetProductPrice.mockReturnValue({ mutateAsync: jest.fn(), isPending: false });
@@ -58,8 +66,16 @@ const syncButton = () => screen.getByTestId("sync-prices-button");
 // empty region, not an absent one.
 const syncStatus = () => screen.getByTestId("sync-prices-status");
 
+// The sync writes into the live ERP, so every run goes through the operator's confirmation.
+let confirmSpy: jest.SpyInstance;
+
 beforeEach(() => {
   jest.clearAllMocks();
+  confirmSpy = jest.spyOn(window, "confirm").mockReturnValue(true);
+});
+
+afterEach(() => {
+  confirmSpy.mockRestore();
 });
 
 test("shows no sync status before the operator has synced anything", () => {
@@ -72,7 +88,7 @@ test("shows no sync status before the operator has synced anything", () => {
 
 test("confirms a sync that changed nothing, so an unchanged table is not a dead button", async () => {
   // Arrange — the backend returns exactly the rows the report already holds
-  renderReport(jest.fn().mockResolvedValue(rows));
+  renderReport(jest.fn().mockResolvedValue(outcome()));
 
   // Act
   await userEvent.click(syncButton());
@@ -86,7 +102,7 @@ test("confirms a sync that changed nothing, so an unchanged table is not a dead 
 test("names how many rows the sync actually changed", async () => {
   // Arrange
   const syncedRows = [makeRow("MAS001180", "Maska", 420), makeRow("TON002030", "Tonikum", 250)];
-  renderReport(jest.fn().mockResolvedValue(syncedRows));
+  renderReport(jest.fn().mockResolvedValue(outcome(syncedRows)));
 
   // Act
   await userEvent.click(syncButton());
@@ -98,7 +114,7 @@ test("names how many rows the sync actually changed", async () => {
 test("uses the Czech plural the count calls for", async () => {
   // Arrange
   const syncedRows = [makeRow("MAS001180", "Maska", 420), makeRow("TON002030", "Tonikum", 270)];
-  renderReport(jest.fn().mockResolvedValue(syncedRows));
+  renderReport(jest.fn().mockResolvedValue(outcome(syncedRows)));
 
   // Act
   await userEvent.click(syncButton());
@@ -107,11 +123,27 @@ test("uses the Czech plural the count calls for", async () => {
   await waitFor(() => expect(syncStatus()).toHaveTextContent("2 řádky se změnily"));
 });
 
+// Cancelling is not a sync: wiping the last confirmation would tell the operator a run
+// happened, and leave them with no record of the one that actually did.
+test("keeps the previous confirmation when the operator cancels the next sync", async () => {
+  // Arrange
+  renderReport(jest.fn().mockResolvedValue(outcome(rows, 1)));
+  await userEvent.click(syncButton());
+  await waitFor(() => expect(syncStatus()).toHaveTextContent("Synchronizováno v"));
+
+  // Act
+  confirmSpy.mockReturnValue(false);
+  await userEvent.click(syncButton());
+
+  // Assert
+  expect(syncStatus()).toHaveTextContent("zapsána 1 cena do Flexi");
+});
+
 // A stale "Synchronizováno v 16:42" sitting next to a failure alert reads as if the sync had
 // both succeeded and failed.
 test("drops the previous confirmation when a later sync fails", async () => {
   // Arrange
-  const syncPrices = jest.fn().mockResolvedValueOnce(rows).mockRejectedValueOnce(new Error("boom"));
+  const syncPrices = jest.fn().mockResolvedValueOnce(outcome()).mockRejectedValueOnce(new Error("boom"));
   renderReport(syncPrices);
 
   // Act
@@ -124,11 +156,89 @@ test("drops the previous confirmation when a later sync fails", async () => {
   await waitFor(() => expect(syncStatus()).toBeEmptyDOMElement());
 });
 
+// The sync exists to fix Flexi, so what it put there is the first thing the line has to say.
+test("names how many prices it wrote into Flexi", async () => {
+  // Arrange
+  const syncedRows = [makeRow("MAS001180", "Maska", 390), makeRow("TON002030", "Tonikum", 250)];
+  renderReport(jest.fn().mockResolvedValue(outcome(syncedRows, 2)));
+
+  // Act
+  await userEvent.click(syncButton());
+
+  // Assert
+  await waitFor(() => expect(syncStatus()).toHaveTextContent("zapsány 2 ceny do Flexi"));
+});
+
+test("says so plainly when the selection needed no write at all", async () => {
+  // Arrange
+  renderReport(jest.fn().mockResolvedValue(outcome()));
+
+  // Act
+  await userEvent.click(syncButton());
+
+  // Assert
+  await waitFor(() => expect(syncStatus()).toHaveTextContent("do Flexi se nic nezapisovalo"));
+});
+
+// A price that did not reach the ERP is the one thing on this screen the operator has to act
+// on, and it is invisible in a table that simply still shows the row as divergent.
+test("flags the rows whose price never reached Flexi", async () => {
+  // Arrange
+  renderReport(jest.fn().mockResolvedValue(outcome(rows, 1, 2)));
+
+  // Act
+  await userEvent.click(syncButton());
+
+  // Assert
+  expect(await screen.findByTestId("sync-prices-failures")).toHaveTextContent(
+    "U 2 produktů se cenu nepodařilo zapsat do Flexi.",
+  );
+});
+
+test("keeps the failure flag away from a sync where every write landed", async () => {
+  // Arrange
+  renderReport(jest.fn().mockResolvedValue(outcome(rows, 2)));
+
+  // Act
+  await userEvent.click(syncButton());
+
+  // Assert
+  await waitFor(() => expect(syncStatus()).toHaveTextContent("zapsány 2 ceny do Flexi"));
+  expect(screen.queryByTestId("sync-prices-failures")).not.toBeInTheDocument();
+});
+
+// A run that stopped on its write budget is not a failure, and the operator has to know the
+// job is unfinished or they will read "zapsáno 200 cen" as "done".
+test("says how many rows are left when the run stopped on its write budget", async () => {
+  // Arrange
+  renderReport(jest.fn().mockResolvedValue(outcome(rows, 2, 0, 3)));
+
+  // Act
+  await userEvent.click(syncButton());
+
+  // Assert
+  await waitFor(() =>
+    expect(syncStatus()).toHaveTextContent("Zbývá 3 řádků — spusťte synchronizaci znovu."),
+  );
+});
+
+test("says nothing about leftovers when the run finished the whole selection", async () => {
+  // Arrange
+  renderReport(jest.fn().mockResolvedValue(outcome(rows, 2)));
+
+  // Act
+  await userEvent.click(syncButton());
+
+  // Assert
+  await waitFor(() => expect(syncStatus()).toHaveTextContent("zapsány 2 ceny do Flexi"));
+  expect(syncStatus()).not.toHaveTextContent("Zbývá");
+});
+
 // The line has to reach a screen reader: for an operator who cannot see the table stay the
 // same, it is the only evidence the button did anything at all.
 test("announces the confirmation to assistive technology", async () => {
   // Arrange
-  renderReport(jest.fn().mockResolvedValue(rows));
+  renderReport(jest.fn().mockResolvedValue(outcome()));
 
   // Act
   await userEvent.click(syncButton());

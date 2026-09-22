@@ -23,7 +23,8 @@ price" concept elsewhere in the codebase or docs, it is stale.
   `IProductVatRateProvider`, `VatRateCalculator`.
 - **Application** (`Anela.Heblo.Application/Features/ProductPricing/`):
   `PriceComparisonService` (the live comparison), `GetPriceDivergenceReport` and
-  `SetProductPrice` use cases, `PriceComparisonDqtAdapter` (bridges into DataQuality).
+  `SetProductPrice` and `SyncProductPrices` use cases, `PriceComparisonDqtAdapter` (bridges
+  into DataQuality).
 - **Persistence** (`Anela.Heblo.Persistence/ProductPricing/`): `ProductPriceChangeLogRepository`,
   EF configuration. Migration `20260910185627_AddProductPriceChangeLog` creates the
   `ProductPriceChangeLogs` table in the `public` schema — the *only* table this feature owns.
@@ -140,14 +141,20 @@ line is how we find out which vocabulary Flexi really uses.
 The report is only as fresh as its two reads, and the Flexi leg is served from a five-minute
 `IMemoryCache` — so a price changed directly in Flexi (or in Shoptet's own admin) can keep
 rendering stale for minutes. `POST /api/product-pricing/sync` re-reads both systems for one
-named selection of products and returns their fresh comparison rows.
+named selection of products, **writes the Shoptet price into Flexi wherever the comparison
+says it is needed**, and returns the rows as they stand afterwards.
 
-It is a **read**, despite the POST: nothing is written to either system, and it stays on the
-read permission alongside the divergence report. POST only because a selection of product
-codes belongs in a body rather than a query string.
+It is a **write to the live ERP**, so it sits on `AccessLevel.Write`, unlike the divergence
+report it is built from. Shoptet itself is never written here: it is the retail source of
+truth, and a sync only ever propagates its price outwards. That is the whole difference from
+`PUT prices/{productCode}`, which is an operator changing a price and writes both systems.
 
-`PriceComparisonService.BuildScopedReportAsync` backs it, and differs from the unscoped
-report in exactly two ways:
+Before this, fixing a divergent row meant opening its editor and re-saving the price it
+already had, purely to trigger the write-through — the button beside it re-read the two
+systems and then showed the same divergence again.
+
+`PriceComparisonService.BuildScopedReportAsync` backs the read half, and differs from the
+unscoped report in exactly two ways:
 
 - **Flexi is read with `forceReload: true`**, bypassing the five-minute ceník cache. This is
   the whole point of the button; without it the operator would press sync and be shown the
@@ -165,21 +172,96 @@ never has to keep its selection in step with the catalogue. The validator caps a
 10,000 codes — deliberately far above the whole priced catalogue, so syncing with no filter
 still works; it bounds one request, it is not a business limit on the selection.
 
+### Which rows a sync writes
+
+`SyncProductPricesHandler.NeedsFlexiWrite` writes a row only when the fresh comparison
+classified it `FlexiDiffers` **and** Shoptet holds a positive price. Everything else is left
+alone:
+
+- `InAgreement` — the call would spend a live ERP write storing the number Flexi already holds.
+- `MissingInShoptet` / `MissingInFlexi` — nothing to push, or nowhere to push it
+  (`IErpPriceWriter` addresses ceník items by internal id, because writing by code creates new
+  ones).
+- `FlexiPriceTypeUnknown` / `FlexiVatRateUnknown` — **deliberately not written**, tempting as
+  it is. The write does declare `typCeny.sDph` alongside the price, but the unknown-ness lives
+  in what the ERP *read* exposes: a company whose user query 41 omits `typcenydphk`, or a VAT
+  band `VatRatesByLevel` does not recognise. Writing changes neither, so the row would come
+  back unknown and be rewritten on every sync for ever — and `FlexiPriceTypeUnknown` is a
+  company-wide condition, so that would be one live PUT per priced product per click.
+  A genuinely divergent price hiding in those buckets is therefore not synced either; fix the
+  query or the band mapping, and the row reclassifies as `FlexiDiffers`.
+- A non-positive Shoptet price — zero is not a price to propagate, and
+  `FlexiProductPriceWriter` refuses it anyway. Not attempted, so not a failure either; the row
+  stays visibly divergent.
+
+A missing ceník id is the one unwritable case that counts as a failure, since the row's own
+classification promised Flexi had it.
+
+A single write failure never abandons the rest of the selection. Each one is logged, counted
+into `failedCount`, and the row simply comes back still divergent on the screen that exists
+to surface exactly that. Only when at least one write landed is the scoped report built a
+second time — Flexi stores the base price and reconstructs the with-VAT figure on read, so
+what the ERP now holds is read back rather than predicted from what was sent. That re-read is
+itself allowed to fail: prices are already written by then, so a failure logs and falls back to
+the pre-write rows rather than reporting a sync that did work as one that did nothing.
+
+### Two things that stop a run early
+
+The writes run one at a time against the live ERP, so a catalogue-sized selection would take
+minutes and outlive the gateway's 230 s request timeout — which would report a failure to an
+operator whose prices did reach Flexi.
+
+- **A write budget** (`WriteBudget`, 2 minutes, measured on the injected `TimeProvider`) stops
+  the loop from *starting* further writes. The rows it never reached come back as
+  `remainingCount`, the status line says `Zbývá N řádků — spusťte synchronizaci znovu`, and a
+  second run picks them up. Runs converge rather than repeat work: a row already written comes
+  back `InAgreement` and is skipped.
+- **Cancellation** (`RequestAborted` — the operator navigating away, or the connection
+  dropping) aborts the run and propagates. It is explicitly *not* treated as this row's write
+  failing: the PUT may well have landed, and recording a false failure would put a lie in the
+  one table that is supposed to be the record of what happened. A Flexi-side timeout leaves the
+  request's own token uncancelled and is still a genuine, counted write failure.
+
+Every write is appended to `ProductPriceChangeLogs`, the same append-only history an
+operator's price edit writes to. For a sync the columns read: `OldPriceWithVat` is what Flexi
+held before, `NewPriceWithVat` is the Shoptet price propagated into it, and `ShoptetSucceeded`
+is true because Shoptet already holds that price and was left untouched — never because
+anything was written there.
+
+**Known and accepted:** the table has no operation column, so a sync whose Flexi write failed
+(`ShoptetSucceeded = true`, `FlexiSucceeded = false`) is indistinguishable from a price edit
+whose Flexi leg failed, and `OldPriceWithVat` means Flexi's previous price in the first case
+and Shoptet's in the second. Decided deliberately in favour of no schema change: nothing reads
+this table, and migrations here are applied by hand — an unapplied one would make every append
+throw, and the append swallows its own failures by design, so the whole audit trail would go
+silently empty for both producers. If anything ever queries this table, add the column first.
+
 `useSyncProductPrices` cancels any in-flight divergence refetch before writing the merged
 report. A price save invalidates that query, and its whole-catalogue refetch reads Flexi from
 the five-minute cache — landing after the sync it would silently replace the force-reloaded
 prices with exactly the stale ones the sync exists to defeat.
 `PriceDivergenceReport.syncRace.test.tsx` pins that ordering.
 
-A Shoptet or Flexi read failure propagates, exactly as `GetPriceDivergenceReportHandler`
+A Shoptet or Flexi **read** failure propagates, exactly as `GetPriceDivergenceReportHandler`
 leaves it — there is no partial state to report and nothing was written, so no error code of
-its own was added.
+its own was added. A **write** failure is counted, not raised: the rest of the selection was
+still synced.
 
 ### Frontend: syncing what the filters left on screen
 
 `PriceDivergenceReport` puts a `Synchronizovat (N)` button in the filter bar, where N is the
 number of rows the name/code/`pouze rozdílné` filters left visible. Those codes are exactly
 what the sync covers.
+
+The button renders only for an operator who can write prices — for everyone else this screen
+stays exactly what its read-only banner promises — and a `window.confirm` naming the live ERP
+and how many prices would be overwritten stands between the click and the writes — asked
+before any previous status is cleared, so cancelling leaves the last confirmation on screen.
+That count is an estimate over the cached rows (`needsFlexiWrite` mirrors the handler's rule);
+the backend decides for real against prices it reads fresh.
+
+One consequence of gating the button: a read-only operator has no way to refresh a stale
+comparison any more, short of reloading the page. The endpoint would refuse them anyway.
 
 `useSyncProductPrices` folds the response into the cached report with `setQueryData`, not
 `invalidateQueries`: invalidating would refetch the whole catalogue from both live systems
@@ -194,13 +276,21 @@ the comparison rules stay in `PriceComparisonService` alone.
 A sync that finds both systems holding what the report already showed leaves the table
 byte-for-byte identical — which is indistinguishable from a button that does nothing, and was
 reported as exactly that. So a successful sync also writes a status line under the filter bar:
-`Synchronizováno v HH:MM — beze změn`, or the number of rows that actually moved.
+`Synchronizováno v HH:MM — zapsány 2 ceny do Flexi, 1 řádek se změnil` (or
+`do Flexi se nic nezapisovalo, beze změn`) — what reached the ERP first, then how many rows
+visibly moved, then `Zbývá N řádků — spusťte synchronizaci znovu` when the write budget cut
+the run short.
 `countChangedRows` (same module as the merge) compares the synced rows against the ones the
 report was showing on the two live prices, the Flexi price type and the backend's verdict; it
 counts only rows the report holds, so it can never claim a change the operator cannot find in
 the table. The line carries `role="status"`, since for an operator who cannot see the table
 stay the same it is the only evidence the button did anything. A later failure clears it, so a
 stale confirmation never sits next to a fresh error.
+
+When `failedCount` is non-zero, an amber alert names how many prices never reached Flexi.
+It sits beside the confirmation rather than replacing it: the rest of the selection was
+synced, and a failed write is otherwise invisible in a table that simply still shows the row
+as divergent.
 
 ## Nightly DQT check and dashboard tile
 
@@ -343,7 +433,7 @@ applicable. The log is:
 | Endpoint | Method | Auth | Description |
 |---|---|---|---|
 | `/api/product-pricing/divergence` | GET | `Products_Catalog` (read) | Live Shoptet-vs-Flexi comparison. Never writes anywhere. |
-| `/api/product-pricing/sync` | POST | `Products_Catalog` (read) | Re-reads both systems for the named products, bypassing Flexi's ceník cache. Never writes anywhere. |
+| `/api/product-pricing/sync` | POST | `Products_Catalog` (write) | Re-reads both systems for the named products (bypassing Flexi's ceník cache) and writes the Shoptet price into Flexi for every `FlexiDiffers` row. Never writes Shoptet. |
 | `/api/product-pricing/prices/{productCode}` | PUT | `Products_Catalog` (write) | Write-through price edit: Shoptet, then Flexi, with pre-flight. |
 
 ## Error codes (36XX module range)

@@ -80,7 +80,14 @@ describe("PriceDivergenceReport sync merge", () => {
   let productPricing_GetDivergenceReport: jest.Mock;
   let productPricing_Sync: jest.Mock;
 
+  // The sync writes into the live ERP, so every run goes through the operator's
+  // confirmation.
+  let confirmSpy: jest.SpyInstance;
+
+  afterEach(() => confirmSpy.mockRestore());
+
   beforeEach(() => {
+    confirmSpy = jest.spyOn(window, "confirm").mockReturnValue(true);
     queryClient = new QueryClient({
       defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
     });
