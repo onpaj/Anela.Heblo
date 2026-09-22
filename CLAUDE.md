@@ -18,6 +18,7 @@ Read the relevant doc **before** implementation work touches that area. No archi
 - `docs/architecture/infrastructure.md` — deployment, CI/CD, Docker
 - `docs/architecture/environments.md` — port mappings, CORS, Azure config
 - `docs/architecture/testing-strategy.md` — BE/FE/E2E testing approach
+- `docs/architecture/metabase.md` — where reporting lives, `metabase_ro` grant model, `flexi_raw` ops (read before touching a reporting schema or a Metabase grant)
 
 **Development**
 - `docs/development/setup.md` — commands, auth setup, Docker, code formatting
