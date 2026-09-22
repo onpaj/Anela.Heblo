@@ -3,6 +3,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import React from "react";
 import {
   usePricingBaselineQuery,
+  usePricingSummaryQuery,
   useRecalculatePricingMutation,
   usePricingScenariosQuery,
   usePricingScenarioQuery,
@@ -10,6 +11,7 @@ import {
   useDeletePricingScenarioMutation,
 } from "../usePricingSimulator";
 import { getAuthenticatedApiClient } from "../../client";
+import { ProductType } from "../../generated/api-client";
 
 jest.mock("../../client", () => ({
   ...jest.requireActual("../../client"),
@@ -195,5 +197,121 @@ describe("useDeletePricingScenarioMutation", () => {
     expect(invalidateSpy).toHaveBeenCalledWith(
       expect.objectContaining({ queryKey: ["pricing-scenarios"] }),
     );
+  });
+});
+
+// The summary band can cover more products than the grid does, so the scopes that
+// reach past the name/code filter are served by a second calculation that drops that
+// filter but keeps the product type and every override the user has made.
+describe("usePricingSummaryQuery", () => {
+  const mockRecalculate = () => {
+    const recalculate = jest
+      .fn()
+      .mockResolvedValue({ rows: [], totals: {}, overrides: [] });
+    (getAuthenticatedApiClient as jest.Mock).mockResolvedValue({
+      pricingSimulator_Recalculate: recalculate,
+    });
+    return recalculate;
+  };
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it("asks for the whole catalogue, carrying the overrides but no name or code filter", async () => {
+    // Arrange
+    const recalculate = mockRecalculate();
+
+    // Act
+    const { result } = renderHook(
+      () =>
+        usePricingSummaryQuery(
+          [{ productCode: "DEO", price: 120 }],
+          undefined,
+          true,
+        ),
+      { wrapper: createWrapper() },
+    );
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+
+    // Assert: the request carries the override and nothing that would narrow the
+    // population -- narrowing it is exactly what this second call exists to undo.
+    // The generated request class declares every field, so what matters is what it
+    // puts on the wire: toJSON is the shape the server actually receives.
+    const request = recalculate.mock.calls[0][0].toJSON();
+    expect(request.productType).toBeUndefined();
+    expect(request.productCode).toBeUndefined();
+    expect(request.productName).toBeUndefined();
+    expect(request.overrides).toEqual([
+      expect.objectContaining({ productCode: "DEO", price: 120 }),
+    ]);
+  });
+
+  it("keeps the product type, which narrows the catalogue rather than the view", async () => {
+    // Arrange
+    const recalculate = mockRecalculate();
+
+    // Act
+    const { result } = renderHook(
+      () => usePricingSummaryQuery([], ProductType.Product, true),
+      { wrapper: createWrapper() },
+    );
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+
+    // Assert
+    expect(recalculate.mock.calls[0][0].productType).toBe(ProductType.Product);
+  });
+
+  it("prices nothing while the scope does not need it", async () => {
+    // Arrange: the call covers the whole catalogue, so it must not run for a scope
+    // the grid's own result already answers.
+    const recalculate = mockRecalculate();
+
+    // Act
+    renderHook(() => usePricingSummaryQuery([], undefined, false), {
+      wrapper: createWrapper(),
+    });
+    await waitFor(() => expect(recalculate).not.toHaveBeenCalled());
+
+    // Assert
+    expect(recalculate).not.toHaveBeenCalled();
+  });
+
+  it("re-prices when the overrides change", async () => {
+    // Arrange
+    const recalculate = mockRecalculate();
+
+    // Act
+    const { rerender } = renderHook(
+      ({ overrides }) => usePricingSummaryQuery(overrides, undefined, true),
+      {
+        wrapper: createWrapper(),
+        initialProps: { overrides: [{ productCode: "DEO", price: 120 }] },
+      },
+    );
+    await waitFor(() => expect(recalculate).toHaveBeenCalledTimes(1));
+    rerender({ overrides: [{ productCode: "DEO", price: 130 }] });
+
+    // Assert
+    await waitFor(() => expect(recalculate).toHaveBeenCalledTimes(2));
+  });
+
+  it("does not re-price when the same overrides come back in a new array", async () => {
+    // Arrange: a re-render alone must not cost a whole-catalogue calculation.
+    const recalculate = mockRecalculate();
+
+    // Act
+    const { rerender } = renderHook(
+      ({ overrides }) => usePricingSummaryQuery(overrides, undefined, true),
+      {
+        wrapper: createWrapper(),
+        initialProps: { overrides: [{ productCode: "DEO", price: 120 }] },
+      },
+    );
+    await waitFor(() => expect(recalculate).toHaveBeenCalledTimes(1));
+    rerender({ overrides: [{ productCode: "DEO", price: 120 }] });
+
+    // Assert
+    await waitFor(() => expect(recalculate).toHaveBeenCalledTimes(1));
   });
 });
