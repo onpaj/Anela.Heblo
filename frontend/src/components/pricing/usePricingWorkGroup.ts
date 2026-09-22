@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import {
   applyWorkGroupSelection,
   loadWorkGroupProductCodes,
@@ -22,21 +22,31 @@ export const usePricingWorkGroup = (): PricingWorkGroup => {
   const [pinnedProductCodes, setPinnedProductCodes] = useState<string[]>(
     loadWorkGroupProductCodes,
   );
+  // Every change is resolved against this ref rather than against the value this
+  // render closed over, so two changes landing before the next render still compose.
+  // Reading the render value would make the second overwrite the first -- and because
+  // the loser is also what gets written to localStorage, the lost change would
+  // survive a reload.
+  const latestProductCodesRef = useRef(pinnedProductCodes);
 
-  const persist = (next: string[]) => {
-    setPinnedProductCodes(next);
+  const persist = (computeNext: (current: readonly string[]) => string[]) => {
+    const next = computeNext(latestProductCodesRef.current);
+    latestProductCodesRef.current = next;
     saveWorkGroupProductCodes(next);
+    setPinnedProductCodes(next);
   };
 
   const toggleProductCode = (productCode: string) => {
-    persist(toggleWorkGroupProductCode(pinnedProductCodes, productCode));
+    persist((current) => toggleWorkGroupProductCode(current, productCode));
   };
 
   const setProductCodes = (
     productCodes: readonly string[],
     shouldPin: boolean,
   ) => {
-    persist(applyWorkGroupSelection(pinnedProductCodes, productCodes, shouldPin));
+    persist((current) =>
+      applyWorkGroupSelection(current, productCodes, shouldPin),
+    );
   };
 
   const pinnedSet = useMemo(
