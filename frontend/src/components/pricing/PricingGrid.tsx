@@ -47,6 +47,9 @@ const WORK_GROUP_TITLE = "Přidat produkt do pracovní skupiny";
 
 // An edited row is in the work group through its own edit, so its checkbox has
 // nothing to toggle -- unpicking it would be undone by the edit on the next render.
+// It is aria-disabled rather than disabled: a disabled checkbox cannot be focused, so
+// the one explanation of why it will not move never reached a keyboard or screen
+// reader user, who was left with a tick that simply ignored them.
 const WORK_GROUP_EDITED_TITLE =
   "Produkt má úpravu, v pracovní skupině je automaticky";
 
@@ -234,12 +237,23 @@ const PricingGrid: React.FC<PricingGridProps> = ({
                     <input
                       type="checkbox"
                       data-testid={`pricing-row-workgroup-${productCode}`}
-                      aria-label={`Pracovní skupina: ${productCode}`}
+                      aria-label={
+                        isEdited
+                          ? `Pracovní skupina: ${productCode}. ${WORK_GROUP_EDITED_TITLE}`
+                          : `Pracovní skupina: ${productCode}`
+                      }
                       title={isEdited ? WORK_GROUP_EDITED_TITLE : WORK_GROUP_TITLE}
                       checked={isInWorkGroup(row, workGroupProductCodes)}
-                      disabled={isEdited}
-                      onChange={() => onToggleWorkGroup(productCode)}
-                      className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 disabled:opacity-60 dark:border-graphite-border dark:bg-graphite-surface-2"
+                      aria-disabled={isEdited}
+                      onChange={() => {
+                        if (isEdited) {
+                          return;
+                        }
+                        onToggleWorkGroup(productCode);
+                      }}
+                      className={`h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 dark:border-graphite-border dark:bg-graphite-surface-2 ${
+                        isEdited ? "cursor-not-allowed opacity-60" : ""
+                      }`}
                     />
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-graphite-text">

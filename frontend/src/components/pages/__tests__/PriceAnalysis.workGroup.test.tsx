@@ -356,10 +356,22 @@ describe("PriceAnalysis work group", () => {
 
     // Act
     const editedCheckbox = screen.getByTestId("pricing-row-workgroup-PROD001");
+    fireEvent.click(editedCheckbox);
 
-    // Assert
+    // Assert: aria-disabled rather than disabled, so the tick stays reachable and
+    // can say why it will not move -- a disabled checkbox takes no focus and the
+    // explanation never reaches a keyboard or screen reader user.
     expect(editedCheckbox).toBeChecked();
-    expect(editedCheckbox).toBeDisabled();
+    expect(editedCheckbox).toHaveAttribute("aria-disabled", "true");
+    expect(editedCheckbox).not.toBeDisabled();
+    expect(editedCheckbox).toHaveAccessibleName(
+      /v pracovní skupině je automaticky/,
+    );
+    expect(
+      JSON.parse(
+        window.localStorage.getItem(PRICING_WORK_GROUP_STORAGE_KEY) ?? "[]",
+      ),
+    ).toEqual([]);
   });
 
   it("summarizes every product by default", () => {
