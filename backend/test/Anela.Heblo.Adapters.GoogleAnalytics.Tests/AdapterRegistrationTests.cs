@@ -55,9 +55,10 @@ public class AdapterRegistrationTests
     [Fact]
     public void registers_the_job_under_both_the_interface_and_its_concrete_type()
     {
-        // RecurringJobDiscoveryService enumerates IRecurringJob to find the job; Hangfire then
-        // resolves the CONCRETE type through GetRequiredService when the schedule fires. Miss the
-        // second registration and the job shows up in Hangfire and throws the first time it runs.
+        // Discovery needs the interface. The concrete binding is not required for Hangfire to
+        // activate the job, but it mirrors what AddRecurringJobs() does for Application-assembly
+        // jobs, so the container owns the instance's lifetime. Pinned so it is not dropped as
+        // "redundant".
         var services = Register(Configured());
 
         services.Should().Contain(d => d.ServiceType == typeof(IRecurringJob) && d.ImplementationType == typeof(Ga4SyncJob));

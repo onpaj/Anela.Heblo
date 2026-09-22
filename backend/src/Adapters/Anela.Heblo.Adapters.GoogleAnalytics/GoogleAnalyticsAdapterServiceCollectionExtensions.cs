@@ -53,11 +53,12 @@ public static class GoogleAnalyticsAdapterServiceCollectionExtensions
 
         services.AddScoped<IGa4SyncService, Ga4SyncService>();
 
-        // Both registrations are required. IRecurringJob is what RecurringJobDiscoveryService
-        // enumerates to find the job and its cron; the concrete type is what Hangfire resolves,
-        // because RecurringJob.AddOrUpdate<TJob> stores TJob and AspNetCoreJobActivator then does
-        // GetRequiredService(typeof(Ga4SyncJob)) at execution time. Register only the interface
-        // and the job appears in Hangfire correctly and then throws the first time it fires.
+        // IRecurringJob is what RecurringJobDiscoveryService enumerates to find the job and its
+        // cron. The concrete registration is not strictly required — Hangfire activates
+        // adapter-hosted jobs that only bind the interface (MetaAdsInvoiceImportJob and
+        // GoogleAdsInvoiceImportJob both run in production that way) — but it matches what
+        // AddRecurringJobs() does for every job it auto-discovers from the Application assembly,
+        // so the job is resolved and disposed by the container rather than constructed ad hoc.
         services.AddScoped<IRecurringJob, Ga4SyncJob>();
         services.AddScoped<Ga4SyncJob>();
 
