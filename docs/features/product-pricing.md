@@ -203,7 +203,11 @@ to surface exactly that. Only when at least one write landed is the scoped repor
 second time — Flexi stores the base price and reconstructs the with-VAT figure on read, so
 what the ERP now holds is read back rather than predicted from what was sent. That re-read is
 itself allowed to fail: prices are already written by then, so a failure logs and falls back to
-the pre-write rows rather than reporting a sync that did work as one that did nothing.
+the pre-write rows rather than reporting a sync that did work as one that did nothing. That
+tolerance is keyed on the *request's* token, not on the exception type — an HTTP client giving
+up throws `TaskCanceledException`, an `OperationCanceledException`, while the request's own
+token stays uncancelled, so filtering on the type would let a read timeout report the whole
+run as a failure.
 
 ### Two things that stop a run early
 
@@ -216,6 +220,13 @@ operator whose prices did reach Flexi.
   `remainingCount`, the status line says `Zbývá N řádků — spusťte synchronizaci znovu`, and a
   second run picks them up. Runs converge rather than repeat work: a row already written comes
   back `InAgreement` and is skipped.
+
+  The budget also caps each *individual* write, via a `CancellationTokenSource` linked to the
+  request's token and armed with whatever is left of it. Gating only between rows would bound
+  nothing: Flexi's client waits five minutes for a reply (`FlexiProductPriceWriter`), so one
+  slow PUT sails past the gateway on its own. A write cut off this way counts as `failedCount`
+  rather than `remainingCount` — unlike a row never attempted, it may well have landed, and only
+  the next run's comparison settles which.
 - **Cancellation** (`RequestAborted` — the operator navigating away, or the connection
   dropping) aborts the run and propagates. It is explicitly *not* treated as this row's write
   failing: the PUT may well have landed, and recording a false failure would put a lie in the

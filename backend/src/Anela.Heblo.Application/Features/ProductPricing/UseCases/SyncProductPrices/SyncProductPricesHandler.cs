@@ -108,10 +108,29 @@ public class SyncProductPricesHandler : IRequestHandler<SyncProductPricesRequest
     {
         var erpPrices = await _erpReader.GetAllAsync(forceReload: false, ct);
 
-        return erpPrices
+        var byCode = erpPrices
             .Where(p => !string.IsNullOrWhiteSpace(p.ProductCode))
             .GroupBy(p => p.ProductCode, StringComparer.OrdinalIgnoreCase)
-            .ToDictionary(g => g.Key, g => g.First().ErpItemId, StringComparer.OrdinalIgnoreCase);
+            .ToList();
+
+        // Taking the first of several ceník rows for one code is the same choice
+        // SetProductPriceHandler makes, but a sync makes it for up to a whole selection at once
+        // rather than for one product under an operator's eye. Query 41's row shape is not
+        // something we can inspect, so say so once per run if it ever turns out to hold more
+        // than one price list: a silent wrong-ceník write across a bulk sync is not something to
+        // discover from the prices alone.
+        var ambiguous = byCode.Where(g => g.Count() > 1).ToList();
+        if (ambiguous.Count > 0)
+        {
+            _logger.LogWarning(
+                "Price sync found {AmbiguousCount} product codes with more than one Flexi ceník row " +
+                "(for example {ExampleCodes}); each was written to the first row seen, which may not " +
+                "be the intended price list.",
+                ambiguous.Count,
+                string.Join(", ", ambiguous.Take(5).Select(g => g.Key)));
+        }
+
+        return byCode.ToDictionary(g => g.Key, g => g.First().ErpItemId, StringComparer.OrdinalIgnoreCase);
     }
 
     private async Task<(int Written, int Failed, int Remaining)> WriteAllAsync(
@@ -127,7 +146,8 @@ public class SyncProductPricesHandler : IRequestHandler<SyncProductPricesRequest
         {
             ct.ThrowIfCancellationRequested();
 
-            if (_timeProvider.GetUtcNow() >= deadline)
+            var budgetLeft = deadline - _timeProvider.GetUtcNow();
+            if (budgetLeft <= TimeSpan.Zero)
             {
                 _logger.LogWarning(
                     "Price sync stopped after {Written} writes: the {Budget} write budget is spent. " +
@@ -136,7 +156,7 @@ public class SyncProductPricesHandler : IRequestHandler<SyncProductPricesRequest
                 break;
             }
 
-            if (await TryWriteAsync(row, erpItemIds, ct))
+            if (await TryWriteAsync(row, erpItemIds, budgetLeft, ct))
             {
                 written++;
             }
@@ -171,7 +191,15 @@ public class SyncProductPricesHandler : IRequestHandler<SyncProductPricesRequest
         {
             return (await _comparisonService.BuildScopedReportAsync(productCodes, ct)).Rows;
         }
-        catch (Exception ex) when (ex is not OperationCanceledException)
+        // Only the caller walking away propagates. Testing the exception type instead would let a
+        // read timeout through: an HttpClient that gives up throws TaskCanceledException — an
+        // OperationCanceledException — with this request's own token never cancelled, and the
+        // writes above would then be reported as a total failure.
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (Exception ex)
         {
             _logger.LogError(
                 ex, "Price sync wrote {Written} prices into Flexi but could not re-read the " +
@@ -180,8 +208,19 @@ public class SyncProductPricesHandler : IRequestHandler<SyncProductPricesRequest
         }
     }
 
+    /// <summary>
+    /// <paramref name="budgetLeft"/> caps this one write, not just the loop around it. Flexi's
+    /// own client waits five minutes for a reply, so checking the budget only between rows
+    /// bounds nothing: a single slow write sails past the gateway's 230 s and hands the operator
+    /// a failed request for prices that did reach the ERP — the very outcome the budget exists
+    /// to prevent. Abandoning the call instead keeps the run inside its budget and lets the
+    /// response account for the row.
+    /// </summary>
     private async Task<bool> TryWriteAsync(
-        PriceDivergenceRowDto row, IReadOnlyDictionary<string, int> erpItemIds, CancellationToken ct)
+        PriceDivergenceRowDto row,
+        IReadOnlyDictionary<string, int> erpItemIds,
+        TimeSpan budgetLeft,
+        CancellationToken ct)
     {
         var code = row.ProductCode ?? string.Empty;
         var priceWithVat = row.ShoptetPriceWithVat!.Value;
@@ -197,9 +236,12 @@ public class SyncProductPricesHandler : IRequestHandler<SyncProductPricesRequest
             return false;
         }
 
+        using var budgetCts = new CancellationTokenSource(budgetLeft, _timeProvider);
+        using var writeCts = CancellationTokenSource.CreateLinkedTokenSource(ct, budgetCts.Token);
+
         try
         {
-            await _erpWriter.SetPriceWithVatAsync(erpItemId, priceWithVat, ct);
+            await _erpWriter.SetPriceWithVatAsync(erpItemId, priceWithVat, writeCts.Token);
         }
         // A cancelled request is the operator (or the gateway) walking away: it must abort the
         // run rather than be recorded as this row's write having failed — the write may well
@@ -208,6 +250,19 @@ public class SyncProductPricesHandler : IRequestHandler<SyncProductPricesRequest
         catch (OperationCanceledException) when (ct.IsCancellationRequested)
         {
             throw;
+        }
+        // The budget ran out mid-write. Counted as failed rather than remaining, because unlike
+        // a row never attempted this one may well have landed in the ERP — abandoning the call
+        // says nothing about what Flexi did with it. The next run's comparison settles it: if it
+        // landed the row comes back in agreement and is skipped, and if it did not it is retried.
+        catch (OperationCanceledException) when (budgetCts.IsCancellationRequested)
+        {
+            _logger.LogWarning(
+                "Price sync abandoned the write of {ProductCode} into Flexi ceník {ErpItemId}: the " +
+                "write budget ran out while it was in flight. Whether it landed is unknown; the " +
+                "next sync will settle it.", code, erpItemId);
+            await AppendAsync(row, flexiSucceeded: false, "Write budget spent while the write was in flight; outcome unknown.");
+            return false;
         }
         catch (Exception ex)
         {

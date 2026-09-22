@@ -286,6 +286,50 @@ public class SyncProductPricesHandlerTests
         _erpWriter.Verify(w => w.SetPriceWithVatAsync(43, It.IsAny<decimal>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
+    // Flexi's own client waits five minutes for a reply, so a budget checked only between rows
+    // bounds nothing: one slow write would outlive the gateway on its own. The assertion is on
+    // the token the writer was handed — that it is the budget's, not the request's, is the whole
+    // point, and asserting only on the counts passes just as well when it is not.
+    [Fact]
+    public async Task cuts_off_a_single_write_that_outlives_the_budget_instead_of_waiting_for_flexi()
+    {
+        // Arrange
+        SetUpReports(ReportOf(
+            Row("A", PriceDivergenceKind.FlexiDiffers),
+            Row("B", PriceDivergenceKind.FlexiDiffers)));
+        SetUpErpItems(("A", 42), ("B", 43));
+
+        var tokenGivenToTheWriter = CancellationToken.None;
+        _erpWriter
+            .Setup(w => w.SetPriceWithVatAsync(42, It.IsAny<decimal>(), It.IsAny<CancellationToken>()))
+            .Returns((int _, decimal _, CancellationToken token) =>
+            {
+                // Flexi goes quiet: the budget runs out while this call is still in flight.
+                tokenGivenToTheWriter = token;
+                _timeProvider.Advance(TimeSpan.FromMinutes(3));
+
+                return token.IsCancellationRequested
+                    ? Task.FromCanceled(token)
+                    : Task.CompletedTask;
+            });
+
+        // Act
+        var response = await HandleAsync("A", "B");
+
+        // Assert
+        tokenGivenToTheWriter.IsCancellationRequested
+            .Should().BeTrue("the budget has to cut off a write that is still in flight");
+        response.WrittenCount.Should().Be(0);
+        // Failed, not remaining: the call was made, so whether it landed is unknown.
+        response.FailedCount.Should().Be(1);
+        response.RemainingCount.Should().Be(1);
+        _changeLog.Verify(
+            l => l.AppendAsync(
+                It.Is<ProductPriceChangeLog>(log => log.ProductCode == "A" && !log.FlexiSucceeded),
+                It.IsAny<CancellationToken>()),
+            Times.Once);
+    }
+
     [Fact]
     public async Task leaves_nothing_remaining_when_the_whole_selection_was_attempted()
     {
@@ -432,5 +476,60 @@ public class SyncProductPricesHandlerTests
 
         // Assert
         received.Should().BeEquivalentTo(new[] { "A", "B" });
+    }
+
+    // A read that times out throws TaskCanceledException — an OperationCanceledException — while
+    // this request's own token stays uncancelled. Filtering the re-read's catch on the exception
+    // TYPE would let that through and report a sync whose prices did reach the ERP as a failure.
+    [Fact]
+    public async Task reports_the_writes_when_the_confirming_re_read_times_out_flexi_side()
+    {
+        // Arrange
+        var index = 0;
+        _comparisonService
+            .Setup(s => s.BuildScopedReportAsync(
+                It.IsAny<IReadOnlyCollection<string>>(), It.IsAny<CancellationToken>()))
+            .Returns(() => index++ == 0
+                ? Task.FromResult(ReportOf(Row("A", PriceDivergenceKind.FlexiDiffers)))
+                : Task.FromException<PriceComparisonResult>(
+                    new TaskCanceledException("Flexi timed out", new TimeoutException())));
+        SetUpErpItems(("A", 42));
+
+        // Act
+        var response = await HandleAsync("A");
+
+        // Assert
+        response.WrittenCount.Should().Be(1);
+        response.Rows.Should().ContainSingle(r => r.ProductCode == "A");
+    }
+
+    // The counterpart: the operator (or the gateway) actually walking away must still abort.
+    [Fact]
+    public async Task propagates_cancellation_when_the_caller_walks_away_during_the_re_read()
+    {
+        // Arrange
+        using var cts = new CancellationTokenSource();
+        var index = 0;
+        _comparisonService
+            .Setup(s => s.BuildScopedReportAsync(
+                It.IsAny<IReadOnlyCollection<string>>(), It.IsAny<CancellationToken>()))
+            .Returns(() =>
+            {
+                if (index++ == 0)
+                {
+                    return Task.FromResult(ReportOf(Row("A", PriceDivergenceKind.FlexiDiffers)));
+                }
+
+                cts.Cancel();
+                return Task.FromCanceled<PriceComparisonResult>(cts.Token);
+            });
+        SetUpErpItems(("A", 42));
+
+        // Act
+        var act = async () => await CreateHandler().Handle(
+            new SyncProductPricesRequest { ProductCodes = new List<string> { "A" } }, cts.Token);
+
+        // Assert
+        await act.Should().ThrowAsync<OperationCanceledException>();
     }
 }
