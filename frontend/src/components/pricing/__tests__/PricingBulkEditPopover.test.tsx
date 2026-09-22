@@ -93,9 +93,27 @@ describe("PricingBulkEditPopover", () => {
     // Act
     fireEvent.click(screen.getByTestId("pricing-bulk-editor-apply"));
 
-    // Assert
+    // Assert: the editor stays open and says why, rather than reading as a dead button.
     expect(onApply).not.toHaveBeenCalled();
     expect(onClose).not.toHaveBeenCalled();
+    expect(screen.getByTestId("pricing-bulk-editor-error")).toHaveTextContent(
+      /Zadejte změnu v procentech/,
+    );
+    expect(amountInput()).toHaveAttribute("aria-invalid", "true");
+  });
+
+  it("clears the complaint as soon as the draft is corrected", () => {
+    // Arrange
+    renderPopover();
+    fireEvent.click(screen.getByTestId("pricing-bulk-editor-apply"));
+
+    // Act
+    fireEvent.change(amountInput(), { target: { value: "5" } });
+
+    // Assert
+    expect(
+      screen.queryByTestId("pricing-bulk-editor-error"),
+    ).not.toBeInTheDocument();
   });
 
   it("applies on Enter", () => {

@@ -24,9 +24,15 @@ const FIELD_LABELS: Record<PricingBulkEditField, string> = {
   [PricingEditField.ForecastQuantity]: "Prognóza ks",
 };
 
+// Czech needs three forms, and the boundary between the "2-4" and the "5 and up"
+// form is a grammatical rule, not a tunable.
+const PLURAL_MANY_THRESHOLD = 5;
+
+const INVALID_PERCENT_MESSAGE = "Zadejte změnu v procentech, například 5 nebo -10.";
+
 const productCountLabel = (count: number): string => {
   if (count === 1) return "1 produkt";
-  if (count < 5) return `${count} produkty`;
+  if (count > 1 && count < PLURAL_MANY_THRESHOLD) return `${count} produkty`;
   return `${count} produktů`;
 };
 
@@ -44,6 +50,7 @@ const PricingBulkEditPopover: React.FC<PricingBulkEditPopoverProps> = ({
   onClose,
 }) => {
   const [percentDraft, setPercentDraft] = useState("");
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const amountInputRef = useRef<HTMLInputElement>(null);
 
@@ -77,9 +84,12 @@ const PricingBulkEditPopover: React.FC<PricingBulkEditPopoverProps> = ({
 
   const apply = () => {
     const percent = Number(percentDraft.trim().replace(",", "."));
-    // An empty or unparseable draft keeps the editor open so the user can fix it.
+    // An empty or unparseable draft keeps the editor open so the user can fix it --
+    // and says so, because a button that silently does nothing reads as broken.
     // Zero is a perfectly good input: it puts the column back to its original values.
     if (percentDraft.trim() === "" || !Number.isFinite(percent)) {
+      setErrorMessage(INVALID_PERCENT_MESSAGE);
+      amountInputRef.current?.focus();
       return;
     }
     onApply({ field, percent });
@@ -122,12 +132,26 @@ const PricingBulkEditPopover: React.FC<PricingBulkEditPopoverProps> = ({
             data-testid="pricing-bulk-editor-amount"
             aria-label="Změna v procentech"
             value={percentDraft}
-            onChange={(e) => setPercentDraft(e.target.value)}
+            aria-invalid={errorMessage !== null}
+            onChange={(e) => {
+              setPercentDraft(e.target.value);
+              setErrorMessage(null);
+            }}
             className="w-24 rounded border border-gray-300 bg-white px-2 py-1 text-right text-sm text-gray-900 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 dark:border-graphite-border dark:bg-graphite-surface-2 dark:text-graphite-text"
           />
           <span className="text-xs text-gray-500 dark:text-graphite-muted">%</span>
         </div>
       </label>
+
+      {errorMessage && (
+        <div
+          role="alert"
+          data-testid="pricing-bulk-editor-error"
+          className="mb-2 text-xs text-red-600 dark:text-red-400"
+        >
+          {errorMessage}
+        </div>
+      )}
 
       <div className="mb-3 text-xs text-gray-400 dark:text-graphite-faint">
         Počítá se z původní hodnoty produktu. 0 % vrátí sloupec na původní hodnoty.
