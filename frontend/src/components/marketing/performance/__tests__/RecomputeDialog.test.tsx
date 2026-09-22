@@ -27,8 +27,26 @@ describe('RecomputeDialog', () => {
     renderDialog(true, jest.fn())
 
     // Assert
-    expect(screen.getByLabelText('Od (RRRR-MM)')).toHaveValue('2026-02')
-    expect(screen.getByLabelText('Do (RRRR-MM)')).toHaveValue('2026-03')
+    expect(screen.getByLabelText('Od')).toHaveValue('2026-02')
+    expect(screen.getByLabelText('Do')).toHaveValue('2026-03')
+
+    jest.useRealTimers()
+  })
+
+  it('renders month pickers bounded to the range the server accepts', () => {
+    // Arrange - the server rejects months before 2020-01 or after the current one.
+    jest.useFakeTimers().setSystemTime(new Date(2026, 8, 22, 12, 0, 0))
+
+    // Act
+    renderDialog(true, jest.fn())
+
+    // Assert
+    for (const label of ['Od', 'Do']) {
+      const field = screen.getByLabelText(label)
+      expect(field).toHaveAttribute('type', 'month')
+      expect(field).toHaveAttribute('min', '2020-01')
+      expect(field).toHaveAttribute('max', '2026-09')
+    }
 
     jest.useRealTimers()
   })
@@ -50,15 +68,15 @@ describe('RecomputeDialog', () => {
 
   it('submits the typed range', () => {
     renderDialog(true, jest.fn())
-    fireEvent.change(screen.getByLabelText('Od (RRRR-MM)'), { target: { value: '2023-01' } })
-    fireEvent.change(screen.getByLabelText('Do (RRRR-MM)'), { target: { value: '2024-12' } })
+    fireEvent.change(screen.getByLabelText('Od'), { target: { value: '2023-01' } })
+    fireEvent.change(screen.getByLabelText('Do'), { target: { value: '2024-12' } })
     fireEvent.click(screen.getByRole('button', { name: 'Spustit přepočet' }))
     expect(mockMutate).toHaveBeenCalledWith({ from: '2023-01', to: '2024-12' })
   })
 
   it('blocks submit on a malformed month', () => {
     renderDialog(true, jest.fn())
-    fireEvent.change(screen.getByLabelText('Od (RRRR-MM)'), { target: { value: '2023-1' } })
+    fireEvent.change(screen.getByLabelText('Od'), { target: { value: '2023-1' } })
     fireEvent.click(screen.getByRole('button', { name: 'Spustit přepočet' }))
     expect(mockMutate).not.toHaveBeenCalled()
     expect(screen.getByText('Zadejte měsíce ve formátu RRRR-MM.')).toBeInTheDocument()

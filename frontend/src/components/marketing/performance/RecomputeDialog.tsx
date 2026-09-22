@@ -9,9 +9,14 @@ interface RecomputeDialogProps {
   onClose: () => void
 }
 
+// Safari renders <input type="month"> as a plain text field, so a hand-typed value still
+// reaches submit() and the format check below stays load-bearing there.
 const MONTH_PATTERN = /^\d{4}-(0[1-9]|1[0-2])$/
 const FORMAT_ERROR = 'Zadejte měsíce ve formátu RRRR-MM.'
 const ORDER_ERROR = 'Počáteční měsíc nesmí být po koncovém.'
+
+// Mirrors MonthRangeParser.EarliestSupportedMonth on the server, which rejects anything earlier.
+const EARLIEST_MONTH = '2020-01'
 
 const input = 'mt-1 block w-full rounded-md border-gray-300 dark:border-graphite-border dark:bg-graphite-surface-2 dark:text-graphite-text shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm'
 
@@ -31,6 +36,8 @@ export const RecomputeDialog: React.FC<RecomputeDialogProps> = ({ isOpen, onClos
   const [to, setTo] = useState(defaultTo)
   const [validationError, setValidationError] = useState<string | null>(null)
   const mutation = useRecomputeMarketingPerformanceMutation()
+  // The server rejects any month after the current one, so the pickers stop there too.
+  const maxMonth = defaultTo()
 
   // Depend on reset (stable across renders) rather than the mutation object,
   // whose identity changes every render and would re-subscribe the listener.
@@ -98,12 +105,30 @@ export const RecomputeDialog: React.FC<RecomputeDialogProps> = ({ isOpen, onClos
             <form onSubmit={(e) => { e.preventDefault(); submit() }} className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label htmlFor="recompute-from" className="block text-sm font-medium text-gray-700 dark:text-graphite-muted">Od (RRRR-MM)</label>
-                  <input id="recompute-from" className={input} value={from} onChange={(e) => setFrom(e.target.value.trim())} placeholder="2023-01" />
+                  <label htmlFor="recompute-from" className="block text-sm font-medium text-gray-700 dark:text-graphite-muted">Od</label>
+                  <input
+                    id="recompute-from"
+                    type="month"
+                    min={EARLIEST_MONTH}
+                    max={maxMonth}
+                    className={input}
+                    value={from}
+                    onChange={(e) => setFrom(e.target.value.trim())}
+                    placeholder="2023-01"
+                  />
                 </div>
                 <div>
-                  <label htmlFor="recompute-to" className="block text-sm font-medium text-gray-700 dark:text-graphite-muted">Do (RRRR-MM)</label>
-                  <input id="recompute-to" className={input} value={to} onChange={(e) => setTo(e.target.value.trim())} placeholder="2026-09" />
+                  <label htmlFor="recompute-to" className="block text-sm font-medium text-gray-700 dark:text-graphite-muted">Do</label>
+                  <input
+                    id="recompute-to"
+                    type="month"
+                    min={EARLIEST_MONTH}
+                    max={maxMonth}
+                    className={input}
+                    value={to}
+                    onChange={(e) => setTo(e.target.value.trim())}
+                    placeholder="2026-09"
+                  />
                 </div>
               </div>
               {(validationError || serverError) && (
