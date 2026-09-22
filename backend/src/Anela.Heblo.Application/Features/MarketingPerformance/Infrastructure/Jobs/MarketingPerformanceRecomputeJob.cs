@@ -36,6 +36,15 @@ public class MarketingPerformanceRecomputeJob
             var result = await _service.RecomputeRangeAsync(from, to, cancellationToken);
             _logger.LogInformation("Marketing performance recompute {From}..{To}: {Ok}/{Total} months fully refreshed",
                 from, to, result.Months.Count(m => m.RevenueOk && m.CostsOk), result.Months.Count);
+
+            // RefreshMonthAsync swallows per-month failures so one bad month cannot abort a backfill.
+            // Without this check a run where every month failed still completes normally, and Hangfire
+            // reports the job as Succeeded while nothing was written.
+            if (result.AllFailed)
+            {
+                throw new InvalidOperationException(
+                    $"Marketing performance recompute {from}..{to}: every month failed: {string.Join(" | ", result.Months.Select(m => $"{m.Month}: {m.Error}"))}");
+            }
         }
         finally
         {

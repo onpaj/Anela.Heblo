@@ -89,4 +89,17 @@ public class MarketingPerformanceRefreshJobTests
         _service.VerifyAll();
         _guard.IsRunning.Should().BeFalse();
     }
+
+    [Fact]
+    public async Task RecomputeJob_AllMonthsFailed_Throws_SoHangfireDoesNotReportSuccess()
+    {
+        _service.Setup(s => s.RecomputeRangeAsync(It.IsAny<YearMonth>(), It.IsAny<YearMonth>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new RefreshRunResult { Months = { new MonthRefreshOutcome { Month = new YearMonth(2026, 9), Error = "Save: step failed (DbUpdateException)" } } });
+        var job = new MarketingPerformanceRecomputeJob(_service.Object, _guard, NullLogger<MarketingPerformanceRecomputeJob>.Instance);
+
+        var act = () => job.RunAsync(2026, 8, 2026, 9, CancellationToken.None);
+
+        await act.Should().ThrowAsync<InvalidOperationException>().WithMessage("*every month*");
+        _guard.IsRunning.Should().BeFalse();
+    }
 }

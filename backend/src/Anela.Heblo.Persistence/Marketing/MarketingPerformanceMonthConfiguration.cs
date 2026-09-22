@@ -19,8 +19,11 @@ public class MarketingPerformanceMonthConfiguration : IEntityTypeConfiguration<M
         builder.Property(e => e.WholesaleRevenueWithVat).IsRequired().HasColumnType("numeric(18,2)");
         builder.Property(e => e.SkippedEurInvoiceCount).IsRequired();
         builder.Property(e => e.IsLocked).IsRequired().HasDefaultValue(false);
-        builder.Property(e => e.RevenueComputedAt).HasColumnType("timestamp with time zone");
-        builder.Property(e => e.CostsComputedAt).HasColumnType("timestamp with time zone");
+        // "timestamp without time zone", like every other DateTime in this model: ApplicationDbContext
+        // applies a global value converter that rewrites every DateTime to Kind=Unspecified on write,
+        // which Npgsql refuses to send to a timestamptz column.
+        builder.Property(e => e.RevenueComputedAt).HasColumnType("timestamp without time zone");
+        builder.Property(e => e.CostsComputedAt).HasColumnType("timestamp without time zone");
         builder.Property(e => e.LastError).HasColumnType("text");
         builder.Ignore(e => e.Key);
         builder.HasIndex(e => new { e.Year, e.Month }).IsUnique().HasDatabaseName("IX_MarketingPerformanceMonths_Year_Month");
