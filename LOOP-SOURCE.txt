@@ -1,0 +1,446 @@
+Full text of 'IT podpora Loop odstavec.pdf' (all 43 rows), extracted with
+pdftotext -layout on 2026-09-22. Original: ~/Downloads/IT podpora Loop odstavec.pdf
+Czech diacritics are mangled by the extractor in places; the original PDF is authoritative.
+========================================================================
+ Add icon         Add cover
+
+
+
+IT podpora Loop odstavec
+
+
+
+            Položka                               Priorita      Oblast     Stav         Spolupráce   Brzda ?
+
+
+                                   ě
+       Celkové náklady v daném m síci           Vysoké       Provozní    ✏️ Ke           Andrea ​
+       (mzdy+přijaté faktury kromě                                       zpracování
+                                                                                      AB
+                                                                                         Pajgrt
+
+       materiálu+spotřebovaný materiál bez
+                                                                                         Bartoš
+  1
+                                                                                         ová
+       buvola) - srovnání s předchozími
+       obdobími
+
+
+       Počet zabalených/odeslaných (není        Vysoké       Provozní    ✏️ Ke           Andrea ​
+                                     ě
+       totéž) balíku za den, týden, m síc.                               zpracování
+                                                                                      AB
+                                                                                         Pajgrt
+                                                                                         Bartoš
+  2    navázat na docházku, zajímavý údaj by
+                                                                                         ová
+       byl i počet zabalených/odeslaných ks -
+                      ř
+       srovnání s p edchozím obdobím
+                              ů
+    Počet vyrobených kus - ideáln po          ě       Vysoké   Provozní   ✏️ Ke           Andrea ​
+                          ě
+    dnech, týdnech, m sících. Ideální by                                  zpracování
+                                                                                       AB
+                                                                                          Pajgrt
+
+    bylo na to navázat docházku a vid t           ě                                       Bartoš
+                                                                                          ová
+3                         ě
+    počet lidí ve výrob - srovnání s
+     ř
+    p edchozími obdobími (vhodné by
+    bylo navázat to na jednotku
+    náročnosti)
+
+
+    Graf trendu - jak si vedou automatizace           Vysoké   Mailingy   ✏️ Ke             Bára  ​
+                                                                          zpracování   BK   Kocmá
+                                                                                            nková
+4
+                                                                                            Eliška ​
+                                                                                       ES   Stoffer
+                                                                                            ová
+
+
+    Automatizace - mailingy - pro každou              Vysoké   Mailingy   ✏️ Ke             Bára  ​
+                          ť
+    automatizaci zvláš a pak ud lat       ě                               zpracování   BK   Kocmá
+                                                                                            nková
+    vyhodnocení účinnosti - kolik
+5
+    rozesláno / OR / UR / konverze atd. ...
+                          ě
+    viz newslettery m síc a srovnání s
+     ř
+    p edchozím m sícemě
+    Newslettery - na kolik lidí rozesláno /           Vysoké   Mailingy   ✏️ Ke             Bára  ​
+
+6
+    Konverze / OR / UR ... absolutn i míra    ě                           zpracování   BK   Kocmá
+
+    aktuálního newsletteru / m síc a  ě                                                     nková
+
+                  ř
+    srovnání s p edchozím m sícem ě
+          ě       ě
+     Pom r návšt v vs počet dokončených           Vysoké   Marketing   ✏️ Ke
+7
+                  ě
+     objednávek / m síc + srovnání s                                   zpracování
+
+     předchozím měsícem i stejným
+     obdobím vloni
+
+
+              ě
+     Nejčast ji zobrazovaná 1. stránka - tj.      Vysoké   Marketing   ✏️ Ke
+8
+      ř
+     p es co k nám nejvíc chodí / m síc + ě                            zpracování
+
+                  ř               ě
+     srovnání s p edchozím m sícem i
+     stejným obdobím vloni
+
+
+          ě
+     Návšt vnost stránek - celkov / m síc ě ě     Vysoké   Marketing   ✏️ Ke
+9                     ř
+     + srovnání s p edchozím m sícem iě                                zpracování
+
+     stejným obdobím vloni
+
+
+                      ě
+     TOP 3 nejčast jší kombinace                  Vysoké
+                              ů
+     nakupovaných produkt - bez rozlišení
+10   / stálé vs nové zákaznice / eshop MO /
+      ě                 ř
+     m síc + srovnání s p edchozím
+     měsícem i stejným obdobím vloni
+
+
+                          ě
+     TOP 3 nejprodávan jší produkty stálé         Vysoké   Marketing   ✏️ Ke
+11
+     vs nové zákaznice / eshop MO / m síc     ě                        zpracování
+
+                      ř
+     + srovnání s p edchozím m sícem iě
+     stejným obdobím vloni
+                             ě
+     TOP 15 nejprodávan jších produkt v          ů   Vysoké    Marketing   ✏️ Ke
+     dané velikosti za poslední m síc /  ě                                 zpracování
+
+12               ř               ě
+     srovnání s p edchozím m sícem i
+     stejným obdobím vloni - eshop MO /
+     prodejna
+
+
+                         ě
+     Porovnání mezim síční celkové bilance            ř
+                                                     St ední   Provozní    ✏️ Ke           Andrea ​
+     dopravy (kolik je nám fakturováno X                                   zpracování      Pajgrt
+                                                                                        AB
+13
+     kolik my fakturujeme zákazník m) -      ů                                             Bartoš
+                                                                                           ová
+     kolik je rozdíl a zda do + nebo -
+
+
+                     ů
+     Srovnání počt zásilek s dopravou                 ř
+                                                     St ední   Provozní    ✏️ Ke           Andrea ​
+     dotovanou X zásilek s dopravou                                        zpracování      Pajgrt
+14                                                                                      AB
+                                                                                           Bartoš
+     hrazenou zákazníkem
+                                                                                           ová
+
+
+     Počty objednávek podle druh         ů            ř
+                                                     St ední   Provozní    ✏️ Ke           Andrea ​
+     dopravy a/nebo platby, srovnání s                                     zpracování      Pajgrt
+15                                                                                      AB
+
+      ř
+     p edchozími obdobími
+                                                                                           Bartoš
+                                                                                           ová
+
+
+     Obrat bez DPH a dopravy nové                     ř
+                                                     St ední   Marketing   ✏️ Ke
+     zákaznice vs stálé zákaznice / eshop                                  zpracování
+16
+             ě                       ř
+     MO / m síc + srovnání s p edchozím
+       ě
+     m sícem i stejným obdobím vloni
+       ů
+     Pr m. výše nákupního košíku nové         ř
+                                             St ední   Marketing        ✏️ Ke
+     zákaznice vs stálé zákaznice                                       zpracování
+
+17   (opakovaný nákup) / eshop MO /
+      ě                 ř
+     m síc + srovnání s p edchozím
+     měsícem i stejným obdobím vloni
+
+
+     Počet opakovaných nákup eshop MOů        ř
+                                             St ední   Marketing        ✏️ Ke
+18         ě                     ř
+     / m síc + srovnání s p edchozím                                    zpracování
+
+      ě
+     m sícem i stejným obdobím vloni
+
+
+                             ů
+     Počet nových nákup - nové zákaznice      ř
+                                             St ední   Marketing        ✏️ Ke
+19
+                 ě
+     eshop MO / m síc + srovnání s                                      zpracování
+
+     předchozím měsícem i stejným
+     obdobím vloni
+
+
+                         ě           ů
+     grafické znázorn ní trend - jak si       ř
+                                             St ední   Online reklamy   ✏️ Ke             Eliška ​
+20   vedeme                                                             zpracování   ES   Stoffer
+                                                                                          ová
+
+
+     Cena za nákup eshop MO - m síc /    ě    ř
+                                             St ední   Online reklamy   ✏️ Ke             Eliška ​   výpočet
+21               ř
+     srovnání s p edchozím m sícem i ě                                  zpracování   ES   Stoffer
+                                                                                          ová
+     stejným obdobím vloni
+
+
+                             ě
+     ROAS eshop MO - m síc / srovnání s       ř
+                                             St ední   Online reklamy   ✏️ Ke             Eliška ​   výpočet
+22    ř              ě
+     p edchozím m sícem i stejným                                       zpracování   ES   Stoffer
+                                                                                          ová
+     obdobím vloni
+     PNO kompletní - veškeré výdaje (viz          ř
+                                                 St ední   Marketing        ✏️ Ke             Eliška ​   výpočet
+23                           ř
+     dále) a celkové p íjmy ze všech nákup   ů                              zpracování   ES   Stoffer
+                                                                                              ová
+     (MO / VO; online / offline)
+
+
+                                 ě
+     PNO eshop MO - m síc / srovnání s            ř
+                                                 St ední   Online reklamy   ✏️ Ke             Eliška ​   výpočet
+24    ř                  ě
+     p edchozím m sícem i stejným                                           zpracování   ES   Stoffer
+                                                                                              ová
+     obdobím vloni
+
+
+       ů ě
+     Pr m rná hodnota jedné objednávky            ř
+                                                 St ední   Online reklamy   ✏️ Ke             Eliška ​   výpočet
+
+25
+                     ě
+     prodejna - m síc /srovnání s                                           zpracování   ES   Stoffer
+
+      ř                  ě
+     p edchozím m sícem i stejným
+                                                                                              ová
+
+     obdobím vloni
+
+
+       ů ě
+     Pr m rná hodnota jedné objednávky            ř
+                                                 St ední   Online reklamy   ✏️ Ke             Eliška ​   výpočet
+
+26
+                 ě
+     eshop MO - m síc /srovnání s                                           zpracování   ES   Stoffer
+
+     předchozím měsícem i stejným
+                                                                                              ová
+
+     obdobím vloni
+
+
+     Počet objednávek eshop MO - m síc / ě        ř
+                                                 St ední   Online reklamy   ✏️ Ke             Eliška ​   ze Shoptetu
+27               ř
+     srovnání s p edchozím m sícem i ě                                      zpracování   ES   Stoffer
+                                                                                              ová
+     stejným obdobím vloni
+
+
+                                 ě
+     Obrat eshop VO - m síc / srovnání s          ř
+                                                 St ední   Online reklamy   ✏️ Ke             Eliška ​   ze Shoptetu
+28    ř                  ě
+     p edchozím m sícem i stejným                                           zpracování   ES   Stoffer
+                                                                                              ová
+     obdobím vloni
+                               ě
+     Obrat prodejna MO - m síc / srovnání    ř
+                                            St ední   Online reklamy   ✏️ Ke             Eliška ​   ze Shoptetu
+29        ř            ě
+     s p edchozím m sícem i stejným                                    zpracování   ES   Stoffer
+                                                                                         ová
+     obdobím vloni
+
+
+                           ě
+     Obrat eshop MO - m síc / srovnání s     ř
+                                            St ední   Online reklamy   ✏️ Ke             Eliška ​   ze Shoptetu
+30    ř            ě
+     p edchozím m sícem i stejným                                      zpracování   ES   Stoffer
+                                                                                         ová
+     obdobím vloni
+
+
+                       ě
+     Výdaje S-klik - m síc / srovnání s      ř
+                                            St ední   Online reklamy   ✏️ Ke             Eliška ​   z údaj vů
+31    ř            ě
+     p edchozím m sícem i stejným                                      zpracování   ES   Stoffer
+                                                                                         ová
+                                                                                                    profilu na S-
+     obdobím vloni                                                                                  kliku
+
+
+                               ě
+     Výdaje Google Ads - m síc / srovnání    ř
+                                            St ední   Online reklamy   ✏️ Ke             Eliška ​   z faktury, která
+          ř            ě
+     s p edchozím m sícem i stejným                                    zpracování   ES   Stoffer    je vždy na
+                                                                                         ová
+     obdobím vloni                                                                                  začátku dalšího
+32                                                                                                    ě
+                                                                                                    m síce k
+                                                                                                    dispozici na
+                                                                                                    GoogleAds -
+                                                                                                    stahuje Bára
+
+
+                       ě
+     Výdaje Meta - m síc / srovnání s        ř
+                                            St ední   Online reklamy   ✏️ Ke             Eliška ​   z faktur, které
+      ř            ě
+     p edchozím m sícem i stejným                                      zpracování   ES   Stoffer
+                                                                                         ová
+                                                                                                    jsou k dispozici
+     obdobím vloni                                                                                  v Business
+33
+                                                                                                    Manageru -
+                                                                                                    každý m síc ě
+                                                                                                    stahuje Bára
+     Vratky, dobírky, odstoupení.... vše do     Nízké   Provozní    ✏️ Ke           Andrea ​
+
+34
+                        ě
+     jednoho ale ideáln odlišit. máme to                            zpracování
+                                                                                 AB
+                                                                                    Pajgrt
+
+                            ř
+     kde vzít? srovnání s p edchozími
+                                                                                    Bartoš
+                                                                                    ová
+     obdobími
+
+
+     Mzdové náklady - srovnání s                Nízké   Provozní    ✏️ Ke           Andrea ​
+
+35    ř
+     p edchozími obdobími - pozor                                   zpracování
+                                                                                 AB
+                                                                                    Pajgrt
+
+          ř
+     neve ejné
+                                                                                    Bartoš
+                                                                                    ová
+
+
+     Obrat krámku Dobruška - srovnání s         Nízké   Provozní    ✏️ Ke           Andrea ​
+
+36    ř
+     p edchozími obdobími                                           zpracování
+                                                                                 AB
+                                                                                    Pajgrt
+                                                                                    Bartoš
+                                                                                    ová
+
+
+                   ě        ů ě
+     TOP 5 nejčten jších článk / m síc +        Nízké   Marketing   ✏️ Ke           Linda ​
+37   srovnání s předchozím měsícem i                                zpracování
+                                                                                 LR
+                                                                                    Rosenb
+                                                                                    aumov
+     stejným obdobím vloni
+                                                                                    á
+
+
+     Kompletní výdaje marketing - úpln      ě   Nízké   Marketing   ✏️ Ke             Eliška ​
+38   vše, co jde na marketing, tj. včetně                           zpracování   ES   Stoffer
+
+     barteru - za daný rok dote   ď                                                   ová
+
+
+
+     Kompletní výdaje na reklamy - online i     Nízké   Marketing   ✏️ Ke             Eliška ​
+39   offline - za daný rok dote ď                                   zpracování   ES   Stoffer
+                                                                                      ová
+     Výdaje - barter / dárky - za daný rok   Nízké   Marketing           ✏️ Ke             Eliška ​
+     dote   ď                                                            zpracování   ES   Stoffer
+                                                                                           ová
+40                                                                                       Andrea ​
+                                                                                         Pajgrt
+                                                                                      AB
+                                                                                         Bartoš
+                                                                                         ová
+
+
+     Výdaje marketing - grafika              Nízké   Marketing           ✏️ Ke             Eliška ​
+                                  ď
+     (externista)- za daný rok dote                                      zpracování   ES   Stoffer
+                                                                                           ová
+41
+                                                                                           Petra   ​
+                                                                                      PZ   Zilvaro
+                                                                                           vá
+
+
+     Výdaje marketing - focení - za daný     Nízké   Marketing           ✏️ Ke             Eliška ​
+     rok dote   ď                                                        zpracování   ES   Stoffer
+                                                                                           ová
+42
+                                                                                           Petra   ​
+                                                                                      PZ   Zilvaro
+                                                                                           vá
+
+
+     Výdaje PR - spolupráce s médii - za     Nízké   Offline reklamy -   ✏️ Ke             Eliška ​
+     daný rok dote  ď                                PR                  zpracování   ES   Stoffer
+                                                                                           ová
+43
+                                                                                           Petra   ​
+                                                                                      PZ   Zilvaro
+                                                                                           vá
+

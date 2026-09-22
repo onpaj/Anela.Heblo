@@ -3,6 +3,7 @@ using System;
 using Anela.Heblo.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Anela.Heblo.Persistence.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260922124454_AddEcomailIngestTables")]
+    partial class AddEcomailIngestTables
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -510,6 +513,11 @@ namespace Anela.Heblo.Persistence.Migrations
                     b.Property<bool>("IsEnabled")
                         .HasColumnType("boolean");
 
+                    b.Property<string>("JobName")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
                     b.Property<DateTime>("LastModifiedAt")
                         .HasColumnType("timestamp without time zone");
 
@@ -527,6 +535,10 @@ namespace Anela.Heblo.Persistence.Migrations
 
                     b.HasIndex("IsEnabled")
                         .HasDatabaseName("IX_RecurringJobConfigurations_IsEnabled");
+
+                    b.HasIndex("JobName")
+                        .IsUnique()
+                        .HasDatabaseName("IX_RecurringJobConfigurations_JobName");
 
                     b.ToTable("RecurringJobConfigurations", "public");
                 });
