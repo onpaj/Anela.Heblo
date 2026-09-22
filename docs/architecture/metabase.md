@@ -81,6 +81,14 @@ on the month-grain `v_*` read views only. Two reasons:
 
 Granted to `metabase_ro`:
 
+All four are **materialized**. As plain views each Metabase card cost a full double scan of
+`ledger_entry` — measured at 18.6 s and 118k buffer reads on 2026-09-22, because `account_name`
+detoasts `raw_payload` per posting — which defeated the whole point of having a read layer. The
+same queries now return in ~36 ms. They are refreshed at the end of every successful nightly sync
+(`FlexiAnalyticsSyncService.RefreshReadModelsAsync`); a sync with any failed entity deliberately
+skips the refresh, so Metabase keeps the last complete snapshot rather than publishing a
+half-synced month.
+
 | View | Backlog item | Grain |
 |---|---|---|
 | `v_cost_monthly_total` | #1 | month × cost centre |
@@ -104,7 +112,11 @@ file carries the evidence for each:
   groups by **account** instead, which is the dimension Anela actually books marketing against.
   Graphics, photography, PR and influencers all share account `518030 Marketing-Externiste`, so
   within that account only the supplier tells them apart — which is why supplier is in the grain.
-- **#1 as literally stated** — see *Payroll* below.
+- **#1 as literally stated** — see *Payroll* below. Note also that the cost views bound accounts to
+  classes **50–56**, not all of class 5: group 58 (*změna stavu zásob vlastní činnosti*,
+  *aktivace*) is a contra-cost normally credited, and group 59 is income tax. On the current load
+  they are −3 334 877.67 Kč and +1 847 600.00 Kč, so including them both understated the total and
+  made it unreconcilable against the accountant's figures.
 
 The grants are defined in
 [`backend/src/Anela.Heblo.Persistence.Analytics/Sql/flexi_raw_read_views.sql`](../../backend/src/Anela.Heblo.Persistence.Analytics/Sql/flexi_raw_read_views.sql),
@@ -120,8 +132,24 @@ Backlog item #35 is marked *"pozor neveřejné"* in the source document. `flexi_
 exists and is **granted to no role**. Every general cost view excludes payroll: class 52 accounts
 plus the balance-sheet accounts that settle them (331, 333, 335, 336, 342).
 
-Because of that exclusion, `v_cost_monthly_total` is *operating cost excluding personnel*, not the
-literal total. **#1 (total monthly costs) and #35 (payroll is confidential) cannot both be served to
+"Payroll" here is wider than class 52. It also covers the balance-sheet accounts that settle it
+(331, 333, 335, 336, 342) and, less obviously, **`548003` *Ostatní provozní náklady – zákonné
+pojištění*** — the employer's statutory liability insurance, which is a fixed permille of the wage
+base. On the 2020–2026 load it is 86 442.00 Kč against a 521 base of ~20.6M, i.e. exactly the
+4.2‰ statutory rate, so publishing it hands over the gross wage bill by division. It is a class-5
+account and would otherwise pass straight through every general cost view.
+
+> **The boundary this file describes is not the whole boundary.** `metabase_ro`'s legacy blanket
+> grant on `Heblo_V3.public` (96 tables, predating this work) already exposes
+> `OvertimeEmployees` and `OvertimeMonthlyStatements` — per-person monthly hours including
+> `DoctorHours`, joinable on `PersonId`. No koruna amounts, so the literal claim about payroll
+> *figures* holds, but anyone reading "Metabase cannot see payroll" as "Metabase cannot see
+> sensitive HR data" would be wrong, and medical-absence hours per named person is arguably the
+> more sensitive datum under GDPR. Out of scope for the ingestion work that produced this
+> document, but it belongs in the same decision.
+
+Because of the payroll exclusion, `v_cost_monthly_total` is *operating cost excluding personnel*,
+not the literal total. **#1 (total monthly costs) and #35 (payroll is confidential) cannot both be served to
 the same Metabase audience on OSS.** That is a decision for Andrea, not a technical gap.
 
 If payroll access is wanted later, the shape is:

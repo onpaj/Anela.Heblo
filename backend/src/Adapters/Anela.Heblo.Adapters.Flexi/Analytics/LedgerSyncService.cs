@@ -54,6 +54,10 @@ public sealed class LedgerSyncService : IEntitySyncService, ILedgerBackfillServi
 
         var totalFetched = 0;
         var totalUpserted = 0;
+        // Highest LastModified actually written, so a run that cannot finish still makes forward
+        // progress. Safe because GetChangedSinceAsync orders by lastUpdate ascending -- see the
+        // failure branch for the evidence and for how tied timestamps are handled.
+        DateTimeOffset? ingestedUpTo = null;
 
         try
         {
@@ -72,6 +76,12 @@ public sealed class LedgerSyncService : IEntitySyncService, ILedgerBackfillServi
                 totalFetched += batch.Count;
                 totalUpserted += upserted;
                 skip += batch.Count;
+
+                // `>` against a null nullable is always false, so the first batch needs the
+                // explicit HasValue check or the high-water mark never leaves null.
+                var batchHighWater = entries.Max(e => e.LastModified);
+                if (batchHighWater.HasValue && (!ingestedUpTo.HasValue || batchHighWater > ingestedUpTo))
+                    ingestedUpTo = batchHighWater;
 
                 if (batch.Count < _options.BatchSize)
                     break;
@@ -99,6 +109,13 @@ public sealed class LedgerSyncService : IEntitySyncService, ILedgerBackfillServi
             state.LastRunRowsFetched = totalFetched;
             state.LastRunRowsUpserted = totalUpserted;
 
+            // Cancellation is the expected end of an oversized run (the job cancels after
+            // RequestTimeoutSeconds), so this is precisely the case the high-water mark exists for.
+            if (ingestedUpTo.HasValue && (!state.Watermark.HasValue || ingestedUpTo > state.Watermark))
+            {
+                state.Watermark = ingestedUpTo;
+            }
+
             _logger.LogWarning(
                 "FlexiAnalyticsSync.EntityCancelled {EntityName} rowsUpserted={RowsUpserted}",
                 EntityName, totalUpserted);
@@ -114,19 +131,29 @@ public sealed class LedgerSyncService : IEntitySyncService, ILedgerBackfillServi
             state.LastRunRowsUpserted = totalUpserted;
             state.LastErrorMessage = ex.Message.Length > 2000 ? ex.Message[..2000] : ex.Message;
 
-            // The watermark deliberately does NOT advance on failure. It is tempting to keep the
-            // highest LastModified already written so a huge delta converges over several runs,
-            // but that is only sound if the pages arrive ordered by lastUpdate. They do not:
-            // SDK 0.1.141 sends `(lastUpdate gte "...")` with no `order` parameter, and this
-            // entity has no stable implicit sort key either (ucetni-denik is a view, so every
-            // row reports id = -1). With unordered pages, a late-modified row on page 1 would
-            // push the watermark past un-ingested older rows on the failed pages, which the next
-            // delta would then never request again -- silent, permanent loss reported as OK.
-            // Large historical loads are BackfillAsync's job; it walks bounded month windows.
+            // Keep the high-water mark so a delta too large to finish in one run converges over
+            // several instead of restarting from InitialBackfillFrom every night.
+            //
+            // This IS sound, because the pages arrive ordered. LedgerRequest's (DateTime since)
+            // constructor sets Order = "lastUpdate" alongside the filter -- in the 0.1.141 binary
+            // that is `IL_0078: ldstr "lastUpdate"` / `call set_Order`, and in source it is the
+            // line right after `Filter = ...` in LedgerRequest.cs. So every row with a lastUpdate
+            // below the high-water mark has already been ingested.
+            //
+            // Ties are the real hazard -- FlexiBee bulk-touches the ledger, and 288k rows share
+            // lastUpdate = 2025-06-03 -- but `order` has no tiebreaker, so a tie group may split
+            // across a page boundary. The -1h overlap on the next run covers that: re-querying
+            // from (mark - 1h) re-fetches the entire tie group, and the upsert is idempotent.
+            //
+            // Never moves the watermark backwards.
+            if (ingestedUpTo.HasValue && (!state.Watermark.HasValue || ingestedUpTo > state.Watermark))
+            {
+                state.Watermark = ingestedUpTo;
+            }
 
             _logger.LogError(ex,
-                "FlexiAnalyticsSync.EntityFailed {EntityName} rowsUpserted={RowsUpserted}",
-                EntityName, totalUpserted);
+                "FlexiAnalyticsSync.EntityFailed {EntityName} rowsUpserted={RowsUpserted} ingestedUpTo={IngestedUpTo}",
+                EntityName, totalUpserted, ingestedUpTo);
         }
 
         await _watermarkRepo.SaveAsync(state, ct);

@@ -193,16 +193,22 @@ public class LedgerSyncServiceTests
     }
 
     [Fact]
-    public async Task SyncAsync_WhenAPageFailsPartWayThrough_DoesNotAdvanceTheWatermark()
+    public async Task SyncAsync_WhenAPageFailsPartWayThrough_KeepsTheProgressItAlreadyMade()
     {
-        // This test used to assert the opposite: that the run kept the highest LastModified it had
-        // written, so a delta too large for one run would converge instead of restarting. That
-        // optimisation was only sound if pages arrive ordered by lastUpdate, and they do not --
-        // SDK 0.1.141 sends `(lastUpdate gte "...")` with no `order` parameter, and ucetni-denik is
-        // a view whose rows all report id = -1, so there is no stable implicit sort either. With
-        // unordered pages a late-modified row on the page that landed would push the watermark past
-        // older rows on the pages that did not, and the next delta would never ask for them again.
-        // Bounded historical loads are BackfillAsync's job.
+        // The 2020-onward delta is ~680k rows against a 1-vCore server and the job cancels after
+        // RequestTimeoutSeconds. Without a high-water mark, a run that cannot finish leaves the
+        // watermark untouched, the next run restarts from InitialBackfillFrom, and the sync never
+        // converges.
+        //
+        // Keeping the mark is sound because the pages are ordered: LedgerRequest(DateTime since)
+        // sets Order = "lastUpdate" alongside the filter — asserted directly in
+        // LedgerRequestOrderingTests, against both the property and the serialised wire form, so
+        // this assumption cannot silently rot. Everything below the mark has therefore landed.
+        //
+        // Tied timestamps are the one wrinkle (FlexiBee bulk-touches the ledger — 288k rows share
+        // lastUpdate = 2025-06-03) and `order` carries no tiebreaker, so a tie group can split
+        // across a page boundary. The next run's -1h overlap re-fetches the whole group, and the
+        // upsert is idempotent.
         var client = new Mock<ILedgerClient>();
         await using var ctx = CreateInMemoryContext();
 
@@ -219,12 +225,14 @@ public class LedgerSyncServiceTests
         var result = await svc.SyncAsync();
 
         result.IsSuccess.Should().BeFalse();
-        // The rows that landed stay -- upserts are idempotent, re-reading them costs nothing.
         (await ctx.LedgerEntries.CountAsync()).Should().Be(10);
 
         var state = await ctx.SyncStates.FindAsync("ledger_entry");
         state!.LastRunStatus.Should().Be("FAILED");
-        state.Watermark.Should().BeNull();
+        // Highest LastUpdate of the page that did land: 2025-01-10 + 1h, Prague-local -> UTC.
+        var expected = TimeZoneInfo.ConvertTimeToUtc(
+            new DateTime(2025, 1, 10, 1, 0, 0, DateTimeKind.Unspecified), TimeZoneInfo.Local);
+        state.Watermark!.Value.UtcDateTime.Should().Be(expected);
         state.LastRunRowsUpserted.Should().Be(10);
     }
 

@@ -14,7 +14,11 @@
 --
 --   1. metabase_ro never sees flexi_raw.ledger_entry. It gets month-grain views only, so an
 --      ad-hoc GROUP BY in Metabase cannot scan ~680k raw rows on the single vCore that also
---      serves production Heblo.
+--      serves production Heblo. The four granted views are MATERIALIZED for exactly this reason:
+--      as plain views they still cost a full double scan of ledger_entry per Metabase card --
+--      measured at 18.6 s and 118k buffer reads on 2026-09-22 -- because account_name detoasts
+--      raw_payload for every matching posting. Materialized, a card reads a few thousand
+--      pre-aggregated rows and the scan happens once, after the nightly sync.
 --   2. metabase_ro never sees payroll. Backlog item #35 is "pozor neveřejné" and OSS Metabase
 --      has no row-level security or data sandboxing, so the boundary is a Postgres grant.
 --
@@ -38,13 +42,37 @@ BEGIN;
 -- the grant state after this script is exactly what this script says, never an accumulation.
 -- Dependents before the spine.
 -- -----------------------------------------------------------------------------
-DROP VIEW IF EXISTS flexi_raw.v_payroll_monthly;
-DROP VIEW IF EXISTS flexi_raw.v_shop_revenue_monthly;  -- removed 2026-09-22, see the #36 note below
-DROP VIEW IF EXISTS flexi_raw.v_ad_spend_monthly;
-DROP VIEW IF EXISTS flexi_raw.v_marketing_spend_monthly;
-DROP VIEW IF EXISTS flexi_raw.v_cost_monthly_by_account;
-DROP VIEW IF EXISTS flexi_raw.v_cost_monthly_total;
-DROP VIEW IF EXISTS flexi_raw.v_posting;
+-- Dropped by relkind rather than by name, because these objects changed shape: the four granted
+-- ones were plain views before they became materialized. DROP VIEW refuses a matview and DROP
+-- MATERIALIZED VIEW refuses a view, so a fixed spelling aborts the whole transaction on exactly
+-- the upgrade this file is meant to perform. Dependents before the spine.
+DO $$
+DECLARE
+    obj  text;
+    kind "char";
+BEGIN
+    FOREACH obj IN ARRAY ARRAY[
+        'v_payroll_monthly',
+        'v_shop_revenue_monthly',   -- removed 2026-09-22, see the #36 note below
+        'v_ad_spend_monthly',
+        'v_marketing_spend_monthly',
+        'v_cost_monthly_by_account',
+        'v_cost_monthly_total',
+        'v_posting'
+    ]
+    LOOP
+        SELECT c.relkind INTO kind
+        FROM pg_class c
+        JOIN pg_namespace n ON n.oid = c.relnamespace
+        WHERE n.nspname = 'flexi_raw' AND c.relname = obj;
+
+        IF kind = 'm' THEN
+            EXECUTE format('DROP MATERIALIZED VIEW flexi_raw.%I', obj);
+        ELSIF kind = 'v' THEN
+            EXECUTE format('DROP VIEW flexi_raw.%I', obj);
+        END IF;
+    END LOOP;
+END $$;
 
 -- -----------------------------------------------------------------------------
 -- v_posting — internal spine. Deliberately NOT granted: it is row-grain.
@@ -91,7 +119,13 @@ SELECT
      OR s.account LIKE '333%'
      OR s.account LIKE '335%'
      OR s.account LIKE '336%'
-     OR s.account LIKE '342%') AS is_payroll
+     OR s.account LIKE '342%'
+     -- 548003 "Ostatní provozní náklady - zákonné pojištění" is the employer's statutory
+     -- liability insurance, which is a fixed permille of the 521 wage base. On the 2020-2026
+     -- load it is 86 442.00 Kč against a 521 base of ~20.6M -- i.e. exactly the 4.2 permille
+     -- statutory rate, so publishing it hands over the gross wage bill by simple division.
+     -- It is class 5 and would otherwise sail through every general cost view.
+     OR s.account = '548003') AS is_payroll
 FROM sides s
 WHERE s.account IS NOT NULL;
 
@@ -104,24 +138,30 @@ COMMENT ON VIEW flexi_raw.v_posting IS
 -- NOTE: "total" here means total EXCLUDING personnel cost. #1 (total monthly costs) and #35
 -- (payroll is confidential) cannot both be served to the same audience; this view answers #1
 -- for everyone and leaves #35 to v_payroll_monthly, which is granted to nobody.
-CREATE VIEW flexi_raw.v_cost_monthly_total AS
+--
+-- Class bound is 50-56, not all of class 5. Group 58 (změna stavu zásob vlastní činnosti,
+-- aktivace) is a contra-cost that is normally credited, and group 59 is income tax -- neither is
+-- operating cost. On the 2020-2026 load they contribute -3 334 877.67 Kč and +1 847 600.00 Kč
+-- respectively, so `LIKE '5%'` both understated the total and made it unreconcilable against the
+-- accountant's figures, in opposite directions and unevenly across months.
+CREATE MATERIALIZED VIEW flexi_raw.v_cost_monthly_total AS
 SELECT
     p.month,
     p.cost_center,
     SUM(p.signed_amount)::numeric(18, 2) AS net_cost,
     count(*)                             AS posting_count
 FROM flexi_raw.v_posting p
-WHERE p.account LIKE '5%'
+WHERE p.account ~ '^5[0-6]'
   AND NOT p.is_payroll
 GROUP BY p.month, p.cost_center;
 
-COMMENT ON VIEW flexi_raw.v_cost_monthly_total IS
+COMMENT ON MATERIALIZED VIEW flexi_raw.v_cost_monthly_total IS
     'Backlog #1. Monthly class-5 cost by cost centre, EXCLUDING personnel cost (see v_payroll_monthly).';
 
 -- -----------------------------------------------------------------------------
 -- v_cost_monthly_by_account — backlog #1 drill-down and the base for #38-#43.
 -- -----------------------------------------------------------------------------
-CREATE VIEW flexi_raw.v_cost_monthly_by_account AS
+CREATE MATERIALIZED VIEW flexi_raw.v_cost_monthly_by_account AS
 SELECT
     p.month,
     p.cost_center,
@@ -130,11 +170,11 @@ SELECT
     SUM(p.signed_amount)::numeric(18, 2) AS net_cost,
     count(*)                             AS posting_count
 FROM flexi_raw.v_posting p
-WHERE p.account LIKE '5%'
+WHERE p.account ~ '^5[0-6]'
   AND NOT p.is_payroll
 GROUP BY p.month, p.cost_center, p.account;
 
-COMMENT ON VIEW flexi_raw.v_cost_monthly_by_account IS
+COMMENT ON MATERIALIZED VIEW flexi_raw.v_cost_monthly_by_account IS
     'Backlog #1 drill-down. Monthly class-5 cost by cost centre and account, excluding personnel cost.';
 
 -- -----------------------------------------------------------------------------
@@ -146,7 +186,7 @@ COMMENT ON VIEW flexi_raw.v_cost_monthly_by_account IS
 -- and that Anela actually books marketing against, is the ACCOUNT. Supplier is carried
 -- alongside because 518030 "Marketing-Externiste" pools graphics, photography, PR and
 -- influencers into one account — the supplier is the only thing that tells them apart.
-CREATE VIEW flexi_raw.v_marketing_spend_monthly AS
+CREATE MATERIALIZED VIEW flexi_raw.v_marketing_spend_monthly AS
 SELECT
     p.month,
     p.account,
@@ -176,7 +216,7 @@ WHERE p.account IN (
   AND NOT p.is_payroll
 GROUP BY p.month, p.account, p.cost_center, p.contact;
 
-COMMENT ON VIEW flexi_raw.v_marketing_spend_monthly IS
+COMMENT ON MATERIALIZED VIEW flexi_raw.v_marketing_spend_monthly IS
     'Backlog #38-#43. Monthly marketing spend by account, category and supplier. Grouped by account, not by accounting template: ucetni-denik carries no předkontace.';
 
 -- -----------------------------------------------------------------------------
@@ -201,7 +241,7 @@ COMMENT ON VIEW flexi_raw.v_marketing_spend_monthly IS
 -- (two such postings exist), which would attribute them to S-klik.
 --
 -- Verified against the full 2020-2026 load on 2026-09-22: 14 994 549.54 Kč, 2022-11 to 2026-09.
-CREATE VIEW flexi_raw.v_ad_spend_monthly AS
+CREATE MATERIALIZED VIEW flexi_raw.v_ad_spend_monthly AS
 SELECT
     p.month,
     CASE
@@ -218,11 +258,11 @@ FROM flexi_raw.v_posting p
 WHERE (p.contact LIKE 'META: %'     OR p.contact LIKE 'Meta Platform%'
     OR p.contact LIKE 'GOOGLE: %'   OR p.contact LIKE 'Google Ireland%'
     OR p.contact LIKE 'SEZNAMCZ: %' OR p.contact LIKE 'Seznam.cz,%')
-  AND p.account LIKE '5%'
+  AND p.account ~ '^5[0-6]'
   AND NOT p.is_payroll
-GROUP BY p.month, 2, p.contact, p.account;
+GROUP BY p.month, channel, p.contact, p.account;
 
-COMMENT ON VIEW flexi_raw.v_ad_spend_monthly IS
+COMMENT ON MATERIALIZED VIEW flexi_raw.v_ad_spend_monthly IS
     'Backlog #31-#33. Monthly ad spend by channel. Matched on the supplier label, not on a key: flexi_raw.contact.vatin is never populated - see the note in flexi_raw_read_views.sql.';
 
 -- -----------------------------------------------------------------------------
@@ -291,5 +331,22 @@ REVOKE ALL ON flexi_raw.accounting_template FROM metabase_ro;
 REVOKE ALL ON flexi_raw.sync_state          FROM metabase_ro;
 REVOKE ALL ON flexi_raw.v_posting           FROM metabase_ro;
 REVOKE ALL ON flexi_raw.v_payroll_monthly   FROM metabase_ro;
+
+-- =============================================================================
+-- Keeping them fresh
+-- =============================================================================
+-- CREATE MATERIALIZED VIEW above populates each one, so the data is current as of this run.
+-- Thereafter FlexiAnalyticsSyncService refreshes them at the end of every successful nightly
+-- sync (see RefreshReadModelsAsync) -- that is the only thing standing between Metabase and
+-- silently stale reports, so it is part of the sync, not a separate schedule someone must
+-- remember. To refresh by hand:
+--
+--   REFRESH MATERIALIZED VIEW flexi_raw.v_cost_monthly_total;
+--   REFRESH MATERIALIZED VIEW flexi_raw.v_cost_monthly_by_account;
+--   REFRESH MATERIALIZED VIEW flexi_raw.v_marketing_spend_monthly;
+--   REFRESH MATERIALIZED VIEW flexi_raw.v_ad_spend_monthly;
+--
+-- Plain REFRESH takes an ACCESS EXCLUSIVE lock, which is fine for views this small refreshed at
+-- 03:00. CONCURRENTLY would need a UNIQUE index on each and buys nothing here.
 
 COMMIT;
