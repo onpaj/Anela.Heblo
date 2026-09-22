@@ -15,10 +15,7 @@ namespace Anela.Heblo.Adapters.GoogleAnalytics.Sync;
 public sealed class TrafficMonthlySyncService : Ga4EntitySyncServiceBase
 {
     private static readonly string[] Dimensions = ["yearMonth"];
-    private static readonly string[] Metrics =
-    [
-        "sessions", "totalUsers", "newUsers", "screenPageViews", "engagedSessions", "userEngagementDuration",
-    ];
+    private static readonly string[] Metrics = Ga4TrafficMetrics.All;
 
     private readonly IGa4ReportClient _client;
     private readonly Ga4DbContext _dbContext;
@@ -40,8 +37,15 @@ public sealed class TrafficMonthlySyncService : Ga4EntitySyncServiceBase
 
     protected override string EntityName => "traffic_monthly";
 
-    /// <summary>Wide enough that the aligned window is always a single request — it returns one row per month.</summary>
-    protected override int ChunkDays => 4000;
+    /// <summary>
+    /// Wide enough that the aligned window is always a single request — the report returns one row
+    /// per month, so there is nothing to gain from splitting it, and splitting it mid-month would
+    /// store a partial month as though it were complete. ~11 years, comfortably beyond the
+    /// property's 2023 start.
+    /// </summary>
+    private const int WholeHistoryInDays = 4000;
+
+    protected override int ChunkDays => WholeHistoryInDays;
 
     /// <summary>
     /// Whole calendar months only. The end is left at yesterday rather than pushed to the end of
@@ -67,7 +71,7 @@ public sealed class TrafficMonthlySyncService : Ga4EntitySyncServiceBase
             ct);
 
         var syncedAt = _timeProvider.GetUtcNow();
-        var incoming = report.Rows
+        var incoming = WithoutOtherBucket(report.Rows)
             .Select(row => new TrafficMonthly
             {
                 Month = ParseYearMonth(row.DimensionValues[0]),

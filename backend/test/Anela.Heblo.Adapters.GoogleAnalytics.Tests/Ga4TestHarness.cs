@@ -2,7 +2,9 @@ using System.Globalization;
 using Anela.Heblo.Adapters.GoogleAnalytics;
 using Anela.Heblo.Adapters.GoogleAnalytics.Sync;
 using Anela.Heblo.Persistence.Ga4;
+using Anela.Heblo.Persistence.Ga4.Entities;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 
@@ -49,10 +51,27 @@ internal sealed class FakeGa4ReportClient : IGa4ReportClient
 
 internal static class Ga4TestHarness
 {
-    public static Ga4DbContext NewDbContext() =>
-        new(new DbContextOptionsBuilder<Ga4DbContext>()
-            .UseInMemoryDatabase($"ga4-{Guid.NewGuid()}")
-            .Options);
+    /// <summary>
+    /// A database name a test can open a SECOND context over. Asserting through the same context
+    /// the service used proves nothing: Ga4SyncWatermarkRepository.GetOrCreateAsync goes through
+    /// FindAsync, which returns the change tracker's own instance without touching the store, so
+    /// the assertion reads back the very object the service mutated in memory — and still passes
+    /// with persistence removed entirely.
+    /// </summary>
+    public static string NewDatabaseName() => $"ga4-{Guid.NewGuid()}";
+
+    public static Ga4DbContext NewDbContext(
+        string? databaseName = null,
+        IInterceptor? interceptor = null)
+    {
+        var builder = new DbContextOptionsBuilder<Ga4DbContext>()
+            .UseInMemoryDatabase(databaseName ?? NewDatabaseName());
+
+        if (interceptor != null)
+            builder.AddInterceptors(interceptor);
+
+        return new Ga4DbContext(builder.Options);
+    }
 
     public static Ga4SyncOptions Options(Action<Ga4SyncOptions>? configure = null)
     {
@@ -79,6 +98,40 @@ internal static class Ga4TestHarness
 
     public static Ga4Row TrafficRow(string date, string channel, long sessions) =>
         new([date, channel], [sessions.ToString(), "0", "0", "0", "0", "0"]);
+
+    public static LandingPageSyncService LandingPageSync(
+        Ga4DbContext dbContext, IGa4ReportClient client, Ga4SyncOptions options, DateTimeOffset now) =>
+        new(client,
+            new Ga4SyncWatermarkRepository(dbContext),
+            dbContext,
+            Microsoft.Extensions.Options.Options.Create(options),
+            new FixedTimeProvider(now),
+            NullLogger<LandingPageSyncService>.Instance);
+
+    public static PageSyncService PageSync(
+        Ga4DbContext dbContext, IGa4ReportClient client, Ga4SyncOptions options, DateTimeOffset now) =>
+        new(client,
+            new Ga4SyncWatermarkRepository(dbContext),
+            dbContext,
+            Microsoft.Extensions.Options.Options.Create(options),
+            new FixedTimeProvider(now),
+            NullLogger<PageSyncService>.Instance);
+
+    public static TrafficMonthlySyncService TrafficMonthlySync(
+        Ga4DbContext dbContext, IGa4ReportClient client, Ga4SyncOptions options, DateTimeOffset now) =>
+        new(client,
+            new Ga4SyncWatermarkRepository(dbContext),
+            dbContext,
+            Microsoft.Extensions.Options.Options.Create(options),
+            new FixedTimeProvider(now),
+            NullLogger<TrafficMonthlySyncService>.Instance);
+
+    /// <summary>Reads a sync_state row through a context of its own, never the one under test.</summary>
+    public static async Task<SyncState> StoredStateAsync(string databaseName, string entityName)
+    {
+        await using var verify = NewDbContext(databaseName);
+        return await verify.SyncStates.SingleAsync(x => x.EntityName == entityName);
+    }
 }
 
 internal sealed class FixedTimeProvider : TimeProvider

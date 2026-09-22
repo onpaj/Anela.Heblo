@@ -35,9 +35,24 @@ public sealed class Ga4SyncService : IGa4SyncService
         var totalFetched = 0;
         var totalUpserted = 0;
         var failedServices = 0;
+        var attempted = 0;
 
         foreach (var service in _services)
         {
+            // Stop on cancellation rather than running the remaining tables against a dead token,
+            // which produced a stack trace per table instead of one clean stop. Checked on the
+            // token rather than by exception type: Ga4SyncJob cancels on RequestTimeoutSeconds,
+            // and an HTTP TaskCanceledException from the Data API is also an
+            // OperationCanceledException, so the two are not distinguishable by type.
+            if (ct.IsCancellationRequested)
+            {
+                _logger.LogWarning(
+                    "Ga4Sync.Cancelled after {Attempted} of {Total} tables — the run timed out or the host is shutting down.",
+                    attempted, _services.Count());
+                break;
+            }
+
+            attempted++;
             var serviceName = service.GetType().Name;
 
             try

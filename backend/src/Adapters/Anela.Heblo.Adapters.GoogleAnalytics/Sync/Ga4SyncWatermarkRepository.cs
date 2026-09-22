@@ -29,4 +29,10 @@ public sealed class Ga4SyncWatermarkRepository : IGa4SyncWatermarkRepository
         _dbContext.SyncStates.Update(state);
         await _dbContext.SaveChangesAsync(ct);
     }
+
+    public async Task<SyncState> DiscardPendingChangesAsync(string entityName, CancellationToken ct = default)
+    {
+        _dbContext.ChangeTracker.Clear();
+        return await GetOrCreateAsync(entityName, ct);
+    }
 }

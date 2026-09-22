@@ -12,18 +12,26 @@ public class TrailingReprocessWindowTests
 {
     private static readonly DateTimeOffset Now = new(2026, 3, 10, 4, 10, 0, TimeSpan.Zero);
 
+    /// <summary>Writes the watermark through a context the service under test does not share.</summary>
+    private static async Task SeedWatermarkAsync(string database, DateOnly watermark)
+    {
+        await using var seed = Ga4TestHarness.NewDbContext(database);
+        var repo = new Ga4SyncWatermarkRepository(seed);
+        var state = await repo.GetOrCreateAsync("traffic_daily");
+        state.WatermarkDate = watermark;
+        await repo.SaveAsync(state);
+    }
+
     [Fact]
     public async Task re_pulls_the_trailing_window_instead_of_resuming_after_the_watermark()
     {
         // Arrange — a previous run left the watermark at yesterday.
-        var dbContext = Ga4TestHarness.NewDbContext();
+        var database = Ga4TestHarness.NewDatabaseName();
         var options = Ga4TestHarness.Options(o => o.TrailingReprocessDays = 3);
         var client = new FakeGa4ReportClient(_ => Array.Empty<Ga4Row>());
-        var repo = new Ga4SyncWatermarkRepository(dbContext);
+        await SeedWatermarkAsync(database, new DateOnly(2026, 3, 9));
 
-        var state = await repo.GetOrCreateAsync("traffic_daily");
-        state.WatermarkDate = new DateOnly(2026, 3, 9);
-        await repo.SaveAsync(state);
+        var dbContext = Ga4TestHarness.NewDbContext(database);
 
         // Act
         await Ga4TestHarness.TrafficSync(dbContext, client, options, Now).SyncAsync();
@@ -38,7 +46,8 @@ public class TrailingReprocessWindowTests
     public async Task upserts_a_revised_day_in_place_rather_than_appending_a_second_row()
     {
         // Arrange — first run sees GA4's partial figure for 8 March.
-        var dbContext = Ga4TestHarness.NewDbContext();
+        var database = Ga4TestHarness.NewDatabaseName();
+        var dbContext = Ga4TestHarness.NewDbContext(database);
         var options = Ga4TestHarness.Options(o => o.TrailingReprocessDays = 3);
 
         var sessions = 100L;
@@ -53,7 +62,8 @@ public class TrailingReprocessWindowTests
         await Ga4TestHarness.TrafficSync(dbContext, client, options, Now).SyncAsync();
 
         // Assert — one row, corrected. Not two rows, and not still 100.
-        var rows = await dbContext.TrafficDaily.ToListAsync();
+        await using var verify = Ga4TestHarness.NewDbContext(database);
+        var rows = await verify.TrafficDaily.ToListAsync();
         rows.Should().ContainSingle();
         rows[0].Sessions.Should().Be(137);
         rows[0].Date.Should().Be(new DateOnly(2026, 3, 8));
@@ -63,7 +73,8 @@ public class TrailingReprocessWindowTests
     public async Task removes_a_row_that_the_revised_report_no_longer_returns()
     {
         // Arrange — a channel that GA4 later reattributes away must not linger and inflate totals.
-        var dbContext = Ga4TestHarness.NewDbContext();
+        var database = Ga4TestHarness.NewDatabaseName();
+        var dbContext = Ga4TestHarness.NewDbContext(database);
         var options = Ga4TestHarness.Options(o => o.TrailingReprocessDays = 3);
 
         var rows = new List<Ga4Row>
@@ -81,7 +92,8 @@ public class TrailingReprocessWindowTests
         await Ga4TestHarness.TrafficSync(dbContext, client, options, Now).SyncAsync();
 
         // Assert
-        var stored = await dbContext.TrafficDaily.ToListAsync();
+        await using var verify = Ga4TestHarness.NewDbContext(database);
+        var stored = await verify.TrafficDaily.ToListAsync();
         stored.Should().ContainSingle();
         stored[0].ChannelGroup.Should().Be("Organic Search");
         stored[0].Sessions.Should().Be(140);
@@ -103,18 +115,16 @@ public class TrailingReprocessWindowTests
     [Fact]
     public async Task never_rewinds_past_the_configured_backfill_start()
     {
-        var dbContext = Ga4TestHarness.NewDbContext();
+        var database = Ga4TestHarness.NewDatabaseName();
         var options = Ga4TestHarness.Options(o =>
         {
             o.BackfillFrom = "2026-03-08";
             o.TrailingReprocessDays = 30;
         });
         var client = new FakeGa4ReportClient(_ => Array.Empty<Ga4Row>());
-        var repo = new Ga4SyncWatermarkRepository(dbContext);
+        await SeedWatermarkAsync(database, new DateOnly(2026, 3, 9));
 
-        var state = await repo.GetOrCreateAsync("traffic_daily");
-        state.WatermarkDate = new DateOnly(2026, 3, 9);
-        await repo.SaveAsync(state);
+        var dbContext = Ga4TestHarness.NewDbContext(database);
 
         await Ga4TestHarness.TrafficSync(dbContext, client, options, Now).SyncAsync();
 

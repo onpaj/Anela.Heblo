@@ -55,7 +55,7 @@ public sealed class PageSyncService : Ga4EntitySyncServiceBase
 
         // pageTitle is in the report only so the ranking is readable; the same path can carry
         // several titles over time, so the rows collapse to the path and keep the busiest title.
-        var incoming = report.Rows
+        var incoming = WithoutOtherBucket(report.Rows)
             .Select(row => new
             {
                 Date = Ga4ValueParser.ToDate(row.DimensionValues[0]),

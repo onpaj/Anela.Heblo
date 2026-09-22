@@ -35,7 +35,8 @@ public class BackfillChunkingTests
     public async Task advances_the_watermark_after_each_chunk_so_an_interrupted_backfill_resumes()
     {
         // Arrange — the third chunk blows up, as a multi-year backfill eventually will.
-        var dbContext = Ga4TestHarness.NewDbContext();
+        var database = Ga4TestHarness.NewDatabaseName();
+        var dbContext = Ga4TestHarness.NewDbContext(database);
         var options = Ga4TestHarness.Options(o =>
         {
             o.BackfillFrom = "2026-01-01";
@@ -54,7 +55,7 @@ public class BackfillChunkingTests
 
         // Assert — the failure is reported, but the two good chunks are not thrown away.
         result.IsSuccess.Should().BeFalse();
-        var state = await new Ga4SyncWatermarkRepository(dbContext).GetOrCreateAsync("traffic_daily");
+        var state = await Ga4TestHarness.StoredStateAsync(database, "traffic_daily");
         state.LastRunStatus.Should().Be("FAILED");
         state.LastErrorMessage.Should().Contain("GA4 said no");
         state.WatermarkDate.Should().Be(
@@ -65,7 +66,8 @@ public class BackfillChunkingTests
     [Fact]
     public async Task caps_landing_pages_to_the_top_n_of_each_day_separately()
     {
-        var dbContext = Ga4TestHarness.NewDbContext();
+        var database = Ga4TestHarness.NewDatabaseName();
+        var dbContext = Ga4TestHarness.NewDbContext(database);
         var options = Ga4TestHarness.Options(o =>
         {
             o.BackfillFrom = "2026-03-08";
@@ -80,23 +82,16 @@ public class BackfillChunkingTests
             new Ga4Row(["20260309", "/d"], ["1", "0"]),
         });
 
-        var sync = new LandingPageSyncService(
-            client,
-            new Ga4SyncWatermarkRepository(dbContext),
-            dbContext,
-            Microsoft.Extensions.Options.Options.Create(options),
-            new FixedTimeProvider(Now),
-            Microsoft.Extensions.Logging.Abstractions.NullLogger<LandingPageSyncService>.Instance);
+        await Ga4TestHarness.LandingPageSync(dbContext, client, options, Now).SyncAsync();
 
-        await sync.SyncAsync();
-
-        var stored = dbContext.LandingPageDaily.ToList();
+        await using var verify = Ga4TestHarness.NewDbContext(database);
+        var stored = verify.LandingPageDaily.ToList();
         stored.Where(x => x.Date == new DateOnly(2026, 3, 8))
               .Select(x => x.LandingPage)
               .Should().BeEquivalentTo(["/b", "/c"], "the two busiest of that day, not of the window");
         stored.Should().Contain(x => x.LandingPage == "/d", "a quiet day keeps its own rows");
 
-        var state = await new Ga4SyncWatermarkRepository(dbContext).GetOrCreateAsync("landing_page_daily");
+        var state = await Ga4TestHarness.StoredStateAsync(database, "landing_page_daily");
         state.TopNPerDay.Should().Be(2, "the cap in force is recorded so a reader can tell truncated days from complete ones");
     }
 

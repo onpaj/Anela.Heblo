@@ -47,15 +47,19 @@ WITH monthly AS (
         m.screen_page_views          AS page_views,
         m.engaged_sessions,
         m.user_engagement_seconds,
-        d.days_with_data,
-        d.expected_days
+        COALESCE(d.days_with_data, 0) AS days_with_data,
+        -- Derived from the month itself, never from the LEFT JOIN: the six tables have
+        -- independent watermarks, so traffic_total_daily can lag or fail while
+        -- traffic_monthly has a row. Reading expected_days out of the subquery made both
+        -- sides NULL for such a month, and NULL IS DISTINCT FROM NULL is false, so the
+        -- month reported itself complete.
+        EXTRACT(DAY FROM (m.month + INTERVAL '1 month - 1 day'))::int AS expected_days
     FROM ga4_agg.traffic_monthly m
     LEFT JOIN (
         SELECT date_trunc('month', date)::date AS month,
-               COUNT(*)                        AS days_with_data,
-               EXTRACT(DAY FROM (date_trunc('month', date) + INTERVAL '1 month - 1 day'))::int AS expected_days
+               COUNT(*)                        AS days_with_data
         FROM ga4_agg.traffic_total_daily
-        GROUP BY 1, 3
+        GROUP BY 1
     ) d ON d.month = m.month
 )
 SELECT
@@ -132,7 +136,7 @@ LEFT JOIN monthly py ON py.month = m.month - INTERVAL '1 year'  AND py.channel_g
 ORDER BY m.month DESC, m.sessions DESC;
 
 COMMENT ON VIEW ga4_agg.v_monthly_traffic_by_channel IS
-'Sessions per default channel group per month. Use for the shape of acquisition, not for totals — channel sessions sum 0.0-3.8%% above the property total, and channel users must never be summed across days. Totals live in v_monthly_traffic.';
+'Sessions per default channel group per month. Use for the shape of acquisition, not for totals — channel sessions sum 0.0-3.8% above the property total, and channel users must never be summed across days. Totals live in v_monthly_traffic.';
 
 -- -----------------------------------------------------------------------------
 -- #8 — most-viewed landing pages per month, ranked
@@ -149,6 +153,11 @@ WITH monthly AS (
         SUM(sessions)                            AS sessions,
         SUM(engaged_sessions)                    AS engaged_sessions
     FROM ga4_agg.landing_page_daily
+    -- "(other)" is not a page. GA4 substitutes it in a high-cardinality dimension once a report
+    -- exceeds its row limit, so it arrives as a landing page that never existed and would sit in
+    -- the ranking as a fake entry. The raw row is deliberately kept in the table — its sessions
+    -- are real traffic and belong in any total — it is only excluded from the ranking.
+    WHERE landing_page <> '(other)'
     GROUP BY 1, 2
 ),
 ranked AS (
@@ -192,6 +201,9 @@ WITH monthly AS (
         SUM(screen_page_views)                   AS page_views,
         SUM(sessions)                            AS sessions
     FROM ga4_agg.page_daily
+    -- Not a page; see the note in v_monthly_landing_pages. Confirmed live: the 39-month backfill
+    -- produced exactly one such row (2024-02-18, 582 views).
+    WHERE page_path <> '(other)'
     GROUP BY 1, 2
 ),
 ranked AS (
@@ -260,7 +272,8 @@ WITH sessions AS (
     -- handful of sessions a month (34,024 vs 34,022 for August 2026) and invite a bug report.
     SELECT m.month,
            m.sessions,
-           d.days_with_data
+           COALESCE(d.days_with_data, 0) AS days_with_data,
+           EXTRACT(DAY FROM (m.month + INTERVAL '1 month - 1 day'))::int AS expected_days
     FROM ga4_agg.traffic_monthly m
     LEFT JOIN (
         SELECT date_trunc('month', date)::date AS month, COUNT(*) AS days_with_data
@@ -279,8 +292,13 @@ monthly AS (
         s.month,
         s.sessions,
         s.days_with_data,
-        COALESCE(o.transactions, 0)     AS transactions,
-        COALESCE(o.purchase_revenue, 0) AS purchase_revenue
+        s.expected_days,
+        -- Deliberately NOT COALESCE(..., 0). conversions_daily carries its own watermark, so a
+        -- month it has not reached yet has no row here at all. Folding that to 0 renders as a
+        -- genuine 0.000% conversion rate — a cliff on the #7 trend chart indistinguishable from
+        -- a catastrophic month. NULL propagates through every ratio below and reads as a gap.
+        o.transactions,
+        o.purchase_revenue
     FROM sessions s
     LEFT JOIN orders o ON o.month = s.month
 )
@@ -303,7 +321,7 @@ SELECT
          THEN ROUND(py.transactions::numeric * 100 / py.sessions, 3) END AS conversion_rate_pct_same_month_last_year,
     CASE WHEN py.transactions > 0
          THEN ROUND((m.transactions - py.transactions)::numeric * 100 / py.transactions, 2) END AS transactions_yoy_pct,
-    (m.days_with_data <> EXTRACT(DAY FROM (m.month + INTERVAL '1 month - 1 day'))::int) AS is_partial_month
+    (m.days_with_data IS DISTINCT FROM m.expected_days)                              AS is_partial_month
 FROM monthly m
 LEFT JOIN monthly pm ON pm.month = m.month - INTERVAL '1 month'
 LEFT JOIN monthly py ON py.month = m.month - INTERVAL '1 year'
@@ -325,14 +343,10 @@ DO $$
 BEGIN
     IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'metabase_ro') THEN
         EXECUTE 'GRANT USAGE ON SCHEMA ga4_agg TO metabase_ro';
-        EXECUTE 'GRANT SELECT ON ga4_agg.v_monthly_traffic            TO metabase_ro';
-        EXECUTE 'GRANT SELECT ON ga4_agg.v_monthly_traffic_by_channel TO metabase_ro';
-        EXECUTE 'GRANT SELECT ON ga4_agg.v_monthly_landing_pages      TO metabase_ro';
-        EXECUTE 'GRANT SELECT ON ga4_agg.v_monthly_articles           TO metabase_ro';
-        EXECUTE 'GRANT SELECT ON ga4_agg.v_monthly_conversion         TO metabase_ro';
 
-        -- Belt and braces: make sure a future table in this schema is not
-        -- picked up by some later blanket grant.
+        -- Revoke first, then grant. ALL TABLES covers views too, so this both clears any
+        -- earlier blanket grant on the raw tables and makes the grant list below the only
+        -- thing metabase_ro can read. Granting before the revoke would be a no-op.
         EXECUTE 'REVOKE ALL ON ALL TABLES IN SCHEMA ga4_agg FROM metabase_ro';
         EXECUTE 'GRANT SELECT ON ga4_agg.v_monthly_traffic            TO metabase_ro';
         EXECUTE 'GRANT SELECT ON ga4_agg.v_monthly_traffic_by_channel TO metabase_ro';

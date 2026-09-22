@@ -15,11 +15,17 @@ public class Ga4SyncOptions
     public string TimeZone { get; set; } = "Europe/Prague";
 
     /// <summary>
-    /// Earliest date the backfill will ask for. The GA4 Data API refuses nothing for old dates —
-    /// it simply returns no rows — so setting this before the property started collecting costs
-    /// a few empty requests, not an error.
+    /// Earliest date the backfill will ask for. Defaults to 2023-06-29, the day GA4 property
+    /// 392098710 was created and started collecting — i.e. the whole available history.
+    ///
+    /// There is no separate "backfill" switch anywhere: a run whose sync_state watermark is null
+    /// starts here and walks forward in chunks, and every later run starts from the watermark
+    /// instead. The backfill is simply what the first run of an empty table looks like.
+    ///
+    /// The Data API refuses nothing for dates before the property existed — it just returns no
+    /// rows — so an earlier value costs a few empty requests, not an error.
     /// </summary>
-    public string BackfillFrom { get; set; } = "2024-01-01";
+    public string BackfillFrom { get; set; } = "2023-06-29";
 
     /// <summary>
     /// How many days before the watermark each run re-pulls and upserts.

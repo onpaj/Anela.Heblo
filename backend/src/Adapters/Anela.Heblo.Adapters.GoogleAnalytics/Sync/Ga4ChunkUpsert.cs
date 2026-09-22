@@ -25,6 +25,19 @@ internal static class Ga4ChunkUpsert
         where TEntity : class
         where TKey : notnull
     {
+        // GA4 returning nothing for a window that already holds rows is never a legitimate
+        // "everything was deleted" signal — GA4 does not retract history. It means the report
+        // failed to produce data: credentials repointed at the wrong property, an outage, or an
+        // over-restrictive path filter. Deleting on it would hollow out a rolling
+        // TrailingReprocessDays+1 window every night, mark the run OK and advance the watermark,
+        // with no operator signal at all. Fail the chunk instead, so the watermark holds.
+        if (incoming.Count == 0 && existing.Count > 0)
+        {
+            throw new InvalidOperationException(
+                $"GA4 returned no rows for a window that already holds {existing.Count} stored row(s). " +
+                "Refusing to delete them — check the property id, credentials and any path filter.");
+        }
+
         var existingByKey = new Dictionary<TKey, TEntity>();
         foreach (var row in existing)
             existingByKey[keyOf(row)] = row;

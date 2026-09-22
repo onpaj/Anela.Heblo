@@ -52,7 +52,7 @@ public sealed class LandingPageSyncService : Ga4EntitySyncServiceBase
         var syncedAt = _timeProvider.GetUtcNow();
 
         // GA4 already returns one row per (date, landingPage), so this only orders and cuts.
-        var incoming = report.Rows
+        var incoming = WithoutOtherBucket(report.Rows)
             .Select(row => new LandingPageDaily
             {
                 Date = Ga4ValueParser.ToDate(row.DimensionValues[0]),

@@ -15,6 +15,12 @@ public class Ga4Options
     /// <summary>The service account key, as the raw JSON document.</summary>
     public string CredentialsJson { get; set; } = string.Empty;
 
+    /// <summary>
+    /// The credential has to look like the JSON document it is, not merely be non-blank. A
+    /// human-readable placeholder in appsettings would otherwise pass a whitespace-only check and
+    /// register the whole GA4 stack against a credential that cannot possibly parse.
+    /// </summary>
     public bool IsConfigured =>
-        !string.IsNullOrWhiteSpace(PropertyId) && !string.IsNullOrWhiteSpace(CredentialsJson);
+        !string.IsNullOrWhiteSpace(PropertyId) &&
+        CredentialsJson.AsSpan().TrimStart().StartsWith("{");
 }

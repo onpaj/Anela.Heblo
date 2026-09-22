@@ -10,10 +10,7 @@ namespace Anela.Heblo.Adapters.GoogleAnalytics.Sync;
 public sealed class TrafficSyncService : Ga4EntitySyncServiceBase
 {
     private static readonly string[] Dimensions = ["date", "sessionDefaultChannelGroup"];
-    private static readonly string[] Metrics =
-    [
-        "sessions", "totalUsers", "newUsers", "screenPageViews", "engagedSessions", "userEngagementDuration",
-    ];
+    private static readonly string[] Metrics = Ga4TrafficMetrics.All;
 
     private readonly IGa4ReportClient _client;
     private readonly Ga4DbContext _dbContext;
@@ -48,7 +45,7 @@ public sealed class TrafficSyncService : Ga4EntitySyncServiceBase
             ct);
 
         var syncedAt = _timeProvider.GetUtcNow();
-        var incoming = report.Rows
+        var incoming = WithoutOtherBucket(report.Rows)
             .Select(row => new TrafficDaily
             {
                 Date = Ga4ValueParser.ToDate(row.DimensionValues[0]),

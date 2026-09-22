@@ -11,7 +11,7 @@ namespace Anela.Heblo.Adapters.GoogleAnalytics;
 /// </summary>
 public sealed class Ga4ReportClient : IGa4ReportClient
 {
-    private readonly BetaAnalyticsDataClient _client;
+    private readonly Lazy<BetaAnalyticsDataClient> _client;
     private readonly string _property;
     private readonly Ga4SyncOptions _syncOptions;
     private readonly ILogger<Ga4ReportClient> _logger;
@@ -26,13 +26,23 @@ public sealed class Ga4ReportClient : IGa4ReportClient
         _logger = logger;
         _property = $"properties/{value.PropertyId}";
 
+        // Lazy, and deliberately so. This is a singleton, and SeedRecurringJobConfigurationsAsync
+        // resolves every IRecurringJob at startup and rethrows on failure. Parsing the credential
+        // in the constructor therefore meant one malformed Key Vault secret failed application
+        // startup outright — a reporting side-feature taking the whole Web App down. Now a bad
+        // credential fails only the GA4 job, on the night it first runs.
+        _client = new Lazy<BetaAnalyticsDataClient>(() => BuildClient(value.CredentialsJson));
+    }
+
+    private static BetaAnalyticsDataClient BuildClient(string credentialsJson)
+    {
         // CredentialFactory rather than the deprecated GoogleCredential.FromJson(string).
         var credential = CredentialFactory
-            .FromJson<ServiceAccountCredential>(value.CredentialsJson)
+            .FromJson<ServiceAccountCredential>(credentialsJson)
             .ToGoogleCredential()
             .CreateScoped("https://www.googleapis.com/auth/analytics.readonly");
 
-        _client = new BetaAnalyticsDataClientBuilder { GoogleCredential = credential }.Build();
+        return new BetaAnalyticsDataClientBuilder { GoogleCredential = credential }.Build();
     }
 
     public async Task<Ga4ReportResult> RunReportAsync(Ga4ReportRequest request, CancellationToken ct = default)
@@ -46,9 +56,10 @@ public sealed class Ga4ReportClient : IGa4ReportClient
         while (true)
         {
             ct.ThrowIfCancellationRequested();
+            await ThrottleAsync(ct);
 
             var apiRequest = BuildRequest(request, offset);
-            var response = await _client.RunReportAsync(apiRequest, ct);
+            var response = await _client.Value.RunReportAsync(apiRequest, ct);
 
             foreach (var row in response.Rows)
             {
@@ -64,8 +75,6 @@ public sealed class Ga4ReportClient : IGa4ReportClient
             offset += response.Rows.Count;
             if (response.Rows.Count == 0 || offset >= response.RowCount)
                 break;
-
-            await ThrottleAsync(ct);
         }
 
         if (quota != null)
@@ -79,6 +88,13 @@ public sealed class Ga4ReportClient : IGa4ReportClient
         {
             _logger.LogWarning(
                 "Ga4.DataLossFromOtherRow dimensions={Dimensions} start={Start} end={End} — GA4 bucketed some rows into (other); the stored totals for this window are incomplete.",
+                string.Join(",", request.Dimensions), request.StartDate, request.EndDate);
+        }
+
+        if (thresholded)
+        {
+            _logger.LogWarning(
+                "Ga4.SubjectToThresholding dimensions={Dimensions} start={Start} end={End} — GA4 withheld rows for privacy thresholds; the stored totals for this window are incomplete.",
                 string.Join(",", request.Dimensions), request.StartDate, request.EndDate);
         }
 
@@ -101,10 +117,22 @@ public sealed class Ga4ReportClient : IGa4ReportClient
             Limit = _syncOptions.PageSize,
             Offset = offset,
             ReturnPropertyQuota = true,
-            // GA4 hides "(other)" bucketing behind an aggregate row by default; asking for the
-            // total lets us see the rows we did get versus what the property actually recorded.
+            // A day GA4 recorded no traffic for is simply absent rather than a row of zeroes,
+            // which is what days_with_data in the views counts.
             KeepEmptyRows = false,
         };
+
+        // Offset paging over an unordered result is not stable: GA4 does not promise the same
+        // row order across requests, so a row can be skipped between pages. Ga4ChunkUpsert's
+        // `seen` set makes a repeat harmless, but a *missed* row silently shifts a capped
+        // table's top-N. Ordering by the date dimension pins the sequence.
+        if (request.Dimensions.Count > 0)
+        {
+            apiRequest.OrderBys.Add(new OrderBy
+            {
+                Dimension = new OrderBy.Types.DimensionOrderBy { DimensionName = request.Dimensions[0] },
+            });
+        }
 
         foreach (var dimension in request.Dimensions)
             apiRequest.Dimensions.Add(new Dimension { Name = dimension });
@@ -161,6 +189,10 @@ public sealed class Ga4ReportClient : IGa4ReportClient
             quota.ConcurrentRequests?.Remaining ?? -1);
     }
 
+    /// <summary>
+    /// Paced before every Data API request — pages, chunks and tables alike — to stay inside the
+    /// per-hour token quota during a backfill, which fires ~200 reports back to back.
+    /// </summary>
     private Task ThrottleAsync(CancellationToken ct) =>
         _syncOptions.ThrottleMilliseconds > 0
             ? Task.Delay(_syncOptions.ThrottleMilliseconds, ct)

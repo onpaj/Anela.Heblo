@@ -16,4 +16,12 @@ public interface IGa4SyncWatermarkRepository
 {
     Task<SyncState> GetOrCreateAsync(string entityName, CancellationToken ct = default);
     Task SaveAsync(SyncState state, CancellationToken ct = default);
+
+    /// <summary>
+    /// Drops everything the shared context is still tracking after a failed SaveChangesAsync and
+    /// returns a freshly loaded sync_state row to record the failure on. Without it the failed
+    /// write's entities are replayed by the next SaveChangesAsync — the bookkeeping write itself,
+    /// or the next table's watermark — so a run recorded as FAILED still commits rows.
+    /// </summary>
+    Task<SyncState> DiscardPendingChangesAsync(string entityName, CancellationToken ct = default);
 }

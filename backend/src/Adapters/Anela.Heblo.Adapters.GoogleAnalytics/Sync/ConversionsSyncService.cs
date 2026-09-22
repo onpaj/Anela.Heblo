@@ -48,7 +48,7 @@ public sealed class ConversionsSyncService : Ga4EntitySyncServiceBase
             ct);
 
         var syncedAt = _timeProvider.GetUtcNow();
-        var incoming = report.Rows
+        var incoming = WithoutOtherBucket(report.Rows)
             .Select(row => new ConversionsDaily
             {
                 Date = Ga4ValueParser.ToDate(row.DimensionValues[0]),

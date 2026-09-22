@@ -148,6 +148,22 @@ custom ranges (sessions and page views only — not users across days), **`traff
   in the views as `1 - engaged_sessions / sessions`.
 - **`user_engagement_seconds` stored instead of an average.** Additive, so any roll-up works.
 
+### GA4's `(other)` bucket
+
+Once a report exceeds GA4's row limit, GA4 buckets the high-cardinality dimension into a single
+`(other)` row. On this property it has happened **once in 39 months** — `page_daily`, February
+2024, 582 views on 2024-02-18 — and GA4 bucketed only `pagePath`/`pageTitle`, leaving `date`
+intact.
+
+Those sessions are real traffic, so the row is **kept** in `page_daily` and counts toward any
+total. It is excluded from `v_monthly_articles` and `v_monthly_landing_pages` only, where it would
+otherwise appear as a page that never existed. `Ga4.DataLossFromOtherRow` is logged whenever GA4
+sets the flag.
+
+A row bucketed so hard that the *date* itself reads `(other)` cannot be stored at all — the date is
+part of every primary key here — so it is skipped and counted rather than throwing, which would
+wedge the table on the same deterministic window every night. That shape has not been observed.
+
 ### Top-N caps
 
 `landing_page_daily` and `page_daily` keep the **top 100 per day** (configurable; the cap actually
@@ -171,11 +187,15 @@ Five month-grain views in `ga4_agg`, all prefixed `v_`:
 | `v_monthly_conversion` | #7 | sessions vs GA4 purchase events — **read the caveat below** |
 
 `metabase_ro` is granted `USAGE` on the schema and `SELECT` on **these five views only** — never
-on the raw tables. Ad-hoc `GROUP BY` over 250k raw rows would hit the same single vCore that
+on the raw tables. The grant block is guarded on the role existing and only raises a `NOTICE` when
+it does not, so **create the role before applying the views** in a new environment, or re-run the
+script afterwards — otherwise you end up with views and no reader. Ad-hoc `GROUP BY` over 250k raw rows would hit the same single vCore that
 serves production, and OSS Metabase has collection-level permissions only (no row-level security,
 no data sandboxing), so the boundary has to be enforced in Postgres grants.
 
-Apply (idempotent, safe to re-run):
+Apply (idempotent, safe to re-run — `CREATE OR REPLACE` throughout, and it never touches a table
+or a row). One caveat: the views are dropped without `CASCADE`, so anything built on top of them
+inside Metabase has to be dropped first.
 
 ```bash
 psql "$CONNECTION_STRING" -v ON_ERROR_STOP=1 \
@@ -252,7 +272,7 @@ BigQuery session-count queries are therefore best avoided entirely; if one is un
 | | |
 |---|---|
 | Cron | `10 4 * * *` Europe/Prague (clear of `flexi-analytics-sync` at `0 3 * * *`) |
-| Registration | conditional on `GoogleAnalytics:PropertyId` **and** `GoogleAnalytics:CredentialsJson` both being non-empty — an unconfigured environment is completely inert |
+| Registration | conditional on `GoogleAnalytics:PropertyId` being non-empty **and** `GoogleAnalytics:CredentialsJson` beginning with `{` — an unconfigured environment is completely inert. The credential has to *look like* the JSON document it is, not merely be non-blank, or a human-readable placeholder in `appsettings.json` passes the gate |
 | Database | the main Heblo connection string (`ConnectionStrings:{Environment}`); `ga4_agg` lives in `Heblo_V3` / `Heblo_TST` |
 
 ### The trailing re-pull window
@@ -287,19 +307,23 @@ All optional; defaults shown.
 | `Ga4Sync:Enabled` | `true` | |
 | `Ga4Sync:CronExpression` | `10 4 * * *` | |
 | `Ga4Sync:TimeZone` | `Europe/Prague` | |
-| `Ga4Sync:BackfillFrom` | `2024-01-01` | set to `2023-06-29` for the full property history |
+| `Ga4Sync:BackfillFrom` | `2023-06-29` | the property's first day — i.e. the whole history |
 | `Ga4Sync:TrailingReprocessDays` | `7` | must stay above ~2 days |
 | `Ga4Sync:ChunkDays` | `31` | days per Data API request |
 | `Ga4Sync:TopLandingPagesPerDay` | `100` | |
 | `Ga4Sync:TopPagesPerDay` | `100` | |
 | `Ga4Sync:PagePathPrefixes` | *(empty)* | restrict `page_daily` to e.g. `/blog/`, filtered inside GA4 |
 | `Ga4Sync:BatchSize` | `500` | rows per `SaveChanges` |
-| `Ga4Sync:ThrottleMilliseconds` | `250` | pause between requests |
+| `Ga4Sync:PageSize` | `100000` | rows per Data API response before it pages |
+| `Ga4Sync:ThrottleMilliseconds` | `250` | pause before **every** Data API request — pages, chunks and tables alike |
 | `Ga4Sync:RequestTimeoutSeconds` | `1800` | whole-job timeout |
 
-> `BackfillFrom` defaults to `2024-01-01` rather than the property's first day so that a fresh
-> environment does not silently pull four years on its first run. Set it to `2023-06-29`
-> deliberately when a full history is wanted.
+> **There is no separate backfill command or mode.** The daily job and the backfill are the same
+> code path, and `ga4_agg.sync_state.watermark_date` decides which one you get: null means start at
+> `BackfillFrom` and walk the whole history in chunks; set means start at the watermark minus the
+> trailing window. So a fresh environment backfills itself on the first run, and an environment
+> that already has data never re-pulls the history. To force a re-backfill, clear the watermark
+> (`UPDATE ga4_agg.sync_state SET watermark_date = NULL;`) and let the next run do it.
 
 ---
 

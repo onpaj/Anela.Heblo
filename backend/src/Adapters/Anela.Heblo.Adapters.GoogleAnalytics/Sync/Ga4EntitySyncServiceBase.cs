@@ -12,6 +12,15 @@ namespace Anela.Heblo.Adapters.GoogleAnalytics.Sync;
 /// </summary>
 public abstract class Ga4EntitySyncServiceBase : IGa4EntitySyncService
 {
+    private const string StatusRunning = "RUNNING";
+    private const string StatusOk = "OK";
+    private const string StatusFailed = "FAILED";
+
+    /// <summary>
+    /// What GA4 puts in a dimension it bucketed because the report exceeded its cardinality limit.
+    /// </summary>
+    private const string OtherBucket = "(other)";
+
     private readonly IGa4SyncWatermarkRepository _watermarkRepo;
     private readonly Ga4SyncOptions _options;
     private readonly TimeProvider _timeProvider;
@@ -41,6 +50,44 @@ public abstract class Ga4EntitySyncServiceBase : IGa4EntitySyncService
     protected virtual int ChunkDays => _options.ChunkDays;
 
     /// <summary>
+    /// A misconfigured ChunkDays of 0 or less would make chunkEnd precede chunkStart, so GA4 gets
+    /// an inverted range and the table fails every night with an opaque API error. Clamping makes
+    /// the misconfiguration slow rather than silent.
+    /// </summary>
+    private int EffectiveChunkDays => Math.Max(1, ChunkDays);
+
+    /// <summary>
+    /// Defensive only: drops a row GA4 bucketed so hard that even its date reads "(other)", which
+    /// cannot be stored — the date is part of every primary key here. Because a chunk's request is
+    /// deterministic, letting that throw would wedge the table on the same window every night
+    /// rather than failing once.
+    ///
+    /// This has NOT been observed on property 392098710. The 39-month backfill hit the cardinality
+    /// limit exactly once (page_daily, Feb 2024) and GA4 bucketed only the high-cardinality
+    /// dimensions, leaving the date intact. Such a row is therefore KEPT: its metrics are real
+    /// traffic, and dropping it would silently under-report the day. It reaches the table as a
+    /// page_path of "(other)", which the ranking views exclude.
+    ///
+    /// Anything else unparseable is still a hard failure — that is a real format change, not a
+    /// documented bucket.
+    /// </summary>
+    protected IReadOnlyList<Ga4Row> WithoutOtherBucket(IReadOnlyList<Ga4Row> rows)
+    {
+        var kept = rows
+            .Where(row => row.DimensionValues.Count == 0 || row.DimensionValues[0] != OtherBucket)
+            .ToList();
+
+        if (kept.Count != rows.Count)
+        {
+            _logger.LogWarning(
+                "Ga4Sync.UndatedBucketRowsSkipped {EntityName} skipped={Skipped} of {Total} — GA4 bucketed the date dimension itself, so these rows cannot be attributed to a day.",
+                EntityName, rows.Count - kept.Count, rows.Count);
+        }
+
+        return kept;
+    }
+
+    /// <summary>
     /// Lets a month-grain table widen the window to whole calendar months. Asking GA4 for
     /// yearMonth over 15 August - 14 September returns half an August, which would then overwrite
     /// a complete August row.
@@ -51,20 +98,23 @@ public abstract class Ga4EntitySyncServiceBase : IGa4EntitySyncService
 
     public async Task<Ga4SyncResult> SyncAsync(CancellationToken ct = default)
     {
-        var state = await _watermarkRepo.GetOrCreateAsync(EntityName, ct);
-
-        state.LastRunStartedAt = _timeProvider.GetUtcNow();
-        state.LastRunStatus = "RUNNING";
-        state.TopNPerDay = TopNPerDay;
-        await _watermarkRepo.SaveAsync(state, ct);
-
         var totalFetched = 0;
         var totalUpserted = 0;
+        SyncState? state = null;
 
         try
         {
-            // Inside the try: GetBackfillFromDate() throws on a malformed Ga4Sync:BackfillFrom,
-            // and sync_state is where an operator looks to find out why a table stopped moving.
+            // Inside the try: sync_state is the one surface an operator reads to find out why a
+            // table stopped moving, so a failure to even bootstrap it has to be recorded, not
+            // thrown past the bookkeeping below.
+            state = await _watermarkRepo.GetOrCreateAsync(EntityName, ct);
+
+            state.LastRunStartedAt = _timeProvider.GetUtcNow();
+            state.LastRunStatus = StatusRunning;
+            state.TopNPerDay = TopNPerDay;
+            await _watermarkRepo.SaveAsync(state, ct);
+
+            // GetBackfillFromDate() throws on a malformed Ga4Sync:BackfillFrom.
             var (start, end) = AlignWindow(StartDateFor(state), Yesterday());
 
             _logger.LogInformation(
@@ -83,7 +133,7 @@ public abstract class Ga4EntitySyncServiceBase : IGa4EntitySyncService
             {
                 ct.ThrowIfCancellationRequested();
 
-                var chunkEnd = Min(chunkStart.AddDays(ChunkDays - 1), end);
+                var chunkEnd = Min(chunkStart.AddDays(EffectiveChunkDays - 1), end);
                 var outcome = await SyncChunkAsync(chunkStart, chunkEnd, ct);
 
                 totalFetched += outcome.RowsFetched;
@@ -100,7 +150,7 @@ public abstract class Ga4EntitySyncServiceBase : IGa4EntitySyncService
                 chunkStart = chunkEnd.AddDays(1);
             }
 
-            state.LastRunStatus = "OK";
+            state.LastRunStatus = StatusOk;
             state.LastRunFinishedAt = _timeProvider.GetUtcNow();
             state.LastRunRowsFetched = totalFetched;
             state.LastRunRowsUpserted = totalUpserted;
@@ -112,17 +162,27 @@ public abstract class Ga4EntitySyncServiceBase : IGa4EntitySyncService
         }
         catch (Exception ex)
         {
-            state.LastRunStatus = "FAILED";
+            _logger.LogError(ex, "Ga4Sync.EntityFailed {EntityName}", EntityName);
+
+            // A failed SaveChangesAsync leaves its entities tracked, and every sync service in
+            // the run shares one scoped Ga4DbContext. Without this, the next SaveChangesAsync —
+            // including the bookkeeping write below, and the next table's watermark — replays
+            // them, so a run recorded as FAILED still commits rows.
+            state = await _watermarkRepo.DiscardPendingChangesAsync(EntityName, CancellationToken.None);
+
+            state.LastRunStatus = StatusFailed;
             state.LastRunFinishedAt = _timeProvider.GetUtcNow();
             state.LastRunRowsFetched = totalFetched;
             state.LastRunRowsUpserted = totalUpserted;
             state.LastErrorMessage = ex.Message.Length > 2000 ? ex.Message[..2000] : ex.Message;
-
-            _logger.LogError(ex, "Ga4Sync.EntityFailed {EntityName}", EntityName);
         }
 
-        await _watermarkRepo.SaveAsync(state, ct);
-        return new Ga4SyncResult(EntityName, totalFetched, totalUpserted, state.LastRunStatus == "OK");
+        // CancellationToken.None, not ct. Ga4SyncJob cancels the run after RequestTimeoutSeconds,
+        // and saving the FAILED status on the already-cancelled token threw immediately — leaving
+        // sync_state saying RUNNING forever with no reason recorded, which is precisely the case
+        // an operator is trying to diagnose.
+        await _watermarkRepo.SaveAsync(state, CancellationToken.None);
+        return new Ga4SyncResult(EntityName, totalFetched, totalUpserted, state.LastRunStatus == StatusOk);
     }
 
     /// <summary>
