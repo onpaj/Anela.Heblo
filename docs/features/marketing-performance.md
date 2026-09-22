@@ -4,15 +4,15 @@ Monthly snapshot of ad spend vs. e-shop orders/revenue, replacing the manual `Na
 Spec: `docs/superpowers/specs/2026-09-18-marketing-performance-design.md`.
 Plan: `docs/superpowers/plans/2026-09-18-marketing-performance.md`.
 
-> **Ad costs are not flowing yet.** The FlexiBeeSDK change that lets the app query received
-> invoices by VAT ID is committed locally but not published to NuGet, so the real Flexi cost
-> adapter is not registered. `IMonthlyAdCostSource` currently resolves to
-> `NoOpMonthlyAdCostSource`, which returns an empty list — **every channel cost reads zero in
-> every environment right now.** Revenue and order counts (from `IssuedInvoices`) work today and
-> are unaffected. Costs start flowing once the SDK package is published, the real adapter is
-> registered in `MarketingPerformanceModule`, and the recompute/refresh job runs again. See
-> "Known discrepancy vs. the spreadsheet" below for what the cost numbers look like when queried
-> directly against Flexi, and Operations for the outstanding rollout steps.
+> **Ad costs are wired.** `Rem.FlexiBeeSDK.Client` `0.1.141` carries the VAT-ID filter and
+> `dic` projection on `ReceivedInvoiceRequest`. `FlexiMonthlyAdCostSource` is registered
+> (in `FlexiAdapterServiceCollectionExtensions`, alongside `IReceivedInvoicesClient`) and
+> overrides the `NoOpMonthlyAdCostSource` fallback that `MarketingPerformanceModule`
+> registers first — last registration wins, and `AddFlexiAdapter` runs after
+> `AddApplicationServices` in `Program.cs`. `IMonthlyAdCostSource` now resolves to the real
+> Flexi source in every environment; costs are computed on the next recompute/refresh run.
+> See "Known discrepancy vs. the spreadsheet" below for how the app's numbers compare to a
+> manual Flexi query.
 
 ## Data
 
@@ -76,9 +76,10 @@ manual calls work regardless of case — this is purely a "what will you actuall
 Invoice-based numbers run 5–15% above the spreadsheet's order counts (which came from Shoptet statistics).
 Accepted; the app is the definition from now on.
 
-A second, separate discrepancy shows up on the cost side. **These are manual-verification figures, not numbers
-the running application currently produces** — see the note at the top of this document: the running app's cost
-side is still zero everywhere. For August 2026, a manual query run directly against Flexi on 2026-09-18 gave Meta
+A second, separate discrepancy shows up on the cost side. **These are manual-verification figures**, captured by
+querying Flexi directly rather than through a recompute run, and are the figures the app's cost source is expected
+to reproduce now that it is wired (see the note at the top of this document). For August 2026, a manual query run
+directly against Flexi on 2026-09-18 gave Meta
 307 520.35 and Google 113 366.42, while **Seznam had no invoice at all under its VAT ID that month**. The
 spreadsheet's August row reads FB/IG 371 564.6, Google 122 366, S-Klik 11 635 — same ballpark, not equal. This is
 expected: the app filters on accounting date (`datUcto`), while the spreadsheet reflects the owner's own spend
@@ -101,9 +102,9 @@ under a different supplier record than the configured VAT ID.
 
 - Backfill: run the recompute 2023-01 → current month once after deploying to each environment.
 - Grant `marketing.performance.read`/`.write` in `/admin/access` — seed groups don't update existing environments.
-- The Flexi cost adapter is not wired yet (see `memory/context/state.md`): `IMonthlyAdCostSource` currently
-  resolves to `NoOpMonthlyAdCostSource`, so ad costs read as zero in every environment until the FlexiBeeSDK
-  package (VAT-ID filter + `dic` projection) is published to NuGet and the real adapter is registered.
+- The Flexi cost adapter is wired: `IMonthlyAdCostSource` resolves to `FlexiMonthlyAdCostSource`. After deploying
+  to each environment, run (or wait for) a recompute/refresh so the window's months pick up real costs instead of
+  whatever a prior no-op run stamped.
 
 ### Validation gates
 

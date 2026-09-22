@@ -45,4 +45,29 @@ public class FlexiReceivedInvoicesClient : IReceivedInvoicesClient
         var found = await _client.GetAsync(invoiceId);
         return found is null ? null : _mapper.Map<ReceivedInvoice>(found);
     }
+
+    public async Task<List<ReceivedInvoice>> SearchByVatIdsAsync(
+        DateTime accountingDateFrom,
+        DateTime accountingDateTo,
+        IReadOnlyCollection<string> vatIds,
+        CancellationToken cancellationToken = default)
+    {
+        if (vatIds.Count == 0)
+        {
+            return new List<ReceivedInvoice>();
+        }
+
+        var request = new ReceivedInvoiceRequest(
+            accountingDateFrom,
+            accountingDateTo,
+            vatIds: vatIds,
+            dateField: "datUcto");
+
+        _logger.LogInformation(
+            "Flexi received-invoice search by DIČ: {From:yyyy-MM-dd}..{To:yyyy-MM-dd}, {Count} VAT IDs",
+            accountingDateFrom, accountingDateTo, vatIds.Count);
+
+        var invoices = await _client.SearchAsync(request, cancellationToken);
+        return _mapper.Map<List<ReceivedInvoice>>(invoices);
+    }
 }
