@@ -22,7 +22,7 @@
     },
     "developing": {
       "status": "in_progress",
-      "updated_at": "2026-09-22T09:18:07.097615Z"
+      "updated_at": "2026-09-22T10:17:42.203270Z"
     }
   },
   "tasks": [
@@ -40,9 +40,9 @@
     },
     {
       "name": "map-validation-exception-to-error-code",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-09-22T10:17:42.379491Z"
     },
     {
       "name": "forward-validation-params-through-scan-response",
