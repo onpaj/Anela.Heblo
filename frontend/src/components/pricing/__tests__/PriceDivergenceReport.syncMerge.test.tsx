@@ -80,7 +80,14 @@ describe("PriceDivergenceReport sync merge", () => {
   let productPricing_GetDivergenceReport: jest.Mock;
   let productPricing_Sync: jest.Mock;
 
+  // The sync writes into the live ERP, so every run goes through the operator's
+  // confirmation.
+  let confirmSpy: jest.SpyInstance;
+
+  afterEach(() => confirmSpy.mockRestore());
+
   beforeEach(() => {
+    confirmSpy = jest.spyOn(window, "confirm").mockReturnValue(true);
     queryClient = new QueryClient({
       defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
     });
@@ -124,6 +131,39 @@ describe("PriceDivergenceReport sync merge", () => {
     await userEvent.clear(screen.getByPlaceholderText("Kód produktu..."));
     await userEvent.type(screen.getByPlaceholderText("Kód produktu..."), "{Enter}");
     expect(screen.getByTestId("divergence-kind-B")).toHaveTextContent("Ve shodě");
+  });
+
+  // The count-driven UI is otherwise only ever tested against a hand-built outcome object, so
+  // nothing pins the wire path: the generated client's fromJS parsing plus the hook's mapping.
+  // Zeroing those three mappings in the hook leaves every other pricing test green, which would
+  // silently kill the failed-writes alert — the one signal a failed live-ERP write ever gives.
+  it("carries the counts from the raw sync response through to the status line and the alert", async () => {
+    // Arrange
+    productPricing_Sync.mockResolvedValue(
+      SyncProductPricesResponse.fromJS({
+        success: true,
+        rows: syncResponse.rows,
+        writtenCount: 2,
+        failedCount: 1,
+        remainingCount: 3,
+      }),
+    );
+    render(<PriceDivergenceReport canWrite />, { wrapper });
+    await screen.findByText("Alpha");
+
+    // Act
+    await userEvent.click(screen.getByTestId("sync-prices-button"));
+
+    // Assert
+    await waitFor(() =>
+      expect(screen.getByTestId("sync-prices-status")).toHaveTextContent("zapsány 2 ceny do Flexi"),
+    );
+    expect(screen.getByTestId("sync-prices-status")).toHaveTextContent(
+      "Zbývají 3 řádky — spusťte synchronizaci znovu.",
+    );
+    expect(screen.getByTestId("sync-prices-failures")).toHaveTextContent(
+      "U 1 produktu se cenu nepodařilo zapsat do Flexi.",
+    );
   });
 
   // The generated client throws a SwaggerException carrying the raw transport error, which

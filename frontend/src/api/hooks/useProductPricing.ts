@@ -99,10 +99,23 @@ export const useSetProductPrice = () => {
 
 export const GENERIC_SYNC_ERROR = "Ceny se nepodařilo synchronizovat.";
 
+/** What one sync did, as the backend reports it. */
+export interface SyncProductPricesOutcome {
+  /** The selection's rows as they stand after the writes, to merge into the cached report. */
+  rows: PriceDivergenceRowDto[];
+  /** How many Flexi prices were overwritten with the Shoptet price. */
+  writtenCount: number;
+  /** How many rows were written to and did not take it; they stay divergent on screen. */
+  failedCount: number;
+  /** How many rows still need a write, because the run spent its write budget first. */
+  remainingCount: number;
+}
+
 /**
- * Re-reads Shoptet and Flexi for one selection of products and folds the fresh rows into the
- * cached report. A read: it writes to neither system, it only bypasses Flexi's five-minute
- * ceník cache so the operator sees the two systems as they stand right now.
+ * Pushes Shoptet's prices into Flexi for one selection of products and folds the resulting
+ * rows into the cached report. A write to the live ERP — Shoptet, the source of truth, is
+ * never written here — so it is gated on `products.catalog.write` and the caller confirms
+ * with the operator first.
  *
  * Deliberately `setQueryData` rather than `invalidateQueries` — invalidating would refetch
  * the whole catalogue from both live systems and throw away the very scoping the operator
@@ -114,13 +127,18 @@ export const GENERIC_SYNC_ERROR = "Ceny se nepodařilo synchronizovat.";
 export const useSyncProductPrices = () => {
   const queryClient = useQueryClient();
 
-  return useMutation<PriceDivergenceRowDto[], Error, string[]>({
+  return useMutation<SyncProductPricesOutcome, Error, string[]>({
     mutationFn: async (productCodes) => {
       try {
         const response = await getAuthenticatedApiClient().productPricing_Sync(
           new SyncProductPricesRequest({ productCodes }),
         );
-        return response.rows ?? [];
+        return {
+          rows: response.rows ?? [],
+          writtenCount: response.writtenCount ?? 0,
+          failedCount: response.failedCount ?? 0,
+          remainingCount: response.remainingCount ?? 0,
+        };
       } catch (error) {
         // The generated client throws a SwaggerException on any non-200, so its message is
         // the raw transport error; the operator gets a message they can read instead.
@@ -128,7 +146,7 @@ export const useSyncProductPrices = () => {
         throw Object.assign(new Error(GENERIC_SYNC_ERROR), { errorCode: envelope?.errorCode });
       }
     },
-    onSuccess: async (syncedRows) => {
+    onSuccess: async ({ rows: syncedRows }) => {
       // Read before cancelling: a refetch in flight (or one already queued by an invalidate)
       // is one the cancel below is about to throw away, and that has to be made good.
       const stateBeforeCancel = queryClient.getQueryState<PriceDivergenceReportData>(

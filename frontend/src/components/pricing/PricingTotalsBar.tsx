@@ -1,10 +1,12 @@
 import React from "react";
 import { Loader2 } from "lucide-react";
-import { PricingTotalsDto } from "../../api/generated/api-client";
+import { IPricingTotalsDto } from "../../api/generated/api-client";
 import { formatCurrency, formatPercentage } from "../../utils/formatters";
 
 interface PricingTotalsBarProps {
-  totals: PricingTotalsDto;
+  // The interface, not the generated class: a summary narrowed to the work group is
+  // aggregated on the client (computePricingTotals) and is a plain object.
+  totals: IPricingTotalsDto;
   isRecalculating?: boolean;
 }
 

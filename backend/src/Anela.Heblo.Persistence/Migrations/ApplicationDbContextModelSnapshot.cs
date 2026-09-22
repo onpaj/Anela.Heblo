@@ -2843,7 +2843,7 @@ namespace Anela.Heblo.Persistence.Migrations
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
                     b.Property<DateTime?>("CostsComputedAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<bool>("IsLocked")
                         .ValueGeneratedOnAdd()
@@ -2863,7 +2863,7 @@ namespace Anela.Heblo.Persistence.Migrations
                         .HasColumnType("numeric(18,2)");
 
                     b.Property<DateTime?>("RevenueComputedAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<int>("SkippedEurInvoiceCount")
                         .HasColumnType("integer");

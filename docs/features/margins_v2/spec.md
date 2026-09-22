@@ -102,7 +102,7 @@ Krok 5: Náklad M1 pro daný produkt (průměr za období)
 
 ### 2.3 M2 - Skladování a Marketing
 
-**Účel:** Náklady na skladování a marketing alokované podle podílu na celkovém prodeji.
+**Účel:** Náklady na skladování a marketing alokované podle podílu na celkových tržbách.
 
 **Zdroj dat:**
 - **Náklady** (účty `50`, `51`, `52` — `CostPoolDefinition.AccountPrefixesFor(CostPool.M2)`):
@@ -114,42 +114,45 @@ Krok 5: Náklad M1 pro daný produkt (průměr za období)
   naopak prodané zboží, proto se rozsah účtů řídí poolem, ne globálním nastavením.
 - **Prodeje:** `SalesHistory` z `CatalogAggregate`
 
-**Algoritmus:**
+**Algoritmus:** (`SalesRevenueAllocation`, sdílený s M3)
 
 ```
-Vstup:
-- dateFrom, dateTo (období)
-- productCode (produkt, pro který počítáme náklad)
-
 Krok 1: Načíst náklady za období
-  warehouseCosts = ILedgerService.GetDirectCosts(dateFrom, dateTo, department: "SKLAD")
-  marketingCosts = ILedgerService.GetDirectCosts(dateFrom, dateTo, department: "MARKETING")
-  totalCosts = warehouseCosts + marketingCosts
+  accountPrefixes = CostPoolDefinition.AccountPrefixesFor(CostPool.M2)
+  warehouseCosts  = ILedgerService.GetCosts(from, to, accountPrefixes, department: "SKLAD")
+  marketingCosts  = ILedgerService.GetCosts(from, to, accountPrefixes, department: "MARKETING")
+  totalCosts      = warehouseCosts + marketingCosts
 
-Krok 2: Spočítat celkový objem prodeje (všechny produkty)
-  allProducts = ICatalogRepository.GetAllAsync()
-  totalSales = 0
-  pro každý produkt v allProducts:
-    productSales = produkt.SalesHistory
-      .Where(s => s.Date >= dateFrom && s.Date <= dateTo)
-      .Sum(s => s.SumB2B + s.SumB2C)
-    totalSales += productSales
+Krok 2: Spočítat celkové tržby (všechny produkty)
+  totalRevenue = Σ produkt.SalesHistory
+    .Where(s => s.Date >= from && s.Date <= to && s.SourceBundleCode == null)
+    .Sum(s => s.SumTotal)
 
-Krok 3: Spočítat prodej daného produktu
-  productSales = CatalogAggregate[productCode].SalesHistory
-    .Where(s => s.Date >= dateFrom && s.Date <= dateTo)
-    .Sum(s => s.SumB2B + s.SumB2C)
+Krok 3: Vypočítat sazbu na korunu tržby
+  costPerRevenueUnit = totalCosts / totalRevenue
 
-Krok 4: Rozpočítat náklady na produkt
-  if totalSales > 0:
-    M2 = totalCosts × (productSales / totalSales)
-  else:
-    M2 = 0
+Krok 4: Vypočítat náklad na kus pro každý produkt
+  productRevenue = Σ jeho SumTotal v okně (bez rozpadlých řádků)
+  productPieces  = Σ jeho AmountTotal v okně (bez rozpadlých řádků)
+  M2 na kus      = costPerRevenueUnit × (productRevenue / productPieces)
+
+Krok 5: Plošně přiřadit tento náklad na kus všem měsícům okna
 ```
 
 **Poznámky:**
-- Produkty bez prodeje mají M2 = 0
-- Alokace je proporcionální k objemu prodeje (v Kč)
+- Produkty bez prodeje (nebo bez tržby) v okně mají M2 = 0 — nic nevydělaly,
+  takže si neberou žádný podíl na poolu
+- Do jmenovatele vstupuje **jen tržba, která se zase rozúčtuje zpátky**: produkt
+  se zápornou tržbou (vratky převážily prodej), produkt bez kusů a produkt bez
+  `ProductCode` přispívají nulou. Jinak by záporná tržba zmenšila dělitele a
+  zvedla náklad všem, kdo prodávali (1200 / (1000 − 400) = 200 Kč/ks místo 120)
+- Kusy jsou `double`; produkt, jehož prodeje a vratky se v okně vyruší, skončí na
+  zbytku řádu 1e-17, a dělení jím vyrobí náklad 1e17 Kč/ks — proto se cokoli pod
+  tisícinu kusu bere jako nulové množství
+- Tržba na kus je skutečná, ne ceníková: velkoobchod a slevy ji stahují dolů,
+  a produkt proto nese odpovídajícím dílem menší náklad
+- Synteticky rozpadlé řádky komponent setu (`SourceBundleCode != null`) nesou kusy,
+  ale nulovou tržbu — započítané by srazily tržbu komponenty na kus téměř k nule
 
 **Implementace:** `SalesCostProvider.cs`
 
@@ -163,7 +166,7 @@ nepatří (viz níže).
 
 **Zdroj dat:**
 - **Náklady:** `ICostPoolService.GetMonthlyPoolsAsync(from, to)`, pouze `CostPool.M3`
-- **Prodeje:** `SalesHistory` z `CatalogAggregate` (stejný jmenovatel jako M2)
+- **Tržby:** `SalesHistory` z `CatalogAggregate` (stejný jmenovatel jako M2)
 
 `CostPool.M3` je záměrně catch-all: středisko přidané ve FlexiBee spadne sem místo toho,
 aby zmizelo.
@@ -185,21 +188,18 @@ Krok 1: Načíst režijní náklady za období
   totalCosts = Σ ICostPoolService.GetMonthlyPoolsAsync(from, to)
                  .Where(p => p.Pool == CostPool.M3).Amount
 
-Krok 2: Spočítat celkový počet prodaných kusů (všechny produkty)
-  totalSoldPieces = Σ produkt.SalesHistory
-    .Where(s => s.Date >= from && s.Date <= to && s.SourceBundleCode == null)
-    .Sum(s => s.AmountTotal)
+Krok 2: Spočítat celkové tržby a náklad na kus
+  stejná alokace jako u M2 — `SalesRevenueAllocation`:
+  M3 na kus = (totalCosts / totalRevenue) × (tržba produktu / kusy produktu)
 
-Krok 3: Vypočítat náklad na kus
-  costPerPiece = totalCosts / totalSoldPieces
-
-Krok 4: Plošně přiřadit všem produktům a všem měsícům okna
+Krok 3: Plošně přiřadit tento náklad na kus všem měsícům okna
 ```
 
 **Poznámky:**
-- Synteticky rozpadlé řádky komponent setu (`SourceBundleCode != null`) se do jmenovatele
-  nepočítají — stejné pravidlo jako u M2, jinak by set nafoukl počet kusů
-- Náklad na kus je plošný: stejný pro každý produkt i každý měsíc okna
+- Jmenovatel i vyloučení rozpadlých řádků jsou shodné s M2 — obě hladiny alokují
+  přes jedno místo (`SalesRevenueAllocation`), takže nemohou rozejít
+- Náklad na kus je plošný přes měsíce okna, ale mezi produkty se liší podle jejich
+  tržby na kus
 - Okno je odvozeno z `DataSourceOptions.ManufactureCostHistoryDays`, stejně jako u ostatních
   providerů, takže měsíce marže zůstávají podmnožinou měsíců, které provider emituje
 
@@ -551,11 +551,11 @@ private static void RegisterCostCacheRefreshTasks(IServiceCollection services)
 
 | Téma | Rozhodnutí |
 |------|------------|
-| M2 alokace | Podle objemu prodeje (SumB2B + SumB2C) |
+| M2 alokace | Podle tržeb (`SumTotal`), náklad na kus = sazba × tržba na kus |
 | MarginData struktura | Kumulativní M0, M1, M2, M3 |
 | ManufactureDifficulty | Použít historickou hodnotu platnou v měsíci výroby |
 | M1 okno | 12 měsíců (klouzavé) |
-| M3 alokace | Plošně na prodaný kus (stejný jmenovatel jako M2) |
+| M3 alokace | Podle tržeb (stejný jmenovatel i stejná alokace jako M2) |
 | **Cache storage** | **IMemoryCache (in-memory, bez expiration)** |
 | **Cache granularita** | **Pre-computed per-product costs (Dictionary<string, List<MonthlyCost>>)** |
 | **Cache organizace** | **Samostatná cache per cost source (M0, M1, M2, M3)** |

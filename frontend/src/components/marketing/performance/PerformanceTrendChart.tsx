@@ -3,7 +3,7 @@ import type { ChartData, ChartOptions } from 'chart.js'
 import { FinancialChart } from '../../pages/financial-overview/FinancialChart'
 import type { ChannelInfoDto, MonthlyMarketingPerformanceDto } from '../../../api/hooks/useMarketingPerformance'
 import { withYearAlpha } from '../../charts/comparisonColors'
-import { CHANNEL_COLORS, formatCzk, formatMetric, getMetricValue, METRIC_COLORS, METRIC_LABELS, METRIC_UNITS, type PerformanceMetric } from './metrics'
+import { CHANNEL_COLORS, findChannelCost, formatCzk, formatMetric, getMetricValue, METRIC_COLORS, METRIC_LABELS, METRIC_UNITS, resolveBreakdownChannels, type PerformanceMetric } from './metrics'
 
 interface PerformanceTrendChartProps {
   months: MonthlyMarketingPerformanceDto[]
@@ -26,14 +26,16 @@ export const buildTrendChartData = (
   const sorted = [...months].sort(byMonthAsc)
   const labels = sorted.map((m) => m.monthYearDisplay)
 
-  const channelDatasets = channels.map((channel, index) => {
+  const channelDatasets = resolveBreakdownChannels(channels, sorted).map((channel, index) => {
     const color = withYearAlpha(CHANNEL_COLORS[index % CHANNEL_COLORS.length], 0)
     return {
       type: 'bar' as const,
       label: channel.label,
       stack: COST_STACK,
       yAxisID: COST_AXIS,
-      data: sorted.map((m) => (m.hasData ? m.channelCosts.find((c) => c.channelCode === channel.code)?.costWithoutVat ?? 0 : 0)),
+      // null, not 0: a month with no data yet must read as "—" in the tooltip rather than claiming
+      // we spent nothing. A channel missing from a month that *does* have data is a genuine zero.
+      data: sorted.map((m) => (m.hasData ? findChannelCost(m, channel.code) : null)),
       backgroundColor: color,
       borderColor: color,
       borderWidth: 1,
