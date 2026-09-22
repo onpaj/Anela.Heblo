@@ -40,9 +40,9 @@
     },
     {
       "name": "map-validation-exception-to-error-code",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-09-22T11:19:08.659871Z"
+      "updated_at": "2026-09-22T11:38:48.671144Z"
     },
     {
       "name": "forward-validation-params-through-scan-response",
