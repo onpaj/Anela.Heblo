@@ -46,9 +46,9 @@
     },
     {
       "name": "forward-validation-params-through-scan-response",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-09-22T20:16:19.043263Z"
+      "updated_at": "2026-09-22T21:20:33.718712Z"
     },
     {
       "name": "regenerate-frontend-api-client",
