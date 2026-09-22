@@ -170,7 +170,7 @@ const MarginsChart: React.FC<MarginsChartProps> = ({
     },
     {
       type: 'bar' as const,
-      label: "M2 - Náklady prodeje (Kč/ks)",
+      label: "M2R - Náklady prodeje (Kč/ks)",
       data: m2CostLevelData,
       backgroundColor: "rgba(249, 115, 22, 0.7)", // Orange
       borderColor: "rgba(249, 115, 22, 1)",
@@ -180,7 +180,7 @@ const MarginsChart: React.FC<MarginsChartProps> = ({
     },
     {
       type: 'bar' as const,
-      label: "M3 - Režijní náklady (Kč/ks)",
+      label: "M3R - Režijní náklady (Kč/ks)",
       data: m3CostLevelData,
       backgroundColor: "rgba(239, 68, 68, 0.7)", // Red
       borderColor: "rgba(239, 68, 68, 1)",
@@ -224,7 +224,7 @@ const MarginsChart: React.FC<MarginsChartProps> = ({
     },
     {
       type: 'line' as const,
-      label: "M2 - Marže + prodej (%)",
+      label: "M2R - Marže + prodej (%)",
       data: m2PercentageData,
       backgroundColor: "rgba(249, 115, 22, 0.1)",
       borderColor: "rgba(249, 115, 22, 1)",
@@ -239,7 +239,7 @@ const MarginsChart: React.FC<MarginsChartProps> = ({
     },
     {
       type: 'line' as const,
-      label: "M3 - Finální marže (%)",
+      label: "M3R - Finální marže (%)",
       data: m3PercentageData,
       backgroundColor: "rgba(239, 68, 68, 0.1)",
       borderColor: "rgba(239, 68, 68, 1)",

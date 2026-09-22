@@ -171,8 +171,8 @@ describe("ProductMarginsList", () => {
     // Check that all M0-M3 headers are present
     expect(screen.getByText("M0 %")).toBeInTheDocument();
     expect(screen.getByText("M1 %")).toBeInTheDocument();
-    expect(screen.getByText("M2 %")).toBeInTheDocument();
-    expect(screen.getByText("M3 %")).toBeInTheDocument();
+    expect(screen.getByText("M2R %")).toBeInTheDocument();
+    expect(screen.getByText("M3R %")).toBeInTheDocument();
 
     // Check that data is displayed
     expect(screen.getByText("Test Product 1")).toBeInTheDocument();
@@ -287,7 +287,7 @@ describe("ProductMarginsList", () => {
     // M3 is the initial sort column, so clicking it flips direction rather than
     // switching column - which is exactly what distinguishes a wired-up header
     // from one that only happens to match the initial useState value.
-    const m3Header = screen.getByText("M3 %");
+    const m3Header = screen.getByText("M3R %");
     await user.click(m3Header);
 
     expect(mockUseProductMargins).toHaveBeenLastCalledWith(

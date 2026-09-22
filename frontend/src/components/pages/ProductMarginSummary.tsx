@@ -404,7 +404,7 @@ const ProductMarginSummary: React.FC = () => {
             >
               <option value="M0">M0 (Materiál)</option>
               <option value="M1">M1 (+ Výroba)</option>
-              <option value="M2">M2 (Finální marže)</option>
+              <option value="M2">M2R (Finální marže)</option>
             </select>
           </div>
 
@@ -482,7 +482,7 @@ const ProductMarginSummary: React.FC = () => {
             </span>
             <span>
               <strong>Celkem skupin:</strong> {data.topProducts?.length || 0}{" "}
-              (graf: top 15 + ostatní, tabulka: všechny M0-M2)
+              (graf: top 15 + ostatní, tabulka: všechny M0-M2R)
             </span>
           </div>
         )}
