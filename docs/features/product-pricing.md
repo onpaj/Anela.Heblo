@@ -194,8 +194,10 @@ alone:
   `FlexiProductPriceWriter` refuses it anyway. Not attempted, so not a failure either; the row
   stays visibly divergent.
 
-A missing ceník id is the one unwritable case that counts as a failure, since the row's own
-classification promised Flexi had it.
+Two cases do count as a failure. A **missing ceník id**, since the row's own classification
+promised Flexi had it. And a write **abandoned mid-flight** when the budget runs out (below):
+unlike the skips above, the call was actually made, so whether it landed is unknown — counting
+it as remaining would claim it never happened.
 
 A single write failure never abandons the rest of the selection. Each one is logged, counted
 into `failedCount`, and the row simply comes back still divergent on the screen that exists
@@ -217,7 +219,8 @@ operator whose prices did reach Flexi.
 
 - **A write budget** (`WriteBudget`, 2 minutes, measured on the injected `TimeProvider`) stops
   the loop from *starting* further writes. The rows it never reached come back as
-  `remainingCount`, the status line says `Zbývá N řádků — spusťte synchronizaci znovu`, and a
+  `remainingCount`, the status line says `Zbývá/Zbývají N řádek/řádky/řádků — spusťte
+  synchronizaci znovu` (Czech declines one, 2-4 and 5+ separately), and a
   second run picks them up. Runs converge rather than repeat work: a row already written comes
   back `InAgreement` and is skipped.
 
@@ -242,7 +245,11 @@ anything was written there.
 **Known and accepted:** the table has no operation column, so a sync whose Flexi write failed
 (`ShoptetSucceeded = true`, `FlexiSucceeded = false`) is indistinguishable from a price edit
 whose Flexi leg failed, and `OldPriceWithVat` means Flexi's previous price in the first case
-and Shoptet's in the second. Decided deliberately in favour of no schema change: nothing reads
+and Shoptet's in the second. A third state hides in the same shape: a write abandoned on the
+budget also lands as `FlexiSucceeded = false`, but carries
+`ErrorMessage = "Write budget spent while the write was in flight; outcome unknown."` — an
+outcome-unknown row rather than a failed one, and the message is the only thing distinguishing
+them. Decided deliberately in favour of no schema change: nothing reads
 this table, and migrations here are applied by hand — an unapplied one would make every append
 throw, and the append swallows its own failures by design, so the whole audit trail would go
 silently empty for both producers. If anything ever queries this table, add the column first.
@@ -289,7 +296,8 @@ byte-for-byte identical — which is indistinguishable from a button that does n
 reported as exactly that. So a successful sync also writes a status line under the filter bar:
 `Synchronizováno v HH:MM — zapsány 2 ceny do Flexi, 1 řádek se změnil` (or
 `do Flexi se nic nezapisovalo, beze změn`) — what reached the ERP first, then how many rows
-visibly moved, then `Zbývá N řádků — spusťte synchronizaci znovu` when the write budget cut
+visibly moved, then `Zbývá/Zbývají N řádek/řádky/řádků — spusťte synchronizaci znovu` when
+the write budget cut
 the run short.
 `countChangedRows` (same module as the merge) compares the synced rows against the ones the
 report was showing on the two live prices, the Flexi price type and the backend's verdict; it

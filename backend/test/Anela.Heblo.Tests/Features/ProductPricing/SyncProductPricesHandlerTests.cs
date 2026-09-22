@@ -65,9 +65,15 @@ public class SyncProductPricesHandlerTests
     private static PriceComparisonResult ReportOf(params PriceDivergenceRowDto[] rows) =>
         new() { Rows = rows.ToList() };
 
+    /// <summary>
+    /// Stubbed on <c>forceReload: false</c> specifically. The handler leans on
+    /// <c>BuildScopedReportAsync</c> having just reloaded the ceník cache, so reloading again
+    /// would mean a second live ERP round-trip on every sync — a stub on <c>It.IsAny&lt;bool&gt;()</c>
+    /// would let that change land green.
+    /// </summary>
     private void SetUpErpItems(params (string Code, int ErpItemId)[] items) =>
         _erpReader
-            .Setup(c => c.GetAllAsync(It.IsAny<bool>(), It.IsAny<CancellationToken>()))
+            .Setup(c => c.GetAllAsync(false, It.IsAny<CancellationToken>()))
             .ReturnsAsync(items.Select(i => new ProductPriceErp { ProductCode = i.Code, ErpItemId = i.ErpItemId }));
 
     private Task<SyncProductPricesResponse> HandleAsync(params string[] codes) =>
@@ -328,6 +334,44 @@ public class SyncProductPricesHandlerTests
                 It.Is<ProductPriceChangeLog>(log => log.ProductCode == "A" && !log.FlexiSucceeded),
                 It.IsAny<CancellationToken>()),
             Times.Once);
+    }
+
+    // The append deliberately uses CancellationToken.None: a cancelled request must not lose the
+    // only record of a write that did land in the live ERP.
+    [Fact]
+    public async Task logs_the_write_with_a_token_a_cancelled_request_cannot_take_down()
+    {
+        // Arrange
+        SetUpReports(ReportOf(Row("A", PriceDivergenceKind.FlexiDiffers)));
+        SetUpErpItems(("A", 42));
+
+        // Act
+        await HandleAsync("A");
+
+        // Assert
+        _changeLog.Verify(
+            l => l.AppendAsync(It.IsAny<ProductPriceChangeLog>(), CancellationToken.None), Times.Once);
+    }
+
+    // Stamped from the injected TimeProvider, not DateTime.UtcNow.
+    [Fact]
+    public async Task stamps_the_log_row_from_the_time_provider()
+    {
+        // Arrange
+        _timeProvider.SetUtcNow(new DateTimeOffset(2026, 3, 4, 5, 6, 7, TimeSpan.Zero));
+        SetUpReports(ReportOf(Row("A", PriceDivergenceKind.FlexiDiffers)));
+        SetUpErpItems(("A", 42));
+        ProductPriceChangeLog? logged = null;
+        _changeLog
+            .Setup(l => l.AppendAsync(It.IsAny<ProductPriceChangeLog>(), It.IsAny<CancellationToken>()))
+            .Callback<ProductPriceChangeLog, CancellationToken>((entry, _) => logged = entry)
+            .Returns(Task.CompletedTask);
+
+        // Act
+        await HandleAsync("A");
+
+        // Assert
+        logged!.ChangedAt.Should().Be(new DateTime(2026, 3, 4, 5, 6, 7, DateTimeKind.Utc));
     }
 
     [Fact]

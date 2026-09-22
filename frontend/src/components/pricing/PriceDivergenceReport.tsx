@@ -110,8 +110,12 @@ const failedPricesLabel = (count: number): string =>
 
 // Not a failure: the run stopped before the gateway could drop it, and the rows it did not
 // reach are waiting for the next click.
-const remainingPricesLabel = (count: number): string =>
-  `Zbývá ${count === 1 ? "1 řádek" : `${count} řádků`} — spusťte synchronizaci znovu.`;
+const remainingPricesLabel = (count: number): string => {
+  if (count === 1) return "Zbývá 1 řádek — spusťte synchronizaci znovu.";
+  if (count < FEW_UPPER_BOUND)
+    return `Zbývají ${count} řádky — spusťte synchronizaci znovu.`;
+  return `Zbývá ${count} řádků — spusťte synchronizaci znovu.`;
+};
 
 /**
  * The rows a sync would write, mirroring `SyncProductPricesHandler.NeedsFlexiWrite`. Only an

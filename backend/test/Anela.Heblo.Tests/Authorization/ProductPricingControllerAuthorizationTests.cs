@@ -1,4 +1,5 @@
 using System.Reflection;
+using Microsoft.AspNetCore.Mvc;
 using Anela.Heblo.API.Controllers;
 using Anela.Heblo.Domain.Features.Authorization;
 using FluentAssertions;
@@ -7,7 +8,7 @@ using Xunit;
 namespace Anela.Heblo.Tests.Authorization;
 
 /// <summary>
-/// Both mutating actions on this controller write straight into the live Shoptet store and the
+/// Every mutating action on this controller writes straight into the live Shoptet store and the
 /// live ABRA Flexi ERP, neither of which has a test environment. The class-level gate defaults
 /// to Read, so a missing method-level attribute would put a bulk price write behind a
 /// read permission — and every other suite would stay green.
@@ -24,9 +25,41 @@ public class ProductPricingControllerAuthorizationTests
         attribute.Level.Should().Be(AccessLevel.Read);
     }
 
+    /// <summary>
+    /// Discovered rather than listed. The regression worth catching is the mutating action
+    /// somebody adds next — naming today's two would let that one through silently, which is the
+    /// whole failure this class exists to prevent.
+    /// </summary>
+    public static TheoryData<string> MutatingActions()
+    {
+        var data = new TheoryData<string>();
+
+        foreach (var method in typeof(ProductPricingController)
+                     .GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly)
+                     .Where(IsMutatingAction))
+        {
+            data.Add(method.Name);
+        }
+
+        return data;
+    }
+
+    private static bool IsMutatingAction(MethodInfo method) =>
+        method.GetCustomAttribute<HttpPostAttribute>() != null
+        || method.GetCustomAttribute<HttpPutAttribute>() != null
+        || method.GetCustomAttribute<HttpPatchAttribute>() != null
+        || method.GetCustomAttribute<HttpDeleteAttribute>() != null;
+
+    [Fact]
+    public void EveryMutatingAction_IsDiscovered()
+    {
+        // Guards the guard: a reflection filter that silently matches nothing would make the
+        // theory below vacuous and green.
+        MutatingActions().Should().HaveCountGreaterThanOrEqualTo(2);
+    }
+
     [Theory]
-    [InlineData(nameof(ProductPricingController.SetPrice))]
-    [InlineData(nameof(ProductPricingController.Sync))]
+    [MemberData(nameof(MutatingActions))]
     public void PriceWrites_RequireProductsCatalogWrite(string methodName)
     {
         var method = typeof(ProductPricingController).GetMethod(methodName)!;

@@ -216,10 +216,28 @@ test("says how many rows are left when the run stopped on its write budget", asy
   // Act
   await userEvent.click(syncButton());
 
-  // Assert
+  // Assert — 3 is the 2-4 form: "Zbývají 3 řádky", not "Zbývá 3 řádků".
   await waitFor(() =>
-    expect(syncStatus()).toHaveTextContent("Zbývá 3 řádků — spusťte synchronizaci znovu."),
+    expect(syncStatus()).toHaveTextContent("Zbývají 3 řádky — spusťte synchronizaci znovu."),
   );
+});
+
+// The 2-4 form is the one a write budget actually tends to leave behind, and it was the form
+// the label originally skipped.
+test.each([
+  [1, "Zbývá 1 řádek — spusťte synchronizaci znovu."],
+  [2, "Zbývají 2 řádky — spusťte synchronizaci znovu."],
+  [4, "Zbývají 4 řádky — spusťte synchronizaci znovu."],
+  [5, "Zbývá 5 řádků — spusťte synchronizaci znovu."],
+])("declines the leftover count correctly for %i", async (remaining, expected) => {
+  // Arrange
+  renderReport(jest.fn().mockResolvedValue(outcome(rows, 2, 0, remaining)));
+
+  // Act
+  await userEvent.click(syncButton());
+
+  // Assert
+  await waitFor(() => expect(syncStatus()).toHaveTextContent(expected));
 });
 
 test("says nothing about leftovers when the run finished the whole selection", async () => {
