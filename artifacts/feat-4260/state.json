@@ -40,9 +40,9 @@
     },
     {
       "name": "update-existing-tests-to-three-argument-signature",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-09-22T08:17:34.855564Z"
+      "updated_at": "2026-09-22T08:38:33.862181Z"
     },
     {
       "name": "add-timezone-forwarding-regression-tests",
