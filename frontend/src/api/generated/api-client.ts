@@ -15231,6 +15231,7 @@ export enum ErrorCodes {
     ShipmentCreationFailed = "ShipmentCreationFailed",
     ShipmentLabelNotReady = "ShipmentLabelNotReady",
     ShipmentOrderWeightUnavailable = "ShipmentOrderWeightUnavailable",
+    ShipmentValidationFailed = "ShipmentValidationFailed",
     OrderNotInPackingState = "OrderNotInPackingState",
     ShipmentCancelFailed = "ShipmentCancelFailed",
     NoShipmentToReset = "NoShipmentToReset",
