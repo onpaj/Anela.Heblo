@@ -13,6 +13,9 @@ public sealed class EcomailSyncJob : IRecurringJob
     // headroom over the 6-hour schedule before another run is allowed to start.
     private const int LockTimeoutSeconds = 1800;
 
+    /// <summary>Cap on errors echoed into the failure message persisted by Hangfire.</summary>
+    private const int MaxReportedErrors = 10;
+
     private readonly IEcomailSyncService _syncService;
     private readonly IRecurringJobStatusChecker _statusChecker;
     private readonly EcomailOptions _options;
@@ -82,7 +85,23 @@ public sealed class EcomailSyncJob : IRecurringJob
         if (report.CampaignStatsFetched == 0 && report.SnapshotsWritten == 0 && report.AutomationMonthsComputed == 0)
         {
             throw new InvalidOperationException(
-                $"Ecomail sync produced no data: {string.Join(" | ", report.Errors)}");
+                $"Ecomail sync produced no data: {Summarise(report.Errors)}");
         }
+    }
+
+    /// <summary>
+    /// A total outage produces one error per campaign and per (pipeline x month) — hundreds of
+    /// them. This message is persisted into Hangfire job state, so cap it; every individual error
+    /// is already logged at its own call site.
+    /// </summary>
+    private static string Summarise(IReadOnlyList<string> errors)
+    {
+        if (errors.Count <= MaxReportedErrors)
+        {
+            return string.Join(" | ", errors);
+        }
+
+        return string.Join(" | ", errors.Take(MaxReportedErrors)) +
+               $" | (+{errors.Count - MaxReportedErrors} more)";
     }
 }

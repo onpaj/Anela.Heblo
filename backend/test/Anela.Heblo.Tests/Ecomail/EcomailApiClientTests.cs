@@ -216,15 +216,58 @@ public class EcomailApiClientTests
     }
 
     [Fact]
-    public async Task event_count_returns_zero_when_total_is_null()
+    public async Task event_count_returns_null_when_total_is_null()
     {
-        // Ecomail answers an unknown event name with {"total":null} rather than an error.
+        // Ecomail answers an event it does not support with {"total":null} rather than an error
+        // (CLUSTER-B-FINDINGS.md 8.5). Reading that as 0 would be indistinguishable from "nobody
+        // did this", and the sync service locks a month on the strength of a zero.
         var (client, _) = CreateClient((HttpStatusCode.OK, """{"total":null}"""));
 
         var count = await client.GetPipelineEventCountAsync(
             1, "conversion", new DateOnly(2026, 8, 1), new DateOnly(2026, 8, 31));
 
-        count.Should().Be(0);
+        count.Should().BeNull("an unsupported event is unknown, not zero");
+    }
+
+    [Fact]
+    public async Task a_not_found_on_the_campaign_listing_throws_instead_of_truncating_the_list()
+    {
+        // A 404 on a collection endpoint means the endpoint moved or lost scope. Swallowed, it
+        // would look like an empty page, be read as the last page, and silently truncate the
+        // campaign list into a green run.
+        var (client, _) = CreateClient((HttpStatusCode.NotFound, """{"message":"Not Found!"}"""));
+
+        var act = () => client.GetCampaignsAsync();
+
+        await act.Should().ThrowAsync<HttpRequestException>();
+    }
+
+    [Fact]
+    public async Task a_not_found_on_the_pipeline_listing_throws_instead_of_returning_empty()
+    {
+        // Swallowed, this would hand the sync service an empty pipeline list with no exception,
+        // bypassing its fall-back to known ids and silently ending snapshot collection forever.
+        var (client, _) = CreateClient((HttpStatusCode.NotFound, """{"message":"Not Found!"}"""));
+
+        var act = () => client.GetPipelinesAsync();
+
+        await act.Should().ThrowAsync<HttpRequestException>();
+    }
+
+    [Fact]
+    public async Task a_transient_server_error_is_retried_rather_than_losing_the_item_for_the_run()
+    {
+        // Without this, one 502 from a proxy during a ~400-call backfill permanently drops that
+        // month for the whole 6-hour cycle.
+        var (client, requests) = CreateClient(
+            (HttpStatusCode.BadGateway, "{}"),
+            (HttpStatusCode.OK, StatsDetail));
+
+        var count = await client.GetPipelineEventCountAsync(
+            31762, "open", new DateOnly(2026, 8, 1), new DateOnly(2026, 8, 31));
+
+        count.Should().Be(403);
+        requests.Should().HaveCount(2, "the 502 should have been retried, not surfaced");
     }
 
     [Fact]

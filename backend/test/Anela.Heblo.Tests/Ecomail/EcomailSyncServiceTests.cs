@@ -41,7 +41,8 @@ public class EcomailSyncServiceTests
     private static EcomailSyncService CreateService(
         ApplicationDbContext context,
         Mock<IEcomailApiClient> api,
-        EcomailOptions? options = null)
+        EcomailOptions? options = null,
+        DateTime? now = null)
     {
         var opts = options ?? new EcomailOptions
         {
@@ -54,7 +55,7 @@ public class EcomailSyncServiceTests
             api.Object,
             new EcomailRepository(context),
             Options.Create(opts),
-            new FakeTimeProvider(Now),
+            new FakeTimeProvider(now ?? Now),
             NullLogger<EcomailSyncService>.Instance);
     }
 
@@ -314,6 +315,121 @@ public class EcomailSyncServiceTests
             "LastError is the only discriminator between a failed month and a genuinely zero-event one");
         months.Should().OnlyContain(m => !m.IsLocked, "an unlocked month is retried on the next run");
         months.Should().OnlyContain(m => m.Send == 0 && m.Open == 0 && m.Click == 0 && m.Unsub == 0);
+    }
+
+    [Fact]
+    public async Task a_historic_month_that_failed_is_retried_rather_than_locked_at_zero()
+    {
+        // A transient blip partway through a long backfill writes a failure placeholder: all
+        // counts zero, LastError set, IsLocked false so the next run retries it. If the lock
+        // decision looked only at the recompute window, the next run would freeze that placeholder
+        // forever and the month would read as "nothing was sent" with no path back.
+        using var context = CreateContext();
+        var options = new EcomailOptions
+        {
+            ApiKey = "k",
+            RecomputeWindowMonths = 2,
+            BackfillFrom = new DateOnly(2026, 3, 1),
+        };
+        var api = ApiWith(pipelines: new[] { new EcomailPipelineDto { Id = 14720, Name = "Kosik" } });
+
+        var march = new DateOnly(2026, 3, 1);
+        api.Setup(a => a.GetPipelineEventCountAsync(
+                It.IsAny<int>(), It.IsAny<string>(), march, It.IsAny<DateOnly>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new HttpRequestException("boom"));
+
+        await CreateService(context, api, options).SyncAllAsync();
+
+        var failed = context.EcomailAutomationMonths.Single(m => m.Year == 2026 && m.Month == 3);
+        failed.LastError.Should().NotBeNull();
+        failed.IsLocked.Should().BeFalse("a month that never computed must stay retryable");
+
+        // Second run, Ecomail healthy again. March is six months back — well outside the
+        // two-month recompute window — so this is exactly the path that used to lock it.
+        api.Setup(a => a.GetPipelineEventCountAsync(
+                It.IsAny<int>(), It.IsAny<string>(), march, It.IsAny<DateOnly>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(11);
+
+        await CreateService(context, api, options).SyncAllAsync();
+
+        var healed = context.EcomailAutomationMonths.Single(m => m.Year == 2026 && m.Month == 3);
+        healed.LastError.Should().BeNull();
+        healed.Send.Should().Be(11, "the retry must overwrite the placeholder's zeros");
+        healed.IsLocked.Should().BeTrue("only now, with a real number in it, may the month be frozen");
+    }
+
+    [Fact]
+    public async Task an_unsupported_event_fails_the_month_instead_of_recording_a_plausible_zero()
+    {
+        // Ecomail answers an event it does not support with total:null. Recording that as 0 and
+        // locking the month would pin a wrong number that looks entirely plausible.
+        using var context = CreateContext();
+        var api = ApiWith(pipelines: new[] { new EcomailPipelineDto { Id = 14720, Name = "Kosik" } });
+        api.Setup(a => a.GetPipelineEventCountAsync(
+                It.IsAny<int>(), "unsub", It.IsAny<DateOnly>(), It.IsAny<DateOnly>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((int?)null);
+
+        var report = await CreateService(context, api).SyncAllAsync();
+
+        report.IsFullSuccess.Should().BeFalse();
+        var months = context.EcomailAutomationMonths.ToList();
+        months.Should().NotBeEmpty();
+        months.Should().OnlyContain(m => m.LastError != null,
+            "an unknown count is a failure, not a zero");
+        months.Should().OnlyContain(m => !m.IsLocked,
+            "a month whose counts are unknown must never be frozen");
+    }
+
+    [Fact]
+    public async Task an_empty_pipeline_listing_falls_back_to_known_ids_so_snapshots_still_run()
+    {
+        // The throwing shape of this failure is covered above. This is the silent shape: an empty
+        // list with no exception, which would otherwise end snapshot collection on a green run.
+        using var context = CreateContext();
+        context.EcomailPipelines.Add(new EcomailPipeline
+        {
+            Id = 14720,
+            Name = "Kosik",
+            SyncedAt = Now.AddDays(-1),
+        });
+        await context.SaveChangesAsync();
+
+        var api = ApiWith();
+
+        var report = await CreateService(context, api).SyncAllAsync();
+
+        report.Errors.Should().ContainSingle().Which.Should().Contain("pipelines");
+        context.EcomailAutomationSnapshots.Should().ContainSingle(
+            "an empty listing while pipelines are already known is never legitimate");
+    }
+
+    [Fact]
+    public async Task the_next_day_appends_a_snapshot_and_leaves_yesterdays_untouched()
+    {
+        // Monthly automation conversions exist nowhere else — they are derived by differencing
+        // consecutive snapshots. That only works if each day appends a row rather than updating
+        // the previous one, which same-day dedup alone does not prove.
+        using var context = CreateContext();
+        var api = ApiWith(pipelines: new[] { new EcomailPipelineDto { Id = 14720, Name = "Kosik" } });
+        api.Setup(a => a.GetPipelineStatsAsync(It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Stats(150, 314708.90m));
+
+        await CreateService(context, api).SyncAllAsync();
+
+        api.Setup(a => a.GetPipelineStatsAsync(It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Stats(162, 330000m));
+
+        await CreateService(context, api, now: Now.AddDays(1)).SyncAllAsync();
+
+        var snapshots = context.EcomailAutomationSnapshots.OrderBy(x => x.CapturedOn).ToList();
+        snapshots.Should().HaveCount(2, "each day appends; yesterday's row is never overwritten");
+        snapshots[0].CapturedOn.Should().Be(DateOnly.FromDateTime(Now));
+        snapshots[1].CapturedOn.Should().Be(DateOnly.FromDateTime(Now.AddDays(1)));
+        snapshots[0].Conversions.Should().Be(150, "yesterday's cumulative counter must be preserved");
+        snapshots[1].Conversions.Should().Be(162);
+
+        // The whole point of the storage shape: the delta is the day's conversions.
+        (snapshots[1].Conversions - snapshots[0].Conversions).Should().Be(12);
     }
 
     private sealed class FakeTimeProvider : TimeProvider

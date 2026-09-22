@@ -38,6 +38,13 @@ public class EcomailSyncService : IEcomailSyncService
         var (campaigns, campaignStatsFetched) = await SyncCampaignsAsync(now, errors, cancellationToken);
         var (pipelineIds, pipelines) = await SyncPipelinesAsync(now, errors, cancellationToken);
         var snapshots = await SyncSnapshotsAsync(pipelineIds, today, errors, cancellationToken);
+
+        // Snapshots are the only rows that can never be recovered — Ecomail exposes lifetime
+        // automation counters only, so a snapshot day lost here is a hole in every future
+        // month-over-month delta. Commit them before the long, call-heavy month stage, which an
+        // app restart or one oversized campaign title would otherwise roll back along with them.
+        await _repository.SaveChangesAsync(cancellationToken);
+
         var months = await SyncAutomationMonthsAsync(pipelineIds, today, now, errors, cancellationToken);
 
         await _repository.SaveChangesAsync(cancellationToken);
@@ -168,6 +175,19 @@ public class EcomailSyncService : IEcomailSyncService
             ids = existing.Keys.ToList();
         }
 
+        // Belt and braces for the non-throwing shape of the same failure: an empty listing while
+        // our own database already knows pipelines is never legitimate — Ecomail automations are
+        // not deleted wholesale — so treat it as a failed listing rather than silently ending
+        // snapshot collection with a green run.
+        if (ids.Count == 0 && existing.Count > 0)
+        {
+            _logger.LogWarning(
+                "Ecomail returned no pipelines while {Known} are already known; falling back to the known ids",
+                existing.Count);
+            errors.Add($"pipelines: listing returned none while {existing.Count} are known");
+            ids = existing.Keys.ToList();
+        }
+
         return (ids, count);
     }
 
@@ -245,7 +265,12 @@ public class EcomailSyncService : IEcomailSyncService
                 var monthsBack = ((currentMonth.Year - month.Year) * 12) + currentMonth.Month - month.Month;
                 var isInsideWindow = monthsBack < _options.RecomputeWindowMonths;
 
-                if (entity is not null && !isInsideWindow)
+                // LastError != null means the row is a failure placeholder written by the catch
+                // below: counts are all zero and ComputedAt was never set. Freezing it because it
+                // has aged out of the window would make a transient blip during a long backfill
+                // permanently indistinguishable from a month in which nothing was sent, with no
+                // path back. Retry it instead, however old it is.
+                if (entity is not null && !isInsideWindow && entity.LastError is null)
                 {
                     entity.IsLocked = true;
                     continue;
@@ -258,8 +283,13 @@ public class EcomailSyncService : IEcomailSyncService
 
                     foreach (var eventName in MonthlyEvents)
                     {
+                        // Null means Ecomail does not support the event (§8.5) — recording it as
+                        // zero and then locking the month would permanently pin a wrong number
+                        // that looks perfectly plausible. Fail the month instead.
                         counts[eventName] = await _api.GetPipelineEventCountAsync(
-                            pipelineId, eventName, month, to, cancellationToken);
+                                                pipelineId, eventName, month, to, cancellationToken)
+                                            ?? throw new InvalidOperationException(
+                                                $"Ecomail returned no total for event '{eventName}'.");
                     }
 
                     entity ??= AddAutomationMonth(pipelineId, month);

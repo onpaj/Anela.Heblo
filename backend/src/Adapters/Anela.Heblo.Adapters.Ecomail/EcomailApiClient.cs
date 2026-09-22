@@ -29,7 +29,13 @@ public class EcomailApiClient : IEcomailApiClient
             MaxRetryAttempts = 3,
             Delay = TimeSpan.FromSeconds(2),
             BackoffType = DelayBackoffType.Exponential,
-            ShouldHandle = new PredicateBuilder().Handle<EcomailThrottledException>(),
+            // Throttling is retried on Ecomail's own schedule; genuinely transient faults get the
+            // exponential backoff. Without this a single blip during a ~400-call run permanently
+            // drops that campaign or month for the whole 6-hour cycle.
+            ShouldHandle = new PredicateBuilder()
+                .Handle<EcomailThrottledException>()
+                .Handle<HttpRequestException>(static ex => IsTransient(ex))
+                .Handle<TaskCanceledException>(static ex => !ex.CancellationToken.IsCancellationRequested),
             // Honour Ecomail's own Retry-After when it threw one; fall back to the
             // exponential backoff above (returning null tells Polly to use its default).
             DelayGenerator = static args =>
@@ -40,6 +46,16 @@ public class EcomailApiClient : IEcomailApiClient
             },
         })
         .Build();
+
+    /// <summary>
+    /// EnsureSuccessStatusCode raises HttpRequestException for every non-2xx, so retrying it
+    /// blindly would burn three backoffs on a permanent 403 or 404 — and, worse, turn a hard
+    /// failure into a success once the retry happened to hit a different response. Only a
+    /// transport-level fault (no status at all), a 5xx, or a 408 is worth another attempt.
+    /// </summary>
+    private static bool IsTransient(HttpRequestException ex) =>
+        ex.StatusCode is null or HttpStatusCode.RequestTimeout ||
+        (int)ex.StatusCode >= 500;
 
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
@@ -73,7 +89,11 @@ public class EcomailApiClient : IEcomailApiClient
         for (var page = 1; page <= MaxCampaignPages; page++)
         {
             var url = $"/campaigns?per_page={PageSize}&page={page}";
-            var batch = await GetAsync<List<EcomailCampaignDto>>(url, cancellationToken) ?? new List<EcomailCampaignDto>();
+            // NotFoundPolicy.Throw: a 404 here is the listing endpoint moving or losing scope, not
+            // a missing record. Swallowed it would produce an empty batch, read as a short page,
+            // and silently truncate the campaign list into a "successful" run.
+            var batch = await GetAsync<List<EcomailCampaignDto>>(url, NotFoundPolicy.Throw, cancellationToken)
+                        ?? new List<EcomailCampaignDto>();
 
             all.AddRange(batch);
 
@@ -92,20 +112,26 @@ public class EcomailApiClient : IEcomailApiClient
 
     public async Task<EcomailStatsDto?> GetCampaignStatsAsync(int campaignId, CancellationToken cancellationToken = default)
     {
-        var envelope = await GetAsync<StatsEnvelope>($"/campaigns/{campaignId}/stats", cancellationToken);
+        var envelope = await GetAsync<StatsEnvelope>(
+            $"/campaigns/{campaignId}/stats", NotFoundPolicy.Skip, cancellationToken);
         return envelope?.Stats;
     }
 
     public async Task<IReadOnlyList<EcomailPipelineDto>> GetPipelinesAsync(CancellationToken cancellationToken = default)
-        => await GetAsync<List<EcomailPipelineDto>>("/pipelines", cancellationToken) ?? new List<EcomailPipelineDto>();
+        // NotFoundPolicy.Throw: see GetCampaignsAsync. A swallowed 404 here would yield an empty
+        // pipeline list with no exception, bypassing the sync service's fall-back to the pipeline
+        // ids already in our database and silently ending snapshot collection forever.
+        => await GetAsync<List<EcomailPipelineDto>>("/pipelines", NotFoundPolicy.Throw, cancellationToken)
+           ?? new List<EcomailPipelineDto>();
 
     public async Task<EcomailStatsDto?> GetPipelineStatsAsync(int pipelineId, CancellationToken cancellationToken = default)
     {
-        var envelope = await GetAsync<StatsEnvelope>($"/pipelines/{pipelineId}/stats", cancellationToken);
+        var envelope = await GetAsync<StatsEnvelope>(
+            $"/pipelines/{pipelineId}/stats", NotFoundPolicy.Skip, cancellationToken);
         return envelope?.Stats;
     }
 
-    public async Task<int> GetPipelineEventCountAsync(
+    public async Task<int?> GetPipelineEventCountAsync(
         int pipelineId, string eventName, DateOnly fromDate, DateOnly toDate,
         CancellationToken cancellationToken = default)
     {
@@ -114,11 +140,27 @@ public class EcomailApiClient : IEcomailApiClient
                   $"?event={Uri.EscapeDataString(eventName)}" +
                   $"&from_date={fromDate:yyyy-MM-dd}&to_date={toDate:yyyy-MM-dd}&per_page=1";
 
-        var detail = await GetAsync<StatsDetailEnvelope>(url, cancellationToken);
-        return detail?.Total ?? 0;
+        var detail = await GetAsync<StatsDetailEnvelope>(url, NotFoundPolicy.Skip, cancellationToken);
+
+        // `total: null` is how Ecomail answers an event it does not support — that is exactly what
+        // `conversion` returns (CLUSTER-B-FINDINGS.md §8.5). Collapsing it to 0 here would be
+        // indistinguishable from "nobody did this", and the caller locks a month on the strength
+        // of a zero. Null travels up so the caller can record a failure instead.
+        return detail?.Total;
     }
 
-    private async Task<T?> GetAsync<T>(string url, CancellationToken cancellationToken) where T : class
+    /// <summary>What a 404 means for the endpoint being called.</summary>
+    private enum NotFoundPolicy
+    {
+        /// <summary>Single resource: the record is gone; skip it and keep the run going.</summary>
+        Skip,
+
+        /// <summary>Collection: the endpoint itself is missing; that is a real failure.</summary>
+        Throw,
+    }
+
+    private async Task<T?> GetAsync<T>(string url, NotFoundPolicy notFoundPolicy, CancellationToken cancellationToken)
+        where T : class
     {
         return await _pipeline.ExecuteAsync(async ct =>
         {
@@ -140,7 +182,10 @@ public class EcomailApiClient : IEcomailApiClient
             // missing resource, and this API key is already known to 403 on some endpoints
             // (CLUSTER-B-FINDINGS.md). Swallowing it the same way as 404 would let a scope change
             // on Ecomail's side turn into a silently empty, "successful" run forever.
-            if (response.StatusCode == HttpStatusCode.NotFound)
+            //
+            // The same reasoning applies to a 404 on a *collection* endpoint, which is why only
+            // NotFoundPolicy.Skip callers get the swallow — see NotFoundPolicy.
+            if (response.StatusCode == HttpStatusCode.NotFound && notFoundPolicy == NotFoundPolicy.Skip)
             {
                 _logger.LogWarning("Ecomail returned {Status} for {Url}; skipping", response.StatusCode, url);
                 return null;

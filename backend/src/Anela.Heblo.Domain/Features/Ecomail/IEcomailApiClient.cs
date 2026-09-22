@@ -15,10 +15,11 @@ public interface IEcomailApiClient
 
     /// <summary>
     /// Unique subscribers with <paramref name="eventName"/> inside the window, read from
-    /// stats-detail's `total`. This is the only date filter Ecomail actually honours.
-    /// Returns 0 when Ecomail answers `{"total":null}`.
+    /// stats-detail's `total` — the only date filter Ecomail actually honours. Null when Ecomail
+    /// answers `{"total":null}`, which means it does not support that event and must never be
+    /// read as a zero count.
     /// </summary>
-    Task<int> GetPipelineEventCountAsync(
+    Task<int?> GetPipelineEventCountAsync(
         int pipelineId, string eventName, DateOnly fromDate, DateOnly toDate,
         CancellationToken cancellationToken = default);
 }
