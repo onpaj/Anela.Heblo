@@ -34,9 +34,9 @@
     },
     {
       "name": "update-hangfire-adapter-to-use-passed-timezone",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-09-22T07:15:23.750245Z"
+      "updated_at": "2026-09-22T07:18:42.427045Z"
     },
     {
       "name": "update-existing-tests-to-three-argument-signature",
