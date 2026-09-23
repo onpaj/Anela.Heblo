@@ -78,6 +78,7 @@
         <ProjectReference Include="..\Adapters\Anela.Heblo.Adapters.Microsoft365\Anela.Heblo.Adapters.Microsoft365.csproj" />
         <ProjectReference Include="..\Adapters\Anela.Heblo.Adapters.OrgChart\Anela.Heblo.Adapters.OrgChart.csproj" />
         <ProjectReference Include="..\Adapters\Anela.Heblo.Adapters.Logeto\Anela.Heblo.Adapters.Logeto.csproj" />
+        <ProjectReference Include="..\Adapters\Anela.Heblo.Adapters.GoogleAnalytics\Anela.Heblo.Adapters.GoogleAnalytics.csproj" />
         <ProjectReference Include="..\Adapters\Anela.Heblo.Adapters.Ecomail\Anela.Heblo.Adapters.Ecomail.csproj" />
     </ItemGroup>
 

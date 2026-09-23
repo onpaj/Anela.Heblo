@@ -1,7 +1,9 @@
 using Anela.Heblo.Application.Common.Behaviors;
+using Anela.Heblo.Application.Features.Bank.Contracts;
 using Anela.Heblo.Application.Features.Bank.Infrastructure;
 using Anela.Heblo.Application.Features.Bank.Infrastructure.Jobs;
 using Anela.Heblo.Application.Features.Bank.UseCases.GetBankStatementList;
+using Anela.Heblo.Application.Features.Bank.UseCases.ImportBankStatement;
 using Anela.Heblo.Application.Features.Bank.Validators;
 using Anela.Heblo.Domain.Features.Analytics;
 using Anela.Heblo.Domain.Features.Bank;
@@ -30,6 +32,11 @@ public static class BankModule
         services.AddScoped<
             IPipelineBehavior<GetBankStatementListRequest, GetBankStatementListResponse>,
             ValidationBehavior<GetBankStatementListRequest, GetBankStatementListResponse>>();
+
+        services.AddScoped<IValidator<ImportBankStatementRequest>, ImportBankStatementRequestValidator>();
+        services.AddScoped<
+            IPipelineBehavior<ImportBankStatementRequest, BankStatementImportResultDto>,
+            ValidationBehavior<ImportBankStatementRequest, BankStatementImportResultDto>>();
 
         // Cross-module contract: Bank implements Analytics' IBankStatementStatisticsSource
         // via an adapter. DI registration owned by provider (Bank), not consumer (Analytics).

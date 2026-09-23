@@ -1,5 +1,3 @@
-using Anela.Heblo.Domain.Features.Bank;
-
 namespace Anela.Heblo.Application.Features.Bank.Contracts;
 
 public class BankStatementImportDto
@@ -12,5 +10,5 @@ public class BankStatementImportDto
     public string Currency { get; set; } = null!;
     public int ItemCount { get; set; }
     public string ImportResult { get; set; } = null!;
-    public string? ErrorType => ImportResult != ImportStatus.Success ? ImportResult : null;
+    public string? ErrorType { get; set; }
 }

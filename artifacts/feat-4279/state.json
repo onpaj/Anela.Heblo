@@ -1,0 +1,52 @@
+{
+  "feature_id": "feat-4279",
+  "issue_number": 4279,
+  "created_at": "2026-09-23T06:12:25.204165Z",
+  "max_revisions": 3,
+  "phases": {
+    "analyzing": {
+      "status": "completed",
+      "updated_at": "2026-09-23T06:14:06.719584Z"
+    },
+    "architecting": {
+      "status": "completed",
+      "updated_at": "2026-09-23T06:15:27.517756Z"
+    },
+    "designing": {
+      "status": "completed",
+      "updated_at": "2026-09-23T06:15:53.945671Z"
+    },
+    "planning": {
+      "status": "completed",
+      "updated_at": "2026-09-23T06:17:25.628357Z"
+    },
+    "developing": {
+      "status": "in_progress",
+      "updated_at": "2026-09-23T10:15:51.786981Z"
+    },
+    "code-review": {
+      "status": "completed",
+      "updated_at": "2026-09-23T11:20:03.346278Z"
+    }
+  },
+  "tasks": [
+    {
+      "name": "write-dto-settability-test",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-09-23T07:20:22.490415Z"
+    },
+    {
+      "name": "make-errortype-settable-and-mapped",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-09-23T09:25:37.599872Z"
+    },
+    {
+      "name": "verify-client-diff-and-final-checklist",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-09-23T11:01:49.240626Z"
+    }
+  ]
+}

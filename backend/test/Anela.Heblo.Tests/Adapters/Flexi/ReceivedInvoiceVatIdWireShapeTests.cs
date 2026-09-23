@@ -39,6 +39,22 @@ public class ReceivedInvoiceVatIdWireShapeTests
          "stitky":"","typUcOp":[]}
         """;
 
+    /// <summary>
+    /// The instant <c>datUcto</c> denotes, expressed in the host's own timezone.
+    ///
+    /// The wire value carries an offset — <c>"2026-08-02+02:00"</c> — and Newtonsoft binds an
+    /// offset-bearing string into a <see cref="DateTime"/> by converting it to LOCAL time. On the
+    /// production container (<c>ENV TZ=Europe/Prague</c> in the Dockerfile) and on a Czech
+    /// developer's laptop that lands on 2026-08-02 00:00, so asserting the bare date passed. On a
+    /// UTC host — every GitHub Actions runner — the same value is 2026-08-01 22:00 and the
+    /// assertion failed, which is what made this test red on CI while green everywhere else.
+    ///
+    /// Comparing against the converted instant pins the binding (the offset IS honoured) without
+    /// smuggling in an assumption about where the test happens to run.
+    /// </summary>
+    private static readonly DateTime ExpectedAccountingDate =
+        new DateTimeOffset(2026, 8, 2, 0, 0, 0, TimeSpan.FromHours(2)).LocalDateTime;
+
     private static IMapper Mapper() =>
         new MapperConfiguration(cfg => cfg.AddProfile<FlexiReceivedInvoiceMappingProfile>(), NullLoggerFactory.Instance).CreateMapper();
 
@@ -50,7 +66,7 @@ public class ReceivedInvoiceVatIdWireShapeTests
         dto.VatId.Should().Be("IE9692928F");
         dto.IsCancelled.Should().BeFalse();
         dto.TotalBaseAmount.Should().Be(20000.0);
-        dto.AccountingDate.Should().Be(new DateTime(2026, 8, 2));
+        dto.AccountingDate.Should().Be(ExpectedAccountingDate);
     }
 
     [Fact]
@@ -62,7 +78,7 @@ public class ReceivedInvoiceVatIdWireShapeTests
 
         mapped.SupplierVatId.Should().Be("IE9692928F");
         mapped.TotalAmountWithoutVat.Should().Be(20000m);
-        mapped.AccountingDate.Should().Be(new DateTime(2026, 8, 2));
+        mapped.AccountingDate.Should().Be(ExpectedAccountingDate);
         mapped.IsCancelled.Should().BeFalse();
         mapped.InvoiceNumber.Should().Be("PF260878");
     }
