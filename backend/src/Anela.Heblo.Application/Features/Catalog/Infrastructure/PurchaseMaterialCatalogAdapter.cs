@@ -64,6 +64,7 @@ internal sealed class PurchaseMaterialCatalogAdapter : IMaterialCatalogService
             {
                 ProductCode = item.ProductCode,
                 BoMId = item.BoMId!.Value,
+                IsSemiProduct = item.Type == ProductType.SemiProduct,
             })
             .ToList();
     }

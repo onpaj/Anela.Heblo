@@ -340,4 +340,25 @@ public class PurchaseMaterialCatalogAdapterTests
         result[0].ProductCode.Should().Be("WITH-BOM");
         result[0].BoMId.Should().Be(7);
     }
+
+    [Fact]
+    public async Task GetMaterialsWithBomAsync_marks_semi_product_boms()
+    {
+        // Arrange
+        var ct = CancellationToken.None;
+        _repository
+            .Setup(r => r.GetAllAsync(ct))
+            .ReturnsAsync(new[]
+            {
+                MakeMaterial("DEZ001001M", "Semi", type: ProductType.SemiProduct, hasBoM: true, bomId: 8),
+                MakeMaterial("DEZ001100", "Product", type: ProductType.Product, hasBoM: true, bomId: 9),
+            });
+
+        // Act
+        var result = await CreateAdapter().GetMaterialsWithBomAsync(ct);
+
+        // Assert
+        result.Single(r => r.ProductCode == "DEZ001001M").IsSemiProduct.Should().BeTrue();
+        result.Single(r => r.ProductCode == "DEZ001100").IsSemiProduct.Should().BeFalse();
+    }
 }
