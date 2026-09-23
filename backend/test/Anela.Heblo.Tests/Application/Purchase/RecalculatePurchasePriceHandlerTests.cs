@@ -452,6 +452,60 @@ public class RecalculatePurchasePriceHandlerTests
     }
 
     [Fact]
+    public async Task RecalculateAll_logs_phase1_summary_as_warning_when_a_write_fails()
+    {
+        // Arrange
+        GivenCandidates(Candidate("BAD", 1, 3m, 0.3m));
+        GivenBoms();
+        _priceRecalculationServiceMock
+            .Setup(x => x.SetPurchasePriceAsync(1, It.IsAny<decimal>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new HttpRequestException("rejected"));
+
+        // Act
+        await _handler.Handle(RecalculateAll(), CancellationToken.None);
+
+        // Assert
+        _loggerMock.Verify(
+            x => x.Log(
+                LogLevel.Warning,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains("Purchase price phase 1")),
+                It.IsAny<Exception>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task RecalculateAll_logs_phase1_summary_as_information_when_nothing_fails()
+    {
+        // Arrange
+        GivenCandidates(Candidate("AKL097", 789, 3.048594m, 0.311m));
+        GivenBoms();
+
+        // Act
+        await _handler.Handle(RecalculateAll(), CancellationToken.None);
+
+        // Assert
+        _loggerMock.Verify(
+            x => x.Log(
+                LogLevel.Information,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains("Purchase price phase 1")),
+                It.IsAny<Exception>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Once);
+
+        _loggerMock.Verify(
+            x => x.Log(
+                LogLevel.Warning,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains("Purchase price phase 1")),
+                It.IsAny<Exception>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Never);
+    }
+
+    [Fact]
     public async Task RecalculateAll_continues_after_a_failed_write()
     {
         // Arrange

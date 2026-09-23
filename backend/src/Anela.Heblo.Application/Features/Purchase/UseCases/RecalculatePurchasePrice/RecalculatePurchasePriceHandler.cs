@@ -132,9 +132,18 @@ public class RecalculatePurchasePriceHandler : IRequestHandler<RecalculatePurcha
                 skippedCodes.Count, string.Join(", ", skippedCodes.Take(MaxLoggedSkippedCodes)));
         }
 
-        _logger.LogInformation(
-            "Purchase price phase 1 (materials and goods): {Candidates} candidates, {Written} written, {Unchanged} unchanged, {Skipped} skipped, {Failed} failed",
-            summary.Candidates, summary.Written, summary.Unchanged, summary.SkippedNoStockPrice, summary.Failed);
+        const string phase1Summary =
+            "Purchase price phase 1 (materials and goods): {Candidates} candidates, {Written} written, {Unchanged} unchanged, {Skipped} skipped, {Failed} failed";
+        if (summary.Failed > 0)
+        {
+            _logger.LogWarning(phase1Summary,
+                summary.Candidates, summary.Written, summary.Unchanged, summary.SkippedNoStockPrice, summary.Failed);
+        }
+        else
+        {
+            _logger.LogInformation(phase1Summary,
+                summary.Candidates, summary.Written, summary.Unchanged, summary.SkippedNoStockPrice, summary.Failed);
+        }
 
         return summary;
     }
