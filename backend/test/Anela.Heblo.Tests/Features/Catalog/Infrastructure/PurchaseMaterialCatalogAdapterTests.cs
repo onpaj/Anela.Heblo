@@ -361,4 +361,25 @@ public class PurchaseMaterialCatalogAdapterTests
         result.Single(r => r.ProductCode == "DEZ001001M").IsSemiProduct.Should().BeTrue();
         result.Single(r => r.ProductCode == "DEZ001100").IsSemiProduct.Should().BeFalse();
     }
+
+    [Fact]
+    public async Task GetMaterialsWithBomAsync_marks_set_boms()
+    {
+        // Arrange
+        var ct = CancellationToken.None;
+        _repository
+            .Setup(r => r.GetAllAsync(ct))
+            .ReturnsAsync(new[]
+            {
+                MakeMaterial("SET001", "Set", type: ProductType.Set, hasBoM: true, bomId: 10),
+                MakeMaterial("DEZ001100", "Product", type: ProductType.Product, hasBoM: true, bomId: 9),
+            });
+
+        // Act
+        var result = await CreateAdapter().GetMaterialsWithBomAsync(ct);
+
+        // Assert
+        result.Single(r => r.ProductCode == "SET001").IsSet.Should().BeTrue();
+        result.Single(r => r.ProductCode == "DEZ001100").IsSet.Should().BeFalse();
+    }
 }

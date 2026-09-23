@@ -434,6 +434,28 @@ public class RecalculatePurchasePriceHandlerTests
     }
 
     [Fact]
+    public async Task RecalculateAll_runs_products_before_sets_in_phase_3()
+    {
+        // Arrange: Flexi's roll-up reads STORED component prices, so a set (assembled from
+        // products) must be recalculated after the products it contains.
+        var calls = new List<string>();
+        GivenBoms(
+            new MaterialBomReference { ProductCode = "SET001", BoMId = 10, IsSet = true },
+            new MaterialBomReference { ProductCode = "DEZ001100", BoMId = 5654 });
+        _priceRecalculationServiceMock
+            .Setup(x => x.RecalculatePurchasePriceAsync(It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            .Callback<int, CancellationToken>((bomId, _) => calls.Add($"bom:{bomId}"))
+            .Returns(Task.CompletedTask);
+
+        // Act
+        var result = await _handler.Handle(RecalculateAll(), CancellationToken.None);
+
+        // Assert
+        calls.Should().Equal("bom:5654", "bom:10");
+        result.Products.Succeeded.Should().Be(2);
+    }
+
+    [Fact]
     public async Task RecalculateAll_does_not_recalculate_boms_when_candidates_cannot_be_loaded()
     {
         // Arrange

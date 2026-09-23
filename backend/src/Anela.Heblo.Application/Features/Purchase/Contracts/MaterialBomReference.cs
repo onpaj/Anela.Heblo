@@ -10,4 +10,11 @@ public sealed class MaterialBomReference
     /// product BoMs, because Flexi's roll-up reads each component's stored purchase price.
     /// </summary>
     public bool IsSemiProduct { get; init; }
+
+    /// <summary>
+    /// True when the BoM owner is a set. Sets are assembled from finished products, so their BoM
+    /// is recalculated after product BoMs, because Flexi's roll-up reads each component's stored
+    /// purchase price.
+    /// </summary>
+    public bool IsSet { get; init; }
 }

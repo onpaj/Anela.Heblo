@@ -92,7 +92,10 @@ public class RecalculatePurchasePriceHandler : IRequestHandler<RecalculatePurcha
         _logger.LogInformation("Purchase price phase 2 (semi-products): {Succeeded} succeeded, {Failed} failed",
             response.SemiProducts.Succeeded, response.SemiProducts.Failed);
 
-        response.Products = await RecalculateBomsAsync(boms.Where(b => !b.IsSemiProduct).ToList(), response, cancellationToken);
+        // Sets are assembled from finished products; Flexi's roll-up reads each component's
+        // stored purchase price, so sets must be recalculated after the products they contain.
+        var productBoms = boms.Where(b => !b.IsSemiProduct).OrderBy(b => b.IsSet).ToList();
+        response.Products = await RecalculateBomsAsync(productBoms, response, cancellationToken);
         _logger.LogInformation("Purchase price phase 3 (products and sets): {Succeeded} succeeded, {Failed} failed",
             response.Products.Succeeded, response.Products.Failed);
 
