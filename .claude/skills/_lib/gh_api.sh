@@ -152,19 +152,27 @@ req_paginate() {
   local url
   url=$(_api_url "$path")
   [[ "$url" == *"?"* ]] && url="${url}&per_page=100" || url="${url}?per_page=100"
-  local all="[]" hdrfile body
+  local hdrfile all_file body_file
   hdrfile=$(mktemp)
+  all_file=$(mktemp)
+  body_file=$(mktemp)
+  echo '[]' > "$all_file"
   while [[ -n "$url" ]]; do
-    body=$(curl -sS --max-time 30 -X "$method" \
+    curl -sS --max-time 30 -X "$method" \
       -H "Authorization: Bearer ${TOKEN}" \
       -H "Accept: application/vnd.github+json" \
       -H "X-GitHub-Api-Version: 2022-11-28" \
-      -D "$hdrfile" "$url")
-    all=$(jq -c -n --argjson a "$all" --argjson b "$body" '$a + $b')
+      -D "$hdrfile" -o "$body_file" "$url"
+    # Pages can run well past bash's per-argument length limit
+    # (MAX_ARG_STRLEN, 128KB on Linux), so pass both sides through
+    # --slurpfile instead of --argjson, which would blow up on a PR with a
+    # large comment history ("Argument list too long").
+    jq -c -n --slurpfile a "$all_file" --slurpfile b "$body_file" '$a[0] + $b[0]' > "${all_file}.next"
+    mv "${all_file}.next" "$all_file"
     url=$(grep -i '^link:' "$hdrfile" | grep -o '<[^>]*>; rel="next"' | sed -E 's/^<(.*)>.*/\1/' || true)
   done
-  rm -f "$hdrfile"
-  printf '%s' "$all"
+  cat "$all_file"
+  rm -f "$hdrfile" "$all_file" "$body_file"
 }
 
 graphql() {
