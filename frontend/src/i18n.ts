@@ -302,6 +302,8 @@ const resources = {
         ShipmentCreationFailed: "Vytvoření zásilky se nezdařilo.",
         ShipmentLabelNotReady: "Štítek zásilky ještě není připraven.",
         ShipmentOrderWeightUnavailable: "Hmotnost objednávky není dostupná.",
+        ShipmentValidationFailed:
+          "Adresu příjemce nelze použít pro vytvoření zásilky (chybí povinné údaje) — opravte ji v Shoptetu.",
 
         // Packaging module errors
         OrderNotInPackingState: "Objednávka není ve stavu Balí se — zásilku nelze vytvořit.",
