@@ -19,7 +19,7 @@
 --    ungranted; the views run with the owner's privileges, so Metabase still reads them fine.
 --  * order_fact is MATERIALIZED. Deciding whether an order is a customer's first needs a window
 --    over the whole history, so no month filter can narrow it — measured at ~2 s per query against
---    96k orders, paid again by every view on top. The sync refreshes it after each successful run.
+--    96k orders, paid again by every view on top. The sync refreshes it at the end of every run.
 -- =============================================================================
 
 -- -----------------------------------------------------------------------------

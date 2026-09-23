@@ -266,8 +266,9 @@ back on. A view runs with its owner's privileges, so Metabase needs nothing else
 
 ### Cost
 
-`order_fact` is a **materialised** view, and the sync refreshes it (`CONCURRENTLY`) after every
-successful run. It has to be: deciding whether an order is a customer's first needs a window over
+`order_fact` is a **materialised** view, and the sync refreshes it (`CONCURRENTLY`) at the end of
+every run that is not cancelled — including a failed one and one still mid-backfill, since the rows
+it did commit are worth showing. It has to be: deciding whether an order is a customer's first needs a window over
 the whole history, so no month filter can narrow it. Measured against the real 96,615 orders that
 cost ~2 s, and every read view sat on top of it paid that again — a six-tile dashboard came to
 ~12 s of CPU on the vCore that also serves production.
@@ -275,7 +276,11 @@ cost ~2 s, and every read view sat on top of it paid that again — a six-tile d
 Two operational consequences:
 
 - **`REFRESH MATERIALIZED VIEW CONCURRENTLY` needs the unique index** on `order_fact(code)` that
-  the views script creates. Without it the refresh falls back to an exclusive lock.
+  the views script creates. Without it the refresh does not fall back to a locking refresh — it
+  fails, the sync logs `OrderFactRefreshFailed`, and `order_fact` silently stops updating.
+- **The app's database role must own `order_fact`**, or every refresh fails with "must be owner of
+  materialized view". Run the views script as the same role the `ShoptetOrdersSync--ConnectionString`
+  secret uses.
 - **`ANALYZE` the tables after a bulk load.** On freshly backfilled tables with no statistics,
   `v_product_sales_monthly` planned badly and took 15.8 s; after `ANALYZE` it took 4.1 s.
 
