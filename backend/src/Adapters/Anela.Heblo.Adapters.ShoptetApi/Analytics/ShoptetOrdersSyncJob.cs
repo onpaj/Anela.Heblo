@@ -1,4 +1,5 @@
 using Anela.Heblo.Domain.Features.BackgroundJobs;
+using Hangfire;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
@@ -32,6 +33,9 @@ public sealed class ShoptetOrdersSyncJob : IRecurringJob
         };
     }
 
+    // A retry would re-run up to a 4-hour backfill in business hours, on the API token and vCore the
+    // packing flow shares. The job is resumable, so tomorrow night's run picks up where this one stopped.
+    [AutomaticRetry(Attempts = 0)]
     public async Task ExecuteAsync(CancellationToken cancellationToken = default)
     {
         if (!_options.Enabled)

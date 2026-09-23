@@ -86,6 +86,30 @@ public class ShoptetOrdersSyncServiceTests
     }
 
     [Fact]
+    public async Task SyncAsync_returns_quietly_without_refreshing_when_the_run_is_cancelled()
+    {
+        // Arrange — the job timeout fires mid-backfill. The backfill records "Cancelled" and returns;
+        // refreshing with the dead token would throw and hand Hangfire a failure to retry.
+        using var cts = new CancellationTokenSource();
+        var refresher = new Mock<IShoptetOrderFactRefresher>();
+        refresher.Setup(r => r.RefreshAsync(It.IsAny<CancellationToken>()))
+                 .Returns<CancellationToken>(ct => ct.IsCancellationRequested
+                     ? Task.FromCanceled<bool>(ct)
+                     : Task.FromResult(true));
+
+        await using var ctx = CreateContext(Guid.NewGuid().ToString());
+        var (service, client, _) = Create(ctx, new FakeTimeProvider(Now), refresher: refresher);
+        client.OnCreationWindow = cts.Cancel;
+
+        // Act
+        var act = () => service.SyncAsync(cts.Token);
+
+        // Assert
+        await act.Should().NotThrowAsync();
+        refresher.Verify(r => r.RefreshAsync(It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
     public async Task SyncAsync_still_reports_success_when_the_order_fact_refresh_fails()
     {
         // Arrange — the rows are already committed and the next run refreshes again, so a failed

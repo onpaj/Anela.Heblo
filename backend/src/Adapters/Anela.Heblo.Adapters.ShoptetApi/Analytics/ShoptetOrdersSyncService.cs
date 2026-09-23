@@ -70,6 +70,11 @@ public sealed class ShoptetOrdersSyncService : IShoptetOrdersSyncService
     /// </summary>
     private async Task RefreshOrderFactAsync(CancellationToken ct)
     {
+        // A cancelled run has already recorded itself as Cancelled and returns normally; refreshing
+        // with the dead token would throw instead and turn it into a failure Hangfire retries.
+        if (ct.IsCancellationRequested)
+            return;
+
         try
         {
             await _factRefresher.RefreshAsync(ct);
