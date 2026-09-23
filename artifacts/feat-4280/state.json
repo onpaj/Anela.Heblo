@@ -22,7 +22,7 @@
     },
     "developing": {
       "status": "in_progress",
-      "updated_at": "2026-09-23T09:17:53.939852Z"
+      "updated_at": "2026-09-23T10:16:02.420895Z"
     }
   },
   "tasks": [
@@ -40,9 +40,9 @@
     },
     {
       "name": "update-test-usings-and-comments",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-09-23T10:16:02.600341Z"
     },
     {
       "name": "final-verification",
