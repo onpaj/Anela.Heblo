@@ -6,6 +6,9 @@ namespace Anela.Heblo.Adapters.ShoptetApi.Analytics;
 
 public sealed class ShoptetOrderFactRefresher : IShoptetOrderFactRefresher
 {
+    /// <summary>Generous next to the ~2 s the underlying query takes; the Npgsql default is 30 s.</summary>
+    private const int RefreshTimeoutSeconds = 300;
+
     private readonly ShoptetOrdersDbContext _dbContext;
     private readonly ILogger<ShoptetOrderFactRefresher> _logger;
 
@@ -36,8 +39,22 @@ public sealed class ShoptetOrderFactRefresher : IShoptetOrderFactRefresher
 
         // CONCURRENTLY so Metabase keeps reading the previous contents instead of blocking for the
         // length of the refresh. It requires the unique index the views script creates on (code).
-        await _dbContext.Database.ExecuteSqlRawAsync(
-            "REFRESH MATERIALIZED VIEW CONCURRENTLY shoptet_raw.order_fact", ct);
+        //
+        // Issued on the raw connection, not ExecuteSqlRawAsync: that goes through the Polly execution
+        // strategy, whose 10 s per-attempt timeout a full-history refresh can outrun on the burstable
+        // vCore — it would be cancelled and re-run four times, burning CPU production shares.
+        await _dbContext.Database.OpenConnectionAsync(ct);
+        try
+        {
+            await using var command = _dbContext.Database.GetDbConnection().CreateCommand();
+            command.CommandText = "REFRESH MATERIALIZED VIEW CONCURRENTLY shoptet_raw.order_fact";
+            command.CommandTimeout = RefreshTimeoutSeconds;
+            await command.ExecuteNonQueryAsync(ct);
+        }
+        finally
+        {
+            await _dbContext.Database.CloseConnectionAsync();
+        }
 
         _logger.LogInformation("ShoptetOrdersSync.OrderFactRefreshed");
         return true;
