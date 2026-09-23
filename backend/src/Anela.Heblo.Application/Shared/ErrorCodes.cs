@@ -386,6 +386,8 @@ public enum ErrorCodes
     ShipmentLabelNotReady = 2908,
     [HttpStatusCode(HttpStatusCode.UnprocessableEntity)]
     ShipmentOrderWeightUnavailable = 2909,
+    [HttpStatusCode(HttpStatusCode.UnprocessableEntity)]
+    ShipmentValidationFailed = 2910,
 
     // Packaging module errors (30XX)
     [HttpStatusCode(HttpStatusCode.Conflict)]
