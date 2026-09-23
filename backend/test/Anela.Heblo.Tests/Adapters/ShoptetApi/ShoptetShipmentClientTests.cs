@@ -631,4 +631,81 @@ public class ShoptetShipmentClientTests
 
         result.Should().BeFalse();
     }
+
+    [Fact]
+    public async Task CreateShipmentAsync_ShipmentValidationFailed_ThrowsShoptetShipmentValidationException()
+    {
+        // Arrange — the exact body from the 2026-09-21 incident (order 126020133)
+        var client = BuildClient(_ => new HttpResponseMessage(HttpStatusCode.UnprocessableEntity)
+        {
+            Content = new StringContent(
+                """{"data":null,"errors":[{"errorCode":"shipment-validation-failed","message":"Invalid recipient of order, missing fields: city, zip.","instance":"data.orderCode"}]}""",
+                Encoding.UTF8, "application/json"),
+        });
+        var command = new CreateShipmentCommand
+        {
+            OrderCode = "126020133",
+            CarrierCode = "1",
+            PackageCount = 1,
+            Package = new ShipmentPackage { WidthCm = 30, HeightCm = 20, DepthCm = 15, WeightGrams = 500 },
+        };
+
+        // Act
+        var act = () => client.CreateShipmentAsync(command);
+
+        // Assert
+        var ex = await act.Should().ThrowAsync<ShoptetShipmentValidationException>();
+        ex.Which.OrderCode.Should().Be("126020133");
+        ex.Which.ShoptetErrorCode.Should().Be("shipment-validation-failed");
+        ex.Which.Message.Should().Be("Invalid recipient of order, missing fields: city, zip.");
+        ex.Which.Instance.Should().Be("data.orderCode");
+    }
+
+    [Fact]
+    public async Task CreateShipmentAsync_OtherValidationErrorCode_ThrowsGenericHttpRequestException()
+    {
+        // Arrange — a 422 with a *different* errorCode must NOT be treated as the permanent case
+        var client = BuildClient(_ => new HttpResponseMessage(HttpStatusCode.UnprocessableEntity)
+        {
+            Content = new StringContent(
+                """{"data":null,"errors":[{"errorCode":"invalid-request-data","message":"boom","instance":"integration-call"}]}""",
+                Encoding.UTF8, "application/json"),
+        });
+        var command = new CreateShipmentCommand
+        {
+            OrderCode = "0001234",
+            CarrierCode = "1",
+            PackageCount = 1,
+            Package = new ShipmentPackage { WidthCm = 30, HeightCm = 20, DepthCm = 15, WeightGrams = 500 },
+        };
+
+        // Act
+        var act = () => client.CreateShipmentAsync(command);
+
+        // Assert
+        await act.Should().ThrowAsync<HttpRequestException>();
+    }
+
+    [Fact]
+    public async Task CreateShipmentAsync_NonJsonErrorBody_FallsBackToGenericHttpRequestException()
+    {
+        // Arrange — an unparseable body (e.g. an upstream proxy's HTML error page) must not crash
+        var client = BuildClient(_ => new HttpResponseMessage(HttpStatusCode.ServiceUnavailable)
+        {
+            Content = new StringContent("<html>502 Bad Gateway</html>", Encoding.UTF8, "text/html"),
+        });
+        var command = new CreateShipmentCommand
+        {
+            OrderCode = "0001234",
+            CarrierCode = "1",
+            PackageCount = 1,
+            Package = new ShipmentPackage { WidthCm = 30, HeightCm = 20, DepthCm = 15, WeightGrams = 500 },
+        };
+
+        // Act
+        var act = () => client.CreateShipmentAsync(command);
+
+        // Assert
+        await act.Should().ThrowAsync<HttpRequestException>();
+    }
 }

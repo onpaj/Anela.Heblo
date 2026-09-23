@@ -1,0 +1,70 @@
+{
+  "feature_id": "feat-4262",
+  "issue_number": 4262,
+  "created_at": "2026-09-22T07:11:35.878015Z",
+  "max_revisions": 3,
+  "phases": {
+    "analyzing": {
+      "status": "completed",
+      "updated_at": "2026-09-22T07:14:06.882439Z"
+    },
+    "architecting": {
+      "status": "completed",
+      "updated_at": "2026-09-22T07:16:12.649489Z"
+    },
+    "designing": {
+      "status": "completed",
+      "updated_at": "2026-09-22T07:16:56.314833Z"
+    },
+    "planning": {
+      "status": "completed",
+      "updated_at": "2026-09-22T07:20:18.642586Z"
+    },
+    "developing": {
+      "status": "in_progress",
+      "updated_at": "2026-09-22T23:21:58.675524Z"
+    },
+    "code-review": {
+      "status": "completed",
+      "updated_at": "2026-09-23T00:22:47.855533Z"
+    }
+  },
+  "tasks": [
+    {
+      "name": "add-validation-exception-and-error-code",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-09-22T08:22:59.299340Z"
+    },
+    {
+      "name": "parse-shoptet-422-in-shipment-client",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-09-22T09:53:52.897041Z"
+    },
+    {
+      "name": "map-validation-exception-to-error-code",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-09-22T11:38:48.671144Z"
+    },
+    {
+      "name": "forward-validation-params-through-scan-response",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-09-22T21:20:33.718712Z"
+    },
+    {
+      "name": "regenerate-frontend-api-client",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-09-22T22:21:25.508240Z"
+    },
+    {
+      "name": "surface-validation-message-in-frontend",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-09-22T23:31:07.305897Z"
+    }
+  ]
+}
