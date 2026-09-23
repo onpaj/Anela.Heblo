@@ -182,6 +182,37 @@ public class RecurringJobSeederTests : IDisposable
         Assert.Equal("System", updated!.LastModifiedBy);
     }
 
+    [Fact]
+    public async Task SeedDefaultConfigurationsAsync_WhenConfigurationExists_ResyncsTimeZoneIdFromMetadata()
+    {
+        // Arrange - existing row carries a stale TimeZoneId that no longer matches the code metadata
+        // ("invoice-classification" metadata says "America/New_York")
+        var existingConfig = new RecurringJobConfiguration(
+            "invoice-classification",
+            "Invoice Classification",
+            "Classifies and categorizes incoming invoices",
+            "0 * * * *",
+            "Europe/Prague", // stale - developer-owned field, must be overwritten from metadata
+            true,
+            "System",
+            DateTime.UtcNow);
+
+        await _context.RecurringJobConfigurations.AddAsync(existingConfig);
+        await _context.SaveChangesAsync();
+
+        var mockJobs = CreateMockJobs();
+
+        // Act
+        await _seeder.SeedDefaultConfigurationsAsync(mockJobs);
+
+        // Assert - TimeZoneId is developer-owned and re-synced from metadata on every seed run.
+        // This invariant is what makes the runtime CRON-update path (which reads TimeZoneId from
+        // the DB row) equivalent to the startup discovery path (which reads it from metadata).
+        var updated = await _repository.GetByJobNameAsync("invoice-classification");
+        Assert.NotNull(updated);
+        Assert.Equal("America/New_York", updated!.TimeZoneId);
+    }
+
     public void Dispose()
     {
         _context.Dispose();

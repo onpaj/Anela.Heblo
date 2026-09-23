@@ -39,18 +39,25 @@ public class LedgerSyncServiceTests
             Mock.Of<ILogger<LedgerSyncService>>());
     }
 
-    // SDK 0.1.136: LedgerItemFlexiDto has LastUpdate as DateTime? but NO PeriodRef/DocumentTypeRef/ContactRef/AccountingTemplateRef
-    private static LedgerItemFlexiDto MakeLedgerDto(int id, DateTime accountingDate, double amount = 100.0) =>
+    // Shaped the way FlexiBee actually answers `ucetni-denik`: `id` is -1 on every row of this
+    // view, the identity sits in `idUcetniDenik` (SDK: JournalId), and the account / cost centre /
+    // currency arrive as nested arrays rather than the @showAs scalars. See
+    // LedgerSyncServiceMappingTests for the transcribed live response.
+    private static LedgerItemFlexiDto MakeLedgerDto(long id, DateTime accountingDate, double amount = 100.0) =>
         new()
         {
-            Id = id,
+            Id = -1,
+            JournalId = id.ToString(),
             AccountingDate = accountingDate,
             LastUpdate = accountingDate.AddHours(1),
             AmountLocal = amount,
             ParSymbol = $"CODE{id}",
-            DebitAccountShowAs = "501000",
-            CreditAccountShowAs = "221000",
-            CurrencyRef = "code:CZK",
+            DebitAccountList = [new AccountFlexiDto { Code = "501000" }],
+            CreditAccountList = [new AccountFlexiDto { Code = "221000" }],
+            Currency = [new CurrencyFlexiDto { Code = "CZK" }],
+            DepartmentList = [new DepartmentFlexiDto { Code = "C" }],
+            Period = $"{accountingDate:yyyy/MM}",
+            DocumentIdEvidencePath = "faktura-prijata",
             Description = "Test entry",
         };
 
@@ -186,6 +193,82 @@ public class LedgerSyncServiceTests
     }
 
     [Fact]
+    public async Task SyncAsync_WhenAPageFailsPartWayThrough_KeepsTheProgressItAlreadyMade()
+    {
+        // The 2020-onward delta is ~680k rows against a 1-vCore server and the job cancels after
+        // RequestTimeoutSeconds. Without a high-water mark, a run that cannot finish leaves the
+        // watermark untouched, the next run restarts from InitialBackfillFrom, and the sync never
+        // converges.
+        //
+        // Keeping the mark is sound because the pages are ordered: LedgerRequest(DateTime since)
+        // sets Order = "lastUpdate" alongside the filter — asserted directly in
+        // LedgerRequestOrderingTests, against both the property and the serialised wire form, so
+        // this assumption cannot silently rot. Everything below the mark has therefore landed.
+        //
+        // Tied timestamps are the one wrinkle (FlexiBee bulk-touches the ledger — 288k rows share
+        // lastUpdate = 2025-06-03) and `order` carries no tiebreaker, so a tie group can split
+        // across a page boundary. The next run's -1h overlap re-fetches the whole group, and the
+        // upsert is idempotent.
+        var client = new Mock<ILedgerClient>();
+        await using var ctx = CreateInMemoryContext();
+
+        client.SetupSequence(c => c.GetChangedSinceAsync(
+                It.IsAny<DateTime>(), It.IsAny<int?>(), It.IsAny<int?>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Enumerable.Range(1, 10)
+                .Select(i => MakeLedgerDto(i, new DateTime(2025, 1, i)))
+                .ToList())
+            .ThrowsAsync(new HttpRequestException("Flexi went away mid-backfill"));
+
+        var svc = CreateService(client.Object, ctx);
+
+        var result = await svc.SyncAsync();
+
+        result.IsSuccess.Should().BeFalse();
+        (await ctx.LedgerEntries.CountAsync()).Should().Be(10);
+
+        var state = await ctx.SyncStates.FindAsync("ledger_entry");
+        state!.LastRunStatus.Should().Be("FAILED");
+        // Highest LastUpdate of the page that did land: 2025-01-10 + 1h, Prague-local -> UTC.
+        var expected = TimeZoneInfo.ConvertTimeToUtc(
+            new DateTime(2025, 1, 10, 1, 0, 0, DateTimeKind.Unspecified), TimeZoneInfo.Local);
+        state.Watermark!.Value.UtcDateTime.Should().Be(expected);
+        state.LastRunRowsUpserted.Should().Be(10);
+    }
+
+    [Fact]
+    public async Task SyncAsync_OnFailureLeavesAnExistingWatermarkExactlyWhereItWas()
+    {
+        // A failed run must neither rewind an already-advanced watermark nor push it forward past
+        // rows it did not ingest.
+        var client = new Mock<ILedgerClient>();
+        await using var ctx = CreateInMemoryContext();
+        var originalWatermark = new DateTimeOffset(2026, 1, 1, 0, 0, 0, TimeSpan.Zero);
+        ctx.SyncStates.Add(new SyncState
+        {
+            EntityName = "ledger_entry",
+            Watermark = originalWatermark,
+            LastRunStatus = "OK"
+        });
+        await ctx.SaveChangesAsync();
+
+        client.SetupSequence(c => c.GetChangedSinceAsync(
+                It.IsAny<DateTime>(), It.IsAny<int?>(), It.IsAny<int?>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Enumerable.Range(1, 10)
+                .Select(i => MakeLedgerDto(i, new DateTime(2020, 1, i)))
+                .ToList())
+            .ThrowsAsync(new HttpRequestException("Flexi went away"));
+
+        var svc = CreateService(client.Object, ctx);
+
+        await svc.SyncAsync();
+
+        var state = await ctx.SyncStates.FindAsync("ledger_entry");
+        state!.Watermark.Should().Be(originalWatermark);
+    }
+
+    [Fact]
     public void Map_WhenLastUpdateIsUnspecifiedKind_ReturnsKindUtcLastModified()
     {
         // Regression test: SDK returns Kind=Unspecified representing Prague local time.
@@ -195,14 +278,15 @@ public class LedgerSyncServiceTests
         var unspecified = new DateTime(2025, 6, 19, 10, 0, 0, DateTimeKind.Unspecified);
         var dto = new LedgerItemFlexiDto
         {
-            Id = 99,
+            Id = -1,
+            JournalId = "99",
             AccountingDate = unspecified,
             LastUpdate = new DateTimeOffset(unspecified, TimeSpan.Zero),
             AmountLocal = 100.0,
             ParSymbol = "CODE99",
-            DebitAccountShowAs = "501000",
-            CreditAccountShowAs = "221000",
-            CurrencyRef = "code:CZK",
+            DebitAccountList = [new AccountFlexiDto { Code = "501000" }],
+            CreditAccountList = [new AccountFlexiDto { Code = "221000" }],
+            Currency = [new CurrencyFlexiDto { Code = "CZK" }],
             Description = "Regression test entry",
         };
 

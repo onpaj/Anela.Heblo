@@ -1,6 +1,7 @@
 ﻿using Anela.Heblo.Adapters.Flexi.Accounting.Departments;
 using Anela.Heblo.Adapters.Flexi.Accounting.InvoiceClassification;
 using Anela.Heblo.Adapters.Flexi.Accounting.Ledger;
+using Anela.Heblo.Adapters.Flexi.Accounting.MarketingPerformance;
 using Anela.Heblo.Adapters.Flexi.Analytics;
 using Anela.Heblo.Adapters.Flexi.Bank;
 using Anela.Heblo.Adapters.Flexi.Invoices;
@@ -30,6 +31,7 @@ using Anela.Heblo.Domain.Features.Bank;
 using Anela.Heblo.Domain.Features.UserManagement;
 using Anela.Heblo.Domain.Features.InvoiceClassification;
 using Anela.Heblo.Domain.Features.Invoices;
+using Anela.Heblo.Domain.Features.MarketingPerformance;
 using Anela.Heblo.Domain.Features.Manufacture;
 using Anela.Heblo.Application.Features.UserManagement.Services;
 using Anela.Heblo.Persistence.Analytics;
@@ -95,6 +97,10 @@ public static class FlexiAdapterServiceCollectionExtensions
         services.AddScoped<IReceivedInvoicesClient, FlexiReceivedInvoicesClient>();
         services.AddScoped<IInvoiceClassificationsClient, FlexiInvoiceClassificationsClient>();
 
+        // Real ad-cost source; overrides the NoOp fallback registered by AddMarketingPerformanceModule
+        // (AddApplicationServices runs before AddFlexiAdapter in Program.cs, so this registration wins).
+        services.AddScoped<IMonthlyAdCostSource, FlexiMonthlyAdCostSource>();
+
         // Issued Invoice client (for invoice import)
         services.AddScoped<IIssuedInvoiceClient, FlexiIssuedInvoiceClient>();
 
@@ -113,7 +119,9 @@ public static class FlexiAdapterServiceCollectionExtensions
                 configuration.GetSection(FlexiAnalyticsSyncOptions.ConfigurationKey));
             services.AddScoped<ISyncWatermarkRepository, SyncWatermarkRepository>();
 
-            services.AddScoped<IEntitySyncService, LedgerSyncService>();
+            services.AddScoped<LedgerSyncService>();
+            services.AddScoped<IEntitySyncService>(sp => sp.GetRequiredService<LedgerSyncService>());
+            services.AddScoped<ILedgerBackfillService>(sp => sp.GetRequiredService<LedgerSyncService>());
             services.AddScoped<IEntitySyncService, DepartmentSyncService>();
             services.AddScoped<IEntitySyncService, AccountingTemplateSyncService>();
             services.AddScoped<IEntitySyncService, ContactSyncService>();

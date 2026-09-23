@@ -42241,6 +42241,9 @@ export interface IPriceDivergenceSummaryDto {
 
 export class SyncProductPricesResponse extends BaseResponse implements ISyncProductPricesResponse {
     rows?: PriceDivergenceRowDto[];
+    writtenCount?: number;
+    failedCount?: number;
+    remainingCount?: number;
 
     constructor(data?: ISyncProductPricesResponse) {
         super(data);
@@ -42254,6 +42257,9 @@ export class SyncProductPricesResponse extends BaseResponse implements ISyncProd
                 for (let item of _data["rows"])
                     this.rows!.push(PriceDivergenceRowDto.fromJS(item));
             }
+            this.writtenCount = _data["writtenCount"];
+            this.failedCount = _data["failedCount"];
+            this.remainingCount = _data["remainingCount"];
         }
     }
 
@@ -42271,6 +42277,9 @@ export class SyncProductPricesResponse extends BaseResponse implements ISyncProd
             for (let item of this.rows)
                 data["rows"].push(item.toJSON());
         }
+        data["writtenCount"] = this.writtenCount;
+        data["failedCount"] = this.failedCount;
+        data["remainingCount"] = this.remainingCount;
         super.toJSON(data);
         return data;
     }
@@ -42278,6 +42287,9 @@ export class SyncProductPricesResponse extends BaseResponse implements ISyncProd
 
 export interface ISyncProductPricesResponse extends IBaseResponse {
     rows?: PriceDivergenceRowDto[];
+    writtenCount?: number;
+    failedCount?: number;
+    remainingCount?: number;
 }
 
 export class SyncProductPricesRequest implements ISyncProductPricesRequest {

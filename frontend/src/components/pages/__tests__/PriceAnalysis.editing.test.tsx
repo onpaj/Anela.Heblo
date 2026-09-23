@@ -63,6 +63,14 @@ const mockUseDeletePricingScenarioMutation =
   usePricingSimulatorHook.useDeletePricingScenarioMutation as jest.MockedFunction<
     typeof usePricingSimulatorHook.useDeletePricingScenarioMutation
   >;
+// The summary band's scope selector can reach past the current filter, which needs a
+// second, unfiltered calculation. PriceAnalysis calls the hook on every render (it is
+// simply disabled while the scope stays on the filter), so it needs a return value
+// here even though no test in this suite changes the scope.
+const mockUsePricingSummaryQuery =
+  usePricingSimulatorHook.usePricingSummaryQuery as jest.MockedFunction<
+    typeof usePricingSimulatorHook.usePricingSummaryQuery
+  >;
 
 // Plain object literals -- see PriceAnalysis.test.tsx for why (Babel class-field
 // re-initialization drops constructor-assigned fields on the generated Response classes).
@@ -178,6 +186,12 @@ describe("PriceAnalysis editing", () => {
     mockUseDeletePricingScenarioMutation.mockReturnValue({
       mutateAsync: jest.fn(),
       isPending: false,
+    } as any);
+    mockUsePricingSummaryQuery.mockReturnValue({
+      data: undefined,
+      isLoading: false,
+      isFetching: false,
+      error: null,
     } as any);
   });
 

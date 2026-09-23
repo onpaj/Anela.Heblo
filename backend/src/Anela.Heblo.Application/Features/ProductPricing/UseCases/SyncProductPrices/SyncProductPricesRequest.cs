@@ -3,8 +3,10 @@ using MediatR;
 namespace Anela.Heblo.Application.Features.ProductPricing.UseCases.SyncProductPrices;
 
 /// <summary>
-/// Re-reads Shoptet and Flexi for one selection of products. A read, despite the POST — the
-/// selection is a list of codes long enough to belong in a body rather than a query string.
+/// Synchronises one selection of products from Shoptet into Flexi: re-reads both systems,
+/// writes the Shoptet price into the ERP wherever the comparison says it is needed, and
+/// returns the rows as they stand afterwards. The selection is a list of codes long enough to
+/// belong in a body rather than a query string.
 /// </summary>
 public class SyncProductPricesRequest : IRequest<SyncProductPricesResponse>
 {

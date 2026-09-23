@@ -55,6 +55,7 @@
     <ProjectReference Include="..\..\src\Anela.Heblo.Xcc\Anela.Heblo.Xcc.csproj" />
     <ProjectReference Include="..\..\src\Adapters\Anela.Heblo.Adapters.Microsoft365\Anela.Heblo.Adapters.Microsoft365.csproj" />
     <ProjectReference Include="..\..\src\Adapters\Anela.Heblo.Adapters.OrgChart\Anela.Heblo.Adapters.OrgChart.csproj" />
+    <ProjectReference Include="..\..\src\Adapters\Anela.Heblo.Adapters.Ecomail\Anela.Heblo.Adapters.Ecomail.csproj" />
   </ItemGroup>
 
   <ItemGroup>

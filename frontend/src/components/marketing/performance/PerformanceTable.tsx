@@ -1,7 +1,7 @@
 import React from 'react'
 import { AlertTriangle, Lock } from 'lucide-react'
 import type { ChannelInfoDto, MonthlyMarketingPerformanceDto } from '../../../api/hooks/useMarketingPerformance'
-import { formatCount, formatCzk, formatMetric, formatYoy } from './metrics'
+import { findChannelCost, formatCount, formatCzk, formatMetric, formatYoy, resolveBreakdownChannels } from './metrics'
 
 interface PerformanceTableProps {
   months: MonthlyMarketingPerformanceDto[]
@@ -18,9 +18,6 @@ const td = 'px-3 py-2 text-right text-sm text-gray-900 dark:text-graphite-text w
 const hasWarning = (m: MonthlyMarketingPerformanceDto): boolean =>
   m.hasData && (Boolean(m.lastError) || !m.revenueComputedAt || !m.costsComputedAt)
 
-const channelCost = (m: MonthlyMarketingPerformanceDto, code: string): number =>
-  m.channelCosts.find((c) => c.channelCode === code)?.costWithoutVat ?? 0
-
 const profitClass = (v: number): string => (v >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400')
 
 export const PerformanceTable: React.FC<PerformanceTableProps> = ({ months, channels }) => {
@@ -28,6 +25,10 @@ export const PerformanceTable: React.FC<PerformanceTableProps> = ({ months, chan
     () => [...months].filter((m) => m.hasData).sort((a, b) => b.year * 100 + b.month - (a.year * 100 + a.month)),
     [months],
   )
+
+  // Same list the breakdown charts draw, so a stored cost for a de-configured channel still gets
+  // a column and the per-channel cells keep adding up to "Náklady celkem" on the same row.
+  const columns = React.useMemo(() => resolveBreakdownChannels(channels, rows), [channels, rows])
 
   if (rows.length === 0) {
     return (
@@ -43,7 +44,7 @@ export const PerformanceTable: React.FC<PerformanceTableProps> = ({ months, chan
         <thead className="bg-gray-50 dark:bg-graphite-surface-2">
           <tr>
             <th scope="col" className={`${th} text-left`}>Měsíc</th>
-            {channels.map((c) => (
+            {columns.map((c) => (
               <th key={c.code} scope="col" className={th}>{c.label}</th>
             ))}
             <th scope="col" className={th}>Náklady celkem</th>
@@ -81,8 +82,8 @@ export const PerformanceTable: React.FC<PerformanceTableProps> = ({ months, chan
                   )}
                 </span>
               </td>
-              {channels.map((c) => (
-                <td key={c.code} className={td}>{formatCzk(channelCost(m, c.code))}</td>
+              {columns.map((c) => (
+                <td key={c.code} className={td}>{formatCzk(findChannelCost(m, c.code))}</td>
               ))}
               <td className={`${td} font-medium`}>{formatCzk(m.totalCost)}</td>
               <td className={td}>{formatCzk(m.revenueWithVat)}</td>

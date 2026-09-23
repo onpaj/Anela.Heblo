@@ -14,7 +14,10 @@ import { PerformanceTrendChart } from './PerformanceTrendChart'
 import { PerformanceComparisonChart } from './PerformanceComparisonChart'
 import { PerformanceTable } from './PerformanceTable'
 import { RecomputeDialog } from './RecomputeDialog'
-import { formatCount, formatCzk, formatMetric, type PerformanceMetric } from './metrics'
+import {
+  formatCount, formatCzk, formatMetric, withoutPartialMonths, withoutPartialMonthsInSeries,
+  type PerformanceMetric,
+} from './metrics'
 
 const WRITE_PERMISSION = 'marketing.performance.write'
 const DEFAULT_YEARS = 3
@@ -36,6 +39,9 @@ const MarketingPerformancePage: React.FC = () => {
   const [years, setYears] = useState<number>(DEFAULT_YEARS)
   const [metric, setMetric] = useState<PerformanceMetric>('pno')
   const [includeWholesale, setIncludeWholesale] = useState(false)
+  // Default on: the running month has a full month of revenue missing but can already carry a credit
+  // note, which pushes the ratio metrics far enough off to flatten every other month in the chart.
+  const [hideCurrentMonth, setHideCurrentMonth] = useState(true)
   const [isRecomputeOpen, setRecomputeOpen] = useState(false)
 
   useScreenView('Marketing', 'MarketingPerformance')
@@ -47,8 +53,25 @@ const MarketingPerformancePage: React.FC = () => {
   const comparison = useMarketingPerformanceComparisonQuery({ years, includeWholesale }, viewMode === 'comparison')
 
   const active = viewMode === 'trend' ? months : comparison
-  const monthRows = months.data?.months ?? []
-  const channels = (viewMode === 'trend' ? months.data?.channels : comparison.data?.channels) ?? []
+  // Memoised so the `?? []` fallback does not hand the chart memos below a new array every render.
+  const monthRows = useMemo(() => months.data?.months ?? [], [months.data?.months])
+  const comparisonSeries = useMemo(() => comparison.data?.series ?? [], [comparison.data?.series])
+
+  // Charts only — the table and the YTD cards keep the running month, where the "(probíhá)" tag
+  // already explains it and where you would go looking for exactly this kind of anomaly.
+  const chartRows = useMemo(
+    () => (hideCurrentMonth ? withoutPartialMonths(monthRows) : monthRows),
+    [hideCurrentMonth, monthRows],
+  )
+  const chartSeries = useMemo(
+    () => (hideCurrentMonth ? withoutPartialMonthsInSeries(comparisonSeries) : comparisonSeries),
+    [hideCurrentMonth, comparisonSeries],
+  )
+  // Memoised for the same reason as the rows above: it feeds both charts' useMemo deps.
+  const channels = useMemo(
+    () => (viewMode === 'trend' ? months.data?.channels : comparison.data?.channels) ?? [],
+    [viewMode, months.data?.channels, comparison.data?.channels],
+  )
   const lastRefreshAt = viewMode === 'trend' ? months.data?.lastRefreshAt : comparison.data?.lastRefreshAt
   const hasWarnings =
     viewMode === 'trend'
@@ -71,6 +94,7 @@ const MarketingPerformancePage: React.FC = () => {
           years={years}
           metric={metric}
           includeWholesale={includeWholesale}
+          hideCurrentMonth={hideCurrentMonth}
           canRecompute={canRecompute}
           lastRefreshAt={lastRefreshAt}
           hasWarnings={hasWarnings}
@@ -80,6 +104,7 @@ const MarketingPerformancePage: React.FC = () => {
           onYearsChange={setYears}
           onMetricChange={setMetric}
           onIncludeWholesaleChange={setIncludeWholesale}
+          onHideCurrentMonthChange={setHideCurrentMonth}
           onRecomputeClick={() => setRecomputeOpen(true)}
         />
       </div>
@@ -104,7 +129,7 @@ const MarketingPerformancePage: React.FC = () => {
 
         {viewMode === 'trend' && months.data && (
           <>
-            <PerformanceTrendChart months={monthRows} channels={channels} metric={metric} />
+            <PerformanceTrendChart months={chartRows} channels={channels} metric={metric} />
             <div className="bg-white dark:bg-graphite-surface shadow dark:shadow-soft-dark sm:rounded-md mb-8">
               <div className="px-4 py-5 sm:px-6 border-b border-gray-200 dark:border-graphite-border">
                 <h3 className="text-lg leading-6 font-medium text-gray-900 dark:text-graphite-text">Měsíční přehled</h3>
@@ -129,7 +154,7 @@ const MarketingPerformancePage: React.FC = () => {
                 </div>
               ))}
             </div>
-            <PerformanceComparisonChart series={comparison.data.series} metric={metric} currentMonth={comparison.data.currentMonth} anchorYear={comparison.data.anchorYear} />
+            <PerformanceComparisonChart series={chartSeries} metric={metric} channels={channels} currentMonth={comparison.data.currentMonth} anchorYear={comparison.data.anchorYear} isCurrentMonthHidden={hideCurrentMonth} />
             <div className="bg-white dark:bg-graphite-surface shadow dark:shadow-soft-dark sm:rounded-md mb-8">
               <div className="px-4 py-5 sm:px-6 border-b border-gray-200 dark:border-graphite-border">
                 <h3 className="text-lg leading-6 font-medium text-gray-900 dark:text-graphite-text">Měsíce podle roku</h3>

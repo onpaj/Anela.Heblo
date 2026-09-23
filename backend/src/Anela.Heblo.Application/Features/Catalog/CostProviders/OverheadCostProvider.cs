@@ -12,13 +12,14 @@ using Microsoft.Extensions.Options;
 namespace Anela.Heblo.Application.Features.Catalog.CostProviders;
 
 /// <summary>
-/// Overhead cost provider (M3) - distributes the overhead pool across products by sold pieces.
+/// Overhead cost provider (M3) - distributes the overhead pool across products in proportion to
+/// the revenue each one earned (see <see cref="SalesRevenueAllocation"/>).
 ///
 /// The pool is CostPool.M3: accounts 51+52 minus VYROBA (which M1 carries) and minus
 /// SKLAD+MARKETING (which M2 carries). It is a catch-all by design, so a cost centre added in
 /// Flexi lands here instead of vanishing, and M1+M2+M3 always sum to the full ledger.
 ///
-/// The denominator is deliberately the one SalesCostProvider uses - company-wide sold pieces,
+/// The denominator is deliberately the one SalesCostProvider uses - company-wide sales revenue,
 /// synthetic bundle-component rows excluded - so M2 and M3 are directly comparable per piece.
 /// </summary>
 public class OverheadCostProvider : IOverheadCostProvider
@@ -124,7 +125,7 @@ public class OverheadCostProvider : IOverheadCostProvider
         // Only M3. The service returns every pool for the window, and M1/M2 are already carried
         // by FlatManufactureCostProvider and SalesCostProvider - summing them here would charge
         // each product the same ledger twice.
-        var totalCost = (double)pools
+        var totalCost = pools
             .Where(p => p.Pool == CostPool.M3)
             .Sum(p => p.Amount);
 
@@ -138,20 +139,24 @@ public class OverheadCostProvider : IOverheadCostProvider
                 dateFrom, dateTo);
         }
 
-        // Krok 2: Spočítat celkový počet prodaných kusů
-        var totalSoldPieces = CalculateTotalSoldPieces(products, costsFrom, costsTo);
+        // Krok 2: Spočítat celkové tržby
+        var totalRevenue = SalesRevenueAllocation.CalculateTotalRevenue(products, costsFrom, costsTo);
 
-        // Krok 3: Vypočítat náklad na kus
-        if (totalSoldPieces == 0)
+        // Krok 3: Vypočítat sazbu na korunu tržby
+        if (totalRevenue <= 0)
         {
-            _logger.LogWarning("No sales history found for period {DateFrom} to {DateTo}", dateFrom, dateTo);
-            return CreateCostCacheData(CreateEmptyProductCosts(products, months), dateFrom, dateTo);
+            _logger.LogWarning("No sales revenue found for period {DateFrom} to {DateTo}", dateFrom, dateTo);
+            return CreateCostCacheData(
+                SalesRevenueAllocation.BuildProductCosts(products, 0m, costsFrom, costsTo, months),
+                dateFrom,
+                dateTo);
         }
 
-        var costPerPiece = totalCost / totalSoldPieces;
+        var costPerRevenueUnit = totalCost / totalRevenue;
 
-        // Krok 4: Vypočítat náklady pro každý produkt
-        var productCosts = CalculateProductCosts(products, costPerPiece, months);
+        // Krok 4: Vypočítat náklad na kus pro každý produkt podle jeho tržby na kus
+        var productCosts = SalesRevenueAllocation.BuildProductCosts(
+            products, costPerRevenueUnit, costsFrom, costsTo, months);
 
         return CreateCostCacheData(productCosts, dateFrom, dateTo);
     }
@@ -181,62 +186,6 @@ public class OverheadCostProvider : IOverheadCostProvider
             current = current.AddMonths(1);
         }
         return months;
-    }
-
-    private static double CalculateTotalSoldPieces(
-        List<CatalogAggregate> products,
-        DateTime from,
-        DateTime to)
-    {
-        double totalSold = 0;
-
-        foreach (var product in products)
-        {
-            var productSold = product.SalesHistory
-                .Where(s => s.Date >= from && s.Date <= to && s.SourceBundleCode == null)
-                .Sum(s => s.AmountTotal);
-
-            totalSold += productSold;
-        }
-
-        return totalSold;
-    }
-
-    private static Dictionary<string, List<MonthlyCost>> CreateEmptyProductCosts(
-        IEnumerable<CatalogAggregate> products,
-        List<DateTime> months)
-    {
-        var productCosts = new Dictionary<string, List<MonthlyCost>>();
-
-        foreach (var product in products)
-        {
-            if (string.IsNullOrEmpty(product.ProductCode))
-                continue;
-
-            productCosts[product.ProductCode] = months.Select(m => new MonthlyCost(m, 0m)).ToList();
-        }
-
-        return productCosts;
-    }
-
-    private static Dictionary<string, List<MonthlyCost>> CalculateProductCosts(
-        List<CatalogAggregate> products,
-        double costPerPiece,
-        List<DateTime> months)
-    {
-        var productCosts = new Dictionary<string, List<MonthlyCost>>();
-
-        foreach (var product in products)
-        {
-            if (string.IsNullOrEmpty(product.ProductCode))
-                continue;
-
-            // Plošný rozpočet - stejný náklad na kus pro všechny měsíce
-            var costPerPieceDecimal = (decimal)costPerPiece;
-            productCosts[product.ProductCode] = months.Select(m => new MonthlyCost(m, costPerPieceDecimal)).ToList();
-        }
-
-        return productCosts;
     }
 
     private static CostCacheData CreateCostCacheData(
