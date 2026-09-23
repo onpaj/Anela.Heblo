@@ -1620,6 +1620,10 @@ curl -s -u "$FLEXI_LOGIN:$FLEXI_PASSWORD" \
 
 Expected: `"success":"true"` and the read-back `nakupCena` equals the value sent (per gram, `mj1 = G`). This is the intended correction for AKL097 anyway.
 
+Check the stored precision: if Flexi rounds `nakupCena` to fewer than 4 decimals, the 0.0001
+tolerance will re-write per-gram materials every night — record it and raise
+`PurchasePriceTolerance` accordingly.
+
 - [ ] **Step 3: Verify whether `prepocti-nakupni-cenu` recurses — owner OK required**
 
 DEZ001100's BoM root row is kusovník id `5654`; its semi-product is `DEZ001001M`. Record `nakupCena` of both (GET `cenik/(kod='DEZ001100' or kod='DEZ001001M').json?detail=custom:kod,nakupCena`), then recalculate DEZ001100 only:
@@ -1656,7 +1660,12 @@ EOF
 
 Expected: `0 nested semi-product rows`. If any exist, STOP: phase 2 needs dependency ordering, which is a spec change — report the list to the owner before merging.
 
-- [ ] **Step 5: Record findings**
+- [ ] **Step 5: Check one SET kusovník (GET only)**
+
+Check one SET kusovník (GET `kusovnik` rows for a BAL*/SET* item) and confirm its components
+are Products; record it.
+
+- [ ] **Step 6: Record findings**
 
 Create `docs/integrations/flexi-api.md`:
 
@@ -1679,6 +1688,7 @@ No sandbox — every call hits the live company. Record verified behaviour here 
 - Sums components' **ceník `nakupCena`** — not the stock valuation.
 - Recursion into sub-BoMs: <recurses | reads the stored semi-product price>, verified <date> on DEZ001100 / DEZ001001M.
 - Semi-products nested in semi-products: <count> found on <date>.
+- Sets contain: <products | …>, verified <date>.
 
 ## Stock to date (`stav-skladu-k-datu`)
 
@@ -1686,9 +1696,9 @@ No sandbox — every call hits the live company. Record verified behaviour here 
   Warehouses: 5 = materials, 20 = semi-products, 4 = products and goods.
 ```
 
-Fill each `<…>` with the result of Steps 2–4 before committing.
+Fill each `<…>` with the result of Steps 2–5 before committing.
 
-- [ ] **Step 6: Commit**
+- [ ] **Step 7: Commit**
 
 ```bash
 git add docs/integrations/flexi-api.md
