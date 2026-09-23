@@ -53,12 +53,15 @@ public class PurchasePriceRecalculationJob : IRecurringJob
 
             var response = await _mediator.Send(request, cancellationToken);
 
-            _logger.LogInformation("{JobName} completed - Success: {SuccessCount}, Failed: {FailedCount}, Total: {TotalCount}",
-                Metadata.JobName, response.SuccessCount, response.FailedCount, response.TotalCount);
+            _logger.LogInformation("{JobName} completed - Prices written: {Written}, BoMs success: {SuccessCount}, failed: {FailedCount}, total: {TotalCount}",
+                Metadata.JobName, response.PriceSync.Written, response.SuccessCount, response.FailedCount, response.TotalCount);
 
             _telemetryService.TrackBusinessEvent("PurchasePriceRecalculation", new Dictionary<string, string>
             {
                 ["Status"] = "Success",
+                ["PriceSyncWritten"] = response.PriceSync.Written.ToString(),
+                ["PriceSyncSkippedNoStockPrice"] = response.PriceSync.SkippedNoStockPrice.ToString(),
+                ["PriceSyncFailed"] = response.PriceSync.Failed.ToString(),
                 ["SuccessCount"] = response.SuccessCount.ToString(),
                 ["FailedCount"] = response.FailedCount.ToString(),
                 ["TotalCount"] = response.TotalCount.ToString(),

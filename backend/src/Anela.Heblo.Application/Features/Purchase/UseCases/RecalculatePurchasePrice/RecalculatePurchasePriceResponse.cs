@@ -25,6 +25,17 @@ public class RecalculatePurchasePriceResponse : BaseResponse
     public List<ProductRecalculationResult> ProcessedProducts { get; set; } = new();
 
     /// <summary>
+    /// Phase 1 of a RecalculateAll run: materials and goods synced to their average stock price.
+    /// </summary>
+    public PurchasePriceSyncSummary PriceSync { get; set; } = new();
+
+    /// <summary>Phase 2 of a RecalculateAll run: semi-product BoM recalculations.</summary>
+    public BomRecalculationSummary SemiProducts { get; set; } = new();
+
+    /// <summary>Phase 3 of a RecalculateAll run: product and set BoM recalculations.</summary>
+    public BomRecalculationSummary Products { get; set; } = new();
+
+    /// <summary>
     /// Whether the overall operation was successful (all products recalculated successfully).
     /// </summary>
     public bool IsSuccess => FailedCount == 0 && TotalCount > 0;
@@ -51,5 +62,20 @@ public class ProductRecalculationResult : BaseResponse
     /// Product code that was processed.
     /// </summary>
     public string ProductCode { get; set; } = string.Empty;
+}
+
+public class PurchasePriceSyncSummary
+{
+    public int Candidates { get; set; }
+    public int Written { get; set; }
+    public int Unchanged { get; set; }
+    public int SkippedNoStockPrice { get; set; }
+    public int Failed { get; set; }
+}
+
+public class BomRecalculationSummary
+{
+    public int Succeeded { get; set; }
+    public int Failed { get; set; }
 }
 
