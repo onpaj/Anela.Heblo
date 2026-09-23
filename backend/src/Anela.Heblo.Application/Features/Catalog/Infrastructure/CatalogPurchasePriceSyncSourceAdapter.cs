@@ -43,9 +43,9 @@ internal sealed class CatalogPurchasePriceSyncSourceAdapter : IPurchasePriceSync
 
         var today = _timeProvider.GetUtcNow().Date;
         var materialStock = FirstByCode(
-            await _stockClient.StockToDateAsync(today, MaterialWarehouseId, cancellationToken), s => s.ProductCode);
+            await StockToDateOrThrowAsync(MaterialWarehouseId, today, cancellationToken), s => s.ProductCode);
         var goodsStock = FirstByCode(
-            await _stockClient.StockToDateAsync(today, ProductsWarehouseId, cancellationToken), s => s.ProductCode);
+            await StockToDateOrThrowAsync(ProductsWarehouseId, today, cancellationToken), s => s.ProductCode);
 
         var candidates = new List<PurchasePriceSyncCandidate>(items.Count);
         foreach (var item in items)
@@ -67,6 +67,24 @@ internal sealed class CatalogPurchasePriceSyncSourceAdapter : IPurchasePriceSync
         }
 
         return candidates;
+    }
+
+    /// <summary>
+    /// Rem.FlexiBeeSDK's StockToDateClient swallows non-2xx responses and returns an empty list,
+    /// so an empty result here is indistinguishable from a failed read. MATERIAL and ZBOZI are
+    /// never legitimately empty, so treat zero rows as a failure and refuse to sync on missing data.
+    /// </summary>
+    private async Task<IReadOnlyList<ErpStock>> StockToDateOrThrowAsync(int warehouseId, DateTime date, CancellationToken cancellationToken)
+    {
+        var rows = await _stockClient.StockToDateAsync(date, warehouseId, cancellationToken);
+        if (rows.Count == 0)
+        {
+            throw new InvalidOperationException(
+                $"Flexi stock-to-date for warehouse {warehouseId} on {date:yyyy-MM-dd} returned no rows; " +
+                "refusing to sync purchase prices on missing stock data.");
+        }
+
+        return rows;
     }
 
     private static Dictionary<string, T> FirstByCode<T>(IEnumerable<T> rows, Func<T, string> code) =>

@@ -45,7 +45,7 @@ public class CatalogPurchasePriceSyncSourceAdapterTests
         GivenCatalog(("AKL097", ProductType.Material));
         GivenCenik(Cenik("AKL097", 789, 3.048594m));
         GivenStock(MaterialWarehouseId, ("AKL097", 0.311m));
-        GivenStock(ProductsWarehouseId);
+        GivenStock(ProductsWarehouseId, ("OTHER", 1m));
 
         // Act
         var result = await CreateAdapter().GetCandidatesAsync(CancellationToken.None);
@@ -67,7 +67,7 @@ public class CatalogPurchasePriceSyncSourceAdapterTests
         // Arrange
         GivenCatalog(("ZBO001", ProductType.Goods));
         GivenCenik(Cenik("ZBO001", 12, 100m));
-        GivenStock(MaterialWarehouseId);
+        GivenStock(MaterialWarehouseId, ("OTHER", 1m));
         GivenStock(ProductsWarehouseId, ("ZBO001", 80m));
 
         // Act
@@ -85,7 +85,7 @@ public class CatalogPurchasePriceSyncSourceAdapterTests
         // Arrange
         GivenCatalog(("AKL097", ProductType.Material));
         GivenCenik(Cenik("AKL097", 789, 3m));
-        GivenStock(MaterialWarehouseId);
+        GivenStock(MaterialWarehouseId, ("OTHER", 1m));
         GivenStock(ProductsWarehouseId, ("AKL097", 0.3m));
 
         // Act
@@ -101,7 +101,7 @@ public class CatalogPurchasePriceSyncSourceAdapterTests
         // Arrange
         GivenCatalog(("DEZ001100", ProductType.Product), ("DEZ001001M", ProductType.SemiProduct), ("SET001", ProductType.Set));
         GivenCenik(Cenik("DEZ001100", 818, 214m), Cenik("DEZ001001M", 900, 2m), Cenik("SET001", 901, 50m));
-        GivenStock(MaterialWarehouseId);
+        GivenStock(MaterialWarehouseId, ("OTHER", 1m));
         GivenStock(ProductsWarehouseId, ("DEZ001100", 65m));
 
         // Act
@@ -118,7 +118,7 @@ public class CatalogPurchasePriceSyncSourceAdapterTests
         GivenCatalog(("NO-CENIK", ProductType.Material), ("ZERO-ID", ProductType.Material));
         GivenCenik(Cenik("ZERO-ID", 0, 1m));
         GivenStock(MaterialWarehouseId, ("NO-CENIK", 1m), ("ZERO-ID", 1m));
-        GivenStock(ProductsWarehouseId);
+        GivenStock(ProductsWarehouseId, ("OTHER", 1m));
 
         // Act
         var result = await CreateAdapter().GetCandidatesAsync(CancellationToken.None);
@@ -134,7 +134,7 @@ public class CatalogPurchasePriceSyncSourceAdapterTests
         GivenCatalog(("AKL097", ProductType.Material));
         GivenCenik(Cenik("AKL097", 789, 3m), Cenik("AKL097", 790, 9m));
         GivenStock(MaterialWarehouseId, ("AKL097", 0.3m), ("AKL097", 0.9m));
-        GivenStock(ProductsWarehouseId);
+        GivenStock(ProductsWarehouseId, ("OTHER", 1m));
 
         // Act
         var result = await CreateAdapter().GetCandidatesAsync(CancellationToken.None);
@@ -159,5 +159,40 @@ public class CatalogPurchasePriceSyncSourceAdapterTests
 
         // Assert
         await act.Should().ThrowAsync<HttpRequestException>();
+    }
+
+    [Fact]
+    public async Task material_warehouse_returning_no_rows_fails_the_job()
+    {
+        // Arrange: Rem.FlexiBeeSDK's StockToDateClient swallows non-2xx responses and returns an
+        // empty list, so an empty material warehouse must be treated as a failed read, not "no stock".
+        GivenCatalog(("AKL097", ProductType.Material));
+        GivenCenik(Cenik("AKL097", 789, 3m));
+        GivenStock(MaterialWarehouseId);
+        GivenStock(ProductsWarehouseId, ("OTHER", 1m));
+
+        // Act
+        var act = () => CreateAdapter().GetCandidatesAsync(CancellationToken.None);
+
+        // Assert
+        (await act.Should().ThrowAsync<InvalidOperationException>())
+            .Which.Message.Should().Contain($"warehouse {MaterialWarehouseId}").And.Contain(Today.ToString("yyyy-MM-dd"));
+    }
+
+    [Fact]
+    public async Task goods_warehouse_returning_no_rows_fails_the_job()
+    {
+        // Arrange
+        GivenCatalog(("ZBO001", ProductType.Goods));
+        GivenCenik(Cenik("ZBO001", 12, 100m));
+        GivenStock(MaterialWarehouseId, ("OTHER", 1m));
+        GivenStock(ProductsWarehouseId);
+
+        // Act
+        var act = () => CreateAdapter().GetCandidatesAsync(CancellationToken.None);
+
+        // Assert
+        (await act.Should().ThrowAsync<InvalidOperationException>())
+            .Which.Message.Should().Contain($"warehouse {ProductsWarehouseId}").And.Contain(Today.ToString("yyyy-MM-dd"));
     }
 }
