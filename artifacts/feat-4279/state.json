@@ -25,5 +25,24 @@
       "updated_at": null
     }
   },
-  "tasks": []
+  "tasks": [
+    {
+      "name": "write-dto-settability-test",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    },
+    {
+      "name": "make-errortype-settable-and-mapped",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    },
+    {
+      "name": "verify-client-diff-and-final-checklist",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    }
+  ]
 }
