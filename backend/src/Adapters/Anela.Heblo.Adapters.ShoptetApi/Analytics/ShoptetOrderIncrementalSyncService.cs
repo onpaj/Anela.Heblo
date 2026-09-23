@@ -10,8 +10,8 @@ namespace Anela.Heblo.Adapters.ShoptetApi.Analytics;
 ///
 /// It reads both GET /api/orders/changes and GET /api/orders?changeTimeFrom. The changes log is
 /// the only source of deletions — a deleted order simply stops appearing in the order list, which
-/// would leave it mirrored for ever — but its documented changeType is only "edit" or "delete", so
-/// the change-time listing is unioned in to be sure newly created orders are picked up too. The log
+/// would leave it mirrored for ever. New orders do appear in the log (as "edit", verified on the live
+/// store), but that is undocumented, so the change-time listing is unioned in as a safety net. The log
 /// keeps a guaranteed 30 days, so when the watermark is older than that the run falls back to the
 /// listing alone and reports that deletions in that window were not covered.
 /// </summary>
@@ -84,12 +84,13 @@ public sealed class ShoptetOrderIncrementalSyncService : IShoptetEntitySyncServi
             {
                 (editedCodes, deletedCodes) = await ReadChangeLogAsync(changedSince, ct);
 
-                // The change log is the only source of deletions, but its documented changeType is
-                // "edit" or "delete" — creation is never mentioned, and this store has not been
-                // observed emitting one. Relying on it alone would silently stop ingesting new
-                // orders the day the backfill completes, so the change-time listing (where a new
-                // order appears because its changeTime equals its creationTime) is unioned in.
-                // One extra paged listing per night is cheap next to that failure mode.
+                // The change log is the only source of deletions. It also reports new orders — as
+                // changeType "edit", verified on the live store (docs/integrations/shoptet-api.md) —
+                // but its documented values are only "edit" and "delete". Should that undocumented
+                // behaviour change, relying on the log alone would silently stop ingesting new
+                // orders, so the change-time listing (where a new order appears because its
+                // changeTime equals its creationTime) is unioned in. One extra paged listing per
+                // night is cheap next to that failure mode.
                 var changedCodes = await ReadChangedOrderCodesAsync(changedSince, ct);
                 var union = new HashSet<string>(editedCodes, StringComparer.Ordinal);
                 union.UnionWith(changedCodes);

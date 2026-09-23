@@ -93,8 +93,9 @@ Two things about that endpoint that were verified against the live store rather 
 - **A newly created order does appear in the log**, as `changeType: "edit"` — Shoptet documents
   only `edit` and `delete`, which reads as though creations were excluded. Checked on the
   production store: of 26 orders whose `changeTime` still equalled their `creationTime` (never
-  touched after being placed), **all 26** were in the log. So the log alone is sufficient and the
-  order listing does **not** need to be unioned in.
+  touched after being placed), **all 26** were in the log. So the log alone is sufficient.
+  The sync still unions in `GET /api/orders?changeTimeFrom=` as a safety net against an
+  undocumented behaviour changing under it — one extra paged listing per night.
 - **It is the only way to learn about a deletion.** `GET /api/orders?changeTimeFrom=` would never
   notice one — the order simply stops appearing.
 

@@ -390,8 +390,9 @@ GET /api/orders/changes?from=<ISO8601 with offset>&page=1&itemsPerPage=1000
   `edit` and `delete`, which reads as though creations were excluded — they are not. Verified on
   the production store 2026-09-22: of 26 orders whose `changeTime` still equalled their
   `creationTime` (never touched after being placed), all 26 appeared in the log; and of 133 orders
-  created since 2026-09-21, all 133 appeared. A consumer therefore does **not** need to union in a
-  `GET /api/orders?changeTimeFrom=` listing to catch new orders.
+  created since 2026-09-21, all 133 appeared. A consumer therefore does **not** need a
+  `GET /api/orders?changeTimeFrom=` listing to catch new orders (the orders mirror still unions
+  one in, purely as a safety net against this undocumented behaviour changing).
 
 This is the only way to learn that an order was **deleted** — a deleted order simply stops
 appearing in `GET /api/orders`, so a change-time listing can never notice it.
