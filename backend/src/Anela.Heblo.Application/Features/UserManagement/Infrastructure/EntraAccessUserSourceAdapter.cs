@@ -1,5 +1,6 @@
 using Anela.Heblo.Application.Features.Authorization.Contracts;
 using Anela.Heblo.Application.Features.UserManagement.Contracts;
+using Anela.Heblo.Application.Features.UserManagement.Infrastructure.Exceptions;
 using Anela.Heblo.Application.Features.UserManagement.Services;
 using Anela.Heblo.Domain.Features.Authorization;
 

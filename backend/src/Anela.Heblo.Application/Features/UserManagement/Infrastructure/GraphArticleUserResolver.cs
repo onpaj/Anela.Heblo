@@ -1,5 +1,5 @@
 using Anela.Heblo.Application.Features.Article.Contracts;
-using Anela.Heblo.Application.Features.UserManagement.Contracts;
+using Anela.Heblo.Application.Features.UserManagement.Infrastructure.Exceptions;
 using Anela.Heblo.Application.Features.UserManagement.Services;
 
 namespace Anela.Heblo.Application.Features.UserManagement.Infrastructure;
