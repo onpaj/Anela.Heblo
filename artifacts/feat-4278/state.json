@@ -40,9 +40,9 @@
     },
     {
       "name": "remove-redundant-argumentexception-from-import-handler",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-09-23T08:16:43.748190Z"
+      "updated_at": "2026-09-23T09:08:34.704974Z"
     },
     {
       "name": "full-verification",
