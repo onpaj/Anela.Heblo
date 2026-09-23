@@ -4,6 +4,7 @@ using Microsoft.Extensions.Logging;
 using Anela.Heblo.Application.Features.UserManagement.UseCases.GetGroupMembers;
 using Anela.Heblo.Application.Features.UserManagement.Services;
 using Anela.Heblo.Application.Features.UserManagement.Contracts;
+using Anela.Heblo.Application.Features.UserManagement.Infrastructure.Exceptions;
 using Anela.Heblo.Application.Shared;
 
 namespace Anela.Heblo.Tests.Features.UserManagement;

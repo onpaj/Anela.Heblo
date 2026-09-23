@@ -905,7 +905,7 @@ public class ModuleBoundariesTests
     // Microsoft.Graph.Models.ODataErrors types as part of their wrapping role or as
     // pre-existing violations out of scope for the feat-3369 decoupling.
     // All new Application types must use the wrapper types (GraphServiceAuthException /
-    // GraphServiceException) defined in UserManagement.Contracts instead.
+    // GraphServiceException) defined in UserManagement.Infrastructure.Exceptions instead.
     // Entries must have a justification comment and should be removed once the underlying
     // violation is fixed.
     private static readonly HashSet<string> SdkExceptionAllowlist = new(StringComparer.Ordinal)
@@ -974,7 +974,7 @@ public class ModuleBoundariesTests
             "Application layer must not reference Microsoft.Identity.Client or " +
             "Microsoft.Graph.Models.ODataErrors types directly in signatures. " +
             "Catch GraphServiceAuthException / GraphServiceException (defined in " +
-            "UserManagement.Contracts) instead, or add an allowlist entry with justification " +
+            "UserManagement.Infrastructure.Exceptions) instead, or add an allowlist entry with justification " +
             "if this type is a legitimate wrapping boundary. " +
             "Found:\n  " + string.Join("\n  ", violations));
     }
