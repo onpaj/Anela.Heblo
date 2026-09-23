@@ -115,7 +115,7 @@ public class ScanPackingOrderHandler : IRequestHandler<ScanPackingOrderRequest, 
         var result = await _shipmentCreationService.CreateAndPersistAsync(
             order, request.NumberOfPackages, request.PackingUserId, ct);
         if (!result.IsSuccess)
-            return new ScanPackingOrderResponse(result.ErrorCode!.Value);
+            return new ScanPackingOrderResponse(result.ErrorCode!.Value, result.Params);
 
         var packages = result.Labels
             .Select(label => new ScanShipmentPackage

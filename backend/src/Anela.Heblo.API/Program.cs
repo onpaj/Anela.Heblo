@@ -13,6 +13,7 @@ using Anela.Heblo.Adapters.SendGrid;
 using Anela.Heblo.Adapters.Comgate;
 using Anela.Heblo.Adapters.Ecomail;
 using Anela.Heblo.Adapters.GoogleAds;
+using Anela.Heblo.Adapters.GoogleAnalytics;
 using Anela.Heblo.Adapters.MetaAds;
 using Anela.Heblo.Adapters.Flexi;
 using Anela.Heblo.Adapters.OpenAI;
@@ -122,6 +123,7 @@ public partial class Program
         builder.Services.AddEcomailAdapter(builder.Configuration);
         builder.Services.AddMetaAdsAdapter(builder.Configuration);
         builder.Services.AddGoogleAdsAdapter(builder.Configuration);
+        builder.Services.AddGoogleAnalyticsAdapter(builder.Configuration, builder.Environment);
         builder.Services.AddAnthropicAdapter(builder.Configuration);
         builder.Services.AddSmartsuppAdapter(builder.Configuration);
         builder.Services.AddOpenAiAdapter(builder.Configuration);
