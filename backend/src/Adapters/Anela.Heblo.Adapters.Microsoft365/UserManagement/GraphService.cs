@@ -1,4 +1,5 @@
 using Anela.Heblo.Application.Features.UserManagement.Contracts;
+using Anela.Heblo.Application.Features.UserManagement.Infrastructure.Exceptions;
 using Anela.Heblo.Application.Features.UserManagement.Services;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Configuration;
