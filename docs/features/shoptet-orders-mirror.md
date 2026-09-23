@@ -84,27 +84,32 @@ packing and expedition flows use.
 at **`30 1 * * *` Europe/Prague** (the 02:00–09:00 band is full of the existing daily imports and
 `flexi-analytics-sync` holds 03:00).
 
-It reads **both** sources from `watermark − 2h` and unions them:
+It reads `GET /api/orders/changes?from=<watermark − 2h>`, which reports **edits, creations and
+deletions**. A changed order is re-fetched and upserted with its lines replaced; a deleted one is
+removed.
 
-- `GET /api/orders/changes` reports **edits and deletions**. It is the only way to learn about a
-  deletion — `GET /api/orders?changeTimeFrom=` would never notice one, the order just stops
-  appearing.
-- `GET /api/orders?changeTimeFrom=` catches **creations**. The change log's documented `changeType`
-  is only `edit` or `delete`, and this store has not been observed emitting anything for a new
-  order. Relying on the log alone would silently stop ingesting new orders the day the backfill
-  completes, so the listing (where a new order shows up because its `changeTime` equals its
-  `creationTime`) is unioned in. One extra paged listing per night is cheap next to that.
+Two things about that endpoint that were verified against the live store rather than assumed:
 
-A changed order is re-fetched and upserted with its lines replaced; a deleted one is removed.
+- **A newly created order does appear in the log**, as `changeType: "edit"` — Shoptet documents
+  only `edit` and `delete`, which reads as though creations were excluded. Checked on the
+  production store: of 26 orders whose `changeTime` still equalled their `creationTime` (never
+  touched after being placed), **all 26** were in the log. So the log alone is sufficient and the
+  order listing does **not** need to be unioned in.
+- **It is the only way to learn about a deletion.** `GET /api/orders?changeTimeFrom=` would never
+  notice one — the order simply stops appearing.
 
 The change log keeps a guaranteed 30 days. If the watermark is older than that, the run falls back
-to the order list alone and logs a warning that deletions in that window were not covered. A first
-run with no watermark reaches back to when the backfill ran rather than one change-log window, so
-a long gap between the backfill and the job being armed drops into that same warned fallback
-instead of silently skipping everything edited in between.
+to the order list and logs a warning that deletions in that window were not covered.
+
+**The first incremental run after a backfill re-reads a full 29-day window** (there is no watermark
+yet) — about 2,000 orders on this store, ~8 minutes, measured. That is deliberate rather than a
+missed optimisation: a backfill can span several nights and orders in already-walked windows change
+while it runs. It is also why a backfill taking **longer than ~4 weeks** is unsafe — edits to orders
+in the earliest windows would fall outside the catch-up. Run it in a few long sessions, not a month
+of short ones.
 
 **While `backfill_completed` is false the nightly job spends its whole budget on the backfill and
-never runs the incremental at all** — which is what makes that gap possible in the first place.
+never runs the incremental at all.**
 
 ### Configuration
 
@@ -260,11 +265,21 @@ back on. A view runs with its owner's privileges, so Metabase needs nothing else
 
 ### Cost
 
-Every `v_*` view recomputes `order_fact`, which window-functions over the whole order table. That
-is the thing to watch as the mirror grows: if Metabase use picks up enough that the recompute
-starts showing on the shared vCore, turn `order_fact` into a materialised view refreshed at the
-end of the nightly sync. Nothing else has to change. `v_product_pair_monthly` is the expensive one
-— a self-join over every product line — and is the first candidate for a Metabase question cache.
+`order_fact` is a **materialised** view, and the sync refreshes it (`CONCURRENTLY`) after every
+successful run. It has to be: deciding whether an order is a customer's first needs a window over
+the whole history, so no month filter can narrow it. Measured against the real 96,615 orders that
+cost ~2 s, and every read view sat on top of it paid that again — a six-tile dashboard came to
+~12 s of CPU on the vCore that also serves production.
+
+Two operational consequences:
+
+- **`REFRESH MATERIALIZED VIEW CONCURRENTLY` needs the unique index** on `order_fact(code)` that
+  the views script creates. Without it the refresh falls back to an exclusive lock.
+- **`ANALYZE` the tables after a bulk load.** On freshly backfilled tables with no statistics,
+  `v_product_sales_monthly` planned badly and took 15.8 s; after `ANALYZE` it took 4.1 s.
+
+`v_product_pair_monthly` is the expensive one regardless — a self-join over every product line,
+532k output rows — and is the one to put a Metabase question cache on.
 
 **#14, shipping subsidy, is only half answerable here.** `v_order_shipping_monthly` gives what the
 customer paid for delivery; what the carrier charged Anela is in the Flexi ledger. Joining the two

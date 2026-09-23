@@ -16,6 +16,7 @@ public static class ShoptetOrderMapper
     public const string ItemTypeBilling = "billing";
     public const string ItemTypeDiscountCoupon = "discount-coupon";
     public const string ItemTypeVolumeDiscount = "volume-discount";
+    public const string ItemTypeService = "service";
 
     public const string SourceArrayItems = "items";
     public const string SourceArrayCompletion = "completion";
@@ -156,6 +157,14 @@ public static class ShoptetOrderMapper
                     order.ProductPriceWithVat += withVat;
                     order.ProductPriceWithoutVat += withoutVat;
                     order.ProductUnits += line.Amount ?? 0m;
+                    break;
+                // A paid add-on (gift wrapping, an insurance payout) — revenue, but not a unit of
+                // merchandise, so it counts towards the money and not towards basket size.
+                // Rare: 4 lines in the whole 2018-2026 history, but leaving it unbucketed made the
+                // header total and the component rollups disagree on those orders.
+                case ItemTypeService:
+                    order.ProductPriceWithVat += withVat;
+                    order.ProductPriceWithoutVat += withoutVat;
                     break;
                 case ItemTypeShipping:
                     order.ShippingPriceWithVat += withVat;

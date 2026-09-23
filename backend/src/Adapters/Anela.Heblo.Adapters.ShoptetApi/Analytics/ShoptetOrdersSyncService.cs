@@ -12,15 +12,18 @@ public sealed class ShoptetOrdersSyncService : IShoptetOrdersSyncService
 {
     private readonly ShoptetOrderBackfillService _backfill;
     private readonly ShoptetOrderIncrementalSyncService _incremental;
+    private readonly IShoptetOrderFactRefresher _factRefresher;
     private readonly ILogger<ShoptetOrdersSyncService> _logger;
 
     public ShoptetOrdersSyncService(
         ShoptetOrderBackfillService backfill,
         ShoptetOrderIncrementalSyncService incremental,
+        IShoptetOrderFactRefresher factRefresher,
         ILogger<ShoptetOrdersSyncService> logger)
     {
         _backfill = backfill;
         _incremental = incremental;
+        _factRefresher = factRefresher;
         _logger = logger;
     }
 
@@ -36,6 +39,9 @@ public sealed class ShoptetOrdersSyncService : IShoptetOrdersSyncService
                 "ShoptetOrdersSync.BackfillInProgress fetched={Fetched} upserted={Upserted} success={Success}",
                 backfillResult.RowsFetched, backfillResult.RowsUpserted, backfillResult.IsSuccess);
 
+            // Refresh even mid-backfill: the read views are the only way to see how far it has got.
+            await RefreshOrderFactAsync(ct);
+
             return new ShoptetOrdersSyncReport(
                 backfillResult.RowsFetched,
                 backfillResult.RowsUpserted,
@@ -44,6 +50,8 @@ public sealed class ShoptetOrdersSyncService : IShoptetOrdersSyncService
         }
 
         var incrementalResult = await _incremental.SyncAsync(ct);
+
+        await RefreshOrderFactAsync(ct);
 
         _logger.LogInformation(
             "ShoptetOrdersSync.Completed fetched={Fetched} upserted={Upserted} success={Success}",
@@ -54,5 +62,21 @@ public sealed class ShoptetOrdersSyncService : IShoptetOrdersSyncService
             backfillResult.RowsUpserted + incrementalResult.RowsUpserted,
             BackfillCompleted: true,
             IsFullSuccess: backfillResult.IsSuccess && incrementalResult.IsSuccess);
+    }
+
+    /// <summary>
+    /// A stale order_fact is worse than a slow one, but it is not worth failing a sync that
+    /// otherwise succeeded — the rows are already committed and the next run will refresh again.
+    /// </summary>
+    private async Task RefreshOrderFactAsync(CancellationToken ct)
+    {
+        try
+        {
+            await _factRefresher.RefreshAsync(ct);
+        }
+        catch (Exception ex) when (!ct.IsCancellationRequested)
+        {
+            _logger.LogError(ex, "ShoptetOrdersSync.OrderFactRefreshFailed");
+        }
     }
 }

@@ -17,6 +17,9 @@
 --  * A month means a month in the store's timezone: order_date is already Europe/Prague.
 --  * Only the v_* views are granted to metabase_ro. order_fact and the reference tables stay
 --    ungranted; the views run with the owner's privileges, so Metabase still reads them fine.
+--  * order_fact is MATERIALIZED. Deciding whether an order is a customer's first needs a window
+--    over the whole history, so no month filter can narrow it — measured at ~2 s per query against
+--    96k orders, paid again by every view on top. The sync refreshes it after each successful run.
 -- =============================================================================
 
 -- -----------------------------------------------------------------------------
@@ -91,7 +94,30 @@ ON CONFLICT (sales_channel_guid) DO NOTHING;
 --   "new" is first-ever-purchase, the standard e-commerce definition. To switch to a
 --   "no order in the last 12 months counts as new" rule, fold returning_lapsed into new here;
 --   nothing downstream has to change and no re-ingest is needed.
-CREATE OR REPLACE VIEW shoptet_raw.order_fact AS
+-- Dropped and recreated rather than replaced: a materialised view has no CREATE OR REPLACE.
+-- CASCADE takes the v_* views with it; they are all recreated below, and re-granted at the end.
+--
+-- The relkind check is not decoration: DROP MATERIALIZED VIEW IF EXISTS raises
+-- "is not a materialized view" when the name exists as a plain view, and DROP VIEW IF EXISTS
+-- raises "is not a view" in the opposite case. IF EXISTS only guards absence, not the wrong kind,
+-- so upgrading an environment that still has the original plain view needs this.
+DO $$
+DECLARE
+    kind "char";
+BEGIN
+    SELECT c.relkind INTO kind
+    FROM pg_class c
+    JOIN pg_namespace n ON n.oid = c.relnamespace
+    WHERE n.nspname = 'shoptet_raw' AND c.relname = 'order_fact';
+
+    IF kind = 'm' THEN
+        EXECUTE 'DROP MATERIALIZED VIEW shoptet_raw.order_fact CASCADE';
+    ELSIF kind = 'v' THEN
+        EXECUTE 'DROP VIEW shoptet_raw.order_fact CASCADE';
+    END IF;
+END $$;
+
+CREATE MATERIALIZED VIEW shoptet_raw.order_fact AS
 WITH base AS (
     SELECT
         o.code,
@@ -168,6 +194,16 @@ SELECT
     END AS customer_status
 FROM base b
 LEFT JOIN sequenced s ON s.code = b.code;
+
+-- Required for REFRESH MATERIALIZED VIEW CONCURRENTLY, which is what the sync uses so Metabase
+-- keeps reading the previous contents instead of blocking for the length of the refresh.
+CREATE UNIQUE INDEX IF NOT EXISTS ux_order_fact_code ON shoptet_raw.order_fact (code);
+CREATE INDEX IF NOT EXISTS ix_order_fact_month_channel ON shoptet_raw.order_fact (order_month, channel);
+CREATE INDEX IF NOT EXISTS ix_order_fact_code_not_cancelled ON shoptet_raw.order_fact (code) WHERE NOT is_cancelled;
+
+-- Populate it now; from here on the sync keeps it current.
+REFRESH MATERIALIZED VIEW shoptet_raw.order_fact;
+ANALYZE shoptet_raw.order_fact;
 
 -- -----------------------------------------------------------------------------
 -- 3. Read views (granted)

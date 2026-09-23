@@ -331,9 +331,16 @@ Things that are easy to get wrong:
   (discounts are negative). Confirmed on orders with a coupon.
 - **`exchangeRate` is quoted as order-currency-per-CZK.** A EUR order carries `0.03984064`, so
   the CZK amount is `price / exchangeRate`. CZK orders carry `1.00000000`.
-- **`itemType` values seen in production**: `product`, `shipping`, `billing`, `gift`,
-  `product-set`, `discount-coupon`, `volume-discount` (and `product-set-item` in `completion[]`).
-  `gift` lines are priced `0.00`.
+- **`itemType` values seen in production** across the full 2018-2026 history (96,615 orders,
+  529,740 lines): `product` (299,193), `shipping` (91,822), `billing` (90,850), `gift` (9,185),
+  `product-set` (8,119), `discount-coupon` (1,917), `volume-discount` (1,227) and `service` (4) —
+  plus `product-set-item` (27,423) in `completion[]`. `gift` lines are priced `0.00`;
+  the two discount types are negative. **`service`** is undocumented and very rare (gift wrapping,
+  an insurance payout) but it is real revenue and appears in the order total.
+- **The order total reconciles to the line types** for **99.994%** of non-cancelled orders
+  (93,037 of 93,043 checked). The six exceptions are four `service` lines and **two orders where
+  Shoptet's own header total disagrees with its lines** (`2020000297` by −50, `124002928` by −39).
+  Prefer the header `price` over summing lines.
 
 ### 3.10 `completion[]` — what is actually in it
 
@@ -379,6 +386,12 @@ GET /api/orders/changes?from=<ISO8601 with offset>&page=1&itemsPerPage=1000
 - `itemsPerPage` max is **1000** here, unlike the 50 on `/api/orders`.
 - Only an order's **last** change is listed, so a code never appears twice.
 - **Guaranteed history is 30 days**; older entries are pruned.
+- **A newly created order IS reported, with `changeType: "edit"`.** The documented values are only
+  `edit` and `delete`, which reads as though creations were excluded — they are not. Verified on
+  the production store 2026-09-22: of 26 orders whose `changeTime` still equalled their
+  `creationTime` (never touched after being placed), all 26 appeared in the log; and of 133 orders
+  created since 2026-09-21, all 133 appeared. A consumer therefore does **not** need to union in a
+  `GET /api/orders?changeTimeFrom=` listing to catch new orders.
 
 This is the only way to learn that an order was **deleted** — a deleted order simply stops
 appearing in `GET /api/orders`, so a change-time listing can never notice it.

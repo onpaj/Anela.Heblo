@@ -166,6 +166,31 @@ public class ShoptetOrderMapperTests
     }
 
     [Fact]
+    public void Map_counts_a_paid_service_line_as_revenue_but_not_as_a_unit()
+    {
+        // Arrange — gift wrapping. Rare (4 lines in the whole history), but while it was
+        // unbucketed the header total and the component rollups disagreed on those orders.
+        var json = ShoptetOrderTestData.SimpleOrderJson.Replace(
+            """
+                      "itemType": "discount-coupon", "productType": "discount-coupon",
+            """.Trim(),
+            """
+                      "itemType": "service", "productType": null,
+            """.Trim())
+            .Replace("\"withVat\": \"-208.00\", \"withoutVat\": \"-171.90\", \"vat\": \"-36.10\"",
+                     "\"withVat\": \"80.00\", \"withoutVat\": \"66.12\", \"vat\": \"13.88\"");
+        var dto = ShoptetOrderTestData.Parse(json);
+
+        // Act
+        var order = ShoptetOrderMapper.Map(dto, "{}", Prague, SyncedAt);
+
+        // Assert — 700 of product plus 80 of service; basket size stays at the 2 real units.
+        order.ProductPriceWithVat.Should().Be(780.00m);
+        order.ProductUnits.Should().Be(2.000m);
+        order.DiscountWithVat.Should().Be(0m);
+    }
+
+    [Fact]
     public void Map_keeps_the_raw_payload_verbatim()
     {
         var dto = ShoptetOrderTestData.Parse(ShoptetOrderTestData.SimpleOrderJson);

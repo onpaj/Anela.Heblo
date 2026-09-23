@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Time.Testing;
+using Moq;
 using Xunit;
 
 namespace Anela.Heblo.Adapters.Shoptet.Tests.Analytics;
@@ -17,8 +18,10 @@ public class ShoptetOrdersSyncServiceTests
         new(new DbContextOptionsBuilder<ShoptetOrdersDbContext>()
             .UseInMemoryDatabase(name).Options);
 
-    private static (ShoptetOrdersSyncService Service, FakeShoptetOrderAnalyticsClient Client)
-        Create(ShoptetOrdersDbContext ctx, FakeTimeProvider clock, int backfillBudgetMinutes = 240)
+    private static (ShoptetOrdersSyncService Service, FakeShoptetOrderAnalyticsClient Client,
+                    Mock<IShoptetOrderFactRefresher> Refresher)
+        Create(ShoptetOrdersDbContext ctx, FakeTimeProvider clock, int backfillBudgetMinutes = 240,
+               Mock<IShoptetOrderFactRefresher>? refresher = null)
     {
         var options = Options.Create(new ShoptetOrdersSyncOptions
         {
@@ -40,8 +43,11 @@ public class ShoptetOrdersSyncServiceTests
             client, ingestor, store, watermarks, options, clock,
             NullLogger<ShoptetOrderIncrementalSyncService>.Instance);
 
-        return (new ShoptetOrdersSyncService(backfill, incremental, NullLogger<ShoptetOrdersSyncService>.Instance),
-                client);
+        refresher ??= new Mock<IShoptetOrderFactRefresher>();
+
+        return (new ShoptetOrdersSyncService(
+                    backfill, incremental, refresher.Object, NullLogger<ShoptetOrdersSyncService>.Instance),
+                client, refresher);
     }
 
     [Fact]
@@ -50,7 +56,7 @@ public class ShoptetOrdersSyncServiceTests
         // Arrange — the budget runs out before the first window completes.
         var clock = new FakeTimeProvider(Now);
         await using var ctx = CreateContext(Guid.NewGuid().ToString());
-        var (service, client) = Create(ctx, clock, backfillBudgetMinutes: 5);
+        var (service, client, _) = Create(ctx, clock, backfillBudgetMinutes: 5);
         client.OnCreationWindow = () => clock.Advance(TimeSpan.FromMinutes(6));
 
         // Act
@@ -67,7 +73,7 @@ public class ShoptetOrdersSyncServiceTests
         // Arrange
         var clock = new FakeTimeProvider(Now);
         await using var ctx = CreateContext(Guid.NewGuid().ToString());
-        var (service, client) = Create(ctx, clock);
+        var (service, client, refresher) = Create(ctx, clock);
 
         // Act
         var report = await service.SyncAsync();
@@ -76,5 +82,25 @@ public class ShoptetOrdersSyncServiceTests
         report.BackfillCompleted.Should().BeTrue();
         report.IsFullSuccess.Should().BeTrue();
         client.ChangeQueriesRequested.Should().ContainSingle();
+        refresher.Verify(r => r.RefreshAsync(It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task SyncAsync_still_reports_success_when_the_order_fact_refresh_fails()
+    {
+        // Arrange — the rows are already committed and the next run refreshes again, so a failed
+        // refresh must not turn a good sync into a failed one.
+        var refresher = new Mock<IShoptetOrderFactRefresher>();
+        refresher.Setup(r => r.RefreshAsync(It.IsAny<CancellationToken>()))
+                 .ThrowsAsync(new InvalidOperationException("view is locked"));
+
+        await using var ctx = CreateContext(Guid.NewGuid().ToString());
+        var (service, _, _) = Create(ctx, new FakeTimeProvider(Now), refresher: refresher);
+
+        // Act
+        var report = await service.SyncAsync();
+
+        // Assert
+        report.IsFullSuccess.Should().BeTrue();
     }
 }

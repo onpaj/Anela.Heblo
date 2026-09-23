@@ -68,6 +68,7 @@ public static class ShoptetOrdersAnalyticsServiceCollectionExtensions
         services.AddScoped<ShoptetOrderIncrementalSyncService>();
         services.AddScoped<IShoptetEntitySyncService>(sp => sp.GetRequiredService<ShoptetOrderBackfillService>());
         services.AddScoped<IShoptetEntitySyncService>(sp => sp.GetRequiredService<ShoptetOrderIncrementalSyncService>());
+        services.AddScoped<IShoptetOrderFactRefresher, ShoptetOrderFactRefresher>();
         services.AddScoped<IShoptetOrdersSyncService, ShoptetOrdersSyncService>();
         // Both registrations are needed: the discovery service resolves IRecurringJob to read the
         // metadata, and Hangfire's activator resolves the concrete type when the job actually runs.
