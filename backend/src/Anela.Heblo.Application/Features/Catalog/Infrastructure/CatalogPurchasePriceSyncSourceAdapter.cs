@@ -2,6 +2,7 @@ using Anela.Heblo.Application.Features.Purchase.Contracts;
 using Anela.Heblo.Domain.Features.Catalog;
 using Anela.Heblo.Domain.Features.Catalog.Price;
 using Anela.Heblo.Domain.Features.Catalog.Stock;
+using Microsoft.Extensions.Logging;
 
 namespace Anela.Heblo.Application.Features.Catalog.Infrastructure;
 
@@ -15,22 +16,26 @@ internal sealed class CatalogPurchasePriceSyncSourceAdapter : IPurchasePriceSync
     // Flexi warehouse ids — same values as FlexiStockClient / FinancialOverviewStockValueAdapter.
     private const int MaterialWarehouseId = 5; // MATERIAL
     private const int ProductsWarehouseId = 4; // ZBOZI (products and goods)
+    private const int MaxLoggedExcludedCodes = 10;
 
     private readonly ICatalogRepository _catalogRepository;
     private readonly IProductPriceErpClient _priceClient;
     private readonly IErpStockClient _stockClient;
     private readonly TimeProvider _timeProvider;
+    private readonly ILogger<CatalogPurchasePriceSyncSourceAdapter> _logger;
 
     public CatalogPurchasePriceSyncSourceAdapter(
         ICatalogRepository catalogRepository,
         IProductPriceErpClient priceClient,
         IErpStockClient stockClient,
-        TimeProvider timeProvider)
+        TimeProvider timeProvider,
+        ILogger<CatalogPurchasePriceSyncSourceAdapter> logger)
     {
         _catalogRepository = catalogRepository;
         _priceClient = priceClient;
         _stockClient = stockClient;
         _timeProvider = timeProvider;
+        _logger = logger;
     }
 
     public async Task<IReadOnlyList<PurchasePriceSyncCandidate>> GetCandidatesAsync(CancellationToken cancellationToken)
@@ -48,10 +53,14 @@ internal sealed class CatalogPurchasePriceSyncSourceAdapter : IPurchasePriceSync
             await StockToDateOrThrowAsync(ProductsWarehouseId, today, cancellationToken), s => s.ProductCode);
 
         var candidates = new List<PurchasePriceSyncCandidate>(items.Count);
+        var excludedCodes = new List<string>();
         foreach (var item in items)
         {
             if (!prices.TryGetValue(item.ProductCode, out var price) || price.ErpItemId <= 0)
+            {
+                excludedCodes.Add(item.ProductCode);
                 continue;
+            }
 
             var isMaterial = item.Type == ProductType.Material;
             var stock = isMaterial ? materialStock : goodsStock;
@@ -64,6 +73,13 @@ internal sealed class CatalogPurchasePriceSyncSourceAdapter : IPurchasePriceSync
                 CurrentPurchasePrice = price.PurchasePrice,
                 StockPrice = stock.TryGetValue(item.ProductCode, out var stockRow) ? stockRow.Price : null,
             });
+        }
+
+        if (excludedCodes.Count > 0)
+        {
+            _logger.LogInformation(
+                "Purchase price sync excluded {Count} Material/Goods items without a ceník row or with ErpItemId <= 0 (e.g. {ProductCodes})",
+                excludedCodes.Count, string.Join(", ", excludedCodes.Take(MaxLoggedExcludedCodes)));
         }
 
         return candidates;

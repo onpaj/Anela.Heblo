@@ -4,6 +4,8 @@ using Anela.Heblo.Domain.Features.Catalog;
 using Anela.Heblo.Domain.Features.Catalog.Price;
 using Anela.Heblo.Domain.Features.Catalog.Stock;
 using FluentAssertions;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Time.Testing;
 using Moq;
 using Xunit;
@@ -21,8 +23,8 @@ public class CatalogPurchasePriceSyncSourceAdapterTests
     private readonly Mock<IErpStockClient> _stock = new();
     private readonly FakeTimeProvider _time = new(new DateTimeOffset(Today.AddHours(2), TimeSpan.Zero));
 
-    private CatalogPurchasePriceSyncSourceAdapter CreateAdapter() =>
-        new(_catalog.Object, _prices.Object, _stock.Object, _time);
+    private CatalogPurchasePriceSyncSourceAdapter CreateAdapter(ILogger<CatalogPurchasePriceSyncSourceAdapter>? logger = null) =>
+        new(_catalog.Object, _prices.Object, _stock.Object, _time, logger ?? NullLogger<CatalogPurchasePriceSyncSourceAdapter>.Instance);
 
     private void GivenCatalog(params (string Code, ProductType Type)[] items) =>
         _catalog.Setup(c => c.GetAllAsync(It.IsAny<CancellationToken>()))
@@ -125,6 +127,59 @@ public class CatalogPurchasePriceSyncSourceAdapterTests
 
         // Assert
         result.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task logs_excluded_items_when_any_are_excluded()
+    {
+        // Arrange
+        GivenCatalog(("NO-CENIK", ProductType.Material), ("ZERO-ID", ProductType.Material));
+        GivenCenik(Cenik("ZERO-ID", 0, 1m));
+        GivenStock(MaterialWarehouseId, ("NO-CENIK", 1m), ("ZERO-ID", 1m));
+        GivenStock(ProductsWarehouseId, ("OTHER", 1m));
+
+        var loggerMock = new Mock<ILogger<CatalogPurchasePriceSyncSourceAdapter>>();
+
+        // Act
+        await CreateAdapter(loggerMock.Object).GetCandidatesAsync(CancellationToken.None);
+
+        // Assert
+        loggerMock.Verify(
+            x => x.Log(
+                LogLevel.Information,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((v, t) =>
+                    v.ToString()!.Contains("2") &&
+                    v.ToString()!.Contains("NO-CENIK") &&
+                    v.ToString()!.Contains("ZERO-ID")),
+                It.IsAny<Exception>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task does_not_log_when_nothing_is_excluded()
+    {
+        // Arrange
+        GivenCatalog(("AKL097", ProductType.Material));
+        GivenCenik(Cenik("AKL097", 789, 3m));
+        GivenStock(MaterialWarehouseId, ("AKL097", 0.3m));
+        GivenStock(ProductsWarehouseId, ("OTHER", 1m));
+
+        var loggerMock = new Mock<ILogger<CatalogPurchasePriceSyncSourceAdapter>>();
+
+        // Act
+        await CreateAdapter(loggerMock.Object).GetCandidatesAsync(CancellationToken.None);
+
+        // Assert
+        loggerMock.Verify(
+            x => x.Log(
+                It.IsAny<LogLevel>(),
+                It.IsAny<EventId>(),
+                It.IsAny<It.IsAnyType>(),
+                It.IsAny<Exception>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Never);
     }
 
     [Fact]
