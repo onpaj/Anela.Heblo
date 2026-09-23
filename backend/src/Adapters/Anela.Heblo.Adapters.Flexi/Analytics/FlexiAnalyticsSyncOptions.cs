@@ -11,6 +11,14 @@ public class FlexiAnalyticsSyncOptions
     public string InitialBackfillFrom { get; set; } = "2020-01-01";
     public int RequestTimeoutSeconds { get; set; } = 120;
 
+    /// <summary>
+    /// Pause between backfill pages, in milliseconds. The Postgres server is a 1-vCore Burstable
+    /// instance shared with production Heblo, so the one-off historical load is deliberately
+    /// throttled rather than run flat out. Ignored by the nightly incremental sync, whose deltas
+    /// are a few hundred rows.
+    /// </summary>
+    public int BackfillThrottleMilliseconds { get; set; } = 250;
+
     // Npgsql 6+ rejects DateTime with Kind != Utc on 'timestamptz' columns.
     // Parse via DateTimeOffset (which carries explicit offset) so .UtcDateTime
     // always returns Kind=Utc regardless of server local timezone.

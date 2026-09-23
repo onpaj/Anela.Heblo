@@ -13,6 +13,20 @@ public sealed class ContactSyncService : IEntitySyncService
 {
     private const string EntityName = "contact";
 
+    /// <summary>
+    /// ContactListRequest always renders the requested types into a <c>typVztahuK in (...)</c>
+    /// clause, so an empty set yields <c>typVztahuK in ()</c> and FlexiBee rejects the whole query
+    /// ("Špatný formát WQL dotazu, problém na pozici 16 poblíž textu ')'"). Naming every relation
+    /// type is how you ask for the entire address book.
+    /// </summary>
+    private static readonly ContactType[] AllRelationTypes =
+    [
+        ContactType.Supplier,
+        ContactType.SupplierAndCustomer,
+        ContactType.Customer,
+        ContactType.All,
+    ];
+
     private readonly IContactListClient _contactListClient;
     private readonly ISyncWatermarkRepository _watermarkRepo;
     private readonly AnalyticsDbContext _dbContext;
@@ -56,7 +70,7 @@ public sealed class ContactSyncService : IEntitySyncService
             while (true)
             {
                 var batch = await _contactListClient.GetAsync(
-                    Array.Empty<ContactType>(),
+                    AllRelationTypes,
                     _options.BatchSize,
                     offset,
                     ct);
@@ -70,6 +84,14 @@ public sealed class ContactSyncService : IEntitySyncService
                 if (batch.Count < _options.BatchSize)
                     break;
             }
+
+            // ContactListClient logs a rejected FlexiBee response and hands back an empty list
+            // instead of throwing, so without this the sync reports OK after ingesting nothing.
+            // Anela's address book is never empty; an empty full refresh means the call failed.
+            if (allDtos.Count == 0)
+                throw new InvalidOperationException(
+                    "Flexi returned no contacts. A full refresh of an address book that is never empty "
+                    + "means the request was rejected — check the FlexiBee client log for the WQL error.");
 
             var contacts = allDtos.Select(Map).ToList();
             totalFetched = contacts.Count;
@@ -85,6 +107,19 @@ public sealed class ContactSyncService : IEntitySyncService
             _logger.LogInformation(
                 "FlexiAnalyticsSync.EntityCompleted {EntityName} rowsFetched={RowsFetched} rowsUpserted={RowsUpserted}",
                 EntityName, totalFetched, totalUpserted);
+        }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        {
+            // A caller-requested stop is not a sync failure. Filter on the token, not on the
+            // exception type: an HTTP timeout also surfaces as TaskCanceledException, and that
+            // one IS a failure.
+            state.LastRunStatus = "CANCELLED";
+            state.LastRunFinishedAt = DateTimeOffset.UtcNow;
+
+            _logger.LogWarning("FlexiAnalyticsSync.EntityCancelled {EntityName}", EntityName);
+
+            await _watermarkRepo.SaveAsync(state, CancellationToken.None);
+            throw;
         }
         catch (Exception ex)
         {
