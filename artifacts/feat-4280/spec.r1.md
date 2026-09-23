@@ -40,18 +40,32 @@ namespace Anela.Heblo.Application.Features.UserManagement.Infrastructure.Excepti
 - No other code in the two files changes.
 
 ### FR-3: Fix all references
-Update every file that references these two exception types via a `using Anela.Heblo.Application.Features.UserManagement.Contracts;` import (where that import exists solely, or additionally, for these exception types) so the build succeeds under the new namespace. Based on the current codebase, the following files reference the exception types and need review:
-- `backend/src/Anela.Heblo.Application/Features/UserManagement/Services/IGraphService.cs` (references in XML doc comments; also has an existing `using ... Contracts;` for its DTOs)
+Update every file that references these two exception types via a `using Anela.Heblo.Application.Features.UserManagement.Contracts;` import (where that import exists solely, or additionally, for these exception types) so the build succeeds under the new namespace. **Note:** the originating issue listed only four referencing files; a full-repository grep for `GraphServiceAuthException`/`GraphServiceException` performed during specification turned up four more (the actual `IGraphService` implementation and three test files). The complete, verified list is:
+
+Production code:
+- `backend/src/Anela.Heblo.Application/Features/UserManagement/Services/IGraphService.cs` (XML doc `<exception cref>` comments; also has an existing `using ... Contracts;` for `UserDto`)
 - `backend/src/Anela.Heblo.Application/Features/UserManagement/UseCases/GetGroupMembers/GetGroupMembersHandler.cs` (catch blocks)
 - `backend/src/Anela.Heblo.Application/Features/UserManagement/Infrastructure/EntraAccessUserSourceAdapter.cs` (catch blocks)
 - `backend/src/Anela.Heblo.Application/Features/UserManagement/Infrastructure/GraphArticleUserResolver.cs` (catch blocks)
+- `backend/src/Adapters/Anela.Heblo.Adapters.Microsoft365/UserManagement/GraphService.cs` — the concrete `IGraphService` implementation; it `throw`s both exception types (not previously listed in the issue)
 
-Several of these files (`IGraphService.cs`, `EntraAccessUserSourceAdapter.cs`, `GraphArticleUserResolver.cs`, and the `GetGroupMembers` response/handler files) also use the existing `Contracts` namespace for actual DTOs (e.g. `GetGroupMembersResponse`, `GetDepartmentsResponse`). Where a file references both DTOs from `Contracts` and the relocated exception types, add a new `using Anela.Heblo.Application.Features.UserManagement.Infrastructure.Exceptions;` alongside the existing `Contracts` using — do not remove the `Contracts` using where DTOs from that namespace are still referenced.
+Test code (not previously listed in the issue):
+- `backend/test/Anela.Heblo.Tests/Features/UserManagement/GetGroupMembersHandlerTests.cs`
+- `backend/test/Anela.Heblo.Tests/Features/UserManagement/GraphServiceTests.cs`
+- `backend/test/Anela.Heblo.Tests/Features/UserManagement/EntraAccessUserSourceAdapterTests.cs`
+
+Documentation/comments referencing the old location by name (not a compile dependency, but should be corrected for accuracy):
+- `backend/test/Anela.Heblo.Tests/Architecture/ModuleBoundariesTests.cs` — three comments (an allowlist header comment and an assertion failure message) explicitly state that `GraphServiceAuthException`/`GraphServiceException` are "defined in UserManagement.Contracts"; this becomes false after the move and should be updated to say `UserManagement.Infrastructure.Exceptions`. This test's actual enforcement logic is namespace-prefix-based (`Anela.Heblo.Application`) and reflection-driven, not a hardcoded `Contracts` string, so the test itself does not need logic changes — only its comments/message text.
+
+All eight production/test files reference `UserDto` (or another `Contracts` DTO) by name **except** `GraphArticleUserResolver.cs`, which references `Contracts` solely for these two exception types.
 
 **Acceptance criteria:**
-- Every file that references `GraphServiceAuthException` or `GraphServiceException` has a `using Anela.Heblo.Application.Features.UserManagement.Infrastructure.Exceptions;` statement (or fully-qualifies the type).
-- Files that also use DTOs from `Features.UserManagement.Contracts` retain that using statement unchanged.
+- Every file that references `GraphServiceAuthException` or `GraphServiceException` (all eight files above) has a `using Anela.Heblo.Application.Features.UserManagement.Infrastructure.Exceptions;` statement (or fully-qualifies the type).
+- Files that also use DTOs from `Features.UserManagement.Contracts` (all eight files above except `GraphArticleUserResolver.cs`) retain that using statement unchanged.
+- `GraphArticleUserResolver.cs`'s `using Features.UserManagement.Contracts;` is replaced (removed, since nothing else in that file needs it).
+- The three stale "defined in UserManagement.Contracts" comments/messages in `ModuleBoundariesTests.cs` are updated to reference `UserManagement.Infrastructure.Exceptions`.
 - `dotnet build` succeeds with no new warnings or errors introduced by this change.
+- `dotnet test` passes for all UserManagement-related tests and `ModuleBoundariesTests`.
 
 ### FR-4: No behavioral change
 This is a pure move/rename. No exception-handling logic, constructor signatures, class semantics, or call sites' catch/throw behavior change.

@@ -12,16 +12,22 @@ The spec's proposed target — `Infrastructure/Exceptions/` — is directly vali
 
 This confirms the spec's FR-1 choice of `Infrastructure/Exceptions/` over a bare feature-root `Exceptions/` folder — the latter is the issue's parenthetical alternative but not what the documented template shows.
 
-I read all four referencing files directly (not just their names, per the issue) to verify exactly what each needs post-move:
+I read all four files the issue named, and then ran a full-repository grep for `GraphServiceAuthException`/`GraphServiceException` rather than trusting the issue's file list — the issue undercounts the reference surface. It missed the actual `IGraphService` implementation and three unit test files entirely. Verified, complete file-by-file inventory:
 
-| File | Uses `UserDto`/`GetGroupMembersResponse` by name (needs `Contracts` using) | Uses the two exceptions (needs new `Infrastructure.Exceptions` using) |
+| File | Uses `UserDto` by name (needs `Contracts` using) | Uses the two exceptions (needs new `Infrastructure.Exceptions` using) |
 |---|---|---|
 | `Services/IGraphService.cs` | Yes (`List<UserDto>` return types) | Yes (XML `<exception cref>` doc comments) |
 | `UseCases/GetGroupMembers/GetGroupMembersHandler.cs` | Yes (`new List<UserDto>()`) | Yes (2 catch blocks) |
 | `Infrastructure/EntraAccessUserSourceAdapter.cs` | Yes (`List<UserDto> users;`) | Yes (2 catch blocks) |
 | `Infrastructure/GraphArticleUserResolver.cs` | **No** — `var members = await _graph.GetGroupMembersAsync(...)` is inferred; no `UserDto`/DTO type named explicitly in this file | Yes (2 catch blocks) |
+| `src/Adapters/Anela.Heblo.Adapters.Microsoft365/UserManagement/GraphService.cs` (**not in issue** — the concrete `IGraphService` implementation) | Yes (throughout, `List<UserDto>` locals/returns) | Yes (`throw new GraphServiceException(...)` / `throw new GraphServiceAuthException(...)`, 4 throw sites + 1 catch) |
+| `test/.../GetGroupMembersHandlerTests.cs` (**not in issue**) | Yes (`List<UserDto>`) | Yes (mocked `ThrowsAsync`) |
+| `test/.../GraphServiceTests.cs` (**not in issue**) | Yes (`List<UserDto>`) | Yes (`Assert.ThrowsAsync<...>`) |
+| `test/.../EntraAccessUserSourceAdapterTests.cs` (**not in issue**) | Yes (`List<UserDto>`) | Yes (mocked `ThrowsAsync`) |
 
-This means `GraphArticleUserResolver.cs`'s existing `using Anela.Heblo.Application.Features.UserManagement.Contracts;` is used *only* for the two exception types today — it should be **replaced** with the new `Infrastructure.Exceptions` using, not kept alongside it (an unused `using` is a style/lint smell this task should not introduce). The other three files reference actual DTOs by name and must **keep** their `Contracts` using **and add** the new `Infrastructure.Exceptions` using.
+This means `GraphArticleUserResolver.cs`'s existing `using Anela.Heblo.Application.Features.UserManagement.Contracts;` is used *only* for the two exception types today — it should be **replaced** with the new `Infrastructure.Exceptions` using, not kept alongside it (an unused `using` is a style/lint smell this task should not introduce). Every other file in the table above references `UserDto` by name and must **keep** its `Contracts` using **and add** the new `Infrastructure.Exceptions` using.
+
+Additionally, `test/Anela.Heblo.Tests/Architecture/ModuleBoundariesTests.cs` — a reflection-based module-boundary fitness test — contains three comments/assertion messages that name-check "UserManagement.Contracts" as the defined location of these two exception types (around its `SdkExceptionAllowlist` field and its `Application_types_should_not_catch_SDK_exception_types_directly` test). The test's actual enforcement is namespace-prefix-based (`Anela.Heblo.Application`) via reflection, so it will not break, but the comment text becomes inaccurate documentation of exactly the thing this task is fixing and should be corrected alongside the move.
 
 ## Proposed Architecture
 
@@ -88,11 +94,14 @@ Unchanged. `IGraphService` implementations still throw `GraphServiceAuthExceptio
 - `UseCases/GetGroupMembers/GetGroupMembersHandler.cs` → add `using ...Infrastructure.Exceptions;`; keep `using ...Contracts;` (for `UserDto`).
 - `Infrastructure/EntraAccessUserSourceAdapter.cs` → add `using ...Infrastructure.Exceptions;`; keep `using ...Contracts;` (for `UserDto`). Note: since this file already lives under `Infrastructure/`, and the new exceptions namespace is `...Infrastructure.Exceptions`, a fully-qualified reference would also work without a new using line as long as the `using` is added for clarity/consistency with the other files — the review recommends adding it explicitly rather than relying on any implicit resolution, since C# does not implicitly search child namespaces.
 - `Infrastructure/GraphArticleUserResolver.cs` → replace `using ...Contracts;` with `using ...Infrastructure.Exceptions;` (this file has no other reason to import `Contracts`).
+- `src/Adapters/Anela.Heblo.Adapters.Microsoft365/UserManagement/GraphService.cs` → add `using Anela.Heblo.Application.Features.UserManagement.Infrastructure.Exceptions;`; keep `using ...Contracts;` (for `UserDto`).
+- `test/Anela.Heblo.Tests/Features/UserManagement/GetGroupMembersHandlerTests.cs`, `GraphServiceTests.cs`, `EntraAccessUserSourceAdapterTests.cs` → each add `using Anela.Heblo.Application.Features.UserManagement.Infrastructure.Exceptions;`; keep `using ...Contracts;` (for `UserDto`).
+- `test/Anela.Heblo.Tests/Architecture/ModuleBoundariesTests.cs` → text-only edit: update the three comment/message occurrences of "UserManagement.Contracts" (describing where `GraphServiceAuthException`/`GraphServiceException` are defined) to "UserManagement.Infrastructure.Exceptions". No logic change.
 
 ## Risks and Mitigations
 | Risk | Severity | Mitigation |
 |------|----------|------------|
-| Missing a reference site not caught by the grep-based inventory (e.g. a test project referencing these exceptions by full name or a `using`) | Low | Run `dotnet build` after the move; the compiler will surface any missed reference as CS0246 (type/namespace not found). Also grep test projects for `GraphServiceAuthException`/`GraphServiceException` before declaring done. |
+| Missing a reference site not caught by the grep-based inventory (this review already found 4 files the issue itself missed — a repo-wide grep, not the issue's file list, is the source of truth) | Low | Run `dotnet build` after the move; the compiler will surface any missed reference as CS0246 (type/namespace not found). Re-run `grep -rl "GraphServiceAuthException\|GraphServiceException" backend/` before declaring done and confirm it matches the 8 files enumerated here. |
 | Leaving an unused `Contracts` using in `GraphArticleUserResolver.cs` (or removing a still-needed one elsewhere) | Low | Per-file table above enumerates exactly what each file needs; `dotnet format`/analyzer warnings on unused usings will catch any mistake. |
 | XML doc `<exception cref>` in `IGraphService.cs` failing to resolve silently (cref warnings are easy to miss, not build-breaking by default) | Low | Explicitly add the new using to `IGraphService.cs` per the file-by-file guidance above, regardless of whether cref resolution alone would trigger a build error. |
 

@@ -11,6 +11,9 @@
   - `UseCases/GetGroupMembers/GetGroupMembersHandler.cs` — catches both, maps to `GetGroupMembersResponse` with `ErrorCodes.ConfigurationError` / `ErrorCodes.ExternalServiceError` respectively.
   - `Infrastructure/EntraAccessUserSourceAdapter.cs` — catches both, re-wraps as `EntraAccessSourceAuthException` / `EntraAccessSourceException`.
   - `Infrastructure/GraphArticleUserResolver.cs` — catches both, re-wraps as `ArticleUserResolverAuthException` / `ArticleUserResolverServiceException`.
+  - `src/Adapters/Anela.Heblo.Adapters.Microsoft365/UserManagement/GraphService.cs` — the concrete `IGraphService` implementation; `throw`s both exception types (found via full-repo grep during specification; not listed in the originating issue).
+  - `test/Anela.Heblo.Tests/Features/UserManagement/GetGroupMembersHandlerTests.cs`, `GraphServiceTests.cs`, `EntraAccessUserSourceAdapterTests.cs` — reference both types in mock setups/assertions (found via full-repo grep; not listed in the originating issue).
+  - `test/Anela.Heblo.Tests/Architecture/ModuleBoundariesTests.cs` — comments only (no compiled dependency); see import table below.
 
 ### Import (`using`) changes per consumer
 This is the only observable change to each consumer file — see the architecture review's file-by-file table for the authoritative per-file breakdown. Summary:
@@ -21,6 +24,11 @@ This is the only observable change to each consumer file — see the architectur
 | `UseCases/GetGroupMembers/GetGroupMembersHandler.cs` | keep (needed for `UserDto`) | add |
 | `Infrastructure/EntraAccessUserSourceAdapter.cs` | keep (needed for `UserDto`) | add |
 | `Infrastructure/GraphArticleUserResolver.cs` | remove (no other symbol from `Contracts` is referenced) | add (replaces it) |
+| `src/Adapters/.../UserManagement/GraphService.cs` | keep (needed for `UserDto`) | add |
+| `test/.../GetGroupMembersHandlerTests.cs` | keep (needed for `UserDto`) | add |
+| `test/.../GraphServiceTests.cs` | keep (needed for `UserDto`) | add |
+| `test/.../EntraAccessUserSourceAdapterTests.cs` | keep (needed for `UserDto`) | add |
+| `test/Architecture/ModuleBoundariesTests.cs` | n/a (no `using` involved) | n/a — text-only comment fix (see spec FR-3) |
 
 No other component's public surface, dependency graph, or DI registration is affected — `IGraphService`'s implementations are registered exactly as before; only the exception types' compile-time location changes.
 
