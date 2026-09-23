@@ -5,6 +5,9 @@ Lists every material (warehouse 5) and goods item (warehouse 4) with what the ni
 purchase price sync would do to it: write / unchanged / skip-no-stock-price.
 Only GET requests are made.
 
+Approximation: the job classifies items by the catalog type (from stock skupZboz);
+this report uses ceník typZasobyK, so a few items may be classified differently.
+
 Usage:
   FLEXI_SERVER=https://petra-tesarikova.flexibee.eu \
   FLEXI_COMPANY=$(az keyvault secret show --vault-name kv-heblo-prod -n FlexiBeeSettings--Company --query value -o tsv) \
@@ -55,6 +58,15 @@ def stock_prices(warehouse_id, date):
     return prices
 
 
+def distance(row):
+    if row["nakupCena"] == 0 and row["action"] == "write":
+        # Flexi has no purchase price at all for an item with real stock value: the most-wrong
+        # row on the sheet, so it must sort first regardless of the (zero) ratio.
+        return float("inf")
+    ratio = row["nakupCena/prumCena"]
+    return abs(math.log(ratio)) if isinstance(ratio, float) and ratio > 0 else -1
+
+
 def main():
     today = datetime.date.today().isoformat()
     cenik = get("cenik", {"detail": "custom:id,kod,nazev,nakupCena,typZasobyK,mj1", "limit": 0})
@@ -81,10 +93,6 @@ def main():
             "prumCena": prum if prum is not None else "", "stavMJ": qty if qty is not None else "",
             "nakupCena/prumCena": ratio, "action": action,
         })
-
-    def distance(row):
-        ratio = row["nakupCena/prumCena"]
-        return abs(math.log(ratio)) if isinstance(ratio, float) and ratio > 0 else -1
 
     rows.sort(key=distance, reverse=True)
     writer = csv.DictWriter(sys.stdout, fieldnames=list(rows[0].keys()) if rows else ["kod"])
