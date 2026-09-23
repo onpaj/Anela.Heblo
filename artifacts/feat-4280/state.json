@@ -21,16 +21,16 @@
       "updated_at": "2026-09-23T07:21:14.762001Z"
     },
     "developing": {
-      "status": "pending",
-      "updated_at": null
+      "status": "in_progress",
+      "updated_at": "2026-09-23T08:17:28.835911Z"
     }
   },
   "tasks": [
     {
       "name": "relocate-exception-files",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-09-23T08:17:29.026666Z"
     },
     {
       "name": "update-production-usings",
