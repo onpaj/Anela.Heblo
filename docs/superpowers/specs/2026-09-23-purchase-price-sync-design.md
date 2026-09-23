@@ -84,20 +84,18 @@ recalculates that item's BoM.
 
 **Phase 1 — Sync materials and goods**
 
-1. Load the ceník: `IProductPriceErpClient.GetAllAsync(forceReload: true)` → current
-   `PurchasePrice` (`nakupCena`) and `ErpItemId` (`idcenik`) per product code.
-2. Load stock for today: `IErpStockClient.StockToDateAsync(today, warehouse)` for
-   warehouse **5** (`MaterialWarehouseId`) and **4** (`ProductsWarehouseId`).
+1. `IPurchasePriceSyncSource.GetCandidatesAsync` returns one candidate per catalog
+   item of type `Material` or `Goods` that has a ceník row with `ErpItemId > 0`:
+   current `nakupCena` from the ceník (`IProductPriceErpClient.GetAllAsync(forceReload: true)`)
+   and `prumCena` from today's stock — warehouse **5** for `Material`, **4** for `Goods`.
    `ErpStock.Price` is `prumCena` (FlexiBeeSDK `StockToDateItem.AveragePrice`,
-   `[JsonProperty("prumCena")]`).
-3. Take catalog items of type `Material` (matched against warehouse 5) and `Goods`
-   (matched against warehouse 4). Other types are ignored in this phase.
-4. Per item:
+   `[JsonProperty("prumCena")]`). Other types are ignored in this phase.
+2. Per candidate:
    - no stock row, or `prumCena ≤ 0` → skip (counted as *no stock price*);
    - `|prumCena − nakupCena|` below `PurchasePriceTolerance` (named constant, 0.0001) →
      skip (counted as *unchanged*);
-   - otherwise → `IErpPurchasePriceWriter.SetPurchasePriceAsync(erpItemId, prumCena)`.
-5. Invalidate the `FlexiProductPrices` cache after the phase.
+   - otherwise → `IPurchasePriceRecalculationService.SetPurchasePriceAsync(erpItemId, prumCena)`.
+   The writer evicts the `FlexiProductPrices` cache after each write.
 
 **Phase 2 — Semi-products.** `prepocti-nakupni-cenu` for every BoM whose owner is
 `ProductType.SemiProduct`.
@@ -105,7 +103,8 @@ recalculates that item's BoM.
 **Phase 3 — Products and sets.** `prepocti-nakupni-cenu` for every remaining BoM
 (`Product`, `Set`, anything else with a BoM).
 
-Invalidate the `FlexiProductPrices` cache at the end of the job.
+No extra cache eviction after phases 2/3: the job runs at 02:00 and the ceník cache
+expires after 5 minutes on its own.
 
 ### 4.2 Components
 
@@ -113,10 +112,12 @@ Invalidate the `FlexiProductPrices` cache at the end of the job.
 |---|---|---|
 | `RecalculatePurchasePriceHandler` | `Application/Features/Purchase/UseCases/RecalculatePurchasePrice/` | Three phases on the `RecalculateAll` path; phase order enforced |
 | `RecalculatePurchasePriceResponse` | same | Per-phase counts (see 4.4); existing fields kept |
-| `IMaterialCatalogService` / `PurchaseMaterialCatalogAdapter` | `Purchase/Contracts`, `Catalog/Infrastructure` | BoM references carry the owner's `ProductType` so the handler can split phases 2/3; new query for Material/Goods items with `ErpItemId` and current `nakupCena` |
-| New `IPurchaseStockPriceSource` | `Purchase/Contracts` + adapter in `Catalog/Infrastructure` (next to `CatalogPurchasePriceRecalculationAdapter`) | Returns `prumCena` per product code for a warehouse; wraps `IErpStockClient.StockToDateAsync` |
-| New `IErpPurchasePriceWriter` | Domain port | `SetPurchasePriceAsync(int erpItemId, decimal purchasePrice, CancellationToken)` |
-| New `FlexiPurchasePriceWriter` | `Adapters/Anela.Heblo.Adapters.Flexi/Price/` | `PUT cenik { "winstrom": { "cenik": [{ "id": ..., "nakupCena": ... }] } }`, invariant culture; mirrors `FlexiProductPriceWriter`'s HTTP/error handling; evicts `FlexiProductPriceErpClient.CacheKey` |
+| `MaterialBomReference` / `PurchaseMaterialCatalogAdapter` | `Purchase/Contracts`, `Catalog/Infrastructure` | BoM reference carries `IsSemiProduct` so the handler can split phases 2/3 |
+| New `IPurchasePriceSyncSource` + `PurchasePriceSyncCandidate` | `Purchase/Contracts` | One call returning, per Material/Goods item: code, type, `ErpItemId`, current `nakupCena`, `prumCena` (null when no stock row) |
+| New `CatalogPurchasePriceSyncSourceAdapter` | `Catalog/Infrastructure` | Implements the source from `ICatalogRepository` (types), `IProductPriceErpClient.GetAllAsync(forceReload: true)` (ceník) and `IErpStockClient.StockToDateAsync(today, 5 / 4)` (`prumCena`) |
+| `IPurchasePriceRecalculationService` / `CatalogPurchasePriceRecalculationAdapter` | `Purchase/Contracts`, `Catalog/Infrastructure` | New `SetPurchasePriceAsync(erpItemId, price)` delegating to `IErpPurchasePriceWriter` |
+| New `IErpPurchasePriceWriter` | `Domain/Features/ProductPricing/` | `SetPurchasePriceAsync(int erpItemId, decimal purchasePrice, CancellationToken)` |
+| New `FlexiPurchasePriceWriter` | `Adapters/Anela.Heblo.Adapters.Flexi/Price/` | `PUT cenik/{id}.json` with `{ "winstrom": { "cenik": { "nakupCena": ... } } }`, invariant culture; mirrors `FlexiProductPriceWriter`'s HTTP/error handling; evicts `FlexiProductPriceErpClient.CacheKey` after each write |
 | `central-price-management-design.md` | `docs/superpowers/specs/` | A2 revised as in §3 |
 
 Purchase reaches Catalog/Flexi only through its own contracts (same pattern as
