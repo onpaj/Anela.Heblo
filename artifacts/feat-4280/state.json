@@ -28,9 +28,9 @@
   "tasks": [
     {
       "name": "relocate-exception-files",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-09-23T08:17:29.026666Z"
+      "updated_at": "2026-09-23T08:19:29.430027Z"
     },
     {
       "name": "update-production-usings",
