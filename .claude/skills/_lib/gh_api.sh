@@ -148,23 +148,36 @@ req_paginate() {
   # req_paginate METHOD PATH — follows Link: rel="next", concatenates JSON
   # array pages into one array. Used where `gh api --paginate` is used today
   # (issue/PR comment lists that can exceed one page).
+  #
+  # Pages are combined via jq FILE arguments, never --argjson: a PR/issue
+  # with a large comment history (e.g. many verbose agent-authored
+  # comments) can put a single page's body well past the kernel's
+  # per-argument limit (~128KB, independent of the much larger overall
+  # ARG_MAX), which makes execve fail with E2BIG ("Argument list too
+  # long") even though the total command line is nowhere near ARG_MAX.
+  # File arguments keep every exec's argv down to a couple of short paths.
   local method="$1" path="$2"
   local url
   url=$(_api_url "$path")
   [[ "$url" == *"?"* ]] && url="${url}&per_page=100" || url="${url}?per_page=100"
-  local all="[]" hdrfile body
+  local hdrfile combined pagefile
   hdrfile=$(mktemp)
+  combined=$(mktemp)
+  echo "[]" >"$combined"
   while [[ -n "$url" ]]; do
-    body=$(curl -sS --max-time 30 -X "$method" \
+    pagefile=$(mktemp)
+    curl -sS --max-time 30 -X "$method" \
       -H "Authorization: Bearer ${TOKEN}" \
       -H "Accept: application/vnd.github+json" \
       -H "X-GitHub-Api-Version: 2022-11-28" \
-      -D "$hdrfile" "$url")
-    all=$(jq -c -n --argjson a "$all" --argjson b "$body" '$a + $b')
+      -D "$hdrfile" -o "$pagefile" "$url"
+    jq -c -s 'add' "$combined" "$pagefile" >"${combined}.next"
+    mv "${combined}.next" "$combined"
+    rm -f "$pagefile"
     url=$(grep -i '^link:' "$hdrfile" | grep -o '<[^>]*>; rel="next"' | sed -E 's/^<(.*)>.*/\1/' || true)
   done
-  rm -f "$hdrfile"
-  printf '%s' "$all"
+  cat "$combined"
+  rm -f "$hdrfile" "$combined"
 }
 
 graphql() {
