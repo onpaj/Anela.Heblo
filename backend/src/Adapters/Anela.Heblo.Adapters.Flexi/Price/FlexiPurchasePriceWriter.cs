@@ -46,7 +46,9 @@ public class FlexiPurchasePriceWriter : IErpPurchasePriceWriter
                 "A Flexi ceník id is required. Writing by code would create a new price list item.");
         }
 
-        if (purchasePrice <= 0m)
+        var roundedPrice = Math.Round(purchasePrice, 6, MidpointRounding.AwayFromZero);
+
+        if (roundedPrice <= 0m)
         {
             throw new ArgumentOutOfRangeException(
                 nameof(purchasePrice),
@@ -60,7 +62,7 @@ public class FlexiPurchasePriceWriter : IErpPurchasePriceWriter
             {
                 cenik = new
                 {
-                    nakupCena = purchasePrice.ToString("0.######", CultureInfo.InvariantCulture),
+                    nakupCena = roundedPrice.ToString("0.######", CultureInfo.InvariantCulture),
                 },
             },
         };
@@ -89,8 +91,9 @@ public class FlexiPurchasePriceWriter : IErpPurchasePriceWriter
 
         InvalidateCachedErpPrices();
 
-        _logger.LogInformation(
-            "Updated Flexi ceník {ErpItemId} purchase price to {PurchasePrice}", erpItemId, purchasePrice);
+        // The handler logs the audit line (product code, old/new price); this is debug detail only.
+        _logger.LogDebug(
+            "Updated Flexi ceník {ErpItemId} purchase price to {PurchasePrice}", erpItemId, roundedPrice);
     }
 
     private void InvalidateCachedErpPrices()

@@ -4,7 +4,9 @@ using System.Text.Json;
 using Anela.Heblo.Adapters.Flexi.Price;
 using FluentAssertions;
 using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
+using Moq;
 using Rem.FlexiBeeSDK.Client;
 using Xunit;
 
@@ -13,7 +15,8 @@ namespace Anela.Heblo.Tests.Adapters.Flexi;
 public class FlexiPurchasePriceWriterTests
 {
     private static (FlexiPurchasePriceWriter Writer, List<HttpRequestMessage> Requests, List<string> Bodies) Create(
-        IMemoryCache? cache = null, HttpStatusCode status = HttpStatusCode.OK, string responseBody = "{}")
+        IMemoryCache? cache = null, HttpStatusCode status = HttpStatusCode.OK, string responseBody = "{}",
+        ILogger<FlexiPurchasePriceWriter>? logger = null)
     {
         var requests = new List<HttpRequestMessage>();
         var bodies = new List<string>();
@@ -23,7 +26,7 @@ public class FlexiPurchasePriceWriterTests
 
         return (new FlexiPurchasePriceWriter(
                     factory, settings, cache ?? new MemoryCache(new MemoryCacheOptions()),
-                    NullLogger<FlexiPurchasePriceWriter>.Instance),
+                    logger ?? NullLogger<FlexiPurchasePriceWriter>.Instance),
                 requests, bodies);
     }
 
@@ -92,6 +95,21 @@ public class FlexiPurchasePriceWriterTests
     }
 
     [Fact]
+    public async Task rejects_a_price_that_rounds_to_zero_at_6_decimals_without_calling_flexi()
+    {
+        // Arrange: round FIRST, then guard the rounded value, so a value that is positive but
+        // rounds to 0 at 6 decimals is rejected rather than sent to Flexi as "0".
+        var (writer, requests, _) = Create();
+
+        // Act
+        var act = () => writer.SetPurchasePriceAsync(789, 0.0000001m, CancellationToken.None);
+
+        // Assert
+        await act.Should().ThrowAsync<ArgumentOutOfRangeException>();
+        requests.Should().BeEmpty();
+    }
+
+    [Fact]
     public async Task throws_with_the_flexi_body_when_the_write_is_rejected()
     {
         // Arrange
@@ -102,6 +120,37 @@ public class FlexiPurchasePriceWriterTests
 
         // Assert
         (await act.Should().ThrowAsync<HttpRequestException>()).And.Message.Should().Contain("nope");
+    }
+
+    [Fact]
+    public async Task logs_the_successful_write_at_debug_not_information()
+    {
+        // Arrange: the handler already logs the audit line (product code, old/new price), so this
+        // writer-level log is debug detail only and must not duplicate it at Information.
+        var loggerMock = new Mock<ILogger<FlexiPurchasePriceWriter>>();
+        var (writer, _, _) = Create(logger: loggerMock.Object);
+
+        // Act
+        await writer.SetPurchasePriceAsync(789, 0.311m, CancellationToken.None);
+
+        // Assert
+        loggerMock.Verify(
+            x => x.Log(
+                LogLevel.Debug,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains("Updated Flexi ceník")),
+                It.IsAny<Exception>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Once);
+
+        loggerMock.Verify(
+            x => x.Log(
+                LogLevel.Information,
+                It.IsAny<EventId>(),
+                It.IsAny<It.IsAnyType>(),
+                It.IsAny<Exception>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Never);
     }
 
     [Fact]
