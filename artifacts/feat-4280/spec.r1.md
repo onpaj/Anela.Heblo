@@ -55,7 +55,7 @@ Test code (not previously listed in the issue):
 - `backend/test/Anela.Heblo.Tests/Features/UserManagement/EntraAccessUserSourceAdapterTests.cs`
 
 Documentation/comments referencing the old location by name (not a compile dependency, but should be corrected for accuracy):
-- `backend/test/Anela.Heblo.Tests/Architecture/ModuleBoundariesTests.cs` — three comments (an allowlist header comment and an assertion failure message) explicitly state that `GraphServiceAuthException`/`GraphServiceException` are "defined in UserManagement.Contracts"; this becomes false after the move and should be updated to say `UserManagement.Infrastructure.Exceptions`. This test's actual enforcement logic is namespace-prefix-based (`Anela.Heblo.Application`) and reflection-driven, not a hardcoded `Contracts` string, so the test itself does not need logic changes — only its comments/message text.
+- `backend/test/Anela.Heblo.Tests/Architecture/ModuleBoundariesTests.cs` — exactly two occurrences of the literal text `UserManagement.Contracts` (verified by grep: line 908, an allowlist header comment; line 977, part of an assertion failure message string) explicitly state that `GraphServiceAuthException`/`GraphServiceException` are "defined in UserManagement.Contracts"; this becomes false after the move and should be updated to say `UserManagement.Infrastructure.Exceptions`. This test's actual enforcement logic is namespace-prefix-based (`Anela.Heblo.Application`) and reflection-driven, not a hardcoded `Contracts` string, so the test itself does not need logic changes — only these two text occurrences.
 
 All eight production/test files reference `UserDto` (or another `Contracts` DTO) by name **except** `GraphArticleUserResolver.cs`, which references `Contracts` solely for these two exception types.
 
@@ -63,7 +63,7 @@ All eight production/test files reference `UserDto` (or another `Contracts` DTO)
 - Every file that references `GraphServiceAuthException` or `GraphServiceException` (all eight files above) has a `using Anela.Heblo.Application.Features.UserManagement.Infrastructure.Exceptions;` statement (or fully-qualifies the type).
 - Files that also use DTOs from `Features.UserManagement.Contracts` (all eight files above except `GraphArticleUserResolver.cs`) retain that using statement unchanged.
 - `GraphArticleUserResolver.cs`'s `using Features.UserManagement.Contracts;` is replaced (removed, since nothing else in that file needs it).
-- The three stale "defined in UserManagement.Contracts" comments/messages in `ModuleBoundariesTests.cs` are updated to reference `UserManagement.Infrastructure.Exceptions`.
+- The two stale "defined in UserManagement.Contracts" occurrences (line 908 comment, line 977 assertion message) in `ModuleBoundariesTests.cs` are updated to reference `UserManagement.Infrastructure.Exceptions`.
 - `dotnet build` succeeds with no new warnings or errors introduced by this change.
 - `dotnet test` passes for all UserManagement-related tests and `ModuleBoundariesTests`.
 
