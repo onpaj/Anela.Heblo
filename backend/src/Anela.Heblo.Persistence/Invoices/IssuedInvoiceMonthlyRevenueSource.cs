@@ -1,8 +1,12 @@
 using Anela.Heblo.Domain.Features.MarketingPerformance;
 using Microsoft.EntityFrameworkCore;
 
-namespace Anela.Heblo.Persistence.Marketing;
+namespace Anela.Heblo.Persistence.Invoices;
 
+// Cross-module contract: Invoices implements MarketingPerformance's IMonthlyRevenueSource
+// via this adapter. DI registration owned by provider (Invoices), not consumer
+// (MarketingPerformance) — mirrors the IInvoiceConsumptionSource/IInvoiceImportStatisticsSource
+// pattern in InvoicesModule.cs.
 /// <summary>
 /// Revenue step: aggregates the already-synced Shoptet issued invoices for one month.
 /// CZK only, by TaxDate. Price is the with-VAT total (PriceC is never populated).
