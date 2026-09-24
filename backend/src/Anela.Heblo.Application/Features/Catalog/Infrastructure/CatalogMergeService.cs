@@ -147,6 +147,7 @@ public sealed class CatalogMergeService
             product.ProductName = erpProduct.ProductName;
             product.ErpId = erpProduct.ProductId;
             product.Stock.Erp = erpProduct.Stock;
+            product.Stock.StockPrice = erpProduct.Stock > 0 && erpProduct.Price > 0 ? erpProduct.Price : null;
             product.Type = GetProductType(erpProduct);
             product.MinimalOrderQuantity = erpProduct.MOQ;
             product.HasLots = erpProduct.HasLots;

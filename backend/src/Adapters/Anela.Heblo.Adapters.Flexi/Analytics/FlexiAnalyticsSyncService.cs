@@ -52,6 +52,12 @@ public sealed class FlexiAnalyticsSyncService : IFlexiAnalyticsSyncService
         {
             var serviceName = service.GetType().Name;
 
+            // All four entity syncs share one scoped AnalyticsDbContext. On 2026-09-24 the ledger
+            // sync left two failed INSERTs on the change tracker and every later entity then died
+            // flushing them, so one bad ledger page was reported as a four-service outage. Start
+            // each entity from a clean tracker so nobody inherits the last one's mess.
+            _dbContext.ChangeTracker.Clear();
+
             try
             {
                 var result = await service.SyncAsync(ct);

@@ -28,13 +28,22 @@ public class EcomailCampaignDto
 {
     public int Id { get; set; }
     public string Title { get; set; } = string.Empty;
-    public string Subject { get; set; } = string.Empty;
+
+    /// <summary>Null on drafts — 25 of 276 campaigns on the live account (measured 2026-09-24).</summary>
+    public string? Subject { get; set; }
+
     public string? FromEmail { get; set; }
     public string CampaignType { get; set; } = string.Empty;
     public int Status { get; set; }
     public DateTime? SentAt { get; set; }
     public int? ParentId { get; set; }
-    public int Recipients { get; set; }
+
+    /// <summary>
+    /// Nullable because Ecomail sends <c>null</c> on SMS sends and drafts — 10 of 276 campaigns.
+    /// A non-nullable int made System.Text.Json throw on the entire page, so one unusable draft
+    /// silently wiped every newsletter out of an otherwise green run.
+    /// </summary>
+    public int? Recipients { get; set; }
 }
 
 public class EcomailPipelineDto

@@ -64,7 +64,7 @@ public class ConfirmProductCompletionHandler
                 "ConfirmProductCompletion failed for order {OrderId}: {Message}",
                 request.Id, result.ErrorMessage);
 
-            return new ConfirmProductCompletionResponse(ErrorCodes.InvalidOperation)
+            return new ConfirmProductCompletionResponse(result.ErrorCode ?? ErrorCodes.InvalidOperation, result.Params)
             {
                 Message = result.ErrorMessage,
             };

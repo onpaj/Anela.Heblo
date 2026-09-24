@@ -70,6 +70,28 @@ public class ConfirmSemiProductManufactureHandlerTests
     }
 
     [Fact]
+    public async Task Handle_WorkflowFailureWithParams_ReturnsParams()
+    {
+        // Arrange
+        var parameters = new Dictionary<string, string> { { "detail", "Glycerol (AKL007)" } };
+        var request = new ConfirmSemiProductManufactureRequest { Id = 1, ActualQuantity = 10m };
+        _workflowMock
+            .Setup(w => w.ExecuteAsync(It.IsAny<int>(), It.IsAny<decimal>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new ConfirmSemiProductManufactureResult(
+                success: false,
+                message: "Nedostatečné zásoby pro výrobu.",
+                errorCode: ErrorCodes.ManufactureInsufficientMaterialStock,
+                parameters: parameters));
+
+        // Act
+        var response = await _handler.Handle(request, CancellationToken.None);
+
+        // Assert
+        response.ErrorCode.Should().Be(ErrorCodes.ManufactureInsufficientMaterialStock);
+        response.Params.Should().BeEquivalentTo(parameters);
+    }
+
+    [Fact]
     public async Task Handle_WorkflowFailureWithoutErrorCode_DefaultsToInvalidOperation()
     {
         // Arrange
