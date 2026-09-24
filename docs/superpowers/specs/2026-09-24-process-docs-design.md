@@ -5,7 +5,7 @@
 
 ## Problem
 
-Heblo has ~61 recurring jobs plus a set of calculations (margins M0–M3, pricing, stock-up,
+Heblo has 34 concrete recurring jobs (`IRecurringJob`, incl. via abstract bases) plus a set of calculations (margins M0–M3, pricing, stock-up,
 Financial Overview, manufacture write-down, …). Nobody — neither the developer nor the business
 owners — can reliably answer "where does this number come from?" or "how is this calculated?"
 without re-reading code. The knowledge that exists is scattered across `docs/features/` (a mix of
@@ -51,7 +51,7 @@ its doc behind.
 
 ```yaml
 ---
-process: flexi-analytics-sync
+process: sync-flexi-analytics  # must equal the filename stem
 kind: sync                     # sync | calculation | feed
 summary: Mirrors the Flexi accounting ledger and contacts into flexi_raw for reporting.
 owns:                          # globs of code this doc describes (repo-relative)
@@ -85,7 +85,8 @@ only the doc they need.
 ## 2. Serving
 
 **Bundling:** `docs/processes/*.md` are included as embedded resources in the API assembly via
-a csproj glob. No Dockerfile change. Every deployed image carries the docs matching its own code,
+a csproj glob in `Anela.Heblo.Application`. The Dockerfile's backend stage gets one extra
+`COPY docs/processes/ ./docs/processes/` (it only copies `backend/` today). Every deployed image carries the docs matching its own code,
 so production answers describe production code and staging answers describe staging.
 
 **MCP tools** — new `ProcessDocsMcpTools` in `backend/src/Anela.Heblo.API/MCP/Tools/`, following
@@ -120,7 +121,7 @@ Deterministic, no LLM, runs in seconds. Reports:
 
 - **Stale** — a doc where any file matching `owns` changed between `verified_at` and the compared ref.
 - **Orphan** — a process-bearing class not covered by any doc's `owns`. Detection starts with every
-  implementation of `IRecurringJob`, plus an explicit include/ignore list in
+  concrete implementation of `IRecurringJob` (direct or through an abstract base), plus an explicit include/ignore list in
   `scripts/process-docs/config.yaml` (calculations have no marker type today).
 - **Dead glob** — an `owns` pattern that matches no files.
 - **Schema errors** — missing frontmatter fields, unknown `kind`, unknown `related` name,
