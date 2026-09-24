@@ -9,6 +9,15 @@ public class EcomailSyncService : IEcomailSyncService
     /// <summary>stats-detail events worth storing per month. There is no conversion event.</summary>
     private static readonly string[] MonthlyEvents = { "send", "open", "click", "unsub" };
 
+    /// <summary>
+    /// How far back stats-detail will answer. Older windows are rejected outright:
+    /// <c>422 {"errors":{"from_date":["The from date field must be a date after or equal to
+    /// &lt;today-365&gt;."]}}</c>, measured against the live account on 2026-09-24. A month below
+    /// this floor can only ever fail, and failed months are deliberately never locked, so asking
+    /// for one costs four doomed calls on every run forever.
+    /// </summary>
+    private const int StatsDetailRetentionDays = 365;
+
     private readonly IEcomailApiClient _api;
     private readonly IEcomailRepository _repository;
     private readonly EcomailOptions _options;
@@ -82,13 +91,16 @@ public class EcomailSyncService : IEcomailSyncService
             }
 
             entity.Title = dto.Title;
-            entity.Subject = dto.Subject;
+            // Both are null on drafts and SMS sends. Subject is NOT NULL in the database, so the
+            // null has to stop here rather than at SaveChanges, where it would roll back the
+            // snapshot rows that share this DbContext.
+            entity.Subject = dto.Subject ?? string.Empty;
             entity.FromEmail = dto.FromEmail;
             entity.CampaignType = dto.CampaignType;
             entity.Status = dto.Status;
             entity.SentAt = dto.SentAt;
             entity.ParentId = dto.ParentId;
-            entity.Recipients = dto.Recipients;
+            entity.Recipients = dto.Recipients ?? 0;
             entity.SyncedAt = now;
             count++;
 
@@ -247,7 +259,12 @@ public class EcomailSyncService : IEcomailSyncService
         // Normalise to the first of the month: AddMonths preserves day-of-month, so a
         // BackfillFrom that isn't the 1st would otherwise push both the event-count window and
         // the stored Year/Month label off the true calendar-month boundary.
-        var backfillStart = new DateOnly(_options.BackfillFrom.Year, _options.BackfillFrom.Month, 1);
+        var configuredStart = new DateOnly(_options.BackfillFrom.Year, _options.BackfillFrom.Month, 1);
+
+        // A floor, not a replacement: a BackfillFrom inside the window still wins, so this cannot
+        // quietly widen a deliberately narrow backfill to a full year.
+        var retentionStart = FirstFullyCountableMonth(today);
+        var backfillStart = configuredStart > retentionStart ? configuredStart : retentionStart;
         var computed = 0;
 
         foreach (var pipelineId in pipelineIds)
@@ -322,6 +339,18 @@ public class EcomailSyncService : IEcomailSyncService
         }
 
         return computed;
+    }
+
+    /// <summary>
+    /// The earliest month stats-detail can report in full. The retention floor lands mid-month, and
+    /// a month counted from partway through would look like a real monthly total while covering
+    /// only part of it — so the first usable month is the one that starts on or after the floor.
+    /// </summary>
+    private static DateOnly FirstFullyCountableMonth(DateOnly today)
+    {
+        var floor = today.AddDays(-StatsDetailRetentionDays);
+        var floorMonth = new DateOnly(floor.Year, floor.Month, 1);
+        return floor.Day == 1 ? floorMonth : floorMonth.AddMonths(1);
     }
 
     private EcomailAutomationMonth AddAutomationMonth(int pipelineId, DateOnly month)
