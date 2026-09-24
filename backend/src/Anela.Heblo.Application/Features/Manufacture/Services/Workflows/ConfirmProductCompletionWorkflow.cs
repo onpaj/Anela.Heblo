@@ -3,6 +3,7 @@ using Anela.Heblo.Application.Features.Manufacture.UseCases.SubmitManufacture;
 using Anela.Heblo.Application.Features.Manufacture.UseCases.UpdateBoMIngredientAmount;
 using Anela.Heblo.Application.Features.Manufacture.UseCases.UpdateManufactureOrder;
 using Anela.Heblo.Application.Features.Manufacture.UseCases.UpdateManufactureOrderStatus;
+using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Domain.Features.Manufacture;
 using Anela.Heblo.Domain.Features.Users;
 using MediatR;
@@ -28,6 +29,7 @@ public class ConfirmProductCompletionWorkflow : IConfirmProductCompletionWorkflo
     private const string NoteTruncationSuffix = "… [truncated]";
 
     private readonly IMediator _mediator;
+    private readonly IManufactureOrderRepository _repository;
     private readonly IResidueDistributionCalculator _residueCalculator;
     private readonly IManufactureNameBuilder _nameBuilder;
     private readonly TimeProvider _timeProvider;
@@ -36,6 +38,7 @@ public class ConfirmProductCompletionWorkflow : IConfirmProductCompletionWorkflo
 
     public ConfirmProductCompletionWorkflow(
         IMediator mediator,
+        IManufactureOrderRepository repository,
         IResidueDistributionCalculator residueCalculator,
         IManufactureNameBuilder nameBuilder,
         TimeProvider timeProvider,
@@ -43,6 +46,7 @@ public class ConfirmProductCompletionWorkflow : IConfirmProductCompletionWorkflo
         ILogger<ConfirmProductCompletionWorkflow> logger)
     {
         _mediator = mediator;
+        _repository = repository;
         _residueCalculator = residueCalculator;
         _nameBuilder = nameBuilder;
         _timeProvider = timeProvider;
@@ -73,10 +77,21 @@ public class ConfirmProductCompletionWorkflow : IConfirmProductCompletionWorkflo
                     string.Format(ManufactureMessages.ProductQuantityUpdateErrorFormat, updateResult.ErrorCode));
             }
 
-            // Step 2: Calculate residue distribution
-            var distribution = await _residueCalculator.CalculateAsync(updateResult.Order!, cancellationToken);
+            // Step 2: Fetch the persisted domain entity directly — do not rely on the update
+            // handler's response DTO (UpdateManufactureOrderDto is an HTTP-response shape, not
+            // an internal business-logic data carrier; see issue #4212).
+            var order = await _repository.GetOrderByIdAsync(orderId, cancellationToken);
+            if (order == null)
+            {
+                _logger.LogError("Order {OrderId} not found after successful update", orderId);
+                return new ConfirmProductCompletionResult(
+                    string.Format(ManufactureMessages.ProductQuantityUpdateErrorFormat, ErrorCodes.ResourceNotFound));
+            }
 
-            // Step 3: If outside threshold and not yet confirmed by user, request confirmation
+            // Step 3: Calculate residue distribution
+            var distribution = await _residueCalculator.CalculateAsync(order, cancellationToken);
+
+            // Step 4: If outside threshold and not yet confirmed by user, request confirmation
             if (!distribution.IsWithinAllowedThreshold && !overrideConfirmed)
             {
                 _logger.LogInformation(
@@ -85,17 +100,17 @@ public class ConfirmProductCompletionWorkflow : IConfirmProductCompletionWorkflo
                 return ConfirmProductCompletionResult.NeedsConfirmation(distribution);
             }
 
-            // Step 4: Submit to ERP with distribution data
-            var submitResult = await SubmitToErpAsync(orderId, updateResult.Order!, distribution, cancellationToken);
+            // Step 5: Submit to ERP with distribution data
+            var submitResult = await SubmitToErpAsync(orderId, order, distribution, cancellationToken);
 
-            // Step 5: Update BoM ingredient amounts per product if ERP submission succeeded
+            // Step 6: Update BoM ingredient amounts per product if ERP submission succeeded
             var bomFailures = new List<string>();
             if (submitResult.Success)
             {
-                bomFailures = await UpdateBoMIngredientsAsync(submitResult, updateResult.Order!, distribution, orderId, cancellationToken);
+                bomFailures = await UpdateBoMIngredientsAsync(submitResult, order, distribution, orderId, cancellationToken);
             }
 
-            // Step 6: Transition to Completed state
+            // Step 7: Transition to Completed state
             var result = await TransitionToCompletedAsync(
                 orderId, submitResult, distribution, overrideConfirmed, changeReason, bomFailures, cancellationToken);
 
@@ -142,7 +157,7 @@ public class ConfirmProductCompletionWorkflow : IConfirmProductCompletionWorkflo
 
     private async Task<SubmitManufactureResponse> SubmitToErpAsync(
         int orderId,
-        UpdateManufactureOrderDto order,
+        ManufactureOrder order,
         ResidueDistribution distribution,
         CancellationToken cancellationToken)
     {
@@ -206,7 +221,7 @@ public class ConfirmProductCompletionWorkflow : IConfirmProductCompletionWorkflo
 
     private async Task<List<string>> UpdateBoMIngredientsAsync(
         SubmitManufactureResponse submitResult,
-        UpdateManufactureOrderDto order,
+        ManufactureOrder order,
         ResidueDistribution distribution,
         int orderId,
         CancellationToken cancellationToken)

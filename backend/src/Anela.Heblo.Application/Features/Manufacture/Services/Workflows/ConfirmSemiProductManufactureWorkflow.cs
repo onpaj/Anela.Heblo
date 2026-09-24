@@ -22,6 +22,7 @@ public interface IConfirmSemiProductManufactureWorkflow
 public class ConfirmSemiProductManufactureWorkflow : IConfirmSemiProductManufactureWorkflow
 {
     private readonly IMediator _mediator;
+    private readonly IManufactureOrderRepository _repository;
     private readonly IManufactureNameBuilder _nameBuilder;
     private readonly TimeProvider _timeProvider;
     private readonly ICurrentUserService _currentUserService;
@@ -29,12 +30,14 @@ public class ConfirmSemiProductManufactureWorkflow : IConfirmSemiProductManufact
 
     public ConfirmSemiProductManufactureWorkflow(
         IMediator mediator,
+        IManufactureOrderRepository repository,
         IManufactureNameBuilder nameBuilder,
         TimeProvider timeProvider,
         ICurrentUserService currentUserService,
         ILogger<ConfirmSemiProductManufactureWorkflow> logger)
     {
         _mediator = mediator;
+        _repository = repository;
         _nameBuilder = nameBuilder;
         _timeProvider = timeProvider;
         _currentUserService = currentUserService;
@@ -63,10 +66,22 @@ public class ConfirmSemiProductManufactureWorkflow : IConfirmSemiProductManufact
                     updateResult.ErrorCode ?? ErrorCodes.InternalServerError);
             }
 
-            // Step 2: Create manufacture via external client
-            var submitManufactureResult = await SubmitToErpAsync(orderId, updateResult.Order!, cancellationToken);
+            // Step 2: Fetch the persisted domain entity directly — do not rely on the update
+            // handler's response DTO (UpdateManufactureOrderDto is an HTTP-response shape, not
+            // an internal business-logic data carrier; see issue #4212).
+            var order = await _repository.GetOrderByIdAsync(orderId, cancellationToken);
+            if (order == null)
+            {
+                _logger.LogError("Order {OrderId} not found after successful update", orderId);
+                return new ConfirmSemiProductManufactureResult(false,
+                    string.Format(ManufactureMessages.QuantityUpdateErrorFormat, ErrorCodes.ResourceNotFound),
+                    ErrorCodes.ResourceNotFound);
+            }
 
-            // Step 3: Change state to SemiProductManufactured
+            // Step 3: Create manufacture via external client
+            var submitManufactureResult = await SubmitToErpAsync(orderId, order, cancellationToken);
+
+            // Step 4: Change state to SemiProductManufactured
             var result = await UpdateStatusAsync(orderId, actualQuantity, changeReason, submitManufactureResult, cancellationToken);
 
             if (!result.Success)
@@ -113,7 +128,7 @@ public class ConfirmSemiProductManufactureWorkflow : IConfirmSemiProductManufact
 
     private async Task<SubmitManufactureResponse> SubmitToErpAsync(
         int orderId,
-        UpdateManufactureOrderDto order,
+        ManufactureOrder order,
         CancellationToken cancellationToken)
     {
         var semiProduct = order.SemiProduct;
