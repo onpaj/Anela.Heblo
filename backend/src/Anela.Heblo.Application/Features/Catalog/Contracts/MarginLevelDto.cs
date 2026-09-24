@@ -1,4 +1,5 @@
 using System.Text.Json.Serialization;
+using Anela.Heblo.Domain.Features.Catalog;
 
 namespace Anela.Heblo.Application.Features.Catalog.Contracts;
 
@@ -30,4 +31,16 @@ public class MarginLevelDto
     /// </summary>
     [JsonPropertyName("costTotal")]
     public decimal CostTotal { get; set; }
+
+    /// <summary>
+    /// Maps a domain margin-level value to its DTO. Centralizes the field-by-field copy
+    /// used at every M0-M3 call site across the Catalog module's margin handlers.
+    /// </summary>
+    public static MarginLevelDto FromDomain(MarginLevel level) => new()
+    {
+        Percentage = level.Percentage,
+        Amount = level.Amount,
+        CostLevel = level.CostLevel,
+        CostTotal = level.CostTotal
+    };
 }
