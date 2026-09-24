@@ -31,7 +31,7 @@ Shoptet is an e-commerce platform that exposes a REST API at `https://api.myshop
 | `POST` | `/api/orders` | Create an order |
 | `GET` | `/api/orders` | List orders (paginated, default 50, max 100) |
 | `GET` | `/api/orders/{code}` | Get single order (optional `include` sections) |
-| `GET` | `/api/orders/snapshot` | Async full export (jsonlines) |
+| `GET` | `/api/orders/snapshot` | Async full export (jsonlines) — **403 without a registered `job:finished` webhook, see §3.11** |
 | `PATCH` | `/api/orders/{code}/head` | Update basic info (email, addresses) |
 | `PATCH` | `/api/orders/{code}/status` | Change status / mark paid / update payment method |
 | `PATCH` | `/api/orders/{code}/notes` | Update remarks and 6 custom fields |
@@ -172,10 +172,15 @@ Defined in `PrintPickingListOptions` and `ShoptetApiExpeditionListSource`:
 
 ### 3.5 GET /api/orders — Filtering Parameters
 
+> **Superseded by §3.8**, which lists the parameters actually accepted by the API, each verified
+> against the live store. Two entries that used to be here are wrong: there is no `transport`
+> filter (it is `shippingGuid`) and no `payment` filter (it is `paymentMethodGuid`); both return
+> 400 `Unsupported query parameters found`.
+
 - `statusId` — filter by status id; **use `statusId=` (not `status=`)** — the correct parameter name supports both positive custom IDs and negative system IDs (e.g. `?statusId=-2` for "Vyřizuje se" works correctly; `?status=-2` returns 400)
-- `transport` — filter by shipping method
-- `payment` — filter by payment method
-- Date range filters
+- `shippingGuid` — filter by shipping method GUID
+- `paymentMethodGuid` — filter by payment method GUID
+- `creationTimeFrom` / `creationTimeTo`, `changeTimeFrom` / `changeTimeTo` — ISO 8601 **with an explicit offset** (see §3.8)
 - `code` — order code
 - `page`, `itemsPerPage` — pagination; **max `itemsPerPage` is 50** (not 100; passing 100 is rejected)
 
@@ -253,11 +258,243 @@ The Heblo client (`ShoptetOrderClient.SetAdditionalFieldAsync`) accepts any 1..6
 
 Length limits: indices 1–3 are capped at 255 chars by the Shoptet API. Indices 4–6 are believed to support longer text but the exact cap has not been verified — measure before assuming.
 
+### 3.8 GET /api/orders — verified query parameters (2026-09-22, production anela.cz)
+
+Taken from the published OpenAPI spec and each one exercised against the live store. This
+supersedes the earlier list in §3.5, which named parameters the API does not have.
+
+| Parameter | Notes |
+|---|---|
+| `statusId` | Positive and negative ids both work. |
+| `shippingGuid` | **This is the shipping filter — `transport` does NOT exist** and returns 400 `Unsupported query parameters found: transport`. |
+| `shippingCompanyCode` | Carrier company code. |
+| `paymentMethodGuid` | **`payment` does not exist.** |
+| `creationTimeFrom` / `creationTimeTo` | Full ISO 8601 **with an explicit offset**. `2026-09-21` and `2026-09-21T00:00:00` both return 400. `+0200`, `+02:00` and `Z` are all accepted; URL-encode the `+` as `%2B`. Both bounds appear to be inclusive. |
+| `changeTimeFrom` / `changeTimeTo` | Same format rules. |
+| `codeFrom` / `codeTo` | Order-code range. |
+| `customerGuid`, `email`, `phone` | `email` matches exactly, case-insensitively; `phone` international format only. |
+| `productCode` | Orders containing a given product code. |
+| `sourceId` | See `GET /api/orders/sources`. |
+| `orderCodes` | Up to 50 comma-separated codes. **No other filter takes effect alongside it.** |
+| `page`, `itemsPerPage` | `itemsPerPage` max 50; asking for 100 silently returns 50. |
+
+**There is no `sort` parameter** (400) and **no `include` parameter on the list endpoint** (400) —
+`include` exists only on `GET /api/orders/{code}`.
+
+**The unfiltered list is not ordered by creation time.** Page 1932 of 1932 (the last page of the
+full history) returned orders created 2026-06-20, not the oldest ones. Anything that needs to walk
+the history deterministically must filter by `creationTimeFrom`/`creationTimeTo`, which is stable
+because an order's creation time never changes.
+
+**`orderCodes` does not return line items.** The response has exactly the list-endpoint shape —
+`items[]` and `completion[]` are absent — so it cannot be used to batch-fetch order detail. Line
+items require one `GET /api/orders/{code}` per order.
+
+### 3.9 GET /api/orders/{code} — full response shape (verified 2026-09-22)
+
+Top-level fields, no `include` needed:
+
+```
+code, guid, externalCode, customerGuid, birthDate, email, phone, addressesEqual,
+creationTime, changeTime, cashDeskOrder, stockId, vatPayer, paid, language, referer,
+clientIPAddress, adminUrl, billingAddress, deliveryAddress, price, source, status,
+vatMode, billingMethod, paymentMethod, onlinePaymentLink, shipping, paymentMethods,
+shippings, items, completion, salesChannelGuid
+```
+
+`items[]` entry fields:
+
+```
+productGuid, itemType, productType, name, variantName, ean, brand, remark, weight,
+additionalField, amount, amountUnit, priceRatio, code, supplierName, warrantyDescription,
+amountCompleted, itemId, itemPrice, unitPrice, displayPrices, recyclingFee, nonReturnable,
+itemPriceVatBreakdown, purchasePrice, status, consumptionTax, stockLocation
+```
+
+Things that are easy to get wrong:
+
+- **`itemPrice` is the LINE TOTAL, `unitPrice` is per unit.** Verified on a wholesale order:
+  `amount` 5, `unitPrice.withVat` 357.50, `itemPrice.withVat` 1787.50.
+- **Monetary values are JSON strings** (`"350.00"`), **quantities are JSON numbers** (`1.000`).
+  Deserialise decimals with `JsonNumberHandling.AllowReadingFromString` to cover both.
+- **`creationTime` / `changeTime` use the basic-format offset `+0200`, not `+02:00`.**
+  `System.Text.Json` rejects that; `Anela.Heblo.Adapters.ShoptetApi.Analytics.Model.ShoptetDateTimeOffsetConverter`
+  parses it. Npgsql then refuses to write a non-zero offset to a `timestamp with time zone`
+  column, so normalise with `.ToUniversalTime()` before persisting.
+- **`paid`, `vatPayer` and `cashDeskOrder` can be `null`**, not just true/false. Observed on
+  September 2026 cash-desk orders. Model them as `bool?`.
+- **A cancelled order (status `-4`, "Stornována") has `price.withVat` = `0.00` while its
+  `items[].itemPrice` values stay intact.** Header-level revenue is therefore already
+  storno-safe; anything summing item lines must exclude cancelled orders explicitly.
+- **`purchasePrice`** is present on product lines — Shoptet's own cost of goods for that item.
+- **The order header total equals** products + `shipping` + `billing` + discount lines
+  (discounts are negative). Confirmed on orders with a coupon.
+- **`exchangeRate` is quoted as order-currency-per-CZK.** A EUR order carries `0.03984064`, so
+  the CZK amount is `price / exchangeRate`. CZK orders carry `1.00000000`.
+- **`itemType` values seen in production** across the full 2018-2026 history (96,615 orders,
+  529,740 lines): `product` (299,193), `shipping` (91,822), `billing` (90,850), `gift` (9,185),
+  `product-set` (8,119), `discount-coupon` (1,917), `volume-discount` (1,227) and `service` (4) —
+  plus `product-set-item` (27,423) in `completion[]`. `gift` lines are priced `0.00`;
+  the two discount types are negative. **`service`** is undocumented and very rare (gift wrapping,
+  an insurance payout) but it is real revenue and appears in the order total.
+- **The order total reconciles to the line types** for **99.994%** of non-cancelled orders
+  (93,037 of 93,043 checked). The six exceptions are four `service` lines and **two orders where
+  Shoptet's own header total disagrees with its lines** (`2020000297` by −50, `124002928` by −39).
+  Prefer the header `price` over summing lines.
+
+### 3.10 `completion[]` — what is actually in it
+
+`completion[]` is **not** just the set components. It mirrors every `items[]` line (same `itemId`)
+and *additionally* carries the `product-set-item` component entries. A mirror that stores
+`completion[]` wholesale duplicates every ordinary product line.
+
+Component entries:
+
+- carry **no price at all** — no `itemPrice`, no `unitPrice`. Revenue for a set exists only on the
+  `product-set` line in `items[]`, so component-level revenue cannot be derived.
+- their `itemId` is the **catalogue** item id (e.g. `710`), not an order-line id, and repeats
+  across orders. It is not a usable key.
+- `parentProductSetItemId` matches the parent `product-set` line's `itemId`.
+- `amount` is already the order total (per-set quantity × set count) — see the warning in §3.3.
+
+### 3.11 GET /api/orders/snapshot — blocked without webhook infrastructure
+
+```
+GET /api/orders/snapshot
+→ 403 {"errorCode":"required-webhook-registration",
+       "message":"Webhook for job:finished is not registered."}
+```
+
+Confirmed 2026-09-22 on **both** the production (269953) and test (780175) stores, and
+`GET /api/webhooks` returns zero registered webhooks on both. The endpoint is **not** a
+202 + pollable `jobId` contract like `GET /api/orders/history/snapshot` — it refuses outright
+until a `job:finished` webhook exists, which needs a publicly reachable endpoint Shoptet can POST
+to. Same restriction as `GET /api/products/snapshot` (§4.3) and `GET /api/pricelists/{id}/snapshot`.
+
+**A full-history export therefore has to be paged**: `GET /api/orders` windowed by creation time
+to enumerate codes, then one `GET /api/orders/{code}` per order for the line items.
+
+### 3.12 GET /api/orders/changes — the edit/delete log
+
+```
+GET /api/orders/changes?from=<ISO8601 with offset>&page=1&itemsPerPage=1000
+→ { "data": { "changes": [ { "code", "changeTime", "changeType" } ], "paginator": {...} } }
+```
+
+- `from` is required (400 `missing-parameter` without it), same date-time format rules as §3.8.
+- `changeType` is `edit` or `delete`. Optional `changeType` query parameter filters to one.
+- `itemsPerPage` max is **1000** here, unlike the 50 on `/api/orders`.
+- Only an order's **last** change is listed, so a code never appears twice.
+- **Guaranteed history is 30 days**; older entries are pruned.
+- **A newly created order IS reported, with `changeType: "edit"`.** The documented values are only
+  `edit` and `delete`, which reads as though creations were excluded — they are not. Verified on
+  the production store 2026-09-22: of 26 orders whose `changeTime` still equalled their
+  `creationTime` (never touched after being placed), all 26 appeared in the log; and of 133 orders
+  created since 2026-09-21, all 133 appeared. A consumer therefore does **not** need a
+  `GET /api/orders?changeTimeFrom=` listing to catch new orders (the orders mirror still unions
+  one in, purely as a safety net against this undocumented behaviour changing).
+
+This is the only way to learn that an order was **deleted** — a deleted order simply stops
+appearing in `GET /api/orders`, so a change-time listing can never notice it.
+
+### 3.13 Sales channels and order sources — how MO / VO / prodejna are actually separated
+
+`GET /api/sales-channels` (production anela.cz, 2026-09-22):
+
+| id | guid | name | type |
+|---|---|---|---|
+| 3 | `0199be14-cf30-7071-8002-7ac7a4338548` | E-shop | `online_store` |
+| 6 | `0199c897-3102-7d13-8552-6f5470438844` | Heureka | `system` |
+| 9 | `0199c897-3102-7d13-8552-6f6125e494c6` | Aukro | `system` |
+| 12 | `0199c897-3103-7790-be2a-e22a0ff80bb2` | Admin | `system` |
+| 13 | `019eab6a-7f98-716f-889c-f99d15219194` | anela.cz | `in_store` |
+| 25 | `019eab6a-8025-72f2-bb38-900d72f97a9f` | Trhy | `in_store` |
+
+`GET /api/orders/sources` returns 45 sources; the store-specific positive ids are
+`10` (Pepi), `25` (Trhy) and `1000` (Sdilena) — the in-store cash registers.
+
+**`salesChannelGuid` does NOT separate retail from wholesale.** VO orders carry the same E-shop
+channel guid as retail ones, the top-level `company` field is `null` even on company orders, and
+`GET /api/eshop?include=salesChannels` is not a valid include. The store's
+`settings.wholesaleSplitActive` is `true`, and the split shows up as **separate shipping methods**:
+`GET /api/eshop?include=shippingMethods` returns `retail` and `wholesale` groups with different
+GUIDs for the same carrier (§7). A wholesale customer can only pick a wholesale method, so
+**the shipping GUID is the wholesale marker.**
+
+Caveat: that endpoint returns only the methods active **today** (3 wholesale, 8 retail as of
+2026-09-22). The retired VO methods still present on historical orders cannot be rediscovered from
+the API and are listed in §7 — keep that table current, it is the source of truth for the
+historical VO set.
+
+Prodejna is simpler: **`cashDeskOrder = true`**, which is also true for every order on the two
+`in_store` channels. One further channel guid appears on ~1% of cash-desk orders between 2025-03
+and 2026-05 — `019eab6a-7fed-7021-a070-45c5424398cc` — which `GET /api/sales-channels/{guid}`
+reports as `sales-channel-not-found`; a deleted register. `cashDeskOrder` covers it anyway.
+
+Order-count check against the whole history (96,584 orders, `shippingGuid` filter per method):
+2,873 use a wholesale method, ~88,573 a retail one, and ~5,138 have no shipping method at all
+(overwhelmingly cash-desk orders).
+
+### 3.14 Rate limiting
+
+Responses carry `x-ratelimit-bucket-filling: <used>/200`, which in practice stays at `1/200`
+and is not a usable signal.
+
+Measured on the live production store, 2026-09-22:
+
+| Pattern | Result |
+|---|---|
+| Sequential, ~3.9 req/s, 60 calls | 60 × 200, no 429 |
+| 4 parallel connections, ~15.7 req/s, 40 calls | mixture of 200 and **429** |
+
+A long-running reader should stay at or below ~4 req/s sequentially and back off exponentially on
+429. The token is shared with Heblo's packing and expedition flows, so a bulk read during business
+hours eats into the same budget as the people in the warehouse.
+
+### 3.15 GET /api/customers — actual response shape
+
+§4.2 described this as speculative. Verified 2026-09-22:
+
+```
+data.customer = {
+  guid, changeTime, creationTime, remark, priceRatio, birthDate, disabledOrders,
+  billingAddress { company, fullName, street, houseNumber, city, district, additional,
+                   zip, countryCode, regionName, regionShortcut, companyId, taxId, vatId,
+                   vatIdValidationStatus },
+  deliveryAddress [ { guid, company, fullName, street, ..., isDefault } ],   // an ARRAY
+  customerGroup { id, name },
+  priceList { id, name },
+  remarks [ { id, rating, remark } ],
+  accounts [ { guid, fullName, email, phone, mainAccount, authorized, emailVerified } ],
+  adminUrl
+}
+```
+
+Notes: `deliveryAddress` is an array, not an object. There is **no top-level `email`** — the
+address is on `accounts[]`. `priceList.id` 38/39 are the wholesale lists on anela.cz.
+`GET /api/customers` (list) exists — 11,209 customers — but returns only
+`guid, changeTime, billCompany, billFullName, creationTime, adminUrl`; price list and customer
+group need a per-customer detail call.
+
+### 3.16 Guest checkout dominates — what that means for customer identity
+
+Sample of 280 order details spread across the whole history (2026-09-22):
+
+- **69% have no `customerGuid`** (guest checkout).
+- **5% have no `email`** — all of them cash-desk orders.
+- 279/280 CZK, 1 EUR.
+
+Anything that needs a customer identity across orders has to key on the e-mail address, not on
+`customerGuid`.
+
+
 ---
 
 ## 4. Customers API
 
-> **TODO: Verify against live API.** Run `curl -H "Shoptet-Private-API-Token: <token>" https://api.myshoptet.com/api/customers/<guid>` with a real customer GUID and document the actual response shape here. Update `ShoptetCustomerResponse.cs` field names if they differ from the speculative model.
+> **Verified 2026-09-22 — see §3.15 for the real response shape.** The speculative fields below
+> were close but not exact: `deliveryAddress` is an array, and there is no top-level `email`
+> (it lives on `accounts[]`).
 
 ### 4.1 Endpoints
 
@@ -265,7 +502,7 @@ Length limits: indices 1–3 are capped at 255 chars by the Shoptet API. Indices
 |---|---|---|
 | `GET` | `/api/customers/{guid}` | Get customer by GUID |
 
-### 4.2 Known fields (speculative — verify before production)
+### 4.2 Known fields (speculative — superseded by §3.15)
 
 Response shape assumed to follow Shoptet conventions:
 - `data.customer.guid` — customer GUID
