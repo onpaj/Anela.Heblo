@@ -62,13 +62,25 @@ def stock_prices(warehouse_id, date):
     return prices
 
 
+def classify(current, prum):
+    """What the nightly job does with an item: mirrors RecalculatePurchasePriceHandler."""
+    if prum is None or prum <= 0:
+        return "skip-no-stock-price"
+    if abs(prum - current) < TOLERANCE:
+        return "unchanged"
+    return "write"
+
+
 def distance(row):
-    if row["nakupCena"] == 0 and row["action"] == "write":
+    if row["action"] == "skip-no-stock-price":
+        return -1
+    current, prum = row["nakupCena"], row["prumCena"]
+    if current <= 0:
         # Flexi has no purchase price at all for an item with real stock value: the most-wrong
         # row on the sheet, so it must sort first regardless of the (zero) ratio.
         return float("inf")
-    ratio = row["nakupCena/prumCena"]
-    return abs(math.log(ratio)) if isinstance(ratio, float) and ratio > 0 else -1
+    # From the unrounded ratio: the displayed ratio rounds tiny values to 0.0.
+    return abs(math.log(current / prum))
 
 
 def main():
@@ -84,13 +96,8 @@ def main():
         code = item["kod"].strip()
         current = float(item.get("nakupCena") or 0)
         prum, qty = stock[warehouse].get(code, (None, None))
-        if prum is None or prum <= 0:
-            action, ratio = "skip-no-stock-price", ""
-        elif abs(prum - current) < TOLERANCE:
-            action, ratio = "unchanged", 1.0
-        else:
-            action = "write"
-            ratio = round(current / prum, 3) if prum else ""
+        action = classify(current, prum)
+        ratio = "" if action == "skip-no-stock-price" else round(current / prum, 3)
         rows.append({
             "kod": code, "nazev": item.get("nazev", ""), "typ": item.get("typZasobyK"),
             "mj": item.get("mj1@showAs", item.get("mj1", "")), "nakupCena": current,

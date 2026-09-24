@@ -60,6 +60,8 @@ internal sealed class PurchaseMaterialCatalogAdapter : IMaterialCatalogService
 
         return aggregates
             .Where(item => item.HasBoM && item.BoMId.HasValue)
+            // Materials and goods take their purchase price from the stock price; a BoM roll-up would overwrite it.
+            .Where(item => item.Type is not (ProductType.Material or ProductType.Goods))
             .Select(item => new MaterialBomReference
             {
                 ProductCode = item.ProductCode,

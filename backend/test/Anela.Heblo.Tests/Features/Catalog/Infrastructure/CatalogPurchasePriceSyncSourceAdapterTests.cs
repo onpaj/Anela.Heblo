@@ -101,16 +101,45 @@ public class CatalogPurchasePriceSyncSourceAdapterTests
     public async Task ignores_products_semi_products_and_sets()
     {
         // Arrange
-        GivenCatalog(("DEZ001100", ProductType.Product), ("DEZ001001M", ProductType.SemiProduct), ("SET001", ProductType.Set));
-        GivenCenik(Cenik("DEZ001100", 818, 214m), Cenik("DEZ001001M", 900, 2m), Cenik("SET001", 901, 50m));
-        GivenStock(MaterialWarehouseId, ("OTHER", 1m));
+        GivenCatalog(
+            ("AKL097", ProductType.Material),
+            ("DEZ001100", ProductType.Product), ("DEZ001001M", ProductType.SemiProduct), ("SET001", ProductType.Set));
+        GivenCenik(
+            Cenik("AKL097", 789, 3m),
+            Cenik("DEZ001100", 818, 214m), Cenik("DEZ001001M", 900, 2m), Cenik("SET001", 901, 50m));
+        GivenStock(MaterialWarehouseId, ("AKL097", 0.31m));
         GivenStock(ProductsWarehouseId, ("DEZ001100", 65m));
 
         // Act
         var result = await CreateAdapter().GetCandidatesAsync(CancellationToken.None);
 
         // Assert
+        result.Should().ContainSingle().Which.ProductCode.Should().Be("AKL097");
+    }
+
+    [Fact]
+    public async Task catalog_without_materials_or_goods_logs_a_warning()
+    {
+        // Arrange: a cold or failed catalog load must not pass silently as "nothing to sync"
+        GivenCatalog(("DEZ001100", ProductType.Product));
+        GivenCenik(Cenik("DEZ001100", 818, 214m));
+        GivenStock(MaterialWarehouseId, ("OTHER", 1m));
+        GivenStock(ProductsWarehouseId, ("DEZ001100", 65m));
+        var logger = new Mock<ILogger<CatalogPurchasePriceSyncSourceAdapter>>();
+
+        // Act
+        var result = await CreateAdapter(logger.Object).GetCandidatesAsync(CancellationToken.None);
+
+        // Assert
         result.Should().BeEmpty();
+        logger.Verify(
+            x => x.Log(
+                LogLevel.Warning,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((v, _) => v.ToString()!.Contains("no Material or Goods items")),
+                It.IsAny<Exception?>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Once);
     }
 
     [Fact]

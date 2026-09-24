@@ -386,6 +386,26 @@ public class RecalculatePurchasePriceHandlerTests
     }
 
     [Theory]
+    [InlineData("0.3100", "0.3101", true)]
+    [InlineData("0.3100", "0.31009", false)]
+    public async Task RecalculateAll_writes_only_when_the_difference_reaches_the_tolerance(
+        string current, string stock, bool shouldWrite)
+    {
+        // Arrange
+        var stockPrice = decimal.Parse(stock, System.Globalization.CultureInfo.InvariantCulture);
+        GivenCandidates(Candidate("AKL097", 789, decimal.Parse(current, System.Globalization.CultureInfo.InvariantCulture), stockPrice));
+        GivenBoms();
+
+        // Act
+        await _handler.Handle(RecalculateAll(), CancellationToken.None);
+
+        // Assert
+        _priceRecalculationServiceMock.Verify(
+            x => x.SetPurchasePriceAsync(789, stockPrice, It.IsAny<CancellationToken>()),
+            shouldWrite ? Times.Once() : Times.Never());
+    }
+
+    [Theory]
     [InlineData(null)]
     [InlineData(0)]
     [InlineData(-1)]
@@ -544,6 +564,25 @@ public class RecalculatePurchasePriceHandlerTests
         result.PriceSync.Failed.Should().Be(1);
         result.PriceSync.Written.Should().Be(1);
         _priceRecalculationServiceMock.Verify(x => x.RecalculatePurchasePriceAsync(5654, It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task RecalculateAll_is_not_successful_when_a_price_write_fails()
+    {
+        // Arrange
+        GivenCandidates(Candidate("BAD", 1, 3m, 0.3m));
+        GivenBoms(new MaterialBomReference { ProductCode = "DEZ001100", BoMId = 5654 });
+        _priceRecalculationServiceMock
+            .Setup(x => x.SetPurchasePriceAsync(1, It.IsAny<decimal>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new HttpRequestException("rejected"));
+
+        // Act
+        var result = await _handler.Handle(RecalculateAll(), CancellationToken.None);
+
+        // Assert
+        result.FailedCount.Should().Be(0);
+        result.IsSuccess.Should().BeFalse();
+        result.Message.Should().Contain("1 purchase price writes failed");
     }
 
     [Fact]

@@ -91,4 +91,25 @@ public sealed class PurchasePriceRecalculationJobTests
         _trackedEvents[0].Properties["Status"].Should().Be("Success");
         _trackedEvents[0].Properties["PriceSyncFailed"].Should().Be("0");
     }
+
+    [Fact]
+    public async Task Execute_WhenBomRecalculationsFail_TracksPartialFailureStatus()
+    {
+        // Arrange
+        var mediator = new Mock<IMediator>();
+        mediator
+            .Setup(m => m.Send(It.IsAny<RecalculatePurchasePriceRequest>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new RecalculatePurchasePriceResponse { TotalCount = 3, SuccessCount = 2, FailedCount = 1 });
+
+        var telemetry = CreateTelemetryMock();
+        var job = CreateJob(mediator, telemetry);
+
+        // Act
+        await job.ExecuteAsync();
+
+        // Assert
+        _trackedEvents.Should().ContainSingle();
+        _trackedEvents[0].Properties["Status"].Should().Be("PartialFailure");
+        _trackedEvents[0].Properties["FailedCount"].Should().Be("1");
+    }
 }

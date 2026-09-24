@@ -56,7 +56,7 @@ public class PurchasePriceRecalculationJob : IRecurringJob
             _logger.LogInformation("{JobName} completed - Prices written: {Written}, price sync failed: {PriceSyncFailed}, BoMs success: {SuccessCount}, failed: {FailedCount}, total: {TotalCount}",
                 Metadata.JobName, response.PriceSync.Written, response.PriceSync.Failed, response.SuccessCount, response.FailedCount, response.TotalCount);
 
-            var status = response.PriceSync.Failed > 0 ? "PartialFailure" : "Success";
+            var status = response.PriceSync.Failed > 0 || response.FailedCount > 0 ? "PartialFailure" : "Success";
             _telemetryService.TrackBusinessEvent("PurchasePriceRecalculation", new Dictionary<string, string>
             {
                 ["Status"] = status,

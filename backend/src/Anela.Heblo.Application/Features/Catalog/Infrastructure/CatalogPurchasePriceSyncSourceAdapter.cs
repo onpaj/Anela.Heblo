@@ -44,6 +44,14 @@ internal sealed class CatalogPurchasePriceSyncSourceAdapter : IPurchasePriceSync
             .Where(a => a.Type is ProductType.Material or ProductType.Goods)
             .ToList();
 
+        // Materials and goods are never legitimately absent in production; an empty list means a cold or
+        // failed catalog load. Warn rather than throw, so environments on mock catalogs still run.
+        if (items.Count == 0)
+        {
+            _logger.LogWarning("Purchase price sync found no Material or Goods items in the catalog; nothing will be synced");
+            return Array.Empty<PurchasePriceSyncCandidate>();
+        }
+
         var prices = FirstByCode(await _priceClient.GetAllAsync(forceReload: true, cancellationToken), p => p.ProductCode);
 
         var today = _timeProvider.GetUtcNow().Date;

@@ -36,19 +36,24 @@ public class RecalculatePurchasePriceResponse : BaseResponse
     public BomRecalculationSummary Products { get; set; } = new();
 
     /// <summary>
-    /// Whether the overall operation was successful (all products recalculated successfully).
+    /// Whether the overall operation was successful (all purchase price writes and all
+    /// products recalculated successfully).
     /// </summary>
-    public bool IsSuccess => FailedCount == 0 && TotalCount > 0;
+    public bool IsSuccess => FailedCount == 0 && PriceSync.Failed == 0 && TotalCount > 0;
 
     /// <summary>
     /// Summary message of the operation result.
     /// </summary>
-    public string Message => TotalCount switch
+    public string Message => PriceSync.Failed > 0
+        ? $"{BomMessage}; {PriceSync.Failed} purchase price writes failed"
+        : BomMessage;
+
+    private string BomMessage => TotalCount switch
     {
         0 => "No products found to recalculate",
-        1 when IsSuccess => $"Successfully recalculated price for 1 product",
-        1 when !IsSuccess => $"Failed to recalculate price for 1 product",
-        _ when IsSuccess => $"Successfully recalculated prices for all {TotalCount} products",
+        1 when FailedCount == 0 => $"Successfully recalculated price for 1 product",
+        1 => $"Failed to recalculate price for 1 product",
+        _ when FailedCount == 0 => $"Successfully recalculated prices for all {TotalCount} products",
         _ => $"Recalculated {SuccessCount} of {TotalCount} products ({FailedCount} failed)"
     };
 
