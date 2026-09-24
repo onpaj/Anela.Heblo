@@ -12,7 +12,10 @@ public sealed class CatalogRepository : ICatalogRepository
 {
     private readonly CatalogCacheStore _cacheStore;
     private readonly CatalogMergeService _mergeService;
-    private readonly CatalogDataRefreshService _refreshService;
+    private readonly CatalogHistoryRefreshService _historyRefreshService;
+    private readonly CatalogStockRefreshService _stockRefreshService;
+    private readonly CatalogMetaRefreshService _metaRefreshService;
+    private readonly CatalogReferenceRefreshService _referenceRefreshService;
     private readonly ICatalogMergeScheduler _mergeScheduler;
     private readonly IMarginCalculationService _marginService;
     private readonly TimeProvider _timeProvider;
@@ -23,7 +26,10 @@ public sealed class CatalogRepository : ICatalogRepository
     public CatalogRepository(
         CatalogCacheStore cacheStore,
         CatalogMergeService mergeService,
-        CatalogDataRefreshService refreshService,
+        CatalogHistoryRefreshService historyRefreshService,
+        CatalogStockRefreshService stockRefreshService,
+        CatalogMetaRefreshService metaRefreshService,
+        CatalogReferenceRefreshService referenceRefreshService,
         ICatalogMergeScheduler mergeScheduler,
         IMarginCalculationService marginService,
         TimeProvider timeProvider,
@@ -33,7 +39,10 @@ public sealed class CatalogRepository : ICatalogRepository
     {
         _cacheStore = cacheStore ?? throw new ArgumentNullException(nameof(cacheStore));
         _mergeService = mergeService ?? throw new ArgumentNullException(nameof(mergeService));
-        _refreshService = refreshService ?? throw new ArgumentNullException(nameof(refreshService));
+        _historyRefreshService = historyRefreshService ?? throw new ArgumentNullException(nameof(historyRefreshService));
+        _stockRefreshService = stockRefreshService ?? throw new ArgumentNullException(nameof(stockRefreshService));
+        _metaRefreshService = metaRefreshService ?? throw new ArgumentNullException(nameof(metaRefreshService));
+        _referenceRefreshService = referenceRefreshService ?? throw new ArgumentNullException(nameof(referenceRefreshService));
         _mergeScheduler = mergeScheduler ?? throw new ArgumentNullException(nameof(mergeScheduler));
         _marginService = marginService ?? throw new ArgumentNullException(nameof(marginService));
         _timeProvider = timeProvider ?? throw new ArgumentNullException(nameof(timeProvider));
@@ -121,26 +130,26 @@ public sealed class CatalogRepository : ICatalogRepository
 
     // --- Refresh delegates ---
 
-    public Task RefreshTransportData(CancellationToken ct) => _refreshService.RefreshTransportData(ct);
-    public Task RefreshManufacturedData(CancellationToken ct) => _refreshService.RefreshManufacturedData(ct);
-    public Task RefreshReserveData(CancellationToken ct) => _refreshService.RefreshReserveData(ct);
-    public Task RefreshOrderedData(CancellationToken ct) => _refreshService.RefreshOrderedData(ct);
-    public Task RefreshPlannedData(CancellationToken ct) => _refreshService.RefreshPlannedData(ct);
-    public Task RefreshSalesData(CancellationToken ct) => _refreshService.RefreshSalesData(ct);
-    public Task RefreshSetPartsData(CancellationToken ct) => _refreshService.RefreshSetPartsData(ct);
-    public Task RefreshAttributesData(CancellationToken ct) => _refreshService.RefreshAttributesData(ct);
-    public Task RefreshErpStockData(CancellationToken ct) => _refreshService.RefreshErpStockData(ct);
-    public Task RefreshEshopStockData(CancellationToken ct) => _refreshService.RefreshEshopStockData(ct);
-    public Task RefreshPurchaseHistoryData(CancellationToken ct) => _refreshService.RefreshPurchaseHistoryData(ct);
-    public Task RefreshManufactureHistoryData(CancellationToken ct) => _refreshService.RefreshManufactureHistoryData(ct);
-    public Task RefreshConsumedHistoryData(CancellationToken ct) => _refreshService.RefreshConsumedHistoryData(ct);
-    public Task RefreshStockTakingData(CancellationToken ct) => _refreshService.RefreshStockTakingData(ct);
-    public Task RefreshLotsData(CancellationToken ct) => _refreshService.RefreshLotsData(ct);
-    public Task RefreshEshopPricesData(CancellationToken ct) => _refreshService.RefreshEshopPricesData(ct);
-    public Task RefreshErpPricesData(CancellationToken ct) => _refreshService.RefreshErpPricesData(ct);
-    public Task RefreshEshopUrlData(CancellationToken ct) => _refreshService.RefreshEshopUrlData(ct);
+    public Task RefreshTransportData(CancellationToken ct) => _stockRefreshService.RefreshTransportData(ct);
+    public Task RefreshManufacturedData(CancellationToken ct) => _stockRefreshService.RefreshManufacturedData(ct);
+    public Task RefreshReserveData(CancellationToken ct) => _stockRefreshService.RefreshReserveData(ct);
+    public Task RefreshOrderedData(CancellationToken ct) => _stockRefreshService.RefreshOrderedData(ct);
+    public Task RefreshPlannedData(CancellationToken ct) => _stockRefreshService.RefreshPlannedData(ct);
+    public Task RefreshSalesData(CancellationToken ct) => _historyRefreshService.RefreshSalesData(ct);
+    public Task RefreshSetPartsData(CancellationToken ct) => _historyRefreshService.RefreshSetPartsData(ct);
+    public Task RefreshAttributesData(CancellationToken ct) => _metaRefreshService.RefreshAttributesData(ct);
+    public Task RefreshErpStockData(CancellationToken ct) => _stockRefreshService.RefreshErpStockData(ct);
+    public Task RefreshEshopStockData(CancellationToken ct) => _stockRefreshService.RefreshEshopStockData(ct);
+    public Task RefreshPurchaseHistoryData(CancellationToken ct) => _historyRefreshService.RefreshPurchaseHistoryData(ct);
+    public Task RefreshManufactureHistoryData(CancellationToken ct) => _historyRefreshService.RefreshManufactureHistoryData(ct);
+    public Task RefreshConsumedHistoryData(CancellationToken ct) => _historyRefreshService.RefreshConsumedHistoryData(ct);
+    public Task RefreshStockTakingData(CancellationToken ct) => _referenceRefreshService.RefreshStockTakingData(ct);
+    public Task RefreshLotsData(CancellationToken ct) => _metaRefreshService.RefreshLotsData(ct);
+    public Task RefreshEshopPricesData(CancellationToken ct) => _metaRefreshService.RefreshEshopPricesData(ct);
+    public Task RefreshErpPricesData(CancellationToken ct) => _metaRefreshService.RefreshErpPricesData(ct);
+    public Task RefreshEshopUrlData(CancellationToken ct) => _metaRefreshService.RefreshEshopUrlData(ct);
     public Task RefreshManufactureDifficultySettingsData(string? product, CancellationToken ct) =>
-        _refreshService.RefreshManufactureDifficultySettingsData(product, ct);
+        _referenceRefreshService.RefreshManufactureDifficultySettingsData(product, ct);
 
     public async Task RefreshMarginData(CancellationToken ct)
     {
