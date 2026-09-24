@@ -143,6 +143,12 @@ public class ModuleBoundariesTests
     // Invoices domain types to the DataQuality shape via InvoiceDqtSnapshotMapper.
     private static readonly HashSet<string> DataQualityInvoicesAllowlist = new(StringComparer.Ordinal);
 
+    // Allowlist for MarketingPerformance -> Invoices. Empty — IssuedInvoiceMonthlyRevenueSource
+    // was relocated to Anela.Heblo.Persistence.Invoices (feat-4290), closing the compile-time
+    // dependency. MarketingPerformance's own Application/Domain namespaces reference only the
+    // IMonthlyRevenueSource contract, which MarketingPerformance itself owns.
+    private static readonly HashSet<string> MarketingPerformanceInvoicesAllowlist = new(StringComparer.Ordinal);
+
     // Allowlist for Manufacture -> Catalog. Each group below is a deliberate pragmatic leak
     // tracked under the same follow-up: introduce Manufacture-owned ProductCatalogSnapshot DTO
     // and map in CatalogManufactureCatalogSourceAdapter (symmetric to the CatalogManufactureAllowlist
@@ -650,6 +656,29 @@ public class ModuleBoundariesTests
                 "Anela.Heblo.Persistence.Invoices",
             },
             Allowlist: DataQualityInvoicesAllowlist),
+
+        new ModuleBoundaryRule(
+            Name: "MarketingPerformance (Application) -> Invoices",
+            InspectedNamespacePrefix: "Anela.Heblo.Application.Features.MarketingPerformance",
+            ForbiddenNamespacePrefixes: new[]
+            {
+                "Anela.Heblo.Domain.Features.Invoices",
+                "Anela.Heblo.Application.Features.Invoices",
+                "Anela.Heblo.Persistence.Invoices",
+            },
+            Allowlist: MarketingPerformanceInvoicesAllowlist),
+
+        new ModuleBoundaryRule(
+            Name: "MarketingPerformance (Domain) -> Invoices",
+            InspectedNamespacePrefix: "Anela.Heblo.Domain.Features.MarketingPerformance",
+            ForbiddenNamespacePrefixes: new[]
+            {
+                "Anela.Heblo.Domain.Features.Invoices",
+                "Anela.Heblo.Application.Features.Invoices",
+                "Anela.Heblo.Persistence.Invoices",
+            },
+            Allowlist: MarketingPerformanceInvoicesAllowlist,
+            InspectedAssembly: "Anela.Heblo.Domain"),
 
         new ModuleBoundaryRule(
             Name: "Manufacture -> Catalog",
