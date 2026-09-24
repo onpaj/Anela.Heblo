@@ -25,6 +25,9 @@
         <PackageReference Include="Microsoft.Extensions.Logging" Version="8.0.1" />
         <PackageReference Include="Microsoft.Extensions.Options" Version="10.0.3" />
         <PackageReference Include="AutoMapper" Version="15.1.3" />
+        <PackageReference Include="Microsoft.EntityFrameworkCore.InMemory" Version="8.0.8" />
+        <PackageReference Include="Microsoft.Extensions.TimeProvider.Testing" Version="8.10.0" />
+        <PackageReference Include="Testcontainers.PostgreSql" Version="3.10.0" />
     </ItemGroup>
 
     <ItemGroup>
@@ -37,10 +40,15 @@
         <ProjectReference Include="..\..\src\Adapters\Anela.Heblo.Adapters.ShoptetApi\Anela.Heblo.Adapters.ShoptetApi.csproj" />
         <ProjectReference Include="..\..\src\Anela.Heblo.API\Anela.Heblo.API.csproj" />
         <ProjectReference Include="..\..\src\Anela.Heblo.Application\Anela.Heblo.Application.csproj" />
+        <ProjectReference Include="..\..\src\Anela.Heblo.Persistence.ShoptetOrders\Anela.Heblo.Persistence.ShoptetOrders.csproj" />
     </ItemGroup>
 
     <ItemGroup>
         <None Update="appsettings.json">
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </None>
+        <None Include="..\..\src\Anela.Heblo.Persistence.ShoptetOrders\Sql\shoptet_raw_views.sql"
+              Link="Analytics\Sql\shoptet_raw_views.sql">
             <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
         </None>
         <None Update="IssuedInvoices/Fixtures/*.json">

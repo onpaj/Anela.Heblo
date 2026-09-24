@@ -202,6 +202,40 @@ since 2026-09-01   send  609   open 221   click 13   unsub  3
 Events available: `send, open, click, unsub, soft_bounce, hard_bounce, spam, out_of_band`.
 Cost: one call per (object × event × month) — trivial against a 1000 req/min budget.
 
+> **Correction, 2026-09-24: this endpoint only reaches back 365 days.** Every window probed above
+> was inside that, so the limit never showed. See §8.9 — automation months are *not* backfillable
+> to the start of the account.
+
+## 8.9 CORRECTION — `stats-detail` only answers for the last 365 days
+
+> Added 2026-09-24, after the first production run. Supersedes every claim above that automation
+> months are retroactively backfillable to the start of the account.
+
+The first real run backfilled `BackfillFrom = 2024-11-01` and got a clean split: for **all four**
+pipelines, 2025-10 … 2026-09 succeeded and 2024-11 … 2025-09 returned `422`. The pipelines' own
+creation dates (2024-07 through 2026-05) make no difference — the boundary is the same for all of
+them, and it is the calendar, not the account:
+
+```
+GET /pipelines/31762/stats-detail?event=send&from_date=2025-09-01&to_date=2025-09-30
+422 {"errors":{"from_date":["The from date field must be a date after or equal to 2025-09-24."]}}
+
+GET /pipelines/31762/stats-detail?event=send&from_date=2025-10-01&to_date=2025-10-31
+200 {"next_page_url":null,"total":0,"per_page":1,"subscribers":[]}
+```
+
+A rolling 365-day window, measured on 2026-09-24. Consequences:
+
+- **Automation history before 2025-10 is unreachable and always will be.** #5's monthly
+  sends/OR/UR/clicks go back one year, not to 2024-11. Bára needs telling.
+- The window **rolls**, so each passing month drops one off the far end. Months already computed
+  stay (they lock and are never recomputed), but a month never captured can never be captured.
+  This is a second, weaker version of the §8.5 deadline: it applies to all four event counts, not
+  just conversions, and it gives about a year of slack instead of none.
+- A `BackfillFrom` below the floor is not merely useless: failed months are deliberately never
+  locked, so the job re-requests four doomed calls for each of them on **every** run. The fix is to
+  clamp the loop to the first calendar month that starts on or after the floor.
+
 ## 8.5 The one metric that is genuinely unavailable
 
 **There is no conversion event on `stats-detail`.** `event=conversion|conversions|transaction|order|purchase`
@@ -302,7 +336,7 @@ identical whichever home wins. It changes the **build order**, because the cheap
 2. **#6 (newsletters) is deliverable now** and retroactively — campaigns bucketed by send date,
    lifetime stats, pairs merged, drafts and SMS excluded.
 3. **#5 (automations) is deliverable now for OR/UR/clicks/sends** via `stats-detail` windows,
-   retroactively. Conversions MoM fills in from the snapshot's start date.
+   but only **12 rolling months** back, not to the start of the account (§8.9). Conversions MoM fills in from the snapshot's start date.
 4. **#4 (trend chart)** falls out of 2 and 3 — no new source.
 
 Scope reality check: **two** live automations and ~2 newsletters a month. This is a much smaller
@@ -369,7 +403,7 @@ IsSms (bool)                            SyncedAt, IsLocked, LastError
 ```
 
 **`EcomailAutomationMonths`** — pipeline × year/month (automations, #5). Sums only, from the
-`stats-detail` windows of §8.4. Backfillable to the start of the account.
+`stats-detail` windows of §8.4. Backfillable 12 rolling months only (§8.9).
 
 ```
 PipelineId, Year, Month   Send, Open, Click, Unsub, SoftBounce, HardBounce, Spam

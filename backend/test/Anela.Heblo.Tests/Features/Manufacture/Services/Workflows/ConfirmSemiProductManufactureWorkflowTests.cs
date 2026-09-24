@@ -145,6 +145,32 @@ public class ConfirmSemiProductManufactureWorkflowTests
     }
 
     [Fact]
+    public async Task ExecuteAsync_WhenMaterialStockIsInsufficient_FailsWithoutChangingState()
+    {
+        // Arrange
+        var stockParams = new Dictionary<string, string> { { "detail", "Glycerol (AKL007): Required 10.00, Available 2.00" } };
+        var submitManufactureResponse = new SubmitManufactureResponse(ErrorCodes.ManufactureInsufficientMaterialStock, stockParams)
+        {
+            UserMessage = "Nedostatečné zásoby pro výrobu.",
+        };
+
+        SetupMediatorResponses(CreateSuccessfulUpdateOrderResponse(), submitManufactureResponse, CreateSuccessfulUpdateStatusResponse());
+
+        // Act
+        var result = await _workflow.ExecuteAsync(ValidOrderId, ValidQuantity, ValidChangeReason, CancellationToken.None);
+
+        // Assert
+        result.Success.Should().BeFalse();
+        result.ErrorCode.Should().Be(ErrorCodes.ManufactureInsufficientMaterialStock);
+        result.Params.Should().BeEquivalentTo(stockParams);
+        result.Message.Should().Be("Nedostatečné zásoby pro výrobu.");
+
+        _mediatorMock.Verify(
+            x => x.Send(It.IsAny<UpdateManufactureOrderStatusRequest>(), It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
+
+    [Fact]
     public async Task ExecuteAsync_WhenStatusUpdateFailsAfterErpSucceeds_ReturnsStatusChangeError()
     {
         // Arrange

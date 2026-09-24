@@ -208,40 +208,16 @@ public class GetCatalogDetailHandler : IRequestHandler<GetCatalogDetailRequest, 
                 TotalCost = m.Value.M0.CostBase, // Base cost (material + manufacturing)
 
                 // M0 - Material + Manufacturing costs
-                M0 = new MarginLevelDto
-                {
-                    Percentage = m.Value.M0.Percentage,
-                    Amount = m.Value.M0.Amount,
-                    CostLevel = m.Value.M0.CostLevel,
-                    CostTotal = m.Value.M0.CostTotal
-                },
+                M0 = MarginLevelDto.FromDomain(m.Value.M0),
 
                 // M1 - M0 + Manufacturing costs (if different)
-                M1 = new MarginLevelDto
-                {
-                    Percentage = m.Value.M1.Percentage,
-                    Amount = m.Value.M1.Amount,
-                    CostLevel = m.Value.M1.CostLevel,
-                    CostTotal = m.Value.M1.CostTotal
-                },
+                M1 = MarginLevelDto.FromDomain(m.Value.M1),
 
                 // M2 - M1 + Sales costs
-                M2 = new MarginLevelDto
-                {
-                    Percentage = m.Value.M2.Percentage,
-                    Amount = m.Value.M2.Amount,
-                    CostLevel = m.Value.M2.CostLevel,
-                    CostTotal = m.Value.M2.CostTotal
-                },
+                M2 = MarginLevelDto.FromDomain(m.Value.M2),
 
                 // M3 - M2 + Overhead (final margin level)
-                M3 = new MarginLevelDto
-                {
-                    Percentage = m.Value.M3.Percentage,
-                    Amount = m.Value.M3.Amount,
-                    CostLevel = m.Value.M3.CostLevel,
-                    CostTotal = m.Value.M3.CostTotal
-                }
+                M3 = MarginLevelDto.FromDomain(m.Value.M3)
             }).ToList();
     }
 

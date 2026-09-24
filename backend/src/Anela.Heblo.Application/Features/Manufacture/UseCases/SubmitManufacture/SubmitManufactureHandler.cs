@@ -12,6 +12,8 @@ namespace Anela.Heblo.Application.Features.Manufacture.UseCases.SubmitManufactur
 
 public class SubmitManufactureHandler : IRequestHandler<SubmitManufactureRequest, SubmitManufactureResponse>
 {
+    private const string StockShortageDetailParam = "detail";
+
     private readonly IManufactureClient _manufactureClient;
     private readonly IManufactureOrderRepository _repository;
     private readonly IManufactureErrorTransformer _errorTransformer;
@@ -71,6 +73,18 @@ public class SubmitManufactureHandler : IRequestHandler<SubmitManufactureRequest
                 MaterialIssueForProductDocCode = clientResponse.MaterialIssueForProductDocCode,
                 ProductReceiptDocCode = clientResponse.ProductReceiptDocCode,
                 DirectSemiProductOutputDocCode = clientResponse.DirectSemiProductOutputDocCode,
+            };
+        }
+        catch (Exception ex) when (ex is IManufactureStockShortage { IsStockShortage: true })
+        {
+            _logger.LogWarning(ex, "Insufficient material stock for order {ManufactureOrderNumber}, nothing was submitted to ERP",
+                request.ManufactureOrderNumber);
+            var userMessage = _errorTransformer.Transform(ex);
+            return new SubmitManufactureResponse(
+                ErrorCodes.ManufactureInsufficientMaterialStock,
+                new Dictionary<string, string> { { StockShortageDetailParam, userMessage } })
+            {
+                UserMessage = userMessage
             };
         }
         catch (Exception ex) when (ex is not OperationCanceledException)

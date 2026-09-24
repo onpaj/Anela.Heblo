@@ -96,6 +96,11 @@ public class ModuleBoundariesTests
         "Anela.Heblo.Application.Features.Catalog.Infrastructure.PurchaseMaterialCatalogAdapter -> Anela.Heblo.Application.Features.Purchase.Contracts.MaterialBomReference",
         "Anela.Heblo.Application.Features.Catalog.Infrastructure.PurchaseMaterialCatalogAdapter -> Anela.Heblo.Application.Features.Purchase.Contracts.MaterialPurchaseSnapshot",
         "Anela.Heblo.Application.Features.Catalog.Infrastructure.PurchaseMaterialCatalogAdapter -> Anela.Heblo.Application.Features.Purchase.Contracts.MaterialProductType",
+
+        // CatalogPurchasePriceSyncSourceAdapter in Catalog.Infrastructure implements Purchase's
+        // IPurchasePriceSyncSource contract and returns its PurchasePriceSyncCandidate DTO.
+        // Same pattern as PurchaseMaterialCatalogAdapter above.
+        "Anela.Heblo.Application.Features.Catalog.Infrastructure.CatalogPurchasePriceSyncSourceAdapter -> Anela.Heblo.Application.Features.Purchase.Contracts.PurchasePriceSyncCandidate",
     };
 
     // Allowlist for Catalog -> Manufacture. Pre-existing handler-level IManufactureClient injections
@@ -137,6 +142,12 @@ public class ModuleBoundariesTests
     // InvoiceShoptetSourceAdapter/InvoiceErpClientAdapter (Invoices.Infrastructure) map from
     // Invoices domain types to the DataQuality shape via InvoiceDqtSnapshotMapper.
     private static readonly HashSet<string> DataQualityInvoicesAllowlist = new(StringComparer.Ordinal);
+
+    // Allowlist for MarketingPerformance -> Invoices. Empty — IssuedInvoiceMonthlyRevenueSource
+    // was relocated to Anela.Heblo.Persistence.Invoices (feat-4290), closing the compile-time
+    // dependency. MarketingPerformance's own Application/Domain namespaces reference only the
+    // IMonthlyRevenueSource contract, which MarketingPerformance itself owns.
+    private static readonly HashSet<string> MarketingPerformanceInvoicesAllowlist = new(StringComparer.Ordinal);
 
     // Allowlist for Manufacture -> Catalog. Each group below is a deliberate pragmatic leak
     // tracked under the same follow-up: introduce Manufacture-owned ProductCatalogSnapshot DTO
@@ -645,6 +656,29 @@ public class ModuleBoundariesTests
                 "Anela.Heblo.Persistence.Invoices",
             },
             Allowlist: DataQualityInvoicesAllowlist),
+
+        new ModuleBoundaryRule(
+            Name: "MarketingPerformance (Application) -> Invoices",
+            InspectedNamespacePrefix: "Anela.Heblo.Application.Features.MarketingPerformance",
+            ForbiddenNamespacePrefixes: new[]
+            {
+                "Anela.Heblo.Domain.Features.Invoices",
+                "Anela.Heblo.Application.Features.Invoices",
+                "Anela.Heblo.Persistence.Invoices",
+            },
+            Allowlist: MarketingPerformanceInvoicesAllowlist),
+
+        new ModuleBoundaryRule(
+            Name: "MarketingPerformance (Domain) -> Invoices",
+            InspectedNamespacePrefix: "Anela.Heblo.Domain.Features.MarketingPerformance",
+            ForbiddenNamespacePrefixes: new[]
+            {
+                "Anela.Heblo.Domain.Features.Invoices",
+                "Anela.Heblo.Application.Features.Invoices",
+                "Anela.Heblo.Persistence.Invoices",
+            },
+            Allowlist: MarketingPerformanceInvoicesAllowlist,
+            InspectedAssembly: "Anela.Heblo.Domain"),
 
         new ModuleBoundaryRule(
             Name: "Manufacture -> Catalog",

@@ -37,6 +37,7 @@ public sealed class EcomailSyncJob : IRecurringJob
         Metadata = new RecurringJobMetadata
         {
             JobName = "ecomail-sync",
+            Category = RecurringJobCategory.Marketing,
             DisplayName = "Ecomail Sync",
             Description = "Pulls Ecomail campaign and automation statistics, and snapshots cumulative automation counters.",
             CronExpression = _options.CronExpression,
@@ -86,6 +87,18 @@ public sealed class EcomailSyncJob : IRecurringJob
         {
             throw new InvalidOperationException(
                 $"Ecomail sync produced no data: {Summarise(report.Errors)}");
+        }
+
+        // The guard above needs all three counters at zero, so a campaigns-stage failure hides
+        // behind healthy snapshots and months: the run goes green having lost every newsletter.
+        // That is not hypothetical — it is what happened on 2026-09-24, when one null field broke
+        // the listing. Pipelines listing while campaigns yield nothing only happens when the
+        // campaigns stage failed; this account has never had fewer than 250 campaigns.
+        if (report.CampaignsUpserted == 0 && report.PipelinesUpserted > 0)
+        {
+            throw new InvalidOperationException(
+                $"Ecomail sync listed {report.PipelinesUpserted} pipelines but no campaigns at all: " +
+                Summarise(report.Errors));
         }
     }
 

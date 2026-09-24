@@ -51,4 +51,26 @@ public class FlexiStockMappingProfileTests
         // Assert
         result.ProductCode.Should().Be(expected);
     }
+
+    [Fact]
+    public void Map_UsesExactAveragePriceNotRoundedPrumCena()
+    {
+        // Arrange: stav-skladu-k-datu rounds prumCena to 2 decimals (AKL097: 0.31),
+        // while the exact average is tuz / stavMJ = 22219.47 / 71238.961591.
+        var summary = new StockToDateSummary
+        {
+            ProductCode = "AKL097",
+            ProductName = "Ethanol 96% denaturovaný líh",
+            OnStock = 71238.961591,
+            StockValue = 22219.47,
+            Price = 0.31,
+            ExactAveragePrice = 22219.47 / 71238.961591,
+        };
+
+        // Act
+        var result = CreateMapper().Map<ErpStock>(summary);
+
+        // Assert
+        result.Price.Should().BeApproximately(0.311901m, 0.000001m);
+    }
 }

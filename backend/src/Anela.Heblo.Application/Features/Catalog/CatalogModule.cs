@@ -54,6 +54,7 @@ public static class CatalogModule
         // Register adapter to expose catalog services to Purchase module
         services.AddScoped<IMaterialCatalogService, PurchaseMaterialCatalogAdapter>();
         services.AddScoped<IPurchasePriceRecalculationService, CatalogPurchasePriceRecalculationAdapter>();
+        services.AddScoped<IPurchasePriceSyncSource, CatalogPurchasePriceSyncSourceAdapter>();
         services.AddTransient<IAnalyticsProductSource, CatalogAnalyticsSourceAdapter>();
         services.AddTransient<ILogisticsCatalogSource, LogisticsCatalogSourceAdapter>();
         services.AddTransient<ILogisticsStockOperationService, LogisticsStockOperationAdapter>();

@@ -329,9 +329,9 @@ public class PurchaseMaterialCatalogAdapterTests
             .Setup(r => r.GetAllAsync(ct))
             .ReturnsAsync(new[]
             {
-                MakeMaterial("WITH-BOM", "With BoM", hasBoM: true, bomId: 7),
-                MakeMaterial("BOM-NO-ID", "BoM but no Id", hasBoM: true, bomId: null),
-                MakeMaterial("NO-BOM", "No BoM", hasBoM: false),
+                MakeMaterial("WITH-BOM", "With BoM", type: ProductType.Product, hasBoM: true, bomId: 7),
+                MakeMaterial("BOM-NO-ID", "BoM but no Id", type: ProductType.Product, hasBoM: true, bomId: null),
+                MakeMaterial("NO-BOM", "No BoM", type: ProductType.Product, hasBoM: false),
             });
 
         var result = await CreateAdapter().GetMaterialsWithBomAsync(ct);
@@ -339,5 +339,68 @@ public class PurchaseMaterialCatalogAdapterTests
         result.Should().ContainSingle();
         result[0].ProductCode.Should().Be("WITH-BOM");
         result[0].BoMId.Should().Be(7);
+    }
+
+    [Fact]
+    public async Task GetMaterialsWithBomAsync_marks_semi_product_boms()
+    {
+        // Arrange
+        var ct = CancellationToken.None;
+        _repository
+            .Setup(r => r.GetAllAsync(ct))
+            .ReturnsAsync(new[]
+            {
+                MakeMaterial("DEZ001001M", "Semi", type: ProductType.SemiProduct, hasBoM: true, bomId: 8),
+                MakeMaterial("DEZ001100", "Product", type: ProductType.Product, hasBoM: true, bomId: 9),
+            });
+
+        // Act
+        var result = await CreateAdapter().GetMaterialsWithBomAsync(ct);
+
+        // Assert
+        result.Single(r => r.ProductCode == "DEZ001001M").IsSemiProduct.Should().BeTrue();
+        result.Single(r => r.ProductCode == "DEZ001100").IsSemiProduct.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task GetMaterialsWithBomAsync_marks_set_boms()
+    {
+        // Arrange
+        var ct = CancellationToken.None;
+        _repository
+            .Setup(r => r.GetAllAsync(ct))
+            .ReturnsAsync(new[]
+            {
+                MakeMaterial("SET001", "Set", type: ProductType.Set, hasBoM: true, bomId: 10),
+                MakeMaterial("DEZ001100", "Product", type: ProductType.Product, hasBoM: true, bomId: 9),
+            });
+
+        // Act
+        var result = await CreateAdapter().GetMaterialsWithBomAsync(ct);
+
+        // Assert
+        result.Single(r => r.ProductCode == "SET001").IsSet.Should().BeTrue();
+        result.Single(r => r.ProductCode == "DEZ001100").IsSet.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task GetMaterialsWithBomAsync_excludes_materials_and_goods()
+    {
+        // Arrange — their purchase price is set from the stock price in phase 1; a roll-up would overwrite it
+        var ct = CancellationToken.None;
+        _repository
+            .Setup(r => r.GetAllAsync(ct))
+            .ReturnsAsync(new[]
+            {
+                MakeMaterial("AKL097", "Material", type: ProductType.Material, hasBoM: true, bomId: 11),
+                MakeMaterial("ZBO001", "Goods", type: ProductType.Goods, hasBoM: true, bomId: 12),
+                MakeMaterial("DEZ001100", "Product", type: ProductType.Product, hasBoM: true, bomId: 9),
+            });
+
+        // Act
+        var result = await CreateAdapter().GetMaterialsWithBomAsync(ct);
+
+        // Assert
+        result.Should().ContainSingle().Which.ProductCode.Should().Be("DEZ001100");
     }
 }

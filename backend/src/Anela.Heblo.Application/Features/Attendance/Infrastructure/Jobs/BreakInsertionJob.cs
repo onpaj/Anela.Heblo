@@ -20,6 +20,7 @@ public class BreakInsertionJob : IRecurringJob
     public RecurringJobMetadata Metadata { get; } = new()
     {
         JobName = Name,
+        Category = RecurringJobCategory.Attendance,
         DisplayName = "Logeto — insert missing lunch breaks",
         Description = "Walks each opted-in worker's days in Logeto (Výkaz práce) and inserts a 30-minute " +
                       "break into any ≥6h working day that has none, splitting the work record via " +

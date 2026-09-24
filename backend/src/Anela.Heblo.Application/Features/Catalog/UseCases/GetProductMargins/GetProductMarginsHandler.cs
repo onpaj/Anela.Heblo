@@ -11,6 +11,8 @@ namespace Anela.Heblo.Application.Features.Catalog.UseCases.GetProductMargins;
 
 public class GetProductMarginsHandler : IRequestHandler<GetProductMarginsRequest, GetProductMarginsResponse>
 {
+    private const int SalesLookbackDays = 365;
+
     private readonly ICatalogRepository _catalogRepository;
     private readonly TimeProvider _timeProvider;
     private readonly ILogger<GetProductMarginsHandler> _logger;
@@ -33,8 +35,8 @@ public class GetProductMarginsHandler : IRequestHandler<GetProductMarginsRequest
                 request.ProductCode, request.ProductName, request.ProductType);
 
             var products = await GetProducts(cancellationToken);
-            var filteredProducts = ApplyFilters(products, request);
-            var totalCount = filteredProducts.Count();
+            var filteredProducts = ApplyFilters(products, request).ToList();
+            var totalCount = filteredProducts.Count;
 
             // Apply sorting directly on CatalogAggregate entities
             var sortedProducts = ApplySorting(filteredProducts, request.SortBy, request.SortDescending);
@@ -117,6 +119,13 @@ public class GetProductMarginsHandler : IRequestHandler<GetProductMarginsRequest
                 filtered = filtered.Where(x => x.Type == ProductType.Product || x.Type == ProductType.Goods);
             }
 
+            if (request.OnlyWithSales)
+            {
+                var dateTo = _timeProvider.GetUtcNow().DateTime;
+                var dateFrom = dateTo.AddDays(-SalesLookbackDays);
+                filtered = filtered.Where(x => x.GetTotalSold(dateFrom, dateTo) > 0);
+            }
+
             return filtered;
         }
         catch (Exception ex)
@@ -126,62 +135,38 @@ public class GetProductMarginsHandler : IRequestHandler<GetProductMarginsRequest
         }
     }
 
+    private static IOrderedEnumerable<CatalogAggregate> SortBy<TKey>(
+        IEnumerable<CatalogAggregate> items,
+        Func<CatalogAggregate, TKey> key,
+        bool desc)
+        => desc ? items.OrderByDescending(key) : items.OrderBy(key);
+
     private IEnumerable<CatalogAggregate> ApplySorting(IEnumerable<CatalogAggregate> products, string? sortBy, bool sortDescending)
     {
         if (string.IsNullOrWhiteSpace(sortBy))
         {
             // Default sorting by ProductCode
-            return sortDescending
-                ? products.OrderByDescending(x => x.ProductCode)
-                : products.OrderBy(x => x.ProductCode);
+            return SortBy(products, x => x.ProductCode, sortDescending);
         }
 
         return sortBy.ToLower() switch
         {
-            "productcode" => sortDescending
-                ? products.OrderByDescending(x => x.ProductCode)
-                : products.OrderBy(x => x.ProductCode),
-            "productname" => sortDescending
-                ? products.OrderByDescending(x => x.ProductName)
-                : products.OrderBy(x => x.ProductName),
-            "pricewithoutvat" => sortDescending
-                ? products.OrderByDescending(x => x.PriceWithoutVat ?? 0)
-                : products.OrderBy(x => x.PriceWithoutVat ?? 0),
-            "purchaseprice" => sortDescending
-                ? products.OrderByDescending(x => x.ErpPrice?.PurchasePrice ?? 0)
-                : products.OrderBy(x => x.ErpPrice?.PurchasePrice ?? 0),
-            "manufacturedifficulty" => sortDescending
-                ? products.OrderByDescending(x => x.ManufactureDifficulty ?? 0)
-                : products.OrderBy(x => x.ManufactureDifficulty ?? 0),
+            "productcode" => SortBy(products, x => x.ProductCode, sortDescending),
+            "productname" => SortBy(products, x => x.ProductName, sortDescending),
+            "pricewithoutvat" => SortBy(products, x => x.PriceWithoutVat ?? 0, sortDescending),
+            "purchaseprice" => SortBy(products, x => x.ErpPrice?.PurchasePrice ?? 0, sortDescending),
+            "manufacturedifficulty" => SortBy(products, x => x.ManufactureDifficulty ?? 0, sortDescending),
             // M0-M3 margin levels - amounts (using pre-calculated data)
-            "m0amount" => sortDescending
-                ? products.OrderByDescending(x => x.Margins.Averages.M0.Amount)
-                : products.OrderBy(x => x.Margins.Averages.M0.Amount),
-            "m1amount" => sortDescending
-                ? products.OrderByDescending(x => x.Margins.Averages.M1.Amount)
-                : products.OrderBy(x => x.Margins.Averages.M1.Amount),
-            "m2amount" => sortDescending
-                ? products.OrderByDescending(x => x.Margins.Averages.M2.Amount)
-                : products.OrderBy(x => x.Margins.Averages.M2.Amount),
-            "m3amount" => sortDescending
-                ? products.OrderByDescending(x => x.Margins.Averages.M3.Amount)
-                : products.OrderBy(x => x.Margins.Averages.M3.Amount),
+            "m0amount" => SortBy(products, x => x.Margins.Averages.M0.Amount, sortDescending),
+            "m1amount" => SortBy(products, x => x.Margins.Averages.M1.Amount, sortDescending),
+            "m2amount" => SortBy(products, x => x.Margins.Averages.M2.Amount, sortDescending),
+            "m3amount" => SortBy(products, x => x.Margins.Averages.M3.Amount, sortDescending),
             // M0-M3 margin levels - percentages (using pre-calculated data)
-            "m0percentage" => sortDescending
-                ? products.OrderByDescending(x => x.Margins.Averages.M0.Percentage)
-                : products.OrderBy(x => x.Margins.Averages.M0.Percentage),
-            "m1percentage" => sortDescending
-                ? products.OrderByDescending(x => x.Margins.Averages.M1.Percentage)
-                : products.OrderBy(x => x.Margins.Averages.M1.Percentage),
-            "m2percentage" => sortDescending
-                ? products.OrderByDescending(x => x.Margins.Averages.M2.Percentage)
-                : products.OrderBy(x => x.Margins.Averages.M2.Percentage),
-            "m3percentage" => sortDescending
-                ? products.OrderByDescending(x => x.Margins.Averages.M3.Percentage)
-                : products.OrderBy(x => x.Margins.Averages.M3.Percentage),
-            _ => sortDescending
-                ? products.OrderByDescending(x => x.ProductCode)
-                : products.OrderBy(x => x.ProductCode)
+            "m0percentage" => SortBy(products, x => x.Margins.Averages.M0.Percentage, sortDescending),
+            "m1percentage" => SortBy(products, x => x.Margins.Averages.M1.Percentage, sortDescending),
+            "m2percentage" => SortBy(products, x => x.Margins.Averages.M2.Percentage, sortDescending),
+            "m3percentage" => SortBy(products, x => x.Margins.Averages.M3.Percentage, sortDescending),
+            _ => SortBy(products, x => x.ProductCode, sortDescending)
         };
     }
 
@@ -206,67 +191,19 @@ public class GetProductMarginsHandler : IRequestHandler<GetProductMarginsRequest
                 ManufactureDifficulty = product?.ManufactureDifficulty ?? 0,
 
                 // Use pre-calculated averages from margin history
-                M0 = new MarginLevelDto
-                {
-                    Percentage = marginHistory.Averages.M0.Percentage,
-                    Amount = marginHistory.Averages.M0.Amount,
-                    CostLevel = marginHistory.Averages.M0.CostLevel,
-                    CostTotal = marginHistory.Averages.M0.CostTotal
-                },
-                M1 = new MarginLevelDto
-                {
-                    Percentage = marginHistory.Averages.M1.Percentage,
-                    Amount = marginHistory.Averages.M1.Amount,
-                    CostLevel = marginHistory.Averages.M1.CostLevel,
-                    CostTotal = marginHistory.Averages.M1.CostTotal
-                },
-                M2 = new MarginLevelDto
-                {
-                    Percentage = marginHistory.Averages.M2.Percentage,
-                    Amount = marginHistory.Averages.M2.Amount,
-                    CostLevel = marginHistory.Averages.M2.CostLevel,
-                    CostTotal = marginHistory.Averages.M2.CostTotal
-                },
-                M3 = new MarginLevelDto
-                {
-                    Percentage = marginHistory.Averages.M3.Percentage,
-                    Amount = marginHistory.Averages.M3.Amount,
-                    CostLevel = marginHistory.Averages.M3.CostLevel,
-                    CostTotal = marginHistory.Averages.M3.CostTotal
-                },
+                M0 = MarginLevelDto.FromDomain(marginHistory.Averages.M0),
+                M1 = MarginLevelDto.FromDomain(marginHistory.Averages.M1),
+                M2 = MarginLevelDto.FromDomain(marginHistory.Averages.M2),
+                M3 = MarginLevelDto.FromDomain(marginHistory.Averages.M3),
 
                 // Monthly history for charts (filtered to last 13 months)
                 MonthlyHistory = filteredMonthlyData.Select(m => new MonthlyMarginDto
                 {
                     Month = m.Key,
-                    M0 = new MarginLevelDto
-                    {
-                        Percentage = m.Value.M0.Percentage,
-                        Amount = m.Value.M0.Amount,
-                        CostLevel = m.Value.M0.CostLevel,
-                        CostTotal = m.Value.M0.CostTotal
-                    },
-                    M1 = new MarginLevelDto
-                    {
-                        Percentage = m.Value.M1.Percentage,
-                        Amount = m.Value.M1.Amount,
-                        CostLevel = m.Value.M1.CostLevel,
-                        CostTotal = m.Value.M1.CostTotal
-                    },
-                    M2 = new MarginLevelDto
-                    {
-                        Percentage = m.Value.M2.Percentage,
-                        Amount = m.Value.M2.Amount,
-                        CostLevel = m.Value.M2.CostLevel,
-                        CostTotal = m.Value.M2.CostTotal
-                    },
-                    M3 = new MarginLevelDto
-                    {
-                        Percentage = m.Value.M3.Percentage,
-                        Amount = m.Value.M3.Amount,
-                        CostLevel = m.Value.M3.CostLevel,
-                        CostTotal = m.Value.M3.CostTotal
-                    }
+                    M0 = MarginLevelDto.FromDomain(m.Value.M0),
+                    M1 = MarginLevelDto.FromDomain(m.Value.M1),
+                    M2 = MarginLevelDto.FromDomain(m.Value.M2),
+                    M3 = MarginLevelDto.FromDomain(m.Value.M3)
                 }).ToList()
             };
 

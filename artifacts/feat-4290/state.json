@@ -1,0 +1,46 @@
+{
+  "feature_id": "feat-4290",
+  "issue_number": 4290,
+  "created_at": "2026-09-24T09:11:54.903719Z",
+  "max_revisions": 3,
+  "phases": {
+    "analyzing": {
+      "status": "completed",
+      "updated_at": "2026-09-24T09:15:08.036909Z"
+    },
+    "architecting": {
+      "status": "completed",
+      "updated_at": "2026-09-24T09:18:24.887131Z"
+    },
+    "designing": {
+      "status": "completed",
+      "updated_at": "2026-09-24T09:19:18.244216Z"
+    },
+    "planning": {
+      "status": "completed",
+      "updated_at": "2026-09-24T09:25:49.516583Z"
+    },
+    "developing": {
+      "status": "in_progress",
+      "updated_at": "2026-09-24T11:19:22.428110Z"
+    },
+    "code-review": {
+      "status": "completed",
+      "updated_at": "2026-09-24T12:23:12.110767Z"
+    }
+  },
+  "tasks": [
+    {
+      "name": "relocate-adapter-and-di-registration",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-09-24T10:23:22.744636Z"
+    },
+    {
+      "name": "add-marketingperformance-invoices-boundary-tests",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-09-24T12:14:27.665599Z"
+    }
+  ]
+}

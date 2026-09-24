@@ -22,6 +22,7 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\Anela.Heblo.Application\Anela.Heblo.Application.csproj" />
+    <ProjectReference Include="..\..\Anela.Heblo.Persistence.ShoptetOrders\Anela.Heblo.Persistence.ShoptetOrders.csproj" />
     <ProjectReference Include="..\..\Anela.Heblo.Xcc\Anela.Heblo.Xcc.csproj" />
   </ItemGroup>
 

@@ -11,6 +11,7 @@ public sealed class ComgateEurImportJob : BankImportJobBase
     public override RecurringJobMetadata Metadata { get; } = new()
     {
         JobName = "daily-comgate-eur-import",
+        Category = RecurringJobCategory.Finance,
         DisplayName = "Daily Comgate EUR Import",
         Description = "Imports Comgate EUR payment statements from previous day",
         CronExpression = "40 4 * * *",

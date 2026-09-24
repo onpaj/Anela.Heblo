@@ -16,6 +16,7 @@ public class PriceComparisonDqtJob : IRecurringJob
     public RecurringJobMetadata Metadata { get; } = new()
     {
         JobName = "daily-price-comparison-dqt",
+        Category = RecurringJobCategory.DataQuality,
         DisplayName = "Daily Price Comparison Data Quality Test",
         Description = "Compares retail prices between Shoptet (source of truth) and ABRA Flexi",
         // The other DQT checks are deliberately staggered (05:00 invoices, 06:00 product

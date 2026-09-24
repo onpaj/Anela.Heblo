@@ -432,6 +432,83 @@ public class EcomailSyncServiceTests
         (snapshots[1].Conversions - snapshots[0].Conversions).Should().Be(12);
     }
 
+    [Fact]
+    public async Task campaign_with_null_subject_and_recipients_is_stored_with_safe_defaults()
+    {
+        // Ecomail leaves both null on drafts and SMS sends. Subject is NOT NULL in the database,
+        // so passing the null straight through turns a deserialization crash into a SaveChanges
+        // violation — which, on a shared DbContext, would take the snapshot commit down with it.
+        using var context = CreateContext();
+        var campaign = Campaign(246, "sms", status: 0);
+        campaign.Subject = null;
+        campaign.Recipients = null;
+        var api = ApiWith(campaigns: new[] { campaign });
+
+        await CreateService(context, api).SyncAllAsync();
+
+        var stored = context.EcomailCampaigns.Single();
+        stored.Subject.Should().BeEmpty();
+        stored.Recipients.Should().Be(0);
+    }
+
+    [Fact]
+    public async Task automation_months_never_reach_past_ecomail_s_stats_detail_retention_window()
+    {
+        // stats-detail rejects a from_date older than 365 days with a 422 ("The from date field
+        // must be a date after or equal to <today-365>"). Asking anyway persists a LastError row
+        // that can never succeed, and because failed months are deliberately never locked it
+        // re-requests four events for each of them on every 6-hourly run, forever.
+        using var context = CreateContext();
+        var api = ApiWith(pipelines: new[] { new EcomailPipelineDto { Id = 14720, Name = "Kosik" } });
+        var options = new EcomailOptions
+        {
+            ApiKey = "k",
+            RecomputeWindowMonths = 2,
+            BackfillFrom = new DateOnly(2024, 11, 1),
+        };
+
+        await CreateService(context, api, options).SyncAllAsync();
+
+        var months = context.EcomailAutomationMonths
+            .OrderBy(m => m.Year).ThenBy(m => m.Month).ToList();
+
+        // Now is 2026-09-22, so the floor is 2025-09-22 and the first month countable in full is
+        // 2025-10. Twelve months through the current one.
+        months.Should().HaveCount(12);
+        months.First().Year.Should().Be(2025);
+        months.First().Month.Should().Be(10);
+        months.Last().Year.Should().Be(2026);
+        months.Last().Month.Should().Be(9);
+        months.Should().OnlyContain(m => m.LastError == null,
+            "no month inside the window should be asked for in a way that can only 422");
+
+        api.Verify(a => a.GetPipelineEventCountAsync(
+                It.IsAny<int>(), It.IsAny<string>(),
+                It.Is<DateOnly>(d => d < new DateOnly(2025, 10, 1)),
+                It.IsAny<DateOnly>(), It.IsAny<CancellationToken>()),
+            Times.Never,
+            "a window Ecomail always rejects must never be requested at all");
+    }
+
+    [Fact]
+    public async Task a_backfill_start_inside_the_retention_window_is_still_honoured()
+    {
+        // The clamp is a floor, not a replacement: a BackfillFrom later than the retention floor
+        // must still win, or the job would silently widen every deployment's backfill to a year.
+        using var context = CreateContext();
+        var api = ApiWith(pipelines: new[] { new EcomailPipelineDto { Id = 14720, Name = "Kosik" } });
+        var options = new EcomailOptions
+        {
+            ApiKey = "k",
+            RecomputeWindowMonths = 2,
+            BackfillFrom = new DateOnly(2026, 8, 1),
+        };
+
+        await CreateService(context, api, options).SyncAllAsync();
+
+        context.EcomailAutomationMonths.Should().HaveCount(2);
+    }
+
     private sealed class FakeTimeProvider : TimeProvider
     {
         private readonly DateTime _now;
