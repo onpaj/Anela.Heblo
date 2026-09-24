@@ -8,6 +8,7 @@ Usage:
 """
 import argparse
 import json
+import subprocess
 import sys
 from dataclasses import asdict
 from pathlib import Path
@@ -79,7 +80,11 @@ def cmd_check(repo: Path, as_json: bool) -> int:
 
 def cmd_pr(repo: Path, base: str, comment_file: Path) -> int:
     docs, _ = load_docs(repo)
-    changed = changed_files(repo, merge_base(repo, base, "HEAD"), "HEAD")
+    try:
+        changed = changed_files(repo, merge_base(repo, base, "HEAD"), "HEAD")
+    except subprocess.CalledProcessError as e:
+        print(f"WARN could not diff against base '{base}': {e.stderr.strip()}", file=sys.stderr)
+        return 0
     flagged = find_untouched_in_pr(docs, changed)
     if not flagged:
         print("no process docs affected")

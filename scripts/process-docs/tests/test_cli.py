@@ -75,3 +75,12 @@ def test_pr_writes_comment_only_when_flagged(tmp_path):
     assert run(repo, "pr", "--base", "base", "--comment-file", str(comment)).returncode == 0
     text = comment.read_text(encoding="utf-8")
     assert "sync-a" in text and "backend/src/A/SyncJob.cs" in text
+
+
+def test_pr_with_unknown_base_warns_and_exits_zero(tmp_path):
+    repo, _ = setup(tmp_path)
+    comment = tmp_path / "comment.md"
+    result = run(repo, "pr", "--base", "no-such-ref", "--comment-file", str(comment))
+    assert result.returncode == 0
+    assert not comment.exists()
+    assert "no-such-ref" in result.stderr
