@@ -28,9 +28,9 @@
   "tasks": [
     {
       "name": "add-marginleveldto-factory",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-09-24T07:19:27.467852Z"
+      "updated_at": "2026-09-24T07:38:32.941851Z"
     },
     {
       "name": "replace-inline-construction-in-get-product-margins-handler",
