@@ -46,15 +46,53 @@ jobs:
         run: python scripts/process-docs/check.py check
 
       - name: 💬 Flag process docs this PR may have made stale
+        if: always()
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
         run: |
-          python scripts/process-docs/check.py pr --base "origin/${{ github.base_ref }}" --comment-file process-docs-comment.md
+          set +e
+          MARKER='<!-- process-docs -->'
+
+          python scripts/process-docs/check.py pr --base "origin/${{ github.base_ref }}" \
+            --comment-file process-docs-comment.md --resolved-file process-docs-resolved.md
+
+          BODY_FILE=""
+          CREATE_IF_MISSING=0
           if [ -f process-docs-comment.md ]; then
-            gh pr comment "${{ github.event.pull_request.number }}" --body-file process-docs-comment.md --edit-last --create-if-none \
-              || gh pr comment "${{ github.event.pull_request.number }}" --body-file process-docs-comment.md \
-              || echo "::warning::Could not post process-docs PR comment (read-only token on fork PRs?) — see the list above"
+            BODY_FILE=process-docs-comment.md
+            CREATE_IF_MISSING=1
+          elif [ -f process-docs-resolved.md ]; then
+            # Nothing flagged: only ever update an existing marker comment to "resolved" —
+            # never create a fresh comment just to say nothing is wrong.
+            BODY_FILE=process-docs-resolved.md
           fi
+
+          # Nothing to say and nothing to resolve — leave any prior comment as-is.
+          if [ -z "$BODY_FILE" ]; then
+            exit 0
+          fi
+
+          # Find our own prior comment (if any) by its hidden marker, among all comments
+          # on this PR — never touch a comment from another bot/step (e.g. staging-deploy).
+          EXISTING_ID=$(gh api "repos/${REPO}/issues/${PR_NUMBER}/comments" --paginate \
+            --jq "[.[] | select(.body | startswith(\"${MARKER}\"))] | last | .id" 2>/dev/null)
+
+          if [ -n "$EXISTING_ID" ] && [ "$EXISTING_ID" != "null" ]; then
+            gh api -X PATCH "repos/${REPO}/issues/comments/${EXISTING_ID}" -F body=@"${BODY_FILE}"
+            STATUS=$?
+          elif [ "$CREATE_IF_MISSING" = "1" ]; then
+            gh api "repos/${REPO}/issues/${PR_NUMBER}/comments" -F body=@"${BODY_FILE}"
+            STATUS=$?
+          else
+            STATUS=0
+          fi
+
+          if [ $STATUS -ne 0 ]; then
+            echo "::warning::Could not upsert the process-docs PR comment (read-only token on fork PRs?) — see the check output above"
+          fi
+          exit 0
 
   # Frontend Tests - Parallel execution
   frontend-tests:

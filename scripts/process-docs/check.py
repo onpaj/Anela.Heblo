@@ -4,7 +4,7 @@
 Usage:
   check.py [--repo PATH] check [--json]
   check.py [--repo PATH] index
-  check.py [--repo PATH] pr --base REF --comment-file PATH
+  check.py [--repo PATH] pr --base REF --comment-file PATH [--resolved-file PATH]
 """
 import argparse
 import json
@@ -23,6 +23,9 @@ from index_gen import render_index
 
 CONFIG_PATH = "scripts/process-docs/config.yaml"
 OLDEST_LIMIT = 5
+# Hidden marker prefixing every process-docs PR comment, so CI can find and update
+# (rather than blindly overwrite the wrong comment for) its own comment across runs.
+COMMENT_MARKER = "<!-- process-docs -->"
 
 
 def load_config(repo: Path) -> dict:
@@ -78,7 +81,7 @@ def cmd_check(repo: Path, as_json: bool) -> int:
     return 1 if failed else 0
 
 
-def cmd_pr(repo: Path, base: str, comment_file: Path) -> int:
+def cmd_pr(repo: Path, base: str, comment_file: Path, resolved_file: Path | None) -> int:
     docs, _ = load_docs(repo)
     try:
         changed = changed_files(repo, merge_base(repo, base, "HEAD"), "HEAD")
@@ -88,8 +91,11 @@ def cmd_pr(repo: Path, base: str, comment_file: Path) -> int:
     flagged = find_untouched_in_pr(docs, changed)
     if not flagged:
         print("no process docs affected")
+        if resolved_file:
+            resolved_file.write_text(
+                f"{COMMENT_MARKER}\n\n✅ Process docs: no longer flagged\n", encoding="utf-8")
         return 0
-    lines = ["### Process docs may be out of date", "",
+    lines = [COMMENT_MARKER, "", "### Process docs may be out of date", "",
              "This PR changes code owned by these process docs without touching them. "
              "Update the doc, or bump its `verified_at` if behaviour didn't change.", ""]
     for f in flagged:
@@ -109,13 +115,16 @@ def main(argv: list[str]) -> int:
     pr = sub.add_parser("pr")
     pr.add_argument("--base", required=True)
     pr.add_argument("--comment-file", type=Path, required=True)
+    pr.add_argument("--resolved-file", type=Path, default=None,
+                    help="If given and nothing is flagged, write a short resolved-status body here "
+                         "(also marker-prefixed) so the caller can upsert a 'no longer flagged' comment.")
     args = parser.parse_args(argv)
     repo = args.repo.resolve()
     if args.command == "index":
         return cmd_index(repo)
     if args.command == "check":
         return cmd_check(repo, args.json)
-    return cmd_pr(repo, args.base, args.comment_file)
+    return cmd_pr(repo, args.base, args.comment_file, args.resolved_file)
 
 
 if __name__ == "__main__":

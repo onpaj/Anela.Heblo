@@ -77,6 +77,38 @@ def test_pr_writes_comment_only_when_flagged(tmp_path):
     assert "sync-a" in text and "backend/src/A/SyncJob.cs" in text
 
 
+def test_pr_comment_starts_with_hidden_marker_for_upsert(tmp_path):
+    repo, _ = setup(tmp_path)
+    subprocess.run(["git", "branch", "base"], cwd=repo, check=True)
+    commit(repo, {"backend/src/A/SyncJob.cs": "changed"})
+    comment = tmp_path / "comment.md"
+    assert run(repo, "pr", "--base", "base", "--comment-file", str(comment)).returncode == 0
+    assert comment.read_text(encoding="utf-8").splitlines()[0] == "<!-- process-docs -->"
+
+
+def test_pr_resolved_file_written_only_when_nothing_flagged_and_requested(tmp_path):
+    repo, _ = setup(tmp_path)
+    subprocess.run(["git", "branch", "base"], cwd=repo, check=True)
+    comment = tmp_path / "comment.md"
+    resolved = tmp_path / "resolved.md"
+
+    # nothing flagged, --resolved-file passed -> resolved body written, no comment file
+    assert run(repo, "pr", "--base", "base", "--comment-file", str(comment),
+              "--resolved-file", str(resolved)).returncode == 0
+    assert not comment.exists()
+    resolved_text = resolved.read_text(encoding="utf-8")
+    assert resolved_text.splitlines()[0] == "<!-- process-docs -->"
+    assert "no longer flagged" in resolved_text
+
+    # flagged -> resolved file is not (re)written, comment file is
+    resolved.unlink()
+    commit(repo, {"backend/src/A/SyncJob.cs": "changed"})
+    assert run(repo, "pr", "--base", "base", "--comment-file", str(comment),
+              "--resolved-file", str(resolved)).returncode == 0
+    assert comment.exists()
+    assert not resolved.exists()
+
+
 def test_pr_with_unknown_base_warns_and_exits_zero(tmp_path):
     repo, _ = setup(tmp_path)
     comment = tmp_path / "comment.md"
