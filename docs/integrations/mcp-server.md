@@ -41,12 +41,13 @@ The application exposes MCP tools for AI assistants to query catalog data, manuf
 - `GetMeetingTranscript` — full raw transcript text of a single meeting
 - `GetMeetingTasks` — proposed task list extracted from a single meeting
 
-**Pricing Simulator (5)** — require the `Finance_PriceAnalysis` permission (read); `SavePricingScenario` requires write. Stateless like the web UI: the caller carries the sparse override list from one `SimulatePricing` call to the next.
+**Pricing Simulator (6)** — require the `Finance_PriceAnalysis` permission (read); `SavePricingScenario` and `UpdatePricingScenarioProducts` require write. Stateless like the web UI: the caller carries the sparse override list from one `SimulatePricing` call to the next.
 - `GetPricingBaseline` — current price, material/manufacturing cost, 12-month quantity and M0/M1 per product, plus portfolio totals
 - `SimulatePricing` — apply a batch of edits (price, cost, target M0/M1 in CZK or %, forecast quantity) on top of an override list; returns recalculated rows (edited only by default), before/after totals and the new override list
 - `ListPricingScenarios` — saved scenarios (summary level)
 - `GetPricingScenario` — a saved scenario recalculated against today's catalog, including its override list and drift flags
-- `SavePricingScenario` — create a scenario, or overwrite one by id (no delete tool — delete stays in the web UI)
+- `SavePricingScenario` — create a scenario, or overwrite one by id as a whole (no delete tool — delete stays in the web UI)
+- `UpdatePricingScenarioProducts` — partial update of a saved scenario: edit or remove individual products and/or rename it, keeping everything else (filter, other products and their drift snapshots); all-or-nothing on a failing edit
 
 ## Implementation
 
