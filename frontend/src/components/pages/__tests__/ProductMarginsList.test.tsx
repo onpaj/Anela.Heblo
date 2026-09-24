@@ -242,6 +242,36 @@ describe("ProductMarginsList", () => {
       20, // pageSize
       "m3Percentage", // sortBy
       true, // sortDescending
+      true, // onlyWithSales
+    );
+  });
+
+  it("hides products without sales by default and shows them when unchecked", async () => {
+    const user = userEvent.setup();
+    mockUseProductMargins.mockReturnValue({
+      data: mockData,
+      isLoading: false,
+      error: null,
+      refetch: jest.fn(),
+    } as any);
+
+    render(<ProductMarginsList />, { wrapper: createWrapper() });
+
+    const checkbox = screen.getByTestId("margins-only-with-sales-filter");
+    expect(checkbox).toBeChecked();
+
+    await user.click(checkbox);
+
+    expect(checkbox).not.toBeChecked();
+    expect(mockUseProductMargins).toHaveBeenLastCalledWith(
+      "",
+      "",
+      "Product",
+      1,
+      20,
+      "m3Percentage",
+      true,
+      false, // onlyWithSales
     );
   });
 
@@ -270,6 +300,7 @@ describe("ProductMarginsList", () => {
       20, // pageSize
       "m0Percentage", // sortBy
       false, // sortDescending (first click should be ascending)
+      true, // onlyWithSales
     );
   });
 
@@ -298,6 +329,7 @@ describe("ProductMarginsList", () => {
       20, // pageSize
       "m3Percentage", // sortBy
       false, // sortDescending (flipped off the descending default)
+      true, // onlyWithSales
     );
   });
 

@@ -11,6 +11,8 @@ namespace Anela.Heblo.Application.Features.Catalog.UseCases.GetProductMargins;
 
 public class GetProductMarginsHandler : IRequestHandler<GetProductMarginsRequest, GetProductMarginsResponse>
 {
+    private const int SalesLookbackDays = 365;
+
     private readonly ICatalogRepository _catalogRepository;
     private readonly TimeProvider _timeProvider;
     private readonly ILogger<GetProductMarginsHandler> _logger;
@@ -115,6 +117,13 @@ public class GetProductMarginsHandler : IRequestHandler<GetProductMarginsRequest
             {
                 // Default filter: only Product and Goods
                 filtered = filtered.Where(x => x.Type == ProductType.Product || x.Type == ProductType.Goods);
+            }
+
+            if (request.OnlyWithSales)
+            {
+                var dateTo = _timeProvider.GetUtcNow().DateTime;
+                var dateFrom = dateTo.AddDays(-SalesLookbackDays);
+                filtered = filtered.Where(x => x.GetTotalSold(dateFrom, dateTo) > 0);
             }
 
             return filtered;
