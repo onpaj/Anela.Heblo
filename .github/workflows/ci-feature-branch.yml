@@ -21,6 +21,40 @@ env:
   IMAGE_NAME: heblo
 
 jobs:
+  # Process docs - schema, index, orphans (warn during backfill) + stale-doc PR comment
+  process-docs:
+    name: 📚 Process Docs
+    runs-on: ubuntu-latest
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: 🐍 Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: 📦 Install dependencies
+        run: pip install pyyaml pytest
+
+      - name: 🧪 Test the checker
+        run: python -m pytest scripts/process-docs -q
+
+      - name: 🔍 Check process docs
+        run: python scripts/process-docs/check.py check
+
+      - name: 💬 Flag process docs this PR may have made stale
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          python scripts/process-docs/check.py pr --base "origin/${{ github.base_ref }}" --comment-file process-docs-comment.md
+          if [ -f process-docs-comment.md ]; then
+            gh pr comment "${{ github.event.pull_request.number }}" --body-file process-docs-comment.md --edit-last --create-if-none \
+              || gh pr comment "${{ github.event.pull_request.number }}" --body-file process-docs-comment.md
+          fi
+
   # Frontend Tests - Parallel execution
   frontend-tests:
     name: 🎯 Frontend Tests

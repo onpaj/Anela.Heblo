@@ -39,6 +39,8 @@ Read the relevant doc **before** implementation work touches that area. No archi
 - `docs/integrations/mcp-server.md` — MCP tools, endpoints, client config (30 tools)
 - `docs/integrations/shoptet-api.md` — Shoptet REST API findings
 
+**Processes** — `docs/processes/INDEX.md` indexes agent-facing docs for every sync, calculation and data feed (where data comes from, how it's computed). Read the relevant one before changing a process.
+
 **Features** — `docs/features/` has per-feature specs.
 
 ## Coding behavior
@@ -60,6 +62,7 @@ These encode **project-specific** gotchas not covered by the global rules in `~/
 - **E2E tests live in their module folder** under `frontend/test/e2e/<module>/`. (See `docs/testing/e2e-module-guide.md`.)
 - **Shoptet API findings must be documented before use.** No sandbox — every call hits a live store. Write new endpoints, status values, and quirks to `docs/integrations/shoptet-api.md` before relying on them.
 - **All secrets go to Azure Key Vault, never to Web App environment variables.** Staging: `kv-heblo-stg`. KV secrets use `--` as separator (e.g. `ConnectionStrings--Staging`, `HomeAssistant--BaseUrl`). The app reads `KeyVault:Uri` from App Settings and loads all secrets from KV at startup. Do not add or update secrets in Azure Portal App Settings — use `az keyvault secret set --vault-name kv-heblo-stg --name "..." --value "..."` instead.
+- **Process changes update their process doc in the same PR.** Adding or changing a sync, calculation or data feed means creating/updating its `docs/processes/` doc (template: `_TEMPLATE.md`) and running `python3 scripts/process-docs/check.py index`. If behaviour didn't change, bump `verified_at`. Runtime facts found while debugging go into the doc's *Runtime facts* / *Known quirks*, not only into agent memory. CI comments when a PR touches owned code without its doc.
 
 ## Validation before completion
 
