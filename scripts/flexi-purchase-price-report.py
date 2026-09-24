@@ -44,7 +44,7 @@ def stock_prices(warehouse_id, date):
     rows = get("stav-skladu-k-datu", {
         "datum": date,
         "sklad": warehouse_id,
-        "detail": "custom:cenik(kod),prumCena,stavMJ",
+        "detail": "custom:cenik(kod),prumCena,stavMJ,tuz",
         "includes": "/stav-skladu-k-datu/cenik",
         "limit": 0,
     })
@@ -54,7 +54,11 @@ def stock_prices(warehouse_id, date):
         code = (cenik[0].get("kod") if isinstance(cenik, list) and cenik else "") or ""
         code = code.strip()
         if code and code not in prices:
-            prices[code] = (float(row.get("prumCena") or 0), float(row.get("stavMJ") or 0))
+            qty = float(row.get("stavMJ") or 0)
+            value = float(row.get("tuz") or 0)
+            # prumCena is rounded to 2 decimals; the job uses tuz / stavMJ (SDK ExactAveragePrice).
+            exact = value / qty if qty > 0 and value > 0 else float(row.get("prumCena") or 0)
+            prices[code] = (exact, qty)
     return prices
 
 

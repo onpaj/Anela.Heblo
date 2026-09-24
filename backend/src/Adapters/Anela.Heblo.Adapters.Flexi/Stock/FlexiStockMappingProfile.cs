@@ -16,6 +16,10 @@ public class FlexiStockMappingProfile : BaseFlexiProfile
             .ForMember(dest => dest.ProductCode, opt => opt.MapFrom(src => (src.ProductCode ?? string.Empty).Trim()))
             .ForMember(dest => dest.ProductName, opt => opt.MapFrom(src => (src.ProductName ?? string.Empty).Trim()))
             .ForMember(dest => dest.Stock, opt => opt.MapFrom(src => (decimal)src.OnStock))
+            // stav-skladu-k-datu rounds prumCena to 2 decimals (AKL097: 0.31 vs 0.311901), which is
+            // up to ~20 % off for cheap per-gram materials. ExactAveragePrice is tuz / stavMJ, falling
+            // back to prumCena when quantity or value is not positive.
+            .ForMember(dest => dest.Price, opt => opt.MapFrom(src => (decimal)src.ExactAveragePrice))
             .ForMember(dest => dest.MOQ, opt => opt.MapFrom(src => src.MoqName))
             .ForMember(dest => dest.SupplierCode, opt => opt.MapFrom(src => src.SupplierCode))
             .ForMember(dest => dest.SupplierName, opt => opt.MapFrom(src => src.SupplierName));
