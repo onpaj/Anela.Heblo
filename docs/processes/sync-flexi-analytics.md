@@ -6,6 +6,7 @@ owns:
   - backend/src/Adapters/Anela.Heblo.Adapters.Flexi/Analytics/**
   - backend/src/Anela.Heblo.Persistence.Analytics/**
   - backend/tools/Anela.Heblo.FlexiAnalyticsBackfill/**
+  - backend/src/Adapters/Anela.Heblo.Adapters.Flexi/FlexiAdapterServiceCollectionExtensions.cs
 verified_at: "a008e2306"
 related: []
 ---
@@ -65,7 +66,9 @@ Health lives in `flexi_raw.sync_state` (one row per entity: `watermark`, `last_r
 - `entry_date` = accounting date; `period` = `postingPeriod` (e.g. "2026/06", may differ from the
   entry month); `document_type` = `idDokl@evidencePath` (faktura-prijata, banka, interni-doklad,
   skladovy-pohyb, pokladni-pohyb); `contact` = `firma@showAs` ("CODE: Name"), else `nazFirmy`.
-- `last_modified` = FlexiBee `lastUpdate` (Prague local time) converted to UTC.
+- `last_modified` = FlexiBee `lastUpdate` (Prague local time) converted to UTC with
+  `TimeZoneInfo.Local`, i.e. it assumes the container runs on Prague time; on a UTC host it
+  would be off by 1–2 h. Same conversion in the department, template and contact syncs.
 
 **Watermark (ledger only)**: on success = time the run finished (UTC). On failure or
 cancellation = the highest `last_modified` actually written, never moved backwards — sound

@@ -12,6 +12,8 @@ owns:
   - backend/src/Adapters/Anela.Heblo.Adapters.ShoptetApi/Stock/ShoptetStockClient.cs
   - backend/src/Anela.Heblo.Application/Features/Logistics/UseCases/ChangeTransportBoxState/ReceivedSideEffect.cs
   - backend/src/Anela.Heblo.Application/Features/Logistics/Services/TransportBoxCompletionService.cs
+  - backend/src/Anela.Heblo.Application/Features/Logistics/UseCases/GiftPackageManufacture/Services/GiftPackageManufactureService.cs
+  - backend/src/Adapters/Anela.Heblo.Adapters.ShoptetApi/ShoptetApiAdapterServiceCollectionExtensions.cs
 verified_at: "a008e2306"
 related: []
 ---
@@ -63,6 +65,8 @@ Operations are created on demand by the source events below; staff can Retry/Acc
 - Shoptet success = HTTP 2xx **and** empty `errors[]`; a 200 with errors, or any non-2xx,
   throws `HttpRequestException` → operation Failed.
 - State machine (`StockUpOperation`): Pending → Submitted → Completed; any state → Failed.
+  `MarkAsCompleted` also accepts Pending, though the current submit loop always goes through
+  Submitted first.
   `Reset` (Failed → Pending), `ForceReset` (any non-Completed → Pending),
   `AcceptFailure` (Failed → Completed, appends "Manually accepted at … UTC" to the error).
 - Retry (`POST /api/StockUpOperations/{id}/retry`): Failed → `Reset`, Pending/Submitted →
@@ -76,7 +80,7 @@ Operations are created on demand by the source events below; staff can Retry/Acc
 | `Shoptet:StockId` | 1 (class default) | Shoptet warehouse id in the movements URL |
 | `Shoptet:BaseUrl`, `Shoptet:ApiToken` | secrets | Shoptet REST base address and `Shoptet-Private-API-Token` |
 | `StockClient:TimeoutSeconds` | 8 | Per-attempt timeout of the Shoptet stock HttpClient |
-| `StockClient:MaxRetryAttempts` | 3 | Transient-error retries of that HttpClient (see quirks) |
+| `StockClient:MaxRetryAttempts` | 3 | Transient-error retries of that HttpClient, so up to 4 attempts (see quirks) |
 | `StockClient:RetryBaseDelaySeconds` | 1 | Exponential back-off base |
 | `BackgroundRefresh:IStockUpProcessingService:ProcessPendingOperationsAsync` | every 00:01:00, delay 00:01:00, tier 2 | Submission loop |
 | `BackgroundRefresh:ITransportBoxCompletionService:CompleteReceivedBoxesAsync` | every 00:01:00, delay 00:01:30, tier 2 | Box completion loop |
@@ -91,7 +95,7 @@ None.
   one stuck in Submitted after a crash, or Failed because the post-PATCH save failed — applies
   the stock change **twice**. Check Shoptet stock history before retrying a Submitted row.
 - **The Shoptet stock HttpClient retries transient failures** (`shoptet-stock-csv` resilience
-  handler, 3 attempts, 8 s per attempt) and that handler also wraps the PATCH. A PATCH that
+  handler, `MaxRetryAttempts` 3 = up to 4 attempts, 8 s per attempt) and that handler also wraps the PATCH. A PATCH that
   timed out after Shoptet applied it can be re-sent by the retry. (Read from code, not observed.)
 - **`docs/features/stock-up-process.md` is outdated**: it describes Playwright browser
   automation, pre-submit and post-verify Shoptet checks and a 2-minute completion interval.

@@ -9,6 +9,8 @@ owns:
   - backend/src/Anela.Heblo.Application/Shared/CostPools/**
   - backend/src/Anela.Heblo.Domain/Features/Catalog/MonthlyMarginHistory.cs
   - backend/src/Anela.Heblo.Domain/Features/Catalog/MarginLevel.cs
+  - backend/src/Anela.Heblo.Application/Features/Catalog/CatalogRepository.cs
+  - backend/src/Adapters/Anela.Heblo.Adapters.Flexi/Accounting/Ledger/LedgerService.cs
 verified_at: "a008e2306"
 related: []
 ---
@@ -85,9 +87,16 @@ months. Cost providers use the same `ManufactureCostHistoryDays`, but their wind
 include the current partial month.
 
 **M0 — material** (`ManufactureBasedMaterialCostProvider`):
-- Product, SemiProduct, Set: per month, amount-weighted average `PricePerPiece` of that month's
-  manufacture receipts. Months without a receipt carry the last known price forward; months
-  before the first receipt take the first future price; no receipt at all → purchase price rule.
+- Product, SemiProduct, Set with any manufacture history loaded (the catalog loads
+  `ManufactureHistoryDays` of it, 730 in `appsettings.json`): walk the M0 window month by month,
+  starting with no known price.
+  1. Month with receipts → amount-weighted average `PricePerPiece` of that month's receipts;
+     it becomes the last known price.
+  2. Month without receipts, after an in-window receipt → the last known price is carried forward.
+  3. Month without receipts, before the first in-window receipt → the price of the **next**
+     receipt month after it (in the window). Receipts from before the window are never used.
+  4. No later receipt either → **no M0 cost for that month** (the purchase price is not used).
+- Product, SemiProduct, Set with an **empty** manufacture history → purchase price rule below.
 - Goods, Material (and manufactured items with no receipts): `ErpPrice.PurchasePrice`
   (excl. VAT), same value every month; 0 or missing → no M0 cost.
 
@@ -128,6 +137,7 @@ months. Total revenue ≤ 0 → everyone gets 0 with a warning.
 |---|---|---|
 | `DataSourceOptions:ManufactureCostHistoryDays` | 365 in `appsettings.json` (class default 400; Development 730; Staging/Test 100) | Window for all four cost levels and for the margin months |
 | `DataSourceOptions:ManufactureDocumentTypeIds` | `[54, 56, 65, 67]` | Flexi receipt types read as manufacture history (M0 prices, M1 points) |
+| `DataSourceOptions:ManufactureHistoryDays` | 730 (class default 400; Staging 100) | Manufacture history loaded into the catalog; wider than the M0 window, but pre-window receipts are ignored (see quirks) |
 | `DataSourceOptions:SalesHistoryDays` | 400 (Staging 100) | Sales history loaded into the catalog; must cover the cost window for M2/M3 |
 | `BackgroundRefresh:ICatalogRepository:RefreshMarginData` | every 02:00:00, tier 3 | Margin recompute |
 | `BackgroundRefresh:I{Material,FlatManufacture,Sales,Overhead}CostProvider:RefreshCache` | every 01:00:00, tier 2 | Cost cache refresh |
@@ -150,6 +160,13 @@ months. Total revenue ≤ 0 → everyone gets 0 with a warning.
   reason: before the alignment, #4250 (730 → 365 days) left 8 of 20 margin months without cost
   and scaled every displayed cost by 0.6 (MAS009180 M0 90.79 → 47.37). The user doc's claim that
   "a month without data does not dilute the average" holds only because of that alignment.
+- **M0 ignores receipts from before the window (defect, read from code, not observed in
+  prod).** `CalculateFromManufactureHistory` falls back to the purchase price only when the
+  manufacture history is completely empty. The catalog loads 730 days of history but the M0
+  window is 365, and the month loop starts with no last-known price. So (a) a product whose
+  receipts all fall 13–24 months back gets **no M0 cost in any month**: M0 reads ~100 %, and
+  M1–M3 are overstated by the missing material cost; (b) window months before the first in-window
+  receipt take the *next* in-window price instead of the most recent pre-window one.
 - **Changing the window moves every level at once**, not just manufacturing — one key drives
   M0, M1, M2 and M3.
 - **Semi-products must stay out of the M1 denominator.** Their receipts are grams of bulk with
