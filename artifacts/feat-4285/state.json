@@ -40,9 +40,9 @@
     },
     {
       "name": "split-catalog-meta-refresh-service",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-09-24T11:19:52.652378Z"
+      "updated_at": "2026-09-24T11:22:03.850557Z"
     },
     {
       "name": "split-catalog-reference-refresh-service",
