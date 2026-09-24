@@ -578,6 +578,63 @@ public class FlexiManufactureClientTests
     }
 
     [Fact]
+    public async Task SubmitManufactureAsync_LotRowsSharingLotAndExpiration_DrawDownEachRowOnce()
+    {
+        // Arrange: two receipts of the same batch — two lot rows with identical Lot + Expiration, 5 each.
+        // A takes 8 (5 + 3), leaving 2 on the second row for B. Deducting A's whole 8 from every
+        // matching row would empty both rows and wrongly fail B's allocation.
+        var request = new SubmitManufactureClientRequest
+        {
+            ManufactureOrderCode = "MO-001",
+            ManufactureInternalNumber = "INT-MO-001",
+            Date = new DateTime(2024, 1, 15),
+            CreatedBy = "TestUser",
+            ManufactureType = ErpManufactureType.Product,
+            Items = new List<SubmitManufactureClientItem>
+            {
+                new() { ProductCode = ManufactureTestData.Products.ConfidentBar.Code, ProductName = ManufactureTestData.Products.ConfidentBar.Name, Amount = 10m },
+                new() { ProductCode = ManufactureTestData.Products.GiftBox.Code, ProductName = ManufactureTestData.Products.GiftBox.Name, Amount = 5m }
+            }
+        };
+
+        _mockTemplateService
+            .Setup(x => x.GetManufactureTemplateAsync(ManufactureTestData.Products.ConfidentBar.Code, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(ManufactureTestData.CreateTemplate(
+                ManufactureTestData.Products.ConfidentBar, 10.0,
+                (ManufactureTestData.Materials.Bisabolol, 8.0, true)));
+        _mockTemplateService
+            .Setup(x => x.GetManufactureTemplateAsync(ManufactureTestData.Products.GiftBox.Code, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(ManufactureTestData.CreateTemplate(
+                ManufactureTestData.Products.GiftBox, 5.0,
+                (ManufactureTestData.Materials.Bisabolol, 2.0, true)));
+        SetupStockDataForIngredients((ManufactureTestData.Materials.Bisabolol, 10m, 10m, hasLots: true));
+        _mockLotsClient.Setup(x => x.GetAsync(ManufactureTestData.Materials.Bisabolol.Code, 0, 0, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(() => new List<CatalogLot>
+            {
+                ManufactureTestData.CreateLot(ManufactureTestData.Materials.Bisabolol, 5m, "LOT-001", new DateOnly(2025, 3, 1)),
+                ManufactureTestData.CreateLot(ManufactureTestData.Materials.Bisabolol, 5m, "LOT-001", new DateOnly(2025, 3, 1))
+            });
+
+        StockItemsMovementUpsertRequestFlexiDto? consumption = null;
+        _mockStockMovementClient
+            .Setup(x => x.SaveAsync(It.IsAny<StockItemsMovementUpsertRequestFlexiDto>(), It.IsAny<CancellationToken>()))
+            .Callback<StockItemsMovementUpsertRequestFlexiDto, CancellationToken>((req, _) =>
+            {
+                if (req.StockMovementDirection == StockMovementDirection.Out)
+                {
+                    consumption = req;
+                }
+            });
+
+        // Act
+        await _client.SubmitManufactureAsync(request);
+
+        // Assert
+        consumption.Should().NotBeNull();
+        consumption!.StockItems.Where(i => i.LotNumber == "LOT-001").Sum(i => i.Amount).Should().Be(10m);
+    }
+
+    [Fact]
     public async Task SubmitManufactureAsync_MultipleLots_AllocatesInExpirationOrder()
     {
         // Arrange

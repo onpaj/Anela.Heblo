@@ -188,19 +188,41 @@ internal class FlexiManufactureClient : IManufactureClient
     {
         return lots.ToDictionary(
             kv => kv.Key,
-            kv => kv.Value
-                .Select(lot => new CatalogLot
+            kv => DeductFromIngredientLots(kv.Value, allocated.Where(c => c.ProductCode == kv.Key)));
+    }
+
+    // Consumption items identify a lot only by Lot + Expiration, and several lot rows can share both
+    // (the same batch received twice). Hand each key's consumed total out across its rows in the
+    // allocator's FEFO order, so every consumed unit is deducted from exactly one row.
+    private static List<CatalogLot> DeductFromIngredientLots(
+        List<CatalogLot> lots,
+        IEnumerable<ConsumptionItem> allocated)
+    {
+        var unassigned = allocated
+            .GroupBy(c => (c.LotNumber, c.Expiration))
+            .ToDictionary(g => g.Key, g => g.Sum(c => c.Amount));
+
+        var remaining = new List<CatalogLot>();
+        foreach (var lot in lots.OrderBy(l => l.Expiration ?? DateOnly.MaxValue).ThenBy(l => l.Id))
+        {
+            var key = (lot.Lot, lot.Expiration);
+            var deducted = Math.Min(lot.Amount, unassigned.GetValueOrDefault(key));
+            unassigned[key] = unassigned.GetValueOrDefault(key) - deducted;
+
+            if (lot.Amount - deducted > 0)
+            {
+                remaining.Add(new CatalogLot
                 {
                     Id = lot.Id,
                     ProductCode = lot.ProductCode,
                     Lot = lot.Lot,
                     Expiration = lot.Expiration,
-                    Amount = lot.Amount - allocated
-                        .Where(c => c.ProductCode == kv.Key && c.LotNumber == lot.Lot && c.Expiration == lot.Expiration)
-                        .Sum(c => c.Amount),
-                })
-                .Where(lot => lot.Amount > 0)
-                .ToList());
+                    Amount = lot.Amount - deducted,
+                });
+            }
+        }
+
+        return remaining;
     }
 
     private static Dictionary<string, IngredientRequirement> SumRequirements(
