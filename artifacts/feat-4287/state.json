@@ -21,8 +21,8 @@
       "updated_at": "2026-09-24T07:19:18.565472Z"
     },
     "developing": {
-      "status": "pending",
-      "updated_at": null
+      "status": "in_progress",
+      "updated_at": "2026-09-24T09:17:16.760604Z"
     }
   },
   "tasks": [
@@ -34,9 +34,9 @@
     },
     {
       "name": "extract-sortby-helper-and-refactor-applysorting",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-09-24T09:17:16.957531Z"
     }
   ]
 }

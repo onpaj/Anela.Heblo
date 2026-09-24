@@ -126,62 +126,38 @@ public class GetProductMarginsHandler : IRequestHandler<GetProductMarginsRequest
         }
     }
 
+    private static IOrderedEnumerable<CatalogAggregate> SortBy<TKey>(
+        IEnumerable<CatalogAggregate> items,
+        Func<CatalogAggregate, TKey> key,
+        bool desc)
+        => desc ? items.OrderByDescending(key) : items.OrderBy(key);
+
     private IEnumerable<CatalogAggregate> ApplySorting(IEnumerable<CatalogAggregate> products, string? sortBy, bool sortDescending)
     {
         if (string.IsNullOrWhiteSpace(sortBy))
         {
             // Default sorting by ProductCode
-            return sortDescending
-                ? products.OrderByDescending(x => x.ProductCode)
-                : products.OrderBy(x => x.ProductCode);
+            return SortBy(products, x => x.ProductCode, sortDescending);
         }
 
         return sortBy.ToLower() switch
         {
-            "productcode" => sortDescending
-                ? products.OrderByDescending(x => x.ProductCode)
-                : products.OrderBy(x => x.ProductCode),
-            "productname" => sortDescending
-                ? products.OrderByDescending(x => x.ProductName)
-                : products.OrderBy(x => x.ProductName),
-            "pricewithoutvat" => sortDescending
-                ? products.OrderByDescending(x => x.PriceWithoutVat ?? 0)
-                : products.OrderBy(x => x.PriceWithoutVat ?? 0),
-            "purchaseprice" => sortDescending
-                ? products.OrderByDescending(x => x.ErpPrice?.PurchasePrice ?? 0)
-                : products.OrderBy(x => x.ErpPrice?.PurchasePrice ?? 0),
-            "manufacturedifficulty" => sortDescending
-                ? products.OrderByDescending(x => x.ManufactureDifficulty ?? 0)
-                : products.OrderBy(x => x.ManufactureDifficulty ?? 0),
+            "productcode" => SortBy(products, x => x.ProductCode, sortDescending),
+            "productname" => SortBy(products, x => x.ProductName, sortDescending),
+            "pricewithoutvat" => SortBy(products, x => x.PriceWithoutVat ?? 0, sortDescending),
+            "purchaseprice" => SortBy(products, x => x.ErpPrice?.PurchasePrice ?? 0, sortDescending),
+            "manufacturedifficulty" => SortBy(products, x => x.ManufactureDifficulty ?? 0, sortDescending),
             // M0-M3 margin levels - amounts (using pre-calculated data)
-            "m0amount" => sortDescending
-                ? products.OrderByDescending(x => x.Margins.Averages.M0.Amount)
-                : products.OrderBy(x => x.Margins.Averages.M0.Amount),
-            "m1amount" => sortDescending
-                ? products.OrderByDescending(x => x.Margins.Averages.M1.Amount)
-                : products.OrderBy(x => x.Margins.Averages.M1.Amount),
-            "m2amount" => sortDescending
-                ? products.OrderByDescending(x => x.Margins.Averages.M2.Amount)
-                : products.OrderBy(x => x.Margins.Averages.M2.Amount),
-            "m3amount" => sortDescending
-                ? products.OrderByDescending(x => x.Margins.Averages.M3.Amount)
-                : products.OrderBy(x => x.Margins.Averages.M3.Amount),
+            "m0amount" => SortBy(products, x => x.Margins.Averages.M0.Amount, sortDescending),
+            "m1amount" => SortBy(products, x => x.Margins.Averages.M1.Amount, sortDescending),
+            "m2amount" => SortBy(products, x => x.Margins.Averages.M2.Amount, sortDescending),
+            "m3amount" => SortBy(products, x => x.Margins.Averages.M3.Amount, sortDescending),
             // M0-M3 margin levels - percentages (using pre-calculated data)
-            "m0percentage" => sortDescending
-                ? products.OrderByDescending(x => x.Margins.Averages.M0.Percentage)
-                : products.OrderBy(x => x.Margins.Averages.M0.Percentage),
-            "m1percentage" => sortDescending
-                ? products.OrderByDescending(x => x.Margins.Averages.M1.Percentage)
-                : products.OrderBy(x => x.Margins.Averages.M1.Percentage),
-            "m2percentage" => sortDescending
-                ? products.OrderByDescending(x => x.Margins.Averages.M2.Percentage)
-                : products.OrderBy(x => x.Margins.Averages.M2.Percentage),
-            "m3percentage" => sortDescending
-                ? products.OrderByDescending(x => x.Margins.Averages.M3.Percentage)
-                : products.OrderBy(x => x.Margins.Averages.M3.Percentage),
-            _ => sortDescending
-                ? products.OrderByDescending(x => x.ProductCode)
-                : products.OrderBy(x => x.ProductCode)
+            "m0percentage" => SortBy(products, x => x.Margins.Averages.M0.Percentage, sortDescending),
+            "m1percentage" => SortBy(products, x => x.Margins.Averages.M1.Percentage, sortDescending),
+            "m2percentage" => SortBy(products, x => x.Margins.Averages.M2.Percentage, sortDescending),
+            "m3percentage" => SortBy(products, x => x.Margins.Averages.M3.Percentage, sortDescending),
+            _ => SortBy(products, x => x.ProductCode, sortDescending)
         };
     }
 
