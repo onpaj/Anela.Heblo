@@ -25,5 +25,42 @@
       "updated_at": null
     }
   },
-  "tasks": []
+  "tasks": [
+    {
+      "name": "split-catalog-history-refresh-service",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    },
+    {
+      "name": "split-catalog-stock-refresh-service",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    },
+    {
+      "name": "split-catalog-meta-refresh-service",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    },
+    {
+      "name": "split-catalog-reference-refresh-service",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    },
+    {
+      "name": "wire-catalog-repository-and-module",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    },
+    {
+      "name": "remove-old-refresh-service-and-verify",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    }
+  ]
 }
