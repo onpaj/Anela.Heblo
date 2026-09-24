@@ -143,6 +143,33 @@ public class ConfirmProductCompletionHandlerTests
     }
 
     [Fact]
+    public async Task Handle_WorkflowFailureWithErrorCode_ReturnsThatCodeAndParams()
+    {
+        // Arrange
+        var parameters = new Dictionary<string, string> { { "detail", "Etiketa (ETI098)" } };
+        _workflowMock
+            .Setup(w => w.ExecuteAsync(
+                It.IsAny<int>(),
+                It.IsAny<Dictionary<int, decimal>>(),
+                It.IsAny<bool>(),
+                It.IsAny<string?>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new ConfirmProductCompletionResult(
+                "Nedostatečné zásoby pro výrobu.",
+                ErrorCodes.ManufactureInsufficientMaterialStock,
+                parameters));
+
+        // Act
+        var response = await _handler.Handle(BuildRequest(), CancellationToken.None);
+
+        // Assert
+        response.Success.Should().BeFalse();
+        response.ErrorCode.Should().Be(ErrorCodes.ManufactureInsufficientMaterialStock);
+        response.Params.Should().BeEquivalentTo(parameters);
+        response.Message.Should().Be("Nedostatečné zásoby pro výrobu.");
+    }
+
+    [Fact]
     public async Task Handle_WorkflowThrowsException_ReturnsInternalServerErrorResponse()
     {
         // Arrange

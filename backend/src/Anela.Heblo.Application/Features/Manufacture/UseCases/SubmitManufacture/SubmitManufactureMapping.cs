@@ -25,6 +25,9 @@ internal static class SubmitManufactureMapping
             DirectSemiProductOutputCode = request.DirectSemiProductOutputCode,
             DirectSemiProductOutputName = request.DirectSemiProductOutputName,
             DirectSemiProductOutputAmount = request.DirectSemiProductOutputAmount,
+            // Flexi saves an issue line that exceeds stock but issues 0 of it, so a shortage
+            // must be caught before submitting — never let a manufacture complete partially.
+            ValidateIngredientStock = true,
         };
     }
 }
