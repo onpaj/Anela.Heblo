@@ -1,3 +1,5 @@
+using Anela.Heblo.Domain.Features.BackgroundJobs;
+
 namespace Anela.Heblo.Application.Features.BackgroundJobs.Contracts;
 
 public class RecurringJobDto
@@ -5,6 +7,7 @@ public class RecurringJobDto
     public string JobName { get; set; } = string.Empty;
     public string DisplayName { get; set; } = string.Empty;
     public string Description { get; set; } = string.Empty;
+    public RecurringJobCategory Category { get; set; } = RecurringJobCategory.Uncategorized;
     public string CronExpression { get; set; } = string.Empty;
     public string TimeZoneId { get; set; } = string.Empty;
     public bool IsEnabled { get; set; }

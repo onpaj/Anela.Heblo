@@ -1,10 +1,17 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, Page } from '@playwright/test';
 import { navigateToApp } from '../helpers/e2e-auth-helper';
 
 // NOTE: The recurring jobs count grows as new IRecurringJob implementations are added.
 // As of 2026-06-25, staging has 24 jobs (12 original + 12 added since initial test authoring).
 // Assertions use toBeGreaterThanOrEqual(24) so tests survive future additions without modification.
 // To update the minimum, check: SELECT COUNT(*) FROM recurring_job_configurations on staging.
+// Tests that toggle or trigger a job target this one on purpose: it is a read-only
+// data quality check, so running it against staging has no side effects. Using the
+// first row would hit whatever sorts first — since the grouping, a live Finance import.
+const SAFE_JOB_DISPLAY_NAME = 'Daily Price Comparison Data Quality Test';
+const safeJobRow = (page: Page) =>
+  page.locator('[data-testid="recurring-job-row"]').filter({ hasText: SAFE_JOB_DISPLAY_NAME });
+
 test.describe('Recurring Jobs Management', () => {
   test.beforeEach(async ({ page }) => {
     // Establish E2E authentication session with full frontend setup
@@ -40,10 +47,10 @@ test.describe('Recurring Jobs Management', () => {
 
   test('should display all recurring jobs', async ({ page }) => {
     // Wait for table to load
-    await page.waitForSelector('table tbody tr', { timeout: 10000 });
+    await page.waitForSelector('[data-testid="recurring-job-row"]', { timeout: 10000 });
 
     // Count the number of rows in the table
-    const rows = page.locator('table tbody tr');
+    const rows = page.locator('[data-testid="recurring-job-row"]');
     const rowCount = await rows.count();
 
     // Verify we have at least 24 jobs (count grows as new IRecurringJob implementations are added)
@@ -52,10 +59,10 @@ test.describe('Recurring Jobs Management', () => {
 
   test('should display job details correctly', async ({ page }) => {
     // Wait for table to load
-    await page.waitForSelector('table tbody tr', { timeout: 10000 });
+    await page.waitForSelector('[data-testid="recurring-job-row"]', { timeout: 10000 });
 
     // Get the first row
-    const firstRow = page.locator('table tbody tr').first();
+    const firstRow = page.locator('[data-testid="recurring-job-row"]').first();
 
     // Verify row contains expected data
     await expect(firstRow).toBeVisible();
@@ -83,10 +90,10 @@ test.describe('Recurring Jobs Management', () => {
 
   test('should toggle job status from enabled to disabled', async ({ page }) => {
     // Wait for table to load
-    await page.waitForSelector('table tbody tr', { timeout: 10000 });
+    await page.waitForSelector('[data-testid="recurring-job-row"]', { timeout: 10000 });
 
     // Get the first job (regardless of state)
-    const firstJobRow = page.locator('table tbody tr').first();
+    const firstJobRow = safeJobRow(page);
     const toggleButton = firstJobRow.locator('button[role="switch"]');
 
     // Check the current state
@@ -119,10 +126,10 @@ test.describe('Recurring Jobs Management', () => {
 
   test('should toggle job status from disabled to enabled', async ({ page }) => {
     // Wait for table to load
-    await page.waitForSelector('table tbody tr', { timeout: 10000 });
+    await page.waitForSelector('[data-testid="recurring-job-row"]', { timeout: 10000 });
 
     // Get the first job (regardless of state)
-    const firstJobRow = page.locator('table tbody tr').first();
+    const firstJobRow = safeJobRow(page);
     const toggleButton = firstJobRow.locator('button[role="switch"]');
 
     // Check the current state
@@ -155,10 +162,10 @@ test.describe('Recurring Jobs Management', () => {
 
   test('should show loading state during toggle', async ({ page }) => {
     // Wait for table to load
-    await page.waitForSelector('table tbody tr', { timeout: 10000 });
+    await page.waitForSelector('[data-testid="recurring-job-row"]', { timeout: 10000 });
 
     // Get the first job (regardless of state)
-    const firstJobRow = page.locator('table tbody tr').first();
+    const firstJobRow = safeJobRow(page);
     const toggleButton = firstJobRow.locator('button[role="switch"]');
 
     // Check the current state
@@ -198,7 +205,7 @@ test.describe('Recurring Jobs Management', () => {
 
   test('should refresh jobs list when clicking refresh button', async ({ page }) => {
     // Wait for table to load
-    await page.waitForSelector('table tbody tr', { timeout: 10000 });
+    await page.waitForSelector('[data-testid="recurring-job-row"]', { timeout: 10000 });
 
     // Find the refresh button
     const refreshButton = page.getByRole('button', { name: /Obnovit/ });
@@ -214,14 +221,14 @@ test.describe('Recurring Jobs Management', () => {
     await expect(page.locator('table')).toBeVisible();
 
     // Verify we still have at least 24 jobs
-    const rows = page.locator('table tbody tr');
+    const rows = page.locator('[data-testid="recurring-job-row"]');
     const rowCount = await rows.count();
     expect(rowCount).toBeGreaterThanOrEqual(24);
   });
 
   test('should display correct job names', async ({ page }) => {
     // Wait for table to load
-    await page.waitForSelector('table tbody tr', { timeout: 10000 });
+    await page.waitForSelector('[data-testid="recurring-job-row"]', { timeout: 10000 });
 
     // Expected job display names (from seed data)
     const expectedJobs = [
@@ -240,7 +247,7 @@ test.describe('Recurring Jobs Management', () => {
     ];
 
     // Get all display name cells
-    const displayNameCells = page.locator('table tbody tr td:first-child');
+    const displayNameCells = page.locator('[data-testid="recurring-job-row"] td:first-child');
     const displayNames = await displayNameCells.allTextContents();
 
     // Verify all expected jobs are present
@@ -251,10 +258,10 @@ test.describe('Recurring Jobs Management', () => {
 
   test('should display cron expressions correctly', async ({ page }) => {
     // Wait for table to load
-    await page.waitForSelector('table tbody tr', { timeout: 10000 });
+    await page.waitForSelector('[data-testid="recurring-job-row"]', { timeout: 10000 });
 
     // Get all cron expression cells
-    const cronCells = page.locator('table tbody tr td:nth-child(3)');
+    const cronCells = page.locator('[data-testid="recurring-job-row"] td:nth-child(3)');
     const cronExpressions = await cronCells.allTextContents();
 
     // Verify all cron expressions are valid (match cron format pattern)
@@ -270,10 +277,10 @@ test.describe('Recurring Jobs Management', () => {
 
   test('should show last modified information', async ({ page }) => {
     // Wait for table to load
-    await page.waitForSelector('table tbody tr', { timeout: 10000 });
+    await page.waitForSelector('[data-testid="recurring-job-row"]', { timeout: 10000 });
 
     // Get the first row's last modified cell
-    const firstRow = page.locator('table tbody tr').first();
+    const firstRow = page.locator('[data-testid="recurring-job-row"]').first();
     const lastModifiedCell = firstRow.locator('td:nth-child(4)');
 
     // Verify it contains date/time information
@@ -290,7 +297,7 @@ test.describe('Recurring Jobs Management', () => {
 
   test('should have proper accessibility attributes on toggle buttons', async ({ page }) => {
     // Wait for table to load
-    await page.waitForSelector('table tbody tr', { timeout: 10000 });
+    await page.waitForSelector('[data-testid="recurring-job-row"]', { timeout: 10000 });
 
     // Get all toggle buttons
     const toggleButtons = page.locator('button[role="switch"]');
@@ -319,10 +326,10 @@ test.describe('Recurring Jobs Management', () => {
 
   test('should persist job status changes after page refresh', async ({ page }) => {
     // Wait for table to load
-    await page.waitForSelector('table tbody tr', { timeout: 10000 });
+    await page.waitForSelector('[data-testid="recurring-job-row"]', { timeout: 10000 });
 
     // Find a specific job (e.g., Invoice Classification)
-    const targetRow = page.locator('table tbody tr').filter({
+    const targetRow = page.locator('[data-testid="recurring-job-row"]').filter({
       hasText: 'Invoice Classification'
     });
 
@@ -342,10 +349,10 @@ test.describe('Recurring Jobs Management', () => {
     // Refresh the page
     await page.reload();
     await page.waitForLoadState('domcontentloaded');
-    await page.waitForSelector('table tbody tr', { timeout: 10000 });
+    await page.waitForSelector('[data-testid="recurring-job-row"]', { timeout: 10000 });
 
     // Find the same job again
-    const targetRowAfterRefresh = page.locator('table tbody tr').filter({
+    const targetRowAfterRefresh = page.locator('[data-testid="recurring-job-row"]').filter({
       hasText: 'Invoice Classification'
     });
 
@@ -371,12 +378,12 @@ test.describe('Recurring Jobs - Manual Trigger', () => {
 
     // Wait for the page to load
     await page.waitForLoadState('domcontentloaded');
-    await page.waitForSelector('table tbody tr', { timeout: 10000 });
+    await page.waitForSelector('[data-testid="recurring-job-row"]', { timeout: 10000 });
   });
 
   test('should display "Run Now" button for each job', async ({ page }) => {
     // Get all rows in the table
-    const rows = page.locator('table tbody tr');
+    const rows = page.locator('[data-testid="recurring-job-row"]');
     const rowCount = await rows.count();
 
     // Verify each row has a "Run Now" button (by visible text, not aria-label)
@@ -394,7 +401,7 @@ test.describe('Recurring Jobs - Manual Trigger', () => {
 
   test('should open confirmation dialog when clicking "Run Now" on enabled job', async ({ page }) => {
     // Find the first job row
-    const jobRow = page.locator('table tbody tr').first();
+    const jobRow = safeJobRow(page);
 
     // Enable the job first (toggle it on if it's off)
     const toggleButton = jobRow.locator('button[role="switch"]');
@@ -431,7 +438,7 @@ test.describe('Recurring Jobs - Manual Trigger', () => {
 
   test('should display job details in confirmation dialog', async ({ page }) => {
     // Find first job
-    const firstRow = page.locator('table tbody tr').first();
+    const firstRow = safeJobRow(page);
 
     // Enable the job first (normalize state to enabled)
     const toggleButton = firstRow.locator('button[role="switch"]');
@@ -469,7 +476,7 @@ test.describe('Recurring Jobs - Manual Trigger', () => {
 
   test('should show warning for disabled job in confirmation dialog', async ({ page }) => {
     // Find first job
-    const firstRow = page.locator('table tbody tr').first();
+    const firstRow = safeJobRow(page);
 
     // Normalize state to disabled (opposite of other tests)
     const toggleButton = firstRow.locator('button[role="switch"]');
@@ -504,7 +511,7 @@ test.describe('Recurring Jobs - Manual Trigger', () => {
 
   test('should close dialog when clicking cancel', async ({ page }) => {
     // Find first job
-    const firstRow = page.locator('table tbody tr').first();
+    const firstRow = safeJobRow(page);
 
     // Enable the job first (normalize state to enabled)
     const toggleButton = firstRow.locator('button[role="switch"]');
@@ -537,7 +544,7 @@ test.describe('Recurring Jobs - Manual Trigger', () => {
 
   test('should close dialog when clicking X button', async ({ page }) => {
     // Find first job
-    const firstRow = page.locator('table tbody tr').first();
+    const firstRow = safeJobRow(page);
 
     // Enable the job first (normalize state to enabled)
     const toggleButton = firstRow.locator('button[role="switch"]');
@@ -572,7 +579,7 @@ test.describe('Recurring Jobs - Manual Trigger', () => {
 
   test('should close dialog when clicking backdrop', async ({ page }) => {
     // Find first job
-    const firstRow = page.locator('table tbody tr').first();
+    const firstRow = safeJobRow(page);
 
     // Enable the job first (normalize state to enabled)
     const toggleButton = firstRow.locator('button[role="switch"]');
@@ -605,7 +612,7 @@ test.describe('Recurring Jobs - Manual Trigger', () => {
 
   test('should trigger job when confirming in dialog', async ({ page }) => {
     // Find first job
-    const firstRow = page.locator('table tbody tr').first();
+    const firstRow = safeJobRow(page);
 
     // Enable the job first (normalize state to enabled)
     const toggleButton = firstRow.locator('button[role="switch"]');
@@ -645,7 +652,7 @@ test.describe('Recurring Jobs - Manual Trigger', () => {
 
   test('should show loading state during trigger execution', async ({ page }) => {
     // Find first job
-    const firstRow = page.locator('table tbody tr').first();
+    const firstRow = safeJobRow(page);
 
     // Enable the job first (normalize state to enabled)
     const toggleButton = firstRow.locator('button[role="switch"]');
@@ -705,7 +712,7 @@ test.describe('Recurring Jobs - Manual Trigger', () => {
 
   test('should handle multiple rapid trigger attempts gracefully', async ({ page }) => {
     // Find first job
-    const firstRow = page.locator('table tbody tr').first();
+    const firstRow = safeJobRow(page);
 
     // Enable the job first (normalize state to enabled)
     const toggleButton = firstRow.locator('button[role="switch"]');
@@ -742,5 +749,52 @@ test.describe('Recurring Jobs - Manual Trigger', () => {
       await toggleButton.click();
       await page.waitForTimeout(500);
     }
+  });
+  test('should narrow the job list to rows matching the search term', async ({ page }) => {
+    await page.waitForSelector('[data-testid="recurring-job-row"]', { timeout: 10000 });
+
+    const rows = page.locator('[data-testid="recurring-job-row"]');
+    const totalCount = await rows.count();
+
+    // Search for a term that matches only a subset of the seeded jobs
+    await page.getByLabel('Hledat úlohu').fill('comgate');
+
+    await expect(rows).not.toHaveCount(totalCount);
+    const filteredCount = await rows.count();
+    expect(filteredCount).toBeGreaterThan(0);
+    expect(filteredCount).toBeLessThan(totalCount);
+
+    // Clearing the search restores every row
+    await page.getByLabel('Hledat úlohu').fill('');
+    await expect(rows).toHaveCount(totalCount);
+  });
+
+  test('should show an empty state when no job matches the search term', async ({ page }) => {
+    await page.waitForSelector('[data-testid="recurring-job-row"]', { timeout: 10000 });
+
+    await page.getByLabel('Hledat úlohu').fill('zzz-no-such-job-zzz');
+
+    await expect(page.locator('[data-testid="recurring-job-row"]')).toHaveCount(0);
+    await expect(page.getByText(/Žádná úloha neodpovídá hledání/)).toBeVisible();
+  });
+
+  test('should group jobs under collapsible category headers', async ({ page }) => {
+    await page.waitForSelector('[data-testid="recurring-job-row"]', { timeout: 10000 });
+
+    const financeHeader = page.getByRole('button', { name: 'Sbalit kategorii Účetnictví a platby', exact: true });
+    await expect(financeHeader).toBeVisible();
+    await expect(financeHeader).toHaveAttribute('aria-expanded', 'true');
+
+    const totalCount = await page.locator('[data-testid="recurring-job-row"]').count();
+
+    // Collapsing the category hides its rows but keeps the header
+    await financeHeader.click();
+    const collapsedHeader = page.getByRole('button', { name: 'Rozbalit kategorii Účetnictví a platby', exact: true });
+    await expect(collapsedHeader).toHaveAttribute('aria-expanded', 'false');
+    await expect(page.locator('[data-testid="recurring-job-row"]')).not.toHaveCount(totalCount);
+
+    // Re-expanding restores them
+    await collapsedHeader.click();
+    await expect(page.locator('[data-testid="recurring-job-row"]')).toHaveCount(totalCount);
   });
 });

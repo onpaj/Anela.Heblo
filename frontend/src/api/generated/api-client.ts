@@ -44065,6 +44065,7 @@ export class RecurringJobDto implements IRecurringJobDto {
     jobName?: string;
     displayName?: string;
     description?: string;
+    category?: RecurringJobCategory;
     cronExpression?: string;
     timeZoneId?: string;
     isEnabled?: boolean;
@@ -44086,6 +44087,7 @@ export class RecurringJobDto implements IRecurringJobDto {
             this.jobName = _data["jobName"];
             this.displayName = _data["displayName"];
             this.description = _data["description"];
+            this.category = _data["category"];
             this.cronExpression = _data["cronExpression"];
             this.timeZoneId = _data["timeZoneId"];
             this.isEnabled = _data["isEnabled"];
@@ -44107,6 +44109,7 @@ export class RecurringJobDto implements IRecurringJobDto {
         data["jobName"] = this.jobName;
         data["displayName"] = this.displayName;
         data["description"] = this.description;
+        data["category"] = this.category;
         data["cronExpression"] = this.cronExpression;
         data["timeZoneId"] = this.timeZoneId;
         data["isEnabled"] = this.isEnabled;
@@ -44121,12 +44124,25 @@ export interface IRecurringJobDto {
     jobName?: string;
     displayName?: string;
     description?: string;
+    category?: RecurringJobCategory;
     cronExpression?: string;
     timeZoneId?: string;
     isEnabled?: boolean;
     lastModifiedAt?: Date;
     lastModifiedBy?: string;
     nextRunAt?: Date | undefined;
+}
+
+export enum RecurringJobCategory {
+    Uncategorized = "Uncategorized",
+    Finance = "Finance",
+    Marketing = "Marketing",
+    Catalog = "Catalog",
+    Warehouse = "Warehouse",
+    DataQuality = "DataQuality",
+    Content = "Content",
+    Attendance = "Attendance",
+    Integrations = "Integrations",
 }
 
 export class GetRecurringJobResponse extends BaseResponse implements IGetRecurringJobResponse {

@@ -27,6 +27,7 @@ public class MarketingCalendarSyncJob : IRecurringJob
     public RecurringJobMetadata Metadata { get; } = new()
     {
         JobName = "marketing-calendar-sync",
+        Category = RecurringJobCategory.Marketing,
         DisplayName = "Marketing — sync Outlook calendar",
         Description = "Hourly mirror of the Outlook marketing group calendar into Heblo: creates and updates actions from Outlook events and soft-deletes actions whose event was deleted in Outlook (each deletion confirmed with a direct Graph lookup). Window: 30 days back to 12 months ahead.",
         CronExpression = "0 * * * *",

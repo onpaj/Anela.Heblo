@@ -16,6 +16,7 @@ public class StockWriteBackDqtJob : IRecurringJob
     public RecurringJobMetadata Metadata { get; } = new()
     {
         JobName = "daily-stock-writeback-dqt",
+        Category = RecurringJobCategory.DataQuality,
         DisplayName = "Daily Stock Write-Back Data Quality Test",
         Description = "Reconciles stock write-back between Shoptet and ABRA Flexi for the previous day",
         CronExpression = "0 7 * * *", // Daily at 7:00 AM
