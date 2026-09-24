@@ -29,6 +29,7 @@ public sealed class Ga4SyncJob : IRecurringJob
             CronExpression = _options.CronExpression,
             DefaultIsEnabled = _options.Enabled,
             TimeZoneId = _options.TimeZone,
+            Category = RecurringJobCategory.Integrations,
         };
     }
 
