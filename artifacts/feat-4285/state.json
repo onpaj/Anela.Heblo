@@ -34,9 +34,9 @@
     },
     {
       "name": "split-catalog-stock-refresh-service",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-09-24T07:18:51.707286Z"
+      "updated_at": "2026-09-24T07:42:17.169258Z"
     },
     {
       "name": "split-catalog-meta-refresh-service",
