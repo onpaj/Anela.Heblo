@@ -22,7 +22,7 @@
     },
     "developing": {
       "status": "in_progress",
-      "updated_at": "2026-09-24T08:20:28.894698Z"
+      "updated_at": "2026-09-24T09:17:01.080386Z"
     }
   },
   "tasks": [
@@ -40,9 +40,9 @@
     },
     {
       "name": "replace-inline-construction-in-get-catalog-detail-handler",
-      "status": "pending",
+      "status": "completed",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-09-24T09:38:28.887837Z"
     },
     {
       "name": "full-verification",
