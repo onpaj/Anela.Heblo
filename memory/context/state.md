@@ -406,6 +406,13 @@ _Update this file at the end of significant sessions._
 
 ## Pending / Known Issues
 
+- `/rework-all` run, 2026-09-24: `list_candidates.sh` crashed (`jq: Argument list too long`,
+  see `memory/gotchas/gh-api-sh-pr-list-arg-list-too-long.md`), so candidates were
+  reconstructed by hand via `mcp__github__*`. Only two open PRs carry both `agent`+`needs-work`:
+  #4110 (hit the 3-attempt revision cap — needs a human look) and #4153 (52+ prior
+  `/rework-pr` re-checks, all independently confirming it's a zero-diff PR fully
+  superseded by already-merged #4149 — needs a human to just close it as superseded,
+  not another automated pass). Neither was dispatched to a rework-pr subagent this run.
 - Memory directory (issue #405): adding cross-session knowledge accumulation — this PR
 - Database migrations are manual (not automated in deployment)
 - Branch `feature/meeting-mindmap`: MindMaps feature (project/workstream mind maps + Claude-rewrite
