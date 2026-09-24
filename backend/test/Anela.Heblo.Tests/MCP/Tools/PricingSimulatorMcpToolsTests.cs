@@ -73,6 +73,32 @@ public class PricingSimulatorMcpToolsTests
         _mediatorMock.Verify(m => m.Send(It.IsAny<GetPricingBaselineRequest>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
+    public static TheoryData<string> ReadGatedTools => new()
+    {
+        nameof(PricingSimulatorMcpTools.SimulatePricing),
+        nameof(PricingSimulatorMcpTools.ListPricingScenarios),
+        nameof(PricingSimulatorMcpTools.GetPricingScenario),
+    };
+
+    [Theory]
+    [MemberData(nameof(ReadGatedTools))]
+    public async Task ReadTools_Throw_WhenUserLacksReadAccess(string toolName)
+    {
+        // Arrange
+        _currentUserServiceMock.Setup(s => s.IsInRole(ReadRole)).Returns(false);
+        Func<Task<string>> call = toolName switch
+        {
+            nameof(PricingSimulatorMcpTools.SimulatePricing) => () => _tools.SimulatePricing(),
+            nameof(PricingSimulatorMcpTools.ListPricingScenarios) => () => _tools.ListPricingScenarios(),
+            _ => () => _tools.GetPricingScenario(Guid.NewGuid()),
+        };
+
+        // Act & Assert
+        var ex = await Assert.ThrowsAsync<McpException>(call);
+        Assert.Contains("FORBIDDEN", ex.Message);
+        _mediatorMock.VerifyNoOtherCalls();
+    }
+
     [Fact]
     public async Task SimulatePricing_WithoutEdits_ReplaysOverridesOnce()
     {
@@ -254,6 +280,23 @@ public class PricingSimulatorMcpToolsTests
         // Assert
         var result = JsonSerializer.Deserialize<GetPricingScenarioResponse>(json, McpJsonOptions.Default);
         Assert.Single(result!.Rows);
+    }
+
+    [Fact]
+    public async Task GetPricingScenario_ReturnsAllRows_WhenOnlyEditedRowsIsFalse()
+    {
+        // Arrange
+        var id = Guid.NewGuid();
+        _mediatorMock
+            .Setup(m => m.Send(It.Is<GetPricingScenarioRequest>(r => r.Id == id), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new GetPricingScenarioResponse { Rows = new() { Row("AKL001", isEdited: true), Row("AKL002") } });
+
+        // Act
+        var json = await _tools.GetPricingScenario(id, onlyEditedRows: false);
+
+        // Assert
+        var result = JsonSerializer.Deserialize<GetPricingScenarioResponse>(json, McpJsonOptions.Default);
+        Assert.Equal(2, result!.Rows.Count);
     }
 
     [Fact]
