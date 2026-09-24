@@ -96,6 +96,11 @@ public class ModuleBoundariesTests
         "Anela.Heblo.Application.Features.Catalog.Infrastructure.PurchaseMaterialCatalogAdapter -> Anela.Heblo.Application.Features.Purchase.Contracts.MaterialBomReference",
         "Anela.Heblo.Application.Features.Catalog.Infrastructure.PurchaseMaterialCatalogAdapter -> Anela.Heblo.Application.Features.Purchase.Contracts.MaterialPurchaseSnapshot",
         "Anela.Heblo.Application.Features.Catalog.Infrastructure.PurchaseMaterialCatalogAdapter -> Anela.Heblo.Application.Features.Purchase.Contracts.MaterialProductType",
+
+        // CatalogPurchasePriceSyncSourceAdapter in Catalog.Infrastructure implements Purchase's
+        // IPurchasePriceSyncSource contract and returns its PurchasePriceSyncCandidate DTO.
+        // Same pattern as PurchaseMaterialCatalogAdapter above.
+        "Anela.Heblo.Application.Features.Catalog.Infrastructure.CatalogPurchasePriceSyncSourceAdapter -> Anela.Heblo.Application.Features.Purchase.Contracts.PurchasePriceSyncCandidate",
     };
 
     // Allowlist for Catalog -> Manufacture. Pre-existing handler-level IManufactureClient injections
