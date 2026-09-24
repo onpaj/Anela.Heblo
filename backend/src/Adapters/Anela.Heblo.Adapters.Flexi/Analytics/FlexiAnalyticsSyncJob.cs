@@ -24,6 +24,7 @@ public sealed class FlexiAnalyticsSyncJob : IRecurringJob
         Metadata = new RecurringJobMetadata
         {
             JobName = "flexi-analytics-sync",
+            Category = RecurringJobCategory.Integrations,
             DisplayName = "Flexi Analytics Sync",
             Description = "Syncs Flexi ERP analytics data (ledger, departments, accounting templates, contacts) into the analytics schema.",
             CronExpression = _options.CronExpression,

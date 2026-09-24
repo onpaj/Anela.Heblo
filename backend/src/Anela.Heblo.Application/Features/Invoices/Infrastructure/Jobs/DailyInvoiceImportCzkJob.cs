@@ -9,6 +9,7 @@ public sealed class DailyInvoiceImportCzkJob : DailyInvoiceImportJobBase
     public override RecurringJobMetadata Metadata { get; } = new()
     {
         JobName = "daily-invoice-import-czk",
+        Category = RecurringJobCategory.Finance,
         DisplayName = "Daily Invoice Import (CZK)",
         Description = "Imports CZK invoices from Shoptet to ABRA Flexi",
         CronExpression = "15 4 * * *", // Daily at 4:15 AM

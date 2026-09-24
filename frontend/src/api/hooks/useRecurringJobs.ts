@@ -3,6 +3,7 @@ import { getAuthenticatedApiClient, QUERY_KEYS } from '../client';
 import {
   UpdateJobStatusRequestBody,
   UpdateJobCronRequestBody,
+  RecurringJobCategory,
   type RecurringJobDto,
   type UpdateRecurringJobStatusResponse,
   type UpdateRecurringJobCronResponse,
@@ -122,4 +123,5 @@ export const useTriggerRecurringJobMutation = () => {
 };
 
 // Re-export types for convenience
+export { RecurringJobCategory };
 export type { RecurringJobDto, UpdateRecurringJobStatusResponse, UpdateRecurringJobCronResponse, TriggerRecurringJobResponse };

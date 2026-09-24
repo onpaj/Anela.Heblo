@@ -14,6 +14,7 @@ public class GoogleAdsInvoiceImportJob : IRecurringJob
     public RecurringJobMetadata Metadata { get; } = new()
     {
         JobName = "google-ads-invoice-import",
+        Category = RecurringJobCategory.Finance,
         DisplayName = "Google Ads Invoice Import",
         Description = "Fetches billing transactions from Google Ads API via account_budget GAQL queries (7-day lookback)",
         CronExpression = "15 6,18 * * *",

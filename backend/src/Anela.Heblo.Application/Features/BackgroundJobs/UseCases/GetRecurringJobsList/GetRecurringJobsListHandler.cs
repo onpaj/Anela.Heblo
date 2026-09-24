@@ -12,17 +12,20 @@ public class GetRecurringJobsListHandler : IRequestHandler<GetRecurringJobsListR
     private readonly IMapper _mapper;
     private readonly ILogger<GetRecurringJobsListHandler> _logger;
     private readonly TimeProvider _timeProvider;
+    private readonly IReadOnlyDictionary<string, RecurringJobCategory> _categoriesByJobName;
 
     public GetRecurringJobsListHandler(
         IRecurringJobConfigurationRepository repository,
         IMapper mapper,
         ILogger<GetRecurringJobsListHandler> logger,
-        TimeProvider timeProvider)
+        TimeProvider timeProvider,
+        IEnumerable<IRecurringJob> discoveredJobs)
     {
         _repository = repository ?? throw new ArgumentNullException(nameof(repository));
         _mapper = mapper ?? throw new ArgumentNullException(nameof(mapper));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _timeProvider = timeProvider ?? throw new ArgumentNullException(nameof(timeProvider));
+        _categoriesByJobName = RecurringJobCategoryLookup.Build(discoveredJobs);
     }
 
     public async Task<GetRecurringJobsListResponse> Handle(
@@ -38,6 +41,7 @@ public class GetRecurringJobsListHandler : IRequestHandler<GetRecurringJobsListR
 
         foreach (var dto in jobDtos)
         {
+            dto.Category = RecurringJobCategoryLookup.Resolve(_categoriesByJobName, dto.JobName);
             dto.NextRunAt = RecurringJobNextRunCalculator.Calculate(
                 dto.CronExpression, dto.IsEnabled, dto.TimeZoneId, utcNow, _logger, dto.JobName);
         }

@@ -226,6 +226,7 @@ public class HangfireRecurringJobSchedulerTests : IDisposable
         public RecurringJobMetadata Metadata { get; } = new()
         {
             JobName = "parity-test-job",
+            Category = RecurringJobCategory.Integrations,
             DisplayName = "Parity Test Job",
             Description = "Used by HangfireRecurringJobSchedulerTests",
             CronExpression = "0 0 * * *",

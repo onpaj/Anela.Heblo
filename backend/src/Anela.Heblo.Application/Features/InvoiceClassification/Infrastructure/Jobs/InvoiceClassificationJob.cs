@@ -16,6 +16,7 @@ public class InvoiceClassificationJob : IRecurringJob
     public RecurringJobMetadata Metadata { get; } = new()
     {
         JobName = "invoice-classification",
+        Category = RecurringJobCategory.Finance,
         DisplayName = "Invoice Classification",
         Description = "Classifies and categorizes incoming invoices",
         CronExpression = "0 * * * *", // Hourly at the top of each hour

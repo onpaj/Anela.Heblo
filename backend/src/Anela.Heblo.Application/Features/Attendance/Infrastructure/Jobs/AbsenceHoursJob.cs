@@ -14,6 +14,7 @@ public class AbsenceHoursJob : IRecurringJob
     public RecurringJobMetadata Metadata { get; } = new()
     {
         JobName = "logeto-absence-hours",
+        Category = RecurringJobCategory.Attendance,
         DisplayName = "Logeto — fill hours into timeless absences",
         Description = "Walks each opted-in worker's past days in Logeto (Výkaz práce) and writes their net " +
                       "daily contracted hours into every absence record entered with no From/To and no Hours.",

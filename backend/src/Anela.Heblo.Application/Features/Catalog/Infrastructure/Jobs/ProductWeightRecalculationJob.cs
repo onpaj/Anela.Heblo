@@ -15,6 +15,7 @@ public class ProductWeightRecalculationJob : IRecurringJob
     public RecurringJobMetadata Metadata { get; } = new()
     {
         JobName = "product-weight-recalculation",
+        Category = RecurringJobCategory.Catalog,
         DisplayName = "Product Weight Recalculation",
         Description = "Recalculates product weights based on current material composition",
         CronExpression = "0 2 * * *", // Daily at 2:00 AM

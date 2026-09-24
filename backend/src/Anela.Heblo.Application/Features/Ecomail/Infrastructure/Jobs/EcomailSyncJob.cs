@@ -37,6 +37,7 @@ public sealed class EcomailSyncJob : IRecurringJob
         Metadata = new RecurringJobMetadata
         {
             JobName = "ecomail-sync",
+            Category = RecurringJobCategory.Marketing,
             DisplayName = "Ecomail Sync",
             Description = "Pulls Ecomail campaign and automation statistics, and snapshots cumulative automation counters.",
             CronExpression = _options.CronExpression,

@@ -137,6 +137,7 @@ public class HangfireJobRegistrationHelperTests : IDisposable
         public RecurringJobMetadata Metadata { get; } = new()
         {
             JobName = "helper-test-job",
+            Category = RecurringJobCategory.Integrations,
             DisplayName = "Helper Test Job",
             Description = "Used by HangfireJobRegistrationHelperTests",
             CronExpression = "0 0 * * *",

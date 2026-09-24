@@ -16,6 +16,7 @@ public class PurchasePriceRecalculationJob : IRecurringJob
     public RecurringJobMetadata Metadata { get; } = new()
     {
         JobName = "purchase-price-recalculation",
+        Category = RecurringJobCategory.Catalog,
         DisplayName = "Purchase Price Recalculation",
         Description = "Recalculates purchase prices for all materials and products",
         CronExpression = "0 2 * * *", // Daily at 2:00 AM
