@@ -26,3 +26,12 @@ def merge_base(repo: Path, a: str, b: str) -> str:
 
 def commit_time(repo: Path, sha: str) -> int:
     return int(_git(repo, "show", "-s", "--format=%ct", sha).stdout.strip())
+
+
+def last_commit_touching(repo: Path, path: str) -> str | None:
+    out = _git(repo, "log", "-1", "--format=%H", "--", path).stdout.strip()
+    return out or None
+
+
+def is_ancestor(repo: Path, a: str, b: str) -> bool:
+    return _git(repo, "merge-base", "--is-ancestor", a, b, check=False).returncode == 0

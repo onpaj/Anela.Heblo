@@ -2,7 +2,7 @@ from analysis import (find_dead_globs, find_job_files, find_orphans, find_stale,
                       find_untouched_in_pr, oldest_verified)
 from docs_model import ProcessDoc
 from git_ops import tracked_files
-from helpers import commit, init_repo
+from helpers import commit, init_repo, run
 
 
 def doc(process="calc-a", owns=("src/a/**",), verified_at="0000000", path=None):
@@ -30,6 +30,36 @@ def test_unknown_verified_at_is_reported_not_raised(tmp_path):
     commit(repo, {"src/a/x.cs": "1"})
     stale = find_stale(repo, [doc(verified_at="deadbeef")])
     assert stale[0].reason == "unknown-commit"
+
+
+def _squash_merged_doc(repo):
+    """Simulate a squash-merge PR: verified_at was written on a feature-branch commit
+    that never lands in main's history (a real squash rewrites the diff into one new
+    commit) — only a single squash commit does, carrying both the owned code change
+    and the doc (with that now-unreachable verified_at). Content diverges from the
+    feature branch's own version so a verified_at-only baseline would misfire on the
+    PR's own code change, which is exactly the bug being fixed."""
+    commit(repo, {"src/a/x.cs": "1"})
+    run(repo, "checkout", "-b", "feature")
+    feature_sha = commit(repo, {"src/a/x.cs": "draft-2", "docs/processes/calc-a.md": "draft"})
+    run(repo, "checkout", "main")
+    run(repo, "branch", "-D", "feature")
+    commit(repo, {"src/a/x.cs": "final-2", "docs/processes/calc-a.md": "final"})
+    return doc(path="docs/processes/calc-a.md", verified_at=feature_sha)
+
+
+def test_squash_merge_baseline_uses_docs_own_commit_not_stale(tmp_path):
+    repo = init_repo(tmp_path)
+    d = _squash_merged_doc(repo)
+    assert find_stale(repo, [d]) == []
+
+
+def test_squash_merge_baseline_flags_later_owned_change_as_stale(tmp_path):
+    repo = init_repo(tmp_path)
+    d = _squash_merged_doc(repo)
+    commit(repo, {"src/a/x.cs": "3"})
+    stale = find_stale(repo, [d])
+    assert [(s.process, s.reason, s.files) for s in stale] == [("calc-a", "changed", ("src/a/x.cs",))]
 
 
 def test_dead_glob_reported():

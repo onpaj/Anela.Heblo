@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from docs_model import ProcessDoc
-from git_ops import changed_files, commit_exists, commit_time
+from git_ops import changed_files, commit_exists, commit_time, is_ancestor, last_commit_touching
 from globs import glob_to_regex, matches_any
 
 JOB_ROOT = "IRecurringJob"
@@ -20,13 +20,39 @@ class StaleDoc:
     files: tuple[str, ...]
 
 
+def doc_baseline(repo: Path, doc: ProcessDoc) -> str | None:
+    """Baseline commit staleness is measured from.
+
+    A squash-merge rewrites a feature branch into one commit on the target branch,
+    so a `verified_at` written on the feature branch is unreachable (or, in a
+    shallow/partial checkout, physically absent) once merged, and a `verified_at`
+    written against the target branch instead would flag the PR's own code change
+    as stale. Instead we take the later of two candidates: `verified_at` (if that
+    commit exists) and the last commit that touched the doc file itself. Whichever
+    one is a descendant of the other wins; if they're unrelated histories (e.g. the
+    squash case above) the doc's own commit wins, since it's guaranteed to be on the
+    branch we're comparing against. If only one candidate exists, use it. If neither
+    exists, there is no baseline (reason: unknown-commit).
+    """
+    verified = doc.verified_at if commit_exists(repo, doc.verified_at) else None
+    doc_commit = last_commit_touching(repo, doc.path)
+    if verified and doc_commit:
+        if verified == doc_commit or is_ancestor(repo, verified, doc_commit):
+            return doc_commit
+        if is_ancestor(repo, doc_commit, verified):
+            return verified
+        return doc_commit  # unrelated histories: prefer the doc's own commit
+    return doc_commit or verified
+
+
 def find_stale(repo: Path, docs: list[ProcessDoc], ref: str = "HEAD") -> list[StaleDoc]:
     stale = []
     for doc in docs:
-        if not commit_exists(repo, doc.verified_at):
+        baseline = doc_baseline(repo, doc)
+        if baseline is None:
             stale.append(StaleDoc(doc.process, "unknown-commit", ()))
             continue
-        owned = tuple(f for f in changed_files(repo, doc.verified_at, ref) if matches_any(f, doc.owns))
+        owned = tuple(f for f in changed_files(repo, baseline, ref) if matches_any(f, doc.owns))
         if owned:
             stale.append(StaleDoc(doc.process, "changed", owned))
     return stale
@@ -87,5 +113,6 @@ def find_untouched_in_pr(docs: list[ProcessDoc], changed: list[str]) -> list[Sta
 
 def oldest_verified(repo: Path, docs: list[ProcessDoc], limit: int) -> list[str]:
     def age_key(doc: ProcessDoc) -> int:
-        return commit_time(repo, doc.verified_at) if commit_exists(repo, doc.verified_at) else 0
+        baseline = doc_baseline(repo, doc)
+        return commit_time(repo, baseline) if baseline else 0
     return [d.process for d in sorted(docs, key=age_key)[:limit]]

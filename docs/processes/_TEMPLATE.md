@@ -4,7 +4,9 @@ kind: sync                        # sync | calculation | feed
 summary: One sentence — what data this moves or derives, and for whom.
 owns:                             # repo-relative globs of the code this doc describes
   - backend/src/**/Feature/**
-verified_at: "0000000"            # QUOTED short SHA of the commit this doc was checked against
+verified_at: "0000000"            # QUOTED short SHA of the commit this doc was checked against.
+                                   # Staleness is measured from the LATER of this and the doc's own
+                                   # last commit, so editing the doc in the same PR as the code is enough.
 related: []                       # other process names (upstream or downstream)
 ---
 
