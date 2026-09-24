@@ -429,6 +429,45 @@ public class FlexiManufactureClientTests
         Assert.Contains("Available 2", exception.Message);
     }
 
+    [Fact]
+    public async Task SubmitManufactureAsync_SharedMaterialShortOnlyAcrossProducts_ThrowsBeforeWritingAnything()
+    {
+        // Arrange: both products use Bisabolol — 5 + 4 = 9 needed, 6 on stock.
+        // Each product alone fits, so a per-product check would wrongly pass.
+        var request = new SubmitManufactureClientRequest
+        {
+            ManufactureOrderCode = "MO-001",
+            ManufactureInternalNumber = "INT-MO-001",
+            Date = new DateTime(2024, 1, 15),
+            CreatedBy = "TestUser",
+            ManufactureType = ErpManufactureType.Product,
+            ValidateIngredientStock = true,
+            Items = new List<SubmitManufactureClientItem>
+            {
+                new() { ProductCode = ManufactureTestData.Products.ConfidentBar.Code, ProductName = ManufactureTestData.Products.ConfidentBar.Name, Amount = 10m },
+                new() { ProductCode = ManufactureTestData.Products.GiftBox.Code, ProductName = ManufactureTestData.Products.GiftBox.Name, Amount = 5m }
+            }
+        };
+
+        SetupProductABoM();
+        _mockTemplateService
+            .Setup(x => x.GetManufactureTemplateAsync(ManufactureTestData.Products.GiftBox.Code, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(ManufactureTestData.CreateTemplate(
+                ManufactureTestData.Products.GiftBox, 5.0,
+                (ManufactureTestData.Materials.Bisabolol, 4.0, false)));
+        SetupStockDataForIngredients((ManufactureTestData.Materials.Bisabolol, 6m, 10m, hasLots: false));
+
+        // Act
+        var exception = await Assert.ThrowsAsync<FlexiManufactureException>(
+            () => _client.SubmitManufactureAsync(request));
+
+        // Assert
+        Assert.Equal(FlexiManufactureOperationKind.StockValidation, exception.OperationKind);
+        Assert.Contains("Required 9", exception.Message);
+        Assert.Contains("Available 6", exception.Message);
+        VerifyStockMovementsCreated(times: 0);
+    }
+
     #endregion
 
     #region FEFO Allocation Tests
@@ -476,6 +515,66 @@ public class FlexiManufactureClientTests
                     i.LotNumber == "LOT-001" &&
                     i.Amount == 5.0m)),
             It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task SubmitManufactureAsync_ProductsSharingLotTrackedMaterial_NeverOverdrawALot()
+    {
+        // Arrange: A needs 5, B needs 4 of Bisabolol; LOT-001 (oldest) holds 6, LOT-002 holds 10.
+        // Allocating each product from a fresh lot list would take 5 + 4 = 9 from LOT-001.
+        var request = new SubmitManufactureClientRequest
+        {
+            ManufactureOrderCode = "MO-001",
+            ManufactureInternalNumber = "INT-MO-001",
+            Date = new DateTime(2024, 1, 15),
+            CreatedBy = "TestUser",
+            ManufactureType = ErpManufactureType.Product,
+            Items = new List<SubmitManufactureClientItem>
+            {
+                new() { ProductCode = ManufactureTestData.Products.ConfidentBar.Code, ProductName = ManufactureTestData.Products.ConfidentBar.Name, Amount = 10m },
+                new() { ProductCode = ManufactureTestData.Products.GiftBox.Code, ProductName = ManufactureTestData.Products.GiftBox.Name, Amount = 5m }
+            }
+        };
+
+        _mockTemplateService
+            .Setup(x => x.GetManufactureTemplateAsync(ManufactureTestData.Products.ConfidentBar.Code, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(ManufactureTestData.CreateTemplate(
+                ManufactureTestData.Products.ConfidentBar, 10.0,
+                (ManufactureTestData.Materials.Bisabolol, 5.0, true)));
+        _mockTemplateService
+            .Setup(x => x.GetManufactureTemplateAsync(ManufactureTestData.Products.GiftBox.Code, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(ManufactureTestData.CreateTemplate(
+                ManufactureTestData.Products.GiftBox, 5.0,
+                (ManufactureTestData.Materials.Bisabolol, 4.0, true)));
+        SetupStockDataForIngredients((ManufactureTestData.Materials.Bisabolol, 16m, 10m, hasLots: true));
+        _mockLotsClient.Setup(x => x.GetAsync(ManufactureTestData.Materials.Bisabolol.Code, 0, 0, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(() => new List<CatalogLot>
+            {
+                ManufactureTestData.CreateLot(ManufactureTestData.Materials.Bisabolol, 6m, "LOT-001", new DateOnly(2025, 3, 1)),
+                ManufactureTestData.CreateLot(ManufactureTestData.Materials.Bisabolol, 10m, "LOT-002", new DateOnly(2025, 9, 1))
+            });
+
+        StockItemsMovementUpsertRequestFlexiDto? consumption = null;
+        _mockStockMovementClient
+            .Setup(x => x.SaveAsync(It.IsAny<StockItemsMovementUpsertRequestFlexiDto>(), It.IsAny<CancellationToken>()))
+            .Callback<StockItemsMovementUpsertRequestFlexiDto, CancellationToken>((req, _) =>
+            {
+                if (req.StockMovementDirection == StockMovementDirection.Out)
+                {
+                    consumption = req;
+                }
+            });
+
+        // Act
+        await _client.SubmitManufactureAsync(request);
+
+        // Assert
+        consumption.Should().NotBeNull();
+        var byLot = consumption!.StockItems
+            .GroupBy(i => i.LotNumber)
+            .ToDictionary(g => g.Key!, g => g.Sum(i => i.Amount));
+        byLot["LOT-001"].Should().Be(6m);
+        byLot["LOT-002"].Should().Be(3m);
     }
 
     [Fact]

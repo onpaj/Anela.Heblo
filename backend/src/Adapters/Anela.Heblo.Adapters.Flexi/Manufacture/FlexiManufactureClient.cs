@@ -1,5 +1,6 @@
 using Anela.Heblo.Adapters.Flexi.Manufacture.Internal;
 using Anela.Heblo.Domain.Features.Catalog;
+using Anela.Heblo.Domain.Features.Catalog.Lots;
 using Anela.Heblo.Domain.Features.Manufacture;
 using Microsoft.Extensions.Logging;
 using Rem.FlexiBeeSDK.Client;
@@ -88,67 +89,39 @@ internal class FlexiManufactureClient : IManufactureClient
     private async Task<SubmitManufactureClientResponse> SubmitManufacturePerProductAsync(SubmitManufactureClientRequest request, CancellationToken cancellationToken)
     {
         // Phase 1: Collect all ingredient requirements with product attribution
-        var allConsumptionItems = new List<ConsumptionItem>();
-        var productCosts = new Dictionary<string, double>();
+        var requirementsByProduct = new List<(string ProductCode, Dictionary<string, IngredientRequirement> Requirements)>();
 
         foreach (var item in request.Items.Where(i => i.Amount > 0))
         {
-            // Create a single-item request for this specific product
-            var singleProductRequest = new SubmitManufactureClientRequest
-            {
-                ManufactureOrderCode = request.ManufactureOrderCode,
-                ManufactureInternalNumber = request.ManufactureInternalNumber,
-                Date = request.Date,
-                CreatedBy = request.CreatedBy,
-                Items = new List<SubmitManufactureClientItem> { item },
-                ManufactureType = request.ManufactureType,
-                LotNumber = request.LotNumber,
-                ExpirationDate = request.ExpirationDate,
-                ValidateIngredientStock = request.ValidateIngredientStock,
-                ResidueDistribution = request.ResidueDistribution
-            };
+            // Get ingredient requirements for this specific product
+            var ingredientRequirements = await _requirementAggregator.AggregateAsync(
+                new List<SubmitManufactureClientItem> { item }, cancellationToken);
 
-            // Get ingredient requirements for this product
-            var ingredientRequirements = await _requirementAggregator.AggregateAsync(singleProductRequest.Items, cancellationToken);
+            ApplyResidueDistribution(request, item.ProductCode, ingredientRequirements);
+            requirementsByProduct.Add((item.ProductCode, ingredientRequirements));
+        }
 
-            // When ResidueDistribution is set, override the semiproduct ingredient amount with the
-            // distribution-adjusted consumption so that all products together consume exactly
-            // ActualSemiProductQuantity grams (not the BoM-theoretical amount).
-            if (request.ResidueDistribution != null)
-            {
-                var distributionEntry = request.ResidueDistribution.Products
-                    .FirstOrDefault(p => p.ProductCode == item.ProductCode);
+        // Validate the order as a whole: products sharing a material can each fit on stock while
+        // their sum does not, and Flexi would then silently issue 0 of that line.
+        var totalRequirements = SumRequirements(requirementsByProduct.Select(p => p.Requirements));
+        if (request.ValidateIngredientStock)
+        {
+            await _stockValidator.ValidateAsync(totalRequirements, cancellationToken);
+        }
 
-                if (distributionEntry != null)
-                {
-                    var semiProductKey = ingredientRequirements
-                        .FirstOrDefault(kv => kv.Value.ProductType == ProductType.SemiProduct).Key;
+        // Lots are loaded once and drawn down product by product, so two products sharing a
+        // material can never allocate the same lot quantity twice.
+        var remainingLots = await _lotLoader.LoadAvailableLotsAsync(totalRequirements, cancellationToken);
+        var allConsumptionItems = new List<ConsumptionItem>();
+        var productCosts = new Dictionary<string, double>();
 
-                    if (semiProductKey != null)
-                    {
-                        var existing = ingredientRequirements[semiProductKey];
-                        ingredientRequirements[semiProductKey] = new IngredientRequirement
-                        {
-                            ProductCode = existing.ProductCode,
-                            ProductName = existing.ProductName,
-                            ProductType = existing.ProductType,
-                            RequiredAmount = distributionEntry.AdjustedConsumption,
-                            HasLots = existing.HasLots
-                        };
-                    }
-                }
-            }
-
-            if (request.ValidateIngredientStock)
-            {
-                await _stockValidator.ValidateAsync(ingredientRequirements, cancellationToken);
-            }
-
-            var ingredientLots = await _lotLoader.LoadAvailableLotsAsync(ingredientRequirements, cancellationToken);
-            var consumptionItems = _fefoAllocator.Allocate(ingredientRequirements, ingredientLots, item.ProductCode);
+        foreach (var (productCode, ingredientRequirements) in requirementsByProduct)
+        {
+            var consumptionItems = _fefoAllocator.Allocate(ingredientRequirements, remainingLots, productCode);
+            remainingLots = DeductAllocatedLots(remainingLots, consumptionItems);
 
             allConsumptionItems.AddRange(consumptionItems);
-            productCosts[item.ProductCode] = 0; // Will be calculated during consumption
+            productCosts[productCode] = 0; // Will be calculated during consumption
         }
 
         // Phase 2: Create ONE consume document (per warehouse) with all consumption lines
@@ -174,6 +147,78 @@ internal class FlexiManufactureClient : IManufactureClient
             ProductReceiptDocCode = productReceiptDocCode,
             DirectSemiProductOutputDocCode = directOutputDocCode,
         };
+    }
+
+    // When ResidueDistribution is set, override the semiproduct ingredient amount with the
+    // distribution-adjusted consumption so that all products together consume exactly
+    // ActualSemiProductQuantity grams (not the BoM-theoretical amount).
+    private static void ApplyResidueDistribution(
+        SubmitManufactureClientRequest request,
+        string productCode,
+        Dictionary<string, IngredientRequirement> ingredientRequirements)
+    {
+        var distributionEntry = request.ResidueDistribution?.Products
+            .FirstOrDefault(p => p.ProductCode == productCode);
+        if (distributionEntry == null)
+        {
+            return;
+        }
+
+        var semiProductKey = ingredientRequirements
+            .FirstOrDefault(kv => kv.Value.ProductType == ProductType.SemiProduct).Key;
+        if (semiProductKey == null)
+        {
+            return;
+        }
+
+        var existing = ingredientRequirements[semiProductKey];
+        ingredientRequirements[semiProductKey] = new IngredientRequirement
+        {
+            ProductCode = existing.ProductCode,
+            ProductName = existing.ProductName,
+            ProductType = existing.ProductType,
+            RequiredAmount = distributionEntry.AdjustedConsumption,
+            HasLots = existing.HasLots
+        };
+    }
+
+    private static Dictionary<string, List<CatalogLot>> DeductAllocatedLots(
+        Dictionary<string, List<CatalogLot>> lots,
+        IReadOnlyCollection<ConsumptionItem> allocated)
+    {
+        return lots.ToDictionary(
+            kv => kv.Key,
+            kv => kv.Value
+                .Select(lot => new CatalogLot
+                {
+                    Id = lot.Id,
+                    ProductCode = lot.ProductCode,
+                    Lot = lot.Lot,
+                    Expiration = lot.Expiration,
+                    Amount = lot.Amount - allocated
+                        .Where(c => c.ProductCode == kv.Key && c.LotNumber == lot.Lot && c.Expiration == lot.Expiration)
+                        .Sum(c => c.Amount),
+                })
+                .Where(lot => lot.Amount > 0)
+                .ToList());
+    }
+
+    private static Dictionary<string, IngredientRequirement> SumRequirements(
+        IEnumerable<Dictionary<string, IngredientRequirement>> requirementSets)
+    {
+        return requirementSets
+            .SelectMany(set => set.Values)
+            .GroupBy(r => r.ProductCode)
+            .ToDictionary(
+                g => g.Key,
+                g => new IngredientRequirement
+                {
+                    ProductCode = g.Key,
+                    ProductName = g.First().ProductName,
+                    ProductType = g.First().ProductType,
+                    RequiredAmount = g.Sum(r => r.RequiredAmount),
+                    HasLots = g.First().HasLots
+                });
     }
 
     public async Task UpdateBoMIngredientAmountAsync(string productCode, string ingredientCode, double newAmount, CancellationToken cancellationToken = default)

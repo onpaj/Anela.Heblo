@@ -15113,6 +15113,7 @@ export enum ErrorCodes {
     ManufacturedInventoryItemNotFound = "ManufacturedInventoryItemNotFound",
     ManufacturedInventoryInsufficientStock = "ManufacturedInventoryInsufficientStock",
     ManufactureOrderNotCompleted = "ManufactureOrderNotCompleted",
+    ManufactureInsufficientMaterialStock = "ManufactureInsufficientMaterialStock",
     CatalogItemNotFound = "CatalogItemNotFound",
     ManufactureDifficultyNotFound = "ManufactureDifficultyNotFound",
     ManufactureDifficultyConflict = "ManufactureDifficultyConflict",

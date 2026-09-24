@@ -5,6 +5,7 @@ import {
   ProductActualQuantityRequest,
   ResidueDistributionDto,
 } from "../../api/generated/api-client";
+import { resolveStockShortageMessage } from "./manufactureErrorMessage";
 
 interface ProductQuantityData {
   id: number;
@@ -93,7 +94,7 @@ const ConfirmProductCompletionModal: React.FC<ConfirmProductCompletionModalProps
 
       await onSubmit(request);
     } catch (err) {
-      setError('Chyba při potvrzení množství produktů. Zkuste to prosím znovu.');
+      setError(resolveStockShortageMessage(err) ?? 'Chyba při potvrzení množství produktů. Zkuste to prosím znovu.');
       console.error('Error confirming product completion:', err);
     }
   };
