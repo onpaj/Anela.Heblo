@@ -22,7 +22,7 @@
     },
     "developing": {
       "status": "in_progress",
-      "updated_at": "2026-09-24T13:17:31.415660Z"
+      "updated_at": "2026-09-24T20:16:43.496726Z"
     }
   },
   "tasks": [
@@ -58,9 +58,9 @@
     },
     {
       "name": "remove-old-refresh-service-and-verify",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-09-24T20:16:43.668963Z"
     }
   ]
 }
