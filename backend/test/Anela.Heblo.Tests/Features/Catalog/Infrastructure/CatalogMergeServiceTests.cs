@@ -54,6 +54,37 @@ public class CatalogMergeServiceTests
     }
 
     [Fact]
+    public async Task ExecutePriorityMergeAsync_ErpStockWithPrice_CarriesStockPriceOntoProduct()
+    {
+        var (store, service) = Create();
+        store.SetErpStockData(new List<ErpStock>
+        {
+            new() { ProductCode = "AKL097", ProductName = "Ethanol", ProductId = 1, Stock = 12000, Price = 0.311901m },
+        });
+
+        var result = await service.ExecutePriorityMergeAsync();
+
+        result.Single(p => p.ProductCode == "AKL097").Stock.StockPrice.Should().Be(0.311901m);
+    }
+
+    [Theory]
+    [InlineData(0, 62.35)]
+    [InlineData(-3, 62.35)]
+    [InlineData(10, 0)]
+    public async Task ExecutePriorityMergeAsync_NothingInStockOrNoPrice_LeavesStockPriceNull(decimal stock, decimal price)
+    {
+        var (store, service) = Create();
+        store.SetErpStockData(new List<ErpStock>
+        {
+            new() { ProductCode = "DEZ001100", ProductName = "Dezodorant", ProductId = 1, Stock = stock, Price = price },
+        });
+
+        var result = await service.ExecutePriorityMergeAsync();
+
+        result.Single(p => p.ProductCode == "DEZ001100").Stock.StockPrice.Should().BeNull();
+    }
+
+    [Fact]
     public async Task ExecutePriorityMergeAsync_PrefixedErpProductCode_BecomesProductTypeSet()
     {
         var (store, service) = Create();

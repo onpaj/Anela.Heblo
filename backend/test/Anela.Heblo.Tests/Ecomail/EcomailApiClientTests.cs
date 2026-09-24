@@ -71,6 +71,36 @@ public class EcomailApiClientTests
         return (new EcomailApiClient(options, factory.Object, NullLogger<EcomailApiClient>.Instance), requests);
     }
 
+    /// <summary>
+    /// Measured against the live account on 2026-09-24: 10 of 276 campaigns carry
+    /// <c>"recipients":null</c> and 25 carry <c>"subject":null</c> — all of them SMS sends or
+    /// drafts. A non-nullable int made System.Text.Json throw on the whole page, so a single junk
+    /// row wiped every newsletter out of a run that still reported success.
+    /// </summary>
+    private const string CampaignsPageWithNulls = """
+    [
+      {"id":246,"title":"SMS akce","subject":null,"from_email":null,
+       "sent_at":null,"recipients":null,"status":0,"campaign_type":"sms","parent_id":null},
+      {"id":300,"title":"Newsletter","subject":"Predmet","from_email":"info@newsletter.anela.cz",
+       "sent_at":"2026-09-13 05:15:51","recipients":12642,"status":3,
+       "campaign_type":"email","parent_id":null}
+    ]
+    """;
+
+    [Fact]
+    public async Task campaigns_with_null_recipients_and_subject_still_deserialize()
+    {
+        var (client, _) = CreateClient((HttpStatusCode.OK, CampaignsPageWithNulls));
+
+        var campaigns = await client.GetCampaignsAsync();
+
+        campaigns.Should().HaveCount(2,
+            "one unusable draft must not take the whole page — and with it every newsletter — down with it");
+        campaigns[0].Recipients.Should().BeNull();
+        campaigns[0].Subject.Should().BeNull();
+        campaigns[1].Recipients.Should().Be(12642);
+    }
+
     [Fact]
     public async Task sends_the_api_key_in_the_key_header()
     {

@@ -12,4 +12,10 @@ public class GetProductMarginsRequest : IRequest<GetProductMarginsResponse>
     public int PageSize { get; set; } = 20;
     public string? SortBy { get; set; }
     public bool SortDescending { get; set; } = false;
+
+    /// <summary>
+    /// When true, only products with at least one sale in the last year are returned.
+    /// Products without sales have no meaningful margin and would otherwise crowd the top of the list.
+    /// </summary>
+    public bool OnlyWithSales { get; set; } = false;
 }

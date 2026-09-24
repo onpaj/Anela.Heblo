@@ -152,6 +152,32 @@ public class EcomailSyncJobTests
     }
 
     [Fact]
+    public async Task throws_when_the_campaign_listing_produced_nothing_while_pipelines_listed()
+    {
+        // The production failure of 2026-09-24: one null field broke the campaigns listing, the
+        // service caught it and returned zero campaigns, and because snapshots and months still
+        // landed the all-counters-zero guard never fired. The run went green with every newsletter
+        // missing. Pipelines listing fine while campaigns yield nothing is not a real state for
+        // this account — it only happens when the campaigns stage failed.
+        var service = new Mock<IEcomailSyncService>();
+        service.Setup(s => s.SyncAllAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new EcomailSyncReport(
+                CampaignsUpserted: 0,
+                PipelinesUpserted: 4,
+                SnapshotsWritten: 4,
+                AutomationMonthsComputed: 48,
+                CampaignStatsFetched: 0,
+                Errors: new[] { "campaigns: The JSON value could not be converted to System.Int32." }));
+        var job = CreateJob(service, new EcomailOptions { ApiKey = "k" });
+
+        var act = () => job.ExecuteAsync();
+
+        await act.Should().ThrowAsync<InvalidOperationException>()
+            .WithMessage("*System.Int32*",
+                "a run that loses every newsletter must not report success");
+    }
+
+    [Fact]
     public async Task does_not_throw_on_a_genuine_partial_success()
     {
         // A real data counter is positive (SnapshotsWritten), everything else is zero, and there

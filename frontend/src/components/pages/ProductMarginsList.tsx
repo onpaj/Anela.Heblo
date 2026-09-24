@@ -29,6 +29,7 @@ const ProductMarginsList: React.FC = () => {
   const [productNameFilter, setProductNameFilter] = useState("");
   const [productCodeFilter, setProductCodeFilter] = useState("");
   const [productTypeFilter, setProductTypeFilter] = useState<string>("Product");
+  const [onlyWithSales, setOnlyWithSales] = useState(true); // Hide products without sales by default
 
   // Pagination states
   const [pageNumber, setPageNumber] = useState(1);
@@ -61,6 +62,7 @@ const ProductMarginsList: React.FC = () => {
     pageSize,
     sortBy,
     sortDescending,
+    onlyWithSales,
   );
 
   const filteredItems = data?.items || [];
@@ -93,6 +95,7 @@ const ProductMarginsList: React.FC = () => {
     setProductNameFilter("");
     setProductCodeFilter("");
     setProductTypeFilter("Product");
+    setOnlyWithSales(true);
     setPageNumber(1); // Reset to first page when clearing filters
 
     // Force data reload by refetching
@@ -340,7 +343,20 @@ const ProductMarginsList: React.FC = () => {
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
+            <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-graphite-text whitespace-nowrap">
+              <input
+                type="checkbox"
+                data-testid="margins-only-with-sales-filter"
+                checked={onlyWithSales}
+                onChange={(e) => {
+                  setOnlyWithSales(e.target.checked);
+                  setPageNumber(1);
+                }}
+                className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 dark:border-graphite-border dark:bg-graphite-surface-2"
+              />
+              Pouze s prodejem za poslední rok
+            </label>
             <button
               onClick={handleApplyFilters}
               className="bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 px-4 rounded-md transition-colors duration-200 text-sm"

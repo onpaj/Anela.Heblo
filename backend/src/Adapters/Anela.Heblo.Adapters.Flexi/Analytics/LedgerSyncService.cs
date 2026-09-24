@@ -120,7 +120,7 @@ public sealed class LedgerSyncService : IEntitySyncService, ILedgerBackfillServi
                 "FlexiAnalyticsSync.EntityCancelled {EntityName} rowsUpserted={RowsUpserted}",
                 EntityName, totalUpserted);
 
-            await _watermarkRepo.SaveAsync(state, CancellationToken.None);
+            await SaveStateAsync(state);
             throw;
         }
         catch (Exception ex)
@@ -156,7 +156,7 @@ public sealed class LedgerSyncService : IEntitySyncService, ILedgerBackfillServi
                 EntityName, totalUpserted, ingestedUpTo);
         }
 
-        await _watermarkRepo.SaveAsync(state, ct);
+        await SaveStateAsync(state);
         return new SyncResult(totalFetched, totalUpserted, state.LastRunStatus == "OK");
     }
 
@@ -277,7 +277,7 @@ public sealed class LedgerSyncService : IEntitySyncService, ILedgerBackfillServi
                 "FlexiAnalyticsSync.BackfillCancelled {EntityName} rowsUpserted={RowsUpserted}",
                 EntityName, totalUpserted);
 
-            await _watermarkRepo.SaveAsync(state, CancellationToken.None);
+            await SaveStateAsync(state);
             throw;
         }
         catch (Exception ex)
@@ -293,8 +293,26 @@ public sealed class LedgerSyncService : IEntitySyncService, ILedgerBackfillServi
                 EntityName, totalUpserted);
         }
 
-        await _watermarkRepo.SaveAsync(state, ct);
+        await SaveStateAsync(state);
         return new SyncResult(totalFetched, totalUpserted, state.LastRunStatus == "OK");
+    }
+
+    /// <summary>
+    /// Persists the run's outcome, detaching anything the run left on the change tracker first.
+    ///
+    /// A batch that threw leaves its entities Added-but-unsaved. Writing sync_state through the
+    /// same context then flushes those orphans too, and on 2026-09-24 that turned a recoverable
+    /// page error into a duplicate-key failure, so the FAILED status was never written at all —
+    /// sync_state sat at RUNNING for six hours saying nothing. Recording why a run failed must not
+    /// depend on the run having succeeded.
+    ///
+    /// Always CancellationToken.None: on the cancellation path `ct` is already cancelled, and
+    /// saving through it would throw for that reason alone.
+    /// </summary>
+    private async Task SaveStateAsync(SyncState state)
+    {
+        _dbContext.ChangeTracker.Clear();
+        await _watermarkRepo.SaveAsync(state, CancellationToken.None);
     }
 
     /// <summary>
@@ -313,6 +331,19 @@ public sealed class LedgerSyncService : IEntitySyncService, ILedgerBackfillServi
 
     private async Task<int> UpsertBatchAsync(List<LedgerEntry> incoming, CancellationToken ct)
     {
+        var fetched = incoming.Count;
+
+        // FlexiBee orders the changed-since query by lastUpdate with no tiebreaker, and its bulk
+        // operations leave blocks of hundreds of thousands of rows sharing a single timestamp, so
+        // skip-based paging can legitimately return the same row twice. Two entity instances with
+        // one key is an immediate "already being tracked" throw out of DbSet.Add — which is how
+        // the first live run died on 2026-09-24. Last one wins; within a single fetch the copies
+        // carry identical content anyway.
+        incoming = incoming
+            .GroupBy(x => x.FlexiId)
+            .Select(g => g.Last())
+            .ToList();
+
         var ids = incoming.Select(x => x.FlexiId).ToHashSet();
         var existing = await _dbContext.LedgerEntries
             .Where(x => ids.Contains(x.FlexiId))
@@ -345,7 +376,14 @@ public sealed class LedgerSyncService : IEntitySyncService, ILedgerBackfillServi
         }
 
         await _dbContext.SaveChangesAsync(ct);
-        return incoming.Count;
+
+        // Nothing from this batch outlives it. Two reasons, both of which bit us: a row saved on
+        // one page would otherwise stay tracked and collide when a later page returns it again,
+        // and the ~680k-row backfill would pile every entity onto one tracker, slowing
+        // DetectChanges batch by batch while holding every raw_payload string in memory at once.
+        _dbContext.ChangeTracker.Clear();
+
+        return fetched;
     }
 
     // FlexiBee's `ucetni-denik` is a view, so every row comes back with `id` = -1 and carries its
