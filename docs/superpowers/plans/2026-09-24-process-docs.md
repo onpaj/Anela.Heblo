@@ -24,7 +24,7 @@
 
 ## Review Focus
 
-1. **`verified_at` that YAML parses as a number** (e.g. `1234567` or `0123e45` unquoted) — expect a clear schema error, not a crash or a silently wrong SHA. Pinned in Task 1.
+1. **`verified_at` that YAML parses as a number** (e.g. `1234567`, or `01234567` which PyYAML reads as octal, unquoted) — expect a clear schema error, not a crash or a silently wrong SHA. Pinned in Task 1.
 2. **`verified_at` not in history** (squash-merged branch, typo) — expect the doc reported stale with reason `unknown-commit`, not a git exception. Pinned in Task 2.
 3. **Jobs implemented through an abstract base** (`BankImportJobBase`, `DailyInvoiceImportJobBase`) — expect concrete subclasses detected as jobs and the abstract base not reported. Pinned in Task 2.
 4. **A malformed embedded doc at runtime** — expect that doc skipped and logged, the other docs still served. Pinned in Task 5.
@@ -247,8 +247,8 @@ def test_unquoted_numeric_verified_at_is_error():
     assert any("verified_at" in e and "quote" in e for e in errors)
 
 
-def test_scientific_notation_sha_is_error():
-    front = GOOD_FRONT.replace('verified_at: "1d75813bb"', "verified_at: 0123e45")
+def test_leading_zero_sha_parsed_as_octal_is_error():
+    front = GOOD_FRONT.replace('verified_at: "1d75813bb"', "verified_at: 01234567")
     _, errors = parse_doc("docs/processes/calc-margins.md", make(front))
     assert any("verified_at" in e for e in errors)
 
@@ -472,6 +472,7 @@ def run(repo: Path, *args: str) -> str:
 
 
 def init_repo(path: Path) -> Path:
+    path.mkdir(parents=True, exist_ok=True)
     run(path, "init", "-q", "-b", "main")
     return path
 
