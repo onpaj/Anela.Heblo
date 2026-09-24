@@ -246,7 +246,7 @@ describe("ProductMarginsList", () => {
     );
   });
 
-  it("hides products without sales by default and shows them when unchecked", async () => {
+  it("passes onlyWithSales=true by default and false once the checkbox is unchecked", async () => {
     const user = userEvent.setup();
     mockUseProductMargins.mockReturnValue({
       data: mockData,
@@ -273,6 +273,47 @@ describe("ProductMarginsList", () => {
       true,
       false, // onlyWithSales
     );
+  });
+
+  it("re-checks the only-with-sales filter when filters are cleared", async () => {
+    const user = userEvent.setup();
+    mockUseProductMargins.mockReturnValue({
+      data: mockData,
+      isLoading: false,
+      error: null,
+      refetch: jest.fn(),
+    } as any);
+
+    render(<ProductMarginsList />, { wrapper: createWrapper() });
+
+    const checkbox = screen.getByTestId("margins-only-with-sales-filter");
+    await user.click(checkbox);
+    expect(checkbox).not.toBeChecked();
+
+    await user.click(screen.getByText("Vymazat"));
+
+    expect(checkbox).toBeChecked();
+    expect(mockUseProductMargins.mock.lastCall?.[7]).toBe(true);
+  });
+
+  it("resets to the first page when the only-with-sales filter is toggled", async () => {
+    const user = userEvent.setup();
+    mockUseProductMargins.mockReturnValue({
+      data: { ...mockData, totalCount: 45, totalPages: 3 },
+      isLoading: false,
+      error: null,
+      refetch: jest.fn(),
+    } as any);
+
+    render(<ProductMarginsList />, { wrapper: createWrapper() });
+
+    await user.click(screen.getByText("Další"));
+    expect(mockUseProductMargins.mock.lastCall?.[3]).toBe(2);
+
+    await user.click(screen.getByTestId("margins-only-with-sales-filter"));
+
+    expect(mockUseProductMargins.mock.lastCall?.[3]).toBe(1);
+    expect(mockUseProductMargins.mock.lastCall?.[7]).toBe(false);
   });
 
   it("allows sorting by different margin levels", async () => {

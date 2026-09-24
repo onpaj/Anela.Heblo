@@ -35,8 +35,8 @@ public class GetProductMarginsHandler : IRequestHandler<GetProductMarginsRequest
                 request.ProductCode, request.ProductName, request.ProductType);
 
             var products = await GetProducts(cancellationToken);
-            var filteredProducts = ApplyFilters(products, request);
-            var totalCount = filteredProducts.Count();
+            var filteredProducts = ApplyFilters(products, request).ToList();
+            var totalCount = filteredProducts.Count;
 
             // Apply sorting directly on CatalogAggregate entities
             var sortedProducts = ApplySorting(filteredProducts, request.SortBy, request.SortDescending);
