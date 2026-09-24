@@ -18,7 +18,7 @@ describe('ConfirmSemiProductQuantityModal', () => {
       response: JSON.stringify({
         success: false,
         errorCode: 'ManufactureInsufficientMaterialStock',
-        params: { detail: 'Glycerol (AKL007): Required 10.00, Available 2.00' },
+        params: { detail: 'Nedostatečné zásoby pro výrobu. Chybějící ingredience: Glycerol (AKL007): Required 10.00, Available 2.00' },
       }),
     };
     const onSubmit = jest.fn().mockRejectedValue(stockShortage);

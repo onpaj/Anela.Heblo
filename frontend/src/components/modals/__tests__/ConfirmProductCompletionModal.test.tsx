@@ -47,7 +47,7 @@ describe('ConfirmProductCompletionModal', () => {
       response: JSON.stringify({
         success: false,
         errorCode: 'ManufactureInsufficientMaterialStock',
-        params: { detail: 'Etiketa - Ochráním tváře, 15 ml (ETI098): Required 728.00, Available 700.00' },
+        params: { detail: 'Nedostatečné zásoby pro výrobu. Chybějící ingredience: Etiketa - Ochráním tváře, 15 ml (ETI098): Required 728.00, Available 700.00' },
       }),
     };
     const onSubmit = jest.fn().mockRejectedValue(stockShortage);
@@ -57,6 +57,30 @@ describe('ConfirmProductCompletionModal', () => {
 
     expect(await screen.findByText(/ETI098\): Required 728\.00, Available 700\.00/)).toBeInTheDocument();
     expect(screen.getByText(/nebyla dokončena/)).toBeInTheDocument();
+  });
+
+  test('shows the missing materials when the distribution override is refused for insufficient stock', async () => {
+    const stockShortage = {
+      response: JSON.stringify({
+        success: false,
+        errorCode: 'ManufactureInsufficientMaterialStock',
+        params: { detail: 'Nedostatečné zásoby pro výrobu. Chybějící ingredience: Glycerol (AKL007): Required 10.00, Available 2.00' },
+      }),
+    };
+    const onConfirmDistribution = jest.fn().mockRejectedValue(stockShortage);
+    const distributionPreview = { differencePercentage: 12, allowedResiduePercentage: 5, products: [] } as any;
+    render(
+      <ConfirmProductCompletionModal
+        {...baseProps}
+        products={[product]}
+        distributionPreview={distributionPreview}
+        onConfirmDistribution={onConfirmDistribution}
+      />
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Potvrdit distribuci' }));
+
+    expect(await screen.findByText(/AKL007\): Required 10\.00, Available 2\.00/)).toBeInTheDocument();
   });
 
   test('keeps the generic message for other failures', async () => {

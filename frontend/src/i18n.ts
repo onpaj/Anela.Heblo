@@ -127,7 +127,7 @@ const resources = {
         ManufacturedInventoryInsufficientStock: "Nedostatečné zásoby ve skladu výroby. Dostupné: {available}",
         ManufactureOrderNotCompleted: "Zakázka není dokončena",
         ManufactureInsufficientMaterialStock:
-          "Výroba nebyla dokončena a ve Flexi se nic neodepsalo – na skladě chybí materiál. {detail}",
+          "Výroba nebyla dokončena a ve Flexi se nic neodepsalo. {detail}",
 
         // Catalog module errors
         CatalogItemNotFound: "Položka katalogu nenalezena (ID: {id})",
