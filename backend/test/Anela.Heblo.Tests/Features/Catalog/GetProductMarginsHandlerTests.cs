@@ -1,5 +1,6 @@
 using Anela.Heblo.Application.Features.Catalog.UseCases.GetProductMargins;
 using Anela.Heblo.Domain.Features.Catalog;
+using Anela.Heblo.Domain.Features.Catalog.Sales;
 using FluentAssertions;
 using Microsoft.Extensions.Logging;
 using Moq;
@@ -209,6 +210,66 @@ public class GetProductMarginsHandlerTests
         response.Items[0].ProductCode.Should().Be("A001");
         response.Items[1].ProductCode.Should().Be("B001");
         response.Items[2].ProductCode.Should().Be("C001");
+    }
+
+    [Fact]
+    public async Task Handle_OnlyWithSales_ExcludesProductsWithoutSalesInLastYear()
+    {
+        // Arrange
+        var utcNow = new DateTime(2026, 6, 15, 12, 0, 0, DateTimeKind.Utc);
+        _timeProviderMock
+            .Setup(tp => tp.GetUtcNow())
+            .Returns(new DateTimeOffset(utcNow, TimeSpan.Zero));
+
+        var recentSale = BuildAggregate(productCode: "SOLD001");
+        recentSale.SalesHistory = new List<CatalogSaleRecord>
+        {
+            new() { Date = utcNow.AddMonths(-2), AmountB2C = 3 }
+        };
+
+        var oldSaleOnly = BuildAggregate(productCode: "OLD001");
+        oldSaleOnly.SalesHistory = new List<CatalogSaleRecord>
+        {
+            new() { Date = utcNow.AddDays(-400), AmountB2C = 5 }
+        };
+
+        var neverSold = BuildAggregate(productCode: "NONE001");
+
+        _catalogRepositoryMock
+            .Setup(r => r.GetAllAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new[] { recentSale, oldSaleOnly, neverSold });
+
+        var request = new GetProductMarginsRequest { OnlyWithSales = true };
+
+        // Act
+        var response = await _handler.Handle(request, CancellationToken.None);
+
+        // Assert
+        response.Success.Should().BeTrue();
+        response.TotalCount.Should().Be(1);
+        response.Items.Select(i => i.ProductCode).Should().BeEquivalentTo(new[] { "SOLD001" });
+    }
+
+    [Fact]
+    public async Task Handle_OnlyWithSalesFalse_IncludesProductsWithoutSales()
+    {
+        // Arrange
+        _timeProviderMock
+            .Setup(tp => tp.GetUtcNow())
+            .Returns(new DateTimeOffset(2026, 6, 15, 12, 0, 0, TimeSpan.Zero));
+
+        _catalogRepositoryMock
+            .Setup(r => r.GetAllAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new[] { BuildAggregate(productCode: "NONE001") });
+
+        var request = new GetProductMarginsRequest { OnlyWithSales = false };
+
+        // Act
+        var response = await _handler.Handle(request, CancellationToken.None);
+
+        // Assert
+        response.Success.Should().BeTrue();
+        response.TotalCount.Should().Be(1);
     }
 
     private static CatalogAggregate BuildAggregate(
