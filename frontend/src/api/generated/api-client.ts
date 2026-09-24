@@ -19164,6 +19164,7 @@ export class PriceDto implements IPriceDto {
     currentPurchasePrice?: number | undefined;
     sellingPriceWithVat?: number | undefined;
     purchasePriceWithVat?: number | undefined;
+    stockPrice?: number | undefined;
     eshopPrice?: EshopPriceDto | undefined;
     erpPrice?: ErpPriceDto | undefined;
 
@@ -19182,6 +19183,7 @@ export class PriceDto implements IPriceDto {
             this.currentPurchasePrice = _data["currentPurchasePrice"];
             this.sellingPriceWithVat = _data["sellingPriceWithVat"];
             this.purchasePriceWithVat = _data["purchasePriceWithVat"];
+            this.stockPrice = _data["stockPrice"];
             this.eshopPrice = _data["eshopPrice"] ? EshopPriceDto.fromJS(_data["eshopPrice"]) : <any>undefined;
             this.erpPrice = _data["erpPrice"] ? ErpPriceDto.fromJS(_data["erpPrice"]) : <any>undefined;
         }
@@ -19200,6 +19202,7 @@ export class PriceDto implements IPriceDto {
         data["currentPurchasePrice"] = this.currentPurchasePrice;
         data["sellingPriceWithVat"] = this.sellingPriceWithVat;
         data["purchasePriceWithVat"] = this.purchasePriceWithVat;
+        data["stockPrice"] = this.stockPrice;
         data["eshopPrice"] = this.eshopPrice ? this.eshopPrice.toJSON() : <any>undefined;
         data["erpPrice"] = this.erpPrice ? this.erpPrice.toJSON() : <any>undefined;
         return data;
@@ -19211,6 +19214,7 @@ export interface IPriceDto {
     currentPurchasePrice?: number | undefined;
     sellingPriceWithVat?: number | undefined;
     purchasePriceWithVat?: number | undefined;
+    stockPrice?: number | undefined;
     eshopPrice?: EshopPriceDto | undefined;
     erpPrice?: ErpPriceDto | undefined;
 }
