@@ -13,6 +13,14 @@ public record StockData
     public decimal Ordered { get; set; }
     public decimal Planned { get; set; }
 
+    /// <summary>
+    /// Warehouse valuation per unit (Flexi <c>prumCena</c>, exact <c>tuz / stavMJ</c>) of the pieces
+    /// currently in the item's own warehouse - what the stock actually cost, a weighted average over
+    /// past batches. Differs from the ceník purchase price, which prices the next purchase or
+    /// manufacture at today's prices. Null when nothing is in stock.
+    /// </summary>
+    public decimal? StockPrice { get; set; }
+
     public StockSource PrimaryStockSource { get; set; } = StockSource.Erp;
 
     /// <summary>
