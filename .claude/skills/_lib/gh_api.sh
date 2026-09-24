@@ -144,6 +144,19 @@ emit() {
   echo "$payload"
 }
 
+_jq_file() {
+  # _jq_file JSON — writes JSON to a temp file and prints its path, so
+  # callers can feed it to jq via --slurpfile instead of --argjson. Some
+  # sandboxed execution environments enforce an effective argv size limit
+  # far below the OS-reported ARG_MAX (observed: ~130KB vs. a reported
+  # 2MB), and a raw GitHub API response (many comments, PRs, or CI checks)
+  # routinely exceeds that, failing with "Argument list too long".
+  local f
+  f=$(mktemp)
+  printf '%s' "$1" > "$f"
+  echo "$f"
+}
+
 req_paginate() {
   # req_paginate METHOD PATH — follows Link: rel="next", concatenates JSON
   # array pages into one array. Used where `gh api --paginate` is used today
@@ -160,7 +173,11 @@ req_paginate() {
       -H "Accept: application/vnd.github+json" \
       -H "X-GitHub-Api-Version: 2022-11-28" \
       -D "$hdrfile" "$url")
-    all=$(jq -c -n --argjson a "$all" --argjson b "$body" '$a + $b')
+    local f_all f_body
+    f_all=$(_jq_file "$all")
+    f_body=$(_jq_file "$body")
+    all=$(jq -c -n --slurpfile a "$f_all" --slurpfile b "$f_body" '$a[0] + $b[0]')
+    rm -f "$f_all" "$f_body"
     url=$(grep -i '^link:' "$hdrfile" | grep -o '<[^>]*>; rel="next"' | sed -E 's/^<(.*)>.*/\1/' || true)
   done
   rm -f "$hdrfile"
@@ -349,16 +366,19 @@ pr_view() {
     # therefore never got flagged `still-failing` either. `conclusion` is
     # null while a check is still running, so it can't be upcased blindly.
     sha=$(echo "$pr" | jq -r '.head.sha')
-    local runs_resp status_resp rollup
+    local runs_resp status_resp rollup f_runs f_status
     runs_resp=$(req GET "/repos/${REPO}/commits/${sha}/check-runs")
     status_resp=$(req GET "/repos/${REPO}/commits/${sha}/status")
+    f_runs=$(_jq_file "$(emit "$runs_resp")")
+    f_status=$(_jq_file "$(emit "$status_resp")")
     rollup=$(jq -cn \
-      --argjson runs "$(emit "$runs_resp")" \
-      --argjson status "$(emit "$status_resp")" \
-      '[($runs.check_runs // [])[] | {__typename:"CheckRun",
+      --slurpfile runs "$f_runs" \
+      --slurpfile status "$f_status" \
+      '[(($runs[0]).check_runs // [])[] | {__typename:"CheckRun",
           status: (.status | ascii_upcase),
           conclusion: (if .conclusion then (.conclusion | ascii_upcase) else null end)}]
-       + [($status.statuses // [])[] | {__typename:"StatusContext", state: (.state | ascii_upcase)}]')
+       + [(($status[0]).statuses // [])[] | {__typename:"StatusContext", state: (.state | ascii_upcase)}]')
+    rm -f "$f_runs" "$f_status"
     out=$(echo "$out" | jq -c --argjson r "$rollup" '. + {statusCheckRollup: $r}')
   fi
 
@@ -551,9 +571,12 @@ pr_list() {
   numbers=$(emit "$resp" | jq -r '[.[] | select(has("pull_request"))] | .[].number')
   out="[]"
   for n in $numbers; do
-    local entry
+    local entry f_out f_entry
     entry=$(pr_view "$n" "reviewDecision")
-    out=$(jq -c -n --argjson a "$out" --argjson e "$entry" '$a + [$e]')
+    f_out=$(_jq_file "$out")
+    f_entry=$(_jq_file "$entry")
+    out=$(jq -c -n --slurpfile a "$f_out" --slurpfile e "$f_entry" '$a[0] + [$e[0]]')
+    rm -f "$f_out" "$f_entry"
   done
   echo "$out"
 }
