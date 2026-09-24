@@ -3,6 +3,7 @@ using Anela.Heblo.Application.Features.Manufacture.UseCases.SubmitManufacture;
 using Anela.Heblo.Application.Features.Manufacture.UseCases.UpdateBoMIngredientAmount;
 using Anela.Heblo.Application.Features.Manufacture.UseCases.UpdateManufactureOrder;
 using Anela.Heblo.Application.Features.Manufacture.UseCases.UpdateManufactureOrderStatus;
+using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Domain.Features.Manufacture;
 using Anela.Heblo.Domain.Features.Users;
 using MediatR;
@@ -87,6 +88,15 @@ public class ConfirmProductCompletionWorkflow : IConfirmProductCompletionWorkflo
 
             // Step 4: Submit to ERP with distribution data
             var submitResult = await SubmitToErpAsync(orderId, updateResult.Order!, distribution, cancellationToken);
+
+            // Nothing was written to the ERP — the order must stay where it is until stock is replenished.
+            if (submitResult.ErrorCode == ErrorCodes.ManufactureInsufficientMaterialStock)
+            {
+                return new ConfirmProductCompletionResult(
+                    submitResult.UserMessage ?? submitResult.FullError(),
+                    ErrorCodes.ManufactureInsufficientMaterialStock,
+                    submitResult.Params);
+            }
 
             // Step 5: Update BoM ingredient amounts per product if ERP submission succeeded
             var bomFailures = new List<string>();

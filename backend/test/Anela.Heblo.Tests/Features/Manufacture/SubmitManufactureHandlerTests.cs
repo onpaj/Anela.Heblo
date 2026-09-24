@@ -3,6 +3,7 @@ using Anela.Heblo.Application.Features.Manufacture.ErrorFilters;
 using Anela.Heblo.Application.Features.Manufacture.Infrastructure;
 using Anela.Heblo.Application.Features.Manufacture.Services;
 using Anela.Heblo.Application.Features.Manufacture.UseCases.SubmitManufacture;
+using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Domain.Features.Manufacture;
 using FluentAssertions;
 using Microsoft.Extensions.Logging;
@@ -183,11 +184,10 @@ public class SubmitManufactureHandlerTests
     }
 
     [Fact]
-    public async Task Handle_DoesNotActivateIngredientStockValidation()
+    public async Task Handle_ActivatesIngredientStockValidation()
     {
-        // Arrange — ingredient stock validation must NOT be activated at the
-        // client boundary by the default submit path. Activation should be an
-        // explicit, documented opt-in in a separate PR.
+        // Arrange — Flexi accepts an issue document even when a line exceeds stock and
+        // silently issues 0 of it, so the stock check must run before anything is submitted.
         SubmitManufactureClientRequest? capturedClientRequest = null;
         _clientMock
             .Setup(c => c.SubmitManufactureAsync(It.IsAny<SubmitManufactureClientRequest>(), It.IsAny<CancellationToken>()))
@@ -200,7 +200,53 @@ public class SubmitManufactureHandlerTests
 
         // Assert
         capturedClientRequest.Should().NotBeNull();
-        capturedClientRequest!.ValidateIngredientStock.Should().BeFalse();
+        capturedClientRequest!.ValidateIngredientStock.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task Handle_WhenClientReportsStockShortage_ReturnsInsufficientMaterialStockWithDetail()
+    {
+        // Arrange
+        var ex = new StockShortageException(isStockShortage: true);
+        _clientMock
+            .Setup(c => c.SubmitManufactureAsync(It.IsAny<SubmitManufactureClientRequest>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(ex);
+        _transformerMock
+            .Setup(t => t.Transform(ex))
+            .Returns("Chybějící ingredience: Etiketa (ETI098)");
+
+        // Act
+        var result = await _handler.Handle(BuildRequest(), CancellationToken.None);
+
+        // Assert
+        result.Success.Should().BeFalse();
+        result.ErrorCode.Should().Be(ErrorCodes.ManufactureInsufficientMaterialStock);
+        result.Params.Should().ContainKey("detail").WhoseValue.Should().Be("Chybějící ingredience: Etiketa (ETI098)");
+        result.UserMessage.Should().Be("Chybějící ingredience: Etiketa (ETI098)");
+    }
+
+    [Fact]
+    public async Task Handle_WhenClientFailsWithoutStockShortage_KeepsGenericExceptionCode()
+    {
+        // Arrange
+        var ex = new StockShortageException(isStockShortage: false);
+        _clientMock
+            .Setup(c => c.SubmitManufactureAsync(It.IsAny<SubmitManufactureClientRequest>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(ex);
+        _transformerMock.Setup(t => t.Transform(ex)).Returns("any message");
+
+        // Act
+        var result = await _handler.Handle(BuildRequest(), CancellationToken.None);
+
+        // Assert
+        result.ErrorCode.Should().Be(ErrorCodes.Exception);
+    }
+
+    private sealed class StockShortageException : Exception, IManufactureStockShortage
+    {
+        public StockShortageException(bool isStockShortage) : base("stock shortage") => IsStockShortage = isStockShortage;
+
+        public bool IsStockShortage { get; }
     }
 
     [Fact]

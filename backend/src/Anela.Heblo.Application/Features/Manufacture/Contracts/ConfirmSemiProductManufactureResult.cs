@@ -7,11 +7,17 @@ public class ConfirmSemiProductManufactureResult
     public bool Success { get; }
     public string Message { get; }
     public ErrorCodes? ErrorCode { get; }
+    public Dictionary<string, string>? Params { get; }
 
-    public ConfirmSemiProductManufactureResult(bool success, string message, ErrorCodes? errorCode = null)
+    public ConfirmSemiProductManufactureResult(
+        bool success,
+        string message,
+        ErrorCodes? errorCode = null,
+        Dictionary<string, string>? parameters = null)
     {
         Success = success;
         Message = message;
         ErrorCode = errorCode;
+        Params = parameters;
     }
 }

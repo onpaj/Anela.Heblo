@@ -105,6 +105,8 @@ public enum ErrorCodes
     ManufacturedInventoryInsufficientStock = 1216,
     [HttpStatusCode(HttpStatusCode.BadRequest)]
     ManufactureOrderNotCompleted = 1217,
+    [HttpStatusCode(HttpStatusCode.UnprocessableEntity)]
+    ManufactureInsufficientMaterialStock = 1218,
 
     // Catalog module errors (13XX)
     [HttpStatusCode(HttpStatusCode.NotFound)]
