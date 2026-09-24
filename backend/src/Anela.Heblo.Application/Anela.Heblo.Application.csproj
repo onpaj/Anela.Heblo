@@ -34,6 +34,7 @@
     <PackageReference Include="NCrontab.Advanced" Version="1.3.28" />
     <PackageReference Include="OpenFeature" Version="2.13.0" />
     <PackageReference Include="FuzzySharp" Version="2.0.2" />
+    <PackageReference Include="YamlDotNet" Version="16.3.0" />
     <PackageReference Include="SkiaSharp" Version="2.88.6" />
 
   </ItemGroup>
@@ -58,6 +59,13 @@
   <ItemGroup>
     <EmbeddedResource Include="Features\LabelIdentification\Data\label-references.json" />
     <EmbeddedResource Include="Features\MindMaps\Prompts\mindmap-update-skill.md" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Agent-facing process docs, served by ProcessDocsMcpTools. See docs/processes/. -->
+    <EmbeddedResource Include="../../../docs/processes/*.md"
+                      Exclude="../../../docs/processes/_*.md;../../../docs/processes/INDEX.md"
+                      LogicalName="ProcessDocs/%(Filename)%(Extension)" />
   </ItemGroup>
 
 </Project>
