@@ -34,9 +34,9 @@
     },
     {
       "name": "add-marketingperformance-invoices-boundary-tests",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-09-24T11:19:22.616227Z"
+      "updated_at": "2026-09-24T12:14:27.665599Z"
     }
   ]
 }
