@@ -211,6 +211,80 @@ public class GetProductMarginsHandlerTests
         response.Items[2].ProductCode.Should().Be("C001");
     }
 
+    [Fact]
+    public async Task Handle_SortByM0AmountDescending_OrdersByCalculatedM0Amount()
+    {
+        // Arrange
+        _timeProviderMock
+            .Setup(tp => tp.GetUtcNow())
+            .Returns(new DateTimeOffset(2026, 6, 29, 12, 0, 0, TimeSpan.Zero));
+
+        var catalogItems = new[]
+        {
+            BuildAggregateWithM0Margin(productCode: "LOW001", m0Amount: 10m, m0Percentage: 5m),
+            BuildAggregateWithM0Margin(productCode: "HIGH001", m0Amount: 90m, m0Percentage: 45m),
+            BuildAggregateWithM0Margin(productCode: "MID001", m0Amount: 50m, m0Percentage: 25m),
+        };
+
+        _catalogRepositoryMock
+            .Setup(r => r.GetAllAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(catalogItems);
+
+        var request = new GetProductMarginsRequest
+        {
+            ProductType = ProductType.Product,
+            SortBy = "m0amount",
+            SortDescending = true,
+            PageNumber = 1,
+            PageSize = 100
+        };
+
+        // Act
+        var response = await _handler.Handle(request, CancellationToken.None);
+
+        // Assert
+        response.Success.Should().BeTrue();
+        response.Items.Select(i => i.ProductCode)
+            .Should().ContainInOrder("HIGH001", "MID001", "LOW001");
+    }
+
+    [Fact]
+    public async Task Handle_SortByM0PercentageAscending_OrdersByCalculatedM0Percentage()
+    {
+        // Arrange
+        _timeProviderMock
+            .Setup(tp => tp.GetUtcNow())
+            .Returns(new DateTimeOffset(2026, 6, 29, 12, 0, 0, TimeSpan.Zero));
+
+        var catalogItems = new[]
+        {
+            BuildAggregateWithM0Margin(productCode: "LOW001", m0Amount: 10m, m0Percentage: 5m),
+            BuildAggregateWithM0Margin(productCode: "HIGH001", m0Amount: 90m, m0Percentage: 45m),
+            BuildAggregateWithM0Margin(productCode: "MID001", m0Amount: 50m, m0Percentage: 25m),
+        };
+
+        _catalogRepositoryMock
+            .Setup(r => r.GetAllAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(catalogItems);
+
+        var request = new GetProductMarginsRequest
+        {
+            ProductType = ProductType.Product,
+            SortBy = "m0percentage",
+            SortDescending = false,
+            PageNumber = 1,
+            PageSize = 100
+        };
+
+        // Act
+        var response = await _handler.Handle(request, CancellationToken.None);
+
+        // Assert
+        response.Success.Should().BeTrue();
+        response.Items.Select(i => i.ProductCode)
+            .Should().ContainInOrder("LOW001", "MID001", "HIGH001");
+    }
+
     private static CatalogAggregate BuildAggregate(
         string productCode,
         IEnumerable<DateTime>? monthlyKeys = null,
@@ -227,6 +301,23 @@ public class GetProductMarginsHandlerTests
         {
             aggregate.Margins.MonthlyData[key] = new MarginData();
         }
+
+        return aggregate;
+    }
+
+    private static CatalogAggregate BuildAggregateWithM0Margin(string productCode, decimal m0Amount, decimal m0Percentage)
+    {
+        var aggregate = new CatalogAggregate
+        {
+            Id = productCode,
+            ProductName = "Test Product",
+            Type = ProductType.Product
+        };
+
+        aggregate.Margins.MonthlyData[new DateTime(2026, 1, 1)] = new MarginData
+        {
+            M0 = new MarginLevel(m0Percentage, m0Amount, 0m, 0m)
+        };
 
         return aggregate;
     }
