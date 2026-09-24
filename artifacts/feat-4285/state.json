@@ -46,9 +46,9 @@
     },
     {
       "name": "split-catalog-reference-refresh-service",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-09-24T12:18:16.930082Z"
+      "updated_at": "2026-09-24T12:37:14.332922Z"
     },
     {
       "name": "wire-catalog-repository-and-module",
