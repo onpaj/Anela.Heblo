@@ -58,9 +58,9 @@
     },
     {
       "name": "remove-old-refresh-service-and-verify",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-09-24T20:16:43.668963Z"
+      "updated_at": "2026-09-24T20:28:53.479545Z"
     }
   ]
 }
