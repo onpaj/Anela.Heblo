@@ -22,7 +22,7 @@
     },
     "developing": {
       "status": "in_progress",
-      "updated_at": "2026-09-24T11:19:52.435860Z"
+      "updated_at": "2026-09-24T12:18:16.756135Z"
     }
   },
   "tasks": [
@@ -46,9 +46,9 @@
     },
     {
       "name": "split-catalog-reference-refresh-service",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-09-24T12:18:16.930082Z"
     },
     {
       "name": "wire-catalog-repository-and-module",
