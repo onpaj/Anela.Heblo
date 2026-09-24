@@ -34,9 +34,9 @@
     },
     {
       "name": "replace-inline-construction-in-get-product-margins-handler",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-09-24T08:20:29.079097Z"
+      "updated_at": "2026-09-24T08:55:19.212402Z"
     },
     {
       "name": "replace-inline-construction-in-get-catalog-detail-handler",
