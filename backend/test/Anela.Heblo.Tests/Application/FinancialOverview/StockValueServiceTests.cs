@@ -83,16 +83,23 @@ public class StockValueServiceTests
         var startDate = new DateTime(2024, 1, 1);
         var endDate = new DateTime(2024, 1, 31);
 
-        // Stock data with all products
-        var stockData = new List<ErpStock>
-        {
-            new() { ProductCode = "MAT001", Stock = 10m, Price = 100m },
-            new() { ProductCode = "SEMI001", Stock = 5m }, // No warehouse valuation
-            new() { ProductCode = "PROD001", Stock = 3m }  // No warehouse valuation
-        };
-
         _stockClientMock.Setup(x => x.StockToDateAsync(It.IsAny<DateTime>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(stockData);
+            .ReturnsAsync(new List<ErpStock>());
+        // Materials warehouse (ID 5): the unpriced rows move a lot, the priced row moves by 2 units
+        _stockClientMock.Setup(x => x.StockToDateAsync(startDate, 5, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<ErpStock>
+            {
+                new() { ProductCode = "MAT001", Stock = 10m, Price = 100m },
+                new() { ProductCode = "MAT002", Stock = 5m }, // No warehouse valuation
+                new() { ProductCode = "MAT003", Stock = 3m }  // No warehouse valuation
+            });
+        _stockClientMock.Setup(x => x.StockToDateAsync(endDate, 5, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<ErpStock>
+            {
+                new() { ProductCode = "MAT001", Stock = 12m, Price = 100m },
+                new() { ProductCode = "MAT002", Stock = 500m }, // No warehouse valuation
+                new() { ProductCode = "MAT003", Stock = 300m }  // No warehouse valuation
+            });
 
         // Act
         var result = await _service.GetStockValueChangesAsync(startDate, endDate, CancellationToken.None);
@@ -100,9 +107,9 @@ public class StockValueServiceTests
         // Assert
         result.Should().HaveCount(1);
         var january = result.First();
-        // Should only calculate value for MAT001 (which has a warehouse price)
-        // Since start and end stock are the same, change should be 0
-        january.TotalStockValueChange.Should().Be(0m);
+        // Only MAT001 carries a warehouse price; unpriced rows contribute nothing however much they move
+        january.StockChanges.Materials.Should().Be(200m);
+        january.TotalStockValueChange.Should().Be(200m);
     }
 
     [Fact]
