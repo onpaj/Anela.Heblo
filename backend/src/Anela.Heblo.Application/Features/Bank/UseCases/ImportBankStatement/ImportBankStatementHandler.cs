@@ -47,18 +47,7 @@ public class ImportBankStatementHandler : IRequestHandler<ImportBankStatementReq
             "Bank import START - Account: {AccountName}, DateFrom: {DateFrom}, DateTo: {DateTo}",
             request.AccountName, request.DateFrom, request.DateTo);
 
-        var accountSetting = _bankSettings.Accounts.SingleOrDefault(a => a.Name == request.AccountName);
-        if (accountSetting == null)
-        {
-            var availableAccounts = string.Join(", ", _bankSettings.Accounts.Select(a => a.Name));
-
-            _logger.LogError(
-                "Bank import FAILED - Account not found: {AccountName}. Available accounts: {AvailableAccounts}",
-                request.AccountName, availableAccounts);
-
-            throw new ArgumentException(
-                $"Account name {request.AccountName} not found in {BankAccountSettings.ConfigurationKey} configuration. Available accounts: {availableAccounts}");
-        }
+        var accountSetting = _bankSettings.Accounts.Single(a => a.Name == request.AccountName);
 
         var state = await _stateRepository.GetByAccountAsync(accountSetting.Name, cancellationToken)
                     ?? new BankImportState(accountSetting.Name);

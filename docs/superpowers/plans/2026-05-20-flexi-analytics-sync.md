@@ -1,5 +1,30 @@
 # Flexi Analytics Sync Implementation Plan
 
+> ## ⚠️ SUPERSEDED (2026-09-22) — by ADR-007
+>
+> **The separate `anela_analytics` database this plan is built around was never created and is not
+> going to be.** Reporting data lands in `Heblo_V3` itself, one schema per source; see **ADR-007**
+> in [`docs/architecture/development_guidelines.md`](../../architecture/development_guidelines.md)
+> and [`docs/architecture/metabase.md`](../../architecture/metabase.md). The driver is that Metabase
+> has no cross-database joins in any edition, so a second database would make every ratio metric
+> unanswerable.
+>
+> The code this plan produced is real and is now live — the `flexi_raw` schema, `AnalyticsDbContext`
+> and the four sync services all shipped. What changed is *where* the schema lives, plus three fixes
+> found when the stack was first actually run on 2026-09-22:
+>
+> - `AnalyticsDbContext` now pins `MigrationsHistoryTable` to `flexi_raw`. Without it EF Core wrote
+>   its migration row into `public."__EFMigrationsHistory"`, the main context's table.
+> - The **"SDK Notes" section below is wrong** and was never checked against the shipped package, as
+>   the section itself asked. `LedgerItemFlexiDto` has no `PeriodRef`/`DocumentTypeRef`/
+>   `AccountingTemplateRef`; `ucetni-denik` returns `id` = -1 on every row with the real key in
+>   `idUcetniDenik`; and accounts, cost centre and currency arrive as nested arrays. The resulting
+>   mapping produced `flexi_id = -1` for every row and null for every dimension.
+> - `ucetni-denik` carries **no accounting template at all**, so `accounting_template` is
+>   structurally always NULL. Marketing reporting groups by account instead.
+>
+> Keep this file for the history; do not implement from it.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Add a nightly Hangfire job inside Heblo that pulls raw Flexi accounting data into a dedicated `anela_analytics` PostgreSQL database so Metabase can query it.

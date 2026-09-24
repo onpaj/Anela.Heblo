@@ -1,6 +1,7 @@
 using Anela.Heblo.Application.Features.Catalog.Infrastructure;
 using Anela.Heblo.Application.Features.Purchase.Contracts;
 using Anela.Heblo.Domain.Features.Catalog.Price;
+using Anela.Heblo.Domain.Features.ProductPricing;
 using FluentAssertions;
 using Moq;
 using Xunit;
@@ -10,9 +11,10 @@ namespace Anela.Heblo.Tests.Features.Catalog.Infrastructure;
 public class CatalogPurchasePriceRecalculationAdapterTests
 {
     private readonly Mock<IProductPriceErpClient> _erpClientMock = new();
+    private readonly Mock<IErpPurchasePriceWriter> _purchasePriceWriterMock = new();
 
     private CatalogPurchasePriceRecalculationAdapter CreateAdapter() =>
-        new(_erpClientMock.Object);
+        new(_erpClientMock.Object, _purchasePriceWriterMock.Object);
 
     [Fact]
     public async Task RecalculatePurchasePriceAsync_WithValidBomId_DelegatesToProductPriceErpClient()
@@ -72,5 +74,19 @@ public class CatalogPurchasePriceRecalculationAdapterTests
             .Should()
             .ThrowAsync<InvalidOperationException>()
             .WithMessage("ERP error");
+    }
+
+    [Fact]
+    public async Task SetPurchasePriceAsync_DelegatesToPurchasePriceWriter()
+    {
+        // Arrange
+        var ct = CancellationToken.None;
+        var adapter = CreateAdapter();
+
+        // Act
+        await adapter.SetPurchasePriceAsync(789, 0.311m, ct);
+
+        // Assert
+        _purchasePriceWriterMock.Verify(x => x.SetPurchasePriceAsync(789, 0.311m, ct), Times.Once);
     }
 }

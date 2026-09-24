@@ -183,15 +183,22 @@ public class FlexiProductPriceErpClient : UserQueryClient<ProductPriceFlexiDto>,
 
     public async Task RecalculatePurchasePrice(int bomId, CancellationToken cancellationToken)
     {
+        bool isSuccess;
         try
         {
             // Call the IBoMClient to recalculate purchase price for the specified BoM ID
-            await _bomClient.RecalculatePurchasePrice(bomId, cancellationToken);
+            isSuccess = await _bomClient.RecalculatePurchasePrice(bomId, cancellationToken);
         }
         catch (Exception ex)
         {
             // Log the error and re-throw
             throw new InvalidOperationException($"Failed to recalculate purchase price for BoM ID {bomId}: {ex.Message}", ex);
+        }
+
+        // The SDK swallows a non-2xx response and reports it only through the return value.
+        if (!isSuccess)
+        {
+            throw new InvalidOperationException($"Failed to recalculate purchase price for BoM ID {bomId}: Flexi rejected the roll-up");
         }
     }
 }

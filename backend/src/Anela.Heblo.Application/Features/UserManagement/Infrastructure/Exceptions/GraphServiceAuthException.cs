@@ -1,7 +1,7 @@
-namespace Anela.Heblo.Application.Features.UserManagement.Contracts;
+namespace Anela.Heblo.Application.Features.UserManagement.Infrastructure.Exceptions;
 
 /// <summary>
-/// Thrown by <see cref="IGraphService"/> implementations when token acquisition
+/// Thrown by <see cref="Anela.Heblo.Application.Features.UserManagement.Services.IGraphService"/> implementations when token acquisition
 /// or authentication for the underlying identity provider fails.
 /// Wraps infrastructure-specific auth exceptions (e.g. MsalException) so that
 /// Application-layer consumers remain decoupled from SDK packages.

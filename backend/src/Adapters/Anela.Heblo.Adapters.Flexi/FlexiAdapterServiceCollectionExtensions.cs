@@ -69,6 +69,7 @@ public static class FlexiAdapterServiceCollectionExtensions
         services.AddSingleton<IErpStockClient, FlexiStockClient>();
         services.AddScoped<IProductPriceErpClient, FlexiProductPriceErpClient>();
         services.AddScoped<IErpPriceWriter, FlexiProductPriceWriter>();
+        services.AddScoped<IErpPurchasePriceWriter, FlexiPurchasePriceWriter>();
         services.AddScoped<IProductVatRateProvider, FlexiProductVatRateProvider>();
         services.AddSingleton<IPurchaseHistoryClient, FlexiPurchaseHistoryQueryClient>();
 
@@ -119,7 +120,9 @@ public static class FlexiAdapterServiceCollectionExtensions
                 configuration.GetSection(FlexiAnalyticsSyncOptions.ConfigurationKey));
             services.AddScoped<ISyncWatermarkRepository, SyncWatermarkRepository>();
 
-            services.AddScoped<IEntitySyncService, LedgerSyncService>();
+            services.AddScoped<LedgerSyncService>();
+            services.AddScoped<IEntitySyncService>(sp => sp.GetRequiredService<LedgerSyncService>());
+            services.AddScoped<ILedgerBackfillService>(sp => sp.GetRequiredService<LedgerSyncService>());
             services.AddScoped<IEntitySyncService, DepartmentSyncService>();
             services.AddScoped<IEntitySyncService, AccountingTemplateSyncService>();
             services.AddScoped<IEntitySyncService, ContactSyncService>();

@@ -100,6 +100,27 @@ public class ShoptetShipmentClient : IShipmentClient
     private static bool IsActive(ShoptetShipmentDto shipment) =>
         shipment.Status is null || !DeadStatuses.Contains(shipment.Status);
 
+    /// <summary>
+    /// Best-effort parse of a non-2xx /api/shipments response body looking specifically for
+    /// Shoptet's "shipment-validation-failed" error code. Returns null for any body that isn't
+    /// valid JSON in the expected envelope shape, or that doesn't contain that specific error —
+    /// every other case keeps falling back to the generic HttpRequestException path.
+    /// </summary>
+    private static ShoptetErrorDto? TryParseValidationError(string body)
+    {
+        ShoptetCreateShipmentResponse? parsed;
+        try
+        {
+            parsed = JsonSerializer.Deserialize<ShoptetCreateShipmentResponse>(body, JsonOptions);
+        }
+        catch (JsonException)
+        {
+            return null;
+        }
+
+        return parsed?.Errors?.FirstOrDefault(e => e.ErrorCode == "shipment-validation-failed");
+    }
+
     public async Task<IReadOnlyList<ShippingOption>> GetShippingOptionsAsync(
         string orderCode,
         CancellationToken ct = default)
@@ -174,6 +195,17 @@ public class ShoptetShipmentClient : IShipmentClient
         if (!response.IsSuccessStatusCode)
         {
             var body = await response.Content.ReadAsStringAsync(ct);
+
+            var validationError = TryParseValidationError(body);
+            if (validationError is not null)
+            {
+                throw new ShoptetShipmentValidationException(
+                    command.OrderCode,
+                    validationError.ErrorCode!,
+                    validationError.Message ?? body,
+                    validationError.Instance);
+            }
+
             throw new HttpRequestException(
                 $"POST /api/shipments for order {command.OrderCode} returned {(int)response.StatusCode}: {body}");
         }

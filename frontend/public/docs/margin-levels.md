@@ -67,8 +67,9 @@ Měsíc bez výroby nezůstane prázdný:
 - není-li ani jedno, měsíc nemá M0.
 
 **Nakupované položky** (zboží, materiál) a vyráběné položky bez jediné výrobní
-příjemky používají **nákupní cenu s DPH** (`PurchasePriceWithVat`), stejnou pro
-všechny měsíce.
+příjemky používají **nákupní cenu bez DPH** (`ErpPrice.PurchasePrice`), stejnou
+pro všechny měsíce — stejně jako prodejní cena, se kterou se srovnává (DPH na
+vstupu si firma odečítá, není to náklad).
 
 ---
 

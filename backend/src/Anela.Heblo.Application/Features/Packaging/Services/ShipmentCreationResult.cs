@@ -10,6 +10,13 @@ public class ShipmentCreationResult
     /// <summary>Set when IsSuccess == false.</summary>
     public ErrorCodes? ErrorCode { get; init; }
 
+    /// <summary>
+    /// Set when IsSuccess == false and the failure carries additional detail for the caller
+    /// (currently only ShipmentValidationFailed, carrying the Shoptet message under "ShoptetMessage").
+    /// Null for every other failure — existing callers that don't read it are unaffected.
+    /// </summary>
+    public Dictionary<string, string>? Params { get; init; }
+
     public Guid ShipmentGuid { get; init; }
 
     public string CarrierCode { get; init; } = null!;
