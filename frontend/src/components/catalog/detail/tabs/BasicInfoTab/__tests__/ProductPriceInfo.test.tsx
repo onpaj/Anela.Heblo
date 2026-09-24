@@ -1,5 +1,5 @@
 import React from "react";
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import { CatalogItemDto } from "../../../../../../api/hooks/useCatalog";
 import ProductPriceInfo from "../ProductPriceInfo";
 
@@ -60,6 +60,20 @@ describe("ProductPriceInfo", () => {
     expect(purchasePriceRow()).toHaveTextContent("0,52 Kč");
   });
 
+  it("rounds prices of 1 Kč and more to two decimals", () => {
+    render(
+      <ProductPriceInfo
+        item={buildItem({
+          stockPrice: 62.3456,
+          erpPrice: { purchasePrice: 12.345 },
+        })}
+      />,
+    );
+
+    expect(purchasePriceRow()).toHaveTextContent("12,35 Kč");
+    expect(stockPriceRow()).toHaveTextContent("62,35 Kč");
+  });
+
   it("shows a dash when the item is not in stock", () => {
     render(
       <ProductPriceInfo
@@ -67,8 +81,10 @@ describe("ProductPriceInfo", () => {
       />,
     );
 
-    expect(stockPriceRow()).toHaveTextContent("-");
-    expect(stockPriceRow()).not.toHaveTextContent("Kč");
+    const [, shoptetCell, abraCell] =
+      within(stockPriceRow()).getAllByRole("cell");
+    expect(abraCell).toHaveTextContent(/^-$/);
+    expect(shoptetCell).toHaveTextContent(/^-$/);
   });
 
   it("renders the price table when only the stock price is known", () => {

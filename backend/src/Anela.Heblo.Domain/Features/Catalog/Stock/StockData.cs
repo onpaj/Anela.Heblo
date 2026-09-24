@@ -17,7 +17,9 @@ public record StockData
     /// Warehouse valuation per unit (Flexi <c>prumCena</c>, exact <c>tuz / stavMJ</c>) of the pieces
     /// currently in the item's own warehouse - what the stock actually cost, a weighted average over
     /// past batches. Differs from the ceník purchase price, which prices the next purchase or
-    /// manufacture at today's prices. Null when nothing is in stock.
+    /// manufacture at today's prices. Null when the ERP (Flexi) warehouse holds nothing - gated on
+    /// <see cref="Erp"/>, not <see cref="PrimaryStockSource"/>, so an e-shop-primary item can show
+    /// available stock with no stock price.
     /// </summary>
     public decimal? StockPrice { get; set; }
 
