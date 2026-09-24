@@ -160,7 +160,12 @@ req_paginate() {
       -H "Accept: application/vnd.github+json" \
       -H "X-GitHub-Api-Version: 2022-11-28" \
       -D "$hdrfile" "$url")
-    all=$(jq -c -n --argjson a "$all" --argjson b "$body" '$a + $b')
+    local _fa _fb
+    _fa=$(mktemp); _fb=$(mktemp)
+    printf '%s' "$all" > "$_fa"
+    printf '%s' "$body" > "$_fb"
+    all=$(jq -c -s '.[0] + .[1]' "$_fa" "$_fb")
+    rm -f "$_fa" "$_fb"
     url=$(grep -i '^link:' "$hdrfile" | grep -o '<[^>]*>; rel="next"' | sed -E 's/^<(.*)>.*/\1/' || true)
   done
   rm -f "$hdrfile"
