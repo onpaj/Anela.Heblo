@@ -601,6 +601,16 @@
       "value": "anela.mind_maps.write"
     },
     {
+      "id": "0208eb46-e805-5632-9155-81d3724c87eb",
+      "allowedMemberTypes": [
+        "User"
+      ],
+      "description": "Anela_ProcessDocs Read",
+      "displayName": "anela.process_docs.read",
+      "isEnabled": true,
+      "value": "anela.process_docs.read"
+    },
+    {
       "id": "d4c4dfd1-2581-5de3-8c46-63c526985133",
       "allowedMemberTypes": [
         "User"
@@ -770,7 +780,8 @@
         "admin.feature_flags.read",
         "admin.feature_flags.write",
         "jobs.trigger.read",
-        "jobs.disable.read"
+        "jobs.disable.read",
+        "anela.process_docs.read"
       ]
     },
     {
@@ -809,7 +820,8 @@
         "anela.mind_maps.read",
         "admin.data_quality.read",
         "admin.administration.read",
-        "admin.feature_flags.read"
+        "admin.feature_flags.read",
+        "anela.process_docs.read"
       ]
     },
     {
@@ -821,7 +833,8 @@
         "customer.bank_statements.read",
         "products.journal.read",
         "products.journal.write",
-        "customer.smartsupp.read"
+        "customer.smartsupp.read",
+        "anela.process_docs.read"
       ]
     },
     {
@@ -835,7 +848,8 @@
         "marketing.leaflet.write",
         "marketing.article.read",
         "marketing.article.write",
-        "marketing.performance.read"
+        "marketing.performance.read",
+        "anela.process_docs.read"
       ]
     },
     {
@@ -845,7 +859,8 @@
         "purchase.purchase_orders.write",
         "purchase.invoice_classification.read",
         "purchase.invoice_classification.write",
-        "purchase.purchase_stock.read"
+        "purchase.purchase_stock.read",
+        "anela.process_docs.read"
       ]
     },
     {
@@ -864,7 +879,8 @@
         "manufacture.label_calibration.read",
         "manufacture.label_calibration.write",
         "manufacture.product_inventory.read",
-        "manufacture.product_inventory.write"
+        "manufacture.product_inventory.write",
+        "anela.process_docs.read"
       ]
     },
     {
@@ -874,7 +890,8 @@
         "manufacture.material_inventory.read",
         "manufacture.material_inventory.write",
         "manufacture.product_inventory.read",
-        "manufacture.material_containers.read"
+        "manufacture.material_containers.read",
+        "anela.process_docs.read"
       ]
     },
     {
@@ -891,7 +908,8 @@
         "warehouse.gift_packages.read",
         "warehouse.gift_packages.write",
         "jobs.trigger.read",
-        "jobs.disable.read"
+        "jobs.disable.read",
+        "anela.process_docs.read"
       ]
     },
     {
@@ -906,28 +924,32 @@
         "warehouse.stock_up.write",
         "warehouse.gift_packages.read",
         "warehouse.gift_packages.write",
-        "jobs.trigger.read"
+        "jobs.trigger.read",
+        "anela.process_docs.read"
       ]
     },
     {
       "name": "Poradenstvi",
       "roles": [
         "customer.knowledge_base.read",
-        "customer.knowledge_base.write"
+        "customer.knowledge_base.write",
+        "anela.process_docs.read"
       ]
     },
     {
       "name": "AccessManager",
       "roles": [
         "admin.administration.read",
-        "admin.administration.write"
+        "admin.administration.write",
+        "anela.process_docs.read"
       ]
     },
     {
       "name": "Zamestnanec",
       "roles": [
         "anela.org_chart.read",
-        "products.catalog.read"
+        "products.catalog.read",
+        "anela.process_docs.read"
       ]
     },
     {
@@ -935,7 +957,8 @@
       "roles": [
         "warehouse.stock_override.read",
         "products.catalog.read",
-        "products.catalog.write"
+        "products.catalog.write",
+        "anela.process_docs.read"
       ]
     }
   ]

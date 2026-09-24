@@ -32,6 +32,10 @@ The application exposes MCP tools for AI assistants to query catalog data, manuf
 - `SearchKnowledgeBase` — semantic search over ingested documents, returns ranked chunks with source references
 - `AskKnowledgeBase` — AI-generated answer grounded in company documents, returns prose answer with cited sources
 
+**Process Docs (2)** — require the `Anela_ProcessDocs` permission.
+- `ListProcesses` — index of documented syncs, calculations and feeds (name, kind, summary, related)
+- `GetProcessDoc` — full agent-facing doc for one process (data flow, formulas, config, quirks, code entry points); source is `docs/processes/`
+
 **Leaflet (1)** — requires the `Marketing_Leaflet` permission.
 - `GenerateLeaflet` — generates a marketing leaflet in Czech Markdown using the knowledge base and historical leaflets as style references
 
