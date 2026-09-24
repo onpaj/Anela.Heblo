@@ -35,7 +35,7 @@ public class ProcessDocsMcpTools
         "where a number or dataset comes from, how something is calculated, or when/how data gets updated. " +
         "Returns name, kind, one-line summary and related processes; then call GetProcessDoc for the relevant one.")]
     public async Task<string> ListProcesses(
-        [Description("Optional filter: 'sync', 'calculation' or 'feed'. Omit to list all.")] string? kind = null,
+        [Description("Optional filter: 'sync', 'calculation' (or 'calc') or 'feed'. Omit to list all.")] string? kind = null,
         CancellationToken cancellationToken = default)
     {
         _currentUserService.EnsureFeatureAccess(Feature.Anela_ProcessDocs, FeatureLabel);
@@ -49,7 +49,7 @@ public class ProcessDocsMcpTools
         "Get the full documentation of one Heblo process: purpose, trigger/schedule, data flow, exact formulas, " +
         "configuration, runtime facts, known quirks and code entry points. Follow 'related' processes for upstream " +
         "questions (e.g. where a cost used in a margin comes from). When answering, cite the process name and its " +
-        "verifiedAt commit, and treat 'Runtime facts' as true only as of the date written next to each fact.")]
+        "VerifiedAt commit, and treat 'Runtime facts' as true only as of the date written next to each fact.")]
     public async Task<string> GetProcessDoc(
         [Description("Process name exactly as returned by ListProcesses, e.g. 'calc-margins'.")] string name,
         CancellationToken cancellationToken = default)
