@@ -206,67 +206,19 @@ public class GetProductMarginsHandler : IRequestHandler<GetProductMarginsRequest
                 ManufactureDifficulty = product?.ManufactureDifficulty ?? 0,
 
                 // Use pre-calculated averages from margin history
-                M0 = new MarginLevelDto
-                {
-                    Percentage = marginHistory.Averages.M0.Percentage,
-                    Amount = marginHistory.Averages.M0.Amount,
-                    CostLevel = marginHistory.Averages.M0.CostLevel,
-                    CostTotal = marginHistory.Averages.M0.CostTotal
-                },
-                M1 = new MarginLevelDto
-                {
-                    Percentage = marginHistory.Averages.M1.Percentage,
-                    Amount = marginHistory.Averages.M1.Amount,
-                    CostLevel = marginHistory.Averages.M1.CostLevel,
-                    CostTotal = marginHistory.Averages.M1.CostTotal
-                },
-                M2 = new MarginLevelDto
-                {
-                    Percentage = marginHistory.Averages.M2.Percentage,
-                    Amount = marginHistory.Averages.M2.Amount,
-                    CostLevel = marginHistory.Averages.M2.CostLevel,
-                    CostTotal = marginHistory.Averages.M2.CostTotal
-                },
-                M3 = new MarginLevelDto
-                {
-                    Percentage = marginHistory.Averages.M3.Percentage,
-                    Amount = marginHistory.Averages.M3.Amount,
-                    CostLevel = marginHistory.Averages.M3.CostLevel,
-                    CostTotal = marginHistory.Averages.M3.CostTotal
-                },
+                M0 = MarginLevelDto.FromDomain(marginHistory.Averages.M0),
+                M1 = MarginLevelDto.FromDomain(marginHistory.Averages.M1),
+                M2 = MarginLevelDto.FromDomain(marginHistory.Averages.M2),
+                M3 = MarginLevelDto.FromDomain(marginHistory.Averages.M3),
 
                 // Monthly history for charts (filtered to last 13 months)
                 MonthlyHistory = filteredMonthlyData.Select(m => new MonthlyMarginDto
                 {
                     Month = m.Key,
-                    M0 = new MarginLevelDto
-                    {
-                        Percentage = m.Value.M0.Percentage,
-                        Amount = m.Value.M0.Amount,
-                        CostLevel = m.Value.M0.CostLevel,
-                        CostTotal = m.Value.M0.CostTotal
-                    },
-                    M1 = new MarginLevelDto
-                    {
-                        Percentage = m.Value.M1.Percentage,
-                        Amount = m.Value.M1.Amount,
-                        CostLevel = m.Value.M1.CostLevel,
-                        CostTotal = m.Value.M1.CostTotal
-                    },
-                    M2 = new MarginLevelDto
-                    {
-                        Percentage = m.Value.M2.Percentage,
-                        Amount = m.Value.M2.Amount,
-                        CostLevel = m.Value.M2.CostLevel,
-                        CostTotal = m.Value.M2.CostTotal
-                    },
-                    M3 = new MarginLevelDto
-                    {
-                        Percentage = m.Value.M3.Percentage,
-                        Amount = m.Value.M3.Amount,
-                        CostLevel = m.Value.M3.CostLevel,
-                        CostTotal = m.Value.M3.CostTotal
-                    }
+                    M0 = MarginLevelDto.FromDomain(m.Value.M0),
+                    M1 = MarginLevelDto.FromDomain(m.Value.M1),
+                    M2 = MarginLevelDto.FromDomain(m.Value.M2),
+                    M3 = MarginLevelDto.FromDomain(m.Value.M3)
                 }).ToList()
             };
 

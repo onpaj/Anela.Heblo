@@ -22,7 +22,7 @@
     },
     "developing": {
       "status": "in_progress",
-      "updated_at": "2026-09-24T07:19:27.277972Z"
+      "updated_at": "2026-09-24T08:20:28.894698Z"
     }
   },
   "tasks": [
@@ -34,9 +34,9 @@
     },
     {
       "name": "replace-inline-construction-in-get-product-margins-handler",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-09-24T08:20:29.079097Z"
     },
     {
       "name": "replace-inline-construction-in-get-catalog-detail-handler",
