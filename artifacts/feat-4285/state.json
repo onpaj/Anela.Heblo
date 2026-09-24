@@ -28,9 +28,9 @@
   "tasks": [
     {
       "name": "split-catalog-history-refresh-service",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-09-24T06:16:40.387074Z"
+      "updated_at": "2026-09-24T06:58:55.992398Z"
     },
     {
       "name": "split-catalog-stock-refresh-service",
