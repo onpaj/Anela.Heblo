@@ -21,16 +21,16 @@
       "updated_at": "2026-09-24T09:25:49.516583Z"
     },
     "developing": {
-      "status": "pending",
-      "updated_at": null
+      "status": "in_progress",
+      "updated_at": "2026-09-24T10:18:40.386283Z"
     }
   },
   "tasks": [
     {
       "name": "relocate-adapter-and-di-registration",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-09-24T10:18:40.555328Z"
     },
     {
       "name": "add-marketingperformance-invoices-boundary-tests",

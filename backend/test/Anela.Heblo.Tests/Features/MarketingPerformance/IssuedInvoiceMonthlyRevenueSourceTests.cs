@@ -1,7 +1,7 @@
 using Anela.Heblo.Domain.Features.Invoices;
 using Anela.Heblo.Domain.Features.MarketingPerformance;
 using Anela.Heblo.Persistence;
-using Anela.Heblo.Persistence.Marketing;
+using Anela.Heblo.Persistence.Invoices;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 using Xunit;
