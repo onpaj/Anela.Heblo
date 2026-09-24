@@ -130,3 +130,28 @@ describe('getCategoryLabel', () => {
     expect(getCategoryLabel(unknown)).toBe('Nezařazeno');
   });
 });
+
+describe('unknown categories and diacritics', () => {
+  it('ignores diacritics when matching', () => {
+    // Arrange
+    const job = makeJob({ displayName: 'Účtování faktur' });
+
+    // Act & Assert
+    expect(matchesJobSearch(job, 'uctovani')).toBe(true);
+    expect(matchesJobSearch(makeJob({ displayName: 'Uctovani' }), 'účtování')).toBe(true);
+  });
+
+  it('puts a job with a category unknown to the client into Uncategorized instead of dropping it', () => {
+    // Arrange
+    const job = makeJob({
+      jobName: 'future-job',
+      category: 'BrandNewCategory' as RecurringJobCategory,
+    });
+
+    // Act
+    const groups = groupJobsByCategory([job], '');
+
+    // Assert
+    expect(groups).toEqual([{ category: RecurringJobCategory.Uncategorized, jobs: [job] }]);
+  });
+});

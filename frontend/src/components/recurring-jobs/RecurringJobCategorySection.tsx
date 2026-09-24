@@ -26,7 +26,7 @@ const RecurringJobCategorySection: React.FC<RecurringJobCategorySectionProps> = 
   return (
     <tbody className="divide-y divide-gray-200 dark:divide-graphite-border">
       <tr className="bg-gray-100 dark:bg-graphite-surface-2">
-        <th colSpan={TABLE_COLUMN_COUNT} scope="colgroup" className="px-6 py-2 text-left">
+        <th colSpan={TABLE_COLUMN_COUNT} scope="rowgroup" className="px-6 py-2 text-left">
           <button
             type="button"
             onClick={() => onToggleExpanded(category)}

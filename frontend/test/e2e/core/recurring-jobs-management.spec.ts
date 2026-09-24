@@ -1,10 +1,17 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, Page } from '@playwright/test';
 import { navigateToApp } from '../helpers/e2e-auth-helper';
 
 // NOTE: The recurring jobs count grows as new IRecurringJob implementations are added.
 // As of 2026-06-25, staging has 24 jobs (12 original + 12 added since initial test authoring).
 // Assertions use toBeGreaterThanOrEqual(24) so tests survive future additions without modification.
 // To update the minimum, check: SELECT COUNT(*) FROM recurring_job_configurations on staging.
+// Tests that toggle or trigger a job target this one on purpose: it is a read-only
+// data quality check, so running it against staging has no side effects. Using the
+// first row would hit whatever sorts first — since the grouping, a live Finance import.
+const SAFE_JOB_DISPLAY_NAME = 'Daily Price Comparison Data Quality Test';
+const safeJobRow = (page: Page) =>
+  page.locator('[data-testid="recurring-job-row"]').filter({ hasText: SAFE_JOB_DISPLAY_NAME });
+
 test.describe('Recurring Jobs Management', () => {
   test.beforeEach(async ({ page }) => {
     // Establish E2E authentication session with full frontend setup
@@ -86,7 +93,7 @@ test.describe('Recurring Jobs Management', () => {
     await page.waitForSelector('[data-testid="recurring-job-row"]', { timeout: 10000 });
 
     // Get the first job (regardless of state)
-    const firstJobRow = page.locator('[data-testid="recurring-job-row"]').first();
+    const firstJobRow = safeJobRow(page);
     const toggleButton = firstJobRow.locator('button[role="switch"]');
 
     // Check the current state
@@ -122,7 +129,7 @@ test.describe('Recurring Jobs Management', () => {
     await page.waitForSelector('[data-testid="recurring-job-row"]', { timeout: 10000 });
 
     // Get the first job (regardless of state)
-    const firstJobRow = page.locator('[data-testid="recurring-job-row"]').first();
+    const firstJobRow = safeJobRow(page);
     const toggleButton = firstJobRow.locator('button[role="switch"]');
 
     // Check the current state
@@ -158,7 +165,7 @@ test.describe('Recurring Jobs Management', () => {
     await page.waitForSelector('[data-testid="recurring-job-row"]', { timeout: 10000 });
 
     // Get the first job (regardless of state)
-    const firstJobRow = page.locator('[data-testid="recurring-job-row"]').first();
+    const firstJobRow = safeJobRow(page);
     const toggleButton = firstJobRow.locator('button[role="switch"]');
 
     // Check the current state
@@ -394,7 +401,7 @@ test.describe('Recurring Jobs - Manual Trigger', () => {
 
   test('should open confirmation dialog when clicking "Run Now" on enabled job', async ({ page }) => {
     // Find the first job row
-    const jobRow = page.locator('[data-testid="recurring-job-row"]').first();
+    const jobRow = safeJobRow(page);
 
     // Enable the job first (toggle it on if it's off)
     const toggleButton = jobRow.locator('button[role="switch"]');
@@ -431,7 +438,7 @@ test.describe('Recurring Jobs - Manual Trigger', () => {
 
   test('should display job details in confirmation dialog', async ({ page }) => {
     // Find first job
-    const firstRow = page.locator('[data-testid="recurring-job-row"]').first();
+    const firstRow = safeJobRow(page);
 
     // Enable the job first (normalize state to enabled)
     const toggleButton = firstRow.locator('button[role="switch"]');
@@ -469,7 +476,7 @@ test.describe('Recurring Jobs - Manual Trigger', () => {
 
   test('should show warning for disabled job in confirmation dialog', async ({ page }) => {
     // Find first job
-    const firstRow = page.locator('[data-testid="recurring-job-row"]').first();
+    const firstRow = safeJobRow(page);
 
     // Normalize state to disabled (opposite of other tests)
     const toggleButton = firstRow.locator('button[role="switch"]');
@@ -504,7 +511,7 @@ test.describe('Recurring Jobs - Manual Trigger', () => {
 
   test('should close dialog when clicking cancel', async ({ page }) => {
     // Find first job
-    const firstRow = page.locator('[data-testid="recurring-job-row"]').first();
+    const firstRow = safeJobRow(page);
 
     // Enable the job first (normalize state to enabled)
     const toggleButton = firstRow.locator('button[role="switch"]');
@@ -537,7 +544,7 @@ test.describe('Recurring Jobs - Manual Trigger', () => {
 
   test('should close dialog when clicking X button', async ({ page }) => {
     // Find first job
-    const firstRow = page.locator('[data-testid="recurring-job-row"]').first();
+    const firstRow = safeJobRow(page);
 
     // Enable the job first (normalize state to enabled)
     const toggleButton = firstRow.locator('button[role="switch"]');
@@ -572,7 +579,7 @@ test.describe('Recurring Jobs - Manual Trigger', () => {
 
   test('should close dialog when clicking backdrop', async ({ page }) => {
     // Find first job
-    const firstRow = page.locator('[data-testid="recurring-job-row"]').first();
+    const firstRow = safeJobRow(page);
 
     // Enable the job first (normalize state to enabled)
     const toggleButton = firstRow.locator('button[role="switch"]');
@@ -605,7 +612,7 @@ test.describe('Recurring Jobs - Manual Trigger', () => {
 
   test('should trigger job when confirming in dialog', async ({ page }) => {
     // Find first job
-    const firstRow = page.locator('[data-testid="recurring-job-row"]').first();
+    const firstRow = safeJobRow(page);
 
     // Enable the job first (normalize state to enabled)
     const toggleButton = firstRow.locator('button[role="switch"]');
@@ -645,7 +652,7 @@ test.describe('Recurring Jobs - Manual Trigger', () => {
 
   test('should show loading state during trigger execution', async ({ page }) => {
     // Find first job
-    const firstRow = page.locator('[data-testid="recurring-job-row"]').first();
+    const firstRow = safeJobRow(page);
 
     // Enable the job first (normalize state to enabled)
     const toggleButton = firstRow.locator('button[role="switch"]');
@@ -705,7 +712,7 @@ test.describe('Recurring Jobs - Manual Trigger', () => {
 
   test('should handle multiple rapid trigger attempts gracefully', async ({ page }) => {
     // Find first job
-    const firstRow = page.locator('[data-testid="recurring-job-row"]').first();
+    const firstRow = safeJobRow(page);
 
     // Enable the job first (normalize state to enabled)
     const toggleButton = firstRow.locator('button[role="switch"]');

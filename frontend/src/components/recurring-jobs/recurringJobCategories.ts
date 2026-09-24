@@ -29,21 +29,32 @@ export const CATEGORY_DISPLAY_ORDER: RecurringJobCategory[] = [
 export const getCategoryLabel = (category: RecurringJobCategory): string =>
   CATEGORY_LABELS[category] ?? CATEGORY_LABELS[RecurringJobCategory.Uncategorized];
 
+/**
+ * Maps a category the client doesn't know (e.g. one added on the backend before the
+ * client was regenerated) to Uncategorized, so its jobs are still rendered.
+ */
+export const resolveCategory = (category?: RecurringJobCategory): RecurringJobCategory =>
+  category && category in CATEGORY_LABELS ? category : RecurringJobCategory.Uncategorized;
+
 export interface RecurringJobCategoryGroup {
   category: RecurringJobCategory;
   jobs: RecurringJobDto[];
 }
 
+/** Lower-cases and strips diacritics, so "uctovani" matches "Účtování". */
+const normalizeForSearch = (value: string): string =>
+  value.normalize('NFD').replace(/\p{Diacritic}/gu, '').toLowerCase();
+
 /**
- * Case-insensitive match of the search term against the job's display name,
+ * Case- and diacritics-insensitive match of the search term against the job's display name,
  * technical name and description. An empty term matches everything.
  */
 export const matchesJobSearch = (job: RecurringJobDto, searchTerm: string): boolean => {
-  const term = searchTerm.trim().toLowerCase();
+  const term = normalizeForSearch(searchTerm.trim());
   if (!term) return true;
 
   return [job.displayName, job.jobName, job.description]
-    .some((field) => field?.toLowerCase().includes(term));
+    .some((field) => field != null && normalizeForSearch(field).includes(term));
 };
 
 /**
@@ -60,7 +71,7 @@ export const groupJobsByCategory = (
     .map((category) => ({
       category,
       jobs: matching.filter(
-        (job) => (job.category ?? RecurringJobCategory.Uncategorized) === category
+        (job) => resolveCategory(job.category) === category
       ),
     }))
     .filter((group) => group.jobs.length > 0);

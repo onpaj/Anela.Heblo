@@ -14,8 +14,8 @@ public static class RecurringJobCategoryLookup
         ArgumentNullException.ThrowIfNull(discoveredJobs);
 
         return discoveredJobs
-            .GroupBy(job => job.Metadata.JobName, StringComparer.OrdinalIgnoreCase)
-            .ToDictionary(group => group.Key, group => group.First().Metadata.Category, StringComparer.OrdinalIgnoreCase);
+            .GroupBy(job => job.Metadata.JobName, StringComparer.Ordinal)
+            .ToDictionary(group => group.Key, group => group.First().Metadata.Category, StringComparer.Ordinal);
     }
 
     /// <summary>

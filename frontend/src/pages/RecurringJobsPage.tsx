@@ -31,6 +31,8 @@ const RecurringJobsPage: React.FC = () => {
     () => groupJobsByCategory(jobsList, searchTerm),
     [jobsList, searchTerm]
   );
+  // Collapsing is a browsing aid; while searching, every match must be visible.
+  const isSearchActive = searchTerm.trim() !== '';
 
   const handleToggleCategory = useCallback((category: RecurringJobCategory) => {
     setCollapsedCategories((previous) => {
@@ -255,7 +257,7 @@ const RecurringJobsPage: React.FC = () => {
                 key={group.category}
                 category={group.category}
                 jobCount={group.jobs.length}
-                isExpanded={!collapsedCategories.has(group.category)}
+                isExpanded={isSearchActive || !collapsedCategories.has(group.category)}
                 onToggleExpanded={handleToggleCategory}
               >
                 {group.jobs.map((job) => (
