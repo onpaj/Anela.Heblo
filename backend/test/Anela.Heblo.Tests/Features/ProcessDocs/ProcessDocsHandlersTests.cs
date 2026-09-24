@@ -48,6 +48,22 @@ public class ProcessDocsHandlersTests
     }
 
     [Fact]
+    public async Task ListProcesses_KindFilter_AcceptsCalcAliasForCalculation()
+    {
+        var result = await new ListProcessesHandler(Store).Handle(new ListProcessesRequest { Kind = "calc" }, default);
+
+        Assert.Equal(["calc-margins", "calc-stock-up"], result.Processes.Select(p => p.Name));
+    }
+
+    [Fact]
+    public async Task ListProcesses_KindFilter_CalcAliasIsCaseInsensitive()
+    {
+        var result = await new ListProcessesHandler(Store).Handle(new ListProcessesRequest { Kind = "CALC" }, default);
+
+        Assert.Equal(["calc-margins", "calc-stock-up"], result.Processes.Select(p => p.Name));
+    }
+
+    [Fact]
     public async Task GetProcessDoc_Found_ReturnsMarkdown()
     {
         var result = await new GetProcessDocHandler(Store).Handle(new GetProcessDocRequest { Name = "calc-margins" }, default);
