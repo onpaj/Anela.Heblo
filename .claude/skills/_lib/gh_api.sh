@@ -148,23 +148,31 @@ req_paginate() {
   # req_paginate METHOD PATH — follows Link: rel="next", concatenates JSON
   # array pages into one array. Used where `gh api --paginate` is used today
   # (issue/PR comment lists that can exceed one page).
+  #
+  # Pages are written to temp files and combined with `jq -s add` at the
+  # end rather than threaded through bash variables and `--argjson` on
+  # every iteration: a growing accumulator passed as a CLI arg blows past
+  # the OS ARG_MAX ("Argument list too long") once a PR's comment history
+  # gets large, even though no single page is oversized.
   local method="$1" path="$2"
   local url
   url=$(_api_url "$path")
   [[ "$url" == *"?"* ]] && url="${url}&per_page=100" || url="${url}?per_page=100"
-  local all="[]" hdrfile body
+  local hdrfile pagedir n=0
   hdrfile=$(mktemp)
+  pagedir=$(mktemp -d)
   while [[ -n "$url" ]]; do
-    body=$(curl -sS --max-time 30 -X "$method" \
+    curl -sS --max-time 30 -X "$method" \
       -H "Authorization: Bearer ${TOKEN}" \
       -H "Accept: application/vnd.github+json" \
       -H "X-GitHub-Api-Version: 2022-11-28" \
-      -D "$hdrfile" "$url")
-    all=$(jq -c -n --argjson a "$all" --argjson b "$body" '$a + $b')
+      -D "$hdrfile" "$url" > "${pagedir}/${n}.json"
+    n=$((n + 1))
     url=$(grep -i '^link:' "$hdrfile" | grep -o '<[^>]*>; rel="next"' | sed -E 's/^<(.*)>.*/\1/' || true)
   done
   rm -f "$hdrfile"
-  printf '%s' "$all"
+  jq -c -s 'add' "${pagedir}"/*.json
+  rm -rf "$pagedir"
 }
 
 graphql() {
