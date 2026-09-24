@@ -7,6 +7,7 @@ using Anela.Heblo.Application.Features.Pricing.UseCases.GetPricingScenario;
 using Anela.Heblo.Application.Features.Pricing.UseCases.GetPricingScenarios;
 using Anela.Heblo.Application.Features.Pricing.UseCases.RecalculatePricing;
 using Anela.Heblo.Application.Features.Pricing.UseCases.SavePricingScenario;
+using Anela.Heblo.Application.Features.Pricing.UseCases.UpdatePricingScenarioProducts;
 using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Domain.Features.Authorization;
 using Anela.Heblo.Domain.Features.Catalog;
@@ -71,6 +72,32 @@ public class PricingSimulatorMcpToolsTests
         var ex = await Assert.ThrowsAsync<McpException>(() => _tools.GetPricingBaseline());
         Assert.Contains("FORBIDDEN", ex.Message);
         _mediatorMock.Verify(m => m.Send(It.IsAny<GetPricingBaselineRequest>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    public static TheoryData<string> ReadGatedTools => new()
+    {
+        nameof(PricingSimulatorMcpTools.SimulatePricing),
+        nameof(PricingSimulatorMcpTools.ListPricingScenarios),
+        nameof(PricingSimulatorMcpTools.GetPricingScenario),
+    };
+
+    [Theory]
+    [MemberData(nameof(ReadGatedTools))]
+    public async Task ReadTools_Throw_WhenUserLacksReadAccess(string toolName)
+    {
+        // Arrange
+        _currentUserServiceMock.Setup(s => s.IsInRole(ReadRole)).Returns(false);
+        Func<Task<string>> call = toolName switch
+        {
+            nameof(PricingSimulatorMcpTools.SimulatePricing) => () => _tools.SimulatePricing(),
+            nameof(PricingSimulatorMcpTools.ListPricingScenarios) => () => _tools.ListPricingScenarios(),
+            _ => () => _tools.GetPricingScenario(Guid.NewGuid()),
+        };
+
+        // Act & Assert
+        var ex = await Assert.ThrowsAsync<McpException>(call);
+        Assert.Contains("FORBIDDEN", ex.Message);
+        _mediatorMock.VerifyNoOtherCalls();
     }
 
     [Fact]
@@ -257,6 +284,23 @@ public class PricingSimulatorMcpToolsTests
     }
 
     [Fact]
+    public async Task GetPricingScenario_ReturnsAllRows_WhenOnlyEditedRowsIsFalse()
+    {
+        // Arrange
+        var id = Guid.NewGuid();
+        _mediatorMock
+            .Setup(m => m.Send(It.Is<GetPricingScenarioRequest>(r => r.Id == id), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new GetPricingScenarioResponse { Rows = new() { Row("AKL001", isEdited: true), Row("AKL002") } });
+
+        // Act
+        var json = await _tools.GetPricingScenario(id, onlyEditedRows: false);
+
+        // Assert
+        var result = JsonSerializer.Deserialize<GetPricingScenarioResponse>(json, McpJsonOptions.Default);
+        Assert.Equal(2, result!.Rows.Count);
+    }
+
+    [Fact]
     public async Task GetPricingScenario_Throws_WhenNotFound()
     {
         // Arrange
@@ -305,5 +349,68 @@ public class PricingSimulatorMcpToolsTests
 
         var result = JsonSerializer.Deserialize<SavePricingScenarioResponse>(json, McpJsonOptions.Default);
         Assert.Equal(id, result!.Id);
+    }
+
+    [Fact]
+    public async Task UpdatePricingScenarioProducts_Throws_WhenUserLacksWriteAccess()
+    {
+        // Arrange -- read access only
+
+        // Act & Assert
+        var ex = await Assert.ThrowsAsync<McpException>(() =>
+            _tools.UpdatePricingScenarioProducts(Guid.NewGuid(), removeProductCodes: new List<string> { "AKL001" }));
+        Assert.Contains("FORBIDDEN", ex.Message);
+        _mediatorMock.Verify(m => m.Send(It.IsAny<UpdatePricingScenarioProductsRequest>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task UpdatePricingScenarioProducts_MapsParametersAndReturnsOnlyEditedRows()
+    {
+        // Arrange
+        _currentUserServiceMock.Setup(s => s.IsInRole(WriteRole)).Returns(true);
+        var id = Guid.NewGuid();
+        var edits = new List<PricingEditDto>
+        {
+            new() { ProductCode = "AKL001", Field = PricingEditField.M1Percentage, Value = 30m }
+        };
+        _mediatorMock
+            .Setup(m => m.Send(It.IsAny<UpdatePricingScenarioProductsRequest>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new UpdatePricingScenarioProductsResponse
+            {
+                Rows = new() { Row("AKL001", isEdited: true), Row("AKL002") },
+                UnmatchedRemovals = new() { "NOPE" }
+            });
+
+        // Act
+        var json = await _tools.UpdatePricingScenarioProducts(
+            id, edits, new List<string> { "NOPE" }, name: "Zima", description: "");
+
+        // Assert
+        _mediatorMock.Verify(m => m.Send(
+            It.Is<UpdatePricingScenarioProductsRequest>(r =>
+                r.ScenarioId == id && r.Edits == edits && r.RemoveProductCodes.Single() == "NOPE" &&
+                r.Name == "Zima" && r.Description == ""),
+            It.IsAny<CancellationToken>()), Times.Once);
+
+        var result = JsonSerializer.Deserialize<UpdatePricingScenarioProductsResponse>(json, McpJsonOptions.Default);
+        Assert.Single(result!.Rows);
+        Assert.Equal("NOPE", Assert.Single(result.UnmatchedRemovals));
+    }
+
+    [Fact]
+    public async Task UpdatePricingScenarioProducts_Throws_WhenAnEditFails()
+    {
+        // Arrange
+        _currentUserServiceMock.Setup(s => s.IsInRole(WriteRole)).Returns(true);
+        _mediatorMock
+            .Setup(m => m.Send(It.IsAny<UpdatePricingScenarioProductsRequest>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new UpdatePricingScenarioProductsResponse(
+                ErrorCodes.PricingNegativeMaterialCost,
+                new Dictionary<string, string> { { "editNumber", "2" } }));
+
+        // Act & Assert
+        var ex = await Assert.ThrowsAsync<McpException>(() =>
+            _tools.UpdatePricingScenarioProducts(Guid.NewGuid(), removeProductCodes: new List<string> { "AKL001" }));
+        Assert.Contains(nameof(ErrorCodes.PricingNegativeMaterialCost), ex.Message);
     }
 }

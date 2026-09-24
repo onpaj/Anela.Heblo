@@ -36,7 +36,7 @@ Read the relevant doc **before** implementation work touches that area. No archi
 - `docs/testing/reportportal.md` — ReportPortal reporting for BE/FE/E2E (opt-in via `RP_ENABLE`)
 
 **Integrations**
-- `docs/integrations/mcp-server.md` — MCP tools, endpoints, client config (28 tools)
+- `docs/integrations/mcp-server.md` — MCP tools, endpoints, client config (29 tools)
 - `docs/integrations/shoptet-api.md` — Shoptet REST API findings
 
 **Features** — `docs/features/` has per-feature specs.
