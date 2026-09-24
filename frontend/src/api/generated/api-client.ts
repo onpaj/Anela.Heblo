@@ -43465,6 +43465,9 @@ export class RecalculatePurchasePriceResponse extends BaseResponse implements IR
     failedCount?: number;
     totalCount?: number;
     processedProducts?: ProductRecalculationResult[];
+    priceSync?: PurchasePriceSyncSummary;
+    semiProducts?: BomRecalculationSummary;
+    products?: BomRecalculationSummary;
     isSuccess?: boolean;
     message?: string;
 
@@ -43483,6 +43486,9 @@ export class RecalculatePurchasePriceResponse extends BaseResponse implements IR
                 for (let item of _data["processedProducts"])
                     this.processedProducts!.push(ProductRecalculationResult.fromJS(item));
             }
+            this.priceSync = _data["priceSync"] ? PurchasePriceSyncSummary.fromJS(_data["priceSync"]) : <any>undefined;
+            this.semiProducts = _data["semiProducts"] ? BomRecalculationSummary.fromJS(_data["semiProducts"]) : <any>undefined;
+            this.products = _data["products"] ? BomRecalculationSummary.fromJS(_data["products"]) : <any>undefined;
             this.isSuccess = _data["isSuccess"];
             this.message = _data["message"];
         }
@@ -43505,6 +43511,9 @@ export class RecalculatePurchasePriceResponse extends BaseResponse implements IR
             for (let item of this.processedProducts)
                 data["processedProducts"].push(item.toJSON());
         }
+        data["priceSync"] = this.priceSync ? this.priceSync.toJSON() : <any>undefined;
+        data["semiProducts"] = this.semiProducts ? this.semiProducts.toJSON() : <any>undefined;
+        data["products"] = this.products ? this.products.toJSON() : <any>undefined;
         data["isSuccess"] = this.isSuccess;
         data["message"] = this.message;
         super.toJSON(data);
@@ -43517,6 +43526,9 @@ export interface IRecalculatePurchasePriceResponse extends IBaseResponse {
     failedCount?: number;
     totalCount?: number;
     processedProducts?: ProductRecalculationResult[];
+    priceSync?: PurchasePriceSyncSummary;
+    semiProducts?: BomRecalculationSummary;
+    products?: BomRecalculationSummary;
     isSuccess?: boolean;
     message?: string;
 }
@@ -43552,6 +43564,98 @@ export class ProductRecalculationResult extends BaseResponse implements IProduct
 
 export interface IProductRecalculationResult extends IBaseResponse {
     productCode?: string;
+}
+
+export class PurchasePriceSyncSummary implements IPurchasePriceSyncSummary {
+    candidates?: number;
+    written?: number;
+    unchanged?: number;
+    skippedNoStockPrice?: number;
+    failed?: number;
+
+    constructor(data?: IPurchasePriceSyncSummary) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.candidates = _data["candidates"];
+            this.written = _data["written"];
+            this.unchanged = _data["unchanged"];
+            this.skippedNoStockPrice = _data["skippedNoStockPrice"];
+            this.failed = _data["failed"];
+        }
+    }
+
+    static fromJS(data: any): PurchasePriceSyncSummary {
+        data = typeof data === 'object' ? data : {};
+        let result = new PurchasePriceSyncSummary();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["candidates"] = this.candidates;
+        data["written"] = this.written;
+        data["unchanged"] = this.unchanged;
+        data["skippedNoStockPrice"] = this.skippedNoStockPrice;
+        data["failed"] = this.failed;
+        return data;
+    }
+}
+
+export interface IPurchasePriceSyncSummary {
+    candidates?: number;
+    written?: number;
+    unchanged?: number;
+    skippedNoStockPrice?: number;
+    failed?: number;
+}
+
+export class BomRecalculationSummary implements IBomRecalculationSummary {
+    succeeded?: number;
+    failed?: number;
+
+    constructor(data?: IBomRecalculationSummary) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.succeeded = _data["succeeded"];
+            this.failed = _data["failed"];
+        }
+    }
+
+    static fromJS(data: any): BomRecalculationSummary {
+        data = typeof data === 'object' ? data : {};
+        let result = new BomRecalculationSummary();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["succeeded"] = this.succeeded;
+        data["failed"] = this.failed;
+        return data;
+    }
+}
+
+export interface IBomRecalculationSummary {
+    succeeded?: number;
+    failed?: number;
 }
 
 export class RecalculatePurchasePriceRequest implements IRecalculatePurchasePriceRequest {
@@ -43961,6 +44065,7 @@ export class RecurringJobDto implements IRecurringJobDto {
     jobName?: string;
     displayName?: string;
     description?: string;
+    category?: RecurringJobCategory;
     cronExpression?: string;
     timeZoneId?: string;
     isEnabled?: boolean;
@@ -43982,6 +44087,7 @@ export class RecurringJobDto implements IRecurringJobDto {
             this.jobName = _data["jobName"];
             this.displayName = _data["displayName"];
             this.description = _data["description"];
+            this.category = _data["category"];
             this.cronExpression = _data["cronExpression"];
             this.timeZoneId = _data["timeZoneId"];
             this.isEnabled = _data["isEnabled"];
@@ -44003,6 +44109,7 @@ export class RecurringJobDto implements IRecurringJobDto {
         data["jobName"] = this.jobName;
         data["displayName"] = this.displayName;
         data["description"] = this.description;
+        data["category"] = this.category;
         data["cronExpression"] = this.cronExpression;
         data["timeZoneId"] = this.timeZoneId;
         data["isEnabled"] = this.isEnabled;
@@ -44017,12 +44124,25 @@ export interface IRecurringJobDto {
     jobName?: string;
     displayName?: string;
     description?: string;
+    category?: RecurringJobCategory;
     cronExpression?: string;
     timeZoneId?: string;
     isEnabled?: boolean;
     lastModifiedAt?: Date;
     lastModifiedBy?: string;
     nextRunAt?: Date | undefined;
+}
+
+export enum RecurringJobCategory {
+    Uncategorized = "Uncategorized",
+    Finance = "Finance",
+    Marketing = "Marketing",
+    Catalog = "Catalog",
+    Warehouse = "Warehouse",
+    DataQuality = "DataQuality",
+    Content = "Content",
+    Attendance = "Attendance",
+    Integrations = "Integrations",
 }
 
 export class GetRecurringJobResponse extends BaseResponse implements IGetRecurringJobResponse {

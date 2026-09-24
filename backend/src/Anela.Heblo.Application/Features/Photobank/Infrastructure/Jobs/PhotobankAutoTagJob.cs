@@ -24,6 +24,7 @@ public class PhotobankAutoTagJob : IRecurringJob
     public RecurringJobMetadata Metadata { get; } = new()
     {
         JobName = "photobank-auto-tag",
+        Category = RecurringJobCategory.Content,
         DisplayName = "Photobank Auto-Tag",
         Description = "Sends untagged photos to the LLM and stamps validated tags back",
         CronExpression = "0 4 * * *",

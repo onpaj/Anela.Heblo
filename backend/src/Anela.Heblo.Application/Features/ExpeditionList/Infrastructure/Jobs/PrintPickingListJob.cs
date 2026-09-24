@@ -16,6 +16,7 @@ public class PrintPickingListJob : IRecurringJob
     public RecurringJobMetadata Metadata { get; } = new()
     {
         JobName = "print-picking-list",
+        Category = RecurringJobCategory.Warehouse,
         DisplayName = "Print Picking List",
         Description = "Generates expedition picking list, optionally sends email copy and copies to printer queue",
         CronExpression = "0 3,8 * * *", // Twice daily at 4:00 and 9:00 Prague time

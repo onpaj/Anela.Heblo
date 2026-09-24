@@ -249,6 +249,7 @@ public class RecurringJobSeederTests : IDisposable
             Metadata = new RecurringJobMetadata
             {
                 JobName = jobName,
+                Category = RecurringJobCategory.Integrations,
                 DisplayName = displayName,
                 Description = description,
                 CronExpression = cronExpression,

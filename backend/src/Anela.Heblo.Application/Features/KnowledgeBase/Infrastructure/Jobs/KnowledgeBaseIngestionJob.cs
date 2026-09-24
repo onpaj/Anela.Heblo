@@ -21,6 +21,7 @@ public class KnowledgeBaseIngestionJob : IRecurringJob
     public RecurringJobMetadata Metadata { get; } = new()
     {
         JobName = "knowledge-base-ingestion",
+        Category = RecurringJobCategory.Content,
         DisplayName = "Knowledge Base Ingestion",
         Description = "Polls OneDrive inbox folders and ingests new documents into the knowledge base vector store",
         CronExpression = "*/15 * * * *",

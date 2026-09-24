@@ -114,6 +114,22 @@ public class FlexiProductPriceErpClientTests
     }
 
     [Fact]
+    public async Task RecalculatePurchasePrice_WhenFlexiRejectsRollUp_ShouldThrow()
+    {
+        // Arrange — the SDK logs a non-2xx response and returns false instead of throwing
+        const int bomId = 123;
+
+        _bomClientMock.Setup(x => x.RecalculatePurchasePrice(bomId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(false);
+
+        // Act & Assert
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            _client.RecalculatePurchasePrice(bomId, CancellationToken.None));
+
+        exception.Message.Should().Contain("BoM ID 123");
+    }
+
+    [Fact]
     public async Task RecalculatePurchasePrice_WithBoMClientException_ShouldWrapException()
     {
         // Arrange

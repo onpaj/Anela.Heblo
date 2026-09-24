@@ -17,6 +17,7 @@ public sealed class FillTrackingNumbersJob : IRecurringJob
     public RecurringJobMetadata Metadata { get; } = new()
     {
         JobName = "fill-tracking-numbers",
+        Category = RecurringJobCategory.Warehouse,
         DisplayName = "Fill Tracking Numbers",
         Description = "Backfills TrackingNumber for recently-packed shipments where Shoptet had not yet generated the carrier label at scan time.",
         CronExpression = "*/10 * * * *",

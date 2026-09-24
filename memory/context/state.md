@@ -14,6 +14,24 @@ _Update this file at the end of significant sessions._
 
 ## Recently Completed
 
+- Shoptet orders mirror into `Heblo_V3.shoptet_raw` (branch `feature/data-shoptet-orders`,
+  2026-09-22): headers **and** line items mirrored for Metabase reporting — new
+  `Anela.Heblo.Persistence.ShoptetOrders` context (`order`, `order_item`, `sync_state`),
+  a read-only sync stack under `Adapters/Anela.Heblo.Adapters.ShoptetApi/Analytics/`, the
+  Hangfire job `shoptet-orders-sync` at `30 1 * * *`, a supervised runner at
+  `backend/tools/Anela.Heblo.ShoptetOrdersBackfill`, and eleven month-grain `v_*` views
+  granted to `metabase_ro` (raw tables explicitly revoked). No UI of any kind — reports
+  live in Metabase.
+  Three findings worth remembering are in `memory/gotchas/shoptet-*.md`: every `/snapshot`
+  endpoint is 403 without a `job:finished` webhook so the backfill has to be paged;
+  wholesale is identified by the shipping GUID, not by `salesChannelGuid`; and four
+  order-response traps that silently produce wrong numbers. The two owner-facing
+  definitions (new-vs-returning, set counting) are in
+  `memory/decisions/shoptet-orders-mirror-business-rules.md`.
+  **Not switched on:** the nightly job only registers when
+  `ShoptetOrdersSync:ConnectionString` is set, and that Key Vault secret was deliberately
+  left unset until the branch merges.
+
 - Lot label calibration wizard (branch `feature/calibration-wizard`, PR #4207, 2026-09-16):
   operators correct label drift from the print tab by reporting direction + speed; the
   server derives, clamps and persists the nudge on plain material-containers Write. Two

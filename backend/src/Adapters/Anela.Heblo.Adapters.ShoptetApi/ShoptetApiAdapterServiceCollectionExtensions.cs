@@ -1,4 +1,5 @@
 using System.Text;
+using Anela.Heblo.Adapters.ShoptetApi.Analytics;
 using Anela.Heblo.Adapters.ShoptetApi.Customers;
 using Anela.Heblo.Adapters.ShoptetApi.EshopUrl;
 using Anela.Heblo.Adapters.ShoptetApi.Expedition;
@@ -140,6 +141,9 @@ public static class ShoptetApiAdapterServiceCollectionExtensions
         services.AddSingleton<ShoptetInvoiceMapper>();
         services.AddSingleton<ShoptetApiInvoiceSource>();
         services.AddSingleton<IShippingMethodCatalog, ShippingMethodCatalog>();
+
+        // shoptet_raw reporting mirror — no-op unless ShoptetOrdersSync:ConnectionString is set.
+        services.AddShoptetOrdersAnalytics(configuration);
 
         return services;
     }

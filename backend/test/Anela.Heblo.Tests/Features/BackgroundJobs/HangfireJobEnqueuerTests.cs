@@ -147,6 +147,7 @@ public class HangfireJobEnqueuerTests
         public RecurringJobMetadata Metadata => new RecurringJobMetadata
         {
             JobName = "test-job",
+            Category = RecurringJobCategory.Integrations,
             DisplayName = "Test Job",
             Description = "A test job for unit testing",
             CronExpression = "0 0 * * *",

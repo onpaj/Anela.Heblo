@@ -14,6 +14,7 @@ public class DailyConsumptionJob : IRecurringJob
     public RecurringJobMetadata Metadata { get; } = new()
     {
         JobName = "daily-consumption-calculation",
+        Category = RecurringJobCategory.Catalog,
         DisplayName = "Daily Consumption Calculation",
         Description = "Calculates daily consumption of packing materials",
         CronExpression = "0 6 * * *", // Daily at 6:00 AM — after invoice imports (04:00 EUR / 04:15 CZK) so yesterday's invoices are available
