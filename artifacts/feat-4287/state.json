@@ -34,9 +34,9 @@
     },
     {
       "name": "extract-sortby-helper-and-refactor-applysorting",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-09-24T09:17:16.957531Z"
+      "updated_at": "2026-09-24T09:45:09.897946Z"
     }
   ]
 }
