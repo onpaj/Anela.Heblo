@@ -28,9 +28,9 @@
   "tasks": [
     {
       "name": "relocate-adapter-and-di-registration",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-09-24T10:18:40.555328Z"
+      "updated_at": "2026-09-24T10:23:22.744636Z"
     },
     {
       "name": "add-marketingperformance-invoices-boundary-tests",
