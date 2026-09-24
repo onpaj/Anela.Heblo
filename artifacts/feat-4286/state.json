@@ -46,9 +46,9 @@
     },
     {
       "name": "full-verification",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-09-24T10:18:13.904015Z"
+      "updated_at": "2026-09-24T11:13:33.072756Z"
     }
   ]
 }
