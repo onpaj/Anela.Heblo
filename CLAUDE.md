@@ -36,7 +36,7 @@ Read the relevant doc **before** implementation work touches that area. No archi
 - `docs/testing/reportportal.md` — ReportPortal reporting for BE/FE/E2E (opt-in via `RP_ENABLE`)
 
 **Integrations**
-- `docs/integrations/mcp-server.md` — MCP tools, endpoints, client config (30 tools)
+- `docs/integrations/mcp-server.md` — MCP tools, endpoints, client config (31 tools)
 - `docs/integrations/shoptet-api.md` — Shoptet REST API findings
 
 **Processes** — `docs/processes/INDEX.md` indexes agent-facing docs for every sync, calculation and data feed (where data comes from, how it's computed). Read the relevant one before changing a process.

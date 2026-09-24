@@ -47,7 +47,7 @@ public class ConfirmSemiProductManufactureHandler
                 "ConfirmSemiProductManufacture failed for order {OrderId}: {ErrorCode} — {Message}",
                 request.Id, errorCode, result.Message);
 
-            return new ConfirmSemiProductManufactureResponse(errorCode)
+            return new ConfirmSemiProductManufactureResponse(errorCode, result.Params)
             {
                 Message = result.Message,
             };

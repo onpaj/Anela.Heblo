@@ -8,6 +8,7 @@ using Anela.Heblo.Application.Features.Pricing.UseCases.GetPricingScenario;
 using Anela.Heblo.Application.Features.Pricing.UseCases.GetPricingScenarios;
 using Anela.Heblo.Application.Features.Pricing.UseCases.RecalculatePricing;
 using Anela.Heblo.Application.Features.Pricing.UseCases.SavePricingScenario;
+using Anela.Heblo.Application.Features.Pricing.UseCases.UpdatePricingScenarioProducts;
 using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Domain.Features.Authorization;
 using Anela.Heblo.Domain.Features.Catalog;
@@ -172,7 +173,8 @@ public class PricingSimulatorMcpTools
 
     [McpServerTool]
     [Description("Save a pricing scenario (its override list, typically the one returned by SimulatePricing). " +
-                 "Without id a new scenario is created; with id the existing scenario is overwritten. Requires write access.")]
+                 "Without id a new scenario is created; with id the existing scenario is overwritten as a whole " +
+                 "(name, description, filter and the full override list) -- use UpdatePricingScenarioProducts to change only some products. Requires write access.")]
     public async Task<string> SavePricingScenario(
         [Description("Scenario name (max 200 characters, unique)")]
         string name,
@@ -207,6 +209,51 @@ public class PricingSimulatorMcpTools
         EnsureSuccess(response);
 
         return JsonSerializer.Serialize(response, McpJsonOptions.Default);
+    }
+
+    [McpServerTool]
+    [Description("Partially update a saved pricing scenario: edit or remove individual products and/or rename it, " +
+                 "leaving every other product, the filter and unspecified metadata untouched. Removals run first, then edits in order " +
+                 "(same edit fields as SimulatePricing; a Price edit keeps the product's other overrides). " +
+                 "All-or-nothing: if an edit fails, nothing is saved and the error names it (editNumber). " +
+                 "Returns the recalculated scenario and any removal codes that matched nothing. Requires write access.")]
+    public async Task<string> UpdatePricingScenarioProducts(
+        [Description("Scenario id (from ListPricingScenarios)")]
+        Guid id,
+        [Description("Edits to apply, in order; a product not yet in the scenario is added")]
+        List<PricingEditDto>? edits = null,
+        [Description("Product codes whose override is dropped, so they follow the live catalog again")]
+        List<string>? removeProductCodes = null,
+        [Description("New name; omit to keep the current one")]
+        string? name = null,
+        [Description("New description; omit to keep it, empty string to clear it")]
+        string? description = null,
+        [Description("Return only rows with a simulated change (default: true). Totals always cover all products in the scenario's filter.")]
+        bool onlyEditedRows = true,
+        CancellationToken cancellationToken = default)
+    {
+        _currentUserService.EnsureFeatureAccess(Feature.Finance_PriceAnalysis, ResourceName, AccessLevel.Write);
+
+        var request = new UpdatePricingScenarioProductsRequest
+        {
+            ScenarioId = id,
+            Edits = edits ?? new List<PricingEditDto>(),
+            RemoveProductCodes = removeProductCodes ?? new List<string>(),
+            Name = name,
+            Description = description
+        };
+
+        var response = await SendValidated(request, cancellationToken);
+        EnsureSuccess(response);
+
+        return JsonSerializer.Serialize(new
+        {
+            response.Scenario,
+            Rows = SelectRows(response.Rows, onlyEditedRows),
+            response.Totals,
+            response.Overrides,
+            response.UnmatchedRemovals
+        }, McpJsonOptions.Default);
     }
 
     private async Task<TResponse> SendValidated<TResponse>(IRequest<TResponse> request, CancellationToken cancellationToken)

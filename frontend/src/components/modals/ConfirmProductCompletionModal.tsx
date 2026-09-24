@@ -5,6 +5,7 @@ import {
   ProductActualQuantityRequest,
   ResidueDistributionDto,
 } from "../../api/generated/api-client";
+import { resolveStockShortageMessage } from "./manufactureErrorMessage";
 
 interface ProductQuantityData {
   id: number;
@@ -93,9 +94,23 @@ const ConfirmProductCompletionModal: React.FC<ConfirmProductCompletionModalProps
 
       await onSubmit(request);
     } catch (err) {
-      setError('Chyba při potvrzení množství produktů. Zkuste to prosím znovu.');
-      console.error('Error confirming product completion:', err);
+      showSubmitError(err);
     }
+  };
+
+  // A stock shortage can only surface on the override call, since the ERP submit runs after the distribution is confirmed.
+  const handleConfirmDistribution = async () => {
+    setError('');
+    try {
+      await onConfirmDistribution();
+    } catch (err) {
+      showSubmitError(err);
+    }
+  };
+
+  const showSubmitError = (err: unknown) => {
+    setError(resolveStockShortageMessage(err) ?? 'Chyba při potvrzení množství produktů. Zkuste to prosím znovu.');
+    console.error('Error confirming product completion:', err);
   };
 
   const handleClose = () => {
@@ -110,6 +125,13 @@ const ConfirmProductCompletionModal: React.FC<ConfirmProductCompletionModalProps
   };
 
   if (!isOpen || products.length === 0) return null;
+
+  const errorBanner = error && (
+    <div className="flex items-center gap-2 p-2 bg-red-50 border border-red-200 dark:bg-red-900/20 dark:border-red-900/40 rounded">
+      <AlertCircle className="h-4 w-4 text-red-600 dark:text-red-400 flex-shrink-0" />
+      <span className="text-xs text-red-600 dark:text-red-400">{error}</span>
+    </div>
+  );
 
   // Distribution preview view
   if (distributionPreview) {
@@ -196,6 +218,9 @@ const ConfirmProductCompletionModal: React.FC<ConfirmProductCompletionModalProps
               </table>
             </div>
 
+            {/* Error Message */}
+            {errorBanner}
+
             {/* Buttons */}
             <div className="flex gap-3 pt-2">
               <button
@@ -208,7 +233,7 @@ const ConfirmProductCompletionModal: React.FC<ConfirmProductCompletionModalProps
               </button>
               <button
                 type="button"
-                onClick={onConfirmDistribution}
+                onClick={handleConfirmDistribution}
                 className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-orange-600 text-white rounded hover:bg-orange-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm"
                 disabled={isLoading}
               >
@@ -317,12 +342,7 @@ const ConfirmProductCompletionModal: React.FC<ConfirmProductCompletionModalProps
           </div>
 
           {/* Error Message */}
-          {error && (
-            <div className="flex items-center gap-2 p-2 bg-red-50 border border-red-200 dark:bg-red-900/20 dark:border-red-900/40 rounded">
-              <AlertCircle className="h-4 w-4 text-red-600 dark:text-red-400 flex-shrink-0" />
-              <span className="text-xs text-red-600 dark:text-red-400">{error}</span>
-            </div>
-          )}
+          {errorBanner}
 
           {/* Buttons */}
           <div className="flex gap-3 pt-2">
