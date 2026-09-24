@@ -52,7 +52,8 @@ jobs:
           python scripts/process-docs/check.py pr --base "origin/${{ github.base_ref }}" --comment-file process-docs-comment.md
           if [ -f process-docs-comment.md ]; then
             gh pr comment "${{ github.event.pull_request.number }}" --body-file process-docs-comment.md --edit-last --create-if-none \
-              || gh pr comment "${{ github.event.pull_request.number }}" --body-file process-docs-comment.md
+              || gh pr comment "${{ github.event.pull_request.number }}" --body-file process-docs-comment.md \
+              || echo "::warning::Could not post process-docs PR comment (read-only token on fork PRs?) — see the list above"
           fi
 
   # Frontend Tests - Parallel execution
