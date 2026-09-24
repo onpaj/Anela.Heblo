@@ -22,7 +22,7 @@
     },
     "developing": {
       "status": "in_progress",
-      "updated_at": "2026-09-24T07:18:51.523868Z"
+      "updated_at": "2026-09-24T11:19:52.435860Z"
     }
   },
   "tasks": [
@@ -40,9 +40,9 @@
     },
     {
       "name": "split-catalog-meta-refresh-service",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-09-24T11:19:52.652378Z"
     },
     {
       "name": "split-catalog-reference-refresh-service",
