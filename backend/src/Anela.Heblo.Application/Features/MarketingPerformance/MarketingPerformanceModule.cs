@@ -19,7 +19,6 @@ public static class MarketingPerformanceModule
         services.AddSingleton<IValidateOptions<MarketingPerformanceOptions>, MarketingPerformanceOptionsValidator>();
 
         services.AddScoped<IMarketingPerformanceRepository, MarketingPerformanceRepository>();
-        services.AddScoped<IMonthlyRevenueSource, IssuedInvoiceMonthlyRevenueSource>();
         // No-op fallback; the Flexi adapter will override with the real received-invoice
         // implementation when it is registered (last registration wins).
         services.AddScoped<IMonthlyAdCostSource, NoOpMonthlyAdCostSource>();
