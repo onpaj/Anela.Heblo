@@ -32,4 +32,6 @@ No sandbox — every call hits the live company. Record verified behaviour here 
   Measured 2026-09-24 over 530 materials and goods: 504 within 1 %, 23 off by 1–5 %, 3 off by more than 5 %
   (cheap per-gram materials such as AKL027: 0.01 vs 0.012551).
 - Warehouses: 5 = materials, 20 = semi-products, 4 = products and goods.
+- Financial Overview values stock from these rows (`FinancialOverviewStockValueAdapter`: Σ `Stock × Price` per
+  warehouse and date, i.e. Σ `tuz`), not from ceník `nakupCena` (changed 2026-09-24).
 - `skladova-karta` holds one card per accounting year (`ucetObdobi`); `prumCenaTuz` there is unrounded.
