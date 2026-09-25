@@ -22555,9 +22555,9 @@ export interface IClearFlagOverrideResponse extends IBaseResponse {
 }
 
 export class DownloadFromUrlResponse extends BaseResponse implements IDownloadFromUrlResponse {
-    blobUrl?: string;
-    blobName?: string;
-    containerName?: string;
+    blobUrl?: string | undefined;
+    blobName?: string | undefined;
+    containerName?: string | undefined;
     fileSizeBytes?: number;
 
     constructor(data?: IDownloadFromUrlResponse) {
@@ -22593,9 +22593,9 @@ export class DownloadFromUrlResponse extends BaseResponse implements IDownloadFr
 }
 
 export interface IDownloadFromUrlResponse extends IBaseResponse {
-    blobUrl?: string;
-    blobName?: string;
-    containerName?: string;
+    blobUrl?: string | undefined;
+    blobName?: string | undefined;
+    containerName?: string | undefined;
     fileSizeBytes?: number;
 }
 
