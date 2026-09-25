@@ -28,9 +28,9 @@
   "tasks": [
     {
       "name": "remove-backend-timestamp-field",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-09-25T07:17:44.402324Z"
+      "updated_at": "2026-09-25T08:19:01.522675Z"
     },
     {
       "name": "regenerate-frontend-client",
