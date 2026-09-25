@@ -28,9 +28,9 @@
   "tasks": [
     {
       "name": "remove-async-state-machine",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-09-25T06:16:35.483694Z"
+      "updated_at": "2026-09-25T06:55:36.238512Z"
     }
   ]
 }
