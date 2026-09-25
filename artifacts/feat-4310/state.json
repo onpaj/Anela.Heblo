@@ -21,16 +21,16 @@
       "updated_at": "2026-09-25T08:14:30.990470Z"
     },
     "developing": {
-      "status": "pending",
-      "updated_at": null
+      "status": "in_progress",
+      "updated_at": "2026-09-25T09:18:44.121880Z"
     }
   },
   "tasks": [
     {
       "name": "fix-response-nullability",
-      "status": "pending",
+      "status": "completed",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-09-25T09:57:29.017820Z"
     },
     {
       "name": "regenerate-api-client",
