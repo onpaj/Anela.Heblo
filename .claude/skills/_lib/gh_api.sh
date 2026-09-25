@@ -152,19 +152,25 @@ req_paginate() {
   local url
   url=$(_api_url "$path")
   [[ "$url" == *"?"* ]] && url="${url}&per_page=100" || url="${url}?per_page=100"
-  local all="[]" hdrfile body
+  local hdrfile allfile bodyfile
   hdrfile=$(mktemp)
+  allfile=$(mktemp)
+  bodyfile=$(mktemp)
+  echo '[]' > "$allfile"
+  # Pages are merged via files (jq -s + add), not --argjson: a large page
+  # (long comment bodies, many items) passed as a command-line argument can
+  # exceed the OS argv size limit ("Argument list too long").
   while [[ -n "$url" ]]; do
-    body=$(curl -sS --max-time 30 -X "$method" \
+    curl -sS --max-time 30 -X "$method" \
       -H "Authorization: Bearer ${TOKEN}" \
       -H "Accept: application/vnd.github+json" \
       -H "X-GitHub-Api-Version: 2022-11-28" \
-      -D "$hdrfile" "$url")
-    all=$(jq -c -n --argjson a "$all" --argjson b "$body" '$a + $b')
+      -D "$hdrfile" -o "$bodyfile" "$url"
+    jq -c -s 'add' "$allfile" "$bodyfile" > "${allfile}.tmp" && mv "${allfile}.tmp" "$allfile"
     url=$(grep -i '^link:' "$hdrfile" | grep -o '<[^>]*>; rel="next"' | sed -E 's/^<(.*)>.*/\1/' || true)
   done
-  rm -f "$hdrfile"
-  printf '%s' "$all"
+  cat "$allfile"
+  rm -f "$hdrfile" "$allfile" "$bodyfile"
 }
 
 graphql() {
@@ -549,13 +555,19 @@ pr_list() {
   fi
   resp=$(req GET "/repos/${REPO}/issues?state=${state}${label_query}&per_page=100")
   numbers=$(emit "$resp" | jq -r '[.[] | select(has("pull_request"))] | .[].number')
-  out="[]"
+  local outfile entryfile
+  outfile=$(mktemp)
+  entryfile=$(mktemp)
+  echo '[]' > "$outfile"
+  # Merged via files (jq -s + add), not --argjson: enough PRs with large
+  # bodies accumulated as a command-line argument can exceed the OS argv
+  # size limit ("Argument list too long") — see req_paginate's own comment.
   for n in $numbers; do
-    local entry
-    entry=$(pr_view "$n" "reviewDecision")
-    out=$(jq -c -n --argjson a "$out" --argjson e "$entry" '$a + [$e]')
+    pr_view "$n" "reviewDecision" > "$entryfile"
+    jq -c -s '.[0] + [.[1]]' "$outfile" "$entryfile" > "${outfile}.tmp" && mv "${outfile}.tmp" "$outfile"
   done
-  echo "$out"
+  cat "$outfile"
+  rm -f "$outfile" "$entryfile"
 }
 
 # ---- repo commands ------------------------------------------------------------
