@@ -32,7 +32,6 @@ public class GetConfigurationHandler : IRequestHandler<GetConfigurationRequest, 
             Version = appConfig.Version,
             Environment = appConfig.Environment,
             UseMockAuth = appConfig.UseMockAuth,
-            Timestamp = DateTime.UtcNow,
         };
 
         _logger.LogDebug("Configuration retrieved successfully: {@Config}", response);

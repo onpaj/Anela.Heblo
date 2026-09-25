@@ -21266,7 +21266,6 @@ export class GetConfigurationResponse extends BaseResponse implements IGetConfig
     version?: string;
     environment?: string;
     useMockAuth?: boolean;
-    timestamp?: Date;
 
     constructor(data?: IGetConfigurationResponse) {
         super(data);
@@ -21278,7 +21277,6 @@ export class GetConfigurationResponse extends BaseResponse implements IGetConfig
             this.version = _data["version"];
             this.environment = _data["environment"];
             this.useMockAuth = _data["useMockAuth"];
-            this.timestamp = _data["timestamp"] ? new Date(_data["timestamp"].toString()) : <any>undefined;
         }
     }
 
@@ -21294,7 +21292,6 @@ export class GetConfigurationResponse extends BaseResponse implements IGetConfig
         data["version"] = this.version;
         data["environment"] = this.environment;
         data["useMockAuth"] = this.useMockAuth;
-        data["timestamp"] = this.timestamp ? this.timestamp.toISOString() : <any>undefined;
         super.toJSON(data);
         return data;
     }
@@ -21304,7 +21301,6 @@ export interface IGetConfigurationResponse extends IBaseResponse {
     version?: string;
     environment?: string;
     useMockAuth?: boolean;
-    timestamp?: Date;
 }
 
 export class DashboardTileDto implements IDashboardTileDto {
@@ -22559,9 +22555,9 @@ export interface IClearFlagOverrideResponse extends IBaseResponse {
 }
 
 export class DownloadFromUrlResponse extends BaseResponse implements IDownloadFromUrlResponse {
-    blobUrl?: string;
-    blobName?: string;
-    containerName?: string;
+    blobUrl?: string | undefined;
+    blobName?: string | undefined;
+    containerName?: string | undefined;
     fileSizeBytes?: number;
 
     constructor(data?: IDownloadFromUrlResponse) {
@@ -22597,9 +22593,9 @@ export class DownloadFromUrlResponse extends BaseResponse implements IDownloadFr
 }
 
 export interface IDownloadFromUrlResponse extends IBaseResponse {
-    blobUrl?: string;
-    blobName?: string;
-    containerName?: string;
+    blobUrl?: string | undefined;
+    blobName?: string | undefined;
+    containerName?: string | undefined;
     fileSizeBytes?: number;
 }
 
