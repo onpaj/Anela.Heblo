@@ -25,5 +25,24 @@
       "updated_at": null
     }
   },
-  "tasks": []
+  "tasks": [
+    {
+      "name": "remove-backend-timestamp-field",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    },
+    {
+      "name": "regenerate-frontend-client",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    },
+    {
+      "name": "simplify-frontend-timestamp-usage",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    }
+  ]
 }
