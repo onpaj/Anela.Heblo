@@ -223,28 +223,44 @@ public class MarginCostWindowAlignmentTests
             timeProvider,
             Mock.Of<ILogger<CatalogMergeService>>());
 
-        var refreshService = new CatalogDataRefreshService(
+        var historyRefreshService = new CatalogHistoryRefreshService(
             Mock.Of<ICatalogSalesClient>(),
             Mock.Of<ICatalogSetPartsClient>(),
-            Mock.Of<ICatalogAttributesClient>(),
-            Mock.Of<IEshopStockClient>(),
-            Mock.Of<IConsumedMaterialsClient>(),
             Mock.Of<IPurchaseHistoryClient>(),
-            Mock.Of<IErpStockClient>(),
-            Mock.Of<ILotsClient>(),
-            Mock.Of<IProductPriceEshopClient>(),
-            Mock.Of<IProductPriceErpClient>(),
-            Mock.Of<IProductEshopUrlClient>(),
-            Mock.Of<ICatalogTransportSource>(),
-            Mock.Of<IStockTakingRepository>(),
-            Mock.Of<ICatalogPurchaseSource>(),
+            Mock.Of<IConsumedMaterialsClient>(),
             Mock.Of<ICatalogManufactureSource>(),
-            Mock.Of<IManufactureDifficultyRepository>(),
             Mock.Of<ICatalogResilienceService>(),
             timeProvider,
             dataSourceOptions,
             cacheStore,
-            Mock.Of<ILogger<CatalogDataRefreshService>>());
+            Mock.Of<ILogger<CatalogHistoryRefreshService>>());
+
+        var stockRefreshService = new CatalogStockRefreshService(
+            Mock.Of<IErpStockClient>(),
+            Mock.Of<IEshopStockClient>(),
+            Mock.Of<ICatalogTransportSource>(),
+            Mock.Of<ICatalogPurchaseSource>(),
+            Mock.Of<ICatalogManufactureSource>(),
+            Mock.Of<ICatalogResilienceService>(),
+            cacheStore,
+            Mock.Of<ILogger<CatalogStockRefreshService>>());
+
+        var metaRefreshService = new CatalogMetaRefreshService(
+            Mock.Of<ICatalogAttributesClient>(),
+            Mock.Of<ILotsClient>(),
+            Mock.Of<IProductPriceEshopClient>(),
+            Mock.Of<IProductPriceErpClient>(),
+            Mock.Of<IProductEshopUrlClient>(),
+            Mock.Of<ICatalogResilienceService>(),
+            cacheStore,
+            Mock.Of<ILogger<CatalogMetaRefreshService>>());
+
+        var referenceRefreshService = new CatalogReferenceRefreshService(
+            Mock.Of<IStockTakingRepository>(),
+            Mock.Of<IManufactureDifficultyRepository>(),
+            timeProvider,
+            cacheStore,
+            Mock.Of<ILogger<CatalogReferenceRefreshService>>());
 
         var marginService = new MarginCalculationService(
             CreateEmptyCostProvider<IMaterialCostProvider>(),
@@ -256,7 +272,10 @@ public class MarginCostWindowAlignmentTests
         return new CatalogRepository(
             cacheStore,
             mergeService,
-            refreshService,
+            historyRefreshService,
+            stockRefreshService,
+            metaRefreshService,
+            referenceRefreshService,
             mergeSchedulerMock.Object,
             marginService,
             timeProvider,
