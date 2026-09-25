@@ -21,16 +21,16 @@
       "updated_at": "2026-09-25T05:14:53.368799Z"
     },
     "developing": {
-      "status": "pending",
-      "updated_at": null
+      "status": "in_progress",
+      "updated_at": "2026-09-25T06:16:35.258786Z"
     }
   },
   "tasks": [
     {
       "name": "remove-async-state-machine",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-09-25T06:16:35.483694Z"
     }
   ]
 }

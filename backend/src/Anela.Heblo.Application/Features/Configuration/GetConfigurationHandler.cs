@@ -21,7 +21,7 @@ public class GetConfigurationHandler : IRequestHandler<GetConfigurationRequest, 
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
-    public async Task<GetConfigurationResponse> Handle(GetConfigurationRequest request, CancellationToken cancellationToken)
+    public Task<GetConfigurationResponse> Handle(GetConfigurationRequest request, CancellationToken cancellationToken)
     {
         _logger.LogDebug("Handling GetConfiguration request");
 
@@ -37,7 +37,7 @@ public class GetConfigurationHandler : IRequestHandler<GetConfigurationRequest, 
 
         _logger.LogDebug("Configuration retrieved successfully: {@Config}", response);
 
-        return response;
+        return Task.FromResult(response);
     }
 
     private ApplicationConfiguration BuildApplicationConfiguration()
