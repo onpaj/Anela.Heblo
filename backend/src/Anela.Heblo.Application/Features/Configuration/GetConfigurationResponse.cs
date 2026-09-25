@@ -21,9 +21,4 @@ public class GetConfigurationResponse : BaseResponse
     /// Whether mock authentication is enabled
     /// </summary>
     public bool UseMockAuth { get; set; }
-
-    /// <summary>
-    /// Response timestamp in UTC
-    /// </summary>
-    public DateTime Timestamp { get; set; }
 }

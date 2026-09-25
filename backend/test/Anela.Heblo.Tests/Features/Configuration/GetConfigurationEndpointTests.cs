@@ -42,8 +42,6 @@ public class GetConfigurationEndpointTests : IClassFixture<HebloWebApplicationFa
         configResponse.Should().NotBeNull();
         configResponse.Version.Should().NotBeNull();
         configResponse.Environment.Should().NotBeNull();
-        (configResponse.Timestamp > DateTime.MinValue).Should().BeTrue();
-        Assert.True(configResponse.Timestamp <= DateTime.UtcNow.AddMinutes(1)); // Allow 1 minute tolerance
     }
 
     [Fact]
