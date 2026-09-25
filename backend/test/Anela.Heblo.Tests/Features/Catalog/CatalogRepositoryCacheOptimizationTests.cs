@@ -49,11 +49,14 @@ public class CatalogRepositoryCacheOptimizationTests
     private readonly Mock<IOptions<DataSourceOptions>> _optionsMock;
     private readonly Mock<IOptions<CatalogCacheOptions>> _cacheOptionsMock;
     private readonly Mock<ILogger<CatalogRepository>> _loggerMock;
-    private readonly Mock<ILogger<CatalogDataRefreshService>> _refreshServiceLoggerMock;
+    private readonly Mock<ILogger<CatalogHistoryRefreshService>> _refreshServiceLoggerMock;
 
     private readonly CatalogCacheStore _cacheStore;
     private readonly CatalogMergeService _mergeService;
-    private readonly CatalogDataRefreshService _refreshService;
+    private readonly CatalogHistoryRefreshService _historyRefreshService;
+    private readonly CatalogStockRefreshService _stockRefreshService;
+    private readonly CatalogMetaRefreshService _metaRefreshService;
+    private readonly CatalogReferenceRefreshService _referenceRefreshService;
     private readonly CatalogRepository _repository;
     private readonly CatalogCacheOptions _cacheOptions;
 
@@ -92,7 +95,7 @@ public class CatalogRepositoryCacheOptimizationTests
         });
         _cacheOptionsMock = new Mock<IOptions<CatalogCacheOptions>>();
         _loggerMock = new Mock<ILogger<CatalogRepository>>();
-        _refreshServiceLoggerMock = new Mock<ILogger<CatalogDataRefreshService>>();
+        _refreshServiceLoggerMock = new Mock<ILogger<CatalogHistoryRefreshService>>();
 
         _timeProviderMock.Setup(x => x.GetUtcNow()).Returns(DateTimeOffset.UtcNow);
 
@@ -147,33 +150,52 @@ public class CatalogRepositoryCacheOptimizationTests
             _timeProviderMock.Object,
             new Mock<ILogger<CatalogMergeService>>().Object);
 
-        _refreshService = new CatalogDataRefreshService(
+        _historyRefreshService = new CatalogHistoryRefreshService(
             _salesClientMock.Object,
             new Mock<ICatalogSetPartsClient>().Object,
-            _attributesClientMock.Object,
-            _eshopStockClientMock.Object,
-            _consumedMaterialClientMock.Object,
             _purchaseHistoryClientMock.Object,
-            _erpStockClientMock.Object,
-            _lotsClientMock.Object,
-            _productPriceEshopClientMock.Object,
-            _productPriceErpClientMock.Object,
-            _productEshopUrlClientMock.Object,
-            _transportSourceMock.Object,
-            _stockTakingRepositoryMock.Object,
-            _purchaseSourceMock.Object,
+            _consumedMaterialClientMock.Object,
             _manufactureSourceMock.Object,
-            _manufactureDifficultyRepositoryMock.Object,
             _resilienceServiceMock.Object,
             _timeProviderMock.Object,
             _optionsMock.Object,
             _cacheStore,
             _refreshServiceLoggerMock.Object);
 
+        _stockRefreshService = new CatalogStockRefreshService(
+            _erpStockClientMock.Object,
+            _eshopStockClientMock.Object,
+            _transportSourceMock.Object,
+            _purchaseSourceMock.Object,
+            _manufactureSourceMock.Object,
+            _resilienceServiceMock.Object,
+            _cacheStore,
+            new Mock<ILogger<CatalogStockRefreshService>>().Object);
+
+        _metaRefreshService = new CatalogMetaRefreshService(
+            _attributesClientMock.Object,
+            _lotsClientMock.Object,
+            _productPriceEshopClientMock.Object,
+            _productPriceErpClientMock.Object,
+            _productEshopUrlClientMock.Object,
+            _resilienceServiceMock.Object,
+            _cacheStore,
+            new Mock<ILogger<CatalogMetaRefreshService>>().Object);
+
+        _referenceRefreshService = new CatalogReferenceRefreshService(
+            _stockTakingRepositoryMock.Object,
+            _manufactureDifficultyRepositoryMock.Object,
+            _timeProviderMock.Object,
+            _cacheStore,
+            new Mock<ILogger<CatalogReferenceRefreshService>>().Object);
+
         _repository = new CatalogRepository(
             _cacheStore,
             _mergeService,
-            _refreshService,
+            _historyRefreshService,
+            _stockRefreshService,
+            _metaRefreshService,
+            _referenceRefreshService,
             _mergeSchedulerMock.Object,
             _marginServiceMock.Object,
             _timeProviderMock.Object,

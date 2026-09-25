@@ -1,17 +1,205 @@
+### task: split-catalog-history-refresh-service
+
+**Files:**
+- Create: `backend/src/Anela.Heblo.Application/Features/Catalog/Infrastructure/CatalogHistoryRefreshService.cs`
+- Create: `backend/test/Anela.Heblo.Tests/Features/Catalog/Infrastructure/CatalogHistoryRefreshServiceTests.cs`
+
+- [ ] **Step 1: Create `CatalogHistoryRefreshService.cs`**
+
+```csharp
+using Anela.Heblo.Application.Common;
+using Anela.Heblo.Application.Features.Catalog.Contracts;
+using Anela.Heblo.Domain.Features.Catalog;
+using Anela.Heblo.Domain.Features.Catalog.ConsumedMaterials;
+using Anela.Heblo.Domain.Features.Catalog.PurchaseHistory;
+using Anela.Heblo.Domain.Features.Catalog.Sales;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
+
+namespace Anela.Heblo.Application.Features.Catalog.Infrastructure;
+
+/// <summary>
+/// Refreshes time-windowed catalog history: sales, set-parts composition, purchase history,
+/// consumed-material history, and manufacture history.
+/// </summary>
+public sealed class CatalogHistoryRefreshService
+{
+    private readonly ICatalogSalesClient _salesClient;
+    private readonly ICatalogSetPartsClient _setPartsClient;
+    private readonly IPurchaseHistoryClient _purchaseHistoryClient;
+    private readonly IConsumedMaterialsClient _consumedMaterialClient;
+    private readonly ICatalogManufactureSource _manufactureSource;
+    private readonly ICatalogResilienceService _resilienceService;
+    private readonly TimeProvider _timeProvider;
+    private readonly IOptions<DataSourceOptions> _options;
+    private readonly CatalogCacheStore _cacheStore;
+    private readonly ILogger<CatalogHistoryRefreshService> _logger;
+
+    public CatalogHistoryRefreshService(
+        ICatalogSalesClient salesClient,
+        ICatalogSetPartsClient setPartsClient,
+        IPurchaseHistoryClient purchaseHistoryClient,
+        IConsumedMaterialsClient consumedMaterialClient,
+        ICatalogManufactureSource manufactureSource,
+        ICatalogResilienceService resilienceService,
+        TimeProvider timeProvider,
+        IOptions<DataSourceOptions> options,
+        CatalogCacheStore cacheStore,
+        ILogger<CatalogHistoryRefreshService> logger)
+    {
+        _salesClient = salesClient ?? throw new ArgumentNullException(nameof(salesClient));
+        _setPartsClient = setPartsClient ?? throw new ArgumentNullException(nameof(setPartsClient));
+        _purchaseHistoryClient = purchaseHistoryClient ?? throw new ArgumentNullException(nameof(purchaseHistoryClient));
+        _consumedMaterialClient = consumedMaterialClient ?? throw new ArgumentNullException(nameof(consumedMaterialClient));
+        _manufactureSource = manufactureSource ?? throw new ArgumentNullException(nameof(manufactureSource));
+        _resilienceService = resilienceService ?? throw new ArgumentNullException(nameof(resilienceService));
+        _timeProvider = timeProvider ?? throw new ArgumentNullException(nameof(timeProvider));
+        _options = options ?? throw new ArgumentNullException(nameof(options));
+        _cacheStore = cacheStore ?? throw new ArgumentNullException(nameof(cacheStore));
+        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+    }
+
+    public async Task RefreshSalesData(CancellationToken ct)
+    {
+        try
+        {
+            _cacheStore.SetSalesData(await _resilienceService.ExecuteWithResilienceAsync(
+                async (cancellationToken) => await _salesClient.GetAsync(
+                    _timeProvider.GetUtcNow().Date.AddDays(-1 * _options.Value.SalesHistoryDays),
+                    _timeProvider.GetUtcNow().Date,
+                    cancellationToken: cancellationToken),
+                "RefreshSalesData", ct));
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            _logger.LogWarning(ex, "RefreshSalesData failed after all retries — retaining stale cache. Items in cache: {Count}", _cacheStore.GetSalesData().Count);
+        }
+    }
+
+    /// <summary>
+    /// Reads the ERP stock cache to decide which products are bundles, so it must run after
+    /// RefreshErpStockData has populated it. A hydration tier runs its tasks concurrently, so this
+    /// task is configured one tier later than RefreshErpStockData rather than relying on ordering
+    /// within a tier — otherwise a cold start can leave bundle expansion inactive until the next
+    /// scheduled run.
+    /// </summary>
+    public async Task RefreshSetPartsData(CancellationToken ct)
+    {
+        try
+        {
+            var bundleCodes = _cacheStore.GetErpStockData()
+                .Where(s => BundleProductRule.Resolve((ProductType?)s.ProductTypeId ?? ProductType.UNDEFINED, s.ProductCode) == ProductType.Set)
+                .Select(s => s.ProductCode)
+                .ToList();
+
+            if (bundleCodes.Count == 0)
+            {
+                _logger.LogWarning(
+                    "RefreshSetPartsData found no bundle-coded products in ERP stock — bundle sales expansion will be inactive. Retaining existing set-parts cache. Items in cache: {Count}",
+                    _cacheStore.GetSetPartsData().Count);
+                return;
+            }
+
+            var (setParts, failedCount) = await FetchSetPartsPerBundleAsync(bundleCodes, ct);
+
+            if (failedCount == bundleCodes.Count)
+            {
+                _logger.LogWarning(
+                    "RefreshSetPartsData could not fetch any of {BundleCount} bundles — retaining stale cache. Items in cache: {Count}",
+                    bundleCodes.Count,
+                    _cacheStore.GetSetPartsData().Count);
+                return;
+            }
+
+            _cacheStore.SetSetPartsData(setParts);
+
+            _logger.LogInformation(
+                "RefreshSetPartsData refreshed successfully: {BundleCount} bundles resolved ({FailedCount} failed), {PartCount} parts retrieved",
+                bundleCodes.Count,
+                failedCount,
+                setParts.Count);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            _logger.LogWarning(ex, "RefreshSetPartsData failed after all retries — retaining stale cache. Items in cache: {Count}", _cacheStore.GetSetPartsData().Count);
+        }
+    }
+
+    /// <summary>
+    /// Fetches set parts one bundle at a time. Flexi has no batch endpoint for bundle composition,
+    /// so a single resilience execution around the whole loop would spend one 30s timeout budget on
+    /// N sequential calls and start failing outright once the bundle count grows. Per-bundle
+    /// execution also keeps one broken bundle definition from blocking every other bundle.
+    /// </summary>
+    private async Task<(IList<CatalogSetPart> Parts, int FailedCount)> FetchSetPartsPerBundleAsync(
+        IReadOnlyList<string> bundleCodes,
+        CancellationToken ct)
+    {
+        var parts = new List<CatalogSetPart>();
+        var failedCount = 0;
+
+        foreach (var bundleCode in bundleCodes)
+        {
+            try
+            {
+                var bundleParts = await _resilienceService.ExecuteWithResilienceAsync(
+                    async (cancellationToken) => (IList<CatalogSetPart>)(await _setPartsClient.GetAsync(
+                        new[] { bundleCode },
+                        cancellationToken)).ToList(),
+                    "RefreshSetPartsData", ct);
+
+                parts.AddRange(bundleParts);
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException)
+            {
+                failedCount++;
+                _logger.LogWarning(
+                    ex,
+                    "RefreshSetPartsData could not fetch bundle {SetCode} — its sales will not be expanded this cycle.",
+                    bundleCode);
+            }
+        }
+
+        return (parts, failedCount);
+    }
+
+    public async Task RefreshPurchaseHistoryData(CancellationToken ct)
+    {
+        _cacheStore.SetPurchaseHistoryData((await _purchaseHistoryClient.GetHistoryAsync(null, _timeProvider.GetUtcNow().Date.AddDays(-1 * _options.Value.PurchaseHistoryDays), _timeProvider.GetUtcNow().Date, cancellationToken: ct))
+            .ToList());
+    }
+
+    public async Task RefreshConsumedHistoryData(CancellationToken ct)
+    {
+        _cacheStore.SetConsumedData((await _consumedMaterialClient.GetConsumedAsync(_timeProvider.GetUtcNow().Date.AddDays(-1 * _options.Value.ConsumedHistoryDays), _timeProvider.GetUtcNow().Date, cancellationToken: ct))
+            .ToList());
+    }
+
+    public async Task RefreshManufactureHistoryData(CancellationToken ct)
+    {
+        _cacheStore.SetManufactureHistoryData((await _manufactureSource.GetManufactureHistoryAsync(
+            _timeProvider.GetUtcNow().Date.AddDays(-1 * _options.Value.ManufactureHistoryDays),
+            _timeProvider.GetUtcNow().Date,
+            ct)).ToList());
+    }
+}
+```
+
+- [ ] **Step 2: Build the Application project to confirm it compiles standalone**
+
+Run: `cd backend && dotnet build src/Anela.Heblo.Application/Anela.Heblo.Application.csproj`
+Expected: `Build succeeded.` (the old `CatalogDataRefreshService.cs` still exists at this point and still compiles too — this step only proves the new file's own syntax/usings/types are correct; `CatalogRepository`/`CatalogModule` are not touched yet, so there is no duplicate-registration or missing-reference error to worry about here)
+
+- [ ] **Step 3: Create `CatalogHistoryRefreshServiceTests.cs`**, moving the 6 relevant test cases from `CatalogDataRefreshServiceTests.cs` verbatim (`RefreshSalesData_WhenResilienceThrows_RetainsStaleCacheAndLogsWarning`, `RefreshSetPartsData_FetchesPartsOnlyForBundleCodedProducts`, `RefreshSetPartsData_WhenOneBundleFails_KeepsPartsFromTheOthers`, `RefreshSetPartsData_FetchesEachBundleSeparately`, `RefreshSetPartsData_WhenResilienceThrows_RetainsStaleCacheAndLogsWarning`, `RefreshSetPartsData_WhenNoBundleCodedProductsExist_RetainsExistingCacheAndLogsWarning`), with a `CreateService` helper scoped to this class's 10 constructor parameters:
+
+```csharp
 using Anela.Heblo.Application.Common;
 using Anela.Heblo.Application.Features.Catalog.Contracts;
 using Anela.Heblo.Application.Features.Catalog.Infrastructure;
 using Anela.Heblo.Domain.Features.Catalog;
-using Anela.Heblo.Domain.Features.Catalog.Attributes;
-using Anela.Heblo.Domain.Features.Catalog.ConsumedMaterials;
-using Anela.Heblo.Domain.Features.Catalog.Lots;
-using Anela.Heblo.Domain.Features.Catalog.EshopUrl;
-using Anela.Heblo.Domain.Features.Catalog.Price;
-using Anela.Heblo.Domain.Features.Catalog.ManufactureHistory;
 using Anela.Heblo.Domain.Features.Catalog.PurchaseHistory;
 using Anela.Heblo.Domain.Features.Catalog.Sales;
 using Anela.Heblo.Domain.Features.Catalog.Stock;
-using Anela.Heblo.Domain.Features.Manufacture;
 using FluentAssertions;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
@@ -21,7 +209,7 @@ using Xunit;
 
 namespace Anela.Heblo.Tests.Features.Catalog.Infrastructure;
 
-public sealed class CatalogDataRefreshServiceTests
+public sealed class CatalogHistoryRefreshServiceTests
 {
     private readonly MemoryCache _memoryCache;
     private readonly TimeProvider _timeProvider;
@@ -29,15 +217,15 @@ public sealed class CatalogDataRefreshServiceTests
     private readonly CatalogCacheStore _cacheStore;
     private readonly Mock<ICatalogMergeScheduler> _mergeSchedulerMock;
     private readonly Mock<ILogger<CatalogCacheStore>> _cacheStoreLoggerMock;
-    private readonly Mock<ILogger<CatalogDataRefreshService>> _serviceLoggerMock;
+    private readonly Mock<ILogger<CatalogHistoryRefreshService>> _serviceLoggerMock;
 
-    public CatalogDataRefreshServiceTests()
+    public CatalogHistoryRefreshServiceTests()
     {
         _memoryCache = new MemoryCache(new MemoryCacheOptions());
         _timeProvider = TimeProvider.System;
         _mergeSchedulerMock = new Mock<ICatalogMergeScheduler>();
         _cacheStoreLoggerMock = new Mock<ILogger<CatalogCacheStore>>();
-        _serviceLoggerMock = new Mock<ILogger<CatalogDataRefreshService>>();
+        _serviceLoggerMock = new Mock<ILogger<CatalogHistoryRefreshService>>();
 
         var options = new CatalogCacheOptions
         {
@@ -89,151 +277,6 @@ public sealed class CatalogDataRefreshServiceTests
                 It.IsAny<Exception>(),
                 It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
             Times.Once);
-    }
-
-    [Fact]
-    public async Task RefreshManufactureDifficultySettingsData_SingleProduct_DoesNotMutateSharedDictionaryOrAggregate()
-    {
-        // Arrange
-        var originalSetting = new ManufactureDifficultySetting
-        {
-            Id = 1,
-            ProductCode = "ABC",
-            DifficultyValue = 1,
-            ValidFrom = DateTime.UtcNow.AddDays(-10)
-        };
-        _cacheStore.SetManufactureDifficultySettingsData(
-            new Dictionary<string, List<ManufactureDifficultySetting>> { ["ABC"] = new List<ManufactureDifficultySetting> { originalSetting } });
-
-        var aggregate = new CatalogAggregate { ProductCode = "ABC" };
-        aggregate.ManufactureDifficultySettings.Assign(new List<ManufactureDifficultySetting> { originalSetting }, DateTime.UtcNow);
-        var catalog = new List<CatalogAggregate> { aggregate };
-        await _cacheStore.ReplaceCacheAtomicallyAsync(catalog);
-
-        // Snapshot references taken BEFORE the call under test
-        var dictBefore = _cacheStore.GetManufactureDifficultySettingsData();
-        var aggregateBefore = _cacheStore.TryGetCurrent()!.Single(p => p.ProductCode == "ABC");
-
-        var newSetting = new ManufactureDifficultySetting
-        {
-            Id = 2,
-            ProductCode = "ABC",
-            DifficultyValue = 5,
-            ValidFrom = DateTime.UtcNow
-        };
-
-        var manufactureDifficultyRepoMock = new Mock<IManufactureDifficultyRepository>();
-        manufactureDifficultyRepoMock.Setup(r => r.ListAsync("ABC", It.IsAny<DateTime?>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new List<ManufactureDifficultySetting> { newSetting });
-
-        var service = CreateService(manufactureDifficultyRepo: manufactureDifficultyRepoMock.Object, options: Options.Create(new DataSourceOptions()));
-
-        // Act
-        await service.RefreshManufactureDifficultySettingsData("ABC", CancellationToken.None);
-
-        // Assert: pre-call references are untouched (isolation contract)
-        dictBefore.Should().ContainKey("ABC");
-        dictBefore["ABC"].Should().ContainSingle().Which.Should().Be(originalSetting);
-        aggregateBefore.ManufactureDifficultySettings.Settings.Should().ContainSingle().Which.Should().Be(originalSetting);
-
-        // Assert: a freshly-obtained snapshot reflects the update
-        var dictAfter = _cacheStore.GetManufactureDifficultySettingsData();
-        dictAfter["ABC"].Should().ContainSingle().Which.Should().Be(newSetting);
-
-        var aggregateAfter = _cacheStore.TryGetCurrent()!.Single(p => p.ProductCode == "ABC");
-        aggregateAfter.ManufactureDifficultySettings.Settings.Should().ContainSingle().Which.Should().Be(newSetting);
-        aggregateAfter.ManufactureDifficultySettings.ManufactureDifficulty.Should().Be(5);
-
-        // Assert: Set*Data plumbing ran (load date updated)
-        _cacheStore.GetLoadDateFromCache("CachedManufactureDifficultySettingsData").Should().NotBeNull();
-    }
-
-    [Fact]
-    public async Task RefreshManufactureDifficultySettingsData_SingleProduct_NoCurrentSnapshot_UpdatesDictionaryWithoutThrowing()
-    {
-        // Arrange - no ReplaceCacheAtomicallyAsync call, so TryGetCurrent() is null
-        var newSetting = new ManufactureDifficultySetting { Id = 1, ProductCode = "XYZ", DifficultyValue = 3, ValidFrom = DateTime.UtcNow };
-        var manufactureDifficultyRepoMock = new Mock<IManufactureDifficultyRepository>();
-        manufactureDifficultyRepoMock.Setup(r => r.ListAsync("XYZ", It.IsAny<DateTime?>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new List<ManufactureDifficultySetting> { newSetting });
-
-        var service = CreateService(manufactureDifficultyRepo: manufactureDifficultyRepoMock.Object, options: Options.Create(new DataSourceOptions()));
-
-        // Act
-        var ex = await Record.ExceptionAsync(() => service.RefreshManufactureDifficultySettingsData("XYZ", CancellationToken.None));
-
-        // Assert
-        ex.Should().BeNull();
-        _cacheStore.TryGetCurrent().Should().BeNull();
-        _cacheStore.GetManufactureDifficultySettingsData()["XYZ"].Should().ContainSingle().Which.Should().Be(newSetting);
-    }
-
-    [Fact]
-    public async Task RefreshManufactureCostData_DoesNotMutateLiveCatalogAggregates()
-    {
-        // Arrange
-        var product = new CatalogAggregate { ProductCode = "P100" };
-        var untouchedProduct = new CatalogAggregate { ProductCode = "P200" };
-        var catalog = new List<CatalogAggregate> { product, untouchedProduct };
-        await _cacheStore.ReplaceCacheAtomicallyAsync(catalog);
-
-        var manufactureHistory = new List<CatalogManufactureRecord>
-        {
-            new CatalogManufactureRecord { ProductCode = "P100", Date = DateTime.UtcNow, Amount = 3 }
-        };
-        _cacheStore.SetManufactureHistoryData(manufactureHistory);
-
-        var beforeSnapshot = _cacheStore.TryGetCurrent()!;
-        var productBefore = beforeSnapshot.Single(p => p.ProductCode == "P100");
-
-        var service = CreateService(options: Options.Create(new DataSourceOptions()));
-
-        // Act
-        await service.RefreshManufactureCostData(CancellationToken.None);
-
-        // Assert: the object referenced before the call is untouched
-        productBefore.ManufactureHistory.Should().BeNullOrEmpty();
-
-        // Assert: a fresh snapshot reflects the update, untouched product passed through
-        var afterSnapshot = _cacheStore.TryGetCurrent()!;
-        afterSnapshot.Single(p => p.ProductCode == "P100").ManufactureHistory.Should().ContainSingle();
-        afterSnapshot.Single(p => p.ProductCode == "P200").ManufactureHistory.Should().BeNullOrEmpty();
-    }
-
-    [Fact]
-    public async Task RefreshErpStockData_WritesToCacheStore()
-    {
-        // Arrange
-        var erpStockData = new List<ErpStock>
-        {
-            new ErpStock { ProductCode = "P001", Stock = 100 }
-        };
-
-        var erpStockClientMock = new Mock<IErpStockClient>();
-        erpStockClientMock.Setup(c => c.ListAsync(It.IsAny<CancellationToken>()))
-            .ReturnsAsync(erpStockData);
-
-        var resilienceServiceMock = new Mock<ICatalogResilienceService>();
-        resilienceServiceMock.Setup(r => r.ExecuteWithResilienceAsync(
-                It.IsAny<Func<CancellationToken, Task<List<ErpStock>>>>(),
-                It.IsAny<string>(),
-                It.IsAny<CancellationToken>()))
-            .ReturnsAsync((Func<CancellationToken, Task<List<ErpStock>>> func, string name, CancellationToken ct) =>
-                func(ct).Result);
-
-        var options = Options.Create(new DataSourceOptions());
-        var service = CreateService(
-            erpStockClient: erpStockClientMock.Object,
-            resilienceService: resilienceServiceMock.Object,
-            options: options);
-
-        // Act
-        await service.RefreshErpStockData(CancellationToken.None);
-
-        // Assert
-        _cacheStore.GetErpStockData().Should().HaveCount(1);
-        _cacheStore.GetErpStockData().First().ProductCode.Should().Be("P001");
-        _cacheStore.GetErpStockData().First().Stock.Should().Be(100m);
     }
 
     [Fact]
@@ -446,46 +489,24 @@ public sealed class CatalogDataRefreshServiceTests
     }
 
     /// <summary>
-    /// Helper to create a CatalogDataRefreshService with minimal mocks.
+    /// Helper to create a CatalogHistoryRefreshService with minimal mocks.
     /// Only the mocked dependencies are set; others use loose mocks.
     /// </summary>
-    private CatalogDataRefreshService CreateService(
+    private CatalogHistoryRefreshService CreateService(
         ICatalogSalesClient? salesClient = null,
         ICatalogSetPartsClient? setPartsClient = null,
-        ICatalogAttributesClient? attributesClient = null,
-        IEshopStockClient? eshopStockClient = null,
-        IConsumedMaterialsClient? consumedMaterialClient = null,
         IPurchaseHistoryClient? purchaseHistoryClient = null,
-        IErpStockClient? erpStockClient = null,
-        ILotsClient? lotsClient = null,
-        IProductPriceEshopClient? productPriceEshopClient = null,
-        IProductPriceErpClient? productPriceErpClient = null,
-        IProductEshopUrlClient? productEshopUrlClient = null,
-        ICatalogTransportSource? transportSource = null,
-        IStockTakingRepository? stockTakingRepository = null,
-        ICatalogPurchaseSource? purchaseSource = null,
+        IConsumedMaterialsClient? consumedMaterialClient = null,
         ICatalogManufactureSource? manufactureSource = null,
-        IManufactureDifficultyRepository? manufactureDifficultyRepo = null,
         ICatalogResilienceService? resilienceService = null,
         IOptions<DataSourceOptions>? options = null)
     {
-        return new CatalogDataRefreshService(
+        return new CatalogHistoryRefreshService(
             salesClient ?? new Mock<ICatalogSalesClient>().Object,
             setPartsClient ?? new Mock<ICatalogSetPartsClient>().Object,
-            attributesClient ?? new Mock<ICatalogAttributesClient>().Object,
-            eshopStockClient ?? new Mock<IEshopStockClient>().Object,
-            consumedMaterialClient ?? new Mock<IConsumedMaterialsClient>().Object,
             purchaseHistoryClient ?? new Mock<IPurchaseHistoryClient>().Object,
-            erpStockClient ?? new Mock<IErpStockClient>().Object,
-            lotsClient ?? new Mock<ILotsClient>().Object,
-            productPriceEshopClient ?? new Mock<IProductPriceEshopClient>().Object,
-            productPriceErpClient ?? new Mock<IProductPriceErpClient>().Object,
-            productEshopUrlClient ?? new Mock<IProductEshopUrlClient>().Object,
-            transportSource ?? new Mock<ICatalogTransportSource>().Object,
-            stockTakingRepository ?? new Mock<IStockTakingRepository>().Object,
-            purchaseSource ?? new Mock<ICatalogPurchaseSource>().Object,
+            consumedMaterialClient ?? new Mock<IConsumedMaterialsClient>().Object,
             manufactureSource ?? new Mock<ICatalogManufactureSource>().Object,
-            manufactureDifficultyRepo ?? new Mock<IManufactureDifficultyRepository>().Object,
             resilienceService ?? new Mock<ICatalogResilienceService>().Object,
             _timeProvider,
             options ?? Options.Create(new DataSourceOptions()),
@@ -493,3 +514,20 @@ public sealed class CatalogDataRefreshServiceTests
             _serviceLoggerMock.Object);
     }
 }
+```
+
+- [ ] **Step 4: Run the new test file to confirm all 6 tests pass**
+
+Run: `cd backend && dotnet test test/Anela.Heblo.Tests/Anela.Heblo.Tests.csproj --filter "FullyQualifiedName~CatalogHistoryRefreshServiceTests"`
+Expected: `Passed! - Failed: 0, Passed: 6`
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add backend/src/Anela.Heblo.Application/Features/Catalog/Infrastructure/CatalogHistoryRefreshService.cs
+git add backend/test/Anela.Heblo.Tests/Features/Catalog/Infrastructure/CatalogHistoryRefreshServiceTests.cs
+git commit -m "feat(catalog): extract CatalogHistoryRefreshService from CatalogDataRefreshService"
+```
+
+---
+

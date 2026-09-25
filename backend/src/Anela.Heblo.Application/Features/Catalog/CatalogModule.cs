@@ -94,7 +94,10 @@ public static class CatalogModule
         services.AddSingleton<CatalogCacheStore>();
         services.AddSingleton<BundleSalesExpander>();
         services.AddSingleton<CatalogMergeService>();
-        services.AddTransient<CatalogDataRefreshService>();
+        services.AddTransient<CatalogHistoryRefreshService>();
+        services.AddTransient<CatalogStockRefreshService>();
+        services.AddTransient<CatalogMetaRefreshService>();
+        services.AddTransient<CatalogReferenceRefreshService>();
         services.AddHostedService<CatalogMergeCallbackWiring>();
         services.AddScoped<IMaterialCostCache, MaterialCostCache>();
         services.AddScoped<IFlatManufactureCostCache, FlatManufactureCostCache>();
