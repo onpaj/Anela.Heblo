@@ -152,19 +152,24 @@ req_paginate() {
   local url
   url=$(_api_url "$path")
   [[ "$url" == *"?"* ]] && url="${url}&per_page=100" || url="${url}?per_page=100"
-  local all="[]" hdrfile body
+  local hdrfile tmpdir pagenum=0
   hdrfile=$(mktemp)
+  tmpdir=$(mktemp -d)
+  # Pages are written to files and combined via `jq -s add` rather than
+  # accumulated in a shell variable passed through --argjson: a PR with
+  # enough comments (or large comment bodies) can make that accumulated
+  # array exceed the OS argument-size limit ("Argument list too long").
   while [[ -n "$url" ]]; do
-    body=$(curl -sS --max-time 30 -X "$method" \
+    pagenum=$((pagenum + 1))
+    curl -sS --max-time 30 -X "$method" \
       -H "Authorization: Bearer ${TOKEN}" \
       -H "Accept: application/vnd.github+json" \
       -H "X-GitHub-Api-Version: 2022-11-28" \
-      -D "$hdrfile" "$url")
-    all=$(jq -c -n --argjson a "$all" --argjson b "$body" '$a + $b')
+      -D "$hdrfile" -o "$tmpdir/page_$pagenum.json" "$url"
     url=$(grep -i '^link:' "$hdrfile" | grep -o '<[^>]*>; rel="next"' | sed -E 's/^<(.*)>.*/\1/' || true)
   done
-  rm -f "$hdrfile"
-  printf '%s' "$all"
+  jq -s -c 'add // []' "$tmpdir"/page_*.json
+  rm -rf "$hdrfile" "$tmpdir"
 }
 
 graphql() {
