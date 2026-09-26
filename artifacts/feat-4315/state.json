@@ -28,9 +28,9 @@
   "tasks": [
     {
       "name": "add-mutate-bulk-async-interface",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-09-26T07:18:13.194255Z"
+      "updated_at": "2026-09-26T07:20:42.242847Z"
     },
     {
       "name": "implement-mutate-bulk-async",
