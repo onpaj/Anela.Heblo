@@ -38,23 +38,26 @@ public class RecurringJobSeeder : IRecurringJobSeeder
             now
         )).ToArray();
 
+        // Load all existing configs in one query
+        var existing = await _repository.GetAllAsync(cancellationToken);
+        var existingByName = existing.ToDictionary(c => c.JobName, StringComparer.Ordinal);
+
         foreach (var config in defaultConfigurations)
         {
-            var existing = await _repository.GetByJobNameAsync(config.JobName, cancellationToken);
-            if (existing == null)
+            if (!existingByName.TryGetValue(config.JobName, out var existingConfig))
             {
                 await _repository.AddAsync(config, cancellationToken);
             }
             else
             {
-                existing.UpdateConfiguration(
+                existingConfig.UpdateConfiguration(
                     config.DisplayName,
                     config.Description,
-                    existing.CronExpression,   // preserve admin override
+                    existingConfig.CronExpression,   // preserve admin override
                     config.TimeZoneId,
                     "System",
                     now);
-                await _repository.UpdateAsync(existing, cancellationToken);
+                await _repository.UpdateAsync(existingConfig, cancellationToken);
             }
         }
     }
