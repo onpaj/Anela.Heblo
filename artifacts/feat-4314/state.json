@@ -1,0 +1,46 @@
+{
+  "feature_id": "feat-4314",
+  "issue_number": 4314,
+  "created_at": "2026-09-26T05:11:56.542573Z",
+  "max_revisions": 3,
+  "phases": {
+    "analyzing": {
+      "status": "completed",
+      "updated_at": "2026-09-26T05:13:52.308316Z"
+    },
+    "architecting": {
+      "status": "completed",
+      "updated_at": "2026-09-26T05:14:48.390204Z"
+    },
+    "designing": {
+      "status": "completed",
+      "updated_at": "2026-09-26T05:15:25.198363Z"
+    },
+    "planning": {
+      "status": "completed",
+      "updated_at": "2026-09-26T05:17:16.282199Z"
+    },
+    "developing": {
+      "status": "in_progress",
+      "updated_at": "2026-09-26T07:17:31.418347Z"
+    },
+    "code-review": {
+      "status": "completed",
+      "updated_at": "2026-09-26T08:18:30.917975Z"
+    }
+  },
+  "tasks": [
+    {
+      "name": "refactor-packing-stats-tile-drilldown",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-09-26T06:24:06.294482Z"
+    },
+    {
+      "name": "wire-target-url-in-tile-registry",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-09-26T07:25:01.823080Z"
+    }
+  ]
+}

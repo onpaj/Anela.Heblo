@@ -1,5 +1,11 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
+import {
+  createFilteredUrl,
+  isTileClickable,
+  getTileTooltip,
+  TileDataWithDrillDown,
+} from '../../../utils/urlUtils';
 
 interface PackerStat {
   packerId: string | null;
@@ -16,18 +22,15 @@ interface PackingStatsData {
 }
 
 interface PackingStatsTileProps {
-  data: {
-    status: string;
+  data: TileDataWithDrillDown & {
+    status?: string;
     error?: string;
     data?: PackingStatsData;
-    drillDown?: {
-      enabled: boolean;
-      tooltip?: string;
-    };
   };
+  targetUrl?: string;
 }
 
-export const PackingStatsTile: React.FC<PackingStatsTileProps> = ({ data }) => {
+export const PackingStatsTile: React.FC<PackingStatsTileProps> = ({ data, targetUrl }) => {
   const navigate = useNavigate();
 
   if (data.status === 'error') {
@@ -41,13 +44,20 @@ export const PackingStatsTile: React.FC<PackingStatsTileProps> = ({ data }) => {
   const stats = data.data;
   if (!stats) return null;
 
-  const isClickable = data.drillDown?.enabled ?? false;
+  const isClickable = isTileClickable(data);
+  const tooltip = getTileTooltip(data);
+
+  const handleClick = () => {
+    if (isClickable && targetUrl && data.drillDown?.filters) {
+      navigate(createFilteredUrl(targetUrl, data.drillDown.filters));
+    }
+  };
 
   return (
     <div
       className={`h-full flex flex-col gap-3 ${isClickable ? 'cursor-pointer' : ''}`}
-      onClick={isClickable ? () => navigate('/baleni') : undefined}
-      title={data.drillDown?.tooltip}
+      onClick={isClickable ? handleClick : undefined}
+      title={tooltip}
     >
       <div className="grid grid-cols-3 gap-3">
         <div className="bg-secondary-blue-pale dark:bg-graphite-surface-2 rounded-lg p-3 text-center">
