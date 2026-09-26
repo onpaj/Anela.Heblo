@@ -1,0 +1,82 @@
+{
+  "feature_id": "feat-4210",
+  "issue_number": 4210,
+  "created_at": "2026-09-17T06:12:19.989191Z",
+  "max_revisions": 3,
+  "phases": {
+    "analyzing": {
+      "status": "completed",
+      "updated_at": "2026-09-17T06:13:51.097283Z"
+    },
+    "architecting": {
+      "status": "completed",
+      "updated_at": "2026-09-17T06:15:22.477139Z"
+    },
+    "designing": {
+      "status": "completed",
+      "updated_at": "2026-09-17T06:15:51.642864Z"
+    },
+    "planning": {
+      "status": "completed",
+      "updated_at": "2026-09-17T06:26:18.863393Z"
+    },
+    "developing": {
+      "status": "in_progress",
+      "updated_at": "2026-09-17T21:21:47.171577Z"
+    },
+    "code-review": {
+      "status": "completed",
+      "updated_at": "2026-09-17T22:17:17.796182Z"
+    }
+  },
+  "tasks": [
+    {
+      "name": "create-shoptet-order-test-client-interface",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-09-17T08:18:25.723946Z"
+    },
+    {
+      "name": "shrink-ieshoporderclient-interface",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-09-17T09:18:56.612440Z"
+    },
+    {
+      "name": "implement-test-client-on-shoptet-order-client",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-09-17T10:19:24.240052Z"
+    },
+    {
+      "name": "register-test-client-in-di",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-09-17T11:21:18.082108Z"
+    },
+    {
+      "name": "update-block-order-processing-integration-tests",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-09-17T12:22:15.168618Z"
+    },
+    {
+      "name": "update-shoptet-test-environment-hydration-tests",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-09-17T13:20:39.111106Z"
+    },
+    {
+      "name": "update-picking-list-integration-tests",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-09-17T20:37:48.326515Z"
+    },
+    {
+      "name": "full-solution-verification",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-09-17T22:02:54.328587Z"
+    }
+  ]
+}
