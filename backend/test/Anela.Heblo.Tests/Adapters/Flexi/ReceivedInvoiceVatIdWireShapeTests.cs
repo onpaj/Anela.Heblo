@@ -40,19 +40,27 @@ public class ReceivedInvoiceVatIdWireShapeTests
         """;
 
     /// <summary>
-    /// The instant <c>datUcto</c> denotes, expressed in the host's own timezone.
+    /// The instant <c>datUcto</c> denotes, expressed in the host's own timezone at the moment
+    /// this is evaluated.
     ///
     /// The wire value carries an offset — <c>"2026-08-02+02:00"</c> — and Newtonsoft binds an
     /// offset-bearing string into a <see cref="DateTime"/> by converting it to LOCAL time. On the
     /// production container (<c>ENV TZ=Europe/Prague</c> in the Dockerfile) and on a Czech
-    /// developer's laptop that lands on 2026-08-02 00:00, so asserting the bare date passed. On a
-    /// UTC host — every GitHub Actions runner — the same value is 2026-08-01 22:00 and the
-    /// assertion failed, which is what made this test red on CI while green everywhere else.
+    /// developer's laptop that lands on 2026-08-02 00:00. On a UTC host it's 2026-08-01 22:00.
     ///
-    /// Comparing against the converted instant pins the binding (the offset IS honoured) without
-    /// smuggling in an assumption about where the test happens to run.
+    /// This is deliberately a method, not a cached <c>static readonly</c> field: the whole backend
+    /// test assembly runs as one process, and <c>ApplicationStartupTests</c> boots the real
+    /// <c>Program.cs</c> — which calls <c>TimeZoneExtensions</c> to pin the process's ambient
+    /// <see cref="TimeZoneInfo.Local"/> to <c>Europe/Prague</c> via
+    /// <c>Environment.SetEnvironmentVariable("TZ", ...)</c> + <c>TimeZoneInfo.ClearCachedData()</c>
+    /// — a deliberate, process-global side effect other tests are expected to run after. A
+    /// <c>static readonly</c> field freezes whatever <see cref="TimeZoneInfo.Local"/> was at class
+    /// load time; if that happens before the TZ pin lands (test collections can run in parallel,
+    /// in no guaranteed order), it goes stale relative to <c>dto.AccountingDate</c> below — which
+    /// re-reads <see cref="TimeZoneInfo.Local"/> on every parse — and the two silently diverge.
+    /// Re-evaluating this right next to the parse keeps them reading the same ambient TZ.
     /// </summary>
-    private static readonly DateTime ExpectedAccountingDate =
+    private static DateTime ExpectedAccountingDate() =>
         new DateTimeOffset(2026, 8, 2, 0, 0, 0, TimeSpan.FromHours(2)).LocalDateTime;
 
     private static IMapper Mapper() =>
@@ -66,19 +74,27 @@ public class ReceivedInvoiceVatIdWireShapeTests
         dto.VatId.Should().Be("IE9692928F");
         dto.IsCancelled.Should().BeFalse();
         dto.TotalBaseAmount.Should().Be(20000.0);
-        dto.AccountingDate.Should().Be(ExpectedAccountingDate);
+        dto.AccountingDate.Should().Be(ExpectedAccountingDate());
     }
 
     [Fact]
     public void Mapping_ExposesSupplierVatIdAndWithoutVatTotal()
     {
         var dto = JsonConvert.DeserializeObject<ReceivedInvoiceFlexiDto>(MetaRow)!;
+        var expectedAccountingDate = ExpectedAccountingDate();
 
         var mapped = Mapper().Map<ReceivedInvoice>(dto);
 
         mapped.SupplierVatId.Should().Be("IE9692928F");
         mapped.TotalAmountWithoutVat.Should().Be(20000m);
-        mapped.AccountingDate.Should().Be(ExpectedAccountingDate);
+        // FlexiReceivedInvoiceMappingProfile maps AccountingDate through a plain MapFrom, and
+        // BaseFlexiProfile's global DateTime -> DateTime converter (which otherwise converts
+        // FlexiBee local time to UTC) does not get applied for a Nullable<DateTime> member like
+        // ReceivedInvoice.AccountingDate, so the mapped value passes through unchanged from the
+        // DTO. Pinning that here (rather than the UTC value the converter's own doc comment
+        // promises) reflects what the mapping actually does today; whether it should convert is
+        // a separate, pre-existing question outside this change's scope.
+        mapped.AccountingDate.Should().Be(expectedAccountingDate);
         mapped.IsCancelled.Should().BeFalse();
         mapped.InvoiceNumber.Should().Be("PF260878");
     }
