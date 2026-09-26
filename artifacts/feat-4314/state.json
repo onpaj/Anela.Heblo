@@ -25,5 +25,18 @@
       "updated_at": null
     }
   },
-  "tasks": []
+  "tasks": [
+    {
+      "name": "refactor-packing-stats-tile-drilldown",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    },
+    {
+      "name": "wire-target-url-in-tile-registry",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    }
+  ]
 }
