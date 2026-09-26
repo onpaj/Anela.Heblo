@@ -28,9 +28,9 @@
   "tasks": [
     {
       "name": "add-detail-invalidation-to-cron-mutation",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-09-26T11:18:43.311218Z"
+      "updated_at": "2026-09-26T11:23:04.415941Z"
     },
     {
       "name": "full-verification",
