@@ -155,9 +155,10 @@ public class RecurringJobSeederTests : IDisposable
     }
 
     [Fact]
-    public async Task SeedDefaultConfigurationsAsync_WhenConfigurationExists_SetsLastModifiedByToSystem()
+    public async Task SeedDefaultConfigurationsAsync_WhenConfigurationExists_AndSeededFieldsUnchanged_PreservesLastModifiedBy()
     {
-        // Arrange - add an existing configuration whose last modification was made by an admin
+        // Arrange - add an existing configuration whose last modification was made by an admin,
+        // and whose seeded fields (DisplayName/Description/TimeZoneId) already match metadata.
         var existingConfig = new RecurringJobConfiguration(
             "purchase-price-recalculation",
             "Purchase Price Recalculation",
@@ -176,10 +177,42 @@ public class RecurringJobSeederTests : IDisposable
         // Act
         await _seeder.SeedDefaultConfigurationsAsync(mockJobs);
 
-        // Assert
+        // Assert - nothing seeded differs, so LastModifiedBy must stay "Admin", not flip to "System"
         var updated = await _repository.GetByJobNameAsync("purchase-price-recalculation");
         Assert.NotNull(updated);
-        Assert.Equal("System", updated!.LastModifiedBy);
+        Assert.Equal("Admin", updated!.LastModifiedBy);
+    }
+
+    [Fact]
+    public async Task SeedDefaultConfigurationsAsync_WhenNothingChanged_PreservesLastModifiedAtAndBy()
+    {
+        // Arrange - existing row's seeded fields (DisplayName/Description/TimeZoneId) already match
+        // current metadata exactly; LastModifiedBy/At record a prior ADMIN action (e.g. a CRON edit),
+        // not the seeder.
+        var adminModifiedAt = new DateTime(2025, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+        var existingConfig = new RecurringJobConfiguration(
+            "purchase-price-recalculation",
+            "Purchase Price Recalculation",
+            "Recalculates purchase prices for all materials and products",
+            "0 2 * * *",
+            RecurringJobMetadata.DefaultTimeZoneId,
+            true,
+            "Admin",
+            adminModifiedAt);
+
+        await _context.RecurringJobConfigurations.AddAsync(existingConfig);
+        await _context.SaveChangesAsync();
+
+        var mockJobs = CreateMockJobs();
+
+        // Act
+        await _seeder.SeedDefaultConfigurationsAsync(mockJobs);
+
+        // Assert - nothing seeded differs, so the admin's audit trail must survive the seed pass
+        var updated = await _repository.GetByJobNameAsync("purchase-price-recalculation");
+        Assert.NotNull(updated);
+        Assert.Equal("Admin", updated!.LastModifiedBy);
+        Assert.Equal(adminModifiedAt, updated.LastModifiedAt);
     }
 
     [Fact]

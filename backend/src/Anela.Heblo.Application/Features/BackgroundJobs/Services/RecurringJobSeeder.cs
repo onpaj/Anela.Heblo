@@ -48,7 +48,7 @@ public class RecurringJobSeeder : IRecurringJobSeeder
             {
                 await _repository.AddAsync(config, cancellationToken);
             }
-            else
+            else if (HasSeededFieldsChanged(existing, config))
             {
                 existingConfig.UpdateConfiguration(
                     config.DisplayName,
@@ -59,6 +59,19 @@ public class RecurringJobSeeder : IRecurringJobSeeder
                     now);
                 await _repository.UpdateAsync(existingConfig, cancellationToken);
             }
+            // else: no developer-owned field changed - leave the row (including
+            // LastModifiedAt/LastModifiedBy, which record admin actions) untouched.
         }
     }
+
+    /// <summary>
+    /// Compares only the developer-owned, code-sourced fields (DisplayName, Description,
+    /// TimeZoneId) between the stored row and the freshly computed metadata. CronExpression
+    /// and IsEnabled are intentionally excluded - they are admin-owned and must never trigger
+    /// a seeder-initiated write.
+    /// </summary>
+    private static bool HasSeededFieldsChanged(RecurringJobConfiguration existing, RecurringJobConfiguration config) =>
+        existing.DisplayName != config.DisplayName
+        || existing.Description != config.Description
+        || existing.TimeZoneId != config.TimeZoneId;
 }
