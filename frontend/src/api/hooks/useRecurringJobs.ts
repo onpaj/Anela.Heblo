@@ -97,8 +97,9 @@ export const useUpdateRecurringJobCronMutation = () => {
       const request = new UpdateJobCronRequestBody({ cronExpression });
       return await client.recurringJobs_UpdateJobCron(jobName, request);
     },
-    onSuccess: () => {
+    onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: recurringJobsKeys.list() });
+      queryClient.invalidateQueries({ queryKey: recurringJobsKeys.detail(variables.jobName) });
     },
   });
 };
