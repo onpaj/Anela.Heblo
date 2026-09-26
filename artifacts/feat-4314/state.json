@@ -21,16 +21,16 @@
       "updated_at": "2026-09-26T05:17:16.282199Z"
     },
     "developing": {
-      "status": "pending",
-      "updated_at": null
+      "status": "in_progress",
+      "updated_at": "2026-09-26T06:17:18.306886Z"
     }
   },
   "tasks": [
     {
       "name": "refactor-packing-stats-tile-drilldown",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-09-26T06:17:18.500143Z"
     },
     {
       "name": "wire-target-url-in-tile-registry",
