@@ -21,16 +21,16 @@
       "updated_at": "2026-09-26T06:18:46.692519Z"
     },
     "developing": {
-      "status": "pending",
-      "updated_at": null
+      "status": "in_progress",
+      "updated_at": "2026-09-26T07:18:13.011758Z"
     }
   },
   "tasks": [
     {
       "name": "add-mutate-bulk-async-interface",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-09-26T07:18:13.194255Z"
     },
     {
       "name": "implement-mutate-bulk-async",
