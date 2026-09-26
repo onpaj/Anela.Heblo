@@ -34,9 +34,9 @@
     },
     {
       "name": "implement-mutate-bulk-async",
-      "status": "pending",
+      "status": "completed",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-09-26T08:51:49.969237Z"
     },
     {
       "name": "refactor-save-user-settings-handler",
