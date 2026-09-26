@@ -3,6 +3,7 @@ using Anela.Heblo.Application.Features.Analytics.DashboardTiles;
 using Anela.Heblo.Application.Features.Analytics.Services;
 using Anela.Heblo.Application.Features.Analytics.UseCases.GetMarginReport;
 using Anela.Heblo.Application.Features.Analytics.UseCases.GetProductMarginAnalysis;
+using Anela.Heblo.Application.Features.Analytics.UseCases.GetProductMarginSummary;
 using Anela.Heblo.Application.Features.Analytics.Validators;
 using Anela.Heblo.Domain.Features.Analytics;
 using Anela.Heblo.Xcc.Services.Dashboard;
@@ -36,12 +37,15 @@ public static class AnalyticsModule
         // Register validators for FluentValidation
         services.AddScoped<IValidator<GetMarginReportRequest>, GetMarginReportRequestValidator>();
         services.AddScoped<IValidator<GetProductMarginAnalysisRequest>, GetProductMarginAnalysisRequestValidator>();
+        services.AddScoped<IValidator<GetProductMarginSummaryRequest>, GetProductMarginSummaryRequestValidator>();
 
         // Register MediatR validation pipeline behavior for Analytics requests
         services.AddScoped<IPipelineBehavior<GetMarginReportRequest, GetMarginReportResponse>,
             ValidationResultBehavior<GetMarginReportRequest, GetMarginReportResponse>>();
         services.AddScoped<IPipelineBehavior<GetProductMarginAnalysisRequest, GetProductMarginAnalysisResponse>,
             ValidationResultBehavior<GetProductMarginAnalysisRequest, GetProductMarginAnalysisResponse>>();
+        services.AddScoped<IPipelineBehavior<GetProductMarginSummaryRequest, GetProductMarginSummaryResponse>,
+            ValidationResultBehavior<GetProductMarginSummaryRequest, GetProductMarginSummaryResponse>>();
 
         services.AddScoped<ITimeWindowParser, TimeWindowParser>();
         services.AddScoped<IMarginCalculator, MarginCalculator>();

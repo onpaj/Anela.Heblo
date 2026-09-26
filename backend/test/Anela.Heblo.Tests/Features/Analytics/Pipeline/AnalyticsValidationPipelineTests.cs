@@ -3,6 +3,7 @@ using Anela.Heblo.Application.Features.Analytics;
 using Anela.Heblo.Application.Features.Analytics.Services;
 using Anela.Heblo.Application.Features.Analytics.UseCases.GetMarginReport;
 using Anela.Heblo.Application.Features.Analytics.UseCases.GetProductMarginAnalysis;
+using Anela.Heblo.Application.Features.Analytics.UseCases.GetProductMarginSummary;
 using Anela.Heblo.Application.Features.Analytics.Validators;
 using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Domain.Features.Analytics;
@@ -38,18 +39,24 @@ public class AnalyticsValidationPipelineTests
         // Validators
         services.AddScoped<IValidator<GetMarginReportRequest>, GetMarginReportRequestValidator>();
         services.AddScoped<IValidator<GetProductMarginAnalysisRequest>, GetProductMarginAnalysisRequestValidator>();
+        services.AddScoped<IValidator<GetProductMarginSummaryRequest>, GetProductMarginSummaryRequestValidator>();
 
         // Pipeline behaviors
         services.AddScoped<IPipelineBehavior<GetMarginReportRequest, GetMarginReportResponse>,
             ValidationResultBehavior<GetMarginReportRequest, GetMarginReportResponse>>();
         services.AddScoped<IPipelineBehavior<GetProductMarginAnalysisRequest, GetProductMarginAnalysisResponse>,
             ValidationResultBehavior<GetProductMarginAnalysisRequest, GetProductMarginAnalysisResponse>>();
+        services.AddScoped<IPipelineBehavior<GetProductMarginSummaryRequest, GetProductMarginSummaryResponse>,
+            ValidationResultBehavior<GetProductMarginSummaryRequest, GetProductMarginSummaryResponse>>();
 
         // Handler dependencies (mocked - handlers won't be called for invalid requests)
         services.AddScoped(_ => (repoMock ?? new Mock<IAnalyticsRepository>()).Object);
         services.AddScoped(_ => (filterMock ?? new Mock<IProductFilterService>()).Object);
         services.AddScoped(_ => (builderMock ?? new Mock<IReportBuilderService>()).Object);
         services.AddScoped<IMarginCalculator, MarginCalculator>();
+        services.AddScoped<ITimeWindowParser>(_ => new TimeWindowParser(TimeProvider.System));
+        services.AddScoped<IMonthlyBreakdownGenerator, MonthlyBreakdownGenerator>();
+        services.AddScoped<ITopProductSorter, TopProductSorter>();
 
         return services.BuildServiceProvider().GetRequiredService<IMediator>();
     }
@@ -137,5 +144,21 @@ public class AnalyticsValidationPipelineTests
         // Assert
         result.Success.Should().BeFalse();
         result.ErrorCode.Should().Be(ErrorCodes.InvalidDateRange);
+    }
+
+    [Fact]
+    public async Task GetProductMarginSummary_InvalidTimeWindow_ReturnsInvalidTimeWindowErrorCode()
+    {
+        // Arrange
+        var mediator = BuildMediator();
+        var request = new GetProductMarginSummaryRequest { TimeWindow = "not-a-real-window" };
+
+        // Act
+        var response = await mediator.Send(request);
+
+        // Assert
+        response.Success.Should().BeFalse();
+        response.ErrorCode.Should().Be(ErrorCodes.InvalidTimeWindow);
+        response.Params.Should().ContainKey("timeWindow").WhoseValue.Should().Be("not-a-real-window");
     }
 }

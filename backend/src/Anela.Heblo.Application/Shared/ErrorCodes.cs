@@ -199,6 +199,8 @@ public enum ErrorCodes
     ProductNotFoundForAnalysis = 1704,
     [HttpStatusCode(HttpStatusCode.BadRequest)]
     InvalidReportPeriod = 1705,
+    [HttpStatusCode(HttpStatusCode.BadRequest)]
+    InvalidTimeWindow = 1706,
 
     // FileStorage module errors (18XX)
     [HttpStatusCode(HttpStatusCode.BadRequest)]

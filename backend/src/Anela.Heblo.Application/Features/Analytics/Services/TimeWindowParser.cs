@@ -7,6 +7,9 @@ public interface ITimeWindowParser
 
 public class TimeWindowParser : ITimeWindowParser
 {
+    public static readonly string[] SupportedTimeWindows =
+        ["current-year", "current-and-previous-year", "last-6-months", "last-12-months", "last-24-months"];
+
     private readonly TimeProvider _timeProvider;
 
     public TimeWindowParser(TimeProvider timeProvider)
