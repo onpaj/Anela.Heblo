@@ -1,0 +1,29 @@
+{
+  "feature_id": "feat-4328",
+  "issue_number": 4328,
+  "created_at": "2026-09-27T10:10:49.236909Z",
+  "max_revisions": 3,
+  "phases": {
+    "analyzing": {
+      "status": "pending",
+      "updated_at": null
+    },
+    "architecting": {
+      "status": "pending",
+      "updated_at": null
+    },
+    "designing": {
+      "status": "pending",
+      "updated_at": null
+    },
+    "planning": {
+      "status": "pending",
+      "updated_at": null
+    },
+    "developing": {
+      "status": "pending",
+      "updated_at": null
+    }
+  },
+  "tasks": []
+}
