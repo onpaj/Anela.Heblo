@@ -21,16 +21,16 @@
       "updated_at": "2026-09-27T07:20:29.047465Z"
     },
     "developing": {
-      "status": "pending",
-      "updated_at": null
+      "status": "in_progress",
+      "updated_at": "2026-09-27T08:17:06.868458Z"
     }
   },
   "tasks": [
     {
       "name": "add-invalid-date-factory",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-09-27T08:17:07.038151Z"
     },
     {
       "name": "update-handler-to-use-factory",
