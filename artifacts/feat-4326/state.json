@@ -34,9 +34,9 @@
     },
     {
       "name": "implement-drift-result-shaper",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-09-27T08:16:50.856058Z"
+      "updated_at": "2026-09-27T08:43:15.456016Z"
     },
     {
       "name": "rewire-handler-and-register-shapers",
