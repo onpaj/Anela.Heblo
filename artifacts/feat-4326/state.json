@@ -21,16 +21,16 @@
       "updated_at": "2026-09-27T05:18:27.930681Z"
     },
     "developing": {
-      "status": "pending",
-      "updated_at": null
+      "status": "in_progress",
+      "updated_at": "2026-09-27T06:17:10.517690Z"
     }
   },
   "tasks": [
     {
       "name": "implement-invoice-result-shaper",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-09-27T06:17:10.807327Z"
     },
     {
       "name": "implement-drift-result-shaper",
