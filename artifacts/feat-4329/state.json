@@ -28,9 +28,9 @@
   "tasks": [
     {
       "name": "add-invalid-date-factory",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-09-27T08:17:07.038151Z"
+      "updated_at": "2026-09-27T08:56:57.052743Z"
     },
     {
       "name": "update-handler-to-use-factory",
