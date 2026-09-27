@@ -22,7 +22,7 @@
     },
     "developing": {
       "status": "in_progress",
-      "updated_at": "2026-09-27T08:16:50.642914Z"
+      "updated_at": "2026-09-27T09:16:36.092613Z"
     }
   },
   "tasks": [
@@ -40,9 +40,9 @@
     },
     {
       "name": "rewire-handler-and-register-shapers",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-09-27T09:16:36.261495Z"
     }
   ]
 }
