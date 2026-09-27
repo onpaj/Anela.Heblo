@@ -28,9 +28,9 @@
   "tasks": [
     {
       "name": "implement-invoice-result-shaper",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-09-27T06:17:10.807327Z"
+      "updated_at": "2026-09-27T07:39:40.997693Z"
     },
     {
       "name": "implement-drift-result-shaper",
