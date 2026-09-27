@@ -21,16 +21,16 @@
       "updated_at": "2026-09-27T10:14:50.061118Z"
     },
     "developing": {
-      "status": "pending",
-      "updated_at": null
+      "status": "in_progress",
+      "updated_at": "2026-09-27T11:19:07.315072Z"
     }
   },
   "tasks": [
     {
       "name": "fix-query-key-pagination",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-09-27T11:19:07.499009Z"
     }
   ]
 }
