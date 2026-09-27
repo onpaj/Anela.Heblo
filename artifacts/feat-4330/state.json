@@ -28,9 +28,9 @@
   "tasks": [
     {
       "name": "add-registration-regression-test",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-09-27T09:17:13.366477Z"
+      "updated_at": "2026-09-27T09:53:15.918592Z"
     },
     {
       "name": "remove-manual-handler-factory-and-inject-keyed-sink",
