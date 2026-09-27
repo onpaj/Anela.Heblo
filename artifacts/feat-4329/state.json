@@ -25,5 +25,18 @@
       "updated_at": null
     }
   },
-  "tasks": []
+  "tasks": [
+    {
+      "name": "add-invalid-date-factory",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    },
+    {
+      "name": "update-handler-to-use-factory",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    }
+  ]
 }
