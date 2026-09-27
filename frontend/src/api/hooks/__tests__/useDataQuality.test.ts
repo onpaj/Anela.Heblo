@@ -112,6 +112,56 @@ describe('useDqtRunDetail', () => {
         expect(mockClient.dataQuality_GetRunDetail).toHaveBeenCalledWith('run-1', 2, 25);
     });
 
+    it('fetches again when resultPage changes for the same runId', async () => {
+        mockClient.dataQuality_GetRunDetail.mockResolvedValue({
+            success: true,
+            run: null,
+            results: [],
+            driftResults: [],
+            totalDriftResults: 0,
+        });
+
+        const { wrapper } = createQueryClientWrapper();
+        const { result, rerender } = renderHook(
+            ({ page }: { page: number }) => useDqtRunDetail('run-1', page, 25),
+            { wrapper, initialProps: { page: 1 } },
+        );
+
+        await waitFor(() => expect(result.current.isSuccess).toBe(true));
+        expect(mockClient.dataQuality_GetRunDetail).toHaveBeenCalledTimes(1);
+        expect(mockClient.dataQuality_GetRunDetail).toHaveBeenNthCalledWith(1, 'run-1', 1, 25);
+
+        rerender({ page: 2 });
+
+        await waitFor(() => expect(mockClient.dataQuality_GetRunDetail).toHaveBeenCalledTimes(2));
+        expect(mockClient.dataQuality_GetRunDetail).toHaveBeenNthCalledWith(2, 'run-1', 2, 25);
+    });
+
+    it('does not refetch when re-rendered with the same runId and paging', async () => {
+        mockClient.dataQuality_GetRunDetail.mockResolvedValue({
+            success: true,
+            run: null,
+            results: [],
+            driftResults: [],
+            totalDriftResults: 0,
+        });
+
+        const { wrapper } = createQueryClientWrapper();
+        const { result, rerender } = renderHook(
+            ({ page }: { page: number }) => useDqtRunDetail('run-1', page, 25),
+            { wrapper, initialProps: { page: 1 } },
+        );
+
+        await waitFor(() => expect(result.current.isSuccess).toBe(true));
+        expect(mockClient.dataQuality_GetRunDetail).toHaveBeenCalledTimes(1);
+
+        rerender({ page: 1 });
+
+        // Give React Query a tick to (not) issue a refetch; staleTime keeps this cached.
+        await new Promise((resolve) => setTimeout(resolve, 0));
+        expect(mockClient.dataQuality_GetRunDetail).toHaveBeenCalledTimes(1);
+    });
+
     it('does not fire when runId is null', async () => {
         const { wrapper } = createQueryClientWrapper();
         const { result } = renderHook(() => useDqtRunDetail(null), { wrapper });
