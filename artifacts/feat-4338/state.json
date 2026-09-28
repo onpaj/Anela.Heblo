@@ -40,9 +40,9 @@
     },
     {
       "name": "token-validation-outcome-tests",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-09-28T22:14:53.644623Z"
+      "updated_at": "2026-09-28T22:49:39.552861Z"
     },
     {
       "name": "should-be-registered-and-final-verification",
