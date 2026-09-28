@@ -21,16 +21,16 @@
       "updated_at": "2026-09-28T11:28:10.598834Z"
     },
     "developing": {
-      "status": "pending",
-      "updated_at": null
+      "status": "in_progress",
+      "updated_at": "2026-09-28T12:24:09.100916Z"
     }
   },
   "tasks": [
     {
       "name": "bank-statement-import-service-tests",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-09-28T12:24:09.408535Z"
     }
   ]
 }
