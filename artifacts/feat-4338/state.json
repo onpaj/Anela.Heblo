@@ -46,9 +46,9 @@
     },
     {
       "name": "should-be-registered-and-final-verification",
-      "status": "pending",
+      "status": "completed",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-09-28T23:29:11.439380Z"
     }
   ]
 }
