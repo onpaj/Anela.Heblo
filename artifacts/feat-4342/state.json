@@ -28,9 +28,9 @@
   "tasks": [
     {
       "name": "extract-margin-mapping-function",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-09-28T13:18:51.376456Z"
+      "updated_at": "2026-09-28T13:24:14.790663Z"
     },
     {
       "name": "add-margin-mapping-coverage-tests",
