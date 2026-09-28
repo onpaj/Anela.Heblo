@@ -25,5 +25,18 @@
       "updated_at": null
     }
   },
-  "tasks": []
+  "tasks": [
+    {
+      "name": "add-bulk-existence-lookup-repository-method",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    },
+    {
+      "name": "use-bulk-lookup-in-marketing-invoice-import-service",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    }
+  ]
 }
