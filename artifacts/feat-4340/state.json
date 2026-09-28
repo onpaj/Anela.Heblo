@@ -34,9 +34,9 @@
     },
     {
       "name": "add-conversions-sync-service-tests",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-09-28T12:18:00.948675Z"
+      "updated_at": "2026-09-28T12:26:56.378978Z"
     }
   ]
 }
