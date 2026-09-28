@@ -43,8 +43,8 @@ public class MarketingInvoiceImportServiceTests
         _mockSource.Setup(x => x.GetTransactionsAsync(from, to, It.IsAny<CancellationToken>()))
             .ReturnsAsync(transactions);
 
-        _mockRepository.Setup(x => x.ExistsAsync("TestPlatform", It.IsAny<string>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(false);
+        _mockRepository.Setup(x => x.GetExistingTransactionIdsAsync("TestPlatform", It.IsAny<IEnumerable<string>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new HashSet<string>());
 
         _mockRepository.Setup(x => x.AddAsync(It.IsAny<ImportedMarketingTransaction>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync((ImportedMarketingTransaction e, CancellationToken _) => e);
@@ -78,8 +78,8 @@ public class MarketingInvoiceImportServiceTests
         _mockSource.Setup(x => x.GetTransactionsAsync(from, to, It.IsAny<CancellationToken>()))
             .ReturnsAsync(transactions);
 
-        _mockRepository.Setup(x => x.ExistsAsync("TestPlatform", "TX-001", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(true);
+        _mockRepository.Setup(x => x.GetExistingTransactionIdsAsync("TestPlatform", It.IsAny<IEnumerable<string>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new HashSet<string> { "TX-001" });
 
         // Act
         var result = await _service.ImportAsync(_mockSource.Object, from, to);
@@ -108,8 +108,8 @@ public class MarketingInvoiceImportServiceTests
         _mockSource.Setup(x => x.GetTransactionsAsync(from, to, It.IsAny<CancellationToken>()))
             .ReturnsAsync(transactions);
 
-        _mockRepository.Setup(x => x.ExistsAsync("TestPlatform", It.IsAny<string>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(false);
+        _mockRepository.Setup(x => x.GetExistingTransactionIdsAsync("TestPlatform", It.IsAny<IEnumerable<string>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new HashSet<string>());
 
         _mockRepository.Setup(x => x.AddAsync(It.Is<ImportedMarketingTransaction>(t => t.TransactionId == "TX-001"), It.IsAny<CancellationToken>()))
             .ReturnsAsync((ImportedMarketingTransaction e, CancellationToken _) => e);
@@ -144,8 +144,8 @@ public class MarketingInvoiceImportServiceTests
         _mockSource.Setup(x => x.GetTransactionsAsync(from, to, It.IsAny<CancellationToken>()))
             .ReturnsAsync(transactions);
 
-        _mockRepository.Setup(x => x.ExistsAsync("TestPlatform", It.IsAny<string>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(false);
+        _mockRepository.Setup(x => x.GetExistingTransactionIdsAsync("TestPlatform", It.IsAny<IEnumerable<string>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new HashSet<string>());
 
         _mockRepository.Setup(x => x.AddAsync(It.IsAny<ImportedMarketingTransaction>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync((ImportedMarketingTransaction e, CancellationToken _) => e);
@@ -170,6 +170,9 @@ public class MarketingInvoiceImportServiceTests
 
         _mockSource.Setup(x => x.GetTransactionsAsync(from, to, It.IsAny<CancellationToken>()))
             .ReturnsAsync(new List<MarketingTransaction>());
+
+        _mockRepository.Setup(x => x.GetExistingTransactionIdsAsync("TestPlatform", It.IsAny<IEnumerable<string>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new HashSet<string>());
 
         // Act
         var result = await _service.ImportAsync(_mockSource.Object, from, to);
@@ -199,9 +202,11 @@ public class MarketingInvoiceImportServiceTests
         _mockSource.Setup(x => x.GetTransactionsAsync(from, to, It.IsAny<CancellationToken>()))
             .ReturnsAsync(transactions);
 
-        // Not present in the DB — ExistsAsync cannot see un-flushed staged entities
-        _mockRepository.Setup(x => x.ExistsAsync("TestPlatform", It.IsAny<string>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(false);
+        // Not present in the DB yet — the bulk lookup is a pre-loop snapshot that cannot see
+        // un-flushed staged entities from earlier in this same batch, so both copies of
+        // TX-DUP pass it; stagedIds is what catches the second one.
+        _mockRepository.Setup(x => x.GetExistingTransactionIdsAsync("TestPlatform", It.IsAny<IEnumerable<string>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new HashSet<string>());
 
         _mockRepository.Setup(x => x.AddAsync(It.IsAny<ImportedMarketingTransaction>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync((ImportedMarketingTransaction e, CancellationToken _) => e);
@@ -218,6 +223,9 @@ public class MarketingInvoiceImportServiceTests
         Assert.Equal(0, result.Failed);
         _mockRepository.Verify(x => x.AddAsync(It.IsAny<ImportedMarketingTransaction>(), It.IsAny<CancellationToken>()), Times.Once);
         _mockRepository.Verify(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
+        _mockRepository.Verify(
+            x => x.GetExistingTransactionIdsAsync("TestPlatform", It.IsAny<IEnumerable<string>>(), It.IsAny<CancellationToken>()),
+            Times.Once);
     }
 
     [Fact]
@@ -245,8 +253,8 @@ public class MarketingInvoiceImportServiceTests
             .ReturnsAsync(transactions);
 
         _mockRepository
-            .Setup(x => x.ExistsAsync("TestPlatform", "TX-EUR-001", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(false);
+            .Setup(x => x.GetExistingTransactionIdsAsync("TestPlatform", It.IsAny<IEnumerable<string>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new HashSet<string>());
 
         ImportedMarketingTransaction? captured = null;
         _mockRepository
@@ -293,6 +301,10 @@ public class MarketingInvoiceImportServiceTests
         _mockSource
             .Setup(x => x.GetTransactionsAsync(from, to, It.IsAny<CancellationToken>()))
             .ReturnsAsync(transactions);
+
+        _mockRepository
+            .Setup(x => x.GetExistingTransactionIdsAsync("TestPlatform", It.IsAny<IEnumerable<string>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new HashSet<string>());
 
         // Act
         var result = await _service.ImportAsync(_mockSource.Object, from, to);
@@ -346,6 +358,10 @@ public class MarketingInvoiceImportServiceTests
             .Setup(x => x.GetTransactionsAsync(from, to, It.IsAny<CancellationToken>()))
             .ReturnsAsync(transactions);
 
+        _mockRepository
+            .Setup(x => x.GetExistingTransactionIdsAsync("TestPlatform", It.IsAny<IEnumerable<string>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new HashSet<string>());
+
         // Act
         var result = await _service.ImportAsync(_mockSource.Object, from, to);
 
@@ -389,8 +405,8 @@ public class MarketingInvoiceImportServiceTests
         _mockSource.Setup(x => x.GetTransactionsAsync(from, to, It.IsAny<CancellationToken>()))
             .ReturnsAsync(transactions);
 
-        _mockRepository.Setup(x => x.ExistsAsync("TestPlatform", It.IsAny<string>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(false);
+        _mockRepository.Setup(x => x.GetExistingTransactionIdsAsync("TestPlatform", It.IsAny<IEnumerable<string>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new HashSet<string>());
 
         _mockRepository.Setup(x => x.AddAsync(It.IsAny<ImportedMarketingTransaction>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync((ImportedMarketingTransaction e, CancellationToken _) => e);
@@ -405,5 +421,47 @@ public class MarketingInvoiceImportServiceTests
         // Assert — exception type propagates unchanged (proves `throw;` not `throw ex;`)
         Assert.IsType<InvalidOperationException>(ex);
         Assert.Equal("flush failed", ex.Message);
+    }
+
+    [Fact]
+    public async Task ImportAsync_BatchOfTransactions_CallsBulkLookupExactlyOnce_NeverCallsPerRowExistsAsync()
+    {
+        // Arrange
+        var from = new DateTime(2026, 4, 1);
+        var to = new DateTime(2026, 4, 2);
+
+        var transactions = new List<MarketingTransaction>
+        {
+            new() { TransactionId = "TX-001", Amount = 100m, TransactionDate = from, Description = "Ad charge", Currency = "CZK" },
+            new() { TransactionId = "TX-002", Amount = 200m, TransactionDate = from, Description = "Ad charge", Currency = "CZK" },
+            new() { TransactionId = "TX-003", Amount = 300m, TransactionDate = from, Description = "Ad charge", Currency = "CZK" },
+        };
+
+        _mockSource.Setup(x => x.GetTransactionsAsync(from, to, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(transactions);
+
+        // TX-002 was already imported in a prior run; TX-001 and TX-003 are new
+        _mockRepository.Setup(x => x.GetExistingTransactionIdsAsync("TestPlatform", It.IsAny<IEnumerable<string>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new HashSet<string> { "TX-002" });
+
+        _mockRepository.Setup(x => x.AddAsync(It.IsAny<ImportedMarketingTransaction>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((ImportedMarketingTransaction e, CancellationToken _) => e);
+
+        _mockRepository.Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(1);
+
+        // Act
+        var result = await _service.ImportAsync(_mockSource.Object, from, to);
+
+        // Assert
+        Assert.Equal(2, result.Imported);
+        Assert.Equal(1, result.Skipped);
+        Assert.Equal(0, result.Failed);
+        _mockRepository.Verify(
+            x => x.GetExistingTransactionIdsAsync("TestPlatform", It.IsAny<IEnumerable<string>>(), It.IsAny<CancellationToken>()),
+            Times.Once);
+        _mockRepository.Verify(
+            x => x.ExistsAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()),
+            Times.Never);
     }
 }
