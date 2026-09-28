@@ -21,16 +21,16 @@
       "updated_at": "2026-09-28T13:19:24.162292Z"
     },
     "developing": {
-      "status": "pending",
-      "updated_at": null
+      "status": "in_progress",
+      "updated_at": "2026-09-28T20:14:39.259061Z"
     }
   },
   "tasks": [
     {
       "name": "scaffold-file-and-environment-guard-tests",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-09-28T20:14:39.503512Z"
     },
     {
       "name": "cookie-and-missing-token-tests",
