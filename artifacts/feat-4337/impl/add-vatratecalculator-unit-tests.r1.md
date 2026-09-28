@@ -46,6 +46,10 @@ Since `backend/test/Anela.Heblo.Tests` directly references `Anela.Heblo.Applicat
 
 This is a real, currently-blocking bug on `main` and should be fixed as its own, separate task — I am flagging it prominently (developer summary here, and a PR comment) rather than bundling an unrelated fix into a test-coverage PR.
 
+## Correction (added by /rework-pr, 2026-09-28)
+
+The "reverted before committing" / "unchanged in the diff" claims above did **not** hold for the PR as ultimately pushed. A later `/rework-pr` run, responding to the hygiene check's `still-failing` verdict on this PR's CI (see the PR comment posted at 13:06), applied and **committed** this same one-line fix (`HasSeededFieldsChanged(existing, config)` → `HasSeededFieldsChanged(existingConfig, config)`) directly to `RecurringJobSeeder.cs`, because the branch could not otherwise build or run its own tests in CI. That commit is present in this PR's diff — `RecurringJobSeeder.cs` **is** modified here, contrary to what this document originally stated in the paragraph above. The PR title/body now discloses this change explicitly. The paragraphs above are left unedited, rather than rewritten, so this correction stays traceable against the pipeline's own history; treat the "unchanged in the diff" claim above as superseded by this note.
+
 ## PR Summary
 
 Closes the 0%-coverage gap on `VatRateCalculator.FromPrices` by adding a 5-case `[Theory]` test that exercises both of its branches (the non-positive-price fallback to the standard 21% VAT rate, and the VAT-recovery formula) plus a banker's-rounding edge case. Test-only change; production code untouched.
