@@ -28,9 +28,9 @@
   "tasks": [
     {
       "name": "extract-azure-blob-print-sink-options",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-09-28T06:19:34.973066Z"
+      "updated_at": "2026-09-28T06:26:18.171252Z"
     },
     {
       "name": "full-verification",
