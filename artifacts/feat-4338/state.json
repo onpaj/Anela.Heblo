@@ -34,9 +34,9 @@
     },
     {
       "name": "cookie-and-missing-token-tests",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-09-28T21:14:29.868553Z"
+      "updated_at": "2026-09-28T21:43:38.604842Z"
     },
     {
       "name": "token-validation-outcome-tests",
