@@ -2,51 +2,78 @@
 
 ## Component Design
 
+### Production change: `FlexiBankAccountClient.ImportStatementAsync` becomes `virtual`
+Location: `backend/src/Adapters/Anela.Heblo.Adapters.Flexi/Bank/FlexiBankAccountClient.cs`
+
+One-word, behavior-preserving change (see `arch-review.r1.md` Decision 1): change
+
+```csharp
+public async Task<Result<bool>> ImportStatementAsync(int accountId, string aboData)
+```
+
+to
+
+```csharp
+public virtual async Task<Result<bool>> ImportStatementAsync(int accountId, string aboData)
+```
+
+No other line in this file changes. This is the only production code change in this task.
+
 ### `FlexiBankStatementImportServiceTests` (new test class)
 Location: `backend/test/Anela.Heblo.Adapters.Flexi.Tests/Bank/FlexiBankStatementImportServiceTests.cs`
 
-Responsibility: exercise all four outcome paths of `FlexiBankStatementImportService.ImportStatementAsync` (FR-1..FR-4 in `spec.r1.md`), per the seam chosen in Decision 1 of `arch-review.r1.md`.
+Responsibility: exercise all four outcome paths of `FlexiBankStatementImportService.ImportStatementAsync` (FR-1..FR-4 in `spec.r1.md`), by mocking its direct collaborator `FlexiBankAccountClient` (now mockable per the change above).
 
-Structure (xUnit, constructor-based fixture setup — matching `FlexiStockTakingDomainServiceTests`/`FlexiLotsClientTests` conventions in this project):
+Structure (xUnit, constructor-based fixture setup — matching `FlexiStockTakingDomainServiceTests`/`LedgerServiceTests` conventions in this project):
 
 ```csharp
+using Anela.Heblo.Adapters.Flexi.Bank;
+using Anela.Heblo.Domain.Shared;
+using FluentAssertions;
+using Microsoft.Extensions.Logging;
+using Moq;
+using Rem.FlexiBeeSDK.Client.Clients.BankAccounts;
+using Xunit;
+
+namespace Anela.Heblo.Adapters.Flexi.Tests.Bank;
+
 public class FlexiBankStatementImportServiceTests
 {
-    private readonly Mock<IBankAccountClient> _mockSdkClient;
-    private readonly FlexiBankAccountClient _flexiBankAccountClient;
+    private readonly Mock<FlexiBankAccountClient> _mockFlexiBankAccountClient;
     private readonly FlexiBankStatementImportService _sut;
 
     public FlexiBankStatementImportServiceTests()
     {
-        _mockSdkClient = new Mock<IBankAccountClient>(MockBehavior.Loose);
-        _flexiBankAccountClient = new FlexiBankAccountClient(
-            _mockSdkClient.Object,
-            new Mock<ILogger<FlexiBankAccountClient>>().Object);
+        _mockFlexiBankAccountClient = new Mock<FlexiBankAccountClient>(
+            Mock.Of<IBankAccountClient>(),
+            Mock.Of<ILogger<FlexiBankAccountClient>>());
+
         _sut = new FlexiBankStatementImportService(
-            _flexiBankAccountClient,
-            new Mock<ILogger<FlexiBankStatementImportService>>().Object);
+            _mockFlexiBankAccountClient.Object,
+            Mock.Of<ILogger<FlexiBankStatementImportService>>());
     }
 
     // one [Fact] per FR-1..FR-4
 }
 ```
 
-Only `IBankAccountClient` (the FlexiBee SDK boundary) is mocked. `FlexiBankAccountClient` and `FlexiBankStatementImportService` are both constructed as real objects — this is the "component boundary" for this change: the test's only seam is the SDK interface, not any of this repo's own classes.
+`Mock<FlexiBankAccountClient>`'s constructor args (`Mock.Of<IBankAccountClient>()`, a logger) are never exercised — every test overrides `ImportStatementAsync` entirely via `.Setup(...)`, so the real method body (and therefore the real SDK client) never runs.
 
 ### Test case boundary (four `[Fact]` methods, one per FR)
 
-| Test method | Arrange (mock `IBankAccountClient.ImportStatement`) | Assert on `sut.ImportStatementAsync(...)` result |
+| Test method | Arrange (`_mockFlexiBankAccountClient.Setup(x => x.ImportStatementAsync(It.IsAny<int>(), It.IsAny<string>()))`) | Assert on `await _sut.ImportStatementAsync(1, "statement-data")` |
 |---|---|---|
-| `ImportStatementAsync_WhenSdkReturnsSuccess_ReturnsSuccessResult` | Returns SDK result with `IsSuccess = true` | `IsSuccess == true`, `Value == true` |
-| `ImportStatementAsync_WhenSdkReturnsFailureWithMessage_ReturnsFailureWithSameMessage` | Returns SDK result with `IsSuccess = false`, `ErrorMessage = "some FlexiBee error"` | `IsSuccess == false`, error text == `"some FlexiBee error"` |
-| `ImportStatementAsync_WhenSdkReturnsFailureWithNullMessage_ReturnsUnknownImportErrorFallback` | Returns SDK result with `IsSuccess = false`, `ErrorMessage = null` | `IsSuccess == false`, error text == `"Unknown import error"` |
-| `ImportStatementAsync_WhenSdkThrows_ReturnsFailureWithExceptionMessageAndDoesNotThrow` | Throws `new InvalidOperationException("boom")` | Call does not throw; `IsSuccess == false`; error text == `"Exception during import: boom"` |
+| `ImportStatementAsync_WhenClientReturnsSuccess_ReturnsSuccessResult` | `.ReturnsAsync(Result.Success(true))` | `result.IsSuccess.Should().BeTrue()`; `result.Value.Should().BeTrue()` |
+| `ImportStatementAsync_WhenClientReturnsFailureWithMessage_ReturnsSameFailureMessage` | `.ReturnsAsync(Result.Failure<bool>("some FlexiBee error"))` | `result.IsSuccess.Should().BeFalse()`; `result.ErrorMessage.Should().Be("some FlexiBee error")` |
+| `ImportStatementAsync_WhenClientReturnsFailureWithNullMessage_FallsBackToUnknownImportError` | `.ReturnsAsync(Result.Failure<bool>(null!))` | `result.IsSuccess.Should().BeFalse()`; `result.ErrorMessage.Should().Be("Unknown import error")` |
+| `ImportStatementAsync_WhenClientThrows_ReturnsFailureWithExceptionMessageAndDoesNotThrow` | `.ThrowsAsync(new InvalidOperationException("boom"))` | call does not throw; `result.IsSuccess.Should().BeFalse()`; `result.ErrorMessage.Should().Be("Exception during import: boom")` |
 
-No production component changes: `FlexiBankStatementImportService`, `FlexiBankAccountClient`, `IBankStatementImportService`, and `Result<bool>` all keep their current public shape.
+`Result.Failure<bool>(null!)` is deliberate: `Anela.Heblo.Domain.Shared.Result<T>.ErrorMessage` is `string?` and the private constructor stores whatever is passed with no runtime validation (confirmed by reading `Result.cs`); the `null!` null-forgiving operator only suppresses the harmless nullable-reference compiler warning on the `Failure(string errorMessage)` parameter, it does not change runtime behavior.
+
+No other production component changes: `FlexiBankStatementImportService`, `IBankStatementImportService`, and `Result<bool>` all keep their current public shape unchanged.
 
 ## Data Schemas
 
-No database schema, API contract, or event payload changes — this task adds test code only. Reference shapes the tests construct/consume (already existing, unmodified):
+No database schema, API contract, or event payload changes. Reference shape the tests construct/consume (already existing, unmodified):
 
-- `Result<bool>` (`Anela.Heblo.Domain.Shared`): outcome wrapper exposing `IsSuccess`, `Value`, and an error/message accessor (exact accessor name to be confirmed by the developer against the existing type — the type is used pervasively in this codebase, including by the SUT itself, so no ambiguity in behavior, only in naming).
-- SDK result type returned by `IBankAccountClient.ImportStatement(int accountId, string aboData)` (`Rem.FlexiBeeSDK.Client.Clients.BankAccounts`): exposes `IsSuccess` and an `ErrorMessage`/`GetErrorMessage()` accessor, as already consumed by `FlexiBankAccountClient.ImportStatementAsync`. Exact constructor/property shape to be confirmed by the developer from the installed `rem.flexibeesdk.client` NuGet package (per Risk row 1 in `arch-review.r1.md`).
+- `Result<bool>` / `Result` (`Anela.Heblo.Domain.Shared`): `IsSuccess` (bool), `Value` (`T?`), `ErrorMessage` (`string?`); created via `Result.Success(T value)` and `Result.Failure<T>(string errorMessage)`. This is the only type the test's Arrange/Assert code needs to know about — no FlexiBee SDK type is referenced in any assertion.
