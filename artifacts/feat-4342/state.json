@@ -21,16 +21,16 @@
       "updated_at": "2026-09-28T12:18:54.304193Z"
     },
     "developing": {
-      "status": "pending",
-      "updated_at": null
+      "status": "in_progress",
+      "updated_at": "2026-09-28T13:18:51.144632Z"
     }
   },
   "tasks": [
     {
       "name": "extract-margin-mapping-function",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-09-28T13:18:51.376456Z"
     },
     {
       "name": "add-margin-mapping-coverage-tests",
