@@ -145,4 +145,78 @@ public class E2ETestAuthenticationMiddlewareTests
         context.User.Identity!.AuthenticationType.Should().Be("Bearer");
         context.User.Identity.Name.Should().Be("Real User");
     }
+
+    // ── cookie auth path (FR-3) ──────────────────────────────────────────────
+
+    [Fact]
+    public async Task InvokeAsync_CookieAuthSucceeds_SetsUserAndCallsNext()
+    {
+        var claims = new[]
+        {
+            new Claim(ClaimTypes.NameIdentifier, "e2e-test-user-id"),
+            new Claim(ClaimTypes.Name, "E2E Test User"),
+        };
+        var principal = new ClaimsPrincipal(new ClaimsIdentity(claims, "E2ETestCookies"));
+
+        var authService = new Mock<IAuthenticationService>();
+        authService
+            .Setup(s => s.AuthenticateAsync(It.IsAny<HttpContext>(), "E2ETestCookies"))
+            .ReturnsAsync(AuthenticateResult.Success(new AuthenticationTicket(principal, "E2ETestCookies")));
+
+        var nextCalled = false;
+        var middleware = CreateMiddleware(
+            ctx => { nextCalled = true; return Task.CompletedTask; },
+            CreateEnvironment("Staging").Object);
+
+        // No IServicePrincipalTokenValidator/IE2ESessionService registered: if the
+        // middleware wrongly fell through to the token-header path after a successful
+        // cookie auth, resolving either would throw and fail this test.
+        var context = CreateContext(BuildServices(authService: authService));
+        context.Request.Headers["X-E2E-Test-Token"] = "should-be-ignored";
+
+        await middleware.InvokeAsync(context);
+
+        nextCalled.Should().BeTrue();
+        context.User.Identity!.IsAuthenticated.Should().BeTrue();
+        context.User.Identity.Name.Should().Be("E2E Test User");
+        context.User.Identity.AuthenticationType.Should().Be("E2ETestCookies");
+    }
+
+    // ── missing/empty token header (FR-4) ─────────────────────────────────
+
+    [Fact]
+    public async Task InvokeAsync_NoTokenHeader_PassesThroughWithoutResolvingValidator()
+    {
+        var nextCalled = false;
+        var middleware = CreateMiddleware(
+            ctx => { nextCalled = true; return Task.CompletedTask; },
+            CreateEnvironment("Staging").Object);
+
+        // No IServicePrincipalTokenValidator/IE2ESessionService registered: enforces
+        // that a missing header never reaches token-validation logic.
+        var context = CreateContext(BuildServices(authService: CreateFailingCookieAuthService()));
+
+        await middleware.InvokeAsync(context);
+
+        nextCalled.Should().BeTrue();
+        context.Response.StatusCode.Should().Be(StatusCodes.Status200OK);
+    }
+
+    [Fact]
+    public async Task InvokeAsync_EmptyTokenHeader_PassesThroughWithoutResolvingValidator()
+    {
+        var nextCalled = false;
+        var middleware = CreateMiddleware(
+            ctx => { nextCalled = true; return Task.CompletedTask; },
+            CreateEnvironment("Staging").Object);
+
+        var context = CreateContext(
+            BuildServices(authService: CreateFailingCookieAuthService()),
+            e2eTestToken: string.Empty);
+
+        await middleware.InvokeAsync(context);
+
+        nextCalled.Should().BeTrue();
+        context.Response.StatusCode.Should().Be(StatusCodes.Status200OK);
+    }
 }
