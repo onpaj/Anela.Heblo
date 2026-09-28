@@ -28,9 +28,9 @@
   "tasks": [
     {
       "name": "bank-statement-import-service-tests",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-09-28T12:24:09.408535Z"
+      "updated_at": "2026-09-28T12:30:27.274222Z"
     }
   ]
 }
