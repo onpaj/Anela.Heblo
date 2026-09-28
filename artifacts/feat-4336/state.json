@@ -21,16 +21,16 @@
       "updated_at": "2026-09-28T06:32:28.606358Z"
     },
     "developing": {
-      "status": "pending",
-      "updated_at": null
+      "status": "in_progress",
+      "updated_at": "2026-09-28T07:17:02.708273Z"
     }
   },
   "tasks": [
     {
       "name": "add-bulk-existence-lookup-repository-method",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-09-28T07:17:03.001754Z"
     },
     {
       "name": "use-bulk-lookup-in-marketing-invoice-import-service",
