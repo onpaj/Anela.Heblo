@@ -25,5 +25,30 @@
       "updated_at": null
     }
   },
-  "tasks": []
+  "tasks": [
+    {
+      "name": "scaffold-file-and-environment-guard-tests",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    },
+    {
+      "name": "cookie-and-missing-token-tests",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    },
+    {
+      "name": "token-validation-outcome-tests",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    },
+    {
+      "name": "should-be-registered-and-final-verification",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    }
+  ]
 }
