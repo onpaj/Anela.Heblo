@@ -28,9 +28,9 @@
   "tasks": [
     {
       "name": "add-ga4-harness-conversions-helpers",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-09-28T11:17:18.517961Z"
+      "updated_at": "2026-09-28T11:21:32.201630Z"
     },
     {
       "name": "add-conversions-sync-service-tests",
