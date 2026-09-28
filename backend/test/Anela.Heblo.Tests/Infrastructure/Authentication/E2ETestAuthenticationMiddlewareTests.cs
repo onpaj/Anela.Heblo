@@ -307,4 +307,30 @@ public class E2ETestAuthenticationMiddlewareTests
         context.Response.StatusCode.Should().Be(StatusCodes.Status500InternalServerError);
         (await ReadResponseBodyAsync(context)).Should().Be("Error validating E2E test token");
     }
+
+    // ── ShouldBeRegistered guard matrix (FR-8) ────────────────────────────
+
+    [Theory]
+    [InlineData("Development", null, true)]
+    [InlineData("Staging", null, true)]
+    [InlineData("Production", null, false)]
+    [InlineData("Staging", true, false)]
+    [InlineData("Development", true, false)]
+    [InlineData("Staging", false, true)]
+    [InlineData("IntegrationTest", null, false)]
+    [InlineData("IntegrationTest", true, false)]
+    public void ShouldBeRegistered_ReturnsExpected(string environmentName, bool? useMockAuth, bool expected)
+    {
+        var configData = new Dictionary<string, string?>();
+        if (useMockAuth.HasValue)
+            configData["UseMockAuth"] = useMockAuth.Value.ToString();
+        var configuration = new ConfigurationBuilder().AddInMemoryCollection(configData).Build();
+
+        var environment = new Mock<IHostEnvironment>();
+        environment.SetupGet(e => e.EnvironmentName).Returns(environmentName);
+
+        var result = E2ETestAuthenticationMiddleware.ShouldBeRegistered(configuration, environment.Object);
+
+        result.Should().Be(expected);
+    }
 }
