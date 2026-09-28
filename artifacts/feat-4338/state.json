@@ -22,7 +22,7 @@
     },
     "developing": {
       "status": "in_progress",
-      "updated_at": "2026-09-28T21:14:29.674491Z"
+      "updated_at": "2026-09-28T22:14:53.458944Z"
     }
   },
   "tasks": [
@@ -40,9 +40,9 @@
     },
     {
       "name": "token-validation-outcome-tests",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-09-28T22:14:53.644623Z"
     },
     {
       "name": "should-be-registered-and-final-verification",
