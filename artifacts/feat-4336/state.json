@@ -28,9 +28,9 @@
   "tasks": [
     {
       "name": "add-bulk-existence-lookup-repository-method",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-09-28T07:17:03.001754Z"
+      "updated_at": "2026-09-28T07:56:32.619781Z"
     },
     {
       "name": "use-bulk-lookup-in-marketing-invoice-import-service",
