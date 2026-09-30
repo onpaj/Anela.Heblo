@@ -28,9 +28,9 @@
   "tasks": [
     {
       "name": "fix-seeder-call-site",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-09-30T05:14:34.498824Z"
+      "updated_at": "2026-09-30T05:18:18.999075Z"
     }
   ]
 }
