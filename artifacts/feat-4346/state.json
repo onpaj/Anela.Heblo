@@ -1,0 +1,40 @@
+{
+  "feature_id": "feat-4346",
+  "issue_number": 4346,
+  "created_at": "2026-09-30T05:10:18.937352Z",
+  "max_revisions": 3,
+  "phases": {
+    "analyzing": {
+      "status": "completed",
+      "updated_at": "2026-09-30T05:10:49.839661Z"
+    },
+    "architecting": {
+      "status": "completed",
+      "updated_at": "2026-09-30T05:10:50.226093Z"
+    },
+    "designing": {
+      "status": "completed",
+      "updated_at": "2026-09-30T05:10:50.541575Z"
+    },
+    "planning": {
+      "status": "completed",
+      "updated_at": "2026-09-30T05:10:50.939371Z"
+    },
+    "developing": {
+      "status": "in_progress",
+      "updated_at": "2026-09-30T05:14:34.225152Z"
+    },
+    "code-review": {
+      "status": "completed",
+      "updated_at": "2026-09-30T06:16:24.054505Z"
+    }
+  },
+  "tasks": [
+    {
+      "name": "fix-seeder-call-site",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-09-30T05:18:18.999075Z"
+    }
+  ]
+}
