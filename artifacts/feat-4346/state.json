@@ -21,16 +21,16 @@
       "updated_at": "2026-09-30T05:10:50.939371Z"
     },
     "developing": {
-      "status": "pending",
-      "updated_at": null
+      "status": "in_progress",
+      "updated_at": "2026-09-30T05:14:34.225152Z"
     }
   },
   "tasks": [
     {
       "name": "fix-seeder-call-site",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-09-30T05:14:34.498824Z"
     }
   ]
 }

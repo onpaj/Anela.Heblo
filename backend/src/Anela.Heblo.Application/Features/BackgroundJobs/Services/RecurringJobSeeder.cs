@@ -48,7 +48,7 @@ public class RecurringJobSeeder : IRecurringJobSeeder
             {
                 await _repository.AddAsync(config, cancellationToken);
             }
-            else if (HasSeededFieldsChanged(existing, config))
+            else if (HasSeededFieldsChanged(existingConfig, config))
             {
                 existingConfig.UpdateConfiguration(
                     config.DisplayName,
