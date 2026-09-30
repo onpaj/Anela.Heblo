@@ -1,0 +1,36 @@
+{
+  "feature_id": "feat-4346",
+  "issue_number": 4346,
+  "created_at": "2026-09-30T05:10:18.937352Z",
+  "max_revisions": 3,
+  "phases": {
+    "analyzing": {
+      "status": "completed",
+      "updated_at": "2026-09-30T05:10:49.839661Z"
+    },
+    "architecting": {
+      "status": "completed",
+      "updated_at": "2026-09-30T05:10:50.226093Z"
+    },
+    "designing": {
+      "status": "completed",
+      "updated_at": "2026-09-30T05:10:50.541575Z"
+    },
+    "planning": {
+      "status": "completed",
+      "updated_at": "2026-09-30T05:10:50.939371Z"
+    },
+    "developing": {
+      "status": "pending",
+      "updated_at": null
+    }
+  },
+  "tasks": [
+    {
+      "name": "fix-seeder-call-site",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    }
+  ]
+}
