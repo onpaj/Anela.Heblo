@@ -14,4 +14,7 @@ public interface ILogetoClient
     /// <summary>Replaces an existing time entry wholesale (merge=false); every preserved field
     /// must be present in the request.</summary>
     Task UpdateTimeEntryAsync(Guid guid, LogetoTimeEntryRequest request, CancellationToken cancellationToken);
+
+    /// <summary>Deletes a time entry.</summary>
+    Task DeleteTimeEntryAsync(Guid guid, CancellationToken cancellationToken);
 }

@@ -23,8 +23,8 @@ public class BreakInsertionJob : IRecurringJob
         Category = RecurringJobCategory.Attendance,
         DisplayName = "Logeto — insert missing lunch breaks",
         Description = "Walks each opted-in worker's days in Logeto (Výkaz práce) and inserts a 30-minute " +
-                      "break into any ≥6h working day that has none, splitting the work record via " +
-                      "merge=true and touching the result so phones pick the change up.",
+                      "break into any ≥6h working day that has none, recreating the work record around it as " +
+                      "new records (then deleting the original) so phones pick the change up.",
         CronExpression = "0 3 * * *",
         DefaultIsEnabled = DefaultEnabled
     };
