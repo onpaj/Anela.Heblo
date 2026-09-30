@@ -106,7 +106,9 @@ public class GetProductMarginsHandler : IRequestHandler<GetProductMarginsRequest
 
             if (!string.IsNullOrWhiteSpace(request.ProductName))
             {
-                filtered = filtered.Where(x => x.ProductName != null && x.ProductName.Contains(request.ProductName, StringComparison.OrdinalIgnoreCase));
+                filtered = filtered.Where(x =>
+                    (x.ProductName != null && x.ProductName.Contains(request.ProductName, StringComparison.OrdinalIgnoreCase)) ||
+                    (x.ProductNameSuffix != null && x.ProductNameSuffix.Contains(request.ProductName, StringComparison.OrdinalIgnoreCase)));
             }
 
             if (request.ProductType.HasValue)

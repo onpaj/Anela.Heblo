@@ -13,6 +13,11 @@ import { useCatalogAutocomplete } from "../../api/hooks/useCatalogAutocomplete";
 import { CatalogItemDto, ProductType } from "../../api/generated/api-client";
 import { useTheme } from "../../contexts/ThemeContext";
 import { GRAPHITE } from "./reactSelectDarkStyles";
+import ProductNameSuffix from "./ProductNameSuffix";
+import {
+  formatProductLabel,
+  formatProductNameWithSuffix,
+} from "../../utils/productName";
 
 // Generic interface for the autocomplete component
 interface CatalogAutocompleteProps<T = CatalogItemDto> {
@@ -58,6 +63,7 @@ interface CatalogSelectOption {
   label: string;
   productCode?: string;
   productName?: string;
+  productNameSuffix?: string;
   type?: ProductType;
   data?: CatalogItemDto; // Complete catalog item data for preserving all fields
 }
@@ -91,9 +97,14 @@ export function CatalogAutocomplete<T = CatalogItemDto>({
   // Convert CatalogItemDto to Select option format
   const convertToOption = (item: CatalogItemDto): CatalogSelectOption => ({
     value: item.productCode || "",
-    label: `${item.productName} (${item.productCode})`,
+    label: formatProductLabel(
+      item.productName || "",
+      item.productCode || "",
+      item.productNameSuffix,
+    ),
     productCode: item.productCode,
     productName: item.productName,
+    productNameSuffix: item.productNameSuffix,
     type: item.type,
     data: item, // Store complete catalog item data
   });
@@ -113,9 +124,14 @@ export function CatalogAutocomplete<T = CatalogItemDto>({
     return {
       productCode: code,
       productName: displayName,
+      productNameSuffix: catalogItem.productNameSuffix,
       value: code,
       label: catalogItem.productName
-        ? `${catalogItem.productName} (${catalogItem.productCode})`
+        ? formatProductLabel(
+            catalogItem.productName,
+            catalogItem.productCode,
+            catalogItem.productNameSuffix,
+          )
         : displayName,
     } as CatalogSelectOption;
   };
@@ -133,10 +149,11 @@ export function CatalogAutocomplete<T = CatalogItemDto>({
       return {
         productCode: code,
         productName: name,
+        productNameSuffix: catalogItem.productNameSuffix,
         // Carried so removing one chip does not rebuild the survivors with type undefined.
         type: catalogItem.type,
         value: code,
-        label: `${name} (${code})`,
+        label: formatProductLabel(name, code, catalogItem.productNameSuffix),
       } as CatalogSelectOption;
     });
   };
@@ -188,6 +205,7 @@ export function CatalogAutocomplete<T = CatalogItemDto>({
         new CatalogItemDto({
           productCode: option.productCode,
           productName: option.productName,
+          productNameSuffix: option.productNameSuffix,
           type: option.type,
         });
 
@@ -382,6 +400,7 @@ export function CatalogAutocomplete<T = CatalogItemDto>({
     const catalogItem = props.data.data || new CatalogItemDto({
       productCode: props.data.productCode,
       productName: props.data.productName,
+      productNameSuffix: props.data.productNameSuffix,
       type: props.data.type,
     });
 
@@ -393,12 +412,15 @@ export function CatalogAutocomplete<T = CatalogItemDto>({
             {renderItem ? (
               renderItem(catalogItem)
             ) : (
-              <span className="text-gray-900 dark:text-graphite-text truncate">
-                {props.data.productName}{" "}
-                <span className="text-gray-500 dark:text-graphite-muted font-mono">
-                  ({props.data.productCode})
+              <>
+                <span className="text-gray-900 dark:text-graphite-text truncate">
+                  {props.data.productName}{" "}
+                  <span className="text-gray-500 dark:text-graphite-muted font-mono">
+                    ({props.data.productCode})
+                  </span>
                 </span>
-              </span>
+                <ProductNameSuffix suffix={props.data.productNameSuffix} />
+              </>
             )}
           </div>
         </div>
@@ -415,7 +437,10 @@ export function CatalogAutocomplete<T = CatalogItemDto>({
           <span className="truncate">
             {displayValue && value
               ? displayValue(value)
-              : props.data.productName}
+              : formatProductNameWithSuffix(
+                  props.data.productName || "",
+                  props.data.productNameSuffix,
+                )}
           </span>
         </div>
       </components.SingleValue>

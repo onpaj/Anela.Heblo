@@ -15,6 +15,7 @@ import {
 } from "../../api/hooks/useCatalog";
 import CatalogDetail from "./CatalogDetail";
 import Pagination from "../common/Pagination";
+import ProductNameSuffix from "../common/ProductNameSuffix";
 import { PAGE_CONTAINER_HEIGHT } from "../../constants/layout";
 import { useScreenView } from '../../telemetry/useScreenView';
 
@@ -463,6 +464,7 @@ const CatalogList: React.FC = () => {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-graphite-text">
                     {item.productName}
+                    <ProductNameSuffix suffix={item.productNameSuffix} />
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-graphite-muted">
                     <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 dark:bg-white/10 text-gray-800 dark:text-graphite-muted">

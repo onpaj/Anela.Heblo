@@ -4,6 +4,7 @@ public class ErpStock
 {
     public string ProductCode { get; set; }
     public string ProductName { get; set; }
+    public string? ProductNameSuffix { get; set; }
     public decimal Stock { get; set; }
     public string MOQ { get; set; }
     public int? ProductTypeId { get; set; }

@@ -73,4 +73,17 @@ public class FlexiStockMappingProfileTests
         // Assert
         result.Price.Should().BeApproximately(0.311901m, 0.000001m);
     }
+
+    [Fact]
+    public void Map_CopiesDescriptionCToProductNameSuffix()
+    {
+        // Arrange
+        var summary = new StockToDateSummary { ProductCode = "AKL124", ProductName = "Acmella In-Tense extrakt", DescriptionC = "Gatuline Expression AF" };
+
+        // Act
+        var result = CreateMapper().Map<ErpStock>(summary);
+
+        // Assert
+        result.ProductNameSuffix.Should().Be("Gatuline Expression AF");
+    }
 }

@@ -390,4 +390,28 @@ public class GetMaterialsForPurchaseHandlerTests
             MinimalOrderQuantity = minimalOrderQuantity
         };
     }
+
+    [Fact]
+    public async Task Handle_SearchTermMatchesProductNameSuffixOnly_ReturnsMatchingItemWithSuffix()
+    {
+        // Arrange
+        var matching = CreateCatalogItem("AKL124", "Acmella In-Tense extrakt");
+        matching.ProductNameSuffix = "Gatuline Expression AF";
+        var nonMatching = CreateCatalogItem("MAT-002", "Oil");
+        var fixtures = new List<CatalogAggregate> { matching, nonMatching };
+
+        _catalogRepositoryMock
+            .Setup(x => x.FindAsync(It.IsAny<Expression<Func<CatalogAggregate, bool>>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(fixtures);
+
+        var request = new GetMaterialsForPurchaseRequest { SearchTerm = "Gatuline", Limit = 50 };
+
+        // Act
+        var result = await _handler.Handle(request, CancellationToken.None);
+
+        // Assert
+        var material = result.Materials.Should().ContainSingle().Subject;
+        material.ProductCode.Should().Be("AKL124");
+        material.ProductNameSuffix.Should().Be("Gatuline Expression AF");
+    }
 }

@@ -489,4 +489,37 @@ public class CatalogAggregateTests
         // Assert
         aggregate.MinimalExpiration.Should().BeNull();
     }
+
+    [Theory]
+    [InlineData("  Menthe poivrée ", "Menthe poivrée", "menthe poivree")]
+    [InlineData("Gatuline Expression AF", "Gatuline Expression AF", "gatuline expression af")]
+    public void ProductNameSuffix_WhenSet_TrimsAndNormalizesForSearch(string value, string expected, string expectedNormalized)
+    {
+        // Arrange
+        var aggregate = new CatalogAggregate();
+
+        // Act
+        aggregate.ProductNameSuffix = value;
+
+        // Assert
+        aggregate.ProductNameSuffix.Should().Be(expected);
+        aggregate.ProductNameSuffixNormalized.Should().Be(expectedNormalized);
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("   ")]
+    public void ProductNameSuffix_WhenBlank_IsNullAndNormalizedIsEmpty(string? value)
+    {
+        // Arrange
+        var aggregate = new CatalogAggregate { ProductNameSuffix = "previous" };
+
+        // Act
+        aggregate.ProductNameSuffix = value;
+
+        // Assert
+        aggregate.ProductNameSuffix.Should().BeNull();
+        aggregate.ProductNameSuffixNormalized.Should().BeEmpty();
+    }
 }

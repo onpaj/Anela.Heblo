@@ -10,6 +10,8 @@ import { MemoryRouter } from "react-router-dom";
 import { TestRouterWrapper } from "../../../test-utils/router-wrapper";
 import { PurchasePlanningListProvider } from "../../../contexts/PurchasePlanningListContext";
 import { ToastProvider } from "../../../contexts/ToastContext";
+import * as apiClientModule from "../../../api/client";
+import * as exportToXlsxModule from "../../../utils/exportToXlsx";
 
 jest.mock('../../../features/grid-layout', () => ({
   useGridLayout: (_key: string, columns: any[]) => ({
@@ -516,5 +518,79 @@ describe("PurchaseStockAnalysis", () => {
     // Check for "no purchase" indicator - may be dash or text
     const noPurchaseIndicators = screen.queryAllByText(/—|Žádný|N\/A/);
     expect(noPurchaseIndicators.length).toBeGreaterThan(0);
+  });
+
+  describe("product name suffix", () => {
+    const suffixedResponse = {
+      ...mockResponse,
+      items: [
+        {
+          ...mockItems[0],
+          productName: "Acmella In-Tense extrakt",
+          productNameSuffix: "Gatuline Expression AF",
+        },
+        mockItems[1],
+      ],
+    };
+
+    beforeEach(() => {
+      mockUsePurchaseStockAnalysisQuery.mockReturnValue({
+        data: suffixedResponse,
+        isLoading: false,
+        error: null,
+        isRefetching: false,
+        refetch: jest.fn(),
+      } as any);
+    });
+
+    afterEach(() => {
+      jest.restoreAllMocks();
+    });
+
+    it("renders the suffix as a muted second line under the product name", () => {
+      // Arrange & Act
+      render(
+        <TestWrapper>
+          <PurchaseStockAnalysis />
+        </TestWrapper>,
+      );
+
+      // Assert
+      expect(screen.getByText("Acmella In-Tense extrakt")).toBeInTheDocument();
+      const suffixLines = screen.getAllByTestId("product-name-suffix");
+      expect(suffixLines).toHaveLength(1); // the second item has no suffix
+      expect(suffixLines[0]).toHaveTextContent("Gatuline Expression AF");
+      expect(suffixLines[0]).toHaveClass("text-xs", "text-gray-500");
+    });
+
+    it("exports the suffix in a Doplněk názvu column next to the name", async () => {
+      // Arrange
+      const getStockAnalysis = jest.fn().mockResolvedValue(suffixedResponse);
+      jest
+        .spyOn(apiClientModule, "getAuthenticatedApiClient")
+        .mockReturnValue({
+          purchaseStockAnalysis_GetStockAnalysis: getStockAnalysis,
+        } as any);
+      const exportSpy = jest
+        .spyOn(exportToXlsxModule, "exportToXlsx")
+        .mockResolvedValue(undefined);
+      render(
+        <TestWrapper>
+          <PurchaseStockAnalysis />
+        </TestWrapper>,
+      );
+
+      // Act
+      fireEvent.click(screen.getByText("Export"));
+
+      // Assert
+      await waitFor(() => expect(exportSpy).toHaveBeenCalled());
+      const [rows, columns] = exportSpy.mock.calls[0] as [any[], any[]];
+      const headers = columns.map((column) => column.header);
+      const suffixIndex = headers.indexOf("Doplněk názvu");
+      expect(suffixIndex).toBe(headers.indexOf("Název produktu") + 1);
+      expect(columns[suffixIndex].value(rows[0])).toBe("Gatuline Expression AF");
+      expect(columns[suffixIndex].value(rows[1])).toBeUndefined();
+    });
   });
 });

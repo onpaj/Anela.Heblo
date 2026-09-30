@@ -213,7 +213,14 @@ public class ManufactureProtocolDocument : IDocument
                             foreach (var item in erpDoc.Items)
                             {
                                 table.Cell().Element(DataCell).Text(item.ProductCode);
-                                table.Cell().Element(DataCell).Text(item.ProductName);
+                                table.Cell().Element(DataCell).Column(nameCol =>
+                                {
+                                    nameCol.Item().Text(item.ProductName);
+                                    if (_data.ProductNameSuffixes.TryGetValue(item.ProductCode?.Trim() ?? string.Empty, out var suffix))
+                                    {
+                                        nameCol.Item().Text(suffix).FontSize(8).FontColor(Colors.Grey.Darken1);
+                                    }
+                                });
                                 table.Cell().Element(DataCell).Text(item.Amount.ToString("0.###"));
                                 table.Cell().Element(DataCell).Text(item.Unit ?? "—");
                                 table.Cell().Element(DataCell).Text(item.LotNumber ?? "—");

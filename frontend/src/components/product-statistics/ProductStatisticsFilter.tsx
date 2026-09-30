@@ -18,6 +18,7 @@ export const MAX_SELECTED_PRODUCTS = 10;
 export interface SelectedProduct {
   productCode: string;
   productName: string;
+  productNameSuffix?: string;
 }
 
 export interface ProductStatisticsFilterProps {
@@ -115,6 +116,7 @@ const ProductStatisticsFilter: React.FC<ProductStatisticsFilterProps> = ({
       .map((item) => ({
         productCode: item.productCode as string,
         productName: item.productName ?? (item.productCode as string),
+        productNameSuffix: item.productNameSuffix,
       }));
 
     setWasCapExceeded(mapped.length > MAX_SELECTED_PRODUCTS);
@@ -141,6 +143,7 @@ const ProductStatisticsFilter: React.FC<ProductStatisticsFilterProps> = ({
                 new CatalogItemDto({
                   productCode: product.productCode,
                   productName: product.productName,
+                  productNameSuffix: product.productNameSuffix,
                 }),
             )}
             onSelect={() => {}}

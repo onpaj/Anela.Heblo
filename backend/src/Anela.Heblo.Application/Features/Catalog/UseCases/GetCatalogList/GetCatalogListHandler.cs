@@ -30,13 +30,14 @@ public class GetCatalogListHandler : IRequestHandler<GetCatalogListRequest, GetC
             filter = filter.And(x => request.ProductTypes.Contains(x.Type));
         }
 
-        // Autocomplete search with OR logic (SearchTerm in ProductName OR ProductCode)
+        // Autocomplete search with OR logic (SearchTerm in ProductName, its suffix OR ProductCode)
         if (!string.IsNullOrWhiteSpace(request.SearchTerm))
         {
             var searchTerm = request.SearchTerm.Trim().ToLowerInvariant();
             var normalizedSearchTerm = request.SearchTerm.Trim().NormalizeForSearch();
             filter = filter.And(x =>
                 x.ProductNameNormalized.Contains(normalizedSearchTerm) ||
+                x.ProductNameSuffixNormalized.Contains(normalizedSearchTerm) ||
                 x.ProductCode.ToLowerInvariant().Contains(searchTerm));
         }
 
@@ -44,7 +45,9 @@ public class GetCatalogListHandler : IRequestHandler<GetCatalogListRequest, GetC
         if (!string.IsNullOrWhiteSpace(request.ProductName))
         {
             var normalizedProductName = request.ProductName.Trim().NormalizeForSearch();
-            filter = filter.And(x => x.ProductNameNormalized.Contains(normalizedProductName));
+            filter = filter.And(x =>
+                x.ProductNameNormalized.Contains(normalizedProductName) ||
+                x.ProductNameSuffixNormalized.Contains(normalizedProductName));
         }
 
         if (!string.IsNullOrWhiteSpace(request.ProductCode))

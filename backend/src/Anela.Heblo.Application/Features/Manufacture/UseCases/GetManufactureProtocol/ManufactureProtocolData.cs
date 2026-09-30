@@ -16,6 +16,9 @@ public class ManufactureProtocolData
     public List<ManufactureProtocolProduct> Products { get; set; } = new();
 
     public List<ManufactureProtocolErpDocument> ErpDocuments { get; set; } = new();
+
+    /// <summary>Product code -> name suffix (Flexi cenik.popisC) for the ERP document lines.</summary>
+    public IReadOnlyDictionary<string, string> ProductNameSuffixes { get; set; } = new Dictionary<string, string>();
     public List<ManufactureProtocolNote> Notes { get; set; } = new();
     public List<ManufactureProtocolConditionsReading> ConditionsReadings { get; set; } = new();
 

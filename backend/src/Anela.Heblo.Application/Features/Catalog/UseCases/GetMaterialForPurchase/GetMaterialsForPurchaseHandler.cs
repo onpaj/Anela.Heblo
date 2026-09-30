@@ -25,7 +25,8 @@ public class GetMaterialsForPurchaseHandler : IRequestHandler<GetMaterialsForPur
             var searchTerm = request.SearchTerm.ToLowerInvariant();
             catalogItems = catalogItems.Where(item =>
                 item.ProductCode.ToLowerInvariant().Contains(searchTerm) ||
-                item.ProductName.ToLowerInvariant().Contains(searchTerm));
+                item.ProductName.ToLowerInvariant().Contains(searchTerm) ||
+                (item.ProductNameSuffix?.ToLowerInvariant().Contains(searchTerm) ?? false));
         }
 
         // Take limited results and map to DTOs
@@ -35,6 +36,7 @@ public class GetMaterialsForPurchaseHandler : IRequestHandler<GetMaterialsForPur
             {
                 ProductCode = item.ProductCode,
                 ProductName = item.ProductName,
+                ProductNameSuffix = item.ProductNameSuffix,
                 ProductType = item.Type.ToString(),
                 LastPurchasePrice = item.PurchaseHistory.LastOrDefault()?.PricePerPiece,
                 Location = string.IsNullOrEmpty(item.Location) ? null : item.Location,

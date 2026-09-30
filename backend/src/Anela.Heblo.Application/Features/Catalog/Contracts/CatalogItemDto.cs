@@ -6,6 +6,7 @@ public class CatalogItemDto
 {
     public string ProductCode { get; set; } = string.Empty;
     public string ProductName { get; set; } = string.Empty;
+    public string? ProductNameSuffix { get; set; }
     public ProductType Type { get; set; }
     public StockDto Stock { get; set; } = new();
     public PriceDto Price { get; set; } = new();

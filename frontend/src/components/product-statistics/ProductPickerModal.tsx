@@ -3,6 +3,7 @@ import { Search, X } from "lucide-react";
 import { useCatalogAutocomplete } from "../../api/hooks/useCatalogAutocomplete";
 import { CatalogItemDto } from "../../api/generated/api-client";
 import { SelectedProduct } from "./ProductStatisticsFilter";
+import ProductNameSuffix from "../common/ProductNameSuffix";
 
 /** How many matches the list shows. The endpoint returns no total, so a full page is the only "there may be more" signal. */
 export const PRODUCT_PICKER_RESULT_LIMIT = 100;
@@ -23,6 +24,7 @@ function toSelectedProduct(item: CatalogItemDto): SelectedProduct {
   return {
     productCode,
     productName: item.productName ?? productCode,
+    productNameSuffix: item.productNameSuffix,
   };
 }
 
@@ -56,7 +58,10 @@ const ProductCheckbox: React.FC<ProductCheckboxProps> = ({
       onChange={() => onToggle(product)}
       className="h-4 w-4 rounded border-gray-300 dark:border-graphite-border text-indigo-600 focus:ring-indigo-500"
     />
-    <span className="truncate">{labelOf(product)}</span>
+    <span className="min-w-0">
+      <span className="block truncate">{labelOf(product)}</span>
+      <ProductNameSuffix suffix={product.productNameSuffix} />
+    </span>
   </label>
 );
 

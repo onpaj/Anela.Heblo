@@ -252,4 +252,55 @@ public class GetCatalogListHandlerDiacriticsTests
         result.Items.Should().HaveCount(2);
         result.Items.Select(i => i.ProductCode).Should().BeEquivalentTo(new[] { "CREAM001", "CREAM002" });
     }
+
+    [Theory]
+    [InlineData("gatuline")]
+    [InlineData("Menthe")]
+    [InlineData("poivrée")]
+    public async Task Handle_Should_Find_Products_By_Name_Suffix(string searchTerm)
+    {
+        // Arrange
+        var products = new List<CatalogAggregate>
+        {
+            new() { ProductCode = "AKL124", ProductName = "Acmella In-Tense extrakt", ProductNameSuffix = "Gatuline Expression AF" },
+            new() { ProductCode = "HYD013", ProductName = "Hydrolát máta peprná BIO", ProductNameSuffix = "Menthe poivree" },
+            new() { ProductCode = "SOAP001", ProductName = "Přírodní mýdlo" }
+        };
+
+        _repositoryMock.Setup(r => r.FindAsync(It.IsAny<Expression<Func<CatalogAggregate, bool>>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((Expression<Func<CatalogAggregate, bool>> predicate, CancellationToken ct) =>
+                products.AsQueryable().Where(predicate).ToList());
+
+        var request = new GetCatalogListRequest { SearchTerm = searchTerm, PageNumber = 1, PageSize = 10 };
+
+        // Act
+        var result = await _handler.Handle(request, CancellationToken.None);
+
+        // Assert
+        result.Items.Should().ContainSingle();
+        result.Items.Single().ProductNameSuffix.Should().NotBeNullOrEmpty();
+    }
+
+    [Fact]
+    public async Task Handle_Should_Filter_By_ProductName_Including_Suffix()
+    {
+        // Arrange
+        var products = new List<CatalogAggregate>
+        {
+            new() { ProductCode = "AKL124", ProductName = "Acmella In-Tense extrakt", ProductNameSuffix = "Gatuline Expression AF" },
+            new() { ProductCode = "SOAP001", ProductName = "Přírodní mýdlo" }
+        };
+
+        _repositoryMock.Setup(r => r.FindAsync(It.IsAny<Expression<Func<CatalogAggregate, bool>>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((Expression<Func<CatalogAggregate, bool>> predicate, CancellationToken ct) =>
+                products.AsQueryable().Where(predicate).ToList());
+
+        var request = new GetCatalogListRequest { ProductName = "expression", PageNumber = 1, PageSize = 10 };
+
+        // Act
+        var result = await _handler.Handle(request, CancellationToken.None);
+
+        // Assert
+        result.Items.Should().ContainSingle().Which.ProductCode.Should().Be("AKL124");
+    }
 }

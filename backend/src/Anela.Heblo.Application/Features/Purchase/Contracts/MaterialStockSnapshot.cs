@@ -5,6 +5,7 @@ public sealed class MaterialStockSnapshot
     public required string ProductCode { get; init; }
     public required string ProductName { get; init; }
     public required string ProductNameNormalized { get; init; }
+    public string? ProductNameSuffix { get; init; }
     public required MaterialProductType ProductType { get; init; }
     public string? SupplierName { get; init; }
     public required string MinimalOrderQuantity { get; init; }
