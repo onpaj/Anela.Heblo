@@ -413,7 +413,7 @@ export function CatalogAutocomplete<T = CatalogItemDto>({
               renderItem(catalogItem)
             ) : (
               <>
-                <span className="text-gray-900 dark:text-graphite-text truncate">
+                <span className="block text-gray-900 dark:text-graphite-text truncate">
                   {props.data.productName}{" "}
                   <span className="text-gray-500 dark:text-graphite-muted font-mono">
                     ({props.data.productCode})

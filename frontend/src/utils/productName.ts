@@ -15,9 +15,12 @@ export const formatProductNameWithSuffix = (
   suffix?: string | null,
 ): string => {
   const normalizedSuffix = normalizeProductNameSuffix(suffix);
-  return normalizedSuffix
+  if (!normalizedSuffix) {
+    return name;
+  }
+  return name
     ? `${name}${PRODUCT_NAME_SUFFIX_SEPARATOR}${normalizedSuffix}`
-    : name;
+    : normalizedSuffix;
 };
 
 /** Single-line product label: `Name · Suffix (CODE)`, or `Name (CODE)` when there is no suffix. */

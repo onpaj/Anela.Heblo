@@ -190,6 +190,7 @@ public class GetProductMarginsHandler : IRequestHandler<GetProductMarginsRequest
             {
                 ProductCode = product?.ProductCode ?? "UNKNOWN",
                 ProductName = product?.ProductName ?? "Unknown Product",
+                ProductNameSuffix = product?.ProductNameSuffix,
                 ManufactureDifficulty = product?.ManufactureDifficulty ?? 0,
 
                 // Use pre-calculated averages from margin history

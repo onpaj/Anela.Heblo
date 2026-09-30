@@ -543,10 +543,6 @@ describe("PurchaseStockAnalysis", () => {
       } as any);
     });
 
-    afterEach(() => {
-      jest.restoreAllMocks();
-    });
-
     it("renders the suffix as a muted second line under the product name", () => {
       // Arrange & Act
       render(

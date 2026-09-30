@@ -41937,6 +41937,7 @@ export interface IGetProductMarginsResponse extends IBaseResponse {
 export class ProductMarginDto implements IProductMarginDto {
     productCode?: string;
     productName?: string;
+    productNameSuffix?: string | undefined;
     priceWithoutVat?: number | undefined;
     purchasePrice?: number | undefined;
     manufactureDifficulty?: number;
@@ -41960,6 +41961,7 @@ export class ProductMarginDto implements IProductMarginDto {
         if (_data) {
             this.productCode = _data["productCode"];
             this.productName = _data["productName"];
+            this.productNameSuffix = _data["productNameSuffix"];
             this.priceWithoutVat = _data["priceWithoutVat"];
             this.purchasePrice = _data["purchasePrice"];
             this.manufactureDifficulty = _data["manufactureDifficulty"];
@@ -41987,6 +41989,7 @@ export class ProductMarginDto implements IProductMarginDto {
         data = typeof data === 'object' ? data : {};
         data["productCode"] = this.productCode;
         data["productName"] = this.productName;
+        data["productNameSuffix"] = this.productNameSuffix;
         data["priceWithoutVat"] = this.priceWithoutVat;
         data["purchasePrice"] = this.purchasePrice;
         data["manufactureDifficulty"] = this.manufactureDifficulty;
@@ -42007,6 +42010,7 @@ export class ProductMarginDto implements IProductMarginDto {
 export interface IProductMarginDto {
     productCode?: string;
     productName?: string;
+    productNameSuffix?: string | undefined;
     priceWithoutVat?: number | undefined;
     purchasePrice?: number | undefined;
     manufactureDifficulty?: number;

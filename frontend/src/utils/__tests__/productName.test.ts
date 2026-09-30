@@ -49,6 +49,10 @@ describe("productName formatters", () => {
     it("returns the bare name without a suffix", () => {
       expect(formatProductNameWithSuffix("Krém")).toBe("Krém");
     });
+
+    it("returns the suffix alone without a leading separator when the name is blank", () => {
+      expect(formatProductNameWithSuffix("", "Menthe poivree")).toBe("Menthe poivree");
+    });
   });
 
   describe("normalizeProductNameSuffix", () => {

@@ -5,6 +5,7 @@ public class ProductMarginDto
     // Basic product properties
     public string ProductCode { get; set; } = string.Empty;
     public string ProductName { get; set; } = string.Empty;
+    public string? ProductNameSuffix { get; set; }
     public decimal? PriceWithoutVat { get; set; }
     public decimal? PurchasePrice { get; set; }
 

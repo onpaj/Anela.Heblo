@@ -406,6 +406,8 @@ public class GetProductMarginsHandlerTests
 
         // Assert
         response.Success.Should().BeTrue();
-        response.Items.Should().ContainSingle().Which.ProductCode.Should().Be("AKL124");
+        var item = response.Items.Should().ContainSingle().Subject;
+        item.ProductCode.Should().Be("AKL124");
+        item.ProductNameSuffix.Should().Be("Gatuline Expression AF");
     }
 }
