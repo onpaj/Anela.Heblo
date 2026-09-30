@@ -13,9 +13,6 @@ public class LogetoTimeEntry
 
     public Guid Activity { get; init; }
 
-    /// <summary>Account-wide write counter. Logeto bumps it on every write, but *not* on the record
-    /// its merge=true split rewrites in place — which is how a stale record is recognised.</summary>
-    public int Revision { get; init; }
     public string? Description { get; init; }
     public string? ExternalKey { get; init; }
 

@@ -40,7 +40,7 @@ public class AttendanceControllerTests
         var request = new RunBreakInsertionRequest { FromDaysAgo = 120, ToDaysAgo = 110 };
         _mediatorMock
             .Setup(m => m.Send(It.IsAny<RunBreakInsertionRequest>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new RunBreakInsertionResponse { DaysScanned = 11, RecordsTouched = 4 });
+            .ReturnsAsync(new RunBreakInsertionResponse { DaysScanned = 11, RecordsRecreated = 4 });
 
         // Act
         var result = await _controller.RunBreakInsertion(request, CancellationToken.None);
@@ -49,7 +49,7 @@ public class AttendanceControllerTests
         var response = result.Result.Should().BeOfType<OkObjectResult>()
             .Subject.Value.Should().BeOfType<RunBreakInsertionResponse>().Subject;
         response.DaysScanned.Should().Be(11);
-        response.RecordsTouched.Should().Be(4);
+        response.RecordsRecreated.Should().Be(4);
 
         _mediatorMock.Verify(m => m.Send(
             It.Is<RunBreakInsertionRequest>(r => r.FromDaysAgo == 120 && r.ToDaysAgo == 110),

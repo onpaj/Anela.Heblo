@@ -16850,8 +16850,8 @@ export class RunBreakInsertionResponse extends BaseResponse implements IRunBreak
     daysScanned?: number;
     breaksInserted?: number;
     daysHealed?: number;
-    recordsTouched?: number;
-    touchFailed?: number;
+    recordsRecreated?: number;
+    recreateFailed?: number;
     skippedExistingBreak?: number;
     skippedInProgress?: number;
     skippedBelowThreshold?: number;
@@ -16869,8 +16869,8 @@ export class RunBreakInsertionResponse extends BaseResponse implements IRunBreak
             this.daysScanned = _data["daysScanned"];
             this.breaksInserted = _data["breaksInserted"];
             this.daysHealed = _data["daysHealed"];
-            this.recordsTouched = _data["recordsTouched"];
-            this.touchFailed = _data["touchFailed"];
+            this.recordsRecreated = _data["recordsRecreated"];
+            this.recreateFailed = _data["recreateFailed"];
             this.skippedExistingBreak = _data["skippedExistingBreak"];
             this.skippedInProgress = _data["skippedInProgress"];
             this.skippedBelowThreshold = _data["skippedBelowThreshold"];
@@ -16892,8 +16892,8 @@ export class RunBreakInsertionResponse extends BaseResponse implements IRunBreak
         data["daysScanned"] = this.daysScanned;
         data["breaksInserted"] = this.breaksInserted;
         data["daysHealed"] = this.daysHealed;
-        data["recordsTouched"] = this.recordsTouched;
-        data["touchFailed"] = this.touchFailed;
+        data["recordsRecreated"] = this.recordsRecreated;
+        data["recreateFailed"] = this.recreateFailed;
         data["skippedExistingBreak"] = this.skippedExistingBreak;
         data["skippedInProgress"] = this.skippedInProgress;
         data["skippedBelowThreshold"] = this.skippedBelowThreshold;
@@ -16909,8 +16909,8 @@ export interface IRunBreakInsertionResponse extends IBaseResponse {
     daysScanned?: number;
     breaksInserted?: number;
     daysHealed?: number;
-    recordsTouched?: number;
-    touchFailed?: number;
+    recordsRecreated?: number;
+    recreateFailed?: number;
     skippedExistingBreak?: number;
     skippedInProgress?: number;
     skippedBelowThreshold?: number;
