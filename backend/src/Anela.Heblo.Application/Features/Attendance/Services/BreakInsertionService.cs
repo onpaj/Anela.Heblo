@@ -116,7 +116,7 @@ public class BreakInsertionService
                         person, day.Key, day.ToList(), typeByActivity, breakActivity, options, summary,
                         today, cancellationToken);
                 }
-                catch (Exception ex)
+                catch (Exception ex) when (!cancellationToken.IsCancellationRequested)
                 {
                     summary.Failed++;
                     _logger.LogError(ex,
@@ -285,7 +285,7 @@ public class BreakInsertionService
             await RecreateWorkAroundBreakAsync(
                 person, date, dayEntries, slot, typeByActivity, options, summary, cancellationToken);
         }
-        catch (Exception ex)
+        catch (Exception ex) when (!cancellationToken.IsCancellationRequested)
         {
             summary.RecreateFailed++;
             _logger.LogError(ex,
@@ -339,7 +339,7 @@ public class BreakInsertionService
                 summary.SkippedExistingBreak++;
             }
         }
-        catch (Exception ex)
+        catch (Exception ex) when (!cancellationToken.IsCancellationRequested)
         {
             summary.RecreateFailed++;
             _logger.LogError(ex,

@@ -858,4 +858,84 @@ public class BreakInsertionServiceTests
         summary.DaysHealed.Should().Be(0);
         summary.Failed.Should().Be(0);
     }
+
+    [Fact]
+    public async Task DeletesNoOriginal_WhenASecondOriginalsReplacementFails()
+    {
+        // Arrange — the first original is fully replaced before the second's create throws.
+        var before = KeylessWork(6, 0, 11, 30);
+        var after = KeylessWork(12, 0, 13, 30);
+        SetupDefaults(before, OwnBreak(11, 30, 12, 0), after);
+        var calls = RecordWrites();
+        _client.Setup(c => c.CreateTimeEntryAsync(
+                It.Is<LogetoTimeEntryRequest>(r => r.ExternalKey == PieceKey("1200", after)),
+                It.IsAny<bool>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new InvalidOperationException("boom"));
+
+        // Act
+        var summary = await CreateService().RunAsync(CancellationToken.None);
+
+        // Assert — nothing is deleted until every replacement exists; the rerun skips the one made.
+        summary.RecreateFailed.Should().Be(1);
+        calls.Should().Equal($"create 06:00-11:30 {PieceKey("0600", before)}");
+    }
+
+    [Fact]
+    public async Task FinishesAPartialDelete_OnTheNextRun_WithoutRecreatingAnything()
+    {
+        // Arrange — both replacements exist and the first original is gone; deleting the second failed.
+        var after = KeylessWork(12, 0, 13, 30);
+        SetupDefaults(
+            KeyedWork(6, 0, 11, 30, $"{OwnBreakKey}-0600-0a1b2c3d"),
+            OwnBreak(11, 30, 12, 0),
+            KeyedWork(12, 0, 13, 30, PieceKey("1200", after)),
+            after);
+        var calls = RecordWrites();
+
+        // Act
+        var summary = await CreateService().RunAsync(CancellationToken.None);
+
+        // Assert
+        summary.DaysHealed.Should().Be(1);
+        summary.RecordsRecreated.Should().Be(1);
+        calls.Should().Equal($"delete {after.Guid}");
+    }
+
+    [Fact]
+    public async Task StopsTheRun_WhenCancelledWhileRecreating_InsteadOfCountingAFailure()
+    {
+        // Arrange
+        using var cts = new CancellationTokenSource();
+        SetupDefaults(KeylessWork(6, 0, 11, 30), OwnBreak(11, 30, 12, 0));
+        RecordWrites();
+        _client.Setup(c => c.CreateTimeEntryAsync(
+                It.IsAny<LogetoTimeEntryRequest>(), It.IsAny<bool>(), It.IsAny<CancellationToken>()))
+            .Callback(() => cts.Cancel())
+            .ThrowsAsync(new TaskCanceledException());
+
+        // Act
+        var act = () => CreateService().RunAsync(cts.Token);
+
+        // Assert
+        await act.Should().ThrowAsync<OperationCanceledException>();
+    }
+
+    [Fact]
+    public async Task StopsTheRun_WhenCancelledWhileInsertingABreak_InsteadOfCountingAFailure()
+    {
+        // Arrange
+        using var cts = new CancellationTokenSource();
+        SetupDefaults(KeylessWork(8, 0, 16, 30));
+        RecordWrites();
+        _client.Setup(c => c.CreateTimeEntryAsync(
+                It.IsAny<LogetoTimeEntryRequest>(), It.IsAny<bool>(), It.IsAny<CancellationToken>()))
+            .Callback(() => cts.Cancel())
+            .ThrowsAsync(new TaskCanceledException());
+
+        // Act
+        var act = () => CreateService().RunAsync(cts.Token);
+
+        // Assert
+        await act.Should().ThrowAsync<OperationCanceledException>();
+    }
 }
