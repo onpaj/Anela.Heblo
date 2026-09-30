@@ -41,7 +41,8 @@ public class GetPurchaseStockAnalysisHandlerTests
         string? supplierName = null,
         string minimalOrderQuantity = "",
         double consumptionInPeriod = 0,
-        MaterialPurchaseSnapshot? lastPurchase = null)
+        MaterialPurchaseSnapshot? lastPurchase = null,
+        string? productNameSuffix = null)
     {
         var effective = available + ordered;
         return new MaterialStockSnapshot
@@ -49,6 +50,7 @@ public class GetPurchaseStockAnalysisHandlerTests
             ProductCode = productCode,
             ProductName = productName,
             ProductNameNormalized = productName.NormalizeForSearch(),
+            ProductNameSuffix = productNameSuffix,
             ProductType = type,
             SupplierName = supplierName,
             MinimalOrderQuantity = minimalOrderQuantity,
@@ -581,5 +583,37 @@ public class GetPurchaseStockAnalysisHandlerTests
         response.TotalCount.Should().Be(2);
         response.Summary.TotalProducts.Should().Be(2);
         response.Summary.OptimalCount.Should().Be(2);
+    }
+
+    [Fact]
+    public async Task Handle_SearchTermMatchesProductNameSuffix_ReturnsItemWithSuffix()
+    {
+        // Arrange
+        var snapshots = new List<MaterialStockSnapshot>
+        {
+            MakeSnapshot("HYD013", "Hydrolát máta peprná BIO", MaterialProductType.Material, productNameSuffix: "Menthe poivrée"),
+            MakeSnapshot("MAT002", "Other material", MaterialProductType.Material),
+        };
+        _materialCatalogMock
+            .Setup(x => x.GetStockAnalysisSnapshotsAsync(It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(snapshots);
+
+        var request = new GetPurchaseStockAnalysisRequest
+        {
+            FromDate = DateTime.UtcNow.AddMonths(-6),
+            ToDate = DateTime.UtcNow,
+            StockStatus = StockStatusFilter.All,
+            SearchTerm = "poivree",
+            PageNumber = 1,
+            PageSize = 10
+        };
+
+        // Act
+        var response = await _handler.Handle(request, CancellationToken.None);
+
+        // Assert
+        var item = response.Items.Should().ContainSingle().Subject;
+        item.ProductCode.Should().Be("HYD013");
+        item.ProductNameSuffix.Should().Be("Menthe poivrée");
     }
 }

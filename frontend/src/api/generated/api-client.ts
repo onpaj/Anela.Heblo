@@ -18982,6 +18982,7 @@ export interface IGetCatalogListResponse extends IBaseResponse {
 export class CatalogItemDto implements ICatalogItemDto {
     productCode?: string;
     productName?: string;
+    productNameSuffix?: string | undefined;
     type?: ProductType;
     stock?: StockDto;
     price?: PriceDto;
@@ -19013,6 +19014,7 @@ export class CatalogItemDto implements ICatalogItemDto {
         if (_data) {
             this.productCode = _data["productCode"];
             this.productName = _data["productName"];
+            this.productNameSuffix = _data["productNameSuffix"];
             this.type = _data["type"];
             this.stock = _data["stock"] ? StockDto.fromJS(_data["stock"]) : <any>undefined;
             this.price = _data["price"] ? PriceDto.fromJS(_data["price"]) : <any>undefined;
@@ -19048,6 +19050,7 @@ export class CatalogItemDto implements ICatalogItemDto {
         data = typeof data === 'object' ? data : {};
         data["productCode"] = this.productCode;
         data["productName"] = this.productName;
+        data["productNameSuffix"] = this.productNameSuffix;
         data["type"] = this.type;
         data["stock"] = this.stock ? this.stock.toJSON() : <any>undefined;
         data["price"] = this.price ? this.price.toJSON() : <any>undefined;
@@ -19076,6 +19079,7 @@ export class CatalogItemDto implements ICatalogItemDto {
 export interface ICatalogItemDto {
     productCode?: string;
     productName?: string;
+    productNameSuffix?: string | undefined;
     type?: ProductType;
     stock?: StockDto;
     price?: PriceDto;
@@ -20335,6 +20339,7 @@ export interface IGetMaterialsForPurchaseResponse extends IBaseResponse {
 export class MaterialForPurchaseDto implements IMaterialForPurchaseDto {
     productCode?: string;
     productName?: string;
+    productNameSuffix?: string | undefined;
     productType?: string;
     lastPurchasePrice?: number | undefined;
     location?: string | undefined;
@@ -20354,6 +20359,7 @@ export class MaterialForPurchaseDto implements IMaterialForPurchaseDto {
         if (_data) {
             this.productCode = _data["productCode"];
             this.productName = _data["productName"];
+            this.productNameSuffix = _data["productNameSuffix"];
             this.productType = _data["productType"];
             this.lastPurchasePrice = _data["lastPurchasePrice"];
             this.location = _data["location"];
@@ -20373,6 +20379,7 @@ export class MaterialForPurchaseDto implements IMaterialForPurchaseDto {
         data = typeof data === 'object' ? data : {};
         data["productCode"] = this.productCode;
         data["productName"] = this.productName;
+        data["productNameSuffix"] = this.productNameSuffix;
         data["productType"] = this.productType;
         data["lastPurchasePrice"] = this.lastPurchasePrice;
         data["location"] = this.location;
@@ -20385,6 +20392,7 @@ export class MaterialForPurchaseDto implements IMaterialForPurchaseDto {
 export interface IMaterialForPurchaseDto {
     productCode?: string;
     productName?: string;
+    productNameSuffix?: string | undefined;
     productType?: string;
     lastPurchasePrice?: number | undefined;
     location?: string | undefined;
@@ -41929,6 +41937,7 @@ export interface IGetProductMarginsResponse extends IBaseResponse {
 export class ProductMarginDto implements IProductMarginDto {
     productCode?: string;
     productName?: string;
+    productNameSuffix?: string | undefined;
     priceWithoutVat?: number | undefined;
     purchasePrice?: number | undefined;
     manufactureDifficulty?: number;
@@ -41952,6 +41961,7 @@ export class ProductMarginDto implements IProductMarginDto {
         if (_data) {
             this.productCode = _data["productCode"];
             this.productName = _data["productName"];
+            this.productNameSuffix = _data["productNameSuffix"];
             this.priceWithoutVat = _data["priceWithoutVat"];
             this.purchasePrice = _data["purchasePrice"];
             this.manufactureDifficulty = _data["manufactureDifficulty"];
@@ -41979,6 +41989,7 @@ export class ProductMarginDto implements IProductMarginDto {
         data = typeof data === 'object' ? data : {};
         data["productCode"] = this.productCode;
         data["productName"] = this.productName;
+        data["productNameSuffix"] = this.productNameSuffix;
         data["priceWithoutVat"] = this.priceWithoutVat;
         data["purchasePrice"] = this.purchasePrice;
         data["manufactureDifficulty"] = this.manufactureDifficulty;
@@ -41999,6 +42010,7 @@ export class ProductMarginDto implements IProductMarginDto {
 export interface IProductMarginDto {
     productCode?: string;
     productName?: string;
+    productNameSuffix?: string | undefined;
     priceWithoutVat?: number | undefined;
     purchasePrice?: number | undefined;
     manufactureDifficulty?: number;
@@ -43768,6 +43780,7 @@ export class StockAnalysisItemDto implements IStockAnalysisItemDto {
     productCode?: string;
     productName?: string;
     productNameNormalized?: string;
+    productNameSuffix?: string | undefined;
     productType?: string;
     availableStock?: number;
     orderedStock?: number;
@@ -43799,6 +43812,7 @@ export class StockAnalysisItemDto implements IStockAnalysisItemDto {
             this.productCode = _data["productCode"];
             this.productName = _data["productName"];
             this.productNameNormalized = _data["productNameNormalized"];
+            this.productNameSuffix = _data["productNameSuffix"];
             this.productType = _data["productType"];
             this.availableStock = _data["availableStock"];
             this.orderedStock = _data["orderedStock"];
@@ -43830,6 +43844,7 @@ export class StockAnalysisItemDto implements IStockAnalysisItemDto {
         data["productCode"] = this.productCode;
         data["productName"] = this.productName;
         data["productNameNormalized"] = this.productNameNormalized;
+        data["productNameSuffix"] = this.productNameSuffix;
         data["productType"] = this.productType;
         data["availableStock"] = this.availableStock;
         data["orderedStock"] = this.orderedStock;
@@ -43854,6 +43869,7 @@ export interface IStockAnalysisItemDto {
     productCode?: string;
     productName?: string;
     productNameNormalized?: string;
+    productNameSuffix?: string | undefined;
     productType?: string;
     availableStock?: number;
     orderedStock?: number;

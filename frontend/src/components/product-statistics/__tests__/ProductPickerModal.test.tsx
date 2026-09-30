@@ -18,7 +18,11 @@ const item = (code: string, name: string) => ({
 });
 
 const setResults = (
-  items: Array<{ productCode: string; productName: string }>,
+  items: Array<{
+    productCode: string;
+    productName: string;
+    productNameSuffix?: string;
+  }>,
   overrides: Record<string, unknown> = {},
 ) => {
   mockUseCatalogAutocomplete.mockReturnValue({
@@ -188,5 +192,29 @@ describe("ProductPickerModal", () => {
     await search(user, "DO");
 
     expect(screen.getByText("Nepodařilo se načíst produkty.")).toBeInTheDocument();
+  });
+
+  test("shows the product name suffix as a second line of a result", async () => {
+    // Arrange
+    const user = userEvent.setup();
+    setResults([
+      {
+        ...item("MAT100", "Hydrolát máta peprná BIO"),
+        productNameSuffix: "Menthe poivree",
+      },
+      item("DOM12", "Domácí mýdlo"),
+    ]);
+    render(<ProductPickerModal {...baseProps} />);
+
+    // Act
+    await search(user, "DO");
+
+    // Assert
+    const suffixLines = screen.getAllByTestId("product-name-suffix");
+    expect(suffixLines).toHaveLength(1);
+    expect(suffixLines[0]).toHaveTextContent("Menthe poivree");
+    expect(
+      screen.getByText("Hydrolát máta peprná BIO (MAT100)"),
+    ).toBeInTheDocument();
   });
 });

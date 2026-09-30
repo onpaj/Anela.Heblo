@@ -145,6 +145,7 @@ public sealed class CatalogMergeService
         if (erpProductsMap.TryGetValue(product.ProductCode, out var erpProduct))
         {
             product.ProductName = erpProduct.ProductName;
+            product.ProductNameSuffix = erpProduct.ProductNameSuffix;
             product.ErpId = erpProduct.ProductId;
             product.Stock.Erp = erpProduct.Stock;
             product.Stock.StockPrice = erpProduct.Stock > 0 && erpProduct.Price > 0 ? erpProduct.Price : null;

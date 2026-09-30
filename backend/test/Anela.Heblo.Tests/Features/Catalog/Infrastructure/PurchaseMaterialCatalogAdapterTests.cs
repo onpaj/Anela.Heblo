@@ -200,6 +200,7 @@ public class PurchaseMaterialCatalogAdapterTests
             minimalOrderQuantity: "100",
             erpStock: 10m,
             ordered: 7m);
+        material.ProductNameSuffix = "Trade name";
 
         _repository.Setup(r => r.GetAllAsync(ct)).ReturnsAsync(new[] { material });
 
@@ -211,6 +212,7 @@ public class PurchaseMaterialCatalogAdapterTests
         snapshot.ProductCode.Should().Be("MAT-1");
         snapshot.ProductName.Should().Be("Krém");
         snapshot.ProductNameNormalized.Should().Be(material.ProductNameNormalized);
+        snapshot.ProductNameSuffix.Should().Be("Trade name");
         snapshot.ProductType.Should().Be(MaterialProductType.Material);
         snapshot.SupplierName.Should().Be("ACME");
         snapshot.MinimalOrderQuantity.Should().Be("100");

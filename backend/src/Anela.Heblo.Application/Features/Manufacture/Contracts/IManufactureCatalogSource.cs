@@ -20,6 +20,13 @@ public interface IManufactureCatalogSource
     Task<IEnumerable<CatalogAggregate>> GetAllAsync(CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Product code -> name suffix (Flexi cenik.popisC) for the given codes; codes without a suffix are omitted.
+    /// </summary>
+    Task<IReadOnlyDictionary<string, string>> GetProductNameSuffixesAsync(
+        IEnumerable<string> productCodes,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Re-reads planned manufacture quantities into the catalog cache. Call after a write that
     /// changes them, so consumers do not wait for the scheduled background refresh.
     /// </summary>

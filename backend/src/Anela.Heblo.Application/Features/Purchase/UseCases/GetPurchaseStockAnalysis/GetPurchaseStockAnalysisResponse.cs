@@ -27,6 +27,8 @@ public class StockAnalysisItemDto
 
     public string ProductNameNormalized { get; set; } = string.Empty;
 
+    public string? ProductNameSuffix { get; set; }
+
     public string ProductType { get; set; } = string.Empty;
 
     public double AvailableStock { get; set; }

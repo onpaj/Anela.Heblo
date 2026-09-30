@@ -382,4 +382,32 @@ public class GetProductMarginsHandlerTests
 
         return aggregate;
     }
+
+    [Fact]
+    public async Task Handle_ProductNameFilter_MatchesProductNameSuffix()
+    {
+        // Arrange
+        _timeProviderMock
+            .Setup(tp => tp.GetUtcNow())
+            .Returns(new DateTimeOffset(2026, 6, 15, 12, 0, 0, TimeSpan.Zero));
+
+        var withSuffix = BuildAggregate("AKL124");
+        withSuffix.ProductNameSuffix = "Gatuline Expression AF";
+        var withoutSuffix = BuildAggregate("OTHER01");
+
+        _catalogRepositoryMock
+            .Setup(r => r.GetAllAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new[] { withSuffix, withoutSuffix });
+
+        var request = new GetProductMarginsRequest { ProductName = "gatuline" };
+
+        // Act
+        var response = await _handler.Handle(request, CancellationToken.None);
+
+        // Assert
+        response.Success.Should().BeTrue();
+        var item = response.Items.Should().ContainSingle().Subject;
+        item.ProductCode.Should().Be("AKL124");
+        item.ProductNameSuffix.Should().Be("Gatuline Expression AF");
+    }
 }

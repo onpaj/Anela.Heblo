@@ -330,6 +330,7 @@ public sealed class CatalogAnalyticsSourceAdapterTests
     {
         // Arrange
         var product = CreateCatalogAggregate("PROD001", "Test Product", ProductType.Goods);
+        product.ProductNameSuffix = "Trade name";
         product.EshopPrice = new ProductPriceEshop { PriceWithoutVat = 100m };
         product.PurchaseHistory = new List<CatalogPurchaseRecord>
         {
@@ -362,6 +363,7 @@ public sealed class CatalogAnalyticsSourceAdapterTests
         result.Should().NotBeNull();
         result!.ProductCode.Should().Be("PROD001");
         result.ProductName.Should().Be("Test Product");
+        result.ProductNameSuffix.Should().Be("Trade name");
         result.Type.Should().Be(AnalyticsProductType.Goods);
         result.SellingPrice.Should().Be(100m);
         result.EshopPriceWithoutVat.Should().Be(100m);

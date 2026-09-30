@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { useProductMarginsQuery } from "../../api/hooks/useProductMargins";
 import CatalogDetail from "./CatalogDetail";
+import ProductNameSuffix from "../common/ProductNameSuffix";
 import { PAGE_CONTAINER_HEIGHT } from "../../constants/layout";
 import { useScreenView } from '../../telemetry/useScreenView';
 
@@ -421,6 +422,7 @@ const ProductMarginsList: React.FC = () => {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-graphite-text">
                     {item.productName}
+                    <ProductNameSuffix suffix={item.productNameSuffix} />
                   </td>
                   <td className={`px-6 py-4 whitespace-nowrap text-sm text-right ${
                     item.priceWithoutVatIsFromEshop

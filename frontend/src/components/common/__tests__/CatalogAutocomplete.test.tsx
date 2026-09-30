@@ -1,5 +1,5 @@
 import React from "react";
-import { act, render } from "@testing-library/react";
+import { act, render, screen } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { CatalogAutocomplete } from "../CatalogAutocomplete";
 import { CatalogItemDto, ProductType } from "../../../api/generated/api-client";
@@ -21,7 +21,11 @@ const mockUseCatalogAutocomplete = useCatalogAutocomplete as jest.MockedFunction
 jest.mock("react-select", () => ({
   __esModule: true,
   default: jest.fn(() => null),
-  components: { Option: () => null, SingleValue: () => null },
+  // Pass-through wrappers so the custom Option/SingleValue content can be rendered in tests.
+  components: {
+    Option: ({ children }: any) => children,
+    SingleValue: ({ children }: any) => children,
+  },
 }));
 
 const mockCatalogItem = new CatalogItemDto({
@@ -224,5 +228,149 @@ describe("CatalogAutocomplete multi-select", () => {
 
     expect(onSelect).toHaveBeenCalled();
     expect(onSelectMany).not.toHaveBeenCalled();
+  });
+});
+
+describe("CatalogAutocomplete product name suffix", () => {
+  let MockSelect: jest.Mock;
+
+  const suffixedItem = new CatalogItemDto({
+    productCode: "MAT100",
+    productName: "Acmella In-Tense extrakt",
+    productNameSuffix: "Gatuline Expression AF",
+    type: ProductType.Material,
+  });
+
+  const lastSelectProps = () =>
+    MockSelect.mock.calls[MockSelect.mock.calls.length - 1][0];
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    MockSelect = jest.requireMock("react-select").default as jest.Mock;
+
+    mockUseCatalogAutocomplete.mockReturnValue({
+      data: { items: [suffixedItem, mockCatalogItem] },
+      isLoading: false,
+      error: null,
+    } as any);
+  });
+
+  it("builds inline option labels with the suffix and unchanged labels without it", () => {
+    // Arrange & Act
+    render(
+      <TestWrapper>
+        <CatalogAutocomplete value={null} onSelect={jest.fn()} />
+      </TestWrapper>
+    );
+
+    // Assert
+    const options = lastSelectProps().options;
+    expect(options[0].label).toBe(
+      "Acmella In-Tense extrakt · Gatuline Expression AF (MAT100)"
+    );
+    expect(options[1].label).toBe("Test Material (TEST001)");
+  });
+
+  it("renders the suffix as a muted second line in the option list", () => {
+    // Arrange
+    render(
+      <TestWrapper>
+        <CatalogAutocomplete value={null} onSelect={jest.fn()} />
+      </TestWrapper>
+    );
+    const { components: selectComponents, options } = lastSelectProps();
+    const Option = selectComponents.Option;
+
+    // Act
+    render(<Option data={options[0]} />);
+
+    // Assert
+    expect(screen.getByText("Acmella In-Tense extrakt", { exact: false })).toBeInTheDocument();
+    const suffixLine = screen.getByTestId("product-name-suffix");
+    expect(suffixLine).toHaveTextContent("Gatuline Expression AF");
+    expect(suffixLine).toHaveClass("text-xs", "text-gray-500");
+  });
+
+  it("renders no suffix line for an option without a suffix", () => {
+    // Arrange
+    render(
+      <TestWrapper>
+        <CatalogAutocomplete value={null} onSelect={jest.fn()} />
+      </TestWrapper>
+    );
+    const { components: selectComponents, options } = lastSelectProps();
+    const Option = selectComponents.Option;
+
+    // Act
+    render(<Option data={options[1]} />);
+
+    // Assert
+    expect(screen.getByText("Test Material", { exact: false })).toBeInTheDocument();
+    expect(screen.queryByTestId("product-name-suffix")).not.toBeInTheDocument();
+  });
+
+  it("shows the selected value inline as Name · Suffix", () => {
+    // Arrange
+    render(
+      <TestWrapper>
+        <CatalogAutocomplete value={suffixedItem} onSelect={jest.fn()} />
+      </TestWrapper>
+    );
+    const { components: selectComponents, value } = lastSelectProps();
+    const SingleValue = selectComponents.SingleValue;
+
+    // Act
+    render(<SingleValue data={value} />);
+
+    // Assert
+    expect(value.label).toBe(
+      "Acmella In-Tense extrakt · Gatuline Expression AF (MAT100)"
+    );
+    expect(
+      screen.getByText("Acmella In-Tense extrakt · Gatuline Expression AF")
+    ).toBeInTheDocument();
+    expect(screen.queryByTestId("product-name-suffix")).not.toBeInTheDocument();
+  });
+
+  it("passes the suffix through to the selected item", () => {
+    // Arrange
+    const onSelect = jest.fn();
+    render(
+      <TestWrapper>
+        <CatalogAutocomplete value={null} onSelect={onSelect} />
+      </TestWrapper>
+    );
+    const { options, onChange } = lastSelectProps();
+
+    // Act
+    act(() => {
+      onChange(options[0], { action: "select-option" });
+    });
+
+    // Assert
+    expect(onSelect).toHaveBeenCalledWith(
+      expect.objectContaining({ productNameSuffix: "Gatuline Expression AF" })
+    );
+  });
+
+  it("builds inline multi-value chip labels with the suffix", () => {
+    // Arrange & Act
+    render(
+      <TestWrapper>
+        <CatalogAutocomplete
+          isMulti
+          values={[suffixedItem, mockCatalogItem]}
+          onSelect={jest.fn()}
+          onSelectMany={jest.fn()}
+        />
+      </TestWrapper>
+    );
+
+    // Assert
+    const chips = lastSelectProps().value;
+    expect(chips[0].label).toBe(
+      "Acmella In-Tense extrakt · Gatuline Expression AF (MAT100)"
+    );
+    expect(chips[1].label).toBe("Test Material (TEST001)");
   });
 });

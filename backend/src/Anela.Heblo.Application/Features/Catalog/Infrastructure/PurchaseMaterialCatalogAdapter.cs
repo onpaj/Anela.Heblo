@@ -98,6 +98,7 @@ internal sealed class PurchaseMaterialCatalogAdapter : IMaterialCatalogService
             ProductCode = item.ProductCode,
             ProductName = item.ProductName,
             ProductNameNormalized = item.ProductNameNormalized,
+            ProductNameSuffix = item.ProductNameSuffix,
             ProductType = MapProductType(item.Type),
             SupplierName = item.SupplierName,
             MinimalOrderQuantity = item.MinimalOrderQuantity,

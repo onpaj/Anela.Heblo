@@ -349,4 +349,18 @@ public class CatalogMergeServiceTests
         result.Single(p => p.ProductCode == "BAL001")
             .SaleHistorySummary.MonthlyData["2026-08"].TotalB2C.Should().Be(2500);
     }
+
+    [Fact]
+    public async Task ExecutePriorityMergeAsync_ErpStockWithNameSuffix_CarriesSuffixOntoProduct()
+    {
+        var (store, service) = Create();
+        store.SetErpStockData(new List<ErpStock>
+        {
+            new() { ProductCode = "AKL124", ProductName = "Acmella In-Tense extrakt", ProductNameSuffix = "Gatuline Expression AF", ProductId = 1, Stock = 5 },
+        });
+
+        var result = await service.ExecutePriorityMergeAsync();
+
+        result.Should().ContainSingle().Which.ProductNameSuffix.Should().Be("Gatuline Expression AF");
+    }
 }
