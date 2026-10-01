@@ -50,12 +50,17 @@ export function fromDateOnlyString(dateString: string | null): Date | null {
   if (!dateString) return null;
   return parseLocalDate(dateString);
 }
+
 const TWO_DIGIT_YEAR_BASE = 2000;
+const MIN_INPUT_YEAR = 2000;
+const MAX_INPUT_YEAR = 2100;
+const MAX_DAY_OF_MONTH = 31;
 
 /**
  * Parses a manually typed date ("d.m.yyyy", "d/m/yy", "d-m-yyyy" or ISO "yyyy-mm-dd")
  * into a local Date. A day past the end of its month (e.g. 31.11.) is aligned to
- * the month's last day instead of being rejected. Returns null when the text is not a date.
+ * the month's last day instead of being rejected. Returns null when the text is not a date,
+ * the day exceeds 31, or the year falls outside 2000–2100.
  */
 export function parseDateInputClamped(text: string): Date | null {
   const trimmed = text.trim();
@@ -74,14 +79,15 @@ export function parseDateInputClamped(text: string): Date | null {
     return null;
   }
 
-  if (month < 1 || month > 12 || day < 1) return null;
+  if (month < 1 || month > 12 || day < 1 || day > MAX_DAY_OF_MONTH) return null;
+  if (year < MIN_INPUT_YEAR || year > MAX_INPUT_YEAR) return null;
 
   const lastDayOfMonth = new Date(year, month, 0).getDate();
   return new Date(year, month - 1, Math.min(day, lastDayOfMonth));
 }
 
 /**
- * Formats a Date as Czech "d.m.yyyy" with zero-padded day and month (dd.mm.yyyy).
+ * Formats a Date as Czech "dd.mm.yyyy" (zero-padded day and month).
  */
 export function formatCzechDate(date: Date): string {
   const day = String(date.getDate()).padStart(2, '0');

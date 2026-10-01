@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useId, useRef, useState } from "react";
 import { Calendar } from "lucide-react";
 import { formatCzechDate, formatLocalDate, parseDateInputClamped, parseLocalDate } from "../../utils/dateUtils";
 
@@ -19,7 +19,9 @@ const INPUT_CLASS =
 const ExpirationDateInput: React.FC<ExpirationDateInputProps> = ({ value, onChange, readOnly = false }) => {
   const [text, setText] = useState(value ? formatCzechDate(value) : "");
   const [isInvalid, setIsInvalid] = useState(false);
+  const textRef = useRef<HTMLInputElement>(null);
   const pickerRef = useRef<HTMLInputElement>(null);
+  const errorId = useId();
   const valueTime = value?.getTime();
 
   useEffect(() => {
@@ -29,6 +31,7 @@ const ExpirationDateInput: React.FC<ExpirationDateInputProps> = ({ value, onChan
   }, [valueTime]);
 
   const commitText = () => {
+    if (readOnly) return;
     if (text.trim() === "") {
       setIsInvalid(false);
       onChange(null, true);
@@ -46,7 +49,24 @@ const ExpirationDateInput: React.FC<ExpirationDateInputProps> = ({ value, onChan
   };
 
   const handlePickerChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.value) onChange(parseLocalDate(e.target.value), true);
+    if (!e.target.value) return;
+    const picked = parseLocalDate(e.target.value);
+    setIsInvalid(false);
+    setText(formatCzechDate(picked));
+    onChange(picked, true);
+  };
+
+  const openPicker = () => {
+    const picker = pickerRef.current;
+    if (!picker) return;
+    // Clear first so picking the current value still fires onChange and clears an error
+    picker.value = "";
+    try {
+      if (typeof picker.showPicker !== "function") throw new Error("showPicker not supported");
+      picker.showPicker();
+    } catch {
+      textRef.current?.focus();
+    }
   };
 
   const borderClass = isInvalid
@@ -54,43 +74,53 @@ const ExpirationDateInput: React.FC<ExpirationDateInputProps> = ({ value, onChan
     : "border-gray-300 dark:border-graphite-border";
 
   return (
-    <div className="relative flex items-center">
-      <input
-        type="text"
-        inputMode="numeric"
-        value={text}
-        onChange={(e) => setText(e.target.value)}
-        onBlur={commitText}
-        onKeyDown={(e) => {
-          if (e.key === "Enter") e.currentTarget.blur();
-        }}
-        placeholder="dd.mm.rrrr"
-        className={`${INPUT_CLASS} ${borderClass} ${readOnly ? "" : "pr-8"}`}
-        readOnly={readOnly}
-        aria-invalid={isInvalid}
-        title={readOnly ? "Datum expirace (jen pro čtení)" : isInvalid ? "Neplatné datum – zadejte dd.mm.rrrr" : "Datum expirace"}
-      />
-      {!readOnly && (
-        <>
-          <button
-            type="button"
-            onClick={() => pickerRef.current?.showPicker?.()}
-            className="absolute right-1 p-1 text-gray-400 hover:text-indigo-600 focus:outline-none dark:text-graphite-faint dark:hover:text-graphite-accent"
-            title="Vybrat z kalendáře"
-            tabIndex={-1}
-          >
-            <Calendar className="h-4 w-4" />
-          </button>
-          <input
-            ref={pickerRef}
-            type="date"
-            value={value ? formatLocalDate(value) : ""}
-            onChange={handlePickerChange}
-            className="absolute right-0 bottom-0 w-0 h-0 opacity-0 pointer-events-none"
-            tabIndex={-1}
-            aria-hidden="true"
-          />
-        </>
+    <div>
+      <div className="relative flex items-center">
+        <input
+          ref={textRef}
+          type="text"
+          inputMode="numeric"
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+          onBlur={commitText}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") e.currentTarget.blur();
+          }}
+          placeholder="dd.mm.rrrr"
+          className={`${INPUT_CLASS} ${borderClass} ${readOnly ? "" : "pr-8"}`}
+          readOnly={readOnly}
+          aria-label="Datum expirace"
+          aria-invalid={isInvalid}
+          aria-describedby={isInvalid ? errorId : undefined}
+          title={readOnly ? "Datum expirace (jen pro čtení)" : "Datum expirace"}
+        />
+        {!readOnly && (
+          <>
+            <button
+              type="button"
+              onClick={openPicker}
+              className="absolute right-1 p-1 text-gray-400 hover:text-indigo-600 focus:outline-none dark:text-graphite-faint dark:hover:text-graphite-accent"
+              title="Vybrat z kalendáře"
+              tabIndex={-1}
+            >
+              <Calendar className="h-4 w-4" />
+            </button>
+            <input
+              ref={pickerRef}
+              type="date"
+              value={value ? formatLocalDate(value) : ""}
+              onChange={handlePickerChange}
+              className="absolute right-0 bottom-0 w-0 h-0 opacity-0 pointer-events-none"
+              tabIndex={-1}
+              aria-hidden="true"
+            />
+          </>
+        )}
+      </div>
+      {isInvalid && (
+        <p id={errorId} className="mt-1 text-xs text-red-600 dark:text-red-400">
+          Neplatné datum (dd.mm.rrrr)
+        </p>
       )}
     </div>
   );

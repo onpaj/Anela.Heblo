@@ -22,7 +22,8 @@ describe('parseDateInputClamped', () => {
     expect(parseDateInputClamped(text)).toEqual(expected);
   });
 
-  it.each(['', '   ', 'abc', '15.13.2027', '0.3.2027', '15.0.2027', '15.3', '1.2.3.4'])(
+  it.each(['', '   ', 'abc', '15.13.2027', '0.3.2027', '15.0.2027', '15.3', '1.2.3.4',
+    '32.1.2027', '45.11.2026', '15.3.0026', '0026-03-15', '15.3.2207'])(
     'returns null for "%s"',
     (text) => {
       expect(parseDateInputClamped(text)).toBeNull();

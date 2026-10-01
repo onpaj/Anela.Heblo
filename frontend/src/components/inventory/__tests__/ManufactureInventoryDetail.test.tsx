@@ -373,7 +373,8 @@ describe('ManufactureInventoryModal - double submission', () => {
     // Arrange - keep the request in flight
     let resolveSubmit: (value: unknown) => void = () => {};
     mockMutateAsync.mockImplementation(() => new Promise((resolve) => { resolveSubmit = resolve; }));
-    render(<ManufactureInventoryModal item={item as any} isOpen={true} onClose={jest.fn()} />, {
+    const onClose = jest.fn();
+    render(<ManufactureInventoryModal item={item as any} isOpen={true} onClose={onClose} />, {
       wrapper: createWrapper(),
     });
     const button = screen.getByRole('button', { name: 'Zinventarizovat materiál' });
@@ -388,7 +389,8 @@ describe('ManufactureInventoryModal - double submission', () => {
     expect(button).toHaveTextContent('Inventarizuji...');
 
     resolveSubmit({});
-    await waitFor(() => expect(mockMutateAsync).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(onClose).toHaveBeenCalledTimes(1));
+    expect(mockMutateAsync).toHaveBeenCalledTimes(1);
   });
 
   it('enables the button again when the submission fails', async () => {
