@@ -1610,6 +1610,42 @@ The price is nested, and its VAT meaning comes from sibling fields:
 - `vatRate` is a string percentage (`"21.00"`).
 - The read field names differ from the PATCH field names (below). Reading `priceWithVat`
   yields null for every item.
+- `price.commonPrice` is the struck-through "regular" comparison price the shop displays
+  (e.g. MAS2-008050: `price` 217.00, `commonPrice` 310.00). It is **not** the selling price —
+  the customer pays `price.price`.
+
+**Action price ("akční cena") — verified live 2026-10-01.** `price.actionPrice` is `null` or
+an object:
+
+```json
+"actionPrice": { "price": "490.00", "fromDate": null, "toDate": null }          // BAL0001M
+"actionPrice": { "price": "620.00", "fromDate": "2025-11-18", "toDate": "2025-12-23" } // BAL0007M
+```
+
+- `price` has the same string format and `includingVat` meaning as `price.price`.
+- `fromDate` / `toDate` are `yyyy-MM-dd` or `null`; `null` means that bound is open.
+- **Expired actions stay in the list.** ~40 BAL* sets still carry 2025-11-18..2025-12-23
+  actions; the shop ignores them. An action with both dates `null` (BAL0001M) **is** running —
+  the shop sells at 490, not 539. Checked against the live shop: every visible product shows
+  `price.price` except BAL0001M, which shows its open-ended action price.
+- Some stale actions are *above* the regular price (BAL0003M: 570 vs 619). Irrelevant while
+  they are expired; the rule below does not special-case them.
+
+**Effective selling price rule** (`ProductPriceEshop.FromPriceList`): the action price applies
+when `actionPrice.price > 0`, `fromDate` is null or ≤ today, and `toDate` is null or ≥ today;
+otherwise `price.price` applies. "Today" is the Europe/Prague date. **Both bounds are treated
+as inclusive days** — an assumption: Shoptet does not document whether the action still runs on
+`toDate`. An action whose price or dates cannot be parsed is dropped (logged as a warning) so a
+garbled window never becomes an open-ended discount.
+
+Who uses which price:
+- **Catalog** (`ShoptetEshopPriceClient` → `ProductPriceEshop.PriceWithVat/PriceWithoutVat`) uses
+  the **effective** price — margins M0–M3, analytics, picking lists and MCP tools see what the
+  customer actually pays. `RegularPriceWithVat`, `ActionPriceWithVat`, `ActionFrom`,
+  `ActionUntil`, `IsInAction` carry the rest. Evaluated when the snapshot is taken (every 30
+  min), so an action boundary at midnight is picked up within one refresh.
+- **Heblo-as-master price sync** (`GetPricesWithVatAsync`, `PriceComparisonService`) compares
+  the **regular** `price.price` only — an action is not drift against the master price.
 
 **Filtering:** `?code=MAS001180` (singular) works and returns `totalCount: 1`. `codes=` is
 rejected: `{"errorCode":"invalid-parameter","message":"Unsupported query parameters found: codes"}`.

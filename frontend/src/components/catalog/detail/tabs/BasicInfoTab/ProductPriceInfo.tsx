@@ -1,6 +1,10 @@
 import React from "react";
 import { DollarSign, Info } from "lucide-react";
-import { CatalogItemDto } from "../../../../../api/hooks/useCatalog";
+import {
+  CatalogItemDto,
+  EshopPriceDto,
+} from "../../../../../api/hooks/useCatalog";
+import { formatDate } from "../../../../../utils/formatters";
 
 interface ProductPriceInfoProps {
   item: CatalogItemDto;
@@ -27,7 +31,49 @@ const formatUnitPrice = (value?: number): string =>
       })} Kč`
     : "-";
 
+const formatSellingPrice = (value?: number): string =>
+  value
+    ? `${value.toLocaleString("cs-CZ", { minimumFractionDigits: 0 })} Kč`
+    : "-";
+
+// Dates are open-ended when missing; the end day is inclusive (see shoptet-api.md).
+const formatActionWindow = (
+  from?: Date | string,
+  until?: Date | string,
+): string => {
+  if (from && until) return `${formatDate(from)} – ${formatDate(until)}`;
+  if (from) return `od ${formatDate(from)}`;
+  if (until) return `do ${formatDate(until)}`;
+  return "bez omezení";
+};
+
+const EshopSellingPrice: React.FC<{ eshopPrice?: EshopPriceDto }> = ({
+  eshopPrice,
+}) => {
+  if (!eshopPrice?.isInAction) {
+    return <>{formatSellingPrice(eshopPrice?.priceWithVat)}</>;
+  }
+
+  return (
+    <span className="inline-flex flex-col items-center">
+      <span className="inline-flex items-center gap-1.5">
+        <span className="font-semibold text-gray-900 dark:text-graphite-text">
+          {formatSellingPrice(eshopPrice.priceWithVat)}
+        </span>
+        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-success/10 text-success">
+          Akce
+        </span>
+      </span>
+      <s className="text-xs text-gray-500 dark:text-graphite-muted">
+        {formatSellingPrice(eshopPrice.regularPriceWithVat)}
+      </s>
+    </span>
+  );
+};
+
 const ProductPriceInfo: React.FC<ProductPriceInfoProps> = ({ item }) => {
+  const eshopPrice = item.price?.eshopPrice;
+
   return (
     <div className="space-y-3">
       <h3 className="text-lg font-medium text-gray-900 dark:text-graphite-text flex items-center">
@@ -60,9 +106,7 @@ const ProductPriceInfo: React.FC<ProductPriceInfoProps> = ({ item }) => {
                     Prodejní s DPH:
                   </td>
                   <td className="text-center py-2 px-2">
-                    {item.price?.eshopPrice?.priceWithVat
-                      ? `${item.price.eshopPrice.priceWithVat.toLocaleString("cs-CZ", { minimumFractionDigits: 0 })} Kč`
-                      : "-"}
+                    <EshopSellingPrice eshopPrice={eshopPrice} />
                   </td>
                   <td className="text-center py-2 pl-2">
                     {item.price?.erpPrice?.priceWithVat
@@ -70,6 +114,22 @@ const ProductPriceInfo: React.FC<ProductPriceInfoProps> = ({ item }) => {
                       : "-"}
                   </td>
                 </tr>
+
+                {/* Action validity row - only while the e-shop runs an action */}
+                {eshopPrice?.isInAction && (
+                  <tr>
+                    <td className="py-2 pr-4 font-medium text-gray-600 dark:text-graphite-muted">
+                      Akce platí:
+                    </td>
+                    <td className="text-center py-2 px-2">
+                      {formatActionWindow(
+                        eshopPrice.actionFrom,
+                        eshopPrice.actionUntil,
+                      )}
+                    </td>
+                    <td className="text-center py-2 pl-2">-</td>
+                  </tr>
+                )}
 
                 {/* Selling price without VAT row */}
                 <tr>

@@ -21,6 +21,7 @@ using Anela.Heblo.Domain.Features.ProductPricing;
 using Anela.Heblo.Application.Features.Logistics.Picking;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Http.Resilience;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -125,6 +126,7 @@ public static class ShoptetApiAdapterServiceCollectionExtensions
             client.DefaultRequestHeaders.Add("Shoptet-Private-API-Token", settings.ApiToken);
         });
 
+        services.TryAddSingleton(TimeProvider.System);
         services.AddScoped<IProductPriceEshopClient, ShoptetEshopPriceClient>();
 
         services.Configure<ShoptetStockClientOptions>(

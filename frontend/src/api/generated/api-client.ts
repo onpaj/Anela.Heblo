@@ -19232,6 +19232,11 @@ export class EshopPriceDto implements IEshopPriceDto {
     priceWithVat?: number;
     purchasePrice?: number;
     priceWithoutVat?: number;
+    regularPriceWithVat?: number | undefined;
+    actionPriceWithVat?: number | undefined;
+    actionFrom?: Date | undefined;
+    actionUntil?: Date | undefined;
+    isInAction?: boolean;
 
     constructor(data?: IEshopPriceDto) {
         if (data) {
@@ -19247,6 +19252,11 @@ export class EshopPriceDto implements IEshopPriceDto {
             this.priceWithVat = _data["priceWithVat"];
             this.purchasePrice = _data["purchasePrice"];
             this.priceWithoutVat = _data["priceWithoutVat"];
+            this.regularPriceWithVat = _data["regularPriceWithVat"];
+            this.actionPriceWithVat = _data["actionPriceWithVat"];
+            this.actionFrom = _data["actionFrom"] ? new Date(_data["actionFrom"].toString()) : <any>undefined;
+            this.actionUntil = _data["actionUntil"] ? new Date(_data["actionUntil"].toString()) : <any>undefined;
+            this.isInAction = _data["isInAction"];
         }
     }
 
@@ -19262,6 +19272,11 @@ export class EshopPriceDto implements IEshopPriceDto {
         data["priceWithVat"] = this.priceWithVat;
         data["purchasePrice"] = this.purchasePrice;
         data["priceWithoutVat"] = this.priceWithoutVat;
+        data["regularPriceWithVat"] = this.regularPriceWithVat;
+        data["actionPriceWithVat"] = this.actionPriceWithVat;
+        data["actionFrom"] = this.actionFrom ? formatDate(this.actionFrom) : <any>undefined;
+        data["actionUntil"] = this.actionUntil ? formatDate(this.actionUntil) : <any>undefined;
+        data["isInAction"] = this.isInAction;
         return data;
     }
 }
@@ -19270,6 +19285,11 @@ export interface IEshopPriceDto {
     priceWithVat?: number;
     purchasePrice?: number;
     priceWithoutVat?: number;
+    regularPriceWithVat?: number | undefined;
+    actionPriceWithVat?: number | undefined;
+    actionFrom?: Date | undefined;
+    actionUntil?: Date | undefined;
+    isInAction?: boolean;
 }
 
 export class ErpPriceDto implements IErpPriceDto {
