@@ -11,8 +11,8 @@ owns:
   - backend/src/Anela.Heblo.Domain/Features/Catalog/MarginLevel.cs
   - backend/src/Anela.Heblo.Application/Features/Catalog/CatalogRepository.cs
   - backend/src/Adapters/Anela.Heblo.Adapters.Flexi/Accounting/Ledger/LedgerService.cs
-verified_at: "a008e2306"
-related: []
+verified_at: "abfbe9d40"
+related: [calc-bundle-sales-expansion]
 ---
 
 # Product margins (M0-M3)
@@ -132,6 +132,50 @@ months. Total revenue ≤ 0 → everyone gets 0 with a warning.
 **Handler defaults**: without a `ProductType` filter only Product and Goods are listed;
 `OnlyWithSales` keeps products with sales in the last 365 days.
 
+### Bundles and sets
+Flexi has two kinds of set. Both are VYROBEK ceník items whose composition is in the
+`sady-a-komplety` evidence. **Neither has a kusovník** (BoM), and neither ever gets a Flexi
+manufacture receipt:
+
+| | Gift packages `BAL…` | Shoptet product sets `SA…` |
+|---|---|---|
+| What it is | Physically assembled in-house (Dárkové balíčky screen); its own stock in Shoptet | Shoptet `product-set`; Shoptet derives its stock from the components; never assembled |
+| Heblo type (`BundleProductRule`) | `ProductType.Set` (prefix `BAL` or `SET`) | `ProductType.Product` (prefix not recognised) |
+| M0 | purchase-price fallback (below) | same |
+| M1 | 0 (cost-bearing, but no receipts) | 0 (same reason) |
+| M2 / M3 | revenue allocation on the bundle's own invoice lines, like any product | same |
+| Listed by default (margins page, MCP, pricing, analytics) | no: Product + Goods only; analytics cannot project a Set at all | yes |
+
+**How a set's M0 is formed:**
+1. Assembly writes no Flexi document. `GiftPackageManufactureService` books only `GPM-`/`GPD-`
+   stock operations in Shoptet (feed-stock-up), and SA sets are never assembled. Flexi shows no
+   stock movement for BAL/SA since 2023. So `ManufactureHistory` is empty and
+   `CalculateFromManufactureHistory` takes the purchase-price fallback.
+2. The fallback is `ErpPrice.PurchasePrice`: the Flexi ceník `nakupCena` from user query 41
+   (`cenanakup`), excl. VAT since #4284. The **same value applies to every month**.
+3. **Nothing in Heblo maintains that `nakupCena`.** It is typed by hand in Flexi. The nightly
+   `purchase-price-recalculation` job (02:00) touches only:
+   - in phase 1 (stock price → `nakupCena`), Material and Goods;
+   - in phases 2–3 (Flexi `prepocti-nakupni-cenu`), items with a kusovník (`HasBoM`/`BoMId`).
+
+   Sets have no kusovník, so the job never reaches them. Its "sets after products" ordering is
+   only a safeguard (`docs/integrations/flexi-api.md`). The set's M0 therefore stays frozen at
+   whatever was last entered and does not follow its components' cost (defect, see quirks).
+4. **The composition is loaded but not used for cost.** `CatalogSetPart` (from
+   `sady-a-komplety`) serves only bundle sales expansion (calc-bundle-sales-expansion). No cost
+   provider reads it, and no Σ component cost × quantity roll-up exists anywhere.
+5. **Packaging.** The gift box *is* a component (`DAR0010` mini, `DAR001` large, with ceník
+   prices 11.02 / 15.72). A roll-up would include it, but the frozen `nakupCena` does not track
+   it. Shipping cartons and other packing materials have no per-product cost: `PackingMaterial`
+   has no price field, and their purchases (50x on SKLAD) reach margins only through the M2 pool,
+   allocated by revenue. Assembly labour reaches a set only through M1, which is 0 for sets.
+6. `nakupCena = 0` gives **no M0 at all**: the set reads M0 ≈ 100 % (SA016005).
+
+**Components of a bundle.** Bundle sales add quantity-only rows to each component's
+`SalesHistory` (`SourceBundleCode` set, `Sum* = 0`). Margins ignore those rows for M2/M3
+revenue, for the revenue denominator and for analytics, so a component's margin depends only on
+its own sales. The one leak is the `OnlyWithSales` filter, which counts them.
+
 ## Configuration
 | Key | Repo default | Meaning |
 |---|---|---|
@@ -152,6 +196,20 @@ months. Total revenue ≤ 0 → everyone gets 0 with a warning.
   (SKLAD+MARKETING 50+51+52) 11 893 202 Kč; M3 (other centres 51+52, BUVOL excluded)
   6 016 907 Kč; left outside all levels: 53x–57x 569 356 Kč, 58x/59x 2 870 483 Kč — measured
   live against FlexiBee, agent memory `gotcha_m2_pool_is_59pct_of_overhead` — 2026-09-22.
+- Sets in prod Flexi — read-only queries — 2026-10-01:
+  - 38 `BAL…` and 23 `SA…` ceník items, all `typZasoby.vyrobek`, none with a kusovník; no
+    `SET…` item exists.
+  - None has a stock movement after 2023, and every stock card is 0.
+  - Ceník rows were last updated 2025-09-11/24 (BAL, two exceptions in 2026) and 2025-08-28 /
+    2025-09-10 (SA). `lastUpdate` is an upper bound for the last `nakupCena` change.
+- Stored `nakupCena` vs today's component roll-up (Σ component `nakupCena` × `mnozMj` from
+  `sady-a-komplety`, gift box included) — read-only queries — 2026-10-01:
+  - BAL: stored is **above** the roll-up for 36 of 38, median +29 %, up to +92 % (BAL0003M
+    134.30 vs 69.79; BAL0005V 276.60 vs 143.90).
+  - SA: 14 of 23 within ±10 %; outliers SA001 +56 %, SA002 +52 %, SA012 −29 %.
+  - Not established: whether the BAL premium is deliberate (labour or extra packaging priced in)
+    or stale (the components got cheaper, e.g. after #4291 synced component `nakupCena` to
+    stock prices). Owner question.
 
 ## Known quirks
 - **Averages include zero-cost months.** The mean runs over every month in the window, so any
@@ -172,9 +230,24 @@ months. Total revenue ≤ 0 → everyone gets 0 with a warning.
 - **Semi-products must stay out of the M1 denominator.** Their receipts are grams of bulk with
   no difficulty (scored 1 per gram); when #4249 started ingesting types 54/65 they inflated the
   points ×7.07 and moved ~70 % of VYROBA onto bulk that is never sold. Fixed by `IsCostBearing`.
-- **Sets are manufactured.** `ProductType.Set` is an ERP Product whose code starts `BAL`/`SET`
-  (`BundleProductRule`), assembled in-house; excluding it from M1 zeroes every set's labour and
-  hands its share to everything else.
+- **Sets are manufactured, but not in Flexi.** `ProductType.Set` is an ERP Product whose code
+  starts `BAL`/`SET` (`BundleProductRule`), assembled in-house, so it stays cost-bearing in M1.
+  The comment on `IsCostBearing` says sets are "receipted like any other product". In practice
+  they are not: assembly writes only Shoptet stock moves. Every set therefore has M1 = 0, and
+  the labour of assembling gift packages is spread over manufactured products.
+- **Bundle and set cost is frozen (defect).** M0 for BAL/SA is the hand-entered ceník
+  `nakupCena`, which no job recalculates (no kusovník). Component price changes never reach the
+  bundle. Measured drift is up to +92 % against today's component roll-up (Runtime facts). The
+  composition needed for a roll-up is already loaded as `CatalogSetPart`, but only sales
+  expansion uses it.
+- **SA… sets are not `Set` (defect).** Only `BAL`/`SET` prefixes are recognised, so the 23
+  Shoptet product sets are typed `Product`. Their margins come out the same as BAL (purchase-price
+  M0, M1 = 0), but their component sales are not expanded (calc-bundle-sales-expansion). The
+  `SET` prefix matches no Flexi item.
+- **BAL bundles are hidden by default.** The margins list, MCP `GetProductMargins` and the
+  pricing simulator list only Product + Goods without a type filter. The analytics margin reports
+  never include Sets. About 1 M Kč a year of BAL revenue (excl. VAT) is visible only with
+  `ProductType = Set`.
 - **A catalog merge before sources load used to zero M2 catalogue-wide for 4 h after each
   restart.** Fixed in #4254: the cache is stamped valid only once `ErpStock`, `Sales`,
   `PurchaseHistory` and `ManufactureHistory` have loaded (`CatalogCacheStore.RequiredSourceKeys`,
@@ -196,6 +269,8 @@ months. Total revenue ≤ 0 → everyone gets 0 with a warning.
 - `backend/src/Anela.Heblo.Domain/Features/Catalog/MonthlyMarginHistory.cs` — how `Averages` is computed
 - `backend/src/Anela.Heblo.Application/Features/Catalog/CatalogRepository.cs` — `RefreshMarginData`: margin window
 - `backend/src/Anela.Heblo.Application/Features/Catalog/CostProviders/ManufactureBasedMaterialCostProvider.cs` — M0
+- `backend/src/Anela.Heblo.Domain/Features/Catalog/BundleProductRule.cs` — which codes become `ProductType.Set`
+- `backend/src/Anela.Heblo.Application/Features/Purchase/UseCases/RecalculatePurchasePrice/RecalculatePurchasePriceHandler.cs` — nightly `nakupCena` maintenance; shows why sets are never recalculated
 - `backend/src/Anela.Heblo.Application/Features/Catalog/CostProviders/FlatManufactureCostProvider.cs` — M1 pool, points, `IsCostBearing`
 - `backend/src/Anela.Heblo.Application/Features/Catalog/CostProviders/SalesCostProvider.cs` — M2 pool
 - `backend/src/Anela.Heblo.Application/Features/Catalog/CostProviders/OverheadCostProvider.cs` — M3 pool

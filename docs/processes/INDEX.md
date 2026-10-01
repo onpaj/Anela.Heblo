@@ -9,7 +9,8 @@ Agent-facing catalog of Heblo syncs, calculations and data feeds. Open the linke
 
 ## Calculations
 
-- [calc-margins](calc-margins.md) — Per-product monthly margin cascade M0-M3 (material, manufacturing labour, warehouse+marketing, overhead) derived from catalog history and the Flexi ledger, shown on the Marže pages and via MCP.
+- [calc-bundle-sales-expansion](calc-bundle-sales-expansion.md) — Turns every sold gift package (BAL…/SET…) into quantity-only sale rows for its components, so manufacture, purchase and stock planning see bundle demand while revenue and margins stay on the bundle. Related: calc-margins, feed-stock-up
+- [calc-margins](calc-margins.md) — Per-product monthly margin cascade M0-M3 (material, manufacturing labour, warehouse+marketing, overhead) derived from catalog history and the Flexi ledger, shown on the Marže pages and via MCP. Related: calc-bundle-sales-expansion
 
 ## Feeds
 
