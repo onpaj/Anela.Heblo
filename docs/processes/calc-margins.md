@@ -65,7 +65,9 @@ Everything lives in process memory; nothing is persisted. A restart recomputes i
 
 ## Logic & formulas
 **Selling price** `P` = e-shop price excl. VAT if > 0, else ERP price excl. VAT
-(`CatalogAggregate.PriceWithoutVat`). It is today's price, applied to every month. No price
+(`CatalogAggregate.PriceWithoutVat`). The e-shop price is the **effective** one — the action
+price while a Shoptet action runs (e.g. BAL0001M 490, not the list 539); rule in
+`docs/integrations/shoptet-api.md` → "Effective selling price rule". It is today's price, applied to every month. No price
 (or no product code) → empty margin history, so every level reads 0 in the list.
 
 **Per month**, with `c0..c3` the product's cost per piece for that month (0 if none):

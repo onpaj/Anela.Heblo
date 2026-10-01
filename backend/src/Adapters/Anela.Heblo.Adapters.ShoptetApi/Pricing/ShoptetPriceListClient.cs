@@ -32,8 +32,14 @@ public class ShoptetPriceListClient : IEshopPriceListClient
 
     public async Task<IReadOnlyDictionary<string, decimal>> GetPricesWithVatAsync(CancellationToken ct)
     {
+        var entries = await GetPriceListAsync(ct);
+        return entries.ToDictionary(e => e.ProductCode, e => e.PriceWithVat, StringComparer.OrdinalIgnoreCase);
+    }
+
+    public async Task<IReadOnlyList<EshopPriceListEntry>> GetPriceListAsync(CancellationToken ct)
+    {
         var priceListId = ResolvePriceListId();
-        var prices = new Dictionary<string, decimal>(StringComparer.OrdinalIgnoreCase);
+        var entries = new Dictionary<string, EshopPriceListEntry>(StringComparer.OrdinalIgnoreCase);
         var unreadableCount = 0;
 
         var page = 1;
@@ -74,7 +80,7 @@ public class ShoptetPriceListClient : IEshopPriceListClient
                     continue;
                 }
 
-                prices[item.Code] = priceWithVat;
+                entries[item.Code] = ToEntry(item, priceWithVat, priceListId);
             }
 
             pageCount = data.Paginator?.PageCount ?? 1;
@@ -90,8 +96,8 @@ public class ShoptetPriceListClient : IEshopPriceListClient
                 priceListId, unreadableCount);
         }
 
-        _logger.LogInformation("Read {Count} prices from Shoptet price list {PriceListId}", prices.Count, priceListId);
-        return prices;
+        _logger.LogInformation("Read {Count} prices from Shoptet price list {PriceListId}", entries.Count, priceListId);
+        return entries.Values.ToList();
     }
 
     public async Task<decimal?> GetPriceWithVatAsync(string productCode, CancellationToken ct)
@@ -196,6 +202,51 @@ public class ShoptetPriceListClient : IEshopPriceListClient
         var body = await response.Content.ReadAsStringAsync(ct);
         throw new HttpRequestException(
             $"Shoptet price list request failed with {(int)response.StatusCode}: {body}");
+    }
+
+    /// <summary>
+    /// Attaches the item's action price, if any. An action whose price or dates cannot be read
+    /// is dropped rather than applied: guessing its window could turn an expired action into a
+    /// permanent one.
+    /// </summary>
+    private EshopPriceListEntry ToEntry(PriceListSnapshotItem item, decimal priceWithVat, int priceListId)
+    {
+        var action = item.Price?.ActionPrice;
+        if (action?.Price is null)
+        {
+            return new EshopPriceListEntry(item.Code, priceWithVat, null, null, null);
+        }
+
+        if (!TryComputePriceWithVat(item, action.Price, out var actionPriceWithVat)
+            || !TryParseActionDate(action.FromDate, out var actionFrom)
+            || !TryParseActionDate(action.ToDate, out var actionUntil))
+        {
+            _logger.LogWarning(
+                "Shoptet price list {PriceListId}: could not interpret the action price for product " +
+                "{Code} (price={ActionPrice}, fromDate={FromDate}, toDate={ToDate}); using the regular price.",
+                priceListId, item.Code, action.Price, action.FromDate, action.ToDate);
+            return new EshopPriceListEntry(item.Code, priceWithVat, null, null, null);
+        }
+
+        return new EshopPriceListEntry(item.Code, priceWithVat, actionPriceWithVat, actionFrom, actionUntil);
+    }
+
+    /// <summary>Null or blank is a valid open bound; anything else must be <c>yyyy-MM-dd</c>.</summary>
+    private static bool TryParseActionDate(string? raw, out DateOnly? date)
+    {
+        date = null;
+        if (string.IsNullOrWhiteSpace(raw))
+        {
+            return true;
+        }
+
+        if (!DateOnly.TryParseExact(raw, "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out var parsed))
+        {
+            return false;
+        }
+
+        date = parsed;
+        return true;
     }
 
     /// <summary>

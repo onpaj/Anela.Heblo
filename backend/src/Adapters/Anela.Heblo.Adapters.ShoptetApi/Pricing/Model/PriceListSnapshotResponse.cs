@@ -51,6 +51,25 @@ public class PriceListItemPrice
     /// <summary>Writable only on the default price list; exposed for completeness, not used by the sync.</summary>
     [JsonPropertyName("buyPrice")]
     public string? BuyPrice { get; set; }
+
+    /// <summary>The action ("akční cena"), or <c>null</c> when none is set. Present even after it has expired.</summary>
+    [JsonPropertyName("actionPrice")]
+    public PriceListItemActionPrice? ActionPrice { get; set; }
+}
+
+public class PriceListItemActionPrice
+{
+    /// <summary>Same string format and VAT meaning as <see cref="PriceListItemPrice.Price"/>.</summary>
+    [JsonPropertyName("price")]
+    public string? Price { get; set; }
+
+    /// <summary>First day of the action as <c>yyyy-MM-dd</c>, or <c>null</c> for no start bound.</summary>
+    [JsonPropertyName("fromDate")]
+    public string? FromDate { get; set; }
+
+    /// <summary>Last day of the action as <c>yyyy-MM-dd</c>, or <c>null</c> for no end bound.</summary>
+    [JsonPropertyName("toDate")]
+    public string? ToDate { get; set; }
 }
 
 public class PriceListPaginator

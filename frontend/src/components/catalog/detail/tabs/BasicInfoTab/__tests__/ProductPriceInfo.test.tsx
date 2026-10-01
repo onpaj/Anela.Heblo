@@ -103,4 +103,73 @@ describe("ProductPriceInfo", () => {
       screen.getByText("Cenové informace nejsou k dispozici"),
     ).toBeInTheDocument();
   });
+  describe("e-shop action price", () => {
+    const sellingPriceRow = () =>
+      screen.getByRole("row", { name: /Prodejní s DPH/ });
+
+    it("shows the running action price with the regular price struck through", () => {
+      render(
+        <ProductPriceInfo
+          item={buildItem({
+            eshopPrice: {
+              priceWithVat: 490,
+              regularPriceWithVat: 539,
+              actionPriceWithVat: 490,
+              isInAction: true,
+            },
+          })}
+        />,
+      );
+
+      const row = sellingPriceRow();
+      expect(within(row).getByText("490 Kč")).toBeInTheDocument();
+      expect(within(row).getByText("539 Kč").tagName).toBe("S");
+      expect(within(row).getByText("Akce")).toBeInTheDocument();
+      expect(screen.getByRole("row", { name: /Akce platí/ })).toHaveTextContent(
+        "bez omezení",
+      );
+    });
+
+    it("shows the action window when it has dates", () => {
+      render(
+        <ProductPriceInfo
+          item={buildItem({
+            eshopPrice: {
+              priceWithVat: 490,
+              regularPriceWithVat: 539,
+              actionPriceWithVat: 490,
+              actionFrom: "2026-09-01",
+              actionUntil: "2026-10-31",
+              isInAction: true,
+            },
+          })}
+        />,
+      );
+
+      expect(screen.getByRole("row", { name: /Akce platí/ })).toHaveTextContent(
+        "01. 09. 2026 – 31. 10. 2026",
+      );
+    });
+
+    it("ignores an expired action and shows only the regular price", () => {
+      render(
+        <ProductPriceInfo
+          item={buildItem({
+            eshopPrice: {
+              priceWithVat: 669,
+              regularPriceWithVat: 669,
+              actionPriceWithVat: 620,
+              actionFrom: "2025-11-18",
+              actionUntil: "2025-12-23",
+              isInAction: false,
+            },
+          })}
+        />,
+      );
+
+      expect(sellingPriceRow()).toHaveTextContent("669 Kč");
+      expect(within(sellingPriceRow()).queryByText("Akce")).toBeNull();
+      expect(screen.queryByRole("row", { name: /Akce platí/ })).toBeNull();
+    });
+  });
 });

@@ -14,9 +14,18 @@ public class PriceDto
 
 public class EshopPriceDto
 {
+    /// <summary>The price customers pay today — the action price while an action runs.</summary>
     public decimal PriceWithVat { get; set; }
     public decimal PurchasePrice { get; set; }
+    /// <summary>Without-VAT form of <see cref="PriceWithVat"/>.</summary>
     public decimal PriceWithoutVat { get; set; }
+    /// <summary>The regular list price, regardless of any action.</summary>
+    public decimal? RegularPriceWithVat { get; set; }
+    /// <summary>The action price set in the e-shop, even when the action is not running today.</summary>
+    public decimal? ActionPriceWithVat { get; set; }
+    public DateOnly? ActionFrom { get; set; }
+    public DateOnly? ActionUntil { get; set; }
+    public bool IsInAction { get; set; }
 }
 
 public class ErpPriceDto

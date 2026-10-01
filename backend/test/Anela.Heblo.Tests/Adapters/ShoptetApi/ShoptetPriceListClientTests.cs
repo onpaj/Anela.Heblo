@@ -274,6 +274,98 @@ public class ShoptetPriceListClientTests
         recorded.Should().BeEmpty();
     }
 
+    // Item shapes copied from a live GET /api/pricelists/1 on 2026-10-01.
+    private const string LivePriceListPage = """
+        {"data":{"pricelist":[
+            {"code":"BAL0001M","includingVat":true,"vatRate":"21.00",
+             "price":{"price":"539.00","commonPrice":null,"buyPrice":"343.66","priceRatio":"1.000",
+                      "actionPrice":{"price":"490.00","fromDate":null,"toDate":null}}},
+            {"code":"BAL0007M","includingVat":true,"vatRate":"21.00",
+             "price":{"price":"669.00","commonPrice":null,"buyPrice":"343.66","priceRatio":"1.000",
+                      "actionPrice":{"price":"620.00","fromDate":"2025-11-18","toDate":"2025-12-23"}}},
+            {"code":"MAS2-008050","includingVat":true,"vatRate":"21.00",
+             "price":{"price":"217.00","commonPrice":"310.00","buyPrice":"24.20","priceRatio":"1.000",
+                      "actionPrice":null}},
+            {"code":"OCH001001B","includingVat":true,"vatRate":"21.00",
+             "price":{"price":null,"commonPrice":null,"buyPrice":"0.66","priceRatio":"1.000",
+                      "actionPrice":null}}],
+         "paginator":{"page":1,"pageCount":1}},"errors":null}
+        """;
+
+    [Fact]
+    public async Task reads_the_action_price_and_its_dates_alongside_the_regular_price()
+    {
+        // Arrange
+        var client = CreateClient(_ => Json(LivePriceListPage));
+
+        // Act
+        var entries = (await client.GetPriceListAsync(CancellationToken.None))
+            .ToDictionary(e => e.ProductCode);
+
+        // Assert
+        entries.Should().HaveCount(3, "OCH001001B has no regular price and is skipped");
+        entries["BAL0001M"].PriceWithVat.Should().Be(539.00m);
+        entries["BAL0001M"].ActionPriceWithVat.Should().Be(490.00m);
+        entries["BAL0001M"].ActionFrom.Should().BeNull();
+        entries["BAL0001M"].ActionUntil.Should().BeNull();
+        entries["BAL0007M"].ActionPriceWithVat.Should().Be(620.00m);
+        entries["BAL0007M"].ActionFrom.Should().Be(new DateOnly(2025, 11, 18));
+        entries["BAL0007M"].ActionUntil.Should().Be(new DateOnly(2025, 12, 23));
+        entries["MAS2-008050"].PriceWithVat.Should().Be(217.00m, "commonPrice is only the struck-through comparison price");
+        entries["MAS2-008050"].ActionPriceWithVat.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task keeps_reporting_the_regular_price_to_the_price_sync_while_an_action_runs()
+    {
+        // Arrange: the Heblo-as-master sync compares the regular list price; an action must
+        // not register as drift against it.
+        var client = CreateClient(_ => Json(LivePriceListPage));
+
+        // Act
+        var prices = await client.GetPricesWithVatAsync(CancellationToken.None);
+
+        // Assert
+        prices["BAL0001M"].Should().Be(539.00m);
+        prices["BAL0007M"].Should().Be(669.00m);
+    }
+
+    [Fact]
+    public async Task grosses_up_an_action_price_stored_excluding_vat()
+    {
+        // Arrange
+        var client = CreateClient(_ => Json("""
+            {"data":{"pricelist":[{"code":"A","includingVat":false,"vatRate":"21.00",
+              "price":{"price":"100.00","actionPrice":{"price":"50.00","fromDate":null,"toDate":null}}}],
+             "paginator":{"page":1,"pageCount":1}},"errors":null}
+            """));
+
+        // Act
+        var entry = (await client.GetPriceListAsync(CancellationToken.None)).Single();
+
+        // Assert
+        entry.PriceWithVat.Should().Be(121.00m);
+        entry.ActionPriceWithVat.Should().Be(60.50m);
+    }
+
+    [Fact]
+    public async Task drops_an_action_with_an_unreadable_date_but_keeps_the_regular_price()
+    {
+        // Arrange: an action whose window cannot be read must not be applied open-ended.
+        var client = CreateClient(_ => Json("""
+            {"data":{"pricelist":[{"code":"A","includingVat":true,"vatRate":"21.00",
+              "price":{"price":"100.00","actionPrice":{"price":"80.00","fromDate":"18.11.2025","toDate":null}}}],
+             "paginator":{"page":1,"pageCount":1}},"errors":null}
+            """));
+
+        // Act
+        var entry = (await client.GetPriceListAsync(CancellationToken.None)).Single();
+
+        // Assert
+        entry.PriceWithVat.Should().Be(100.00m);
+        entry.ActionPriceWithVat.Should().BeNull();
+    }
+
     private sealed class StubHandler : HttpMessageHandler
     {
         private readonly Func<HttpRequestMessage, HttpResponseMessage> _responder;

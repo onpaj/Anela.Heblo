@@ -9,37 +9,45 @@ namespace Anela.Heblo.Adapters.ShoptetApi.Pricing;
 /// </summary>
 public class ShoptetEshopPriceClient : IProductPriceEshopClient
 {
+    /// <summary>Action windows are calendar days in the e-shop's own time zone.</summary>
+    private static readonly TimeZoneInfo EshopTimeZone = TimeZoneInfo.FindSystemTimeZoneById("Europe/Prague");
+
     private readonly IEshopPriceListClient _priceListClient;
     private readonly IProductVatRateProvider _vatRateProvider;
+    private readonly TimeProvider _timeProvider;
 
     public ShoptetEshopPriceClient(
         IEshopPriceListClient priceListClient,
-        IProductVatRateProvider vatRateProvider)
+        IProductVatRateProvider vatRateProvider,
+        TimeProvider timeProvider)
     {
         _priceListClient = priceListClient;
         _vatRateProvider = vatRateProvider;
+        _timeProvider = timeProvider;
     }
 
     public async Task<IEnumerable<ProductPriceEshop>> GetAllAsync(CancellationToken cancellationToken)
     {
-        var prices = await _priceListClient.GetPricesWithVatAsync(cancellationToken);
+        var entries = await _priceListClient.GetPriceListAsync(cancellationToken);
         var vatRates = await _vatRateProvider.GetVatRatesAsync(cancellationToken);
 
-        return prices.Select(entry =>
-        {
-            var vatRate = vatRates.TryGetValue(entry.Key, out var rate) ? rate : VatRateCalculator.StandardVatRate;
+        // Resolved once per snapshot. The catalog refreshes e-shop prices every 30 minutes,
+        // so an action starting or ending at midnight is reflected within that interval.
+        var today = DateOnly.FromDateTime(
+            TimeZoneInfo.ConvertTime(_timeProvider.GetUtcNow(), EshopTimeZone).DateTime);
 
-            return new ProductPriceEshop
-            {
-                ProductCode = entry.Key,
-                PriceWithVat = entry.Value,
-                PriceWithoutVat = Math.Round(entry.Value / (1 + vatRate / 100m), 2, MidpointRounding.AwayFromZero),
-                // Deliberately null: the price list endpoint carries no purchase price, and
-                // the CSV export that used to supply one is gone. CurrentPurchasePrice
-                // therefore falls through to the ERP value, which is the source of truth.
-                // Do not try to source a purchase price from Shoptet again.
-                PurchasePrice = null,
-            };
+        return entries.Select(entry =>
+        {
+            var vatRate = vatRates.TryGetValue(entry.ProductCode, out var rate) ? rate : VatRateCalculator.StandardVatRate;
+
+            return ProductPriceEshop.FromPriceList(
+                entry.ProductCode,
+                entry.PriceWithVat,
+                entry.ActionPriceWithVat,
+                entry.ActionFrom,
+                entry.ActionUntil,
+                vatRate,
+                today);
         }).ToList();
     }
 }
