@@ -280,3 +280,129 @@ describe('ManufactureInventoryModal - quantity input for materials without lots'
     expect(screen.getByText(/Rozdíl: \+1495\.00/)).toBeInTheDocument();
   });
 });
+
+const mockMaterialWithLots = {
+  ...mockMaterialWithoutLots,
+  productCode: 'MAT-002',
+  hasLots: true,
+  lots: [{ lotCode: 'L-OLD', amount: 5, expiration: new Date(2027, 0, 31) }],
+};
+
+describe('ManufactureInventoryModal - new lot entry', () => {
+  beforeEach(() => {
+    mockMutateAsync.mockClear();
+  });
+
+  const renderWithNewLot = () => {
+    render(
+      <ManufactureInventoryModal item={mockMaterialWithLots as any} isOpen={true} onClose={jest.fn()} />,
+      { wrapper: createWrapper() },
+    );
+    fireEvent.click(screen.getByText('Přidat novou sarži'));
+    return {
+      lotInput: screen.getByPlaceholderText('Sarže') as HTMLInputElement,
+      expirationInput: screen.getByTitle('Datum expirace') as HTMLInputElement,
+    };
+  };
+
+  it('keeps the same lot code input mounted while typing', () => {
+    // Arrange
+    const { lotInput } = renderWithNewLot();
+    lotInput.focus();
+
+    // Act
+    typeAtEnd(lotInput, 'ABC123');
+
+    // Assert
+    const current = screen.getByPlaceholderText('Sarže') as HTMLInputElement;
+    expect(current).toBe(lotInput);
+    expect(current.value).toBe('ABC123');
+    expect(lotInput).toHaveFocus();
+  });
+
+  it('aligns a manually typed non-existent day to the last day of the month', () => {
+    // Arrange
+    const { expirationInput } = renderWithNewLot();
+
+    // Act
+    fireEvent.change(expirationInput, { target: { value: '31.11.2026' } });
+    fireEvent.blur(expirationInput);
+
+    // Assert
+    expect(expirationInput.value).toBe('30.11.2026');
+  });
+
+  it('submits the aligned expiration date', async () => {
+    // Arrange
+    const { lotInput, expirationInput } = renderWithNewLot();
+    typeAtEnd(lotInput, 'NEW1');
+    fireEvent.change(expirationInput, { target: { value: '31.11.2026' } });
+    fireEvent.blur(expirationInput);
+
+    // Act
+    fireEvent.click(screen.getByText('Zinventarizovat materiál'));
+
+    // Assert
+    await waitFor(() => expect(mockMutateAsync).toHaveBeenCalledTimes(1));
+    const newLot = mockMutateAsync.mock.calls[0][0].lots.find((l: any) => l.lotCode === 'NEW1');
+    expect(newLot.expiration).toEqual(new Date(2026, 10, 30));
+  });
+
+  it('blocks submission while the expiration text cannot be read as a date', () => {
+    // Arrange
+    const { expirationInput } = renderWithNewLot();
+
+    // Act
+    fireEvent.change(expirationInput, { target: { value: '45.45.2026' } });
+    fireEvent.blur(expirationInput);
+
+    // Assert
+    expect(screen.getByRole('button', { name: 'Zinventarizovat materiál' })).toBeDisabled();
+  });
+});
+
+describe('ManufactureInventoryModal - double submission', () => {
+  beforeEach(() => {
+    mockMutateAsync.mockReset();
+  });
+
+  it.each([
+    ['without lots', mockMaterialWithoutLots],
+    ['with lots', mockMaterialWithLots],
+  ])('submits only once when the button is double-clicked (%s)', async (_, item) => {
+    // Arrange - keep the request in flight
+    let resolveSubmit: (value: unknown) => void = () => {};
+    mockMutateAsync.mockImplementation(() => new Promise((resolve) => { resolveSubmit = resolve; }));
+    render(<ManufactureInventoryModal item={item as any} isOpen={true} onClose={jest.fn()} />, {
+      wrapper: createWrapper(),
+    });
+    const button = screen.getByRole('button', { name: 'Zinventarizovat materiál' });
+
+    // Act
+    fireEvent.click(button);
+    fireEvent.click(button);
+
+    // Assert
+    expect(mockMutateAsync).toHaveBeenCalledTimes(1);
+    expect(button).toBeDisabled();
+    expect(button).toHaveTextContent('Inventarizuji...');
+
+    resolveSubmit({});
+    await waitFor(() => expect(mockMutateAsync).toHaveBeenCalledTimes(1));
+  });
+
+  it('enables the button again when the submission fails', async () => {
+    // Arrange
+    mockMutateAsync.mockRejectedValue(new Error('boom'));
+    jest.spyOn(console, 'error').mockImplementation(() => {});
+    render(<ManufactureInventoryModal item={mockMaterialWithoutLots as any} isOpen={true} onClose={jest.fn()} />, {
+      wrapper: createWrapper(),
+    });
+
+    // Act
+    fireEvent.click(screen.getByRole('button', { name: 'Zinventarizovat materiál' }));
+
+    // Assert
+    expect(await screen.findByRole('button', { name: 'Zinventarizovat materiál' })).toBeEnabled();
+  });
+});
