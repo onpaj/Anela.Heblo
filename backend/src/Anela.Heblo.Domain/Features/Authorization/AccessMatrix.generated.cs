@@ -41,6 +41,7 @@ public static class AccessMatrix
         new FeatureDefinition(Feature.Anela_Meetings, "Schůzky", HasWrite: true),
         new FeatureDefinition(Feature.Anela_OrgChart, "Organigram"),
         new FeatureDefinition(Feature.Anela_MindMaps, "Myšlenkové mapy", HasWrite: true),
+        new FeatureDefinition(Feature.Anela_ProcessDocs, "Procesní dokumentace"),
         new FeatureDefinition(Feature.Attendance_Overtime, "Evidence přesčasů", HasWrite: true),
         new FeatureDefinition(Feature.Admin_DataQuality, "Kvalita dat", HasWrite: true),
         new FeatureDefinition(Feature.Admin_Administration, "Administrace", HasWrite: true),

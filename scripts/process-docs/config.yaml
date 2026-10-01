@@ -1,0 +1,7 @@
+# Process-docs checker configuration.
+# orphan_mode: warn during backfill; switch to fail once every job has a doc.
+orphan_mode: warn
+# Extra process-bearing files (beyond IRecurringJob implementations) that must be owned by a doc.
+include: []
+# Files that are never orphans (infrastructure, not business processes).
+ignore: []

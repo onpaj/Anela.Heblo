@@ -117,6 +117,7 @@ export const ACCESS_ROLES = [
   "anela.org_chart.read",
   "anela.mind_maps.read",
   "anela.mind_maps.write",
+  "anela.process_docs.read",
   "attendance.overtime.read",
   "attendance.overtime.write",
   "admin.data_quality.read",
