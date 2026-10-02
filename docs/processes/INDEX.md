@@ -16,3 +16,10 @@ _No module overview doc yet._
 - [calc-bundle-sales-expansion](calc-bundle-sales-expansion.md) (calculation) — Turns every sold gift package (BAL…/SET…) into quantity-only sale rows for its components, so manufacture, purchase and stock planning see bundle demand while revenue and margins stay on the bundle. Related: calc-margins, feed-stock-up
 - [calc-margins](calc-margins.md) (calculation) — Per-product monthly margin cascade M0-M3 (material, manufacturing labour, warehouse+marketing, overhead) derived from catalog history and the Flexi ledger, shown on the Marže pages and via MCP. Related: calc-bundle-sales-expansion
 - [feed-stock-up](feed-stock-up.md) (feed) — Pushes warehouse stock changes from received transport boxes and gift-package manufacture/disassembly into Shoptet as relative stock movements, tracked per document number in StockUpOperations.
+
+## leaflet
+
+[module-leaflet](module-leaflet.md) — AI generator of Czech product leaflets (Generátor letáků) that combines Knowledge Base facts with the tone of past Anela leaflets, plus the library of example leaflets it learns style from.
+
+- [job-leaflet-ingestion](job-leaflet-ingestion.md) (job) — Turns example Anela leaflets (PDF/Word/text) dropped into the SharePoint inbox folder or uploaded on the Leaflet Generator page into embedded text chunks in LeafletDocuments/LeafletChunks, the style library the leaflet generator imitates. Related: flow-leaflet-generation
+- [flow-leaflet-generation](flow-leaflet-generation.md) (workflow) — Generates a Czech marketing leaflet in Markdown from a topic, audience and length by retrieving product facts from the Knowledge Base and style examples from the leaflet library, running two Claude calls, and logging each result in LeafletGenerations for 1–5 feedback. Related: job-leaflet-ingestion
