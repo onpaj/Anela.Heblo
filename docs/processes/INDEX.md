@@ -16,3 +16,9 @@ _No module overview doc yet._
 - [calc-bundle-sales-expansion](calc-bundle-sales-expansion.md) (calculation) — Turns every sold gift package (BAL…/SET…) into quantity-only sale rows for its components, so manufacture, purchase and stock planning see bundle demand while revenue and margins stay on the bundle. Related: calc-margins, feed-stock-up
 - [calc-margins](calc-margins.md) (calculation) — Per-product monthly margin cascade M0-M3 (material, manufacturing labour, warehouse+marketing, overhead) derived from catalog history and the Flexi ledger, shown on the Marže pages and via MCP. Related: calc-bundle-sales-expansion
 - [feed-stock-up](feed-stock-up.md) (feed) — Pushes warehouse stock changes from received transport boxes and gift-package manufacture/disassembly into Shoptet as relative stock movements, tracked per document number in StockUpOperations.
+
+## ecomail
+
+[module-ecomail](module-ecomail.md) — Collects Anela's Ecomail newsletter and e-mail automation statistics into Heblo every 6 hours, ready for marketing reporting that has not been built yet.
+
+- [sync-ecomail](sync-ecomail.md) (sync) — Every 6 hours pulls Ecomail newsletter (campaign) statistics, the automation list, a daily snapshot of each automation's lifetime counters and per-month automation event counts into four Heblo tables — nothing in Heblo reads them yet.
