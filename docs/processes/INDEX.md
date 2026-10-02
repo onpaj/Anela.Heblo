@@ -121,6 +121,13 @@ _No module overview doc yet._
 - [job-leaflet-ingestion](job-leaflet-ingestion.md) (job) — Turns example Anela leaflets (PDF/Word/text) dropped into the SharePoint inbox folder or uploaded on the Leaflet Generator page into embedded text chunks in LeafletDocuments/LeafletChunks, the style library the leaflet generator imitates. Related: flow-leaflet-generation
 - [flow-leaflet-generation](flow-leaflet-generation.md) (workflow) — Generates a Czech marketing leaflet in Markdown from a topic, audience and length by retrieving product facts from the Knowledge Base and style examples from the leaflet library, running two Claude calls, and logging each result in LeafletGenerations for 1–5 feedback. Related: job-leaflet-ingestion
 
+## logistics
+
+[module-logistics](module-logistics.md) — Moves finished goods from production to the e-shop warehouse in transport boxes, assembles and disassembles gift packages, and holds the free-gift badge setting for the packing list.
+
+- [flow-gift-package-manufacture](flow-gift-package-manufacture.md) (workflow) — Lets warehouse staff assemble gift packages (dárkové balíčky) from their components or take them apart again, shows which packages are running low from sales velocity, and books each run as Shoptet stock-up operations plus an audit log. Related: feed-stock-up, calc-bundle-sales-expansion
+- [flow-transport-box](flow-transport-box.md) (workflow) — Moves finished goods from the manufacturing warehouse (sklad výroby) to the e-shop warehouse in numbered transport boxes; filling consumes manufactured inventory, receiving stages Shoptet stock-up operations, and a 1-minute task closes the box once Shoptet confirms. Related: feed-stock-up
+
 ## marketing
 
 [module-marketing](module-marketing.md) — The marketing calendar — a shared plan of marketing actions (posts, blog, newsletter, PR, events, meetings) mirrored with the Outlook marketing group calendar and tagged with products and asset folders.
