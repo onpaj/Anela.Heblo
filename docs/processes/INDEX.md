@@ -9,6 +9,12 @@ _No module overview doc yet._
 
 - [sync-flexi-analytics](sync-flexi-analytics.md) (sync) — Nightly copy of the Flexi (ABRA FlexiBee) general ledger, cost centres, accounting templates and contacts into Heblo_V3.flexi_raw, refreshing the month-grain views Metabase reports read.
 
+## bank
+
+[module-bank](module-bank.md) — Loads payout statements from the Comgate and Shoptet Pay payment gateways into FlexiBee bank accounts every morning and keeps an audit log of every statement imported.
+
+- [feed-bank-statements](feed-bank-statements.md) (feed) — Downloads daily payout statements (ABO files) from the Comgate (CZK, EUR) and Shoptet Pay (CZK) payment gateways and loads them into the matching FlexiBee bank accounts, logging each statement in BankStatements behind a per-account watermark.
+
 ## catalog
 
 _No module overview doc yet._
