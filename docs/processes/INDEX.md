@@ -55,6 +55,12 @@ _No module overview doc yet._
 
 - [flow-catalog-document-upload](flow-catalog-document-upload.md) (workflow) — Lists and uploads regulatory files (material MSDS/TDS/COA, product PIF) in the SharePoint folders that belong to a catalog item, finding the folder by a code prefix and naming material files by a fixed scheme.
 
+## dashboard
+
+[module-dashboard](module-dashboard.md) — The personal home page (Dashboard) — a per-user, reorderable grid of tiles that each show one live number or short list from another Heblo module.
+
+- [calc-dashboard-tiles](calc-dashboard-tiles.md) (calculation) — Builds each user's home-page tile list (auto-provisioning, back-fill, permission check) and derives every tile's number from its owning module's data. Related: module-dashboard, sync-weather-forecast
+
 ## ecomail
 
 [module-ecomail](module-ecomail.md) — Collects Anela's Ecomail newsletter and e-mail automation statistics into Heblo every 6 hours, ready for marketing reporting that has not been built yet.
@@ -186,3 +192,9 @@ _No module overview doc yet._
 
 - [sync-entra-directory](sync-entra-directory.md) (sync) — On-demand, cached reads of Anela's Microsoft 365 directory (Entra ID) through Microsoft Graph — members of an Entra group, and everyone holding Heblo's heblo_user app role — used for onboarding, the MCP GetGroupMembers tool and the article requester backfill. Related: flow-user-access-onboarding, module-article
 - [sync-flexi-departments](sync-flexi-departments.md) (sync) — On-demand, 10-minute-cached read of the cost centres (střediska) from Flexi, offered as the department filter in the financial overview and as a choice in invoice classification rules. Related: sync-flexi-analytics
+
+## weather-forecast
+
+[module-weather-forecast](module-weather-forecast.md) — Shows which Czech city will be hottest on each of the next 7 days (Open-Meteo), so the expedition team can decide when shipments need cooling.
+
+- [sync-weather-forecast](sync-weather-forecast.md) (sync) — Fetches a 7-day daily forecast for nine Czech cities from Open-Meteo, caches it in memory for 3 hours, and reduces it to the hottest city per day for the Dashboard tile and the expedition cooling tab. Related: module-weather-forecast, calc-dashboard-tiles
