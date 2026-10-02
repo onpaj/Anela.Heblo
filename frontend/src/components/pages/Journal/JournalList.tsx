@@ -532,7 +532,7 @@ const JournalList: React.FC = () => {
       <JournalEntryModal
         isOpen={isModalOpen}
         onClose={handleCloseModal}
-        entry={editingEntryId ? editingEntry : undefined}
+        entry={editingEntryId ? editingEntry?.entry : undefined}
         isEdit={!!editingEntryId}
       />
     </div>

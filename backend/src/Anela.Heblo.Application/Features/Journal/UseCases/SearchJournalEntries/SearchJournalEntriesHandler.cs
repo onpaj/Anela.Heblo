@@ -26,6 +26,7 @@ namespace Anela.Heblo.Application.Features.Journal.UseCases.SearchJournalEntries
                 productCodePrefix: request.ProductCodePrefix,
                 tagIds: request.TagIds,
                 createdByUserId: request.CreatedByUserId,
+                withoutProducts: request.WithoutProducts,
                 pageNumber: request.PageNumber,
                 pageSize: request.PageSize,
                 sortBy: request.SortBy,

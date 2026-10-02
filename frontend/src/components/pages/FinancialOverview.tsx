@@ -29,7 +29,15 @@ import { FinancialDataTable } from "./financial-overview/FinancialDataTable";
 import { FinancialComparisonTable } from "./financial-overview/FinancialComparisonTable";
 import { FinancialDataCards } from "./financial-overview/FinancialDataCards";
 import { COMPARISON_METRIC_LABELS, getYtdForMetric, orderMetrics, type ComparisonMetric } from "./financial-overview/comparisonUtils";
+import { FinancialJournalPanel } from "./financial-overview/FinancialJournalPanel";
+import { getJournalPointProps, useFinancialJournalEntries } from "./financial-overview/journal";
+import { buildJournalTooltipCallback } from "../charts/journalMarkers";
+import type { JournalEntryDto } from "../../api/generated/api-client";
 import { useScreenView } from '../../telemetry/useScreenView';
+
+const NO_JOURNAL_ENTRIES: JournalEntryDto[] = [];
+const BALANCE_LINE_COLOR = "rgb(59, 130, 246)";
+const TOTAL_BALANCE_LINE_COLOR = "rgb(245, 158, 11)";
 
 const FinancialOverview: React.FC = () => {
   const [selectedPeriod, setSelectedPeriod] =
@@ -104,13 +112,28 @@ const FinancialOverview: React.FC = () => {
     viewMode === "comparison",
   );
 
+  const sortedData = React.useMemo(
+    () =>
+      [...(data?.data ?? [])].sort((a, b) => {
+        if (a.year !== b.year) return a.year - b.year;
+        return a.month - b.month;
+      }),
+    [data?.data],
+  );
+
+  const chartMonths = React.useMemo(
+    () => sortedData.map((item) => ({ year: item.year, month: item.month })),
+    [sortedData],
+  );
+
+  const journalQuery = useFinancialJournalEntries(
+    chartMonths,
+    viewMode === "timeline",
+  );
+  const journalEntries = journalQuery.data?.entries ?? NO_JOURNAL_ENTRIES;
+
   const chartData = React.useMemo(() => {
     if (!data?.data) return null;
-
-    const sortedData = [...data.data].sort((a, b) => {
-      if (a.year !== b.year) return a.year - b.year;
-      return a.month - b.month;
-    });
 
     const labels = sortedData.map((item) => item.monthYearDisplay);
     const incomeData = sortedData.map((item) => item.income);
@@ -144,11 +167,12 @@ const FinancialOverview: React.FC = () => {
         label: "Účetní bilance",
         type: "line" as const,
         data: balanceData,
-        borderColor: "rgb(59, 130, 246)",
+        borderColor: BALANCE_LINE_COLOR,
         backgroundColor: "rgba(59, 130, 246, 0.1)",
         fill: false,
         tension: 0.1,
         borderWidth: 3,
+        ...getJournalPointProps(chartMonths, journalEntries, BALANCE_LINE_COLOR),
       },
     ];
 
@@ -166,17 +190,18 @@ const FinancialOverview: React.FC = () => {
           label: "Celková bilance (vč. skladu)",
           type: "line" as const,
           data: totalBalanceData,
-          borderColor: "rgb(245, 158, 11)",
+          borderColor: TOTAL_BALANCE_LINE_COLOR,
           backgroundColor: "rgba(245, 158, 11, 0.1)",
           fill: false,
           tension: 0.1,
           borderWidth: 4,
+          ...getJournalPointProps(chartMonths, journalEntries, TOTAL_BALANCE_LINE_COLOR),
         },
       );
     }
 
     return { labels, datasets } as ChartData<"bar">;
-  }, [data?.data, includeStockData]);
+  }, [data?.data, sortedData, chartMonths, journalEntries, includeStockData]);
 
   const chartOptions: ChartOptions<"bar"> = React.useMemo(
     () => ({
@@ -198,6 +223,7 @@ const FinancialOverview: React.FC = () => {
             label: function (context) {
               return `${context.dataset.label}: ${formatCurrency(context.parsed.y ?? 0)}`;
             },
+            ...buildJournalTooltipCallback(chartMonths, journalEntries),
           },
         },
       },
@@ -223,7 +249,7 @@ const FinancialOverview: React.FC = () => {
       },
       interaction: { intersect: false, mode: "index" },
     }),
-    [isMobile],
+    [isMobile, chartMonths, journalEntries],
   );
 
   const activeLoading = viewMode === "comparison" ? isComparisonLoading : isLoading;
@@ -512,6 +538,15 @@ const FinancialOverview: React.FC = () => {
             chartData={chartData}
             chartOptions={chartOptions}
             title={`Finanční přehled - ${getPeriodLabel(selectedPeriod)}${includeStockData ? " (včetně skladu)" : ""}`}
+          />
+        )}
+
+        {/* Journal entries */}
+        {viewMode === "timeline" && chartData && (
+          <FinancialJournalPanel
+            entries={journalEntries}
+            isLoading={journalQuery.isLoading}
+            isError={journalQuery.isError}
           />
         )}
 
