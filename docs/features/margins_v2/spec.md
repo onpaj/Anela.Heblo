@@ -123,21 +123,26 @@ Krok 1: Načíst náklady za období
   marketingCosts  = ILedgerService.GetCosts(from, to, accountPrefixes, department: "MARKETING")
   totalCosts      = warehouseCosts + marketingCosts
 
-Krok 2: Spočítat celkové tržby (všechny produkty)
-  totalRevenue = Σ produkt.SalesHistory
-    .Where(s => s.Date >= from && s.Date <= to && s.SourceBundleCode == null)
-    .Sum(s => s.SumTotal)
+Krok 2: Sečíst kusy a tržbu každého produktu v okně (jeden průchod)
+  pro každý produkt s neprázdným ProductCode:
+    pieces      = Σ AmountTotal, kde from <= Date <= to && SourceBundleCode == null
+    revenue     = Σ SumTotal,    kde from <= Date <= to && SourceBundleCode == null
+    allocatable = pieces > 0,001 && revenue > 0
 
 Krok 3: Vypočítat sazbu na korunu tržby
-  costPerRevenueUnit = totalCosts / totalRevenue
+  totalRevenue       = Σ revenue přes produkty, kde allocatable
+  costPerRevenueUnit = totalRevenue > 0 ? totalCosts / totalRevenue : 0
 
 Krok 4: Vypočítat náklad na kus pro každý produkt
-  productRevenue = Σ jeho SumTotal v okně (bez rozpadlých řádků)
-  productPieces  = Σ jeho AmountTotal v okně (bez rozpadlých řádků)
-  M2 na kus      = costPerRevenueUnit × (productRevenue / productPieces)
+  M2 na kus = allocatable
+              ? costPerRevenueUnit × (revenue / pieces)
+              : 0
 
 Krok 5: Plošně přiřadit tento náklad na kus všem měsícům okna
 ```
+
+Stejný test `allocatable` platí v kroku 3 i 4 — proto se pool rozdá beze zbytku:
+`Σ (M2 na kus × pieces) == totalCosts`.
 
 **Poznámky:**
 - Produkty bez prodeje (nebo bez tržby) v okně mají M2 = 0 — nic nevydělaly,
@@ -153,6 +158,16 @@ Krok 5: Plošně přiřadit tento náklad na kus všem měsícům okna
   a produkt proto nese odpovídajícím dílem menší náklad
 - Synteticky rozpadlé řádky komponent setu (`SourceBundleCode != null`) nesou kusy,
   ale nulovou tržbu — započítané by srazily tržbu komponenty na kus téměř k nule
+
+> **Otevřená otázka — DPH v `SumTotal`.** `SumTotal` je pole `suma` z FlexiBee
+> UserQuery 37 a nikde (v kódu, dokumentaci ani fixtures) není doloženo, zda je
+> s DPH nebo bez. Dokud se alokovalo na kus, nezáleželo na tom. Teď záleží:
+> je-li `suma` s DPH, sazba i tržba na kus se o faktor (1 + DPH) vykrátí **jen**
+> tehdy, mají-li všechny produkty stejnou sazbu a nejsou-li v okně prodeje s nulovou
+> daní (export, reverse charge). Produkt s jinou sazbou nebo s velkým podílem exportu
+> by nesl systematicky špatný náklad. Ověřit proti FlexiBee a doplnit sem, než se
+> nová čísla M2/M3 budou brát jako pravda. Srov. `IssuedInvoices.Price`, které je
+> s DPH, ačkoli to z názvu neplyne.
 
 **Implementace:** `SalesCostProvider.cs`
 
