@@ -81,6 +81,10 @@ Agent-facing catalog of what Heblo does, grouped by module. Each module has an o
 
 - [flow-catalog-document-upload](flow-catalog-document-upload.md) (workflow) — Lists and uploads regulatory files (material MSDS/TDS/COA, product PIF) in the SharePoint folders that belong to a catalog item, finding the folder by a code prefix and naming material files by a fixed scheme.
 
+## configuration
+
+[module-configuration](module-configuration.md) — Tells the Heblo web app which version and environment it is talking to (shown in the status bar) and lets it notice a new deployment and offer a refresh.
+
 ## dashboard
 
 [module-dashboard](module-dashboard.md) — The personal home page (Dashboard) — a per-user, reorderable grid of tiles that each show one live number or short list from another Heblo module.
@@ -115,11 +119,23 @@ Agent-facing catalog of what Heblo does, grouped by module. Each module has an o
 
 - [flow-expedition-list-reprint](flow-expedition-list-reprint.md) (workflow) — Lets warehouse staff browse archived picking-list PDFs by day in Azure Blob storage, download one, or send it to the warehouse printer again via CUPS. Related: flow-picking-list
 
+## feature-flags
+
+[module-feature-flags](module-feature-flags.md) — Runtime on/off switches (feature flags) that let an admin turn risky behaviour — auto-completing delivered Shoptet orders, physical label printing — on or off without a deploy; three flags exist today.
+
+## file-storage
+
+[module-file-storage](module-file-storage.md) — Heblo's connection to Azure Blob Storage — downloads a file from a URL into a blob container with retries (used for the nightly Shoptet product export) and gives the expedition-list archive read access to the stored packing-list PDFs.
+
 ## financial-overview
 
 [module-financial-overview](module-financial-overview.md) — Company-level monthly income, expenses and stock value change from the Flexi ledger, with a year-over-year comparison (Finanční přehled).
 
 - [calc-financial-overview](calc-financial-overview.md) (calculation) — Monthly company income, expenses and stock value change (a P&L-style view) computed live from the Flexi general ledger and stock-to-date warehouse values, with a year-over-year comparison, shown on Finanční přehled. Related: calc-margins, sync-flexi-analytics
+
+## grid-layouts
+
+[module-grid-layouts](module-grid-layouts.md) — Remembers, per user, how they arranged the columns of Heblo's large analysis tables (order, width, hidden columns) so the layout survives reloads and devices.
 
 ## invoice-classification
 
@@ -242,6 +258,10 @@ Agent-facing catalog of what Heblo does, grouped by module. Each module has an o
 [module-pricing](module-pricing.md) — Price analysis simulator (Analýza cen) — lets finance try new prices, costs and sales forecasts per product and see the effect on revenue and M0/M1 margin before deciding a new price list; saves named scenarios and exports a draft ceník, never writes prices anywhere.
 
 - [calc-pricing-simulation](calc-pricing-simulation.md) (calculation) — What-if price and cost simulation (Analýza cen) — builds a per-product baseline of price excl. VAT, material and manufacturing cost and 12-month sold pieces from the catalog, applies sparse user overrides, and derives M0/M1 per product plus before/after revenue and margin totals; scenarios can be saved and reopened. Related: calc-margins, calc-bundle-sales-expansion
+
+## process-docs
+
+[module-process-docs](module-process-docs.md) — The documentation catalog you are reading — one Markdown doc per Heblo module and process, built into the app and served to Claude through the Heblo MCP tools ListProcesses and GetProcessDoc.
 
 ## product-pricing
 
