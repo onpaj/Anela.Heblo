@@ -15,6 +15,15 @@ _No module overview doc yet._
 
 - [flow-article-generation](flow-article-generation.md) (workflow) — Turns a marketer's brief from the Article generator (Generátor článků) into a Czech HTML article via a five-step Claude pipeline (plan queries → knowledge base + web search + optional style guide → facts → fact check → write), run as a one-shot Hangfire job, with every step traced in ArticleGenerationSteps and the cited sources stored in ArticleSources.
 
+## attendance
+
+[module-attendance](module-attendance.md) — Keeps workers' time sheets in Logeto (Výkaz práce) correct — automatic lunch breaks, hours for empty absences — and runs the monthly overtime ledger (Evidence přesčasů) on top of them.
+
+- [calc-overtime](calc-overtime.md) (calculation) — Computes each tracked worker's monthly required hours, credited worked/absence hours and overtime delta live from Logeto, and the running balance shown on /overtime. Related: feed-logeto-break-insertion, feed-logeto-absence-hours, flow-overtime-month-close
+- [feed-logeto-absence-hours](feed-logeto-absence-hours.md) (feed) — Nightly job that writes each opted-in worker's net daily contracted hours into Logeto absence records (vacation, sickness, …) entered with no time and no hours, so such days count in the time sheet and the overtime ledger. Related: feed-logeto-break-insertion, calc-overtime
+- [feed-logeto-break-insertion](feed-logeto-break-insertion.md) (feed) — Nightly walk over opted-in workers' Logeto time sheets that inserts a 30-minute break into every working day of 6 h or more without one, and recreates the work records around it so phones show the change. Related: feed-logeto-absence-hours, calc-overtime
+- [flow-overtime-month-close](flow-overtime-month-close.md) (workflow) — Monthly overtime routine on /overtime — review each worker, record adjustments, close the month to freeze the numbers and carry the balance, then publish the "Evidence přesčasů" Excel to SharePoint. Related: calc-overtime
+
 ## bank
 
 [module-bank](module-bank.md) — Loads payout statements from the Comgate and Shoptet Pay payment gateways into FlexiBee bank accounts every morning and keeps an audit log of every statement imported.
