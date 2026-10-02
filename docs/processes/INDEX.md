@@ -16,3 +16,15 @@ _No module overview doc yet._
 - [calc-bundle-sales-expansion](calc-bundle-sales-expansion.md) (calculation) — Turns every sold gift package (BAL…/SET…) into quantity-only sale rows for its components, so manufacture, purchase and stock planning see bundle demand while revenue and margins stay on the bundle. Related: calc-margins, feed-stock-up
 - [calc-margins](calc-margins.md) (calculation) — Per-product monthly margin cascade M0-M3 (material, manufacturing labour, warehouse+marketing, overhead) derived from catalog history and the Flexi ledger, shown on the Marže pages and via MCP. Related: calc-bundle-sales-expansion
 - [feed-stock-up](feed-stock-up.md) (feed) — Pushes warehouse stock changes from received transport boxes and gift-package manufacture/disassembly into Shoptet as relative stock movements, tracked per document number in StockUpOperations.
+
+## dashboard
+
+[module-dashboard](module-dashboard.md) — The personal home page (Dashboard) — a per-user, reorderable grid of tiles that each show one live number or short list from another Heblo module.
+
+- [calc-dashboard-tiles](calc-dashboard-tiles.md) (calculation) — Builds each user's home-page tile list (auto-provisioning, back-fill, permission check) and derives every tile's number from its owning module's data. Related: module-dashboard, sync-weather-forecast
+
+## weather-forecast
+
+[module-weather-forecast](module-weather-forecast.md) — Shows which Czech city will be hottest on each of the next 7 days (Open-Meteo), so the expedition team can decide when shipments need cooling.
+
+- [sync-weather-forecast](sync-weather-forecast.md) (sync) — Fetches a 7-day daily forecast for nine Czech cities from Open-Meteo, caches it in memory for 3 hours, and reduces it to the hottest city per day for the Dashboard tile and the expedition cooling tab. Related: module-weather-forecast, calc-dashboard-tiles
