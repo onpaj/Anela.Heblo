@@ -61,6 +61,16 @@ _No module overview doc yet._
 
 - [calc-dashboard-tiles](calc-dashboard-tiles.md) (calculation) — Builds each user's home-page tile list (auto-provisioning, back-fill, permission check) and derives every tile's number from its owning module's data. Related: module-dashboard, sync-weather-forecast
 
+## data-quality
+
+[module-data-quality](module-data-quality.md) — Nightly data-quality tests (DQT) that cross-check invoices, product pairing, stock write-back, material lots and retail prices between Heblo, Shoptet and Flexi, and report every mismatch on the Kvalita dat page and dashboard tiles.
+
+- [calc-dqt-invoices](calc-dqt-invoices.md) (calculation) — Every morning compares yesterday's issued invoices in Shoptet against Flexi — missing on either side, header totals with/without VAT, and per-product lines — and stores each mismatching invoice in InvoiceDqtResults.
+- [calc-dqt-lot-stock](calc-dqt-lot-stock.md) (calculation) — Every morning reconciles, for each material with expiration, the sum of its Flexi lots (šarže) against its Flexi on-hand stock from the catalog cache, reporting sum mismatches, missing lots and orphan lots.
+- [calc-dqt-price-comparison](calc-dqt-price-comparison.md) (calculation) — Every morning compares each sellable product's retail price with VAT in Shoptet (source of truth) against Flexi's ceník price, storing differences, products missing in Flexi and unknown Flexi price types/VAT bands, and feeding the Kontrola cen dashboard tile.
+- [calc-dqt-product-pairing](calc-dqt-product-pairing.md) (calculation) — Every morning checks that each Shoptet product resolves to a sellable Flexi product (by pair code or code) and that each sellable Flexi product exists in Shoptet, storing every unpaired product as a drift result.
+- [calc-dqt-stock-writeback](calc-dqt-stock-writeback.md) (calculation) — Every morning lists yesterday's Heblo-to-Shoptet stock movements (StockUpOperations) that failed or are stuck, plus yesterday's stock-takings that recorded an error, as drift results. Related: feed-stock-up
+
 ## ecomail
 
 [module-ecomail](module-ecomail.md) — Collects Anela's Ecomail newsletter and e-mail automation statistics into Heblo every 6 hours, ready for marketing reporting that has not been built yet.
