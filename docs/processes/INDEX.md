@@ -16,3 +16,10 @@ _No module overview doc yet._
 - [calc-bundle-sales-expansion](calc-bundle-sales-expansion.md) (calculation) — Turns every sold gift package (BAL…/SET…) into quantity-only sale rows for its components, so manufacture, purchase and stock planning see bundle demand while revenue and margins stay on the bundle. Related: calc-margins, feed-stock-up
 - [calc-margins](calc-margins.md) (calculation) — Per-product monthly margin cascade M0-M3 (material, manufacturing labour, warehouse+marketing, overhead) derived from catalog history and the Flexi ledger, shown on the Marže pages and via MCP. Related: calc-bundle-sales-expansion
 - [feed-stock-up](feed-stock-up.md) (feed) — Pushes warehouse stock changes from received transport boxes and gift-package manufacture/disassembly into Shoptet as relative stock movements, tracked per document number in StockUpOperations.
+
+## meeting-tasks
+
+[module-meeting-tasks](module-meeting-tasks.md) — Meeting notes (Porady) — imports Plaud meeting recordings, lets Claude propose action items, has a manager review them and sends the approved ones to Microsoft Planner, with per-meeting visibility control.
+
+- [sync-plaud-recordings](sync-plaud-recordings.md) (sync) — Every 5 minutes pulls finished Plaud meeting recordings (transcript + AI summary) into MeetingTranscripts and has Claude extract participants and proposed action items into ProposedTasks for human review; also covers the manual re-import. Related: feed-meeting-tasks-to-planner
+- [feed-meeting-tasks-to-planner](feed-meeting-tasks-to-planner.md) (feed) — On a reviewer's click, creates one Microsoft Planner task per approved meeting action item (assigned to the resolved Microsoft 365 user), stores the Planner task id on the ProposedTasks row and recomputes the meeting's review status. Related: sync-plaud-recordings
