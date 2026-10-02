@@ -1,0 +1,46 @@
+{
+  "feature_id": "feat-4342",
+  "issue_number": 4342,
+  "created_at": "2026-09-28T12:13:16.924387Z",
+  "max_revisions": 3,
+  "phases": {
+    "analyzing": {
+      "status": "completed",
+      "updated_at": "2026-09-28T12:14:50.152918Z"
+    },
+    "architecting": {
+      "status": "completed",
+      "updated_at": "2026-09-28T12:15:56.761568Z"
+    },
+    "designing": {
+      "status": "completed",
+      "updated_at": "2026-09-28T12:16:28.099258Z"
+    },
+    "planning": {
+      "status": "completed",
+      "updated_at": "2026-09-28T12:18:54.304193Z"
+    },
+    "developing": {
+      "status": "in_progress",
+      "updated_at": "2026-09-28T20:14:35.639477Z"
+    },
+    "code-review": {
+      "status": "completed",
+      "updated_at": "2026-09-28T21:15:20.074508Z"
+    }
+  },
+  "tasks": [
+    {
+      "name": "extract-margin-mapping-function",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-09-28T13:24:14.790663Z"
+    },
+    {
+      "name": "add-margin-mapping-coverage-tests",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-09-28T20:21:23.050153Z"
+    }
+  ]
+}
