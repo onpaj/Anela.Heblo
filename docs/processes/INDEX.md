@@ -73,6 +73,13 @@ _No module overview doc yet._
 
 - [flow-label-identification](flow-label-identification.md) (workflow) — On-demand terminal flow that sends a photo of a product sticker to Claude vision to read its INCI list, fuzzy-matches the text against an embedded reference index of 25 families / 37 product codes, and returns up to 3 candidate products for the operator to confirm.
 
+## marketing
+
+[module-marketing](module-marketing.md) — The marketing calendar — a shared plan of marketing actions (posts, blog, newsletter, PR, events, meetings) mirrored with the Outlook marketing group calendar and tagged with products and asset folders.
+
+- [sync-marketing-calendar](sync-marketing-calendar.md) (sync) — Mirrors the Outlook marketing group calendar into Heblo marketing actions (create, update, soft-delete) every hour and on demand from the "Import z Outlooku" button; Outlook is the source of truth. Related: feed-marketing-action-to-outlook
+- [feed-marketing-action-to-outlook](feed-marketing-action-to-outlook.md) (feed) — When PushEnabled is on, creating, editing, moving or deleting a marketing action in Heblo writes the same change to the Outlook marketing group calendar through Microsoft Graph, on behalf of the signed-in user. Related: sync-marketing-calendar
+
 ## marketing-invoices
 
 [module-marketing-invoices](module-marketing-invoices.md) — Background-only import of Google Ads and Meta Ads billing data into a staging table that nothing reads; disabled and empty in production.
