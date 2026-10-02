@@ -13,6 +13,12 @@ Agent-facing catalog of what Heblo does, grouped by module. Each module has an o
 - [calc-import-statistics](calc-import-statistics.md) (calculation) — Daily counts of issued invoices and bank statements in Heblo's own database, used to spot days when the Shoptet→Flexi invoice import or the bank statement import did not run (statistics page and dashboard tile).
 - [calc-product-margin-summary](calc-product-margin-summary.md) (calculation) — Margin-analysis report (Analýza marže) that multiplies each product's latest per-unit M0/M1/M2 margin by its units sold in a time window and groups the result by product, family or category, month by month. Related: calc-margins, calc-bundle-sales-expansion
 
+## article
+
+[module-article](module-article.md) — AI article writer for marketing (Generátor článků) — turns a short brief into a researched Czech HTML article draft using the internal knowledge base, Google search and an optional style guide, and collects the requester's quality rating.
+
+- [flow-article-generation](flow-article-generation.md) (workflow) — Turns a marketer's brief from the Article generator (Generátor článků) into a Czech HTML article via a five-step Claude pipeline (plan queries → knowledge base + web search + optional style guide → facts → fact check → write), run as a one-shot Hangfire job, with every step traced in ArticleGenerationSteps and the cited sources stored in ArticleSources.
+
 ## catalog
 
 _No module overview doc yet._
