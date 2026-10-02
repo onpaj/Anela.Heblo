@@ -16,3 +16,14 @@ _No module overview doc yet._
 - [calc-bundle-sales-expansion](calc-bundle-sales-expansion.md) (calculation) — Turns every sold gift package (BAL…/SET…) into quantity-only sale rows for its components, so manufacture, purchase and stock planning see bundle demand while revenue and margins stay on the bundle. Related: calc-margins, feed-stock-up
 - [calc-margins](calc-margins.md) (calculation) — Per-product monthly margin cascade M0-M3 (material, manufacturing labour, warehouse+marketing, overhead) derived from catalog history and the Flexi ledger, shown on the Marže pages and via MCP. Related: calc-bundle-sales-expansion
 - [feed-stock-up](feed-stock-up.md) (feed) — Pushes warehouse stock changes from received transport boxes and gift-package manufacture/disassembly into Shoptet as relative stock movements, tracked per document number in StockUpOperations.
+
+## shoptet-customers
+
+[module-shoptet-customers](module-shoptet-customers.md) — Read-only lookup of a Shoptet customer account by GUID, used to show who a Smartsupp chat visitor is (customer group, price list, address).
+
+## shoptet-orders
+
+[module-shoptet-orders](module-shoptet-orders.md) — Heblo's gateway to live Shoptet orders — reads an order for the packing desk, changes order states (packed, blocked, completed after delivery) and appends internal remarks.
+
+- [job-complete-delivered-orders](job-complete-delivered-orders.md) (job) — Hourly job that moves Shoptet orders handed to a carrier (states 70/82) to "Vyřízena" (-3) once Shoptet reports one of their shipments delivered, and appends an audit remark; dry-run unless a feature flag is on.
+- [flow-block-order](flow-block-order.md) (workflow) — API action that puts a Shoptet order on hold — checks it is in an allowed state, moves it to the configured "blocked" state and appends the reason to the order's internal remark.
