@@ -67,6 +67,18 @@ _No module overview doc yet._
 
 - [sync-ecomail](sync-ecomail.md) (sync) — Every 6 hours pulls Ecomail newsletter (campaign) statistics, the automation list, a daily snapshot of each automation's lifetime counters and per-month automation event counts into four Heblo tables — nothing in Heblo reads them yet.
 
+## expedition-list
+
+[module-expedition-list](module-expedition-list.md) — Turns Shoptet orders waiting for dispatch into printed per-carrier picking lists for the warehouse and hands the orders on to the packing desk.
+
+- [flow-picking-list](flow-picking-list.md) (workflow) — Pulls Shoptet orders waiting for dispatch, renders per-carrier picking-list PDFs (expediční list) for the warehouse, prints and archives them, and moves the orders to "Balí se" — twice a day, on demand, as a fix re-run, or for one order.
+
+## expedition-list-archive
+
+[module-expedition-list-archive](module-expedition-list-archive.md) — Archive of every printed picking list by day, with download and one-click reprint to the warehouse printer.
+
+- [flow-expedition-list-reprint](flow-expedition-list-reprint.md) (workflow) — Lets warehouse staff browse archived picking-list PDFs by day in Azure Blob storage, download one, or send it to the warehouse printer again via CUPS. Related: flow-picking-list
+
 ## financial-overview
 
 [module-financial-overview](module-financial-overview.md) — Company-level monthly income, expenses and stock value change from the Flexi ledger, with a year-over-year comparison (Finanční přehled).
