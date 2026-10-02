@@ -22,3 +22,23 @@ _No module overview doc yet._
 - [calc-bundle-sales-expansion](calc-bundle-sales-expansion.md) (calculation) — Turns every sold gift package (BAL…/SET…) into quantity-only sale rows for its components, so manufacture, purchase and stock planning see bundle demand while revenue and margins stay on the bundle. Related: calc-margins, feed-stock-up
 - [calc-margins](calc-margins.md) (calculation) — Per-product monthly margin cascade M0-M3 (material, manufacturing labour, warehouse+marketing, overhead) derived from catalog history and the Flexi ledger, shown on the Marže pages and via MCP. Related: calc-bundle-sales-expansion
 - [feed-stock-up](feed-stock-up.md) (feed) — Pushes warehouse stock changes from received transport boxes and gift-package manufacture/disassembly into Shoptet as relative stock movements, tracked per document number in StockUpOperations.
+
+## configuration
+
+[module-configuration](module-configuration.md) — Tells the Heblo web app which version and environment it is talking to (shown in the status bar) and lets it notice a new deployment and offer a refresh.
+
+## feature-flags
+
+[module-feature-flags](module-feature-flags.md) — Runtime on/off switches (feature flags) that let an admin turn risky behaviour — auto-completing delivered Shoptet orders, physical label printing — on or off without a deploy; three flags exist today.
+
+## file-storage
+
+[module-file-storage](module-file-storage.md) — Heblo's connection to Azure Blob Storage — downloads a file from a URL into a blob container with retries (used for the nightly Shoptet product export) and gives the expedition-list archive read access to the stored packing-list PDFs.
+
+## grid-layouts
+
+[module-grid-layouts](module-grid-layouts.md) — Remembers, per user, how they arranged the columns of Heblo's large analysis tables (order, width, hidden columns) so the layout survives reloads and devices.
+
+## process-docs
+
+[module-process-docs](module-process-docs.md) — The documentation catalog you are reading — one Markdown doc per Heblo module and process, built into the app and served to Claude through the Heblo MCP tools ListProcesses and GetProcessDoc.
