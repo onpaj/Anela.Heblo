@@ -65,8 +65,8 @@ No tables. In-process `IMemoryCache` only (24 h expiry, lost on restart):
 
 ## Known quirks
 - Expenses include every class-5 account, including 58x (contra-cost) and 59x (income tax), so
-  they do not match the accountant's operating costs; "Celková bilance" may double-count
-  own-production stock movement (58x vs. stock change). Details in `calc-financial-overview`.
+  they do not match the accountant's operating costs; "Celková bilance" double-counts stock
+  movement that Flexi already books to 501/58x (e.g. the August 2026 label stocktake). Details in `calc-financial-overview`.
 - With the default Buvol exclusion every page load goes live to Flexi; the BackgroundRefresh
   cache is used only without a cost-centre filter.
 - Flexi stock-to-date failures are read as value 0, producing fake swings in the stock change.

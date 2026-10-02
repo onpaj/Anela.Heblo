@@ -129,7 +129,11 @@ years. The **Buvol** cost centre is excluded by default once the department list
 | `…:Enabled` | true | |
 
 ## Runtime facts
-None.
+- The 08/2026 dip in Změna hodnoty skladu (−685k Kč, of which materials −652k) is stocktaking
+  write-off **I-00075/2026** (3.8.2026, 193 label lines ETI*), booked in Flexi at 489,723 Kč
+  MD 501001 / D 112001 — agent memory investigation — 2026-10-02.
+- Flexi books stock continuously: receipts MD 112 / D 111, consumption and stocktake write-offs
+  MD 501 / D 112 — agent memory investigation — 2026-10-02.
 
 ## Known quirks
 - **The default page view never uses the cache.** The page excludes the Buvol cost centre by
@@ -140,9 +144,14 @@ None.
   `5…` account, so it includes group **58x** (změna stavu zásob vlastní činnosti / aktivace, a
   contra-cost, on 2020–2026 about −3.33 M Kč net) and **59x** (income tax, about +1.85 M Kč).
   Expenses therefore do not reconcile with the accountant's operating costs.
-- **Possible double count in "Celková bilance".** 58x already moves with the value of own-production
-  inventory, and the separately added stock change of POLOTOVARY/ZBOZI measures that movement
-  again. Inferred from the account semantics, not verified against booked data.
+- **"Celková bilance" double-counts stock movement.** Flexi books stock continuously (see Runtime
+  facts), so material consumption and stocktake write-offs are already in Náklady (501); adding the
+  stock change counts them a second time (e.g. the August 2026 label write-off appears both as
+  501 cost and as a materials drop). For own production the 58x activation likewise already
+  mirrors the POLOTOVARY/ZBOZI movement. Not yet confirmed with the accountant (memory, 2026-10-02).
+- The 2026-10-02 memory investigation describes the stock as valued at today's query-41
+  `cenanakup`; the code on main has used the warehouse valuation (`ExactAveragePrice`) since #4295
+  (2026-09-24), so that observation may predate the deploy or describe an older run.
 - **A failed stock-to-date call reads as 0.** `GetWarehouseStockValueAsync` catches every
   exception and returns 0 for that warehouse/date, so a Flexi timeout shows as a swing of the whole
   warehouse value in one month — and the warm-up caches it for 24 h.
