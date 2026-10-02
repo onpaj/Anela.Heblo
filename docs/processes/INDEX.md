@@ -9,6 +9,18 @@ _No module overview doc yet._
 
 - [sync-flexi-analytics](sync-flexi-analytics.md) (sync) — Nightly copy of the Flexi (ABRA FlexiBee) general ledger, cost centres, accounting templates and contacts into Heblo_V3.flexi_raw, refreshing the month-grain views Metabase reports read.
 
+## background-jobs
+
+[module-background-jobs](module-background-jobs.md) — Runs every scheduled task in Heblo (imports, syncs, checks, printing, cleanups) on Hangfire, and lets administrators see, switch off, reschedule and trigger them from the Recurring Jobs page.
+
+- [job-recurring-job-registration](job-recurring-job-registration.md) (job) — How every recurring job gets its database row, its Hangfire schedule, its on/off switch, an admin cron override and a manual "Run now", and how failed runs are reported. Related: sync-flexi-analytics
+
+## background-refresh
+
+[module-background-refresh](module-background-refresh.md) — Keeps Heblo's in-memory caches (catalog stock, sales, prices, costs, margins, financial overview) loaded at startup and refreshed every few minutes, and runs two minute-by-minute warehouse tasks, with an admin page to watch and force them.
+
+- [job-background-refresh-hydration](job-background-refresh-hydration.md) (job) — Loads every in-memory cache at startup tier by tier, reports readiness via /health/ready, then re-runs each refresh task on its own interval; admins can force a task or a whole tier. Related: calc-margins, feed-stock-up, calc-bundle-sales-expansion
+
 ## catalog
 
 _No module overview doc yet._
