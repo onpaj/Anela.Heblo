@@ -16,3 +16,9 @@ _No module overview doc yet._
 - [calc-bundle-sales-expansion](calc-bundle-sales-expansion.md) (calculation) — Turns every sold gift package (BAL…/SET…) into quantity-only sale rows for its components, so manufacture, purchase and stock planning see bundle demand while revenue and margins stay on the bundle. Related: calc-margins, feed-stock-up
 - [calc-margins](calc-margins.md) (calculation) — Per-product monthly margin cascade M0-M3 (material, manufacturing labour, warehouse+marketing, overhead) derived from catalog history and the Flexi ledger, shown on the Marže pages and via MCP. Related: calc-bundle-sales-expansion
 - [feed-stock-up](feed-stock-up.md) (feed) — Pushes warehouse stock changes from received transport boxes and gift-package manufacture/disassembly into Shoptet as relative stock movements, tracked per document number in StockUpOperations.
+
+## packing-materials
+
+[module-packing-materials](module-packing-materials.md) — Tracks stock of packing consumables (boxes, filler, tape…), deducts an estimated daily usage from invoiced orders and forecasts how many days the stock will last.
+
+- [calc-packing-material-consumption](calc-packing-material-consumption.md) (calculation) — Every morning estimates how much of each packing material (boxes, filler, tape…) yesterday's invoiced orders used, subtracts it from the tracked stock and records one consumption row per material and invoice.
