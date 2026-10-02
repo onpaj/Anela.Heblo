@@ -106,6 +106,13 @@ _No module overview doc yet._
 
 - [calc-marketing-performance](calc-marketing-performance.md) (calculation) — Monthly snapshot of advertising spend (Flexi received invoices from Meta, Google and Seznam) against e-shop orders and revenue (issued invoices), with PNO, ROAS and year-over-year ratios for the Marketing → Analýzy page. Related: sync-flexi-analytics
 
+## meeting-tasks
+
+[module-meeting-tasks](module-meeting-tasks.md) — Meeting notes (Porady) — imports Plaud meeting recordings, lets Claude propose action items, has a manager review them and sends the approved ones to Microsoft Planner, with per-meeting visibility control.
+
+- [sync-plaud-recordings](sync-plaud-recordings.md) (sync) — Every 5 minutes pulls finished Plaud meeting recordings (transcript + AI summary) into MeetingTranscripts and has Claude extract participants and proposed action items into ProposedTasks for human review; also covers the manual re-import. Related: feed-meeting-tasks-to-planner
+- [feed-meeting-tasks-to-planner](feed-meeting-tasks-to-planner.md) (feed) — On a reviewer's click, creates one Microsoft Planner task per approved meeting action item (assigned to the resolved Microsoft 365 user), stores the Planner task id on the ProposedTasks row and recomputes the meeting's review status. Related: sync-plaud-recordings
+
 ## mind-maps
 
 [module-mind-maps](module-mind-maps.md) — Living project mind maps (Myšlenkové mapy) that Claude evolves meeting by meeting from recorded meeting transcripts, editable by hand with auto-locking and full version history.
