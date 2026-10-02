@@ -192,6 +192,14 @@ _No module overview doc yet._
 - [calc-price-divergence](calc-price-divergence.md) (calculation) — Live comparison of the retail price with VAT in Shoptet and in ABRA Flexi for every priced catalog product, classified into agreement / difference / missing / unknown — shown on Ceny produktů and fed to the nightly DataQuality price check. Related: flow-product-price-write
 - [flow-product-price-write](flow-product-price-write.md) (workflow) — Operator-driven writes of the retail price with VAT — a price edit written to Shoptet then Flexi, and a Shoptet-to-Flexi sync of the rows on screen — each attempt recorded in ProductPriceChangeLogs. Related: calc-price-divergence
 
+## purchase
+
+[module-purchase](module-purchase.md) — Buying side of Anela - purchase orders to suppliers, material stock coverage for deciding what to order, and the nightly upkeep of Flexi purchase prices.
+
+- [calc-purchase-stock-analysis](calc-purchase-stock-analysis.md) (calculation) — Per-material stock coverage for purchasing - consumption rate, days until stock-out, stock efficiency (NS%), severity and a recommended order quantity for every material and goods item, shown on Zásoby materiálu and the dashboard. Related: calc-bundle-sales-expansion, flow-purchase-order
+- [feed-purchase-price-recalculation](feed-purchase-price-recalculation.md) (feed) — Nightly job that keeps the Flexi price list purchase price (ceník nakupCena) right - materials and goods take their average stock price, then Flexi rolls the BoM prices up through semi-products to products and sets. Related: calc-margins
+- [flow-purchase-order](flow-purchase-order.md) (workflow) — Buyers record purchase orders to suppliers in Heblo (Draft → In transit → Completed, plus an invoice-received flag); open order lines become the "Ordered" stock that purchase and manufacturing planning count on. Related: calc-purchase-stock-analysis
+
 ## shipment-labels
 
 [module-shipment-labels](module-shipment-labels.md) — Heblo's gateway to Shoptet shipments — creates carrier shipments for packed orders, reads labels and tracking numbers, cancels shipments and reports deliveries; used by the packing desk and the order-completion job.
