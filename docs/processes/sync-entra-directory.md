@@ -14,7 +14,7 @@ owns:
   - backend/src/Anela.Heblo.API/Controllers/UserManagementController.cs
   - backend/src/Anela.Heblo.API/MCP/Tools/UserManagementMcpTools.cs
 verified_at: "5e993f9e2"
-related: [flow-user-access-onboarding]
+related: [flow-user-access-onboarding, module-article]
 ---
 
 # Entra directory lookups (Microsoft Graph)

@@ -9,6 +9,12 @@ _No module overview doc yet._
 
 - [sync-flexi-analytics](sync-flexi-analytics.md) (sync) — Nightly copy of the Flexi (ABRA FlexiBee) general ledger, cost centres, accounting templates and contacts into Heblo_V3.flexi_raw, refreshing the month-grain views Metabase reports read.
 
+## article
+
+[module-article](module-article.md) — AI article writer for marketing (Generátor článků) — turns a short brief into a researched Czech HTML article draft using the internal knowledge base, Google search and an optional style guide, and collects the requester's quality rating.
+
+- [flow-article-generation](flow-article-generation.md) (workflow) — Turns a marketer's brief from the Article generator (Generátor článků) into a Czech HTML article via a five-step Claude pipeline (plan queries → knowledge base + web search + optional style guide → facts → fact check → write), run as a one-shot Hangfire job, with every step traced in ArticleGenerationSteps and the cited sources stored in ArticleSources.
+
 ## authorization
 
 [module-authorization](module-authorization.md) — Decides who may use Heblo and what each person may see and change — Heblo users, permission groups that can include other groups, and the permission catalogue every page, endpoint, dashboard tile and MCP tool is gated by.
@@ -28,5 +34,5 @@ _No module overview doc yet._
 
 [module-user-management](module-user-management.md) — Who is signed in (identity from the Microsoft 365 token), live look-ups of Anela's Entra directory through Microsoft Graph, and the list of Flexi cost centres (departments) used as filters.
 
-- [sync-entra-directory](sync-entra-directory.md) (sync) — On-demand, cached reads of Anela's Microsoft 365 directory (Entra ID) through Microsoft Graph — members of an Entra group, and everyone holding Heblo's heblo_user app role — used for onboarding, the MCP GetGroupMembers tool and the article requester backfill. Related: flow-user-access-onboarding
+- [sync-entra-directory](sync-entra-directory.md) (sync) — On-demand, cached reads of Anela's Microsoft 365 directory (Entra ID) through Microsoft Graph — members of an Entra group, and everyone holding Heblo's heblo_user app role — used for onboarding, the MCP GetGroupMembers tool and the article requester backfill. Related: flow-user-access-onboarding, module-article
 - [sync-flexi-departments](sync-flexi-departments.md) (sync) — On-demand, 10-minute-cached read of the cost centres (střediska) from Flexi, offered as the department filter in the financial overview and as a choice in invoice classification rules. Related: sync-flexi-analytics
