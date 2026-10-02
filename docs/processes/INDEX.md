@@ -28,3 +28,11 @@ _No module overview doc yet._
 [module-label-identification](module-label-identification.md) — Warehouse terminal tool that tells staff which product an unmarked roll of stickers (etiquettes) belongs to, by photographing the label and matching its INCI ingredient list against a built-in reference set.
 
 - [flow-label-identification](flow-label-identification.md) (workflow) — On-demand terminal flow that sends a photo of a product sticker to Claude vision to read its INCI list, fuzzy-matches the text against an embedded reference index of 25 families / 37 product codes, and returns up to 3 candidate products for the operator to confirm.
+
+## packaging
+
+[module-packaging](module-packaging.md) — The packing desk (Balení) — scan an e-shop order, create its carrier shipment and print labels in Shoptet, mark it packed, and keep a per-box record for the shipment list and packing statistics.
+
+- [sync-tracking-numbers](sync-tracking-numbers.md) (sync) — Fills in carrier tracking numbers on Heblo package records that had none at scan time, by reading the order's latest active Shoptet shipment every 10 minutes and when the packing desk shows its done screen. Related: flow-order-packing, calc-packing-statistics
+- [calc-packing-statistics](calc-packing-statistics.md) (calculation) — Derives packing-desk numbers — orders waiting in Shoptet, orders packed today per packer, and 30-day throughput, peak hours, carrier mix and tracking coverage — from Heblo's package records and live Shoptet order counts. Related: flow-order-packing, sync-tracking-numbers
+- [flow-order-packing](flow-order-packing.md) (workflow) — Packing-desk flow for e-shop orders — scan an order, create the carrier shipment in Shoptet, print its labels, record the packages in Heblo and move the Shoptet order to "Zabaleno"; plus re-creating a shipment and deleting a package. Related: sync-tracking-numbers, calc-packing-statistics
