@@ -1,10 +1,5 @@
-using Anela.Heblo.Application.Features.ExpeditionListArchive.Contracts;
-using Anela.Heblo.Application.Features.ExpeditionListArchive.UseCases.ReprintExpeditionList;
-using Anela.Heblo.Application.Shared.Printing;
-using MediatR;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Options;
 
 namespace Anela.Heblo.Application.Features.ExpeditionListArchive;
 
@@ -14,19 +9,12 @@ public static class ExpeditionListArchiveModule
     {
         services.Configure<ExpeditionListArchiveOptions>(configuration.GetSection(ExpeditionListArchiveOptions.ConfigurationKey));
 
-        // ReprintExpeditionListHandler needs the keyed "cups" IPrintQueueSink when available
-        // (production/staging). In environments where only the non-keyed sink is registered
-        // (e.g. FileSystem in development/test), we fall back to the non-keyed registration.
-        // This explicit factory overrides MediatR's auto-registration so the correct sink is injected.
-        services.AddTransient<IRequestHandler<ReprintExpeditionListRequest, ReprintExpeditionListResponse>>(provider =>
-        {
-            var blobStore = provider.GetRequiredService<IExpeditionListArchiveBlobStore>();
-            var cupsSink = provider.GetKeyedService<IPrintQueueSink>("cups")
-                ?? provider.GetRequiredService<IPrintQueueSink>();
-            var temporaryFileAccessor = provider.GetRequiredService<ITemporaryFileAccessor>();
-            var options = provider.GetRequiredService<IOptions<ExpeditionListArchiveOptions>>();
-            return new ReprintExpeditionListHandler(blobStore, cupsSink, temporaryFileAccessor, options);
-        });
+        // ReprintExpeditionListHandler is registered by MediatR's assembly scan (see
+        // ApplicationModule.AddApplicationServices -> AddMediatR), like every other handler.
+        // Its preference for the keyed "cups" IPrintQueueSink, with fallback to the ambient
+        // sink, is expressed directly on its own constructor via [FromKeyedServices("cups")]
+        // -- no manual IRequestHandler registration here, and no dependency on this module
+        // being registered after AddMediatR. See issue #4330.
 
         return services;
     }
