@@ -6,4 +6,16 @@ namespace Anela.Heblo.Application.Features.ExpeditionListArchive.UseCases.GetExp
 public class GetExpeditionListsByDateResponse : BaseResponse
 {
     public List<ExpeditionListItemDto> Items { get; set; } = new();
+
+    public static GetExpeditionListsByDateResponse InvalidDate() =>
+        new()
+        {
+            Success = false,
+            ErrorCode = ErrorCodes.InvalidFormat,
+            Params = new Dictionary<string, string>
+            {
+                { "Field", "Date" },
+                { "ExpectedFormat", "yyyy-MM-dd" }
+            }
+        };
 }
