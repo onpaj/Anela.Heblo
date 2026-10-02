@@ -1,6 +1,7 @@
 ---
 process: feed-stock-up
 kind: feed
+module: catalog
 summary: Pushes warehouse stock changes from received transport boxes and gift-package manufacture/disassembly into Shoptet as relative stock movements, tracked per document number in StockUpOperations.
 owns:
   - backend/src/Anela.Heblo.Application/Features/Catalog/Services/StockUpProcessingService.cs

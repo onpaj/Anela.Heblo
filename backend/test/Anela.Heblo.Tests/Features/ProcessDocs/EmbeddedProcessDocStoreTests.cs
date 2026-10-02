@@ -10,6 +10,7 @@ public class EmbeddedProcessDocStoreTests
         ---
         process: {name}
         kind: {kind}
+        module: catalog
         summary: Summary of {name}.
         owns: [x/**]
         verified_at: "abcdef1"

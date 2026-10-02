@@ -30,24 +30,29 @@ public class ProcessDocsMcpTools
 
     [McpServerTool]
     [Description(
-        "List Heblo's documented processes — data syncs (external system -> Heblo), calculations (derived numbers " +
-        "such as margins, pricing, stock-up) and feeds (Heblo -> outside). Call this FIRST whenever the user asks " +
-        "where a number or dataset comes from, how something is calculated, or when/how data gets updated. " +
-        "Returns name, kind, one-line summary and related processes; then call GetProcessDoc for the relevant one.")]
+        "List Heblo's documentation catalog: one overview doc per module (kind 'module') plus one doc per process — " +
+        "data syncs (external system -> Heblo), calculations (derived numbers such as margins), feeds (Heblo -> outside), " +
+        "jobs (other scheduled/background work) and workflows (user-driven processes with side effects, e.g. packing, " +
+        "manufacture orders). Call this FIRST whenever the user asks what Heblo does in some area, where a number or " +
+        "dataset comes from, how something is calculated, or when/how data gets updated. To orient, list kind='module' " +
+        "first, then filter by module. Returns name, kind, module, one-line summary and related processes; then call " +
+        "GetProcessDoc for the relevant one.")]
     public async Task<string> ListProcesses(
-        [Description("Optional filter: 'sync', 'calculation' (or 'calc') or 'feed'. Omit to list all.")] string? kind = null,
+        [Description("Optional filter: 'module', 'sync', 'calculation' (or 'calc'), 'feed', 'job' or 'workflow' (or 'flow'). Omit to list all.")] string? kind = null,
+        [Description("Optional module slug filter, e.g. 'catalog', 'manufacture', 'bank'. Omit for all modules.")] string? module = null,
         CancellationToken cancellationToken = default)
     {
         _currentUserService.EnsureFeatureAccess(Feature.Anela_ProcessDocs, FeatureLabel);
 
-        var result = await _mediator.Send(new ListProcessesRequest { Kind = kind }, cancellationToken);
+        var result = await _mediator.Send(new ListProcessesRequest { Kind = kind, Module = module }, cancellationToken);
         return JsonSerializer.Serialize(result, McpJsonOptions.Default);
     }
 
     [McpServerTool]
     [Description(
-        "Get the full documentation of one Heblo process: purpose, trigger/schedule, data flow, exact formulas, " +
-        "configuration, runtime facts, known quirks and code entry points. Follow 'related' processes for upstream " +
+        "Get the full documentation of one Heblo process or module. A process doc has purpose, trigger/schedule, data " +
+        "flow, exact formulas, configuration, runtime facts, known quirks and code entry points; a module doc ('module-<slug>') " +
+        "has purpose, screens, its processes, owned data, external systems and dependencies. Follow 'related' processes for upstream " +
         "questions (e.g. where a cost used in a margin comes from). When answering, cite the process name and its " +
         "VerifiedAt commit, and treat 'Runtime facts' as true only as of the date written next to each fact.")]
     public async Task<string> GetProcessDoc(

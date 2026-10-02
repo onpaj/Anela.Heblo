@@ -8,10 +8,11 @@ namespace Anela.Heblo.Tests.Features.ProcessDocs;
 
 public class ProcessDocsHandlersTests
 {
-    private static string Doc(string name, string kind) => $"""
+    private static string Doc(string name, string kind, string module = "catalog") => $"""
         ---
         process: {name}
         kind: {kind}
+        module: {module}
         summary: Summary of {name}.
         owns: [x/**]
         verified_at: "abcdef1"
@@ -26,8 +27,10 @@ public class ProcessDocsHandlersTests
 
     private static readonly EmbeddedProcessDocStore Store = new(
         [("calc-margins", Doc("calc-margins", "calculation")),
-         ("sync-flexi-analytics", Doc("sync-flexi-analytics", "sync")),
-         ("calc-stock-up", Doc("calc-stock-up", "calculation"))],
+         ("sync-flexi-analytics", Doc("sync-flexi-analytics", "sync", "analytics")),
+         ("calc-stock-up", Doc("calc-stock-up", "calculation")),
+         ("flow-packing", Doc("flow-packing", "workflow", "packaging")),
+         ("module-catalog", Doc("module-catalog", "module"))],
         NullLogger<EmbeddedProcessDocStore>.Instance);
 
     [Fact]
@@ -35,7 +38,7 @@ public class ProcessDocsHandlersTests
     {
         var result = await new ListProcessesHandler(Store).Handle(new ListProcessesRequest(), default);
 
-        Assert.Equal(["calc-margins", "calc-stock-up", "sync-flexi-analytics"], result.Processes.Select(p => p.Name));
+        Assert.Equal(["calc-margins", "calc-stock-up", "flow-packing", "module-catalog", "sync-flexi-analytics"], result.Processes.Select(p => p.Name));
         Assert.Equal("Summary of calc-margins.", result.Processes[0].Summary);
     }
 
@@ -61,6 +64,32 @@ public class ProcessDocsHandlersTests
         var result = await new ListProcessesHandler(Store).Handle(new ListProcessesRequest { Kind = "CALC" }, default);
 
         Assert.Equal(["calc-margins", "calc-stock-up"], result.Processes.Select(p => p.Name));
+    }
+
+    [Fact]
+    public async Task ListProcesses_ModuleFilter_ReturnsModuleDocAndItsProcesses()
+    {
+        var result = await new ListProcessesHandler(Store).Handle(new ListProcessesRequest { Module = "CATALOG" }, default);
+
+        Assert.Equal(["calc-margins", "calc-stock-up", "module-catalog"], result.Processes.Select(p => p.Name));
+        Assert.All(result.Processes, p => Assert.Equal("catalog", p.Module));
+    }
+
+    [Fact]
+    public async Task ListProcesses_KindAndModuleFilters_Combine()
+    {
+        var result = await new ListProcessesHandler(Store).Handle(
+            new ListProcessesRequest { Kind = "module", Module = "catalog" }, default);
+
+        Assert.Equal(["module-catalog"], result.Processes.Select(p => p.Name));
+    }
+
+    [Fact]
+    public async Task ListProcesses_KindFilter_AcceptsFlowAliasForWorkflow()
+    {
+        var result = await new ListProcessesHandler(Store).Handle(new ListProcessesRequest { Kind = "flow" }, default);
+
+        Assert.Equal(["flow-packing"], result.Processes.Select(p => p.Name));
     }
 
     [Fact]

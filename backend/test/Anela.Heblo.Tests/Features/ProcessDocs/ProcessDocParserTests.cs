@@ -9,6 +9,7 @@ public class ProcessDocParserTests
         ---
         process: calc-margins
         kind: calculation
+        module: catalog
         summary: Computes M0-M3 margins.
         owns:
           - backend/src/**/Margins/**
@@ -30,6 +31,7 @@ public class ProcessDocParserTests
 
         Assert.Equal("calc-margins", doc.Name);
         Assert.Equal("calculation", doc.Kind);
+        Assert.Equal("catalog", doc.Module);
         Assert.Equal("Computes M0-M3 margins.", doc.Summary);
         Assert.Equal(["backend/src/**/Margins/**"], doc.Owns);
         Assert.Equal("1d75813bb", doc.VerifiedAt);
@@ -48,6 +50,13 @@ public class ProcessDocParserTests
     public void Parse_NameMismatch_Throws()
     {
         Assert.Throws<FormatException>(() => ProcessDocParser.Parse("calc-other", Valid));
+    }
+
+    [Fact]
+    public void Parse_MissingModule_Throws()
+    {
+        Assert.Throws<FormatException>(() =>
+            ProcessDocParser.Parse("calc-margins", Valid.Replace("module: catalog\n", "")));
     }
 
     [Fact]

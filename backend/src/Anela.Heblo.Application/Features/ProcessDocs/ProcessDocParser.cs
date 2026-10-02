@@ -37,6 +37,7 @@ public static class ProcessDocParser
         return new ProcessDoc(
             name,
             Require(front.Kind, "kind", name),
+            Require(front.Module, "module", name),
             Require(front.Summary, "summary", name),
             front.Owns ?? [],
             Require(front.VerifiedAt, "verified_at", name),
@@ -53,6 +54,7 @@ public static class ProcessDocParser
     {
         public string? Process { get; set; }
         public string? Kind { get; set; }
+        public string? Module { get; set; }
         public string? Summary { get; set; }
         public List<string>? Owns { get; set; }
         public string? VerifiedAt { get; set; }

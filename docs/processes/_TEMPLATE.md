@@ -1,6 +1,10 @@
 ---
-process: <prefix>-<name>          # must equal the filename stem; prefix: sync | calc | feed
-kind: sync                        # sync | calculation | feed
+process: <prefix>-<name>          # must equal the filename stem; prefix: sync | calc | feed | job | flow
+kind: sync                        # sync | calculation | feed | job | workflow  (prefix flow-)
+                                   # sync = external -> Heblo, feed = Heblo -> external,
+                                   # calculation = derived numbers, job = other scheduled/background work,
+                                   # workflow = user-driven multi-step process with side effects
+module: catalog                   # kebab-case module slug; its overview is module-<slug>.md (_TEMPLATE_MODULE.md)
 summary: One sentence — what data this moves or derives, and for whom.
 owns:                             # repo-relative globs of the code this doc describes
   - backend/src/**/Feature/**
@@ -17,6 +21,7 @@ Which business question this answers. Who looks at the result, and where (page, 
 
 ## Trigger
 Hangfire job id and cron (Europe/Prague), manual trigger in Recurring Jobs, or on-demand (request path).
+For a workflow: who starts it, from which page/button, and the states it moves through.
 
 ## Data flow
 Source (system / endpoint / table) → numbered steps → target (table / cache / view).

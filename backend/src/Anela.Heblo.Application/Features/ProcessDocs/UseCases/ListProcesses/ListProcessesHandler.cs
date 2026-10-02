@@ -11,6 +11,7 @@ public class ListProcessesHandler : IRequestHandler<ListProcessesRequest, ListPr
     private static readonly Dictionary<string, string> KindAliases = new(StringComparer.OrdinalIgnoreCase)
     {
         ["calc"] = "calculation",
+        ["flow"] = "workflow",
     };
 
     private readonly IProcessDocStore _store;
@@ -22,9 +23,12 @@ public class ListProcessesHandler : IRequestHandler<ListProcessesRequest, ListPr
 
     public Task<ListProcessesResponse> Handle(ListProcessesRequest request, CancellationToken cancellationToken)
     {
-        var docs = string.IsNullOrWhiteSpace(request.Kind)
-            ? _store.All
-            : _store.All.Where(d => string.Equals(d.Kind, ResolveKind(request.Kind), StringComparison.OrdinalIgnoreCase)).ToList();
+        var docs = _store.All
+            .Where(d => string.IsNullOrWhiteSpace(request.Kind) ||
+                        string.Equals(d.Kind, ResolveKind(request.Kind), StringComparison.OrdinalIgnoreCase))
+            .Where(d => string.IsNullOrWhiteSpace(request.Module) ||
+                        string.Equals(d.Module, request.Module.Trim(), StringComparison.OrdinalIgnoreCase))
+            .ToList();
 
         return Task.FromResult(new ListProcessesResponse { Processes = docs.Select(ToSummary).ToList() });
     }
@@ -39,6 +43,7 @@ public class ListProcessesHandler : IRequestHandler<ListProcessesRequest, ListPr
     {
         Name = doc.Name,
         Kind = doc.Kind,
+        Module = doc.Module,
         Summary = doc.Summary,
         VerifiedAt = doc.VerifiedAt,
         Related = doc.Related.ToList(),

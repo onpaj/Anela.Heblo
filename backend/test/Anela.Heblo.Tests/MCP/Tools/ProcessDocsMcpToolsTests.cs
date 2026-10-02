@@ -30,12 +30,12 @@ public class ProcessDocsMcpToolsTests
     private ProcessDocsMcpTools CreateTools() => new(_mediator.Object, _logger.Object, _currentUserService.Object);
 
     [Fact]
-    public async Task ListProcesses_PassesKindAndSerializesResult()
+    public async Task ListProcesses_PassesKindAndModuleAndSerializesResult()
     {
-        _mediator.Setup(m => m.Send(It.Is<ListProcessesRequest>(r => r.Kind == "sync"), It.IsAny<CancellationToken>()))
+        _mediator.Setup(m => m.Send(It.Is<ListProcessesRequest>(r => r.Kind == "sync" && r.Module == "bank"), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new ListProcessesResponse { Processes = [new ProcessSummaryDto { Name = "sync-a" }] });
 
-        var json = await CreateTools().ListProcesses("sync");
+        var json = await CreateTools().ListProcesses("sync", "bank");
 
         var result = JsonSerializer.Deserialize<ListProcessesResponse>(json, McpJsonOptions.Default);
         Assert.Equal("sync-a", result!.Processes.Single().Name);

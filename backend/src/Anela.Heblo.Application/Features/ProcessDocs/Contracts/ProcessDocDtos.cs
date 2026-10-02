@@ -4,6 +4,7 @@ public class ProcessSummaryDto
 {
     public string Name { get; set; } = string.Empty;
     public string Kind { get; set; } = string.Empty;
+    public string Module { get; set; } = string.Empty;
     public string Summary { get; set; } = string.Empty;
     public string VerifiedAt { get; set; } = string.Empty;
     public List<string> Related { get; set; } = [];

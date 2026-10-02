@@ -1,6 +1,7 @@
 ---
 process: calc-bundle-sales-expansion
 kind: calculation
+module: catalog
 summary: Turns every sold gift package (BAL…/SET…) into quantity-only sale rows for its components, so manufacture, purchase and stock planning see bundle demand while revenue and margins stay on the bundle.
 owns:
   - backend/src/Anela.Heblo.Application/Features/Catalog/Infrastructure/BundleSalesExpander.cs

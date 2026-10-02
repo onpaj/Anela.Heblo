@@ -33,7 +33,7 @@ The application exposes MCP tools for AI assistants to query catalog data, manuf
 - `AskKnowledgeBase` — AI-generated answer grounded in company documents, returns prose answer with cited sources
 
 **Process Docs (2)** — require the `Anela_ProcessDocs` permission.
-- `ListProcesses` — index of documented syncs, calculations and feeds (name, kind, summary, related); `kind` accepts `sync`, `calculation` (or its filename-prefix alias `calc`) and `feed`, case-insensitive
+- `ListProcesses` — catalog of module overviews and documented processes (name, kind, module, summary, related); `kind` accepts `module`, `sync`, `calculation` (alias `calc`), `feed`, `job` and `workflow` (alias `flow`), case-insensitive; optional `module` filters by module slug
 - `GetProcessDoc` — full agent-facing doc for one process (data flow, formulas, config, quirks, code entry points); source is `docs/processes/`
 
 **Operations:** after deploying this feature to an environment, grant `anela.process_docs.read` to the relevant groups in `/admin/access`. `seedGroups` in `access-matrix.json` only apply to a fresh database, so an already-provisioned environment (staging, production) won't pick the permission up automatically. Do not run `scripts/seed-authorization.sh --reset-group` to fix this — it clears and re-seeds that group's permissions from JSON, wiping any custom grants made since.

@@ -41,6 +41,7 @@ public class GetProcessDocHandler : IRequestHandler<GetProcessDocRequest, GetPro
     {
         Name = doc.Name,
         Kind = doc.Kind,
+        Module = doc.Module,
         Summary = doc.Summary,
         VerifiedAt = doc.VerifiedAt,
         Related = doc.Related.ToList(),

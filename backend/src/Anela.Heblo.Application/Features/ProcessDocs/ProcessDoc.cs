@@ -4,6 +4,7 @@ namespace Anela.Heblo.Application.Features.ProcessDocs;
 public sealed record ProcessDoc(
     string Name,
     string Kind,
+    string Module,
     string Summary,
     IReadOnlyList<string> Owns,
     string VerifiedAt,

@@ -6,7 +6,7 @@ from helpers import commit, init_repo, run
 
 
 def doc(process="calc-a", owns=("src/a/**",), verified_at="0000000", path=None):
-    return ProcessDoc(path or f"docs/processes/{process}.md", process, "calculation",
+    return ProcessDoc(path or f"docs/processes/{process}.md", process, "calculation", "catalog",
                       "s", tuple(owns), verified_at, (), "")
 
 
