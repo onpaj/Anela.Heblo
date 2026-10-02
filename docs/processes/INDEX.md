@@ -35,6 +35,18 @@ Agent-facing catalog of what Heblo does, grouped by module. Each module has an o
 - [calc-permission-resolution](calc-permission-resolution.md) (calculation) — Works out, on every signed-in request, which Heblo permissions a person holds (their groups, plus the groups those groups include, plus the super_user override), and how the permission catalogue and the starter groups are produced from access-matrix.json. Related: flow-user-access-onboarding
 - [flow-user-access-onboarding](flow-user-access-onboarding.md) (workflow) — How an administrator gives a colleague access to Heblo in Access management — picking them from Entra, putting them into permission groups, editing groups, disabling people, and creating login-less packing operators. Related: calc-permission-resolution, sync-entra-directory
 
+## background-jobs
+
+[module-background-jobs](module-background-jobs.md) — Runs every scheduled task in Heblo (imports, syncs, checks, printing, cleanups) on Hangfire, and lets administrators see, switch off, reschedule and trigger them from the Recurring Jobs page.
+
+- [job-recurring-job-registration](job-recurring-job-registration.md) (job) — How every recurring job gets its database row, its Hangfire schedule, its on/off switch, an admin cron override and a manual "Run now", and how failed runs are reported. Related: sync-flexi-analytics
+
+## background-refresh
+
+[module-background-refresh](module-background-refresh.md) — Keeps Heblo's in-memory caches (catalog stock, sales, prices, costs, margins, financial overview) loaded at startup and refreshed every few minutes, and runs two minute-by-minute warehouse tasks, with an admin page to watch and force them.
+
+- [job-background-refresh-hydration](job-background-refresh-hydration.md) (job) — Loads every in-memory cache at startup tier by tier, reports readiness via /health/ready, then re-runs each refresh task on its own interval; admins can force a task or a whole tier. Related: calc-margins, feed-stock-up, calc-bundle-sales-expansion
+
 ## bank
 
 [module-bank](module-bank.md) — Loads payout statements from the Comgate and Shoptet Pay payment gateways into FlexiBee bank accounts every morning and keeps an audit log of every statement imported.
