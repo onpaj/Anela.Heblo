@@ -16,3 +16,9 @@ _No module overview doc yet._
 - [calc-bundle-sales-expansion](calc-bundle-sales-expansion.md) (calculation) — Turns every sold gift package (BAL…/SET…) into quantity-only sale rows for its components, so manufacture, purchase and stock planning see bundle demand while revenue and margins stay on the bundle. Related: calc-margins, feed-stock-up
 - [calc-margins](calc-margins.md) (calculation) — Per-product monthly margin cascade M0-M3 (material, manufacturing labour, warehouse+marketing, overhead) derived from catalog history and the Flexi ledger, shown on the Marže pages and via MCP. Related: calc-bundle-sales-expansion
 - [feed-stock-up](feed-stock-up.md) (feed) — Pushes warehouse stock changes from received transport boxes and gift-package manufacture/disassembly into Shoptet as relative stock movements, tracked per document number in StockUpOperations.
+
+## marketing-invoices
+
+[module-marketing-invoices](module-marketing-invoices.md) — Background-only import of Google Ads and Meta Ads billing data into a staging table that nothing reads; disabled and empty in production.
+
+- [sync-ad-platform-transactions](sync-ad-platform-transactions.md) (sync) — Twice-daily pull of Google Ads account budgets and Meta Ads billing transactions into ImportedMarketingTransactions — a table nothing in Heblo reads, empty in production, with both jobs disabled.
