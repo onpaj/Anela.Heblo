@@ -16,3 +16,13 @@ _No module overview doc yet._
 - [calc-bundle-sales-expansion](calc-bundle-sales-expansion.md) (calculation) — Turns every sold gift package (BAL…/SET…) into quantity-only sale rows for its components, so manufacture, purchase and stock planning see bundle demand while revenue and margins stay on the bundle. Related: calc-margins, feed-stock-up
 - [calc-margins](calc-margins.md) (calculation) — Per-product monthly margin cascade M0-M3 (material, manufacturing labour, warehouse+marketing, overhead) derived from catalog history and the Flexi ledger, shown on the Marže pages and via MCP. Related: calc-bundle-sales-expansion
 - [feed-stock-up](feed-stock-up.md) (feed) — Pushes warehouse stock changes from received transport boxes and gift-package manufacture/disassembly into Shoptet as relative stock movements, tracked per document number in StockUpOperations.
+
+## data-quality
+
+[module-data-quality](module-data-quality.md) — Nightly data-quality tests (DQT) that cross-check invoices, product pairing, stock write-back, material lots and retail prices between Heblo, Shoptet and Flexi, and report every mismatch on the Kvalita dat page and dashboard tiles.
+
+- [calc-dqt-invoices](calc-dqt-invoices.md) (calculation) — Every morning compares yesterday's issued invoices in Shoptet against Flexi — missing on either side, header totals with/without VAT, and per-product lines — and stores each mismatching invoice in InvoiceDqtResults.
+- [calc-dqt-lot-stock](calc-dqt-lot-stock.md) (calculation) — Every morning reconciles, for each material with expiration, the sum of its Flexi lots (šarže) against its Flexi on-hand stock from the catalog cache, reporting sum mismatches, missing lots and orphan lots.
+- [calc-dqt-price-comparison](calc-dqt-price-comparison.md) (calculation) — Every morning compares each sellable product's retail price with VAT in Shoptet (source of truth) against Flexi's ceník price, storing differences, products missing in Flexi and unknown Flexi price types/VAT bands, and feeding the Kontrola cen dashboard tile.
+- [calc-dqt-product-pairing](calc-dqt-product-pairing.md) (calculation) — Every morning checks that each Shoptet product resolves to a sellable Flexi product (by pair code or code) and that each sellable Flexi product exists in Shoptet, storing every unpaired product as a drift result.
+- [calc-dqt-stock-writeback](calc-dqt-stock-writeback.md) (calculation) — Every morning lists yesterday's Heblo-to-Shoptet stock movements (StockUpOperations) that failed or are stuck, plus yesterday's stock-takings that recorded an error, as drift results. Related: feed-stock-up
