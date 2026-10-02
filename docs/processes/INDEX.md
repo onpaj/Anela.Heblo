@@ -16,3 +16,9 @@ _No module overview doc yet._
 - [calc-bundle-sales-expansion](calc-bundle-sales-expansion.md) (calculation) — Turns every sold gift package (BAL…/SET…) into quantity-only sale rows for its components, so manufacture, purchase and stock planning see bundle demand while revenue and margins stay on the bundle. Related: calc-margins, feed-stock-up
 - [calc-margins](calc-margins.md) (calculation) — Per-product monthly margin cascade M0-M3 (material, manufacturing labour, warehouse+marketing, overhead) derived from catalog history and the Flexi ledger, shown on the Marže pages and via MCP. Related: calc-bundle-sales-expansion
 - [feed-stock-up](feed-stock-up.md) (feed) — Pushes warehouse stock changes from received transport boxes and gift-package manufacture/disassembly into Shoptet as relative stock movements, tracked per document number in StockUpOperations.
+
+## financial-overview
+
+[module-financial-overview](module-financial-overview.md) — Company-level monthly income, expenses and stock value change from the Flexi ledger, with a year-over-year comparison (Finanční přehled).
+
+- [calc-financial-overview](calc-financial-overview.md) (calculation) — Monthly company income, expenses and stock value change (a P&L-style view) computed live from the Flexi general ledger and stock-to-date warehouse values, with a year-over-year comparison, shown on Finanční přehled. Related: calc-margins, sync-flexi-analytics
