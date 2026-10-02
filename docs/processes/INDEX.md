@@ -15,6 +15,12 @@ _No module overview doc yet._
 
 - [flow-article-generation](flow-article-generation.md) (workflow) — Turns a marketer's brief from the Article generator (Generátor článků) into a Czech HTML article via a five-step Claude pipeline (plan queries → knowledge base + web search + optional style guide → facts → fact check → write), run as a one-shot Hangfire job, with every step traced in ArticleGenerationSteps and the cited sources stored in ArticleSources.
 
+## bank
+
+[module-bank](module-bank.md) — Loads payout statements from the Comgate and Shoptet Pay payment gateways into FlexiBee bank accounts every morning and keeps an audit log of every statement imported.
+
+- [feed-bank-statements](feed-bank-statements.md) (feed) — Downloads daily payout statements (ABO files) from the Comgate (CZK, EUR) and Shoptet Pay (CZK) payment gateways and loads them into the matching FlexiBee bank accounts, logging each statement in BankStatements behind a per-account watermark.
+
 ## carrier-cooling
 
 [module-carrier-cooling](module-carrier-cooling.md) — Per-carrier cooling rules (carrier × delivery handling → None/L1/L2 + badge text) that decide which parcels get a cooling pack, the "CHLAZENÁ ZÁSILKA" badge on picking lists, the Shoptet CHLAZENE marker and the snowflake at the packing desk.
