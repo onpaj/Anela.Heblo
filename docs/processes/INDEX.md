@@ -16,3 +16,10 @@ _No module overview doc yet._
 - [calc-bundle-sales-expansion](calc-bundle-sales-expansion.md) (calculation) — Turns every sold gift package (BAL…/SET…) into quantity-only sale rows for its components, so manufacture, purchase and stock planning see bundle demand while revenue and margins stay on the bundle. Related: calc-margins, feed-stock-up
 - [calc-margins](calc-margins.md) (calculation) — Per-product monthly margin cascade M0-M3 (material, manufacturing labour, warehouse+marketing, overhead) derived from catalog history and the Flexi ledger, shown on the Marže pages and via MCP. Related: calc-bundle-sales-expansion
 - [feed-stock-up](feed-stock-up.md) (feed) — Pushes warehouse stock changes from received transport boxes and gift-package manufacture/disassembly into Shoptet as relative stock movements, tracked per document number in StockUpOperations.
+
+## knowledge-base
+
+[module-knowledge-base](module-knowledge-base.md) — Anela's AI knowledge base (RAG) — indexes internal documents and customer chat transcripts from SharePoint into a vector store and answers customer-care questions from them; also the fact source for Smartsupp draft replies, AI articles and leaflets.
+
+- [job-knowledge-base-ingestion](job-knowledge-base-ingestion.md) (job) — Every 15 minutes picks up new files from the SharePoint knowledge-base inbox folders (and any file uploaded by hand), turns them into LLM-summarised, OpenAI-embedded chunks in KnowledgeBaseDocuments/KnowledgeBaseChunks, and moves the processed files to the archive folder. Related: flow-knowledge-base-ask
+- [flow-knowledge-base-ask](flow-knowledge-base-ask.md) (workflow) — Answers a staff question from the knowledge base — expands the query with Claude, finds the closest chunks by vector similarity, lets Claude write a Czech answer with product links resolved from the catalog, logs the interaction to RagInteractionLogs and collects 1–5 star feedback. Related: job-knowledge-base-ingestion
