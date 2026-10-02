@@ -16,3 +16,11 @@ _No module overview doc yet._
 - [calc-bundle-sales-expansion](calc-bundle-sales-expansion.md) (calculation) — Turns every sold gift package (BAL…/SET…) into quantity-only sale rows for its components, so manufacture, purchase and stock planning see bundle demand while revenue and margins stay on the bundle. Related: calc-margins, feed-stock-up
 - [calc-margins](calc-margins.md) (calculation) — Per-product monthly margin cascade M0-M3 (material, manufacturing labour, warehouse+marketing, overhead) derived from catalog history and the Flexi ledger, shown on the Marže pages and via MCP. Related: calc-bundle-sales-expansion
 - [feed-stock-up](feed-stock-up.md) (feed) — Pushes warehouse stock changes from received transport boxes and gift-package manufacture/disassembly into Shoptet as relative stock movements, tracked per document number in StockUpOperations.
+
+## smartsupp
+
+[module-smartsupp](module-smartsupp.md) — E-shop live-chat console — mirrors Smartsupp chats into Heblo via webhooks and lets support staff read, answer (with an AI draft), and close them without leaving Heblo.
+
+- [sync-smartsupp-webhooks](sync-smartsupp-webhooks.md) (sync) — Smartsupp pushes every chat event to a signed webhook; Heblo audits it and upserts conversations, messages, contacts and native-agent presence, with admin replay and an orphan-contact repair for events that failed. Related: flow-smartsupp-reply, job-smartsupp-webhook-audit-cleanup
+- [job-smartsupp-webhook-audit-cleanup](job-smartsupp-webhook-audit-cleanup.md) (job) — Nightly purge of Smartsupp webhook audit rows older than 7 days and of chat-presence rows not refreshed for a day. Related: sync-smartsupp-webhooks, flow-smartsupp-reply
+- [flow-smartsupp-reply](flow-smartsupp-reply.md) (workflow) — Support operator answers an e-shop chat from Heblo — optional AI draft from the knowledge base, send to the customer and close the conversation through the Smartsupp API, with live presence, customer/visitor lookups and draft quality feedback. Related: sync-smartsupp-webhooks
