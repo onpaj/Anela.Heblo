@@ -15,6 +15,32 @@ _No module overview doc yet._
 
 - [flow-article-generation](flow-article-generation.md) (workflow) — Turns a marketer's brief from the Article generator (Generátor článků) into a Czech HTML article via a five-step Claude pipeline (plan queries → knowledge base + web search + optional style guide → facts → fact check → write), run as a one-shot Hangfire job, with every step traced in ArticleGenerationSteps and the cited sources stored in ArticleSources.
 
+## attendance
+
+[module-attendance](module-attendance.md) — Keeps workers' time sheets in Logeto (Výkaz práce) correct — automatic lunch breaks, hours for empty absences — and runs the monthly overtime ledger (Evidence přesčasů) on top of them.
+
+- [calc-overtime](calc-overtime.md) (calculation) — Computes each tracked worker's monthly required hours, credited worked/absence hours and overtime delta live from Logeto, and the running balance shown on /overtime. Related: feed-logeto-break-insertion, feed-logeto-absence-hours, flow-overtime-month-close
+- [feed-logeto-absence-hours](feed-logeto-absence-hours.md) (feed) — Nightly job that writes each opted-in worker's net daily contracted hours into Logeto absence records (vacation, sickness, …) entered with no time and no hours, so such days count in the time sheet and the overtime ledger. Related: feed-logeto-break-insertion, calc-overtime
+- [feed-logeto-break-insertion](feed-logeto-break-insertion.md) (feed) — Nightly walk over opted-in workers' Logeto time sheets that inserts a 30-minute break into every working day of 6 h or more without one, and recreates the work records around it so phones show the change. Related: feed-logeto-absence-hours, calc-overtime
+- [flow-overtime-month-close](flow-overtime-month-close.md) (workflow) — Monthly overtime routine on /overtime — review each worker, record adjustments, close the month to freeze the numbers and carry the balance, then publish the "Evidence přesčasů" Excel to SharePoint. Related: calc-overtime
+
+## authorization
+
+[module-authorization](module-authorization.md) — Decides who may use Heblo and what each person may see and change — Heblo users, permission groups that can include other groups, and the permission catalogue every page, endpoint, dashboard tile and MCP tool is gated by.
+
+- [calc-permission-resolution](calc-permission-resolution.md) (calculation) — Works out, on every signed-in request, which Heblo permissions a person holds (their groups, plus the groups those groups include, plus the super_user override), and how the permission catalogue and the starter groups are produced from access-matrix.json. Related: flow-user-access-onboarding
+- [flow-user-access-onboarding](flow-user-access-onboarding.md) (workflow) — How an administrator gives a colleague access to Heblo in Access management — picking them from Entra, putting them into permission groups, editing groups, disabling people, and creating login-less packing operators. Related: calc-permission-resolution, sync-entra-directory
+
+## bank
+
+[module-bank](module-bank.md) — Loads payout statements from the Comgate and Shoptet Pay payment gateways into FlexiBee bank accounts every morning and keeps an audit log of every statement imported.
+
+- [feed-bank-statements](feed-bank-statements.md) (feed) — Downloads daily payout statements (ABO files) from the Comgate (CZK, EUR) and Shoptet Pay (CZK) payment gateways and loads them into the matching FlexiBee bank accounts, logging each statement in BankStatements behind a per-account watermark.
+
+## carrier-cooling
+
+[module-carrier-cooling](module-carrier-cooling.md) — Per-carrier cooling rules (carrier × delivery handling → None/L1/L2 + badge text) that decide which parcels get a cooling pack, the "CHLAZENÁ ZÁSILKA" badge on picking lists, the Shoptet CHLAZENE marker and the snowflake at the packing desk.
+
 ## catalog
 
 _No module overview doc yet._
@@ -23,9 +49,198 @@ _No module overview doc yet._
 - [calc-margins](calc-margins.md) (calculation) — Per-product monthly margin cascade M0-M3 (material, manufacturing labour, warehouse+marketing, overhead) derived from catalog history and the Flexi ledger, shown on the Marže pages and via MCP. Related: calc-bundle-sales-expansion
 - [feed-stock-up](feed-stock-up.md) (feed) — Pushes warehouse stock changes from received transport boxes and gift-package manufacture/disassembly into Shoptet as relative stock movements, tracked per document number in StockUpOperations.
 
+## catalog-documents
+
+[module-catalog-documents](module-catalog-documents.md) — Shows and uploads the regulatory files of a catalog item (material safety/technical sheets and lot certificates, product PIF) that live in the company SharePoint.
+
+- [flow-catalog-document-upload](flow-catalog-document-upload.md) (workflow) — Lists and uploads regulatory files (material MSDS/TDS/COA, product PIF) in the SharePoint folders that belong to a catalog item, finding the folder by a code prefix and naming material files by a fixed scheme.
+
+## dashboard
+
+[module-dashboard](module-dashboard.md) — The personal home page (Dashboard) — a per-user, reorderable grid of tiles that each show one live number or short list from another Heblo module.
+
+- [calc-dashboard-tiles](calc-dashboard-tiles.md) (calculation) — Builds each user's home-page tile list (auto-provisioning, back-fill, permission check) and derives every tile's number from its owning module's data. Related: module-dashboard, sync-weather-forecast
+
+## ecomail
+
+[module-ecomail](module-ecomail.md) — Collects Anela's Ecomail newsletter and e-mail automation statistics into Heblo every 6 hours, ready for marketing reporting that has not been built yet.
+
+- [sync-ecomail](sync-ecomail.md) (sync) — Every 6 hours pulls Ecomail newsletter (campaign) statistics, the automation list, a daily snapshot of each automation's lifetime counters and per-month automation event counts into four Heblo tables — nothing in Heblo reads them yet.
+
+## expedition-list
+
+[module-expedition-list](module-expedition-list.md) — Turns Shoptet orders waiting for dispatch into printed per-carrier picking lists for the warehouse and hands the orders on to the packing desk.
+
+- [flow-picking-list](flow-picking-list.md) (workflow) — Pulls Shoptet orders waiting for dispatch, renders per-carrier picking-list PDFs (expediční list) for the warehouse, prints and archives them, and moves the orders to "Balí se" — twice a day, on demand, as a fix re-run, or for one order.
+
+## expedition-list-archive
+
+[module-expedition-list-archive](module-expedition-list-archive.md) — Archive of every printed picking list by day, with download and one-click reprint to the warehouse printer.
+
+- [flow-expedition-list-reprint](flow-expedition-list-reprint.md) (workflow) — Lets warehouse staff browse archived picking-list PDFs by day in Azure Blob storage, download one, or send it to the warehouse printer again via CUPS. Related: flow-picking-list
+
+## financial-overview
+
+[module-financial-overview](module-financial-overview.md) — Company-level monthly income, expenses and stock value change from the Flexi ledger, with a year-over-year comparison (Finanční přehled).
+
+- [calc-financial-overview](calc-financial-overview.md) (calculation) — Monthly company income, expenses and stock value change (a P&L-style view) computed live from the Flexi general ledger and stock-to-date warehouse values, with a year-over-year comparison, shown on Finanční přehled. Related: calc-margins, sync-flexi-analytics
+
+## invoice-classification
+
+[module-invoice-classification](module-invoice-classification.md) — Rule-based pre-accounting of received supplier invoices — Heblo sets the Flexi accounting template (předkontace) and cost centre on invoices tagged KLASIFIKACE, and hands the rest to the accountant via the MANUAL-KLASIF label.
+
+- [feed-invoice-classification](feed-invoice-classification.md) (feed) — Hourly assigns an accounting template (předkontace) and optionally a cost centre (středisko) to Flexi received invoices tagged KLASIFIKACE, using Heblo's ordered classification rules; unmatched invoices are re-tagged MANUAL-KLASIF for the accountant, and every attempt is logged in ClassificationHistory.
+
+## invoices
+
+[module-invoices](module-invoices.md) — Moves the e-shop's issued invoices (vydané faktury) from Shoptet into ABRA Flexi every night and keeps a per-invoice log of what was sent and whether Flexi accepted it.
+
+- [feed-issued-invoices](feed-issued-invoices.md) (feed) — Copies issued invoices (vydané faktury) from Shoptet into ABRA Flexi every night (EUR 04:00, CZK 04:15, yesterday's invoices) or on demand from the Issued invoices page, fixing product codes on the way and logging every attempt in IssuedInvoices / IssuedInvoiceSyncData.
+
+## journal
+
+[module-journal](module-journal.md) — Company journal (Deník) — dated free-text notes tagged and linked to products or product families, shown on the /journal page and as highlighted months on the product charts in the catalog detail.
+
+## knowledge-base
+
+[module-knowledge-base](module-knowledge-base.md) — Anela's AI knowledge base (RAG) — indexes internal documents and customer chat transcripts from SharePoint into a vector store and answers customer-care questions from them; also the fact source for Smartsupp draft replies, AI articles and leaflets.
+
+- [job-knowledge-base-ingestion](job-knowledge-base-ingestion.md) (job) — Every 15 minutes picks up new files from the SharePoint knowledge-base inbox folders (and any file uploaded by hand), turns them into LLM-summarised, OpenAI-embedded chunks in KnowledgeBaseDocuments/KnowledgeBaseChunks, and moves the processed files to the archive folder. Related: flow-knowledge-base-ask
+- [flow-knowledge-base-ask](flow-knowledge-base-ask.md) (workflow) — Answers a staff question from the knowledge base — expands the query with Claude, finds the closest chunks by vector similarity, lets Claude write a Czech answer with product links resolved from the catalog, logs the interaction to RagInteractionLogs and collects 1–5 star feedback. Related: job-knowledge-base-ingestion, flow-article-generation
+
+## label-identification
+
+[module-label-identification](module-label-identification.md) — Warehouse terminal tool that tells staff which product an unmarked roll of stickers (etiquettes) belongs to, by photographing the label and matching its INCI ingredient list against a built-in reference set.
+
+- [flow-label-identification](flow-label-identification.md) (workflow) — On-demand terminal flow that sends a photo of a product sticker to Claude vision to read its INCI list, fuzzy-matches the text against an embedded reference index of 25 families / 37 product codes, and returns up to 3 candidate products for the operator to confirm.
+
+## leaflet
+
+[module-leaflet](module-leaflet.md) — AI generator of Czech product leaflets (Generátor letáků) that combines Knowledge Base facts with the tone of past Anela leaflets, plus the library of example leaflets it learns style from.
+
+- [job-leaflet-ingestion](job-leaflet-ingestion.md) (job) — Turns example Anela leaflets (PDF/Word/text) dropped into the SharePoint inbox folder or uploaded on the Leaflet Generator page into embedded text chunks in LeafletDocuments/LeafletChunks, the style library the leaflet generator imitates. Related: flow-leaflet-generation
+- [flow-leaflet-generation](flow-leaflet-generation.md) (workflow) — Generates a Czech marketing leaflet in Markdown from a topic, audience and length by retrieving product facts from the Knowledge Base and style examples from the leaflet library, running two Claude calls, and logging each result in LeafletGenerations for 1–5 feedback. Related: job-leaflet-ingestion
+
 ## logistics
 
 [module-logistics](module-logistics.md) — Moves finished goods from production to the e-shop warehouse in transport boxes, assembles and disassembles gift packages, and holds the free-gift badge setting for the packing list.
 
 - [flow-gift-package-manufacture](flow-gift-package-manufacture.md) (workflow) — Lets warehouse staff assemble gift packages (dárkové balíčky) from their components or take them apart again, shows which packages are running low from sales velocity, and books each run as Shoptet stock-up operations plus an audit log. Related: feed-stock-up, calc-bundle-sales-expansion
 - [flow-transport-box](flow-transport-box.md) (workflow) — Moves finished goods from the manufacturing warehouse (sklad výroby) to the e-shop warehouse in numbered transport boxes; filling consumes manufactured inventory, receiving stages Shoptet stock-up operations, and a 1-minute task closes the box once Shoptet confirms. Related: feed-stock-up
+
+## marketing
+
+[module-marketing](module-marketing.md) — The marketing calendar — a shared plan of marketing actions (posts, blog, newsletter, PR, events, meetings) mirrored with the Outlook marketing group calendar and tagged with products and asset folders.
+
+- [sync-marketing-calendar](sync-marketing-calendar.md) (sync) — Mirrors the Outlook marketing group calendar into Heblo marketing actions (create, update, soft-delete) every hour and on demand from the "Import z Outlooku" button; Outlook is the source of truth. Related: feed-marketing-action-to-outlook
+- [feed-marketing-action-to-outlook](feed-marketing-action-to-outlook.md) (feed) — When PushEnabled is on, creating, editing, moving or deleting a marketing action in Heblo writes the same change to the Outlook marketing group calendar through Microsoft Graph, on behalf of the signed-in user. Related: sync-marketing-calendar
+
+## marketing-invoices
+
+[module-marketing-invoices](module-marketing-invoices.md) — Background-only import of Google Ads and Meta Ads billing data into a staging table that nothing reads; disabled and empty in production.
+
+- [sync-ad-platform-transactions](sync-ad-platform-transactions.md) (sync) — Twice-daily pull of Google Ads account budgets and Meta Ads billing transactions into ImportedMarketingTransactions — a table nothing in Heblo reads, empty in production, with both jobs disabled.
+
+## marketing-performance
+
+[module-marketing-performance](module-marketing-performance.md) — Marketing → Analýzy — monthly advertising spend (Meta, Google, Seznam) against e-shop orders and revenue, with PNO, ROAS and year-over-year comparison.
+
+- [calc-marketing-performance](calc-marketing-performance.md) (calculation) — Monthly snapshot of advertising spend (Flexi received invoices from Meta, Google and Seznam) against e-shop orders and revenue (issued invoices), with PNO, ROAS and year-over-year ratios for the Marketing → Analýzy page. Related: sync-flexi-analytics
+
+## meeting-tasks
+
+[module-meeting-tasks](module-meeting-tasks.md) — Meeting notes (Porady) — imports Plaud meeting recordings, lets Claude propose action items, has a manager review them and sends the approved ones to Microsoft Planner, with per-meeting visibility control.
+
+- [sync-plaud-recordings](sync-plaud-recordings.md) (sync) — Every 5 minutes pulls finished Plaud meeting recordings (transcript + AI summary) into MeetingTranscripts and has Claude extract participants and proposed action items into ProposedTasks for human review; also covers the manual re-import. Related: feed-meeting-tasks-to-planner
+- [feed-meeting-tasks-to-planner](feed-meeting-tasks-to-planner.md) (feed) — On a reviewer's click, creates one Microsoft Planner task per approved meeting action item (assigned to the resolved Microsoft 365 user), stores the Planner task id on the ProposedTasks row and recomputes the meeting's review status. Related: sync-plaud-recordings
+
+## mind-maps
+
+[module-mind-maps](module-mind-maps.md) — Living project mind maps (Myšlenkové mapy) that Claude evolves meeting by meeting from recorded meeting transcripts, editable by hand with auto-locking and full version history.
+
+- [job-mindmap-update](job-mindmap-update.md) (job) — Background Hangfire job that feeds each newly attached meeting transcript to Claude and merges the reply into the mind map under a deterministic lock guard, snapshotting a version before every change.
+
+## org-chart
+
+[module-org-chart](module-org-chart.md) — Read-only company org chart (Organigram) — Heblo fetches an external JSON file of positions and employees on every request and draws it as a tree; nothing is stored.
+
+## packaging
+
+[module-packaging](module-packaging.md) — The packing desk (Balení) — scan an e-shop order, create its carrier shipment and print labels in Shoptet, mark it packed, and keep a per-box record for the shipment list and packing statistics.
+
+- [sync-tracking-numbers](sync-tracking-numbers.md) (sync) — Fills in carrier tracking numbers on Heblo package records that had none at scan time, by reading the order's latest active Shoptet shipment every 10 minutes and when the packing desk shows its done screen. Related: flow-order-packing, calc-packing-statistics
+- [calc-packing-statistics](calc-packing-statistics.md) (calculation) — Derives packing-desk numbers — orders waiting in Shoptet, orders packed today per packer, and 30-day throughput, peak hours, carrier mix and tracking coverage — from Heblo's package records and live Shoptet order counts. Related: flow-order-packing, sync-tracking-numbers
+- [flow-order-packing](flow-order-packing.md) (workflow) — Packing-desk flow for e-shop orders — scan an order, create the carrier shipment in Shoptet, print its labels, record the packages in Heblo and move the Shoptet order to "Zabaleno"; plus re-creating a shipment and deleting a package. Related: sync-tracking-numbers, calc-packing-statistics
+
+## packing-materials
+
+[module-packing-materials](module-packing-materials.md) — Tracks stock of packing consumables (boxes, filler, tape…), deducts an estimated daily usage from invoiced orders and forecasts how many days the stock will last.
+
+- [calc-packing-material-consumption](calc-packing-material-consumption.md) (calculation) — Every morning estimates how much of each packing material (boxes, filler, tape…) yesterday's invoiced orders used, subtracts it from the tracked stock and records one consumption row per material and invoice.
+
+## photobank
+
+[module-photobank](module-photobank.md) — Searchable, tagged index of Anela's marketing photos that live in SharePoint — Heblo stores only metadata and tags, the files stay in SharePoint.
+
+- [sync-photobank-index](sync-photobank-index.md) (sync) — Nightly Microsoft Graph delta walk of the configured SharePoint folders that adds, updates and removes photo metadata in Photos and recomputes the Rule tags of every changed photo. Related: flow-photobank-tag-rules, job-photobank-auto-tag
+- [job-photobank-auto-tag](job-photobank-auto-tag.md) (job) — Sends photos that have not been AI-tagged yet (file path and name only) to Claude in batches and stores the returned tags — restricted to the existing tag vocabulary — as AI tags; runs nightly when enabled and on demand for selected photos. Related: sync-photobank-index, flow-photobank-tag-rules
+- [flow-photobank-tag-rules](flow-photobank-tag-rules.md) (workflow) — Admin maintains folder-path → tag rules for the photobank and re-applies them, which deletes and recomputes every Rule-sourced photo tag in PhotoTags while leaving Manual and AI tags untouched. Related: sync-photobank-index, job-photobank-auto-tag
+
+## pricing
+
+[module-pricing](module-pricing.md) — Price analysis simulator (Analýza cen) — lets finance try new prices, costs and sales forecasts per product and see the effect on revenue and M0/M1 margin before deciding a new price list; saves named scenarios and exports a draft ceník, never writes prices anywhere.
+
+- [calc-pricing-simulation](calc-pricing-simulation.md) (calculation) — What-if price and cost simulation (Analýza cen) — builds a per-product baseline of price excl. VAT, material and manufacturing cost and 12-month sold pieces from the catalog, applies sparse user overrides, and derives M0/M1 per product plus before/after revenue and margin totals; scenarios can be saved and reopened. Related: calc-margins, calc-bundle-sales-expansion
+
+## product-pricing
+
+[module-product-pricing](module-product-pricing.md) — Keeps the retail selling price (with VAT) the same in Shoptet and ABRA Flexi — a live comparison of both price lists (Ceny produktů), an operator price edit written to both systems, and a one-click push of Shoptet prices into Flexi.
+
+- [calc-price-divergence](calc-price-divergence.md) (calculation) — Live comparison of the retail price with VAT in Shoptet and in ABRA Flexi for every priced catalog product, classified into agreement / difference / missing / unknown — shown on Ceny produktů and fed to the nightly DataQuality price check. Related: flow-product-price-write
+- [flow-product-price-write](flow-product-price-write.md) (workflow) — Operator-driven writes of the retail price with VAT — a price edit written to Shoptet then Flexi, and a Shoptet-to-Flexi sync of the rows on screen — each attempt recorded in ProductPriceChangeLogs. Related: calc-price-divergence
+
+## purchase
+
+[module-purchase](module-purchase.md) — Buying side of Anela - purchase orders to suppliers, material stock coverage for deciding what to order, and the nightly upkeep of Flexi purchase prices.
+
+- [calc-purchase-stock-analysis](calc-purchase-stock-analysis.md) (calculation) — Per-material stock coverage for purchasing - consumption rate, days until stock-out, stock efficiency (NS%), severity and a recommended order quantity for every material and goods item, shown on Zásoby materiálu and the dashboard. Related: calc-bundle-sales-expansion, flow-purchase-order
+- [feed-purchase-price-recalculation](feed-purchase-price-recalculation.md) (feed) — Nightly job that keeps the Flexi price list purchase price (ceník nakupCena) right - materials and goods take their average stock price, then Flexi rolls the BoM prices up through semi-products to products and sets. Related: calc-margins
+- [flow-purchase-order](flow-purchase-order.md) (workflow) — Buyers record purchase orders to suppliers in Heblo (Draft → In transit → Completed, plus an invoice-received flag); open order lines become the "Ordered" stock that purchase and manufacturing planning count on. Related: calc-purchase-stock-analysis
+
+## shipment-labels
+
+[module-shipment-labels](module-shipment-labels.md) — Heblo's gateway to Shoptet shipments — creates carrier shipments for packed orders, reads labels and tracking numbers, cancels shipments and reports deliveries; used by the packing desk and the order-completion job.
+
+- [flow-shipment-label](flow-shipment-label.md) (workflow) — Creates carrier shipments in Shoptet for e-shop orders packed at the packing desk, reads back their labels (PDF URL / ZPL) and tracking numbers, cancels them on reset, and tells the order-completion job when a parcel was delivered.
+
+## shoptet-customers
+
+[module-shoptet-customers](module-shoptet-customers.md) — Read-only lookup of a Shoptet customer account by GUID, used to show who a Smartsupp chat visitor is (customer group, price list, address).
+
+## shoptet-orders
+
+[module-shoptet-orders](module-shoptet-orders.md) — Heblo's gateway to live Shoptet orders — reads an order for the packing desk, changes order states (packed, blocked, completed after delivery) and appends internal remarks.
+
+- [job-complete-delivered-orders](job-complete-delivered-orders.md) (job) — Hourly job that moves Shoptet orders handed to a carrier (states 70/82) to "Vyřízena" (-3) once Shoptet reports one of their shipments delivered, and appends an audit remark; dry-run unless a feature flag is on.
+- [flow-block-order](flow-block-order.md) (workflow) — API action that puts a Shoptet order on hold — checks it is in an allowed state, moves it to the configured "blocked" state and appends the reason to the order's internal remark.
+
+## smartsupp
+
+[module-smartsupp](module-smartsupp.md) — E-shop live-chat console — mirrors Smartsupp chats into Heblo via webhooks and lets support staff read, answer (with an AI draft), and close them without leaving Heblo.
+
+- [sync-smartsupp-webhooks](sync-smartsupp-webhooks.md) (sync) — Smartsupp pushes every chat event to a signed webhook; Heblo audits it and upserts conversations, messages, contacts and native-agent presence, with admin replay and an orphan-contact repair for events that failed. Related: flow-smartsupp-reply, job-smartsupp-webhook-audit-cleanup
+- [job-smartsupp-webhook-audit-cleanup](job-smartsupp-webhook-audit-cleanup.md) (job) — Nightly purge of Smartsupp webhook audit rows older than 7 days and of chat-presence rows not refreshed for a day. Related: sync-smartsupp-webhooks, flow-smartsupp-reply
+- [flow-smartsupp-reply](flow-smartsupp-reply.md) (workflow) — Support operator answers an e-shop chat from Heblo — optional AI draft from the knowledge base, send to the customer and close the conversation through the Smartsupp API, with live presence, customer/visitor lookups and draft quality feedback. Related: sync-smartsupp-webhooks
+
+## user-management
+
+[module-user-management](module-user-management.md) — Who is signed in (identity from the Microsoft 365 token), live look-ups of Anela's Entra directory through Microsoft Graph, and the list of Flexi cost centres (departments) used as filters.
+
+- [sync-entra-directory](sync-entra-directory.md) (sync) — On-demand, cached reads of Anela's Microsoft 365 directory (Entra ID) through Microsoft Graph — members of an Entra group, and everyone holding Heblo's heblo_user app role — used for onboarding, the MCP GetGroupMembers tool and the article requester backfill. Related: flow-user-access-onboarding, module-article
+- [sync-flexi-departments](sync-flexi-departments.md) (sync) — On-demand, 10-minute-cached read of the cost centres (střediska) from Flexi, offered as the department filter in the financial overview and as a choice in invoice classification rules. Related: sync-flexi-analytics
+
+## weather-forecast
+
+[module-weather-forecast](module-weather-forecast.md) — Shows which Czech city will be hottest on each of the next 7 days (Open-Meteo), so the expedition team can decide when shipments need cooling.
+
+- [sync-weather-forecast](sync-weather-forecast.md) (sync) — Fetches a 7-day daily forecast for nine Czech cities from Open-Meteo, caches it in memory for 3 hours, and reduces it to the hottest city per day for the Dashboard tile and the expedition cooling tab. Related: module-weather-forecast, calc-dashboard-tiles
