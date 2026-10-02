@@ -130,6 +130,14 @@ _No module overview doc yet._
 
 - [calc-packing-material-consumption](calc-packing-material-consumption.md) (calculation) — Every morning estimates how much of each packing material (boxes, filler, tape…) yesterday's invoiced orders used, subtracts it from the tracked stock and records one consumption row per material and invoice.
 
+## photobank
+
+[module-photobank](module-photobank.md) — Searchable, tagged index of Anela's marketing photos that live in SharePoint — Heblo stores only metadata and tags, the files stay in SharePoint.
+
+- [sync-photobank-index](sync-photobank-index.md) (sync) — Nightly Microsoft Graph delta walk of the configured SharePoint folders that adds, updates and removes photo metadata in Photos and recomputes the Rule tags of every changed photo. Related: flow-photobank-tag-rules, job-photobank-auto-tag
+- [job-photobank-auto-tag](job-photobank-auto-tag.md) (job) — Sends photos that have not been AI-tagged yet (file path and name only) to Claude in batches and stores the returned tags — restricted to the existing tag vocabulary — as AI tags; runs nightly when enabled and on demand for selected photos. Related: sync-photobank-index, flow-photobank-tag-rules
+- [flow-photobank-tag-rules](flow-photobank-tag-rules.md) (workflow) — Admin maintains folder-path → tag rules for the photobank and re-applies them, which deletes and recomputes every Rule-sourced photo tag in PhotoTags while leaving Manual and AI tags untouched. Related: sync-photobank-index, job-photobank-auto-tag
+
 ## pricing
 
 [module-pricing](module-pricing.md) — Price analysis simulator (Analýza cen) — lets finance try new prices, costs and sales forecasts per product and see the effect on revenue and M0/M1 margin before deciding a new price list; saves named scenarios and exports a draft ceník, never writes prices anywhere.
