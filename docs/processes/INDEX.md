@@ -73,6 +73,12 @@ _No module overview doc yet._
 
 - [flow-label-identification](flow-label-identification.md) (workflow) — On-demand terminal flow that sends a photo of a product sticker to Claude vision to read its INCI list, fuzzy-matches the text against an embedded reference index of 25 families / 37 product codes, and returns up to 3 candidate products for the operator to confirm.
 
+## marketing-invoices
+
+[module-marketing-invoices](module-marketing-invoices.md) — Background-only import of Google Ads and Meta Ads billing data into a staging table that nothing reads; disabled and empty in production.
+
+- [sync-ad-platform-transactions](sync-ad-platform-transactions.md) (sync) — Twice-daily pull of Google Ads account budgets and Meta Ads billing transactions into ImportedMarketingTransactions — a table nothing in Heblo reads, empty in production, with both jobs disabled.
+
 ## org-chart
 
 [module-org-chart](module-org-chart.md) — Read-only company org chart (Organigram) — Heblo fetches an external JSON file of positions and employees on every request and draws it as a tree; nothing is stored.
