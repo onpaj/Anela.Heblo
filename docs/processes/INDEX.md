@@ -16,3 +16,9 @@ _No module overview doc yet._
 - [calc-bundle-sales-expansion](calc-bundle-sales-expansion.md) (calculation) — Turns every sold gift package (BAL…/SET…) into quantity-only sale rows for its components, so manufacture, purchase and stock planning see bundle demand while revenue and margins stay on the bundle. Related: calc-margins, feed-stock-up
 - [calc-margins](calc-margins.md) (calculation) — Per-product monthly margin cascade M0-M3 (material, manufacturing labour, warehouse+marketing, overhead) derived from catalog history and the Flexi ledger, shown on the Marže pages and via MCP. Related: calc-bundle-sales-expansion
 - [feed-stock-up](feed-stock-up.md) (feed) — Pushes warehouse stock changes from received transport boxes and gift-package manufacture/disassembly into Shoptet as relative stock movements, tracked per document number in StockUpOperations.
+
+## invoice-classification
+
+[module-invoice-classification](module-invoice-classification.md) — Rule-based pre-accounting of received supplier invoices — Heblo sets the Flexi accounting template (předkontace) and cost centre on invoices tagged KLASIFIKACE, and hands the rest to the accountant via the MANUAL-KLASIF label.
+
+- [feed-invoice-classification](feed-invoice-classification.md) (feed) — Hourly assigns an accounting template (předkontace) and optionally a cost centre (středisko) to Flexi received invoices tagged KLASIFIKACE, using Heblo's ordered classification rules; unmatched invoices are re-tagged MANUAL-KLASIF for the accountant, and every attempt is logged in ClassificationHistory.
