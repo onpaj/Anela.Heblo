@@ -16,3 +16,9 @@ _No module overview doc yet._
 - [calc-bundle-sales-expansion](calc-bundle-sales-expansion.md) (calculation) — Turns every sold gift package (BAL…/SET…) into quantity-only sale rows for its components, so manufacture, purchase and stock planning see bundle demand while revenue and margins stay on the bundle. Related: calc-margins, feed-stock-up
 - [calc-margins](calc-margins.md) (calculation) — Per-product monthly margin cascade M0-M3 (material, manufacturing labour, warehouse+marketing, overhead) derived from catalog history and the Flexi ledger, shown on the Marže pages and via MCP. Related: calc-bundle-sales-expansion
 - [feed-stock-up](feed-stock-up.md) (feed) — Pushes warehouse stock changes from received transport boxes and gift-package manufacture/disassembly into Shoptet as relative stock movements, tracked per document number in StockUpOperations.
+
+## shipment-labels
+
+[module-shipment-labels](module-shipment-labels.md) — Heblo's gateway to Shoptet shipments — creates carrier shipments for packed orders, reads labels and tracking numbers, cancels shipments and reports deliveries; used by the packing desk and the order-completion job.
+
+- [flow-shipment-label](flow-shipment-label.md) (workflow) — Creates carrier shipments in Shoptet for e-shop orders packed at the packing desk, reads back their labels (PDF URL / ZPL) and tracking numbers, cancels them on reset, and tells the order-completion job when a parcel was delivered.
