@@ -209,6 +209,14 @@ _No module overview doc yet._
 - [job-complete-delivered-orders](job-complete-delivered-orders.md) (job) — Hourly job that moves Shoptet orders handed to a carrier (states 70/82) to "Vyřízena" (-3) once Shoptet reports one of their shipments delivered, and appends an audit remark; dry-run unless a feature flag is on.
 - [flow-block-order](flow-block-order.md) (workflow) — API action that puts a Shoptet order on hold — checks it is in an allowed state, moves it to the configured "blocked" state and appends the reason to the order's internal remark.
 
+## smartsupp
+
+[module-smartsupp](module-smartsupp.md) — E-shop live-chat console — mirrors Smartsupp chats into Heblo via webhooks and lets support staff read, answer (with an AI draft), and close them without leaving Heblo.
+
+- [sync-smartsupp-webhooks](sync-smartsupp-webhooks.md) (sync) — Smartsupp pushes every chat event to a signed webhook; Heblo audits it and upserts conversations, messages, contacts and native-agent presence, with admin replay and an orphan-contact repair for events that failed. Related: flow-smartsupp-reply, job-smartsupp-webhook-audit-cleanup
+- [job-smartsupp-webhook-audit-cleanup](job-smartsupp-webhook-audit-cleanup.md) (job) — Nightly purge of Smartsupp webhook audit rows older than 7 days and of chat-presence rows not refreshed for a day. Related: sync-smartsupp-webhooks, flow-smartsupp-reply
+- [flow-smartsupp-reply](flow-smartsupp-reply.md) (workflow) — Support operator answers an e-shop chat from Heblo — optional AI draft from the knowledge base, send to the customer and close the conversation through the Smartsupp API, with live presence, customer/visitor lookups and draft quality feedback. Related: sync-smartsupp-webhooks
+
 ## user-management
 
 [module-user-management](module-user-management.md) — Who is signed in (identity from the Microsoft 365 token), live look-ups of Anela's Entra directory through Microsoft Graph, and the list of Flexi cost centres (departments) used as filters.
