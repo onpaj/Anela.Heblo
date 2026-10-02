@@ -16,3 +16,11 @@ _No module overview doc yet._
 - [calc-bundle-sales-expansion](calc-bundle-sales-expansion.md) (calculation) — Turns every sold gift package (BAL…/SET…) into quantity-only sale rows for its components, so manufacture, purchase and stock planning see bundle demand while revenue and margins stay on the bundle. Related: calc-margins, feed-stock-up
 - [calc-margins](calc-margins.md) (calculation) — Per-product monthly margin cascade M0-M3 (material, manufacturing labour, warehouse+marketing, overhead) derived from catalog history and the Flexi ledger, shown on the Marže pages and via MCP. Related: calc-bundle-sales-expansion
 - [feed-stock-up](feed-stock-up.md) (feed) — Pushes warehouse stock changes from received transport boxes and gift-package manufacture/disassembly into Shoptet as relative stock movements, tracked per document number in StockUpOperations.
+
+## photobank
+
+[module-photobank](module-photobank.md) — Searchable, tagged index of Anela's marketing photos that live in SharePoint — Heblo stores only metadata and tags, the files stay in SharePoint.
+
+- [sync-photobank-index](sync-photobank-index.md) (sync) — Nightly Microsoft Graph delta walk of the configured SharePoint folders that adds, updates and removes photo metadata in Photos and recomputes the Rule tags of every changed photo. Related: flow-photobank-tag-rules, job-photobank-auto-tag
+- [job-photobank-auto-tag](job-photobank-auto-tag.md) (job) — Sends photos that have not been AI-tagged yet (file path and name only) to Claude in batches and stores the returned tags — restricted to the existing tag vocabulary — as AI tags; runs nightly when enabled and on demand for selected photos. Related: sync-photobank-index, flow-photobank-tag-rules
+- [flow-photobank-tag-rules](flow-photobank-tag-rules.md) (workflow) — Admin maintains folder-path → tag rules for the photobank and re-applies them, which deletes and recomputes every Rule-sourced photo tag in PhotoTags while leaving Manual and AI tags untouched. Related: sync-photobank-index, job-photobank-auto-tag
