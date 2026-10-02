@@ -51,6 +51,12 @@ _No module overview doc yet._
 
 - [calc-financial-overview](calc-financial-overview.md) (calculation) — Monthly company income, expenses and stock value change (a P&L-style view) computed live from the Flexi general ledger and stock-to-date warehouse values, with a year-over-year comparison, shown on Finanční přehled. Related: calc-margins, sync-flexi-analytics
 
+## invoice-classification
+
+[module-invoice-classification](module-invoice-classification.md) — Rule-based pre-accounting of received supplier invoices — Heblo sets the Flexi accounting template (předkontace) and cost centre on invoices tagged KLASIFIKACE, and hands the rest to the accountant via the MANUAL-KLASIF label.
+
+- [feed-invoice-classification](feed-invoice-classification.md) (feed) — Hourly assigns an accounting template (předkontace) and optionally a cost centre (středisko) to Flexi received invoices tagged KLASIFIKACE, using Heblo's ordered classification rules; unmatched invoices are re-tagged MANUAL-KLASIF for the accountant, and every attempt is logged in ClassificationHistory.
+
 ## invoices
 
 [module-invoices](module-invoices.md) — Moves the e-shop's issued invoices (vydané faktury) from Shoptet into ABRA Flexi every night and keeps a per-invoice log of what was sent and whether Flexi accepted it.
