@@ -28,5 +28,6 @@ public static class AnalyticsConstants
         public const string PRODUCT_ID_REQUIRED = "ProductId is required";
         public const string MAX_PRODUCTS_EXCEEDED = "MaxProducts cannot exceed {0}";
         public const string MAX_PRODUCTS_MINIMUM = "MaxProducts must be at least 1";
+        public const string INVALID_TIME_WINDOW = "Invalid time window: '{0}'. Supported values: {1}";
     }
 }
