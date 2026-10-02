@@ -27,6 +27,12 @@ _No module overview doc yet._
 - [calc-margins](calc-margins.md) (calculation) — Per-product monthly margin cascade M0-M3 (material, manufacturing labour, warehouse+marketing, overhead) derived from catalog history and the Flexi ledger, shown on the Marže pages and via MCP. Related: calc-bundle-sales-expansion
 - [feed-stock-up](feed-stock-up.md) (feed) — Pushes warehouse stock changes from received transport boxes and gift-package manufacture/disassembly into Shoptet as relative stock movements, tracked per document number in StockUpOperations.
 
+## catalog-documents
+
+[module-catalog-documents](module-catalog-documents.md) — Shows and uploads the regulatory files of a catalog item (material safety/technical sheets and lot certificates, product PIF) that live in the company SharePoint.
+
+- [flow-catalog-document-upload](flow-catalog-document-upload.md) (workflow) — Lists and uploads regulatory files (material MSDS/TDS/COA, product PIF) in the SharePoint folders that belong to a catalog item, finding the folder by a code prefix and naming material files by a fixed scheme.
+
 ## journal
 
 [module-journal](module-journal.md) — Company journal (Deník) — dated free-text notes tagged and linked to products or product families, shown on the /journal page and as highlighted months on the product charts in the catalog detail.
