@@ -22,3 +22,10 @@ _No module overview doc yet._
 - [calc-bundle-sales-expansion](calc-bundle-sales-expansion.md) (calculation) — Turns every sold gift package (BAL…/SET…) into quantity-only sale rows for its components, so manufacture, purchase and stock planning see bundle demand while revenue and margins stay on the bundle. Related: calc-margins, feed-stock-up
 - [calc-margins](calc-margins.md) (calculation) — Per-product monthly margin cascade M0-M3 (material, manufacturing labour, warehouse+marketing, overhead) derived from catalog history and the Flexi ledger, shown on the Marže pages and via MCP. Related: calc-bundle-sales-expansion
 - [feed-stock-up](feed-stock-up.md) (feed) — Pushes warehouse stock changes from received transport boxes and gift-package manufacture/disassembly into Shoptet as relative stock movements, tracked per document number in StockUpOperations.
+
+## product-pricing
+
+[module-product-pricing](module-product-pricing.md) — Keeps the retail selling price (with VAT) the same in Shoptet and ABRA Flexi — a live comparison of both price lists (Ceny produktů), an operator price edit written to both systems, and a one-click push of Shoptet prices into Flexi.
+
+- [calc-price-divergence](calc-price-divergence.md) (calculation) — Live comparison of the retail price with VAT in Shoptet and in ABRA Flexi for every priced catalog product, classified into agreement / difference / missing / unknown — shown on Ceny produktů and fed to the nightly DataQuality price check. Related: flow-product-price-write
+- [flow-product-price-write](flow-product-price-write.md) (workflow) — Operator-driven writes of the retail price with VAT — a price edit written to Shoptet then Flexi, and a Shoptet-to-Flexi sync of the rows on screen — each attempt recorded in ProductPriceChangeLogs. Related: calc-price-divergence
