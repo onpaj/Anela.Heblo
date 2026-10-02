@@ -73,6 +73,13 @@ _No module overview doc yet._
 
 - [flow-label-identification](flow-label-identification.md) (workflow) — On-demand terminal flow that sends a photo of a product sticker to Claude vision to read its INCI list, fuzzy-matches the text against an embedded reference index of 25 families / 37 product codes, and returns up to 3 candidate products for the operator to confirm.
 
+## leaflet
+
+[module-leaflet](module-leaflet.md) — AI generator of Czech product leaflets (Generátor letáků) that combines Knowledge Base facts with the tone of past Anela leaflets, plus the library of example leaflets it learns style from.
+
+- [job-leaflet-ingestion](job-leaflet-ingestion.md) (job) — Turns example Anela leaflets (PDF/Word/text) dropped into the SharePoint inbox folder or uploaded on the Leaflet Generator page into embedded text chunks in LeafletDocuments/LeafletChunks, the style library the leaflet generator imitates. Related: flow-leaflet-generation
+- [flow-leaflet-generation](flow-leaflet-generation.md) (workflow) — Generates a Czech marketing leaflet in Markdown from a topic, audience and length by retrieving product facts from the Knowledge Base and style examples from the leaflet library, running two Claude calls, and logging each result in LeafletGenerations for 1–5 feedback. Related: job-leaflet-ingestion
+
 ## marketing
 
 [module-marketing](module-marketing.md) — The marketing calendar — a shared plan of marketing actions (posts, blog, newsletter, PR, events, meetings) mirrored with the Outlook marketing group calendar and tagged with products and asset folders.
