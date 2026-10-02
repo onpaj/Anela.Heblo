@@ -5,9 +5,13 @@ Agent-facing catalog of what Heblo does, grouped by module. Each module has an o
 
 ## analytics
 
-_No module overview doc yet._
+[module-analytics](module-analytics.md) — Anela's reporting layer — nightly raw mirrors of the Flexi ledger, Shoptet orders and GA4 traffic for Metabase, plus the in-app margin analysis and import-health statistics.
 
 - [sync-flexi-analytics](sync-flexi-analytics.md) (sync) — Nightly copy of the Flexi (ABRA FlexiBee) general ledger, cost centres, accounting templates and contacts into Heblo_V3.flexi_raw, refreshing the month-grain views Metabase reports read.
+- [sync-ga4-aggregates](sync-ga4-aggregates.md) (sync) — Nightly pull of aggregated Google Analytics 4 web traffic, landing pages, page views and e-commerce purchase events into Heblo_V3.ga4_agg, read by Metabase through five month-grain views. Related: sync-flexi-analytics, sync-shoptet-orders
+- [sync-shoptet-orders](sync-shoptet-orders.md) (sync) — Nightly mirror of every Shoptet (anela.cz) order header and line item into Heblo_V3.shoptet_raw, with a resumable full-history backfill, a materialized order_fact and eleven month-grain views for Metabase. Related: sync-ga4-aggregates, sync-flexi-analytics, calc-bundle-sales-expansion
+- [calc-import-statistics](calc-import-statistics.md) (calculation) — Daily counts of issued invoices and bank statements in Heblo's own database, used to spot days when the Shoptet→Flexi invoice import or the bank statement import did not run (statistics page and dashboard tile).
+- [calc-product-margin-summary](calc-product-margin-summary.md) (calculation) — Margin-analysis report (Analýza marže) that multiplies each product's latest per-unit M0/M1/M2 margin by its units sold in a time window and groups the result by product, family or category, month by month. Related: calc-margins, calc-bundle-sales-expansion
 
 ## article
 
