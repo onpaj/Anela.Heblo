@@ -79,6 +79,12 @@ _No module overview doc yet._
 
 - [sync-ad-platform-transactions](sync-ad-platform-transactions.md) (sync) — Twice-daily pull of Google Ads account budgets and Meta Ads billing transactions into ImportedMarketingTransactions — a table nothing in Heblo reads, empty in production, with both jobs disabled.
 
+## marketing-performance
+
+[module-marketing-performance](module-marketing-performance.md) — Marketing → Analýzy — monthly advertising spend (Meta, Google, Seznam) against e-shop orders and revenue, with PNO, ROAS and year-over-year comparison.
+
+- [calc-marketing-performance](calc-marketing-performance.md) (calculation) — Monthly snapshot of advertising spend (Flexi received invoices from Meta, Google and Seznam) against e-shop orders and revenue (issued invoices), with PNO, ROAS and year-over-year ratios for the Marketing → Analýzy page. Related: sync-flexi-analytics
+
 ## org-chart
 
 [module-org-chart](module-org-chart.md) — Read-only company org chart (Organigram) — Heblo fetches an external JSON file of positions and employees on every request and draws it as a tree; nothing is stored.
