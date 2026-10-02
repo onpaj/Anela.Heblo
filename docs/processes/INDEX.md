@@ -34,3 +34,11 @@ _No module overview doc yet._
 [module-expedition-list-archive](module-expedition-list-archive.md) — Archive of every printed picking list by day, with download and one-click reprint to the warehouse printer.
 
 - [flow-expedition-list-reprint](flow-expedition-list-reprint.md) (workflow) — Lets warehouse staff browse archived picking-list PDFs by day in Azure Blob storage, download one, or send it to the warehouse printer again via CUPS. Related: flow-picking-list
+
+## packaging
+
+[module-packaging](module-packaging.md) — The packing desk (Balení) — scan an e-shop order, create its carrier shipment and print labels in Shoptet, mark it packed, and keep a per-box record for the shipment list and packing statistics.
+
+- [sync-tracking-numbers](sync-tracking-numbers.md) (sync) — Fills in carrier tracking numbers on Heblo package records that had none at scan time, by reading the order's latest active Shoptet shipment every 10 minutes and when the packing desk shows its done screen. Related: flow-order-packing, calc-packing-statistics
+- [calc-packing-statistics](calc-packing-statistics.md) (calculation) — Derives packing-desk numbers — orders waiting in Shoptet, orders packed today per packer, and 30-day throughput, peak hours, carrier mix and tracking coverage — from Heblo's package records and live Shoptet order counts. Related: flow-order-packing, sync-tracking-numbers
+- [flow-order-packing](flow-order-packing.md) (workflow) — Packing-desk flow for e-shop orders — scan an order, create the carrier shipment in Shoptet, print its labels, record the packages in Heblo and move the Shoptet order to "Zabaleno"; plus re-creating a shipment and deleting a package. Related: sync-tracking-numbers, calc-packing-statistics
