@@ -12,7 +12,7 @@ CONFIG = "orphan_mode: {mode}\ninclude: []\nignore: []\n"
 
 
 def doc_text(verified_at: str) -> str:
-    return (f'---\nprocess: sync-a\nkind: sync\nsummary: A sync.\nowns:\n  - backend/src/A/**\n'
+    return (f'---\nprocess: sync-a\nkind: sync\nmodule: catalog\nsummary: A sync.\nowns:\n  - backend/src/A/**\n'
             f'verified_at: "{verified_at}"\nrelated: []\n---\n\n# A\n\n{BODY}\n')
 
 

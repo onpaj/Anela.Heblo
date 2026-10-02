@@ -1,4 +1,4 @@
-from docs_model import REQUIRED_HEADINGS, parse_doc, validate_catalog
+from docs_model import MODULE_HEADINGS, REQUIRED_HEADINGS, parse_doc, validate_catalog
 
 BODY = "\n\n".join(f"{h}\n\nNone." for h in REQUIRED_HEADINGS)
 
@@ -9,6 +9,7 @@ def make(front: str, body: str = BODY) -> str:
 
 GOOD_FRONT = """process: calc-margins
 kind: calculation
+module: catalog
 summary: Computes M0-M3 margins.
 owns:
   - backend/src/**/Margins/**
@@ -82,3 +83,50 @@ def test_catalog_rejects_unknown_related():
                        make(GOOD_FRONT.replace("related: []", "related: [feed-nope]")))
     errors = validate_catalog([doc])
     assert any("feed-nope" in e for e in errors)
+
+
+MODULE_BODY = "\n\n".join(f"{h}\n\nNone." for h in MODULE_HEADINGS)
+MODULE_FRONT = """process: module-catalog
+kind: module
+module: catalog
+summary: Product master data.
+owns: []
+verified_at: "1d75813bb"
+related: []"""
+
+
+def test_valid_module_doc_parses_with_empty_owns():
+    doc, errors = parse_doc("docs/processes/module-catalog.md", make(MODULE_FRONT, MODULE_BODY))
+    assert errors == []
+    assert doc.kind == "module"
+    assert doc.module == "catalog"
+
+
+def test_module_doc_requires_module_headings():
+    _, errors = parse_doc("docs/processes/module-catalog.md", make(MODULE_FRONT))
+    assert any("## Users & screens" in e for e in errors)
+
+
+def test_module_doc_name_must_match_module():
+    front = MODULE_FRONT.replace("module: catalog", "module: bank")
+    _, errors = parse_doc("docs/processes/module-catalog.md", make(front, MODULE_BODY))
+    assert any("module-bank.md" in e for e in errors)
+
+
+def test_missing_module_is_error():
+    front = GOOD_FRONT.replace("module: catalog\n", "")
+    _, errors = parse_doc("docs/processes/calc-margins.md", make(front))
+    assert any("'module'" in e for e in errors)
+
+
+def test_module_must_be_kebab_case():
+    front = GOOD_FRONT.replace("module: catalog", "module: Catalog")
+    _, errors = parse_doc("docs/processes/calc-margins.md", make(front))
+    assert any("kebab-case" in e for e in errors)
+
+
+def test_new_kinds_use_their_prefixes():
+    for kind, stem in (("job", "job-photobank-index"), ("workflow", "flow-packing")):
+        front = GOOD_FRONT.replace("process: calc-margins", f"process: {stem}").replace("kind: calculation", f"kind: {kind}")
+        _, errors = parse_doc(f"docs/processes/{stem}.md", make(front))
+        assert errors == [], errors

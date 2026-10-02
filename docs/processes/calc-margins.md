@@ -1,6 +1,7 @@
 ---
 process: calc-margins
 kind: calculation
+module: catalog
 summary: Per-product monthly margin cascade M0-M3 (material, manufacturing labour, warehouse+marketing, overhead) derived from catalog history and the Flexi ledger, shown on the Marže pages and via MCP.
 owns:
   - backend/src/Anela.Heblo.Application/Features/Catalog/CostProviders/**

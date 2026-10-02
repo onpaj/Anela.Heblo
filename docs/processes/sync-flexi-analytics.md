@@ -1,6 +1,7 @@
 ---
 process: sync-flexi-analytics
 kind: sync
+module: analytics
 summary: Nightly copy of the Flexi (ABRA FlexiBee) general ledger, cost centres, accounting templates and contacts into Heblo_V3.flexi_raw, refreshing the month-grain views Metabase reports read.
 owns:
   - backend/src/Adapters/Anela.Heblo.Adapters.Flexi/Analytics/**

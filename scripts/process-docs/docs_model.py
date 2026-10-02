@@ -7,7 +7,16 @@ import yaml
 
 DOCS_DIR = "docs/processes"
 INDEX_NAME = "INDEX.md"
-KIND_PREFIX = {"sync": "sync", "calculation": "calc", "feed": "feed"}
+KIND_PREFIX = {
+    "sync": "sync",
+    "calculation": "calc",
+    "feed": "feed",
+    "job": "job",
+    "workflow": "flow",
+    "module": "module",
+}
+MODULE_KIND = "module"
+MODULE_RE = re.compile(r"\A[a-z0-9]+(?:-[a-z0-9]+)*\Z")
 REQUIRED_HEADINGS = (
     "## Purpose",
     "## Trigger",
@@ -18,7 +27,17 @@ REQUIRED_HEADINGS = (
     "## Known quirks",
     "## Code entry points",
 )
-REQUIRED_KEYS = ("process", "kind", "summary", "owns", "verified_at", "related")
+MODULE_HEADINGS = (
+    "## Purpose",
+    "## Users & screens",
+    "## Processes",
+    "## Data owned",
+    "## External systems",
+    "## Dependencies",
+    "## Known quirks",
+    "## Code entry points",
+)
+REQUIRED_KEYS = ("process", "kind", "module", "summary", "owns", "verified_at", "related")
 SHA_RE = re.compile(r"\A[0-9a-f]{7,40}\Z")
 FRONTMATTER_RE = re.compile(r"\A---\n(.*?)\n---\n(.*)\Z", re.S)
 
@@ -28,6 +47,7 @@ class ProcessDoc:
     path: str
     process: str
     kind: str
+    module: str
     summary: str
     owns: tuple[str, ...]
     verified_at: str
@@ -47,10 +67,10 @@ def _string_list(meta: dict, key: str, errors: list[str], prefix: str) -> tuple[
     return tuple(value)
 
 
-def _check_headings(body: str, errors: list[str], prefix: str) -> None:
+def _check_headings(body: str, kind: str, errors: list[str], prefix: str) -> None:
     lines = [line.rstrip() for line in body.splitlines()]
     positions = []
-    for heading in REQUIRED_HEADINGS:
+    for heading in MODULE_HEADINGS if kind == MODULE_KIND else REQUIRED_HEADINGS:
         if heading not in lines:
             errors.append(f"{prefix}: missing heading '{heading}'")
         else:
@@ -67,6 +87,11 @@ def _check_identity(meta: dict, stem: str, errors: list[str], prefix: str) -> No
         errors.append(f"{prefix}: filename prefix must be '{KIND_PREFIX[kind]}-' for kind '{kind}'")
     if meta.get("process") != stem:
         errors.append(f"{prefix}: process '{meta.get('process')}' must equal filename stem '{stem}'")
+    module = meta.get("module")
+    if not isinstance(module, str) or not MODULE_RE.match(module):
+        errors.append(f"{prefix}: module '{module}' must be a kebab-case slug, e.g. 'catalog'")
+    elif kind == MODULE_KIND and stem != f"{MODULE_KIND}-{module}":
+        errors.append(f"{prefix}: a module doc for '{module}' must be named '{MODULE_KIND}-{module}.md'")
 
 
 def _check_verified_at(meta: dict, errors: list[str], prefix: str) -> str:
@@ -95,19 +120,21 @@ def parse_doc(rel_path: str, text: str) -> tuple[ProcessDoc | None, list[str]]:
     stem = PurePosixPath(rel_path).stem
     _check_identity(meta, stem, errors, prefix)
     verified_at = _check_verified_at(meta, errors, prefix)
+    kind = meta.get("kind")
     owns = _string_list(meta, "owns", errors, prefix)
-    if not owns:
+    # Module docs are overviews: their processes own the code, so staleness is tracked there.
+    if not owns and kind != MODULE_KIND:
         errors.append(f"{prefix}: 'owns' must list at least one glob")
     related = _string_list(meta, "related", errors, prefix)
     summary = meta.get("summary")
     if not isinstance(summary, str) or not summary.strip():
         errors.append(f"{prefix}: 'summary' must be a non-empty string")
     body = match.group(2)
-    _check_headings(body, errors, prefix)
+    _check_headings(body, kind, errors, prefix)
 
     if errors:
         return None, errors
-    return ProcessDoc(rel_path, stem, meta["kind"], summary.strip(), owns, verified_at, related, body), []
+    return ProcessDoc(rel_path, stem, kind, meta["module"], summary.strip(), owns, verified_at, related, body), []
 
 
 def validate_catalog(docs: list[ProcessDoc]) -> list[str]:
