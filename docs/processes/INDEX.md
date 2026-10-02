@@ -9,6 +9,12 @@ _No module overview doc yet._
 
 - [sync-flexi-analytics](sync-flexi-analytics.md) (sync) — Nightly copy of the Flexi (ABRA FlexiBee) general ledger, cost centres, accounting templates and contacts into Heblo_V3.flexi_raw, refreshing the month-grain views Metabase reports read.
 
+## article
+
+[module-article](module-article.md) — AI article writer for marketing (Generátor článků) — turns a short brief into a researched Czech HTML article draft using the internal knowledge base, Google search and an optional style guide, and collects the requester's quality rating.
+
+- [flow-article-generation](flow-article-generation.md) (workflow) — Turns a marketer's brief from the Article generator (Generátor článků) into a Czech HTML article via a five-step Claude pipeline (plan queries → knowledge base + web search + optional style guide → facts → fact check → write), run as a one-shot Hangfire job, with every step traced in ArticleGenerationSteps and the cited sources stored in ArticleSources.
+
 ## catalog
 
 [module-catalog](module-catalog.md) — The product catalog — one in-memory view of every product, material, semi-product and goods code combining Flexi, Shoptet and Heblo data (stock, prices, history, margins) — plus stock taking, stock-up to Shoptet, product weights and material container/lot labels.
