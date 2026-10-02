@@ -33,6 +33,12 @@ _No module overview doc yet._
 
 - [flow-catalog-document-upload](flow-catalog-document-upload.md) (workflow) — Lists and uploads regulatory files (material MSDS/TDS/COA, product PIF) in the SharePoint folders that belong to a catalog item, finding the folder by a code prefix and naming material files by a fixed scheme.
 
+## ecomail
+
+[module-ecomail](module-ecomail.md) — Collects Anela's Ecomail newsletter and e-mail automation statistics into Heblo every 6 hours, ready for marketing reporting that has not been built yet.
+
+- [sync-ecomail](sync-ecomail.md) (sync) — Every 6 hours pulls Ecomail newsletter (campaign) statistics, the automation list, a daily snapshot of each automation's lifetime counters and per-month automation event counts into four Heblo tables — nothing in Heblo reads them yet.
+
 ## journal
 
 [module-journal](module-journal.md) — Company journal (Deník) — dated free-text notes tagged and linked to products or product families, shown on the /journal page and as highlighted months on the product charts in the catalog detail.
