@@ -27,6 +27,10 @@ _No module overview doc yet._
 
 [module-journal](module-journal.md) — Company journal (Deník) — dated free-text notes tagged and linked to products or product families, shown on the /journal page and as highlighted months on the product charts in the catalog detail.
 
+## org-chart
+
+[module-org-chart](module-org-chart.md) — Read-only company org chart (Organigram) — Heblo fetches an external JSON file of positions and employees on every request and draws it as a tree; nothing is stored.
+
 ## packaging
 
 [module-packaging](module-packaging.md) — The packing desk (Balení) — scan an e-shop order, create its carrier shipment and print labels in Shoptet, mark it packed, and keep a per-box record for the shipment list and packing statistics.
