@@ -72,3 +72,9 @@ _No module overview doc yet._
 [module-packing-materials](module-packing-materials.md) — Tracks stock of packing consumables (boxes, filler, tape…), deducts an estimated daily usage from invoiced orders and forecasts how many days the stock will last.
 
 - [calc-packing-material-consumption](calc-packing-material-consumption.md) (calculation) — Every morning estimates how much of each packing material (boxes, filler, tape…) yesterday's invoiced orders used, subtracts it from the tracked stock and records one consumption row per material and invoice.
+
+## shipment-labels
+
+[module-shipment-labels](module-shipment-labels.md) — Heblo's gateway to Shoptet shipments — creates carrier shipments for packed orders, reads labels and tracking numbers, cancels shipments and reports deliveries; used by the packing desk and the order-completion job.
+
+- [flow-shipment-label](flow-shipment-label.md) (workflow) — Creates carrier shipments in Shoptet for e-shop orders packed at the packing desk, reads back their labels (PDF URL / ZPL) and tracking numbers, cancels them on reset, and tells the order-completion job when a parcel was delivered.
