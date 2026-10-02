@@ -23,6 +23,10 @@ _No module overview doc yet._
 - [calc-margins](calc-margins.md) (calculation) — Per-product monthly margin cascade M0-M3 (material, manufacturing labour, warehouse+marketing, overhead) derived from catalog history and the Flexi ledger, shown on the Marže pages and via MCP. Related: calc-bundle-sales-expansion
 - [feed-stock-up](feed-stock-up.md) (feed) — Pushes warehouse stock changes from received transport boxes and gift-package manufacture/disassembly into Shoptet as relative stock movements, tracked per document number in StockUpOperations.
 
+## journal
+
+[module-journal](module-journal.md) — Company journal (Deník) — dated free-text notes tagged and linked to products or product families, shown on the /journal page and as highlighted months on the product charts in the catalog detail.
+
 ## org-chart
 
 [module-org-chart](module-org-chart.md) — Read-only company org chart (Organigram) — Heblo fetches an external JSON file of positions and employees on every request and draws it as a tree; nothing is stored.
