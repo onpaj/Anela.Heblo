@@ -24,6 +24,13 @@ _No module overview doc yet._
 - [feed-logeto-break-insertion](feed-logeto-break-insertion.md) (feed) — Nightly walk over opted-in workers' Logeto time sheets that inserts a 30-minute break into every working day of 6 h or more without one, and recreates the work records around it so phones show the change. Related: feed-logeto-absence-hours, calc-overtime
 - [flow-overtime-month-close](flow-overtime-month-close.md) (workflow) — Monthly overtime routine on /overtime — review each worker, record adjustments, close the month to freeze the numbers and carry the balance, then publish the "Evidence přesčasů" Excel to SharePoint. Related: calc-overtime
 
+## authorization
+
+[module-authorization](module-authorization.md) — Decides who may use Heblo and what each person may see and change — Heblo users, permission groups that can include other groups, and the permission catalogue every page, endpoint, dashboard tile and MCP tool is gated by.
+
+- [calc-permission-resolution](calc-permission-resolution.md) (calculation) — Works out, on every signed-in request, which Heblo permissions a person holds (their groups, plus the groups those groups include, plus the super_user override), and how the permission catalogue and the starter groups are produced from access-matrix.json. Related: flow-user-access-onboarding
+- [flow-user-access-onboarding](flow-user-access-onboarding.md) (workflow) — How an administrator gives a colleague access to Heblo in Access management — picking them from Entra, putting them into permission groups, editing groups, disabling people, and creating login-less packing operators. Related: calc-permission-resolution, sync-entra-directory
+
 ## bank
 
 [module-bank](module-bank.md) — Loads payout statements from the Comgate and Shoptet Pay payment gateways into FlexiBee bank accounts every morning and keeps an audit log of every statement imported.
@@ -172,3 +179,10 @@ _No module overview doc yet._
 [module-shipment-labels](module-shipment-labels.md) — Heblo's gateway to Shoptet shipments — creates carrier shipments for packed orders, reads labels and tracking numbers, cancels shipments and reports deliveries; used by the packing desk and the order-completion job.
 
 - [flow-shipment-label](flow-shipment-label.md) (workflow) — Creates carrier shipments in Shoptet for e-shop orders packed at the packing desk, reads back their labels (PDF URL / ZPL) and tracking numbers, cancels them on reset, and tells the order-completion job when a parcel was delivered.
+
+## user-management
+
+[module-user-management](module-user-management.md) — Who is signed in (identity from the Microsoft 365 token), live look-ups of Anela's Entra directory through Microsoft Graph, and the list of Flexi cost centres (departments) used as filters.
+
+- [sync-entra-directory](sync-entra-directory.md) (sync) — On-demand, cached reads of Anela's Microsoft 365 directory (Entra ID) through Microsoft Graph — members of an Entra group, and everyone holding Heblo's heblo_user app role — used for onboarding, the MCP GetGroupMembers tool and the article requester backfill. Related: flow-user-access-onboarding, module-article
+- [sync-flexi-departments](sync-flexi-departments.md) (sync) — On-demand, 10-minute-cached read of the cost centres (střediska) from Flexi, offered as the department filter in the financial overview and as a choice in invoice classification rules. Related: sync-flexi-analytics
