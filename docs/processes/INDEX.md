@@ -45,6 +45,12 @@ _No module overview doc yet._
 
 - [calc-financial-overview](calc-financial-overview.md) (calculation) — Monthly company income, expenses and stock value change (a P&L-style view) computed live from the Flexi general ledger and stock-to-date warehouse values, with a year-over-year comparison, shown on Finanční přehled. Related: calc-margins, sync-flexi-analytics
 
+## invoices
+
+[module-invoices](module-invoices.md) — Moves the e-shop's issued invoices (vydané faktury) from Shoptet into ABRA Flexi every night and keeps a per-invoice log of what was sent and whether Flexi accepted it.
+
+- [feed-issued-invoices](feed-issued-invoices.md) (feed) — Copies issued invoices (vydané faktury) from Shoptet into ABRA Flexi every night (EUR 04:00, CZK 04:15, yesterday's invoices) or on demand from the Issued invoices page, fixing product codes on the way and logging every attempt in IssuedInvoices / IssuedInvoiceSyncData.
+
 ## journal
 
 [module-journal](module-journal.md) — Company journal (Deník) — dated free-text notes tagged and linked to products or product families, shown on the /journal page and as highlighted months on the product charts in the catalog detail.
