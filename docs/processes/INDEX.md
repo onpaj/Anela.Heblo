@@ -16,3 +16,10 @@ _No module overview doc yet._
 - [calc-bundle-sales-expansion](calc-bundle-sales-expansion.md) (calculation) — Turns every sold gift package (BAL…/SET…) into quantity-only sale rows for its components, so manufacture, purchase and stock planning see bundle demand while revenue and margins stay on the bundle. Related: calc-margins, feed-stock-up
 - [calc-margins](calc-margins.md) (calculation) — Per-product monthly margin cascade M0-M3 (material, manufacturing labour, warehouse+marketing, overhead) derived from catalog history and the Flexi ledger, shown on the Marže pages and via MCP. Related: calc-bundle-sales-expansion
 - [feed-stock-up](feed-stock-up.md) (feed) — Pushes warehouse stock changes from received transport boxes and gift-package manufacture/disassembly into Shoptet as relative stock movements, tracked per document number in StockUpOperations.
+
+## marketing
+
+[module-marketing](module-marketing.md) — The marketing calendar — a shared plan of marketing actions (posts, blog, newsletter, PR, events, meetings) mirrored with the Outlook marketing group calendar and tagged with products and asset folders.
+
+- [sync-marketing-calendar](sync-marketing-calendar.md) (sync) — Mirrors the Outlook marketing group calendar into Heblo marketing actions (create, update, soft-delete) every hour and on demand from the "Import z Outlooku" button; Outlook is the source of truth. Related: feed-marketing-action-to-outlook
+- [feed-marketing-action-to-outlook](feed-marketing-action-to-outlook.md) (feed) — When PushEnabled is on, creating, editing, moving or deleting a marketing action in Heblo writes the same change to the Outlook marketing group calendar through Microsoft Graph, on behalf of the signed-in user. Related: sync-marketing-calendar
