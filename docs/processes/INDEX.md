@@ -9,6 +9,12 @@ _No module overview doc yet._
 
 - [sync-flexi-analytics](sync-flexi-analytics.md) (sync) — Nightly copy of the Flexi (ABRA FlexiBee) general ledger, cost centres, accounting templates and contacts into Heblo_V3.flexi_raw, refreshing the month-grain views Metabase reports read.
 
+## article
+
+[module-article](module-article.md) — AI article writer for marketing (Generátor článků) — turns a short brief into a researched Czech HTML article draft using the internal knowledge base, Google search and an optional style guide, and collects the requester's quality rating.
+
+- [flow-article-generation](flow-article-generation.md) (workflow) — Turns a marketer's brief from the Article generator (Generátor článků) into a Czech HTML article via a five-step Claude pipeline (plan queries → knowledge base + web search + optional style guide → facts → fact check → write), run as a one-shot Hangfire job, with every step traced in ArticleGenerationSteps and the cited sources stored in ArticleSources.
+
 ## catalog
 
 _No module overview doc yet._
@@ -22,4 +28,4 @@ _No module overview doc yet._
 [module-knowledge-base](module-knowledge-base.md) — Anela's AI knowledge base (RAG) — indexes internal documents and customer chat transcripts from SharePoint into a vector store and answers customer-care questions from them; also the fact source for Smartsupp draft replies, AI articles and leaflets.
 
 - [job-knowledge-base-ingestion](job-knowledge-base-ingestion.md) (job) — Every 15 minutes picks up new files from the SharePoint knowledge-base inbox folders (and any file uploaded by hand), turns them into LLM-summarised, OpenAI-embedded chunks in KnowledgeBaseDocuments/KnowledgeBaseChunks, and moves the processed files to the archive folder. Related: flow-knowledge-base-ask
-- [flow-knowledge-base-ask](flow-knowledge-base-ask.md) (workflow) — Answers a staff question from the knowledge base — expands the query with Claude, finds the closest chunks by vector similarity, lets Claude write a Czech answer with product links resolved from the catalog, logs the interaction to RagInteractionLogs and collects 1–5 star feedback. Related: job-knowledge-base-ingestion
+- [flow-knowledge-base-ask](flow-knowledge-base-ask.md) (workflow) — Answers a staff question from the knowledge base — expands the query with Claude, finds the closest chunks by vector similarity, lets Claude write a Czech answer with product links resolved from the catalog, logs the interaction to RagInteractionLogs and collects 1–5 star feedback. Related: job-knowledge-base-ingestion, flow-article-generation

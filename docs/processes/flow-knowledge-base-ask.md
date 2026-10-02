@@ -18,7 +18,7 @@ owns:
   - backend/src/Anela.Heblo.Persistence/Rag/**
   - backend/src/Anela.Heblo.API/MCP/Tools/KnowledgeBaseTools.cs
 verified_at: "5e993f9e2"
-related: [job-knowledge-base-ingestion]
+related: [job-knowledge-base-ingestion, flow-article-generation]
 ---
 
 # Knowledge base question & answer

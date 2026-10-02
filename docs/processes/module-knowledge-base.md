@@ -5,7 +5,7 @@ module: knowledge-base
 summary: Anela's AI knowledge base (RAG) — indexes internal documents and customer chat transcripts from SharePoint into a vector store and answers customer-care questions from them; also the fact source for Smartsupp draft replies, AI articles and leaflets.
 owns: []
 verified_at: "5e993f9e2"
-related: [job-knowledge-base-ingestion, flow-knowledge-base-ask]
+related: [job-knowledge-base-ingestion, flow-knowledge-base-ask, flow-article-generation]
 ---
 
 # Knowledge base (Poradenství)
