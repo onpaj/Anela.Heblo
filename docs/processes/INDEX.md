@@ -31,6 +31,12 @@ _No module overview doc yet._
 
 [module-journal](module-journal.md) — Company journal (Deník) — dated free-text notes tagged and linked to products or product families, shown on the /journal page and as highlighted months on the product charts in the catalog detail.
 
+## label-identification
+
+[module-label-identification](module-label-identification.md) — Warehouse terminal tool that tells staff which product an unmarked roll of stickers (etiquettes) belongs to, by photographing the label and matching its INCI ingredient list against a built-in reference set.
+
+- [flow-label-identification](flow-label-identification.md) (workflow) — On-demand terminal flow that sends a photo of a product sticker to Claude vision to read its INCI list, fuzzy-matches the text against an embedded reference index of 25 families / 37 product codes, and returns up to 3 candidate products for the operator to confirm.
+
 ## org-chart
 
 [module-org-chart](module-org-chart.md) — Read-only company org chart (Organigram) — Heblo fetches an external JSON file of positions and employees on every request and draws it as a tree; nothing is stored.
