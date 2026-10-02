@@ -99,6 +99,23 @@ internal static class Ga4TestHarness
     public static Ga4Row TrafficRow(string date, string channel, long sessions) =>
         new([date, channel], [sessions.ToString(), "0", "0", "0", "0", "0"]);
 
+    public static ConversionsSyncService ConversionsSync(
+        Ga4DbContext dbContext, IGa4ReportClient client, Ga4SyncOptions options, DateTimeOffset now) =>
+        new(client,
+            new Ga4SyncWatermarkRepository(dbContext),
+            dbContext,
+            Microsoft.Extensions.Options.Options.Create(options),
+            new FixedTimeProvider(now),
+            NullLogger<ConversionsSyncService>.Instance);
+
+    /// <summary>
+    /// Row order matches ConversionsSyncService's Dimensions = ["date", "sessionDefaultChannelGroup"]
+    /// and Metrics = ["transactions", "purchaseRevenue"] exactly — DimensionValues[0] is the date,
+    /// DimensionValues[1] the channel group, MetricValues[0] transactions, MetricValues[1] revenue.
+    /// </summary>
+    public static Ga4Row ConversionsRow(string date, string channelGroup, long transactions, decimal purchaseRevenue) =>
+        new([date, channelGroup], [transactions.ToString(), purchaseRevenue.ToString(CultureInfo.InvariantCulture)]);
+
     public static LandingPageSyncService LandingPageSync(
         Ga4DbContext dbContext, IGa4ReportClient client, Ga4SyncOptions options, DateTimeOffset now) =>
         new(client,
