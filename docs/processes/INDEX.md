@@ -9,6 +9,13 @@ _No module overview doc yet._
 
 - [sync-flexi-analytics](sync-flexi-analytics.md) (sync) — Nightly copy of the Flexi (ABRA FlexiBee) general ledger, cost centres, accounting templates and contacts into Heblo_V3.flexi_raw, refreshing the month-grain views Metabase reports read.
 
+## authorization
+
+[module-authorization](module-authorization.md) — Decides who may use Heblo and what each person may see and change — Heblo users, permission groups that can include other groups, and the permission catalogue every page, endpoint, dashboard tile and MCP tool is gated by.
+
+- [calc-permission-resolution](calc-permission-resolution.md) (calculation) — Works out, on every signed-in request, which Heblo permissions a person holds (their groups, plus the groups those groups include, plus the super_user override), and how the permission catalogue and the starter groups are produced from access-matrix.json. Related: flow-user-access-onboarding
+- [flow-user-access-onboarding](flow-user-access-onboarding.md) (workflow) — How an administrator gives a colleague access to Heblo in Access management — picking them from Entra, putting them into permission groups, editing groups, disabling people, and creating login-less packing operators. Related: calc-permission-resolution, sync-entra-directory
+
 ## catalog
 
 _No module overview doc yet._
@@ -16,3 +23,10 @@ _No module overview doc yet._
 - [calc-bundle-sales-expansion](calc-bundle-sales-expansion.md) (calculation) — Turns every sold gift package (BAL…/SET…) into quantity-only sale rows for its components, so manufacture, purchase and stock planning see bundle demand while revenue and margins stay on the bundle. Related: calc-margins, feed-stock-up
 - [calc-margins](calc-margins.md) (calculation) — Per-product monthly margin cascade M0-M3 (material, manufacturing labour, warehouse+marketing, overhead) derived from catalog history and the Flexi ledger, shown on the Marže pages and via MCP. Related: calc-bundle-sales-expansion
 - [feed-stock-up](feed-stock-up.md) (feed) — Pushes warehouse stock changes from received transport boxes and gift-package manufacture/disassembly into Shoptet as relative stock movements, tracked per document number in StockUpOperations.
+
+## user-management
+
+[module-user-management](module-user-management.md) — Who is signed in (identity from the Microsoft 365 token), live look-ups of Anela's Entra directory through Microsoft Graph, and the list of Flexi cost centres (departments) used as filters.
+
+- [sync-entra-directory](sync-entra-directory.md) (sync) — On-demand, cached reads of Anela's Microsoft 365 directory (Entra ID) through Microsoft Graph — members of an Entra group, and everyone holding Heblo's heblo_user app role — used for onboarding, the MCP GetGroupMembers tool and the article requester backfill. Related: flow-user-access-onboarding
+- [sync-flexi-departments](sync-flexi-departments.md) (sync) — On-demand, 10-minute-cached read of the cost centres (střediska) from Flexi, offered as the department filter in the financial overview and as a choice in invoice classification rules. Related: sync-flexi-analytics
