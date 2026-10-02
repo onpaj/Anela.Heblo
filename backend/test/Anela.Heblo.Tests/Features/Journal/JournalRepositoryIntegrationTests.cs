@@ -122,6 +122,7 @@ public class JournalRepositoryIntegrationTests : IDisposable
             productCodePrefix: null,
             tagIds: null,
             createdByUserId: null,
+            withoutProducts: false,
             pageNumber: 1,
             pageSize: 10,
             sortBy: sortBy!,
@@ -365,6 +366,7 @@ public class JournalRepositoryIntegrationTests : IDisposable
             productCodePrefix: null,
             tagIds: null,
             createdByUserId: null,
+            withoutProducts: false,
             pageNumber: 1,
             pageSize: 10,
             sortBy: "createdByUsername",
@@ -475,6 +477,7 @@ public class JournalRepositoryIntegrationTests : IDisposable
             productCodePrefix: null,
             tagIds: null,
             createdByUserId: null,
+            withoutProducts: false,
             pageNumber: 1,
             pageSize: 50,
             sortBy: "entrydate",
@@ -484,6 +487,55 @@ public class JournalRepositoryIntegrationTests : IDisposable
         result.TotalCount.Should().Be(1);
         result.Items.Should().ContainSingle(e => e.Title == "Searchable live");
         result.Items.Should().NotContain(e => e.Title == "Searchable deleted");
+    }
+
+    [Theory]
+    [InlineData(true, new[] { "Company-wide" })]
+    [InlineData(false, new[] { "Company-wide", "Product entry" })]
+    public async Task SearchEntriesAsync_WithoutProducts_FiltersOutProductEntries(
+        bool withoutProducts,
+        string[] expectedTitles)
+    {
+        // Arrange
+        var companyWide = new JournalEntry
+        {
+            Title = "Company-wide",
+            Content = "label stocktake write-off",
+            EntryDate = new DateTime(2026, 8, 3),
+            CreatedAt = DateTime.UtcNow,
+            ModifiedAt = DateTime.UtcNow,
+            CreatedByUserId = "test-user"
+        };
+        var productEntry = new JournalEntry
+        {
+            Title = "Product entry",
+            Content = "new recipe",
+            EntryDate = new DateTime(2026, 8, 4),
+            CreatedAt = DateTime.UtcNow,
+            ModifiedAt = DateTime.UtcNow,
+            CreatedByUserId = "test-user"
+        };
+        productEntry.AssociateWithProduct("TON002");
+        await _context.Set<JournalEntry>().AddRangeAsync(companyWide, productEntry);
+        await _context.SaveChangesAsync();
+
+        // Act
+        var result = await _repository.SearchEntriesAsync(
+            searchText: null,
+            dateFrom: null,
+            dateTo: null,
+            productCodePrefix: null,
+            tagIds: null,
+            createdByUserId: null,
+            withoutProducts: withoutProducts,
+            pageNumber: 1,
+            pageSize: 50,
+            sortBy: "entrydate",
+            sortDirection: "ASC");
+
+        // Assert
+        result.Items.Select(e => e.Title).Should().Equal(expectedTitles);
+        result.TotalCount.Should().Be(expectedTitles.Length);
     }
 
     private static JournalEntry CreateEntryWithAuthor(

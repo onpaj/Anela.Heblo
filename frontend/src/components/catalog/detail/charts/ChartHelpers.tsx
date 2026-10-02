@@ -1,5 +1,12 @@
 import { JournalEntryDto } from "../../../../api/generated/api-client";
 import {
+  type YearMonth,
+  JOURNAL_MARKER_COLOR,
+  buildJournalPointStyling,
+  buildJournalTooltipCallback,
+  getJournalEntriesForYearMonth,
+} from "../../../charts/journalMarkers";
+import {
   CatalogSalesRecordDto,
   CatalogConsumedRecordDto,
   CatalogPurchaseRecordDto,
@@ -21,39 +28,22 @@ export const generateMonthLabels = (): string[] => {
   return months;
 };
 
+// Calendar month of a slot in the 13-month window (index 12 = current month)
+const getMonthForIndex = (monthIndex: number): YearMonth => {
+  const now = new Date();
+  const date = new Date(now.getFullYear(), now.getMonth() - (12 - monthIndex), 1);
+  return { year: date.getFullYear(), month: date.getMonth() + 1 };
+};
+
+const getMonthsForLength = (dataLength: number): YearMonth[] =>
+  Array.from({ length: dataLength }, (_, i) => getMonthForIndex(i));
+
 // Helper function to get journal entries for a specific month
 export const getJournalEntriesForMonth = (
   monthIndex: number,
   journalEntries: JournalEntryDto[],
-): JournalEntryDto[] => {
-  if (!journalEntries || journalEntries.length === 0) return [];
-
-  const now = new Date();
-  const currentYear = now.getFullYear();
-  const currentMonth = now.getMonth() + 1; // JavaScript months are 0-based, convert to 1-based
-
-  // Calculate the target year and month for the given monthIndex
-  const monthsBack = 12 - monthIndex; // 12 months back to current month
-  let targetYear = currentYear;
-  let targetMonth = currentMonth - monthsBack;
-
-  // Handle year transitions
-  if (targetMonth <= 0) {
-    targetYear--;
-    targetMonth += 12;
-  }
-
-  // Filter journal entries for this specific month and year
-  return journalEntries.filter((entry) => {
-    if (!entry.entryDate) return false;
-
-    const entryDate = new Date(entry.entryDate);
-    const entryYear = entryDate.getFullYear();
-    const entryMonth = entryDate.getMonth() + 1; // Convert to 1-based
-
-    return entryYear === targetYear && entryMonth === targetMonth;
-  });
-};
+): JournalEntryDto[] =>
+  getJournalEntriesForYearMonth(journalEntries, getMonthForIndex(monthIndex));
 
 // Map data to monthly array based on year/month
 export const mapDataToMonthlyArray = (
@@ -103,49 +93,15 @@ export const generatePointStyling = (
   dataLength: number,
   journalEntries: JournalEntryDto[],
   defaultColor: string,
-  journalColor: string = "#F97316",
-) => {
-  const pointBackgroundColors = [];
-  const pointRadiuses = [];
+  journalColor: string = JOURNAL_MARKER_COLOR,
+) =>
+  buildJournalPointStyling(
+    getMonthsForLength(dataLength),
+    journalEntries,
+    defaultColor,
+    journalColor,
+  );
 
-  for (let i = 0; i < dataLength; i++) {
-    const monthEntries = getJournalEntriesForMonth(i, journalEntries);
-    const hasJournalEntries = monthEntries.length > 0;
-
-    pointBackgroundColors.push(hasJournalEntries ? journalColor : defaultColor);
-    pointRadiuses.push(hasJournalEntries ? 6 : 3);
-  }
-
-  return {
-    pointBackgroundColors,
-    pointRadiuses,
-    pointHoverRadiuses: pointRadiuses.map((r) => r + 2),
-  };
-};
-
-// Generate tooltip callback for journal entries
-export const generateTooltipCallback = (journalEntries: JournalEntryDto[]) => ({
-  afterBody: (context: any[]) => {
-    if (context.length === 0) return [];
-
-    // Get the month index from the first context item
-    const monthIndex = context[0].dataIndex;
-    const monthEntries = getJournalEntriesForMonth(monthIndex, journalEntries);
-
-    if (monthEntries.length === 0) return [];
-
-    const journalLines = ["", "Záznamy deníku:"];
-    monthEntries.forEach((entry) => {
-      const date = entry.entryDate
-        ? new Date(entry.entryDate).toLocaleDateString("cs-CZ", {
-            day: "2-digit",
-            month: "2-digit",
-          })
-        : "";
-      const title = entry.title || "Bez názvu";
-      journalLines.push(`• ${date}: ${title}`);
-    });
-
-    return journalLines;
-  },
-});
+// Generate tooltip callback for journal entries (13-month window)
+export const generateTooltipCallback = (journalEntries: JournalEntryDto[]) =>
+  buildJournalTooltipCallback(getMonthsForLength(13), journalEntries);
