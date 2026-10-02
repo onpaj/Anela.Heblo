@@ -79,6 +79,13 @@ _No module overview doc yet._
 
 - [calc-pricing-simulation](calc-pricing-simulation.md) (calculation) — What-if price and cost simulation (Analýza cen) — builds a per-product baseline of price excl. VAT, material and manufacturing cost and 12-month sold pieces from the catalog, applies sparse user overrides, and derives M0/M1 per product plus before/after revenue and margin totals; scenarios can be saved and reopened. Related: calc-margins, calc-bundle-sales-expansion
 
+## product-pricing
+
+[module-product-pricing](module-product-pricing.md) — Keeps the retail selling price (with VAT) the same in Shoptet and ABRA Flexi — a live comparison of both price lists (Ceny produktů), an operator price edit written to both systems, and a one-click push of Shoptet prices into Flexi.
+
+- [calc-price-divergence](calc-price-divergence.md) (calculation) — Live comparison of the retail price with VAT in Shoptet and in ABRA Flexi for every priced catalog product, classified into agreement / difference / missing / unknown — shown on Ceny produktů and fed to the nightly DataQuality price check. Related: flow-product-price-write
+- [flow-product-price-write](flow-product-price-write.md) (workflow) — Operator-driven writes of the retail price with VAT — a price edit written to Shoptet then Flexi, and a Shoptet-to-Flexi sync of the rows on screen — each attempt recorded in ProductPriceChangeLogs. Related: calc-price-divergence
+
 ## shipment-labels
 
 [module-shipment-labels](module-shipment-labels.md) — Heblo's gateway to Shoptet shipments — creates carrier shipments for packed orders, reads labels and tracking numbers, cancels shipments and reports deliveries; used by the packing desk and the order-completion job.
