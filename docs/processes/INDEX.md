@@ -16,3 +16,11 @@ _No module overview doc yet._
 - [calc-bundle-sales-expansion](calc-bundle-sales-expansion.md) (calculation) — Turns every sold gift package (BAL…/SET…) into quantity-only sale rows for its components, so manufacture, purchase and stock planning see bundle demand while revenue and margins stay on the bundle. Related: calc-margins, feed-stock-up
 - [calc-margins](calc-margins.md) (calculation) — Per-product monthly margin cascade M0-M3 (material, manufacturing labour, warehouse+marketing, overhead) derived from catalog history and the Flexi ledger, shown on the Marže pages and via MCP. Related: calc-bundle-sales-expansion
 - [feed-stock-up](feed-stock-up.md) (feed) — Pushes warehouse stock changes from received transport boxes and gift-package manufacture/disassembly into Shoptet as relative stock movements, tracked per document number in StockUpOperations.
+
+## purchase
+
+[module-purchase](module-purchase.md) — Buying side of Anela - purchase orders to suppliers, material stock coverage for deciding what to order, and the nightly upkeep of Flexi purchase prices.
+
+- [calc-purchase-stock-analysis](calc-purchase-stock-analysis.md) (calculation) — Per-material stock coverage for purchasing - consumption rate, days until stock-out, stock efficiency (NS%), severity and a recommended order quantity for every material and goods item, shown on Zásoby materiálu and the dashboard. Related: calc-bundle-sales-expansion, flow-purchase-order
+- [feed-purchase-price-recalculation](feed-purchase-price-recalculation.md) (feed) — Nightly job that keeps the Flexi price list purchase price (ceník nakupCena) right - materials and goods take their average stock price, then Flexi rolls the BoM prices up through semi-products to products and sets. Related: calc-margins
+- [flow-purchase-order](flow-purchase-order.md) (workflow) — Buyers record purchase orders to suppliers in Heblo (Draft → In transit → Completed, plus an invoice-received flag); open order lines become the "Ordered" stock that purchase and manufacturing planning count on. Related: calc-purchase-stock-analysis
