@@ -348,6 +348,15 @@ pr_view() {
     # backlog as `ci-running` — including genuinely failing ones, which
     # therefore never got flagged `still-failing` either. `conclusion` is
     # null while a check is still running, so it can't be upcased blindly.
+    #
+    # The check-runs endpoint returns every check-run ever reported against
+    # this sha, including ones from an earlier, superseded workflow run
+    # (typically CANCELLED when a push retriggers the workflow) alongside
+    # the current run's — same check `name` twice, different outcome. `gh`'s
+    # GraphQL statusCheckRollup already collapses that to one entry per
+    # check name; do the same here by keeping only the most recently
+    # started run per name, or a stale CANCELLED/FAILURE sibling reads as a
+    # real failure even though the check has since passed.
     sha=$(echo "$pr" | jq -r '.head.sha')
     local runs_resp status_resp rollup
     runs_resp=$(req GET "/repos/${REPO}/commits/${sha}/check-runs")
@@ -355,7 +364,7 @@ pr_view() {
     rollup=$(jq -cn \
       --argjson runs "$(emit "$runs_resp")" \
       --argjson status "$(emit "$status_resp")" \
-      '[($runs.check_runs // [])[] | {__typename:"CheckRun",
+      '[($runs.check_runs // []) | group_by(.name) | .[] | max_by(.started_at) | {__typename:"CheckRun",
           status: (.status | ascii_upcase),
           conclusion: (if .conclusion then (.conclusion | ascii_upcase) else null end)}]
        + [($status.statuses // [])[] | {__typename:"StatusContext", state: (.state | ascii_upcase)}]')
