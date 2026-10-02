@@ -17,6 +17,8 @@ public static class DataQualityModule
         services.AddScoped<IDriftDqtJobRunner, DriftDqtJobRunner>();
         services.AddScoped<IDqtJobRunner, InvoiceDqtJobRunner>();
         services.AddScoped<IDqtJobRunner, DriftDqtJobRunner>();
+        services.AddScoped<IDqtResultShaper, InvoiceDqtResultShaper>();
+        services.AddScoped<IDqtResultShaper, DriftDqtResultShaper>();
         services.AddScoped<IDriftDqtComparer, ProductPairingDqtComparer>();
         services.AddScoped<IDriftDqtComparer, StockWriteBackDqtComparer>();
         services.AddScoped<IDriftDqtComparer, LotStockReconciliationComparer>();
