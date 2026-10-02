@@ -15,6 +15,10 @@ _No module overview doc yet._
 
 - [flow-article-generation](flow-article-generation.md) (workflow) — Turns a marketer's brief from the Article generator (Generátor článků) into a Czech HTML article via a five-step Claude pipeline (plan queries → knowledge base + web search + optional style guide → facts → fact check → write), run as a one-shot Hangfire job, with every step traced in ArticleGenerationSteps and the cited sources stored in ArticleSources.
 
+## carrier-cooling
+
+[module-carrier-cooling](module-carrier-cooling.md) — Per-carrier cooling rules (carrier × delivery handling → None/L1/L2 + badge text) that decide which parcels get a cooling pack, the "CHLAZENÁ ZÁSILKA" badge on picking lists, the Shoptet CHLAZENE marker and the snowflake at the packing desk.
+
 ## catalog
 
 _No module overview doc yet._
@@ -23,8 +27,73 @@ _No module overview doc yet._
 - [calc-margins](calc-margins.md) (calculation) — Per-product monthly margin cascade M0-M3 (material, manufacturing labour, warehouse+marketing, overhead) derived from catalog history and the Flexi ledger, shown on the Marže pages and via MCP. Related: calc-bundle-sales-expansion
 - [feed-stock-up](feed-stock-up.md) (feed) — Pushes warehouse stock changes from received transport boxes and gift-package manufacture/disassembly into Shoptet as relative stock movements, tracked per document number in StockUpOperations.
 
+## catalog-documents
+
+[module-catalog-documents](module-catalog-documents.md) — Shows and uploads the regulatory files of a catalog item (material safety/technical sheets and lot certificates, product PIF) that live in the company SharePoint.
+
+- [flow-catalog-document-upload](flow-catalog-document-upload.md) (workflow) — Lists and uploads regulatory files (material MSDS/TDS/COA, product PIF) in the SharePoint folders that belong to a catalog item, finding the folder by a code prefix and naming material files by a fixed scheme.
+
+## ecomail
+
+[module-ecomail](module-ecomail.md) — Collects Anela's Ecomail newsletter and e-mail automation statistics into Heblo every 6 hours, ready for marketing reporting that has not been built yet.
+
+- [sync-ecomail](sync-ecomail.md) (sync) — Every 6 hours pulls Ecomail newsletter (campaign) statistics, the automation list, a daily snapshot of each automation's lifetime counters and per-month automation event counts into four Heblo tables — nothing in Heblo reads them yet.
+
+## financial-overview
+
+[module-financial-overview](module-financial-overview.md) — Company-level monthly income, expenses and stock value change from the Flexi ledger, with a year-over-year comparison (Finanční přehled).
+
+- [calc-financial-overview](calc-financial-overview.md) (calculation) — Monthly company income, expenses and stock value change (a P&L-style view) computed live from the Flexi general ledger and stock-to-date warehouse values, with a year-over-year comparison, shown on Finanční přehled. Related: calc-margins, sync-flexi-analytics
+
 ## invoices
 
 [module-invoices](module-invoices.md) — Moves the e-shop's issued invoices (vydané faktury) from Shoptet into ABRA Flexi every night and keeps a per-invoice log of what was sent and whether Flexi accepted it.
 
 - [feed-issued-invoices](feed-issued-invoices.md) (feed) — Copies issued invoices (vydané faktury) from Shoptet into ABRA Flexi every night (EUR 04:00, CZK 04:15, yesterday's invoices) or on demand from the Issued invoices page, fixing product codes on the way and logging every attempt in IssuedInvoices / IssuedInvoiceSyncData.
+
+## journal
+
+[module-journal](module-journal.md) — Company journal (Deník) — dated free-text notes tagged and linked to products or product families, shown on the /journal page and as highlighted months on the product charts in the catalog detail.
+
+## label-identification
+
+[module-label-identification](module-label-identification.md) — Warehouse terminal tool that tells staff which product an unmarked roll of stickers (etiquettes) belongs to, by photographing the label and matching its INCI ingredient list against a built-in reference set.
+
+- [flow-label-identification](flow-label-identification.md) (workflow) — On-demand terminal flow that sends a photo of a product sticker to Claude vision to read its INCI list, fuzzy-matches the text against an embedded reference index of 25 families / 37 product codes, and returns up to 3 candidate products for the operator to confirm.
+
+## org-chart
+
+[module-org-chart](module-org-chart.md) — Read-only company org chart (Organigram) — Heblo fetches an external JSON file of positions and employees on every request and draws it as a tree; nothing is stored.
+
+## packaging
+
+[module-packaging](module-packaging.md) — The packing desk (Balení) — scan an e-shop order, create its carrier shipment and print labels in Shoptet, mark it packed, and keep a per-box record for the shipment list and packing statistics.
+
+- [sync-tracking-numbers](sync-tracking-numbers.md) (sync) — Fills in carrier tracking numbers on Heblo package records that had none at scan time, by reading the order's latest active Shoptet shipment every 10 minutes and when the packing desk shows its done screen. Related: flow-order-packing, calc-packing-statistics
+- [calc-packing-statistics](calc-packing-statistics.md) (calculation) — Derives packing-desk numbers — orders waiting in Shoptet, orders packed today per packer, and 30-day throughput, peak hours, carrier mix and tracking coverage — from Heblo's package records and live Shoptet order counts. Related: flow-order-packing, sync-tracking-numbers
+- [flow-order-packing](flow-order-packing.md) (workflow) — Packing-desk flow for e-shop orders — scan an order, create the carrier shipment in Shoptet, print its labels, record the packages in Heblo and move the Shoptet order to "Zabaleno"; plus re-creating a shipment and deleting a package. Related: sync-tracking-numbers, calc-packing-statistics
+
+## packing-materials
+
+[module-packing-materials](module-packing-materials.md) — Tracks stock of packing consumables (boxes, filler, tape…), deducts an estimated daily usage from invoiced orders and forecasts how many days the stock will last.
+
+- [calc-packing-material-consumption](calc-packing-material-consumption.md) (calculation) — Every morning estimates how much of each packing material (boxes, filler, tape…) yesterday's invoiced orders used, subtracts it from the tracked stock and records one consumption row per material and invoice.
+
+## pricing
+
+[module-pricing](module-pricing.md) — Price analysis simulator (Analýza cen) — lets finance try new prices, costs and sales forecasts per product and see the effect on revenue and M0/M1 margin before deciding a new price list; saves named scenarios and exports a draft ceník, never writes prices anywhere.
+
+- [calc-pricing-simulation](calc-pricing-simulation.md) (calculation) — What-if price and cost simulation (Analýza cen) — builds a per-product baseline of price excl. VAT, material and manufacturing cost and 12-month sold pieces from the catalog, applies sparse user overrides, and derives M0/M1 per product plus before/after revenue and margin totals; scenarios can be saved and reopened. Related: calc-margins, calc-bundle-sales-expansion
+
+## product-pricing
+
+[module-product-pricing](module-product-pricing.md) — Keeps the retail selling price (with VAT) the same in Shoptet and ABRA Flexi — a live comparison of both price lists (Ceny produktů), an operator price edit written to both systems, and a one-click push of Shoptet prices into Flexi.
+
+- [calc-price-divergence](calc-price-divergence.md) (calculation) — Live comparison of the retail price with VAT in Shoptet and in ABRA Flexi for every priced catalog product, classified into agreement / difference / missing / unknown — shown on Ceny produktů and fed to the nightly DataQuality price check. Related: flow-product-price-write
+- [flow-product-price-write](flow-product-price-write.md) (workflow) — Operator-driven writes of the retail price with VAT — a price edit written to Shoptet then Flexi, and a Shoptet-to-Flexi sync of the rows on screen — each attempt recorded in ProductPriceChangeLogs. Related: calc-price-divergence
+
+## shipment-labels
+
+[module-shipment-labels](module-shipment-labels.md) — Heblo's gateway to Shoptet shipments — creates carrier shipments for packed orders, reads labels and tracking numbers, cancels shipments and reports deliveries; used by the packing desk and the order-completion job.
+
+- [flow-shipment-label](flow-shipment-label.md) (workflow) — Creates carrier shipments in Shoptet for e-shop orders packed at the packing desk, reads back their labels (PDF URL / ZPL) and tracking numbers, cancels them on reset, and tells the order-completion job when a parcel was delivered.
