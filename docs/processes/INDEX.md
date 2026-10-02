@@ -92,6 +92,12 @@ _No module overview doc yet._
 
 - [calc-marketing-performance](calc-marketing-performance.md) (calculation) — Monthly snapshot of advertising spend (Flexi received invoices from Meta, Google and Seznam) against e-shop orders and revenue (issued invoices), with PNO, ROAS and year-over-year ratios for the Marketing → Analýzy page. Related: sync-flexi-analytics
 
+## mind-maps
+
+[module-mind-maps](module-mind-maps.md) — Living project mind maps (Myšlenkové mapy) that Claude evolves meeting by meeting from recorded meeting transcripts, editable by hand with auto-locking and full version history.
+
+- [job-mindmap-update](job-mindmap-update.md) (job) — Background Hangfire job that feeds each newly attached meeting transcript to Claude and merges the reply into the mind map under a deterministic lock guard, snapshotting a version before every change.
+
 ## org-chart
 
 [module-org-chart](module-org-chart.md) — Read-only company org chart (Organigram) — Heblo fetches an external JSON file of positions and employees on every request and draws it as a tree; nothing is stored.
