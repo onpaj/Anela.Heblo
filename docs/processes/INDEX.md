@@ -15,6 +15,10 @@ _No module overview doc yet._
 
 - [flow-article-generation](flow-article-generation.md) (workflow) — Turns a marketer's brief from the Article generator (Generátor článků) into a Czech HTML article via a five-step Claude pipeline (plan queries → knowledge base + web search + optional style guide → facts → fact check → write), run as a one-shot Hangfire job, with every step traced in ArticleGenerationSteps and the cited sources stored in ArticleSources.
 
+## carrier-cooling
+
+[module-carrier-cooling](module-carrier-cooling.md) — Per-carrier cooling rules (carrier × delivery handling → None/L1/L2 + badge text) that decide which parcels get a cooling pack, the "CHLAZENÁ ZÁSILKA" badge on picking lists, the Shoptet CHLAZENE marker and the snowflake at the packing desk.
+
 ## catalog
 
 _No module overview doc yet._
