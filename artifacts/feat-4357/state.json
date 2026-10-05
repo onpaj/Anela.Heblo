@@ -21,16 +21,16 @@
       "updated_at": "2026-10-05T06:11:39.735118Z"
     },
     "developing": {
-      "status": "pending",
-      "updated_at": null
+      "status": "in_progress",
+      "updated_at": "2026-10-05T06:15:38.978264Z"
     }
   },
   "tasks": [
     {
       "name": "add-url-redactor",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-10-05T06:15:39.173737Z"
     },
     {
       "name": "use-redactor-in-handler-and-adapter",
