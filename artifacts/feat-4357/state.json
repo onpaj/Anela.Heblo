@@ -34,9 +34,9 @@
     },
     {
       "name": "use-redactor-in-handler-and-adapter",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-10-05T07:15:53.892449Z"
+      "updated_at": "2026-10-05T07:20:31.351351Z"
     }
   ]
 }
