@@ -70,6 +70,9 @@ public class GetPackageLabelPdfHandler : IRequestHandler<GetPackageLabelPdfReque
             return new GetPackageLabelPdfResponse(ErrorCodes.PackageLabelNotFound);
         }
 
+        // Resolved before the download so a cancelled lookup never leaves a carrier response open.
+        var shouldRotate = await ShouldRotateAsync(request, ct);
+
         var http = _httpClientFactory.CreateClient(HttpClientName);
 
         HttpResponseMessage carrierResponse;
@@ -95,7 +98,7 @@ public class GetPackageLabelPdfHandler : IRequestHandler<GetPackageLabelPdfReque
         var contentType = carrierResponse.Content.Headers.ContentType?.MediaType ?? "application/pdf";
         var stream = await carrierResponse.Content.ReadAsStreamAsync(ct);
 
-        if (await ShouldRotateAsync(request, ct))
+        if (shouldRotate)
             stream = await RotateHalfTurnAsync(stream, request, ct);
 
         return new GetPackageLabelPdfResponse
