@@ -28,9 +28,9 @@
   "tasks": [
     {
       "name": "add-url-redactor",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-10-05T06:15:39.173737Z"
+      "updated_at": "2026-10-05T06:47:59.091013Z"
     },
     {
       "name": "use-redactor-in-handler-and-adapter",
