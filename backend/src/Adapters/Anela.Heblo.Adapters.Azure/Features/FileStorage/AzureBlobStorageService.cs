@@ -29,9 +29,10 @@ public sealed class AzureBlobStorageService : IBlobStorageService
     /// <inheritdoc />
     public async Task<string> DownloadFromUrlAsync(string fileUrl, string containerName, string? blobName = null, CancellationToken cancellationToken = default)
     {
+        var redactedUrl = UrlRedactor.Redact(fileUrl);
         try
         {
-            _logger.LogInformation("Starting download from URL: {FileUrl}", fileUrl);
+            _logger.LogInformation("Starting download from URL: {FileUrl}", redactedUrl);
 
             // Download file from URL — resolve the named client per call so socket pooling
             // is managed by IHttpClientFactory (SocketsHttpHandler with PooledConnectionLifetime).
@@ -66,7 +67,7 @@ public sealed class AzureBlobStorageService : IBlobStorageService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error downloading from URL {FileUrl} and uploading to container {ContainerName}", fileUrl, containerName);
+            _logger.LogError(ex, "Error downloading from URL {FileUrl} and uploading to container {ContainerName}", redactedUrl, containerName);
             throw;
         }
     }

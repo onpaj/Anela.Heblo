@@ -42,7 +42,7 @@ public sealed class DownloadFromUrlHandler : IRequestHandler<DownloadFromUrlRequ
             request.FileUrl,
             request.ContainerName);
 
-        var redactedUrl = RedactUrl(request.FileUrl);
+        var redactedUrl = UrlRedactor.Redact(request.FileUrl);
         var sw = Stopwatch.StartNew();
         int attemptCount = 0;
 
@@ -151,19 +151,6 @@ public sealed class DownloadFromUrlHandler : IRequestHandler<DownloadFromUrlRequ
                 ["error"] = error,
             },
         };
-
-    private static string RedactUrl(string url)
-    {
-        try
-        {
-            var ub = new UriBuilder(url) { Query = null };
-            return ub.Uri.ToString();
-        }
-        catch
-        {
-            return "[redacted]";
-        }
-    }
 
     private static string GetBlobNameFromUrl(string blobUrl)
     {
