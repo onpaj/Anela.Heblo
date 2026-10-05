@@ -135,6 +135,7 @@ public static class ShoptetApiAdapterServiceCollectionExtensions
         services.AddTransient<IPickingListSource, ShoptetApiExpeditionListSource>();
         services.AddTransient<IPackingOrderClient, ShoptetApiPackingOrderClient>();
         services.AddTransient<IPackingOrderCountSource, ShoptetApiPackingOrderClient>();
+        services.AddTransient<IPackingOrderShippingSource, ShoptetApiPackingOrderClient>();
 
         services.AddHttpClient<IProductEshopUrlClient, HeurekaProductFeedClient>();
         services.Configure<HeurekaFeedOptions>(configuration.GetSection(HeurekaFeedOptions.ConfigKey));

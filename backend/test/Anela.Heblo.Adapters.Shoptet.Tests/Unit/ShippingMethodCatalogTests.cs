@@ -119,4 +119,23 @@ public class ShippingMethodCatalogTests
     {
         _sut.ResolveCarrier(code).Should().BeNull();
     }
+
+    [Theory]
+    [InlineData("138ec07f-0119-11ec-a39f-002590dc5efc", Carriers.GLS)]
+    [InlineData("53db451b-6344-11f1-9239-bc241122355e", Carriers.GLS)]
+    [InlineData("8448f4b6-6344-11f1-9239-bc241122355e", Carriers.GLS)]
+    [InlineData("2ec88ea7-3fb0-11e2-a723-705ab6a2ba75", Carriers.PPL)]
+    [InlineData("f6610d4d-578d-11e9-beb1-002590dad85e", Carriers.Zasilkovna)]
+    public void ResolveCarrierByShippingGuid_KnownGuid_ReturnsCarrier(string shippingGuid, Carriers expected)
+    {
+        _sut.ResolveCarrierByShippingGuid(shippingGuid).Should().Be(expected);
+    }
+
+    [Theory]
+    [InlineData("00000000-0000-0000-0000-000000000000")]
+    [InlineData("")]
+    public void ResolveCarrierByShippingGuid_UnknownGuid_ReturnsNull(string shippingGuid)
+    {
+        _sut.ResolveCarrierByShippingGuid(shippingGuid).Should().BeNull();
+    }
 }

@@ -1,5 +1,9 @@
+using Anela.Heblo.Application.Features.FeatureFlags;
+using Anela.Heblo.Application.Features.Packaging.Contracts;
+using Anela.Heblo.Application.Features.Packaging.Services;
 using Anela.Heblo.Application.Features.ShipmentLabels;
 using Anela.Heblo.Application.Shared;
+using Anela.Heblo.Domain.Features.Logistics;
 using MediatR;
 using Microsoft.Extensions.Logging;
 
@@ -11,15 +15,24 @@ public class GetPackageLabelPdfHandler : IRequestHandler<GetPackageLabelPdfReque
 
     private readonly IShipmentClient _shipmentClient;
     private readonly IHttpClientFactory _httpClientFactory;
+    private readonly IPackingOrderShippingSource _orderShippingSource;
+    private readonly IShippingMethodCatalog _shippingCatalog;
+    private readonly IFeatureFlagChecker _featureFlags;
     private readonly ILogger<GetPackageLabelPdfHandler> _logger;
 
     public GetPackageLabelPdfHandler(
         IShipmentClient shipmentClient,
         IHttpClientFactory httpClientFactory,
+        IPackingOrderShippingSource orderShippingSource,
+        IShippingMethodCatalog shippingCatalog,
+        IFeatureFlagChecker featureFlags,
         ILogger<GetPackageLabelPdfHandler> logger)
     {
         _shipmentClient = shipmentClient;
         _httpClientFactory = httpClientFactory;
+        _orderShippingSource = orderShippingSource;
+        _shippingCatalog = shippingCatalog;
+        _featureFlags = featureFlags;
         _logger = logger;
     }
 
@@ -82,11 +95,61 @@ public class GetPackageLabelPdfHandler : IRequestHandler<GetPackageLabelPdfReque
         var contentType = carrierResponse.Content.Headers.ContentType?.MediaType ?? "application/pdf";
         var stream = await carrierResponse.Content.ReadAsStreamAsync(ct);
 
+        if (await ShouldRotateAsync(request, ct))
+            stream = await RotateHalfTurnAsync(stream, request, ct);
+
         return new GetPackageLabelPdfResponse
         {
             Content = stream,
             ContentType = contentType,
             FileName = $"{request.OrderCode}-{request.PackageNumber}.pdf",
         };
+    }
+
+    /// <summary>
+    /// GLS labels come out of the Zebra the wrong way round, so they are turned upside down when
+    /// the flag is on. A failed carrier lookup only skips the rotation — the label still prints.
+    /// </summary>
+    private async Task<bool> ShouldRotateAsync(GetPackageLabelPdfRequest request, CancellationToken ct)
+    {
+        if (!await _featureFlags.IsEnabledAsync(FeatureFlagKeys.GlsLabelRotation, ct))
+            return false;
+
+        try
+        {
+            var shippingGuid = await _orderShippingSource.GetShippingMethodGuidAsync(request.OrderCode, ct);
+            return shippingGuid is not null
+                && _shippingCatalog.ResolveCarrierByShippingGuid(shippingGuid) == Carriers.GLS;
+        }
+        catch (Exception ex) when (!ct.IsCancellationRequested)
+        {
+            _logger.LogWarning(ex,
+                "Could not resolve carrier for order {OrderCode} package {PackageNumber}; printing label unrotated",
+                request.OrderCode, request.PackageNumber);
+            return false;
+        }
+    }
+
+    private async Task<Stream> RotateHalfTurnAsync(Stream stream, GetPackageLabelPdfRequest request, CancellationToken ct)
+    {
+        byte[] original;
+        await using (stream)
+        {
+            using var buffer = new MemoryStream();
+            await stream.CopyToAsync(buffer, ct);
+            original = buffer.ToArray();
+        }
+
+        try
+        {
+            return new MemoryStream(LabelPdfRotator.RotateHalfTurn(original));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex,
+                "Failed to rotate GLS label PDF for order {OrderCode} package {PackageNumber}; printing label unrotated",
+                request.OrderCode, request.PackageNumber);
+            return new MemoryStream(original);
+        }
     }
 }

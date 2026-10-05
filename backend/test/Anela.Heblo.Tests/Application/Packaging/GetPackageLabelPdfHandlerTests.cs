@@ -1,12 +1,17 @@
 using System.Net;
 using System.Text;
+using Anela.Heblo.Application.Features.FeatureFlags;
+using Anela.Heblo.Application.Features.Packaging.Contracts;
 using Anela.Heblo.Application.Features.Packaging.UseCases.GetPackageLabelPdf;
 using Anela.Heblo.Application.Features.ShipmentLabels;
 using Anela.Heblo.Application.Shared;
+using Anela.Heblo.Domain.Features.Logistics;
 using FluentAssertions;
 using Microsoft.Extensions.Logging;
 using Moq;
 using Moq.Protected;
+using PdfSharp.Pdf;
+using PdfSharp.Pdf.IO;
 
 namespace Anela.Heblo.Tests.Application.Packaging;
 
@@ -21,6 +26,11 @@ public class GetPackageLabelPdfHandlerTests
     private readonly Mock<HttpMessageHandler> _httpMessageHandler = new(MockBehavior.Strict);
     private readonly Mock<IHttpClientFactory> _httpClientFactory = new();
     private readonly Mock<ILogger<GetPackageLabelPdfHandler>> _logger = new();
+    private const string ShippingGuid = "shipping-guid";
+
+    private readonly Mock<IPackingOrderShippingSource> _orderShippingSource = new();
+    private readonly Mock<IShippingMethodCatalog> _shippingCatalog = new();
+    private readonly Mock<IFeatureFlagChecker> _featureFlags = new();
 
     public GetPackageLabelPdfHandlerTests()
     {
@@ -30,7 +40,8 @@ public class GetPackageLabelPdfHandlerTests
     }
 
     private GetPackageLabelPdfHandler CreateHandler() =>
-        new(_shipmentClient.Object, _httpClientFactory.Object, _logger.Object);
+        new(_shipmentClient.Object, _httpClientFactory.Object, _orderShippingSource.Object, _shippingCatalog.Object,
+            _featureFlags.Object, _logger.Object);
 
     private static GetPackageLabelPdfRequest Request() => new()
     {
@@ -210,5 +221,165 @@ public class GetPackageLabelPdfHandlerTests
         using var ms = new MemoryStream();
         await response.Content!.CopyToAsync(ms);
         ms.ToArray().Should().BeEquivalentTo(pdfBytes);
+    }
+
+    private void SetupGlsRotationFlag(bool isEnabled) =>
+        _featureFlags
+            .Setup(f => f.IsEnabledAsync(FeatureFlagKeys.GlsLabelRotation, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(isEnabled);
+
+    private void SetupCarrier(Carriers? carrier)
+    {
+        _orderShippingSource
+            .Setup(c => c.GetShippingMethodGuidAsync(OrderCode, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(ShippingGuid);
+        _shippingCatalog
+            .Setup(c => c.ResolveCarrierByShippingGuid(ShippingGuid))
+            .Returns(carrier);
+    }
+
+    private void SetupLabelPdf(byte[] pdfBytes)
+    {
+        SetupShipmentLabels(new ShipmentLabel
+        {
+            ShipmentGuid = Guid.NewGuid(),
+            OrderCode = OrderCode,
+            PackageName = PackageName,
+            LabelUrl = LabelUrl,
+        });
+        var pdfResponse = new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = new ByteArrayContent(pdfBytes),
+        };
+        pdfResponse.Content.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("application/pdf");
+        SetupHttpResponse(pdfResponse);
+    }
+
+    private static byte[] CreatePdf(int pageCount, int pageRotation = 0)
+    {
+        using var document = new PdfDocument();
+        for (var i = 0; i < pageCount; i++)
+            document.AddPage().Rotate = pageRotation;
+
+        using var ms = new MemoryStream();
+        document.Save(ms);
+        return ms.ToArray();
+    }
+
+    private static async Task<byte[]> ReadContentAsync(GetPackageLabelPdfResponse response)
+    {
+        using var ms = new MemoryStream();
+        await response.Content!.CopyToAsync(ms);
+        return ms.ToArray();
+    }
+
+    private static IReadOnlyList<int> PageRotations(byte[] pdfBytes)
+    {
+        using var document = PdfReader.Open(new MemoryStream(pdfBytes), PdfDocumentOpenMode.Import);
+        return document.Pages.Cast<PdfPage>().Select(p => p.Rotate).ToList();
+    }
+
+    [Fact]
+    public async Task Handle_GlsRotationFlagOff_ReturnsPdfUnchangedWithoutCarrierLookup()
+    {
+        var pdfBytes = CreatePdf(pageCount: 1);
+        SetupLabelPdf(pdfBytes);
+        SetupGlsRotationFlag(isEnabled: false);
+
+        var response = await CreateHandler().Handle(Request(), CancellationToken.None);
+
+        (await ReadContentAsync(response)).Should().BeEquivalentTo(pdfBytes);
+        _orderShippingSource.Verify(
+            c => c.GetShippingMethodGuidAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task Handle_GlsRotationFlagOn_GlsOrder_RotatesEveryPageBy180()
+    {
+        SetupLabelPdf(CreatePdf(pageCount: 2));
+        SetupGlsRotationFlag(isEnabled: true);
+        SetupCarrier(Carriers.GLS);
+
+        var response = await CreateHandler().Handle(Request(), CancellationToken.None);
+
+        response.Success.Should().BeTrue();
+        response.ContentType.Should().Be("application/pdf");
+        PageRotations(await ReadContentAsync(response)).Should().Equal(180, 180);
+    }
+
+    [Fact]
+    public async Task Handle_GlsRotationFlagOn_GlsOrder_AddsToExistingPageRotation()
+    {
+        SetupLabelPdf(CreatePdf(pageCount: 1, pageRotation: 270));
+        SetupGlsRotationFlag(isEnabled: true);
+        SetupCarrier(Carriers.GLS);
+
+        var response = await CreateHandler().Handle(Request(), CancellationToken.None);
+
+        PageRotations(await ReadContentAsync(response)).Should().Equal(90);
+    }
+
+    [Theory]
+    [InlineData(Carriers.PPL)]
+    [InlineData(Carriers.Zasilkovna)]
+    [InlineData(null)]
+    public async Task Handle_GlsRotationFlagOn_NonGlsOrder_ReturnsPdfUnchanged(Carriers? carrier)
+    {
+        var pdfBytes = CreatePdf(pageCount: 1);
+        SetupLabelPdf(pdfBytes);
+        SetupGlsRotationFlag(isEnabled: true);
+        SetupCarrier(carrier);
+
+        var response = await CreateHandler().Handle(Request(), CancellationToken.None);
+
+        (await ReadContentAsync(response)).Should().BeEquivalentTo(pdfBytes);
+    }
+
+    [Fact]
+    public async Task Handle_GlsRotationFlagOn_OrderHasNoShippingMethod_ReturnsPdfUnchanged()
+    {
+        var pdfBytes = CreatePdf(pageCount: 1);
+        SetupLabelPdf(pdfBytes);
+        SetupGlsRotationFlag(isEnabled: true);
+        _orderShippingSource
+            .Setup(c => c.GetShippingMethodGuidAsync(OrderCode, It.IsAny<CancellationToken>()))
+            .ReturnsAsync((string?)null);
+
+        var response = await CreateHandler().Handle(Request(), CancellationToken.None);
+
+        (await ReadContentAsync(response)).Should().BeEquivalentTo(pdfBytes);
+    }
+
+    [Fact]
+    public async Task Handle_GlsRotationFlagOn_CarrierLookupThrows_ReturnsPdfUnchanged()
+    {
+        // An upside-down label is still usable; failing the print is not.
+        var pdfBytes = CreatePdf(pageCount: 1);
+        SetupLabelPdf(pdfBytes);
+        SetupGlsRotationFlag(isEnabled: true);
+        _orderShippingSource
+            .Setup(c => c.GetShippingMethodGuidAsync(OrderCode, It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new HttpRequestException("shoptet down"));
+
+        var response = await CreateHandler().Handle(Request(), CancellationToken.None);
+
+        response.Success.Should().BeTrue();
+        (await ReadContentAsync(response)).Should().BeEquivalentTo(pdfBytes);
+        VerifyLogged(LogLevel.Warning, Times.Once());
+    }
+
+    [Fact]
+    public async Task Handle_GlsRotationFlagOn_LabelIsNotAValidPdf_ReturnsOriginalBytes()
+    {
+        var notAPdf = Encoding.UTF8.GetBytes("%PDF-1.4 fake");
+        SetupLabelPdf(notAPdf);
+        SetupGlsRotationFlag(isEnabled: true);
+        SetupCarrier(Carriers.GLS);
+
+        var response = await CreateHandler().Handle(Request(), CancellationToken.None);
+
+        response.Success.Should().BeTrue();
+        (await ReadContentAsync(response)).Should().BeEquivalentTo(notAPdf);
+        VerifyLogged(LogLevel.Warning, Times.Once());
     }
 }

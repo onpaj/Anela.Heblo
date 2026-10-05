@@ -26,4 +26,10 @@ public static class FeatureFlagKeys
     /// labels are still generated and persisted as Unassigned. Off on Staging (no printer).
     /// </summary>
     public const string LabelPrintingEnabled = "is-label-printing-enabled";
+
+    /// <summary>
+    /// When on, GLS shipping-label PDFs served to the packing desk are rotated 180° before
+    /// printing, so they come out of the Zebra the other way around. Other carriers are untouched.
+    /// </summary>
+    public const string GlsLabelRotation = "is-gls-label-rotation-enabled";
 }

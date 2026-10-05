@@ -7,6 +7,7 @@ owns:
   - backend/src/Anela.Heblo.API/Controllers/PackagingController.cs
   - backend/src/Anela.Heblo.Application/Features/Packaging/PackagingModule.cs
   - backend/src/Anela.Heblo.Application/Features/Packaging/Contracts/IPackedOrderStatusUpdater.cs
+  - backend/src/Anela.Heblo.Application/Features/Packaging/Contracts/IPackingOrderShippingSource.cs
   - backend/src/Anela.Heblo.Application/Features/Packaging/Services/**
   - backend/src/Anela.Heblo.Application/Features/Packaging/Validators/**
   - backend/src/Anela.Heblo.Application/Features/Packaging/UseCases/ScanPackingOrder/**
@@ -114,6 +115,11 @@ failure → `ShipmentCancelFailed`, stop) → reload the order → shipment crea
 the `packageNumber`-th (1-based) → download its `labelUrl` (HTTP client `ShipmentLabelDownloader`,
 30 s timeout) → stream to the browser with `Cache-Control: no-store`, file `{order}-{n}.pdf`.
 Not ready → 404 `PackageLabelNotFound`; carrier download failure → 503 `PackageLabelDownloadFailed`.
+When feature flag `is-gls-label-rotation-enabled` is on, the handler also looks up the order's
+shipping-method GUID (`IPackingOrderShippingSource`, one extra `GET /api/orders/{code}`) and, if
+`IShippingMethodCatalog` resolves it to **GLS**, adds 180° to every page's `/Rotate` (PDFsharp,
+`LabelPdfRotator`) so the label comes out of the Zebra upside down. Fail-open: a failed carrier
+lookup or an unparsable PDF is logged at Warning and the original label is served unrotated.
 
 ## Logic & formulas
 - One `Packages` row = one box (carrier package) of one order. `PackageNumber` is the 1-based
@@ -135,7 +141,10 @@ Not ready → 404 `PackageLabelNotFound`; carrier download failure → 503 `Pack
 | `ShipmentLabels:FallbackPackageWeightGrams` | 1000 | Order weight used when no item weight is known |
 | `ShoptetApi:DefaultItemWeightGrams` | 0 | Weight for an item missing a catalog weight |
 
-None of these is overridden in `appsettings*.json` (class defaults apply). `ShipmentLabels` is
+Feature flag `is-gls-label-rotation-enabled` (default off, `appsettings.json` + DB override via
+`/admin/feature-flags`) — rotate GLS label PDFs 180° in the label proxy.
+
+None of the keys above is overridden in `appsettings*.json` (class defaults apply). `ShipmentLabels` is
 not present in any appsettings file.
 
 ## Runtime facts
@@ -176,6 +185,7 @@ not present in any appsettings file.
 - `backend/src/Anela.Heblo.Application/Features/Packaging/Services/ShipmentCreationService.cs` — weight, carrier, shipment, package rows
 - `backend/src/Anela.Heblo.Application/Features/Packaging/UseCases/ResetOrderShipment/ResetOrderShipmentHandler.cs` — re-create shipment
 - `backend/src/Anela.Heblo.Application/Features/Packaging/UseCases/GetPackageLabelPdf/GetPackageLabelPdfHandler.cs` — label proxy
+- `backend/src/Anela.Heblo.Application/Features/Packaging/Services/LabelPdfRotator.cs` — 180° label rotation (GLS, flag-gated)
 - `backend/src/Adapters/Anela.Heblo.Adapters.ShoptetApi/Orders/ShoptetApiPackingOrderClient.cs` — order read + eligibility
 - `backend/src/Anela.Heblo.Persistence/Repositories/Packaging/PackageRepository.cs` — `Packages` writes
 - `frontend/src/components/baleni/PackingShipmentCreator.tsx`, `PackingLabelPrinter.tsx`, `printLabelPdf.ts` — desk-side print and completion
