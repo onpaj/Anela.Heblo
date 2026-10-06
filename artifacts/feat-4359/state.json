@@ -21,16 +21,16 @@
       "updated_at": "2026-10-06T08:10:34.765367Z"
     },
     "developing": {
-      "status": "pending",
-      "updated_at": null
+      "status": "in_progress",
+      "updated_at": "2026-10-06T08:17:35.272622Z"
     }
   },
   "tasks": [
     {
       "name": "remove-unused-bank-using",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-10-06T08:17:35.478157Z"
     }
   ]
 }
