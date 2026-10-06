@@ -369,6 +369,86 @@ public class GetPackageLabelPdfHandlerTests
     }
 
     [Fact]
+    public async Task Handle_GlsRotationFlagOn_CarrierLookupTimesOut_ReturnsPdfUnchanged()
+    {
+        // An HttpClient timeout surfaces as TaskCanceledException without the caller cancelling;
+        // it is a lookup failure, not a request cancellation.
+        var pdfBytes = CreatePdf(pageCount: 1);
+        SetupLabelPdf(pdfBytes);
+        SetupGlsRotationFlag(isEnabled: true);
+        _orderShippingSource
+            .Setup(c => c.GetShippingMethodGuidAsync(OrderCode, It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new TaskCanceledException("shoptet timeout"));
+
+        var response = await CreateHandler().Handle(Request(), CancellationToken.None);
+
+        response.Success.Should().BeTrue();
+        (await ReadContentAsync(response)).Should().BeEquivalentTo(pdfBytes);
+        VerifyLogged(LogLevel.Warning, Times.Once());
+    }
+
+    [Fact]
+    public async Task Handle_GlsRotationFlagOn_RequestCancelledDuringCarrierLookup_Throws()
+    {
+        using var cts = new CancellationTokenSource();
+        SetupLabelPdf(CreatePdf(pageCount: 1));
+        SetupGlsRotationFlag(isEnabled: true);
+        _orderShippingSource
+            .Setup(c => c.GetShippingMethodGuidAsync(OrderCode, It.IsAny<CancellationToken>()))
+            .Returns(() =>
+            {
+                cts.Cancel();
+                return Task.FromException<string?>(new OperationCanceledException(cts.Token));
+            });
+
+        var act = () => CreateHandler().Handle(Request(), cts.Token);
+
+        await act.Should().ThrowAsync<OperationCanceledException>();
+        _httpMessageHandler.Protected().Verify(
+            "SendAsync", Times.Never(), ItExpr.IsAny<HttpRequestMessage>(), ItExpr.IsAny<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task Handle_FeatureFlagCheckThrows_ReturnsPdfUnchanged()
+    {
+        var pdfBytes = CreatePdf(pageCount: 1);
+        SetupLabelPdf(pdfBytes);
+        _featureFlags
+            .Setup(f => f.IsEnabledAsync(FeatureFlagKeys.GlsLabelRotation, It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new InvalidOperationException("flag provider down"));
+
+        var response = await CreateHandler().Handle(Request(), CancellationToken.None);
+
+        response.Success.Should().BeTrue();
+        (await ReadContentAsync(response)).Should().BeEquivalentTo(pdfBytes);
+        VerifyLogged(LogLevel.Warning, Times.Once());
+    }
+
+    [Fact]
+    public async Task Handle_GlsRotationFlagOn_GlsOrder_AddsToRotationInheritedFromPageTree()
+    {
+        // /Rotate is inheritable: a label may set it on the /Pages node instead of each page.
+        SetupLabelPdf(CreatePdfWithPageTreeRotation(pageTreeRotation: 90));
+        SetupGlsRotationFlag(isEnabled: true);
+        SetupCarrier(Carriers.GLS);
+
+        var response = await CreateHandler().Handle(Request(), CancellationToken.None);
+
+        PageRotations(await ReadContentAsync(response)).Should().Equal(270);
+    }
+
+    private static byte[] CreatePdfWithPageTreeRotation(int pageTreeRotation)
+    {
+        using var document = new PdfDocument();
+        document.AddPage();
+        document.Pages.Elements.SetInteger("/Rotate", pageTreeRotation);
+
+        using var ms = new MemoryStream();
+        document.Save(ms);
+        return ms.ToArray();
+    }
+
+    [Fact]
     public async Task Handle_GlsRotationFlagOn_LabelIsNotAValidPdf_ReturnsOriginalBytes()
     {
         var notAPdf = Encoding.UTF8.GetBytes("%PDF-1.4 fake");

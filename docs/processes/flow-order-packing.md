@@ -118,7 +118,7 @@ Not ready → 404 `PackageLabelNotFound`; carrier download failure → 503 `Pack
 When feature flag `is-gls-label-rotation-enabled` is on, the handler also looks up the order's
 shipping-method GUID (`IPackingOrderShippingSource`, one extra `GET /api/orders/{code}`) and, if
 `IShippingMethodCatalog` resolves it to **GLS**, adds 180° to every page's `/Rotate` (PDFsharp,
-`LabelPdfRotator`) so the label comes out of the Zebra upside down. Fail-open: a failed carrier
+`LabelPdfRotator`) so the label comes out of the Zebra upside down. Fail-open: a failed flag check, carrier
 lookup or an unparsable PDF is logged at Warning and the original label is served unrotated.
 
 ## Logic & formulas

@@ -111,15 +111,15 @@ public class GetPackageLabelPdfHandler : IRequestHandler<GetPackageLabelPdfReque
 
     /// <summary>
     /// GLS labels come out of the Zebra the wrong way round, so they are turned upside down when
-    /// the flag is on. A failed carrier lookup only skips the rotation — the label still prints.
+    /// the flag is on. A failed flag check or carrier lookup only skips the rotation — the label still prints.
     /// </summary>
     private async Task<bool> ShouldRotateAsync(GetPackageLabelPdfRequest request, CancellationToken ct)
     {
-        if (!await _featureFlags.IsEnabledAsync(FeatureFlagKeys.GlsLabelRotation, ct))
-            return false;
-
         try
         {
+            if (!await _featureFlags.IsEnabledAsync(FeatureFlagKeys.GlsLabelRotation, ct))
+                return false;
+
             var shippingGuid = await _orderShippingSource.GetShippingMethodGuidAsync(request.OrderCode, ct);
             return shippingGuid is not null
                 && _shippingCatalog.ResolveCarrierByShippingGuid(shippingGuid) == Carriers.GLS;
