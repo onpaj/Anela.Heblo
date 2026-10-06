@@ -60,6 +60,7 @@ public class SearchJournalEntriesHandlerTests
                 It.IsAny<string?>(),
                 It.IsAny<IReadOnlyCollection<int>?>(),
                 It.IsAny<string?>(),
+                It.IsAny<bool>(),
                 It.IsAny<int>(),
                 It.IsAny<int>(),
                 It.IsAny<string>(),
@@ -83,6 +84,7 @@ public class SearchJournalEntriesHandlerTests
             It.Is<string?>(p => p == "TON002"),
             It.IsAny<IReadOnlyCollection<int>?>(),
             It.IsAny<string?>(),
+            It.IsAny<bool>(),
             It.IsAny<int>(),
             It.IsAny<int>(),
             It.IsAny<string>(),
@@ -150,6 +152,7 @@ public class SearchJournalEntriesHandlerTests
                 It.IsAny<string?>(),
                 It.IsAny<IReadOnlyCollection<int>?>(),
                 It.IsAny<string?>(),
+                It.IsAny<bool>(),
                 It.IsAny<int>(),
                 It.IsAny<int>(),
                 It.IsAny<string>(),
@@ -206,6 +209,7 @@ public class SearchJournalEntriesHandlerTests
                 It.IsAny<string?>(),
                 It.IsAny<IReadOnlyCollection<int>?>(),
                 It.IsAny<string?>(),
+                It.IsAny<bool>(),
                 It.IsAny<int>(),
                 It.IsAny<int>(),
                 It.IsAny<string>(),
@@ -253,6 +257,7 @@ public class SearchJournalEntriesHandlerTests
                 It.IsAny<string?>(),
                 It.IsAny<IReadOnlyCollection<int>?>(),
                 It.IsAny<string?>(),
+                It.IsAny<bool>(),
                 It.IsAny<int>(),
                 It.IsAny<int>(),
                 It.IsAny<string>(),
@@ -294,6 +299,7 @@ public class SearchJournalEntriesHandlerTests
                 It.IsAny<string?>(),
                 It.IsAny<IReadOnlyCollection<int>?>(),
                 It.IsAny<string?>(),
+                It.IsAny<bool>(),
                 It.IsAny<int>(),
                 It.IsAny<int>(),
                 It.IsAny<string>(),
@@ -314,5 +320,48 @@ public class SearchJournalEntriesHandlerTests
         result.TotalPages.Should().Be(1);
         result.HasNextPage.Should().BeFalse();
         result.HasPreviousPage.Should().BeFalse();
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task Handle_PassesWithoutProductsFlagToRepository(bool withoutProducts)
+    {
+        // Arrange
+        var request = new SearchJournalEntriesRequest { WithoutProducts = withoutProducts };
+
+        _repositoryMock
+            .Setup(x => x.SearchEntriesAsync(
+                It.IsAny<string?>(),
+                It.IsAny<DateTime?>(),
+                It.IsAny<DateTime?>(),
+                It.IsAny<string?>(),
+                It.IsAny<IReadOnlyCollection<int>?>(),
+                It.IsAny<string?>(),
+                It.IsAny<bool>(),
+                It.IsAny<int>(),
+                It.IsAny<int>(),
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new PagedResult<JournalEntry> { Items = new List<JournalEntry>() });
+
+        // Act
+        await _handler.Handle(request, CancellationToken.None);
+
+        // Assert
+        _repositoryMock.Verify(x => x.SearchEntriesAsync(
+            It.IsAny<string?>(),
+            It.IsAny<DateTime?>(),
+            It.IsAny<DateTime?>(),
+            It.IsAny<string?>(),
+            It.IsAny<IReadOnlyCollection<int>?>(),
+            It.IsAny<string?>(),
+            withoutProducts,
+            It.IsAny<int>(),
+            It.IsAny<int>(),
+            It.IsAny<string>(),
+            It.IsAny<string>(),
+            It.IsAny<CancellationToken>()), Times.Once);
     }
 }

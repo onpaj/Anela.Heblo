@@ -5018,7 +5018,7 @@ export class ApiClient {
         return Promise.resolve<CreateJournalEntryResponse>(null as any);
     }
 
-    journal_SearchJournalEntries(searchText: string | null | undefined, dateFrom: Date | null | undefined, dateTo: Date | null | undefined, productCodePrefix: string | null | undefined, tagIds: number[] | null | undefined, createdByUserId: string | null | undefined, pageNumber: number | undefined, pageSize: number | undefined, sortBy: string | undefined, sortDirection: string | undefined): Promise<SearchJournalEntriesResponse> {
+    journal_SearchJournalEntries(searchText: string | null | undefined, dateFrom: Date | null | undefined, dateTo: Date | null | undefined, productCodePrefix: string | null | undefined, tagIds: number[] | null | undefined, createdByUserId: string | null | undefined, pageNumber: number | undefined, pageSize: number | undefined, sortBy: string | undefined, sortDirection: string | undefined, withoutProducts: boolean | undefined): Promise<SearchJournalEntriesResponse> {
         let url_ = this.baseUrl + "/api/Journal/search?";
         if (searchText !== undefined && searchText !== null)
             url_ += "SearchText=" + encodeURIComponent("" + searchText) + "&";
@@ -5048,6 +5048,10 @@ export class ApiClient {
             throw new Error("The parameter 'sortDirection' cannot be null.");
         else if (sortDirection !== undefined)
             url_ += "SortDirection=" + encodeURIComponent("" + sortDirection) + "&";
+        if (withoutProducts === null)
+            throw new Error("The parameter 'withoutProducts' cannot be null.");
+        else if (withoutProducts !== undefined)
+            url_ += "WithoutProducts=" + encodeURIComponent("" + withoutProducts) + "&";
         url_ = url_.replace(/[?&]$/, "");
 
         let options_: RequestInit = {
