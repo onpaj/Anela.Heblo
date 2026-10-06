@@ -28,9 +28,9 @@
   "tasks": [
     {
       "name": "remove-unused-bank-using",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-10-06T08:17:35.478157Z"
+      "updated_at": "2026-10-06T08:17:35.951171Z"
     }
   ]
 }
