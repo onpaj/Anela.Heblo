@@ -292,4 +292,26 @@ public class ShoptetApiPackingOrderClientTests
         count.Should().Be(3);
         requestedQuery.Should().Contain("statusId=26");
     }
+
+    [Fact]
+    public async Task GetShippingMethodGuidAsync_ReturnsOrderShippingGuid()
+    {
+        var orderClient = BuildOrderClient(_ => Json(DetailResponse("250001", PplDoRukyGuid, "PPL (do ruky)")));
+        var sut = BuildSut(orderClient, ProductSourceWith(), CoolingSourceWith());
+
+        var result = await sut.GetShippingMethodGuidAsync("250001", CancellationToken.None);
+
+        result.Should().Be(PplDoRukyGuid);
+    }
+
+    [Fact]
+    public async Task GetShippingMethodGuidAsync_ReturnsNull_WhenOrderNotFound()
+    {
+        var orderClient = BuildOrderClient(_ => new HttpResponseMessage(HttpStatusCode.NotFound));
+        var sut = BuildSut(orderClient, ProductSourceWith(), CoolingSourceWith());
+
+        var result = await sut.GetShippingMethodGuidAsync("999999", CancellationToken.None);
+
+        result.Should().BeNull();
+    }
 }

@@ -19,6 +19,9 @@ public static class FeatureFlagRegistry
         new(FeatureFlagKeys.LabelPrintingEnabled,
             Description: "When on, label print jobs are sent to the physical printer; when off the physical print is skipped (label generation still runs). Off on Staging where no printer exists.",
             DefaultValue: true),
+        new(FeatureFlagKeys.GlsLabelRotation,
+            Description: "When on, GLS shipping-label PDFs printed at the packing desk are rotated 180° (other carriers unchanged).",
+            DefaultValue: false),
     ];
 
     public static readonly IReadOnlyDictionary<string, FeatureFlagDefinition> ByKey =
