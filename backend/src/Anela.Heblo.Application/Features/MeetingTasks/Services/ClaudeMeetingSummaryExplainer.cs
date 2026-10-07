@@ -58,7 +58,13 @@ public sealed class ClaudeMeetingSummaryExplainer : IMeetingSummaryExplainer
                 text,
                 _jsonOptions);
 
-            return result ?? FallbackExplanation();
+            if (string.IsNullOrWhiteSpace(result?.Explanation))
+            {
+                _logger.LogWarning("Claude returned no explanation for the selected text");
+                return FallbackExplanation();
+            }
+
+            return result;
         }
         catch (Exception ex)
         {

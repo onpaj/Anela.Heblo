@@ -90,6 +90,19 @@ public sealed class ClaudeMeetingSummaryExplainerTests
         result.Explanation.Should().Be("Vysvětlení není k dispozici.");
     }
 
+    [Theory]
+    [InlineData("{}")]
+    [InlineData("{ \"relevantTranscript\": \"quote\", \"explanation\": \"  \" }")]
+    public async Task ExplainAsync_ReturnsFallback_WhenExplanationIsBlank(string json)
+    {
+        SetupChatResponse(json);
+
+        var result = await _sut.ExplainAsync("transcript", "text", CancellationToken.None);
+
+        result.RelevantTranscript.Should().Be(string.Empty);
+        result.Explanation.Should().Be("Vysvětlení není k dispozici.");
+    }
+
     [Fact]
     public async Task ExplainAsync_ReturnsFallback_WhenChatClientThrows()
     {

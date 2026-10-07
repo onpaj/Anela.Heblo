@@ -55,7 +55,7 @@ Plain CRUD / on-demand actions (no own doc), all under `api/meeting-tasks` and r
 - Explain (`POST {id}/explain`): one Claude call with the full transcript and the selected
   text; returns the quoted passage + Czech explanation; nothing is stored. The call sets its
   own 4096-token output budget (not the shared `KnowledgeBase:ChatMaxTokens`). Any failure
-  returns "Vysvětlení není k dispozici." with an empty quote, still as success; the modal shows
+  (including a reply with a blank explanation) returns "Vysvětlení není k dispozici." with an empty quote, still as success; the modal shows
   the explanation on its own and hides the "Záznam konverzace" section when the quote is empty.
 - Delete (`DELETE {id}`, managers): removes the meeting, its tasks, grants and Mind-map links
   (cascade) and writes a tombstone to `DeletedPlaudRecordings` so polling never re-imports it.
