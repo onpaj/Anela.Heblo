@@ -13,6 +13,10 @@ namespace Anela.Heblo.Adapters.GoogleAds.Reporting;
 internal sealed class GoogleAdsReadSource : IAdPlatformReadSource
 {
     internal static readonly TimeSpan ChangeLogMaxAge = TimeSpan.FromDays(30);
+    internal const int ChangeEventLimit = 10_000;
+
+    // change_event refuses a window starting more than 30 days back; one hour of slack absorbs clock skew.
+    private static readonly TimeSpan ChangeLogSafetyMargin = TimeSpan.FromHours(1);
 
     private static readonly (GoogleAdsQuery Query, Func<JsonElement, AdEntitySnapshot> Map)[] EntityQueries =
     {
@@ -88,8 +92,43 @@ internal sealed class GoogleAdsReadSource : IAdPlatformReadSource
         return GoogleAdsFactMapper.MergeDuplicates(rows.Select(row => GoogleAdsFactMapper.SearchTerm(row, currency)));
     }
 
-    public Task<IReadOnlyList<AdChangeEventRow>> GetChangeEventsAsync(string accountExternalId, DateTimeOffset since, CancellationToken ct) =>
-        throw new NotImplementedException("Task B7");
+    public async Task<IReadOnlyList<AdChangeEventRow>> GetChangeEventsAsync(
+        string accountExternalId, DateTimeOffset since, CancellationToken ct)
+    {
+        var customerId = RequireConfiguredAccount(accountExternalId);
+        var customer = await GetCustomerAsync(customerId, ct);
+        var now = _timeProvider.GetUtcNow();
+        var from = ClampToChangeLogWindow(since, now);
+        if (from >= now)
+            return Array.Empty<AdChangeEventRow>();
+
+        var query = GoogleAdsQueries.ChangeEvents(
+            GoogleAdsChangeEventMapper.ToAccountLocal(from, customer.TimeZone),
+            GoogleAdsChangeEventMapper.ToAccountLocal(now, customer.TimeZone),
+            ChangeEventLimit);
+        var rows = await _api.SearchAsync(customerId, query, ct);
+        if (rows.Count >= ChangeEventLimit)
+            _logger.LogWarning(
+                "GoogleAds: change_event hit the {Limit}-row limit for {CustomerId} from {From:o}; the next run continues from the newest event returned",
+                ChangeEventLimit, customerId, from);
+
+        var hebloUserEmail = _settings.CurrentValue.HebloUserEmail;
+        return rows.Select(row => GoogleAdsChangeEventMapper.Map(row, customer.TimeZone, hebloUserEmail))
+                   .Where(e => e.OccurredAt >= since)
+                   .ToList();
+    }
+
+    private DateTimeOffset ClampToChangeLogWindow(DateTimeOffset since, DateTimeOffset now)
+    {
+        var floor = now - ChangeLogMaxAge + ChangeLogSafetyMargin;
+        if (since >= floor)
+            return since;
+
+        _logger.LogWarning(
+            "GoogleAds: change history requested since {Since:o}, but change_event reaches back only 30 days; reading from {Floor:o}. Older changes cannot be recovered from Google",
+            since, floor);
+        return floor;
+    }
 
     private async Task<GoogleAdsCustomer> GetCustomerAsync(string customerId, CancellationToken ct)
     {

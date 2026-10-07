@@ -65,5 +65,17 @@ internal static class GoogleAdsQueries
         $"SELECT ad_group.id, search_term_view.search_term, segments.search_term_match_type, segments.date, {Metrics} " +
         $"FROM search_term_view WHERE segments.date = '{Day(date)}'");
 
+    /// <summary>
+    /// change_event demands a date filter starting at most 30 days back and a LIMIT (≤ 10 000).
+    /// Bounds are in the account time zone, format yyyy-MM-dd HH:mm:ss.
+    /// </summary>
+    public static GoogleAdsQuery ChangeEvents(string fromAccountLocal, string toAccountLocal, int limit) => new("change_events",
+        "SELECT change_event.resource_name, change_event.change_date_time, change_event.change_resource_name, " +
+        "change_event.user_email, change_event.client_type, change_event.change_resource_type, " +
+        "change_event.old_resource, change_event.new_resource, change_event.resource_change_operation, " +
+        "change_event.changed_fields FROM change_event " +
+        $"WHERE change_event.change_date_time >= '{fromAccountLocal}' AND change_event.change_date_time <= '{toAccountLocal}' " +
+        $"ORDER BY change_event.change_date_time ASC LIMIT {limit.ToString(CultureInfo.InvariantCulture)}");
+
     private static string Day(DateOnly date) => date.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
 }

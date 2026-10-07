@@ -89,6 +89,7 @@ Resource name = `customers/{customerId}/{collection}/{id}` (`campaigns`, `adGrou
 - `change_date_time` is in the **account time zone** (`customer.time_zone`, Europe/Prague), format `yyyy-MM-dd HH:mm:ss[.ffffff]` (timestamps come back with microseconds, e.g. `2026-09-21 14:11:00.459519`; second-precision bounds are accepted). Heblo converts both ways.
 - `resource_name` = `customers/{id}/changeEvents/{timestampMicros}~{commandIndex}~{mutateIndex}`; the part after `changeEvents/` is Heblo's `ExternalEventId`.
 - `old_resource` / `new_resource` hold only the changed fields of the resource (`{"adGroupAd": {"status": "PAUSED"}}`). An ad-group criterion UPDATE/REMOVE may therefore lack `negative`, and is then reported as level `Keyword` even when it is a negative.
+- `campaign_criterion` / `ad_group_criterion` also hold targeting (location, language, device, audience). When the payload shows a non-keyword criterion (`type` present and not `KEYWORD`, or no `keyword` object next to another criterion object such as `location`), the event keeps its row, change type, raw JSON and actor but carries no entity reference (level and external id null); a payload with no type information keeps the keyword mapping above.
 - Google Ads Editor changes are not reported by `change_event`.
 - Actor mapping (`client_type` → `AdChangeActorKind`):
 
