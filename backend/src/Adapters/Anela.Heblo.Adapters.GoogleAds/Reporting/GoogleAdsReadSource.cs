@@ -65,11 +65,28 @@ internal sealed class GoogleAdsReadSource : IAdPlatformReadSource
         return entities;
     }
 
-    public Task<IReadOnlyList<AdDailyFactRow>> GetDailyFactsAsync(string accountExternalId, DateOnly date, CancellationToken ct) =>
-        throw new NotImplementedException("Task B6");
+    public async Task<IReadOnlyList<AdDailyFactRow>> GetDailyFactsAsync(
+        string accountExternalId, DateOnly date, CancellationToken ct)
+    {
+        var customerId = RequireConfiguredAccount(accountExternalId);
+        var currency = (await GetCustomerAsync(customerId, ct)).Currency;
+        var facts = new List<AdDailyFactRow>();
+        foreach (var (level, query) in GoogleAdsQueries.FactQueries(date))
+        {
+            var rows = await _api.SearchAsync(customerId, query, ct);
+            facts.AddRange(rows.Select(row => GoogleAdsFactMapper.Fact(level, row, currency)));
+        }
+        return facts;
+    }
 
-    public Task<IReadOnlyList<AdSearchTermRow>> GetSearchTermsAsync(string accountExternalId, DateOnly date, CancellationToken ct) =>
-        throw new NotImplementedException("Task B6");
+    public async Task<IReadOnlyList<AdSearchTermRow>> GetSearchTermsAsync(
+        string accountExternalId, DateOnly date, CancellationToken ct)
+    {
+        var customerId = RequireConfiguredAccount(accountExternalId);
+        var currency = (await GetCustomerAsync(customerId, ct)).Currency;
+        var rows = await _api.SearchAsync(customerId, GoogleAdsQueries.SearchTerms(date), ct);
+        return GoogleAdsFactMapper.MergeDuplicates(rows.Select(row => GoogleAdsFactMapper.SearchTerm(row, currency)));
+    }
 
     public Task<IReadOnlyList<AdChangeEventRow>> GetChangeEventsAsync(string accountExternalId, DateTimeOffset since, CancellationToken ct) =>
         throw new NotImplementedException("Task B7");
