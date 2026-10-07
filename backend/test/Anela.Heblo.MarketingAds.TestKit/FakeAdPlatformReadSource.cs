@@ -40,11 +40,17 @@ public sealed class FakeAdPlatformReadSource : IAdPlatformReadSource
     /// <summary>
     /// One account with campaign → ad group → (keyword, ad), facts at campaign and ad level for
     /// <paramref name="date"/>, one search term (when supported) and one change event at 09:00 UTC.
+    /// It also holds a fact and a search term for the next day and a change event older than the
+    /// contract's lookback, which a correctly filtering source never returns.
     /// </summary>
     public static FakeAdPlatformReadSource CreateSample(
         AdPlatform platform, string accountExternalId, DateOnly date, AdSourceCapabilities? capabilities = null)
     {
         var noAttributes = new Dictionary<string, string?>();
+        var nextDay = date.AddDays(1);
+        var beforeLookback = new DateTimeOffset(
+            date.AddDays(-AdPlatformReadSourceContractTests.ChangeEventsLookbackDays - 1).ToDateTime(new TimeOnly(9, 0)),
+            TimeSpan.Zero);
         var source = new FakeAdPlatformReadSource(platform, capabilities)
             .WithAccount(new AdAccountSnapshot(accountExternalId, "Anela sample account", SampleCurrency, "Europe/Prague"))
             .WithEntities(accountExternalId,
@@ -59,14 +65,20 @@ public sealed class FakeAdPlatformReadSource : IAdPlatformReadSource
                     SampleAdGroupExternalId, "Responsive ad 1", AdEntityStatus.Enabled, noAttributes))
             .WithDailyFacts(accountExternalId,
                 new AdDailyFactRow(AdEntityLevel.Campaign, SampleCampaignExternalId, date, 1200, 48, 312.50m, 3m, 2150m, SampleCurrency),
-                new AdDailyFactRow(AdEntityLevel.Ad, SampleAdExternalId, date, 1200, 48, 312.50m, 3m, 2150m, SampleCurrency))
+                new AdDailyFactRow(AdEntityLevel.Ad, SampleAdExternalId, date, 1200, 48, 312.50m, 3m, 2150m, SampleCurrency),
+                new AdDailyFactRow(AdEntityLevel.Campaign, SampleCampaignExternalId, nextDay, 900, 30, 210m, 2m, 1400m, SampleCurrency))
             .WithSearchTerms(accountExternalId,
                 new AdSearchTermRow(SampleAdGroupExternalId, date, "krém na obličej", KeywordMatchType.Phrase,
-                    300, 12, 80.10m, 1m, 640m, SampleCurrency))
+                    300, 12, 80.10m, 1m, 640m, SampleCurrency),
+                new AdSearchTermRow(SampleAdGroupExternalId, nextDay, "krém na obličej", KeywordMatchType.Phrase,
+                    200, 8, 52.40m, 0m, 0m, SampleCurrency))
             .WithChangeEvents(accountExternalId,
                 new AdChangeEventRow("change-1", new DateTimeOffset(date.ToDateTime(new TimeOnly(9, 0)), TimeSpan.Zero),
                     "agency@example.com", AdChangeActorKind.User, AdEntityLevel.Ad, SampleAdExternalId, "StatusChanged",
-                    "{\"status\":\"Enabled\"}", "{\"status\":\"Paused\"}"));
+                    "{\"status\":\"Enabled\"}", "{\"status\":\"Paused\"}"),
+                new AdChangeEventRow("change-old", beforeLookback, "agency@example.com", AdChangeActorKind.User,
+                    AdEntityLevel.Ad, SampleAdExternalId, "StatusChanged",
+                    "{\"status\":\"Paused\"}", "{\"status\":\"Enabled\"}"));
         return source;
     }
 

@@ -184,4 +184,31 @@ public abstract class AdActionExecutorContractTests
         result.Outcome.Should().Be(AdExecutionOutcome.Failed);
         result.Error.Should().NotBeNullOrWhiteSpace();
     }
+
+    [Fact]
+    public async Task AddNegativeKeyword_ReadCurrent_on_a_missing_target_reports_that_it_does_not_exist()
+    {
+        var sample = SampleAddNegativeKeyword();
+        if (sample is null)
+            return;
+        var action = sample with { TargetExternalId = MissingTargetExternalId };
+
+        var state = await CreateExecutor().ReadCurrentAsync(action, CancellationToken.None);
+
+        state.Exists.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task AddNegativeKeyword_Execute_on_a_missing_target_returns_Failed_instead_of_throwing()
+    {
+        var sample = SampleAddNegativeKeyword();
+        if (sample is null)
+            return;
+        var action = sample with { TargetExternalId = MissingTargetExternalId };
+
+        var result = await CreateExecutor().ExecuteAsync(action, CancellationToken.None);
+
+        result.Outcome.Should().Be(AdExecutionOutcome.Failed);
+        result.Error.Should().NotBeNullOrWhiteSpace();
+    }
 }

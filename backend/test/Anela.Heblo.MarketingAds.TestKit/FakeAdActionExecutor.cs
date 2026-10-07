@@ -89,6 +89,8 @@ public sealed class FakeAdActionExecutor : IAdActionExecutor
     public Task<AdExecutionResult> RevertAsync(AdAction action, AdExecutionResult original, CancellationToken ct)
     {
         Guard(action, ct);
+        if (!SupportedActions.Contains(action.Type))
+            return Task.FromResult(Failed($"Action {action.Type} is not supported by this executor."));
         if (original.Outcome != AdExecutionOutcome.Succeeded)
             return Task.FromResult(Failed("Only a succeeded execution can be reverted."));
 

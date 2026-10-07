@@ -69,6 +69,21 @@ public class FakeAdActionExecutorTests
     }
 
     [Fact]
+    public async Task Reverting_an_unsupported_action_type_returns_Failed()
+    {
+        var executor = new FakeAdActionExecutor(AdPlatform.GoogleAds, AdActionType.PauseAd)
+            .SeedNegativeKeywordTarget(Account, AdEntityLevel.Campaign, "campaign-1");
+        var original = new AdExecutionResult(
+            AdExecutionOutcome.Succeeded, AdActionValues.Absent, AdActionValues.Present, "fake-negative-1", null, null);
+
+        var result = await executor.RevertAsync(AddNegative(), original, CancellationToken.None);
+
+        result.Outcome.Should().Be(AdExecutionOutcome.Failed);
+        result.Error.Should().Contain("not supported");
+        executor.RevertedActions.Should().BeEmpty();
+    }
+
+    [Fact]
     public async Task Reverting_a_failed_execution_returns_Failed_and_changes_nothing()
     {
         var executor = new FakeAdActionExecutor().SeedAd(Account, "ad-1");

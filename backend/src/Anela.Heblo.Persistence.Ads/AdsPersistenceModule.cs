@@ -17,8 +17,10 @@ public static class AdsPersistenceModule
     /// resilience pipeline, exactly as Ga4PersistenceModule does: the daily ad sync SaveChangesAsync's
     /// whole batches and can legitimately outrun the request-serving pipeline's short per-attempt
     /// timeout, and a separate pool keeps a long sync from starving request-path connections on the
-    /// single-vCore heblosql server. The data source is keyed so DI disposes it without shadowing the
-    /// main NpgsqlDataSource singleton.
+    /// single-vCore heblosql server. The data source is keyed so it does not shadow the main
+    /// NpgsqlDataSource singleton. It is built eagerly (so a bad connection string fails inside the
+    /// caller's try/catch) and registered as an instance, which DI does not dispose — the pool lives
+    /// for the process lifetime.
     /// </summary>
     public static IServiceCollection AddAdsPersistenceServices(
         this IServiceCollection services,

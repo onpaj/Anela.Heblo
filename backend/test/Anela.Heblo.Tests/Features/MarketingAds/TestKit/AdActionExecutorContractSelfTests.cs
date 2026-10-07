@@ -23,6 +23,32 @@ public class AdActionExecutorContractSelfTests
     }
 
     [Fact]
+    public async Task Contract_fails_an_executor_that_throws_on_a_missing_negative_keyword_target()
+    {
+        var suite = new Suite(() => new Mutant(NewFake(), execute: (inner, a, ct) =>
+            a.Type == AdActionType.AddNegativeKeyword
+            && a.TargetExternalId == AdActionExecutorContractTests.MissingTargetExternalId
+                ? throw new InvalidOperationException("NOT_FOUND from the platform")
+                : inner.ExecuteAsync(a, ct)));
+
+        var act = () => suite.AddNegativeKeyword_Execute_on_a_missing_target_returns_Failed_instead_of_throwing();
+
+        await act.Should().ThrowAsync<InvalidOperationException>();
+    }
+
+    [Fact]
+    public async Task Contract_fails_an_executor_that_reports_a_missing_negative_keyword_target_as_existing()
+    {
+        var suite = new Suite(() => new Mutant(NewFake(), read: async (inner, a, ct) =>
+            a.Type == AdActionType.AddNegativeKeyword
+            && a.TargetExternalId == AdActionExecutorContractTests.MissingTargetExternalId
+                ? new AdTargetState(true, AdActionValues.Absent, null)
+                : await inner.ReadCurrentAsync(a, ct)));
+
+        await Catches(() => suite.AddNegativeKeyword_ReadCurrent_on_a_missing_target_reports_that_it_does_not_exist());
+    }
+
+    [Fact]
     public async Task Contract_fails_an_executor_whose_pause_revert_does_not_restore_the_ad()
     {
         var suite = new Suite(() => new Mutant(NewFake(), revert: (_, _, _, _) => Task.FromResult(Succeeded(null, null))));

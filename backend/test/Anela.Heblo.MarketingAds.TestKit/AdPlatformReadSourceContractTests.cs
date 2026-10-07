@@ -10,7 +10,10 @@ namespace Anela.Heblo.MarketingAds.TestKit;
 /// inherits every [Fact]. Never override or skip a fact: a platform that cannot meet one is a design
 /// question for the core, not a test to silence. The fixture must contain at least one entity, one
 /// daily fact on FixtureDate, and — when advertised — one search term on FixtureDate and one change
-/// event on or after <see cref="ChangeEventsSince"/>.
+/// event on or after <see cref="ChangeEventsSince"/>. It must also contain rows the request has to
+/// filter out — a daily fact (and, when advertised, a search term) on another date and a change event
+/// before <see cref="ChangeEventsSince"/> — or the date and since facts cannot catch an adapter that
+/// ignores its filter.
 /// </summary>
 public abstract class AdPlatformReadSourceContractTests
 {

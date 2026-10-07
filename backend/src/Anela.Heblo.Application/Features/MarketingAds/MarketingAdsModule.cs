@@ -32,8 +32,16 @@ public static class MarketingAdsModule
     private static void AddAdsPersistenceWhenConfigured(IServiceCollection services, IConfiguration configuration)
     {
         var connectionString = configuration[ConnectionStringKey];
-        if (!AdSettingsGuard.IsConfigured(connectionString))
+        if (string.IsNullOrWhiteSpace(connectionString))
             return;
+
+        if (!AdSettingsGuard.IsConfigured(connectionString))
+        {
+            LogStartupWarning(
+                $"{ConnectionStringKey} looks like a placeholder; the ads schema stays unregistered. "
+                + "Check the Key Vault secret AdsDatabase--ConnectionString.");
+            return;
+        }
 
         if (!IsParseableConnectionString(connectionString!, out var parseError))
         {

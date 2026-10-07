@@ -104,10 +104,73 @@ public class AdPlatformReadSourceContractSelfTests
         await act.Should().ThrowAsync<Exception>();
     }
 
+    [Fact]
+    public async Task Contract_fails_a_source_that_ignores_the_requested_date_for_daily_facts()
+    {
+        var suite = new Suite(new IgnoresFilters(Sample()));
+
+        var act = () => suite.GetDailyFactsAsync_returns_rows_for_the_requested_date_with_non_negative_metrics_and_a_currency();
+
+        await act.Should().ThrowAsync<Exception>();
+    }
+
+    [Fact]
+    public async Task Contract_fails_a_source_that_ignores_the_requested_date_for_search_terms()
+    {
+        var suite = new Suite(new IgnoresFilters(Sample()));
+
+        var act = () => suite.GetSearchTermsAsync_rows_belong_to_known_ad_groups_and_carry_non_negative_metrics();
+
+        await act.Should().ThrowAsync<Exception>();
+    }
+
+    [Fact]
+    public async Task Contract_fails_a_source_that_ignores_since_for_change_events()
+    {
+        var suite = new Suite(new IgnoresFilters(Sample()));
+
+        var act = () => suite.GetChangeEventsAsync_rows_are_unique_well_formed_and_not_older_than_since();
+
+        await act.Should().ThrowAsync<Exception>();
+    }
+
     private sealed class Suite(IAdPlatformReadSource source) : AdPlatformReadSourceContractTests
     {
         protected override IAdPlatformReadSource CreateSource() => source;
         protected override string AccountExternalId => Account;
         protected override DateOnly FixtureDate => Date;
+    }
+
+    /// <summary>Models an adapter that drops the date / since filter: it returns every row the fake holds.</summary>
+    private sealed class IgnoresFilters(IAdPlatformReadSource inner) : IAdPlatformReadSource
+    {
+        private static readonly DateOnly[] AllSampleDates = [Date, Date.AddDays(1)];
+
+        public AdPlatform Platform => inner.Platform;
+        public AdSourceCapabilities Capabilities => inner.Capabilities;
+
+        public Task<IReadOnlyList<AdAccountSnapshot>> GetAccountsAsync(CancellationToken ct) => inner.GetAccountsAsync(ct);
+
+        public Task<IReadOnlyList<AdEntitySnapshot>> GetEntitiesAsync(string accountExternalId, CancellationToken ct) =>
+            inner.GetEntitiesAsync(accountExternalId, ct);
+
+        public async Task<IReadOnlyList<AdDailyFactRow>> GetDailyFactsAsync(string accountExternalId, DateOnly date, CancellationToken ct)
+        {
+            var rows = new List<AdDailyFactRow>();
+            foreach (var sampleDate in AllSampleDates)
+                rows.AddRange(await inner.GetDailyFactsAsync(accountExternalId, sampleDate, ct));
+            return rows;
+        }
+
+        public async Task<IReadOnlyList<AdSearchTermRow>> GetSearchTermsAsync(string accountExternalId, DateOnly date, CancellationToken ct)
+        {
+            var rows = new List<AdSearchTermRow>();
+            foreach (var sampleDate in AllSampleDates)
+                rows.AddRange(await inner.GetSearchTermsAsync(accountExternalId, sampleDate, ct));
+            return rows;
+        }
+
+        public Task<IReadOnlyList<AdChangeEventRow>> GetChangeEventsAsync(string accountExternalId, DateTimeOffset since, CancellationToken ct) =>
+            inner.GetChangeEventsAsync(accountExternalId, DateTimeOffset.MinValue, ct);
     }
 }

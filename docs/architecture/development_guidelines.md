@@ -375,7 +375,7 @@ When module A needs **read-only access** to data in module B, the dependency mus
 - **Consequences**:
   - Every query over `ad_daily_facts` must aggregate a **single** `level`; facts are stored at every
     level a platform reports, so summing across levels double-counts.
-  - Enum-valued columns (`platform`, `level`, `status`, `actor_kind`, `match_type`) store the
+  - Enum-valued columns (`platform`, `level`, `entity_level`, `status`, `actor_kind`, `match_type`) store the
     contract enum **name** as text (`GoogleAds`, `AdGroup`, …): `Persistence.Ads` cannot reference
     the Application contracts, and names keep the Metabase views readable.
   - Every `DateTimeOffset` in `ads` written through EF is normalised to UTC by
@@ -383,7 +383,9 @@ When module A needs **read-only access** to data in module B, the dependency mus
     write to `timestamptz`. Raw SQL (`ExecuteSql…`, `ON CONFLICT` upserts) bypasses the converter and
     must pass UTC values itself.
   - Metabase reads only `v_ads_*` views granted to `metabase_ro` (added with the sync, PR C2); the raw
-    tables are never granted. `ads` holds no customer PII.
+    tables are never granted. `ads` holds no customer PII, but `ad_change_events.actor` holds the
+    email of the staff or agency user who made a change (Google change history reports it), so
+    no `v_ads_*` view may expose `actor` unless it is pseudonymised.
   - `AdsDatabase--ConnectionString` duplicates `ConnectionStrings--Production` /
     `ConnectionStrings--Staging` in Key Vault, like `AnalyticsDatabase--ConnectionString`; the
     secrets must be rotated together.
