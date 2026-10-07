@@ -129,6 +129,15 @@ public abstract class AdPlatformReadSourceContractTests
     }
 
     [Fact]
+    public async Task GetDailyFactsAsync_returns_at_most_one_row_per_entity_for_the_date()
+    {
+        // ad_daily_facts is keyed (entity_id, date); a second row for the same entity would violate it.
+        var facts = await CreateSource().GetDailyFactsAsync(AccountExternalId, FixtureDate, CancellationToken.None);
+
+        facts.Select(f => (f.Level, f.EntityExternalId)).Should().OnlyHaveUniqueItems();
+    }
+
+    [Fact]
     public async Task GetDailyFactsAsync_rows_reference_entities_returned_by_GetEntitiesAsync()
     {
         // The core maps (level, external id) to ad_entities.id; a fact with no entity cannot be stored.
@@ -184,6 +193,19 @@ public abstract class AdPlatformReadSourceContractTests
             r.ConversionValue.Should().BeGreaterThanOrEqualTo(0m);
             r.Currency.Should().MatchRegex(CurrencyPattern);
         });
+    }
+
+    [Fact]
+    public async Task GetSearchTermsAsync_returns_at_most_one_row_per_ad_group_term_and_match_type()
+    {
+        // ad_search_terms is keyed (ad_group_entity_id, date, search_term, match_type); a null match
+        // type is stored as "Unknown", distinct from every enum name, so the nullable compares as-is.
+        var rows = await CreateSource().GetSearchTermsAsync(AccountExternalId, FixtureDate, CancellationToken.None);
+
+        if (rows.Count == 0)
+            return;
+
+        rows.Select(r => (r.AdGroupExternalId, r.SearchTerm, r.MatchType)).Should().OnlyHaveUniqueItems();
     }
 
     [Fact]

@@ -58,6 +58,29 @@ public class AdPlatformReadSourceContractSelfTests
     }
 
     [Fact]
+    public async Task Contract_fails_a_source_returning_two_fact_rows_for_one_entity()
+    {
+        var suite = new Suite(Sample().WithDailyFacts(Account, new AdDailyFactRow(
+            AdEntityLevel.Campaign, FakeAdPlatformReadSource.SampleCampaignExternalId, Date, 1, 1, 1m, 0m, 0m, "CZK")));
+
+        var act = () => suite.GetDailyFactsAsync_returns_at_most_one_row_per_entity_for_the_date();
+
+        await act.Should().ThrowAsync<Exception>();
+    }
+
+    [Fact]
+    public async Task Contract_fails_a_source_returning_a_duplicate_search_term_row()
+    {
+        var suite = new Suite(Sample().WithSearchTerms(Account, new AdSearchTermRow(
+            FakeAdPlatformReadSource.SampleAdGroupExternalId, Date, "krém na obličej", KeywordMatchType.Phrase,
+            1, 1, 1m, 0m, 0m, "CZK")));
+
+        var act = () => suite.GetSearchTermsAsync_returns_at_most_one_row_per_ad_group_term_and_match_type();
+
+        await act.Should().ThrowAsync<Exception>();
+    }
+
+    [Fact]
     public async Task Contract_fails_a_source_returning_duplicate_change_event_ids()
     {
         var occurredAt = new DateTimeOffset(Date.ToDateTime(new TimeOnly(10, 0)), TimeSpan.Zero);
