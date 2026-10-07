@@ -92,7 +92,7 @@ public class AdsDbContextMigrationIntegrationTests : IAsyncLifetime
             write.ChangeEvents.Add(new AdChangeEvent
             {
                 AccountId = account.Id, ExternalEventId = "event-1", OccurredAt = SyncedAt.AddHours(-3),
-                Actor = "agency@example.com", ActorKind = "User", EntityId = adGroup.Id, EntityExternalRef = "adgroup-1",
+                Actor = "agency@example.com", ActorKind = "User", EntityId = adGroup.Id, EntityLevel = "AdGroup", EntityExternalRef = "adgroup-1",
                 ChangeType = "StatusChanged", OldValueJson = "{\"status\": \"Enabled\"}", NewValueJson = "{\"status\": \"Paused\"}",
                 Source = AdChangeSources.PlatformChangeLog, Origin = AdChangeOrigins.OutOfBand, SyncedAt = SyncedAt,
             });
@@ -133,6 +133,7 @@ public class AdsDbContextMigrationIntegrationTests : IAsyncLifetime
         searchTerm.SearchTerm.Should().Be("krém na obličej");
         searchTerm.MatchType.Should().Be(AdSearchTermDaily.UnknownMatchType);
         change.EntityId.Should().Be(adGroupId);
+        change.EntityLevel.Should().Be("AdGroup");
         change.OccurredAt.Should().Be(SyncedAt.AddHours(-3));
         using (var newValue = JsonDocument.Parse(change.NewValueJson!))
         {

@@ -132,6 +132,7 @@ public class AdsDbContext : DbContext
             e.Property(x => x.Actor).HasColumnName("actor");
             e.Property(x => x.ActorKind).HasColumnName("actor_kind").IsRequired();
             e.Property(x => x.EntityId).HasColumnName("entity_id");
+            e.Property(x => x.EntityLevel).HasColumnName("entity_level");
             e.Property(x => x.EntityExternalRef).HasColumnName("entity_external_ref");
             e.Property(x => x.ChangeType).HasColumnName("change_type").IsRequired();
             e.Property(x => x.OldValueJson).HasColumnName("old_value").HasColumnType("jsonb");
