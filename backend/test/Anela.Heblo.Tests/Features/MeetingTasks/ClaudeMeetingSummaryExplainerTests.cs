@@ -59,6 +59,27 @@ public sealed class ClaudeMeetingSummaryExplainerTests
     }
 
     [Fact]
+    public async Task ExplainAsync_RequestsEnoughOutputTokensForLongExplanations()
+    {
+        ChatOptions? capturedOptions = null;
+        var chatResponse = new ChatResponse([new ChatMessage(ChatRole.Assistant,
+            "{ \"relevantTranscript\": \"x\", \"explanation\": \"y\" }")]);
+        _chatClientMock
+            .Setup(c => c.GetResponseAsync(
+                It.IsAny<IEnumerable<ChatMessage>>(),
+                It.IsAny<ChatOptions?>(),
+                It.IsAny<CancellationToken>()))
+            .Callback<IEnumerable<ChatMessage>, ChatOptions?, CancellationToken>(
+                (_, options, _) => capturedOptions = options)
+            .ReturnsAsync(chatResponse);
+
+        await _sut.ExplainAsync("transcript", "text", CancellationToken.None);
+
+        capturedOptions.Should().NotBeNull();
+        capturedOptions!.MaxOutputTokens.Should().BeGreaterThanOrEqualTo(4096);
+    }
+
+    [Fact]
     public async Task ExplainAsync_ReturnsFallback_OnMalformedJson()
     {
         SetupChatResponse("not json at all");
