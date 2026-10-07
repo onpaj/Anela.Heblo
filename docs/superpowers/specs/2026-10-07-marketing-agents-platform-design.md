@@ -411,3 +411,99 @@ Key Vault or App Settings).
 | Prompt injection via search terms, reviews | Server-side limits independent of approver; agents never write; MCP approvals capped lower |
 | Server load (B1ms `heblosql`) | Own small pool for `AdsDbContext`; daily batch off-peak; 14-day lookback bounded |
 | Platform conversions differ from reality | Blended reality check next to platform numbers |
+
+## 12. Canonical names (binding for all plans)
+
+Fixed here so the eight implementation plans, written in parallel, agree.
+
+### 12.1 Placement
+
+| What | Where |
+|---|---|
+| Contracts (enums, records, interfaces, constants, settings guard) | `backend/src/Anela.Heblo.Application/Features/MarketingAds/Contracts/`, namespace `Anela.Heblo.Application.Features.MarketingAds.Contracts`, one type per file |
+| Core application module (sync, proposals, MCP handlers) | `backend/src/Anela.Heblo.Application/Features/MarketingAds/` (`MarketingAdsModule.cs`) |
+| `ads` schema persistence | new project `backend/src/Anela.Heblo.Persistence.Ads/` (`AdsDbContext`, `SchemaName = "ads"`, `AdsPersistenceModule`, connection key `AdsDatabase:ConnectionString`, KV `AdsDatabase--ConnectionString`) — mirrors `Persistence.Ga4` |
+| Proposal / audit / settings entities | `backend/src/Anela.Heblo.Domain/Features/MarketingAds/`, EF config in `backend/src/Anela.Heblo.Persistence/MarketingAds/`, `ApplicationDbContext` |
+| MCP tools | `backend/src/Anela.Heblo.API/MCP/Tools/MarketingAdsMcpTools.cs` |
+| Shared test kit (fakes + contract-test bases) | new project `backend/test/Anela.Heblo.MarketingAds.TestKit/`, namespace `Anela.Heblo.MarketingAds.TestKit` |
+| Platform adapters | `Adapters/Anela.Heblo.Adapters.GoogleAds` (existing), `Adapters/Anela.Heblo.Adapters.MetaAds` (existing), `Adapters/Anela.Heblo.Adapters.Sklik` (new) |
+| Platform test projects | new `backend/test/Anela.Heblo.Adapters.GoogleAds.Tests`, `…MetaAds.Tests`, `…Sklik.Tests` |
+| Platform classes | `GoogleAdsReadSource` / `GoogleAdsActionExecutor`, `MetaAdsReadSource` / `MetaAdsActionExecutor`, `SklikReadSource` / `SklikActionExecutor` |
+| Integration docs | `docs/integrations/google-ads-api.md`, `meta-ads-api.md`, `sklik-api.md` |
+
+### 12.2 Contract types (PR C1 creates exactly these)
+
+```csharp
+public enum AdPlatform { GoogleAds = 1, MetaAds = 2, Sklik = 3 }
+public enum AdEntityLevel { Campaign = 1, AdGroup = 2, Keyword = 3, NegativeKeyword = 4, Ad = 5 }
+public enum AdEntityStatus { Unknown = 0, Enabled = 1, Paused = 2, Removed = 3 }
+public enum KeywordMatchType { Exact = 1, Phrase = 2, Broad = 3 }
+public enum AdChangeActorKind { Unknown = 0, Heblo = 1, User = 2, PlatformAutomation = 3 }
+public enum AdActionType { AddNegativeKeyword = 1, PauseAd = 2 }
+public enum AdExecutionOutcome { Succeeded = 1, Failed = 2, StaleState = 3 }
+
+public sealed record AdSourceCapabilities(bool SearchTerms, bool ChangeLog, TimeSpan? ChangeLogMaxAge);
+public sealed record AdAccountSnapshot(string ExternalId, string Name, string Currency, string TimeZone);
+public sealed record AdEntitySnapshot(
+    AdEntityLevel Level, string ExternalId, AdEntityLevel? ParentLevel, string? ParentExternalId,
+    string Name, AdEntityStatus Status, IReadOnlyDictionary<string, string?> Attributes);
+public sealed record AdDailyFactRow(
+    AdEntityLevel Level, string EntityExternalId, DateOnly Date, long Impressions, long Clicks,
+    decimal Cost, decimal Conversions, decimal ConversionValue, string Currency);
+public sealed record AdSearchTermRow(
+    string AdGroupExternalId, DateOnly Date, string SearchTerm, KeywordMatchType? MatchType,
+    long Impressions, long Clicks, decimal Cost, decimal Conversions, decimal ConversionValue, string Currency);
+public sealed record AdChangeEventRow(
+    string ExternalEventId, DateTimeOffset OccurredAt, string? Actor, AdChangeActorKind ActorKind,
+    AdEntityLevel? EntityLevel, string? EntityExternalId, string ChangeType,
+    string? OldValueJson, string? NewValueJson);
+
+public sealed record AdAction(
+    AdActionType Type, AdPlatform Platform, string AccountExternalId,
+    AdEntityLevel TargetLevel, string TargetExternalId,
+    string OldValue, string NewValue, IReadOnlyDictionary<string, string> Payload);
+public sealed record AdTargetState(bool Exists, string? CurrentValue, string? RawJson);
+public sealed record AdExecutionResult(
+    AdExecutionOutcome Outcome, string? BeforeValue, string? AfterValue,
+    string? PlatformResourceId, string? PlatformResponseJson, string? Error);
+
+public static class AdActionValues   { public const string Absent = "Absent", Present = "Present", Enabled = "Enabled", Paused = "Paused"; }
+public static class AdActionPayloadKeys { public const string Text = "text", MatchType = "matchType"; }
+
+public static class AdSettingsGuard
+{
+    // false for null/whitespace, values starting with "--" (e.g. "-- stored in Key Vault --"),
+    // and template placeholders containing "XXX" or equal to "your-…"
+    public static bool IsConfigured(params string?[] values);
+}
+
+public interface IAdPlatformReadSource { /* as section 4.2 */ }
+public interface IAdActionExecutor     { /* as section 4.2 */ }
+```
+
+Action value conventions: `AddNegativeKeyword` → `TargetLevel` `Campaign` or `AdGroup`,
+`OldValue = Absent`, `NewValue = Present`, payload `text` + `matchType` (`KeywordMatchType` name);
+`ReadCurrentAsync` returns `CurrentValue = Absent|Present`; `PlatformResourceId` is the created
+negative criterion's id (used by revert). `PauseAd` → `TargetLevel = Ad`, `OldValue = Enabled`,
+`NewValue = Paused`, empty payload; revert sets it back to `Enabled`. Executors **do not** compare
+old values themselves — the core does (section 6.2); `ExecuteAsync` returns `Failed` on a platform
+error and never throws for platform-side rejections (it throws only for transport/auth failures).
+
+### 12.3 Test-kit bases (PR C1 creates exactly these)
+
+```csharp
+public abstract class AdPlatformReadSourceContractTests
+{
+    protected abstract IAdPlatformReadSource CreateSource();   // wired to recorded JSON fixtures
+    protected abstract string AccountExternalId { get; }
+    protected abstract DateOnly FixtureDate { get; }
+}
+public abstract class AdActionExecutorContractTests
+{
+    protected abstract IAdActionExecutor CreateExecutor();     // backed by a stateful fake transport
+    protected abstract AdAction SamplePauseAd();
+    protected abstract AdAction? SampleAddNegativeKeyword();   // null when the platform lacks it
+}
+public sealed class FakeAdPlatformReadSource : IAdPlatformReadSource { /* settable in-memory data */ }
+public sealed class FakeAdActionExecutor : IAdActionExecutor { /* in-memory target state */ }
+```
