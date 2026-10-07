@@ -32,4 +32,16 @@ public static class FeatureFlagKeys
     /// printing, so they come out of the Zebra the other way around. Other carriers are untouched.
     /// </summary>
     public const string GlsLabelRotation = "is-gls-label-rotation-enabled";
+
+    /// <summary>
+    /// When on, PPL shipping-label PDFs served to the packing desk are rotated 180° before
+    /// printing. Other carriers are governed by their own rotation flag.
+    /// </summary>
+    public const string PplLabelRotation = "is-ppl-label-rotation-enabled";
+
+    /// <summary>
+    /// When on, Zásilkovna (Packeta) shipping-label PDFs served to the packing desk are rotated
+    /// 180° before printing. Other carriers are governed by their own rotation flag.
+    /// </summary>
+    public const string ZasilkovnaLabelRotation = "is-zasilkovna-label-rotation-enabled";
 }

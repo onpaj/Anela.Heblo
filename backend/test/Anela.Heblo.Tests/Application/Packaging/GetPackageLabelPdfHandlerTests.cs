@@ -223,10 +223,20 @@ public class GetPackageLabelPdfHandlerTests
         ms.ToArray().Should().BeEquivalentTo(pdfBytes);
     }
 
-    private void SetupGlsRotationFlag(bool isEnabled) =>
+    private void SetupGlsRotationFlag(bool isEnabled) => SetupRotationFlag(Carriers.GLS, isEnabled);
+
+    private void SetupRotationFlag(Carriers carrier, bool isEnabled) =>
         _featureFlags
-            .Setup(f => f.IsEnabledAsync(FeatureFlagKeys.GlsLabelRotation, It.IsAny<CancellationToken>()))
+            .Setup(f => f.IsEnabledAsync(RotationFlagKey(carrier), It.IsAny<CancellationToken>()))
             .ReturnsAsync(isEnabled);
+
+    private static string RotationFlagKey(Carriers carrier) => carrier switch
+    {
+        Carriers.GLS => FeatureFlagKeys.GlsLabelRotation,
+        Carriers.PPL => FeatureFlagKeys.PplLabelRotation,
+        Carriers.Zasilkovna => FeatureFlagKeys.ZasilkovnaLabelRotation,
+        _ => throw new ArgumentOutOfRangeException(nameof(carrier), carrier, "No rotation flag for this carrier"),
+    };
 
     private void SetupCarrier(Carriers? carrier)
     {
@@ -461,5 +471,69 @@ public class GetPackageLabelPdfHandlerTests
         response.Success.Should().BeTrue();
         (await ReadContentAsync(response)).Should().BeEquivalentTo(notAPdf);
         VerifyLogged(LogLevel.Warning, Times.Once());
+    }
+
+    [Theory]
+    [InlineData(Carriers.GLS)]
+    [InlineData(Carriers.PPL)]
+    [InlineData(Carriers.Zasilkovna)]
+    public async Task Handle_CarrierRotationFlagOn_OrderOfThatCarrier_RotatesEveryPageBy180(Carriers carrier)
+    {
+        SetupLabelPdf(CreatePdf(pageCount: 2));
+        SetupRotationFlag(carrier, isEnabled: true);
+        SetupCarrier(carrier);
+
+        var response = await CreateHandler().Handle(Request(), CancellationToken.None);
+
+        PageRotations(await ReadContentAsync(response)).Should().Equal(180, 180);
+    }
+
+    [Theory]
+    [InlineData(Carriers.PPL, Carriers.GLS)]
+    [InlineData(Carriers.Zasilkovna, Carriers.PPL)]
+    [InlineData(Carriers.GLS, Carriers.Zasilkovna)]
+    [InlineData(Carriers.PPL, Carriers.Osobak)]
+    public async Task Handle_CarrierRotationFlagOn_OrderOfAnotherCarrier_ReturnsPdfUnchanged(
+        Carriers flaggedCarrier, Carriers orderCarrier)
+    {
+        var pdfBytes = CreatePdf(pageCount: 1);
+        SetupLabelPdf(pdfBytes);
+        SetupRotationFlag(flaggedCarrier, isEnabled: true);
+        SetupCarrier(orderCarrier);
+
+        var response = await CreateHandler().Handle(Request(), CancellationToken.None);
+
+        (await ReadContentAsync(response)).Should().BeEquivalentTo(pdfBytes);
+    }
+
+    [Fact]
+    public async Task Handle_AllCarrierRotationFlagsOn_PersonalPickupOrder_ReturnsPdfUnchanged()
+    {
+        var pdfBytes = CreatePdf(pageCount: 1);
+        SetupLabelPdf(pdfBytes);
+        SetupRotationFlag(Carriers.GLS, isEnabled: true);
+        SetupRotationFlag(Carriers.PPL, isEnabled: true);
+        SetupRotationFlag(Carriers.Zasilkovna, isEnabled: true);
+        SetupCarrier(Carriers.Osobak);
+
+        var response = await CreateHandler().Handle(Request(), CancellationToken.None);
+
+        (await ReadContentAsync(response)).Should().BeEquivalentTo(pdfBytes);
+    }
+
+    [Fact]
+    public async Task Handle_AllCarrierRotationFlagsOff_ReturnsPdfUnchangedWithoutCarrierLookup()
+    {
+        var pdfBytes = CreatePdf(pageCount: 1);
+        SetupLabelPdf(pdfBytes);
+        SetupRotationFlag(Carriers.GLS, isEnabled: false);
+        SetupRotationFlag(Carriers.PPL, isEnabled: false);
+        SetupRotationFlag(Carriers.Zasilkovna, isEnabled: false);
+
+        var response = await CreateHandler().Handle(Request(), CancellationToken.None);
+
+        (await ReadContentAsync(response)).Should().BeEquivalentTo(pdfBytes);
+        _orderShippingSource.Verify(
+            c => c.GetShippingMethodGuidAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 }
