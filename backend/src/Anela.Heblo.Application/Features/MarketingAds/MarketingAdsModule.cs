@@ -1,3 +1,4 @@
+using System.Globalization;
 using Anela.Heblo.Application.Features.MarketingAds.Contracts;
 using Anela.Heblo.Persistence.Ads;
 using Microsoft.Extensions.Configuration;
@@ -42,8 +43,38 @@ public static class MarketingAdsModule
             return;
         }
 
-        var maxPoolSize = configuration.GetValue<int?>(MaxPoolSizeKey) ?? DefaultMaxPoolSize;
-        services.AddAdsPersistenceServices(connectionString!, maxPoolSize);
+        if (!TryReadMaxPoolSize(configuration, out var maxPoolSize))
+        {
+            LogStartupWarning(
+                $"{MaxPoolSizeKey} must be a positive integer (got '{configuration[MaxPoolSizeKey]}'); "
+                + "the ads schema stays unregistered.");
+            return;
+        }
+
+        try
+        {
+            services.AddAdsPersistenceServices(connectionString!, maxPoolSize);
+        }
+        catch (Exception ex)
+        {
+            // The data source is built before anything is added to the collection, so a failure here
+            // leaves nothing half-registered.
+            LogStartupWarning(
+                $"building the ads data source failed ({ex.GetType().Name}: {ex.Message}); "
+                + "the ads schema stays unregistered.");
+        }
+    }
+
+    private static bool TryReadMaxPoolSize(IConfiguration configuration, out int maxPoolSize)
+    {
+        var raw = configuration[MaxPoolSizeKey];
+        if (string.IsNullOrWhiteSpace(raw))
+        {
+            maxPoolSize = DefaultMaxPoolSize;
+            return true;
+        }
+
+        return int.TryParse(raw, NumberStyles.Integer, CultureInfo.InvariantCulture, out maxPoolSize) && maxPoolSize > 0;
     }
 
     private static bool IsParseableConnectionString(string value, out string error)
