@@ -59,6 +59,7 @@ empty or numeric. Otherwise the platform is silently absent and the core syncs t
 - `change_event` over 29 days returned 11 events, all agency web-UI edits (`GOOGLE_ADS_WEB_CLIENT`).
 - Heblo currently acts as `ondra@anela.cz` (owner decision); classification still separates Heblo from
   him because `Heblo` requires `client_type` `GOOGLE_ADS_API`, while his UI edits are `User`.
+- Cloud project `heblo-493908` has Explorer access since 2026-10-07 (2 880 ops/day).
 - The `GoogleAds--*` secrets (CustomerId, OAuth2ClientId/ClientSecret/RefreshToken, HebloUserEmail)
   are set in `kv-heblo-stg` and `kv-heblo-prod`.
 
@@ -66,8 +67,9 @@ empty or numeric. Otherwise the platform is silently absent and the core syncs t
 - Google omits zero-valued fields; a missing metric is 0, not an error.
 - `change_event` cannot reach back more than 30 days; after a longer outage older changes are lost (warning logged).
 - An ad-group criterion UPDATE/REMOVE event may lack `negative` and is then reported at level `Keyword`.
-- Events in the repeated autumn DST hour are mapped to standard time and may appear up to 1 h late.
-- Staging and production read the same live account (read-only; Explorer quota 2 880 ops/day is shared by the Cloud project).
+- Events in the repeated autumn DST hour are mapped to standard time and may be missed or appear up to 1 h late (Google timestamps carry no UTC offset; the repeated 02:00-03:00 hour on the last Sunday of October, once a year).
+- Staging and production read the same live account (read-only; the Cloud project's quota is shared).
+- Criterion change events with a non-keyword payload (location, language, device, audience...) are kept with a null entity reference; see integration doc §7.
 - The developer token is not used; Google sunset it on 2026-09-09.
 
 ## Code entry points

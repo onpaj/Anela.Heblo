@@ -9,7 +9,7 @@ owns:
   - backend/src/Anela.Heblo.Persistence/Features/MarketingInvoices/**
   - backend/src/Adapters/Anela.Heblo.Adapters.GoogleAds/**
   - backend/src/Adapters/Anela.Heblo.Adapters.MetaAds/**
-verified_at: "d0b2af4c9"
+verified_at: "7f5ce8509"
 related: []
 ---
 

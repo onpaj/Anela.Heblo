@@ -87,7 +87,8 @@ Resource name = `customers/{customerId}/{collection}/{id}` (`campaigns`, `adGrou
 
 - Must filter `change_event.change_date_time` to a window that starts **at most 30 days back**, and must have `LIMIT` (≤ 10 000). Heblo clamps older watermarks to now − 30 days + 1 h and logs a warning; older history is unrecoverable.
 - `change_date_time` is in the **account time zone** (`customer.time_zone`, Europe/Prague), format `yyyy-MM-dd HH:mm:ss[.ffffff]` (timestamps come back with microseconds, e.g. `2026-09-21 14:11:00.459519`; second-precision bounds are accepted). Heblo converts both ways.
-- Events in the repeated autumn DST hour are mapped to standard time (Google timestamps carry no offset), so they can appear up to 1 h late.
+- Events in the repeated autumn DST hour are mapped to standard time (Google timestamps carry no offset), so they may be missed or appear up to 1 h late (window: the repeated 02:00-03:00 hour on the last Sunday of October, once a year).
+- AD-resource change events (`changeResourceType` AD, resource `customers/{id}/ads/{adId}`, e.g. RSA headline edits) carry no ad group in the resource name, so they are kept with entity level/id null (only `adGroupAds/...` events map to an Ad entity).
 - `resource_name` = `customers/{id}/changeEvents/{timestampMicros}~{commandIndex}~{mutateIndex}`; the part after `changeEvents/` is Heblo's `ExternalEventId`.
 - `old_resource` / `new_resource` hold only the changed fields of the resource (`{"adGroupAd": {"status": "PAUSED"}}`). An ad-group criterion UPDATE/REMOVE may therefore lack `negative`, and is then reported as level `Keyword` even when it is a negative.
 - `campaign_criterion` / `ad_group_criterion` also hold targeting (location, language, device, audience). When the payload shows a non-keyword criterion (`type` present and not `KEYWORD`, or no `keyword` object next to another criterion object such as `location`), the event keeps its row, change type, raw JSON and actor but carries no entity reference (level and external id null); a payload with no type information keeps the keyword mapping above.
@@ -101,7 +102,7 @@ Resource name = `customers/{customerId}/{collection}/{id}` (`campaigns`, `adGrou
 | `GOOGLE_ADS_WEB_CLIENT`, `GOOGLE_ADS_EDITOR`, `GOOGLE_ADS_MOBILE_APP`, `GOOGLE_ADS_BULK_UPLOAD`, `GOOGLE_ADS_SCRIPTS`, other `GOOGLE_ADS_API` | `User` |
 | `OTHER`, `UNKNOWN`, `UNSPECIFIED`, missing | `Unknown` |
 
-Because `Heblo` requires `GOOGLE_ADS_API`, sharing the identity `ondra@anela.cz` between Heblo and Ondrej's manual work does not blur the two: his UI edits are `GOOGLE_ADS_WEB_CLIENT` → `User`.
+Because `Heblo` requires `GOOGLE_ADS_API`, sharing the identity `ondra@anela.cz` between Heblo and Ondrej's manual work does not blur the two: his UI edits are `GOOGLE_ADS_WEB_CLIENT` → `User`. However, because `HebloUserEmail` is `ondra@anela.cz`, any other Google Ads API tool authorised as that user (e.g. re-running the access-spike script, another OAuth app) is also classified `Heblo`; a dedicated user avoids this.
 
 ## 8. Errors
 
@@ -138,7 +139,7 @@ v25 released July 2026, sunset August 2027 (v23 Feb 2027, v24 May 2027). Bump `G
 - Key Vault `GoogleAds*` secrets at spike time: none in `kv-heblo-stg`, none in `kv-heblo-prod`; no App Settings on `heblo` / `heblo-test`. Set on 2026-10-07 after the spike (see §2).
 - Quirks seen:
   - anela.cz Workspace passkey loop on the `adwords` consent (see §2).
-  - Negative criteria rows carry no `status` field.
+  - A live read-only query on 2026-10-07 selecting `*_criterion.status` returned ENABLED for all 567 campaign and 373 ad-group negatives; the read source selects status.
   - `change_event` timestamps come back with microseconds (`2026-09-21 14:11:00.459519`).
 
 ## 11. Why `ImportedMarketingTransactions` is empty
