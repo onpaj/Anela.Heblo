@@ -377,10 +377,10 @@ Each platform workspace follows the same three steps.
 
 | | Google Ads (WS1) | Meta (WS2) | Sklik (WS3) |
 |---|---|---|---|
-| Existing code | `Adapters.GoogleAds` (SDK `Google.Ads.GoogleAds` 21.1.0, billing only) | `Adapters.MetaAds` (Graph v21, billing only) | none — new `Adapters.Sklik` |
-| Credentials | customer id, developer token (**Basic** access needed), OAuth client + refresh token of a Standard-access user, `login-customer-id` if via MCC | `act_…`, system-user token from Anela's Business Manager, `ads_read` (+ `ads_management` for the executor) | API token, client user id if access is via a shared login |
+| Existing code | `Adapters.GoogleAds` (SDK `Google.Ads.GoogleAds` 21.1.0 = retired API v16–18, billing only; new code uses REST) | `Adapters.MetaAds` (Graph v21.0 — expired 2025-09-09, billing only; version bumped after the spike) | none — new `Adapters.Sklik` |
+| Credentials | customer id, OAuth client + refresh token of a Standard-access user, `login-customer-id` if via MCC. Developer tokens were retired on 2026-09-09; access level now belongs to the **Google Cloud project** that owns the OAuth client (needs Explorer or higher) | `act_…`, system-user token from Anela's Business Manager, `ads_read` (+ `ads_management` for the executor) | API token, client user id if access is via a shared login |
 | Read | GAQL on `campaign`, `ad_group`, `ad_group_criterion`, `ad_group_ad`, `search_term_view`, `segments.date` | Insights `level=campaign/adset/ad`, `time_increment=1`; entity lists | Drak JSON API: `campaigns/groups/keywords/ads.list`, stats via `createReport`/`readReport`, search queries report |
-| Change log | `change_event` (≤ 30 days back, ≤ 10k rows/query) | `/act_…/activities` | unknown → spike decides; else snapshot-diff fallback |
+| Change log | `change_event` (≤ 30 days back, ≤ 10k rows/query) | `/act_…/activities` | none in the Drak API → snapshot-diff fallback (no actor) |
 | Executor | negative keyword criterion (campaign/ad group), `AdGroupAd.status = PAUSED`; tests use `validate_only` | `POST /{ad_id} status=PAUSED` | negative keyword, ad pause via Drak API |
 
 The existing billing importers (`*InvoiceImportJob`) are left untouched; the spike explains why
