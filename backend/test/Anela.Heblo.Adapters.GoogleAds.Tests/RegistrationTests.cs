@@ -63,6 +63,47 @@ public sealed class RegistrationTests
     }
 
     [Fact]
+    public void reports_no_misconfiguration_when_everything_is_a_placeholder_or_blank()
+    {
+        var settings = new GoogleAdsSettings
+        {
+            CustomerId = "XXX-XXX-XXXX",
+            OAuth2ClientId = "-- stored in secrets.json --",
+        };
+
+        GoogleAdsMarketingAdsServiceCollectionExtensions.DescribeMisconfiguration(settings)
+            .Should().BeNull("an environment that never configured Google Ads must not warn at every boot");
+    }
+
+    [Fact]
+    public void reports_no_misconfiguration_when_fully_configured()
+    {
+        GoogleAdsMarketingAdsServiceCollectionExtensions.DescribeMisconfiguration(FullyConfigured())
+            .Should().BeNull();
+    }
+
+    [Fact]
+    public void names_the_unusable_settings_without_their_values_when_partly_configured()
+    {
+        var settings = FullyConfigured();
+        settings.OAuth2RefreshToken = "-- stored in Key Vault --";
+        settings.LoginCustomerId = "manager";
+
+        var message = GoogleAdsMarketingAdsServiceCollectionExtensions.DescribeMisconfiguration(settings);
+
+        message.Should().Contain("OAuth2RefreshToken").And.Contain("LoginCustomerId")
+            .And.NotMatchRegex(@"\bCustomerId\b").And.NotContain("client-secret-value").And.NotContain("manager");
+    }
+
+    private static GoogleAdsSettings FullyConfigured() => new()
+    {
+        CustomerId = "123-456-7890",
+        OAuth2ClientId = "client-id.apps.googleusercontent.com",
+        OAuth2ClientSecret = "client-secret-value",
+        OAuth2RefreshToken = "refresh-token-value",
+    };
+
+    [Fact]
     public void does_not_require_a_developer_token()
     {
         Register(Configured()).Should().Contain(d => d.ServiceType == typeof(IAdPlatformReadSource));

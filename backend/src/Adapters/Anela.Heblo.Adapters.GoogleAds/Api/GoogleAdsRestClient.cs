@@ -119,10 +119,35 @@ internal sealed class GoogleAdsRestClient : IGoogleAdsApiClient
             ? results.EnumerateArray().Select(r => r.Clone()).ToList()
             : Enumerable.Empty<JsonElement>();
 
+    /// <summary>
+    /// A 401 means the cached access token was revoked before it expired; it is dropped and the
+    /// request resent once with a fresh one. A second 401 is surfaced as a permanent error.
+    /// </summary>
     private async Task<JsonDocument> PostAsync(string path, JsonObject body, string operation, CancellationToken ct)
     {
-        using var request = await CreateRequestAsync(path, body, ct);
-        using var response = await _httpClientFactory.CreateClient(HttpClientName).SendAsync(request, ct);
+        var (response, accessToken) = await SendAsync(path, body, ct);
+        if (response.StatusCode == HttpStatusCode.Unauthorized)
+        {
+            response.Dispose();
+            _tokens.Invalidate(accessToken);
+            (response, _) = await SendAsync(path, body, ct);
+        }
+
+        using (response)
+            return await ReadAsync(response, operation, ct);
+    }
+
+    private async Task<(HttpResponseMessage Response, string AccessToken)> SendAsync(
+        string path, JsonObject body, CancellationToken ct)
+    {
+        var accessToken = await _tokens.GetAccessTokenAsync(ct);
+        using var request = CreateRequest(path, body, accessToken);
+        var response = await _httpClientFactory.CreateClient(HttpClientName).SendAsync(request, ct);
+        return (response, accessToken);
+    }
+
+    private async Task<JsonDocument> ReadAsync(HttpResponseMessage response, string operation, CancellationToken ct)
+    {
         var text = await response.Content.ReadAsStringAsync(ct);
         if (response.IsSuccessStatusCode)
             return JsonDocument.Parse(text);
@@ -134,10 +159,9 @@ internal sealed class GoogleAdsRestClient : IGoogleAdsApiClient
         throw error;
     }
 
-    private async Task<HttpRequestMessage> CreateRequestAsync(string path, JsonObject body, CancellationToken ct)
+    private HttpRequestMessage CreateRequest(string path, JsonObject body, string accessToken)
     {
         var settings = _settings.CurrentValue;
-        var accessToken = await _tokens.GetAccessTokenAsync(ct);
         var request = new HttpRequestMessage(HttpMethod.Post, new Uri(BaseAddress, $"{settings.ApiVersion}/{path}"))
         {
             Content = new StringContent(body.ToJsonString(), Encoding.UTF8, "application/json"),

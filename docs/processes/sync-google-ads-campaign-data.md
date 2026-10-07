@@ -66,8 +66,9 @@ empty or numeric. Otherwise the platform is silently absent and the core syncs t
 ## Known quirks
 - Google omits zero-valued fields; a missing metric is 0, not an error.
 - `change_event` cannot reach back more than 30 days; after a longer outage older changes are lost (warning logged).
-- An ad-group criterion UPDATE/REMOVE event may lack `negative` and is then reported at level `Keyword`.
-- Events in the repeated autumn DST hour are mapped to standard time and may be missed or appear up to 1 h late (Google timestamps carry no UTC offset; the repeated 02:00-03:00 hour on the last Sunday of October, once a year).
+- An ad-group criterion UPDATE/REMOVE event may lack `negative` and is then reported at level `Keyword` with id `{adGroupId}~{criterionId}`, which does not match the negative's `adGroupCriteria/…` entity id.
+- Change history is cut at 10 000 rows (ascending, `since` inclusive): advance the watermark to the last returned `OccurredAt`, not past it, and de-duplicate on `ExternalEventId`.
+- Events in the repeated autumn DST hour are mapped to standard time and may be missed or appear up to 1 h late (Google timestamps carry no UTC offset; the hour repeated when the account's time zone leaves daylight saving time, once a year; for Europe/Prague that is 02:00-03:00 on the last Sunday of October).
 - Staging and production read the same live account (read-only; the Cloud project's quota is shared).
 - Criterion change events with a non-keyword payload (location, language, device, audience...) are kept with a null entity reference; see integration doc §7.
 - The developer token is not used; Google sunset it on 2026-09-09.

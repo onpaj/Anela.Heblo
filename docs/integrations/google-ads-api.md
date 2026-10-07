@@ -85,12 +85,12 @@ Resource name = `customers/{customerId}/{collection}/{id}` (`campaigns`, `adGrou
 
 ## 7. change_event
 
-- Must filter `change_event.change_date_time` to a window that starts **at most 30 days back**, and must have `LIMIT` (≤ 10 000). Heblo clamps older watermarks to now − 30 days + 1 h and logs a warning; older history is unrecoverable.
+- Must filter `change_event.change_date_time` to a window that starts **at most 30 days back**, and must have `LIMIT` (≤ 10 000). Heblo clamps older watermarks to now − 30 days + 1 h and logs a warning; older history is unrecoverable. Rows come back ordered by time ascending and cut at 10 000, and `since` is inclusive: a caller must advance its watermark to the last returned `OccurredAt` (not past it) and de-duplicate on `ExternalEventId`, or events sharing the cut-off second are lost.
 - `change_date_time` is in the **account time zone** (`customer.time_zone`, Europe/Prague), format `yyyy-MM-dd HH:mm:ss[.ffffff]` (timestamps come back with microseconds, e.g. `2026-09-21 14:11:00.459519`; second-precision bounds are accepted). Heblo converts both ways.
-- Events in the repeated autumn DST hour are mapped to standard time (Google timestamps carry no offset), so they may be missed or appear up to 1 h late (window: the repeated 02:00-03:00 hour on the last Sunday of October, once a year).
+- Events in the repeated autumn DST hour are mapped to standard time (Google timestamps carry no offset), so they may be missed or appear up to 1 h late (window: the hour repeated when the account's time zone leaves daylight saving time, once a year; for Europe/Prague that is 02:00-03:00 on the last Sunday of October).
 - AD-resource change events (`changeResourceType` AD, resource `customers/{id}/ads/{adId}`, e.g. RSA headline edits) carry no ad group in the resource name, so they are kept with entity level/id null (only `adGroupAds/...` events map to an Ad entity).
 - `resource_name` = `customers/{id}/changeEvents/{timestampMicros}~{commandIndex}~{mutateIndex}`; the part after `changeEvents/` is Heblo's `ExternalEventId`.
-- `old_resource` / `new_resource` hold only the changed fields of the resource (`{"adGroupAd": {"status": "PAUSED"}}`). An ad-group criterion UPDATE/REMOVE may therefore lack `negative`, and is then reported as level `Keyword` even when it is a negative.
+- `old_resource` / `new_resource` hold only the changed fields of the resource (`{"adGroupAd": {"status": "PAUSED"}}`). An ad-group criterion UPDATE/REMOVE may therefore lack `negative`, and is then reported as level `Keyword` with the bare `{adGroupId}~{criterionId}` id even when it is a negative, so it does not match the `adGroupCriteria/…` entity id from the snapshot.
 - `campaign_criterion` / `ad_group_criterion` also hold targeting (location, language, device, audience). When the payload shows a non-keyword criterion (`type` present and not `KEYWORD`, or no `keyword` object next to another criterion object such as `location`), the event keeps its row, change type, raw JSON and actor but carries no entity reference (level and external id null); a payload with no type information keeps the keyword mapping above.
 - Google Ads Editor changes are not reported by `change_event`.
 - Actor mapping (`client_type` → `AdChangeActorKind`):
@@ -112,7 +112,9 @@ Error body: `{"error": {"code", "message", "status", "details": [{"@type": "…G
 |---|---|---|---|
 | `authorizationError.CLOUD_PROJECT_NOT_APPROVED_FOR_PRODUCTION` | 403 | Cloud project has Test access only (legacy: `DEVELOPER_TOKEN_NOT_APPROVED`) | throw, not retried |
 | `authorizationError.USER_PERMISSION_DENIED` | 403 | user lacks access / login-customer-id needed | throw |
-| `authenticationError.OAUTH_TOKEN_*`, OAuth `invalid_grant` | 401 / 400 | token revoked or expired | throw |
+| `authenticationError.OAUTH_TOKEN_*` | 401 | access token revoked or expired | cached token dropped, request resent once; a second 401 throws |
+| OAuth `invalid_grant` | 400 | refresh token revoked or expired | throw |
+| OAuth token endpoint 408 / 429 / 5xx | | transient | retried |
 | `errorInfo.SERVICE_DISABLED` | 403 | Google Ads API not enabled in the Cloud project | throw |
 | `quotaError.RESOURCE_EXHAUSTED` | 429 | rate limit | retried (reads and mutates) |
 | `INTERNAL` / `UNAVAILABLE` | 5xx | transient | reads retried; **mutates not retried** (may have applied) |

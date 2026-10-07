@@ -18,6 +18,8 @@ public sealed class GoogleAdsRestClientTests
           "errors":[{"errorCode":{"authorizationError":"USER_PERMISSION_DENIED"},"message":"User doesn't have permission."}],
           "requestId":"r-1"}]}}
         """;
+    private const string Unauthenticated =
+        """{"error":{"code":401,"message":"Request had invalid authentication credentials.","status":"UNAUTHENTICATED"}}""";
 
     [Fact]
     public async Task posts_the_query_to_the_versioned_search_endpoint_with_bearer_and_login_header()
@@ -103,6 +105,36 @@ public sealed class GoogleAdsRestClientTests
     }
 
     [Fact]
+    public async Task a_401_invalidates_the_access_token_and_resends_once()
+    {
+        var tokens = new StaticAccessTokenProvider();
+        var (client, handler) = Create(tokens: tokens);
+        handler.Enqueue(HttpStatusCode.Unauthorized, Unauthenticated)
+               .Enqueue(HttpStatusCode.OK, OneRow);
+
+        var rows = await client.SearchAsync(TestSettings.CustomerId, Query, CancellationToken.None);
+
+        rows.Should().ContainSingle();
+        handler.Requests.Should().HaveCount(2);
+        tokens.Invalidated.Should().Equal(StaticAccessTokenProvider.Token);
+    }
+
+    [Fact]
+    public async Task a_second_401_is_surfaced_as_a_permanent_error()
+    {
+        var tokens = new StaticAccessTokenProvider();
+        var (client, handler) = Create(tokens: tokens);
+        handler.Enqueue(HttpStatusCode.Unauthorized, Unauthenticated)
+               .Enqueue(HttpStatusCode.Unauthorized, Unauthenticated);
+
+        var act = () => client.SearchAsync(TestSettings.CustomerId, Query, CancellationToken.None);
+
+        (await act.Should().ThrowAsync<GoogleAdsApiException>()).Which.IsTransient.Should().BeFalse();
+        handler.Requests.Should().HaveCount(2);
+        tokens.Invalidated.Should().ContainSingle();
+    }
+
+    [Fact]
     public async Task retries_an_http_client_timeout()
     {
         var (client, handler) = Create();
@@ -144,12 +176,12 @@ public sealed class GoogleAdsRestClientTests
     }
 
     internal static (GoogleAdsRestClient Client, StubHttpMessageHandler Handler) Create(
-        Action<GoogleAdsSettings>? configure = null)
+        Action<GoogleAdsSettings>? configure = null, StaticAccessTokenProvider? tokens = null)
     {
         var handler = new StubHttpMessageHandler();
         var client = new GoogleAdsRestClient(
             new StubHttpClientFactory().With(GoogleAdsRestClient.HttpClientName, handler),
-            new StaticAccessTokenProvider(),
+            tokens ?? new StaticAccessTokenProvider(),
             new TestOptionsMonitor<GoogleAdsSettings>(TestSettings.Create(configure)),
             NullLogger<GoogleAdsRestClient>.Instance,
             retryDelay: TimeSpan.Zero);

@@ -51,6 +51,13 @@ internal sealed class GoogleAdsOAuthTokenProvider : IGoogleAdsAccessTokenProvide
         }
     }
 
+    public void Invalidate(string accessToken)
+    {
+        var current = Volatile.Read(ref _cached);
+        if (current?.Value == accessToken)
+            Interlocked.CompareExchange(ref _cached, null, current);
+    }
+
     public void Dispose() => _gate.Dispose();
 
     private bool IsUsable(CachedToken? token, string fingerprint) =>
@@ -91,7 +98,8 @@ internal sealed class GoogleAdsOAuthTokenProvider : IGoogleAdsAccessTokenProvide
         return new GoogleAdsApiException(
             $"Google OAuth token refresh failed: HTTP {(int)status}, error '{code}'. 'invalid_grant' means the refresh " +
             "token was revoked or expired (a consent screen left in Testing status expires it after 7 days).",
-            status, $"oauth.{code}", null, isTransient: (int)status >= 500);
+            status, $"oauth.{code}", null,
+            isTransient: status is HttpStatusCode.RequestTimeout or HttpStatusCode.TooManyRequests || (int)status >= 500);
     }
 
     private static string? ReadOAuthErrorCode(string body)

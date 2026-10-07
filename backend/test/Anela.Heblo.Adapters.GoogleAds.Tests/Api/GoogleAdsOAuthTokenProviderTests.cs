@@ -70,6 +70,40 @@ public sealed class GoogleAdsOAuthTokenProviderTests
     }
 
     [Fact]
+    public async Task invalidating_the_cached_token_forces_a_new_exchange()
+    {
+        var handler = new StubHttpMessageHandler()
+            .Enqueue(HttpStatusCode.OK, FirstToken)
+            .Enqueue(HttpStatusCode.OK, SecondToken);
+        var provider = Create(handler, new FakeTimeProvider(TestSettings.Now), TestSettings.Create());
+
+        var revoked = await provider.GetAccessTokenAsync(CancellationToken.None);
+        provider.Invalidate(revoked);
+        var token = await provider.GetAccessTokenAsync(CancellationToken.None);
+
+        token.Should().Be("ya29.second");
+        handler.Requests.Should().HaveCount(2);
+    }
+
+    [Fact]
+    public async Task invalidating_a_stale_token_keeps_the_newer_cached_one()
+    {
+        var handler = new StubHttpMessageHandler()
+            .Enqueue(HttpStatusCode.OK, FirstToken)
+            .Enqueue(HttpStatusCode.OK, SecondToken);
+        var provider = Create(handler, new FakeTimeProvider(TestSettings.Now), TestSettings.Create());
+
+        var stale = await provider.GetAccessTokenAsync(CancellationToken.None);
+        provider.Invalidate(stale);
+        await provider.GetAccessTokenAsync(CancellationToken.None);
+        provider.Invalidate(stale);
+        var token = await provider.GetAccessTokenAsync(CancellationToken.None);
+
+        token.Should().Be("ya29.second");
+        handler.Requests.Should().HaveCount(2);
+    }
+
+    [Fact]
     public async Task invalid_grant_throws_a_non_transient_error_that_does_not_leak_secrets()
     {
         var handler = new StubHttpMessageHandler().Enqueue(
@@ -89,6 +123,19 @@ public sealed class GoogleAdsOAuthTokenProviderTests
     public async Task a_5xx_from_the_token_endpoint_is_transient()
     {
         var handler = new StubHttpMessageHandler().Enqueue(HttpStatusCode.ServiceUnavailable, "{}");
+        var provider = Create(handler, new FakeTimeProvider(TestSettings.Now), TestSettings.Create());
+
+        var act = () => provider.GetAccessTokenAsync(CancellationToken.None);
+
+        (await act.Should().ThrowAsync<GoogleAdsApiException>()).Which.IsTransient.Should().BeTrue();
+    }
+
+    [Theory]
+    [InlineData(HttpStatusCode.RequestTimeout)]
+    [InlineData(HttpStatusCode.TooManyRequests)]
+    public async Task a_timeout_or_rate_limit_from_the_token_endpoint_is_transient(HttpStatusCode status)
+    {
+        var handler = new StubHttpMessageHandler().Enqueue(status, """{"error":"rate_limit_exceeded"}""");
         var provider = Create(handler, new FakeTimeProvider(TestSettings.Now), TestSettings.Create());
 
         var act = () => provider.GetAccessTokenAsync(CancellationToken.None);
