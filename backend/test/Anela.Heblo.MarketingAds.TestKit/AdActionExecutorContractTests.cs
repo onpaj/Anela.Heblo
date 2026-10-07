@@ -153,6 +153,18 @@ public abstract class AdActionExecutorContractTests
     }
 
     [Fact]
+    public async Task Execute_does_not_compare_OldValue_itself_the_core_does_the_stale_check()
+    {
+        var action = SamplePauseAd() with { OldValue = AdActionValues.Paused };
+
+        var result = await CreateExecutor().ExecuteAsync(action, CancellationToken.None);
+
+        result.Outcome.Should().Be(AdExecutionOutcome.Succeeded,
+            "executors do not compare OldValue (spec 12.2); the executor reported '{0}'", result.Error);
+        result.BeforeValue.Should().Be(AdActionValues.Enabled);
+    }
+
+    [Fact]
     public async Task ReadCurrent_on_a_missing_target_reports_that_it_does_not_exist()
     {
         var action = SamplePauseAd() with { TargetExternalId = MissingTargetExternalId };
