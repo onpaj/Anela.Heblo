@@ -10,7 +10,7 @@ Two independent code paths in `Anela.Heblo.Adapters.GoogleAds`:
 
 | Path | Transport | Purpose | State |
 |---|---|---|---|
-| `SdkAccountBudgetFetcher` → `GoogleAdsInvoiceImportJob` | `Google.Ads.GoogleAds` SDK 21.1.0, API **V18** | billing (`account_budget`) | dead: V18 is sunset, job disabled in prod (see §11) |
+| `SdkAccountBudgetFetcher` → `GoogleAdsInvoiceImportJob` | `Google.Ads.GoogleAds` SDK 21.1.0, API **V18** | billing (`account_budget`) | dead: V18 is sunset, job disabled in prod, `GoogleAds--DeveloperToken` still absent (see §11) |
 | `GoogleAdsReadSource`, `GoogleAdsActionExecutor` (`Api/`, `Reporting/`, `Execution/`) | REST over `HttpClient`, API **v25** | MarketingAds backbone: entities, daily facts, search terms, change history, v1 actions | this document |
 
 SDK 21.1.0 contains only V16–V18. The current SDK (27.x) supports v22–v25 and no longer has V18, so upgrading it means rewriting the billing fetcher. The marketing code therefore uses REST and leaves the SDK alone.
@@ -141,7 +141,7 @@ v25 released July 2026, sunset August 2027 (v23 Feb 2027, v24 May 2027). Bump `G
 
 ## 11. Why `ImportedMarketingTransactions` is empty
 
-1. **No credentials until 2026-10-07.** No `GoogleAds*` secret existed in `kv-heblo-stg`, `kv-heblo-prod` or App Settings, so the billing job could never authenticate. The five `GoogleAds--*` secrets were set in both vaults on 2026-10-07; from now on the billing job (where enabled) fails loudly on the sunset API V18 instead of failing silently for lack of credentials.
+1. **No credentials until 2026-10-07.** No `GoogleAds*` secret existed in `kv-heblo-stg`, `kv-heblo-prod` or App Settings, so the billing job could never authenticate. Four of its settings plus `HebloUserEmail` (`GoogleAds--CustomerId`, `--OAuth2ClientId`, `--OAuth2ClientSecret`, `--OAuth2RefreshToken`, `--HebloUserEmail`) were set in both vaults on 2026-10-07; **`GoogleAds--DeveloperToken` is still absent**, so `GoogleAdsSettings.DeveloperToken` is empty. What the code shows: `GoogleAdsInvoiceImportJob` returns immediately while disabled (it is disabled in prod); once enabled it has no "is configured" gate, builds the SDK client with the (empty) `DeveloperToken` and calls `Services.V18.GoogleAdsService.SearchStream`, and any exception is logged and rethrown (the run fails). How the V18 call behaves with these secrets and an empty developer token is **unverified**.
 2. The job `google-ads-invoice-import` is `IsEnabled = false` in prod.
 3. `SdkAccountBudgetFetcher` calls API V18, which Google has sunset, so it would fail even with credentials.
 4. `account_budget` returns rows only for monthly-invoicing accounts and only for budgets approved in the last 7 days.
