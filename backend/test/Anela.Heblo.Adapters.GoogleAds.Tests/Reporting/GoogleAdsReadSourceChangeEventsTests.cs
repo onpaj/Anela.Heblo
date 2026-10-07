@@ -4,6 +4,7 @@ using Anela.Heblo.Adapters.GoogleAds.Reporting;
 using Anela.Heblo.Adapters.GoogleAds.Tests.Support;
 using Anela.Heblo.Application.Features.MarketingAds.Contracts;
 using FluentAssertions;
+using Microsoft.Extensions.Logging;
 
 namespace Anela.Heblo.Adapters.GoogleAds.Tests.Reporting;
 
@@ -75,7 +76,8 @@ public sealed class GoogleAdsReadSourceChangeEventsTests
     public async Task clamps_a_watermark_older_than_the_30_day_window()
     {
         var api = new FixtureGoogleAdsApiClient();
-        var (source, _) = ReadSourceHarness.Create(api);
+        var logger = new CapturingLogger();
+        var (source, _) = ReadSourceHarness.Create(api, logger: logger);
 
         var events = await source.GetChangeEventsAsync(
             TestSettings.CustomerId, new DateTimeOffset(2026, 8, 1, 0, 0, 0, TimeSpan.Zero), CancellationToken.None);
@@ -84,6 +86,34 @@ public sealed class GoogleAdsReadSourceChangeEventsTests
         var gaql = api.Calls.Single(c => c.Query.Name == "change_events").Query.Gaql;
         // now − 30 days + 1 hour = 2026-09-07T07:00Z = 09:00 in Prague (CEST)
         LowerBound.Match(gaql).Groups[1].Value.Should().Be("2026-09-07 09:00:00");
+        logger.Levels.Should().Equal(LogLevel.Warning);
+    }
+
+    [Fact]
+    public async Task keeps_the_one_hour_margin_in_account_wall_clock_time_after_spring_forward()
+    {
+        var api = new FixtureGoogleAdsApiClient();
+        var (source, time) = ReadSourceHarness.Create(api);
+        time.SetUtcNow(new DateTimeOffset(2027, 4, 15, 8, 0, 0, TimeSpan.Zero));
+
+        await source.GetChangeEventsAsync(
+            TestSettings.CustomerId, new DateTimeOffset(2027, 1, 1, 0, 0, 0, TimeSpan.Zero), CancellationToken.None);
+
+        var gaql = api.Calls.Single(c => c.Query.Name == "change_events").Query.Gaql;
+        LowerBound.Match(gaql).Groups[1].Value.Should().Be("2027-03-16 11:00:00");
+        UpperBound.Match(gaql).Groups[1].Value.Should().Be("2027-04-15 10:00:00");
+    }
+
+    private sealed class CapturingLogger : ILogger<GoogleAdsReadSource>
+    {
+        public List<LogLevel> Levels { get; } = new();
+
+        public IDisposable? BeginScope<TState>(TState state) where TState : notnull => null;
+
+        public bool IsEnabled(LogLevel logLevel) => true;
+
+        public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception, Func<TState, Exception?, string> formatter) =>
+            Levels.Add(logLevel);
     }
 
     [Fact]

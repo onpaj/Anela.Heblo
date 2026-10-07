@@ -98,7 +98,7 @@ internal sealed class GoogleAdsReadSource : IAdPlatformReadSource
         var customerId = RequireConfiguredAccount(accountExternalId);
         var customer = await GetCustomerAsync(customerId, ct);
         var now = _timeProvider.GetUtcNow();
-        var from = ClampToChangeLogWindow(since, now);
+        var from = ClampToChangeLogWindow(since, now, customer.TimeZone);
         if (from >= now)
             return Array.Empty<AdChangeEventRow>();
 
@@ -118,9 +118,13 @@ internal sealed class GoogleAdsReadSource : IAdPlatformReadSource
                    .ToList();
     }
 
-    private DateTimeOffset ClampToChangeLogWindow(DateTimeOffset since, DateTimeOffset now)
+    private DateTimeOffset ClampToChangeLogWindow(DateTimeOffset since, DateTimeOffset now, TimeZoneInfo accountTimeZone)
     {
-        var floor = now - ChangeLogMaxAge + ChangeLogSafetyMargin;
+        // Google compares wall-clock time in the account zone, so the 30 days and the margin are
+        // applied there; across a DST change a UTC subtraction would eat the margin.
+        var localNow = TimeZoneInfo.ConvertTime(now, accountTimeZone).DateTime;
+        var localFloor = DateTime.SpecifyKind(localNow - ChangeLogMaxAge + ChangeLogSafetyMargin, DateTimeKind.Unspecified);
+        var floor = new DateTimeOffset(localFloor, accountTimeZone.GetUtcOffset(localFloor)).ToUniversalTime();
         if (since >= floor)
             return since;
 

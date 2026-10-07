@@ -139,6 +139,7 @@ v25 released July 2026, sunset August 2027 (v23 Feb 2027, v24 May 2027). Bump `G
   - anela.cz Workspace passkey loop on the `adwords` consent (see §2).
   - Negative criteria rows carry no `status` field.
   - `change_event` timestamps come back with microseconds (`2026-09-21 14:11:00.459519`).
+  - Events in the repeated autumn DST hour are mapped to standard time (Google timestamps carry no offset), so they can appear up to 1 h late.
 
 ## 11. Why `ImportedMarketingTransactions` is empty
 
