@@ -378,8 +378,10 @@ When module A needs **read-only access** to data in module B, the dependency mus
   - Enum-valued columns (`platform`, `level`, `status`, `actor_kind`, `match_type`) store the
     contract enum **name** as text (`GoogleAds`, `AdGroup`, …): `Persistence.Ads` cannot reference
     the Application contracts, and names keep the Metabase views readable.
-  - Every `DateTimeOffset` in `ads` is normalised to UTC by `UtcDateTimeOffsetConverter`; platforms
-    report local offsets, which Npgsql otherwise refuses to write to `timestamptz`.
+  - Every `DateTimeOffset` in `ads` written through EF is normalised to UTC by
+    `UtcDateTimeOffsetConverter`; platforms report local offsets, which Npgsql otherwise refuses to
+    write to `timestamptz`. Raw SQL (`ExecuteSql…`, `ON CONFLICT` upserts) bypasses the converter and
+    must pass UTC values itself.
   - Metabase reads only `v_ads_*` views granted to `metabase_ro` (added with the sync, PR C2); the raw
     tables are never granted. `ads` holds no customer PII.
   - `AdsDatabase--ConnectionString` duplicates `ConnectionStrings--Production` /
