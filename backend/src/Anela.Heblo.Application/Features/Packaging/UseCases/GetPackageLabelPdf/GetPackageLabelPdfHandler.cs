@@ -110,19 +110,33 @@ public class GetPackageLabelPdfHandler : IRequestHandler<GetPackageLabelPdfReque
     }
 
     /// <summary>
-    /// GLS labels come out of the Zebra the wrong way round, so they are turned upside down when
-    /// the flag is on. A failed flag check or carrier lookup only skips the rotation — the label still prints.
+    /// Some carriers' labels come out of the Zebra the wrong way round, so each carrier has its own
+    /// flag that turns its labels upside down. Personal pickup has no carrier label, so no flag.
+    /// </summary>
+    private static readonly IReadOnlyDictionary<Carriers, string> RotationFlagByCarrier =
+        new Dictionary<Carriers, string>
+        {
+            [Carriers.GLS] = FeatureFlagKeys.GlsLabelRotation,
+            [Carriers.PPL] = FeatureFlagKeys.PplLabelRotation,
+            [Carriers.Zasilkovna] = FeatureFlagKeys.ZasilkovnaLabelRotation,
+        };
+
+    /// <summary>
+    /// Rotates when the order's carrier has its rotation flag on. With every flag off the carrier
+    /// is not looked up at all. A failed flag check or carrier lookup only skips the rotation —
+    /// the label still prints.
     /// </summary>
     private async Task<bool> ShouldRotateAsync(GetPackageLabelPdfRequest request, CancellationToken ct)
     {
         try
         {
-            if (!await _featureFlags.IsEnabledAsync(FeatureFlagKeys.GlsLabelRotation, ct))
+            var rotatedCarriers = await GetRotatedCarriersAsync(ct);
+            if (rotatedCarriers.Count == 0)
                 return false;
 
             var shippingGuid = await _orderShippingSource.GetShippingMethodGuidAsync(request.OrderCode, ct);
-            return shippingGuid is not null
-                && _shippingCatalog.ResolveCarrierByShippingGuid(shippingGuid) == Carriers.GLS;
+            var carrier = shippingGuid is null ? null : _shippingCatalog.ResolveCarrierByShippingGuid(shippingGuid);
+            return carrier is not null && rotatedCarriers.Contains(carrier.Value);
         }
         catch (Exception ex) when (!ct.IsCancellationRequested)
         {
@@ -131,6 +145,18 @@ public class GetPackageLabelPdfHandler : IRequestHandler<GetPackageLabelPdfReque
                 request.OrderCode, request.PackageNumber);
             return false;
         }
+    }
+
+    private async Task<IReadOnlySet<Carriers>> GetRotatedCarriersAsync(CancellationToken ct)
+    {
+        var rotatedCarriers = new HashSet<Carriers>();
+        foreach (var (carrier, flagKey) in RotationFlagByCarrier)
+        {
+            if (await _featureFlags.IsEnabledAsync(flagKey, ct))
+                rotatedCarriers.Add(carrier);
+        }
+
+        return rotatedCarriers;
     }
 
     private async Task<Stream> RotateHalfTurnAsync(Stream stream, GetPackageLabelPdfRequest request, CancellationToken ct)
@@ -150,7 +176,7 @@ public class GetPackageLabelPdfHandler : IRequestHandler<GetPackageLabelPdfReque
         catch (Exception ex)
         {
             _logger.LogWarning(ex,
-                "Failed to rotate GLS label PDF for order {OrderCode} package {PackageNumber}; printing label unrotated",
+                "Failed to rotate label PDF for order {OrderCode} package {PackageNumber}; printing label unrotated",
                 request.OrderCode, request.PackageNumber);
             return new MemoryStream(original);
         }

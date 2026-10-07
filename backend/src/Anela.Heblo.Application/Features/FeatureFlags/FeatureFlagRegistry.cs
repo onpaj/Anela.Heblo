@@ -22,6 +22,12 @@ public static class FeatureFlagRegistry
         new(FeatureFlagKeys.GlsLabelRotation,
             Description: "When on, GLS shipping-label PDFs printed at the packing desk are rotated 180° (other carriers unchanged).",
             DefaultValue: false),
+        new(FeatureFlagKeys.PplLabelRotation,
+            Description: "When on, PPL shipping-label PDFs printed at the packing desk are rotated 180° (other carriers unchanged).",
+            DefaultValue: false),
+        new(FeatureFlagKeys.ZasilkovnaLabelRotation,
+            Description: "When on, Zásilkovna (Packeta) shipping-label PDFs printed at the packing desk are rotated 180° (other carriers unchanged).",
+            DefaultValue: false),
     ];
 
     public static readonly IReadOnlyDictionary<string, FeatureFlagDefinition> ByKey =
