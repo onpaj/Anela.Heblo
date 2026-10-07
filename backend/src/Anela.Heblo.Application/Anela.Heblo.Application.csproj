@@ -43,6 +43,7 @@
   <ItemGroup>
     <ProjectReference Include="../Anela.Heblo.Domain/Anela.Heblo.Domain.csproj" />
     <ProjectReference Include="../Anela.Heblo.Persistence/Anela.Heblo.Persistence.csproj" />
+    <ProjectReference Include="../Anela.Heblo.Persistence.Ads/Anela.Heblo.Persistence.Ads.csproj" />
     <ProjectReference Include="../Anela.Heblo.Xcc/Anela.Heblo.Xcc.csproj" />
   </ItemGroup>
 
