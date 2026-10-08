@@ -26,6 +26,33 @@ public class LabelPdfShifterTests
         return ms.ToArray();
     }
 
+    // Hand-written so /MediaBox and /Rotate live only on the /Pages node and the page inherits them.
+    private static byte[] CreatePdfWithInheritedPageAttributes(int pageRotation)
+    {
+        var objects = new[]
+        {
+            "<< /Type /Catalog /Pages 2 0 R >>",
+            FormattableString.Invariant($"<< /Type /Pages /Kids [3 0 R] /Count 1 /MediaBox [0 0 {Width} {Height}] /Rotate {pageRotation} >>"),
+            "<< /Type /Page /Parent 2 0 R >>",
+        };
+
+        var pdf = new System.Text.StringBuilder("%PDF-1.4\n");
+        var offsets = new List<int>();
+        for (var i = 0; i < objects.Length; i++)
+        {
+            offsets.Add(pdf.Length);
+            pdf.Append($"{i + 1} 0 obj\n{objects[i]}\nendobj\n");
+        }
+
+        var xrefOffset = pdf.Length;
+        pdf.Append($"xref\n0 {objects.Length + 1}\n0000000000 65535 f \n");
+        foreach (var offset in offsets)
+            pdf.Append($"{offset:D10} 00000 n \n");
+        pdf.Append($"trailer\n<< /Size {objects.Length + 1} /Root 1 0 R >>\nstartxref\n{xrefOffset}\n%%EOF\n");
+
+        return System.Text.Encoding.ASCII.GetBytes(pdf.ToString());
+    }
+
     private static PdfRectangle Box(byte[] pdfBytes, string key)
     {
         using var document = PdfReader.Open(new MemoryStream(pdfBytes), PdfDocumentOpenMode.Import);
@@ -39,6 +66,7 @@ public class LabelPdfShifterTests
     [InlineData(90, 0, Distance)]
     [InlineData(180, -Distance, 0)]
     [InlineData(270, 0, -Distance)]
+    [InlineData(-90, 0, -Distance)]
     public void ShiftLeft_MovesMediaBoxTowardsThePrintedRightEdge(int pageRotation, double dx, double dy)
     {
         var shifted = LabelPdfShifter.ShiftLeft(CreatePdf(pageRotation), Distance);
@@ -60,6 +88,20 @@ public class LabelPdfShifterTests
         cropBox.Y1.Should().BeApproximately(20, 0.001);
         cropBox.X2.Should().BeApproximately(Width - 10 + Distance, 0.001);
         cropBox.Y2.Should().BeApproximately(Height - 20, 0.001);
+    }
+
+    [Theory]
+    [InlineData(0, Distance, 0)]
+    [InlineData(90, 0, Distance)]
+    public void ShiftLeft_ShiftsMediaBoxInheritedFromThePagesNode(int pageRotation, double dx, double dy)
+    {
+        var shifted = LabelPdfShifter.ShiftLeft(CreatePdfWithInheritedPageAttributes(pageRotation), Distance);
+
+        var mediaBox = Box(shifted, "/MediaBox");
+        mediaBox.X1.Should().BeApproximately(dx, 0.001);
+        mediaBox.Y1.Should().BeApproximately(dy, 0.001);
+        mediaBox.X2.Should().BeApproximately(Width + dx, 0.001);
+        mediaBox.Y2.Should().BeApproximately(Height + dy, 0.001);
     }
 
     [Fact]
