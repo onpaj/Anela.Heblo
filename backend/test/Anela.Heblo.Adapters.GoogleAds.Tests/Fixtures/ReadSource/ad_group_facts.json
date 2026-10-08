@@ -1,0 +1,9 @@
+{
+  "results": [
+    {
+      "adGroup": { "resourceName": "customers/1234567890/adGroups/221", "id": "221" },
+      "segments": { "date": "2026-10-06" },
+      "metrics": { "impressions": "1200", "clicks": "85", "costMicros": "432100000", "conversions": 4.0, "conversionsValue": 3150.5 }
+    }
+  ]
+}

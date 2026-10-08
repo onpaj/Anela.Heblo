@@ -1,0 +1,12 @@
+{
+  "results": [
+    {
+      "adGroup": { "resourceName": "customers/1234567890/adGroups/221", "id": "221" },
+      "adGroupCriterion": { "resourceName": "customers/1234567890/adGroupCriteria/221~331", "criterionId": "331", "status": "ENABLED", "keyword": { "text": "anela", "matchType": "EXACT" } }
+    },
+    {
+      "adGroup": { "resourceName": "customers/1234567890/adGroups/221", "id": "221" },
+      "adGroupCriterion": { "resourceName": "customers/1234567890/adGroupCriteria/221~332", "criterionId": "332", "status": "PAUSED", "keyword": { "text": "anela kosmetika", "matchType": "PHRASE" } }
+    }
+  ]
+}

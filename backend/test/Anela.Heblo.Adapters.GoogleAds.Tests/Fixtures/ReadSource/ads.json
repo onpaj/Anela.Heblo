@@ -1,0 +1,12 @@
+{
+  "results": [
+    {
+      "adGroup": { "resourceName": "customers/1234567890/adGroups/221", "id": "221" },
+      "adGroupAd": { "resourceName": "customers/1234567890/adGroupAds/221~441", "status": "ENABLED", "ad": { "resourceName": "customers/1234567890/ads/441", "id": "441", "type": "RESPONSIVE_SEARCH_AD" } }
+    },
+    {
+      "adGroup": { "resourceName": "customers/1234567890/adGroups/222", "id": "222" },
+      "adGroupAd": { "resourceName": "customers/1234567890/adGroupAds/222~442", "status": "PAUSED", "ad": { "resourceName": "customers/1234567890/ads/442", "id": "442", "name": "Podzimní akce", "type": "RESPONSIVE_SEARCH_AD" } }
+    }
+  ]
+}

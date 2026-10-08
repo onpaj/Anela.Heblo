@@ -24,5 +24,10 @@ namespace Anela.Heblo.Application.Features.Journal.Contracts
 
         public string SortBy { get; set; } = "EntryDate";
         public string SortDirection { get; set; } = "DESC";
+
+        /// <summary>
+        /// When true, returns only company-wide entries (no product association).
+        /// </summary>
+        public bool WithoutProducts { get; set; }
     }
 }

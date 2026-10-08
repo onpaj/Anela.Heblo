@@ -1,0 +1,8 @@
+{
+  "results": [
+    {
+      "campaign": { "resourceName": "customers/1234567890/campaigns/111", "id": "111" },
+      "campaignCriterion": { "resourceName": "customers/1234567890/campaignCriteria/111~351", "criterionId": "351", "status": "ENABLED", "negative": true, "keyword": { "text": "návod", "matchType": "PHRASE" } }
+    }
+  ]
+}

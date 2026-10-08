@@ -345,6 +345,54 @@ When module A needs **read-only access** to data in module B, the dependency mus
 - **Supersedes**: `docs/superpowers/plans/2026-05-20-flexi-analytics-sync.md`, whose separate-database
   premise is the thing being reversed.
 
+### ADR-008: Ad-Platform Data Shares One `ads` Schema and May Be Read by MediatR Handlers
+- **Status**: Accepted (2026-10-07)
+- **Context**: The marketing agents platform
+  (`docs/superpowers/specs/2026-10-07-marketing-agents-platform-design.md`) makes Heblo "the eyes and
+  the hands" of AI marketing agents running outside Heblo. It syncs Google Ads, Meta Ads and Sklik
+  at management granularity (campaign → ad group → keyword / search term → ad, daily), records every
+  change made to the accounts, and lets agents read that data over MCP to propose changes. ADR-007
+  says reporting data lands in `Heblo_V3` with **one schema per source** and that **no MediatR
+  handlers** are written for it. Applied literally that would mean three ad schemas with three
+  shapes, and agents unable to read the data they are meant to manage.
+- **Decision**:
+  1. **One `ads` schema for all three ad platforms**, not one per platform. The backbone's value is a
+     single normalised model (`ad_accounts`, `ad_entities`, `ad_daily_facts`, `ad_search_term_daily`,
+     `ad_change_events`, `sync_state`) that an agent queries the same way for every platform and that
+     the limits engine can reason about. Platform-specific fields go to the `jsonb` `attributes`
+     column. The schema is owned by `AdsDbContext` in `Anela.Heblo.Persistence.Ads`, following the
+     ADR-007 mechanics unchanged: own keyed `NpgsqlDataSource` (`"ads"`), own Polly pipeline,
+     `MigrationsHistoryTable` pinned to `ads` on the runtime **and** the design-time path, manual
+     migrations, and registration gated on `AdsDatabase:ConnectionString` passing
+     `AdSettingsGuard.IsConfigured` and parsing as an Npgsql connection string with a Host.
+  2. **MediatR read handlers over `ads` are allowed**, because agents consume them through MCP to
+     *manage* the accounts. This is operational use, not reporting. Human-facing performance
+     *reports* still live in Metabase only; the Heblo UI shows proposals, audit and settings, never
+     charts.
+  3. **Operational workflow data does not go to `ads`.** Proposals, versions, approvals, the audit
+     log, agent runs, autonomy settings, limits and the kill switch live in `public` via
+     `ApplicationDbContext`.
+- **Consequences**:
+  - Every query over `ad_daily_facts` must aggregate a **single** `level`; facts are stored at every
+    level a platform reports, so summing across levels double-counts.
+  - Enum-valued columns (`platform`, `level`, `entity_level`, `status`, `actor_kind`, `match_type`) store the
+    contract enum **name** as text (`GoogleAds`, `AdGroup`, …): `Persistence.Ads` cannot reference
+    the Application contracts, and names keep the Metabase views readable.
+  - Every `DateTimeOffset` in `ads` written through EF is normalised to UTC by
+    `UtcDateTimeOffsetConverter`; platforms report local offsets, which Npgsql otherwise refuses to
+    write to `timestamptz`. Raw SQL (`ExecuteSql…`, `ON CONFLICT` upserts) bypasses the converter and
+    must pass UTC values itself.
+  - Metabase reads only `v_ads_*` views granted to `metabase_ro` (added with the sync, PR C2); the raw
+    tables are never granted. `ads` holds no customer PII, but `ad_change_events.actor` holds the
+    email of the staff or agency user who made a change (Google change history reports it), so
+    no `v_ads_*` view may expose `actor` unless it is pseudonymised.
+  - `AdsDatabase--ConnectionString` duplicates `ConnectionStrings--Production` /
+    `ConnectionStrings--Staging` in Key Vault, like `AnalyticsDatabase--ConnectionString`; the
+    secrets must be rotated together.
+  - Moving `ads` to its own database later stays a connection-string change.
+- **Deviates from**: ADR-007 decision points "one schema per source" and "no MediatR handlers", for ad
+  platforms only. ADR-007 stays in force for every other reporting source.
+
 ---
 
 ## ⚠️ Common Pitfalls to Avoid

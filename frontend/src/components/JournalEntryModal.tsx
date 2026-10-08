@@ -1,8 +1,11 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { X, AlertCircle } from "lucide-react";
 import JournalEntryForm from "./JournalEntryForm";
 import { useDeleteJournalEntry } from "../api/hooks/useJournal";
-import type { JournalEntryDto } from "../api/generated/api-client";
+import type {
+  GetJournalEntryResponse,
+  JournalEntryDto,
+} from "../api/generated/api-client";
 
 interface JournalEntryModalProps {
   isOpen: boolean;
@@ -19,6 +22,13 @@ export default function JournalEntryModal({
 }: JournalEntryModalProps) {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const deleteEntry = useDeleteJournalEntry();
+  // JournalEntryForm reads the entry from a GetJournalEntryResponse wrapper.
+  // A plain object: the generated class constructor loses `entry` under Babel's
+  // class-field semantics (the subclass field re-initializes it to undefined).
+  const formEntry = useMemo(
+    () => (entry ? ({ entry } as GetJournalEntryResponse) : undefined),
+    [entry],
+  );
 
   // Handle Escape key
   useEffect(() => {
@@ -81,7 +91,7 @@ export default function JournalEntryModal({
         {/* Modal Body */}
         <div className="p-6">
           <JournalEntryForm
-            entry={entry}
+            entry={formEntry}
             onSave={handleSave}
             onCancel={handleCancel}
             onDelete={isEdit ? () => setShowDeleteConfirm(true) : undefined}

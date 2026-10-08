@@ -57,6 +57,7 @@ whole reason the reporting schemas live inside `Heblo_V3` rather than in a datab
 | `flexi_raw` | Flexi (ABRA FlexiBee) general ledger, departments, contacts | `AnalyticsDbContext` |
 | `shoptet_raw` | Shoptet orders | separate ingestion direction |
 | `ga4_agg` | GA4 aggregates | separate ingestion direction |
+| `ads` | Google Ads, Meta Ads, Sklik — entities, daily facts, search terms, change history | `AdsDbContext` (ADR-008); views and grants arrive with the sync (PR C2) |
 
 Each schema carries its own `__EFMigrationsHistory`, pinned explicitly — EF Core does **not** derive
 the history table's schema from `HasDefaultSchema` (ADR-007).

@@ -123,6 +123,7 @@ public partial class Program
         builder.Services.AddEcomailAdapter(builder.Configuration);
         builder.Services.AddMetaAdsAdapter(builder.Configuration);
         builder.Services.AddGoogleAdsAdapter(builder.Configuration);
+        builder.Services.AddGoogleAdsMarketingAds(builder.Configuration);
         builder.Services.AddGoogleAnalyticsAdapter(builder.Configuration, builder.Environment);
         builder.Services.AddAnthropicAdapter(builder.Configuration);
         builder.Services.AddSmartsuppAdapter(builder.Configuration);
