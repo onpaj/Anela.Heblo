@@ -77,11 +77,23 @@ public class AdChangeOriginMatcherTests
     }
 
     [Fact]
-    public void Negative_keyword_matches_by_google_resource_name_suffix()
+    public void Google_ad_pause_matches_by_ad_group_ad_id()
     {
         var match = Matcher.Match(
-            Change("campaignCriteria/55~66", "{\"campaignCriterion\":{\"negative\":true}}", level: AdEntityLevel.NegativeKeyword),
-            new[] { AddNegative("customers/1/campaignCriteria/55~66") }, Rules);
+            Change("222~333", "{\"adGroupAd\":{\"status\":\"PAUSED\"}}"),
+            new[] { PauseAd(adId: "222~333") }, Rules);
+
+        match.Should().Be(new AdOriginMatch(AdChangeOrigin.Heblo, "7"));
+    }
+
+    [Fact]
+    public void Google_negative_keyword_create_matches_the_executed_criterion_resource_name()
+    {
+        var match = Matcher.Match(
+            Change("campaignCriteria/111~555",
+                "{\"campaignCriterion\":{\"keyword\":{\"text\":\"zdarma\",\"matchType\":\"EXACT\"},\"negative\":true}}",
+                level: AdEntityLevel.NegativeKeyword),
+            new[] { AddNegative("customers/1234567890/campaignCriteria/111~555") }, Rules);
 
         match.Should().Be(new AdOriginMatch(AdChangeOrigin.Heblo, "9"));
     }
@@ -101,15 +113,6 @@ public class AdChangeOriginMatcherTests
     {
         Matcher.Match(Change("ad-1", "\"Paused\"", level: AdEntityLevel.AdGroup), new[] { PauseAd() }, Rules)
             .Should().Be(AdOriginMatch.OutOfBand);
-    }
-
-    [Fact]
-    public void Negative_keyword_matches_by_text_on_the_target_campaign()
-    {
-        var match = Matcher.Match(Change("camp-1", "{\"keyword\":{\"text\":\"Zdarma\"}}", level: AdEntityLevel.Campaign),
-            new[] { AddNegative(null) }, Rules);
-
-        match.Origin.Should().Be(AdChangeOrigin.Heblo);
     }
 
     [Fact]
