@@ -24,4 +24,15 @@ public sealed record AdChangeEventCandidate(
         row.ChangeType,
         AdJsonValues.Normalize(row.OldValueJson),
         AdJsonValues.Normalize(row.NewValueJson));
+
+    public static AdChangeEventCandidate FromSnapshot(AdObservedChange change, DateTimeOffset observedAt) => new(
+        $"snapshot:{change.Key.Level}:{change.Key.ExternalId}:{change.Change.ChangeType}:{observedAt.ToUnixTimeSeconds()}",
+        observedAt.ToUniversalTime(),
+        null,
+        AdChangeActorKind.Unknown,
+        change.Key.Level,
+        change.Key.ExternalId,
+        change.Change.ChangeType,
+        AdJsonValues.Normalize(change.Change.OldValueJson),
+        AdJsonValues.Normalize(change.Change.NewValueJson));
 }
