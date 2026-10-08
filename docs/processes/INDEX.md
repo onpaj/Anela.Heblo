@@ -202,6 +202,12 @@ Agent-facing catalog of what Heblo does, grouped by module. Each module has an o
 - [sync-marketing-calendar](sync-marketing-calendar.md) (sync) — Mirrors the Outlook marketing group calendar into Heblo marketing actions (create, update, soft-delete) every hour and on demand from the "Import z Outlooku" button; Outlook is the source of truth. Related: feed-marketing-action-to-outlook
 - [feed-marketing-action-to-outlook](feed-marketing-action-to-outlook.md) (feed) — When PushEnabled is on, creating, editing, moving or deleting a marketing action in Heblo writes the same change to the Outlook marketing group calendar through Microsoft Graph, on behalf of the signed-in user. Related: sync-marketing-calendar
 
+## marketing-ads
+
+_No module overview doc yet._
+
+- [sync-google-ads-campaign-data](sync-google-ads-campaign-data.md) (sync) — Google Ads read source for the MarketingAds backbone — account, campaign/ad group/keyword/negative/ad entities, daily facts, search terms and change history pulled over the Google Ads REST API v25. Related: sync-ad-platform-transactions
+
 ## marketing-invoices
 
 [module-marketing-invoices](module-marketing-invoices.md) — Background-only import of Google Ads and Meta Ads billing data into a staging table that nothing reads; disabled and empty in production.

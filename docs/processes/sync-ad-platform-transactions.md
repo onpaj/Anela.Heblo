@@ -9,7 +9,7 @@ owns:
   - backend/src/Anela.Heblo.Persistence/Features/MarketingInvoices/**
   - backend/src/Adapters/Anela.Heblo.Adapters.GoogleAds/**
   - backend/src/Adapters/Anela.Heblo.Adapters.MetaAds/**
-verified_at: "5e993f9e2"
+verified_at: "7f5ce8509"
 related: []
 ---
 
@@ -124,6 +124,8 @@ every other non-2xx fails the run. Google relies on the SDK's own behaviour; the
 - Meta, Google and S-klik ad spend in the Flexi general ledger (`v_ad_spend_monthly`) matches the
   Marketing Performance figures for Meta and Google to the haléř (S-klik does not) — agent memory
   `gotcha_sklik_ad_cost_negative_in_heblo` — 2026-09 (cross-check of 2026-01..2026-09).
+- No `GoogleAds*` secrets existed in `kv-heblo-stg` or `kv-heblo-prod`, and no `GoogleAds*` App Settings on `heblo` / `heblo-test`, until 2026-10-07, so the Google billing job could never authenticate. On 2026-10-07 `GoogleAds--CustomerId`, `--OAuth2ClientId`, `--OAuth2ClientSecret`, `--OAuth2RefreshToken` and `--HebloUserEmail` were set in both vaults (for the MarketingAds read source); `GoogleAds--DeveloperToken` is still absent. The job returns early while disabled (it is disabled in prod); once enabled it has no is-configured gate and a failure in the V18 call is logged and rethrown. How the V18 path behaves with the new secrets and an empty developer token is unverified — code read of `GoogleAdsInvoiceImportJob` / `SdkAccountBudgetFetcher`, Google Ads access spike (`docs/integrations/google-ads-api.md` §10–11) — 2026-10-07.
+- Google sunset Ads API developer tokens on 2026-09-09 (access now follows the OAuth client's Cloud project); `GoogleAds:DeveloperToken` is no longer an access gate — Google Ads API docs — 2026-10-07.
 
 ## Known quirks
 - **Dead data.** Nothing reads the table (no query, endpoint, page or MCP tool references
@@ -137,9 +139,7 @@ every other non-2xx fails the run. Google relies on the SDK's own behaviour; the
   Because only budgets whose `approved_start_date_time` is within the last 7 days are queried,
   the stored amount is typically close to zero. Budgets approved earlier are never imported at
   all, and accounts without account-budget (monthly invoicing) billing return nothing.
-- **Google Ads API version pinned to v18** (`Services.V18.GoogleAdsService`). Google retires API
-  versions roughly a year after release; whether v18 still answers cannot be determined from the
-  repo.
+- **Google Ads API version pinned to v18** (`Services.V18.GoogleAdsService`). V18 is sunset, and SDK 21.1.0 contains nothing newer than V18, so the Google billing import cannot work without rewriting the fetcher. The MarketingAds backbone (`sync-google-ads-campaign-data`) uses REST v25 instead and does not touch this path.
 - **Meta amount scale is assumed.** `amount / 100` presumes minor currency units; not verified
   against a real response in the repo (tests use synthetic data).
 - **Enabling it without secrets fails loudly.** With placeholders (`act_XXXXXXXXX`, empty token)

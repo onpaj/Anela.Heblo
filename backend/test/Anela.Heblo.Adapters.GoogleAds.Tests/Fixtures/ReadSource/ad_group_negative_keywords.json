@@ -1,0 +1,8 @@
+{
+  "results": [
+    {
+      "adGroup": { "resourceName": "customers/1234567890/adGroups/221", "id": "221" },
+      "adGroupCriterion": { "resourceName": "customers/1234567890/adGroupCriteria/221~341", "criterionId": "341", "status": "ENABLED", "negative": true, "keyword": { "text": "zdarma", "matchType": "BROAD" } }
+    }
+  ]
+}
