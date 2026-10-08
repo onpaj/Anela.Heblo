@@ -549,13 +549,14 @@ pr_list() {
   fi
   resp=$(req GET "/repos/${REPO}/issues?state=${state}${label_query}&per_page=100")
   numbers=$(emit "$resp" | jq -r '[.[] | select(has("pull_request"))] | .[].number')
-  out="[]"
+  # Accumulate one entry per line and slurp at the end: passing the growing
+  # array through --argjson overflows ARG_MAX once PR bodies add up.
+  local entries=""
   for n in $numbers; do
-    local entry
-    entry=$(pr_view "$n" "reviewDecision")
-    out=$(jq -c -n --argjson a "$out" --argjson e "$entry" '$a + [$e]')
+    entries+="$(pr_view "$n" "reviewDecision" | jq -c .)"$'\n'
   done
-  echo "$out"
+  printf '%s' "$entries" | jq -c -s '.'
+
 }
 
 # ---- repo commands ------------------------------------------------------------
