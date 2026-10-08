@@ -115,13 +115,16 @@ failure → `ShipmentCancelFailed`, stop) → reload the order → shipment crea
 the `packageNumber`-th (1-based) → download its `labelUrl` (HTTP client `ShipmentLabelDownloader`,
 30 s timeout) → stream to the browser with `Cache-Control: no-store`, file `{order}-{n}.pdf`.
 Not ready → 404 `PackageLabelNotFound`; carrier download failure → 503 `PackageLabelDownloadFailed`.
-Label rotation is gated per carrier: `is-gls-label-rotation-enabled`, `is-ppl-label-rotation-enabled`,
-`is-zasilkovna-label-rotation-enabled` (Packeta). With all three off nothing else happens. When any is on,
+Label offset is gated per carrier: `is-gls-label-offset-enabled`, `is-ppl-label-offset-enabled`,
+`is-zasilkovna-label-offset-enabled` (Packeta). With all three off nothing else happens. When any is on,
 the handler looks up the order's shipping-method GUID (`IPackingOrderShippingSource`, one extra
 `GET /api/orders/{code}`) and, if `IShippingMethodCatalog` resolves it to a carrier whose flag is on,
-adds 180° to every page's `/Rotate` (PDFsharp, `LabelPdfRotator`) so the label comes out of the Zebra
-upside down. Personal pickup (Osobák) has no rotation flag. Fail-open: a failed flag check, carrier
-lookup or an unparsable PDF is logged at Warning and the original label is served unrotated.
+moves every page's content 10 mm to the left (PDFsharp, `LabelPdfShifter`: slides MediaBox/CropBox/…
+towards the printed right edge, honouring the page's `/Rotate`; content is not re-rendered) so the label
+fits the shorter Zebra label stock. The leftmost 10 mm is cut off and the right edge gets 10 mm of blank.
+Personal pickup (Osobák) has no offset flag. Fail-open: a failed flag check, carrier lookup or an
+unparsable PDF is logged at Warning and the original label is served unshifted. (Replaced the 180°
+rotation flags `is-*-label-rotation-enabled`, removed 2026-10-08.)
 
 ## Logic & formulas
 - One `Packages` row = one box (carrier package) of one order. `PackageNumber` is the 1-based
@@ -143,9 +146,9 @@ lookup or an unparsable PDF is logged at Warning and the original label is serve
 | `ShipmentLabels:FallbackPackageWeightGrams` | 1000 | Order weight used when no item weight is known |
 | `ShoptetApi:DefaultItemWeightGrams` | 0 | Weight for an item missing a catalog weight |
 
-Feature flags `is-gls-label-rotation-enabled`, `is-ppl-label-rotation-enabled`,
-`is-zasilkovna-label-rotation-enabled` (all default off, `appsettings.json` + DB override via
-`/admin/feature-flags`) — rotate that carrier's label PDFs 180° in the label proxy.
+Feature flags `is-gls-label-offset-enabled`, `is-ppl-label-offset-enabled`,
+`is-zasilkovna-label-offset-enabled` (all default off, `appsettings.json` + DB override via
+`/admin/feature-flags`) — move that carrier's label PDFs 10 mm left in the label proxy.
 
 None of the keys above is overridden in `appsettings*.json` (class defaults apply). `ShipmentLabels` is
 not present in any appsettings file.
@@ -188,7 +191,7 @@ not present in any appsettings file.
 - `backend/src/Anela.Heblo.Application/Features/Packaging/Services/ShipmentCreationService.cs` — weight, carrier, shipment, package rows
 - `backend/src/Anela.Heblo.Application/Features/Packaging/UseCases/ResetOrderShipment/ResetOrderShipmentHandler.cs` — re-create shipment
 - `backend/src/Anela.Heblo.Application/Features/Packaging/UseCases/GetPackageLabelPdf/GetPackageLabelPdfHandler.cs` — label proxy
-- `backend/src/Anela.Heblo.Application/Features/Packaging/Services/LabelPdfRotator.cs` — 180° label rotation (per-carrier flags: GLS, PPL, Zásilkovna)
+- `backend/src/Anela.Heblo.Application/Features/Packaging/Services/LabelPdfShifter.cs` — 10 mm left label offset (per-carrier flags: GLS, PPL, Zásilkovna)
 - `backend/src/Adapters/Anela.Heblo.Adapters.ShoptetApi/Orders/ShoptetApiPackingOrderClient.cs` — order read + eligibility
 - `backend/src/Anela.Heblo.Persistence/Repositories/Packaging/PackageRepository.cs` — `Packages` writes
 - `frontend/src/components/baleni/PackingShipmentCreator.tsx`, `PackingLabelPrinter.tsx`, `printLabelPdf.ts` — desk-side print and completion

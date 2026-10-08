@@ -28,20 +28,20 @@ public static class FeatureFlagKeys
     public const string LabelPrintingEnabled = "is-label-printing-enabled";
 
     /// <summary>
-    /// When on, GLS shipping-label PDFs served to the packing desk are rotated 180° before
-    /// printing, so they come out of the Zebra the other way around. Other carriers are untouched.
+    /// When on, GLS shipping-label PDFs served to the packing desk are moved 10 mm to the left
+    /// before printing, so they fit the shorter Zebra label stock. Other carriers are untouched.
     /// </summary>
-    public const string GlsLabelRotation = "is-gls-label-rotation-enabled";
+    public const string GlsLabelOffset = "is-gls-label-offset-enabled";
 
     /// <summary>
-    /// When on, PPL shipping-label PDFs served to the packing desk are rotated 180° before
-    /// printing. Other carriers are governed by their own rotation flag.
+    /// When on, PPL shipping-label PDFs served to the packing desk are moved 10 mm to the left
+    /// before printing. Other carriers are governed by their own offset flag.
     /// </summary>
-    public const string PplLabelRotation = "is-ppl-label-rotation-enabled";
+    public const string PplLabelOffset = "is-ppl-label-offset-enabled";
 
     /// <summary>
-    /// When on, Zásilkovna (Packeta) shipping-label PDFs served to the packing desk are rotated
-    /// 180° before printing. Other carriers are governed by their own rotation flag.
+    /// When on, Zásilkovna (Packeta) shipping-label PDFs served to the packing desk are moved
+    /// 10 mm to the left before printing. Other carriers are governed by their own offset flag.
     /// </summary>
-    public const string ZasilkovnaLabelRotation = "is-zasilkovna-label-rotation-enabled";
+    public const string ZasilkovnaLabelOffset = "is-zasilkovna-label-offset-enabled";
 }

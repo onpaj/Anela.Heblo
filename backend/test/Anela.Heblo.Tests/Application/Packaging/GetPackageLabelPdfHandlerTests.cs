@@ -223,19 +223,19 @@ public class GetPackageLabelPdfHandlerTests
         ms.ToArray().Should().BeEquivalentTo(pdfBytes);
     }
 
-    private void SetupGlsRotationFlag(bool isEnabled) => SetupRotationFlag(Carriers.GLS, isEnabled);
+    private void SetupGlsOffsetFlag(bool isEnabled) => SetupOffsetFlag(Carriers.GLS, isEnabled);
 
-    private void SetupRotationFlag(Carriers carrier, bool isEnabled) =>
+    private void SetupOffsetFlag(Carriers carrier, bool isEnabled) =>
         _featureFlags
-            .Setup(f => f.IsEnabledAsync(RotationFlagKey(carrier), It.IsAny<CancellationToken>()))
+            .Setup(f => f.IsEnabledAsync(OffsetFlagKey(carrier), It.IsAny<CancellationToken>()))
             .ReturnsAsync(isEnabled);
 
-    private static string RotationFlagKey(Carriers carrier) => carrier switch
+    private static string OffsetFlagKey(Carriers carrier) => carrier switch
     {
-        Carriers.GLS => FeatureFlagKeys.GlsLabelRotation,
-        Carriers.PPL => FeatureFlagKeys.PplLabelRotation,
-        Carriers.Zasilkovna => FeatureFlagKeys.ZasilkovnaLabelRotation,
-        _ => throw new ArgumentOutOfRangeException(nameof(carrier), carrier, "No rotation flag for this carrier"),
+        Carriers.GLS => FeatureFlagKeys.GlsLabelOffset,
+        Carriers.PPL => FeatureFlagKeys.PplLabelOffset,
+        Carriers.Zasilkovna => FeatureFlagKeys.ZasilkovnaLabelOffset,
+        _ => throw new ArgumentOutOfRangeException(nameof(carrier), carrier, "No offset flag for this carrier"),
     };
 
     private void SetupCarrier(Carriers? carrier)
@@ -265,11 +265,11 @@ public class GetPackageLabelPdfHandlerTests
         SetupHttpResponse(pdfResponse);
     }
 
-    private static byte[] CreatePdf(int pageCount, int pageRotation = 0)
+    private static byte[] CreatePdf(int pageCount)
     {
         using var document = new PdfDocument();
         for (var i = 0; i < pageCount; i++)
-            document.AddPage().Rotate = pageRotation;
+            document.AddPage();
 
         using var ms = new MemoryStream();
         document.Save(ms);
@@ -283,18 +283,25 @@ public class GetPackageLabelPdfHandlerTests
         return ms.ToArray();
     }
 
-    private static IReadOnlyList<int> PageRotations(byte[] pdfBytes)
+    // 10 mm in PDF points; the label content moves left by sliding the MediaBox right.
+    private const double ExpectedOffsetPoints = 10 / 25.4 * 72;
+
+    private static IReadOnlyList<double> MediaBoxLeftEdges(byte[] pdfBytes)
     {
         using var document = PdfReader.Open(new MemoryStream(pdfBytes), PdfDocumentOpenMode.Import);
-        return document.Pages.Cast<PdfPage>().Select(p => p.Rotate).ToList();
+        return document.Pages.Cast<PdfPage>()
+            .Select(p => Math.Round(p.Elements.GetRectangle("/MediaBox").X1, 3))
+            .ToList();
     }
 
+    private static readonly double ShiftedLeftEdge = Math.Round(ExpectedOffsetPoints, 3);
+
     [Fact]
-    public async Task Handle_GlsRotationFlagOff_ReturnsPdfUnchangedWithoutCarrierLookup()
+    public async Task Handle_GlsOffsetFlagOff_ReturnsPdfUnchangedWithoutCarrierLookup()
     {
         var pdfBytes = CreatePdf(pageCount: 1);
         SetupLabelPdf(pdfBytes);
-        SetupGlsRotationFlag(isEnabled: false);
+        SetupGlsOffsetFlag(isEnabled: false);
 
         var response = await CreateHandler().Handle(Request(), CancellationToken.None);
 
@@ -304,40 +311,28 @@ public class GetPackageLabelPdfHandlerTests
     }
 
     [Fact]
-    public async Task Handle_GlsRotationFlagOn_GlsOrder_RotatesEveryPageBy180()
+    public async Task Handle_GlsOffsetFlagOn_GlsOrder_ShiftsEveryPageLeft()
     {
         SetupLabelPdf(CreatePdf(pageCount: 2));
-        SetupGlsRotationFlag(isEnabled: true);
+        SetupGlsOffsetFlag(isEnabled: true);
         SetupCarrier(Carriers.GLS);
 
         var response = await CreateHandler().Handle(Request(), CancellationToken.None);
 
         response.Success.Should().BeTrue();
         response.ContentType.Should().Be("application/pdf");
-        PageRotations(await ReadContentAsync(response)).Should().Equal(180, 180);
-    }
-
-    [Fact]
-    public async Task Handle_GlsRotationFlagOn_GlsOrder_AddsToExistingPageRotation()
-    {
-        SetupLabelPdf(CreatePdf(pageCount: 1, pageRotation: 270));
-        SetupGlsRotationFlag(isEnabled: true);
-        SetupCarrier(Carriers.GLS);
-
-        var response = await CreateHandler().Handle(Request(), CancellationToken.None);
-
-        PageRotations(await ReadContentAsync(response)).Should().Equal(90);
+        MediaBoxLeftEdges(await ReadContentAsync(response)).Should().Equal(ShiftedLeftEdge, ShiftedLeftEdge);
     }
 
     [Theory]
     [InlineData(Carriers.PPL)]
     [InlineData(Carriers.Zasilkovna)]
     [InlineData(null)]
-    public async Task Handle_GlsRotationFlagOn_NonGlsOrder_ReturnsPdfUnchanged(Carriers? carrier)
+    public async Task Handle_GlsOffsetFlagOn_NonGlsOrder_ReturnsPdfUnchanged(Carriers? carrier)
     {
         var pdfBytes = CreatePdf(pageCount: 1);
         SetupLabelPdf(pdfBytes);
-        SetupGlsRotationFlag(isEnabled: true);
+        SetupGlsOffsetFlag(isEnabled: true);
         SetupCarrier(carrier);
 
         var response = await CreateHandler().Handle(Request(), CancellationToken.None);
@@ -346,11 +341,11 @@ public class GetPackageLabelPdfHandlerTests
     }
 
     [Fact]
-    public async Task Handle_GlsRotationFlagOn_OrderHasNoShippingMethod_ReturnsPdfUnchanged()
+    public async Task Handle_GlsOffsetFlagOn_OrderHasNoShippingMethod_ReturnsPdfUnchanged()
     {
         var pdfBytes = CreatePdf(pageCount: 1);
         SetupLabelPdf(pdfBytes);
-        SetupGlsRotationFlag(isEnabled: true);
+        SetupGlsOffsetFlag(isEnabled: true);
         _orderShippingSource
             .Setup(c => c.GetShippingMethodGuidAsync(OrderCode, It.IsAny<CancellationToken>()))
             .ReturnsAsync((string?)null);
@@ -361,12 +356,12 @@ public class GetPackageLabelPdfHandlerTests
     }
 
     [Fact]
-    public async Task Handle_GlsRotationFlagOn_CarrierLookupThrows_ReturnsPdfUnchanged()
+    public async Task Handle_GlsOffsetFlagOn_CarrierLookupThrows_ReturnsPdfUnchanged()
     {
-        // An upside-down label is still usable; failing the print is not.
+        // A label without the offset is still usable; failing the print is not.
         var pdfBytes = CreatePdf(pageCount: 1);
         SetupLabelPdf(pdfBytes);
-        SetupGlsRotationFlag(isEnabled: true);
+        SetupGlsOffsetFlag(isEnabled: true);
         _orderShippingSource
             .Setup(c => c.GetShippingMethodGuidAsync(OrderCode, It.IsAny<CancellationToken>()))
             .ThrowsAsync(new HttpRequestException("shoptet down"));
@@ -379,13 +374,13 @@ public class GetPackageLabelPdfHandlerTests
     }
 
     [Fact]
-    public async Task Handle_GlsRotationFlagOn_CarrierLookupTimesOut_ReturnsPdfUnchanged()
+    public async Task Handle_GlsOffsetFlagOn_CarrierLookupTimesOut_ReturnsPdfUnchanged()
     {
         // An HttpClient timeout surfaces as TaskCanceledException without the caller cancelling;
         // it is a lookup failure, not a request cancellation.
         var pdfBytes = CreatePdf(pageCount: 1);
         SetupLabelPdf(pdfBytes);
-        SetupGlsRotationFlag(isEnabled: true);
+        SetupGlsOffsetFlag(isEnabled: true);
         _orderShippingSource
             .Setup(c => c.GetShippingMethodGuidAsync(OrderCode, It.IsAny<CancellationToken>()))
             .ThrowsAsync(new TaskCanceledException("shoptet timeout"));
@@ -398,11 +393,11 @@ public class GetPackageLabelPdfHandlerTests
     }
 
     [Fact]
-    public async Task Handle_GlsRotationFlagOn_RequestCancelledDuringCarrierLookup_Throws()
+    public async Task Handle_GlsOffsetFlagOn_RequestCancelledDuringCarrierLookup_Throws()
     {
         using var cts = new CancellationTokenSource();
         SetupLabelPdf(CreatePdf(pageCount: 1));
-        SetupGlsRotationFlag(isEnabled: true);
+        SetupGlsOffsetFlag(isEnabled: true);
         _orderShippingSource
             .Setup(c => c.GetShippingMethodGuidAsync(OrderCode, It.IsAny<CancellationToken>()))
             .Returns(() =>
@@ -424,7 +419,7 @@ public class GetPackageLabelPdfHandlerTests
         var pdfBytes = CreatePdf(pageCount: 1);
         SetupLabelPdf(pdfBytes);
         _featureFlags
-            .Setup(f => f.IsEnabledAsync(FeatureFlagKeys.GlsLabelRotation, It.IsAny<CancellationToken>()))
+            .Setup(f => f.IsEnabledAsync(FeatureFlagKeys.GlsLabelOffset, It.IsAny<CancellationToken>()))
             .ThrowsAsync(new InvalidOperationException("flag provider down"));
 
         var response = await CreateHandler().Handle(Request(), CancellationToken.None);
@@ -435,35 +430,11 @@ public class GetPackageLabelPdfHandlerTests
     }
 
     [Fact]
-    public async Task Handle_GlsRotationFlagOn_GlsOrder_AddsToRotationInheritedFromPageTree()
-    {
-        // /Rotate is inheritable: a label may set it on the /Pages node instead of each page.
-        SetupLabelPdf(CreatePdfWithPageTreeRotation(pageTreeRotation: 90));
-        SetupGlsRotationFlag(isEnabled: true);
-        SetupCarrier(Carriers.GLS);
-
-        var response = await CreateHandler().Handle(Request(), CancellationToken.None);
-
-        PageRotations(await ReadContentAsync(response)).Should().Equal(270);
-    }
-
-    private static byte[] CreatePdfWithPageTreeRotation(int pageTreeRotation)
-    {
-        using var document = new PdfDocument();
-        document.AddPage();
-        document.Pages.Elements.SetInteger("/Rotate", pageTreeRotation);
-
-        using var ms = new MemoryStream();
-        document.Save(ms);
-        return ms.ToArray();
-    }
-
-    [Fact]
-    public async Task Handle_GlsRotationFlagOn_LabelIsNotAValidPdf_ReturnsOriginalBytes()
+    public async Task Handle_GlsOffsetFlagOn_LabelIsNotAValidPdf_ReturnsOriginalBytes()
     {
         var notAPdf = Encoding.UTF8.GetBytes("%PDF-1.4 fake");
         SetupLabelPdf(notAPdf);
-        SetupGlsRotationFlag(isEnabled: true);
+        SetupGlsOffsetFlag(isEnabled: true);
         SetupCarrier(Carriers.GLS);
 
         var response = await CreateHandler().Handle(Request(), CancellationToken.None);
@@ -477,15 +448,15 @@ public class GetPackageLabelPdfHandlerTests
     [InlineData(Carriers.GLS)]
     [InlineData(Carriers.PPL)]
     [InlineData(Carriers.Zasilkovna)]
-    public async Task Handle_CarrierRotationFlagOn_OrderOfThatCarrier_RotatesEveryPageBy180(Carriers carrier)
+    public async Task Handle_CarrierOffsetFlagOn_OrderOfThatCarrier_ShiftsEveryPageLeft(Carriers carrier)
     {
         SetupLabelPdf(CreatePdf(pageCount: 2));
-        SetupRotationFlag(carrier, isEnabled: true);
+        SetupOffsetFlag(carrier, isEnabled: true);
         SetupCarrier(carrier);
 
         var response = await CreateHandler().Handle(Request(), CancellationToken.None);
 
-        PageRotations(await ReadContentAsync(response)).Should().Equal(180, 180);
+        MediaBoxLeftEdges(await ReadContentAsync(response)).Should().Equal(ShiftedLeftEdge, ShiftedLeftEdge);
     }
 
     [Theory]
@@ -493,12 +464,12 @@ public class GetPackageLabelPdfHandlerTests
     [InlineData(Carriers.Zasilkovna, Carriers.PPL)]
     [InlineData(Carriers.GLS, Carriers.Zasilkovna)]
     [InlineData(Carriers.PPL, Carriers.Osobak)]
-    public async Task Handle_CarrierRotationFlagOn_OrderOfAnotherCarrier_ReturnsPdfUnchanged(
+    public async Task Handle_CarrierOffsetFlagOn_OrderOfAnotherCarrier_ReturnsPdfUnchanged(
         Carriers flaggedCarrier, Carriers orderCarrier)
     {
         var pdfBytes = CreatePdf(pageCount: 1);
         SetupLabelPdf(pdfBytes);
-        SetupRotationFlag(flaggedCarrier, isEnabled: true);
+        SetupOffsetFlag(flaggedCarrier, isEnabled: true);
         SetupCarrier(orderCarrier);
 
         var response = await CreateHandler().Handle(Request(), CancellationToken.None);
@@ -507,13 +478,13 @@ public class GetPackageLabelPdfHandlerTests
     }
 
     [Fact]
-    public async Task Handle_AllCarrierRotationFlagsOn_PersonalPickupOrder_ReturnsPdfUnchanged()
+    public async Task Handle_AllCarrierOffsetFlagsOn_PersonalPickupOrder_ReturnsPdfUnchanged()
     {
         var pdfBytes = CreatePdf(pageCount: 1);
         SetupLabelPdf(pdfBytes);
-        SetupRotationFlag(Carriers.GLS, isEnabled: true);
-        SetupRotationFlag(Carriers.PPL, isEnabled: true);
-        SetupRotationFlag(Carriers.Zasilkovna, isEnabled: true);
+        SetupOffsetFlag(Carriers.GLS, isEnabled: true);
+        SetupOffsetFlag(Carriers.PPL, isEnabled: true);
+        SetupOffsetFlag(Carriers.Zasilkovna, isEnabled: true);
         SetupCarrier(Carriers.Osobak);
 
         var response = await CreateHandler().Handle(Request(), CancellationToken.None);
@@ -522,13 +493,13 @@ public class GetPackageLabelPdfHandlerTests
     }
 
     [Fact]
-    public async Task Handle_AllCarrierRotationFlagsOff_ReturnsPdfUnchangedWithoutCarrierLookup()
+    public async Task Handle_AllCarrierOffsetFlagsOff_ReturnsPdfUnchangedWithoutCarrierLookup()
     {
         var pdfBytes = CreatePdf(pageCount: 1);
         SetupLabelPdf(pdfBytes);
-        SetupRotationFlag(Carriers.GLS, isEnabled: false);
-        SetupRotationFlag(Carriers.PPL, isEnabled: false);
-        SetupRotationFlag(Carriers.Zasilkovna, isEnabled: false);
+        SetupOffsetFlag(Carriers.GLS, isEnabled: false);
+        SetupOffsetFlag(Carriers.PPL, isEnabled: false);
+        SetupOffsetFlag(Carriers.Zasilkovna, isEnabled: false);
 
         var response = await CreateHandler().Handle(Request(), CancellationToken.None);
 
