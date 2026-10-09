@@ -29,8 +29,20 @@ public class MarketingInvoiceImportService : IMarketingInvoiceImportService
 
         var transactions = await source.GetTransactionsAsync(from, to, ct);
 
+        var allIds = transactions.Select(t => t.TransactionId).ToList();
+        var alreadyImported = await _repository.GetExistingTransactionIdsAsync(source.Platform, allIds, ct);
+
         var result = new MarketingImportResult();
         var stagedCount = 0;
+
+        // Within-run duplicate guard — kept unconditionally, do not remove. `alreadyImported`
+        // is a snapshot fetched once, before this loop starts, so it cannot see a TransactionId
+        // that appears twice within this same `transactions` batch (neither copy is in the
+        // database yet). ImportedMarketingTransactionConfiguration declares a unique index on
+        // (Platform, TransactionId), and the SaveChangesAsync call below rethrows on failure —
+        // so without this guard, two in-batch duplicates would both pass the alreadyImported
+        // check, both get AddAsync'd, and fail the entire run's save instead of cleanly
+        // skipping one row.
         var stagedIds = new HashSet<string>();
 
         foreach (var transaction in transactions)
@@ -55,8 +67,7 @@ public class MarketingInvoiceImportService : IMarketingInvoiceImportService
                     continue;
                 }
 
-                var exists = await _repository.ExistsAsync(source.Platform, transaction.TransactionId, ct);
-                if (exists)
+                if (alreadyImported.Contains(transaction.TransactionId))
                 {
                     _logger.LogDebug(
                         "Transaction {TransactionId} for {Platform} already imported — skipping",
