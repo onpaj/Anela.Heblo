@@ -1,0 +1,46 @@
+{
+  "feature_id": "feat-4335",
+  "issue_number": 4335,
+  "created_at": "2026-09-28T05:12:22.331151Z",
+  "max_revisions": 3,
+  "phases": {
+    "analyzing": {
+      "status": "completed",
+      "updated_at": "2026-09-28T05:16:04.057638Z"
+    },
+    "architecting": {
+      "status": "completed",
+      "updated_at": "2026-09-28T05:17:28.696891Z"
+    },
+    "designing": {
+      "status": "completed",
+      "updated_at": "2026-09-28T05:17:59.364549Z"
+    },
+    "planning": {
+      "status": "completed",
+      "updated_at": "2026-09-28T05:19:39.292513Z"
+    },
+    "developing": {
+      "status": "in_progress",
+      "updated_at": "2026-09-28T06:19:34.674957Z"
+    },
+    "code-review": {
+      "status": "completed",
+      "updated_at": "2026-09-28T08:24:36.380391Z"
+    }
+  },
+  "tasks": [
+    {
+      "name": "extract-azure-blob-print-sink-options",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-09-28T06:26:18.171252Z"
+    },
+    {
+      "name": "full-verification",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-09-28T07:55:52.572458Z"
+    }
+  ]
+}
