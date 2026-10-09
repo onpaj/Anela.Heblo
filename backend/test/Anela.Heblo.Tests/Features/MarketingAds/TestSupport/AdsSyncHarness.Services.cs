@@ -11,4 +11,7 @@ internal sealed partial class AdsSyncHarness
 
     public AdsDailySyncService Daily(params IAdPlatformReadSource[] sources) =>
         new(sources, Accounts, EntityStep, Facts, SearchTerms, Runner, Time, Options, NullLogger<AdsDailySyncService>.Instance);
+
+    public AdsChangeSyncService Change(params IAdPlatformReadSource[] sources) =>
+        new(sources, Accounts, EntityStep, Entities, Writer, State, Runner, Time, Options, NullLogger<AdsChangeSyncService>.Instance);
 }
