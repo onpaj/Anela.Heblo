@@ -1,15 +1,18 @@
 using System.Globalization;
+using Anela.Heblo.Application.Features.MarketingAds.Configuration;
 using Anela.Heblo.Application.Features.MarketingAds.Contracts;
+using Anela.Heblo.Application.Features.MarketingAds.Sync;
 using Anela.Heblo.Persistence.Ads;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Npgsql;
 
 namespace Anela.Heblo.Application.Features.MarketingAds;
 
 /// <summary>
 /// Composition root of the MarketingAds module (spec docs/superpowers/specs/2026-10-07-marketing-agents-platform-design.md).
-/// PR C1 registers only the ads schema; the sync jobs (C2) and the proposal layer (C3) add theirs here.
+/// PR C1 registers the ads schema; C2 registers the ads sync (daily + change detection) and its jobs; the proposal layer (C3) adds its own here.
 /// </summary>
 public static class MarketingAdsModule
 {
@@ -20,8 +23,49 @@ public static class MarketingAdsModule
     public static IServiceCollection AddMarketingAdsModule(this IServiceCollection services, IConfiguration configuration)
     {
         AddAdsPersistenceWhenConfigured(services, configuration);
+        AddAdsSync(services, configuration);
         return services;
     }
+
+    private static void AddAdsSync(IServiceCollection services, IConfiguration configuration)
+    {
+        // No ValidateOnStart: invalid Ads settings must fail a job run, never app startup (AdsSyncOptions.EnsureValid).
+        services.Configure<AdsSyncOptions>(configuration.GetSection(AdsSyncOptions.SectionName));
+        services.TryAddSingleton(TimeProvider.System);
+
+        // Fallback until C3: nothing is executed by Heblo yet. C3 replaces this registration.
+        services.AddScoped<IAdExecutionLookup, NoOpAdExecutionLookup>();
+        services.AddSingleton<AdChangeOriginMatcher>();
+
+        // Everything below needs AdsDbContext, which is registered only when AdsDatabase:ConnectionString
+        // is configured. Factories keep ValidateOnBuild (on in Development) from failing when it is absent;
+        // nothing resolves them unless the context exists. All Scoped: read sources are Scoped.
+        AddAdsScoped<IAdSyncStateStore, AdSyncStateStore>(services);
+        AddAdsScoped<AdAccountUpserter>(services);
+        AddAdsScoped<AdEntityUpserter>(services);
+        AddAdsScoped<AdDailyFactUpserter>(services);
+        AddAdsScoped<AdSearchTermUpserter>(services);
+        AddAdsScoped<AdChangeEventWriter>(services);
+        AddAdsScoped<AdStreamRunner>(services);
+        AddAdsScoped<AdEntitySyncStep>(services);
+
+        // The jobs (auto-discovered by AddRecurringJobs) depend only on these two, which always resolve.
+        services.AddScoped<IAdsDailySyncService>(sp => sp.GetService<AdsDbContext>() is null
+            ? new DisabledAdsSyncService()
+            : ActivatorUtilities.CreateInstance<AdsDailySyncService>(sp));
+        services.AddScoped<IAdsChangeSyncService>(sp => sp.GetService<AdsDbContext>() is null
+            ? new DisabledAdsSyncService()
+            : ActivatorUtilities.CreateInstance<AdsChangeSyncService>(sp));
+    }
+
+    private static void AddAdsScoped<TService, TImplementation>(IServiceCollection services)
+        where TService : class
+        where TImplementation : class, TService =>
+        services.AddScoped<TService>(sp => ActivatorUtilities.CreateInstance<TImplementation>(sp));
+
+    private static void AddAdsScoped<TService>(IServiceCollection services)
+        where TService : class =>
+        services.AddScoped(sp => ActivatorUtilities.CreateInstance<TService>(sp));
 
     /// <summary>
     /// The ads schema stays unregistered — and the environment inert — unless the connection string
