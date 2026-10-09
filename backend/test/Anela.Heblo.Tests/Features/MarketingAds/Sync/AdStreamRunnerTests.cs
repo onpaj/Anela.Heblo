@@ -41,6 +41,7 @@ public class AdStreamRunnerTests
 
         // Assert
         failed.Succeeded.Should().BeFalse();
+        failed.Error.Should().Contain("DailyFacts");
         next.Succeeded.Should().BeTrue();
         await using var verify = harness.Verify();
         (await verify.SearchTermsDaily.CountAsync()).Should().Be(1);

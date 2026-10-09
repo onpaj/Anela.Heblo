@@ -1,6 +1,7 @@
 using Anela.Heblo.Persistence.Ads;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
+using Microsoft.EntityFrameworkCore.InMemory.Diagnostics;
 
 namespace Anela.Heblo.Tests.Features.MarketingAds.TestSupport;
 
@@ -15,7 +16,8 @@ internal static class AdsTestDb
 
     public static AdsDbContext Open(string name, params IInterceptor[] interceptors)
     {
-        var builder = new DbContextOptionsBuilder<AdsDbContext>().UseInMemoryDatabase(name);
+        var builder = new DbContextOptionsBuilder<AdsDbContext>().UseInMemoryDatabase(name)
+            .ConfigureWarnings(w => w.Ignore(InMemoryEventId.TransactionIgnoredWarning));
         if (interceptors.Length > 0)
             builder.AddInterceptors(interceptors);
         return new AdsDbContext(builder.Options);
