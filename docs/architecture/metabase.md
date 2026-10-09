@@ -57,7 +57,7 @@ whole reason the reporting schemas live inside `Heblo_V3` rather than in a datab
 | `flexi_raw` | Flexi (ABRA FlexiBee) general ledger, departments, contacts | `AnalyticsDbContext` |
 | `shoptet_raw` | Shoptet orders | separate ingestion direction |
 | `ga4_agg` | GA4 aggregates | separate ingestion direction |
-| `ads` | Google Ads, Meta Ads, Sklik — entities, daily facts, search terms, change history | `AdsDbContext` (ADR-008); views and grants arrive with the sync (PR C2) |
+| `ads` | Google Ads, Meta Ads, Sklik — entities, daily facts, search terms, change history | `AdsDbContext` (ADR-008); views + grants in `Persistence.Ads/Sql/ads_read_views.sql` |
 
 Each schema carries its own `__EFMigrationsHistory`, pinned explicitly — EF Core does **not** derive
 the history table's schema from `HasDefaultSchema` (ADR-007).
@@ -127,6 +127,27 @@ mistake in an earlier version of the script cannot leave a widened grant behind.
 There is deliberately **no** `GRANT SELECT ON ALL TABLES IN SCHEMA flexi_raw`, and there must never
 be one: `ALL TABLES` includes views, so it would hand `v_payroll_monthly` to Metabase.
 
+### `ads`
+
+Granted to `metabase_ro` (defined in
+[`backend/src/Anela.Heblo.Persistence.Ads/Sql/ads_read_views.sql`](../../backend/src/Anela.Heblo.Persistence.Ads/Sql/ads_read_views.sql),
+idempotent, applied by hand like the other schemas):
+
+| View | Granularity | Notes |
+|---|---|---|
+| `v_ads_campaign_monthly` | month x campaign | platform-reported metrics, campaign level only, managed accounts only |
+| `v_ads_blended_monthly` | month | Shoptet revenue without VAT (non-cancelled) / CZK campaign ad cost, all platforms; created only where `shoptet_raw` exists |
+| `v_ads_change_events` | one row per change | row grain, deliberately: a few rows per day, no customer PII (`actor` can be a staff/agency e-mail) |
+
+Not granted: every `ads` table and the helper view `v_ads_blended_daily` (read by Heblo's MCP
+read handler). The blended views read `shoptet_raw."order"` rather than `order_fact`, because
+`shoptet_raw_views.sql` drops `order_fact` with `CASCADE` on every run. Run order on a new
+environment: `AdsDbContext` migration, then `shoptet_raw_views.sql` (if not yet), then `ads_read_views.sql`:
+
+```bash
+psql "<connection>" -v ON_ERROR_STOP=1 -f backend/src/Anela.Heblo.Persistence.Ads/Sql/ads_read_views.sql
+```
+
 ## Payroll (#35)
 
 Backlog item #35 is marked *"pozor neveřejné"* in the source document. `flexi_raw.v_payroll_monthly`
@@ -169,6 +190,8 @@ Ratio metrics that span sources — ROAS, PNO, cost per purchase — need `flexi
 `shoptet_raw` or `ga4_agg`. Those join views are **out of scope for every individual ingestion
 direction** and belong to a separate piece of work once all three schemas exist. Creating them from
 inside one direction would mean three parallel workstreams editing the same file.
+
+Exception: `ads.v_ads_blended_*` (spec §5, PR C2) joins `shoptet_raw."order"` to campaign-level ad cost; it reads the base table so a `shoptet_raw_views.sql` rerun cannot drop it.
 
 ## Operating `flexi_raw`
 
