@@ -115,16 +115,19 @@ failure → `ShipmentCancelFailed`, stop) → reload the order → shipment crea
 the `packageNumber`-th (1-based) → download its `labelUrl` (HTTP client `ShipmentLabelDownloader`,
 30 s timeout) → stream to the browser with `Cache-Control: no-store`, file `{order}-{n}.pdf`.
 Not ready → 404 `PackageLabelNotFound`; carrier download failure → 503 `PackageLabelDownloadFailed`.
-Label offset is gated per carrier: `is-gls-label-offset-enabled`, `is-ppl-label-offset-enabled`,
-`is-zasilkovna-label-offset-enabled` (Packeta). With all three off nothing else happens. When any is on,
-the handler looks up the order's shipping-method GUID (`IPackingOrderShippingSource`, one extra
-`GET /api/orders/{code}`) and, if `IShippingMethodCatalog` resolves it to a carrier whose flag is on,
-moves every page's content 10 mm to the left (PDFsharp, `LabelPdfShifter`: slides MediaBox/CropBox/…
-towards the printed right edge, honouring the page's `/Rotate`; content is not re-rendered) so the label
-fits the shorter Zebra label stock. The leftmost 10 mm is cut off and the right edge gets 10 mm of blank.
-Personal pickup (Osobák) has no offset flag. Fail-open: a failed flag check, carrier lookup or an
-unparsable PDF is logged at Warning and the original label is served unshifted. (Replaced the 180°
-rotation flags `is-*-label-rotation-enabled`, removed 2026-10-08.)
+Label offset is gated by four direction flags that apply to **every** carrier's label:
+`is-label-offset-left-enabled`, `-right-`, `-up-`, `-down-` (each 10 mm). Enabled directions add up
+(left + up = diagonal; left + right cancel out, label served untouched). With all off nothing else
+happens. Otherwise every page's content is moved by the summed offset (PDFsharp, `LabelPdfShifter`:
+slides MediaBox/CropBox/… the opposite way in printed-page orientation, honouring the page's
+`/Rotate`; content is not re-rendered). Content pushed past an edge is cut off and the opposite edge
+gets the same amount of blank. The offset is in PDF points, so it is the same physical distance at
+any printer resolution (the Zebra is 300 dpi) unless the print dialog scales the page. Fail-open: a
+failed flag check or an unparsable PDF is logged at Warning and the original label is served
+unshifted. The flags exist to find the right direction at the warehouse Zebra. (Replaced the
+per-carrier `is-{gls,ppl,zasilkovna}-label-offset-enabled` flags and, before them, the 180° rotation
+flags `is-*-label-rotation-enabled` — both removed 2026-10-09 / 2026-10-08; the carrier lookup went
+with them.)
 
 ## Logic & formulas
 - One `Packages` row = one box (carrier package) of one order. `PackageNumber` is the 1-based
@@ -146,9 +149,9 @@ rotation flags `is-*-label-rotation-enabled`, removed 2026-10-08.)
 | `ShipmentLabels:FallbackPackageWeightGrams` | 1000 | Order weight used when no item weight is known |
 | `ShoptetApi:DefaultItemWeightGrams` | 0 | Weight for an item missing a catalog weight |
 
-Feature flags `is-gls-label-offset-enabled`, `is-ppl-label-offset-enabled`,
-`is-zasilkovna-label-offset-enabled` (all default off, `appsettings.json` + DB override via
-`/admin/feature-flags`) — move that carrier's label PDFs 10 mm left in the label proxy.
+Feature flags `is-label-offset-left-enabled`, `is-label-offset-right-enabled`,
+`is-label-offset-up-enabled`, `is-label-offset-down-enabled` (all default off, `appsettings.json` + DB
+override via `/admin/feature-flags`) — move every label PDF 10 mm that way in the label proxy; they add up.
 
 None of the keys above is overridden in `appsettings*.json` (class defaults apply). `ShipmentLabels` is
 not present in any appsettings file.

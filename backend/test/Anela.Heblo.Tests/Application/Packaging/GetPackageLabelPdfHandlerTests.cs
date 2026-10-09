@@ -1,11 +1,9 @@
 using System.Net;
 using System.Text;
 using Anela.Heblo.Application.Features.FeatureFlags;
-using Anela.Heblo.Application.Features.Packaging.Contracts;
 using Anela.Heblo.Application.Features.Packaging.UseCases.GetPackageLabelPdf;
 using Anela.Heblo.Application.Features.ShipmentLabels;
 using Anela.Heblo.Application.Shared;
-using Anela.Heblo.Domain.Features.Logistics;
 using FluentAssertions;
 using Microsoft.Extensions.Logging;
 using Moq;
@@ -26,10 +24,6 @@ public class GetPackageLabelPdfHandlerTests
     private readonly Mock<HttpMessageHandler> _httpMessageHandler = new(MockBehavior.Strict);
     private readonly Mock<IHttpClientFactory> _httpClientFactory = new();
     private readonly Mock<ILogger<GetPackageLabelPdfHandler>> _logger = new();
-    private const string ShippingGuid = "shipping-guid";
-
-    private readonly Mock<IPackingOrderShippingSource> _orderShippingSource = new();
-    private readonly Mock<IShippingMethodCatalog> _shippingCatalog = new();
     private readonly Mock<IFeatureFlagChecker> _featureFlags = new();
 
     public GetPackageLabelPdfHandlerTests()
@@ -40,8 +34,7 @@ public class GetPackageLabelPdfHandlerTests
     }
 
     private GetPackageLabelPdfHandler CreateHandler() =>
-        new(_shipmentClient.Object, _httpClientFactory.Object, _orderShippingSource.Object, _shippingCatalog.Object,
-            _featureFlags.Object, _logger.Object);
+        new(_shipmentClient.Object, _httpClientFactory.Object, _featureFlags.Object, _logger.Object);
 
     private static GetPackageLabelPdfRequest Request() => new()
     {
@@ -223,30 +216,10 @@ public class GetPackageLabelPdfHandlerTests
         ms.ToArray().Should().BeEquivalentTo(pdfBytes);
     }
 
-    private void SetupGlsOffsetFlag(bool isEnabled) => SetupOffsetFlag(Carriers.GLS, isEnabled);
-
-    private void SetupOffsetFlag(Carriers carrier, bool isEnabled) =>
+    private void SetupOffsetFlags(params string[] enabledFlagKeys) =>
         _featureFlags
-            .Setup(f => f.IsEnabledAsync(OffsetFlagKey(carrier), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(isEnabled);
-
-    private static string OffsetFlagKey(Carriers carrier) => carrier switch
-    {
-        Carriers.GLS => FeatureFlagKeys.GlsLabelOffset,
-        Carriers.PPL => FeatureFlagKeys.PplLabelOffset,
-        Carriers.Zasilkovna => FeatureFlagKeys.ZasilkovnaLabelOffset,
-        _ => throw new ArgumentOutOfRangeException(nameof(carrier), carrier, "No offset flag for this carrier"),
-    };
-
-    private void SetupCarrier(Carriers? carrier)
-    {
-        _orderShippingSource
-            .Setup(c => c.GetShippingMethodGuidAsync(OrderCode, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(ShippingGuid);
-        _shippingCatalog
-            .Setup(c => c.ResolveCarrierByShippingGuid(ShippingGuid))
-            .Returns(carrier);
-    }
+            .Setup(f => f.IsEnabledAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((string key, CancellationToken _) => enabledFlagKeys.Contains(key));
 
     private void SetupLabelPdf(byte[] pdfBytes)
     {
@@ -283,143 +256,79 @@ public class GetPackageLabelPdfHandlerTests
         return ms.ToArray();
     }
 
-    // 10 mm in PDF points; the label content moves left by sliding the MediaBox right.
-    private const double ExpectedOffsetPoints = 10 / 25.4 * 72;
+    // 10 mm in PDF points. Content moves by sliding the MediaBox the opposite way.
+    private static readonly double Offset = Math.Round(10 / 25.4 * 72, 3);
 
-    private static IReadOnlyList<double> MediaBoxLeftEdges(byte[] pdfBytes)
+    private static IReadOnlyList<(double X, double Y)> MediaBoxOrigins(byte[] pdfBytes)
     {
         using var document = PdfReader.Open(new MemoryStream(pdfBytes), PdfDocumentOpenMode.Import);
         return document.Pages.Cast<PdfPage>()
-            .Select(p => Math.Round(p.Elements.GetRectangle("/MediaBox").X1, 3))
+            .Select(p => p.Elements.GetRectangle("/MediaBox"))
+            .Select(box => (Math.Round(box.X1, 3), Math.Round(box.Y1, 3)))
             .ToList();
     }
 
-    private static readonly double ShiftedLeftEdge = Math.Round(ExpectedOffsetPoints, 3);
-
     [Fact]
-    public async Task Handle_GlsOffsetFlagOff_ReturnsPdfUnchangedWithoutCarrierLookup()
+    public async Task Handle_AllOffsetFlagsOff_ReturnsPdfUnchanged()
     {
         var pdfBytes = CreatePdf(pageCount: 1);
         SetupLabelPdf(pdfBytes);
-        SetupGlsOffsetFlag(isEnabled: false);
+        SetupOffsetFlags();
 
         var response = await CreateHandler().Handle(Request(), CancellationToken.None);
 
         (await ReadContentAsync(response)).Should().BeEquivalentTo(pdfBytes);
-        _orderShippingSource.Verify(
-            c => c.GetShippingMethodGuidAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
-    [Fact]
-    public async Task Handle_GlsOffsetFlagOn_GlsOrder_ShiftsEveryPageLeft()
+    [Theory]
+    [InlineData(FeatureFlagKeys.LabelOffsetLeft, 1, 0)]
+    [InlineData(FeatureFlagKeys.LabelOffsetRight, -1, 0)]
+    [InlineData(FeatureFlagKeys.LabelOffsetUp, 0, -1)]
+    [InlineData(FeatureFlagKeys.LabelOffsetDown, 0, 1)]
+    public async Task Handle_OneOffsetFlagOn_ShiftsEveryPage10MmThatWay(string flagKey, int boxX, int boxY)
     {
         SetupLabelPdf(CreatePdf(pageCount: 2));
-        SetupGlsOffsetFlag(isEnabled: true);
-        SetupCarrier(Carriers.GLS);
+        SetupOffsetFlags(flagKey);
 
         var response = await CreateHandler().Handle(Request(), CancellationToken.None);
 
         response.Success.Should().BeTrue();
         response.ContentType.Should().Be("application/pdf");
-        MediaBoxLeftEdges(await ReadContentAsync(response)).Should().Equal(ShiftedLeftEdge, ShiftedLeftEdge);
-    }
-
-    [Theory]
-    [InlineData(Carriers.PPL)]
-    [InlineData(Carriers.Zasilkovna)]
-    [InlineData(null)]
-    public async Task Handle_GlsOffsetFlagOn_NonGlsOrder_ReturnsPdfUnchanged(Carriers? carrier)
-    {
-        var pdfBytes = CreatePdf(pageCount: 1);
-        SetupLabelPdf(pdfBytes);
-        SetupGlsOffsetFlag(isEnabled: true);
-        SetupCarrier(carrier);
-
-        var response = await CreateHandler().Handle(Request(), CancellationToken.None);
-
-        (await ReadContentAsync(response)).Should().BeEquivalentTo(pdfBytes);
+        var expected = (boxX * Offset, boxY * Offset);
+        MediaBoxOrigins(await ReadContentAsync(response)).Should().Equal(expected, expected);
     }
 
     [Fact]
-    public async Task Handle_GlsOffsetFlagOn_OrderHasNoShippingMethod_ReturnsPdfUnchanged()
+    public async Task Handle_LeftAndUpFlagsOn_ShiftsDiagonally()
     {
-        var pdfBytes = CreatePdf(pageCount: 1);
-        SetupLabelPdf(pdfBytes);
-        SetupGlsOffsetFlag(isEnabled: true);
-        _orderShippingSource
-            .Setup(c => c.GetShippingMethodGuidAsync(OrderCode, It.IsAny<CancellationToken>()))
-            .ReturnsAsync((string?)null);
-
-        var response = await CreateHandler().Handle(Request(), CancellationToken.None);
-
-        (await ReadContentAsync(response)).Should().BeEquivalentTo(pdfBytes);
-    }
-
-    [Fact]
-    public async Task Handle_GlsOffsetFlagOn_CarrierLookupThrows_ReturnsPdfUnchanged()
-    {
-        // A label without the offset is still usable; failing the print is not.
-        var pdfBytes = CreatePdf(pageCount: 1);
-        SetupLabelPdf(pdfBytes);
-        SetupGlsOffsetFlag(isEnabled: true);
-        _orderShippingSource
-            .Setup(c => c.GetShippingMethodGuidAsync(OrderCode, It.IsAny<CancellationToken>()))
-            .ThrowsAsync(new HttpRequestException("shoptet down"));
-
-        var response = await CreateHandler().Handle(Request(), CancellationToken.None);
-
-        response.Success.Should().BeTrue();
-        (await ReadContentAsync(response)).Should().BeEquivalentTo(pdfBytes);
-        VerifyLogged(LogLevel.Warning, Times.Once());
-    }
-
-    [Fact]
-    public async Task Handle_GlsOffsetFlagOn_CarrierLookupTimesOut_ReturnsPdfUnchanged()
-    {
-        // An HttpClient timeout surfaces as TaskCanceledException without the caller cancelling;
-        // it is a lookup failure, not a request cancellation.
-        var pdfBytes = CreatePdf(pageCount: 1);
-        SetupLabelPdf(pdfBytes);
-        SetupGlsOffsetFlag(isEnabled: true);
-        _orderShippingSource
-            .Setup(c => c.GetShippingMethodGuidAsync(OrderCode, It.IsAny<CancellationToken>()))
-            .ThrowsAsync(new TaskCanceledException("shoptet timeout"));
-
-        var response = await CreateHandler().Handle(Request(), CancellationToken.None);
-
-        response.Success.Should().BeTrue();
-        (await ReadContentAsync(response)).Should().BeEquivalentTo(pdfBytes);
-        VerifyLogged(LogLevel.Warning, Times.Once());
-    }
-
-    [Fact]
-    public async Task Handle_GlsOffsetFlagOn_RequestCancelledDuringCarrierLookup_Throws()
-    {
-        using var cts = new CancellationTokenSource();
         SetupLabelPdf(CreatePdf(pageCount: 1));
-        SetupGlsOffsetFlag(isEnabled: true);
-        _orderShippingSource
-            .Setup(c => c.GetShippingMethodGuidAsync(OrderCode, It.IsAny<CancellationToken>()))
-            .Returns(() =>
-            {
-                cts.Cancel();
-                return Task.FromException<string?>(new OperationCanceledException(cts.Token));
-            });
+        SetupOffsetFlags(FeatureFlagKeys.LabelOffsetLeft, FeatureFlagKeys.LabelOffsetUp);
 
-        var act = () => CreateHandler().Handle(Request(), cts.Token);
+        var response = await CreateHandler().Handle(Request(), CancellationToken.None);
 
-        await act.Should().ThrowAsync<OperationCanceledException>();
-        _httpMessageHandler.Protected().Verify(
-            "SendAsync", Times.Never(), ItExpr.IsAny<HttpRequestMessage>(), ItExpr.IsAny<CancellationToken>());
+        MediaBoxOrigins(await ReadContentAsync(response)).Should().Equal((Offset, -Offset));
+    }
+
+    [Fact]
+    public async Task Handle_OppositeFlagsOn_CancelOutAndReturnPdfUnchanged()
+    {
+        var pdfBytes = CreatePdf(pageCount: 1);
+        SetupLabelPdf(pdfBytes);
+        SetupOffsetFlags(FeatureFlagKeys.LabelOffsetLeft, FeatureFlagKeys.LabelOffsetRight);
+
+        var response = await CreateHandler().Handle(Request(), CancellationToken.None);
+
+        (await ReadContentAsync(response)).Should().BeEquivalentTo(pdfBytes);
     }
 
     [Fact]
     public async Task Handle_FeatureFlagCheckThrows_ReturnsPdfUnchanged()
     {
+        // A label without the offset is still usable; failing the print is not.
         var pdfBytes = CreatePdf(pageCount: 1);
         SetupLabelPdf(pdfBytes);
         _featureFlags
-            .Setup(f => f.IsEnabledAsync(FeatureFlagKeys.GlsLabelOffset, It.IsAny<CancellationToken>()))
+            .Setup(f => f.IsEnabledAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ThrowsAsync(new InvalidOperationException("flag provider down"));
 
         var response = await CreateHandler().Handle(Request(), CancellationToken.None);
@@ -430,81 +339,36 @@ public class GetPackageLabelPdfHandlerTests
     }
 
     [Fact]
-    public async Task Handle_GlsOffsetFlagOn_LabelIsNotAValidPdf_ReturnsOriginalBytes()
+    public async Task Handle_RequestCancelledDuringFlagCheck_Throws()
+    {
+        using var cts = new CancellationTokenSource();
+        SetupLabelPdf(CreatePdf(pageCount: 1));
+        _featureFlags
+            .Setup(f => f.IsEnabledAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .Returns(() =>
+            {
+                cts.Cancel();
+                return Task.FromException<bool>(new OperationCanceledException(cts.Token));
+            });
+
+        var act = () => CreateHandler().Handle(Request(), cts.Token);
+
+        await act.Should().ThrowAsync<OperationCanceledException>();
+        _httpMessageHandler.Protected().Verify(
+            "SendAsync", Times.Never(), ItExpr.IsAny<HttpRequestMessage>(), ItExpr.IsAny<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task Handle_OffsetFlagOn_LabelIsNotAValidPdf_ReturnsOriginalBytes()
     {
         var notAPdf = Encoding.UTF8.GetBytes("%PDF-1.4 fake");
         SetupLabelPdf(notAPdf);
-        SetupGlsOffsetFlag(isEnabled: true);
-        SetupCarrier(Carriers.GLS);
+        SetupOffsetFlags(FeatureFlagKeys.LabelOffsetLeft);
 
         var response = await CreateHandler().Handle(Request(), CancellationToken.None);
 
         response.Success.Should().BeTrue();
         (await ReadContentAsync(response)).Should().BeEquivalentTo(notAPdf);
         VerifyLogged(LogLevel.Warning, Times.Once());
-    }
-
-    [Theory]
-    [InlineData(Carriers.GLS)]
-    [InlineData(Carriers.PPL)]
-    [InlineData(Carriers.Zasilkovna)]
-    public async Task Handle_CarrierOffsetFlagOn_OrderOfThatCarrier_ShiftsEveryPageLeft(Carriers carrier)
-    {
-        SetupLabelPdf(CreatePdf(pageCount: 2));
-        SetupOffsetFlag(carrier, isEnabled: true);
-        SetupCarrier(carrier);
-
-        var response = await CreateHandler().Handle(Request(), CancellationToken.None);
-
-        MediaBoxLeftEdges(await ReadContentAsync(response)).Should().Equal(ShiftedLeftEdge, ShiftedLeftEdge);
-    }
-
-    [Theory]
-    [InlineData(Carriers.PPL, Carriers.GLS)]
-    [InlineData(Carriers.Zasilkovna, Carriers.PPL)]
-    [InlineData(Carriers.GLS, Carriers.Zasilkovna)]
-    [InlineData(Carriers.PPL, Carriers.Osobak)]
-    public async Task Handle_CarrierOffsetFlagOn_OrderOfAnotherCarrier_ReturnsPdfUnchanged(
-        Carriers flaggedCarrier, Carriers orderCarrier)
-    {
-        var pdfBytes = CreatePdf(pageCount: 1);
-        SetupLabelPdf(pdfBytes);
-        SetupOffsetFlag(flaggedCarrier, isEnabled: true);
-        SetupCarrier(orderCarrier);
-
-        var response = await CreateHandler().Handle(Request(), CancellationToken.None);
-
-        (await ReadContentAsync(response)).Should().BeEquivalentTo(pdfBytes);
-    }
-
-    [Fact]
-    public async Task Handle_AllCarrierOffsetFlagsOn_PersonalPickupOrder_ReturnsPdfUnchanged()
-    {
-        var pdfBytes = CreatePdf(pageCount: 1);
-        SetupLabelPdf(pdfBytes);
-        SetupOffsetFlag(Carriers.GLS, isEnabled: true);
-        SetupOffsetFlag(Carriers.PPL, isEnabled: true);
-        SetupOffsetFlag(Carriers.Zasilkovna, isEnabled: true);
-        SetupCarrier(Carriers.Osobak);
-
-        var response = await CreateHandler().Handle(Request(), CancellationToken.None);
-
-        (await ReadContentAsync(response)).Should().BeEquivalentTo(pdfBytes);
-    }
-
-    [Fact]
-    public async Task Handle_AllCarrierOffsetFlagsOff_ReturnsPdfUnchangedWithoutCarrierLookup()
-    {
-        var pdfBytes = CreatePdf(pageCount: 1);
-        SetupLabelPdf(pdfBytes);
-        SetupOffsetFlag(Carriers.GLS, isEnabled: false);
-        SetupOffsetFlag(Carriers.PPL, isEnabled: false);
-        SetupOffsetFlag(Carriers.Zasilkovna, isEnabled: false);
-
-        var response = await CreateHandler().Handle(Request(), CancellationToken.None);
-
-        (await ReadContentAsync(response)).Should().BeEquivalentTo(pdfBytes);
-        _orderShippingSource.Verify(
-            c => c.GetShippingMethodGuidAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 }

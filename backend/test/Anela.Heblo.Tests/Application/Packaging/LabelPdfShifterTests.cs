@@ -59,17 +59,26 @@ public class LabelPdfShifterTests
         return document.Pages[0].Elements.GetRectangle(key);
     }
 
-    // Shifting the visible window by +d moves the content by -d on the printed page. The window
-    // moves along whichever user-space axis points to the printed page's right edge after /Rotate.
+    // Moving the content by (right, up) on the printed page slides the visible window the
+    // opposite way along the user-space axes that point to the printed right / top edge after
+    // /Rotate: right = +x, +y, -x, -y and up = +y, -x, -y, +x for 0°, 90°, 180°, 270°.
     [Theory]
-    [InlineData(0, Distance, 0)]
-    [InlineData(90, 0, Distance)]
-    [InlineData(180, -Distance, 0)]
-    [InlineData(270, 0, -Distance)]
-    [InlineData(-90, 0, -Distance)]
-    public void ShiftLeft_MovesMediaBoxTowardsThePrintedRightEdge(int pageRotation, double dx, double dy)
+    [InlineData(0, -Distance, 0, Distance, 0)]
+    [InlineData(90, -Distance, 0, 0, Distance)]
+    [InlineData(180, -Distance, 0, -Distance, 0)]
+    [InlineData(270, -Distance, 0, 0, -Distance)]
+    [InlineData(-90, -Distance, 0, 0, -Distance)]
+    [InlineData(0, Distance, 0, -Distance, 0)]
+    [InlineData(0, 0, Distance, 0, -Distance)]
+    [InlineData(0, 0, -Distance, 0, Distance)]
+    [InlineData(90, 0, Distance, Distance, 0)]
+    [InlineData(180, 0, Distance, 0, Distance)]
+    [InlineData(270, 0, Distance, -Distance, 0)]
+    [InlineData(0, -Distance, Distance, Distance, -Distance)]
+    public void Shift_MovesMediaBoxOppositeToThePrintedContentMove(
+        int pageRotation, double right, double up, double dx, double dy)
     {
-        var shifted = LabelPdfShifter.ShiftLeft(CreatePdf(pageRotation), Distance);
+        var shifted = LabelPdfShifter.Shift(CreatePdf(pageRotation), right, up);
 
         var mediaBox = Box(shifted, "/MediaBox");
         mediaBox.X1.Should().BeApproximately(dx, 0.001);
@@ -79,9 +88,9 @@ public class LabelPdfShifterTests
     }
 
     [Fact]
-    public void ShiftLeft_ShiftsCropBoxTogetherWithMediaBox()
+    public void Shift_ShiftsCropBoxTogetherWithMediaBox()
     {
-        var shifted = LabelPdfShifter.ShiftLeft(CreatePdf(withCropBox: true), Distance);
+        var shifted = LabelPdfShifter.Shift(CreatePdf(withCropBox: true), -Distance, 0);
 
         var cropBox = Box(shifted, "/CropBox");
         cropBox.X1.Should().BeApproximately(10 + Distance, 0.001);
@@ -93,9 +102,9 @@ public class LabelPdfShifterTests
     [Theory]
     [InlineData(0, Distance, 0)]
     [InlineData(90, 0, Distance)]
-    public void ShiftLeft_ShiftsMediaBoxInheritedFromThePagesNode(int pageRotation, double dx, double dy)
+    public void Shift_ShiftsMediaBoxInheritedFromThePagesNode(int pageRotation, double dx, double dy)
     {
-        var shifted = LabelPdfShifter.ShiftLeft(CreatePdfWithInheritedPageAttributes(pageRotation), Distance);
+        var shifted = LabelPdfShifter.Shift(CreatePdfWithInheritedPageAttributes(pageRotation), -Distance, 0);
 
         var mediaBox = Box(shifted, "/MediaBox");
         mediaBox.X1.Should().BeApproximately(dx, 0.001);
@@ -105,9 +114,9 @@ public class LabelPdfShifterTests
     }
 
     [Fact]
-    public void ShiftLeft_KeepsPageRotation()
+    public void Shift_KeepsPageRotation()
     {
-        var shifted = LabelPdfShifter.ShiftLeft(CreatePdf(pageRotation: 90), Distance);
+        var shifted = LabelPdfShifter.Shift(CreatePdf(pageRotation: 90), -Distance, 0);
 
         using var document = PdfReader.Open(new MemoryStream(shifted), PdfDocumentOpenMode.Import);
         document.Pages[0].Rotate.Should().Be(90);

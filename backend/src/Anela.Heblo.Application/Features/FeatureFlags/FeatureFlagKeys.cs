@@ -28,20 +28,18 @@ public static class FeatureFlagKeys
     public const string LabelPrintingEnabled = "is-label-printing-enabled";
 
     /// <summary>
-    /// When on, GLS shipping-label PDFs served to the packing desk are moved 10 mm to the left
-    /// before printing, so they fit the shorter Zebra label stock. Other carriers are untouched.
+    /// When on, every shipping-label PDF served to the packing desk is moved 10 mm to the left
+    /// before printing. The four direction flags add up (left + up = diagonal, left + right = none);
+    /// they exist to find out at the Zebra which direction actually fixes the label placement.
     /// </summary>
-    public const string GlsLabelOffset = "is-gls-label-offset-enabled";
+    public const string LabelOffsetLeft = "is-label-offset-left-enabled";
 
-    /// <summary>
-    /// When on, PPL shipping-label PDFs served to the packing desk are moved 10 mm to the left
-    /// before printing. Other carriers are governed by their own offset flag.
-    /// </summary>
-    public const string PplLabelOffset = "is-ppl-label-offset-enabled";
+    /// <summary>When on, every shipping-label PDF is moved 10 mm to the right. See <see cref="LabelOffsetLeft"/>.</summary>
+    public const string LabelOffsetRight = "is-label-offset-right-enabled";
 
-    /// <summary>
-    /// When on, Zásilkovna (Packeta) shipping-label PDFs served to the packing desk are moved
-    /// 10 mm to the left before printing. Other carriers are governed by their own offset flag.
-    /// </summary>
-    public const string ZasilkovnaLabelOffset = "is-zasilkovna-label-offset-enabled";
+    /// <summary>When on, every shipping-label PDF is moved 10 mm up. See <see cref="LabelOffsetLeft"/>.</summary>
+    public const string LabelOffsetUp = "is-label-offset-up-enabled";
+
+    /// <summary>When on, every shipping-label PDF is moved 10 mm down. See <see cref="LabelOffsetLeft"/>.</summary>
+    public const string LabelOffsetDown = "is-label-offset-down-enabled";
 }
