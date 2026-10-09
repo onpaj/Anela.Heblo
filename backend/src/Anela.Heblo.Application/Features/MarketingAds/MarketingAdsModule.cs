@@ -1,6 +1,7 @@
 using System.Globalization;
 using Anela.Heblo.Application.Features.MarketingAds.Configuration;
 using Anela.Heblo.Application.Features.MarketingAds.Contracts;
+using Anela.Heblo.Application.Features.MarketingAds.Reporting;
 using Anela.Heblo.Application.Features.MarketingAds.Sync;
 using Anela.Heblo.Persistence.Ads;
 using Microsoft.Extensions.Configuration;
@@ -56,6 +57,11 @@ public static class MarketingAdsModule
         services.AddScoped<IAdsChangeSyncService>(sp => sp.GetService<AdsDbContext>() is null
             ? new DisabledAdsSyncService()
             : ActivatorUtilities.CreateInstance<AdsChangeSyncService>(sp));
+
+        // Read side for the agents' MCP tools; Unavailable when the ads database is not configured.
+        services.AddScoped<IAdsReadRepository>(sp => sp.GetService<AdsDbContext>() is { } db
+            ? new AdsReadRepository(db)
+            : new UnavailableAdsReadRepository());
     }
 
     private static void AddAdsScoped<TService, TImplementation>(IServiceCollection services)

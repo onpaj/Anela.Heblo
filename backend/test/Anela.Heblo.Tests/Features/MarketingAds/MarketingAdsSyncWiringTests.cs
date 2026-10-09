@@ -1,6 +1,7 @@
 using Anela.Heblo.Application.Features.MarketingAds;
 using Anela.Heblo.Application.Features.MarketingAds.Contracts;
 using Anela.Heblo.Application.Features.MarketingAds.Infrastructure.Jobs;
+using Anela.Heblo.Application.Features.MarketingAds.Reporting;
 using Anela.Heblo.Application.Features.MarketingAds.Sync;
 using Anela.Heblo.Domain.Features.BackgroundJobs;
 using Anela.Heblo.Persistence.Ads;
@@ -42,6 +43,7 @@ public class MarketingAdsSyncWiringTests
         scope.ServiceProvider.GetServices<IRecurringJob>().Should().HaveCount(2);
         scope.ServiceProvider.GetRequiredService<IAdsDailySyncService>().Should().BeOfType<DisabledAdsSyncService>();
         scope.ServiceProvider.GetRequiredService<IAdsChangeSyncService>().Should().BeOfType<DisabledAdsSyncService>();
+        scope.ServiceProvider.GetRequiredService<IAdsReadRepository>().Should().BeOfType<UnavailableAdsReadRepository>();
     }
 
     [Fact]
@@ -54,6 +56,7 @@ public class MarketingAdsSyncWiringTests
         scope.ServiceProvider.GetRequiredService<IAdsDailySyncService>().Should().BeOfType<AdsDailySyncService>();
         scope.ServiceProvider.GetRequiredService<IAdsChangeSyncService>().Should().BeOfType<AdsChangeSyncService>();
         scope.ServiceProvider.GetRequiredService<IAdExecutionLookup>().Should().BeOfType<NoOpAdExecutionLookup>();
+        scope.ServiceProvider.GetRequiredService<IAdsReadRepository>().Should().BeOfType<AdsReadRepository>();
     }
 
     [Fact]
