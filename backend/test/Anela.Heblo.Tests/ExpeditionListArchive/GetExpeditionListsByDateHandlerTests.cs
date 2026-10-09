@@ -102,4 +102,19 @@ public class GetExpeditionListsByDateHandlerTests
             s => s.ListBlobsAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()),
             Times.Never);
     }
+
+    [Fact]
+    public void InvalidDate_ReturnsExpectedFailureShape()
+    {
+        // Act
+        var result = GetExpeditionListsByDateResponse.InvalidDate();
+
+        // Assert
+        Assert.False(result.Success);
+        Assert.Equal(ErrorCodes.InvalidFormat, result.ErrorCode);
+        Assert.NotNull(result.Params);
+        Assert.Equal("Date", result.Params!["Field"]);
+        Assert.Equal("yyyy-MM-dd", result.Params!["ExpectedFormat"]);
+        Assert.Empty(result.Items);
+    }
 }
