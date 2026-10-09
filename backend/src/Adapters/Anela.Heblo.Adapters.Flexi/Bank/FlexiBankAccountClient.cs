@@ -18,7 +18,7 @@ public class FlexiBankAccountClient
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
-    public async Task<Result<bool>> ImportStatementAsync(int accountId, string aboData)
+    public virtual async Task<Result<bool>> ImportStatementAsync(int accountId, string aboData)
     {
         try
         {
