@@ -48,6 +48,32 @@ public sealed class BundleProductRuleTests
     }
 
     [Fact]
+    public void Resolve_LeavesShoptetSetAsProduct()
+    {
+        // Act
+        var result = BundleProductRule.Resolve(ProductType.Product, "SA016005");
+
+        // Assert
+        result.Should().Be(ProductType.Product);
+    }
+
+    [Theory]
+    [InlineData(ProductType.Product, "BAL001", true)]
+    [InlineData(ProductType.Product, "SET042", true)]
+    [InlineData(ProductType.Product, "SA016005", true)]
+    [InlineData(ProductType.Product, "KRM001", false)]
+    [InlineData(ProductType.Material, "SA016005", false)]
+    [InlineData(ProductType.Product, null, false)]
+    public void HasComponentParts_CoversGiftPackagesAndShoptetSets(ProductType erpType, string? code, bool expected)
+    {
+        // Act
+        var result = BundleProductRule.HasComponentParts(erpType, code);
+
+        // Assert
+        result.Should().Be(expected);
+    }
+
+    [Fact]
     public void Resolve_LeavesOrdinaryProductAsProduct()
     {
         // Act

@@ -79,7 +79,7 @@ public sealed class CatalogHistoryRefreshService
         try
         {
             var bundleCodes = _cacheStore.GetErpStockData()
-                .Where(s => BundleProductRule.Resolve((ProductType?)s.ProductTypeId ?? ProductType.UNDEFINED, s.ProductCode) == ProductType.Set)
+                .Where(s => BundleProductRule.HasComponentParts((ProductType?)s.ProductTypeId ?? ProductType.UNDEFINED, s.ProductCode))
                 .Select(s => s.ProductCode)
                 .ToList();
 
