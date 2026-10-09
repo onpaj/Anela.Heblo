@@ -1,10 +1,8 @@
-using System.Diagnostics.Metrics;
 using Anela.Heblo.Application.Features.MarketingAds.Configuration;
 using Anela.Heblo.Application.Features.MarketingAds.Contracts;
 using Anela.Heblo.Application.Features.MarketingAds.Sync;
 using Anela.Heblo.Persistence.Ads;
 using Anela.Heblo.Persistence.Ads.Entities;
-using Anela.Heblo.Persistence.Infrastructure.Resilience;
 using Anela.Heblo.Tests.Common;
 using Anela.Heblo.Tests.Features.MarketingAds.TestSupport;
 using FluentAssertions;
@@ -35,9 +33,7 @@ public class AdEntitySyncStepAtomicityIntegrationTests : IAsyncLifetime
 
     public async Task InitializeAsync()
     {
-        _connectionString = await _fixture.CreateDatabaseAsync("ads_entity_step_atomicity");
-        await using var context = NewContext();
-        await context.Database.MigrateAsync();
+        _connectionString = await AdsPostgres.CreateMigratedAsync(_fixture, "ads_entity_step_atomicity", withShoptet: false);
     }
 
     public Task DisposeAsync() => Task.CompletedTask;
@@ -87,20 +83,7 @@ public class AdEntitySyncStepAtomicityIntegrationTests : IAsyncLifetime
         (await after.Entities.SingleAsync(e => e.ExternalId == "ad-1")).Status.Should().Be("Paused");
     }
 
-    private AdsDbContext NewContext()
-    {
-        var metrics = new DbResilienceMetrics(new TestMeterFactory());
-        var pipelineProvider = new DbResiliencePipelineProvider(
-            Options.Create(new DbResilienceOptions()), metrics, NullLogger<DbResiliencePipelineProvider>.Instance);
-        return new AdsDbContext(new DbContextOptionsBuilder<AdsDbContext>()
-            .UseNpgsql(_connectionString, npgsql =>
-            {
-                npgsql.MigrationsHistoryTable(AdsDbContext.MigrationsHistoryTableName, AdsDbContext.SchemaName);
-                npgsql.ExecutionStrategy(deps =>
-                    new PollyExecutionStrategy(deps, pipelineProvider, metrics, NullLogger<PollyExecutionStrategy>.Instance));
-            })
-            .Options);
-    }
+    private AdsDbContext NewContext() => new(AdsPostgres.Options(_connectionString));
 
     private static AdAccountUpserter NewAccounts(AdsDbContext db, TimeProvider time) =>
         new(db, time, Options.Create(new AdsSyncOptions()), NullLogger<AdAccountUpserter>.Instance);
@@ -123,11 +106,5 @@ public class AdEntitySyncStepAtomicityIntegrationTests : IAsyncLifetime
             Fail
                 ? throw new InvalidOperationException("execution log unavailable")
                 : Task.FromResult<IReadOnlyList<AdExecutedAction>>(Array.Empty<AdExecutedAction>());
-    }
-
-    private sealed class TestMeterFactory : IMeterFactory
-    {
-        public Meter Create(MeterOptions options) => new(options.Name, options.Version);
-        public void Dispose() { }
     }
 }
