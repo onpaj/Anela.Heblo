@@ -29,7 +29,6 @@ public static class AnalyticsModule
         services.AddScoped<IAnalyticsRepository, AnalyticsRepository>();
 
         // Register refactored services for clean separation of concerns
-        // Note: IMarginCalculationService is registered by CatalogModule and injected here
         services.AddScoped<IProductFilterService, ProductFilterService>();
         services.AddScoped<IReportBuilderService, ReportBuilderService>();
 
