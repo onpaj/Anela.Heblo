@@ -1,0 +1,17 @@
+namespace Anela.Heblo.Application.Features.MarketingAds.Reporting;
+
+/// <summary>Returns error params, or null when valid. Bounded ranges keep agent queries cheap on the B1ms server.</summary>
+public static class AdReadValidation
+{
+    public static Dictionary<string, string>? DateRange(DateOnly from, DateOnly to, int maxDays) =>
+        from > to || to.DayNumber - from.DayNumber + 1 > maxDays
+            ? new Dictionary<string, string> { ["From"] = from.ToString("yyyy-MM-dd"), ["To"] = to.ToString("yyyy-MM-dd"), ["MaxDays"] = maxDays.ToString() }
+            : null;
+
+    public static Dictionary<string, string>? Positive(string field, int value, int max) =>
+        value < 1 || value > max
+            ? new Dictionary<string, string> { ["Field"] = field, ["Value"] = value.ToString(), ["Max"] = max.ToString() }
+            : null;
+
+    public static Dictionary<string, string> NotConfigured(string reason = "AdsDatabaseNotConfigured") => new() { ["Reason"] = reason };
+}
