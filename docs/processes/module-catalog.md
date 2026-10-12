@@ -5,7 +5,7 @@ module: catalog
 summary: The product catalog — one in-memory view of every product, material, semi-product and goods code combining Flexi, Shoptet and Heblo data (stock, prices, history, margins) — plus stock taking, stock-up to Shoptet, product weights and material container/lot labels.
 owns: []
 verified_at: "5e993f9e2"
-related: [calc-catalog-merge, sync-catalog-stock, sync-catalog-history, sync-catalog-prices, sync-catalog-master-data, calc-bundle-sales-expansion, calc-margins, feed-stock-up, feed-product-weight, job-product-export-download, flow-stock-taking, flow-lots-and-material-containers, flow-product-composition-order]
+related: [calc-catalog-merge, sync-catalog-stock, sync-catalog-history, sync-catalog-prices, sync-catalog-master-data, calc-bundle-sales-expansion, calc-margins, feed-stock-up, feed-product-weight, job-product-export-download, job-doubleshot-availability-sync, flow-stock-taking, flow-lots-and-material-containers, flow-product-composition-order]
 ---
 
 # Catalog
@@ -58,6 +58,7 @@ Manufacture_MaterialInventory, Manufacture_MaterialContainers, Manufacture_Label
 - `feed-stock-up` — relative stock movements to Shoptet from boxes and gift packages; every minute.
 - `feed-product-weight` — BoM weight → Flexi ceník; Hangfire `product-weight-recalculation` 02:00 + manual.
 - `job-product-export-download` — nightly product export snapshot to Azure Blob; Hangfire `product-export-download` 02:00.
+- `job-doubleshot-availability-sync` — copies each double-shot SA…S set's stock onto its SA…V variant in Shoptet; Hangfire `doubleshot-availability-sync` every 15 min; dry run until flag `is-doubleshot-availability-sync-enabled`.
 - `flow-stock-taking` — e-shop stock taking to Shoptet; ERP stock-taking cache patch.
 - `flow-lots-and-material-containers` — container and lot labels via CUPS/Zebra.
 - `flow-product-composition-order` — recipe ingredient order and phases → Flexi BoM.

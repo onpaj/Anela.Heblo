@@ -844,6 +844,20 @@ The existing PATCH endpoint (section 8.3) also accepts `realStock` as an alterna
 - Only one of `amountChange`, `quantity`, or `realStock` should be present per item in the request.
 - Use `[JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]` on the unused fields in the C# DTO so they are omitted from the serialized request body.
 
+### 8.8 Product sets and double-shot variants in the stock CSV (verified 2026-10-12, production, read-only)
+
+- Product sets **are** listed in the stock CSV export, with their Shoptet-computed stock in the `stock` column
+  (e.g. `SA015030S` = 213).
+- The CSV `stock` column equals `GET /api/stocks/{id}/supplies` → `amount`: free-for-order stock, already net of
+  `claim` (compared on all 141 items with a non-zero claim). Writing `realStock` (§8.7) sets
+  `amount = realStock − claim`, so to set free stock exactly, send a relative `amountChange = target − csvStock`.
+- Double-shot convention: variant product `SA0xxNNNV` (the variants of one serum share a `pairCode`, 81–84)
+  mirrors product set `SA0xxNNNS`; the codes differ only in the trailing letter. 12 pairs exist
+  (SA014–SA017 × 005/030/100). There is **no** suffix-less `SA015030`. Rule: `DoubleShotCodeRule` (Domain).
+- Other codes ending in `V` exist (`BAL00xxV` gift packages, hand-set stock 1000) — they are **not** double-shots.
+- Prod reads the API token from App Setting `Shoptet__ApiToken`; the Key Vault secret `Shoptet--Token` is
+  rejected with `invalid-token`.
+
 ---
 
 ## 9. Design Documents
