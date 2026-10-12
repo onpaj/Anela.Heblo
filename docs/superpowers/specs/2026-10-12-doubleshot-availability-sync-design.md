@@ -32,21 +32,23 @@ double-shot is never shown sold out while its components are in stock (and vice 
 
 ## Components
 
-### 1. `DoubleShotCode` (Domain, shared with #4480)
+### 1. `DoubleShotCodeRule` (Domain, shared with #4480)
 
-`backend/src/Anela.Heblo.Domain/Features/Catalog/DoubleShots/DoubleShotCode.cs` — pure static helper, no I/O.
+`backend/src/Anela.Heblo.Domain/Features/Catalog/DoubleShotCodeRule.cs` — pure static rule, no I/O, in the
+style of `BundleProductRule`. Signature agreed with #4480 on #4477:
 
 - `bool IsVariantCode(string? code)` — `^SA\d+V$` (ordinal, case-sensitive; Shoptet codes are upper-case).
-- `string? ToSetCode(string? variantCode)` — `SA015030V` → `SA015030S`; `null` when not a variant code.
-- `string? ToVariantCode(string? setCode)` — `SA015030S` → `SA015030V`; `null` when not `^SA\d+S$`.
+- `bool TryGetSetCode(string? variantCode, out string setCode)` — `SA015030V` → `SA015030S`; `false` + `""` otherwise.
+- `string ToVariantCode(string setCode)` — `SA015030S` → `SA015030V`; `ArgumentException` unless `^SA\d+S$`.
 
+The S code is the trailing-letter swap (Ondra confirmed 2026-10-12; prod has `SA015030S`, no `SA015030`).
 Callers check that the mirror exists in their own data (this job: the CSV; #4480: its order/catalog data).
 
 ### 2. `DoubleShotStockPlanner` (Application, pure)
 
 `Plan(IReadOnlyList<EshopStock> stock) → IReadOnlyList<DoubleShotStockAdjustment>`
 
-- For every row passing `IsVariantCode` whose `ToSetCode` exists in the list: target = `max(S.Stock, 0)`.
+- For every row whose `TryGetSetCode` succeeds and whose set code exists in the list: target = `max(S.Stock, 0)`.
 - Emits an adjustment (`VariantCode`, `SetCode`, `Current`, `Target`, `Delta`) only when `Target ≠ Current`.
 - Reports V codes without an S mirror separately (`UnpairedVariantCodes`) so the job can warn.
 
@@ -75,7 +77,7 @@ A V order landing between read and write causes at most a one-run drift, correct
 
 ## Testing
 
-- `DoubleShotCode`: V→S, S→V, non-matching (`BAL0001V`, `SA001`, `SA015030`, lower-case, null/empty).
+- `DoubleShotCodeRule`: V→S, S→V, non-matching (`BAL0001V`, `SA001`, `SA015030`, lower-case, null/empty).
 - Planner: pairs only when both exist; negative S → 0; equal → no adjustment; `BAL…V` ignored; unpaired V reported.
 - Job (mocked client/flag/status/resilience): disabled → no calls; flag off → no writes; flag on → writes only
   differing V with correct delta; one failure doesn't stop the rest; list failure → no writes; never writes S.
