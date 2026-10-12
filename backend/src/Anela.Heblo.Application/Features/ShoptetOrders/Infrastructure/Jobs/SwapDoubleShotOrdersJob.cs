@@ -1,6 +1,7 @@
 using Anela.Heblo.Application.Features.FeatureFlags;
 using Anela.Heblo.Application.Features.ShoptetOrders.DoubleShotSwap;
 using Anela.Heblo.Domain.Features.BackgroundJobs;
+using Hangfire;
 using Microsoft.Extensions.Logging;
 
 namespace Anela.Heblo.Application.Features.ShoptetOrders.Infrastructure.Jobs;
@@ -34,6 +35,8 @@ public sealed class SwapDoubleShotOrdersJob : IRecurringJob
         _logger = logger;
     }
 
+    // The 5-minute cron is the retry: Hangfire's default 10 retries would pile up on the single worker.
+    [AutomaticRetry(Attempts = 0)]
     public async Task ExecuteAsync(CancellationToken cancellationToken = default)
     {
         if (!await _statusChecker.IsJobEnabledAsync(Metadata.JobName, cancellationToken))

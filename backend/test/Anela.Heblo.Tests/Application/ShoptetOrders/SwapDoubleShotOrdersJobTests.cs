@@ -3,6 +3,7 @@ using Anela.Heblo.Application.Features.ShoptetOrders.DoubleShotSwap;
 using Anela.Heblo.Application.Features.ShoptetOrders.Infrastructure.Jobs;
 using Anela.Heblo.Domain.Features.BackgroundJobs;
 using FluentAssertions;
+using Hangfire;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using Xunit;
@@ -55,17 +56,38 @@ public class SwapDoubleShotOrdersJobTests
         _swap.Verify(s => s.SweepAsync(flagOn, It.IsAny<CancellationToken>()), Times.Once);
     }
 
-    [Theory]
-    [InlineData(false)]
-    [InlineData(true)]
-    public async Task PickingPreparer_SweepsWithFlagAsApplyChanges(bool flagOn)
+    [Fact]
+    public void ExecuteAsync_never_retries_automatically()
     {
-        CreateSut(jobEnabled: true, flagOn: flagOn);
-        var adapter = new Anela.Heblo.Application.Features.ShoptetOrders.Infrastructure
-            .ShoptetOrdersDoubleShotPickingPreparerAdapter(_swap.Object, _flags.Object);
+        // CustomAttributeData, not GetCustomAttributes: AutomaticRetryAttribute's constructor reads Hangfire's global
+        // LogProvider, which another test's WebApplicationFactory may have left holding a disposed ILoggerFactory.
+        var attribute = typeof(SwapDoubleShotOrdersJob).GetMethod(nameof(SwapDoubleShotOrdersJob.ExecuteAsync))!
+            .GetCustomAttributesData().Single(d => d.AttributeType == typeof(AutomaticRetryAttribute));
 
-        await adapter.PrepareAsync();
-
-        _swap.Verify(s => s.SweepAsync(flagOn, It.IsAny<CancellationToken>()), Times.Once);
+        attribute.NamedArguments.Single(a => a.MemberName == nameof(AutomaticRetryAttribute.Attempts))
+            .TypedValue.Value.Should().Be(0);
     }
+
+    [Fact]
+    public async Task PickingPreparer_DoesNotSweep_WhenFlagOff()
+    {
+        CreateSut(jobEnabled: true, flagOn: false);
+
+        await CreatePreparer().PrepareAsync();
+
+        _swap.Verify(s => s.SweepAsync(It.IsAny<bool>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task PickingPreparer_SweepsApplyingChanges_WhenFlagOn()
+    {
+        CreateSut(jobEnabled: true, flagOn: true);
+
+        await CreatePreparer().PrepareAsync();
+
+        _swap.Verify(s => s.SweepAsync(true, It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    private Anela.Heblo.Application.Features.ShoptetOrders.Infrastructure.ShoptetOrdersDoubleShotPickingPreparerAdapter CreatePreparer() =>
+        new(_swap.Object, _flags.Object);
 }

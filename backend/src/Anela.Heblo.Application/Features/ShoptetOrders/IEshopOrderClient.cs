@@ -44,11 +44,11 @@ public interface IEshopOrderClient
     Task MarkAsPackedAsync(string orderCode, CancellationToken ct = default);
 
     /// <summary>
-    /// Codes of orders created at or after <paramref name="createdFrom"/> that contain a line with
-    /// exactly <paramref name="productCode"/> (GET /api/orders?productCode=&amp;creationTimeFrom=, all pages).
+    /// Orders (code + current status id) created at or after <paramref name="createdFrom"/> that contain a
+    /// line with exactly <paramref name="productCode"/> (GET /api/orders?productCode=&amp;creationTimeFrom=, all pages).
     /// The filter matches items[] line codes only, not set components (shoptet-api.md §3.8).
     /// </summary>
-    Task<IReadOnlyList<string>> ListOrderCodesContainingProductAsync(
+    Task<IReadOnlyList<EshopOrderSummary>> ListOrdersContainingProductAsync(
         string productCode, DateTimeOffset createdFrom, CancellationToken ct = default);
 
     /// <summary>

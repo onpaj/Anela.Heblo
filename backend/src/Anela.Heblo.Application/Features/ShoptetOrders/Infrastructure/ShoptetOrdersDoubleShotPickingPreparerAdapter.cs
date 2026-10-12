@@ -6,7 +6,8 @@ namespace Anela.Heblo.Application.Features.ShoptetOrders.Infrastructure;
 
 /// <summary>
 /// Runs one double-shot swap sweep before every picking-list build, so a print never shows a V line.
-/// Dry run unless the double-shot swap flag is on — same switch as the recurring job.
+/// Only while the double-shot swap flag is on: with it off the recurring job alone produces the
+/// dry-run log, so a print does not pay for a sweep that changes nothing.
 /// </summary>
 internal sealed class ShoptetOrdersDoubleShotPickingPreparerAdapter : IPickingListOrderPreparer
 {
@@ -21,7 +22,9 @@ internal sealed class ShoptetOrdersDoubleShotPickingPreparerAdapter : IPickingLi
 
     public async Task PrepareAsync(CancellationToken cancellationToken = default)
     {
-        var applyChanges = await _featureFlags.IsEnabledAsync(FeatureFlagKeys.DoubleShotOrderSwap, cancellationToken);
-        await _swapService.SweepAsync(applyChanges, cancellationToken);
+        if (!await _featureFlags.IsEnabledAsync(FeatureFlagKeys.DoubleShotOrderSwap, cancellationToken))
+            return;
+
+        await _swapService.SweepAsync(applyChanges: true, cancellationToken);
     }
 }

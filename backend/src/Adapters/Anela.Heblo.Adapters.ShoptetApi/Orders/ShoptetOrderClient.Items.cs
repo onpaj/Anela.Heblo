@@ -18,14 +18,14 @@ public partial class ShoptetOrderClient
     private const string CreationTimeFormat = "yyyy-MM-dd'T'HH:mm:sszzz";
     private static readonly CultureInfo Invariant = CultureInfo.InvariantCulture;
 
-    public async Task<IReadOnlyList<string>> ListOrderCodesContainingProductAsync(
+    public async Task<IReadOnlyList<EshopOrderSummary>> ListOrdersContainingProductAsync(
         string productCode, DateTimeOffset createdFrom, CancellationToken ct = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(productCode);
 
         var code = Uri.EscapeDataString(productCode);
         var from = Uri.EscapeDataString(createdFrom.ToString(CreationTimeFormat, Invariant));
-        var result = new List<string>();
+        var result = new List<EshopOrderSummary>();
 
         for (var page = 1; ; page++)
         {
@@ -37,7 +37,7 @@ public partial class ShoptetOrderClient
             if (data == null)
                 break;
 
-            result.AddRange(data.Data.Orders.Select(o => o.Code));
+            result.AddRange(data.Data.Orders.Select(o => new EshopOrderSummary { Code = o.Code, StatusId = o.Status.Id }));
             if (page >= data.Data.Paginator.PageCount)
                 break;
         }

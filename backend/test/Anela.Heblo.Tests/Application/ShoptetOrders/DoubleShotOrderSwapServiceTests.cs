@@ -19,7 +19,7 @@ public class DoubleShotOrderSwapServiceTests
     private readonly Mock<IEshopStockClient> _stock = new();
     private readonly Mock<ILogger<DoubleShotOrderSwapService>> _logger = new();
 
-    private DoubleShotOrderSwapService CreateSut(int[]? eligible = null)
+    private DoubleShotOrderSwapService CreateSut(int[]? eligible = null, int lookbackDays = 14)
     {
         _stock.Setup(s => s.ListAsync(It.IsAny<CancellationToken>())).ReturnsAsync(new List<EshopStock>
         {
@@ -30,22 +30,27 @@ public class DoubleShotOrderSwapServiceTests
         var settings = Options.Create(new ShoptetOrdersSettings
         {
             DoubleShotSwapEligibleStatusIds = eligible ?? [],
-            DoubleShotSwapLookbackDays = 14,
+            DoubleShotSwapLookbackDays = lookbackDays,
         });
         return new DoubleShotOrderSwapService(_orders.Object, _stock.Object, settings,
             new FakeTimeProvider(Now), _logger.Object);
     }
 
+    private const int EligibleListStatus = -2;
+
     private void OrdersContaining(string variantCode, params string[] orderCodes) =>
-        _orders.Setup(o => o.ListOrderCodesContainingProductAsync(variantCode, Now.AddDays(-14), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(orderCodes);
+        OrdersContainingWithStatus(variantCode, orderCodes.Select(c => (c, EligibleListStatus)).ToArray());
+
+    private void OrdersContainingWithStatus(string variantCode, params (string Code, int StatusId)[] orders) =>
+        _orders.Setup(o => o.ListOrdersContainingProductAsync(variantCode, Now.AddDays(-14), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(orders.Select(o => new EshopOrderSummary { Code = o.Code, StatusId = o.StatusId }).ToList());
 
     private void Detail(string code, int status, params EshopOrderLine[] lines) =>
         _orders.Setup(o => o.GetOrderDetailAsync(code, It.IsAny<CancellationToken>()))
             .ReturnsAsync(new EshopOrderDetail { Code = code, StatusId = status, Lines = lines });
 
-    private static EshopOrderLine V(long id, decimal amount = 2m, string code = "SA015030V") =>
-        new() { ItemId = id, ItemType = "product", Code = code, Amount = amount, UnitPriceWithVat = 1770m, VatRate = 21m, PriceRatio = 1m };
+    private static EshopOrderLine V(long id, decimal amount = 2m, string code = "SA015030V", decimal price = 1770m) =>
+        new() { ItemId = id, ItemType = "product", Code = code, Amount = amount, UnitPriceWithVat = price, VatRate = 21m, PriceRatio = 1m };
 
     private void AcceptWrites()
     {
@@ -71,8 +76,8 @@ public class DoubleShotOrderSwapServiceTests
         var summary = await sut.SweepAsync(applyChanges: true);
 
         summary.OrdersScanned.Should().Be(0);
-        _orders.Verify(o => o.ListOrderCodesContainingProductAsync("SA015030V", Now.AddDays(-14), It.IsAny<CancellationToken>()), Times.Once);
-        _orders.Verify(o => o.ListOrderCodesContainingProductAsync("SA015030S", It.IsAny<DateTimeOffset>(), It.IsAny<CancellationToken>()), Times.Never);
+        _orders.Verify(o => o.ListOrdersContainingProductAsync("SA015030V", Now.AddDays(-14), It.IsAny<CancellationToken>()), Times.Once);
+        _orders.Verify(o => o.ListOrdersContainingProductAsync("SA015030S", It.IsAny<DateTimeOffset>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]
@@ -193,7 +198,73 @@ public class DoubleShotOrderSwapServiceTests
     }
 
     [Fact]
-    public async Task Sweep_DoesNotWrite_WhenOrderNotEligible()
+    public async Task Sweep_NeverFetchesDetail_WhenListStatusNotEligible()
+    {
+        OrdersContainingWithStatus("SA015030V", ("126000043", 26), ("126000044", -2));
+        Detail("126000044", -2, V(5));
+        AcceptWrites();
+        var sut = CreateSut();
+
+        var summary = await sut.SweepAsync(applyChanges: true);
+
+        _orders.Verify(o => o.GetOrderDetailAsync("126000043", It.IsAny<CancellationToken>()), Times.Never);
+        summary.Should().Be(new DoubleShotSwapSummary(1, 1, 0, 0, 0, OrdersNotEligible: 1));
+        VerifyLogged(LogLevel.Information, "skipped 1 not eligible");
+    }
+
+    [Fact]
+    public async Task Sweep_ClampsLookbackToAtLeastOneDay()
+    {
+        _orders.Setup(o => o.ListOrdersContainingProductAsync("SA015030V", Now.AddDays(-1), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<EshopOrderSummary>());
+        var sut = CreateSut(lookbackDays: 0);
+
+        await sut.SweepAsync(applyChanges: true);
+
+        _orders.Verify(o => o.ListOrdersContainingProductAsync("SA015030V", Now.AddDays(-1), It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Theory]
+    [InlineData(HttpStatusCode.UnprocessableEntity)]
+    [InlineData(HttpStatusCode.InternalServerError)]
+    public async Task Sweep_AbandonsOrder_AndReportsBothLines_WhenDeleteFailsAfterAdd(HttpStatusCode deleteStatus)
+    {
+        OrdersContaining("SA015030V", "126000043");
+        Detail("126000043", -2, V(1), V(2));
+        AcceptWrites();
+        _orders.Setup(o => o.DeleteOrderItemAsync("126000043", 1, It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new HttpRequestException("delete failed", null, deleteStatus));
+        var sut = CreateSut();
+
+        var summary = await sut.SweepAsync(applyChanges: true);
+
+        _orders.Verify(o => o.AddOrderItemAsync("126000043", It.IsAny<NewEshopOrderItem>(), It.IsAny<CancellationToken>()), Times.Once,
+            "the next V line of the order must not be attempted after a failed delete");
+        _orders.Verify(o => o.DeleteOrderItemAsync("126000043", 2, It.IsAny<CancellationToken>()), Times.Never);
+        _orders.Verify(o => o.AppendEshopRemarkAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
+        summary.LinesSwapped.Should().Be(0);
+        summary.LinesFailed.Should().Be(1);
+        VerifyLogged(LogLevel.Error, "now contains both SA015030V (line 1) and SA015030S");
+    }
+
+    [Theory]
+    [InlineData(0, 1770)]
+    [InlineData(2, 0)]
+    public async Task Sweep_SkipsVariantLineWithZeroAmountOrPrice_AndWarns(int amount, int price)
+    {
+        OrdersContaining("SA015030V", "126000043");
+        Detail("126000043", -2, V(1, amount: amount, price: price));
+        var sut = CreateSut();
+
+        var summary = await sut.SweepAsync(applyChanges: true);
+
+        // Strict mock: any Add/Delete/Append call would have thrown and been counted as a failed order.
+        summary.Should().Be(new DoubleShotSwapSummary(1, 0, 0, 0, 0));
+        VerifyLogged(LogLevel.Warning, "not swapped");
+    }
+
+    [Fact]
+    public async Task Sweep_DoesNotWrite_WhenDetailStatusNoLongerEligible()
     {
         OrdersContaining("SA015030V", "126000043");
         Detail("126000043", 26, V(1));
@@ -237,7 +308,7 @@ public class DoubleShotOrderSwapServiceTests
     {
         _stock.Setup(s => s.ListAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(new List<EshopStock> { new() { Code = "SA015030V" }, new() { Code = "SA016030V" } });
-        _orders.Setup(o => o.ListOrderCodesContainingProductAsync("SA015030V", It.IsAny<DateTimeOffset>(), It.IsAny<CancellationToken>()))
+        _orders.Setup(o => o.ListOrdersContainingProductAsync("SA015030V", It.IsAny<DateTimeOffset>(), It.IsAny<CancellationToken>()))
             .ThrowsAsync(new HttpRequestException("boom", null, HttpStatusCode.InternalServerError));
         OrdersContaining("SA016030V", "126000044");
         Detail("126000044", -2, V(5, code: "SA016030V"));

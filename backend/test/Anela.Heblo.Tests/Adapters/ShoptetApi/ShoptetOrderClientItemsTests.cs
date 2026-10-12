@@ -27,27 +27,28 @@ public class ShoptetOrderClientItemsTests
     private static HttpResponseMessage Raw(HttpStatusCode status, string json) =>
         new(status) { Content = new StringContent(json, Encoding.UTF8, "application/json") };
 
-    private static string OrderListPage(int page, int pageCount, params string[] codes) =>
+    private static string OrderListPage(int page, int pageCount, int statusId, params string[] codes) =>
         JsonSerializer.Serialize(new
         {
             data = new
             {
-                orders = codes.Select(c => new { code = c, status = new { id = -2 } }),
+                orders = codes.Select(c => new { code = c, status = new { id = statusId } }),
                 paginator = new { page, pageCount, totalCount = codes.Length },
             },
         });
 
     [Fact]
-    public async Task ListOrderCodesContainingProduct_SendsEncodedFiltersAndReadsAllPages()
+    public async Task ListOrdersContainingProduct_SendsEncodedFiltersAndReadsAllPagesWithStatus()
     {
         var client = BuildClient(req => req.RequestUri!.Query.Contains("page=1&")
-            ? Raw(HttpStatusCode.OK, OrderListPage(1, 2, "126000001", "126000002"))
-            : Raw(HttpStatusCode.OK, OrderListPage(2, 2, "126000003")));
+            ? Raw(HttpStatusCode.OK, OrderListPage(1, 2, -2, "126000001", "126000002"))
+            : Raw(HttpStatusCode.OK, OrderListPage(2, 2, 26, "126000003")));
 
-        var codes = await client.ListOrderCodesContainingProductAsync(
+        var orders = await client.ListOrdersContainingProductAsync(
             "SA015030V", new DateTimeOffset(2026, 10, 1, 0, 0, 0, TimeSpan.FromHours(2)));
 
-        codes.Should().Equal("126000001", "126000002", "126000003");
+        orders.Select(o => o.Code).Should().Equal("126000001", "126000002", "126000003");
+        orders.Select(o => o.StatusId).Should().Equal(-2, -2, 26);
         _requests.Should().HaveCount(2);
         var query = System.Web.HttpUtility.ParseQueryString(new Uri("https://x" + _requests[0].PathAndQuery).Query);
         query["productCode"].Should().Be("SA015030V");

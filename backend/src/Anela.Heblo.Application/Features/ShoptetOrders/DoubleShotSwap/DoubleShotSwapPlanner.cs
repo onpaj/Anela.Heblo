@@ -14,7 +14,15 @@ public sealed record DoubleShotSwapAction(
     public bool IsHeal => SetItemToAdd is null;
 }
 
-public sealed record DoubleShotSwapPlan(string OrderCode, bool IsEligible, IReadOnlyList<DoubleShotSwapAction> Actions);
+/// <summary>A V line left alone because its amount or unit price is not positive: swapping it would
+/// replace a paid line with a free S line (or copy a nonsense amount).</summary>
+public sealed record DoubleShotSkippedLine(long ItemId, string VariantCode, decimal Amount, decimal UnitPriceWithVat);
+
+public sealed record DoubleShotSwapPlan(
+    string OrderCode,
+    bool IsEligible,
+    IReadOnlyList<DoubleShotSwapAction> Actions,
+    IReadOnlyList<DoubleShotSkippedLine> Skipped);
 
 /// <summary>
 /// Decides which double-shot V lines of an order must become their S mirror set. Pure: no I/O.
@@ -32,20 +40,31 @@ public static class DoubleShotSwapPlanner
     public static DoubleShotSwapPlan Plan(EshopOrderDetail order, IReadOnlyCollection<int> eligibleStatusIds)
     {
         if (!eligibleStatusIds.Contains(order.StatusId))
-            return new DoubleShotSwapPlan(order.Code, IsEligible: false, Actions: []);
+            return new DoubleShotSwapPlan(order.Code, IsEligible: false, Actions: [], Skipped: []);
 
         var existingTags = order.Lines
             .Where(l => l.ItemType == ProductSetItemType && !string.IsNullOrEmpty(l.Remark))
             .Select(l => l.Remark!)
             .ToHashSet(StringComparer.Ordinal);
 
-        var actions = order.Lines
+        var variantLines = order.Lines
             .Where(l => l.ItemType == ProductItemType && DoubleShotCodeRule.IsVariantCode(l.Code))
-            .Select(l => BuildAction(l, existingTags))
             .ToList();
 
-        return new DoubleShotSwapPlan(order.Code, IsEligible: true, Actions: actions);
+        return new DoubleShotSwapPlan(
+            order.Code,
+            IsEligible: true,
+            Actions: variantLines.Where(l => ShouldSwap(l, existingTags)).Select(l => BuildAction(l, existingTags)).ToList(),
+            Skipped: variantLines.Where(l => !ShouldSwap(l, existingTags))
+                .Select(l => new DoubleShotSkippedLine(l.ItemId, l.Code!, l.Amount, l.UnitPriceWithVat)).ToList());
     }
+
+    /// <summary>A new S line is only added for a positive amount and price, so a paid V line is never
+    /// replaced by a free S line. A heal always proceeds: its S line already exists, and keeping the V
+    /// line would double the stock deduction.</summary>
+    private static bool ShouldSwap(EshopOrderLine line, IReadOnlySet<string> existingTags) =>
+        existingTags.Contains(TagFor(line.Code!, line.ItemId))
+        || (line.Amount > 0m && line.UnitPriceWithVat > 0m);
 
     private static DoubleShotSwapAction BuildAction(EshopOrderLine line, IReadOnlySet<string> existingTags)
     {

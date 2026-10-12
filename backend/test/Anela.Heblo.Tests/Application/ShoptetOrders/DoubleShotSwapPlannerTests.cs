@@ -123,6 +123,41 @@ public class DoubleShotSwapPlannerTests
         plan.Actions.Should().BeEmpty();
     }
 
+    [Theory]
+    [InlineData(0, 100)]
+    [InlineData(-1, 100)]
+    [InlineData(2, 0)]
+    [InlineData(2, -5)]
+    public void Plan_SkipsVariantLine_WhenAmountOrPriceNotPositive(int amount, int price)
+    {
+        var order = Order(-2,
+            Line(1, "product", "SA015030V", amount: amount, price: price),
+            Line(2, "product", "SA016030V", amount: 1m, price: 100m));
+
+        var plan = DoubleShotSwapPlanner.Plan(order, Eligible);
+
+        plan.Actions.Should().ContainSingle().Which.VariantItemId.Should().Be(2);
+        var skipped = plan.Skipped.Should().ContainSingle().Subject;
+        skipped.ItemId.Should().Be(1);
+        skipped.VariantCode.Should().Be("SA015030V");
+        skipped.Amount.Should().Be(amount);
+        skipped.UnitPriceWithVat.Should().Be(price);
+    }
+
+    [Fact]
+    public void Plan_StillHealsZeroPriceVariant_WhenTaggedSetLineExists()
+    {
+        // The S line is already in the order; leaving the V line would double the stock deduction.
+        var order = Order(-2,
+            Line(1, "product", "SA015030V", amount: 2m, price: 0m),
+            Line(7, "product-set", "SA015030S", amount: 2m, remark: "auto-swap SA015030V #1"));
+
+        var plan = DoubleShotSwapPlanner.Plan(order, Eligible);
+
+        plan.Actions.Should().ContainSingle().Which.IsHeal.Should().BeTrue();
+        plan.Skipped.Should().BeEmpty();
+    }
+
     [Fact]
     public void Plan_IgnoresVariantCodeOnNonProductLine()
     {
