@@ -13,7 +13,7 @@ owns:
   - backend/src/Anela.Heblo.Application/Features/MarketingAds/Infrastructure/Jobs/AdsDailySyncJob.cs
   - backend/src/Anela.Heblo.Application/Features/MarketingAds/Configuration/**
   - backend/src/Anela.Heblo.Persistence.Ads/Sql/**
-verified_at: "1ef9ed875"
+verified_at: "c3292c326"
 related: [sync-ads-change-history, sync-google-ads-campaign-data, sync-shoptet-orders]
 ---
 

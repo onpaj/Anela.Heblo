@@ -10,7 +10,7 @@ owns:
   - backend/src/Anela.Heblo.Application/Features/MarketingAds/Sync/AdChangeEventWriter.cs
   - backend/src/Anela.Heblo.Application/Features/MarketingAds/Sync/AdChangeEventCandidate.cs
   - backend/src/Anela.Heblo.Application/Features/MarketingAds/Sync/AdChangeValueTokens.cs
-verified_at: "45e3eea62"
+verified_at: "c3292c326"
 related: [sync-ads-daily, sync-google-ads-campaign-data]
 ---
 
