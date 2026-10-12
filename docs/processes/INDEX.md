@@ -204,7 +204,7 @@ Agent-facing catalog of what Heblo does, grouped by module. Each module has an o
 
 ## marketing-ads
 
-[module-marketing-ads](module-marketing-ads.md) — Heblo's ad-platform backbone for AI marketing agents — daily Google Ads/Meta/Sklik performance and change history in the ads schema, read by agents over MCP and by people in Metabase.
+[module-marketing-ads](module-marketing-ads.md) — Heblo's ad-platform backbone for AI marketing agents — daily Google Ads performance today (Meta and Sklik planned) and change history in the ads schema, read by agents over MCP and by people in Metabase.
 
 - [sync-ads-change-history](sync-ads-change-history.md) (sync) — Hourly import of every change made to Anela's ad accounts — from each platform's change history, or by diffing entity snapshots where a platform has none — into Heblo_V3.ads.ad_change_events, each flagged as made by Heblo or out-of-band. Related: sync-ads-daily, sync-google-ads-campaign-data
 - [sync-ads-daily](sync-ads-daily.md) (sync) — Daily pull of every registered ad platform's accounts, campaigns/ad groups/keywords/ads, cost and conversion facts (yesterday plus a 14-day lookback) and search terms into Heblo_V3.ads, read by AI marketing agents over MCP and by Metabase. Related: sync-ads-change-history, sync-google-ads-campaign-data, sync-shoptet-orders

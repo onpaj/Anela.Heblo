@@ -13,7 +13,7 @@ owns:
   - backend/src/Anela.Heblo.Application/Features/MarketingAds/Infrastructure/Jobs/AdsDailySyncJob.cs
   - backend/src/Anela.Heblo.Application/Features/MarketingAds/Configuration/**
   - backend/src/Anela.Heblo.Persistence.Ads/Sql/**
-verified_at: "45e3eea62"
+verified_at: "1ef9ed875"
 related: [sync-ads-change-history, sync-google-ads-campaign-data, sync-shoptet-orders]
 ---
 
@@ -24,12 +24,13 @@ The measurement backbone of the marketing agents platform (spec `docs/superpower
 
 ## Trigger
 - Hangfire recurring job `ads-daily-sync` (category Marketing), cron `30 5 * * *`, Europe/Prague. `[AutomaticRetry(Attempts = 0)]`, `[DisableConcurrentExecution(3600)]`. Manual trigger from Recurring Jobs.
-- Always registered. It does nothing — logs "skipped" — when the ads persistence is not registered (no `AdsDatabase:ConnectionString`) or no `IAdPlatformReadSource` is registered (each platform adapter registers one only when its own secrets are really configured; see `sync-google-ads-campaign-data`).
+- Always registered. It does nothing when disabled in Recurring Jobs (`IsJobEnabledAsync`), and logs "skipped" when the ads persistence is not registered (no `AdsDatabase:ConnectionString`) or no `IAdPlatformReadSource` is registered (each platform adapter registers one only when its own secrets are really configured; see `sync-google-ads-campaign-data`).
 
 ## Data flow
 For every registered source, sequentially:
 1. `GetAccountsAsync` → upsert `ads.ad_accounts` by (platform, external_id). New accounts get `is_managed` from `Ads:ManagedAccounts`; existing rows keep theirs.
 2. For each **managed** account: `GetEntitiesAsync` → upsert `ads.ad_entities` by (account, level, external_id), parents linked. For sources **without** a change log (`Capabilities.ChangeLog` false) the entity upsert and the snapshot-diff `ads.ad_change_events` rows (`source = SnapshotDiff`) commit in ONE transaction: if the event write fails, the upsert rolls back and the next run diffs the same change again.
+   If the Entities stream fails for an account, that account's DailyFacts and SearchTerms are skipped for the run (facts need the entity ids), so daily data for it stops until Entities succeeds.
 3. For each date from yesterday−`FactLookbackDays` to yesterday (account time zone): `GetDailyFactsAsync` → replace that account's `ads.ad_daily_facts` rows for the date (update, insert, delete rows the platform no longer reports).
 4. Same for `GetSearchTermsAsync` → `ads.ad_search_term_daily` (only sources with `Capabilities.SearchTerms`).
 5. Each stream writes `ads.sync_state` (platform × account × stream `Entities` / `DailyFacts` / `SearchTerms`): status, last_success_at, last_error, watermark (= last synced date).
@@ -62,6 +63,8 @@ Invalid values throw at the start of each run (`AdsSyncOptions.EnsureValid`), ne
 - Rows for entities the entity listing did not return are skipped and logged as `AdsDailySync.UnmappedRows` (e.g. facts for a removed campaign the platform no longer lists).
 - Entities that disappear from a listing are not marked removed; platforms normally keep listing them with status Removed.
 - `Created` snapshot events are written only once the account has had a successful entity sync, so the first run does not flood the table.
+- The entity transaction (upsert + snapshot-diff events) must commit within ONE database attempt. `AdsPersistenceModule` gives the ads pipeline a 2-minute per-attempt timeout (`AdsAttemptTimeout`); a slower attempt is retried from scratch, and if it keeps timing out the Entities stream fails with `TimeoutRejectedException` in `sync_state.last_error`.
+- Blended ROAS/PNO are only trustworthy for months where ad cost is complete: revenue covers every day Shoptet has, ad cost only the days the sync pulled (the first run reaches back yesterday−14 days; failed days leave gaps). Compare `days_with_ad_cost` (monthly view) / `has_ad_cost_data` (daily view) with the month length; a short month overstates ROAS and understates PNO.
 - Re-running `shoptet_raw_views.sql` does not affect the ads views (they read `shoptet_raw."order"`, not `order_fact`).
 
 ## Code entry points

@@ -136,7 +136,7 @@ idempotent, applied by hand like the other schemas):
 | View | Granularity | Notes |
 |---|---|---|
 | `v_ads_campaign_monthly` | month x campaign | platform-reported metrics, campaign level only, managed accounts only |
-| `v_ads_blended_monthly` | month | Shoptet revenue without VAT (non-cancelled) / CZK campaign ad cost, all platforms; created only where `shoptet_raw` exists |
+| `v_ads_blended_monthly` | month | Shoptet revenue without VAT (non-cancelled) / CZK campaign ad cost, all platforms; created only where `shoptet_raw` exists; `days_with_ad_cost` vs the month length shows whether ad cost is complete (partial months overstate ROAS) |
 | `v_ads_change_events` | one row per change | row grain, deliberately: a few rows per day, no customer PII (`actor` can be a staff/agency e-mail) |
 
 Not granted: every `ads` table and the helper view `v_ads_blended_daily` (read by Heblo's MCP

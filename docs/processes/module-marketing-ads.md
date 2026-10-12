@@ -2,9 +2,9 @@
 process: module-marketing-ads
 kind: module
 module: marketing-ads
-summary: Heblo's ad-platform backbone for AI marketing agents — daily Google Ads/Meta/Sklik performance and change history in the ads schema, read by agents over MCP and by people in Metabase.
+summary: Heblo's ad-platform backbone for AI marketing agents — daily Google Ads performance today (Meta and Sklik planned) and change history in the ads schema, read by agents over MCP and by people in Metabase.
 owns: []
-verified_at: "45e3eea62"
+verified_at: "1ef9ed875"
 related: [sync-ads-daily, sync-ads-change-history, sync-google-ads-campaign-data, sync-shoptet-orders]
 ---
 
