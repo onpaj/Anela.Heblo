@@ -71,7 +71,7 @@ A V order landing between read and write causes at most a one-run drift, correct
 ### 4. Feature flag
 
 `FeatureFlagKeys.DoubleShotAvailabilitySync = "is-doubleshot-availability-sync-enabled"`, registry entry
-(default `false`), `appsettings.json` default, frontend mirror in `featureFlags.ts` (per `docs/development/feature-flags.md`).
+(default `false`), `appsettings.json` default. No frontend mirror — the frontend never reads this flag, and the mirror test only requires frontend keys to exist in the backend registry.
 
 ## Testing
 
