@@ -28,20 +28,18 @@ public static class FeatureFlagKeys
     public const string LabelPrintingEnabled = "is-label-printing-enabled";
 
     /// <summary>
-    /// When on, GLS shipping-label PDFs served to the packing desk are rotated 180° before
-    /// printing, so they come out of the Zebra the other way around. Other carriers are untouched.
+    /// When on, every shipping-label PDF served to the packing desk is moved 10 mm to the left
+    /// before printing. The four direction flags add up (left + up = diagonal, left + right = none);
+    /// they exist to find out at the Zebra which direction actually fixes the label placement.
     /// </summary>
-    public const string GlsLabelRotation = "is-gls-label-rotation-enabled";
+    public const string LabelOffsetLeft = "is-label-offset-left-enabled";
 
-    /// <summary>
-    /// When on, PPL shipping-label PDFs served to the packing desk are rotated 180° before
-    /// printing. Other carriers are governed by their own rotation flag.
-    /// </summary>
-    public const string PplLabelRotation = "is-ppl-label-rotation-enabled";
+    /// <summary>When on, every shipping-label PDF is moved 10 mm to the right. See <see cref="LabelOffsetLeft"/>.</summary>
+    public const string LabelOffsetRight = "is-label-offset-right-enabled";
 
-    /// <summary>
-    /// When on, Zásilkovna (Packeta) shipping-label PDFs served to the packing desk are rotated
-    /// 180° before printing. Other carriers are governed by their own rotation flag.
-    /// </summary>
-    public const string ZasilkovnaLabelRotation = "is-zasilkovna-label-rotation-enabled";
+    /// <summary>When on, every shipping-label PDF is moved 10 mm up. See <see cref="LabelOffsetLeft"/>.</summary>
+    public const string LabelOffsetUp = "is-label-offset-up-enabled";
+
+    /// <summary>When on, every shipping-label PDF is moved 10 mm down. See <see cref="LabelOffsetLeft"/>.</summary>
+    public const string LabelOffsetDown = "is-label-offset-down-enabled";
 }

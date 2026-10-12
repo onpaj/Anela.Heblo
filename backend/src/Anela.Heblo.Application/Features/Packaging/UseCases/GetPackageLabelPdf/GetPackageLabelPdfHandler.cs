@@ -1,9 +1,7 @@
 using Anela.Heblo.Application.Features.FeatureFlags;
-using Anela.Heblo.Application.Features.Packaging.Contracts;
 using Anela.Heblo.Application.Features.Packaging.Services;
 using Anela.Heblo.Application.Features.ShipmentLabels;
 using Anela.Heblo.Application.Shared;
-using Anela.Heblo.Domain.Features.Logistics;
 using MediatR;
 using Microsoft.Extensions.Logging;
 
@@ -13,25 +11,24 @@ public class GetPackageLabelPdfHandler : IRequestHandler<GetPackageLabelPdfReque
 {
     public const string HttpClientName = "ShipmentLabelDownloader";
 
+    /// <summary>
+    /// How far each enabled direction flag moves the label content. 10 mm in PDF points (1/72 in).
+    /// </summary>
+    private const double LabelOffsetPoints = 10 / 25.4 * 72;
+
     private readonly IShipmentClient _shipmentClient;
     private readonly IHttpClientFactory _httpClientFactory;
-    private readonly IPackingOrderShippingSource _orderShippingSource;
-    private readonly IShippingMethodCatalog _shippingCatalog;
     private readonly IFeatureFlagChecker _featureFlags;
     private readonly ILogger<GetPackageLabelPdfHandler> _logger;
 
     public GetPackageLabelPdfHandler(
         IShipmentClient shipmentClient,
         IHttpClientFactory httpClientFactory,
-        IPackingOrderShippingSource orderShippingSource,
-        IShippingMethodCatalog shippingCatalog,
         IFeatureFlagChecker featureFlags,
         ILogger<GetPackageLabelPdfHandler> logger)
     {
         _shipmentClient = shipmentClient;
         _httpClientFactory = httpClientFactory;
-        _orderShippingSource = orderShippingSource;
-        _shippingCatalog = shippingCatalog;
         _featureFlags = featureFlags;
         _logger = logger;
     }
@@ -71,7 +68,7 @@ public class GetPackageLabelPdfHandler : IRequestHandler<GetPackageLabelPdfReque
         }
 
         // Resolved before the download so a cancelled lookup never leaves a carrier response open.
-        var shouldRotate = await ShouldRotateAsync(request, ct);
+        var offset = await GetOffsetAsync(request, ct);
 
         var http = _httpClientFactory.CreateClient(HttpClientName);
 
@@ -98,8 +95,8 @@ public class GetPackageLabelPdfHandler : IRequestHandler<GetPackageLabelPdfReque
         var contentType = carrierResponse.Content.Headers.ContentType?.MediaType ?? "application/pdf";
         var stream = await carrierResponse.Content.ReadAsStreamAsync(ct);
 
-        if (shouldRotate)
-            stream = await RotateHalfTurnAsync(stream, request, ct);
+        if (offset != default)
+            stream = await ShiftAsync(stream, offset, request, ct);
 
         return new GetPackageLabelPdfResponse
         {
@@ -110,56 +107,48 @@ public class GetPackageLabelPdfHandler : IRequestHandler<GetPackageLabelPdfReque
     }
 
     /// <summary>
-    /// Some carriers' labels come out of the Zebra the wrong way round, so each carrier has its own
-    /// flag that turns its labels upside down. Personal pickup has no carrier label, so no flag.
+    /// Label placement on the Zebra is still being tuned, so each direction has its own flag that
+    /// moves every carrier's label 10 mm that way. Enabled directions add up; opposite ones cancel.
     /// </summary>
-    private static readonly IReadOnlyDictionary<Carriers, string> RotationFlagByCarrier =
-        new Dictionary<Carriers, string>
-        {
-            [Carriers.GLS] = FeatureFlagKeys.GlsLabelRotation,
-            [Carriers.PPL] = FeatureFlagKeys.PplLabelRotation,
-            [Carriers.Zasilkovna] = FeatureFlagKeys.ZasilkovnaLabelRotation,
-        };
+    private static readonly (string FlagKey, int Right, int Up)[] OffsetFlags =
+    [
+        (FeatureFlagKeys.LabelOffsetLeft, -1, 0),
+        (FeatureFlagKeys.LabelOffsetRight, 1, 0),
+        (FeatureFlagKeys.LabelOffsetUp, 0, 1),
+        (FeatureFlagKeys.LabelOffsetDown, 0, -1),
+    ];
 
     /// <summary>
-    /// Rotates when the order's carrier has its rotation flag on. With every flag off the carrier
-    /// is not looked up at all. A failed flag check or carrier lookup only skips the rotation —
-    /// the label still prints.
+    /// Sums the enabled direction flags into one (right, up) move in PDF points. A failed flag
+    /// check only skips the offset — the label still prints.
     /// </summary>
-    private async Task<bool> ShouldRotateAsync(GetPackageLabelPdfRequest request, CancellationToken ct)
+    private async Task<(double Right, double Up)> GetOffsetAsync(GetPackageLabelPdfRequest request, CancellationToken ct)
     {
         try
         {
-            var rotatedCarriers = await GetRotatedCarriersAsync(ct);
-            if (rotatedCarriers.Count == 0)
-                return false;
+            var (right, up) = (0, 0);
+            foreach (var (flagKey, flagRight, flagUp) in OffsetFlags)
+            {
+                if (!await _featureFlags.IsEnabledAsync(flagKey, ct))
+                    continue;
 
-            var shippingGuid = await _orderShippingSource.GetShippingMethodGuidAsync(request.OrderCode, ct);
-            var carrier = shippingGuid is null ? null : _shippingCatalog.ResolveCarrierByShippingGuid(shippingGuid);
-            return carrier is not null && rotatedCarriers.Contains(carrier.Value);
+                right += flagRight;
+                up += flagUp;
+            }
+
+            return (right * LabelOffsetPoints, up * LabelOffsetPoints);
         }
         catch (Exception ex) when (!ct.IsCancellationRequested)
         {
             _logger.LogWarning(ex,
-                "Could not resolve carrier for order {OrderCode} package {PackageNumber}; printing label unrotated",
+                "Could not read label offset flags for order {OrderCode} package {PackageNumber}; printing label without offset",
                 request.OrderCode, request.PackageNumber);
-            return false;
+            return default;
         }
     }
 
-    private async Task<IReadOnlySet<Carriers>> GetRotatedCarriersAsync(CancellationToken ct)
-    {
-        var rotatedCarriers = new HashSet<Carriers>();
-        foreach (var (carrier, flagKey) in RotationFlagByCarrier)
-        {
-            if (await _featureFlags.IsEnabledAsync(flagKey, ct))
-                rotatedCarriers.Add(carrier);
-        }
-
-        return rotatedCarriers;
-    }
-
-    private async Task<Stream> RotateHalfTurnAsync(Stream stream, GetPackageLabelPdfRequest request, CancellationToken ct)
+    private async Task<Stream> ShiftAsync(
+        Stream stream, (double Right, double Up) offset, GetPackageLabelPdfRequest request, CancellationToken ct)
     {
         byte[] original;
         await using (stream)
@@ -171,12 +160,12 @@ public class GetPackageLabelPdfHandler : IRequestHandler<GetPackageLabelPdfReque
 
         try
         {
-            return new MemoryStream(LabelPdfRotator.RotateHalfTurn(original));
+            return new MemoryStream(LabelPdfShifter.Shift(original, offset.Right, offset.Up));
         }
         catch (Exception ex)
         {
             _logger.LogWarning(ex,
-                "Failed to rotate label PDF for order {OrderCode} package {PackageNumber}; printing label unrotated",
+                "Failed to shift label PDF for order {OrderCode} package {PackageNumber}; printing label without offset",
                 request.OrderCode, request.PackageNumber);
             return new MemoryStream(original);
         }
