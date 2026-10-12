@@ -1,5 +1,6 @@
 using Anela.Heblo.Application.Features.ExpeditionList.Contracts;
 using Anela.Heblo.Application.Features.Packaging.Contracts;
+using Anela.Heblo.Application.Features.ShoptetOrders.DoubleShotSwap;
 using Anela.Heblo.Application.Features.ShoptetOrders.Infrastructure;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -26,6 +27,9 @@ public static class ShoptetOrdersModule
         // (ExpeditionList). Lifetime mirrors IEshopOrderClient's own Transient registration
         // (ShoptetApiAdapterServiceCollectionExtensions).
         services.AddTransient<IOrderStatusReader, ShoptetOrdersOrderStatusReaderAdapter>();
+
+        // Double-shot V -> S order swap (job + picking-list pre-step share one sweep).
+        services.AddTransient<IDoubleShotOrderSwapService, DoubleShotOrderSwapService>();
 
         return services;
     }
