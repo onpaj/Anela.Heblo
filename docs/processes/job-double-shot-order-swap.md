@@ -2,7 +2,7 @@
 process: job-double-shot-order-swap
 kind: job
 module: shoptet-orders
-summary: Every 5 minutes (and before each picking-list print) replaces double-shot V variant lines in open Shoptet orders with their S mirror product set, so set components are deducted, picked and invoiced.
+summary: Every 5 minutes (and, once its flag is on, before each picking-list print) replaces double-shot V variant lines in open Shoptet orders with their S mirror product set, so set components are deducted, picked and invoiced.
 owns:
   - backend/src/Anela.Heblo.Application/Features/ShoptetOrders/DoubleShotSwap/**
   - backend/src/Anela.Heblo.Application/Features/ShoptetOrders/Infrastructure/Jobs/SwapDoubleShotOrdersJob.cs
@@ -12,7 +12,7 @@ owns:
   - backend/src/Adapters/Anela.Heblo.Adapters.ShoptetApi/Orders/ShoptetOrderClient.Items.cs
   - backend/src/Adapters/Anela.Heblo.Adapters.ShoptetApi/Orders/Model/OrderItemModels.cs
   - backend/src/Anela.Heblo.Domain/Features/Catalog/DoubleShotCodeRule.cs
-verified_at: "2584be9af"
+verified_at: "470c545cc"
 related: [flow-picking-list, feed-issued-invoices]
 ---
 
@@ -37,22 +37,27 @@ The real side effect is switched **off by default**: until feature flag
 - Pre-step of every picking-list print: `ExpeditionListService` calls
   `IPickingListOrderPreparer` (adapter `ShoptetOrdersDoubleShotPickingPreparerAdapter`) before
   building the list. This covers all four entry points of `flow-picking-list`. A failure is
-  logged as a warning and printing continues.
+  logged as a warning and printing continues. The pre-step runs only while the flag is on; with
+  the flag off it returns at once and the recurring job alone produces the dry-run log.
 - Flag `is-double-shot-order-swap-enabled` (default `false`): off = dry run, on = writes.
 
 ## Data flow
 1. Download the stock CSV (`IEshopStockClient.ListAsync`) and keep distinct codes matching the V
    rule (`DoubleShotCodeRule`, `^SA\d+V$`; S code = same code with trailing `V` -> `S`).
 2. For each V code: `GET /api/orders?productCode={V}&creationTimeFrom={now - lookback}`, all
-   pages. Lookback = `ShoptetOrders:DoubleShotSwapLookbackDays` (14). Union the order codes.
-3. For each order: `GET /api/orders/{code}` (404 = skip) and plan the swap.
+   pages. Lookback = `ShoptetOrders:DoubleShotSwapLookbackDays` (14, clamped to at least 1).
+   Union the orders (code + status id from the list response).
+3. Drop orders whose list status is not eligible, without a detail call and without a log line
+   per order (only counted in the summary). For each remaining order: `GET /api/orders/{code}`
+   (404 = skip) and plan the swap; the status re-read from the detail still decides.
 4. Per V line, apply (flag on):
    - `POST /api/orders/{code}/item` - `itemType: product-set`, code = S, same amount, unit price
      with VAT, VAT rate and `priceRatio`, `remark` = tag `auto-swap {V} #{vItemId}`;
    - `DELETE /api/orders/{code}/item/{vItemId}`.
 5. If at least one swap completed: `PATCH /api/orders/{code}/notes` appends to `eshopRemark`
-   `Automaticky prohozeno: SA015030V -> SA015030S (2 ks); ...`.
-6. Log a summary: scanned / swapped / healed / failed orders and lines, busy-skip, dry-run flag.
+   `Automaticky prohozeno: SA015030V → SA015030S (2 ks); ...` (Unicode arrow, as the code emits).
+6. Log a summary: orders scanned, orders skipped as not eligible, lines swapped / healed /
+   failed, failed orders, and a dry-run marker. A busy sweep logs a separate warning instead.
 
 Target: Shoptet order items and `eshopRemark` only. No Heblo table is written.
 
@@ -66,8 +71,14 @@ Target: Shoptet order items and `eshopRemark` only. No Heblo table is written.
   a crash between them leaves both lines, never neither.
 - Self-healing: if a `product-set` line whose `remark` equals the tag already exists, the POST
   is skipped and only the V line is deleted.
-- 422 on a line: logged as error, V stays, the sweep continues with the next line. 409 or any
-  other error: the rest of that order waits for the next sweep; other orders continue.
+- A V line with amount <= 0 or unit price with VAT <= 0 is not swapped (logged as Warning), so a
+  paid V line is never replaced by a free S line. A heal still proceeds for such a line: its S
+  line already exists.
+- POST 422 on a line: logged as error, V stays, the sweep continues with the next line. POST 409
+  or any other POST error: the rest of that order waits for the next sweep; other orders continue.
+- DELETE failure of any kind (after a successful POST, or in a heal): the order now holds both
+  the V and the S line. Logged as Error naming both codes; the rest of that order waits, no note
+  is written for that line. The next run retries the delete (heal).
 - One sweep at a time: static lock, waits max 2 minutes; a second caller logs a warning and
   returns an empty summary (counted as SkippedBusy).
 - Dry run: all reads still happen, every planned action is logged, no write call is made.
@@ -99,14 +110,16 @@ runtime in the admin UI (table `FeatureFlagOverrides`).
 - The order note can be lost permanently: if appending the note fails, or the sweep is cancelled
   after a successful swap but before the note, the order is swapped without a note. The next run
   finds no V line, so it never writes the note (logged as Warning).
-- A 422 on the DELETE step (after a successful POST) is logged with the same "Shoptet rejected
-  replacing ... (does the set exist?)" message as a POST 422. The next run heals the order
-  (deletes V only). Read the log with that in mind.
+- A failed DELETE after a successful POST leaves V and S both in the order (double charge and
+  double stock) until a later run deletes V. The next run retries the delete; if the Error keeps
+  repeating for the same order, remove the V line by hand in Shoptet.
+- Race with a parallel print: `CreatePickingListAsync` runs outside the sweep lock, so a job
+  sweep can edit an order that a parallel synchronous print has just printed with its V line.
 - One sweep at a time (static lock, 2-minute wait); a second caller logs a warning and skips.
   Hangfire runs a single worker, so the job and a scheduled print never overlap; contention is
   only possible with the synchronous "Spustit tisk oprav" / "Tisknout zakazku" endpoints.
-- Each picking-list print now runs a sweep first (extra Shoptet calls: one stock-CSV download,
-  one list call per V code, one detail call per candidate order), even in dry run.
+- With the flag on, each picking-list print runs a sweep first (extra Shoptet calls: one stock-CSV
+  download, one list call per V code, one detail call per eligible candidate order).
 - A missing S set surfaces as a logged 422 and the V line stays; nothing is written for it.
 - The note append is read-modify-write without concurrency control (see `module-shoptet-orders`).
 
@@ -115,10 +128,13 @@ Merged with the flag off: production logs planned swaps (dry run). Once the V va
 Shoptet, check the dry-run log on a real V order for the exact V -> S pairs, then turn
 `is-double-shot-order-swap-enabled` on.
 
+Before enabling the flag, check on the test store that the S line remark
+(`auto-swap SA015030V #123`) is not printed on the invoice PDF / order e-mail (unverified).
+
 ## Code entry points
-- `backend/src/Anela.Heblo.Application/Features/ShoptetOrders/DoubleShotSwap/DoubleShotOrderSwapService.cs` - sweep, lock, 422/409 handling, note
-- `backend/src/Anela.Heblo.Application/Features/ShoptetOrders/DoubleShotSwap/DoubleShotSwapPlanner.cs` - pure planning, tag and heal rule
-- `backend/src/Anela.Heblo.Application/Features/ShoptetOrders/Infrastructure/Jobs/SwapDoubleShotOrdersJob.cs` - recurring job and flag
+- `backend/src/Anela.Heblo.Application/Features/ShoptetOrders/DoubleShotSwap/DoubleShotOrderSwapService.cs` - sweep, lock, list-status pre-filter, POST/DELETE failure handling, note
+- `backend/src/Anela.Heblo.Application/Features/ShoptetOrders/DoubleShotSwap/DoubleShotSwapPlanner.cs` - pure planning, tag and heal rule, zero amount/price guard
+- `backend/src/Anela.Heblo.Application/Features/ShoptetOrders/Infrastructure/Jobs/SwapDoubleShotOrdersJob.cs` - recurring job and flag, `[AutomaticRetry(Attempts = 0)]`
 - `backend/src/Anela.Heblo.Application/Features/ShoptetOrders/Infrastructure/ShoptetOrdersDoubleShotPickingPreparerAdapter.cs` - picking-list pre-step
 - `backend/src/Adapters/Anela.Heblo.Adapters.ShoptetApi/Orders/ShoptetOrderClient.Items.cs` - item add/delete/read, list by product code
 - `backend/src/Anela.Heblo.Domain/Features/Catalog/DoubleShotCodeRule.cs` - V/S naming rule

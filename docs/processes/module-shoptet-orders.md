@@ -37,7 +37,7 @@ module (its doc is `sync-shoptet-orders`), despite the shared name.
 ## Processes
 - `job-complete-delivered-orders` — hourly Hangfire job: orders in 70/82 whose shipment is
   delivered → Vyřízena (-3) + remark; dry run unless flag `is-delivered-order-completion-enabled`.
-- `job-double-shot-order-swap` — 5-minute Hangfire job (and pre-step of every picking-list print): V
+- `job-double-shot-order-swap` — 5-minute Hangfire job (and, with the flag on, pre-step of every picking-list print): V
   variant lines in open orders → S product set (POST S, DELETE V, note); dry run unless flag
   `is-double-shot-order-swap-enabled`.
 - `flow-block-order` — `PATCH /api/shoptet-orders/{code}/block`: allowed state → blocked state 35 + remark.

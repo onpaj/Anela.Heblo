@@ -301,7 +301,7 @@ Agent-facing catalog of what Heblo does, grouped by module. Each module has an o
 [module-shoptet-orders](module-shoptet-orders.md) — Heblo's gateway to live Shoptet orders — reads an order for the packing desk, changes order states (packed, blocked, completed after delivery) and appends internal remarks.
 
 - [job-complete-delivered-orders](job-complete-delivered-orders.md) (job) — Hourly job that moves Shoptet orders handed to a carrier (states 70/82) to "Vyřízena" (-3) once Shoptet reports one of their shipments delivered, and appends an audit remark; dry-run unless a feature flag is on.
-- [job-double-shot-order-swap](job-double-shot-order-swap.md) (job) — Every 5 minutes (and before each picking-list print) replaces double-shot V variant lines in open Shoptet orders with their S mirror product set, so set components are deducted, picked and invoiced. Related: flow-picking-list, feed-issued-invoices
+- [job-double-shot-order-swap](job-double-shot-order-swap.md) (job) — Every 5 minutes (and, once its flag is on, before each picking-list print) replaces double-shot V variant lines in open Shoptet orders with their S mirror product set, so set components are deducted, picked and invoiced. Related: flow-picking-list, feed-issued-invoices
 - [flow-block-order](flow-block-order.md) (workflow) — API action that puts a Shoptet order on hold — checks it is in an allowed state, moves it to the configured "blocked" state and appends the reason to the order's internal remark.
 
 ## smartsupp
