@@ -8,7 +8,7 @@ owns:
   - backend/src/Adapters/Anela.Heblo.Adapters.GoogleAds/Reporting/**
   - backend/src/Adapters/Anela.Heblo.Adapters.GoogleAds/GoogleAdsMarketingAdsServiceCollectionExtensions.cs
 verified_at: "b77bcf0e3"
-related: [sync-ad-platform-transactions]
+related: [sync-ad-platform-transactions, sync-ads-daily, sync-ads-change-history]
 ---
 
 # Google Ads → MarketingAds (read side)
