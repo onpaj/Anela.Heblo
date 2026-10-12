@@ -18,15 +18,18 @@ public class GetAdSearchTermsHandler : IRequestHandler<GetAdSearchTermsRequest, 
             return new GetAdSearchTermsResponse(ErrorCodes.ConfigurationError, AdReadValidation.NotConfigured());
         if (string.IsNullOrWhiteSpace(request.AccountExternalId))
             return new GetAdSearchTermsResponse(ErrorCodes.RequiredFieldMissing, new() { ["Field"] = nameof(request.AccountExternalId) });
+        if (AdReadValidation.UndefinedEnum(nameof(request.Platform), request.Platform) is { } enumError)
+            return new GetAdSearchTermsResponse(ErrorCodes.InvalidValue, enumError);
         if (AdReadValidation.DateRange(request.From, request.To, MaxRangeDays) is { } rangeError)
             return new GetAdSearchTermsResponse(ErrorCodes.InvalidDateRange, rangeError);
         if (AdReadValidation.Positive(nameof(request.Top), request.Top, MaxTop) is { } topError)
             return new GetAdSearchTermsResponse(ErrorCodes.InvalidValue, topError);
 
-        var terms = await _repository.GetSearchTermsAsync(new AdSearchTermQuery(request.Platform, request.AccountExternalId.Trim(),
+        var accountId = request.AccountExternalId.Trim();
+        var terms = await _repository.GetSearchTermsAsync(new AdSearchTermQuery(request.Platform, accountId,
             request.CampaignExternalId, request.AdGroupExternalId, request.From, request.To, request.MinCost, request.Top), cancellationToken);
         if (terms is null)
-            return new GetAdSearchTermsResponse(ErrorCodes.ResourceNotFound, new() { ["Account"] = request.AccountExternalId });
+            return new GetAdSearchTermsResponse(ErrorCodes.ResourceNotFound, new() { ["Account"] = accountId });
 
         return new GetAdSearchTermsResponse { From = request.From, To = request.To, Terms = terms.ToList() };
     }

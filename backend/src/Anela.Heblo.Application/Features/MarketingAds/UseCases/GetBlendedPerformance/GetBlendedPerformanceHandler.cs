@@ -15,6 +15,8 @@ public class GetBlendedPerformanceHandler : IRequestHandler<GetBlendedPerformanc
     {
         if (!_repository.IsAvailable)
             return new GetBlendedPerformanceResponse(ErrorCodes.ConfigurationError, AdReadValidation.NotConfigured());
+        if (AdReadValidation.UndefinedEnum(nameof(request.Granularity), request.Granularity) is { } enumError)
+            return new GetBlendedPerformanceResponse(ErrorCodes.InvalidValue, enumError);
         if (AdReadValidation.DateRange(request.From, request.To, MaxRangeDays) is { } rangeError)
             return new GetBlendedPerformanceResponse(ErrorCodes.InvalidDateRange, rangeError);
 

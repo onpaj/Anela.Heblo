@@ -23,15 +23,21 @@ public class GetAdChangeHistoryHandler : IRequestHandler<GetAdChangeHistoryReque
         if (!_repository.IsAvailable)
             return new GetAdChangeHistoryResponse(ErrorCodes.ConfigurationError, AdReadValidation.NotConfigured());
 
+        if ((AdReadValidation.UndefinedEnum(nameof(request.Platform), request.Platform)
+             ?? AdReadValidation.UndefinedEnum(nameof(request.Origin), request.Origin)
+             ?? AdReadValidation.UndefinedEnum(nameof(request.ActorKind), request.ActorKind)) is { } enumError)
+            return new GetAdChangeHistoryResponse(ErrorCodes.InvalidValue, enumError);
+
         var to = request.To ?? _time.GetUtcNow();
         var from = request.From ?? to.AddDays(-DefaultDays);
         if (from > to || to - from > TimeSpan.FromDays(MaxRangeDays))
             return new GetAdChangeHistoryResponse(ErrorCodes.InvalidDateRange, new() { ["MaxDays"] = MaxRangeDays.ToString() });
-        if ((AdReadValidation.Positive(nameof(request.PageNumber), request.PageNumber, int.MaxValue)
+        if ((AdReadValidation.Positive(nameof(request.PageNumber), request.PageNumber, AdReadValidation.MaxPageNumber)
              ?? AdReadValidation.Positive(nameof(request.PageSize), request.PageSize, MaxPageSize)) is { } pagingError)
             return new GetAdChangeHistoryResponse(ErrorCodes.InvalidValue, pagingError);
 
-        var page = await _repository.GetChangeEventsAsync(new AdChangeEventQuery(request.Platform, request.AccountExternalId,
+        var accountId = string.IsNullOrWhiteSpace(request.AccountExternalId) ? null : request.AccountExternalId.Trim();
+        var page = await _repository.GetChangeEventsAsync(new AdChangeEventQuery(request.Platform, accountId,
             request.Origin, request.ActorKind, from, to, request.PageNumber, request.PageSize), cancellationToken);
 
         return new GetAdChangeHistoryResponse

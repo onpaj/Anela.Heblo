@@ -126,7 +126,7 @@ public class AdReadHandlersTests
     public async Task Search_terms_reject_bad_ranges(int fromOffset, int toOffset)
     {
         var response = await new GetAdSearchTermsHandler(_repo.Object).Handle(
-            new GetAdSearchTermsRequest { AccountExternalId = "acc", From = To.AddDays(fromOffset), To = To.AddDays(toOffset) }, default);
+            new GetAdSearchTermsRequest { Platform = AdPlatform.GoogleAds, AccountExternalId = "acc", From = To.AddDays(fromOffset), To = To.AddDays(toOffset) }, default);
 
         response.ErrorCode.Should().Be(ErrorCodes.InvalidDateRange);
     }
@@ -147,7 +147,7 @@ public class AdReadHandlersTests
             .ReturnsAsync((IReadOnlyList<AdSearchTermRowDto>?)null);
 
         var response = await new GetAdSearchTermsHandler(_repo.Object).Handle(
-            new GetAdSearchTermsRequest { AccountExternalId = "acc", From = To, To = To }, default);
+            new GetAdSearchTermsRequest { Platform = AdPlatform.GoogleAds, AccountExternalId = "acc", From = To, To = To }, default);
 
         response.ErrorCode.Should().Be(ErrorCodes.ResourceNotFound);
         response.Params!["Account"].Should().Be("acc");
@@ -260,6 +260,67 @@ public class AdReadHandlersTests
         response.ErrorCode.Should().Be(ErrorCodes.InvalidValue);
         response.Params!["Field"].Should().Be(field);
         _repo.Verify(r => r.GetChangeEventsAsync(It.IsAny<AdChangeEventQuery>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task Performance_rejects_page_number_that_would_overflow_the_offset()
+    {
+        var response = await new GetAdPerformanceHandler(_repo.Object).Handle(Perf(r => { r.PageNumber = 2_000_000_000; r.PageSize = 500; }), default);
+
+        response.ErrorCode.Should().Be(ErrorCodes.InvalidValue);
+        response.Params!["Field"].Should().Be("PageNumber");
+        _repo.Verify(r => r.GetPerformanceAsync(It.IsAny<AdPerformanceQuery>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task Change_history_rejects_page_number_that_would_overflow_the_offset()
+    {
+        var response = await new GetAdChangeHistoryHandler(_repo.Object, new FakeTimeProvider(Now))
+            .Handle(new GetAdChangeHistoryRequest { PageNumber = 2_000_000_000, PageSize = 500 }, default);
+
+        response.ErrorCode.Should().Be(ErrorCodes.InvalidValue);
+        response.Params!["Field"].Should().Be("PageNumber");
+        _repo.Verify(r => r.GetChangeEventsAsync(It.IsAny<AdChangeEventQuery>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task Change_history_trims_the_account_id()
+    {
+        _repo.Setup(r => r.GetChangeEventsAsync(It.IsAny<AdChangeEventQuery>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new AdChangeEventPage(0, Array.Empty<AdChangeEventDto>()));
+
+        await new GetAdChangeHistoryHandler(_repo.Object, new FakeTimeProvider(Now))
+            .Handle(new GetAdChangeHistoryRequest { AccountExternalId = "  acc " }, default);
+
+        _repo.Verify(r => r.GetChangeEventsAsync(It.Is<AdChangeEventQuery>(q => q.AccountExternalId == "acc"), It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task Performance_unknown_account_reports_the_trimmed_id()
+    {
+        _repo.Setup(r => r.GetPerformanceAsync(It.IsAny<AdPerformanceQuery>(), It.IsAny<CancellationToken>())).ReturnsAsync((AdPerformancePage?)null);
+
+        var response = await new GetAdPerformanceHandler(_repo.Object).Handle(Perf(r => r.AccountExternalId = " acc "), default);
+
+        response.Params!["Account"].Should().Be("acc");
+    }
+
+    [Fact]
+    public async Task Undefined_enum_values_are_rejected_by_every_handler()
+    {
+        var responses = new BaseResponse[]
+        {
+            await new GetAdPerformanceHandler(_repo.Object).Handle(Perf(r => r.Platform = (AdPlatform)99), default),
+            await new GetAdPerformanceHandler(_repo.Object).Handle(Perf(r => r.Level = (AdEntityLevel)99), default),
+            await new GetAdSearchTermsHandler(_repo.Object).Handle(
+                new GetAdSearchTermsRequest { Platform = (AdPlatform)99, AccountExternalId = "acc", From = To, To = To }, default),
+            await new GetBlendedPerformanceHandler(_repo.Object).Handle(
+                new GetBlendedPerformanceRequest { From = To, To = To, Granularity = (BlendedGranularity)99 }, default),
+            await new GetAdChangeHistoryHandler(_repo.Object, new FakeTimeProvider(Now)).Handle(
+                new GetAdChangeHistoryRequest { Origin = (AdChangeOrigin)99 }, default),
+        };
+
+        responses.Should().OnlyContain(r => !r.Success && r.ErrorCode == ErrorCodes.InvalidValue);
     }
 
     [Fact]
