@@ -152,7 +152,28 @@ public class ShoptetStockClientTests
         result.Should().NotBeNull();
         result!.Code.Should().Be("AKL001");
         result.Amount.Should().Be(10);
+        result.IsAmountKnown.Should().BeTrue();
         result.Claim.Should().Be(3);
+    }
+
+    [Fact]
+    public async Task GetSupplyAsync_NullAmount_IsMarkedUnknown()
+    {
+        var client = BuildClient(_ => Json(new
+        {
+            data = new
+            {
+                supplies = new[]
+                {
+                    new { code = "AKL001", amount = (string?)null, claim = "0.000" },
+                },
+            },
+            errors = (object?)null,
+        }));
+        var result = await client.GetSupplyAsync("AKL001");
+        result.Should().NotBeNull();
+        result!.IsAmountKnown.Should().BeFalse();
+        result.Amount.Should().Be(0);
     }
 
     [Fact]

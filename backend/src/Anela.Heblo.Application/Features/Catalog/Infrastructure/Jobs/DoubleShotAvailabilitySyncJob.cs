@@ -62,10 +62,7 @@ public sealed class DoubleShotAvailabilitySyncJob : IRecurringJob
         var applyChanges = await _featureFlags.IsEnabledAsync(
             FeatureFlagKeys.DoubleShotAvailabilitySync, cancellationToken);
 
-        var stock = await TryListStockAsync(cancellationToken);
-        if (stock is null)
-            return;
-
+        var stock = await ListStockAsync(cancellationToken);
         var plan = DoubleShotStockPlanner.Plan(stock);
         foreach (var code in plan.UnpairedVariantCodes)
         {
@@ -83,12 +80,17 @@ public sealed class DoubleShotAvailabilitySyncJob : IRecurringJob
 
         var (changed, failed) = await ApplyAsync(plan.Pairs, cancellationToken);
 
-        _logger.LogInformation(
+        _logger.Log(failed > 0 ? LogLevel.Warning : LogLevel.Information,
             "DoubleShotAvailabilitySync: {Pairs} pair(s), {Changed} changed, {Failed} failed, {Unpaired} unpaired.",
             plan.PairCount, changed, failed, plan.UnpairedVariantCodes.Count);
+
+        // Every pair was still attempted; throwing only marks the Hangfire run Failed (Attempts = 0, no retry).
+        if (failed > 0)
+            throw new InvalidOperationException(
+                $"DoubleShotAvailabilitySync: {failed} of {plan.PairCount} variant(s) failed to update. See the warnings above.");
     }
 
-    private async Task<List<EshopStock>?> TryListStockAsync(CancellationToken cancellationToken)
+    private async Task<List<EshopStock>> ListStockAsync(CancellationToken cancellationToken)
     {
         try
         {
@@ -98,7 +100,7 @@ public sealed class DoubleShotAvailabilitySyncJob : IRecurringJob
         catch (Exception ex) when (!cancellationToken.IsCancellationRequested)
         {
             _logger.LogError(ex, "DoubleShotAvailabilitySync: failed to read the Shoptet stock export. No changes made.");
-            return null;
+            throw;
         }
     }
 
@@ -146,6 +148,13 @@ public sealed class DoubleShotAvailabilitySyncJob : IRecurringJob
     {
         var supply = await _stockClient.GetSupplyAsync(pair.VariantCode, cancellationToken)
             ?? throw new InvalidOperationException($"Shoptet returned no supply for {pair.VariantCode}.");
+
+        // A relative write from a wrong base compounds, so refuse anything but this V's own, parsed amount.
+        if (!string.Equals(supply.Code, pair.VariantCode, StringComparison.Ordinal))
+            throw new InvalidOperationException(
+                $"Shoptet returned supply for {supply.Code} when asked for {pair.VariantCode}.");
+        if (!supply.IsAmountKnown)
+            throw new InvalidOperationException($"Shoptet returned no usable live amount for {pair.VariantCode}.");
 
         var live = (decimal)supply.Amount;
         var delta = pair.Target - live;

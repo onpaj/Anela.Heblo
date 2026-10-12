@@ -67,7 +67,10 @@ Callers check that the mirror exists in their own data (this job: the CSV; #4480
 - Summary log: pairs found, changed, failed, unpaired, dry-run marker.
 
 Why relative `amountChange` and not `realStock`: the CSV value is free stock; `realStock` is gross
-(Shoptet subtracts `claim`). A delta needs no extra `supplies` read and stays correct with pending V orders.
+(Shoptet subtracts `claim`). A delta stays correct with pending V orders.
+*Superseded in implementation:* the delta is `target − live`, where live is the V's `supplies.amount` read right
+before each write (a delta from the cached CSV would compound on re-runs). Any per-V or CSV failure also marks
+the Hangfire run Failed after all pairs were attempted. See `docs/processes/job-doubleshot-availability-sync.md`.
 A V order landing between read and write causes at most a one-run drift, corrected on the next run.
 
 ### 4. Feature flag

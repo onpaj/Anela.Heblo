@@ -34,7 +34,7 @@ Going live = switching that flag on in the feature-flag admin; nothing else.
    `{ productCode: <V>, amountChange: target − live }` (`IEshopStockClient.UpdateStockAsync`).
 
 No Heblo table is written. Every change is logged (`code old -> new`, with `[DRY RUN]` when the flag is off);
-a summary line (pairs, to change, changed, failed, unpaired) ends every run.
+a summary line (pairs, to change, changed, failed, unpaired) ends every run that read the export.
 
 ## Logic & formulas
 - target = max(stock of S, 0). The CSV `stock` is free-for-order stock (already net of open-order `claim`).
@@ -48,8 +48,11 @@ a summary line (pairs, to change, changed, failed, unpaired) ends every run.
 - A V without its S row in the export is skipped with a warning — never zeroed.
 - `S` codes are never written (Shoptet rejects writes to sets with `stock-change-not-allowed`).
 - Codes like `BAL0001V` do not match `^SA\d+V$` and are never touched.
-- One failed read/PATCH (or a V missing from `supplies`) logs a warning and the job continues with the next V;
-  a failed CSV read writes nothing. The next run corrects both.
+- The live read is refused (no write for that V) when `supplies` returns no row, a row for another code, or a
+  null/unparseable `amount` — a relative write from a wrong base would compound.
+- One failed read/PATCH logs a warning and the job continues with the next V; once every pair was attempted, the
+  run throws so Hangfire shows it **Failed**. A failed CSV read writes nothing and also fails the run.
+  The next run corrects both.
 - The V↔S rule (`DoubleShotCodeRule`) is shared with the order swap (#4480).
 
 ## Configuration
@@ -66,7 +69,7 @@ a summary line (pairs, to change, changed, failed, unpaired) ends every run.
 - Until the #4480 swap replaces it, a V order line reserves V stock (`claim` on V), not component stock — #4480 probe, `shoptet-api.md` §3.17 — 2026-10-12.
 
 ## Known quirks
-- A V order placed between the CSV read and the PATCH drifts the V by that quantity for one cycle; the next run corrects it.
+- A V order placed between the `supplies` read and the PATCH drifts the V by that quantity for one cycle; the next run corrects it.
 - The CSV export may be cached by Shoptet for some minutes. Only the S target comes from it, so a stale export
   delays the V by up to one cache lifetime but never compounds.
 - The Shoptet stock HttpClient's retry policy (built for the CSV GET) also wraps the movements PATCH, so a PATCH

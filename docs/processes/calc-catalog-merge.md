@@ -126,7 +126,8 @@ once is installed but not stamped, so the next `GetAllAsync` re-merges once they
 Source-call resilience (`CatalogResilienceService`, used by ERP stock, e-shop stock, attributes,
 sales and set parts): up to 3 retries with exponential back-off from 1 s on
 `HttpRequestException`/timeouts, 30 s timeout per attempt, and a circuit breaker that opens for
-30 s when ≥ 50 % of ≥ 3 calls in a minute fail.
+30 s when ≥ 50 % of ≥ 3 calls in a minute fail. The caller's cancellation token reaches the wrapped call, so a
+cancelled job stops instead of running through its retries.
 
 ## Configuration
 | Key | Repo default | Meaning |

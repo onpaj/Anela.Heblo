@@ -127,19 +127,36 @@ public class DoubleShotAvailabilitySyncJobTests
         stock.Setup(s => s.UpdateStockAsync("SA015030V", It.IsAny<double>(), It.IsAny<CancellationToken>()))
             .ThrowsAsync(new HttpRequestException("stock-change-not-allowed"));
 
-        await sut.ExecuteAsync();
+        var act = () => sut.ExecuteAsync();
 
+        await act.Should().ThrowAsync<InvalidOperationException>();
         stock.Verify(s => s.UpdateStockAsync("SA016005V", 385d, It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
-    public async Task ExecuteAsync_WritesNothing_AndDoesNotThrow_WhenStockListFails()
+    public async Task ExecuteAsync_CountsHttpTimeoutAsFailure_NotCancellation()
+    {
+        var (sut, stock) = MakeSut([
+            Row("SA015030V", 0), Row("SA015030S", 213),
+            Row("SA016005V", 0), Row("SA016005S", 385),
+        ]);
+        stock.Setup(s => s.UpdateStockAsync("SA015030V", It.IsAny<double>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new TaskCanceledException("HttpClient timeout"));
+
+        var act = () => sut.ExecuteAsync();
+
+        await act.Should().ThrowAsync<InvalidOperationException>();
+        stock.Verify(s => s.UpdateStockAsync("SA016005V", 385d, It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task ExecuteAsync_WritesNothing_AndFailsTheRun_WhenStockListFails()
     {
         var (sut, stock) = MakeSut(listError: new HttpRequestException("timeout"));
 
         var act = () => sut.ExecuteAsync();
 
-        await act.Should().NotThrowAsync();
+        await act.Should().ThrowAsync<HttpRequestException>();
         stock.Verify(s => s.UpdateStockAsync(It.IsAny<string>(), It.IsAny<double>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
@@ -206,8 +223,35 @@ public class DoubleShotAvailabilitySyncJobTests
         var (sut, stock) = MakeSut([Row("SA015030V", 0), Row("SA015030S", 213)]);
         stock.Setup(s => s.GetSupplyAsync("SA015030V", It.IsAny<CancellationToken>())).ReturnsAsync((EshopStockSupply?)null);
 
-        await sut.ExecuteAsync();
+        var act = () => sut.ExecuteAsync();
 
+        await act.Should().ThrowAsync<InvalidOperationException>();
+        stock.Verify(s => s.UpdateStockAsync(It.IsAny<string>(), It.IsAny<double>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task ExecuteAsync_SkipsVariant_WhenLiveAmountIsUnknown()
+    {
+        var (sut, stock) = MakeSut([Row("SA015030V", 0), Row("SA015030S", 213)]);
+        stock.Setup(s => s.GetSupplyAsync("SA015030V", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new EshopStockSupply { Code = "SA015030V", Amount = 0, IsAmountKnown = false });
+
+        var act = () => sut.ExecuteAsync();
+
+        await act.Should().ThrowAsync<InvalidOperationException>();
+        stock.Verify(s => s.UpdateStockAsync(It.IsAny<string>(), It.IsAny<double>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task ExecuteAsync_SkipsVariant_WhenLiveSupplyIsForAnotherCode()
+    {
+        var (sut, stock) = MakeSut([Row("SA015030V", 0), Row("SA015030S", 213)]);
+        stock.Setup(s => s.GetSupplyAsync("SA015030V", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new EshopStockSupply { Code = "SA015030V2", Amount = 0 });
+
+        var act = () => sut.ExecuteAsync();
+
+        await act.Should().ThrowAsync<InvalidOperationException>();
         stock.Verify(s => s.UpdateStockAsync(It.IsAny<string>(), It.IsAny<double>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
