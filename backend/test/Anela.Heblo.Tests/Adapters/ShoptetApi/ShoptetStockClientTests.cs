@@ -276,4 +276,25 @@ public class ShoptetStockClientTests
 
         await act.Should().ThrowAsync<HttpRequestException>();
     }
+
+    [Fact]
+    public async Task UpdateStockAsync_Body_IsSingleAmountChangeItem_WithoutRealStock()
+    {
+        string? capturedBody = null;
+        var client = BuildClient(req =>
+        {
+            capturedBody = req.Content!.ReadAsStringAsync().GetAwaiter().GetResult();
+            return Json(new { data = (object?)null, errors = (object?)null });
+        });
+
+        await client.UpdateStockAsync("SA015030V", -15);
+
+        using var doc = JsonDocument.Parse(capturedBody!);
+        var items = doc.RootElement.GetProperty("data");
+        items.GetArrayLength().Should().Be(1);
+        var item = items[0];
+        item.GetProperty("productCode").GetString().Should().Be("SA015030V");
+        item.GetProperty("amountChange").GetDouble().Should().Be(-15);
+        item.TryGetProperty("realStock", out _).Should().BeFalse();
+    }
 }
