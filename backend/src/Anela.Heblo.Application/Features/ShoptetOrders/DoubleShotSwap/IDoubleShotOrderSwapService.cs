@@ -16,7 +16,8 @@ public sealed record DoubleShotSwapSummary(
     int LinesFailed,
     int OrdersFailed,
     int OrdersNotEligible = 0,
-    bool SkippedBusy = false)
+    bool SkippedBusy = false,
+    int ListingsFailed = 0)
 {
     public static DoubleShotSwapSummary Busy { get; } = new(0, 0, 0, 0, 0, SkippedBusy: true);
 }

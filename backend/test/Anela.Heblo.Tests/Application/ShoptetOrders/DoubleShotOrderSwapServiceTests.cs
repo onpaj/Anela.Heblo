@@ -319,5 +319,6 @@ public class DoubleShotOrderSwapServiceTests
         var summary = await sut.SweepAsync(applyChanges: true);
 
         summary.LinesSwapped.Should().Be(1);
+        summary.ListingsFailed.Should().Be(1);
     }
 }

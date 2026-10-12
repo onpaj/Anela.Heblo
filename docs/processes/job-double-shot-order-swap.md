@@ -37,7 +37,9 @@ The real side effect is switched **off by default**: until feature flag
 - Pre-step of every picking-list print: `ExpeditionListService` calls
   `IPickingListOrderPreparer` (adapter `ShoptetOrdersDoubleShotPickingPreparerAdapter`) before
   building the list. This covers all four entry points of `flow-picking-list`. A failure is
-  logged as a warning and printing continues. The pre-step runs only while the flag is on; with
+  logged as a warning and printing continues. The pre-step sweep is time-boxed to 60 s
+  (`DefaultSweepTimeout`, including the wait for the sweep lock): past that it is cancelled,
+  logged as a warning, and printing continues; an interrupted swap is healed by a later run. The pre-step runs only while the flag is on; with
   the flag off it returns at once and the recurring job alone produces the dry-run log.
 - Flag `is-double-shot-order-swap-enabled` (default `false`): off = dry run, on = writes.
 
@@ -46,7 +48,8 @@ The real side effect is switched **off by default**: until feature flag
    rule (`DoubleShotCodeRule`, `^SA\d+V$`; S code = same code with trailing `V` -> `S`).
 2. For each V code: `GET /api/orders?productCode={V}&creationTimeFrom={now - lookback}`, all
    pages. Lookback = `ShoptetOrders:DoubleShotSwapLookbackDays` (14, clamped to at least 1).
-   Union the orders (code + status id from the list response).
+   Union the orders (code + status id from the list response). A failed listing is logged as
+   an Error and counted as a failed listing; orders behind it are missed this run.
 3. Drop orders whose list status is not eligible, without a detail call and without a log line
    per order (only counted in the summary). For each remaining order: `GET /api/orders/{code}`
    (404 = skip) and plan the swap; the status re-read from the detail still decides.
@@ -57,7 +60,8 @@ The real side effect is switched **off by default**: until feature flag
 5. If at least one swap completed: `PATCH /api/orders/{code}/notes` appends to `eshopRemark`
    `Automaticky prohozeno: SA015030V → SA015030S (2 ks); ...` (Unicode arrow, as the code emits).
 6. Log a summary: orders scanned, orders skipped as not eligible, lines swapped / healed /
-   failed, failed orders, and a dry-run marker. A busy sweep logs a separate warning instead.
+   failed, failed orders, failed listings, and a dry-run marker. The summary is a Warning when
+   any listing failed, Information otherwise. A busy sweep logs a separate warning instead.
 
 Target: Shoptet order items and `eshopRemark` only. No Heblo table is written.
 
@@ -119,7 +123,10 @@ runtime in the admin UI (table `FeatureFlagOverrides`).
   Hangfire runs a single worker, so the job and a scheduled print never overlap; contention is
   only possible with the synchronous "Spustit tisk oprav" / "Tisknout zakazku" endpoints.
 - With the flag on, each picking-list print runs a sweep first (extra Shoptet calls: one stock-CSV
-  download, one list call per V code, one detail call per eligible candidate order).
+  download, one list call per V code, one detail call per eligible candidate order), capped at
+  60 s. A print that hits the cap can still show V lines that the sweep did not reach.
+- A listing call that fails (429/5xx; the order client has no retry) hides that V code's orders
+  for the run; the summary's failed-listings count and Warning level surface it.
 - A missing S set surfaces as a logged 422 and the V line stays; nothing is written for it.
 - The note append is read-modify-write without concurrency control (see `module-shoptet-orders`).
 

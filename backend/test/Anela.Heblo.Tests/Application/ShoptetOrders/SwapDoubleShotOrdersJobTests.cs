@@ -88,6 +88,43 @@ public class SwapDoubleShotOrdersJobTests
         _swap.Verify(s => s.SweepAsync(true, It.IsAny<CancellationToken>()), Times.Once);
     }
 
+    [Fact]
+    public async Task PickingPreparer_GivesUp_WhenSweepExceedsTimeout()
+    {
+        CreateSut(jobEnabled: true, flagOn: true);
+        _swap.Setup(s => s.SweepAsync(It.IsAny<bool>(), It.IsAny<CancellationToken>()))
+            .Returns<bool, CancellationToken>(async (_, ct) =>
+            {
+                await Task.Delay(Timeout.Infinite, ct);
+                return DoubleShotSwapSummary.Busy;
+            });
+        var preparer = CreatePreparer(TimeSpan.FromMilliseconds(50));
+
+        var act = () => preparer.PrepareAsync();
+
+        await act.Should().CompleteWithinAsync(TimeSpan.FromSeconds(5));
+    }
+
+    [Fact]
+    public async Task PickingPreparer_Rethrows_WhenCallerCancels()
+    {
+        CreateSut(jobEnabled: true, flagOn: true);
+        _swap.Setup(s => s.SweepAsync(It.IsAny<bool>(), It.IsAny<CancellationToken>()))
+            .Returns<bool, CancellationToken>(async (_, ct) =>
+            {
+                await Task.Delay(Timeout.Infinite, ct);
+                return DoubleShotSwapSummary.Busy;
+            });
+        using var cts = new CancellationTokenSource(TimeSpan.FromMilliseconds(50));
+
+        var act = () => CreatePreparer(TimeSpan.FromMinutes(5)).PrepareAsync(cts.Token);
+
+        await act.Should().ThrowAsync<OperationCanceledException>();
+    }
+
     private Anela.Heblo.Application.Features.ShoptetOrders.Infrastructure.ShoptetOrdersDoubleShotPickingPreparerAdapter CreatePreparer() =>
-        new(_swap.Object, _flags.Object);
+        new(_swap.Object, _flags.Object, NullLogger<Anela.Heblo.Application.Features.ShoptetOrders.Infrastructure.ShoptetOrdersDoubleShotPickingPreparerAdapter>.Instance);
+
+    private Anela.Heblo.Application.Features.ShoptetOrders.Infrastructure.ShoptetOrdersDoubleShotPickingPreparerAdapter CreatePreparer(TimeSpan timeout) =>
+        new(_swap.Object, _flags.Object, NullLogger<Anela.Heblo.Application.Features.ShoptetOrders.Infrastructure.ShoptetOrdersDoubleShotPickingPreparerAdapter>.Instance, timeout);
 }

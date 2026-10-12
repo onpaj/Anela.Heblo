@@ -74,7 +74,7 @@ public sealed class DoubleShotOrderSwapService : IDoubleShotOrderSwapService
 
     private async Task<DoubleShotSwapSummary> SweepLockedAsync(bool applyChanges, CancellationToken ct)
     {
-        var candidates = await FindCandidateOrdersAsync(ct);
+        var (candidates, listingsFailed) = await FindCandidateOrdersAsync(ct);
         // The list status is a cheap pre-filter; the status re-read from the detail call still decides.
         var eligibleCodes = candidates.Where(o => EligibleStatusIds.Contains(o.StatusId)).Select(o => o.Code).ToList();
         var outcomes = new List<OrderOutcome>(eligibleCodes.Count);
@@ -87,16 +87,20 @@ public sealed class DoubleShotOrderSwapService : IDoubleShotOrderSwapService
             LinesHealed: outcomes.Sum(o => o.Healed),
             LinesFailed: outcomes.Sum(o => o.FailedLines),
             OrdersFailed: outcomes.Count(o => o.OrderFailed),
-            OrdersNotEligible: candidates.Count - eligibleCodes.Count);
+            OrdersNotEligible: candidates.Count - eligibleCodes.Count,
+            ListingsFailed: listingsFailed);
 
-        _logger.LogInformation(
-            "DoubleShotSwap: scanned {Orders} order(s), skipped {NotEligible} not eligible, swapped {Swapped}, healed {Healed}, failed lines {FailedLines}, failed orders {FailedOrders}{Mode}.",
+        _logger.Log(
+            listingsFailed > 0 ? LogLevel.Warning : LogLevel.Information,
+            "DoubleShotSwap: scanned {Orders} order(s), skipped {NotEligible} not eligible, swapped {Swapped}, healed {Healed}, failed lines {FailedLines}, failed orders {FailedOrders}, failed listings {FailedListings}{Mode}.",
             summary.OrdersScanned, summary.OrdersNotEligible, summary.LinesSwapped, summary.LinesHealed, summary.LinesFailed, summary.OrdersFailed,
-            applyChanges ? string.Empty : " [DRY RUN — no changes applied]");
+            summary.ListingsFailed, applyChanges ? string.Empty : " [DRY RUN — no changes applied]");
         return summary;
     }
 
-    private async Task<IReadOnlyList<EshopOrderSummary>> FindCandidateOrdersAsync(CancellationToken ct)
+    /// <summary>Returns the orders holding any V code, plus how many per-code listings failed:
+    /// orders behind a failed listing are missed this run, so the summary must say so.</summary>
+    private async Task<(IReadOnlyList<EshopOrderSummary> Orders, int ListingsFailed)> FindCandidateOrdersAsync(CancellationToken ct)
     {
         var stock = await _stockClient.ListAsync(ct);
         var variantCodes = stock
@@ -106,17 +110,19 @@ public sealed class DoubleShotOrderSwapService : IDoubleShotOrderSwapService
             .ToList();
         var createdFrom = _clock.GetUtcNow().AddDays(-Math.Max(MinLookbackDays, _settings.DoubleShotSwapLookbackDays));
 
-        var perVariant = new List<IReadOnlyList<EshopOrderSummary>>(variantCodes.Count);
+        var perVariant = new List<IReadOnlyList<EshopOrderSummary>?>(variantCodes.Count);
         foreach (var variantCode in variantCodes)
             perVariant.Add(await ListOrdersSafelyAsync(variantCode, createdFrom, ct));
 
-        return perVariant
-            .SelectMany(orders => orders)
+        var orders = perVariant
+            .SelectMany(listed => listed ?? [])
             .DistinctBy(o => o.Code, StringComparer.Ordinal)
             .ToList();
+        return (orders, perVariant.Count(listed => listed == null));
     }
 
-    private async Task<IReadOnlyList<EshopOrderSummary>> ListOrdersSafelyAsync(string variantCode, DateTimeOffset createdFrom, CancellationToken ct)
+    /// <summary>Returns null when the listing failed.</summary>
+    private async Task<IReadOnlyList<EshopOrderSummary>?> ListOrdersSafelyAsync(string variantCode, DateTimeOffset createdFrom, CancellationToken ct)
     {
         try
         {
@@ -125,7 +131,7 @@ public sealed class DoubleShotOrderSwapService : IDoubleShotOrderSwapService
         catch (Exception ex) when (!ct.IsCancellationRequested)
         {
             _logger.LogError(ex, "DoubleShotSwap: listing orders containing {VariantCode} failed; skipping it this run.", variantCode);
-            return [];
+            return null;
         }
     }
 
