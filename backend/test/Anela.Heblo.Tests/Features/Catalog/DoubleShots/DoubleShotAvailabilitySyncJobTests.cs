@@ -4,6 +4,7 @@ using Anela.Heblo.Application.Features.FeatureFlags;
 using Anela.Heblo.Domain.Features.BackgroundJobs;
 using Anela.Heblo.Domain.Features.Catalog.Stock;
 using FluentAssertions;
+using Hangfire;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using Xunit;
@@ -22,7 +23,11 @@ public class DoubleShotAvailabilitySyncJobTests
     {
         var stock = new Mock<IEshopStockClient>();
         if (listError is null)
+        {
             stock.Setup(s => s.ListAsync(It.IsAny<CancellationToken>())).ReturnsAsync(rows ?? []);
+            foreach (var row in rows ?? [])
+                SetupLiveStock(stock, row.Code, (double)row.Stock);
+        }
         else
             stock.Setup(s => s.ListAsync(It.IsAny<CancellationToken>())).ThrowsAsync(listError);
 
@@ -46,6 +51,10 @@ public class DoubleShotAvailabilitySyncJobTests
             NullLogger<DoubleShotAvailabilitySyncJob>.Instance);
         return (sut, stock);
     }
+
+    private static void SetupLiveStock(Mock<IEshopStockClient> stock, string code, double amount) =>
+        stock.Setup(s => s.GetSupplyAsync(code, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new EshopStockSupply { Code = code, Amount = amount });
 
     [Fact]
     public void Metadata_MatchesSpec()
@@ -156,5 +165,78 @@ public class DoubleShotAvailabilitySyncJobTests
         await sut.ExecuteAsync();
 
         stock.Verify(s => s.UpdateStockAsync(It.IsAny<string>(), It.IsAny<double>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task ExecuteAsync_IsIdempotent_WhenCsvIsStaleButLiveStockAlreadyMatches()
+    {
+        var (sut, stock) = MakeSut([Row("SA015030V", 0), Row("SA015030S", 213)]);
+        SetupLiveStock(stock, "SA015030V", 213);
+
+        await sut.ExecuteAsync();
+
+        stock.Verify(s => s.UpdateStockAsync(It.IsAny<string>(), It.IsAny<double>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task ExecuteAsync_WritesTargetMinusLiveStock_NotMinusCsvValue()
+    {
+        var (sut, stock) = MakeSut([Row("SA015030V", 0), Row("SA015030S", 213)]);
+        SetupLiveStock(stock, "SA015030V", 100);
+
+        await sut.ExecuteAsync();
+
+        stock.Verify(s => s.UpdateStockAsync("SA015030V", 113d, It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task ExecuteAsync_HealsDrift_WhenCsvShowsInSyncButLiveDiffers()
+    {
+        var (sut, stock) = MakeSut([Row("SA015030V", 213), Row("SA015030S", 213)]);
+        SetupLiveStock(stock, "SA015030V", 426);
+
+        await sut.ExecuteAsync();
+
+        stock.Verify(s => s.UpdateStockAsync("SA015030V", -213d, It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task ExecuteAsync_SkipsVariant_WhenLiveSupplyIsMissing()
+    {
+        var (sut, stock) = MakeSut([Row("SA015030V", 0), Row("SA015030S", 213)]);
+        stock.Setup(s => s.GetSupplyAsync("SA015030V", It.IsAny<CancellationToken>())).ReturnsAsync((EshopStockSupply?)null);
+
+        await sut.ExecuteAsync();
+
+        stock.Verify(s => s.UpdateStockAsync(It.IsAny<string>(), It.IsAny<double>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task ExecuteAsync_DryRun_DoesNotReadLiveStock()
+    {
+        var (sut, stock) = MakeSut([Row("SA015030V", 0), Row("SA015030S", 213)], applyChanges: false);
+
+        await sut.ExecuteAsync();
+
+        stock.Verify(s => s.GetSupplyAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public void ExecuteAsync_NeverRetriesAutomatically()
+    {
+        // CustomAttributeData, not GetCustomAttributes: AutomaticRetryAttribute's constructor reads Hangfire's global
+        // LogProvider, which another test's WebApplicationFactory may have left holding a disposed ILoggerFactory.
+        var attribute = typeof(DoubleShotAvailabilitySyncJob).GetMethod(nameof(DoubleShotAvailabilitySyncJob.ExecuteAsync))!
+            .GetCustomAttributesData().Single(d => d.AttributeType == typeof(AutomaticRetryAttribute));
+
+        attribute.NamedArguments.Single(a => a.MemberName == nameof(AutomaticRetryAttribute.Attempts))
+            .TypedValue.Value.Should().Be(0);
+    }
+
+    [Fact]
+    public void ExecuteAsync_DisallowsConcurrentRuns()
+    {
+        typeof(DoubleShotAvailabilitySyncJob).GetMethod(nameof(DoubleShotAvailabilitySyncJob.ExecuteAsync))!
+            .GetCustomAttributesData().Should().Contain(d => d.AttributeType == typeof(DisableConcurrentExecutionAttribute));
     }
 }

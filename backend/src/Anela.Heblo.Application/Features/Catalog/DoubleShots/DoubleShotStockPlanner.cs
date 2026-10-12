@@ -8,10 +8,15 @@ public sealed record DoubleShotStockAdjustment(string VariantCode, string SetCod
     public decimal Delta => Target - Current;
 }
 
+/// <param name="Pairs">Every V↔S pair found, including those whose CSV values already match.</param>
+/// <param name="Adjustments">Pairs whose CSV variant stock differs from the target.</param>
 public sealed record DoubleShotStockPlan(
+    IReadOnlyList<DoubleShotStockAdjustment> Pairs,
     IReadOnlyList<DoubleShotStockAdjustment> Adjustments,
-    int PairCount,
-    IReadOnlyList<string> UnpairedVariantCodes);
+    IReadOnlyList<string> UnpairedVariantCodes)
+{
+    public int PairCount => Pairs.Count;
+}
 
 /// <summary>
 /// Pairs each double-shot variant (<c>SA…V</c>) with its mirror set (<c>SA…S</c>) in the Shoptet
@@ -28,9 +33,8 @@ public static class DoubleShotStockPlanner
                 stockByCode.TryAdd(row.Code, row.Stock);
         }
 
-        var adjustments = new List<DoubleShotStockAdjustment>();
+        var pairs = new List<DoubleShotStockAdjustment>();
         var unpaired = new List<string>();
-        var pairCount = 0;
 
         foreach (var (code, current) in stockByCode)
         {
@@ -43,12 +47,10 @@ public static class DoubleShotStockPlanner
                 continue;
             }
 
-            pairCount++;
-            var target = Math.Max(setStock, 0m);
-            if (target != current)
-                adjustments.Add(new DoubleShotStockAdjustment(code, setCode, current, target));
+            pairs.Add(new DoubleShotStockAdjustment(code, setCode, current, Math.Max(setStock, 0m)));
         }
 
-        return new DoubleShotStockPlan(adjustments, pairCount, unpaired);
+        var adjustments = pairs.Where(p => p.Delta != 0m).ToList();
+        return new DoubleShotStockPlan(pairs, adjustments, unpaired);
     }
 }

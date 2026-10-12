@@ -107,4 +107,13 @@ public class DoubleShotStockPlannerTests
         plan.Adjustments.Should().BeEmpty();
         plan.UnpairedVariantCodes.Should().BeEmpty();
     }
+
+    [Fact]
+    public void Plan_ListsEveryPair_IncludingThoseAlreadyInSync()
+    {
+        var plan = DoubleShotStockPlanner.Plan([Row("SA015030V", 213), Row("SA015030S", 213), Row("SA016005V", 0), Row("SA016005S", -4)]);
+
+        plan.Pairs.Select(p => (p.VariantCode, p.Target)).Should().BeEquivalentTo(new[] { ("SA015030V", 213m), ("SA016005V", 0m) });
+        plan.Adjustments.Should().BeEmpty();
+    }
 }

@@ -28,8 +28,10 @@ Going live = switching that flag on in the feature-flag admin; nothing else.
 ## Data flow
 1. Shoptet stock CSV export (`StockClient:Url`) via `IEshopStockClient.ListAsync`, wrapped in `ICatalogResilienceService`.
 2. `DoubleShotStockPlanner.Plan` pairs every `^SA\d+V$` code with the same code ending in `S` (`DoubleShotCodeRule`).
-3. For each pair where target ≠ current: `PATCH /api/stocks/{Shoptet:StockId}/movements` with
-   `{ productCode: <V>, amountChange: target − current }` (`IEshopStockClient.UpdateStockAsync`).
+3. Dry run (flag off): log every pair whose CSV variant stock differs from the target. Nothing else is called.
+4. Live (flag on), for **every** pair: `GET /api/stocks/{Shoptet:StockId}/supplies?code=<V>` (live free stock),
+   then, if target ≠ live, `PATCH /api/stocks/{Shoptet:StockId}/movements` with
+   `{ productCode: <V>, amountChange: target − live }` (`IEshopStockClient.UpdateStockAsync`).
 
 No Heblo table is written. Every change is logged (`code old -> new`, with `[DRY RUN]` when the flag is off);
 a summary line (pairs, to change, changed, failed, unpaired) ends every run.
@@ -38,11 +40,16 @@ a summary line (pairs, to change, changed, failed, unpaired) ends every run.
 - target = max(stock of S, 0). The CSV `stock` is free-for-order stock (already net of open-order `claim`).
 - Relative `amountChange`, not `realStock`: `realStock` is gross and Shoptet subtracts `claim` from it;
   a delta keeps the V's free stock exactly equal to the S's even when V has pending order lines.
+- The delta is computed from the V's **live** `supplies.amount`, read right before the write — never from the CSV.
+  A relative write from a cached CSV would compound (a repeated run would add +213 twice); with the live read,
+  re-runs, manual triggers and a duplicated PATCH are all corrected by the next run.
+- `[DisableConcurrentExecution]` + `[AutomaticRetry(Attempts = 0)]`: runs never overlap, and the next scheduled
+  run is the retry.
 - A V without its S row in the export is skipped with a warning — never zeroed.
 - `S` codes are never written (Shoptet rejects writes to sets with `stock-change-not-allowed`).
 - Codes like `BAL0001V` do not match `^SA\d+V$` and are never touched.
-- One failed PATCH logs a warning and the job continues with the next V; a failed CSV read writes nothing.
-  Every run starts from fresh state, so the next run corrects both.
+- One failed read/PATCH (or a V missing from `supplies`) logs a warning and the job continues with the next V;
+  a failed CSV read writes nothing. The next run corrects both.
 - The V↔S rule (`DoubleShotCodeRule`) is shared with the order swap (#4480).
 
 ## Configuration
@@ -60,7 +67,11 @@ a summary line (pairs, to change, changed, failed, unpaired) ends every run.
 
 ## Known quirks
 - A V order placed between the CSV read and the PATCH drifts the V by that quantity for one cycle; the next run corrects it.
-- The CSV export may be cached by Shoptet for some minutes; the job mirrors whatever the export shows.
+- The CSV export may be cached by Shoptet for some minutes. Only the S target comes from it, so a stale export
+  delays the V by up to one cache lifetime but never compounds.
+- The Shoptet stock HttpClient's retry policy (built for the CSV GET) also wraps the movements PATCH, so a PATCH
+  whose response times out can be applied twice (shared with `feed-stock-up`). Here the next run's live read
+  corrects it.
 - A manual edit of V stock in Shoptet is overwritten on the next run.
 
 ## Code entry points
