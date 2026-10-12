@@ -41,6 +41,9 @@ Shoptet is an e-commerce platform that exposes a REST API at `https://api.myshop
 | `GET` | `/api/orders/history/snapshot` | Bulk async history export for up to 50 orders (gzip jsonlines, HTTP 202 + jobId) |
 | `PATCH` | `/api/orders/status-change` | Bulk status update for multiple orders |
 | `DELETE` | `/api/orders/{code}` | Delete order |
+| `POST` | `/api/orders/{code}/item` | Add an order item — **verified, see §3.17** |
+| `PATCH` | `/api/orders/{code}/item/{id}` | Change an order item — **do not use to change `code`/`itemType`, see §3.17** |
+| `DELETE` | `/api/orders/{code}/item/{id}` | Delete an order item — **verified, see §3.17** |
 | `POST` | `/api/orders/{code}/copy` | Duplicate order |
 | `GET` | `/api/orders/{code}/pdf` | Download order as PDF |
 
@@ -78,7 +81,7 @@ Statuses are store-specific (configured in Shoptet admin). Retrievable via `GET 
 - When `shippingGuid` is provided, `items` MUST include at least one item with `"itemType": "shipping"`.
 - Product items (`"itemType": "product"`) require a real, existing variant-level `code` in the store catalog. The API validates the code against the catalog — there is no suppress flag to bypass this via REST. Use a known real variant code (e.g. `OCH001030` — "Ochráním zadečky, 30ml" in the Anela test store).
 
-**suppress* flags do NOT work via REST.** Do not include `suppressProductChecking`, `suppressEmailSending`, `suppressStockMovements`, or `suppressDocumentGeneration` — the API returns 422 for unknown fields.
+**suppress* flags do NOT work via REST.** Do not include `suppressProductChecking`, `suppressEmailSending`, `suppressStockMovements`, or `suppressDocumentGeneration` — the API returns 422 for unknown fields. (This is about the `POST /api/orders` **body**. `POST /api/orders/{code}/item` takes `suppressProductChecking` / `suppressStockMovements` as **query parameters** per the OpenAPI spec — not exercised yet, see §3.17.)
 
 **Address fields** (both `billingAddress` and `deliveryAddress`):
 `company`, `fullName`, `street`, `houseNumber`, `city`, `district`, `additional`, `zip`, `regionName`, `regionShortcut`, `companyId`, `vatId`, `taxId` — all max 255 chars.
@@ -487,6 +490,65 @@ Sample of 280 order details spread across the whole history (2026-09-22):
 Anything that needs a customer identity across orders has to key on the e-mail address, not on
 `customerGuid`.
 
+### 3.17 Order items — add / change / delete (probed 2026-10-12, test store 780175, issue #4480)
+
+The OpenAPI spec has had order-item endpoints for a long time (tag *Order items*, announced
+2021-11 as [Order items modification](https://developers.shoptet.com/order-items-modification/));
+earlier versions of this doc wrongly said there was no way to edit order items. Probed with three
+throw-away orders (`TEST-VSWAP-1..3`, codes `126000042..44`) using plain product `OCH001030`/
+`SER002030` and the product set `SA014030` (= `SER003030` + `SER004030`). Stock read before/after
+each call with `GET /api/stocks/1/supplies?code=`.
+
+**`POST /api/orders/{code}/item`** — add a line. Body `{"data":{...}}`, `additionalProperties: false`,
+only `itemType` required (`product`, `product-set`, `service`, `bazar`, `volume-discount`,
+`discount-coupon`, `gift`). Numbers are strings (`"amount":"2"`, `"unitPriceWithVat":"1770.00"`,
+`"vatRate":"21"`, `"priceRatio":"0.9000"`). Returns **201** with the full order (`data.order`).
+- Adding `{"itemType":"product-set","code":"SA014030"}` behaves exactly like a set bought on the
+  web: the set components appear in `completion[]` as `product-set-item` lines linked by
+  `parentProductSetItemId`, **component stock is deducted** (`amount` down, `claim` up by
+  amount × qty), name/guid/weight are loaded from the set, and the order total is recomputed.
+- The price sent wins over the catalogue price; `priceRatio` (line discount) is kept.
+- Query params `suppressStockMovements` / `suppressProductChecking` exist (spec) — not exercised.
+- Works in status `-1 Nová` and `-2 Vyřizuje se`, and also after an invoice was issued (below).
+
+**`DELETE /api/orders/{code}/item/{id}`** — remove a line, no body. Returns **200** with the full
+order. **Stock of the removed line is returned** (`amount` up, `claim` down). A deleted
+`product-set` line takes its `product-set-item` completion rows with it and returns the
+component stock. 409 `order-item-withdrawal-present` if a withdrawal was requested for the item.
+
+**`PATCH /api/orders/{code}/item/{id}`** — change a line. Same body shape as POST (no
+`suppressStockMovements`; has `suppressProductGuidCheck`).
+- Changing **`amount`** on the same product moves stock by the delta (verified: 1 → 2 deducted 1 more).
+- Changing **`code` and/or `itemType`** (`product` → `product-set`) returns **200 and only relabels
+  the line**: `code`/`itemType` change, but `name`, `productGuid`, `weight` stay those of the old
+  product (sending `productGuid`/`name` too changes nothing), **no `product-set-item` rows are
+  created in `completion[]`**, and **no stock moves** (old product stays deducted, set components
+  untouched). Worse, when the order is later deleted, Shoptet returns stock according to the
+  **new** code — it credited the set components (never deducted) and never returned the old
+  product. **Never use PATCH to swap one product for another**; use POST (new) + DELETE (old).
+- The spec documents 422 `invalid-order-item-type-change` for some type changes
+  (e.g. `product` → `discount-coupon`); `product` → `product-set` is *not* rejected.
+- 409 `record-already-changed` — "Order has been changed before update".
+
+**No multi-item / transactional endpoint exists**, so swapping a line is always two calls. Order
+them POST-new then DELETE-old: a failure in between leaves a detectable duplicate (old + new line)
+rather than a lost line. Item edits are **not** written to the order history
+(`GET /api/orders/{code}/history` shows only status changes) — log your own remark if you need a trail.
+
+**Invoices follow item edits.** After `POST /api/orders/{code}/invoice` (body `{"data":{}}` — an
+empty body is rejected with 422 "Missing request data"), adding and then deleting an order line
+was reflected in `GET /api/invoices/{code}` items and total each time (verified on the test store,
+order in `-2`). An order with an invoice cannot be deleted (409 `order-documents-present`), and
+invoices cannot be deleted through the API (`DELETE /api/invoices/{code}` → 400
+`unsupported-http-method`).
+
+`completion[]` `product-set-item` rows carry an `itemId` that is **not** an order-line id (it looks
+like the set-definition row id, e.g. `1316`, `2840`, shared across orders) — never pass it to the
+item endpoints; use the parent `product-set` line's `itemId`.
+
+Order status flags from `GET /api/orders/statuses` (test store) — `changeOrderItems` is the
+"change status of items in the order" flag, not a permission to edit items.
+
 
 ---
 
@@ -613,7 +675,7 @@ Location: `backend/src/Adapters/Anela.Heblo.Adapters.ShoptetApi/`
 ## 7. Test Environment Notes
 
 - **No official Shoptet sandbox.** Test env is a real Shoptet store configured with test credentials.
-- **`suppress*` flags are NOT supported by the REST API.** `suppressEmailSending`, `suppressStockMovements`, `suppressDocumentGeneration`, `suppressProductChecking` only exist in the Shoptet admin UI import flow — the REST `POST /api/orders` endpoint rejects them with 422. Do not include them in the request body.
+- **`suppress*` flags are NOT accepted in the `POST /api/orders` body.** `suppressEmailSending`, `suppressStockMovements`, `suppressDocumentGeneration`, `suppressProductChecking` in the request body are rejected with 422. (`POST /api/orders/{code}/item` does declare `suppressStockMovements` / `suppressProductChecking` as query parameters — see §3.17.)
 - `shippingGuid` and `paymentMethodGuid` values are **store-specific** — must be discovered at runtime via `GET /api/eshop?include=shippingMethods,paymentMethods` or configured per environment.
 - Orders created for testing should use a recognizable `externalCode` prefix (e.g. `TEST-`) to allow cleanup.
 
