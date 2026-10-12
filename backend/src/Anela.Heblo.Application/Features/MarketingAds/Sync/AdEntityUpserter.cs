@@ -54,6 +54,7 @@ public sealed class AdEntityUpserter
             .ToList();
         var pending = new List<(AdEntityKey Key, AdEntity Row, AdFieldChange Change)>();
         var written = 0;
+        var pendingSinceFlush = 0;
 
         foreach (var snapshot in unique)
         {
@@ -69,10 +70,12 @@ public sealed class AdEntityUpserter
                     Apply(row, snapshot, now);
                     pending.AddRange(diff.Select(change => (key, row, change)));
                     written++;
+                    pendingSinceFlush++;
                 }
                 else if (now - row.LastSeenAt >= LastSeenRefreshInterval)
                 {
                     row.LastSeenAt = now;
+                    pendingSinceFlush++;
                 }
             }
             else
@@ -88,12 +91,16 @@ public sealed class AdEntityUpserter
                 _db.Entities.Add(row);
                 existing[key] = row;
                 written++;
+                pendingSinceFlush++;
                 if (reportCreations)
                     pending.Add((key, row, AdSnapshotDiffer.Created(after)));
             }
 
-            if (written > 0 && written % _options.BatchSize == 0)
+            if (pendingSinceFlush >= _options.BatchSize)
+            {
                 await _db.SaveChangesAsync(ct);
+                pendingSinceFlush = 0;
+            }
         }
 
         await _db.SaveChangesAsync(ct); // assigns ids to new rows

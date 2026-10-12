@@ -48,4 +48,25 @@ public class AdsSyncOptionsTests
         // Assert
         act.Should().Throw<InvalidOperationException>().WithMessage("*Ads*");
     }
+
+    [Theory]
+    [InlineData(0, 45)]
+    [InlineData(-5, 45)]
+    [InlineData(45, 0)]
+    [InlineData(45, -1)]
+    public void EnsureValid_rejects_non_positive_run_timeouts(int dailyMinutes, int changeMinutes)
+    {
+        // Arrange
+        var options = new AdsSyncOptions
+        {
+            DailySync = new AdsDailySyncOptions { RunTimeoutMinutes = dailyMinutes },
+            ChangeSync = new AdsChangeSyncOptions { RunTimeoutMinutes = changeMinutes },
+        };
+
+        // Act
+        var act = options.EnsureValid;
+
+        // Assert
+        act.Should().Throw<InvalidOperationException>().WithMessage("*RunTimeoutMinutes*");
+    }
 }

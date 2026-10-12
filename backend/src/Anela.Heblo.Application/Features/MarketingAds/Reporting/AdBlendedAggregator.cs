@@ -29,6 +29,7 @@ public static class AdBlendedAggregator
             MetaAdsCostCzk = rows.Sum(r => r.MetaAdsCostCzk),
             SklikCostCzk = rows.Sum(r => r.SklikCostCzk),
             HasNonCzkAdCost = rows.Any(r => r.HasNonCzkAdCost),
+            DaysWithAdCost = rows.Count(r => r.HasAdCostData),
             Orders = rows.Sum(r => r.Orders),
             RevenueWithoutVatCzk = revenue,
             EshopRevenueWithoutVatCzk = rows.Sum(r => r.EshopRevenueWithoutVatCzk),

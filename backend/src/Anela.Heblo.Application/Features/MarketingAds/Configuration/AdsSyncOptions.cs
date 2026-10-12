@@ -41,6 +41,10 @@ public sealed class AdsSyncOptions
             problems.Add($"Ads:OutOfBandMatchWindowMinutes must be positive, was {OutOfBandMatchWindowMinutes}");
         if (ChangeSync.InitialLookbackDays < 1)
             problems.Add($"Ads:ChangeSync:InitialLookbackDays must be >= 1, was {ChangeSync.InitialLookbackDays}");
+        if (DailySync.RunTimeoutMinutes < 1)
+            problems.Add($"Ads:DailySync:RunTimeoutMinutes must be >= 1, was {DailySync.RunTimeoutMinutes}");
+        if (ChangeSync.RunTimeoutMinutes < 1)
+            problems.Add($"Ads:ChangeSync:RunTimeoutMinutes must be >= 1, was {ChangeSync.RunTimeoutMinutes}");
         if (problems.Count > 0)
             throw new InvalidOperationException("Invalid Ads configuration: " + string.Join("; ", problems));
     }

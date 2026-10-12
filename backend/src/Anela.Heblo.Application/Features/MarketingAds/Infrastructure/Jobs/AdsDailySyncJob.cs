@@ -50,6 +50,8 @@ public sealed class AdsDailySyncJob : IRecurringJob
             return;
         }
 
+        _options.EnsureValid();
+
         using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         timeout.CancelAfter(TimeSpan.FromMinutes(_options.DailySync.RunTimeoutMinutes));
 

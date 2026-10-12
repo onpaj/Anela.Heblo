@@ -13,11 +13,11 @@ public class AdsChangeSyncJobTests
 {
     private readonly Mock<IAdsChangeSyncService> _service = new();
 
-    private AdsChangeSyncJob Job(bool enabled = true)
+    private AdsChangeSyncJob Job(bool enabled = true, AdsSyncOptions? options = null)
     {
         var checker = new Mock<IRecurringJobStatusChecker>();
         checker.Setup(s => s.IsJobEnabledAsync(It.IsAny<string>(), It.IsAny<CancellationToken>(), It.IsAny<bool>())).ReturnsAsync(enabled);
-        return new AdsChangeSyncJob(_service.Object, checker.Object, Options.Create(new AdsSyncOptions()), NullLogger<AdsChangeSyncJob>.Instance);
+        return new AdsChangeSyncJob(_service.Object, checker.Object, Options.Create(options ?? new AdsSyncOptions()), NullLogger<AdsChangeSyncJob>.Instance);
     }
 
     [Fact]
@@ -28,6 +28,17 @@ public class AdsChangeSyncJobTests
         metadata.JobName.Should().Be("ads-change-sync");
         metadata.CronExpression.Should().Be("15 * * * *");
         metadata.Category.Should().Be(RecurringJobCategory.Marketing);
+    }
+
+    [Fact]
+    public async Task Run_with_invalid_timeout_fails_the_run_without_calling_the_service()
+    {
+        var options = new AdsSyncOptions { ChangeSync = new AdsChangeSyncOptions { RunTimeoutMinutes = -1 } };
+
+        await Job(options: options).Invoking(j => j.ExecuteAsync())
+            .Should().ThrowAsync<InvalidOperationException>().WithMessage("*RunTimeoutMinutes*");
+
+        _service.Verify(s => s.RunAsync(It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]

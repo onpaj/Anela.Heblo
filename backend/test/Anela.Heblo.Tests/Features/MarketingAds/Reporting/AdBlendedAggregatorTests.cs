@@ -9,7 +9,7 @@ public class AdBlendedAggregatorTests
     private static AdBlendedDayRow Day(int month, int day, decimal cost, decimal revenue, bool nonCzk = false) => new()
     {
         Date = new DateOnly(2026, month, day), AdCostCzk = cost, GoogleAdsCostCzk = cost, Orders = 1,
-        RevenueWithoutVatCzk = revenue, EshopRevenueWithoutVatCzk = revenue, HasNonCzkAdCost = nonCzk,
+        RevenueWithoutVatCzk = revenue, EshopRevenueWithoutVatCzk = revenue, HasNonCzkAdCost = nonCzk, HasAdCostData = cost > 0,
     };
 
     [Fact]
@@ -30,7 +30,9 @@ public class AdBlendedAggregatorTests
         september.BlendedRoas.Should().Be(20.0000m);
         september.PnoPercent.Should().Be(5.00m);
         september.HasNonCzkAdCost.Should().BeTrue();
+        september.DaysWithAdCost.Should().Be(2);
         september.IsPartial.Should().BeFalse();
+        periods[1].DaysWithAdCost.Should().Be(1);
         periods[1].IsPartial.Should().BeTrue(); // October cut at the 15th
         periods[1].PnoPercent.Should().BeNull(); // no revenue
     }

@@ -134,6 +134,7 @@ BEGIN
         coalesce(c.meta_ads_cost_czk, 0)                AS meta_ads_cost_czk,
         coalesce(c.sklik_cost_czk, 0)                   AS sklik_cost_czk,
         coalesce(c.has_non_czk_ad_cost, false)          AS has_non_czk_ad_cost,
+        (c.date IS NOT NULL)                            AS has_ad_cost_data,
         coalesce(r.orders, 0)                           AS orders,
         coalesce(r.revenue_without_vat_czk, 0)          AS revenue_without_vat_czk,
         coalesce(r.eshop_revenue_without_vat_czk, 0)    AS eshop_revenue_without_vat_czk
@@ -146,6 +147,7 @@ BEGIN
     SELECT
         date_trunc('month', date::timestamp)::date      AS month,
         count(*)                                        AS days_with_data,
+        count(*) FILTER (WHERE has_ad_cost_data)        AS days_with_ad_cost,
         sum(ad_cost_czk)                                AS ad_cost_czk,
         sum(google_ads_cost_czk)                        AS google_ads_cost_czk,
         sum(meta_ads_cost_czk)                          AS meta_ads_cost_czk,
@@ -163,7 +165,7 @@ BEGIN
     $view$;
 
     EXECUTE $c$COMMENT ON VIEW ads.v_ads_blended_monthly IS
-'Blended reality check: Shoptet revenue without VAT (non-cancelled, CZK) / total campaign-level ad cost of managed CZK accounts. has_non_czk_ad_cost = some spend was in another currency and is NOT included.'$c$;
+'Blended reality check: Shoptet revenue without VAT (non-cancelled, CZK) / total campaign-level ad cost of managed CZK accounts. has_non_czk_ad_cost = some spend was in another currency and is NOT included. days_with_ad_cost < days in the month means the cost is partial (before the first sync, or failed days): blended_roas is overstated and pno_pct understated for that month.'$c$;
 END
 $blended$;
 

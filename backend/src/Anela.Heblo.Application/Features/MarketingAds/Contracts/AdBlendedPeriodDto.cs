@@ -12,6 +12,8 @@ public class AdBlendedPeriodDto
     public decimal SklikCostCzk { get; set; }
     /// <summary>Some ad spend was in a non-CZK account and is NOT included in AdCostCzk.</summary>
     public bool HasNonCzkAdCost { get; set; }
+    /// <summary>Days in the period that have synced ad cost; fewer than the period's days means cost is partial and ROAS overstated.</summary>
+    public int DaysWithAdCost { get; set; }
     public int Orders { get; set; }
     public decimal RevenueWithoutVatCzk { get; set; }
     public decimal EshopRevenueWithoutVatCzk { get; set; }

@@ -171,7 +171,7 @@ public sealed class AdsReadRepository : IAdsReadRepository
             return await _db.Database.SqlQuery<AdBlendedDayRow>($@"
                 SELECT date AS ""Date"", ad_cost_czk AS ""AdCostCzk"", google_ads_cost_czk AS ""GoogleAdsCostCzk"",
                        meta_ads_cost_czk AS ""MetaAdsCostCzk"", sklik_cost_czk AS ""SklikCostCzk"",
-                       has_non_czk_ad_cost AS ""HasNonCzkAdCost"", orders::int AS ""Orders"",
+                       has_non_czk_ad_cost AS ""HasNonCzkAdCost"", has_ad_cost_data AS ""HasAdCostData"", orders::int AS ""Orders"",
                        revenue_without_vat_czk AS ""RevenueWithoutVatCzk"", eshop_revenue_without_vat_czk AS ""EshopRevenueWithoutVatCzk""
                 FROM ads.v_ads_blended_daily
                 WHERE date >= {from} AND date <= {to}

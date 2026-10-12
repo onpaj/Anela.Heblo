@@ -9,6 +9,7 @@ public class AdBlendedDayRow
     public decimal MetaAdsCostCzk { get; set; }
     public decimal SklikCostCzk { get; set; }
     public bool HasNonCzkAdCost { get; set; }
+    public bool HasAdCostData { get; set; }
     public int Orders { get; set; }
     public decimal RevenueWithoutVatCzk { get; set; }
     public decimal EshopRevenueWithoutVatCzk { get; set; }

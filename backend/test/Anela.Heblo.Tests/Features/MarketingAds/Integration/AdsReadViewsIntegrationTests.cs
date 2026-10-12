@@ -146,6 +146,67 @@ public class AdsReadViewsIntegrationTests
     }
 
     [Fact]
+    public async Task Blended_views_expose_how_many_days_actually_have_ad_cost()
+    {
+        var (ads, shoptet) = await SeedAsync();
+        await using var _ = ads;
+        await using var __ = shoptet;
+        var revenueOnlyDay = Order("NEXT1", 500m);
+        revenueOnlyDay.OrderDate = Day.AddDays(1); // revenue but no synced ad cost
+        shoptet.Orders.Add(revenueOnlyDay);
+        await shoptet.SaveChangesAsync();
+        await RunScriptAsync(ads, AdsScript);
+
+        var monthly = await ads.Database.SqlQuery<CoverageRow>($@"
+            SELECT days_with_data::int AS ""DaysWithData"", days_with_ad_cost::int AS ""DaysWithAdCost""
+            FROM ads.v_ads_blended_monthly WHERE month = DATE '2026-09-01'").SingleAsync();
+        var daily = await ads.Database.SqlQuery<bool>($@"
+            SELECT has_ad_cost_data AS ""Value"" FROM ads.v_ads_blended_daily ORDER BY date").ToListAsync();
+
+        monthly.DaysWithData.Should().Be(2);
+        monthly.DaysWithAdCost.Should().Be(1);
+        daily.Should().Equal(true, false);
+    }
+
+    [Fact]
+    public async Task Change_events_view_falls_back_to_the_stored_level_and_ref_when_the_entity_is_unlinked()
+    {
+        var (ads, shoptet) = await SeedAsync();
+        await using var _ = ads;
+        await using var __ = shoptet;
+        var accountId = await ads.Accounts.Where(a => a.ExternalId == "g").Select(a => a.Id).SingleAsync();
+        var campaignId = await ads.Entities.Where(e => e.ExternalId == "g-c").Select(e => e.Id).SingleAsync();
+        ads.ChangeEvents.AddRange(
+            NewChange(accountId, "linked", entityId: campaignId, level: null, externalRef: null),
+            NewChange(accountId, "unlinked", entityId: null, level: "Keyword", externalRef: "kw-42"));
+        await ads.SaveChangesAsync();
+        await RunScriptAsync(ads, AdsScript);
+
+        var rows = await ads.Database.SqlQuery<ChangeRow>($@"
+            SELECT entity_level AS ""Level"", entity_external_id AS ""ExternalId"", entity_name AS ""Name""
+            FROM ads.v_ads_change_events ORDER BY id").ToListAsync();
+
+        rows.Should().HaveCount(2);
+        rows[0].Should().BeEquivalentTo(new ChangeRow { Level = "Campaign", ExternalId = "g-c", Name = "g-c" });
+        rows[1].Should().BeEquivalentTo(new ChangeRow { Level = "Keyword", ExternalId = "kw-42", Name = null });
+    }
+
+    private static AdChangeEvent NewChange(long accountId, string eventId, long? entityId, string? level, string? externalRef) => new()
+    {
+        AccountId = accountId,
+        ExternalEventId = eventId,
+        OccurredAt = Synced,
+        ActorKind = "Human",
+        EntityId = entityId,
+        EntityLevel = level,
+        EntityExternalRef = externalRef,
+        ChangeType = "Updated",
+        Source = "ChangeLog",
+        Origin = "OutOfBand",
+        SyncedAt = Synced,
+    };
+
+    [Fact]
     public async Task Metabase_can_read_the_granted_views_only()
     {
         var (ads, shoptet) = await SeedAsync();
@@ -195,6 +256,19 @@ public class AdsReadViewsIntegrationTests
             .SqlQuery<bool>($"SELECT to_regclass('ads.v_ads_campaign_monthly') IS NOT NULL AS \"Value\"").SingleAsync();
         blended.Should().BeTrue();
         campaign.Should().BeTrue();
+    }
+
+    private sealed class CoverageRow
+    {
+        public int DaysWithData { get; set; }
+        public int DaysWithAdCost { get; set; }
+    }
+
+    private sealed class ChangeRow
+    {
+        public string? Level { get; set; }
+        public string? ExternalId { get; set; }
+        public string? Name { get; set; }
     }
 
     private sealed class BlendedRow

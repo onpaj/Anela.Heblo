@@ -13,10 +13,17 @@ public static class AdsPersistenceModule
     public const string ServiceKey = "ads";
 
     /// <summary>
+    /// Per-attempt ceiling of the ads pipeline (consumed as <see cref="DbResilienceOptions.TotalTimeBudget"/>).
+    /// The entity sync commits an account's whole entity set in one transaction, so a single attempt must
+    /// fit it; the job's RunTimeoutMinutes still bounds the run.
+    /// </summary>
+    public static readonly TimeSpan AdsAttemptTimeout = TimeSpan.FromMinutes(2);
+
+    /// <summary>
     /// Registers <see cref="AdsDbContext"/> against its own small connection pool and its own
-    /// resilience pipeline, exactly as Ga4PersistenceModule does: the daily ad sync SaveChangesAsync's
-    /// whole batches and can legitimately outrun the request-serving pipeline's short per-attempt
-    /// timeout, and a separate pool keeps a long sync from starving request-path connections on the
+    /// resilience pipeline, as Ga4PersistenceModule does. Unlike the request-serving pipeline (10 s per
+    /// attempt) its per-attempt timeout is <see cref="AdsAttemptTimeout"/>, because the entity sync runs a
+    /// whole account in one transaction attempt; a separate pool keeps a long sync from starving request-path connections on the
     /// single-vCore heblosql server. The data source is keyed so it does not shadow the main
     /// NpgsqlDataSource singleton. It is built eagerly (so a bad connection string fails inside the
     /// caller's try/catch) and registered as an instance, which DI does not dispose — the pool lives
@@ -37,7 +44,7 @@ public static class AdsPersistenceModule
 
         services.AddKeyedSingleton<IDbResiliencePipelineProvider>(ServiceKey, (sp, _) =>
             new DbResiliencePipelineProvider(
-                Options.Create(new DbResilienceOptions()),
+                Options.Create(new DbResilienceOptions { TotalTimeBudget = AdsAttemptTimeout }),
                 sp.GetRequiredService<DbResilienceMetrics>(),
                 sp.GetService<ILogger<DbResiliencePipelineProvider>>()
                     ?? NullLogger<DbResiliencePipelineProvider>.Instance));

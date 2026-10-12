@@ -55,6 +55,17 @@ public class AdsDailySyncJobTests
     }
 
     [Fact]
+    public async Task Run_with_invalid_timeout_fails_the_run_without_calling_the_service()
+    {
+        var options = new AdsSyncOptions { DailySync = new AdsDailySyncOptions { RunTimeoutMinutes = 0 } };
+
+        await Job(options: options).Invoking(j => j.ExecuteAsync())
+            .Should().ThrowAsync<InvalidOperationException>().WithMessage("*RunTimeoutMinutes*");
+
+        _service.Verify(s => s.RunAsync(It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
     public async Task Disabled_job_does_nothing()
     {
         await Job(enabled: false).ExecuteAsync();

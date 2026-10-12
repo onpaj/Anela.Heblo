@@ -23,6 +23,13 @@ public class AdsPersistenceModuleTests
         $"public.\"{AdsDbContext.MigrationsHistoryTableName}\"";
 
     [Fact]
+    public void AdsAttemptTimeout_IsLongEnoughForAWholeAccountEntityTransaction()
+    {
+        // The request path allows 10 s per attempt; the entity sync commits a whole account in one attempt.
+        AdsPersistenceModule.AdsAttemptTimeout.Should().Be(TimeSpan.FromMinutes(2));
+    }
+
+    [Fact]
     public async Task AdsResiliencePipeline_IsIsolatedFromTheRequestPathPipeline()
     {
         // Arrange — the request path's pipeline is tuned to a budget far too tight for a batch upsert.
