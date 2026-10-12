@@ -19,6 +19,7 @@ public class ExpeditionListServicePrintSinkTests
 
     private ExpeditionListService CreateService() => new ExpeditionListService(
         _pickingSource.Object,
+        new Mock<IPickingListOrderPreparer>().Object,
         _emailSender.Object,
         TimeProvider.System,
         Options.Create(new PrintPickingListOptions { EmailSender = "test@test.com" }),

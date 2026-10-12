@@ -54,4 +54,18 @@ public class SwapDoubleShotOrdersJobTests
 
         _swap.Verify(s => s.SweepAsync(flagOn, It.IsAny<CancellationToken>()), Times.Once);
     }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task PickingPreparer_SweepsWithFlagAsApplyChanges(bool flagOn)
+    {
+        CreateSut(jobEnabled: true, flagOn: flagOn);
+        var adapter = new Anela.Heblo.Application.Features.ShoptetOrders.Infrastructure
+            .ShoptetOrdersDoubleShotPickingPreparerAdapter(_swap.Object, _flags.Object);
+
+        await adapter.PrepareAsync();
+
+        _swap.Verify(s => s.SweepAsync(flagOn, It.IsAny<CancellationToken>()), Times.Once);
+    }
 }

@@ -9,6 +9,7 @@ namespace Anela.Heblo.Application.Features.ExpeditionList.Services;
 public class ExpeditionListService : IExpeditionListService
 {
     private readonly IExpeditionPickingSource _pickingSource;
+    private readonly IPickingListOrderPreparer _orderPreparer;
     private readonly IEmailSender _emailSender;
     private readonly TimeProvider _clock;
     private readonly IOptions<PrintPickingListOptions> _options;
@@ -18,6 +19,7 @@ public class ExpeditionListService : IExpeditionListService
 
     public ExpeditionListService(
         IExpeditionPickingSource pickingSource,
+        IPickingListOrderPreparer orderPreparer,
         IEmailSender emailSender,
         TimeProvider clock,
         IOptions<PrintPickingListOptions> options,
@@ -26,6 +28,7 @@ public class ExpeditionListService : IExpeditionListService
         ILogger<ExpeditionListService> logger)
     {
         _pickingSource = pickingSource;
+        _orderPreparer = orderPreparer;
         _emailSender = emailSender;
         _clock = clock;
         _options = options;
@@ -61,6 +64,8 @@ public class ExpeditionListService : IExpeditionListService
             };
         }
 
+        await PrepareOrdersAsync(cancellationToken);
+
         var result = await _pickingSource.CreatePickingListAsync(request, batchCallback, cancellationToken);
 
         _logger.LogDebug("Expedition list complete — {Total} orders processed", result.TotalCount);
@@ -78,6 +83,18 @@ public class ExpeditionListService : IExpeditionListService
         }
 
         return Task.CompletedTask;
+    }
+
+    private async Task PrepareOrdersAsync(CancellationToken cancellationToken)
+    {
+        try
+        {
+            await _orderPreparer.PrepareAsync(cancellationToken);
+        }
+        catch (Exception ex) when (!cancellationToken.IsCancellationRequested)
+        {
+            _logger.LogWarning(ex, "Picking-list order preparation failed; printing continues with the orders as they are.");
+        }
     }
 
     private async Task SendEmailCopy(IList<string> files, IEnumerable<string> emailRecipients, CancellationToken cancellationToken)

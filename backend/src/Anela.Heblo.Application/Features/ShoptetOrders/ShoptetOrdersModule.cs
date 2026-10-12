@@ -28,6 +28,10 @@ public static class ShoptetOrdersModule
         // (ShoptetApiAdapterServiceCollectionExtensions).
         services.AddTransient<IOrderStatusReader, ShoptetOrdersOrderStatusReaderAdapter>();
 
+        // Cross-module contract: ShoptetOrders implements ExpeditionList's IPickingListOrderPreparer
+        // (double-shot V -> S swap before every picking-list print). Registered by the provider.
+        services.AddTransient<IPickingListOrderPreparer, ShoptetOrdersDoubleShotPickingPreparerAdapter>();
+
         // Double-shot V -> S order swap (job + picking-list pre-step share one sweep).
         services.AddTransient<IDoubleShotOrderSwapService, DoubleShotOrderSwapService>();
 
