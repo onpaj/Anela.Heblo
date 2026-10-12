@@ -5,7 +5,7 @@ Issue: #4480 (parent #4477, sibling #4479). Deadline 19 Oct 2026 (set relaunch w
 ## Goal
 
 Customers order a double-shot as a **`V` variant** (plain product, e.g. `SA015030V`). Its mirror
-**`S` product set** (`SA015030`) carries the composition. Every `V` order line must be replaced
+**`S` product set** (`SA015030S`) carries the composition. Every `V` order line must be replaced
 by its `S` set inside Shoptet, so stock, picking, packing and invoicing all behave as for a normal
 set — with no change to Heblo's downstream consumers.
 
@@ -15,7 +15,7 @@ set — with no change to Heblo's downstream consumers.
 |---|---|
 | Where to swap | **In Shoptet**, via the order-item API. |
 | Atomicity | No single-call swap exists (see below). Accept **two calls — POST S, then DELETE V** — with idempotent self-healing. |
-| V ↔ S mapping | **Naming convention only**: a code starting `SA` and ending `V` is a V variant; its S set is the same code without the trailing `V`. No config. Shared with #4479 as `DoubleShotCodeRule`. |
+| V ↔ S mapping | **Naming convention only**: `SA<digits>V` is a V variant; its S set is the same code with the trailing `V` replaced by `S` (`SA015030V` → `SA015030S`; prod has 12 such sets, SA014–SA017 × 005/030/100, verified by #4479 on the prod stock CSV). No config. Shared with #4479 as `DoubleShotCodeRule`. |
 | Eligible statuses | Pre-picking states only (configurable, defaults below). |
 | Cadence | Every 5 min + one sweep right before every picking-list print. |
 | Rollout | Dry-run until feature flag `is-double-shot-order-swap-enabled` is on. |
@@ -39,20 +39,18 @@ Verified on test store 780175 on 2026-10-12 and documented in
 
 ### 1. `DoubleShotCodeRule` — `backend/src/Anela.Heblo.Domain/Features/Catalog/DoubleShotCodeRule.cs`
 
-Static, dependency-free, styled after `BundleProductRule`. Shared with #4479 (announced on #4477).
+Static, dependency-free, styled after `BundleProductRule`. **Landed by #4479 (commit `472d5c319`) and cherry-picked here** — do not re-implement; its tests live in `backend/test/Anela.Heblo.Tests/Features/Catalog/DoubleShotCodeRuleTests.cs`.
 
 ```csharp
-public static class DoubleShotCodeRule
+public static partial class DoubleShotCodeRule
 {
-    public static bool IsVariantCode(string? code);                            // "SA015030V" -> true
-    public static bool TryGetSetCode(string? variantCode, out string setCode); // "SA015030V" -> "SA015030"
-    public static string ToVariantCode(string setCode);                        // "SA015030" -> "SA015030V"
+    public static bool IsVariantCode(string? code);                            // ^SA\d+V$
+    public static bool TryGetSetCode(string? variantCode, out string setCode); // "SA015030V" -> "SA015030S"
+    public static string ToVariantCode(string setCode);                        // "SA015030S" -> "SA015030V"
 }
 ```
 
-Rule: ordinal, case-sensitive; `code.Length > 3`, starts with `"SA"`, ends with `'V'`.
-`ToVariantCode` throws `ArgumentException` for a null/empty code or one that is already a
-variant code.
+Rule: `^SA\d+V$` / `^SA\d+S$` (generated regex); `ToVariantCode` throws `ArgumentException` unless the input matches the set pattern.
 
 ### 2. Order-item operations on `IEshopOrderClient`
 
@@ -112,7 +110,7 @@ next sweep) apart via `ex.StatusCode`.
       (order, V code, S code, Shoptet message), keep V, continue with the next action.
       409 → log warning, abandon this order until the next sweep.
    4. If at least one swap completed → `AppendEshopRemarkAsync(code,
-      "Automaticky prohozeno: SA015030V → SA015030 (2 ks); …")`; failure is a warning only.
+      "Automaticky prohozeno: SA015030V → SA015030S (2 ks); …")`; failure is a warning only.
 5. Log a summary: orders scanned, lines swapped, healed, failed, dry-run flag.
 
 ### 5. `SwapDoubleShotOrdersJob : IRecurringJob`
@@ -150,8 +148,7 @@ elements, `.Distinct()` at the point of use and prefer an empty-array default.
 
 TDD, xUnit + Moq/FluentAssertions as in the existing test projects.
 
-- `DoubleShotCodeRuleTests`: `SA015030V` valid; `SA015030`, `SER001030V`, `V`, `SAV`, `""`, `null`,
-  lowercase `sa015030v` invalid; round-trip `ToVariantCode`/`TryGetSetCode`; `ToVariantCode` guards.
+- `DoubleShotCodeRuleTests`: provided by #4479's commit; not duplicated.
 - `DoubleShotSwapPlannerTests`: mixed V/normal/set lines; two V lines with the same code; heal
   case; ineligible status; amount/price/VAT/priceRatio copied; no V lines → empty plan.
 - `DoubleShotOrderSwapServiceTests` (mocked client): dry run makes no writes; POST before DELETE
@@ -178,5 +175,6 @@ TDD, xUnit + Moq/FluentAssertions as in the existing test projects.
 2. After Andy creates the `V` variants, verify the dry-run log on a real `V` order.
 3. Enable `is-double-shot-order-swap-enabled`.
 
-Residual risk: the test store has no real `V` products; production differs only by the code, and
-the dry-run log shows exact V → S pairs before any write.
+Residual risk: the test store has no real `V`/`S` double-shot pairs (its set is `SA014030`, no suffix), so the
+probe used stand-ins; the API behaviour does not depend on the code, and the dry-run log shows the exact
+V → S pairs on production before any write. A missing `S` set surfaces as a logged 422, never a write.
