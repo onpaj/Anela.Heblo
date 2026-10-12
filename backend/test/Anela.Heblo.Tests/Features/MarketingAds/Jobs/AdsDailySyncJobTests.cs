@@ -40,10 +40,13 @@ public class AdsDailySyncJobTests
     [Fact]
     public void ExecuteAsync_never_retries_automatically()
     {
+        // CustomAttributeData, not GetCustomAttributes: AutomaticRetryAttribute's constructor reads Hangfire's global
+        // LogProvider, which another test's WebApplicationFactory may have left holding a disposed ILoggerFactory.
         var attribute = typeof(AdsDailySyncJob).GetMethod(nameof(AdsDailySyncJob.ExecuteAsync))!
-            .GetCustomAttributes(typeof(AutomaticRetryAttribute), false).Cast<AutomaticRetryAttribute>().Single();
+            .GetCustomAttributesData().Single(d => d.AttributeType == typeof(AutomaticRetryAttribute));
 
-        attribute.Attempts.Should().Be(0);
+        attribute.NamedArguments.Single(a => a.MemberName == nameof(AutomaticRetryAttribute.Attempts))
+            .TypedValue.Value.Should().Be(0);
     }
 
     [Fact]

@@ -15,6 +15,37 @@ public sealed record AdEntityUpsertResult(
     int RowsWritten);
 
 /// <summary>
+/// An upsert tracked but not yet saved. <see cref="StagedIds"/> and the ids in <see cref="Changes"/> may be EF
+/// temporary keys — valid only for foreign keys set before the save. Call <see cref="Saved"/> after SaveChanges
+/// for the stored ids.
+/// </summary>
+public sealed class AdEntityStagedUpsert
+{
+    private readonly IReadOnlyDictionary<AdEntityKey, AdEntity> _rows;
+    private readonly IReadOnlyList<(AdEntityKey Key, AdEntity Row, AdFieldChange Change)> _pending;
+
+    internal AdEntityStagedUpsert(IReadOnlyDictionary<AdEntityKey, long> stagedIds, IReadOnlyList<AdObservedChange> changes, int rowsWritten,
+        IReadOnlyDictionary<AdEntityKey, AdEntity> rows, IReadOnlyList<(AdEntityKey Key, AdEntity Row, AdFieldChange Change)> pending)
+    {
+        StagedIds = stagedIds;
+        Changes = changes;
+        RowsWritten = rowsWritten;
+        _rows = rows;
+        _pending = pending;
+    }
+
+    public IReadOnlyDictionary<AdEntityKey, long> StagedIds { get; }
+    public IReadOnlyList<AdObservedChange> Changes { get; }
+    public int RowsWritten { get; }
+
+    /// <summary>The result with stored ids. Only meaningful once the staged rows have been saved.</summary>
+    public AdEntityUpsertResult Saved() => new(
+        _rows.ToDictionary(p => p.Key, p => p.Value.Id),
+        _pending.Select(p => new AdObservedChange(p.Key, p.Row.Id, p.Change)).ToList(),
+        RowsWritten);
+}
+
+/// <summary>
 /// Upserts ad_entities by (account, level, external id) and diffs name/status/attributes against
 /// the stored row — the snapshot-diff fallback's source of truth.
 /// </summary>
@@ -43,7 +74,29 @@ public sealed class AdEntityUpserter
         return rows.ToDictionary(r => new AdEntityKey(AdsDbValues.FromDb<AdEntityLevel>(r.Level), r.ExternalId), r => r.Id);
     }
 
+    /// <summary>
+    /// Upserts and saves, flushing every <see cref="AdsSyncOptions.BatchSize"/> pending rows. Not atomic across batches.
+    /// </summary>
     public async Task<AdEntityUpsertResult> UpsertAsync(long accountId, IReadOnlyList<AdEntitySnapshot> snapshots, bool reportCreations, CancellationToken ct)
+    {
+        var staged = await StageCoreAsync(accountId, snapshots, reportCreations, flushEvery: _options.BatchSize, ct);
+        await _db.SaveChangesAsync(ct);
+        var result = staged.Saved();
+        _db.ChangeTracker.Clear();
+        return result;
+    }
+
+    /// <summary>
+    /// Tracks every insert/update (parents included) without saving, so the caller can add dependent rows and
+    /// commit all of it with one SaveChanges — EF's implicit transaction makes the whole write atomic. New rows
+    /// carry EF temporary keys until then; <see cref="AdEntityStagedUpsert.StagedIds"/> and the change ids use them,
+    /// and EF fixes up every foreign key set to one when the row is inserted.
+    /// </summary>
+    public Task<AdEntityStagedUpsert> StageAsync(long accountId, IReadOnlyList<AdEntitySnapshot> snapshots, bool reportCreations, CancellationToken ct) =>
+        StageCoreAsync(accountId, snapshots, reportCreations, flushEvery: null, ct);
+
+    private async Task<AdEntityStagedUpsert> StageCoreAsync(long accountId, IReadOnlyList<AdEntitySnapshot> snapshots, bool reportCreations,
+        int? flushEvery, CancellationToken ct)
     {
         var now = _time.GetUtcNow();
         var existing = (await _db.Entities.Where(e => e.AccountId == accountId).ToListAsync(ct))
@@ -96,22 +149,21 @@ public sealed class AdEntityUpserter
                     pending.Add((key, row, AdSnapshotDiffer.Created(after)));
             }
 
-            if (pendingSinceFlush >= _options.BatchSize)
+            if (flushEvery is { } batchSize && pendingSinceFlush >= batchSize)
             {
                 await _db.SaveChangesAsync(ct);
                 pendingSinceFlush = 0;
             }
         }
 
-        await _db.SaveChangesAsync(ct); // assigns ids to new rows
-        written += AssignParents(unique, existing);
-        await _db.SaveChangesAsync(ct);
-
-        var ids = existing.ToDictionary(p => p.Key, p => p.Value.Id);
-        var changes = pending.Select(p => new AdObservedChange(p.Key, p.Row.Id, p.Change)).ToList();
-        _db.ChangeTracker.Clear();
-        return new AdEntityUpsertResult(ids, changes, written);
+        written += AssignParents(unique, existing, KeyOf);
+        var stagedIds = existing.ToDictionary(p => p.Key, p => KeyOf(p.Value));
+        var changes = pending.Select(p => new AdObservedChange(p.Key, KeyOf(p.Row), p.Change)).ToList();
+        return new AdEntityStagedUpsert(stagedIds, changes, written, existing, pending);
     }
+
+    /// <summary>The row's key as EF tracks it: the stored id, or a temporary value while the row is still unsaved.</summary>
+    private long KeyOf(AdEntity row) => _db.Entry(row).Property(e => e.Id).CurrentValue;
 
     private static void Apply(AdEntity row, AdEntitySnapshot snapshot, DateTimeOffset now)
     {
@@ -122,7 +174,8 @@ public sealed class AdEntityUpserter
         row.UpdatedAt = now;
     }
 
-    private static int AssignParents(IEnumerable<AdEntitySnapshot> snapshots, IReadOnlyDictionary<AdEntityKey, AdEntity> rows)
+    private static int AssignParents(IEnumerable<AdEntitySnapshot> snapshots, IReadOnlyDictionary<AdEntityKey, AdEntity> rows,
+        Func<AdEntity, long> keyOf)
     {
         var changed = 0;
         foreach (var snapshot in snapshots)
@@ -130,7 +183,7 @@ public sealed class AdEntityUpserter
             var row = rows[new AdEntityKey(snapshot.Level, snapshot.ExternalId)];
             long? parentId = snapshot.ParentLevel is { } level && snapshot.ParentExternalId is { } parent
                 && rows.TryGetValue(new AdEntityKey(level, parent), out var parentRow)
-                    ? parentRow.Id
+                    ? keyOf(parentRow)
                     : null;
             if (row.ParentId != parentId)
             {

@@ -32,17 +32,44 @@ public sealed class AdChangeEventWriter
     public async Task<int> WriteAsync(AdPlatform platform, AdAccount account, AdChangeSource source,
         IReadOnlyList<AdChangeEventCandidate> candidates, IReadOnlyDictionary<AdEntityKey, long> entityIds, CancellationToken ct)
     {
+        var events = await BuildAsync(platform, account, source, candidates, entityIds, ct);
+        foreach (var chunk in events.Chunk(_options.BatchSize))
+        {
+            _db.ChangeEvents.AddRange(chunk);
+            await _db.SaveChangesAsync(ct);
+            _db.ChangeTracker.Clear();
+        }
+
+        return events.Count;
+    }
+
+    /// <summary>
+    /// Like <see cref="WriteAsync"/> but only tracks the events: the caller saves them, together with whatever else it
+    /// staged, in one SaveChanges. <paramref name="entityIds"/> may hold EF temporary keys of entities staged on the same context.
+    /// </summary>
+    /// <returns>Rows staged for insert.</returns>
+    public async Task<int> StageAsync(AdPlatform platform, AdAccount account, AdChangeSource source,
+        IReadOnlyList<AdChangeEventCandidate> candidates, IReadOnlyDictionary<AdEntityKey, long> entityIds, CancellationToken ct)
+    {
+        var events = await BuildAsync(platform, account, source, candidates, entityIds, ct);
+        _db.ChangeEvents.AddRange(events);
+        return events.Count;
+    }
+
+    private async Task<IReadOnlyList<AdChangeEvent>> BuildAsync(AdPlatform platform, AdAccount account, AdChangeSource source,
+        IReadOnlyList<AdChangeEventCandidate> candidates, IReadOnlyDictionary<AdEntityKey, long> entityIds, CancellationToken ct)
+    {
         var unique = candidates
             .Where(c => !string.IsNullOrWhiteSpace(c.ExternalEventId))
             .DistinctBy(c => c.ExternalEventId, StringComparer.Ordinal)
             .ToList();
         if (unique.Count == 0)
-            return 0;
+            return Array.Empty<AdChangeEvent>();
 
         var sourceValue = AdsDbValues.ToDb(source);
         var fresh = await DropStoredAsync(account.Id, sourceValue, unique, ct);
         if (fresh.Count == 0)
-            return 0;
+            return Array.Empty<AdChangeEvent>();
 
         var window = TimeSpan.FromMinutes(_options.OutOfBandMatchWindowMinutes);
         var executed = await _lookup.GetExecutedActionsAsync(platform, account.ExternalId,
@@ -53,37 +80,28 @@ public sealed class AdChangeEventWriter
             .Where(g => g.Count() == 1)
             .ToDictionary(g => g.Key, g => g.Single().Value, StringComparer.Ordinal);
 
-        var written = 0;
-        foreach (var chunk in fresh.Chunk(_options.BatchSize))
+        return fresh.Select(candidate =>
         {
-            foreach (var candidate in chunk)
+            var match = _matcher.Match(candidate, executed, rules);
+            return new AdChangeEvent
             {
-                var match = _matcher.Match(candidate, executed, rules);
-                _db.ChangeEvents.Add(new AdChangeEvent
-                {
-                    AccountId = account.Id,
-                    ExternalEventId = candidate.ExternalEventId,
-                    OccurredAt = candidate.OccurredAt.ToUniversalTime(),
-                    Actor = candidate.Actor,
-                    ActorKind = AdsDbValues.ToDb(candidate.ActorKind),
-                    EntityId = ResolveEntityId(candidate, entityIds, uniqueByExternalId),
-                    EntityLevel = candidate.EntityLevel is { } level ? AdsDbValues.ToDb(level) : null,
-                    EntityExternalRef = candidate.EntityExternalId,
-                    ChangeType = candidate.ChangeType,
-                    OldValueJson = candidate.OldValueJson,
-                    NewValueJson = candidate.NewValueJson,
-                    Source = AdsDbValues.ToDb(source),
-                    Origin = AdsDbValues.ToDb(match.Origin),
-                    MatchedExecutionId = match.MatchedExecutionId,
-                    SyncedAt = _time.GetUtcNow(),
-                });
-            }
-            await _db.SaveChangesAsync(ct);
-            _db.ChangeTracker.Clear();
-            written += chunk.Length;
-        }
-
-        return written;
+                AccountId = account.Id,
+                ExternalEventId = candidate.ExternalEventId,
+                OccurredAt = candidate.OccurredAt.ToUniversalTime(),
+                Actor = candidate.Actor,
+                ActorKind = AdsDbValues.ToDb(candidate.ActorKind),
+                EntityId = ResolveEntityId(candidate, entityIds, uniqueByExternalId),
+                EntityLevel = candidate.EntityLevel is { } level ? AdsDbValues.ToDb(level) : null,
+                EntityExternalRef = candidate.EntityExternalId,
+                ChangeType = candidate.ChangeType,
+                OldValueJson = candidate.OldValueJson,
+                NewValueJson = candidate.NewValueJson,
+                Source = sourceValue,
+                Origin = AdsDbValues.ToDb(match.Origin),
+                MatchedExecutionId = match.MatchedExecutionId,
+                SyncedAt = _time.GetUtcNow(),
+            };
+        }).ToList();
     }
 
     private async Task<List<AdChangeEventCandidate>> DropStoredAsync(long accountId, string sourceValue,

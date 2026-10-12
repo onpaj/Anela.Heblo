@@ -17,7 +17,7 @@ namespace Anela.Heblo.Tests.Features.MarketingAds.Integration;
 /// For a source without a change log the entity upsert and the snapshot-diff event write must commit
 /// together. Otherwise a failing event write leaves the new entity state stored, the next run sees no
 /// diff, and the out-of-band change is lost for good. The context is built with PollyExecutionStrategy
-/// like production, so the CreateExecutionStrategy().ExecuteAsync(transaction) path is really exercised.
+/// like production, so the CreateExecutionStrategy().ExecuteAsync + single SaveChanges path is really exercised.
 /// </summary>
 [Collection("PostgresIntegration")]
 [Trait("Category", "Integration")]
@@ -81,6 +81,43 @@ public class AdEntitySyncStepAtomicityIntegrationTests : IAsyncLifetime
         change.ChangeType.Should().Be("Status");
         change.Origin.Should().Be("OutOfBand");
         (await after.Entities.SingleAsync(e => e.ExternalId == "ad-1")).Status.Should().Be("Paused");
+    }
+
+    [Fact]
+    public async Task New_parents_children_and_their_Created_events_are_saved_together_with_stored_ids()
+    {
+        // Arrange - the first run seeds one campaign, so the next run reports creations
+        var time = new FakeTimeProvider(AdsTestData.Now);
+        var source = new ScriptedAdReadSource(AdPlatform.Sklik, searchTerms: false, changeLog: false) { Accounts = { AdsTestData.Account() } };
+        source.Entities[AdsTestData.AccountId] = new List<AdEntitySnapshot> { AdsTestData.Campaign("c-1") };
+        await using var db = NewContext();
+        var account = (await NewAccounts(db, time).UpsertAsync(AdPlatform.Sklik, source.Accounts, default)).Single();
+        (await NewStep(db, time, new SwitchableLookup()).RunAsync(source, account, recordSnapshotDiffs: true, default)).Outcome.Succeeded.Should().BeTrue();
+
+        // Act - a new subtree under the existing campaign plus a new campaign with a child, children listed first
+        source.Entities[AdsTestData.AccountId] = new List<AdEntitySnapshot>
+        {
+            AdsTestData.Ad("ad-1", "g-1"), AdsTestData.AdGroup("g-1", "c-1"), AdsTestData.Campaign("c-1"),
+            AdsTestData.AdGroup("g-2", "c-2"), AdsTestData.Campaign("c-2"),
+        };
+        time.Advance(TimeSpan.FromHours(1));
+        var result = await NewStep(db, time, new SwitchableLookup()).RunAsync(source, account, recordSnapshotDiffs: true, default);
+
+        // Assert - stored ids everywhere: the returned map, parent links and every Created event's entity id
+        result.Outcome.Succeeded.Should().BeTrue();
+        await using var verify = NewContext();
+        var rows = (await verify.Entities.ToListAsync()).ToDictionary(e => e.ExternalId);
+        rows.Should().HaveCount(5);
+        result.EntityIds.Should().HaveCount(5);
+        result.EntityIds.Should().OnlyContain(p => rows[p.Key.ExternalId].Id == p.Value);
+        rows["c-1"].ParentId.Should().BeNull();
+        rows["g-1"].ParentId.Should().Be(rows["c-1"].Id);
+        rows["ad-1"].ParentId.Should().Be(rows["g-1"].Id);
+        rows["g-2"].ParentId.Should().Be(rows["c-2"].Id);
+        var events = await verify.ChangeEvents.ToListAsync();
+        events.Should().HaveCount(4).And.OnlyContain(e => e.ChangeType == AdSnapshotDiffer.CreatedChange && e.Source == "SnapshotDiff");
+        events.Should().OnlyContain(e => e.EntityId == rows[e.EntityExternalRef!].Id);
+        events.Select(e => e.EntityExternalRef).Should().BeEquivalentTo(new[] { "ad-1", "g-1", "g-2", "c-2" });
     }
 
     private AdsDbContext NewContext() => new(AdsPostgres.Options(_connectionString));
