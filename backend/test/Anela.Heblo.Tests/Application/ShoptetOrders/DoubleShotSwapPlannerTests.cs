@@ -13,8 +13,14 @@ public class DoubleShotSwapPlannerTests
         decimal price = 100m, decimal ratio = 1m, string? remark = null) =>
         new()
         {
-            ItemId = id, ItemType = type, Code = code, Amount = amount,
-            UnitPriceWithVat = price, VatRate = 21m, PriceRatio = ratio, Remark = remark,
+            ItemId = id,
+            ItemType = type,
+            Code = code,
+            Amount = amount,
+            UnitPriceWithVat = price,
+            VatRate = 21m,
+            PriceRatio = ratio,
+            Remark = remark,
         };
 
     private static EshopOrderDetail Order(int status, params EshopOrderLine[] lines) =>
