@@ -276,7 +276,7 @@ supersedes the earlier list in §3.5, which named parameters the API does not ha
 | `changeTimeFrom` / `changeTimeTo` | Same format rules. |
 | `codeFrom` / `codeTo` | Order-code range. |
 | `customerGuid`, `email`, `phone` | `email` matches exactly, case-insensitively; `phone` international format only. |
-| `productCode` | Orders containing a given product code. |
+| `productCode` | Orders containing a given product code. **Exact match on an `items[]` line code** (variant-level code, or the code of a `product-set` line); does not match set components in `completion[]` and is not a prefix match (`OCH001` finds nothing, `OCH001030` does). Verified on test store 2026-10-12. |
 | `sourceId` | See `GET /api/orders/sources`. |
 | `orderCodes` | Up to 50 comma-separated codes. **No other filter takes effect alongside it.** |
 | `page`, `itemsPerPage` | `itemsPerPage` max 50; asking for 100 silently returns 50. |
@@ -541,6 +541,13 @@ was reflected in `GET /api/invoices/{code}` items and total each time (verified 
 order in `-2`). An order with an invoice cannot be deleted (409 `order-documents-present`), and
 invoices cannot be deleted through the API (`DELETE /api/invoices/{code}` → 400
 `unsupported-http-method`).
+
+The line `remark` sent on POST is stored and returned as `items[].remark` — usable as a marker on
+lines a robot added.
+
+**Order codes of deleted orders are reused.** After `DELETE /api/orders/126000044` the next
+`POST /api/orders` got code `126000044` again (test store). Never treat an order code as a
+permanent identity across a delete.
 
 `completion[]` `product-set-item` rows carry an `itemId` that is **not** an order-line id (it looks
 like the set-definition row id, e.g. `1316`, `2840`, shared across orders) — never pass it to the
