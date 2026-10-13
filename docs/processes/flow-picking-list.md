@@ -14,7 +14,7 @@ owns:
   - backend/src/Adapters/Anela.Heblo.Adapters.FileSystem/Features/ExpeditionList/**
   - backend/src/Anela.Heblo.API/Controllers/ExpeditionListController.cs
 verified_at: "5e993f9e2"
-related: []
+related: [job-double-shot-order-swap]
 ---
 
 # Picking list print (Tisk expedice)
@@ -55,6 +55,7 @@ Order state flow (Shoptet status ids):
 `52 Zabaleno` → `70 Předáno přepravci`. Incomplete address → `35 Poznámka`.
 
 ## Data flow
+0. **Prepare orders** — ExpeditionListService calls IPickingListOrderPreparer (ShoptetOrders: one double-shot V → S swap sweep while flag `is-double-shot-order-swap-enabled` is on, otherwise nothing; see job-double-shot-order-swap; capped at 60 s). A failure or timeout is logged and printing continues.
 1. **Select orders** (`ShoptetApiExpeditionListSource.CreatePickingList`):
    - batch mode: `GET /api/orders?statusId={SourceStateId}&page={n}&itemsPerPage=50`, all pages;
    - single-order mode: `GET /api/orders/{code}` (404 → no orders).

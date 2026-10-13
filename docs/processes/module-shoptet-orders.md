@@ -7,6 +7,7 @@ owns: []
 verified_at: "5e993f9e2"
 related:
   - job-complete-delivered-orders
+  - job-double-shot-order-swap
   - flow-block-order
 ---
 
@@ -36,6 +37,9 @@ module (its doc is `sync-shoptet-orders`), despite the shared name.
 ## Processes
 - `job-complete-delivered-orders` — hourly Hangfire job: orders in 70/82 whose shipment is
   delivered → Vyřízena (-3) + remark; dry run unless flag `is-delivered-order-completion-enabled`.
+- `job-double-shot-order-swap` — 5-minute Hangfire job (and, with the flag on, pre-step of every picking-list print): V
+  variant lines in open orders → S product set (POST S, DELETE V, note); dry run unless flag
+  `is-double-shot-order-swap-enabled`.
 - `flow-block-order` — `PATCH /api/shoptet-orders/{code}/block`: allowed state → blocked state 35 + remark.
 - Mark as packed (Zabaleno, 52) — executed by this module's `IEshopOrderClient.MarkAsPackedAsync`
   but triggered by the packing desk scan / complete-packing; documented with the packaging
@@ -73,6 +77,9 @@ Shoptet REST API (`ShoptetApi:BaseUrl`, header `Shoptet-Private-API-Token`), via
 | `PATCH /api/orders/{code}/status` | write | packed, blocked, completed |
 | `PATCH /api/orders/{code}/notes` | write | `eshopRemark` (overwrite; append is read-modify-write) |
 | `GET /api/shipments?orderCode={code}` | read | delivered check (client owned by ShipmentLabels) |
+| `GET /api/orders?productCode={code}&creationTimeFrom=...` | read | double-shot swap candidate orders |
+| `POST /api/orders/{code}/item` | write | double-shot swap: add S product set |
+| `DELETE /api/orders/{code}/item/{id}` | write | double-shot swap: remove V line |
 
 `ShoptetOrderClient` also implements `IShoptetOrderTestClient` (`POST`/`DELETE /api/orders`,
 list by external-code prefix) — used only by integration tests that create real orders in the
@@ -107,6 +114,7 @@ additionalFields) is used by the expedition list module.
 - `backend/src/Anela.Heblo.Application/Features/ShoptetOrders/IEshopOrderClient.cs` — order operations contract
 - `backend/src/Anela.Heblo.Application/Features/ShoptetOrders/UseCases/GetPackingOrder/GetPackingOrderHandler.cs` — packing view endpoint
 - `backend/src/Adapters/Anela.Heblo.Adapters.ShoptetApi/Orders/ShoptetOrderClient.cs` — Shoptet order HTTP calls
+- `backend/src/Anela.Heblo.Application/Features/ShoptetOrders/DoubleShotSwap/DoubleShotOrderSwapService.cs` — double-shot V → S swap sweep
 - `backend/src/Adapters/Anela.Heblo.Adapters.ShoptetApi/Orders/ShoptetApiPackingOrderClient.cs` — packing view assembly, dashboard counts
 - `backend/src/Anela.Heblo.API/Controllers/ShoptetOrdersController.cs` — endpoints
 - `docs/integrations/shoptet-api.md` — verified Shoptet order API behaviour

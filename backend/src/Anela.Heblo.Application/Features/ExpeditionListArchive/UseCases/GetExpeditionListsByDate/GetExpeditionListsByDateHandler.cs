@@ -20,16 +20,7 @@ public class GetExpeditionListsByDateHandler : IRequestHandler<GetExpeditionList
     {
         if (!DateOnly.TryParseExact(request.Date, "yyyy-MM-dd", out _))
         {
-            return new GetExpeditionListsByDateResponse
-            {
-                Success = false,
-                ErrorCode = ErrorCodes.InvalidFormat,
-                Params = new Dictionary<string, string>
-                {
-                    { "Field", "Date" },
-                    { "ExpectedFormat", "yyyy-MM-dd" }
-                }
-            };
+            return GetExpeditionListsByDateResponse.InvalidDate();
         }
 
         var blobs = await _blobStore.ListBlobsAsync(_containerName, request.Date, cancellationToken);

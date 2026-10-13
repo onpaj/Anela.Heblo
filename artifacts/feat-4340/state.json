@@ -1,0 +1,46 @@
+{
+  "feature_id": "feat-4340",
+  "issue_number": 4340,
+  "created_at": "2026-09-28T10:13:18.985677Z",
+  "max_revisions": 3,
+  "phases": {
+    "analyzing": {
+      "status": "completed",
+      "updated_at": "2026-09-28T10:15:06.478695Z"
+    },
+    "architecting": {
+      "status": "completed",
+      "updated_at": "2026-09-28T10:15:55.430709Z"
+    },
+    "designing": {
+      "status": "completed",
+      "updated_at": "2026-09-28T10:16:21.613243Z"
+    },
+    "planning": {
+      "status": "completed",
+      "updated_at": "2026-09-28T10:18:22.202121Z"
+    },
+    "developing": {
+      "status": "in_progress",
+      "updated_at": "2026-09-28T12:18:00.533738Z"
+    },
+    "code-review": {
+      "status": "completed",
+      "updated_at": "2026-09-28T13:23:37.047251Z"
+    }
+  },
+  "tasks": [
+    {
+      "name": "add-ga4-harness-conversions-helpers",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-09-28T11:21:32.201630Z"
+    },
+    {
+      "name": "add-conversions-sync-service-tests",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-09-28T12:26:56.378978Z"
+    }
+  ]
+}

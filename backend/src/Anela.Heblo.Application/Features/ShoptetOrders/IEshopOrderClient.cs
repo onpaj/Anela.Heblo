@@ -5,6 +5,12 @@ public interface IEshopOrderClient
     Task<int> GetOrderStatusIdAsync(string orderCode, CancellationToken ct = default);
     Task UpdateStatusAsync(string orderCode, int statusId, CancellationToken ct = default);
     /// <summary>
+    /// Changes the order status without the e-mail and SMS the status may be set up to send to the
+    /// customer (Shoptet <c>suppressEmailSending</c> / <c>suppressSmsSending</c>). Linked documents
+    /// are still generated as for a normal status change.
+    /// </summary>
+    Task UpdateStatusWithoutNotificationsAsync(string orderCode, int statusId, CancellationToken ct = default);
+    /// <summary>
     /// Returns the current internal (staff-facing) remark for the given order,
     /// as returned by GET /api/orders/{code}?include=notes → data.order.notes.eshopRemark.
     /// Returns an empty string if Shoptet sends null or the notes object is absent.
@@ -42,4 +48,29 @@ public interface IEshopOrderClient
     /// after a successful scan + shipment creation.
     /// </summary>
     Task MarkAsPackedAsync(string orderCode, CancellationToken ct = default);
+
+    /// <summary>
+    /// Orders (code + current status id) created at or after <paramref name="createdFrom"/> that contain a
+    /// line with exactly <paramref name="productCode"/> (GET /api/orders?productCode=&amp;creationTimeFrom=, all pages).
+    /// The filter matches items[] line codes only, not set components (shoptet-api.md §3.8).
+    /// </summary>
+    Task<IReadOnlyList<EshopOrderSummary>> ListOrdersContainingProductAsync(
+        string productCode, DateTimeOffset createdFrom, CancellationToken ct = default);
+
+    /// <summary>
+    /// GET /api/orders/{code} mapped to status + lines. Returns null when the order does not exist (404).
+    /// </summary>
+    Task<EshopOrderDetail?> GetOrderDetailAsync(string orderCode, CancellationToken ct = default);
+
+    /// <summary>
+    /// POST /api/orders/{code}/item. Adding a product-set line makes Shoptet expand its components
+    /// and deduct their stock (shoptet-api.md §3.17). Non-2xx throws HttpRequestException with StatusCode.
+    /// </summary>
+    Task AddOrderItemAsync(string orderCode, NewEshopOrderItem item, CancellationToken ct = default);
+
+    /// <summary>
+    /// DELETE /api/orders/{code}/item/{itemId}. Shoptet returns the line's stock (shoptet-api.md §3.17).
+    /// Non-2xx throws HttpRequestException with StatusCode.
+    /// </summary>
+    Task DeleteOrderItemAsync(string orderCode, long itemId, CancellationToken ct = default);
 }

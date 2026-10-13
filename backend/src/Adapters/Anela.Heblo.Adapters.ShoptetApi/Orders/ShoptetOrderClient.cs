@@ -9,7 +9,7 @@ using Microsoft.Extensions.Options;
 
 namespace Anela.Heblo.Adapters.ShoptetApi.Orders;
 
-public class ShoptetOrderClient : IEshopOrderClient, IShoptetOrderTestClient, IShoptetExpeditionOrderSource
+public partial class ShoptetOrderClient : IEshopOrderClient, IShoptetOrderTestClient, IShoptetExpeditionOrderSource
 {
     private readonly HttpClient _http;
     private readonly ShoptetOrdersSettings _orderSettings;
@@ -221,6 +221,7 @@ public class ShoptetOrderClient : IEshopOrderClient, IShoptetOrderTestClient, IS
                 ExternalCode = o.ExternalCode,
                 Email = o.Email,
                 StatusId = o.Status.Id,
+                CreationTime = ParseShoptetTime(o.CreationTime),
             }));
 
             if (page >= data.Data.Paginator.PageCount)
