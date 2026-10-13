@@ -50,8 +50,9 @@ production although `ads-daily-sync` / `ads-change-sync` are registered.
 
 Defined in code (`ReportDatasetCatalog`), one entry per dataset: id, source, required feature,
 SQL relation, period column, key columns (stable sort tiebreak), default sort, description, grain,
-caveats, and per column: name, type (`Date`, `Text`, `Integer`, `Decimal`, `Boolean`),
-description, filterable, sortable.
+caveats, and per column: name, type (`Date`, `Text`, `Integer`, `Decimal`, `Boolean`) and
+description. Every catalogue column is filterable and sortable — the views are month grain and
+small, so per-column flags would add surface without protecting anything.
 
 | Id | View | Grain |
 |---|---|---|
@@ -93,7 +94,7 @@ id, source, description, grain, and per source `freshness` = `{ lastSyncAt, stat
 source's `sync_state` table (`status` = `OK` only when every entity's last run is `OK`).
 
 ### `DescribeReportDataset(dataset)`
-Columns (name, type, description, filterable, sortable), default sort, period column, caveats,
+Columns (name, type, description), default sort, period column, caveats,
 freshness. Unknown id → `ReportingDatasetNotFound` with up to three fuzzy suggestions. No
 permission → `Forbidden`.
 
@@ -103,10 +104,10 @@ permission → `Forbidden`.
 - `filters`: up to 20 of `{ column, op, value?, values? }`. Ops: `eq`, `neq`, `gt`, `gte`, `lt`,
   `lte` (one `value`), `in` (1–100 `values`), `between` (exactly 2 `values`, inclusive),
   `contains` (Text only, case-insensitive, `%`/`_`/`\` escaped), `isNull` (`value` `true`/`false`).
-  Column must be filterable; `gt..lte`/`between` not allowed on Text or Boolean.
+  `gt..lte`/`between` not allowed on Text or Boolean; `contains` only on Text.
   Values arrive as strings and are parsed by column type: Date accepts `yyyy-MM-dd` or `yyyy-MM`
   (→ first of month), Decimal/Integer invariant culture, Boolean `true`/`false`.
-- `sort`: up to 5 of `{ column, direction: asc|desc }`; sortable columns only. Default = the
+- `sort`: up to 5 of `{ column, direction: asc|desc }`. Default = the
   dataset's default sort. The dataset's key columns are always appended as a tiebreak.
 - `limit`: 1–1000, default 100. `offset`: ≥ 0, max 100,000.
 
@@ -122,7 +123,9 @@ Response: `columns` (name + type, in output order), `rows` (array of value array
   `SET LOCAL statement_timeout = '10s'`. Raw ADO.NET on purpose: an EF `SqlQuery` runs under the
   Polly execution strategy, whose 10 s per-attempt timeout would *retry* a slow query four times
   on the shared B1ms core. Postgres `57014` (query cancelled) → `ReportingQueryTimeout`.
-- **Connection**: the same connection string as `ApplicationDbContext` (views live in `Heblo_V3`).
+- **Connection**: the app's singleton `NpgsqlDataSource` (registered by `PersistenceModule`, same
+  pool as `ApplicationDbContext`; the views live in `Heblo_V3`). In in-memory mode there is none and
+  the reader is replaced by one that fails with a clear message.
 - **Load**: limit cap 1,000 rows, timeout 10 s, the expensive view excluded (D7). MCP traffic is
   interactive and low-volume; no extra rate limiter in v1 (C4 adds one for app-only callers).
 
