@@ -115,15 +115,18 @@ failure → `ShipmentCancelFailed`, stop) → reload the order → shipment crea
 the `packageNumber`-th (1-based) → download its `labelUrl` (HTTP client `ShipmentLabelDownloader`,
 30 s timeout) → stream to the browser with `Cache-Control: no-store`, file `{order}-{n}.pdf`.
 Not ready → 404 `PackageLabelNotFound`; carrier download failure → 503 `PackageLabelDownloadFailed`.
-Label offset is gated by four direction flags that apply to **every** carrier's label:
+Label offset is gated by four direction flags that apply only to **PPL and Zásilkovna** labels (GLS, personal pickup and
+unresolved carriers are served untouched):
 `is-label-offset-left-enabled`, `-right-`, `-up-`, `-down-` (each 10 mm). Enabled directions add up
 (left + up = diagonal; left + right cancel out, label served untouched). With all off nothing else
-happens. Otherwise every page's content is moved by the summed offset (PDFsharp, `LabelPdfShifter`:
+happens and the carrier is not looked up. Otherwise the carrier is resolved from the order's Shoptet
+shipping method GUID (`IPackingOrderShippingSource` + `IShippingMethodCatalog`) and, for PPL /
+Zásilkovna, every page's content is moved by the summed offset (PDFsharp, `LabelPdfShifter`:
 slides MediaBox/CropBox/… the opposite way in printed-page orientation, honouring the page's
 `/Rotate`; content is not re-rendered). Content pushed past an edge is cut off and the opposite edge
 gets the same amount of blank. The offset is in PDF points, so it is the same physical distance at
 any printer resolution (the Zebra is 300 dpi) unless the print dialog scales the page. Fail-open: a
-failed flag check or an unparsable PDF is logged at Warning and the original label is served
+failed flag check, failed carrier lookup or an unparsable PDF is logged at Warning and the original label is served
 unshifted. The flags exist to find the right direction at the warehouse Zebra. (Replaced the
 per-carrier `is-{gls,ppl,zasilkovna}-label-offset-enabled` flags and, before them, the 180° rotation
 flags `is-*-label-rotation-enabled` — both removed 2026-10-09 / 2026-10-08; the carrier lookup went
@@ -194,7 +197,7 @@ not present in any appsettings file.
 - `backend/src/Anela.Heblo.Application/Features/Packaging/Services/ShipmentCreationService.cs` — weight, carrier, shipment, package rows
 - `backend/src/Anela.Heblo.Application/Features/Packaging/UseCases/ResetOrderShipment/ResetOrderShipmentHandler.cs` — re-create shipment
 - `backend/src/Anela.Heblo.Application/Features/Packaging/UseCases/GetPackageLabelPdf/GetPackageLabelPdfHandler.cs` — label proxy
-- `backend/src/Anela.Heblo.Application/Features/Packaging/Services/LabelPdfShifter.cs` — 10 mm left label offset (per-carrier flags: GLS, PPL, Zásilkovna)
+- `backend/src/Anela.Heblo.Application/Features/Packaging/Services/LabelPdfShifter.cs` — 10 mm label offset (direction flags; PPL and Zásilkovna only)
 - `backend/src/Adapters/Anela.Heblo.Adapters.ShoptetApi/Orders/ShoptetApiPackingOrderClient.cs` — order read + eligibility
 - `backend/src/Anela.Heblo.Persistence/Repositories/Packaging/PackageRepository.cs` — `Packages` writes
 - `frontend/src/components/baleni/PackingShipmentCreator.tsx`, `PackingLabelPrinter.tsx`, `printLabelPdf.ts` — desk-side print and completion

@@ -1,9 +1,11 @@
 using System.Net;
 using System.Text;
 using Anela.Heblo.Application.Features.FeatureFlags;
+using Anela.Heblo.Application.Features.Packaging.Contracts;
 using Anela.Heblo.Application.Features.Packaging.UseCases.GetPackageLabelPdf;
 using Anela.Heblo.Application.Features.ShipmentLabels;
 using Anela.Heblo.Application.Shared;
+using Anela.Heblo.Domain.Features.Logistics;
 using FluentAssertions;
 using Microsoft.Extensions.Logging;
 using Moq;
@@ -19,22 +21,42 @@ public class GetPackageLabelPdfHandlerTests
     private const string PackageName = "PKG-1";
     private const int PackageNumber = 1;
     private const string LabelUrl = "https://cdn.carrier.test/labels/PKG-1.pdf";
+    private const string ShippingGuid = "shipping-guid-1";
 
     private readonly Mock<IShipmentClient> _shipmentClient = new();
     private readonly Mock<HttpMessageHandler> _httpMessageHandler = new(MockBehavior.Strict);
     private readonly Mock<IHttpClientFactory> _httpClientFactory = new();
     private readonly Mock<ILogger<GetPackageLabelPdfHandler>> _logger = new();
     private readonly Mock<IFeatureFlagChecker> _featureFlags = new();
+    private readonly Mock<IPackingOrderShippingSource> _orderShippingSource = new();
+    private readonly Mock<IShippingMethodCatalog> _shippingCatalog = new();
 
     public GetPackageLabelPdfHandlerTests()
     {
+        SetupCarrier(Carriers.PPL);
         _httpClientFactory
             .Setup(f => f.CreateClient(GetPackageLabelPdfHandler.HttpClientName))
             .Returns(() => new HttpClient(_httpMessageHandler.Object));
     }
 
     private GetPackageLabelPdfHandler CreateHandler() =>
-        new(_shipmentClient.Object, _httpClientFactory.Object, _featureFlags.Object, _logger.Object);
+        new(
+            _shipmentClient.Object,
+            _httpClientFactory.Object,
+            _orderShippingSource.Object,
+            _shippingCatalog.Object,
+            _featureFlags.Object,
+            _logger.Object);
+
+    private void SetupCarrier(Carriers? carrier)
+    {
+        _orderShippingSource
+            .Setup(s => s.GetShippingMethodGuidAsync(OrderCode, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(ShippingGuid);
+        _shippingCatalog
+            .Setup(c => c.ResolveCarrierByShippingGuid(ShippingGuid))
+            .Returns(carrier);
+    }
 
     private static GetPackageLabelPdfRequest Request() => new()
     {
@@ -319,6 +341,104 @@ public class GetPackageLabelPdfHandlerTests
         var response = await CreateHandler().Handle(Request(), CancellationToken.None);
 
         (await ReadContentAsync(response)).Should().BeEquivalentTo(pdfBytes);
+    }
+
+    [Theory]
+    [InlineData(Carriers.PPL)]
+    [InlineData(Carriers.Zasilkovna)]
+    public async Task Handle_OffsetFlagOn_OffsetCarrier_ShiftsLabel(Carriers carrier)
+    {
+        SetupCarrier(carrier);
+        SetupLabelPdf(CreatePdf(pageCount: 1));
+        SetupOffsetFlags(FeatureFlagKeys.LabelOffsetLeft);
+
+        var response = await CreateHandler().Handle(Request(), CancellationToken.None);
+
+        MediaBoxOrigins(await ReadContentAsync(response)).Should().Equal((Offset, 0));
+    }
+
+    [Theory]
+    [InlineData(Carriers.GLS)]
+    [InlineData(Carriers.Osobak)]
+    public async Task Handle_OffsetFlagOn_OtherCarrier_ReturnsPdfUnchanged(Carriers carrier)
+    {
+        var pdfBytes = CreatePdf(pageCount: 1);
+        SetupCarrier(carrier);
+        SetupLabelPdf(pdfBytes);
+        SetupOffsetFlags(FeatureFlagKeys.LabelOffsetLeft);
+
+        var response = await CreateHandler().Handle(Request(), CancellationToken.None);
+
+        (await ReadContentAsync(response)).Should().BeEquivalentTo(pdfBytes);
+    }
+
+    [Fact]
+    public async Task Handle_OffsetFlagOn_CarrierUnresolvable_ReturnsPdfUnchanged()
+    {
+        var pdfBytes = CreatePdf(pageCount: 1);
+        SetupCarrier(null);
+        SetupLabelPdf(pdfBytes);
+        SetupOffsetFlags(FeatureFlagKeys.LabelOffsetLeft);
+
+        var response = await CreateHandler().Handle(Request(), CancellationToken.None);
+
+        (await ReadContentAsync(response)).Should().BeEquivalentTo(pdfBytes);
+    }
+
+    [Fact]
+    public async Task Handle_OffsetFlagOn_OrderHasNoShippingMethod_ReturnsPdfUnchanged()
+    {
+        var pdfBytes = CreatePdf(pageCount: 1);
+        _orderShippingSource
+            .Setup(s => s.GetShippingMethodGuidAsync(OrderCode, It.IsAny<CancellationToken>()))
+            .ReturnsAsync((string?)null);
+        SetupLabelPdf(pdfBytes);
+        SetupOffsetFlags(FeatureFlagKeys.LabelOffsetLeft);
+
+        var response = await CreateHandler().Handle(Request(), CancellationToken.None);
+
+        (await ReadContentAsync(response)).Should().BeEquivalentTo(pdfBytes);
+    }
+
+    [Fact]
+    public async Task Handle_OffsetFlagOn_CarrierLookupThrows_ReturnsPdfUnchangedAndWarns()
+    {
+        var pdfBytes = CreatePdf(pageCount: 1);
+        _orderShippingSource
+            .Setup(s => s.GetShippingMethodGuidAsync(OrderCode, It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new HttpRequestException("shoptet down"));
+        SetupLabelPdf(pdfBytes);
+        SetupOffsetFlags(FeatureFlagKeys.LabelOffsetLeft);
+
+        var response = await CreateHandler().Handle(Request(), CancellationToken.None);
+
+        response.Success.Should().BeTrue();
+        (await ReadContentAsync(response)).Should().BeEquivalentTo(pdfBytes);
+        VerifyLogged(LogLevel.Warning, Times.Once());
+    }
+
+    [Fact]
+    public async Task Handle_AllOffsetFlagsOff_DoesNotLookUpCarrier()
+    {
+        SetupLabelPdf(CreatePdf(pageCount: 1));
+        SetupOffsetFlags();
+
+        await CreateHandler().Handle(Request(), CancellationToken.None);
+
+        _orderShippingSource.Verify(
+            s => s.GetShippingMethodGuidAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task Handle_OppositeFlagsCancelOut_DoesNotLookUpCarrier()
+    {
+        SetupLabelPdf(CreatePdf(pageCount: 1));
+        SetupOffsetFlags(FeatureFlagKeys.LabelOffsetLeft, FeatureFlagKeys.LabelOffsetRight);
+
+        await CreateHandler().Handle(Request(), CancellationToken.None);
+
+        _orderShippingSource.Verify(
+            s => s.GetShippingMethodGuidAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]

@@ -34,19 +34,19 @@ public static class FeatureFlagKeys
     public const string LabelPrintingEnabled = "is-label-printing-enabled";
 
     /// <summary>
-    /// When on, every shipping-label PDF served to the packing desk is moved 10 mm to the left
-    /// before printing. The four direction flags add up (left + up = diagonal, left + right = none);
+    /// When on, PPL and Zásilkovna shipping-label PDFs served to the packing desk are moved 10 mm to the
+    /// left before printing (other carriers are untouched). The four direction flags add up (left + up = diagonal, left + right = none);
     /// they exist to find out at the Zebra which direction actually fixes the label placement.
     /// </summary>
     public const string LabelOffsetLeft = "is-label-offset-left-enabled";
 
-    /// <summary>When on, every shipping-label PDF is moved 10 mm to the right. See <see cref="LabelOffsetLeft"/>.</summary>
+    /// <summary>When on, PPL and Zásilkovna label PDFs are moved 10 mm to the right. See <see cref="LabelOffsetLeft"/>.</summary>
     public const string LabelOffsetRight = "is-label-offset-right-enabled";
 
-    /// <summary>When on, every shipping-label PDF is moved 10 mm up. See <see cref="LabelOffsetLeft"/>.</summary>
+    /// <summary>When on, PPL and Zásilkovna label PDFs are moved 10 mm up. See <see cref="LabelOffsetLeft"/>.</summary>
     public const string LabelOffsetUp = "is-label-offset-up-enabled";
 
-    /// <summary>When on, every shipping-label PDF is moved 10 mm down. See <see cref="LabelOffsetLeft"/>.</summary>
+    /// <summary>When on, PPL and Zásilkovna label PDFs are moved 10 mm down. See <see cref="LabelOffsetLeft"/>.</summary>
     public const string LabelOffsetDown = "is-label-offset-down-enabled";
 
     /// <summary>
