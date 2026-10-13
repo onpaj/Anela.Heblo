@@ -5,6 +5,12 @@ public interface IEshopOrderClient
     Task<int> GetOrderStatusIdAsync(string orderCode, CancellationToken ct = default);
     Task UpdateStatusAsync(string orderCode, int statusId, CancellationToken ct = default);
     /// <summary>
+    /// Changes the order status without the e-mail and SMS the status may be set up to send to the
+    /// customer (Shoptet <c>suppressEmailSending</c> / <c>suppressSmsSending</c>). Linked documents
+    /// are still generated as for a normal status change.
+    /// </summary>
+    Task UpdateStatusWithoutNotificationsAsync(string orderCode, int statusId, CancellationToken ct = default);
+    /// <summary>
     /// Returns the current internal (staff-facing) remark for the given order,
     /// as returned by GET /api/orders/{code}?include=notes → data.order.notes.eshopRemark.
     /// Returns an empty string if Shoptet sends null or the notes object is absent.

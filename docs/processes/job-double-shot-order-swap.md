@@ -67,8 +67,10 @@ The real side effect is switched **off by default**: until feature flag
    - `DELETE /api/orders/{code}/item/{vItemId}`.
 5. Held orders only (detail status = hold status): when the order holds no V line any more (all
    planned swaps succeeded, no line skipped), re-read the status (`GET /api/orders/{code}`) and,
-   if it is still the hold status, `PATCH /api/orders/{code}/status` to
-   `ShoptetOrders:DoubleShotSwapReleaseStatusId` (-1 Nová). Otherwise the order stays held.
+   if it is still the hold status, `PATCH /api/orders/{code}/status?suppressEmailSending=true&suppressSmsSending=true`
+   to `ShoptetOrders:DoubleShotSwapReleaseStatusId` (-1 Nová), so the customer gets no e-mail or
+   SMS for the round trip (documents linked to the status are still generated). Otherwise the
+   order stays held.
 6. If at least one swap completed: `PATCH /api/orders/{code}/notes` appends to `eshopRemark`
    `Automaticky prohozeno: SA015030V → SA015030S (2 ks); ...` (Unicode arrow, as the code emits).
 7. Log a summary: orders scanned, orders skipped as not eligible, lines swapped / healed /
@@ -153,6 +155,10 @@ runtime in the admin UI (table `FeatureFlagOverrides`).
 - A listing call that fails (429/5xx; the order client has no retry) hides that V code's orders
   for the run; the summary's failed-listings count and Warning level surface it.
 - A missing S set surfaces as a logged 422 and the V line stays; nothing is written for it.
+- The suppress query parameters come from the Shoptet OpenAPI spec and were not exercised on a
+  live store; the first real release should be checked for a missing customer e-mail/SMS.
+- The hold step itself (add-on moving the order into 23) is the add-on's status change: its own
+  e-mail/SMS settings decide whether the customer is notified there, not Heblo.
 - Payment during hold (unverified): if a payment arrives while an order is held, it is unknown
   whether the add-on re-processes it after the release to Nová, or moves it out of hold early
   (then it is swapped by the plain sweep but not released). Check with a test order after rollout.

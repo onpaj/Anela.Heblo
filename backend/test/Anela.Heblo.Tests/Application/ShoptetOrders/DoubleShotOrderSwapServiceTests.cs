@@ -56,7 +56,7 @@ public class DoubleShotOrderSwapServiceTests
         _orders.Setup(o => o.GetOrderStatusIdAsync(code, It.IsAny<CancellationToken>())).ReturnsAsync(status);
 
     private void AcceptStatusUpdates() =>
-        _orders.Setup(o => o.UpdateStatusAsync(It.IsAny<string>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
+        _orders.Setup(o => o.UpdateStatusWithoutNotificationsAsync(It.IsAny<string>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
 
     private void Detail(string code, int status, params EshopOrderLine[] lines) =>
@@ -360,7 +360,7 @@ public class DoubleShotOrderSwapServiceTests
             .Callback(() => calls.Add("delete")).Returns(Task.CompletedTask);
         _orders.Setup(o => o.AppendEshopRemarkAsync("126000050", It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .Callback(() => calls.Add("note")).Returns(Task.CompletedTask);
-        _orders.Setup(o => o.UpdateStatusAsync("126000050", -1, It.IsAny<CancellationToken>()))
+        _orders.Setup(o => o.UpdateStatusWithoutNotificationsAsync("126000050", -1, It.IsAny<CancellationToken>()))
             .Callback(() => calls.Add("release -1")).Returns(Task.CompletedTask);
         var sut = CreateSut(holdStatusId: HoldStatus);
 
@@ -385,7 +385,7 @@ public class DoubleShotOrderSwapServiceTests
 
         var summary = await sut.SweepAsync(applyChanges: true);
 
-        _orders.Verify(o => o.UpdateStatusAsync("126000050", -1, It.IsAny<CancellationToken>()), Times.Once);
+        _orders.Verify(o => o.UpdateStatusWithoutNotificationsAsync("126000050", -1, It.IsAny<CancellationToken>()), Times.Once);
         summary.OrdersReleased.Should().Be(1);
     }
 
@@ -407,7 +407,7 @@ public class DoubleShotOrderSwapServiceTests
 
         await sut.SweepAsync(applyChanges: true);
 
-        _orders.Verify(o => o.UpdateStatusAsync("126000050", 32, It.IsAny<CancellationToken>()), Times.Once);
+        _orders.Verify(o => o.UpdateStatusWithoutNotificationsAsync("126000050", 32, It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
@@ -424,7 +424,7 @@ public class DoubleShotOrderSwapServiceTests
         var summary = await sut.SweepAsync(applyChanges: true);
 
         // Strict mock: UpdateStatusAsync has no setup, so a release attempt would fail the order.
-        _orders.Verify(o => o.UpdateStatusAsync(It.IsAny<string>(), It.IsAny<int>(), It.IsAny<CancellationToken>()), Times.Never);
+        _orders.Verify(o => o.UpdateStatusWithoutNotificationsAsync(It.IsAny<string>(), It.IsAny<int>(), It.IsAny<CancellationToken>()), Times.Never);
         summary.OrdersFailed.Should().Be(0);
         summary.OrdersStillHeld.Should().Be(1);
         summary.OrdersReleased.Should().Be(0);
@@ -440,7 +440,7 @@ public class DoubleShotOrderSwapServiceTests
 
         var summary = await sut.SweepAsync(applyChanges: true);
 
-        _orders.Verify(o => o.UpdateStatusAsync(It.IsAny<string>(), It.IsAny<int>(), It.IsAny<CancellationToken>()), Times.Never);
+        _orders.Verify(o => o.UpdateStatusWithoutNotificationsAsync(It.IsAny<string>(), It.IsAny<int>(), It.IsAny<CancellationToken>()), Times.Never);
         summary.OrdersFailed.Should().Be(0);
         summary.OrdersStillHeld.Should().Be(1);
     }
@@ -457,7 +457,7 @@ public class DoubleShotOrderSwapServiceTests
 
         var summary = await sut.SweepAsync(applyChanges: true);
 
-        _orders.Verify(o => o.UpdateStatusAsync(It.IsAny<string>(), It.IsAny<int>(), It.IsAny<CancellationToken>()), Times.Never);
+        _orders.Verify(o => o.UpdateStatusWithoutNotificationsAsync(It.IsAny<string>(), It.IsAny<int>(), It.IsAny<CancellationToken>()), Times.Never);
         summary.LinesSwapped.Should().Be(1);
         summary.OrdersReleased.Should().Be(0);
         summary.OrdersStillHeld.Should().Be(0);

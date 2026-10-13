@@ -144,6 +144,44 @@ public class ShoptetOrderClientTests
     }
 
     [Fact]
+    public async Task UpdateStatusWithoutNotificationsAsync_SuppressesEmailAndSms_AndSendsStatusId()
+    {
+        HttpRequestMessage? sent = null;
+        string? body = null;
+        var client = BuildClient(req =>
+        {
+            sent = req;
+            body = req.Content!.ReadAsStringAsync().GetAwaiter().GetResult();
+            return Json(new { data = new { } });
+        });
+
+        await client.UpdateStatusWithoutNotificationsAsync("126000050", -1);
+
+        sent!.Method.Should().Be(HttpMethod.Patch);
+        sent.RequestUri!.AbsolutePath.Should().Be("/api/orders/126000050/status");
+        var query = System.Web.HttpUtility.ParseQueryString(sent.RequestUri.Query);
+        query["suppressEmailSending"].Should().Be("true");
+        query["suppressSmsSending"].Should().Be("true");
+        query["suppressDocumentGeneration"].Should().BeNull();
+        using var json = JsonDocument.Parse(body!);
+        json.RootElement.GetProperty("data").GetProperty("statusId").GetInt32().Should().Be(-1);
+    }
+
+    [Fact]
+    public async Task UpdateStatusWithoutNotificationsAsync_Throws_WhenShoptetRejects()
+    {
+        var client = BuildClient(_ => new HttpResponseMessage(HttpStatusCode.UnprocessableEntity)
+        {
+            Content = new StringContent("{\"errors\":[{\"errorCode\":\"invalid-request-data\",\"message\":\"bad\"}]}"),
+        });
+
+        var act = () => client.UpdateStatusWithoutNotificationsAsync("126000050", -1);
+
+        (await act.Should().ThrowAsync<HttpRequestException>())
+            .Which.StatusCode.Should().Be(HttpStatusCode.UnprocessableEntity);
+    }
+
+    [Fact]
     public async Task ListOrdersByStatusAsync_ParsesBasicFormatCreationTime()
     {
         var client = BuildClient(_ => Json(new

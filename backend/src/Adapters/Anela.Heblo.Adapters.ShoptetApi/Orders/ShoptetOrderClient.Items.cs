@@ -94,6 +94,15 @@ public partial class ShoptetOrderClient
         await EnsureShoptetSuccessAsync(response, "DELETE", path, ct);
     }
 
+    public async Task UpdateStatusWithoutNotificationsAsync(string orderCode, int statusId, CancellationToken ct = default)
+    {
+        var path = $"/api/orders/{Uri.EscapeDataString(orderCode)}/status?suppressEmailSending=true&suppressSmsSending=true";
+        var body = new UpdateStatusRequest { Data = new UpdateStatusData { StatusId = statusId } };
+
+        var response = await _http.PatchAsJsonAsync(path, body, JsonOptions, ct);
+        await EnsureShoptetSuccessAsync(response, "PATCH", path, ct);
+    }
+
     private static EshopOrderLine MapLine(ShoptetOrderLine line) =>
         new()
         {

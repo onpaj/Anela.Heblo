@@ -252,6 +252,7 @@ public sealed class DoubleShotOrderSwapService : IDoubleShotOrderSwapService
 
     /// <summary>Moves a held order that no longer holds a V line to the release status, but only if it
     /// is still in the hold status: a status someone else set in the meantime is never overwritten.
+    /// The change suppresses the status's customer e-mail and SMS.
     /// A failed release is retried next run (the order is clean, so it is only re-checked).</summary>
     private async Task<ReleaseResult> TryReleaseAsync(string orderCode, CancellationToken ct)
     {
@@ -267,7 +268,8 @@ public sealed class DoubleShotOrderSwapService : IDoubleShotOrderSwapService
                 return ReleaseResult.LeftHold;
             }
 
-            await _orderClient.UpdateStatusAsync(orderCode, releaseStatusId, ct);
+            // The customer already got the order confirmation; the hold round trip must stay silent.
+            await _orderClient.UpdateStatusWithoutNotificationsAsync(orderCode, releaseStatusId, ct);
         }
         catch (Exception ex) when (!ct.IsCancellationRequested)
         {
