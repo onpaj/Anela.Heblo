@@ -287,6 +287,10 @@ Agent-facing catalog of what Heblo does, grouped by module. Each module has an o
 - [feed-purchase-price-recalculation](feed-purchase-price-recalculation.md) (feed) — Nightly job that keeps the Flexi price list purchase price (ceník nakupCena) right - materials and goods take their average stock price, then Flexi rolls the BoM prices up through semi-products to products and sets. Related: calc-margins
 - [flow-purchase-order](flow-purchase-order.md) (workflow) — Buyers record purchase orders to suppliers in Heblo (Draft → In transit → Completed, plus an invoice-received flag); open order lines become the "Ordered" stock that purchase and manufacturing planning count on. Related: calc-purchase-stock-analysis
 
+## reporting
+
+[module-reporting](module-reporting.md) — Read-only access for Claude (Heblo MCP) to the month-grain reporting views over GA4 traffic, Shoptet orders and Flexi costs, gated by one permission per source.
+
 ## shipment-labels
 
 [module-shipment-labels](module-shipment-labels.md) — Heblo's gateway to Shoptet shipments — creates carrier shipments for packed orders, reads labels and tracking numbers, cancels shipments and reports deliveries; used by the packing desk and the order-completion job.
