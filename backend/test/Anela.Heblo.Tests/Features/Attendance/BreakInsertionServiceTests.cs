@@ -40,6 +40,7 @@ public class BreakInsertionServiceTests
             _client.Object,
             Options.Create(options),
             timeProvider.Object,
+            new BreakInsertionRunGate(),
             logger ?? NullLogger<BreakInsertionService>.Instance);
     }
 
@@ -94,7 +95,7 @@ public class BreakInsertionServiceTests
                 && r.To == "2026-08-03T12:00:00"
                 && r.Billable == false
                 && r.ExternalKey == $"autobreak-{Worker}-2026-08-03"),
-            true,
+            false,
             It.IsAny<CancellationToken>()), Times.Once);
     }
 
@@ -147,28 +148,6 @@ public class BreakInsertionServiceTests
         _client.Verify(c => c.GetPeopleAsync(It.IsAny<CancellationToken>()), Times.Never);
         _client.Verify(c => c.GetTimeTrackingAsync(
             It.IsAny<DateOnly>(), It.IsAny<DateOnly>(), It.IsAny<CancellationToken>()), Times.Never);
-    }
-
-    [Fact]
-    public async Task SkipsDay_WhenAnyBreakAlreadyExists()
-    {
-        var existingBreak = new LogetoTimeEntry
-        {
-            Guid = Guid.NewGuid(),
-            Person = Worker,
-            Date = Day,
-            Activity = BreakActivity,
-            From = new DateTimeOffset(2026, 8, 3, 12, 0, 0, TimeSpan.Zero),
-            To = new DateTimeOffset(2026, 8, 3, 12, 10, 0, TimeSpan.Zero)
-        };
-        SetupDefaults(WorkEntry(8, 0, 16, 30), existingBreak);
-
-        var summary = await CreateService().RunAsync(CancellationToken.None);
-
-        summary.BreaksInserted.Should().Be(0);
-        summary.SkippedExistingBreak.Should().Be(1);
-        _client.Verify(c => c.CreateTimeEntryAsync(
-            It.IsAny<LogetoTimeEntryRequest>(), It.IsAny<bool>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]
@@ -406,7 +385,7 @@ public class BreakInsertionServiceTests
                 r.Date == Today
                 && r.From == "2026-08-04T11:30:00"
                 && r.To == "2026-08-04T12:00:00"),
-            true,
+            false,
             It.IsAny<CancellationToken>()), Times.Once);
     }
 
@@ -425,10 +404,11 @@ public class BreakInsertionServiceTests
                 r.Date == Day
                 && r.From == "2026-08-03T11:30:00" // preferred window sits strictly inside the morning shift
                 && r.To == "2026-08-03T12:00:00"),
-            true,
+            false,
             It.IsAny<CancellationToken>()), Times.Once);
         _client.Verify(c => c.CreateTimeEntryAsync(
-            It.IsAny<LogetoTimeEntryRequest>(), It.IsAny<bool>(), It.IsAny<CancellationToken>()), Times.Once);
+            It.Is<LogetoTimeEntryRequest>(r => r.Activity == BreakActivity),
+            It.IsAny<bool>(), It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
@@ -447,7 +427,7 @@ public class BreakInsertionServiceTests
                 r.Date == Day
                 && r.From == "2026-08-03T08:45:00"
                 && r.To == "2026-08-03T09:15:00"),
-            true,
+            false,
             It.IsAny<CancellationToken>()), Times.Once);
     }
 
@@ -528,5 +508,434 @@ public class BreakInsertionServiceTests
         // the default StartDate of 2026-08-01.
         _client.Verify(c => c.GetTimeTrackingAsync(
             new DateOnly(2026, 8, 1), new DateOnly(2026, 8, 5), It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    // --- recreating the split -----------------------------------------------------------------
+    //
+    // Logeto's phone app never picks up a record rewritten through the API — no API write moves
+    // TimestampChanged — so the work around a break is recreated as brand-new records and the
+    // originals deleted, instead of being split in place.
+
+    private static readonly string OwnBreakKey = $"autobreak-{Worker}-2026-08-03";
+
+    private static string PieceKey(string startHhmm, LogetoTimeEntry source) =>
+        $"{OwnBreakKey}-{startHhmm}-{source.Guid.ToString("N")[..8]}";
+
+    private static LogetoTimeEntry KeylessWork(int fromHour, int fromMin, int toHour, int toMin) =>
+        WorkEntry(fromHour, fromMin, toHour, toMin);
+
+    private static LogetoTimeEntry KeyedWork(int fromHour, int fromMin, int toHour, int toMin, string key) => new()
+    {
+        Guid = Guid.NewGuid(),
+        Person = Worker,
+        Date = Day,
+        Activity = WorkActivity,
+        ExternalKey = key,
+        From = new DateTimeOffset(2026, 8, 3, fromHour, fromMin, 0, TimeSpan.Zero),
+        To = new DateTimeOffset(2026, 8, 3, toHour, toMin, 0, TimeSpan.Zero)
+    };
+
+    private static LogetoTimeEntry OwnBreak(int fromHour, int fromMin, int toHour, int toMin) =>
+        BreakEntryOnDay(fromHour, fromMin, toHour, toMin, OwnBreakKey);
+
+    private static LogetoTimeEntry ManualBreak(int fromHour, int fromMin, int toHour, int toMin) =>
+        BreakEntryOnDay(fromHour, fromMin, toHour, toMin, key: null);
+
+    private static LogetoTimeEntry BreakEntryOnDay(
+        int fromHour, int fromMin, int toHour, int toMin, string? key) => new()
+        {
+            Guid = Guid.NewGuid(),
+            Person = Worker,
+            Date = Day,
+            Activity = BreakActivity,
+            ExternalKey = key,
+            From = new DateTimeOffset(2026, 8, 3, fromHour, fromMin, 0, TimeSpan.Zero),
+            To = new DateTimeOffset(2026, 8, 3, toHour, toMin, 0, TimeSpan.Zero)
+        };
+
+    /// <summary>Records every create and delete in call order, so tests can assert sequencing.</summary>
+    private List<string> RecordWrites()
+    {
+        var calls = new List<string>();
+        _client.Setup(c => c.CreateTimeEntryAsync(
+                It.IsAny<LogetoTimeEntryRequest>(), It.IsAny<bool>(), It.IsAny<CancellationToken>()))
+            .Callback<LogetoTimeEntryRequest, bool, CancellationToken>((r, _, _) =>
+                calls.Add($"create {r.From?[11..16]}-{r.To?[11..16]} {r.ExternalKey}"))
+            .Returns(Task.CompletedTask);
+        _client.Setup(c => c.DeleteTimeEntryAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
+            .Callback<Guid, CancellationToken>((g, _) => calls.Add($"delete {g}"))
+            .Returns(Task.CompletedTask);
+        return calls;
+    }
+
+    [Fact]
+    public async Task RecreatesTheWorkAroundANewBreak_CreatingEverythingBeforeDeletingTheOriginal()
+    {
+        // Arrange
+        var original = KeylessWork(8, 0, 16, 30);
+        SetupDefaults(original);
+        var calls = RecordWrites();
+
+        // Act
+        var summary = await CreateService().RunAsync(CancellationToken.None);
+
+        // Assert
+        summary.BreaksInserted.Should().Be(1);
+        summary.RecordsRecreated.Should().Be(1);
+        calls.Should().Equal(
+            $"create 11:30-12:00 {OwnBreakKey}",
+            $"create 08:00-11:30 {PieceKey("0800", original)}",
+            $"create 12:00-16:30 {PieceKey("1200", original)}",
+            $"delete {original.Guid}");
+    }
+
+    [Fact]
+    public async Task NeverAsksLogetoToMerge_SinceAMergeRewritesRecordsInPlace()
+    {
+        // Arrange
+        SetupDefaults(KeylessWork(8, 0, 16, 30));
+        RecordWrites();
+
+        // Act
+        await CreateService().RunAsync(CancellationToken.None);
+
+        // Assert
+        _client.Verify(c => c.CreateTimeEntryAsync(
+            It.IsAny<LogetoTimeEntryRequest>(), true, It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task CopiesTheOriginalsFields_IntoTheRecreatedRecords()
+    {
+        // Arrange
+        var contract = Guid.NewGuid();
+        var subcontract = Guid.NewGuid();
+        var original = new LogetoTimeEntry
+        {
+            Guid = Guid.NewGuid(),
+            Person = Worker,
+            Date = Day,
+            Activity = WorkActivity,
+            From = new DateTimeOffset(2026, 8, 3, 8, 0, 0, TimeSpan.Zero),
+            To = new DateTimeOffset(2026, 8, 3, 16, 30, 0, TimeSpan.Zero),
+            Billable = true,
+            Description = "Ruční výroba",
+            Contract = contract,
+            Subcontract = subcontract
+        };
+        SetupDefaults(original);
+        RecordWrites();
+
+        // Act
+        await CreateService().RunAsync(CancellationToken.None);
+
+        // Assert
+        _client.Verify(c => c.CreateTimeEntryAsync(
+            It.Is<LogetoTimeEntryRequest>(r =>
+                r.Person == Worker
+                && r.Activity == WorkActivity
+                && r.Date == Day
+                && r.From == "2026-08-03T12:00:00"
+                && r.To == "2026-08-03T16:30:00"
+                && r.Billable
+                && r.Description == "Ruční výroba"
+                && r.Contract == contract
+                && r.Subcontract == subcontract
+                && r.ExternalKey == PieceKey("1200", original)),
+            false,
+            It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task KeepsTheOriginal_WhenCreatingAReplacementFails()
+    {
+        // Arrange — deleting before every replacement exists would lose worked time.
+        var original = KeylessWork(8, 0, 16, 30);
+        SetupDefaults(original);
+        RecordWrites();
+        _client.Setup(c => c.CreateTimeEntryAsync(
+                It.Is<LogetoTimeEntryRequest>(r => r.ExternalKey == PieceKey("1200", original)),
+                It.IsAny<bool>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new InvalidOperationException("boom"));
+
+        // Act
+        var summary = await CreateService().RunAsync(CancellationToken.None);
+
+        // Assert — the break is in; the day is left for the next run to finish, not counted as a failed insert.
+        summary.BreaksInserted.Should().Be(1);
+        summary.RecreateFailed.Should().Be(1);
+        summary.Failed.Should().Be(0);
+        _client.Verify(c => c.DeleteTimeEntryAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task RecreatesBothHalves_OfADaySplitByAnEarlierMergeRun()
+    {
+        // Arrange — every day this job split with merge=true looks like this, and phones still
+        // show the pre-split record because neither half ever moved TimestampChanged.
+        var before = KeylessWork(6, 23, 11, 30);
+        var after = KeylessWork(12, 0, 13, 32);
+        SetupDefaults(before, OwnBreak(11, 30, 12, 0), after);
+        var calls = RecordWrites();
+
+        // Act
+        var summary = await CreateService().RunAsync(CancellationToken.None);
+
+        // Assert
+        summary.BreaksInserted.Should().Be(0);
+        summary.DaysHealed.Should().Be(1);
+        summary.RecordsRecreated.Should().Be(2);
+        calls.Should().Equal(
+            $"create 06:23-11:30 {PieceKey("0623", before)}",
+            $"create 12:00-13:32 {PieceKey("1200", after)}",
+            $"delete {before.Guid}",
+            $"delete {after.Guid}");
+    }
+
+    [Fact]
+    public async Task FinishesAnInterruptedRun_WithoutRecreatingWhatAlreadyExists()
+    {
+        // Arrange — the break and the first replacement landed, then the run died.
+        var original = KeylessWork(8, 0, 16, 30);
+        SetupDefaults(original, OwnBreak(11, 30, 12, 0), KeyedWork(8, 0, 11, 30, PieceKey("0800", original)));
+        var calls = RecordWrites();
+
+        // Act
+        var summary = await CreateService().RunAsync(CancellationToken.None);
+
+        // Assert
+        summary.DaysHealed.Should().Be(1);
+        calls.Should().Equal(
+            $"create 12:00-16:30 {PieceKey("1200", original)}",
+            $"delete {original.Guid}");
+    }
+
+    [Fact]
+    public async Task LeavesADayAlone_OnceItsWorkHasBeenRecreated()
+    {
+        // Arrange — our own replacements border the break; only one cut into by a break is redone.
+        SetupDefaults(
+            KeyedWork(8, 0, 11, 30, $"{OwnBreakKey}-0800-0a1b2c3d"),
+            OwnBreak(11, 30, 12, 0),
+            KeyedWork(12, 0, 16, 30, $"{OwnBreakKey}-1200-0a1b2c3d"));
+        var calls = RecordWrites();
+
+        // Act
+        var summary = await CreateService().RunAsync(CancellationToken.None);
+
+        // Assert
+        summary.SkippedExistingBreak.Should().Be(1);
+        summary.DaysHealed.Should().Be(0);
+        calls.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task DoesNotTouchADay_WhoseOnlyBreakTheWorkerEnteredThemselves()
+    {
+        // Arrange
+        SetupDefaults(KeylessWork(8, 0, 12, 0), ManualBreak(12, 0, 12, 30), KeylessWork(12, 30, 16, 30));
+        var calls = RecordWrites();
+
+        // Act
+        var summary = await CreateService().RunAsync(CancellationToken.None);
+
+        // Assert
+        summary.SkippedExistingBreak.Should().Be(1);
+        calls.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task RecreatesOnlyTheWorkAroundItsOwnBreak_WhenTheDayAlsoCarriesAManualOne()
+    {
+        // Arrange
+        var beforeOwn = KeylessWork(6, 0, 11, 30);
+        var betweenBreaks = KeylessWork(12, 0, 15, 0);
+        var afterManual = KeylessWork(15, 15, 17, 0);
+        SetupDefaults(beforeOwn, OwnBreak(11, 30, 12, 0), betweenBreaks, ManualBreak(15, 0, 15, 15), afterManual);
+        var calls = RecordWrites();
+
+        // Act
+        await CreateService().RunAsync(CancellationToken.None);
+
+        // Assert
+        calls.Should().Equal(
+            $"create 06:00-11:30 {PieceKey("0600", beforeOwn)}",
+            $"create 12:00-15:00 {PieceKey("1200", betweenBreaks)}",
+            $"delete {beforeOwn.Guid}",
+            $"delete {betweenBreaks.Guid}");
+    }
+
+    [Fact]
+    public async Task LeavesWorkAwayFromTheBreak_AndRecordsOwnedByAnotherIntegration_Alone()
+    {
+        // Arrange
+        var before = KeylessWork(6, 0, 11, 30);
+        var foreignKeyed = KeyedWork(12, 0, 13, 0, "payroll-42");
+        var evening = KeylessWork(16, 0, 19, 0);
+        SetupDefaults(before, OwnBreak(11, 30, 12, 0), foreignKeyed, evening);
+        var calls = RecordWrites();
+
+        // Act
+        await CreateService().RunAsync(CancellationToken.None);
+
+        // Assert
+        calls.Should().Equal(
+            $"create 06:00-11:30 {PieceKey("0600", before)}",
+            $"delete {before.Guid}");
+    }
+
+    [Fact]
+    public async Task RecreatesItsOwnReplacement_WhenABreakIsReinsertedIntoIt()
+    {
+        // Arrange — the worker deleted our break, so tonight's break lands inside a record we
+        // created last time. It must be recreated like any other, or the day overlaps for good.
+        var morning = KeyedWork(8, 0, 11, 30, $"{OwnBreakKey}-0800-0a1b2c3d");
+        var afternoon = KeyedWork(12, 0, 16, 30, $"{OwnBreakKey}-1200-0a1b2c3d");
+        SetupDefaults(morning, afternoon);
+        var calls = RecordWrites();
+
+        // Act
+        var summary = await CreateService().RunAsync(CancellationToken.None);
+
+        // Assert — the preferred window straddles the gap, so the break centres in the afternoon.
+        summary.BreaksInserted.Should().Be(1);
+        calls.Should().Equal(
+            $"create 14:00-14:30 {OwnBreakKey}",
+            $"create 12:00-14:00 {PieceKey("1200", afternoon)}",
+            $"create 14:30-16:30 {PieceKey("1430", afternoon)}",
+            $"delete {afternoon.Guid}");
+    }
+
+    [Fact]
+    public async Task SkipsDay_WhenTheBreakWouldLandOnARecordAnotherIntegrationOwns()
+    {
+        // Arrange — we may not recreate a foreign-keyed record, so a break over it would just overlap.
+        SetupDefaults(KeyedWork(8, 0, 16, 30, "payroll-42"));
+        var calls = RecordWrites();
+
+        // Act
+        var summary = await CreateService().RunAsync(CancellationToken.None);
+
+        // Assert
+        summary.BreaksInserted.Should().Be(0);
+        summary.SkippedNoSlot.Should().Be(1);
+        calls.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task GivesEachSourceItsOwnReplacementKey_WhenTwoOverlappingRecordsSpanTheBreak()
+    {
+        // Arrange — both tails start at the break's end; a start-only key would collide and a
+        // rerun would then skip one tail and delete its original, losing worked time.
+        var first = KeylessWork(8, 0, 13, 0);
+        var second = KeylessWork(9, 0, 15, 0);
+        SetupDefaults(first, second);
+        var calls = RecordWrites();
+
+        // Act
+        await CreateService().RunAsync(CancellationToken.None);
+
+        // Assert
+        calls.Should().Contain($"create 12:00-13:00 {PieceKey("1200", first)}");
+        calls.Should().Contain($"create 12:00-15:00 {PieceKey("1200", second)}");
+    }
+
+    [Fact]
+    public async Task CountsRecreateFailures_SeparatelyFromDaysThatWereAlreadyFine()
+    {
+        // Arrange
+        SetupDefaults(KeylessWork(6, 0, 11, 30), OwnBreak(11, 30, 12, 0));
+        RecordWrites();
+        _client.Setup(c => c.DeleteTimeEntryAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new InvalidOperationException("boom"));
+
+        // Act
+        var summary = await CreateService().RunAsync(CancellationToken.None);
+
+        // Assert
+        summary.RecreateFailed.Should().Be(1);
+        summary.SkippedExistingBreak.Should().Be(0);
+        summary.DaysHealed.Should().Be(0);
+        summary.Failed.Should().Be(0);
+    }
+
+    [Fact]
+    public async Task DeletesNoOriginal_WhenASecondOriginalsReplacementFails()
+    {
+        // Arrange — the first original is fully replaced before the second's create throws.
+        var before = KeylessWork(6, 0, 11, 30);
+        var after = KeylessWork(12, 0, 13, 30);
+        SetupDefaults(before, OwnBreak(11, 30, 12, 0), after);
+        var calls = RecordWrites();
+        _client.Setup(c => c.CreateTimeEntryAsync(
+                It.Is<LogetoTimeEntryRequest>(r => r.ExternalKey == PieceKey("1200", after)),
+                It.IsAny<bool>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new InvalidOperationException("boom"));
+
+        // Act
+        var summary = await CreateService().RunAsync(CancellationToken.None);
+
+        // Assert — nothing is deleted until every replacement exists; the rerun skips the one made.
+        summary.RecreateFailed.Should().Be(1);
+        calls.Should().Equal($"create 06:00-11:30 {PieceKey("0600", before)}");
+    }
+
+    [Fact]
+    public async Task FinishesAPartialDelete_OnTheNextRun_WithoutRecreatingAnything()
+    {
+        // Arrange — both replacements exist and the first original is gone; deleting the second failed.
+        var after = KeylessWork(12, 0, 13, 30);
+        SetupDefaults(
+            KeyedWork(6, 0, 11, 30, $"{OwnBreakKey}-0600-0a1b2c3d"),
+            OwnBreak(11, 30, 12, 0),
+            KeyedWork(12, 0, 13, 30, PieceKey("1200", after)),
+            after);
+        var calls = RecordWrites();
+
+        // Act
+        var summary = await CreateService().RunAsync(CancellationToken.None);
+
+        // Assert
+        summary.DaysHealed.Should().Be(1);
+        summary.RecordsRecreated.Should().Be(1);
+        calls.Should().Equal($"delete {after.Guid}");
+    }
+
+    [Fact]
+    public async Task StopsTheRun_WhenCancelledWhileRecreating_InsteadOfCountingAFailure()
+    {
+        // Arrange
+        using var cts = new CancellationTokenSource();
+        SetupDefaults(KeylessWork(6, 0, 11, 30), OwnBreak(11, 30, 12, 0));
+        RecordWrites();
+        _client.Setup(c => c.CreateTimeEntryAsync(
+                It.IsAny<LogetoTimeEntryRequest>(), It.IsAny<bool>(), It.IsAny<CancellationToken>()))
+            .Callback(() => cts.Cancel())
+            .ThrowsAsync(new TaskCanceledException());
+
+        // Act
+        var act = () => CreateService().RunAsync(cts.Token);
+
+        // Assert
+        await act.Should().ThrowAsync<OperationCanceledException>();
+    }
+
+    [Fact]
+    public async Task StopsTheRun_WhenCancelledWhileInsertingABreak_InsteadOfCountingAFailure()
+    {
+        // Arrange
+        using var cts = new CancellationTokenSource();
+        SetupDefaults(KeylessWork(8, 0, 16, 30));
+        RecordWrites();
+        _client.Setup(c => c.CreateTimeEntryAsync(
+                It.IsAny<LogetoTimeEntryRequest>(), It.IsAny<bool>(), It.IsAny<CancellationToken>()))
+            .Callback(() => cts.Cancel())
+            .ThrowsAsync(new TaskCanceledException());
+
+        // Act
+        var act = () => CreateService().RunAsync(cts.Token);
+
+        // Assert
+        await act.Should().ThrowAsync<OperationCanceledException>();
     }
 }

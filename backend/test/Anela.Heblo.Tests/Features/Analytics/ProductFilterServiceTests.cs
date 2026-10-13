@@ -9,11 +9,12 @@ public class ProductFilterServiceTests
 {
     private readonly ProductFilterService _service = new();
 
-    private static AnalyticsProduct MakeProduct(string name, string? category = null) =>
+    private static AnalyticsProduct MakeProduct(string name, string? category = null, string? nameSuffix = null) =>
         new()
         {
             ProductCode = "TEST",
             ProductName = name,
+            ProductNameSuffix = nameSuffix,
             Type = AnalyticsProductType.Product,
             ProductCategory = category,
             MarginAmount = 0m,
@@ -248,5 +249,31 @@ public class ProductFilterServiceTests
 
         await _service.Awaiting(s => s.FilterProductsAsync(stream, null, null, 10, cancelledToken))
             .Should().ThrowAsync<OperationCanceledException>();
+    }
+
+    [Fact]
+    public void PassesFilters_ProductFilterMatchesNameSuffix_ReturnsTrue()
+    {
+        // Arrange
+        var product = MakeProduct("Hydrolát máta peprná BIO", nameSuffix: "Menthe poivree");
+
+        // Act
+        var result = _service.PassesFilters(product, "menthe", null);
+
+        // Assert
+        result.Should().BeTrue();
+    }
+
+    [Fact]
+    public void PassesFilters_ProductFilterMatchesNeitherNameNorSuffix_ReturnsFalse()
+    {
+        // Arrange
+        var product = MakeProduct("Hydrolát máta peprná BIO", nameSuffix: "Menthe poivree");
+
+        // Act
+        var result = _service.PassesFilters(product, "lavande", null);
+
+        // Assert
+        result.Should().BeFalse();
     }
 }

@@ -18,6 +18,7 @@ namespace Anela.Heblo.Domain.Features.Journal
             string? productCodePrefix,
             IReadOnlyCollection<int>? tagIds,
             string? createdByUserId,
+            bool withoutProducts,
             int pageNumber,
             int pageSize,
             string sortBy,

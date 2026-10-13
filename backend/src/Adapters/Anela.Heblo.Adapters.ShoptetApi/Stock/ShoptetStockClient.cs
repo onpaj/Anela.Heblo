@@ -130,7 +130,8 @@ public class ShoptetStockClient : IEshopStockClient
             return null;
         }
 
-        if (!double.TryParse(item.Amount, NumberStyles.Any, CultureInfo.InvariantCulture, out var amount))
+        var isAmountKnown = double.TryParse(item.Amount, NumberStyles.Any, CultureInfo.InvariantCulture, out var amount);
+        if (!isAmountKnown)
         {
             _logger.LogWarning(
                 "Could not parse Amount '{Amount}' for product {Code} from Shoptet supply response. Defaulting to 0.",
@@ -148,6 +149,7 @@ public class ShoptetStockClient : IEshopStockClient
         {
             Code = item.Code,
             Amount = amount,
+            IsAmountKnown = isAmountKnown,
             Claim = claim,
         };
     }

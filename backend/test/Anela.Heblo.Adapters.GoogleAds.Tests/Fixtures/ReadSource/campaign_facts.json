@@ -1,0 +1,19 @@
+{
+  "results": [
+    {
+      "campaign": { "resourceName": "customers/1234567890/campaigns/111", "id": "111" },
+      "segments": { "date": "2026-10-06" },
+      "metrics": { "impressions": "1200", "clicks": "85", "costMicros": "432100000", "conversions": 4.0, "conversionsValue": 3150.5 }
+    },
+    {
+      "campaign": { "resourceName": "customers/1234567890/campaigns/112", "id": "112" },
+      "segments": { "date": "2026-10-06" },
+      "metrics": { "impressions": "10" }
+    },
+    {
+      "campaign": { "resourceName": "customers/1234567890/campaigns/111", "id": "111" },
+      "segments": { "date": "2026-10-04" },
+      "metrics": { "impressions": "900", "clicks": "60", "costMicros": "300000000", "conversions": 2.0, "conversionsValue": 1500.0 }
+    }
+  ]
+}

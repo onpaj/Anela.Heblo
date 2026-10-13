@@ -1,0 +1,40 @@
+{
+  "feature_id": "feat-4176",
+  "issue_number": 4176,
+  "created_at": "2026-09-14T22:12:32.861489Z",
+  "max_revisions": 3,
+  "phases": {
+    "analyzing": {
+      "status": "completed",
+      "updated_at": "2026-09-14T22:13:59.590872Z"
+    },
+    "architecting": {
+      "status": "completed",
+      "updated_at": "2026-09-14T22:14:35.903053Z"
+    },
+    "designing": {
+      "status": "completed",
+      "updated_at": "2026-09-14T22:15:04.165471Z"
+    },
+    "planning": {
+      "status": "completed",
+      "updated_at": "2026-09-14T22:15:54.813400Z"
+    },
+    "developing": {
+      "status": "in_progress",
+      "updated_at": "2026-09-14T23:18:15.000315Z"
+    },
+    "code-review": {
+      "status": "completed",
+      "updated_at": "2026-09-15T00:19:38.739216Z"
+    }
+  },
+  "tasks": [
+    {
+      "name": "add-getleafletgeneration-notfound-test",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-09-14T23:58:30.536703Z"
+    }
+  ]
+}

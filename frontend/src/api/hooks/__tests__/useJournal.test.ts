@@ -277,6 +277,27 @@ describe("useJournal hooks", () => {
       expect(result.current.data).toEqual(mockSearchResponse);
     });
 
+    it("should pass the withoutProducts flag as the last client argument", async () => {
+      const searchMock = jest.fn().mockResolvedValue({ success: true, entries: [] });
+      mockGetAuthenticatedApiClient.mockReturnValue({
+        journal_SearchJournalEntries: searchMock,
+        baseUrl: "http://localhost:5001",
+      } as any);
+
+      const { result } = renderHook(
+        () => useSearchJournalEntries({ withoutProducts: true }, true),
+        { wrapper: createWrapper },
+      );
+
+      await waitFor(() => {
+        expect(result.current.isSuccess).toBe(true);
+      });
+
+      const args = searchMock.mock.calls[0];
+      expect(args).toHaveLength(11);
+      expect(args[10]).toBe(true);
+    });
+
     it("should auto-refetch when params change while enabled is true", async () => {
       const searchMock = jest.fn().mockResolvedValue({
         success: true,

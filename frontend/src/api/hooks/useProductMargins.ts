@@ -17,6 +17,7 @@ export const useProductMarginsQuery = (
   pageSize: number = 20,
   sortBy?: string,
   sortDescending: boolean = false,
+  onlyWithSales: boolean = true,
 ) => {
   return useQuery<GetProductMarginsResponse, Error>({
     queryKey: [
@@ -28,6 +29,7 @@ export const useProductMarginsQuery = (
       pageSize,
       sortBy,
       sortDescending,
+      onlyWithSales,
     ],
     queryFn: async () => {
       const apiClient = await getAuthenticatedApiClient();
@@ -49,6 +51,7 @@ export const useProductMarginsQuery = (
         pageSize,
         sortBy || null,
         sortDescending,
+        onlyWithSales,
       );
     },
     staleTime: 5 * 60 * 1000, // Consider data stale after 5 minutes

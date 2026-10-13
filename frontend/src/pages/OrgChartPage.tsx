@@ -192,7 +192,7 @@ const OrgChartPage: React.FC = () => {
   };
 
   return (
-    <div className="h-screen bg-gradient-to-br from-indigo-500 to-purple-600 flex flex-col">
+    <div className="h-screen bg-gradient-to-br from-indigo-500 to-purple-600 dark:from-graphite-bg dark:to-graphite-bg flex flex-col">
       {/* Controls - Fixed */}
       <div className="bg-white dark:bg-graphite-surface border-b border-gray-200 dark:border-graphite-border p-4 flex flex-wrap gap-4 items-center shadow-sm dark:shadow-soft-dark">
         <div className="flex items-center gap-2">

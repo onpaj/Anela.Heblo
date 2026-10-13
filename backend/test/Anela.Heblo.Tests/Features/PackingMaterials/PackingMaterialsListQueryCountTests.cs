@@ -7,7 +7,6 @@
 // with the known single-query implementations of those methods, is equivalent to
 // exactly two DB round-trips.
 
-using Anela.Heblo.Application.Features.PackingMaterials.Contracts;
 using Anela.Heblo.Application.Features.PackingMaterials.UseCases.GetPackingMaterialsList;
 using Anela.Heblo.Domain.Features.PackingMaterials;
 using Anela.Heblo.Domain.Features.PackingMaterials.Enums;

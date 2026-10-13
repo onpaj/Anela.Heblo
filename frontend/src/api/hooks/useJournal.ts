@@ -24,6 +24,8 @@ interface SearchJournalParams {
   pageSize?: number;
   sortBy?: string;
   sortDirection?: string;
+  /** Only company-wide entries (no product association). */
+  withoutProducts?: boolean;
 }
 
 export const useJournalEntries = (params: JournalEntriesParams = {}) => {
@@ -70,6 +72,7 @@ export const useSearchJournalEntries = (
         params.pageSize,
         params.sortBy,
         params.sortDirection,
+        params.withoutProducts || undefined,
       );
     },
     enabled,
@@ -208,6 +211,7 @@ export const useJournalEntriesByProduct = (productCode: string) => {
         100, // pageSize - get more entries for detail view
         "entryDate", // sortBy
         "desc", // sortDirection - newest first
+        undefined, // withoutProducts
       );
     },
     enabled: !!productCode,

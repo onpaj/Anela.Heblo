@@ -2,7 +2,6 @@ namespace Anela.Heblo.Application.Features.ShoptetOrders;
 
 public interface IEshopOrderClient
 {
-    Task<string> CreateOrderAsync(CreateEshopOrderRequest request, CancellationToken ct = default);
     Task<int> GetOrderStatusIdAsync(string orderCode, CancellationToken ct = default);
     Task UpdateStatusAsync(string orderCode, int statusId, CancellationToken ct = default);
     /// <summary>
@@ -30,17 +29,12 @@ public interface IEshopOrderClient
     /// </summary>
     Task AppendEshopRemarkAsync(string orderCode, string text, CancellationToken ct = default);
 
-    Task DeleteOrderAsync(string orderCode, CancellationToken ct = default);
-    Task<List<EshopOrderSummary>> GetRecentOrdersAsync(int count = 20, CancellationToken ct = default);
-
     /// <summary>
     /// Returns every order currently in the given Shoptet status, across all pages
     /// (GET /api/orders?statusId={id}, itemsPerPage=50). Maps to the Application-layer
     /// <see cref="EshopOrderSummary"/> (code, externalCode, email, statusId).
     /// </summary>
     Task<List<EshopOrderSummary>> ListOrdersByStatusAsync(int statusId, CancellationToken ct = default);
-
-    Task<List<EshopOrderSummary>> ListByExternalCodePrefixAsync(string prefix, string? emailFilter = null, CancellationToken ct = default);
 
     /// <summary>
     /// Transitions the order to the configured "packed" state

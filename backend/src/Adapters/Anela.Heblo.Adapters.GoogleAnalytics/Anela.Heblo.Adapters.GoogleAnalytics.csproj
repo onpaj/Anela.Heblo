@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>Anela.Heblo.Adapters.GoogleAnalytics</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <!-- The GA4 Data API has only ever shipped as a beta package; there is no stable line. -->
+    <PackageReference Include="Google.Analytics.Data.V1Beta" Version="2.0.0-beta11" />
+    <PackageReference Include="Microsoft.Extensions.Options.ConfigurationExtensions" Version="8.0.0" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\Anela.Heblo.Application\Anela.Heblo.Application.csproj" />
+    <ProjectReference Include="..\..\Anela.Heblo.Persistence.Ga4\Anela.Heblo.Persistence.Ga4.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="Anela.Heblo.Adapters.GoogleAnalytics.Tests" />
+  </ItemGroup>
+</Project>

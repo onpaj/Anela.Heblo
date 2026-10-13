@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { X, AlertCircle, Factory, Loader2 } from "lucide-react";
 import { ConfirmSemiProductManufactureRequest } from "../../api/generated/api-client";
+import { resolveStockShortageMessage } from "./manufactureErrorMessage";
 
 interface ConfirmSemiProductQuantityModalProps {
   isOpen: boolean;
@@ -58,7 +59,7 @@ const ConfirmSemiProductQuantityModal: React.FC<ConfirmSemiProductQuantityModalP
       setActualQuantity("");
       setError("");
     } catch (err) {
-      setError("Chyba při potvrzení množství. Zkuste to prosím znovu.");
+      setError(resolveStockShortageMessage(err) ?? "Chyba při potvrzení množství. Zkuste to prosím znovu.");
       console.error("Error confirming semi-product quantity:", err);
     }
   };

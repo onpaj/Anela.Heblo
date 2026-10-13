@@ -1,0 +1,46 @@
+{
+  "feature_id": "feat-4190",
+  "issue_number": 4190,
+  "created_at": "2026-09-15T07:11:52.546694Z",
+  "max_revisions": 3,
+  "phases": {
+    "analyzing": {
+      "status": "completed",
+      "updated_at": "2026-09-15T07:12:55.069008Z"
+    },
+    "architecting": {
+      "status": "completed",
+      "updated_at": "2026-09-15T07:13:44.064780Z"
+    },
+    "designing": {
+      "status": "completed",
+      "updated_at": "2026-09-15T07:14:04.316569Z"
+    },
+    "planning": {
+      "status": "completed",
+      "updated_at": "2026-09-15T10:14:42.448984Z"
+    },
+    "developing": {
+      "status": "in_progress",
+      "updated_at": "2026-09-15T12:19:03.823508Z"
+    },
+    "code-review": {
+      "status": "completed",
+      "updated_at": "2026-09-15T21:36:34.393288Z"
+    }
+  },
+  "tasks": [
+    {
+      "name": "add-reschedule-domain-method",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-09-15T11:45:14.454723Z"
+    },
+    {
+      "name": "switch-handler-to-reschedule",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-09-15T20:16:14.514904Z"
+    }
+  ]
+}

@@ -1,0 +1,52 @@
+{
+  "feature_id": "feat-4171",
+  "issue_number": 4171,
+  "created_at": "2026-09-14T11:11:04.012265Z",
+  "max_revisions": 3,
+  "phases": {
+    "analyzing": {
+      "status": "completed",
+      "updated_at": "2026-09-14T11:12:35.136651Z"
+    },
+    "architecting": {
+      "status": "completed",
+      "updated_at": "2026-09-14T11:13:51.284294Z"
+    },
+    "designing": {
+      "status": "completed",
+      "updated_at": "2026-09-14T11:14:13.222406Z"
+    },
+    "planning": {
+      "status": "completed",
+      "updated_at": "2026-09-14T11:15:55.695417Z"
+    },
+    "developing": {
+      "status": "in_progress",
+      "updated_at": "2026-09-14T20:16:24.784281Z"
+    },
+    "code-review": {
+      "status": "completed",
+      "updated_at": "2026-09-14T21:36:05.851006Z"
+    }
+  },
+  "tasks": [
+    {
+      "name": "add-transport-box-base-tile-generate-drilldown-filter-tests",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-09-14T12:38:24.487429Z"
+    },
+    {
+      "name": "add-transport-box-base-tile-load-data-async-tests",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-09-14T13:39:35.693325Z"
+    },
+    {
+      "name": "verify-transport-box-base-tile-build-format-and-coverage",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-09-14T21:12:47.891069Z"
+    }
+  ]
+}

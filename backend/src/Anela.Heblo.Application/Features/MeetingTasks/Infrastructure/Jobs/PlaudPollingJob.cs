@@ -19,6 +19,7 @@ public class PlaudPollingJob : IRecurringJob
     public RecurringJobMetadata Metadata { get; } = new()
     {
         JobName = "plaud-polling",
+        Category = RecurringJobCategory.Integrations,
         DisplayName = "Plaud — pull meeting transcripts",
         Description = "Polls Plaud CLI every 5 minutes for completed recordings, extracts action items via Claude, and stores them as proposed tasks awaiting human review.",
         CronExpression = "*/5 * * * *",

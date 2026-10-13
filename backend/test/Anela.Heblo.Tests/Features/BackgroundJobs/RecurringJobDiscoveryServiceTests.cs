@@ -159,6 +159,7 @@ public class RecurringJobDiscoveryServiceTests : IDisposable
         public RecurringJobMetadata Metadata { get; } = new()
         {
             JobName = "test-async-job",
+            Category = RecurringJobCategory.Integrations,
             DisplayName = "Test Async Recurring Job",
             Description = "Test job that returns Task to verify async overload registration",
             CronExpression = "0 0 * * *",

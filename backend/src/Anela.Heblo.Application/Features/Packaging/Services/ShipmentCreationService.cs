@@ -82,6 +82,21 @@ public class ShipmentCreationService : IShipmentCreationService
         {
             createdShipment = await _shipmentClient.CreateShipmentAsync(command, ct);
         }
+        catch (ShoptetShipmentValidationException vex)
+        {
+            // Permanent, non-retryable: Shoptet rejected the recipient/shipment data outright.
+            // Logged at Warning (not Error) — this is an expected, actionable data-quality
+            // condition once this mapping exists, not an infrastructure anomaly. Still visible
+            // in Application Insights (NFR-2).
+            _logger.LogWarning(vex,
+                "Shoptet rejected shipment for order {OrderCode}: {ShoptetMessage}", order.Code, vex.Message);
+            return new ShipmentCreationResult
+            {
+                IsSuccess = false,
+                ErrorCode = ErrorCodes.ShipmentValidationFailed,
+                Params = new Dictionary<string, string> { ["ShoptetMessage"] = vex.Message },
+            };
+        }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to create shipment for order {OrderCode}", order.Code);

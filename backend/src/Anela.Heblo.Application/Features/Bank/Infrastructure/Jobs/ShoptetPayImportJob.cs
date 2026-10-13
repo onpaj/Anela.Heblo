@@ -11,6 +11,7 @@ public sealed class ShoptetPayImportJob : BankImportJobBase
     public override RecurringJobMetadata Metadata { get; } = new()
     {
         JobName = "daily-shoptetpay-czk-import",
+        Category = RecurringJobCategory.Finance,
         DisplayName = "Daily ShoptetPay CZK Import",
         Description = "Imports ShoptetPay CZK payment statements from current day",
         CronExpression = "50 4 * * *",

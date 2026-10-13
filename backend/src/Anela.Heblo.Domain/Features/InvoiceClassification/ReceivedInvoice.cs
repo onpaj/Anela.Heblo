@@ -10,9 +10,21 @@ public class ReceivedInvoice
 
     public string CompanyVat { get; set; } = string.Empty;
 
+    /// <summary>Supplier DIČ (Flexi `dic`). Distinct from <see cref="CompanyVat"/>, which holds the IČ.</summary>
+    public string? SupplierVatId { get; set; }
+
     public DateTime? InvoiceDate { get; set; }
 
+    /// <summary>Flexi `datUcto` — the accounting date the cost belongs to.</summary>
+    public DateTime? AccountingDate { get; set; }
+
     public decimal TotalAmount { get; set; }
+
+    /// <summary>Flexi `sumZklCelkem` — total without VAT in document currency.</summary>
+    public decimal TotalAmountWithoutVat { get; set; }
+
+    /// <summary>Flexi `storno`.</summary>
+    public bool IsCancelled { get; set; }
 
     public string Description { get; set; } = string.Empty;
 

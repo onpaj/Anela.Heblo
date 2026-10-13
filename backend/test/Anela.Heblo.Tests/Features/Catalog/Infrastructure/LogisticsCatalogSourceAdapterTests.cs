@@ -196,7 +196,8 @@ public class LogisticsCatalogSourceAdapterTests
         result!.ProductCode.Should().Be("PROD-1");
         result.Image.Should().Be("product.png");
         result.EshopStock.Should().Be(7m);
-        result.AvailableStock.Should().Be(aggregate.Stock.Available);
+        result.WarehouseStock.Should().Be(12m,
+            "an ERP-primary product reports its ERP figure, without the 2 pcs still in transport");
     }
 
     [Fact]
@@ -208,7 +209,8 @@ public class LogisticsCatalogSourceAdapterTests
             type: ProductType.Product,
             image: "product1.png",
             eshopStock: 7m,
-            erpStock: 12m);
+            erpStock: 12m,
+            transport: 2m);
         var aggregate2 = MakeAggregate(
             code: "PROD-2",
             type: ProductType.Product,
@@ -230,7 +232,8 @@ public class LogisticsCatalogSourceAdapterTests
         result["PROD-1"].ProductCode.Should().Be("PROD-1");
         result["PROD-1"].Image.Should().Be("product1.png");
         result["PROD-1"].EshopStock.Should().Be(7m);
-        result["PROD-1"].AvailableStock.Should().Be(aggregate1.Stock.Available);
+        result["PROD-1"].WarehouseStock.Should().Be(12m,
+            "the batch path reports the ERP figure, without the 2 pcs still in transport");
         result["PROD-2"].ProductCode.Should().Be("PROD-2");
         result["PROD-2"].Image.Should().Be("product2.png");
     }

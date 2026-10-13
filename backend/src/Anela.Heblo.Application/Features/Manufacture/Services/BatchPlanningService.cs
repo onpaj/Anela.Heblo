@@ -69,7 +69,7 @@ public class BatchPlanningService : IBatchPlanningService
             var quantity = fixedProduct.UserFixedQuantity ?? 0;
             fixedProduct.RecommendedUnitsToProduceHumanReadable = quantity;
             fixedProduct.TotalVolumeRequired = quantity * fixedProduct.WeightPerUnit;
-            fixedProduct.FutureStock = fixedProduct.CurrentStock + quantity;
+            fixedProduct.FutureStock = fixedProduct.CurrentStock + fixedProduct.PlannedQuantity + quantity;
             fixedProduct.FutureDaysCoverage = fixedProduct.DailySalesRate > 0
                 ? fixedProduct.FutureStock / fixedProduct.DailySalesRate
                 : double.MaxValue;
@@ -153,7 +153,7 @@ public class BatchPlanningService : IBatchPlanningService
             ProductName = product.ProductName,
             Weight = product.WeightPerUnit, // Volume per unit is the weight in the batch context
             DailySales = product.DailySalesRate,
-            CurrentStock = product.CurrentStock,
+            EffectiveStock = product.CurrentStock + product.PlannedQuantity,
             SuggestedAmount = 0 // Will be set by optimizer
         }).ToList();
 
@@ -177,7 +177,7 @@ public class BatchPlanningService : IBatchPlanningService
             {
                 product.RecommendedUnitsToProduceHumanReadable = (int)variant.SuggestedAmount;
                 product.TotalVolumeRequired = variant.SuggestedAmount * product.WeightPerUnit;
-                product.FutureStock = product.CurrentStock + variant.SuggestedAmount;
+                product.FutureStock = product.CurrentStock + product.PlannedQuantity + variant.SuggestedAmount;
                 product.FutureDaysCoverage = product.DailySalesRate > 0
                     ? product.FutureStock / product.DailySalesRate
                     : double.MaxValue;
@@ -228,7 +228,9 @@ public class BatchPlanningService : IBatchPlanningService
         string? productName = null)
     {
         var dailySalesRate = CalculateDailySalesRate(product, salesRanges, request.SalesMultiplier ?? 1.0);
-        var currentDaysCoverage = dailySalesRate > 0 ? (double)product.Stock.Total / dailySalesRate : 0;
+        var plannedQuantity = (double)product.Stock.Planned;
+        var stockIncludingPlanned = (double)product.Stock.Total + plannedQuantity;
+        var currentDaysCoverage = dailySalesRate > 0 ? stockIncludingPlanned / dailySalesRate : 0;
         var constraint = request.ProductConstraints.FirstOrDefault(c => c.ProductCode == product.ProductCode);
 
         return new BatchPlanItemDto
@@ -237,6 +239,7 @@ public class BatchPlanningService : IBatchPlanningService
             ProductName = productName ?? product.ProductName,
             ProductSize = product.SizeCode ?? "",
             CurrentStock = (double)product.Stock.Total,
+            PlannedQuantity = plannedQuantity,
             DailySalesRate = dailySalesRate,
             CurrentDaysCoverage = currentDaysCoverage,
             WeightPerUnit = product.NetWeight ?? 0,
@@ -327,7 +330,7 @@ public class BatchPlanningService : IBatchPlanningService
         // Set production values - targetProductionUnits is already in pieces/units
         batchPlanItem.RecommendedUnitsToProduceHumanReadable = (int)Math.Round(targetProductionUnits);
         batchPlanItem.TotalVolumeRequired = totalWeight; // Total weight of produced units
-        batchPlanItem.FutureStock = batchPlanItem.CurrentStock + targetProductionUnits; // Stock in units
+        batchPlanItem.FutureStock = batchPlanItem.CurrentStock + batchPlanItem.PlannedQuantity + targetProductionUnits; // Stock in units
         batchPlanItem.FutureDaysCoverage = batchPlanItem.DailySalesRate > 0 ? batchPlanItem.FutureStock / batchPlanItem.DailySalesRate : 0;
         batchPlanItem.OptimizationNote = "Single-phase manufacturing";
 

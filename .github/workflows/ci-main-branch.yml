@@ -557,6 +557,7 @@ jobs:
             --settings \
               ASPNETCORE_ENVIRONMENT=Production \
               WEBSITES_PORT=8080 \
+              WEBSITES_CONTAINER_START_TIME_LIMIT=600 \
               WEBSITES_ENABLE_APP_SERVICE_STORAGE=false \
               DOCKER_REGISTRY_SERVER_URL=https://index.docker.io \
               SCM_DO_BUILD_DURING_DEPLOYMENT=false \

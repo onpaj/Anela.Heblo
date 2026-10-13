@@ -16,6 +16,7 @@ public class LotStockReconciliationDqtJob : IRecurringJob
     public RecurringJobMetadata Metadata { get; } = new()
     {
         JobName = "daily-lot-stock-dqt",
+        Category = RecurringJobCategory.DataQuality,
         DisplayName = "Daily Lot/Stock Reconciliation Data Quality Test",
         Description = "Reconciles the sum of loaded stock lots against ERP on-hand stock for materials with expiration",
         CronExpression = "0 8 * * *", // Daily at 8:00 AM, after the earlier DQT checks

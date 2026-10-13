@@ -1,7 +1,11 @@
+using System.Globalization;
 using System.Net;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using Anela.Heblo.Adapters.Microsoft365;
 using Anela.Heblo.Application.Features.Marketing.Configuration;
+using Anela.Heblo.Application.Features.Marketing.Infrastructure;
+using Anela.Heblo.Application.Features.Marketing.UseCases.ImportFromOutlook;
 using Anela.Heblo.Application.Features.Marketing.Services;
 using Anela.Heblo.Domain.Features.Marketing;
 using Anela.Heblo.Tests.Domain.Marketing;
@@ -65,7 +69,8 @@ namespace Anela.Heblo.Tests.Marketing
         private static MarketingAction BuildAction(
             string? outlookEventId = null,
             DateTime? startDate = null,
-            DateTime? endDate = null)
+            DateTime? endDate = null,
+            bool isAllDay = false)
         {
             var resolvedEndDate = endDate == DateTime.MinValue ? (DateTime?)null : (endDate ?? DefaultEndDate);
 
@@ -76,6 +81,7 @@ namespace Anela.Heblo.Tests.Marketing
                 .WithActionType(MarketingActionType.Newsletter)
                 .WithStartDate(startDate ?? DefaultStartDate)
                 .WithEndDate(resolvedEndDate)
+                .WithIsAllDay(isAllDay)
                 .WithCreatedAt(DateTime.UtcNow)
                 .WithModifiedAt(DateTime.UtcNow)
                 .WithCreatedBy("user-1")
@@ -114,8 +120,10 @@ namespace Anela.Heblo.Tests.Marketing
             handler.LastRequestBody.Should().Contain("2026-03-01T09:00:00");
             handler.LastRequestBody.Should().Contain("2026-03-01T11:00:00");
 
-            // Assert — timezone
-            handler.LastRequestBody.Should().Contain("Europe/Prague");
+            // Assert — the declared zone matches the (UTC) values actually sent.
+            // See CreateEventAsync_SendsZonelessDateTimeAndDeclaresTheZoneSeparately.
+            handler.LastRequestBody.Should().Contain("UTC");
+            handler.LastRequestBody.Should().NotContain("Europe/Prague");
         }
 
         [Fact]
@@ -166,6 +174,234 @@ namespace Anela.Heblo.Tests.Marketing
 
             // Assert — end should be start + 1 hour
             handler.LastRequestBody.Should().Contain("2026-04-01T11:00:00");
+        }
+
+        [Fact]
+        public async Task CreateEventAsync_ForDateOnlyAction_SendsGraphsExclusiveEnd()
+        {
+            // Arrange — an all-day action as Heblo stores it: inclusive, midnight to midnight
+            var responseJson = JsonSerializer.Serialize(new { id = "evt-allday" });
+            var handler = new FakeHttpMessageHandler(HttpStatusCode.Created, responseJson);
+            var service = CreateService(handler);
+            var action = BuildAction(
+                startDate: new DateTime(2026, 9, 18, 0, 0, 0, DateTimeKind.Utc),
+                endDate: new DateTime(2026, 9, 18, 0, 0, 0, DateTimeKind.Utc),
+                isAllDay: true);
+
+            // Act
+            await service.CreateEventAsync(action, CancellationToken.None);
+
+            // Assert — Graph's end is exclusive, so a one-day action ends at the next midnight
+            using var body = JsonDocument.Parse(handler.LastRequestBody!);
+            body.RootElement.GetProperty("start").GetProperty("dateTime").GetString()
+                .Should().StartWith("2026-09-18T00:00:00");
+            body.RootElement.GetProperty("end").GetProperty("dateTime").GetString()
+                .Should().StartWith("2026-09-19T00:00:00");
+            // ...and Outlook only treats that span as all-day if the flag says so
+            body.RootElement.GetProperty("isAllDay").GetBoolean().Should().BeTrue();
+        }
+
+        [Fact]
+        public async Task CreateEventAsync_ForMultiDayDateOnlyAction_SendsGraphsExclusiveEnd()
+        {
+            // Arrange — 7.–9. 9. inclusive
+            var responseJson = JsonSerializer.Serialize(new { id = "evt-allday-multi" });
+            var handler = new FakeHttpMessageHandler(HttpStatusCode.Created, responseJson);
+            var service = CreateService(handler);
+            var action = BuildAction(
+                startDate: new DateTime(2026, 9, 7, 0, 0, 0, DateTimeKind.Utc),
+                endDate: new DateTime(2026, 9, 9, 0, 0, 0, DateTimeKind.Utc),
+                isAllDay: true);
+
+            // Act
+            await service.CreateEventAsync(action, CancellationToken.None);
+
+            // Assert
+            using var body = JsonDocument.Parse(handler.LastRequestBody!);
+            body.RootElement.GetProperty("end").GetProperty("dateTime").GetString()
+                .Should().StartWith("2026-09-10T00:00:00");
+            body.RootElement.GetProperty("isAllDay").GetBoolean().Should().BeTrue();
+        }
+
+        [Fact]
+        public async Task CreateEventAsync_ForTimedAction_SendsItsEndUnchanged()
+        {
+            // Arrange — a timed meeting must not gain a day
+            var responseJson = JsonSerializer.Serialize(new { id = "evt-timed" });
+            var handler = new FakeHttpMessageHandler(HttpStatusCode.Created, responseJson);
+            var service = CreateService(handler);
+            var action = BuildAction(
+                startDate: new DateTime(2026, 9, 1, 7, 0, 0, DateTimeKind.Utc),
+                endDate: new DateTime(2026, 9, 1, 8, 30, 0, DateTimeKind.Utc),
+                isAllDay: false);
+
+            // Act
+            await service.CreateEventAsync(action, CancellationToken.None);
+
+            // Assert
+            using var body = JsonDocument.Parse(handler.LastRequestBody!);
+            body.RootElement.GetProperty("end").GetProperty("dateTime").GetString()
+                .Should().StartWith("2026-09-01T08:30:00");
+            body.RootElement.GetProperty("isAllDay").GetBoolean().Should().BeFalse();
+        }
+
+        [Theory]
+        // single-day all-day
+        [InlineData("2026-09-18T00:00:00", "2026-09-18T00:00:00", true)]
+        // multi-day all-day
+        [InlineData("2026-09-07T00:00:00", "2026-09-09T00:00:00", true)]
+        // timed, same day
+        [InlineData("2026-09-01T07:00:00", "2026-09-01T08:30:00", false)]
+        // timed, starting at midnight but ending mid-day — not an all-day event
+        [InlineData("2026-09-01T00:00:00", "2026-09-01T16:00:00", false)]
+        public async Task CreateEventAsync_ThenImportingWhatWasSent_ReproducesTheOriginalDates(
+            string startText,
+            string endText,
+            bool isAllDay)
+        {
+            // Arrange — the two halves of the conversion are written independently, so
+            // only a round trip proves they agree on what an all-day event looks like.
+            // IsAllDay is now an explicit, persisted flag (not re-derived from the dates),
+            // so the round trip must be seeded with the same flag a real all-day/timed
+            // action would carry for each of these date shapes.
+            var start = DateTime.Parse(startText, null, DateTimeStyles.RoundtripKind);
+            var end = DateTime.Parse(endText, null, DateTimeStyles.RoundtripKind);
+            var handler = new FakeHttpMessageHandler(
+                HttpStatusCode.Created,
+                JsonSerializer.Serialize(new { id = "evt-roundtrip" }));
+            var service = CreateService(handler);
+            var action = BuildAction(startDate: start, endDate: end, isAllDay: isAllDay);
+
+            // Act — export to Graph's wire format, then import that exact payload back.
+            // Graph echoes the payload with the id it assigned, which the import requires.
+            await service.CreateEventAsync(action, CancellationToken.None);
+            var sentPayload = JsonNode.Parse(handler.LastRequestBody!)!.AsObject();
+            sentPayload["id"] = "evt-roundtrip";
+            var sentEvent = sentPayload.Deserialize<OutlookEventDto>()!;
+            var reimported = OutlookEventImportMapper.BuildAction(
+                sentEvent,
+                new SyncActor("user-1", "Import User"),
+                DateTime.UtcNow,
+                MarketingActionType.Newsletter);
+
+            // Assert
+            reimported.StartDate.Should().Be(start);
+            reimported.EndDate.Should().Be(end);
+        }
+
+        [Fact]
+        public async Task CreateEventAsync_ForATimedMidnightToMidnightAction_DoesNotExportAsAllDay()
+        {
+            // Regression test for the issue: a genuinely timed 24-hour action whose
+            // dates happen to look like an all-day event (both at midnight) must NOT
+            // export as isAllDay: true just because of its dates — IsAllDay is now an
+            // explicit, persisted flag, not re-derived from the dates on every export.
+            var responseJson = JsonSerializer.Serialize(new { id = "evt-timed-midnight" });
+            var handler = new FakeHttpMessageHandler(HttpStatusCode.Created, responseJson);
+            var service = CreateService(handler);
+            var action = BuildAction(
+                startDate: new DateTime(2026, 9, 18, 0, 0, 0, DateTimeKind.Utc),
+                endDate: new DateTime(2026, 9, 19, 0, 0, 0, DateTimeKind.Utc),
+                isAllDay: false);
+
+            await service.CreateEventAsync(action, CancellationToken.None);
+
+            using var body = JsonDocument.Parse(handler.LastRequestBody!);
+            body.RootElement.GetProperty("isAllDay").GetBoolean().Should().BeFalse();
+            body.RootElement.GetProperty("end").GetProperty("dateTime").GetString()
+                .Should().StartWith("2026-09-19T00:00:00");
+        }
+
+        [Fact]
+        public async Task ImportedTimedMidnightToMidnightEvent_ThenReExported_StaysTimed()
+        {
+            // The exact failure scenario from the issue, walked end-to-end: import a
+            // genuinely timed Graph event whose dates look like an all-day event, then
+            // re-export the resulting MarketingAction and confirm it is still timed —
+            // not silently promoted to a 3-day all-day event on the shared calendar.
+            var importedEvent = new OutlookEventDto
+            {
+                Id = "evt-timed-midnight",
+                Subject = "24-hour timed meeting",
+                Start = new GraphEventDateTime
+                {
+                    DateTimeString = "2026-09-18T00:00:00.0000000",
+                    TimeZone = "UTC"
+                },
+                End = new GraphEventDateTime
+                {
+                    DateTimeString = "2026-09-19T00:00:00.0000000",
+                    TimeZone = "UTC"
+                },
+                IsAllDay = false,
+                Categories = Array.Empty<string>(),
+            };
+
+            var imported = OutlookEventImportMapper.BuildAction(
+                importedEvent,
+                new SyncActor("user-1", "Import User"),
+                DateTime.UtcNow,
+                MarketingActionType.Newsletter);
+
+            imported.IsAllDay.Should().BeFalse();
+            imported.EndDate.Should().Be(new DateTime(2026, 9, 19, 0, 0, 0, DateTimeKind.Utc));
+
+            var handler = new FakeHttpMessageHandler(
+                HttpStatusCode.Created,
+                JsonSerializer.Serialize(new { id = "evt-timed-midnight" }));
+            var service = CreateService(handler);
+
+            await service.CreateEventAsync(imported, CancellationToken.None);
+
+            using var body = JsonDocument.Parse(handler.LastRequestBody!);
+            body.RootElement.GetProperty("isAllDay").GetBoolean().Should().BeFalse();
+            body.RootElement.GetProperty("end").GetProperty("dateTime").GetString()
+                .Should().StartWith("2026-09-19T00:00:00");
+        }
+
+        [Fact]
+        public async Task ImportedGenuineAllDayEvent_ThenReExported_StaysAllDay()
+        {
+            // Companion to the above: a genuine all-day import must still round-trip
+            // as all-day, confirming the fix doesn't overcorrect the other direction.
+            var importedEvent = new OutlookEventDto
+            {
+                Id = "evt-genuine-allday",
+                Subject = "Company holiday",
+                Start = new GraphEventDateTime
+                {
+                    DateTimeString = "2026-09-18T00:00:00.0000000",
+                    TimeZone = "UTC"
+                },
+                End = new GraphEventDateTime
+                {
+                    DateTimeString = "2026-09-19T00:00:00.0000000",
+                    TimeZone = "UTC"
+                },
+                IsAllDay = true,
+                Categories = Array.Empty<string>(),
+            };
+
+            var imported = OutlookEventImportMapper.BuildAction(
+                importedEvent,
+                new SyncActor("user-1", "Import User"),
+                DateTime.UtcNow,
+                MarketingActionType.Newsletter);
+
+            imported.IsAllDay.Should().BeTrue();
+            imported.EndDate.Should().Be(new DateTime(2026, 9, 18, 0, 0, 0, DateTimeKind.Utc));
+
+            var handler = new FakeHttpMessageHandler(
+                HttpStatusCode.Created,
+                JsonSerializer.Serialize(new { id = "evt-genuine-allday" }));
+            var service = CreateService(handler);
+
+            await service.CreateEventAsync(imported, CancellationToken.None);
+
+            using var body = JsonDocument.Parse(handler.LastRequestBody!);
+            body.RootElement.GetProperty("isAllDay").GetBoolean().Should().BeTrue();
+            body.RootElement.GetProperty("end").GetProperty("dateTime").GetString()
+                .Should().StartWith("2026-09-19T00:00:00");
         }
 
         // ─── UpdateEventAsync ─────────────────────────────────────────────────────
@@ -461,6 +697,140 @@ namespace Anela.Heblo.Tests.Marketing
             // Assert
             handler.LastRequestBody.Should().Contain("FOOBAR");
             handler.LastRequestBody.Should().NotContain("\"Campaign\"");
+        }
+
+        // ─── Graph time-zone contract ─────────────────────────────────────────────
+        //
+        // Graph's dateTimeTimeZone.dateTime is a *zone-less* wall-clock string; the zone
+        // travels separately in dateTimeTimeZone.timeZone. Emitting an ISO string with a
+        // "Z" designator alongside a timeZone label states two different things at once,
+        // and for an all-day event — which Graph requires to start at midnight *in the
+        // declared zone* — the two readings disagree by the UTC offset.
+
+        [Fact]
+        public async Task CreateEventAsync_SendsZonelessDateTimeAndDeclaresTheZoneSeparately()
+        {
+            // Arrange
+            var responseJson = JsonSerializer.Serialize(new { id = "evt-tz" });
+            var handler = new FakeHttpMessageHandler(HttpStatusCode.Created, responseJson);
+            var service = CreateService(handler);
+            var action = BuildAction();
+
+            // Act
+            await service.CreateEventAsync(action, CancellationToken.None);
+
+            // Assert — exact wire shape, not a substring: no "Z", no offset, zone stated once.
+            var body = JsonNode.Parse(handler.LastRequestBody)!;
+            body["start"]!["dateTime"]!.GetValue<string>().Should().Be("2026-03-01T09:00:00.0000000");
+            body["start"]!["timeZone"]!.GetValue<string>().Should().Be("UTC");
+            body["end"]!["dateTime"]!.GetValue<string>().Should().Be("2026-03-01T11:00:00.0000000");
+            body["end"]!["timeZone"]!.GetValue<string>().Should().Be("UTC");
+        }
+
+        [Fact]
+        public async Task CreateEventAsync_ForAllDayAction_SendsMidnightInTheDeclaredZone()
+        {
+            // Arrange — Graph rejects an all-day event that does not begin at midnight in
+            // the zone it declares. "00:00Z" labelled "Europe/Prague" reads as 02:00 local.
+            var responseJson = JsonSerializer.Serialize(new { id = "evt-allday-tz" });
+            var handler = new FakeHttpMessageHandler(HttpStatusCode.Created, responseJson);
+            var service = CreateService(handler);
+            var action = BuildAction(
+                startDate: new DateTime(2026, 9, 18, 0, 0, 0, DateTimeKind.Utc),
+                endDate: new DateTime(2026, 9, 20, 0, 0, 0, DateTimeKind.Utc),
+                isAllDay: true);
+
+            // Act
+            await service.CreateEventAsync(action, CancellationToken.None);
+
+            // Assert
+            var body = JsonNode.Parse(handler.LastRequestBody)!;
+            body["isAllDay"]!.GetValue<bool>().Should().BeTrue();
+
+            var zone = body["start"]!["timeZone"]!.GetValue<string>();
+            zone.Should().Be("UTC");
+
+            var start = DateTime.Parse(
+                body["start"]!["dateTime"]!.GetValue<string>(),
+                CultureInfo.InvariantCulture,
+                DateTimeStyles.RoundtripKind);
+            var end = DateTime.Parse(
+                body["end"]!["dateTime"]!.GetValue<string>(),
+                CultureInfo.InvariantCulture,
+                DateTimeStyles.RoundtripKind);
+
+            start.TimeOfDay.Should().Be(TimeSpan.Zero, "Graph requires all-day events to start at midnight in the declared zone");
+            end.TimeOfDay.Should().Be(TimeSpan.Zero, "Graph requires all-day events to end at midnight in the declared zone");
+            start.Should().Be(new DateTime(2026, 9, 18, 0, 0, 0));
+            end.Should().Be(new DateTime(2026, 9, 21, 0, 0, 0));
+        }
+
+        [Fact]
+        public async Task CreateEventAsync_ForNonUtcStartDate_NormalizesToUtcBeforeSending()
+        {
+            // Arrange — a DateTime that is not already UTC must be converted, not relabelled,
+            // otherwise the declared "UTC" zone would misdescribe the wall-clock value.
+            var responseJson = JsonSerializer.Serialize(new { id = "evt-local" });
+            var handler = new FakeHttpMessageHandler(HttpStatusCode.Created, responseJson);
+            var service = CreateService(handler);
+
+            var utcStart = new DateTime(2026, 3, 1, 9, 0, 0, DateTimeKind.Utc);
+            var action = BuildAction(
+                startDate: utcStart.ToLocalTime(),
+                endDate: utcStart.AddHours(2).ToLocalTime());
+
+            // Act
+            await service.CreateEventAsync(action, CancellationToken.None);
+
+            // Assert
+            var body = JsonNode.Parse(handler.LastRequestBody)!;
+            body["start"]!["dateTime"]!.GetValue<string>().Should().Be("2026-03-01T09:00:00.0000000");
+            body["end"]!["dateTime"]!.GetValue<string>().Should().Be("2026-03-01T11:00:00.0000000");
+        }
+
+        [Fact]
+        public async Task ListEventsAsync_AsksGraphToAnswerInUtc()
+        {
+            // Arrange — without this header Graph answers in the mailbox's default zone,
+            // and StartUtc/EndUtc would read those local digits as if they were UTC.
+            var responseJson = JsonSerializer.Serialize(new { value = Array.Empty<object>() });
+            var handler = new FakeHttpMessageHandler(HttpStatusCode.OK, responseJson);
+            var service = CreateService(handler);
+
+            // Act
+            await service.ListEventsAsync(
+                new DateTime(2026, 4, 1, 0, 0, 0, DateTimeKind.Utc),
+                new DateTime(2026, 4, 30, 0, 0, 0, DateTimeKind.Utc),
+                CancellationToken.None);
+
+            // Assert
+            handler.LastRequestHeaders.Should().NotBeNull();
+            handler.LastRequestHeaders!.GetValues("Prefer")
+                .Should().Contain("outlook.timezone=\"UTC\"");
+        }
+
+        [Fact]
+        public async Task GetEventAsync_AsksGraphToAnswerInUtc()
+        {
+            // Arrange
+            var responseJson = JsonSerializer.Serialize(new
+            {
+                id = "evt-1",
+                subject = "S",
+                start = new { dateTime = "2026-04-01T08:00:00.0000000", timeZone = "UTC" },
+                end = new { dateTime = "2026-04-01T09:00:00.0000000", timeZone = "UTC" },
+                categories = Array.Empty<string>()
+            });
+            var handler = new FakeHttpMessageHandler(HttpStatusCode.OK, responseJson);
+            var service = CreateService(handler);
+
+            // Act
+            await service.GetEventAsync("evt-1", CancellationToken.None);
+
+            // Assert
+            handler.LastRequestHeaders.Should().NotBeNull();
+            handler.LastRequestHeaders!.GetValues("Prefer")
+                .Should().Contain("outlook.timezone=\"UTC\"");
         }
     }
 }

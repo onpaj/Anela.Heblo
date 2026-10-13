@@ -37,12 +37,13 @@ public sealed class DownloadFromUrlHandler : IRequestHandler<DownloadFromUrlRequ
 
     public async Task<DownloadFromUrlResponse> Handle(DownloadFromUrlRequest request, CancellationToken cancellationToken)
     {
+        var redactedUrl = UrlRedactor.Redact(request.FileUrl);
+
         _logger.LogInformation(
-            "Processing file download and upload request from URL: {FileUrl} to container: {ContainerName}",
-            request.FileUrl,
+            "Processing file download and upload request from URL: {RedactedUrl} to container: {ContainerName}",
+            redactedUrl,
             request.ContainerName);
 
-        var redactedUrl = RedactUrl(request.FileUrl);
         var sw = Stopwatch.StartNew();
         int attemptCount = 0;
 
@@ -80,7 +81,7 @@ public sealed class DownloadFromUrlHandler : IRequestHandler<DownloadFromUrlRequ
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
-            _logger.LogInformation("File download operation was cancelled for URL: {FileUrl}", request.FileUrl);
+            _logger.LogInformation("File download operation was cancelled for URL: {RedactedUrl}", redactedUrl);
             throw;
         }
         catch (OperationCanceledException oce)
@@ -151,19 +152,6 @@ public sealed class DownloadFromUrlHandler : IRequestHandler<DownloadFromUrlRequ
                 ["error"] = error,
             },
         };
-
-    private static string RedactUrl(string url)
-    {
-        try
-        {
-            var ub = new UriBuilder(url) { Query = null };
-            return ub.Uri.ToString();
-        }
-        catch
-        {
-            return "[redacted]";
-        }
-    }
 
     private static string GetBlobNameFromUrl(string blobUrl)
     {

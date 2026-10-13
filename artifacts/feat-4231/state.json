@@ -1,0 +1,82 @@
+{
+  "feature_id": "feat-4231",
+  "issue_number": 4231,
+  "created_at": "2026-09-20T08:14:59.220362Z",
+  "max_revisions": 3,
+  "phases": {
+    "analyzing": {
+      "status": "completed",
+      "updated_at": "2026-09-20T08:17:27.327616Z"
+    },
+    "architecting": {
+      "status": "completed",
+      "updated_at": "2026-09-20T08:18:59.537807Z"
+    },
+    "designing": {
+      "status": "completed",
+      "updated_at": "2026-09-20T08:19:35.447698Z"
+    },
+    "planning": {
+      "status": "completed",
+      "updated_at": "2026-09-20T08:22:30.718175Z"
+    },
+    "developing": {
+      "status": "in_progress",
+      "updated_at": "2026-09-21T00:16:28.300514Z"
+    },
+    "code-review": {
+      "status": "completed",
+      "updated_at": "2026-09-21T01:19:44.467502Z"
+    }
+  },
+  "tasks": [
+    {
+      "name": "contracts-and-dto",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-09-20T10:18:30.242024Z"
+    },
+    {
+      "name": "adapter-and-di",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-09-20T11:20:51.186760Z"
+    },
+    {
+      "name": "migrate-download-handler",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-09-20T12:35:27.194865Z"
+    },
+    {
+      "name": "migrate-reprint-handler",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-09-20T13:37:12.062375Z"
+    },
+    {
+      "name": "migrate-get-lists-by-date-handler",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-09-20T21:38:26.209428Z"
+    },
+    {
+      "name": "migrate-get-dates-handler",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-09-20T22:38:08.525883Z"
+    },
+    {
+      "name": "module-boundary-guard",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-09-20T23:34:28.281703Z"
+    },
+    {
+      "name": "final-verification",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-09-21T00:58:37.848534Z"
+    }
+  ]
+}

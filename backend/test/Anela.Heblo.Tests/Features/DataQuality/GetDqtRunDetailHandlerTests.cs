@@ -1,4 +1,5 @@
 using Anela.Heblo.Application.Features.DataQuality.Contracts;
+using Anela.Heblo.Application.Features.DataQuality.Services;
 using Anela.Heblo.Application.Features.DataQuality.UseCases.GetDqtRunDetail;
 using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Domain.Features.DataQuality;
@@ -12,11 +13,16 @@ public class GetDqtRunDetailHandlerTests
 {
     private readonly Mock<IDqtRunRepository> _repositoryMock = new();
     private readonly Mock<IMapper> _mapperMock = new();
+    private readonly Mock<IDqtResultShaper> _shaperMock = new();
     private readonly GetDqtRunDetailHandler _sut;
 
     public GetDqtRunDetailHandlerTests()
     {
-        _sut = new GetDqtRunDetailHandler(_repositoryMock.Object, _mapperMock.Object, NullLogger<GetDqtRunDetailHandler>.Instance);
+        _sut = new GetDqtRunDetailHandler(
+            _repositoryMock.Object,
+            _mapperMock.Object,
+            new[] { _shaperMock.Object },
+            NullLogger<GetDqtRunDetailHandler>.Instance);
     }
 
     [Fact]
@@ -51,9 +57,11 @@ public class GetDqtRunDetailHandlerTests
             .Setup(m => m.Map<DqtRunDto>(run))
             .Returns(dto);
 
-        _mapperMock
-            .Setup(m => m.Map<List<InvoiceDqtResultDto>>(run.Results))
-            .Returns(resultDtos);
+        _shaperMock.Setup(s => s.CanHandle(DqtTestType.IssuedInvoiceComparison)).Returns(true);
+        _shaperMock
+            .Setup(s => s.ShapeAsync(run, It.IsAny<GetDqtRunDetailResponse>(), 1, 50, It.IsAny<CancellationToken>()))
+            .Callback<DqtRun, GetDqtRunDetailResponse, int, int, CancellationToken>((_, response, _, _, _) => response.Results = resultDtos)
+            .Returns(Task.CompletedTask);
 
         var request = new GetDqtRunDetailRequest { Id = run.Id };
 
@@ -62,6 +70,7 @@ public class GetDqtRunDetailHandlerTests
         Assert.True(response.Success);
         Assert.NotNull(response.Run);
         Assert.Equal(run.Id, response.Run.Id);
+        Assert.Same(resultDtos, response.Results);
         Assert.Null(response.ErrorCode);
     }
 
@@ -74,24 +83,25 @@ public class GetDqtRunDetailHandlerTests
     {
         var run = DqtRun.Start(testType, new DateOnly(2026, 1, 1), new DateOnly(2026, 1, 31), DqtTriggerType.Manual, DateTime.UtcNow);
         var dto = new DqtRunDto { Id = run.Id };
-        var driftItems = new List<DqtDriftResult>();
         var driftDtos = new List<DqtDriftResultDto>();
 
         _repositoryMock
             .Setup(r => r.GetWithResultsAsync(run.Id, 1, 50, It.IsAny<CancellationToken>()))
             .ReturnsAsync(run);
 
-        _repositoryMock
-            .Setup(r => r.GetDriftResultsAsync(run.Id, 1, 50, It.IsAny<CancellationToken>()))
-            .ReturnsAsync((driftItems, 7));
-
         _mapperMock
             .Setup(m => m.Map<DqtRunDto>(run))
             .Returns(dto);
 
-        _mapperMock
-            .Setup(m => m.Map<List<DqtDriftResultDto>>(driftItems))
-            .Returns(driftDtos);
+        _shaperMock.Setup(s => s.CanHandle(testType)).Returns(true);
+        _shaperMock
+            .Setup(s => s.ShapeAsync(run, It.IsAny<GetDqtRunDetailResponse>(), 1, 50, It.IsAny<CancellationToken>()))
+            .Callback<DqtRun, GetDqtRunDetailResponse, int, int, CancellationToken>((_, response, _, _, _) =>
+            {
+                response.DriftResults = driftDtos;
+                response.TotalDriftResults = 7;
+            })
+            .Returns(Task.CompletedTask);
 
         var request = new GetDqtRunDetailRequest { Id = run.Id };
 
@@ -109,7 +119,9 @@ public class GetDqtRunDetailHandlerTests
     {
         // (DqtTestType)999 is an explicit out-of-range cast — no such DqtTestType value exists
         // today. This is the standard way to test an enum-dispatch fail-fast path without
-        // modifying the DqtTestType enum itself.
+        // modifying the DqtTestType enum itself. No registered shaper's CanHandle matches it
+        // (the default Mock<IDqtResultShaper> returns false for CanHandle), so the handler
+        // must return the unsupported-type error without calling ShapeAsync.
         var run = DqtRun.Start((DqtTestType)999, new DateOnly(2026, 1, 1), new DateOnly(2026, 1, 31), DqtTriggerType.Manual, DateTime.UtcNow);
 
         _repositoryMock
@@ -123,5 +135,8 @@ public class GetDqtRunDetailHandlerTests
         Assert.False(response.Success);
         Assert.Equal(ErrorCodes.DqtUnsupportedTestType, response.ErrorCode);
         Assert.Null(response.Run);
+        _shaperMock.Verify(
+            s => s.ShapeAsync(It.IsAny<DqtRun>(), It.IsAny<GetDqtRunDetailResponse>(), It.IsAny<int>(), It.IsAny<int>(), It.IsAny<CancellationToken>()),
+            Times.Never);
     }
 }

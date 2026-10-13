@@ -1,0 +1,58 @@
+{
+  "feature_id": "feat-4177",
+  "issue_number": 4177,
+  "created_at": "2026-09-15T03:11:19.092656Z",
+  "max_revisions": 3,
+  "phases": {
+    "analyzing": {
+      "status": "completed",
+      "updated_at": "2026-09-15T03:12:30.177899Z"
+    },
+    "architecting": {
+      "status": "completed",
+      "updated_at": "2026-09-15T03:13:22.007251Z"
+    },
+    "designing": {
+      "status": "completed",
+      "updated_at": "2026-09-15T03:13:47.149364Z"
+    },
+    "planning": {
+      "status": "completed",
+      "updated_at": "2026-09-15T03:18:14.221841Z"
+    },
+    "developing": {
+      "status": "in_progress",
+      "updated_at": "2026-09-15T07:18:26.200203Z"
+    },
+    "code-review": {
+      "status": "completed",
+      "updated_at": "2026-09-15T08:21:41.612184Z"
+    }
+  },
+  "tasks": [
+    {
+      "name": "setup-test-file",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-09-15T04:20:53.467678Z"
+    },
+    {
+      "name": "fr1-not-found-test",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-09-15T05:35:32.473848Z"
+    },
+    {
+      "name": "fr2-no-last-execution-test",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-09-15T06:36:38.460828Z"
+    },
+    {
+      "name": "fr3-happy-path-test",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-09-15T08:01:00.642520Z"
+    }
+  ]
+}

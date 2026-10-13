@@ -612,6 +612,79 @@ public class AzureBlobStorageServiceTests
     }
 
     // ---------------------------------------------------------------------------
+    // URL redaction in logs
+    // ---------------------------------------------------------------------------
+
+    private sealed class CapturingLogger<T> : ILogger<T>
+    {
+        public List<string> Entries { get; } = new();
+
+        public IDisposable? BeginScope<TState>(TState state) where TState : notnull => null;
+
+        public bool IsEnabled(LogLevel logLevel) => true;
+
+        public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception,
+            Func<TState, Exception?, string> formatter)
+        {
+            Entries.Add(formatter(state, exception));
+            if (state is IEnumerable<KeyValuePair<string, object?>> kvps)
+            {
+                Entries.AddRange(kvps.Select(kv => kv.Value?.ToString() ?? string.Empty));
+            }
+        }
+    }
+
+    [Fact]
+    public async Task DownloadFromUrlAsync_Success_DoesNotLogUrlQuerySecret()
+    {
+        var logger = new CapturingLogger<AzureBlobStorageService>();
+        var client = new HttpClient(new StubHttpMessageHandler(HttpStatusCode.OK, "test content")) { BaseAddress = new Uri("http://test/") };
+        var factory = new Mock<IHttpClientFactory>();
+        factory.Setup(f => f.CreateClient(FileStorageConstants.FileDownloadClientName)).Returns(client);
+        var mockBlobServiceClient = new Mock<BlobServiceClient>();
+        var service = new AzureBlobStorageService(mockBlobServiceClient.Object, factory.Object, logger);
+
+        var containerName = "documents";
+        var mockContainerClient = new Mock<BlobContainerClient>();
+        var mockBlobClient = new Mock<BlobClient>();
+        mockBlobClient.Setup(x => x.Uri)
+            .Returns(new Uri($"https://test.blob.core.windows.net/{containerName}/file.pdf"));
+        mockBlobClient.Setup(x => x.UploadAsync(
+                It.IsAny<Stream>(), It.IsAny<BlobUploadOptions>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.FromResult(Mock.Of<Azure.Response<BlobContentInfo>>()));
+        mockContainerClient.Setup(x => x.GetBlobClient(It.IsAny<string>())).Returns(mockBlobClient.Object);
+        mockContainerClient.Setup(x => x.CreateIfNotExistsAsync(
+                It.IsAny<PublicAccessType>(),
+                It.IsAny<IDictionary<string, string>>(),
+                It.IsAny<BlobContainerEncryptionScopeOptions>(),
+                It.IsAny<CancellationToken>()))
+            .Returns(Task.FromResult(Mock.Of<Azure.Response<BlobContainerInfo>>()));
+        mockBlobServiceClient.Setup(x => x.GetBlobContainerClient(containerName))
+            .Returns(mockContainerClient.Object);
+
+        await service.DownloadFromUrlAsync("https://example.com/file.pdf?token=secret", containerName);
+
+        Assert.NotEmpty(logger.Entries);
+        Assert.DoesNotContain(logger.Entries, e => e.Contains("secret"));
+    }
+
+    [Fact]
+    public async Task DownloadFromUrlAsync_Failure_DoesNotLogUrlQuerySecret()
+    {
+        var logger = new CapturingLogger<AzureBlobStorageService>();
+        var client = new HttpClient(new StubHttpMessageHandler(HttpStatusCode.ServiceUnavailable)) { BaseAddress = new Uri("http://test/") };
+        var factory = new Mock<IHttpClientFactory>();
+        factory.Setup(f => f.CreateClient(FileStorageConstants.FileDownloadClientName)).Returns(client);
+        var service = new AzureBlobStorageService(_mockBlobServiceClient.Object, factory.Object, logger);
+
+        await Assert.ThrowsAsync<HttpRequestException>(() =>
+            service.DownloadFromUrlAsync("https://example.com/file.pdf?token=secret", "exports"));
+
+        Assert.NotEmpty(logger.Entries);
+        Assert.DoesNotContain(logger.Entries, e => e.Contains("secret"));
+    }
+
+    // ---------------------------------------------------------------------------
     // FR-6: ListVirtualDirectoriesAsync — trailing-slash trimming
     // ---------------------------------------------------------------------------
 

@@ -1,0 +1,46 @@
+{
+  "feature_id": "feat-4287",
+  "issue_number": 4287,
+  "created_at": "2026-09-24T07:13:02.275284Z",
+  "max_revisions": 3,
+  "phases": {
+    "analyzing": {
+      "status": "completed",
+      "updated_at": "2026-09-24T07:14:29.937086Z"
+    },
+    "architecting": {
+      "status": "completed",
+      "updated_at": "2026-09-24T07:16:06.569890Z"
+    },
+    "designing": {
+      "status": "completed",
+      "updated_at": "2026-09-24T07:16:44.474926Z"
+    },
+    "planning": {
+      "status": "completed",
+      "updated_at": "2026-09-24T07:19:18.565472Z"
+    },
+    "developing": {
+      "status": "in_progress",
+      "updated_at": "2026-09-24T09:17:16.760604Z"
+    },
+    "code-review": {
+      "status": "completed",
+      "updated_at": "2026-09-24T10:19:30.199143Z"
+    }
+  },
+  "tasks": [
+    {
+      "name": "add-characterization-tests",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-09-24T08:26:38.879030Z"
+    },
+    {
+      "name": "extract-sortby-helper-and-refactor-applysorting",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-09-24T09:45:09.897946Z"
+    }
+  ]
+}

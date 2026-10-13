@@ -1,6 +1,6 @@
 # MCP Server
 
-The application exposes MCP tools for AI assistants to query catalog data, manufacturing orders, perform batch calculations, user-directory lookups, and meeting notes.
+The application exposes MCP tools for AI assistants to query catalog data, manufacturing orders, perform batch calculations, user-directory lookups, meeting notes, and pricing simulations.
 
 ## Available Tools
 
@@ -32,6 +32,12 @@ The application exposes MCP tools for AI assistants to query catalog data, manuf
 - `SearchKnowledgeBase` — semantic search over ingested documents, returns ranked chunks with source references
 - `AskKnowledgeBase` — AI-generated answer grounded in company documents, returns prose answer with cited sources
 
+**Process Docs (2)** — require the `Anela_ProcessDocs` permission.
+- `ListProcesses` — catalog of module overviews and documented processes (name, kind, module, summary, related); `kind` accepts `module`, `sync`, `calculation` (alias `calc`), `feed`, `job` and `workflow` (alias `flow`), case-insensitive; optional `module` filters by module slug
+- `GetProcessDoc` — full agent-facing doc for one process (data flow, formulas, config, quirks, code entry points); source is `docs/processes/`
+
+**Operations:** after deploying this feature to an environment, grant `anela.process_docs.read` to the relevant groups in `/admin/access`. `seedGroups` in `access-matrix.json` only apply to a fresh database, so an already-provisioned environment (staging, production) won't pick the permission up automatically. Do not run `scripts/seed-authorization.sh --reset-group` to fix this — it clears and re-seeds that group's permissions from JSON, wiping any custom grants made since.
+
 **Leaflet (1)** — requires the `Marketing_Leaflet` permission.
 - `GenerateLeaflet` — generates a marketing leaflet in Czech Markdown using the knowledge base and historical leaflets as style references
 
@@ -40,6 +46,14 @@ The application exposes MCP tools for AI assistants to query catalog data, manuf
 - `GetMeetingSummary` — summary and metadata of a single meeting (no raw transcript, no task detail)
 - `GetMeetingTranscript` — full raw transcript text of a single meeting
 - `GetMeetingTasks` — proposed task list extracted from a single meeting
+
+**Pricing Simulator (6)** — require the `Finance_PriceAnalysis` permission (read); `SavePricingScenario` and `UpdatePricingScenarioProducts` require write. Stateless like the web UI: the caller carries the sparse override list from one `SimulatePricing` call to the next.
+- `GetPricingBaseline` — current price, material/manufacturing cost, 12-month quantity and M0/M1 per product, plus portfolio totals
+- `SimulatePricing` — apply a batch of edits (price, cost, target M0/M1 in CZK or %, forecast quantity) on top of an override list; returns recalculated rows (edited only by default), before/after totals and the new override list
+- `ListPricingScenarios` — saved scenarios (summary level)
+- `GetPricingScenario` — a saved scenario recalculated against today's catalog, including its override list and drift flags
+- `SavePricingScenario` — create a scenario, or overwrite one by id as a whole (no delete tool — delete stays in the web UI)
+- `UpdatePricingScenarioProducts` — partial update of a saved scenario: edit or remove individual products and/or rename it, keeping everything else (filter, other products and their drift snapshots); all-or-nothing on a failing edit
 
 ## Implementation
 

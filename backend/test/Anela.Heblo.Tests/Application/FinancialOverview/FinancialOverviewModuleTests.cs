@@ -3,7 +3,6 @@ using Anela.Heblo.Application.Features.Catalog.Infrastructure;
 using Anela.Heblo.Application.Features.FinancialOverview;
 using Anela.Heblo.Application.Features.FinancialOverview.Services;
 using Anela.Heblo.Domain.Accounting.Ledger;
-using Anela.Heblo.Domain.Features.Catalog.Price;
 using Anela.Heblo.Domain.Features.Catalog.Stock;
 using Anela.Heblo.Domain.Features.FinancialOverview;
 using FluentAssertions;
@@ -26,7 +25,6 @@ public class FinancialOverviewModuleTests
 
         // Add required dependencies for FinancialOverviewStockValueAdapter (registered in CatalogModule)
         services.AddSingleton(Mock.Of<IErpStockClient>());
-        services.AddSingleton(Mock.Of<IProductPriceErpClient>());
         services.AddSingleton(Mock.Of<ILedgerService>());
         services.AddSingleton(typeof(ILogger<>), typeof(NullLogger<>));
 
@@ -54,7 +52,6 @@ public class FinancialOverviewModuleTests
         // Arrange
         var services = new ServiceCollection();
         services.AddSingleton(Mock.Of<IErpStockClient>());
-        services.AddSingleton(Mock.Of<IProductPriceErpClient>());
         services.AddSingleton(Mock.Of<ILedgerService>());
         services.AddSingleton(typeof(ILogger<>), typeof(NullLogger<>));
 
@@ -86,7 +83,6 @@ public class FinancialOverviewModuleTests
 
         // Add required dependencies for FinancialOverviewStockValueAdapter (registered in CatalogModule)
         services.AddSingleton(Mock.Of<IErpStockClient>());
-        services.AddSingleton(Mock.Of<IProductPriceErpClient>());
         services.AddSingleton(Mock.Of<ILedgerService>());
         services.AddSingleton(typeof(ILogger<>), typeof(NullLogger<>));
 
@@ -129,7 +125,6 @@ public class FinancialOverviewModuleTests
 
         // Add required dependencies
         services.AddSingleton(Mock.Of<IErpStockClient>());
-        services.AddSingleton(Mock.Of<IProductPriceErpClient>());
         services.AddSingleton(Mock.Of<ILedgerService>());
         services.AddSingleton(typeof(ILogger<>), typeof(NullLogger<>));
 
@@ -153,7 +148,6 @@ public class FinancialOverviewModuleTests
 
         // Add required dependencies
         services.AddSingleton(Mock.Of<IErpStockClient>());
-        services.AddSingleton(Mock.Of<IProductPriceErpClient>());
         services.AddSingleton(Mock.Of<ILedgerService>());
         services.AddSingleton(typeof(ILogger<>), typeof(NullLogger<>));
 

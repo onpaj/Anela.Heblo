@@ -1,6 +1,7 @@
 using Anela.Heblo.Application.Features.UserManagement.Services;
 using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Application.Features.UserManagement.Contracts;
+using Anela.Heblo.Application.Features.UserManagement.Infrastructure.Exceptions;
 using MediatR;
 using Microsoft.Extensions.Logging;
 

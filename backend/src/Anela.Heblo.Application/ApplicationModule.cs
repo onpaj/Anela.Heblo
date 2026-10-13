@@ -6,6 +6,7 @@ using Anela.Heblo.Application.Features.Attendance.Overtime;
 using Anela.Heblo.Application.Features.FeatureFlags;
 using Anela.Heblo.Application.Features.Configuration;
 using Anela.Heblo.Application.Shared.Rag;
+using Anela.Heblo.Application.Shared.CostPools;
 using Anela.Heblo.Application.Features.Analytics;
 using Anela.Heblo.Application.Features.GridLayouts;
 using Anela.Heblo.Application.Features.MarketingInvoices;
@@ -15,6 +16,7 @@ using Anela.Heblo.Application.Features.Bank;
 using Anela.Heblo.Application.Features.Catalog;
 using Anela.Heblo.Application.Features.Catalog.Inventory;
 using Anela.Heblo.Application.Features.Dashboard;
+using Anela.Heblo.Application.Features.Ecomail;
 using Anela.Heblo.Application.Features.FileStorage;
 using Anela.Heblo.Application.Features.InvoiceClassification;
 using Anela.Heblo.Application.Features.Invoices;
@@ -31,10 +33,13 @@ using Anela.Heblo.Application.Features.Purchase;
 using Anela.Heblo.Application.Features.FinancialOverview;
 using Anela.Heblo.Application.Features.Journal;
 using Anela.Heblo.Application.Features.Marketing;
+using Anela.Heblo.Application.Features.MarketingAds;
+using Anela.Heblo.Application.Features.MarketingPerformance;
 using Anela.Heblo.Application.Features.Logistics;
 using Anela.Heblo.Application.Features.Manufacture;
 using Anela.Heblo.Application.Features.OrgChart;
 using Anela.Heblo.Application.Features.PackingMaterials;
+using Anela.Heblo.Application.Features.ProcessDocs;
 using Anela.Heblo.Application.Features.ProductPricing;
 using Anela.Heblo.Application.Features.CarrierCooling;
 using Anela.Heblo.Application.Features.WeatherForecast;
@@ -46,6 +51,7 @@ using Anela.Heblo.Application.Features.ShoptetOrders;
 using Anela.Heblo.Application.Features.Packaging;
 using Anela.Heblo.Application.Features.Authorization;
 using Anela.Heblo.Application.Features.UserManagement;
+using Anela.Heblo.Application.Features.Pricing;
 using Anela.Heblo.Xcc.Services.Dashboard;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -62,6 +68,9 @@ public static class ApplicationModule
     {
         // Register shared RAG infrastructure
         services.AddSharedRagModule(configuration);
+
+        // Register shared cost pool totals (M1 / M2 / M3 ledger spend)
+        services.AddSharedCostPoolsModule();
 
         // Register MediatR
         services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(typeof(ApplicationModule).Assembly));
@@ -93,6 +102,9 @@ public static class ApplicationModule
         services.AddFinancialOverviewModule(configuration);
         services.AddJournalModule();
         services.AddMarketingModule(configuration);
+        services.AddMarketingPerformanceModule(configuration);
+        services.AddMarketingAdsModule(configuration);
+        services.AddEcomailModule();
         services.AddManufactureModule(configuration);
         services.AddLogisticsModule();
         services.AddUserManagement(configuration);
@@ -102,6 +114,7 @@ public static class ApplicationModule
         services.AddProductPricingModule();
         services.AddInvoicesModule(configuration);
         services.AddKnowledgeBaseModule(configuration);
+        services.AddProcessDocsModule();
         services.AddCatalogDocumentsModule(configuration);
         services.AddLabelIdentificationModule(configuration);
         services.AddLeafletModule(configuration);
@@ -122,6 +135,7 @@ public static class ApplicationModule
         services.AddSmartsuppModule(configuration);
         services.AddInventoryModule();
         // services.AddOrdersModule();
+        services.AddPricingModule();
 
         services.AddAuthorizationModule();
         services.AddFeatureFlagsModule(configuration);

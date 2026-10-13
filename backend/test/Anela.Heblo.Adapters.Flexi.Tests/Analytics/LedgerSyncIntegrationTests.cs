@@ -61,17 +61,21 @@ public class LedgerSyncIntegrationTests : IAsyncLifetime
             NullLogger<LedgerSyncService>.Instance);
     }
 
-    private static LedgerItemFlexiDto MakeLedgerDto(int id, DateTime accountingDate, double amount = 100.0) =>
+    // FlexiBee returns `id` = -1 on every `ucetni-denik` row and carries the identity in
+    // `idUcetniDenik` (SDK: JournalId); accounts and currency arrive as nested arrays.
+    // See LedgerSyncServiceMappingTests for the transcribed live response.
+    private static LedgerItemFlexiDto MakeLedgerDto(long id, DateTime accountingDate, double amount = 100.0) =>
         new()
         {
-            Id = id,
+            Id = -1,
+            JournalId = id.ToString(),
             AccountingDate = accountingDate,
             LastUpdate = accountingDate.AddHours(1),
             AmountLocal = amount,
             ParSymbol = $"CODE{id}",
-            DebitAccountShowAs = "501000",
-            CreditAccountShowAs = "221000",
-            CurrencyRef = "code:CZK",
+            DebitAccountList = [new AccountFlexiDto { Code = "501000" }],
+            CreditAccountList = [new AccountFlexiDto { Code = "221000" }],
+            Currency = [new CurrencyFlexiDto { Code = "CZK" }],
             Description = "Integration test entry",
         };
 
@@ -122,7 +126,7 @@ public class LedgerSyncIntegrationTests : IAsyncLifetime
             AccountDebit = "501000",
             AccountCredit = "221000",
             Amount = 100m,
-            Currency = "code:CZK",
+            Currency = "CZK",
             Description = "Seeded entry",
             RawPayload = "{}",
             SyncedAt = DateTimeOffset.UtcNow,

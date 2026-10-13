@@ -1,0 +1,58 @@
+{
+  "feature_id": "feat-4166",
+  "issue_number": 4166,
+  "created_at": "2026-09-14T07:13:44.268773Z",
+  "max_revisions": 3,
+  "phases": {
+    "analyzing": {
+      "status": "completed",
+      "updated_at": "2026-09-14T07:15:17.623339Z"
+    },
+    "architecting": {
+      "status": "completed",
+      "updated_at": "2026-09-14T07:16:13.240982Z"
+    },
+    "designing": {
+      "status": "completed",
+      "updated_at": "2026-09-14T07:16:34.893386Z"
+    },
+    "planning": {
+      "status": "completed",
+      "updated_at": "2026-09-14T07:18:34.468172Z"
+    },
+    "developing": {
+      "status": "in_progress",
+      "updated_at": "2026-09-14T11:19:40.151164Z"
+    },
+    "code-review": {
+      "status": "completed",
+      "updated_at": "2026-09-14T12:19:21.420963Z"
+    }
+  },
+  "tasks": [
+    {
+      "name": "add-packing-material-mapper",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-09-14T08:54:11.414107Z"
+    },
+    {
+      "name": "wire-create-and-update-handlers",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-09-14T09:43:02.369232Z"
+    },
+    {
+      "name": "wire-quantity-and-list-handlers",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-09-14T10:52:15.838383Z"
+    },
+    {
+      "name": "full-validation",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-09-14T12:01:05.437503Z"
+    }
+  ]
+}

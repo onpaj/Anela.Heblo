@@ -19,6 +19,7 @@ public class SmartsuppWebhookAuditCleanupJob : IRecurringJob
     public RecurringJobMetadata Metadata { get; } = new()
     {
         JobName = "smartsupp-webhook-audit-cleanup",
+        Category = RecurringJobCategory.Integrations,
         DisplayName = "Smartsupp Webhook Audit Cleanup",
         Description = "Deletes Smartsupp webhook audit entries older than 7 days.",
         CronExpression = "30 3 * * *",

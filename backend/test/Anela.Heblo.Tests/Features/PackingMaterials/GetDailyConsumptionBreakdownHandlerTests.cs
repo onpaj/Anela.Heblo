@@ -163,25 +163,45 @@ public class GetDailyConsumptionBreakdownHandlerTests
     }
 
     [Fact]
-    public async Task GroupBy_OutOfRangeEnumValue_ReturnsFailureResponse()
+    public async Task GroupBy_OutOfRangeEnumValue_PropagatesException()
     {
         // Arrange: an out-of-range enum value can only occur via an unchecked cast — ASP.NET Core's
         // model binder can never produce one for a real HTTP request, but the handler's switch must
-        // still fail (not silently succeed) if it ever receives one, e.g. from a future internal caller.
-        // The discard arm of the switch throws ArgumentOutOfRangeException, which Handle's surrounding
-        // try/catch converts into a Success=false response rather than letting it propagate.
+        // still fail loudly (not silently succeed) if it ever receives one, e.g. from a future
+        // internal caller. The discard arm of the switch throws ArgumentOutOfRangeException, which
+        // now propagates out of Handle instead of being converted into a Success=false response —
+        // ASP.NET Core's existing ArgumentExceptionHandler (registered globally) maps ArgumentException
+        // and its subclasses to a 400 automatically, so this is still a client-facing 400, just via
+        // the standard exception pipeline instead of this handler building the response by hand.
         var repo = BuildRepo(Array.Empty<PackingMaterial>(), new[] { MakeConsumption(1, 5m, invoiceId: "INV-1") });
         var handler = BuildHandler(repo);
         var outOfRangeGroupBy = (ConsumptionGroupBy)99;
 
-        // Act
-        var response = await handler.Handle(
-            new GetDailyConsumptionBreakdownRequest { Date = TestDate, GroupBy = outOfRangeGroupBy },
-            CancellationToken.None);
+        // Act & Assert
+        var exception = await Assert.ThrowsAsync<ArgumentOutOfRangeException>(() =>
+            handler.Handle(
+                new GetDailyConsumptionBreakdownRequest { Date = TestDate, GroupBy = outOfRangeGroupBy },
+                CancellationToken.None));
 
-        // Assert
-        Assert.False(response.Success);
-        Assert.NotNull(response.Error);
+        Assert.Contains("Unhandled GroupBy value", exception.Message);
+    }
+
+    [Fact]
+    public async Task Handle_PropagatesException_WhenRepositoryThrows()
+    {
+        // Arrange
+        var repo = new MockPackingMaterialRepository();
+        var thrown = new InvalidOperationException("database unreachable");
+        repo.SetGetConsumptionsByDateException(thrown);
+        var handler = BuildHandler(repo);
+
+        // Act & Assert
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            handler.Handle(
+                new GetDailyConsumptionBreakdownRequest { Date = TestDate, GroupBy = ConsumptionGroupBy.Material },
+                CancellationToken.None));
+
+        Assert.Same(thrown, exception);
     }
 
     [Fact]

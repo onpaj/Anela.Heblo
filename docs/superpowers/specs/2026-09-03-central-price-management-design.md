@@ -84,10 +84,11 @@ only a single sync path.
   and rounds. The VAT rate is read from Flexi (`typszbdphk` → 0 / 15 / 21, as
   `ProductPriceFlexiDto.Vat` already maps). Price-without-VAT is *derived* when
   writing to Flexi.
-- **A2 — Heblo never writes purchase price.** `cenaNakup` stays computed by
-  Flexi from the BoM and flows into Heblo as it does today (the existing
-  `IProductPriceErpClient.RecalculatePurchasePrice` path is untouched). Shoptet's
-  `buyPrice` is never written.
+- **A2 — Heblo writes purchase price only for materials and goods, only from the stock
+  valuation.** The nightly `purchase-price-recalculation` job sets `cenaNakup` =
+  `prumCena` for `Material` and `Goods`, then triggers Flexi's BoM roll-up for
+  semi-products and then products (see `2026-09-23-purchase-price-sync-design.md`).
+  Shoptet's `buyPrice` is never written.
 - **A3 — Priced product types are `Product`, `Goods`, `Set`.** `Material` and
   `SemiProduct` have no selling price and are excluded from the table and from
   every sync run.

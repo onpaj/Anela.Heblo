@@ -303,4 +303,88 @@ public sealed class PlaudCliClientRunTests
             Directory.Delete(dir, recursive: true);
         }
     }
+
+    // ── Recording-id prefixing: lookups must reach the CLI in "of_" form ─────
+
+    private const string BareRecordingId = "61d13e01b52688976a6e0b6f6d952888";
+    private const string PrefixedRecordingId = "of_" + BareRecordingId;
+
+    /// <summary>
+    /// Runs <paramref name="invoke"/> against a shim that records every argument it was handed
+    /// (one per line) and satisfies the "-o &lt;file&gt;" contract the transcript/summary calls use.
+    /// </summary>
+    private static async Task<string[]> CaptureCliArgsAsync(Func<PlaudCliClient, Task> invoke)
+    {
+        // Mirrors the guard in each caller; also satisfies CA1416 for SetUnixFileMode below.
+        if (OperatingSystem.IsWindows()) return Array.Empty<string>();
+
+        var (dir, shimPath, _) = CreateTestDir();
+        try
+        {
+            var argsFile = Path.Combine(dir, "args.log");
+            await File.WriteAllTextAsync(shimPath,
+                $$"""
+                #!/bin/sh
+                for a in "$@"; do
+                    echo "$a" >> "{{argsFile}}"
+                done
+                prev=""
+                for a in "$@"; do
+                    if [ "$prev" = "-o" ]; then printf '{}' > "$a"; fi
+                    prev="$a"
+                done
+                exit 0
+                """);
+            File.SetUnixFileMode(shimPath, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
+
+            var client = new PlaudCliClient(
+                NullLogger<PlaudCliClient>.Instance,
+                Options.Create(OptionsFor(shimPath)),
+                new FakeTokenRefresher());
+
+            await invoke(client);
+
+            return await File.ReadAllLinesAsync(argsFile);
+        }
+        finally
+        {
+            Directory.Delete(dir, recursive: true);
+        }
+    }
+
+    [SkippableFact]
+    public async Task GetTranscriptAsync_PassesPrefixedRecordingIdToCli()
+    {
+        Skip.If(OperatingSystem.IsWindows(), "Shim script requires bash");
+        if (OperatingSystem.IsWindows()) return;
+
+        var args = await CaptureCliArgsAsync(client => client.GetTranscriptAsync(BareRecordingId));
+
+        args.Should().ContainInOrder("transcript", PrefixedRecordingId);
+        args.Should().NotContain(BareRecordingId);
+    }
+
+    [SkippableFact]
+    public async Task GetSummaryAsync_PassesPrefixedRecordingIdToCli()
+    {
+        Skip.If(OperatingSystem.IsWindows(), "Shim script requires bash");
+        if (OperatingSystem.IsWindows()) return;
+
+        var args = await CaptureCliArgsAsync(client => client.GetSummaryAsync(BareRecordingId));
+
+        args.Should().ContainInOrder("summary", PrefixedRecordingId);
+        args.Should().NotContain(BareRecordingId);
+    }
+
+    [SkippableFact]
+    public async Task GetFileDetailAsync_PassesPrefixedRecordingIdToCli()
+    {
+        Skip.If(OperatingSystem.IsWindows(), "Shim script requires bash");
+        if (OperatingSystem.IsWindows()) return;
+
+        var args = await CaptureCliArgsAsync(client => client.GetFileDetailAsync(BareRecordingId));
+
+        args.Should().ContainInOrder("file", PrefixedRecordingId);
+        args.Should().NotContain(BareRecordingId);
+    }
 }

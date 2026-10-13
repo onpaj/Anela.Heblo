@@ -14,7 +14,12 @@ public sealed class LotLabelCalibrationRepository : ILotLabelCalibrationReposito
 
     public async Task<LotLabelCalibration> GetAsync(CancellationToken cancellationToken = default)
     {
-        return await _context.LotLabelCalibrations.FirstOrDefaultAsync(cancellationToken)
+        // Detached on purpose: SaveAsync re-reads the row and mutates the tracked entity in
+        // place, so a tracked read would hand callers an instance that silently changes
+        // under them on the next save. Callers that derive a new value from the current one
+        // (the nudge wizard, which logs both) need a stable snapshot, and every caller of
+        // this method only reads.
+        return await _context.LotLabelCalibrations.AsNoTracking().FirstOrDefaultAsync(cancellationToken)
             ?? LotLabelCalibration.CreateDefault();
     }
 

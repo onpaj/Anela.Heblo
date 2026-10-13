@@ -1,3 +1,5 @@
+using Anela.Heblo.Application.Features.FeatureFlags;
+using Anela.Heblo.Application.Features.Packaging.Services;
 using Anela.Heblo.Application.Features.ShipmentLabels;
 using Anela.Heblo.Application.Shared;
 using MediatR;
@@ -9,17 +11,25 @@ public class GetPackageLabelPdfHandler : IRequestHandler<GetPackageLabelPdfReque
 {
     public const string HttpClientName = "ShipmentLabelDownloader";
 
+    /// <summary>
+    /// How far each enabled direction flag moves the label content. 10 mm in PDF points (1/72 in).
+    /// </summary>
+    private const double LabelOffsetPoints = 10 / 25.4 * 72;
+
     private readonly IShipmentClient _shipmentClient;
     private readonly IHttpClientFactory _httpClientFactory;
+    private readonly IFeatureFlagChecker _featureFlags;
     private readonly ILogger<GetPackageLabelPdfHandler> _logger;
 
     public GetPackageLabelPdfHandler(
         IShipmentClient shipmentClient,
         IHttpClientFactory httpClientFactory,
+        IFeatureFlagChecker featureFlags,
         ILogger<GetPackageLabelPdfHandler> logger)
     {
         _shipmentClient = shipmentClient;
         _httpClientFactory = httpClientFactory;
+        _featureFlags = featureFlags;
         _logger = logger;
     }
 
@@ -57,6 +67,9 @@ public class GetPackageLabelPdfHandler : IRequestHandler<GetPackageLabelPdfReque
             return new GetPackageLabelPdfResponse(ErrorCodes.PackageLabelNotFound);
         }
 
+        // Resolved before the download so a cancelled lookup never leaves a carrier response open.
+        var offset = await GetOffsetAsync(request, ct);
+
         var http = _httpClientFactory.CreateClient(HttpClientName);
 
         HttpResponseMessage carrierResponse;
@@ -82,11 +95,79 @@ public class GetPackageLabelPdfHandler : IRequestHandler<GetPackageLabelPdfReque
         var contentType = carrierResponse.Content.Headers.ContentType?.MediaType ?? "application/pdf";
         var stream = await carrierResponse.Content.ReadAsStreamAsync(ct);
 
+        if (offset != default)
+            stream = await ShiftAsync(stream, offset, request, ct);
+
         return new GetPackageLabelPdfResponse
         {
             Content = stream,
             ContentType = contentType,
             FileName = $"{request.OrderCode}-{request.PackageNumber}.pdf",
         };
+    }
+
+    /// <summary>
+    /// Label placement on the Zebra is still being tuned, so each direction has its own flag that
+    /// moves every carrier's label 10 mm that way. Enabled directions add up; opposite ones cancel.
+    /// </summary>
+    private static readonly (string FlagKey, int Right, int Up)[] OffsetFlags =
+    [
+        (FeatureFlagKeys.LabelOffsetLeft, -1, 0),
+        (FeatureFlagKeys.LabelOffsetRight, 1, 0),
+        (FeatureFlagKeys.LabelOffsetUp, 0, 1),
+        (FeatureFlagKeys.LabelOffsetDown, 0, -1),
+    ];
+
+    /// <summary>
+    /// Sums the enabled direction flags into one (right, up) move in PDF points. A failed flag
+    /// check only skips the offset — the label still prints.
+    /// </summary>
+    private async Task<(double Right, double Up)> GetOffsetAsync(GetPackageLabelPdfRequest request, CancellationToken ct)
+    {
+        try
+        {
+            var (right, up) = (0, 0);
+            foreach (var (flagKey, flagRight, flagUp) in OffsetFlags)
+            {
+                if (!await _featureFlags.IsEnabledAsync(flagKey, ct))
+                    continue;
+
+                right += flagRight;
+                up += flagUp;
+            }
+
+            return (right * LabelOffsetPoints, up * LabelOffsetPoints);
+        }
+        catch (Exception ex) when (!ct.IsCancellationRequested)
+        {
+            _logger.LogWarning(ex,
+                "Could not read label offset flags for order {OrderCode} package {PackageNumber}; printing label without offset",
+                request.OrderCode, request.PackageNumber);
+            return default;
+        }
+    }
+
+    private async Task<Stream> ShiftAsync(
+        Stream stream, (double Right, double Up) offset, GetPackageLabelPdfRequest request, CancellationToken ct)
+    {
+        byte[] original;
+        await using (stream)
+        {
+            using var buffer = new MemoryStream();
+            await stream.CopyToAsync(buffer, ct);
+            original = buffer.ToArray();
+        }
+
+        try
+        {
+            return new MemoryStream(LabelPdfShifter.Shift(original, offset.Right, offset.Up));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex,
+                "Failed to shift label PDF for order {OrderCode} package {PackageNumber}; printing label without offset",
+                request.OrderCode, request.PackageNumber);
+            return new MemoryStream(original);
+        }
     }
 }

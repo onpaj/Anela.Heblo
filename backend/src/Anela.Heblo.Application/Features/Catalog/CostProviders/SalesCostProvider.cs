@@ -1,5 +1,7 @@
 using Anela.Heblo.Application.Common;
 using Anela.Heblo.Application.Features.Catalog.Infrastructure;
+using Anela.Heblo.Application.Shared.CostPools;
+using Anela.Heblo.Domain.Accounting.CostPools;
 using Anela.Heblo.Domain.Accounting.Ledger;
 using Anela.Heblo.Domain.Features.Catalog;
 using Anela.Heblo.Domain.Features.Catalog.Cache;
@@ -12,8 +14,13 @@ using Microsoft.Extensions.Options;
 namespace Anela.Heblo.Application.Features.Catalog.CostProviders;
 
 /// <summary>
-/// Sales/Marketing cost provider (M2) - Distributes warehouse and marketing costs across products by sold pieces.
+/// Sales/Marketing cost provider (M2) - Distributes warehouse and marketing costs across products
+/// in proportion to the revenue each one earned (see <see cref="SalesRevenueAllocation"/>).
 /// Business logic layer with cache fallback.
+///
+/// The pool is CostPoolDefinition's M2: departments SKLAD + MARKETING on accounts
+/// 50, 51 and 52. It is deliberately narrower than company overhead - centrala,
+/// prodejna and the separate BUVOL activity are in no margin level.
 /// </summary>
 public class SalesCostProvider : ISalesCostProvider
 {
@@ -24,8 +31,11 @@ public class SalesCostProvider : ISalesCostProvider
     private readonly ILogger<SalesCostProvider> _logger;
     private readonly DataSourceOptions _options;
 
-    private const string WarehouseCostCenter = "SKLAD";
-    private const string MarketingCostCenter = "MARKETING";
+    // Taken from CostPoolDefinition rather than re-declared: the parity tests assert
+    // this provider's M2 equals CostPoolService's M2, and a second copy of the
+    // department codes would let that invariant break with no compiler signal.
+    private const string WarehouseCostCenter = CostPoolDefinition.WarehouseDepartment;
+    private const string MarketingCostCenter = CostPoolDefinition.MarketingDepartment;
 
     // ICatalogRepository is resolved lazily via IServiceProvider, not injected directly:
     // CatalogRepository -> IMarginCalculationService -> ISalesCostProvider -> ICatalogRepository
@@ -110,33 +120,44 @@ public class SalesCostProvider : ISalesCostProvider
         var months = GenerateMonthRange(costsFrom, costsTo);
 
         // Krok 1: Načíst náklady SKLAD + MARKETING
-        var warehouseCosts = await _ledgerService.GetDirectCosts(
+        // Ne GetDirectCosts (51+52): v těchto střediscích je i 50x - obalový materiál
+        // expedice a marketingový tisk - a ten do M2 patří. V centrále je stejná
+        // předvolba naopak prodané zboží, proto se rozsah účtů řídí poolem.
+        var accountPrefixes = CostPoolDefinition.AccountPrefixesFor(CostPool.M2);
+
+        var warehouseCosts = await _ledgerService.GetCosts(
             costsFrom,
             costsTo,
+            accountPrefixes,
             WarehouseCostCenter,
             ct);
-        var marketingCosts = await _ledgerService.GetDirectCosts(
+        var marketingCosts = await _ledgerService.GetCosts(
             costsFrom,
             costsTo,
+            accountPrefixes,
             MarketingCostCenter,
             ct);
 
-        var totalCost = (double)(warehouseCosts.Sum(c => c.Cost) + marketingCosts.Sum(c => c.Cost));
+        var totalCost = warehouseCosts.Sum(c => c.Cost) + marketingCosts.Sum(c => c.Cost);
 
-        // Krok 2: Spočítat celkový počet prodaných kusů
-        var totalSoldPieces = CalculateTotalSoldPieces(products, costsFrom, costsTo);
+        // Krok 2: Spočítat celkové tržby
+        var totalRevenue = SalesRevenueAllocation.CalculateTotalRevenue(products, costsFrom, costsTo);
 
-        // Krok 3: Vypočítat náklad na kus
-        if (totalSoldPieces == 0)
+        // Krok 3: Vypočítat sazbu na korunu tržby
+        if (totalRevenue <= 0)
         {
-            _logger.LogWarning("No sales history found for period {DateFrom} to {DateTo}", dateFrom, dateTo);
-            return CreateCostCacheData(CreateEmptyProductCosts(products, months), dateFrom, dateTo);
+            _logger.LogWarning("No sales revenue found for period {DateFrom} to {DateTo}", dateFrom, dateTo);
+            return CreateCostCacheData(
+                SalesRevenueAllocation.BuildProductCosts(products, 0m, costsFrom, costsTo, months),
+                dateFrom,
+                dateTo);
         }
 
-        var costPerPiece = totalCost / totalSoldPieces;
+        var costPerRevenueUnit = totalCost / totalRevenue;
 
-        // Krok 4: Vypočítat náklady pro každý produkt
-        var productCosts = CalculateProductCosts(products, costPerPiece, months);
+        // Krok 4: Vypočítat náklad na kus pro každý produkt podle jeho tržby na kus
+        var productCosts = SalesRevenueAllocation.BuildProductCosts(
+            products, costPerRevenueUnit, costsFrom, costsTo, months);
 
         return CreateCostCacheData(productCosts, dateFrom, dateTo);
     }
@@ -162,62 +183,6 @@ public class SalesCostProvider : ISalesCostProvider
             current = current.AddMonths(1);
         }
         return months;
-    }
-
-    private static double CalculateTotalSoldPieces(
-        List<CatalogAggregate> products,
-        DateTime from,
-        DateTime to)
-    {
-        double totalSold = 0;
-
-        foreach (var product in products)
-        {
-            var productSold = product.SalesHistory
-                .Where(s => s.Date >= from && s.Date <= to && s.SourceBundleCode == null)
-                .Sum(s => s.AmountTotal);
-
-            totalSold += productSold;
-        }
-
-        return totalSold;
-    }
-
-    private static Dictionary<string, List<MonthlyCost>> CreateEmptyProductCosts(
-        IEnumerable<CatalogAggregate> products,
-        List<DateTime> months)
-    {
-        var productCosts = new Dictionary<string, List<MonthlyCost>>();
-
-        foreach (var product in products)
-        {
-            if (string.IsNullOrEmpty(product.ProductCode))
-                continue;
-
-            productCosts[product.ProductCode] = months.Select(m => new MonthlyCost(m, 0m)).ToList();
-        }
-
-        return productCosts;
-    }
-
-    private static Dictionary<string, List<MonthlyCost>> CalculateProductCosts(
-        List<CatalogAggregate> products,
-        double costPerPiece,
-        List<DateTime> months)
-    {
-        var productCosts = new Dictionary<string, List<MonthlyCost>>();
-
-        foreach (var product in products)
-        {
-            if (string.IsNullOrEmpty(product.ProductCode))
-                continue;
-
-            // Plošný rozpočet - stejný náklad na kus pro všechny měsíce
-            var costPerPieceDecimal = (decimal)costPerPiece;
-            productCosts[product.ProductCode] = months.Select(m => new MonthlyCost(m, costPerPieceDecimal)).ToList();
-        }
-
-        return productCosts;
     }
 
     private static CostCacheData CreateCostCacheData(

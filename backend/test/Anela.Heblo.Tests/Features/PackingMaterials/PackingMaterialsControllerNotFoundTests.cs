@@ -2,6 +2,7 @@ using Anela.Heblo.API.Controllers;
 using Anela.Heblo.Application.Features.PackingMaterials.Contracts;
 using Anela.Heblo.Application.Features.PackingMaterials.UseCases.DeletePackingMaterial;
 using Anela.Heblo.Application.Features.PackingMaterials.UseCases.GetPackingMaterialLogs;
+using Anela.Heblo.Application.Features.PackingMaterials.UseCases.UpdatePackingMaterial;
 using Anela.Heblo.Application.Features.PackingMaterials.UseCases.UpdatePackingMaterialQuantity;
 using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Domain.Features.PackingMaterials.Enums;

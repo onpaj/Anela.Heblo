@@ -17,8 +17,11 @@ public static class GiftPackageManufactureModule
             return new GiftPackageManufactureRepository(context);
         });
 
-        // Register services
-        services.AddScoped<IGiftPackageManufactureService, GiftPackageManufactureService>();
+        // Register services — the concrete type is the shared scoped root; both interfaces
+        // alias to it so any resolution within one DI scope returns the same instance.
+        services.AddScoped<GiftPackageManufactureService>();
+        services.AddScoped<IGiftPackageManufactureService>(sp => sp.GetRequiredService<GiftPackageManufactureService>());
+        services.AddScoped<IGiftPackageQueryService>(sp => sp.GetRequiredService<GiftPackageManufactureService>());
 
         return services;
     }

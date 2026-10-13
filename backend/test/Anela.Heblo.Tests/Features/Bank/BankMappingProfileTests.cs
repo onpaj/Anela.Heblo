@@ -57,4 +57,15 @@ public class BankMappingProfileTests
         dto.ImportResult.Should().Be("Failed");
         dto.ErrorType.Should().Be("Failed");
     }
+
+    [Fact]
+    public void BankStatementImportDto_ErrorType_Is_Settable_Independently_Of_The_Mapper()
+    {
+        var dto = new BankStatementImportDto
+        {
+            ErrorType = "SOME_ERROR",
+        };
+
+        dto.ErrorType.Should().Be("SOME_ERROR");
+    }
 }

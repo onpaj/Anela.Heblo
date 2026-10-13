@@ -12,6 +12,7 @@ public class LogetoTimeEntry
     public string? Hours { get; init; }
 
     public Guid Activity { get; init; }
+
     public string? Description { get; init; }
     public string? ExternalKey { get; init; }
 

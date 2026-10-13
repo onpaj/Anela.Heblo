@@ -14,6 +14,7 @@ public class GetRecurringJobsListHandlerTests
     private readonly Mock<IMapper> _mapperMock;
     private readonly Mock<ILogger<GetRecurringJobsListHandler>> _loggerMock;
     private readonly Mock<TimeProvider> _timeProviderMock;
+    private readonly List<IRecurringJob> _discoveredJobs;
     private readonly GetRecurringJobsListHandler _handler;
 
     // Fixed reference time used in all tests to avoid flakiness
@@ -26,12 +27,21 @@ public class GetRecurringJobsListHandlerTests
         _loggerMock = new Mock<ILogger<GetRecurringJobsListHandler>>();
         _timeProviderMock = new Mock<TimeProvider>();
         _timeProviderMock.Setup(tp => tp.GetUtcNow()).Returns(FixedUtcNow);
+        _discoveredJobs = new List<IRecurringJob>();
         _handler = new GetRecurringJobsListHandler(
             _repositoryMock.Object,
             _mapperMock.Object,
             _loggerMock.Object,
-            _timeProviderMock.Object);
+            _timeProviderMock.Object,
+            _discoveredJobs);
     }
+
+    /// <summary>
+    /// Builds a handler that sees the supplied job implementations. The category lookup is
+    /// built once at construction time, so jobs must be known before the handler is created.
+    /// </summary>
+    private GetRecurringJobsListHandler CreateHandlerWith(params IRecurringJob[] discoveredJobs) =>
+        new(_repositoryMock.Object, _mapperMock.Object, _loggerMock.Object, _timeProviderMock.Object, discoveredJobs);
 
     [Fact]
     public async Task Handle_Should_Return_All_Jobs_From_Repository()
@@ -278,7 +288,7 @@ public class GetRecurringJobsListHandlerTests
         summerTimeProvider.Setup(tp => tp.GetUtcNow())
             .Returns(new DateTimeOffset(2026, 4, 29, 12, 0, 0, TimeSpan.Zero));
         var handler = new GetRecurringJobsListHandler(
-            _repositoryMock.Object, _mapperMock.Object, _loggerMock.Object, summerTimeProvider.Object);
+            _repositoryMock.Object, _mapperMock.Object, _loggerMock.Object, summerTimeProvider.Object, _discoveredJobs);
 
         var request = new GetRecurringJobsListRequest();
         var jobs = new List<RecurringJobConfiguration>
@@ -308,7 +318,7 @@ public class GetRecurringJobsListHandlerTests
         winterTimeProvider.Setup(tp => tp.GetUtcNow())
             .Returns(new DateTimeOffset(2026, 1, 15, 12, 0, 0, TimeSpan.Zero));
         var handler = new GetRecurringJobsListHandler(
-            _repositoryMock.Object, _mapperMock.Object, _loggerMock.Object, winterTimeProvider.Object);
+            _repositoryMock.Object, _mapperMock.Object, _loggerMock.Object, winterTimeProvider.Object, _discoveredJobs);
 
         var request = new GetRecurringJobsListRequest();
         var jobs = new List<RecurringJobConfiguration>
@@ -353,5 +363,53 @@ public class GetRecurringJobsListHandlerTests
 
         // Assert
         result.Jobs[0].NextRunAt.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task Handle_Should_Stamp_Category_From_Discovered_Job_Metadata()
+    {
+        // Arrange
+        var request = new GetRecurringJobsListRequest();
+        var jobs = new List<RecurringJobConfiguration>
+        {
+            new RecurringJobConfiguration("daily-invoice-dqt", "DQT", "Desc", "0 0 * * *", "Europe/Prague", true, "User1", DateTime.UtcNow)
+        };
+        var jobDtos = new List<RecurringJobDto>
+        {
+            new RecurringJobDto { JobName = "daily-invoice-dqt", CronExpression = "0 0 * * *", TimeZoneId = "Europe/Prague", IsEnabled = true }
+        };
+        var handler = CreateHandlerWith(new FakeRecurringJob("daily-invoice-dqt", RecurringJobCategory.DataQuality));
+        _repositoryMock.Setup(r => r.GetAllAsync(It.IsAny<CancellationToken>())).ReturnsAsync(jobs);
+        _mapperMock.Setup(m => m.Map<List<RecurringJobDto>>(jobs)).Returns(jobDtos);
+
+        // Act
+        var result = await handler.Handle(request, CancellationToken.None);
+
+        // Assert
+        result.Jobs[0].Category.Should().Be(RecurringJobCategory.DataQuality);
+    }
+
+    [Fact]
+    public async Task Handle_Should_Return_Uncategorized_When_Job_Has_No_Implementation_In_Code()
+    {
+        // Arrange - a stored configuration whose job class was removed from the codebase
+        var request = new GetRecurringJobsListRequest();
+        var jobs = new List<RecurringJobConfiguration>
+        {
+            new RecurringJobConfiguration("removed-job", "Removed", "Desc", "0 0 * * *", "Europe/Prague", true, "User1", DateTime.UtcNow)
+        };
+        var jobDtos = new List<RecurringJobDto>
+        {
+            new RecurringJobDto { JobName = "removed-job", CronExpression = "0 0 * * *", TimeZoneId = "Europe/Prague", IsEnabled = true }
+        };
+        var handler = CreateHandlerWith(new FakeRecurringJob("some-other-job", RecurringJobCategory.Finance));
+        _repositoryMock.Setup(r => r.GetAllAsync(It.IsAny<CancellationToken>())).ReturnsAsync(jobs);
+        _mapperMock.Setup(m => m.Map<List<RecurringJobDto>>(jobs)).Returns(jobDtos);
+
+        // Act
+        var result = await handler.Handle(request, CancellationToken.None);
+
+        // Assert
+        result.Jobs[0].Category.Should().Be(RecurringJobCategory.Uncategorized);
     }
 }

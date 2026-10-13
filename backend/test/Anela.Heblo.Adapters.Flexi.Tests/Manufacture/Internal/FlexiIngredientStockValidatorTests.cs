@@ -4,6 +4,7 @@ using Anela.Heblo.Adapters.Flexi.Stock;
 using Anela.Heblo.Adapters.Flexi.Tests.Manufacture;
 using Anela.Heblo.Domain.Features.Catalog;
 using Anela.Heblo.Domain.Features.Catalog.Stock;
+using FluentAssertions;
 using Moq;
 using Xunit;
 
@@ -83,5 +84,60 @@ public class FlexiIngredientStockValidatorTests
 
         // Sufficient ingredient should NOT be mentioned
         Assert.DoesNotContain(ingredient1.Code, ex.Message);
+    }
+
+    [Fact]
+    public async Task Validate_WhenShortfallIsWithinAllocationEpsilon_DoesNotThrow()
+    {
+        // Arrange: BoM scaling drift of a few millionths must not block a manufacture
+        var ingredient = ManufactureTestData.Materials.Glycerol;
+        var requirements = new Dictionary<string, IngredientRequirement>
+        {
+            [ingredient.Code] = new IngredientRequirement
+            {
+                ProductCode = ingredient.Code,
+                ProductName = ingredient.Name,
+                ProductType = ProductType.SemiProduct,
+                RequiredAmount = 700.0000004m,
+                HasLots = false
+            }
+        };
+
+        _mockStockClient
+            .Setup(x => x.StockToDateAsync(It.IsAny<DateTime>(), FlexiStockClient.SemiProductsWarehouseId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<ErpStock> { new() { ProductCode = ingredient.Code, Stock = 700m, Price = 1m } });
+
+        // Act
+        var act = () => _validator.ValidateAsync(requirements, CancellationToken.None);
+
+        // Assert
+        await act.Should().NotThrowAsync();
+    }
+
+    [Fact]
+    public async Task Validate_WithSeveralIngredientsInOneWarehouse_LoadsWarehouseStockOnce()
+    {
+        // Arrange
+        var requirements = new[] { ManufactureTestData.Materials.Bisabolol, ManufactureTestData.Materials.Glycerol, ManufactureTestData.Materials.ZincOxide }
+            .ToDictionary(m => m.Code, m => new IngredientRequirement
+            {
+                ProductCode = m.Code,
+                ProductName = m.Name,
+                ProductType = ProductType.SemiProduct,
+                RequiredAmount = 1m,
+                HasLots = false
+            });
+
+        _mockStockClient
+            .Setup(x => x.StockToDateAsync(It.IsAny<DateTime>(), FlexiStockClient.SemiProductsWarehouseId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(requirements.Keys.Select(code => new ErpStock { ProductCode = code, Stock = 10m, Price = 1m }).ToList());
+
+        // Act
+        await _validator.ValidateAsync(requirements, CancellationToken.None);
+
+        // Assert
+        _mockStockClient.Verify(
+            x => x.StockToDateAsync(It.IsAny<DateTime>(), FlexiStockClient.SemiProductsWarehouseId, It.IsAny<CancellationToken>()),
+            Times.Once);
     }
 }

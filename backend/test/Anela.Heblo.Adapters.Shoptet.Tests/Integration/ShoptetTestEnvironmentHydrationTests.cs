@@ -1,4 +1,5 @@
 using Anela.Heblo.Adapters.Shoptet.Tests.Integration.Infrastructure;
+using Anela.Heblo.Adapters.ShoptetApi.Orders;
 using Anela.Heblo.Application.Features.ShoptetOrders;
 using Anela.Heblo.Domain.Features.Catalog.Stock;
 using FluentAssertions;
@@ -15,6 +16,7 @@ public class ShoptetTestEnvironmentHydrationTests
     private readonly ShoptetIntegrationTestFixture _fixture;
     private readonly IConfiguration _configuration;
     private readonly IEshopOrderClient _client;
+    private readonly IShoptetOrderTestClient _testClient;
     private readonly IEshopStockClient _stockClient;
     private readonly ITestOutputHelper _output;
 
@@ -63,6 +65,7 @@ public class ShoptetTestEnvironmentHydrationTests
         _fixture = fixture;
         _configuration = fixture.Configuration;
         _client = fixture.ServiceProvider.GetRequiredService<IEshopOrderClient>();
+        _testClient = fixture.ServiceProvider.GetRequiredService<IShoptetOrderTestClient>();
         _stockClient = fixture.ServiceProvider.GetRequiredService<IEshopStockClient>();
         _output = output;
 
@@ -173,7 +176,7 @@ public class ShoptetTestEnvironmentHydrationTests
 
         // Pre-fetch all existing TEST- orders in one paginated call to avoid
         // per-order API lookups (externalCode filter is not supported by the API).
-        var existingOrders = await _client.ListByExternalCodePrefixAsync("TEST-", "test-seed@heblo.test", ct);
+        var existingOrders = await _testClient.ListByExternalCodePrefixAsync("TEST-", "test-seed@heblo.test", ct);
         var existingByExternalCode = existingOrders
             .Where(o => o.ExternalCode != null)
             .ToDictionary(o => o.ExternalCode!, StringComparer.Ordinal);
@@ -239,7 +242,7 @@ public class ShoptetTestEnvironmentHydrationTests
                     Items = BuildOrderItems(definition.ProductCount, shippingName, rng, variantCodes),
                 };
 
-                var code = await _client.CreateOrderAsync(request, ct);
+                var code = await _testClient.CreateOrderAsync(request, ct);
 
                 // Newly created orders may land in a default status — reset to target
                 await _client.UpdateStatusAsync(code, definition.TargetState, ct);
@@ -277,7 +280,7 @@ public class ShoptetTestEnvironmentHydrationTests
         ShoptetTestGuard.Assert(_configuration);
 
         var ct = new CancellationTokenSource(TimeSpan.FromMinutes(5)).Token;
-        var orders = await _client.ListByExternalCodePrefixAsync("TEST-", "test-seed@heblo.test", ct);
+        var orders = await _testClient.ListByExternalCodePrefixAsync("TEST-", "test-seed@heblo.test", ct);
 
         // Some states block deletion with 409 — try resetting to -2 first, skip if still blocked.
         const int deletableStateId = -2;
@@ -290,7 +293,7 @@ public class ShoptetTestEnvironmentHydrationTests
                 if (order.StatusId != deletableStateId)
                     await _client.UpdateStatusAsync(order.Code, deletableStateId, ct);
 
-                await _client.DeleteOrderAsync(order.Code, ct);
+                await _testClient.DeleteOrderAsync(order.Code, ct);
                 _output.WriteLine($"DELETED  {order.Code} ({order.ExternalCode})");
                 deleted++;
             }

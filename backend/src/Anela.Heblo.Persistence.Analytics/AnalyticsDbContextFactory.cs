@@ -9,10 +9,12 @@ public class AnalyticsDbContextFactory : IDesignTimeDbContextFactory<AnalyticsDb
     {
         var connectionString =
             Environment.GetEnvironmentVariable("AnalyticsDatabase__ConnectionString")
-            ?? "Host=localhost;Database=anela_analytics;Username=postgres";
+            ?? "Host=localhost;Database=Heblo_V3;Username=postgres";
 
         var options = new DbContextOptionsBuilder<AnalyticsDbContext>()
-            .UseNpgsql(connectionString)
+            .UseNpgsql(connectionString, npgsql => npgsql.MigrationsHistoryTable(
+                AnalyticsDbContext.MigrationsHistoryTableName,
+                AnalyticsDbContext.Schema))
             .Options;
         return new AnalyticsDbContext(options);
     }

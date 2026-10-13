@@ -8,6 +8,7 @@ namespace Anela.Heblo.Application.Features.Journal.Contracts
 {
     public class CreateJournalEntryRequest : IRequest<CreateJournalEntryResponse>
     {
+        [Required]
         [MaxLength(200)]
         public string Title { get; set; } = null!;
 

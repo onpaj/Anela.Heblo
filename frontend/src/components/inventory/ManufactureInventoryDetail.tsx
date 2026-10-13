@@ -1,17 +1,19 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { X, Wrench, Loader2, AlertCircle, CheckCircle, History, Plus, Trash2, Minus } from "lucide-react";
 import { CatalogItemDto, useCatalogDetail } from "../../api/hooks/useCatalog";
 import { useSubmitManufactureStockTaking, useStockTakingHistory } from "../../api/hooks/useManufactureStockTaking";
 import { useToast } from "../../contexts/ToastContext";
-import { parseLocalDate, formatLocalDate } from "../../utils/dateUtils";
+import ExpirationDateInput from "./ExpirationDateInput";
 
 interface EditableLot {
+  rowId: number; // Stable React key - lotCode changes while a new lot is typed
   lotCode: string | null;
   amount: number;
   expiration: Date | null;
   originalAmount: number;
   isNew?: boolean;
   amountInput?: string; // Temporary input value for editing
+  hasInvalidExpiration?: boolean;
 }
 
 interface ManufactureInventoryModalProps {
@@ -29,6 +31,11 @@ const ManufactureInventoryModal: React.FC<ManufactureInventoryModalProps> = ({
   const [newQuantityInput, setNewQuantityInput] = useState<string | undefined>(undefined); // Temporary input value for editing
   const [activeTab, setActiveTab] = useState<'inventory' | 'history'>('inventory');
   const [editableLots, setEditableLots] = useState<EditableLot[]>([]);
+  const nextLotRowId = useRef(0);
+  // isPending from React Query flips only after its batched notification, so a fast
+  // double-click could submit twice; the ref blocks the second click synchronously.
+  const isSubmittingRef = useRef(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   
   // Stock taking mutation hook
   const submitStockTaking = useSubmitManufactureStockTaking();
@@ -77,6 +84,7 @@ const ManufactureInventoryModal: React.FC<ManufactureInventoryModalProps> = ({
 
     if (effectiveItem.hasLots && effectiveItem.lots) {
       const lots: EditableLot[] = effectiveItem.lots.map(lot => ({
+        rowId: nextLotRowId.current++,
         lotCode: lot.lotCode || null,
         amount: lot.amount ?? 0,
         expiration: lot.expiration || null,
@@ -170,17 +178,19 @@ const ManufactureInventoryModal: React.FC<ManufactureInventoryModalProps> = ({
     ));
   };
 
-  const updateLotExpiration = (index: number, newExpiration: string) => {
-    setEditableLots(prev => prev.map((lot, i) => 
-      i === index ? { 
-        ...lot, 
-        expiration: newExpiration ? parseLocalDate(newExpiration) : null 
+  const updateLotExpiration = (index: number, newExpiration: Date | null, isValid: boolean) => {
+    setEditableLots(prev => prev.map((lot, i) =>
+      i === index ? {
+        ...lot,
+        expiration: newExpiration,
+        hasInvalidExpiration: !isValid,
       } : lot
     ));
   };
 
   const addNewLot = () => {
     setEditableLots(prev => [...prev, {
+      rowId: nextLotRowId.current++,
       lotCode: '',
       amount: 0,
       expiration: null,
@@ -195,10 +205,13 @@ const ManufactureInventoryModal: React.FC<ManufactureInventoryModalProps> = ({
 
   // Calculate total amount from lots
   const totalLotAmount = editableLots.reduce((sum, lot) => sum + lot.amount, 0);
+  const hasInvalidLotExpiration = editableLots.some(lot => lot.hasInvalidExpiration);
 
   const handleInventorize = async () => {
-    if (!effectiveItem?.productCode) return;
+    if (!effectiveItem?.productCode || isSubmittingRef.current) return;
 
+    isSubmittingRef.current = true;
+    setIsSubmitting(true);
     try {
       if (effectiveItem.hasLots && editableLots.length > 0) {
         // Lot-based stock taking
@@ -255,6 +268,9 @@ const ManufactureInventoryModal: React.FC<ManufactureInventoryModalProps> = ({
     } catch (error) {
       console.error("Manufacture stock taking failed:", error);
       // Error is handled by the mutation hook
+    } finally {
+      isSubmittingRef.current = false;
+      setIsSubmitting(false);
     }
   };
 
@@ -368,7 +384,7 @@ const ManufactureInventoryModal: React.FC<ManufactureInventoryModalProps> = ({
                           {editableLots && editableLots.length > 0 ? (
                             <div className="space-y-2 p-4">
                               {editableLots.map((lot, index) => (
-                                <div key={lot.lotCode || index} className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg border border-gray-200 dark:bg-graphite-surface-2 dark:border-graphite-border">
+                                <div key={lot.rowId} className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg border border-gray-200 dark:bg-graphite-surface-2 dark:border-graphite-border">
                                   {/* Lot Code Input - smaller */}
                                   <div className="w-32">
                                     <input
@@ -384,13 +400,10 @@ const ManufactureInventoryModal: React.FC<ManufactureInventoryModalProps> = ({
 
                                   {/* Expiration Date Input - smaller */}
                                   <div className="w-40">
-                                    <input
-                                      type="date"
-                                      value={lot.expiration ? formatLocalDate(lot.expiration) : ''}
-                                      onChange={(e) => updateLotExpiration(index, e.target.value)}
-                                      className="w-full text-sm border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent dark:bg-graphite-surface-2 dark:border-graphite-border dark:text-graphite-text dark:placeholder-graphite-faint"
+                                    <ExpirationDateInput
+                                      value={lot.expiration}
+                                      onChange={(date, isValid) => updateLotExpiration(index, date, isValid)}
                                       readOnly={!lot.isNew}
-                                      title={lot.isNew ? "Datum expirace" : "Datum expirace (jen pro čtení)"}
                                     />
                                   </div>
 
@@ -561,10 +574,10 @@ const ManufactureInventoryModal: React.FC<ManufactureInventoryModalProps> = ({
                       <div className="pt-6">
                         <button
                           onClick={handleInventorize}
-                          disabled={submitStockTaking.isPending || !effectiveItem?.productCode}
+                          disabled={isSubmitting || !effectiveItem?.productCode || hasInvalidLotExpiration}
                           className="w-full bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white text-lg font-semibold py-4 px-6 rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 flex items-center justify-center space-x-2"
                         >
-                          {submitStockTaking.isPending ? (
+                          {isSubmitting ? (
                             <>
                               <Loader2 className="h-5 w-5 animate-spin" />
                               <span>Inventarizuji...</span>
@@ -693,10 +706,10 @@ const ManufactureInventoryModal: React.FC<ManufactureInventoryModalProps> = ({
                       <div className="pt-6">
                         <button
                           onClick={handleInventorize}
-                          disabled={submitStockTaking.isPending || !effectiveItem?.productCode}
+                          disabled={isSubmitting || !effectiveItem?.productCode}
                           className="w-full bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white text-lg font-semibold py-4 px-6 rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 flex items-center justify-center space-x-2"
                         >
-                          {submitStockTaking.isPending ? (
+                          {isSubmitting ? (
                             <>
                               <Loader2 className="h-5 w-5 animate-spin" />
                               <span>Inventarizuji...</span>
