@@ -177,6 +177,7 @@ const resources = {
         ProductNotFoundForAnalysis:
           "Produkt {{productId}} nebyl nalezen pro analýzu",
         InvalidReportPeriod: "Neplatné období sestavy: {{period}}",
+        InvalidTimeWindow: "Neplatné časové okno: {{timeWindow}}",
 
         // Journal module errors
         JournalEntryNotFound: "Záznam z deníku nebyl nalezen (ID: {{entryId}})",
@@ -481,6 +482,7 @@ const resources = {
         ProductNotFoundForAnalysis:
           "Product {{productId}} not found for analysis",
         InvalidReportPeriod: "Invalid report period: {{period}}",
+        InvalidTimeWindow: "Invalid time window: {{timeWindow}}",
 
         // Journal module errors
         JournalEntryNotFound: "Journal entry not found (ID: {{entryId}})",

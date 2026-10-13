@@ -1,0 +1,58 @@
+{
+  "feature_id": "feat-4229",
+  "issue_number": 4229,
+  "created_at": "2026-09-20T11:11:01.701629Z",
+  "max_revisions": 3,
+  "phases": {
+    "analyzing": {
+      "status": "completed",
+      "updated_at": "2026-09-20T11:14:06.780690Z"
+    },
+    "architecting": {
+      "status": "completed",
+      "updated_at": "2026-09-20T11:15:21.197895Z"
+    },
+    "designing": {
+      "status": "completed",
+      "updated_at": "2026-09-20T11:15:53.889350Z"
+    },
+    "planning": {
+      "status": "completed",
+      "updated_at": "2026-09-20T11:17:57.063437Z"
+    },
+    "developing": {
+      "status": "in_progress",
+      "updated_at": "2026-09-20T21:16:33.392010Z"
+    },
+    "code-review": {
+      "status": "completed",
+      "updated_at": "2026-09-20T22:27:59.917871Z"
+    }
+  },
+  "tasks": [
+    {
+      "name": "time-window-shared-allowlist",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-09-20T12:47:32.834642Z"
+    },
+    {
+      "name": "analytics-error-code-and-message",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-09-20T13:20:30.225492Z"
+    },
+    {
+      "name": "product-margin-summary-validator",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-09-20T20:54:01.291907Z"
+    },
+    {
+      "name": "register-validation-pipeline",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-09-20T22:01:16.700742Z"
+    }
+  ]
+}
