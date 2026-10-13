@@ -1,0 +1,40 @@
+{
+  "feature_id": "feat-4337",
+  "issue_number": 4337,
+  "created_at": "2026-09-28T07:11:43.233397Z",
+  "max_revisions": 3,
+  "phases": {
+    "analyzing": {
+      "status": "completed",
+      "updated_at": "2026-09-28T07:13:01.217580Z"
+    },
+    "architecting": {
+      "status": "completed",
+      "updated_at": "2026-09-28T07:13:46.250642Z"
+    },
+    "designing": {
+      "status": "completed",
+      "updated_at": "2026-09-28T07:14:04.093147Z"
+    },
+    "planning": {
+      "status": "completed",
+      "updated_at": "2026-09-28T07:14:36.851671Z"
+    },
+    "developing": {
+      "status": "in_progress",
+      "updated_at": "2026-09-28T08:19:06.659360Z"
+    },
+    "code-review": {
+      "status": "completed",
+      "updated_at": "2026-09-28T09:23:13.545526Z"
+    }
+  },
+  "tasks": [
+    {
+      "name": "add-vatratecalculator-unit-tests",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-09-28T09:04:09.564914Z"
+    }
+  ]
+}
