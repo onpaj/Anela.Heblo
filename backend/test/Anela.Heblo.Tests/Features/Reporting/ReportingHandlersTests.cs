@@ -105,6 +105,34 @@ public class ReportingHandlersTests
     }
 
     [Fact]
+    public async Task Query_with_null_filter_or_sort_entry_returns_invalid_query_and_never_reaches_the_reader()
+    {
+        Grant(Feature.Reporting_Eshop);
+        var handler = new QueryReportDatasetHandler(_user.Object, _reader.Object, NullLogger<QueryReportDatasetHandler>.Instance);
+
+        var withNullFilter = await handler.Handle(
+            new QueryReportDatasetRequest { Dataset = "shoptet.orders_monthly", Filters = [null!] }, default);
+        var withNullSort = await handler.Handle(
+            new QueryReportDatasetRequest { Dataset = "shoptet.orders_monthly", Sort = [null!] }, default);
+
+        withNullFilter.ErrorCode.Should().Be(ErrorCodes.ReportingInvalidQuery);
+        withNullSort.ErrorCode.Should().Be(ErrorCodes.ReportingInvalidQuery);
+        _reader.Verify(r => r.QueryAsync(It.IsAny<ReportSqlCommand>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task Query_unknown_dataset_suggests_only_datasets_the_caller_can_read()
+    {
+        Grant(Feature.Reporting_Eshop);
+
+        var result = await new QueryReportDatasetHandler(_user.Object, _reader.Object, NullLogger<QueryReportDatasetHandler>.Instance)
+            .Handle(new QueryReportDatasetRequest { Dataset = "flexi.cost_monthl" }, default);
+
+        result.ErrorCode.Should().Be(ErrorCodes.ReportingDatasetNotFound);
+        result.Params!["Suggestions"].Should().NotContain("flexi.");
+    }
+
+    [Fact]
     public async Task Query_maps_request_to_sql_and_rows_to_response()
     {
         Grant(Feature.Reporting_Eshop);

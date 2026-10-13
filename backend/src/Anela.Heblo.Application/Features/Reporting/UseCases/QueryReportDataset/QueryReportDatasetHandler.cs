@@ -72,9 +72,19 @@ public class QueryReportDatasetHandler : IRequestHandler<QueryReportDatasetReque
     private static ReportQuery ToQuery(QueryReportDatasetRequest r) => new()
     {
         Columns = r.Columns,
-        Filters = (r.Filters ?? []).Select(f => new ReportFilter { Column = f.Column, Op = f.Op, Value = f.Value, Values = f.Values }).ToList(),
-        Sort = (r.Sort ?? []).Select(s => new ReportSort { Column = s.Column, Direction = s.Direction }).ToList(),
+        Filters = RequireNoNulls(r.Filters, "filters")
+            .Select(f => new ReportFilter { Column = f.Column, Op = f.Op, Value = f.Value, Values = f.Values }).ToList(),
+        Sort = RequireNoNulls(r.Sort, "sort")
+            .Select(s => new ReportSort { Column = s.Column, Direction = s.Direction }).ToList(),
         Limit = r.Limit,
         Offset = r.Offset,
     };
+
+    private static IReadOnlyList<T> RequireNoNulls<T>(IReadOnlyList<T>? items, string name) where T : class
+    {
+        if (items is null) return [];
+        if (items.Any(i => i is null))
+            throw new ReportQueryValidationException($"'{name}' must not contain null entries.");
+        return items;
+    }
 }
