@@ -1,0 +1,46 @@
+{
+  "feature_id": "feat-4339",
+  "issue_number": 4339,
+  "created_at": "2026-09-28T20:10:14.131939Z",
+  "max_revisions": 3,
+  "phases": {
+    "analyzing": {
+      "status": "completed",
+      "updated_at": "2026-09-28T20:11:10.009055Z"
+    },
+    "architecting": {
+      "status": "completed",
+      "updated_at": "2026-09-28T20:11:13.454781Z"
+    },
+    "designing": {
+      "status": "completed",
+      "updated_at": "2026-09-28T20:11:16.525681Z"
+    },
+    "planning": {
+      "status": "completed",
+      "updated_at": "2026-09-28T20:11:19.356110Z"
+    },
+    "developing": {
+      "status": "in_progress",
+      "updated_at": "2026-09-28T21:14:32.974048Z"
+    },
+    "code-review": {
+      "status": "completed",
+      "updated_at": "2026-09-28T22:19:27.786890Z"
+    }
+  },
+  "tasks": [
+    {
+      "name": "not-found-tests",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-09-28T20:42:18.484673Z"
+    },
+    {
+      "name": "happy-path-tests",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-09-28T21:52:36.070490Z"
+    }
+  ]
+}
