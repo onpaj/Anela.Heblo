@@ -372,6 +372,11 @@ const resources = {
         PricingProductNotInBaseline:
           "Produkt už v aktuální analýze není, úpravu nelze použít — načtěte analýzu znovu",
 
+        // Reporting module errors (39XX)
+        ReportingDatasetNotFound: "Datová sada nebyla nalezena",
+        ReportingInvalidQuery: "Neplatný dotaz na datovou sadu",
+        ReportingQueryTimeout: "Dotaz trval příliš dlouho, zužte filtr",
+
         // External Service errors
         ExternalServiceError: "Chyba externí služby",
         FlexiApiError: "Chyba ABRA Flexi API",

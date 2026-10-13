@@ -59,6 +59,10 @@ whole reason the reporting schemas live inside `Heblo_V3` rather than in a datab
 | `ga4_agg` | GA4 aggregates | separate ingestion direction |
 | `ads` | Google Ads, Meta Ads, Sklik — entities, daily facts, search terms, change history | `AdsDbContext` (ADR-008); views + grants in `Persistence.Ads/Sql/ads_read_views.sql` |
 
+The same `v_*` views are also read by Heblo's MCP reporting tools (`module-reporting`), gated by a
+Heblo permission per source. That path connects as the app's own role, not `metabase_ro`, so the
+exposure boundary there is the dataset catalogue in code, not a Postgres grant.
+
 Each schema carries its own `__EFMigrationsHistory`, pinned explicitly — EF Core does **not** derive
 the history table's schema from `HasDefaultSchema` (ADR-007).
 
