@@ -167,7 +167,11 @@ public class GetPackageLabelPdfHandler : IRequestHandler<GetPackageLabelPdfReque
     {
         var shippingGuid = await _orderShippingSource.GetShippingMethodGuidAsync(orderCode, ct);
         var carrier = shippingGuid is null ? null : _shippingCatalog.ResolveCarrierByShippingGuid(shippingGuid);
-        return carrier is not null && OffsetCarriers.Contains(carrier.Value);
+        var isOffsetCarrier = carrier is not null && OffsetCarriers.Contains(carrier.Value);
+        _logger.LogDebug(
+            "Label offset carrier check for order {OrderCode}: carrier {Carrier}, offset applies {IsOffsetCarrier}",
+            orderCode, carrier?.ToString() ?? "unresolved", isOffsetCarrier);
+        return isOffsetCarrier;
     }
 
     private async Task<Stream> ShiftAsync(

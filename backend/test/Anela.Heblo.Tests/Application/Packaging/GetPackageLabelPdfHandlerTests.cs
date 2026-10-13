@@ -418,6 +418,39 @@ public class GetPackageLabelPdfHandlerTests
     }
 
     [Fact]
+    public async Task Handle_OffsetFlagOn_CarrierLookupTimesOut_ReturnsPdfUnchangedAndWarns()
+    {
+        var pdfBytes = CreatePdf(pageCount: 1);
+        _orderShippingSource
+            .Setup(s => s.GetShippingMethodGuidAsync(OrderCode, It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new TaskCanceledException("http timeout"));
+        SetupLabelPdf(pdfBytes);
+        SetupOffsetFlags(FeatureFlagKeys.LabelOffsetLeft);
+
+        var response = await CreateHandler().Handle(Request(), CancellationToken.None);
+
+        response.Success.Should().BeTrue();
+        (await ReadContentAsync(response)).Should().BeEquivalentTo(pdfBytes);
+        VerifyLogged(LogLevel.Warning, Times.Once());
+    }
+
+    [Fact]
+    public async Task Handle_OffsetFlagOn_CancelledDuringLookup_Propagates()
+    {
+        using var cts = new CancellationTokenSource();
+        _orderShippingSource
+            .Setup(s => s.GetShippingMethodGuidAsync(OrderCode, It.IsAny<CancellationToken>()))
+            .Callback(() => cts.Cancel())
+            .ThrowsAsync(new OperationCanceledException(cts.Token));
+        SetupLabelPdf(CreatePdf(pageCount: 1));
+        SetupOffsetFlags(FeatureFlagKeys.LabelOffsetLeft);
+
+        var act = () => CreateHandler().Handle(Request(), cts.Token);
+
+        await act.Should().ThrowAsync<OperationCanceledException>();
+    }
+
+    [Fact]
     public async Task Handle_AllOffsetFlagsOff_DoesNotLookUpCarrier()
     {
         SetupLabelPdf(CreatePdf(pageCount: 1));

@@ -129,8 +129,8 @@ any printer resolution (the Zebra is 300 dpi) unless the print dialog scales the
 failed flag check, failed carrier lookup or an unparsable PDF is logged at Warning and the original label is served
 unshifted. The flags exist to find the right direction at the warehouse Zebra. (Replaced the
 per-carrier `is-{gls,ppl,zasilkovna}-label-offset-enabled` flags and, before them, the 180° rotation
-flags `is-*-label-rotation-enabled` — both removed 2026-10-09 / 2026-10-08; the carrier lookup went
-with them.)
+flags `is-*-label-rotation-enabled` — both removed 2026-10-09 / 2026-10-08; the carrier lookup was
+re-introduced, limited to PPL and Zásilkovna.)
 
 ## Logic & formulas
 - One `Packages` row = one box (carrier package) of one order. `PackageNumber` is the 1-based
