@@ -107,6 +107,11 @@ public partial class ShoptetOrderClient
             Remark = line.Remark,
         };
 
+    /// <summary>Shoptet stamps times with a basic-format offset ("+0200"), which the general
+    /// DateTimeOffset parser accepts (see ShoptetDateTimeOffsetConverter).</summary>
+    private static DateTimeOffset? ParseShoptetTime(string? value) =>
+        DateTimeOffset.TryParse(value, Invariant, DateTimeStyles.None, out var parsed) ? parsed : null;
+
     private static decimal ParseDecimal(string? value, decimal fallback) =>
         decimal.TryParse(value, NumberStyles.Number, Invariant, out var parsed) ? parsed : fallback;
 

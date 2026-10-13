@@ -144,6 +144,28 @@ public class ShoptetOrderClientTests
     }
 
     [Fact]
+    public async Task ListOrdersByStatusAsync_ParsesBasicFormatCreationTime()
+    {
+        var client = BuildClient(_ => Json(new
+        {
+            data = new
+            {
+                orders = new object[]
+                {
+                    new { code = "ORD-1", creationTime = "2026-10-13T09:15:00+0200", status = new { id = 23 } },
+                    new { code = "ORD-2", creationTime = (string?)null, status = new { id = 23 } },
+                },
+                paginator = new { pageCount = 1, page = 1, totalCount = 2 },
+            },
+        }));
+
+        var result = await client.ListOrdersByStatusAsync(23);
+
+        result[0].CreationTime.Should().Be(new DateTimeOffset(2026, 10, 13, 7, 15, 0, TimeSpan.Zero));
+        result[1].CreationTime.Should().BeNull();
+    }
+
+    [Fact]
     public async Task AppendEshopRemarkAsync_SetsNoteAsFirstLine_WhenNoExistingRemark()
     {
         string? patchedRemark = null;

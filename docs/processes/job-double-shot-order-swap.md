@@ -2,7 +2,7 @@
 process: job-double-shot-order-swap
 kind: job
 module: shoptet-orders
-summary: Every 5 minutes (and, once its flag is on, before each picking-list print) replaces double-shot V variant lines in open Shoptet orders with their S mirror product set, so set components are deducted, picked and invoiced.
+summary: Every 5 minutes (and, once its flag is on, before each picking-list print) replaces double-shot V variant lines in open Shoptet orders with their S mirror product set, so set components are deducted, picked and invoiced; orders an add-on parked in the hold status are released to Nová afterwards.
 owns:
   - backend/src/Anela.Heblo.Application/Features/ShoptetOrders/DoubleShotSwap/**
   - backend/src/Anela.Heblo.Application/Features/ShoptetOrders/Infrastructure/Jobs/SwapDoubleShotOrdersJob.cs
@@ -27,6 +27,11 @@ the warehouse picking list shows the components, and Flexi invoices follow the i
 Nobody does this by hand; the visible result is in Shoptet (order items, an internal note) and in
 the warehouse picking list.
 
+A third-party Shoptet add-on parks every new order containing a V product in a **hold status**
+(production: 23) as its first rule, so the add-on's own payment/status automations leave it
+alone. The sweep swaps those orders first and then moves them to Nová (-1), where the standard
+flow continues.
+
 The real side effect is switched **off by default**: until feature flag
 `is-double-shot-order-swap-enabled` is on, the sweep only logs what it would do (dry run).
 
@@ -44,6 +49,9 @@ The real side effect is switched **off by default**: until feature flag
 - Flag `is-double-shot-order-swap-enabled` (default `false`): off = dry run, on = writes.
 
 ## Data flow
+0. If `ShoptetOrders:DoubleShotSwapHoldStatusId` is set: `GET /api/orders?statusId={hold}`, all
+   pages (code, status, creation time). These held orders are processed first, regardless of
+   lookback. A failed listing is logged as an Error and counted as a failed listing.
 1. Download the stock CSV (`IEshopStockClient.ListAsync`) and keep distinct codes matching the V
    rule (`DoubleShotCodeRule`, `^SA\d+V$`; S code = same code with trailing `V` -> `S`).
 2. For each V code: `GET /api/orders?productCode={V}&creationTimeFrom={now - lookback}`, all
@@ -57,13 +65,17 @@ The real side effect is switched **off by default**: until feature flag
    - `POST /api/orders/{code}/item` - `itemType: product-set`, code = S, same amount, unit price
      with VAT, VAT rate and `priceRatio`, `remark` = tag `auto-swap {V} #{vItemId}`;
    - `DELETE /api/orders/{code}/item/{vItemId}`.
-5. If at least one swap completed: `PATCH /api/orders/{code}/notes` appends to `eshopRemark`
+5. Held orders only (detail status = hold status): when the order holds no V line any more (all
+   planned swaps succeeded, no line skipped), re-read the status (`GET /api/orders/{code}`) and,
+   if it is still the hold status, `PATCH /api/orders/{code}/status` to
+   `ShoptetOrders:DoubleShotSwapReleaseStatusId` (-1 Nová). Otherwise the order stays held.
+6. If at least one swap completed: `PATCH /api/orders/{code}/notes` appends to `eshopRemark`
    `Automaticky prohozeno: SA015030V → SA015030S (2 ks); ...` (Unicode arrow, as the code emits).
-6. Log a summary: orders scanned, orders skipped as not eligible, lines swapped / healed /
-   failed, failed orders, failed listings, and a dry-run marker. The summary is a Warning when
+7. Log a summary: orders scanned, orders skipped as not eligible, lines swapped / healed /
+   failed, failed orders, failed listings, orders released, orders still held, and a dry-run marker. The summary is a Warning when
    any listing failed, Information otherwise. A busy sweep logs a separate warning instead.
 
-Target: Shoptet order items and `eshopRemark` only. No Heblo table is written.
+Target: Shoptet order items, `eshopRemark`, and the status of held orders only. No Heblo table is written.
 
 ## Logic & formulas
 - Eligible order states: `ShoptetOrders:DoubleShotSwapEligibleStatusIds`; empty (the default)
@@ -85,7 +97,18 @@ Target: Shoptet order items and `eshopRemark` only. No Heblo table is written.
   is written for that line. The next run retries the delete (heal).
 - One sweep at a time: static lock, waits max 2 minutes; a second caller logs a warning and
   returns an empty summary (counted as SkippedBusy).
-- Dry run: all reads still happen, every planned action is logged, no write call is made.
+- Dry run: all reads still happen, every planned action is logged, no write call is made. A held
+  order logs "would release it to status -1" and stays held.
+- Hold status: added to the eligible states automatically. A held order is released only when it
+  is clean (every planned swap done, no zero amount/price V line left) **and** its status is still
+  the hold status right before the release, so a status someone else set meanwhile is never
+  overwritten. A held order with no V line at all is released too. A failed swap (e.g. 422, S set
+  missing) keeps the order held: it never reaches picking with a V line.
+- Stuck alert: a held order still held after the run, created more than 15 minutes ago
+  (`HoldAlertAfter`; creation time stands in for "entered hold", as the add-on holds at creation),
+  logs a Warning naming the order on every run.
+- A failed release (status call error) is a Warning; the order is clean, so the next run only
+  re-checks and releases it.
 
 ## Configuration
 | Key | Repo default | Meaning |
@@ -93,6 +116,8 @@ Target: Shoptet order items and `eshopRemark` only. No Heblo table is written.
 | `FeatureManagement:is-double-shot-order-swap-enabled` | `false` | Off = dry run (log only) |
 | `ShoptetOrders:DoubleShotSwapEligibleStatusIds` | `[]` = -1, 3, 32, -2, 35, 73 | Order states in which lines may be rewritten |
 | `ShoptetOrders:DoubleShotSwapLookbackDays` | `14` | How far back (creation time) orders are searched |
+| `ShoptetOrders:DoubleShotSwapHoldStatusId` | unset; `23` in `appsettings.Production.json` | Status the add-on parks new V orders in; unset = no hold handling (the test store has no such status) |
+| `ShoptetOrders:DoubleShotSwapReleaseStatusId` | `-1` | Status a clean held order is moved to |
 | `Hangfire:SchedulerEnabled` | `false`; `true` in Production | Whether recurring jobs are scheduled at all |
 | `ShoptetApi:BaseUrl`, `ShoptetApi:ApiToken` | secrets | Shoptet REST access |
 
@@ -128,12 +153,20 @@ runtime in the admin UI (table `FeatureFlagOverrides`).
 - A listing call that fails (429/5xx; the order client has no retry) hides that V code's orders
   for the run; the summary's failed-listings count and Warning level surface it.
 - A missing S set surfaces as a logged 422 and the V line stays; nothing is written for it.
+- Payment during hold (unverified): if a payment arrives while an order is held, it is unknown
+  whether the add-on re-processes it after the release to Nová, or moves it out of hold early
+  (then it is swapped by the plain sweep but not released). Check with a test order after rollout.
+- Status 23 was announced as the production hold status (2026-10-13); its id was not verified via
+  the API (the test store has no status 23).
 - The note append is read-modify-write without concurrency control (see `module-shoptet-orders`).
 
 ## Rollout
-Merged with the flag off: production logs planned swaps (dry run). Once the V variants exist in
-Shoptet, check the dry-run log on a real V order for the exact V -> S pairs, then turn
-`is-double-shot-order-swap-enabled` on.
+Order matters: a hold rule switched on while Heblo is in dry run parks orders forever.
+1. Merge with the flag off: production logs planned swaps (dry run).
+2. Once the V variants exist in Shoptet, check the dry-run log on a real V order for the exact
+   V -> S pairs.
+3. Turn `is-double-shot-order-swap-enabled` on.
+4. Only then switch on the add-on's hold rule (V order -> status 23).
 
 Before enabling the flag, check on the test store that the S line remark
 (`auto-swap SA015030V #123`) is not printed on the invoice PDF / order e-mail (unverified).

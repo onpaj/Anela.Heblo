@@ -167,6 +167,7 @@ Defined in `PrintPickingListOptions` and `ShoptetApiExpeditionListSource`:
 | 52 | Zabaleno (Packed) — order moves here after `MarkAsPacked` (single-package scan or `CompletePacking`). Confirmed live 2026-06-09. |
 | 70 | Předáno přepravci (Handed to carrier) — EXP seed state |
 | 73 | Oprava-robot — Fix source state (`FixSourceStateId`) |
+| 23 | Double-shot hold (production only; not on test store 780175, which has no status 23 — read via `GET /api/orders/statuses` 2026-10-13). A third-party add-on parks new orders with a V product here; `DoubleShotOrderSwapService` swaps and releases them to -1. Id announced by the owner, not yet read from prod. |
 
 > **Reset a test order to packable:** `PATCH /api/orders/{code}/status` with `{"data":{"statusId":26}}` puts it back into "Balí se" so the packing flow can be re-run. Confirmed live 2026-06-09 on order 126000035.
 

@@ -221,6 +221,7 @@ public partial class ShoptetOrderClient : IEshopOrderClient, IShoptetOrderTestCl
                 ExternalCode = o.ExternalCode,
                 Email = o.Email,
                 StatusId = o.Status.Id,
+                CreationTime = ParseShoptetTime(o.CreationTime),
             }));
 
             if (page >= data.Data.Paginator.PageCount)

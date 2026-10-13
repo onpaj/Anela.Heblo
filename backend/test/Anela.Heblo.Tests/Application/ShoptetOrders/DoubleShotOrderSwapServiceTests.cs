@@ -19,7 +19,9 @@ public class DoubleShotOrderSwapServiceTests
     private readonly Mock<IEshopStockClient> _stock = new();
     private readonly Mock<ILogger<DoubleShotOrderSwapService>> _logger = new();
 
-    private DoubleShotOrderSwapService CreateSut(int[]? eligible = null, int lookbackDays = 14)
+    private const int HoldStatus = 23;
+
+    private DoubleShotOrderSwapService CreateSut(int[]? eligible = null, int lookbackDays = 14, int? holdStatusId = null)
     {
         _stock.Setup(s => s.ListAsync(It.IsAny<CancellationToken>())).ReturnsAsync(new List<EshopStock>
         {
@@ -31,6 +33,7 @@ public class DoubleShotOrderSwapServiceTests
         {
             DoubleShotSwapEligibleStatusIds = eligible ?? [],
             DoubleShotSwapLookbackDays = lookbackDays,
+            DoubleShotSwapHoldStatusId = holdStatusId,
         });
         return new DoubleShotOrderSwapService(_orders.Object, _stock.Object, settings,
             new FakeTimeProvider(Now), _logger.Object);
@@ -44,6 +47,17 @@ public class DoubleShotOrderSwapServiceTests
     private void OrdersContainingWithStatus(string variantCode, params (string Code, int StatusId)[] orders) =>
         _orders.Setup(o => o.ListOrdersContainingProductAsync(variantCode, Now.AddDays(-14), It.IsAny<CancellationToken>()))
             .ReturnsAsync(orders.Select(o => new EshopOrderSummary { Code = o.Code, StatusId = o.StatusId }).ToList());
+
+    private void HeldOrders(params (string Code, DateTimeOffset Created)[] orders) =>
+        _orders.Setup(o => o.ListOrdersByStatusAsync(HoldStatus, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(orders.Select(o => new EshopOrderSummary { Code = o.Code, StatusId = HoldStatus, CreationTime = o.Created }).ToList());
+
+    private void StatusOnRecheck(string code, int status) =>
+        _orders.Setup(o => o.GetOrderStatusIdAsync(code, It.IsAny<CancellationToken>())).ReturnsAsync(status);
+
+    private void AcceptStatusUpdates() =>
+        _orders.Setup(o => o.UpdateStatusAsync(It.IsAny<string>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
 
     private void Detail(string code, int status, params EshopOrderLine[] lines) =>
         _orders.Setup(o => o.GetOrderDetailAsync(code, It.IsAny<CancellationToken>()))
@@ -320,5 +334,210 @@ public class DoubleShotOrderSwapServiceTests
 
         summary.LinesSwapped.Should().Be(1);
         summary.ListingsFailed.Should().Be(1);
+    }
+    [Fact]
+    public async Task Sweep_DoesNotListHoldStatus_WhenNoHoldStatusConfigured()
+    {
+        OrdersContaining("SA015030V");
+        var sut = CreateSut();
+
+        await sut.SweepAsync(applyChanges: true);
+
+        _orders.Verify(o => o.ListOrdersByStatusAsync(It.IsAny<int>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task Sweep_SwapsHeldOrder_ThenReleasesItToNova()
+    {
+        OrdersContaining("SA015030V");
+        HeldOrders(("126000050", Now.AddMinutes(-3)));
+        Detail("126000050", HoldStatus, V(1));
+        StatusOnRecheck("126000050", HoldStatus);
+        var calls = new List<string>();
+        _orders.Setup(o => o.AddOrderItemAsync("126000050", It.IsAny<NewEshopOrderItem>(), It.IsAny<CancellationToken>()))
+            .Callback(() => calls.Add("add")).Returns(Task.CompletedTask);
+        _orders.Setup(o => o.DeleteOrderItemAsync("126000050", 1, It.IsAny<CancellationToken>()))
+            .Callback(() => calls.Add("delete")).Returns(Task.CompletedTask);
+        _orders.Setup(o => o.AppendEshopRemarkAsync("126000050", It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .Callback(() => calls.Add("note")).Returns(Task.CompletedTask);
+        _orders.Setup(o => o.UpdateStatusAsync("126000050", -1, It.IsAny<CancellationToken>()))
+            .Callback(() => calls.Add("release -1")).Returns(Task.CompletedTask);
+        var sut = CreateSut(holdStatusId: HoldStatus);
+
+        var summary = await sut.SweepAsync(applyChanges: true);
+
+        calls.Should().Equal("add", "delete", "note", "release -1");
+        summary.LinesSwapped.Should().Be(1);
+        summary.OrdersReleased.Should().Be(1);
+        summary.OrdersStillHeld.Should().Be(0);
+    }
+
+    [Fact]
+    public async Task Sweep_ReleasesHeldOrder_WithNothingToSwap()
+    {
+        OrdersContaining("SA015030V");
+        HeldOrders(("126000050", Now.AddMinutes(-3)));
+        Detail("126000050", HoldStatus,
+            new EshopOrderLine { ItemId = 4, ItemType = "product", Code = "SER002030", Amount = 1m, UnitPriceWithVat = 300m });
+        StatusOnRecheck("126000050", HoldStatus);
+        AcceptStatusUpdates();
+        var sut = CreateSut(holdStatusId: HoldStatus);
+
+        var summary = await sut.SweepAsync(applyChanges: true);
+
+        _orders.Verify(o => o.UpdateStatusAsync("126000050", -1, It.IsAny<CancellationToken>()), Times.Once);
+        summary.OrdersReleased.Should().Be(1);
+    }
+
+    [Fact]
+    public async Task Sweep_ReleasesToConfiguredStatus()
+    {
+        OrdersContaining("SA015030V");
+        HeldOrders(("126000050", Now.AddMinutes(-3)));
+        Detail("126000050", HoldStatus);
+        StatusOnRecheck("126000050", HoldStatus);
+        AcceptStatusUpdates();
+        var settings = Options.Create(new ShoptetOrdersSettings
+        {
+            DoubleShotSwapHoldStatusId = HoldStatus,
+            DoubleShotSwapReleaseStatusId = 32,
+        });
+        CreateSut();
+        var sut = new DoubleShotOrderSwapService(_orders.Object, _stock.Object, settings, new FakeTimeProvider(Now), _logger.Object);
+
+        await sut.SweepAsync(applyChanges: true);
+
+        _orders.Verify(o => o.UpdateStatusAsync("126000050", 32, It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task Sweep_KeepsHeldOrderInHold_WhenSwapFails()
+    {
+        OrdersContaining("SA015030V");
+        HeldOrders(("126000050", Now.AddMinutes(-3)));
+        Detail("126000050", HoldStatus, V(1));
+        AcceptWrites();
+        _orders.Setup(o => o.AddOrderItemAsync("126000050", It.IsAny<NewEshopOrderItem>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new HttpRequestException("422", null, HttpStatusCode.UnprocessableEntity));
+        var sut = CreateSut(holdStatusId: HoldStatus);
+
+        var summary = await sut.SweepAsync(applyChanges: true);
+
+        // Strict mock: UpdateStatusAsync has no setup, so a release attempt would fail the order.
+        _orders.Verify(o => o.UpdateStatusAsync(It.IsAny<string>(), It.IsAny<int>(), It.IsAny<CancellationToken>()), Times.Never);
+        summary.OrdersFailed.Should().Be(0);
+        summary.OrdersStillHeld.Should().Be(1);
+        summary.OrdersReleased.Should().Be(0);
+    }
+
+    [Fact]
+    public async Task Sweep_KeepsHeldOrderInHold_WhenVariantLineWasSkipped()
+    {
+        OrdersContaining("SA015030V");
+        HeldOrders(("126000050", Now.AddMinutes(-3)));
+        Detail("126000050", HoldStatus, V(1, price: 0m));
+        var sut = CreateSut(holdStatusId: HoldStatus);
+
+        var summary = await sut.SweepAsync(applyChanges: true);
+
+        _orders.Verify(o => o.UpdateStatusAsync(It.IsAny<string>(), It.IsAny<int>(), It.IsAny<CancellationToken>()), Times.Never);
+        summary.OrdersFailed.Should().Be(0);
+        summary.OrdersStillHeld.Should().Be(1);
+    }
+
+    [Fact]
+    public async Task Sweep_DoesNotRelease_WhenStatusChangedSinceTheSwap()
+    {
+        OrdersContaining("SA015030V");
+        HeldOrders(("126000050", Now.AddMinutes(-3)));
+        Detail("126000050", HoldStatus, V(1));
+        AcceptWrites();
+        StatusOnRecheck("126000050", 32);
+        var sut = CreateSut(holdStatusId: HoldStatus);
+
+        var summary = await sut.SweepAsync(applyChanges: true);
+
+        _orders.Verify(o => o.UpdateStatusAsync(It.IsAny<string>(), It.IsAny<int>(), It.IsAny<CancellationToken>()), Times.Never);
+        summary.LinesSwapped.Should().Be(1);
+        summary.OrdersReleased.Should().Be(0);
+        summary.OrdersStillHeld.Should().Be(0);
+    }
+
+    [Fact]
+    public async Task Sweep_DryRun_LogsReleaseButChangesNothing()
+    {
+        OrdersContaining("SA015030V");
+        HeldOrders(("126000050", Now.AddMinutes(-3)));
+        Detail("126000050", HoldStatus, V(1));
+        var sut = CreateSut(holdStatusId: HoldStatus);
+
+        var summary = await sut.SweepAsync(applyChanges: false);
+
+        // Strict mock: no write or status setups exist, so any call would fail the order.
+        summary.OrdersFailed.Should().Be(0);
+        summary.OrdersReleased.Should().Be(0);
+        VerifyLogged(LogLevel.Information, "would release it to status -1");
+    }
+
+    [Fact]
+    public async Task Sweep_WarnsAboutOrderHeldLongerThanFifteenMinutes()
+    {
+        OrdersContaining("SA015030V");
+        HeldOrders(("126000050", Now.AddMinutes(-20)));
+        Detail("126000050", HoldStatus, V(1, price: 0m));
+        var sut = CreateSut(holdStatusId: HoldStatus);
+
+        await sut.SweepAsync(applyChanges: true);
+
+        VerifyLogged(LogLevel.Warning, "126000050 has been waiting in hold status 23");
+    }
+
+    [Fact]
+    public async Task Sweep_DoesNotWarn_WhenHeldOrderIsRecent()
+    {
+        OrdersContaining("SA015030V");
+        HeldOrders(("126000050", Now.AddMinutes(-5)));
+        Detail("126000050", HoldStatus, V(1, price: 0m));
+        var sut = CreateSut(holdStatusId: HoldStatus);
+
+        await sut.SweepAsync(applyChanges: true);
+
+        _logger.Verify(l => l.Log(LogLevel.Warning, It.IsAny<EventId>(),
+            It.Is<It.IsAnyType>((v, _) => v.ToString()!.Contains("waiting in hold")),
+            It.IsAny<Exception?>(), It.IsAny<Func<It.IsAnyType, Exception?, string>>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task Sweep_ProcessesHeldOrderOnce_WhenVariantListingAlsoFindsIt()
+    {
+        OrdersContainingWithStatus("SA015030V", ("126000050", HoldStatus));
+        HeldOrders(("126000050", Now.AddMinutes(-3)));
+        Detail("126000050", HoldStatus, V(1));
+        AcceptWrites();
+        StatusOnRecheck("126000050", HoldStatus);
+        AcceptStatusUpdates();
+        var sut = CreateSut(holdStatusId: HoldStatus);
+
+        var summary = await sut.SweepAsync(applyChanges: true);
+
+        _orders.Verify(o => o.GetOrderDetailAsync("126000050", It.IsAny<CancellationToken>()), Times.Once);
+        summary.OrdersScanned.Should().Be(1);
+        summary.OrdersNotEligible.Should().Be(0);
+    }
+
+    [Fact]
+    public async Task Sweep_CountsFailedHoldListing_AndStillSweepsVariants()
+    {
+        OrdersContaining("SA015030V", "126000044");
+        Detail("126000044", -2, V(5));
+        AcceptWrites();
+        _orders.Setup(o => o.ListOrdersByStatusAsync(HoldStatus, It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new HttpRequestException("boom", null, HttpStatusCode.InternalServerError));
+        var sut = CreateSut(holdStatusId: HoldStatus);
+
+        var summary = await sut.SweepAsync(applyChanges: true);
+
+        summary.ListingsFailed.Should().Be(1);
+        summary.LinesSwapped.Should().Be(1);
     }
 }
