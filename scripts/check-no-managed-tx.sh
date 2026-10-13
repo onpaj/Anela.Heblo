@@ -10,10 +10,13 @@ set -euo pipefail
 # sanctioned place BeginTransactionAsync is opened, and only inside the
 # delegate passed to IExecutionStrategy.ExecuteAsync, which is the safe
 # pattern this check otherwise exists to enforce (see the method's XML doc).
+# NpgsqlReportingDataReader.cs is excluded: it uses raw ADO.NET on an NpgsqlDataSource,
+# never EF, so PollyExecutionStrategy never replays it; the READ ONLY transaction is intentional.
 
 hits=$(grep -rn -E "BeginTransaction|UseTransaction" \
   --include="*.cs" \
   --exclude="BaseRepository.cs" \
+  --exclude="NpgsqlReportingDataReader.cs" \
   backend/src || true)
 
 if [[ -n "$hits" ]]; then
