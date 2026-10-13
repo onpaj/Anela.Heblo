@@ -179,6 +179,8 @@ public sealed class DoubleShotOrderSwapService : IDoubleShotOrderSwapService
         try
         {
             var outcome = await ProcessOrderAsync(orderCode, applyChanges, ct);
+            if (outcome.StillHeld && heldSince is null)
+                _logger.LogDebug("DoubleShotSwap: held order {OrderCode} has no usable creation time; the stuck-order alert is skipped for it.", orderCode);
             if (outcome.StillHeld && heldSince is { } created && _clock.GetUtcNow() - created > HoldAlertAfter)
                 _logger.LogWarning(
                     "DoubleShotSwap: order {OrderCode} has been waiting in hold status {HoldStatusId} since {Created:u}; check it by hand.",

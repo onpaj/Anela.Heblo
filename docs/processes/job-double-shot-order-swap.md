@@ -146,6 +146,10 @@ runtime in the admin UI (table `FeatureFlagOverrides`).
   repeating for the same order, remove the V line by hand in Shoptet.
 - Race with a parallel print: `CreatePickingListAsync` runs outside the sweep lock, so a job
   sweep can edit an order that a parallel synchronous print has just printed with its V line.
+- Releasing a held order is a read-then-PATCH with no conditional update in Shoptet: staff or the add-on can
+  change the status in the few hundred milliseconds between the re-read and the PATCH, and the lock is per process.
+- A held order whose only remaining V lines are deliberately skipped (zero amount or price) is never released
+  and stays in hold; it only produces the 15-minute stuck-order Warning, so it needs a manual decision.
 - One sweep at a time (static lock, 2-minute wait); a second caller logs a warning and skips.
   Hangfire runs a single worker, so the job and a scheduled print never overlap; contention is
   only possible with the synchronous "Spustit tisk oprav" / "Tisknout zakazku" endpoints.
