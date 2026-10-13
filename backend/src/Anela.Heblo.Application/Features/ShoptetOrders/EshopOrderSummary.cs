@@ -6,4 +6,5 @@ public class EshopOrderSummary
     public string? ExternalCode { get; set; }
     public string? Email { get; set; }
     public int StatusId { get; set; }
+    public DateTimeOffset? CreationTime { get; set; }
 }

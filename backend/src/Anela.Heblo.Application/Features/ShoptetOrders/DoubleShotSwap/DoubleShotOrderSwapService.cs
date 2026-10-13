@@ -11,6 +11,8 @@ namespace Anela.Heblo.Application.Features.ShoptetOrders.DoubleShotSwap;
 /// Replaces double-shot V order lines with their S mirror set inside Shoptet
 /// (docs/processes/job-double-shot-order-swap.md). Shoptet has no atomic item swap, so each line is
 /// POST S (tagged) then DELETE V; DoubleShotSwapPlanner finishes an interrupted swap next run.
+/// Orders a third-party add-on parked in the hold status are swapped first and then released, so no
+/// other automation sees them with a V line.
 /// </summary>
 public sealed class DoubleShotOrderSwapService : IDoubleShotOrderSwapService
 {
@@ -20,10 +22,13 @@ public sealed class DoubleShotOrderSwapService : IDoubleShotOrderSwapService
     private static readonly CultureInfo Invariant = CultureInfo.InvariantCulture;
     private const string NotePrefix = "Automaticky prohozeno: ";
     private const int MinLookbackDays = 1;
+    private static readonly TimeSpan HoldAlertAfter = TimeSpan.FromMinutes(15);
 
     private enum ActionResult { Swapped, Healed, Failed, Abandoned }
 
-    private sealed record OrderOutcome(int Swapped, int Healed, int FailedLines, bool OrderFailed)
+    private enum ReleaseResult { NotAttempted, Released, LeftHold, Failed }
+
+    private sealed record OrderOutcome(int Swapped, int Healed, int FailedLines, bool OrderFailed, bool Released = false, bool StillHeld = false)
     {
         public static OrderOutcome None { get; } = new(0, 0, 0, false);
         public static OrderOutcome Failure { get; } = new(0, 0, 0, true);
@@ -49,10 +54,16 @@ public sealed class DoubleShotOrderSwapService : IDoubleShotOrderSwapService
         _logger = logger;
     }
 
+    private int? HoldStatusId => _settings.DoubleShotSwapHoldStatusId;
+
+    /// <summary>The configured (or default) pre-picking states, plus the hold status when one is set.</summary>
     private IReadOnlyCollection<int> EligibleStatusIds =>
-        _settings.DoubleShotSwapEligibleStatusIds.Length == 0
+        (_settings.DoubleShotSwapEligibleStatusIds.Length == 0
             ? DefaultEligibleStatusIds
-            : _settings.DoubleShotSwapEligibleStatusIds.Distinct().ToArray();
+            : _settings.DoubleShotSwapEligibleStatusIds)
+        .Concat(HoldStatusId is { } hold ? [hold] : [])
+        .Distinct()
+        .ToArray();
 
     public async Task<DoubleShotSwapSummary> SweepAsync(bool applyChanges, CancellationToken ct = default)
     {
@@ -74,12 +85,20 @@ public sealed class DoubleShotOrderSwapService : IDoubleShotOrderSwapService
 
     private async Task<DoubleShotSwapSummary> SweepLockedAsync(bool applyChanges, CancellationToken ct)
     {
+        var (held, holdListingFailed) = await FindHeldOrdersAsync(ct);
         var (candidates, listingsFailed) = await FindCandidateOrdersAsync(ct);
+        listingsFailed += holdListingFailed ? 1 : 0;
         // The list status is a cheap pre-filter; the status re-read from the detail call still decides.
-        var eligibleCodes = candidates.Where(o => EligibleStatusIds.Contains(o.StatusId)).Select(o => o.Code).ToList();
+        var eligibleCandidates = candidates.Where(o => EligibleStatusIds.Contains(o.StatusId)).ToList();
+        // Held orders go first: other automations are waiting on them.
+        var heldSince = held.ToDictionary(o => o.Code, o => o.CreationTime, StringComparer.Ordinal);
+        var eligibleCodes = held.Concat(eligibleCandidates)
+            .Select(o => o.Code)
+            .Distinct(StringComparer.Ordinal)
+            .ToList();
         var outcomes = new List<OrderOutcome>(eligibleCodes.Count);
         foreach (var orderCode in eligibleCodes)
-            outcomes.Add(await ProcessOrderSafelyAsync(orderCode, applyChanges, ct));
+            outcomes.Add(await ProcessOrderSafelyAsync(orderCode, heldSince.GetValueOrDefault(orderCode), applyChanges, ct));
 
         var summary = new DoubleShotSwapSummary(
             OrdersScanned: eligibleCodes.Count,
@@ -87,15 +106,35 @@ public sealed class DoubleShotOrderSwapService : IDoubleShotOrderSwapService
             LinesHealed: outcomes.Sum(o => o.Healed),
             LinesFailed: outcomes.Sum(o => o.FailedLines),
             OrdersFailed: outcomes.Count(o => o.OrderFailed),
-            OrdersNotEligible: candidates.Count - eligibleCodes.Count,
-            ListingsFailed: listingsFailed);
+            OrdersNotEligible: candidates.Count - eligibleCandidates.Count,
+            ListingsFailed: listingsFailed,
+            OrdersReleased: outcomes.Count(o => o.Released),
+            OrdersStillHeld: outcomes.Count(o => o.StillHeld));
 
         _logger.Log(
             listingsFailed > 0 ? LogLevel.Warning : LogLevel.Information,
-            "DoubleShotSwap: scanned {Orders} order(s), skipped {NotEligible} not eligible, swapped {Swapped}, healed {Healed}, failed lines {FailedLines}, failed orders {FailedOrders}, failed listings {FailedListings}{Mode}.",
+            "DoubleShotSwap: scanned {Orders} order(s), skipped {NotEligible} not eligible, swapped {Swapped}, healed {Healed}, failed lines {FailedLines}, failed orders {FailedOrders}, failed listings {FailedListings}, released {Released}, still held {StillHeld}{Mode}.",
             summary.OrdersScanned, summary.OrdersNotEligible, summary.LinesSwapped, summary.LinesHealed, summary.LinesFailed, summary.OrdersFailed,
-            summary.ListingsFailed, applyChanges ? string.Empty : " [DRY RUN — no changes applied]");
+            summary.ListingsFailed, summary.OrdersReleased, summary.OrdersStillHeld, applyChanges ? string.Empty : " [DRY RUN — no changes applied]");
         return summary;
+    }
+
+    /// <summary>Returns the orders parked in the hold status (none when no hold status is set), and
+    /// whether listing them failed.</summary>
+    private async Task<(IReadOnlyList<EshopOrderSummary> Orders, bool Failed)> FindHeldOrdersAsync(CancellationToken ct)
+    {
+        if (HoldStatusId is not { } holdStatusId)
+            return ([], false);
+
+        try
+        {
+            return (await _orderClient.ListOrdersByStatusAsync(holdStatusId, ct), false);
+        }
+        catch (Exception ex) when (!ct.IsCancellationRequested)
+        {
+            _logger.LogError(ex, "DoubleShotSwap: listing orders in hold status {HoldStatusId} failed; held orders wait for the next run.", holdStatusId);
+            return ([], true);
+        }
     }
 
     /// <summary>Returns the orders holding any V code, plus how many per-code listings failed:
@@ -135,11 +174,16 @@ public sealed class DoubleShotOrderSwapService : IDoubleShotOrderSwapService
         }
     }
 
-    private async Task<OrderOutcome> ProcessOrderSafelyAsync(string orderCode, bool applyChanges, CancellationToken ct)
+    private async Task<OrderOutcome> ProcessOrderSafelyAsync(string orderCode, DateTimeOffset? heldSince, bool applyChanges, CancellationToken ct)
     {
         try
         {
-            return await ProcessOrderAsync(orderCode, applyChanges, ct);
+            var outcome = await ProcessOrderAsync(orderCode, applyChanges, ct);
+            if (outcome.StillHeld && heldSince is { } created && _clock.GetUtcNow() - created > HoldAlertAfter)
+                _logger.LogWarning(
+                    "DoubleShotSwap: order {OrderCode} has been waiting in hold status {HoldStatusId} since {Created:u}; check it by hand.",
+                    orderCode, HoldStatusId, created);
+            return outcome;
         }
         catch (Exception ex) when (!ct.IsCancellationRequested)
         {
@@ -166,13 +210,18 @@ public sealed class DoubleShotOrderSwapService : IDoubleShotOrderSwapService
                 "DoubleShotSwap: order {OrderCode} line {ItemId}: {VariantCode} has amount {Amount} and unit price {UnitPrice}; not swapped, so a paid line is never replaced by a free set. Check the order by hand.",
                 orderCode, skipped.ItemId, skipped.VariantCode, skipped.Amount, skipped.UnitPriceWithVat);
 
+        var isHeld = order.StatusId == HoldStatusId;
         if (!applyChanges)
         {
             foreach (var action in plan.Actions)
                 _logger.LogInformation(
                     "DoubleShotSwap [DRY RUN]: order {OrderCode} line {ItemId}: would replace {VariantCode} with {SetCode} ({Amount} ks){Heal}.",
                     orderCode, action.VariantItemId, action.VariantCode, action.SetCode, action.Amount, action.IsHeal ? " — finish half swap" : string.Empty);
-            return OrderOutcome.None;
+            if (isHeld && plan.Skipped.Count == 0)
+                _logger.LogInformation(
+                    "DoubleShotSwap [DRY RUN]: order {OrderCode} is in hold status; would release it to status {ReleaseStatusId}.",
+                    orderCode, _settings.DoubleShotSwapReleaseStatusId);
+            return OrderOutcome.None with { StillHeld = isHeld };
         }
 
         var results = new List<(DoubleShotSwapAction Action, ActionResult Result)>(plan.Actions.Count);
@@ -188,11 +237,47 @@ public sealed class DoubleShotOrderSwapService : IDoubleShotOrderSwapService
         if (done.Count > 0)
             await AppendNoteAsync(orderCode, done, ct);
 
+        var failedLines = results.Count(r => r.Result is ActionResult.Failed or ActionResult.Abandoned);
+        var isClean = failedLines == 0 && results.Count == plan.Actions.Count && plan.Skipped.Count == 0;
+        var release = isHeld && isClean ? await TryReleaseAsync(orderCode, ct) : ReleaseResult.NotAttempted;
+
         return new OrderOutcome(
             Swapped: results.Count(r => r.Result == ActionResult.Swapped),
             Healed: results.Count(r => r.Result == ActionResult.Healed),
-            FailedLines: results.Count(r => r.Result is ActionResult.Failed or ActionResult.Abandoned),
-            OrderFailed: false);
+            FailedLines: failedLines,
+            OrderFailed: false,
+            Released: release == ReleaseResult.Released,
+            StillHeld: isHeld && (!isClean || release == ReleaseResult.Failed));
+    }
+
+    /// <summary>Moves a held order that no longer holds a V line to the release status, but only if it
+    /// is still in the hold status: a status someone else set in the meantime is never overwritten.
+    /// A failed release is retried next run (the order is clean, so it is only re-checked).</summary>
+    private async Task<ReleaseResult> TryReleaseAsync(string orderCode, CancellationToken ct)
+    {
+        var releaseStatusId = _settings.DoubleShotSwapReleaseStatusId;
+        try
+        {
+            var currentStatusId = await _orderClient.GetOrderStatusIdAsync(orderCode, ct);
+            if (currentStatusId != HoldStatusId)
+            {
+                _logger.LogInformation(
+                    "DoubleShotSwap: order {OrderCode} left hold status for {StatusId} during the swap; not released.",
+                    orderCode, currentStatusId);
+                return ReleaseResult.LeftHold;
+            }
+
+            await _orderClient.UpdateStatusAsync(orderCode, releaseStatusId, ct);
+        }
+        catch (Exception ex) when (!ct.IsCancellationRequested)
+        {
+            _logger.LogWarning(ex, "DoubleShotSwap: order {OrderCode} is clean but releasing it to status {ReleaseStatusId} failed; next run retries.",
+                orderCode, releaseStatusId);
+            return ReleaseResult.Failed;
+        }
+
+        _logger.LogInformation("DoubleShotSwap: order {OrderCode} released from hold to status {ReleaseStatusId}.", orderCode, releaseStatusId);
+        return ReleaseResult.Released;
     }
 
     private async Task<ActionResult> ExecuteActionAsync(string orderCode, DoubleShotSwapAction action, CancellationToken ct)
