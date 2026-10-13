@@ -13,6 +13,7 @@ public class ReprintExpeditionListHandlerTests
 {
     private readonly Mock<IExpeditionListArchiveBlobStore> _blobStoreMock;
     private readonly Mock<IPrintQueueSink> _cupsSinkMock;
+    private readonly Mock<IPrintQueueSink> _fallbackSinkMock;
     private readonly Mock<ITemporaryFileAccessor> _temporaryFileAccessorMock;
     private readonly ReprintExpeditionListHandler _handler;
     private const string ContainerName = "expedition-lists";
@@ -21,12 +22,14 @@ public class ReprintExpeditionListHandlerTests
     {
         _blobStoreMock = new Mock<IExpeditionListArchiveBlobStore>();
         _cupsSinkMock = new Mock<IPrintQueueSink>();
+        _fallbackSinkMock = new Mock<IPrintQueueSink>();
         _temporaryFileAccessorMock = new Mock<ITemporaryFileAccessor>();
         _handler = new ReprintExpeditionListHandler(
             _blobStoreMock.Object,
-            _cupsSinkMock.Object,
+            _fallbackSinkMock.Object,
             _temporaryFileAccessorMock.Object,
-            Options.Create(new ExpeditionListArchiveOptions()));
+            Options.Create(new ExpeditionListArchiveOptions()),
+            _cupsSinkMock.Object);
     }
 
     [Fact]
