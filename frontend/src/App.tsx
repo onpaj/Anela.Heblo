@@ -375,12 +375,7 @@ function App() {
             <AppInitializer>
             <div className="App min-h-screen" data-testid="app">
               <MsalProvider instance={msalInstance}>
-                <Router
-                  future={{
-                    v7_startTransition: true,
-                    v7_relativeSplatPath: true,
-                  }}
-                >
+                <Router>
                   <AuthGuard>
                     <PermissionsProvider isAuthenticated={true}>
                     <FeatureFlagProvider>
