@@ -34,6 +34,9 @@ public static class FeatureFlagRegistry
         new(FeatureFlagKeys.LabelOffsetDown,
             Description: "When on, every shipping-label PDF printed at the packing desk is moved 10 mm down. Direction flags add up; opposite ones cancel out.",
             DefaultValue: false),
+        new(FeatureFlagKeys.DoubleShotOrderSwap,
+            Description: "When on, double-shot V order lines are replaced in Shoptet by their S mirror set (POST S, DELETE V); when off the swap only logs what it would do (dry run).",
+            DefaultValue: false),
     ];
 
     public static readonly IReadOnlyDictionary<string, FeatureFlagDefinition> ByKey =

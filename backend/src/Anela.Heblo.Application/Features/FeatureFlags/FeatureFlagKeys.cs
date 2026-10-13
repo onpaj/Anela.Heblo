@@ -48,4 +48,10 @@ public static class FeatureFlagKeys
 
     /// <summary>When on, every shipping-label PDF is moved 10 mm down. See <see cref="LabelOffsetLeft"/>.</summary>
     public const string LabelOffsetDown = "is-label-offset-down-enabled";
+
+    /// <summary>
+    /// When on, the double-shot swap job and the picking-list pre-step really replace V order lines
+    /// with their S set in Shoptet. When off, they only log what they would do (dry run).
+    /// </summary>
+    public const string DoubleShotOrderSwap = "is-double-shot-order-swap-enabled";
 }

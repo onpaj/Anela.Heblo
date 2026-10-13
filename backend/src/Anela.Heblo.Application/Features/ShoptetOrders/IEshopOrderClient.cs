@@ -42,4 +42,29 @@ public interface IEshopOrderClient
     /// after a successful scan + shipment creation.
     /// </summary>
     Task MarkAsPackedAsync(string orderCode, CancellationToken ct = default);
+
+    /// <summary>
+    /// Orders (code + current status id) created at or after <paramref name="createdFrom"/> that contain a
+    /// line with exactly <paramref name="productCode"/> (GET /api/orders?productCode=&amp;creationTimeFrom=, all pages).
+    /// The filter matches items[] line codes only, not set components (shoptet-api.md §3.8).
+    /// </summary>
+    Task<IReadOnlyList<EshopOrderSummary>> ListOrdersContainingProductAsync(
+        string productCode, DateTimeOffset createdFrom, CancellationToken ct = default);
+
+    /// <summary>
+    /// GET /api/orders/{code} mapped to status + lines. Returns null when the order does not exist (404).
+    /// </summary>
+    Task<EshopOrderDetail?> GetOrderDetailAsync(string orderCode, CancellationToken ct = default);
+
+    /// <summary>
+    /// POST /api/orders/{code}/item. Adding a product-set line makes Shoptet expand its components
+    /// and deduct their stock (shoptet-api.md §3.17). Non-2xx throws HttpRequestException with StatusCode.
+    /// </summary>
+    Task AddOrderItemAsync(string orderCode, NewEshopOrderItem item, CancellationToken ct = default);
+
+    /// <summary>
+    /// DELETE /api/orders/{code}/item/{itemId}. Shoptet returns the line's stock (shoptet-api.md §3.17).
+    /// Non-2xx throws HttpRequestException with StatusCode.
+    /// </summary>
+    Task DeleteOrderItemAsync(string orderCode, long itemId, CancellationToken ct = default);
 }

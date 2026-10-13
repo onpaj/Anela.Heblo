@@ -58,4 +58,18 @@ public class ShoptetOrdersSettings
     /// Defaults to -3 ("Vyřízena").
     /// </summary>
     public int CompletedStatusId { get; set; } = -3;
+
+    /// <summary>
+    /// Shoptet order states in which the double-shot swap may rewrite order lines (pre-picking only).
+    /// Empty = use DoubleShotOrderSwapService.DefaultEligibleStatusIds
+    /// (-1 Nová, 3 Čeká se na platbu, 32 Zaplaceno, -2 Vyřizuje se, 35 Poznámka, 73 Oprava-robot).
+    /// Kept empty by default on purpose: the config binder merges arrays index-wise, so a non-empty
+    /// default would leak into a shorter override.
+    /// </summary>
+    public int[] DoubleShotSwapEligibleStatusIds { get; set; } = [];
+
+    /// <summary>
+    /// How far back (by creation time) the double-shot swap looks for orders containing a V variant.
+    /// </summary>
+    public int DoubleShotSwapLookbackDays { get; set; } = 14;
 }
