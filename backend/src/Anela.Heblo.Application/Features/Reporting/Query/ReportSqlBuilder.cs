@@ -31,8 +31,8 @@ public static class ReportSqlBuilder
 
         var output = ResolveColumns(dataset, query.Columns);
         var parameters = new List<NpgsqlParameter>();
-        var where = BuildWhere(dataset, query.Filters, parameters);
-        var orderBy = BuildOrderBy(dataset, query.Sort);
+        var where = BuildWhere(dataset, query.Filters ?? [], parameters);
+        var orderBy = BuildOrderBy(dataset, query.Sort ?? []);
 
         parameters.Add(new NpgsqlParameter("limit", NpgsqlDbType.Integer) { Value = limit + 1 });
         parameters.Add(new NpgsqlParameter("offset", NpgsqlDbType.Integer) { Value = offset });
@@ -59,7 +59,11 @@ public static class ReportSqlBuilder
             return dataset.Columns;
         if (requested.Count == 0)
             throw new ReportQueryValidationException("columns must not be empty; omit it to return all columns.");
-        return requested.Select(name => RequireColumn(dataset, name)).ToList();
+        var resolved = requested.Select(name => RequireColumn(dataset, name)).ToList();
+        var duplicate = resolved.GroupBy(c => c.Name, StringComparer.Ordinal).FirstOrDefault(g => g.Count() > 1);
+        if (duplicate is not null)
+            throw new ReportQueryValidationException($"Duplicate column '{duplicate.Key}'.");
+        return resolved;
     }
 
     private static string BuildWhere(ReportDataset dataset, IReadOnlyList<ReportFilter> filters, List<NpgsqlParameter> parameters)
@@ -72,7 +76,7 @@ public static class ReportSqlBuilder
     private static string BuildPredicate(ReportDataset dataset, ReportFilter filter, List<NpgsqlParameter> parameters)
     {
         var column = RequireColumn(dataset, filter.Column);
-        var op = Operators.FirstOrDefault(o => string.Equals(o, filter.Op, StringComparison.OrdinalIgnoreCase))
+        var op = Operators.FirstOrDefault(o => string.Equals(o, filter.Op?.Trim(), StringComparison.OrdinalIgnoreCase))
             ?? throw new ReportQueryValidationException(
                 $"Unknown operator '{filter.Op}'. Allowed: {string.Join(", ", Operators)}.");
         var col = Quote(column.Name);
@@ -124,7 +128,7 @@ public static class ReportSqlBuilder
 
         var entries = sort.Count == 0
             ? dataset.DefaultSort.Select(s => (Column: dataset.FindColumn(s.Column)!, s.Descending)).ToList()
-            : sort.Select(s => (Column: RequireColumn(dataset, s.Column), Descending: ParseDirection(s.Direction))).ToList();
+            : sort.Select(s => (Column: RequireColumn(dataset, s.Column), Descending: ParseDirection(s.Direction ?? "asc"))).ToList();
 
         var used = entries.Select(e => e.Column.Name).ToHashSet(StringComparer.Ordinal);
         foreach (var key in dataset.KeyColumns.Where(k => used.Add(k)))
@@ -153,7 +157,7 @@ public static class ReportSqlBuilder
     private static string RequireValue(ReportFilter filter, string op) =>
         filter.Value ?? throw new ReportQueryValidationException($"{op} requires 'value'.");
 
-    private static string Add(ReportColumn column, string raw, List<NpgsqlParameter> parameters) =>
+    private static string Add(ReportColumn column, string? raw, List<NpgsqlParameter> parameters) =>
         AddRaw(ReportValueParser.DbTypeFor(column.Type), ReportValueParser.Parse(column, raw), parameters);
 
     private static string AddArray(ReportColumn column, IReadOnlyList<string> raws, List<NpgsqlParameter> parameters)

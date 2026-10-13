@@ -183,4 +183,94 @@ public class ReportSqlBuilderTests
         cmd.Sql.Should().NotContain("DROP");
         cmd.Sql.Should().Contain("\"orders\"").And.Contain("\"channel\" = @p0");
     }
+
+    [Theory]
+    [InlineData("1,5")]
+    [InlineData("0,25")]
+    public void Decimal_with_comma_is_rejected_not_read_as_thousands(string raw)
+    {
+        var act = () => Build(new ReportQuery { Filters = [F("revenue_with_vat_czk", "gt", raw)] });
+
+        act.Should().Throw<ReportQueryValidationException>().WithMessage("*not a valid decimal number*");
+    }
+
+    [Fact]
+    public void Decimal_with_point_parses()
+    {
+        var cmd = Build(new ReportQuery { Filters = [F("revenue_with_vat_czk", "gt", "1.5")] });
+
+        cmd.Parameters.Single(x => x.ParameterName == "p0").Value.Should().Be(1.5m);
+    }
+
+    [Fact]
+    public void Null_filters_and_sort_lists_are_treated_as_empty()
+    {
+        var cmd = Build(new ReportQuery { Filters = null!, Sort = null! });
+
+        cmd.Sql.Should().NotContain("WHERE");
+        cmd.Sql.Should().Contain("ORDER BY \"order_month\" DESC");
+    }
+
+    [Fact]
+    public void Null_sort_direction_defaults_to_asc()
+    {
+        var cmd = Build(new ReportQuery { Sort = [new ReportSort { Column = "orders", Direction = null! }] });
+
+        cmd.Sql.Should().Contain("ORDER BY \"orders\" ASC NULLS LAST");
+    }
+
+    public static TheoryData<ReportQuery, string> NullInputs => new()
+    {
+        { new ReportQuery { Filters = [new ReportFilter { Column = null!, Op = "eq", Value = "1" }] }, "Unknown column" },
+        { new ReportQuery { Filters = [new ReportFilter { Column = "orders", Op = null!, Value = "1" }] }, "Unknown operator" },
+        { new ReportQuery { Filters = [new ReportFilter { Column = "channel", Op = "in", Values = new string[] { "a", null! } }] }, "null" },
+        { new ReportQuery { Columns = new string[] { "orders", null! } }, "Unknown column" },
+        { new ReportQuery { Sort = [new ReportSort { Column = null!, Direction = "asc" }] }, "Unknown column" },
+    };
+
+    [Theory]
+    [MemberData(nameof(NullInputs))]
+    public void Null_inputs_give_a_validation_error_not_a_crash(ReportQuery query, string expectedFragment)
+    {
+        var act = () => Build(query);
+
+        act.Should().Throw<ReportQueryValidationException>().WithMessage($"*{expectedFragment}*");
+    }
+
+    [Fact]
+    public void Filter_op_is_trimmed()
+    {
+        Build(new ReportQuery { Filters = [F("orders", " eq ", "1")] }).Sql.Should().Contain("\"orders\" = @p0");
+    }
+
+    [Fact]
+    public void Duplicate_columns_are_rejected_case_insensitively()
+    {
+        var act = () => Build(new ReportQuery { Columns = ["orders", "ORDERS"] });
+
+        act.Should().Throw<ReportQueryValidationException>().WithMessage("*Duplicate column 'orders'*");
+    }
+
+    private const string Injection = "orders\"; DROP TABLE x; --";
+
+    [Fact]
+    public void Injection_payload_in_columns_is_rejected()
+    {
+        var act = () => Build(new ReportQuery { Columns = [Injection] });
+        act.Should().Throw<ReportQueryValidationException>().WithMessage("*Unknown column*");
+    }
+
+    [Fact]
+    public void Injection_payload_in_filter_column_is_rejected()
+    {
+        var act = () => Build(new ReportQuery { Filters = [F(Injection, "eq", "1")] });
+        act.Should().Throw<ReportQueryValidationException>().WithMessage("*Unknown column*");
+    }
+
+    [Fact]
+    public void Injection_payload_in_sort_column_is_rejected()
+    {
+        var act = () => Build(new ReportQuery { Sort = [new ReportSort { Column = Injection }] });
+        act.Should().Throw<ReportQueryValidationException>().WithMessage("*Unknown column*");
+    }
 }

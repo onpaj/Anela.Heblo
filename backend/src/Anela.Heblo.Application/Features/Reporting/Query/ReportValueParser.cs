@@ -6,6 +6,9 @@ namespace Anela.Heblo.Application.Features.Reporting.Query;
 
 public static class ReportValueParser
 {
+    private const NumberStyles DecimalStyles = NumberStyles.AllowLeadingSign | NumberStyles.AllowDecimalPoint
+        | NumberStyles.AllowLeadingWhite | NumberStyles.AllowTrailingWhite;
+
     private static readonly string[] DateFormats = ["yyyy-MM-dd", "yyyy-MM"];
 
     public static NpgsqlDbType DbTypeFor(ReportColumnType type) => type switch
@@ -18,14 +21,19 @@ public static class ReportValueParser
         _ => throw new ArgumentOutOfRangeException(nameof(type), type, null),
     };
 
-    public static object Parse(ReportColumn column, string raw) => column.Type switch
+    public static object Parse(ReportColumn column, string? raw) =>
+        raw is null
+            ? throw new ReportQueryValidationException($"Value for column '{column.Name}' must not be null.")
+            : ParseNonNull(column, raw);
+
+    private static object ParseNonNull(ReportColumn column, string raw) => column.Type switch
     {
         ReportColumnType.Text => raw,
         ReportColumnType.Date => ParseDate(column, raw),
         ReportColumnType.Integer => long.TryParse(raw, NumberStyles.Integer, CultureInfo.InvariantCulture, out var l)
             ? l
             : throw Invalid(column, raw, "integer"),
-        ReportColumnType.Decimal => decimal.TryParse(raw, NumberStyles.Number, CultureInfo.InvariantCulture, out var d)
+        ReportColumnType.Decimal => decimal.TryParse(raw, DecimalStyles, CultureInfo.InvariantCulture, out var d)
             ? d
             : throw Invalid(column, raw, "decimal number"),
         ReportColumnType.Boolean => ParseBool(raw) ?? throw Invalid(column, raw, "boolean (true or false)"),
