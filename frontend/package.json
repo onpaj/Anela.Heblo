@@ -79,6 +79,9 @@
     ]
   },
   "jest": {
+    "moduleNameMapper": {
+      "^react-router/dom$": "<rootDir>/node_modules/react-router/dist/development/dom-export.js"
+    },
     "transformIgnorePatterns": [
       "node_modules/(?!(date-fns|mind-elixir)/)"
     ]
