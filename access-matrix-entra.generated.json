@@ -611,6 +611,36 @@
       "value": "anela.process_docs.read"
     },
     {
+      "id": "a49bce30-d059-56e7-b1af-504379fd2629",
+      "allowedMemberTypes": [
+        "User"
+      ],
+      "description": "Reporting_WebAnalytics Read",
+      "displayName": "reporting.web_analytics.read",
+      "isEnabled": true,
+      "value": "reporting.web_analytics.read"
+    },
+    {
+      "id": "9f2ca313-d2c0-5ae6-9d44-c51ca88e69d2",
+      "allowedMemberTypes": [
+        "User"
+      ],
+      "description": "Reporting_Eshop Read",
+      "displayName": "reporting.eshop.read",
+      "isEnabled": true,
+      "value": "reporting.eshop.read"
+    },
+    {
+      "id": "281bd8ed-671d-5764-bfe0-8dfd27024f23",
+      "allowedMemberTypes": [
+        "User"
+      ],
+      "description": "Reporting_Accounting Read",
+      "displayName": "reporting.accounting.read",
+      "isEnabled": true,
+      "value": "reporting.accounting.read"
+    },
+    {
       "id": "d4c4dfd1-2581-5de3-8c46-63c526985133",
       "allowedMemberTypes": [
         "User"
@@ -781,7 +811,10 @@
         "admin.feature_flags.write",
         "jobs.trigger.read",
         "jobs.disable.read",
-        "anela.process_docs.read"
+        "anela.process_docs.read",
+        "reporting.web_analytics.read",
+        "reporting.eshop.read",
+        "reporting.accounting.read"
       ]
     },
     {
@@ -821,7 +854,10 @@
         "admin.data_quality.read",
         "admin.administration.read",
         "admin.feature_flags.read",
-        "anela.process_docs.read"
+        "anela.process_docs.read",
+        "reporting.web_analytics.read",
+        "reporting.eshop.read",
+        "reporting.accounting.read"
       ]
     },
     {
@@ -834,7 +870,8 @@
         "products.journal.read",
         "products.journal.write",
         "customer.smartsupp.read",
-        "anela.process_docs.read"
+        "anela.process_docs.read",
+        "reporting.accounting.read"
       ]
     },
     {
@@ -849,7 +886,9 @@
         "marketing.article.read",
         "marketing.article.write",
         "marketing.performance.read",
-        "anela.process_docs.read"
+        "anela.process_docs.read",
+        "reporting.web_analytics.read",
+        "reporting.eshop.read"
       ]
     },
     {
@@ -958,7 +997,8 @@
         "warehouse.stock_override.read",
         "products.catalog.read",
         "products.catalog.write",
-        "anela.process_docs.read"
+        "anela.process_docs.read",
+        "reporting.eshop.read"
       ]
     }
   ]
