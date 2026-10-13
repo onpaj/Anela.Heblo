@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 namespace Anela.Heblo.Application.Features.Reporting.Contracts;
 
 public class ReportFreshnessDto
@@ -35,7 +37,9 @@ public class ReportFilterDto
 {
     public string Column { get; set; } = string.Empty;
     public string Op { get; set; } = string.Empty;
+    [JsonConverter(typeof(LenientStringJsonConverter))]
     public string? Value { get; set; }
+    [JsonConverter(typeof(LenientStringListJsonConverter))]
     public List<string>? Values { get; set; }
 }
 

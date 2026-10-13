@@ -55,10 +55,10 @@ public class ReportingMcpTools
 
     [McpServerTool]
     [Description(
-        "Query one reporting dataset. Returns column headers once and rows as value arrays, plus hasMore for paging. " +
+        "Query one reporting dataset. Returns column headers once and rows as value arrays, plus HasMore for paging. " +
         "Filter ops: eq, neq, gt, gte, lt, lte (one 'value'), in (1-100 'values'), between (2 'values', inclusive), " +
-        "contains (text, case-insensitive), isNull ('value' true/false). Dates accept yyyy-MM-dd or yyyy-MM. " +
-        "Always filter the period column to the months you need. limit 1-1000 (default 100); page with offset while hasMore is true.")]
+        "contains (text, case-insensitive), isNull ('value' true/false). Filter values may be strings, numbers or booleans. Dates accept yyyy-MM-dd or yyyy-MM. " +
+        "Always filter the period column to the months you need. limit 1-1000 (default 100); page with offset while HasMore is true.")]
     public async Task<string> QueryReportDataset(
         [Description("Dataset id from ListReportDatasets.")] string dataset,
         [Description("Optional subset of columns to return, in this order. Omit for all.")] List<string>? columns = null,
@@ -78,7 +78,16 @@ public class ReportingMcpTools
             Offset = offset,
         }, cancellationToken);
         EnsureSuccess(response);
-        return JsonSerializer.Serialize(response, McpJsonOptions.Default);
+        return JsonSerializer.Serialize(new
+        {
+            response.Dataset,
+            response.Columns,
+            response.Rows,
+            response.RowCount,
+            response.HasMore,
+            response.Caveats,
+            response.Freshness,
+        }, McpJsonOptions.Default);
     }
 
     private static void EnsureSuccess(BaseResponse response)
@@ -99,7 +108,8 @@ public class ReportingMcpTools
             ErrorCodes.ReportingInvalidQuery => p.GetValueOrDefault("Reason") ?? "Invalid query.",
             ErrorCodes.ReportingQueryTimeout =>
                 "The query took too long. Narrow the period filter or add filters, then retry.",
-            _ => response.FullError(),
+            ErrorCodes.ExternalServiceError => p.GetValueOrDefault("Reason") ?? "Reporting data is temporarily unavailable.",
+            _ => "Reporting request failed.",
         };
         throw new McpException($"[{code}] {detail}");
     }

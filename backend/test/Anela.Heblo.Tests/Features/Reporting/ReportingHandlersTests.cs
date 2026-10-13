@@ -2,6 +2,7 @@ using Anela.Heblo.Application.Features.Reporting.Catalog;
 using Anela.Heblo.Application.Features.Reporting.Contracts;
 using Anela.Heblo.Application.Features.Reporting.Data;
 using Anela.Heblo.Application.Features.Reporting.Query;
+using Anela.Heblo.Application.Features.Reporting.UseCases;
 using Anela.Heblo.Application.Features.Reporting.UseCases.DescribeReportDataset;
 using Anela.Heblo.Application.Features.Reporting.UseCases.ListReportDatasets;
 using Anela.Heblo.Application.Features.Reporting.UseCases.QueryReportDataset;
@@ -180,5 +181,46 @@ public class ReportingHandlersTests
         result.Success.Should().BeTrue();
         result.Rows.Should().HaveCount(1);
         result.Freshness!.Status.Should().Be("UNKNOWN");
+    }
+
+    [Fact]
+    public async Task Query_reader_failure_maps_to_ExternalServiceError_without_leaking_details()
+    {
+        Grant(Feature.Reporting_Eshop);
+        _reader.Setup(r => r.QueryAsync(It.IsAny<ReportSqlCommand>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new InvalidOperationException("relation shoptet_raw.v_order_monthly does not exist"));
+
+        var result = await new QueryReportDatasetHandler(_user.Object, _reader.Object, NullLogger<QueryReportDatasetHandler>.Instance)
+            .Handle(new QueryReportDatasetRequest { Dataset = "shoptet.orders_monthly" }, default);
+
+        result.ErrorCode.Should().Be(ErrorCodes.ExternalServiceError);
+        result.Params!["Reason"].Should().Be("Reporting data is temporarily unavailable.");
+    }
+
+    [Fact]
+    public async Task Query_cancellation_propagates_instead_of_being_mapped()
+    {
+        Grant(Feature.Reporting_Eshop);
+        using var cts = new CancellationTokenSource();
+        cts.Cancel();
+        _reader.Setup(r => r.QueryAsync(It.IsAny<ReportSqlCommand>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new OperationCanceledException(cts.Token));
+
+        var act = () => new QueryReportDatasetHandler(_user.Object, _reader.Object, NullLogger<QueryReportDatasetHandler>.Instance)
+            .Handle(new QueryReportDatasetRequest { Dataset = "shoptet.orders_monthly" }, cts.Token);
+
+        await act.Should().ThrowAsync<OperationCanceledException>();
+    }
+
+    [Fact]
+    public async Task Freshness_loader_returns_unknown_when_reader_throws_TaskCanceledException_without_cancellation()
+    {
+        _reader.Setup(r => r.GetFreshnessAsync(It.IsAny<ReportSource>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new TaskCanceledException("internal timeout"));
+
+        var freshness = await ReportFreshnessLoader.LoadAsync(
+            _reader.Object, ReportSource.Eshop, NullLogger.Instance, CancellationToken.None);
+
+        freshness.Status.Should().Be("UNKNOWN");
     }
 }

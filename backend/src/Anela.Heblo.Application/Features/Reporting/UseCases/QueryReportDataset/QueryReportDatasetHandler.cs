@@ -9,6 +9,8 @@ namespace Anela.Heblo.Application.Features.Reporting.UseCases.QueryReportDataset
 
 public class QueryReportDatasetHandler : IRequestHandler<QueryReportDatasetRequest, QueryReportDatasetResponse>
 {
+    internal const string UnavailableReason = "Reporting data is temporarily unavailable.";
+
     private readonly ICurrentUserService _user;
     private readonly IReportingDataReader _reader;
     private readonly ILogger<QueryReportDatasetHandler> _logger;
@@ -46,6 +48,12 @@ public class QueryReportDatasetHandler : IRequestHandler<QueryReportDatasetReque
         {
             return new QueryReportDatasetResponse(ErrorCodes.ReportingQueryTimeout,
                 new Dictionary<string, string> { ["Dataset"] = dataset.Id });
+        }
+        catch (Exception ex) when (!cancellationToken.IsCancellationRequested)
+        {
+            _logger.LogError(ex, "Reporting query failed for dataset {Dataset}", dataset.Id);
+            return new QueryReportDatasetResponse(ErrorCodes.ExternalServiceError,
+                new Dictionary<string, string> { ["Reason"] = UnavailableReason });
         }
 
         var freshness = await ReportFreshnessLoader.LoadAsync(_reader, dataset.Source, _logger, cancellationToken);

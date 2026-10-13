@@ -19,6 +19,35 @@ public class ReportDatasetCatalogTests
         ReportDatasetCatalog.All.Count(d => d.Source == ReportSource.Accounting).Should().Be(4);
     }
 
+    // Changing this list is a deliberate data-exposure decision: every entry is a database view
+    // that MCP clients can read. Update it only together with the spec and a security review.
+    [Fact]
+    public void Exposed_views_match_the_approved_allowlist_exactly()
+    {
+        string[] approved =
+        [
+            "ga4_agg.v_monthly_traffic",
+            "ga4_agg.v_monthly_traffic_by_channel",
+            "ga4_agg.v_monthly_landing_pages",
+            "ga4_agg.v_monthly_articles",
+            "ga4_agg.v_monthly_conversion",
+            "shoptet_raw.v_order_monthly",
+            "shoptet_raw.v_order_shipping_monthly",
+            "shoptet_raw.v_order_payment_monthly",
+            "shoptet_raw.v_customer_type_monthly",
+            "shoptet_raw.v_new_customers_monthly",
+            "shoptet_raw.v_product_sales_monthly",
+            "shoptet_raw.v_product_sales_by_customer_type_monthly",
+            "shoptet_raw.v_product_set_component_units_monthly",
+            "flexi_raw.v_cost_monthly_total",
+            "flexi_raw.v_cost_monthly_by_account",
+            "flexi_raw.v_marketing_spend_monthly",
+            "flexi_raw.v_ad_spend_monthly",
+        ];
+
+        ReportDatasetCatalog.All.Select(d => d.Schema + "." + d.View).Should().BeEquivalentTo(approved);
+    }
+
     [Fact]
     public void Dataset_ids_are_unique_and_prefixed_by_source()
     {
