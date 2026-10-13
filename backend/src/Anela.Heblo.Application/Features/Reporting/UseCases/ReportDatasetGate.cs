@@ -17,7 +17,7 @@ internal static class ReportDatasetGate
         var dataset = ReportDatasetCatalog.Find(id);
         if (dataset is null)
         {
-            var suggestions = Process.ExtractTop(id ?? string.Empty, ReportDatasetCatalog.All.Select(d => d.Id), limit: MaxSuggestions)
+            var suggestions = Process.ExtractTop(id ?? string.Empty, ReportDatasetCatalog.All.Where(d => ReportAccess.CanRead(user, d.Source)).Select(d => d.Id), limit: MaxSuggestions)
                 .Where(r => r.Score >= MinSuggestionScore)
                 .Select(r => r.Value);
             return (null, ErrorCodes.ReportingDatasetNotFound, new Dictionary<string, string>
