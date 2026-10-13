@@ -72,4 +72,17 @@ public class ShoptetOrdersSettings
     /// How far back (by creation time) the double-shot swap looks for orders containing a V variant.
     /// </summary>
     public int DoubleShotSwapLookbackDays { get; set; } = 14;
+
+    /// <summary>
+    /// Shoptet status a third-party add-on puts new double-shot V orders into, so no other automation
+    /// touches them before the swap. Heblo swaps those orders, then moves them to
+    /// <see cref="DoubleShotSwapReleaseStatusId"/>. Null = no hold status (set per environment: the
+    /// test store has no such status).
+    /// </summary>
+    public int? DoubleShotSwapHoldStatusId { get; set; }
+
+    /// <summary>
+    /// Status a held order is moved to once it holds no V line. Defaults to -1 ("Nová").
+    /// </summary>
+    public int DoubleShotSwapReleaseStatusId { get; set; } = -1;
 }

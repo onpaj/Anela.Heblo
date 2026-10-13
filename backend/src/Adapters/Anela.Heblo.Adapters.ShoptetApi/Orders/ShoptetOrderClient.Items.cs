@@ -94,6 +94,15 @@ public partial class ShoptetOrderClient
         await EnsureShoptetSuccessAsync(response, "DELETE", path, ct);
     }
 
+    public async Task UpdateStatusWithoutNotificationsAsync(string orderCode, int statusId, CancellationToken ct = default)
+    {
+        var path = $"/api/orders/{Uri.EscapeDataString(orderCode)}/status?suppressEmailSending=true&suppressSmsSending=true";
+        var body = new UpdateStatusRequest { Data = new UpdateStatusData { StatusId = statusId } };
+
+        var response = await _http.PatchAsJsonAsync(path, body, JsonOptions, ct);
+        await EnsureShoptetSuccessAsync(response, "PATCH", path, ct);
+    }
+
     private static EshopOrderLine MapLine(ShoptetOrderLine line) =>
         new()
         {
@@ -106,6 +115,11 @@ public partial class ShoptetOrderClient
             PriceRatio = ParseDecimal(line.PriceRatio, 1m),
             Remark = line.Remark,
         };
+
+    /// <summary>Shoptet stamps times with a basic-format offset ("+0200"), which the general
+    /// DateTimeOffset parser accepts (see ShoptetDateTimeOffsetConverter).</summary>
+    private static DateTimeOffset? ParseShoptetTime(string? value) =>
+        DateTimeOffset.TryParse(value, Invariant, DateTimeStyles.None, out var parsed) ? parsed : null;
 
     private static decimal ParseDecimal(string? value, decimal fallback) =>
         decimal.TryParse(value, NumberStyles.Number, Invariant, out var parsed) ? parsed : fallback;
