@@ -62,10 +62,11 @@ backend/src/Anela.Heblo.Application/Features/Reporting/
   Contracts/
     ReportDtos.cs                          DTOs (classes)
   UseCases/
+    ReportDatasetMapper.cs                 catalogue -> DTO mapping shared by handlers
+    ReportDatasetGate.cs                   dataset lookup + permission check shared by Describe/Query
     ListReportDatasets/ListReportDatasetsRequest.cs, ListReportDatasetsHandler.cs
     DescribeReportDataset/DescribeReportDatasetRequest.cs, DescribeReportDatasetHandler.cs
     QueryReportDataset/QueryReportDatasetRequest.cs, QueryReportDatasetHandler.cs
-    ReportDatasetMapper.cs                 catalogue -> DTO mapping shared by handlers
 backend/src/Anela.Heblo.API/MCP/Tools/ReportingMcpTools.cs
 backend/test/Anela.Heblo.Tests/Features/Reporting/...
 backend/test/Anela.Heblo.Tests/MCP/Tools/ReportingMcpToolsTests.cs
@@ -225,6 +226,7 @@ git commit -m "feat(reporting): add 39XX reporting error codes"
 
 ```csharp
 using Anela.Heblo.Application.Features.Reporting.Catalog;
+using Anela.Heblo.Domain.Features.Authorization;
 using FluentAssertions;
 using Xunit;
 
@@ -289,9 +291,9 @@ public class ReportDatasetCatalogTests
     [Fact]
     public void Each_source_maps_to_its_own_feature()
     {
-        ReportSources.FeatureFor(ReportSource.WebAnalytics).Should().Be(Domain.Features.Authorization.Feature.Reporting_WebAnalytics);
-        ReportSources.FeatureFor(ReportSource.Eshop).Should().Be(Domain.Features.Authorization.Feature.Reporting_Eshop);
-        ReportSources.FeatureFor(ReportSource.Accounting).Should().Be(Domain.Features.Authorization.Feature.Reporting_Accounting);
+        ReportSources.FeatureFor(ReportSource.WebAnalytics).Should().Be(Feature.Reporting_WebAnalytics);
+        ReportSources.FeatureFor(ReportSource.Eshop).Should().Be(Feature.Reporting_Eshop);
+        ReportSources.FeatureFor(ReportSource.Accounting).Should().Be(Feature.Reporting_Accounting);
     }
 
     [Fact]
@@ -1914,7 +1916,7 @@ git commit -m "feat(reporting): read-only, time-boxed Npgsql reader for reportin
 ### Task 6: Handlers, access check and module registration
 
 **Files:**
-- Create: `Features/Reporting/ReportAccess.cs`, `ReportingModule.cs`, `Contracts/ReportDtos.cs`, `UseCases/ReportDatasetMapper.cs`, `UseCases/ListReportDatasets/*`, `UseCases/DescribeReportDataset/*`, `UseCases/QueryReportDataset/*`
+- Create: `Features/Reporting/ReportAccess.cs`, `ReportingModule.cs`, `Contracts/ReportDtos.cs`, `UseCases/ReportDatasetMapper.cs`, `UseCases/ReportDatasetGate.cs`, `UseCases/ListReportDatasets/*`, `UseCases/DescribeReportDataset/*`, `UseCases/QueryReportDataset/*`
 - Modify: `backend/src/Anela.Heblo.Application/ApplicationModule.cs` (add `using` + `services.AddReportingModule();` next to `services.AddProcessDocsModule();`)
 - Test: `backend/test/Anela.Heblo.Tests/Features/Reporting/ReportingHandlersTests.cs`
 
@@ -2390,7 +2392,6 @@ public class DescribeReportDatasetHandler : IRequestHandler<DescribeReportDatase
 }
 ```
 
-Add `UseCases/ReportDatasetGate.cs` to this task's Files list.
 
 - [ ] **Step 6: Create the query use case**
 
@@ -2613,7 +2614,7 @@ public class ReportingMcpToolsTests
             offset: 20);
 
         Assert.Equal("shoptet.orders_monthly", sent!.Dataset);
-        Assert.Equal(["order_month", "orders"], sent.Columns!);
+        Assert.Equal(new[] { "order_month", "orders" }, sent.Columns!);
         Assert.Equal("channel", sent.Filters![0].Column);
         Assert.Equal("desc", sent.Sort![0].Direction);
         Assert.Equal(10, sent.Limit);
@@ -2779,7 +2780,7 @@ public class ReportingMcpTools
 
 The serialized response includes `Success`/`ErrorCode`/`Params` from `BaseResponse`; that matches the other tools that serialize whole responses.
 
-- [ ] **Step 4: Register in `McpModule.cs`** — add `using`-free `.WithTools<ReportingMcpTools>()` after `.WithTools<ProcessDocsMcpTools>()` (same namespace `Anela.Heblo.API.MCP.Tools`).
+- [ ] **Step 4: Register in `McpModule.cs`** — add `.WithTools<ReportingMcpTools>()` after `.WithTools<ProcessDocsMcpTools>()`; no new `using` is needed (same namespace as the other tools).
 
 - [ ] **Step 5: Run the MCP tests — expect PASS**
 
