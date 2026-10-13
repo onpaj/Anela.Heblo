@@ -513,6 +513,14 @@ public enum ErrorCodes
     [HttpStatusCode(HttpStatusCode.BadRequest)]
     PricingProductNotInBaseline = 3807,
 
+    // Reporting module errors (39XX)
+    [HttpStatusCode(HttpStatusCode.NotFound)]
+    ReportingDatasetNotFound = 3901,
+    [HttpStatusCode(HttpStatusCode.BadRequest)]
+    ReportingInvalidQuery = 3902,
+    [HttpStatusCode(HttpStatusCode.GatewayTimeout)]
+    ReportingQueryTimeout = 3903,
+
     // External Service errors (90XX)
     [HttpStatusCode(HttpStatusCode.ServiceUnavailable)]
     ExternalServiceError = 9001,
