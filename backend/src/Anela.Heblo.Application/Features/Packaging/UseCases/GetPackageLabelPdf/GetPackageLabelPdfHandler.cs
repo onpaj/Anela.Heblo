@@ -1,7 +1,9 @@
 using Anela.Heblo.Application.Features.FeatureFlags;
+using Anela.Heblo.Application.Features.Packaging.Contracts;
 using Anela.Heblo.Application.Features.Packaging.Services;
 using Anela.Heblo.Application.Features.ShipmentLabels;
 using Anela.Heblo.Application.Shared;
+using Anela.Heblo.Domain.Features.Logistics;
 using MediatR;
 using Microsoft.Extensions.Logging;
 
@@ -18,17 +20,23 @@ public class GetPackageLabelPdfHandler : IRequestHandler<GetPackageLabelPdfReque
 
     private readonly IShipmentClient _shipmentClient;
     private readonly IHttpClientFactory _httpClientFactory;
+    private readonly IPackingOrderShippingSource _orderShippingSource;
+    private readonly IShippingMethodCatalog _shippingCatalog;
     private readonly IFeatureFlagChecker _featureFlags;
     private readonly ILogger<GetPackageLabelPdfHandler> _logger;
 
     public GetPackageLabelPdfHandler(
         IShipmentClient shipmentClient,
         IHttpClientFactory httpClientFactory,
+        IPackingOrderShippingSource orderShippingSource,
+        IShippingMethodCatalog shippingCatalog,
         IFeatureFlagChecker featureFlags,
         ILogger<GetPackageLabelPdfHandler> logger)
     {
         _shipmentClient = shipmentClient;
         _httpClientFactory = httpClientFactory;
+        _orderShippingSource = orderShippingSource;
+        _shippingCatalog = shippingCatalog;
         _featureFlags = featureFlags;
         _logger = logger;
     }
@@ -108,7 +116,7 @@ public class GetPackageLabelPdfHandler : IRequestHandler<GetPackageLabelPdfReque
 
     /// <summary>
     /// Label placement on the Zebra is still being tuned, so each direction has its own flag that
-    /// moves every carrier's label 10 mm that way. Enabled directions add up; opposite ones cancel.
+    /// moves the label 10 mm that way. Enabled directions add up; opposite ones cancel.
     /// </summary>
     private static readonly (string FlagKey, int Right, int Up)[] OffsetFlags =
     [
@@ -118,9 +126,14 @@ public class GetPackageLabelPdfHandler : IRequestHandler<GetPackageLabelPdfReque
         (FeatureFlagKeys.LabelOffsetDown, 0, -1),
     ];
 
+    /// <summary>The offset only applies to these carriers' labels; all others print untouched.</summary>
+    private static readonly IReadOnlySet<Carriers> OffsetCarriers =
+        new HashSet<Carriers> { Carriers.PPL, Carriers.Zasilkovna };
+
     /// <summary>
-    /// Sums the enabled direction flags into one (right, up) move in PDF points. A failed flag
-    /// check only skips the offset — the label still prints.
+    /// Sums the enabled direction flags into one (right, up) move in PDF points, but only for
+    /// carriers in <see cref="OffsetCarriers"/>. With no net offset the carrier is not looked up
+    /// at all. A failed flag check or carrier lookup only skips the offset — the label still prints.
     /// </summary>
     private async Task<(double Right, double Up)> GetOffsetAsync(GetPackageLabelPdfRequest request, CancellationToken ct)
     {
@@ -136,15 +149,29 @@ public class GetPackageLabelPdfHandler : IRequestHandler<GetPackageLabelPdfReque
                 up += flagUp;
             }
 
+            if ((right, up) == (0, 0) || !await IsOffsetCarrierAsync(request.OrderCode, ct))
+                return default;
+
             return (right * LabelOffsetPoints, up * LabelOffsetPoints);
         }
         catch (Exception ex) when (!ct.IsCancellationRequested)
         {
             _logger.LogWarning(ex,
-                "Could not read label offset flags for order {OrderCode} package {PackageNumber}; printing label without offset",
+                "Could not resolve label offset for order {OrderCode} package {PackageNumber}; printing label without offset",
                 request.OrderCode, request.PackageNumber);
             return default;
         }
+    }
+
+    private async Task<bool> IsOffsetCarrierAsync(string orderCode, CancellationToken ct)
+    {
+        var shippingGuid = await _orderShippingSource.GetShippingMethodGuidAsync(orderCode, ct);
+        var carrier = shippingGuid is null ? null : _shippingCatalog.ResolveCarrierByShippingGuid(shippingGuid);
+        var isOffsetCarrier = carrier is not null && OffsetCarriers.Contains(carrier.Value);
+        _logger.LogDebug(
+            "Label offset carrier check for order {OrderCode}: carrier {Carrier}, offset applies {IsOffsetCarrier}",
+            orderCode, carrier?.ToString() ?? "unresolved", isOffsetCarrier);
+        return isOffsetCarrier;
     }
 
     private async Task<Stream> ShiftAsync(
