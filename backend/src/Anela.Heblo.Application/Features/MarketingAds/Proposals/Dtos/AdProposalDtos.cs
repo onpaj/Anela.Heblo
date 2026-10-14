@@ -66,6 +66,8 @@ public class AdActionExecutionDto
     public AdActionRevertState RevertState { get; set; }
     public DateTime? RevertedAt { get; set; }
     public string? RevertError { get; set; }
+    /// <summary>The revert was only validated by the platform (non-production); nothing changed in the account.</summary>
+    public bool RevertValidateOnly { get; set; }
 }
 
 public class AdProposalDetailDto

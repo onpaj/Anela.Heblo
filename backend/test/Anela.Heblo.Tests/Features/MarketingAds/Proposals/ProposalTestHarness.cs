@@ -6,6 +6,7 @@ using Anela.Heblo.Application.Features.MarketingAds.Proposals.Autonomy;
 using Anela.Heblo.Application.Features.MarketingAds.Proposals.Execution;
 using Anela.Heblo.Application.Features.MarketingAds.Proposals.Limits;
 using Anela.Heblo.Application.Features.MarketingAds.Proposals.ReadModel;
+using Anela.Heblo.Domain.Features.Authorization;
 using Anela.Heblo.Domain.Features.MarketingAds;
 using Anela.Heblo.Domain.Features.Users;
 using Anela.Heblo.Persistence;
@@ -41,6 +42,7 @@ internal sealed class ProposalTestHarness : IDisposable
         Autonomy = new AdAutonomyService(Governance, ContextBuilder, Evaluator, Audit, Time);
 
         ActAs("chief");
+        CurrentUser.Setup(c => c.IsInRole(AccessRoles.MarketingAdApprovalsAdmin)).Returns(true);
         ChannelResolver.Setup(r => r.Resolve()).Returns(ApprovalChannelResolution.Allow(ApprovalChannel.Web));
         Enqueuer.Setup(e => e.EnqueueExecution(It.IsAny<int>())).Returns("job-1");
         ReadModel.Setup(r => r.IsAccountManagedAsync(It.IsAny<AdPlatform>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))

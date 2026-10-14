@@ -95,4 +95,28 @@ public class AdProposalDtoMapperTests
 
         detail.Executions.Select(e => e.ValidateOnly).Should().Equal(true, false);
     }
+
+    [Fact]
+    public void ToDetail_FlagsOnlyValidateOnlyRevertFailuresAsRevertValidateOnly()
+    {
+        var actions = new[] { ProposalTestHarness.PauseAction("ad-1"), ProposalTestHarness.PauseAction("ad-2") };
+        var proposal = AdProposal.Create(new AdProposalDraft("GoogleAds", "acc-1", "PauseAd", "agent-1", AdActorKind.Agent,
+            null, AdActionJson.Serialize(actions), actions.Length, "why"), Now, TimeSpan.FromHours(72));
+        proposal.RecordApproval("chief", ApprovalChannel.Web, Now, isFinal: true);
+        proposal.StartExecution(Now);
+        foreach (var index in new[] { 0, 1 })
+        {
+            proposal.RecordExecution(new AdProposalActionExecution
+            {
+                Version = 1, ActionIndex = index, TargetExternalId = $"ad-{index + 1}", State = AdActionExecutionState.Succeeded, ExecutedAt = Now,
+            });
+        }
+        proposal.Executions.Single(e => e.ActionIndex == 0).MarkRevertFailed(Now, $"{AdExecutionErrors.ValidateOnlyPrefix} nothing was changed.");
+        proposal.Executions.Single(e => e.ActionIndex == 1).MarkRevertFailed(Now, "RATE_LIMIT");
+
+        var detail = AdProposalDtoMapper.ToDetail(proposal, NoNames, null);
+
+        detail.Executions.Select(e => e.RevertValidateOnly).Should().Equal(true, false);
+        detail.Executions.Select(e => e.ValidateOnly).Should().Equal(false, false);
+    }
 }
