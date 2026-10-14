@@ -20,6 +20,7 @@ public sealed class CompleteDeliveredOrdersJob : IRecurringJob
     public RecurringJobMetadata Metadata { get; } = new()
     {
         JobName = "complete-delivered-orders",
+        Category = RecurringJobCategory.Warehouse,
         DisplayName = "Complete Delivered Orders",
         Description = "Moves Shoptet orders in the 'handed to carrier' states to 'vyřízena' once any of their shipments reports delivered.",
         CronExpression = "0 * * * *",

@@ -50,6 +50,7 @@ public class LotsControllerAuthorizationTests
     [Theory]
     [InlineData(nameof(LotsController.PrintCalibrationLabel))]
     [InlineData(nameof(LotsController.FeedMedia))]
+    [InlineData(nameof(LotsController.NudgeLabelCalibration))]
     public void MediaAlignmentActions_StayOnMaterialContainersWrite(string methodName)
     {
         var attribute = SingleAttributeOn(methodName);
@@ -167,6 +168,29 @@ public class LotsControllerAuthorizationPolicyTests : IClassFixture<HebloWebAppl
             PrincipalWith(MaterialContainersRead, LabelCalibrationRead));
 
         allowed.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task NudgeLabelCalibration_IsAllowed_ForOperatorsWithoutCalibrationPermissions()
+    {
+        // The whole point of the wizard: manufacturing staff must be able to correct the
+        // drift themselves, which they cannot do through SetLabelCalibration.
+        var allowed = await IsAllowedAsync(
+            nameof(LotsController.NudgeLabelCalibration),
+            PrincipalWith(MaterialContainersRead, MaterialContainersWrite));
+
+        allowed.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task NudgeLabelCalibration_IsDenied_WithoutMaterialContainersWrite()
+    {
+        // Read-only access to the module must not be enough to change what every label prints.
+        var allowed = await IsAllowedAsync(
+            nameof(LotsController.NudgeLabelCalibration),
+            PrincipalWith(MaterialContainersRead));
+
+        allowed.Should().BeFalse();
     }
 
     [Fact]

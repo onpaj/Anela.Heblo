@@ -4,7 +4,7 @@ This document defines the modular structure of E2E tests, module boundaries, and
 
 ## Module Overview
 
-The E2E test suite is organized into 8 logical modules to enable parallel execution in CI/CD:
+The E2E test suite is organized into 9 logical modules to enable parallel execution in CI/CD:
 
 | Module | Test Count | Purpose | Estimated Runtime |
 |--------|-----------|---------|-------------------|
@@ -16,6 +16,7 @@ The E2E test suite is organized into 8 logical modules to enable parallel execut
 | **core** | 8 | Core features & navigation | 2 min |
 | **marketing** | 4 | Marketing calendar & actions | 2-3 min |
 | **mindmaps** | 1 | Mind map creation, meeting attachment, node editing | 1-2 min |
+| **finance** | 2 | Financial overview and price analysis | <1 min |
 
 ## Module Definitions
 
@@ -175,6 +176,20 @@ The E2E test suite is organized into 8 logical modules to enable parallel execut
 
 **Test Files:**
 - `mindmap.spec.ts` - Create → attach meeting → stub generates node → rename locks it
+
+### 9. Finance Module (`finance/`)
+
+**Purpose:** Tests for Finance pages — the Financial Overview dashboard and the Price Analysis ("Analýza cen") pricing simulator.
+
+**Scope:**
+- Financial Overview KPI cards, chart heading, and mobile filter/expander behavior
+- Price Analysis totals bar, cell editing and recalculation, scenario save/load/delete
+
+**Owns routes:** `/finance/overview`, `/finance/price-analysis`
+
+**Test Files:**
+- `financial-overview-mobile.spec.ts` - Financial Overview KPI cards and mobile viewport behavior
+- `price-analysis.spec.ts` - Edit a price, save/reload/load a scenario, then delete it
 
 ## Module Boundaries & Isolation
 

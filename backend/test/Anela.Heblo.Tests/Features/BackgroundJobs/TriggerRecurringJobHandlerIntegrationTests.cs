@@ -140,6 +140,7 @@ public class TriggerRecurringJobHandlerIntegrationTests
             Metadata = new RecurringJobMetadata
             {
                 JobName = jobName,
+                Category = RecurringJobCategory.Integrations,
                 DisplayName = $"Test {jobName}",
                 Description = "Test async job for integration testing",
                 CronExpression = "0 0 * * *"

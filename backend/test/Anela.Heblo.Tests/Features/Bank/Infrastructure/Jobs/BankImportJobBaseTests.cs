@@ -185,6 +185,7 @@ public sealed class BankImportJobBaseTests
             Metadata = new RecurringJobMetadata
             {
                 JobName = jobName,
+                Category = RecurringJobCategory.Finance,
                 DisplayName = "Test Bank Import Job",
                 Description = "Test job for BankImportJobBase",
                 CronExpression = "0 0 * * *",

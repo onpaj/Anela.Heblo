@@ -86,17 +86,6 @@ public class ImportBankStatementHandlerTests
     }
 
     [Fact]
-    public async Task Handle_WithUnknownAccount_ThrowsArgumentException()
-    {
-        var request = new ImportBankStatementRequest("UNKNOWN", DateTime.Today, DateTime.Today);
-
-        var exception = await Assert.ThrowsAsync<ArgumentException>(
-            () => _handler.Handle(request, CancellationToken.None));
-
-        Assert.Contains("Account name UNKNOWN not found", exception.Message);
-    }
-
-    [Fact]
     public async Task Handle_WithValidAccount_ResolvesClientViaFactory()
     {
         var dateFrom = DateTime.Today.AddDays(-1);

@@ -19,7 +19,7 @@ public class BatchDistributionCalculator : IBatchDistributionCalculator
             double requiredWeight = 0;
             foreach (var v in variants)
             {
-                double needed = Math.Max(mid * v.DailySales - v.CurrentStock, 0);
+                double needed = Math.Max(mid * v.DailySales - v.EffectiveStock, 0);
                 requiredWeight += Math.Ceiling(needed) * v.Weight;
             }
 
@@ -37,7 +37,7 @@ public class BatchDistributionCalculator : IBatchDistributionCalculator
         // Přepočítej finální výrobu
         foreach (var v in variants)
         {
-            double needed = Math.Max(bestDays * v.DailySales - v.CurrentStock, 0);
+            double needed = Math.Max(bestDays * v.DailySales - v.EffectiveStock, 0);
             v.SuggestedAmount = (int)Math.Floor(needed);
         }
 

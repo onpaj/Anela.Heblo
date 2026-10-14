@@ -104,6 +104,7 @@ public sealed class DailyInvoiceImportJobBaseTests
             Metadata = new RecurringJobMetadata
             {
                 JobName = jobName,
+                Category = RecurringJobCategory.Finance,
                 DisplayName = "Test Daily Invoice Import Job",
                 Description = "Test job for DailyInvoiceImportJobBase",
                 CronExpression = "0 0 * * *",

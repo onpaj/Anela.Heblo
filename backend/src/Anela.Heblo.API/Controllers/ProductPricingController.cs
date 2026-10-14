@@ -26,11 +26,13 @@ public class ProductPricingController : BaseApiController
         => HandleResponse(await _mediator.Send(new GetPriceDivergenceReportRequest(), cancellationToken));
 
     /// <summary>
-    /// Re-reads Shoptet and Flexi for the named products and returns their fresh comparison
-    /// rows. A read like the divergence report — it writes nowhere — so it stays on the read
-    /// permission; POST only because the selection belongs in a body, not a query string.
+    /// Synchronises the named products from Shoptet into Flexi: re-reads both systems, writes
+    /// the Shoptet price into the live ERP for every row the comparison says needs it, and
+    /// returns the rows as they stand afterwards. Shoptet itself is never written here.
+    /// On the write permission for that reason, unlike the divergence report it is built from.
     /// </summary>
     [HttpPost("sync")]
+    [FeatureAuthorize(Feature.Products_Catalog, AccessLevel.Write)]
     public async Task<ActionResult<SyncProductPricesResponse>> Sync(
         [FromBody] SyncProductPricesRequest request,
         CancellationToken cancellationToken = default)

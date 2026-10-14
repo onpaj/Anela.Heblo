@@ -93,4 +93,65 @@ public class StockDataTests
         available.Should().Be(117m, "Available should be Erp (100) + Transport (10) + Manufactured (7)");
         total.Should().Be(142m, "Total should be Available (117) + Reserve (25)");
     }
+
+    [Fact]
+    public void WarehouseStock_ExcludesTransportAndManufactured()
+    {
+        // Arrange
+        var stockData = new StockData
+        {
+            Erp = 184m,
+            Transport = 12m,
+            Manufactured = 165m,
+            Reserve = 25m,
+            PrimaryStockSource = StockSource.Erp
+        };
+
+        // Act
+        var warehouseStock = stockData.WarehouseStock;
+
+        // Assert
+        warehouseStock.Should().Be(184m,
+            "WarehouseStock is what is physically in the selling warehouse - goods still in transport "
+            + "and goods written down into the manufacture warehouse are not there yet");
+    }
+
+    [Fact]
+    public void WarehouseStock_UsesEshopWhenEshopIsPrimarySource()
+    {
+        // Arrange
+        var stockData = new StockData
+        {
+            Erp = 200m,
+            Eshop = 184m,
+            Transport = 12m,
+            Manufactured = 165m,
+            PrimaryStockSource = StockSource.Eshop
+        };
+
+        // Act
+        var warehouseStock = stockData.WarehouseStock;
+
+        // Assert
+        warehouseStock.Should().Be(184m, "an e-shop product takes its warehouse figure from the e-shop feed");
+    }
+
+    [Fact]
+    public void Available_EqualsWarehouseStockPlusTransportAndManufactured()
+    {
+        // Arrange
+        var stockData = new StockData
+        {
+            Erp = 184m,
+            Transport = 12m,
+            Manufactured = 165m,
+            PrimaryStockSource = StockSource.Erp
+        };
+
+        // Act
+        var available = stockData.Available;
+
+        // Assert
+        available.Should().Be(stockData.WarehouseStock + 12m + 165m);
+    }
 }

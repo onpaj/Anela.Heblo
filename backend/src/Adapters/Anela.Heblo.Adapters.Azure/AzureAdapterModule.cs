@@ -25,9 +25,12 @@ public static class AzureAdapterModule
         this IServiceCollection services,
         IConfiguration configuration)
     {
+        services.Configure<AzureBlobPrintSinkOptions>(
+            configuration.GetSection(PrintPickingListOptions.ConfigurationKey));
+
         services.AddSingleton(provider =>
         {
-            var options = provider.GetRequiredService<IOptions<PrintPickingListOptions>>().Value;
+            var options = provider.GetRequiredService<IOptions<AzureBlobPrintSinkOptions>>().Value;
             return new BlobContainerClient(options.BlobConnectionString, options.BlobContainerName);
         });
 

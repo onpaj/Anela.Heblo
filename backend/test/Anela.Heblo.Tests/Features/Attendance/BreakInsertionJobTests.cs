@@ -31,6 +31,7 @@ public class BreakInsertionJobTests
             _client.Object,
             options,
             TimeProvider.System,
+            new BreakInsertionRunGate(),
             NullLogger<BreakInsertionService>.Instance);
 
         return new BreakInsertionJob(

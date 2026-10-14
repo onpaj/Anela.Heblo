@@ -209,4 +209,131 @@ describe("ProductMarginSummary", () => {
     // Check chart is rendered
     expect(screen.getByTestId("chart")).toBeInTheDocument();
   });
+
+  it("assigns the same color to a product in the chart legend and the table (no chart/table divergence)", () => {
+    // topProducts is intentionally NOT sorted by totalMargin descending — this is the
+    // shape that previously caused chartData (which re-sorts) and tableData (which used
+    // the raw array order) to disagree on which color belongs to which product.
+    const divergentMockData = {
+      monthlyData: [
+        {
+          year: 2024,
+          month: 3,
+          monthDisplay: "Bře 2024",
+          productSegments: [
+            {
+              groupKey: "PROD_LOW",
+              displayName: "Low Margin Product",
+              marginContribution: 500,
+              percentage: 25,
+              colorCode: "#000000",
+              averageMarginPerPiece: 50,
+              unitsSold: 10,
+              averageSellingPriceWithoutVat: 100,
+              averageMaterialCosts: 20,
+              averageLaborCosts: 10,
+              isOther: false,
+            },
+            {
+              groupKey: "PROD_HIGH",
+              displayName: "High Margin Product",
+              marginContribution: 1500,
+              percentage: 75,
+              colorCode: "#000000",
+              averageMarginPerPiece: 150,
+              unitsSold: 10,
+              averageSellingPriceWithoutVat: 300,
+              averageMaterialCosts: 60,
+              averageLaborCosts: 30,
+              isOther: false,
+            },
+          ],
+          totalMonthMargin: 2000,
+        },
+      ],
+      // Order deliberately does NOT match descending totalMargin: PROD_LOW (500) is listed
+      // before PROD_HIGH (1500).
+      topProducts: [
+        { groupKey: "PROD_LOW", displayName: "Low Margin Product", totalMargin: 500, rank: 2 },
+        { groupKey: "PROD_HIGH", displayName: "High Margin Product", totalMargin: 1500, rank: 1 },
+      ],
+      totalMargin: 2000,
+      timeWindow: "current-year",
+      fromDate: "2024-01-01T00:00:00",
+      toDate: "2024-12-31T23:59:59",
+    };
+
+    mockUseProductMarginSummary.mockReturnValue({
+      data: divergentMockData,
+      isLoading: false,
+      error: null,
+    } as any);
+
+    const { container } = render(<ProductMarginSummary />, {
+      wrapper: createWrapper(),
+    });
+
+    // Read the color the chart assigned to each product from the mocked Chart's
+    // data-chart-data JSON payload (datasets[].label / backgroundColor).
+    const chartEl = screen.getByTestId("chart");
+    const chartPayload = JSON.parse(
+      chartEl.getAttribute("data-chart-data") || "{}",
+    );
+    const chartColorByLabel: Record<string, string> = {};
+    for (const dataset of chartPayload.datasets) {
+      chartColorByLabel[dataset.label] = dataset.backgroundColor;
+    }
+
+    // Read the color the table assigned to each product from the rendered color dot
+    // (the small rounded div immediately preceding the product name in each row).
+    const tableColorFor = (displayName: string): string => {
+      const nameEl = screen.getByText(displayName);
+      // The color dot has no accessible role/text of its own, so it can only be
+      // located by walking the DOM from the product name's containing row.
+      // eslint-disable-next-line testing-library/no-node-access
+      const row = nameEl.closest("tr");
+      if (!row) throw new Error(`No <tr> found for ${displayName}`);
+      // eslint-disable-next-line testing-library/no-node-access
+      const dot = row.querySelector("div.rounded-full") as HTMLElement | null;
+      if (!dot) throw new Error(`No color dot found for ${displayName}`);
+      return dot.style.backgroundColor.toLowerCase();
+    };
+
+    // jsdom serializes an inline `style.backgroundColor` set from a "#rrggbb" string
+    // back out as "rgb(r, g, b)", while the chart's color comes straight from the raw
+    // JSON payload as "#rrggbb". Normalize both to "rgb(r, g, b)" so the comparison is
+    // about the actual color, not which string format happens to carry it.
+    const normalize = (color: string): string => {
+      const value = color.trim().toLowerCase();
+      if (value.startsWith("#")) {
+        const hex = value.slice(1);
+        const full =
+          hex.length === 3
+            ? hex
+                .split("")
+                .map((ch) => ch + ch)
+                .join("")
+            : hex;
+        const r = parseInt(full.slice(0, 2), 16);
+        const g = parseInt(full.slice(2, 4), 16);
+        const b = parseInt(full.slice(4, 6), 16);
+        return `rgb(${r}, ${g}, ${b})`;
+      }
+      return value;
+    };
+
+    expect(normalize(tableColorFor("High Margin Product"))).toBe(
+      normalize(chartColorByLabel["High Margin Product"]),
+    );
+    expect(normalize(tableColorFor("Low Margin Product"))).toBe(
+      normalize(chartColorByLabel["Low Margin Product"]),
+    );
+    // The two products must not have been assigned the same color as each other.
+    expect(
+      normalize(tableColorFor("High Margin Product")),
+    ).not.toBe(normalize(tableColorFor("Low Margin Product")));
+
+    // Reference implementation avoids the JSDOM container variable being unused.
+    expect(container).toBeTruthy();
+  });
 });

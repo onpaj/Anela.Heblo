@@ -8,6 +8,8 @@ public static class AccessRoles
 
     public const string FinanceFinancialOverviewRead = "finance.financial_overview.read";
     public const string FinanceMarginAnalysisRead = "finance.margin_analysis.read";
+    public const string FinancePriceAnalysisRead = "finance.price_analysis.read";
+    public const string FinancePriceAnalysisWrite = "finance.price_analysis.write";
     public const string ProductsProductMarginsRead = "products.product_margins.read";
     public const string ProductsCatalogRead = "products.catalog.read";
     public const string ProductsCatalogWrite = "products.catalog.write";
@@ -44,6 +46,9 @@ public static class AccessRoles
     public const string WarehousePackagingWrite = "warehouse.packaging.write";
     public const string WarehouseStockUpRead = "warehouse.stock_up.read";
     public const string WarehouseStockUpWrite = "warehouse.stock_up.write";
+    public const string WarehouseGiftPackagesRead = "warehouse.gift_packages.read";
+    public const string WarehouseGiftPackagesWrite = "warehouse.gift_packages.write";
+    public const string WarehouseStockOverrideRead = "warehouse.stock_override.read";
     public const string MarketingArticleRead = "marketing.article.read";
     public const string MarketingArticleWrite = "marketing.article.write";
     public const string MarketingLeafletRead = "marketing.leaflet.read";
@@ -53,11 +58,17 @@ public static class AccessRoles
     public const string MarketingPhotobankAdmin = "marketing.photobank.admin";
     public const string MarketingMarketingCalendarRead = "marketing.marketing_calendar.read";
     public const string MarketingMarketingCalendarWrite = "marketing.marketing_calendar.write";
+    public const string MarketingPerformanceRead = "marketing.performance.read";
+    public const string MarketingPerformanceWrite = "marketing.performance.write";
     public const string AnelaMeetingsRead = "anela.meetings.read";
     public const string AnelaMeetingsWrite = "anela.meetings.write";
     public const string AnelaOrgChartRead = "anela.org_chart.read";
     public const string AnelaMindMapsRead = "anela.mind_maps.read";
     public const string AnelaMindMapsWrite = "anela.mind_maps.write";
+    public const string AnelaProcessDocsRead = "anela.process_docs.read";
+    public const string ReportingWebAnalyticsRead = "reporting.web_analytics.read";
+    public const string ReportingEshopRead = "reporting.eshop.read";
+    public const string ReportingAccountingRead = "reporting.accounting.read";
     public const string AttendanceOvertimeRead = "attendance.overtime.read";
     public const string AttendanceOvertimeWrite = "attendance.overtime.write";
     public const string AdminDataQualityRead = "admin.data_quality.read";
@@ -73,6 +84,8 @@ public static class AccessRoles
     {
         (Feature.Finance_FinancialOverview, AccessLevel.Read) => FinanceFinancialOverviewRead,
         (Feature.Finance_MarginAnalysis, AccessLevel.Read) => FinanceMarginAnalysisRead,
+        (Feature.Finance_PriceAnalysis, AccessLevel.Read) => FinancePriceAnalysisRead,
+        (Feature.Finance_PriceAnalysis, AccessLevel.Write) => FinancePriceAnalysisWrite,
         (Feature.Products_ProductMargins, AccessLevel.Read) => ProductsProductMarginsRead,
         (Feature.Products_Catalog, AccessLevel.Read) => ProductsCatalogRead,
         (Feature.Products_Catalog, AccessLevel.Write) => ProductsCatalogWrite,
@@ -109,6 +122,9 @@ public static class AccessRoles
         (Feature.Warehouse_Packaging, AccessLevel.Write) => WarehousePackagingWrite,
         (Feature.Warehouse_StockUp, AccessLevel.Read) => WarehouseStockUpRead,
         (Feature.Warehouse_StockUp, AccessLevel.Write) => WarehouseStockUpWrite,
+        (Feature.Warehouse_GiftPackages, AccessLevel.Read) => WarehouseGiftPackagesRead,
+        (Feature.Warehouse_GiftPackages, AccessLevel.Write) => WarehouseGiftPackagesWrite,
+        (Feature.Warehouse_StockOverride, AccessLevel.Read) => WarehouseStockOverrideRead,
         (Feature.Marketing_Article, AccessLevel.Read) => MarketingArticleRead,
         (Feature.Marketing_Article, AccessLevel.Write) => MarketingArticleWrite,
         (Feature.Marketing_Leaflet, AccessLevel.Read) => MarketingLeafletRead,
@@ -118,11 +134,17 @@ public static class AccessRoles
         (Feature.Marketing_Photobank, AccessLevel.Admin) => MarketingPhotobankAdmin,
         (Feature.Marketing_MarketingCalendar, AccessLevel.Read) => MarketingMarketingCalendarRead,
         (Feature.Marketing_MarketingCalendar, AccessLevel.Write) => MarketingMarketingCalendarWrite,
+        (Feature.Marketing_Performance, AccessLevel.Read) => MarketingPerformanceRead,
+        (Feature.Marketing_Performance, AccessLevel.Write) => MarketingPerformanceWrite,
         (Feature.Anela_Meetings, AccessLevel.Read) => AnelaMeetingsRead,
         (Feature.Anela_Meetings, AccessLevel.Write) => AnelaMeetingsWrite,
         (Feature.Anela_OrgChart, AccessLevel.Read) => AnelaOrgChartRead,
         (Feature.Anela_MindMaps, AccessLevel.Read) => AnelaMindMapsRead,
         (Feature.Anela_MindMaps, AccessLevel.Write) => AnelaMindMapsWrite,
+        (Feature.Anela_ProcessDocs, AccessLevel.Read) => AnelaProcessDocsRead,
+        (Feature.Reporting_WebAnalytics, AccessLevel.Read) => ReportingWebAnalyticsRead,
+        (Feature.Reporting_Eshop, AccessLevel.Read) => ReportingEshopRead,
+        (Feature.Reporting_Accounting, AccessLevel.Read) => ReportingAccountingRead,
         (Feature.Attendance_Overtime, AccessLevel.Read) => AttendanceOvertimeRead,
         (Feature.Attendance_Overtime, AccessLevel.Write) => AttendanceOvertimeWrite,
         (Feature.Admin_DataQuality, AccessLevel.Read) => AdminDataQualityRead,

@@ -5,6 +5,22 @@ namespace Anela.Heblo.Persistence.Analytics;
 
 public class AnalyticsDbContext : DbContext
 {
+    /// <summary>
+    /// The schema every analytics object lives in. The context shares its database with the main
+    /// Heblo context, so this schema is the isolation boundary.
+    /// </summary>
+    public const string Schema = "flexi_raw";
+
+    /// <summary>
+    /// The migrations-history table name. It has to be declared explicitly (together with
+    /// <see cref="Schema"/>, via MigrationsHistoryTable) because EF Core resolves the history
+    /// table's schema from RelationalOptionsExtension.MigrationsHistoryTableSchema, NOT from the
+    /// model's default schema. Without it EF falls back to the connection's default schema and
+    /// writes this context's migration rows into public."__EFMigrationsHistory" — the table the
+    /// main ApplicationDbContext owns. Verified empirically on a scratch database 2026-09-22.
+    /// </summary>
+    public const string MigrationsHistoryTableName = "__EFMigrationsHistory";
+
     public DbSet<LedgerEntry> LedgerEntries => Set<LedgerEntry>();
     public DbSet<Department> Departments => Set<Department>();
     public DbSet<AccountingTemplate> AccountingTemplates => Set<AccountingTemplate>();
@@ -15,7 +31,7 @@ public class AnalyticsDbContext : DbContext
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
-        builder.HasDefaultSchema("flexi_raw");
+        builder.HasDefaultSchema(Schema);
 
         builder.Entity<LedgerEntry>(e =>
         {

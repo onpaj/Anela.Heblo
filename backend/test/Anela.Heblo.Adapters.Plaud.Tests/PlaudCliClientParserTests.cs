@@ -174,4 +174,51 @@ public sealed class PlaudCliClientParserTests
         result.Headline.Should().Be(string.Empty);
         result.MarkdownContent.Should().Be(string.Empty);
     }
+
+    [Fact]
+    public void ParseFilesOutput_WithPrefixedIds_StripsPrefixToMatchStoredIds()
+    {
+        // Plaud's API started returning "of_"-prefixed file ids; the CLI passes them through.
+        // Stored ids must stay bare so already-ingested recordings are still recognised.
+        var input = """
+            Recordings in the last 7 days: 2
+
+              of_61d13e01b52688976a6e0b6f6d952888  09-16 Team standup  2026-09-16  33m33s
+              of_427aee89c1fd4eadbe7cf4bc264323bc  2026-09-16  58m01s
+            """;
+
+        var result = PlaudCliClient.ParseFilesOutput(input);
+
+        result.Should().HaveCount(2);
+        result[0].Id.Should().Be("61d13e01b52688976a6e0b6f6d952888");
+        result[0].Name.Should().Be("09-16 Team standup");
+        result[0].CreatedAt.Should().Be(new DateTime(2026, 9, 16));
+        result[1].Id.Should().Be("427aee89c1fd4eadbe7cf4bc264323bc");
+        result[1].Name.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void ParseFilesOutput_IgnoresPrefixedLinesWithInvalidId()
+    {
+        var input = """
+            Recordings in the last 7 days: 1
+
+              of_not-a-valid-id  2026-09-16  1h00m
+              of_b6c774e4c9b2c55fa8159db2430726cc  2026-09-16  1h00m
+            """;
+
+        var result = PlaudCliClient.ParseFilesOutput(input);
+
+        result.Should().HaveCount(1);
+        result[0].Id.Should().Be("b6c774e4c9b2c55fa8159db2430726cc");
+    }
+
+    [Theory]
+    [InlineData("61d13e01b52688976a6e0b6f6d952888", "of_61d13e01b52688976a6e0b6f6d952888")]
+    [InlineData("of_61d13e01b52688976a6e0b6f6d952888", "of_61d13e01b52688976a6e0b6f6d952888")]
+    public void ToCliRecordingId_AlwaysProducesPrefixedForm(string stored, string expected)
+    {
+        // The CLI rejects bare ids with NOT_FOUND, so every lookup must send the prefixed form.
+        PlaudCliClient.ToCliRecordingId(stored).Should().Be(expected);
+    }
 }

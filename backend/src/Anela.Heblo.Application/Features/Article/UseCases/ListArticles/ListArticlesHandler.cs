@@ -16,15 +16,10 @@ public sealed class ListArticlesHandler : IRequestHandler<ListArticlesRequest, L
         ListArticlesRequest request,
         CancellationToken cancellationToken)
     {
-        // Clamped here because the controller manually constructs the request instead of
-        // binding it, so ASP.NET Core model validation never runs for this endpoint.
-        var page = Math.Max(1, request.Page);
-        var pageSize = Math.Clamp(request.PageSize, 1, 100);
-
         var (items, totalCount) = await _repository.GetPagedAsync(
             request.Status,
-            page,
-            pageSize,
+            request.Page,
+            request.PageSize,
             cancellationToken);
 
         return new ListArticlesResponse
@@ -39,8 +34,8 @@ public sealed class ListArticlesHandler : IRequestHandler<ListArticlesRequest, L
                 GeneratedAt = a.GeneratedAt
             }).ToList(),
             TotalCount = totalCount,
-            Page = page,
-            PageSize = pageSize
+            Page = request.Page,
+            PageSize = request.PageSize
         };
     }
 }

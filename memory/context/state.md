@@ -14,6 +14,33 @@ _Update this file at the end of significant sessions._
 
 ## Recently Completed
 
+- Shoptet orders mirror into `Heblo_V3.shoptet_raw` (branch `feature/data-shoptet-orders`,
+  2026-09-22): headers **and** line items mirrored for Metabase reporting — new
+  `Anela.Heblo.Persistence.ShoptetOrders` context (`order`, `order_item`, `sync_state`),
+  a read-only sync stack under `Adapters/Anela.Heblo.Adapters.ShoptetApi/Analytics/`, the
+  Hangfire job `shoptet-orders-sync` at `30 1 * * *`, a supervised runner at
+  `backend/tools/Anela.Heblo.ShoptetOrdersBackfill`, and eleven month-grain `v_*` views
+  granted to `metabase_ro` (raw tables explicitly revoked). No UI of any kind — reports
+  live in Metabase.
+  Three findings worth remembering are in `memory/gotchas/shoptet-*.md`: every `/snapshot`
+  endpoint is 403 without a `job:finished` webhook so the backfill has to be paged;
+  wholesale is identified by the shipping GUID, not by `salesChannelGuid`; and four
+  order-response traps that silently produce wrong numbers. The two owner-facing
+  definitions (new-vs-returning, set counting) are in
+  `memory/decisions/shoptet-orders-mirror-business-rules.md`.
+  **Not switched on:** the nightly job only registers when
+  `ShoptetOrdersSync:ConnectionString` is set, and that Key Vault secret was deliberately
+  left unset until the branch merges.
+
+- Lot label calibration wizard (branch `feature/calibration-wizard`, PR #4207, 2026-09-16):
+  operators correct label drift from the print tab by reporting direction + speed; the
+  server derives, clamps and persists the nudge on plain material-containers Write. Two
+  review agents (C#, frontend) ran on the PR; all five findings were fixed in separate
+  commits (modal-wide busy flag during a nudge, out-of-range calibrations step by one
+  nudge instead of snapping to the ceiling, accepted lost-update window documented,
+  aria-label on drift buttons, stale hook comment). Backend + frontend CI green; awaiting
+  merge and a manual check on staging.
+
 - Hygiene coverage gap + AgentHarness drift (PR #3956 triage, branch
   `claude/pr-3956-resolver-coverage-oaq9qj`, 2026-09-03): `/hygiene-all`,
   `/automerge-all` and `/rework-all` all filtered on `--label agent`, so an
@@ -354,6 +381,46 @@ _Update this file at the end of significant sessions._
   class addition), draft PR #4161 opened with `agent` label, issue swapped from
   `agent-planning` to `agent-ready-for-dev`. See
   `memory/gotchas/agent-context-files-superpowers-plugin-missing.md`.
+
+- Marketing Performance / "Analýzy" feature (branch `feature/import-advertising-costs`, spec
+  `docs/superpowers/specs/2026-09-18-marketing-performance-design.md`, plan
+  `docs/superpowers/plans/2026-09-18-marketing-performance.md`, 20-task SDD run
+  `.superpowers/sdd/2026-09-18-marketing-performance/`, 2026-09-18): monthly ad-spend vs. e-shop
+  revenue snapshot replacing the hand-maintained `Naklady_reklamy.xlsx`. Shipped: `MarketingPerformance`
+  domain/persistence tables and migration, `IMonthlyRevenueSource`/`IMonthlyAdCostSource` +
+  `ChannelCostBucketer` + `MarketingMetricsCalculator`, `GetMarketingPerformanceMonths`/
+  `GetMarketingPerformanceComparison`/`RecomputeMarketingPerformance` use cases and
+  `MarketingPerformanceController` (routes are `/api/MarketingPerformance/{months,comparison,recompute}`
+  — case follows the controller class name, not lowercase), the `marketing-performance-refresh` Hangfire
+  job, and the `Analýzy` screen at `/marketing/performance` (trend + year-comparison views,
+  recompute dialog).
+  Documented in `docs/features/marketing-performance.md`, including the Flexi
+  `/faktura-prijata/query` read-path traps (bare-URL POST is a write; `?filter=` GET is silently
+  ignored and full-table-scans) and the recompute check-then-lock race
+  (`RecomputeMarketingPerformanceHandler` checks `MarketingPerformanceRunGuard.IsRunning` before
+  enqueueing, but the guard's lock is only taken inside the job when it starts — two rapid requests
+  can both be accepted, the second silently no-ops).
+  The FlexiBeeSDK change (VAT-ID filter + `dic` projection) is now published as **`0.1.141`**
+  (previously pinned `0.1.139`), and the app references it. `FlexiMonthlyAdCostSource` is
+  implemented and registered, overriding `NoOpMonthlyAdCostSource` — advertising costs now flow
+  from ABRA Flexi received invoices, bucketed by supplier VAT ID, instead of reading as zero.
+  Caveats to keep in mind: numbers will not match the old spreadsheet exactly, since the app dates
+  costs by accounting date rather than the owner's spend-accounting convention; and Seznam had no
+  invoice under its configured VAT ID in August 2026, which the owner may want to investigate.
+  **Not yet done (manual owner runbook):**
+  - Staging and production migration (`AddMarketingPerformance`) has not been applied.
+  - `marketing.performance.read`/`.write` permission grants in `/admin/access` have not been made in
+    any environment (seed groups don't update existing environments) — grant `.read` to everyone
+    who needs the screen, `.write` to whoever runs recomputes.
+  - The historical backfill (recompute 2023-01 → current month via the Přepočítat dialog) has not
+    been run anywhere.
+  - `docs/architecture/module-map.md` was checked but not touched: it's an exhaustive per-module
+    partition, and `Features/MarketingPerformance` + `MarketingPerformanceController` +
+    `/marketing/performance` are a genuinely new, unassigned module by its own maintenance rules
+    (`docs/architecture/module-map-maintenance.md`'s refresh triggers). Adding it properly means a
+    full refresh pass (new part number, summary table row, part count, "Coverage & known gaps"
+    section) per that doc's own procedure, not a one-line insert — left for a dedicated
+    `/arch-map` refresh rather than bundling it into this feature's docs.
 
 ## Pending / Known Issues
 

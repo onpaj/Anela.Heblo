@@ -12,12 +12,23 @@ public sealed class PlaudCliClient : IPlaudClient
     private readonly IOptions<PlaudOptions> _options;
     private readonly IPlaudTokenRefresher _tokenRefresher;
 
+    /// <summary>
+    /// Prefix Plaud's API puts on file ids (e.g. "of_61d13e01..."). Stored ids are kept bare so
+    /// recordings ingested before the prefix appeared stay recognisable, but the CLI only resolves
+    /// the prefixed form — a bare id returns NOT_FOUND.
+    /// </summary>
+    private const string CliIdPrefix = "of_";
+
     public PlaudCliClient(ILogger<PlaudCliClient> logger, IOptions<PlaudOptions> options, IPlaudTokenRefresher tokenRefresher)
     {
         _logger = logger;
         _options = options;
         _tokenRefresher = tokenRefresher;
     }
+
+    /// <summary>Converts a stored (bare) recording id into the prefixed form the CLI requires.</summary>
+    public static string ToCliRecordingId(string recordingId) =>
+        recordingId.StartsWith(CliIdPrefix, StringComparison.Ordinal) ? recordingId : CliIdPrefix + recordingId;
 
     public async Task<List<PlaudRecordingSummary>> ListRecentAsync(int days, CancellationToken ct = default)
     {
@@ -31,7 +42,7 @@ public sealed class PlaudCliClient : IPlaudClient
         var tempFile = Path.GetTempFileName();
         try
         {
-            await RunCliAsync(new[] { "transcript", recordingId, "-o", tempFile }, ct);
+            await RunCliAsync(new[] { "transcript", ToCliRecordingId(recordingId), "-o", tempFile }, ct);
             return await File.ReadAllTextAsync(tempFile, ct);
         }
         finally
@@ -45,7 +56,7 @@ public sealed class PlaudCliClient : IPlaudClient
         var tempFile = Path.GetTempFileName();
         try
         {
-            await RunCliAsync(new[] { "summary", recordingId, "-o", tempFile }, ct);
+            await RunCliAsync(new[] { "summary", ToCliRecordingId(recordingId), "-o", tempFile }, ct);
             var json = await File.ReadAllTextAsync(tempFile, ct);
             return ParseSummaryJson(json);
         }
@@ -189,7 +200,11 @@ public sealed class PlaudCliClient : IPlaudClient
             if (tokens.Length < 3)
                 continue;
 
-            var id = tokens[0];
+            // Plaud returns ids prefixed with "of_"; store them bare to stay consistent with
+            // recordings ingested before the prefix existed.
+            var id = tokens[0].StartsWith(CliIdPrefix, StringComparison.Ordinal)
+                ? tokens[0][CliIdPrefix.Length..]
+                : tokens[0];
 
             // Validate ID is a 32-char lowercase hex string
             if (id.Length != 32 || !id.All(c => (c >= '0' && c <= '9') || (c >= 'a' && c <= 'f')))
@@ -216,7 +231,7 @@ public sealed class PlaudCliClient : IPlaudClient
 
     public async Task<PlaudFileDetail> GetFileDetailAsync(string recordingId, CancellationToken ct = default)
     {
-        var output = await RunCliAsync(new[] { "file", recordingId }, ct);
+        var output = await RunCliAsync(new[] { "file", ToCliRecordingId(recordingId) }, ct);
         return ParseFileDetail(output);
     }
 

@@ -122,46 +122,6 @@ export const useManufacturingStockAnalysisQuery = (
   });
 };
 
-// Helper function to get severity color class
-export const getManufacturingSeverityColorClass = (
-  severity: ManufacturingStockSeverity,
-): string => {
-  switch (severity) {
-    case ManufacturingStockSeverity.Critical:
-      return "text-red-600 bg-red-50";
-    case ManufacturingStockSeverity.Major:
-      return "text-orange-600 bg-orange-50";
-    case ManufacturingStockSeverity.Minor:
-      return "text-yellow-600 bg-yellow-50";
-    case ManufacturingStockSeverity.Adequate:
-      return "text-green-600 bg-green-50";
-    case ManufacturingStockSeverity.Unconfigured:
-      return "text-gray-600 bg-gray-50";
-    default:
-      return "text-gray-600 bg-gray-50";
-  }
-};
-
-// Helper function to get severity display text
-export const getManufacturingSeverityDisplayText = (
-  severity: ManufacturingStockSeverity,
-): string => {
-  switch (severity) {
-    case ManufacturingStockSeverity.Critical:
-      return "Kritické";
-    case ManufacturingStockSeverity.Major:
-      return "Důležité";
-    case ManufacturingStockSeverity.Minor:
-      return "Menší";
-    case ManufacturingStockSeverity.Adequate:
-      return "Dostatečné";
-    case ManufacturingStockSeverity.Unconfigured:
-      return "Nezkonfigurováno";
-    default:
-      return "Neznámé";
-  }
-};
-
 // Helper function to format Czech number
 // Widened to accept `number | undefined` because the generated ManufacturingStockItemDto marks
 // every numeric field optional (NSwag's default for all response DTOs), unlike the hand-coded

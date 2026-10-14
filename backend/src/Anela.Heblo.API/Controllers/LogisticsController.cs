@@ -9,7 +9,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace Anela.Heblo.API.Controllers;
 
-[FeatureAuthorize(Feature.Warehouse_Logistics)]
+[FeatureAuthorize(Feature.Warehouse_GiftPackages)]
 [ApiController]
 [Route("api/logistics")]
 public class LogisticsController : BaseApiController
@@ -68,7 +68,7 @@ public class LogisticsController : BaseApiController
     /// Execute gift package manufacturing process
     /// </summary>
     [HttpPost("gift-packages/manufacture")]
-    [FeatureAuthorize(Feature.Warehouse_Logistics, AccessLevel.Write)]
+    [FeatureAuthorize(Feature.Warehouse_GiftPackages, AccessLevel.Write)]
     public async Task<ActionResult<CreateGiftPackageManufactureResponse>> CreateGiftPackageManufacture(
         [FromBody] CreateGiftPackageManufactureRequest request,
         CancellationToken cancellationToken)
@@ -81,7 +81,7 @@ public class LogisticsController : BaseApiController
     /// Disassemble gift package back to individual components
     /// </summary>
     [HttpPost("gift-packages/disassemble")]
-    [FeatureAuthorize(Feature.Warehouse_Logistics, AccessLevel.Write)]
+    [FeatureAuthorize(Feature.Warehouse_GiftPackages, AccessLevel.Write)]
     public async Task<ActionResult<DisassembleGiftPackageResponse>> DisassembleGiftPackage(
         [FromBody] DisassembleGiftPackageRequest request,
         CancellationToken cancellationToken)

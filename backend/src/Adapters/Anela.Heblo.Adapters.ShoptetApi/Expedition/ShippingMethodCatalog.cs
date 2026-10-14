@@ -33,4 +33,7 @@ public class ShippingMethodCatalog : IShippingMethodCatalog
         return ShippingMethodRegistry.ShippingList
             .FirstOrDefault(m => m.Id == id)?.Carrier;
     }
+
+    public Carriers? ResolveCarrierByShippingGuid(string shippingGuid) =>
+        ShippingMethodRegistry.ByGuid.TryGetValue(shippingGuid, out var method) ? method.Carrier : null;
 }

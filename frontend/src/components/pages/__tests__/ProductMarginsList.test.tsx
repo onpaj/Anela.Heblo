@@ -8,6 +8,14 @@ import * as useProductMarginsHook from "../../../api/hooks/useProductMargins";
 
 // Mock the hooks
 jest.mock("../../../api/hooks/useProductMargins");
+// Only this suite opens the help sheet, so only this suite resolves its lazy
+// chunk and needs react-markdown's ESM stubbed. That is what the lazy() in
+// ProductMarginsList buys - every other suite keeps it out of its module graph.
+jest.mock("react-markdown", () => ({
+  __esModule: true,
+  default: ({ children }: { children: string }) => <div data-testid="markdown">{children}</div>,
+}));
+jest.mock("remark-gfm", () => ({ __esModule: true, default: () => {} }));
 jest.mock("../CatalogDetail", () => {
   return function MockCatalogDetail({ isOpen, onClose, productCode }: any) {
     return isOpen ? (
@@ -33,7 +41,7 @@ const mockData = {
       purchasePrice: 100,
       manufactureDifficulty: 2.5,
       priceWithoutVatIsFromEshop: true,
-      // M0-M2 margin levels using MarginLevelDto structure
+      // M0-M3 margin levels using MarginLevelDto structure
       m0: {
         percentage: 80.0,
         amount: 120,
@@ -52,6 +60,12 @@ const mockData = {
         costLevel: 25,
         costTotal: 75,
       },
+      m3: {
+        percentage: 40.0,
+        amount: 60,
+        costLevel: 15,
+        costTotal: 90,
+      },
     },
     {
       productCode: "PROD002",
@@ -60,7 +74,7 @@ const mockData = {
       purchasePrice: 140,
       manufactureDifficulty: 3.0,
       priceWithoutVatIsFromEshop: false,
-      // M0-M2 margin levels using MarginLevelDto structure
+      // M0-M3 margin levels using MarginLevelDto structure
       m0: {
         percentage: 75.0,
         amount: 150,
@@ -78,6 +92,12 @@ const mockData = {
         amount: 90,
         costLevel: 30,
         costTotal: 100,
+      },
+      m3: {
+        percentage: 35.0,
+        amount: 70,
+        costLevel: 12,
+        costTotal: 112,
       },
     },
   ],
@@ -138,7 +158,7 @@ describe("ProductMarginsList", () => {
     ).toBeInTheDocument();
   });
 
-  it("renders table with M0-M2 columns", () => {
+  it("renders table with M0-M3 columns", () => {
     mockUseProductMargins.mockReturnValue({
       data: mockData,
       isLoading: false,
@@ -148,10 +168,11 @@ describe("ProductMarginsList", () => {
 
     render(<ProductMarginsList />, { wrapper: createWrapper() });
 
-    // Check that all M0-M2 headers are present
+    // Check that all M0-M3 headers are present
     expect(screen.getByText("M0 %")).toBeInTheDocument();
     expect(screen.getByText("M1 %")).toBeInTheDocument();
-    expect(screen.getByText("M2 %")).toBeInTheDocument();
+    expect(screen.getByText("M2R %")).toBeInTheDocument();
+    expect(screen.getByText("M3R %")).toBeInTheDocument();
 
     // Check that data is displayed
     expect(screen.getByText("Test Product 1")).toBeInTheDocument();
@@ -172,6 +193,7 @@ describe("ProductMarginsList", () => {
     expect(screen.getByText("80.00%")).toBeInTheDocument(); // M0 for first product
     expect(screen.getByText("66.67%")).toBeInTheDocument(); // M1 for first product
     expect(screen.getByText("50.00%")).toBeInTheDocument(); // M2 for first product
+    expect(screen.getByText("40.00%")).toBeInTheDocument(); // M3 for first product
   });
 
   it("shows tooltips with cost breakdown on hover", async () => {
@@ -200,7 +222,7 @@ describe("ProductMarginsList", () => {
     expect(m2Cell).toBeInTheDocument();
   });
 
-  it("handles sorting by M2 percentage by default", () => {
+  it("handles sorting by M3 percentage by default", () => {
     const mockRefetch = jest.fn();
     mockUseProductMargins.mockReturnValue({
       data: mockData,
@@ -211,16 +233,87 @@ describe("ProductMarginsList", () => {
 
     render(<ProductMarginsList />, { wrapper: createWrapper() });
 
-    // Default sorting should be by M2 percentage descending
+    // Default sorting should be by M3 percentage descending (M3 is the final margin level)
     expect(mockUseProductMargins).toHaveBeenCalledWith(
       "", // productCodeFilter
       "", // productNameFilter
       "Product", // productTypeFilter
       1, // pageNumber
       20, // pageSize
-      "m2Percentage", // sortBy
+      "m3Percentage", // sortBy
       true, // sortDescending
+      true, // onlyWithSales
     );
+  });
+
+  it("passes onlyWithSales=true by default and false once the checkbox is unchecked", async () => {
+    const user = userEvent.setup();
+    mockUseProductMargins.mockReturnValue({
+      data: mockData,
+      isLoading: false,
+      error: null,
+      refetch: jest.fn(),
+    } as any);
+
+    render(<ProductMarginsList />, { wrapper: createWrapper() });
+
+    const checkbox = screen.getByTestId("margins-only-with-sales-filter");
+    expect(checkbox).toBeChecked();
+
+    await user.click(checkbox);
+
+    expect(checkbox).not.toBeChecked();
+    expect(mockUseProductMargins).toHaveBeenLastCalledWith(
+      "",
+      "",
+      "Product",
+      1,
+      20,
+      "m3Percentage",
+      true,
+      false, // onlyWithSales
+    );
+  });
+
+  it("re-checks the only-with-sales filter when filters are cleared", async () => {
+    const user = userEvent.setup();
+    mockUseProductMargins.mockReturnValue({
+      data: mockData,
+      isLoading: false,
+      error: null,
+      refetch: jest.fn(),
+    } as any);
+
+    render(<ProductMarginsList />, { wrapper: createWrapper() });
+
+    const checkbox = screen.getByTestId("margins-only-with-sales-filter");
+    await user.click(checkbox);
+    expect(checkbox).not.toBeChecked();
+
+    await user.click(screen.getByText("Vymazat"));
+
+    expect(checkbox).toBeChecked();
+    expect(mockUseProductMargins.mock.lastCall?.[7]).toBe(true);
+  });
+
+  it("resets to the first page when the only-with-sales filter is toggled", async () => {
+    const user = userEvent.setup();
+    mockUseProductMargins.mockReturnValue({
+      data: { ...mockData, totalCount: 45, totalPages: 3 },
+      isLoading: false,
+      error: null,
+      refetch: jest.fn(),
+    } as any);
+
+    render(<ProductMarginsList />, { wrapper: createWrapper() });
+
+    await user.click(screen.getByText("Další"));
+    expect(mockUseProductMargins.mock.lastCall?.[3]).toBe(2);
+
+    await user.click(screen.getByTestId("margins-only-with-sales-filter"));
+
+    expect(mockUseProductMargins.mock.lastCall?.[3]).toBe(1);
+    expect(mockUseProductMargins.mock.lastCall?.[7]).toBe(false);
   });
 
   it("allows sorting by different margin levels", async () => {
@@ -248,7 +341,59 @@ describe("ProductMarginsList", () => {
       20, // pageSize
       "m0Percentage", // sortBy
       false, // sortDescending (first click should be ascending)
+      true, // onlyWithSales
     );
+  });
+
+  it("sorts by M3 percentage when the M3 header is clicked", async () => {
+    const user = userEvent.setup();
+    mockUseProductMargins.mockReturnValue({
+      data: mockData,
+      isLoading: false,
+      error: null,
+      refetch: jest.fn(),
+    } as any);
+
+    render(<ProductMarginsList />, { wrapper: createWrapper() });
+
+    // M3 is the initial sort column, so clicking it flips direction rather than
+    // switching column - which is exactly what distinguishes a wired-up header
+    // from one that only happens to match the initial useState value.
+    const m3Header = screen.getByText("M3R %");
+    await user.click(m3Header);
+
+    expect(mockUseProductMargins).toHaveBeenLastCalledWith(
+      "", // productCodeFilter
+      "", // productNameFilter
+      "Product", // productTypeFilter
+      1, // pageNumber
+      20, // pageSize
+      "m3Percentage", // sortBy
+      false, // sortDescending (flipped off the descending default)
+      true, // onlyWithSales
+    );
+  });
+
+  it("renders a dash for a product with no M3 data", () => {
+    const dataWithoutM3 = {
+      ...mockData,
+      items: [{ ...mockData.items[0], m3: undefined }],
+    };
+
+    mockUseProductMargins.mockReturnValue({
+      data: dataWithoutM3,
+      isLoading: false,
+      error: null,
+      refetch: jest.fn(),
+    } as any);
+
+    render(<ProductMarginsList />, { wrapper: createWrapper() });
+
+    // The other levels still render, so a missing M3 must degrade to "-" rather
+    // than blanking the row or throwing on undefined.
+    expect(screen.getByText("80.00%")).toBeInTheDocument();
+    expect(screen.queryByText("40.00%")).not.toBeInTheDocument();
+    expect(screen.getAllByText("-").length).toBeGreaterThan(0);
   });
 
   it("handles filters correctly", async () => {
@@ -340,5 +485,40 @@ describe("ProductMarginsList", () => {
 
     // Check pagination info is shown
     expect(screen.getByText(/1-2 z 2/)).toBeInTheDocument();
+  });
+
+  it("opens the margin levels help sheet from the question mark and closes it again", async () => {
+    // Arrange
+    const user = userEvent.setup();
+    mockUseProductMargins.mockReturnValue({
+      data: mockData,
+      isLoading: false,
+      error: null,
+      refetch: jest.fn(),
+    } as any);
+    global.fetch = jest.fn(async () => ({
+      ok: true,
+      headers: new Headers({ "content-type": "text/markdown" }),
+      text: async () => "# Hladiny marže",
+    })) as unknown as typeof fetch;
+
+    render(<ProductMarginsList />, { wrapper: createWrapper() });
+
+    // Act - the sheet is lazy, so it resolves asynchronously
+    await user.click(
+      screen.getByRole("button", { name: "Hladiny marže — nápověda", exact: true }),
+    );
+
+    // Assert
+    const sheet = await screen.findByTestId("margin-levels-help-sheet");
+    expect(sheet).toBeInTheDocument();
+
+    // Act - closing clears the state rather than only hiding the sheet
+    await user.click(await screen.findByLabelText("Zavřít"));
+
+    // Assert
+    await waitFor(() =>
+      expect(screen.queryByTestId("margin-levels-help-sheet")).not.toBeInTheDocument(),
+    );
   });
 });

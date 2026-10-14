@@ -54,6 +54,37 @@ public class CatalogMergeServiceTests
     }
 
     [Fact]
+    public async Task ExecutePriorityMergeAsync_ErpStockWithPrice_CarriesStockPriceOntoProduct()
+    {
+        var (store, service) = Create();
+        store.SetErpStockData(new List<ErpStock>
+        {
+            new() { ProductCode = "AKL097", ProductName = "Ethanol", ProductId = 1, Stock = 12000, Price = 0.311901m },
+        });
+
+        var result = await service.ExecutePriorityMergeAsync();
+
+        result.Single(p => p.ProductCode == "AKL097").Stock.StockPrice.Should().Be(0.311901m);
+    }
+
+    [Theory]
+    [InlineData(0, 62.35)]
+    [InlineData(-3, 62.35)]
+    [InlineData(10, 0)]
+    public async Task ExecutePriorityMergeAsync_NothingInStockOrNoPrice_LeavesStockPriceNull(decimal stock, decimal price)
+    {
+        var (store, service) = Create();
+        store.SetErpStockData(new List<ErpStock>
+        {
+            new() { ProductCode = "DEZ001100", ProductName = "Dezodorant", ProductId = 1, Stock = stock, Price = price },
+        });
+
+        var result = await service.ExecutePriorityMergeAsync();
+
+        result.Single(p => p.ProductCode == "DEZ001100").Stock.StockPrice.Should().BeNull();
+    }
+
+    [Fact]
     public async Task ExecutePriorityMergeAsync_PrefixedErpProductCode_BecomesProductTypeSet()
     {
         var (store, service) = Create();
@@ -317,5 +348,19 @@ public class CatalogMergeServiceTests
             .SaleHistorySummary.MonthlyData["2026-08"].TotalB2C.Should().Be(0);
         result.Single(p => p.ProductCode == "BAL001")
             .SaleHistorySummary.MonthlyData["2026-08"].TotalB2C.Should().Be(2500);
+    }
+
+    [Fact]
+    public async Task ExecutePriorityMergeAsync_ErpStockWithNameSuffix_CarriesSuffixOntoProduct()
+    {
+        var (store, service) = Create();
+        store.SetErpStockData(new List<ErpStock>
+        {
+            new() { ProductCode = "AKL124", ProductName = "Acmella In-Tense extrakt", ProductNameSuffix = "Gatuline Expression AF", ProductId = 1, Stock = 5 },
+        });
+
+        var result = await service.ExecutePriorityMergeAsync();
+
+        result.Should().ContainSingle().Which.ProductNameSuffix.Should().Be("Gatuline Expression AF");
     }
 }

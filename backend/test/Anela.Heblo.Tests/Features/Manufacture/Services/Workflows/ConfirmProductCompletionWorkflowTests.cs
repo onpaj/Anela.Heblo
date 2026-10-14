@@ -234,6 +234,40 @@ public class ConfirmProductCompletionWorkflowTests
     }
 
     [Fact]
+    public async Task ExecuteAsync_WhenMaterialStockIsInsufficient_FailsWithoutCompletingOrder()
+    {
+        // Arrange
+        var productQuantities = new Dictionary<int, decimal> { { 1, 5.0m } };
+        var stockParams = new Dictionary<string, string> { { "detail", "Etiketa (ETI098): Required 728.00, Available 700.00" } };
+        var submitManufactureResponse = new SubmitManufactureResponse(ErrorCodes.ManufactureInsufficientMaterialStock, stockParams)
+        {
+            UserMessage = "Nedostatečné zásoby pro výrobu.",
+        };
+
+        SetupMediatorResponses(CreateSuccessfulUpdateOrderResponse(), submitManufactureResponse, CreateSuccessfulUpdateStatusResponse());
+        _residueCalculatorMock
+            .Setup(x => x.CalculateAsync(It.IsAny<UpdateManufactureOrderDto>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(CreateDistributionWithinThreshold());
+
+        // Act
+        var result = await _workflow.ExecuteAsync(ValidOrderId, productQuantities, false, ValidChangeReason, CancellationToken.None);
+
+        // Assert
+        result.Success.Should().BeFalse();
+        result.RequiresConfirmation.Should().BeFalse();
+        result.ErrorCode.Should().Be(ErrorCodes.ManufactureInsufficientMaterialStock);
+        result.Params.Should().BeEquivalentTo(stockParams);
+        result.ErrorMessage.Should().Be("Nedostatečné zásoby pro výrobu.");
+
+        _mediatorMock.Verify(
+            x => x.Send(It.IsAny<UpdateManufactureOrderStatusRequest>(), It.IsAny<CancellationToken>()),
+            Times.Never);
+        _mediatorMock.Verify(
+            x => x.Send(It.IsAny<UpdateBoMIngredientAmountRequest>(), It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
+
+    [Fact]
     public async Task ExecuteAsync_WhenBoMUpdateFails_AppendsFailureNoteAndSetsManualActionRequired()
     {
         // Arrange

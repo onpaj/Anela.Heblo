@@ -2,6 +2,7 @@ using System.Net;
 using Anela.Heblo.Adapters.Microsoft365;
 using Anela.Heblo.Adapters.Microsoft365.UserManagement;
 using Anela.Heblo.Application.Features.UserManagement.Contracts;
+using Anela.Heblo.Application.Features.UserManagement.Infrastructure.Exceptions;
 using Anela.Heblo.Application.Features.UserManagement.Services;
 using Anela.Heblo.Tests.Helpers;
 using FluentAssertions;

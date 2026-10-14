@@ -44,7 +44,8 @@ public class ProductFilterService : IProductFilterService
     {
         // Apply product name filter if specified
         if (!string.IsNullOrWhiteSpace(productFilter) &&
-            !product.ProductName.Contains(productFilter, StringComparison.OrdinalIgnoreCase))
+            !product.ProductName.Contains(productFilter, StringComparison.OrdinalIgnoreCase) &&
+            !(product.ProductNameSuffix?.Contains(productFilter, StringComparison.OrdinalIgnoreCase) ?? false))
         {
             return false;
         }

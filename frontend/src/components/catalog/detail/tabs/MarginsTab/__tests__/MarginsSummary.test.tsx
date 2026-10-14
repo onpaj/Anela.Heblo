@@ -121,7 +121,7 @@ describe("MarginsSummary", () => {
 
     expect(screen.getByText("M0")).toBeInTheDocument();
     expect(screen.getByText("M1")).toBeInTheDocument();
-    expect(screen.getByText("M2")).toBeInTheDocument();
+    expect(screen.getByText("M2R")).toBeInTheDocument();
 
     // Check percentage values (formatted as in component)
     expect(screen.getByText("80,0%")).toBeInTheDocument(); // M0
@@ -145,7 +145,7 @@ describe("MarginsSummary", () => {
     // Should show M0-M2 levels with correct percentages
     expect(screen.getByText("M0")).toBeInTheDocument();
     expect(screen.getByText("M1")).toBeInTheDocument();
-    expect(screen.getByText("M2")).toBeInTheDocument();
+    expect(screen.getByText("M2R")).toBeInTheDocument();
 
     expect(screen.getByText("80,0%")).toBeInTheDocument(); // M0
     expect(screen.getByText("66,7%")).toBeInTheDocument(); // M1
@@ -248,6 +248,6 @@ describe("MarginsSummary", () => {
     // Verify the M0-M2 structure is shown
     expect(screen.getByText("M0")).toBeInTheDocument();
     expect(screen.getByText("M1")).toBeInTheDocument();
-    expect(screen.getByText("M2")).toBeInTheDocument();
+    expect(screen.getByText("M2R")).toBeInTheDocument();
   });
 });

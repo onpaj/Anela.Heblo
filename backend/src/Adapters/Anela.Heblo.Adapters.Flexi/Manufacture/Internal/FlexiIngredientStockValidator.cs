@@ -18,17 +18,24 @@ internal sealed class FlexiIngredientStockValidator : IFlexiIngredientStockValid
         CancellationToken cancellationToken)
     {
         var stockDate = _timeProvider.GetLocalNow().DateTime;
+        var stockByWarehouse = new Dictionary<int, IReadOnlyList<ErpStock>>();
         var insufficientIngredients = new List<string>();
 
         foreach (var (ingredientCode, requirement) in ingredientRequirements)
         {
             int warehouseId = FlexiWarehouseResolver.ForProductType(requirement.ProductType);
 
-            var stockItems = await _stockClient.StockToDateAsync(stockDate, warehouseId, cancellationToken);
+            if (!stockByWarehouse.TryGetValue(warehouseId, out var stockItems))
+            {
+                stockItems = await _stockClient.StockToDateAsync(stockDate, warehouseId, cancellationToken);
+                stockByWarehouse[warehouseId] = stockItems;
+            }
+
             var ingredientStock = stockItems.FirstOrDefault(s => s.ProductCode == ingredientCode);
             var availableStock = ingredientStock != null ? (decimal)ingredientStock.Stock : 0m;
 
-            if (availableStock < requirement.RequiredAmount)
+            // Same tolerance as FEFO allocation, so BoM scaling drift never blocks a manufacture.
+            if (requirement.RequiredAmount - availableStock > FefoConsumptionAllocator.AllocationEpsilon)
             {
                 insufficientIngredients.Add(
                     $"{requirement.ProductName} ({ingredientCode}): Required {requirement.RequiredAmount:F2}, Available {availableStock:F2}"

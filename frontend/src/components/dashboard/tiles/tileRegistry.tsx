@@ -147,5 +147,5 @@ export const TILE_RENDERERS: Record<string, TileRenderer> = {
   pricecomparisonstatus: ({ data }) => <PriceComparisonTile data={data} />,
   weatherforecast: ({ data }) => <WeatherForecastTile data={data} />,
   failedjobs: ({ data }) => <FailedJobsTile data={data} />,
-  packingstats: ({ data }) => <PackingStatsTile data={data} />,
+  packingstats: ({ data }) => <PackingStatsTile data={data} targetUrl="/baleni" />,
 };

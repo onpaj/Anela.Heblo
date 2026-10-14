@@ -1,3 +1,4 @@
+using Anela.Heblo.Application.Features.Manufacture.Contracts;
 using Anela.Heblo.Application.Features.Manufacture.Services;
 using Anela.Heblo.Application.Features.Manufacture.UseCases.UpdateManufactureOrderStatus;
 using Anela.Heblo.Domain.Features.Manufacture;
@@ -55,7 +56,8 @@ public class UpdateManufactureOrderStatusHandlerConditionsTests
             _loggerMock.Object,
             _currentUserServiceMock.Object,
             _inventoryWriteDownServiceMock.Object,
-            _conditionsCaptureServiceMock.Object);
+            _conditionsCaptureServiceMock.Object,
+            new Mock<IManufactureCatalogSource>().Object);
 
     private ManufactureOrder CreateOrderInState(ManufactureOrderState state)
     {

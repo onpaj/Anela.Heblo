@@ -204,7 +204,7 @@ public class GiftPackageManufactureAtomicityIntegrationTests : IAsyncLifetime
 
         catalogSourceMock
             .Setup(x => x.GetCatalogItemAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync((string code, CancellationToken _) => new LogisticsCatalogItem { ProductCode = code, AvailableStock = 100m });
+            .ReturnsAsync((string code, CancellationToken _) => new LogisticsCatalogItem { ProductCode = code, WarehouseStock = 100m });
     }
 
     [Fact]

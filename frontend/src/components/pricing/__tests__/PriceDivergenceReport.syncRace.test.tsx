@@ -67,6 +67,15 @@ const syncResponse = SyncProductPricesResponse.fromJS({
  * exactly the stale ones the sync exists to defeat, silently.
  */
 describe("PriceDivergenceReport sync racing an in-flight report refetch", () => {
+  // The sync writes into the live ERP, so every run goes through the operator's confirmation.
+  let confirmSpy: jest.SpyInstance;
+
+  beforeEach(() => {
+    confirmSpy = jest.spyOn(window, "confirm").mockReturnValue(true);
+  });
+
+  afterEach(() => confirmSpy.mockRestore());
+
   it("keeps the synced rows when a slower report refetch resolves afterwards", async () => {
     // Arrange
     const queryClient = new QueryClient({

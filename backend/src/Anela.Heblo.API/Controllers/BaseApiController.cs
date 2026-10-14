@@ -47,7 +47,9 @@ public abstract class BaseApiController : ControllerBase
                 HttpStatusCode.BadRequest => BadRequest(response),
                 HttpStatusCode.NotFound => NotFound(response),
                 HttpStatusCode.Unauthorized => Unauthorized(response),
-                HttpStatusCode.Forbidden => Forbid(),
+                // Not Forbid(): that emits a bodiless 403 and the handler's ErrorCode/Params
+                // never reach the client, so the frontend can only show a generic message.
+                HttpStatusCode.Forbidden => StatusCode((int)statusCode, response),
                 HttpStatusCode.ServiceUnavailable => StatusCode((int)statusCode, response),
                 HttpStatusCode.InternalServerError => StatusCode((int)statusCode, response),
                 _ => StatusCode((int)statusCode, response)

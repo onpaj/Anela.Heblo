@@ -18,7 +18,13 @@ import {
   GetLotLabelCalibrationResponse,
   SetLotLabelCalibrationRequest,
   SetLotLabelCalibrationResponse,
+  NudgeLotLabelCalibrationRequest,
+  NudgeLotLabelCalibrationResponse,
+  LabelDriftDirection,
+  LabelDriftSpeed,
 } from '../generated/api-client';
+
+const LOT_LABEL_CALIBRATION_QUERY_KEY = [...QUERY_KEYS.materialContainers, 'lot-label-calibration'];
 
 export const useCreateMaterialContainers = () => {
   const queryClient = useQueryClient();
@@ -97,16 +103,16 @@ export const useFeedLotMedia = () =>
 // the app-wide staleTime would otherwise show a pitch/drift the printer no longer uses
 // after someone else (or another tab) changed it.
 //
-// staleTime: 0 is what does the work here. The only caller keeps this hook mounted and
-// toggles `enabled` when its modal opens, so the query is refetched on re-enable rather
-// than on remount. refetchOnMount still covers a caller that mounts the hook on demand,
+// refetchOnMount: 'always' is what does the work here. The only caller is the calibration
+// tab, which mounts on demand when the operator selects it, so every visit refetches.
+// staleTime: 0 still covers a caller that keeps the hook mounted and toggles `enabled`,
 // and gcTime: 0 keeps no stale value around for the next consumer to read.
 // refetchOnWindowFocus is spelled out even though it matches the current global default:
 // this hook's freshness guarantee must not silently disappear if that default changes.
 export const useLotLabelCalibration = (enabled: boolean) =>
   useQuery({
     enabled,
-    queryKey: [...QUERY_KEYS.materialContainers, 'lot-label-calibration'],
+    queryKey: LOT_LABEL_CALIBRATION_QUERY_KEY,
     queryFn: (): Promise<GetLotLabelCalibrationResponse> => {
       const apiClient = getAuthenticatedApiClient();
       return apiClient.lots_GetLabelCalibration();
@@ -129,9 +135,27 @@ export const useSetLotLabelCalibration = () => {
       return apiClient.lots_SetLabelCalibration(request);
     },
     onSuccess: () =>
-      queryClient.invalidateQueries({
-        queryKey: [...QUERY_KEYS.materialContainers, 'lot-label-calibration'],
-      }),
+      queryClient.invalidateQueries({ queryKey: LOT_LABEL_CALIBRATION_QUERY_KEY }),
+  });
+};
+
+// The operator-facing calibration wizard. It sends only an observation — which way the
+// printed text drifts and how fast — and the server derives, clamps and persists the
+// correction, so no dot value ever crosses the wire and no calibration permission is
+// needed. The advanced pitch/drift fields read the same record, hence the invalidation.
+export const useNudgeLotLabelCalibration = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (input: {
+      direction: LabelDriftDirection;
+      speed: LabelDriftSpeed;
+    }): Promise<NudgeLotLabelCalibrationResponse> => {
+      const apiClient = getAuthenticatedApiClient();
+      const request = new NudgeLotLabelCalibrationRequest(input);
+      return apiClient.lots_NudgeLabelCalibration(request);
+    },
+    onSuccess: () =>
+      queryClient.invalidateQueries({ queryKey: LOT_LABEL_CALIBRATION_QUERY_KEY }),
   });
 };
 

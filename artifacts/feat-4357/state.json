@@ -1,0 +1,46 @@
+{
+  "feature_id": "feat-4357",
+  "issue_number": 4357,
+  "created_at": "2026-10-05T06:11:03.352092Z",
+  "max_revisions": 3,
+  "phases": {
+    "analyzing": {
+      "status": "completed",
+      "updated_at": "2026-10-05T06:11:38.976183Z"
+    },
+    "architecting": {
+      "status": "completed",
+      "updated_at": "2026-10-05T06:11:39.308492Z"
+    },
+    "designing": {
+      "status": "completed",
+      "updated_at": "2026-10-05T06:11:39.526872Z"
+    },
+    "planning": {
+      "status": "completed",
+      "updated_at": "2026-10-05T06:11:39.735118Z"
+    },
+    "developing": {
+      "status": "in_progress",
+      "updated_at": "2026-10-05T07:15:53.689257Z"
+    },
+    "code-review": {
+      "status": "completed",
+      "updated_at": "2026-10-05T10:24:21.815867Z"
+    }
+  },
+  "tasks": [
+    {
+      "name": "add-url-redactor",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-10-05T06:47:59.091013Z"
+    },
+    {
+      "name": "use-redactor-in-handler-and-adapter",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-10-05T07:20:31.351351Z"
+    }
+  ]
+}

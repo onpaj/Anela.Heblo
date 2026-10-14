@@ -1,0 +1,12 @@
+{
+  "results": [
+    {
+      "campaign": { "resourceName": "customers/1234567890/campaigns/111", "id": "111", "name": "Brand CZ", "status": "ENABLED", "advertisingChannelType": "SEARCH", "biddingStrategyType": "MAXIMIZE_CONVERSIONS" },
+      "campaignBudget": { "resourceName": "customers/1234567890/campaignBudgets/901", "amountMicros": "500000000" }
+    },
+    {
+      "campaign": { "resourceName": "customers/1234567890/campaigns/112", "id": "112", "name": "Generic CZ", "status": "PAUSED", "advertisingChannelType": "SEARCH", "biddingStrategyType": "MANUAL_CPC" },
+      "campaignBudget": { "resourceName": "customers/1234567890/campaignBudgets/902", "amountMicros": "150000000" }
+    }
+  ]
+}

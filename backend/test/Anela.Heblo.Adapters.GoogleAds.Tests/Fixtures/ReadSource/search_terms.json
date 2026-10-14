@@ -1,0 +1,34 @@
+{
+  "results": [
+    {
+      "adGroup": { "resourceName": "customers/1234567890/adGroups/221", "id": "221" },
+      "searchTermView": { "resourceName": "customers/1234567890/searchTermViews/111~221~YW5lbGEga3LDqW0", "searchTerm": "anela krém" },
+      "segments": { "date": "2026-10-06", "searchTermMatchType": "EXACT" },
+      "metrics": { "impressions": "40", "clicks": "5", "costMicros": "12500000", "conversions": 1.0, "conversionsValue": 450.0 }
+    },
+    {
+      "adGroup": { "resourceName": "customers/1234567890/adGroups/221", "id": "221" },
+      "searchTermView": { "resourceName": "customers/1234567890/searchTermViews/111~221~YW5lbGEga3LDqW0", "searchTerm": "anela krém" },
+      "segments": { "date": "2026-10-06", "searchTermMatchType": "NEAR_EXACT" },
+      "metrics": { "impressions": "10", "clicks": "1", "costMicros": "2500000" }
+    },
+    {
+      "adGroup": { "resourceName": "customers/1234567890/adGroups/221", "id": "221" },
+      "searchTermView": { "resourceName": "customers/1234567890/searchTermViews/111~221~a29zbWV0aWthIHpkYXJtYQ", "searchTerm": "kosmetika zdarma" },
+      "segments": { "date": "2026-10-06", "searchTermMatchType": "BROAD" },
+      "metrics": { "impressions": "30", "clicks": "2", "costMicros": "6000000" }
+    },
+    {
+      "adGroup": { "resourceName": "customers/1234567890/adGroups/221", "id": "221" },
+      "searchTermView": { "resourceName": "customers/1234567890/searchTermViews/111~221~cHLDrXJvZG7DrSBrb3NtZXRpa2E", "searchTerm": "přírodní kosmetika" },
+      "segments": { "date": "2026-10-06", "searchTermMatchType": "AI_MAX" },
+      "metrics": { "impressions": "8", "clicks": "1", "costMicros": "3000000" }
+    },
+    {
+      "adGroup": { "resourceName": "customers/1234567890/adGroups/221", "id": "221" },
+      "searchTermView": { "resourceName": "customers/1234567890/searchTermViews/111~221~YW5lbGEga3LDqW0", "searchTerm": "anela krém" },
+      "segments": { "date": "2026-10-04", "searchTermMatchType": "EXACT" },
+      "metrics": { "impressions": "20", "clicks": "2", "costMicros": "5000000", "conversions": 0.0, "conversionsValue": 0.0 }
+    }
+  ]
+}

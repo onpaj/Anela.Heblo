@@ -75,6 +75,6 @@ internal sealed class LogisticsCatalogSourceAdapter : ILogisticsCatalogSource
         ProductCode = aggregate.ProductCode,
         Image = aggregate.Image,
         EshopStock = aggregate.Stock.Eshop,
-        AvailableStock = aggregate.Stock.Available,
+        WarehouseStock = aggregate.Stock.WarehouseStock,
     };
 }

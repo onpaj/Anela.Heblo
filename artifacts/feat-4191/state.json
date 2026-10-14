@@ -1,0 +1,46 @@
+{
+  "feature_id": "feat-4191",
+  "issue_number": 4191,
+  "created_at": "2026-09-15T08:11:36.218444Z",
+  "max_revisions": 3,
+  "phases": {
+    "analyzing": {
+      "status": "completed",
+      "updated_at": "2026-09-15T08:13:55.599315Z"
+    },
+    "architecting": {
+      "status": "completed",
+      "updated_at": "2026-09-15T08:14:54.013922Z"
+    },
+    "designing": {
+      "status": "completed",
+      "updated_at": "2026-09-15T08:15:19.836289Z"
+    },
+    "planning": {
+      "status": "completed",
+      "updated_at": "2026-09-15T08:18:42.712177Z"
+    },
+    "developing": {
+      "status": "in_progress",
+      "updated_at": "2026-09-15T10:17:33.689710Z"
+    },
+    "code-review": {
+      "status": "completed",
+      "updated_at": "2026-09-15T11:22:31.730900Z"
+    }
+  },
+  "tasks": [
+    {
+      "name": "replace-loops-with-bulk-replace-calls",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-09-15T09:20:48.060284Z"
+    },
+    {
+      "name": "add-dedup-regression-tests-and-verify-suite",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-09-15T10:46:52.977595Z"
+    }
+  ]
+}

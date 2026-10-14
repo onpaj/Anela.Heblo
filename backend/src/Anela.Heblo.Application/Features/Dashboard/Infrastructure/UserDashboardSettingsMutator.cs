@@ -1,3 +1,4 @@
+using Anela.Heblo.Application.Features.Dashboard.Contracts;
 using Anela.Heblo.Application.Features.Dashboard.UseCases.GetUserSettings;
 using Anela.Heblo.Domain.Features.Dashboard;
 using MediatR;
@@ -86,5 +87,65 @@ internal sealed class UserDashboardSettingsMutator : IUserDashboardSettingsMutat
             SettingsLoaded: true,
             TileFound: false,
             TileAppended: true);
+    }
+
+    public async Task<UserDashboardSettingsMutationResult> MutateBulkAsync(
+        string? userId,
+        IReadOnlyList<UserDashboardTileDto> tiles,
+        CancellationToken cancellationToken)
+    {
+        var resolvedUserId = string.IsNullOrEmpty(userId) ? "anonymous" : userId;
+
+        // Trigger provisioning outside the write lock (lock is non-reentrant).
+        await _mediator.Send(new GetUserSettingsRequest(), cancellationToken);
+
+        await using var lockHandle = await _lock.AcquireAsync(resolvedUserId, cancellationToken);
+
+        var settings = await _repository.GetByUserIdAsync(resolvedUserId);
+        if (settings == null)
+        {
+            return new UserDashboardSettingsMutationResult(
+                SettingsLoaded: false,
+                TileFound: false,
+                TileAppended: false);
+        }
+
+        var now = _timeProvider.GetUtcNow().DateTime;
+        var anyFound = false;
+        var anyAppended = false;
+
+        foreach (var tileDto in tiles)
+        {
+            var existingTile = settings.Tiles.FirstOrDefault(t => t.TileId == tileDto.TileId);
+            if (existingTile != null)
+            {
+                existingTile.IsVisible = tileDto.IsVisible;
+                existingTile.DisplayOrder = tileDto.DisplayOrder;
+                existingTile.LastModified = now;
+                anyFound = true;
+            }
+            else
+            {
+                settings.Tiles.Add(new UserDashboardTile
+                {
+                    UserId = resolvedUserId,
+                    TileId = tileDto.TileId,
+                    IsVisible = tileDto.IsVisible,
+                    DisplayOrder = tileDto.DisplayOrder,
+                    LastModified = now,
+                    DashboardSettings = settings
+                });
+                anyAppended = true;
+            }
+        }
+
+        settings.UserId = resolvedUserId;
+        settings.LastModified = now;
+        await _repository.UpdateAsync(settings);
+
+        return new UserDashboardSettingsMutationResult(
+            SettingsLoaded: true,
+            TileFound: anyFound,
+            TileAppended: anyAppended);
     }
 }

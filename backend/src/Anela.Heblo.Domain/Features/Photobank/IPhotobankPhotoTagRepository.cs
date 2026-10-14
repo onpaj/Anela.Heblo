@@ -12,7 +12,9 @@ namespace Anela.Heblo.Domain.Features.Photobank
         Task<bool> PhotoTagExistsAsync(int photoId, int tagId, CancellationToken cancellationToken);
         Task RemoveRuleTagsAsync(string? scopeToTagName, CancellationToken cancellationToken);
         Task<HashSet<(int PhotoId, int TagId)>> GetOccupiedTagPairsAsync(string? scopeToTagName, CancellationToken cancellationToken);
+        Task<HashSet<(int PhotoId, int TagId)>> GetOccupiedTagPairsByPhotosAsync(IReadOnlyCollection<int> photoIds, CancellationToken cancellationToken);
         Task<List<PhotoTag>> GetPhotoTagsByPhotoAndSourceAsync(int photoId, PhotoTagSource source, CancellationToken cancellationToken);
+        Task<IReadOnlyDictionary<int, List<PhotoTag>>> GetPhotoTagsByPhotosAndSourceAsync(IReadOnlyCollection<int> photoIds, PhotoTagSource source, CancellationToken cancellationToken);
         Task RemovePhotoTagsAsync(IEnumerable<PhotoTag> photoTags, CancellationToken cancellationToken);
         Task RemovePhotoTagsBySourceAsync(IReadOnlyList<int> photoIds, PhotoTagSource source, CancellationToken cancellationToken);
 

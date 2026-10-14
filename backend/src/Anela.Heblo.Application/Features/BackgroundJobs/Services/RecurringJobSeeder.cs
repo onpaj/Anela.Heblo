@@ -38,24 +38,40 @@ public class RecurringJobSeeder : IRecurringJobSeeder
             now
         )).ToArray();
 
+        // Load all existing configs in one query
+        var existing = await _repository.GetAllAsync(cancellationToken);
+        var existingByName = existing.ToDictionary(c => c.JobName, StringComparer.Ordinal);
+
         foreach (var config in defaultConfigurations)
         {
-            var existing = await _repository.GetByJobNameAsync(config.JobName, cancellationToken);
-            if (existing == null)
+            if (!existingByName.TryGetValue(config.JobName, out var existingConfig))
             {
                 await _repository.AddAsync(config, cancellationToken);
             }
-            else
+            else if (HasSeededFieldsChanged(existingConfig, config))
             {
-                existing.UpdateConfiguration(
+                existingConfig.UpdateConfiguration(
                     config.DisplayName,
                     config.Description,
-                    existing.CronExpression,   // preserve admin override
+                    existingConfig.CronExpression,   // preserve admin override
                     config.TimeZoneId,
                     "System",
                     now);
-                await _repository.UpdateAsync(existing, cancellationToken);
+                await _repository.UpdateAsync(existingConfig, cancellationToken);
             }
+            // else: no developer-owned field changed - leave the row (including
+            // LastModifiedAt/LastModifiedBy, which record admin actions) untouched.
         }
     }
+
+    /// <summary>
+    /// Compares only the developer-owned, code-sourced fields (DisplayName, Description,
+    /// TimeZoneId) between the stored row and the freshly computed metadata. CronExpression
+    /// and IsEnabled are intentionally excluded - they are admin-owned and must never trigger
+    /// a seeder-initiated write.
+    /// </summary>
+    private static bool HasSeededFieldsChanged(RecurringJobConfiguration existing, RecurringJobConfiguration config) =>
+        existing.DisplayName != config.DisplayName
+        || existing.Description != config.Description
+        || existing.TimeZoneId != config.TimeZoneId;
 }

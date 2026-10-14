@@ -1,0 +1,52 @@
+{
+  "feature_id": "feat-4169",
+  "issue_number": 4169,
+  "created_at": "2026-09-15T02:09:49.503497Z",
+  "max_revisions": 3,
+  "phases": {
+    "analyzing": {
+      "status": "completed",
+      "updated_at": "2026-09-15T02:11:27.811508Z"
+    },
+    "architecting": {
+      "status": "completed",
+      "updated_at": "2026-09-15T02:12:53.640460Z"
+    },
+    "designing": {
+      "status": "completed",
+      "updated_at": "2026-09-15T02:13:21.504512Z"
+    },
+    "planning": {
+      "status": "completed",
+      "updated_at": "2026-09-15T02:19:26.725797Z"
+    },
+    "developing": {
+      "status": "in_progress",
+      "updated_at": "2026-09-15T05:17:07.778206Z"
+    },
+    "code-review": {
+      "status": "completed",
+      "updated_at": "2026-09-15T07:27:44.489289Z"
+    }
+  },
+  "tasks": [
+    {
+      "name": "scaffold-cache-tests",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-09-15T03:44:06.339768Z"
+    },
+    {
+      "name": "cold-cache-failure-test",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-09-15T04:52:43.166324Z"
+    },
+    {
+      "name": "warm-cache-failure-tests",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-09-15T06:27:12.317958Z"
+    }
+  ]
+}

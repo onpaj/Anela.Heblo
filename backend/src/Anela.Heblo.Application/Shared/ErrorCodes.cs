@@ -105,6 +105,8 @@ public enum ErrorCodes
     ManufacturedInventoryInsufficientStock = 1216,
     [HttpStatusCode(HttpStatusCode.BadRequest)]
     ManufactureOrderNotCompleted = 1217,
+    [HttpStatusCode(HttpStatusCode.UnprocessableEntity)]
+    ManufactureInsufficientMaterialStock = 1218,
 
     // Catalog module errors (13XX)
     [HttpStatusCode(HttpStatusCode.NotFound)]
@@ -197,6 +199,8 @@ public enum ErrorCodes
     ProductNotFoundForAnalysis = 1704,
     [HttpStatusCode(HttpStatusCode.BadRequest)]
     InvalidReportPeriod = 1705,
+    [HttpStatusCode(HttpStatusCode.BadRequest)]
+    InvalidTimeWindow = 1706,
 
     // FileStorage module errors (18XX)
     [HttpStatusCode(HttpStatusCode.BadRequest)]
@@ -227,6 +231,8 @@ public enum ErrorCodes
     RecurringJobDisabled = 1904,
     [HttpStatusCode(HttpStatusCode.InternalServerError)]
     RecurringJobEnqueueFailed = 1905,
+    [HttpStatusCode(HttpStatusCode.Conflict)]
+    RecurringJobAlreadyRunning = 1906,
 
     // KnowledgeBase module errors (20XX)
     [HttpStatusCode(HttpStatusCode.NotFound)]
@@ -384,6 +390,8 @@ public enum ErrorCodes
     ShipmentLabelNotReady = 2908,
     [HttpStatusCode(HttpStatusCode.UnprocessableEntity)]
     ShipmentOrderWeightUnavailable = 2909,
+    [HttpStatusCode(HttpStatusCode.UnprocessableEntity)]
+    ShipmentValidationFailed = 2910,
 
     // Packaging module errors (30XX)
     [HttpStatusCode(HttpStatusCode.Conflict)]
@@ -478,6 +486,40 @@ public enum ErrorCodes
     ProductPriceFlexiWriteFailed = 3606,
     [HttpStatusCode(HttpStatusCode.BadGateway)]
     ProductPriceErpReadFailed = 3609,
+
+    // Marketing Performance module errors (37XX)
+    [HttpStatusCode(HttpStatusCode.BadRequest)]
+    MarketingPerformanceInvalidMonthRange = 3701,
+    [HttpStatusCode(HttpStatusCode.BadRequest)]
+    MarketingPerformanceRangeTooLarge = 3702,
+    [HttpStatusCode(HttpStatusCode.Conflict)]
+    MarketingPerformanceRecomputeAlreadyRunning = 3703,
+    [HttpStatusCode(HttpStatusCode.InternalServerError)]
+    MarketingPerformanceEnqueueFailed = 3704,
+
+    // Pricing simulator module errors (38XX)
+    [HttpStatusCode(HttpStatusCode.BadRequest)]
+    PricingInvalidPrice = 3801,
+    [HttpStatusCode(HttpStatusCode.BadRequest)]
+    PricingNegativeMaterialCost = 3802,
+    [HttpStatusCode(HttpStatusCode.BadRequest)]
+    PricingNegativeManufacturingCost = 3803,
+    [HttpStatusCode(HttpStatusCode.BadRequest)]
+    PricingNegativeQuantity = 3804,
+    [HttpStatusCode(HttpStatusCode.NotFound)]
+    PricingScenarioNotFound = 3805,
+    [HttpStatusCode(HttpStatusCode.Conflict)]
+    PricingScenarioNameConflict = 3806,
+    [HttpStatusCode(HttpStatusCode.BadRequest)]
+    PricingProductNotInBaseline = 3807,
+
+    // Reporting module errors (39XX)
+    [HttpStatusCode(HttpStatusCode.NotFound)]
+    ReportingDatasetNotFound = 3901,
+    [HttpStatusCode(HttpStatusCode.BadRequest)]
+    ReportingInvalidQuery = 3902,
+    [HttpStatusCode(HttpStatusCode.GatewayTimeout)]
+    ReportingQueryTimeout = 3903,
 
     // External Service errors (90XX)
     [HttpStatusCode(HttpStatusCode.ServiceUnavailable)]

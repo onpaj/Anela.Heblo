@@ -35,6 +35,7 @@ public class TriggerRecurringJobHandlerTests
         job.SetupGet(j => j.Metadata).Returns(new RecurringJobMetadata
         {
             JobName = jobName,
+            Category = RecurringJobCategory.Integrations,
             DisplayName = jobName,
             Description = "test",
             CronExpression = DefaultCronExpression

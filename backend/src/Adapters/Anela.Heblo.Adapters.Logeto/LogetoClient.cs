@@ -68,6 +68,12 @@ public class LogetoClient : ILogetoClient
         await EnsureSuccessAsync(response, cancellationToken);
     }
 
+    public async Task DeleteTimeEntryAsync(Guid guid, CancellationToken cancellationToken)
+    {
+        var response = await _httpClient.DeleteAsync($"/api/v2/TimeTracking/{guid}", cancellationToken);
+        await EnsureSuccessAsync(response, cancellationToken);
+    }
+
     private class Page<T>
     {
         public string? ContinuationToken { get; init; }

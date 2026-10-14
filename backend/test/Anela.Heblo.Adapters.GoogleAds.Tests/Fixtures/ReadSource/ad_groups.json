@@ -1,0 +1,12 @@
+{
+  "results": [
+    {
+      "campaign": { "resourceName": "customers/1234567890/campaigns/111", "id": "111" },
+      "adGroup": { "resourceName": "customers/1234567890/adGroups/221", "id": "221", "name": "Brand exact", "status": "ENABLED", "type": "SEARCH_STANDARD" }
+    },
+    {
+      "campaign": { "resourceName": "customers/1234567890/campaigns/112", "id": "112" },
+      "adGroup": { "resourceName": "customers/1234567890/adGroups/222", "id": "222", "name": "Generic kosmetika", "status": "PAUSED", "type": "SEARCH_STANDARD" }
+    }
+  ]
+}

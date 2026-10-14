@@ -1,3 +1,4 @@
+using Anela.Heblo.Application.Features.Packaging.Contracts;
 using Anela.Heblo.Application.Features.Packaging.Services;
 using Anela.Heblo.Application.Features.Packaging.UseCases.ScanPackingOrder;
 using Anela.Heblo.Application.Features.ShipmentLabels;
@@ -24,7 +25,7 @@ public class ScanPackingOrderHandlerPackagePersistenceTests
         packageRepo = new Mock<IPackageRepository>();
         shipmentClient ??= new Mock<IShipmentClient>();
         orderClient ??= new Mock<IPackingOrderClient>();
-        var eshopClient = new Mock<IEshopOrderClient>();
+        var packedOrderStatusUpdater = new Mock<IPackedOrderStatusUpdater>();
         var currentUser = new Mock<ICurrentUserService>();
         currentUser.Setup(c => c.GetCurrentUser())
             .Returns(new CurrentUser("uid-1", "Operator", "op@example.com", IsAuthenticated: true));
@@ -48,7 +49,7 @@ public class ScanPackingOrderHandlerPackagePersistenceTests
         return new ScanPackingOrderHandler(
             shipmentClient.Object,
             orderClient.Object,
-            eshopClient.Object,
+            packedOrderStatusUpdater.Object,
             NullLogger<ScanPackingOrderHandler>.Instance,
             packageRepo.Object,
             currentUser.Object,

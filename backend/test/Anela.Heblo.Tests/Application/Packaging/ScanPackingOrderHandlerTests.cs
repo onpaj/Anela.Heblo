@@ -1,3 +1,4 @@
+using Anela.Heblo.Application.Features.Packaging.Contracts;
 using Anela.Heblo.Application.Features.Packaging.Services;
 using Anela.Heblo.Application.Features.Packaging.UseCases.ScanPackingOrder;
 using Anela.Heblo.Application.Features.ShipmentLabels;
@@ -16,7 +17,7 @@ public class ScanPackingOrderHandlerTests
 {
     private readonly Mock<IShipmentClient> _shipmentClient = new();
     private readonly Mock<IPackingOrderClient> _orderClient = new();
-    private readonly Mock<IEshopOrderClient> _eshopOrderClient = new();
+    private readonly Mock<IPackedOrderStatusUpdater> _packedOrderStatusUpdater = new();
     private readonly Mock<IPackageRepository> _packageRepository = new();
     private readonly Mock<ICurrentUserService> _currentUserService = new();
     private readonly Mock<IAuthorizationRepository> _authRepo = new();
@@ -29,7 +30,7 @@ public class ScanPackingOrderHandlerTests
         return new(
             _shipmentClient.Object,
             _orderClient.Object,
-            _eshopOrderClient.Object,
+            _packedOrderStatusUpdater.Object,
             new Mock<ILogger<ScanPackingOrderHandler>>().Object,
             _packageRepository.Object,
             _currentUserService.Object,
@@ -138,7 +139,7 @@ public class ScanPackingOrderHandlerTests
         _shipmentCreationService.Verify(
             s => s.CreateAndPersistAsync(It.IsAny<PackingOrder>(), It.IsAny<int>(), It.IsAny<Guid?>(), It.IsAny<CancellationToken>()),
             Times.Never);
-        _eshopOrderClient.Verify(
+        _packedOrderStatusUpdater.Verify(
             c => c.MarkAsPackedAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()),
             Times.Never);
     }
@@ -279,7 +280,7 @@ public class ScanPackingOrderHandlerTests
             CancellationToken.None);
 
         response.Success.Should().BeTrue();
-        _eshopOrderClient.Verify(
+        _packedOrderStatusUpdater.Verify(
             c => c.MarkAsPackedAsync("0001234", It.IsAny<CancellationToken>()),
             Times.Once);
     }
@@ -312,7 +313,7 @@ public class ScanPackingOrderHandlerTests
 
         response.Success.Should().BeTrue();
         response.Shipment!.PendingCompletion.Should().BeTrue();
-        _eshopOrderClient.Verify(
+        _packedOrderStatusUpdater.Verify(
             c => c.MarkAsPackedAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()),
             Times.Never);
     }
@@ -331,7 +332,7 @@ public class ScanPackingOrderHandlerTests
             .Setup(c => c.GetLabelsByOrderCodeAsync("0001234", It.IsAny<CancellationToken>()))
             .ReturnsAsync([new ShipmentLabel { ShipmentGuid = shipmentGuid, OrderCode = "0001234", PackageName = "P1", LabelUrl = "https://example.com/label.pdf" }]);
 
-        _eshopOrderClient
+        _packedOrderStatusUpdater
             .Setup(c => c.MarkAsPackedAsync("0001234", It.IsAny<CancellationToken>()))
             .ThrowsAsync(new HttpRequestException("Shoptet status update failed"));
 
@@ -359,7 +360,7 @@ public class ScanPackingOrderHandlerTests
             new ScanPackingOrderRequest { OrderCode = "0001234" },
             CancellationToken.None);
 
-        _eshopOrderClient.Verify(
+        _packedOrderStatusUpdater.Verify(
             c => c.MarkAsPackedAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()),
             Times.Never);
     }
@@ -437,7 +438,7 @@ public class ScanPackingOrderHandlerTests
         _shipmentCreationService.Verify(
             s => s.CreateAndPersistAsync(order, 3, packerId, It.IsAny<CancellationToken>()),
             Times.Once);
-        _eshopOrderClient.Verify(
+        _packedOrderStatusUpdater.Verify(
             c => c.MarkAsPackedAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()),
             Times.Never);
     }
@@ -447,6 +448,7 @@ public class ScanPackingOrderHandlerTests
     [InlineData(ErrorCodes.ShipmentCarrierNotResolved)]
     [InlineData(ErrorCodes.ShipmentCreationFailed)]
     [InlineData(ErrorCodes.PackingUserNotEligible)]
+    [InlineData(ErrorCodes.ShipmentValidationFailed)]
     public async Task Handle_WhenShipmentCreationServiceFails_ReturnsMappedErrorCode(ErrorCodes errorCode)
     {
         var order = EligibleOrder(("P001", 1, 400));
@@ -469,5 +471,37 @@ public class ScanPackingOrderHandlerTests
 
         response.Success.Should().BeFalse();
         response.ErrorCode.Should().Be(errorCode);
+    }
+
+    [Fact]
+    public async Task Handle_WhenShipmentCreationServiceFailsWithParams_ForwardsParamsUnchanged()
+    {
+        var order = EligibleOrder(("P001", 1, 400));
+
+        _orderClient
+            .Setup(c => c.GetPackingOrderAsync("0001234", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(order);
+
+        _shipmentClient
+            .Setup(c => c.GetLabelsByOrderCodeAsync("0001234", It.IsAny<CancellationToken>()))
+            .ReturnsAsync([]);
+
+        var validationParams = new Dictionary<string, string> { ["ShoptetMessage"] = "Invalid recipient of order, missing fields: city, zip." };
+        _shipmentCreationService
+            .Setup(s => s.CreateAndPersistAsync(order, 1, null, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new ShipmentCreationResult
+            {
+                IsSuccess = false,
+                ErrorCode = ErrorCodes.ShipmentValidationFailed,
+                Params = validationParams,
+            });
+
+        var response = await CreateHandler().Handle(
+            new ScanPackingOrderRequest { OrderCode = "0001234" },
+            CancellationToken.None);
+
+        response.Success.Should().BeFalse();
+        response.ErrorCode.Should().Be(ErrorCodes.ShipmentValidationFailed);
+        response.Params.Should().BeEquivalentTo(validationParams);
     }
 }

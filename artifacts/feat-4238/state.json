@@ -1,0 +1,64 @@
+{
+  "feature_id": "feat-4238",
+  "issue_number": 4238,
+  "created_at": "2026-09-21T05:13:59.936290Z",
+  "max_revisions": 3,
+  "phases": {
+    "analyzing": {
+      "status": "completed",
+      "updated_at": "2026-09-21T05:16:34.472288Z"
+    },
+    "architecting": {
+      "status": "completed",
+      "updated_at": "2026-09-21T05:18:06.680814Z"
+    },
+    "designing": {
+      "status": "completed",
+      "updated_at": "2026-09-21T05:18:56.071200Z"
+    },
+    "planning": {
+      "status": "completed",
+      "updated_at": "2026-09-21T05:22:56.912899Z"
+    },
+    "developing": {
+      "status": "in_progress",
+      "updated_at": "2026-09-21T10:17:22.829852Z"
+    },
+    "code-review": {
+      "status": "completed",
+      "updated_at": "2026-09-21T11:21:53.879269Z"
+    }
+  },
+  "tasks": [
+    {
+      "name": "domain-isalldy-property",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-09-21T06:22:14.308296Z"
+    },
+    {
+      "name": "persistence-migration-isalldy",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-09-21T07:27:54.692803Z"
+    },
+    {
+      "name": "import-mapper-isalldy",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-09-21T08:44:51.890758Z"
+    },
+    {
+      "name": "export-service-isalldy",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-09-21T09:24:55.161866Z"
+    },
+    {
+      "name": "manual-handlers-isalldy",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-09-21T10:44:51.884934Z"
+    }
+  ]
+}

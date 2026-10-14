@@ -275,6 +275,36 @@ public class LogetoClientTests
     }
 
     [Fact]
+    public async Task DeleteTimeEntryAsync_SendsDeleteToTheRecordUrl()
+    {
+        var handler = new StubHandler(new HttpResponseMessage(HttpStatusCode.NoContent));
+        var client = CreateClient(handler);
+        var guid = Guid.Parse("33333333-3333-3333-3333-333333333333");
+
+        await client.DeleteTimeEntryAsync(guid, CancellationToken.None);
+
+        handler.Requests[0].Method.Should().Be(HttpMethod.Delete);
+        handler.Requests[0].RequestUri!.PathAndQuery.Should().Be($"/api/v2/TimeTracking/{guid}");
+        handler.Requests[0].Headers.GetValues("AccessKey").Should().ContainSingle()
+            .Which.Should().Be("test-key");
+    }
+
+    [Fact]
+    public async Task DeleteTimeEntryAsync_ErrorResponse_ThrowsLogetoApiException()
+    {
+        var handler = new StubHandler(Json(
+            """{"Error":{"Code":"PeriodClosed","Message":"Period is closed"}}""",
+            HttpStatusCode.BadRequest));
+        var client = CreateClient(handler);
+
+        var act = () => client.DeleteTimeEntryAsync(Guid.NewGuid(), CancellationToken.None);
+
+        var ex = await act.Should().ThrowAsync<LogetoApiException>();
+        ex.Which.StatusCode.Should().Be(400);
+        ex.Which.ApiErrorCode.Should().Be("PeriodClosed");
+    }
+
+    [Fact]
     public async Task ErrorResponse_ThrowsLogetoApiExceptionWithApiMessage()
     {
         var handler = new StubHandler(Json(

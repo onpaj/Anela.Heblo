@@ -1,0 +1,64 @@
+{
+  "feature_id": "feat-4164",
+  "issue_number": 4164,
+  "created_at": "2026-09-14T05:12:12.068254Z",
+  "max_revisions": 3,
+  "phases": {
+    "analyzing": {
+      "status": "completed",
+      "updated_at": "2026-09-14T05:14:54.940778Z"
+    },
+    "architecting": {
+      "status": "completed",
+      "updated_at": "2026-09-14T05:16:09.850130Z"
+    },
+    "designing": {
+      "status": "completed",
+      "updated_at": "2026-09-14T05:16:39.603878Z"
+    },
+    "planning": {
+      "status": "completed",
+      "updated_at": "2026-09-15T01:18:11.073595Z"
+    },
+    "developing": {
+      "status": "in_progress",
+      "updated_at": "2026-09-15T06:17:29.778038Z"
+    },
+    "code-review": {
+      "status": "completed",
+      "updated_at": "2026-09-15T07:29:10.256264Z"
+    }
+  },
+  "tasks": [
+    {
+      "name": "relocate-get-packing-materials-list",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-09-15T02:46:41.076721Z"
+    },
+    {
+      "name": "relocate-create-packing-material",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-09-15T03:37:34.152481Z"
+    },
+    {
+      "name": "relocate-update-packing-material",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-09-15T04:39:51.713087Z"
+    },
+    {
+      "name": "relocate-update-packing-material-quantity",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-09-15T05:23:21.485502Z"
+    },
+    {
+      "name": "final-verification",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-09-15T06:28:36.898599Z"
+    }
+  ]
+}

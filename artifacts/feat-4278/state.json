@@ -1,0 +1,58 @@
+{
+  "feature_id": "feat-4278",
+  "issue_number": 4278,
+  "created_at": "2026-09-23T05:12:57.979331Z",
+  "max_revisions": 3,
+  "phases": {
+    "analyzing": {
+      "status": "completed",
+      "updated_at": "2026-09-23T05:15:06.041161Z"
+    },
+    "architecting": {
+      "status": "completed",
+      "updated_at": "2026-09-23T05:16:21.685870Z"
+    },
+    "designing": {
+      "status": "completed",
+      "updated_at": "2026-09-23T05:16:56.868699Z"
+    },
+    "planning": {
+      "status": "completed",
+      "updated_at": "2026-09-23T05:18:50.166654Z"
+    },
+    "developing": {
+      "status": "in_progress",
+      "updated_at": "2026-09-23T09:17:37.628894Z"
+    },
+    "code-review": {
+      "status": "completed",
+      "updated_at": "2026-09-23T11:18:14.653236Z"
+    }
+  },
+  "tasks": [
+    {
+      "name": "add-import-bank-statement-validator",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-09-23T06:39:11.862498Z"
+    },
+    {
+      "name": "register-import-bank-statement-validator-in-di",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-09-23T07:38:52.304004Z"
+    },
+    {
+      "name": "remove-redundant-argumentexception-from-import-handler",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-09-23T09:08:34.704974Z"
+    },
+    {
+      "name": "full-verification",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-09-23T10:17:57.683075Z"
+    }
+  ]
+}

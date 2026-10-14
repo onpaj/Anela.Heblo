@@ -8,6 +8,8 @@ import { ThemeProvider } from "../../../../contexts/ThemeContext";
 
 // Mock i18next
 jest.mock("react-i18next", () => ({
+  // i18n.ts registers this plugin at import time (pulled in via the modals' error handling).
+  initReactI18next: { type: "3rdParty", init: jest.fn() },
   useTranslation: () => ({
     t: (key: string) => key,
     i18n: {

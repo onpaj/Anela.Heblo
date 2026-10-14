@@ -20,7 +20,10 @@ public static class McpModule
             .WithTools<KnowledgeBaseTools>()
             .WithTools<LeafletTools>()
             .WithTools<UserManagementMcpTools>()
-            .WithTools<MeetingTasksMcpTools>();
+            .WithTools<MeetingTasksMcpTools>()
+            .WithTools<PricingSimulatorMcpTools>()
+            .WithTools<ProcessDocsMcpTools>()
+            .WithTools<ReportingMcpTools>();
 
         return services;
     }

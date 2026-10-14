@@ -1,4 +1,5 @@
 import { BaseResponse, ErrorCodes } from "../types/errors";
+import { readApiErrorEnvelope } from "../api/apiErrorEnvelope";
 import i18n from "../i18n";
 
 /**
@@ -84,6 +85,30 @@ export function isErrorResponse(response: any): response is BaseResponse {
     "success" in response &&
     response.success === false
   );
+}
+
+/**
+ * Resolves a failed generated-client call to a Czech message, or `undefined` when the
+ * failure carries no structured error envelope (network failure, 500, unparseable body)
+ * so the caller can fall back to its own generic message.
+ *
+ * The envelope parsing itself is delegated to `readApiErrorEnvelope` — the shared reader
+ * that also understands a directly-thrown envelope and normalises a null `params` — so
+ * this file never re-implements it. Callers: `PriceAnalysis` (a rejected edit gets an
+ * inline cell message, anything else a toast + stale-totals badge) and
+ * `PricingScenarioBar` (save/delete failures).
+ */
+export function resolveSwaggerErrorMessage(error: unknown): string | undefined {
+  const envelope = readApiErrorEnvelope(error);
+  if (!envelope?.errorCode) {
+    return undefined;
+  }
+
+  return handleApiError({
+    success: false,
+    errorCode: envelope.errorCode,
+    params: envelope.params,
+  });
 }
 
 /**

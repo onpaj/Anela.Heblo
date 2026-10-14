@@ -1,5 +1,8 @@
 import type { MonthlyFinancialDataDto } from '../../../api/hooks/useFinancialOverview'
 import type { YearComparisonSeriesDto } from '../../../api/hooks/useFinancialComparison'
+import { withYearAlpha, YEAR_ALPHAS } from '../../charts/comparisonColors'
+
+export { YEAR_ALPHAS }
 
 export type ComparisonMetric = 'income' | 'expenses' | 'balance' | 'totalBalance'
 
@@ -32,15 +35,9 @@ export const METRIC_COLORS: Record<ComparisonMetric, [number, number, number]> =
   totalBalance: [249, 115, 22], // orange-500
 }
 
-// Opacity per year slot (anchor/current year first): current year solid, older years lighter.
-export const YEAR_ALPHAS = [1, 0.55, 0.3] as const
-
 /** Bar color for a metric at a given year slot (0 = anchor/current year). */
-export const getSeriesColor = (metric: ComparisonMetric, yearIndex: number): string => {
-  const [r, g, b] = METRIC_COLORS[metric]
-  const alpha = YEAR_ALPHAS[Math.min(yearIndex, YEAR_ALPHAS.length - 1)]
-  return `rgba(${r}, ${g}, ${b}, ${alpha})`
-}
+export const getSeriesColor = (metric: ComparisonMetric, yearIndex: number): string =>
+  withYearAlpha(METRIC_COLORS[metric], yearIndex)
 
 /** Selected metrics in canonical order (stable columns/series). */
 export const orderMetrics = (metrics: ComparisonMetric[]): ComparisonMetric[] =>

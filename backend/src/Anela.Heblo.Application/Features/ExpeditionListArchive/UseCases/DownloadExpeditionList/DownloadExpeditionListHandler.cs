@@ -1,4 +1,4 @@
-using Anela.Heblo.Domain.Features.FileStorage;
+using Anela.Heblo.Application.Features.ExpeditionListArchive.Contracts;
 using MediatR;
 using Microsoft.Extensions.Options;
 
@@ -6,12 +6,12 @@ namespace Anela.Heblo.Application.Features.ExpeditionListArchive.UseCases.Downlo
 
 public class DownloadExpeditionListHandler : IRequestHandler<DownloadExpeditionListRequest, DownloadExpeditionListResponse>
 {
-    private readonly IBlobStorageService _blobStorageService;
+    private readonly IExpeditionListArchiveBlobStore _blobStore;
     private readonly string _containerName;
 
-    public DownloadExpeditionListHandler(IBlobStorageService blobStorageService, IOptions<ExpeditionListArchiveOptions> options)
+    public DownloadExpeditionListHandler(IExpeditionListArchiveBlobStore blobStore, IOptions<ExpeditionListArchiveOptions> options)
     {
-        _blobStorageService = blobStorageService;
+        _blobStore = blobStore;
         _containerName = options.Value.BlobContainerName;
     }
 
@@ -22,7 +22,7 @@ public class DownloadExpeditionListHandler : IRequestHandler<DownloadExpeditionL
             return DownloadExpeditionListResponse.Fail();
         }
 
-        var stream = await _blobStorageService.DownloadAsync(_containerName, request.BlobPath, cancellationToken);
+        var stream = await _blobStore.DownloadAsync(_containerName, request.BlobPath, cancellationToken);
         var fileName = Path.GetFileName(request.BlobPath);
 
         return new DownloadExpeditionListResponse

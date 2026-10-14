@@ -1,13 +1,13 @@
 namespace Anela.Heblo.Domain.Features.Catalog;
 
+/// <summary>
+/// The margin cascade. Each level adds one cost layer to the one above it, so CostTotal grows
+/// M0 -> M1 -> M2 -> M3 and M3 is the all-costs-in view of the product.
+/// </summary>
 public class MarginData
 {
     public MarginLevel M0 { get; init; } = MarginLevel.Zero;      // Material cost
-    public MarginLevel M1_A { get; init; } = MarginLevel.Zero;    // Flat manufacturing cost
-    public MarginLevel M1_B { get; init; } = MarginLevel.Zero;    // Direct manufacturing cost
-    public MarginLevel M2 { get; init; } = MarginLevel.Zero;      // Storage + Marketing cost
-
-    // Backward compatibility - map old names to new structure
-    [Obsolete("Use M1_A (flat manufacturing cost) instead. This property maps to M1_A for backward compatibility.")]
-    public MarginLevel M1 => M1_A;
+    public MarginLevel M1 { get; init; } = MarginLevel.Zero;      // + flat manufacturing cost (VYROBA)
+    public MarginLevel M2 { get; init; } = MarginLevel.Zero;      // + storage and marketing cost (SKLAD, MARKETING)
+    public MarginLevel M3 { get; init; } = MarginLevel.Zero;      // + overhead (everything else on 51/52)
 }

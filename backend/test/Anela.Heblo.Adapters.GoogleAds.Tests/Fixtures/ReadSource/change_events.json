@@ -1,0 +1,58 @@
+{
+  "results": [
+    {
+      "changeEvent": {
+        "resourceName": "customers/1234567890/changeEvents/1790323200000000~0~0",
+        "changeDateTime": "2026-09-25 10:00:00",
+        "changeResourceType": "CAMPAIGN",
+        "changeResourceName": "customers/1234567890/campaigns/111",
+        "clientType": "GOOGLE_ADS_WEB_CLIENT",
+        "userEmail": "specialist@agency.example",
+        "resourceChangeOperation": "UPDATE",
+        "changedFields": "status",
+        "oldResource": { "campaign": { "status": "PAUSED" } },
+        "newResource": { "campaign": { "status": "ENABLED" } }
+      }
+    },
+    {
+      "changeEvent": {
+        "resourceName": "customers/1234567890/changeEvents/1759648500123456~0~0",
+        "changeDateTime": "2026-10-05 09:15:00.123456",
+        "changeResourceType": "CAMPAIGN",
+        "changeResourceName": "customers/1234567890/campaigns/111",
+        "clientType": "GOOGLE_ADS_RECOMMENDATIONS",
+        "resourceChangeOperation": "UPDATE",
+        "changedFields": "biddingStrategyType",
+        "oldResource": { "campaign": { "biddingStrategyType": "MANUAL_CPC" } },
+        "newResource": { "campaign": { "biddingStrategyType": "MAXIMIZE_CONVERSIONS" } }
+      }
+    },
+    {
+      "changeEvent": {
+        "resourceName": "customers/1234567890/changeEvents/1759665600000000~0~0",
+        "changeDateTime": "2026-10-05 14:00:00",
+        "changeResourceType": "AD_GROUP_AD",
+        "changeResourceName": "customers/1234567890/adGroupAds/221~441",
+        "clientType": "GOOGLE_ADS_WEB_CLIENT",
+        "userEmail": "specialist@agency.example",
+        "resourceChangeOperation": "UPDATE",
+        "changedFields": "status",
+        "oldResource": { "adGroupAd": { "status": "ENABLED" } },
+        "newResource": { "adGroupAd": { "status": "PAUSED" } }
+      }
+    },
+    {
+      "changeEvent": {
+        "resourceName": "customers/1234567890/changeEvents/1759732200000000~1~0",
+        "changeDateTime": "2026-10-06 08:30:00.5",
+        "changeResourceType": "AD_GROUP_CRITERION",
+        "changeResourceName": "customers/1234567890/adGroupCriteria/221~341",
+        "clientType": "GOOGLE_ADS_API",
+        "userEmail": "heblo-ads@anela.cz",
+        "resourceChangeOperation": "CREATE",
+        "changedFields": "adGroup,negative,keyword.text,keyword.matchType",
+        "newResource": { "adGroupCriterion": { "negative": true, "keyword": { "text": "zdarma", "matchType": "BROAD" } } }
+      }
+    }
+  ]
+}

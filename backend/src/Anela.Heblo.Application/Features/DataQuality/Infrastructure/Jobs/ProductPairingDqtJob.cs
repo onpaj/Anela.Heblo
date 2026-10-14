@@ -16,6 +16,7 @@ public class ProductPairingDqtJob : IRecurringJob
     public RecurringJobMetadata Metadata { get; } = new()
     {
         JobName = "daily-product-pairing-dqt",
+        Category = RecurringJobCategory.DataQuality,
         DisplayName = "Daily Product Pairing Data Quality Test",
         Description = "Compares product pairing between Shoptet and ABRA Flexi for the current day",
         CronExpression = "0 6 * * *", // Daily at 6:00 AM
