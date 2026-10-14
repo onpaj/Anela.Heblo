@@ -165,4 +165,34 @@ public class AdProposalRepositoryTests : IDisposable
         await using var verify = new ApplicationDbContext(_options);
         (await verify.AdProposals.SingleAsync()).UpdatedAt.Should().Be(Now.AddMinutes(1));
     }
+
+    [Fact]
+    public async Task TrySaveChangesWithOutcome_OnConcurrentChange_ReportsConcurrentChangeAndDiscards()
+    {
+        var repo = new AdProposalRepository(_context);
+        var proposal = Proposal();
+        repo.Add(proposal);
+        await repo.SaveChangesAsync(CancellationToken.None);
+        await using (var other = new ApplicationDbContext(_options))
+        {
+            var racing = await other.AdProposals.SingleAsync(p => p.Id == proposal.Id);
+            racing.Touch(Now.AddMinutes(1));
+            await other.SaveChangesAsync();
+        }
+        proposal.Touch(Now.AddMinutes(2));
+
+        var outcome = await repo.TrySaveChangesWithOutcomeAsync(CancellationToken.None);
+
+        outcome.Should().Be(AdSaveOutcome.ConcurrentChange);
+        _context.ChangeTracker.Entries().Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task TrySaveChangesWithOutcome_WhenSaved_ReportsSaved()
+    {
+        var repo = new AdProposalRepository(_context);
+        repo.Add(Proposal());
+
+        (await repo.TrySaveChangesWithOutcomeAsync(CancellationToken.None)).Should().Be(AdSaveOutcome.Saved);
+    }
 }

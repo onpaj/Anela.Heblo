@@ -97,18 +97,27 @@ public class AdProposalRepository : IAdProposalRepository
 
     public Task SaveChangesAsync(CancellationToken cancellationToken) => _context.SaveChangesAsync(cancellationToken);
 
-    public async Task<bool> TrySaveChangesAsync(CancellationToken cancellationToken)
+    public async Task<bool> TrySaveChangesAsync(CancellationToken cancellationToken) =>
+        await TrySaveChangesWithOutcomeAsync(cancellationToken) == AdSaveOutcome.Saved;
+
+    public async Task<AdSaveOutcome> TrySaveChangesWithOutcomeAsync(CancellationToken cancellationToken)
     {
         try
         {
             await _context.SaveChangesAsync(cancellationToken);
-            return true;
+            return AdSaveOutcome.Saved;
         }
-        catch (DbUpdateException ex) // includes DbUpdateConcurrencyException
+        catch (DbUpdateConcurrencyException ex)
+        {
+            _logger.LogWarning(ex, "Saving ad proposal changes lost a concurrency race; discarding tracked changes");
+            DiscardChanges();
+            return AdSaveOutcome.ConcurrentChange;
+        }
+        catch (DbUpdateException ex)
         {
             _logger.LogWarning(ex, "Saving ad proposal changes failed; discarding tracked changes");
             DiscardChanges();
-            return false;
+            return AdSaveOutcome.Failed;
         }
     }
 

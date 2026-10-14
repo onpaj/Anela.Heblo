@@ -31,4 +31,7 @@ public interface IAdProposalRepository
     /// shared context is not poisoned) and returns false. Callers map false to MarketingAdsConcurrentChange.
     /// </summary>
     Task<bool> TrySaveChangesAsync(CancellationToken cancellationToken);
+
+    /// <summary>Like <see cref="TrySaveChangesAsync"/>, but says whether a failure was a lost race or another error.</summary>
+    Task<AdSaveOutcome> TrySaveChangesWithOutcomeAsync(CancellationToken cancellationToken);
 }

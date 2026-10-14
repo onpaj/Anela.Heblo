@@ -79,13 +79,19 @@ internal sealed class FaultyProposalRepository : IAdProposalRepository
             ? throw new DbUpdateException("simulated save failure")
             : _inner.SaveChangesAsync(cancellationToken);
 
-    public async Task<bool> TrySaveChangesAsync(CancellationToken cancellationToken)
+    /// <summary>What a failing TrySave reports; a lost race by default.</summary>
+    public AdSaveOutcome ClaimFailure { get; init; } = AdSaveOutcome.ConcurrentChange;
+
+    public async Task<bool> TrySaveChangesAsync(CancellationToken cancellationToken) =>
+        await TrySaveChangesWithOutcomeAsync(cancellationToken) == AdSaveOutcome.Saved;
+
+    public async Task<AdSaveOutcome> TrySaveChangesWithOutcomeAsync(CancellationToken cancellationToken)
     {
         if (_failingSaves.Contains(Interlocked.Increment(ref _saves)))
         {
             _inner.DiscardChanges();
-            return false;
+            return ClaimFailure;
         }
-        return await _inner.TrySaveChangesAsync(cancellationToken);
+        return await _inner.TrySaveChangesWithOutcomeAsync(cancellationToken);
     }
 }

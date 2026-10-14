@@ -1,5 +1,6 @@
 using System.Runtime.ExceptionServices;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using Anela.Heblo.Application.Features.MarketingAds.Contracts;
 using Anela.Heblo.Application.Features.MarketingAds.Proposals.Actions;
 using Anela.Heblo.Application.Features.MarketingAds.Proposals.Audit;
@@ -24,9 +25,11 @@ public class AdProposalExecutionJob
     public const string StoppedUnexpectedly = "Skipped: the execution stopped on an unexpected error before this action ran.";
     public const string NotRecorded = "Not recorded: the execution stopped on an unexpected error. The change may have been applied; verify in the account.";
     public const string MayHaveBeenApplied = "The change may have been applied; verify in the account.";
+    public const string ConfirmedByReread = "Applied — confirmed by re-read after transport error: ";
     private const int LockTimeoutSeconds = 600;
     private const int MaxAuditTextLength = 4000;
     private const int MaxValueLength = 64;
+    private const int MaxResourceIdLength = 200;
 
     private readonly IAdProposalRepository _proposals;
     private readonly IAdGovernanceRepository _governance;
@@ -91,11 +94,19 @@ public class AdProposalExecutionJob
         proposal.StartExecution(now);
         _audit.Append(AdAuditEvents.ForProposal(proposal, AdAuditEventType.ExecutionStarted, AdSystemPrincipals.Executor,
             AdActorKind.System, ApprovalChannel.System, new { actionCount = proposal.GetCurrentVersion().ActionCount }, now));
-        if (await _proposals.TrySaveChangesAsync(cancellationToken))
+        var outcome = await _proposals.TrySaveChangesWithOutcomeAsync(cancellationToken);
+        if (outcome == AdSaveOutcome.Saved)
         {
             return true;
         }
-        _logger.LogInformation("Ad proposal {ProposalId} was claimed by another execution run; this delivery exits.", proposal.Id);
+        if (outcome == AdSaveOutcome.ConcurrentChange)
+        {
+            _logger.LogInformation("Ad proposal {ProposalId} was claimed by another execution run; this delivery exits.", proposal.Id);
+        }
+        else
+        {
+            _logger.LogError("Claiming ad proposal {ProposalId} for execution failed to save; it stays Approved.", proposal.Id);
+        }
         return false;
     }
 
@@ -174,9 +185,8 @@ public class AdProposalExecutionJob
             var cancelled = cancellationToken.IsCancellationRequested;
             _logger.LogError(ex, "Execute failed for ad proposal {ProposalId} action {Index} (cancelled: {Cancelled})", proposal.Id, index, cancelled);
             var observed = cancelled ? null : await TryRereadAsync(executor, action, proposal.Id, index, cancellationToken);
-            Record(proposal, index, action, new ActionOutcome(AdActionExecutionState.Failed,
-                $"Execution failed: {ex.Message} {MayHaveBeenApplied}", before, ObservedAfter: observed?.CurrentValue));
-            return cancelled ? Cancelled : SkippedAfterStop;
+            Record(proposal, index, action, OutcomeAfterThrownMutate(action, before, observed, ex));
+            return cancelled ? Cancelled : SkippedAfterStop; // never mutate again after a transport fault
         }
 
         var state = result.Outcome switch
@@ -192,6 +202,14 @@ public class AdProposalExecutionJob
         Record(proposal, index, action, new ActionOutcome(state, result.Error, before, result));
         return state == AdActionExecutionState.StaleState ? SkippedAfterStop : null;
     }
+
+    /// <summary>The re-read decides: showing the new value means the mutate landed; anything else stays Failed.</summary>
+    private static ActionOutcome OutcomeAfterThrownMutate(AdAction action, AdTargetState before, AdTargetState? observed, Exception ex) =>
+        observed is not null && string.Equals(observed.CurrentValue, action.NewValue, StringComparison.Ordinal)
+            ? new ActionOutcome(AdActionExecutionState.Succeeded, ConfirmedByReread + ex.Message, before,
+                ObservedAfter: observed.CurrentValue, ObservedRawJson: observed.RawJson)
+            : new ActionOutcome(AdActionExecutionState.Failed, $"Execution failed: {ex.Message} {MayHaveBeenApplied}", before,
+                ObservedAfter: observed?.CurrentValue);
 
     /// <summary>One best-effort read after a thrown mutate, so a human can see whether it landed. Never throws.</summary>
     private async Task<AdTargetState?> TryRereadAsync(IAdActionExecutor executor, AdAction action, int proposalId, int index, CancellationToken cancellationToken)
@@ -266,6 +284,8 @@ public class AdProposalExecutionJob
         var result = outcome.Result;
         var afterValue = Clip(result?.AfterValue ?? outcome.ObservedAfter);
         var isValidateOnly = outcome.State == AdActionExecutionState.Failed && AdExecutionErrors.IsValidateOnly(outcome.Error);
+        var (resourceId, responseJson) = FitResourceId(proposal.Id, index, result?.PlatformResourceId,
+            result?.PlatformResponseJson ?? outcome.ObservedRawJson);
         proposal.RecordExecution(new AdProposalActionExecution
         {
             ProposalId = proposal.Id,
@@ -281,8 +301,8 @@ public class AdProposalExecutionJob
             BeforeValue = Clip(outcome.Before?.CurrentValue),
             BeforeRawJson = outcome.Before?.RawJson,
             AfterValue = afterValue,
-            PlatformResourceId = result?.PlatformResourceId,
-            PlatformResponseJson = result?.PlatformResponseJson,
+            PlatformResourceId = resourceId,
+            PlatformResponseJson = responseJson,
             Error = outcome.Error,
             ExecutedAt = now,
         });
@@ -296,10 +316,46 @@ public class AdProposalExecutionJob
                 before = outcome.Before?.CurrentValue,
                 after = afterValue,
                 platformResourceId = result?.PlatformResourceId,
-                platformResponse = Truncate(result?.PlatformResponseJson, MaxAuditTextLength),
+                platformResponse = Truncate(responseJson, MaxAuditTextLength),
                 error = Truncate(outcome.Error, MaxAuditTextLength),
                 validateOnly = isValidateOnly,
             }, now));
+    }
+
+    /// <summary>
+    /// A resource id longer than its column would fail the save right after a live mutate, and a clipped one would break
+    /// revert; such an id is kept in the response JSON instead and the column stays null.
+    /// </summary>
+    private (string? ResourceId, string? ResponseJson) FitResourceId(int proposalId, int index, string? resourceId, string? responseJson)
+    {
+        if (resourceId is null || resourceId.Length <= MaxResourceIdLength)
+        {
+            return (resourceId, responseJson);
+        }
+        _logger.LogWarning("Ad proposal {ProposalId} action {Index}: platform resource id is {Length} characters (max {Max}); kept in the response JSON only.",
+            proposalId, index, resourceId.Length, MaxResourceIdLength);
+        if (responseJson is not null && responseJson.Contains(resourceId, StringComparison.Ordinal))
+        {
+            return (null, responseJson);
+        }
+        var envelope = new JsonObject { ["platformResourceId"] = resourceId, ["platformResponse"] = ParseOrText(responseJson) };
+        return (null, envelope.ToJsonString());
+    }
+
+    private static JsonNode? ParseOrText(string? json)
+    {
+        if (json is null)
+        {
+            return null;
+        }
+        try
+        {
+            return JsonNode.Parse(json);
+        }
+        catch (JsonException)
+        {
+            return JsonValue.Create(json);
+        }
     }
 
     private static string? Clip(string? value) => Truncate(value, MaxValueLength);
@@ -309,7 +365,9 @@ public class AdProposalExecutionJob
 
     private DateTime Now() => _time.GetUtcNow().UtcDateTime;
 
-    /// <param name="ObservedAfter">State re-read after a thrown mutate; used when there is no platform result.</param>
+    /// <param name="ObservedAfter">Value re-read after a thrown mutate; used when there is no platform result.</param>
+    /// <param name="ObservedRawJson">Raw re-read state, stored as the response when the re-read confirms the change.</param>
     private sealed record ActionOutcome(
-        AdActionExecutionState State, string? Error, AdTargetState? Before = null, AdExecutionResult? Result = null, string? ObservedAfter = null);
+        AdActionExecutionState State, string? Error, AdTargetState? Before = null, AdExecutionResult? Result = null,
+        string? ObservedAfter = null, string? ObservedRawJson = null);
 }

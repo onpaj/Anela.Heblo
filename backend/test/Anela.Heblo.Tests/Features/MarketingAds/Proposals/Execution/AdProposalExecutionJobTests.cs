@@ -5,6 +5,7 @@ using Anela.Heblo.MarketingAds.TestKit;
 using Anela.Heblo.Persistence.MarketingAds;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using Xunit;
@@ -212,29 +213,116 @@ public class AdProposalExecutionJobTests
     }
 
     [Fact]
-    public async Task RunAsync_ExecuteThrows_RereadsOnceAndStoresTheObservedValueWithoutRetrying()
+    public async Task RunAsync_ExecuteThrowsButRereadShowsTheNewValue_RecordsSucceededAndStops()
     {
         using var h = new ProposalTestHarness();
         await h.SetKillSwitchAsync(AdKillSwitch.GlobalScope, true);
-        var id = await h.SeedApprovedAsync();
+        var id = await h.SeedApprovedAsync(actionCount: 2);
         var executor = Executor();
         executor.SetupSequence(e => e.ReadCurrentAsync(It.IsAny<AdAction>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new AdTargetState(true, AdActionValues.Enabled, "{}"))
-            .ReturnsAsync(new AdTargetState(true, AdActionValues.Paused, "{}")); // the mutate landed after all
+            .ReturnsAsync(new AdTargetState(true, AdActionValues.Paused, """{"status":"PAUSED"}""")); // the mutate landed after all
         executor.Setup(e => e.ExecuteAsync(It.IsAny<AdAction>(), It.IsAny<CancellationToken>()))
             .ThrowsAsync(new TaskCanceledException("HttpClient.Timeout"));
 
         await Job(h, executor.Object).RunAsync(id, CancellationToken.None);
 
-        var (proposal, rows, _) = await LoadAsync(h, id);
+        var (proposal, rows, audit) = await LoadAsync(h, id);
+        proposal.Status.Should().Be(AdProposalStatus.PartiallyExecuted);
+        rows.Select(r => r.State).Should().Equal(AdActionExecutionState.Succeeded, AdActionExecutionState.Skipped);
+        rows[0].BeforeValue.Should().Be(AdActionValues.Enabled);
+        rows[0].AfterValue.Should().Be(AdActionValues.Paused);
+        rows[0].PlatformResponseJson.Should().Be("""{"status":"PAUSED"}""");
+        rows[0].PlatformResourceId.Should().BeNull();
+        rows[0].Error.Should().Be($"{AdProposalExecutionJob.ConfirmedByReread}HttpClient.Timeout");
+        rows[1].Error.Should().Be(AdProposalExecutionJob.SkippedAfterStop);
+        audit.Select(e => e.EventType).Should().Equal(AdAuditEventType.ExecutionStarted, AdAuditEventType.ActionExecuted, AdAuditEventType.ActionFailed);
+        executor.Verify(e => e.ExecuteAsync(It.IsAny<AdAction>(), It.IsAny<CancellationToken>()), Times.Once);
+        executor.Verify(e => e.ReadCurrentAsync(It.IsAny<AdAction>(), It.IsAny<CancellationToken>()), Times.Exactly(2));
+        await using var verify = h.NewContext();
+        var repo = new AdProposalRepository(verify);
+        (await repo.CountSucceededActionsSinceAsync("GoogleAds", "acc-1", "PauseAd", h.Now.AddDays(-1), CancellationToken.None)).Should().Be(1);
+        (await repo.GetExecutionsInWindowAsync("GoogleAds", "acc-1", h.Now.AddDays(-1), h.Now.AddDays(1), CancellationToken.None))
+            .Should().ContainSingle(e => e.TargetExternalId == "ad-1");
+    }
+
+    [Fact]
+    public async Task RunAsync_ExecuteThrowsAndRereadShowsTheOldValue_StaysFailed()
+    {
+        using var h = new ProposalTestHarness();
+        await h.SetKillSwitchAsync(AdKillSwitch.GlobalScope, true);
+        var id = await h.SeedApprovedAsync();
+        var executor = Executor(); // every read returns Enabled, the old value
+        executor.Setup(e => e.ExecuteAsync(It.IsAny<AdAction>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new TaskCanceledException("HttpClient.Timeout"));
+
+        await Job(h, executor.Object).RunAsync(id, CancellationToken.None);
+
+        var (proposal, rows, audit) = await LoadAsync(h, id);
         proposal.Status.Should().Be(AdProposalStatus.Failed);
         var row = rows.Single();
         row.State.Should().Be(AdActionExecutionState.Failed);
-        row.BeforeValue.Should().Be(AdActionValues.Enabled);
-        row.AfterValue.Should().Be(AdActionValues.Paused);
+        row.AfterValue.Should().Be(AdActionValues.Enabled);
         row.Error.Should().Contain("HttpClient.Timeout").And.Contain(AdProposalExecutionJob.MayHaveBeenApplied);
+        audit.Should().NotContain(e => e.EventType == AdAuditEventType.ActionExecuted);
         executor.Verify(e => e.ExecuteAsync(It.IsAny<AdAction>(), It.IsAny<CancellationToken>()), Times.Once);
         executor.Verify(e => e.ReadCurrentAsync(It.IsAny<AdAction>(), It.IsAny<CancellationToken>()), Times.Exactly(2));
+    }
+
+    [Fact]
+    public async Task RunAsync_ResourceIdLongerThanTheColumn_KeepsItInTheResponseInsteadOfFailingTheSave()
+    {
+        using var h = new ProposalTestHarness();
+        await h.SetKillSwitchAsync(AdKillSwitch.GlobalScope, true);
+        var id = await h.SeedApprovedAsync();
+        var longId = "customers/1/adGroupAds/" + new string('9', 250);
+        var executor = Executor();
+        executor.Setup(e => e.ExecuteAsync(It.IsAny<AdAction>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new AdExecutionResult(AdExecutionOutcome.Succeeded, AdActionValues.Enabled, AdActionValues.Paused, longId, """{"ok":true}""", null));
+
+        await Job(h, executor.Object).RunAsync(id, CancellationToken.None);
+
+        var (proposal, rows, _) = await LoadAsync(h, id);
+        proposal.Status.Should().Be(AdProposalStatus.Executed);
+        rows.Single().PlatformResourceId.Should().BeNull("a clipped id would break revert");
+        rows.Single().PlatformResponseJson.Should().Contain(longId).And.Contain("\"ok\":true");
+    }
+
+    [Fact]
+    public async Task RunAsync_ClaimLostToAConcurrentRun_LogsInformationNotError()
+    {
+        var logger = await RunWithFailedClaimAsync(AdSaveOutcome.ConcurrentChange);
+
+        logger.Verify(l => l.Log(LogLevel.Information, It.IsAny<EventId>(), It.Is<It.IsAnyType>((v, _) => v.ToString()!.Contains("claimed by another")),
+            It.IsAny<Exception?>(), It.IsAny<Func<It.IsAnyType, Exception?, string>>()), Times.Once);
+        logger.Verify(l => l.Log(LogLevel.Error, It.IsAny<EventId>(), It.IsAny<It.IsAnyType>(),
+            It.IsAny<Exception?>(), It.IsAny<Func<It.IsAnyType, Exception?, string>>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task RunAsync_ClaimSaveFailsForAnotherReason_LogsError()
+    {
+        var logger = await RunWithFailedClaimAsync(AdSaveOutcome.Failed);
+
+        logger.Verify(l => l.Log(LogLevel.Error, It.IsAny<EventId>(), It.IsAny<It.IsAnyType>(),
+            It.IsAny<Exception?>(), It.IsAny<Func<It.IsAnyType, Exception?, string>>()), Times.Once);
+    }
+
+    private static async Task<Mock<ILogger<AdProposalExecutionJob>>> RunWithFailedClaimAsync(AdSaveOutcome claimFailure)
+    {
+        using var h = new ProposalTestHarness();
+        await h.SetKillSwitchAsync(AdKillSwitch.GlobalScope, true);
+        var id = await h.SeedApprovedAsync();
+        var executor = Executor();
+        var logger = new Mock<ILogger<AdProposalExecutionJob>>();
+        var repo = new FaultyProposalRepository(h.Proposals, failOnSaves: 1) { ClaimFailure = claimFailure };
+        var job = new AdProposalExecutionJob(repo, h.Governance, h.Audit, new[] { executor.Object }, h.Time, logger.Object);
+
+        await job.RunAsync(id, CancellationToken.None);
+
+        (await LoadAsync(h, id)).Proposal.Status.Should().Be(AdProposalStatus.Approved);
+        executor.Verify(e => e.ExecuteAsync(It.IsAny<AdAction>(), It.IsAny<CancellationToken>()), Times.Never);
+        return logger;
     }
 
     [Fact]
