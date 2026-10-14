@@ -1,5 +1,6 @@
 using Anela.Heblo.Application.Shared.Rag;
 using Anela.Heblo.Domain.Features.Rag;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 
 namespace Anela.Heblo.Application.Features.KnowledgeBase.Services;
@@ -10,12 +11,19 @@ public sealed class QuestionTagLibrary : IQuestionTagLibrary
     public const int MaxLibraryTagsPerKind = 200;
     public const string EmptyLibraryText = "(zatím žádné)";
 
+    // The library is read on every KB search but changes slowly; a short TTL keeps the full-table
+    // aggregation off the question latency path while new tags still show up within minutes.
+    internal static readonly TimeSpan CacheDuration = TimeSpan.FromMinutes(10);
+    private const string CacheKey = "KnowledgeBase:QuestionTagLibrary";
+
     private readonly IRagInteractionLogRepository _repository;
+    private readonly IMemoryCache _cache;
     private readonly ILogger<QuestionTagLibrary> _logger;
 
-    public QuestionTagLibrary(IRagInteractionLogRepository repository, ILogger<QuestionTagLibrary> logger)
+    public QuestionTagLibrary(IRagInteractionLogRepository repository, IMemoryCache cache, ILogger<QuestionTagLibrary> logger)
     {
         _repository = repository;
+        _cache = cache;
         _logger = logger;
     }
 
@@ -32,9 +40,13 @@ public sealed class QuestionTagLibrary : IQuestionTagLibrary
 
     private async Task<IReadOnlyList<RagTagCount>> LoadCountsAsync(CancellationToken ct)
     {
+        if (_cache.TryGetValue(CacheKey, out IReadOnlyList<RagTagCount>? cached) && cached is not null)
+            return cached;
+
         try
         {
-            return await _repository.GetTagCountsAsync(RagFeature.KnowledgeBase, from: null, toExclusive: null, ct);
+            var counts = await _repository.GetTagCountsAsync(RagFeature.KnowledgeBase, from: null, toExclusive: null, ct);
+            return _cache.Set(CacheKey, counts, CacheDuration);
         }
         catch (Exception ex) when (!ct.IsCancellationRequested)
         {

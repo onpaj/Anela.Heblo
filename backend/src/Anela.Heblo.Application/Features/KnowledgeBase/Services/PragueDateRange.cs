@@ -11,8 +11,9 @@ public static class PragueDateRange
     public static DateTimeOffset? StartOfDay(DateOnly? day) =>
         day is null ? null : LocalMidnightUtc(day.Value);
 
+    // DateOnly.MaxValue has no next day; treat it as "no upper bound" instead of throwing.
     public static DateTimeOffset? EndExclusive(DateOnly? day) =>
-        day is null ? null : LocalMidnightUtc(day.Value.AddDays(1));
+        day is null || day.Value == DateOnly.MaxValue ? null : LocalMidnightUtc(day.Value.AddDays(1));
 
     private static DateTimeOffset LocalMidnightUtc(DateOnly day)
     {

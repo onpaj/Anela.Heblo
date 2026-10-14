@@ -41,4 +41,10 @@ public class PragueDateRangeTests
         PragueDateRange.StartOfDay(null).Should().BeNull();
         PragueDateRange.EndExclusive(null).Should().BeNull();
     }
+
+    [Fact]
+    public void EndExclusive_MaxValue_ReturnsNullInsteadOfThrowing()
+    {
+        PragueDateRange.EndExclusive(DateOnly.MaxValue).Should().BeNull();
+    }
 }

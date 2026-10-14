@@ -52,6 +52,7 @@ public static class KnowledgeBaseModule
 
         // Repository (real EF Core implementation lives in the Persistence layer)
         services.AddScoped<IKnowledgeBaseRepository, KnowledgeBaseRepository>();
+        services.AddMemoryCache();
         services.AddScoped<IQuestionTagLibrary, QuestionTagLibrary>();
 
         services.AddSingleton<IProductEnrichmentCache, ProductEnrichmentCache>();

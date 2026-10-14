@@ -70,7 +70,10 @@ const MarketingFeedbackPage: React.FC = () => {
   const leaflet = useLeafletFeedbackAdapter(leafletParams);
   const article = useArticleFeedbackAdapter(articleParams);
   const smartsupp = useSmartsuppFeedbackAdapter(smartsuppParams);
-  const kbTagStats = useKnowledgeBaseTagStatsQuery({ dateFrom: kbParams.dateFrom, dateTo: kbParams.dateTo });
+  const kbTagStats = useKnowledgeBaseTagStatsQuery(
+    { dateFrom: kbParams.dateFrom, dateTo: kbParams.dateTo },
+    { enabled: hasKb },
+  );
 
   if (!hasKb && !hasGenAi && !hasSmartsupp) {
     return <div className="p-6 text-sm text-gray-500 dark:text-graphite-muted">Přístup odepřen.</div>;
@@ -169,6 +172,7 @@ const MarketingFeedbackPage: React.FC = () => {
             <KbTagFrequencyPanel
               stats={kbTagStats.data}
               isLoading={kbTagStats.isLoading}
+              isError={kbTagStats.isError}
               onProblemClick={(tag) => handleKbFilterChange({ problemTag: tag })}
               onProductClick={(tag) => handleKbFilterChange({ productTag: tag })}
             />

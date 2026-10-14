@@ -9,6 +9,7 @@ import {
   useSubmitFeedbackMutation,
   useUploadKnowledgeBaseDocumentMutation,
   useKnowledgeBaseFeedbackListQuery,
+  useKnowledgeBaseTagStatsQuery,
   knowledgeBaseKeys,
 } from '../useKnowledgeBase';
 import { SearchDocumentsRequest, AskQuestionRequest, SubmitFeedbackRequest } from '../../generated/api-client';
@@ -452,5 +453,63 @@ describe('useKnowledgeBaseFeedbackListQuery', () => {
     ]);
     expect(result.current.data?.stats.avgStyleScore).toBeNull();
     expect(result.current.data?.stats.avgPrecisionScore).toBe(3.5);
+  });
+});
+
+describe('useKnowledgeBaseTagStatsQuery', () => {
+  let mockFetch: jest.Mock;
+
+  const jsonResponse = (body: unknown) => ({ ok: true, status: 200, json: async () => body });
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockFetch = jest.fn();
+    mockAuthenticatedApiClient({ baseUrl: 'http://api.test', http: { fetch: mockFetch } });
+  });
+
+  it('requests tag-stats with plain dates and maps every kind, falling back label to tag', async () => {
+    mockFetch.mockResolvedValue(
+      jsonResponse({
+        problemTags: [{ tag: 'akné', label: 'akné', count: 5 }],
+        productTags: [{ tag: 'hořčíkové máslo', count: 2 }],
+        recommendedProducts: [{ tag: 'MAS009', label: 'Klidné nožky balzám', count: 3 }],
+      }),
+    );
+
+    const { wrapper } = createQueryClientWrapper();
+    const { result } = renderHook(
+      () => useKnowledgeBaseTagStatsQuery({ dateFrom: '2026-10-01', dateTo: '2026-10-14' }),
+      { wrapper },
+    );
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+
+    const url = mockFetch.mock.calls[0][0] as string;
+    expect(url.startsWith('http://api.test/api/KnowledgeBase/feedback/tag-stats?')).toBe(true);
+    const query = new URLSearchParams(url.split('?')[1]);
+    expect(Object.fromEntries(query.entries())).toEqual({ dateFrom: '2026-10-01', dateTo: '2026-10-14' });
+    expect(result.current.data).toEqual({
+      problemTags: [{ tag: 'akné', label: 'akné', count: 5 }],
+      productTags: [{ tag: 'hořčíkové máslo', label: 'hořčíkové máslo', count: 2 }],
+      recommendedProducts: [{ tag: 'MAS009', label: 'Klidné nožky balzám', count: 3 }],
+    });
+  });
+
+  it('treats missing arrays as empty', async () => {
+    mockFetch.mockResolvedValue(jsonResponse({}));
+
+    const { wrapper } = createQueryClientWrapper();
+    const { result } = renderHook(() => useKnowledgeBaseTagStatsQuery(), { wrapper });
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(result.current.data).toEqual({ problemTags: [], productTags: [], recommendedProducts: [] });
+  });
+
+  it('does not fetch when disabled', async () => {
+    const { wrapper } = createQueryClientWrapper();
+    renderHook(() => useKnowledgeBaseTagStatsQuery({}, { enabled: false }), { wrapper });
+
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(mockFetch).not.toHaveBeenCalled();
   });
 });

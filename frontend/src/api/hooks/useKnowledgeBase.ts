@@ -299,8 +299,9 @@ export const useKnowledgeBaseFeedbackListQuery = (params: GetFeedbackListParams 
   });
 };
 
-export const useKnowledgeBaseTagStatsQuery = (params: TagStatsParams = {}) => {
+export const useKnowledgeBaseTagStatsQuery = (params: TagStatsParams = {}, options: { enabled?: boolean } = {}) => {
   return useQuery({
+    enabled: options.enabled ?? true,
     queryKey: knowledgeBaseKeys.tagStats(params),
     queryFn: async (): Promise<QuestionTagStats> => {
       const query = buildFeedbackListQuery(params);

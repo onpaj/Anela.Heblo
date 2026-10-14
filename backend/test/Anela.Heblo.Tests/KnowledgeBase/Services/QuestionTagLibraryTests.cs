@@ -2,6 +2,7 @@ using Anela.Heblo.Application.Features.KnowledgeBase.Services;
 using Anela.Heblo.Application.Shared.Rag;
 using Anela.Heblo.Domain.Features.Rag;
 using FluentAssertions;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 using Moq;
 using Xunit;
@@ -13,7 +14,9 @@ public class QuestionTagLibraryTests
     private readonly Mock<IRagInteractionLogRepository> _repository = new();
     private readonly Mock<ILogger<QuestionTagLibrary>> _logger = new();
 
-    private QuestionTagLibrary Create() => new(_repository.Object, _logger.Object);
+    private readonly IMemoryCache _cache = new MemoryCache(new MemoryCacheOptions());
+
+    private QuestionTagLibrary Create() => new(_repository.Object, _cache, _logger.Object);
 
     private static RagQueryExpansionConfig Config(string prompt) => new(Enabled: true, Model: "m", Prompt: prompt);
 
@@ -120,5 +123,39 @@ public class QuestionTagLibraryTests
 
         // Assert
         await act.Should().ThrowAsync<OperationCanceledException>();
+    }
+
+    [Fact]
+    public async Task BuildExpansionConfigAsync_SecondCall_ServedFromCacheWithoutQuery()
+    {
+        // Arrange
+        SetupCounts(new RagTagCount(RagTagKind.Problem, "akné", 1));
+
+        // Act
+        await Create().BuildExpansionConfigAsync(Config("{EXISTING_TAGS}"), CancellationToken.None);
+        var result = await Create().BuildExpansionConfigAsync(Config("{EXISTING_TAGS}"), CancellationToken.None);
+
+        // Assert
+        result.Prompt.Should().StartWith("Problémy: akné");
+        _repository.Verify(
+            r => r.GetTagCountsAsync(RagFeature.KnowledgeBase, null, null, It.IsAny<CancellationToken>()),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task BuildExpansionConfigAsync_FailedLoad_IsNotCached()
+    {
+        // Arrange
+        _repository
+            .SetupSequence(r => r.GetTagCountsAsync(RagFeature.KnowledgeBase, null, null, It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new TimeoutException("db"))
+            .ReturnsAsync([new RagTagCount(RagTagKind.Problem, "akné", 1)]);
+
+        // Act
+        await Create().BuildExpansionConfigAsync(Config("{EXISTING_TAGS}"), CancellationToken.None);
+        var result = await Create().BuildExpansionConfigAsync(Config("{EXISTING_TAGS}"), CancellationToken.None);
+
+        // Assert
+        result.Prompt.Should().StartWith("Problémy: akné");
     }
 }

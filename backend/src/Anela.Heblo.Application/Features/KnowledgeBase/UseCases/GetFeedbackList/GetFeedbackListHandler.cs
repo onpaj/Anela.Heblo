@@ -36,8 +36,8 @@ public class GetFeedbackListHandler : IRequestHandler<GetFeedbackListRequest, Ge
             request.UserId,
             PragueDateRange.StartOfDay(request.DateFrom),
             PragueDateRange.EndExclusive(request.DateTo),
-            RagExpansionParser.NormalizeTag(request.ProblemTag),
-            RagExpansionParser.NormalizeTag(request.ProductTag));
+            NormalizeTagFilter(request.ProblemTag),
+            NormalizeTagFilter(request.ProductTag));
 
         var (logs, totalCount) = await _repository.GetFeedbackLogsPagedAsync(
             filter,
@@ -64,4 +64,10 @@ public class GetFeedbackListHandler : IRequestHandler<GetFeedbackListRequest, Ge
             Stats = RagFeedbackListMapper.ToStats(stats),
         };
     }
+
+    // Same normalisation as stored tags, but an over-long tag is kept rather than dropped:
+    // it can never match a stored tag, so the filter yields no rows instead of silently disappearing.
+    private static string? NormalizeTagFilter(string? tag) =>
+        RagExpansionParser.NormalizeTag(tag)
+        ?? (string.IsNullOrWhiteSpace(tag) ? null : tag.Trim().ToLowerInvariant());
 }

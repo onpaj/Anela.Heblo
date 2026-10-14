@@ -7,6 +7,7 @@ const TOP_TAGS_SHOWN = 10;
 interface KbTagFrequencyPanelProps {
   stats?: QuestionTagStats;
   isLoading: boolean;
+  isError?: boolean;
   onProblemClick: (tag: string) => void;
   onProductClick: (tag: string) => void;
 }
@@ -51,9 +52,13 @@ function TagColumn({ title, items, onClick }: TagColumnProps) {
   );
 }
 
-function KbTagFrequencyPanel({ stats, isLoading, onProblemClick, onProductClick }: KbTagFrequencyPanelProps) {
+function KbTagFrequencyPanel({ stats, isLoading, isError = false, onProblemClick, onProductClick }: KbTagFrequencyPanelProps) {
   if (isLoading) {
     return <div className="text-sm text-gray-500 dark:text-graphite-muted">Načítám štítky…</div>;
+  }
+
+  if (isError) {
+    return <div role="alert" className="text-sm text-red-600 dark:text-red-400">Nepodařilo se načíst štítky.</div>;
   }
 
   const isEmpty =

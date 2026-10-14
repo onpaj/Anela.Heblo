@@ -40,3 +40,11 @@ test('shows an empty-state message when no tags exist yet', () => {
   );
   expect(screen.getByText('Zatím žádné štítky v tomto období.')).toBeInTheDocument();
 });
+
+test('shows an error instead of the empty state when loading tags failed', () => {
+  render(
+    <KbTagFrequencyPanel isLoading={false} isError onProblemClick={jest.fn()} onProductClick={jest.fn()} />,
+  );
+  expect(screen.getByRole('alert')).toHaveTextContent('Nepodařilo se načíst štítky.');
+  expect(screen.queryByText('Zatím žádné štítky v tomto období.')).not.toBeInTheDocument();
+});

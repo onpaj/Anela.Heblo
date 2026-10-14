@@ -365,6 +365,17 @@ public class GetFeedbackListHandlerTests
     }
 
     [Fact]
+    public async Task Handle_OverLongTagFilter_IsKeptSoItMatchesNothing()
+    {
+        var longTag = new string('a', 70);
+
+        var filter = await SendAndCapture(new GetFeedbackListRequest { ProblemTag = longTag, ProductTag = $" {longTag.ToUpperInvariant()} " });
+
+        filter.ProblemTag.Should().Be(longTag);
+        filter.ProductTag.Should().Be(longTag);
+    }
+
+    [Fact]
     public async Task Handle_MapsTagsOntoSummary()
     {
         var log = MakeLog();
