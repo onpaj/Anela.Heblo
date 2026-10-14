@@ -144,6 +144,7 @@ public partial class Program
 
         // MCP server
         builder.Services.AddMcpServices();
+        builder.Services.AddMcpAgentRateLimiting(builder.Configuration);
 
         // Request timeouts — required for .WithRequestTimeout() on MCP and other endpoints
         builder.Services.AddRequestTimeouts();
