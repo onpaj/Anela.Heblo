@@ -85,7 +85,7 @@ public class PackageRepositoryCarrierFilterTests : IDisposable
         await _db.SaveChangesAsync();
 
         // Act
-        var result = await QueryAsync(new[] { "6" }, new[] { "PPL" });
+        var result = await QueryAsync(new[] { "6" }, new[] { "PPL (do ruky)" });
 
         // Assert
         result.Should().Equal("P-1");
