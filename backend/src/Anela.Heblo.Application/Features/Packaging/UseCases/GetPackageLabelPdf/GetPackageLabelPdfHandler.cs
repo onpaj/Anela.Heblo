@@ -1,9 +1,9 @@
-using Anela.Heblo.Application.Features.FeatureFlags;
 using Anela.Heblo.Application.Features.Packaging.Contracts;
 using Anela.Heblo.Application.Features.Packaging.Services;
 using Anela.Heblo.Application.Features.ShipmentLabels;
 using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Domain.Features.Logistics;
+using Anela.Heblo.Domain.Features.Packaging;
 using MediatR;
 using Microsoft.Extensions.Logging;
 
@@ -13,16 +13,14 @@ public class GetPackageLabelPdfHandler : IRequestHandler<GetPackageLabelPdfReque
 {
     public const string HttpClientName = "ShipmentLabelDownloader";
 
-    /// <summary>
-    /// How far each enabled direction flag moves the label content. 10 mm in PDF points (1/72 in).
-    /// </summary>
-    private const double LabelOffsetPoints = 10 / 25.4 * 72;
+    /// <summary>PDF points (1/72 in) per millimetre.</summary>
+    private const double PointsPerMm = 72 / 25.4;
 
     private readonly IShipmentClient _shipmentClient;
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly IPackingOrderShippingSource _orderShippingSource;
     private readonly IShippingMethodCatalog _shippingCatalog;
-    private readonly IFeatureFlagChecker _featureFlags;
+    private readonly ICarrierLabelOffsetRepository _labelOffsets;
     private readonly ILogger<GetPackageLabelPdfHandler> _logger;
 
     public GetPackageLabelPdfHandler(
@@ -30,14 +28,14 @@ public class GetPackageLabelPdfHandler : IRequestHandler<GetPackageLabelPdfReque
         IHttpClientFactory httpClientFactory,
         IPackingOrderShippingSource orderShippingSource,
         IShippingMethodCatalog shippingCatalog,
-        IFeatureFlagChecker featureFlags,
+        ICarrierLabelOffsetRepository labelOffsets,
         ILogger<GetPackageLabelPdfHandler> logger)
     {
         _shipmentClient = shipmentClient;
         _httpClientFactory = httpClientFactory;
         _orderShippingSource = orderShippingSource;
         _shippingCatalog = shippingCatalog;
-        _featureFlags = featureFlags;
+        _labelOffsets = labelOffsets;
         _logger = logger;
     }
 
@@ -115,44 +113,25 @@ public class GetPackageLabelPdfHandler : IRequestHandler<GetPackageLabelPdfReque
     }
 
     /// <summary>
-    /// Label placement on the Zebra is still being tuned, so each direction has its own flag that
-    /// moves the label 10 mm that way. Enabled directions add up; opposite ones cancel.
-    /// </summary>
-    private static readonly (string FlagKey, int Right, int Up)[] OffsetFlags =
-    [
-        (FeatureFlagKeys.LabelOffsetLeft, -1, 0),
-        (FeatureFlagKeys.LabelOffsetRight, 1, 0),
-        (FeatureFlagKeys.LabelOffsetUp, 0, 1),
-        (FeatureFlagKeys.LabelOffsetDown, 0, -1),
-    ];
-
-    /// <summary>The offset only applies to these carriers' labels; all others print untouched.</summary>
-    private static readonly IReadOnlySet<Carriers> OffsetCarriers =
-        new HashSet<Carriers> { Carriers.PPL, Carriers.Zasilkovna };
-
-    /// <summary>
-    /// Sums the enabled direction flags into one (right, up) move in PDF points, but only for
-    /// carriers in <see cref="OffsetCarriers"/>. With no net offset the carrier is not looked up
-    /// at all. A failed flag check or carrier lookup only skips the offset — the label still prints.
+    /// Looks up the per-carrier offset saved in Nastavení expedice and converts it to PDF points.
+    /// When no carrier has a non-zero offset the order's carrier is not looked up at all. A failed
+    /// offset read or carrier lookup only skips the offset — the label still prints.
     /// </summary>
     private async Task<(double Right, double Up)> GetOffsetAsync(GetPackageLabelPdfRequest request, CancellationToken ct)
     {
         try
         {
-            var (right, up) = (0, 0);
-            foreach (var (flagKey, flagRight, flagUp) in OffsetFlags)
-            {
-                if (!await _featureFlags.IsEnabledAsync(flagKey, ct))
-                    continue;
-
-                right += flagRight;
-                up += flagUp;
-            }
-
-            if ((right, up) == (0, 0) || !await IsOffsetCarrierAsync(request.OrderCode, ct))
+            var offsets = await _labelOffsets.GetAllAsync(ct);
+            if (!offsets.Any(o => o.OffsetXMm != 0 || o.OffsetYMm != 0))
                 return default;
 
-            return (right * LabelOffsetPoints, up * LabelOffsetPoints);
+            var carrier = await ResolveCarrierAsync(request.OrderCode, ct);
+            var offset = offsets.FirstOrDefault(o => o.Carrier == carrier);
+            _logger.LogDebug(
+                "Label offset for order {OrderCode}: carrier {Carrier}, X {OffsetXMm} mm, Y {OffsetYMm} mm",
+                request.OrderCode, carrier?.ToString() ?? "unresolved", offset?.OffsetXMm ?? 0, offset?.OffsetYMm ?? 0);
+
+            return offset is null ? default : (offset.OffsetXMm * PointsPerMm, offset.OffsetYMm * PointsPerMm);
         }
         catch (Exception ex) when (!ct.IsCancellationRequested)
         {
@@ -163,15 +142,10 @@ public class GetPackageLabelPdfHandler : IRequestHandler<GetPackageLabelPdfReque
         }
     }
 
-    private async Task<bool> IsOffsetCarrierAsync(string orderCode, CancellationToken ct)
+    private async Task<Carriers?> ResolveCarrierAsync(string orderCode, CancellationToken ct)
     {
         var shippingGuid = await _orderShippingSource.GetShippingMethodGuidAsync(orderCode, ct);
-        var carrier = shippingGuid is null ? null : _shippingCatalog.ResolveCarrierByShippingGuid(shippingGuid);
-        var isOffsetCarrier = carrier is not null && OffsetCarriers.Contains(carrier.Value);
-        _logger.LogDebug(
-            "Label offset carrier check for order {OrderCode}: carrier {Carrier}, offset applies {IsOffsetCarrier}",
-            orderCode, carrier?.ToString() ?? "unresolved", isOffsetCarrier);
-        return isOffsetCarrier;
+        return shippingGuid is null ? null : _shippingCatalog.ResolveCarrierByShippingGuid(shippingGuid);
     }
 
     private async Task<Stream> ShiftAsync(

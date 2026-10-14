@@ -1856,6 +1856,78 @@ export class ApiClient {
         return Promise.resolve<SetCarrierCoolingResponse>(null as any);
     }
 
+    carrierLabelOffset_GetOffsets(): Promise<GetCarrierLabelOffsetsResponse> {
+        let url_ = this.baseUrl + "/api/carrier-label-offsets";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processCarrierLabelOffset_GetOffsets(_response);
+        });
+    }
+
+    protected processCarrierLabelOffset_GetOffsets(response: Response): Promise<GetCarrierLabelOffsetsResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = GetCarrierLabelOffsetsResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<GetCarrierLabelOffsetsResponse>(null as any);
+    }
+
+    carrierLabelOffset_SetOffset(request: SetCarrierLabelOffsetRequest): Promise<SetCarrierLabelOffsetResponse> {
+        let url_ = this.baseUrl + "/api/carrier-label-offsets";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: RequestInit = {
+            body: content_,
+            method: "PUT",
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processCarrierLabelOffset_SetOffset(_response);
+        });
+    }
+
+    protected processCarrierLabelOffset_SetOffset(response: Response): Promise<SetCarrierLabelOffsetResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = SetCarrierLabelOffsetResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<SetCarrierLabelOffsetResponse>(null as any);
+    }
+
     catalog_GetCatalogList(productTypes: ProductType[] | null | undefined, pageNumber: number | undefined, pageSize: number | undefined, sortBy: string | null | undefined, sortDescending: boolean | undefined, productName: string | null | undefined, productCode: string | null | undefined, searchTerm: string | null | undefined, expirationFrom: string | null | undefined, expirationTo: string | null | undefined): Promise<GetCatalogListResponse> {
         let url_ = this.baseUrl + "/api/Catalog?";
         if (productTypes !== undefined && productTypes !== null)
@@ -15159,6 +15231,7 @@ export enum ErrorCodes {
     InsufficientData = "InsufficientData",
     ProductNotFoundForAnalysis = "ProductNotFoundForAnalysis",
     InvalidReportPeriod = "InvalidReportPeriod",
+    InvalidTimeWindow = "InvalidTimeWindow",
     InvalidUrlFormat = "InvalidUrlFormat",
     InvalidContainerName = "InvalidContainerName",
     FileDownloadFailed = "FileDownloadFailed",
@@ -15292,6 +15365,9 @@ export enum ErrorCodes {
     PricingScenarioNotFound = "PricingScenarioNotFound",
     PricingScenarioNameConflict = "PricingScenarioNameConflict",
     PricingProductNotInBaseline = "PricingProductNotInBaseline",
+    ReportingDatasetNotFound = "ReportingDatasetNotFound",
+    ReportingInvalidQuery = "ReportingInvalidQuery",
+    ReportingQueryTimeout = "ReportingQueryTimeout",
     ExternalServiceError = "ExternalServiceError",
     FlexiApiError = "FlexiApiError",
     ShoptetApiError = "ShoptetApiError",
@@ -18924,6 +19000,170 @@ export interface ISetCarrierCoolingRequest {
     deliveryHandling?: DeliveryHandling;
     cooling?: Cooling;
     coolingText?: string | undefined;
+}
+
+export class GetCarrierLabelOffsetsResponse extends BaseResponse implements IGetCarrierLabelOffsetsResponse {
+    offsets?: CarrierLabelOffsetDto[];
+
+    constructor(data?: IGetCarrierLabelOffsetsResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            if (Array.isArray(_data["offsets"])) {
+                this.offsets = [] as any;
+                for (let item of _data["offsets"])
+                    this.offsets!.push(CarrierLabelOffsetDto.fromJS(item));
+            }
+        }
+    }
+
+    static override fromJS(data: any): GetCarrierLabelOffsetsResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new GetCarrierLabelOffsetsResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        if (Array.isArray(this.offsets)) {
+            data["offsets"] = [];
+            for (let item of this.offsets)
+                data["offsets"].push(item.toJSON());
+        }
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IGetCarrierLabelOffsetsResponse extends IBaseResponse {
+    offsets?: CarrierLabelOffsetDto[];
+}
+
+export class CarrierLabelOffsetDto implements ICarrierLabelOffsetDto {
+    carrier?: Carriers;
+    offsetXMm?: number;
+    offsetYMm?: number;
+    modifiedAt?: Date | undefined;
+    modifiedBy?: string | undefined;
+
+    constructor(data?: ICarrierLabelOffsetDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.carrier = _data["carrier"];
+            this.offsetXMm = _data["offsetXMm"];
+            this.offsetYMm = _data["offsetYMm"];
+            this.modifiedAt = _data["modifiedAt"] ? new Date(_data["modifiedAt"].toString()) : <any>undefined;
+            this.modifiedBy = _data["modifiedBy"];
+        }
+    }
+
+    static fromJS(data: any): CarrierLabelOffsetDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new CarrierLabelOffsetDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["carrier"] = this.carrier;
+        data["offsetXMm"] = this.offsetXMm;
+        data["offsetYMm"] = this.offsetYMm;
+        data["modifiedAt"] = this.modifiedAt ? this.modifiedAt.toISOString() : <any>undefined;
+        data["modifiedBy"] = this.modifiedBy;
+        return data;
+    }
+}
+
+export interface ICarrierLabelOffsetDto {
+    carrier?: Carriers;
+    offsetXMm?: number;
+    offsetYMm?: number;
+    modifiedAt?: Date | undefined;
+    modifiedBy?: string | undefined;
+}
+
+export class SetCarrierLabelOffsetResponse extends BaseResponse implements ISetCarrierLabelOffsetResponse {
+
+    constructor(data?: ISetCarrierLabelOffsetResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+    }
+
+    static override fromJS(data: any): SetCarrierLabelOffsetResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new SetCarrierLabelOffsetResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface ISetCarrierLabelOffsetResponse extends IBaseResponse {
+}
+
+export class SetCarrierLabelOffsetRequest implements ISetCarrierLabelOffsetRequest {
+    carrier?: Carriers;
+    offsetXMm?: number;
+    offsetYMm?: number;
+
+    constructor(data?: ISetCarrierLabelOffsetRequest) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.carrier = _data["carrier"];
+            this.offsetXMm = _data["offsetXMm"];
+            this.offsetYMm = _data["offsetYMm"];
+        }
+    }
+
+    static fromJS(data: any): SetCarrierLabelOffsetRequest {
+        data = typeof data === 'object' ? data : {};
+        let result = new SetCarrierLabelOffsetRequest();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["carrier"] = this.carrier;
+        data["offsetXMm"] = this.offsetXMm;
+        data["offsetYMm"] = this.offsetYMm;
+        return data;
+    }
+}
+
+export interface ISetCarrierLabelOffsetRequest {
+    carrier?: Carriers;
+    offsetXMm?: number;
+    offsetYMm?: number;
 }
 
 export class GetCatalogListResponse extends BaseResponse implements IGetCatalogListResponse {

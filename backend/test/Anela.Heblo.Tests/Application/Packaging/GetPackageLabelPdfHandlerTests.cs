@@ -1,11 +1,11 @@
 using System.Net;
 using System.Text;
-using Anela.Heblo.Application.Features.FeatureFlags;
 using Anela.Heblo.Application.Features.Packaging.Contracts;
 using Anela.Heblo.Application.Features.Packaging.UseCases.GetPackageLabelPdf;
 using Anela.Heblo.Application.Features.ShipmentLabels;
 using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Domain.Features.Logistics;
+using Anela.Heblo.Domain.Features.Packaging;
 using FluentAssertions;
 using Microsoft.Extensions.Logging;
 using Moq;
@@ -27,13 +27,14 @@ public class GetPackageLabelPdfHandlerTests
     private readonly Mock<HttpMessageHandler> _httpMessageHandler = new(MockBehavior.Strict);
     private readonly Mock<IHttpClientFactory> _httpClientFactory = new();
     private readonly Mock<ILogger<GetPackageLabelPdfHandler>> _logger = new();
-    private readonly Mock<IFeatureFlagChecker> _featureFlags = new();
+    private readonly Mock<ICarrierLabelOffsetRepository> _labelOffsets = new();
     private readonly Mock<IPackingOrderShippingSource> _orderShippingSource = new();
     private readonly Mock<IShippingMethodCatalog> _shippingCatalog = new();
 
     public GetPackageLabelPdfHandlerTests()
     {
-        SetupCarrier(Carriers.PPL);
+        SetupCarrier(Carriers.Zasilkovna);
+        SetupOffsets();
         _httpClientFactory
             .Setup(f => f.CreateClient(GetPackageLabelPdfHandler.HttpClientName))
             .Returns(() => new HttpClient(_httpMessageHandler.Object));
@@ -45,7 +46,7 @@ public class GetPackageLabelPdfHandlerTests
             _httpClientFactory.Object,
             _orderShippingSource.Object,
             _shippingCatalog.Object,
-            _featureFlags.Object,
+            _labelOffsets.Object,
             _logger.Object);
 
     private void SetupCarrier(Carriers? carrier)
@@ -238,10 +239,12 @@ public class GetPackageLabelPdfHandlerTests
         ms.ToArray().Should().BeEquivalentTo(pdfBytes);
     }
 
-    private void SetupOffsetFlags(params string[] enabledFlagKeys) =>
-        _featureFlags
-            .Setup(f => f.IsEnabledAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync((string key, CancellationToken _) => enabledFlagKeys.Contains(key));
+    private void SetupOffsets(params CarrierLabelOffset[] offsets) =>
+        _labelOffsets
+            .Setup(r => r.GetAllAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(offsets);
+
+    private static CarrierLabelOffset Offset(Carriers carrier, int xMm, int yMm) => new(carrier, xMm, yMm, "user-1");
 
     private void SetupLabelPdf(byte[] pdfBytes)
     {
@@ -278,8 +281,7 @@ public class GetPackageLabelPdfHandlerTests
         return ms.ToArray();
     }
 
-    // 10 mm in PDF points. Content moves by sliding the MediaBox the opposite way.
-    private static readonly double Offset = Math.Round(10 / 25.4 * 72, 3);
+    private static double Points(int mm) => Math.Round(mm * 72 / 25.4, 3);
 
     private static IReadOnlyList<(double X, double Y)> MediaBoxOrigins(byte[] pdfBytes)
     {
@@ -291,11 +293,10 @@ public class GetPackageLabelPdfHandlerTests
     }
 
     [Fact]
-    public async Task Handle_AllOffsetFlagsOff_ReturnsPdfUnchanged()
+    public async Task Handle_NoOffsetsSaved_ReturnsPdfUnchanged()
     {
         var pdfBytes = CreatePdf(pageCount: 1);
         SetupLabelPdf(pdfBytes);
-        SetupOffsetFlags();
 
         var response = await CreateHandler().Handle(Request(), CancellationToken.None);
 
@@ -303,40 +304,60 @@ public class GetPackageLabelPdfHandlerTests
     }
 
     [Theory]
-    [InlineData(FeatureFlagKeys.LabelOffsetLeft, 1, 0)]
-    [InlineData(FeatureFlagKeys.LabelOffsetRight, -1, 0)]
-    [InlineData(FeatureFlagKeys.LabelOffsetUp, 0, -1)]
-    [InlineData(FeatureFlagKeys.LabelOffsetDown, 0, 1)]
-    public async Task Handle_OneOffsetFlagOn_ShiftsEveryPage10MmThatWay(string flagKey, int boxX, int boxY)
+    [InlineData(5, 0)]
+    [InlineData(-5, 0)]
+    [InlineData(0, 7)]
+    [InlineData(0, -3)]
+    [InlineData(4, -6)]
+    public async Task Handle_CarrierHasOffset_ShiftsEveryPageByThatManyMm(int xMm, int yMm)
     {
         SetupLabelPdf(CreatePdf(pageCount: 2));
-        SetupOffsetFlags(flagKey);
+        SetupOffsets(Offset(Carriers.Zasilkovna, xMm, yMm));
 
         var response = await CreateHandler().Handle(Request(), CancellationToken.None);
 
         response.Success.Should().BeTrue();
         response.ContentType.Should().Be("application/pdf");
-        var expected = (boxX * Offset, boxY * Offset);
+        // Content moves by sliding the MediaBox the opposite way.
+        var expected = (-Points(xMm), -Points(yMm));
         MediaBoxOrigins(await ReadContentAsync(response)).Should().Equal(expected, expected);
     }
 
-    [Fact]
-    public async Task Handle_LeftAndUpFlagsOn_ShiftsDiagonally()
+    [Theory]
+    [InlineData(Carriers.Zasilkovna, 2, -5)]
+    [InlineData(Carriers.PPL, -4, 3)]
+    [InlineData(Carriers.GLS, 6, 1)]
+    public async Task Handle_SeveralCarriersConfigured_UsesTheOrdersCarrierOffset(Carriers carrier, int xMm, int yMm)
     {
+        SetupCarrier(carrier);
         SetupLabelPdf(CreatePdf(pageCount: 1));
-        SetupOffsetFlags(FeatureFlagKeys.LabelOffsetLeft, FeatureFlagKeys.LabelOffsetUp);
+        SetupOffsets(Offset(Carriers.Zasilkovna, 2, -5), Offset(Carriers.PPL, -4, 3), Offset(Carriers.GLS, 6, 1));
 
         var response = await CreateHandler().Handle(Request(), CancellationToken.None);
 
-        MediaBoxOrigins(await ReadContentAsync(response)).Should().Equal((Offset, -Offset));
+        MediaBoxOrigins(await ReadContentAsync(response)).Should().Equal((-Points(xMm), -Points(yMm)));
     }
 
     [Fact]
-    public async Task Handle_OppositeFlagsOn_CancelOutAndReturnPdfUnchanged()
+    public async Task Handle_OtherCarrierHasOffset_OrdersCarrierHasNone_ReturnsPdfUnchanged()
     {
         var pdfBytes = CreatePdf(pageCount: 1);
+        SetupCarrier(Carriers.PPL);
         SetupLabelPdf(pdfBytes);
-        SetupOffsetFlags(FeatureFlagKeys.LabelOffsetLeft, FeatureFlagKeys.LabelOffsetRight);
+        SetupOffsets(Offset(Carriers.Zasilkovna, 0, -5));
+
+        var response = await CreateHandler().Handle(Request(), CancellationToken.None);
+
+        (await ReadContentAsync(response)).Should().BeEquivalentTo(pdfBytes);
+    }
+
+    [Fact]
+    public async Task Handle_OrdersCarrierOffsetIsZero_ReturnsPdfUnchanged()
+    {
+        var pdfBytes = CreatePdf(pageCount: 1);
+        SetupCarrier(Carriers.PPL);
+        SetupLabelPdf(pdfBytes);
+        SetupOffsets(Offset(Carriers.Zasilkovna, 0, -5), Offset(Carriers.PPL, 0, 0));
 
         var response = await CreateHandler().Handle(Request(), CancellationToken.None);
 
@@ -344,28 +365,14 @@ public class GetPackageLabelPdfHandlerTests
     }
 
     [Theory]
-    [InlineData(Carriers.PPL)]
-    [InlineData(Carriers.Zasilkovna)]
-    public async Task Handle_OffsetFlagOn_OffsetCarrier_ShiftsLabel(Carriers carrier)
-    {
-        SetupCarrier(carrier);
-        SetupLabelPdf(CreatePdf(pageCount: 1));
-        SetupOffsetFlags(FeatureFlagKeys.LabelOffsetLeft);
-
-        var response = await CreateHandler().Handle(Request(), CancellationToken.None);
-
-        MediaBoxOrigins(await ReadContentAsync(response)).Should().Equal((Offset, 0));
-    }
-
-    [Theory]
-    [InlineData(Carriers.GLS)]
     [InlineData(Carriers.Osobak)]
-    public async Task Handle_OffsetFlagOn_OtherCarrier_ReturnsPdfUnchanged(Carriers carrier)
+    [InlineData(null)]
+    public async Task Handle_CarrierWithoutOffsetOrUnresolvable_ReturnsPdfUnchanged(Carriers? carrier)
     {
         var pdfBytes = CreatePdf(pageCount: 1);
         SetupCarrier(carrier);
         SetupLabelPdf(pdfBytes);
-        SetupOffsetFlags(FeatureFlagKeys.LabelOffsetLeft);
+        SetupOffsets(Offset(Carriers.Zasilkovna, 0, -5));
 
         var response = await CreateHandler().Handle(Request(), CancellationToken.None);
 
@@ -373,27 +380,14 @@ public class GetPackageLabelPdfHandlerTests
     }
 
     [Fact]
-    public async Task Handle_OffsetFlagOn_CarrierUnresolvable_ReturnsPdfUnchanged()
-    {
-        var pdfBytes = CreatePdf(pageCount: 1);
-        SetupCarrier(null);
-        SetupLabelPdf(pdfBytes);
-        SetupOffsetFlags(FeatureFlagKeys.LabelOffsetLeft);
-
-        var response = await CreateHandler().Handle(Request(), CancellationToken.None);
-
-        (await ReadContentAsync(response)).Should().BeEquivalentTo(pdfBytes);
-    }
-
-    [Fact]
-    public async Task Handle_OffsetFlagOn_OrderHasNoShippingMethod_ReturnsPdfUnchanged()
+    public async Task Handle_OrderHasNoShippingMethod_ReturnsPdfUnchanged()
     {
         var pdfBytes = CreatePdf(pageCount: 1);
         _orderShippingSource
             .Setup(s => s.GetShippingMethodGuidAsync(OrderCode, It.IsAny<CancellationToken>()))
             .ReturnsAsync((string?)null);
         SetupLabelPdf(pdfBytes);
-        SetupOffsetFlags(FeatureFlagKeys.LabelOffsetLeft);
+        SetupOffsets(Offset(Carriers.Zasilkovna, 0, -5));
 
         var response = await CreateHandler().Handle(Request(), CancellationToken.None);
 
@@ -401,14 +395,14 @@ public class GetPackageLabelPdfHandlerTests
     }
 
     [Fact]
-    public async Task Handle_OffsetFlagOn_CarrierLookupThrows_ReturnsPdfUnchangedAndWarns()
+    public async Task Handle_CarrierLookupThrows_ReturnsPdfUnchangedAndWarns()
     {
         var pdfBytes = CreatePdf(pageCount: 1);
         _orderShippingSource
             .Setup(s => s.GetShippingMethodGuidAsync(OrderCode, It.IsAny<CancellationToken>()))
             .ThrowsAsync(new HttpRequestException("shoptet down"));
         SetupLabelPdf(pdfBytes);
-        SetupOffsetFlags(FeatureFlagKeys.LabelOffsetLeft);
+        SetupOffsets(Offset(Carriers.Zasilkovna, 0, -5));
 
         var response = await CreateHandler().Handle(Request(), CancellationToken.None);
 
@@ -418,14 +412,14 @@ public class GetPackageLabelPdfHandlerTests
     }
 
     [Fact]
-    public async Task Handle_OffsetFlagOn_CarrierLookupTimesOut_ReturnsPdfUnchangedAndWarns()
+    public async Task Handle_CarrierLookupTimesOut_ReturnsPdfUnchangedAndWarns()
     {
         var pdfBytes = CreatePdf(pageCount: 1);
         _orderShippingSource
             .Setup(s => s.GetShippingMethodGuidAsync(OrderCode, It.IsAny<CancellationToken>()))
             .ThrowsAsync(new TaskCanceledException("http timeout"));
         SetupLabelPdf(pdfBytes);
-        SetupOffsetFlags(FeatureFlagKeys.LabelOffsetLeft);
+        SetupOffsets(Offset(Carriers.Zasilkovna, 0, -5));
 
         var response = await CreateHandler().Handle(Request(), CancellationToken.None);
 
@@ -435,7 +429,7 @@ public class GetPackageLabelPdfHandlerTests
     }
 
     [Fact]
-    public async Task Handle_OffsetFlagOn_CancelledDuringLookup_Propagates()
+    public async Task Handle_CancelledDuringCarrierLookup_Propagates()
     {
         using var cts = new CancellationTokenSource();
         _orderShippingSource
@@ -443,7 +437,7 @@ public class GetPackageLabelPdfHandlerTests
             .Callback(() => cts.Cancel())
             .ThrowsAsync(new OperationCanceledException(cts.Token));
         SetupLabelPdf(CreatePdf(pageCount: 1));
-        SetupOffsetFlags(FeatureFlagKeys.LabelOffsetLeft);
+        SetupOffsets(Offset(Carriers.Zasilkovna, 0, -5));
 
         var act = () => CreateHandler().Handle(Request(), cts.Token);
 
@@ -451,10 +445,9 @@ public class GetPackageLabelPdfHandlerTests
     }
 
     [Fact]
-    public async Task Handle_AllOffsetFlagsOff_DoesNotLookUpCarrier()
+    public async Task Handle_NoOffsetsSaved_DoesNotLookUpCarrier()
     {
         SetupLabelPdf(CreatePdf(pageCount: 1));
-        SetupOffsetFlags();
 
         await CreateHandler().Handle(Request(), CancellationToken.None);
 
@@ -463,10 +456,10 @@ public class GetPackageLabelPdfHandlerTests
     }
 
     [Fact]
-    public async Task Handle_OppositeFlagsCancelOut_DoesNotLookUpCarrier()
+    public async Task Handle_AllSavedOffsetsAreZero_DoesNotLookUpCarrier()
     {
         SetupLabelPdf(CreatePdf(pageCount: 1));
-        SetupOffsetFlags(FeatureFlagKeys.LabelOffsetLeft, FeatureFlagKeys.LabelOffsetRight);
+        SetupOffsets(Offset(Carriers.Zasilkovna, 0, 0), Offset(Carriers.PPL, 0, 0));
 
         await CreateHandler().Handle(Request(), CancellationToken.None);
 
@@ -475,14 +468,14 @@ public class GetPackageLabelPdfHandlerTests
     }
 
     [Fact]
-    public async Task Handle_FeatureFlagCheckThrows_ReturnsPdfUnchanged()
+    public async Task Handle_OffsetReadThrows_ReturnsPdfUnchanged()
     {
         // A label without the offset is still usable; failing the print is not.
         var pdfBytes = CreatePdf(pageCount: 1);
         SetupLabelPdf(pdfBytes);
-        _featureFlags
-            .Setup(f => f.IsEnabledAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
-            .ThrowsAsync(new InvalidOperationException("flag provider down"));
+        _labelOffsets
+            .Setup(r => r.GetAllAsync(It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new InvalidOperationException("database down"));
 
         var response = await CreateHandler().Handle(Request(), CancellationToken.None);
 
@@ -492,16 +485,16 @@ public class GetPackageLabelPdfHandlerTests
     }
 
     [Fact]
-    public async Task Handle_RequestCancelledDuringFlagCheck_Throws()
+    public async Task Handle_RequestCancelledDuringOffsetRead_Throws()
     {
         using var cts = new CancellationTokenSource();
         SetupLabelPdf(CreatePdf(pageCount: 1));
-        _featureFlags
-            .Setup(f => f.IsEnabledAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+        _labelOffsets
+            .Setup(r => r.GetAllAsync(It.IsAny<CancellationToken>()))
             .Returns(() =>
             {
                 cts.Cancel();
-                return Task.FromException<bool>(new OperationCanceledException(cts.Token));
+                return Task.FromException<IReadOnlyList<CarrierLabelOffset>>(new OperationCanceledException(cts.Token));
             });
 
         var act = () => CreateHandler().Handle(Request(), cts.Token);
@@ -512,11 +505,11 @@ public class GetPackageLabelPdfHandlerTests
     }
 
     [Fact]
-    public async Task Handle_OffsetFlagOn_LabelIsNotAValidPdf_ReturnsOriginalBytes()
+    public async Task Handle_OffsetSaved_LabelIsNotAValidPdf_ReturnsOriginalBytes()
     {
         var notAPdf = Encoding.UTF8.GetBytes("%PDF-1.4 fake");
         SetupLabelPdf(notAPdf);
-        SetupOffsetFlags(FeatureFlagKeys.LabelOffsetLeft);
+        SetupOffsets(Offset(Carriers.Zasilkovna, 0, -5));
 
         var response = await CreateHandler().Handle(Request(), CancellationToken.None);
 

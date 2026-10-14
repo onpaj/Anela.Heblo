@@ -20,6 +20,13 @@ owns:
   - backend/src/Anela.Heblo.Domain/Features/Packaging/IPackageRepository.cs
   - backend/src/Anela.Heblo.Persistence/Repositories/Packaging/PackageRepository.cs
   - backend/src/Anela.Heblo.Persistence/Features/Packaging/PackageConfiguration.cs
+  - backend/src/Anela.Heblo.API/Controllers/CarrierLabelOffsetController.cs
+  - backend/src/Anela.Heblo.Application/Features/Packaging/UseCases/GetCarrierLabelOffsets/**
+  - backend/src/Anela.Heblo.Application/Features/Packaging/UseCases/SetCarrierLabelOffset/**
+  - backend/src/Anela.Heblo.Domain/Features/Packaging/CarrierLabelOffset.cs
+  - backend/src/Anela.Heblo.Domain/Features/Packaging/ICarrierLabelOffsetRepository.cs
+  - backend/src/Anela.Heblo.Persistence/Repositories/Packaging/CarrierLabelOffsetRepository.cs
+  - backend/src/Anela.Heblo.Persistence/Features/Packaging/CarrierLabelOffsetConfiguration.cs
   - backend/src/Adapters/Anela.Heblo.Adapters.ShoptetApi/Orders/ShoptetApiPackingOrderClient.cs
 verified_at: "5e993f9e2"
 related:
@@ -115,22 +122,27 @@ failure → `ShipmentCancelFailed`, stop) → reload the order → shipment crea
 the `packageNumber`-th (1-based) → download its `labelUrl` (HTTP client `ShipmentLabelDownloader`,
 30 s timeout) → stream to the browser with `Cache-Control: no-store`, file `{order}-{n}.pdf`.
 Not ready → 404 `PackageLabelNotFound`; carrier download failure → 503 `PackageLabelDownloadFailed`.
-Label offset is gated by four direction flags that apply only to **PPL and Zásilkovna** labels (GLS, personal pickup and
-unresolved carriers are served untouched):
-`is-label-offset-left-enabled`, `-right-`, `-up-`, `-down-` (each 10 mm). Enabled directions add up
-(left + up = diagonal; left + right cancel out, label served untouched). With all off nothing else
-happens and the carrier is not looked up. Otherwise the carrier is resolved from the order's Shoptet
-shipping method GUID (`IPackingOrderShippingSource` + `IShippingMethodCatalog`) and, for PPL /
-Zásilkovna, every page's content is moved by the summed offset (PDFsharp, `LabelPdfShifter`:
-slides MediaBox/CropBox/… the opposite way in printed-page orientation, honouring the page's
-`/Rotate`; content is not re-rendered). Content pushed past an edge is cut off and the opposite edge
-gets the same amount of blank. The offset is in PDF points, so it is the same physical distance at
-any printer resolution (the Zebra is 300 dpi) unless the print dialog scales the page. Fail-open: a
-failed flag check, failed carrier lookup or an unparsable PDF is logged at Warning and the original label is served
-unshifted. The flags exist to find the right direction at the warehouse Zebra. (Replaced the
-per-carrier `is-{gls,ppl,zasilkovna}-label-offset-enabled` flags and, before them, the 180° rotation
-flags `is-*-label-rotation-enabled` — both removed 2026-10-09 / 2026-10-08; the carrier lookup was
-re-introduced, limited to PPL and Zásilkovna.)
+Label offset is set per carrier in **Nastavení expedice → Štítky** (`/customer/expedition-settings?tab=labels`;
+`GET/PUT /api/carrier-label-offsets`, `Feature.Warehouse_Expedition`, Write to save), stored in
+`public."CarrierLabelOffsets"` (one row per carrier: `OffsetXMm`, `OffsetYMm`, whole millimetres
+in −30…30; Zásilkovna, PPL and GLS only — personal pickup has no label). X is towards the PDF page's
+right edge, Y towards its top edge, negative = left / down. The axes follow the PDF as the carrier
+sends it, **not** the physical label: the print dialog turns a landscape carrier PDF onto the portrait
+Zebra label, so the same axis lands on a different side of the paper per carrier (PPL's Y ran along
+the label's long side, Zásilkovna's along the short side) — which is why each carrier has its own pair.
+The proxy reads all offset rows on every label request (no cache, so a saved change applies to the next
+print without a restart). If no row has a non-zero offset, nothing else happens and the carrier is not
+looked up. Otherwise the carrier is resolved from the order's Shoptet shipping method GUID
+(`IPackingOrderShippingSource` + `IShippingMethodCatalog`) and, when that carrier has a row, every
+page's content is moved by its offset (PDFsharp, `LabelPdfShifter`: slides MediaBox/CropBox/… the
+opposite way in printed-page orientation, honouring the page's `/Rotate`; content is not re-rendered).
+Content pushed past an edge is cut off and the opposite edge gets the same amount of blank. The offset
+is in PDF points, so it is the same physical distance at any printer resolution (the Zebra is 300 dpi)
+unless the print dialog scales the page. Fail-open: a failed offset read, failed carrier lookup or an
+unparsable PDF is logged at Warning and the original label is served unshifted. (Replaced the four
+10 mm direction flags `is-label-offset-{left,right,up,down}-enabled` on 2026-10-14, which before that
+replaced per-carrier `is-{gls,ppl,zasilkovna}-label-offset-enabled` flags and the 180° rotation flags
+`is-*-label-rotation-enabled`.)
 
 ## Logic & formulas
 - One `Packages` row = one box (carrier package) of one order. `PackageNumber` is the 1-based
@@ -152,9 +164,8 @@ re-introduced, limited to PPL and Zásilkovna.)
 | `ShipmentLabels:FallbackPackageWeightGrams` | 1000 | Order weight used when no item weight is known |
 | `ShoptetApi:DefaultItemWeightGrams` | 0 | Weight for an item missing a catalog weight |
 
-Feature flags `is-label-offset-left-enabled`, `is-label-offset-right-enabled`,
-`is-label-offset-up-enabled`, `is-label-offset-down-enabled` (all default off, `appsettings.json` + DB
-override via `/admin/feature-flags`) — move every label PDF 10 mm that way in the label proxy; they add up.
+Per-carrier label offsets live in the database (`public."CarrierLabelOffsets"`), edited at
+Nastavení expedice → Štítky — not in configuration; a missing row means no offset.
 
 None of the keys above is overridden in `appsettings*.json` (class defaults apply). `ShipmentLabels` is
 not present in any appsettings file.
@@ -197,7 +208,7 @@ not present in any appsettings file.
 - `backend/src/Anela.Heblo.Application/Features/Packaging/Services/ShipmentCreationService.cs` — weight, carrier, shipment, package rows
 - `backend/src/Anela.Heblo.Application/Features/Packaging/UseCases/ResetOrderShipment/ResetOrderShipmentHandler.cs` — re-create shipment
 - `backend/src/Anela.Heblo.Application/Features/Packaging/UseCases/GetPackageLabelPdf/GetPackageLabelPdfHandler.cs` — label proxy
-- `backend/src/Anela.Heblo.Application/Features/Packaging/Services/LabelPdfShifter.cs` — 10 mm label offset (direction flags; PPL and Zásilkovna only)
+- `backend/src/Anela.Heblo.Application/Features/Packaging/Services/LabelPdfShifter.cs` — moves the label PDF by the carrier's offset
 - `backend/src/Adapters/Anela.Heblo.Adapters.ShoptetApi/Orders/ShoptetApiPackingOrderClient.cs` — order read + eligibility
 - `backend/src/Anela.Heblo.Persistence/Repositories/Packaging/PackageRepository.cs` — `Packages` writes
 - `frontend/src/components/baleni/PackingShipmentCreator.tsx`, `PackingLabelPrinter.tsx`, `printLabelPdf.ts` — desk-side print and completion
