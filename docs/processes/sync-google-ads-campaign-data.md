@@ -7,7 +7,7 @@ owns:
   - backend/src/Adapters/Anela.Heblo.Adapters.GoogleAds/Api/**
   - backend/src/Adapters/Anela.Heblo.Adapters.GoogleAds/Reporting/**
   - backend/src/Adapters/Anela.Heblo.Adapters.GoogleAds/GoogleAdsMarketingAdsServiceCollectionExtensions.cs
-verified_at: "b77bcf0e3"
+verified_at: "784926178"
 related: [sync-ad-platform-transactions, sync-ads-daily, sync-ads-change-history]
 ---
 
@@ -75,6 +75,7 @@ empty or numeric. Otherwise the platform is silently absent and the core syncs t
 - Staging and production read the same live account (read-only; the Cloud project's quota is shared).
 - Criterion change events with a non-keyword payload (location, language, device, audience...) are kept with a null entity reference; see integration doc §7.
 - The developer token is not used; Google sunset it on 2026-09-09.
+- Mutates retry only HTTP 429 (plus one resend after a 401 with a fresh token); reads retry 408/429/5xx and timeouts. See `flow-google-ads-action-execution`.
 
 ## Code entry points
 - `backend/src/Adapters/Anela.Heblo.Adapters.GoogleAds/Reporting/GoogleAdsReadSource.cs` — the five contract methods plus the two range reads

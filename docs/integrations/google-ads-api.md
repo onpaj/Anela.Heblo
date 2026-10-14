@@ -153,6 +153,45 @@ v25 released July 2026, sunset August 2027 (v23 Feb 2027, v24 May 2027). Bump `G
 
 Points 2–4 come from the plan and were not re-verified by the spike. The billing importer is left untouched; spend comes from the MarketingAds backbone.
 
-## 12. Manual smoke procedure (executor)
+## 12. Manual smoke procedure (executor, validate-only)
 
-Added by the executor PR.
+Run by Ondrej, never by an agent. Nothing in the account changes: the test forces
+`GoogleAds:ValidateOnly = true`, Google validates each request and discards it.
+
+1. Pick an **enabled** ad (`ad_group.id~ad_group_ad.ad.id`, e.g. from Google Ads UI -> Ads, columns
+   "Ad group ID" and "Ad ID") and a campaign id.
+2. From the repo root:
+   ```bash
+   export HEBLO_GOOGLE_ADS_SMOKE_ENV=~/Work/heblo-marketing-agents/google-ads.env
+   export HEBLO_GOOGLE_ADS_SMOKE_AD=<adGroupId>~<adId>
+   export HEBLO_GOOGLE_ADS_SMOKE_CAMPAIGN=<campaignId>
+   dotnet build backend/test/Anela.Heblo.Adapters.GoogleAds.Tests -p:UseSharedCompilation=false
+   dotnet test backend/test/Anela.Heblo.Adapters.GoogleAds.Tests --no-build -p:UseSharedCompilation=false --filter "FullyQualifiedName~GoogleAdsValidateOnlySmokeTests"
+   ```
+3. Expected: `Passed: 1`. A failure message carries Google's error code (§8) - e.g.
+   `authorizationError.USER_PERMISSION_DENIED` means the Heblo user has read-only access and needs Standard.
+4. Check Google Ads -> Change history: no entry was created.
+
+Without `HEBLO_GOOGLE_ADS_SMOKE_ENV` the test is reported as Skipped. It carries `Category=Integration`,
+so CI never runs it.
+
+### How the executor behaves (reference)
+
+- Mutate endpoints: `customers/{cid}/campaignCriteria:mutate`, `adGroupCriteria:mutate`, `adGroupAds:mutate`
+  (body `operations`, `partialFailure: false`, `validateOnly`). Pause = `update` with `updateMask: status`;
+  negative keyword = `create` with `negative: true`; revert of a negative = `remove` of the stored resource name.
+- Retries (mutate transport): **HTTP 429 only**. A **401** drops the cached access token and resends once (Google
+  rejected it before processing anything); a second 401 throws. **5xx and timeouts are never retried** - the change
+  may already be applied. HTTP 400/404/409 are platform rejections and come back as `Failed` with Google's error
+  code (§8); every other failure throws.
+- `GoogleAds:ValidateOnly` is `true` by default (settings class and `appsettings.json`); only
+  `appsettings.Production.json` sets it to `false`. A validated request returns `Failed` with an error starting
+  `ValidateOnly:`, so nothing downstream believes the account changed.
+- Presence of a negative keyword is decided in C# (case-insensitive, whitespace-collapsed text plus equal match
+  type) on the rows of the `executor_*` queries; keyword text is never put into GAQL and ids must be numeric.
+- Revert of a negative keyword removes only a resource name of the form
+  `customers/{cid}/{campaignCriteria|adGroupCriteria}/{parentId}~{criterionId}` that matches the action's own
+  account, level and parent; anything else is `Failed`.
+
+Live writes happen only through an approved proposal in production, with the kill switch on
+(spec 6.6) and `GoogleAds:ValidateOnly = false` (production only).
