@@ -2,6 +2,7 @@ using System.Globalization;
 using Anela.Heblo.Application.Features.MarketingAds.Configuration;
 using Anela.Heblo.Application.Features.MarketingAds.Contracts;
 using Anela.Heblo.Application.Features.MarketingAds.Proposals;
+using Anela.Heblo.Application.Features.MarketingAds.Proposals.Execution;
 using Anela.Heblo.Application.Features.MarketingAds.Reporting;
 using Anela.Heblo.Application.Features.MarketingAds.Sync;
 using Anela.Heblo.Persistence.Ads;
@@ -36,8 +37,8 @@ public static class MarketingAdsModule
         services.Configure<AdsSyncOptions>(configuration.GetSection(AdsSyncOptions.SectionName));
         services.TryAddSingleton(TimeProvider.System);
 
-        // Fallback until C3: nothing is executed by Heblo yet. C3 replaces this registration.
-        services.AddScoped<IAdExecutionLookup, NoOpAdExecutionLookup>();
+        // Real lookup over AdProposalActionExecutions (C3).
+        services.AddScoped<IAdExecutionLookup, AdExecutionLookup>();
         services.AddSingleton<AdChangeOriginMatcher>();
 
         // Everything below needs AdsDbContext, which is registered only when AdsDatabase:ConnectionString

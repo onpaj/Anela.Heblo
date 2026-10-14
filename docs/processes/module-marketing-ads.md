@@ -4,7 +4,7 @@ kind: module
 module: marketing-ads
 summary: Heblo's ad-platform backbone for AI marketing agents — daily Google Ads performance today (Meta and Sklik planned) and change history in the ads schema, read by agents over MCP and by people in Metabase.
 owns: []
-verified_at: "5d9408774"
+verified_at: "f9f942f22"
 related: [sync-ads-daily, sync-ads-change-history, sync-google-ads-campaign-data, flow-google-ads-action-execution, sync-shoptet-orders]
 ---
 
@@ -35,7 +35,7 @@ No Heblo page yet. Agents and the chief of marketing via MCP tools (C4: accounts
 Google Ads REST API (read only, via `IAdPlatformReadSource` in `Adapters.GoogleAds`); Meta and Sklik adapters are planned. Reads `shoptet_raw."order"` for the blended views.
 
 ## Dependencies
-Reads `shoptet_raw` (Shoptet orders mirror, `sync-shoptet-orders`). Platform adapters plug in read sources; C3 will plug in `IAdExecutionLookup`. Metabase reads the views through `metabase_ro`.
+Reads `shoptet_raw` (Shoptet orders mirror, `sync-shoptet-orders`). Platform adapters plug in read sources; C3 plugs in `IAdExecutionLookup` (`AdExecutionLookup`, executions and reverts from `AdProposalActionExecutions`). Metabase reads the views through `metabase_ro`.
 
 ## Known quirks
 - Platform-reported conversions over-count; use the blended view for "is advertising paying off".

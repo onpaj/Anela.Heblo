@@ -1,6 +1,7 @@
 using Anela.Heblo.Application.Features.MarketingAds;
 using Anela.Heblo.Application.Features.MarketingAds.Contracts;
 using Anela.Heblo.Application.Features.MarketingAds.Infrastructure.Jobs;
+using Anela.Heblo.Application.Features.MarketingAds.Proposals.Execution;
 using Anela.Heblo.Application.Features.MarketingAds.Reporting;
 using Anela.Heblo.Application.Features.MarketingAds.Sync;
 using Anela.Heblo.Domain.Features.BackgroundJobs;
@@ -60,7 +61,7 @@ public class MarketingAdsSyncWiringTests
 
         scope.ServiceProvider.GetRequiredService<IAdsDailySyncService>().Should().BeOfType<AdsDailySyncService>();
         scope.ServiceProvider.GetRequiredService<IAdsChangeSyncService>().Should().BeOfType<AdsChangeSyncService>();
-        scope.ServiceProvider.GetRequiredService<IAdExecutionLookup>().Should().BeOfType<NoOpAdExecutionLookup>();
+        scope.ServiceProvider.GetRequiredService<IAdExecutionLookup>().Should().BeOfType<AdExecutionLookup>();
         scope.ServiceProvider.GetRequiredService<IAdsReadRepository>().Should().BeOfType<AdsReadRepository>();
     }
 

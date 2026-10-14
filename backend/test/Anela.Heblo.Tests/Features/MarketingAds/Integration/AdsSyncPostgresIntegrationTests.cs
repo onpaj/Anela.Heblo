@@ -1,6 +1,7 @@
 using Anela.Heblo.Application.Features.MarketingAds;
 using Anela.Heblo.Application.Features.MarketingAds.Contracts;
 using Anela.Heblo.Application.Features.MarketingAds.Sync;
+using Anela.Heblo.Persistence;
 using Anela.Heblo.Persistence.Ads;
 using Anela.Heblo.Tests.Common;
 using Anela.Heblo.Tests.Features.MarketingAds.TestSupport;
@@ -36,6 +37,8 @@ public class AdsSyncPostgresIntegrationTests : IAsyncLifetime
         services.AddLogging();
         services.AddSingleton<TimeProvider>(time);
         services.AddDbContext<AdsDbContext>(o => AdsPostgres.Configure(o, _connectionString));
+        // Always provided by the API host; the real IAdExecutionLookup (via the proposal repository) needs it. Not exercised here.
+        services.AddDbContext<ApplicationDbContext>(o => o.UseInMemoryDatabase(Guid.NewGuid().ToString()));
         services.AddSingleton<IAdPlatformReadSource>(source);
         services.AddMarketingAdsModule(new ConfigurationBuilder().Build());
         return services.BuildServiceProvider();

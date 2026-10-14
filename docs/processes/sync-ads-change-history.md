@@ -10,7 +10,7 @@ owns:
   - backend/src/Anela.Heblo.Application/Features/MarketingAds/Sync/AdChangeEventWriter.cs
   - backend/src/Anela.Heblo.Application/Features/MarketingAds/Sync/AdChangeEventCandidate.cs
   - backend/src/Anela.Heblo.Application/Features/MarketingAds/Sync/AdChangeValueTokens.cs
-verified_at: "5d9408774"
+verified_at: "f9f942f22"
 related: [sync-ads-daily, sync-google-ads-campaign-data]
 ---
 
@@ -32,11 +32,11 @@ Events carry `entity_level` and the raw `entity_external_ref` (the platform's ow
 ## Logic & formulas
 Origin (`AdChangeOriginMatcher`, pure). A change is `Heblo` only when all hold:
 1. `ActorKind` is `Heblo` or `Unknown` — `User` and `PlatformAutomation` actors are always `OutOfBand`;
-2. an action returned by `IAdExecutionLookup` (C3's execution log) targets the same entity — same level and id, or the executed `PlatformResourceId` equals / ends with `/{entity id}`;
-3. it is the same change — PauseAd ↔ the new value contains "Paused" (a revert: "Enabled"); AddNegativeKeyword ↔ created resource id or the keyword text appears in the new value;
+2. an action returned by `IAdExecutionLookup` (C3's execution log, `AdExecutionLookup`) targets the same entity — same level and id, or the executed `PlatformResourceId` equals / ends with `/{entity id}`;
+3. it is the same change — PauseAd ↔ the new value contains "Paused" (a revert, `IsRevert = true`: "Enabled"); AddNegativeKeyword ↔ created resource id or the keyword text appears in the new value;
 4. it was executed within ±`Ads:OutOfBandMatchWindowMinutes` (120) of the change; the closest execution wins.
 
-Otherwise `OutOfBand`. Until C3 ships, `IAdExecutionLookup` is a no-op and every change is OutOfBand. Heblo's identity on Google is `GoogleAds:HebloUserEmail`; until it is set Heblo's own API writes arrive as `ActorKind.User` → OutOfBand (a visible false alarm, not a silent miss). Values that are not JSON are stored as JSON strings; timestamps are stored in UTC.
+Otherwise `OutOfBand`. `IAdExecutionLookup` is `AdExecutionLookup`, over `AdProposalActionExecutions`: it returns the succeeded executions (including ones confirmed by re-read after a thrown mutate) whose `ExecutedAt` is in the window, plus one `IsRevert = true` row per successful revert whose `RevertedAt` is in the window (failed reverts are not returned). The window is inclusive at both ends; stored UTC `timestamp` values are re-stamped as UTC offsets. Heblo's identity on Google is `GoogleAds:HebloUserEmail`; until it is set Heblo's own API writes arrive as `ActorKind.User` → OutOfBand (a visible false alarm, not a silent miss). Values that are not JSON are stored as JSON strings; timestamps are stored in UTC.
 
 ## Configuration
 | Key | Repo default | Meaning |
@@ -63,4 +63,4 @@ Otherwise `OutOfBand`. Until C3 ships, `IAdExecutionLookup` is a no-op and every
 - `backend/src/Anela.Heblo.Application/Features/MarketingAds/Sync/AdsChangeSyncService.cs` — orchestration and watermark rule
 - `backend/src/Anela.Heblo.Application/Features/MarketingAds/Sync/AdChangeOriginMatcher.cs` — Heblo vs out-of-band rules
 - `backend/src/Anela.Heblo.Application/Features/MarketingAds/Sync/AdChangeEventWriter.cs` — dedupe and insert
-- `backend/src/Anela.Heblo.Application/Features/MarketingAds/Contracts/IAdExecutionLookup.cs` — port C3 implements
+- `backend/src/Anela.Heblo.Application/Features/MarketingAds/Contracts/IAdExecutionLookup.cs` — port C3 implements (`Proposals/Execution/AdExecutionLookup.cs`)
