@@ -13,7 +13,10 @@ public class AdProposalOptions
     public const string SectionName = "Ads";
 
     public int ProposalTtlHours { get; set; } = 72;
-    public string ExpiryCronExpression { get; set; } = "*/15 * * * *";
+    public const string DefaultExpiryCronExpression = "*/15 * * * *";
+
+    public string ExpiryCronExpression { get; set; } = DefaultExpiryCronExpression;
+    public string ExpiryTimeZone { get; set; } = "Europe/Prague";
 
     /// <summary>
     /// An Approved proposal not picked up by the execution job for this long is re-enqueued. Well above the
@@ -22,6 +25,9 @@ public class AdProposalOptions
     public int StuckApprovedRequeueMinutes { get; set; } = 60;
 
     public TimeSpan ProposalTtl => TimeSpan.FromHours(ProposalTtlHours);
+
+    /// <summary>Never throws: the configured cron when it parses, otherwise the default (job registration must not fail).</summary>
+    public string ExpiryCronOrDefault => IsValidCron(ExpiryCronExpression) ? ExpiryCronExpression : DefaultExpiryCronExpression;
 
     public void EnsureValid()
     {
