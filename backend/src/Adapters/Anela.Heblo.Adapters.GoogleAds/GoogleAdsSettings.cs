@@ -34,4 +34,11 @@ public class GoogleAdsSettings
     /// through the API are attributed to Heblo rather than to a person.
     /// </summary>
     public string HebloUserEmail { get; set; } = string.Empty;
+
+    /// <summary>
+    /// When true (the default everywhere except production), every mutate is sent with validateOnly:
+    /// Google checks it and changes nothing, and the executor reports Failed with a "ValidateOnly:" error.
+    /// Staging and production point at the same live account, so only production may write.
+    /// </summary>
+    public bool ValidateOnly { get; set; } = true;
 }
