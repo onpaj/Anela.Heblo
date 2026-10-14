@@ -20,7 +20,7 @@ owns:
   - backend/src/Anela.Heblo.Application/Features/Smartsupp/SmartsuppNameHelper.cs
   - backend/src/Anela.Heblo.Application/Features/KnowledgeBase/Infrastructure/KnowledgeBaseSmartsuppKnowledgeSource.cs
   - backend/src/Adapters/Anela.Heblo.Adapters.Smartsupp/**
-verified_at: "5e993f9e2"
+verified_at: "0f56d8740"
 related: [sync-smartsupp-webhooks]
 ---
 

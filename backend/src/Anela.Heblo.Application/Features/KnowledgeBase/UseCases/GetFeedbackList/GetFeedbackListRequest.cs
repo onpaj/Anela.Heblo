@@ -12,6 +12,15 @@ public class GetFeedbackListRequest : IRequest<GetFeedbackListResponse>
     public bool SortDescending { get; set; } = true;
     public bool? HasFeedback { get; set; }
     public string? UserId { get; set; }
+
+    /// <summary>Inclusive first day (Europe/Prague).</summary>
+    public DateOnly? DateFrom { get; set; }
+
+    /// <summary>Inclusive last day (Europe/Prague).</summary>
+    public DateOnly? DateTo { get; set; }
+
+    public string? ProblemTag { get; set; }
+    public string? ProductTag { get; set; }
 }
 
 public class GetFeedbackListResponse : BaseResponse

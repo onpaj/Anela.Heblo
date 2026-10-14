@@ -40,7 +40,8 @@ public class RagQueryExpanderTests
         var result = await expander.ExpandAsync("my raw query", config, CancellationToken.None);
 
         // Assert
-        result.Should().Be("my raw query");
+        result.QueryToEmbed.Should().Be("my raw query");
+        result.ProblemTags.Should().BeEmpty();
         _chatClient.Verify(
             c => c.GetResponseAsync(
                 It.IsAny<IEnumerable<ChatMessage>>(),
@@ -60,7 +61,7 @@ public class RagQueryExpanderTests
         var result = await expander.ExpandAsync("   ", config, CancellationToken.None);
 
         // Assert
-        result.Should().Be("   ");
+        result.QueryToEmbed.Should().Be("   ");
         _chatClient.Verify(
             c => c.GetResponseAsync(
                 It.IsAny<IEnumerable<ChatMessage>>(),
@@ -80,7 +81,7 @@ public class RagQueryExpanderTests
         var result = await expander.ExpandAsync("original query", EnabledConfig(), CancellationToken.None);
 
         // Assert
-        result.Should().Be("EXPANDED");
+        result.QueryToEmbed.Should().Be("EXPANDED");
     }
 
     [Fact]
@@ -120,7 +121,8 @@ public class RagQueryExpanderTests
         var result = await expander.ExpandAsync("original query", EnabledConfig(), CancellationToken.None);
 
         // Assert
-        result.Should().Be("original query");
+        result.QueryToEmbed.Should().Be("original query");
+        result.ProblemTags.Should().BeEmpty();
     }
 
     [Theory]
@@ -144,7 +146,7 @@ public class RagQueryExpanderTests
         var result = await expander.ExpandAsync("original query", EnabledConfig(), CancellationToken.None);
 
         // Assert
-        result.Should().Be("original query");
+        result.QueryToEmbed.Should().Be("original query");
     }
 
     [Fact]
@@ -173,5 +175,67 @@ public class RagQueryExpanderTests
         var messageList = capturedMessages!.ToList();
         messageList.Should().HaveCount(1);
         messageList[0].Text.Should().Be("MyPrompt\nmyquery");
+    }
+
+    [Fact]
+    public async Task ExpandAsync_JsonResponse_ReturnsExpandedQueryAndTags()
+    {
+        // Arrange
+        SetupChatClient("""{"expanded": "Problém: akné", "problemTags": ["akné"], "productTags": ["hořčíkové máslo"]}""");
+        var expander = CreateExpander();
+
+        // Act
+        var result = await expander.ExpandAsync("mám akné, pomůže máslo?", EnabledConfig(), CancellationToken.None);
+
+        // Assert
+        result.QueryToEmbed.Should().Be("Problém: akné");
+        result.ProblemTags.Should().Equal("akné");
+        result.ProductTags.Should().Equal("hořčíkové máslo");
+    }
+
+    [Fact]
+    public async Task ExpandAsync_MalformedJson_LogsWarningAndEmbedsRawResponse()
+    {
+        // Arrange
+        const string malformed = "{\"expanded\": \"Problém: ak";
+        SetupChatClient(malformed);
+        var expander = CreateExpander();
+
+        // Act
+        var result = await expander.ExpandAsync("dotaz", EnabledConfig(), CancellationToken.None);
+
+        // Assert
+        result.QueryToEmbed.Should().Be(malformed);
+        result.ProblemTags.Should().BeEmpty();
+        _logger.Verify(
+            l => l.Log(
+                LogLevel.Warning,
+                It.IsAny<EventId>(),
+                It.IsAny<It.IsAnyType>(),
+                It.IsAny<Exception?>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task ExpandAsync_PlainTextResponse_DoesNotLogWarning()
+    {
+        // Arrange
+        SetupChatClient("Problém: popraskané ruce");
+        var expander = CreateExpander();
+
+        // Act
+        var result = await expander.ExpandAsync("dotaz", EnabledConfig(), CancellationToken.None);
+
+        // Assert
+        result.QueryToEmbed.Should().Be("Problém: popraskané ruce");
+        _logger.Verify(
+            l => l.Log(
+                LogLevel.Warning,
+                It.IsAny<EventId>(),
+                It.IsAny<It.IsAnyType>(),
+                It.IsAny<Exception?>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Never);
     }
 }

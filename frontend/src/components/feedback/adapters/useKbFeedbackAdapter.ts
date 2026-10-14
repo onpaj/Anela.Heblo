@@ -1,9 +1,9 @@
 import React from 'react';
 import { useKnowledgeBaseFeedbackListQuery } from '../../../api/hooks/useKnowledgeBase';
 import RagFeedbackDetailExtra from '../RagFeedbackDetailExtra';
-import type { FeedbackDetail, GenericFeedbackParams, GenericFeedbackStats } from '../types';
+import type { FeedbackDetail, GenericFeedbackStats, KbFeedbackParams } from '../types';
 
-export function useKbFeedbackAdapter(params: GenericFeedbackParams) {
+export function useKbFeedbackAdapter(params: KbFeedbackParams) {
   const query = useKnowledgeBaseFeedbackListQuery({
     pageNumber: params.pageNumber,
     pageSize: params.pageSize,
@@ -11,6 +11,10 @@ export function useKbFeedbackAdapter(params: GenericFeedbackParams) {
     sortDescending: params.sortDescending,
     hasFeedback: params.hasFeedback,
     userId: params.userId,
+    dateFrom: params.dateFrom,
+    dateTo: params.dateTo,
+    problemTag: params.problemTag,
+    productTag: params.productTag,
   });
 
   const rows: FeedbackDetail[] = (query.data?.logs ?? []).map((log) => ({
@@ -24,6 +28,7 @@ export function useKbFeedbackAdapter(params: GenericFeedbackParams) {
     styleScore: log.styleScore,
     hasFeedback: log.hasFeedback,
     feedbackComment: log.feedbackComment,
+    tags: [...(log.problemTags ?? []), ...(log.productTags ?? [])],
     extra: React.createElement(RagFeedbackDetailExtra, { log }),
   }));
 

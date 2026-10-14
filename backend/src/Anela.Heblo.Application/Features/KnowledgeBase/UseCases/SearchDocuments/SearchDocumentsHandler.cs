@@ -1,3 +1,4 @@
+using Anela.Heblo.Application.Features.KnowledgeBase.Services;
 using Anela.Heblo.Application.Shared.Rag;
 using Anela.Heblo.Domain.Features.KnowledgeBase;
 using Anela.Heblo.Domain.Features.Rag;
@@ -14,6 +15,7 @@ public class SearchDocumentsHandler : IRequestHandler<SearchDocumentsRequest, Se
     private readonly IKnowledgeBaseRepository _repository;
     private readonly KnowledgeBaseOptions _options;
     private readonly IRagQueryExpander _expander;
+    private readonly IQuestionTagLibrary _tagLibrary;
     private readonly IRagInteractionRecorder _recorder;
     private readonly ILogger<SearchDocumentsHandler> _logger;
 
@@ -22,6 +24,7 @@ public class SearchDocumentsHandler : IRequestHandler<SearchDocumentsRequest, Se
         IKnowledgeBaseRepository repository,
         IOptions<KnowledgeBaseOptions> options,
         IRagQueryExpander expander,
+        IQuestionTagLibrary tagLibrary,
         IRagInteractionRecorder recorder,
         ILogger<SearchDocumentsHandler> logger)
     {
@@ -29,6 +32,7 @@ public class SearchDocumentsHandler : IRequestHandler<SearchDocumentsRequest, Se
         _repository = repository;
         _options = options.Value;
         _expander = expander;
+        _tagLibrary = tagLibrary;
         _recorder = recorder;
         _logger = logger;
     }
@@ -37,7 +41,12 @@ public class SearchDocumentsHandler : IRequestHandler<SearchDocumentsRequest, Se
         SearchDocumentsRequest request,
         CancellationToken cancellationToken)
     {
-        var queryToEmbed = await _expander.ExpandAsync(request.Query, _options.ToExpansionConfig(), cancellationToken);
+        var expansionConfig = await _tagLibrary.BuildExpansionConfigAsync(_options.ToExpansionConfig(), cancellationToken);
+        var expansion = await _expander.ExpandAsync(request.Query, expansionConfig, cancellationToken);
+        var queryToEmbed = expansion.QueryToEmbed;
+
+        // Recorded before embedding so the tags survive a transient embedding/vector-DB failure.
+        _recorder.RecordQuestionTags(expansion.ProblemTags, expansion.ProductTags);
 
         float[] queryEmbedding;
         try

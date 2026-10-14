@@ -31,6 +31,9 @@ public static class RagInteractionLogFactory
             ConversationId = recorder.ConversationId,
             Topic = recorder.Topic,
             DurationMs = durationMs,
+            ProblemTags = recorder.ProblemTags.ToList(),
+            ProductTags = recorder.ProductTags.ToList(),
+            RecommendedProductCodes = recorder.RecommendedProductCodes.ToList(),
         };
     }
 }

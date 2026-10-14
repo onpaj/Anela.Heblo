@@ -5625,7 +5625,7 @@ export class ApiClient {
         return Promise.resolve<DeleteDocumentResponse>(null as any);
     }
 
-    knowledgeBase_GetFeedbackList(pageNumber: number | undefined, pageSize: number | undefined, sortBy: string | undefined, sortDescending: boolean | undefined, hasFeedback: boolean | null | undefined, userId: string | null | undefined): Promise<GetFeedbackListResponse> {
+    knowledgeBase_GetFeedbackList(pageNumber: number | undefined, pageSize: number | undefined, sortBy: string | undefined, sortDescending: boolean | undefined, hasFeedback: boolean | null | undefined, userId: string | null | undefined, dateFrom: Date | null | undefined, dateTo: Date | null | undefined, problemTag: string | null | undefined, productTag: string | null | undefined): Promise<GetFeedbackListResponse> {
         let url_ = this.baseUrl + "/api/KnowledgeBase/feedback/list?";
         if (pageNumber === null)
             throw new Error("The parameter 'pageNumber' cannot be null.");
@@ -5647,6 +5647,14 @@ export class ApiClient {
             url_ += "hasFeedback=" + encodeURIComponent("" + hasFeedback) + "&";
         if (userId !== undefined && userId !== null)
             url_ += "userId=" + encodeURIComponent("" + userId) + "&";
+        if (dateFrom !== undefined && dateFrom !== null)
+            url_ += "dateFrom=" + encodeURIComponent(dateFrom ? "" + dateFrom.toISOString() : "") + "&";
+        if (dateTo !== undefined && dateTo !== null)
+            url_ += "dateTo=" + encodeURIComponent(dateTo ? "" + dateTo.toISOString() : "") + "&";
+        if (problemTag !== undefined && problemTag !== null)
+            url_ += "problemTag=" + encodeURIComponent("" + problemTag) + "&";
+        if (productTag !== undefined && productTag !== null)
+            url_ += "productTag=" + encodeURIComponent("" + productTag) + "&";
         url_ = url_.replace(/[?&]$/, "");
 
         let options_: RequestInit = {
@@ -5677,6 +5685,44 @@ export class ApiClient {
             });
         }
         return Promise.resolve<GetFeedbackListResponse>(null as any);
+    }
+
+    knowledgeBase_GetQuestionTagStats(dateFrom: Date | null | undefined, dateTo: Date | null | undefined): Promise<GetQuestionTagStatsResponse> {
+        let url_ = this.baseUrl + "/api/KnowledgeBase/feedback/tag-stats?";
+        if (dateFrom !== undefined && dateFrom !== null)
+            url_ += "dateFrom=" + encodeURIComponent(dateFrom ? "" + dateFrom.toISOString() : "") + "&";
+        if (dateTo !== undefined && dateTo !== null)
+            url_ += "dateTo=" + encodeURIComponent(dateTo ? "" + dateTo.toISOString() : "") + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processKnowledgeBase_GetQuestionTagStats(_response);
+        });
+    }
+
+    protected processKnowledgeBase_GetQuestionTagStats(response: Response): Promise<GetQuestionTagStatsResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = GetQuestionTagStatsResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<GetQuestionTagStatsResponse>(null as any);
     }
 
     knowledgeBase_SubmitFeedback(request: SubmitFeedbackRequest): Promise<SubmitFeedbackResponse> {
@@ -26476,6 +26522,9 @@ export class RagFeedbackLogSummary implements IRagFeedbackLogSummary {
     precisionScore?: number | undefined;
     styleScore?: number | undefined;
     feedbackComment?: string | undefined;
+    problemTags?: string[];
+    productTags?: string[];
+    recommendedProductCodes?: string[];
     hasFeedback?: boolean;
 
     constructor(data?: IRagFeedbackLogSummary) {
@@ -26514,6 +26563,21 @@ export class RagFeedbackLogSummary implements IRagFeedbackLogSummary {
             this.precisionScore = _data["precisionScore"];
             this.styleScore = _data["styleScore"];
             this.feedbackComment = _data["feedbackComment"];
+            if (Array.isArray(_data["problemTags"])) {
+                this.problemTags = [] as any;
+                for (let item of _data["problemTags"])
+                    this.problemTags!.push(item);
+            }
+            if (Array.isArray(_data["productTags"])) {
+                this.productTags = [] as any;
+                for (let item of _data["productTags"])
+                    this.productTags!.push(item);
+            }
+            if (Array.isArray(_data["recommendedProductCodes"])) {
+                this.recommendedProductCodes = [] as any;
+                for (let item of _data["recommendedProductCodes"])
+                    this.recommendedProductCodes!.push(item);
+            }
             this.hasFeedback = _data["hasFeedback"];
         }
     }
@@ -26552,6 +26616,21 @@ export class RagFeedbackLogSummary implements IRagFeedbackLogSummary {
         data["precisionScore"] = this.precisionScore;
         data["styleScore"] = this.styleScore;
         data["feedbackComment"] = this.feedbackComment;
+        if (Array.isArray(this.problemTags)) {
+            data["problemTags"] = [];
+            for (let item of this.problemTags)
+                data["problemTags"].push(item);
+        }
+        if (Array.isArray(this.productTags)) {
+            data["productTags"] = [];
+            for (let item of this.productTags)
+                data["productTags"].push(item);
+        }
+        if (Array.isArray(this.recommendedProductCodes)) {
+            data["recommendedProductCodes"] = [];
+            for (let item of this.recommendedProductCodes)
+                data["recommendedProductCodes"].push(item);
+        }
         data["hasFeedback"] = this.hasFeedback;
         return data;
     }
@@ -26579,6 +26658,9 @@ export interface IRagFeedbackLogSummary {
     precisionScore?: number | undefined;
     styleScore?: number | undefined;
     feedbackComment?: string | undefined;
+    problemTags?: string[];
+    productTags?: string[];
+    recommendedProductCodes?: string[];
     hasFeedback?: boolean;
 }
 
@@ -26685,6 +26767,115 @@ export interface IRagFeedbackStatsDto {
     totalWithFeedback?: number;
     avgPrecisionScore?: number | undefined;
     avgStyleScore?: number | undefined;
+}
+
+export class GetQuestionTagStatsResponse extends BaseResponse implements IGetQuestionTagStatsResponse {
+    problemTags?: QuestionTagCountDto[];
+    productTags?: QuestionTagCountDto[];
+    recommendedProducts?: QuestionTagCountDto[];
+
+    constructor(data?: IGetQuestionTagStatsResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            if (Array.isArray(_data["problemTags"])) {
+                this.problemTags = [] as any;
+                for (let item of _data["problemTags"])
+                    this.problemTags!.push(QuestionTagCountDto.fromJS(item));
+            }
+            if (Array.isArray(_data["productTags"])) {
+                this.productTags = [] as any;
+                for (let item of _data["productTags"])
+                    this.productTags!.push(QuestionTagCountDto.fromJS(item));
+            }
+            if (Array.isArray(_data["recommendedProducts"])) {
+                this.recommendedProducts = [] as any;
+                for (let item of _data["recommendedProducts"])
+                    this.recommendedProducts!.push(QuestionTagCountDto.fromJS(item));
+            }
+        }
+    }
+
+    static override fromJS(data: any): GetQuestionTagStatsResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new GetQuestionTagStatsResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        if (Array.isArray(this.problemTags)) {
+            data["problemTags"] = [];
+            for (let item of this.problemTags)
+                data["problemTags"].push(item.toJSON());
+        }
+        if (Array.isArray(this.productTags)) {
+            data["productTags"] = [];
+            for (let item of this.productTags)
+                data["productTags"].push(item.toJSON());
+        }
+        if (Array.isArray(this.recommendedProducts)) {
+            data["recommendedProducts"] = [];
+            for (let item of this.recommendedProducts)
+                data["recommendedProducts"].push(item.toJSON());
+        }
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IGetQuestionTagStatsResponse extends IBaseResponse {
+    problemTags?: QuestionTagCountDto[];
+    productTags?: QuestionTagCountDto[];
+    recommendedProducts?: QuestionTagCountDto[];
+}
+
+export class QuestionTagCountDto implements IQuestionTagCountDto {
+    tag?: string;
+    label?: string;
+    count?: number;
+
+    constructor(data?: IQuestionTagCountDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.tag = _data["tag"];
+            this.label = _data["label"];
+            this.count = _data["count"];
+        }
+    }
+
+    static fromJS(data: any): QuestionTagCountDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new QuestionTagCountDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["tag"] = this.tag;
+        data["label"] = this.label;
+        data["count"] = this.count;
+        return data;
+    }
+}
+
+export interface IQuestionTagCountDto {
+    tag?: string;
+    label?: string;
+    count?: number;
 }
 
 export class SubmitFeedbackResponse extends BaseResponse implements ISubmitFeedbackResponse {

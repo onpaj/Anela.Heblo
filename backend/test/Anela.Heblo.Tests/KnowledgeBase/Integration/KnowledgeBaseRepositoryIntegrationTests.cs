@@ -115,7 +115,10 @@ public class KnowledgeBaseRepositoryIntegrationTests : IAsyncLifetime
                 "PrecisionScore"      integer NULL,
                 "StyleScore"          integer NULL,
                 "FeedbackComment"     text NULL,
-                "DurationMs"          bigint NOT NULL
+                "DurationMs"          bigint NOT NULL,
+                "ProblemTags"             text[] NOT NULL DEFAULT '{}',
+                "ProductTags"             text[] NOT NULL DEFAULT '{}',
+                "RecommendedProductCodes" text[] NOT NULL DEFAULT '{}'
             );
             """;
         await cmd.ExecuteNonQueryAsync();

@@ -1,4 +1,5 @@
 using Anela.Heblo.Application.Features.KnowledgeBase;
+using Anela.Heblo.Application.Features.KnowledgeBase.Services;
 using Anela.Heblo.Application.Features.KnowledgeBase.UseCases.SearchDocuments;
 using Anela.Heblo.Application.Shared.Rag;
 using Anela.Heblo.Domain.Features.KnowledgeBase;
@@ -17,6 +18,14 @@ public class SearchDocumentsHandlerTests
     private readonly Mock<IRagQueryExpander> _expander = new();
     private readonly RagInteractionRecorder _recorder = new();
     private readonly Mock<ILogger<SearchDocumentsHandler>> _logger = new();
+    private readonly Mock<IQuestionTagLibrary> _tagLibrary = new();
+
+    public SearchDocumentsHandlerTests()
+    {
+        _tagLibrary
+            .Setup(l => l.BuildExpansionConfigAsync(It.IsAny<RagQueryExpansionConfig>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((RagQueryExpansionConfig c, CancellationToken _) => c);
+    }
 
     private SearchDocumentsHandler CreateHandler(double minScore = 0.60)
     {
@@ -25,7 +34,7 @@ public class SearchDocumentsHandlerTests
             MinSimilarityScore = minScore,
             QueryExpansionPrompt = "Expand:"
         });
-        return new SearchDocumentsHandler(_embeddingGenerator.Object, _repository.Object, options, _expander.Object, _recorder, _logger.Object);
+        return new SearchDocumentsHandler(_embeddingGenerator.Object, _repository.Object, options, _expander.Object, _tagLibrary.Object, _recorder, _logger.Object);
     }
 
     private void SetupEmbeddingGenerator()
@@ -58,7 +67,7 @@ public class SearchDocumentsHandlerTests
 
         _expander
             .Setup(e => e.ExpandAsync(It.IsAny<string>(), It.IsAny<RagQueryExpansionConfig>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync((string q, RagQueryExpansionConfig _, CancellationToken _) => q);
+            .ReturnsAsync((string q, RagQueryExpansionConfig _, CancellationToken _) => RagExpansionResult.Untagged(q));
 
         _repository
             .Setup(r => r.SearchSimilarAsync(It.IsAny<float[]>(), 5, default))
@@ -84,7 +93,7 @@ public class SearchDocumentsHandlerTests
 
         _expander
             .Setup(e => e.ExpandAsync(It.IsAny<string>(), It.IsAny<RagQueryExpansionConfig>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync((string q, RagQueryExpansionConfig _, CancellationToken _) => q);
+            .ReturnsAsync((string q, RagQueryExpansionConfig _, CancellationToken _) => RagExpansionResult.Untagged(q));
 
         _repository
             .Setup(r => r.SearchSimilarAsync(It.IsAny<float[]>(), 5, default))
@@ -107,7 +116,7 @@ public class SearchDocumentsHandlerTests
 
         _expander
             .Setup(e => e.ExpandAsync(It.IsAny<string>(), It.IsAny<RagQueryExpansionConfig>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync((string q, RagQueryExpansionConfig _, CancellationToken _) => q);
+            .ReturnsAsync((string q, RagQueryExpansionConfig _, CancellationToken _) => RagExpansionResult.Untagged(q));
 
         _repository
             .Setup(r => r.SearchSimilarAsync(It.IsAny<float[]>(), 5, default))
@@ -130,7 +139,7 @@ public class SearchDocumentsHandlerTests
 
         _expander
             .Setup(e => e.ExpandAsync(It.IsAny<string>(), It.IsAny<RagQueryExpansionConfig>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(expandedQuery);
+            .ReturnsAsync(RagExpansionResult.Untagged(expandedQuery));
 
         _repository
             .Setup(r => r.SearchSimilarAsync(It.IsAny<float[]>(), 5, default))
@@ -164,7 +173,7 @@ public class SearchDocumentsHandlerTests
 
         _expander
             .Setup(e => e.ExpandAsync(It.IsAny<string>(), It.IsAny<RagQueryExpansionConfig>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(rawQuery);
+            .ReturnsAsync(RagExpansionResult.Untagged(rawQuery));
 
         _repository
             .Setup(r => r.SearchSimilarAsync(It.IsAny<float[]>(), 5, default))
@@ -200,7 +209,7 @@ public class SearchDocumentsHandlerTests
     {
         _expander
             .Setup(e => e.ExpandAsync(It.IsAny<string>(), It.IsAny<RagQueryExpansionConfig>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync((string q, RagQueryExpansionConfig _, CancellationToken _) => q);
+            .ReturnsAsync((string q, RagQueryExpansionConfig _, CancellationToken _) => RagExpansionResult.Untagged(q));
 
         var exception = (Exception)Activator.CreateInstance(exceptionType, "Exception while reading from stream")!;
         _embeddingGenerator
@@ -230,7 +239,7 @@ public class SearchDocumentsHandlerTests
     {
         _expander
             .Setup(e => e.ExpandAsync(It.IsAny<string>(), It.IsAny<RagQueryExpansionConfig>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync((string q, RagQueryExpansionConfig _, CancellationToken _) => q);
+            .ReturnsAsync((string q, RagQueryExpansionConfig _, CancellationToken _) => RagExpansionResult.Untagged(q));
 
         var exception = (Exception)Activator.CreateInstance(exceptionType, "stream error")!;
         _embeddingGenerator
@@ -265,7 +274,7 @@ public class SearchDocumentsHandlerTests
 
         _expander
             .Setup(e => e.ExpandAsync(It.IsAny<string>(), It.IsAny<RagQueryExpansionConfig>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync((string q, RagQueryExpansionConfig _, CancellationToken _) => q);
+            .ReturnsAsync((string q, RagQueryExpansionConfig _, CancellationToken _) => RagExpansionResult.Untagged(q));
 
         var exception = (Exception)Activator.CreateInstance(exceptionType, "stream error from pgvector")!;
         _repository
@@ -291,7 +300,7 @@ public class SearchDocumentsHandlerTests
 
         _expander
             .Setup(e => e.ExpandAsync(It.IsAny<string>(), It.IsAny<RagQueryExpansionConfig>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync((string q, RagQueryExpansionConfig _, CancellationToken _) => q);
+            .ReturnsAsync((string q, RagQueryExpansionConfig _, CancellationToken _) => RagExpansionResult.Untagged(q));
 
         var exception = (Exception)Activator.CreateInstance(exceptionType, "stream error from pgvector")!;
         _repository
@@ -330,7 +339,7 @@ public class SearchDocumentsHandlerTests
 
         _expander
             .Setup(e => e.ExpandAsync(It.IsAny<string>(), It.IsAny<RagQueryExpansionConfig>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync((string q, RagQueryExpansionConfig _, CancellationToken _) => q);
+            .ReturnsAsync((string q, RagQueryExpansionConfig _, CancellationToken _) => RagExpansionResult.Untagged(q));
 
         _repository
             .Setup(r => r.SearchSimilarAsync(It.IsAny<float[]>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
@@ -343,12 +352,72 @@ public class SearchDocumentsHandlerTests
             EmbeddingDimensions = 3072,
         });
         var handler = new SearchDocumentsHandler(
-            _embeddingGenerator.Object, _repository.Object, options, _expander.Object, _recorder, _logger.Object);
+            _embeddingGenerator.Object, _repository.Object, options, _expander.Object, _tagLibrary.Object, _recorder, _logger.Object);
 
         await handler.Handle(new SearchDocumentsRequest { Query = "phenoxyethanol", TopK = 5 }, default);
 
         Assert.NotNull(capturedOptions);
         Assert.Equal("text-embedding-3-small", capturedOptions!.ModelId);
         Assert.Equal(3072, capturedOptions.Dimensions);
+    }
+
+    [Fact]
+    public async Task Handle_RecordsQuestionTagsFromExpansion()
+    {
+        // Arrange
+        SetupEmbeddingGenerator();
+        _expander
+            .Setup(e => e.ExpandAsync(It.IsAny<string>(), It.IsAny<RagQueryExpansionConfig>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new RagExpansionResult("Problém: akné", ["akné"], ["hořčíkové máslo"]));
+        _repository
+            .Setup(r => r.SearchSimilarAsync(It.IsAny<float[]>(), 5, default))
+            .ReturnsAsync([]);
+
+        // Act
+        await CreateHandler().Handle(new SearchDocumentsRequest { Query = "mám akné", TopK = 5 }, default);
+
+        // Assert
+        Assert.Equal(["akné"], _recorder.ProblemTags);
+        Assert.Equal(["hořčíkové máslo"], _recorder.ProductTags);
+        Assert.Equal("Problém: akné", _recorder.ExpandedQuery);
+    }
+
+    [Fact]
+    public async Task Handle_EmbeddingFails_StillRecordsQuestionTags()
+    {
+        // Arrange
+        _expander
+            .Setup(e => e.ExpandAsync(It.IsAny<string>(), It.IsAny<RagQueryExpansionConfig>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new RagExpansionResult("Problém: akné", ["akné"], []));
+        _embeddingGenerator
+            .Setup(s => s.GenerateAsync(It.IsAny<IEnumerable<string>>(), It.IsAny<EmbeddingGenerationOptions?>(), default))
+            .ThrowsAsync(new HttpRequestException("down"));
+
+        // Act
+        await CreateHandler().Handle(new SearchDocumentsRequest { Query = "mám akné", TopK = 5 }, default);
+
+        // Assert
+        Assert.Equal(["akné"], _recorder.ProblemTags);
+    }
+
+    [Fact]
+    public async Task Handle_PassesLibraryEnrichedConfigToExpander()
+    {
+        // Arrange
+        SetupEmbeddingGenerator();
+        var enriched = new RagQueryExpansionConfig(true, "m", "ENRICHED PROMPT");
+        _tagLibrary
+            .Setup(l => l.BuildExpansionConfigAsync(It.IsAny<RagQueryExpansionConfig>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(enriched);
+        _expander
+            .Setup(e => e.ExpandAsync(It.IsAny<string>(), It.IsAny<RagQueryExpansionConfig>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((string q, RagQueryExpansionConfig _, CancellationToken _) => RagExpansionResult.Untagged(q));
+        _repository.Setup(r => r.SearchSimilarAsync(It.IsAny<float[]>(), 5, default)).ReturnsAsync([]);
+
+        // Act
+        await CreateHandler().Handle(new SearchDocumentsRequest { Query = "q", TopK = 5 }, default);
+
+        // Assert
+        _expander.Verify(e => e.ExpandAsync("q", enriched, It.IsAny<CancellationToken>()), Times.Once);
     }
 }

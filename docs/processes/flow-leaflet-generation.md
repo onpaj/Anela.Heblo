@@ -16,7 +16,7 @@ owns:
   - backend/src/Anela.Heblo.Domain/Features/Leaflet/UpdateFeedbackResult.cs
   - backend/src/Anela.Heblo.Persistence/Features/Leaflet/LeafletGeneration*.cs
   - backend/src/Anela.Heblo.API/MCP/Tools/LeafletTools.cs
-verified_at: "5e993f9e2"
+verified_at: "0f56d8740"
 related:
   - job-leaflet-ingestion
 ---

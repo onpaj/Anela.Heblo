@@ -147,4 +147,68 @@ public class PostAnswerEnrichmentMiddlewareTests
 
         Assert.Equal(text, result.Text);
     }
+
+    private static IReadOnlyList<string>? RecommendedCodes(ChatResponse response) =>
+        response.AdditionalProperties?.TryGetValue(PostAnswerEnrichmentMiddleware.RecommendedProductCodesKey, out var value) == true
+            ? value as IReadOnlyList<string>
+            : null;
+
+    [Fact]
+    public async Task GetResponseAsync_KnownCodes_ExposedInAdditionalPropertiesDedupedInOrder()
+    {
+        SetupInner("Zkuste [Klidné nožky](MAS009), pak (AKL001) a znovu [nožky](MAS009).");
+        SetupCache(("MAS009", "Klidné nožky", "https://anela.cz/klidne-nozky"), ("AKL001", "Sérum ABC", null));
+
+        var result = await Create().GetResponseAsync([], null, default);
+
+        Assert.Equal(["MAS009", "AKL001"], RecommendedCodes(result));
+    }
+
+    [Fact]
+    public async Task GetResponseAsync_UnknownCode_NotExposed()
+    {
+        SetupInner("Zkuste [Neexistující](FAKE01) a [Klidné nožky](MAS009).");
+        SetupCache(("MAS009", "Klidné nožky", null));
+
+        var result = await Create().GetResponseAsync([], null, default);
+
+        Assert.Equal(["MAS009"], RecommendedCodes(result));
+    }
+
+    [Fact]
+    public async Task GetResponseAsync_NoProducts_ReturnsOriginalResponseWithoutKey()
+    {
+        SetupInner("Pijte dostatek vody.");
+        SetupCache();
+
+        var result = await Create().GetResponseAsync([], null, default);
+
+        Assert.Null(RecommendedCodes(result));
+    }
+
+    [Fact]
+    public async Task GetResponseAsync_DoesNotMutateInnerResponseAdditionalProperties()
+    {
+        var innerProps = new AdditionalPropertiesDictionary { ["existing"] = "x" };
+        _inner
+            .Setup(c => c.GetResponseAsync(It.IsAny<IEnumerable<ChatMessage>>(), It.IsAny<ChatOptions?>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new ChatResponse([new ChatMessage(ChatRole.Assistant, "Zkuste (AKL001).")]) { AdditionalProperties = innerProps });
+        SetupCache(("AKL001", "Sérum ABC", null));
+
+        var result = await Create().GetResponseAsync([], null, default);
+
+        Assert.False(innerProps.ContainsKey(PostAnswerEnrichmentMiddleware.RecommendedProductCodesKey));
+        Assert.Equal("x", result.AdditionalProperties!["existing"]);
+    }
+
+    [Fact]
+    public async Task GetResponseAsync_BareThenLinkedCode_OrderedByPositionInOriginalText()
+    {
+        SetupInner("Zkuste (AKL001) a pak [Klidné nožky](MAS009).");
+        SetupCache(("AKL001", "Sérum ABC", null), ("MAS009", "Klidné nožky", null));
+
+        var result = await Create().GetResponseAsync([], null, default);
+
+        Assert.Equal(["AKL001", "MAS009"], RecommendedCodes(result));
+    }
 }

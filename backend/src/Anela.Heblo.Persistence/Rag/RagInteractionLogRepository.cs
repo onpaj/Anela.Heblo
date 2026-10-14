@@ -46,29 +46,14 @@ public class RagInteractionLogRepository : IRagInteractionLogRepository
     }
 
     public async Task<(List<RagInteractionLog> Logs, int TotalCount)> GetFeedbackLogsPagedAsync(
-        RagFeature? feature,
-        bool? hasFeedback,
-        string? userId,
+        RagFeedbackLogFilter filter,
         string sortBy,
         bool sortDescending,
         int pageNumber,
         int pageSize,
         CancellationToken ct = default)
     {
-        var query = _context.RagInteractionLogs.AsQueryable();
-
-        if (feature.HasValue)
-            query = query.Where(l => l.Feature == feature.Value);
-
-        if (hasFeedback.HasValue)
-        {
-            query = hasFeedback.Value
-                ? query.Where(l => l.PrecisionScore != null || l.StyleScore != null)
-                : query.Where(l => l.PrecisionScore == null && l.StyleScore == null);
-        }
-
-        if (!string.IsNullOrEmpty(userId))
-            query = query.Where(l => l.UserId == userId);
+        var query = ApplyFilter(_context.RagInteractionLogs.AsQueryable(), filter);
 
         query = sortBy switch
         {
@@ -90,6 +75,60 @@ public class RagInteractionLogRepository : IRagInteractionLogRepository
             .ToListAsync(ct);
 
         return (logs, totalCount);
+    }
+
+    public async Task<IReadOnlyList<RagTagCount>> GetTagCountsAsync(
+        RagFeature feature,
+        DateTimeOffset? from,
+        DateTimeOffset? toExclusive,
+        CancellationToken ct = default)
+    {
+        var filter = new RagFeedbackLogFilter(feature, CreatedFrom: from, CreatedToExclusive: toExclusive);
+
+        // Projects only the three arrays and groups in memory: KB volume is ~120 questions/month, so this
+        // stays small, and it avoids depending on EF translating SelectMany+GroupBy over primitive collections.
+        var rows = await ApplyFilter(_context.RagInteractionLogs.AsNoTracking(), filter)
+            .Select(l => new { l.ProblemTags, l.ProductTags, l.RecommendedProductCodes })
+            .ToListAsync(ct);
+
+        return Count(RagTagKind.Problem, rows.SelectMany(r => r.ProblemTags))
+            .Concat(Count(RagTagKind.Product, rows.SelectMany(r => r.ProductTags)))
+            .Concat(Count(RagTagKind.RecommendedProduct, rows.SelectMany(r => r.RecommendedProductCodes)))
+            .ToList();
+    }
+
+    private static IEnumerable<RagTagCount> Count(RagTagKind kind, IEnumerable<string> tags) =>
+        tags.GroupBy(t => t, StringComparer.Ordinal)
+            .Select(g => new RagTagCount(kind, g.Key, g.Count()));
+
+    private static IQueryable<RagInteractionLog> ApplyFilter(IQueryable<RagInteractionLog> query, RagFeedbackLogFilter filter)
+    {
+        if (filter.Feature.HasValue)
+            query = query.Where(l => l.Feature == filter.Feature.Value);
+
+        if (filter.HasFeedback.HasValue)
+        {
+            query = filter.HasFeedback.Value
+                ? query.Where(l => l.PrecisionScore != null || l.StyleScore != null)
+                : query.Where(l => l.PrecisionScore == null && l.StyleScore == null);
+        }
+
+        if (!string.IsNullOrEmpty(filter.UserId))
+            query = query.Where(l => l.UserId == filter.UserId);
+
+        if (filter.CreatedFrom.HasValue)
+            query = query.Where(l => l.CreatedAt >= filter.CreatedFrom.Value);
+
+        if (filter.CreatedToExclusive.HasValue)
+            query = query.Where(l => l.CreatedAt < filter.CreatedToExclusive.Value);
+
+        if (!string.IsNullOrEmpty(filter.ProblemTag))
+            query = query.Where(l => l.ProblemTags.Contains(filter.ProblemTag));
+
+        if (!string.IsNullOrEmpty(filter.ProductTag))
+            query = query.Where(l => l.ProductTags.Contains(filter.ProductTag));
+
+        return query;
     }
 
     public async Task<RagFeedbackAggregateStats> GetFeedbackStatsAsync(RagFeature? feature, CancellationToken ct = default)
