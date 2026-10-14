@@ -60,6 +60,12 @@ public static class AccessRoles
     public const string MarketingMarketingCalendarWrite = "marketing.marketing_calendar.write";
     public const string MarketingPerformanceRead = "marketing.performance.read";
     public const string MarketingPerformanceWrite = "marketing.performance.write";
+    public const string MarketingAdsRead = "marketing.ads.read";
+    public const string MarketingAdsWrite = "marketing.ads.write";
+    public const string MarketingAdApprovalsRead = "marketing.ad_approvals.read";
+    public const string MarketingAdApprovalsWrite = "marketing.ad_approvals.write";
+    public const string MarketingAdApprovalsAdmin = "marketing.ad_approvals.admin";
+    public const string MarketingAdApprovalsViaMcpRead = "marketing.ad_approvals_via_mcp.read";
     public const string AnelaMeetingsRead = "anela.meetings.read";
     public const string AnelaMeetingsWrite = "anela.meetings.write";
     public const string AnelaOrgChartRead = "anela.org_chart.read";
@@ -136,6 +142,12 @@ public static class AccessRoles
         (Feature.Marketing_MarketingCalendar, AccessLevel.Write) => MarketingMarketingCalendarWrite,
         (Feature.Marketing_Performance, AccessLevel.Read) => MarketingPerformanceRead,
         (Feature.Marketing_Performance, AccessLevel.Write) => MarketingPerformanceWrite,
+        (Feature.Marketing_Ads, AccessLevel.Read) => MarketingAdsRead,
+        (Feature.Marketing_Ads, AccessLevel.Write) => MarketingAdsWrite,
+        (Feature.Marketing_AdApprovals, AccessLevel.Read) => MarketingAdApprovalsRead,
+        (Feature.Marketing_AdApprovals, AccessLevel.Write) => MarketingAdApprovalsWrite,
+        (Feature.Marketing_AdApprovals, AccessLevel.Admin) => MarketingAdApprovalsAdmin,
+        (Feature.Marketing_AdApprovalsViaMcp, AccessLevel.Read) => MarketingAdApprovalsViaMcpRead,
         (Feature.Anela_Meetings, AccessLevel.Read) => AnelaMeetingsRead,
         (Feature.Anela_Meetings, AccessLevel.Write) => AnelaMeetingsWrite,
         (Feature.Anela_OrgChart, AccessLevel.Read) => AnelaOrgChartRead,
