@@ -1,5 +1,7 @@
+using Anela.Heblo.Adapters.GoogleAds.Tests.Support;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 
 namespace Anela.Heblo.Adapters.GoogleAds.Tests.Execution;
 
@@ -38,6 +40,7 @@ internal sealed record SmokeEnvironment(string CustomerId, string AdGroupAdId, s
     public ServiceProvider BuildProvider()
     {
         var services = new ServiceCollection().AddLogging();
+        services.AddSingleton<IHostEnvironment>(new StubHostEnvironment("Staging"));
         services.AddGoogleAdsMarketingAds(new ConfigurationBuilder().AddInMemoryCollection(Configuration).Build());
         return services.BuildServiceProvider(validateScopes: true);
     }

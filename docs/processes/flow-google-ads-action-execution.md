@@ -35,7 +35,7 @@ Called by the core proposal execution pipeline per action after final approval, 
 ## Configuration
 | Key | Repo default | Meaning |
 |---|---|---|
-| `GoogleAds:ValidateOnly` | `true` (`false` only in `appsettings.Production.json`) | dry-run every mutate |
+| `GoogleAds:ValidateOnly` | `true` (`false` only in `appsettings.Production.json`) | dry-run every mutate; ignored (always on) outside the Production environment |
 | other `GoogleAds:*` | see `sync-google-ads-campaign-data` | shared with the read source |
 
 ## Runtime facts
@@ -43,7 +43,7 @@ None yet - no live write has been made. Record the first production execution he
 
 ## Known quirks
 - Staging and production point at the same live Google Ads account; that is why only production may write.
-- `ConfigurationFileTests` guards only the `appsettings*.json` files. An App Setting `GoogleAds__ValidateOnly=false` or a Key Vault secret `GoogleAds--ValidateOnly` on staging would still override them and let staging write; never set either outside production.
+- Outside the `Production` host environment the executor is validate-only regardless of `GoogleAds:ValidateOnly`, so an App Setting `GoogleAds__ValidateOnly=false` or Key Vault secret `GoogleAds--ValidateOnly` on staging cannot make it write. `ConfigurationFileTests` additionally guards the `appsettings*.json` files.
 - A 200 whose body names no criterion (empty or unreadable) is reported as Failed for a negative keyword, although Google may have added it; check the account by hand. A 404 counts as a platform rejection only when it carries a GoogleAdsFailure, otherwise it is thrown as a transport/config error.
 - The executor trusts the core for the old-value check and the limits; it validates only shape, account and ids.
 - `AddGoogleAdsMarketingAds` also runs in the AdsBackfill tool, which therefore registers the executor too; it is scoped and never resolved there.

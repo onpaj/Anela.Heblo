@@ -17,9 +17,11 @@ internal static class ExecutorHarness
         return api;
     }
 
-    public static GoogleAdsActionExecutor Create(StatefulFakeGoogleAdsApi api, bool validateOnly = false) =>
+    public static GoogleAdsActionExecutor Create(
+        StatefulFakeGoogleAdsApi api, bool validateOnly = false, string environment = "Production") =>
         new(api,
             new TestOptionsMonitor<GoogleAdsSettings>(TestSettings.Create(s => s.ValidateOnly = validateOnly)),
+            new StubHostEnvironment(environment),
             NullLogger<GoogleAdsActionExecutor>.Instance);
 
     public static AdAction PauseAd(string target, string? account = null) => new(

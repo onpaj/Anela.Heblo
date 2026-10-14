@@ -4,7 +4,9 @@ using Anela.Heblo.Adapters.GoogleAds.Reporting;
 using Anela.Heblo.Application.Features.MarketingAds.Contracts;
 using FluentAssertions;
 using Microsoft.Extensions.Configuration;
+using Anela.Heblo.Adapters.GoogleAds.Tests.Support;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 
 namespace Anela.Heblo.Adapters.GoogleAds.Tests;
@@ -130,6 +132,7 @@ public sealed class RegistrationTests
     {
         var services = Register(Configured());
         services.AddLogging();
+        services.AddSingleton<IHostEnvironment>(new StubHostEnvironment("Production"));
         using var provider = services.BuildServiceProvider(validateScopes: true);
         using var scope = provider.CreateScope();
 

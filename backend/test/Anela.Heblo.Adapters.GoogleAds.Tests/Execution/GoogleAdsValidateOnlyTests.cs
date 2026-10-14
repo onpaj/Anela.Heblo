@@ -48,4 +48,33 @@ public sealed class GoogleAdsValidateOnlyTests
 
         result.Error.Should().StartWith("policyViolationError.POLICY_ERROR");
     }
+
+    [Theory]
+    [InlineData("Staging")]
+    [InlineData("Test")]
+    [InlineData("Development")]
+    public async Task outside_production_a_validate_only_override_to_false_is_ignored(string environment)
+    {
+        var api = ExecutorHarness.SeededApi();
+        var executor = ExecutorHarness.Create(api, validateOnly: false, environment: environment);
+
+        var result = await executor.ExecuteAsync(ExecutorHarness.PauseAd("221~441"), CancellationToken.None);
+
+        result.Error.Should().StartWith(GoogleAdsExecutionResults.ValidateOnlyMarker);
+        api.Mutations.Single().Request["validateOnly"]!.GetValue<bool>().Should().BeTrue();
+        api.AdStatuses["221~441"].Should().Be("ENABLED");
+    }
+
+    [Fact]
+    public async Task outside_production_a_revert_is_validate_only_too()
+    {
+        var api = ExecutorHarness.SeededApi();
+        var original = await ExecutorHarness.Create(api).ExecuteAsync(ExecutorHarness.PauseAd("221~441"), CancellationToken.None);
+        var staging = ExecutorHarness.Create(api, validateOnly: false, environment: "Staging");
+
+        var reverted = await staging.RevertAsync(ExecutorHarness.PauseAd("221~441"), original, CancellationToken.None);
+
+        reverted.Error.Should().StartWith(GoogleAdsExecutionResults.ValidateOnlyMarker);
+        api.AdStatuses["221~441"].Should().Be("PAUSED");
+    }
 }

@@ -182,10 +182,11 @@ so CI never runs it.
   negative keyword = `create` with `negative: true`; revert of a negative = `remove` of the stored resource name.
 - Retries (mutate transport): **HTTP 429 only**. A **401** drops the cached access token and resends once (Google
   rejected it before processing anything); a second 401 throws. **5xx and timeouts are never retried** - the change
-  may already be applied. HTTP 400/404/409 are platform rejections and come back as `Failed` with Google's error
-  code (§8); every other failure throws.
+  may already be applied. HTTP 400/409, and 404 carrying a GoogleAdsFailure, are platform rejections and come back
+  as `Failed` with Google's error code (§8); every other failure throws (a bare 404 means a wrong URL or API version).
 - `GoogleAds:ValidateOnly` is `true` by default (settings class and `appsettings.json`); only
-  `appsettings.Production.json` sets it to `false`. A validated request returns `Failed` with an error starting
+  `appsettings.Production.json` sets it to `false`, and the executor ignores `false` outside the `Production`
+  host environment (an App Setting or Key Vault override cannot make staging write). A validated request returns `Failed` with an error starting
   `ValidateOnly:`, so nothing downstream believes the account changed.
 - Presence of a negative keyword is decided in C# (case-insensitive, whitespace-collapsed text plus equal match
   type) on the rows of the `executor_*` queries; keyword text is never put into GAQL and ids must be numeric.

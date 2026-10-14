@@ -1,5 +1,6 @@
 using Anela.Heblo.Adapters.GoogleAds.Api;
 using Anela.Heblo.Application.Features.MarketingAds.Contracts;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
@@ -7,7 +8,9 @@ namespace Anela.Heblo.Adapters.GoogleAds.Execution;
 
 /// <summary>
 /// Google Ads executor for the v1 allowlist. Does not compare old values (the core does). Platform
-/// rejections become Failed results; only transport/auth failures throw.
+/// rejections become Failed results; only transport/auth failures throw. Outside the Production
+/// environment every mutate is validate-only whatever GoogleAds:ValidateOnly says, because staging
+/// shares the live account and an App Setting or Key Vault override would beat the appsettings files.
 /// </summary>
 internal sealed class GoogleAdsActionExecutor : IAdActionExecutor
 {
@@ -15,14 +18,19 @@ internal sealed class GoogleAdsActionExecutor : IAdActionExecutor
         new HashSet<AdActionType> { AdActionType.AddNegativeKeyword, AdActionType.PauseAd };
 
     private readonly IOptionsMonitor<GoogleAdsSettings> _settings;
+    private readonly bool _isProduction;
     private readonly ILogger<GoogleAdsActionExecutor> _logger;
     private readonly GoogleAdsPauseAdHandler _pauseAd;
     private readonly GoogleAdsNegativeKeywordHandler _negativeKeyword;
 
     public GoogleAdsActionExecutor(
-        IGoogleAdsApiClient api, IOptionsMonitor<GoogleAdsSettings> settings, ILogger<GoogleAdsActionExecutor> logger)
+        IGoogleAdsApiClient api,
+        IOptionsMonitor<GoogleAdsSettings> settings,
+        IHostEnvironment environment,
+        ILogger<GoogleAdsActionExecutor> logger)
     {
         _settings = settings;
+        _isProduction = environment.IsProduction();
         _logger = logger;
         _pauseAd = new GoogleAdsPauseAdHandler(api);
         _negativeKeyword = new GoogleAdsNegativeKeywordHandler(api);
@@ -49,7 +57,7 @@ internal sealed class GoogleAdsActionExecutor : IAdActionExecutor
     public async Task<AdExecutionResult> ExecuteAsync(AdAction action, CancellationToken ct)
     {
         var customerId = CustomerId();
-        var validateOnly = _settings.CurrentValue.ValidateOnly;
+        var validateOnly = IsValidateOnly();
         var result = GoogleAdsActionGuard.Validate(action, customerId) is { } invalid
             ? GoogleAdsExecutionResults.Failed(invalid)
             : action.Type switch
@@ -65,7 +73,7 @@ internal sealed class GoogleAdsActionExecutor : IAdActionExecutor
     public async Task<AdExecutionResult> RevertAsync(AdAction action, AdExecutionResult original, CancellationToken ct)
     {
         var customerId = CustomerId();
-        var validateOnly = _settings.CurrentValue.ValidateOnly;
+        var validateOnly = IsValidateOnly();
         var result = GoogleAdsActionGuard.Validate(action, customerId) is { } invalid
             ? GoogleAdsExecutionResults.Failed(invalid)
             : action.Type switch
@@ -80,6 +88,8 @@ internal sealed class GoogleAdsActionExecutor : IAdActionExecutor
 
     private static AdExecutionResult Unsupported(AdAction action) =>
         GoogleAdsExecutionResults.Failed($"Action type {action.Type} is not supported for Google Ads.");
+
+    private bool IsValidateOnly() => _settings.CurrentValue.ValidateOnly || !_isProduction;
 
     private string CustomerId() => GoogleAdsIds.NormalizeCustomerId(_settings.CurrentValue.CustomerId);
 
