@@ -1,3 +1,4 @@
+using System.Text;
 using Anela.Heblo.Application.Features.MarketingAds.Contracts;
 
 namespace Anela.Heblo.Application.Features.MarketingAds.Proposals.Actions;
@@ -25,9 +26,20 @@ public static class AdProposalDiffRenderer
     /// <summary>One line, no control/format/separator characters, bounded length.</summary>
     public static string Clean(string value)
     {
-        var withoutForbidden = new string(value.Select(c => AdTextSafety.IsForbidden(c) ? ' ' : c).ToArray());
-        var singleSpaced = string.Join(' ', withoutForbidden.Split(' ', StringSplitOptions.RemoveEmptyEntries));
-        return singleSpaced.Length <= MaxValueLength ? singleSpaced : singleSpaced[..MaxValueLength] + "…";
+        var withoutForbidden = new StringBuilder();
+        foreach (var rune in value.EnumerateRunes())
+        {
+            withoutForbidden.Append(AdTextSafety.IsForbidden(rune) ? " " : rune.ToString());
+        }
+        var singleSpaced = string.Join(' ', withoutForbidden.ToString().Split(' ', StringSplitOptions.RemoveEmptyEntries));
+        return singleSpaced.Length <= MaxValueLength ? singleSpaced : TruncateOnRuneBoundary(singleSpaced) + "…";
+    }
+
+    private static string TruncateOnRuneBoundary(string value)
+    {
+        var end = MaxValueLength;
+        if (char.IsLowSurrogate(value[end]) && char.IsHighSurrogate(value[end - 1])) end--;
+        return value[..end];
     }
 
     private static string Target(AdAction action, IReadOnlyDictionary<string, string> entityNames) =>

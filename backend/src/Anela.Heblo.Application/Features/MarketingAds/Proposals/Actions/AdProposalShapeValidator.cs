@@ -20,6 +20,11 @@ public static class AdProposalShapeValidator
         var errors = new List<string>();
         if (!Enum.IsDefined(platform)) errors.Add("Unknown platform.");
         if (!Enum.IsDefined(actionType)) errors.Add("Unknown action type.");
+        if (IsValidId(accountExternalId) && platform == AdPlatform.GoogleAds
+            && accountExternalId!.Replace("-", string.Empty).Trim().Length == 0)
+        {
+            errors.Add("AccountExternalId must contain more than dashes for Google Ads.");
+        }
         if (!IsValidId(accountExternalId)) errors.Add($"AccountExternalId is required (max {MaxExternalIdLength} chars, no control characters).");
         if (string.IsNullOrWhiteSpace(reasoning)) errors.Add("Reasoning is required.");
         else if (reasoning.Length > MaxReasoningLength) errors.Add($"Reasoning is longer than {MaxReasoningLength} characters.");

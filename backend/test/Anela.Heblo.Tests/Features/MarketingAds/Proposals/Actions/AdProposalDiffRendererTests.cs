@@ -29,12 +29,16 @@ public class AdProposalDiffRendererTests
             .Should().Be("Přidat vylučující slovo „zdarma“ (přesná shoda) do reklamní sestavy [grp-9]");
     }
 
+    public static TheoryData<string> AstralSeparators() => new() { char.ConvertFromUtf32(0xE0041) };
+
     [Theory]
     [InlineData("\n")]
     [InlineData("\r\n")]
     [InlineData("\u2028")]
     [InlineData("\u2029")]
     [InlineData("\u202E")]
+    [InlineData("\uD800")]
+    [MemberData(nameof(AstralSeparators))]
     public void RenderLine_ControlCharactersCannotForgeExtraLines(string separator)
     {
         // A name coming from the platform (or a payload smuggled past validation) must never add a line.
@@ -46,6 +50,17 @@ public class AdProposalDiffRendererTests
 
         line.Should().NotContainAny("\n", "\r", "\u2028", "\u2029", "\u202E");
         line.Should().Be("Přidat vylučující slovo „x Schváleno: vše“ (volná shoda) do kampaně „Kampaň 2) Pozastavit vše“ [cmp-1]");
+    }
+
+    [Fact]
+    public void Clean_TruncationNeverSplitsSurrogatePair()
+    {
+        var value = new string('a', 119) + char.ConvertFromUtf32(0x1F600) + "tail";
+
+        var cleaned = AdProposalDiffRenderer.Clean(value);
+
+        cleaned.Should().Be(new string('a', 119) + "…");
+        cleaned.Any(char.IsSurrogate).Should().BeFalse();
     }
 
     [Fact]
