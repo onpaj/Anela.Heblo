@@ -16,8 +16,7 @@ internal sealed class GoogleAdsNegativeKeywordHandler
     private const int MaxKeywordLength = 80;
     private const int MaxKeywordWords = 10;
     private static readonly Regex Whitespace = new(@"\s+", RegexOptions.CultureInvariant);
-    private static readonly Regex CriterionResourceName = new(
-        @"^customers/(?<customer>\d+)/(?<collection>campaignCriteria|adGroupCriteria)/\d+~\d+$", RegexOptions.CultureInvariant);
+    private static readonly Regex CriterionId = new(@"\A[0-9]+\z", RegexOptions.CultureInvariant);
 
     private readonly IGoogleAdsApiClient _api;
 
@@ -57,13 +56,17 @@ internal sealed class GoogleAdsNegativeKeywordHandler
         if (original.Outcome != AdExecutionOutcome.Succeeded || original.PlatformResourceId is null)
             return GoogleAdsExecutionResults.Failed("The negative keyword was never created; there is nothing to remove.");
 
-        var match = CriterionResourceName.Match(original.PlatformResourceId);
-        if (!match.Success || match.Groups["customer"].Value != customerId)
+        if (TryParse(action, out var target) is { } error)
+            return GoogleAdsExecutionResults.Failed(error);
+
+        var prefix = $"customers/{customerId}/{target!.Service}/{target.ParentId}~";
+        var resource = original.PlatformResourceId;
+        if (!resource.StartsWith(prefix, StringComparison.Ordinal) || !CriterionId.IsMatch(resource[prefix.Length..]))
             return GoogleAdsExecutionResults.Failed(
-                $"'{original.PlatformResourceId}' is not a negative keyword criterion of account {customerId}.");
+                $"'{resource}' is not a negative keyword criterion of {target.Level} {target.ParentId} in account {customerId}.");
 
         var response = await _api.MutateAsync(
-            customerId, match.Groups["collection"].Value, GoogleAdsMutations.Remove(original.PlatformResourceId, validateOnly), ct);
+            customerId, target.Service, GoogleAdsMutations.Remove(resource, validateOnly), ct);
         return GoogleAdsExecutionResults.From(response, AdActionValues.Present, AdActionValues.Absent, validateOnly);
     }
 

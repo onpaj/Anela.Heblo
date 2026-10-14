@@ -120,6 +120,38 @@ public sealed class GoogleAdsAddNegativeKeywordTests
     }
 
     [Theory]
+    [InlineData("customers/1234567890/adGroupCriteria/111~9000")]
+    [InlineData("customers/1234567890/campaignCriteria/222~9000")]
+    [InlineData("customers/1234567890/campaignCriteria/111~9000\n")]
+    [InlineData("customers/1234567890/campaignCriteria/111~abc")]
+    public async Task revert_refuses_a_criterion_that_does_not_belong_to_the_reverted_action(string resourceName)
+    {
+        var api = ExecutorHarness.SeededApi();
+        var executor = ExecutorHarness.Create(api);
+        var original = new AdExecutionResult(AdExecutionOutcome.Succeeded, AdActionValues.Absent, AdActionValues.Present, resourceName, "{}", null);
+
+        var reverted = await executor.RevertAsync(CampaignNegative(), original, CancellationToken.None);
+
+        reverted.Outcome.Should().Be(AdExecutionOutcome.Failed);
+        api.Mutations.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task ad_group_negative_round_trip_removes_the_criterion()
+    {
+        var api = ExecutorHarness.SeededApi();
+        var executor = ExecutorHarness.Create(api);
+        var action = ExecutorHarness.AddNegative(AdEntityLevel.AdGroup, "221", "zdarma", "Broad");
+        var original = await executor.ExecuteAsync(action, CancellationToken.None);
+
+        var reverted = await executor.RevertAsync(action, original, CancellationToken.None);
+
+        reverted.Outcome.Should().Be(AdExecutionOutcome.Succeeded);
+        api.Mutations.Last().Service.Should().Be("adGroupCriteria");
+        (await executor.ReadCurrentAsync(action, CancellationToken.None)).CurrentValue.Should().Be(AdActionValues.Absent);
+    }
+
+    [Theory]
     [InlineData("", "Exact")]
     [InlineData("zdarma", "")]
     [InlineData("zdarma", "1")]
