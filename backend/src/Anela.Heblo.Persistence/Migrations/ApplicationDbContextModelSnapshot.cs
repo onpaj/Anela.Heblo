@@ -2945,6 +2945,753 @@ namespace Anela.Heblo.Persistence.Migrations
                     b.ToTable("MarketingActionProducts", "public");
                 });
 
+            modelBuilder.Entity("Anela.Heblo.Domain.Features.MarketingAds.AdAuditEvent", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<string>("ActorKind")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)");
+
+                    b.Property<string>("ActorPrincipal")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("Channel")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)");
+
+                    b.Property<string>("EventType")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
+                    b.Property<DateTime>("OccurredAt")
+                        .HasColumnType("timestamp");
+
+                    b.Property<string>("PayloadJson")
+                        .IsRequired()
+                        .HasColumnType("jsonb");
+
+                    b.Property<int?>("ProposalId")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("Version")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OccurredAt");
+
+                    b.HasIndex("ProposalId");
+
+                    b.ToTable("AdAuditEvents", "public");
+                });
+
+            modelBuilder.Entity("Anela.Heblo.Domain.Features.MarketingAds.AdAutonomySetting", b =>
+                {
+                    b.Property<string>("Platform")
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
+                    b.Property<string>("ActionType")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<string>("Mode")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp");
+
+                    b.Property<string>("UpdatedBy")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.HasKey("Platform", "ActionType");
+
+                    b.ToTable("AdAutonomySettings", "public");
+
+                    b.HasData(
+                        new
+                        {
+                            Platform = "GoogleAds",
+                            ActionType = "AddNegativeKeyword",
+                            Mode = "ProposeOnly",
+                            UpdatedAt = new DateTime(2026, 10, 7, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            UpdatedBy = "seed"
+                        },
+                        new
+                        {
+                            Platform = "GoogleAds",
+                            ActionType = "PauseAd",
+                            Mode = "ProposeOnly",
+                            UpdatedAt = new DateTime(2026, 10, 7, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            UpdatedBy = "seed"
+                        },
+                        new
+                        {
+                            Platform = "MetaAds",
+                            ActionType = "AddNegativeKeyword",
+                            Mode = "ProposeOnly",
+                            UpdatedAt = new DateTime(2026, 10, 7, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            UpdatedBy = "seed"
+                        },
+                        new
+                        {
+                            Platform = "MetaAds",
+                            ActionType = "PauseAd",
+                            Mode = "ProposeOnly",
+                            UpdatedAt = new DateTime(2026, 10, 7, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            UpdatedBy = "seed"
+                        },
+                        new
+                        {
+                            Platform = "Sklik",
+                            ActionType = "AddNegativeKeyword",
+                            Mode = "ProposeOnly",
+                            UpdatedAt = new DateTime(2026, 10, 7, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            UpdatedBy = "seed"
+                        },
+                        new
+                        {
+                            Platform = "Sklik",
+                            ActionType = "PauseAd",
+                            Mode = "ProposeOnly",
+                            UpdatedAt = new DateTime(2026, 10, 7, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            UpdatedBy = "seed"
+                        });
+                });
+
+            modelBuilder.Entity("Anela.Heblo.Domain.Features.MarketingAds.AdKillSwitch", b =>
+                {
+                    b.Property<string>("Scope")
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
+                    b.Property<bool>("ExecutionEnabled")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp");
+
+                    b.Property<string>("UpdatedBy")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.HasKey("Scope");
+
+                    b.ToTable("AdKillSwitches", "public");
+
+                    b.HasData(
+                        new
+                        {
+                            Scope = "Global",
+                            ExecutionEnabled = false,
+                            UpdatedAt = new DateTime(2026, 10, 7, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            UpdatedBy = "seed"
+                        });
+                });
+
+            modelBuilder.Entity("Anela.Heblo.Domain.Features.MarketingAds.AdLimitSetting", b =>
+                {
+                    b.Property<string>("Platform")
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
+                    b.Property<string>("ActionType")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<string>("Key")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp");
+
+                    b.Property<string>("UpdatedBy")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<int>("Value")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Platform", "ActionType", "Key");
+
+                    b.ToTable("AdLimitSettings", "public");
+
+                    b.HasData(
+                        new
+                        {
+                            Platform = "GoogleAds",
+                            ActionType = "AddNegativeKeyword",
+                            Key = "Enabled",
+                            UpdatedAt = new DateTime(2026, 10, 7, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            UpdatedBy = "seed",
+                            Value = 1
+                        },
+                        new
+                        {
+                            Platform = "GoogleAds",
+                            ActionType = "AddNegativeKeyword",
+                            Key = "MaxActionsPerProposal",
+                            UpdatedAt = new DateTime(2026, 10, 7, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            UpdatedBy = "seed",
+                            Value = 50
+                        },
+                        new
+                        {
+                            Platform = "GoogleAds",
+                            ActionType = "AddNegativeKeyword",
+                            Key = "McpMaxActionsPerProposal",
+                            UpdatedAt = new DateTime(2026, 10, 7, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            UpdatedBy = "seed",
+                            Value = 20
+                        },
+                        new
+                        {
+                            Platform = "GoogleAds",
+                            ActionType = "AddNegativeKeyword",
+                            Key = "SecondApproverAbove",
+                            UpdatedAt = new DateTime(2026, 10, 7, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            UpdatedBy = "seed",
+                            Value = 50
+                        },
+                        new
+                        {
+                            Platform = "GoogleAds",
+                            ActionType = "PauseAd",
+                            Key = "Enabled",
+                            UpdatedAt = new DateTime(2026, 10, 7, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            UpdatedBy = "seed",
+                            Value = 1
+                        },
+                        new
+                        {
+                            Platform = "GoogleAds",
+                            ActionType = "PauseAd",
+                            Key = "MaxActionsPerProposal",
+                            UpdatedAt = new DateTime(2026, 10, 7, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            UpdatedBy = "seed",
+                            Value = 10
+                        },
+                        new
+                        {
+                            Platform = "GoogleAds",
+                            ActionType = "PauseAd",
+                            Key = "McpMaxActionsPerProposal",
+                            UpdatedAt = new DateTime(2026, 10, 7, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            UpdatedBy = "seed",
+                            Value = 3
+                        },
+                        new
+                        {
+                            Platform = "GoogleAds",
+                            ActionType = "PauseAd",
+                            Key = "MaxPausedAdsPer7Days",
+                            UpdatedAt = new DateTime(2026, 10, 7, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            UpdatedBy = "seed",
+                            Value = 20
+                        },
+                        new
+                        {
+                            Platform = "GoogleAds",
+                            ActionType = "PauseAd",
+                            Key = "SecondApproverAbove",
+                            UpdatedAt = new DateTime(2026, 10, 7, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            UpdatedBy = "seed",
+                            Value = 10
+                        },
+                        new
+                        {
+                            Platform = "MetaAds",
+                            ActionType = "AddNegativeKeyword",
+                            Key = "Enabled",
+                            UpdatedAt = new DateTime(2026, 10, 7, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            UpdatedBy = "seed",
+                            Value = 0
+                        },
+                        new
+                        {
+                            Platform = "MetaAds",
+                            ActionType = "AddNegativeKeyword",
+                            Key = "MaxActionsPerProposal",
+                            UpdatedAt = new DateTime(2026, 10, 7, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            UpdatedBy = "seed",
+                            Value = 50
+                        },
+                        new
+                        {
+                            Platform = "MetaAds",
+                            ActionType = "AddNegativeKeyword",
+                            Key = "McpMaxActionsPerProposal",
+                            UpdatedAt = new DateTime(2026, 10, 7, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            UpdatedBy = "seed",
+                            Value = 20
+                        },
+                        new
+                        {
+                            Platform = "MetaAds",
+                            ActionType = "AddNegativeKeyword",
+                            Key = "SecondApproverAbove",
+                            UpdatedAt = new DateTime(2026, 10, 7, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            UpdatedBy = "seed",
+                            Value = 50
+                        },
+                        new
+                        {
+                            Platform = "MetaAds",
+                            ActionType = "PauseAd",
+                            Key = "Enabled",
+                            UpdatedAt = new DateTime(2026, 10, 7, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            UpdatedBy = "seed",
+                            Value = 1
+                        },
+                        new
+                        {
+                            Platform = "MetaAds",
+                            ActionType = "PauseAd",
+                            Key = "MaxActionsPerProposal",
+                            UpdatedAt = new DateTime(2026, 10, 7, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            UpdatedBy = "seed",
+                            Value = 10
+                        },
+                        new
+                        {
+                            Platform = "MetaAds",
+                            ActionType = "PauseAd",
+                            Key = "McpMaxActionsPerProposal",
+                            UpdatedAt = new DateTime(2026, 10, 7, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            UpdatedBy = "seed",
+                            Value = 3
+                        },
+                        new
+                        {
+                            Platform = "MetaAds",
+                            ActionType = "PauseAd",
+                            Key = "MaxPausedAdsPer7Days",
+                            UpdatedAt = new DateTime(2026, 10, 7, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            UpdatedBy = "seed",
+                            Value = 20
+                        },
+                        new
+                        {
+                            Platform = "MetaAds",
+                            ActionType = "PauseAd",
+                            Key = "SecondApproverAbove",
+                            UpdatedAt = new DateTime(2026, 10, 7, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            UpdatedBy = "seed",
+                            Value = 10
+                        },
+                        new
+                        {
+                            Platform = "Sklik",
+                            ActionType = "AddNegativeKeyword",
+                            Key = "Enabled",
+                            UpdatedAt = new DateTime(2026, 10, 7, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            UpdatedBy = "seed",
+                            Value = 1
+                        },
+                        new
+                        {
+                            Platform = "Sklik",
+                            ActionType = "AddNegativeKeyword",
+                            Key = "MaxActionsPerProposal",
+                            UpdatedAt = new DateTime(2026, 10, 7, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            UpdatedBy = "seed",
+                            Value = 50
+                        },
+                        new
+                        {
+                            Platform = "Sklik",
+                            ActionType = "AddNegativeKeyword",
+                            Key = "McpMaxActionsPerProposal",
+                            UpdatedAt = new DateTime(2026, 10, 7, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            UpdatedBy = "seed",
+                            Value = 20
+                        },
+                        new
+                        {
+                            Platform = "Sklik",
+                            ActionType = "AddNegativeKeyword",
+                            Key = "SecondApproverAbove",
+                            UpdatedAt = new DateTime(2026, 10, 7, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            UpdatedBy = "seed",
+                            Value = 50
+                        },
+                        new
+                        {
+                            Platform = "Sklik",
+                            ActionType = "PauseAd",
+                            Key = "Enabled",
+                            UpdatedAt = new DateTime(2026, 10, 7, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            UpdatedBy = "seed",
+                            Value = 1
+                        },
+                        new
+                        {
+                            Platform = "Sklik",
+                            ActionType = "PauseAd",
+                            Key = "MaxActionsPerProposal",
+                            UpdatedAt = new DateTime(2026, 10, 7, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            UpdatedBy = "seed",
+                            Value = 10
+                        },
+                        new
+                        {
+                            Platform = "Sklik",
+                            ActionType = "PauseAd",
+                            Key = "McpMaxActionsPerProposal",
+                            UpdatedAt = new DateTime(2026, 10, 7, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            UpdatedBy = "seed",
+                            Value = 3
+                        },
+                        new
+                        {
+                            Platform = "Sklik",
+                            ActionType = "PauseAd",
+                            Key = "MaxPausedAdsPer7Days",
+                            UpdatedAt = new DateTime(2026, 10, 7, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            UpdatedBy = "seed",
+                            Value = 20
+                        },
+                        new
+                        {
+                            Platform = "Sklik",
+                            ActionType = "PauseAd",
+                            Key = "SecondApproverAbove",
+                            UpdatedAt = new DateTime(2026, 10, 7, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            UpdatedBy = "seed",
+                            Value = 10
+                        });
+                });
+
+            modelBuilder.Entity("Anela.Heblo.Domain.Features.MarketingAds.AdProposal", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("AccountExternalId")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<string>("ActionType")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<Guid?>("AgentRunId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp");
+
+                    b.Property<string>("CreatedByKind")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)");
+
+                    b.Property<string>("CreatedByPrincipal")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<int>("CurrentVersion")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("ExecutionFinishedAt")
+                        .HasColumnType("timestamp");
+
+                    b.Property<DateTime?>("ExecutionStartedAt")
+                        .HasColumnType("timestamp");
+
+                    b.Property<DateTime>("ExpiresAt")
+                        .HasColumnType("timestamp");
+
+                    b.Property<string>("Platform")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
+                    b.Property<DateTime?>("RevertedAt")
+                        .HasColumnType("timestamp");
+
+                    b.Property<int>("Revision")
+                        .IsConcurrencyToken()
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AgentRunId");
+
+                    b.HasIndex("CreatedByPrincipal");
+
+                    b.HasIndex("Status", "ExpiresAt");
+
+                    b.ToTable("AdProposals", "public");
+                });
+
+            modelBuilder.Entity("Anela.Heblo.Domain.Features.MarketingAds.AdProposalActionExecution", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<string>("AccountExternalId")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<int>("ActionIndex")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("ActionType")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<string>("AfterValue")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<string>("BeforeRawJson")
+                        .HasColumnType("text");
+
+                    b.Property<string>("BeforeValue")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<string>("Error")
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("ExecutedAt")
+                        .HasColumnType("timestamp");
+
+                    b.Property<string>("PayloadJson")
+                        .IsRequired()
+                        .HasColumnType("jsonb");
+
+                    b.Property<string>("Platform")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
+                    b.Property<string>("PlatformResourceId")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("PlatformResponseJson")
+                        .HasColumnType("text");
+
+                    b.Property<int>("ProposalId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("RevertError")
+                        .HasColumnType("text");
+
+                    b.Property<string>("RevertResponseJson")
+                        .HasColumnType("text");
+
+                    b.Property<string>("RevertState")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)");
+
+                    b.Property<DateTime?>("RevertedAt")
+                        .HasColumnType("timestamp");
+
+                    b.Property<string>("State")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)");
+
+                    b.Property<string>("TargetExternalId")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<string>("TargetLevel")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
+                    b.Property<int>("Version")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Platform", "AccountExternalId", "ExecutedAt");
+
+                    b.HasIndex("ProposalId", "Version", "ActionIndex")
+                        .IsUnique();
+
+                    b.ToTable("AdProposalActionExecutions", "public");
+                });
+
+            modelBuilder.Entity("Anela.Heblo.Domain.Features.MarketingAds.AdProposalApproval", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<DateTime>("At")
+                        .HasColumnType("timestamp");
+
+                    b.Property<string>("Channel")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)");
+
+                    b.Property<string>("Decision")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)");
+
+                    b.Property<string>("Principal")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<int>("ProposalId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Reason")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<int>("Version")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ProposalId", "Version", "Principal")
+                        .IsUnique();
+
+                    b.ToTable("AdProposalApprovals", "public");
+                });
+
+            modelBuilder.Entity("Anela.Heblo.Domain.Features.MarketingAds.AdProposalVersion", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<int>("ActionCount")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("ActionsJson")
+                        .IsRequired()
+                        .HasColumnType("jsonb");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp");
+
+                    b.Property<string>("CreatedBy")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<int>("ProposalId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Reasoning")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<int>("Version")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ProposalId", "Version")
+                        .IsUnique();
+
+                    b.ToTable("AdProposalVersions", "public");
+                });
+
+            modelBuilder.Entity("Anela.Heblo.Domain.Features.MarketingAds.AgentRun", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("AgentName")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<decimal?>("CostCzk")
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<string>("DataScopesReadJson")
+                        .IsRequired()
+                        .HasColumnType("jsonb");
+
+                    b.Property<DateTime?>("FinishedAt")
+                        .HasColumnType("timestamp");
+
+                    b.Property<long?>("InputTokens")
+                        .HasColumnType("bigint");
+
+                    b.Property<long?>("OutputTokens")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("Principal")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<int>("ProposalsCreated")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("StartedAt")
+                        .HasColumnType("timestamp");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)");
+
+                    b.Property<string>("Summary")
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("StartedAt");
+
+                    b.ToTable("AgentRuns", "public");
+                });
+
             modelBuilder.Entity("Anela.Heblo.Domain.Features.MarketingInvoices.ImportedMarketingTransaction", b =>
                 {
                     b.Property<int>("Id")
@@ -4914,6 +5661,43 @@ namespace Anela.Heblo.Persistence.Migrations
                     b.Navigation("MarketingAction");
                 });
 
+            modelBuilder.Entity("Anela.Heblo.Domain.Features.MarketingAds.AdAuditEvent", b =>
+                {
+                    b.HasOne("Anela.Heblo.Domain.Features.MarketingAds.AdProposal", "Proposal")
+                        .WithMany()
+                        .HasForeignKey("ProposalId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("Proposal");
+                });
+
+            modelBuilder.Entity("Anela.Heblo.Domain.Features.MarketingAds.AdProposalActionExecution", b =>
+                {
+                    b.HasOne("Anela.Heblo.Domain.Features.MarketingAds.AdProposal", null)
+                        .WithMany("Executions")
+                        .HasForeignKey("ProposalId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Anela.Heblo.Domain.Features.MarketingAds.AdProposalApproval", b =>
+                {
+                    b.HasOne("Anela.Heblo.Domain.Features.MarketingAds.AdProposal", null)
+                        .WithMany("Approvals")
+                        .HasForeignKey("ProposalId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Anela.Heblo.Domain.Features.MarketingAds.AdProposalVersion", b =>
+                {
+                    b.HasOne("Anela.Heblo.Domain.Features.MarketingAds.AdProposal", null)
+                        .WithMany("Versions")
+                        .HasForeignKey("ProposalId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("Anela.Heblo.Domain.Features.MarketingPerformance.MarketingPerformanceChannelCost", b =>
                 {
                     b.HasOne("Anela.Heblo.Domain.Features.MarketingPerformance.MarketingPerformanceMonth", "Month")
@@ -5164,6 +5948,15 @@ namespace Anela.Heblo.Persistence.Migrations
                     b.Navigation("FolderLinks");
 
                     b.Navigation("ProductAssociations");
+                });
+
+            modelBuilder.Entity("Anela.Heblo.Domain.Features.MarketingAds.AdProposal", b =>
+                {
+                    b.Navigation("Approvals");
+
+                    b.Navigation("Executions");
+
+                    b.Navigation("Versions");
                 });
 
             modelBuilder.Entity("Anela.Heblo.Domain.Features.MarketingPerformance.MarketingPerformanceMonth", b =>
