@@ -17,6 +17,7 @@ internal sealed class GoogleAdsActionExecutor : IAdActionExecutor
     private readonly IOptionsMonitor<GoogleAdsSettings> _settings;
     private readonly ILogger<GoogleAdsActionExecutor> _logger;
     private readonly GoogleAdsPauseAdHandler _pauseAd;
+    private readonly GoogleAdsNegativeKeywordHandler _negativeKeyword;
 
     public GoogleAdsActionExecutor(
         IGoogleAdsApiClient api, IOptionsMonitor<GoogleAdsSettings> settings, ILogger<GoogleAdsActionExecutor> logger)
@@ -24,6 +25,7 @@ internal sealed class GoogleAdsActionExecutor : IAdActionExecutor
         _settings = settings;
         _logger = logger;
         _pauseAd = new GoogleAdsPauseAdHandler(api);
+        _negativeKeyword = new GoogleAdsNegativeKeywordHandler(api);
     }
 
     public AdPlatform Platform => AdPlatform.GoogleAds;
@@ -39,6 +41,7 @@ internal sealed class GoogleAdsActionExecutor : IAdActionExecutor
         return action.Type switch
         {
             AdActionType.PauseAd => await _pauseAd.ReadCurrentAsync(customerId, action, ct),
+            AdActionType.AddNegativeKeyword => await _negativeKeyword.ReadCurrentAsync(customerId, action, ct),
             _ => GoogleAdsExecutionResults.Missing,
         };
     }
@@ -52,6 +55,7 @@ internal sealed class GoogleAdsActionExecutor : IAdActionExecutor
             : action.Type switch
             {
                 AdActionType.PauseAd => await _pauseAd.ExecuteAsync(customerId, action, validateOnly, ct),
+                AdActionType.AddNegativeKeyword => await _negativeKeyword.ExecuteAsync(customerId, action, validateOnly, ct),
                 _ => Unsupported(action),
             };
         Log("Execute", action, result, validateOnly);
@@ -67,6 +71,7 @@ internal sealed class GoogleAdsActionExecutor : IAdActionExecutor
             : action.Type switch
             {
                 AdActionType.PauseAd => await _pauseAd.RevertAsync(customerId, action, original, validateOnly, ct),
+                AdActionType.AddNegativeKeyword => await _negativeKeyword.RevertAsync(customerId, action, original, validateOnly, ct),
                 _ => Unsupported(action),
             };
         Log("Revert", action, result, validateOnly);
