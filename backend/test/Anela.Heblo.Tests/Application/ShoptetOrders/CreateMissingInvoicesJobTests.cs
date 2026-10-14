@@ -25,6 +25,8 @@ public class CreateMissingInvoicesJobTests
         _featureFlags
             .Setup(f => f.IsEnabledAsync(FeatureFlagKeys.MissingInvoiceCreation, It.IsAny<CancellationToken>()))
             .ReturnsAsync(applyChanges);
+        _orders.Setup(o => o.GetOrderDetailAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((string code, CancellationToken _) => Detail(code, hasBillingMethod: true));
 
         var settings = Options.Create(new ShoptetOrdersSettings
         {
@@ -49,6 +51,9 @@ public class CreateMissingInvoicesJobTests
 
     private static EshopOrderSummary Order(string code, decimal? priceWithVat) =>
         new() { Code = code, StatusId = -3, PriceWithVat = priceWithVat };
+
+    private static EshopOrderDetail Detail(string code, bool hasBillingMethod) =>
+        new() { Code = code, StatusId = -3, HasBillingMethod = hasBillingMethod };
 
     [Fact]
     public async Task ExecuteAsync_DoesNothing_WhenJobDisabled()
@@ -251,6 +256,54 @@ public class CreateMissingInvoicesJobTests
 
         await Assert.ThrowsAsync<InvalidOperationException>(() => sut.ExecuteAsync());
 
+        _orders.Verify(o => o.CreateInvoiceAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task ExecuteAsync_SkipsOrderWithoutBillingMethod_WithoutFailingTheRun()
+    {
+        // Shoptet rejects such an order with 422 "Unknown billingMethodId provided" — it needs a
+        // payment method chosen by hand, so it is reported, not retried as a failure every night.
+        var sut = MakeSut();
+        GivenCompletedOrders(Order("126013625", 989m), Order("126000002", 99m));
+        GivenInvoicedOrderCodes("125999999");
+        _orders.Setup(o => o.GetOrderDetailAsync("126013625", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Detail("126013625", hasBillingMethod: false));
+
+        await sut.ExecuteAsync();
+
+        _orders.Verify(o => o.CreateInvoiceAsync("126013625", It.IsAny<CancellationToken>()), Times.Never);
+        _orders.Verify(o => o.CreateInvoiceAsync("126000002", It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task ExecuteAsync_FailureMessage_NamesEachFailedOrderAndItsError()
+    {
+        var sut = MakeSut();
+        GivenCompletedOrders(Order("126000001", 350m), Order("126000002", 99m));
+        GivenInvoicedOrderCodes("125999999");
+        _orders.Setup(o => o.CreateInvoiceAsync("126000001", It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new HttpRequestException("Shoptet POST /api/orders/126000001/invoice returned 409: conflict"));
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => sut.ExecuteAsync());
+
+        Assert.Contains("126000001", ex.Message);
+        Assert.Contains("returned 409: conflict", ex.Message);
+        Assert.DoesNotContain("126000002", ex.Message);
+    }
+
+    [Fact]
+    public async Task ExecuteAsync_CountsOrderAsFailed_WhenItNoLongerExists()
+    {
+        var sut = MakeSut();
+        GivenCompletedOrders(Order("126000001", 350m));
+        GivenInvoicedOrderCodes("125999999");
+        _orders.Setup(o => o.GetOrderDetailAsync("126000001", It.IsAny<CancellationToken>()))
+            .ReturnsAsync((EshopOrderDetail?)null);
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => sut.ExecuteAsync());
+
+        Assert.Contains("126000001", ex.Message);
         _orders.Verify(o => o.CreateInvoiceAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 }

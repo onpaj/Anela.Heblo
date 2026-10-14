@@ -546,8 +546,14 @@ invoices cannot be deleted through the API (`DELETE /api/invoices/{code}` → 40
 **Used in production by `job-create-missing-invoices`** (2026-10-14): a daily job issues an invoice
 for every -3 order created since 2026-01-01 with `price.withVat > 0` and no invoice (detected by
 diffing against `GET /api/invoices` `orderCode`s, since the order API exposes no invoice link).
-The invoice is dated the day of the POST. Not yet verified on production or on a -3 order — the job
-ships in dry run; record the first live outcome (and the error a duplicate POST returns) here.
+The invoice is dated the day of the POST. The duplicate-POST error is still unrecorded.
+
+**An order without a billing method cannot be invoiced as-is** (production, 2026-10-14): order
+`126013625`, created in the admin (`source.id -2`) with `billingMethod: null` and
+`paymentMethods: []`, got **422 `invalid-request-data` – "Unknown billingMethodId provided."**
+The POST body accepts an optional `billingMethodId` (spec: "Defaults to order's"; code list
+*Invoice billing methods*, 1 dobírka / 2 převodem / 3 hotově / 4 kartou), so such an order could be
+invoiced by passing one. The order list does not return `billingMethod`; only `GET /api/orders/{code}` does.
 
 The line `remark` sent on POST is stored and returned as `items[].remark` — usable as a marker on
 lines a robot added.

@@ -46,8 +46,9 @@ The real side effect is switched **off by default**: until the feature flag
 5. Log one summary line: scanned / zero total / already invoiced / missing + the missing codes.
 6. Flag on: take at most `MissingInvoiceMaxPerRun` (300) missing orders (the rest wait for the next
    night) and for each, sequentially and 500 ms apart: `GET /api/invoices?orderCode={code}` — any
-   hit ⇒ skip (invoiced since the bulk listing) — else `POST /api/orders/{code}/invoice` with body
-   `{"data":{}}`. Log each creation and a final created/skipped/failed count.
+   hit ⇒ skip (invoiced since the bulk listing) — then `GET /api/orders/{code}`: `billingMethod`
+   null ⇒ skip and report (see below) — else `POST /api/orders/{code}/invoice` with body
+   `{"data":{}}`. Log each creation and a final created/skipped/no-billing-method/failed count.
 
 Target: Shoptet invoices only. No Heblo table is written.
 
@@ -71,6 +72,13 @@ Target: Shoptet invoices only. No Heblo table is written.
   makes the Hangfire run end as Failed after the summary line. HTTP timeouts are per-order
   failures; only cancellation of the job's own token stops the loop.
   `MissingInvoiceMaxPerRun ≤ 0` fails the run instead of silently creating nothing.
+- The Failed exception lists every failed order with Shoptet's error text
+  (`order 126013625: Shoptet POST … returned 422: …`), so the Hangfire dashboard alone says what broke.
+- Orders **without a billing method** (keyed in the admin with no payment method) cannot be invoiced
+  through the API — Shoptet answers 422 "Unknown billingMethodId provided". The job does not guess
+  one (the POST accepts `billingMethodId`, but how the customer paid is a human call): it skips the
+  order and logs one Warning listing the codes to invoice by hand. This does **not** fail the run;
+  the order reappears in that Warning every night until someone invoices it.
 
 ## Configuration
 | Key | Repo default | Meaning |
@@ -83,7 +91,12 @@ Target: Shoptet invoices only. No Heblo table is written.
 | `Hangfire:SchedulerEnabled` | `false`; `true` in Production | Whether recurring jobs are scheduled at all |
 
 ## Runtime facts
-None yet. Rollout plan: merge with the flag off, compare the first night's dry-run list with the
+- First live run (Production, 2026-10-14 ~22:10): 1 order missing an invoice, `126013625`
+  (source Administration, 989 Kč, `billingMethod: null`, `paymentMethods: []`) → 422
+  "Unknown billingMethodId provided"; the run ended Failed with no order code in the message.
+  Fixed by the billing-method pre-check and the per-order failure list.
+
+Rollout plan: merge with the flag off, compare the first night's dry-run list with the
 Shoptet admin filter — **broken down by order source**: in-store/market orders (`in_store`, store
 ids 10/25/1000, "Trhy", `shoptet-api.md`) may deliberately have no invoice and are not excluded —
 then switch the flag on in the admin UI, ideally with `MissingInvoiceMaxPerRun` set low (e.g. 5)

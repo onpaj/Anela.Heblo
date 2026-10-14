@@ -62,6 +62,7 @@ public partial class ShoptetOrderClient
         {
             Code = order.Code,
             StatusId = order.Status.Id,
+            HasBillingMethod = order.BillingMethod != null,
             Lines = order.Items.Select(MapLine).ToList(),
         };
     }

@@ -1,8 +1,9 @@
 using System.Text.Json.Serialization;
+using Anela.Heblo.Adapters.ShoptetApi.IssuedInvoices.Model;
 
 namespace Anela.Heblo.Adapters.ShoptetApi.Orders.Model;
 
-/// <summary>GET /api/orders/{code} — just the status and items[] (shoptet-api.md §3.9, §3.17).</summary>
+/// <summary>GET /api/orders/{code} — just the status, billing method and items[] (shoptet-api.md §3.9, §3.17).</summary>
 public class OrderItemsDetailResponse
 {
     [JsonPropertyName("data")]
@@ -25,6 +26,10 @@ public class OrderItemsDetail
 
     [JsonPropertyName("items")]
     public List<ShoptetOrderLine> Items { get; set; } = new();
+
+    /// <summary>Null on orders keyed in the admin without a payment method.</summary>
+    [JsonPropertyName("billingMethod")]
+    public ShoptetBillingMethodDto? BillingMethod { get; set; }
 }
 
 public class OrderItemsStatus
