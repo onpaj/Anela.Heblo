@@ -7,17 +7,11 @@ import {
 
 const STORAGE_KEY = 'heblo.baleni.labelOffsets';
 
-const realStorage = window.localStorage;
-
-const replaceStorage = (storage: Partial<Storage>) =>
-  Object.defineProperty(window, 'localStorage', { value: storage, configurable: true });
-
 beforeEach(() => {
-  replaceStorage(realStorage);
   window.localStorage.clear();
 });
 
-afterAll(() => replaceStorage(realStorage));
+afterEach(() => jest.restoreAllMocks());
 
 describe('labelOffsetStorage', () => {
   it('returns no offsets when nothing is stored', () => {
@@ -60,20 +54,15 @@ describe('labelOffsetStorage', () => {
 
   it('returns no offsets when storage is unavailable', () => {
     saveLabelOffset('PPL', { xMm: 1, yMm: 1 });
-    replaceStorage({
-      getItem: () => {
-        throw new Error('blocked');
-      },
+    jest.spyOn(window.localStorage, 'getItem').mockImplementation(() => {
+      throw new Error('blocked');
     });
     expect(loadLabelOffsets()).toEqual({});
   });
 
   it('reports failure when storage refuses to save', () => {
-    replaceStorage({
-      getItem: () => null,
-      setItem: () => {
-        throw new Error('quota');
-      },
+    jest.spyOn(window.localStorage, 'setItem').mockImplementation(() => {
+      throw new Error('quota');
     });
     expect(saveLabelOffset('PPL', { xMm: 1, yMm: 1 })).toBe(false);
   });
