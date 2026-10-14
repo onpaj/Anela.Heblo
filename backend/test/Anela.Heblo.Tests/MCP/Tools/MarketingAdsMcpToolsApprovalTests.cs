@@ -7,6 +7,7 @@ using Anela.Heblo.Application.Features.MarketingAds.Proposals.UseCases.RejectAdP
 using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Domain.Features.MarketingAds;
 using FluentAssertions;
+using Microsoft.Extensions.Logging;
 using ModelContextProtocol;
 using Moq;
 using Xunit;
@@ -77,6 +78,40 @@ public class MarketingAdsMcpToolsApprovalTests : MarketingAdsMcpToolsTestBase
     }
 
     [Fact]
+    public async Task ListPendingAdProposals_AsksTheRepositoryForTheOldestPendingFirst()
+    {
+        // Arrange
+        Mediator.Setup(m => m.Send(It.IsAny<ListAdProposalsRequest>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new ListAdProposalsResponse { Items = new List<AdProposalSummaryDto>(), TotalCount = 0 });
+
+        // Act
+        await Tools.ListPendingAdProposals(maxItems: 5);
+
+        // Assert — with more than maxItems pending, the page must hold the oldest, not the newest
+        Mediator.Verify(m => m.Send(It.Is<ListAdProposalsRequest>(r => r.OldestFirst), It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task UnexpectedHandlerFailure_IsLoggedAsError_AndSurfacedAsMcpError()
+    {
+        // Arrange
+        Mediator.Setup(m => m.Send(It.IsAny<ApproveAdProposalRequest>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new InvalidOperationException("boom"));
+
+        // Act
+        var act = () => Tools.ApproveAdProposal(1, 1);
+
+        // Assert
+        (await act.Should().ThrowAsync<McpException>()).Which.Message.Should().Be("Failed to approve ad proposal: boom");
+        Logger.Verify(l => l.Log(
+            LogLevel.Error,
+            It.IsAny<EventId>(),
+            It.IsAny<It.IsAnyType>(),
+            It.IsAny<InvalidOperationException>(),
+            It.IsAny<Func<It.IsAnyType, Exception?, string>>()), Times.Once);
+    }
+
+    [Fact]
     public async Task ListPendingAdProposals_ClampsMaxItems()
     {
         Mediator.Setup(m => m.Send(It.IsAny<ListAdProposalsRequest>(), It.IsAny<CancellationToken>()))
@@ -99,9 +134,10 @@ public class MarketingAdsMcpToolsApprovalTests : MarketingAdsMcpToolsTestBase
     }
 
     [Fact]
-    public async Task ApproveAdProposal_SurfacesHandlerChannelDenial()
+    public async Task ApproveAdProposal_MapsHandlerChannelDenialToMcpError()
     {
-        // The handler's resolver refuses a service identity even when it holds every permission.
+        // Only the error mapping of a handler denial is tested here (the mediator is mocked). That a
+        // service identity is really refused is covered by TokenToApprovalChannelTests.
         Mediator.Setup(m => m.Send(It.IsAny<ApproveAdProposalRequest>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new ApproveAdProposalResponse(ErrorCodes.MarketingAdsApprovalChannelDenied,
                 new Dictionary<string, string> { ["Reason"] = "Service identities (app-only tokens) can never approve or reject ad proposals." }));

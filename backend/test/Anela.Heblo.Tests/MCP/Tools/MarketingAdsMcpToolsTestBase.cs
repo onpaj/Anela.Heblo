@@ -15,13 +15,14 @@ public abstract class MarketingAdsMcpToolsTestBase
 
     protected readonly Mock<IMediator> Mediator = new();
     protected readonly Mock<ICurrentUserService> CurrentUser = new();
+    protected readonly Mock<ILogger<MarketingAdsMcpTools>> Logger = new();
     protected readonly MarketingAdsMcpTools Tools;
 
     protected MarketingAdsMcpToolsTestBase()
     {
         // Default: caller holds every role. FORBIDDEN tests deny a specific role (later setup wins).
         CurrentUser.Setup(s => s.IsInRole(It.IsAny<string>())).Returns(true);
-        Tools = new MarketingAdsMcpTools(Mediator.Object, CurrentUser.Object, Mock.Of<ILogger<MarketingAdsMcpTools>>());
+        Tools = new MarketingAdsMcpTools(Mediator.Object, CurrentUser.Object, Logger.Object);
     }
 
     protected void DenyRole(string role) => CurrentUser.Setup(s => s.IsInRole(role)).Returns(false);

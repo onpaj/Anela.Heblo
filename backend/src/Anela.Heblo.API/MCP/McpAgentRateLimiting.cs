@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Threading.RateLimiting;
 using Anela.Heblo.API.Infrastructure.Authentication;
 using Microsoft.AspNetCore.RateLimiting;
@@ -6,7 +7,8 @@ using Microsoft.Identity.Web;
 namespace Anela.Heblo.API.MCP;
 
 /// <summary>Per-service-principal rate limit on /mcp (spec 7.3). App-only callers (agents) get a
-/// fixed one-minute window keyed by their oid; people (delegated tokens, cookie sessions) are not limited.</summary>
+/// fixed one-minute window keyed by their oid (the E2E test session counts as app-only); people
+/// (delegated tokens, web-app cookie sessions) are not limited.</summary>
 public static class McpAgentRateLimiting
 {
     public const string PolicyName = "mcp-agent";
@@ -32,6 +34,7 @@ public static class McpAgentRateLimiting
             options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
             options.OnRejected = (context, _) =>
             {
+                ApplyRetryAfter(context.HttpContext.Response, context.Lease);
                 var logger = context.HttpContext.RequestServices
                     .GetRequiredService<ILoggerFactory>()
                     .CreateLogger(typeof(McpAgentRateLimiting).FullName!);
@@ -45,6 +48,16 @@ public static class McpAgentRateLimiting
         });
 
         return services;
+    }
+
+    /// <summary>Sets <c>Retry-After</c> (whole seconds, rounded up) when the rejected lease says when to retry.</summary>
+    public static void ApplyRetryAfter(HttpResponse response, RateLimitLease lease)
+    {
+        if (lease.TryGetMetadata(MetadataName.RetryAfter, out var retryAfter))
+        {
+            var seconds = (int)Math.Ceiling(retryAfter.TotalSeconds);
+            response.Headers.RetryAfter = Math.Max(1, seconds).ToString(CultureInfo.InvariantCulture);
+        }
     }
 
     public static RateLimitPartition<string> GetPartition(HttpContext httpContext, int permitLimit)

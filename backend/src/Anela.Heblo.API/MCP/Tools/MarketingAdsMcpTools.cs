@@ -347,6 +347,7 @@ public class MarketingAdsMcpTools
         {
             Status = AdProposalStatus.Pending,
             Mine = false,
+            OldestFirst = true,
             Page = 1,
             PageSize = Math.Clamp(maxItems, 1, MaxPendingItems),
         };
@@ -434,7 +435,7 @@ public class MarketingAdsMcpTools
         }
         catch (Exception ex) when (!cancellationToken.IsCancellationRequested)
         {
-            _logger.LogWarning(ex, "MCP marketing ads call failed: {Operation}", operation);
+            _logger.LogError(ex, "MCP marketing ads call failed: {Operation}", operation);
             throw new McpException($"Failed to {operation}: {ex.Message}");
         }
 
