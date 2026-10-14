@@ -92,6 +92,20 @@ public class ApproveAdProposalHandlerTests
     }
 
     [Fact]
+    public async Task ApprovedButNotYetExecutedPauses_CountAgainstTheWeeklyCap()
+    {
+        using var h = new ProposalTestHarness();
+        await h.SeedApprovedAsync(actionCount: 10);
+        await h.SeedApprovedAsync(actionCount: 10);
+        var third = await h.SeedPendingAsync(actionCount: 10);
+
+        var response = await Handler(h).Handle(new ApproveAdProposalRequest { Id = third, Version = 1 }, CancellationToken.None);
+
+        response.ErrorCode.Should().Be(ErrorCodes.MarketingAdsLimitsDenied);
+        h.Enqueuer.Verify(e => e.EnqueueExecution(third), Times.Never);
+    }
+
+    [Fact]
     public async Task McpApproval_OverMcpThreshold_NeedsWebApproval()
     {
         using var h = new ProposalTestHarness();

@@ -1,6 +1,8 @@
 using Anela.Heblo.Application.Features.MarketingAds.Contracts;
 using Anela.Heblo.Application.Features.MarketingAds.Proposals.Actions;
 using Anela.Heblo.Application.Features.MarketingAds.Proposals.Execution;
+using Anela.Heblo.Application.Features.MarketingAds.Proposals.Limits;
+using Anela.Heblo.Application.Features.MarketingAds.Proposals.ReadModel;
 using Anela.Heblo.Domain.Features.MarketingAds;
 using Anela.Heblo.Persistence;
 using Anela.Heblo.Persistence.MarketingAds;
@@ -49,10 +51,19 @@ public class AdProposalExecutionJobPostgresTests : IAsyncLifetime
         return proposal.Id;
     }
 
-    private static AdProposalExecutionJob Job(ApplicationDbContext context, LoadBarrier barrier, IAdActionExecutor executor) => new(
-        new FaultyProposalRepository(new AdProposalRepository(context), barrier), new AdGovernanceRepository(context),
-        new AdAuditLog(context), new[] { executor }, new FakeTimeProvider(new DateTimeOffset(Now.AddMinutes(5))),
-        NullLogger<AdProposalExecutionJob>.Instance);
+    private static AdProposalExecutionJob Job(ApplicationDbContext context, LoadBarrier barrier, IAdActionExecutor executor)
+    {
+        var time = new FakeTimeProvider(new DateTimeOffset(Now.AddMinutes(5)));
+        var readModel = new Mock<IAdsReadModel>();
+        readModel.Setup(r => r.IsAccountManagedAsync(It.IsAny<AdPlatform>(), It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(true);
+        readModel.Setup(r => r.GetAdGroupOccupancyAsync(It.IsAny<AdPlatform>(), It.IsAny<string>(), It.IsAny<IReadOnlyCollection<string>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Dictionary<string, AdGroupOccupancy>());
+        var governance = new AdGovernanceRepository(context);
+        var proposals = new AdProposalRepository(context);
+        return new AdProposalExecutionJob(new FaultyProposalRepository(proposals, barrier), governance, new AdAuditLog(context),
+            new[] { executor }, new AdLimitsContextBuilder(governance, proposals, readModel.Object, time), new AdLimitsEvaluator(), time,
+            NullLogger<AdProposalExecutionJob>.Instance);
+    }
 
     [Fact]
     public async Task RunAsync_TwoDeliveriesClaimConcurrently_OneExecutesAndTheLoserLeavesNoTrace()

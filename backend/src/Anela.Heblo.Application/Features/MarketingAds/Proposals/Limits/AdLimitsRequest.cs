@@ -14,6 +14,7 @@ public sealed record AdLimitsRequest(
     string? ApproverPrincipal,
     IReadOnlyCollection<string> PriorApproverPrincipals,
     bool? IsAccountManaged,
-    int SucceededPausesLast7Days,
+    /// <summary>Pauses succeeded in the rolling 7 days plus the not-yet-executed pauses of other in-flight proposals.</summary>
+    int CommittedPausesLast7Days,
     IReadOnlyDictionary<string, AdGroupOccupancy> AdGroupOccupancy,
     IReadOnlyDictionary<string, int> Limits);

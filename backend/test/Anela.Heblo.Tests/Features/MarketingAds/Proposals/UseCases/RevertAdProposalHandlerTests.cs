@@ -64,7 +64,7 @@ public class RevertAdProposalHandlerTests
     private async Task RunJobAsync(ProposalTestHarness h, int id)
     {
         await h.SetKillSwitchAsync(AdKillSwitch.GlobalScope, true);
-        await new AdProposalExecutionJob(h.Proposals, h.Governance, h.Audit, new[] { _executor.Object }, h.Time,
+        await new AdProposalExecutionJob(h.Proposals, h.Governance, h.Audit, new[] { _executor.Object }, h.ContextBuilder, h.Evaluator, h.Time,
             NullLogger<AdProposalExecutionJob>.Instance).RunAsync(id, CancellationToken.None);
         h.Context.ChangeTracker.Clear();
     }

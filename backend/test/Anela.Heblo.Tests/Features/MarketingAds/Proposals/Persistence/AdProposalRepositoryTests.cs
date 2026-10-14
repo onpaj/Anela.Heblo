@@ -90,6 +90,46 @@ public class AdProposalRepositoryTests : IDisposable
         count.Should().Be(1);
     }
 
+    /// <summary>Approved 3 + Executing 4 (1 recorded) + Pending 5 + other account 2 + the evaluated proposal 2.</summary>
+    internal static async Task<int> SeedInFlightPausesAsync(AdProposalRepository repo)
+    {
+        var approved = Proposal(actionCount: 3);
+        approved.RecordApproval("chief", ApprovalChannel.Web, Now, isFinal: true);
+        var executing = Proposal(actionCount: 4);
+        executing.RecordApproval("chief", ApprovalChannel.Web, Now, isFinal: true);
+        executing.StartExecution(Now);
+        executing.RecordExecution(Execution(AdActionExecutionState.Succeeded, Now, 0));
+        var pending = Proposal(actionCount: 5);
+        var otherAccount = AdProposal.Create(
+            new AdProposalDraft("GoogleAds", "acc-2", "PauseAd", "agent-1", AdActorKind.Agent, null, "[]", 2, "r"), Now, TimeSpan.FromHours(72));
+        otherAccount.RecordApproval("chief", ApprovalChannel.Web, Now, isFinal: true);
+        var self = Proposal(actionCount: 2);
+        self.RecordApproval("chief", ApprovalChannel.Web, Now, isFinal: true);
+        foreach (var proposal in new[] { approved, executing, pending, otherAccount, self })
+        {
+            repo.Add(proposal);
+        }
+        await repo.SaveChangesAsync(CancellationToken.None);
+        return self.Id;
+    }
+
+    [Theory]
+    [InlineData(true, 6)]  // approval: Approved 3 + Executing 4 - 1 recorded
+    [InlineData(false, 3)] // execution: only the other Executing proposal's unrecorded actions
+    public async Task CountUnrecordedActionsOfOtherProposals_CountsInFlightActionsOfOtherProposalsOnly(bool includeApproved, int expected)
+    {
+        var selfId = await SeedInFlightPausesAsync(new AdProposalRepository(_context));
+        var statuses = includeApproved
+            ? new[] { AdProposalStatus.Approved, AdProposalStatus.Executing }
+            : new[] { AdProposalStatus.Executing };
+
+        await using var verify = new ApplicationDbContext(_options);
+        var count = await new AdProposalRepository(verify)
+            .CountUnrecordedActionsOfOtherProposalsAsync("GoogleAds", "acc-1", "PauseAd", selfId, statuses, CancellationToken.None);
+
+        count.Should().Be(expected);
+    }
+
     [Fact]
     public async Task GetPendingExpiredIds_ReturnsOnlyPendingPastExpiry()
     {

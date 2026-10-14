@@ -4,6 +4,7 @@ using Anela.Heblo.Application.Features.MarketingAds.Proposals.ReadModel;
 using Anela.Heblo.Domain.Features.MarketingAds;
 using Anela.Heblo.Persistence;
 using Anela.Heblo.Persistence.MarketingAds;
+using Anela.Heblo.Tests.Features.MarketingAds.Proposals.Persistence;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Time.Testing;
@@ -47,7 +48,7 @@ public class AdLimitsContextBuilderTests
         request.Limits[AdLimitKeys.MaxActionsPerProposal].Should().Be(10);
         request.IsAccountManaged.Should().BeTrue();
         request.AdGroupOccupancy["ad-1"].EnabledAdCount.Should().Be(2);
-        request.SucceededPausesLast7Days.Should().Be(0);
+        request.CommittedPausesLast7Days.Should().Be(0);
         request.Channel.Should().Be(ApprovalChannel.Mcp);
         request.ApproverPrincipal.Should().Be("chief");
     }
@@ -100,5 +101,43 @@ public class AdLimitsContextBuilderTests
 
         evaluation.Decision.Should().Be(AdLimitsDecision.NeedsWebApproval);
         evaluation.Reason.Should().Be(AdLimitReasons.AdGroupWouldBeEmpty);
+    }
+
+    private static Mock<IAdsReadModel> ManagedReadModel()
+    {
+        var readModel = new Mock<IAdsReadModel>();
+        readModel.Setup(r => r.IsAccountManagedAsync(It.IsAny<AdPlatform>(), It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(true);
+        readModel.Setup(r => r.GetAdGroupOccupancyAsync(It.IsAny<AdPlatform>(), It.IsAny<string>(), It.IsAny<IReadOnlyCollection<string>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Dictionary<string, AdGroupOccupancy>());
+        return readModel;
+    }
+
+    [Fact]
+    public async Task BuildAsync_CountsSucceededPlusOtherApprovedAndExecutingPauses_NotTheEvaluatedProposal()
+    {
+        var context = NewContext();
+        var selfId = await AdProposalRepositoryTests.SeedInFlightPausesAsync(new AdProposalRepository(context));
+        var self = await new AdProposalRepository(context).GetReadOnlyAsync(selfId, CancellationToken.None);
+
+        var request = await NewBuilder(context, ManagedReadModel().Object)
+            .BuildAsync(self!, new[] { PauseAction(AdPlatform.GoogleAds, "acc-1") }, ApprovalChannel.Web, "chief", CancellationToken.None);
+
+        // 1 succeeded + Approved 3 + Executing 4 with 1 recorded; Pending, another account and itself are not counted.
+        request.CommittedPausesLast7Days.Should().Be(7);
+    }
+
+    [Fact]
+    public async Task BuildForExecutionAsync_CountsSucceededPlusOtherExecutingOnly_AsTheSystem()
+    {
+        var context = NewContext();
+        var selfId = await AdProposalRepositoryTests.SeedInFlightPausesAsync(new AdProposalRepository(context));
+        var self = await new AdProposalRepository(context).GetReadOnlyAsync(selfId, CancellationToken.None);
+
+        var request = await NewBuilder(context, ManagedReadModel().Object)
+            .BuildForExecutionAsync(self!, new[] { PauseAction(AdPlatform.GoogleAds, "acc-1") }, CancellationToken.None);
+
+        // Approved proposals queue behind this one and are checked when they run themselves.
+        request.CommittedPausesLast7Days.Should().Be(4);
+        request.Channel.Should().Be(ApprovalChannel.System);
     }
 }

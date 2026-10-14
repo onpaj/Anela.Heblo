@@ -8,6 +8,8 @@ public sealed class AdLimitsContextBuilder : IAdLimitsContextBuilder
 {
     private static readonly TimeSpan PauseWindow = TimeSpan.FromDays(7);
     private static readonly IReadOnlyDictionary<string, AdGroupOccupancy> NoOccupancy = new Dictionary<string, AdGroupOccupancy>();
+    private static readonly AdProposalStatus[] ApprovalInFlight = { AdProposalStatus.Approved, AdProposalStatus.Executing };
+    private static readonly AdProposalStatus[] ExecutionInFlight = { AdProposalStatus.Executing };
 
     private readonly IAdGovernanceRepository _governance;
     private readonly IAdProposalRepository _proposals;
@@ -22,8 +24,15 @@ public sealed class AdLimitsContextBuilder : IAdLimitsContextBuilder
         _time = time;
     }
 
-    public async Task<AdLimitsRequest> BuildAsync(AdProposal proposal, IReadOnlyList<AdAction> actions, ApprovalChannel channel,
-        string? approverPrincipal, CancellationToken cancellationToken)
+    public Task<AdLimitsRequest> BuildAsync(AdProposal proposal, IReadOnlyList<AdAction> actions, ApprovalChannel channel,
+        string? approverPrincipal, CancellationToken cancellationToken) =>
+        BuildCoreAsync(proposal, actions, channel, approverPrincipal, ApprovalInFlight, cancellationToken);
+
+    public Task<AdLimitsRequest> BuildForExecutionAsync(AdProposal proposal, IReadOnlyList<AdAction> actions, CancellationToken cancellationToken) =>
+        BuildCoreAsync(proposal, actions, ApprovalChannel.System, AdSystemPrincipals.Executor, ExecutionInFlight, cancellationToken);
+
+    private async Task<AdLimitsRequest> BuildCoreAsync(AdProposal proposal, IReadOnlyList<AdAction> actions, ApprovalChannel channel,
+        string? approverPrincipal, IReadOnlyCollection<AdProposalStatus> inFlight, CancellationToken cancellationToken)
     {
         var platform = Enum.Parse<AdPlatform>(proposal.Platform);
         var actionType = Enum.Parse<AdActionType>(proposal.ActionType);
@@ -36,7 +45,9 @@ public sealed class AdLimitsContextBuilder : IAdLimitsContextBuilder
         if (actionType == AdActionType.PauseAd)
         {
             var since = _time.GetUtcNow().UtcDateTime - PauseWindow;
-            pauses = await _proposals.CountSucceededActionsSinceAsync(proposal.Platform, proposal.AccountExternalId, proposal.ActionType, since, cancellationToken);
+            pauses = await _proposals.CountSucceededActionsSinceAsync(proposal.Platform, proposal.AccountExternalId, proposal.ActionType, since, cancellationToken)
+                + await _proposals.CountUnrecordedActionsOfOtherProposalsAsync(proposal.Platform, proposal.AccountExternalId, proposal.ActionType,
+                    proposal.Id, inFlight, cancellationToken);
             var adIds = actions.Select(a => a.TargetExternalId).Distinct(StringComparer.Ordinal).ToList();
             occupancy = await _readModel.GetAdGroupOccupancyAsync(platform, proposal.AccountExternalId, adIds, cancellationToken);
         }

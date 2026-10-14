@@ -15,7 +15,7 @@ namespace Anela.Heblo.Tests.Features.MarketingAds.Proposals.Execution;
 public class AdProposalExecutionJobTests
 {
     private static AdProposalExecutionJob Job(ProposalTestHarness h, params IAdActionExecutor[] executors) => new(
-        h.Proposals, h.Governance, h.Audit, executors, h.Time, NullLogger<AdProposalExecutionJob>.Instance);
+        h.Proposals, h.Governance, h.Audit, executors, h.ContextBuilder, h.Evaluator, h.Time, NullLogger<AdProposalExecutionJob>.Instance);
 
     private static Mock<IAdActionExecutor> Executor(AdPlatform platform = AdPlatform.GoogleAds)
     {
@@ -316,7 +316,7 @@ public class AdProposalExecutionJobTests
         var executor = Executor();
         var logger = new Mock<ILogger<AdProposalExecutionJob>>();
         var repo = new FaultyProposalRepository(h.Proposals, failOnSaves: 1) { ClaimFailure = claimFailure };
-        var job = new AdProposalExecutionJob(repo, h.Governance, h.Audit, new[] { executor.Object }, h.Time, logger.Object);
+        var job = new AdProposalExecutionJob(repo, h.Governance, h.Audit, new[] { executor.Object }, h.ContextBuilder, h.Evaluator, h.Time, logger.Object);
 
         await job.RunAsync(id, CancellationToken.None);
 
@@ -392,7 +392,7 @@ public class AdProposalExecutionJobTests
         var governance = new Mock<IAdGovernanceRepository>();
         governance.Setup(g => g.GetKillSwitchesAsync(It.IsAny<CancellationToken>())).ThrowsAsync(new InvalidOperationException("db down"));
         var executor = Executor();
-        var job = new AdProposalExecutionJob(h.Proposals, governance.Object, h.Audit, new[] { executor.Object }, h.Time,
+        var job = new AdProposalExecutionJob(h.Proposals, governance.Object, h.Audit, new[] { executor.Object }, h.ContextBuilder, h.Evaluator, h.Time,
             NullLogger<AdProposalExecutionJob>.Instance);
 
         var act = () => job.RunAsync(id, CancellationToken.None);
@@ -413,7 +413,7 @@ public class AdProposalExecutionJobTests
         var id = await h.SeedApprovedAsync(actionCount: 2);
         var repo = new FaultyProposalRepository(h.Proposals, failOnSaves: 2); // 1 = claim, 2 = after action 0
         var executor = Executor();
-        var job = new AdProposalExecutionJob(repo, h.Governance, h.Audit, new[] { executor.Object }, h.Time,
+        var job = new AdProposalExecutionJob(repo, h.Governance, h.Audit, new[] { executor.Object }, h.ContextBuilder, h.Evaluator, h.Time,
             NullLogger<AdProposalExecutionJob>.Instance);
 
         var act = () => job.RunAsync(id, CancellationToken.None);
@@ -434,7 +434,7 @@ public class AdProposalExecutionJobTests
         var id = await h.SeedApprovedAsync(actionCount: 2);
         var repo = new FaultyProposalRepository(h.Proposals, failOnSaves: new[] { 2, 3 });
         var executor = Executor();
-        var job = new AdProposalExecutionJob(repo, h.Governance, h.Audit, new[] { executor.Object }, h.Time,
+        var job = new AdProposalExecutionJob(repo, h.Governance, h.Audit, new[] { executor.Object }, h.ContextBuilder, h.Evaluator, h.Time,
             NullLogger<AdProposalExecutionJob>.Instance);
 
         var act = () => job.RunAsync(id, CancellationToken.None);
@@ -484,9 +484,9 @@ public class AdProposalExecutionJobTests
         var bothLoaded = new LoadBarrier(participants: 2);
         await using var otherContext = h.NewContext();
         var first = new AdProposalExecutionJob(new FaultyProposalRepository(h.Proposals, bothLoaded), h.Governance, h.Audit,
-            new[] { executor.Object }, h.Time, NullLogger<AdProposalExecutionJob>.Instance);
+            new[] { executor.Object }, h.ContextBuilder, h.Evaluator, h.Time, NullLogger<AdProposalExecutionJob>.Instance);
         var second = new AdProposalExecutionJob(new FaultyProposalRepository(new AdProposalRepository(otherContext), bothLoaded),
-            new AdGovernanceRepository(otherContext), new AdAuditLog(otherContext), new[] { executor.Object }, h.Time,
+            new AdGovernanceRepository(otherContext), new AdAuditLog(otherContext), new[] { executor.Object }, h.ContextBuilder, h.Evaluator, h.Time,
             NullLogger<AdProposalExecutionJob>.Instance);
 
         await Task.WhenAll(

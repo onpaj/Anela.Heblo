@@ -54,6 +54,14 @@ public class AdProposalRepository : IAdProposalRepository
             e.Platform == platform && e.AccountExternalId == accountExternalId && e.ActionType == actionType
             && e.State == AdActionExecutionState.Succeeded && e.ExecutedAt >= sinceUtc, cancellationToken);
 
+    public Task<int> CountUnrecordedActionsOfOtherProposalsAsync(string platform, string accountExternalId, string actionType,
+        int excludeProposalId, IReadOnlyCollection<AdProposalStatus> statuses, CancellationToken cancellationToken) =>
+        _context.AdProposals.AsNoTracking()
+            .Where(p => p.Platform == platform && p.AccountExternalId == accountExternalId && p.ActionType == actionType
+                && p.Id != excludeProposalId && statuses.Contains(p.Status))
+            .SumAsync(p => p.Versions.Where(v => v.Version == p.CurrentVersion).Sum(v => v.ActionCount)
+                - p.Executions.Count(e => e.Version == p.CurrentVersion), cancellationToken);
+
     public Task<int> CountProposalsForRunAsync(Guid agentRunId, CancellationToken cancellationToken) =>
         _context.AdProposals.AsNoTracking().CountAsync(p => p.AgentRunId == agentRunId, cancellationToken);
 

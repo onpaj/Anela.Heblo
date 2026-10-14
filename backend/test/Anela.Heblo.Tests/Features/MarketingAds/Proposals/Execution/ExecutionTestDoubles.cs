@@ -66,6 +66,9 @@ internal sealed class FaultyProposalRepository : IAdProposalRepository
     public Task<(IReadOnlyList<AdProposal> Items, int TotalCount)> ListAsync(AdProposalQuery query, CancellationToken cancellationToken) => _inner.ListAsync(query, cancellationToken);
     public Task<int> CountSucceededActionsSinceAsync(string platform, string accountExternalId, string actionType, DateTime sinceUtc, CancellationToken cancellationToken) =>
         _inner.CountSucceededActionsSinceAsync(platform, accountExternalId, actionType, sinceUtc, cancellationToken);
+    public Task<int> CountUnrecordedActionsOfOtherProposalsAsync(string platform, string accountExternalId, string actionType, int excludeProposalId,
+        IReadOnlyCollection<AdProposalStatus> statuses, CancellationToken cancellationToken) =>
+        _inner.CountUnrecordedActionsOfOtherProposalsAsync(platform, accountExternalId, actionType, excludeProposalId, statuses, cancellationToken);
     public Task<int> CountProposalsForRunAsync(Guid agentRunId, CancellationToken cancellationToken) => _inner.CountProposalsForRunAsync(agentRunId, cancellationToken);
     public Task<IReadOnlyList<int>> GetPendingExpiredIdsAsync(DateTime nowUtc, CancellationToken cancellationToken) => _inner.GetPendingExpiredIdsAsync(nowUtc, cancellationToken);
     public Task<IReadOnlyList<int>> GetStuckApprovedIdsAsync(DateTime updatedBeforeUtc, CancellationToken cancellationToken) => _inner.GetStuckApprovedIdsAsync(updatedBeforeUtc, cancellationToken);

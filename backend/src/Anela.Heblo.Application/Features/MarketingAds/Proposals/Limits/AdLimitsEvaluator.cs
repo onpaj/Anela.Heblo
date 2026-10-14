@@ -36,7 +36,7 @@ public sealed class AdLimitsEvaluator : IAdLimitsEvaluator
         }
         if (r.Actions.Count > (Limit(r, AdLimitKeys.MaxActionsPerProposal) ?? 0)) return AdLimitReasons.TooManyActions;
         if (r.ActionType == AdActionType.PauseAd
-            && r.SucceededPausesLast7Days + r.Actions.Count > (Limit(r, AdLimitKeys.MaxPausedAdsPer7Days) ?? 0))
+            && r.CommittedPausesLast7Days + r.Actions.Count > (Limit(r, AdLimitKeys.MaxPausedAdsPer7Days) ?? 0))
         {
             return AdLimitReasons.WeeklyPauseLimit;
         }

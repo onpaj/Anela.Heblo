@@ -4,6 +4,7 @@ using System.Text.Json.Nodes;
 using Anela.Heblo.Application.Features.MarketingAds.Contracts;
 using Anela.Heblo.Application.Features.MarketingAds.Proposals.Actions;
 using Anela.Heblo.Application.Features.MarketingAds.Proposals.Audit;
+using Anela.Heblo.Application.Features.MarketingAds.Proposals.Limits;
 using Anela.Heblo.Domain.Features.MarketingAds;
 using Hangfire;
 using Microsoft.Extensions.Logging;
@@ -12,8 +13,9 @@ namespace Anela.Heblo.Application.Features.MarketingAds.Proposals.Execution;
 
 /// <summary>
 /// Executes one Approved proposal (spec 6.2, 6.6) — the only code path that changes a live ad account.
-/// Claims the proposal (Approved → Executing, one SaveChanges guarded by the Revision token), then runs the
-/// actions in order: kill switch → executor → read current → old-value check → execute → record + save.
+/// Claims the proposal (Approved → Executing, one SaveChanges guarded by the Revision token), re-evaluates the hard
+/// limits (spec 6.3; a Denied proposal runs nothing), then runs the actions in order: kill switch → executor →
+/// read current → old-value check → execute → record + save.
 /// Whatever happens, the proposal is finalised (never left Executing) and a thrown mutate is never retried.
 /// </summary>
 public class AdProposalExecutionJob
@@ -26,6 +28,7 @@ public class AdProposalExecutionJob
     public const string NotRecorded = "Not recorded: the execution stopped on an unexpected error. The change may have been applied; verify in the account.";
     public const string MayHaveBeenApplied = "The change may have been applied; verify in the account.";
     public const string ConfirmedByReread = "Applied — confirmed by re-read after transport error: ";
+    public const string DeniedByLimits = "Not executed: the limits deny it at execution time: ";
     private const int LockTimeoutSeconds = 600;
     private const int MaxAuditTextLength = 4000;
     private const int MaxValueLength = 64;
@@ -35,16 +38,21 @@ public class AdProposalExecutionJob
     private readonly IAdGovernanceRepository _governance;
     private readonly IAdAuditLog _audit;
     private readonly IEnumerable<IAdActionExecutor> _executors;
+    private readonly IAdLimitsContextBuilder _limitsContext;
+    private readonly IAdLimitsEvaluator _limits;
     private readonly TimeProvider _time;
     private readonly ILogger<AdProposalExecutionJob> _logger;
 
     public AdProposalExecutionJob(IAdProposalRepository proposals, IAdGovernanceRepository governance, IAdAuditLog audit,
-        IEnumerable<IAdActionExecutor> executors, TimeProvider time, ILogger<AdProposalExecutionJob> logger)
+        IEnumerable<IAdActionExecutor> executors, IAdLimitsContextBuilder limitsContext, IAdLimitsEvaluator limits,
+        TimeProvider time, ILogger<AdProposalExecutionJob> logger)
     {
         _proposals = proposals;
         _governance = governance;
         _audit = audit;
         _executors = executors;
+        _limitsContext = limitsContext;
+        _limits = limits;
         _time = time;
         _logger = logger;
     }
@@ -70,7 +78,8 @@ public class AdProposalExecutionJob
         try
         {
             actions = AdActionJson.Deserialize(proposal.GetCurrentVersion().ActionsJson);
-            stopReason = await RunActionsAsync(proposal, actions, cancellationToken);
+            stopReason = await FindLimitsDenialAsync(proposal, actions, cancellationToken)
+                ?? await RunActionsAsync(proposal, actions, cancellationToken);
         }
         catch (Exception ex)
         {
@@ -108,6 +117,23 @@ public class AdProposalExecutionJob
             _logger.LogError("Claiming ad proposal {ProposalId} for execution failed to save; it stays Approved.", proposal.Id);
         }
         return false;
+    }
+
+    /// <summary>
+    /// Approval checked the limits against the state at that moment; settings, the managed flag and the weekly pause
+    /// budget can change before the job runs. Only Denied stops it: web-only and second-approver outcomes were settled
+    /// by the approvals that made it Approved. The proposal itself is Executing and excluded from the in-flight count.
+    /// </summary>
+    /// <returns>The reason recorded on every action when the limits deny the proposal now, otherwise null.</returns>
+    private async Task<string?> FindLimitsDenialAsync(AdProposal proposal, IReadOnlyList<AdAction> actions, CancellationToken cancellationToken)
+    {
+        var evaluation = _limits.Evaluate(await _limitsContext.BuildForExecutionAsync(proposal, actions, cancellationToken));
+        if (evaluation.Decision != AdLimitsDecision.Denied)
+        {
+            return null;
+        }
+        _logger.LogWarning("Ad proposal {ProposalId} is denied by the limits at execution ({Reason}); nothing is executed.", proposal.Id, evaluation.Reason);
+        return DeniedByLimits + evaluation.Reason;
     }
 
     /// <returns>The reason for the actions that did not run, or null when every action ran.</returns>
