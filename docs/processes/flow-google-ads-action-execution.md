@@ -5,7 +5,7 @@ module: marketing-ads
 summary: Executes approved Google Ads proposal actions - add a negative keyword, pause an ad, and revert either - through the Google Ads REST API v25, validate-only outside production.
 owns:
   - backend/src/Adapters/Anela.Heblo.Adapters.GoogleAds/Execution/**
-verified_at: "784926178"
+verified_at: "1cbe67a05"
 related: [sync-google-ads-campaign-data, module-marketing-ads]
 ---
 
@@ -47,6 +47,8 @@ Called by the core proposal execution pipeline per action after final approval, 
 - Outside the `Production` host environment the executor is validate-only regardless of `GoogleAds:ValidateOnly`, so an App Setting `GoogleAds__ValidateOnly=false` or Key Vault secret `GoogleAds--ValidateOnly` on staging cannot make it write. `ConfigurationFileTests` additionally guards the `appsettings*.json` files.
 - A 200 whose body names no criterion (empty or unreadable) is reported as Failed for a negative keyword, although Google may have added it; check the account by hand. A 404 counts as a platform rejection only when it carries a GoogleAdsFailure, otherwise it is thrown as a transport/config error.
 - The executor trusts the core for the old-value check and the limits; it validates only shape, account and ids.
+- On staging every executed action ends `Failed` with an error starting `ValidateOnly:` (`AdExecutionErrors.ValidateOnlyPrefix`, shared with the core): Google accepted it, nothing changed. The core keeps it `Failed`, never retries it, flags `validateOnly` in the `ActionFailed` audit payload and `ValidateOnly` on the execution DTO; the proposal therefore ends `Failed` on staging.
+- A thrown `ExecuteAsync` (timeout, 5xx) may still have changed the account. The core never retries it: it re-reads the target once and stores the observed value as `AfterValue` with the note "may have been applied; verify in the account".
 - `AddGoogleAdsMarketingAds` also runs in the AdsBackfill tool, which therefore registers the executor too; it is scoped and never resolved there.
 - A manual validate-only smoke test exists (integration doc section 12); it is skipped unless `HEBLO_GOOGLE_ADS_SMOKE_ENV` is set.
 

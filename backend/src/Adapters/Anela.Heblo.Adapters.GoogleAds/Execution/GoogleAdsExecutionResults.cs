@@ -5,7 +5,7 @@ namespace Anela.Heblo.Adapters.GoogleAds.Execution;
 
 internal static class GoogleAdsExecutionResults
 {
-    public const string ValidateOnlyMarker = "ValidateOnly:";
+    public const string ValidateOnlyMarker = AdExecutionErrors.ValidateOnlyPrefix;
     public static readonly AdTargetState Missing = new(false, null, null);
 
     public static AdExecutionResult Failed(string error, string? responseJson = null) =>

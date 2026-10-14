@@ -59,6 +59,7 @@ public static class AdProposalDtoMapper
         {
             Version = e.Version, ActionIndex = e.ActionIndex, TargetExternalId = e.TargetExternalId, State = e.State,
             BeforeValue = e.BeforeValue, AfterValue = e.AfterValue, PlatformResourceId = e.PlatformResourceId, Error = e.Error,
+            ValidateOnly = e.State == AdActionExecutionState.Failed && AdExecutionErrors.IsValidateOnly(e.Error),
             ExecutedAt = e.ExecutedAt, RevertState = e.RevertState, RevertedAt = e.RevertedAt, RevertError = e.RevertError,
         }).ToList(),
         CurrentEvaluation = currentEvaluation is null ? null : ToDto(currentEvaluation),

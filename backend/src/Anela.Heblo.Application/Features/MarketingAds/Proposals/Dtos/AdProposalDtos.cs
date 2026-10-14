@@ -60,6 +60,8 @@ public class AdActionExecutionDto
     public string? AfterValue { get; set; }
     public string? PlatformResourceId { get; set; }
     public string? Error { get; set; }
+    /// <summary>The platform only validated the change (non-production); nothing changed in the account.</summary>
+    public bool ValidateOnly { get; set; }
     public DateTime ExecutedAt { get; set; }
     public AdActionRevertState RevertState { get; set; }
     public DateTime? RevertedAt { get; set; }

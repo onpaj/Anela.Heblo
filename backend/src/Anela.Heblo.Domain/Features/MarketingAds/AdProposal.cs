@@ -114,7 +114,29 @@ public class AdProposal : IEntity<int>
         ExecutionStartedAt = now;
     }
 
-    public void RecordExecution(AdProposalActionExecution execution) => Executions.Add(execution);
+    /// <summary>
+    /// Records the outcome of one action of the executing version. Each action index is recorded once, so the
+    /// succeeded count can never exceed the action count. Bumps the revision so a stale concurrent writer conflicts.
+    /// </summary>
+    public void RecordExecution(AdProposalActionExecution execution)
+    {
+        EnsureStatus(AdProposalStatus.Executing);
+        if (execution.Version != CurrentVersion)
+        {
+            throw new InvalidOperationException(
+                $"Ad proposal {Id} executes version {CurrentVersion}; cannot record an action of version {execution.Version}.");
+        }
+        if (execution.ActionIndex < 0 || execution.ActionIndex >= GetCurrentVersion().ActionCount)
+        {
+            throw new InvalidOperationException($"Ad proposal {Id} has no action {execution.ActionIndex} in version {CurrentVersion}.");
+        }
+        if (Executions.Any(e => e.Version == execution.Version && e.ActionIndex == execution.ActionIndex))
+        {
+            throw new InvalidOperationException($"Ad proposal {Id} already recorded action {execution.ActionIndex} of version {CurrentVersion}.");
+        }
+        Executions.Add(execution);
+        Touch(execution.ExecutedAt);
+    }
 
     public void FinishExecution(DateTime now)
     {

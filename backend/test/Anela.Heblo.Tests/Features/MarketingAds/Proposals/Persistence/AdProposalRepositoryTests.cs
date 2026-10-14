@@ -22,8 +22,8 @@ public class AdProposalRepositoryTests : IDisposable
 
     public void Dispose() => _context.Dispose();
 
-    private static AdProposal Proposal(string creator = "agent-1", string platform = "GoogleAds") => AdProposal.Create(
-        new AdProposalDraft(platform, "acc-1", "PauseAd", creator, AdActorKind.Agent, null, "[]", 1, "r"),
+    private static AdProposal Proposal(string creator = "agent-1", string platform = "GoogleAds", int actionCount = 1) => AdProposal.Create(
+        new AdProposalDraft(platform, "acc-1", "PauseAd", creator, AdActorKind.Agent, null, "[]", actionCount, "r"),
         Now, TimeSpan.FromHours(72));
 
     private static AdProposalActionExecution Execution(AdActionExecutionState state, DateTime at, int actionIndex) => new()
@@ -67,7 +67,9 @@ public class AdProposalRepositoryTests : IDisposable
     public async Task CountSucceededActionsSince_CountsOnlySucceededInsideTheWindow()
     {
         var repo = new AdProposalRepository(_context);
-        var proposal = Proposal();
+        var proposal = Proposal(actionCount: 3);
+        proposal.RecordApproval("chief", ApprovalChannel.Web, Now.AddDays(-9), isFinal: true);
+        proposal.StartExecution(Now.AddDays(-9));
         proposal.RecordExecution(Execution(AdActionExecutionState.Succeeded, Now.AddDays(-1), 0));
         proposal.RecordExecution(Execution(AdActionExecutionState.Failed, Now.AddDays(-1), 1));
         proposal.RecordExecution(Execution(AdActionExecutionState.Succeeded, Now.AddDays(-8), 2));

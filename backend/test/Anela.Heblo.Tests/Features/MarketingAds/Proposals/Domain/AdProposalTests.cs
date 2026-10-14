@@ -111,6 +111,72 @@ public class AdProposalTests
         p.IsExpiredAt(Now + Ttl).Should().BeFalse("an approved proposal no longer expires");
     }
 
+    private static AdProposal ExecutingProposal(int actionCount = 2)
+    {
+        var p = NewProposal(actionCount);
+        p.RecordApproval("chief", ApprovalChannel.Web, Now, isFinal: true);
+        p.StartExecution(Now);
+        return p;
+    }
+
+    private static AdProposalActionExecution Row(int actionIndex, int version = 1) => new()
+    {
+        Version = version,
+        ActionIndex = actionIndex,
+        State = AdActionExecutionState.Succeeded,
+        ExecutedAt = Now.AddMinutes(1),
+    };
+
+    [Fact]
+    public void RecordExecution_WhenNotExecuting_Throws()
+    {
+        var p = NewProposal();
+        p.RecordApproval("chief", ApprovalChannel.Web, Now, isFinal: true);
+
+        var act = () => p.RecordExecution(Row(0));
+
+        act.Should().Throw<InvalidOperationException>();
+        p.Executions.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void RecordExecution_DuplicateActionIndex_ThrowsSoSucceededCannotExceedTotal()
+    {
+        var p = ExecutingProposal(actionCount: 2);
+        p.RecordExecution(Row(0));
+
+        var act = () => p.RecordExecution(Row(0));
+
+        act.Should().Throw<InvalidOperationException>();
+        p.Executions.Should().ContainSingle();
+    }
+
+    [Theory]
+    [InlineData(-1, 1)]
+    [InlineData(2, 1)]
+    [InlineData(0, 2)]
+    public void RecordExecution_IndexOutOfRangeOrNotTheCurrentVersion_Throws(int actionIndex, int version)
+    {
+        var p = ExecutingProposal(actionCount: 2);
+
+        var act = () => p.RecordExecution(Row(actionIndex, version));
+
+        act.Should().Throw<InvalidOperationException>();
+        p.Executions.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void RecordExecution_BumpsRevisionSoConcurrentWritersConflict()
+    {
+        var p = ExecutingProposal();
+        var before = p.Revision;
+
+        p.RecordExecution(Row(0));
+
+        p.Revision.Should().Be(before + 1);
+        p.UpdatedAt.Should().Be(Now.AddMinutes(1));
+    }
+
     [Fact]
     public void EveryStateChange_BumpsRevision()
     {

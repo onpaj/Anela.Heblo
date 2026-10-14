@@ -72,4 +72,27 @@ public class AdProposalDtoMapperTests
     {
         AdProposalDtoMapper.TargetIds(RevisedProposal()).Should().BeEquivalentTo(new[] { "ad-1", "ad-2" });
     }
+
+    [Fact]
+    public void ToDetail_FlagsOnlyValidateOnlyFailuresAsValidateOnly()
+    {
+        var actions = new[] { ProposalTestHarness.PauseAction("ad-1"), ProposalTestHarness.PauseAction("ad-2") };
+        var proposal = AdProposal.Create(new AdProposalDraft("GoogleAds", "acc-1", "PauseAd", "agent-1", AdActorKind.Agent,
+            null, AdActionJson.Serialize(actions), actions.Length, "why"), Now, TimeSpan.FromHours(72));
+        proposal.RecordApproval("chief", ApprovalChannel.Web, Now, isFinal: true);
+        proposal.StartExecution(Now);
+        proposal.RecordExecution(new AdProposalActionExecution
+        {
+            Version = 1, ActionIndex = 0, TargetExternalId = "ad-1", State = AdActionExecutionState.Failed,
+            Error = $"{AdExecutionErrors.ValidateOnlyPrefix} Google accepted the request; nothing was changed.", ExecutedAt = Now,
+        });
+        proposal.RecordExecution(new AdProposalActionExecution
+        {
+            Version = 1, ActionIndex = 1, TargetExternalId = "ad-2", State = AdActionExecutionState.Failed, Error = "POLICY", ExecutedAt = Now,
+        });
+
+        var detail = AdProposalDtoMapper.ToDetail(proposal, NoNames, null);
+
+        detail.Executions.Select(e => e.ValidateOnly).Should().Equal(true, false);
+    }
 }

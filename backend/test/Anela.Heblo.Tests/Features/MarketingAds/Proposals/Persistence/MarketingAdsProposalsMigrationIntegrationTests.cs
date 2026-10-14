@@ -3,8 +3,6 @@ using Anela.Heblo.Persistence;
 using Anela.Heblo.Tests.Common;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Infrastructure;
-using Microsoft.EntityFrameworkCore.Migrations;
 using Npgsql;
 using Xunit;
 
@@ -20,35 +18,14 @@ public class MarketingAdsProposalsMigrationIntegrationTests : IAsyncLifetime
 
     public MarketingAdsProposalsMigrationIntegrationTests(PostgresSharedContainerFixture fixture) => _fixture = fixture;
 
-    public async Task InitializeAsync()
-    {
-        _connectionString = await _fixture.CreateDatabaseAsync("marketing_ads_c3");
-        await using var context = NewContext();
-        var migrations = context.Database.GetMigrations().ToList();
-        var ours = migrations.Single(m => m.EndsWith("_AddMarketingAdsProposals", StringComparison.Ordinal));
-        var previous = migrations[migrations.IndexOf(ours) - 1];
-        var script = context.GetService<IMigrator>().GenerateScript(previous, ours);
-
-        await ExecuteAsync("""
-            CREATE TABLE IF NOT EXISTS "__EFMigrationsHistory" (
-                "MigrationId" character varying(150) PRIMARY KEY,
-                "ProductVersion" character varying(32) NOT NULL);
-            """);
-        await ExecuteAsync(script);
-    }
+    public async Task InitializeAsync() =>
+        _connectionString = await MarketingAdsProposalsPostgres.CreateMigratedAsync(_fixture, "marketing_ads_c3");
 
     public Task DisposeAsync() => Task.CompletedTask;
 
-    private ApplicationDbContext NewContext() =>
-        new(new DbContextOptionsBuilder<ApplicationDbContext>().UseNpgsql(_connectionString).Options);
+    private ApplicationDbContext NewContext() => MarketingAdsProposalsPostgres.NewContext(_connectionString);
 
-    private async Task ExecuteAsync(string sql)
-    {
-        await using var conn = new NpgsqlConnection(_connectionString);
-        await conn.OpenAsync();
-        await using var cmd = new NpgsqlCommand(sql, conn);
-        await cmd.ExecuteNonQueryAsync();
-    }
+    private Task ExecuteAsync(string sql) => MarketingAdsProposalsPostgres.ExecuteAsync(_connectionString, sql);
 
     private static AdProposal NewProposal() => AdProposal.Create(
         new AdProposalDraft("GoogleAds", "acc-1", "PauseAd", "agent-1", AdActorKind.Agent, null,
