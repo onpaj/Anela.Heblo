@@ -8496,5 +8496,5 @@ Expected: PR created; BE/FE/Docker checks green (an empty "no checks reported" r
 12. **Kill switch off at execution fails the proposal** (it does not wait for the switch); **revert is not gated by the kill switch** and runs synchronously.
 13. **A platform `Failed` result on one action continues with the next**; only stale state, kill switch, missing executor and transport exceptions stop the run.
 14. **The expiry job also re-enqueues `Approved` proposals** whose execution never started (lost enqueue); the job claim makes this idempotent.
-15. **Error codes use the 39XX range** (`MarketingAds…`).
+15. **Error codes use the 40XX range** (`MarketingAds…`, 4001–4017; 39XX is taken by Reporting on main).
 16. **Migrations:** `CLAUDE.md` says migrations are manual; `docs/development/setup.md` says production applies them at startup. Either way the PR description asks to apply the migration on staging before deploying.
