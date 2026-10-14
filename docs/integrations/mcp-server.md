@@ -1,6 +1,6 @@
 # MCP Server
 
-The application exposes MCP tools for AI assistants to query catalog data, manufacturing orders, perform batch calculations, user-directory lookups, meeting notes, pricing simulations, and month-grain reporting data (GA4, Shoptet, Flexi).
+The application exposes MCP tools for AI assistants to query catalog data, manufacturing orders, perform batch calculations, user-directory lookups, meeting notes, pricing simulations, month-grain reporting data (GA4, Shoptet, Flexi), and marketing ads (agents' data, proposals, agent runs and approvals).
 
 ## Available Tools
 
@@ -54,6 +54,22 @@ The application exposes MCP tools for AI assistants to query catalog data, manuf
 - `GetPricingScenario` — a saved scenario recalculated against today's catalog, including its override list and drift flags
 - `SavePricingScenario` — create a scenario, or overwrite one by id as a whole (no delete tool — delete stays in the web UI)
 - `UpdatePricingScenarioProducts` — partial update of a saved scenario: edit or remove individual products and/or rename it, keeping everything else (filter, other products and their drift snapshots); all-or-nothing on a failing edit
+
+**Marketing Ads (15)** — data and proposals need `Marketing_Ads` (read; `SubmitAdProposal`, `ReviseAdProposal` and the agent-run tools need write). The chief's tools need `Marketing_AdApprovals` write; approve/reject additionally pass the approval-channel rules in the handler (MCP channel: also `Marketing_AdApprovalsViaMcp` read; service identities are always refused). Dates are `yyyy-MM-dd`, instants ISO-8601, proposal ids are integers, `agentRunId` is a GUID. A concurrent change returns `[MarketingAdsConcurrentChange] … reload (GetAdProposal) and retry`.
+- `ListAdAccounts` — managed ad accounts, optional `platform` (GoogleAds, MetaAds, Sklik)
+- `GetAdPerformance` — daily facts for one `platform` / `accountExternalId` / `level` (Campaign, AdGroup, Keyword, Ad) / `from`–`to`, optional `parentExternalId`, paged (`pageNumber`, `pageSize`)
+- `GetAdSearchTerms` — search terms of one campaign or ad group (`parentLevel` + `parentExternalId`), `from`–`to`, optional `minCost`, `top` (default 200), highest cost first; Google Ads and Sklik only
+- `GetBlendedPerformance` — real revenue ÷ total ad spend, `granularity` Daily or Monthly
+- `GetAdChangeHistory` — change events; filters `platform`, `accountExternalId`, `since`/`until`, `origin` (Heblo / OutOfBand), `actorKind`; paged
+- `GetAdGuardrails` — allowed actions, limits, autonomy modes, kill switch — propose within them
+- `SubmitAdProposal` — `platform`, `accountExternalId`, `actionType` (AddNegativeKeyword, PauseAd), `actions` (`targetLevel`, `targetExternalId`, and for negative keywords `keywordText`, `matchType`), `reasoning`, optional `agentRunId`; returns id, version and the limits evaluation
+- `ReviseAdProposal` — `proposalId` + `expectedVersion` + the complete new `actions` and `reasoning`
+- `ListAdProposals` / `GetAdProposal` — filters `status`, `platform`, `onlyMine`, paged; full detail with rendered diffs
+- `StartAgentRun` / `FinishAgentRun` — observability of the agents themselves (`agentName`, `dataScopesRead`; status, summary, `inputTokens`, `outputTokens`, `costCzk`)
+- `ListPendingAdProposals` — the chief's "what's pending?", numbered, with rendered diffs
+- `ApproveAdProposal` / `RejectAdProposal` — `proposalId` + `version` (+ `reason` on reject)
+
+**Service identities (agents):** agents connect to `/mcp` with their own client-credentials token. App-only callers are rate limited per `oid` (`Ads:AgentRateLimitPerMinute`, default 60 -> HTTP 429); people are not limited. Setup, grants and token instructions: `docs/integrations/marketing-agents-identity.md`.
 
 **Reporting (3)** — read-only, month-grain reporting data mirrored into `Heblo_V3`. Permission is per **source** and enforced in the MediatR handlers (not in the tool), so it applies to any entry point: `Reporting_WebAnalytics` (GA4, `reporting.web_analytics.read`), `Reporting_Eshop` (Shoptet, `reporting.eshop.read`), `Reporting_Accounting` (Flexi, `reporting.accounting.read`). A caller only sees the datasets of sources they can read.
 - `ListReportDatasets` — datasets the caller may read, with source, grain and data freshness (last sync, status)
@@ -180,5 +196,5 @@ traces
 ## Tests
 
 - Location: `backend/test/Anela.Heblo.Tests/MCP/Tools/`
-- Coverage: 29 tests (parameter mapping, JSON serialization, error handling)
+- Coverage: 123 test methods (parameter mapping, JSON serialization, error handling)
 - See existing test files for patterns.
