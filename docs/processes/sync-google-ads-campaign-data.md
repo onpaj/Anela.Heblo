@@ -31,6 +31,9 @@ empty or numeric. Otherwise the platform is silently absent and the core syncs t
 1. OAuth refresh token → access token (`oauth2.googleapis.com/token`, cached until 2 min before expiry).
 2. `POST googleads.googleapis.com/v25/customers/{CustomerId}/googleAds:search` per GAQL query
    (integration doc §4), all pages.
+   Facts and search terms are filtered `segments.date = 'day'` for the daily job, or
+   `segments.date BETWEEN 'from' AND 'to'` for the backfill (`IAdPlatformRangeReadSource`, one call per
+   level per calendar month instead of per day — a year read day by day would exceed the daily quota).
 3. Rows mapped to the contract records (`AdAccountSnapshot`, `AdEntitySnapshot`,
    `AdDailyFactRow`, `AdSearchTermRow`, `AdChangeEventRow`); the core upserts them into the `ads` schema.
 
@@ -74,7 +77,7 @@ empty or numeric. Otherwise the platform is silently absent and the core syncs t
 - The developer token is not used; Google sunset it on 2026-09-09.
 
 ## Code entry points
-- `backend/src/Adapters/Anela.Heblo.Adapters.GoogleAds/Reporting/GoogleAdsReadSource.cs` — the five contract methods
+- `backend/src/Adapters/Anela.Heblo.Adapters.GoogleAds/Reporting/GoogleAdsReadSource.cs` — the five contract methods plus the two range reads
 - `backend/src/Adapters/Anela.Heblo.Adapters.GoogleAds/Reporting/GoogleAdsQueries.cs` — every GAQL query
 - `backend/src/Adapters/Anela.Heblo.Adapters.GoogleAds/Api/GoogleAdsRestClient.cs` — transport, paging, retries
 - `backend/src/Adapters/Anela.Heblo.Adapters.GoogleAds/GoogleAdsMarketingAdsServiceCollectionExtensions.cs` — configuration gate

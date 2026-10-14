@@ -44,7 +44,7 @@ Otherwise `OutOfBand`. Until C3 ships, `IAdExecutionLookup` is a no-op and every
 | `Ads:ChangeSync:CronExpression` | `15 * * * *` | seed cron (DB value wins after first run) |
 | `Ads:ChangeSync:TimeZone` | `Europe/Prague` | cron time zone |
 | `Ads:ChangeSync:RunTimeoutMinutes` | 15 | run is cancelled after this |
-| `Ads:ChangeSync:InitialLookbackDays` | 7 | first pull reach (the source clamps to its own limit); must be >= 1 |
+| `Ads:ChangeSync:InitialLookbackDays` | 29 | first pull reach (the source clamps to its own limit); must be >= 1. 29 = everything Google keeps (30 days) with a day of slack; older changes cannot be backfilled |
 | `Ads:OutOfBandMatchWindowMinutes` | 120 | ± window for matching executions |
 | `GoogleAds:HebloUserEmail` | empty (KV `GoogleAds--HebloUserEmail`) | Google user Heblo acts as; read by the Google source, not by this job |
 

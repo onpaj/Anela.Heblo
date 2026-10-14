@@ -41,7 +41,7 @@ public class AdsChangeSyncServiceTests
 
         // Assert
         report.HasFailures.Should().BeFalse();
-        google.ChangeRequests.Should().ContainSingle().Which.Since.Should().Be(AdsTestData.Now.AddDays(-7));
+        google.ChangeRequests.Should().ContainSingle().Which.Since.Should().Be(AdsTestData.Now.AddDays(-29));
         await using var verify = harness.Verify();
         var change = await verify.ChangeEvents.SingleAsync();
         change.Source.Should().Be("PlatformChangeLog");

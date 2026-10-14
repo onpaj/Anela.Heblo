@@ -17,7 +17,7 @@ public class AdsSyncOptionsTests
         options.DailySync.CronExpression.Should().Be("30 5 * * *");
         options.DailySync.TimeZone.Should().Be("Europe/Prague");
         options.ChangeSync.CronExpression.Should().Be("15 * * * *");
-        options.ChangeSync.InitialLookbackDays.Should().Be(7);
+        options.ChangeSync.InitialLookbackDays.Should().Be(29);
     }
 
     [Fact]
