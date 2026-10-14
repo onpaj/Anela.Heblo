@@ -187,9 +187,20 @@ test('KB tab shows the tag filters and frequency panel', () => {
   expect(screen.getByText('Nejčastější problémy')).toBeInTheDocument();
 });
 
-test('clicking a frequent problem filters the KB list', () => {
+test('clicking a frequent problem filters the KB list and resets to page 1', () => {
   setupMocks({ hasKb: true });
+  jest.spyOn(kbAdapter, 'useKbFeedbackAdapter').mockImplementation((params) => ({
+    ...emptyAdapterResult,
+    rows: [kbRow],
+    totalCount: 30,
+    totalPages: 3,
+    pageNumber: params.pageNumber,
+  }));
   render(<MarketingFeedbackPage />);
+  fireEvent.click(screen.getByRole('button', { name: '›' }));
+  expect(kbAdapter.useKbFeedbackAdapter).toHaveBeenLastCalledWith(
+    expect.objectContaining({ pageNumber: 2 }),
+  );
   fireEvent.click(screen.getByRole('button', { name: /akné/ }));
   expect(kbAdapter.useKbFeedbackAdapter).toHaveBeenLastCalledWith(
     expect.objectContaining({ problemTag: 'akné', pageNumber: 1 }),
