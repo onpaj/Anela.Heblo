@@ -38,4 +38,10 @@ public static class FeatureFlagKeys
     /// with their S set in Shoptet. When off, they only log what they would do (dry run).
     /// </summary>
     public const string DoubleShotOrderSwap = "is-double-shot-order-swap-enabled";
+
+    /// <summary>
+    /// When on, the missing-invoice job creates a Shoptet invoice for every completed ("vyřízena")
+    /// order with a non-zero total and no invoice. When off, it only logs what it would create (dry run).
+    /// </summary>
+    public const string MissingInvoiceCreation = "is-missing-invoice-creation-enabled";
 }

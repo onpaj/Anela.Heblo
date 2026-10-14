@@ -60,6 +60,24 @@ public class ShoptetOrdersSettings
     public int CompletedStatusId { get; set; } = -3;
 
     /// <summary>
+    /// The missing-invoice job only considers orders created at or after this instant
+    /// (orders in <see cref="CompletedStatusId"/> with a non-zero total and no invoice get one).
+    /// </summary>
+    public DateTimeOffset MissingInvoiceOrdersCreatedFrom { get; set; } = new(2026, 1, 1, 0, 0, 0, TimeSpan.FromHours(1));
+
+    /// <summary>
+    /// Pause between two orders (each one an invoice check plus a POST), keeping the job under Shoptet's
+    /// ~4 req/s budget (shoptet-api.md §3.14) that it shares with packing and expedition.
+    /// </summary>
+    public int MissingInvoiceCreationDelayMs { get; set; } = 500;
+
+    /// <summary>
+    /// Upper bound on invoices created in one run; the rest wait for the next night. Shoptet invoices
+    /// cannot be deleted through the API, so this caps the damage of a misread invoice listing.
+    /// </summary>
+    public int MissingInvoiceMaxPerRun { get; set; } = 300;
+
+    /// <summary>
     /// Shoptet order states in which the double-shot swap may rewrite order lines (pre-picking only).
     /// Empty = use DoubleShotOrderSwapService.DefaultEligibleStatusIds
     /// (-1 Nová, 3 Čeká se na platbu, 32 Zaplaceno, -2 Vyřizuje se, 35 Poznámka, 73 Oprava-robot).

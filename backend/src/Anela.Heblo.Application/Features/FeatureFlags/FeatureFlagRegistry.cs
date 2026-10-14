@@ -25,6 +25,9 @@ public static class FeatureFlagRegistry
         new(FeatureFlagKeys.DoubleShotOrderSwap,
             Description: "When on, double-shot V order lines are replaced in Shoptet by their S mirror set (POST S, DELETE V); when off the swap only logs what it would do (dry run).",
             DefaultValue: false),
+        new(FeatureFlagKeys.MissingInvoiceCreation,
+            Description: "When on, the missing-invoice job creates a Shoptet invoice for each completed order with a non-zero total and no invoice; when off it only logs what it would create (dry run).",
+            DefaultValue: false),
     ];
 
     public static readonly IReadOnlyDictionary<string, FeatureFlagDefinition> ByKey =

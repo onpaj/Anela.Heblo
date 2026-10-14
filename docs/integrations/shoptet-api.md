@@ -543,6 +543,12 @@ order in `-2`). An order with an invoice cannot be deleted (409 `order-documents
 invoices cannot be deleted through the API (`DELETE /api/invoices/{code}` → 400
 `unsupported-http-method`).
 
+**Used in production by `job-create-missing-invoices`** (2026-10-14): a daily job issues an invoice
+for every -3 order created since 2026-01-01 with `price.withVat > 0` and no invoice (detected by
+diffing against `GET /api/invoices` `orderCode`s, since the order API exposes no invoice link).
+The invoice is dated the day of the POST. Not yet verified on production or on a -3 order — the job
+ships in dry run; record the first live outcome (and the error a duplicate POST returns) here.
+
 The line `remark` sent on POST is stored and returned as `items[].remark` — usable as a marker on
 lines a robot added.
 
