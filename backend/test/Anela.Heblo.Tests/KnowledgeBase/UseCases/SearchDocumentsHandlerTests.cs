@@ -58,7 +58,7 @@ public class SearchDocumentsHandlerTests
 
         _expander
             .Setup(e => e.ExpandAsync(It.IsAny<string>(), It.IsAny<RagQueryExpansionConfig>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync((string q, RagQueryExpansionConfig _, CancellationToken _) => q);
+            .ReturnsAsync((string q, RagQueryExpansionConfig _, CancellationToken _) => RagExpansionResult.Untagged(q));
 
         _repository
             .Setup(r => r.SearchSimilarAsync(It.IsAny<float[]>(), 5, default))
@@ -84,7 +84,7 @@ public class SearchDocumentsHandlerTests
 
         _expander
             .Setup(e => e.ExpandAsync(It.IsAny<string>(), It.IsAny<RagQueryExpansionConfig>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync((string q, RagQueryExpansionConfig _, CancellationToken _) => q);
+            .ReturnsAsync((string q, RagQueryExpansionConfig _, CancellationToken _) => RagExpansionResult.Untagged(q));
 
         _repository
             .Setup(r => r.SearchSimilarAsync(It.IsAny<float[]>(), 5, default))
@@ -107,7 +107,7 @@ public class SearchDocumentsHandlerTests
 
         _expander
             .Setup(e => e.ExpandAsync(It.IsAny<string>(), It.IsAny<RagQueryExpansionConfig>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync((string q, RagQueryExpansionConfig _, CancellationToken _) => q);
+            .ReturnsAsync((string q, RagQueryExpansionConfig _, CancellationToken _) => RagExpansionResult.Untagged(q));
 
         _repository
             .Setup(r => r.SearchSimilarAsync(It.IsAny<float[]>(), 5, default))
@@ -130,7 +130,7 @@ public class SearchDocumentsHandlerTests
 
         _expander
             .Setup(e => e.ExpandAsync(It.IsAny<string>(), It.IsAny<RagQueryExpansionConfig>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(expandedQuery);
+            .ReturnsAsync(RagExpansionResult.Untagged(expandedQuery));
 
         _repository
             .Setup(r => r.SearchSimilarAsync(It.IsAny<float[]>(), 5, default))
@@ -164,7 +164,7 @@ public class SearchDocumentsHandlerTests
 
         _expander
             .Setup(e => e.ExpandAsync(It.IsAny<string>(), It.IsAny<RagQueryExpansionConfig>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(rawQuery);
+            .ReturnsAsync(RagExpansionResult.Untagged(rawQuery));
 
         _repository
             .Setup(r => r.SearchSimilarAsync(It.IsAny<float[]>(), 5, default))
@@ -200,7 +200,7 @@ public class SearchDocumentsHandlerTests
     {
         _expander
             .Setup(e => e.ExpandAsync(It.IsAny<string>(), It.IsAny<RagQueryExpansionConfig>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync((string q, RagQueryExpansionConfig _, CancellationToken _) => q);
+            .ReturnsAsync((string q, RagQueryExpansionConfig _, CancellationToken _) => RagExpansionResult.Untagged(q));
 
         var exception = (Exception)Activator.CreateInstance(exceptionType, "Exception while reading from stream")!;
         _embeddingGenerator
@@ -230,7 +230,7 @@ public class SearchDocumentsHandlerTests
     {
         _expander
             .Setup(e => e.ExpandAsync(It.IsAny<string>(), It.IsAny<RagQueryExpansionConfig>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync((string q, RagQueryExpansionConfig _, CancellationToken _) => q);
+            .ReturnsAsync((string q, RagQueryExpansionConfig _, CancellationToken _) => RagExpansionResult.Untagged(q));
 
         var exception = (Exception)Activator.CreateInstance(exceptionType, "stream error")!;
         _embeddingGenerator
@@ -265,7 +265,7 @@ public class SearchDocumentsHandlerTests
 
         _expander
             .Setup(e => e.ExpandAsync(It.IsAny<string>(), It.IsAny<RagQueryExpansionConfig>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync((string q, RagQueryExpansionConfig _, CancellationToken _) => q);
+            .ReturnsAsync((string q, RagQueryExpansionConfig _, CancellationToken _) => RagExpansionResult.Untagged(q));
 
         var exception = (Exception)Activator.CreateInstance(exceptionType, "stream error from pgvector")!;
         _repository
@@ -291,7 +291,7 @@ public class SearchDocumentsHandlerTests
 
         _expander
             .Setup(e => e.ExpandAsync(It.IsAny<string>(), It.IsAny<RagQueryExpansionConfig>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync((string q, RagQueryExpansionConfig _, CancellationToken _) => q);
+            .ReturnsAsync((string q, RagQueryExpansionConfig _, CancellationToken _) => RagExpansionResult.Untagged(q));
 
         var exception = (Exception)Activator.CreateInstance(exceptionType, "stream error from pgvector")!;
         _repository
@@ -330,7 +330,7 @@ public class SearchDocumentsHandlerTests
 
         _expander
             .Setup(e => e.ExpandAsync(It.IsAny<string>(), It.IsAny<RagQueryExpansionConfig>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync((string q, RagQueryExpansionConfig _, CancellationToken _) => q);
+            .ReturnsAsync((string q, RagQueryExpansionConfig _, CancellationToken _) => RagExpansionResult.Untagged(q));
 
         _repository
             .Setup(r => r.SearchSimilarAsync(It.IsAny<float[]>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))

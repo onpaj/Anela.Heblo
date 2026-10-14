@@ -37,7 +37,8 @@ public class SearchDocumentsHandler : IRequestHandler<SearchDocumentsRequest, Se
         SearchDocumentsRequest request,
         CancellationToken cancellationToken)
     {
-        var queryToEmbed = await _expander.ExpandAsync(request.Query, _options.ToExpansionConfig(), cancellationToken);
+        var expansion = await _expander.ExpandAsync(request.Query, _options.ToExpansionConfig(), cancellationToken);
+        var queryToEmbed = expansion.QueryToEmbed;
 
         float[] queryEmbedding;
         try
