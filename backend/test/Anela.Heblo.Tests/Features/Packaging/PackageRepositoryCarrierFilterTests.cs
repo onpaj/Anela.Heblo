@@ -60,6 +60,22 @@ public class PackageRepositoryCarrierFilterTests : IDisposable
     }
 
     [Fact]
+    public async Task GetPaginatedAsync_MatchesStoredName_IgnoringCaseAndSurroundingWhitespace()
+    {
+        // Arrange — the stored name comes from Shoptet and may drift from the hand-typed registry name
+        await _db.Packages.AddRangeAsync(
+            MakePackage("Z-1", "280591", " zásilkovna BOXY a výdejní místa "),
+            MakePackage("G-1", "280700", "GLS boxy a výdejní místa"));
+        await _db.SaveChangesAsync();
+
+        // Act
+        var result = await QueryAsync(new[] { "502" }, new[] { "Zásilkovna boxy a výdejní místa" });
+
+        // Assert
+        result.Should().Equal("Z-1");
+    }
+
+    [Fact]
     public async Task GetPaginatedAsync_StillMatchesByRegistryCode()
     {
         // Arrange

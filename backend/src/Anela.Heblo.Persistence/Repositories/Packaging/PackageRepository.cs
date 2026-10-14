@@ -34,9 +34,12 @@ public class PackageRepository : IPackageRepository
         if (shippingProviderCodes != null || shippingProviderNames != null)
         {
             var codes = shippingProviderCodes ?? Array.Empty<string>();
-            var names = shippingProviderNames ?? Array.Empty<string>();
+            // Stored names come from Shoptet, registry names are hand-typed: compare trimmed and case-insensitively.
+            var names = (shippingProviderNames ?? Array.Empty<string>())
+                .Select(n => n.Trim().ToLower())
+                .ToArray();
             q = q.Where(p => codes.Contains(p.ShippingProviderCode)
-                || (p.ShippingProviderName != null && names.Contains(p.ShippingProviderName)));
+                || (p.ShippingProviderName != null && names.Contains(p.ShippingProviderName.Trim().ToLower())));
         }
         if (fromDate.HasValue)
             q = q.Where(p => p.PackedAt >= new DateTimeOffset(DateTime.SpecifyKind(fromDate.Value, DateTimeKind.Utc)));
