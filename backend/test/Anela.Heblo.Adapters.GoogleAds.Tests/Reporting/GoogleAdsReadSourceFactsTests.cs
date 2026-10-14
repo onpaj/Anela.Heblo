@@ -90,4 +90,58 @@ public sealed class GoogleAdsReadSourceFactsTests
         terms.Single(t => t.SearchTerm == "přírodní kosmetika").MatchType.Should().BeNull();
         terms.Single(t => t.SearchTerm == "kosmetika zdarma").MatchType.Should().Be(KeywordMatchType.Broad);
     }
+
+    [Fact]
+    public async Task range_read_returns_every_day_in_the_range_from_one_call_per_level()
+    {
+        // Arrange
+        var api = new FixtureGoogleAdsApiClient();
+        var (source, _) = ReadSourceHarness.Create(api);
+
+        // Act
+        var facts = await source.GetDailyFactsAsync(TestSettings.CustomerId, Date.AddDays(-2), Date, CancellationToken.None);
+
+        // Assert
+        facts.Select(f => f.Date).Distinct().Should().BeEquivalentTo(new[] { Date.AddDays(-2), Date });
+        api.Calls.Where(c => c.Query.Name.EndsWith("_facts", StringComparison.Ordinal))
+            .Should().HaveCount(4)
+            .And.OnlyContain(c => c.Query.Gaql.Contains("segments.date BETWEEN '2026-10-04' AND '2026-10-06'"));
+    }
+
+    [Fact]
+    public async Task range_read_excludes_days_outside_the_range()
+    {
+        var (source, _) = ReadSourceHarness.Create(new FixtureGoogleAdsApiClient());
+
+        var facts = await source.GetDailyFactsAsync(TestSettings.CustomerId, Date.AddDays(-1), Date, CancellationToken.None);
+
+        facts.Should().NotBeEmpty().And.OnlyContain(f => f.Date == Date);
+    }
+
+    [Fact]
+    public async Task range_search_terms_keep_each_day_separate_and_merge_within_a_day()
+    {
+        // Arrange
+        var api = new FixtureGoogleAdsApiClient();
+        var (source, _) = ReadSourceHarness.Create(api);
+
+        // Act
+        var terms = await source.GetSearchTermsAsync(TestSettings.CustomerId, Date.AddDays(-2), Date, CancellationToken.None);
+
+        // Assert
+        terms.Should().HaveCount(4);
+        terms.Where(t => t.Date == Date).Should().HaveCount(3);
+        api.Calls.Single(c => c.Query.Name == "search_terms").Query.Gaql
+            .Should().Contain("segments.date BETWEEN '2026-10-04' AND '2026-10-06'");
+    }
+
+    [Fact]
+    public async Task range_read_rejects_a_reversed_range()
+    {
+        var (source, _) = ReadSourceHarness.Create(new FixtureGoogleAdsApiClient());
+
+        var act = () => source.GetDailyFactsAsync(TestSettings.CustomerId, Date, Date.AddDays(-1), CancellationToken.None);
+
+        await act.Should().ThrowAsync<ArgumentException>();
+    }
 }

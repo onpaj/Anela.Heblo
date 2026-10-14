@@ -50,6 +50,9 @@ public static class MarketingAdsModule
         AddAdsScoped<AdStreamRunner>(services);
         AddAdsScoped<AdEntitySyncStep>(services);
 
+        // Resolved only by backend/tools/Anela.Heblo.AdsBackfill, never by a job.
+        AddAdsScoped<AdsBackfillService>(services);
+
         // The jobs (auto-discovered by AddRecurringJobs) depend only on these two, which always resolve.
         services.AddScoped<IAdsDailySyncService>(sp => sp.GetService<AdsDbContext>() is null
             ? new DisabledAdsSyncService()

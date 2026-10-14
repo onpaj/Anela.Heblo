@@ -111,6 +111,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Anela.Heblo.MarketingAds.Te
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Anela.Heblo.Adapters.GoogleAds.Tests", "backend\test\Anela.Heblo.Adapters.GoogleAds.Tests\Anela.Heblo.Adapters.GoogleAds.Tests.csproj", "{696C1946-37BB-4250-86B3-460AA2AC3C2F}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Anela.Heblo.AdsBackfill", "backend\tools\Anela.Heblo.AdsBackfill\Anela.Heblo.AdsBackfill.csproj", "{34391357-B20A-44AC-BC1B-FD999EFE51F3}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -673,6 +675,18 @@ Global
 		{696C1946-37BB-4250-86B3-460AA2AC3C2F}.Release|x64.Build.0 = Release|Any CPU
 		{696C1946-37BB-4250-86B3-460AA2AC3C2F}.Release|x86.ActiveCfg = Release|Any CPU
 		{696C1946-37BB-4250-86B3-460AA2AC3C2F}.Release|x86.Build.0 = Release|Any CPU
+		{34391357-B20A-44AC-BC1B-FD999EFE51F3}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{34391357-B20A-44AC-BC1B-FD999EFE51F3}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{34391357-B20A-44AC-BC1B-FD999EFE51F3}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{34391357-B20A-44AC-BC1B-FD999EFE51F3}.Debug|x64.Build.0 = Debug|Any CPU
+		{34391357-B20A-44AC-BC1B-FD999EFE51F3}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{34391357-B20A-44AC-BC1B-FD999EFE51F3}.Debug|x86.Build.0 = Debug|Any CPU
+		{34391357-B20A-44AC-BC1B-FD999EFE51F3}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{34391357-B20A-44AC-BC1B-FD999EFE51F3}.Release|Any CPU.Build.0 = Release|Any CPU
+		{34391357-B20A-44AC-BC1B-FD999EFE51F3}.Release|x64.ActiveCfg = Release|Any CPU
+		{34391357-B20A-44AC-BC1B-FD999EFE51F3}.Release|x64.Build.0 = Release|Any CPU
+		{34391357-B20A-44AC-BC1B-FD999EFE51F3}.Release|x86.ActiveCfg = Release|Any CPU
+		{34391357-B20A-44AC-BC1B-FD999EFE51F3}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -728,5 +742,6 @@ Global
 		{94F95D2E-C41D-4AD8-B2C4-AC870C049EA5} = {87237941-D198-446F-919C-467E4968E85F}
 		{040945C2-4539-4466-AFBC-790F07905494} = {23FE24B3-CD9D-4576-A7C8-85D5B012F43D}
 		{696C1946-37BB-4250-86B3-460AA2AC3C2F} = {23FE24B3-CD9D-4576-A7C8-85D5B012F43D}
+		{34391357-B20A-44AC-BC1B-FD999EFE51F3} = {7D3E9F2B-4A1C-4E6D-8B5F-3C2D7F9E0A1B}
 	EndGlobalSection
 EndGlobal

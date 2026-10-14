@@ -44,13 +44,13 @@ Otherwise `OutOfBand`. Until C3 ships, `IAdExecutionLookup` is a no-op and every
 | `Ads:ChangeSync:CronExpression` | `15 * * * *` | seed cron (DB value wins after first run) |
 | `Ads:ChangeSync:TimeZone` | `Europe/Prague` | cron time zone |
 | `Ads:ChangeSync:RunTimeoutMinutes` | 15 | run is cancelled after this |
-| `Ads:ChangeSync:InitialLookbackDays` | 7 | first pull reach (the source clamps to its own limit); must be >= 1 |
+| `Ads:ChangeSync:InitialLookbackDays` | 29 | first pull reach (the source clamps to its own limit); must be >= 1. 29 = everything Google keeps (30 days) with a day of slack; older changes cannot be backfilled |
 | `Ads:OutOfBandMatchWindowMinutes` | 120 | ± window for matching executions |
 | `GoogleAds:HebloUserEmail` | empty (KV `GoogleAds--HebloUserEmail`) | Google user Heblo acts as; read by the Google source, not by this job |
 
 ## Runtime facts
 - Google account `343-302-3676`: 11 change events in 29 days, all agency web-UI edits (spike 2026-10-07, pre-deploy).
-- `AdsDatabase--ConnectionString` is absent from both Key Vaults, so the job logs "skipped" everywhere; no change event has been stored — 2026-10-12.
+- `AdsDatabase--ConnectionString` set and the `ads` schema created in both environments on 2026-10-14; no change event is stored until the apps restart and the job first runs (its first pull reaches back 29 days).
 
 ## Known quirks
 - An account with no change for more than 30 days makes Google log its clamp warning every hour: the watermark does not advance on an empty pull, so `since` stays older than the limit until the next change.

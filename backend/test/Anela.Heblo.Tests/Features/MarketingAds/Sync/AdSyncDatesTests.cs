@@ -43,4 +43,30 @@ public class AdSyncDatesTests
     {
         AdSyncDates.FactWindow(new DateOnly(2026, 10, 6), 0).Should().Equal(new DateOnly(2026, 10, 6));
     }
+
+    [Fact]
+    public void Month_chunks_split_on_calendar_months_with_partial_ends()
+    {
+        var chunks = AdSyncDates.MonthChunks(new DateOnly(2025, 1, 15), new DateOnly(2025, 3, 10));
+
+        chunks.Should().Equal(
+            (new DateOnly(2025, 1, 15), new DateOnly(2025, 1, 31)),
+            (new DateOnly(2025, 2, 1), new DateOnly(2025, 2, 28)),
+            (new DateOnly(2025, 3, 1), new DateOnly(2025, 3, 10)));
+    }
+
+    [Fact]
+    public void Month_chunks_of_a_single_day_is_that_day()
+    {
+        var day = new DateOnly(2025, 12, 31);
+
+        AdSyncDates.MonthChunks(day, day).Should().Equal((day, day));
+    }
+
+    [Fact]
+    public void Days_lists_every_date_inclusive()
+    {
+        AdSyncDates.Days(new DateOnly(2025, 2, 27), new DateOnly(2025, 3, 1)).Should().Equal(
+            new DateOnly(2025, 2, 27), new DateOnly(2025, 2, 28), new DateOnly(2025, 3, 1));
+    }
 }

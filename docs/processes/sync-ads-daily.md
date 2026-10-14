@@ -13,6 +13,9 @@ owns:
   - backend/src/Anela.Heblo.Application/Features/MarketingAds/Infrastructure/Jobs/AdsDailySyncJob.cs
   - backend/src/Anela.Heblo.Application/Features/MarketingAds/Configuration/**
   - backend/src/Anela.Heblo.Persistence.Ads/Sql/**
+  - backend/src/Anela.Heblo.Application/Features/MarketingAds/Sync/AdsBackfillService.cs
+  - backend/src/Anela.Heblo.Application/Features/MarketingAds/Contracts/IAdPlatformRangeReadSource.cs
+  - backend/tools/Anela.Heblo.AdsBackfill/**
 verified_at: "5d9408774"
 related: [sync-ads-change-history, sync-google-ads-campaign-data, sync-shoptet-orders]
 ---
@@ -35,6 +38,22 @@ For every registered source, sequentially:
 4. Same for `GetSearchTermsAsync` → `ads.ad_search_term_daily` (only sources with `Capabilities.SearchTerms`).
 5. Each stream writes `ads.sync_state` (platform × account × stream `Entities` / `DailyFacts` / `SearchTerms`): status, last_success_at, last_error, watermark (= last synced date).
 
+## Backfill (history before the 14-day window)
+The daily job never reaches further back than yesterday − `FactLookbackDays`. Older history is loaded once, by a person, with `backend/tools/Anela.Heblo.AdsBackfill` (`AdsBackfillService`):
+
+```
+set -a; . ./ads-backfill.env; set +a   # chmod 600: AdsDatabase__ConnectionString, GoogleAds__CustomerId,
+                                       # GoogleAds__OAuth2ClientId/ClientSecret/RefreshToken
+dotnet run --project backend/tools/Anela.Heblo.AdsBackfill -- 2025-01-01 2026-09-30
+```
+
+- Same accounts/entities steps as the daily run, then one calendar month at a time: facts and search terms are fetched for the month (one call per level when the source implements `IAdPlatformRangeReadSource`, else day by day) and every day of the month goes through the same `ReplaceDayAsync` as the daily run. Re-running any range is safe.
+- `to` must be before the account's today. The DailyFacts/SearchTerms `sync_state` rows are not touched; the entity step is a normal entity sync, so it updates the Entities row (and, for a source without a change log, writes snapshot-diff events) exactly as the daily run would.
+- Rows for entities missing from the current entity listing are skipped and logged as `AdsBackfill.UnmappedRows` (warning).
+- A failed month stops that account; the error names the date to resume from. Exit codes: 0 ok, 1 failures, 2 bad arguments/configuration, 130 Ctrl+C.
+- Prerequisites: the ads migration and `ads_read_views.sql` are applied. Run outside 05:30–06:15 Prague (the daily job replaces the same days for the last 15) and off-hours (1-vCore Postgres shared with production).
+- Change history is not backfilled: Google keeps 30 days; the change sync's first pull takes all of it (`Ads:ChangeSync:InitialLookbackDays` = 29).
+
 ## Logic & formulas
 - Facts are stored at every level the platform reports. **Never sum across levels** — every query and view picks one level (views use Campaign).
 - Cost is net of VAT in the account's currency. Blended views add only CZK accounts and set `has_non_czk_ad_cost` otherwise (no FX rates in `ads`).
@@ -55,8 +74,10 @@ For every registered source, sequentially:
 Invalid values throw at the start of each run (`AdsSyncOptions.EnsureValid`), never at startup.
 
 ## Runtime facts
-- `AdsDatabase--ConnectionString` does not exist in `kv-heblo-stg` or `kv-heblo-prod` (checked at PR time), so ads persistence is unwired in every environment and both jobs log "skipped" — 2026-10-12.
-- Migrations are manual and `ads_read_views.sql` is applied by hand with `psql`; neither has been run against a shared database yet — 2026-10-12.
+- `AdsDatabase--ConnectionString` is set in `kv-heblo-stg` and `kv-heblo-prod` as a copy of `ConnectionStrings--Default` (same database, like `AnalyticsDatabase--` and `ShoptetOrdersSync--`) — 2026-10-14. The app reads it at startup, so the jobs stay "skipped" until a restart.
+- `InitialAdsSchema` and `ads_read_views.sql` applied by hand to Heblo_TST and Heblo_V3 (the startup migration covers only `ApplicationDbContext`) — 2026-10-14.
+- Backfilled 2025-01-01..2026-10-13 into Heblo_TST (13 min 18 s) and Heblo_V3 (11 min 26 s): 694 791 rows each, 0 errors, 0 unmapped; heblosql CPU peaked at 26 % with burst credits untouched. Heblo_V3 `ads` tables 146 MB — 2026-10-14.
+- Backfill rehearsal against a local Postgres (live Google reads), 2025-01-01..2026-10-13: 3 min 42 s, 36 146 fact rows + 658 645 search-term rows, 0 unmapped, `ads` schema 134 MB (search terms 128 MB). Search terms peak at ~100k rows/month (Mar–Apr 2025); about 10 API operations per month — 2026-10-14.
 - Google account `343-302-3676` (CZK, Europe/Prague): 19 campaigns, 60 ad groups, 223 keywords, 940 negative keywords, 66 ads (access spike, 2026-10-07, pre-deploy).
 
 ## Known quirks

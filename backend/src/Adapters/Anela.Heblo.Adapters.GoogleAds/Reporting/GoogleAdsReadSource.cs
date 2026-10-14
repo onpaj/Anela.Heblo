@@ -10,7 +10,7 @@ namespace Anela.Heblo.Adapters.GoogleAds.Reporting;
 /// Google Ads side of the MarketingAds backbone. One configured client account; every query goes
 /// through <see cref="IGoogleAdsApiClient"/>. Transport/auth errors propagate — the core catches per source.
 /// </summary>
-internal sealed class GoogleAdsReadSource : IAdPlatformReadSource
+internal sealed class GoogleAdsReadSource : IAdPlatformReadSource, IAdPlatformRangeReadSource
 {
     internal static readonly TimeSpan ChangeLogMaxAge = TimeSpan.FromDays(30);
     internal const int ChangeEventLimit = 10_000;
@@ -69,28 +69,21 @@ internal sealed class GoogleAdsReadSource : IAdPlatformReadSource
         return entities;
     }
 
-    public async Task<IReadOnlyList<AdDailyFactRow>> GetDailyFactsAsync(
-        string accountExternalId, DateOnly date, CancellationToken ct)
-    {
-        var customerId = RequireConfiguredAccount(accountExternalId);
-        var currency = (await GetCustomerAsync(customerId, ct)).Currency;
-        var facts = new List<AdDailyFactRow>();
-        foreach (var (level, query) in GoogleAdsQueries.FactQueries(date))
-        {
-            var rows = await _api.SearchAsync(customerId, query, ct);
-            facts.AddRange(rows.Select(row => GoogleAdsFactMapper.Fact(level, row, currency)));
-        }
-        return facts;
-    }
+    public Task<IReadOnlyList<AdDailyFactRow>> GetDailyFactsAsync(
+        string accountExternalId, DateOnly date, CancellationToken ct) =>
+        ReadFactsAsync(accountExternalId, GoogleAdsQueries.FactQueries(date), ct);
 
-    public async Task<IReadOnlyList<AdSearchTermRow>> GetSearchTermsAsync(
-        string accountExternalId, DateOnly date, CancellationToken ct)
-    {
-        var customerId = RequireConfiguredAccount(accountExternalId);
-        var currency = (await GetCustomerAsync(customerId, ct)).Currency;
-        var rows = await _api.SearchAsync(customerId, GoogleAdsQueries.SearchTerms(date), ct);
-        return GoogleAdsFactMapper.MergeDuplicates(rows.Select(row => GoogleAdsFactMapper.SearchTerm(row, currency)));
-    }
+    public Task<IReadOnlyList<AdDailyFactRow>> GetDailyFactsAsync(
+        string accountExternalId, DateOnly from, DateOnly to, CancellationToken ct) =>
+        ReadFactsAsync(accountExternalId, GoogleAdsQueries.FactQueries(from, to), ct);
+
+    public Task<IReadOnlyList<AdSearchTermRow>> GetSearchTermsAsync(
+        string accountExternalId, DateOnly date, CancellationToken ct) =>
+        ReadSearchTermsAsync(accountExternalId, GoogleAdsQueries.SearchTerms(date), ct);
+
+    public Task<IReadOnlyList<AdSearchTermRow>> GetSearchTermsAsync(
+        string accountExternalId, DateOnly from, DateOnly to, CancellationToken ct) =>
+        ReadSearchTermsAsync(accountExternalId, GoogleAdsQueries.SearchTerms(from, to), ct);
 
     public async Task<IReadOnlyList<AdChangeEventRow>> GetChangeEventsAsync(
         string accountExternalId, DateTimeOffset since, CancellationToken ct)
@@ -116,6 +109,29 @@ internal sealed class GoogleAdsReadSource : IAdPlatformReadSource
         return rows.Select(row => GoogleAdsChangeEventMapper.Map(row, customer.TimeZone, hebloUserEmail))
                    .Where(e => e.OccurredAt >= since)
                    .ToList();
+    }
+
+    private async Task<IReadOnlyList<AdDailyFactRow>> ReadFactsAsync(
+        string accountExternalId, IReadOnlyList<(AdEntityLevel Level, GoogleAdsQuery Query)> queries, CancellationToken ct)
+    {
+        var customerId = RequireConfiguredAccount(accountExternalId);
+        var currency = (await GetCustomerAsync(customerId, ct)).Currency;
+        var facts = new List<AdDailyFactRow>();
+        foreach (var (level, query) in queries)
+        {
+            var rows = await _api.SearchAsync(customerId, query, ct);
+            facts.AddRange(rows.Select(row => GoogleAdsFactMapper.Fact(level, row, currency)));
+        }
+        return facts;
+    }
+
+    private async Task<IReadOnlyList<AdSearchTermRow>> ReadSearchTermsAsync(
+        string accountExternalId, GoogleAdsQuery query, CancellationToken ct)
+    {
+        var customerId = RequireConfiguredAccount(accountExternalId);
+        var currency = (await GetCustomerAsync(customerId, ct)).Currency;
+        var rows = await _api.SearchAsync(customerId, query, ct);
+        return GoogleAdsFactMapper.MergeDuplicates(rows.Select(row => GoogleAdsFactMapper.SearchTerm(row, currency)));
     }
 
     private DateTimeOffset ClampToChangeLogWindow(DateTimeOffset since, DateTimeOffset now, TimeZoneInfo accountTimeZone)
