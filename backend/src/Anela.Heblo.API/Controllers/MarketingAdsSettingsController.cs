@@ -28,6 +28,7 @@ public class MarketingAdsSettingsController : BaseApiController
     [FeatureAuthorize(Feature.Marketing_AdApprovals, AccessLevel.Admin)]
     [ProducesResponseType(typeof(UpdateAdAutonomySettingResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(UpdateAdAutonomySettingResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(UpdateAdAutonomySettingResponse), StatusCodes.Status409Conflict)]
     [ProducesResponseType(typeof(UpdateAdAutonomySettingResponse), StatusCodes.Status403Forbidden)]
     public async Task<ActionResult<UpdateAdAutonomySettingResponse>> UpdateAutonomy([FromBody] UpdateAdAutonomySettingRequest request) =>
         HandleResponse(await _mediator.Send(request));
@@ -36,6 +37,7 @@ public class MarketingAdsSettingsController : BaseApiController
     [FeatureAuthorize(Feature.Marketing_AdApprovals, AccessLevel.Admin)]
     [ProducesResponseType(typeof(UpdateAdLimitSettingResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(UpdateAdLimitSettingResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(UpdateAdLimitSettingResponse), StatusCodes.Status409Conflict)]
     [ProducesResponseType(typeof(UpdateAdLimitSettingResponse), StatusCodes.Status403Forbidden)]
     public async Task<ActionResult<UpdateAdLimitSettingResponse>> UpdateLimit([FromBody] UpdateAdLimitSettingRequest request) =>
         HandleResponse(await _mediator.Send(request));
@@ -44,6 +46,7 @@ public class MarketingAdsSettingsController : BaseApiController
     [FeatureAuthorize(Feature.Marketing_AdApprovals, AccessLevel.Admin)]
     [ProducesResponseType(typeof(SetAdKillSwitchResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(SetAdKillSwitchResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(SetAdKillSwitchResponse), StatusCodes.Status409Conflict)]
     [ProducesResponseType(typeof(SetAdKillSwitchResponse), StatusCodes.Status403Forbidden)]
     public async Task<ActionResult<SetAdKillSwitchResponse>> SetKillSwitch([FromBody] SetAdKillSwitchRequest request) =>
         HandleResponse(await _mediator.Send(request));

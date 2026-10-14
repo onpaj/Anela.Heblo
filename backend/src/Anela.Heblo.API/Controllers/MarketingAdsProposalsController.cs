@@ -38,6 +38,7 @@ public class MarketingAdsProposalsController : BaseApiController
     [FeatureAuthorize(Feature.Marketing_Ads, AccessLevel.Write)]
     [ProducesResponseType(typeof(SubmitAdProposalResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(SubmitAdProposalResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(SubmitAdProposalResponse), StatusCodes.Status404NotFound)]
     [ProducesResponseType(typeof(SubmitAdProposalResponse), StatusCodes.Status422UnprocessableEntity)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<ActionResult<SubmitAdProposalResponse>> SubmitProposal([FromBody] SubmitAdProposalRequest request) =>
@@ -47,8 +48,10 @@ public class MarketingAdsProposalsController : BaseApiController
     [FeatureAuthorize(Feature.Marketing_Ads, AccessLevel.Write)]
     [ProducesResponseType(typeof(ReviseAdProposalResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ReviseAdProposalResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ReviseAdProposalResponse), StatusCodes.Status404NotFound)]
     [ProducesResponseType(typeof(ReviseAdProposalResponse), StatusCodes.Status409Conflict)]
-    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ReviseAdProposalResponse), StatusCodes.Status422UnprocessableEntity)]
+    [ProducesResponseType(typeof(ReviseAdProposalResponse), StatusCodes.Status403Forbidden)]
     public async Task<ActionResult<ReviseAdProposalResponse>> ReviseProposal(int id, [FromBody] ReviseAdProposalRequest request)
     {
         request.Id = id;
@@ -58,6 +61,7 @@ public class MarketingAdsProposalsController : BaseApiController
     [HttpPost("{id:int}/approve")]
     [FeatureAuthorize(Feature.Marketing_AdApprovals, AccessLevel.Write)]
     [ProducesResponseType(typeof(ApproveAdProposalResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApproveAdProposalResponse), StatusCodes.Status404NotFound)]
     [ProducesResponseType(typeof(ApproveAdProposalResponse), StatusCodes.Status409Conflict)]
     [ProducesResponseType(typeof(ApproveAdProposalResponse), StatusCodes.Status422UnprocessableEntity)]
     [ProducesResponseType(typeof(ApproveAdProposalResponse), StatusCodes.Status403Forbidden)]
@@ -70,6 +74,8 @@ public class MarketingAdsProposalsController : BaseApiController
     [HttpPost("{id:int}/reject")]
     [FeatureAuthorize(Feature.Marketing_AdApprovals, AccessLevel.Write)]
     [ProducesResponseType(typeof(RejectAdProposalResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(RejectAdProposalResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(RejectAdProposalResponse), StatusCodes.Status404NotFound)]
     [ProducesResponseType(typeof(RejectAdProposalResponse), StatusCodes.Status409Conflict)]
     [ProducesResponseType(typeof(RejectAdProposalResponse), StatusCodes.Status403Forbidden)]
     public async Task<ActionResult<RejectAdProposalResponse>> RejectProposal(int id, [FromBody] RejectAdProposalRequest request)
@@ -81,6 +87,7 @@ public class MarketingAdsProposalsController : BaseApiController
     [HttpPost("{id:int}/revert")]
     [FeatureAuthorize(Feature.Marketing_AdApprovals, AccessLevel.Admin)]
     [ProducesResponseType(typeof(RevertAdProposalResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(RevertAdProposalResponse), StatusCodes.Status404NotFound)]
     [ProducesResponseType(typeof(RevertAdProposalResponse), StatusCodes.Status409Conflict)]
     [ProducesResponseType(typeof(RevertAdProposalResponse), StatusCodes.Status502BadGateway)]
     [ProducesResponseType(typeof(RevertAdProposalResponse), StatusCodes.Status403Forbidden)]
