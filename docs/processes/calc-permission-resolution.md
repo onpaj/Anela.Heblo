@@ -22,7 +22,7 @@ owns:
   - frontend/src/auth/PermissionsContext.tsx
   - frontend/src/auth/accessMatrix.generated.ts
   - frontend/src/api/hooks/usePermissions.ts
-verified_at: "5e993f9e2"
+verified_at: "a4c5231e8"
 related: [flow-user-access-onboarding]
 ---
 
@@ -65,7 +65,7 @@ Two developer-run steps produce the inputs (not scheduled, not run at deploy):
 ## Data flow
 **A. Catalogue of permissions (build time)**
 1. `access-matrix.json` (repo root) is the single hand-edited source: `baseRole`
-   (`heblo_user`), `features` (41 keys such as `Warehouse_Packaging`, each with Czech `label`,
+   (`heblo_user`), `features` (47 keys such as `Warehouse_Packaging`, each with Czech `label`,
    optional `hasWrite` / `hasAdmin`), `menuPaths` (frontend route → required permissions), and
    `seedGroups` (13 starter groups).
 2. `AccessMatrixGen` writes five generated files: `Feature.generated.cs` (the `Feature` enum),
@@ -75,8 +75,8 @@ Two developer-run steps produce the inputs (not scheduled, not run at deploy):
    `access-matrix-entra.generated.json` (Entra app-role manifest with deterministic role ids,
    `DeterministicGuid.ForRole`).
 3. `GET /api/admin/authorization/catalogue` (`GetPermissionCatalogueHandler`) serves the list
-   to the group editor's permission picker. With the current JSON that is **70** permission
-   strings (41 `.read`, 28 `.write`, 1 `.admin` — `marketing.photobank.admin`).
+   to the group editor's permission picker. With the current JSON that is **79** permission
+   strings (47 `.read`, 30 `.write`, 2 `.admin` — `marketing.photobank.admin`, `marketing.ad_approvals.admin`).
 
 **B. Groups in the database (one-off bootstrap)**
 4. `JsonGroupSeeder.AddMissingGroupsAsync` inserts every `seedGroups` entry whose `Name` does
@@ -143,7 +143,7 @@ super user's panel shows only their group permissions.
 | Key | Repo default | Meaning |
 |---|---|---|
 | `access-matrix.json` → `baseRole` | `heblo_user` | Permission every active user gets; required by the default policy |
-| `access-matrix.json` → `features[]` | 41 features | The catalogue; edit + regenerate to add a permission |
+| `access-matrix.json` → `features[]` | 47 features | The catalogue; edit + regenerate to add a permission |
 | `access-matrix.json` → `seedGroups[]` | 13 groups | Bootstrap content only (see quirks) |
 | `PermissionResolver.CacheTtl` (code constant) | 5 min | How long a user's permission set is reused |
 | Entra app role `super_user` on the API app registration | assigned in Entra, not in repo | Break-glass full access |
