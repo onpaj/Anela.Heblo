@@ -45,6 +45,34 @@ public class AdProposalGuardsTests
     }
 
     [Fact]
+    public void CheckNotDecidedBy_NoDecisionByThePrincipal_Passes()
+    {
+        var proposal = Pending();
+        proposal.RecordApproval("specialist", ApprovalChannel.Web, Now, isFinal: false);
+
+        AdProposalGuards.CheckNotDecidedBy(proposal, "chief").Should().BeNull();
+    }
+
+    [Fact]
+    public void CheckNotDecidedBy_PrincipalAlreadyApprovedTheCurrentVersion_IsAlreadyApproved()
+    {
+        var proposal = Pending();
+        proposal.RecordApproval("chief", ApprovalChannel.Web, Now, isFinal: false);
+
+        AdProposalGuards.CheckNotDecidedBy(proposal, "chief").Should().Be(ErrorCodes.MarketingAdsAlreadyApprovedByPrincipal);
+    }
+
+    [Fact]
+    public void CheckNotDecidedBy_ApprovalOfAnOlderVersion_DoesNotCount()
+    {
+        var proposal = Pending();
+        proposal.RecordApproval("chief", ApprovalChannel.Web, Now, isFinal: false);
+        proposal.Revise("[]", 1, "r2", "agent-1", Now, TimeSpan.FromHours(72));
+
+        AdProposalGuards.CheckNotDecidedBy(proposal, "chief").Should().BeNull();
+    }
+
+    [Fact]
     public void ErrorParams_CarryTheJoinedErrorsAndTheReason()
     {
         AdProposalErrors.Params(new[] { "a.", "b." }).Should().Contain("Errors", "a. b.");
