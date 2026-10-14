@@ -7,6 +7,9 @@ import { useArticleFeedbackAdapter } from '../components/feedback/adapters/useAr
 import { useSmartsuppFeedbackAdapter } from '../components/feedback/adapters/useSmartsuppFeedbackAdapter';
 import GenericFeedbackStatsBar from '../components/feedback/GenericFeedbackStatsBar';
 import GenericFeedbackFilters from '../components/feedback/GenericFeedbackFilters';
+import KbQuestionTagFilters from '../components/feedback/KbQuestionTagFilters';
+import KbTagFrequencyPanel from '../components/feedback/KbTagFrequencyPanel';
+import { useKnowledgeBaseTagStatsQuery } from '../api/hooks/useKnowledgeBase';
 import GenericFeedbackTable from '../components/feedback/GenericFeedbackTable';
 import GenericFeedbackDetailModal from '../components/feedback/GenericFeedbackDetailModal';
 import {
@@ -14,6 +17,7 @@ import {
   SORT_COLUMNS,
   type FeedbackDetail,
   type GenericFeedbackParams,
+  type KbFeedbackParams,
 } from '../components/feedback/types';
 import { useScreenView } from '../telemetry/useScreenView';
 
@@ -55,7 +59,7 @@ const MarketingFeedbackPage: React.FC = () => {
 
   const [activeTab, setActiveTab] = useState<FeatureTab>('kb');
   const [selectedRowId, setSelectedRowId] = useState<string | null>(null);
-  const [kbParams, setKbParams] = useState<GenericFeedbackParams>(DEFAULT_FEEDBACK_PARAMS);
+  const [kbParams, setKbParams] = useState<KbFeedbackParams>(DEFAULT_FEEDBACK_PARAMS);
   const [leafletParams, setLeafletParams] = useState<GenericFeedbackParams>(DEFAULT_FEEDBACK_PARAMS);
   const [articleParams, setArticleParams] = useState<GenericFeedbackParams>(DEFAULT_FEEDBACK_PARAMS);
   const [smartsuppParams, setSmartsuppParams] = useState<GenericFeedbackParams>(DEFAULT_FEEDBACK_PARAMS);
@@ -66,6 +70,7 @@ const MarketingFeedbackPage: React.FC = () => {
   const leaflet = useLeafletFeedbackAdapter(leafletParams);
   const article = useArticleFeedbackAdapter(articleParams);
   const smartsupp = useSmartsuppFeedbackAdapter(smartsuppParams);
+  const kbTagStats = useKnowledgeBaseTagStatsQuery({ dateFrom: kbParams.dateFrom, dateTo: kbParams.dateTo });
 
   if (!hasKb && !hasGenAi && !hasSmartsupp) {
     return <div className="p-6 text-sm text-gray-500 dark:text-graphite-muted">Přístup odepřen.</div>;
@@ -98,7 +103,12 @@ const MarketingFeedbackPage: React.FC = () => {
   };
 
   const handleParamChange = (update: Partial<GenericFeedbackParams>) => {
-    setActiveParams((prev) => ({ ...prev, ...update, pageNumber: 1 }));
+    setActiveParams((prev: GenericFeedbackParams) => ({ ...prev, ...update, pageNumber: 1 }));
+    setSelectedRowId(null);
+  };
+
+  const handleKbFilterChange = (update: Partial<KbFeedbackParams>) => {
+    setKbParams((prev) => ({ ...prev, ...update, pageNumber: 1 }));
     setSelectedRowId(null);
   };
 
@@ -145,6 +155,26 @@ const MarketingFeedbackPage: React.FC = () => {
           onPageSizeChange={(v) => handleParamChange({ pageSize: v })}
         />
 
+        {activeTab === 'kb' && (
+          <>
+            <KbQuestionTagFilters
+              dateFrom={kbParams.dateFrom}
+              dateTo={kbParams.dateTo}
+              problemTag={kbParams.problemTag}
+              productTag={kbParams.productTag}
+              problemOptions={kbTagStats.data?.problemTags ?? []}
+              productOptions={kbTagStats.data?.productTags ?? []}
+              onChange={handleKbFilterChange}
+            />
+            <KbTagFrequencyPanel
+              stats={kbTagStats.data}
+              isLoading={kbTagStats.isLoading}
+              onProblemClick={(tag) => handleKbFilterChange({ problemTag: tag })}
+              onProductClick={(tag) => handleKbFilterChange({ productTag: tag })}
+            />
+          </>
+        )}
+
         {activeData.isError && (
           <div className="flex items-center justify-center h-32 text-sm text-red-600 dark:text-red-400">
             Nepodařilo se načíst záznamy. Zkuste to znovu.
@@ -160,7 +190,7 @@ const MarketingFeedbackPage: React.FC = () => {
             pageSize={activeParams.pageSize}
             totalPages={activeData.totalPages}
             onPageChange={(page) =>
-              setActiveParams((prev) => ({ ...prev, pageNumber: page }))
+              setActiveParams((prev: GenericFeedbackParams) => ({ ...prev, pageNumber: page }))
             }
             onRowClick={(id) =>
               setSelectedRowId((prev) => (prev === id ? null : id))

@@ -1,5 +1,6 @@
 import React from 'react';
 import type { RagFeedbackLogSummary } from './ragFeedbackTypes';
+import TagChips from './TagChips';
 
 interface RagFeedbackDetailExtraProps {
   log: RagFeedbackLogSummary;
@@ -60,6 +61,18 @@ const RagFeedbackDetailExtra: React.FC<RagFeedbackDetailExtraProps> = ({ log }) 
         <Field label="Rozšířený dotaz">
           <p className="whitespace-pre-wrap text-gray-700 dark:text-graphite-muted">{log.expandedQuery}</p>
         </Field>
+      )}
+
+      {(log.problemTags.length > 0 || log.productTags.length > 0 || log.recommendedProductCodes.length > 0) && (
+        <div className="space-y-1">
+          <div className="text-xs font-semibold uppercase text-gray-500 dark:text-graphite-muted">Štítky</div>
+          <TagChips tags={[...log.problemTags, ...log.productTags]} />
+          {log.recommendedProductCodes.length > 0 && (
+            <div className="text-xs text-gray-500 dark:text-graphite-muted">
+              Doporučené produkty: {log.recommendedProductCodes.join(', ')}
+            </div>
+          )}
+        </div>
       )}
 
       {log.retrievedChunks.length > 0 && (

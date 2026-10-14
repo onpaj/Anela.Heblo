@@ -5,6 +5,7 @@ import * as kbAdapter from '../../components/feedback/adapters/useKbFeedbackAdap
 import * as leafletAdapter from '../../components/feedback/adapters/useLeafletFeedbackAdapter';
 import * as articleAdapter from '../../components/feedback/adapters/useArticleFeedbackAdapter';
 import * as smartsuppAdapter from '../../components/feedback/adapters/useSmartsuppFeedbackAdapter';
+import * as kbHooks from '../../api/hooks/useKnowledgeBase';
 import type { FeedbackDetail, GenericFeedbackStats } from '../../components/feedback/types';
 
 let mockHasPermission: (perm: string) => boolean = () => false;
@@ -21,6 +22,13 @@ jest.mock('../../components/feedback/adapters/useKbFeedbackAdapter');
 jest.mock('../../components/feedback/adapters/useLeafletFeedbackAdapter');
 jest.mock('../../components/feedback/adapters/useArticleFeedbackAdapter');
 jest.mock('../../components/feedback/adapters/useSmartsuppFeedbackAdapter');
+jest.mock('../../api/hooks/useKnowledgeBase');
+
+const tagStats = {
+  problemTags: [{ tag: 'akné', label: 'akné', count: 5 }],
+  productTags: [],
+  recommendedProducts: [],
+};
 
 const emptyAdapterResult = {
   rows: [] as FeedbackDetail[],
@@ -65,6 +73,7 @@ function setupMocks({
     (hasLeaflet && p === 'marketing.leaflet.write') ||
     (hasSmartsupp && p === 'customer.smartsupp.read');
 
+  jest.spyOn(kbHooks, 'useKnowledgeBaseTagStatsQuery').mockReturnValue({ data: tagStats, isLoading: false } as any);
   jest.spyOn(kbAdapter, 'useKbFeedbackAdapter').mockReturnValue({
     ...emptyAdapterResult,
     rows: [kbRow],
@@ -169,4 +178,27 @@ test('clicking same row again closes detail modal', () => {
   expect(screen.getByText('Detail záznamu')).toBeInTheDocument();
   fireEvent.click(screen.getAllByText('KB otázka')[0]);
   expect(screen.queryByText('Detail záznamu')).not.toBeInTheDocument();
+});
+
+test('KB tab shows the tag filters and frequency panel', () => {
+  setupMocks({ hasKb: true });
+  render(<MarketingFeedbackPage />);
+  expect(screen.getByLabelText('Problém:')).toBeInTheDocument();
+  expect(screen.getByText('Nejčastější problémy')).toBeInTheDocument();
+});
+
+test('clicking a frequent problem filters the KB list', () => {
+  setupMocks({ hasKb: true });
+  render(<MarketingFeedbackPage />);
+  fireEvent.click(screen.getByRole('button', { name: /akné/ }));
+  expect(kbAdapter.useKbFeedbackAdapter).toHaveBeenLastCalledWith(
+    expect.objectContaining({ problemTag: 'akné', pageNumber: 1 }),
+  );
+});
+
+test('tag filters are not shown on other tabs', () => {
+  setupMocks({ hasKb: true, hasLeaflet: true });
+  render(<MarketingFeedbackPage />);
+  fireEvent.click(screen.getByRole('button', { name: /letáky/i }));
+  expect(screen.queryByLabelText('Problém:')).not.toBeInTheDocument();
 });
