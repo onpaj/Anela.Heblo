@@ -190,6 +190,15 @@ replaced by the PR number:
 > deduction below still applies as written, including the workflow-file and
 > cannot-verify-correctness ones.
 >
+> **Pipeline artifacts are out of scope.** Anything under `artifacts/` (e.g.
+> `artifacts/feat-*/` spec, plan, impl, review, and `state.json` files) is
+> the pipeline's own bookkeeping, committed to every feature branch by
+> design. Do not review it, do not count its lines or files toward the size
+> deduction, and do not raise whether it belongs in the repo. Judge the PR
+> solely on the remaining files — the code, tests, config, and docs it
+> actually changes. If nothing remains once `artifacts/` is excluded, that
+> is the "description claims work the diff does not contain" case.
+>
 > For every other PR — and for every remaining deduction on an exempted
 > one — start from 100 and deduct:
 > - -40 the diff does something the linked issue did not ask for
@@ -198,7 +207,8 @@ replaced by the PR number:
 > - -30 touches concurrency-critical code (`state_manager.py`, blob-lease or claim logic)
 > - -30 touches auth, secrets handling, or `.github/workflows/`
 > - -100 hardcoded secret, credential, or leftover debug statement
-> - -20 diff exceeds 400 added lines or 10 changed files
+> - -20 diff exceeds 400 added lines or 10 changed files, both counted
+>   excluding `artifacts/`
 > - -50 the PR description claims work the diff does not contain
 > - -25 anything whose correctness you cannot verify from the diff alone
 >
