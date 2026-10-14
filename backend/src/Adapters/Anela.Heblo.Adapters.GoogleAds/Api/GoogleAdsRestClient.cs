@@ -109,9 +109,9 @@ internal sealed class GoogleAdsRestClient : IGoogleAdsApiClient
         if (response.IsSuccessStatusCode)
             return GoogleAdsMutateResult.FromResponse(text);
 
-        if (IsPlatformRejection(response.StatusCode))
+        var error = GoogleAdsErrorParser.Parse(text);
+        if (IsPlatformRejection(response.StatusCode, error))
         {
-            var error = GoogleAdsErrorParser.Parse(text);
             _logger.LogWarning("GoogleAds: {Operation} rejected: {ErrorCode} (requestId {RequestId})",
                 operation, error.ErrorCode, error.RequestId);
             return GoogleAdsMutateResult.Rejected(
@@ -125,8 +125,13 @@ internal sealed class GoogleAdsRestClient : IGoogleAdsApiClient
         throw exception;
     }
 
-    private static bool IsPlatformRejection(HttpStatusCode status) =>
-        status is HttpStatusCode.BadRequest or HttpStatusCode.NotFound or HttpStatusCode.Conflict;
+    // A 404 without a GoogleAdsFailure is a wrong URL or retired API version, not a missing entity.
+    private static bool IsPlatformRejection(HttpStatusCode status, GoogleAdsError error) => status switch
+    {
+        HttpStatusCode.BadRequest or HttpStatusCode.Conflict => true,
+        HttpStatusCode.NotFound => error.ErrorCode is not null,
+        _ => false,
+    };
 
     // A mutate that failed with 5xx or timed out may already have been applied; repeating a create
     // could add a second criterion. 429 (RESOURCE_EXHAUSTED) is rejected before processing.

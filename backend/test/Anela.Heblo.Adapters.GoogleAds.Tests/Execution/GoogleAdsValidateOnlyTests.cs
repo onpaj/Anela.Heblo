@@ -32,6 +32,7 @@ public sealed class GoogleAdsValidateOnlyTests
         var result = await executor.ExecuteAsync(action, CancellationToken.None);
 
         result.Error.Should().StartWith(GoogleAdsExecutionResults.ValidateOnlyMarker);
+        api.Mutations.Single().Request["validateOnly"]!.GetValue<bool>().Should().BeTrue();
         api.Negatives.Should().BeEmpty();
         (await executor.ReadCurrentAsync(action, CancellationToken.None)).CurrentValue.Should().Be(AdActionValues.Absent);
     }

@@ -190,4 +190,18 @@ public sealed class GoogleAdsAddNegativeKeywordTests
 
         state.Should().Be(new AdTargetState(false, null, null));
     }
+
+    [Fact]
+    public async Task a_200_naming_no_criterion_is_failed_so_it_is_checked_by_hand()
+    {
+        var api = ExecutorHarness.SeededApi();
+        api.SucceedNextMutateWithoutResourceName();
+        var executor = ExecutorHarness.Create(api);
+
+        var result = await executor.ExecuteAsync(CampaignNegative(), CancellationToken.None);
+
+        result.Outcome.Should().Be(AdExecutionOutcome.Failed);
+        result.PlatformResourceId.Should().BeNull();
+        result.Error.Should().Contain("verify in the account");
+    }
 }

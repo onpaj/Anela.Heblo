@@ -34,6 +34,10 @@ internal sealed class StatefulFakeGoogleAdsApi : IGoogleAdsApiClient
     public void RejectNextMutate(string errorCode, string message) =>
         _nextMutateResult = GoogleAdsMutateResult.Rejected(errorCode, message, """{"error":{"code":400}}""");
 
+    /// <summary>A 200 whose body names no resource, e.g. an empty or unreadable response.</summary>
+    public void SucceedNextMutateWithoutResourceName() =>
+        _nextMutateResult = GoogleAdsMutateResult.Success(Array.Empty<string>(), string.Empty);
+
     public Task<IReadOnlyList<JsonElement>> SearchAsync(string customerId, GoogleAdsQuery query, CancellationToken ct)
     {
         Queries.Add(query);
@@ -52,10 +56,10 @@ internal sealed class StatefulFakeGoogleAdsApi : IGoogleAdsApiClient
     public Task<GoogleAdsMutateResult> MutateAsync(string customerId, string service, JsonObject request, CancellationToken ct)
     {
         Mutations.Add((service, (JsonObject)request.DeepClone()));
-        if (_nextMutateResult is { } rejected)
+        if (_nextMutateResult is { } scripted)
         {
             _nextMutateResult = null;
-            return Task.FromResult(rejected);
+            return Task.FromResult(scripted);
         }
 
         var validateOnly = request["validateOnly"]?.GetValue<bool>() == true;

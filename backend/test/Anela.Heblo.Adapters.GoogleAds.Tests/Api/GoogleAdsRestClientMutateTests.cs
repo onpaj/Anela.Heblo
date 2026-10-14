@@ -141,4 +141,71 @@ public sealed class GoogleAdsRestClientMutateTests
         handler.Requests.Should().HaveCount(2);
         tokens.Invalidated.Should().Equal(StaticAccessTokenProvider.Token);
     }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("<html>proxy</html>")]
+    public async Task an_unreadable_200_is_a_success_without_resource_names_not_an_exception(string body)
+    {
+        var (client, handler) = GoogleAdsRestClientTests.Create();
+        handler.Enqueue(HttpStatusCode.OK, body);
+
+        var result = await client.MutateAsync(TestSettings.CustomerId, GoogleAdsMutateServices.CampaignCriteria, Request(), CancellationToken.None);
+
+        result.IsSuccess.Should().BeTrue("Google answered 200, so the change may be live");
+        result.ResourceNames.Should().BeEmpty();
+        result.ResponseJson.Should().Be(body);
+    }
+
+    [Fact]
+    public async Task throws_for_a_404_without_a_google_ads_failure()
+    {
+        var (client, handler) = GoogleAdsRestClientTests.Create();
+        handler.Enqueue(HttpStatusCode.NotFound, "<html>Not Found</html>");
+
+        var act = () => client.MutateAsync(TestSettings.CustomerId, GoogleAdsMutateServices.CampaignCriteria, Request(), CancellationToken.None);
+
+        (await act.Should().ThrowAsync<GoogleAdsApiException>()).Which.StatusCode.Should().Be(HttpStatusCode.NotFound);
+    }
+
+    [Fact]
+    public async Task returns_a_rejection_for_a_404_carrying_a_google_ads_failure()
+    {
+        var (client, handler) = GoogleAdsRestClientTests.Create();
+        handler.Enqueue(HttpStatusCode.NotFound, Duplicate);
+
+        var result = await client.MutateAsync(TestSettings.CustomerId, GoogleAdsMutateServices.CampaignCriteria, Request(), CancellationToken.None);
+
+        result.IsSuccess.Should().BeFalse();
+        result.ErrorCode.Should().Be("criterionError.KEYWORD_HAS_INVALID_CHARS");
+    }
+
+    [Fact]
+    public async Task throws_after_a_second_consecutive_401()
+    {
+        var (client, handler) = GoogleAdsRestClientTests.Create();
+        const string unauthorized = """{"error":{"code":401,"status":"UNAUTHENTICATED","message":"expired"}}""";
+        handler.Enqueue(HttpStatusCode.Unauthorized, unauthorized)
+               .Enqueue(HttpStatusCode.Unauthorized, unauthorized)
+               .Enqueue(HttpStatusCode.OK, Created);
+
+        var act = () => client.MutateAsync(TestSettings.CustomerId, GoogleAdsMutateServices.CampaignCriteria, Request(), CancellationToken.None);
+
+        (await act.Should().ThrowAsync<GoogleAdsApiException>()).Which.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+        handler.Requests.Should().HaveCount(2);
+    }
+
+    [Fact]
+    public async Task throws_once_429_retries_are_exhausted()
+    {
+        var (client, handler) = GoogleAdsRestClientTests.Create();
+        const string exhausted = """{"error":{"code":429,"status":"RESOURCE_EXHAUSTED","message":"slow down"}}""";
+        for (var i = 0; i < 5; i++)
+            handler.Enqueue(HttpStatusCode.TooManyRequests, exhausted);
+
+        var act = () => client.MutateAsync(TestSettings.CustomerId, GoogleAdsMutateServices.CampaignCriteria, Request(), CancellationToken.None);
+
+        (await act.Should().ThrowAsync<GoogleAdsApiException>()).Which.StatusCode.Should().Be(HttpStatusCode.TooManyRequests);
+        handler.Requests.Should().HaveCount(4, "one attempt plus three retries");
+    }
 }

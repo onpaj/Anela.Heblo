@@ -47,7 +47,13 @@ internal sealed class GoogleAdsNegativeKeywordHandler
             ? GoogleAdsMutations.CreateCampaignNegative(customerId, target.ParentId, target.Text, target.MatchType, validateOnly)
             : GoogleAdsMutations.CreateAdGroupNegative(customerId, target.ParentId, target.Text, target.MatchType, validateOnly);
         var response = await _api.MutateAsync(customerId, target.Service, request, ct);
-        return GoogleAdsExecutionResults.From(response, AdActionValues.Absent, AdActionValues.Present, validateOnly);
+        var result = GoogleAdsExecutionResults.From(response, AdActionValues.Absent, AdActionValues.Present, validateOnly);
+        // Without the criterion's resource name the keyword could never be reverted through Heblo.
+        return result is { Outcome: AdExecutionOutcome.Succeeded, PlatformResourceId: null }
+            ? GoogleAdsExecutionResults.Failed(
+                "Google answered 200 but named no criterion; the keyword may have been added - verify in the account.",
+                response.ResponseJson)
+            : result;
     }
 
     public async Task<AdExecutionResult> RevertAsync(
