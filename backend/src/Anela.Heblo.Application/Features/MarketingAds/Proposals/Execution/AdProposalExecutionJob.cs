@@ -64,6 +64,12 @@ public class AdProposalExecutionJob
         var proposal = await _proposals.GetForUpdateAsync(proposalId, cancellationToken);
         if (proposal is null || proposal.Status != AdProposalStatus.Approved)
         {
+            if (proposal?.Status == AdProposalStatus.Executing)
+            {
+                // Redelivered after the process died mid-run: never resumed automatically (the account must be checked by hand).
+                _logger.LogWarning("Ad proposal {ProposalId} is still Executing on a new delivery; it is not resumed — verify the account and fix it by hand.", proposalId);
+                return;
+            }
             _logger.LogInformation("Ad proposal {ProposalId} is {Status}; nothing to execute.", proposalId, proposal?.Status);
             return;
         }

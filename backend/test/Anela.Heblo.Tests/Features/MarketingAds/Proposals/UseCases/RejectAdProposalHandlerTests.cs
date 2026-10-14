@@ -92,6 +92,20 @@ public class RejectAdProposalHandlerTests
     }
 
     [Fact]
+    public async Task ResolverAllowingTheSystemChannel_BlocksRejection()
+    {
+        using var h = new ProposalTestHarness();
+        var id = await h.SeedPendingAsync();
+        h.UseChannel(ApprovalChannel.System);
+
+        var response = await Handler(h).Handle(Rejection(id), CancellationToken.None);
+
+        response.ErrorCode.Should().Be(ErrorCodes.MarketingAdsApprovalChannelDenied);
+        await using var verify = h.NewContext();
+        (await verify.AdProposals.SingleAsync(p => p.Id == id)).Status.Should().Be(AdProposalStatus.Pending);
+    }
+
+    [Fact]
     public async Task StaleVersion_Returns409()
     {
         using var h = new ProposalTestHarness();

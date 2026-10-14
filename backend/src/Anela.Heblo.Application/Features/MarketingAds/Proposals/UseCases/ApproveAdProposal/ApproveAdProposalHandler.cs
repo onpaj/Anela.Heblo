@@ -49,7 +49,7 @@ public class ApproveAdProposalHandler : IRequestHandler<ApproveAdProposalRequest
         if (string.IsNullOrWhiteSpace(principal)) return new ApproveAdProposalResponse(ErrorCodes.Unauthorized);
 
         var resolution = _channelResolver.Resolve();
-        if (!resolution.Allowed) return new ApproveAdProposalResponse(ErrorCodes.MarketingAdsApprovalChannelDenied, AdProposalErrors.Reason(resolution.DenyReason));
+        if (!resolution.IsHumanChannelAllowed) return new ApproveAdProposalResponse(ErrorCodes.MarketingAdsApprovalChannelDenied, AdProposalErrors.Reason(resolution.HumanChannelDenyReason));
 
         var now = _time.GetUtcNow().UtcDateTime;
         var proposal = await _proposals.GetForUpdateAsync(request.Id, cancellationToken);

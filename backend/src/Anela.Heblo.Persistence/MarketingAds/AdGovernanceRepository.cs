@@ -62,11 +62,17 @@ public class AdGovernanceRepository : IAdGovernanceRepository
             await _context.SaveChangesAsync(cancellationToken);
             return true;
         }
-        catch (DbUpdateException ex) // includes DbUpdateConcurrencyException
+        catch (DbUpdateException ex) when (AdSaveConflicts.IsLostRace(ex))
         {
             _logger.LogWarning(ex, "Saving ad governance settings lost a race; discarding tracked changes");
             _context.ChangeTracker.Clear();
             return false;
+        }
+        catch (DbUpdateException ex)
+        {
+            _logger.LogError(ex, "Saving ad governance settings failed; discarding tracked changes");
+            _context.ChangeTracker.Clear();
+            throw;
         }
     }
 }

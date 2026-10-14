@@ -21,7 +21,7 @@ public class AgentRunRepository : IAgentRunRepository
         var total = await runs.CountAsync(cancellationToken);
         var size = Math.Clamp(pageSize, 1, MaxPageSize);
         var items = await runs.OrderByDescending(r => r.StartedAt)
-            .Skip((Math.Max(1, page) - 1) * size).Take(size).ToListAsync(cancellationToken);
+            .Skip(AdPaging.Skip(page, size)).Take(size).ToListAsync(cancellationToken);
         return (items, total);
     }
 

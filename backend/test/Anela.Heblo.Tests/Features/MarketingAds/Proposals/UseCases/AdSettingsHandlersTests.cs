@@ -14,6 +14,7 @@ using Anela.Heblo.Persistence.MarketingAds;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Moq;
+using Npgsql;
 using Xunit;
 
 namespace Anela.Heblo.Tests.Features.MarketingAds.Proposals.UseCases;
@@ -183,6 +184,36 @@ public class AdSettingsHandlersTests
     }
 
     [Fact]
+    public async Task KillSwitch_TurningOff_IsAllowedToAnAdminEvenWhenTheChannelIsDenied()
+    {
+        using var h = new ProposalTestHarness();
+        await KillSwitch(h).Handle(new SetAdKillSwitchRequest { ExecutionEnabled = true }, CancellationToken.None);
+        h.Context.ChangeTracker.Clear();
+        h.DenyChannel();
+
+        var response = await KillSwitch(h).Handle(new SetAdKillSwitchRequest { ExecutionEnabled = false }, CancellationToken.None);
+
+        response.ErrorCode.Should().BeNull();
+        await using var verify = h.NewContext();
+        (await verify.AdKillSwitches.SingleAsync()).ExecutionEnabled.Should().BeFalse();
+        (await verify.AdAuditEvents.CountAsync(e => e.EventType == AdAuditEventType.KillSwitchChanged)).Should().Be(2);
+    }
+
+    [Fact]
+    public async Task KillSwitch_TurningOff_WithoutAdminRole_IsForbidden()
+    {
+        using var h = new ProposalTestHarness();
+        h.DenyChannel();
+        h.CurrentUser.Setup(c => c.IsInRole(AccessRoles.MarketingAdApprovalsAdmin)).Returns(false);
+
+        var response = await KillSwitch(h).Handle(new SetAdKillSwitchRequest { ExecutionEnabled = false }, CancellationToken.None);
+
+        response.ErrorCode.Should().Be(ErrorCodes.InsufficientPermissions);
+        await using var verify = h.NewContext();
+        (await verify.AdAuditEvents.AnyAsync()).Should().BeFalse();
+    }
+
+    [Fact]
     public async Task Mutations_FromMcpOrDeniedChannel_AreRejected()
     {
         using var h = new ProposalTestHarness();
@@ -234,17 +265,12 @@ public class AdSettingsHandlersTests
     }
 
     [Fact]
-    public async Task Repository_FailedUpdate_IsDiscardedAndReportedAsNotSaved()
+    public async Task Repository_UniqueViolation_IsDiscardedAndReportedAsNotSaved()
     {
         // InMemory reports a duplicate key as ArgumentException; Postgres raises DbUpdateException, so inject that.
-        var options = new DbContextOptionsBuilder<ApplicationDbContext>()
-            .UseInMemoryDatabase(Guid.NewGuid().ToString())
-            .AddInterceptors(new ThrowingSaveInterceptor())
-            .Options;
-        await using var context = new ApplicationDbContext(options);
-        var governance = new AdGovernanceRepository(context);
-        governance.AddKillSwitch(new AdKillSwitch { Scope = "MetaAds", ExecutionEnabled = false, UpdatedAt = DateTime.UtcNow, UpdatedBy = "chief" });
-        new AdAuditLog(context).Append(new AdAuditEvent { EventType = AdAuditEventType.KillSwitchChanged, ActorPrincipal = "chief", PayloadJson = "{}", OccurredAt = DateTime.UtcNow });
+        var (context, governance) = CreateRepositoryThrowing(new DbUpdateException("duplicate key",
+            new PostgresException("duplicate key value violates unique constraint", "ERROR", "ERROR", PostgresErrorCodes.UniqueViolation)));
+        await using var _ = context;
 
         var saved = await governance.TrySaveChangesAsync(CancellationToken.None);
 
@@ -252,10 +278,39 @@ public class AdSettingsHandlersTests
         context.ChangeTracker.Entries().Should().BeEmpty("a failed save must not poison the shared context");
     }
 
+    [Fact]
+    public async Task Repository_OtherFailedUpdate_IsDiscardedAndRethrown()
+    {
+        var (context, governance) = CreateRepositoryThrowing(new DbUpdateException("value too long for type character varying(64)"));
+        await using var _ = context;
+
+        var act = () => governance.TrySaveChangesAsync(CancellationToken.None);
+
+        await act.Should().ThrowAsync<DbUpdateException>("only a lost race may be reported as a concurrent change");
+        context.ChangeTracker.Entries().Should().BeEmpty("a failed save must not poison the shared context");
+    }
+
+    private static (ApplicationDbContext Context, AdGovernanceRepository Governance) CreateRepositoryThrowing(DbUpdateException exception)
+    {
+        var options = new DbContextOptionsBuilder<ApplicationDbContext>()
+            .UseInMemoryDatabase(Guid.NewGuid().ToString())
+            .AddInterceptors(new ThrowingSaveInterceptor(exception))
+            .Options;
+        var context = new ApplicationDbContext(options);
+        var governance = new AdGovernanceRepository(context);
+        governance.AddKillSwitch(new AdKillSwitch { Scope = "MetaAds", ExecutionEnabled = false, UpdatedAt = DateTime.UtcNow, UpdatedBy = "chief" });
+        new AdAuditLog(context).Append(new AdAuditEvent { EventType = AdAuditEventType.KillSwitchChanged, ActorPrincipal = "chief", PayloadJson = "{}", OccurredAt = DateTime.UtcNow });
+        return (context, governance);
+    }
+
     private sealed class ThrowingSaveInterceptor : SaveChangesInterceptor
     {
+        private readonly DbUpdateException _exception;
+
+        public ThrowingSaveInterceptor(DbUpdateException exception) => _exception = exception;
+
         public override ValueTask<InterceptionResult<int>> SavingChangesAsync(DbContextEventData eventData, InterceptionResult<int> result,
             CancellationToken cancellationToken = default) =>
-            throw new DbUpdateException("duplicate key value violates unique constraint");
+            throw _exception;
     }
 }

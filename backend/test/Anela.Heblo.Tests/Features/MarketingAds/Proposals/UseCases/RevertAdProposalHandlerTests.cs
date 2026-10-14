@@ -5,6 +5,7 @@ using Anela.Heblo.Application.Features.MarketingAds.Proposals.Execution;
 using Anela.Heblo.Application.Features.MarketingAds.Proposals.UseCases.RevertAdProposal;
 using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Domain.Features.MarketingAds;
+using Anela.Heblo.Persistence.MarketingAds;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -114,6 +115,35 @@ public class RevertAdProposalHandlerTests
         rows.Should().OnlyContain(r => r.RevertState == AdActionRevertState.Reverted);
         events.Should().HaveCount(2).And.OnlyContain(e => e.EventType == AdAuditEventType.Reverted
             && e.ActorPrincipal == "chief" && e.ActorKind == AdActorKind.Human && e.Channel == ApprovalChannel.Web);
+    }
+
+    [Fact]
+    public async Task ConcurrentRevert_ThatSavedFirst_IsNotOverwrittenByTheStaleRequest()
+    {
+        // B claims the proposal; while B's platform call is in flight, A loads after B's claim, reverts and saves.
+        // B's call then fails (the change is already gone) — its stale RevertFailed must not overwrite A's Reverted row.
+        using var h = new ProposalTestHarness();
+        var id = await SeedExecutedAsync(h, 1);
+        await using var otherContext = h.NewContext();
+        var stale = new Mock<IAdActionExecutor>();
+        stale.SetupGet(e => e.Platform).Returns(AdPlatform.GoogleAds);
+        stale.SetupGet(e => e.SupportedActions).Returns(new HashSet<AdActionType> { AdActionType.PauseAd });
+        stale.Setup(e => e.RevertAsync(It.IsAny<AdAction>(), It.IsAny<AdExecutionResult>(), It.IsAny<CancellationToken>()))
+            .Returns(async (AdAction _, AdExecutionResult _, CancellationToken _) =>
+            {
+                (await RevertAsync(h, id)).Success.Should().BeTrue("the request that loaded after the claim completes");
+                return new AdExecutionResult(AdExecutionOutcome.Failed, null, null, null, null, "ad not found");
+            });
+        var staleHandler = new RevertAdProposalHandler(new AdProposalRepository(otherContext), new AdAuditLog(otherContext), new[] { stale.Object },
+            h.ChannelResolver.Object, h.CurrentUser.Object, h.Time, NullLogger<RevertAdProposalHandler>.Instance);
+
+        var response = await staleHandler.Handle(new RevertAdProposalRequest { Id = id }, CancellationToken.None);
+
+        response.ErrorCode.Should().Be(ErrorCodes.MarketingAdsConcurrentChange);
+        // Audit rows are not asserted: InMemory has no transaction, so the failed save's audit insert still lands there.
+        var (proposal, rows, _) = await LoadAsync(h, id);
+        proposal.Status.Should().Be(AdProposalStatus.Reverted);
+        rows.Should().ContainSingle().Which.RevertState.Should().Be(AdActionRevertState.Reverted);
     }
 
     [Fact]

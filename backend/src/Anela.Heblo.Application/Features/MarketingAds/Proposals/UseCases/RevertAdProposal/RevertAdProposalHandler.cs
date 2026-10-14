@@ -16,7 +16,9 @@ namespace Anela.Heblo.Application.Features.MarketingAds.Proposals.UseCases.Rever
 /// audited on its own. Not gated by the kill switch. When anything is left, the proposal keeps its status and the
 /// response is MarketingAdsRevertFailed; a retry reverts only what is left, and first re-reads a row whose earlier
 /// revert failed, so a revert that landed after all is not sent again.
-/// Two admins reverting concurrently can both reach the platform (accepted; the re-read makes retries converge).
+/// Two admins reverting concurrently can both reach the platform (accepted; the re-read makes retries converge), but
+/// every per-row save bumps the proposal's Revision token, so a request working on a stale copy never overwrites a
+/// newer row state: it stops with MarketingAdsConcurrentChange instead.
 /// </summary>
 public class RevertAdProposalHandler : IRequestHandler<RevertAdProposalRequest, RevertAdProposalResponse>
 {
@@ -72,6 +74,10 @@ public class RevertAdProposalHandler : IRequestHandler<RevertAdProposalRequest, 
             .ToList();
         var tally = await RevertAllAsync(proposal, pending, actions, executor, check.Principal!, cancellationToken);
 
+        if (tally.LostRace)
+        {
+            return new RevertAdProposalResponse(ErrorCodes.MarketingAdsConcurrentChange);
+        }
         if (tally.Failed > 0)
         {
             _logger.LogWarning("Revert of ad proposal {ProposalId} left {Failed} action(s) unreverted ({ValidateOnly} validate-only).",
@@ -93,12 +99,18 @@ public class RevertAdProposalHandler : IRequestHandler<RevertAdProposalRequest, 
     private async Task<RevertTally> RevertAllAsync(AdProposal proposal, IReadOnlyList<AdProposalActionExecution> rows,
         IReadOnlyList<AdAction> actions, IAdActionExecutor executor, string principal, CancellationToken cancellationToken)
     {
-        var tally = new RevertTally(0, 0, 0);
+        var tally = new RevertTally(0, 0, 0, false);
         foreach (var row in rows)
         {
             var outcome = await RevertRowAsync(proposal.Id, row, actions[row.ActionIndex], executor, cancellationToken);
             Record(proposal, row, outcome, principal);
-            await _proposals.SaveChangesAsync(CancellationToken.None); // the platform call happened; always keep its result
+            proposal.Touch(Now()); // a concurrent revert that saved first makes this save fail instead of overwriting its row
+            if (!await _proposals.TrySaveChangesAsync(CancellationToken.None)) // the platform call happened; keep its result unless outdated
+            {
+                _logger.LogWarning("Concurrent revert of ad proposal {ProposalId}; action {Index} result not stored (reverted: {Reverted}, detail: {Detail}).",
+                    proposal.Id, row.ActionIndex, outcome.IsReverted, outcome.Detail);
+                return tally with { LostRace = true };
+            }
             tally = outcome.IsReverted
                 ? tally with { Reverted = tally.Reverted + 1 }
                 : tally with { Failed = tally.Failed + 1, ValidateOnly = tally.ValidateOnly + (outcome.IsValidateOnly ? 1 : 0) };
@@ -204,7 +216,7 @@ public class RevertAdProposalHandler : IRequestHandler<RevertAdProposalRequest, 
 
     private DateTime Now() => _time.GetUtcNow().UtcDateTime;
 
-    private sealed record RevertTally(int Reverted, int Failed, int ValidateOnly);
+    private sealed record RevertTally(int Reverted, int Failed, int ValidateOnly, bool LostRace);
 
     /// <param name="Detail">The failure reason (stored as RevertError), or a note on how the revert was confirmed.</param>
     private sealed record RowOutcome(bool IsReverted, string? Detail, string? ResponseJson,

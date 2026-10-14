@@ -51,6 +51,23 @@ public class ApproveAdProposalHandlerTests
         h.Enqueuer.Verify(e => e.EnqueueExecution(It.IsAny<int>()), Times.Never);
     }
 
+    [Theory]
+    [InlineData(ApprovalChannel.System)]
+    [InlineData((ApprovalChannel)0)]
+    public async Task ResolverAllowingANonHumanChannel_BlocksApproval(ApprovalChannel channel)
+    {
+        using var h = new ProposalTestHarness();
+        var id = await h.SeedPendingAsync();
+        h.UseChannel(channel);
+
+        var response = await Handler(h).Handle(new ApproveAdProposalRequest { Id = id, Version = 1 }, CancellationToken.None);
+
+        response.ErrorCode.Should().Be(ErrorCodes.MarketingAdsApprovalChannelDenied);
+        await using var verify = h.NewContext();
+        (await verify.AdProposals.SingleAsync(p => p.Id == id)).Status.Should().Be(AdProposalStatus.Pending);
+        h.Enqueuer.Verify(e => e.EnqueueExecution(It.IsAny<int>()), Times.Never);
+    }
+
     [Fact]
     public async Task OldVersion_Returns409()
     {

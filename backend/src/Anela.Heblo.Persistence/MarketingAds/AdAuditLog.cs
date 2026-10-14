@@ -21,7 +21,7 @@ public class AdAuditLog : IAdAuditLog
         var total = await events.CountAsync(cancellationToken);
         var size = Math.Clamp(query.PageSize, 1, MaxPageSize);
         var items = await events.OrderByDescending(e => e.OccurredAt).ThenByDescending(e => e.Id)
-            .Skip((Math.Max(1, query.Page) - 1) * size).Take(size).ToListAsync(cancellationToken);
+            .Skip(AdPaging.Skip(query.Page, size)).Take(size).ToListAsync(cancellationToken);
         return (items, total);
     }
 }

@@ -42,7 +42,7 @@ public class AdProposalRepository : IAdProposalRepository
         var size = Math.Clamp(query.PageSize, 1, MaxPageSize);
         var items = await proposals
             .OrderByDescending(p => p.CreatedAt).ThenByDescending(p => p.Id)
-            .Skip((page - 1) * size).Take(size)
+            .Skip(AdPaging.Skip(page, size)).Take(size)
             .Include(p => p.Versions)
             .AsSplitQuery()
             .ToListAsync(cancellationToken);
@@ -105,17 +105,23 @@ public class AdProposalRepository : IAdProposalRepository
 
     public Task SaveChangesAsync(CancellationToken cancellationToken) => _context.SaveChangesAsync(cancellationToken);
 
-    public async Task<bool> TrySaveChangesAsync(CancellationToken cancellationToken) =>
-        await TrySaveChangesWithOutcomeAsync(cancellationToken) == AdSaveOutcome.Saved;
+    public async Task<bool> TrySaveChangesAsync(CancellationToken cancellationToken)
+    {
+        var outcome = await TrySaveChangesWithOutcomeAsync(cancellationToken, rethrowFailures: true);
+        return outcome == AdSaveOutcome.Saved;
+    }
 
-    public async Task<AdSaveOutcome> TrySaveChangesWithOutcomeAsync(CancellationToken cancellationToken)
+    public Task<AdSaveOutcome> TrySaveChangesWithOutcomeAsync(CancellationToken cancellationToken) =>
+        TrySaveChangesWithOutcomeAsync(cancellationToken, rethrowFailures: false);
+
+    private async Task<AdSaveOutcome> TrySaveChangesWithOutcomeAsync(CancellationToken cancellationToken, bool rethrowFailures)
     {
         try
         {
             await _context.SaveChangesAsync(cancellationToken);
             return AdSaveOutcome.Saved;
         }
-        catch (DbUpdateConcurrencyException ex)
+        catch (DbUpdateException ex) when (AdSaveConflicts.IsLostRace(ex))
         {
             _logger.LogWarning(ex, "Saving ad proposal changes lost a concurrency race; discarding tracked changes");
             DiscardChanges();
@@ -123,8 +129,9 @@ public class AdProposalRepository : IAdProposalRepository
         }
         catch (DbUpdateException ex)
         {
-            _logger.LogWarning(ex, "Saving ad proposal changes failed; discarding tracked changes");
+            _logger.LogError(ex, "Saving ad proposal changes failed; discarding tracked changes");
             DiscardChanges();
+            if (rethrowFailures) throw;
             return AdSaveOutcome.Failed;
         }
     }

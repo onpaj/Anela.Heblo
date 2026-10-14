@@ -27,7 +27,10 @@ public class SetAdKillSwitchHandler : IRequestHandler<SetAdKillSwitchRequest, Se
 
     public async Task<SetAdKillSwitchResponse> Handle(SetAdKillSwitchRequest request, CancellationToken cancellationToken)
     {
-        var check = AdWebAdminGuard.Check(_currentUser, _channelResolver);
+        // Turning execution off is always allowed to an admin; only turning it on needs an allowed web channel.
+        var check = request.ExecutionEnabled
+            ? AdWebAdminGuard.Check(_currentUser, _channelResolver)
+            : AdWebAdminGuard.CheckAdmin(_currentUser);
         if (!check.IsAllowed) return new SetAdKillSwitchResponse(check.ErrorCode!.Value, check.Params);
         if (request.Platform is { } p && !Enum.IsDefined(p)) return new SetAdKillSwitchResponse(ErrorCodes.MarketingAdsInvalidSetting);
 

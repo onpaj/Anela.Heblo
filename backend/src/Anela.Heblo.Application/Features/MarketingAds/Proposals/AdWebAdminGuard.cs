@@ -30,10 +30,26 @@ public static class AdWebAdminGuard
             return AdWebAdminCheck.Deny(ErrorCodes.MarketingAdsApprovalChannelDenied, AdProposalErrors.Reason(WebOnlyReason));
         }
 
-        return currentUser.IsInRole(AccessRoles.MarketingAdApprovalsAdmin)
+        return CheckAdmin(currentUser, principal);
+    }
+
+    /// <summary>
+    /// An identified caller with the Marketing_AdApprovals Admin permission, without asking the approval channel
+    /// resolver. Only for operations that make the system safer (turning execution off): a misconfigured or
+    /// unavailable resolver must never stop an admin from halting execution.
+    /// </summary>
+    public static AdWebAdminCheck CheckAdmin(ICurrentUserService currentUser)
+    {
+        var principal = currentUser.GetCurrentUser().Id;
+        return string.IsNullOrWhiteSpace(principal)
+            ? AdWebAdminCheck.Deny(ErrorCodes.Unauthorized)
+            : CheckAdmin(currentUser, principal);
+    }
+
+    private static AdWebAdminCheck CheckAdmin(ICurrentUserService currentUser, string principal) =>
+        currentUser.IsInRole(AccessRoles.MarketingAdApprovalsAdmin)
             ? AdWebAdminCheck.Allow(principal)
             : AdWebAdminCheck.Deny(ErrorCodes.InsufficientPermissions);
-    }
 }
 
 /// <summary>Outcome of <see cref="AdWebAdminGuard.Check"/>: the principal when allowed, otherwise the error to return.</summary>

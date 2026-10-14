@@ -46,7 +46,8 @@ public sealed class AdLimitsEvaluator : IAdLimitsEvaluator
     private static string? FindWebOnlyReason(AdLimitsRequest r)
     {
         if (r.Channel == ApprovalChannel.Web) return null;
-        if (r.Channel == ApprovalChannel.Mcp && r.Actions.Count > (Limit(r, AdLimitKeys.McpMaxActionsPerProposal) ?? 0))
+        // Every channel other than Web (MCP, System autonomy, an unset value) is held to the MCP caps.
+        if (r.Actions.Count > (Limit(r, AdLimitKeys.McpMaxActionsPerProposal) ?? 0))
         {
             return AdLimitReasons.McpThreshold;
         }

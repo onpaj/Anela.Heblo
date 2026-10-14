@@ -15,7 +15,8 @@ public interface IAdGovernanceRepository
 
     /// <summary>
     /// Saves; when the save loses a race (two admins creating the same missing row, or a concurrency conflict) it
-    /// discards every tracked change, so the shared context is not poisoned, and returns false.
+    /// discards every tracked change, so the shared context is not poisoned, and returns false. Any other failed
+    /// update also discards the tracked changes, then rethrows.
     /// </summary>
     Task<bool> TrySaveChangesAsync(CancellationToken cancellationToken);
 }

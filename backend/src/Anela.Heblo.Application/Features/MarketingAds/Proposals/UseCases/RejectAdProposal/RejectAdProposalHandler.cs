@@ -43,7 +43,7 @@ public class RejectAdProposalHandler : IRequestHandler<RejectAdProposalRequest, 
         }
 
         var resolution = _channelResolver.Resolve();
-        if (!resolution.Allowed) return new RejectAdProposalResponse(ErrorCodes.MarketingAdsApprovalChannelDenied, AdProposalErrors.Reason(resolution.DenyReason));
+        if (!resolution.IsHumanChannelAllowed) return new RejectAdProposalResponse(ErrorCodes.MarketingAdsApprovalChannelDenied, AdProposalErrors.Reason(resolution.HumanChannelDenyReason));
 
         var now = _time.GetUtcNow().UtcDateTime;
         var proposal = await _proposals.GetForUpdateAsync(request.Id, cancellationToken);

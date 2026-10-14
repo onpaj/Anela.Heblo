@@ -34,8 +34,9 @@ public interface IAdProposalRepository
     Task SaveChangesAsync(CancellationToken cancellationToken);
 
     /// <summary>
-    /// Saves; on a concurrency conflict or any other failed update it discards every tracked change (so the
-    /// shared context is not poisoned) and returns false. Callers map false to MarketingAdsConcurrentChange.
+    /// Saves; on a lost race (concurrency token or unique key) it discards every tracked change (so the shared
+    /// context is not poisoned) and returns false — callers map false to MarketingAdsConcurrentChange. Any other
+    /// failed update also discards the tracked changes, then rethrows.
     /// </summary>
     Task<bool> TrySaveChangesAsync(CancellationToken cancellationToken);
 
