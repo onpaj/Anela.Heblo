@@ -2,22 +2,24 @@
 process: flow-knowledge-base-ask
 kind: workflow
 module: knowledge-base
-summary: Answers a staff question from the knowledge base — expands the query with Claude, finds the closest chunks by vector similarity, lets Claude write a Czech answer with product links resolved from the catalog, logs the interaction to RagInteractionLogs and collects 1–5 star feedback.
+summary: Answers a staff question from the knowledge base — expands the query with Claude, finds the closest chunks by vector similarity, lets Claude write a Czech answer with product links resolved from the catalog, tags the question with problem and product tags, logs the interaction to RagInteractionLogs and collects 1–5 star feedback.
 owns:
   - backend/src/Anela.Heblo.Application/Features/KnowledgeBase/UseCases/AskQuestion/**
   - backend/src/Anela.Heblo.Application/Features/KnowledgeBase/UseCases/SearchDocuments/**
   - backend/src/Anela.Heblo.Application/Features/KnowledgeBase/UseCases/SubmitFeedback/**
   - backend/src/Anela.Heblo.Application/Features/KnowledgeBase/UseCases/GetFeedbackList/**
+  - backend/src/Anela.Heblo.Application/Features/KnowledgeBase/UseCases/GetQuestionTagStats/**
   - backend/src/Anela.Heblo.Application/Features/KnowledgeBase/Pipeline/**
   - backend/src/Anela.Heblo.Application/Features/KnowledgeBase/KnowledgeBaseConstants.cs
   - backend/src/Anela.Heblo.Application/Shared/Rag/RagQueryExpander.cs
+  - backend/src/Anela.Heblo.Application/Shared/Rag/RagExpansion*.cs
   - backend/src/Anela.Heblo.Application/Shared/Rag/RagInteractionRecorder.cs
   - backend/src/Anela.Heblo.Application/Shared/Rag/RagInteractionLogFactory.cs
   - backend/src/Anela.Heblo.Application/Shared/Rag/RagFeedback*.cs
   - backend/src/Anela.Heblo.Domain/Features/Rag/**
   - backend/src/Anela.Heblo.Persistence/Rag/**
   - backend/src/Anela.Heblo.API/MCP/Tools/KnowledgeBaseTools.cs
-verified_at: "5e993f9e2"
+verified_at: "0f56d8740"
 related: [job-knowledge-base-ingestion, flow-article-generation]
 ---
 
@@ -29,6 +31,9 @@ Anela's own documents and past customer conversations, instead of searching them
 answer is in Czech, written as an Anela skin-care advisor, cites its sources, and turns every
 mentioned Anela product into a link to the e-shop. Staff rate each answer (precision and style,
 1–5) so the prompts can be tuned; a reviewer browses those ratings on `/knowledge-base/feedback`.
+Every question is also tagged with the skin problems and products it mentions, so the feedback
+page can answer "most frequent questions in a period / about a product / about a problem"
+(tab Poradenství (KB): date range, problem and product filters, and a tag frequency panel).
 
 Where it is used:
 - Page `/knowledge-base` ("Poradenství (KB)"), tab **Hledat** — it calls *Ask*, not plain search.
@@ -45,12 +50,23 @@ On demand, no schedule:
   (default 5; the page sends no `topK`).
 - `POST /api/KnowledgeBase/feedback` `{logId, precisionScore, styleScore, comment}` — read.
 - `GET /api/KnowledgeBase/feedback/list` — **write** permission.
+- `GET /api/KnowledgeBase/feedback/tag-stats?dateFrom=&dateTo=` — **write** permission; tag
+  frequencies for the frequency panel. The page calls it only for users with KB permission.
 
 ## Data flow
 1. **Query expansion** (`RagQueryExpander`): Claude `QueryExpansionModel`
    (`claude-haiku-4-5-20251001`) rewrites the question into the same Czech key/value shape the
    chunk summaries use (Problém / Kontext / Doporučení / Ingredience), prompt
    `KnowledgeBase:QueryExpansionPrompt`. Network/timeout errors or an empty reply → raw question.
+   The KB prompt asks for JSON `{expanded, problemTags, productTags}`: Czech, lowercase,
+   free-text tags; product tags are product *names* as the customer wrote them, not catalog
+   codes. Its `{EXISTING_TAGS}` placeholder is filled by `QuestionTagLibrary` with the 200 most
+   frequent existing tags per kind (KB rows only, cached 10 min), so the model reuses wording —
+   the vocabulary starts empty and builds itself. `RagExpansionParser` strips a ```json fence,
+   tolerates raw newlines inside strings, normalises tags (trim, lowercase, collapse spaces),
+   dedupes, keeps at most 5 per kind and drops tags over 60 chars. A non-JSON reply → the whole
+   reply is embedded with no tags (tags can be lost, the answer never is). Smartsupp, Article
+   and Leaflet use plain-text prompts, so their tags are always empty.
 2. **Embed** the expanded text with OpenAI `text-embedding-3-large`, 1536 dims. A transient
    error returns an empty result (→ "nothing found" answer), not an error.
 3. **Vector search** (`KnowledgeBaseRepository.SearchSimilarAsync`, raw SQL, 120 s timeout):
@@ -73,11 +89,14 @@ On demand, no schedule:
    `PostAnswerEnrichmentMiddleware`.
 8. **Product links** (middleware): `[Name](CODE)` → `[Name](product URL)`, or just `Name` when the
    product has no URL or the code is unknown. A bare `(CODE)` of a known product →
-   `[catalog name](URL)` or the catalog name; unknown bare tokens are left alone.
+   `[catalog name](URL)` or the catalog name; unknown bare tokens are left alone. The known
+   codes it resolved (distinct, in order of first appearance in the raw answer) are published
+   on `ChatResponse.AdditionalProperties["anela.recommendedProductCodes"]`.
 9. **Log** (`QuestionLoggingBehavior`, KB-only MediatR behavior): one `public."RagInteractionLogs"`
    row with `Feature = 0` (KnowledgeBase): user id, question, expanded query, `TopK`,
    `SourceCount`, `RetrievedChunksJson` (jsonb, full chunk text + scores), rendered system
-   prompt, answer, `DurationMs`. Its id is returned as `id`; the page shows the feedback form
+   prompt, answer, `DurationMs`, plus `ProblemTags`, `ProductTags` and
+   `RecommendedProductCodes` (`text[]`; GIN indexes on the two tag columns). Its id is returned as `id`; the page shows the feedback form
    only when an id came back. Log write failures are logged and swallowed.
 10. **Response**: `answer` + `sources[]` (chunk id, document id, filename, first 200 characters,
     score).
@@ -98,9 +117,15 @@ On demand, no schedule:
   `KnowledgeBaseFeedbackLogNotFound`), belong to the current user (else `Forbidden`), and have no
   score yet (else 409 `KnowledgeBaseFeedbackAlreadySubmitted`). One rating per answer, by its
   asker only.
-- Feedback list: KnowledgeBase rows only, filters `hasFeedback`, `userId`; sort `CreatedAt`
+- Feedback list: KnowledgeBase rows only, filters `hasFeedback`, `userId`, `dateFrom`/`dateTo`
+  (`yyyy-MM-dd`, inclusive Europe/Prague calendar days → `CreatedAt >=` start of `dateFrom` and
+  `<` start of the day after `dateTo`; `9999-12-31` = no upper bound), `problemTag`, `productTag`
+  (exact match on the normalised tag; an over-long value is kept, so it matches nothing instead
+  of silently dropping the filter); sort `CreatedAt`
   (default, desc), `PrecisionScore`, `StyleScore`; page size 10/20/50 (else 20); stats = total
   questions, total rated, average precision and style.
+- Tag stats: count of rows per tag for each kind (Problem, Product, RecommendedProduct) in the
+  Prague-day range, grouped in memory over the three projected arrays.
 - Errors: Claude network/timeout/cancel/disposed → `Success = false`,
   `KnowledgeBaseAiUnavailable` (503); such answers are not logged.
 
@@ -109,7 +134,7 @@ On demand, no schedule:
 |---|---|---|
 | `KnowledgeBase:QueryExpansionEnabled` | true | Rewrite the question before embedding |
 | `KnowledgeBase:QueryExpansionModel` | `claude-haiku-4-5-20251001` | Model for the rewrite |
-| `KnowledgeBase:QueryExpansionPrompt` | Czech prompt in `KnowledgeBaseOptions` | Rewrite instructions |
+| `KnowledgeBase:QueryExpansionPrompt` | Czech prompt in `KnowledgeBaseOptions` | Rewrite + tagging instructions; an override must keep the JSON shape and `{EXISTING_TAGS}`, or tagging silently stops (no KV/App Setting override in prod as of 2026-10-14) |
 | `KnowledgeBase:MinSimilarityScore` | 0.55 | Chunk cut-off |
 | `KnowledgeBase:AskQuestionSystemPrompt` | Czech advisor prompt in `KnowledgeBaseOptions` | Answer prompt with `{context}`, `{products}`, `{query}` |
 | `KnowledgeBase:ChatModel` / `ChatMaxTokens` | `claude-sonnet-4-6` / 1024 | Answer model (app-wide default client) |
@@ -122,6 +147,15 @@ On demand, no schedule:
 None.
 
 ## Known quirks
+- **Questions asked before the tagging deploy (2026-10) have no tags** — a backfill job is
+  planned, not built. Filters and the frequency panel cover only newer questions until then.
+- **The stats bar ignores the date and tag filters**: it always counts all KB questions, so it
+  won't match a filtered table.
+- **New tags reach the library with up to 10 min delay** (cache), so two similar questions
+  in quick succession can coin near-duplicate tags.
+- **Tag recall is imperfect**: in a live probe a stye ("ječné zrno") got no problem tag and a
+  product tag appeared in one run but not the next. Operational questions (ordering, stock)
+  correctly get no problem tag. Tags can't be merged or renamed yet.
 - **Answers can repeat the same conversation several times.** Every topic chunk of a
   conversation carries the whole transcript as content; when several topics of one conversation
   match, the full transcript lands in the prompt once per topic and is listed as several sources.
@@ -155,6 +189,10 @@ None.
 - `backend/src/Anela.Heblo.Application/Features/KnowledgeBase/Pipeline/QuestionLoggingBehavior.cs` — RagInteractionLogs write
 - `backend/src/Anela.Heblo.Application/Shared/Rag/RagInteractionRecorder.cs` — scoped capture shared with Smartsupp
 - `backend/src/Anela.Heblo.Application/Features/KnowledgeBase/UseCases/SubmitFeedback/SubmitFeedbackHandler.cs` — rating rules
-- `backend/src/Anela.Heblo.Persistence/Rag/RagInteractionLogRepository.cs` — feedback list + stats
+- `backend/src/Anela.Heblo.Persistence/Rag/RagInteractionLogRepository.cs` — feedback list, filters, stats, tag counts
+- `backend/src/Anela.Heblo.Application/Shared/Rag/RagExpansionParser.cs` — expansion JSON → embed text + tags
+- `backend/src/Anela.Heblo.Application/Features/KnowledgeBase/Services/QuestionTagLibrary.cs` — `{EXISTING_TAGS}` library
+- `backend/src/Anela.Heblo.Application/Features/KnowledgeBase/UseCases/GetQuestionTagStats/GetQuestionTagStatsHandler.cs` — tag-stats endpoint
+- `frontend/src/components/feedback/KbTagFrequencyPanel.tsx` — frequency panel on the feedback page
 - `backend/src/Anela.Heblo.API/MCP/Tools/KnowledgeBaseTools.cs` — MCP tools
 - `frontend/src/components/knowledge-base/KnowledgeBaseSearchAskTab.tsx` — the page's ask UI

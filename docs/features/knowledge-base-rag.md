@@ -360,12 +360,12 @@ Returns list of all indexed documents ordered by `CreatedAt` descending.
 
 ### Feedback list filters and tag statistics
 
-`GET /api/KnowledgeBase/feedback` (Write access) additionally accepts:
+`GET /api/KnowledgeBase/feedback/list` (Write access) additionally accepts:
 
 | Param | Description |
 |---|---|
 | `dateFrom`, `dateTo` | `yyyy-MM-dd`; inclusive Prague calendar days |
-| `problemTag`, `productTag` | Exact match on the normalised tag (an over-long value normalises to nothing, i.e. no filter) |
+| `problemTag`, `productTag` | Exact match on the normalised tag (an over-long value is kept, so it matches nothing) |
 
 `GET /api/KnowledgeBase/feedback/tag-stats?dateFrom=&dateTo=` (Write access) returns tag frequencies (`GetQuestionTagStatsResponse`) for the same Prague-day range, used by the frequency panel on the feedback page.
 

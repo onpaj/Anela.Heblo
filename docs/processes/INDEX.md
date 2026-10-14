@@ -159,7 +159,7 @@ Agent-facing catalog of what Heblo does, grouped by module. Each module has an o
 [module-knowledge-base](module-knowledge-base.md) — Anela's AI knowledge base (RAG) — indexes internal documents and customer chat transcripts from SharePoint into a vector store and answers customer-care questions from them; also the fact source for Smartsupp draft replies, AI articles and leaflets.
 
 - [job-knowledge-base-ingestion](job-knowledge-base-ingestion.md) (job) — Every 15 minutes picks up new files from the SharePoint knowledge-base inbox folders (and any file uploaded by hand), turns them into LLM-summarised, OpenAI-embedded chunks in KnowledgeBaseDocuments/KnowledgeBaseChunks, and moves the processed files to the archive folder. Related: flow-knowledge-base-ask
-- [flow-knowledge-base-ask](flow-knowledge-base-ask.md) (workflow) — Answers a staff question from the knowledge base — expands the query with Claude, finds the closest chunks by vector similarity, lets Claude write a Czech answer with product links resolved from the catalog, logs the interaction to RagInteractionLogs and collects 1–5 star feedback. Related: job-knowledge-base-ingestion, flow-article-generation
+- [flow-knowledge-base-ask](flow-knowledge-base-ask.md) (workflow) — Answers a staff question from the knowledge base — expands the query with Claude, finds the closest chunks by vector similarity, lets Claude write a Czech answer with product links resolved from the catalog, tags the question with problem and product tags, logs the interaction to RagInteractionLogs and collects 1–5 star feedback. Related: job-knowledge-base-ingestion, flow-article-generation
 
 ## label-identification
 
