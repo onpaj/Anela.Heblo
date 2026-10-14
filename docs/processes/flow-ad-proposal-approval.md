@@ -55,6 +55,7 @@ kill switch over `/api/marketing-ads/settings` (UI in C5). Nothing in C3 has a H
 - A platform `Failed` result on one action continues with the next; stale state, kill switch, missing executor, a failed current-state read or a thrown mutate stop the run and skip the rest.
 - A thrown `ExecuteAsync` is never retried. One best-effort `ReadCurrentAsync` follows: new value seen → action Succeeded ("Applied — confirmed by re-read after transport error"); otherwise Failed ("may have been applied; verify in the account").
 - Revert retry of a `RevertFailed` row first re-reads; if the target already shows the old value it is marked Reverted without a platform call.
+- Free text that may hold newlines (proposal reasoning, reject reason, agent-run name and summary) is refused with 400 when it contains U+0000, which Postgres `text`/`jsonb` cannot store; ids, keywords and agent-run scopes refuse every control/format character.
 - Audit (`AdAuditEvents`) and `AdProposalVersions` are append-only: Postgres trigger `marketing_ads_reject_mutation` rejects UPDATE, DELETE and TRUNCATE.
 - Error codes 4001–4017 (`MarketingAds*`).
 

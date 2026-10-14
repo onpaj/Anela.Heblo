@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Anela.Heblo.Application.Features.MarketingAds.Proposals.Actions;
 using Anela.Heblo.Application.Features.MarketingAds.Proposals.UseCases.StartAgentRun;
 using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Domain.Features.MarketingAds;
@@ -41,7 +42,7 @@ public class FinishAgentRunHandler : IRequestHandler<FinishAgentRunRequest, Fini
 
     private static bool IsValid(FinishAgentRunRequest r) =>
         r.Status is AgentRunStatus.Succeeded or AgentRunStatus.Failed
-        && (r.Summary is null || r.Summary.Length <= FinishAgentRunRequest.MaxSummaryLength)
+        && (r.Summary is null || (r.Summary.Length <= FinishAgentRunRequest.MaxSummaryLength && !AdTextSafety.ContainsNul(r.Summary)))
         && AgentRunScopes.AreValid(r.DataScopesRead)
         && (r.InputTokens is null or >= 0)
         && (r.OutputTokens is null or >= 0)

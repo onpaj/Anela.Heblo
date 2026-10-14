@@ -16,4 +16,10 @@ internal static class AdTextSafety
             or UnicodeCategory.LineSeparator or UnicodeCategory.ParagraphSeparator;
 
     public static bool ContainsForbidden(string value) => value.EnumerateRunes().Any(IsForbidden);
+
+    /// <summary>
+    /// For free text that may hold newlines (reasoning, reasons, summaries): only U+0000 is refused, because Postgres
+    /// text and jsonb cannot store it and the save would fail after validation passed.
+    /// </summary>
+    public static bool ContainsNul(string? value) => value is not null && value.Contains('\0');
 }

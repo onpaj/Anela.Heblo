@@ -1,3 +1,4 @@
+using Anela.Heblo.Application.Features.MarketingAds.Proposals.Actions;
 using Anela.Heblo.Application.Features.MarketingAds.Proposals.Approval;
 using Anela.Heblo.Application.Features.MarketingAds.Proposals.Audit;
 using Anela.Heblo.Application.Shared;
@@ -35,10 +36,10 @@ public class RejectAdProposalHandler : IRequestHandler<RejectAdProposalRequest, 
         if (string.IsNullOrWhiteSpace(principal)) return new RejectAdProposalResponse(ErrorCodes.Unauthorized);
 
         var reason = request.Reason?.Trim() ?? string.Empty;
-        if (reason.Length == 0 || reason.Length > RejectAdProposalRequest.MaxReasonLength)
+        if (reason.Length == 0 || reason.Length > RejectAdProposalRequest.MaxReasonLength || AdTextSafety.ContainsNul(reason))
         {
             return new RejectAdProposalResponse(ErrorCodes.MarketingAdsInvalidProposal,
-                AdProposalErrors.Params(new[] { $"Reason is required (max {RejectAdProposalRequest.MaxReasonLength} chars)." }));
+                AdProposalErrors.Params(new[] { $"Reason is required (max {RejectAdProposalRequest.MaxReasonLength} chars, no NUL characters)." }));
         }
 
         var resolution = _channelResolver.Resolve();

@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Anela.Heblo.Application.Features.MarketingAds.Proposals.Actions;
 using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Domain.Features.MarketingAds;
 using Anela.Heblo.Domain.Features.Users;
@@ -24,7 +25,8 @@ public class StartAgentRunHandler : IRequestHandler<StartAgentRunRequest, StartA
         var principal = _currentUser.GetCurrentUser().Id;
         if (string.IsNullOrWhiteSpace(principal)) return new StartAgentRunResponse(ErrorCodes.Unauthorized);
         var name = request.AgentName?.Trim() ?? string.Empty;
-        if (name.Length == 0 || name.Length > StartAgentRunRequest.MaxAgentNameLength || !AgentRunScopes.AreValid(request.DataScopesRead))
+        if (name.Length == 0 || name.Length > StartAgentRunRequest.MaxAgentNameLength || AdTextSafety.ContainsNul(name)
+            || !AgentRunScopes.AreValid(request.DataScopesRead))
         {
             return new StartAgentRunResponse(ErrorCodes.MarketingAdsInvalidAgentRun);
         }

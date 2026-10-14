@@ -27,6 +27,7 @@ public class AdProposalShapeValidatorTests
         { "null actions", AdActionType.PauseAd, null, "why", "acc-1" },
         { "51 actions", AdActionType.PauseAd, Enumerable.Range(1, 51).Select(i => Pause($"ad-{i}")).ToArray(), "why", "acc-1" },
         { "missing reasoning", AdActionType.PauseAd, new[] { Pause("ad-1") }, " ", "acc-1" },
+        { "NUL in reasoning", AdActionType.PauseAd, new[] { Pause("ad-1") }, "why\0not", "acc-1" },
         { "missing account", AdActionType.PauseAd, new[] { Pause("ad-1") }, "why", null },
         { "control char in id", AdActionType.PauseAd, new[] { Pause("ad-1\n") }, "why", "acc-1" },
         { "line separator in id", AdActionType.PauseAd, new[] { Pause("ad-1\u2028") }, "why", "acc-1" },

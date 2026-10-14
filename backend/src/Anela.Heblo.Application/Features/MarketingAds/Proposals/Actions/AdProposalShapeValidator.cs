@@ -28,6 +28,7 @@ public static class AdProposalShapeValidator
         if (!IsValidId(accountExternalId)) errors.Add($"AccountExternalId is required (max {MaxExternalIdLength} chars, no control characters).");
         if (string.IsNullOrWhiteSpace(reasoning)) errors.Add("Reasoning is required.");
         else if (reasoning.Length > MaxReasoningLength) errors.Add($"Reasoning is longer than {MaxReasoningLength} characters.");
+        else if (AdTextSafety.ContainsNul(reasoning)) errors.Add("Reasoning must not contain NUL (U+0000) characters.");
 
         if (actions is null || actions.Count == 0) errors.Add("At least one action is required.");
         else if (actions.Count > MaxActionsPerProposal) errors.Add($"A proposal holds at most {MaxActionsPerProposal} actions.");

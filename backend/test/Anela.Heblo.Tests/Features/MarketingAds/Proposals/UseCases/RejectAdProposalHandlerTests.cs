@@ -65,6 +65,19 @@ public class RejectAdProposalHandlerTests
     }
 
     [Fact]
+    public async Task ReasonWithNul_IsInvalidAndRecordsNothing()
+    {
+        using var h = new ProposalTestHarness();
+        var id = await h.SeedPendingAsync();
+
+        var response = await Handler(h).Handle(Rejection(id, reason: "brand\0term"), CancellationToken.None);
+
+        response.ErrorCode.Should().Be(ErrorCodes.MarketingAdsInvalidProposal);
+        await using var verify = h.NewContext();
+        (await verify.AdProposals.SingleAsync(p => p.Id == id)).Status.Should().Be(AdProposalStatus.Pending);
+    }
+
+    [Fact]
     public async Task DeniedChannel_CannotReject()
     {
         using var h = new ProposalTestHarness();

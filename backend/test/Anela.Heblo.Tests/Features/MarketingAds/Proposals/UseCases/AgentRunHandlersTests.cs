@@ -143,6 +143,33 @@ public class AgentRunHandlersTests
         (await verify.AgentRuns.SingleAsync()).Status.Should().Be(AgentRunStatus.Running);
     }
 
+    [Fact]
+    public async Task NulInNameSummaryOrScopes_IsInvalid()
+    {
+        using var h = new ProposalTestHarness();
+        var nulName = await Start(h).Handle(new StartAgentRunRequest { AgentName = "paid\0search" }, CancellationToken.None);
+        var nulScope = await Start(h).Handle(new StartAgentRunRequest { AgentName = "a", DataScopesRead = new() { "ads\0" } }, CancellationToken.None);
+        var started = await Start(h).Handle(new StartAgentRunRequest { AgentName = "paid-search" }, CancellationToken.None);
+
+        var nulSummary = await Finish(h).Handle(new FinishAgentRunRequest
+        {
+            AgentRunId = started.AgentRunId,
+            Status = AgentRunStatus.Succeeded,
+            Summary = "done\0",
+        }, CancellationToken.None);
+        var nulFinishScope = await Finish(h).Handle(new FinishAgentRunRequest
+        {
+            AgentRunId = started.AgentRunId,
+            Status = AgentRunStatus.Succeeded,
+            DataScopesRead = new() { "\0" },
+        }, CancellationToken.None);
+
+        new[] { nulName.ErrorCode, nulScope.ErrorCode, nulSummary.ErrorCode, nulFinishScope.ErrorCode }
+            .Should().OnlyContain(c => c == ErrorCodes.MarketingAdsInvalidAgentRun);
+        await using var verify = h.NewContext();
+        (await verify.AgentRuns.SingleAsync()).Status.Should().Be(AgentRunStatus.Running);
+    }
+
     [Theory]
     [InlineData("")]
     [InlineData("   ")]

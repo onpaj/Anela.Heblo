@@ -30,6 +30,22 @@ public class ReviseAdProposalHandlerTests
     };
 
     [Fact]
+    public async Task ReasoningWithNul_IsInvalidAndStoresNoVersion()
+    {
+        using var h = new ProposalTestHarness();
+        var id = await h.SeedPendingAsync(creator: "agent-1");
+        h.ActAs("agent-1");
+        var request = Revision(id, 1, "ad-1");
+        request.Reasoning = "narrowed\0";
+
+        var response = await Handler(h).Handle(request, CancellationToken.None);
+
+        response.ErrorCode.Should().Be(ErrorCodes.MarketingAdsInvalidProposal);
+        await using var verify = h.NewContext();
+        (await verify.AdProposalVersions.CountAsync(v => v.ProposalId == id)).Should().Be(1);
+    }
+
+    [Fact]
     public async Task Creator_RevisesCurrentVersion_InsertsVersionTwoAndVoidsApprovals()
     {
         using var h = new ProposalTestHarness();
