@@ -94,9 +94,15 @@ public class AdEntityUpserterTests
         {
             seed.Entities.Add(new AdEntity
             {
-                AccountId = accountId, Level = "Campaign", ExternalId = "c-9", Name = "Campaign c-9", Status = "Enabled",
+                AccountId = accountId,
+                Level = "Campaign",
+                ExternalId = "c-9",
+                Name = "Campaign c-9",
+                Status = "Enabled",
                 AttributesJson = "{\"bidding\": \"MaxConversions\", \"budget\": \"500\"}",
-                FirstSeenAt = AdsTestData.Now, LastSeenAt = AdsTestData.Now, UpdatedAt = AdsTestData.Now,
+                FirstSeenAt = AdsTestData.Now,
+                LastSeenAt = AdsTestData.Now,
+                UpdatedAt = AdsTestData.Now,
             });
             await seed.SaveChangesAsync();
         }

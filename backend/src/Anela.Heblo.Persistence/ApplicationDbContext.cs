@@ -10,6 +10,7 @@ using Anela.Heblo.Domain.Features.MeetingTasks;
 using Anela.Heblo.Domain.Features.MindMaps;
 using Anela.Heblo.Domain.Features.MarketingInvoices;
 using Anela.Heblo.Domain.Features.MarketingPerformance;
+using Anela.Heblo.Domain.Features.MarketingAds;
 using Anela.Heblo.Domain.Features.Bank;
 using Anela.Heblo.Domain.Features.GridLayouts;
 using Anela.Heblo.Domain.Features.KnowledgeBase;
@@ -202,6 +203,17 @@ public class ApplicationDbContext : DbContext
     // Marketing Performance module
     public DbSet<MarketingPerformanceMonth> MarketingPerformanceMonths { get; set; } = null!;
     public DbSet<MarketingPerformanceChannelCost> MarketingPerformanceChannelCosts { get; set; } = null!;
+
+    // Marketing Ads — proposal & approval layer (PR C3)
+    public DbSet<AdProposal> AdProposals { get; set; } = null!;
+    public DbSet<AdProposalVersion> AdProposalVersions { get; set; } = null!;
+    public DbSet<AdProposalApproval> AdProposalApprovals { get; set; } = null!;
+    public DbSet<AdProposalActionExecution> AdProposalActionExecutions { get; set; } = null!;
+    public DbSet<AdAuditEvent> AdAuditEvents { get; set; } = null!;
+    public DbSet<AgentRun> AgentRuns { get; set; } = null!;
+    public DbSet<AdAutonomySetting> AdAutonomySettings { get; set; } = null!;
+    public DbSet<AdLimitSetting> AdLimitSettings { get; set; } = null!;
+    public DbSet<AdKillSwitch> AdKillSwitches { get; set; } = null!;
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

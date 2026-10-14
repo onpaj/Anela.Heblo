@@ -551,6 +551,66 @@
       "value": "marketing.performance.write"
     },
     {
+      "id": "f790e715-d20b-5a9e-bf20-55cf0422e2ab",
+      "allowedMemberTypes": [
+        "User"
+      ],
+      "description": "Marketing_Ads Read",
+      "displayName": "marketing.ads.read",
+      "isEnabled": true,
+      "value": "marketing.ads.read"
+    },
+    {
+      "id": "9ea6b4ca-9fd8-51e7-a0d1-ae79ec247e9b",
+      "allowedMemberTypes": [
+        "User"
+      ],
+      "description": "Marketing_Ads Write",
+      "displayName": "marketing.ads.write",
+      "isEnabled": true,
+      "value": "marketing.ads.write"
+    },
+    {
+      "id": "d7f9cecf-230a-55ca-9a3c-9129b774697e",
+      "allowedMemberTypes": [
+        "User"
+      ],
+      "description": "Marketing_AdApprovals Read",
+      "displayName": "marketing.ad_approvals.read",
+      "isEnabled": true,
+      "value": "marketing.ad_approvals.read"
+    },
+    {
+      "id": "f7137636-ef68-5d91-9bc4-927b5cc74300",
+      "allowedMemberTypes": [
+        "User"
+      ],
+      "description": "Marketing_AdApprovals Write",
+      "displayName": "marketing.ad_approvals.write",
+      "isEnabled": true,
+      "value": "marketing.ad_approvals.write"
+    },
+    {
+      "id": "27baac68-9ebf-580a-b9b0-5fea8acd0e11",
+      "allowedMemberTypes": [
+        "User"
+      ],
+      "description": "Marketing_AdApprovals Admin",
+      "displayName": "marketing.ad_approvals.admin",
+      "isEnabled": true,
+      "value": "marketing.ad_approvals.admin"
+    },
+    {
+      "id": "0112dbfc-2582-5a23-ae8a-6a184a6ac52e",
+      "allowedMemberTypes": [
+        "User"
+      ],
+      "description": "Marketing_AdApprovalsViaMcp Read",
+      "displayName": "marketing.ad_approvals_via_mcp.read",
+      "isEnabled": true,
+      "value": "marketing.ad_approvals_via_mcp.read"
+    },
+    {
       "id": "b1762e2c-07ab-5bc8-999a-9c499bef77cc",
       "allowedMemberTypes": [
         "User"

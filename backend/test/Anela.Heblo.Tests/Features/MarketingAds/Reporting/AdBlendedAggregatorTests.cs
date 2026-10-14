@@ -8,8 +8,14 @@ public class AdBlendedAggregatorTests
 {
     private static AdBlendedDayRow Day(int month, int day, decimal cost, decimal revenue, bool nonCzk = false) => new()
     {
-        Date = new DateOnly(2026, month, day), AdCostCzk = cost, GoogleAdsCostCzk = cost, Orders = 1,
-        RevenueWithoutVatCzk = revenue, EshopRevenueWithoutVatCzk = revenue, HasNonCzkAdCost = nonCzk, HasAdCostData = cost > 0,
+        Date = new DateOnly(2026, month, day),
+        AdCostCzk = cost,
+        GoogleAdsCostCzk = cost,
+        Orders = 1,
+        RevenueWithoutVatCzk = revenue,
+        EshopRevenueWithoutVatCzk = revenue,
+        HasNonCzkAdCost = nonCzk,
+        HasAdCostData = cost > 0,
     };
 
     [Fact]

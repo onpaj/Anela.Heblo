@@ -7902,6 +7902,779 @@ export class ApiClient {
         return Promise.resolve<GetManufacturingStockAnalysisResponse>(null as any);
     }
 
+    marketingAdsActivity_ListAuditEvents(proposalId: number | null | undefined, eventType: AdAuditEventType | null | undefined, page: number | undefined, pageSize: number | undefined): Promise<ListAdAuditEventsResponse> {
+        let url_ = this.baseUrl + "/api/marketing-ads/activity/audit?";
+        if (proposalId !== undefined && proposalId !== null)
+            url_ += "ProposalId=" + encodeURIComponent("" + proposalId) + "&";
+        if (eventType !== undefined && eventType !== null)
+            url_ += "EventType=" + encodeURIComponent("" + eventType) + "&";
+        if (page === null)
+            throw new Error("The parameter 'page' cannot be null.");
+        else if (page !== undefined)
+            url_ += "Page=" + encodeURIComponent("" + page) + "&";
+        if (pageSize === null)
+            throw new Error("The parameter 'pageSize' cannot be null.");
+        else if (pageSize !== undefined)
+            url_ += "PageSize=" + encodeURIComponent("" + pageSize) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processMarketingAdsActivity_ListAuditEvents(_response);
+        });
+    }
+
+    protected processMarketingAdsActivity_ListAuditEvents(response: Response): Promise<ListAdAuditEventsResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = ListAdAuditEventsResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status === 403) {
+            return response.text().then((_responseText) => {
+            let result403: any = null;
+            let resultData403 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result403 = ProblemDetails.fromJS(resultData403);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result403);
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<ListAdAuditEventsResponse>(null as any);
+    }
+
+    marketingAdsActivity_ListAgentRuns(page: number | undefined, pageSize: number | undefined): Promise<ListAgentRunsResponse> {
+        let url_ = this.baseUrl + "/api/marketing-ads/activity/agent-runs?";
+        if (page === null)
+            throw new Error("The parameter 'page' cannot be null.");
+        else if (page !== undefined)
+            url_ += "Page=" + encodeURIComponent("" + page) + "&";
+        if (pageSize === null)
+            throw new Error("The parameter 'pageSize' cannot be null.");
+        else if (pageSize !== undefined)
+            url_ += "PageSize=" + encodeURIComponent("" + pageSize) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processMarketingAdsActivity_ListAgentRuns(_response);
+        });
+    }
+
+    protected processMarketingAdsActivity_ListAgentRuns(response: Response): Promise<ListAgentRunsResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = ListAgentRunsResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status === 403) {
+            return response.text().then((_responseText) => {
+            let result403: any = null;
+            let resultData403 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result403 = ProblemDetails.fromJS(resultData403);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result403);
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<ListAgentRunsResponse>(null as any);
+    }
+
+    marketingAdsProposals_ListProposals(status: AdProposalStatus | null | undefined, platform: AdPlatform | null | undefined, mine: boolean | undefined, page: number | undefined, pageSize: number | undefined): Promise<ListAdProposalsResponse> {
+        let url_ = this.baseUrl + "/api/marketing-ads/proposals?";
+        if (status !== undefined && status !== null)
+            url_ += "Status=" + encodeURIComponent("" + status) + "&";
+        if (platform !== undefined && platform !== null)
+            url_ += "Platform=" + encodeURIComponent("" + platform) + "&";
+        if (mine === null)
+            throw new Error("The parameter 'mine' cannot be null.");
+        else if (mine !== undefined)
+            url_ += "Mine=" + encodeURIComponent("" + mine) + "&";
+        if (page === null)
+            throw new Error("The parameter 'page' cannot be null.");
+        else if (page !== undefined)
+            url_ += "Page=" + encodeURIComponent("" + page) + "&";
+        if (pageSize === null)
+            throw new Error("The parameter 'pageSize' cannot be null.");
+        else if (pageSize !== undefined)
+            url_ += "PageSize=" + encodeURIComponent("" + pageSize) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processMarketingAdsProposals_ListProposals(_response);
+        });
+    }
+
+    protected processMarketingAdsProposals_ListProposals(response: Response): Promise<ListAdProposalsResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = ListAdProposalsResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status === 403) {
+            return response.text().then((_responseText) => {
+            let result403: any = null;
+            let resultData403 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result403 = ProblemDetails.fromJS(resultData403);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result403);
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<ListAdProposalsResponse>(null as any);
+    }
+
+    marketingAdsProposals_SubmitProposal(request: SubmitAdProposalRequest): Promise<SubmitAdProposalResponse> {
+        let url_ = this.baseUrl + "/api/marketing-ads/proposals";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: RequestInit = {
+            body: content_,
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processMarketingAdsProposals_SubmitProposal(_response);
+        });
+    }
+
+    protected processMarketingAdsProposals_SubmitProposal(response: Response): Promise<SubmitAdProposalResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = SubmitAdProposalResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status === 400) {
+            return response.text().then((_responseText) => {
+            let result400: any = null;
+            let resultData400 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result400 = SubmitAdProposalResponse.fromJS(resultData400);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result400);
+            });
+        } else if (status === 404) {
+            return response.text().then((_responseText) => {
+            let result404: any = null;
+            let resultData404 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result404 = SubmitAdProposalResponse.fromJS(resultData404);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result404);
+            });
+        } else if (status === 422) {
+            return response.text().then((_responseText) => {
+            let result422: any = null;
+            let resultData422 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result422 = SubmitAdProposalResponse.fromJS(resultData422);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result422);
+            });
+        } else if (status === 403) {
+            return response.text().then((_responseText) => {
+            let result403: any = null;
+            let resultData403 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result403 = ProblemDetails.fromJS(resultData403);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result403);
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<SubmitAdProposalResponse>(null as any);
+    }
+
+    marketingAdsProposals_GetProposal(id: number): Promise<GetAdProposalResponse> {
+        let url_ = this.baseUrl + "/api/marketing-ads/proposals/{id}";
+        if (id === undefined || id === null)
+            throw new Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processMarketingAdsProposals_GetProposal(_response);
+        });
+    }
+
+    protected processMarketingAdsProposals_GetProposal(response: Response): Promise<GetAdProposalResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = GetAdProposalResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status === 404) {
+            return response.text().then((_responseText) => {
+            let result404: any = null;
+            let resultData404 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result404 = GetAdProposalResponse.fromJS(resultData404);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result404);
+            });
+        } else if (status === 403) {
+            return response.text().then((_responseText) => {
+            let result403: any = null;
+            let resultData403 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result403 = ProblemDetails.fromJS(resultData403);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result403);
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<GetAdProposalResponse>(null as any);
+    }
+
+    marketingAdsProposals_ReviseProposal(id: number, request: ReviseAdProposalRequest): Promise<ReviseAdProposalResponse> {
+        let url_ = this.baseUrl + "/api/marketing-ads/proposals/{id}/revisions";
+        if (id === undefined || id === null)
+            throw new Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: RequestInit = {
+            body: content_,
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processMarketingAdsProposals_ReviseProposal(_response);
+        });
+    }
+
+    protected processMarketingAdsProposals_ReviseProposal(response: Response): Promise<ReviseAdProposalResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = ReviseAdProposalResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status === 400) {
+            return response.text().then((_responseText) => {
+            let result400: any = null;
+            let resultData400 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result400 = ReviseAdProposalResponse.fromJS(resultData400);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result400);
+            });
+        } else if (status === 404) {
+            return response.text().then((_responseText) => {
+            let result404: any = null;
+            let resultData404 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result404 = ReviseAdProposalResponse.fromJS(resultData404);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result404);
+            });
+        } else if (status === 409) {
+            return response.text().then((_responseText) => {
+            let result409: any = null;
+            let resultData409 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result409 = ReviseAdProposalResponse.fromJS(resultData409);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result409);
+            });
+        } else if (status === 422) {
+            return response.text().then((_responseText) => {
+            let result422: any = null;
+            let resultData422 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result422 = ReviseAdProposalResponse.fromJS(resultData422);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result422);
+            });
+        } else if (status === 403) {
+            return response.text().then((_responseText) => {
+            let result403: any = null;
+            let resultData403 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result403 = ReviseAdProposalResponse.fromJS(resultData403);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result403);
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<ReviseAdProposalResponse>(null as any);
+    }
+
+    marketingAdsProposals_ApproveProposal(id: number, request: ApproveAdProposalRequest): Promise<ApproveAdProposalResponse> {
+        let url_ = this.baseUrl + "/api/marketing-ads/proposals/{id}/approve";
+        if (id === undefined || id === null)
+            throw new Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: RequestInit = {
+            body: content_,
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processMarketingAdsProposals_ApproveProposal(_response);
+        });
+    }
+
+    protected processMarketingAdsProposals_ApproveProposal(response: Response): Promise<ApproveAdProposalResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = ApproveAdProposalResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status === 404) {
+            return response.text().then((_responseText) => {
+            let result404: any = null;
+            let resultData404 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result404 = ApproveAdProposalResponse.fromJS(resultData404);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result404);
+            });
+        } else if (status === 409) {
+            return response.text().then((_responseText) => {
+            let result409: any = null;
+            let resultData409 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result409 = ApproveAdProposalResponse.fromJS(resultData409);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result409);
+            });
+        } else if (status === 422) {
+            return response.text().then((_responseText) => {
+            let result422: any = null;
+            let resultData422 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result422 = ApproveAdProposalResponse.fromJS(resultData422);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result422);
+            });
+        } else if (status === 403) {
+            return response.text().then((_responseText) => {
+            let result403: any = null;
+            let resultData403 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result403 = ApproveAdProposalResponse.fromJS(resultData403);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result403);
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<ApproveAdProposalResponse>(null as any);
+    }
+
+    marketingAdsProposals_RejectProposal(id: number, request: RejectAdProposalRequest): Promise<RejectAdProposalResponse> {
+        let url_ = this.baseUrl + "/api/marketing-ads/proposals/{id}/reject";
+        if (id === undefined || id === null)
+            throw new Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: RequestInit = {
+            body: content_,
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processMarketingAdsProposals_RejectProposal(_response);
+        });
+    }
+
+    protected processMarketingAdsProposals_RejectProposal(response: Response): Promise<RejectAdProposalResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = RejectAdProposalResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status === 400) {
+            return response.text().then((_responseText) => {
+            let result400: any = null;
+            let resultData400 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result400 = RejectAdProposalResponse.fromJS(resultData400);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result400);
+            });
+        } else if (status === 404) {
+            return response.text().then((_responseText) => {
+            let result404: any = null;
+            let resultData404 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result404 = RejectAdProposalResponse.fromJS(resultData404);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result404);
+            });
+        } else if (status === 409) {
+            return response.text().then((_responseText) => {
+            let result409: any = null;
+            let resultData409 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result409 = RejectAdProposalResponse.fromJS(resultData409);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result409);
+            });
+        } else if (status === 403) {
+            return response.text().then((_responseText) => {
+            let result403: any = null;
+            let resultData403 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result403 = RejectAdProposalResponse.fromJS(resultData403);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result403);
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<RejectAdProposalResponse>(null as any);
+    }
+
+    marketingAdsProposals_RevertProposal(id: number): Promise<RevertAdProposalResponse> {
+        let url_ = this.baseUrl + "/api/marketing-ads/proposals/{id}/revert";
+        if (id === undefined || id === null)
+            throw new Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "POST",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processMarketingAdsProposals_RevertProposal(_response);
+        });
+    }
+
+    protected processMarketingAdsProposals_RevertProposal(response: Response): Promise<RevertAdProposalResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = RevertAdProposalResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status === 404) {
+            return response.text().then((_responseText) => {
+            let result404: any = null;
+            let resultData404 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result404 = RevertAdProposalResponse.fromJS(resultData404);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result404);
+            });
+        } else if (status === 409) {
+            return response.text().then((_responseText) => {
+            let result409: any = null;
+            let resultData409 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result409 = RevertAdProposalResponse.fromJS(resultData409);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result409);
+            });
+        } else if (status === 502) {
+            return response.text().then((_responseText) => {
+            let result502: any = null;
+            let resultData502 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result502 = RevertAdProposalResponse.fromJS(resultData502);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result502);
+            });
+        } else if (status === 403) {
+            return response.text().then((_responseText) => {
+            let result403: any = null;
+            let resultData403 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result403 = RevertAdProposalResponse.fromJS(resultData403);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result403);
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<RevertAdProposalResponse>(null as any);
+    }
+
+    marketingAdsSettings_GetSettings(): Promise<GetAdSettingsResponse> {
+        let url_ = this.baseUrl + "/api/marketing-ads/settings";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processMarketingAdsSettings_GetSettings(_response);
+        });
+    }
+
+    protected processMarketingAdsSettings_GetSettings(response: Response): Promise<GetAdSettingsResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = GetAdSettingsResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status === 403) {
+            return response.text().then((_responseText) => {
+            let result403: any = null;
+            let resultData403 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result403 = ProblemDetails.fromJS(resultData403);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result403);
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<GetAdSettingsResponse>(null as any);
+    }
+
+    marketingAdsSettings_UpdateAutonomy(request: UpdateAdAutonomySettingRequest): Promise<UpdateAdAutonomySettingResponse> {
+        let url_ = this.baseUrl + "/api/marketing-ads/settings/autonomy";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: RequestInit = {
+            body: content_,
+            method: "PUT",
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processMarketingAdsSettings_UpdateAutonomy(_response);
+        });
+    }
+
+    protected processMarketingAdsSettings_UpdateAutonomy(response: Response): Promise<UpdateAdAutonomySettingResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = UpdateAdAutonomySettingResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status === 400) {
+            return response.text().then((_responseText) => {
+            let result400: any = null;
+            let resultData400 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result400 = UpdateAdAutonomySettingResponse.fromJS(resultData400);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result400);
+            });
+        } else if (status === 409) {
+            return response.text().then((_responseText) => {
+            let result409: any = null;
+            let resultData409 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result409 = UpdateAdAutonomySettingResponse.fromJS(resultData409);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result409);
+            });
+        } else if (status === 403) {
+            return response.text().then((_responseText) => {
+            let result403: any = null;
+            let resultData403 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result403 = UpdateAdAutonomySettingResponse.fromJS(resultData403);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result403);
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<UpdateAdAutonomySettingResponse>(null as any);
+    }
+
+    marketingAdsSettings_UpdateLimit(request: UpdateAdLimitSettingRequest): Promise<UpdateAdLimitSettingResponse> {
+        let url_ = this.baseUrl + "/api/marketing-ads/settings/limits";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: RequestInit = {
+            body: content_,
+            method: "PUT",
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processMarketingAdsSettings_UpdateLimit(_response);
+        });
+    }
+
+    protected processMarketingAdsSettings_UpdateLimit(response: Response): Promise<UpdateAdLimitSettingResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = UpdateAdLimitSettingResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status === 400) {
+            return response.text().then((_responseText) => {
+            let result400: any = null;
+            let resultData400 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result400 = UpdateAdLimitSettingResponse.fromJS(resultData400);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result400);
+            });
+        } else if (status === 409) {
+            return response.text().then((_responseText) => {
+            let result409: any = null;
+            let resultData409 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result409 = UpdateAdLimitSettingResponse.fromJS(resultData409);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result409);
+            });
+        } else if (status === 403) {
+            return response.text().then((_responseText) => {
+            let result403: any = null;
+            let resultData403 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result403 = UpdateAdLimitSettingResponse.fromJS(resultData403);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result403);
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<UpdateAdLimitSettingResponse>(null as any);
+    }
+
+    marketingAdsSettings_SetKillSwitch(request: SetAdKillSwitchRequest): Promise<SetAdKillSwitchResponse> {
+        let url_ = this.baseUrl + "/api/marketing-ads/settings/kill-switch";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: RequestInit = {
+            body: content_,
+            method: "PUT",
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processMarketingAdsSettings_SetKillSwitch(_response);
+        });
+    }
+
+    protected processMarketingAdsSettings_SetKillSwitch(response: Response): Promise<SetAdKillSwitchResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = SetAdKillSwitchResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status === 400) {
+            return response.text().then((_responseText) => {
+            let result400: any = null;
+            let resultData400 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result400 = SetAdKillSwitchResponse.fromJS(resultData400);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result400);
+            });
+        } else if (status === 409) {
+            return response.text().then((_responseText) => {
+            let result409: any = null;
+            let resultData409 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result409 = SetAdKillSwitchResponse.fromJS(resultData409);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result409);
+            });
+        } else if (status === 403) {
+            return response.text().then((_responseText) => {
+            let result403: any = null;
+            let resultData403 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result403 = SetAdKillSwitchResponse.fromJS(resultData403);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result403);
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<SetAdKillSwitchResponse>(null as any);
+    }
+
     marketingCalendar_GetMarketingActions(pageNumber: number | undefined, pageSize: number | undefined, searchTerm: string | null | undefined, actionType: MarketingActionType | null | undefined, productCodePrefix: string | null | undefined, startDateFrom: Date | null | undefined, startDateTo: Date | null | undefined, endDateFrom: Date | null | undefined, endDateTo: Date | null | undefined, includeDeleted: boolean | undefined): Promise<GetMarketingActionsResponse> {
         let url_ = this.baseUrl + "/api/MarketingCalendar?";
         if (pageNumber === null)
@@ -15344,6 +16117,23 @@ export enum ErrorCodes {
     ReportingDatasetNotFound = "ReportingDatasetNotFound",
     ReportingInvalidQuery = "ReportingInvalidQuery",
     ReportingQueryTimeout = "ReportingQueryTimeout",
+    MarketingAdsProposalNotFound = "MarketingAdsProposalNotFound",
+    MarketingAdsProposalVersionMismatch = "MarketingAdsProposalVersionMismatch",
+    MarketingAdsProposalNotPending = "MarketingAdsProposalNotPending",
+    MarketingAdsProposalExpired = "MarketingAdsProposalExpired",
+    MarketingAdsApprovalChannelDenied = "MarketingAdsApprovalChannelDenied",
+    MarketingAdsLimitsDenied = "MarketingAdsLimitsDenied",
+    MarketingAdsNeedsWebApproval = "MarketingAdsNeedsWebApproval",
+    MarketingAdsAlreadyApprovedByPrincipal = "MarketingAdsAlreadyApprovedByPrincipal",
+    MarketingAdsInvalidProposal = "MarketingAdsInvalidProposal",
+    MarketingAdsNotRevertible = "MarketingAdsNotRevertible",
+    MarketingAdsRevertFailed = "MarketingAdsRevertFailed",
+    MarketingAdsAgentRunNotFound = "MarketingAdsAgentRunNotFound",
+    MarketingAdsInvalidSetting = "MarketingAdsInvalidSetting",
+    MarketingAdsConcurrentChange = "MarketingAdsConcurrentChange",
+    MarketingAdsNoExecutor = "MarketingAdsNoExecutor",
+    MarketingAdsNotProposalOwner = "MarketingAdsNotProposalOwner",
+    MarketingAdsInvalidAgentRun = "MarketingAdsInvalidAgentRun",
     ExternalServiceError = "ExternalServiceError",
     FlexiApiError = "FlexiApiError",
     ShoptetApiError = "ShoptetApiError",
@@ -33199,6 +33989,1856 @@ export enum ManufacturingStockSortBy {
     MinimumStock = "MinimumStock",
     OverstockPercentage = "OverstockPercentage",
     BatchSize = "BatchSize",
+}
+
+export class ListAdAuditEventsResponse extends BaseResponse implements IListAdAuditEventsResponse {
+    items?: AdAuditEventDto[];
+    totalCount?: number;
+
+    constructor(data?: IListAdAuditEventsResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            if (Array.isArray(_data["items"])) {
+                this.items = [] as any;
+                for (let item of _data["items"])
+                    this.items!.push(AdAuditEventDto.fromJS(item));
+            }
+            this.totalCount = _data["totalCount"];
+        }
+    }
+
+    static override fromJS(data: any): ListAdAuditEventsResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new ListAdAuditEventsResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        if (Array.isArray(this.items)) {
+            data["items"] = [];
+            for (let item of this.items)
+                data["items"].push(item.toJSON());
+        }
+        data["totalCount"] = this.totalCount;
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IListAdAuditEventsResponse extends IBaseResponse {
+    items?: AdAuditEventDto[];
+    totalCount?: number;
+}
+
+export class AdAuditEventDto implements IAdAuditEventDto {
+    id?: number;
+    proposalId?: number | undefined;
+    version?: number | undefined;
+    eventType?: AdAuditEventType;
+    actorPrincipal?: string;
+    actorKind?: AdActorKind;
+    channel?: ApprovalChannel;
+    payloadJson?: string;
+    occurredAt?: Date;
+
+    constructor(data?: IAdAuditEventDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.id = _data["id"];
+            this.proposalId = _data["proposalId"];
+            this.version = _data["version"];
+            this.eventType = _data["eventType"];
+            this.actorPrincipal = _data["actorPrincipal"];
+            this.actorKind = _data["actorKind"];
+            this.channel = _data["channel"];
+            this.payloadJson = _data["payloadJson"];
+            this.occurredAt = _data["occurredAt"] ? new Date(_data["occurredAt"].toString()) : <any>undefined;
+        }
+    }
+
+    static fromJS(data: any): AdAuditEventDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new AdAuditEventDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["id"] = this.id;
+        data["proposalId"] = this.proposalId;
+        data["version"] = this.version;
+        data["eventType"] = this.eventType;
+        data["actorPrincipal"] = this.actorPrincipal;
+        data["actorKind"] = this.actorKind;
+        data["channel"] = this.channel;
+        data["payloadJson"] = this.payloadJson;
+        data["occurredAt"] = this.occurredAt ? this.occurredAt.toISOString() : <any>undefined;
+        return data;
+    }
+}
+
+export interface IAdAuditEventDto {
+    id?: number;
+    proposalId?: number | undefined;
+    version?: number | undefined;
+    eventType?: AdAuditEventType;
+    actorPrincipal?: string;
+    actorKind?: AdActorKind;
+    channel?: ApprovalChannel;
+    payloadJson?: string;
+    occurredAt?: Date;
+}
+
+export enum AdAuditEventType {
+    Submitted = "Submitted",
+    Revised = "Revised",
+    Approved = "Approved",
+    Rejected = "Rejected",
+    Expired = "Expired",
+    ExecutionStarted = "ExecutionStarted",
+    ActionExecuted = "ActionExecuted",
+    ActionFailed = "ActionFailed",
+    Reverted = "Reverted",
+    SettingChanged = "SettingChanged",
+    KillSwitchChanged = "KillSwitchChanged",
+}
+
+export enum AdActorKind {
+    Human = "Human",
+    Agent = "Agent",
+    System = "System",
+}
+
+export enum ApprovalChannel {
+    Web = "Web",
+    Mcp = "Mcp",
+    System = "System",
+}
+
+export class ListAgentRunsResponse extends BaseResponse implements IListAgentRunsResponse {
+    items?: AgentRunDto[];
+    totalCount?: number;
+
+    constructor(data?: IListAgentRunsResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            if (Array.isArray(_data["items"])) {
+                this.items = [] as any;
+                for (let item of _data["items"])
+                    this.items!.push(AgentRunDto.fromJS(item));
+            }
+            this.totalCount = _data["totalCount"];
+        }
+    }
+
+    static override fromJS(data: any): ListAgentRunsResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new ListAgentRunsResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        if (Array.isArray(this.items)) {
+            data["items"] = [];
+            for (let item of this.items)
+                data["items"].push(item.toJSON());
+        }
+        data["totalCount"] = this.totalCount;
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IListAgentRunsResponse extends IBaseResponse {
+    items?: AgentRunDto[];
+    totalCount?: number;
+}
+
+export class AgentRunDto implements IAgentRunDto {
+    id?: string;
+    agentName?: string;
+    principal?: string;
+    startedAt?: Date;
+    finishedAt?: Date | undefined;
+    status?: AgentRunStatus;
+    summary?: string | undefined;
+    dataScopesRead?: string[];
+    proposalsCreated?: number;
+    inputTokens?: number | undefined;
+    outputTokens?: number | undefined;
+    costCzk?: number | undefined;
+
+    constructor(data?: IAgentRunDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.id = _data["id"];
+            this.agentName = _data["agentName"];
+            this.principal = _data["principal"];
+            this.startedAt = _data["startedAt"] ? new Date(_data["startedAt"].toString()) : <any>undefined;
+            this.finishedAt = _data["finishedAt"] ? new Date(_data["finishedAt"].toString()) : <any>undefined;
+            this.status = _data["status"];
+            this.summary = _data["summary"];
+            if (Array.isArray(_data["dataScopesRead"])) {
+                this.dataScopesRead = [] as any;
+                for (let item of _data["dataScopesRead"])
+                    this.dataScopesRead!.push(item);
+            }
+            this.proposalsCreated = _data["proposalsCreated"];
+            this.inputTokens = _data["inputTokens"];
+            this.outputTokens = _data["outputTokens"];
+            this.costCzk = _data["costCzk"];
+        }
+    }
+
+    static fromJS(data: any): AgentRunDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new AgentRunDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["id"] = this.id;
+        data["agentName"] = this.agentName;
+        data["principal"] = this.principal;
+        data["startedAt"] = this.startedAt ? this.startedAt.toISOString() : <any>undefined;
+        data["finishedAt"] = this.finishedAt ? this.finishedAt.toISOString() : <any>undefined;
+        data["status"] = this.status;
+        data["summary"] = this.summary;
+        if (Array.isArray(this.dataScopesRead)) {
+            data["dataScopesRead"] = [];
+            for (let item of this.dataScopesRead)
+                data["dataScopesRead"].push(item);
+        }
+        data["proposalsCreated"] = this.proposalsCreated;
+        data["inputTokens"] = this.inputTokens;
+        data["outputTokens"] = this.outputTokens;
+        data["costCzk"] = this.costCzk;
+        return data;
+    }
+}
+
+export interface IAgentRunDto {
+    id?: string;
+    agentName?: string;
+    principal?: string;
+    startedAt?: Date;
+    finishedAt?: Date | undefined;
+    status?: AgentRunStatus;
+    summary?: string | undefined;
+    dataScopesRead?: string[];
+    proposalsCreated?: number;
+    inputTokens?: number | undefined;
+    outputTokens?: number | undefined;
+    costCzk?: number | undefined;
+}
+
+export enum AgentRunStatus {
+    Running = "Running",
+    Succeeded = "Succeeded",
+    Failed = "Failed",
+}
+
+export class ListAdProposalsResponse extends BaseResponse implements IListAdProposalsResponse {
+    items?: AdProposalSummaryDto[];
+    totalCount?: number;
+
+    constructor(data?: IListAdProposalsResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            if (Array.isArray(_data["items"])) {
+                this.items = [] as any;
+                for (let item of _data["items"])
+                    this.items!.push(AdProposalSummaryDto.fromJS(item));
+            }
+            this.totalCount = _data["totalCount"];
+        }
+    }
+
+    static override fromJS(data: any): ListAdProposalsResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new ListAdProposalsResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        if (Array.isArray(this.items)) {
+            data["items"] = [];
+            for (let item of this.items)
+                data["items"].push(item.toJSON());
+        }
+        data["totalCount"] = this.totalCount;
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IListAdProposalsResponse extends IBaseResponse {
+    items?: AdProposalSummaryDto[];
+    totalCount?: number;
+}
+
+export class AdProposalSummaryDto implements IAdProposalSummaryDto {
+    id?: number;
+    currentVersion?: number;
+    status?: AdProposalStatus;
+    platform?: AdPlatform;
+    accountExternalId?: string;
+    actionType?: AdActionType;
+    actionCount?: number;
+    createdByPrincipal?: string;
+    createdByKind?: AdActorKind;
+    agentRunId?: string | undefined;
+    createdAt?: Date;
+    expiresAt?: Date;
+    updatedAt?: Date;
+    diffLines?: string[];
+
+    constructor(data?: IAdProposalSummaryDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.id = _data["id"];
+            this.currentVersion = _data["currentVersion"];
+            this.status = _data["status"];
+            this.platform = _data["platform"];
+            this.accountExternalId = _data["accountExternalId"];
+            this.actionType = _data["actionType"];
+            this.actionCount = _data["actionCount"];
+            this.createdByPrincipal = _data["createdByPrincipal"];
+            this.createdByKind = _data["createdByKind"];
+            this.agentRunId = _data["agentRunId"];
+            this.createdAt = _data["createdAt"] ? new Date(_data["createdAt"].toString()) : <any>undefined;
+            this.expiresAt = _data["expiresAt"] ? new Date(_data["expiresAt"].toString()) : <any>undefined;
+            this.updatedAt = _data["updatedAt"] ? new Date(_data["updatedAt"].toString()) : <any>undefined;
+            if (Array.isArray(_data["diffLines"])) {
+                this.diffLines = [] as any;
+                for (let item of _data["diffLines"])
+                    this.diffLines!.push(item);
+            }
+        }
+    }
+
+    static fromJS(data: any): AdProposalSummaryDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new AdProposalSummaryDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["id"] = this.id;
+        data["currentVersion"] = this.currentVersion;
+        data["status"] = this.status;
+        data["platform"] = this.platform;
+        data["accountExternalId"] = this.accountExternalId;
+        data["actionType"] = this.actionType;
+        data["actionCount"] = this.actionCount;
+        data["createdByPrincipal"] = this.createdByPrincipal;
+        data["createdByKind"] = this.createdByKind;
+        data["agentRunId"] = this.agentRunId;
+        data["createdAt"] = this.createdAt ? this.createdAt.toISOString() : <any>undefined;
+        data["expiresAt"] = this.expiresAt ? this.expiresAt.toISOString() : <any>undefined;
+        data["updatedAt"] = this.updatedAt ? this.updatedAt.toISOString() : <any>undefined;
+        if (Array.isArray(this.diffLines)) {
+            data["diffLines"] = [];
+            for (let item of this.diffLines)
+                data["diffLines"].push(item);
+        }
+        return data;
+    }
+}
+
+export interface IAdProposalSummaryDto {
+    id?: number;
+    currentVersion?: number;
+    status?: AdProposalStatus;
+    platform?: AdPlatform;
+    accountExternalId?: string;
+    actionType?: AdActionType;
+    actionCount?: number;
+    createdByPrincipal?: string;
+    createdByKind?: AdActorKind;
+    agentRunId?: string | undefined;
+    createdAt?: Date;
+    expiresAt?: Date;
+    updatedAt?: Date;
+    diffLines?: string[];
+}
+
+export enum AdProposalStatus {
+    Pending = "Pending",
+    Approved = "Approved",
+    Executing = "Executing",
+    Executed = "Executed",
+    PartiallyExecuted = "PartiallyExecuted",
+    Failed = "Failed",
+    Rejected = "Rejected",
+    Expired = "Expired",
+    Reverted = "Reverted",
+}
+
+export enum AdPlatform {
+    GoogleAds = "GoogleAds",
+    MetaAds = "MetaAds",
+    Sklik = "Sklik",
+}
+
+export enum AdActionType {
+    AddNegativeKeyword = "AddNegativeKeyword",
+    PauseAd = "PauseAd",
+}
+
+export class GetAdProposalResponse extends BaseResponse implements IGetAdProposalResponse {
+    proposal?: AdProposalDetailDto;
+
+    constructor(data?: IGetAdProposalResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            this.proposal = _data["proposal"] ? AdProposalDetailDto.fromJS(_data["proposal"]) : <any>undefined;
+        }
+    }
+
+    static override fromJS(data: any): GetAdProposalResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new GetAdProposalResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["proposal"] = this.proposal ? this.proposal.toJSON() : <any>undefined;
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IGetAdProposalResponse extends IBaseResponse {
+    proposal?: AdProposalDetailDto;
+}
+
+export class AdProposalDetailDto implements IAdProposalDetailDto {
+    summary?: AdProposalSummaryDto;
+    versions?: AdProposalVersionDto[];
+    approvals?: AdProposalApprovalDto[];
+    executions?: AdActionExecutionDto[];
+    currentEvaluation?: AdLimitsEvaluationDto | undefined;
+
+    constructor(data?: IAdProposalDetailDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.summary = _data["summary"] ? AdProposalSummaryDto.fromJS(_data["summary"]) : <any>undefined;
+            if (Array.isArray(_data["versions"])) {
+                this.versions = [] as any;
+                for (let item of _data["versions"])
+                    this.versions!.push(AdProposalVersionDto.fromJS(item));
+            }
+            if (Array.isArray(_data["approvals"])) {
+                this.approvals = [] as any;
+                for (let item of _data["approvals"])
+                    this.approvals!.push(AdProposalApprovalDto.fromJS(item));
+            }
+            if (Array.isArray(_data["executions"])) {
+                this.executions = [] as any;
+                for (let item of _data["executions"])
+                    this.executions!.push(AdActionExecutionDto.fromJS(item));
+            }
+            this.currentEvaluation = _data["currentEvaluation"] ? AdLimitsEvaluationDto.fromJS(_data["currentEvaluation"]) : <any>undefined;
+        }
+    }
+
+    static fromJS(data: any): AdProposalDetailDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new AdProposalDetailDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["summary"] = this.summary ? this.summary.toJSON() : <any>undefined;
+        if (Array.isArray(this.versions)) {
+            data["versions"] = [];
+            for (let item of this.versions)
+                data["versions"].push(item.toJSON());
+        }
+        if (Array.isArray(this.approvals)) {
+            data["approvals"] = [];
+            for (let item of this.approvals)
+                data["approvals"].push(item.toJSON());
+        }
+        if (Array.isArray(this.executions)) {
+            data["executions"] = [];
+            for (let item of this.executions)
+                data["executions"].push(item.toJSON());
+        }
+        data["currentEvaluation"] = this.currentEvaluation ? this.currentEvaluation.toJSON() : <any>undefined;
+        return data;
+    }
+}
+
+export interface IAdProposalDetailDto {
+    summary?: AdProposalSummaryDto;
+    versions?: AdProposalVersionDto[];
+    approvals?: AdProposalApprovalDto[];
+    executions?: AdActionExecutionDto[];
+    currentEvaluation?: AdLimitsEvaluationDto | undefined;
+}
+
+export class AdProposalVersionDto implements IAdProposalVersionDto {
+    version?: number;
+    actionCount?: number;
+    reasoning?: string;
+    createdBy?: string;
+    createdAt?: Date;
+    diffLines?: string[];
+
+    constructor(data?: IAdProposalVersionDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.version = _data["version"];
+            this.actionCount = _data["actionCount"];
+            this.reasoning = _data["reasoning"];
+            this.createdBy = _data["createdBy"];
+            this.createdAt = _data["createdAt"] ? new Date(_data["createdAt"].toString()) : <any>undefined;
+            if (Array.isArray(_data["diffLines"])) {
+                this.diffLines = [] as any;
+                for (let item of _data["diffLines"])
+                    this.diffLines!.push(item);
+            }
+        }
+    }
+
+    static fromJS(data: any): AdProposalVersionDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new AdProposalVersionDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["version"] = this.version;
+        data["actionCount"] = this.actionCount;
+        data["reasoning"] = this.reasoning;
+        data["createdBy"] = this.createdBy;
+        data["createdAt"] = this.createdAt ? this.createdAt.toISOString() : <any>undefined;
+        if (Array.isArray(this.diffLines)) {
+            data["diffLines"] = [];
+            for (let item of this.diffLines)
+                data["diffLines"].push(item);
+        }
+        return data;
+    }
+}
+
+export interface IAdProposalVersionDto {
+    version?: number;
+    actionCount?: number;
+    reasoning?: string;
+    createdBy?: string;
+    createdAt?: Date;
+    diffLines?: string[];
+}
+
+export class AdProposalApprovalDto implements IAdProposalApprovalDto {
+    version?: number;
+    principal?: string;
+    channel?: ApprovalChannel;
+    decision?: ApprovalDecision;
+    reason?: string | undefined;
+    at?: Date;
+
+    constructor(data?: IAdProposalApprovalDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.version = _data["version"];
+            this.principal = _data["principal"];
+            this.channel = _data["channel"];
+            this.decision = _data["decision"];
+            this.reason = _data["reason"];
+            this.at = _data["at"] ? new Date(_data["at"].toString()) : <any>undefined;
+        }
+    }
+
+    static fromJS(data: any): AdProposalApprovalDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new AdProposalApprovalDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["version"] = this.version;
+        data["principal"] = this.principal;
+        data["channel"] = this.channel;
+        data["decision"] = this.decision;
+        data["reason"] = this.reason;
+        data["at"] = this.at ? this.at.toISOString() : <any>undefined;
+        return data;
+    }
+}
+
+export interface IAdProposalApprovalDto {
+    version?: number;
+    principal?: string;
+    channel?: ApprovalChannel;
+    decision?: ApprovalDecision;
+    reason?: string | undefined;
+    at?: Date;
+}
+
+export enum ApprovalDecision {
+    Approved = "Approved",
+    Rejected = "Rejected",
+}
+
+export class AdActionExecutionDto implements IAdActionExecutionDto {
+    version?: number;
+    actionIndex?: number;
+    targetExternalId?: string;
+    state?: AdActionExecutionState;
+    beforeValue?: string | undefined;
+    afterValue?: string | undefined;
+    platformResourceId?: string | undefined;
+    error?: string | undefined;
+    validateOnly?: boolean;
+    executedAt?: Date;
+    revertState?: AdActionRevertState;
+    revertedAt?: Date | undefined;
+    revertError?: string | undefined;
+    revertValidateOnly?: boolean;
+
+    constructor(data?: IAdActionExecutionDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.version = _data["version"];
+            this.actionIndex = _data["actionIndex"];
+            this.targetExternalId = _data["targetExternalId"];
+            this.state = _data["state"];
+            this.beforeValue = _data["beforeValue"];
+            this.afterValue = _data["afterValue"];
+            this.platformResourceId = _data["platformResourceId"];
+            this.error = _data["error"];
+            this.validateOnly = _data["validateOnly"];
+            this.executedAt = _data["executedAt"] ? new Date(_data["executedAt"].toString()) : <any>undefined;
+            this.revertState = _data["revertState"];
+            this.revertedAt = _data["revertedAt"] ? new Date(_data["revertedAt"].toString()) : <any>undefined;
+            this.revertError = _data["revertError"];
+            this.revertValidateOnly = _data["revertValidateOnly"];
+        }
+    }
+
+    static fromJS(data: any): AdActionExecutionDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new AdActionExecutionDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["version"] = this.version;
+        data["actionIndex"] = this.actionIndex;
+        data["targetExternalId"] = this.targetExternalId;
+        data["state"] = this.state;
+        data["beforeValue"] = this.beforeValue;
+        data["afterValue"] = this.afterValue;
+        data["platformResourceId"] = this.platformResourceId;
+        data["error"] = this.error;
+        data["validateOnly"] = this.validateOnly;
+        data["executedAt"] = this.executedAt ? this.executedAt.toISOString() : <any>undefined;
+        data["revertState"] = this.revertState;
+        data["revertedAt"] = this.revertedAt ? this.revertedAt.toISOString() : <any>undefined;
+        data["revertError"] = this.revertError;
+        data["revertValidateOnly"] = this.revertValidateOnly;
+        return data;
+    }
+}
+
+export interface IAdActionExecutionDto {
+    version?: number;
+    actionIndex?: number;
+    targetExternalId?: string;
+    state?: AdActionExecutionState;
+    beforeValue?: string | undefined;
+    afterValue?: string | undefined;
+    platformResourceId?: string | undefined;
+    error?: string | undefined;
+    validateOnly?: boolean;
+    executedAt?: Date;
+    revertState?: AdActionRevertState;
+    revertedAt?: Date | undefined;
+    revertError?: string | undefined;
+    revertValidateOnly?: boolean;
+}
+
+export enum AdActionExecutionState {
+    Succeeded = "Succeeded",
+    Failed = "Failed",
+    StaleState = "StaleState",
+    Skipped = "Skipped",
+}
+
+export enum AdActionRevertState {
+    NotReverted = "NotReverted",
+    Reverted = "Reverted",
+    RevertFailed = "RevertFailed",
+}
+
+export class AdLimitsEvaluationDto implements IAdLimitsEvaluationDto {
+    decision?: AdLimitsDecision;
+    reason?: string | undefined;
+
+    constructor(data?: IAdLimitsEvaluationDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.decision = _data["decision"];
+            this.reason = _data["reason"];
+        }
+    }
+
+    static fromJS(data: any): AdLimitsEvaluationDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new AdLimitsEvaluationDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["decision"] = this.decision;
+        data["reason"] = this.reason;
+        return data;
+    }
+}
+
+export interface IAdLimitsEvaluationDto {
+    decision?: AdLimitsDecision;
+    reason?: string | undefined;
+}
+
+export enum AdLimitsDecision {
+    Allowed = "Allowed",
+    NeedsSecondApprover = "NeedsSecondApprover",
+    NeedsWebApproval = "NeedsWebApproval",
+    Denied = "Denied",
+}
+
+export abstract class AdProposalMutationResponse extends BaseResponse implements IAdProposalMutationResponse {
+    proposalId?: number;
+    version?: number;
+    status?: AdProposalStatus;
+    autoApproved?: boolean;
+    evaluation?: AdLimitsEvaluationDto;
+    diffLines?: string[];
+
+    constructor(data?: IAdProposalMutationResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            this.proposalId = _data["proposalId"];
+            this.version = _data["version"];
+            this.status = _data["status"];
+            this.autoApproved = _data["autoApproved"];
+            this.evaluation = _data["evaluation"] ? AdLimitsEvaluationDto.fromJS(_data["evaluation"]) : <any>undefined;
+            if (Array.isArray(_data["diffLines"])) {
+                this.diffLines = [] as any;
+                for (let item of _data["diffLines"])
+                    this.diffLines!.push(item);
+            }
+        }
+    }
+
+    static override fromJS(data: any): AdProposalMutationResponse {
+        data = typeof data === 'object' ? data : {};
+        throw new Error("The abstract class 'AdProposalMutationResponse' cannot be instantiated.");
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["proposalId"] = this.proposalId;
+        data["version"] = this.version;
+        data["status"] = this.status;
+        data["autoApproved"] = this.autoApproved;
+        data["evaluation"] = this.evaluation ? this.evaluation.toJSON() : <any>undefined;
+        if (Array.isArray(this.diffLines)) {
+            data["diffLines"] = [];
+            for (let item of this.diffLines)
+                data["diffLines"].push(item);
+        }
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IAdProposalMutationResponse extends IBaseResponse {
+    proposalId?: number;
+    version?: number;
+    status?: AdProposalStatus;
+    autoApproved?: boolean;
+    evaluation?: AdLimitsEvaluationDto;
+    diffLines?: string[];
+}
+
+export class SubmitAdProposalResponse extends AdProposalMutationResponse implements ISubmitAdProposalResponse {
+
+    constructor(data?: ISubmitAdProposalResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+    }
+
+    static override fromJS(data: any): SubmitAdProposalResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new SubmitAdProposalResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface ISubmitAdProposalResponse extends IAdProposalMutationResponse {
+}
+
+export class SubmitAdProposalRequest implements ISubmitAdProposalRequest {
+    platform?: AdPlatform;
+    accountExternalId?: string;
+    actionType?: AdActionType;
+    actions?: AdActionInputDto[];
+    reasoning?: string;
+    agentRunId?: string | undefined;
+
+    constructor(data?: ISubmitAdProposalRequest) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.platform = _data["platform"];
+            this.accountExternalId = _data["accountExternalId"];
+            this.actionType = _data["actionType"];
+            if (Array.isArray(_data["actions"])) {
+                this.actions = [] as any;
+                for (let item of _data["actions"])
+                    this.actions!.push(AdActionInputDto.fromJS(item));
+            }
+            this.reasoning = _data["reasoning"];
+            this.agentRunId = _data["agentRunId"];
+        }
+    }
+
+    static fromJS(data: any): SubmitAdProposalRequest {
+        data = typeof data === 'object' ? data : {};
+        let result = new SubmitAdProposalRequest();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["platform"] = this.platform;
+        data["accountExternalId"] = this.accountExternalId;
+        data["actionType"] = this.actionType;
+        if (Array.isArray(this.actions)) {
+            data["actions"] = [];
+            for (let item of this.actions)
+                data["actions"].push(item.toJSON());
+        }
+        data["reasoning"] = this.reasoning;
+        data["agentRunId"] = this.agentRunId;
+        return data;
+    }
+}
+
+export interface ISubmitAdProposalRequest {
+    platform?: AdPlatform;
+    accountExternalId?: string;
+    actionType?: AdActionType;
+    actions?: AdActionInputDto[];
+    reasoning?: string;
+    agentRunId?: string | undefined;
+}
+
+export class AdActionInputDto implements IAdActionInputDto {
+    targetLevel?: AdEntityLevel;
+    targetExternalId?: string;
+    keywordText?: string | undefined;
+    matchType?: KeywordMatchType | undefined;
+
+    constructor(data?: IAdActionInputDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.targetLevel = _data["targetLevel"];
+            this.targetExternalId = _data["targetExternalId"];
+            this.keywordText = _data["keywordText"];
+            this.matchType = _data["matchType"];
+        }
+    }
+
+    static fromJS(data: any): AdActionInputDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new AdActionInputDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["targetLevel"] = this.targetLevel;
+        data["targetExternalId"] = this.targetExternalId;
+        data["keywordText"] = this.keywordText;
+        data["matchType"] = this.matchType;
+        return data;
+    }
+}
+
+export interface IAdActionInputDto {
+    targetLevel?: AdEntityLevel;
+    targetExternalId?: string;
+    keywordText?: string | undefined;
+    matchType?: KeywordMatchType | undefined;
+}
+
+export enum AdEntityLevel {
+    Campaign = "Campaign",
+    AdGroup = "AdGroup",
+    Keyword = "Keyword",
+    NegativeKeyword = "NegativeKeyword",
+    Ad = "Ad",
+}
+
+export enum KeywordMatchType {
+    Exact = "Exact",
+    Phrase = "Phrase",
+    Broad = "Broad",
+}
+
+export class ReviseAdProposalResponse extends AdProposalMutationResponse implements IReviseAdProposalResponse {
+
+    constructor(data?: IReviseAdProposalResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+    }
+
+    static override fromJS(data: any): ReviseAdProposalResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new ReviseAdProposalResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IReviseAdProposalResponse extends IAdProposalMutationResponse {
+}
+
+export class ReviseAdProposalRequest implements IReviseAdProposalRequest {
+    id?: number;
+    expectedVersion?: number;
+    actions?: AdActionInputDto[];
+    reasoning?: string;
+
+    constructor(data?: IReviseAdProposalRequest) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.id = _data["id"];
+            this.expectedVersion = _data["expectedVersion"];
+            if (Array.isArray(_data["actions"])) {
+                this.actions = [] as any;
+                for (let item of _data["actions"])
+                    this.actions!.push(AdActionInputDto.fromJS(item));
+            }
+            this.reasoning = _data["reasoning"];
+        }
+    }
+
+    static fromJS(data: any): ReviseAdProposalRequest {
+        data = typeof data === 'object' ? data : {};
+        let result = new ReviseAdProposalRequest();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["id"] = this.id;
+        data["expectedVersion"] = this.expectedVersion;
+        if (Array.isArray(this.actions)) {
+            data["actions"] = [];
+            for (let item of this.actions)
+                data["actions"].push(item.toJSON());
+        }
+        data["reasoning"] = this.reasoning;
+        return data;
+    }
+}
+
+export interface IReviseAdProposalRequest {
+    id?: number;
+    expectedVersion?: number;
+    actions?: AdActionInputDto[];
+    reasoning?: string;
+}
+
+export class ApproveAdProposalResponse extends BaseResponse implements IApproveAdProposalResponse {
+    proposalId?: number;
+    version?: number;
+    status?: AdProposalStatus;
+    awaitingSecondApprover?: boolean;
+    executionJobId?: string | undefined;
+
+    constructor(data?: IApproveAdProposalResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            this.proposalId = _data["proposalId"];
+            this.version = _data["version"];
+            this.status = _data["status"];
+            this.awaitingSecondApprover = _data["awaitingSecondApprover"];
+            this.executionJobId = _data["executionJobId"];
+        }
+    }
+
+    static override fromJS(data: any): ApproveAdProposalResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new ApproveAdProposalResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["proposalId"] = this.proposalId;
+        data["version"] = this.version;
+        data["status"] = this.status;
+        data["awaitingSecondApprover"] = this.awaitingSecondApprover;
+        data["executionJobId"] = this.executionJobId;
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IApproveAdProposalResponse extends IBaseResponse {
+    proposalId?: number;
+    version?: number;
+    status?: AdProposalStatus;
+    awaitingSecondApprover?: boolean;
+    executionJobId?: string | undefined;
+}
+
+export class ApproveAdProposalRequest implements IApproveAdProposalRequest {
+    id?: number;
+    version?: number;
+
+    constructor(data?: IApproveAdProposalRequest) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.id = _data["id"];
+            this.version = _data["version"];
+        }
+    }
+
+    static fromJS(data: any): ApproveAdProposalRequest {
+        data = typeof data === 'object' ? data : {};
+        let result = new ApproveAdProposalRequest();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["id"] = this.id;
+        data["version"] = this.version;
+        return data;
+    }
+}
+
+export interface IApproveAdProposalRequest {
+    id?: number;
+    version?: number;
+}
+
+export class RejectAdProposalResponse extends BaseResponse implements IRejectAdProposalResponse {
+    proposalId?: number;
+    version?: number;
+    status?: AdProposalStatus;
+
+    constructor(data?: IRejectAdProposalResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            this.proposalId = _data["proposalId"];
+            this.version = _data["version"];
+            this.status = _data["status"];
+        }
+    }
+
+    static override fromJS(data: any): RejectAdProposalResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new RejectAdProposalResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["proposalId"] = this.proposalId;
+        data["version"] = this.version;
+        data["status"] = this.status;
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IRejectAdProposalResponse extends IBaseResponse {
+    proposalId?: number;
+    version?: number;
+    status?: AdProposalStatus;
+}
+
+export class RejectAdProposalRequest implements IRejectAdProposalRequest {
+    id?: number;
+    version?: number;
+    reason?: string;
+
+    constructor(data?: IRejectAdProposalRequest) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.id = _data["id"];
+            this.version = _data["version"];
+            this.reason = _data["reason"];
+        }
+    }
+
+    static fromJS(data: any): RejectAdProposalRequest {
+        data = typeof data === 'object' ? data : {};
+        let result = new RejectAdProposalRequest();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["id"] = this.id;
+        data["version"] = this.version;
+        data["reason"] = this.reason;
+        return data;
+    }
+}
+
+export interface IRejectAdProposalRequest {
+    id?: number;
+    version?: number;
+    reason?: string;
+}
+
+export class RevertAdProposalResponse extends BaseResponse implements IRevertAdProposalResponse {
+    proposalId?: number;
+    status?: AdProposalStatus;
+    revertedActions?: number;
+    failedActions?: number;
+    validateOnlyActions?: number;
+
+    constructor(data?: IRevertAdProposalResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            this.proposalId = _data["proposalId"];
+            this.status = _data["status"];
+            this.revertedActions = _data["revertedActions"];
+            this.failedActions = _data["failedActions"];
+            this.validateOnlyActions = _data["validateOnlyActions"];
+        }
+    }
+
+    static override fromJS(data: any): RevertAdProposalResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new RevertAdProposalResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["proposalId"] = this.proposalId;
+        data["status"] = this.status;
+        data["revertedActions"] = this.revertedActions;
+        data["failedActions"] = this.failedActions;
+        data["validateOnlyActions"] = this.validateOnlyActions;
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IRevertAdProposalResponse extends IBaseResponse {
+    proposalId?: number;
+    status?: AdProposalStatus;
+    revertedActions?: number;
+    failedActions?: number;
+    validateOnlyActions?: number;
+}
+
+export class GetAdSettingsResponse extends BaseResponse implements IGetAdSettingsResponse {
+    autonomy?: AdAutonomySettingDto[];
+    limits?: AdLimitSettingDto[];
+    killSwitches?: AdKillSwitchDto[];
+    isExecutionEnabledGlobally?: boolean;
+    approvalRates?: AdApprovalRateDto[];
+
+    constructor(data?: IGetAdSettingsResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            if (Array.isArray(_data["autonomy"])) {
+                this.autonomy = [] as any;
+                for (let item of _data["autonomy"])
+                    this.autonomy!.push(AdAutonomySettingDto.fromJS(item));
+            }
+            if (Array.isArray(_data["limits"])) {
+                this.limits = [] as any;
+                for (let item of _data["limits"])
+                    this.limits!.push(AdLimitSettingDto.fromJS(item));
+            }
+            if (Array.isArray(_data["killSwitches"])) {
+                this.killSwitches = [] as any;
+                for (let item of _data["killSwitches"])
+                    this.killSwitches!.push(AdKillSwitchDto.fromJS(item));
+            }
+            this.isExecutionEnabledGlobally = _data["isExecutionEnabledGlobally"];
+            if (Array.isArray(_data["approvalRates"])) {
+                this.approvalRates = [] as any;
+                for (let item of _data["approvalRates"])
+                    this.approvalRates!.push(AdApprovalRateDto.fromJS(item));
+            }
+        }
+    }
+
+    static override fromJS(data: any): GetAdSettingsResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new GetAdSettingsResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        if (Array.isArray(this.autonomy)) {
+            data["autonomy"] = [];
+            for (let item of this.autonomy)
+                data["autonomy"].push(item.toJSON());
+        }
+        if (Array.isArray(this.limits)) {
+            data["limits"] = [];
+            for (let item of this.limits)
+                data["limits"].push(item.toJSON());
+        }
+        if (Array.isArray(this.killSwitches)) {
+            data["killSwitches"] = [];
+            for (let item of this.killSwitches)
+                data["killSwitches"].push(item.toJSON());
+        }
+        data["isExecutionEnabledGlobally"] = this.isExecutionEnabledGlobally;
+        if (Array.isArray(this.approvalRates)) {
+            data["approvalRates"] = [];
+            for (let item of this.approvalRates)
+                data["approvalRates"].push(item.toJSON());
+        }
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IGetAdSettingsResponse extends IBaseResponse {
+    autonomy?: AdAutonomySettingDto[];
+    limits?: AdLimitSettingDto[];
+    killSwitches?: AdKillSwitchDto[];
+    isExecutionEnabledGlobally?: boolean;
+    approvalRates?: AdApprovalRateDto[];
+}
+
+export class AdAutonomySettingDto implements IAdAutonomySettingDto {
+    platform?: AdPlatform;
+    actionType?: AdActionType;
+    mode?: AdAutonomyMode;
+    updatedAt?: Date;
+    updatedBy?: string;
+
+    constructor(data?: IAdAutonomySettingDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.platform = _data["platform"];
+            this.actionType = _data["actionType"];
+            this.mode = _data["mode"];
+            this.updatedAt = _data["updatedAt"] ? new Date(_data["updatedAt"].toString()) : <any>undefined;
+            this.updatedBy = _data["updatedBy"];
+        }
+    }
+
+    static fromJS(data: any): AdAutonomySettingDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new AdAutonomySettingDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["platform"] = this.platform;
+        data["actionType"] = this.actionType;
+        data["mode"] = this.mode;
+        data["updatedAt"] = this.updatedAt ? this.updatedAt.toISOString() : <any>undefined;
+        data["updatedBy"] = this.updatedBy;
+        return data;
+    }
+}
+
+export interface IAdAutonomySettingDto {
+    platform?: AdPlatform;
+    actionType?: AdActionType;
+    mode?: AdAutonomyMode;
+    updatedAt?: Date;
+    updatedBy?: string;
+}
+
+export enum AdAutonomyMode {
+    ProposeOnly = "ProposeOnly",
+    AutoWithinLimits = "AutoWithinLimits",
+    Auto = "Auto",
+}
+
+export class AdLimitSettingDto implements IAdLimitSettingDto {
+    platform?: AdPlatform;
+    actionType?: AdActionType;
+    key?: string;
+    value?: number;
+    updatedAt?: Date;
+    updatedBy?: string;
+
+    constructor(data?: IAdLimitSettingDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.platform = _data["platform"];
+            this.actionType = _data["actionType"];
+            this.key = _data["key"];
+            this.value = _data["value"];
+            this.updatedAt = _data["updatedAt"] ? new Date(_data["updatedAt"].toString()) : <any>undefined;
+            this.updatedBy = _data["updatedBy"];
+        }
+    }
+
+    static fromJS(data: any): AdLimitSettingDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new AdLimitSettingDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["platform"] = this.platform;
+        data["actionType"] = this.actionType;
+        data["key"] = this.key;
+        data["value"] = this.value;
+        data["updatedAt"] = this.updatedAt ? this.updatedAt.toISOString() : <any>undefined;
+        data["updatedBy"] = this.updatedBy;
+        return data;
+    }
+}
+
+export interface IAdLimitSettingDto {
+    platform?: AdPlatform;
+    actionType?: AdActionType;
+    key?: string;
+    value?: number;
+    updatedAt?: Date;
+    updatedBy?: string;
+}
+
+export class AdKillSwitchDto implements IAdKillSwitchDto {
+    scope?: string;
+    executionEnabled?: boolean;
+    updatedAt?: Date;
+    updatedBy?: string;
+
+    constructor(data?: IAdKillSwitchDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.scope = _data["scope"];
+            this.executionEnabled = _data["executionEnabled"];
+            this.updatedAt = _data["updatedAt"] ? new Date(_data["updatedAt"].toString()) : <any>undefined;
+            this.updatedBy = _data["updatedBy"];
+        }
+    }
+
+    static fromJS(data: any): AdKillSwitchDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new AdKillSwitchDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["scope"] = this.scope;
+        data["executionEnabled"] = this.executionEnabled;
+        data["updatedAt"] = this.updatedAt ? this.updatedAt.toISOString() : <any>undefined;
+        data["updatedBy"] = this.updatedBy;
+        return data;
+    }
+}
+
+export interface IAdKillSwitchDto {
+    scope?: string;
+    executionEnabled?: boolean;
+    updatedAt?: Date;
+    updatedBy?: string;
+}
+
+export class AdApprovalRateDto implements IAdApprovalRateDto {
+    platform?: AdPlatform;
+    actionType?: AdActionType;
+    decided?: number;
+    approvedWithoutEdit?: number;
+    rate?: number | undefined;
+
+    constructor(data?: IAdApprovalRateDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.platform = _data["platform"];
+            this.actionType = _data["actionType"];
+            this.decided = _data["decided"];
+            this.approvedWithoutEdit = _data["approvedWithoutEdit"];
+            this.rate = _data["rate"];
+        }
+    }
+
+    static fromJS(data: any): AdApprovalRateDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new AdApprovalRateDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["platform"] = this.platform;
+        data["actionType"] = this.actionType;
+        data["decided"] = this.decided;
+        data["approvedWithoutEdit"] = this.approvedWithoutEdit;
+        data["rate"] = this.rate;
+        return data;
+    }
+}
+
+export interface IAdApprovalRateDto {
+    platform?: AdPlatform;
+    actionType?: AdActionType;
+    decided?: number;
+    approvedWithoutEdit?: number;
+    rate?: number | undefined;
+}
+
+export class UpdateAdAutonomySettingResponse extends BaseResponse implements IUpdateAdAutonomySettingResponse {
+
+    constructor(data?: IUpdateAdAutonomySettingResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+    }
+
+    static override fromJS(data: any): UpdateAdAutonomySettingResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new UpdateAdAutonomySettingResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IUpdateAdAutonomySettingResponse extends IBaseResponse {
+}
+
+export class UpdateAdAutonomySettingRequest implements IUpdateAdAutonomySettingRequest {
+    platform?: AdPlatform;
+    actionType?: AdActionType;
+    mode?: AdAutonomyMode;
+
+    constructor(data?: IUpdateAdAutonomySettingRequest) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.platform = _data["platform"];
+            this.actionType = _data["actionType"];
+            this.mode = _data["mode"];
+        }
+    }
+
+    static fromJS(data: any): UpdateAdAutonomySettingRequest {
+        data = typeof data === 'object' ? data : {};
+        let result = new UpdateAdAutonomySettingRequest();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["platform"] = this.platform;
+        data["actionType"] = this.actionType;
+        data["mode"] = this.mode;
+        return data;
+    }
+}
+
+export interface IUpdateAdAutonomySettingRequest {
+    platform?: AdPlatform;
+    actionType?: AdActionType;
+    mode?: AdAutonomyMode;
+}
+
+export class UpdateAdLimitSettingResponse extends BaseResponse implements IUpdateAdLimitSettingResponse {
+
+    constructor(data?: IUpdateAdLimitSettingResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+    }
+
+    static override fromJS(data: any): UpdateAdLimitSettingResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new UpdateAdLimitSettingResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IUpdateAdLimitSettingResponse extends IBaseResponse {
+}
+
+export class UpdateAdLimitSettingRequest implements IUpdateAdLimitSettingRequest {
+    platform?: AdPlatform;
+    actionType?: AdActionType;
+    key?: string;
+    value?: number;
+
+    constructor(data?: IUpdateAdLimitSettingRequest) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.platform = _data["platform"];
+            this.actionType = _data["actionType"];
+            this.key = _data["key"];
+            this.value = _data["value"];
+        }
+    }
+
+    static fromJS(data: any): UpdateAdLimitSettingRequest {
+        data = typeof data === 'object' ? data : {};
+        let result = new UpdateAdLimitSettingRequest();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["platform"] = this.platform;
+        data["actionType"] = this.actionType;
+        data["key"] = this.key;
+        data["value"] = this.value;
+        return data;
+    }
+}
+
+export interface IUpdateAdLimitSettingRequest {
+    platform?: AdPlatform;
+    actionType?: AdActionType;
+    key?: string;
+    value?: number;
+}
+
+export class SetAdKillSwitchResponse extends BaseResponse implements ISetAdKillSwitchResponse {
+
+    constructor(data?: ISetAdKillSwitchResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+    }
+
+    static override fromJS(data: any): SetAdKillSwitchResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new SetAdKillSwitchResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface ISetAdKillSwitchResponse extends IBaseResponse {
+}
+
+export class SetAdKillSwitchRequest implements ISetAdKillSwitchRequest {
+    platform?: AdPlatform | undefined;
+    executionEnabled?: boolean;
+
+    constructor(data?: ISetAdKillSwitchRequest) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.platform = _data["platform"];
+            this.executionEnabled = _data["executionEnabled"];
+        }
+    }
+
+    static fromJS(data: any): SetAdKillSwitchRequest {
+        data = typeof data === 'object' ? data : {};
+        let result = new SetAdKillSwitchRequest();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["platform"] = this.platform;
+        data["executionEnabled"] = this.executionEnabled;
+        return data;
+    }
+}
+
+export interface ISetAdKillSwitchRequest {
+    platform?: AdPlatform | undefined;
+    executionEnabled?: boolean;
 }
 
 export class GetMarketingActionsResponse extends BaseResponse implements IGetMarketingActionsResponse {
