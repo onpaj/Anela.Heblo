@@ -39,7 +39,8 @@ Called by the core proposal execution pipeline per action after final approval, 
 | other `GoogleAds:*` | see `sync-google-ads-campaign-data` | shared with the read source |
 
 ## Runtime facts
-None yet - no live write has been made. Record the first production execution here.
+- No live write has been made yet. Record the first production execution here.
+- Validate-only smoke test (integration doc §12) passed against the live account on 2026-10-14: Google accepted PauseAd and a campaign-level AddNegativeKeyword; `change_event` recorded nothing that day.
 
 ## Known quirks
 - Staging and production point at the same live Google Ads account; that is why only production may write.
