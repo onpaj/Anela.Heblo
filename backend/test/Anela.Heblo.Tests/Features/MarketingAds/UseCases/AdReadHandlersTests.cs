@@ -24,7 +24,11 @@ public class AdReadHandlersTests
     {
         var request = new GetAdPerformanceRequest
         {
-            Platform = AdPlatform.GoogleAds, AccountExternalId = "acc", Level = AdEntityLevel.Campaign, From = To.AddDays(-6), To = To,
+            Platform = AdPlatform.GoogleAds,
+            AccountExternalId = "acc",
+            Level = AdEntityLevel.Campaign,
+            From = To.AddDays(-6),
+            To = To,
         };
         change?.Invoke(request);
         return request;
@@ -207,7 +211,9 @@ public class AdReadHandlersTests
 
         var response = await new GetBlendedPerformanceHandler(_repo.Object).Handle(new GetBlendedPerformanceRequest
         {
-            From = new DateOnly(2026, 9, 1), To = new DateOnly(2026, 9, 30), Granularity = BlendedGranularity.Monthly,
+            From = new DateOnly(2026, 9, 1),
+            To = new DateOnly(2026, 9, 30),
+            Granularity = BlendedGranularity.Monthly,
         }, default);
 
         response.Periods.Should().ContainSingle().Which.Orders.Should().Be(5);

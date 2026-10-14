@@ -10,11 +10,19 @@ public class AdExecutionLookupTests
 {
     private static AdProposalActionExecution Row(int index, AdActionExecutionState state, DateTime executedAt,
         string platform = "GoogleAds", string account = "acc-1") => new()
-    {
-        Version = 1, ActionIndex = index, Platform = platform, AccountExternalId = account, ActionType = "AddNegativeKeyword",
-        TargetLevel = "Campaign", TargetExternalId = $"cmp-{index}", State = state, ExecutedAt = executedAt,
-        PlatformResourceId = $"res-{index}", PayloadJson = """{"text":"zdarma","matchType":"Exact"}""",
-    };
+        {
+            Version = 1,
+            ActionIndex = index,
+            Platform = platform,
+            AccountExternalId = account,
+            ActionType = "AddNegativeKeyword",
+            TargetLevel = "Campaign",
+            TargetExternalId = $"cmp-{index}",
+            State = state,
+            ExecutedAt = executedAt,
+            PlatformResourceId = $"res-{index}",
+            PayloadJson = """{"text":"zdarma","matchType":"Exact"}""",
+        };
 
     private static AdProposal NewProposal(ProposalTestHarness h, int actionCount, string platform = "GoogleAds", string account = "acc-1")
     {

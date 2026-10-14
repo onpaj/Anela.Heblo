@@ -80,26 +80,56 @@ public class AdsDbContextMigrationIntegrationTests : IAsyncLifetime
 
             write.DailyFacts.Add(new AdDailyFact
             {
-                EntityId = campaign.Id, Date = FactDate, Impressions = 1200, Clicks = 48,
-                Cost = 312.5012m, Conversions = 2.5m, ConversionValue = 2150.75m, Currency = "CZK", SyncedAt = SyncedAt,
+                EntityId = campaign.Id,
+                Date = FactDate,
+                Impressions = 1200,
+                Clicks = 48,
+                Cost = 312.5012m,
+                Conversions = 2.5m,
+                ConversionValue = 2150.75m,
+                Currency = "CZK",
+                SyncedAt = SyncedAt,
             });
             write.SearchTermsDaily.Add(new AdSearchTermDaily
             {
-                AdGroupEntityId = adGroup.Id, Date = FactDate, SearchTerm = "krém na obličej",
-                MatchType = AdSearchTermDaily.UnknownMatchType, Impressions = 300, Clicks = 12,
-                Cost = 80.10m, Conversions = 1m, ConversionValue = 640m, Currency = "CZK", SyncedAt = SyncedAt,
+                AdGroupEntityId = adGroup.Id,
+                Date = FactDate,
+                SearchTerm = "krém na obličej",
+                MatchType = AdSearchTermDaily.UnknownMatchType,
+                Impressions = 300,
+                Clicks = 12,
+                Cost = 80.10m,
+                Conversions = 1m,
+                ConversionValue = 640m,
+                Currency = "CZK",
+                SyncedAt = SyncedAt,
             });
             write.ChangeEvents.Add(new AdChangeEvent
             {
-                AccountId = account.Id, ExternalEventId = "event-1", OccurredAt = SyncedAt.AddHours(-3),
-                Actor = "agency@example.com", ActorKind = "User", EntityId = adGroup.Id, EntityLevel = "AdGroup", EntityExternalRef = "adgroup-1",
-                ChangeType = "StatusChanged", OldValueJson = "{\"status\": \"Enabled\"}", NewValueJson = "{\"status\": \"Paused\"}",
-                Source = AdChangeSources.PlatformChangeLog, Origin = AdChangeOrigins.OutOfBand, SyncedAt = SyncedAt,
+                AccountId = account.Id,
+                ExternalEventId = "event-1",
+                OccurredAt = SyncedAt.AddHours(-3),
+                Actor = "agency@example.com",
+                ActorKind = "User",
+                EntityId = adGroup.Id,
+                EntityLevel = "AdGroup",
+                EntityExternalRef = "adgroup-1",
+                ChangeType = "StatusChanged",
+                OldValueJson = "{\"status\": \"Enabled\"}",
+                NewValueJson = "{\"status\": \"Paused\"}",
+                Source = AdChangeSources.PlatformChangeLog,
+                Origin = AdChangeOrigins.OutOfBand,
+                SyncedAt = SyncedAt,
             });
             write.SyncStates.Add(new AdSyncState
             {
-                Platform = "GoogleAds", AccountExternalId = "123-456-7890", Stream = AdSyncStreams.DailyFacts,
-                Watermark = SyncedAt, Status = "Succeeded", LastSuccessAt = SyncedAt, UpdatedAt = SyncedAt,
+                Platform = "GoogleAds",
+                AccountExternalId = "123-456-7890",
+                Stream = AdSyncStreams.DailyFacts,
+                Watermark = SyncedAt,
+                Status = "Succeeded",
+                LastSuccessAt = SyncedAt,
+                UpdatedAt = SyncedAt,
             });
             await write.SaveChangesAsync();
             campaignId = campaign.Id;
@@ -199,8 +229,13 @@ public class AdsDbContextMigrationIntegrationTests : IAsyncLifetime
         {
             write.SyncStates.Add(new AdSyncState
             {
-                Platform = "MetaAds", AccountExternalId = "act_1", Stream = AdSyncStreams.ChangeEvents,
-                Watermark = pragueMorning, Status = "Succeeded", LastSuccessAt = pragueMorning, UpdatedAt = pragueMorning,
+                Platform = "MetaAds",
+                AccountExternalId = "act_1",
+                Stream = AdSyncStreams.ChangeEvents,
+                Watermark = pragueMorning,
+                Status = "Succeeded",
+                LastSuccessAt = pragueMorning,
+                UpdatedAt = pragueMorning,
             });
             await write.SaveChangesAsync();
         }
@@ -218,20 +253,39 @@ public class AdsDbContextMigrationIntegrationTests : IAsyncLifetime
 
     private static AdAccount NewAccount(string platform, string externalId) => new()
     {
-        Platform = platform, ExternalId = externalId, Name = "Anela", Currency = "CZK",
-        TimeZone = "Europe/Prague", IsManaged = true, CreatedAt = SyncedAt, UpdatedAt = SyncedAt,
+        Platform = platform,
+        ExternalId = externalId,
+        Name = "Anela",
+        Currency = "CZK",
+        TimeZone = "Europe/Prague",
+        IsManaged = true,
+        CreatedAt = SyncedAt,
+        UpdatedAt = SyncedAt,
     };
 
     private static AdEntity NewEntity(long accountId, string level, string externalId, long? parentId, string attributesJson) => new()
     {
-        AccountId = accountId, Level = level, ExternalId = externalId, ParentId = parentId, Name = externalId,
-        Status = "Enabled", AttributesJson = attributesJson, FirstSeenAt = SyncedAt, LastSeenAt = SyncedAt, UpdatedAt = SyncedAt,
+        AccountId = accountId,
+        Level = level,
+        ExternalId = externalId,
+        ParentId = parentId,
+        Name = externalId,
+        Status = "Enabled",
+        AttributesJson = attributesJson,
+        FirstSeenAt = SyncedAt,
+        LastSeenAt = SyncedAt,
+        UpdatedAt = SyncedAt,
     };
 
     private static AdChangeEvent NewChangeEvent(long accountId, string externalEventId) => new()
     {
-        AccountId = accountId, ExternalEventId = externalEventId, OccurredAt = SyncedAt, ActorKind = "Unknown",
-        ChangeType = "StatusChanged", Source = AdChangeSources.PlatformChangeLog, Origin = AdChangeOrigins.OutOfBand,
+        AccountId = accountId,
+        ExternalEventId = externalEventId,
+        OccurredAt = SyncedAt,
+        ActorKind = "Unknown",
+        ChangeType = "StatusChanged",
+        Source = AdChangeSources.PlatformChangeLog,
+        Origin = AdChangeOrigins.OutOfBand,
         SyncedAt = SyncedAt,
     };
 

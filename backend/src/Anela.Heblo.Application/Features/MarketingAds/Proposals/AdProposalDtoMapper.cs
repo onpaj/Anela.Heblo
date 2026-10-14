@@ -54,14 +54,28 @@ public static class AdProposalDtoMapper
         }).ToList(),
         Approvals = proposal.Approvals.OrderBy(a => a.At).Select(a => new AdProposalApprovalDto
         {
-            Version = a.Version, Principal = a.Principal, Channel = a.Channel, Decision = a.Decision, Reason = a.Reason, At = a.At,
+            Version = a.Version,
+            Principal = a.Principal,
+            Channel = a.Channel,
+            Decision = a.Decision,
+            Reason = a.Reason,
+            At = a.At,
         }).ToList(),
         Executions = proposal.Executions.OrderBy(e => e.Version).ThenBy(e => e.ActionIndex).Select(e => new AdActionExecutionDto
         {
-            Version = e.Version, ActionIndex = e.ActionIndex, TargetExternalId = e.TargetExternalId, State = e.State,
-            BeforeValue = e.BeforeValue, AfterValue = e.AfterValue, PlatformResourceId = e.PlatformResourceId, Error = e.Error,
+            Version = e.Version,
+            ActionIndex = e.ActionIndex,
+            TargetExternalId = e.TargetExternalId,
+            State = e.State,
+            BeforeValue = e.BeforeValue,
+            AfterValue = e.AfterValue,
+            PlatformResourceId = e.PlatformResourceId,
+            Error = e.Error,
             ValidateOnly = e.State == AdActionExecutionState.Failed && AdExecutionErrors.IsValidateOnly(e.Error),
-            ExecutedAt = e.ExecutedAt, RevertState = e.RevertState, RevertedAt = e.RevertedAt, RevertError = e.RevertError,
+            ExecutedAt = e.ExecutedAt,
+            RevertState = e.RevertState,
+            RevertedAt = e.RevertedAt,
+            RevertError = e.RevertError,
             RevertValidateOnly = e.RevertState == AdActionRevertState.RevertFailed && AdExecutionErrors.IsValidateOnly(e.RevertError),
         }).ToList(),
         CurrentEvaluation = currentEvaluation is null ? null : ToDto(currentEvaluation),
@@ -69,16 +83,31 @@ public static class AdProposalDtoMapper
 
     public static AdAuditEventDto ToDto(AdAuditEvent e) => new()
     {
-        Id = e.Id, ProposalId = e.ProposalId, Version = e.Version, EventType = e.EventType, ActorPrincipal = e.ActorPrincipal,
-        ActorKind = e.ActorKind, Channel = e.Channel, PayloadJson = e.PayloadJson, OccurredAt = e.OccurredAt,
+        Id = e.Id,
+        ProposalId = e.ProposalId,
+        Version = e.Version,
+        EventType = e.EventType,
+        ActorPrincipal = e.ActorPrincipal,
+        ActorKind = e.ActorKind,
+        Channel = e.Channel,
+        PayloadJson = e.PayloadJson,
+        OccurredAt = e.OccurredAt,
     };
 
     public static AgentRunDto ToDto(AgentRun run) => new()
     {
-        Id = run.Id, AgentName = run.AgentName, Principal = run.Principal, StartedAt = run.StartedAt, FinishedAt = run.FinishedAt,
-        Status = run.Status, Summary = run.Summary,
+        Id = run.Id,
+        AgentName = run.AgentName,
+        Principal = run.Principal,
+        StartedAt = run.StartedAt,
+        FinishedAt = run.FinishedAt,
+        Status = run.Status,
+        Summary = run.Summary,
         DataScopesRead = JsonSerializer.Deserialize<List<string>>(run.DataScopesReadJson) ?? new List<string>(),
-        ProposalsCreated = run.ProposalsCreated, InputTokens = run.InputTokens, OutputTokens = run.OutputTokens, CostCzk = run.CostCzk,
+        ProposalsCreated = run.ProposalsCreated,
+        InputTokens = run.InputTokens,
+        OutputTokens = run.OutputTokens,
+        CostCzk = run.CostCzk,
     };
 
     private static List<string> Render(AdProposalVersion version, IReadOnlyDictionary<string, string> names) =>

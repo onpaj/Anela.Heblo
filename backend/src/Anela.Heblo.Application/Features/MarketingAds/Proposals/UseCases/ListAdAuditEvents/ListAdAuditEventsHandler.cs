@@ -13,7 +13,10 @@ public class ListAdAuditEventsHandler : IRequestHandler<ListAdAuditEventsRequest
     {
         var (items, total) = await _audit.ListAsync(new AdAuditQuery
         {
-            ProposalId = request.ProposalId, EventType = request.EventType, Page = request.Page, PageSize = request.PageSize,
+            ProposalId = request.ProposalId,
+            EventType = request.EventType,
+            Page = request.Page,
+            PageSize = request.PageSize,
         }, cancellationToken);
         return new ListAdAuditEventsResponse { Items = items.Select(AdProposalDtoMapper.ToDto).ToList(), TotalCount = total };
     }

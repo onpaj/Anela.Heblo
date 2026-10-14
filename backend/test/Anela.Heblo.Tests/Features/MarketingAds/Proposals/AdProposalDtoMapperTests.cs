@@ -83,12 +83,21 @@ public class AdProposalDtoMapperTests
         proposal.StartExecution(Now);
         proposal.RecordExecution(new AdProposalActionExecution
         {
-            Version = 1, ActionIndex = 0, TargetExternalId = "ad-1", State = AdActionExecutionState.Failed,
-            Error = $"{AdExecutionErrors.ValidateOnlyPrefix} Google accepted the request; nothing was changed.", ExecutedAt = Now,
+            Version = 1,
+            ActionIndex = 0,
+            TargetExternalId = "ad-1",
+            State = AdActionExecutionState.Failed,
+            Error = $"{AdExecutionErrors.ValidateOnlyPrefix} Google accepted the request; nothing was changed.",
+            ExecutedAt = Now,
         });
         proposal.RecordExecution(new AdProposalActionExecution
         {
-            Version = 1, ActionIndex = 1, TargetExternalId = "ad-2", State = AdActionExecutionState.Failed, Error = "POLICY", ExecutedAt = Now,
+            Version = 1,
+            ActionIndex = 1,
+            TargetExternalId = "ad-2",
+            State = AdActionExecutionState.Failed,
+            Error = "POLICY",
+            ExecutedAt = Now,
         });
 
         var detail = AdProposalDtoMapper.ToDetail(proposal, NoNames, null);
@@ -108,7 +117,11 @@ public class AdProposalDtoMapperTests
         {
             proposal.RecordExecution(new AdProposalActionExecution
             {
-                Version = 1, ActionIndex = index, TargetExternalId = $"ad-{index + 1}", State = AdActionExecutionState.Succeeded, ExecutedAt = Now,
+                Version = 1,
+                ActionIndex = index,
+                TargetExternalId = $"ad-{index + 1}",
+                State = AdActionExecutionState.Succeeded,
+                ExecutedAt = Now,
             });
         }
         proposal.Executions.Single(e => e.ActionIndex == 0).MarkRevertFailed(Now, $"{AdExecutionErrors.ValidateOnlyPrefix} nothing was changed.");

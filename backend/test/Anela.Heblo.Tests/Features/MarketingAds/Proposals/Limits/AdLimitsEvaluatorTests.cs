@@ -13,13 +13,18 @@ public class AdLimitsEvaluatorTests
 
     private static readonly Dictionary<string, int> PauseLimits = new()
     {
-        [AdLimitKeys.Enabled] = 1, [AdLimitKeys.MaxActionsPerProposal] = 10, [AdLimitKeys.McpMaxActionsPerProposal] = 3,
-        [AdLimitKeys.MaxPausedAdsPer7Days] = 20, [AdLimitKeys.SecondApproverAbove] = 10,
+        [AdLimitKeys.Enabled] = 1,
+        [AdLimitKeys.MaxActionsPerProposal] = 10,
+        [AdLimitKeys.McpMaxActionsPerProposal] = 3,
+        [AdLimitKeys.MaxPausedAdsPer7Days] = 20,
+        [AdLimitKeys.SecondApproverAbove] = 10,
     };
 
     private static readonly Dictionary<string, int> NegativeLimits = new()
     {
-        [AdLimitKeys.Enabled] = 1, [AdLimitKeys.MaxActionsPerProposal] = 50, [AdLimitKeys.McpMaxActionsPerProposal] = 20,
+        [AdLimitKeys.Enabled] = 1,
+        [AdLimitKeys.MaxActionsPerProposal] = 50,
+        [AdLimitKeys.McpMaxActionsPerProposal] = 20,
         [AdLimitKeys.SecondApproverAbove] = 50,
     };
 

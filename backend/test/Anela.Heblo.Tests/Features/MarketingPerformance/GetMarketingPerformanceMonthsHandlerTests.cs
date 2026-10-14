@@ -27,8 +27,12 @@ public class GetMarketingPerformanceMonthsHandlerTests
 
     private static MarketingPerformanceMonth Row(int y, int m, int orders, decimal revenue, decimal cost) => new()
     {
-        Year = y, Month = m, RetailOrderCount = orders, RetailRevenueWithVat = revenue,
-        WholesaleOrderCount = 5, WholesaleRevenueWithVat = 1210m,
+        Year = y,
+        Month = m,
+        RetailOrderCount = orders,
+        RetailRevenueWithVat = revenue,
+        WholesaleOrderCount = 5,
+        WholesaleRevenueWithVat = 1210m,
         ChannelCosts = { new MarketingPerformanceChannelCost { ChannelCode = "meta", CostWithoutVat = cost, InvoiceCount = 1 } },
     };
 

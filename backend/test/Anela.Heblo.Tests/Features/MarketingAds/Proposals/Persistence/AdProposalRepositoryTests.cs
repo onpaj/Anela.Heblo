@@ -28,8 +28,15 @@ public class AdProposalRepositoryTests : IDisposable
 
     private static AdProposalActionExecution Execution(AdActionExecutionState state, DateTime at, int actionIndex) => new()
     {
-        Version = 1, ActionIndex = actionIndex, Platform = "GoogleAds", AccountExternalId = "acc-1", ActionType = "PauseAd",
-        TargetLevel = "Ad", TargetExternalId = $"ad-{actionIndex}", State = state, ExecutedAt = at,
+        Version = 1,
+        ActionIndex = actionIndex,
+        Platform = "GoogleAds",
+        AccountExternalId = "acc-1",
+        ActionType = "PauseAd",
+        TargetLevel = "Ad",
+        TargetExternalId = $"ad-{actionIndex}",
+        State = state,
+        ExecutedAt = at,
     };
 
     [Fact]
