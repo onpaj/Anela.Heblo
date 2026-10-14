@@ -102,6 +102,7 @@ import BaleniHome from "./components/baleni/BaleniHome";
 import BaleniStatistics from "./components/baleni/statistics/BaleniStatistics";
 import BaleniPacking from "./components/baleni/BaleniPacking";
 import { ZasilkyPage } from "./components/baleni/zasilky/ZasilkyPage";
+import LabelOffsetSettings from "./components/baleni/labelOffsets/LabelOffsetSettings";
 import "./i18n";
 import { initAppInsights, getAppInsights, setUserIdentity } from './telemetry/appInsights';
 import { AppInsightsProvider } from './telemetry/AppInsightsProvider';
@@ -405,6 +406,7 @@ function App() {
                         <Route path="baleni" element={<BaleniPacking />} />
                         <Route path="zasilky" element={<ZasilkyPage />} />
                         <Route path="statistiky" element={<BaleniStatistics />} />
+                        <Route path="nastaveni-stitku" element={<LabelOffsetSettings />} />
                       </Route>
 
                       {/* Desktop app — full Layout with sidebar (pathless layout route) */}

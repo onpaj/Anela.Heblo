@@ -3,7 +3,6 @@ using Anela.Heblo.Application.Features.Packaging.Services;
 using Anela.Heblo.Application.Features.ShipmentLabels;
 using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Domain.Features.Logistics;
-using Anela.Heblo.Domain.Features.Packaging;
 using MediatR;
 using Microsoft.Extensions.Logging;
 
@@ -20,7 +19,6 @@ public class GetPackageLabelPdfHandler : IRequestHandler<GetPackageLabelPdfReque
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly IPackingOrderShippingSource _orderShippingSource;
     private readonly IShippingMethodCatalog _shippingCatalog;
-    private readonly ICarrierLabelOffsetRepository _labelOffsets;
     private readonly ILogger<GetPackageLabelPdfHandler> _logger;
 
     public GetPackageLabelPdfHandler(
@@ -28,14 +26,12 @@ public class GetPackageLabelPdfHandler : IRequestHandler<GetPackageLabelPdfReque
         IHttpClientFactory httpClientFactory,
         IPackingOrderShippingSource orderShippingSource,
         IShippingMethodCatalog shippingCatalog,
-        ICarrierLabelOffsetRepository labelOffsets,
         ILogger<GetPackageLabelPdfHandler> logger)
     {
         _shipmentClient = shipmentClient;
         _httpClientFactory = httpClientFactory;
         _orderShippingSource = orderShippingSource;
         _shippingCatalog = shippingCatalog;
-        _labelOffsets = labelOffsets;
         _logger = logger;
     }
 
@@ -113,25 +109,33 @@ public class GetPackageLabelPdfHandler : IRequestHandler<GetPackageLabelPdfReque
     }
 
     /// <summary>
-    /// Looks up the per-carrier offset saved in Nastavení expedice and converts it to PDF points.
-    /// When no carrier has a non-zero offset the order's carrier is not looked up at all. A failed
-    /// offset read or carrier lookup only skips the offset — the label still prints.
+    /// Picks this computer's offset for the order's carrier (sent by the browser, see
+    /// <see cref="LabelOffsetQuery"/>) and converts it to PDF points. When no carrier has a
+    /// non-zero offset the order's carrier is not looked up at all. Malformed offsets, a failed
+    /// carrier lookup or a carrier without an offset only skip the shift — the label still prints.
     /// </summary>
     private async Task<(double Right, double Up)> GetOffsetAsync(GetPackageLabelPdfRequest request, CancellationToken ct)
     {
+        if (!LabelOffsetQuery.TryParse(request.Offsets, out var offsets))
+        {
+            _logger.LogWarning(
+                "Ignoring malformed label offsets {Offsets} for order {OrderCode} package {PackageNumber}; printing label without offset",
+                request.Offsets, request.OrderCode, request.PackageNumber);
+            return default;
+        }
+
+        if (!offsets.Values.Any(o => o != default))
+            return default;
+
         try
         {
-            var offsets = await _labelOffsets.GetAllAsync(ct);
-            if (!offsets.Any(o => o.OffsetXMm != 0 || o.OffsetYMm != 0))
-                return default;
-
             var carrier = await ResolveCarrierAsync(request.OrderCode, ct);
-            var offset = offsets.FirstOrDefault(o => o.Carrier == carrier);
+            var offset = carrier is null ? default : offsets.GetValueOrDefault(carrier.Value);
             _logger.LogDebug(
                 "Label offset for order {OrderCode}: carrier {Carrier}, X {OffsetXMm} mm, Y {OffsetYMm} mm",
-                request.OrderCode, carrier?.ToString() ?? "unresolved", offset?.OffsetXMm ?? 0, offset?.OffsetYMm ?? 0);
+                request.OrderCode, carrier?.ToString() ?? "unresolved", offset.XMm, offset.YMm);
 
-            return offset is null ? default : (offset.OffsetXMm * PointsPerMm, offset.OffsetYMm * PointsPerMm);
+            return (offset.XMm * PointsPerMm, offset.YMm * PointsPerMm);
         }
         catch (Exception ex) when (!ct.IsCancellationRequested)
         {
