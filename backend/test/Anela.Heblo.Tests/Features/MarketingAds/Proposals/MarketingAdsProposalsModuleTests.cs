@@ -5,6 +5,7 @@ using Anela.Heblo.Application.Features.MarketingAds.Proposals.Autonomy;
 using Anela.Heblo.Application.Features.MarketingAds.Proposals.Execution;
 using Anela.Heblo.Application.Features.MarketingAds.Proposals.ReadModel;
 using Anela.Heblo.Domain.Features.MarketingAds;
+using Anela.Heblo.Domain.Features.Users;
 using Anela.Heblo.Persistence;
 using FluentAssertions;
 using Hangfire;
@@ -31,6 +32,7 @@ public class MarketingAdsProposalsModuleTests
         // What the API host always provides.
         services.AddDbContext<ApplicationDbContext>(o => o.UseInMemoryDatabase(Guid.NewGuid().ToString()));
         services.AddSingleton(Mock.Of<IBackgroundJobClient>());
+        services.AddSingleton(Mock.Of<ICurrentUserService>());
         services.AddMarketingAdsModule(configuration);
         return services.BuildServiceProvider(new ServiceProviderOptions { ValidateScopes = true, ValidateOnBuild = true });
     }
@@ -50,15 +52,17 @@ public class MarketingAdsProposalsModuleTests
     }
 
     [Fact]
-    public void DefaultResolver_DeniesEveryApprovalUntilC4()
+    public void ApprovalChannelResolver_IsTheRealClaimsBasedOne()
     {
-        using var provider = Build();
+        using var provider = Build(new Dictionary<string, string?>
+        {
+            ["AzureAd:ClientId"] = "api-client",
+            ["Ads:Approval:WebClientIds:0"] = "web-client",
+        });
         using var scope = provider.CreateScope();
 
-        var resolution = scope.ServiceProvider.GetRequiredService<IApprovalChannelResolver>().Resolve();
-
-        resolution.Allowed.Should().BeFalse();
-        resolution.DenyReason.Should().Be(DenyAllApprovalChannelResolver.Reason);
+        scope.ServiceProvider.GetServices<IApprovalChannelResolver>()
+            .Should().ContainSingle().Which.Should().BeOfType<ApprovalChannelResolver>();
     }
 
     [Fact]
