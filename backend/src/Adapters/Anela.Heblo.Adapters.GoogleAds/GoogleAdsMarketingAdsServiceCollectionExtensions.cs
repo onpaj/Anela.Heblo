@@ -1,4 +1,5 @@
 using Anela.Heblo.Adapters.GoogleAds.Api;
+using Anela.Heblo.Adapters.GoogleAds.Execution;
 using Anela.Heblo.Adapters.GoogleAds.Reporting;
 using Anela.Heblo.Application.Features.MarketingAds.Contracts;
 using Microsoft.Extensions.Configuration;
@@ -18,6 +19,8 @@ public static class GoogleAdsMarketingAdsServiceCollectionExtensions
     /// "XXX" placeholders. Otherwise nothing is registered and nothing throws, so a missing or
     /// mistyped Key Vault secret can never stop the app from booting; a half-configured set logs a
     /// startup warning naming the unusable settings. Nothing here calls Google.
+    /// Also registers the executor; nothing calls it until the core's execution pipeline (C3) is enabled by
+    /// an admin, and GoogleAds:ValidateOnly defaults to true.
     /// The developer token is not required (Google sunset developer tokens on 2026-09-09).
     /// </summary>
     public static IServiceCollection AddGoogleAdsMarketingAds(this IServiceCollection services, IConfiguration configuration)
@@ -39,6 +42,7 @@ public static class GoogleAdsMarketingAdsServiceCollectionExtensions
         services.AddSingleton<IGoogleAdsAccessTokenProvider, GoogleAdsOAuthTokenProvider>();
         services.AddSingleton<IGoogleAdsApiClient, GoogleAdsRestClient>();
         services.AddScoped<IAdPlatformReadSource, GoogleAdsReadSource>();
+        services.AddScoped<IAdActionExecutor, GoogleAdsActionExecutor>();
         return services;
     }
 
@@ -68,7 +72,7 @@ public static class GoogleAdsMarketingAdsServiceCollectionExtensions
         if (loginCustomerId.Length > 0 && !GoogleAdsIds.IsNumericId(loginCustomerId))
             unusable.Add(nameof(GoogleAdsSettings.LoginCustomerId));
 
-        return $"Google Ads is partly configured; the read source stays unregistered. Unusable settings: "
+        return $"Google Ads is partly configured; the read source and executor stay unregistered. Unusable settings: "
                + $"{string.Join(", ", unusable)}. Check the Key Vault secrets GoogleAds--<name>.";
     }
 

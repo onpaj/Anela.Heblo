@@ -1,9 +1,13 @@
 using Anela.Heblo.Adapters.GoogleAds;
+using Anela.Heblo.Adapters.GoogleAds.Execution;
 using Anela.Heblo.Adapters.GoogleAds.Reporting;
 using Anela.Heblo.Application.Features.MarketingAds.Contracts;
 using FluentAssertions;
 using Microsoft.Extensions.Configuration;
+using Anela.Heblo.Adapters.GoogleAds.Tests.Support;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Options;
 
 namespace Anela.Heblo.Adapters.GoogleAds.Tests;
 
@@ -121,5 +125,29 @@ public sealed class RegistrationTests
 
         sources.Should().ContainSingle().Which.Should().BeOfType<GoogleAdsReadSource>()
             .Which.Platform.Should().Be(AdPlatform.GoogleAds);
+    }
+
+    [Fact]
+    public void registers_the_executor_with_validate_only_on_by_default()
+    {
+        var services = Register(Configured());
+        services.AddLogging();
+        services.AddSingleton<IHostEnvironment>(new StubHostEnvironment("Production"));
+        using var provider = services.BuildServiceProvider(validateScopes: true);
+        using var scope = provider.CreateScope();
+
+        scope.ServiceProvider.GetServices<IAdActionExecutor>().Should().ContainSingle()
+            .Which.Should().BeOfType<GoogleAdsActionExecutor>();
+        provider.GetRequiredService<IOptionsMonitor<GoogleAdsSettings>>().CurrentValue.ValidateOnly.Should().BeTrue();
+    }
+
+    [Fact]
+    public void turns_validate_only_off_only_when_configuration_says_so()
+    {
+        var settings = Configured();
+        settings["GoogleAds:ValidateOnly"] = "false";
+        using var provider = Register(settings).BuildServiceProvider();
+
+        provider.GetRequiredService<IOptionsMonitor<GoogleAdsSettings>>().CurrentValue.ValidateOnly.Should().BeFalse();
     }
 }

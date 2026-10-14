@@ -24,6 +24,7 @@ internal sealed class GoogleAdsRestClient : IGoogleAdsApiClient
     private readonly IOptionsMonitor<GoogleAdsSettings> _settings;
     private readonly ILogger<GoogleAdsRestClient> _logger;
     private readonly ResiliencePipeline _searchPipeline;
+    private readonly ResiliencePipeline _mutatePipeline;
 
     public GoogleAdsRestClient(
         IHttpClientFactory httpClientFactory,
@@ -46,6 +47,7 @@ internal sealed class GoogleAdsRestClient : IGoogleAdsApiClient
         _settings = settings;
         _logger = logger;
         _searchPipeline = BuildSearchPipeline(retryDelay);
+        _mutatePipeline = BuildMutatePipeline(retryDelay);
     }
 
     public async Task<IReadOnlyList<JsonElement>> SearchAsync(string customerId, GoogleAdsQuery query, CancellationToken ct)
@@ -75,6 +77,76 @@ internal sealed class GoogleAdsRestClient : IGoogleAdsApiClient
         throw new GoogleAdsApiException(
             $"Google Ads query '{query.Name}' exceeded {MaxPages} pages.", null, "client.too_many_pages", null, isTransient: false);
     }
+
+    public async Task<GoogleAdsMutateResult> MutateAsync(
+        string customerId, string service, JsonObject request, CancellationToken ct)
+    {
+        GoogleAdsIds.RequireNumericId(customerId, nameof(customerId));
+        if (!GoogleAdsMutateServices.All.Contains(service))
+            throw new ArgumentOutOfRangeException(nameof(service), service, "Unsupported Google Ads mutate service.");
+
+        var operation = $"{service}:mutate";
+        return await _mutatePipeline.ExecuteAsync(async innerCt =>
+        {
+            var (response, accessToken) = await SendAsync($"customers/{customerId}/{operation}", request, innerCt);
+            if (response.StatusCode == HttpStatusCode.Unauthorized)
+            {
+                // Rejected before Google processed anything, so resending once is safe.
+                response.Dispose();
+                _tokens.Invalidate(accessToken);
+                (response, _) = await SendAsync($"customers/{customerId}/{operation}", request, innerCt);
+            }
+
+            using (response)
+                return await ReadMutateResultAsync(response, operation, innerCt);
+        }, ct);
+    }
+
+    private async Task<GoogleAdsMutateResult> ReadMutateResultAsync(
+        HttpResponseMessage response, string operation, CancellationToken ct)
+    {
+        var text = await response.Content.ReadAsStringAsync(ct);
+        if (response.IsSuccessStatusCode)
+            return GoogleAdsMutateResult.FromResponse(text);
+
+        var error = GoogleAdsErrorParser.Parse(text);
+        if (IsPlatformRejection(response.StatusCode, error))
+        {
+            _logger.LogWarning("GoogleAds: {Operation} rejected: {ErrorCode} (requestId {RequestId})",
+                operation, error.ErrorCode, error.RequestId);
+            return GoogleAdsMutateResult.Rejected(
+                error.ErrorCode ?? $"http.{(int)response.StatusCode}", error.Message, text);
+        }
+
+        var exception = ToException(response.StatusCode, text, operation);
+        _logger.LogWarning(
+            "GoogleAds: {Operation} failed with HTTP {Status} {ErrorCode} (requestId {RequestId})",
+            operation, (int)response.StatusCode, exception.ErrorCode, exception.RequestId);
+        throw exception;
+    }
+
+    // A 404 without a GoogleAdsFailure is a wrong URL or retired API version, not a missing entity.
+    private static bool IsPlatformRejection(HttpStatusCode status, GoogleAdsError error) => status switch
+    {
+        HttpStatusCode.BadRequest or HttpStatusCode.Conflict => true,
+        HttpStatusCode.NotFound => error.ErrorCode is not null,
+        _ => false,
+    };
+
+    // A mutate that failed with 5xx or timed out may already have been applied; repeating a create
+    // could add a second criterion. 429 (RESOURCE_EXHAUSTED) is rejected before processing.
+    private static ResiliencePipeline BuildMutatePipeline(TimeSpan delay) =>
+        new ResiliencePipelineBuilder()
+            .AddRetry(new RetryStrategyOptions
+            {
+                MaxRetryAttempts = MaxRetryAttempts,
+                Delay = delay,
+                BackoffType = DelayBackoffType.Exponential,
+                UseJitter = delay > TimeSpan.Zero,
+                ShouldHandle = args => ValueTask.FromResult(
+                    args.Outcome.Exception is GoogleAdsApiException { StatusCode: HttpStatusCode.TooManyRequests }),
+            })
+            .Build();
 
     internal static GoogleAdsApiException ToException(HttpStatusCode status, string body, string operation)
     {

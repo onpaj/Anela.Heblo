@@ -210,6 +210,7 @@ Agent-facing catalog of what Heblo does, grouped by module. Each module has an o
 - [sync-ads-change-history](sync-ads-change-history.md) (sync) — Hourly import of every change made to Anela's ad accounts — from each platform's change history, or by diffing entity snapshots where a platform has none — into Heblo_V3.ads.ad_change_events, each flagged as made by Heblo or out-of-band. Related: sync-ads-daily, sync-google-ads-campaign-data
 - [sync-ads-daily](sync-ads-daily.md) (sync) — Daily pull of every registered ad platform's accounts, campaigns/ad groups/keywords/ads, cost and conversion facts (yesterday plus a 14-day lookback) and search terms into Heblo_V3.ads, read by AI marketing agents over MCP and by Metabase. Related: sync-ads-change-history, sync-google-ads-campaign-data, sync-shoptet-orders
 - [sync-google-ads-campaign-data](sync-google-ads-campaign-data.md) (sync) — Google Ads read source for the MarketingAds backbone — account, campaign/ad group/keyword/negative/ad entities, daily facts, search terms and change history pulled over the Google Ads REST API v25. Related: sync-ad-platform-transactions, sync-ads-daily, sync-ads-change-history
+- [flow-google-ads-action-execution](flow-google-ads-action-execution.md) (workflow) — Executes approved Google Ads proposal actions - add a negative keyword, pause an ad, and revert either - through the Google Ads REST API v25, validate-only outside production. Related: sync-google-ads-campaign-data, module-marketing-ads
 
 ## marketing-invoices
 

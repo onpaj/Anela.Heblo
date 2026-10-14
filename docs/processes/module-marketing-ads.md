@@ -5,7 +5,7 @@ module: marketing-ads
 summary: Heblo's ad-platform backbone for AI marketing agents — daily Google Ads performance today (Meta and Sklik planned) and change history in the ads schema, read by agents over MCP and by people in Metabase.
 owns: []
 verified_at: "5d9408774"
-related: [sync-ads-daily, sync-ads-change-history, sync-google-ads-campaign-data, sync-shoptet-orders]
+related: [sync-ads-daily, sync-ads-change-history, sync-google-ads-campaign-data, flow-google-ads-action-execution, sync-shoptet-orders]
 ---
 
 # Marketing Ads (Reklamní kampaně)
@@ -20,6 +20,7 @@ No Heblo page yet. Agents and the chief of marketing via MCP tools (C4: accounts
 - `sync-ads-daily` — accounts, entities, daily facts, search terms; 05:30 Europe/Prague daily.
 - `sync-ads-change-history` — platform change logs / snapshot diffs, Heblo vs out-of-band; hourly at :15.
 - `sync-google-ads-campaign-data` — the Google Ads read source both jobs call; no job of its own.
+- `flow-google-ads-action-execution` — Google Ads executor: applies and reverts approved negative-keyword and ad-pause actions; validate-only outside production.
 
 ## Data owned
 - `ads.ad_accounts` — one ad account per platform; `is_managed` = Anela's own.

@@ -8,7 +8,7 @@ namespace Anela.Heblo.Adapters.GoogleAds.Api;
 /// </summary>
 internal static class GoogleAdsIds
 {
-    private static readonly Regex NumericId = new("^[0-9]{1,20}$", RegexOptions.CultureInvariant);
+    private static readonly Regex NumericId = new("^[0-9]{1,20}\\z", RegexOptions.CultureInvariant);
 
     public static string NormalizeCustomerId(string? value) =>
         (value ?? string.Empty).Replace("-", string.Empty, StringComparison.Ordinal).Trim();

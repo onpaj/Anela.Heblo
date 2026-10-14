@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
 using Anela.Heblo.Adapters.GoogleAds.Api;
 
@@ -41,6 +42,9 @@ internal sealed class FixtureGoogleAdsApiClient : IGoogleAdsApiClient
                                    && string.CompareOrdinal(RowDate(r), range.Groups[2].Value) <= 0).ToList();
         return Task.FromResult<IReadOnlyList<JsonElement>>(rows);
     }
+
+    public Task<GoogleAdsMutateResult> MutateAsync(string customerId, string service, JsonObject request, CancellationToken ct) =>
+        throw new NotSupportedException("Read-source fixtures never mutate.");
 
     private static string? RowDate(JsonElement row) => row.GetProperty("segments").GetProperty("date").GetString();
 
