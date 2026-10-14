@@ -26,7 +26,7 @@ related:
   ("Tisk protokolu", only for Completed orders).
 - **Semi-product recipe** (receptura) — a sheet for the person mixing the bulk: each
   ingredient's amount for the chosen batch size and for half of it, its share in %, grouped
-  by phase letter. Printed from the batch calculator.
+  by phase letter, and a Code 128 barcode identifying the recipe. Printed from the batch calculator.
 
 Nothing is stored or sent anywhere; the PDF is streamed to the browser.
 
@@ -53,10 +53,14 @@ On demand:
 2. Scale factor = `batchSize ÷ BoM header amount` (1 when no batch size); per ingredient full =
    round(amount × factor, 3), half = full ÷ 2, % = BoM amount ÷ Σ BoM ingredient amounts × 100.
 3. Sort by Flexi order (unordered last), then name; group rows under "Fáze A/B/…" headings.
+4. Barcode value = `R-` + product code (e.g. `R-DEO001001M`, `RecipeBarcode`), drawn top-right
+   as Code 128 set B (`Code128Encoder`, vector bars, 1 pt module, value printed under the bars).
 
 ## Logic & formulas
 - Protocol amounts are exactly what Flexi holds on the documents (not the Heblo order
   quantities), so a line Flexi did not issue shows up as missing or 0 there.
+- The `R-` prefix marks a recipe scan so a scanning screen can tell it apart from product and
+  lot codes. Nothing scans it yet.
 - Recipe % uses the unscaled BoM amounts and the sum of ingredient lines (not the header
   amount), so it adds up to 100 % even if the BoM header differs from the ingredient total.
 
@@ -69,6 +73,9 @@ On demand:
 None.
 
 ## Known quirks
+- **Recipe barcode is omitted for non-ASCII or over-long product codes** — Code 128 set B covers
+  printable ASCII only, and values over 30 characters (`RecipeBarcode.MaxValueLength`) would not
+  fit the header; such a code prints the sheet without a barcode instead of failing.
 - **The bulk-sale document is not printed.** The direct semi-product output issue
   (`ErpDiscardResidueDocumentNumber`) is not among the documents the protocol reads.
 - **Documents saved before a failure are missing** — only codes persisted on the order are
@@ -81,4 +88,5 @@ None.
 - `backend/src/Anela.Heblo.Application/Features/Manufacture/UseCases/GetManufactureProtocol/GetManufactureProtocolHandler.cs` — data assembly, Flexi document lines
 - `backend/src/Anela.Heblo.API/PDFPrints/ManufactureProtocolDocument.cs` — protocol layout
 - `backend/src/Anela.Heblo.Application/Features/Manufacture/UseCases/GetSemiproductRecipePdf/GetSemiproductRecipePdfHandler.cs` — recipe scaling
-- `backend/src/Anela.Heblo.API/PDFPrints/SemiproductRecipeDocument.cs` — recipe layout
+- `backend/src/Anela.Heblo.API/PDFPrints/SemiproductRecipeDocument.cs` — recipe layout and barcode drawing
+- `backend/src/Anela.Heblo.Application/Shared/Printing/Code128Encoder.cs` — Code 128 set B encoding

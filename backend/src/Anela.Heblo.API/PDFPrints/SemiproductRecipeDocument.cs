@@ -1,5 +1,6 @@
 using System.Globalization;
 using Anela.Heblo.Application.Features.Manufacture.UseCases.GetSemiproductRecipePdf;
+using Anela.Heblo.Application.Shared.Printing;
 using QuestPDF.Fluent;
 using QuestPDF.Helpers;
 using QuestPDF.Infrastructure;
@@ -9,6 +10,11 @@ namespace Anela.Heblo.API.PDFPrints;
 public class SemiproductRecipeDocument : IDocument
 {
     private readonly SemiproductRecipeData _data;
+
+    // Code 128 sizing: 1 pt (≈0.35 mm) module, ≈12 mm bar height, 10-module quiet zone per side.
+    private const float BarcodeModuleWidthPt = 1f;
+    private const float BarcodeHeightPt = 34f;
+    private const int BarcodeQuietZoneModules = 10;
 
     private static readonly NumberFormatInfo AmountFormat = new NumberFormatInfo
     {
@@ -39,38 +45,14 @@ public class SemiproductRecipeDocument : IDocument
             {
                 header.Item().Row(row =>
                 {
-                    row.RelativeItem()
-                        .Text($"{_data.ProductCode}  –  {_data.ProductName}")
-                        .FontSize(18).Bold();
-                    row.AutoItem()
-                        .AlignBottom()
-                        .Text($"Tisk: {_data.PrintedAt:dd.MM.yyyy HH:mm}")
-                        .FontSize(11)
-                        .FontColor(Colors.Grey.Darken1);
-                });
-                header.Item().Row(row =>
-                {
-                    row.AutoItem().Text(t =>
+                    row.RelativeItem().Column(left =>
                     {
-                        t.Span("Výrobní dávka: ").Bold();
-                        t.Span(_data.BatchSize.ToString("N1", AmountFormat) + " g");
+                        left.Item()
+                            .Text($"{_data.ProductCode}  –  {_data.ProductName}")
+                            .FontSize(18).Bold();
+                        left.Item().Inlined(ComposeBatchInfo);
                     });
-                    if (_data.Mmq.HasValue)
-                    {
-                        row.AutoItem().PaddingLeft(24).Text(t =>
-                        {
-                            t.Span("MMQ: ").Bold();
-                            t.Span(FormatAmount(_data.Mmq.Value) + " g");
-                        });
-                    }
-                    if (_data.ExpirationMonths.HasValue)
-                    {
-                        row.AutoItem().PaddingLeft(24).Text(t =>
-                        {
-                            t.Span("Expirace: ").Bold();
-                            t.Span($"{_data.ExpirationMonths}M");
-                        });
-                    }
+                    row.AutoItem().PaddingLeft(16).AlignBottom().Column(ComposeBarcodeAndTimestamp);
                 });
                 header.Item().PaddingTop(6).LineHorizontal(1f).LineColor(Colors.Grey.Lighten1);
             });
@@ -124,6 +106,60 @@ public class SemiproductRecipeDocument : IDocument
                 t.TotalPages();
             });
         });
+    }
+
+    private void ComposeBatchInfo(InlinedDescriptor inlined)
+    {
+        // Inlined (not Row) so the line wraps when a wide barcode narrows the title column.
+        inlined.HorizontalSpacing(24);
+        inlined.Item().Text(t =>
+        {
+            t.Span("Výrobní dávka: ").Bold();
+            t.Span(_data.BatchSize.ToString("N1", AmountFormat) + " g");
+        });
+        if (_data.Mmq.HasValue)
+        {
+            inlined.Item().Text(t =>
+            {
+                t.Span("MMQ: ").Bold();
+                t.Span(FormatAmount(_data.Mmq.Value) + " g");
+            });
+        }
+        if (_data.ExpirationMonths.HasValue)
+        {
+            inlined.Item().Text(t =>
+            {
+                t.Span("Expirace: ").Bold();
+                t.Span($"{_data.ExpirationMonths}M");
+            });
+        }
+    }
+
+    private void ComposeBarcodeAndTimestamp(ColumnDescriptor column)
+    {
+        if (Code128Encoder.CanEncode(_data.BarcodeValue))
+        {
+            column.Item().AlignCenter().PaddingHorizontal(BarcodeQuietZoneModules * BarcodeModuleWidthPt)
+                .Row(row => ComposeBarcodeBars(row, Code128Encoder.EncodeModules(_data.BarcodeValue!)));
+            column.Item().AlignCenter().Text(_data.BarcodeValue).FontSize(11);
+        }
+        column.Item().AlignRight()
+            .Text($"Tisk: {_data.PrintedAt:dd.MM.yyyy HH:mm}")
+            .FontSize(11)
+            .FontColor(Colors.Grey.Darken1);
+    }
+
+    private static void ComposeBarcodeBars(RowDescriptor row, IReadOnlyList<int> moduleWidths)
+    {
+        for (var i = 0; i < moduleWidths.Count; i++)
+        {
+            var element = row.ConstantItem(moduleWidths[i] * BarcodeModuleWidthPt).Height(BarcodeHeightPt);
+            var isBar = i % 2 == 0;
+            if (isBar)
+            {
+                element.Background(Colors.Black);
+            }
+        }
     }
 
     private static string FormatAmount(double value) =>

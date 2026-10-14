@@ -8,6 +8,7 @@ public class SemiproductRecipeData
     public DateTime PrintedAt { get; set; } = DateTime.Now;
     public double? Mmq { get; set; }
     public int? ExpirationMonths { get; set; }
+    public string? BarcodeValue { get; set; }
     public List<SemiproductRecipeIngredientLine> Ingredients { get; set; } = new();
 }
 

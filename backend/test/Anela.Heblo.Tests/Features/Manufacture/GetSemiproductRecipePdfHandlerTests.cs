@@ -199,4 +199,36 @@ public class GetSemiproductRecipePdfHandlerTests
             d.ExpirationMonths == 24
         )), Times.Once);
     }
+
+    [Fact]
+    public async Task Handle_SetsRecipeBarcodeValue_FromProductCode()
+    {
+        // Arrange
+        const string productCode = "DEO001001M";
+        _manufactureClientMock.Setup(x => x.GetManufactureTemplateAsync(productCode, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new ManufactureTemplate { ProductCode = productCode, ProductName = "Deodorant", OriginalAmount = 1000.0 });
+
+        // Act
+        var result = await _handler.Handle(new GetSemiproductRecipePdfRequest { ProductCode = productCode }, CancellationToken.None);
+
+        // Assert
+        Assert.True(result.Success);
+        _rendererMock.Verify(r => r.Render(It.Is<SemiproductRecipeData>(d => d.BarcodeValue == "R-DEO001001M")), Times.Once);
+    }
+
+    [Fact]
+    public async Task Handle_OmitsBarcode_WhenProductCodeIsNotEncodable()
+    {
+        // Arrange
+        const string productCode = "DEOŽ01";
+        _manufactureClientMock.Setup(x => x.GetManufactureTemplateAsync(productCode, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new ManufactureTemplate { ProductCode = productCode, ProductName = "Deodorant", OriginalAmount = 1000.0 });
+
+        // Act
+        var result = await _handler.Handle(new GetSemiproductRecipePdfRequest { ProductCode = productCode }, CancellationToken.None);
+
+        // Assert
+        Assert.True(result.Success);
+        _rendererMock.Verify(r => r.Render(It.Is<SemiproductRecipeData>(d => d.BarcodeValue == null)), Times.Once);
+    }
 }
