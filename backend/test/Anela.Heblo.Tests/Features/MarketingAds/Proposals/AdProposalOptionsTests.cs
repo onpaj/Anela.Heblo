@@ -23,6 +23,9 @@ public class AdProposalOptionsTests
     [InlineData(-1, 60, "*/15 * * * *", "Ads:ProposalTtlHours")]
     [InlineData(72, 0, "*/15 * * * *", "Ads:StuckApprovedRequeueMinutes")]
     [InlineData(72, 60, " ", "Ads:ExpiryCronExpression")]
+    [InlineData(72, 60, "every 15 minutes", "Ads:ExpiryCronExpression")]
+    [InlineData(72, 60, "*/15 * * *", "Ads:ExpiryCronExpression")]
+    [InlineData(72, 60, "61 * * * *", "Ads:ExpiryCronExpression")]
     public void EnsureValid_NamesTheBadSetting(int ttlHours, int requeueMinutes, string cron, string expectedKey)
     {
         var options = new AdProposalOptions

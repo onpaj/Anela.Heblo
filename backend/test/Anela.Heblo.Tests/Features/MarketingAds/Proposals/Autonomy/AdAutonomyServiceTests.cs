@@ -21,8 +21,8 @@ public class AdAutonomyServiceTests
     [InlineData(AdAutonomyMode.AutoWithinLimits, AdLimitsDecision.NeedsSecondApprover, false)]
     [InlineData(AdAutonomyMode.AutoWithinLimits, AdLimitsDecision.Denied, false)]
     [InlineData(AdAutonomyMode.Auto, AdLimitsDecision.Allowed, true)]
-    [InlineData(AdAutonomyMode.Auto, AdLimitsDecision.NeedsWebApproval, true)]
-    [InlineData(AdAutonomyMode.Auto, AdLimitsDecision.NeedsSecondApprover, true)]
+    [InlineData(AdAutonomyMode.Auto, AdLimitsDecision.NeedsWebApproval, false)]
+    [InlineData(AdAutonomyMode.Auto, AdLimitsDecision.NeedsSecondApprover, false)]
     [InlineData(AdAutonomyMode.Auto, AdLimitsDecision.Denied, false)]
     public void IsAutoApprovable_FollowsSpec64(AdAutonomyMode mode, AdLimitsDecision decision, bool expected) =>
         AdAutonomyService.IsAutoApprovable(mode, decision).Should().Be(expected);
@@ -79,13 +79,37 @@ public class AdAutonomyServiceTests
         proposal.Status.Should().Be(AdProposalStatus.Pending);
     }
 
+    // Spec 6.3: the web-only and second-approver rules apply "independent of who approved"; Auto is reserved
+    // and in C3 behaves exactly like AutoWithinLimits.
+    [Theory]
+    [InlineData(AdAutonomyMode.AutoWithinLimits, AdLimitsDecision.NeedsWebApproval)]
+    [InlineData(AdAutonomyMode.AutoWithinLimits, AdLimitsDecision.NeedsSecondApprover)]
+    [InlineData(AdAutonomyMode.Auto, AdLimitsDecision.NeedsWebApproval)]
+    [InlineData(AdAutonomyMode.Auto, AdLimitsDecision.NeedsSecondApprover)]
+    public void HumanGatedDecisions_AreNeverAutoApproved_InEitherAutoMode(AdAutonomyMode mode, AdLimitsDecision decision) =>
+        AdAutonomyService.IsAutoApprovable(mode, decision).Should().BeFalse();
+
     [Fact]
-    public async Task Auto_PauseThatEmptiesAnAdGroup_IsApprovedBecauseOnlyHardLimitsBind()
+    public async Task Auto_PauseThatEmptiesAnAdGroup_StaysPendingForAHuman()
     {
         using var h = new ProposalTestHarness();
         await h.SetAutonomyAsync("GoogleAds", "PauseAd", AdAutonomyMode.Auto);
         h.ReadModel.Setup(r => r.GetAdGroupOccupancyAsync(It.IsAny<AdPlatform>(), It.IsAny<string>(), It.IsAny<IReadOnlyCollection<string>>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new Dictionary<string, AdGroupOccupancy> { ["ad-1"] = new("grp-1", 1) });
+        var (proposal, actions) = await LoadPendingAsync(h);
+
+        var approved = await h.Autonomy.TryAutoApproveAsync(proposal, actions, CancellationToken.None);
+
+        approved.Should().BeFalse();
+        proposal.Status.Should().Be(AdProposalStatus.Pending);
+        h.Context.ChangeTracker.Entries<AdAuditEvent>().Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task Auto_AllowedProposal_IsApprovedBySystem()
+    {
+        using var h = new ProposalTestHarness();
+        await h.SetAutonomyAsync("GoogleAds", "PauseAd", AdAutonomyMode.Auto);
         var (proposal, actions) = await LoadPendingAsync(h);
 
         var approved = await h.Autonomy.TryAutoApproveAsync(proposal, actions, CancellationToken.None);

@@ -6,9 +6,9 @@ using Anela.Heblo.Domain.Features.MarketingAds;
 namespace Anela.Heblo.Application.Features.MarketingAds.Proposals.Autonomy;
 
 /// <summary>
-/// Spec 6.4. AutoWithinLimits: auto-approve only an Allowed evaluation. Auto: auto-approve anything the
-/// hard limits do not deny (the admin chose to skip the human gates). Evaluated with channel System,
-/// which never satisfies a second-approver rule and always counts as "not web".
+/// Spec 6.4. Only an Allowed evaluation is auto-approved. Evaluated with channel System, which never
+/// satisfies a second-approver rule and always counts as "not web", so NeedsWebApproval and
+/// NeedsSecondApprover stay Pending for a human (spec 6.3: the limits apply independent of who approved).
 /// </summary>
 public sealed class AdAutonomyService : IAdAutonomyService
 {
@@ -56,7 +56,9 @@ public sealed class AdAutonomyService : IAdAutonomyService
     public static bool IsAutoApprovable(AdAutonomyMode mode, AdLimitsDecision decision) => mode switch
     {
         AdAutonomyMode.AutoWithinLimits => decision == AdLimitsDecision.Allowed,
-        AdAutonomyMode.Auto => decision != AdLimitsDecision.Denied,
+        // Auto is reserved: spec 6.4 does not define it and spec 6.3 binds the limits independent of who
+        // approved, so in C3 it behaves exactly like AutoWithinLimits.
+        AdAutonomyMode.Auto => decision == AdLimitsDecision.Allowed,
         _ => false,
     };
 }

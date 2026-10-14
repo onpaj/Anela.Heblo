@@ -1,3 +1,6 @@
+using NCrontab.Advanced;
+using NCrontab.Advanced.Exceptions;
+
 namespace Anela.Heblo.Application.Features.MarketingAds.Proposals;
 
 /// <summary>
@@ -27,9 +30,26 @@ public class AdProposalOptions
             problems.Add($"Ads:ProposalTtlHours must be positive, was {ProposalTtlHours}");
         if (StuckApprovedRequeueMinutes < 1)
             problems.Add($"Ads:StuckApprovedRequeueMinutes must be positive, was {StuckApprovedRequeueMinutes}");
-        if (string.IsNullOrWhiteSpace(ExpiryCronExpression))
-            problems.Add("Ads:ExpiryCronExpression must not be empty");
+        if (!IsValidCron(ExpiryCronExpression))
+            problems.Add($"Ads:ExpiryCronExpression must be a valid 5-field cron expression, was '{ExpiryCronExpression}'");
         if (problems.Count > 0)
             throw new InvalidOperationException("Invalid Ads proposal configuration: " + string.Join("; ", problems));
+    }
+
+    /// <summary>Same parser as the recurring-job cron editor (UpdateRecurringJobCronHandler).</summary>
+    private static bool IsValidCron(string? cronExpression)
+    {
+        if (string.IsNullOrWhiteSpace(cronExpression))
+            return false;
+
+        try
+        {
+            CrontabSchedule.Parse(cronExpression);
+            return true;
+        }
+        catch (CrontabException)
+        {
+            return false;
+        }
     }
 }
