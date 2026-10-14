@@ -11,7 +11,7 @@ owns:
   - backend/src/Anela.Heblo.API/Controllers/MarketingAdsProposalsController.cs
   - backend/src/Anela.Heblo.API/Controllers/MarketingAdsSettingsController.cs
   - backend/src/Anela.Heblo.API/Controllers/MarketingAdsActivityController.cs
-verified_at: "a4c5231e8"
+verified_at: "e73fa012f"
 related: [module-marketing-ads, flow-google-ads-action-execution, sync-ads-change-history, sync-ads-daily]
 ---
 
