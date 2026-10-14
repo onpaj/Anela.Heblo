@@ -54,5 +54,5 @@ public static class LabelOffsetQuery
 
     private static bool TryParseMm(string value, out int mm) =>
         int.TryParse(value.Trim(), NumberStyles.AllowLeadingSign, CultureInfo.InvariantCulture, out mm)
-        && Math.Abs(mm) <= MaxOffsetMm;
+        && mm is >= -MaxOffsetMm and <= MaxOffsetMm;
 }

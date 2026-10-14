@@ -23,6 +23,8 @@ export interface LabelSampleState {
   status: LabelSampleStatus;
 }
 
+const LOADING: LabelSampleState = { sample: null, previewUrl: null, status: 'loading' };
+
 const toSample = (orderCode: string, packageNumber: string): LabelSample | null => {
   const number = Number(packageNumber);
   return Number.isInteger(number) && number > 0 ? { orderCode, packageNumber: number } : null;
@@ -59,14 +61,15 @@ export const useLabelSample = (carrier: LabelCarrier, offset: LabelOffset): Labe
     sortDescending: true,
   });
 
-  const [state, setState] = useState<LabelSampleState>({ sample: null, previewUrl: null, status: 'loading' });
+  // Tagged with its carrier so a switch never shows (or test-prints) the previous carrier's sample.
+  const [state, setState] = useState<LabelSampleState & { carrier: LabelCarrier }>({ ...LOADING, carrier });
   // Once a working sample is found for the carrier, later offset changes only re-fetch that one.
   const workingSample = useRef<{ carrier: LabelCarrier; sample: LabelSample } | null>(null);
 
   useEffect(() => {
     if (packages.isLoading) return;
     if (packages.error) {
-      setState({ sample: null, previewUrl: null, status: 'error' });
+      setState({ sample: null, previewUrl: null, status: 'error', carrier });
       return;
     }
 
@@ -78,7 +81,7 @@ export const useLabelSample = (carrier: LabelCarrier, offset: LabelOffset): Labe
         return sample ? [sample] : [];
       });
 
-    if (!known) setState({ sample: null, previewUrl: null, status: 'loading' });
+    if (!known) setState({ ...LOADING, carrier });
 
     let isCancelled = false;
     let createdUrl: string | null = null;
@@ -89,14 +92,14 @@ export const useLabelSample = (carrier: LabelCarrier, offset: LabelOffset): Labe
         if (isCancelled) return;
         if (!found) {
           workingSample.current = null;
-          setState({ sample: null, previewUrl: null, status: 'none' });
+          setState({ sample: null, previewUrl: null, status: 'none', carrier });
           return;
         }
         workingSample.current = { carrier, sample: found.sample };
         createdUrl = URL.createObjectURL(found.blob);
-        setState({ sample: found.sample, previewUrl: createdUrl, status: 'ready' });
+        setState({ sample: found.sample, previewUrl: createdUrl, status: 'ready', carrier });
       } catch {
-        if (!isCancelled) setState((prev) => ({ ...prev, status: 'error' }));
+        if (!isCancelled) setState({ sample: null, previewUrl: null, status: 'error', carrier });
       }
     }, PREVIEW_DEBOUNCE_MS);
 
@@ -111,5 +114,7 @@ export const useLabelSample = (carrier: LabelCarrier, offset: LabelOffset): Labe
     };
   }, [carrier, offset, packages.isLoading, packages.error, packages.data]);
 
-  return state;
+  if (state.carrier !== carrier) return LOADING;
+  const { sample, previewUrl, status } = state;
+  return { sample, previewUrl, status };
 };

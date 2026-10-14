@@ -39,6 +39,8 @@ public class LabelOffsetQueryTests
     [InlineData("Unknown:1:2")]
     [InlineData("PPL:31:0")]
     [InlineData("PPL:0:-31")]
+    [InlineData("PPL:-2147483648:0")]
+    [InlineData("PPL:0:-2147483648")]
     [InlineData("PPL:1.5:0")]
     [InlineData("PPL:x:0")]
     [InlineData("PPL:1:1,PPL:2:2")]

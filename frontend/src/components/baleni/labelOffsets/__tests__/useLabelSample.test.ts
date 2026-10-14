@@ -77,6 +77,41 @@ describe('useLabelSample', () => {
     const { result } = renderHook(() => useLabelSample('PPL', OFFSET));
 
     await waitFor(() => expect(result.current.status).toBe('error'));
+    expect(result.current.sample).toBeNull();
+  });
+
+  it('drops the previous carrier\'s sample as soon as the carrier changes', async () => {
+    packagesReturning(['ZAS-1']);
+    mockFetch.mockResolvedValue(pdfResponse(200));
+    const { result, rerender } = renderHook(({ carrier }) => useLabelSample(carrier, OFFSET), {
+      initialProps: { carrier: 'Zasilkovna' as 'Zasilkovna' | 'GLS' },
+    });
+    await waitFor(() => expect(result.current.status).toBe('ready'));
+
+    mockPackages.mockReturnValue({ isLoading: true, error: null, data: undefined } as any);
+    rerender({ carrier: 'GLS' });
+
+    expect(result.current.sample).toBeNull();
+    expect(result.current.previewUrl).toBeNull();
+    expect(result.current.status).toBe('loading');
+  });
+
+  it('revokes the preview URL when the screen closes', async () => {
+    jest.useFakeTimers();
+    try {
+      packagesReturning(['ORD-1']);
+      mockFetch.mockResolvedValue(pdfResponse(200));
+      const { result, unmount } = renderHook(() => useLabelSample('PPL', OFFSET));
+      jest.advanceTimersByTime(250);
+      await waitFor(() => expect(result.current.status).toBe('ready'));
+
+      unmount();
+      jest.runOnlyPendingTimers();
+
+      expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:preview');
+    } finally {
+      jest.useRealTimers();
+    }
   });
 
   it('re-fetches only the working sample when the offset changes', async () => {
