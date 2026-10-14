@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Text.Json.Nodes;
 
 namespace Anela.Heblo.Adapters.GoogleAds.Api;
 
@@ -13,4 +14,11 @@ internal interface IGoogleAdsApiClient
     /// Throws <see cref="GoogleAdsApiException"/> on any non-2xx after retrying transient failures.
     /// </summary>
     Task<IReadOnlyList<JsonElement>> SearchAsync(string customerId, GoogleAdsQuery query, CancellationToken ct);
+
+    /// <summary>
+    /// POST customers/{id}/{service}:mutate. Google rejecting the request (HTTP 400/404/409) comes back as a
+    /// result with IsSuccess = false; auth and transport failures throw GoogleAdsApiException. Only HTTP 429
+    /// is retried: any other failure may already have been applied.
+    /// </summary>
+    Task<GoogleAdsMutateResult> MutateAsync(string customerId, string service, JsonObject request, CancellationToken ct);
 }
