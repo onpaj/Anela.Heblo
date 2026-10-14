@@ -21,10 +21,10 @@ Called by the core proposal execution pipeline per action after final approval, 
 1. `ReadCurrentAsync` runs a GAQL query on the target (`executor_*` queries, integration doc section 4) and returns an `AdTargetState`: `Absent|Present` for negatives, `Enabled|Paused|Removed|Unknown` for ads. The core compares it to the action's old value; the executor does not.
 2. `ExecuteAsync` sends `campaignCriteria:mutate` / `adGroupCriteria:mutate` (create a negative with `negative: true`) or `adGroupAds:mutate` (`status: PAUSED`, `updateMask: status`).
 3. `RevertAsync` removes the criterion named by the stored `PlatformResourceId`, or sets the ad back to `ENABLED`.
-4. Every call is logged (operation, action type, target, outcome, validateOnly, error).
+4. Every `ExecuteAsync` and `RevertAsync` call is logged (operation, action type, target, outcome, validateOnly, error); `ReadCurrentAsync` is not.
 
 ## Logic & formulas
-- Guard first: the action must be for `GoogleAds` and its account must equal the configured customer id, else `Failed`.
+- Guard first: the action must be for `GoogleAds` and its account must equal the configured customer id. A guard failure gives `Failed` from `ExecuteAsync`/`RevertAsync` and `Missing` (`Exists=false`) from `ReadCurrentAsync`.
 - Negative keyword presence: same match type and same text, case-insensitive, whitespace collapsed; compared in C#, never in GAQL. Keyword text is never interpolated into a query; ids are checked numeric.
 - Text 1-80 characters, at most 10 words; match type must be a `KeywordMatchType` name; target level must be Campaign or AdGroup. Ad target is `{adGroupId}~{adId}` at level Ad.
 - Revert of a negative keyword needs a `Succeeded` original whose `PlatformResourceId` is `customers/{cid}/{campaignCriteria|adGroupCriteria}/{parentId}~{criterionId}` for this action's own account, level and parent; otherwise `Failed` and nothing is sent. Revert of a pause needs a `Succeeded` original.
