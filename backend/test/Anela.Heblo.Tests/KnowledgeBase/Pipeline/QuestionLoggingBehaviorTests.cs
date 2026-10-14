@@ -166,4 +166,59 @@ public class QuestionLoggingBehaviorTests
             r => r.SaveAsync(It.IsAny<RagInteractionLog>(), It.IsAny<CancellationToken>()),
             Times.Never);
     }
+
+    [Fact]
+    public async Task Handle_PersistsQuestionTagsAndRecommendedCodes()
+    {
+        // Arrange
+        _userService.Setup(s => s.GetCurrentUser()).Returns(new CurrentUser("user-1", "Test User", null, true));
+        _recorder.RecordRetrieval("Problém: akné", 5, []);
+        _recorder.RecordQuestionTags(["akné"], ["hořčíkové máslo"]);
+        _recorder.RecordInteraction(RagFeature.KnowledgeBase, "mám akné", "system prompt", "odpověď");
+        _recorder.RecordRecommendedProducts(["MAS009"]);
+
+        RagInteractionLog? capturedLog = null;
+        _repository
+            .Setup(r => r.SaveAsync(It.IsAny<RagInteractionLog>(), It.IsAny<CancellationToken>()))
+            .Callback<RagInteractionLog, CancellationToken>((log, _) => capturedLog = log)
+            .Returns(Task.CompletedTask);
+
+        // Act
+        await CreateBehavior().Handle(
+            new AskQuestionRequest { Question = "mám akné", TopK = 5 },
+            () => Task.FromResult(new AskQuestionResponse { Answer = "odpověď", Sources = [] }),
+            default);
+
+        // Assert
+        Assert.NotNull(capturedLog);
+        Assert.Equal(["akné"], capturedLog!.ProblemTags);
+        Assert.Equal(["hořčíkové máslo"], capturedLog.ProductTags);
+        Assert.Equal(["MAS009"], capturedLog.RecommendedProductCodes);
+    }
+
+    [Fact]
+    public async Task Handle_NoTagsRecorded_PersistsEmptyLists()
+    {
+        // Arrange
+        _userService.Setup(s => s.GetCurrentUser()).Returns(new CurrentUser("user-1", "Test User", null, true));
+        RecordInteraction();
+
+        RagInteractionLog? capturedLog = null;
+        _repository
+            .Setup(r => r.SaveAsync(It.IsAny<RagInteractionLog>(), It.IsAny<CancellationToken>()))
+            .Callback<RagInteractionLog, CancellationToken>((log, _) => capturedLog = log)
+            .Returns(Task.CompletedTask);
+
+        // Act
+        await CreateBehavior().Handle(
+            new AskQuestionRequest { Question = "Test?", TopK = 5 },
+            () => Task.FromResult(new AskQuestionResponse { Answer = "Test answer.", Sources = [] }),
+            default);
+
+        // Assert
+        Assert.NotNull(capturedLog);
+        Assert.Empty(capturedLog!.ProblemTags);
+        Assert.Empty(capturedLog.ProductTags);
+        Assert.Empty(capturedLog.RecommendedProductCodes);
+    }
 }

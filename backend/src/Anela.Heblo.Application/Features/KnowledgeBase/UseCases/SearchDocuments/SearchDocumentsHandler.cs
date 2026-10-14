@@ -40,6 +40,9 @@ public class SearchDocumentsHandler : IRequestHandler<SearchDocumentsRequest, Se
         var expansion = await _expander.ExpandAsync(request.Query, _options.ToExpansionConfig(), cancellationToken);
         var queryToEmbed = expansion.QueryToEmbed;
 
+        // Recorded before embedding so the tags survive a transient embedding/vector-DB failure.
+        _recorder.RecordQuestionTags(expansion.ProblemTags, expansion.ProductTags);
+
         float[] queryEmbedding;
         try
         {

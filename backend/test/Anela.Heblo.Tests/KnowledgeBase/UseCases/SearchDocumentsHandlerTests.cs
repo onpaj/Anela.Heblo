@@ -351,4 +351,43 @@ public class SearchDocumentsHandlerTests
         Assert.Equal("text-embedding-3-small", capturedOptions!.ModelId);
         Assert.Equal(3072, capturedOptions.Dimensions);
     }
+
+    [Fact]
+    public async Task Handle_RecordsQuestionTagsFromExpansion()
+    {
+        // Arrange
+        SetupEmbeddingGenerator();
+        _expander
+            .Setup(e => e.ExpandAsync(It.IsAny<string>(), It.IsAny<RagQueryExpansionConfig>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new RagExpansionResult("Problém: akné", ["akné"], ["hořčíkové máslo"]));
+        _repository
+            .Setup(r => r.SearchSimilarAsync(It.IsAny<float[]>(), 5, default))
+            .ReturnsAsync([]);
+
+        // Act
+        await CreateHandler().Handle(new SearchDocumentsRequest { Query = "mám akné", TopK = 5 }, default);
+
+        // Assert
+        Assert.Equal(["akné"], _recorder.ProblemTags);
+        Assert.Equal(["hořčíkové máslo"], _recorder.ProductTags);
+        Assert.Equal("Problém: akné", _recorder.ExpandedQuery);
+    }
+
+    [Fact]
+    public async Task Handle_EmbeddingFails_StillRecordsQuestionTags()
+    {
+        // Arrange
+        _expander
+            .Setup(e => e.ExpandAsync(It.IsAny<string>(), It.IsAny<RagQueryExpansionConfig>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new RagExpansionResult("Problém: akné", ["akné"], []));
+        _embeddingGenerator
+            .Setup(s => s.GenerateAsync(It.IsAny<IEnumerable<string>>(), It.IsAny<EmbeddingGenerationOptions?>(), default))
+            .ThrowsAsync(new HttpRequestException("down"));
+
+        // Act
+        await CreateHandler().Handle(new SearchDocumentsRequest { Query = "mám akné", TopK = 5 }, default);
+
+        // Assert
+        Assert.Equal(["akné"], _recorder.ProblemTags);
+    }
 }
