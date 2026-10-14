@@ -234,6 +234,8 @@ public class AskQuestionHandlerTests
             .Setup(c => c.GetResponseAsync(It.IsAny<IEnumerable<ChatMessage>>(), It.IsAny<ChatOptions?>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new ChatResponse([new ChatMessage(ChatRole.Assistant, "Pijte vodu.")]));
 
+        _recorder.RecordRecommendedProducts(["STALE"]);
+
         await CreateHandler().Handle(new AskQuestionRequest { Question = "otoky", TopK = 5 }, default);
 
         Assert.Empty(_recorder.RecommendedProductCodes);

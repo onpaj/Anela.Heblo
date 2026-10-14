@@ -200,4 +200,15 @@ public class PostAnswerEnrichmentMiddlewareTests
         Assert.False(innerProps.ContainsKey(PostAnswerEnrichmentMiddleware.RecommendedProductCodesKey));
         Assert.Equal("x", result.AdditionalProperties!["existing"]);
     }
+
+    [Fact]
+    public async Task GetResponseAsync_BareThenLinkedCode_OrderedByPositionInOriginalText()
+    {
+        SetupInner("Zkuste (AKL001) a pak [Klidné nožky](MAS009).");
+        SetupCache(("AKL001", "Sérum ABC", null), ("MAS009", "Klidné nožky", null));
+
+        var result = await Create().GetResponseAsync([], null, default);
+
+        Assert.Equal(["AKL001", "MAS009"], RecommendedCodes(result));
+    }
 }

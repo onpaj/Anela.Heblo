@@ -49,7 +49,6 @@ public class PostAnswerEnrichmentMiddleware : DelegatingChatClient
             return response;
 
         var lookup = await _cache.GetProductLookupAsync(cancellationToken);
-        var resolvedCodes = new List<string>();
 
         // Primary: [Name](CODE) — keep the model's inflected name, resolve the code to a URL.
         var enriched = LinkedProductPattern.Replace(rawText, match =>
@@ -61,7 +60,6 @@ public class PostAnswerEnrichmentMiddleware : DelegatingChatClient
             if (!lookup.TryGetValue(code, out var entry))
                 return name;
 
-            resolvedCodes.Add(code);
             return string.IsNullOrEmpty(entry.Url)
                 ? name
                 : $"[{name}]({entry.Url})";
@@ -77,7 +75,6 @@ public class PostAnswerEnrichmentMiddleware : DelegatingChatClient
             if (!lookup.TryGetValue(code, out var entry))
                 return match.Value;
 
-            resolvedCodes.Add(code);
             return string.IsNullOrEmpty(entry.Url)
                 ? entry.ProductName
                 : $"[{entry.ProductName}]({entry.Url})";
@@ -94,9 +91,22 @@ public class PostAnswerEnrichmentMiddleware : DelegatingChatClient
             CreatedAt = response.CreatedAt,
             FinishReason = response.FinishReason,
             Usage = response.Usage,
-            AdditionalProperties = WithRecommendedCodes(response.AdditionalProperties, resolvedCodes),
+            AdditionalProperties = WithRecommendedCodes(response.AdditionalProperties, ResolveCodesInTextOrder(rawText, lookup)),
         };
     }
+
+    // Known codes ordered by earliest position in the ORIGINAL text (the two rewrite passes run
+    // sequentially, so their own order is not text order). A code inside a linked match is also a
+    // bare match at a later index; the earliest position wins.
+    private static IReadOnlyList<string> ResolveCodesInTextOrder(
+        string rawText,
+        IReadOnlyDictionary<string, ProductEnrichmentEntry> lookup) =>
+        LinkedProductPattern.Matches(rawText)
+            .Concat(BareCodePattern.Matches(rawText))
+            .Where(m => lookup.ContainsKey(m.Groups["code"].Value))
+            .OrderBy(m => m.Index)
+            .Select(m => m.Groups["code"].Value)
+            .ToList();
 
     // Copies rather than mutates: the inner response's dictionary may be shared with other consumers.
     private static AdditionalPropertiesDictionary WithRecommendedCodes(
