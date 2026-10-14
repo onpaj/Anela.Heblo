@@ -43,6 +43,26 @@ public interface IEshopOrderClient
     Task<List<EshopOrderSummary>> ListOrdersByStatusAsync(int statusId, CancellationToken ct = default);
 
     /// <summary>
+    /// Orders currently in the given status created at or after <paramref name="createdFrom"/>, across all
+    /// pages (GET /api/orders?statusId=&amp;creationTimeFrom=, itemsPerPage=50). Summaries carry the header
+    /// total <see cref="EshopOrderSummary.PriceWithVat"/>.
+    /// </summary>
+    Task<IReadOnlyList<EshopOrderSummary>> ListOrdersByStatusAsync(
+        int statusId, DateTimeOffset createdFrom, CancellationToken ct = default);
+
+    /// <summary>
+    /// Codes of every order that has an invoice created at or after <paramref name="createdFrom"/>
+    /// (GET /api/invoices?creationTimeFrom=, all pages). Invalid (cancelled) invoices count too.
+    /// </summary>
+    Task<IReadOnlySet<string>> ListInvoicedOrderCodesAsync(DateTimeOffset createdFrom, CancellationToken ct = default);
+
+    /// <summary>
+    /// POST /api/orders/{code}/invoice with body {"data":{}} — Shoptet issues the invoice dated today
+    /// (shoptet-api.md §3.17). Non-2xx throws HttpRequestException with StatusCode and Shoptet's error text.
+    /// </summary>
+    Task CreateInvoiceAsync(string orderCode, CancellationToken ct = default);
+
+    /// <summary>
     /// Transitions the order to the configured "packed" state
     /// (Shoptet "Zabaleno", id 52 by default). Called by the Balení screen
     /// after a successful scan + shipment creation.

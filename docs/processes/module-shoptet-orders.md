@@ -8,6 +8,7 @@ verified_at: "5e993f9e2"
 related:
   - job-complete-delivered-orders
   - job-double-shot-order-swap
+  - job-create-missing-invoices
   - flow-block-order
 ---
 
@@ -40,6 +41,9 @@ module (its doc is `sync-shoptet-orders`), despite the shared name.
 - `job-double-shot-order-swap` — 5-minute Hangfire job (and, with the flag on, pre-step of every picking-list print): V
   variant lines in open orders → S product set (POST S, DELETE V, note); dry run unless flag
   `is-double-shot-order-swap-enabled`.
+- `job-create-missing-invoices` — daily Hangfire job (03:00): Vyřízena (-3) orders created since
+  2026-01-01 with a non-zero total and no invoice → `POST /api/orders/{code}/invoice`; dry run unless
+  flag `is-missing-invoice-creation-enabled`.
 - `flow-block-order` — `PATCH /api/shoptet-orders/{code}/block`: allowed state → blocked state 35 + remark.
 - Mark as packed (Zabaleno, 52) — executed by this module's `IEshopOrderClient.MarkAsPackedAsync`
   but triggered by the packing desk scan / complete-packing; documented with the packaging

@@ -7,4 +7,7 @@ public class EshopOrderSummary
     public string? Email { get; set; }
     public int StatusId { get; set; }
     public DateTimeOffset? CreationTime { get; set; }
+
+    /// <summary>Order header total incl. VAT in the order currency. Null when Shoptet sends no price.</summary>
+    public decimal? PriceWithVat { get; set; }
 }
