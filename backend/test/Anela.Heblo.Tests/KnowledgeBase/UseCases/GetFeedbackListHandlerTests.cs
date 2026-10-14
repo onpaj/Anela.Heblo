@@ -53,9 +53,7 @@ public class GetFeedbackListHandlerTests
     {
         _repository
             .Setup(r => r.GetFeedbackLogsPagedAsync(
-                It.IsAny<RagFeature?>(),
-                It.IsAny<bool?>(),
-                It.IsAny<string?>(),
+                It.IsAny<RagFeedbackLogFilter>(),
                 It.IsAny<string>(),
                 It.IsAny<bool>(),
                 It.IsAny<int>(),
@@ -175,16 +173,14 @@ public class GetFeedbackListHandlerTests
         string? capturedSortBy = null;
         _repository
             .Setup(r => r.GetFeedbackLogsPagedAsync(
-                It.IsAny<RagFeature?>(),
-                It.IsAny<bool?>(),
-                It.IsAny<string?>(),
+                It.IsAny<RagFeedbackLogFilter>(),
                 It.IsAny<string>(),
                 It.IsAny<bool>(),
                 It.IsAny<int>(),
                 It.IsAny<int>(),
                 It.IsAny<CancellationToken>()))
-            .Callback<RagFeature?, bool?, string?, string, bool, int, int, CancellationToken>(
-                (_, _, _, sortBy, _, _, _, _) => capturedSortBy = sortBy)
+            .Callback<RagFeedbackLogFilter, string, bool, int, int, CancellationToken>(
+                (_, sortBy, _, _, _, _) => capturedSortBy = sortBy)
             .ReturnsAsync((new List<RagInteractionLog>(), 0));
         _repository
             .Setup(r => r.GetFeedbackStatsAsync(It.IsAny<RagFeature?>(), It.IsAny<CancellationToken>()))
@@ -208,19 +204,17 @@ public class GetFeedbackListHandlerTests
 
         _repository
             .Setup(r => r.GetFeedbackLogsPagedAsync(
-                It.IsAny<RagFeature?>(),
-                It.IsAny<bool?>(),
-                It.IsAny<string?>(),
+                It.IsAny<RagFeedbackLogFilter>(),
                 It.IsAny<string>(),
                 It.IsAny<bool>(),
                 It.IsAny<int>(),
                 It.IsAny<int>(),
                 It.IsAny<CancellationToken>()))
-            .Callback<RagFeature?, bool?, string?, string, bool, int, int, CancellationToken>(
-                (_, hf, uid, sb, sd, pn, ps, _) =>
+            .Callback<RagFeedbackLogFilter, string, bool, int, int, CancellationToken>(
+                (filter, sb, sd, pn, ps, _) =>
                 {
-                    capturedHasFeedback = hf;
-                    capturedUserId = uid;
+                    capturedHasFeedback = filter.HasFeedback;
+                    capturedUserId = filter.UserId;
                     capturedSortBy = sb;
                     capturedSortDesc = sd;
                     capturedPage = pn;

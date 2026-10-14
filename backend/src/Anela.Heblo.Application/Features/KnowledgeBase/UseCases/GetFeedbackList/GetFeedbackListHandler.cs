@@ -30,9 +30,7 @@ public class GetFeedbackListHandler : IRequestHandler<GetFeedbackListRequest, Ge
         var sortBy = AllowedSortColumns.Contains(request.SortBy) ? request.SortBy : "CreatedAt";
 
         var (logs, totalCount) = await _repository.GetFeedbackLogsPagedAsync(
-            RagFeature.KnowledgeBase,
-            request.HasFeedback,
-            request.UserId,
+            new RagFeedbackLogFilter(RagFeature.KnowledgeBase, request.HasFeedback, request.UserId),
             sortBy,
             request.SortDescending,
             pageNumber,

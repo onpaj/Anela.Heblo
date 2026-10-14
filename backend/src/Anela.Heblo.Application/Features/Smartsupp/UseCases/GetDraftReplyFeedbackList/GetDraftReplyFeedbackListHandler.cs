@@ -31,9 +31,7 @@ public class GetDraftReplyFeedbackListHandler
         var sortBy = AllowedSortColumns.Contains(request.SortBy) ? request.SortBy : "CreatedAt";
 
         var (logs, totalCount) = await _repository.GetFeedbackLogsPagedAsync(
-            RagFeature.SmartsuppDraftReply,
-            request.HasFeedback,
-            request.UserId,
+            new RagFeedbackLogFilter(RagFeature.SmartsuppDraftReply, request.HasFeedback, request.UserId),
             sortBy,
             request.SortDescending,
             pageNumber,
