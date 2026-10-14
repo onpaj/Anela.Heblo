@@ -1,16 +1,23 @@
 import { useSearchParams } from 'react-router-dom';
-import { Settings, Thermometer, Gift } from 'lucide-react';
+import { Settings, Thermometer, Gift, Move } from 'lucide-react';
 import { PAGE_CONTAINER_HEIGHT } from '../../constants/layout';
 import CoolingTab from '../../components/customer/expeditionSettings/CoolingTab';
 import GiftsTab from '../../components/customer/expeditionSettings/GiftsTab';
+import LabelOffsetTab from '../../components/customer/expeditionSettings/LabelOffsetTab';
 import { useScreenView } from '../../telemetry/useScreenView';
 
-type Tab = 'cooling' | 'gifts';
+type Tab = 'cooling' | 'gifts' | 'labels';
+
+const SCREEN_NAMES: Record<Tab, string> = {
+  cooling: 'CoolingTab',
+  gifts: 'GiftsTab',
+  labels: 'LabelOffsetTab',
+};
 
 function ExpeditionSettingsPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const activeTab: Tab = (searchParams.get('tab') as Tab) ?? 'cooling';
-  useScreenView('Customer', 'ExpeditionSettings', activeTab === 'cooling' ? 'CoolingTab' : 'GiftsTab');
+  useScreenView('Customer', 'ExpeditionSettings', SCREEN_NAMES[activeTab] ?? SCREEN_NAMES.cooling);
 
   const handleTabChange = (tab: Tab) => {
     setSearchParams({ tab });
@@ -27,7 +34,7 @@ function ExpeditionSettingsPage() {
           Nastavení expedice
         </h1>
         <p className="text-sm text-gray-500 dark:text-graphite-muted mt-1">
-          Konfigurace chlazení a dárků pro expedici.
+          Konfigurace chlazení, dárků a posunu štítků pro expedici.
         </p>
       </div>
 
@@ -55,10 +62,24 @@ function ExpeditionSettingsPage() {
           <Gift className="h-4 w-4" />
           <span>Dárky</span>
         </button>
+
+        <button
+          onClick={() => handleTabChange('labels')}
+          className={`px-4 py-2 text-sm font-medium flex items-center space-x-2 border-b-2 transition-colors ${
+            activeTab === 'labels'
+              ? 'border-indigo-500 text-indigo-600 dark:border-graphite-accent dark:text-graphite-accent'
+              : 'border-transparent text-gray-500 dark:text-graphite-muted hover:text-gray-700'
+          }`}
+        >
+          <Move className="h-4 w-4" />
+          <span>Štítky</span>
+        </button>
       </div>
 
       <div className="flex-1 overflow-y-auto">
-        {activeTab === 'cooling' ? <CoolingTab /> : <GiftsTab />}
+        {activeTab === 'gifts' && <GiftsTab />}
+        {activeTab === 'labels' && <LabelOffsetTab />}
+        {activeTab !== 'gifts' && activeTab !== 'labels' && <CoolingTab />}
       </div>
     </div>
   );

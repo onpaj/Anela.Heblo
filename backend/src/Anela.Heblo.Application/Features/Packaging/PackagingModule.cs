@@ -3,6 +3,7 @@ using Anela.Heblo.Application.Features.Packaging.DashboardTiles;
 using Anela.Heblo.Application.Features.Packaging.Services;
 using Anela.Heblo.Application.Features.Packaging.UseCases.GetOrderTrackingNumber;
 using Anela.Heblo.Application.Features.Packaging.UseCases.GetPackages;
+using Anela.Heblo.Application.Features.Packaging.UseCases.SetCarrierLabelOffset;
 using Anela.Heblo.Application.Features.Packaging.UseCases.ScanPackingOrder;
 using Anela.Heblo.Application.Features.Packaging.Validators;
 using Anela.Heblo.Domain.Features.Packaging;
@@ -20,6 +21,7 @@ public static class PackagingModule
     {
         // Repository (implementation lives in the Persistence layer)
         services.AddScoped<IPackageRepository, PackageRepository>();
+        services.AddScoped<ICarrierLabelOffsetRepository, CarrierLabelOffsetRepository>();
 
         services.AddScoped<IShipmentCreationService, ShipmentCreationService>();
 
@@ -37,6 +39,11 @@ public static class PackagingModule
         services.AddScoped<
             IPipelineBehavior<GetOrderTrackingNumberRequest, GetOrderTrackingNumberResponse>,
             ValidationBehavior<GetOrderTrackingNumberRequest, GetOrderTrackingNumberResponse>>();
+
+        services.AddScoped<IValidator<SetCarrierLabelOffsetRequest>, SetCarrierLabelOffsetValidator>();
+        services.AddScoped<
+            IPipelineBehavior<SetCarrierLabelOffsetRequest, SetCarrierLabelOffsetResponse>,
+            ValidationBehavior<SetCarrierLabelOffsetRequest, SetCarrierLabelOffsetResponse>>();
 
         services.RegisterTile<PackingStatsTile>();
 

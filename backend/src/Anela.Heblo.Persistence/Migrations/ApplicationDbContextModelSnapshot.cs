@@ -3369,6 +3369,31 @@ namespace Anela.Heblo.Persistence.Migrations
                     b.ToTable("MindMapVersions", "public");
                 });
 
+            modelBuilder.Entity("Anela.Heblo.Domain.Features.Packaging.CarrierLabelOffset", b =>
+                {
+                    b.Property<string>("Carrier")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<DateTime>("ModifiedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("ModifiedBy")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<int>("OffsetXMm")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("OffsetYMm")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Carrier");
+
+                    b.ToTable("CarrierLabelOffsets", "public");
+                });
+
             modelBuilder.Entity("Anela.Heblo.Domain.Features.Packaging.Package", b =>
                 {
                     b.Property<int>("Id")
