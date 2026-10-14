@@ -306,4 +306,44 @@ public class CreateMissingInvoicesJobTests
         Assert.Contains("126000001", ex.Message);
         _orders.Verify(o => o.CreateInvoiceAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
     }
+
+    [Fact]
+    public async Task ExecuteAsync_DoesNotCreateInvoice_WhenOrderDetailFails()
+    {
+        var sut = MakeSut();
+        GivenCompletedOrders(Order("126000001", 350m));
+        GivenInvoicedOrderCodes("125999999");
+        _orders.Setup(o => o.GetOrderDetailAsync("126000001", It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new HttpRequestException("Shoptet GET /api/orders/126000001 returned 500"));
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => sut.ExecuteAsync());
+
+        Assert.Contains("returned 500", ex.Message);
+        _orders.Verify(o => o.CreateInvoiceAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task ExecuteAsync_OrderWithoutBillingMethod_ResetsConsecutiveFailures_AndFailureListIsCapped()
+    {
+        // Arrange: 12 failing orders, each followed by one without a billing method — never 5 failures in a row.
+        var sut = MakeSut();
+        var failing = Enumerable.Range(10, 12).Select(i => $"1260000{i}").ToArray();
+        var unbillable = Enumerable.Range(30, 12).Select(i => $"1260000{i}").ToArray();
+        GivenCompletedOrders(failing.Zip(unbillable).SelectMany(p => new[] { Order(p.First, 10m), Order(p.Second, 10m) }).ToArray());
+        GivenInvoicedOrderCodes("125999999");
+        _orders.Setup(o => o.CreateInvoiceAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new HttpRequestException("409"));
+        foreach (var code in unbillable)
+            _orders.Setup(o => o.GetOrderDetailAsync(code, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(Detail(code, hasBillingMethod: false));
+
+        // Act
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => sut.ExecuteAsync());
+
+        // Assert: the run was not aborted, and the message lists 10 orders plus a remainder.
+        _orders.Verify(o => o.CreateInvoiceAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Exactly(12));
+        Assert.StartsWith("CreateMissingInvoices: 12 of 24 invoice(s) failed", ex.Message);
+        Assert.Contains("and 2 more", ex.Message);
+        Assert.DoesNotContain(failing[10], ex.Message);
+    }
 }

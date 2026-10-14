@@ -66,10 +66,10 @@ public class ShoptetOrdersSettings
     public DateTimeOffset MissingInvoiceOrdersCreatedFrom { get; set; } = new(2026, 1, 1, 0, 0, 0, TimeSpan.FromHours(1));
 
     /// <summary>
-    /// Pause between two orders (each one an invoice check plus a POST), keeping the job under Shoptet's
-    /// ~4 req/s budget (shoptet-api.md §3.14) that it shares with packing and expedition.
+    /// Pause between two orders (each one an invoice check, an order-detail GET and a POST), keeping the
+    /// job under Shoptet's ~4 req/s budget (shoptet-api.md §3.14) that it shares with packing and expedition.
     /// </summary>
-    public int MissingInvoiceCreationDelayMs { get; set; } = 500;
+    public int MissingInvoiceCreationDelayMs { get; set; } = 750;
 
     /// <summary>
     /// Upper bound on invoices created in one run; the rest wait for the next night. Shoptet invoices

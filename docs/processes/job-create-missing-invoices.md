@@ -45,7 +45,7 @@ The real side effect is switched **off by default**: until the feature flag
 4. Work list = orders with `price.withVat > 0` whose code is not in the invoiced set.
 5. Log one summary line: scanned / zero total / already invoiced / missing + the missing codes.
 6. Flag on: take at most `MissingInvoiceMaxPerRun` (300) missing orders (the rest wait for the next
-   night) and for each, sequentially and 500 ms apart: `GET /api/invoices?orderCode={code}` — any
+   night) and for each, sequentially and 750 ms apart: `GET /api/invoices?orderCode={code}` — any
    hit ⇒ skip (invoiced since the bulk listing) — then `GET /api/orders/{code}`: `billingMethod`
    null ⇒ skip and report (see below) — else `POST /api/orders/{code}/invoice` with body
    `{"data":{}}`. Log each creation and a final created/skipped/no-billing-method/failed count.
@@ -74,6 +74,7 @@ Target: Shoptet invoices only. No Heblo table is written.
   `MissingInvoiceMaxPerRun ≤ 0` fails the run instead of silently creating nothing.
 - The Failed exception lists every failed order with Shoptet's error text
   (`order 126013625: Shoptet POST … returned 422: …`), so the Hangfire dashboard alone says what broke.
+  The listing stops after 10 orders ("and N more"); every failure is also a per-order Warning log.
 - Orders **without a billing method** (keyed in the admin with no payment method) cannot be invoiced
   through the API — Shoptet answers 422 "Unknown billingMethodId provided". The job does not guess
   one (the POST accepts `billingMethodId`, but how the customer paid is a human call): it skips the
@@ -84,7 +85,7 @@ Target: Shoptet invoices only. No Heblo table is written.
 | Key | Repo default | Meaning |
 |---|---|---|
 | `ShoptetOrders:MissingInvoiceOrdersCreatedFrom` | `2026-01-01T00:00:00+01:00` (code default) | Oldest order creation time considered |
-| `ShoptetOrders:MissingInvoiceCreationDelayMs` | `500` (code default) | Pause between two orders, each a re-check GET + POST (~4 req/s budget, `shoptet-api.md` §3.14) |
+| `ShoptetOrders:MissingInvoiceCreationDelayMs` | `750` (code default) | Pause between two orders, each a re-check GET + order-detail GET + POST (~4 req/s budget, `shoptet-api.md` §3.14) |
 | `ShoptetOrders:MissingInvoiceMaxPerRun` | `300` (code default) | Max invoices created per run |
 | `ShoptetOrders:CompletedStatusId` | `-3` (code default) | Source state (shared with `job-complete-delivered-orders`) |
 | `FeatureManagement:is-missing-invoice-creation-enabled` | `false` | Off = dry run (log only) |

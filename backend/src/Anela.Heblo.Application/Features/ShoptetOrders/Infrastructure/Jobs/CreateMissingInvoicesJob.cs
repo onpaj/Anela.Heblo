@@ -47,6 +47,7 @@ public sealed class CreateMissingInvoicesJob : IRecurringJob
     // A run of identical failures (401/403/429, Shoptet down) is systemic: stop instead of burning the
     // shared rate budget on every remaining order.
     private const int MaxConsecutiveFailures = 5;
+    private const int MaxFailuresListed = 10;
 
     // The daily cron is the retry: a failed run recomputes the work list from scratch next night.
     // A manual trigger overlapping the scheduled run would read the same work list and invoice twice.
@@ -187,8 +188,14 @@ public sealed class CreateMissingInvoicesJob : IRecurringJob
         return outcome with { Created = outcome.Created + 1 };
     }
 
-    private static string DescribeFailures(IEnumerable<FailedOrder> failures) =>
-        string.Join("; ", failures.Select(f => $"order {f.OrderCode}: {f.Error}"));
+    // Capped so a bad night cannot produce a huge Hangfire exception; every failure is also logged above.
+    private static string DescribeFailures(IReadOnlyList<FailedOrder> failures)
+    {
+        var listed = string.Join("; ", failures.Take(MaxFailuresListed).Select(f => $"order {f.OrderCode}: {f.Error}"));
+        return failures.Count > MaxFailuresListed
+            ? $"{listed}; and {failures.Count - MaxFailuresListed} more"
+            : listed;
+    }
 
     private sealed record FailedOrder(string OrderCode, string Error);
 
