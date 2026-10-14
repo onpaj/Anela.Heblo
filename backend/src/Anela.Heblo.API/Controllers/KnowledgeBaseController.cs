@@ -99,6 +99,10 @@ public class KnowledgeBaseController : BaseApiController
         [FromQuery] bool sortDescending = true,
         [FromQuery] bool? hasFeedback = null,
         [FromQuery] string? userId = null,
+        [FromQuery] DateOnly? dateFrom = null,
+        [FromQuery] DateOnly? dateTo = null,
+        [FromQuery] string? problemTag = null,
+        [FromQuery] string? productTag = null,
         CancellationToken ct = default)
     {
         var result = await _mediator.Send(new GetFeedbackListRequest
@@ -109,6 +113,10 @@ public class KnowledgeBaseController : BaseApiController
             SortDescending = sortDescending,
             HasFeedback = hasFeedback,
             UserId = userId,
+            DateFrom = dateFrom,
+            DateTo = dateTo,
+            ProblemTag = problemTag,
+            ProductTag = productTag,
         }, ct);
         return HandleResponse(result);
     }

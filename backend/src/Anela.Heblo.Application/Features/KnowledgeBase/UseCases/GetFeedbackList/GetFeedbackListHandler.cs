@@ -1,3 +1,4 @@
+using Anela.Heblo.Application.Features.KnowledgeBase.Services;
 using Anela.Heblo.Application.Shared.Rag;
 using Anela.Heblo.Application.Shared.Users;
 using Anela.Heblo.Domain.Features.Rag;
@@ -29,8 +30,17 @@ public class GetFeedbackListHandler : IRequestHandler<GetFeedbackListRequest, Ge
         var pageSize = AllowedPageSizes.Contains(request.PageSize) ? request.PageSize : 20;
         var sortBy = AllowedSortColumns.Contains(request.SortBy) ? request.SortBy : "CreatedAt";
 
+        var filter = new RagFeedbackLogFilter(
+            RagFeature.KnowledgeBase,
+            request.HasFeedback,
+            request.UserId,
+            PragueDateRange.StartOfDay(request.DateFrom),
+            PragueDateRange.EndExclusive(request.DateTo),
+            RagExpansionParser.NormalizeTag(request.ProblemTag),
+            RagExpansionParser.NormalizeTag(request.ProductTag));
+
         var (logs, totalCount) = await _repository.GetFeedbackLogsPagedAsync(
-            new RagFeedbackLogFilter(RagFeature.KnowledgeBase, request.HasFeedback, request.UserId),
+            filter,
             sortBy,
             request.SortDescending,
             pageNumber,

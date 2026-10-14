@@ -33,5 +33,10 @@ public class RagFeedbackLogSummary
     public int? PrecisionScore { get; set; }
     public int? StyleScore { get; set; }
     public string? FeedbackComment { get; set; }
+
+    // Question tags (populated for KnowledgeBase; may also be present on Smartsupp rows)
+    public List<string> ProblemTags { get; set; } = [];
+    public List<string> ProductTags { get; set; } = [];
+    public List<string> RecommendedProductCodes { get; set; } = [];
     public bool HasFeedback => PrecisionScore.HasValue || StyleScore.HasValue;
 }

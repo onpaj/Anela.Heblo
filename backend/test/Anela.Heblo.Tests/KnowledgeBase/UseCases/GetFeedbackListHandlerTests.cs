@@ -1,6 +1,7 @@
 using Anela.Heblo.Application.Features.KnowledgeBase.UseCases.GetFeedbackList;
 using Anela.Heblo.Application.Shared.Users;
 using Anela.Heblo.Domain.Features.Rag;
+using FluentAssertions;
 using Moq;
 using Xunit;
 
@@ -300,5 +301,83 @@ public class GetFeedbackListHandlerTests
         Assert.False(result.Logs[0].HasFeedback);
         Assert.Null(result.Logs[0].PrecisionScore);
         Assert.Null(result.Logs[0].StyleScore);
+    }
+
+    private RagFeedbackLogFilter? _captured;
+
+    private async Task<RagFeedbackLogFilter> SendAndCapture(GetFeedbackListRequest request)
+    {
+        _repository
+            .Setup(r => r.GetFeedbackLogsPagedAsync(It.IsAny<RagFeedbackLogFilter>(), It.IsAny<string>(), It.IsAny<bool>(), It.IsAny<int>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            .Callback<RagFeedbackLogFilter, string, bool, int, int, CancellationToken>((f, _, _, _, _, _) => _captured = f)
+            .ReturnsAsync((new List<RagInteractionLog>(), 0));
+        _repository
+            .Setup(r => r.GetFeedbackStatsAsync(It.IsAny<RagFeature?>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(DefaultStats());
+
+        await new GetFeedbackListHandler(_repository.Object, _userDisplayNameResolver.Object).Handle(request, default);
+        return _captured!;
+    }
+
+    [Fact]
+    public async Task Handle_SameDayRange_CoversWholePragueDay()
+    {
+        var filter = await SendAndCapture(new GetFeedbackListRequest
+        {
+            DateFrom = new DateOnly(2026, 10, 14),
+            DateTo = new DateOnly(2026, 10, 14),
+        });
+
+        filter.CreatedFrom.Should().Be(new DateTimeOffset(2026, 10, 13, 22, 0, 0, TimeSpan.Zero));
+        filter.CreatedToExclusive.Should().Be(new DateTimeOffset(2026, 10, 14, 22, 0, 0, TimeSpan.Zero));
+    }
+
+    [Fact]
+    public async Task Handle_ReversedRange_PassesEmptyRangeAndReturnsSuccess()
+    {
+        var filter = await SendAndCapture(new GetFeedbackListRequest
+        {
+            DateFrom = new DateOnly(2026, 10, 20),
+            DateTo = new DateOnly(2026, 10, 10),
+        });
+
+        // from > toExclusive: the repository naturally returns nothing — no exception, no special case.
+        filter.CreatedFrom.Should().BeAfter(filter.CreatedToExclusive!.Value);
+    }
+
+    [Fact]
+    public async Task Handle_NormalisesTagFilters()
+    {
+        var filter = await SendAndCapture(new GetFeedbackListRequest { ProblemTag = " AKNÉ ", ProductTag = "Hořčíkové   Máslo" });
+
+        filter.ProblemTag.Should().Be("akné");
+        filter.ProductTag.Should().Be("hořčíkové máslo");
+        filter.Feature.Should().Be(RagFeature.KnowledgeBase);
+    }
+
+    [Fact]
+    public async Task Handle_BlankTagFilters_BecomeNull()
+    {
+        var filter = await SendAndCapture(new GetFeedbackListRequest { ProblemTag = "  ", ProductTag = "" });
+
+        filter.ProblemTag.Should().BeNull();
+        filter.ProductTag.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task Handle_MapsTagsOntoSummary()
+    {
+        var log = MakeLog();
+        log.ProblemTags = ["akné"];
+        log.ProductTags = ["hořčíkové máslo"];
+        log.RecommendedProductCodes = ["MAS009"];
+        SetupRepository([log]);
+
+        var result = await new GetFeedbackListHandler(_repository.Object, _userDisplayNameResolver.Object)
+            .Handle(new GetFeedbackListRequest(), default);
+
+        result.Logs.Single().ProblemTags.Should().Equal("akné");
+        result.Logs.Single().ProductTags.Should().Equal("hořčíkové máslo");
+        result.Logs.Single().RecommendedProductCodes.Should().Equal("MAS009");
     }
 }
