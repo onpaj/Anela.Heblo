@@ -94,6 +94,23 @@ public class ShippingMethodCatalogTests
     }
 
     [Fact]
+    public void GetShippingNamesForCarrier_Zasilkovna_IncludesBoxyDisplayName()
+    {
+        var result = _sut.GetShippingNamesForCarrier(Carriers.Zasilkovna);
+
+        result.Should().Contain("Zásilkovna boxy a výdejní místa");
+        result.Should().NotContain("GLS boxy a výdejní místa");
+    }
+
+    [Fact]
+    public void GetShippingNamesForCarrier_Gls_IncludesBoxyDisplayName()
+    {
+        var result = _sut.GetShippingNamesForCarrier(Carriers.GLS);
+
+        result.Should().Contain("GLS boxy a výdejní místa");
+    }
+
+    [Fact]
     public void GetShippingCodesForCarrier_Osobak_ReturnsSingleId()
     {
         var result = _sut.GetShippingCodesForCarrier(Carriers.Osobak);
