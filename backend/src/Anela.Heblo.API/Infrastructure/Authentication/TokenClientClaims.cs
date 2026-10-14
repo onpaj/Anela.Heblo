@@ -30,8 +30,15 @@ public static class TokenClientClaims
         return header.StartsWith(BearerPrefix, StringComparison.OrdinalIgnoreCase);
     }
 
+    /// <summary>True for a service identity: an app-only bearer token (client credentials), or the
+    /// E2E test session, which is minted from a service-principal token although it rides on a cookie.</summary>
     public static bool IsAppOnly(HttpContext? httpContext)
     {
+        if (IsE2ETestSession(httpContext?.User))
+        {
+            return true;
+        }
+
         if (!IsBearerRequest(httpContext))
         {
             return false;
@@ -46,6 +53,10 @@ public static class TokenClientClaims
 
         return !user.HasClaim(c => c.Type is ScopeClaim or MappedScopeClaim);
     }
+
+    private static bool IsE2ETestSession(ClaimsPrincipal? user) =>
+        user?.Identities.Any(identity => identity.IsAuthenticated
+            && string.Equals(identity.AuthenticationType, E2ESessionService.AuthenticationType, StringComparison.Ordinal)) == true;
 
     private static string? NonBlank(string? value) =>
         string.IsNullOrWhiteSpace(value) ? null : value.Trim();

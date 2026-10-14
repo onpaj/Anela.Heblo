@@ -32,6 +32,10 @@ public interface IE2ESessionService
 /// </summary>
 public class E2ESessionService : IE2ESessionService
 {
+    /// <summary>AuthenticationType of every E2E test identity (session cookie and per-request
+    /// token header). Survives the cookie round-trip; TokenClientClaims treats it as a service identity.</summary>
+    public const string AuthenticationType = "E2ETest";
+
     private readonly ILogger<E2ESessionService> _logger;
 
     public E2ESessionService(ILogger<E2ESessionService> logger)
@@ -49,7 +53,7 @@ public class E2ESessionService : IE2ESessionService
 
         // Create synthetic user claims
         var claims = CreateSyntheticUserClaims(environmentName);
-        var identity = new ClaimsIdentity(claims, "E2ETest");
+        var identity = new ClaimsIdentity(claims, AuthenticationType);
         var principal = new ClaimsPrincipal(identity);
 
         // Sign in the synthetic user using the cookie authentication scheme

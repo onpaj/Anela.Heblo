@@ -33,12 +33,12 @@ public sealed class ApprovalChannelResolver : IApprovalChannelResolver
 
         if (_currentUser.IsAppOnly)
         {
-            return Deny("Service identities (app-only tokens) can never approve or reject ad proposals.");
+            return Deny("Service identities (app-only tokens, the E2E test session) can never approve or reject ad proposals.");
         }
 
         if (!_currentUser.IsBearerToken)
         {
-            return RequireWeb(); // cookie session: the web app's own login or the E2E session
+            return RequireWeb(); // cookie session: the web app's own login (the E2E session is app-only above)
         }
 
         var clientId = _currentUser.ClientAppId;
@@ -47,14 +47,15 @@ public sealed class ApprovalChannelResolver : IApprovalChannelResolver
             return Deny("The bearer token carries no client application id (azp/appid).");
         }
 
-        if (_webClientIds.Contains(clientId))
-        {
-            return RequireWeb();
-        }
-
+        // MCP before Web: a client id listed in both resolves to the stricter MCP channel.
         if (_mcpClientIds.Contains(clientId))
         {
             return RequireMcp();
+        }
+
+        if (_webClientIds.Contains(clientId))
+        {
+            return RequireWeb();
         }
 
         return Deny($"Client application '{clientId}' is not allowed to approve or reject ad proposals.");

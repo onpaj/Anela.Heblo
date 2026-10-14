@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using Anela.Heblo.API.Features.Users;
+using Anela.Heblo.API.Infrastructure.Authentication;
 using Anela.Heblo.Application.Features.MarketingAds.Proposals.Approval;
 using Anela.Heblo.Domain.Features.Authorization;
 using Anela.Heblo.Domain.Features.MarketingAds;
@@ -21,10 +22,11 @@ public class TokenToApprovalChannelTests
     private static readonly string ApproveWrite = AccessRoles.For(Feature.Marketing_AdApprovals, AccessLevel.Write);
     private static readonly string ApproveViaMcp = AccessRoles.For(Feature.Marketing_AdApprovalsViaMcp, AccessLevel.Read);
 
-    private static ApprovalChannelResolution Resolve(IEnumerable<Claim> claims, IEnumerable<string> roles, string? authorizationHeader)
+    private static ApprovalChannelResolution Resolve(
+        IEnumerable<Claim> claims, IEnumerable<string> roles, string? authorizationHeader, string authenticationType = "TestAuth")
     {
         var allClaims = claims.Concat(roles.Select(r => new Claim("roles", r)));
-        var principal = new ClaimsPrincipal(new ClaimsIdentity(allClaims, "TestAuth", "name", "roles"));
+        var principal = new ClaimsPrincipal(new ClaimsIdentity(allClaims, authenticationType, "name", "roles"));
         var httpContext = new DefaultHttpContext { User = principal };
         if (authorizationHeader is not null)
         {
@@ -95,11 +97,22 @@ public class TokenToApprovalChannelTests
     }
 
     [Fact]
-    public void E2ECookieSession_IsWebChannel()
+    public void E2ECookieSession_WithSuperUser_IsDenied()
     {
+        // R16: the E2E session is built from a service-principal token, so it is a service identity.
         var result = Resolve(
             new[] { new Claim("oid", "e2e-test-object-id"), new Claim("scp", "access_as_user") },
-            new[] { AccessRoles.SuperUser, ApproveWrite }, authorizationHeader: null);
+            EveryPermissionAndSuperUser(), authorizationHeader: null, E2ESessionService.AuthenticationType);
+
+        result.Allowed.Should().BeFalse();
+    }
+
+    [Fact]
+    public void WebAppCookieSession_IsWebChannel()
+    {
+        var result = Resolve(
+            new[] { new Claim("oid", "u1"), new Claim("scp", "access_as_user") },
+            new[] { ApproveWrite }, authorizationHeader: null, "Cookies");
 
         result.Channel.Should().Be(ApprovalChannel.Web);
     }

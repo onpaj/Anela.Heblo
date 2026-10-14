@@ -1,7 +1,11 @@
 using System.Security.Claims;
 using Anela.Heblo.API.Features.Users;
+using Anela.Heblo.API.Infrastructure.Authentication;
+using Anela.Heblo.Domain.Features.Authorization;
 using FluentAssertions;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using Xunit;
 
@@ -120,6 +124,53 @@ public class CurrentUserServiceClientClaimsTests
         var service = CreateService(Authenticated(new Claim("oid", "user-oid")), "Basic dXNlcjpwYXNz");
 
         service.IsBearerToken.Should().BeFalse();
+        service.IsAppOnly.Should().BeFalse();
+    }
+
+    private static ClaimsPrincipal E2ESessionPrincipal() =>
+        new(new ClaimsIdentity(
+            new E2ESessionService(NullLogger<E2ESessionService>.Instance).CreateSyntheticUserClaims("Staging"),
+            E2ESessionService.AuthenticationType));
+
+    [Fact]
+    public void E2ECookieSession_IsAppOnly_EvenThoughItCarriesScpAndNoBearerHeader()
+    {
+        // Arrange — the E2E session (cookie, or the X-E2E-Test-Token header path, which builds the
+        // same identity) is minted from a service-principal token (R16)
+        var service = CreateService(E2ESessionPrincipal(), authorizationHeader: null);
+
+        // Act + Assert
+        service.IsAppOnly.Should().BeTrue();
+        service.IsBearerToken.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task E2ECookieSession_StaysAppOnly_AfterCookieRoundTripAndPermissionTransformation()
+    {
+        // Arrange — serialize the ticket exactly like the cookie handler, then run the claims transformation
+        var ticket = new AuthenticationTicket(E2ESessionPrincipal(), "E2ETestCookies");
+        var roundTripped = TicketSerializer.Default.Deserialize(TicketSerializer.Default.Serialize(ticket))!;
+        var resolver = new Mock<IPermissionResolver>();
+        resolver
+            .Setup(r => r.ResolveAsync(It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new EffectivePermissions(false, Array.Empty<string>(), Array.Empty<string>()));
+        var principal = await new PermissionClaimsTransformation(resolver.Object).TransformAsync(roundTripped.Principal);
+
+        // Act
+        var service = CreateService(principal, authorizationHeader: null);
+
+        // Assert
+        principal.Identities.Should().Contain(i => i.AuthenticationType == E2ESessionService.AuthenticationType);
+        principal.IsInRole(AccessRoles.SuperUser).Should().BeTrue();
+        service.IsAppOnly.Should().BeTrue();
+    }
+
+    [Fact]
+    public void WebAppCookieSession_WithScp_IsNotAppOnly()
+    {
+        var service = CreateService(
+            Authenticated(new Claim("oid", "user-oid"), new Claim("scp", "access_as_user")), authorizationHeader: null);
+
         service.IsAppOnly.Should().BeFalse();
     }
 }

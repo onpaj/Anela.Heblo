@@ -10,7 +10,8 @@ public interface ICurrentUserService
     string? ClientAppId { get; }
 
     /// <summary>True for an authenticated bearer request whose token was issued to an
-    /// application itself (client credentials): <c>idtyp = app</c> or no <c>scp</c> claim.
+    /// application itself (client credentials): <c>idtyp = app</c> or no <c>scp</c> claim — and
+    /// for the E2E test session (Staging/Development), which is minted from a service-principal token.
     /// Such callers are service identities and may never approve anything.</summary>
     bool IsAppOnly { get; }
 

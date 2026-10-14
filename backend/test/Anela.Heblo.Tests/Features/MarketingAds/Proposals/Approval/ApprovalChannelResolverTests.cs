@@ -157,4 +157,28 @@ public class ApprovalChannelResolverTests
         // Assert
         result.Channel.Should().Be(ApprovalChannel.Mcp);
     }
+
+    [Theory]
+    [InlineData(ApiClient)]
+    [InlineData(HebloMcpClient)]
+    public void Resolve_ClientIdInBothWebAndMcpLists_ResolvesToStricterMcpChannel(string clientId)
+    {
+        // Arrange — R17: overlap between the lists must never loosen the MCP requirement
+        var withoutViaMcp = new ChannelCase("overlap", true, false, true, clientId, new[] { ApproveWrite }, false, null);
+        var withViaMcp = withoutViaMcp with { GrantedRoles = new[] { ApproveWrite, ApproveViaMcp } };
+        var options = new ApprovalChannelOptions
+        {
+            WebClientIds = new List<string> { WebClient, ApiClient, HebloMcpClient },
+            McpClientIds = new List<string> { HebloMcpClient },
+            ApiClientId = ApiClient,
+        };
+
+        // Act
+        var denied = CreateResolver(CurrentUser(withoutViaMcp).Object, options).Resolve();
+        var allowed = CreateResolver(CurrentUser(withViaMcp).Object, options).Resolve();
+
+        // Assert
+        denied.Allowed.Should().BeFalse();
+        allowed.Channel.Should().Be(ApprovalChannel.Mcp);
+    }
 }
