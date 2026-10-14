@@ -856,6 +856,11 @@
         "marketing.marketing_calendar.write",
         "marketing.performance.read",
         "marketing.performance.write",
+        "marketing.ads.read",
+        "marketing.ads.write",
+        "marketing.ad_approvals.write",
+        "marketing.ad_approvals.admin",
+        "marketing.ad_approvals_via_mcp.read",
         "anela.meetings.read",
         "anela.meetings.write",
         "anela.org_chart.read",
@@ -946,9 +951,35 @@
         "marketing.article.read",
         "marketing.article.write",
         "marketing.performance.read",
+        "marketing.ads.read",
+        "marketing.ads.write",
         "anela.process_docs.read",
         "reporting.web_analytics.read",
         "reporting.eshop.read"
+      ]
+    },
+    {
+      "name": "Marketing_Agent",
+      "roles": [
+        "marketing.ads.read",
+        "marketing.ads.write"
+      ]
+    },
+    {
+      "name": "Marketing_Specialist",
+      "roles": [
+        "marketing.ads.read",
+        "marketing.ads.write",
+        "marketing.ad_approvals.write"
+      ]
+    },
+    {
+      "name": "Marketing_Chief",
+      "roles": [
+        "marketing.ads.read",
+        "marketing.ads.write",
+        "marketing.ad_approvals.write",
+        "marketing.ad_approvals_via_mcp.read"
       ]
     },
     {
