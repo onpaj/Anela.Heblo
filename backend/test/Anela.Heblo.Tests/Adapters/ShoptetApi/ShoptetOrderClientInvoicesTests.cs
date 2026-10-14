@@ -127,4 +127,33 @@ public class ShoptetOrderClientInvoicesTests
 
         await act.Should().ThrowAsync<InvalidOperationException>();
     }
+
+    [Fact]
+    public async Task ListInvoicedOrderCodes_Throws_WhenFewerInvoicesThanAnnounced()
+    {
+        // A missing paginator reads as pageCount 0, stopping after page 1 of a longer listing.
+        var client = BuildClient(_ => Raw(HttpStatusCode.OK, """
+            {"data":{"invoices":[{"code":"2026000001","orderCode":"126000001","isValid":true}],
+             "paginator":{"page":1,"pageCount":1,"totalCount":1500}}}
+            """));
+
+        var act = () => client.ListInvoicedOrderCodesAsync(CreatedFrom);
+
+        await act.Should().ThrowAsync<InvalidOperationException>();
+    }
+
+    [Theory]
+    [InlineData("""{"data":{"invoices":[{"code":"2026000001","orderCode":"126000001","isValid":false}],"paginator":{"page":1,"pageCount":1,"totalCount":1}}}""", true)]
+    [InlineData("""{"data":{"invoices":[],"paginator":{"page":1,"pageCount":0,"totalCount":0}}}""", false)]
+    public async Task HasInvoice_FiltersByOrderCode(string json, bool expected)
+    {
+        var client = BuildClient(_ => Raw(HttpStatusCode.OK, json));
+
+        var hasInvoice = await client.HasInvoiceAsync("126000001");
+
+        hasInvoice.Should().Be(expected);
+        _requests.Should().ContainSingle();
+        _requests[0].PathAndQuery.Should().StartWith("/api/invoices?");
+        QueryOf(_requests[0].PathAndQuery)["orderCode"].Should().Be("126000001");
+    }
 }

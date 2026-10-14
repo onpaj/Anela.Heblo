@@ -44,6 +44,10 @@ public sealed class CreateMissingInvoicesJob : IRecurringJob
 
     private const int ConcurrencyLockTimeoutSeconds = 60;
 
+    // A run of identical failures (401/403/429, Shoptet down) is systemic: stop instead of burning the
+    // shared rate budget on every remaining order.
+    private const int MaxConsecutiveFailures = 5;
+
     // The daily cron is the retry: a failed run recomputes the work list from scratch next night.
     // A manual trigger overlapping the scheduled run would read the same work list and invoice twice.
     [AutomaticRetry(Attempts = 0)]
@@ -89,6 +93,10 @@ public sealed class CreateMissingInvoicesJob : IRecurringJob
         if (!applyChanges)
             return;
 
+        if (_settings.MissingInvoiceMaxPerRun <= 0)
+            throw new InvalidOperationException(
+                $"CreateMissingInvoices: ShoptetOrders:MissingInvoiceMaxPerRun must be positive, got {_settings.MissingInvoiceMaxPerRun}.");
+
         if (missing.Count > _settings.MissingInvoiceMaxPerRun)
         {
             _logger.LogWarning(
@@ -97,16 +105,22 @@ public sealed class CreateMissingInvoicesJob : IRecurringJob
             missing = missing.Take(_settings.MissingInvoiceMaxPerRun).ToList();
         }
 
-        var created = await CreateInvoicesAsync(missing, cancellationToken);
+        var outcome = await CreateInvoicesAsync(missing, cancellationToken);
 
         _logger.LogInformation(
-            "CreateMissingInvoices: created {Created} of {Missing} invoice(s), {Failed} failed (retried next run).",
-            created, missing.Count, missing.Count - created);
+            "CreateMissingInvoices: created {Created} of {Missing} invoice(s), {Skipped} already invoiced meanwhile, {Failed} failed (retried next run).",
+            outcome.Created, missing.Count, outcome.Skipped, outcome.Failed);
+
+        // Surface failures as a failed Hangfire run — a warning log alone hides an order failing every night.
+        if (outcome.Failed > 0)
+            throw new InvalidOperationException(
+                $"CreateMissingInvoices: {outcome.Failed} of {missing.Count} invoice(s) failed; see the warnings above.");
     }
 
-    private async Task<int> CreateInvoicesAsync(IReadOnlyList<EshopOrderSummary> orders, CancellationToken cancellationToken)
+    private async Task<CreationOutcome> CreateInvoicesAsync(IReadOnlyList<EshopOrderSummary> orders, CancellationToken cancellationToken)
     {
-        var created = 0;
+        var outcome = new CreationOutcome(0, 0, 0);
+        var consecutiveFailures = 0;
         for (var i = 0; i < orders.Count; i++)
         {
             var order = orders[i];
@@ -115,24 +129,48 @@ public sealed class CreateMissingInvoicesJob : IRecurringJob
 
             try
             {
-                await _orderClient.CreateInvoiceAsync(order.Code, cancellationToken);
-                created++;
-                _logger.LogInformation(
-                    "CreateMissingInvoices: invoice created for order {OrderCode} (total {PriceWithVat}).",
-                    order.Code, order.PriceWithVat);
+                outcome = await CreateInvoiceAsync(order, outcome, cancellationToken);
+                consecutiveFailures = 0;
             }
             // Filter on the job's own token: an HTTP timeout is also an OperationCanceledException
             // and must only skip this order, not abort the run.
             catch (Exception ex) when (!cancellationToken.IsCancellationRequested)
             {
+                outcome = outcome with { Failed = outcome.Failed + 1 };
                 _logger.LogWarning(ex,
                     "CreateMissingInvoices: failed to create an invoice for order {OrderCode}. Will retry next run.",
                     order.Code);
+
+                if (++consecutiveFailures >= MaxConsecutiveFailures)
+                    throw new InvalidOperationException(
+                        $"CreateMissingInvoices: {consecutiveFailures} consecutive invoice failures — aborting the run after {outcome.Created} created.",
+                        ex);
             }
         }
 
-        return created;
+        return outcome;
     }
+
+    private async Task<CreationOutcome> CreateInvoiceAsync(
+        EshopOrderSummary order, CreationOutcome outcome, CancellationToken cancellationToken)
+    {
+        // Re-check per order: the bulk listing is minutes old by now and an invoice may have been
+        // issued by hand meanwhile — invoices cannot be deleted through the API.
+        if (await _orderClient.HasInvoiceAsync(order.Code, cancellationToken))
+        {
+            _logger.LogInformation(
+                "CreateMissingInvoices: order {OrderCode} already has an invoice, skipping.", order.Code);
+            return outcome with { Skipped = outcome.Skipped + 1 };
+        }
+
+        await _orderClient.CreateInvoiceAsync(order.Code, cancellationToken);
+        _logger.LogInformation(
+            "CreateMissingInvoices: invoice created for order {OrderCode} (total {PriceWithVat}).",
+            order.Code, order.PriceWithVat);
+        return outcome with { Created = outcome.Created + 1 };
+    }
+
+    private sealed record CreationOutcome(int Created, int Skipped, int Failed);
 
     private static bool HasPrice(EshopOrderSummary order) => order.PriceWithVat is > 0m;
 }

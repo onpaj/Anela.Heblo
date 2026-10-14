@@ -57,6 +57,12 @@ public interface IEshopOrderClient
     Task<IReadOnlySet<string>> ListInvoicedOrderCodesAsync(DateTimeOffset createdFrom, CancellationToken ct = default);
 
     /// <summary>
+    /// Whether any invoice (valid or not) references the order (GET /api/invoices?orderCode=).
+    /// Checked right before issuing an invoice, so one created after the bulk listing is not duplicated.
+    /// </summary>
+    Task<bool> HasInvoiceAsync(string orderCode, CancellationToken ct = default);
+
+    /// <summary>
     /// POST /api/orders/{code}/invoice with body {"data":{}} — Shoptet issues the invoice dated today
     /// (shoptet-api.md §3.17). Non-2xx throws HttpRequestException with StatusCode and Shoptet's error text.
     /// </summary>

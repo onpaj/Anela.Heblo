@@ -48,17 +48,16 @@ public partial class ShoptetOrderClient
     {
         var from = Uri.EscapeDataString(createdFrom.ToString(CreationTimeFormat, Invariant));
         var result = new HashSet<string>(StringComparer.Ordinal);
+        var listed = 0;
+        int? expectedTotal = null;
 
         for (var page = 1; ; page++)
         {
             var path = $"/api/invoices?creationTimeFrom={from}&page={page}&itemsPerPage={InvoiceListPageSize}";
-            var response = await _http.GetAsync(path, ct);
-            await EnsureShoptetSuccessAsync(response, "GET", path, ct);
+            var data = await GetInvoiceListAsync(path, ct);
 
-            // A silently empty set would make every order look uninvoiced — fail instead.
-            var data = await response.Content.ReadFromJsonAsync<InvoiceListResponse>(JsonOptions, ct)
-                ?? throw new InvalidOperationException($"Shoptet GET {path} returned an empty body.");
-
+            expectedTotal ??= data.Data.Paginator.TotalCount;
+            listed += data.Data.Invoices.Count;
             foreach (var invoice in data.Data.Invoices)
             {
                 if (!string.IsNullOrEmpty(invoice.OrderCode))
@@ -68,7 +67,35 @@ public partial class ShoptetOrderClient
                 break;
         }
 
+        // A partial set (missing paginator, a page lost to a shifting listing) would make the
+        // remaining orders look uninvoiced — every invoice the paginator announced must be read.
+        if (listed != expectedTotal)
+            throw new InvalidOperationException(
+                $"Shoptet invoice listing announced {expectedTotal} invoice(s) but returned {listed}; refusing to use a partial listing.");
+
         return result;
+    }
+
+    public async Task<bool> HasInvoiceAsync(string orderCode, CancellationToken ct = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(orderCode);
+
+        var path = $"/api/invoices?orderCode={Uri.EscapeDataString(orderCode)}&itemsPerPage=1";
+        var data = await GetInvoiceListAsync(path, ct);
+
+        // Any hit counts, not only one whose orderCode matches: if the filter were ever ignored this
+        // answers "invoiced" for everything, which creates nothing instead of duplicates.
+        return data.Data.Paginator.TotalCount > 0 || data.Data.Invoices.Count > 0;
+    }
+
+    private async Task<InvoiceListResponse> GetInvoiceListAsync(string path, CancellationToken ct)
+    {
+        var response = await _http.GetAsync(path, ct);
+        await EnsureShoptetSuccessAsync(response, "GET", path, ct);
+
+        // A silently empty listing would make orders look uninvoiced — fail instead.
+        return await response.Content.ReadFromJsonAsync<InvoiceListResponse>(JsonOptions, ct)
+            ?? throw new InvalidOperationException($"Shoptet GET {path} returned an empty body.");
     }
 
     public async Task CreateInvoiceAsync(string orderCode, CancellationToken ct = default)

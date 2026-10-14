@@ -40,12 +40,14 @@ The real side effect is switched **off by default**: until the feature flag
 2. `GET /api/orders?statusId=-3&creationTimeFrom=<MissingInvoiceOrdersCreatedFrom>&page=n&itemsPerPage=50`,
    all pages; keep code + header `price.withVat`.
 3. `GET /api/invoices?creationTimeFrom=<start − 31 days>&page=n&itemsPerPage=1000`, all pages;
-   collect every non-null `orderCode` (valid **and** invalid/cancelled invoices).
+   collect every non-null `orderCode` (valid **and** invalid/cancelled invoices). The number of
+   invoices read must equal page 1's `paginator.totalCount`, else the run aborts.
 4. Work list = orders with `price.withVat > 0` whose code is not in the invoiced set.
 5. Log one summary line: scanned / zero total / already invoiced / missing + the missing codes.
 6. Flag on: take at most `MissingInvoiceMaxPerRun` (300) missing orders (the rest wait for the next
-   night) and for each `POST /api/orders/{code}/invoice` with body `{"data":{}}`,
-   sequentially, 250 ms apart. Log each creation and a final created/failed count.
+   night) and for each, sequentially and 500 ms apart: `GET /api/invoices?orderCode={code}` — any
+   hit ⇒ skip (invoiced since the bulk listing) — else `POST /api/orders/{code}/invoice` with body
+   `{"data":{}}`. Log each creation and a final created/skipped/failed count.
 
 Target: Shoptet invoices only. No Heblo table is written.
 
@@ -57,17 +59,24 @@ Target: Shoptet invoices only. No Heblo table is written.
   invoice — an invoice cannot predate its order otherwise.
 - Duplicate guards (invoices cannot be deleted via the API): an **empty invoiced set while priced
   orders exist aborts the run** (a 200 with an empty/malformed body would otherwise look like
-  "nothing is invoiced"); a null listing body throws; at most 300 invoices per run.
+  "nothing is invoiced"); a null listing body throws; a listing that returns fewer invoices than its
+  paginator announced throws (a partial set would make older orders look uninvoiced); every order
+  is re-checked with `GET /api/invoices?orderCode=` right before its POST; at most 300 invoices per
+  run. If the `orderCode` filter were ever ignored the re-check answers "invoiced" for all orders,
+  so the run creates nothing rather than duplicates (visible as all-skipped in the summary).
 - Error isolation: a failing invoice listing **aborts the run** (otherwise every order would look
-  uninvoiced and be invoiced twice). A failing order listing aborts too. A failing `POST` is logged
-  (Warning, with Shoptet's error text) and retried the next night. HTTP timeouts are per-order
+  uninvoiced and be invoiced twice). A failing order listing aborts too. A failing re-check or `POST`
+  is logged (Warning, with Shoptet's error text) and retried the next night; the loop goes on, but
+  **5 consecutive failures abort the run** (401/403/429 or an outage is systemic), and any failure
+  makes the Hangfire run end as Failed after the summary line. HTTP timeouts are per-order
   failures; only cancellation of the job's own token stops the loop.
+  `MissingInvoiceMaxPerRun ≤ 0` fails the run instead of silently creating nothing.
 
 ## Configuration
 | Key | Repo default | Meaning |
 |---|---|---|
 | `ShoptetOrders:MissingInvoiceOrdersCreatedFrom` | `2026-01-01T00:00:00+01:00` (code default) | Oldest order creation time considered |
-| `ShoptetOrders:MissingInvoiceCreationDelayMs` | `250` (code default) | Pause between two invoice POSTs (~4 req/s budget, `shoptet-api.md` §3.14) |
+| `ShoptetOrders:MissingInvoiceCreationDelayMs` | `500` (code default) | Pause between two orders, each a re-check GET + POST (~4 req/s budget, `shoptet-api.md` §3.14) |
 | `ShoptetOrders:MissingInvoiceMaxPerRun` | `300` (code default) | Max invoices created per run |
 | `ShoptetOrders:CompletedStatusId` | `-3` (code default) | Source state (shared with `job-complete-delivered-orders`) |
 | `FeatureManagement:is-missing-invoice-creation-enabled` | `false` | Off = dry run (log only) |
@@ -75,7 +84,10 @@ Target: Shoptet invoices only. No Heblo table is written.
 
 ## Runtime facts
 None yet. Rollout plan: merge with the flag off, compare the first night's dry-run list with the
-Shoptet admin filter, then switch the flag on in the admin UI.
+Shoptet admin filter — **broken down by order source**: in-store/market orders (`in_store`, store
+ids 10/25/1000, "Trhy", `shoptet-api.md`) may deliberately have no invoice and are not excluded —
+then switch the flag on in the admin UI, ideally with `MissingInvoiceMaxPerRun` set low (e.g. 5)
+for the first live night.
 
 ## Known quirks
 - `POST /api/orders/{code}/invoice` was verified on the test store for an order in -2 only, never

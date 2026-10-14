@@ -134,7 +134,7 @@ public class CreateMissingInvoicesJobTests
         _orders.Setup(o => o.CreateInvoiceAsync("126000001", It.IsAny<CancellationToken>()))
             .ThrowsAsync(new HttpRequestException("422"));
 
-        await sut.ExecuteAsync();
+        await Assert.ThrowsAsync<InvalidOperationException>(() => sut.ExecuteAsync());
 
         _orders.Verify(o => o.CreateInvoiceAsync("126000002", It.IsAny<CancellationToken>()), Times.Once);
     }
@@ -150,7 +150,7 @@ public class CreateMissingInvoicesJobTests
         _orders.Setup(o => o.CreateInvoiceAsync("126000001", It.IsAny<CancellationToken>()))
             .ThrowsAsync(new TaskCanceledException("timeout"));
 
-        await sut.ExecuteAsync();
+        await Assert.ThrowsAsync<InvalidOperationException>(() => sut.ExecuteAsync());
 
         _orders.Verify(o => o.CreateInvoiceAsync("126000002", It.IsAny<CancellationToken>()), Times.Once);
     }
@@ -211,5 +211,46 @@ public class CreateMissingInvoicesJobTests
 
         _orders.Verify(o => o.CreateInvoiceAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Exactly(2));
         _orders.Verify(o => o.CreateInvoiceAsync("126000003", It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task ExecuteAsync_SkipsOrder_WhenItWasInvoicedAfterTheBulkListing()
+    {
+        var sut = MakeSut();
+        GivenCompletedOrders(Order("126000001", 350m), Order("126000002", 99m));
+        GivenInvoicedOrderCodes("125999999");
+        _orders.Setup(o => o.HasInvoiceAsync("126000001", It.IsAny<CancellationToken>())).ReturnsAsync(true);
+
+        await sut.ExecuteAsync();
+
+        _orders.Verify(o => o.CreateInvoiceAsync("126000001", It.IsAny<CancellationToken>()), Times.Never);
+        _orders.Verify(o => o.CreateInvoiceAsync("126000002", It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task ExecuteAsync_Aborts_AfterFiveConsecutiveFailures()
+    {
+        var sut = MakeSut();
+        var orders = Enumerable.Range(1, 8).Select(i => Order($"12600000{i}", 10m)).ToArray();
+        GivenCompletedOrders(orders);
+        GivenInvoicedOrderCodes("125999999");
+        _orders.Setup(o => o.CreateInvoiceAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new HttpRequestException("401"));
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() => sut.ExecuteAsync());
+
+        _orders.Verify(o => o.CreateInvoiceAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Exactly(5));
+    }
+
+    [Fact]
+    public async Task ExecuteAsync_Throws_WhenMaxPerRunIsNotPositive()
+    {
+        var sut = MakeSut(maxPerRun: 0);
+        GivenCompletedOrders(Order("126000001", 350m));
+        GivenInvoicedOrderCodes("125999999");
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() => sut.ExecuteAsync());
+
+        _orders.Verify(o => o.CreateInvoiceAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 }
