@@ -4,7 +4,7 @@ kind: module
 module: marketing-ads
 summary: Heblo's ad-platform backbone for AI marketing agents — daily Google Ads performance today (Meta and Sklik planned) and change history in the ads schema, read by agents over MCP and by people in Metabase.
 owns: []
-verified_at: "a4c5231e8"
+verified_at: "570fbbd62"
 related: [sync-ads-daily, sync-ads-change-history, sync-google-ads-campaign-data, flow-google-ads-action-execution, flow-ad-proposal-approval, sync-shoptet-orders]
 ---
 
@@ -14,7 +14,7 @@ related: [sync-ads-daily, sync-ads-change-history, sync-google-ads-campaign-data
 "Heblo is the eyes and the hands, agents are the brain" (handoff `docs/handoff/marketing-agents-platform.md`). This module holds campaign-level data at management granularity for the ad platforms and records every account change, so agents can propose changes and people can see what anyone did. Proposals/approvals (C3), identity and MCP tools (C4) and UI (C5) build on it.
 
 ## Users & screens
-No Heblo page yet. Agents and the chief of marketing via MCP tools (C4: accounts, performance, search terms, blended performance, change history — backed by this module's MediatR handlers in `UseCases/`). People via Metabase views `ads.v_ads_campaign_monthly`, `ads.v_ads_blended_monthly`, `ads.v_ads_change_events`.
+No Heblo page yet. Agents and the chief of marketing via the 15 MCP tools in `MarketingAdsMcpTools` (accounts, performance, search terms, blended performance, change history, guardrails, proposals, agent runs, approvals — backed by this module's MediatR handlers; agents authenticate as the `Marketing.Agent` service identity and are rate limited on `/mcp`, see `docs/integrations/marketing-agents-identity.md`). People via Metabase views `ads.v_ads_campaign_monthly`, `ads.v_ads_blended_monthly`, `ads.v_ads_change_events`.
 
 ## Processes
 - `sync-ads-daily` — accounts, entities, daily facts, search terms; 05:30 Europe/Prague daily.
