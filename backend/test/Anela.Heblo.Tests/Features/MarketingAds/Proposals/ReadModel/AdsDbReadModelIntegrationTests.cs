@@ -40,8 +40,14 @@ public class AdsDbReadModelIntegrationTests : IAsyncLifetime
     {
         var account = new AdAccount
         {
-            Platform = platform.ToString(), ExternalId = externalId, Name = externalId, Currency = "CZK",
-            TimeZone = "Europe/Prague", IsManaged = isManaged, CreatedAt = Seeded, UpdatedAt = Seeded,
+            Platform = platform.ToString(),
+            ExternalId = externalId,
+            Name = externalId,
+            Currency = "CZK",
+            TimeZone = "Europe/Prague",
+            IsManaged = isManaged,
+            CreatedAt = Seeded,
+            UpdatedAt = Seeded,
         };
         _db.Accounts.Add(account);
         await _db.SaveChangesAsync();
@@ -52,8 +58,15 @@ public class AdsDbReadModelIntegrationTests : IAsyncLifetime
     {
         var entity = new AdEntity
         {
-            AccountId = accountId, Level = level.ToString(), ExternalId = externalId, ParentId = parentId, Name = name,
-            Status = status.ToString(), FirstSeenAt = Seeded, LastSeenAt = Seeded, UpdatedAt = Seeded,
+            AccountId = accountId,
+            Level = level.ToString(),
+            ExternalId = externalId,
+            ParentId = parentId,
+            Name = name,
+            Status = status.ToString(),
+            FirstSeenAt = Seeded,
+            LastSeenAt = Seeded,
+            UpdatedAt = Seeded,
         };
         _db.Entities.Add(entity);
         await _db.SaveChangesAsync();
