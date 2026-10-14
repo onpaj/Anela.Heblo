@@ -31,6 +31,7 @@ public class AdsDbReadModelIntegrationTests : IAsyncLifetime
         await AddEntityAsync(account, AdEntityLevel.Ad, "ad-1", group, "Reklama 1", AdEntityStatus.Enabled);
         await AddEntityAsync(account, AdEntityLevel.Ad, "ad-2", group, "Reklama 2", AdEntityStatus.Enabled);
         await AddEntityAsync(account, AdEntityLevel.Ad, "ad-3", group, "Reklama 3", AdEntityStatus.Paused);
+        await AddEntityAsync(account, AdEntityLevel.Ad, "ad-orphan", null, "Bez sestavy", AdEntityStatus.Enabled);
     }
 
     public async Task DisposeAsync() => await _db.DisposeAsync();
@@ -84,5 +85,13 @@ public class AdsDbReadModelIntegrationTests : IAsyncLifetime
         var names = await new AdsDbReadModel(_db).GetEntityNamesAsync(AdPlatform.GoogleAds, "acc-1", new[] { "grp-1", "ad-2", "nope" }, CancellationToken.None);
 
         names.Should().BeEquivalentTo(new Dictionary<string, string> { ["grp-1"] = "Sestava 1", ["ad-2"] = "Reklama 2" });
+    }
+
+    [Fact]
+    public async Task GetAdGroupOccupancy_OmitsAdsWithoutAParentGroup()
+    {
+        var result = await new AdsDbReadModel(_db).GetAdGroupOccupancyAsync(AdPlatform.GoogleAds, "acc-1", new[] { "ad-orphan" }, CancellationToken.None);
+
+        result.Should().NotContainKey("ad-orphan");
     }
 }

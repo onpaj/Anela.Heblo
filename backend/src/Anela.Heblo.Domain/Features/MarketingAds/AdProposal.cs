@@ -56,6 +56,12 @@ public class AdProposal : IEntity<int>
         .Select(a => a.Principal)
         .ToList();
 
+    /// <summary>Approvers of the current version who are people. System approvals never count as a second approver.</summary>
+    public IReadOnlyList<string> GetCurrentHumanApprovers() => Approvals
+        .Where(a => a.Version == CurrentVersion && a.Decision == ApprovalDecision.Approved && a.Channel != ApprovalChannel.System)
+        .Select(a => a.Principal)
+        .ToList();
+
     public bool IsExpiredAt(DateTime now) => Status == AdProposalStatus.Pending && now >= ExpiresAt;
 
     public void Revise(string actionsJson, int actionCount, string reasoning, string principal, DateTime now, TimeSpan ttl)

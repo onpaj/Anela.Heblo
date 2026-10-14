@@ -66,4 +66,39 @@ public class AdLimitsContextBuilderTests
         evaluation.Decision.Should().Be(AdLimitsDecision.Denied);
         evaluation.Reason.Should().Be(AdLimitReasons.AccountNotManaged);
     }
+
+    [Fact]
+    public async Task BuildAsync_PriorApproversAreOnlyHumansOfTheCurrentVersion()
+    {
+        var proposal = NewProposal("GoogleAds", "acc-1");
+        proposal.RecordApproval("old-web", ApprovalChannel.Web, Now.UtcDateTime, isFinal: false);
+        proposal.Revise("[]", 1, "r2", "agent-1", Now.UtcDateTime, TimeSpan.FromHours(72));
+        proposal.RecordApproval("system", ApprovalChannel.System, Now.UtcDateTime, isFinal: false);
+        proposal.RecordApproval("web-human", ApprovalChannel.Web, Now.UtcDateTime, isFinal: false);
+        var readModel = new Mock<IAdsReadModel>();
+        readModel.Setup(r => r.IsAccountManagedAsync(It.IsAny<AdPlatform>(), It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(true);
+        readModel.Setup(r => r.GetAdGroupOccupancyAsync(It.IsAny<AdPlatform>(), It.IsAny<string>(), It.IsAny<IReadOnlyCollection<string>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Dictionary<string, AdGroupOccupancy>());
+
+        var request = await NewBuilder(NewContext(), readModel.Object)
+            .BuildAsync(proposal, new[] { PauseAction(AdPlatform.GoogleAds, "acc-1") }, ApprovalChannel.Web, "chief", CancellationToken.None);
+
+        request.PriorApproverPrincipals.Should().BeEquivalentTo(new[] { "web-human" });
+    }
+
+    [Fact]
+    public async Task UnknownOccupancy_IsNeverAutoApprovedOnAnAgentChannel()
+    {
+        var readModel = new Mock<IAdsReadModel>();
+        readModel.Setup(r => r.IsAccountManagedAsync(It.IsAny<AdPlatform>(), It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(true);
+        readModel.Setup(r => r.GetAdGroupOccupancyAsync(It.IsAny<AdPlatform>(), It.IsAny<string>(), It.IsAny<IReadOnlyCollection<string>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Dictionary<string, AdGroupOccupancy>());
+        var request = await NewBuilder(NewContext(), readModel.Object)
+            .BuildAsync(NewProposal("GoogleAds", "acc-1"), new[] { PauseAction(AdPlatform.GoogleAds, "acc-1") }, ApprovalChannel.Mcp, "agent", CancellationToken.None);
+
+        var evaluation = new AdLimitsEvaluator().Evaluate(request);
+
+        evaluation.Decision.Should().Be(AdLimitsDecision.NeedsWebApproval);
+        evaluation.Reason.Should().Be(AdLimitReasons.AdGroupWouldBeEmpty);
+    }
 }

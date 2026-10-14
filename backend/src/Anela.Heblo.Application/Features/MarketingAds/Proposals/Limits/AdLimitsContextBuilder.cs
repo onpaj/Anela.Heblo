@@ -42,6 +42,6 @@ public sealed class AdLimitsContextBuilder : IAdLimitsContextBuilder
         }
 
         return new AdLimitsRequest(platform, proposal.AccountExternalId, actionType, actions, channel, approverPrincipal,
-            proposal.GetCurrentApprovers().ToList(), isManaged, pauses, occupancy, limits);
+            proposal.GetCurrentHumanApprovers().ToList(), isManaged, pauses, occupancy, limits);
     }
 }
