@@ -39,6 +39,8 @@ Origin (`AdChangeOriginMatcher`, pure). A change is `Heblo` only when all hold:
 
 Otherwise `OutOfBand`. `IAdExecutionLookup` is `AdExecutionLookup`, over `AdProposalActionExecutions`: it returns the succeeded executions (including ones confirmed by re-read after a thrown mutate) whose `ExecutedAt` is in the window, plus one `IsRevert = true` row per successful revert whose `RevertedAt` is in the window (failed reverts are not returned). The window is inclusive at both ends; stored UTC `timestamp` values are re-stamped as UTC offsets. Heblo's identity on Google is `GoogleAds:HebloUserEmail`; until it is set Heblo's own API writes arrive as `ActorKind.User` → OutOfBand (a visible false alarm, not a silent miss). Values that are not JSON are stored as JSON strings; timestamps are stored in UTC.
 
+Dependency: through `AdExecutionLookup` → `IAdProposalRepository` the writer (`AdChangeEventWriter`, also used by the entity step of `backend/tools/Anela.Heblo.AdsBackfill`) needs `ApplicationDbContext` as well as `AdsDbContext`. The API has it; the backfill tool registers it itself on `AdsDatabase:ConnectionString` (the proposal tables and the `ads` schema share one database), so Heblo's own writes are classified correctly during a backfill too. `AdsBackfillServicesTests` resolves `AdsBackfillService` from the tool's real container.
+
 ## Configuration
 | Key | Repo default | Meaning |
 |---|---|---|

@@ -113,6 +113,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Anela.Heblo.Adapters.Google
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Anela.Heblo.AdsBackfill", "backend\tools\Anela.Heblo.AdsBackfill\Anela.Heblo.AdsBackfill.csproj", "{34391357-B20A-44AC-BC1B-FD999EFE51F3}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Anela.Heblo.AdsBackfill.Tests", "backend\test\Anela.Heblo.AdsBackfill.Tests\Anela.Heblo.AdsBackfill.Tests.csproj", "{7CEB0599-20B2-42E8-BF69-B59B6C3899C0}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -687,6 +689,18 @@ Global
 		{34391357-B20A-44AC-BC1B-FD999EFE51F3}.Release|x64.Build.0 = Release|Any CPU
 		{34391357-B20A-44AC-BC1B-FD999EFE51F3}.Release|x86.ActiveCfg = Release|Any CPU
 		{34391357-B20A-44AC-BC1B-FD999EFE51F3}.Release|x86.Build.0 = Release|Any CPU
+		{7CEB0599-20B2-42E8-BF69-B59B6C3899C0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7CEB0599-20B2-42E8-BF69-B59B6C3899C0}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7CEB0599-20B2-42E8-BF69-B59B6C3899C0}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{7CEB0599-20B2-42E8-BF69-B59B6C3899C0}.Debug|x64.Build.0 = Debug|Any CPU
+		{7CEB0599-20B2-42E8-BF69-B59B6C3899C0}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{7CEB0599-20B2-42E8-BF69-B59B6C3899C0}.Debug|x86.Build.0 = Debug|Any CPU
+		{7CEB0599-20B2-42E8-BF69-B59B6C3899C0}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7CEB0599-20B2-42E8-BF69-B59B6C3899C0}.Release|Any CPU.Build.0 = Release|Any CPU
+		{7CEB0599-20B2-42E8-BF69-B59B6C3899C0}.Release|x64.ActiveCfg = Release|Any CPU
+		{7CEB0599-20B2-42E8-BF69-B59B6C3899C0}.Release|x64.Build.0 = Release|Any CPU
+		{7CEB0599-20B2-42E8-BF69-B59B6C3899C0}.Release|x86.ActiveCfg = Release|Any CPU
+		{7CEB0599-20B2-42E8-BF69-B59B6C3899C0}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -743,5 +757,6 @@ Global
 		{040945C2-4539-4466-AFBC-790F07905494} = {23FE24B3-CD9D-4576-A7C8-85D5B012F43D}
 		{696C1946-37BB-4250-86B3-460AA2AC3C2F} = {23FE24B3-CD9D-4576-A7C8-85D5B012F43D}
 		{34391357-B20A-44AC-BC1B-FD999EFE51F3} = {7D3E9F2B-4A1C-4E6D-8B5F-3C2D7F9E0A1B}
+		{7CEB0599-20B2-42E8-BF69-B59B6C3899C0} = {23FE24B3-CD9D-4576-A7C8-85D5B012F43D}
 	EndGlobalSection
 EndGlobal

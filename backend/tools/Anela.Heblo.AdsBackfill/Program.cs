@@ -1,10 +1,9 @@
 using System.Globalization;
-using Anela.Heblo.Adapters.GoogleAds;
+using Anela.Heblo.AdsBackfill;
 using Anela.Heblo.Application.Features.MarketingAds;
 using Anela.Heblo.Application.Features.MarketingAds.Contracts;
 using Anela.Heblo.Application.Features.MarketingAds.Sync;
 using Anela.Heblo.Persistence.Ads;
-using Anela.Heblo.Persistence.Infrastructure.Resilience;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -42,22 +41,7 @@ if (from > to)
 var configuration = new ConfigurationBuilder().AddEnvironmentVariables().Build();
 
 var services = new ServiceCollection();
-services.AddLogging(b => b
-    .AddSimpleConsole(o => o.TimestampFormat = "HH:mm:ss ")
-    .SetMinimumLevel(LogLevel.Information)
-    // EF logs every statement at Information; over a year of search terms that is all you would see.
-    .AddFilter("Microsoft.EntityFrameworkCore", LogLevel.Warning)
-    .AddFilter("System.Net.Http.HttpClient", LogLevel.Warning));
-
-// The resilience plumbing AddAdsPersistenceServices expects from the API host.
-services.AddSingleton<System.Diagnostics.Metrics.IMeterFactory, DefaultMeterFactory>();
-services.AddSingleton<DbResilienceMetrics>();
-services.AddSingleton<NpgsqlConnectionInterceptor>();
-
-// Both registrations stay silent (stderr warning only) when their settings are missing or are
-// placeholders, exactly as in the API; the checks below turn that into a clear exit.
-services.AddMarketingAdsModule(configuration);
-services.AddGoogleAdsMarketingAds(configuration);
+services.AddAdsBackfill(configuration);
 
 await using var provider = services.BuildServiceProvider();
 using var scope = provider.CreateScope();
@@ -109,15 +93,3 @@ logger.LogInformation("Backfill {Outcome}: rows={Rows} errors={Errors} elapsed={
     report.HasFailures ? "FAILED" : "completed", report.RowsWritten, report.Errors.Count, DateTimeOffset.UtcNow - startedAt);
 
 return report.HasFailures ? 1 : 0;
-
-/// <summary>
-/// DbResilienceMetrics needs an IMeterFactory; the generic host would normally supply one, and this
-/// tool does not build a host.
-/// </summary>
-internal sealed class DefaultMeterFactory : System.Diagnostics.Metrics.IMeterFactory
-{
-    public System.Diagnostics.Metrics.Meter Create(System.Diagnostics.Metrics.MeterOptions options) =>
-        new(options.Name, options.Version);
-
-    public void Dispose() { }
-}

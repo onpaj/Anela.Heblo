@@ -36,7 +36,7 @@ No Heblo page yet. Agents and the chief of marketing via MCP tools (C4: accounts
 Google Ads REST API (read only, via `IAdPlatformReadSource` in `Adapters.GoogleAds`); Meta and Sklik adapters are planned. Reads `shoptet_raw."order"` for the blended views.
 
 ## Dependencies
-Reads `shoptet_raw` (Shoptet orders mirror, `sync-shoptet-orders`). Platform adapters plug in read sources; C3 plugs in `IAdExecutionLookup` (`AdExecutionLookup`, executions and reverts from `AdProposalActionExecutions`). Metabase reads the views through `metabase_ro`.
+Reads `shoptet_raw` (Shoptet orders mirror, `sync-shoptet-orders`). Platform adapters plug in read sources; C3 plugs in `IAdExecutionLookup` (`AdExecutionLookup`, executions and reverts from `AdProposalActionExecutions`). Because of that lookup the C2 change sync — and `backend/tools/Anela.Heblo.AdsBackfill`, which runs the same entity step — now needs `ApplicationDbContext` (the Heblo database) besides `AdsDbContext`; the tool registers it on `AdsDatabase:ConnectionString` (same database), pinned by `Anela.Heblo.AdsBackfill.Tests`. Metabase reads the views through `metabase_ro`.
 
 ## Known quirks
 - Platform-reported conversions over-count; use the blended view for "is advertising paying off".
