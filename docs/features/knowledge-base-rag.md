@@ -264,6 +264,24 @@ Content-hash deduplication (SHA-256 of raw bytes) ensures:
 
 ---
 
+## Query Expansion and Question Tags
+
+The KB chat pipeline expands each user question before embedding it (`RagQueryExpander`, prompt `KnowledgeBase:QueryExpansionPrompt`). The model returns a single JSON object:
+
+```json
+{"expanded": "Problém: ...\nKontext: ...", "problemTags": ["akné"], "productTags": ["hořčíkové máslo"]}
+```
+
+- `expanded` is the text that is embedded. Line breaks inside the value must be written as `\n`; if the model emits raw line breaks anyway, `RagExpansionParser` escapes control characters inside string literals and retries once.
+- `problemTags` / `productTags` are normalised (trimmed, lowercased, whitespace collapsed), deduplicated, capped at 5 per kind, and tags longer than 60 characters (`MaxTagLength`) are dropped.
+- Fallback: if the response is not JSON (or is malformed), the whole raw response is embedded with no tags — the previous plain-text behaviour. A bad prompt can lose tags but never answers.
+
+**Self-building tag library.** The prompt contains the `{EXISTING_TAGS}` placeholder, replaced at runtime by `QuestionTagLibrary` with the most frequent existing tags (top 200 per kind, scoped to the KB feature) so the model reuses existing wording instead of inventing near-duplicates. Anyone overriding `KnowledgeBase:QueryExpansionPrompt` via config or Key Vault must keep both the JSON shape and the `{EXISTING_TAGS}` placeholder, otherwise tagging silently stops.
+
+**Persistence.** Tags and recommended products are stored on `RagInteractionLogs`: `ProblemTags`, `ProductTags` and `RecommendedProductCodes` (all `text[]`; GIN indexes on `ProblemTags` and `ProductTags`). Recommended product codes are captured from `PostAnswerEnrichmentMiddleware`, which publishes them on `ChatResponse.AdditionalProperties["anela.recommendedProductCodes"]`.
+
+---
+
 ## REST API
 
 Base path: `GET|POST /api/knowledgebase`
@@ -337,6 +355,19 @@ Returns list of all indexed documents ordered by `CreatedAt` descending.
   ]
 }
 ```
+
+---
+
+### Feedback list filters and tag statistics
+
+`GET /api/KnowledgeBase/feedback` (Write access) additionally accepts:
+
+| Param | Description |
+|---|---|
+| `dateFrom`, `dateTo` | `yyyy-MM-dd`; inclusive Prague calendar days |
+| `problemTag`, `productTag` | Exact match on the normalised tag (an over-long value normalises to nothing, i.e. no filter) |
+
+`GET /api/KnowledgeBase/feedback/tag-stats?dateFrom=&dateTo=` (Write access) returns tag frequencies (`GetQuestionTagStatsResponse`) for the same Prague-day range, used by the frequency panel on the feedback page.
 
 ---
 
@@ -434,6 +465,7 @@ When `UseMockAuth=true` or `BypassJwtValidation=true`, `MockOneDriveService` is 
 |---|---|---|
 | `20260302163014_AddKnowledgeBase` | 2026-03-02 | Creates `KnowledgeBaseDocuments` and `KnowledgeBaseChunks` tables, enables `vector` extension, adds `Embedding vector(1536)` column via raw SQL, creates HNSW index |
 | `20260306192831_AddContentHashToKnowledgeBaseDocument` | 2026-03-06 | Adds `ContentHash varchar(64)` column with UNIQUE index to `KnowledgeBaseDocuments` |
+| `20261014084818_AddRagInteractionLogTags` | 2026-10-14 | Adds `ProblemTags`, `ProductTags`, `RecommendedProductCodes` (`text[]`) to `RagInteractionLogs`; GIN indexes on `ProblemTags` and `ProductTags` |
 
 > **Note:** Migrations apply automatically on Production startup; Development, Test, and Staging remain manual.
 

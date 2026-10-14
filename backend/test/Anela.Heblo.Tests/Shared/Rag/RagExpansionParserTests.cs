@@ -130,4 +130,68 @@ public class RagExpansionParserTests
     {
         RagExpansionParser.NormalizeTag(input).Should().Be(expected);
     }
+
+    [Fact]
+    public void Parse_LiteralNewlineAndTabInsideExpanded_ParsesAndKeepsControlChars()
+    {
+        var raw = "{\"expanded\": \"Problém: akné\nKontext:\tmastná pleť\", \"problemTags\": [\"Akné\"], \"productTags\": []}";
+
+        var result = RagExpansionParser.Parse(raw);
+
+        result.IsMalformedJson.Should().BeFalse();
+        result.Expansion.QueryToEmbed.Should().Be("Problém: akné\nKontext:\tmastná pleť");
+        result.Expansion.ProblemTags.Should().Equal("akné");
+    }
+
+    [Fact]
+    public void Parse_PrettyPrintedJsonWithNewlinesBetweenTokens_Parses()
+    {
+        var raw = "{\n  \"expanded\": \"Problém: akné\",\n  \"problemTags\": [\"akné\"],\n  \"productTags\": []\n}";
+
+        var result = RagExpansionParser.Parse(raw);
+
+        result.IsMalformedJson.Should().BeFalse();
+        result.Expansion.QueryToEmbed.Should().Be("Problém: akné");
+        result.Expansion.ProblemTags.Should().Equal("akné");
+    }
+
+    [Fact]
+    public void Parse_EscapedQuoteFollowedByLiteralNewline_Parses()
+    {
+        var raw = "{\"expanded\": \"Problém: \\\"suchá\\\" pleť\nKontext: zima\", \"problemTags\": [\"suchá pleť\"], \"productTags\": []}";
+
+        var result = RagExpansionParser.Parse(raw);
+
+        result.IsMalformedJson.Should().BeFalse();
+        result.Expansion.QueryToEmbed.Should().Be("Problém: \"suchá\" pleť\nKontext: zima");
+        result.Expansion.ProblemTags.Should().Equal("suchá pleť");
+    }
+
+    [Fact]
+    public void Parse_TruncatedJsonWithLiteralNewline_IsStillMalformedAfterRetry()
+    {
+        var raw = "{\"expanded\": \"Problém: akné\nKontext: mastná";
+
+        var result = RagExpansionParser.Parse(raw);
+
+        result.IsMalformedJson.Should().BeTrue();
+        result.Expansion.QueryToEmbed.Should().Be(raw);
+        result.Expansion.ProblemTags.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void NormalizeTag_TagOfMaxLength_IsKept()
+    {
+        var tag = new string('a', RagExpansionParser.MaxTagLength);
+
+        RagExpansionParser.NormalizeTag(tag).Should().Be(tag);
+    }
+
+    [Fact]
+    public void NormalizeTag_TagLongerThanMaxLength_IsDropped()
+    {
+        var tag = new string('a', RagExpansionParser.MaxTagLength + 1);
+
+        RagExpansionParser.NormalizeTag(tag).Should().BeNull();
+    }
 }

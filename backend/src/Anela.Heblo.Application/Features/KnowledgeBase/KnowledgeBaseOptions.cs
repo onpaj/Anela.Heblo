@@ -20,6 +20,7 @@ public class KnowledgeBaseOptions : RagFeatureOptions
             Kontext: <typ pleti, stávající rutina, situace>
             Doporučení: <co by mohlo být doporučeno>
             Ingredience: <účinné látky, složky>
+            Zalomení řádků uvnitř hodnoty "expanded" zapiš jako \n.
 
             "problemTags": kožní či tělesné problémy a cíle péče, které zákazník řeší (např. akné, suchá pleť,
             otoky nohou). Prázdné pole, pokud jde o provozní dotaz (objednávka, doprava, dostupnost, platba).
