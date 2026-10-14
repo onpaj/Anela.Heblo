@@ -12,4 +12,10 @@ public interface IAdGovernanceRepository
     void AddLimitSetting(AdLimitSetting setting);
     void AddKillSwitch(AdKillSwitch killSwitch);
     Task SaveChangesAsync(CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Saves; when the save loses a race (two admins creating the same missing row, or a concurrency conflict) it
+    /// discards every tracked change, so the shared context is not poisoned, and returns false.
+    /// </summary>
+    Task<bool> TrySaveChangesAsync(CancellationToken cancellationToken);
 }

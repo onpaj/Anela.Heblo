@@ -1,5 +1,7 @@
 using Anela.Heblo.Domain.Features.MarketingAds;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Anela.Heblo.Persistence.MarketingAds;
 
@@ -7,7 +9,18 @@ public class AdGovernanceRepository : IAdGovernanceRepository
 {
     private readonly ApplicationDbContext _context;
 
-    public AdGovernanceRepository(ApplicationDbContext context) => _context = context;
+    private readonly ILogger<AdGovernanceRepository> _logger;
+
+    public AdGovernanceRepository(ApplicationDbContext context)
+        : this(context, NullLogger<AdGovernanceRepository>.Instance)
+    {
+    }
+
+    public AdGovernanceRepository(ApplicationDbContext context, ILogger<AdGovernanceRepository> logger)
+    {
+        _context = context;
+        _logger = logger;
+    }
 
     public async Task<IReadOnlyList<AdAutonomySetting>> GetAutonomySettingsAsync(CancellationToken cancellationToken) =>
         await _context.AdAutonomySettings.AsNoTracking()
@@ -41,4 +54,19 @@ public class AdGovernanceRepository : IAdGovernanceRepository
     public void AddKillSwitch(AdKillSwitch killSwitch) => _context.AdKillSwitches.Add(killSwitch);
 
     public Task SaveChangesAsync(CancellationToken cancellationToken) => _context.SaveChangesAsync(cancellationToken);
+
+    public async Task<bool> TrySaveChangesAsync(CancellationToken cancellationToken)
+    {
+        try
+        {
+            await _context.SaveChangesAsync(cancellationToken);
+            return true;
+        }
+        catch (DbUpdateException ex) // includes DbUpdateConcurrencyException
+        {
+            _logger.LogWarning(ex, "Saving ad governance settings lost a race; discarding tracked changes");
+            _context.ChangeTracker.Clear();
+            return false;
+        }
+    }
 }
