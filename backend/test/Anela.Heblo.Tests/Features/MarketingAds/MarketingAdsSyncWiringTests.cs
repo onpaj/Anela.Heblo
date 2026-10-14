@@ -4,9 +4,11 @@ using Anela.Heblo.Application.Features.MarketingAds.Infrastructure.Jobs;
 using Anela.Heblo.Application.Features.MarketingAds.Reporting;
 using Anela.Heblo.Application.Features.MarketingAds.Sync;
 using Anela.Heblo.Domain.Features.BackgroundJobs;
+using Anela.Heblo.Persistence;
 using Anela.Heblo.Persistence.Ads;
 using Anela.Heblo.Tests.Features.MarketingAds.TestSupport;
 using FluentAssertions;
+using Hangfire;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -26,6 +28,9 @@ public class MarketingAdsSyncWiringTests
         var services = new ServiceCollection();
         services.AddLogging();
         services.AddSingleton(Mock.Of<IRecurringJobStatusChecker>());
+        // Always provided by the API host; the proposal layer (C3) wired by AddMarketingAdsModule needs both.
+        services.AddDbContext<ApplicationDbContext>(o => o.UseInMemoryDatabase(Guid.NewGuid().ToString()));
+        services.AddSingleton(Mock.Of<IBackgroundJobClient>());
         extra?.Invoke(services);
         services.AddMarketingAdsModule(configuration);
         // what AddRecurringJobs() does for Application-assembly jobs

@@ -377,6 +377,25 @@ const resources = {
         ReportingInvalidQuery: "Neplatný dotaz na datovou sadu",
         ReportingQueryTimeout: "Dotaz trval příliš dlouho, zužte filtr",
 
+        // Marketing Ads — proposal & approval layer (40XX)
+        MarketingAdsProposalNotFound: "Návrh změny reklamy nebyl nalezen.",
+        MarketingAdsProposalVersionMismatch: "Návrh byl mezitím upraven. Načtěte aktuální verzi a rozhodněte znovu.",
+        MarketingAdsProposalNotPending: "Návrh už nečeká na schválení.",
+        MarketingAdsProposalExpired: "Platnost návrhu vypršela. Požádejte o nový návrh.",
+        MarketingAdsApprovalChannelDenied: "Z tohoto přístupu nelze návrhy schvalovat, zamítat ani měnit nastavení.",
+        MarketingAdsLimitsDenied: "Návrh překračuje pevné limity a nelze ho schválit.",
+        MarketingAdsNeedsWebApproval: "Tento návrh lze schválit jen ve webové aplikaci Heblo.",
+        MarketingAdsAlreadyApprovedByPrincipal: "Tuto verzi návrhu už jste schválili. Druhé schválení musí udělat jiná osoba.",
+        MarketingAdsInvalidProposal: "Návrh je neplatný.",
+        MarketingAdsNotRevertible: "Návrh nelze vrátit, protože nebyl proveden.",
+        MarketingAdsRevertFailed: "Vrácení změn se nepodařilo u všech akcí. Zkontrolujte historii návrhu.",
+        MarketingAdsAgentRunNotFound: "Běh agenta nebyl nalezen.",
+        MarketingAdsInvalidSetting: "Neplatné nastavení.",
+        MarketingAdsConcurrentChange: "Návrh mezitím změnil někdo jiný. Načtěte ho znovu.",
+        MarketingAdsNoExecutor: "Pro tuto platformu není k dispozici vykonavatel akcí.",
+        MarketingAdsNotProposalOwner: "Návrh může upravit jen jeho autor.",
+        MarketingAdsInvalidAgentRun: "Běh agenta nelze takto ukončit.",
+
         // External Service errors
         ExternalServiceError: "Chyba externí služby",
         FlexiApiError: "Chyba ABRA Flexi API",

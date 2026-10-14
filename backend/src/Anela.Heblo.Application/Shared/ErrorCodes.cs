@@ -521,6 +521,42 @@ public enum ErrorCodes
     [HttpStatusCode(HttpStatusCode.GatewayTimeout)]
     ReportingQueryTimeout = 3903,
 
+    // Marketing Ads — proposal & approval layer (40XX)
+    [HttpStatusCode(HttpStatusCode.NotFound)]
+    MarketingAdsProposalNotFound = 4001,
+    [HttpStatusCode(HttpStatusCode.Conflict)]
+    MarketingAdsProposalVersionMismatch = 4002,
+    [HttpStatusCode(HttpStatusCode.Conflict)]
+    MarketingAdsProposalNotPending = 4003,
+    [HttpStatusCode(HttpStatusCode.Conflict)]
+    MarketingAdsProposalExpired = 4004,
+    [HttpStatusCode(HttpStatusCode.Forbidden)]
+    MarketingAdsApprovalChannelDenied = 4005,
+    [HttpStatusCode(HttpStatusCode.UnprocessableEntity)]
+    MarketingAdsLimitsDenied = 4006,
+    [HttpStatusCode(HttpStatusCode.Forbidden)]
+    MarketingAdsNeedsWebApproval = 4007,
+    [HttpStatusCode(HttpStatusCode.Conflict)]
+    MarketingAdsAlreadyApprovedByPrincipal = 4008,
+    [HttpStatusCode(HttpStatusCode.BadRequest)]
+    MarketingAdsInvalidProposal = 4009,
+    [HttpStatusCode(HttpStatusCode.Conflict)]
+    MarketingAdsNotRevertible = 4010,
+    [HttpStatusCode(HttpStatusCode.BadGateway)]
+    MarketingAdsRevertFailed = 4011,
+    [HttpStatusCode(HttpStatusCode.NotFound)]
+    MarketingAdsAgentRunNotFound = 4012,
+    [HttpStatusCode(HttpStatusCode.BadRequest)]
+    MarketingAdsInvalidSetting = 4013,
+    [HttpStatusCode(HttpStatusCode.Conflict)]
+    MarketingAdsConcurrentChange = 4014,
+    [HttpStatusCode(HttpStatusCode.Conflict)]
+    MarketingAdsNoExecutor = 4015,
+    [HttpStatusCode(HttpStatusCode.Forbidden)]
+    MarketingAdsNotProposalOwner = 4016,
+    [HttpStatusCode(HttpStatusCode.BadRequest)]
+    MarketingAdsInvalidAgentRun = 4017,
+
     // External Service errors (90XX)
     [HttpStatusCode(HttpStatusCode.ServiceUnavailable)]
     ExternalServiceError = 9001,

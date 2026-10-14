@@ -1,6 +1,7 @@
 using System.Globalization;
 using Anela.Heblo.Application.Features.MarketingAds.Configuration;
 using Anela.Heblo.Application.Features.MarketingAds.Contracts;
+using Anela.Heblo.Application.Features.MarketingAds.Proposals;
 using Anela.Heblo.Application.Features.MarketingAds.Reporting;
 using Anela.Heblo.Application.Features.MarketingAds.Sync;
 using Anela.Heblo.Persistence.Ads;
@@ -13,7 +14,7 @@ namespace Anela.Heblo.Application.Features.MarketingAds;
 
 /// <summary>
 /// Composition root of the MarketingAds module (spec docs/superpowers/specs/2026-10-07-marketing-agents-platform-design.md).
-/// PR C1 registers the ads schema; C2 registers the ads sync (daily + change detection) and its jobs; the proposal layer (C3) adds its own here.
+/// PR C1 registers the ads schema; C2 registers the ads sync (daily + change detection) and its jobs; C3 adds the proposal layer (MarketingAdsProposalsModule).
 /// </summary>
 public static class MarketingAdsModule
 {
@@ -25,6 +26,7 @@ public static class MarketingAdsModule
     {
         AddAdsPersistenceWhenConfigured(services, configuration);
         AddAdsSync(services, configuration);
+        services.AddMarketingAdsProposalsModule(configuration);
         return services;
     }
 
