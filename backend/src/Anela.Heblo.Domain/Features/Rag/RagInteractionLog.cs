@@ -61,4 +61,15 @@ public class RagInteractionLog
     public string? FeedbackComment { get; set; }
 
     public long DurationMs { get; set; }
+
+    // --- Question tags (KB analytics; see docs/superpowers/specs/2026-10-14-kb-question-tags-design.md) ---
+
+    /// <summary>Skin/body problems or care goals the question is about, normalised (lowercase, nominative singular).</summary>
+    public List<string> ProblemTags { get; set; } = [];
+
+    /// <summary>Products the customer named in the question (free-text names, normalised).</summary>
+    public List<string> ProductTags { get; set; } = [];
+
+    /// <summary>Catalog codes of products the generated answer linked to (resolved by PostAnswerEnrichmentMiddleware).</summary>
+    public List<string> RecommendedProductCodes { get; set; } = [];
 }
