@@ -40,8 +40,10 @@ public class AdProposalRepository : IAdProposalRepository
         var total = await proposals.CountAsync(cancellationToken);
         var page = Math.Max(1, query.Page);
         var size = Math.Clamp(query.PageSize, 1, MaxPageSize);
-        var items = await proposals
-            .OrderByDescending(p => p.CreatedAt).ThenByDescending(p => p.Id)
+        var ordered = query.OldestFirst
+            ? proposals.OrderBy(p => p.CreatedAt).ThenBy(p => p.Id)
+            : proposals.OrderByDescending(p => p.CreatedAt).ThenByDescending(p => p.Id);
+        var items = await ordered
             .Skip(AdPaging.Skip(page, size)).Take(size)
             .Include(p => p.Versions)
             .AsSplitQuery()

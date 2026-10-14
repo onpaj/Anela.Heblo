@@ -12,4 +12,7 @@ public class ListAdProposalsRequest : IRequest<ListAdProposalsResponse>
     public bool Mine { get; set; }
     public int Page { get; set; } = 1;
     public int PageSize { get; set; } = 50;
+    /// <summary>Oldest first (ascending creation time) instead of the default newest first. Last on
+    /// purpose: the generated client takes query parameters positionally.</summary>
+    public bool OldestFirst { get; set; }
 }

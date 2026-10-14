@@ -62,6 +62,27 @@ public class AdProposalQueriesTests
     }
 
     [Fact]
+    public async Task List_OldestFirst_ReturnsOldestFirst_AndPagesFromTheOldest()
+    {
+        // Arrange
+        using var h = new ProposalTestHarness();
+        var first = await h.SeedPendingAsync();
+        h.Time.Advance(TimeSpan.FromMinutes(1));
+        var second = await h.SeedPendingAsync();
+        h.Time.Advance(TimeSpan.FromMinutes(1));
+        var third = await h.SeedPendingAsync();
+
+        // Act
+        var all = await ListHandler(h).Handle(new ListAdProposalsRequest { OldestFirst = true }, CancellationToken.None);
+        var firstPage = await ListHandler(h).Handle(new ListAdProposalsRequest { OldestFirst = true, PageSize = 2 }, CancellationToken.None);
+
+        // Assert
+        all.Items.Select(i => i.Id).Should().Equal(first, second, third);
+        firstPage.Items.Select(i => i.Id).Should().Equal(first, second);
+        firstPage.TotalCount.Should().Be(3);
+    }
+
+    [Fact]
     public async Task List_FiltersByStatus()
     {
         using var h = new ProposalTestHarness();
