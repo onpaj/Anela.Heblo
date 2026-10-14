@@ -82,11 +82,14 @@ public class PackagingController : BaseApiController
     /// <summary>
     /// Streams the carrier-issued label PDF for a single package through our own origin.
     /// The same-origin proxy lets the SPA silent-print the label without CORS errors.
+    /// <paramref name="offsets"/> carries the printing computer's per-carrier label offsets
+    /// (<c>Carrier:xMm:yMm</c>, comma-separated); the one for the order's carrier is applied.
     /// </summary>
     [HttpGet("orders/{orderCode}/packages/{packageNumber:int}/label.pdf")]
     public async Task<ActionResult> GetPackageLabelPdf(
         [FromRoute] string orderCode,
         [FromRoute] int packageNumber,
+        [FromQuery] string? offsets,
         CancellationToken cancellationToken)
     {
         var response = await _mediator.Send(
@@ -95,6 +98,7 @@ public class PackagingController : BaseApiController
                 OrderCode = orderCode,
                 PackageNumber = packageNumber,
                 IsPoll = Request.Headers.ContainsKey(LabelPollHeader),
+                Offsets = offsets,
             },
             cancellationToken);
 

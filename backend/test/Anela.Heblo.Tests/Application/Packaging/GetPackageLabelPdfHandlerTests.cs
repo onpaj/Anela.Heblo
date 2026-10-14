@@ -5,7 +5,6 @@ using Anela.Heblo.Application.Features.Packaging.UseCases.GetPackageLabelPdf;
 using Anela.Heblo.Application.Features.ShipmentLabels;
 using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Domain.Features.Logistics;
-using Anela.Heblo.Domain.Features.Packaging;
 using FluentAssertions;
 using Microsoft.Extensions.Logging;
 using Moq;
@@ -27,14 +26,13 @@ public class GetPackageLabelPdfHandlerTests
     private readonly Mock<HttpMessageHandler> _httpMessageHandler = new(MockBehavior.Strict);
     private readonly Mock<IHttpClientFactory> _httpClientFactory = new();
     private readonly Mock<ILogger<GetPackageLabelPdfHandler>> _logger = new();
-    private readonly Mock<ICarrierLabelOffsetRepository> _labelOffsets = new();
+    private string? _offsets;
     private readonly Mock<IPackingOrderShippingSource> _orderShippingSource = new();
     private readonly Mock<IShippingMethodCatalog> _shippingCatalog = new();
 
     public GetPackageLabelPdfHandlerTests()
     {
         SetupCarrier(Carriers.Zasilkovna);
-        SetupOffsets();
         _httpClientFactory
             .Setup(f => f.CreateClient(GetPackageLabelPdfHandler.HttpClientName))
             .Returns(() => new HttpClient(_httpMessageHandler.Object));
@@ -46,7 +44,6 @@ public class GetPackageLabelPdfHandlerTests
             _httpClientFactory.Object,
             _orderShippingSource.Object,
             _shippingCatalog.Object,
-            _labelOffsets.Object,
             _logger.Object);
 
     private void SetupCarrier(Carriers? carrier)
@@ -59,10 +56,11 @@ public class GetPackageLabelPdfHandlerTests
             .Returns(carrier);
     }
 
-    private static GetPackageLabelPdfRequest Request() => new()
+    private GetPackageLabelPdfRequest Request() => new()
     {
         OrderCode = OrderCode,
         PackageNumber = PackageNumber,
+        Offsets = _offsets,
     };
 
     private void VerifyLogged(LogLevel level, Times times) =>
@@ -239,12 +237,10 @@ public class GetPackageLabelPdfHandlerTests
         ms.ToArray().Should().BeEquivalentTo(pdfBytes);
     }
 
-    private void SetupOffsets(params CarrierLabelOffset[] offsets) =>
-        _labelOffsets
-            .Setup(r => r.GetAllAsync(It.IsAny<CancellationToken>()))
-            .ReturnsAsync(offsets);
+    /// <summary>Sends these offsets with the request, the way the packing-desk browser does.</summary>
+    private void SetupOffsets(params string[] entries) => _offsets = string.Join(",", entries);
 
-    private static CarrierLabelOffset Offset(Carriers carrier, int xMm, int yMm) => new(carrier, xMm, yMm, "user-1");
+    private static string Offset(Carriers carrier, int xMm, int yMm) => $"{carrier}:{xMm}:{yMm}";
 
     private void SetupLabelPdf(byte[] pdfBytes)
     {
@@ -293,7 +289,7 @@ public class GetPackageLabelPdfHandlerTests
     }
 
     [Fact]
-    public async Task Handle_NoOffsetsSaved_ReturnsPdfUnchanged()
+    public async Task Handle_NoOffsetsSent_ReturnsPdfUnchanged()
     {
         var pdfBytes = CreatePdf(pageCount: 1);
         SetupLabelPdf(pdfBytes);
@@ -445,7 +441,7 @@ public class GetPackageLabelPdfHandlerTests
     }
 
     [Fact]
-    public async Task Handle_NoOffsetsSaved_DoesNotLookUpCarrier()
+    public async Task Handle_NoOffsetsSent_DoesNotLookUpCarrier()
     {
         SetupLabelPdf(CreatePdf(pageCount: 1));
 
@@ -456,7 +452,7 @@ public class GetPackageLabelPdfHandlerTests
     }
 
     [Fact]
-    public async Task Handle_AllSavedOffsetsAreZero_DoesNotLookUpCarrier()
+    public async Task Handle_AllSentOffsetsAreZero_DoesNotLookUpCarrier()
     {
         SetupLabelPdf(CreatePdf(pageCount: 1));
         SetupOffsets(Offset(Carriers.Zasilkovna, 0, 0), Offset(Carriers.PPL, 0, 0));
@@ -467,45 +463,30 @@ public class GetPackageLabelPdfHandlerTests
             s => s.GetShippingMethodGuidAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
-    [Fact]
-    public async Task Handle_OffsetReadThrows_ReturnsPdfUnchanged()
+    [Theory]
+    [InlineData("Zasilkovna:0")]
+    [InlineData("Zasilkovna:0:-31")]
+    [InlineData("Osobak:0:-5")]
+    [InlineData("Zasilkovna:0:-5,Zasilkovna:1:1")]
+    [InlineData("Zasilkovna:a:b")]
+    public async Task Handle_MalformedOffsets_ReturnsPdfUnchangedAndWarns(string offsets)
     {
         // A label without the offset is still usable; failing the print is not.
         var pdfBytes = CreatePdf(pageCount: 1);
         SetupLabelPdf(pdfBytes);
-        _labelOffsets
-            .Setup(r => r.GetAllAsync(It.IsAny<CancellationToken>()))
-            .ThrowsAsync(new InvalidOperationException("database down"));
+        _offsets = offsets;
 
         var response = await CreateHandler().Handle(Request(), CancellationToken.None);
 
         response.Success.Should().BeTrue();
         (await ReadContentAsync(response)).Should().BeEquivalentTo(pdfBytes);
         VerifyLogged(LogLevel.Warning, Times.Once());
+        _orderShippingSource.Verify(
+            s => s.GetShippingMethodGuidAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]
-    public async Task Handle_RequestCancelledDuringOffsetRead_Throws()
-    {
-        using var cts = new CancellationTokenSource();
-        SetupLabelPdf(CreatePdf(pageCount: 1));
-        _labelOffsets
-            .Setup(r => r.GetAllAsync(It.IsAny<CancellationToken>()))
-            .Returns(() =>
-            {
-                cts.Cancel();
-                return Task.FromException<IReadOnlyList<CarrierLabelOffset>>(new OperationCanceledException(cts.Token));
-            });
-
-        var act = () => CreateHandler().Handle(Request(), cts.Token);
-
-        await act.Should().ThrowAsync<OperationCanceledException>();
-        _httpMessageHandler.Protected().Verify(
-            "SendAsync", Times.Never(), ItExpr.IsAny<HttpRequestMessage>(), ItExpr.IsAny<CancellationToken>());
-    }
-
-    [Fact]
-    public async Task Handle_OffsetSaved_LabelIsNotAValidPdf_ReturnsOriginalBytes()
+    public async Task Handle_OffsetSent_LabelIsNotAValidPdf_ReturnsOriginalBytes()
     {
         var notAPdf = Encoding.UTF8.GetBytes("%PDF-1.4 fake");
         SetupLabelPdf(notAPdf);

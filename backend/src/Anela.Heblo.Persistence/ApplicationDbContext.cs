@@ -61,7 +61,6 @@ public class ApplicationDbContext : DbContext
     public DbSet<PurchaseOrderLine> PurchaseOrderLines { get; set; } = null!;
     public DbSet<PurchaseOrderHistory> PurchaseOrderHistory { get; set; } = null!;
     public DbSet<Package> Packages { get; set; } = null!;
-    public DbSet<CarrierLabelOffset> CarrierLabelOffsets { get; set; } = null!;
 
     // Ecomail module
     public DbSet<EcomailCampaign> EcomailCampaigns { get; set; } = null!;
