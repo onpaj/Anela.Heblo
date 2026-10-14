@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Anela.Heblo.Application.Features.MarketingAds.Contracts;
 using Anela.Heblo.Application.Features.MarketingAds.Proposals.Actions;
 using Anela.Heblo.Application.Features.MarketingAds.Proposals.Dtos;
@@ -64,6 +65,20 @@ public static class AdProposalDtoMapper
             RevertValidateOnly = e.RevertState == AdActionRevertState.RevertFailed && AdExecutionErrors.IsValidateOnly(e.RevertError),
         }).ToList(),
         CurrentEvaluation = currentEvaluation is null ? null : ToDto(currentEvaluation),
+    };
+
+    public static AdAuditEventDto ToDto(AdAuditEvent e) => new()
+    {
+        Id = e.Id, ProposalId = e.ProposalId, Version = e.Version, EventType = e.EventType, ActorPrincipal = e.ActorPrincipal,
+        ActorKind = e.ActorKind, Channel = e.Channel, PayloadJson = e.PayloadJson, OccurredAt = e.OccurredAt,
+    };
+
+    public static AgentRunDto ToDto(AgentRun run) => new()
+    {
+        Id = run.Id, AgentName = run.AgentName, Principal = run.Principal, StartedAt = run.StartedAt, FinishedAt = run.FinishedAt,
+        Status = run.Status, Summary = run.Summary,
+        DataScopesRead = JsonSerializer.Deserialize<List<string>>(run.DataScopesReadJson) ?? new List<string>(),
+        ProposalsCreated = run.ProposalsCreated, InputTokens = run.InputTokens, OutputTokens = run.OutputTokens, CostCzk = run.CostCzk,
     };
 
     private static List<string> Render(AdProposalVersion version, IReadOnlyDictionary<string, string> names) =>
