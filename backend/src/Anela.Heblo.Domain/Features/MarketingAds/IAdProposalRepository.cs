@@ -25,4 +25,10 @@ public interface IAdProposalRepository
     Task<IReadOnlyList<AdApprovalOutcomeCount>> GetApprovalOutcomeCountsAsync(CancellationToken cancellationToken);
     void DiscardChanges();
     Task SaveChangesAsync(CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Saves; on a concurrency conflict or any other failed update it discards every tracked change (so the
+    /// shared context is not poisoned) and returns false. Callers map false to MarketingAdsConcurrentChange.
+    /// </summary>
+    Task<bool> TrySaveChangesAsync(CancellationToken cancellationToken);
 }

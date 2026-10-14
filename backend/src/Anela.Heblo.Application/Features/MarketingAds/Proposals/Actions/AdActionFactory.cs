@@ -27,7 +27,7 @@ public static class AdActionFactory
     }
 
     /// <summary>The ads schema stores Google Ads customer ids without dashes.</summary>
-    private static string NormalizeAccountId(AdPlatform platform, string accountExternalId)
+    public static string NormalizeAccountId(AdPlatform platform, string accountExternalId)
     {
         var trimmed = accountExternalId.Trim();
         return platform == AdPlatform.GoogleAds ? trimmed.Replace("-", string.Empty) : trimmed;

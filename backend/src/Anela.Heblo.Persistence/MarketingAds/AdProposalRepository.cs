@@ -1,5 +1,7 @@
 using Anela.Heblo.Domain.Features.MarketingAds;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Anela.Heblo.Persistence.MarketingAds;
 
@@ -7,8 +9,18 @@ public class AdProposalRepository : IAdProposalRepository
 {
     private const int MaxPageSize = 200;
     private readonly ApplicationDbContext _context;
+    private readonly ILogger<AdProposalRepository> _logger;
 
-    public AdProposalRepository(ApplicationDbContext context) => _context = context;
+    public AdProposalRepository(ApplicationDbContext context)
+        : this(context, NullLogger<AdProposalRepository>.Instance)
+    {
+    }
+
+    public AdProposalRepository(ApplicationDbContext context, ILogger<AdProposalRepository> logger)
+    {
+        _context = context;
+        _logger = logger;
+    }
 
     public void Add(AdProposal proposal) => _context.AdProposals.Add(proposal);
 
@@ -84,6 +96,21 @@ public class AdProposalRepository : IAdProposalRepository
     public void DiscardChanges() => _context.ChangeTracker.Clear();
 
     public Task SaveChangesAsync(CancellationToken cancellationToken) => _context.SaveChangesAsync(cancellationToken);
+
+    public async Task<bool> TrySaveChangesAsync(CancellationToken cancellationToken)
+    {
+        try
+        {
+            await _context.SaveChangesAsync(cancellationToken);
+            return true;
+        }
+        catch (DbUpdateException ex) // includes DbUpdateConcurrencyException
+        {
+            _logger.LogWarning(ex, "Saving ad proposal changes failed; discarding tracked changes");
+            DiscardChanges();
+            return false;
+        }
+    }
 
     private static IQueryable<AdProposal> WithChildren(IQueryable<AdProposal> query) => query
         .Include(p => p.Versions)

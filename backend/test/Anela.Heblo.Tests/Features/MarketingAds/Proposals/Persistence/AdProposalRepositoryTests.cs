@@ -127,4 +127,40 @@ public class AdProposalRepositoryTests : IDisposable
         total.Should().Be(2);
         items.Select(e => e.EventType).Should().Equal(AdAuditEventType.Approved, AdAuditEventType.Submitted);
     }
+
+    [Fact]
+    public async Task TrySaveChanges_Succeeds_ReturnsTrue()
+    {
+        var repo = new AdProposalRepository(_context);
+        repo.Add(Proposal());
+
+        var saved = await repo.TrySaveChangesAsync(CancellationToken.None);
+
+        saved.Should().BeTrue();
+        await using var verify = new ApplicationDbContext(_options);
+        (await verify.AdProposals.CountAsync()).Should().Be(1);
+    }
+
+    [Fact]
+    public async Task TrySaveChanges_OnConcurrentChange_ReturnsFalseAndDiscardsTrackedChanges()
+    {
+        var repo = new AdProposalRepository(_context);
+        var proposal = Proposal();
+        repo.Add(proposal);
+        await repo.SaveChangesAsync(CancellationToken.None);
+        await using (var other = new ApplicationDbContext(_options))
+        {
+            var racing = await other.AdProposals.SingleAsync(p => p.Id == proposal.Id);
+            racing.Touch(Now.AddMinutes(1));
+            await other.SaveChangesAsync();
+        }
+        proposal.Touch(Now.AddMinutes(2));
+
+        var saved = await repo.TrySaveChangesAsync(CancellationToken.None);
+
+        saved.Should().BeFalse();
+        _context.ChangeTracker.Entries().Should().BeEmpty("a failed save must not poison the shared context");
+        await using var verify = new ApplicationDbContext(_options);
+        (await verify.AdProposals.SingleAsync()).UpdatedAt.Should().Be(Now.AddMinutes(1));
+    }
 }
