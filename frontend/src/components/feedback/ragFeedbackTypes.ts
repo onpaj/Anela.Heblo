@@ -33,6 +33,10 @@ export interface RagFeedbackLogSummary {
   styleScore: number | null;
   feedbackComment: string | null;
   hasFeedback: boolean;
+  // Question tags (KnowledgeBase)
+  problemTags: string[];
+  productTags: string[];
+  recommendedProductCodes: string[];
 }
 
 export interface RagFeedbackStats {
@@ -40,4 +44,10 @@ export interface RagFeedbackStats {
   totalWithFeedback: number;
   avgPrecisionScore: number | null;
   avgStyleScore: number | null;
+}
+
+export interface TagCount {
+  tag: string;
+  label: string;
+  count: number;
 }

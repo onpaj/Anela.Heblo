@@ -345,23 +345,27 @@ describe('useUploadKnowledgeBaseDocumentMutation', () => {
 });
 
 describe('useKnowledgeBaseFeedbackListQuery', () => {
-  let mockClient: { knowledgeBase_GetFeedbackList: jest.Mock };
+  let mockFetch: jest.Mock;
+
+  const jsonResponse = (body: unknown) => ({ ok: true, status: 200, json: async () => body });
 
   beforeEach(() => {
     jest.clearAllMocks();
-    mockClient = { knowledgeBase_GetFeedbackList: jest.fn() };
-    mockAuthenticatedApiClient(mockClient);
+    mockFetch = jest.fn();
+    mockAuthenticatedApiClient({ baseUrl: 'http://api.test', http: { fetch: mockFetch } });
   });
 
-  it('calls knowledgeBase_GetFeedbackList with the given params', async () => {
-    mockClient.knowledgeBase_GetFeedbackList.mockResolvedValue({
-      logs: [],
-      totalCount: 0,
-      pageNumber: 1,
-      pageSize: 20,
-      totalPages: 0,
-      stats: { totalQuestions: 0, totalWithFeedback: 0 },
-    });
+  it('requests the list URL with a hand-built query string (plain yyyy-MM-dd dates)', async () => {
+    mockFetch.mockResolvedValue(
+      jsonResponse({
+        logs: [],
+        totalCount: 0,
+        pageNumber: 1,
+        pageSize: 20,
+        totalPages: 0,
+        stats: { totalQuestions: 0, totalWithFeedback: 0 },
+      }),
+    );
 
     const { wrapper } = createQueryClientWrapper();
     const { result } = renderHook(
@@ -373,58 +377,61 @@ describe('useKnowledgeBaseFeedbackListQuery', () => {
           sortDescending: true,
           hasFeedback: true,
           userId: 'user-1',
+          dateFrom: '2026-10-01',
+          dateTo: '2026-10-14',
         }),
       { wrapper },
     );
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
-    expect(mockClient.knowledgeBase_GetFeedbackList).toHaveBeenCalledWith(1, 20, 'CreatedAt', true, true, 'user-1');
+    const url = mockFetch.mock.calls[0][0] as string;
+    expect(url.startsWith('http://api.test/api/KnowledgeBase/feedback/list?')).toBe(true);
+    const query = new URLSearchParams(url.split('?')[1]);
+    expect(Object.fromEntries(query.entries())).toEqual({
+      pageNumber: '1',
+      pageSize: '20',
+      sortBy: 'CreatedAt',
+      sortDescending: 'true',
+      hasFeedback: 'true',
+      userId: 'user-1',
+      dateFrom: '2026-10-01',
+      dateTo: '2026-10-14',
+    });
   });
 
-  it('maps generated Date/undefined fields into the local string/null shape', async () => {
-    const createdAt = new Date('2026-03-01T10:00:00Z');
-    const sentAt = new Date('2026-03-01T10:05:00Z');
-    mockClient.knowledgeBase_GetFeedbackList.mockResolvedValue({
-      logs: [
-        {
-          id: 'log-1',
-          feature: 'KnowledgeBase',
-          question: 'What is the return policy?',
-          answer: 'Within 14 days.',
-          expandedQuery: undefined,
-          systemPrompt: 'You are a helpful assistant.',
-          retrievedChunks: [
-            { chunkId: 'chunk-1', documentId: 'doc-1', filename: 'policy.pdf', score: 0.9, content: 'chunk text' },
-          ],
-          topK: 5,
-          sourceCount: 1,
-          durationMs: 120,
-          createdAt,
-          userId: undefined,
-          userName: undefined,
-          conversationId: undefined,
-          topic: undefined,
-          sentAnswer: undefined,
-          wasEdited: undefined,
-          sentAt,
-          precisionScore: 4,
-          styleScore: undefined,
-          feedbackComment: undefined,
-          hasFeedback: true,
-        },
-      ],
-      totalCount: 1,
-      pageNumber: 1,
-      pageSize: 20,
-      totalPages: 1,
-      stats: {
-        totalQuestions: 10,
-        totalWithFeedback: 2,
-        avgPrecisionScore: 3.5,
-        avgStyleScore: undefined,
-      },
-    });
+  it('revives ISO date strings and maps fields into the local string/null shape', async () => {
+    mockFetch.mockResolvedValue(
+      jsonResponse({
+        logs: [
+          {
+            id: 'log-1',
+            feature: 'KnowledgeBase',
+            question: 'What is the return policy?',
+            answer: 'Within 14 days.',
+            systemPrompt: 'You are a helpful assistant.',
+            retrievedChunks: [
+              { chunkId: 'chunk-1', documentId: 'doc-1', filename: 'policy.pdf', score: 0.9, content: 'chunk text' },
+            ],
+            topK: 5,
+            sourceCount: 1,
+            durationMs: 120,
+            createdAt: '2026-03-01T10:00:00Z',
+            sentAt: '2026-03-01T10:05:00Z',
+            precisionScore: 4,
+            hasFeedback: true,
+            problemTags: ['akné'],
+            productTags: [],
+            recommendedProductCodes: ['MAS009'],
+          },
+        ],
+        totalCount: 1,
+        pageNumber: 1,
+        pageSize: 20,
+        totalPages: 1,
+        stats: { totalQuestions: 10, totalWithFeedback: 2, avgPrecisionScore: 3.5 },
+      }),
+    );
 
     const { wrapper } = createQueryClientWrapper();
     const { result } = renderHook(() => useKnowledgeBaseFeedbackListQuery(), { wrapper });
@@ -432,12 +439,14 @@ describe('useKnowledgeBaseFeedbackListQuery', () => {
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
     const log = result.current.data?.logs[0];
-    expect(log?.createdAt).toBe(createdAt.toISOString());
-    expect(log?.sentAt).toBe(sentAt.toISOString());
+    expect(log?.createdAt).toBe(new Date('2026-03-01T10:00:00Z').toISOString());
+    expect(log?.sentAt).toBe(new Date('2026-03-01T10:05:00Z').toISOString());
     expect(log?.expandedQuery).toBeNull();
     expect(log?.userId).toBeNull();
     expect(log?.wasEdited).toBeNull();
     expect(log?.styleScore).toBeNull();
+    expect(log?.problemTags).toEqual(['akné']);
+    expect(log?.recommendedProductCodes).toEqual(['MAS009']);
     expect(log?.retrievedChunks).toEqual([
       { chunkId: 'chunk-1', documentId: 'doc-1', filename: 'policy.pdf', score: 0.9, content: 'chunk text' },
     ]);
