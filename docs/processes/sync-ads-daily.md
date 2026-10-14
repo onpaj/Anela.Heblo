@@ -74,8 +74,9 @@ dotnet run --project backend/tools/Anela.Heblo.AdsBackfill -- 2025-01-01 2026-09
 Invalid values throw at the start of each run (`AdsSyncOptions.EnsureValid`), never at startup.
 
 ## Runtime facts
-- `AdsDatabase--ConnectionString` does not exist in `kv-heblo-stg` or `kv-heblo-prod` (checked at PR time), so ads persistence is unwired in every environment and both jobs log "skipped" — 2026-10-12.
-- Migrations are manual and `ads_read_views.sql` is applied by hand with `psql`; neither has been run against a shared database yet — 2026-10-12.
+- `AdsDatabase--ConnectionString` is set in `kv-heblo-stg` and `kv-heblo-prod` as a copy of `ConnectionStrings--Default` (same database, like `AnalyticsDatabase--` and `ShoptetOrdersSync--`) — 2026-10-14. The app reads it at startup, so the jobs stay "skipped" until a restart.
+- `InitialAdsSchema` and `ads_read_views.sql` applied by hand to Heblo_TST and Heblo_V3 (the startup migration covers only `ApplicationDbContext`) — 2026-10-14.
+- Backfilled 2025-01-01..2026-10-13 into Heblo_TST (13 min 18 s) and Heblo_V3 (11 min 26 s): 694 791 rows each, 0 errors, 0 unmapped; heblosql CPU peaked at 26 % with burst credits untouched. Heblo_V3 `ads` tables 146 MB — 2026-10-14.
 - Backfill rehearsal against a local Postgres (live Google reads), 2025-01-01..2026-10-13: 3 min 42 s, 36 146 fact rows + 658 645 search-term rows, 0 unmapped, `ads` schema 134 MB (search terms 128 MB). Search terms peak at ~100k rows/month (Mar–Apr 2025); about 10 API operations per month — 2026-10-14.
 - Google account `343-302-3676` (CZK, Europe/Prague): 19 campaigns, 60 ad groups, 223 keywords, 940 negative keywords, 66 ads (access spike, 2026-10-07, pre-deploy).
 

@@ -50,7 +50,7 @@ Otherwise `OutOfBand`. Until C3 ships, `IAdExecutionLookup` is a no-op and every
 
 ## Runtime facts
 - Google account `343-302-3676`: 11 change events in 29 days, all agency web-UI edits (spike 2026-10-07, pre-deploy).
-- `AdsDatabase--ConnectionString` is absent from both Key Vaults, so the job logs "skipped" everywhere; no change event has been stored — 2026-10-12.
+- `AdsDatabase--ConnectionString` set and the `ads` schema created in both environments on 2026-10-14; no change event is stored until the apps restart and the job first runs (its first pull reaches back 29 days).
 
 ## Known quirks
 - An account with no change for more than 30 days makes Google log its clamp warning every hour: the watermark does not advance on an empty pull, so `since` stays older than the limit until the next change.
