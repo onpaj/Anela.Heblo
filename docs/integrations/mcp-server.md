@@ -66,7 +66,7 @@ The application exposes MCP tools for AI assistants to query catalog data, manuf
 - `ReviseAdProposal` — `proposalId` + `expectedVersion` + the complete new `actions` and `reasoning`
 - `ListAdProposals` / `GetAdProposal` — filters `status`, `platform`, `onlyMine`, paged; full detail with rendered diffs
 - `StartAgentRun` / `FinishAgentRun` — observability of the agents themselves (`agentName`, `dataScopesRead`; status, summary, `inputTokens`, `outputTokens`, `costCzk`)
-- `ListPendingAdProposals` — the chief's "what's pending?", numbered, with rendered diffs
+- `ListPendingAdProposals` — the chief's "what's pending?", oldest first, numbered, with rendered diffs
 - `ApproveAdProposal` / `RejectAdProposal` — `proposalId` + `version` (+ `reason` on reject)
 
 **Service identities (agents):** agents connect to `/mcp` with their own client-credentials token. App-only callers are rate limited per `oid` (`Ads:AgentRateLimitPerMinute`, default 60 -> HTTP 429); people are not limited. Setup, grants and token instructions: `docs/integrations/marketing-agents-identity.md`.

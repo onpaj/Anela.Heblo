@@ -26,7 +26,7 @@ kill switch over `/api/marketing-ads/settings` (UI in C5). Nothing in C3 has a H
 ## Trigger
 - Submit: `POST /api/marketing-ads/proposals` (`Marketing_Ads` Write). Revise: `POST /api/marketing-ads/proposals/{id}/revisions` (creator only). MCP: `SubmitAdProposal` / `ReviseAdProposal`.
 - Read: `GET /api/marketing-ads/proposals` (filters `status`, `platform`, `mine`, paging), `GET /api/marketing-ads/proposals/{id}`; `GET /api/marketing-ads/activity/audit`, `GET /api/marketing-ads/activity/agent-runs` (`Marketing_Ads` Read).
-- Approve / reject: `POST /api/marketing-ads/proposals/{id}/approve|reject` with `{ version }` (`Marketing_AdApprovals` Write); MCP: `ListPendingAdProposals`, `ApproveAdProposal`, `RejectAdProposal`.
+- Approve / reject: `POST /api/marketing-ads/proposals/{id}/approve|reject` with `{ version }` (`Marketing_AdApprovals` Write); MCP: `ListPendingAdProposals` (the oldest pending proposals first — `ListAdProposalsRequest.OldestFirst`; REST/UI lists stay newest first), `ApproveAdProposal`, `RejectAdProposal`.
 - Agents connect to `/mcp` with their own client-credentials token (app role `Marketing.Agent`); `/mcp` rate-limits app-only callers per `oid` to `Ads:AgentRateLimitPerMinute` (default 60/min, HTTP 429). People are not limited. Runbook: `docs/integrations/marketing-agents-identity.md`.
 - Revert: `POST /api/marketing-ads/proposals/{id}/revert` (web only, `Marketing_AdApprovals` Admin), synchronous.
 - Settings: `GET /api/marketing-ads/settings`; `PUT .../settings/autonomy|limits|kill-switch` (web only, `Marketing_AdApprovals` Admin).
@@ -53,11 +53,13 @@ kill switch over `/api/marketing-ads/settings` (UI in C5). Nothing in C3 has a H
 - Autonomy (`AdAutonomySettings`, 6 rows, all seeded `ProposeOnly`): ProposeOnly never auto-approves; AutoWithinLimits auto-approves only `Allowed` (evaluated as channel System); **`Auto` currently behaves exactly like AutoWithinLimits** — only `Allowed` is auto-approved by System (spec deviation: spec 6.3 binds limits independent of approver, spec 6.4 leaves Auto undefined).
 - Kill switch (`AdKillSwitchPolicy`): execution allowed only when the `Global` row exists and is enabled and no platform row disables it. Seeded **disabled**. Checked before **every** action; off = that action and the rest Skipped, so the proposal ends Failed (or PartiallyExecuted if earlier actions succeeded). Revert is not gated by it.
 - **Approval channel** (`ApprovalChannelResolver`, used by every approve/reject handler):
-  app-only tokens (no `scp` or `idtyp = app`) are refused before any permission is checked;
-  `azp`/`appid` in `Ads:Approval:WebClientIds` → Web (needs `marketing.ad_approvals.write`);
-  in `Ads:Approval:McpClientIds` or equal to `AzureAd:ClientId` → Mcp (needs that **and**
-  `marketing.ad_approvals_via_mcp.read`; stricter MCP limits apply); a cookie session → Web;
-  any other bearer client → refused. Setup: `docs/integrations/marketing-agents-identity.md`.
+  service identities — app-only tokens (no `scp` or `idtyp = app`) and the E2E test session
+  (AuthenticationType `E2ETest`) — are refused before any permission is checked;
+  `azp`/`appid` in `Ads:Approval:McpClientIds` or equal to `AzureAd:ClientId` → Mcp (needs
+  `marketing.ad_approvals.write` **and** `marketing.ad_approvals_via_mcp.read`; stricter MCP limits
+  apply); in `Ads:Approval:WebClientIds` → Web (needs `marketing.ad_approvals.write`); the MCP list
+  is checked first, so a client id in both lists is Mcp (the stricter channel); a cookie session →
+  Web; any other bearer client → refused. Setup: `docs/integrations/marketing-agents-identity.md`.
   Turning the kill switch **off** needs only `Marketing_AdApprovals` Admin, so a misbehaving resolver can never stop an admin halting execution.
 - A platform `Failed` result on one action continues with the next; stale state, kill switch, missing executor, a failed current-state read or a thrown mutate stop the run and skip the rest.
 - A thrown `ExecuteAsync` is never retried. One best-effort `ReadCurrentAsync` follows: new value seen → action Succeeded ("Applied — confirmed by re-read after transport error"); otherwise Failed ("may have been applied; verify in the account").
@@ -95,7 +97,8 @@ None yet — fill in after the first staging run (migration `AddMarketingAdsProp
 - Reverts are returned to C2's `IAdExecutionLookup` with `IsRevert = true`, so the platform change a revert makes is matched as Heblo's, not out-of-band.
 - Audit rows and proposal versions are protected by Postgres triggers; a DB owner can still disable triggers.
 - New permissions (`marketing.ads.*`, `marketing.ad_approvals.*`, `marketing.ad_approvals_via_mcp.read`) are not granted to existing prod groups by the seeder (insert-if-missing); the C4 rollout grants them by hand (runbook section 3). Nobody holds `marketing.ad_approvals.read`.
-- On Staging a client-credentials token becomes a cookie session via `E2ETestController`, and cookie sessions resolve to the Web channel; the E2E identity must never hold `marketing.ad_approvals.write`. A cookie request that also carries `Authorization: Bearer` is treated as bearer (fails closed).
+- On Staging/Development a service-principal token becomes an `E2ETestSession` cookie via `E2ETestController` (or an `X-E2E-Test-Token` request). That identity is always `super_user`, so it can change ads settings and revert, but it counts as a service identity (`IsAppOnly`): approve/reject are refused, so nightly E2E cannot test approving, and `/mcp` rate-limits it per `oid` like an agent. A cookie request that also carries `Authorization: Bearer` is treated as bearer (fails closed).
+- A client id configured in both `WebClientIds` and `McpClientIds` (or equal to `AzureAd:ClientId`) resolves to Mcp, so web approvals from it also need `marketing.ad_approvals_via_mcp.read` until the config is fixed.
 - `StartAgentRun` / `FinishAgentRun` have no HTTP endpoint (only MCP tools), so `AgentRuns` stays empty until an agent reports runs: a submission without `agentRunId` is created by kind `Human`, one naming a run gets 404 `MarketingAdsAgentRunNotFound`.
 
 ## Code entry points

@@ -10,12 +10,16 @@ Every step here is performed by **Ondrej**, staging first, production after revi
 |---|---|---|---|
 | Agent (`heblo-marketing-agent`) | client credentials, app-only (`roles: Marketing.Agent`, no `scp`) | yes, if its AppUser is in `Marketing_Agent` | **never** — refused even with `super_user` |
 | Person in the web app | SPA token (`azp` ∈ `Ads:Approval:WebClientIds`) or cookie session | per groups | channel **Web**, needs `marketing.ad_approvals.write` |
+| E2E test session (Staging/Development only) | `E2ETestSession` cookie or `X-E2E-Test-Token`, minted from a service-principal token | yes (`super_user`) | **never** — counts as a service identity (app-only) |
 | Person in Claude (connector to `/mcp`) | delegated token, `azp` = API client id | per groups | channel **MCP**, needs `marketing.ad_approvals.write` **and** `marketing.ad_approvals_via_mcp.read`; stricter limits |
 | Person via HebloMCP | delegated token, `azp` = HebloMCP client id (must be in `McpClientIds`) | per groups | channel **MCP** as above |
 | Any other bearer client | — | per groups | refused |
 
 Enforcement: `ApprovalChannelResolver` (Application, `Features/MarketingAds/Proposals/Approval/`), called by every
-approve/reject handler, so REST and MCP behave the same.
+approve/reject handler, so REST and MCP behave the same. Order: service identity (app-only token or
+E2E session) → refused; bearer client id in the MCP list → **MCP**; in the Web list → **Web**;
+cookie session → **Web**; anything else → refused. A client id listed in **both** lists resolves to
+**MCP** (the stricter channel), so an overlap can never loosen the MCP requirement.
 
 ## 2. Configuration
 
@@ -34,7 +38,9 @@ az keyvault secret set --vault-name kv-heblo-stg --name "Ads--Approval--McpClien
 
 Restart the web app after a Key Vault change (`az webapp restart --name heblo-test --resource-group rgHeblo`;
 production: `heblo`). The config binder merges arrays by index; the resolver de-duplicates and
-compares case-insensitively, so an override with fewer entries is safe.
+compares case-insensitively, so an override with fewer entries is safe. Do not put the same client
+id in both lists: it would be treated as MCP (section 1), and web approvals from that client would
+then also need `marketing.ad_approvals_via_mcp.read`.
 
 **Verify the SPA client id per environment** (a wrong value blocks every web approval): sign in to
 the web app, copy the access token of any `/api` call from the browser dev tools (Network →
@@ -125,12 +131,23 @@ jq --arg id "$ROLE_ID" '. + [{
   "value": "Marketing.Agent"
 }]' approles.current.json > approles.new.json
 az ad app update --id "$API_APP_ID" --app-roles @approles.new.json
-ROLE_ID=$(az ad app show --id "$API_APP_ID" --query "appRoles[?value=='Marketing.Agent'].id" -o tsv)
 ```
+
+**Never run `scripts/sync-entra-access.sh --apply` against the Heblo API app after this.** For every
+app in `APP_IDS` it disables all existing app roles and then replaces the whole list with the
+`appRoles` of `access-matrix-entra.generated.json`, which is generated from the access matrix and
+does **not** contain `Marketing.Agent`. The role disappears from the app registration, so the
+agent's tokens stop carrying it (401 `IDW10201` on `/mcp`) even though its assignment still exists.
+If it happened: redo 4.1 (a new role id), then redo the assignment in 4.2 with the new `ROLE_ID`.
+The `--dry-run` default changes nothing.
 
 ### 4.2 The `heblo-marketing-agent` app and service principal
 
 ```bash
+# Also when 4.1 was skipped because the role already existed.
+ROLE_ID=$(az ad app show --id "$API_APP_ID" --query "appRoles[?value=='Marketing.Agent'].id" -o tsv)
+test -n "$ROLE_ID" || echo "Marketing.Agent missing — run 4.1 first"
+
 AGENT_APP_ID=$(az ad app create --display-name heblo-marketing-agent --sign-in-audience AzureADMyOrg --query appId -o tsv)
 AGENT_SP_OID=$(az ad sp create --id "$AGENT_APP_ID" --query id -o tsv)
 API_SP_OID=$(az ad sp show --id "$API_APP_ID" --query id -o tsv)
@@ -196,6 +213,12 @@ curl -s -i -X POST https://heblo.stg.anela.cz/mcp \
 Expected: HTTP 200 with an `Mcp-Session-Id` header. A 401 with `IDW10201` means the token has no
 role (step 4.2 missing); a 403 means the AppUser is inactive.
 
+Delete the token file when you are done (it is a bearer credential for up to 90 min):
+
+```bash
+rm agent.token
+```
+
 Agent runtime MCP config (streamable HTTP; the runtime substitutes the token):
 
 ```json
@@ -232,10 +255,14 @@ and `ApproveAdProposal` answer `[FORBIDDEN]`; 61 calls within a minute answer HT
 
 ## 8. Known gaps
 
-- **Staging E2E identity.** On Staging, `E2ETestController` turns a client-credentials token into a
-  cookie session, and cookie sessions resolve to the Web channel (rule 4). If the E2E identity holds
-  `marketing.ad_approvals.write` it can therefore approve. Never grant it that permission, and never
-  point Staging at live ad accounts while that identity exists.
+- **Staging E2E identity.** On Staging (and Development), `POST /api/E2ETest/auth` turns a
+  service-principal token into an `E2ETestSession` cookie, and `X-E2E-Test-Token` does the same per
+  request. That identity (AuthenticationType `E2ETest`) is **always `super_user`**, so it can read and
+  propose, change the ads settings (admin) and revert executed proposals. It is treated as a service
+  identity (`ICurrentUserService.IsAppOnly` = true), so it is **refused approve/reject** whatever its
+  permissions; nightly E2E therefore cannot test approving. On `/mcp` it is rate-limited like an
+  agent (per `oid`, `e2e-test-object-id`). Never point Staging at live ad accounts while that identity
+  exists.
 - **Cookie plus bearer header.** A request that carries a session cookie *and* an
   `Authorization: Bearer` header is treated as a bearer request (client checked against the lists
   above); an unknown client is refused. This fails closed.
