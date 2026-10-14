@@ -23,7 +23,8 @@ public static class McpModule
             .WithTools<MeetingTasksMcpTools>()
             .WithTools<PricingSimulatorMcpTools>()
             .WithTools<ProcessDocsMcpTools>()
-            .WithTools<ReportingMcpTools>();
+            .WithTools<ReportingMcpTools>()
+            .WithTools<MarketingAdsMcpTools>();
 
         return services;
     }
