@@ -72,6 +72,7 @@ public class Code128EncoderTests
 
         act.Should().Throw<ArgumentException>();
     }
+
     [Fact]
     public void EncodeModules_MatchesIndependentReference_ForWikipedia()
     {
