@@ -13,6 +13,13 @@ namespace Anela.Heblo.Application.Features.KnowledgeBase.Pipeline;
 /// </summary>
 public class PostAnswerEnrichmentMiddleware : DelegatingChatClient
 {
+    /// <summary>
+    /// <see cref="ChatResponse.AdditionalProperties"/> key under which the catalog codes this middleware
+    /// resolved are exposed (string[], known codes only, de-duplicated, first-appearance order). The
+    /// middleware is a singleton and cannot reach the scoped interaction recorder, so the caller reads this.
+    /// </summary>
+    public const string RecommendedProductCodesKey = "anela.recommendedProductCodes";
+
     // [Name](CODE) — the instructed format. The code group only matches an all-caps/digit token,
     // so real Markdown URLs (lowercase, ':', '/') are never mistaken for a product code.
     private static readonly Regex LinkedProductPattern =
@@ -42,6 +49,7 @@ public class PostAnswerEnrichmentMiddleware : DelegatingChatClient
             return response;
 
         var lookup = await _cache.GetProductLookupAsync(cancellationToken);
+        var resolvedCodes = new List<string>();
 
         // Primary: [Name](CODE) — keep the model's inflected name, resolve the code to a URL.
         var enriched = LinkedProductPattern.Replace(rawText, match =>
@@ -53,6 +61,7 @@ public class PostAnswerEnrichmentMiddleware : DelegatingChatClient
             if (!lookup.TryGetValue(code, out var entry))
                 return name;
 
+            resolvedCodes.Add(code);
             return string.IsNullOrEmpty(entry.Url)
                 ? name
                 : $"[{name}]({entry.Url})";
@@ -68,6 +77,7 @@ public class PostAnswerEnrichmentMiddleware : DelegatingChatClient
             if (!lookup.TryGetValue(code, out var entry))
                 return match.Value;
 
+            resolvedCodes.Add(code);
             return string.IsNullOrEmpty(entry.Url)
                 ? entry.ProductName
                 : $"[{entry.ProductName}]({entry.Url})";
@@ -84,7 +94,23 @@ public class PostAnswerEnrichmentMiddleware : DelegatingChatClient
             CreatedAt = response.CreatedAt,
             FinishReason = response.FinishReason,
             Usage = response.Usage,
-            AdditionalProperties = response.AdditionalProperties,
+            AdditionalProperties = WithRecommendedCodes(response.AdditionalProperties, resolvedCodes),
         };
+    }
+
+    // Copies rather than mutates: the inner response's dictionary may be shared with other consumers.
+    private static AdditionalPropertiesDictionary WithRecommendedCodes(
+        AdditionalPropertiesDictionary? source,
+        IReadOnlyList<string> resolvedCodes)
+    {
+        var copy = new AdditionalPropertiesDictionary();
+        if (source is not null)
+        {
+            foreach (var (key, value) in source)
+                copy[key] = value;
+        }
+
+        copy[RecommendedProductCodesKey] = resolvedCodes.Distinct(StringComparer.Ordinal).ToArray();
+        return copy;
     }
 }
