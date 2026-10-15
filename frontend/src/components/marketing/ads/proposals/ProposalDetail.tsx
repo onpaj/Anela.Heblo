@@ -20,7 +20,7 @@ const META = 'text-xs text-gray-600 dark:text-graphite-muted';
 
 const ProposalDetail: React.FC<ProposalDetailProps> = ({ proposalId }) => {
   const query = useAdProposalQuery(proposalId);
-  const refresh = useRefreshAdProposals();
+  const refresh = useRefreshAdProposals(proposalId);
 
   if (query.isLoading) {
     return <AdsLoading />;
@@ -67,8 +67,13 @@ const ProposalDetail: React.FC<ProposalDetailProps> = ({ proposalId }) => {
       <LimitsEvaluationBadge limits={proposal.limits} />
       <ProposalDiff lines={proposal.diffLines} results={proposal.results} />
       <AgentReasoningBlock reasoning={proposal.reasoning} createdByKind={proposal.createdByKind} />
-      {/* keyed by id so banner/dialog state never leaks from one proposal to the next */}
-      <ProposalDecisionBar key={proposal.id} proposal={proposal} onRefresh={refresh} />
+      {/* keyed by id + version so banner/dialog state never leaks to another proposal or a newer version */}
+      <ProposalDecisionBar
+        key={`${proposal.id}:${proposal.currentVersion}`}
+        proposal={proposal}
+        onRefresh={refresh}
+        isRefreshing={query.isFetching}
+      />
       <ProposalTimeline approvals={proposal.approvals} versions={proposal.versions} currentVersion={proposal.currentVersion} />
     </article>
   );

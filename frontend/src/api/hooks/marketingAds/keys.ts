@@ -20,6 +20,7 @@ const ROOT = ['marketing-ads'] as const;
 export const marketingAdsKeys = {
   all: ROOT,
   proposals: () => [...ROOT, 'proposals'] as const,
+  proposalLists: () => [...ROOT, 'proposals', 'list'] as const,
   proposalList: (params: ProposalListParams) => [...ROOT, 'proposals', 'list', params] as const,
   proposalDetail: (id: string) => [...ROOT, 'proposals', 'detail', id] as const,
   auditAll: () => [...ROOT, 'audit'] as const,

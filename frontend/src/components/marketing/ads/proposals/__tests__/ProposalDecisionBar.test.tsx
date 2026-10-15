@@ -44,7 +44,7 @@ const buildSettings = (executionEnabled: boolean, platformOverrides: AdsSettings
   killSwitch: { executionEnabled, platformOverrides },
 });
 
-type MutateOptions = { onSuccess?: () => void; onError?: (error: unknown) => void };
+type MutateOptions = { onSuccess?: () => void; onError?: (error: unknown) => void; onSettled?: () => void };
 
 const swaggerWithBody = (status: number, errorCode: string) =>
   new SwaggerException('Error', status, JSON.stringify({ success: false, errorCode, params: null }), {}, null);
@@ -145,6 +145,99 @@ describe('ProposalDecisionBar', () => {
       'Z tohoto přístupu nelze návrhy schvalovat, zamítat ani měnit nastavení.',
     );
     expect(screen.queryByRole('button', { name: 'Obnovit detail' })).not.toBeInTheDocument();
+  });
+
+  it('a 403 on reject does not claim the user tried to approve', () => {
+    // Arrange
+    mockRejectMutate.mockImplementation((_vars: unknown, options: MutateOptions) =>
+      options.onError?.(new SwaggerException('Forbidden', 403, '', {}, null)),
+    );
+    render(<ProposalDecisionBar proposal={buildProposalDetail()} onRefresh={jest.fn()} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Zamítnout' }));
+    fireEvent.change(screen.getByLabelText('Důvod zamítnutí'), { target: { value: 'Mimo strategii' } });
+
+    // Act
+    fireEvent.click(screen.getByRole('button', { name: 'Zamítnout návrh' }));
+
+    // Assert
+    expect(screen.getByRole('alert')).toHaveTextContent('Tento návrh nemůžete zamítnout: chybí oprávnění Schvalování kampaní.');
+    expect(screen.getByRole('alert')).not.toHaveTextContent('schválit');
+  });
+
+  it('a 403 on revert explains the missing admin permission', () => {
+    // Arrange
+    mockPermissions = ADMIN;
+    mockRevertMutate.mockImplementation((_vars: unknown, options: MutateOptions) =>
+      options.onError?.(new SwaggerException('Forbidden', 403, '', {}, null)),
+    );
+    render(<ProposalDecisionBar proposal={buildProposalDetail({ status: 'Executed' })} onRefresh={jest.fn()} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Vrátit zpět' }));
+
+    // Act
+    fireEvent.click(screen.getByRole('button', { name: 'Vrátit změny' }));
+
+    // Assert
+    expect(screen.getByRole('alert')).toHaveTextContent('Změny nemůžete vrátit zpět: chybí oprávnění správce Schvalování kampaní.');
+  });
+
+  it('disables the decisions while the detail is refetching', () => {
+    render(<ProposalDecisionBar proposal={buildProposalDetail()} onRefresh={jest.fn()} isRefreshing />);
+
+    expect(screen.getByRole('button', { name: 'Schválit verzi 2' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Zamítnout' })).toBeDisabled();
+  });
+
+  describe('double-submit guard', () => {
+    it('two synchronous approve clicks send one approval', () => {
+      render(<ProposalDecisionBar proposal={buildProposalDetail()} onRefresh={jest.fn()} />);
+      const approveButton = screen.getByRole('button', { name: 'Schválit verzi 2' });
+
+      fireEvent.click(approveButton);
+      fireEvent.click(approveButton);
+
+      expect(mockApproveMutate).toHaveBeenCalledTimes(1);
+    });
+
+    it('allows approving again once the previous attempt has settled', () => {
+      // Arrange
+      mockApproveMutate.mockImplementation((_vars: unknown, options: MutateOptions) => {
+        options.onError?.(new Error('Síť'));
+        options.onSettled?.();
+      });
+      render(<ProposalDecisionBar proposal={buildProposalDetail()} onRefresh={jest.fn()} />);
+      const approveButton = screen.getByRole('button', { name: 'Schválit verzi 2' });
+
+      // Act
+      fireEvent.click(approveButton);
+      fireEvent.click(approveButton);
+
+      // Assert
+      expect(mockApproveMutate).toHaveBeenCalledTimes(2);
+    });
+
+    it('two synchronous reject confirmations send one rejection', () => {
+      render(<ProposalDecisionBar proposal={buildProposalDetail()} onRefresh={jest.fn()} />);
+      fireEvent.click(screen.getByRole('button', { name: 'Zamítnout' }));
+      fireEvent.change(screen.getByLabelText('Důvod zamítnutí'), { target: { value: 'Mimo strategii' } });
+      const confirm = screen.getByRole('button', { name: 'Zamítnout návrh' });
+
+      fireEvent.click(confirm);
+      fireEvent.click(confirm);
+
+      expect(mockRejectMutate).toHaveBeenCalledTimes(1);
+    });
+
+    it('two synchronous revert confirmations send one revert', () => {
+      mockPermissions = ADMIN;
+      render(<ProposalDecisionBar proposal={buildProposalDetail({ status: 'Executed' })} onRefresh={jest.fn()} />);
+      fireEvent.click(screen.getByRole('button', { name: 'Vrátit zpět' }));
+      const confirm = screen.getByRole('button', { name: 'Vrátit změny' });
+
+      fireEvent.click(confirm);
+      fireEvent.click(confirm);
+
+      expect(mockRevertMutate).toHaveBeenCalledTimes(1);
+    });
   });
 
   it('hides decisions and explains why for a user without the approve permission', () => {

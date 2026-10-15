@@ -3,6 +3,7 @@ import { act, renderHook, waitFor } from '@testing-library/react';
 import { onlineManager, QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { SwaggerException } from '../../generated/api-client';
 import { isVersionConflict } from '../marketingAds/errors';
+import { marketingAdsKeys } from '../marketingAds/keys';
 import {
   useAdProposalQuery,
   useAdProposalsQuery,
@@ -27,13 +28,40 @@ jest.mock('../../client', () => ({
   }),
 }));
 
-const createWrapper = () => {
-  const client = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
+const createQueryClient = () =>
+  new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
+
+const wrapperFor = (client: QueryClient) => {
   const Wrapper = ({ children }: { children: React.ReactNode }) => (
     <QueryClientProvider client={client}>{children}</QueryClientProvider>
   );
   return Wrapper;
 };
+
+const createWrapper = () => wrapperFor(createQueryClient());
+
+const detailResponse = (id: number, currentVersion: number) => ({ proposal: { summary: { id, currentVersion } } });
+
+interface Deferred<T> {
+  promise: Promise<T>;
+  resolve: (value: T) => void;
+}
+
+const deferred = <T,>(): Deferred<T> => {
+  let resolve: (value: T) => void = () => undefined;
+  const promise = new Promise<T>((r) => {
+    resolve = r;
+  });
+  return { promise, resolve };
+};
+
+const invalidatedKeys = (spy: jest.SpyInstance) => spy.mock.calls.map(([filters]) => filters?.queryKey);
+
+const DECIDED_DETAIL_KEYS = [
+  marketingAdsKeys.proposalLists(),
+  marketingAdsKeys.proposalDetail('7'),
+  marketingAdsKeys.auditAll(),
+];
 
 describe('useMarketingAdsProposals', () => {
   it('lists proposals with status, page and page size and maps them to view models', async () => {
@@ -115,7 +143,7 @@ describe('useMarketingAdsProposals', () => {
   it('detail query does not refetch on reconnect, but an explicit refresh refetches it', async () => {
     mockGet.mockResolvedValue({ proposal: { summary: { id: 7, currentVersion: 3 } } });
     const { result } = renderHook(
-      () => ({ detail: useAdProposalQuery('7'), refresh: useRefreshAdProposals() }),
+      () => ({ detail: useAdProposalQuery('7'), refresh: useRefreshAdProposals('7') }),
       { wrapper: createWrapper() },
     );
     await waitFor(() => expect(result.current.detail.isSuccess).toBe(true));
@@ -174,5 +202,138 @@ describe('useMarketingAdsProposals', () => {
     });
 
     expect(mockRevert).toHaveBeenCalledWith(7);
+  });
+
+  it('refresh refetches the lists and the given detail, but not another open detail', async () => {
+    // Arrange
+    mockGet.mockImplementation((id: number) => Promise.resolve(detailResponse(id, 1)));
+    mockList.mockResolvedValue({ items: [], totalCount: 0 });
+    const { result } = renderHook(
+      () => ({
+        list: useAdProposalsQuery({ status: 'Pending', page: 1, pageSize: 25 }),
+        seven: useAdProposalQuery('7'),
+        eight: useAdProposalQuery('8'),
+        refresh: useRefreshAdProposals('7'),
+      }),
+      { wrapper: createWrapper() },
+    );
+    await waitFor(() => expect(result.current.eight.isSuccess && result.current.seven.isSuccess).toBe(true));
+    await waitFor(() => expect(result.current.list.isSuccess).toBe(true));
+    mockGet.mockClear();
+    mockList.mockClear();
+
+    // Act
+    act(() => result.current.refresh());
+
+    // Assert
+    await waitFor(() => expect(mockList).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(mockGet).toHaveBeenCalledWith(7));
+    expect(mockGet).not.toHaveBeenCalledWith(8);
+  });
+
+  it('removes a closed detail from the cache, so reopening it loads the current version', async () => {
+    // Arrange
+    const client = createQueryClient();
+    mockGet.mockResolvedValue(detailResponse(7, 3));
+    const { result, unmount } = renderHook(() => useAdProposalQuery('7'), { wrapper: wrapperFor(client) });
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+
+    // Act
+    unmount();
+
+    // Assert
+    await waitFor(() =>
+      expect(client.getQueryCache().find({ queryKey: marketingAdsKeys.proposalDetail('7') })).toBeUndefined(),
+    );
+  });
+
+  describe('what a decision refreshes', () => {
+    type Wrapper = ReturnType<typeof wrapperFor>;
+
+    const runMutation = async <T,>(useHook: () => { mutateAsync: (v: T) => Promise<void> }, variables: T, wrapper: Wrapper) => {
+      const { result } = renderHook(() => useHook(), { wrapper });
+      await act(async () => {
+        await result.current.mutateAsync(variables);
+      });
+    };
+
+    const decisions = [
+      {
+        name: 'approve',
+        decide: (wrapper: Wrapper) => {
+          mockApprove.mockResolvedValue({ success: true });
+          return runMutation(useApproveAdProposalMutation, { id: '7', version: 3 }, wrapper);
+        },
+      },
+      {
+        name: 'reject',
+        decide: (wrapper: Wrapper) => {
+          mockReject.mockResolvedValue({ success: true });
+          return runMutation(useRejectAdProposalMutation, { id: '7', version: 3, reason: 'Mimo strategii' }, wrapper);
+        },
+      },
+      {
+        name: 'revert',
+        decide: (wrapper: Wrapper) => {
+          mockRevert.mockResolvedValue({ success: true });
+          return runMutation(useRevertAdProposalMutation, { id: '7' }, wrapper);
+        },
+      },
+    ];
+
+    it.each(decisions)('$name invalidates the lists, the decided detail and the audit log only', async ({ decide }) => {
+      // Arrange
+      const client = createQueryClient();
+      const spy = jest.spyOn(client, 'invalidateQueries');
+
+      // Act
+      await decide(wrapperFor(client));
+
+      // Assert
+      expect(invalidatedKeys(spy)).toEqual(DECIDED_DETAIL_KEYS);
+    });
+
+    it('a decision on one proposal does not refetch another open detail', async () => {
+      // Arrange
+      mockGet.mockImplementation((id: number) => Promise.resolve(detailResponse(id, 1)));
+      mockApprove.mockResolvedValue({ success: true });
+      const { result } = renderHook(
+        () => ({ seven: useAdProposalQuery('7'), eight: useAdProposalQuery('8'), approve: useApproveAdProposalMutation() }),
+        { wrapper: createWrapper() },
+      );
+      await waitFor(() => expect(result.current.seven.isSuccess && result.current.eight.isSuccess).toBe(true));
+      mockGet.mockClear();
+
+      // Act
+      await act(async () => {
+        await result.current.approve.mutateAsync({ id: '7', version: 1 });
+      });
+
+      // Assert
+      expect(mockGet).toHaveBeenCalledWith(7);
+      expect(mockGet).not.toHaveBeenCalledWith(8);
+    });
+
+    it('approve stays pending until the decided detail has refetched', async () => {
+      // Arrange
+      mockApprove.mockResolvedValue({ success: true });
+      mockGet.mockResolvedValueOnce(detailResponse(7, 3));
+      const { result } = renderHook(
+        () => ({ detail: useAdProposalQuery('7'), approve: useApproveAdProposalMutation() }),
+        { wrapper: createWrapper() },
+      );
+      await waitFor(() => expect(result.current.detail.isSuccess).toBe(true));
+      const refetch = deferred<ReturnType<typeof detailResponse>>();
+      mockGet.mockReturnValueOnce(refetch.promise);
+
+      // Act
+      act(() => result.current.approve.mutate({ id: '7', version: 3 }));
+      await waitFor(() => expect(mockGet).toHaveBeenCalledTimes(2));
+
+      // Assert — the decision is not settled while the detail is still loading
+      expect(result.current.approve.isPending).toBe(true);
+      await act(async () => refetch.resolve(detailResponse(7, 3)));
+      await waitFor(() => expect(result.current.approve.isPending).toBe(false));
+    });
   });
 });

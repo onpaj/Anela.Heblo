@@ -7,6 +7,7 @@ import {
   useUpdateAdAutonomyModeMutation,
   useUpdateAdLimitMutation,
 } from '../useMarketingAdsSettings';
+import { marketingAdsKeys } from '../marketingAds/keys';
 
 const mockGetSettings = jest.fn();
 const mockUpdateAutonomy = jest.fn();
@@ -21,13 +22,28 @@ jest.mock('../../client', () => ({
   }),
 }));
 
-const createWrapper = () => {
-  const client = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
+const createQueryClient = () =>
+  new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
+
+const wrapperFor = (client: QueryClient) => {
   const Wrapper = ({ children }: { children: React.ReactNode }) => (
     <QueryClientProvider client={client}>{children}</QueryClientProvider>
   );
   return Wrapper;
 };
+
+const createWrapper = () => wrapperFor(createQueryClient());
+
+type Wrapper = ReturnType<typeof wrapperFor>;
+
+const runMutation = async <T,>(useHook: () => { mutateAsync: (v: T) => Promise<void> }, variables: T, wrapper: Wrapper) => {
+  const { result } = renderHook(() => useHook(), { wrapper });
+  await act(async () => {
+    await result.current.mutateAsync(variables);
+  });
+};
+
+const SETTINGS_RESPONSE = { autonomy: [], limits: [], killSwitches: [], isExecutionEnabledGlobally: false, approvalRates: [] };
 
 describe('useMarketingAdsSettings', () => {
   it('does not load settings for a non-admin (query disabled)', () => {
@@ -103,5 +119,65 @@ describe('useMarketingAdsSettings', () => {
     });
 
     expect(mockSetKillSwitch).toHaveBeenCalledWith(expect.objectContaining({ platform: undefined, executionEnabled: true }));
+  });
+
+  describe('what a settings change refreshes', () => {
+    const changes = [
+      {
+        name: 'autonomy mode',
+        change: (wrapper: Wrapper) => {
+          mockUpdateAutonomy.mockResolvedValue({ success: true });
+          return runMutation(useUpdateAdAutonomyModeMutation, { platform: 'GoogleAds', actionType: 'PauseAd', mode: 'Auto' }, wrapper);
+        },
+      },
+      {
+        name: 'limit',
+        change: (wrapper: Wrapper) => {
+          mockUpdateLimit.mockResolvedValue({ success: true });
+          return runMutation(useUpdateAdLimitMutation, { platform: 'GoogleAds', actionType: 'PauseAd', key: 'K', value: 1 }, wrapper);
+        },
+      },
+      {
+        name: 'kill switch',
+        change: (wrapper: Wrapper) => {
+          mockSetKillSwitch.mockResolvedValue({ success: true });
+          return runMutation(useSetAdKillSwitchMutation, { platform: null, executionEnabled: false }, wrapper);
+        },
+      },
+    ];
+
+    it.each(changes)('changing the $name invalidates the settings and the audit log', async ({ change }) => {
+      // Arrange
+      const client = createQueryClient();
+      const spy = jest.spyOn(client, 'invalidateQueries');
+
+      // Act
+      await change(wrapperFor(client));
+
+      // Assert
+      expect(spy.mock.calls.map(([filters]) => filters?.queryKey)).toEqual([marketingAdsKeys.settings(), marketingAdsKeys.auditAll()]);
+    });
+
+    it('a limit change stays pending until the settings have reloaded', async () => {
+      // Arrange
+      mockUpdateLimit.mockResolvedValue({ success: true });
+      mockGetSettings.mockResolvedValueOnce(SETTINGS_RESPONSE);
+      const { result } = renderHook(
+        () => ({ settings: useAdsSettingsQuery(true), update: useUpdateAdLimitMutation() }),
+        { wrapper: createWrapper() },
+      );
+      await waitFor(() => expect(result.current.settings.isSuccess).toBe(true));
+      let resolveReload: (value: typeof SETTINGS_RESPONSE) => void = () => undefined;
+      mockGetSettings.mockReturnValueOnce(new Promise((resolve) => (resolveReload = resolve)));
+
+      // Act
+      act(() => result.current.update.mutate({ platform: 'GoogleAds', actionType: 'PauseAd', key: 'K', value: 1 }));
+      await waitFor(() => expect(mockGetSettings).toHaveBeenCalledTimes(2));
+
+      // Assert
+      expect(result.current.update.isPending).toBe(true);
+      await act(async () => resolveReload(SETTINGS_RESPONSE));
+      await waitFor(() => expect(result.current.update.isPending).toBe(false));
+    });
   });
 });

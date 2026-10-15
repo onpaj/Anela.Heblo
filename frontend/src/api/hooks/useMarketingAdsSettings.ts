@@ -36,10 +36,12 @@ export const useAdsSettingsQuery = (enabled: boolean) =>
 
 const useInvalidateSettings = () => {
   const queryClient = useQueryClient();
-  return () => {
-    void queryClient.invalidateQueries({ queryKey: marketingAdsKeys.settings() });
-    void queryClient.invalidateQueries({ queryKey: marketingAdsKeys.auditAll() });
-  };
+  // Returned from onSuccess, so the mutation stays pending until the new settings have loaded.
+  return () =>
+    Promise.all([
+      queryClient.invalidateQueries({ queryKey: marketingAdsKeys.settings() }),
+      queryClient.invalidateQueries({ queryKey: marketingAdsKeys.auditAll() }),
+    ]);
 };
 
 export const useUpdateAdAutonomyModeMutation = () => {

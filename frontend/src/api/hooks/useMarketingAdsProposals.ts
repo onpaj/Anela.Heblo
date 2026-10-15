@@ -50,7 +50,8 @@ export const useAdProposalsQuery = (params: ProposalListParams) =>
 /**
  * The detail never refetches on its own (no focus refetch, no interval): the approve button sends
  * the version the user is reading, so the content must not change underneath them. A newer
- * version is picked up only through useRefreshAdProposals (explicit "Obnovit detail").
+ * version is picked up only through useRefreshAdProposals (explicit "Obnovit detail"), or by
+ * reopening it: gcTime 0 drops a closed detail, so reopening loads it before anything is read.
  */
 export const useAdProposalQuery = (id: string | null) =>
   useQuery<AdProposalDetail, Error>({
@@ -67,21 +68,34 @@ export const useAdProposalQuery = (id: string | null) =>
     refetchOnWindowFocus: false,
     refetchOnReconnect: false,
     staleTime: Infinity,
+    gcTime: 0,
   });
 
-export const useRefreshAdProposals = (): (() => void) => {
+/** Refetches the lists and the one decided/viewed detail — never another open detail (its version must not move under its reader). */
+const useInvalidateProposal = () => {
   const queryClient = useQueryClient();
-  return useCallback(() => {
-    void queryClient.invalidateQueries({ queryKey: marketingAdsKeys.proposals() });
-  }, [queryClient]);
+  return useCallback(
+    (id: string, alsoAudit: boolean) =>
+      Promise.all([
+        queryClient.invalidateQueries({ queryKey: marketingAdsKeys.proposalLists() }),
+        queryClient.invalidateQueries({ queryKey: marketingAdsKeys.proposalDetail(id) }),
+        ...(alsoAudit ? [queryClient.invalidateQueries({ queryKey: marketingAdsKeys.auditAll() })] : []),
+      ]),
+    [queryClient],
+  );
 };
 
+export const useRefreshAdProposals = (id: string): (() => void) => {
+  const invalidate = useInvalidateProposal();
+  return useCallback(() => {
+    void invalidate(id, false);
+  }, [invalidate, id]);
+};
+
+/** Returned from onSuccess, so the mutation stays pending until the refetch lands and the buttons cannot re-enable on stale data. */
 const useInvalidateAfterDecision = () => {
-  const queryClient = useQueryClient();
-  return () => {
-    void queryClient.invalidateQueries({ queryKey: marketingAdsKeys.proposals() });
-    void queryClient.invalidateQueries({ queryKey: marketingAdsKeys.auditAll() });
-  };
+  const invalidate = useInvalidateProposal();
+  return (_data: void, { id }: ProposalRef) => invalidate(id, true);
 };
 
 export const useApproveAdProposalMutation = () => {

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { AlertTriangle, RefreshCw } from 'lucide-react';
 import { usePermissionsContext } from '../../../../auth/PermissionsContext';
 import {
@@ -21,12 +21,16 @@ import ConfirmActionDialog from '../shared/ConfirmActionDialog';
 interface ProposalDecisionBarProps {
   proposal: AdProposalDetail;
   onRefresh: () => void;
+  /** The detail is refetching (after a decision or "Obnovit detail"): decisions wait for the fresh version. */
+  isRefreshing?: boolean;
 }
 
 type OpenDialog = 'reject' | 'revert' | null;
 
-const FORBIDDEN_MESSAGE =
+const APPROVE_FORBIDDEN_MESSAGE =
   'Tento návrh nemůžete schválit: chybí oprávnění Schvalování kampaní, nebo jste ho už schválili a je potřeba jiný schvalovatel.';
+const REJECT_FORBIDDEN_MESSAGE = 'Tento návrh nemůžete zamítnout: chybí oprávnění Schvalování kampaní.';
+const REVERT_FORBIDDEN_MESSAGE = 'Změny nemůžete vrátit zpět: chybí oprávnění správce Schvalování kampaní.';
 const EXECUTION_DISABLED_MESSAGE =
   'Provádění změn je vypnuté (hlavní vypínač v Nastavení reklam). Schválený návrh se teď neprovede a skončí jako „Selhalo“.';
 const REVERTIBLE_STATUSES: readonly string[] = [PROPOSAL_STATUS.Executed, PROPOSAL_STATUS.PartiallyExecuted];
@@ -45,7 +49,7 @@ const isExecutionOffFor = (settings: AdsSettings | undefined, platform: string):
   return !executionEnabled || platformOverrides.some((o) => o.platform === platform && !o.executionEnabled);
 };
 
-const ProposalDecisionBar: React.FC<ProposalDecisionBarProps> = ({ proposal, onRefresh }) => {
+const ProposalDecisionBar: React.FC<ProposalDecisionBarProps> = ({ proposal, onRefresh, isRefreshing = false }) => {
   const { hasPermission } = usePermissionsContext();
   const approve = useApproveAdProposalMutation();
   const reject = useRejectAdProposalMutation();
@@ -54,6 +58,8 @@ const ProposalDecisionBar: React.FC<ProposalDecisionBarProps> = ({ proposal, onR
   const [reason, setReason] = useState('');
   const [isStale, setIsStale] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  // Synchronous guard: a fast double click lands before the isPending re-render disables the button.
+  const isInFlight = useRef(false);
 
   const canApprove = hasPermission(ADS_PERMISSIONS.approve);
   const canRevert = hasPermission(ADS_PERMISSIONS.admin);
@@ -63,18 +69,32 @@ const ProposalDecisionBar: React.FC<ProposalDecisionBarProps> = ({ proposal, onR
   const settings = useAdsSettingsQuery(canDecide);
   // Gated on canDecide too: a disabled query can still hand back data cached by the settings page.
   const isExecutionDisabled = canDecide && isExecutionOffFor(settings.data, proposal.platform);
-  const isBusy = approve.isPending || reject.isPending || revert.isPending;
+  const isBusy = approve.isPending || reject.isPending || revert.isPending || isRefreshing;
   // The version the user is looking at — never re-read at click time (spec 6.2: approve names id + version).
   const decision = { id: proposal.id, version: proposal.currentVersion };
 
-  const handleError = (error: unknown) => {
+  const handleError = (error: unknown, forbiddenMessage: string) => {
     if (isVersionConflict(error)) {
       setIsStale(true);
       setErrorMessage(null);
       return;
     }
     // The specific Czech texts (channel denied, needs web approval…) win over the generic forbidden one.
-    setErrorMessage(isForbidden(error) ? resolveSwaggerErrorMessage(error) ?? FORBIDDEN_MESSAGE : describeAdsError(error));
+    setErrorMessage(isForbidden(error) ? resolveSwaggerErrorMessage(error) ?? forbiddenMessage : describeAdsError(error));
+  };
+
+  /** Claims the in-flight slot; false when a request is already on its way. */
+  const startRequest = (): boolean => {
+    if (isInFlight.current) {
+      return false;
+    }
+    isInFlight.current = true;
+    setErrorMessage(null);
+    return true;
+  };
+
+  const endRequest = () => {
+    isInFlight.current = false;
   };
 
   const closeDialog = () => {
@@ -82,37 +102,35 @@ const ProposalDecisionBar: React.FC<ProposalDecisionBarProps> = ({ proposal, onR
     setReason('');
   };
 
+  const dialogCallbacks = (forbiddenMessage: string) => ({
+    onSuccess: closeDialog,
+    onError: (error: unknown) => {
+      closeDialog();
+      handleError(error, forbiddenMessage);
+    },
+    onSettled: endRequest,
+  });
+
   const handleApprove = () => {
-    setErrorMessage(null);
-    approve.mutate(decision, { onError: handleError });
+    if (!startRequest()) {
+      return;
+    }
+    approve.mutate(decision, {
+      onError: (error) => handleError(error, APPROVE_FORBIDDEN_MESSAGE),
+      onSettled: endRequest,
+    });
   };
 
   const handleConfirmReject = () => {
-    setErrorMessage(null);
-    reject.mutate(
-      { ...decision, reason: reason.trim() },
-      {
-        onSuccess: closeDialog,
-        onError: (error) => {
-          closeDialog();
-          handleError(error);
-        },
-      },
-    );
+    if (startRequest()) {
+      reject.mutate({ ...decision, reason: reason.trim() }, dialogCallbacks(REJECT_FORBIDDEN_MESSAGE));
+    }
   };
 
   const handleConfirmRevert = () => {
-    setErrorMessage(null);
-    revert.mutate(
-      { id: proposal.id },
-      {
-        onSuccess: closeDialog,
-        onError: (error) => {
-          closeDialog();
-          handleError(error);
-        },
-      },
-    );
+    if (startRequest()) {
+      revert.mutate({ id: proposal.id }, dialogCallbacks(REVERT_FORBIDDEN_MESSAGE));
+    }
   };
 
   const handleRefresh = () => {
