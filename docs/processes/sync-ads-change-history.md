@@ -18,7 +18,7 @@ related: [sync-ads-daily, sync-google-ads-campaign-data]
 # Ads change history → ads.ad_change_events
 
 ## Purpose
-Observability over who changed what in the ad accounts — Heblo (approved proposals), the agency, a person in the platform UI, or a platform's auto-applied recommendation. Spec success criterion 2: every change appears within a day, flagged *Heblo* or *out-of-band*. Read by agents (MCP `GetAdChangeHistory`, C4) and in Metabase (`ads.v_ads_change_events`).
+Observability over who changed what in the ad accounts — Heblo (approved proposals), the agency, a person in the platform UI, or a platform's auto-applied recommendation. Spec success criterion 2: every change appears within a day, flagged *Heblo* or *out-of-band*. Read by agents (MCP `GetAdChangeHistory`, C4), by people on the web activity page (`/marketing/ads/activity`, tab "Změny v účtech", via REST `GET api/marketing-ads/activity/change-events`) and in Metabase (`ads.v_ads_change_events`).
 
 ## Trigger
 Hangfire recurring job `ads-change-sync` (category Marketing), cron `15 * * * *` (hourly at :15), Europe/Prague, `[AutomaticRetry(Attempts = 0)]`, `[DisableConcurrentExecution(1800)]`. Same skip rules as `ads-daily-sync`. Hangfire runs one worker, so the run is kept short (`Ads:ChangeSync:RunTimeoutMinutes` = 15).

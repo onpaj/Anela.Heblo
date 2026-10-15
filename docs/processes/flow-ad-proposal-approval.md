@@ -11,7 +11,9 @@ owns:
   - backend/src/Anela.Heblo.API/Controllers/MarketingAdsProposalsController.cs
   - backend/src/Anela.Heblo.API/Controllers/MarketingAdsSettingsController.cs
   - backend/src/Anela.Heblo.API/Controllers/MarketingAdsActivityController.cs
-verified_at: "570fbbd62"
+  - frontend/src/components/marketing/ads/**
+  - frontend/src/api/hooks/useMarketingAds*.ts
+verified_at: "7f2594a8d"
 related: [module-marketing-ads, flow-google-ads-action-execution, sync-ads-change-history, sync-ads-daily]
 ---
 
@@ -20,14 +22,15 @@ related: [module-marketing-ads, flow-google-ads-action-execution, sync-ads-chang
 ## Purpose
 Lets AI agents (and people) change live ad accounts (Google Ads, Meta, Sklik) only through a
 structured, human-approved and fully audited path. The chief of marketing will approve in the web UI
-(`/marketing/ads/proposals`, PR C5) or via Claude/MCP (15 `MarketingAdsMcpTools`, PR C4). Admins tune autonomy, limits and the
-kill switch over `/api/marketing-ads/settings` (UI in C5). Nothing in C3 has a Heblo page yet.
+(`/marketing/ads/proposals`) or via Claude/MCP (15 `MarketingAdsMcpTools`, PR C4). Admins tune autonomy, limits and the
+kill switch over `/api/marketing-ads/settings` (`/marketing/ads/settings`).
 
 ## Trigger
 - Submit: `POST /api/marketing-ads/proposals` (`Marketing_Ads` Write). Revise: `POST /api/marketing-ads/proposals/{id}/revisions` (creator only). MCP: `SubmitAdProposal` / `ReviseAdProposal`.
 - Read: `GET /api/marketing-ads/proposals` (filters `status`, `platform`, `mine`, paging), `GET /api/marketing-ads/proposals/{id}`; `GET /api/marketing-ads/activity/audit`, `GET /api/marketing-ads/activity/agent-runs` (`Marketing_Ads` Read).
 - Approve / reject: `POST /api/marketing-ads/proposals/{id}/approve|reject` with `{ version }` (`Marketing_AdApprovals` Write); MCP: `ListPendingAdProposals` (the oldest pending proposals first — `ListAdProposalsRequest.OldestFirst`; REST/UI lists stay newest first), `ApproveAdProposal`, `RejectAdProposal`.
 - Agents connect to `/mcp` with their own client-credentials token (app role `Marketing.Agent`); `/mcp` rate-limits app-only callers per `oid` to `Ads:AgentRateLimitPerMinute` (default 60/min, HTTP 429). People are not limited. Runbook: `docs/integrations/marketing-agents-identity.md`.
+- Web UI: `/marketing/ads/proposals` (approve/reject a named version; 409 shows a stale-version banner and forces "Obnovit detail"), revert on executed proposals (`Marketing_AdApprovals` Admin). Settings (autonomy, limits, kill switch with confirmation): `/marketing/ads/settings`. Audit, out-of-band changes and agent runs: `/marketing/ads/activity`.
 - Revert: `POST /api/marketing-ads/proposals/{id}/revert` (web only, `Marketing_AdApprovals` Admin), synchronous.
 - Settings: `GET /api/marketing-ads/settings`; `PUT .../settings/autonomy|limits|kill-switch` (web only, `Marketing_AdApprovals` Admin).
 - Execution: Hangfire fire-and-forget `AdProposalExecutionJob.RunAsync(id)`, enqueued after the final approval (human or autonomy). `[AutomaticRetry(Attempts = 0)]`, `[DisableConcurrentExecution(600)]`.
@@ -85,6 +88,8 @@ The first four are validated by `AdProposalOptions.EnsureValid()` at the start o
 None yet — fill in after the first staging run (migration `AddMarketingAdsProposals` auto-applies at startup).
 
 ## Known quirks
+- Approving while the kill switch is off ends the proposal Failed (owner decision pending); the web UI warns next to the approve button (`execution-disabled-warning`).
+- The nightly E2E session is refused approve/reject on Staging (app-only identity type `E2ETest`), so web approve/reject is covered only by unit tests.
 - The kill switch is seeded off, so nothing executes until an admin turns it on. New permission grants and the agent identity are rollout steps (runbook), so a fresh deployment approves nothing until they are done.
 - Outside Production the Google executor runs validate-only: Google accepts the request but nothing changes. Each action ends Failed with `validateOnly: true` in its audit payload, so the proposal ends **Failed**; a revert of it returns 409 `MarketingAdsNotRevertible` (there are no Succeeded rows to revert). The execution is never re-enqueued.
 - A thrown mutate is never retried; after one re-read the action is either Succeeded "confirmed by re-read" or Failed "may have been applied — verify". Check the account before resubmitting a Failed one.
@@ -113,3 +118,5 @@ None yet — fill in after the first staging run (migration `AddMarketingAdsProp
 - `backend/src/Anela.Heblo.Application/Features/MarketingAds/Proposals/AdProposalOptions.cs` — configuration and `EnsureValid`
 - `backend/src/Anela.Heblo.Domain/Features/MarketingAds/AdProposal.cs` — lifecycle
 - `backend/src/Anela.Heblo.Persistence/MarketingAds/MarketingAdsSql.cs` — append-only triggers
+- `frontend/src/components/marketing/ads/proposals/ProposalDecisionBar.tsx` — version-bound approve/reject/revert and 409/403 handling
+- `frontend/src/api/hooks/useMarketingAdsProposals.ts` — REST calls behind the inbox
