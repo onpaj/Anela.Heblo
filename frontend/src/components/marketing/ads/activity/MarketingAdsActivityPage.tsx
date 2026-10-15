@@ -80,7 +80,11 @@ const MarketingAdsActivityPage: React.FC = () => {
       <div className="flex-1 min-h-0 flex flex-col bg-white dark:bg-graphite-surface shadow dark:shadow-soft-dark rounded-md">
         <div className="flex-1 overflow-auto">
           {active.isLoading && <AdsLoading />}
-          {active.error && <ErrorState message={describeAdsError(active.error)} className="py-8" />}
+          {active.error && (
+            <div data-testid="ads-error">
+              <ErrorState message={describeAdsError(active.error)} className="py-8" />
+            </div>
+          )}
           {isEmpty && <p className="p-4 text-sm text-gray-500 dark:text-graphite-muted">Zatím žádné záznamy.</p>}
           {tab === 'audit' && audit.data && audit.data.items.length > 0 && <AuditLogTable items={audit.data.items} />}
           {tab === 'changes' && changes.data && changes.data.items.length > 0 && <ChangeEventsTable items={changes.data.items} />}

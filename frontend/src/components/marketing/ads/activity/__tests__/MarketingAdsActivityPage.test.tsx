@@ -163,4 +163,12 @@ describe('MarketingAdsActivityPage', () => {
 
     expect(screen.getByText('Zatím žádné záznamy.')).toBeInTheDocument();
   });
+
+  it('shows a load error inside the ads-error panel', () => {
+    mockAuditQuery.mockReturnValue({ data: undefined, isLoading: false, error: new Error('Databáze reklam není nastavená.') });
+
+    renderPage();
+
+    expect(screen.getByTestId('ads-error')).toHaveTextContent('Databáze reklam není nastavená.');
+  });
 });

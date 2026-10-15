@@ -10,20 +10,16 @@ const NONEXISTENT_PROPOSAL_ID = 2147483647;
 const PAGE_TIMEOUT_MS = 15000;
 const CHANNEL_DENIED_CODE = 'MarketingAdsApprovalChannelDenied';
 
-async function gotoAdsPage(page: Page, path: string): Promise<void> {
-  await page.goto(path);
-}
-
 function proposalListOrEmpty(page: Page) {
   return page.getByTestId('proposal-list').or(page.getByTestId('proposal-list-empty'));
 }
 
-// Staging's ads DB may be unconfigured, so a tab may legitimately show an error message instead of data.
+// Staging's ads DB may be unconfigured, so a tab may legitimately show its load error instead of data.
 function tableOrEmptyOrError(page: Page, tableTestId: string) {
   return page
     .getByTestId(tableTestId)
     .or(page.getByText('Zatím žádné záznamy.'))
-    .or(page.locator('div.text-red-600'))
+    .or(page.getByTestId('ads-error'))
     .first();
 }
 
@@ -34,7 +30,7 @@ test.describe('Marketing — reklamy (návrhy, aktivita, nastavení)', () => {
   });
 
   test('inbox renders the pending and history tabs', async ({ page }) => {
-    await gotoAdsPage(page, '/marketing/ads/proposals');
+    await page.goto('/marketing/ads/proposals');
 
     await expect(page.getByRole('heading', { name: 'Návrhy změn v reklamách', exact: true })).toBeVisible({
       timeout: PAGE_TIMEOUT_MS,
@@ -59,14 +55,15 @@ test.describe('Marketing — reklamy (návrhy, aktivita, nastavení)', () => {
     });
 
     for (const response of [approve, reject]) {
-      expect(response.status()).toBe(403);
-      const body = await response.json();
-      expect(body.errorCode).toBe(CHANNEL_DENIED_CODE);
+      // Status and body asserted together, so a failure shows what the server actually answered.
+      const text = await response.text();
+      expect({ url: response.url(), status: response.status(), body: text }).toMatchObject({ status: 403 });
+      expect(JSON.parse(text)).toMatchObject({ errorCode: CHANNEL_DENIED_CODE });
     }
   });
 
   test('activity page renders all three tabs', async ({ page }) => {
-    await gotoAdsPage(page, '/marketing/ads/activity');
+    await page.goto('/marketing/ads/activity');
     const heading = page.getByRole('heading', { name: 'Aktivita v reklamách', exact: true });
     await expect(heading).toBeVisible({ timeout: PAGE_TIMEOUT_MS });
     await expect(tableOrEmptyOrError(page, 'audit-table')).toBeVisible({ timeout: PAGE_TIMEOUT_MS });
@@ -84,7 +81,7 @@ test.describe('Marketing — reklamy (návrhy, aktivita, nastavení)', () => {
 
   test('settings page renders for an admin', async ({ page }) => {
     // Never click a kill-switch, autonomy or limit control here: this suite runs against shared staging.
-    await gotoAdsPage(page, '/marketing/ads/settings');
+    await page.goto('/marketing/ads/settings');
 
     await expect(page.getByRole('heading', { name: 'Nastavení reklam', exact: true })).toBeVisible({
       timeout: PAGE_TIMEOUT_MS,
