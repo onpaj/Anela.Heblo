@@ -75,12 +75,12 @@ export const useAdProposalQuery = (id: string | null) =>
 const useInvalidateProposal = () => {
   const queryClient = useQueryClient();
   return useCallback(
-    (id: string, alsoAudit: boolean) =>
-      Promise.all([
-        queryClient.invalidateQueries({ queryKey: marketingAdsKeys.proposalLists() }),
-        queryClient.invalidateQueries({ queryKey: marketingAdsKeys.proposalDetail(id) }),
-        ...(alsoAudit ? [queryClient.invalidateQueries({ queryKey: marketingAdsKeys.auditAll() })] : []),
-      ]),
+    (id: string, alsoAudit: boolean) => {
+      const keys = alsoAudit
+        ? [marketingAdsKeys.proposalLists(), marketingAdsKeys.proposalDetail(id), marketingAdsKeys.auditAll()]
+        : [marketingAdsKeys.proposalLists(), marketingAdsKeys.proposalDetail(id)];
+      return Promise.all(keys.map((queryKey) => queryClient.invalidateQueries({ queryKey })));
+    },
     [queryClient],
   );
 };
