@@ -8004,7 +8004,82 @@ export class ApiClient {
         return Promise.resolve<ListAgentRunsResponse>(null as any);
     }
 
-    marketingAdsProposals_ListProposals(status: AdProposalStatus | null | undefined, platform: AdPlatform | null | undefined, mine: boolean | undefined, page: number | undefined, pageSize: number | undefined): Promise<ListAdProposalsResponse> {
+    marketingAdsActivity_ListChangeEvents(platform: AdPlatform | null | undefined, accountExternalId: string | null | undefined, origin: AdChangeOrigin | null | undefined, actorKind: AdChangeActorKind | null | undefined, from: Date | null | undefined, to: Date | null | undefined, pageNumber: number | undefined, pageSize: number | undefined): Promise<GetAdChangeHistoryResponse> {
+        let url_ = this.baseUrl + "/api/marketing-ads/activity/change-events?";
+        if (platform !== undefined && platform !== null)
+            url_ += "Platform=" + encodeURIComponent("" + platform) + "&";
+        if (accountExternalId !== undefined && accountExternalId !== null)
+            url_ += "AccountExternalId=" + encodeURIComponent("" + accountExternalId) + "&";
+        if (origin !== undefined && origin !== null)
+            url_ += "Origin=" + encodeURIComponent("" + origin) + "&";
+        if (actorKind !== undefined && actorKind !== null)
+            url_ += "ActorKind=" + encodeURIComponent("" + actorKind) + "&";
+        if (from !== undefined && from !== null)
+            url_ += "From=" + encodeURIComponent(from ? "" + from.toISOString() : "") + "&";
+        if (to !== undefined && to !== null)
+            url_ += "To=" + encodeURIComponent(to ? "" + to.toISOString() : "") + "&";
+        if (pageNumber === null)
+            throw new Error("The parameter 'pageNumber' cannot be null.");
+        else if (pageNumber !== undefined)
+            url_ += "PageNumber=" + encodeURIComponent("" + pageNumber) + "&";
+        if (pageSize === null)
+            throw new Error("The parameter 'pageSize' cannot be null.");
+        else if (pageSize !== undefined)
+            url_ += "PageSize=" + encodeURIComponent("" + pageSize) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processMarketingAdsActivity_ListChangeEvents(_response);
+        });
+    }
+
+    protected processMarketingAdsActivity_ListChangeEvents(response: Response): Promise<GetAdChangeHistoryResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = GetAdChangeHistoryResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status === 400) {
+            return response.text().then((_responseText) => {
+            let result400: any = null;
+            let resultData400 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result400 = GetAdChangeHistoryResponse.fromJS(resultData400);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result400);
+            });
+        } else if (status === 500) {
+            return response.text().then((_responseText) => {
+            let result500: any = null;
+            let resultData500 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result500 = GetAdChangeHistoryResponse.fromJS(resultData500);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result500);
+            });
+        } else if (status === 403) {
+            return response.text().then((_responseText) => {
+            let result403: any = null;
+            let resultData403 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result403 = ProblemDetails.fromJS(resultData403);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result403);
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<GetAdChangeHistoryResponse>(null as any);
+    }
+
+    marketingAdsProposals_ListProposals(status: AdProposalStatus | null | undefined, platform: AdPlatform | null | undefined, mine: boolean | undefined, page: number | undefined, pageSize: number | undefined, oldestFirst: boolean | undefined): Promise<ListAdProposalsResponse> {
         let url_ = this.baseUrl + "/api/marketing-ads/proposals?";
         if (status !== undefined && status !== null)
             url_ += "Status=" + encodeURIComponent("" + status) + "&";
@@ -8022,6 +8097,10 @@ export class ApiClient {
             throw new Error("The parameter 'pageSize' cannot be null.");
         else if (pageSize !== undefined)
             url_ += "PageSize=" + encodeURIComponent("" + pageSize) + "&";
+        if (oldestFirst === null)
+            throw new Error("The parameter 'oldestFirst' cannot be null.");
+        else if (oldestFirst !== undefined)
+            url_ += "OldestFirst=" + encodeURIComponent("" + oldestFirst) + "&";
         url_ = url_.replace(/[?&]$/, "");
 
         let options_: RequestInit = {
@@ -34269,6 +34348,190 @@ export enum AgentRunStatus {
     Failed = "Failed",
 }
 
+export class GetAdChangeHistoryResponse extends BaseResponse implements IGetAdChangeHistoryResponse {
+    from?: Date;
+    to?: Date;
+    pageNumber?: number;
+    pageSize?: number;
+    totalCount?: number;
+    events?: AdChangeEventDto[];
+
+    constructor(data?: IGetAdChangeHistoryResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            this.from = _data["from"] ? new Date(_data["from"].toString()) : <any>undefined;
+            this.to = _data["to"] ? new Date(_data["to"].toString()) : <any>undefined;
+            this.pageNumber = _data["pageNumber"];
+            this.pageSize = _data["pageSize"];
+            this.totalCount = _data["totalCount"];
+            if (Array.isArray(_data["events"])) {
+                this.events = [] as any;
+                for (let item of _data["events"])
+                    this.events!.push(AdChangeEventDto.fromJS(item));
+            }
+        }
+    }
+
+    static override fromJS(data: any): GetAdChangeHistoryResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new GetAdChangeHistoryResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["from"] = this.from ? this.from.toISOString() : <any>undefined;
+        data["to"] = this.to ? this.to.toISOString() : <any>undefined;
+        data["pageNumber"] = this.pageNumber;
+        data["pageSize"] = this.pageSize;
+        data["totalCount"] = this.totalCount;
+        if (Array.isArray(this.events)) {
+            data["events"] = [];
+            for (let item of this.events)
+                data["events"].push(item.toJSON());
+        }
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IGetAdChangeHistoryResponse extends IBaseResponse {
+    from?: Date;
+    to?: Date;
+    pageNumber?: number;
+    pageSize?: number;
+    totalCount?: number;
+    events?: AdChangeEventDto[];
+}
+
+export class AdChangeEventDto implements IAdChangeEventDto {
+    id?: number;
+    platform?: AdPlatform;
+    accountExternalId?: string;
+    occurredAt?: Date;
+    actor?: string | undefined;
+    actorKind?: AdChangeActorKind;
+    entityLevel?: AdEntityLevel | undefined;
+    entityExternalId?: string | undefined;
+    entityName?: string | undefined;
+    changeType?: string;
+    oldValueJson?: string | undefined;
+    newValueJson?: string | undefined;
+    source?: AdChangeSource;
+    origin?: AdChangeOrigin;
+    matchedExecutionId?: string | undefined;
+
+    constructor(data?: IAdChangeEventDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.id = _data["id"];
+            this.platform = _data["platform"];
+            this.accountExternalId = _data["accountExternalId"];
+            this.occurredAt = _data["occurredAt"] ? new Date(_data["occurredAt"].toString()) : <any>undefined;
+            this.actor = _data["actor"];
+            this.actorKind = _data["actorKind"];
+            this.entityLevel = _data["entityLevel"];
+            this.entityExternalId = _data["entityExternalId"];
+            this.entityName = _data["entityName"];
+            this.changeType = _data["changeType"];
+            this.oldValueJson = _data["oldValueJson"];
+            this.newValueJson = _data["newValueJson"];
+            this.source = _data["source"];
+            this.origin = _data["origin"];
+            this.matchedExecutionId = _data["matchedExecutionId"];
+        }
+    }
+
+    static fromJS(data: any): AdChangeEventDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new AdChangeEventDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["id"] = this.id;
+        data["platform"] = this.platform;
+        data["accountExternalId"] = this.accountExternalId;
+        data["occurredAt"] = this.occurredAt ? this.occurredAt.toISOString() : <any>undefined;
+        data["actor"] = this.actor;
+        data["actorKind"] = this.actorKind;
+        data["entityLevel"] = this.entityLevel;
+        data["entityExternalId"] = this.entityExternalId;
+        data["entityName"] = this.entityName;
+        data["changeType"] = this.changeType;
+        data["oldValueJson"] = this.oldValueJson;
+        data["newValueJson"] = this.newValueJson;
+        data["source"] = this.source;
+        data["origin"] = this.origin;
+        data["matchedExecutionId"] = this.matchedExecutionId;
+        return data;
+    }
+}
+
+export interface IAdChangeEventDto {
+    id?: number;
+    platform?: AdPlatform;
+    accountExternalId?: string;
+    occurredAt?: Date;
+    actor?: string | undefined;
+    actorKind?: AdChangeActorKind;
+    entityLevel?: AdEntityLevel | undefined;
+    entityExternalId?: string | undefined;
+    entityName?: string | undefined;
+    changeType?: string;
+    oldValueJson?: string | undefined;
+    newValueJson?: string | undefined;
+    source?: AdChangeSource;
+    origin?: AdChangeOrigin;
+    matchedExecutionId?: string | undefined;
+}
+
+export enum AdPlatform {
+    GoogleAds = "GoogleAds",
+    MetaAds = "MetaAds",
+    Sklik = "Sklik",
+}
+
+export enum AdChangeActorKind {
+    Unknown = "Unknown",
+    Heblo = "Heblo",
+    User = "User",
+    PlatformAutomation = "PlatformAutomation",
+}
+
+export enum AdEntityLevel {
+    Campaign = "Campaign",
+    AdGroup = "AdGroup",
+    Keyword = "Keyword",
+    NegativeKeyword = "NegativeKeyword",
+    Ad = "Ad",
+}
+
+export enum AdChangeSource {
+    PlatformChangeLog = "PlatformChangeLog",
+    SnapshotDiff = "SnapshotDiff",
+}
+
+export enum AdChangeOrigin {
+    Heblo = "Heblo",
+    OutOfBand = "OutOfBand",
+}
+
 export class ListAdProposalsResponse extends BaseResponse implements IListAdProposalsResponse {
     items?: AdProposalSummaryDto[];
     totalCount?: number;
@@ -34420,12 +34683,6 @@ export enum AdProposalStatus {
     Rejected = "Rejected",
     Expired = "Expired",
     Reverted = "Reverted",
-}
-
-export enum AdPlatform {
-    GoogleAds = "GoogleAds",
-    MetaAds = "MetaAds",
-    Sklik = "Sklik",
 }
 
 export enum AdActionType {
@@ -35011,14 +35268,6 @@ export interface IAdActionInputDto {
     targetExternalId?: string;
     keywordText?: string | undefined;
     matchType?: KeywordMatchType | undefined;
-}
-
-export enum AdEntityLevel {
-    Campaign = "Campaign",
-    AdGroup = "AdGroup",
-    Keyword = "Keyword",
-    NegativeKeyword = "NegativeKeyword",
-    Ad = "Ad",
 }
 
 export enum KeywordMatchType {
