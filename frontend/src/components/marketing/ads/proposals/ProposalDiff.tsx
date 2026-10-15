@@ -12,6 +12,7 @@ const CELL = 'px-3 py-2 align-top';
 const HEAD = 'px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-graphite-muted uppercase';
 const NOT_REVERTED = 'NotReverted';
 const VALIDATE_ONLY_SUFFIX = ' (jen ověření)';
+const ERROR_TEXT = 'text-xs text-red-700 dark:text-red-300 break-words';
 
 const ResultCell: React.FC<{ result: AdActionResult | undefined }> = ({ result }) => {
   if (!result) {
@@ -21,9 +22,11 @@ const ResultCell: React.FC<{ result: AdActionResult | undefined }> = ({ result }
   return (
     <>
       <span title={result.error ?? undefined}>{result.validateOnly ? `${outcome}${VALIDATE_ONLY_SUFFIX}` : outcome}</span>
+      {result.error && <div className={ERROR_TEXT}>{result.error}</div>}
       {result.revertState !== NOT_REVERTED && (
         <div className="text-xs text-gray-500 dark:text-graphite-muted">
           <span title={result.revertError ?? undefined}>{labelFor(REVERT_STATE_LABELS, result.revertState)}</span>
+          {result.revertError && <div className={ERROR_TEXT}>{result.revertError}</div>}
         </div>
       )}
     </>
