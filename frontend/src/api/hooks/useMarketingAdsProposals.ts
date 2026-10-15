@@ -1,5 +1,5 @@
 import { useCallback } from 'react';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { getAuthenticatedApiClient } from '../client';
 import { ApproveAdProposalRequest, RejectAdProposalRequest, type ApiClient } from '../generated/api-client';
 import { marketingAdsKeys, type ProposalListParams } from './marketingAds/keys';
@@ -45,6 +45,8 @@ export const useAdProposalsQuery = (params: ProposalListParams) =>
       return mapPaged<AdProposalSummaryWire, AdProposalSummary>(response, mapProposalSummary);
     },
     refetchInterval: PROPOSAL_LIST_REFETCH_MS,
+    // Keeps the pager mounted while the next page loads.
+    placeholderData: keepPreviousData,
   });
 
 /**
@@ -76,8 +78,14 @@ const useInvalidateProposal = () => {
   const queryClient = useQueryClient();
   return useCallback(
     (id: string, alsoAudit: boolean) => {
+      // A decision also moves the approval rates shown on the settings page.
       const keys = alsoAudit
-        ? [marketingAdsKeys.proposalLists(), marketingAdsKeys.proposalDetail(id), marketingAdsKeys.auditAll()]
+        ? [
+            marketingAdsKeys.proposalLists(),
+            marketingAdsKeys.proposalDetail(id),
+            marketingAdsKeys.auditAll(),
+            marketingAdsKeys.settings(),
+          ]
         : [marketingAdsKeys.proposalLists(), marketingAdsKeys.proposalDetail(id)];
       return Promise.all(keys.map((queryKey) => queryClient.invalidateQueries({ queryKey })));
     },

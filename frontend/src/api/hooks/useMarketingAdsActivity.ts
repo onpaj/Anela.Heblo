@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query';
+import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { getAuthenticatedApiClient } from '../client';
 import type { ApiClient } from '../generated/api-client';
 import { marketingAdsKeys, type ChangeEventParams, type PageParams } from './marketingAds/keys';
@@ -29,6 +29,7 @@ export const useAdAuditEventsQuery = (params: PageParams, enabled = true) =>
       return mapPaged<AdAuditEventWire, AdAuditEvent>(response, mapAuditEvent);
     },
     enabled,
+    placeholderData: keepPreviousData,
   });
 
 export const useAdChangeEventsQuery = (params: ChangeEventParams, enabled = true) =>
@@ -53,6 +54,7 @@ export const useAdChangeEventsQuery = (params: ChangeEventParams, enabled = true
       );
     },
     enabled,
+    placeholderData: keepPreviousData,
   });
 
 export const useAgentRunsQuery = (params: PageParams, enabled = true) =>
@@ -63,4 +65,5 @@ export const useAgentRunsQuery = (params: PageParams, enabled = true) =>
       return mapPaged<AgentRunWire, AgentRun>(response, mapAgentRun);
     },
     enabled,
+    placeholderData: keepPreviousData,
   });

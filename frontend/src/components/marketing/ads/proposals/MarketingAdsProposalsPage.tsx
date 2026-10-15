@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import ErrorState from '../../../common/ErrorState';
 import { PAGE_CONTAINER_HEIGHT } from '../../../../constants/layout';
@@ -35,6 +35,18 @@ const MarketingAdsProposalsPage: React.FC = () => {
     page,
     pageSize: PAGE_SIZE,
   });
+
+  // A decision can shrink the last page to nothing; step back so the pager stays reachable.
+  const totalCount = list.data?.totalCount;
+  useEffect(() => {
+    if (totalCount === undefined) {
+      return;
+    }
+    const lastPage = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
+    if (page > lastPage) {
+      setPage(lastPage);
+    }
+  }, [page, totalCount]);
 
   const updateParams = (changes: Record<string, string | null>) => {
     setSearchParams((previous) => {

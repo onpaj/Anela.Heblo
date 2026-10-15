@@ -82,4 +82,21 @@ describe('MarketingAdsProposalsPage', () => {
 
     expect(screen.getByText('Server nedostupný')).toBeInTheDocument();
   });
+
+  it('steps back to the last page when a decision empties the current one', () => {
+    // Arrange: 26 pending, so page 2 holds a single proposal.
+    mockProposalsQuery.mockImplementation(({ page }: { page: number }) => ({
+      data: page === 1 ? { items: [buildProposalSummary({ id: '7' })], totalCount: 26 } : { items: [], totalCount: 25 },
+      isLoading: false,
+      error: null,
+    }));
+    renderPage();
+
+    // Act: go to page 2, which the decision has just emptied.
+    fireEvent.click(screen.getByRole('button', { name: 'Další' }));
+
+    // Assert
+    expect(mockProposalsQuery).toHaveBeenCalledWith({ status: 'Pending', page: 2, pageSize: 25 });
+    expect(mockProposalsQuery).toHaveBeenLastCalledWith({ status: 'Pending', page: 1, pageSize: 25 });
+  });
 });

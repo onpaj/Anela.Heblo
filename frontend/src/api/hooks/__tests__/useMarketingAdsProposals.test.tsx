@@ -61,6 +61,7 @@ const DECIDED_DETAIL_KEYS = [
   marketingAdsKeys.proposalLists(),
   marketingAdsKeys.proposalDetail('7'),
   marketingAdsKeys.auditAll(),
+  marketingAdsKeys.settings(),
 ];
 
 describe('useMarketingAdsProposals', () => {
@@ -281,7 +282,7 @@ describe('useMarketingAdsProposals', () => {
       },
     ];
 
-    it.each(decisions)('$name invalidates the lists, the decided detail and the audit log only', async ({ decide }) => {
+    it.each(decisions)('$name invalidates the lists, the decided detail, the audit log and the settings only', async ({ decide }) => {
       // Arrange
       const client = createQueryClient();
       const spy = jest.spyOn(client, 'invalidateQueries');

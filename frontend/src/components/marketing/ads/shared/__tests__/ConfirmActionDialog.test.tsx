@@ -70,4 +70,26 @@ describe('ConfirmActionDialog', () => {
 
     expect(onCancel).not.toHaveBeenCalled();
   });
+
+  it('moves focus to the cancel button when it opens', () => {
+    renderDialog();
+
+    expect(screen.getByRole('button', { name: 'Zrušit' })).toHaveFocus();
+  });
+
+  it('cancels on Escape', () => {
+    const { onCancel } = renderDialog();
+
+    fireEvent.keyDown(document, { key: 'Escape' });
+
+    expect(onCancel).toHaveBeenCalledTimes(1);
+  });
+
+  it('ignores Escape while the request is pending', () => {
+    const { onCancel } = renderDialog({ isPending: true });
+
+    fireEvent.keyDown(document, { key: 'Escape' });
+
+    expect(onCancel).not.toHaveBeenCalled();
+  });
 });

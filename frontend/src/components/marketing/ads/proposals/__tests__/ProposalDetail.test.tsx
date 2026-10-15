@@ -195,4 +195,13 @@ describe('ProposalDetail', () => {
 
     expect(screen.getByText('Návrh nebyl nalezen.')).toBeInTheDocument();
   });
+
+  it('keeps the loaded detail when a background refetch fails', () => {
+    mockProposalQuery.mockReturnValue({ ...loaded(), error: new Error('Síť nedostupná') });
+
+    render(<ProposalDetail proposalId="7" />);
+
+    expect(screen.getByTestId('proposal-detail')).toBeInTheDocument();
+    expect(screen.queryByText('Síť nedostupná')).not.toBeInTheDocument();
+  });
 });

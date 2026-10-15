@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 
 interface ConfirmActionDialogProps {
   isOpen: boolean;
@@ -32,6 +32,28 @@ const ConfirmActionDialog: React.FC<ConfirmActionDialogProps> = ({
   onCancel,
   children,
 }) => {
+  const cancelRef = useRef<HTMLButtonElement>(null);
+
+  // Focus only when the dialog opens: a re-render must not pull focus out of a child input.
+  useEffect(() => {
+    if (isOpen) {
+      cancelRef.current?.focus();
+    }
+  }, [isOpen]);
+
+  useEffect(() => {
+    if (!isOpen) {
+      return undefined;
+    }
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && !isPending) {
+        onCancel();
+      }
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, isPending, onCancel]);
+
   if (!isOpen) {
     return null;
   }
@@ -58,6 +80,7 @@ const ConfirmActionDialog: React.FC<ConfirmActionDialogProps> = ({
           {children && <div className="mt-4">{children}</div>}
           <div className="flex gap-3 mt-6">
             <button
+              ref={cancelRef}
               type="button"
               onClick={onCancel}
               disabled={isPending}

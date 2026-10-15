@@ -25,7 +25,8 @@ const ProposalDetail: React.FC<ProposalDetailProps> = ({ proposalId }) => {
   if (query.isLoading) {
     return <AdsLoading />;
   }
-  if (query.error) {
+  // A failed background refetch keeps the last data; only a first-load failure replaces the detail.
+  if (query.error && !query.data) {
     return <ErrorState message={describeAdsError(query.error)} className="py-8" />;
   }
   const proposal = query.data;
