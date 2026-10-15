@@ -152,6 +152,10 @@ test.beforeEach(async ({ page }) => {
    - Calls `createE2EAuthSession(page)`
    - Requests service principal token from Microsoft Entra ID
    - Stores token for API calls
+   - The backend (`ServicePrincipalTokenValidator`) checks the RS256 signature against the
+     tenant's Entra keys, the issuer (tenant `E2E:ExpectedTenantId`), the audience
+     (`api://<AzureAd:ClientId>` or the bare id), the lifetime and `appid == E2E:ExpectedClientId`.
+     Any of those settings empty means every token is rejected (401).
 
 2. **Frontend session setup:**
    - Calls `navigateToAppWithServicePrincipal(page, token)`
