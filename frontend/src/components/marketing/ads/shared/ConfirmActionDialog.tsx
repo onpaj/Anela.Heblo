@@ -38,7 +38,12 @@ const ConfirmActionDialog: React.FC<ConfirmActionDialogProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto">
-      <div className="fixed inset-0 bg-black bg-opacity-50 transition-opacity" onClick={onCancel} aria-hidden="true" />
+      <div
+        data-testid="confirm-dialog-backdrop"
+        className="fixed inset-0 bg-black bg-opacity-50 transition-opacity"
+        onClick={isPending ? undefined : onCancel}
+        aria-hidden="true"
+      />
       <div className="flex min-h-full items-center justify-center p-4">
         <div
           role="dialog"

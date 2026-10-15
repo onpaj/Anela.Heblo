@@ -54,4 +54,20 @@ describe('ConfirmActionDialog', () => {
 
     expect(screen.getByRole('button', { name: 'Ukládám…' })).toBeDisabled();
   });
+
+  it('closes when the backdrop is clicked', () => {
+    const { onCancel } = renderDialog();
+
+    fireEvent.click(screen.getByTestId('confirm-dialog-backdrop'));
+
+    expect(onCancel).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not cancel from the backdrop while the request is pending', () => {
+    const { onCancel } = renderDialog({ isPending: true });
+
+    fireEvent.click(screen.getByTestId('confirm-dialog-backdrop'));
+
+    expect(onCancel).not.toHaveBeenCalled();
+  });
 });
