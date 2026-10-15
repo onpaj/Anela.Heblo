@@ -1,11 +1,12 @@
 import React from 'react';
 import { act, renderHook, waitFor } from '@testing-library/react';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { onlineManager, QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { SwaggerException } from '../../generated/api-client';
 import { isVersionConflict } from '../marketingAds/errors';
 import {
   useAdProposalQuery,
   useAdProposalsQuery,
+  useRefreshAdProposals,
   useApproveAdProposalMutation,
   useRejectAdProposalMutation,
   useRevertAdProposalMutation,
@@ -109,6 +110,25 @@ describe('useMarketingAdsProposals', () => {
     });
 
     expect(mockGet).not.toHaveBeenCalled();
+  });
+
+  it('detail query does not refetch on reconnect, but an explicit refresh refetches it', async () => {
+    mockGet.mockResolvedValue({ proposal: { summary: { id: 7, currentVersion: 3 } } });
+    const { result } = renderHook(
+      () => ({ detail: useAdProposalQuery('7'), refresh: useRefreshAdProposals() }),
+      { wrapper: createWrapper() },
+    );
+    await waitFor(() => expect(result.current.detail.isSuccess).toBe(true));
+    mockGet.mockClear();
+
+    act(() => {
+      onlineManager.setOnline(false);
+      onlineManager.setOnline(true);
+    });
+    expect(mockGet).not.toHaveBeenCalled();
+
+    act(() => result.current.refresh());
+    await waitFor(() => expect(mockGet).toHaveBeenCalledTimes(1));
   });
 
   it('approves with the proposal id and the given version in the request body', async () => {

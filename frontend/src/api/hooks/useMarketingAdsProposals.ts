@@ -65,6 +65,8 @@ export const useAdProposalQuery = (id: string | null) =>
     },
     enabled: id !== null && id !== '',
     refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
+    staleTime: Infinity,
   });
 
 export const useRefreshAdProposals = (): (() => void) => {

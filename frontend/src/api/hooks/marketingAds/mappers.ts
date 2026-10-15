@@ -11,11 +11,29 @@ import type {
   AgentRun,
   PagedResult,
 } from './types';
+import type {
+  IAdActionExecutionDto,
+  IAdApprovalRateDto,
+  IAdAuditEventDto,
+  IAdAutonomySettingDto,
+  IAdChangeEventDto,
+  IAdKillSwitchDto,
+  IAdLimitSettingDto,
+  IAdLimitsEvaluationDto,
+  IAdProposalApprovalDto,
+  IAdProposalDetailDto,
+  IAdProposalSummaryDto,
+  IAdProposalVersionDto,
+  IAgentRunDto,
+  IGetAdSettingsResponse,
+  IListAdProposalsResponse,
+} from '../../generated/api-client';
 
 // ---- Wire shapes ---------------------------------------------------------------------------
-// Structural mirrors of the generated DTOs (all fields optional, enums as string). A generated
-// class is assignable to these as long as its field names match, so a renamed field surfaces as
-// a compile error in the hook that passes it here — fix the field name in the interface below.
+// Structural mirrors of the generated DTOs (all fields optional, enums as string), so a generated
+// class is assignable to them. Optionality alone does NOT catch a renamed field (the missing key
+// would just map to its default), so `wireKeyChecks` below fails compilation whenever a Wire key
+// no longer exists on its generated interface. Fix the key in the Wire interface when it does.
 
 export type WireDate = Date | string | null | undefined;
 type WireId = number | string | null | undefined;
@@ -160,6 +178,31 @@ export interface PagedWire<W> {
   items?: W[] | null;
   totalCount?: number | null;
 }
+
+// ---- Compile-time wire checks ---------------------------------------------------------------
+
+type AssertKeys<W, D> = [Exclude<keyof W, keyof D>] extends [never]
+  ? true
+  : { missingInGeneratedDto: Exclude<keyof W, keyof D> };
+
+/** Each entry must be `true`; a Wire key absent from the generated interface turns it into an error. */
+export const wireKeyChecks: [
+  AssertKeys<AdProposalSummaryWire, IAdProposalSummaryDto>,
+  AssertKeys<AdLimitsEvaluationWire, IAdLimitsEvaluationDto>,
+  AssertKeys<AdProposalApprovalWire, IAdProposalApprovalDto>,
+  AssertKeys<AdActionExecutionWire, IAdActionExecutionDto>,
+  AssertKeys<AdProposalVersionWire, IAdProposalVersionDto>,
+  AssertKeys<AdProposalDetailWire, IAdProposalDetailDto>,
+  AssertKeys<AdAuditEventWire, IAdAuditEventDto>,
+  AssertKeys<AdChangeEventWire, IAdChangeEventDto>,
+  AssertKeys<AgentRunWire, IAgentRunDto>,
+  AssertKeys<AdAutonomySettingWire, IAdAutonomySettingDto>,
+  AssertKeys<AdLimitSettingWire, IAdLimitSettingDto>,
+  AssertKeys<AdKillSwitchWire, IAdKillSwitchDto>,
+  AssertKeys<AdApprovalRateWire, IAdApprovalRateDto>,
+  AssertKeys<AdsSettingsWire, IGetAdSettingsResponse>,
+  AssertKeys<PagedWire<unknown>, IListAdProposalsResponse>,
+] = [true, true, true, true, true, true, true, true, true, true, true, true, true, true, true];
 
 // ---- Primitive helpers ---------------------------------------------------------------------
 

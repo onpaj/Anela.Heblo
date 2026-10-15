@@ -34,6 +34,7 @@ const matchesCodeOrBareStatus = (error: unknown, codes: readonly string[], statu
   return codes.includes(code) || (code === '' && statusOf(error) === status);
 };
 
+// A status-less typed DTO without an errorCode matches neither helper on purpose: it falls through to describeAdsError.
 export const isVersionConflict = (error: unknown): boolean =>
   matchesCodeOrBareStatus(error, PROPOSAL_CONFLICT_ERROR_CODES, HTTP_CONFLICT);
 
