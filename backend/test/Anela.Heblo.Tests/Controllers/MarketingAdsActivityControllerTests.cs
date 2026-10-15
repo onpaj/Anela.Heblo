@@ -37,17 +37,15 @@ public class MarketingAdsActivityControllerTests
             PageNumber = 2,
             PageSize = 25
         };
-        GetAdChangeHistoryRequest? sent = null;
         var mediator = new Mock<IMediator>();
         mediator.Setup(m => m.Send(It.IsAny<GetAdChangeHistoryRequest>(), It.IsAny<CancellationToken>()))
-            .Callback<IRequest<GetAdChangeHistoryResponse>, CancellationToken>((r, _) => sent = (GetAdChangeHistoryRequest)r)
             .ReturnsAsync(new GetAdChangeHistoryResponse { TotalCount = 42, PageNumber = 2, PageSize = 25 });
 
         // Act
         var result = await Build(mediator).ListChangeEvents(request);
 
         // Assert
-        sent.Should().BeSameAs(request);
+        mediator.Verify(m => m.Send(request, It.IsAny<CancellationToken>()), Times.Once);
         var ok = result.Result.Should().BeOfType<OkObjectResult>().Subject;
         var body = ok.Value.Should().BeOfType<GetAdChangeHistoryResponse>().Subject;
         body.TotalCount.Should().Be(42);
@@ -70,5 +68,25 @@ public class MarketingAdsActivityControllerTests
         objectResult.StatusCode.Should().Be(StatusCodes.Status500InternalServerError);
         objectResult.Value.Should().BeOfType<GetAdChangeHistoryResponse>()
             .Which.ErrorCode.Should().Be(ErrorCodes.ConfigurationError);
+    }
+
+    [Theory]
+    [InlineData(ErrorCodes.InvalidValue)]
+    [InlineData(ErrorCodes.InvalidDateRange)]
+    public async Task ListChangeEvents_ReturnsBadRequestWithTheTypedBodyForAnInvalidFilter(ErrorCodes errorCode)
+    {
+        // Arrange
+        var mediator = new Mock<IMediator>();
+        mediator.Setup(m => m.Send(It.IsAny<GetAdChangeHistoryRequest>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new GetAdChangeHistoryResponse(errorCode));
+
+        // Act
+        var result = await Build(mediator).ListChangeEvents(new GetAdChangeHistoryRequest());
+
+        // Assert
+        var objectResult = result.Result.Should().BeAssignableTo<ObjectResult>().Subject;
+        objectResult.StatusCode.Should().Be(StatusCodes.Status400BadRequest);
+        objectResult.Value.Should().BeOfType<GetAdChangeHistoryResponse>()
+            .Which.ErrorCode.Should().Be(errorCode);
     }
 }
