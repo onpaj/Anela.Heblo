@@ -25,6 +25,16 @@ public class ShippingMethodCatalog : IShippingMethodCatalog
             .AsReadOnly();
     }
 
+    public IReadOnlyList<string> GetShippingNamesForCarrier(Carriers carrier)
+    {
+        return ShippingMethodRegistry.ShippingList
+            .Where(m => m.Carrier == carrier)
+            .Select(m => m.DisplayName)
+            .Distinct()
+            .ToList()
+            .AsReadOnly();
+    }
+
     public Carriers? ResolveCarrier(string shippingProviderCode)
     {
         if (!int.TryParse(shippingProviderCode, out var id))

@@ -94,6 +94,36 @@ public class ShippingMethodCatalogTests
     }
 
     [Fact]
+    public void GetShippingNamesForCarrier_Zasilkovna_IncludesBoxyDisplayName()
+    {
+        var result = _sut.GetShippingNamesForCarrier(Carriers.Zasilkovna);
+
+        result.Should().Contain("Zásilkovna boxy a výdejní místa");
+        result.Should().NotContain("GLS boxy a výdejní místa");
+    }
+
+    [Fact]
+    public void GetShippingNamesForCarrier_Gls_IncludesBoxyDisplayName()
+    {
+        var result = _sut.GetShippingNamesForCarrier(Carriers.GLS);
+
+        result.Should().Contain("GLS boxy a výdejní místa");
+    }
+
+    [Fact]
+    public void GetShippingNamesForCarrier_NoDisplayNameIsSharedAcrossCarriers()
+    {
+        // The package carrier filter matches by name, so a shared name would list packages under two carriers
+        var carriersPerName = Enum.GetValues<Carriers>()
+            .SelectMany(c => _sut.GetShippingNamesForCarrier(c).Select(n => (Name: n.Trim().ToLowerInvariant(), Carrier: c)))
+            .GroupBy(x => x.Name)
+            .Where(g => g.Select(x => x.Carrier).Distinct().Count() > 1)
+            .Select(g => g.Key);
+
+        carriersPerName.Should().BeEmpty();
+    }
+
+    [Fact]
     public void GetShippingCodesForCarrier_Osobak_ReturnsSingleId()
     {
         var result = _sut.GetShippingCodesForCarrier(Carriers.Osobak);

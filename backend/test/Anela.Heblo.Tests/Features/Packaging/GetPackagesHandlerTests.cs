@@ -32,7 +32,7 @@ public class GetPackagesHandlerTests
         repo = new Mock<IPackageRepository>();
         repo.Setup(r => r.GetPaginatedAsync(
                 It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<string?>(),
-                It.IsAny<IReadOnlyList<string>?>(),
+                It.IsAny<IReadOnlyList<string>?>(), It.IsAny<IReadOnlyList<string>?>(),
                 It.IsAny<DateTime?>(), It.IsAny<DateTime?>(), It.IsAny<int>(), It.IsAny<int>(),
                 It.IsAny<string>(), It.IsAny<bool>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(result);
@@ -82,7 +82,7 @@ public class GetPackagesHandlerTests
 
         // Assert — no carrier filter => null codes list
         repo.Verify(r => r.GetPaginatedAsync(
-            "ORD42", "Bob", null, (IReadOnlyList<string>?)null,
+            "ORD42", "Bob", null, (IReadOnlyList<string>?)null, (IReadOnlyList<string>?)null,
             new DateTime(2026, 5, 1), new DateTime(2026, 5, 31),
             3, 10,
             "CustomerName", false,
@@ -108,7 +108,27 @@ public class GetPackagesHandlerTests
         catalog.Verify(c => c.GetShippingCodesForCarrier(Carriers.PPL), Times.Once);
         repo.Verify(r => r.GetPaginatedAsync(
             It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<string?>(),
-            codes,
+            codes, It.IsAny<IReadOnlyList<string>?>(),
+            It.IsAny<DateTime?>(), It.IsAny<DateTime?>(), It.IsAny<int>(), It.IsAny<int>(),
+            It.IsAny<string>(), It.IsAny<bool>(), It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task Handle_ResolvesCarrierToShippingNames_AndForwardsToRepository()
+    {
+        // Arrange — packages stored with a per-order shipping id only match by their stored name
+        var sut = MakeSut(out var repo, out var catalog, (new List<Package>(), 0));
+        var names = new[] { "Zásilkovna boxy a výdejní místa" };
+        catalog.Setup(c => c.GetShippingNamesForCarrier(Carriers.Zasilkovna)).Returns(names);
+        var request = new GetPackagesRequest { Carrier = Carriers.Zasilkovna };
+
+        // Act
+        await sut.Handle(request, CancellationToken.None);
+
+        // Assert
+        repo.Verify(r => r.GetPaginatedAsync(
+            It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<string?>(),
+            It.IsAny<IReadOnlyList<string>?>(), names,
             It.IsAny<DateTime?>(), It.IsAny<DateTime?>(), It.IsAny<int>(), It.IsAny<int>(),
             It.IsAny<string>(), It.IsAny<bool>(), It.IsAny<CancellationToken>()), Times.Once);
     }
