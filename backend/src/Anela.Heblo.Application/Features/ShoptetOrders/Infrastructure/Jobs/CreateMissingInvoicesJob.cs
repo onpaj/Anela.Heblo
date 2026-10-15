@@ -47,6 +47,7 @@ public sealed class CreateMissingInvoicesJob : IRecurringJob
     // A run of identical failures (401/403/429, Shoptet down) is systemic: stop instead of burning the
     // shared rate budget on every remaining order.
     private const int MaxConsecutiveFailures = 5;
+    private const int MaxFailuresListed = 10;
 
     // The daily cron is the retry: a failed run recomputes the work list from scratch next night.
     // A manual trigger overlapping the scheduled run would read the same work list and invoice twice.
@@ -108,18 +109,23 @@ public sealed class CreateMissingInvoicesJob : IRecurringJob
         var outcome = await CreateInvoicesAsync(missing, cancellationToken);
 
         _logger.LogInformation(
-            "CreateMissingInvoices: created {Created} of {Missing} invoice(s), {Skipped} already invoiced meanwhile, {Failed} failed (retried next run).",
-            outcome.Created, missing.Count, outcome.Skipped, outcome.Failed);
+            "CreateMissingInvoices: created {Created} of {Missing} invoice(s), {Skipped} already invoiced meanwhile, {WithoutBillingMethod} without a billing method, {Failed} failed (retried next run).",
+            outcome.Created, missing.Count, outcome.Skipped, outcome.WithoutBillingMethod.Count, outcome.Failures.Count);
+
+        if (outcome.WithoutBillingMethod.Count > 0)
+            _logger.LogWarning(
+                "CreateMissingInvoices: {Count} order(s) have no billing method, so Shoptet cannot invoice them through the API; set a payment method and invoice them by hand in Shoptet: {OrderCodes}.",
+                outcome.WithoutBillingMethod.Count, string.Join(", ", outcome.WithoutBillingMethod));
 
         // Surface failures as a failed Hangfire run — a warning log alone hides an order failing every night.
-        if (outcome.Failed > 0)
+        if (outcome.Failures.Count > 0)
             throw new InvalidOperationException(
-                $"CreateMissingInvoices: {outcome.Failed} of {missing.Count} invoice(s) failed; see the warnings above.");
+                $"CreateMissingInvoices: {outcome.Failures.Count} of {missing.Count} invoice(s) failed (retried next run): {DescribeFailures(outcome.Failures)}");
     }
 
     private async Task<CreationOutcome> CreateInvoicesAsync(IReadOnlyList<EshopOrderSummary> orders, CancellationToken cancellationToken)
     {
-        var outcome = new CreationOutcome(0, 0, 0);
+        var outcome = new CreationOutcome(0, 0, [], []);
         var consecutiveFailures = 0;
         for (var i = 0; i < orders.Count; i++)
         {
@@ -136,14 +142,14 @@ public sealed class CreateMissingInvoicesJob : IRecurringJob
             // and must only skip this order, not abort the run.
             catch (Exception ex) when (!cancellationToken.IsCancellationRequested)
             {
-                outcome = outcome with { Failed = outcome.Failed + 1 };
+                outcome = outcome with { Failures = [.. outcome.Failures, new FailedOrder(order.Code, ex.Message)] };
                 _logger.LogWarning(ex,
-                    "CreateMissingInvoices: failed to create an invoice for order {OrderCode}. Will retry next run.",
-                    order.Code);
+                    "CreateMissingInvoices: failed to create an invoice for order {OrderCode}: {Error}. Will retry next run.",
+                    order.Code, ex.Message);
 
                 if (++consecutiveFailures >= MaxConsecutiveFailures)
                     throw new InvalidOperationException(
-                        $"CreateMissingInvoices: {consecutiveFailures} consecutive invoice failures — aborting the run after {outcome.Created} created.",
+                        $"CreateMissingInvoices: {consecutiveFailures} consecutive invoice failures — aborting the run after {outcome.Created} created: {DescribeFailures(outcome.Failures)}",
                         ex);
             }
         }
@@ -163,6 +169,18 @@ public sealed class CreateMissingInvoicesJob : IRecurringJob
             return outcome with { Skipped = outcome.Skipped + 1 };
         }
 
+        // Shoptet invoices with the order's billing method; an order keyed in the admin without one is
+        // rejected with 422 "Unknown billingMethodId provided". Picking a payment method is a human call.
+        var detail = await _orderClient.GetOrderDetailAsync(order.Code, cancellationToken)
+            ?? throw new InvalidOperationException($"Shoptet order {order.Code} no longer exists.");
+        if (!detail.HasBillingMethod)
+        {
+            _logger.LogInformation(
+                "CreateMissingInvoices: order {OrderCode} has no billing method, skipping.",
+                order.Code);
+            return outcome with { WithoutBillingMethod = [.. outcome.WithoutBillingMethod, order.Code] };
+        }
+
         await _orderClient.CreateInvoiceAsync(order.Code, cancellationToken);
         _logger.LogInformation(
             "CreateMissingInvoices: invoice created for order {OrderCode} (total {PriceWithVat}).",
@@ -170,7 +188,19 @@ public sealed class CreateMissingInvoicesJob : IRecurringJob
         return outcome with { Created = outcome.Created + 1 };
     }
 
-    private sealed record CreationOutcome(int Created, int Skipped, int Failed);
+    // Capped so a bad night cannot produce a huge Hangfire exception; every failure is also logged above.
+    private static string DescribeFailures(IReadOnlyList<FailedOrder> failures)
+    {
+        var listed = string.Join("; ", failures.Take(MaxFailuresListed).Select(f => $"order {f.OrderCode}: {f.Error}"));
+        return failures.Count > MaxFailuresListed
+            ? $"{listed}; and {failures.Count - MaxFailuresListed} more"
+            : listed;
+    }
+
+    private sealed record FailedOrder(string OrderCode, string Error);
+
+    private sealed record CreationOutcome(
+        int Created, int Skipped, IReadOnlyList<string> WithoutBillingMethod, IReadOnlyList<FailedOrder> Failures);
 
     private static bool HasPrice(EshopOrderSummary order) => order.PriceWithVat is > 0m;
 }

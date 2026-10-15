@@ -88,6 +88,20 @@ public class ShoptetOrderClientItemsTests
         _requests[0].PathAndQuery.Should().Be("/api/orders/126000043");
     }
 
+    [Theory]
+    [InlineData(""","billingMethod":{"id":2,"name":"Převodem"}""", true)]
+    [InlineData(""","billingMethod":null""", false)]
+    [InlineData("", false)]
+    public async Task GetOrderDetail_MapsWhetherTheOrderHasABillingMethod(string billingMethodJson, bool expected)
+    {
+        var client = BuildClient(_ => Raw(HttpStatusCode.OK,
+            """{"data":{"order":{"code":"126013625","status":{"id":-3},"items":[]""" + billingMethodJson + "}}}"));
+
+        var detail = await client.GetOrderDetailAsync("126013625");
+
+        detail!.HasBillingMethod.Should().Be(expected);
+    }
+
     [Fact]
     public async Task GetOrderDetail_ReturnsNull_On404()
     {
