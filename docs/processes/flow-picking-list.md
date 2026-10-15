@@ -13,7 +13,7 @@ owns:
   - backend/src/Adapters/Anela.Heblo.Adapters.Azure/Features/ExpeditionList/**
   - backend/src/Adapters/Anela.Heblo.Adapters.FileSystem/Features/ExpeditionList/**
   - backend/src/Anela.Heblo.API/Controllers/ExpeditionListController.cs
-verified_at: "5e993f9e2"
+verified_at: "72542a99b"
 related: [job-double-shot-order-swap]
 ---
 

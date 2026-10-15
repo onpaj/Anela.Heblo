@@ -21,7 +21,7 @@ owns:
   - backend/src/Anela.Heblo.Persistence/Repositories/Packaging/PackageRepository.cs
   - backend/src/Anela.Heblo.Persistence/Features/Packaging/PackageConfiguration.cs
   - backend/src/Adapters/Anela.Heblo.Adapters.ShoptetApi/Orders/ShoptetApiPackingOrderClient.cs
-verified_at: "5e993f9e2"
+verified_at: "72542a99b"
 related:
   - sync-tracking-numbers
   - calc-packing-statistics
@@ -196,6 +196,13 @@ not present in any appsettings file.
 - **Delete cancels the whole shipment but deletes one row.** `DELETE /packages/{id}` cancels the
   Shoptet shipment of that box (all its boxes) and removes only that row; sibling rows of the same
   shipment stay. The Shoptet order state is not changed.
+- **Carrier filter matches by code *or* stored name.** `GET /api/packaging/packages?carrier=…`
+  (Zásilky combobox, label-offset sample picker) used to match `ShippingProviderCode` against the
+  `ShippingMethodRegistry` ids only. Packages written from the Shoptet delivery API store the order's
+  per-order `ShippingId` there (e.g. `280591`), which never equals a registry id, so the filter came
+  back empty on prod. `PackageRepository` now also matches `ShippingProviderName` against the
+  carrier's registry `DisplayName`s, trimmed and case-insensitively. A Shoptet option name that
+  differs in more than case or surrounding whitespace (e.g. another dash) still does not match.
 - **Package rows are best effort.** A DB failure while writing rows is logged as a warning only;
   the shipment exists in Shoptet but Heblo statistics miss it.
 - Label proxy indexes across **all active shipments** of the order, not just the latest one, so the
