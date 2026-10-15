@@ -3,7 +3,7 @@ import { useSetAdKillSwitchMutation } from '../../../../api/hooks/useMarketingAd
 import { describeAdsError } from '../../../../api/hooks/marketingAds/errors';
 import { AD_PLATFORMS, type AdKillSwitchState } from '../../../../api/hooks/marketingAds/types';
 import { PLATFORM_LABELS, labelFor } from '../shared/adLabels';
-import { GREEN_PILL, Pill, RED_PILL } from '../shared/Badges';
+import { GREEN_PILL, NEUTRAL_PILL, Pill, RED_PILL } from '../shared/Badges';
 import ConfirmActionDialog from '../shared/ConfirmActionDialog';
 
 interface PendingToggle {
@@ -17,19 +17,56 @@ const TOGGLE_BUTTON =
 
 interface KillSwitchRowProps {
   label: string;
+  /** The row's own switch; the button and its accessible name follow it. */
   isEnabled: boolean;
+  /** A platform that is on by itself but blocked because the main switch is off. */
+  isBlockedByMainSwitch?: boolean;
   note: string | null;
   isDisabled: boolean;
   onToggle: () => void;
 }
 
-const KillSwitchRow: React.FC<KillSwitchRowProps> = ({ label, isEnabled, note, isDisabled, onToggle }) => {
+const statusPill = (isEnabled: boolean, isBlockedByMainSwitch: boolean): { className: string; text: string } => {
+  if (!isEnabled) {
+    return { className: RED_PILL, text: 'Vypnuto' };
+  }
+  return isBlockedByMainSwitch
+    ? { className: NEUTRAL_PILL, text: 'Vypnuto hlavním vypínačem' }
+    : { className: GREEN_PILL, text: 'Zapnuto' };
+};
+
+// Server semantics (AdKillSwitchPolicy): a change executes only when the main switch is on AND the
+// platform has no disabling override of its own.
+const confirmMessage = (pending: PendingToggle | null, state: AdKillSwitchState): string => {
+  if (!pending) {
+    return '';
+  }
+  const platformLabel = pending.platform ? labelFor(PLATFORM_LABELS, pending.platform) : null;
+  const scope = platformLabel ? ` pro ${platformLabel}` : '';
+  if (!pending.enable) {
+    return `Heblo přestane provádět schválené návrhy${scope}. Rozběhnuté provádění se zastaví před další akcí.`;
+  }
+  if (platformLabel && !state.executionEnabled) {
+    return `Platforma ${platformLabel} bude povolena, ale změny se začnou provádět až po zapnutí hlavního vypínače.`;
+  }
+  const liveWarning = `Heblo začne provádět schválené návrhy${scope} v živých reklamních účtech.`;
+  if (platformLabel) {
+    return liveWarning;
+  }
+  const stillOff = AD_PLATFORMS.filter((platform) =>
+    state.platformOverrides.some((o) => o.platform === platform && !o.executionEnabled),
+  ).map((platform) => labelFor(PLATFORM_LABELS, platform));
+  return stillOff.length > 0 ? `${liveWarning} Platformy s vlastním vypnutím (${stillOff.join(', ')}) zůstanou vypnuté.` : liveWarning;
+};
+
+const KillSwitchRow: React.FC<KillSwitchRowProps> = ({ label, isEnabled, isBlockedByMainSwitch = false, note, isDisabled, onToggle }) => {
   const verb = isEnabled ? 'Vypnout' : 'Zapnout';
+  const pill = statusPill(isEnabled, isBlockedByMainSwitch);
   return (
     <li className="flex flex-wrap items-center justify-between gap-2 py-2">
       <div className="flex items-center gap-2">
         <span className="text-sm text-gray-900 dark:text-graphite-text">{label}</span>
-        <Pill className={isEnabled ? GREEN_PILL : RED_PILL}>{isEnabled ? 'Zapnuto' : 'Vypnuto'}</Pill>
+        <Pill className={pill.className}>{pill.text}</Pill>
         {note && <span className="text-xs text-gray-500 dark:text-graphite-muted">{note}</span>}
       </div>
       <button type="button" className={TOGGLE_BUTTON} disabled={isDisabled} onClick={onToggle} aria-label={`${verb} provádění: ${label}`}>
@@ -45,7 +82,6 @@ const KillSwitchCard: React.FC<{ state: AdKillSwitchState }> = ({ state }) => {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const overrideFor = (platform: string) => state.platformOverrides.find((o) => o.platform === platform) ?? null;
-  const scope = pending?.platform ? ` pro ${labelFor(PLATFORM_LABELS, pending.platform)}` : '';
 
   const handleConfirm = () => {
     if (!pending) {
@@ -102,6 +138,7 @@ const KillSwitchCard: React.FC<{ state: AdKillSwitchState }> = ({ state }) => {
               key={platform}
               label={labelFor(PLATFORM_LABELS, platform)}
               isEnabled={isEnabled}
+              isBlockedByMainSwitch={!state.executionEnabled}
               note={override ? null : 'bez vlastního nastavení'}
               isDisabled={mutation.isPending}
               onToggle={() => setPending({ platform, enable: !isEnabled })}
@@ -113,11 +150,7 @@ const KillSwitchCard: React.FC<{ state: AdKillSwitchState }> = ({ state }) => {
       <ConfirmActionDialog
         isOpen={pending !== null}
         title={pending?.enable ? 'Zapnout provádění změn?' : 'Vypnout provádění změn?'}
-        message={
-          pending?.enable
-            ? `Heblo začne provádět schválené návrhy${scope} v živých reklamních účtech.`
-            : `Heblo přestane provádět schválené návrhy${scope}. Rozběhnuté provádění se zastaví před další akcí.`
-        }
+        message={confirmMessage(pending, state)}
         confirmLabel={pending?.enable ? 'Zapnout provádění' : 'Vypnout provádění'}
         tone={pending?.enable ? 'danger' : 'primary'}
         isPending={mutation.isPending}

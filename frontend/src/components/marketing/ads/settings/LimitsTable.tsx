@@ -81,7 +81,7 @@ const LimitsTable: React.FC<{ rows: AdLimitSetting[] }> = ({ rows }) => {
                     <button
                       type="button"
                       className={SAVE_BUTTON}
-                      aria-label={`Uložit limit ${row.key}`}
+                      aria-label={`Uložit limit ${row.key} (${scopeText(row)})`}
                       disabled={parsed === null || !isDirty || mutation.isPending}
                       onClick={() => parsed !== null && handleSave(row, parsed)}
                     >

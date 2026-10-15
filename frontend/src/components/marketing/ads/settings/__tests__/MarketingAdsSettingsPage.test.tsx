@@ -1,5 +1,5 @@
 import React from 'react';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import MarketingAdsSettingsPage from '../MarketingAdsSettingsPage';
 import type { AdsSettings } from '../../../../../api/hooks/marketingAds/types';
 
@@ -29,6 +29,8 @@ const SETTINGS: AdsSettings = {
   ],
   limits: [{ platform: 'GoogleAds', actionType: 'PauseAd', key: 'MaxActionsPerProposal', value: 10 }],
 };
+
+const GLOBALLY_ON: AdsSettings = { ...SETTINGS, killSwitch: { ...SETTINGS.killSwitch, executionEnabled: true } };
 
 type MutateOptions = { onSuccess?: () => void; onError?: (error: unknown) => void };
 
@@ -62,6 +64,8 @@ describe('MarketingAdsSettingsPage', () => {
   });
 
   it('shows platforms without an override as enabled and an override as disabled', () => {
+    mockSettingsQuery.mockReturnValue({ data: GLOBALLY_ON, isLoading: false, error: null });
+
     render(<MarketingAdsSettingsPage />);
 
     expect(screen.getByRole('button', { name: 'Vypnout provádění: Google Ads' })).toBeInTheDocument();
@@ -129,7 +133,7 @@ describe('MarketingAdsSettingsPage', () => {
   it('validates a limit before saving it', () => {
     render(<MarketingAdsSettingsPage />);
     const input = screen.getByLabelText('Limit: MaxActionsPerProposal (Google Ads – Pozastavení reklam)');
-    const save = screen.getByRole('button', { name: 'Uložit limit MaxActionsPerProposal' });
+    const save = screen.getByRole('button', { name: 'Uložit limit MaxActionsPerProposal (Google Ads – Pozastavení reklam)' });
     expect(save).toBeDisabled();
 
     fireEvent.change(input, { target: { value: '-3' } });
@@ -143,5 +147,116 @@ describe('MarketingAdsSettingsPage', () => {
       { platform: 'GoogleAds', actionType: 'PauseAd', key: 'MaxActionsPerProposal', value: 5 },
       expect.anything(),
     );
+  });
+
+  describe('kill switch copy follows the server semantics (global AND platform)', () => {
+    const rowOf = (label: string): HTMLElement => {
+      const name = new RegExp(`provádění: ${label}$`);
+      const row = screen.getAllByRole('listitem').find((item) => within(item).queryByRole('button', { name }) !== null);
+      if (!row) {
+        throw new Error(`Kill-switch row ${label} not found`);
+      }
+      return row;
+    };
+
+    it('while the main switch is off, a platform without its own off-switch shows it is off by the main switch', () => {
+      render(<MarketingAdsSettingsPage />);
+
+      expect(rowOf('Google Ads')).toHaveTextContent('Vypnuto hlavním vypínačem');
+      expect(rowOf('Google Ads')).not.toHaveTextContent(/Zapnuto/);
+      expect(screen.getByRole('button', { name: 'Vypnout provádění: Google Ads' })).toBeInTheDocument();
+      expect(rowOf('Sklik')).toHaveTextContent('Vypnuto');
+      expect(rowOf('Sklik')).not.toHaveTextContent('hlavním vypínačem');
+    });
+
+    it('while the main switch is on, a platform without its own off-switch shows it is on', () => {
+      mockSettingsQuery.mockReturnValue({ data: GLOBALLY_ON, isLoading: false, error: null });
+
+      render(<MarketingAdsSettingsPage />);
+
+      expect(rowOf('Google Ads')).toHaveTextContent('Zapnuto');
+      expect(rowOf('Google Ads')).not.toHaveTextContent('hlavním vypínačem');
+    });
+
+    it('enabling a platform while the main switch is off says it takes effect only with the main switch', () => {
+      render(<MarketingAdsSettingsPage />);
+
+      fireEvent.click(screen.getByRole('button', { name: 'Zapnout provádění: Sklik' }));
+
+      expect(screen.getByRole('dialog')).toHaveTextContent(
+        'Platforma Sklik bude povolena, ale změny se začnou provádět až po zapnutí hlavního vypínače.',
+      );
+    });
+
+    it('enabling a platform while the main switch is on keeps the live-accounts warning', () => {
+      mockSettingsQuery.mockReturnValue({ data: GLOBALLY_ON, isLoading: false, error: null });
+      render(<MarketingAdsSettingsPage />);
+
+      fireEvent.click(screen.getByRole('button', { name: 'Zapnout provádění: Sklik' }));
+
+      expect(screen.getByRole('dialog')).toHaveTextContent('Heblo začne provádět schválené návrhy pro Sklik v živých reklamních účtech.');
+    });
+
+    it('enabling the main switch names the platforms whose own off-switch stays off', () => {
+      mockSettingsQuery.mockReturnValue({
+        data: {
+          ...SETTINGS,
+          killSwitch: {
+            executionEnabled: false,
+            platformOverrides: [
+              { platform: 'Sklik', executionEnabled: false },
+              { platform: 'MetaAds', executionEnabled: false },
+              { platform: 'GoogleAds', executionEnabled: true },
+            ],
+          },
+        },
+        isLoading: false,
+        error: null,
+      });
+      render(<MarketingAdsSettingsPage />);
+
+      fireEvent.click(screen.getByRole('button', { name: 'Zapnout provádění: Všechny platformy' }));
+
+      expect(screen.getByRole('dialog')).toHaveTextContent('Platformy s vlastním vypnutím (Meta, Sklik) zůstanou vypnuté.');
+    });
+
+    it('enabling the main switch with no platform switched off does not mention platform switches', () => {
+      mockSettingsQuery.mockReturnValue({
+        data: { ...SETTINGS, killSwitch: { executionEnabled: false, platformOverrides: [] } },
+        isLoading: false,
+        error: null,
+      });
+      render(<MarketingAdsSettingsPage />);
+
+      fireEvent.click(screen.getByRole('button', { name: 'Zapnout provádění: Všechny platformy' }));
+
+      expect(screen.getByRole('dialog')).not.toHaveTextContent('Platformy s vlastním vypnutím');
+    });
+  });
+
+  describe('autonomy mode consequences', () => {
+    const MAIN_SWITCH_CLAUSE = 'provedou se, jen když to dovolí hlavní vypínač.';
+
+    it('Auto explains it currently behaves like auto within limits', () => {
+      render(<MarketingAdsSettingsPage />);
+
+      fireEvent.change(screen.getByLabelText('Režim: Google Ads – Vylučující klíčová slova'), { target: { value: 'Auto' } });
+
+      const dialog = screen.getByRole('dialog');
+      expect(dialog).toHaveTextContent(
+        'Na serveru se zatím chová jako „Automaticky v limitech“: systém schválí jen návrhy, které projdou limity; ' + MAIN_SWITCH_CLAUSE,
+      );
+      expect(dialog).not.toHaveTextContent('bez schválení člověkem');
+    });
+
+    it('auto within limits names the main switch', () => {
+      render(<MarketingAdsSettingsPage />);
+
+      fireEvent.change(screen.getByLabelText('Režim: Google Ads – Vylučující klíčová slova'), { target: { value: 'AutoWithinLimits' } });
+
+      expect(screen.getByRole('dialog')).toHaveTextContent(
+        'Návrhy, které projdou limity, schválí systém automaticky; ' + MAIN_SWITCH_CLAUSE,
+      );
+    });
   });
 });

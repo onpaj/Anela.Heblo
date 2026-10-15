@@ -2,28 +2,20 @@ import React, { useState } from 'react';
 import { useUpdateAdAutonomyModeMutation } from '../../../../api/hooks/useMarketingAdsSettings';
 import { describeAdsError } from '../../../../api/hooks/marketingAds/errors';
 import { AUTONOMY_MODES, type AdAutonomySetting } from '../../../../api/hooks/marketingAds/types';
-import { ACTION_TYPE_LABELS, AUTONOMY_MODE_LABELS, PLATFORM_LABELS, labelFor } from '../shared/adLabels';
+import { AUTONOMY_MODE_LABELS, labelFor } from '../shared/adLabels';
 import ConfirmActionDialog from '../shared/ConfirmActionDialog';
+import { autonomyRowLabel as rowLabel, describeModeChange } from './autonomyCopy';
 
 interface PendingChange {
   row: AdAutonomySetting;
   mode: string;
 }
 
-const MODE_CONSEQUENCES: Readonly<Record<string, string>> = {
-  ProposeOnly: 'Každý návrh bude čekat na schválení člověkem.',
-  AutoWithinLimits: 'Návrhy, které projdou limity, schválí systém automaticky.',
-  Auto: 'Všechny návrhy tohoto typu se provedou bez schválení člověkem (limity platí dál).',
-};
-
 const HEAD = 'px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-graphite-muted uppercase';
 const CELL = 'px-3 py-2 text-sm text-gray-700 dark:text-graphite-muted';
 const SELECT =
   'rounded-md border border-gray-300 dark:border-graphite-border bg-white dark:bg-graphite-surface-2 text-sm text-gray-900 dark:text-graphite-text py-1 px-2';
 const PERCENT = 100;
-
-const rowLabel = (row: AdAutonomySetting): string =>
-  `${labelFor(PLATFORM_LABELS, row.platform)} – ${labelFor(ACTION_TYPE_LABELS, row.actionType)}`;
 
 const rateText = (row: AdAutonomySetting): string =>
   row.approvedWithoutEditRate === null || row.decidedCount === 0
@@ -101,11 +93,7 @@ const AutonomyTable: React.FC<{ rows: AdAutonomySetting[] }> = ({ rows }) => {
       <ConfirmActionDialog
         isOpen={pending !== null}
         title="Změnit režim autonomie?"
-        message={
-          pending
-            ? `${rowLabel(pending.row)}: ${labelFor(AUTONOMY_MODE_LABELS, pending.row.mode)} → ${labelFor(AUTONOMY_MODE_LABELS, pending.mode)}. ${MODE_CONSEQUENCES[pending.mode] ?? ''}`
-            : ''
-        }
+        message={pending ? describeModeChange(pending.row, pending.mode) : ''}
         confirmLabel="Změnit režim"
         tone={pending?.mode === 'ProposeOnly' ? 'primary' : 'danger'}
         isPending={mutation.isPending}
