@@ -154,12 +154,14 @@ The E2E test suite is organized into 9 logical modules to enable parallel execut
 - Marketing action creation
 - Marketing actions grid (seznam) view
 - Page loading and initial state
+- Marketing ads pages (`/marketing/ads/*`): inbox, activity and settings render; the E2E session is refused approve/reject (read-only, no seeding)
 
 **Test Files:**
 - `calendar-view.spec.ts` - Marketing calendar functionality
 - `create-record.spec.ts` - Creating new marketing actions
 - `grid-view.spec.ts` - Marketing actions grid (seznam) view
 - `loading.spec.ts` - Page loading and initial state
+- `ads-approval-inbox.spec.ts` - Ads inbox/activity/settings render; E2E session refused approve/reject (read-only, no seeding)
 
 ### 8. Mindmaps Module (`mindmaps/`)
 
