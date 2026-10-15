@@ -151,7 +151,7 @@ describe('useMarketingAdsProposals', () => {
       await expect(result.current.mutateAsync({ id: '7', version: 3 })).rejects.toBe(conflict);
     });
 
-    expect(isVersionConflict(result.current.error)).toBe(true);
+    await waitFor(() => expect(isVersionConflict(result.current.error)).toBe(true));
   });
 
   it('rejects with version and reason', async () => {
