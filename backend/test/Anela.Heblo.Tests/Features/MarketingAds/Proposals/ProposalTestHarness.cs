@@ -78,8 +78,10 @@ internal sealed class ProposalTestHarness : IDisposable
     public void UseChannel(ApprovalChannel channel) =>
         ChannelResolver.Setup(r => r.Resolve()).Returns(ApprovalChannelResolution.Allow(channel));
 
+    public const string DeniedChannelReason = "Approval channel denied by the test double.";
+
     public void DenyChannel() =>
-        ChannelResolver.Setup(r => r.Resolve()).Returns(ApprovalChannelResolution.Deny(DenyAllApprovalChannelResolver.Reason));
+        ChannelResolver.Setup(r => r.Resolve()).Returns(ApprovalChannelResolution.Deny(DeniedChannelReason));
 
     public static AdAction PauseAction(string adId, string account = "acc-1", AdPlatform platform = AdPlatform.GoogleAds) =>
         new(AdActionType.PauseAd, platform, account, AdEntityLevel.Ad, adId, AdActionValues.Enabled, AdActionValues.Paused,

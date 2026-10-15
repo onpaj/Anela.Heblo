@@ -444,7 +444,7 @@ public class RevertAdProposalHandlerTests
     }
 
     [Fact]
-    public async Task DenyAllResolver_CannotRevert()
+    public async Task DeniedChannel_CannotRevert()
     {
         using var h = new ProposalTestHarness();
         var id = await SeedExecutedAsync(h, 1);

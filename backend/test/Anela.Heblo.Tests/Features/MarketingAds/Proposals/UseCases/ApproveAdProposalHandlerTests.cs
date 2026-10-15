@@ -37,7 +37,7 @@ public class ApproveAdProposalHandlerTests
     }
 
     [Fact]
-    public async Task DenyAllResolver_BlocksApproval_EvenForAnAdmin()
+    public async Task DeniedChannel_BlocksApproval_EvenForAnAdmin()
     {
         using var h = new ProposalTestHarness();
         var id = await h.SeedPendingAsync();

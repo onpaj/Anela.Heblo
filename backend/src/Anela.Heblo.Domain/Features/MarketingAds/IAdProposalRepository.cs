@@ -5,6 +5,8 @@ public sealed class AdProposalQuery
     public AdProposalStatus? Status { get; init; }
     public string? Platform { get; init; }
     public string? CreatedByPrincipal { get; init; }
+    /// <summary>Ascending creation time (oldest first); default is newest first.</summary>
+    public bool OldestFirst { get; init; }
     public int Page { get; init; } = 1;
     public int PageSize { get; init; } = 50;
 }

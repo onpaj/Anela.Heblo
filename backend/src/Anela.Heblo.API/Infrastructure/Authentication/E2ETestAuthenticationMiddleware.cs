@@ -93,7 +93,7 @@ public class E2ETestAuthenticationMiddleware
             // Create mock authentication for this request using session service
             var sessionService = context.RequestServices.GetRequiredService<IE2ESessionService>();
             var claims = sessionService.CreateSyntheticUserClaims(_environment.EnvironmentName);
-            var identity = new ClaimsIdentity(claims, "E2ETest");
+            var identity = new ClaimsIdentity(claims, E2ESessionService.AuthenticationType);
             var principal = new ClaimsPrincipal(identity);
 
             // Set the user for this request

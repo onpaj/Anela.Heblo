@@ -35,11 +35,12 @@ public class ListAdProposalsHandler : IRequestHandler<ListAdProposalsRequest, Li
             Status = request.Status,
             Platform = request.Platform?.ToString(),
             CreatedByPrincipal = creator,
+            OldestFirst = request.OldestFirst,
             Page = request.Page,
             PageSize = request.PageSize,
         }, cancellationToken);
 
-        // One name lookup per (platform, account) page group; the repository's newest-first order is kept.
+        // One name lookup per (platform, account) page group; the repository's order is kept.
         var namesByAccount = new Dictionary<(string Platform, string Account), IReadOnlyDictionary<string, string>>();
         foreach (var group in items.GroupBy(p => (p.Platform, Account: p.AccountExternalId)))
         {

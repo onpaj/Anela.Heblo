@@ -67,7 +67,7 @@ Two developer-run steps produce the inputs (not scheduled, not run at deploy):
 1. `access-matrix.json` (repo root) is the single hand-edited source: `baseRole`
    (`heblo_user`), `features` (47 keys such as `Warehouse_Packaging`, each with Czech `label`,
    optional `hasWrite` / `hasAdmin`), `menuPaths` (frontend route → required permissions), and
-   `seedGroups` (13 starter groups).
+   `seedGroups` (16 starter groups).
 2. `AccessMatrixGen` writes five generated files: `Feature.generated.cs` (the `Feature` enum),
    `AccessMatrix.generated.cs` (features, menu paths, `AllRoleValues()`),
    `AccessRoles.generated.cs` (string constants incl. `Base = "heblo_user"`,
@@ -144,17 +144,19 @@ super user's panel shows only their group permissions.
 |---|---|---|
 | `access-matrix.json` → `baseRole` | `heblo_user` | Permission every active user gets; required by the default policy |
 | `access-matrix.json` → `features[]` | 47 features | The catalogue; edit + regenerate to add a permission |
-| `access-matrix.json` → `seedGroups[]` | 13 groups | Bootstrap content only (see quirks) |
+| `access-matrix.json` → `seedGroups[]` | 16 groups | Bootstrap content only (see quirks) |
 | `PermissionResolver.CacheTtl` (code constant) | 5 min | How long a user's permission set is reused |
 | Entra app role `super_user` on the API app registration | assigned in Entra, not in repo | Break-glass full access |
 | `UseMockAuth` / E2E session | `false` (`true` in `appsettings.Test.json`) | Mock and E2E users carry `super_user` and so see everything |
 
 Seed groups (`seedGroups`, as written in the JSON — production may differ):
-Spravce (67 of 70 permissions; lacks `finance.price_analysis.read/.write` and
-`warehouse.stock_override.read`), Vedeni (35), Vedouci_vyroby (15), Vedouci_skladu (13),
-Skladnik (11), Marketer (10), Ucetni (8), Nakupci (6), Pracovnik_vyroby (6),
-Eshop_Administrator (4), Poradenstvi (3), AccessManager (3: `admin.administration.read/.write`,
-`anela.process_docs.read`), Zamestnanec (3).
+Spravce (75 of 79 permissions; lacks `finance.price_analysis.read`, `finance.price_analysis.write`, `marketing.ad_approvals.read`, `warehouse.stock_override.read`), Vedeni (38), Vedouci_vyroby (15), Marketer (14),
+Vedouci_skladu (13), Skladnik (11), Ucetni (9), Nakupci (6), Pracovnik_vyroby (6),
+Eshop_Administrator (5), Marketing_Chief (4), Marketing_Specialist (3), Poradenstvi (3),
+AccessManager (3: `admin.administration.read/.write`, `anela.process_docs.read`),
+Zamestnanec (3), Marketing_Agent (2: ads read/write only — for agent service identities).
+Marketing_Specialist and Marketing_Chief add ad-approval write (Chief also approve-via-MCP);
+no seed group holds `marketing.ad_approvals.read`, and only Spravce holds `.admin`.
 
 ## Runtime facts
 - Production groups have drifted from `seedGroups`: in the prod DB Vedouci_skladu gets its
@@ -166,6 +168,12 @@ Eshop_Administrator (4), Poradenstvi (3), AccessManager (3: `admin.administratio
   memory note — 2026-09-30.
 
 ## Known quirks
+- **Agent service identities are ordinary AppUsers.** A client-credentials (app-only) token is
+  materialised on its first call like a person — `Email` and `DisplayName` are the service
+  principal's `oid`, because app tokens carry no name claims — and gets permissions only from its
+  groups. Only `Marketing_Agent` belongs on it. `ICurrentUserService.IsAppOnly` marks such calls,
+  and the ad-proposal approve/reject paths refuse them whatever they hold, even `super_user`.
+  Runbook: `docs/integrations/marketing-agents-identity.md`.
 - **A new permission reaches nobody until someone grants it.** `seedGroups` only matters when a
   group does not exist yet, so adding a role to `seedGroups` changes nothing in a deployed DB.
   Moving an endpoint/page to a new permission therefore hides it from everyone but super users

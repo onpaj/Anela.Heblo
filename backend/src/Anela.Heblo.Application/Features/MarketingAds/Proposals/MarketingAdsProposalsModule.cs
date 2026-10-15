@@ -35,8 +35,8 @@ public static class MarketingAdsProposalsModule
             : new UnavailableAdsReadModel());
         services.AddScoped<IAdAutonomyService, AdAutonomyService>();
 
-        // PR C4 replaces this line with its claims-based resolver. Until then nothing can be approved.
-        services.AddScoped<IApprovalChannelResolver, DenyAllApprovalChannelResolver>();
+        // The claims-based approval channel resolver (spec 7.4, PR C4).
+        services.AddApprovalChannel(configuration);
 
         services.AddScoped<IAdProposalExecutionEnqueuer, HangfireAdProposalExecutionEnqueuer>();
         services.AddScoped<AdProposalExecutionJob>();

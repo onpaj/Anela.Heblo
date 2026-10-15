@@ -96,6 +96,9 @@ public static class ApplicationBuilderExtensions
         app.UseAuthentication();
         app.UseAuthorization();
 
+        // Per-service-principal rate limit for agents on /mcp (policy attached on MapMcp below).
+        app.UseRateLimiter();
+
         // Request timeouts middleware — must be after auth so timeout policies can be applied per-endpoint
         app.UseRequestTimeouts();
 
@@ -135,6 +138,7 @@ public static class ApplicationBuilderExtensions
         // 5-minute session timeout terminates zombie SSE connections that linger after client disconnect.
         app.MapMcp("/mcp")
             .RequireAuthorization()
+            .RequireRateLimiting(McpAgentRateLimiting.PolicyName)
             .WithRequestTimeout(TimeSpan.FromMinutes(5));
 
         // OAuth 2.0 authorization server metadata — required for MCP clients (e.g. Claude Desktop)
