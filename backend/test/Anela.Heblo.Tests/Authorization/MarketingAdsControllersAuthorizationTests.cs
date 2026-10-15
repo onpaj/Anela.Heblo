@@ -45,6 +45,7 @@ public class MarketingAdsControllersAuthorizationTests
     [InlineData(typeof(MarketingAdsSettingsController), nameof(MarketingAdsSettingsController.GetSettings))]
     [InlineData(typeof(MarketingAdsActivityController), nameof(MarketingAdsActivityController.ListAuditEvents))]
     [InlineData(typeof(MarketingAdsActivityController), nameof(MarketingAdsActivityController.ListAgentRuns))]
+    [InlineData(typeof(MarketingAdsActivityController), nameof(MarketingAdsActivityController.ListChangeEvents))]
     public void Reads_StayAtTheClassLevelGate(Type controller, string method)
     {
         controller.GetMethod(method)!.GetCustomAttributes<FeatureAuthorizeAttribute>(inherit: false).Should().BeEmpty();

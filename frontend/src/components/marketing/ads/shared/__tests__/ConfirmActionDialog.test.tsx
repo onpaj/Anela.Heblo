@@ -1,0 +1,95 @@
+import React from 'react';
+import { fireEvent, render, screen } from '@testing-library/react';
+import ConfirmActionDialog from '../ConfirmActionDialog';
+
+const renderDialog = (props: Partial<React.ComponentProps<typeof ConfirmActionDialog>> = {}) => {
+  const onConfirm = jest.fn();
+  const onCancel = jest.fn();
+  render(
+    <ConfirmActionDialog
+      isOpen
+      title="Vypnout provádění změn?"
+      message="Heblo přestane provádět schválené návrhy."
+      confirmLabel="Vypnout provádění"
+      tone="primary"
+      onConfirm={onConfirm}
+      onCancel={onCancel}
+      {...props}
+    />,
+  );
+  return { onConfirm, onCancel };
+};
+
+describe('ConfirmActionDialog', () => {
+  it('renders nothing when closed', () => {
+    renderDialog({ isOpen: false });
+
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  });
+
+  it('calls onConfirm and onCancel from the two buttons', () => {
+    const { onConfirm, onCancel } = renderDialog();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Vypnout provádění' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Zrušit' }));
+
+    expect(onConfirm).toHaveBeenCalledTimes(1);
+    expect(onCancel).toHaveBeenCalledTimes(1);
+  });
+
+  it('is labelled by its title', () => {
+    renderDialog();
+
+    expect(screen.getByRole('dialog', { name: 'Vypnout provádění změn?' })).toBeInTheDocument();
+  });
+
+  it('disables confirm while pending or when the caller marks it invalid', () => {
+    renderDialog({ isConfirmDisabled: true });
+
+    expect(screen.getByRole('button', { name: 'Vypnout provádění' })).toBeDisabled();
+  });
+
+  it('shows a progress label while pending', () => {
+    renderDialog({ isPending: true });
+
+    expect(screen.getByRole('button', { name: 'Ukládám…' })).toBeDisabled();
+  });
+
+  it('closes when the backdrop is clicked', () => {
+    const { onCancel } = renderDialog();
+
+    fireEvent.click(screen.getByTestId('confirm-dialog-backdrop'));
+
+    expect(onCancel).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not cancel from the backdrop while the request is pending', () => {
+    const { onCancel } = renderDialog({ isPending: true });
+
+    fireEvent.click(screen.getByTestId('confirm-dialog-backdrop'));
+
+    expect(onCancel).not.toHaveBeenCalled();
+  });
+
+  it('moves focus to the cancel button when it opens', () => {
+    renderDialog();
+
+    expect(screen.getByRole('button', { name: 'Zrušit' })).toHaveFocus();
+  });
+
+  it('cancels on Escape', () => {
+    const { onCancel } = renderDialog();
+
+    fireEvent.keyDown(document, { key: 'Escape' });
+
+    expect(onCancel).toHaveBeenCalledTimes(1);
+  });
+
+  it('ignores Escape while the request is pending', () => {
+    const { onCancel } = renderDialog({ isPending: true });
+
+    fireEvent.keyDown(document, { key: 'Escape' });
+
+    expect(onCancel).not.toHaveBeenCalled();
+  });
+});

@@ -55,6 +55,9 @@ import ArticlesPage from "./pages/ArticlesPage";
 import ExpeditionListArchivePage from "./pages/ExpeditionListArchivePage";
 import MarketingCalendarPage from "./components/marketing/pages/MarketingCalendarPage";
 import MarketingPerformancePage from "./components/marketing/performance/MarketingPerformancePage";
+import MarketingAdsProposalsPage from "./components/marketing/ads/proposals/MarketingAdsProposalsPage";
+import MarketingAdsActivityPage from "./components/marketing/ads/activity/MarketingAdsActivityPage";
+import MarketingAdsSettingsPage from "./components/marketing/ads/settings/MarketingAdsSettingsPage";
 import PhotobankPage from "./components/marketing/photobank/pages/PhotobankPage";
 import PhotobankSettingsPage from "./components/marketing/photobank/pages/PhotobankSettingsPage";
 import AuthGuard from "./components/auth/AuthGuard";
@@ -432,6 +435,9 @@ function App() {
                         <Route path="/journal" element={guard("/journal", <JournalList />)} />
                         <Route path="/marketing/calendar" element={guard("/marketing/calendar", <MarketingCalendarPage />)} />
                         <Route path="/marketing/performance" element={guard("/marketing/performance", <MarketingPerformancePage />)} />
+                        <Route path="/marketing/ads/proposals" element={guard("/marketing/ads/proposals", <MarketingAdsProposalsPage />)} />
+                        <Route path="/marketing/ads/activity" element={guard("/marketing/ads/activity", <MarketingAdsActivityPage />)} />
+                        <Route path="/marketing/ads/settings" element={guard("/marketing/ads/settings", <MarketingAdsSettingsPage />)} />
                         <Route path="/marketing/photobank" element={guard("/marketing/photobank", <PhotobankPage />)} />
                         <Route path="/marketing/photobank/settings" element={<PhotobankSettingsPage />} />
                         <Route path="/leaflet-generator" element={guard("/leaflet-generator", <LeafletGeneratorPage />)} />

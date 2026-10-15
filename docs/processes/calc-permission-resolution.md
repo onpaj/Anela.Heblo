@@ -22,7 +22,7 @@ owns:
   - frontend/src/auth/PermissionsContext.tsx
   - frontend/src/auth/accessMatrix.generated.ts
   - frontend/src/api/hooks/usePermissions.ts
-verified_at: "a4c5231e8"
+verified_at: "d9a600705"
 related: [flow-user-access-onboarding]
 ---
 
