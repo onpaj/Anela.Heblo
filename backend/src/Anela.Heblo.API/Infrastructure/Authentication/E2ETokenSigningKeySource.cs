@@ -11,6 +11,9 @@ namespace Anela.Heblo.API.Infrastructure.Authentication;
 public interface IE2ETokenSigningKeySource
 {
     Task<IReadOnlyCollection<SecurityKey>> GetSigningKeysAsync(CancellationToken cancellationToken);
+
+    /// <summary>Asks for fresh keys on the next read (e.g. a token names a key id we have not seen yet).</summary>
+    void RequestRefresh();
 }
 
 /// <summary>
@@ -48,4 +51,7 @@ public sealed class EntraE2ETokenSigningKeySource : IE2ETokenSigningKeySource
         var configuration = await _configurationManager.GetConfigurationAsync(cancellationToken);
         return configuration.SigningKeys.ToList();
     }
+
+    // ConfigurationManager rate-limits this to one real refetch per RefreshInterval (5 minutes by default).
+    public void RequestRefresh() => _configurationManager?.RequestRefresh();
 }

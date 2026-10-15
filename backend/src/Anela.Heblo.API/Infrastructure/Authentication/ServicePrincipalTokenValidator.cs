@@ -32,7 +32,9 @@ public class ServicePrincipalTokenValidator : IServicePrincipalTokenValidator
     public const string ExpectedTenantIdKey = "E2E:ExpectedTenantId";
     public const string ApiClientIdKey = "AzureAd:ClientId";
 
-    private const string AppIdClaim = "appid";
+    private const string AppIdClaim = "appid"; // v1 tokens
+    private const string AuthorizedPartyClaim = "azp"; // v2 tokens
+    private const string ScopeClaim = "scp"; // present only on delegated (user) tokens
     private const string CacheKeyPrefix = "sptoken_";
     private static readonly TimeSpan ClockSkew = TimeSpan.FromMinutes(2);
     private static readonly TimeSpan MaxCacheDuration = TimeSpan.FromMinutes(5);
@@ -84,9 +86,13 @@ public class ServicePrincipalTokenValidator : IServicePrincipalTokenValidator
 
         try
         {
-            var signingKeys = await _signingKeySource.GetSigningKeysAsync(CancellationToken.None);
-            var parameters = CreateValidationParameters(expectedTenantId, apiClientId, signingKeys);
-            var result = await new JsonWebTokenHandler().ValidateTokenAsync(token, parameters);
+            var result = await ValidateSignedTokenAsync(token, expectedTenantId, apiClientId);
+            if (result.Exception is SecurityTokenSignatureKeyNotFoundException)
+            {
+                // The token names a key id we have not cached yet (Entra key rollover): refetch once.
+                _signingKeySource.RequestRefresh();
+                result = await ValidateSignedTokenAsync(token, expectedTenantId, apiClientId);
+            }
 
             if (!result.IsValid)
             {
@@ -95,7 +101,13 @@ public class ServicePrincipalTokenValidator : IServicePrincipalTokenValidator
                 return false;
             }
 
-            var appId = result.Claims.TryGetValue(AppIdClaim, out var appIdValue) ? appIdValue as string : null;
+            if (result.Claims.ContainsKey(ScopeClaim))
+            {
+                _logger.LogWarning("Service Principal token validation: Delegated (user) token rejected; an app-only token is required");
+                return false;
+            }
+
+            var appId = GetStringClaim(result, AppIdClaim) ?? GetStringClaim(result, AuthorizedPartyClaim);
             if (!string.Equals(appId, expectedClientId, StringComparison.OrdinalIgnoreCase))
             {
                 _logger.LogWarning("Service Principal token validation: Token client ID mismatch. Expected: {Expected}, Got: {Actual}",
@@ -116,6 +128,16 @@ public class ServicePrincipalTokenValidator : IServicePrincipalTokenValidator
             return false;
         }
     }
+
+    private async Task<TokenValidationResult> ValidateSignedTokenAsync(string token, string tenantId, string apiClientId)
+    {
+        var signingKeys = await _signingKeySource.GetSigningKeysAsync(CancellationToken.None);
+        var parameters = CreateValidationParameters(tenantId, apiClientId, signingKeys);
+        return await new JsonWebTokenHandler().ValidateTokenAsync(token, parameters);
+    }
+
+    private static string? GetStringClaim(TokenValidationResult result, string claimType) =>
+        result.Claims.TryGetValue(claimType, out var value) ? value as string : null;
 
     private static TokenValidationParameters CreateValidationParameters(
         string tenantId, string apiClientId, IReadOnlyCollection<SecurityKey> signingKeys) => new()

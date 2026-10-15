@@ -47,9 +47,49 @@ public class ServicePrincipalTokenValidatorTests
     {
         var validator = CreateValidator();
 
-        var result = await validator.ValidateAsync(CreateToken(issuer: IssuerV2, audience: ApiClientId));
+        // Entra v2 access tokens name the calling app in azp, not appid.
+        var result = await validator.ValidateAsync(
+            CreateToken(issuer: IssuerV2, audience: ApiClientId, appId: null, azp: E2EClientId));
 
         result.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task ValidateAsync_V2TokenWithWrongAzp_ReturnsFalse()
+    {
+        var validator = CreateValidator();
+
+        var result = await validator.ValidateAsync(CreateToken(
+            issuer: IssuerV2, audience: ApiClientId, appId: null, azp: "11111111-1111-1111-1111-111111111111"));
+
+        result.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task ValidateAsync_TokenWithUnknownKeyId_RefreshesKeysAndRetriesOnce()
+    {
+        // Entra rotated its signing key after our cached JWKS was fetched.
+        var rotatedKey = CreateRsaKey("rotated-key");
+        var keySource = new RotatingKeySource(before: _entraKey, after: rotatedKey);
+        var validator = CreateValidator(keySource: keySource);
+
+        var result = await validator.ValidateAsync(CreateToken(signingKey: rotatedKey));
+
+        result.Should().BeTrue();
+        keySource.RefreshRequests.Should().Be(1);
+    }
+
+    [Fact]
+    public async Task ValidateAsync_TokenSignedByForeignKey_RetriesOnlyOnce()
+    {
+        var keySource = new FakeKeySource(_entraKey);
+        var validator = CreateValidator(keySource: keySource);
+
+        var result = await validator.ValidateAsync(CreateToken(signingKey: _foreignKey));
+
+        result.Should().BeFalse();
+        keySource.RefreshRequests.Should().Be(1);
+        keySource.Calls.Should().Be(2);
     }
 
     [Fact]
@@ -131,6 +171,17 @@ public class ServicePrincipalTokenValidatorTests
         var validator = CreateValidator();
 
         var result = await validator.ValidateAsync(CreateToken(appId: "11111111-1111-1111-1111-111111111111"));
+
+        result.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task ValidateAsync_DelegatedUserTokenFromE2EApp_ReturnsFalse()
+    {
+        // A user token obtained through the E2E app has the same appid but carries scp; only app-only tokens count.
+        var validator = CreateValidator();
+
+        var result = await validator.ValidateAsync(CreateToken(scope: "access_as_user"));
 
         result.Should().BeFalse();
     }
@@ -274,6 +325,8 @@ public class ServicePrincipalTokenValidatorTests
         string issuer = IssuerV1,
         string audience = AudienceUri,
         string? appId = E2EClientId,
+        string? azp = null,
+        string? scope = null,
         string tenantId = TenantId,
         RsaSecurityKey? signingKey = null,
         SigningCredentials? signingCredentials = null,
@@ -285,6 +338,16 @@ public class ServicePrincipalTokenValidatorTests
         if (appId != null)
         {
             claims["appid"] = appId;
+        }
+
+        if (azp != null)
+        {
+            claims["azp"] = azp;
+        }
+
+        if (scope != null)
+        {
+            claims["scp"] = scope;
         }
 
         var descriptor = new SecurityTokenDescriptor
@@ -314,17 +377,43 @@ public class ServicePrincipalTokenValidatorTests
 
         public int Calls { get; private set; }
 
+        public int RefreshRequests { get; private set; }
+
         public Task<IReadOnlyCollection<SecurityKey>> GetSigningKeysAsync(CancellationToken cancellationToken)
         {
             Calls++;
             return Task.FromResult(_keys);
         }
+
+        public void RequestRefresh() => RefreshRequests++;
+    }
+
+    private sealed class RotatingKeySource : IE2ETokenSigningKeySource
+    {
+        private readonly SecurityKey _before;
+        private readonly SecurityKey _after;
+
+        public RotatingKeySource(SecurityKey before, SecurityKey after)
+        {
+            _before = before;
+            _after = after;
+        }
+
+        public int RefreshRequests { get; private set; }
+
+        public Task<IReadOnlyCollection<SecurityKey>> GetSigningKeysAsync(CancellationToken cancellationToken) =>
+            Task.FromResult<IReadOnlyCollection<SecurityKey>>(
+                RefreshRequests == 0 ? new[] { _before } : new[] { _before, _after });
+
+        public void RequestRefresh() => RefreshRequests++;
     }
 
     private sealed class ThrowingKeySource : IE2ETokenSigningKeySource
     {
         public Task<IReadOnlyCollection<SecurityKey>> GetSigningKeysAsync(CancellationToken cancellationToken) =>
             throw new InvalidOperationException("metadata endpoint unreachable");
+
+        public void RequestRefresh() { }
     }
 
     /// <summary>Captures entry options so a test can see how long a result would stay cached.</summary>
