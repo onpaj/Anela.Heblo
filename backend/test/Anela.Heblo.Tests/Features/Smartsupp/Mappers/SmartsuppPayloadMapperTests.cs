@@ -176,4 +176,18 @@ public class SmartsuppPayloadMapperTests
 
         result.SyncedAt.Should().Be(syncedAt);
     }
+
+    [Fact]
+    public void MapMessage_StoresCustomerUploadAsAttachment()
+    {
+        var json = @"{""id"":""m1"",""conversation_id"":""c1"",""sub_type"":""contact"",""type"":""message"",""attachments"":[],""content"":{""type"":""upload"",""text"":null,""data"":{""type"":""file"",""file_name"":""1040963052.pdf"",""file_type"":""application/pdf"",""url"":""https://files.smartsuppcdn.com/files/accounts/924500/uploads/sEYrSOqaL.pdf"",""size"":598612}},""created_at"":""2026-05-13T10:00:00Z"",""updated_at"":""2026-05-13T10:00:00Z""}";
+
+        var result = SmartsuppPayloadMapper.MapMessage(Parse(json));
+
+        result.Content.Should().BeNull();
+        SmartsuppAttachments.TryParse(result.AttachmentsJson, out var items).Should().BeTrue();
+        items.Should().ContainSingle();
+        items[0].Type.Should().Be("file");
+        items[0].FileName.Should().Be("1040963052.pdf");
+    }
 }

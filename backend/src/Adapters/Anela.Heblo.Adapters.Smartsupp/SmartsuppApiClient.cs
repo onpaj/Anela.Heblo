@@ -302,7 +302,7 @@ public class SmartsuppApiClient : ISmartsuppApiClient
             IsOfflineReply = item.IsOfflineReply,
             ResponseTime = item.ResponseTime,
             PageUrl = item.PageUrl,
-            AttachmentsJson = item.Attachments is { } a ? JsonSerializer.Serialize(a) : null,
+            AttachmentsJson = SmartsuppAttachments.BuildJson(item.Attachments, item.Content?.Type, item.Content?.Data),
             ChannelType = item.Channel?.Type,
             ChannelId = item.Channel?.Id,
         };
