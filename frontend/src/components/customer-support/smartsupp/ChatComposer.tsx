@@ -132,16 +132,21 @@ function ChatComposer({ conversationId, lastContactMessage, initialDraft, onDraf
   };
 
   const handlePaste = (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
-    const pasted = Array.from(e.clipboardData?.files ?? []);
+    const clipboard = e.clipboardData;
+    // Office apps put text and a rendered image on the clipboard together; keep the text paste.
+    if (clipboard?.types?.includes("text/plain") || clipboard?.getData?.("text/plain")) return;
+    const pasted = Array.from(clipboard?.files ?? []);
     if (pasted.length === 0) return;
     e.preventDefault();
     attachments.add(pasted);
   };
 
   const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
+    const dropped = Array.from(e.dataTransfer?.files ?? []);
+    if (dropped.length === 0) return;
     e.preventDefault();
     if (isBusy) return;
-    attachments.add(Array.from(e.dataTransfer?.files ?? []));
+    attachments.add(dropped);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {

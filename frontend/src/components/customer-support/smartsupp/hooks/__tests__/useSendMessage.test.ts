@@ -350,16 +350,31 @@ describe("useSendMessage with attachments", () => {
     expect(revokeObjectURL).toHaveBeenCalledTimes(2);
   });
 
-  it("revokes the optimistic URLs when the optimistic message is replaced on success", async () => {
+  it("keeps the attachments on the swapped message and revokes nothing until unmount", async () => {
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+    });
+    const key = SMARTSUPP_QUERY_KEYS.conversation("c1");
+    queryClient.setQueryData(key, GetConversationResponse.fromJS({ messages: [] }));
+    const invalidate = jest.spyOn(queryClient, "invalidateQueries");
+    const localWrapper = ({ children }: { children: React.ReactNode }) =>
+      React.createElement(QueryClientProvider, { client: queryClient }, children);
     mockFetch.mockResolvedValue({
       ok: true,
       json: async () => ({ success: true, messageId: "m1" }),
     });
 
-    const { result } = renderHook(() => useSendMessage("c1"), { wrapper });
+    const { result, unmount } = renderHook(() => useSendMessage("c1"), { wrapper: localWrapper });
     act(() => result.current.send("x", null, files()));
 
     await waitFor(() => expect(result.current.justSent).toBe(true));
+    const sent = queryClient.getQueryData<GetConversationResponse>(key)!.messages![0];
+    expect(sent.id).toBe("m1");
+    expect(sent.attachments).toHaveLength(2);
+    expect(invalidate).toHaveBeenCalledWith({ queryKey: key });
+    expect(revokeObjectURL).not.toHaveBeenCalled();
+
+    unmount();
     expect(revokeObjectURL).toHaveBeenCalledTimes(2);
   });
 

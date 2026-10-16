@@ -340,10 +340,15 @@ describe("ChatComposer attachments", () => {
   });
 
   it("keeps text and files when the send failed", () => {
-    mockSendHook({ error: "Nepodařilo se odeslat zprávu." });
-    render(<ChatComposer conversationId="c1" lastContactMessage="x" />);
-    pick([pdf()]);
+    const { rerender } = render(<ChatComposer conversationId="c1" lastContactMessage="x" />);
+    const file = pdf();
+    pick([file]);
     fireEvent.change(screen.getByPlaceholderText(/napište odpověď/i), { target: { value: "Zde" } });
+    fireEvent.click(screen.getByRole("button", { name: /odeslat/i }));
+    expect(sendFn).toHaveBeenCalledWith("Zde", null, [file]);
+
+    mockSendHook({ error: "Nepodařilo se odeslat zprávu.", isPending: false });
+    rerender(<ChatComposer conversationId="c1" lastContactMessage="x" />);
     expect(screen.getByText("Nepodařilo se odeslat zprávu.")).toBeInTheDocument();
     expect(screen.getByText("faktura.pdf")).toBeInTheDocument();
     expect((screen.getByPlaceholderText(/napište odpověď/i) as HTMLTextAreaElement).value).toBe("Zde");
@@ -368,6 +373,18 @@ describe("ChatComposer attachments", () => {
       clipboardData: { files: [png()] },
     });
     expect(screen.getByText("foto.png")).toBeInTheDocument();
+  });
+
+  it("does not add a file when the clipboard also carries text", () => {
+    render(<ChatComposer conversationId="c1" lastContactMessage="x" />);
+    fireEvent.paste(screen.getByPlaceholderText(/napište odpověď/i), {
+      clipboardData: {
+        files: [png()],
+        types: ["text/plain", "Files"],
+        getData: () => "buňky z Excelu",
+      },
+    });
+    expect(screen.queryByText("foto.png")).not.toBeInTheDocument();
   });
 
   it("adds files dropped on the composer", () => {

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { validateNewFiles } from "../utils/attachmentPolicy";
 
 interface UseComposerAttachmentsResult {
@@ -12,11 +12,17 @@ interface UseComposerAttachmentsResult {
 export function useComposerAttachments(conversationId: string | null): UseComposerAttachmentsResult {
   const [files, setFiles] = useState<File[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const filesRef = useRef<File[]>([]);
+
+  const updateFiles = useCallback((next: File[]) => {
+    filesRef.current = next;
+    setFiles(next);
+  }, []);
 
   const clear = useCallback(() => {
-    setFiles([]);
+    updateFiles([]);
     setError(null);
-  }, []);
+  }, [updateFiles]);
 
   useEffect(() => {
     clear();
@@ -25,17 +31,17 @@ export function useComposerAttachments(conversationId: string | null): UseCompos
   const add = useCallback(
     (incoming: File[]) => {
       if (incoming.length === 0) return;
-      const { accepted, error: validationError } = validateNewFiles(files, incoming);
-      setFiles([...files, ...accepted]);
+      const { accepted, error: validationError } = validateNewFiles(filesRef.current, incoming);
+      updateFiles([...filesRef.current, ...accepted]);
       setError(validationError);
     },
-    [files],
+    [updateFiles],
   );
 
   const remove = useCallback((index: number) => {
-    setFiles((current) => current.filter((_, i) => i !== index));
+    updateFiles(filesRef.current.filter((_, i) => i !== index));
     setError(null);
-  }, []);
+  }, [updateFiles]);
 
   return { files, error, add, remove, clear };
 }

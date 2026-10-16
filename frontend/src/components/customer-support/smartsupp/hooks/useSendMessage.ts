@@ -203,19 +203,18 @@ export function useSendMessage(conversationId: string | null): UseSendMessageRes
                     id: data.messageId!,
                     createdAt: data.createdAt ?? m.createdAt,
                     deliveryStatus: "sent",
-                    // blob: previews are revoked below; the refetch brings the real attachments.
-                    attachments: context?.objectUrls?.length ? undefined : m.attachments,
                   })
                 : m,
             ),
           });
         },
       );
-    },
-    onSettled: (_data, _err, _variables, context) => {
-      releaseObjectUrls(context?.objectUrls);
+      queryClient.invalidateQueries({
+        queryKey: SMARTSUPP_QUERY_KEYS.conversation(conversationId),
+      });
     },
     onError: (_err, _content, context) => {
+      releaseObjectUrls(context?.objectUrls);
       if (context?.previous !== undefined && conversationId) {
         queryClient.setQueryData(
           SMARTSUPP_QUERY_KEYS.conversation(conversationId),
