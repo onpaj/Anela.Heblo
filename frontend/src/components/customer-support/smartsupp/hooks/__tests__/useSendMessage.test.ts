@@ -3,6 +3,9 @@ import React from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useSendMessage } from "../useSendMessage";
 import { getAuthenticatedApiClient } from "../../../../../api/client";
+import { ErrorCodes, GetConversationResponse } from "../../../../../api/generated/api-client";
+import { SMARTSUPP_QUERY_KEYS } from "../../../../../api/hooks/useSmartsupp";
+import { getErrorMessage } from "../../../../../utils/errorHandler";
 
 jest.mock("../../../../../api/client", () => ({
   getAuthenticatedApiClient: jest.fn(),
@@ -219,5 +222,155 @@ describe("useSendMessage", () => {
       deliveryStatus: "sent",
     });
     expect(cached?.messages.some((m) => m.id.startsWith("optimistic-"))).toBe(false);
+  });
+});
+
+describe("useSendMessage with attachments", () => {
+  const mockFetch = jest.fn();
+  const createObjectURL = jest.fn();
+  const revokeObjectURL = jest.fn();
+
+  beforeEach(() => {
+    mockFetch.mockReset();
+    let urlCounter = 0;
+    createObjectURL.mockReset().mockImplementation(() => `blob:test-url-${++urlCounter}`);
+    revokeObjectURL.mockReset();
+    (URL as any).createObjectURL = createObjectURL;
+    (URL as any).revokeObjectURL = revokeObjectURL;
+    (getAuthenticatedApiClient as jest.Mock).mockReturnValue({
+      baseUrl: "https://api.test",
+      http: { fetch: mockFetch },
+      smartsupp_SendMessage: mockSendMessage,
+    });
+  });
+
+  const files = () => [
+    new File(["a"], "a.png", { type: "image/png" }),
+    new File(["b"], "b.pdf", { type: "application/pdf" }),
+  ];
+
+  it("posts multipart to the absolute with-attachments URL without a Content-Type header", async () => {
+    mockFetch.mockResolvedValue({
+      ok: true,
+      json: async () => ({ success: true, messageId: "m1", createdAt: "2026-05-20T10:00:00Z" }),
+    });
+
+    const { result } = renderHook(() => useSendMessage("c1"), { wrapper });
+    act(() => result.current.send("Ahoj", "log-1", files()));
+
+    await waitFor(() => expect(result.current.justSent).toBe(true));
+
+    expect(mockFetch).toHaveBeenCalledTimes(1);
+    const [url, init] = mockFetch.mock.calls[0];
+    expect(url).toBe("https://api.test/api/smartsupp/conversations/c1/messages/with-attachments");
+    expect(init.method).toBe("POST");
+    expect(init.headers).toBeUndefined();
+    const body = init.body as FormData;
+    expect(body).toBeInstanceOf(FormData);
+    expect(body.get("content")).toBe("Ahoj");
+    expect(body.get("draftLogId")).toBe("log-1");
+    expect(body.getAll("files")).toHaveLength(2);
+    expect(mockSendMessage).not.toHaveBeenCalled();
+  });
+
+  it("maps a 503 error code to its i18n text", async () => {
+    mockFetch.mockResolvedValue({
+      ok: false,
+      status: 503,
+      json: async () => ({ errorCode: "SmartsuppAttachmentUploadFailed" }),
+    });
+
+    const { result } = renderHook(() => useSendMessage("c1"), { wrapper });
+    act(() => result.current.send("", null, files()));
+
+    await waitFor(() => expect(result.current.error).not.toBeNull());
+    expect(result.current.error).toBe(getErrorMessage(ErrorCodes.SmartsuppAttachmentUploadFailed));
+    expect(result.current.justSent).toBe(false);
+  });
+
+  it("falls back to the generic message on a network exception", async () => {
+    mockFetch.mockRejectedValue(new TypeError("network"));
+
+    const { result } = renderHook(() => useSendMessage("c1"), { wrapper });
+    act(() => result.current.send("x", null, files()));
+
+    await waitFor(() => expect(result.current.error).toBe("Nepodařilo se odeslat zprávu."));
+  });
+
+  it("falls back to the generic message when the error body is not JSON", async () => {
+    mockFetch.mockResolvedValue({
+      ok: false,
+      status: 502,
+      json: async () => {
+        throw new Error("not json");
+      },
+    });
+
+    const { result } = renderHook(() => useSendMessage("c1"), { wrapper });
+    act(() => result.current.send("x", null, files()));
+
+    await waitFor(() => expect(result.current.error).toBe("Nepodařilo se odeslat zprávu."));
+  });
+
+  it("adds an optimistic message with blob attachments and revokes the URLs on rollback", async () => {
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+    });
+    const key = SMARTSUPP_QUERY_KEYS.conversation("c1");
+    queryClient.setQueryData(key, GetConversationResponse.fromJS({ messages: [] }));
+    const localWrapper = ({ children }: { children: React.ReactNode }) =>
+      React.createElement(QueryClientProvider, { client: queryClient }, children);
+
+    let rejectFetch: (e: Error) => void = () => undefined;
+    mockFetch.mockReturnValue(new Promise((_, reject) => (rejectFetch = reject)));
+
+    const { result } = renderHook(() => useSendMessage("c1"), { wrapper: localWrapper });
+    act(() => result.current.send("x", null, files()));
+
+    await waitFor(() => {
+      const data = queryClient.getQueryData<GetConversationResponse>(key);
+      expect(data?.messages).toHaveLength(1);
+    });
+    const optimistic = queryClient.getQueryData<GetConversationResponse>(key)!.messages![0];
+    expect(optimistic.id).toMatch(/^optimistic-/);
+    expect(optimistic.attachments).toHaveLength(2);
+    expect(optimistic.attachments![0]).toMatchObject({
+      type: "image",
+      fileName: "a.png",
+      fileType: "image/png",
+      url: "blob:test-url-1",
+    });
+    expect(optimistic.attachments![1].type).toBe("file");
+    expect(revokeObjectURL).not.toHaveBeenCalled();
+
+    act(() => rejectFetch(new Error("boom")));
+    await waitFor(() => expect(result.current.error).not.toBeNull());
+
+    expect(queryClient.getQueryData<GetConversationResponse>(key)?.messages).toHaveLength(0);
+    expect(revokeObjectURL).toHaveBeenCalledTimes(2);
+  });
+
+  it("revokes the optimistic URLs when the optimistic message is replaced on success", async () => {
+    mockFetch.mockResolvedValue({
+      ok: true,
+      json: async () => ({ success: true, messageId: "m1" }),
+    });
+
+    const { result } = renderHook(() => useSendMessage("c1"), { wrapper });
+    act(() => result.current.send("x", null, files()));
+
+    await waitFor(() => expect(result.current.justSent).toBe(true));
+    expect(revokeObjectURL).toHaveBeenCalledTimes(2);
+  });
+
+  it("revokes pending optimistic URLs on unmount", async () => {
+    mockFetch.mockReturnValue(new Promise(() => undefined));
+
+    const { result, unmount } = renderHook(() => useSendMessage("c1"), { wrapper });
+    act(() => result.current.send("x", null, files()));
+    await waitFor(() => expect(createObjectURL).toHaveBeenCalledTimes(2));
+
+    unmount();
+    expect(revokeObjectURL).toHaveBeenCalledTimes(2);
   });
 });
