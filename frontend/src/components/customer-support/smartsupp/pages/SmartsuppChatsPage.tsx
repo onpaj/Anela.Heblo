@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { ArrowLeft } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
-import { useSmartsuppConversations } from "../../../../api/hooks/useSmartsupp";
+import { useSmartsuppConversation, useSmartsuppConversations } from "../../../../api/hooks/useSmartsupp";
 import { QUERY_KEYS } from "../../../../api/client";
 import ConversationList from "../ConversationList";
 import ConversationDetail from "../ConversationDetail";
@@ -31,14 +31,23 @@ const SmartsuppChatsPage: React.FC = () => {
     readPanelOpen(LIST_PANEL_KEY, true),
   );
   const [contactPanelOpen, setContactPanelOpen] = useState<boolean>(() =>
-    readPanelOpen(CONTACT_PANEL_KEY, false),
+    readPanelOpen(CONTACT_PANEL_KEY, true),
   );
 
   const { data, isLoading, isFetching } = useSmartsuppConversations(status);
   const queryClient = useQueryClient();
 
   const conversations = data?.items ?? [];
-  const selectedConversation = conversations.find((c) => c.id === selectedId) ?? null;
+  // A past conversation picked from the contact panel is usually not in the current status list
+  // (e.g. a Resolved one while the Open tab is shown), so fall back to its detail query.
+  const { data: selectedDetail } = useSmartsuppConversation(selectedId);
+  const selectedConversation =
+    conversations.find((c) => c.id === selectedId) ?? selectedDetail?.conversation ?? null;
+
+  const handleSelectConversation = (id: string) => {
+    setSelectedId(id);
+    setMobileView("chat");
+  };
 
   const handleDraftChange = (id: string, text: string) =>
     setDrafts((prev) => ({ ...prev, [id]: text }));
@@ -78,10 +87,7 @@ const SmartsuppChatsPage: React.FC = () => {
             selectedId={selectedId}
             status={status}
             isLoading={isLoading}
-            onSelect={(id) => {
-              setSelectedId(id);
-              setMobileView("chat");
-            }}
+            onSelect={handleSelectConversation}
             onStatusChange={(s) => {
               setStatus(s);
               setSelectedId(null);
@@ -128,7 +134,10 @@ const SmartsuppChatsPage: React.FC = () => {
             />
             {contactPanelOpen && (
               <div className="w-80 flex-shrink-0 overflow-hidden">
-                <ContactDetailsPanel conversation={selectedConversation} />
+                <ContactDetailsPanel
+                  conversation={selectedConversation}
+                  onSelectConversation={handleSelectConversation}
+                />
               </div>
             )}
           </div>
@@ -152,7 +161,10 @@ const SmartsuppChatsPage: React.FC = () => {
               <span className="font-semibold text-gray-900 dark:text-graphite-text">Detail kontaktu</span>
             </div>
             <div className="flex-1 overflow-y-auto">
-              <ContactDetailsPanel conversation={selectedConversation} />
+              <ContactDetailsPanel
+                conversation={selectedConversation}
+                onSelectConversation={handleSelectConversation}
+              />
             </div>
           </div>
         )}

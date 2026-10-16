@@ -30,7 +30,15 @@ jest.mock("../../../../../api/hooks/useSmartsupp", () => ({
           contactProperties: {},
           locationIp: null,
           variables: {},
-          otherConversations: [],
+          otherConversations: [
+            {
+              id: "r1",
+              status: "Resolved",
+              lastMessageAt: "2026-09-12T10:00:00Z",
+              lastMessagePreview: "Děkuji, objednávka dorazila",
+              isUnread: false,
+            },
+          ],
         },
         {
           id: "c2",
@@ -62,7 +70,26 @@ jest.mock("../../../../../api/hooks/useSmartsupp", () => ({
     },
     isLoading: false,
   }),
-  useSmartsuppConversation: () => ({ data: { messages: [] }, isLoading: false }),
+  useSmartsuppConversation: (id: string | null) => ({
+    data:
+      id === "r1"
+        ? {
+            conversation: {
+              id: "r1",
+              contactName: "Jana Nováková (minulá)",
+              status: "Resolved",
+              variables: {},
+              contactProperties: {},
+              otherConversations: [],
+              assignedAgentIds: [],
+              tags: [],
+              contactTags: [],
+            },
+            messages: [],
+          }
+        : { messages: [] },
+    isLoading: false,
+  }),
   useSmartsuppShoptetInfo: () => ({ data: null, isLoading: false }),
   useSmartsuppVisitorInfo: () => ({ data: null, isLoading: false }),
   useCloseConversation: () => ({ mutate: jest.fn(), isPending: false }),
@@ -115,7 +142,19 @@ describe("SmartsuppChatsPage", () => {
     expect(screen.getByText("Všechny konverzace")).toBeInTheDocument();
   });
 
-  it("keeps the contact panel collapsed by default once a conversation is selected", () => {
+  it("opens the contact panel by default once a conversation is selected", () => {
+    render(wrap(<SmartsuppChatsPage />));
+
+    fireEvent.click(screen.getByRole("button", { name: /Jana Nováková/ }));
+
+    expect(
+      screen.getByRole("button", { name: "Sbalit Detail kontaktu" }),
+    ).toBeInTheDocument();
+    expect(screen.getByTestId("other-conversation-r1")).toBeInTheDocument();
+  });
+
+  it("keeps the contact panel collapsed when the operator collapsed it before", () => {
+    localStorage.setItem("smartsupp.contactPanel.open", "false");
     render(wrap(<SmartsuppChatsPage />));
 
     fireEvent.click(screen.getByRole("button", { name: /Jana Nováková/ }));
@@ -125,13 +164,23 @@ describe("SmartsuppChatsPage", () => {
     ).toBeInTheDocument();
   });
 
-  it("expands the contact panel and persists the state when its rail is clicked", () => {
+  it("collapses the contact panel and persists the state when its rail is clicked", () => {
     render(wrap(<SmartsuppChatsPage />));
     fireEvent.click(screen.getByRole("button", { name: /Jana Nováková/ }));
 
     fireEvent.click(screen.getByTestId("collapsible-rail-right"));
 
-    expect(localStorage.getItem("smartsupp.contactPanel.open")).toBe("true");
+    expect(localStorage.getItem("smartsupp.contactPanel.open")).toBe("false");
+  });
+
+  it("opens a resolved past conversation that is not in the open list", () => {
+    render(wrap(<SmartsuppChatsPage />));
+    fireEvent.click(screen.getByRole("button", { name: /Jana Nováková/ }));
+
+    fireEvent.click(screen.getByTestId("other-conversation-r1"));
+
+    expect(screen.getAllByText("Jana Nováková (minulá)").length).toBeGreaterThan(0);
+    expect(screen.queryByText("Vyberte konverzaci")).not.toBeInTheDocument();
   });
 
   it("shows navigation buttons in ConversationDetail after a conversation is selected", () => {
