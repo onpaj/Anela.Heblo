@@ -1,10 +1,12 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Loader2, Maximize2, Minimize2, Send } from "lucide-react";
 import DraftReplyTriggerBar from "./DraftReplyTriggerBar";
 import DraftReplyToolbar from "./DraftReplyToolbar";
 import DraftReplyFeedback from "./DraftReplyFeedback";
 import { useGenerateDraftReply, type DraftReplySource } from "./hooks/useGenerateDraftReply";
 import { useSendMessage } from "./hooks/useSendMessage";
+import EmojiPicker from "./EmojiPicker";
+import { insertAtCursor } from "./utils/insertAtCursor";
 
 interface ChatComposerProps {
   conversationId: string | null;
@@ -23,6 +25,7 @@ function ChatComposer({ conversationId, lastContactMessage, initialDraft, onDraf
   const [lastTopic, setLastTopic] = useState<string | undefined>(undefined);
   const [pendingTopic, setPendingTopic] = useState<{ topic: string | undefined } | null>(null);
   const [isExpanded, setIsExpanded] = useState(false);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const { generate, isLoading, error, result, reset } = useGenerateDraftReply(conversationId);
   const { send, isPending: isSending, error: sendError, justSent, clearSent } = useSendMessage(conversationId);
@@ -80,6 +83,18 @@ function ChatComposer({ conversationId, lastContactMessage, initialDraft, onDraf
     if (isAiDraft) {
       setIsAiDraft(false);
     }
+  };
+
+  const handleEmojiPick = (emoji: string) => {
+    const textarea = textareaRef.current;
+    const start = textarea?.selectionStart ?? draft.length;
+    const end = textarea?.selectionEnd ?? draft.length;
+    const { value, caret } = insertAtCursor(draft, start, end, emoji);
+    handleDraftChange(value);
+    requestAnimationFrame(() => {
+      textareaRef.current?.focus();
+      textareaRef.current?.setSelectionRange(caret, caret);
+    });
   };
 
   const handleDiscard = () => {
@@ -146,6 +161,7 @@ function ChatComposer({ conversationId, lastContactMessage, initialDraft, onDraf
         )}
         <div className="relative">
           <textarea
+            ref={textareaRef}
             value={draft}
             disabled={isBusy}
             onChange={(e) => handleDraftChange(e.target.value)}
@@ -172,9 +188,12 @@ function ChatComposer({ conversationId, lastContactMessage, initialDraft, onDraf
           <p className="text-xs text-red-500 dark:text-red-400">{sendError}</p>
         )}
         <div className="flex items-center justify-between">
-          <span className="text-xs text-gray-400 dark:text-graphite-faint">
-            {draft.length} / {MAX_CHARS}
-          </span>
+          <div className="flex items-center gap-2">
+            <EmojiPicker onPick={handleEmojiPick} disabled={isBusy} />
+            <span className="text-xs text-gray-400 dark:text-graphite-faint">
+              {draft.length} / {MAX_CHARS}
+            </span>
+          </div>
           <button
             type="button"
             onClick={handleSend}

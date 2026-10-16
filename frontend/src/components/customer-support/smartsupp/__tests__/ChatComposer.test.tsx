@@ -243,4 +243,25 @@ describe("ChatComposer", () => {
     expect(onDraftChange).toHaveBeenLastCalledWith("");
     expect(clearSent).toHaveBeenCalled();
   });
+
+  it("inserts a picked emoji at the caret through the draft change path", () => {
+    mockHook({});
+    const onDraftChange = jest.fn();
+    render(<ChatComposer conversationId="c1" lastContactMessage="Dobrý den" onDraftChange={onDraftChange} />);
+    const textarea = screen.getByPlaceholderText(/napište odpověď/i) as HTMLTextAreaElement;
+    fireEvent.change(textarea, { target: { value: "Dobrý den" } });
+    textarea.setSelectionRange(9, 9);
+    fireEvent.click(screen.getByRole("button", { name: "Vložit emoji" }));
+    fireEvent.click(screen.getByText("😊"));
+    expect(textarea.value).toBe("Dobrý den😊");
+    expect(onDraftChange).toHaveBeenLastCalledWith("Dobrý den😊");
+    expect(screen.getByText("11 / 4000")).toBeInTheDocument();
+  });
+
+  it("disables the emoji button while a message is being sent", () => {
+    mockHook({});
+    mockSendHook({ isPending: true });
+    render(<ChatComposer conversationId="c1" lastContactMessage="Dobrý den" />);
+    expect(screen.getByRole("button", { name: "Vložit emoji" })).toBeDisabled();
+  });
 });
