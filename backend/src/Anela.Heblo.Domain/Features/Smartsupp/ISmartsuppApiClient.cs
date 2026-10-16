@@ -29,6 +29,22 @@ public interface ISmartsuppApiClient
         string? agentId,
         CancellationToken cancellationToken);
 
+    Task<SmartsuppUploadToken> GetUploadTokenAsync(CancellationToken cancellationToken);
+
+    Task UploadFileAsync(
+        string uploadUrl,
+        string fileName,
+        string fileType,
+        byte[] content,
+        CancellationToken cancellationToken);
+
+    Task<SmartsuppSentMessageData> SendMessageAsync(
+        string conversationId,
+        string? content,
+        string? agentId,
+        IReadOnlyList<SmartsuppOutgoingAttachment> attachments,
+        CancellationToken cancellationToken);
+
     Task<IReadOnlyList<SmartsuppAgentData>> GetAgentsAsync(CancellationToken cancellationToken);
 
     Task CloseConversationAsync(string conversationId, CancellationToken cancellationToken);
@@ -137,6 +153,19 @@ public class SmartsuppSentMessageData
 {
     public string Id { get; set; } = null!;
     public DateTime CreatedAt { get; set; }
+}
+
+public class SmartsuppUploadToken
+{
+    public string Token { get; set; } = null!;
+    public string Url { get; set; } = null!;
+}
+
+public class SmartsuppOutgoingAttachment
+{
+    public string Token { get; set; } = null!;
+    public string FileName { get; set; } = null!;
+    public string FileType { get; set; } = null!;
 }
 
 public class SmartsuppAgentData

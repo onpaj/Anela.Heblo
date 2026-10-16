@@ -437,6 +437,157 @@ public class SmartsuppApiClientTests
         await act.Should().ThrowAsync<HttpRequestException>();
     }
 
+    private static HttpResponseMessage Json(string json, HttpStatusCode status = HttpStatusCode.OK) =>
+        new(status) { Content = new StringContent(json, Encoding.UTF8, "application/json") };
+
+    private static Mock<HttpMessageHandler> CapturingHandler(
+        Func<HttpRequestMessage, Task<HttpResponseMessage>> respond, List<HttpRequestMessage>? requests = null)
+    {
+        var handler = new Mock<HttpMessageHandler>();
+        handler.Protected()
+            .Setup<Task<HttpResponseMessage>>("SendAsync", ItExpr.IsAny<HttpRequestMessage>(), ItExpr.IsAny<CancellationToken>())
+            .Returns<HttpRequestMessage, CancellationToken>((req, _) =>
+            {
+                requests?.Add(req);
+                return respond(req);
+            });
+        return handler;
+    }
+
+    private const string SentJson = "{\"id\":\"m1\",\"created_at\":\"2026-05-20T10:00:00Z\"}";
+
+    [Fact]
+    public async Task GetUploadTokenAsync_GetsFilesUploadToken_WithBearer()
+    {
+        HttpMethod? method = null; string? url = null; string? auth = null;
+        var handler = CapturingHandler(req =>
+        {
+            method = req.Method; url = req.RequestUri!.ToString(); auth = req.Headers.Authorization?.ToString();
+            return Task.FromResult(Json("{\"token\":\"tok1\",\"url\":\"https://files.smartsupp.com/upload/tok1\"}"));
+        });
+        var client = CreateClient(handler.Object);
+
+        var result = await client.GetUploadTokenAsync(CancellationToken.None);
+
+        method.Should().Be(HttpMethod.Get);
+        url.Should().Be("https://api.smartsupp.com/v2/files/upload/token");
+        auth.Should().Be("Bearer test-token");
+        result.Token.Should().Be("tok1");
+        result.Url.Should().Be("https://files.smartsupp.com/upload/tok1");
+    }
+
+    [Fact]
+    public async Task UploadFileAsync_PostsMultipartFieldFile_WithoutAuthorization()
+    {
+        HttpMethod? method = null; string? url = null; bool hasAuth = true;
+        string? partName = null; string? partFileName = null; string? partType = null; byte[]? partBytes = null;
+        var handler = CapturingHandler(async req =>
+        {
+            method = req.Method; url = req.RequestUri!.ToString(); hasAuth = req.Headers.Authorization is not null;
+            var multipart = (MultipartFormDataContent)req.Content!;
+            var part = multipart.Single();
+            partName = part.Headers.ContentDisposition!.Name!.Trim('"');
+            partFileName = part.Headers.ContentDisposition.FileName!.Trim('"');
+            partType = part.Headers.ContentType!.MediaType;
+            partBytes = await part.ReadAsByteArrayAsync();
+            return Json("{}");
+        });
+        var client = CreateClient(handler.Object);
+        var bytes = new byte[] { 1, 2, 3, 4 };
+
+        await client.UploadFileAsync("https://files.smartsupp.com/upload/tok1", "a.pdf", "application/pdf", bytes, CancellationToken.None);
+
+        method.Should().Be(HttpMethod.Post);
+        url.Should().Be("https://files.smartsupp.com/upload/tok1");
+        hasAuth.Should().BeFalse();
+        partName.Should().Be("file");
+        partFileName.Should().Be("a.pdf");
+        partType.Should().Be("application/pdf");
+        partBytes.Should().Equal(bytes);
+    }
+
+    [Theory]
+    [InlineData("https://evil.example/upload/x")]
+    [InlineData("http://files.smartsupp.com/upload/x")]
+    [InlineData("https://files.smartsupp.com.evil.example/upload/x")]
+    [InlineData("/upload/x")]
+    public async Task UploadFileAsync_RejectsNonSmartsuppUrl(string uploadUrl)
+    {
+        var requests = new List<HttpRequestMessage>();
+        var handler = CapturingHandler(_ => Task.FromResult(Json("{}")), requests);
+        var client = CreateClient(handler.Object);
+
+        var act = () => client.UploadFileAsync(uploadUrl, "a.pdf", "application/pdf", new byte[] { 1 }, CancellationToken.None);
+
+        await act.Should().ThrowAsync<ArgumentException>();
+        requests.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task UploadFileAsync_ThrowsHttpRequestException_OnNon2xx()
+    {
+        var handler = CapturingHandler(_ => Task.FromResult(Json("{}", HttpStatusCode.BadRequest)));
+        var client = CreateClient(handler.Object, ResiliencePipeline.Empty);
+
+        var act = () => client.UploadFileAsync("https://files.smartsupp.com/upload/t", "a.pdf", "application/pdf", new byte[] { 1 }, CancellationToken.None);
+
+        var ex = await act.Should().ThrowAsync<HttpRequestException>();
+        ex.Which.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+    }
+
+    [Fact]
+    public async Task SendMessageAsync_WithAttachments_SendsUploadItems()
+    {
+        string? body = null;
+        var handler = CapturingHandler(async req =>
+        {
+            body = await req.Content!.ReadAsStringAsync();
+            return Json(SentJson);
+        });
+        var client = CreateClient(handler.Object);
+        var attachments = new[]
+        {
+            new SmartsuppOutgoingAttachment { Token = "tok1", FileName = "a.pdf", FileType = "application/pdf" },
+        };
+
+        await client.SendMessageAsync("conv1", "Ahoj", "agt-1", attachments, CancellationToken.None);
+
+        using var doc = JsonDocument.Parse(body!);
+        var root = doc.RootElement;
+        root.GetProperty("agent_id").GetString().Should().Be("agt-1");
+        root.GetProperty("content").GetProperty("type").GetString().Should().Be("text");
+        root.GetProperty("content").GetProperty("text").GetString().Should().Be("Ahoj");
+        var item = root.GetProperty("attachments").EnumerateArray().Single();
+        item.GetProperty("type").GetString().Should().Be("upload");
+        item.GetProperty("token").GetString().Should().Be("tok1");
+        item.GetProperty("file_name").GetString().Should().Be("a.pdf");
+        item.GetProperty("file_type").GetString().Should().Be("application/pdf");
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    public async Task SendMessageAsync_WithAttachmentsAndEmptyText_OmitsContent(string? text)
+    {
+        string? body = null;
+        var handler = CapturingHandler(async req =>
+        {
+            body = await req.Content!.ReadAsStringAsync();
+            return Json(SentJson);
+        });
+        var client = CreateClient(handler.Object);
+        var attachments = new[]
+        {
+            new SmartsuppOutgoingAttachment { Token = "tok1", FileName = "a.pdf", FileType = "application/pdf" },
+        };
+
+        await client.SendMessageAsync("conv1", text, "agt-1", attachments, CancellationToken.None);
+
+        using var doc = JsonDocument.Parse(body!);
+        doc.RootElement.TryGetProperty("content", out _).Should().BeFalse();
+        doc.RootElement.GetProperty("attachments").GetArrayLength().Should().Be(1);
+    }
+
     [Fact]
     public async Task CloseConversationAsync_SendsPatchToCloseSubresource()
     {

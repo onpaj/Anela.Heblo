@@ -37,6 +37,8 @@ public class SmartsuppApiClient : ISmartsuppApiClient
         DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
     };
 
+    private const string UploadHost = "files.smartsupp.com";
+
     private readonly SmartsuppOptions _options;
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly ILogger<SmartsuppApiClient> _logger;
@@ -496,8 +498,23 @@ public class SmartsuppApiClient : ISmartsuppApiClient
 
     private sealed class SendMessageApiRequest
     {
-        public SendMessageApiContent Content { get; init; } = null!;
+        public SendMessageApiContent? Content { get; init; }
         public string? AgentId { get; init; }
+        public List<SendMessageApiAttachment>? Attachments { get; init; }
+    }
+
+    private sealed class SendMessageApiAttachment
+    {
+        public string Type { get; init; } = "upload";
+        public string Token { get; init; } = null!;
+        public string FileName { get; init; } = null!;
+        public string FileType { get; init; } = null!;
+    }
+
+    private sealed class UploadTokenApiResponse
+    {
+        public string? Token { get; set; }
+        public string? Url { get; set; }
     }
 
     private sealed class SendMessageApiContent
@@ -542,10 +559,100 @@ public class SmartsuppApiClient : ISmartsuppApiClient
         }, cancellationToken);
     }
 
-    public async Task<SmartsuppSentMessageData> SendMessageAsync(
+    public Task<SmartsuppSentMessageData> SendMessageAsync(
         string conversationId,
         string content,
         string? agentId,
+        CancellationToken cancellationToken)
+        => SendMessageCoreAsync(
+            conversationId, new SendMessageApiContent { Text = content }, agentId, null, cancellationToken);
+
+    public Task<SmartsuppSentMessageData> SendMessageAsync(
+        string conversationId,
+        string? content,
+        string? agentId,
+        IReadOnlyList<SmartsuppOutgoingAttachment> attachments,
+        CancellationToken cancellationToken)
+    {
+        var apiAttachments = attachments
+            .Select(a => new SendMessageApiAttachment { Token = a.Token, FileName = a.FileName, FileType = a.FileType })
+            .ToList();
+
+        return SendMessageCoreAsync(
+            conversationId,
+            string.IsNullOrWhiteSpace(content) ? null : new SendMessageApiContent { Text = content },
+            agentId,
+            apiAttachments.Count == 0 ? null : apiAttachments,
+            cancellationToken);
+    }
+
+    public async Task<SmartsuppUploadToken> GetUploadTokenAsync(CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrEmpty(_options.ApiToken))
+            throw new InvalidOperationException("Smartsupp:ApiToken is not configured.");
+
+        return await _pipeline.ExecuteAsync(async ct =>
+        {
+            var client = _httpClientFactory.CreateClient("Smartsupp");
+            using var request = new HttpRequestMessage(HttpMethod.Get, $"{_options.BaseUrl}files/upload/token");
+            request.Headers.Add("Authorization", $"Bearer {_options.ApiToken}");
+
+            var response = await client.SendAsync(request, ct);
+            await ThrowIfFailedAsync(response, "get upload token", ct);
+
+            var raw = await response.Content.ReadAsStringAsync(ct);
+            var result = JsonSerializer.Deserialize<UploadTokenApiResponse>(raw, JsonOptions);
+            if (string.IsNullOrEmpty(result?.Token) || string.IsNullOrEmpty(result.Url))
+                throw new InvalidOperationException("Smartsupp upload token response is missing token or url.");
+
+            return new SmartsuppUploadToken { Token = result.Token, Url = result.Url };
+        }, cancellationToken);
+    }
+
+    public async Task UploadFileAsync(
+        string uploadUrl,
+        string fileName,
+        string fileType,
+        byte[] content,
+        CancellationToken cancellationToken)
+    {
+        if (!Uri.TryCreate(uploadUrl, UriKind.Absolute, out var uri) ||
+            uri.Scheme != Uri.UriSchemeHttps ||
+            !string.Equals(uri.Host, UploadHost, StringComparison.OrdinalIgnoreCase))
+            throw new ArgumentException($"Upload URL must be https://{UploadHost}/…", nameof(uploadUrl));
+
+        await _pipeline.ExecuteAsync(async ct =>
+        {
+            var client = _httpClientFactory.CreateClient("Smartsupp");
+            var filePart = new ByteArrayContent(content);
+            filePart.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(fileType);
+            using var form = new MultipartFormDataContent { { filePart, "file", fileName } };
+            // No Authorization header: the upload token embedded in the URL authorises the upload.
+            using var request = new HttpRequestMessage(HttpMethod.Post, uri) { Content = form };
+
+            var response = await client.SendAsync(request, ct);
+            await ThrowIfFailedAsync(response, "file upload", ct);
+        }, cancellationToken);
+    }
+
+    private async Task ThrowIfFailedAsync(HttpResponseMessage response, string operation, CancellationToken ct)
+    {
+        if (response.IsSuccessStatusCode)
+            return;
+
+        var errorBody = await response.Content.ReadAsStringAsync(ct);
+        _logger.LogError("Smartsupp {Operation} failed {Status}: {Body}", operation, response.StatusCode, errorBody);
+        var ex = new HttpRequestException($"Smartsupp API {(int)response.StatusCode}", null, response.StatusCode);
+        if (response.Headers.RetryAfter?.Delta is { } delta)
+            ex.Data["RetryAfter"] = delta;
+        throw ex;
+    }
+
+    private async Task<SmartsuppSentMessageData> SendMessageCoreAsync(
+        string conversationId,
+        SendMessageApiContent? content,
+        string? agentId,
+        List<SendMessageApiAttachment>? attachments,
         CancellationToken cancellationToken)
     {
         if (string.IsNullOrEmpty(_options.ApiToken))
@@ -558,8 +665,9 @@ public class SmartsuppApiClient : ISmartsuppApiClient
         // ("agent_id is required when sub_type is \"agent\"") even if agent_id is set.
         var body = new SendMessageApiRequest
         {
-            Content = new SendMessageApiContent { Text = content },
+            Content = content,
             AgentId = string.IsNullOrWhiteSpace(agentId) ? null : agentId,
+            Attachments = attachments,
         };
 
         var json = JsonSerializer.Serialize(body, JsonOptions);
