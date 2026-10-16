@@ -134,7 +134,7 @@ public class SmartsuppController : BaseApiController
         string conversationId,
         [FromForm] string? content,
         [FromForm] Guid? draftLogId,
-        [FromForm] List<IFormFile> files,
+        [FromForm] List<IFormFile>? files,
         CancellationToken cancellationToken = default)
     {
         var request = new SendMessageRequest

@@ -51,42 +51,32 @@ public class SendMessageHandler : IRequestHandler<SendMessageRequest, SendMessag
             return new SendMessageResponse(ErrorCodes.SmartsuppAgentMappingNotFound);
         }
 
-        SmartsuppSentMessageData sent;
+        IReadOnlyList<SmartsuppOutgoingAttachment>? attachments = null;
         if (request.Files.Count > 0)
         {
             var rejection = ValidateFiles(request.Files, out var fileTypes);
             if (rejection is { } rejectionCode)
                 return new SendMessageResponse(rejectionCode);
 
-            var attachments = await TryUploadFilesAsync(request, fileTypes, cancellationToken);
+            attachments = await TryUploadFilesAsync(request, fileTypes, cancellationToken);
             if (attachments is null)
                 return new SendMessageResponse(ErrorCodes.SmartsuppAttachmentUploadFailed);
-
-            try
-            {
-                sent = await _apiClient.SendMessageAsync(
-                    request.ConversationId, request.Content, agentId, attachments, cancellationToken);
-            }
-            catch (Exception ex) when (IsApiUnavailable(ex, cancellationToken))
-            {
-                _logger.LogWarning(ex, "Smartsupp API unavailable while sending message to {ConversationId}",
-                    request.ConversationId);
-                return new SendMessageResponse(ErrorCodes.SmartsuppSendMessageUnavailable);
-            }
         }
-        else
+
+        SmartsuppSentMessageData sent;
+        try
         {
-            try
-            {
-                sent = await _apiClient.SendMessageAsync(
-                    request.ConversationId, request.Content!, agentId, cancellationToken);
-            }
-            catch (Exception ex) when (IsApiUnavailable(ex, cancellationToken))
-            {
-                _logger.LogWarning(ex, "Smartsupp API unavailable while sending message to {ConversationId}",
-                    request.ConversationId);
-                return new SendMessageResponse(ErrorCodes.SmartsuppSendMessageUnavailable);
-            }
+            sent = attachments is null
+                ? await _apiClient.SendMessageAsync(
+                    request.ConversationId, request.Content!, agentId, cancellationToken)
+                : await _apiClient.SendMessageAsync(
+                    request.ConversationId, request.Content, agentId, attachments, cancellationToken);
+        }
+        catch (Exception ex) when (IsApiUnavailable(ex, cancellationToken))
+        {
+            _logger.LogWarning(ex, "Smartsupp API unavailable while sending message to {ConversationId}",
+                request.ConversationId);
+            return new SendMessageResponse(ErrorCodes.SmartsuppSendMessageUnavailable);
         }
 
         // If this message came from an AI draft, record the actually-sent text (and edit signal)
