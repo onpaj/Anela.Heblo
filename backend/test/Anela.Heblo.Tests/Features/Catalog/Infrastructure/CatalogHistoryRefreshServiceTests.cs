@@ -127,6 +127,47 @@ public sealed class CatalogHistoryRefreshServiceTests
     }
 
     [Fact]
+    public async Task RefreshSetPartsData_FetchesPartsForShoptetSets()
+    {
+        // Arrange
+        _cacheStore.SetErpStockData(new List<ErpStock>
+        {
+            new() { ProductCode = "SA016005", ProductName = "Double shot mini - Teenka", ProductTypeId = (int)ProductType.Product },
+        });
+
+        var setPartsClient = new Mock<ICatalogSetPartsClient>();
+        setPartsClient
+            .Setup(c => c.GetAsync(It.IsAny<IEnumerable<string>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<CatalogSetPart>
+            {
+                new() { SetCode = "SA016005", ComponentCode = "SER002005", ComponentName = "Bezstarostná teenka", Amount = 1 },
+            });
+
+        var resilienceServiceMock = new Mock<ICatalogResilienceService>();
+        resilienceServiceMock.Setup(r => r.ExecuteWithResilienceAsync(
+                It.IsAny<Func<CancellationToken, Task<IList<CatalogSetPart>>>>(),
+                It.IsAny<string>(),
+                It.IsAny<CancellationToken>()))
+            .Returns<Func<CancellationToken, Task<IList<CatalogSetPart>>>, string, CancellationToken>(
+                (op, _, ct) => op(ct));
+
+        var service = CreateService(
+            setPartsClient: setPartsClient.Object,
+            resilienceService: resilienceServiceMock.Object);
+
+        // Act
+        await service.RefreshSetPartsData(CancellationToken.None);
+
+        // Assert
+        setPartsClient.Verify(
+            c => c.GetAsync(It.Is<IEnumerable<string>>(codes => codes.SequenceEqual(new[] { "SA016005" })),
+                            It.IsAny<CancellationToken>()),
+            Times.Once);
+        _cacheStore.GetSetPartsData().Should().ContainSingle()
+            .Which.SetCode.Should().Be("SA016005");
+    }
+
+    [Fact]
     public async Task RefreshSetPartsData_WhenOneBundleFails_KeepsPartsFromTheOthers()
     {
         // Arrange — two bundles, one of which Flexi cannot resolve. Without per-bundle isolation
