@@ -14,8 +14,10 @@ namespace Anela.Heblo.Application.Features.Catalog.CostProviders;
 ///     sazba na korunu trzby = pool / celkove trzby
 ///     naklad na kus         = sazba × trzba na kus produktu
 ///
-/// Both levels allocate through this one place, so the comparability the providers document
-/// ("M2 and M3 divide the same denominator") cannot drift apart in one copy of the logic.
+/// Both levels allocate through the single <see cref="Allocate"/> entry point, so the
+/// comparability the providers document ("M2 and M3 divide the same denominator") cannot drift
+/// apart in one copy of the logic - including the rule for who is allocatable at all, which has to
+/// hold on both sides of the division or the pool stops adding up.
 /// </summary>
 internal static class SalesRevenueAllocation
 {
@@ -26,95 +28,102 @@ internal static class SalesRevenueAllocation
     private const double MinimumAllocatablePieces = 0.001;
 
     /// <summary>
-    /// Company-wide sales revenue in the window - the denominator of the allocation rate.
-    ///
-    /// Only revenue that will actually be charged back counts, which is what keeps the allocation
-    /// tied to the ledger: every koruna in this sum belongs to a product that receives a cost, and
-    /// every product that receives a cost has its revenue in this sum. A product whose returns
-    /// outweighed its sales would otherwise shrink the divisor and inflate the cost of every
-    /// product that did sell, while itself being charged nothing.
+    /// What one provider needs back: the flat cost per piece for every product across every month
+    /// of the window, plus whether anything was actually earned in it. The providers log that in
+    /// their own voice, which is the only part of the step that differs between M2 and M3.
     /// </summary>
-    public static decimal CalculateTotalRevenue(
-        IEnumerable<CatalogAggregate> products,
-        DateTime from,
-        DateTime to)
-    {
-        return products
-            .Where(HasProductCode)
-            .Sum(product => CalculateAllocatableRevenue(product, from, to));
-    }
+    internal readonly record struct AllocationResult(
+        Dictionary<string, List<MonthlyCost>> ProductCosts,
+        bool HasAllocatableRevenue);
 
     /// <summary>
-    /// Turns the allocation rate into a flat cost per piece per product - the same value for every
-    /// month of the window, as the providers have always emitted. A product that earned nothing in
-    /// the window took no share of the pool and carries zero.
+    /// Spreads <paramref name="pool"/> across <paramref name="products"/> in proportion to the
+    /// revenue each earned in the window. With nothing earned, every product carries zero rather
+    /// than the whole pool being dumped on whoever happens to be first.
     /// </summary>
-    public static Dictionary<string, List<MonthlyCost>> BuildProductCosts(
-        IEnumerable<CatalogAggregate> products,
-        decimal costPerRevenueUnit,
+    public static AllocationResult Allocate(
+        decimal pool,
+        IReadOnlyCollection<CatalogAggregate> products,
         DateTime from,
         DateTime to,
         IReadOnlyCollection<DateTime> months)
     {
-        var productCosts = new Dictionary<string, List<MonthlyCost>>();
+        // One pass over each product's sales history, not one per side of the division.
+        var sales = SumSalesInWindow(products, from, to);
 
-        foreach (var product in products.Where(HasProductCode))
-        {
-            var (pieces, revenue) = SumSalesInWindow(product, from, to);
-            var costPerPiece = IsAllocatable(pieces, revenue)
-                ? costPerRevenueUnit * (revenue / (decimal)pieces)
-                : 0m;
+        var totalRevenue = sales.Values
+            .Where(s => s.IsAllocatable)
+            .Sum(s => s.Revenue);
 
-            productCosts[product.ProductCode!] = months.Select(m => new MonthlyCost(m, costPerPiece)).ToList();
-        }
+        var hasAllocatableRevenue = totalRevenue > 0m;
+        var costPerRevenueUnit = hasAllocatableRevenue ? pool / totalRevenue : 0m;
 
-        return productCosts;
-    }
+        var productCosts = sales.ToDictionary(
+            entry => entry.Key,
+            entry => BuildMonthlyCosts(entry.Value, costPerRevenueUnit, months));
 
-    private static decimal CalculateAllocatableRevenue(
-        CatalogAggregate product,
-        DateTime from,
-        DateTime to)
-    {
-        var (pieces, revenue) = SumSalesInWindow(product, from, to);
-
-        return IsAllocatable(pieces, revenue) ? revenue : 0m;
+        return new AllocationResult(productCosts, hasAllocatableRevenue);
     }
 
     /// <summary>
-    /// Whether this product can take a share of the pool at all. Returns can outweigh sales in a
-    /// short window, and a row can carry revenue with no quantity; neither is a share worth
-    /// charging anybody, and both sides of the allocation have to agree on that.
+    /// A flat cost per piece repeated across every month of the window, as the providers have
+    /// always emitted. A product that earned nothing took no share of the pool and carries zero.
     /// </summary>
-    private static bool IsAllocatable(double pieces, decimal revenue)
-        => pieces > MinimumAllocatablePieces && revenue > 0m;
+    private static List<MonthlyCost> BuildMonthlyCosts(
+        ProductSales sales,
+        decimal costPerRevenueUnit,
+        IReadOnlyCollection<DateTime> months)
+    {
+        var costPerPiece = sales.IsAllocatable
+            ? costPerRevenueUnit * (sales.Revenue / (decimal)sales.Pieces)
+            : 0m;
+
+        return months.Select(month => new MonthlyCost(month, costPerPiece)).ToList();
+    }
 
     /// <summary>
-    /// Pieces and revenue of one product in the window. Synthetic rows expanded from a bundle sale
+    /// Pieces and revenue per product in the window. Synthetic rows expanded from a bundle sale
     /// (<see cref="Domain.Features.Catalog.Sales.CatalogSaleRecord.SourceBundleCode"/>) carry
     /// quantity but no revenue - the bundle keeps that - so counting them would sink the
     /// component's revenue per piece and leave it carrying almost no cost.
     /// </summary>
-    private static (double pieces, decimal revenue) SumSalesInWindow(
-        CatalogAggregate product,
+    private static Dictionary<string, ProductSales> SumSalesInWindow(
+        IEnumerable<CatalogAggregate> products,
         DateTime from,
         DateTime to)
     {
-        var pieces = 0d;
-        var revenue = 0m;
+        var sales = new Dictionary<string, ProductSales>();
 
-        foreach (var sale in product.SalesHistory)
+        foreach (var product in products)
         {
-            if (sale.Date < from || sale.Date > to || sale.SourceBundleCode != null)
+            if (string.IsNullOrEmpty(product.ProductCode))
                 continue;
 
-            pieces += sale.AmountTotal;
-            revenue += sale.SumTotal;
+            var pieces = 0d;
+            var revenue = 0m;
+
+            foreach (var sale in product.SalesHistory)
+            {
+                if (sale.Date < from || sale.Date > to || sale.SourceBundleCode != null)
+                    continue;
+
+                pieces += sale.AmountTotal;
+                revenue += sale.SumTotal;
+            }
+
+            sales[product.ProductCode] = new ProductSales(pieces, revenue);
         }
 
-        return (pieces, revenue);
+        return sales;
     }
 
-    private static bool HasProductCode(CatalogAggregate product)
-        => !string.IsNullOrEmpty(product.ProductCode);
+    private readonly record struct ProductSales(double Pieces, decimal Revenue)
+    {
+        /// <summary>
+        /// Whether this product can take a share of the pool at all. Returns can outweigh sales in
+        /// a short window, and a row can carry revenue with no quantity; neither is a share worth
+        /// charging anybody, and both sides of the allocation have to agree on that.
+        /// </summary>
+        public bool IsAllocatable => Pieces > MinimumAllocatablePieces && Revenue > 0m;
+    }
 }
