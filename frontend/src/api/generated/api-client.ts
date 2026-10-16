@@ -48433,6 +48433,7 @@ export class MessageDto implements IMessageDto {
     responseTime?: number | undefined;
     isFirstReply?: boolean;
     pageUrl?: string | undefined;
+    attachments?: MessageAttachmentDto[];
 
     constructor(data?: IMessageDto) {
         if (data) {
@@ -48457,6 +48458,11 @@ export class MessageDto implements IMessageDto {
             this.responseTime = _data["responseTime"];
             this.isFirstReply = _data["isFirstReply"];
             this.pageUrl = _data["pageUrl"];
+            if (Array.isArray(_data["attachments"])) {
+                this.attachments = [] as any;
+                for (let item of _data["attachments"])
+                    this.attachments!.push(MessageAttachmentDto.fromJS(item));
+            }
         }
     }
 
@@ -48481,6 +48487,11 @@ export class MessageDto implements IMessageDto {
         data["responseTime"] = this.responseTime;
         data["isFirstReply"] = this.isFirstReply;
         data["pageUrl"] = this.pageUrl;
+        if (Array.isArray(this.attachments)) {
+            data["attachments"] = [];
+            for (let item of this.attachments)
+                data["attachments"].push(item.toJSON());
+        }
         return data;
     }
 }
@@ -48498,6 +48509,63 @@ export interface IMessageDto {
     responseTime?: number | undefined;
     isFirstReply?: boolean;
     pageUrl?: string | undefined;
+    attachments?: MessageAttachmentDto[];
+}
+
+export class MessageAttachmentDto implements IMessageAttachmentDto {
+    type?: string;
+    fileName?: string;
+    fileType?: string | undefined;
+    url?: string;
+    size?: number | undefined;
+    thumbUrl?: string | undefined;
+
+    constructor(data?: IMessageAttachmentDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.type = _data["type"];
+            this.fileName = _data["fileName"];
+            this.fileType = _data["fileType"];
+            this.url = _data["url"];
+            this.size = _data["size"];
+            this.thumbUrl = _data["thumbUrl"];
+        }
+    }
+
+    static fromJS(data: any): MessageAttachmentDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new MessageAttachmentDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["type"] = this.type;
+        data["fileName"] = this.fileName;
+        data["fileType"] = this.fileType;
+        data["url"] = this.url;
+        data["size"] = this.size;
+        data["thumbUrl"] = this.thumbUrl;
+        return data;
+    }
+}
+
+export interface IMessageAttachmentDto {
+    type?: string;
+    fileName?: string;
+    fileType?: string | undefined;
+    url?: string;
+    size?: number | undefined;
+    thumbUrl?: string | undefined;
 }
 
 export class GenerateDraftReplyResponse extends BaseResponse implements IGenerateDraftReplyResponse {
