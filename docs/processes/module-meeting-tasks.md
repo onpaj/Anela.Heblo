@@ -4,7 +4,7 @@ kind: module
 module: meeting-tasks
 summary: Meeting notes (Porady) — imports Plaud meeting recordings, lets Claude propose action items, has a manager review them and sends the approved ones to Microsoft Planner, with per-meeting visibility control.
 owns: []
-verified_at: "5e993f9e2"
+verified_at: "01ae6b757"
 related:
   - sync-plaud-recordings
   - feed-meeting-tasks-to-planner
@@ -53,8 +53,10 @@ Plain CRUD / on-demand actions (no own doc), all under `api/meeting-tasks` and r
   meeting), `Public` (everyone with read permission), `Restricted` (listed people only; at
   least one, each must be in `meeting-users.json`). Replaces all grants in `MeetingAccessGrants`.
 - Explain (`POST {id}/explain`): one Claude call with the full transcript and the selected
-  text; returns the quoted passage + Czech explanation; nothing is stored. Any failure returns
-  "Vysvětlení není k dispozici.".
+  text; returns the quoted passage + Czech explanation; nothing is stored. The call sets its
+  own 4096-token output budget (not the shared `KnowledgeBase:ChatMaxTokens`). Any failure
+  (including a reply with a blank explanation) returns "Vysvětlení není k dispozici." with an empty quote, still as success; the modal shows
+  the explanation on its own and hides the "Záznam konverzace" section when the quote is empty.
 - Delete (`DELETE {id}`, managers): removes the meeting, its tasks, grants and Mind-map links
   (cascade) and writes a tombstone to `DeletedPlaudRecordings` so polling never re-imports it.
   Planner tasks already created stay in Planner.
@@ -98,6 +100,10 @@ All in `public` schema of the Heblo DB:
   `anela.meetings.write`, and those users are managers who pass every access check. Access
   levels only matter for read-only users and MCP.
 - **Explain needs write permission** even though it changes nothing.
+- **Explain replies used to be truncated** (prod, 2026-10-07): with the shared 1024-token
+  default, explaining a whole summary section cut Claude's JSON mid-`explanation`, the parse
+  failed, and the modal showed nothing. Fixed by the dedicated budget; a parse failure is
+  logged as a warning by `ClaudeMeetingSummaryExplainer`.
 - **Inaccessible meetings return 404, not 403**, so a user cannot tell "does not exist" from
   "not allowed".
 - **The detail route has no frontend route guard** (`App.tsx`), unlike the list; the API still
