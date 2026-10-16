@@ -189,5 +189,31 @@ public class SmartsuppPayloadMapperTests
         items.Should().ContainSingle();
         items[0].Type.Should().Be("file");
         items[0].FileName.Should().Be("1040963052.pdf");
+        items[0].Url.Should().Be("https://files.smartsuppcdn.com/files/accounts/924500/uploads/sEYrSOqaL.pdf");
+    }
+
+    [Theory]
+    [InlineData(@"{""type"":""file"",""file_name"":""x.pdf"",""file_type"":""application/pdf"",""size"":10}")]
+    [InlineData(@"{""type"":""file"",""file_name"":""x.pdf"",""file_type"":""application/pdf"",""url"":""http://files.smartsuppcdn.com/x.pdf"",""size"":10}")]
+    public void MapMessage_CustomerUploadWithoutHttpsUrl_StoresNoUsableAttachment(string dataJson)
+    {
+        var json = @"{""id"":""m1"",""conversation_id"":""c1"",""sub_type"":""contact"",""type"":""message"",""attachments"":[],""content"":{""type"":""upload"",""text"":null,""data"":" + dataJson + @"},""created_at"":""2026-05-13T10:00:00Z"",""updated_at"":""2026-05-13T10:00:00Z""}";
+
+        var result = SmartsuppPayloadMapper.MapMessage(Parse(json));
+
+        SmartsuppAttachments.TryParse(result.AttachmentsJson, out var items).Should().BeTrue();
+        items.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void MapMessage_ContentAsPlainString_KeepsTextAndEmptyAttachments()
+    {
+        var json = @"{""id"":""m1"",""conversation_id"":""c1"",""sub_type"":""contact"",""type"":""message"",""content"":""Dobrý den"",""created_at"":""2026-05-13T10:00:00Z"",""updated_at"":""2026-05-13T10:00:00Z""}";
+
+        var result = SmartsuppPayloadMapper.MapMessage(Parse(json));
+
+        result.Content.Should().Be("Dobrý den");
+        SmartsuppAttachments.TryParse(result.AttachmentsJson, out var items).Should().BeTrue();
+        items.Should().BeEmpty();
     }
 }
