@@ -58,6 +58,11 @@ public static class SmartsuppAttachments
         try
         {
             using var doc = JsonDocument.Parse(json);
+            if (doc.RootElement.ValueKind == JsonValueKind.Null)
+            {
+                return true;
+            }
+
             if (doc.RootElement.ValueKind != JsonValueKind.Array)
             {
                 return false;

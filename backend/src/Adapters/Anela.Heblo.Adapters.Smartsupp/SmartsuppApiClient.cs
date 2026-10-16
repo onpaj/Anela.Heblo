@@ -603,7 +603,7 @@ public class SmartsuppApiClient : ISmartsuppApiClient
             var raw = await response.Content.ReadAsStringAsync(ct);
             var result = JsonSerializer.Deserialize<UploadTokenApiResponse>(raw, JsonOptions);
             if (string.IsNullOrEmpty(result?.Token) || string.IsNullOrEmpty(result.Url))
-                throw new InvalidOperationException("Smartsupp upload token response is missing token or url.");
+                throw new HttpRequestException("Smartsupp upload token response is missing token or url.");
 
             return new SmartsuppUploadToken { Token = result.Token, Url = result.Url };
         }, cancellationToken);

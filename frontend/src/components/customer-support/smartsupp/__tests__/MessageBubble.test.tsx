@@ -120,12 +120,19 @@ describe("MessageBubble", () => {
       expect(screen.queryByRole("link")).not.toBeInTheDocument();
     });
 
-    it("allows blob previews only for optimistic messages", () => {
+    it("renders blob previews for agent messages, optimistic or already swapped to a real id", () => {
       const attachments = [{ type: "image", fileName: "a.png", url: "blob:http://localhost/1" }];
       const optimistic = { ...baseMessage, id: "optimistic-1", content: null, attachments } as unknown as MessageDto;
       const { rerender } = render(<MessageBubble message={optimistic} />);
       expect(screen.getByRole("img")).toBeInTheDocument();
       rerender(<MessageBubble message={{ ...optimistic, id: "m9" }} />);
+      expect(screen.getByRole("img")).toBeInTheDocument();
+    });
+
+    it("renders nothing for a blob attachment on a visitor message", () => {
+      const attachments = [{ type: "image", fileName: "a.png", url: "blob:http://localhost/1" }];
+      const visitor = { ...baseMessage, id: "m9", authorType: "visitor", content: null, attachments } as unknown as MessageDto;
+      render(<MessageBubble message={visitor} />);
       expect(screen.queryByRole("img")).not.toBeInTheDocument();
     });
   });

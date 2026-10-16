@@ -34,7 +34,7 @@ const MessageAttachments: React.FC<MessageAttachmentsProps> = ({ attachments, to
   return (
     <div className="flex flex-col gap-1.5 mt-1" data-testid="message-attachments">
       {visible.map((attachment, index) => {
-        const name = attachment.fileName ?? "Příloha";
+        const name = attachment.fileName || "Příloha";
         const url = attachment.url as string;
         if (isImage(attachment)) {
           const thumb = isRenderableUrl(attachment.thumbUrl, allowBlob) ? (attachment.thumbUrl as string) : url;
@@ -54,7 +54,7 @@ const MessageAttachments: React.FC<MessageAttachmentsProps> = ({ attachments, to
             className={`inline-flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-sm ${chipClass}`}
           >
             <Icon className="h-4 w-4 shrink-0" aria-hidden="true" />
-            <span className="truncate max-w-[180px] underline">{name}</span>
+            <span className="truncate max-w-[180px] underline" title={name}>{name}</span>
             {typeof attachment.size === "number" && (
               <span className="text-xs opacity-80 shrink-0">{formatFileSize(attachment.size)}</span>
             )}

@@ -100,6 +100,14 @@ public class SmartsuppAttachmentsTests
     }
 
     [Fact]
+    public void TryParse_LiteralJsonNull_ReturnsTrueAndEmpty()
+    {
+        SmartsuppAttachments.TryParse("null", out var items).Should().BeTrue();
+
+        items.Should().BeEmpty();
+    }
+
+    [Fact]
     public void TryParse_ReadsLegacyRawRow()
     {
         SmartsuppAttachments.TryParse(AgentAttachments, out var items).Should().BeTrue();

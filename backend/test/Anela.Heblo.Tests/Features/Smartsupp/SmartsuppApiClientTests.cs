@@ -476,6 +476,19 @@ public class SmartsuppApiClientTests
         result.Url.Should().Be("https://files.smartsupp.com/upload/tok1");
     }
 
+    [Theory]
+    [InlineData("{}")]
+    [InlineData("{\"token\":\"x\"}")]
+    public async Task GetUploadTokenAsync_MissingTokenOrUrl_ThrowsHttpRequestException(string body)
+    {
+        var handler = CapturingHandler(_ => Task.FromResult(Json(body)));
+        var client = CreateClient(handler.Object);
+
+        var act = () => client.GetUploadTokenAsync(CancellationToken.None);
+
+        await act.Should().ThrowAsync<HttpRequestException>();
+    }
+
     [Fact]
     public async Task UploadFileAsync_PostsMultipartFieldFile_WithoutAuthorization()
     {

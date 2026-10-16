@@ -1,7 +1,8 @@
-import { renderHook, act, waitFor } from "@testing-library/react";
+import { render, screen, renderHook, act, waitFor } from "@testing-library/react";
 import React from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useSendMessage } from "../useSendMessage";
+import MessageBubble from "../../MessageBubble";
 import { getAuthenticatedApiClient } from "../../../../../api/client";
 import { ErrorCodes, GetConversationResponse } from "../../../../../api/generated/api-client";
 import { SMARTSUPP_QUERY_KEYS } from "../../../../../api/hooks/useSmartsupp";
@@ -371,6 +372,8 @@ describe("useSendMessage with attachments", () => {
     const sent = queryClient.getQueryData<GetConversationResponse>(key)!.messages![0];
     expect(sent.id).toBe("m1");
     expect(sent.attachments).toHaveLength(2);
+    render(React.createElement(MessageBubble, { message: sent }));
+    expect(screen.getByRole("img")).toHaveAttribute("src", "blob:test-url-1");
     expect(invalidate).not.toHaveBeenCalled();
     expect(revokeObjectURL).not.toHaveBeenCalled();
 

@@ -72,7 +72,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message, agentNames }) =>
           <MessageAttachments
             attachments={message.attachments}
             tone={isVisitor ? "visitor" : "agent"}
-            allowBlob={message.id?.startsWith("optimistic-") ?? false}
+            allowBlob={!isVisitor}
           />
         )}
         <div className={`flex items-center gap-1.5 text-xs mt-1 ${isVisitor ? "text-gray-400 dark:text-graphite-faint justify-end" : "text-blue-200 justify-end"}`}>
