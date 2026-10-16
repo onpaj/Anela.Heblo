@@ -134,7 +134,7 @@ function ChatComposer({ conversationId, lastContactMessage, initialDraft, onDraf
   const handlePaste = (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
     const clipboard = e.clipboardData;
     // Office apps put text and a rendered image on the clipboard together; keep the text paste.
-    if (clipboard?.types?.includes("text/plain") || clipboard?.getData?.("text/plain")) return;
+    if (Array.from(clipboard?.types ?? []).includes("text/plain") || clipboard?.getData?.("text/plain")) return;
     const pasted = Array.from(clipboard?.files ?? []);
     if (pasted.length === 0) return;
     e.preventDefault();

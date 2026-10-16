@@ -371,7 +371,7 @@ describe("useSendMessage with attachments", () => {
     const sent = queryClient.getQueryData<GetConversationResponse>(key)!.messages![0];
     expect(sent.id).toBe("m1");
     expect(sent.attachments).toHaveLength(2);
-    expect(invalidate).toHaveBeenCalledWith({ queryKey: key });
+    expect(invalidate).not.toHaveBeenCalled();
     expect(revokeObjectURL).not.toHaveBeenCalled();
 
     unmount();

@@ -209,9 +209,6 @@ export function useSendMessage(conversationId: string | null): UseSendMessageRes
           });
         },
       );
-      queryClient.invalidateQueries({
-        queryKey: SMARTSUPP_QUERY_KEYS.conversation(conversationId),
-      });
     },
     onError: (_err, _content, context) => {
       releaseObjectUrls(context?.objectUrls);
