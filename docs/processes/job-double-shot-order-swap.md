@@ -28,7 +28,7 @@ Nobody does this by hand; the visible result is in Shoptet (order items, an inte
 the warehouse picking list.
 
 A third-party Shoptet add-on parks every new order containing a V product in a **hold status**
-(production: 23) as its first rule, so the add-on's own payment/status automations leave it
+(production: 88 "SadySwap") as its first rule, so the add-on's own payment/status automations leave it
 alone. The sweep swaps those orders first and then moves them to Nová (-1), where the standard
 flow continues.
 
@@ -118,7 +118,7 @@ Target: Shoptet order items, `eshopRemark`, and the status of held orders only. 
 | `FeatureManagement:is-double-shot-order-swap-enabled` | `false` | Off = dry run (log only) |
 | `ShoptetOrders:DoubleShotSwapEligibleStatusIds` | `[]` = -1, 3, 32, -2, 35, 73 | Order states in which lines may be rewritten |
 | `ShoptetOrders:DoubleShotSwapLookbackDays` | `14` | How far back (creation time) orders are searched |
-| `ShoptetOrders:DoubleShotSwapHoldStatusId` | unset; `23` in `appsettings.Production.json` | Status the add-on parks new V orders in; unset = no hold handling (the test store has no such status) |
+| `ShoptetOrders:DoubleShotSwapHoldStatusId` | unset; `88` in `appsettings.Production.json` | Status the add-on parks new V orders in; unset = no hold handling (the test store has no such status) |
 | `ShoptetOrders:DoubleShotSwapReleaseStatusId` | `-1` | Status a clean held order is moved to |
 | `Hangfire:SchedulerEnabled` | `false`; `true` in Production | Whether recurring jobs are scheduled at all |
 | `ShoptetApi:BaseUrl`, `ShoptetApi:ApiToken` | secrets | Shoptet REST access |
@@ -135,6 +135,7 @@ runtime in the admin UI (table `FeatureFlagOverrides`).
 - Item edits are not written to order history, hence the `eshopRemark` note. - same - 2026-10-12
 - `GET /api/orders?productCode=` matches a line code exactly. - `docs/integrations/shoptet-api.md` 3.8 - 2026-10-12
 - Order codes of deleted orders are reused by Shoptet. - `docs/integrations/shoptet-api.md` 3.17 - 2026-10-12
+- Production hold status is 88 "SadySwap"; status 23 does not exist in production. The add-on's hold rule was already live on 2026-10-13 (order 126021989 parked in 88 at creation). - `GET /api/orders/statuses` on prod - 2026-10-14
 - Prod mirror sets are SA014-SA017 x 005/030/100, codes ending in S (e.g. `SA015030S` <-> `SA015030V`). Test store 780175 has no real V/S pair (its set `SA014030` has no suffix). - #4479 on the prod stock CSV, test probe - 2026-10-12
 
 ## Known quirks
@@ -161,13 +162,14 @@ runtime in the admin UI (table `FeatureFlagOverrides`).
 - A missing S set surfaces as a logged 422 and the V line stays; nothing is written for it.
 - The suppress query parameters come from the Shoptet OpenAPI spec and were not exercised on a
   live store; the first real release should be checked for a missing customer e-mail/SMS.
-- The hold step itself (add-on moving the order into 23) is the add-on's status change: its own
+- The hold step itself (add-on moving the order into 88) is the add-on's status change: its own
   e-mail/SMS settings decide whether the customer is notified there, not Heblo.
 - Payment during hold (unverified): if a payment arrives while an order is held, it is unknown
   whether the add-on re-processes it after the release to Nová, or moves it out of hold early
   (then it is swapped by the plain sweep but not released). Check with a test order after rollout.
-- Status 23 was announced as the production hold status (2026-10-13); its id was not verified via
-  the API (the test store has no status 23).
+- The production hold status is 88 "SadySwap", read via `GET /api/orders/statuses` on 2026-10-14.
+  Status 23, announced first, does not exist in production: with 23 configured, held orders were
+  dropped as not eligible and would have stayed parked forever.
 - The note append is read-modify-write without concurrency control (see `module-shoptet-orders`).
 
 ## Rollout
@@ -176,7 +178,7 @@ Order matters: a hold rule switched on while Heblo is in dry run parks orders fo
 2. Once the V variants exist in Shoptet, check the dry-run log on a real V order for the exact
    V -> S pairs.
 3. Turn `is-double-shot-order-swap-enabled` on.
-4. Only then switch on the add-on's hold rule (V order -> status 23).
+4. Only then switch on the add-on's hold rule (V order -> status 88).
 
 Before enabling the flag, check on the test store that the S line remark
 (`auto-swap SA015030V #123`) is not printed on the invoice PDF / order e-mail (unverified).
