@@ -38,11 +38,12 @@ const SmartsuppChatsPage: React.FC = () => {
   const queryClient = useQueryClient();
 
   const conversations = data?.items ?? [];
-  // A past conversation picked from the contact panel is usually not in the current status list
-  // (e.g. a Resolved one while the Open tab is shown), so fall back to its detail query.
+  // Prefer the detail query: only it carries the contact history (otherConversations), phone, IP
+  // and variables — the list endpoint leaves them empty. The list item covers the first load, and
+  // a past conversation picked from the contact panel (not in the current list) relies on detail.
   const { data: selectedDetail } = useSmartsuppConversation(selectedId);
   const selectedConversation =
-    conversations.find((c) => c.id === selectedId) ?? selectedDetail?.conversation ?? null;
+    selectedDetail?.conversation ?? conversations.find((c) => c.id === selectedId) ?? null;
 
   const handleSelectConversation = (id: string) => {
     setSelectedId(id);

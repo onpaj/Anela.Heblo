@@ -30,15 +30,8 @@ jest.mock("../../../../../api/hooks/useSmartsupp", () => ({
           contactProperties: {},
           locationIp: null,
           variables: {},
-          otherConversations: [
-            {
-              id: "r1",
-              status: "Resolved",
-              lastMessageAt: "2026-09-12T10:00:00Z",
-              lastMessagePreview: "Děkuji, objednávka dorazila",
-              isUnread: false,
-            },
-          ],
+          // The list endpoint never fills the contact history — only the detail endpoint does.
+          otherConversations: [],
         },
         {
           id: "c2",
@@ -87,7 +80,30 @@ jest.mock("../../../../../api/hooks/useSmartsupp", () => ({
             },
             messages: [],
           }
-        : { messages: [] },
+        : id === "c1"
+          ? {
+              conversation: {
+                id: "c1",
+                contactName: "Jana Nováková",
+                status: "Open",
+                variables: {},
+                contactProperties: {},
+                otherConversations: [
+                  {
+                    id: "r1",
+                    status: "Resolved",
+                    lastMessageAt: "2026-09-12T10:00:00Z",
+                    lastMessagePreview: "Děkuji, objednávka dorazila",
+                    isUnread: false,
+                  },
+                ],
+                assignedAgentIds: [],
+                tags: [],
+                contactTags: [],
+              },
+              messages: [],
+            }
+          : { messages: [] },
     isLoading: false,
   }),
   useSmartsuppShoptetInfo: () => ({ data: null, isLoading: false }),

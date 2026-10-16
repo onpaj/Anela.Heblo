@@ -34,7 +34,12 @@ The feature exists ("Jiné konverzace") but the operator effectively can't reach
    - `selectedConversation` is resolved with `conversations.find(c => c.id === selectedId)` over
      the **currently loaded status list** (Open *or* Resolved).
    - A past conversation is usually Resolved, so selecting it from the Open tab finds nothing.
-4. **Navigating away is the wrong UX anyway.**
+4. **The panel is fed the list item, which has no history.**
+   - `ListConversationsHandler.MapDto` never fills `OtherConversations` (nor phone, IP,
+     variables, contact properties); only `GetConversationHandler` does.
+   - The page preferred the list item over the detail query, so the history section never
+     rendered for a conversation opened from the list. Fixed: the detail query now wins.
+5. **Navigating away is the wrong UX anyway.**
    - Jumping to the old chat loses the current one.
    - Smartsupp shows history inline above the current conversation.
 
