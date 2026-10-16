@@ -65,4 +65,68 @@ describe("MessageBubble", () => {
     );
     expect(screen.getByText("Automatická odpověď")).toHaveClass("italic");
   });
+
+  describe("links and attachments", () => {
+    it("renders URLs as safe external links", () => {
+      render(<MessageBubble message={{ ...baseMessage, content: "Viz https://anela.cz/produkt." }} />);
+      const link = screen.getByRole("link", { name: "https://anela.cz/produkt" });
+      expect(link).toHaveAttribute("href", "https://anela.cz/produkt");
+      expect(link).toHaveAttribute("target", "_blank");
+      expect(link).toHaveAttribute("rel", "noopener noreferrer");
+    });
+
+    it("renders asterisks literally without emphasis", () => {
+      render(<MessageBubble message={{ ...baseMessage, content: "*tucne*" }} />);
+      expect(screen.getByText("*tucne*")).toBeInTheDocument();
+      expect(screen.queryByRole("emphasis")).not.toBeInTheDocument();
+      expect(screen.queryByRole("strong")).not.toBeInTheDocument();
+    });
+
+    it("renders an upload-only message as a linked image thumbnail", () => {
+      const message = {
+        ...baseMessage,
+        authorType: "visitor",
+        content: null,
+        attachments: [
+          { type: "image", fileName: "foto.jpg", url: "https://files.smartsupp.com/foto.jpg", thumbUrl: "https://files.smartsupp.com/thumb.jpg" },
+        ],
+      } as unknown as MessageDto;
+      render(<MessageBubble message={message} />);
+      const img = screen.getByRole("img", { name: "foto.jpg" });
+      expect(img).toHaveAttribute("src", "https://files.smartsupp.com/thumb.jpg");
+      expect(screen.getByRole("link")).toHaveAttribute("href", "https://files.smartsupp.com/foto.jpg");
+      expect(screen.queryByText(/\S/, { selector: "p" })).not.toBeInTheDocument();
+    });
+
+    it("renders a file attachment chip with name and size", () => {
+      const message = {
+        ...baseMessage,
+        content: null,
+        attachments: [{ type: "file", fileName: "objednavka.pdf", url: "https://files.smartsupp.com/o.pdf", size: 598612 }],
+      } as unknown as MessageDto;
+      render(<MessageBubble message={message} />);
+      const link = screen.getByRole("link");
+      expect(link).toHaveTextContent("objednavka.pdf");
+      expect(link).toHaveTextContent("584 kB");
+    });
+
+    it("renders nothing for an attachment with an http url", () => {
+      const message = {
+        ...baseMessage,
+        content: null,
+        attachments: [{ type: "file", fileName: "x.pdf", url: "http://files.smartsupp.com/x.pdf" }],
+      } as unknown as MessageDto;
+      render(<MessageBubble message={message} />);
+      expect(screen.queryByRole("link")).not.toBeInTheDocument();
+    });
+
+    it("allows blob previews only for optimistic messages", () => {
+      const attachments = [{ type: "image", fileName: "a.png", url: "blob:http://localhost/1" }];
+      const optimistic = { ...baseMessage, id: "optimistic-1", content: null, attachments } as unknown as MessageDto;
+      const { rerender } = render(<MessageBubble message={optimistic} />);
+      expect(screen.getByRole("img")).toBeInTheDocument();
+      rerender(<MessageBubble message={{ ...optimistic, id: "m9" }} />);
+      expect(screen.queryByRole("img")).not.toBeInTheDocument();
+    });
+  });
 });
