@@ -151,6 +151,14 @@ describe("ContactDetailsPanel", () => {
     expect(calls).toContain("c2");
   });
 
+  it("labels a past conversation's status in Czech", () => {
+    render(<ContactDetailsPanel conversation={fullConv} />);
+    const row = screen.getByTestId("other-conversation-c2");
+    expect(row).toHaveAttribute("type", "button");
+    expect(row).toHaveTextContent("Vyřešeno");
+    expect(row).not.toHaveTextContent("Resolved");
+  });
+
   it("renders variables and contactProperties in Informace section", () => {
     render(<ContactDetailsPanel conversation={fullConv} />);
     expect(screen.getByText("shoptet_guid")).toBeInTheDocument();

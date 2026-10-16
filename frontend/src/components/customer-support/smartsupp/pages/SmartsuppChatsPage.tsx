@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { ArrowLeft } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
-import { useSmartsuppConversations } from "../../../../api/hooks/useSmartsupp";
+import { useSmartsuppConversation, useSmartsuppConversations } from "../../../../api/hooks/useSmartsupp";
 import { QUERY_KEYS } from "../../../../api/client";
 import ConversationList from "../ConversationList";
 import ConversationDetail from "../ConversationDetail";
@@ -21,6 +21,30 @@ function readPanelOpen(key: string, defaultOpen: boolean): boolean {
 
 type MobileView = "list" | "chat" | "contact";
 
+interface PendingConversationProps {
+  isError: boolean;
+  onBack: () => void;
+}
+
+// Shown while a selected conversation outside the current list loads (or fails to), so the
+// operator keeps a way back on mobile, where the chat view has no other navigation.
+function PendingConversation({ isError, onBack }: PendingConversationProps) {
+  return (
+    <div className="flex flex-col items-center justify-center gap-3 h-full text-gray-400 dark:text-graphite-faint text-sm">
+      <span>{isError ? "Konverzaci se nepodařilo načíst." : "Načítám konverzaci…"}</span>
+      <button
+        type="button"
+        data-testid="pending-back-to-list-btn"
+        onClick={onBack}
+        className="md:hidden inline-flex items-center gap-1 text-gray-600 dark:text-graphite-muted"
+      >
+        <ArrowLeft className="w-4 h-4" />
+        Zpět na seznam
+      </button>
+    </div>
+  );
+}
+
 const SmartsuppChatsPage: React.FC = () => {
   useScreenView('Customer', 'SmartsuppChats');
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -31,14 +55,24 @@ const SmartsuppChatsPage: React.FC = () => {
     readPanelOpen(LIST_PANEL_KEY, true),
   );
   const [contactPanelOpen, setContactPanelOpen] = useState<boolean>(() =>
-    readPanelOpen(CONTACT_PANEL_KEY, false),
+    readPanelOpen(CONTACT_PANEL_KEY, true),
   );
 
   const { data, isLoading, isFetching } = useSmartsuppConversations(status);
   const queryClient = useQueryClient();
 
   const conversations = data?.items ?? [];
-  const selectedConversation = conversations.find((c) => c.id === selectedId) ?? null;
+  // Prefer the detail query: only it carries the contact history (otherConversations), phone, IP
+  // and variables — the list endpoint leaves them empty. The list item covers the first load, and
+  // a past conversation picked from the contact panel (not in the current list) relies on detail.
+  const { data: selectedDetail, isError: isDetailError } = useSmartsuppConversation(selectedId);
+  const selectedConversation =
+    selectedDetail?.conversation ?? conversations.find((c) => c.id === selectedId) ?? null;
+
+  const handleSelectConversation = (id: string) => {
+    setSelectedId(id);
+    setMobileView("chat");
+  };
 
   const handleDraftChange = (id: string, text: string) =>
     setDrafts((prev) => ({ ...prev, [id]: text }));
@@ -78,10 +112,7 @@ const SmartsuppChatsPage: React.FC = () => {
             selectedId={selectedId}
             status={status}
             isLoading={isLoading}
-            onSelect={(id) => {
-              setSelectedId(id);
-              setMobileView("chat");
-            }}
+            onSelect={handleSelectConversation}
             onStatusChange={(s) => {
               setStatus(s);
               setSelectedId(null);
@@ -111,6 +142,11 @@ const SmartsuppChatsPage: React.FC = () => {
               initialDraft={drafts[selectedId!] ?? ""}
               onDraftChange={(text) => handleDraftChange(selectedId!, text)}
             />
+          ) : selectedId ? (
+            <PendingConversation
+              isError={isDetailError}
+              onBack={() => setMobileView("list")}
+            />
           ) : (
             <div className="flex items-center justify-center h-full text-gray-400 dark:text-graphite-faint text-sm">
               Vyberte konverzaci
@@ -128,7 +164,10 @@ const SmartsuppChatsPage: React.FC = () => {
             />
             {contactPanelOpen && (
               <div className="w-80 flex-shrink-0 overflow-hidden">
-                <ContactDetailsPanel conversation={selectedConversation} />
+                <ContactDetailsPanel
+                  conversation={selectedConversation}
+                  onSelectConversation={handleSelectConversation}
+                />
               </div>
             )}
           </div>
@@ -152,7 +191,10 @@ const SmartsuppChatsPage: React.FC = () => {
               <span className="font-semibold text-gray-900 dark:text-graphite-text">Detail kontaktu</span>
             </div>
             <div className="flex-1 overflow-y-auto">
-              <ContactDetailsPanel conversation={selectedConversation} />
+              <ContactDetailsPanel
+                conversation={selectedConversation}
+                onSelectConversation={handleSelectConversation}
+              />
             </div>
           </div>
         )}
