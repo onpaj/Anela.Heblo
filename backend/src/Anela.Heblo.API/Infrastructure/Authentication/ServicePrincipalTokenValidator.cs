@@ -1,5 +1,8 @@
-using System.IdentityModel.Tokens.Jwt;
+using System.Security.Cryptography;
+using System.Text;
 using Microsoft.Extensions.Caching.Memory;
+using Microsoft.IdentityModel.JsonWebTokens;
+using Microsoft.IdentityModel.Tokens;
 
 namespace Anela.Heblo.API.Infrastructure.Authentication;
 
@@ -18,138 +21,159 @@ public interface IServicePrincipalTokenValidator
 }
 
 /// <summary>
-/// Implementation of Service Principal token validation for E2E testing
-/// Validates tokens against Azure AD standards and configured expectations
+/// Validates the Service Principal token that buys an E2E session (a super_user).
+/// The token must be RS256-signed by the configured tenant's Entra keys, issued by that tenant,
+/// addressed to this API (AzureAd:ClientId) and requested by the configured E2E app (E2E:ExpectedClientId).
+/// Missing configuration fails closed.
 /// </summary>
 public class ServicePrincipalTokenValidator : IServicePrincipalTokenValidator
 {
+    public const string ExpectedClientIdKey = "E2E:ExpectedClientId";
+    public const string ExpectedTenantIdKey = "E2E:ExpectedTenantId";
+    public const string ApiClientIdKey = "AzureAd:ClientId";
+
+    private const string AppIdClaim = "appid"; // v1 tokens
+    private const string AuthorizedPartyClaim = "azp"; // v2 tokens
+    private const string ScopeClaim = "scp"; // present only on delegated (user) tokens
+    private const string CacheKeyPrefix = "sptoken_";
+    private static readonly TimeSpan ClockSkew = TimeSpan.FromMinutes(2);
+    private static readonly TimeSpan MaxCacheDuration = TimeSpan.FromMinutes(5);
+
     private readonly ILogger<ServicePrincipalTokenValidator> _logger;
     private readonly IConfiguration _configuration;
     private readonly IMemoryCache _cache;
+    private readonly IE2ETokenSigningKeySource _signingKeySource;
 
     public ServicePrincipalTokenValidator(
         ILogger<ServicePrincipalTokenValidator> logger,
         IConfiguration configuration,
-        IMemoryCache cache)
+        IMemoryCache cache,
+        IE2ETokenSigningKeySource signingKeySource)
     {
         _logger = logger;
         _configuration = configuration;
         _cache = cache;
+        _signingKeySource = signingKeySource;
     }
 
-    /// <summary>
-    /// Validates a Service Principal JWT token comprehensively
-    /// Checks issuer, audience, expiration, app claims, and tenant validation
-    /// Uses caching to improve performance for repeated validations
-    /// </summary>
-    public Task<bool> ValidateAsync(string token)
+    public async Task<bool> ValidateAsync(string token)
     {
+        var expectedClientId = _configuration[ExpectedClientIdKey];
+        var expectedTenantId = _configuration[ExpectedTenantIdKey];
+        var apiClientId = _configuration[ApiClientIdKey];
+
+        if (string.IsNullOrWhiteSpace(expectedClientId)
+            || string.IsNullOrWhiteSpace(expectedTenantId)
+            || string.IsNullOrWhiteSpace(apiClientId))
+        {
+            _logger.LogError(
+                "Service Principal token validation: {ClientIdKey}, {TenantIdKey} and {ApiClientIdKey} must all be configured; rejecting token",
+                ExpectedClientIdKey, ExpectedTenantIdKey, ApiClientIdKey);
+            return false;
+        }
+
+        if (string.IsNullOrEmpty(token))
+        {
+            return false;
+        }
+
+        var cacheKey = CacheKeyPrefix + Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(token)));
+        if (_cache.TryGetValue(cacheKey, out bool _))
+        {
+            _logger.LogDebug("Service Principal token validation: Using cached result for token");
+            return true;
+        }
+
         try
         {
-            // Use token hash as cache key for validation results
-            var tokenHash = token.GetHashCode().ToString();
-            var cacheKey = $"sptoken_{tokenHash}";
-
-            // Check cache first to avoid repeated validation overhead
-            if (_cache.TryGetValue(cacheKey, out bool cachedResult))
+            var result = await ValidateSignedTokenAsync(token, expectedTenantId, apiClientId);
+            if (result.Exception is SecurityTokenSignatureKeyNotFoundException)
             {
-                _logger.LogDebug("Service Principal token validation: Using cached result for token");
-                return Task.FromResult(cachedResult);
+                // The token names a key id we have not cached yet (Entra key rollover): refetch once.
+                _signingKeySource.RequestRefresh();
+                result = await ValidateSignedTokenAsync(token, expectedTenantId, apiClientId);
             }
 
-            // Parse JWT token to get basic info
-            var handler = new JwtSecurityTokenHandler();
-            var jsonToken = handler.ReadJwtToken(token);
-
-            // Verify it's an app token (not user token)
-            var appIdClaim = jsonToken.Claims.FirstOrDefault(c => c.Type == "appid");
-            var tenantIdClaim = jsonToken.Claims.FirstOrDefault(c => c.Type == "tid");
-
-            if (appIdClaim == null || tenantIdClaim == null)
+            if (!result.IsValid)
             {
-                _logger.LogWarning("Service Principal token validation: Token missing required app claims");
-                return Task.FromResult(false);
+                _logger.LogWarning("Service Principal token validation: Token rejected ({Reason})",
+                    result.Exception?.GetType().Name ?? "unknown");
+                return false;
             }
 
-            // Check if it matches our expected Service Principal
-            var expectedClientId = _configuration["E2E:ExpectedClientId"];
-            var expectedTenantId = _configuration["E2E:ExpectedTenantId"];
+            if (result.Claims.ContainsKey(ScopeClaim))
+            {
+                _logger.LogWarning("Service Principal token validation: Delegated (user) token rejected; an app-only token is required");
+                return false;
+            }
 
-            if (!string.IsNullOrEmpty(expectedClientId) && appIdClaim.Value != expectedClientId)
+            var appId = GetStringClaim(result, AppIdClaim) ?? GetStringClaim(result, AuthorizedPartyClaim);
+            if (!string.Equals(appId, expectedClientId, StringComparison.OrdinalIgnoreCase))
             {
                 _logger.LogWarning("Service Principal token validation: Token client ID mismatch. Expected: {Expected}, Got: {Actual}",
-                    expectedClientId, appIdClaim.Value);
-                return Task.FromResult(false);
+                    expectedClientId, appId);
+                return false;
             }
 
-            if (!string.IsNullOrEmpty(expectedTenantId) && tenantIdClaim.Value != expectedTenantId)
-            {
-                _logger.LogWarning("Service Principal token validation: Token tenant ID mismatch. Expected: {Expected}, Got: {Actual}",
-                    expectedTenantId, tenantIdClaim.Value);
-                return Task.FromResult(false);
-            }
+            CacheSuccess(cacheKey, result.SecurityToken.ValidTo);
 
-            // CRITICAL SECURITY: Validate issuer to ensure token is from Azure AD (accept both v1.0 and v2.0 tokens)
-            var issuerClaim = jsonToken.Claims.FirstOrDefault(c => c.Type == "iss");
-            var expectedIssuerV1 = $"https://sts.windows.net/{tenantIdClaim.Value}/";
-            var expectedIssuerV2 = $"https://login.microsoftonline.com/{tenantIdClaim.Value}/v2.0";
-
-            if (issuerClaim == null || (issuerClaim.Value != expectedIssuerV1 && issuerClaim.Value != expectedIssuerV2))
-            {
-                _logger.LogWarning("Service Principal token validation: Invalid issuer. Expected: {ExpectedV1} OR {ExpectedV2}, Got: {Actual}",
-                    expectedIssuerV1, expectedIssuerV2, issuerClaim?.Value);
-                return Task.FromResult(false);
-            }
-
-            // CRITICAL SECURITY: Validate audience 
-            var audienceClaim = jsonToken.Claims.FirstOrDefault(c => c.Type == "aud");
-
-            if (audienceClaim == null)
-            {
-                _logger.LogWarning("Service Principal token validation: Token missing audience claim");
-                return Task.FromResult(false);
-            }
-
-            // CRITICAL SECURITY: Validate token expiration
-            var expClaim = jsonToken.Claims.FirstOrDefault(c => c.Type == "exp");
-            if (expClaim != null && long.TryParse(expClaim.Value, out var exp))
-            {
-                var expirationTime = DateTimeOffset.FromUnixTimeSeconds(exp);
-                if (expirationTime <= DateTimeOffset.UtcNow)
-                {
-                    _logger.LogWarning("Service Principal token validation: Token has expired. Expiration: {Expiration}", expirationTime);
-                    return Task.FromResult(false);
-                }
-            }
-
-            _logger.LogInformation("Service Principal token validation: Token validated successfully. AppId: {AppId}, Tenant: {TenantId}, Issuer: {Issuer}",
-                appIdClaim.Value, tenantIdClaim.Value, issuerClaim.Value);
-
-            // Cache the successful validation result for 5 minutes (tokens typically valid for 1 hour)
-            var cacheOptions = new MemoryCacheEntryOptions
-            {
-                AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(5),
-                Priority = CacheItemPriority.Normal
-            };
-            _cache.Set(cacheKey, true, cacheOptions);
-
-            return Task.FromResult(true);
+            _logger.LogInformation("Service Principal token validation: Token validated successfully. AppId: {AppId}, Issuer: {Issuer}",
+                appId, result.Issuer);
+            return true;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Service Principal token validation: Error parsing Service Principal token");
-
-            // Cache failed validation result for shorter period to allow retry
-            var tokenHash = token.GetHashCode().ToString();
-            var cacheKey = $"sptoken_{tokenHash}";
-            var cacheOptions = new MemoryCacheEntryOptions
-            {
-                AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(1),
-                Priority = CacheItemPriority.Low
-            };
-            _cache.Set(cacheKey, false, cacheOptions);
-
-            return Task.FromResult(false);
+            // Covers an unreachable Entra metadata endpoint; the token itself is never logged.
+            _logger.LogError(ex, "Service Principal token validation: Error validating Service Principal token");
+            return false;
         }
+    }
+
+    private async Task<TokenValidationResult> ValidateSignedTokenAsync(string token, string tenantId, string apiClientId)
+    {
+        var signingKeys = await _signingKeySource.GetSigningKeysAsync(CancellationToken.None);
+        var parameters = CreateValidationParameters(tenantId, apiClientId, signingKeys);
+        return await new JsonWebTokenHandler().ValidateTokenAsync(token, parameters);
+    }
+
+    private static string? GetStringClaim(TokenValidationResult result, string claimType) =>
+        result.Claims.TryGetValue(claimType, out var value) ? value as string : null;
+
+    private static TokenValidationParameters CreateValidationParameters(
+        string tenantId, string apiClientId, IReadOnlyCollection<SecurityKey> signingKeys) => new()
+        {
+            ValidIssuers = new[]
+            {
+                $"https://sts.windows.net/{tenantId}/",
+                $"https://login.microsoftonline.com/{tenantId}/v2.0",
+            },
+            ValidAudiences = new[] { $"api://{apiClientId}", apiClientId },
+            IssuerSigningKeys = signingKeys,
+            ValidAlgorithms = new[] { SecurityAlgorithms.RsaSha256 },
+            ValidateIssuer = true,
+            ValidateAudience = true,
+            ValidateLifetime = true,
+            ValidateIssuerSigningKey = true,
+            RequireSignedTokens = true,
+            RequireExpirationTime = true,
+            ClockSkew = ClockSkew,
+        };
+
+    private void CacheSuccess(string cacheKey, DateTime validToUtc)
+    {
+        // Never keep a success past the token's own expiry.
+        var expiresAt = new DateTimeOffset(DateTime.SpecifyKind(validToUtc, DateTimeKind.Utc));
+        var cap = DateTimeOffset.UtcNow + MaxCacheDuration;
+        var absoluteExpiration = expiresAt < cap ? expiresAt : cap;
+        if (absoluteExpiration <= DateTimeOffset.UtcNow)
+        {
+            return;
+        }
+
+        _cache.Set(cacheKey, true, new MemoryCacheEntryOptions
+        {
+            AbsoluteExpiration = absoluteExpiration,
+            Priority = CacheItemPriority.Normal,
+        });
     }
 }
