@@ -52,20 +52,41 @@ public class SendMessageHandler : IRequestHandler<SendMessageRequest, SendMessag
         }
 
         SmartsuppSentMessageData sent;
-        try
+        if (request.Files.Count > 0)
         {
-            sent = await _apiClient.SendMessageAsync(
-                request.ConversationId, request.Content, agentId, cancellationToken);
+            var rejection = ValidateFiles(request.Files, out var fileTypes);
+            if (rejection is { } rejectionCode)
+                return new SendMessageResponse(rejectionCode);
+
+            var attachments = await TryUploadFilesAsync(request, fileTypes, cancellationToken);
+            if (attachments is null)
+                return new SendMessageResponse(ErrorCodes.SmartsuppAttachmentUploadFailed);
+
+            try
+            {
+                sent = await _apiClient.SendMessageAsync(
+                    request.ConversationId, request.Content, agentId, attachments, cancellationToken);
+            }
+            catch (Exception ex) when (IsApiUnavailable(ex, cancellationToken))
+            {
+                _logger.LogWarning(ex, "Smartsupp API unavailable while sending message to {ConversationId}",
+                    request.ConversationId);
+                return new SendMessageResponse(ErrorCodes.SmartsuppSendMessageUnavailable);
+            }
         }
-        // Only absorb cancellations that originated inside the API client (e.g. HttpClient timeouts),
-        // not cancellations requested by the caller.
-        catch (Exception ex) when (ex is HttpRequestException or TimeoutException
-                                       or ObjectDisposedException
-                                       || (ex is TaskCanceledException tce && tce.CancellationToken != cancellationToken))
+        else
         {
-            _logger.LogWarning(ex, "Smartsupp API unavailable while sending message to {ConversationId}",
-                request.ConversationId);
-            return new SendMessageResponse(ErrorCodes.SmartsuppSendMessageUnavailable);
+            try
+            {
+                sent = await _apiClient.SendMessageAsync(
+                    request.ConversationId, request.Content!, agentId, cancellationToken);
+            }
+            catch (Exception ex) when (IsApiUnavailable(ex, cancellationToken))
+            {
+                _logger.LogWarning(ex, "Smartsupp API unavailable while sending message to {ConversationId}",
+                    request.ConversationId);
+                return new SendMessageResponse(ErrorCodes.SmartsuppSendMessageUnavailable);
+            }
         }
 
         // If this message came from an AI draft, record the actually-sent text (and edit signal)
@@ -75,7 +96,7 @@ public class SendMessageHandler : IRequestHandler<SendMessageRequest, SendMessag
             try
             {
                 await _interactionLogRepository.UpdateSentAsync(
-                    draftLogId, request.Content, DateTimeOffset.UtcNow, cancellationToken);
+                    draftLogId, request.Content ?? "", DateTimeOffset.UtcNow, cancellationToken);
             }
             catch (Exception ex)
             {
@@ -90,5 +111,67 @@ public class SendMessageHandler : IRequestHandler<SendMessageRequest, SendMessag
             MessageId = sent.Id,
             CreatedAt = sent.CreatedAt,
         };
+    }
+
+    // Only absorb cancellations that originated inside the API client (e.g. HttpClient timeouts),
+    // not cancellations requested by the caller.
+    private static bool IsApiUnavailable(Exception ex, CancellationToken cancellationToken) =>
+        ex is HttpRequestException or TimeoutException or ObjectDisposedException
+        || (ex is TaskCanceledException tce && tce.CancellationToken != cancellationToken);
+
+    /// <summary>Returns the rejection code, or null when every file passes. No API call happens here.</summary>
+    private static ErrorCodes? ValidateFiles(IReadOnlyList<SendMessageFile> files, out List<string> fileTypes)
+    {
+        fileTypes = [];
+        if (files.Count > SmartsuppAttachmentPolicy.MaxFiles)
+            return ErrorCodes.SmartsuppAttachmentInvalid;
+
+        foreach (var file in files)
+        {
+            if (file.Content.Length == 0)
+                return ErrorCodes.SmartsuppAttachmentInvalid;
+            if (file.Content.Length > SmartsuppAttachmentPolicy.MaxFileBytes)
+                return ErrorCodes.SmartsuppAttachmentTooLarge;
+            if (!SmartsuppAttachmentPolicy.TryResolveFileType(file.FileName, file.ContentType, out var fileType))
+                return ErrorCodes.SmartsuppAttachmentInvalid;
+            fileTypes.Add(fileType);
+        }
+
+        return null;
+    }
+
+    /// <summary>Uploads every file; returns null (after logging) when any upload fails.</summary>
+    private async Task<List<SmartsuppOutgoingAttachment>?> TryUploadFilesAsync(
+        SendMessageRequest request,
+        IReadOnlyList<string> fileTypes,
+        CancellationToken cancellationToken)
+    {
+        var attachments = new List<SmartsuppOutgoingAttachment>(request.Files.Count);
+        for (var i = 0; i < request.Files.Count; i++)
+        {
+            var file = request.Files[i];
+            try
+            {
+                var token = await _apiClient.GetUploadTokenAsync(cancellationToken);
+                await _apiClient.UploadFileAsync(
+                    token.Url, file.FileName, fileTypes[i], file.Content, cancellationToken);
+                attachments.Add(new SmartsuppOutgoingAttachment
+                {
+                    Token = token.Token,
+                    FileName = file.FileName,
+                    FileType = fileTypes[i],
+                });
+            }
+            catch (Exception ex) when (IsApiUnavailable(ex, cancellationToken)
+                                       || ex is ArgumentException or System.Text.Json.JsonException)
+            {
+                _logger.LogWarning(ex,
+                    "Smartsupp attachment upload failed for {ConversationId}, file {FileName}",
+                    request.ConversationId, file.FileName);
+                return null;
+            }
+        }
+
+        return attachments;
     }
 }

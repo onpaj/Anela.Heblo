@@ -121,6 +121,45 @@ public class SmartsuppController : BaseApiController
         return HandleResponse(result);
     }
 
+    [HttpPost("conversations/{conversationId}/messages/with-attachments")]
+    [Consumes("multipart/form-data")]
+    [RequestSizeLimit(60 * 1024 * 1024)]
+    [RequestFormLimits(MultipartBodyLengthLimit = 60 * 1024 * 1024)]
+    [ProducesResponseType(typeof(SendMessageResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status503ServiceUnavailable)]
+    // Intentional: smartsupp feature has only read level; read-role holders can also interact with chats.
+    public async Task<ActionResult<SendMessageResponse>> SendMessageWithAttachments(
+        string conversationId,
+        [FromForm] string? content,
+        [FromForm] Guid? draftLogId,
+        [FromForm] List<IFormFile> files,
+        CancellationToken cancellationToken = default)
+    {
+        var request = new SendMessageRequest
+        {
+            ConversationId = conversationId,
+            Content = content,
+            DraftLogId = draftLogId,
+        };
+        foreach (var file in files ?? [])
+        {
+            await using var stream = file.OpenReadStream();
+            using var ms = new MemoryStream();
+            await stream.CopyToAsync(ms, cancellationToken);
+            request.Files.Add(new SendMessageFile
+            {
+                FileName = file.FileName,
+                ContentType = file.ContentType,
+                Content = ms.ToArray(),
+            });
+        }
+
+        var result = await _mediator.Send(request, cancellationToken);
+        return HandleResponse(result);
+    }
+
     [HttpPost("draft-reply/feedback")]
     [ProducesResponseType(typeof(SubmitDraftReplyFeedbackResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
