@@ -18,7 +18,7 @@ owns:
   - backend/src/Anela.Heblo.Domain/Features/Smartsupp/**
   - backend/src/Anela.Heblo.Persistence/Smartsupp/**
   - backend/src/Adapters/Anela.Heblo.Adapters.Smartsupp/**
-verified_at: "5e993f9e2"
+verified_at: "6ba176e4c"
 related: [flow-smartsupp-reply, job-smartsupp-webhook-audit-cleanup]
 ---
 
@@ -108,6 +108,12 @@ the HTTP request, one REST call (or two) per orphan, all conversations ever stor
   than what is stored. When newer, **every column is overwritten** with the event's values,
   except `ContactName`, `ContactEmail`, `ContactAvatarUrl`, which keep the old value when the
   event has null (COALESCE).
+- **Attachments**: `SmartsuppPayloadMapper` and `SmartsuppApiClient.MapMessage` both build
+  `AttachmentsJson` via `SmartsuppAttachments.BuildJson`. Stored in Smartsupp's snake_case format,
+  keeping only `image`/`file` items; a customer upload (`content.type == "upload"`, file in
+  `content.data`) is folded in; `cards` are dropped. The value is `"[]"` (not null) when there are
+  no files. `GetConversation` exposes it as `MessageDto.Attachments`; malformed JSON logs a
+  warning and yields an empty list.
 - Messages are upserted through EF (insert new id, otherwise update content/delivery/etc.).
 - Conversation/contact upserts execute immediately; message, delivery and denormalisation
   changes are written by the final `SaveChangesAsync` — the two are not in one transaction.
@@ -136,6 +142,10 @@ the HTTP request, one REST call (or two) per orphan, all conversations ever stor
   `memory/gotchas/smartsupp-staged-contact-datetime-kind.md` — undated (pre-2026-10).
 
 ## Known quirks
+- **Customer uploads before the attachments change are not stored.** Backfill by hand: replay
+  `conversation.contact_replied` audit rows whose `RawBody` contains `"type":"upload"` via
+  `POST /api/admin/smartsupp/webhooks/{id}/replay`; only possible within the 7-day audit
+  retention.
 - **Failed events are not retried.** The controller answers 200 after a `HandlerException`, and
   nothing re-processes it automatically. Recovery is a manual replay, possible only while the
   audit row exists (7 days, see `job-smartsupp-webhook-audit-cleanup`).
