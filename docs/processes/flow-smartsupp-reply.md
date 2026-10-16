@@ -91,7 +91,7 @@ webhook (`conversation.agent_replied`, `conversation.closed`) to update the list
 5. Returns Smartsupp's message id and creation time. No local `SmartsuppMessages` row is written.
 
 **Send with attachments** (same `SendMessageHandler`, endpoint `…/messages/with-attachments`):
-1. Files are checked in order: more than 5 → 2711 `SmartsuppAttachmentInvalid`; an empty file →
+1. The conversation must exist locally (2701) and the operator must be in the agent map (2707); only then are files checked, in order: more than 5 → 2711 `SmartsuppAttachmentInvalid`; an empty file →
    2711; a file over 10 MB → 2712 `SmartsuppAttachmentTooLarge`; extension/type not allowed by
    `SmartsuppAttachmentPolicy` → 2711. Text may be blank when at least one file is present.
 2. Per file: `GET {BaseUrl}files/upload/token`, then a multipart POST to `files.smartsupp.com`
