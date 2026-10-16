@@ -63,49 +63,69 @@ jest.mock("../../../../../api/hooks/useSmartsupp", () => ({
     },
     isLoading: false,
   }),
-  useSmartsuppConversation: (id: string | null) => ({
-    data:
-      id === "r1"
-        ? {
-            conversation: {
-              id: "r1",
-              contactName: "Jana Nováková (minulá)",
-              status: "Resolved",
-              variables: {},
-              contactProperties: {},
-              otherConversations: [],
-              assignedAgentIds: [],
-              tags: [],
-              contactTags: [],
-            },
-            messages: [],
-          }
-        : id === "c1"
-          ? {
-              conversation: {
-                id: "c1",
-                contactName: "Jana Nováková",
-                status: "Open",
-                variables: {},
-                contactProperties: {},
-                otherConversations: [
-                  {
-                    id: "r1",
-                    status: "Resolved",
-                    lastMessageAt: "2026-09-12T10:00:00Z",
-                    lastMessagePreview: "Děkuji, objednávka dorazila",
-                    isUnread: false,
-                  },
-                ],
-                assignedAgentIds: [],
-                tags: [],
-                contactTags: [],
-              },
-              messages: [],
-            }
-          : { messages: [] },
-    isLoading: false,
-  }),
+  useSmartsuppConversation: (id: string | null) =>
+    id === "r-loading"
+      ? { data: undefined, isLoading: true, isError: false }
+      : id === "r-error"
+        ? { data: undefined, isLoading: false, isError: true }
+        : {
+            data:
+              id === "r1"
+                ? {
+                    conversation: {
+                      id: "r1",
+                      contactName: "Jana Nováková (minulá)",
+                      status: "Resolved",
+                      variables: {},
+                      contactProperties: {},
+                      otherConversations: [],
+                      assignedAgentIds: [],
+                      tags: [],
+                      contactTags: [],
+                    },
+                    messages: [],
+                  }
+                : id === "c1"
+                  ? {
+                      conversation: {
+                        id: "c1",
+                        contactName: "Jana Nováková",
+                        status: "Open",
+                        variables: {},
+                        contactProperties: {},
+                        otherConversations: [
+                          {
+                            id: "r1",
+                            status: "Resolved",
+                            lastMessageAt: "2026-09-12T10:00:00Z",
+                            lastMessagePreview: "Děkuji, objednávka dorazila",
+                            isUnread: false,
+                          },
+                          {
+                            id: "r-loading",
+                            status: "Resolved",
+                            lastMessageAt: "2026-08-01T10:00:00Z",
+                            lastMessagePreview: null,
+                            isUnread: false,
+                          },
+                          {
+                            id: "r-error",
+                            status: "Resolved",
+                            lastMessageAt: "2026-07-01T10:00:00Z",
+                            lastMessagePreview: null,
+                            isUnread: false,
+                          },
+                        ],
+                        assignedAgentIds: [],
+                        tags: [],
+                        contactTags: [],
+                      },
+                      messages: [],
+                    }
+                  : { messages: [] },
+            isLoading: false,
+            isError: false,
+          },
   useSmartsuppShoptetInfo: () => ({ data: null, isLoading: false }),
   useSmartsuppVisitorInfo: () => ({ data: null, isLoading: false }),
   useCloseConversation: () => ({ mutate: jest.fn(), isPending: false }),
@@ -130,7 +150,9 @@ const wrap = (ui: React.ReactNode) => {
 describe("SmartsuppChatsPage", () => {
   it("renders the refresh button", () => {
     render(wrap(<SmartsuppChatsPage />));
-    expect(screen.getByRole("button", { name: /obnovit/i })).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /obnovit/i }),
+    ).toBeInTheDocument();
   });
 
   it("renders an empty-state message when no conversation is selected", () => {
@@ -195,8 +217,33 @@ describe("SmartsuppChatsPage", () => {
 
     fireEvent.click(screen.getByTestId("other-conversation-r1"));
 
-    expect(screen.getAllByText("Jana Nováková (minulá)").length).toBeGreaterThan(0);
+    expect(
+      screen.getAllByText("Jana Nováková (minulá)").length,
+    ).toBeGreaterThan(0);
     expect(screen.queryByText("Vyberte konverzaci")).not.toBeInTheDocument();
+  });
+
+  it("shows a loading state with a way back while a past conversation loads", () => {
+    render(wrap(<SmartsuppChatsPage />));
+    fireEvent.click(screen.getByRole("button", { name: /Jana Nováková/ }));
+
+    fireEvent.click(screen.getByTestId("other-conversation-r-loading"));
+
+    expect(screen.getByText("Načítám konverzaci…")).toBeInTheDocument();
+    fireEvent.click(screen.getByTestId("pending-back-to-list-btn"));
+    expect(screen.getByText("Všechny konverzace")).toBeInTheDocument();
+  });
+
+  it("shows an error with a way back when a past conversation fails to load", () => {
+    render(wrap(<SmartsuppChatsPage />));
+    fireEvent.click(screen.getByRole("button", { name: /Jana Nováková/ }));
+
+    fireEvent.click(screen.getByTestId("other-conversation-r-error"));
+
+    expect(
+      screen.getByText("Konverzaci se nepodařilo načíst."),
+    ).toBeInTheDocument();
+    expect(screen.getByTestId("pending-back-to-list-btn")).toBeInTheDocument();
   });
 
   it("shows navigation buttons in ConversationDetail after a conversation is selected", () => {
@@ -210,7 +257,9 @@ describe("SmartsuppChatsPage", () => {
   it("clicking the info button shows the mobile contact subpage", () => {
     render(wrap(<SmartsuppChatsPage />));
     fireEvent.click(screen.getByRole("button", { name: /Jana Nováková/ }));
-    expect(screen.queryByTestId("mobile-contact-subpage")).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId("mobile-contact-subpage"),
+    ).not.toBeInTheDocument();
     fireEvent.click(screen.getByTestId("open-contact-details-btn"));
     expect(screen.getByTestId("mobile-contact-subpage")).toBeInTheDocument();
   });
@@ -221,14 +270,18 @@ describe("SmartsuppChatsPage", () => {
     fireEvent.click(screen.getByTestId("open-contact-details-btn"));
     expect(screen.getByTestId("mobile-contact-subpage")).toBeInTheDocument();
     fireEvent.click(screen.getByTestId("back-to-chat-btn"));
-    expect(screen.queryByTestId("mobile-contact-subpage")).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId("mobile-contact-subpage"),
+    ).not.toBeInTheDocument();
   });
 
   it("the chat back button does not show the mobile contact subpage", () => {
     render(wrap(<SmartsuppChatsPage />));
     fireEvent.click(screen.getByRole("button", { name: /Jana Nováková/ }));
     fireEvent.click(screen.getByTestId("back-to-list-btn"));
-    expect(screen.queryByTestId("mobile-contact-subpage")).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId("mobile-contact-subpage"),
+    ).not.toBeInTheDocument();
   });
 
   it("preserves draft text when switching between conversations", () => {
@@ -243,13 +296,15 @@ describe("SmartsuppChatsPage", () => {
     // Switch to second conversation — textarea should be empty
     fireEvent.click(screen.getByRole("button", { name: /Pavel Novák/ }));
     expect(
-      (screen.getByPlaceholderText(/napište odpověď/i) as HTMLTextAreaElement).value,
+      (screen.getByPlaceholderText(/napište odpověď/i) as HTMLTextAreaElement)
+        .value,
     ).toBe("");
 
     // Switch back to first — draft must be restored
     fireEvent.click(screen.getByRole("button", { name: /Jana Nováková/ }));
     expect(
-      (screen.getByPlaceholderText(/napište odpověď/i) as HTMLTextAreaElement).value,
+      (screen.getByPlaceholderText(/napište odpověď/i) as HTMLTextAreaElement)
+        .value,
     ).toBe("draft A");
   });
 });

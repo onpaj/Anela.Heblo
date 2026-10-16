@@ -21,6 +21,30 @@ function readPanelOpen(key: string, defaultOpen: boolean): boolean {
 
 type MobileView = "list" | "chat" | "contact";
 
+interface PendingConversationProps {
+  isError: boolean;
+  onBack: () => void;
+}
+
+// Shown while a selected conversation outside the current list loads (or fails to), so the
+// operator keeps a way back on mobile, where the chat view has no other navigation.
+function PendingConversation({ isError, onBack }: PendingConversationProps) {
+  return (
+    <div className="flex flex-col items-center justify-center gap-3 h-full text-gray-400 dark:text-graphite-faint text-sm">
+      <span>{isError ? "Konverzaci se nepodařilo načíst." : "Načítám konverzaci…"}</span>
+      <button
+        type="button"
+        data-testid="pending-back-to-list-btn"
+        onClick={onBack}
+        className="md:hidden inline-flex items-center gap-1 text-gray-600 dark:text-graphite-muted"
+      >
+        <ArrowLeft className="w-4 h-4" />
+        Zpět na seznam
+      </button>
+    </div>
+  );
+}
+
 const SmartsuppChatsPage: React.FC = () => {
   useScreenView('Customer', 'SmartsuppChats');
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -41,7 +65,7 @@ const SmartsuppChatsPage: React.FC = () => {
   // Prefer the detail query: only it carries the contact history (otherConversations), phone, IP
   // and variables — the list endpoint leaves them empty. The list item covers the first load, and
   // a past conversation picked from the contact panel (not in the current list) relies on detail.
-  const { data: selectedDetail } = useSmartsuppConversation(selectedId);
+  const { data: selectedDetail, isError: isDetailError } = useSmartsuppConversation(selectedId);
   const selectedConversation =
     selectedDetail?.conversation ?? conversations.find((c) => c.id === selectedId) ?? null;
 
@@ -117,6 +141,11 @@ const SmartsuppChatsPage: React.FC = () => {
               onOpenContactDetails={() => setMobileView("contact")}
               initialDraft={drafts[selectedId!] ?? ""}
               onDraftChange={(text) => handleDraftChange(selectedId!, text)}
+            />
+          ) : selectedId ? (
+            <PendingConversation
+              isError={isDetailError}
+              onBack={() => setMobileView("list")}
             />
           ) : (
             <div className="flex items-center justify-center h-full text-gray-400 dark:text-graphite-faint text-sm">
