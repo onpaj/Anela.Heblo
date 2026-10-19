@@ -70,6 +70,13 @@ fresh_skipped="[]"
 
 for n in $sorted_agent_numbers; do
   issue_obj=$(echo "$agent_json" | jq --argjson n "$n" '.[] | select(.number == $n)')
+  # Epics are trackers whose stories are separate issues -- planning one
+  # duplicates the sub-issues' work and would be re-picked every cycle.
+  if echo "$issue_obj" | jq -e '(.title | test("^epic[:\\s]"; "i")) or ([.labels[]?.name] | index("epic"))' >/dev/null; then
+    fresh_skipped=$(echo "$fresh_skipped" | jq --argjson n "$n" \
+      '. + [{number: $n, reason: "epic tracker issue -- plan its sub-issues instead"}]')
+    continue
+  fi
   ref=$(git ls-remote --heads origin "feature/${n}-*" | head -1 | awk '{print $2}' | sed 's#refs/heads/##')
   if [ -n "$ref" ]; then
     fresh_skipped=$(echo "$fresh_skipped" | jq --argjson n "$n" \
