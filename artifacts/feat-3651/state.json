@@ -21,16 +21,16 @@
       "updated_at": "2026-10-19T20:14:12.682746Z"
     },
     "developing": {
-      "status": "pending",
-      "updated_at": null
+      "status": "in_progress",
+      "updated_at": "2026-10-19T20:15:11.246519Z"
     }
   },
   "tasks": [
     {
       "name": "add-settings",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-10-19T20:15:11.461635Z"
     },
     {
       "name": "circuit-breaker-factory",
