@@ -30,7 +30,7 @@ owns:
   - backend/src/Adapters/Anela.Heblo.Adapters.Flexi/Manufacture/FlexiManufactureException.cs
   - backend/src/Adapters/Anela.Heblo.Adapters.Flexi/Manufacture/FlexiExtensions.cs
   - backend/src/Adapters/Anela.Heblo.Adapters.Flexi/Manufacture/Internal/**
-verified_at: "5e993f9e2"
+verified_at: "af88adac0"
 related:
   - flow-manufacture-order
   - flow-manufactured-inventory
@@ -68,7 +68,8 @@ No scheduled job. The state change itself and its other side effects are in
 
 ## Data flow
 **Phase A — semi-product (`ConfirmSemiProductManufactureWorkflow`)**
-1. Save `ActualQuantity` (grams) on `ManufactureOrderSemiProducts` via `UpdateManufactureOrderRequest`.
+1. Save `ActualQuantity` (grams) on `ManufactureOrderSemiProducts` via `UpdateManufactureOrderRequest`, then re-read the order from `IManufactureOrderRepository`
+   (the workflow uses the domain entity, not the use case's response DTO; a missing order returns `ResourceNotFound`).
 2. `SubmitManufactureRequest` (type `SemiProduct`, one item = semi-product code × actual qty,
    lot/expiration from the semi-product row) → `SubmitManufactureHandler` → circuit breaker →
    `FlexiManufactureClient.SubmitManufactureAsync` (aggregated path):
@@ -81,7 +82,8 @@ No scheduled job. The state change itself and its other side effects are in
    `ErpOrderNumberSemiproduct` = the order number and a note.
 
 **Phase B — products (`ConfirmProductCompletionWorkflow`)**
-1. Save `ActualQuantity` (pieces) on each `ManufactureOrderProducts` row.
+1. Save `ActualQuantity` (pieces) on each `ManufactureOrderProducts` row, then re-read the order from `IManufactureOrderRepository`
+   (domain entity, not the response DTO; a missing order returns `ResourceNotFound`).
 2. Residue distribution (multi-phase only, see Logic) → if outside the allowed residue % and the
    user has not confirmed, return `requiresConfirmation` + the distribution; the UI asks and
    re-sends with `overrideConfirmed=true`.
