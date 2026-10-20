@@ -1,0 +1,2 @@
+### task: add-residual-tests
+Only for lines uncovered per coverage output, add tests to `Unit/ShoptetApiInvoiceSourceTests.cs` following existing helpers: (1) list item with `Price = null` is filtered out; (2) empty list returns one batch with `BatchId == RequestId`, empty invoices, and no `GetInvoiceAsync` calls. Skip this task if coverage is already at or above 60% and no relevant branch is uncovered (still acceptable to add these two small tests). Run `dotnet build` and `dotnet format` on the test project.
