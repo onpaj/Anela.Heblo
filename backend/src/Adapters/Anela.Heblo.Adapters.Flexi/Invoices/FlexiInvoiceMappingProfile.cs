@@ -9,6 +9,7 @@ namespace Anela.Heblo.Adapters.Flexi.Invoices;
 public class FlexiInvoiceMappingProfile : BaseFlexiProfile
 {
     private const string GiftGoodyProductCode = "GOODYDO0001";
+    private const string DefaultCountryCode = "CZ"; // Shoptet orders without an address have an empty country
     private const string GiftBaseCreditAccount = "code:325002"; // zklDalUcet for GOODYDO0001 gifts
 
     public FlexiInvoiceMappingProfile()
@@ -29,7 +30,7 @@ public class FlexiInvoiceMappingProfile : BaseFlexiProfile
             .ForMember(dest => dest.CompanyName, opt => opt.MapFrom(src => src.Customer.Name))
             .ForMember(dest => dest.CompanyStreet, opt => opt.MapFrom(src => src.BillingAddress.Street))
             .ForMember(dest => dest.CompanyCity, opt => opt.MapFrom(src => src.BillingAddress.City))
-            .ForMember(m => m.CompanyState, u => u.MapFrom(e => "code:" + e.BillingAddress.CountryCode))
+            .ForMember(m => m.CompanyState, u => u.MapFrom(e => MapCountry(e.BillingAddress.CountryCode)))
             .ForMember(dest => dest.CIN, opt => opt.MapFrom(src => src.Customer.CompanyId ?? ""))
             .ForMember(dest => dest.VATIN, opt => opt.MapFrom(src => src.Customer.VatId ?? ""))
             .ForMember(dest => dest.DeliveryType, opt => opt.MapFrom(src => MapShippingMethod(src.ShippingMethod)))
@@ -72,6 +73,11 @@ public class FlexiInvoiceMappingProfile : BaseFlexiProfile
             .ForMember(dest => dest.PriceVatType, opt => opt.MapFrom(src => "typCeny.bezDph"))
             .ForMember(dest => dest.CopyCategoryVatReport, opt => opt.MapFrom(src => true))
             .ForMember(dest => dest.CopyCategoryVat, opt => opt.MapFrom(src => true));
+    }
+
+    private static string MapCountry(string? countryCode)
+    {
+        return $"code:{(string.IsNullOrWhiteSpace(countryCode) ? DefaultCountryCode : countryCode)}";
     }
 
     private static string? MapShippingMethod(ShippingMethod shippingMethod)

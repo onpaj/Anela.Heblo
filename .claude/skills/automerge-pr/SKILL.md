@@ -300,6 +300,19 @@ leaves, so it's discoverable by `/rework-pr` and counts toward its
 revision-attempt cap. Nothing further for you to do — report it as you
 would any other `needs-work` outcome.
 
+`apply_verdict.sh` can also report `"status": "partial"` with
+`"proxy_blocked": true` and a `skipped_steps` array. That means the
+sandbox's GitHub proxy refused some write with HTTP 403 ("Write access to
+this GitHub API path is not permitted through this proxy") — typically
+after the merge itself landed. The listed steps (each with its `step`,
+`target` and the raw `error`) did **not** happen; most often the
+`agent-merged` label on the linked issue. Report them loudly, naming each
+skipped step, and where the `github` MCP server is connected redo them
+there: read the target's current labels first and send the **full** array
+plus the new label (the MCP update tools replace the whole set, so a bare
+single-label call would drop the rest). If MCP is unavailable, say plainly
+that the labels still need applying.
+
 ## Constants
 
 Do not restate these values elsewhere; each lives in exactly one file.

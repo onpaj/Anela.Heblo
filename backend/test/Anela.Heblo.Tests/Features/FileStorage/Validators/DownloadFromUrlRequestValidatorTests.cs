@@ -1,4 +1,4 @@
-using Anela.Heblo.Application.Features.FileStorage.UseCases.DownloadFromUrl;
+using Anela.Heblo.Application.Features.FileStorage.Contracts;
 using Anela.Heblo.Application.Features.FileStorage.Validators;
 using Anela.Heblo.Application.Shared;
 using FluentAssertions;

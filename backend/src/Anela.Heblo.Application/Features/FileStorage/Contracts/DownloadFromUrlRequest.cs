@@ -1,7 +1,7 @@
 using System.ComponentModel.DataAnnotations;
 using MediatR;
 
-namespace Anela.Heblo.Application.Features.FileStorage.UseCases.DownloadFromUrl;
+namespace Anela.Heblo.Application.Features.FileStorage.Contracts;
 
 public class DownloadFromUrlRequest : IRequest<DownloadFromUrlResponse>
 {

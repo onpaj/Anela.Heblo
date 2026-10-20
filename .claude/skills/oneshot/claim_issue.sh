@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 # Atomically claim a GitHub issue for the oneshot pipeline.
 #
-# The claim IS the remote `feature/<issue>-<slug>` branch: the ref is created
-# through the GitHub refs API, which rejects an already-existing ref with 422,
-# so when several runners race for the same issue exactly one wins. The label
+# The claim IS the remote `feature/<issue>-<slug>` branch: it is created
+# with an atomic git push that fails if the ref already exists, so when
+# several runners race for the same issue exactly one wins. The label
 # swap (`agent` -> `agent-wip`) that follows is advisory only — it hides the
 # issue from `--label agent` listings but is not the lock.
 #
@@ -61,20 +61,21 @@ if [[ -z "$BASE_SHA" ]]; then
   exit 1
 fi
 
-# Atomic test-and-set: creating a ref that already exists fails, so exactly
-# one concurrent claimer succeeds no matter how tight the race.
-if [[ -n "${USE_GH_API:-}" ]]; then
-  create_ref_failed=$("$LIB" create-ref "$BRANCH" "$BASE_SHA" 2>&1 >/dev/null) && create_ref_ok=1 || create_ref_ok=0
-else
-  create_ref_failed=$(gh api "repos/{owner}/{repo}/git/refs" \
-      -f ref="refs/heads/${BRANCH}" -f sha="${BASE_SHA}" 2>&1 >/dev/null) && create_ref_ok=1 || create_ref_ok=0
-fi
-if [[ "$create_ref_ok" -eq 0 ]]; then
-  if grep -qi "already exists" <<<"$create_ref_failed"; then
+# Atomic test-and-set via git push. `--force-with-lease=<ref>:` with an empty
+# expected value means "only if the ref does not exist", so exactly one
+# concurrent claimer succeeds no matter how tight the race. A plain push
+# would not do: re-pushing the same sha to an existing ref is a silent no-op.
+# This is a git push rather than a `git/refs` REST call because Claude Code
+# cloud sessions' proxy blocks that API path but allows pushes to refs/heads/**.
+if ! push_err=$(git push --quiet --force-with-lease="refs/heads/${BRANCH}:" \
+    origin "${BASE_SHA}:refs/heads/${BRANCH}" 2>&1 >/dev/null); then
+  # A rejected push is a lost race only if the branch now exists; anything
+  # else (network, permissions) is a real failure.
+  if [[ -n "$(git ls-remote --heads origin "feature/${ISSUE}-*")" ]]; then
     echo "issue #${ISSUE} already claimed: lost the race for ${BRANCH}" >&2
     exit 3
   fi
-  echo "ERROR: failed to create claim ref ${BRANCH}: ${create_ref_failed}" >&2
+  echo "ERROR: failed to create claim ref ${BRANCH}: ${push_err}" >&2
   exit 1
 fi
 

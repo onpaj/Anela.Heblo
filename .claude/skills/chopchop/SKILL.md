@@ -82,9 +82,9 @@ fi
 
 3. **Claim the candidate atomically.** Listing and checking are racy — another
    chopchop running in parallel may have picked the same issue. The claim
-   script creates the remote `feature/{N}-{slug}` branch through the GitHub
-   refs API, which is a true test-and-set: exactly one concurrent claimer
-   succeeds. It also swaps the labels `agent` → `agent-wip` for visibility.
+   script creates the remote `feature/{N}-{slug}` branch with an atomic
+   `git push` (a true test-and-set: exactly one concurrent claimer
+   succeeds). It also swaps the labels `agent` → `agent-wip` for visibility.
 ```bash
 BRANCH=$(.claude/skills/oneshot/claim_issue.sh "$N")
 ```
