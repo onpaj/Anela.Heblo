@@ -151,7 +151,9 @@ public class HomeAssistantCircuitBreakerPipelineTests
         await Task.Delay(TimeSpan.FromMilliseconds(1300));
 
         var recovered = await provider.GetCurrentSnapshotAsync(CancellationToken.None);
-        recovered.Source.Should().Be(ConditionsReadingSource.Live);
+        // Half-open admits a single probe; parallel sensor fetches racing it may be rejected (Partial),
+        // or all succeed once the probe closes the circuit (Live). Either way, data is flowing again.
+        recovered.Source.Should().BeOneOf(ConditionsReadingSource.Partial, ConditionsReadingSource.Live);
 
         ExpireCache(sp);
         var closed = await provider.GetCurrentSnapshotAsync(CancellationToken.None);

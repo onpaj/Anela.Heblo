@@ -58,9 +58,9 @@
     },
     {
       "name": "final-validation",
-      "status": "pending",
+      "status": "completed",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-10-20T01:19:54.021574Z"
     }
   ]
 }
