@@ -19,7 +19,7 @@ owns:
   - backend/src/Anela.Heblo.Persistence/Invoices/IssuedInvoiceSyncDataConfiguration.cs
   - backend/src/Adapters/Anela.Heblo.Adapters.ShoptetApi/IssuedInvoices/**
   - backend/src/Adapters/Anela.Heblo.Adapters.Flexi/Invoices/**
-verified_at: "5e993f9e2"
+verified_at: "af88adac0"
 related: []
 ---
 
@@ -119,7 +119,7 @@ always targets the same Flexi document.
 | Due date | `dueDate` | `datSplat` |
 | Variable symbol | `varSymbol` | `varSym` |
 | Currency | `price.currencyCode` (default CZK) | `mena = code:{CZK/EUR}` |
-| Customer | `billingAddress.fullName`, street, city, `countryCode`, `companyId`, `vatId` | `nazFirmy` = **full name** (company name is not sent), `ulice`, `mesto`, `stat = code:{country}`, `ic`, `dic` |
+| Customer | `billingAddress.fullName`, street, city, `countryCode`, `companyId`, `vatId` | `nazFirmy` = **full name** (company name is not sent), `ulice`, `mesto`, `stat = code:{country}` (empty country → `code:CZ`), `ic`, `dic` |
 | Payment | `billingMethod.id` 1 Dobírka→`DOBIRKA`, 2 Převodem→`PREVOD`, 3 Hotově→`HOTOVE`, 4 Kartou→`KARTA`; unknown id → by name (`bankTransfer`/`Převodem`, `cash`, `cashOnDelivery`, `creditCard`/`Kartou`, `comgate`→`KARTA`); else `PREVOD` (warning logged) | `formaUhradyCis` |
 | Delivery | keyword in **item names**: exact `PPL - ParcelShop` or contains `PPL` → `PPL`; `Osobn` → `OSOBNÍ ODBĚR`; `GLS` → `GLS`; `zásilk` → `ZASILKOVNA`; nothing → `OSOBNÍ ODBĚR` | `formaDopravy` |
 | VAT payer flag | `billingAddress.vatId` non-empty | — (Heblo `VatPayer` only) |
@@ -178,6 +178,11 @@ always targets the same Flexi document.
   treat as a different metric, not a bug — same source — 2026-09-16.
 
 ## Known quirks
+- **Empty billing country defaults to `CZ`.** Shoptet orders without an address are possible
+  (only `fullName` set, `countryCode` empty); `code:` alone makes Flexi answer HTTP 400
+  "Zadaný text 'code:' musí identifikovat objekt" on `stat` (invoice 126020860, 2026-09-29).
+  The mapper now sends `code:CZ` when the country is null/blank. Failed invoices are not retried
+  automatically — re-import them with **Znovu importovat** after the fix is deployed.
 - **Failures are never retried automatically.** The nightly job only imports yesterday; an
   invoice Flexi rejected stays `IsSynced = false` until someone presses **Znovu importovat** or
   runs a manual import. This is the likely source of the ~20 % unsynced rows.
