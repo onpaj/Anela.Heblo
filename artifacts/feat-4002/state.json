@@ -21,16 +21,16 @@
       "updated_at": "2026-10-20T12:19:33.833754Z"
     },
     "developing": {
-      "status": "pending",
-      "updated_at": null
+      "status": "in_progress",
+      "updated_at": "2026-10-20T12:21:17.917163Z"
     }
   },
   "tasks": [
     {
       "name": "upstream-exception-and-detection",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-10-20T12:21:18.115939Z"
     },
     {
       "name": "polling-job-tolerance-and-tracker",

@@ -1,3 +1,4 @@
+using Anela.Heblo.Application.Features.MeetingTasks.Services;
 using System.Text.Json;
 using FluentAssertions;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -264,6 +265,96 @@ public sealed class PlaudCliClientRunTests
             await act.Should()
                 .ThrowAsync<InvalidOperationException>()
                 .WithMessage("*some other error*");
+        }
+        finally
+        {
+            Directory.Delete(dir, recursive: true);
+        }
+    }
+
+    // ── Upstream 5xx ─────────────────────────────────────────────────────
+
+    private static async Task<(PlaudCliClient client, string dir, FakeTokenRefresherCounting refresher)> CreateShimClientAsync(string stderrText)
+    {
+        var (dir, shimPath, _) = CreateTestDir();
+        var errFile = Path.Combine(dir, "err.txt");
+        await File.WriteAllTextAsync(errFile, stderrText);
+        await File.WriteAllTextAsync(shimPath, $"#!/bin/sh\ncat \"{errFile}\" >&2\nexit 1\n");
+        if (!OperatingSystem.IsWindows())
+            File.SetUnixFileMode(shimPath, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
+        var refresher = new FakeTokenRefresherCounting();
+        var client = new PlaudCliClient(
+            NullLogger<PlaudCliClient>.Instance,
+            Options.Create(OptionsFor(shimPath)),
+            refresher);
+        return (client, dir, refresher);
+    }
+
+    private sealed class FakeTokenRefresherCounting : IPlaudTokenRefresher
+    {
+        public int RefreshCallCount { get; private set; }
+
+        public Task RefreshAsync(CancellationToken ct = default)
+        {
+            RefreshCallCount++;
+            return Task.CompletedTask;
+        }
+
+        public Task SyncToKeyVaultAsync(CancellationToken ct = default) => Task.CompletedTask;
+    }
+
+    [SkippableFact]
+    public async Task RunCli_WhenUpstreamReturns500_ThrowsPlaudUpstreamUnavailableExceptionWithoutRefresh()
+    {
+        Skip.If(OperatingSystem.IsWindows(), "Shim script requires bash");
+
+        var (client, dir, refresher) = await CreateShimClientAsync(
+            "- Fetching recordings from the last 7 days...\n✗ [FETCH_FAILED] Failed to fetch recent files.\nError: API error: 500 Internal Server Error\n");
+        try
+        {
+            Func<Task> act = () => client.ListRecentAsync(7);
+
+            var thrown = await act.Should().ThrowAsync<PlaudUpstreamUnavailableException>();
+            thrown.Which.StatusCode.Should().Be(500);
+            thrown.Which.Message.Should().Contain("API error: 500 Internal Server Error");
+            refresher.RefreshCallCount.Should().Be(0);
+        }
+        finally
+        {
+            Directory.Delete(dir, recursive: true);
+        }
+    }
+
+    [SkippableFact]
+    public async Task RunCli_WhenCliReportsAuthFailed_StillThrowsPlaudAuthExpiredException()
+    {
+        Skip.If(OperatingSystem.IsWindows(), "Shim script requires bash");
+
+        var (client, dir, _) = await CreateShimClientAsync("[AUTH_FAILED] Token invalid or expired\n");
+        try
+        {
+            Func<Task> act = () => client.ListRecentAsync(7);
+
+            await act.Should().ThrowAsync<PlaudAuthExpiredException>();
+        }
+        finally
+        {
+            Directory.Delete(dir, recursive: true);
+        }
+    }
+
+    [SkippableFact]
+    public async Task RunCli_When404_ThrowsPlainInvalidOperationException()
+    {
+        Skip.If(OperatingSystem.IsWindows(), "Shim script requires bash");
+
+        var (client, dir, _) = await CreateShimClientAsync("Error: API error: 404 Not Found\n");
+        try
+        {
+            Func<Task> act = () => client.ListRecentAsync(7);
+
+            var thrown = await act.Should().ThrowAsync<InvalidOperationException>();
+            thrown.Which.Should().NotBeOfType<PlaudUpstreamUnavailableException>();
         }
         finally
         {
