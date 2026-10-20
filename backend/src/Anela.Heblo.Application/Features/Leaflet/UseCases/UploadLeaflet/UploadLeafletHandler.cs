@@ -1,5 +1,5 @@
 using Anela.Heblo.Application.Shared.Rag;
-using Anela.Heblo.Application.Features.Leaflet.UseCases.GetLeafletDocuments;
+using Anela.Heblo.Application.Features.Leaflet.Contracts;
 using Anela.Heblo.Application.Features.Leaflet.UseCases.IndexLeaflet;
 using Anela.Heblo.Application.Shared;
 using MediatR;
