@@ -67,7 +67,7 @@ issue_list_json() {  # state, label
   if [[ -n "${USE_GH_API:-}" ]]; then
     GH_REPO="$REPO" "$LIB" issue-list "$1" "$2"
   else
-    gh issue list --repo "$REPO" --state "$1" --label "$2" --limit 100 --json number,title,createdAt
+    gh issue list --repo "$REPO" --state "$1" --label "$2" --limit 100 --json number,title,createdAt,labels
   fi
 }
 
@@ -80,6 +80,10 @@ commit_data_for() {  # ref
 }
 
 READY_LABEL="agent-ready-for-dev"
+# Needs-a-human marker; also what _lib/decline_issue.sh applies when a run
+# gives up on an issue. Without this filter a declined issue stays in its
+# pool and, being the oldest, is re-picked by every later run.
+BLOCKED_LABEL="agent-blocked"
 IMPLEMENTING_LABEL="agent-implementing"
 STALE_MINUTES="${STALE_MINUTES:-10}"
 [[ "$STALE_MINUTES" =~ ^[0-9]+$ ]] || { echo "ERROR: STALE_MINUTES must be a non-negative integer, got: $STALE_MINUTES" >&2; exit 1; }
@@ -106,6 +110,20 @@ implementing_json=$(issue_list_json open "$IMPLEMENTING_LABEL")
 now_time="${NOW_OVERRIDE:-now}"
 now_epoch=$(date -u -d "$now_time" +%s 2>/dev/null || date -u -j -f "%Y-%m-%dT%H:%M:%SZ" "$now_time" +%s 2>/dev/null || date -u +%s)
 
+skipped="[]"
+
+# Drop blocked issues from both pools up front, recording why.
+drop_blocked() {  # pool-json -> unblocked pool-json (skipped is updated by the caller)
+  echo "$1" | jq --arg b "$BLOCKED_LABEL" '[.[] | select(([(.labels // [])[].name] | index($b)) | not)]'
+}
+blocked_skips() {  # pool-json -> skipped entries
+  echo "$1" | jq --arg b "$BLOCKED_LABEL" \
+    '[.[] | select([(.labels // [])[].name] | index($b)) | {number, reason: ("labelled " + $b + " (needs a human)")}]'
+}
+skipped=$(jq -n --argjson a "$skipped" --argjson r "$(blocked_skips "$ready_json")" --argjson i "$(blocked_skips "$implementing_json")" '$a + $r + $i')
+ready_json=$(drop_blocked "$ready_json")
+implementing_json=$(drop_blocked "$implementing_json")
+
 # `agent-ready-for-dev` pool: every issue is immediately eligible, no
 # recency check -- a fresh handoff from planning is never "stale".
 ready_eligible=$(echo "$ready_json" | jq '[.[] | . + {source: "fresh-handoff"}]')
@@ -116,7 +134,6 @@ ready_eligible=$(echo "$ready_json" | jq '[.[] | . + {source: "fresh-handoff"}]'
 sorted_implementing_numbers=$(echo "$implementing_json" | jq -r 'sort_by(.createdAt) | .[].number')
 
 implementing_eligible="[]"
-skipped="[]"
 
 for n in $sorted_implementing_numbers; do
   issue_obj=$(echo "$implementing_json" | jq --argjson n "$n" '.[] | select(.number == $n)')

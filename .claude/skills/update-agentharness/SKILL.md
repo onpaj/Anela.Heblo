@@ -37,19 +37,25 @@ that's not a failure, it just means this was already the latest.
 
 `agentharness init` copies the package's `.agents/`, `.pipeline/`,
 `.claude/agents/`, and `.claude/skills/` files into this project, plus
-`.env` GitHub keys. It **always overwrites** every scaffolding file with
-the newly-installed package's version — including any project-specific
-customizations already made to `.agents/`, `.pipeline/`,
-`.claude/agents/`, or `.claude/skills/` (this project has several: e.g.
-`hygiene-pr`, `automerge-pr`, `rework-pr` all carry local changes). The
-old `--force` flag still exists for backward compatibility with older
-scripts, but it's now a no-op — plain `agentharness init` already
-overwrites everything.
+`.env` GitHub keys, and records what it installed (by content hash) in
+`.agentharness-manifest.json` at the project root — commit that file with
+the scaffolding.
+
+Overwrite rules: a file that is missing, or still identical to what the
+last `init` installed, is replaced with the new package version. A file that
+**was edited locally since the last `init`** is left alone and listed as
+`kept` (so project-specific fixes in e.g. `hygiene-pr`, `automerge-pr` or
+`rework-pr` survive, including when a cloud session re-runs `init` at
+startup). On the **first** run in a repo with no manifest there is no way to
+tell an edit from an older release, so everything is overwritten. To drop a
+local customization and take upstream's version, delete the file or run
+`agentharness init --overwrite-local`. The old `--force` flag is a no-op.
 
 Before running it, check `git status` and flag any uncommitted changes
 under the affected directories (suggest a commit or stash, per this
-project's usual git-safety practice) — uncommitted local edits would
-otherwise be silently lost. Once clean, run:
+project's usual git-safety practice), and — if there is no
+`.agentharness-manifest.json` yet — warn that every scaffolding file,
+local customizations included, is about to be replaced. Once clean, run:
 
 ```bash
 agentharness init
@@ -60,5 +66,6 @@ agentharness init
 Show `git status`/`git diff --stat` for the affected directories
 (`.agents/`, `.pipeline/`, `.claude/agents/`, `.claude/skills/`, `.env`)
 so the user can review exactly what the new package version changed
-before committing anything. Do not commit on their behalf — this skill
+before committing anything. Mention any `kept` files from init's output:
+they still differ from upstream and may be missing upstream fixes. Do not commit on their behalf — this skill
 only updates and refreshes; committing is a separate, explicit step.
