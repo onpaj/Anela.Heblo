@@ -82,6 +82,12 @@ Finanční přehled firmy zobrazující příjmy, náklady a celkovou bilanci za
 - [ ] Backend response: změna hodnoty skladu po typech + celková změna
 - [ ] Frontend agregace: zobrazení celkové změny hodnoty skladu (součet všech tří typů)
 
+## Záznamy deníku (časová osa)
+- Graf zobrazuje **firemní** záznamy deníku, tj. záznamy bez vazby na produkt (`GET /api/journal/search?WithoutProducts=true`), v rozsahu zobrazených měsíců. Produktové záznamy se nezobrazují, graf by zahltily.
+- Měsíc se záznamem má na čarách bilance oranžový bod (#F97316, radius 6); tooltip vypíše „Záznamy deníku:“ s datem a názvem. Pomocné funkce sdílí s grafy v detailu katalogu (`components/charts/journalMarkers.ts`).
+- Panel „Záznamy deníku“ pod grafem záznamy vypíše; kliknutí otevře úpravu, „Přidat záznam“ založí nový (`JournalEntryModal`). Nový záznam bez produktu se v grafu objeví hned.
+- Meziroční srovnání záznamy nezobrazuje: je sloupcové a jeden měsíc tam pokrývá více let.
+
 ## Technical Notes
 - Využití existujícího LedgerService z accounting modulu
 - Integrace s grafovou knihovnou (Chart.js nebo podobnou)

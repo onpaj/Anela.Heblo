@@ -1,7 +1,7 @@
 using Anela.Heblo.Application.Features.ExpeditionListArchive;
+using Anela.Heblo.Application.Features.ExpeditionListArchive.Contracts;
 using Anela.Heblo.Application.Features.ExpeditionListArchive.UseCases.DownloadExpeditionList;
 using Anela.Heblo.Application.Shared;
-using Anela.Heblo.Domain.Features.FileStorage;
 using Microsoft.Extensions.Options;
 using Moq;
 using Xunit;
@@ -10,14 +10,14 @@ namespace Anela.Heblo.Tests.ExpeditionListArchive;
 
 public class DownloadExpeditionListHandlerTests
 {
-    private readonly Mock<IBlobStorageService> _blobStorageServiceMock;
+    private readonly Mock<IExpeditionListArchiveBlobStore> _blobStoreMock;
     private readonly DownloadExpeditionListHandler _handler;
     private const string ContainerName = "expedition-lists";
 
     public DownloadExpeditionListHandlerTests()
     {
-        _blobStorageServiceMock = new Mock<IBlobStorageService>();
-        _handler = new DownloadExpeditionListHandler(_blobStorageServiceMock.Object, Options.Create(new ExpeditionListArchiveOptions()));
+        _blobStoreMock = new Mock<IExpeditionListArchiveBlobStore>();
+        _handler = new DownloadExpeditionListHandler(_blobStoreMock.Object, Options.Create(new ExpeditionListArchiveOptions()));
     }
 
     [Fact]
@@ -27,7 +27,7 @@ public class DownloadExpeditionListHandlerTests
         var blobPath = "2026-03-25/picking-list-001.pdf";
         var expectedStream = new MemoryStream(new byte[] { 1, 2, 3 });
 
-        _blobStorageServiceMock
+        _blobStoreMock
             .Setup(s => s.DownloadAsync(ContainerName, blobPath, default))
             .ReturnsAsync(expectedStream);
 
@@ -62,7 +62,7 @@ public class DownloadExpeditionListHandlerTests
         Assert.Equal(ErrorCodes.InvalidBlobPath, result.ErrorCode);
         Assert.Null(result.Stream);
 
-        _blobStorageServiceMock.Verify(
+        _blobStoreMock.Verify(
             s => s.DownloadAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()),
             Times.Never);
     }

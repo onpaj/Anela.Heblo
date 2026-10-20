@@ -33,10 +33,10 @@ public class GetDraftReplyFeedbackListHandlerTests
         RagFeature? capturedFeature = null;
         _repository
             .Setup(r => r.GetFeedbackLogsPagedAsync(
-                It.IsAny<RagFeature?>(), It.IsAny<bool?>(), It.IsAny<string?>(), It.IsAny<string>(),
+                It.IsAny<RagFeedbackLogFilter>(), It.IsAny<string>(),
                 It.IsAny<bool>(), It.IsAny<int>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
-            .Callback<RagFeature?, bool?, string?, string, bool, int, int, CancellationToken>(
-                (feature, _, _, _, _, _, _, _) => capturedFeature = feature)
+            .Callback<RagFeedbackLogFilter, string, bool, int, int, CancellationToken>(
+                (filter, _, _, _, _, _) => capturedFeature = filter.Feature)
             .ReturnsAsync((new List<RagInteractionLog>(), 0));
         SetupStats();
 
@@ -69,7 +69,7 @@ public class GetDraftReplyFeedbackListHandlerTests
         };
         _repository
             .Setup(r => r.GetFeedbackLogsPagedAsync(
-                It.IsAny<RagFeature?>(), It.IsAny<bool?>(), It.IsAny<string?>(), It.IsAny<string>(),
+                It.IsAny<RagFeedbackLogFilter>(), It.IsAny<string>(),
                 It.IsAny<bool>(), It.IsAny<int>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync((new List<RagInteractionLog> { log }, 1));
         SetupStats();

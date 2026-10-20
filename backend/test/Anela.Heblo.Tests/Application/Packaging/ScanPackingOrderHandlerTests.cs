@@ -448,6 +448,7 @@ public class ScanPackingOrderHandlerTests
     [InlineData(ErrorCodes.ShipmentCarrierNotResolved)]
     [InlineData(ErrorCodes.ShipmentCreationFailed)]
     [InlineData(ErrorCodes.PackingUserNotEligible)]
+    [InlineData(ErrorCodes.ShipmentValidationFailed)]
     public async Task Handle_WhenShipmentCreationServiceFails_ReturnsMappedErrorCode(ErrorCodes errorCode)
     {
         var order = EligibleOrder(("P001", 1, 400));
@@ -470,5 +471,37 @@ public class ScanPackingOrderHandlerTests
 
         response.Success.Should().BeFalse();
         response.ErrorCode.Should().Be(errorCode);
+    }
+
+    [Fact]
+    public async Task Handle_WhenShipmentCreationServiceFailsWithParams_ForwardsParamsUnchanged()
+    {
+        var order = EligibleOrder(("P001", 1, 400));
+
+        _orderClient
+            .Setup(c => c.GetPackingOrderAsync("0001234", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(order);
+
+        _shipmentClient
+            .Setup(c => c.GetLabelsByOrderCodeAsync("0001234", It.IsAny<CancellationToken>()))
+            .ReturnsAsync([]);
+
+        var validationParams = new Dictionary<string, string> { ["ShoptetMessage"] = "Invalid recipient of order, missing fields: city, zip." };
+        _shipmentCreationService
+            .Setup(s => s.CreateAndPersistAsync(order, 1, null, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new ShipmentCreationResult
+            {
+                IsSuccess = false,
+                ErrorCode = ErrorCodes.ShipmentValidationFailed,
+                Params = validationParams,
+            });
+
+        var response = await CreateHandler().Handle(
+            new ScanPackingOrderRequest { OrderCode = "0001234" },
+            CancellationToken.None);
+
+        response.Success.Should().BeFalse();
+        response.ErrorCode.Should().Be(ErrorCodes.ShipmentValidationFailed);
+        response.Params.Should().BeEquivalentTo(validationParams);
     }
 }

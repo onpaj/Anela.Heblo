@@ -14,6 +14,7 @@ public class MetaAdsInvoiceImportJob : IRecurringJob
     public RecurringJobMetadata Metadata { get; } = new()
     {
         JobName = "meta-ads-invoice-import",
+        Category = RecurringJobCategory.Finance,
         DisplayName = "Meta Ads Invoice Import",
         Description = "Fetches billing transactions from Meta Ads Graph API (7-day lookback)",
         CronExpression = "0 6,18 * * *", // 6 AM and 6 PM Prague time

@@ -96,6 +96,11 @@ public class ModuleBoundariesTests
         "Anela.Heblo.Application.Features.Catalog.Infrastructure.PurchaseMaterialCatalogAdapter -> Anela.Heblo.Application.Features.Purchase.Contracts.MaterialBomReference",
         "Anela.Heblo.Application.Features.Catalog.Infrastructure.PurchaseMaterialCatalogAdapter -> Anela.Heblo.Application.Features.Purchase.Contracts.MaterialPurchaseSnapshot",
         "Anela.Heblo.Application.Features.Catalog.Infrastructure.PurchaseMaterialCatalogAdapter -> Anela.Heblo.Application.Features.Purchase.Contracts.MaterialProductType",
+
+        // CatalogPurchasePriceSyncSourceAdapter in Catalog.Infrastructure implements Purchase's
+        // IPurchasePriceSyncSource contract and returns its PurchasePriceSyncCandidate DTO.
+        // Same pattern as PurchaseMaterialCatalogAdapter above.
+        "Anela.Heblo.Application.Features.Catalog.Infrastructure.CatalogPurchasePriceSyncSourceAdapter -> Anela.Heblo.Application.Features.Purchase.Contracts.PurchasePriceSyncCandidate",
     };
 
     // Allowlist for Catalog -> Manufacture. Pre-existing handler-level IManufactureClient injections
@@ -137,6 +142,12 @@ public class ModuleBoundariesTests
     // InvoiceShoptetSourceAdapter/InvoiceErpClientAdapter (Invoices.Infrastructure) map from
     // Invoices domain types to the DataQuality shape via InvoiceDqtSnapshotMapper.
     private static readonly HashSet<string> DataQualityInvoicesAllowlist = new(StringComparer.Ordinal);
+
+    // Allowlist for MarketingPerformance -> Invoices. Empty — IssuedInvoiceMonthlyRevenueSource
+    // was relocated to Anela.Heblo.Persistence.Invoices (feat-4290), closing the compile-time
+    // dependency. MarketingPerformance's own Application/Domain namespaces reference only the
+    // IMonthlyRevenueSource contract, which MarketingPerformance itself owns.
+    private static readonly HashSet<string> MarketingPerformanceInvoicesAllowlist = new(StringComparer.Ordinal);
 
     // Allowlist for Manufacture -> Catalog. Each group below is a deliberate pragmatic leak
     // tracked under the same follow-up: introduce Manufacture-owned ProductCatalogSnapshot DTO
@@ -235,6 +246,12 @@ public class ModuleBoundariesTests
     // (ShoptetOrdersOrderStatusReaderAdapter) lives in ShoptetOrders.Infrastructure and implements it
     // there, so no ExpeditionList type needs to reference ShoptetOrders directly.
     private static readonly HashSet<string> ExpeditionListShoptetOrdersAllowlist = new(StringComparer.Ordinal);
+
+    // Allowlist for ExpeditionListArchive -> FileStorage. Empty — the four ExpeditionListArchive
+    // handlers now consume the module-owned IExpeditionListArchiveBlobStore contract; the
+    // FileStorage adapter (ExpeditionListArchiveBlobStoreAdapter) lives in FileStorage.Infrastructure
+    // and implements it there, so no ExpeditionListArchive type needs to reference FileStorage directly.
+    private static readonly HashSet<string> ExpeditionListArchiveFileStorageAllowlist = new(StringComparer.Ordinal);
 
     // Allowlist for ShoptetApi Adapters -> Catalog.
     // ShoptetApiExpeditionListSource retains ICatalogRepository injection — out of scope.
@@ -494,6 +511,17 @@ public class ModuleBoundariesTests
             Allowlist: new HashSet<string>(StringComparer.Ordinal)),
 
         new ModuleBoundaryRule(
+            Name: "ExpeditionListArchive -> FileStorage",
+            InspectedNamespacePrefix: "Anela.Heblo.Application.Features.ExpeditionListArchive",
+            ForbiddenNamespacePrefixes: new[]
+            {
+                "Anela.Heblo.Domain.Features.FileStorage",
+                "Anela.Heblo.Application.Features.FileStorage",
+                "Anela.Heblo.Persistence.FileStorage",
+            },
+            Allowlist: ExpeditionListArchiveFileStorageAllowlist),
+
+        new ModuleBoundaryRule(
             Name: "Analytics (Application) -> Catalog",
             InspectedNamespacePrefix: "Anela.Heblo.Application.Features.Analytics",
             ForbiddenNamespacePrefixes: new[]
@@ -628,6 +656,29 @@ public class ModuleBoundariesTests
                 "Anela.Heblo.Persistence.Invoices",
             },
             Allowlist: DataQualityInvoicesAllowlist),
+
+        new ModuleBoundaryRule(
+            Name: "MarketingPerformance (Application) -> Invoices",
+            InspectedNamespacePrefix: "Anela.Heblo.Application.Features.MarketingPerformance",
+            ForbiddenNamespacePrefixes: new[]
+            {
+                "Anela.Heblo.Domain.Features.Invoices",
+                "Anela.Heblo.Application.Features.Invoices",
+                "Anela.Heblo.Persistence.Invoices",
+            },
+            Allowlist: MarketingPerformanceInvoicesAllowlist),
+
+        new ModuleBoundaryRule(
+            Name: "MarketingPerformance (Domain) -> Invoices",
+            InspectedNamespacePrefix: "Anela.Heblo.Domain.Features.MarketingPerformance",
+            ForbiddenNamespacePrefixes: new[]
+            {
+                "Anela.Heblo.Domain.Features.Invoices",
+                "Anela.Heblo.Application.Features.Invoices",
+                "Anela.Heblo.Persistence.Invoices",
+            },
+            Allowlist: MarketingPerformanceInvoicesAllowlist,
+            InspectedAssembly: "Anela.Heblo.Domain"),
 
         new ModuleBoundaryRule(
             Name: "Manufacture -> Catalog",
@@ -888,7 +939,7 @@ public class ModuleBoundariesTests
     // Microsoft.Graph.Models.ODataErrors types as part of their wrapping role or as
     // pre-existing violations out of scope for the feat-3369 decoupling.
     // All new Application types must use the wrapper types (GraphServiceAuthException /
-    // GraphServiceException) defined in UserManagement.Contracts instead.
+    // GraphServiceException) defined in UserManagement.Infrastructure.Exceptions instead.
     // Entries must have a justification comment and should be removed once the underlying
     // violation is fixed.
     private static readonly HashSet<string> SdkExceptionAllowlist = new(StringComparer.Ordinal)
@@ -957,7 +1008,7 @@ public class ModuleBoundariesTests
             "Application layer must not reference Microsoft.Identity.Client or " +
             "Microsoft.Graph.Models.ODataErrors types directly in signatures. " +
             "Catch GraphServiceAuthException / GraphServiceException (defined in " +
-            "UserManagement.Contracts) instead, or add an allowlist entry with justification " +
+            "UserManagement.Infrastructure.Exceptions) instead, or add an allowlist entry with justification " +
             "if this type is a legitimate wrapping boundary. " +
             "Found:\n  " + string.Join("\n  ", violations));
     }

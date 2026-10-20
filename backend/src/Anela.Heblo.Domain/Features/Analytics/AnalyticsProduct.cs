@@ -8,6 +8,7 @@ public class AnalyticsProduct
 {
     public required string ProductCode { get; init; }
     public required string ProductName { get; init; }
+    public string? ProductNameSuffix { get; init; }
     public required AnalyticsProductType Type { get; init; }
     public string? ProductFamily { get; init; }
     public string? ProductCategory { get; init; }

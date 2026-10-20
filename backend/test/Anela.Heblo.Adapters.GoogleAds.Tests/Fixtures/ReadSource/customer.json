@@ -1,0 +1,14 @@
+{
+  "results": [
+    {
+      "customer": {
+        "resourceName": "customers/1234567890",
+        "id": "1234567890",
+        "descriptiveName": "Anela (fixture)",
+        "currencyCode": "CZK",
+        "timeZone": "Europe/Prague"
+      }
+    }
+  ],
+  "fieldMask": "customer.id,customer.descriptiveName,customer.currencyCode,customer.timeZone,customer.manager"
+}

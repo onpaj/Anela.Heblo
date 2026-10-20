@@ -9,7 +9,7 @@ using Microsoft.Extensions.Options;
 
 namespace Anela.Heblo.Adapters.ShoptetApi.Orders;
 
-public class ShoptetApiPackingOrderClient : IPackingOrderClient, IPackingOrderCountSource
+public class ShoptetApiPackingOrderClient : IPackingOrderClient, IPackingOrderCountSource, IPackingOrderShippingSource
 {
     private readonly IShoptetExpeditionOrderSource _orderClient;
     private readonly IPackingProductSource _productSource;
@@ -121,6 +121,19 @@ public class ShoptetApiPackingOrderClient : IPackingOrderClient, IPackingOrderCo
             ShippingZip = NormalizeAddressField(deliveryAddress?.Zip),
             Items = items,
         };
+    }
+
+    public async Task<string?> GetShippingMethodGuidAsync(string orderCode, CancellationToken ct = default)
+    {
+        try
+        {
+            var detail = await _orderClient.GetExpeditionOrderDetailAsync(orderCode, ct);
+            return detail.Shipping?.Guid;
+        }
+        catch (HttpRequestException ex) when (ex.StatusCode == HttpStatusCode.NotFound)
+        {
+            return null;
+        }
     }
 
     private static string? NormalizeAddressField(string? value) =>

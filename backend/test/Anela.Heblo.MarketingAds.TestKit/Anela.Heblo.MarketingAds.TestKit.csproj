@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>false</IsTestProject>
+  </PropertyGroup>
+
+  <!-- Platform test projects inheriting the contract suites must reference xunit 2.9.2:
+       xunit 2.5.3 pins xunit.core (and so xunit.extensibility.core) to an exact version. -->
+  <ItemGroup>
+    <PackageReference Include="xunit.extensibility.core" Version="2.9.2" />
+    <PackageReference Include="xunit.assert" Version="2.9.2" />
+    <PackageReference Include="FluentAssertions" Version="6.12.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Xunit" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Anela.Heblo.Application\Anela.Heblo.Application.csproj" />
+  </ItemGroup>
+
+</Project>

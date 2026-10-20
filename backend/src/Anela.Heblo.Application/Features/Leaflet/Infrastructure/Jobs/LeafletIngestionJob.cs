@@ -38,6 +38,7 @@ public class LeafletIngestionJob : IRecurringJob
         Metadata = new RecurringJobMetadata
         {
             JobName = "leaflet-ingestion",
+            Category = RecurringJobCategory.Content,
             DisplayName = "Leaflet Ingestion",
             Description = "Polls OneDrive Leaflets/Inbox folder and ingests new leaflet documents into the leaflet vector store",
             CronExpression = _options.IngestionCronExpression,

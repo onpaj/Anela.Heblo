@@ -297,6 +297,102 @@ When module A needs **read-only access** to data in module B, the dependency mus
 - **Decision**: Every frontend component that renders color (background, text, border, ring, shadow, divider, icon, status) **must render correctly in both light and dark mode**. Support is **additive** — keep the light class and append a matching `dark:` variant, or use a design-system class (`.card`, `.input`, `.btn-*`, `.text-h*`, `.text-body*`, `.badge-*`) that already encodes both themes (prefer the latter). Map raw light classes to the `graphite-*` tokens per `docs/design/dark-mode-conversion-guide.md`: surfaces → `graphite-surface`/`surface-2`, text → `graphite-text`/`muted`/`faint`, borders → `graphite-border`, accents → `graphite-accent`; status pills keep their hue at `~900/30` bg + `~300` text. Both themes must meet WCAG 2.1 AA contrast. Applies to all routes, modals, drawers, tab panels, tables, forms, badges, and shared components.
 - **Consequences**: Dark mode stays complete by construction instead of via recurring audits; new screens are theme-correct on first review. Slightly more work per component, and UI reviews must verify both themes (toggle, or the Playwright dev instance on `:3100`). Recommended follow-up (not yet implemented): a lint/CI check that flags light-only color utilities lacking a `dark:` sibling. Cross-session summary in `memory/decisions/light-dark-mode-required.md`.
 
+### ADR-007: Reporting Data Lands in `Heblo_V3`, One Schema per Source; Reports Live in Metabase
+- **Status**: Accepted (2026-09-22)
+- **Context**: Anela has a backlog of 43 reporting metrics spanning three sources — the Flexi
+  general ledger, Shoptet orders and GA4 aggregates. An earlier plan
+  (`docs/superpowers/plans/2026-05-20-flexi-analytics-sync.md`) put the Flexi sync into a separate
+  `anela_analytics` database. That database was never created, `AnalyticsDatabase:ConnectionString`
+  stayed empty in every environment, and the sync stack — written, reviewed and unit-tested in May
+  2026 — never ran anywhere. Meanwhile a Metabase instance (Azure Web App `anelametabase`) was
+  deployed and already reads `Heblo_V3` as `metabase_ro`. **Metabase has no cross-database joins in
+  any edition.** Splitting reporting data across two databases would make every ratio metric (ROAS,
+  PNO, cost per purchase) unanswerable, because the spend side and the revenue side would sit on
+  opposite sides of a join Metabase cannot perform.
+- **Decision**: Reporting data lands in **`Heblo_V3`** (staging: `Heblo_TST`), each source in **its
+  own schema** — `flexi_raw`, `shoptet_raw`, `ga4_agg`. Each schema is owned end to end by its
+  ingestion direction: entities, migrations, sync job, read views and grants. **Reports are built in
+  Metabase, never in the Heblo UI** — no MediatR handlers, controllers, TypeScript client or React
+  pages are written for these metrics. Metabase reads through month-grain `v_*` views only; the raw
+  tables are never granted.
+- **Consequences**:
+  - Two schemas in one database join with plain SQL, so the ratio metrics are answerable.
+  - Zero new infrastructure: `Heblo_V3` is already a Metabase data source.
+  - Moving a schema to its own database later is a connection-string change, not a rewrite, because
+    each source keeps its own `DbContext`, its own migrations and its own schema.
+  - **Every analytics `DbContext` must pin `MigrationsHistoryTable` to its own schema.**
+    `HasDefaultSchema()` does *not* move the history table: EF Core resolves it from
+    `RelationalOptionsExtension.MigrationsHistoryTableSchema`, which defaults to the connection's
+    default schema. `AnalyticsDbContext` was missing the pin and, verified empirically on a scratch
+    database on 2026-09-22, wrote its migration row into `public."__EFMigrationsHistory"` — the main
+    `ApplicationDbContext`'s bookkeeping table. This is the hazard the *Persistence Guidelines*
+    section above already anticipated ("Each DbContext configured with unique history table");
+    `AnalyticsPersistenceModuleTests` now fails if the pin is removed from either the runtime
+    registration or the design-time factory.
+  - The analytics context keeps its **own `NpgsqlDataSource` and its own Polly resilience pipeline**
+    even though it now points at the same server as `ApplicationDbContext`. They are not merged: the
+    request-serving pipeline is tuned to a 3s `TotalTimeBudget`, which a 500-row batch upsert
+    legitimately exceeds, and a separate pool keeps a long backfill from starving request-path
+    connections on a server with a small connection budget.
+  - `AnalyticsDatabase--ConnectionString` duplicates `ConnectionStrings--Production` /
+    `ConnectionStrings--Staging` in Key Vault. The registration stays gated on that key being
+    non-empty so an unconfigured environment (local dev, CI) remains inert. The cost is that the two
+    secrets must be rotated together.
+  - **Confidentiality is enforced in Postgres, not in Metabase.** OSS Metabase has collection-level
+    permissions only — no row-level security, no data sandboxing. Payroll (backlog #35, *"pozor
+    neveřejné"*) therefore lives in a view granted to no role, and no general view includes payroll
+    accounts. See `docs/architecture/metabase.md`.
+- **Supersedes**: `docs/superpowers/plans/2026-05-20-flexi-analytics-sync.md`, whose separate-database
+  premise is the thing being reversed.
+
+### ADR-008: Ad-Platform Data Shares One `ads` Schema and May Be Read by MediatR Handlers
+- **Status**: Accepted (2026-10-07)
+- **Context**: The marketing agents platform
+  (`docs/superpowers/specs/2026-10-07-marketing-agents-platform-design.md`) makes Heblo "the eyes and
+  the hands" of AI marketing agents running outside Heblo. It syncs Google Ads, Meta Ads and Sklik
+  at management granularity (campaign → ad group → keyword / search term → ad, daily), records every
+  change made to the accounts, and lets agents read that data over MCP to propose changes. ADR-007
+  says reporting data lands in `Heblo_V3` with **one schema per source** and that **no MediatR
+  handlers** are written for it. Applied literally that would mean three ad schemas with three
+  shapes, and agents unable to read the data they are meant to manage.
+- **Decision**:
+  1. **One `ads` schema for all three ad platforms**, not one per platform. The backbone's value is a
+     single normalised model (`ad_accounts`, `ad_entities`, `ad_daily_facts`, `ad_search_term_daily`,
+     `ad_change_events`, `sync_state`) that an agent queries the same way for every platform and that
+     the limits engine can reason about. Platform-specific fields go to the `jsonb` `attributes`
+     column. The schema is owned by `AdsDbContext` in `Anela.Heblo.Persistence.Ads`, following the
+     ADR-007 mechanics unchanged: own keyed `NpgsqlDataSource` (`"ads"`), own Polly pipeline,
+     `MigrationsHistoryTable` pinned to `ads` on the runtime **and** the design-time path, manual
+     migrations, and registration gated on `AdsDatabase:ConnectionString` passing
+     `AdSettingsGuard.IsConfigured` and parsing as an Npgsql connection string with a Host.
+  2. **MediatR read handlers over `ads` are allowed**, because agents consume them through MCP to
+     *manage* the accounts. This is operational use, not reporting. Human-facing performance
+     *reports* still live in Metabase only; the Heblo UI shows proposals, audit and settings, never
+     charts.
+  3. **Operational workflow data does not go to `ads`.** Proposals, versions, approvals, the audit
+     log, agent runs, autonomy settings, limits and the kill switch live in `public` via
+     `ApplicationDbContext`.
+- **Consequences**:
+  - Every query over `ad_daily_facts` must aggregate a **single** `level`; facts are stored at every
+    level a platform reports, so summing across levels double-counts.
+  - Enum-valued columns (`platform`, `level`, `entity_level`, `status`, `actor_kind`, `match_type`) store the
+    contract enum **name** as text (`GoogleAds`, `AdGroup`, …): `Persistence.Ads` cannot reference
+    the Application contracts, and names keep the Metabase views readable.
+  - Every `DateTimeOffset` in `ads` written through EF is normalised to UTC by
+    `UtcDateTimeOffsetConverter`; platforms report local offsets, which Npgsql otherwise refuses to
+    write to `timestamptz`. Raw SQL (`ExecuteSql…`, `ON CONFLICT` upserts) bypasses the converter and
+    must pass UTC values itself.
+  - Metabase reads only `v_ads_*` views granted to `metabase_ro` (added with the sync, PR C2); the raw
+    tables are never granted. `ads` holds no customer PII, but `ad_change_events.actor` holds the
+    email of the staff or agency user who made a change (Google change history reports it), so
+    no `v_ads_*` view may expose `actor` unless it is pseudonymised.
+  - `AdsDatabase--ConnectionString` duplicates `ConnectionStrings--Production` /
+    `ConnectionStrings--Staging` in Key Vault, like `AnalyticsDatabase--ConnectionString`; the
+    secrets must be rotated together.
+  - Moving `ads` to its own database later stays a connection-string change.
+- **Deviates from**: ADR-007 decision points "one schema per source" and "no MediatR handlers", for ad
+  platforms only. ADR-007 stays in force for every other reporting source.
+
 ---
 
 ## ⚠️ Common Pitfalls to Avoid

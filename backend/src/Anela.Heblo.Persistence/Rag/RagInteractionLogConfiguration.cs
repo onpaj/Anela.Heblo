@@ -35,9 +35,14 @@ public class RagInteractionLogConfiguration : IEntityTypeConfiguration<RagIntera
         builder.Property(x => x.FeedbackComment).IsRequired(false).HasColumnType("text");
 
         builder.Property(x => x.DurationMs).IsRequired();
+        builder.Property(x => x.ProblemTags).HasColumnType("text[]").IsRequired().HasDefaultValueSql("'{}'::text[]");
+        builder.Property(x => x.ProductTags).HasColumnType("text[]").IsRequired().HasDefaultValueSql("'{}'::text[]");
+        builder.Property(x => x.RecommendedProductCodes).HasColumnType("text[]").IsRequired().HasDefaultValueSql("'{}'::text[]");
 
         builder.HasIndex(x => new { x.Feature, x.CreatedAt });
         builder.HasIndex(x => x.UserId);
         builder.HasIndex(x => x.ConversationId);
+        builder.HasIndex(x => x.ProblemTags).HasMethod("gin");
+        builder.HasIndex(x => x.ProductTags).HasMethod("gin");
     }
 }

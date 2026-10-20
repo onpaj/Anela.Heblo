@@ -181,7 +181,8 @@ public class CatalogMcpTools
         [Description("Page size for pagination (default: 50)")]
         int pageSize = 50,
         [Description("Sort field: productcode, productname, pricewithoutvat, purchaseprice, " +
-                    "manufacturedifficulty, m0amount, m1amount, m2amount, m0percentage, m1percentage, m2percentage")]
+                    "manufacturedifficulty, m0amount, m1amount, m2amount, m3amount, " +
+                    "m0percentage, m1percentage, m2percentage, m3percentage")]
         string? sortBy = null,
         [Description("Sort descending (default: false)")]
         bool sortDescending = false,

@@ -9,6 +9,8 @@ using Anela.Heblo.Domain.Features.Marketing;
 using Anela.Heblo.Domain.Features.MeetingTasks;
 using Anela.Heblo.Domain.Features.MindMaps;
 using Anela.Heblo.Domain.Features.MarketingInvoices;
+using Anela.Heblo.Domain.Features.MarketingPerformance;
+using Anela.Heblo.Domain.Features.MarketingAds;
 using Anela.Heblo.Domain.Features.Bank;
 using Anela.Heblo.Domain.Features.GridLayouts;
 using Anela.Heblo.Domain.Features.KnowledgeBase;
@@ -31,6 +33,7 @@ using Anela.Heblo.Domain.Features.Packaging;
 using Anela.Heblo.Domain.Features.Dashboard;
 using Anela.Heblo.Domain.Features.Purchase;
 using Anela.Heblo.Domain.Features.ProductPricing;
+using Anela.Heblo.Domain.Features.Ecomail;
 using Microsoft.EntityFrameworkCore;
 
 namespace Anela.Heblo.Persistence;
@@ -59,6 +62,12 @@ public class ApplicationDbContext : DbContext
     public DbSet<PurchaseOrderLine> PurchaseOrderLines { get; set; } = null!;
     public DbSet<PurchaseOrderHistory> PurchaseOrderHistory { get; set; } = null!;
     public DbSet<Package> Packages { get; set; } = null!;
+
+    // Ecomail module
+    public DbSet<EcomailCampaign> EcomailCampaigns { get; set; } = null!;
+    public DbSet<EcomailPipeline> EcomailPipelines { get; set; } = null!;
+    public DbSet<EcomailAutomationSnapshot> EcomailAutomationSnapshots { get; set; } = null!;
+    public DbSet<EcomailAutomationMonth> EcomailAutomationMonths { get; set; } = null!;
 
     // Catalog module
     public DbSet<ManufactureDifficultySetting> ManufactureDifficultySettings { get; set; } = null!;
@@ -132,6 +141,10 @@ public class ApplicationDbContext : DbContext
     public DbSet<MeetingTranscript> MeetingTranscripts { get; set; } = null!;
     public DbSet<ProposedTask> ProposedTasks { get; set; } = null!;
     public DbSet<MeetingAccessGrant> MeetingAccessGrants { get; set; } = null!;
+
+    // Pricing simulator
+    public DbSet<Anela.Heblo.Domain.Features.Pricing.PricingScenario> PricingScenarios { get; set; } = null!;
+    public DbSet<Anela.Heblo.Domain.Features.Pricing.PricingScenarioItem> PricingScenarioItems { get; set; } = null!;
     public DbSet<DeletedPlaudRecording> DeletedPlaudRecordings { get; set; } = null!;
 
     // Mind Maps module
@@ -186,6 +199,21 @@ public class ApplicationDbContext : DbContext
     public DbSet<Anela.Heblo.Domain.Features.Authorization.Entities.GroupPermission> GroupPermissions { get; set; } = null!;
     public DbSet<Anela.Heblo.Domain.Features.Authorization.Entities.GroupParent> GroupParents { get; set; } = null!;
     public DbSet<Anela.Heblo.Domain.Features.Authorization.Entities.UserGroup> UserGroups { get; set; } = null!;
+
+    // Marketing Performance module
+    public DbSet<MarketingPerformanceMonth> MarketingPerformanceMonths { get; set; } = null!;
+    public DbSet<MarketingPerformanceChannelCost> MarketingPerformanceChannelCosts { get; set; } = null!;
+
+    // Marketing Ads — proposal & approval layer (PR C3)
+    public DbSet<AdProposal> AdProposals { get; set; } = null!;
+    public DbSet<AdProposalVersion> AdProposalVersions { get; set; } = null!;
+    public DbSet<AdProposalApproval> AdProposalApprovals { get; set; } = null!;
+    public DbSet<AdProposalActionExecution> AdProposalActionExecutions { get; set; } = null!;
+    public DbSet<AdAuditEvent> AdAuditEvents { get; set; } = null!;
+    public DbSet<AgentRun> AgentRuns { get; set; } = null!;
+    public DbSet<AdAutonomySetting> AdAutonomySettings { get; set; } = null!;
+    public DbSet<AdLimitSetting> AdLimitSettings { get; set; } = null!;
+    public DbSet<AdKillSwitch> AdKillSwitches { get; set; } = null!;
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

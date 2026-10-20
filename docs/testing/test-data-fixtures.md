@@ -18,6 +18,7 @@ This document contains a reference list of test data available in the developmen
 - [Transport Boxes](#transport-boxes)
 - [Suppliers](#suppliers)
 - [Product Types](#product-types)
+- [Marketing ads](#marketing-ads)
 - [Usage Guidelines](#usage-guidelines)
 
 ---
@@ -216,6 +217,12 @@ Consumption:
 5. **Polotovar** (Semi-product)
 6. **Dárkový balíček** (Gift package)
 7. **Nedefinováno** (Undefined)
+
+---
+
+## Marketing ads
+
+No fixture is needed. `marketing/ads-approval-inbox.spec.ts` is read-only and seeds nothing: the E2E session cannot approve or reject proposals (app-only identity, C4 R16), so a seeded Pending proposal could never be cleaned up. Approve, reject, diff and reasoning rendering are covered by unit tests.
 
 ---
 

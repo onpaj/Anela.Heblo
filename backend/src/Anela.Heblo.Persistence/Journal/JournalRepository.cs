@@ -64,6 +64,7 @@ namespace Anela.Heblo.Persistence.Journal
             string? productCodePrefix,
             IReadOnlyCollection<int>? tagIds,
             string? createdByUserId,
+            bool withoutProducts,
             int pageNumber,
             int pageSize,
             string sortBy,
@@ -101,6 +102,12 @@ namespace Anela.Heblo.Persistence.Journal
             {
                 query = query.Where(x => x.ProductAssociations
                     .Any(pa => productCodePrefix.StartsWith(pa.ProductCodePrefix)));
+            }
+
+            // Company-wide entries only (no product association)
+            if (withoutProducts)
+            {
+                query = query.Where(x => !x.ProductAssociations.Any());
             }
 
 

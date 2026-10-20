@@ -7,12 +7,15 @@
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Google.Ads.GoogleAds" Version="21.1.0" />
+    <PackageReference Include="Microsoft.Extensions.Http" Version="8.0.0" />
     <PackageReference Include="Microsoft.Extensions.Options.ConfigurationExtensions" Version="8.0.0" />
+    <PackageReference Include="Polly" Version="8.4.1" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\Anela.Heblo.Application\Anela.Heblo.Application.csproj" />
   </ItemGroup>
   <ItemGroup>
     <InternalsVisibleTo Include="Anela.Heblo.Tests" />
+    <InternalsVisibleTo Include="Anela.Heblo.Adapters.GoogleAds.Tests" />
   </ItemGroup>
 </Project>

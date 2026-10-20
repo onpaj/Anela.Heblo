@@ -94,6 +94,36 @@ public class ShippingMethodCatalogTests
     }
 
     [Fact]
+    public void GetShippingNamesForCarrier_Zasilkovna_IncludesBoxyDisplayName()
+    {
+        var result = _sut.GetShippingNamesForCarrier(Carriers.Zasilkovna);
+
+        result.Should().Contain("Zásilkovna boxy a výdejní místa");
+        result.Should().NotContain("GLS boxy a výdejní místa");
+    }
+
+    [Fact]
+    public void GetShippingNamesForCarrier_Gls_IncludesBoxyDisplayName()
+    {
+        var result = _sut.GetShippingNamesForCarrier(Carriers.GLS);
+
+        result.Should().Contain("GLS boxy a výdejní místa");
+    }
+
+    [Fact]
+    public void GetShippingNamesForCarrier_NoDisplayNameIsSharedAcrossCarriers()
+    {
+        // The package carrier filter matches by name, so a shared name would list packages under two carriers
+        var carriersPerName = Enum.GetValues<Carriers>()
+            .SelectMany(c => _sut.GetShippingNamesForCarrier(c).Select(n => (Name: n.Trim().ToLowerInvariant(), Carrier: c)))
+            .GroupBy(x => x.Name)
+            .Where(g => g.Select(x => x.Carrier).Distinct().Count() > 1)
+            .Select(g => g.Key);
+
+        carriersPerName.Should().BeEmpty();
+    }
+
+    [Fact]
     public void GetShippingCodesForCarrier_Osobak_ReturnsSingleId()
     {
         var result = _sut.GetShippingCodesForCarrier(Carriers.Osobak);
@@ -118,5 +148,24 @@ public class ShippingMethodCatalogTests
     public void ResolveCarrier_UnknownOrNonNumeric_ReturnsNull(string code)
     {
         _sut.ResolveCarrier(code).Should().BeNull();
+    }
+
+    [Theory]
+    [InlineData("138ec07f-0119-11ec-a39f-002590dc5efc", Carriers.GLS)]
+    [InlineData("53db451b-6344-11f1-9239-bc241122355e", Carriers.GLS)]
+    [InlineData("8448f4b6-6344-11f1-9239-bc241122355e", Carriers.GLS)]
+    [InlineData("2ec88ea7-3fb0-11e2-a723-705ab6a2ba75", Carriers.PPL)]
+    [InlineData("f6610d4d-578d-11e9-beb1-002590dad85e", Carriers.Zasilkovna)]
+    public void ResolveCarrierByShippingGuid_KnownGuid_ReturnsCarrier(string shippingGuid, Carriers expected)
+    {
+        _sut.ResolveCarrierByShippingGuid(shippingGuid).Should().Be(expected);
+    }
+
+    [Theory]
+    [InlineData("00000000-0000-0000-0000-000000000000")]
+    [InlineData("")]
+    public void ResolveCarrierByShippingGuid_UnknownGuid_ReturnsNull(string shippingGuid)
+    {
+        _sut.ResolveCarrierByShippingGuid(shippingGuid).Should().BeNull();
     }
 }

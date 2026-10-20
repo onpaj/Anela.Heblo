@@ -129,4 +129,76 @@ public class AccessMatrixJsonTests
             return sb.ToString();
         }
     }
+
+    private const string AdsRead = "marketing.ads.read";
+    private const string AdsWrite = "marketing.ads.write";
+    private const string ApprovalsRead = "marketing.ad_approvals.read";
+    private const string ApprovalsWrite = "marketing.ad_approvals.write";
+    private const string ApprovalsAdmin = "marketing.ad_approvals.admin";
+    private const string ApproveViaMcp = "marketing.ad_approvals_via_mcp.read";
+
+    public static TheoryData<string, string[]> MarketingAdsSeedGroupRoles => new()
+    {
+        { "Marketing_Agent", new[] { AdsRead, AdsWrite } },
+        { "Marketer", new[] { AdsRead, AdsWrite } },
+        { "Marketing_Specialist", new[] { AdsRead, AdsWrite, ApprovalsWrite } },
+        { "Marketing_Chief", new[] { AdsRead, AdsWrite, ApprovalsWrite, ApproveViaMcp } },
+        { "Spravce", new[] { AdsRead, AdsWrite, ApprovalsWrite, ApprovalsAdmin, ApproveViaMcp } },
+    };
+
+    [Theory]
+    [MemberData(nameof(MarketingAdsSeedGroupRoles))]
+    public void MarketingAds_SeedGroups_HoldExactlyTheAgreedAdsRoles(string groupName, string[] expected)
+    {
+        var m = LoadManifest();
+
+        var group = m.SeedGroups.SingleOrDefault(g => g.Name == groupName);
+
+        group.Should().NotBeNull($"seed group '{groupName}' must exist");
+        group!.Roles.Where(r => r.StartsWith("marketing.ad", StringComparison.Ordinal))
+            .Should().BeEquivalentTo(expected);
+    }
+
+    [Fact]
+    public void MarketingAgent_SeedGroup_HoldsNothingButAdsReadAndWrite()
+    {
+        var m = LoadManifest();
+
+        var agent = m.SeedGroups.Single(g => g.Name == "Marketing_Agent");
+
+        agent.Roles.Should().BeEquivalentTo(new[] { AdsRead, AdsWrite });
+    }
+
+    [Fact]
+    public void OnlySpravce_HoldsAdApprovalsAdmin()
+    {
+        var m = LoadManifest();
+
+        var holders = m.SeedGroups.Where(g => g.Roles.Contains(ApprovalsAdmin)).Select(g => g.Name);
+
+        holders.Should().BeEquivalentTo(new[] { "Spravce" });
+    }
+
+    [Fact]
+    public void NoSeedGroup_HoldsAdApprovalsRead()
+    {
+        var m = LoadManifest();
+
+        var holders = m.SeedGroups.Where(g => g.Roles.Contains(ApprovalsRead)).Select(g => g.Name);
+
+        holders.Should().BeEmpty("AdApprovals has no Read level in spec 7.2 and C3 says never grant it");
+    }
+
+    [Fact]
+    public void EveryGroupThatMayApproveViaMcp_AlsoHoldsWebApprovalWrite()
+    {
+        var m = LoadManifest();
+
+        var violators = m.SeedGroups
+            .Where(g => g.Roles.Contains(ApproveViaMcp) && !g.Roles.Contains(ApprovalsWrite))
+            .Select(g => g.Name)
+            .ToList();
+
+        violators.Should().BeEmpty("approve-via-MCP requires Marketing_AdApprovals Write as well (spec 7.2)");
+    }
 }

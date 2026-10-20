@@ -81,6 +81,39 @@ describe('useUpdateRecurringJobCronMutation', () => {
       })
     ).rejects.toThrow('Invalid CRON');
   });
+
+  it('invalidates both list and detail queries on success', async () => {
+    mockApiClient.recurringJobs_UpdateJobCron.mockResolvedValue({
+      success: true,
+      jobName: 'test-job',
+      cronExpression: '0 3 * * *',
+      lastModifiedAt: new Date().toISOString(),
+      lastModifiedBy: 'test-user',
+    });
+
+    const queryClient = new QueryClient({
+      defaultOptions: {
+        queries: { retry: false },
+        mutations: { retry: false },
+      },
+    });
+    const invalidateSpy = jest.spyOn(queryClient, 'invalidateQueries');
+    const wrapper = ({ children }: { children: React.ReactNode }) =>
+      React.createElement(QueryClientProvider, { client: queryClient }, children);
+
+    const { result } = renderHook(() => useUpdateRecurringJobCronMutation(), { wrapper });
+
+    await act(async () => {
+      await result.current.mutateAsync({ jobName: 'test-job', cronExpression: '0 3 * * *' });
+    });
+
+    expect(invalidateSpy).toHaveBeenCalledWith(
+      expect.objectContaining({ queryKey: expect.arrayContaining(['recurring-jobs', 'list']) })
+    );
+    expect(invalidateSpy).toHaveBeenCalledWith(
+      expect.objectContaining({ queryKey: expect.arrayContaining(['recurring-jobs', 'detail', 'test-job']) })
+    );
+  });
 });
 
 describe('useRecurringJobsQuery', () => {

@@ -12,4 +12,8 @@ public class GetPackageLabelPdfRequest : IRequest<GetPackageLabelPdfResponse>
     /// <summary>True when the request is an automated readiness poll (header X-Label-Poll present).
     /// Expected transient 404s are logged at Debug instead of Warning to avoid flooding logs.</summary>
     public bool IsPoll { get; set; }
+
+    /// <summary>This computer's per-carrier label offsets (<c>Carrier:xMm:yMm</c>, comma-separated),
+    /// see <see cref="LabelOffsetQuery"/>. Null or empty prints every label unshifted.</summary>
+    public string? Offsets { get; set; }
 }

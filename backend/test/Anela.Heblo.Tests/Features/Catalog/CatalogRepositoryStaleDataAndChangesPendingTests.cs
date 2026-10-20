@@ -107,36 +107,56 @@ public class CatalogRepositoryStaleDataAndChangesPendingTests
             _timeProviderMock.Object,
             new Mock<ILogger<CatalogMergeService>>().Object);
 
-        var refreshService = new CatalogDataRefreshService(
+        var historyRefreshService = new CatalogHistoryRefreshService(
             _salesClientMock.Object,
             new Mock<ICatalogSetPartsClient>().Object,
-            _attributesClientMock.Object,
-            _eshopStockClientMock.Object,
-            _consumedMaterialClientMock.Object,
             _purchaseHistoryClientMock.Object,
-            _erpStockClientMock.Object,
-            _lotsClientMock.Object,
-            _productPriceEshopClientMock.Object,
-            _productPriceErpClientMock.Object,
-            _productEshopUrlClientMock.Object,
-            _transportSourceMock.Object,
-            _stockTakingRepositoryMock.Object,
-            _purchaseSourceMock.Object,
+            _consumedMaterialClientMock.Object,
             _manufactureSourceMock.Object,
-            _manufactureDifficultyRepositoryMock.Object,
             _resilienceServiceMock.Object,
             _timeProviderMock.Object,
             optionsMock.Object,
             cacheStore,
-            new Mock<ILogger<CatalogDataRefreshService>>().Object);
+            new Mock<ILogger<CatalogHistoryRefreshService>>().Object);
+
+        var stockRefreshService = new CatalogStockRefreshService(
+            _erpStockClientMock.Object,
+            _eshopStockClientMock.Object,
+            _transportSourceMock.Object,
+            _purchaseSourceMock.Object,
+            _manufactureSourceMock.Object,
+            _resilienceServiceMock.Object,
+            cacheStore,
+            new Mock<ILogger<CatalogStockRefreshService>>().Object);
+
+        var metaRefreshService = new CatalogMetaRefreshService(
+            _attributesClientMock.Object,
+            _lotsClientMock.Object,
+            _productPriceEshopClientMock.Object,
+            _productPriceErpClientMock.Object,
+            _productEshopUrlClientMock.Object,
+            _resilienceServiceMock.Object,
+            cacheStore,
+            new Mock<ILogger<CatalogMetaRefreshService>>().Object);
+
+        var referenceRefreshService = new CatalogReferenceRefreshService(
+            _stockTakingRepositoryMock.Object,
+            _manufactureDifficultyRepositoryMock.Object,
+            _timeProviderMock.Object,
+            cacheStore,
+            new Mock<ILogger<CatalogReferenceRefreshService>>().Object);
 
         _repository = new CatalogRepository(
             cacheStore,
             mergeService,
-            refreshService,
+            historyRefreshService,
+            stockRefreshService,
+            metaRefreshService,
+            referenceRefreshService,
             _mergeSchedulerMock.Object,
             _marginServiceMock.Object,
             _timeProviderMock.Object,
+            optionsMock.Object,
             cacheOptionsMock.Object,
             _loggerMock.Object);
     }
@@ -149,6 +169,9 @@ public class CatalogRepositoryStaleDataAndChangesPendingTests
             new CatalogAggregate { ProductCode = "STALE001", ProductName = "Stale Product" }
         };
         _cache.Set("CatalogData_Stale", staleData);
+        // Only a stale snapshot that was itself merged from complete sources may be served as a
+        // fallback; ReplaceCacheAtomicallyAsync sets this flag when it demotes such a snapshot.
+        _cache.Set("CatalogData_StaleComplete", true);
         _cache.Set("CatalogData_LastUpdate", DateTime.UtcNow.AddHours(-10));
 
         _mergeSchedulerMock.Setup(x => x.IsMergeInProgress).Returns(true);

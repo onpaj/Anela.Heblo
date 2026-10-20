@@ -1,4 +1,5 @@
 using System.Linq.Expressions;
+using Anela.Heblo.Application.Common;
 using Anela.Heblo.Application.Features.Catalog.Infrastructure;
 using Anela.Heblo.Domain.Features.Catalog;
 using Anela.Heblo.Domain.Features.Catalog.Services;
@@ -11,29 +12,41 @@ public sealed class CatalogRepository : ICatalogRepository
 {
     private readonly CatalogCacheStore _cacheStore;
     private readonly CatalogMergeService _mergeService;
-    private readonly CatalogDataRefreshService _refreshService;
+    private readonly CatalogHistoryRefreshService _historyRefreshService;
+    private readonly CatalogStockRefreshService _stockRefreshService;
+    private readonly CatalogMetaRefreshService _metaRefreshService;
+    private readonly CatalogReferenceRefreshService _referenceRefreshService;
     private readonly ICatalogMergeScheduler _mergeScheduler;
     private readonly IMarginCalculationService _marginService;
     private readonly TimeProvider _timeProvider;
+    private readonly IOptions<DataSourceOptions> _dataSourceOptions;
     private readonly IOptions<CatalogCacheOptions> _cacheOptions;
     private readonly ILogger<CatalogRepository> _logger;
 
     public CatalogRepository(
         CatalogCacheStore cacheStore,
         CatalogMergeService mergeService,
-        CatalogDataRefreshService refreshService,
+        CatalogHistoryRefreshService historyRefreshService,
+        CatalogStockRefreshService stockRefreshService,
+        CatalogMetaRefreshService metaRefreshService,
+        CatalogReferenceRefreshService referenceRefreshService,
         ICatalogMergeScheduler mergeScheduler,
         IMarginCalculationService marginService,
         TimeProvider timeProvider,
+        IOptions<DataSourceOptions> dataSourceOptions,
         IOptions<CatalogCacheOptions> cacheOptions,
         ILogger<CatalogRepository> logger)
     {
         _cacheStore = cacheStore ?? throw new ArgumentNullException(nameof(cacheStore));
         _mergeService = mergeService ?? throw new ArgumentNullException(nameof(mergeService));
-        _refreshService = refreshService ?? throw new ArgumentNullException(nameof(refreshService));
+        _historyRefreshService = historyRefreshService ?? throw new ArgumentNullException(nameof(historyRefreshService));
+        _stockRefreshService = stockRefreshService ?? throw new ArgumentNullException(nameof(stockRefreshService));
+        _metaRefreshService = metaRefreshService ?? throw new ArgumentNullException(nameof(metaRefreshService));
+        _referenceRefreshService = referenceRefreshService ?? throw new ArgumentNullException(nameof(referenceRefreshService));
         _mergeScheduler = mergeScheduler ?? throw new ArgumentNullException(nameof(mergeScheduler));
         _marginService = marginService ?? throw new ArgumentNullException(nameof(marginService));
         _timeProvider = timeProvider ?? throw new ArgumentNullException(nameof(timeProvider));
+        _dataSourceOptions = dataSourceOptions ?? throw new ArgumentNullException(nameof(dataSourceOptions));
         _cacheOptions = cacheOptions ?? throw new ArgumentNullException(nameof(cacheOptions));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
@@ -47,9 +60,19 @@ public sealed class CatalogRepository : ICatalogRepository
         if (current != null && _cacheStore.IsCacheValid())
             return current;
 
+        // Merging again cannot repair a cache whose required sources have still never loaded - it
+        // would read the same empty sources and produce the same aggregate, so a priority merge per
+        // read would be pure cost. Serve what we have; loading a source schedules the merge that
+        // restores validity on its own.
+        if (current != null && !_cacheStore.AreRequiredSourcesLoaded())
+        {
+            _logger.LogDebug("Serving unstamped catalog data - required sources have not loaded yet, so a merge cannot improve it");
+            return current;
+        }
+
         if (_cacheOptions.Value.AllowStaleDataDuringMerge && _mergeScheduler.IsMergeInProgress)
         {
-            var stale = _cacheStore.TryGetStale();
+            var stale = _cacheStore.TryGetCompleteStale();
             if (stale != null)
             {
                 _logger.LogWarning("Serving stale data during merge operation");
@@ -107,35 +130,47 @@ public sealed class CatalogRepository : ICatalogRepository
 
     // --- Refresh delegates ---
 
-    public Task RefreshTransportData(CancellationToken ct) => _refreshService.RefreshTransportData(ct);
-    public Task RefreshManufacturedData(CancellationToken ct) => _refreshService.RefreshManufacturedData(ct);
-    public Task RefreshReserveData(CancellationToken ct) => _refreshService.RefreshReserveData(ct);
-    public Task RefreshOrderedData(CancellationToken ct) => _refreshService.RefreshOrderedData(ct);
-    public Task RefreshPlannedData(CancellationToken ct) => _refreshService.RefreshPlannedData(ct);
-    public Task RefreshSalesData(CancellationToken ct) => _refreshService.RefreshSalesData(ct);
-    public Task RefreshSetPartsData(CancellationToken ct) => _refreshService.RefreshSetPartsData(ct);
-    public Task RefreshAttributesData(CancellationToken ct) => _refreshService.RefreshAttributesData(ct);
-    public Task RefreshErpStockData(CancellationToken ct) => _refreshService.RefreshErpStockData(ct);
-    public Task RefreshEshopStockData(CancellationToken ct) => _refreshService.RefreshEshopStockData(ct);
-    public Task RefreshPurchaseHistoryData(CancellationToken ct) => _refreshService.RefreshPurchaseHistoryData(ct);
-    public Task RefreshManufactureHistoryData(CancellationToken ct) => _refreshService.RefreshManufactureHistoryData(ct);
-    public Task RefreshConsumedHistoryData(CancellationToken ct) => _refreshService.RefreshConsumedHistoryData(ct);
-    public Task RefreshStockTakingData(CancellationToken ct) => _refreshService.RefreshStockTakingData(ct);
-    public Task RefreshLotsData(CancellationToken ct) => _refreshService.RefreshLotsData(ct);
-    public Task RefreshEshopPricesData(CancellationToken ct) => _refreshService.RefreshEshopPricesData(ct);
-    public Task RefreshErpPricesData(CancellationToken ct) => _refreshService.RefreshErpPricesData(ct);
-    public Task RefreshEshopUrlData(CancellationToken ct) => _refreshService.RefreshEshopUrlData(ct);
+    public Task RefreshTransportData(CancellationToken ct) => _stockRefreshService.RefreshTransportData(ct);
+    public Task RefreshManufacturedData(CancellationToken ct) => _stockRefreshService.RefreshManufacturedData(ct);
+    public Task RefreshReserveData(CancellationToken ct) => _stockRefreshService.RefreshReserveData(ct);
+    public Task RefreshOrderedData(CancellationToken ct) => _stockRefreshService.RefreshOrderedData(ct);
+    public Task RefreshPlannedData(CancellationToken ct) => _stockRefreshService.RefreshPlannedData(ct);
+    public Task RefreshSalesData(CancellationToken ct) => _historyRefreshService.RefreshSalesData(ct);
+    public Task RefreshSetPartsData(CancellationToken ct) => _historyRefreshService.RefreshSetPartsData(ct);
+    public Task RefreshAttributesData(CancellationToken ct) => _metaRefreshService.RefreshAttributesData(ct);
+    public Task RefreshErpStockData(CancellationToken ct) => _stockRefreshService.RefreshErpStockData(ct);
+    public Task RefreshEshopStockData(CancellationToken ct) => _stockRefreshService.RefreshEshopStockData(ct);
+    public Task RefreshPurchaseHistoryData(CancellationToken ct) => _historyRefreshService.RefreshPurchaseHistoryData(ct);
+    public Task RefreshManufactureHistoryData(CancellationToken ct) => _historyRefreshService.RefreshManufactureHistoryData(ct);
+    public Task RefreshConsumedHistoryData(CancellationToken ct) => _historyRefreshService.RefreshConsumedHistoryData(ct);
+    public Task RefreshStockTakingData(CancellationToken ct) => _referenceRefreshService.RefreshStockTakingData(ct);
+    public Task RefreshLotsData(CancellationToken ct) => _metaRefreshService.RefreshLotsData(ct);
+    public Task RefreshEshopPricesData(CancellationToken ct) => _metaRefreshService.RefreshEshopPricesData(ct);
+    public Task RefreshErpPricesData(CancellationToken ct) => _metaRefreshService.RefreshErpPricesData(ct);
+    public Task RefreshEshopUrlData(CancellationToken ct) => _metaRefreshService.RefreshEshopUrlData(ct);
     public Task RefreshManufactureDifficultySettingsData(string? product, CancellationToken ct) =>
-        _refreshService.RefreshManufactureDifficultySettingsData(product, ct);
+        _referenceRefreshService.RefreshManufactureDifficultySettingsData(product, ct);
 
     public async Task RefreshMarginData(CancellationToken ct)
     {
         await WaitForCurrentMergeAsync(ct);
         var products = await GetAllAsync(ct);
 
-        var twoYearsAgo = DateOnly.FromDateTime(_timeProvider.GetUtcNow().UtcDateTime.AddYears(-2));
-        var dateFrom = twoYearsAgo > CatalogConstants.MARGIN_HISTORY_FLOOR_DATE ? twoYearsAgo : CatalogConstants.MARGIN_HISTORY_FLOOR_DATE;
-        var dateTo = DateOnly.FromDateTime(_timeProvider.GetUtcNow().UtcDateTime).AddMonths(-1); // Current month is not accurate
+        // The window must match what the cost providers can emit: each of them derives its own
+        // window from DataSourceOptions.ManufactureCostHistoryDays, and a margin month with no cost
+        // data enters MonthlyMarginHistory.Averages as a zero, scaling every displayed cost down.
+        // Not ManufactureHistoryDays - that one only controls how much raw manufacture history is
+        // loaded into the catalog.
+        var today = DateOnly.FromDateTime(_timeProvider.GetUtcNow().UtcDateTime);
+        var dateFrom = today.AddDays(-_dataSourceOptions.Value.ManufactureCostHistoryDays);
+        var dateTo = today.AddMonths(-1); // Current month is not accurate
+
+        if (dateFrom > dateTo)
+        {
+            _logger.LogWarning(
+                "DataSourceOptions.ManufactureCostHistoryDays ({Days}) covers no completed month, so margin history will be empty for every product",
+                _dataSourceOptions.Value.ManufactureCostHistoryDays);
+        }
 
         foreach (var product in products)
         {

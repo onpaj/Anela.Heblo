@@ -29,6 +29,17 @@ internal sealed class CatalogManufactureCatalogSourceAdapter : IManufactureCatal
     public Task<IEnumerable<CatalogAggregate>> GetAllAsync(CancellationToken cancellationToken = default) =>
         _repository.GetAllAsync(cancellationToken);
 
+    public async Task<IReadOnlyDictionary<string, string>> GetProductNameSuffixesAsync(
+        IEnumerable<string> productCodes,
+        CancellationToken cancellationToken = default)
+    {
+        var products = await _repository.GetByIdsAsync(productCodes, cancellationToken);
+
+        return products
+            .Where(p => p.Value.ProductNameSuffix != null)
+            .ToDictionary(p => p.Key, p => p.Value.ProductNameSuffix!);
+    }
+
     public Task RefreshPlannedDataAsync(CancellationToken cancellationToken = default) =>
         _repository.RefreshPlannedData(cancellationToken);
 }

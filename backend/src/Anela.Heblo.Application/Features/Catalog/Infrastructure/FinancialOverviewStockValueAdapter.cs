@@ -1,4 +1,3 @@
-using Anela.Heblo.Domain.Features.Catalog.Price;
 using Anela.Heblo.Domain.Features.Catalog.Stock;
 using Anela.Heblo.Domain.Features.FinancialOverview;
 using Microsoft.Extensions.Logging;
@@ -7,11 +6,12 @@ namespace Anela.Heblo.Application.Features.Catalog.Infrastructure;
 
 /// <summary>
 /// Cross-module adapter: Catalog implements FinancialOverview's IStockValueService using Catalog-owned ERP clients.
+/// Stock is valued at the warehouse valuation of each stock-to-date row (<see cref="ErpStock.Price"/>),
+/// not at the ceník purchase price, which for manufactured items is the cost of the next manufacture.
 /// </summary>
 internal sealed class FinancialOverviewStockValueAdapter : IStockValueService
 {
     private readonly IErpStockClient _stockClient;
-    private readonly IProductPriceErpClient _priceClient;
     private readonly ILogger<FinancialOverviewStockValueAdapter> _logger;
 
     // Warehouse IDs from FlexiStockClient
@@ -21,11 +21,9 @@ internal sealed class FinancialOverviewStockValueAdapter : IStockValueService
 
     public FinancialOverviewStockValueAdapter(
         IErpStockClient stockClient,
-        IProductPriceErpClient priceClient,
         ILogger<FinancialOverviewStockValueAdapter> logger)
     {
         _stockClient = stockClient;
-        _priceClient = priceClient;
         _logger = logger;
     }
 
@@ -39,10 +37,6 @@ internal sealed class FinancialOverviewStockValueAdapter : IStockValueService
 
         try
         {
-            // Get all product prices for value calculations
-            var prices = await _priceClient.GetAllAsync(forceReload: false, cancellationToken);
-            var priceDict = prices.ToDictionary(p => p.ProductCode, p => p.PurchasePrice);
-
             var monthlyChanges = new List<MonthlyStockChange>();
 
             // Process each month in the date range
@@ -54,7 +48,7 @@ internal sealed class FinancialOverviewStockValueAdapter : IStockValueService
                 _logger.LogDebug("Processing stock changes for {Year}/{Month}", currentDate.Year, currentDate.Month);
 
                 var monthlyChange = await CalculateMonthlyStockChangeAsync(
-                    currentDate, priceDict, cancellationToken);
+                    currentDate, cancellationToken);
 
                 monthlyChanges.Add(monthlyChange);
 
@@ -83,21 +77,18 @@ internal sealed class FinancialOverviewStockValueAdapter : IStockValueService
         _logger.LogInformation("Calculating partial stock value change for period {Start:d}..{End:d}",
             periodStart, periodEndInclusive);
 
-        var prices = await _priceClient.GetAllAsync(forceReload: false, cancellationToken);
-        var priceDict = prices.ToDictionary(p => p.ProductCode, p => p.PurchasePrice);
-
         var startTasks = new[]
         {
-            GetWarehouseStockValueAsync(MaterialWarehouseId, periodStart, priceDict, cancellationToken),
-            GetWarehouseStockValueAsync(SemiProductsWarehouseId, periodStart, priceDict, cancellationToken),
-            GetWarehouseStockValueAsync(ProductsWarehouseId, periodStart, priceDict, cancellationToken)
+            GetWarehouseStockValueAsync(MaterialWarehouseId, periodStart, cancellationToken),
+            GetWarehouseStockValueAsync(SemiProductsWarehouseId, periodStart, cancellationToken),
+            GetWarehouseStockValueAsync(ProductsWarehouseId, periodStart, cancellationToken)
         };
 
         var endTasks = new[]
         {
-            GetWarehouseStockValueAsync(MaterialWarehouseId, periodEndInclusive, priceDict, cancellationToken),
-            GetWarehouseStockValueAsync(SemiProductsWarehouseId, periodEndInclusive, priceDict, cancellationToken),
-            GetWarehouseStockValueAsync(ProductsWarehouseId, periodEndInclusive, priceDict, cancellationToken)
+            GetWarehouseStockValueAsync(MaterialWarehouseId, periodEndInclusive, cancellationToken),
+            GetWarehouseStockValueAsync(SemiProductsWarehouseId, periodEndInclusive, cancellationToken),
+            GetWarehouseStockValueAsync(ProductsWarehouseId, periodEndInclusive, cancellationToken)
         };
 
         var startValues = await Task.WhenAll(startTasks);
@@ -118,7 +109,6 @@ internal sealed class FinancialOverviewStockValueAdapter : IStockValueService
 
     private async Task<MonthlyStockChange> CalculateMonthlyStockChangeAsync(
         DateTime monthStart,
-        Dictionary<string, decimal> priceDict,
         CancellationToken cancellationToken)
     {
         var monthEnd = monthStart.AddMonths(1).AddDays(-1);
@@ -126,16 +116,16 @@ internal sealed class FinancialOverviewStockValueAdapter : IStockValueService
         // Get stock values at start and end of month for each warehouse
         var startStockTasks = new[]
         {
-            GetWarehouseStockValueAsync(MaterialWarehouseId, monthStart, priceDict, cancellationToken),
-            GetWarehouseStockValueAsync(SemiProductsWarehouseId, monthStart, priceDict, cancellationToken),
-            GetWarehouseStockValueAsync(ProductsWarehouseId, monthStart, priceDict, cancellationToken)
+            GetWarehouseStockValueAsync(MaterialWarehouseId, monthStart, cancellationToken),
+            GetWarehouseStockValueAsync(SemiProductsWarehouseId, monthStart, cancellationToken),
+            GetWarehouseStockValueAsync(ProductsWarehouseId, monthStart, cancellationToken)
         };
 
         var endStockTasks = new[]
         {
-            GetWarehouseStockValueAsync(MaterialWarehouseId, monthEnd, priceDict, cancellationToken),
-            GetWarehouseStockValueAsync(SemiProductsWarehouseId, monthEnd, priceDict, cancellationToken),
-            GetWarehouseStockValueAsync(ProductsWarehouseId, monthEnd, priceDict, cancellationToken)
+            GetWarehouseStockValueAsync(MaterialWarehouseId, monthEnd, cancellationToken),
+            GetWarehouseStockValueAsync(SemiProductsWarehouseId, monthEnd, cancellationToken),
+            GetWarehouseStockValueAsync(ProductsWarehouseId, monthEnd, cancellationToken)
         };
 
         var startValues = await Task.WhenAll(startStockTasks);
@@ -162,34 +152,16 @@ internal sealed class FinancialOverviewStockValueAdapter : IStockValueService
     private async Task<decimal> GetWarehouseStockValueAsync(
         int warehouseId,
         DateTime date,
-        Dictionary<string, decimal> priceDict,
         CancellationToken cancellationToken)
     {
         try
         {
             var stockItems = await _stockClient.StockToDateAsync(date, warehouseId, cancellationToken);
 
-            decimal totalValue = 0;
-            var processedItems = 0;
-            var missingPrices = 0;
+            var totalValue = stockItems.Sum(item => item.Stock * item.Price);
 
-            foreach (var item in stockItems)
-            {
-                if (priceDict.TryGetValue(item.ProductCode, out var purchasePrice))
-                {
-                    totalValue += item.Stock * purchasePrice;
-                    processedItems++;
-                }
-                else
-                {
-                    missingPrices++;
-                    _logger.LogDebug("No purchase price found for product {ProductCode} in warehouse {WarehouseId}",
-                        item.ProductCode, warehouseId);
-                }
-            }
-
-            _logger.LogDebug("Warehouse {WarehouseId} on {Date}: {ProcessedItems} items, {MissingPrices} missing prices, value: {TotalValue:C}",
-                warehouseId, date.ToShortDateString(), processedItems, missingPrices, totalValue);
+            _logger.LogDebug("Warehouse {WarehouseId} on {Date}: {ItemCount} items, value: {TotalValue:C}",
+                warehouseId, date.ToShortDateString(), stockItems.Count, totalValue);
 
             return totalValue;
         }

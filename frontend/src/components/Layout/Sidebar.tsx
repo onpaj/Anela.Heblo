@@ -137,6 +137,12 @@ const Sidebar: React.FC<SidebarProps> = ({
           href: "/analytics/product-margin-summary",
           key: "/analytics/product-margin-summary",
         },
+        {
+          id: "analyza-cen",
+          name: "Analýza cen",
+          href: "/finance/price-analysis",
+          key: "/finance/price-analysis",
+        },
       ],
     },
     {
@@ -181,6 +187,10 @@ const Sidebar: React.FC<SidebarProps> = ({
       type: "section" as const,
       items: [
         { id: "marketing-calendar", name: "Kalendář", href: "/marketing/calendar", key: "/marketing/calendar" },
+        { id: "marketing-performance", name: "Analýzy", href: "/marketing/performance", key: "/marketing/performance" },
+        { id: "marketing-ads-proposals", name: "Návrhy reklam", href: "/marketing/ads/proposals", key: "/marketing/ads/proposals" },
+        { id: "marketing-ads-activity", name: "Aktivita reklam", href: "/marketing/ads/activity", key: "/marketing/ads/activity" },
+        { id: "marketing-ads-settings", name: "Nastavení reklam", href: "/marketing/ads/settings", key: "/marketing/ads/settings" },
         { id: "photobank", name: "Fotobanka", href: "/marketing/photobank", key: "/marketing/photobank" },
         { id: "leaflet-generator", name: "Generátor letáků", href: "/leaflet-generator", key: "/leaflet-generator" },
         { id: "articles", name: "Generátor článků", href: "/articles", key: "/articles" },

@@ -273,6 +273,9 @@ public class DownloadFromUrlHandlerTests
         Assert.Equal(ErrorCodes.FileDownloadFailed, result.ErrorCode);
         Assert.Equal("retry-exhausted", result.Params!["cause"]);
         Assert.DoesNotContain("token=secret", result.Params["fileUrl"]);
+        Assert.Null(result.BlobUrl);
+        Assert.Null(result.BlobName);
+        Assert.Null(result.ContainerName);
     }
 
     [Fact]
@@ -312,6 +315,9 @@ public class DownloadFromUrlHandlerTests
         Assert.False(result.Success);
         Assert.Equal("http-status", result.Params!["cause"]);
         Assert.Equal("1", result.Params["attemptCount"]);
+        Assert.Null(result.BlobUrl);
+        Assert.Null(result.BlobName);
+        Assert.Null(result.ContainerName);
     }
 
     [Fact]
@@ -340,6 +346,9 @@ public class DownloadFromUrlHandlerTests
         // Assert
         Assert.False(result.Success);
         Assert.Equal("timeout", result.Params!["cause"]);
+        Assert.Null(result.BlobUrl);
+        Assert.Null(result.BlobName);
+        Assert.Null(result.ContainerName);
     }
 
     [Fact]
@@ -447,6 +456,9 @@ public class DownloadFromUrlHandlerTests
         Assert.False(result.Success);
         Assert.Equal(ErrorCodes.FileDownloadFailed, result.ErrorCode);
         Assert.Equal("retry-exhausted", result.Params!["cause"]);
+        Assert.Null(result.BlobUrl);
+        Assert.Null(result.BlobName);
+        Assert.Null(result.ContainerName);
     }
 
     // ---------------------------------------------------------------------------

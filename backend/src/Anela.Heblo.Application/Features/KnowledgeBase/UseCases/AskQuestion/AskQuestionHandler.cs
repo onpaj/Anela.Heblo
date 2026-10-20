@@ -91,6 +91,7 @@ public class AskQuestionHandler : IRequestHandler<AskQuestionRequest, AskQuestio
         var answer = response.Text ?? string.Empty;
 
         _recorder.RecordInteraction(RagFeature.KnowledgeBase, request.Question, systemPrompt, answer);
+        _recorder.RecordRecommendedProducts(ReadRecommendedCodes(response));
 
         return new AskQuestionResponse
         {
@@ -105,4 +106,10 @@ public class AskQuestionHandler : IRequestHandler<AskQuestionRequest, AskQuestio
             }).ToList()
         };
     }
+
+    private static IReadOnlyList<string> ReadRecommendedCodes(ChatResponse response) =>
+        response.AdditionalProperties?.TryGetValue(PostAnswerEnrichmentMiddleware.RecommendedProductCodesKey, out var value) == true
+        && value is IReadOnlyList<string> codes
+            ? codes
+            : [];
 }

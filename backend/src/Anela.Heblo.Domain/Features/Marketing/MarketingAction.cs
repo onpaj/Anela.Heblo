@@ -24,6 +24,8 @@ namespace Anela.Heblo.Domain.Features.Marketing
 
         public DateTime? EndDate { get; private set; }
 
+        public bool IsAllDay { get; private set; }
+
         [Required]
         public DateTime CreatedAt { get; private set; }
 
@@ -73,6 +75,7 @@ namespace Anela.Heblo.Domain.Features.Marketing
             MarketingActionType actionType,
             DateTime startDate,
             DateTime? endDate,
+            bool isAllDay,
             string createdByUserId,
             string? createdByUsername,
             DateTime utcNow)
@@ -82,6 +85,7 @@ namespace Anela.Heblo.Domain.Features.Marketing
             ActionType = actionType;
             StartDate = startDate;
             EndDate = endDate;
+            IsAllDay = isAllDay;
             CreatedAt = utcNow;
             ModifiedAt = utcNow;
             CreatedByUserId = createdByUserId;
@@ -243,6 +247,21 @@ namespace Anela.Heblo.Domain.Features.Marketing
             OutlookSyncError = null;
         }
 
+        /// <summary>
+        /// The midnight-to-midnight rule this codebase has always used to guess
+        /// all-day-ness from dates alone, when no more authoritative source (like
+        /// Graph's own isAllDay flag) is available — i.e. for actions created or
+        /// edited directly in Heblo rather than imported from Outlook.
+        /// </summary>
+        public static bool ComputeIsAllDay(DateTime startDate, DateTime? endDate) =>
+            endDate is not null
+            && startDate.TimeOfDay == TimeSpan.Zero
+            && endDate.Value.TimeOfDay == TimeSpan.Zero;
+
+        /// <summary>
+        /// Rescheduling changes when an action happens, never what kind of time
+        /// range it spans — IsAllDay is intentionally left untouched here.
+        /// </summary>
         public void Reschedule(
             DateTime startDate,
             DateTime? endDate,
@@ -263,6 +282,7 @@ namespace Anela.Heblo.Domain.Features.Marketing
             MarketingActionType actionType,
             DateTime startDate,
             DateTime? endDate,
+            bool isAllDay,
             string modifiedByUserId,
             string? modifiedByUsername,
             DateTime utcNow)
@@ -272,6 +292,7 @@ namespace Anela.Heblo.Domain.Features.Marketing
             ActionType = actionType;
             StartDate = startDate;
             EndDate = endDate;
+            IsAllDay = isAllDay;
             ModifiedAt = utcNow;
             ModifiedByUserId = modifiedByUserId;
             ModifiedByUsername = modifiedByUsername ?? "Unknown User";

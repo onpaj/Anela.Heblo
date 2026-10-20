@@ -1,4 +1,5 @@
 using Anela.Heblo.Application.Features.DataQuality.Contracts;
+using Anela.Heblo.Application.Features.DataQuality.Services;
 using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Domain.Features.DataQuality;
 using AutoMapper;
@@ -11,12 +12,18 @@ public class GetDqtRunDetailHandler : IRequestHandler<GetDqtRunDetailRequest, Ge
 {
     private readonly IDqtRunRepository _repository;
     private readonly IMapper _mapper;
+    private readonly IEnumerable<IDqtResultShaper> _shapers;
     private readonly ILogger<GetDqtRunDetailHandler> _logger;
 
-    public GetDqtRunDetailHandler(IDqtRunRepository repository, IMapper mapper, ILogger<GetDqtRunDetailHandler> logger)
+    public GetDqtRunDetailHandler(
+        IDqtRunRepository repository,
+        IMapper mapper,
+        IEnumerable<IDqtResultShaper> shapers,
+        ILogger<GetDqtRunDetailHandler> logger)
     {
         _repository = repository;
         _mapper = mapper;
+        _shapers = shapers;
         _logger = logger;
     }
 
@@ -35,31 +42,25 @@ public class GetDqtRunDetailHandler : IRequestHandler<GetDqtRunDetailRequest, Ge
                 };
             }
 
-            if (run.TestType == DqtTestType.IssuedInvoiceComparison)
+            var shaper = _shapers.SingleOrDefault(s => s.CanHandle(run.TestType));
+            if (shaper == null)
             {
                 return new GetDqtRunDetailResponse
                 {
-                    Success = true,
-                    Run = _mapper.Map<DqtRunDto>(run),
-                    Results = _mapper.Map<List<InvoiceDqtResultDto>>(run.Results)
+                    Success = false,
+                    ErrorCode = ErrorCodes.DqtUnsupportedTestType
                 };
             }
 
-            if (run.TestType is DqtTestType.ProductPairing or DqtTestType.StockWriteBackReconciliation or DqtTestType.LotSumVsErpStock or DqtTestType.PriceComparison)
+            var response = new GetDqtRunDetailResponse
             {
-                var (driftItems, driftTotal) = await _repository.GetDriftResultsAsync(
-                    run.Id, request.ResultPage, request.ResultPageSize, cancellationToken);
+                Success = true,
+                Run = _mapper.Map<DqtRunDto>(run)
+            };
 
-                return new GetDqtRunDetailResponse
-                {
-                    Success = true,
-                    Run = _mapper.Map<DqtRunDto>(run),
-                    DriftResults = _mapper.Map<List<DqtDriftResultDto>>(driftItems),
-                    TotalDriftResults = driftTotal
-                };
-            }
+            await shaper.ShapeAsync(run, response, request.ResultPage, request.ResultPageSize, cancellationToken);
 
-            throw new NotSupportedException($"No result-shaping logic registered for DqtTestType {run.TestType}");
+            return response;
         }
         catch (Exception ex)
         {

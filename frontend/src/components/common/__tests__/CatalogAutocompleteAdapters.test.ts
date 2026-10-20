@@ -1,4 +1,7 @@
-import { catalogItemToMaterial } from "../CatalogAutocompleteAdapters";
+import {
+  catalogItemToMaterial,
+  materialDisplayValue,
+} from "../CatalogAutocompleteAdapters";
 import { CatalogItemDto, ProductType } from "../../../api/generated/api-client";
 
 describe("CatalogAutocompleteAdapters", () => {
@@ -154,5 +157,41 @@ describe("CatalogAutocompleteAdapters", () => {
       expect(material.lastPurchasePrice).toBe(123.456789012345);
       expect(typeof material.lastPurchasePrice).toBe("number");
     });
+  });
+});
+describe("product name suffix", () => {
+  it("carries productNameSuffix from the catalog item to the material", () => {
+    const catalogItem = new CatalogItemDto({
+      productCode: "MAT200",
+      productName: "Hydrolát máta peprná BIO",
+      productNameSuffix: "Menthe poivree",
+      type: ProductType.Material,
+    });
+
+    const material = catalogItemToMaterial(catalogItem);
+
+    expect(material.productNameSuffix).toBe("Menthe poivree");
+  });
+
+  it("displays a selected material inline as Name · Suffix", () => {
+    expect(
+      materialDisplayValue({
+        productCode: "MAT200",
+        productName: "Hydrolát máta peprná BIO",
+        productNameSuffix: "Menthe poivree",
+      }),
+    ).toBe("Hydrolát máta peprná BIO · Menthe poivree");
+  });
+
+  it("displays a selected material by name only when it has no suffix", () => {
+    expect(
+      materialDisplayValue({ productCode: "MAT200", productName: "Hydrolát" }),
+    ).toBe("Hydrolát");
+  });
+
+  it("falls back to the product code when the material has no name", () => {
+    expect(
+      materialDisplayValue({ productCode: "MAT200", productNameSuffix: "X" }),
+    ).toBe("MAT200");
   });
 });

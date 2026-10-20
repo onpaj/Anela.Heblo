@@ -1,0 +1,52 @@
+{
+  "feature_id": "feat-4315",
+  "issue_number": 4315,
+  "created_at": "2026-09-26T06:12:55.145882Z",
+  "max_revisions": 3,
+  "phases": {
+    "analyzing": {
+      "status": "completed",
+      "updated_at": "2026-09-26T06:14:58.817583Z"
+    },
+    "architecting": {
+      "status": "completed",
+      "updated_at": "2026-09-26T06:16:17.415443Z"
+    },
+    "designing": {
+      "status": "completed",
+      "updated_at": "2026-09-26T06:16:58.233581Z"
+    },
+    "planning": {
+      "status": "completed",
+      "updated_at": "2026-09-26T06:18:46.692519Z"
+    },
+    "developing": {
+      "status": "in_progress",
+      "updated_at": "2026-09-26T09:21:56.476521Z"
+    },
+    "code-review": {
+      "status": "completed",
+      "updated_at": "2026-09-26T10:22:22.486809Z"
+    }
+  },
+  "tasks": [
+    {
+      "name": "add-mutate-bulk-async-interface",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-09-26T07:20:42.242847Z"
+    },
+    {
+      "name": "implement-mutate-bulk-async",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-09-26T08:51:49.969237Z"
+    },
+    {
+      "name": "refactor-save-user-settings-handler",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-09-26T10:02:00.547344Z"
+    }
+  ]
+}

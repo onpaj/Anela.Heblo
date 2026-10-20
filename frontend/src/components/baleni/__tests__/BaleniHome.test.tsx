@@ -45,8 +45,14 @@ describe('BaleniHome', () => {
     expect(tile).toHaveAttribute('href', '/baleni/statistiky');
   });
 
-  it('renders exactly 3 tiles', () => {
+  it('renders Nastavení štítků tile with correct href', () => {
     renderHome();
-    expect(screen.getAllByTestId(/^baleni-tile-/)).toHaveLength(3);
+    const tile = screen.getByTestId('baleni-tile-nastaveni-stitku');
+    expect(tile).toHaveAttribute('href', '/baleni/nastaveni-stitku');
+  });
+
+  it('renders exactly 4 tiles', () => {
+    renderHome();
+    expect(screen.getAllByTestId(/^baleni-tile-/)).toHaveLength(4);
   });
 });

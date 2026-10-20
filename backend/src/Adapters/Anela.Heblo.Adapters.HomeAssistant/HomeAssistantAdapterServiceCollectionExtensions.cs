@@ -6,6 +6,7 @@ using Anela.Heblo.Domain.Features.Manufacture.Conditions;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Http.Resilience;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Polly;
 
@@ -47,25 +48,34 @@ public static class HomeAssistantAdapterServiceCollectionExtensions
                 new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", settings.AccessToken);
         });
 
-        // Outer: resilience (retry + per-attempt timeout)
+        // Outer: resilience (retry + circuit breaker + per-attempt timeout)
         haClientBuilder.AddResilienceHandler("ha-conditions", (builder, context) =>
         {
             var settings = context.ServiceProvider.GetRequiredService<IOptions<HomeAssistantSettings>>().Value;
 
-            builder
-                .AddRetry(new HttpRetryStrategyOptions
-                {
-                    MaxRetryAttempts = settings.RetryCount,
-                    Delay = TimeSpan.FromMilliseconds(settings.RetryBaseDelayMilliseconds),
-                    BackoffType = DelayBackoffType.Exponential,
-                    UseJitter = true,
-                    MaxDelay = TimeSpan.FromSeconds(settings.RetryMaxDelaySeconds),
-                    ShouldHandle = args => ValueTask.FromResult(
-                        HomeAssistantTransientErrorPredicate.IsTransient(
-                            args.Outcome.Exception,
-                            args.Outcome.Result)),
-                })
-                .AddTimeout(TimeSpan.FromSeconds(settings.RequestTimeoutSeconds));
+            builder.AddRetry(new HttpRetryStrategyOptions
+            {
+                MaxRetryAttempts = settings.RetryCount,
+                Delay = TimeSpan.FromMilliseconds(settings.RetryBaseDelayMilliseconds),
+                BackoffType = DelayBackoffType.Exponential,
+                UseJitter = true,
+                MaxDelay = TimeSpan.FromSeconds(settings.RetryMaxDelaySeconds),
+                ShouldHandle = args => ValueTask.FromResult(
+                    HomeAssistantTransientErrorPredicate.IsTransient(
+                        args.Outcome.Exception,
+                        args.Outcome.Result)),
+            });
+
+            // Between retry (outer) and timeout (inner): per-attempt timeouts count as
+            // failures, and an open circuit (BrokenCircuitException) is not retried.
+            if (settings.CircuitBreakerEnabled)
+            {
+                var logger = context.ServiceProvider.GetRequiredService<ILoggerFactory>()
+                    .CreateLogger("Anela.Heblo.Adapters.HomeAssistant.CircuitBreaker");
+                builder.AddCircuitBreaker(HomeAssistantCircuitBreakerOptionsFactory.Create(settings, logger));
+            }
+
+            builder.AddTimeout(TimeSpan.FromSeconds(settings.RequestTimeoutSeconds));
         });
 
         // Inner: activity tagging runs inside the retry loop so each per-attempt Activity is tagged.

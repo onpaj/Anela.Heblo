@@ -1,3 +1,4 @@
+using System.Text.RegularExpressions;
 using Anela.Heblo.Adapters.FileSystem.Features.ExpeditionList;
 using Xunit;
 
@@ -107,13 +108,24 @@ public class FileSystemTemporaryFileAccessorTests : IDisposable
     {
         var accessor = new FileSystemTemporaryFileAccessor();
         using var throwingStream = new ThrowingStream();
-        var filesBefore = Directory.GetFiles(Path.GetTempPath(), "*.pdf").ToHashSet();
+        // Path.GetTempPath() is shared with other tests/production code that write their own
+        // .pdf files there concurrently (e.g. PickingListBatchProcessor), so scanning the whole
+        // directory for "*.pdf" races with them. Narrow the scan to the exact
+        // "{Guid:N}.pdf" naming FileSystemTemporaryFileAccessor.CreateFromStreamAsync itself
+        // uses, which nothing else in the codebase produces.
+        var guidPdfPattern = new Regex("^[0-9a-f]{32}\\.pdf$", RegexOptions.IgnoreCase);
+        var filesBefore = GuidPdfFiles(guidPdfPattern);
 
         await Assert.ThrowsAsync<IOException>(() => accessor.CreateFromStreamAsync(throwingStream, ".pdf"));
 
-        var filesAfter = Directory.GetFiles(Path.GetTempPath(), "*.pdf").ToHashSet();
+        var filesAfter = GuidPdfFiles(guidPdfPattern);
         Assert.True(filesAfter.SetEquals(filesBefore), "No new .pdf file should remain in the temp directory after a failed CreateFromStreamAsync call.");
     }
+
+    private static HashSet<string> GuidPdfFiles(Regex guidPdfPattern)
+        => Directory.GetFiles(Path.GetTempPath(), "*.pdf")
+            .Where(f => guidPdfPattern.IsMatch(Path.GetFileName(f)))
+            .ToHashSet();
 
     /// <summary>
     /// Test-only stream whose read operations always throw, used to simulate a failure

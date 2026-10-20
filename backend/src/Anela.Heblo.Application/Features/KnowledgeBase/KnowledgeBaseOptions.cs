@@ -10,14 +10,30 @@ public class KnowledgeBaseOptions : RagFeatureOptions
     {
         QueryExpansionPrompt =
             """
-            Jsi asistent kosmetické firmy Anela. Přepiš zákazníkův dotaz do strukturovaného
-            formátu vhodného pro sémantické vyhledávání v databázi zákaznických konverzací.
-            Vypiš POUZE relevantní položky (vynech kategorie bez obsahu):
+            Jsi asistent kosmetické firmy Anela. Zpracuj zákazníkův dotaz a vrať POUZE jeden JSON objekt
+            (bez Markdownu, bez jakéhokoli dalšího textu) přesně v tomto tvaru:
+            {"expanded": "...", "problemTags": ["..."], "productTags": ["..."]}
 
+            "expanded": přepiš dotaz do strukturovaného formátu vhodného pro sémantické vyhledávání v databázi
+            zákaznických konverzací. Uveď POUZE relevantní položky (vynech kategorie bez obsahu), každou na nový řádek:
             Problém: <co zákazník řeší, formuluj jako zákazníkův dotaz>
             Kontext: <typ pleti, stávající rutina, situace>
             Doporučení: <co by mohlo být doporučeno>
             Ingredience: <účinné látky, složky>
+            Zalomení řádků uvnitř hodnoty "expanded" zapiš jako \n.
+
+            "problemTags": kožní či tělesné problémy a cíle péče, které zákazník řeší (např. akné, suchá pleť,
+            otoky nohou). Prázdné pole, pokud jde o provozní dotaz (objednávka, doprava, dostupnost, platba).
+
+            "productTags": pouze produkty, které zákazník v dotazu výslovně jmenuje. Nikdy nepřidávej produkty,
+            které bys sám doporučil. Prázdné pole, pokud žádný nejmenuje.
+
+            Pravidla pro štítky: krátká podstatná jména nebo spojení, malými písmeny, v 1. pádě jednotného čísla
+            („růžovka", ne „růžovku"), nejvýše 5 v každém poli. Pokud se hodí některý z existujících štítků, použij
+            ho přesně v jeho znění; nový vytvoř jen tehdy, když žádný existující nesedí.
+
+            Existující štítky:
+            {EXISTING_TAGS}
 
             Dotaz:
             """;

@@ -126,6 +126,8 @@ const resources = {
         ManufacturedInventoryItemNotFound: "Položka skladu výroby nenalezena (ID: {id})",
         ManufacturedInventoryInsufficientStock: "Nedostatečné zásoby ve skladu výroby. Dostupné: {available}",
         ManufactureOrderNotCompleted: "Zakázka není dokončena",
+        ManufactureInsufficientMaterialStock:
+          "Výroba nebyla dokončena a ve Flexi se nic neodepsalo. {detail}",
 
         // Catalog module errors
         CatalogItemNotFound: "Položka katalogu nenalezena (ID: {id})",
@@ -175,6 +177,7 @@ const resources = {
         ProductNotFoundForAnalysis:
           "Produkt {{productId}} nebyl nalezen pro analýzu",
         InvalidReportPeriod: "Neplatné období sestavy: {{period}}",
+        InvalidTimeWindow: "Neplatné časové okno: {{timeWindow}}",
 
         // Journal module errors
         JournalEntryNotFound: "Záznam z deníku nebyl nalezen (ID: {{entryId}})",
@@ -232,6 +235,12 @@ const resources = {
         UnauthorizedMarketingAccess: "Nemáte oprávnění k této marketingové akci",
         MarketingCalendarAccessDenied: "Nemáte oprávnění zapisovat do marketingového kalendáře. Musíte být členem marketingové skupiny.",
         MarketingCalendarSyncFailed: "Nepodařilo se kontaktovat Outlook kalendář. Zkuste to prosím znovu.",
+
+        // Marketing Performance module errors
+        MarketingPerformanceInvalidMonthRange: "Neplatné období: zadejte měsíce ve formátu RRRR-MM, počáteční měsíc nesmí být po koncovém a období nesmí být v budoucnosti.",
+        MarketingPerformanceRangeTooLarge: "Období pro přepočet je příliš dlouhé (maximum {maxMonths} měsíců).",
+        MarketingPerformanceRecomputeAlreadyRunning: "Přepočet výkonu reklamy už běží. Počkejte na jeho dokončení.",
+        MarketingPerformanceEnqueueFailed: "Přepočet se nepodařilo zařadit do fronty. Zkuste to prosím znovu.",
 
         // Photobank module errors
         PhotoNotFound: "Fotka nebyla nalezena",
@@ -296,6 +305,8 @@ const resources = {
         ShipmentCreationFailed: "Vytvoření zásilky se nezdařilo.",
         ShipmentLabelNotReady: "Štítek zásilky ještě není připraven.",
         ShipmentOrderWeightUnavailable: "Hmotnost objednávky není dostupná.",
+        ShipmentValidationFailed:
+          "Adresu příjemce nelze použít pro vytvoření zásilky (chybí povinné údaje) — opravte ji v Shoptetu.",
 
         // Packaging module errors
         OrderNotInPackingState: "Objednávka není ve stavu Balí se — zásilku nelze vytvořit.",
@@ -351,6 +362,39 @@ const resources = {
         ProductPriceShoptetWriteFailed: "Zápis ceny do Shoptetu selhal, cena nebyla nikde změněna",
         ProductPriceFlexiWriteFailed: "Cena byla změněna v Shoptetu, ale zápis do Flexi selhal — ceny se nyní liší",
         ProductPriceErpReadFailed: "ERP Flexi se nepodařilo načíst; cena nebyla nikde změněna",
+        // Pricing simulator module errors (38XX)
+        PricingInvalidPrice: "Cena musí být větší než nula",
+        PricingNegativeMaterialCost: "Marže M0 je vyšší než cena — materiálové náklady by byly záporné",
+        PricingNegativeManufacturingCost: "Marže M1 je vyšší než M0 — výrobní náklady by byly záporné",
+        PricingNegativeQuantity: "Množství nesmí být záporné",
+        PricingScenarioNotFound: "Scénář nebyl nalezen",
+        PricingScenarioNameConflict: "Scénář s tímto názvem už existuje",
+        PricingProductNotInBaseline:
+          "Produkt už v aktuální analýze není, úpravu nelze použít — načtěte analýzu znovu",
+
+        // Reporting module errors (39XX)
+        ReportingDatasetNotFound: "Datová sada nebyla nalezena",
+        ReportingInvalidQuery: "Neplatný dotaz na datovou sadu",
+        ReportingQueryTimeout: "Dotaz trval příliš dlouho, zužte filtr",
+
+        // Marketing Ads — proposal & approval layer (40XX)
+        MarketingAdsProposalNotFound: "Návrh změny reklamy nebyl nalezen.",
+        MarketingAdsProposalVersionMismatch: "Návrh byl mezitím upraven. Načtěte aktuální verzi a rozhodněte znovu.",
+        MarketingAdsProposalNotPending: "Návrh už nečeká na schválení.",
+        MarketingAdsProposalExpired: "Platnost návrhu vypršela. Požádejte o nový návrh.",
+        MarketingAdsApprovalChannelDenied: "Z tohoto přístupu nelze návrhy schvalovat, zamítat ani měnit nastavení.",
+        MarketingAdsLimitsDenied: "Návrh překračuje pevné limity a nelze ho schválit.",
+        MarketingAdsNeedsWebApproval: "Tento návrh lze schválit jen ve webové aplikaci Heblo.",
+        MarketingAdsAlreadyApprovedByPrincipal: "Tuto verzi návrhu už jste schválili. Druhé schválení musí udělat jiná osoba.",
+        MarketingAdsInvalidProposal: "Návrh je neplatný.",
+        MarketingAdsNotRevertible: "Návrh nelze vrátit, protože nebyl proveden.",
+        MarketingAdsRevertFailed: "Vrácení změn se nepodařilo u všech akcí. Zkontrolujte historii návrhu.",
+        MarketingAdsAgentRunNotFound: "Běh agenta nebyl nalezen.",
+        MarketingAdsInvalidSetting: "Neplatné nastavení.",
+        MarketingAdsConcurrentChange: "Návrh mezitím změnil někdo jiný. Načtěte ho znovu.",
+        MarketingAdsNoExecutor: "Pro tuto platformu není k dispozici vykonavatel akcí.",
+        MarketingAdsNotProposalOwner: "Návrh může upravit jen jeho autor.",
+        MarketingAdsInvalidAgentRun: "Běh agenta nelze takto ukončit.",
 
         // External Service errors
         ExternalServiceError: "Chyba externí služby",
@@ -462,6 +506,7 @@ const resources = {
         ProductNotFoundForAnalysis:
           "Product {{productId}} not found for analysis",
         InvalidReportPeriod: "Invalid report period: {{period}}",
+        InvalidTimeWindow: "Invalid time window: {{timeWindow}}",
 
         // Journal module errors
         JournalEntryNotFound: "Journal entry not found (ID: {{entryId}})",

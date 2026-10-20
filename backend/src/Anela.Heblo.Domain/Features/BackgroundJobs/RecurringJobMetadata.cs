@@ -21,6 +21,11 @@ public class RecurringJobMetadata
     public required string Description { get; init; }
 
     /// <summary>
+    /// Functional grouping used to organise jobs in the administration UI
+    /// </summary>
+    public required RecurringJobCategory Category { get; init; }
+
+    /// <summary>
     /// Cron expression for scheduling (e.g., "0 2 * * *")
     /// </summary>
     public required string CronExpression { get; init; }

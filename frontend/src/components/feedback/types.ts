@@ -18,6 +18,7 @@ export interface FeedbackRow {
   precisionScore?: number | null;
   styleScore?: number | null;
   hasFeedback: boolean;
+  tags?: string[];
 }
 
 export interface FeedbackDetail extends FeedbackRow {
@@ -46,3 +47,12 @@ export const SORT_COLUMNS = [
   { value: 'PrecisionScore', label: 'Přesnost' },
   { value: 'StyleScore', label: 'Styl' },
 ] as const;
+
+export interface KbFeedbackParams extends GenericFeedbackParams {
+  /** Inclusive first day, yyyy-MM-dd (Europe/Prague). */
+  dateFrom?: string;
+  /** Inclusive last day, yyyy-MM-dd (Europe/Prague). */
+  dateTo?: string;
+  problemTag?: string;
+  productTag?: string;
+}

@@ -52,6 +52,7 @@ namespace Anela.Heblo.Application.Features.Marketing.UseCases.CreateMarketingAct
                 actionType: request.ActionType,
                 startDate: request.StartDate,
                 endDate: request.EndDate,
+                isAllDay: MarketingAction.ComputeIsAllDay(request.StartDate, request.EndDate),
                 createdByUserId: currentUser.Id,
                 createdByUsername: currentUser.Name,
                 utcNow: now);

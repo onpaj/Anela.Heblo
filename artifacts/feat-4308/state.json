@@ -1,0 +1,52 @@
+{
+  "feature_id": "feat-4308",
+  "issue_number": 4308,
+  "created_at": "2026-09-25T06:12:53.971299Z",
+  "max_revisions": 3,
+  "phases": {
+    "analyzing": {
+      "status": "completed",
+      "updated_at": "2026-09-25T06:13:58.122995Z"
+    },
+    "architecting": {
+      "status": "completed",
+      "updated_at": "2026-09-25T06:15:41.397405Z"
+    },
+    "designing": {
+      "status": "completed",
+      "updated_at": "2026-09-25T06:16:11.543840Z"
+    },
+    "planning": {
+      "status": "completed",
+      "updated_at": "2026-09-25T06:17:31.751809Z"
+    },
+    "developing": {
+      "status": "in_progress",
+      "updated_at": "2026-09-25T10:19:16.462241Z"
+    },
+    "code-review": {
+      "status": "completed",
+      "updated_at": "2026-09-25T11:19:13.565770Z"
+    }
+  },
+  "tasks": [
+    {
+      "name": "remove-backend-timestamp-field",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-09-25T08:19:01.522675Z"
+    },
+    {
+      "name": "regenerate-frontend-client",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-09-25T09:28:28.026500Z"
+    },
+    {
+      "name": "simplify-frontend-timestamp-usage",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-09-25T10:29:19.344929Z"
+    }
+  ]
+}

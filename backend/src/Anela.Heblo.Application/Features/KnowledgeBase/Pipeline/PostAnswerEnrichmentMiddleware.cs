@@ -13,6 +13,13 @@ namespace Anela.Heblo.Application.Features.KnowledgeBase.Pipeline;
 /// </summary>
 public class PostAnswerEnrichmentMiddleware : DelegatingChatClient
 {
+    /// <summary>
+    /// <see cref="ChatResponse.AdditionalProperties"/> key under which the catalog codes this middleware
+    /// resolved are exposed (string[], known codes only, de-duplicated, first-appearance order). The
+    /// middleware is a singleton and cannot reach the scoped interaction recorder, so the caller reads this.
+    /// </summary>
+    public const string RecommendedProductCodesKey = "anela.recommendedProductCodes";
+
     // [Name](CODE) — the instructed format. The code group only matches an all-caps/digit token,
     // so real Markdown URLs (lowercase, ':', '/') are never mistaken for a product code.
     private static readonly Regex LinkedProductPattern =
@@ -84,7 +91,36 @@ public class PostAnswerEnrichmentMiddleware : DelegatingChatClient
             CreatedAt = response.CreatedAt,
             FinishReason = response.FinishReason,
             Usage = response.Usage,
-            AdditionalProperties = response.AdditionalProperties,
+            AdditionalProperties = WithRecommendedCodes(response.AdditionalProperties, ResolveCodesInTextOrder(rawText, lookup)),
         };
+    }
+
+    // Known codes ordered by earliest position in the ORIGINAL text (the two rewrite passes run
+    // sequentially, so their own order is not text order). A code inside a linked match is also a
+    // bare match at a later index; the earliest position wins.
+    private static IReadOnlyList<string> ResolveCodesInTextOrder(
+        string rawText,
+        IReadOnlyDictionary<string, ProductEnrichmentEntry> lookup) =>
+        LinkedProductPattern.Matches(rawText)
+            .Concat(BareCodePattern.Matches(rawText))
+            .Where(m => lookup.ContainsKey(m.Groups["code"].Value))
+            .OrderBy(m => m.Index)
+            .Select(m => m.Groups["code"].Value)
+            .ToList();
+
+    // Copies rather than mutates: the inner response's dictionary may be shared with other consumers.
+    private static AdditionalPropertiesDictionary WithRecommendedCodes(
+        AdditionalPropertiesDictionary? source,
+        IReadOnlyList<string> resolvedCodes)
+    {
+        var copy = new AdditionalPropertiesDictionary();
+        if (source is not null)
+        {
+            foreach (var (key, value) in source)
+                copy[key] = value;
+        }
+
+        copy[RecommendedProductCodesKey] = resolvedCodes.Distinct(StringComparer.Ordinal).ToArray();
+        return copy;
     }
 }

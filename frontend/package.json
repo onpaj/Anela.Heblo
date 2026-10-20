@@ -44,7 +44,7 @@
     "react-hot-toast": "^2.6.0",
     "react-i18next": "^15.1.1",
     "react-markdown": "^10.1.0",
-    "react-router-dom": "^6.30.6",
+    "react-router-dom": "^7.18.3",
     "react-scripts": "5.0.1",
     "react-select": "^5.10.2",
     "recharts": "^3.2.1",
@@ -79,6 +79,9 @@
     ]
   },
   "jest": {
+    "moduleNameMapper": {
+      "^react-router/dom$": "<rootDir>/node_modules/react-router/dist/development/dom-export.js"
+    },
     "transformIgnorePatterns": [
       "node_modules/(?!(date-fns|mind-elixir)/)"
     ]

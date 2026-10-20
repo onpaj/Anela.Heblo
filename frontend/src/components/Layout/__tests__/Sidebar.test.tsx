@@ -72,6 +72,29 @@ describe('Sidebar navigation', () => {
     expect(screen.getByText('Administrace')).toBeInTheDocument();
   });
 
+  it('shows ad proposals and activity, but not ad settings, to a marketing.ads.read user', () => {
+    // Arrange
+    mockPermissions = ['marketing.ads.read'];
+
+    // Act
+    renderSidebar();
+    fireEvent.click(screen.getByText('Marketing'));
+
+    // Assert
+    expect(screen.getByText('Návrhy reklam')).toBeInTheDocument();
+    expect(screen.getByText('Aktivita reklam')).toBeInTheDocument();
+    expect(screen.queryByText('Nastavení reklam')).not.toBeInTheDocument();
+  });
+
+  it('shows ad settings only with marketing.ad_approvals.admin', () => {
+    mockPermissions = ['marketing.ads.read', 'marketing.ad_approvals.admin'];
+
+    renderSidebar();
+    fireEvent.click(screen.getByText('Marketing'));
+
+    expect(screen.getByText('Nastavení reklam')).toBeInTheDocument();
+  });
+
   it('Anela section appears before Administrace when both are visible', () => {
     mockPermissions = ['anela.meetings.read', 'admin.administration.read'];
     renderSidebar();

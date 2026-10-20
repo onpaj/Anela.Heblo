@@ -1,3 +1,4 @@
+using Anela.Heblo.Application.Features.Manufacture.Contracts;
 using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Domain.Features.Manufacture;
 using MediatR;
@@ -9,17 +10,20 @@ public class GetManufactureProtocolHandler : IRequestHandler<GetManufactureProto
     private readonly IManufactureOrderRepository _repository;
     private readonly IManufactureClient _manufactureClient;
     private readonly IManufactureProtocolRenderer _renderer;
+    private readonly IManufactureCatalogSource _catalogSource;
     private readonly TimeProvider _timeProvider;
 
     public GetManufactureProtocolHandler(
         IManufactureOrderRepository repository,
         IManufactureClient manufactureClient,
         IManufactureProtocolRenderer renderer,
+        IManufactureCatalogSource catalogSource,
         TimeProvider timeProvider)
     {
         _repository = repository;
         _manufactureClient = manufactureClient;
         _renderer = renderer;
+        _catalogSource = catalogSource;
         _timeProvider = timeProvider;
     }
 
@@ -43,6 +47,7 @@ public class GetManufactureProtocolHandler : IRequestHandler<GetManufactureProto
         }
 
         var erpDocuments = await BuildErpDocumentsAsync(order, cancellationToken);
+        var productNameSuffixes = await GetProductNameSuffixesAsync(erpDocuments, cancellationToken);
 
         var data = new ManufactureProtocolData
         {
@@ -73,6 +78,7 @@ public class GetManufactureProtocolHandler : IRequestHandler<GetManufactureProto
                 ExpirationDate = p.ExpirationDate,
             }).ToList(),
             ErpDocuments = erpDocuments,
+            ProductNameSuffixes = productNameSuffixes,
             Notes = order.Notes.Select(n => new ManufactureProtocolNote
             {
                 CreatedAt = n.CreatedAt,
@@ -102,6 +108,27 @@ public class GetManufactureProtocolHandler : IRequestHandler<GetManufactureProto
             PdfBytes = pdfBytes,
             FileName = $"ManufactureProtocol-{order.OrderNumber}.pdf",
         };
+    }
+
+    // ERP document lines carry Flexi's own item name, so the suffix (cenik.popisC) comes from the catalog.
+    private async Task<IReadOnlyDictionary<string, string>> GetProductNameSuffixesAsync(
+        IEnumerable<ManufactureProtocolErpDocument> erpDocuments,
+        CancellationToken cancellationToken)
+    {
+        var codes = erpDocuments
+            .SelectMany(d => d.Items)
+            .Select(i => i.ProductCode?.Trim())
+            .OfType<string>()
+            .Where(c => c.Length > 0)
+            .Distinct()
+            .ToList();
+
+        if (codes.Count == 0)
+        {
+            return new Dictionary<string, string>();
+        }
+
+        return await _catalogSource.GetProductNameSuffixesAsync(codes, cancellationToken);
     }
 
     private async Task<List<ManufactureProtocolErpDocument>> BuildErpDocumentsAsync(

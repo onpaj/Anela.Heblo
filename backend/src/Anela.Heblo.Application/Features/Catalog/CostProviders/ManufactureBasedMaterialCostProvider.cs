@@ -13,7 +13,8 @@ namespace Anela.Heblo.Application.Features.Catalog.CostProviders;
 /// <summary>
 /// Material cost source (M0) - calculates costs based on product type.
 /// For Set/Product/SemiProduct: uses manufacture history with temporal carry-forward.
-/// For other types: uses PurchasePriceWithVat.
+/// For other types (and manufactured types with no manufacture history): uses the ERP purchase price
+/// excl. VAT, matching the selling price excl. VAT the margin is computed against.
 /// </summary>
 public class ManufactureBasedMaterialCostProvider : IMaterialCostProvider
 {
@@ -166,7 +167,7 @@ public class ManufactureBasedMaterialCostProvider : IMaterialCostProvider
         }
         else
         {
-            return CalculateFromPurchasePriceWithVat(product, dateFrom, dateTo);
+            return CalculateFromPurchasePrice(product, dateFrom, dateTo);
         }
     }
 
@@ -187,7 +188,7 @@ public class ManufactureBasedMaterialCostProvider : IMaterialCostProvider
         // If no manufacture history, fallback to purchase price
         if (product.ManufactureHistory == null || !product.ManufactureHistory.Any())
         {
-            return CalculateFromPurchasePriceWithVat(product, dateFrom, dateTo);
+            return CalculateFromPurchasePrice(product, dateFrom, dateTo);
         }
 
         // Group manufacture records by month and calculate weighted average
@@ -205,7 +206,7 @@ public class ManufactureBasedMaterialCostProvider : IMaterialCostProvider
 
         if (!monthlyManufactures.Any())
         {
-            return CalculateFromPurchasePriceWithVat(product, dateFrom, dateTo);
+            return CalculateFromPurchasePrice(product, dateFrom, dateTo);
         }
 
         // Build a dictionary of month -> price for easy lookup
@@ -255,19 +256,19 @@ public class ManufactureBasedMaterialCostProvider : IMaterialCostProvider
         return costs;
     }
 
-    private List<MonthlyCost> CalculateFromPurchasePriceWithVat(
+    private List<MonthlyCost> CalculateFromPurchasePrice(
         CatalogAggregate product,
         DateOnly dateFrom,
         DateOnly dateTo)
     {
         var costs = new List<MonthlyCost>();
 
-        if (!product.PurchasePriceWithVat.HasValue || product.PurchasePriceWithVat.Value <= 0)
+        var purchasePrice = product.ErpPrice?.PurchasePrice ?? 0;
+        if (purchasePrice <= 0)
         {
             return costs; // No purchase price - return empty
         }
 
-        var purchasePrice = product.PurchasePriceWithVat.Value;
         var currentMonth = new DateTime(dateFrom.Year, dateFrom.Month, 1);
         var endMonth = new DateTime(dateTo.Year, dateTo.Month, 1);
 

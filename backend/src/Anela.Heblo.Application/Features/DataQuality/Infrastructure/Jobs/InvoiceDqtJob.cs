@@ -16,6 +16,7 @@ public class InvoiceDqtJob : IRecurringJob
     public RecurringJobMetadata Metadata { get; } = new()
     {
         JobName = "daily-invoice-dqt",
+        Category = RecurringJobCategory.DataQuality,
         DisplayName = "Daily Invoice Data Quality Test",
         Description = "Compares issued invoices between Shoptet and ABRA Flexi for the previous day",
         CronExpression = "0 5 * * *", // Daily at 5:00 AM

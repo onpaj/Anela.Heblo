@@ -30,6 +30,24 @@ public class CatalogAggregate : Entity<string>
 
     public string ProductNameNormalized => _productNameNormalized;
 
+    private string? _productNameSuffix;
+    private string _productNameSuffixNormalized = string.Empty;
+
+    /// <summary>
+    /// Name complement from ABRA Flexi cenik.popisC ("Popis FR"), e.g. the trade name of a raw material.
+    /// </summary>
+    public string? ProductNameSuffix
+    {
+        get => _productNameSuffix;
+        set
+        {
+            _productNameSuffix = string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+            _productNameSuffixNormalized = _productNameSuffix?.NormalizeForSearch() ?? string.Empty;
+        }
+    }
+
+    public string ProductNameSuffixNormalized => _productNameSuffixNormalized;
+
     public int ErpId { get; set; }
 
     public ProductType Type { get; set; } = Catalog.ProductType.UNDEFINED;

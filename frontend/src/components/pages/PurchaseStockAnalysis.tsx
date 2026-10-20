@@ -37,6 +37,7 @@ import { TimePeriod, resolveTimePeriod } from "../../utils/timePeriod";
 import { usePurchasePlanningList } from "../../contexts/PurchasePlanningListContext";
 import PurchasePlanningListPanel from "../common/PurchasePlanningListPanel";
 import { useScreenView } from "../../telemetry/useScreenView";
+import ProductNameSuffix from "../common/ProductNameSuffix";
 
 const DEFAULT_MATERIAL_CATEGORY = MaterialCategoryFilter.Other;
 
@@ -171,6 +172,7 @@ const PurchaseStockAnalysis: React.FC = () => {
         [
           { header: "Kód produktu", value: (row) => row.productCode },
           { header: "Název produktu", value: (row) => row.productName },
+          { header: "Doplněk názvu", value: (row) => row.productNameSuffix },
           { header: "Typ produktu", value: (row) => row.productType },
           { header: "Dostupný sklad", value: (row) => row.availableStock },
           { header: "Objednané", value: (row) => row.orderedStock },
@@ -349,6 +351,7 @@ const PurchaseStockAnalysis: React.FC = () => {
           )}
           <div className="flex-1 min-w-0">
             <div className="text-sm text-gray-900 dark:text-graphite-text truncate">{item.productName}</div>
+            <ProductNameSuffix suffix={item.productNameSuffix} />
             <div className="text-xs text-gray-500 dark:text-graphite-muted">{item.productCode}</div>
           </div>
         </div>

@@ -21,11 +21,16 @@ public class GetPackagesHandler : IRequestHandler<GetPackagesRequest, GetPackage
             ? _shippingCatalog.GetShippingCodesForCarrier(request.Carrier.Value)
             : null;
 
+        var shippingProviderNames = request.Carrier.HasValue
+            ? _shippingCatalog.GetShippingNamesForCarrier(request.Carrier.Value)
+            : null;
+
         var (items, total) = await _repo.GetPaginatedAsync(
             request.OrderCode,
             request.CustomerName,
             request.PackageNumber,
             shippingProviderCodes,
+            shippingProviderNames,
             request.FromDate,
             request.ToDate,
             request.PageNumber,

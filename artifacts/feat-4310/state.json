@@ -1,0 +1,46 @@
+{
+  "feature_id": "feat-4310",
+  "issue_number": 4310,
+  "created_at": "2026-09-25T08:11:28.242148Z",
+  "max_revisions": 3,
+  "phases": {
+    "analyzing": {
+      "status": "completed",
+      "updated_at": "2026-09-25T08:12:28.213874Z"
+    },
+    "architecting": {
+      "status": "completed",
+      "updated_at": "2026-09-25T08:13:12.762039Z"
+    },
+    "designing": {
+      "status": "completed",
+      "updated_at": "2026-09-25T08:13:36.986710Z"
+    },
+    "planning": {
+      "status": "completed",
+      "updated_at": "2026-09-25T08:14:30.990470Z"
+    },
+    "developing": {
+      "status": "in_progress",
+      "updated_at": "2026-09-25T10:19:41.277863Z"
+    },
+    "code-review": {
+      "status": "completed",
+      "updated_at": "2026-09-25T11:19:36.883260Z"
+    }
+  },
+  "tasks": [
+    {
+      "name": "fix-response-nullability",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-09-25T09:57:29.017820Z"
+    },
+    {
+      "name": "regenerate-api-client",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-09-25T10:29:18.689362Z"
+    }
+  ]
+}
