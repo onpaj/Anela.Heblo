@@ -21,16 +21,16 @@
       "updated_at": "2026-10-20T10:11:43.471386Z"
     },
     "developing": {
-      "status": "pending",
-      "updated_at": null
+      "status": "in_progress",
+      "updated_at": "2026-10-20T10:15:21.224927Z"
     }
   },
   "tasks": [
     {
       "name": "write-manufacture-cost-tests",
-      "status": "pending",
+      "status": "completed",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-10-20T10:49:21.342034Z"
     }
   ]
 }
