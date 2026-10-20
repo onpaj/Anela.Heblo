@@ -95,8 +95,7 @@ export class VersionService {
         version: response.version || "0.0.0",
         environment: response.environment || "unknown",
         useMockAuth: response.useMockAuth || false,
-        timestamp:
-          response.timestamp?.toISOString() || new Date().toISOString(),
+        timestamp: new Date().toISOString(),
       };
     } catch (error) {
       console.error("Failed to check version:", error);

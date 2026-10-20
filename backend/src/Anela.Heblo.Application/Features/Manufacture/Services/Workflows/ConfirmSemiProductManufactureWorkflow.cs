@@ -81,6 +81,15 @@ public class ConfirmSemiProductManufactureWorkflow : IConfirmSemiProductManufact
             // Step 3: Create manufacture via external client
             var submitManufactureResult = await SubmitToErpAsync(orderId, order, cancellationToken);
 
+            // Nothing was written to the ERP — the order must stay where it is until stock is replenished.
+            if (submitManufactureResult.ErrorCode == ErrorCodes.ManufactureInsufficientMaterialStock)
+            {
+                return new ConfirmSemiProductManufactureResult(false,
+                    submitManufactureResult.UserMessage ?? submitManufactureResult.FullError(),
+                    ErrorCodes.ManufactureInsufficientMaterialStock,
+                    submitManufactureResult.Params);
+            }
+
             // Step 4: Change state to SemiProductManufactured
             var result = await UpdateStatusAsync(orderId, actualQuantity, changeReason, submitManufactureResult, cancellationToken);
 

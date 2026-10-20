@@ -1,3 +1,4 @@
+using Anela.Heblo.Application.Features.Manufacture.Contracts;
 using Anela.Heblo.Application.Features.Manufacture.Services;
 using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Domain.Features.Manufacture;
@@ -15,6 +16,7 @@ public class UpdateManufactureOrderStatusHandler : IRequestHandler<UpdateManufac
     private readonly ICurrentUserService _currentUserService;
     private readonly IManufactureInventoryWriteDownService _inventoryWriteDownService;
     private readonly IManufactureConditionsCaptureService _conditionsCaptureService;
+    private readonly IManufactureCatalogSource _catalogSource;
 
     public UpdateManufactureOrderStatusHandler(
         IManufactureOrderRepository repository,
@@ -22,7 +24,8 @@ public class UpdateManufactureOrderStatusHandler : IRequestHandler<UpdateManufac
         ILogger<UpdateManufactureOrderStatusHandler> logger,
         ICurrentUserService currentUserService,
         IManufactureInventoryWriteDownService inventoryWriteDownService,
-        IManufactureConditionsCaptureService conditionsCaptureService)
+        IManufactureConditionsCaptureService conditionsCaptureService,
+        IManufactureCatalogSource catalogSource)
     {
         _repository = repository;
         _timeProvider = timeProvider;
@@ -30,6 +33,7 @@ public class UpdateManufactureOrderStatusHandler : IRequestHandler<UpdateManufac
         _currentUserService = currentUserService;
         _inventoryWriteDownService = inventoryWriteDownService;
         _conditionsCaptureService = conditionsCaptureService;
+        _catalogSource = catalogSource;
     }
 
     public async Task<UpdateManufactureOrderStatusResponse> Handle(UpdateManufactureOrderStatusRequest request, CancellationToken cancellationToken)
@@ -135,6 +139,10 @@ public class UpdateManufactureOrderStatusHandler : IRequestHandler<UpdateManufac
             }
 
             await _repository.UpdateOrderAsync(order, cancellationToken);
+
+            // The state change moves the product in or out of the planned totals the catalog
+            // caches, so refresh them instead of waiting for the scheduled background refresh.
+            await _catalogSource.RefreshPlannedDataSafelyAsync(_logger, order.Id, cancellationToken);
 
             return new UpdateManufactureOrderStatusResponse
             {

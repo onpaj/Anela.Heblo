@@ -2,6 +2,9 @@ using System.Diagnostics.Metrics;
 using Anela.Heblo.Persistence.Analytics;
 using Anela.Heblo.Persistence.Infrastructure.Resilience;
 using FluentAssertions;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
@@ -63,6 +66,49 @@ public class AnalyticsPersistenceModuleTests
         });
 
         await act.Should().ThrowAsync<TimeoutRejectedException>();
+    }
+
+    [Fact]
+    public async Task MigrationsHistoryTable_LivesInTheAnalyticsSchema_NotInPublic()
+    {
+        // AnalyticsDbContext shares its database with the main ApplicationDbContext (ADR-007).
+        // EF Core resolves the migrations-history table's schema from
+        // RelationalOptionsExtension.MigrationsHistoryTableSchema, NOT from the model's
+        // HasDefaultSchema. Left unset it falls back to the connection's default schema, so this
+        // context would stamp its migration ids into public."__EFMigrationsHistory" — the main
+        // context's bookkeeping table. Verified empirically against a scratch database before the
+        // explicit MigrationsHistoryTable call was added.
+        var services = new ServiceCollection();
+        services.AddSingleton<IMeterFactory>(new TestMeterFactory());
+        services.AddSingleton<DbResilienceMetrics>();
+        services.AddLogging();
+        services.AddSingleton<NpgsqlConnectionInterceptor>();
+        services.AddAnalyticsPersistenceServices(
+            "Host=localhost;Database=test;Username=test;Password=test",
+            maxPoolSize: 5);
+
+        await using var provider = services.BuildServiceProvider();
+        using var scope = provider.CreateScope();
+        var context = scope.ServiceProvider.GetRequiredService<AnalyticsDbContext>();
+
+        var createScript = context.GetInfrastructure().GetRequiredService<IHistoryRepository>().GetCreateScript();
+
+        createScript.Should().Contain($"{AnalyticsDbContext.Schema}.\"{AnalyticsDbContext.MigrationsHistoryTableName}\"");
+        createScript.Should().NotContain($"public.\"{AnalyticsDbContext.MigrationsHistoryTableName}\"");
+    }
+
+    [Fact]
+    public void DesignTimeFactory_AlsoPinsTheMigrationsHistoryTableToTheAnalyticsSchema()
+    {
+        // `dotnet ef database update` goes through AnalyticsDbContextFactory, not through
+        // AddAnalyticsPersistenceServices, so the same pin has to exist on both paths — the
+        // migration is applied manually in this project (CLAUDE.md: migrations are not automated).
+        using var context = new AnalyticsDbContextFactory().CreateDbContext([]);
+
+        var createScript = context.GetInfrastructure().GetRequiredService<IHistoryRepository>().GetCreateScript();
+
+        createScript.Should().Contain($"{AnalyticsDbContext.Schema}.\"{AnalyticsDbContext.MigrationsHistoryTableName}\"");
+        createScript.Should().NotContain($"public.\"{AnalyticsDbContext.MigrationsHistoryTableName}\"");
     }
 
     private sealed class TestMeterFactory : IMeterFactory

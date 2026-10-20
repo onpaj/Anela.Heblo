@@ -1,3 +1,4 @@
+using Anela.Heblo.Application.Features.KnowledgeBase.Services;
 using Anela.Heblo.Application.Shared.Rag;
 using Anela.Heblo.Application.Shared.Users;
 using Anela.Heblo.Domain.Features.Rag;
@@ -29,10 +30,17 @@ public class GetFeedbackListHandler : IRequestHandler<GetFeedbackListRequest, Ge
         var pageSize = AllowedPageSizes.Contains(request.PageSize) ? request.PageSize : 20;
         var sortBy = AllowedSortColumns.Contains(request.SortBy) ? request.SortBy : "CreatedAt";
 
-        var (logs, totalCount) = await _repository.GetFeedbackLogsPagedAsync(
+        var filter = new RagFeedbackLogFilter(
             RagFeature.KnowledgeBase,
             request.HasFeedback,
             request.UserId,
+            PragueDateRange.StartOfDay(request.DateFrom),
+            PragueDateRange.EndExclusive(request.DateTo),
+            NormalizeTagFilter(request.ProblemTag),
+            NormalizeTagFilter(request.ProductTag));
+
+        var (logs, totalCount) = await _repository.GetFeedbackLogsPagedAsync(
+            filter,
             sortBy,
             request.SortDescending,
             pageNumber,
@@ -56,4 +64,10 @@ public class GetFeedbackListHandler : IRequestHandler<GetFeedbackListRequest, Ge
             Stats = RagFeedbackListMapper.ToStats(stats),
         };
     }
+
+    // Same normalisation as stored tags, but an over-long tag is kept rather than dropped:
+    // it can never match a stored tag, so the filter yields no rows instead of silently disappearing.
+    private static string? NormalizeTagFilter(string? tag) =>
+        RagExpansionParser.NormalizeTag(tag)
+        ?? (string.IsNullOrWhiteSpace(tag) ? null : tag.Trim().ToLowerInvariant());
 }

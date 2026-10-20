@@ -4,6 +4,7 @@ using Anela.Heblo.Application.Features.KnowledgeBase.UseCases.GetChunkDetail;
 using Anela.Heblo.Application.Features.KnowledgeBase.UseCases.GetDocumentContentTypes;
 using Anela.Heblo.Application.Features.KnowledgeBase.UseCases.GetDocuments;
 using Anela.Heblo.Application.Features.KnowledgeBase.UseCases.GetFeedbackList;
+using Anela.Heblo.Application.Features.KnowledgeBase.UseCases.GetQuestionTagStats;
 using Anela.Heblo.Application.Features.KnowledgeBase.UseCases.SearchDocuments;
 using Anela.Heblo.Application.Features.KnowledgeBase.UseCases.SubmitFeedback;
 using Anela.Heblo.Application.Features.KnowledgeBase.UseCases.UploadDocument;
@@ -99,6 +100,10 @@ public class KnowledgeBaseController : BaseApiController
         [FromQuery] bool sortDescending = true,
         [FromQuery] bool? hasFeedback = null,
         [FromQuery] string? userId = null,
+        [FromQuery] DateOnly? dateFrom = null,
+        [FromQuery] DateOnly? dateTo = null,
+        [FromQuery] string? problemTag = null,
+        [FromQuery] string? productTag = null,
         CancellationToken ct = default)
     {
         var result = await _mediator.Send(new GetFeedbackListRequest
@@ -109,6 +114,25 @@ public class KnowledgeBaseController : BaseApiController
             SortDescending = sortDescending,
             HasFeedback = hasFeedback,
             UserId = userId,
+            DateFrom = dateFrom,
+            DateTo = dateTo,
+            ProblemTag = problemTag,
+            ProductTag = productTag,
+        }, ct);
+        return HandleResponse(result);
+    }
+
+    [HttpGet("feedback/tag-stats")]
+    [FeatureAuthorize(Feature.Customer_KnowledgeBase, AccessLevel.Write)]
+    public async Task<ActionResult<GetQuestionTagStatsResponse>> GetQuestionTagStats(
+        [FromQuery] DateOnly? dateFrom = null,
+        [FromQuery] DateOnly? dateTo = null,
+        CancellationToken ct = default)
+    {
+        var result = await _mediator.Send(new GetQuestionTagStatsRequest
+        {
+            DateFrom = dateFrom,
+            DateTo = dateTo,
         }, ct);
         return HandleResponse(result);
     }

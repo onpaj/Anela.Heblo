@@ -18,6 +18,7 @@ namespace Anela.Heblo.Tests.Domain.Marketing
                 actionType: MarketingActionType.Newsletter,
                 startDate: UtcNow,
                 endDate: null,
+                isAllDay: false,
                 createdByUserId: "user-1",
                 createdByUsername: "alice",
                 utcNow: UtcNow);
@@ -34,6 +35,7 @@ namespace Anela.Heblo.Tests.Domain.Marketing
                 actionType: MarketingActionType.Newsletter,
                 startDate: UtcNow,
                 endDate: null,
+                isAllDay: false,
                 createdByUserId: "user-1",
                 createdByUsername: "alice",
                 utcNow: UtcNow);
@@ -50,6 +52,7 @@ namespace Anela.Heblo.Tests.Domain.Marketing
                 actionType: MarketingActionType.Newsletter,
                 startDate: UtcNow,
                 endDate: null,
+                isAllDay: false,
                 createdByUserId: "user-1",
                 createdByUsername: null,
                 utcNow: UtcNow);
@@ -66,6 +69,7 @@ namespace Anela.Heblo.Tests.Domain.Marketing
                 actionType: MarketingActionType.Newsletter,
                 startDate: UtcNow,
                 endDate: null,
+                isAllDay: false,
                 createdByUserId: "user-1",
                 createdByUsername: null,
                 utcNow: UtcNow);
@@ -84,6 +88,7 @@ namespace Anela.Heblo.Tests.Domain.Marketing
                 actionType: MarketingActionType.Newsletter,
                 startDate: UtcNow,
                 endDate: null,
+                isAllDay: false,
                 createdByUserId: "user-1",
                 createdByUsername: "alice",
                 utcNow: moment);
@@ -104,6 +109,7 @@ namespace Anela.Heblo.Tests.Domain.Marketing
                 actionType: MarketingActionType.PR,
                 startDate: start,
                 endDate: end,
+                isAllDay: false,
                 createdByUserId: "user-42",
                 createdByUsername: "bob",
                 utcNow: UtcNow);
@@ -112,6 +118,38 @@ namespace Anela.Heblo.Tests.Domain.Marketing
             action.StartDate.Should().Be(start);
             action.EndDate.Should().Be(end);
             action.CreatedByUserId.Should().Be("user-42");
+        }
+
+        [Fact]
+        public void Ctor_SetsIsAllDayExactlyAsPassed()
+        {
+            var action = new MarketingAction(
+                title: "Title",
+                description: null,
+                actionType: MarketingActionType.Newsletter,
+                startDate: UtcNow,
+                endDate: null,
+                isAllDay: true,
+                createdByUserId: "user-1",
+                createdByUsername: "alice",
+                utcNow: UtcNow);
+
+            action.IsAllDay.Should().BeTrue();
+        }
+
+        [Theory]
+        [InlineData("2026-09-18T00:00:00", "2026-09-19T00:00:00", true)]   // midnight to midnight
+        [InlineData("2026-09-01T07:00:00", "2026-09-01T08:30:00", false)]  // timed same-day
+        [InlineData("2026-09-18T00:00:00", null, false)]                  // midnight start, no end
+        public void ComputeIsAllDay_MatchesTheMidnightToMidnightRule(
+            string startText, string? endText, bool expected)
+        {
+            var start = DateTime.Parse(startText, null, System.Globalization.DateTimeStyles.RoundtripKind);
+            DateTime? end = endText is null
+                ? null
+                : DateTime.Parse(endText, null, System.Globalization.DateTimeStyles.RoundtripKind);
+
+            MarketingAction.ComputeIsAllDay(start, end).Should().Be(expected);
         }
     }
 }

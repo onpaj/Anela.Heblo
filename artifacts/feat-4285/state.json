@@ -1,0 +1,70 @@
+{
+  "feature_id": "feat-4285",
+  "issue_number": 4285,
+  "created_at": "2026-09-24T05:13:46.651500Z",
+  "max_revisions": 3,
+  "phases": {
+    "analyzing": {
+      "status": "completed",
+      "updated_at": "2026-09-24T05:16:00.026571Z"
+    },
+    "architecting": {
+      "status": "completed",
+      "updated_at": "2026-09-24T05:17:24.583360Z"
+    },
+    "designing": {
+      "status": "completed",
+      "updated_at": "2026-09-24T05:18:08.035464Z"
+    },
+    "planning": {
+      "status": "completed",
+      "updated_at": "2026-09-24T05:23:29.949482Z"
+    },
+    "developing": {
+      "status": "in_progress",
+      "updated_at": "2026-09-24T20:16:43.496726Z"
+    },
+    "code-review": {
+      "status": "completed",
+      "updated_at": "2026-09-24T21:16:55.744227Z"
+    }
+  },
+  "tasks": [
+    {
+      "name": "split-catalog-history-refresh-service",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-09-24T06:58:55.992398Z"
+    },
+    {
+      "name": "split-catalog-stock-refresh-service",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-09-24T07:42:17.169258Z"
+    },
+    {
+      "name": "split-catalog-meta-refresh-service",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-09-24T11:22:03.850557Z"
+    },
+    {
+      "name": "split-catalog-reference-refresh-service",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-09-24T12:37:14.332922Z"
+    },
+    {
+      "name": "wire-catalog-repository-and-module",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-09-24T13:46:45.856095Z"
+    },
+    {
+      "name": "remove-old-refresh-service-and-verify",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-09-24T20:28:53.479545Z"
+    }
+  ]
+}

@@ -4,7 +4,7 @@ namespace Anela.Heblo.Domain.Features.BackgroundJobs;
 
 public class RecurringJobConfiguration : Entity<string>
 {
-    public string JobName { get; private set; }
+    public string JobName => Id;
 
     public string DisplayName { get; private set; }
 
@@ -23,7 +23,6 @@ public class RecurringJobConfiguration : Entity<string>
     // Private constructor for EF Core
     private RecurringJobConfiguration()
     {
-        JobName = string.Empty;
         DisplayName = string.Empty;
         Description = string.Empty;
         CronExpression = string.Empty;
@@ -55,7 +54,6 @@ public class RecurringJobConfiguration : Entity<string>
         if (string.IsNullOrWhiteSpace(lastModifiedBy))
             throw new ArgumentException("LastModifiedBy is required");
 
-        JobName = jobName;
         Id = jobName; // JobName is the primary key
         DisplayName = displayName;
         Description = description;

@@ -42,6 +42,8 @@ WORKDIR /src
 # Copy all backend files at once
 COPY Anela.Heblo.sln ./
 COPY backend/ ./backend/
+# Process docs are embedded into Anela.Heblo.Application (see its csproj)
+COPY docs/processes/ ./docs/processes/
 
 # Clear NuGet cache and restore with rebuild
 RUN dotnet nuget locals all --clear

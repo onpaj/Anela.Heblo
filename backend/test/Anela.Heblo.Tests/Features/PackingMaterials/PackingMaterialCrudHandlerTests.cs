@@ -1,4 +1,3 @@
-using Anela.Heblo.Application.Features.PackingMaterials.Contracts;
 using Anela.Heblo.Application.Features.PackingMaterials.UseCases.DeletePackingMaterial;
 using Anela.Heblo.Application.Features.PackingMaterials.UseCases.GetPackingMaterialLogs;
 using Anela.Heblo.Application.Features.PackingMaterials.UseCases.UpdatePackingMaterial;
@@ -17,6 +16,10 @@ internal sealed class StubCurrentUserService : Anela.Heblo.Domain.Features.Users
         => new Anela.Heblo.Domain.Features.Users.CurrentUser("test-user-id", "Test User", "test@example.com", true);
 
     public bool IsInRole(string role) => false;
+
+    public string? ClientAppId => null;
+    public bool IsAppOnly => false;
+    public bool IsBearerToken => false;
 }
 
 public class PackingMaterialCrudHandlerTests

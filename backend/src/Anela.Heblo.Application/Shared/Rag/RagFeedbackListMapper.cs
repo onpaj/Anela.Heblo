@@ -34,6 +34,9 @@ public static class RagFeedbackListMapper
             PrecisionScore = log.PrecisionScore,
             StyleScore = log.StyleScore,
             FeedbackComment = log.FeedbackComment,
+            ProblemTags = log.ProblemTags.ToList(),
+            ProductTags = log.ProductTags.ToList(),
+            RecommendedProductCodes = log.RecommendedProductCodes.ToList(),
         };
     }
 

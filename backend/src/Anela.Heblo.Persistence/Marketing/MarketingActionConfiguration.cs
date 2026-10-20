@@ -32,6 +32,9 @@ namespace Anela.Heblo.Persistence.Marketing
                 .IsRequired(false)
                 .AsUtcTimestamp();
 
+            builder.Property(x => x.IsAllDay)
+                .IsRequired();
+
             builder.Property(x => x.CreatedAt)
                 .IsRequired()
                 .AsUtcTimestamp();

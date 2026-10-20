@@ -1,6 +1,6 @@
 # MCP Server
 
-The application exposes MCP tools for AI assistants to query catalog data, manufacturing orders, perform batch calculations, user-directory lookups, and meeting notes.
+The application exposes MCP tools for AI assistants to query catalog data, manufacturing orders, perform batch calculations, user-directory lookups, meeting notes, pricing simulations, month-grain reporting data (GA4, Shoptet, Flexi), and marketing ads (agents' data, proposals, agent runs and approvals).
 
 ## Available Tools
 
@@ -32,6 +32,12 @@ The application exposes MCP tools for AI assistants to query catalog data, manuf
 - `SearchKnowledgeBase` — semantic search over ingested documents, returns ranked chunks with source references
 - `AskKnowledgeBase` — AI-generated answer grounded in company documents, returns prose answer with cited sources
 
+**Process Docs (2)** — require the `Anela_ProcessDocs` permission.
+- `ListProcesses` — catalog of module overviews and documented processes (name, kind, module, summary, related); `kind` accepts `module`, `sync`, `calculation` (alias `calc`), `feed`, `job` and `workflow` (alias `flow`), case-insensitive; optional `module` filters by module slug
+- `GetProcessDoc` — full agent-facing doc for one process (data flow, formulas, config, quirks, code entry points); source is `docs/processes/`
+
+**Operations:** after deploying this feature to an environment, grant `anela.process_docs.read` to the relevant groups in `/admin/access`. `seedGroups` in `access-matrix.json` only apply to a fresh database, so an already-provisioned environment (staging, production) won't pick the permission up automatically. Do not run `scripts/seed-authorization.sh --reset-group` to fix this — it clears and re-seeds that group's permissions from JSON, wiping any custom grants made since.
+
 **Leaflet (1)** — requires the `Marketing_Leaflet` permission.
 - `GenerateLeaflet` — generates a marketing leaflet in Czech Markdown using the knowledge base and historical leaflets as style references
 
@@ -40,6 +46,39 @@ The application exposes MCP tools for AI assistants to query catalog data, manuf
 - `GetMeetingSummary` — summary and metadata of a single meeting (no raw transcript, no task detail)
 - `GetMeetingTranscript` — full raw transcript text of a single meeting
 - `GetMeetingTasks` — proposed task list extracted from a single meeting
+
+**Pricing Simulator (6)** — require the `Finance_PriceAnalysis` permission (read); `SavePricingScenario` and `UpdatePricingScenarioProducts` require write. Stateless like the web UI: the caller carries the sparse override list from one `SimulatePricing` call to the next.
+- `GetPricingBaseline` — current price, material/manufacturing cost, 12-month quantity and M0/M1 per product, plus portfolio totals
+- `SimulatePricing` — apply a batch of edits (price, cost, target M0/M1 in CZK or %, forecast quantity) on top of an override list; returns recalculated rows (edited only by default), before/after totals and the new override list
+- `ListPricingScenarios` — saved scenarios (summary level)
+- `GetPricingScenario` — a saved scenario recalculated against today's catalog, including its override list and drift flags
+- `SavePricingScenario` — create a scenario, or overwrite one by id as a whole (no delete tool — delete stays in the web UI)
+- `UpdatePricingScenarioProducts` — partial update of a saved scenario: edit or remove individual products and/or rename it, keeping everything else (filter, other products and their drift snapshots); all-or-nothing on a failing edit
+
+**Marketing Ads (15)** — data and proposals need `Marketing_Ads` (read; `SubmitAdProposal`, `ReviseAdProposal` and the agent-run tools need write). The chief's tools need `Marketing_AdApprovals` write; approve/reject additionally pass the approval-channel rules in the handler (MCP channel: also `Marketing_AdApprovalsViaMcp` read; service identities are always refused). Dates are `yyyy-MM-dd`, instants ISO-8601, proposal ids are integers, `agentRunId` is a GUID. A concurrent change returns `[MarketingAdsConcurrentChange] … reload (GetAdProposal) and retry`.
+- `ListAdAccounts` — managed ad accounts, optional `platform` (GoogleAds, MetaAds, Sklik)
+- `GetAdPerformance` — daily facts for one `platform` / `accountExternalId` / `level` (Campaign, AdGroup, Keyword, Ad) / `from`–`to`, optional `parentExternalId`, paged (`pageNumber`, `pageSize`)
+- `GetAdSearchTerms` — search terms of one campaign or ad group (`parentLevel` + `parentExternalId`), `from`–`to`, optional `minCost`, `top` (default 200), highest cost first; Google Ads and Sklik only
+- `GetBlendedPerformance` — real revenue ÷ total ad spend, `granularity` Daily or Monthly
+- `GetAdChangeHistory` — change events; filters `platform`, `accountExternalId`, `since`/`until`, `origin` (Heblo / OutOfBand), `actorKind`; paged
+- `GetAdGuardrails` — allowed actions, limits, autonomy modes, kill switch — propose within them
+- `SubmitAdProposal` — `platform`, `accountExternalId`, `actionType` (AddNegativeKeyword, PauseAd), `actions` (`targetLevel`, `targetExternalId`, and for negative keywords `keywordText`, `matchType`), `reasoning`, optional `agentRunId`; returns id, version and the limits evaluation
+- `ReviseAdProposal` — `proposalId` + `expectedVersion` + the complete new `actions` and `reasoning`
+- `ListAdProposals` / `GetAdProposal` — filters `status`, `platform`, `onlyMine`, paged; full detail with rendered diffs
+- `StartAgentRun` / `FinishAgentRun` — observability of the agents themselves (`agentName`, `dataScopesRead`; status, summary, `inputTokens`, `outputTokens`, `costCzk`)
+- `ListPendingAdProposals` — the chief's "what's pending?", oldest first, numbered, with rendered diffs
+- `ApproveAdProposal` / `RejectAdProposal` — `proposalId` + `version` (+ `reason` on reject)
+
+**Service identities (agents):** agents connect to `/mcp` with their own client-credentials token. App-only callers are rate limited per `oid` (`Ads:AgentRateLimitPerMinute`, default 60 -> HTTP 429); people are not limited. Setup, grants and token instructions: `docs/integrations/marketing-agents-identity.md`.
+
+**Reporting (3)** — read-only, month-grain reporting data mirrored into `Heblo_V3`. Permission is per **source** and enforced in the MediatR handlers (not in the tool), so it applies to any entry point: `Reporting_WebAnalytics` (GA4, `reporting.web_analytics.read`), `Reporting_Eshop` (Shoptet, `reporting.eshop.read`), `Reporting_Accounting` (Flexi, `reporting.accounting.read`). A caller only sees the datasets of sources they can read.
+- `ListReportDatasets` — datasets the caller may read, with source, grain and data freshness (last sync, status)
+- `DescribeReportDataset` — columns, period column, default sort and caveats of one dataset
+- `QueryReportDataset` — filters (`eq`, `neq`, `gt`, `gte`, `lt`, `lte`, `in`, `between`, `contains`, `isNull`), sort, column projection, `limit` ≤ 1000 and `offset`; runs read-only with a 10 s statement timeout
+
+The catalogue (17 datasets) lives in `Application/Features/Reporting/Catalog/`. Payroll, raw tables, per-customer rows and `v_product_pair_monthly` (17 s per month — needs materialising) are deliberately not exposed.
+
+**Operations:** after deploy, grant the three roles in `/admin/access` (staging first, then production). `seedGroups` only apply to a fresh database.
 
 ## Implementation
 
@@ -157,5 +196,5 @@ traces
 ## Tests
 
 - Location: `backend/test/Anela.Heblo.Tests/MCP/Tools/`
-- Coverage: 29 tests (parameter mapping, JSON serialization, error handling)
+- Coverage: 123 test methods (parameter mapping, JSON serialization, error handling)
 - See existing test files for patterns.

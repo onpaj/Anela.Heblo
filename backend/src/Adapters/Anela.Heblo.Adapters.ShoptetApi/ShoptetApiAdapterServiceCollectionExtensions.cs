@@ -1,4 +1,5 @@
 using System.Text;
+using Anela.Heblo.Adapters.ShoptetApi.Analytics;
 using Anela.Heblo.Adapters.ShoptetApi.Customers;
 using Anela.Heblo.Adapters.ShoptetApi.EshopUrl;
 using Anela.Heblo.Adapters.ShoptetApi.Expedition;
@@ -20,6 +21,7 @@ using Anela.Heblo.Domain.Features.ProductPricing;
 using Anela.Heblo.Application.Features.Logistics.Picking;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Http.Resilience;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -49,6 +51,7 @@ public static class ShoptetApiAdapterServiceCollectionExtensions
             client.DefaultRequestHeaders.Add("Shoptet-Private-API-Token", settings.ApiToken);
         });
         services.AddTransient<IEshopOrderClient>(sp => sp.GetRequiredService<ShoptetOrderClient>());
+        services.AddTransient<IShoptetOrderTestClient>(sp => sp.GetRequiredService<ShoptetOrderClient>());
         services.AddTransient<IShoptetExpeditionOrderSource>(sp => sp.GetRequiredService<ShoptetOrderClient>());
 
         services.AddHttpClient<IEshopStockClient, ShoptetStockClient>((sp, client) =>
@@ -123,6 +126,7 @@ public static class ShoptetApiAdapterServiceCollectionExtensions
             client.DefaultRequestHeaders.Add("Shoptet-Private-API-Token", settings.ApiToken);
         });
 
+        services.TryAddSingleton(TimeProvider.System);
         services.AddScoped<IProductPriceEshopClient, ShoptetEshopPriceClient>();
 
         services.Configure<ShoptetStockClientOptions>(
@@ -131,6 +135,7 @@ public static class ShoptetApiAdapterServiceCollectionExtensions
         services.AddTransient<IPickingListSource, ShoptetApiExpeditionListSource>();
         services.AddTransient<IPackingOrderClient, ShoptetApiPackingOrderClient>();
         services.AddTransient<IPackingOrderCountSource, ShoptetApiPackingOrderClient>();
+        services.AddTransient<IPackingOrderShippingSource, ShoptetApiPackingOrderClient>();
 
         services.AddHttpClient<IProductEshopUrlClient, HeurekaProductFeedClient>();
         services.Configure<HeurekaFeedOptions>(configuration.GetSection(HeurekaFeedOptions.ConfigKey));
@@ -140,6 +145,9 @@ public static class ShoptetApiAdapterServiceCollectionExtensions
         services.AddSingleton<ShoptetInvoiceMapper>();
         services.AddSingleton<ShoptetApiInvoiceSource>();
         services.AddSingleton<IShippingMethodCatalog, ShippingMethodCatalog>();
+
+        // shoptet_raw reporting mirror — no-op unless ShoptetOrdersSync:ConnectionString is set.
+        services.AddShoptetOrdersAnalytics(configuration);
 
         return services;
     }

@@ -118,6 +118,37 @@ describe('useScanPackingOrder', () => {
     expect(result.current.error?.message).toBe('Objednávka nebyla nalezena.');
   });
 
+  it('throws an actionable message naming the missing address fields for ShipmentValidationFailed', async () => {
+    mockPackaging_ScanOrder.mockResolvedValue({
+      success: false,
+      errorCode: 'ShipmentValidationFailed',
+      params: { ShoptetMessage: 'Invalid recipient of order, missing fields: city, zip.' },
+    });
+
+    const { result } = renderHook(() => useScanPackingOrder(), { wrapper });
+    result.current.mutate({ orderCode: '126020133' });
+
+    await waitFor(() => expect(result.current.isError).toBe(true));
+    expect(result.current.error?.message).toBe(
+      'Adresu příjemce nelze použít pro vytvoření zásilky — opravte v Shoptetu: Invalid recipient of order, missing fields: city, zip..',
+    );
+  });
+
+  it('throws the base actionable message for ShipmentValidationFailed when no detail is present', async () => {
+    mockPackaging_ScanOrder.mockResolvedValue({
+      success: false,
+      errorCode: 'ShipmentValidationFailed',
+    });
+
+    const { result } = renderHook(() => useScanPackingOrder(), { wrapper });
+    result.current.mutate({ orderCode: '126020133' });
+
+    await waitFor(() => expect(result.current.isError).toBe(true));
+    expect(result.current.error?.message).toBe(
+      'Adresu příjemce nelze použít pro vytvoření zásilky (chybí povinné údaje) — opravte ji v Shoptetu.',
+    );
+  });
+
   it('throws a generic message for an unmapped error code', async () => {
     mockPackaging_ScanOrder.mockResolvedValue({ success: false, errorCode: 'Exception' });
 

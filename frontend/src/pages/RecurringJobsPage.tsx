@@ -1,8 +1,11 @@
-import React, { useState, useCallback } from 'react';
-import { Clock, RefreshCw, AlertCircle, ToggleLeft, ToggleRight, Play, Pencil, Check, X } from 'lucide-react';
-import { useRecurringJobsQuery, useUpdateRecurringJobStatusMutation, useTriggerRecurringJobMutation, useUpdateRecurringJobCronMutation, RecurringJobDto } from '../api/hooks/useRecurringJobs';
+import React, { useState, useCallback, useMemo } from 'react';
+import { Clock, RefreshCw, AlertCircle, Search } from 'lucide-react';
+import { useRecurringJobsQuery, useUpdateRecurringJobStatusMutation, useTriggerRecurringJobMutation, useUpdateRecurringJobCronMutation, RecurringJobCategory, RecurringJobDto } from '../api/hooks/useRecurringJobs';
 import { LoadingIndicator } from '../components/ui/LoadingIndicator';
 import ConfirmTriggerJobDialog from '../components/dialogs/ConfirmTriggerJobDialog';
+import RecurringJobRow from '../components/recurring-jobs/RecurringJobRow';
+import RecurringJobCategorySection from '../components/recurring-jobs/RecurringJobCategorySection';
+import { groupJobsByCategory } from '../components/recurring-jobs/recurringJobCategories';
 import { useScreenView } from '../telemetry/useScreenView';
 
 const RecurringJobsPage: React.FC = () => {
@@ -18,6 +21,30 @@ const RecurringJobsPage: React.FC = () => {
   const [editingCronJobName, setEditingCronJobName] = useState<string | null>(null);
   const [editingCronValue, setEditingCronValue] = useState<string>('');
   const [cronEditError, setCronEditError] = useState<string | null>(null);
+  const [searchTerm, setSearchTerm] = useState<string>('');
+  const [collapsedCategories, setCollapsedCategories] = useState<ReadonlySet<RecurringJobCategory>>(
+    new Set<RecurringJobCategory>()
+  );
+
+  const jobsList = useMemo(() => jobs || [], [jobs]);
+  const categoryGroups = useMemo(
+    () => groupJobsByCategory(jobsList, searchTerm),
+    [jobsList, searchTerm]
+  );
+  // Collapsing is a browsing aid; while searching, every match must be visible.
+  const isSearchActive = searchTerm.trim() !== '';
+
+  const handleToggleCategory = useCallback((category: RecurringJobCategory) => {
+    setCollapsedCategories((previous) => {
+      const next = new Set(previous);
+      if (next.has(category)) {
+        next.delete(category);
+      } else {
+        next.add(category);
+      }
+      return next;
+    });
+  }, []);
 
   const handleToggle = async (job: RecurringJobDto) => {
     if (!job.jobName) return;
@@ -141,8 +168,6 @@ const RecurringJobsPage: React.FC = () => {
     );
   }
 
-  const jobsList = jobs || [];
-
   if (jobsList.length === 0) {
     return (
       <div className="flex flex-col h-full w-full">
@@ -172,24 +197,37 @@ const RecurringJobsPage: React.FC = () => {
       {/* Main Content - Scrollable */}
       <div className="flex-1 bg-white dark:bg-graphite-surface shadow dark:shadow-soft-dark rounded-lg overflow-hidden flex flex-col min-h-0">
         {/* Action bar inside content */}
-        <div className="px-6 py-4 border-b border-gray-200 dark:border-graphite-border flex items-center justify-between">
-          <div className="flex items-center">
+        <div className="px-6 py-4 border-b border-gray-200 dark:border-graphite-border flex items-center justify-between gap-4">
+          <div className="flex items-center flex-shrink-0">
             <Clock className="h-5 w-5 text-gray-400 dark:text-graphite-faint mr-2" />
             <p className="text-sm text-gray-500 dark:text-graphite-muted">Zapínání/vypínání Hangfire úloh</p>
           </div>
-          <button
-            onClick={() => refetch()}
-            className="inline-flex items-center px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-md transition-colors duration-200"
-          >
-            <RefreshCw className="h-4 w-4 mr-2" />
-            Obnovit
-          </button>
+          <div className="flex items-center gap-3">
+            <div className="relative w-64">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 dark:text-graphite-faint pointer-events-none" />
+              <input
+                type="search"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                placeholder="Hledat úlohu…"
+                aria-label="Hledat úlohu"
+                className="w-full pl-9 pr-3 py-2 text-sm border border-gray-300 dark:border-graphite-border dark:bg-graphite-surface-2 dark:text-graphite-text rounded-md focus:outline-none focus:ring-1 focus:ring-indigo-500"
+              />
+            </div>
+            <button
+              onClick={() => refetch()}
+              className="inline-flex items-center px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-md transition-colors duration-200 flex-shrink-0"
+            >
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Obnovit
+            </button>
+          </div>
         </div>
 
         {/* Table */}
         <div className="overflow-auto flex-1">
           <table className="min-w-full divide-y divide-gray-200 dark:divide-graphite-border">
-            <thead className="bg-gray-50 dark:bg-graphite-surface-2 sticky top-0">
+            <thead className="bg-gray-50 dark:bg-graphite-surface-2 sticky top-0 z-10">
               <tr>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-graphite-muted uppercase tracking-wider">
                   Display Name
@@ -214,137 +252,45 @@ const RecurringJobsPage: React.FC = () => {
                 </th>
               </tr>
             </thead>
-            <tbody className="bg-white dark:bg-graphite-surface divide-y divide-gray-200 dark:divide-graphite-border">
-              {jobsList.map((job) => (
-                <tr key={job.jobName} className="hover:bg-gray-50 dark:hover:bg-white/5">
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-graphite-text">
-                    {job.displayName || job.jobName}
-                  </td>
-                  <td className="px-6 py-4 text-sm text-gray-700 dark:text-graphite-muted max-w-xs">
-                    {job.description || '-'}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-graphite-muted">
-                    {editingCronJobName === job.jobName ? (
-                      <div className="flex flex-col gap-1">
-                        <div className="flex items-center gap-1">
-                          <input
-                            type="text"
-                            value={editingCronValue}
-                            onChange={(e) => setEditingCronValue(e.target.value)}
-                            onKeyDown={(e) => {
-                              if (e.key === 'Enter') handleSaveCron(job);
-                              if (e.key === 'Escape') handleCancelCronEdit();
-                            }}
-                            className="font-mono text-xs border border-gray-300 dark:border-graphite-border rounded px-2 py-1 w-32 focus:outline-none focus:ring-1 focus:ring-indigo-500"
-                            autoFocus
-                            aria-label="CRON výraz"
-                          />
-                          <button
-                            onClick={() => handleSaveCron(job)}
-                            disabled={updateCron.isPending}
-                            aria-label="Uložit CRON výraz"
-                            className="text-green-600 dark:text-emerald-400 hover:text-green-800 disabled:opacity-50"
-                            title="Uložit"
-                          >
-                            {updateCron.isPending ? (
-                              <RefreshCw className="h-4 w-4 animate-spin" />
-                            ) : (
-                              <Check className="h-4 w-4" />
-                            )}
-                          </button>
-                          <button
-                            onClick={handleCancelCronEdit}
-                            aria-label="Zrušit úpravu CRON výrazu"
-                            className="text-gray-400 dark:text-graphite-faint hover:text-gray-600"
-                            title="Zrušit"
-                          >
-                            <X className="h-4 w-4" />
-                          </button>
-                        </div>
-                        {cronEditError && (
-                          <span className="text-xs text-red-600 dark:text-red-400">{cronEditError}</span>
-                        )}
-                      </div>
-                    ) : (
-                      <div className="flex items-center gap-1 group">
-                        <span className="font-mono">{job.cronExpression || '-'}</span>
-                        <button
-                          onClick={() => handleEditCron(job)}
-                          aria-label={`Upravit CRON výraz pro ${job.displayName || job.jobName}`}
-                          className="opacity-0 group-hover:opacity-100 transition-opacity text-gray-400 dark:text-graphite-faint hover:text-gray-600"
-                          title="Upravit CRON"
-                        >
-                          <Pencil className="h-3.5 w-3.5" />
-                        </button>
-                      </div>
-                    )}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-900 dark:text-graphite-text">
-                      {formatDate(job.lastModifiedAt)}
-                    </div>
-                    {job.lastModifiedBy && (
-                      <div className="text-xs text-gray-500 dark:text-graphite-muted mt-0.5">
-                        {job.lastModifiedBy}
-                      </div>
-                    )}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-graphite-muted">
-                    {job.nextRunAt
-                      ? formatDate(job.nextRunAt)
-                      : '—'}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-center">
-                    <button
-                      onClick={() => handleToggle(job)}
-                      disabled={updatingJobName === job.jobName}
-                      aria-label={`${job.isEnabled ? 'Vypnout' : 'Zapnout'} úlohu ${job.displayName || job.jobName}`}
-                      role="switch"
-                      aria-checked={job.isEnabled}
-                      className={`
-                        inline-flex items-center px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-200
-                        ${job.isEnabled
-                          ? 'bg-emerald-100 dark:bg-emerald-400/15 text-emerald-800 dark:text-emerald-400 hover:bg-emerald-200 dark:hover:bg-emerald-400/25'
-                          : 'bg-gray-100 dark:bg-white/10 text-gray-800 dark:text-graphite-muted hover:bg-gray-200'
-                        }
-                        ${updatingJobName === job.jobName ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
-                      `}
-                      title={job.isEnabled ? 'Klikněte pro vypnutí' : 'Klikněte pro zapnutí'}
-                    >
-                      {updatingJobName === job.jobName ? (
-                        <RefreshCw className="h-3 w-3 mr-1 animate-spin" />
-                      ) : job.isEnabled ? (
-                        <ToggleRight className="h-3.5 w-3.5 mr-1" />
-                      ) : (
-                        <ToggleLeft className="h-3.5 w-3.5 mr-1" />
-                      )}
-                      {job.isEnabled ? 'Zapnuto' : 'Vypnuto'}
-                    </button>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-center">
-                    <button
-                      onClick={() => handleTriggerClick(job)}
-                      disabled={triggeringJobName === job.jobName}
-                      aria-label={`Spustit úlohu ${job.displayName || job.jobName} nyní`}
-                      className={`
-                        inline-flex items-center px-3 py-1.5 rounded-md text-xs font-medium transition-all duration-200
-                        bg-indigo-100 dark:bg-graphite-accent/10 text-indigo-800 dark:text-graphite-accent hover:bg-indigo-200 dark:hover:bg-graphite-accent/20
-                        ${triggeringJobName === job.jobName ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
-                      `}
-                      title="Spustit úlohu nyní"
-                    >
-                      {triggeringJobName === job.jobName ? (
-                        <RefreshCw className="h-3.5 w-3.5 mr-1 animate-spin" />
-                      ) : (
-                        <Play className="h-3.5 w-3.5 mr-1" />
-                      )}
-                      Run Now
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
+            {categoryGroups.map((group) => (
+              <RecurringJobCategorySection
+                key={group.category}
+                category={group.category}
+                jobCount={group.jobs.length}
+                isExpanded={isSearchActive || !collapsedCategories.has(group.category)}
+                onToggleExpanded={handleToggleCategory}
+              >
+                {group.jobs.map((job) => (
+                  <RecurringJobRow
+                    key={job.jobName}
+                    job={job}
+                    isUpdatingStatus={updatingJobName === job.jobName}
+                    isTriggering={triggeringJobName === job.jobName}
+                    isEditingCron={editingCronJobName === job.jobName}
+                    isSavingCron={updateCron.isPending}
+                    cronDraft={editingCronValue}
+                    cronEditError={cronEditError}
+                    onCronDraftChange={setEditingCronValue}
+                    onStartCronEdit={handleEditCron}
+                    onSaveCron={handleSaveCron}
+                    onCancelCronEdit={handleCancelCronEdit}
+                    onToggle={handleToggle}
+                    onTrigger={handleTriggerClick}
+                    formatDate={formatDate}
+                  />
+                ))}
+              </RecurringJobCategorySection>
+            ))}
           </table>
+
+          {categoryGroups.length === 0 && (
+            <div className="p-12 text-center">
+              <Search className="h-12 w-12 mx-auto text-gray-300 dark:text-graphite-faint mb-3" />
+              <p className="text-gray-500 dark:text-graphite-muted">
+                Žádná úloha neodpovídá hledání „{searchTerm}“
+              </p>
+            </div>
+          )}
         </div>
       </div>
 

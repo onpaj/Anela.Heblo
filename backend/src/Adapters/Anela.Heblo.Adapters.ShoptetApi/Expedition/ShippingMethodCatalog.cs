@@ -25,6 +25,16 @@ public class ShippingMethodCatalog : IShippingMethodCatalog
             .AsReadOnly();
     }
 
+    public IReadOnlyList<string> GetShippingNamesForCarrier(Carriers carrier)
+    {
+        return ShippingMethodRegistry.ShippingList
+            .Where(m => m.Carrier == carrier)
+            .Select(m => m.DisplayName)
+            .Distinct()
+            .ToList()
+            .AsReadOnly();
+    }
+
     public Carriers? ResolveCarrier(string shippingProviderCode)
     {
         if (!int.TryParse(shippingProviderCode, out var id))
@@ -33,4 +43,7 @@ public class ShippingMethodCatalog : IShippingMethodCatalog
         return ShippingMethodRegistry.ShippingList
             .FirstOrDefault(m => m.Id == id)?.Carrier;
     }
+
+    public Carriers? ResolveCarrierByShippingGuid(string shippingGuid) =>
+        ShippingMethodRegistry.ByGuid.TryGetValue(shippingGuid, out var method) ? method.Carrier : null;
 }

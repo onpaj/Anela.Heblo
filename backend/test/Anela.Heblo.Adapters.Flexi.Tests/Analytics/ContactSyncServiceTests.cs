@@ -43,9 +43,12 @@ public class ContactSyncServiceTests
     };
 
     [Fact]
-    public async Task SyncAsync_WhenNoContacts_ReturnsSuccessWithZeroRows()
+    public async Task SyncAsync_WhenTheFetchComesBackEmpty_FailsInsteadOfReportingSuccess()
     {
-        // Arrange
+        // This used to assert the opposite, and that is how the sync stayed broken in silence.
+        // ContactListClient logs a failed FlexiBee response and returns an empty list rather than
+        // throwing, so "zero contacts" and "the request was rejected" look identical from here.
+        // Anela's address book is never empty, so an empty full refresh is always a failure.
         var client = new Mock<IContactListClient>();
         await using var ctx = CreateInMemoryContext();
 
@@ -58,16 +61,40 @@ public class ContactSyncServiceTests
 
         var svc = CreateService(client.Object, ctx);
 
-        // Act
         var result = await svc.SyncAsync();
 
-        // Assert
-        result.IsSuccess.Should().BeTrue();
-        result.RowsFetched.Should().Be(0);
-        result.RowsUpserted.Should().Be(0);
+        result.IsSuccess.Should().BeFalse();
 
         var state = await ctx.SyncStates.FindAsync("contact");
-        state!.LastRunStatus.Should().Be("OK");
+        state!.LastRunStatus.Should().Be("FAILED");
+        state.LastErrorMessage.Should().Contain("no contacts");
+    }
+
+    [Fact]
+    public async Task SyncAsync_AsksFlexiForEveryRelationType()
+    {
+        // ContactListRequest renders the types into `typVztahuK in (...)` unconditionally, so an
+        // empty set produces `typVztahuK in ()` and FlexiBee answers "Špatný formát WQL dotazu,
+        // problém na pozici 16 poblíž textu ')'". Every relation type has to be named explicitly.
+        var client = new Mock<IContactListClient>();
+        await using var ctx = CreateInMemoryContext();
+
+        client.Setup(c => c.GetAsync(
+                It.IsAny<IEnumerable<ContactType>>(),
+                It.IsAny<int>(),
+                It.IsAny<int>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync([MakeContactDto(1, "META", "Meta Platforms Ireland Limited")]);
+
+        await CreateService(client.Object, ctx).SyncAsync();
+
+        client.Verify(c => c.GetAsync(
+            It.Is<IEnumerable<ContactType>>(types =>
+                types.Contains(ContactType.Supplier)
+                && types.Contains(ContactType.Customer)
+                && types.Contains(ContactType.SupplierAndCustomer)
+                && types.Contains(ContactType.All)),
+            It.IsAny<int>(), It.IsAny<int>(), It.IsAny<CancellationToken>()), Times.AtLeastOnce);
     }
 
     [Fact]

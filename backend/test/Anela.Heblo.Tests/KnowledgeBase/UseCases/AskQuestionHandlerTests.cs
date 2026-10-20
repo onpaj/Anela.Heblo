@@ -204,4 +204,40 @@ public class AskQuestionHandlerTests
         Assert.False(result.Success);
         Assert.Equal(ErrorCodes.KnowledgeBaseAiUnavailable, result.ErrorCode);
     }
+
+    [Fact]
+    public async Task Handle_RecordsRecommendedCodesFromResponse()
+    {
+        SetupEmptyCache();
+        SetupSearchWithChunk();
+        _chatClient
+            .Setup(c => c.GetResponseAsync(It.IsAny<IEnumerable<ChatMessage>>(), It.IsAny<ChatOptions?>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new ChatResponse([new ChatMessage(ChatRole.Assistant, "Zkuste Klidné nožky.")])
+            {
+                AdditionalProperties = new AdditionalPropertiesDictionary
+                {
+                    [PostAnswerEnrichmentMiddleware.RecommendedProductCodesKey] = new[] { "MAS009" },
+                },
+            });
+
+        await CreateHandler().Handle(new AskQuestionRequest { Question = "otoky", TopK = 5 }, default);
+
+        Assert.Equal(["MAS009"], _recorder.RecommendedProductCodes);
+    }
+
+    [Fact]
+    public async Task Handle_NoRecommendedKey_RecordsEmptyList()
+    {
+        SetupEmptyCache();
+        SetupSearchWithChunk();
+        _chatClient
+            .Setup(c => c.GetResponseAsync(It.IsAny<IEnumerable<ChatMessage>>(), It.IsAny<ChatOptions?>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new ChatResponse([new ChatMessage(ChatRole.Assistant, "Pijte vodu.")]));
+
+        _recorder.RecordRecommendedProducts(["STALE"]);
+
+        await CreateHandler().Handle(new AskQuestionRequest { Question = "otoky", TopK = 5 }, default);
+
+        Assert.Empty(_recorder.RecommendedProductCodes);
+    }
 }

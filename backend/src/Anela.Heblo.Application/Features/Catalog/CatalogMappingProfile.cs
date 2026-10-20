@@ -30,6 +30,7 @@ public class CatalogMappingProfile : Profile
             .ForMember(dest => dest.CurrentPurchasePrice, opt => opt.MapFrom(src => src.CurrentPurchasePrice))
             .ForMember(dest => dest.SellingPriceWithVat, opt => opt.MapFrom(src => src.SellingPriceWithVat))
             .ForMember(dest => dest.PurchasePriceWithVat, opt => opt.MapFrom(src => src.PurchasePriceWithVat))
+            .ForMember(dest => dest.StockPrice, opt => opt.MapFrom(src => src.Stock.StockPrice))
             .ForMember(dest => dest.EshopPrice, opt => opt.MapFrom(src => src.EshopPrice))
             .ForMember(dest => dest.ErpPrice, opt => opt.MapFrom(src => src.ErpPrice));
 

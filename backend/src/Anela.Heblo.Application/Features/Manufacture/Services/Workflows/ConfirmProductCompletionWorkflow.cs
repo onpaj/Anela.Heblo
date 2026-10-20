@@ -103,6 +103,15 @@ public class ConfirmProductCompletionWorkflow : IConfirmProductCompletionWorkflo
             // Step 5: Submit to ERP with distribution data
             var submitResult = await SubmitToErpAsync(orderId, order, distribution, cancellationToken);
 
+            // Nothing was written to the ERP — the order must stay where it is until stock is replenished.
+            if (submitResult.ErrorCode == ErrorCodes.ManufactureInsufficientMaterialStock)
+            {
+                return new ConfirmProductCompletionResult(
+                    submitResult.UserMessage ?? submitResult.FullError(),
+                    ErrorCodes.ManufactureInsufficientMaterialStock,
+                    submitResult.Params);
+            }
+
             // Step 6: Update BoM ingredient amounts per product if ERP submission succeeded
             var bomFailures = new List<string>();
             if (submitResult.Success)

@@ -9,11 +9,12 @@ namespace Anela.Heblo.Adapters.HomeAssistant.Tests;
 
 public class HomeAssistantRetryPipelineTests
 {
-    private static IServiceProvider BuildProvider(HttpMessageHandler handler)
+    private static IServiceProvider BuildProvider(HttpMessageHandler handler, bool circuitBreakerEnabled = true)
     {
         var config = new ConfigurationBuilder()
             .AddInMemoryCollection(new Dictionary<string, string?>
             {
+                ["HomeAssistant:CircuitBreakerEnabled"] = circuitBreakerEnabled.ToString(),
                 ["HomeAssistant:BaseUrl"] = "http://ha.test:8123",
                 ["HomeAssistant:AccessToken"] = "tok",
                 ["HomeAssistant:InnerTemperatureEntityId"] = "sensor.inner_temp",
@@ -213,7 +214,8 @@ public class HomeAssistantRetryPipelineTests
         var handler = new StatefulHandler(request =>
             throw new IOException("transient failure"));
 
-        using var sp = (ServiceProvider)BuildProvider((HttpMessageHandler)handler);
+        // Breaker disabled: this test asserts exact retry counts (12 calls > min throughput 8).
+        using var sp = (ServiceProvider)BuildProvider((HttpMessageHandler)handler, circuitBreakerEnabled: false);
         var provider = sp.GetRequiredService<HomeAssistantConditionsReadingProvider>();
 
         var snapshot = await provider.GetCurrentSnapshotAsync(CancellationToken.None);

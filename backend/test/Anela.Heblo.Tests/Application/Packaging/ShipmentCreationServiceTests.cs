@@ -141,6 +141,24 @@ public class ShipmentCreationServiceTests
         result.ErrorCode.Should().Be(ErrorCodes.ShipmentCreationFailed);
     }
 
+    [Fact]
+    public async Task CreateAndPersistAsync_CreateShipmentThrowsValidationException_ReturnsShipmentValidationFailedWithMessage()
+    {
+        var order = EligibleOrder(("P001", 1, 500));
+        _shipmentClient.Setup(c => c.GetShippingOptionsAsync("0001234", It.IsAny<CancellationToken>()))
+            .ReturnsAsync([new ShippingOption { CarrierCode = "PPL", Name = "PPL" }]);
+        _shipmentClient.Setup(c => c.CreateShipmentAsync(It.IsAny<CreateShipmentCommand>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new ShoptetShipmentValidationException(
+                "0001234", "shipment-validation-failed", "Invalid recipient of order, missing fields: city, zip.", "data.orderCode"));
+
+        var result = await CreateService().CreateAndPersistAsync(order, 1, null, CancellationToken.None);
+
+        result.IsSuccess.Should().BeFalse();
+        result.ErrorCode.Should().Be(ErrorCodes.ShipmentValidationFailed);
+        result.Params.Should().NotBeNull();
+        result.Params!["ShoptetMessage"].Should().Be("Invalid recipient of order, missing fields: city, zip.");
+    }
+
     // Arch review Decision 4: fetched labels can still include a just-cancelled shipment's
     // stale labels (Reset's scenario) — the service must filter to the new shipment's GUID.
     [Fact]

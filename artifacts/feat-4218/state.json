@@ -1,0 +1,52 @@
+{
+  "feature_id": "feat-4218",
+  "issue_number": 4218,
+  "created_at": "2026-09-18T05:18:51.638261Z",
+  "max_revisions": 3,
+  "phases": {
+    "analyzing": {
+      "status": "completed",
+      "updated_at": "2026-09-18T05:21:49.089490Z"
+    },
+    "architecting": {
+      "status": "completed",
+      "updated_at": "2026-09-18T05:24:11.693868Z"
+    },
+    "designing": {
+      "status": "completed",
+      "updated_at": "2026-09-18T05:25:11.312491Z"
+    },
+    "planning": {
+      "status": "completed",
+      "updated_at": "2026-09-18T05:31:05.884937Z"
+    },
+    "developing": {
+      "status": "in_progress",
+      "updated_at": "2026-09-18T11:17:02.514683Z"
+    },
+    "code-review": {
+      "status": "completed",
+      "updated_at": "2026-09-18T12:23:28.489944Z"
+    }
+  },
+  "tasks": [
+    {
+      "name": "relocate-department-domain-types-and-update-production-consumers",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-09-18T09:19:11.005236Z"
+    },
+    {
+      "name": "update-test-references-for-department-move",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-09-18T10:19:22.924553Z"
+    },
+    {
+      "name": "verify-full-solution-and-module-boundaries",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-09-18T11:58:45.235337Z"
+    }
+  ]
+}

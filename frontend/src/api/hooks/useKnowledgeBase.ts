@@ -13,10 +13,12 @@ import {
   type DeleteDocumentResponse,
   type UploadDocumentResponse2,
   type FileParameter,
+  GetFeedbackListResponse as GeneratedGetFeedbackListResponse,
 } from '../generated/api-client';
 import type {
   RagFeedbackLogSummary,
   RagFeedbackStats,
+  TagCount,
 } from '../../components/feedback/ragFeedbackTypes';
 import { toLocalFeedbackListResponse } from '../../components/feedback/ragFeedbackMapping';
 
@@ -51,6 +53,12 @@ export interface GetFeedbackListParams {
   sortDescending?: boolean;
   hasFeedback?: boolean;
   userId?: string;
+  /** yyyy-MM-dd */
+  dateFrom?: string;
+  /** yyyy-MM-dd */
+  dateTo?: string;
+  problemTag?: string;
+  productTag?: string;
 }
 
 export interface GetFeedbackListResponse {
@@ -65,6 +73,19 @@ export interface GetFeedbackListResponse {
 
 // ---- Query key factory ----
 
+export interface TagStatsParams {
+  /** yyyy-MM-dd */
+  dateFrom?: string;
+  /** yyyy-MM-dd */
+  dateTo?: string;
+}
+
+export interface QuestionTagStats {
+  problemTags: TagCount[];
+  productTags: TagCount[];
+  recommendedProducts: TagCount[];
+}
+
 export const knowledgeBaseKeys = {
   all: [...QUERY_KEYS.knowledgeBase] as const,
   documents: (params?: GetDocumentsParams) =>
@@ -72,6 +93,8 @@ export const knowledgeBaseKeys = {
   contentTypes: () => [...QUERY_KEYS.knowledgeBase, 'content-types'] as const,
   feedbackList: (params?: GetFeedbackListParams) =>
     [...QUERY_KEYS.knowledgeBase, 'feedback-list', params ?? {}] as const,
+  tagStats: (params: TagStatsParams) =>
+    [...QUERY_KEYS.knowledgeBase, 'tag-stats', params] as const,
   chunkDetail: (chunkId: string) =>
     [...QUERY_KEYS.knowledgeBase, 'chunk-detail', chunkId] as const,
 };
@@ -238,20 +261,60 @@ export const useUploadKnowledgeBaseDocumentMutation = () => {
  * Fetch paginated, filtered, sorted feedback logs for the Feedback Browser.
  * Gated in the UI by the customer.knowledge_base.write permission.
  */
+// The generated client serializes DateOnly query params with toISOString(), which ASP.NET won't bind
+// to DateOnly (and which is a day early for a local-midnight Date in CEST). Build the query by hand.
+export const buildFeedbackListQuery = (params: GetFeedbackListParams | TagStatsParams): string => {
+  const search = new URLSearchParams();
+  Object.entries(params).forEach(([key, value]) => {
+    if (value === undefined || value === null || value === '') return;
+    search.append(key, String(value));
+  });
+  return search.toString();
+};
+
+const fetchKnowledgeBaseJson = async (relativeUrl: string): Promise<unknown> => {
+  const apiClient = getAuthenticatedApiClient();
+  const fullUrl = `${(apiClient as any).baseUrl}${relativeUrl}`;
+  const response = await (apiClient as any).http.fetch(fullUrl, {
+    method: 'GET',
+    headers: { 'Content-Type': 'application/json' },
+  });
+  if (!response.ok) {
+    throw new Error(`HTTP error! status: ${response.status}`);
+  }
+  return response.json();
+};
+
 export const useKnowledgeBaseFeedbackListQuery = (params: GetFeedbackListParams = {}) => {
   return useQuery({
     queryKey: knowledgeBaseKeys.feedbackList(params),
     queryFn: async (): Promise<GetFeedbackListResponse> => {
-      const apiClient = getAuthenticatedApiClient();
-      const generated = await apiClient.knowledgeBase_GetFeedbackList(
-        params.pageNumber,
-        params.pageSize,
-        params.sortBy,
-        params.sortDescending,
-        params.hasFeedback,
-        params.userId,
-      );
-      return toLocalFeedbackListResponse(generated);
+      const query = buildFeedbackListQuery(params);
+      const json = await fetchKnowledgeBaseJson(`/api/KnowledgeBase/feedback/list${query ? `?${query}` : ''}`);
+      // fromJS revives createdAt/sentAt into Date objects, which toLocalFeedbackListResponse expects.
+      return toLocalFeedbackListResponse(GeneratedGetFeedbackListResponse.fromJS(json));
+    },
+    staleTime: 2 * 60 * 1000,
+    gcTime: 5 * 60 * 1000,
+  });
+};
+
+export const useKnowledgeBaseTagStatsQuery = (params: TagStatsParams = {}, options: { enabled?: boolean } = {}) => {
+  return useQuery({
+    enabled: options.enabled ?? true,
+    queryKey: knowledgeBaseKeys.tagStats(params),
+    queryFn: async (): Promise<QuestionTagStats> => {
+      const query = buildFeedbackListQuery(params);
+      const json = (await fetchKnowledgeBaseJson(
+        `/api/KnowledgeBase/feedback/tag-stats${query ? `?${query}` : ''}`,
+      )) as Partial<Record<keyof QuestionTagStats, Partial<TagCount>[]>>;
+      const toTagCounts = (items?: Partial<TagCount>[]): TagCount[] =>
+        (items ?? []).map((i) => ({ tag: i.tag ?? '', label: i.label ?? i.tag ?? '', count: i.count ?? 0 }));
+      return {
+        problemTags: toTagCounts(json.problemTags),
+        productTags: toTagCounts(json.productTags),
+        recommendedProducts: toTagCounts(json.recommendedProducts),
+      };
     },
     staleTime: 2 * 60 * 1000,
     gcTime: 5 * 60 * 1000,

@@ -1,3 +1,4 @@
+using Anela.Heblo.API.Infrastructure;
 using Anela.Heblo.Application.Features.Purchase.UseCases.GetPurchaseStockAnalysis;
 using Anela.Heblo.Domain.Features.Authorization;
 using MediatR;
@@ -24,7 +25,7 @@ public class PurchaseStockAnalysisController : BaseApiController
     {
         if (!ModelState.IsValid)
         {
-            return BadRequest(ModelState);
+            return BadRequest(ErrorResponseHelper.CreateValidationError<GetPurchaseStockAnalysisResponse>());
         }
 
         var response = await _mediator.Send(request, cancellationToken);

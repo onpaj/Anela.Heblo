@@ -1,4 +1,5 @@
 using System.Security.Claims;
+using Anela.Heblo.API.Infrastructure.Authentication;
 using Anela.Heblo.Domain.Features.Users;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Identity.Web;
@@ -58,4 +59,10 @@ public class CurrentUserService : ICurrentUserService
     {
         return _httpContextAccessor.HttpContext?.User?.IsInRole(role) ?? false;
     }
+
+    public string? ClientAppId => TokenClientClaims.GetClientAppId(_httpContextAccessor.HttpContext?.User);
+
+    public bool IsAppOnly => TokenClientClaims.IsAppOnly(_httpContextAccessor.HttpContext);
+
+    public bool IsBearerToken => TokenClientClaims.IsBearerRequest(_httpContextAccessor.HttpContext);
 }

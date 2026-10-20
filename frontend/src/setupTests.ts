@@ -4,6 +4,10 @@
 // learn more: https://github.com/testing-library/jest-dom
 import "@testing-library/jest-dom";
 import React from "react";
+import { TextEncoder, TextDecoder } from "util";
+
+// react-router v7 uses TextEncoder at module load; jsdom (jest 27) does not provide it
+Object.assign(global, { TextEncoder, TextDecoder });
 
 // Mock ThemeContext so components using useTheme() work without a ThemeProvider wrapper
 jest.mock("./contexts/ThemeContext", () => ({

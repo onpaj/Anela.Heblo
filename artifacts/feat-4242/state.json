@@ -1,0 +1,52 @@
+{
+  "feature_id": "feat-4242",
+  "issue_number": 4242,
+  "created_at": "2026-09-21T06:14:08.101235Z",
+  "max_revisions": 3,
+  "phases": {
+    "analyzing": {
+      "status": "completed",
+      "updated_at": "2026-09-21T06:19:43.462153Z"
+    },
+    "architecting": {
+      "status": "completed",
+      "updated_at": "2026-09-21T06:25:20.323446Z"
+    },
+    "designing": {
+      "status": "completed",
+      "updated_at": "2026-09-21T06:26:05.333449Z"
+    },
+    "planning": {
+      "status": "completed",
+      "updated_at": "2026-09-21T06:31:42.916936Z"
+    },
+    "developing": {
+      "status": "in_progress",
+      "updated_at": "2026-09-21T09:15:58.881447Z"
+    },
+    "code-review": {
+      "status": "completed",
+      "updated_at": "2026-09-21T10:23:54.584780Z"
+    }
+  },
+  "tasks": [
+    {
+      "name": "list-articles-boundary-validation",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-09-21T07:25:18.991368Z"
+    },
+    {
+      "name": "feedback-list-boundary-validation",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-09-21T08:58:02.103877Z"
+    },
+    {
+      "name": "full-verification-pass",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-09-21T09:41:28.496457Z"
+    }
+  ]
+}

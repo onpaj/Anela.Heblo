@@ -25,6 +25,7 @@ public sealed class ProductExportDownloadJob : IRecurringJob
     public RecurringJobMetadata Metadata { get; } = new()
     {
         JobName = "product-export-download",
+        Category = RecurringJobCategory.Catalog,
         DisplayName = "Product Export Download",
         Description = "Downloads product export data from external systems",
         CronExpression = "0 2 * * *",

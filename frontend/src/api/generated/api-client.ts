@@ -508,15 +508,15 @@ export class ApiClient {
     articles_List(status: ArticleStatus | null | undefined, page: number | undefined, pageSize: number | undefined): Promise<ListArticlesResponse> {
         let url_ = this.baseUrl + "/api/Articles?";
         if (status !== undefined && status !== null)
-            url_ += "status=" + encodeURIComponent("" + status) + "&";
+            url_ += "Status=" + encodeURIComponent("" + status) + "&";
         if (page === null)
             throw new Error("The parameter 'page' cannot be null.");
         else if (page !== undefined)
-            url_ += "page=" + encodeURIComponent("" + page) + "&";
+            url_ += "Page=" + encodeURIComponent("" + page) + "&";
         if (pageSize === null)
             throw new Error("The parameter 'pageSize' cannot be null.");
         else if (pageSize !== undefined)
-            url_ += "pageSize=" + encodeURIComponent("" + pageSize) + "&";
+            url_ += "PageSize=" + encodeURIComponent("" + pageSize) + "&";
         url_ = url_.replace(/[?&]$/, "");
 
         let options_: RequestInit = {
@@ -600,25 +600,25 @@ export class ApiClient {
     articles_FeedbackList(hasFeedback: boolean | null | undefined, requestedBy: string | null | undefined, sortBy: string | undefined, sortDescending: boolean | undefined, page: number | undefined, pageSize: number | undefined): Promise<GetArticleFeedbackListResponse> {
         let url_ = this.baseUrl + "/api/Articles/feedback/list?";
         if (hasFeedback !== undefined && hasFeedback !== null)
-            url_ += "hasFeedback=" + encodeURIComponent("" + hasFeedback) + "&";
+            url_ += "HasFeedback=" + encodeURIComponent("" + hasFeedback) + "&";
         if (requestedBy !== undefined && requestedBy !== null)
-            url_ += "requestedBy=" + encodeURIComponent("" + requestedBy) + "&";
+            url_ += "RequestedBy=" + encodeURIComponent("" + requestedBy) + "&";
         if (sortBy === null)
             throw new Error("The parameter 'sortBy' cannot be null.");
         else if (sortBy !== undefined)
-            url_ += "sortBy=" + encodeURIComponent("" + sortBy) + "&";
+            url_ += "SortBy=" + encodeURIComponent("" + sortBy) + "&";
         if (sortDescending === null)
             throw new Error("The parameter 'sortDescending' cannot be null.");
         else if (sortDescending !== undefined)
-            url_ += "sortDescending=" + encodeURIComponent("" + sortDescending) + "&";
+            url_ += "SortDescending=" + encodeURIComponent("" + sortDescending) + "&";
         if (page === null)
             throw new Error("The parameter 'page' cannot be null.");
         else if (page !== undefined)
-            url_ += "page=" + encodeURIComponent("" + page) + "&";
+            url_ += "Page=" + encodeURIComponent("" + page) + "&";
         if (pageSize === null)
             throw new Error("The parameter 'pageSize' cannot be null.");
         else if (pageSize !== undefined)
-            url_ += "pageSize=" + encodeURIComponent("" + pageSize) + "&";
+            url_ += "PageSize=" + encodeURIComponent("" + pageSize) + "&";
         url_ = url_.replace(/[?&]$/, "");
 
         let options_: RequestInit = {
@@ -687,6 +687,65 @@ export class ApiClient {
             });
         }
         return Promise.resolve<BackfillArticleRequestedByResponse>(null as any);
+    }
+
+    attendance_RunBreakInsertion(request: RunBreakInsertionRequest): Promise<RunBreakInsertionResponse> {
+        let url_ = this.baseUrl + "/api/attendance/break-insertion/run";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: RequestInit = {
+            body: content_,
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processAttendance_RunBreakInsertion(_response);
+        });
+    }
+
+    protected processAttendance_RunBreakInsertion(response: Response): Promise<RunBreakInsertionResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = RunBreakInsertionResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status === 400) {
+            return response.text().then((_responseText) => {
+            let result400: any = null;
+            let resultData400 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result400 = ProblemDetails.fromJS(resultData400);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result400);
+            });
+        } else if (status === 401) {
+            return response.text().then((_responseText) => {
+            let result401: any = null;
+            let resultData401 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result401 = ProblemDetails.fromJS(resultData401);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result401);
+            });
+        } else if (status === 409) {
+            return response.text().then((_responseText) => {
+            let result409: any = null;
+            let resultData409 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result409 = ProblemDetails.fromJS(resultData409);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result409);
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<RunBreakInsertionResponse>(null as any);
     }
 
     auth_Me(): Promise<GetMeResponse> {
@@ -4959,7 +5018,7 @@ export class ApiClient {
         return Promise.resolve<CreateJournalEntryResponse>(null as any);
     }
 
-    journal_SearchJournalEntries(searchText: string | null | undefined, dateFrom: Date | null | undefined, dateTo: Date | null | undefined, productCodePrefix: string | null | undefined, tagIds: number[] | null | undefined, createdByUserId: string | null | undefined, pageNumber: number | undefined, pageSize: number | undefined, sortBy: string | undefined, sortDirection: string | undefined): Promise<SearchJournalEntriesResponse> {
+    journal_SearchJournalEntries(searchText: string | null | undefined, dateFrom: Date | null | undefined, dateTo: Date | null | undefined, productCodePrefix: string | null | undefined, tagIds: number[] | null | undefined, createdByUserId: string | null | undefined, pageNumber: number | undefined, pageSize: number | undefined, sortBy: string | undefined, sortDirection: string | undefined, withoutProducts: boolean | undefined): Promise<SearchJournalEntriesResponse> {
         let url_ = this.baseUrl + "/api/Journal/search?";
         if (searchText !== undefined && searchText !== null)
             url_ += "SearchText=" + encodeURIComponent("" + searchText) + "&";
@@ -4989,6 +5048,10 @@ export class ApiClient {
             throw new Error("The parameter 'sortDirection' cannot be null.");
         else if (sortDirection !== undefined)
             url_ += "SortDirection=" + encodeURIComponent("" + sortDirection) + "&";
+        if (withoutProducts === null)
+            throw new Error("The parameter 'withoutProducts' cannot be null.");
+        else if (withoutProducts !== undefined)
+            url_ += "WithoutProducts=" + encodeURIComponent("" + withoutProducts) + "&";
         url_ = url_.replace(/[?&]$/, "");
 
         let options_: RequestInit = {
@@ -5490,7 +5553,7 @@ export class ApiClient {
         return Promise.resolve<DeleteDocumentResponse>(null as any);
     }
 
-    knowledgeBase_GetFeedbackList(pageNumber: number | undefined, pageSize: number | undefined, sortBy: string | undefined, sortDescending: boolean | undefined, hasFeedback: boolean | null | undefined, userId: string | null | undefined): Promise<GetFeedbackListResponse> {
+    knowledgeBase_GetFeedbackList(pageNumber: number | undefined, pageSize: number | undefined, sortBy: string | undefined, sortDescending: boolean | undefined, hasFeedback: boolean | null | undefined, userId: string | null | undefined, dateFrom: Date | null | undefined, dateTo: Date | null | undefined, problemTag: string | null | undefined, productTag: string | null | undefined): Promise<GetFeedbackListResponse> {
         let url_ = this.baseUrl + "/api/KnowledgeBase/feedback/list?";
         if (pageNumber === null)
             throw new Error("The parameter 'pageNumber' cannot be null.");
@@ -5512,6 +5575,14 @@ export class ApiClient {
             url_ += "hasFeedback=" + encodeURIComponent("" + hasFeedback) + "&";
         if (userId !== undefined && userId !== null)
             url_ += "userId=" + encodeURIComponent("" + userId) + "&";
+        if (dateFrom !== undefined && dateFrom !== null)
+            url_ += "dateFrom=" + encodeURIComponent(dateFrom ? "" + dateFrom.toISOString() : "") + "&";
+        if (dateTo !== undefined && dateTo !== null)
+            url_ += "dateTo=" + encodeURIComponent(dateTo ? "" + dateTo.toISOString() : "") + "&";
+        if (problemTag !== undefined && problemTag !== null)
+            url_ += "problemTag=" + encodeURIComponent("" + problemTag) + "&";
+        if (productTag !== undefined && productTag !== null)
+            url_ += "productTag=" + encodeURIComponent("" + productTag) + "&";
         url_ = url_.replace(/[?&]$/, "");
 
         let options_: RequestInit = {
@@ -5542,6 +5613,44 @@ export class ApiClient {
             });
         }
         return Promise.resolve<GetFeedbackListResponse>(null as any);
+    }
+
+    knowledgeBase_GetQuestionTagStats(dateFrom: Date | null | undefined, dateTo: Date | null | undefined): Promise<GetQuestionTagStatsResponse> {
+        let url_ = this.baseUrl + "/api/KnowledgeBase/feedback/tag-stats?";
+        if (dateFrom !== undefined && dateFrom !== null)
+            url_ += "dateFrom=" + encodeURIComponent(dateFrom ? "" + dateFrom.toISOString() : "") + "&";
+        if (dateTo !== undefined && dateTo !== null)
+            url_ += "dateTo=" + encodeURIComponent(dateTo ? "" + dateTo.toISOString() : "") + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processKnowledgeBase_GetQuestionTagStats(_response);
+        });
+    }
+
+    protected processKnowledgeBase_GetQuestionTagStats(response: Response): Promise<GetQuestionTagStatsResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = GetQuestionTagStatsResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<GetQuestionTagStatsResponse>(null as any);
     }
 
     knowledgeBase_SubmitFeedback(request: SubmitFeedbackRequest): Promise<SubmitFeedbackResponse> {
@@ -7793,6 +7902,858 @@ export class ApiClient {
         return Promise.resolve<GetManufacturingStockAnalysisResponse>(null as any);
     }
 
+    marketingAdsActivity_ListAuditEvents(proposalId: number | null | undefined, eventType: AdAuditEventType | null | undefined, page: number | undefined, pageSize: number | undefined): Promise<ListAdAuditEventsResponse> {
+        let url_ = this.baseUrl + "/api/marketing-ads/activity/audit?";
+        if (proposalId !== undefined && proposalId !== null)
+            url_ += "ProposalId=" + encodeURIComponent("" + proposalId) + "&";
+        if (eventType !== undefined && eventType !== null)
+            url_ += "EventType=" + encodeURIComponent("" + eventType) + "&";
+        if (page === null)
+            throw new Error("The parameter 'page' cannot be null.");
+        else if (page !== undefined)
+            url_ += "Page=" + encodeURIComponent("" + page) + "&";
+        if (pageSize === null)
+            throw new Error("The parameter 'pageSize' cannot be null.");
+        else if (pageSize !== undefined)
+            url_ += "PageSize=" + encodeURIComponent("" + pageSize) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processMarketingAdsActivity_ListAuditEvents(_response);
+        });
+    }
+
+    protected processMarketingAdsActivity_ListAuditEvents(response: Response): Promise<ListAdAuditEventsResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = ListAdAuditEventsResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status === 403) {
+            return response.text().then((_responseText) => {
+            let result403: any = null;
+            let resultData403 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result403 = ProblemDetails.fromJS(resultData403);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result403);
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<ListAdAuditEventsResponse>(null as any);
+    }
+
+    marketingAdsActivity_ListAgentRuns(page: number | undefined, pageSize: number | undefined): Promise<ListAgentRunsResponse> {
+        let url_ = this.baseUrl + "/api/marketing-ads/activity/agent-runs?";
+        if (page === null)
+            throw new Error("The parameter 'page' cannot be null.");
+        else if (page !== undefined)
+            url_ += "Page=" + encodeURIComponent("" + page) + "&";
+        if (pageSize === null)
+            throw new Error("The parameter 'pageSize' cannot be null.");
+        else if (pageSize !== undefined)
+            url_ += "PageSize=" + encodeURIComponent("" + pageSize) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processMarketingAdsActivity_ListAgentRuns(_response);
+        });
+    }
+
+    protected processMarketingAdsActivity_ListAgentRuns(response: Response): Promise<ListAgentRunsResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = ListAgentRunsResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status === 403) {
+            return response.text().then((_responseText) => {
+            let result403: any = null;
+            let resultData403 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result403 = ProblemDetails.fromJS(resultData403);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result403);
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<ListAgentRunsResponse>(null as any);
+    }
+
+    marketingAdsActivity_ListChangeEvents(platform: AdPlatform | null | undefined, accountExternalId: string | null | undefined, origin: AdChangeOrigin | null | undefined, actorKind: AdChangeActorKind | null | undefined, from: Date | null | undefined, to: Date | null | undefined, pageNumber: number | undefined, pageSize: number | undefined): Promise<GetAdChangeHistoryResponse> {
+        let url_ = this.baseUrl + "/api/marketing-ads/activity/change-events?";
+        if (platform !== undefined && platform !== null)
+            url_ += "Platform=" + encodeURIComponent("" + platform) + "&";
+        if (accountExternalId !== undefined && accountExternalId !== null)
+            url_ += "AccountExternalId=" + encodeURIComponent("" + accountExternalId) + "&";
+        if (origin !== undefined && origin !== null)
+            url_ += "Origin=" + encodeURIComponent("" + origin) + "&";
+        if (actorKind !== undefined && actorKind !== null)
+            url_ += "ActorKind=" + encodeURIComponent("" + actorKind) + "&";
+        if (from !== undefined && from !== null)
+            url_ += "From=" + encodeURIComponent(from ? "" + from.toISOString() : "") + "&";
+        if (to !== undefined && to !== null)
+            url_ += "To=" + encodeURIComponent(to ? "" + to.toISOString() : "") + "&";
+        if (pageNumber === null)
+            throw new Error("The parameter 'pageNumber' cannot be null.");
+        else if (pageNumber !== undefined)
+            url_ += "PageNumber=" + encodeURIComponent("" + pageNumber) + "&";
+        if (pageSize === null)
+            throw new Error("The parameter 'pageSize' cannot be null.");
+        else if (pageSize !== undefined)
+            url_ += "PageSize=" + encodeURIComponent("" + pageSize) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processMarketingAdsActivity_ListChangeEvents(_response);
+        });
+    }
+
+    protected processMarketingAdsActivity_ListChangeEvents(response: Response): Promise<GetAdChangeHistoryResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = GetAdChangeHistoryResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status === 400) {
+            return response.text().then((_responseText) => {
+            let result400: any = null;
+            let resultData400 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result400 = GetAdChangeHistoryResponse.fromJS(resultData400);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result400);
+            });
+        } else if (status === 500) {
+            return response.text().then((_responseText) => {
+            let result500: any = null;
+            let resultData500 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result500 = GetAdChangeHistoryResponse.fromJS(resultData500);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result500);
+            });
+        } else if (status === 403) {
+            return response.text().then((_responseText) => {
+            let result403: any = null;
+            let resultData403 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result403 = ProblemDetails.fromJS(resultData403);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result403);
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<GetAdChangeHistoryResponse>(null as any);
+    }
+
+    marketingAdsProposals_ListProposals(status: AdProposalStatus | null | undefined, platform: AdPlatform | null | undefined, mine: boolean | undefined, page: number | undefined, pageSize: number | undefined, oldestFirst: boolean | undefined): Promise<ListAdProposalsResponse> {
+        let url_ = this.baseUrl + "/api/marketing-ads/proposals?";
+        if (status !== undefined && status !== null)
+            url_ += "Status=" + encodeURIComponent("" + status) + "&";
+        if (platform !== undefined && platform !== null)
+            url_ += "Platform=" + encodeURIComponent("" + platform) + "&";
+        if (mine === null)
+            throw new Error("The parameter 'mine' cannot be null.");
+        else if (mine !== undefined)
+            url_ += "Mine=" + encodeURIComponent("" + mine) + "&";
+        if (page === null)
+            throw new Error("The parameter 'page' cannot be null.");
+        else if (page !== undefined)
+            url_ += "Page=" + encodeURIComponent("" + page) + "&";
+        if (pageSize === null)
+            throw new Error("The parameter 'pageSize' cannot be null.");
+        else if (pageSize !== undefined)
+            url_ += "PageSize=" + encodeURIComponent("" + pageSize) + "&";
+        if (oldestFirst === null)
+            throw new Error("The parameter 'oldestFirst' cannot be null.");
+        else if (oldestFirst !== undefined)
+            url_ += "OldestFirst=" + encodeURIComponent("" + oldestFirst) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processMarketingAdsProposals_ListProposals(_response);
+        });
+    }
+
+    protected processMarketingAdsProposals_ListProposals(response: Response): Promise<ListAdProposalsResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = ListAdProposalsResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status === 403) {
+            return response.text().then((_responseText) => {
+            let result403: any = null;
+            let resultData403 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result403 = ProblemDetails.fromJS(resultData403);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result403);
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<ListAdProposalsResponse>(null as any);
+    }
+
+    marketingAdsProposals_SubmitProposal(request: SubmitAdProposalRequest): Promise<SubmitAdProposalResponse> {
+        let url_ = this.baseUrl + "/api/marketing-ads/proposals";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: RequestInit = {
+            body: content_,
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processMarketingAdsProposals_SubmitProposal(_response);
+        });
+    }
+
+    protected processMarketingAdsProposals_SubmitProposal(response: Response): Promise<SubmitAdProposalResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = SubmitAdProposalResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status === 400) {
+            return response.text().then((_responseText) => {
+            let result400: any = null;
+            let resultData400 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result400 = SubmitAdProposalResponse.fromJS(resultData400);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result400);
+            });
+        } else if (status === 404) {
+            return response.text().then((_responseText) => {
+            let result404: any = null;
+            let resultData404 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result404 = SubmitAdProposalResponse.fromJS(resultData404);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result404);
+            });
+        } else if (status === 422) {
+            return response.text().then((_responseText) => {
+            let result422: any = null;
+            let resultData422 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result422 = SubmitAdProposalResponse.fromJS(resultData422);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result422);
+            });
+        } else if (status === 403) {
+            return response.text().then((_responseText) => {
+            let result403: any = null;
+            let resultData403 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result403 = ProblemDetails.fromJS(resultData403);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result403);
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<SubmitAdProposalResponse>(null as any);
+    }
+
+    marketingAdsProposals_GetProposal(id: number): Promise<GetAdProposalResponse> {
+        let url_ = this.baseUrl + "/api/marketing-ads/proposals/{id}";
+        if (id === undefined || id === null)
+            throw new Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processMarketingAdsProposals_GetProposal(_response);
+        });
+    }
+
+    protected processMarketingAdsProposals_GetProposal(response: Response): Promise<GetAdProposalResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = GetAdProposalResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status === 404) {
+            return response.text().then((_responseText) => {
+            let result404: any = null;
+            let resultData404 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result404 = GetAdProposalResponse.fromJS(resultData404);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result404);
+            });
+        } else if (status === 403) {
+            return response.text().then((_responseText) => {
+            let result403: any = null;
+            let resultData403 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result403 = ProblemDetails.fromJS(resultData403);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result403);
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<GetAdProposalResponse>(null as any);
+    }
+
+    marketingAdsProposals_ReviseProposal(id: number, request: ReviseAdProposalRequest): Promise<ReviseAdProposalResponse> {
+        let url_ = this.baseUrl + "/api/marketing-ads/proposals/{id}/revisions";
+        if (id === undefined || id === null)
+            throw new Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: RequestInit = {
+            body: content_,
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processMarketingAdsProposals_ReviseProposal(_response);
+        });
+    }
+
+    protected processMarketingAdsProposals_ReviseProposal(response: Response): Promise<ReviseAdProposalResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = ReviseAdProposalResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status === 400) {
+            return response.text().then((_responseText) => {
+            let result400: any = null;
+            let resultData400 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result400 = ReviseAdProposalResponse.fromJS(resultData400);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result400);
+            });
+        } else if (status === 404) {
+            return response.text().then((_responseText) => {
+            let result404: any = null;
+            let resultData404 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result404 = ReviseAdProposalResponse.fromJS(resultData404);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result404);
+            });
+        } else if (status === 409) {
+            return response.text().then((_responseText) => {
+            let result409: any = null;
+            let resultData409 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result409 = ReviseAdProposalResponse.fromJS(resultData409);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result409);
+            });
+        } else if (status === 422) {
+            return response.text().then((_responseText) => {
+            let result422: any = null;
+            let resultData422 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result422 = ReviseAdProposalResponse.fromJS(resultData422);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result422);
+            });
+        } else if (status === 403) {
+            return response.text().then((_responseText) => {
+            let result403: any = null;
+            let resultData403 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result403 = ReviseAdProposalResponse.fromJS(resultData403);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result403);
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<ReviseAdProposalResponse>(null as any);
+    }
+
+    marketingAdsProposals_ApproveProposal(id: number, request: ApproveAdProposalRequest): Promise<ApproveAdProposalResponse> {
+        let url_ = this.baseUrl + "/api/marketing-ads/proposals/{id}/approve";
+        if (id === undefined || id === null)
+            throw new Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: RequestInit = {
+            body: content_,
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processMarketingAdsProposals_ApproveProposal(_response);
+        });
+    }
+
+    protected processMarketingAdsProposals_ApproveProposal(response: Response): Promise<ApproveAdProposalResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = ApproveAdProposalResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status === 404) {
+            return response.text().then((_responseText) => {
+            let result404: any = null;
+            let resultData404 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result404 = ApproveAdProposalResponse.fromJS(resultData404);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result404);
+            });
+        } else if (status === 409) {
+            return response.text().then((_responseText) => {
+            let result409: any = null;
+            let resultData409 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result409 = ApproveAdProposalResponse.fromJS(resultData409);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result409);
+            });
+        } else if (status === 422) {
+            return response.text().then((_responseText) => {
+            let result422: any = null;
+            let resultData422 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result422 = ApproveAdProposalResponse.fromJS(resultData422);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result422);
+            });
+        } else if (status === 403) {
+            return response.text().then((_responseText) => {
+            let result403: any = null;
+            let resultData403 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result403 = ApproveAdProposalResponse.fromJS(resultData403);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result403);
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<ApproveAdProposalResponse>(null as any);
+    }
+
+    marketingAdsProposals_RejectProposal(id: number, request: RejectAdProposalRequest): Promise<RejectAdProposalResponse> {
+        let url_ = this.baseUrl + "/api/marketing-ads/proposals/{id}/reject";
+        if (id === undefined || id === null)
+            throw new Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: RequestInit = {
+            body: content_,
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processMarketingAdsProposals_RejectProposal(_response);
+        });
+    }
+
+    protected processMarketingAdsProposals_RejectProposal(response: Response): Promise<RejectAdProposalResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = RejectAdProposalResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status === 400) {
+            return response.text().then((_responseText) => {
+            let result400: any = null;
+            let resultData400 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result400 = RejectAdProposalResponse.fromJS(resultData400);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result400);
+            });
+        } else if (status === 404) {
+            return response.text().then((_responseText) => {
+            let result404: any = null;
+            let resultData404 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result404 = RejectAdProposalResponse.fromJS(resultData404);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result404);
+            });
+        } else if (status === 409) {
+            return response.text().then((_responseText) => {
+            let result409: any = null;
+            let resultData409 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result409 = RejectAdProposalResponse.fromJS(resultData409);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result409);
+            });
+        } else if (status === 403) {
+            return response.text().then((_responseText) => {
+            let result403: any = null;
+            let resultData403 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result403 = RejectAdProposalResponse.fromJS(resultData403);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result403);
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<RejectAdProposalResponse>(null as any);
+    }
+
+    marketingAdsProposals_RevertProposal(id: number): Promise<RevertAdProposalResponse> {
+        let url_ = this.baseUrl + "/api/marketing-ads/proposals/{id}/revert";
+        if (id === undefined || id === null)
+            throw new Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "POST",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processMarketingAdsProposals_RevertProposal(_response);
+        });
+    }
+
+    protected processMarketingAdsProposals_RevertProposal(response: Response): Promise<RevertAdProposalResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = RevertAdProposalResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status === 404) {
+            return response.text().then((_responseText) => {
+            let result404: any = null;
+            let resultData404 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result404 = RevertAdProposalResponse.fromJS(resultData404);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result404);
+            });
+        } else if (status === 409) {
+            return response.text().then((_responseText) => {
+            let result409: any = null;
+            let resultData409 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result409 = RevertAdProposalResponse.fromJS(resultData409);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result409);
+            });
+        } else if (status === 502) {
+            return response.text().then((_responseText) => {
+            let result502: any = null;
+            let resultData502 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result502 = RevertAdProposalResponse.fromJS(resultData502);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result502);
+            });
+        } else if (status === 403) {
+            return response.text().then((_responseText) => {
+            let result403: any = null;
+            let resultData403 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result403 = RevertAdProposalResponse.fromJS(resultData403);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result403);
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<RevertAdProposalResponse>(null as any);
+    }
+
+    marketingAdsSettings_GetSettings(): Promise<GetAdSettingsResponse> {
+        let url_ = this.baseUrl + "/api/marketing-ads/settings";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processMarketingAdsSettings_GetSettings(_response);
+        });
+    }
+
+    protected processMarketingAdsSettings_GetSettings(response: Response): Promise<GetAdSettingsResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = GetAdSettingsResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status === 403) {
+            return response.text().then((_responseText) => {
+            let result403: any = null;
+            let resultData403 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result403 = ProblemDetails.fromJS(resultData403);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result403);
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<GetAdSettingsResponse>(null as any);
+    }
+
+    marketingAdsSettings_UpdateAutonomy(request: UpdateAdAutonomySettingRequest): Promise<UpdateAdAutonomySettingResponse> {
+        let url_ = this.baseUrl + "/api/marketing-ads/settings/autonomy";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: RequestInit = {
+            body: content_,
+            method: "PUT",
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processMarketingAdsSettings_UpdateAutonomy(_response);
+        });
+    }
+
+    protected processMarketingAdsSettings_UpdateAutonomy(response: Response): Promise<UpdateAdAutonomySettingResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = UpdateAdAutonomySettingResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status === 400) {
+            return response.text().then((_responseText) => {
+            let result400: any = null;
+            let resultData400 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result400 = UpdateAdAutonomySettingResponse.fromJS(resultData400);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result400);
+            });
+        } else if (status === 409) {
+            return response.text().then((_responseText) => {
+            let result409: any = null;
+            let resultData409 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result409 = UpdateAdAutonomySettingResponse.fromJS(resultData409);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result409);
+            });
+        } else if (status === 403) {
+            return response.text().then((_responseText) => {
+            let result403: any = null;
+            let resultData403 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result403 = UpdateAdAutonomySettingResponse.fromJS(resultData403);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result403);
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<UpdateAdAutonomySettingResponse>(null as any);
+    }
+
+    marketingAdsSettings_UpdateLimit(request: UpdateAdLimitSettingRequest): Promise<UpdateAdLimitSettingResponse> {
+        let url_ = this.baseUrl + "/api/marketing-ads/settings/limits";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: RequestInit = {
+            body: content_,
+            method: "PUT",
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processMarketingAdsSettings_UpdateLimit(_response);
+        });
+    }
+
+    protected processMarketingAdsSettings_UpdateLimit(response: Response): Promise<UpdateAdLimitSettingResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = UpdateAdLimitSettingResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status === 400) {
+            return response.text().then((_responseText) => {
+            let result400: any = null;
+            let resultData400 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result400 = UpdateAdLimitSettingResponse.fromJS(resultData400);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result400);
+            });
+        } else if (status === 409) {
+            return response.text().then((_responseText) => {
+            let result409: any = null;
+            let resultData409 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result409 = UpdateAdLimitSettingResponse.fromJS(resultData409);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result409);
+            });
+        } else if (status === 403) {
+            return response.text().then((_responseText) => {
+            let result403: any = null;
+            let resultData403 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result403 = UpdateAdLimitSettingResponse.fromJS(resultData403);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result403);
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<UpdateAdLimitSettingResponse>(null as any);
+    }
+
+    marketingAdsSettings_SetKillSwitch(request: SetAdKillSwitchRequest): Promise<SetAdKillSwitchResponse> {
+        let url_ = this.baseUrl + "/api/marketing-ads/settings/kill-switch";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: RequestInit = {
+            body: content_,
+            method: "PUT",
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processMarketingAdsSettings_SetKillSwitch(_response);
+        });
+    }
+
+    protected processMarketingAdsSettings_SetKillSwitch(response: Response): Promise<SetAdKillSwitchResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = SetAdKillSwitchResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status === 400) {
+            return response.text().then((_responseText) => {
+            let result400: any = null;
+            let resultData400 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result400 = SetAdKillSwitchResponse.fromJS(resultData400);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result400);
+            });
+        } else if (status === 409) {
+            return response.text().then((_responseText) => {
+            let result409: any = null;
+            let resultData409 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result409 = SetAdKillSwitchResponse.fromJS(resultData409);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result409);
+            });
+        } else if (status === 403) {
+            return response.text().then((_responseText) => {
+            let result403: any = null;
+            let resultData403 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result403 = SetAdKillSwitchResponse.fromJS(resultData403);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result403);
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<SetAdKillSwitchResponse>(null as any);
+    }
+
     marketingCalendar_GetMarketingActions(pageNumber: number | undefined, pageSize: number | undefined, searchTerm: string | null | undefined, actionType: MarketingActionType | null | undefined, productCodePrefix: string | null | undefined, startDateFrom: Date | null | undefined, startDateTo: Date | null | undefined, endDateFrom: Date | null | undefined, endDateTo: Date | null | undefined, includeDeleted: boolean | undefined): Promise<GetMarketingActionsResponse> {
         let url_ = this.baseUrl + "/api/MarketingCalendar?";
         if (pageNumber === null)
@@ -8202,6 +9163,177 @@ export class ApiClient {
             });
         }
         return Promise.resolve<ImportFromOutlookResponse>(null as any);
+    }
+
+    marketingPerformance_GetMonths(from: string | null | undefined, to: string | null | undefined, includeWholesale: boolean | undefined): Promise<GetMarketingPerformanceMonthsResponse> {
+        let url_ = this.baseUrl + "/api/MarketingPerformance/months?";
+        if (from !== undefined && from !== null)
+            url_ += "from=" + encodeURIComponent("" + from) + "&";
+        if (to !== undefined && to !== null)
+            url_ += "to=" + encodeURIComponent("" + to) + "&";
+        if (includeWholesale === null)
+            throw new Error("The parameter 'includeWholesale' cannot be null.");
+        else if (includeWholesale !== undefined)
+            url_ += "includeWholesale=" + encodeURIComponent("" + includeWholesale) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processMarketingPerformance_GetMonths(_response);
+        });
+    }
+
+    protected processMarketingPerformance_GetMonths(response: Response): Promise<GetMarketingPerformanceMonthsResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = GetMarketingPerformanceMonthsResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status === 400) {
+            return response.text().then((_responseText) => {
+            let result400: any = null;
+            let resultData400 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result400 = GetMarketingPerformanceMonthsResponse.fromJS(resultData400);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result400);
+            });
+        } else if (status === 403) {
+            return response.text().then((_responseText) => {
+            let result403: any = null;
+            let resultData403 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result403 = ProblemDetails.fromJS(resultData403);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result403);
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<GetMarketingPerformanceMonthsResponse>(null as any);
+    }
+
+    marketingPerformance_GetComparison(years: number | undefined, includeWholesale: boolean | undefined): Promise<GetMarketingPerformanceComparisonResponse> {
+        let url_ = this.baseUrl + "/api/MarketingPerformance/comparison?";
+        if (years === null)
+            throw new Error("The parameter 'years' cannot be null.");
+        else if (years !== undefined)
+            url_ += "years=" + encodeURIComponent("" + years) + "&";
+        if (includeWholesale === null)
+            throw new Error("The parameter 'includeWholesale' cannot be null.");
+        else if (includeWholesale !== undefined)
+            url_ += "includeWholesale=" + encodeURIComponent("" + includeWholesale) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processMarketingPerformance_GetComparison(_response);
+        });
+    }
+
+    protected processMarketingPerformance_GetComparison(response: Response): Promise<GetMarketingPerformanceComparisonResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = GetMarketingPerformanceComparisonResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status === 403) {
+            return response.text().then((_responseText) => {
+            let result403: any = null;
+            let resultData403 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result403 = ProblemDetails.fromJS(resultData403);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result403);
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<GetMarketingPerformanceComparisonResponse>(null as any);
+    }
+
+    marketingPerformance_Recompute(request: RecomputeMarketingPerformanceRequest): Promise<RecomputeMarketingPerformanceResponse> {
+        let url_ = this.baseUrl + "/api/MarketingPerformance/recompute";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: RequestInit = {
+            body: content_,
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processMarketingPerformance_Recompute(_response);
+        });
+    }
+
+    protected processMarketingPerformance_Recompute(response: Response): Promise<RecomputeMarketingPerformanceResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 202) {
+            return response.text().then((_responseText) => {
+            let result202: any = null;
+            let resultData202 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result202 = RecomputeMarketingPerformanceResponse.fromJS(resultData202);
+            return result202;
+            });
+        } else if (status === 400) {
+            return response.text().then((_responseText) => {
+            let result400: any = null;
+            let resultData400 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result400 = RecomputeMarketingPerformanceResponse.fromJS(resultData400);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result400);
+            });
+        } else if (status === 409) {
+            return response.text().then((_responseText) => {
+            let result409: any = null;
+            let resultData409 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result409 = RecomputeMarketingPerformanceResponse.fromJS(resultData409);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result409);
+            });
+        } else if (status === 500) {
+            return response.text().then((_responseText) => {
+            let result500: any = null;
+            let resultData500 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result500 = RecomputeMarketingPerformanceResponse.fromJS(resultData500);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result500);
+            });
+        } else if (status === 403) {
+            return response.text().then((_responseText) => {
+            let result403: any = null;
+            let resultData403 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result403 = ProblemDetails.fromJS(resultData403);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result403);
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<RecomputeMarketingPerformanceResponse>(null as any);
     }
 
     materialContainers_GetMaterialContainers(materialCode: string | null | undefined, lotCode: string | null | undefined, code: string | null | undefined, page: number | undefined, pageSize: number | undefined): Promise<ListMaterialContainersResponse> {
@@ -9740,14 +10872,16 @@ export class ApiClient {
         return Promise.resolve<ResetOrderShipmentResponse>(null as any);
     }
 
-    packaging_GetPackageLabelPdf(orderCode: string, packageNumber: number): Promise<FileResponse> {
-        let url_ = this.baseUrl + "/api/packaging/orders/{orderCode}/packages/{packageNumber}/label.pdf";
+    packaging_GetPackageLabelPdf(orderCode: string, packageNumber: number, offsets: string | null | undefined): Promise<FileResponse> {
+        let url_ = this.baseUrl + "/api/packaging/orders/{orderCode}/packages/{packageNumber}/label.pdf?";
         if (orderCode === undefined || orderCode === null)
             throw new Error("The parameter 'orderCode' must be defined.");
         url_ = url_.replace("{orderCode}", encodeURIComponent("" + orderCode));
         if (packageNumber === undefined || packageNumber === null)
             throw new Error("The parameter 'packageNumber' must be defined.");
         url_ = url_.replace("{packageNumber}", encodeURIComponent("" + packageNumber));
+        if (offsets !== undefined && offsets !== null)
+            url_ += "offsets=" + encodeURIComponent("" + offsets) + "&";
         url_ = url_.replace(/[?&]$/, "");
 
         let options_: RequestInit = {
@@ -11662,7 +12796,272 @@ export class ApiClient {
         return Promise.resolve<void>(null as any);
     }
 
-    productMargins_GetProductMargins(productCode: string | null | undefined, productName: string | null | undefined, productType: ProductType | null | undefined, pageNumber: number | undefined, pageSize: number | undefined, sortBy: string | null | undefined, sortDescending: boolean | undefined): Promise<GetProductMarginsResponse> {
+    pricingScenarios_GetScenarios(): Promise<GetPricingScenariosResponse> {
+        let url_ = this.baseUrl + "/api/pricing-scenarios";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processPricingScenarios_GetScenarios(_response);
+        });
+    }
+
+    protected processPricingScenarios_GetScenarios(response: Response): Promise<GetPricingScenariosResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = GetPricingScenariosResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<GetPricingScenariosResponse>(null as any);
+    }
+
+    pricingScenarios_CreateScenario(request: SavePricingScenarioRequest): Promise<SavePricingScenarioResponse> {
+        let url_ = this.baseUrl + "/api/pricing-scenarios";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: RequestInit = {
+            body: content_,
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processPricingScenarios_CreateScenario(_response);
+        });
+    }
+
+    protected processPricingScenarios_CreateScenario(response: Response): Promise<SavePricingScenarioResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = SavePricingScenarioResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<SavePricingScenarioResponse>(null as any);
+    }
+
+    pricingScenarios_GetScenario(id: string): Promise<GetPricingScenarioResponse> {
+        let url_ = this.baseUrl + "/api/pricing-scenarios/{id}";
+        if (id === undefined || id === null)
+            throw new Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processPricingScenarios_GetScenario(_response);
+        });
+    }
+
+    protected processPricingScenarios_GetScenario(response: Response): Promise<GetPricingScenarioResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = GetPricingScenarioResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<GetPricingScenarioResponse>(null as any);
+    }
+
+    pricingScenarios_UpdateScenario(id: string, request: SavePricingScenarioRequest): Promise<SavePricingScenarioResponse> {
+        let url_ = this.baseUrl + "/api/pricing-scenarios/{id}";
+        if (id === undefined || id === null)
+            throw new Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: RequestInit = {
+            body: content_,
+            method: "PUT",
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processPricingScenarios_UpdateScenario(_response);
+        });
+    }
+
+    protected processPricingScenarios_UpdateScenario(response: Response): Promise<SavePricingScenarioResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = SavePricingScenarioResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<SavePricingScenarioResponse>(null as any);
+    }
+
+    pricingScenarios_DeleteScenario(id: string): Promise<DeletePricingScenarioResponse> {
+        let url_ = this.baseUrl + "/api/pricing-scenarios/{id}";
+        if (id === undefined || id === null)
+            throw new Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "DELETE",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processPricingScenarios_DeleteScenario(_response);
+        });
+    }
+
+    protected processPricingScenarios_DeleteScenario(response: Response): Promise<DeletePricingScenarioResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = DeletePricingScenarioResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<DeletePricingScenarioResponse>(null as any);
+    }
+
+    pricingSimulator_GetBaseline(productCode: string | null | undefined, productName: string | null | undefined, productType: ProductType | null | undefined): Promise<GetPricingBaselineResponse> {
+        let url_ = this.baseUrl + "/api/pricing-simulator/baseline?";
+        if (productCode !== undefined && productCode !== null)
+            url_ += "ProductCode=" + encodeURIComponent("" + productCode) + "&";
+        if (productName !== undefined && productName !== null)
+            url_ += "ProductName=" + encodeURIComponent("" + productName) + "&";
+        if (productType !== undefined && productType !== null)
+            url_ += "ProductType=" + encodeURIComponent("" + productType) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processPricingSimulator_GetBaseline(_response);
+        });
+    }
+
+    protected processPricingSimulator_GetBaseline(response: Response): Promise<GetPricingBaselineResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = GetPricingBaselineResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<GetPricingBaselineResponse>(null as any);
+    }
+
+    pricingSimulator_Recalculate(request: RecalculatePricingRequest): Promise<RecalculatePricingResponse> {
+        let url_ = this.baseUrl + "/api/pricing-simulator/recalculate";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: RequestInit = {
+            body: content_,
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processPricingSimulator_Recalculate(_response);
+        });
+    }
+
+    protected processPricingSimulator_Recalculate(response: Response): Promise<RecalculatePricingResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = RecalculatePricingResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<RecalculatePricingResponse>(null as any);
+    }
+
+    productMargins_GetProductMargins(productCode: string | null | undefined, productName: string | null | undefined, productType: ProductType | null | undefined, pageNumber: number | undefined, pageSize: number | undefined, sortBy: string | null | undefined, sortDescending: boolean | undefined, onlyWithSales: boolean | undefined): Promise<GetProductMarginsResponse> {
         let url_ = this.baseUrl + "/api/ProductMargins?";
         if (productCode !== undefined && productCode !== null)
             url_ += "ProductCode=" + encodeURIComponent("" + productCode) + "&";
@@ -11684,6 +13083,10 @@ export class ApiClient {
             throw new Error("The parameter 'sortDescending' cannot be null.");
         else if (sortDescending !== undefined)
             url_ += "SortDescending=" + encodeURIComponent("" + sortDescending) + "&";
+        if (onlyWithSales === null)
+            throw new Error("The parameter 'onlyWithSales' cannot be null.");
+        else if (onlyWithSales !== undefined)
+            url_ += "OnlyWithSales=" + encodeURIComponent("" + onlyWithSales) + "&";
         url_ = url_.replace(/[?&]$/, "");
 
         let options_: RequestInit = {
@@ -14614,6 +16017,7 @@ export enum ErrorCodes {
     ManufacturedInventoryItemNotFound = "ManufacturedInventoryItemNotFound",
     ManufacturedInventoryInsufficientStock = "ManufacturedInventoryInsufficientStock",
     ManufactureOrderNotCompleted = "ManufactureOrderNotCompleted",
+    ManufactureInsufficientMaterialStock = "ManufactureInsufficientMaterialStock",
     CatalogItemNotFound = "CatalogItemNotFound",
     ManufactureDifficultyNotFound = "ManufactureDifficultyNotFound",
     ManufactureDifficultyConflict = "ManufactureDifficultyConflict",
@@ -14655,6 +16059,7 @@ export enum ErrorCodes {
     InsufficientData = "InsufficientData",
     ProductNotFoundForAnalysis = "ProductNotFoundForAnalysis",
     InvalidReportPeriod = "InvalidReportPeriod",
+    InvalidTimeWindow = "InvalidTimeWindow",
     InvalidUrlFormat = "InvalidUrlFormat",
     InvalidContainerName = "InvalidContainerName",
     FileDownloadFailed = "FileDownloadFailed",
@@ -14668,6 +16073,7 @@ export enum ErrorCodes {
     InvalidCronExpression = "InvalidCronExpression",
     RecurringJobDisabled = "RecurringJobDisabled",
     RecurringJobEnqueueFailed = "RecurringJobEnqueueFailed",
+    RecurringJobAlreadyRunning = "RecurringJobAlreadyRunning",
     KnowledgeBaseFeedbackLogNotFound = "KnowledgeBaseFeedbackLogNotFound",
     KnowledgeBaseFeedbackAlreadySubmitted = "KnowledgeBaseFeedbackAlreadySubmitted",
     KnowledgeBaseChunkNotFound = "KnowledgeBaseChunkNotFound",
@@ -14735,6 +16141,7 @@ export enum ErrorCodes {
     ShipmentCreationFailed = "ShipmentCreationFailed",
     ShipmentLabelNotReady = "ShipmentLabelNotReady",
     ShipmentOrderWeightUnavailable = "ShipmentOrderWeightUnavailable",
+    ShipmentValidationFailed = "ShipmentValidationFailed",
     OrderNotInPackingState = "OrderNotInPackingState",
     ShipmentCancelFailed = "ShipmentCancelFailed",
     NoShipmentToReset = "NoShipmentToReset",
@@ -14775,6 +16182,37 @@ export enum ErrorCodes {
     ProductPriceShoptetWriteFailed = "ProductPriceShoptetWriteFailed",
     ProductPriceFlexiWriteFailed = "ProductPriceFlexiWriteFailed",
     ProductPriceErpReadFailed = "ProductPriceErpReadFailed",
+    MarketingPerformanceInvalidMonthRange = "MarketingPerformanceInvalidMonthRange",
+    MarketingPerformanceRangeTooLarge = "MarketingPerformanceRangeTooLarge",
+    MarketingPerformanceRecomputeAlreadyRunning = "MarketingPerformanceRecomputeAlreadyRunning",
+    MarketingPerformanceEnqueueFailed = "MarketingPerformanceEnqueueFailed",
+    PricingInvalidPrice = "PricingInvalidPrice",
+    PricingNegativeMaterialCost = "PricingNegativeMaterialCost",
+    PricingNegativeManufacturingCost = "PricingNegativeManufacturingCost",
+    PricingNegativeQuantity = "PricingNegativeQuantity",
+    PricingScenarioNotFound = "PricingScenarioNotFound",
+    PricingScenarioNameConflict = "PricingScenarioNameConflict",
+    PricingProductNotInBaseline = "PricingProductNotInBaseline",
+    ReportingDatasetNotFound = "ReportingDatasetNotFound",
+    ReportingInvalidQuery = "ReportingInvalidQuery",
+    ReportingQueryTimeout = "ReportingQueryTimeout",
+    MarketingAdsProposalNotFound = "MarketingAdsProposalNotFound",
+    MarketingAdsProposalVersionMismatch = "MarketingAdsProposalVersionMismatch",
+    MarketingAdsProposalNotPending = "MarketingAdsProposalNotPending",
+    MarketingAdsProposalExpired = "MarketingAdsProposalExpired",
+    MarketingAdsApprovalChannelDenied = "MarketingAdsApprovalChannelDenied",
+    MarketingAdsLimitsDenied = "MarketingAdsLimitsDenied",
+    MarketingAdsNeedsWebApproval = "MarketingAdsNeedsWebApproval",
+    MarketingAdsAlreadyApprovedByPrincipal = "MarketingAdsAlreadyApprovedByPrincipal",
+    MarketingAdsInvalidProposal = "MarketingAdsInvalidProposal",
+    MarketingAdsNotRevertible = "MarketingAdsNotRevertible",
+    MarketingAdsRevertFailed = "MarketingAdsRevertFailed",
+    MarketingAdsAgentRunNotFound = "MarketingAdsAgentRunNotFound",
+    MarketingAdsInvalidSetting = "MarketingAdsInvalidSetting",
+    MarketingAdsConcurrentChange = "MarketingAdsConcurrentChange",
+    MarketingAdsNoExecutor = "MarketingAdsNoExecutor",
+    MarketingAdsNotProposalOwner = "MarketingAdsNotProposalOwner",
+    MarketingAdsInvalidAgentRun = "MarketingAdsInvalidAgentRun",
     ExternalServiceError = "ExternalServiceError",
     FlexiApiError = "FlexiApiError",
     ShoptetApiError = "ShoptetApiError",
@@ -16331,6 +17769,119 @@ export class BackfillArticleRequestedByCommand implements IBackfillArticleReques
 export interface IBackfillArticleRequestedByCommand {
     groupId?: string;
     dryRun?: boolean;
+}
+
+export class RunBreakInsertionResponse extends BaseResponse implements IRunBreakInsertionResponse {
+    daysScanned?: number;
+    breaksInserted?: number;
+    daysHealed?: number;
+    recordsRecreated?: number;
+    recreateFailed?: number;
+    skippedExistingBreak?: number;
+    skippedInProgress?: number;
+    skippedBelowThreshold?: number;
+    skippedHoursOnly?: number;
+    skippedNoSlot?: number;
+    failed?: number;
+
+    constructor(data?: IRunBreakInsertionResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            this.daysScanned = _data["daysScanned"];
+            this.breaksInserted = _data["breaksInserted"];
+            this.daysHealed = _data["daysHealed"];
+            this.recordsRecreated = _data["recordsRecreated"];
+            this.recreateFailed = _data["recreateFailed"];
+            this.skippedExistingBreak = _data["skippedExistingBreak"];
+            this.skippedInProgress = _data["skippedInProgress"];
+            this.skippedBelowThreshold = _data["skippedBelowThreshold"];
+            this.skippedHoursOnly = _data["skippedHoursOnly"];
+            this.skippedNoSlot = _data["skippedNoSlot"];
+            this.failed = _data["failed"];
+        }
+    }
+
+    static override fromJS(data: any): RunBreakInsertionResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new RunBreakInsertionResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["daysScanned"] = this.daysScanned;
+        data["breaksInserted"] = this.breaksInserted;
+        data["daysHealed"] = this.daysHealed;
+        data["recordsRecreated"] = this.recordsRecreated;
+        data["recreateFailed"] = this.recreateFailed;
+        data["skippedExistingBreak"] = this.skippedExistingBreak;
+        data["skippedInProgress"] = this.skippedInProgress;
+        data["skippedBelowThreshold"] = this.skippedBelowThreshold;
+        data["skippedHoursOnly"] = this.skippedHoursOnly;
+        data["skippedNoSlot"] = this.skippedNoSlot;
+        data["failed"] = this.failed;
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IRunBreakInsertionResponse extends IBaseResponse {
+    daysScanned?: number;
+    breaksInserted?: number;
+    daysHealed?: number;
+    recordsRecreated?: number;
+    recreateFailed?: number;
+    skippedExistingBreak?: number;
+    skippedInProgress?: number;
+    skippedBelowThreshold?: number;
+    skippedHoursOnly?: number;
+    skippedNoSlot?: number;
+    failed?: number;
+}
+
+export class RunBreakInsertionRequest implements IRunBreakInsertionRequest {
+    fromDaysAgo?: number | undefined;
+    toDaysAgo?: number | undefined;
+
+    constructor(data?: IRunBreakInsertionRequest) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.fromDaysAgo = _data["fromDaysAgo"];
+            this.toDaysAgo = _data["toDaysAgo"];
+        }
+    }
+
+    static fromJS(data: any): RunBreakInsertionRequest {
+        data = typeof data === 'object' ? data : {};
+        let result = new RunBreakInsertionRequest();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["fromDaysAgo"] = this.fromDaysAgo;
+        data["toDaysAgo"] = this.toDaysAgo;
+        return data;
+    }
+}
+
+export interface IRunBreakInsertionRequest {
+    fromDaysAgo?: number | undefined;
+    toDaysAgo?: number | undefined;
 }
 
 export class GetMeResponse extends BaseResponse implements IGetMeResponse {
@@ -18356,6 +19907,7 @@ export interface IGetCatalogListResponse extends IBaseResponse {
 export class CatalogItemDto implements ICatalogItemDto {
     productCode?: string;
     productName?: string;
+    productNameSuffix?: string | undefined;
     type?: ProductType;
     stock?: StockDto;
     price?: PriceDto;
@@ -18387,6 +19939,7 @@ export class CatalogItemDto implements ICatalogItemDto {
         if (_data) {
             this.productCode = _data["productCode"];
             this.productName = _data["productName"];
+            this.productNameSuffix = _data["productNameSuffix"];
             this.type = _data["type"];
             this.stock = _data["stock"] ? StockDto.fromJS(_data["stock"]) : <any>undefined;
             this.price = _data["price"] ? PriceDto.fromJS(_data["price"]) : <any>undefined;
@@ -18422,6 +19975,7 @@ export class CatalogItemDto implements ICatalogItemDto {
         data = typeof data === 'object' ? data : {};
         data["productCode"] = this.productCode;
         data["productName"] = this.productName;
+        data["productNameSuffix"] = this.productNameSuffix;
         data["type"] = this.type;
         data["stock"] = this.stock ? this.stock.toJSON() : <any>undefined;
         data["price"] = this.price ? this.price.toJSON() : <any>undefined;
@@ -18450,6 +20004,7 @@ export class CatalogItemDto implements ICatalogItemDto {
 export interface ICatalogItemDto {
     productCode?: string;
     productName?: string;
+    productNameSuffix?: string | undefined;
     type?: ProductType;
     stock?: StockDto;
     price?: PriceDto;
@@ -18543,6 +20098,7 @@ export class PriceDto implements IPriceDto {
     currentPurchasePrice?: number | undefined;
     sellingPriceWithVat?: number | undefined;
     purchasePriceWithVat?: number | undefined;
+    stockPrice?: number | undefined;
     eshopPrice?: EshopPriceDto | undefined;
     erpPrice?: ErpPriceDto | undefined;
 
@@ -18561,6 +20117,7 @@ export class PriceDto implements IPriceDto {
             this.currentPurchasePrice = _data["currentPurchasePrice"];
             this.sellingPriceWithVat = _data["sellingPriceWithVat"];
             this.purchasePriceWithVat = _data["purchasePriceWithVat"];
+            this.stockPrice = _data["stockPrice"];
             this.eshopPrice = _data["eshopPrice"] ? EshopPriceDto.fromJS(_data["eshopPrice"]) : <any>undefined;
             this.erpPrice = _data["erpPrice"] ? ErpPriceDto.fromJS(_data["erpPrice"]) : <any>undefined;
         }
@@ -18579,6 +20136,7 @@ export class PriceDto implements IPriceDto {
         data["currentPurchasePrice"] = this.currentPurchasePrice;
         data["sellingPriceWithVat"] = this.sellingPriceWithVat;
         data["purchasePriceWithVat"] = this.purchasePriceWithVat;
+        data["stockPrice"] = this.stockPrice;
         data["eshopPrice"] = this.eshopPrice ? this.eshopPrice.toJSON() : <any>undefined;
         data["erpPrice"] = this.erpPrice ? this.erpPrice.toJSON() : <any>undefined;
         return data;
@@ -18590,6 +20148,7 @@ export interface IPriceDto {
     currentPurchasePrice?: number | undefined;
     sellingPriceWithVat?: number | undefined;
     purchasePriceWithVat?: number | undefined;
+    stockPrice?: number | undefined;
     eshopPrice?: EshopPriceDto | undefined;
     erpPrice?: ErpPriceDto | undefined;
 }
@@ -18598,6 +20157,11 @@ export class EshopPriceDto implements IEshopPriceDto {
     priceWithVat?: number;
     purchasePrice?: number;
     priceWithoutVat?: number;
+    regularPriceWithVat?: number | undefined;
+    actionPriceWithVat?: number | undefined;
+    actionFrom?: Date | undefined;
+    actionUntil?: Date | undefined;
+    isInAction?: boolean;
 
     constructor(data?: IEshopPriceDto) {
         if (data) {
@@ -18613,6 +20177,11 @@ export class EshopPriceDto implements IEshopPriceDto {
             this.priceWithVat = _data["priceWithVat"];
             this.purchasePrice = _data["purchasePrice"];
             this.priceWithoutVat = _data["priceWithoutVat"];
+            this.regularPriceWithVat = _data["regularPriceWithVat"];
+            this.actionPriceWithVat = _data["actionPriceWithVat"];
+            this.actionFrom = _data["actionFrom"] ? new Date(_data["actionFrom"].toString()) : <any>undefined;
+            this.actionUntil = _data["actionUntil"] ? new Date(_data["actionUntil"].toString()) : <any>undefined;
+            this.isInAction = _data["isInAction"];
         }
     }
 
@@ -18628,6 +20197,11 @@ export class EshopPriceDto implements IEshopPriceDto {
         data["priceWithVat"] = this.priceWithVat;
         data["purchasePrice"] = this.purchasePrice;
         data["priceWithoutVat"] = this.priceWithoutVat;
+        data["regularPriceWithVat"] = this.regularPriceWithVat;
+        data["actionPriceWithVat"] = this.actionPriceWithVat;
+        data["actionFrom"] = this.actionFrom ? formatDate(this.actionFrom) : <any>undefined;
+        data["actionUntil"] = this.actionUntil ? formatDate(this.actionUntil) : <any>undefined;
+        data["isInAction"] = this.isInAction;
         return data;
     }
 }
@@ -18636,6 +20210,11 @@ export interface IEshopPriceDto {
     priceWithVat?: number;
     purchasePrice?: number;
     priceWithoutVat?: number;
+    regularPriceWithVat?: number | undefined;
+    actionPriceWithVat?: number | undefined;
+    actionFrom?: Date | undefined;
+    actionUntil?: Date | undefined;
+    isInAction?: boolean;
 }
 
 export class ErpPriceDto implements IErpPriceDto {
@@ -19226,6 +20805,7 @@ export class MarginHistoryDto implements IMarginHistoryDto {
     m0?: MarginLevelDto;
     m1?: MarginLevelDto;
     m2?: MarginLevelDto;
+    m3?: MarginLevelDto;
 
     constructor(data?: IMarginHistoryDto) {
         if (data) {
@@ -19244,6 +20824,7 @@ export class MarginHistoryDto implements IMarginHistoryDto {
             this.m0 = _data["m0"] ? MarginLevelDto.fromJS(_data["m0"]) : <any>undefined;
             this.m1 = _data["m1"] ? MarginLevelDto.fromJS(_data["m1"]) : <any>undefined;
             this.m2 = _data["m2"] ? MarginLevelDto.fromJS(_data["m2"]) : <any>undefined;
+            this.m3 = _data["m3"] ? MarginLevelDto.fromJS(_data["m3"]) : <any>undefined;
         }
     }
 
@@ -19262,6 +20843,7 @@ export class MarginHistoryDto implements IMarginHistoryDto {
         data["m0"] = this.m0 ? this.m0.toJSON() : <any>undefined;
         data["m1"] = this.m1 ? this.m1.toJSON() : <any>undefined;
         data["m2"] = this.m2 ? this.m2.toJSON() : <any>undefined;
+        data["m3"] = this.m3 ? this.m3.toJSON() : <any>undefined;
         return data;
     }
 }
@@ -19273,6 +20855,7 @@ export interface IMarginHistoryDto {
     m0?: MarginLevelDto;
     m1?: MarginLevelDto;
     m2?: MarginLevelDto;
+    m3?: MarginLevelDto;
 }
 
 export class MarginLevelDto implements IMarginLevelDto {
@@ -19701,6 +21284,7 @@ export interface IGetMaterialsForPurchaseResponse extends IBaseResponse {
 export class MaterialForPurchaseDto implements IMaterialForPurchaseDto {
     productCode?: string;
     productName?: string;
+    productNameSuffix?: string | undefined;
     productType?: string;
     lastPurchasePrice?: number | undefined;
     location?: string | undefined;
@@ -19720,6 +21304,7 @@ export class MaterialForPurchaseDto implements IMaterialForPurchaseDto {
         if (_data) {
             this.productCode = _data["productCode"];
             this.productName = _data["productName"];
+            this.productNameSuffix = _data["productNameSuffix"];
             this.productType = _data["productType"];
             this.lastPurchasePrice = _data["lastPurchasePrice"];
             this.location = _data["location"];
@@ -19739,6 +21324,7 @@ export class MaterialForPurchaseDto implements IMaterialForPurchaseDto {
         data = typeof data === 'object' ? data : {};
         data["productCode"] = this.productCode;
         data["productName"] = this.productName;
+        data["productNameSuffix"] = this.productNameSuffix;
         data["productType"] = this.productType;
         data["lastPurchasePrice"] = this.lastPurchasePrice;
         data["location"] = this.location;
@@ -19751,6 +21337,7 @@ export class MaterialForPurchaseDto implements IMaterialForPurchaseDto {
 export interface IMaterialForPurchaseDto {
     productCode?: string;
     productName?: string;
+    productNameSuffix?: string | undefined;
     productType?: string;
     lastPurchasePrice?: number | undefined;
     location?: string | undefined;
@@ -20632,7 +22219,6 @@ export class GetConfigurationResponse extends BaseResponse implements IGetConfig
     version?: string;
     environment?: string;
     useMockAuth?: boolean;
-    timestamp?: Date;
 
     constructor(data?: IGetConfigurationResponse) {
         super(data);
@@ -20644,7 +22230,6 @@ export class GetConfigurationResponse extends BaseResponse implements IGetConfig
             this.version = _data["version"];
             this.environment = _data["environment"];
             this.useMockAuth = _data["useMockAuth"];
-            this.timestamp = _data["timestamp"] ? new Date(_data["timestamp"].toString()) : <any>undefined;
         }
     }
 
@@ -20660,7 +22245,6 @@ export class GetConfigurationResponse extends BaseResponse implements IGetConfig
         data["version"] = this.version;
         data["environment"] = this.environment;
         data["useMockAuth"] = this.useMockAuth;
-        data["timestamp"] = this.timestamp ? this.timestamp.toISOString() : <any>undefined;
         super.toJSON(data);
         return data;
     }
@@ -20670,7 +22254,6 @@ export interface IGetConfigurationResponse extends IBaseResponse {
     version?: string;
     environment?: string;
     useMockAuth?: boolean;
-    timestamp?: Date;
 }
 
 export class DashboardTileDto implements IDashboardTileDto {
@@ -21925,9 +23508,9 @@ export interface IClearFlagOverrideResponse extends IBaseResponse {
 }
 
 export class DownloadFromUrlResponse extends BaseResponse implements IDownloadFromUrlResponse {
-    blobUrl?: string;
-    blobName?: string;
-    containerName?: string;
+    blobUrl?: string | undefined;
+    blobName?: string | undefined;
+    containerName?: string | undefined;
     fileSizeBytes?: number;
 
     constructor(data?: IDownloadFromUrlResponse) {
@@ -21963,9 +23546,9 @@ export class DownloadFromUrlResponse extends BaseResponse implements IDownloadFr
 }
 
 export interface IDownloadFromUrlResponse extends IBaseResponse {
-    blobUrl?: string;
-    blobName?: string;
-    containerName?: string;
+    blobUrl?: string | undefined;
+    blobName?: string | undefined;
+    containerName?: string | undefined;
     fileSizeBytes?: number;
 }
 
@@ -25574,6 +27157,9 @@ export class RagFeedbackLogSummary implements IRagFeedbackLogSummary {
     precisionScore?: number | undefined;
     styleScore?: number | undefined;
     feedbackComment?: string | undefined;
+    problemTags?: string[];
+    productTags?: string[];
+    recommendedProductCodes?: string[];
     hasFeedback?: boolean;
 
     constructor(data?: IRagFeedbackLogSummary) {
@@ -25612,6 +27198,21 @@ export class RagFeedbackLogSummary implements IRagFeedbackLogSummary {
             this.precisionScore = _data["precisionScore"];
             this.styleScore = _data["styleScore"];
             this.feedbackComment = _data["feedbackComment"];
+            if (Array.isArray(_data["problemTags"])) {
+                this.problemTags = [] as any;
+                for (let item of _data["problemTags"])
+                    this.problemTags!.push(item);
+            }
+            if (Array.isArray(_data["productTags"])) {
+                this.productTags = [] as any;
+                for (let item of _data["productTags"])
+                    this.productTags!.push(item);
+            }
+            if (Array.isArray(_data["recommendedProductCodes"])) {
+                this.recommendedProductCodes = [] as any;
+                for (let item of _data["recommendedProductCodes"])
+                    this.recommendedProductCodes!.push(item);
+            }
             this.hasFeedback = _data["hasFeedback"];
         }
     }
@@ -25650,6 +27251,21 @@ export class RagFeedbackLogSummary implements IRagFeedbackLogSummary {
         data["precisionScore"] = this.precisionScore;
         data["styleScore"] = this.styleScore;
         data["feedbackComment"] = this.feedbackComment;
+        if (Array.isArray(this.problemTags)) {
+            data["problemTags"] = [];
+            for (let item of this.problemTags)
+                data["problemTags"].push(item);
+        }
+        if (Array.isArray(this.productTags)) {
+            data["productTags"] = [];
+            for (let item of this.productTags)
+                data["productTags"].push(item);
+        }
+        if (Array.isArray(this.recommendedProductCodes)) {
+            data["recommendedProductCodes"] = [];
+            for (let item of this.recommendedProductCodes)
+                data["recommendedProductCodes"].push(item);
+        }
         data["hasFeedback"] = this.hasFeedback;
         return data;
     }
@@ -25677,6 +27293,9 @@ export interface IRagFeedbackLogSummary {
     precisionScore?: number | undefined;
     styleScore?: number | undefined;
     feedbackComment?: string | undefined;
+    problemTags?: string[];
+    productTags?: string[];
+    recommendedProductCodes?: string[];
     hasFeedback?: boolean;
 }
 
@@ -25783,6 +27402,115 @@ export interface IRagFeedbackStatsDto {
     totalWithFeedback?: number;
     avgPrecisionScore?: number | undefined;
     avgStyleScore?: number | undefined;
+}
+
+export class GetQuestionTagStatsResponse extends BaseResponse implements IGetQuestionTagStatsResponse {
+    problemTags?: QuestionTagCountDto[];
+    productTags?: QuestionTagCountDto[];
+    recommendedProducts?: QuestionTagCountDto[];
+
+    constructor(data?: IGetQuestionTagStatsResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            if (Array.isArray(_data["problemTags"])) {
+                this.problemTags = [] as any;
+                for (let item of _data["problemTags"])
+                    this.problemTags!.push(QuestionTagCountDto.fromJS(item));
+            }
+            if (Array.isArray(_data["productTags"])) {
+                this.productTags = [] as any;
+                for (let item of _data["productTags"])
+                    this.productTags!.push(QuestionTagCountDto.fromJS(item));
+            }
+            if (Array.isArray(_data["recommendedProducts"])) {
+                this.recommendedProducts = [] as any;
+                for (let item of _data["recommendedProducts"])
+                    this.recommendedProducts!.push(QuestionTagCountDto.fromJS(item));
+            }
+        }
+    }
+
+    static override fromJS(data: any): GetQuestionTagStatsResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new GetQuestionTagStatsResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        if (Array.isArray(this.problemTags)) {
+            data["problemTags"] = [];
+            for (let item of this.problemTags)
+                data["problemTags"].push(item.toJSON());
+        }
+        if (Array.isArray(this.productTags)) {
+            data["productTags"] = [];
+            for (let item of this.productTags)
+                data["productTags"].push(item.toJSON());
+        }
+        if (Array.isArray(this.recommendedProducts)) {
+            data["recommendedProducts"] = [];
+            for (let item of this.recommendedProducts)
+                data["recommendedProducts"].push(item.toJSON());
+        }
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IGetQuestionTagStatsResponse extends IBaseResponse {
+    problemTags?: QuestionTagCountDto[];
+    productTags?: QuestionTagCountDto[];
+    recommendedProducts?: QuestionTagCountDto[];
+}
+
+export class QuestionTagCountDto implements IQuestionTagCountDto {
+    tag?: string;
+    label?: string;
+    count?: number;
+
+    constructor(data?: IQuestionTagCountDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.tag = _data["tag"];
+            this.label = _data["label"];
+            this.count = _data["count"];
+        }
+    }
+
+    static fromJS(data: any): QuestionTagCountDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new QuestionTagCountDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["tag"] = this.tag;
+        data["label"] = this.label;
+        data["count"] = this.count;
+        return data;
+    }
+}
+
+export interface IQuestionTagCountDto {
+    tag?: string;
+    label?: string;
+    count?: number;
 }
 
 export class SubmitFeedbackResponse extends BaseResponse implements ISubmitFeedbackResponse {
@@ -28682,6 +30410,7 @@ export class BatchPlanItemDto implements IBatchPlanItemDto {
     productName?: string;
     productSize?: string;
     currentStock?: number;
+    plannedQuantity?: number;
     dailySalesRate?: number;
     currentDaysCoverage?: number;
     recommendedUnitsToProduceHumanReadable?: number;
@@ -28710,6 +30439,7 @@ export class BatchPlanItemDto implements IBatchPlanItemDto {
             this.productName = _data["productName"];
             this.productSize = _data["productSize"];
             this.currentStock = _data["currentStock"];
+            this.plannedQuantity = _data["plannedQuantity"];
             this.dailySalesRate = _data["dailySalesRate"];
             this.currentDaysCoverage = _data["currentDaysCoverage"];
             this.recommendedUnitsToProduceHumanReadable = _data["recommendedUnitsToProduceHumanReadable"];
@@ -28738,6 +30468,7 @@ export class BatchPlanItemDto implements IBatchPlanItemDto {
         data["productName"] = this.productName;
         data["productSize"] = this.productSize;
         data["currentStock"] = this.currentStock;
+        data["plannedQuantity"] = this.plannedQuantity;
         data["dailySalesRate"] = this.dailySalesRate;
         data["currentDaysCoverage"] = this.currentDaysCoverage;
         data["recommendedUnitsToProduceHumanReadable"] = this.recommendedUnitsToProduceHumanReadable;
@@ -28759,6 +30490,7 @@ export interface IBatchPlanItemDto {
     productName?: string;
     productSize?: string;
     currentStock?: number;
+    plannedQuantity?: number;
     dailySalesRate?: number;
     currentDaysCoverage?: number;
     recommendedUnitsToProduceHumanReadable?: number;
@@ -32338,6 +34070,2026 @@ export enum ManufacturingStockSortBy {
     BatchSize = "BatchSize",
 }
 
+export class ListAdAuditEventsResponse extends BaseResponse implements IListAdAuditEventsResponse {
+    items?: AdAuditEventDto[];
+    totalCount?: number;
+
+    constructor(data?: IListAdAuditEventsResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            if (Array.isArray(_data["items"])) {
+                this.items = [] as any;
+                for (let item of _data["items"])
+                    this.items!.push(AdAuditEventDto.fromJS(item));
+            }
+            this.totalCount = _data["totalCount"];
+        }
+    }
+
+    static override fromJS(data: any): ListAdAuditEventsResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new ListAdAuditEventsResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        if (Array.isArray(this.items)) {
+            data["items"] = [];
+            for (let item of this.items)
+                data["items"].push(item.toJSON());
+        }
+        data["totalCount"] = this.totalCount;
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IListAdAuditEventsResponse extends IBaseResponse {
+    items?: AdAuditEventDto[];
+    totalCount?: number;
+}
+
+export class AdAuditEventDto implements IAdAuditEventDto {
+    id?: number;
+    proposalId?: number | undefined;
+    version?: number | undefined;
+    eventType?: AdAuditEventType;
+    actorPrincipal?: string;
+    actorKind?: AdActorKind;
+    channel?: ApprovalChannel;
+    payloadJson?: string;
+    occurredAt?: Date;
+
+    constructor(data?: IAdAuditEventDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.id = _data["id"];
+            this.proposalId = _data["proposalId"];
+            this.version = _data["version"];
+            this.eventType = _data["eventType"];
+            this.actorPrincipal = _data["actorPrincipal"];
+            this.actorKind = _data["actorKind"];
+            this.channel = _data["channel"];
+            this.payloadJson = _data["payloadJson"];
+            this.occurredAt = _data["occurredAt"] ? new Date(_data["occurredAt"].toString()) : <any>undefined;
+        }
+    }
+
+    static fromJS(data: any): AdAuditEventDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new AdAuditEventDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["id"] = this.id;
+        data["proposalId"] = this.proposalId;
+        data["version"] = this.version;
+        data["eventType"] = this.eventType;
+        data["actorPrincipal"] = this.actorPrincipal;
+        data["actorKind"] = this.actorKind;
+        data["channel"] = this.channel;
+        data["payloadJson"] = this.payloadJson;
+        data["occurredAt"] = this.occurredAt ? this.occurredAt.toISOString() : <any>undefined;
+        return data;
+    }
+}
+
+export interface IAdAuditEventDto {
+    id?: number;
+    proposalId?: number | undefined;
+    version?: number | undefined;
+    eventType?: AdAuditEventType;
+    actorPrincipal?: string;
+    actorKind?: AdActorKind;
+    channel?: ApprovalChannel;
+    payloadJson?: string;
+    occurredAt?: Date;
+}
+
+export enum AdAuditEventType {
+    Submitted = "Submitted",
+    Revised = "Revised",
+    Approved = "Approved",
+    Rejected = "Rejected",
+    Expired = "Expired",
+    ExecutionStarted = "ExecutionStarted",
+    ActionExecuted = "ActionExecuted",
+    ActionFailed = "ActionFailed",
+    Reverted = "Reverted",
+    SettingChanged = "SettingChanged",
+    KillSwitchChanged = "KillSwitchChanged",
+}
+
+export enum AdActorKind {
+    Human = "Human",
+    Agent = "Agent",
+    System = "System",
+}
+
+export enum ApprovalChannel {
+    Web = "Web",
+    Mcp = "Mcp",
+    System = "System",
+}
+
+export class ListAgentRunsResponse extends BaseResponse implements IListAgentRunsResponse {
+    items?: AgentRunDto[];
+    totalCount?: number;
+
+    constructor(data?: IListAgentRunsResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            if (Array.isArray(_data["items"])) {
+                this.items = [] as any;
+                for (let item of _data["items"])
+                    this.items!.push(AgentRunDto.fromJS(item));
+            }
+            this.totalCount = _data["totalCount"];
+        }
+    }
+
+    static override fromJS(data: any): ListAgentRunsResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new ListAgentRunsResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        if (Array.isArray(this.items)) {
+            data["items"] = [];
+            for (let item of this.items)
+                data["items"].push(item.toJSON());
+        }
+        data["totalCount"] = this.totalCount;
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IListAgentRunsResponse extends IBaseResponse {
+    items?: AgentRunDto[];
+    totalCount?: number;
+}
+
+export class AgentRunDto implements IAgentRunDto {
+    id?: string;
+    agentName?: string;
+    principal?: string;
+    startedAt?: Date;
+    finishedAt?: Date | undefined;
+    status?: AgentRunStatus;
+    summary?: string | undefined;
+    dataScopesRead?: string[];
+    proposalsCreated?: number;
+    inputTokens?: number | undefined;
+    outputTokens?: number | undefined;
+    costCzk?: number | undefined;
+
+    constructor(data?: IAgentRunDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.id = _data["id"];
+            this.agentName = _data["agentName"];
+            this.principal = _data["principal"];
+            this.startedAt = _data["startedAt"] ? new Date(_data["startedAt"].toString()) : <any>undefined;
+            this.finishedAt = _data["finishedAt"] ? new Date(_data["finishedAt"].toString()) : <any>undefined;
+            this.status = _data["status"];
+            this.summary = _data["summary"];
+            if (Array.isArray(_data["dataScopesRead"])) {
+                this.dataScopesRead = [] as any;
+                for (let item of _data["dataScopesRead"])
+                    this.dataScopesRead!.push(item);
+            }
+            this.proposalsCreated = _data["proposalsCreated"];
+            this.inputTokens = _data["inputTokens"];
+            this.outputTokens = _data["outputTokens"];
+            this.costCzk = _data["costCzk"];
+        }
+    }
+
+    static fromJS(data: any): AgentRunDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new AgentRunDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["id"] = this.id;
+        data["agentName"] = this.agentName;
+        data["principal"] = this.principal;
+        data["startedAt"] = this.startedAt ? this.startedAt.toISOString() : <any>undefined;
+        data["finishedAt"] = this.finishedAt ? this.finishedAt.toISOString() : <any>undefined;
+        data["status"] = this.status;
+        data["summary"] = this.summary;
+        if (Array.isArray(this.dataScopesRead)) {
+            data["dataScopesRead"] = [];
+            for (let item of this.dataScopesRead)
+                data["dataScopesRead"].push(item);
+        }
+        data["proposalsCreated"] = this.proposalsCreated;
+        data["inputTokens"] = this.inputTokens;
+        data["outputTokens"] = this.outputTokens;
+        data["costCzk"] = this.costCzk;
+        return data;
+    }
+}
+
+export interface IAgentRunDto {
+    id?: string;
+    agentName?: string;
+    principal?: string;
+    startedAt?: Date;
+    finishedAt?: Date | undefined;
+    status?: AgentRunStatus;
+    summary?: string | undefined;
+    dataScopesRead?: string[];
+    proposalsCreated?: number;
+    inputTokens?: number | undefined;
+    outputTokens?: number | undefined;
+    costCzk?: number | undefined;
+}
+
+export enum AgentRunStatus {
+    Running = "Running",
+    Succeeded = "Succeeded",
+    Failed = "Failed",
+}
+
+export class GetAdChangeHistoryResponse extends BaseResponse implements IGetAdChangeHistoryResponse {
+    from?: Date;
+    to?: Date;
+    pageNumber?: number;
+    pageSize?: number;
+    totalCount?: number;
+    events?: AdChangeEventDto[];
+
+    constructor(data?: IGetAdChangeHistoryResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            this.from = _data["from"] ? new Date(_data["from"].toString()) : <any>undefined;
+            this.to = _data["to"] ? new Date(_data["to"].toString()) : <any>undefined;
+            this.pageNumber = _data["pageNumber"];
+            this.pageSize = _data["pageSize"];
+            this.totalCount = _data["totalCount"];
+            if (Array.isArray(_data["events"])) {
+                this.events = [] as any;
+                for (let item of _data["events"])
+                    this.events!.push(AdChangeEventDto.fromJS(item));
+            }
+        }
+    }
+
+    static override fromJS(data: any): GetAdChangeHistoryResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new GetAdChangeHistoryResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["from"] = this.from ? this.from.toISOString() : <any>undefined;
+        data["to"] = this.to ? this.to.toISOString() : <any>undefined;
+        data["pageNumber"] = this.pageNumber;
+        data["pageSize"] = this.pageSize;
+        data["totalCount"] = this.totalCount;
+        if (Array.isArray(this.events)) {
+            data["events"] = [];
+            for (let item of this.events)
+                data["events"].push(item.toJSON());
+        }
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IGetAdChangeHistoryResponse extends IBaseResponse {
+    from?: Date;
+    to?: Date;
+    pageNumber?: number;
+    pageSize?: number;
+    totalCount?: number;
+    events?: AdChangeEventDto[];
+}
+
+export class AdChangeEventDto implements IAdChangeEventDto {
+    id?: number;
+    platform?: AdPlatform;
+    accountExternalId?: string;
+    occurredAt?: Date;
+    actor?: string | undefined;
+    actorKind?: AdChangeActorKind;
+    entityLevel?: AdEntityLevel | undefined;
+    entityExternalId?: string | undefined;
+    entityName?: string | undefined;
+    changeType?: string;
+    oldValueJson?: string | undefined;
+    newValueJson?: string | undefined;
+    source?: AdChangeSource;
+    origin?: AdChangeOrigin;
+    matchedExecutionId?: string | undefined;
+
+    constructor(data?: IAdChangeEventDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.id = _data["id"];
+            this.platform = _data["platform"];
+            this.accountExternalId = _data["accountExternalId"];
+            this.occurredAt = _data["occurredAt"] ? new Date(_data["occurredAt"].toString()) : <any>undefined;
+            this.actor = _data["actor"];
+            this.actorKind = _data["actorKind"];
+            this.entityLevel = _data["entityLevel"];
+            this.entityExternalId = _data["entityExternalId"];
+            this.entityName = _data["entityName"];
+            this.changeType = _data["changeType"];
+            this.oldValueJson = _data["oldValueJson"];
+            this.newValueJson = _data["newValueJson"];
+            this.source = _data["source"];
+            this.origin = _data["origin"];
+            this.matchedExecutionId = _data["matchedExecutionId"];
+        }
+    }
+
+    static fromJS(data: any): AdChangeEventDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new AdChangeEventDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["id"] = this.id;
+        data["platform"] = this.platform;
+        data["accountExternalId"] = this.accountExternalId;
+        data["occurredAt"] = this.occurredAt ? this.occurredAt.toISOString() : <any>undefined;
+        data["actor"] = this.actor;
+        data["actorKind"] = this.actorKind;
+        data["entityLevel"] = this.entityLevel;
+        data["entityExternalId"] = this.entityExternalId;
+        data["entityName"] = this.entityName;
+        data["changeType"] = this.changeType;
+        data["oldValueJson"] = this.oldValueJson;
+        data["newValueJson"] = this.newValueJson;
+        data["source"] = this.source;
+        data["origin"] = this.origin;
+        data["matchedExecutionId"] = this.matchedExecutionId;
+        return data;
+    }
+}
+
+export interface IAdChangeEventDto {
+    id?: number;
+    platform?: AdPlatform;
+    accountExternalId?: string;
+    occurredAt?: Date;
+    actor?: string | undefined;
+    actorKind?: AdChangeActorKind;
+    entityLevel?: AdEntityLevel | undefined;
+    entityExternalId?: string | undefined;
+    entityName?: string | undefined;
+    changeType?: string;
+    oldValueJson?: string | undefined;
+    newValueJson?: string | undefined;
+    source?: AdChangeSource;
+    origin?: AdChangeOrigin;
+    matchedExecutionId?: string | undefined;
+}
+
+export enum AdPlatform {
+    GoogleAds = "GoogleAds",
+    MetaAds = "MetaAds",
+    Sklik = "Sklik",
+}
+
+export enum AdChangeActorKind {
+    Unknown = "Unknown",
+    Heblo = "Heblo",
+    User = "User",
+    PlatformAutomation = "PlatformAutomation",
+}
+
+export enum AdEntityLevel {
+    Campaign = "Campaign",
+    AdGroup = "AdGroup",
+    Keyword = "Keyword",
+    NegativeKeyword = "NegativeKeyword",
+    Ad = "Ad",
+}
+
+export enum AdChangeSource {
+    PlatformChangeLog = "PlatformChangeLog",
+    SnapshotDiff = "SnapshotDiff",
+}
+
+export enum AdChangeOrigin {
+    Heblo = "Heblo",
+    OutOfBand = "OutOfBand",
+}
+
+export class ListAdProposalsResponse extends BaseResponse implements IListAdProposalsResponse {
+    items?: AdProposalSummaryDto[];
+    totalCount?: number;
+
+    constructor(data?: IListAdProposalsResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            if (Array.isArray(_data["items"])) {
+                this.items = [] as any;
+                for (let item of _data["items"])
+                    this.items!.push(AdProposalSummaryDto.fromJS(item));
+            }
+            this.totalCount = _data["totalCount"];
+        }
+    }
+
+    static override fromJS(data: any): ListAdProposalsResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new ListAdProposalsResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        if (Array.isArray(this.items)) {
+            data["items"] = [];
+            for (let item of this.items)
+                data["items"].push(item.toJSON());
+        }
+        data["totalCount"] = this.totalCount;
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IListAdProposalsResponse extends IBaseResponse {
+    items?: AdProposalSummaryDto[];
+    totalCount?: number;
+}
+
+export class AdProposalSummaryDto implements IAdProposalSummaryDto {
+    id?: number;
+    currentVersion?: number;
+    status?: AdProposalStatus;
+    platform?: AdPlatform;
+    accountExternalId?: string;
+    actionType?: AdActionType;
+    actionCount?: number;
+    createdByPrincipal?: string;
+    createdByKind?: AdActorKind;
+    agentRunId?: string | undefined;
+    createdAt?: Date;
+    expiresAt?: Date;
+    updatedAt?: Date;
+    diffLines?: string[];
+
+    constructor(data?: IAdProposalSummaryDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.id = _data["id"];
+            this.currentVersion = _data["currentVersion"];
+            this.status = _data["status"];
+            this.platform = _data["platform"];
+            this.accountExternalId = _data["accountExternalId"];
+            this.actionType = _data["actionType"];
+            this.actionCount = _data["actionCount"];
+            this.createdByPrincipal = _data["createdByPrincipal"];
+            this.createdByKind = _data["createdByKind"];
+            this.agentRunId = _data["agentRunId"];
+            this.createdAt = _data["createdAt"] ? new Date(_data["createdAt"].toString()) : <any>undefined;
+            this.expiresAt = _data["expiresAt"] ? new Date(_data["expiresAt"].toString()) : <any>undefined;
+            this.updatedAt = _data["updatedAt"] ? new Date(_data["updatedAt"].toString()) : <any>undefined;
+            if (Array.isArray(_data["diffLines"])) {
+                this.diffLines = [] as any;
+                for (let item of _data["diffLines"])
+                    this.diffLines!.push(item);
+            }
+        }
+    }
+
+    static fromJS(data: any): AdProposalSummaryDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new AdProposalSummaryDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["id"] = this.id;
+        data["currentVersion"] = this.currentVersion;
+        data["status"] = this.status;
+        data["platform"] = this.platform;
+        data["accountExternalId"] = this.accountExternalId;
+        data["actionType"] = this.actionType;
+        data["actionCount"] = this.actionCount;
+        data["createdByPrincipal"] = this.createdByPrincipal;
+        data["createdByKind"] = this.createdByKind;
+        data["agentRunId"] = this.agentRunId;
+        data["createdAt"] = this.createdAt ? this.createdAt.toISOString() : <any>undefined;
+        data["expiresAt"] = this.expiresAt ? this.expiresAt.toISOString() : <any>undefined;
+        data["updatedAt"] = this.updatedAt ? this.updatedAt.toISOString() : <any>undefined;
+        if (Array.isArray(this.diffLines)) {
+            data["diffLines"] = [];
+            for (let item of this.diffLines)
+                data["diffLines"].push(item);
+        }
+        return data;
+    }
+}
+
+export interface IAdProposalSummaryDto {
+    id?: number;
+    currentVersion?: number;
+    status?: AdProposalStatus;
+    platform?: AdPlatform;
+    accountExternalId?: string;
+    actionType?: AdActionType;
+    actionCount?: number;
+    createdByPrincipal?: string;
+    createdByKind?: AdActorKind;
+    agentRunId?: string | undefined;
+    createdAt?: Date;
+    expiresAt?: Date;
+    updatedAt?: Date;
+    diffLines?: string[];
+}
+
+export enum AdProposalStatus {
+    Pending = "Pending",
+    Approved = "Approved",
+    Executing = "Executing",
+    Executed = "Executed",
+    PartiallyExecuted = "PartiallyExecuted",
+    Failed = "Failed",
+    Rejected = "Rejected",
+    Expired = "Expired",
+    Reverted = "Reverted",
+}
+
+export enum AdActionType {
+    AddNegativeKeyword = "AddNegativeKeyword",
+    PauseAd = "PauseAd",
+}
+
+export class GetAdProposalResponse extends BaseResponse implements IGetAdProposalResponse {
+    proposal?: AdProposalDetailDto;
+
+    constructor(data?: IGetAdProposalResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            this.proposal = _data["proposal"] ? AdProposalDetailDto.fromJS(_data["proposal"]) : <any>undefined;
+        }
+    }
+
+    static override fromJS(data: any): GetAdProposalResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new GetAdProposalResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["proposal"] = this.proposal ? this.proposal.toJSON() : <any>undefined;
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IGetAdProposalResponse extends IBaseResponse {
+    proposal?: AdProposalDetailDto;
+}
+
+export class AdProposalDetailDto implements IAdProposalDetailDto {
+    summary?: AdProposalSummaryDto;
+    versions?: AdProposalVersionDto[];
+    approvals?: AdProposalApprovalDto[];
+    executions?: AdActionExecutionDto[];
+    currentEvaluation?: AdLimitsEvaluationDto | undefined;
+
+    constructor(data?: IAdProposalDetailDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.summary = _data["summary"] ? AdProposalSummaryDto.fromJS(_data["summary"]) : <any>undefined;
+            if (Array.isArray(_data["versions"])) {
+                this.versions = [] as any;
+                for (let item of _data["versions"])
+                    this.versions!.push(AdProposalVersionDto.fromJS(item));
+            }
+            if (Array.isArray(_data["approvals"])) {
+                this.approvals = [] as any;
+                for (let item of _data["approvals"])
+                    this.approvals!.push(AdProposalApprovalDto.fromJS(item));
+            }
+            if (Array.isArray(_data["executions"])) {
+                this.executions = [] as any;
+                for (let item of _data["executions"])
+                    this.executions!.push(AdActionExecutionDto.fromJS(item));
+            }
+            this.currentEvaluation = _data["currentEvaluation"] ? AdLimitsEvaluationDto.fromJS(_data["currentEvaluation"]) : <any>undefined;
+        }
+    }
+
+    static fromJS(data: any): AdProposalDetailDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new AdProposalDetailDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["summary"] = this.summary ? this.summary.toJSON() : <any>undefined;
+        if (Array.isArray(this.versions)) {
+            data["versions"] = [];
+            for (let item of this.versions)
+                data["versions"].push(item.toJSON());
+        }
+        if (Array.isArray(this.approvals)) {
+            data["approvals"] = [];
+            for (let item of this.approvals)
+                data["approvals"].push(item.toJSON());
+        }
+        if (Array.isArray(this.executions)) {
+            data["executions"] = [];
+            for (let item of this.executions)
+                data["executions"].push(item.toJSON());
+        }
+        data["currentEvaluation"] = this.currentEvaluation ? this.currentEvaluation.toJSON() : <any>undefined;
+        return data;
+    }
+}
+
+export interface IAdProposalDetailDto {
+    summary?: AdProposalSummaryDto;
+    versions?: AdProposalVersionDto[];
+    approvals?: AdProposalApprovalDto[];
+    executions?: AdActionExecutionDto[];
+    currentEvaluation?: AdLimitsEvaluationDto | undefined;
+}
+
+export class AdProposalVersionDto implements IAdProposalVersionDto {
+    version?: number;
+    actionCount?: number;
+    reasoning?: string;
+    createdBy?: string;
+    createdAt?: Date;
+    diffLines?: string[];
+
+    constructor(data?: IAdProposalVersionDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.version = _data["version"];
+            this.actionCount = _data["actionCount"];
+            this.reasoning = _data["reasoning"];
+            this.createdBy = _data["createdBy"];
+            this.createdAt = _data["createdAt"] ? new Date(_data["createdAt"].toString()) : <any>undefined;
+            if (Array.isArray(_data["diffLines"])) {
+                this.diffLines = [] as any;
+                for (let item of _data["diffLines"])
+                    this.diffLines!.push(item);
+            }
+        }
+    }
+
+    static fromJS(data: any): AdProposalVersionDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new AdProposalVersionDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["version"] = this.version;
+        data["actionCount"] = this.actionCount;
+        data["reasoning"] = this.reasoning;
+        data["createdBy"] = this.createdBy;
+        data["createdAt"] = this.createdAt ? this.createdAt.toISOString() : <any>undefined;
+        if (Array.isArray(this.diffLines)) {
+            data["diffLines"] = [];
+            for (let item of this.diffLines)
+                data["diffLines"].push(item);
+        }
+        return data;
+    }
+}
+
+export interface IAdProposalVersionDto {
+    version?: number;
+    actionCount?: number;
+    reasoning?: string;
+    createdBy?: string;
+    createdAt?: Date;
+    diffLines?: string[];
+}
+
+export class AdProposalApprovalDto implements IAdProposalApprovalDto {
+    version?: number;
+    principal?: string;
+    channel?: ApprovalChannel;
+    decision?: ApprovalDecision;
+    reason?: string | undefined;
+    at?: Date;
+
+    constructor(data?: IAdProposalApprovalDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.version = _data["version"];
+            this.principal = _data["principal"];
+            this.channel = _data["channel"];
+            this.decision = _data["decision"];
+            this.reason = _data["reason"];
+            this.at = _data["at"] ? new Date(_data["at"].toString()) : <any>undefined;
+        }
+    }
+
+    static fromJS(data: any): AdProposalApprovalDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new AdProposalApprovalDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["version"] = this.version;
+        data["principal"] = this.principal;
+        data["channel"] = this.channel;
+        data["decision"] = this.decision;
+        data["reason"] = this.reason;
+        data["at"] = this.at ? this.at.toISOString() : <any>undefined;
+        return data;
+    }
+}
+
+export interface IAdProposalApprovalDto {
+    version?: number;
+    principal?: string;
+    channel?: ApprovalChannel;
+    decision?: ApprovalDecision;
+    reason?: string | undefined;
+    at?: Date;
+}
+
+export enum ApprovalDecision {
+    Approved = "Approved",
+    Rejected = "Rejected",
+}
+
+export class AdActionExecutionDto implements IAdActionExecutionDto {
+    version?: number;
+    actionIndex?: number;
+    targetExternalId?: string;
+    state?: AdActionExecutionState;
+    beforeValue?: string | undefined;
+    afterValue?: string | undefined;
+    platformResourceId?: string | undefined;
+    error?: string | undefined;
+    validateOnly?: boolean;
+    executedAt?: Date;
+    revertState?: AdActionRevertState;
+    revertedAt?: Date | undefined;
+    revertError?: string | undefined;
+    revertValidateOnly?: boolean;
+
+    constructor(data?: IAdActionExecutionDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.version = _data["version"];
+            this.actionIndex = _data["actionIndex"];
+            this.targetExternalId = _data["targetExternalId"];
+            this.state = _data["state"];
+            this.beforeValue = _data["beforeValue"];
+            this.afterValue = _data["afterValue"];
+            this.platformResourceId = _data["platformResourceId"];
+            this.error = _data["error"];
+            this.validateOnly = _data["validateOnly"];
+            this.executedAt = _data["executedAt"] ? new Date(_data["executedAt"].toString()) : <any>undefined;
+            this.revertState = _data["revertState"];
+            this.revertedAt = _data["revertedAt"] ? new Date(_data["revertedAt"].toString()) : <any>undefined;
+            this.revertError = _data["revertError"];
+            this.revertValidateOnly = _data["revertValidateOnly"];
+        }
+    }
+
+    static fromJS(data: any): AdActionExecutionDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new AdActionExecutionDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["version"] = this.version;
+        data["actionIndex"] = this.actionIndex;
+        data["targetExternalId"] = this.targetExternalId;
+        data["state"] = this.state;
+        data["beforeValue"] = this.beforeValue;
+        data["afterValue"] = this.afterValue;
+        data["platformResourceId"] = this.platformResourceId;
+        data["error"] = this.error;
+        data["validateOnly"] = this.validateOnly;
+        data["executedAt"] = this.executedAt ? this.executedAt.toISOString() : <any>undefined;
+        data["revertState"] = this.revertState;
+        data["revertedAt"] = this.revertedAt ? this.revertedAt.toISOString() : <any>undefined;
+        data["revertError"] = this.revertError;
+        data["revertValidateOnly"] = this.revertValidateOnly;
+        return data;
+    }
+}
+
+export interface IAdActionExecutionDto {
+    version?: number;
+    actionIndex?: number;
+    targetExternalId?: string;
+    state?: AdActionExecutionState;
+    beforeValue?: string | undefined;
+    afterValue?: string | undefined;
+    platformResourceId?: string | undefined;
+    error?: string | undefined;
+    validateOnly?: boolean;
+    executedAt?: Date;
+    revertState?: AdActionRevertState;
+    revertedAt?: Date | undefined;
+    revertError?: string | undefined;
+    revertValidateOnly?: boolean;
+}
+
+export enum AdActionExecutionState {
+    Succeeded = "Succeeded",
+    Failed = "Failed",
+    StaleState = "StaleState",
+    Skipped = "Skipped",
+}
+
+export enum AdActionRevertState {
+    NotReverted = "NotReverted",
+    Reverted = "Reverted",
+    RevertFailed = "RevertFailed",
+}
+
+export class AdLimitsEvaluationDto implements IAdLimitsEvaluationDto {
+    decision?: AdLimitsDecision;
+    reason?: string | undefined;
+
+    constructor(data?: IAdLimitsEvaluationDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.decision = _data["decision"];
+            this.reason = _data["reason"];
+        }
+    }
+
+    static fromJS(data: any): AdLimitsEvaluationDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new AdLimitsEvaluationDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["decision"] = this.decision;
+        data["reason"] = this.reason;
+        return data;
+    }
+}
+
+export interface IAdLimitsEvaluationDto {
+    decision?: AdLimitsDecision;
+    reason?: string | undefined;
+}
+
+export enum AdLimitsDecision {
+    Allowed = "Allowed",
+    NeedsSecondApprover = "NeedsSecondApprover",
+    NeedsWebApproval = "NeedsWebApproval",
+    Denied = "Denied",
+}
+
+export abstract class AdProposalMutationResponse extends BaseResponse implements IAdProposalMutationResponse {
+    proposalId?: number;
+    version?: number;
+    status?: AdProposalStatus;
+    autoApproved?: boolean;
+    evaluation?: AdLimitsEvaluationDto;
+    diffLines?: string[];
+
+    constructor(data?: IAdProposalMutationResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            this.proposalId = _data["proposalId"];
+            this.version = _data["version"];
+            this.status = _data["status"];
+            this.autoApproved = _data["autoApproved"];
+            this.evaluation = _data["evaluation"] ? AdLimitsEvaluationDto.fromJS(_data["evaluation"]) : <any>undefined;
+            if (Array.isArray(_data["diffLines"])) {
+                this.diffLines = [] as any;
+                for (let item of _data["diffLines"])
+                    this.diffLines!.push(item);
+            }
+        }
+    }
+
+    static override fromJS(data: any): AdProposalMutationResponse {
+        data = typeof data === 'object' ? data : {};
+        throw new Error("The abstract class 'AdProposalMutationResponse' cannot be instantiated.");
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["proposalId"] = this.proposalId;
+        data["version"] = this.version;
+        data["status"] = this.status;
+        data["autoApproved"] = this.autoApproved;
+        data["evaluation"] = this.evaluation ? this.evaluation.toJSON() : <any>undefined;
+        if (Array.isArray(this.diffLines)) {
+            data["diffLines"] = [];
+            for (let item of this.diffLines)
+                data["diffLines"].push(item);
+        }
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IAdProposalMutationResponse extends IBaseResponse {
+    proposalId?: number;
+    version?: number;
+    status?: AdProposalStatus;
+    autoApproved?: boolean;
+    evaluation?: AdLimitsEvaluationDto;
+    diffLines?: string[];
+}
+
+export class SubmitAdProposalResponse extends AdProposalMutationResponse implements ISubmitAdProposalResponse {
+
+    constructor(data?: ISubmitAdProposalResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+    }
+
+    static override fromJS(data: any): SubmitAdProposalResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new SubmitAdProposalResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface ISubmitAdProposalResponse extends IAdProposalMutationResponse {
+}
+
+export class SubmitAdProposalRequest implements ISubmitAdProposalRequest {
+    platform?: AdPlatform;
+    accountExternalId?: string;
+    actionType?: AdActionType;
+    actions?: AdActionInputDto[];
+    reasoning?: string;
+    agentRunId?: string | undefined;
+
+    constructor(data?: ISubmitAdProposalRequest) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.platform = _data["platform"];
+            this.accountExternalId = _data["accountExternalId"];
+            this.actionType = _data["actionType"];
+            if (Array.isArray(_data["actions"])) {
+                this.actions = [] as any;
+                for (let item of _data["actions"])
+                    this.actions!.push(AdActionInputDto.fromJS(item));
+            }
+            this.reasoning = _data["reasoning"];
+            this.agentRunId = _data["agentRunId"];
+        }
+    }
+
+    static fromJS(data: any): SubmitAdProposalRequest {
+        data = typeof data === 'object' ? data : {};
+        let result = new SubmitAdProposalRequest();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["platform"] = this.platform;
+        data["accountExternalId"] = this.accountExternalId;
+        data["actionType"] = this.actionType;
+        if (Array.isArray(this.actions)) {
+            data["actions"] = [];
+            for (let item of this.actions)
+                data["actions"].push(item.toJSON());
+        }
+        data["reasoning"] = this.reasoning;
+        data["agentRunId"] = this.agentRunId;
+        return data;
+    }
+}
+
+export interface ISubmitAdProposalRequest {
+    platform?: AdPlatform;
+    accountExternalId?: string;
+    actionType?: AdActionType;
+    actions?: AdActionInputDto[];
+    reasoning?: string;
+    agentRunId?: string | undefined;
+}
+
+export class AdActionInputDto implements IAdActionInputDto {
+    targetLevel?: AdEntityLevel;
+    targetExternalId?: string;
+    keywordText?: string | undefined;
+    matchType?: KeywordMatchType | undefined;
+
+    constructor(data?: IAdActionInputDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.targetLevel = _data["targetLevel"];
+            this.targetExternalId = _data["targetExternalId"];
+            this.keywordText = _data["keywordText"];
+            this.matchType = _data["matchType"];
+        }
+    }
+
+    static fromJS(data: any): AdActionInputDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new AdActionInputDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["targetLevel"] = this.targetLevel;
+        data["targetExternalId"] = this.targetExternalId;
+        data["keywordText"] = this.keywordText;
+        data["matchType"] = this.matchType;
+        return data;
+    }
+}
+
+export interface IAdActionInputDto {
+    targetLevel?: AdEntityLevel;
+    targetExternalId?: string;
+    keywordText?: string | undefined;
+    matchType?: KeywordMatchType | undefined;
+}
+
+export enum KeywordMatchType {
+    Exact = "Exact",
+    Phrase = "Phrase",
+    Broad = "Broad",
+}
+
+export class ReviseAdProposalResponse extends AdProposalMutationResponse implements IReviseAdProposalResponse {
+
+    constructor(data?: IReviseAdProposalResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+    }
+
+    static override fromJS(data: any): ReviseAdProposalResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new ReviseAdProposalResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IReviseAdProposalResponse extends IAdProposalMutationResponse {
+}
+
+export class ReviseAdProposalRequest implements IReviseAdProposalRequest {
+    id?: number;
+    expectedVersion?: number;
+    actions?: AdActionInputDto[];
+    reasoning?: string;
+
+    constructor(data?: IReviseAdProposalRequest) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.id = _data["id"];
+            this.expectedVersion = _data["expectedVersion"];
+            if (Array.isArray(_data["actions"])) {
+                this.actions = [] as any;
+                for (let item of _data["actions"])
+                    this.actions!.push(AdActionInputDto.fromJS(item));
+            }
+            this.reasoning = _data["reasoning"];
+        }
+    }
+
+    static fromJS(data: any): ReviseAdProposalRequest {
+        data = typeof data === 'object' ? data : {};
+        let result = new ReviseAdProposalRequest();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["id"] = this.id;
+        data["expectedVersion"] = this.expectedVersion;
+        if (Array.isArray(this.actions)) {
+            data["actions"] = [];
+            for (let item of this.actions)
+                data["actions"].push(item.toJSON());
+        }
+        data["reasoning"] = this.reasoning;
+        return data;
+    }
+}
+
+export interface IReviseAdProposalRequest {
+    id?: number;
+    expectedVersion?: number;
+    actions?: AdActionInputDto[];
+    reasoning?: string;
+}
+
+export class ApproveAdProposalResponse extends BaseResponse implements IApproveAdProposalResponse {
+    proposalId?: number;
+    version?: number;
+    status?: AdProposalStatus;
+    awaitingSecondApprover?: boolean;
+    executionJobId?: string | undefined;
+
+    constructor(data?: IApproveAdProposalResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            this.proposalId = _data["proposalId"];
+            this.version = _data["version"];
+            this.status = _data["status"];
+            this.awaitingSecondApprover = _data["awaitingSecondApprover"];
+            this.executionJobId = _data["executionJobId"];
+        }
+    }
+
+    static override fromJS(data: any): ApproveAdProposalResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new ApproveAdProposalResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["proposalId"] = this.proposalId;
+        data["version"] = this.version;
+        data["status"] = this.status;
+        data["awaitingSecondApprover"] = this.awaitingSecondApprover;
+        data["executionJobId"] = this.executionJobId;
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IApproveAdProposalResponse extends IBaseResponse {
+    proposalId?: number;
+    version?: number;
+    status?: AdProposalStatus;
+    awaitingSecondApprover?: boolean;
+    executionJobId?: string | undefined;
+}
+
+export class ApproveAdProposalRequest implements IApproveAdProposalRequest {
+    id?: number;
+    version?: number;
+
+    constructor(data?: IApproveAdProposalRequest) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.id = _data["id"];
+            this.version = _data["version"];
+        }
+    }
+
+    static fromJS(data: any): ApproveAdProposalRequest {
+        data = typeof data === 'object' ? data : {};
+        let result = new ApproveAdProposalRequest();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["id"] = this.id;
+        data["version"] = this.version;
+        return data;
+    }
+}
+
+export interface IApproveAdProposalRequest {
+    id?: number;
+    version?: number;
+}
+
+export class RejectAdProposalResponse extends BaseResponse implements IRejectAdProposalResponse {
+    proposalId?: number;
+    version?: number;
+    status?: AdProposalStatus;
+
+    constructor(data?: IRejectAdProposalResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            this.proposalId = _data["proposalId"];
+            this.version = _data["version"];
+            this.status = _data["status"];
+        }
+    }
+
+    static override fromJS(data: any): RejectAdProposalResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new RejectAdProposalResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["proposalId"] = this.proposalId;
+        data["version"] = this.version;
+        data["status"] = this.status;
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IRejectAdProposalResponse extends IBaseResponse {
+    proposalId?: number;
+    version?: number;
+    status?: AdProposalStatus;
+}
+
+export class RejectAdProposalRequest implements IRejectAdProposalRequest {
+    id?: number;
+    version?: number;
+    reason?: string;
+
+    constructor(data?: IRejectAdProposalRequest) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.id = _data["id"];
+            this.version = _data["version"];
+            this.reason = _data["reason"];
+        }
+    }
+
+    static fromJS(data: any): RejectAdProposalRequest {
+        data = typeof data === 'object' ? data : {};
+        let result = new RejectAdProposalRequest();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["id"] = this.id;
+        data["version"] = this.version;
+        data["reason"] = this.reason;
+        return data;
+    }
+}
+
+export interface IRejectAdProposalRequest {
+    id?: number;
+    version?: number;
+    reason?: string;
+}
+
+export class RevertAdProposalResponse extends BaseResponse implements IRevertAdProposalResponse {
+    proposalId?: number;
+    status?: AdProposalStatus;
+    revertedActions?: number;
+    failedActions?: number;
+    validateOnlyActions?: number;
+
+    constructor(data?: IRevertAdProposalResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            this.proposalId = _data["proposalId"];
+            this.status = _data["status"];
+            this.revertedActions = _data["revertedActions"];
+            this.failedActions = _data["failedActions"];
+            this.validateOnlyActions = _data["validateOnlyActions"];
+        }
+    }
+
+    static override fromJS(data: any): RevertAdProposalResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new RevertAdProposalResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["proposalId"] = this.proposalId;
+        data["status"] = this.status;
+        data["revertedActions"] = this.revertedActions;
+        data["failedActions"] = this.failedActions;
+        data["validateOnlyActions"] = this.validateOnlyActions;
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IRevertAdProposalResponse extends IBaseResponse {
+    proposalId?: number;
+    status?: AdProposalStatus;
+    revertedActions?: number;
+    failedActions?: number;
+    validateOnlyActions?: number;
+}
+
+export class GetAdSettingsResponse extends BaseResponse implements IGetAdSettingsResponse {
+    autonomy?: AdAutonomySettingDto[];
+    limits?: AdLimitSettingDto[];
+    killSwitches?: AdKillSwitchDto[];
+    isExecutionEnabledGlobally?: boolean;
+    approvalRates?: AdApprovalRateDto[];
+
+    constructor(data?: IGetAdSettingsResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            if (Array.isArray(_data["autonomy"])) {
+                this.autonomy = [] as any;
+                for (let item of _data["autonomy"])
+                    this.autonomy!.push(AdAutonomySettingDto.fromJS(item));
+            }
+            if (Array.isArray(_data["limits"])) {
+                this.limits = [] as any;
+                for (let item of _data["limits"])
+                    this.limits!.push(AdLimitSettingDto.fromJS(item));
+            }
+            if (Array.isArray(_data["killSwitches"])) {
+                this.killSwitches = [] as any;
+                for (let item of _data["killSwitches"])
+                    this.killSwitches!.push(AdKillSwitchDto.fromJS(item));
+            }
+            this.isExecutionEnabledGlobally = _data["isExecutionEnabledGlobally"];
+            if (Array.isArray(_data["approvalRates"])) {
+                this.approvalRates = [] as any;
+                for (let item of _data["approvalRates"])
+                    this.approvalRates!.push(AdApprovalRateDto.fromJS(item));
+            }
+        }
+    }
+
+    static override fromJS(data: any): GetAdSettingsResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new GetAdSettingsResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        if (Array.isArray(this.autonomy)) {
+            data["autonomy"] = [];
+            for (let item of this.autonomy)
+                data["autonomy"].push(item.toJSON());
+        }
+        if (Array.isArray(this.limits)) {
+            data["limits"] = [];
+            for (let item of this.limits)
+                data["limits"].push(item.toJSON());
+        }
+        if (Array.isArray(this.killSwitches)) {
+            data["killSwitches"] = [];
+            for (let item of this.killSwitches)
+                data["killSwitches"].push(item.toJSON());
+        }
+        data["isExecutionEnabledGlobally"] = this.isExecutionEnabledGlobally;
+        if (Array.isArray(this.approvalRates)) {
+            data["approvalRates"] = [];
+            for (let item of this.approvalRates)
+                data["approvalRates"].push(item.toJSON());
+        }
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IGetAdSettingsResponse extends IBaseResponse {
+    autonomy?: AdAutonomySettingDto[];
+    limits?: AdLimitSettingDto[];
+    killSwitches?: AdKillSwitchDto[];
+    isExecutionEnabledGlobally?: boolean;
+    approvalRates?: AdApprovalRateDto[];
+}
+
+export class AdAutonomySettingDto implements IAdAutonomySettingDto {
+    platform?: AdPlatform;
+    actionType?: AdActionType;
+    mode?: AdAutonomyMode;
+    updatedAt?: Date;
+    updatedBy?: string;
+
+    constructor(data?: IAdAutonomySettingDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.platform = _data["platform"];
+            this.actionType = _data["actionType"];
+            this.mode = _data["mode"];
+            this.updatedAt = _data["updatedAt"] ? new Date(_data["updatedAt"].toString()) : <any>undefined;
+            this.updatedBy = _data["updatedBy"];
+        }
+    }
+
+    static fromJS(data: any): AdAutonomySettingDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new AdAutonomySettingDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["platform"] = this.platform;
+        data["actionType"] = this.actionType;
+        data["mode"] = this.mode;
+        data["updatedAt"] = this.updatedAt ? this.updatedAt.toISOString() : <any>undefined;
+        data["updatedBy"] = this.updatedBy;
+        return data;
+    }
+}
+
+export interface IAdAutonomySettingDto {
+    platform?: AdPlatform;
+    actionType?: AdActionType;
+    mode?: AdAutonomyMode;
+    updatedAt?: Date;
+    updatedBy?: string;
+}
+
+export enum AdAutonomyMode {
+    ProposeOnly = "ProposeOnly",
+    AutoWithinLimits = "AutoWithinLimits",
+    Auto = "Auto",
+}
+
+export class AdLimitSettingDto implements IAdLimitSettingDto {
+    platform?: AdPlatform;
+    actionType?: AdActionType;
+    key?: string;
+    value?: number;
+    updatedAt?: Date;
+    updatedBy?: string;
+
+    constructor(data?: IAdLimitSettingDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.platform = _data["platform"];
+            this.actionType = _data["actionType"];
+            this.key = _data["key"];
+            this.value = _data["value"];
+            this.updatedAt = _data["updatedAt"] ? new Date(_data["updatedAt"].toString()) : <any>undefined;
+            this.updatedBy = _data["updatedBy"];
+        }
+    }
+
+    static fromJS(data: any): AdLimitSettingDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new AdLimitSettingDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["platform"] = this.platform;
+        data["actionType"] = this.actionType;
+        data["key"] = this.key;
+        data["value"] = this.value;
+        data["updatedAt"] = this.updatedAt ? this.updatedAt.toISOString() : <any>undefined;
+        data["updatedBy"] = this.updatedBy;
+        return data;
+    }
+}
+
+export interface IAdLimitSettingDto {
+    platform?: AdPlatform;
+    actionType?: AdActionType;
+    key?: string;
+    value?: number;
+    updatedAt?: Date;
+    updatedBy?: string;
+}
+
+export class AdKillSwitchDto implements IAdKillSwitchDto {
+    scope?: string;
+    executionEnabled?: boolean;
+    updatedAt?: Date;
+    updatedBy?: string;
+
+    constructor(data?: IAdKillSwitchDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.scope = _data["scope"];
+            this.executionEnabled = _data["executionEnabled"];
+            this.updatedAt = _data["updatedAt"] ? new Date(_data["updatedAt"].toString()) : <any>undefined;
+            this.updatedBy = _data["updatedBy"];
+        }
+    }
+
+    static fromJS(data: any): AdKillSwitchDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new AdKillSwitchDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["scope"] = this.scope;
+        data["executionEnabled"] = this.executionEnabled;
+        data["updatedAt"] = this.updatedAt ? this.updatedAt.toISOString() : <any>undefined;
+        data["updatedBy"] = this.updatedBy;
+        return data;
+    }
+}
+
+export interface IAdKillSwitchDto {
+    scope?: string;
+    executionEnabled?: boolean;
+    updatedAt?: Date;
+    updatedBy?: string;
+}
+
+export class AdApprovalRateDto implements IAdApprovalRateDto {
+    platform?: AdPlatform;
+    actionType?: AdActionType;
+    decided?: number;
+    approvedWithoutEdit?: number;
+    rate?: number | undefined;
+
+    constructor(data?: IAdApprovalRateDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.platform = _data["platform"];
+            this.actionType = _data["actionType"];
+            this.decided = _data["decided"];
+            this.approvedWithoutEdit = _data["approvedWithoutEdit"];
+            this.rate = _data["rate"];
+        }
+    }
+
+    static fromJS(data: any): AdApprovalRateDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new AdApprovalRateDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["platform"] = this.platform;
+        data["actionType"] = this.actionType;
+        data["decided"] = this.decided;
+        data["approvedWithoutEdit"] = this.approvedWithoutEdit;
+        data["rate"] = this.rate;
+        return data;
+    }
+}
+
+export interface IAdApprovalRateDto {
+    platform?: AdPlatform;
+    actionType?: AdActionType;
+    decided?: number;
+    approvedWithoutEdit?: number;
+    rate?: number | undefined;
+}
+
+export class UpdateAdAutonomySettingResponse extends BaseResponse implements IUpdateAdAutonomySettingResponse {
+
+    constructor(data?: IUpdateAdAutonomySettingResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+    }
+
+    static override fromJS(data: any): UpdateAdAutonomySettingResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new UpdateAdAutonomySettingResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IUpdateAdAutonomySettingResponse extends IBaseResponse {
+}
+
+export class UpdateAdAutonomySettingRequest implements IUpdateAdAutonomySettingRequest {
+    platform?: AdPlatform;
+    actionType?: AdActionType;
+    mode?: AdAutonomyMode;
+
+    constructor(data?: IUpdateAdAutonomySettingRequest) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.platform = _data["platform"];
+            this.actionType = _data["actionType"];
+            this.mode = _data["mode"];
+        }
+    }
+
+    static fromJS(data: any): UpdateAdAutonomySettingRequest {
+        data = typeof data === 'object' ? data : {};
+        let result = new UpdateAdAutonomySettingRequest();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["platform"] = this.platform;
+        data["actionType"] = this.actionType;
+        data["mode"] = this.mode;
+        return data;
+    }
+}
+
+export interface IUpdateAdAutonomySettingRequest {
+    platform?: AdPlatform;
+    actionType?: AdActionType;
+    mode?: AdAutonomyMode;
+}
+
+export class UpdateAdLimitSettingResponse extends BaseResponse implements IUpdateAdLimitSettingResponse {
+
+    constructor(data?: IUpdateAdLimitSettingResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+    }
+
+    static override fromJS(data: any): UpdateAdLimitSettingResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new UpdateAdLimitSettingResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IUpdateAdLimitSettingResponse extends IBaseResponse {
+}
+
+export class UpdateAdLimitSettingRequest implements IUpdateAdLimitSettingRequest {
+    platform?: AdPlatform;
+    actionType?: AdActionType;
+    key?: string;
+    value?: number;
+
+    constructor(data?: IUpdateAdLimitSettingRequest) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.platform = _data["platform"];
+            this.actionType = _data["actionType"];
+            this.key = _data["key"];
+            this.value = _data["value"];
+        }
+    }
+
+    static fromJS(data: any): UpdateAdLimitSettingRequest {
+        data = typeof data === 'object' ? data : {};
+        let result = new UpdateAdLimitSettingRequest();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["platform"] = this.platform;
+        data["actionType"] = this.actionType;
+        data["key"] = this.key;
+        data["value"] = this.value;
+        return data;
+    }
+}
+
+export interface IUpdateAdLimitSettingRequest {
+    platform?: AdPlatform;
+    actionType?: AdActionType;
+    key?: string;
+    value?: number;
+}
+
+export class SetAdKillSwitchResponse extends BaseResponse implements ISetAdKillSwitchResponse {
+
+    constructor(data?: ISetAdKillSwitchResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+    }
+
+    static override fromJS(data: any): SetAdKillSwitchResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new SetAdKillSwitchResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface ISetAdKillSwitchResponse extends IBaseResponse {
+}
+
+export class SetAdKillSwitchRequest implements ISetAdKillSwitchRequest {
+    platform?: AdPlatform | undefined;
+    executionEnabled?: boolean;
+
+    constructor(data?: ISetAdKillSwitchRequest) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.platform = _data["platform"];
+            this.executionEnabled = _data["executionEnabled"];
+        }
+    }
+
+    static fromJS(data: any): SetAdKillSwitchRequest {
+        data = typeof data === 'object' ? data : {};
+        let result = new SetAdKillSwitchRequest();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["platform"] = this.platform;
+        data["executionEnabled"] = this.executionEnabled;
+        return data;
+    }
+}
+
+export interface ISetAdKillSwitchRequest {
+    platform?: AdPlatform | undefined;
+    executionEnabled?: boolean;
+}
+
 export class GetMarketingActionsResponse extends BaseResponse implements IGetMarketingActionsResponse {
     actions?: MarketingActionDto[];
     totalCount?: number;
@@ -33284,6 +37036,523 @@ export interface IImportFromOutlookRequest {
     fromUtc?: Date;
     toUtc?: Date;
     dryRun?: boolean;
+}
+
+export class GetMarketingPerformanceMonthsResponse extends BaseResponse implements IGetMarketingPerformanceMonthsResponse {
+    months!: MonthlyMarketingPerformanceDto[];
+    channels!: ChannelInfoDto[];
+    from!: string;
+    to!: string;
+    includeWholesale!: boolean;
+    vatRate!: number;
+    lastRefreshAt?: Date | undefined;
+
+    constructor(data?: IGetMarketingPerformanceMonthsResponse) {
+        super(data);
+        if (!data) {
+            this.months = [];
+            this.channels = [];
+        }
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            if (Array.isArray(_data["months"])) {
+                this.months = [] as any;
+                for (let item of _data["months"])
+                    this.months!.push(MonthlyMarketingPerformanceDto.fromJS(item));
+            }
+            if (Array.isArray(_data["channels"])) {
+                this.channels = [] as any;
+                for (let item of _data["channels"])
+                    this.channels!.push(ChannelInfoDto.fromJS(item));
+            }
+            this.from = _data["from"];
+            this.to = _data["to"];
+            this.includeWholesale = _data["includeWholesale"];
+            this.vatRate = _data["vatRate"];
+            this.lastRefreshAt = _data["lastRefreshAt"] ? new Date(_data["lastRefreshAt"].toString()) : <any>undefined;
+        }
+    }
+
+    static override fromJS(data: any): GetMarketingPerformanceMonthsResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new GetMarketingPerformanceMonthsResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        if (Array.isArray(this.months)) {
+            data["months"] = [];
+            for (let item of this.months)
+                data["months"].push(item.toJSON());
+        }
+        if (Array.isArray(this.channels)) {
+            data["channels"] = [];
+            for (let item of this.channels)
+                data["channels"].push(item.toJSON());
+        }
+        data["from"] = this.from;
+        data["to"] = this.to;
+        data["includeWholesale"] = this.includeWholesale;
+        data["vatRate"] = this.vatRate;
+        data["lastRefreshAt"] = this.lastRefreshAt ? this.lastRefreshAt.toISOString() : <any>undefined;
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IGetMarketingPerformanceMonthsResponse extends IBaseResponse {
+    months: MonthlyMarketingPerformanceDto[];
+    channels: ChannelInfoDto[];
+    from: string;
+    to: string;
+    includeWholesale: boolean;
+    vatRate: number;
+    lastRefreshAt?: Date | undefined;
+}
+
+export class MonthlyMarketingPerformanceDto implements IMonthlyMarketingPerformanceDto {
+    year!: number;
+    month!: number;
+    monthYearDisplay!: string;
+    hasData!: boolean;
+    isLocked!: boolean;
+    isPartial!: boolean;
+    orders!: number;
+    revenueWithVat!: number;
+    revenueWithoutVat!: number;
+    channelCosts!: ChannelCostDto[];
+    totalCost!: number;
+    pno?: number | undefined;
+    roas?: number | undefined;
+    profit!: number;
+    avgOrderValue?: number | undefined;
+    costPerOrder?: number | undefined;
+    yoyCostPercent?: number | undefined;
+    yoyRevenuePercent?: number | undefined;
+    yoyOrdersPercent?: number | undefined;
+    skippedEurInvoiceCount!: number;
+    revenueComputedAt?: Date | undefined;
+    costsComputedAt?: Date | undefined;
+    lastError?: string | undefined;
+
+    constructor(data?: IMonthlyMarketingPerformanceDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+        if (!data) {
+            this.channelCosts = [];
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.year = _data["year"];
+            this.month = _data["month"];
+            this.monthYearDisplay = _data["monthYearDisplay"];
+            this.hasData = _data["hasData"];
+            this.isLocked = _data["isLocked"];
+            this.isPartial = _data["isPartial"];
+            this.orders = _data["orders"];
+            this.revenueWithVat = _data["revenueWithVat"];
+            this.revenueWithoutVat = _data["revenueWithoutVat"];
+            if (Array.isArray(_data["channelCosts"])) {
+                this.channelCosts = [] as any;
+                for (let item of _data["channelCosts"])
+                    this.channelCosts!.push(ChannelCostDto.fromJS(item));
+            }
+            this.totalCost = _data["totalCost"];
+            this.pno = _data["pno"];
+            this.roas = _data["roas"];
+            this.profit = _data["profit"];
+            this.avgOrderValue = _data["avgOrderValue"];
+            this.costPerOrder = _data["costPerOrder"];
+            this.yoyCostPercent = _data["yoyCostPercent"];
+            this.yoyRevenuePercent = _data["yoyRevenuePercent"];
+            this.yoyOrdersPercent = _data["yoyOrdersPercent"];
+            this.skippedEurInvoiceCount = _data["skippedEurInvoiceCount"];
+            this.revenueComputedAt = _data["revenueComputedAt"] ? new Date(_data["revenueComputedAt"].toString()) : <any>undefined;
+            this.costsComputedAt = _data["costsComputedAt"] ? new Date(_data["costsComputedAt"].toString()) : <any>undefined;
+            this.lastError = _data["lastError"];
+        }
+    }
+
+    static fromJS(data: any): MonthlyMarketingPerformanceDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new MonthlyMarketingPerformanceDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["year"] = this.year;
+        data["month"] = this.month;
+        data["monthYearDisplay"] = this.monthYearDisplay;
+        data["hasData"] = this.hasData;
+        data["isLocked"] = this.isLocked;
+        data["isPartial"] = this.isPartial;
+        data["orders"] = this.orders;
+        data["revenueWithVat"] = this.revenueWithVat;
+        data["revenueWithoutVat"] = this.revenueWithoutVat;
+        if (Array.isArray(this.channelCosts)) {
+            data["channelCosts"] = [];
+            for (let item of this.channelCosts)
+                data["channelCosts"].push(item.toJSON());
+        }
+        data["totalCost"] = this.totalCost;
+        data["pno"] = this.pno;
+        data["roas"] = this.roas;
+        data["profit"] = this.profit;
+        data["avgOrderValue"] = this.avgOrderValue;
+        data["costPerOrder"] = this.costPerOrder;
+        data["yoyCostPercent"] = this.yoyCostPercent;
+        data["yoyRevenuePercent"] = this.yoyRevenuePercent;
+        data["yoyOrdersPercent"] = this.yoyOrdersPercent;
+        data["skippedEurInvoiceCount"] = this.skippedEurInvoiceCount;
+        data["revenueComputedAt"] = this.revenueComputedAt ? this.revenueComputedAt.toISOString() : <any>undefined;
+        data["costsComputedAt"] = this.costsComputedAt ? this.costsComputedAt.toISOString() : <any>undefined;
+        data["lastError"] = this.lastError;
+        return data;
+    }
+}
+
+export interface IMonthlyMarketingPerformanceDto {
+    year: number;
+    month: number;
+    monthYearDisplay: string;
+    hasData: boolean;
+    isLocked: boolean;
+    isPartial: boolean;
+    orders: number;
+    revenueWithVat: number;
+    revenueWithoutVat: number;
+    channelCosts: ChannelCostDto[];
+    totalCost: number;
+    pno?: number | undefined;
+    roas?: number | undefined;
+    profit: number;
+    avgOrderValue?: number | undefined;
+    costPerOrder?: number | undefined;
+    yoyCostPercent?: number | undefined;
+    yoyRevenuePercent?: number | undefined;
+    yoyOrdersPercent?: number | undefined;
+    skippedEurInvoiceCount: number;
+    revenueComputedAt?: Date | undefined;
+    costsComputedAt?: Date | undefined;
+    lastError?: string | undefined;
+}
+
+export class ChannelCostDto implements IChannelCostDto {
+    channelCode!: string;
+    label!: string;
+    costWithoutVat!: number;
+    invoiceCount!: number;
+
+    constructor(data?: IChannelCostDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.channelCode = _data["channelCode"];
+            this.label = _data["label"];
+            this.costWithoutVat = _data["costWithoutVat"];
+            this.invoiceCount = _data["invoiceCount"];
+        }
+    }
+
+    static fromJS(data: any): ChannelCostDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new ChannelCostDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["channelCode"] = this.channelCode;
+        data["label"] = this.label;
+        data["costWithoutVat"] = this.costWithoutVat;
+        data["invoiceCount"] = this.invoiceCount;
+        return data;
+    }
+}
+
+export interface IChannelCostDto {
+    channelCode: string;
+    label: string;
+    costWithoutVat: number;
+    invoiceCount: number;
+}
+
+export class ChannelInfoDto implements IChannelInfoDto {
+    code!: string;
+    label!: string;
+
+    constructor(data?: IChannelInfoDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.code = _data["code"];
+            this.label = _data["label"];
+        }
+    }
+
+    static fromJS(data: any): ChannelInfoDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new ChannelInfoDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["code"] = this.code;
+        data["label"] = this.label;
+        return data;
+    }
+}
+
+export interface IChannelInfoDto {
+    code: string;
+    label: string;
+}
+
+export class GetMarketingPerformanceComparisonResponse extends BaseResponse implements IGetMarketingPerformanceComparisonResponse {
+    series!: MarketingYearSeriesDto[];
+    anchorYear!: number;
+    currentMonth!: number;
+    channels!: ChannelInfoDto[];
+    includeWholesale!: boolean;
+    lastRefreshAt?: Date | undefined;
+
+    constructor(data?: IGetMarketingPerformanceComparisonResponse) {
+        super(data);
+        if (!data) {
+            this.series = [];
+            this.channels = [];
+        }
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            if (Array.isArray(_data["series"])) {
+                this.series = [] as any;
+                for (let item of _data["series"])
+                    this.series!.push(MarketingYearSeriesDto.fromJS(item));
+            }
+            this.anchorYear = _data["anchorYear"];
+            this.currentMonth = _data["currentMonth"];
+            if (Array.isArray(_data["channels"])) {
+                this.channels = [] as any;
+                for (let item of _data["channels"])
+                    this.channels!.push(ChannelInfoDto.fromJS(item));
+            }
+            this.includeWholesale = _data["includeWholesale"];
+            this.lastRefreshAt = _data["lastRefreshAt"] ? new Date(_data["lastRefreshAt"].toString()) : <any>undefined;
+        }
+    }
+
+    static override fromJS(data: any): GetMarketingPerformanceComparisonResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new GetMarketingPerformanceComparisonResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        if (Array.isArray(this.series)) {
+            data["series"] = [];
+            for (let item of this.series)
+                data["series"].push(item.toJSON());
+        }
+        data["anchorYear"] = this.anchorYear;
+        data["currentMonth"] = this.currentMonth;
+        if (Array.isArray(this.channels)) {
+            data["channels"] = [];
+            for (let item of this.channels)
+                data["channels"].push(item.toJSON());
+        }
+        data["includeWholesale"] = this.includeWholesale;
+        data["lastRefreshAt"] = this.lastRefreshAt ? this.lastRefreshAt.toISOString() : <any>undefined;
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IGetMarketingPerformanceComparisonResponse extends IBaseResponse {
+    series: MarketingYearSeriesDto[];
+    anchorYear: number;
+    currentMonth: number;
+    channels: ChannelInfoDto[];
+    includeWholesale: boolean;
+    lastRefreshAt?: Date | undefined;
+}
+
+export class MarketingYearSeriesDto implements IMarketingYearSeriesDto {
+    year!: number;
+    months!: MonthlyMarketingPerformanceDto[];
+    ytdOrders!: number;
+    ytdRevenueWithoutVat!: number;
+    ytdTotalCost!: number;
+    ytdPno?: number | undefined;
+
+    constructor(data?: IMarketingYearSeriesDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+        if (!data) {
+            this.months = [];
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.year = _data["year"];
+            if (Array.isArray(_data["months"])) {
+                this.months = [] as any;
+                for (let item of _data["months"])
+                    this.months!.push(MonthlyMarketingPerformanceDto.fromJS(item));
+            }
+            this.ytdOrders = _data["ytdOrders"];
+            this.ytdRevenueWithoutVat = _data["ytdRevenueWithoutVat"];
+            this.ytdTotalCost = _data["ytdTotalCost"];
+            this.ytdPno = _data["ytdPno"];
+        }
+    }
+
+    static fromJS(data: any): MarketingYearSeriesDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new MarketingYearSeriesDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["year"] = this.year;
+        if (Array.isArray(this.months)) {
+            data["months"] = [];
+            for (let item of this.months)
+                data["months"].push(item.toJSON());
+        }
+        data["ytdOrders"] = this.ytdOrders;
+        data["ytdRevenueWithoutVat"] = this.ytdRevenueWithoutVat;
+        data["ytdTotalCost"] = this.ytdTotalCost;
+        data["ytdPno"] = this.ytdPno;
+        return data;
+    }
+}
+
+export interface IMarketingYearSeriesDto {
+    year: number;
+    months: MonthlyMarketingPerformanceDto[];
+    ytdOrders: number;
+    ytdRevenueWithoutVat: number;
+    ytdTotalCost: number;
+    ytdPno?: number | undefined;
+}
+
+export class RecomputeMarketingPerformanceResponse extends BaseResponse implements IRecomputeMarketingPerformanceResponse {
+    jobId?: string | undefined;
+    monthCount?: number;
+
+    constructor(data?: IRecomputeMarketingPerformanceResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            this.jobId = _data["jobId"];
+            this.monthCount = _data["monthCount"];
+        }
+    }
+
+    static override fromJS(data: any): RecomputeMarketingPerformanceResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new RecomputeMarketingPerformanceResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["jobId"] = this.jobId;
+        data["monthCount"] = this.monthCount;
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IRecomputeMarketingPerformanceResponse extends IBaseResponse {
+    jobId?: string | undefined;
+    monthCount?: number;
+}
+
+export class RecomputeMarketingPerformanceRequest implements IRecomputeMarketingPerformanceRequest {
+    from?: string;
+    to?: string;
+
+    constructor(data?: IRecomputeMarketingPerformanceRequest) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.from = _data["from"];
+            this.to = _data["to"];
+        }
+    }
+
+    static fromJS(data: any): RecomputeMarketingPerformanceRequest {
+        data = typeof data === 'object' ? data : {};
+        let result = new RecomputeMarketingPerformanceRequest();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["from"] = this.from;
+        data["to"] = this.to;
+        return data;
+    }
+}
+
+export interface IRecomputeMarketingPerformanceRequest {
+    from?: string;
+    to?: string;
 }
 
 export class ListMaterialContainersResponse extends BaseResponse implements IListMaterialContainersResponse {
@@ -39955,6 +44224,769 @@ export enum ThumbnailSize {
     Large = "Large",
 }
 
+export class GetPricingScenariosResponse extends BaseResponse implements IGetPricingScenariosResponse {
+    scenarios?: PricingScenarioSummaryDto[];
+
+    constructor(data?: IGetPricingScenariosResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            if (Array.isArray(_data["scenarios"])) {
+                this.scenarios = [] as any;
+                for (let item of _data["scenarios"])
+                    this.scenarios!.push(PricingScenarioSummaryDto.fromJS(item));
+            }
+        }
+    }
+
+    static override fromJS(data: any): GetPricingScenariosResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new GetPricingScenariosResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        if (Array.isArray(this.scenarios)) {
+            data["scenarios"] = [];
+            for (let item of this.scenarios)
+                data["scenarios"].push(item.toJSON());
+        }
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IGetPricingScenariosResponse extends IBaseResponse {
+    scenarios?: PricingScenarioSummaryDto[];
+}
+
+export class PricingScenarioSummaryDto implements IPricingScenarioSummaryDto {
+    id?: string;
+    name?: string;
+    description?: string | undefined;
+    createdBy?: string;
+    createdAt?: Date;
+    modifiedAt?: Date;
+    editedProductCount?: number;
+
+    constructor(data?: IPricingScenarioSummaryDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.id = _data["id"];
+            this.name = _data["name"];
+            this.description = _data["description"];
+            this.createdBy = _data["createdBy"];
+            this.createdAt = _data["createdAt"] ? new Date(_data["createdAt"].toString()) : <any>undefined;
+            this.modifiedAt = _data["modifiedAt"] ? new Date(_data["modifiedAt"].toString()) : <any>undefined;
+            this.editedProductCount = _data["editedProductCount"];
+        }
+    }
+
+    static fromJS(data: any): PricingScenarioSummaryDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new PricingScenarioSummaryDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["id"] = this.id;
+        data["name"] = this.name;
+        data["description"] = this.description;
+        data["createdBy"] = this.createdBy;
+        data["createdAt"] = this.createdAt ? this.createdAt.toISOString() : <any>undefined;
+        data["modifiedAt"] = this.modifiedAt ? this.modifiedAt.toISOString() : <any>undefined;
+        data["editedProductCount"] = this.editedProductCount;
+        return data;
+    }
+}
+
+export interface IPricingScenarioSummaryDto {
+    id?: string;
+    name?: string;
+    description?: string | undefined;
+    createdBy?: string;
+    createdAt?: Date;
+    modifiedAt?: Date;
+    editedProductCount?: number;
+}
+
+export class SavePricingScenarioResponse extends BaseResponse implements ISavePricingScenarioResponse {
+    id?: string;
+
+    constructor(data?: ISavePricingScenarioResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            this.id = _data["id"];
+        }
+    }
+
+    static override fromJS(data: any): SavePricingScenarioResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new SavePricingScenarioResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["id"] = this.id;
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface ISavePricingScenarioResponse extends IBaseResponse {
+    id?: string;
+}
+
+export class SavePricingScenarioRequest implements ISavePricingScenarioRequest {
+    id?: string | undefined;
+    name?: string;
+    description?: string | undefined;
+    productCode?: string | undefined;
+    productName?: string | undefined;
+    productType?: ProductType | undefined;
+    overrides?: PricingOverrideDto[];
+
+    constructor(data?: ISavePricingScenarioRequest) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.id = _data["id"];
+            this.name = _data["name"];
+            this.description = _data["description"];
+            this.productCode = _data["productCode"];
+            this.productName = _data["productName"];
+            this.productType = _data["productType"];
+            if (Array.isArray(_data["overrides"])) {
+                this.overrides = [] as any;
+                for (let item of _data["overrides"])
+                    this.overrides!.push(PricingOverrideDto.fromJS(item));
+            }
+        }
+    }
+
+    static fromJS(data: any): SavePricingScenarioRequest {
+        data = typeof data === 'object' ? data : {};
+        let result = new SavePricingScenarioRequest();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["id"] = this.id;
+        data["name"] = this.name;
+        data["description"] = this.description;
+        data["productCode"] = this.productCode;
+        data["productName"] = this.productName;
+        data["productType"] = this.productType;
+        if (Array.isArray(this.overrides)) {
+            data["overrides"] = [];
+            for (let item of this.overrides)
+                data["overrides"].push(item.toJSON());
+        }
+        return data;
+    }
+}
+
+export interface ISavePricingScenarioRequest {
+    id?: string | undefined;
+    name?: string;
+    description?: string | undefined;
+    productCode?: string | undefined;
+    productName?: string | undefined;
+    productType?: ProductType | undefined;
+    overrides?: PricingOverrideDto[];
+}
+
+export class PricingOverrideDto implements IPricingOverrideDto {
+    productCode?: string;
+    price?: number | undefined;
+    materialCost?: number | undefined;
+    manufacturingCost?: number | undefined;
+    forecastQuantity?: number | undefined;
+
+    constructor(data?: IPricingOverrideDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.productCode = _data["productCode"];
+            this.price = _data["price"];
+            this.materialCost = _data["materialCost"];
+            this.manufacturingCost = _data["manufacturingCost"];
+            this.forecastQuantity = _data["forecastQuantity"];
+        }
+    }
+
+    static fromJS(data: any): PricingOverrideDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new PricingOverrideDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["productCode"] = this.productCode;
+        data["price"] = this.price;
+        data["materialCost"] = this.materialCost;
+        data["manufacturingCost"] = this.manufacturingCost;
+        data["forecastQuantity"] = this.forecastQuantity;
+        return data;
+    }
+}
+
+export interface IPricingOverrideDto {
+    productCode?: string;
+    price?: number | undefined;
+    materialCost?: number | undefined;
+    manufacturingCost?: number | undefined;
+    forecastQuantity?: number | undefined;
+}
+
+export class GetPricingScenarioResponse extends BaseResponse implements IGetPricingScenarioResponse {
+    scenario?: PricingScenarioSummaryDto;
+    rows?: PricingRowDto[];
+    totals?: PricingTotalsDto;
+    overrides?: PricingOverrideDto[];
+
+    constructor(data?: IGetPricingScenarioResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            this.scenario = _data["scenario"] ? PricingScenarioSummaryDto.fromJS(_data["scenario"]) : <any>undefined;
+            if (Array.isArray(_data["rows"])) {
+                this.rows = [] as any;
+                for (let item of _data["rows"])
+                    this.rows!.push(PricingRowDto.fromJS(item));
+            }
+            this.totals = _data["totals"] ? PricingTotalsDto.fromJS(_data["totals"]) : <any>undefined;
+            if (Array.isArray(_data["overrides"])) {
+                this.overrides = [] as any;
+                for (let item of _data["overrides"])
+                    this.overrides!.push(PricingOverrideDto.fromJS(item));
+            }
+        }
+    }
+
+    static override fromJS(data: any): GetPricingScenarioResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new GetPricingScenarioResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["scenario"] = this.scenario ? this.scenario.toJSON() : <any>undefined;
+        if (Array.isArray(this.rows)) {
+            data["rows"] = [];
+            for (let item of this.rows)
+                data["rows"].push(item.toJSON());
+        }
+        data["totals"] = this.totals ? this.totals.toJSON() : <any>undefined;
+        if (Array.isArray(this.overrides)) {
+            data["overrides"] = [];
+            for (let item of this.overrides)
+                data["overrides"].push(item.toJSON());
+        }
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IGetPricingScenarioResponse extends IBaseResponse {
+    scenario?: PricingScenarioSummaryDto;
+    rows?: PricingRowDto[];
+    totals?: PricingTotalsDto;
+    overrides?: PricingOverrideDto[];
+}
+
+export class PricingRowDto implements IPricingRowDto {
+    productCode?: string;
+    productName?: string;
+    baselinePrice?: number;
+    baselineMaterialCost?: number;
+    baselineManufacturingCost?: number;
+    baselineQuantity?: number;
+    price?: number;
+    materialCost?: number;
+    manufacturingCost?: number;
+    forecastQuantity?: number;
+    m0Amount?: number;
+    m0Percentage?: number;
+    m1Amount?: number;
+    m1Percentage?: number;
+    baselineM0Amount?: number;
+    baselineM1Amount?: number;
+    baselineM0Percentage?: number;
+    baselineM1Percentage?: number;
+    isEdited?: boolean;
+    isExcluded?: boolean;
+    baselineDrifted?: boolean;
+
+    constructor(data?: IPricingRowDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.productCode = _data["productCode"];
+            this.productName = _data["productName"];
+            this.baselinePrice = _data["baselinePrice"];
+            this.baselineMaterialCost = _data["baselineMaterialCost"];
+            this.baselineManufacturingCost = _data["baselineManufacturingCost"];
+            this.baselineQuantity = _data["baselineQuantity"];
+            this.price = _data["price"];
+            this.materialCost = _data["materialCost"];
+            this.manufacturingCost = _data["manufacturingCost"];
+            this.forecastQuantity = _data["forecastQuantity"];
+            this.m0Amount = _data["m0Amount"];
+            this.m0Percentage = _data["m0Percentage"];
+            this.m1Amount = _data["m1Amount"];
+            this.m1Percentage = _data["m1Percentage"];
+            this.baselineM0Amount = _data["baselineM0Amount"];
+            this.baselineM1Amount = _data["baselineM1Amount"];
+            this.baselineM0Percentage = _data["baselineM0Percentage"];
+            this.baselineM1Percentage = _data["baselineM1Percentage"];
+            this.isEdited = _data["isEdited"];
+            this.isExcluded = _data["isExcluded"];
+            this.baselineDrifted = _data["baselineDrifted"];
+        }
+    }
+
+    static fromJS(data: any): PricingRowDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new PricingRowDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["productCode"] = this.productCode;
+        data["productName"] = this.productName;
+        data["baselinePrice"] = this.baselinePrice;
+        data["baselineMaterialCost"] = this.baselineMaterialCost;
+        data["baselineManufacturingCost"] = this.baselineManufacturingCost;
+        data["baselineQuantity"] = this.baselineQuantity;
+        data["price"] = this.price;
+        data["materialCost"] = this.materialCost;
+        data["manufacturingCost"] = this.manufacturingCost;
+        data["forecastQuantity"] = this.forecastQuantity;
+        data["m0Amount"] = this.m0Amount;
+        data["m0Percentage"] = this.m0Percentage;
+        data["m1Amount"] = this.m1Amount;
+        data["m1Percentage"] = this.m1Percentage;
+        data["baselineM0Amount"] = this.baselineM0Amount;
+        data["baselineM1Amount"] = this.baselineM1Amount;
+        data["baselineM0Percentage"] = this.baselineM0Percentage;
+        data["baselineM1Percentage"] = this.baselineM1Percentage;
+        data["isEdited"] = this.isEdited;
+        data["isExcluded"] = this.isExcluded;
+        data["baselineDrifted"] = this.baselineDrifted;
+        return data;
+    }
+}
+
+export interface IPricingRowDto {
+    productCode?: string;
+    productName?: string;
+    baselinePrice?: number;
+    baselineMaterialCost?: number;
+    baselineManufacturingCost?: number;
+    baselineQuantity?: number;
+    price?: number;
+    materialCost?: number;
+    manufacturingCost?: number;
+    forecastQuantity?: number;
+    m0Amount?: number;
+    m0Percentage?: number;
+    m1Amount?: number;
+    m1Percentage?: number;
+    baselineM0Amount?: number;
+    baselineM1Amount?: number;
+    baselineM0Percentage?: number;
+    baselineM1Percentage?: number;
+    isEdited?: boolean;
+    isExcluded?: boolean;
+    baselineDrifted?: boolean;
+}
+
+export class PricingTotalsDto implements IPricingTotalsDto {
+    revenueBefore?: number;
+    revenueAfter?: number;
+    revenueDelta?: number;
+    revenueDeltaPercentage?: number;
+    m0Before?: number;
+    m0After?: number;
+    m0Delta?: number;
+    m0DeltaPercentage?: number;
+    m1Before?: number;
+    m1After?: number;
+    m1Delta?: number;
+    m1DeltaPercentage?: number;
+    editedProductCount?: number;
+    excludedProductCount?: number;
+
+    constructor(data?: IPricingTotalsDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.revenueBefore = _data["revenueBefore"];
+            this.revenueAfter = _data["revenueAfter"];
+            this.revenueDelta = _data["revenueDelta"];
+            this.revenueDeltaPercentage = _data["revenueDeltaPercentage"];
+            this.m0Before = _data["m0Before"];
+            this.m0After = _data["m0After"];
+            this.m0Delta = _data["m0Delta"];
+            this.m0DeltaPercentage = _data["m0DeltaPercentage"];
+            this.m1Before = _data["m1Before"];
+            this.m1After = _data["m1After"];
+            this.m1Delta = _data["m1Delta"];
+            this.m1DeltaPercentage = _data["m1DeltaPercentage"];
+            this.editedProductCount = _data["editedProductCount"];
+            this.excludedProductCount = _data["excludedProductCount"];
+        }
+    }
+
+    static fromJS(data: any): PricingTotalsDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new PricingTotalsDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["revenueBefore"] = this.revenueBefore;
+        data["revenueAfter"] = this.revenueAfter;
+        data["revenueDelta"] = this.revenueDelta;
+        data["revenueDeltaPercentage"] = this.revenueDeltaPercentage;
+        data["m0Before"] = this.m0Before;
+        data["m0After"] = this.m0After;
+        data["m0Delta"] = this.m0Delta;
+        data["m0DeltaPercentage"] = this.m0DeltaPercentage;
+        data["m1Before"] = this.m1Before;
+        data["m1After"] = this.m1After;
+        data["m1Delta"] = this.m1Delta;
+        data["m1DeltaPercentage"] = this.m1DeltaPercentage;
+        data["editedProductCount"] = this.editedProductCount;
+        data["excludedProductCount"] = this.excludedProductCount;
+        return data;
+    }
+}
+
+export interface IPricingTotalsDto {
+    revenueBefore?: number;
+    revenueAfter?: number;
+    revenueDelta?: number;
+    revenueDeltaPercentage?: number;
+    m0Before?: number;
+    m0After?: number;
+    m0Delta?: number;
+    m0DeltaPercentage?: number;
+    m1Before?: number;
+    m1After?: number;
+    m1Delta?: number;
+    m1DeltaPercentage?: number;
+    editedProductCount?: number;
+    excludedProductCount?: number;
+}
+
+export class DeletePricingScenarioResponse extends BaseResponse implements IDeletePricingScenarioResponse {
+
+    constructor(data?: IDeletePricingScenarioResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+    }
+
+    static override fromJS(data: any): DeletePricingScenarioResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new DeletePricingScenarioResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IDeletePricingScenarioResponse extends IBaseResponse {
+}
+
+export class GetPricingBaselineResponse extends BaseResponse implements IGetPricingBaselineResponse {
+    rows?: PricingRowDto[];
+    totals?: PricingTotalsDto;
+
+    constructor(data?: IGetPricingBaselineResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            if (Array.isArray(_data["rows"])) {
+                this.rows = [] as any;
+                for (let item of _data["rows"])
+                    this.rows!.push(PricingRowDto.fromJS(item));
+            }
+            this.totals = _data["totals"] ? PricingTotalsDto.fromJS(_data["totals"]) : <any>undefined;
+        }
+    }
+
+    static override fromJS(data: any): GetPricingBaselineResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new GetPricingBaselineResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        if (Array.isArray(this.rows)) {
+            data["rows"] = [];
+            for (let item of this.rows)
+                data["rows"].push(item.toJSON());
+        }
+        data["totals"] = this.totals ? this.totals.toJSON() : <any>undefined;
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IGetPricingBaselineResponse extends IBaseResponse {
+    rows?: PricingRowDto[];
+    totals?: PricingTotalsDto;
+}
+
+export class RecalculatePricingResponse extends BaseResponse implements IRecalculatePricingResponse {
+    rows?: PricingRowDto[];
+    totals?: PricingTotalsDto;
+    overrides?: PricingOverrideDto[];
+
+    constructor(data?: IRecalculatePricingResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            if (Array.isArray(_data["rows"])) {
+                this.rows = [] as any;
+                for (let item of _data["rows"])
+                    this.rows!.push(PricingRowDto.fromJS(item));
+            }
+            this.totals = _data["totals"] ? PricingTotalsDto.fromJS(_data["totals"]) : <any>undefined;
+            if (Array.isArray(_data["overrides"])) {
+                this.overrides = [] as any;
+                for (let item of _data["overrides"])
+                    this.overrides!.push(PricingOverrideDto.fromJS(item));
+            }
+        }
+    }
+
+    static override fromJS(data: any): RecalculatePricingResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new RecalculatePricingResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        if (Array.isArray(this.rows)) {
+            data["rows"] = [];
+            for (let item of this.rows)
+                data["rows"].push(item.toJSON());
+        }
+        data["totals"] = this.totals ? this.totals.toJSON() : <any>undefined;
+        if (Array.isArray(this.overrides)) {
+            data["overrides"] = [];
+            for (let item of this.overrides)
+                data["overrides"].push(item.toJSON());
+        }
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IRecalculatePricingResponse extends IBaseResponse {
+    rows?: PricingRowDto[];
+    totals?: PricingTotalsDto;
+    overrides?: PricingOverrideDto[];
+}
+
+export class RecalculatePricingRequest implements IRecalculatePricingRequest {
+    productCode?: string | undefined;
+    productName?: string | undefined;
+    productType?: ProductType | undefined;
+    overrides?: PricingOverrideDto[];
+    edit?: PricingEditDto | undefined;
+
+    constructor(data?: IRecalculatePricingRequest) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.productCode = _data["productCode"];
+            this.productName = _data["productName"];
+            this.productType = _data["productType"];
+            if (Array.isArray(_data["overrides"])) {
+                this.overrides = [] as any;
+                for (let item of _data["overrides"])
+                    this.overrides!.push(PricingOverrideDto.fromJS(item));
+            }
+            this.edit = _data["edit"] ? PricingEditDto.fromJS(_data["edit"]) : <any>undefined;
+        }
+    }
+
+    static fromJS(data: any): RecalculatePricingRequest {
+        data = typeof data === 'object' ? data : {};
+        let result = new RecalculatePricingRequest();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["productCode"] = this.productCode;
+        data["productName"] = this.productName;
+        data["productType"] = this.productType;
+        if (Array.isArray(this.overrides)) {
+            data["overrides"] = [];
+            for (let item of this.overrides)
+                data["overrides"].push(item.toJSON());
+        }
+        data["edit"] = this.edit ? this.edit.toJSON() : <any>undefined;
+        return data;
+    }
+}
+
+export interface IRecalculatePricingRequest {
+    productCode?: string | undefined;
+    productName?: string | undefined;
+    productType?: ProductType | undefined;
+    overrides?: PricingOverrideDto[];
+    edit?: PricingEditDto | undefined;
+}
+
+export class PricingEditDto implements IPricingEditDto {
+    productCode?: string;
+    field?: PricingEditField;
+    value?: number;
+
+    constructor(data?: IPricingEditDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.productCode = _data["productCode"];
+            this.field = _data["field"];
+            this.value = _data["value"];
+        }
+    }
+
+    static fromJS(data: any): PricingEditDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new PricingEditDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["productCode"] = this.productCode;
+        data["field"] = this.field;
+        data["value"] = this.value;
+        return data;
+    }
+}
+
+export interface IPricingEditDto {
+    productCode?: string;
+    field?: PricingEditField;
+    value?: number;
+}
+
+export enum PricingEditField {
+    Price = "Price",
+    MaterialCost = "MaterialCost",
+    ManufacturingCost = "ManufacturingCost",
+    M0Amount = "M0Amount",
+    M0Percentage = "M0Percentage",
+    M1Amount = "M1Amount",
+    M1Percentage = "M1Percentage",
+    ForecastQuantity = "ForecastQuantity",
+}
+
 export class GetProductMarginsResponse extends BaseResponse implements IGetProductMarginsResponse {
     items?: ProductMarginDto[];
     totalCount?: number;
@@ -40015,6 +45047,7 @@ export interface IGetProductMarginsResponse extends IBaseResponse {
 export class ProductMarginDto implements IProductMarginDto {
     productCode?: string;
     productName?: string;
+    productNameSuffix?: string | undefined;
     priceWithoutVat?: number | undefined;
     purchasePrice?: number | undefined;
     manufactureDifficulty?: number;
@@ -40022,6 +45055,7 @@ export class ProductMarginDto implements IProductMarginDto {
     m0?: MarginLevelDto;
     m1?: MarginLevelDto;
     m2?: MarginLevelDto;
+    m3?: MarginLevelDto;
     monthlyHistory?: MonthlyMarginDto[];
 
     constructor(data?: IProductMarginDto) {
@@ -40037,6 +45071,7 @@ export class ProductMarginDto implements IProductMarginDto {
         if (_data) {
             this.productCode = _data["productCode"];
             this.productName = _data["productName"];
+            this.productNameSuffix = _data["productNameSuffix"];
             this.priceWithoutVat = _data["priceWithoutVat"];
             this.purchasePrice = _data["purchasePrice"];
             this.manufactureDifficulty = _data["manufactureDifficulty"];
@@ -40044,6 +45079,7 @@ export class ProductMarginDto implements IProductMarginDto {
             this.m0 = _data["m0"] ? MarginLevelDto.fromJS(_data["m0"]) : <any>undefined;
             this.m1 = _data["m1"] ? MarginLevelDto.fromJS(_data["m1"]) : <any>undefined;
             this.m2 = _data["m2"] ? MarginLevelDto.fromJS(_data["m2"]) : <any>undefined;
+            this.m3 = _data["m3"] ? MarginLevelDto.fromJS(_data["m3"]) : <any>undefined;
             if (Array.isArray(_data["monthlyHistory"])) {
                 this.monthlyHistory = [] as any;
                 for (let item of _data["monthlyHistory"])
@@ -40063,6 +45099,7 @@ export class ProductMarginDto implements IProductMarginDto {
         data = typeof data === 'object' ? data : {};
         data["productCode"] = this.productCode;
         data["productName"] = this.productName;
+        data["productNameSuffix"] = this.productNameSuffix;
         data["priceWithoutVat"] = this.priceWithoutVat;
         data["purchasePrice"] = this.purchasePrice;
         data["manufactureDifficulty"] = this.manufactureDifficulty;
@@ -40070,6 +45107,7 @@ export class ProductMarginDto implements IProductMarginDto {
         data["m0"] = this.m0 ? this.m0.toJSON() : <any>undefined;
         data["m1"] = this.m1 ? this.m1.toJSON() : <any>undefined;
         data["m2"] = this.m2 ? this.m2.toJSON() : <any>undefined;
+        data["m3"] = this.m3 ? this.m3.toJSON() : <any>undefined;
         if (Array.isArray(this.monthlyHistory)) {
             data["monthlyHistory"] = [];
             for (let item of this.monthlyHistory)
@@ -40082,6 +45120,7 @@ export class ProductMarginDto implements IProductMarginDto {
 export interface IProductMarginDto {
     productCode?: string;
     productName?: string;
+    productNameSuffix?: string | undefined;
     priceWithoutVat?: number | undefined;
     purchasePrice?: number | undefined;
     manufactureDifficulty?: number;
@@ -40089,6 +45128,7 @@ export interface IProductMarginDto {
     m0?: MarginLevelDto;
     m1?: MarginLevelDto;
     m2?: MarginLevelDto;
+    m3?: MarginLevelDto;
     monthlyHistory?: MonthlyMarginDto[];
 }
 
@@ -40097,6 +45137,7 @@ export class MonthlyMarginDto implements IMonthlyMarginDto {
     m0?: MarginLevelDto;
     m1?: MarginLevelDto;
     m2?: MarginLevelDto;
+    m3?: MarginLevelDto;
 
     constructor(data?: IMonthlyMarginDto) {
         if (data) {
@@ -40113,6 +45154,7 @@ export class MonthlyMarginDto implements IMonthlyMarginDto {
             this.m0 = _data["m0"] ? MarginLevelDto.fromJS(_data["m0"]) : <any>undefined;
             this.m1 = _data["m1"] ? MarginLevelDto.fromJS(_data["m1"]) : <any>undefined;
             this.m2 = _data["m2"] ? MarginLevelDto.fromJS(_data["m2"]) : <any>undefined;
+            this.m3 = _data["m3"] ? MarginLevelDto.fromJS(_data["m3"]) : <any>undefined;
         }
     }
 
@@ -40129,6 +45171,7 @@ export class MonthlyMarginDto implements IMonthlyMarginDto {
         data["m0"] = this.m0 ? this.m0.toJSON() : <any>undefined;
         data["m1"] = this.m1 ? this.m1.toJSON() : <any>undefined;
         data["m2"] = this.m2 ? this.m2.toJSON() : <any>undefined;
+        data["m3"] = this.m3 ? this.m3.toJSON() : <any>undefined;
         return data;
     }
 }
@@ -40138,6 +45181,7 @@ export interface IMonthlyMarginDto {
     m0?: MarginLevelDto;
     m1?: MarginLevelDto;
     m2?: MarginLevelDto;
+    m3?: MarginLevelDto;
 }
 
 export class GetPriceDivergenceReportResponse extends BaseResponse implements IGetPriceDivergenceReportResponse {
@@ -40324,6 +45368,9 @@ export interface IPriceDivergenceSummaryDto {
 
 export class SyncProductPricesResponse extends BaseResponse implements ISyncProductPricesResponse {
     rows?: PriceDivergenceRowDto[];
+    writtenCount?: number;
+    failedCount?: number;
+    remainingCount?: number;
 
     constructor(data?: ISyncProductPricesResponse) {
         super(data);
@@ -40337,6 +45384,9 @@ export class SyncProductPricesResponse extends BaseResponse implements ISyncProd
                 for (let item of _data["rows"])
                     this.rows!.push(PriceDivergenceRowDto.fromJS(item));
             }
+            this.writtenCount = _data["writtenCount"];
+            this.failedCount = _data["failedCount"];
+            this.remainingCount = _data["remainingCount"];
         }
     }
 
@@ -40354,6 +45404,9 @@ export class SyncProductPricesResponse extends BaseResponse implements ISyncProd
             for (let item of this.rows)
                 data["rows"].push(item.toJSON());
         }
+        data["writtenCount"] = this.writtenCount;
+        data["failedCount"] = this.failedCount;
+        data["remainingCount"] = this.remainingCount;
         super.toJSON(data);
         return data;
     }
@@ -40361,6 +45414,9 @@ export class SyncProductPricesResponse extends BaseResponse implements ISyncProd
 
 export interface ISyncProductPricesResponse extends IBaseResponse {
     rows?: PriceDivergenceRowDto[];
+    writtenCount?: number;
+    failedCount?: number;
+    remainingCount?: number;
 }
 
 export class SyncProductPricesRequest implements ISyncProductPricesRequest {
@@ -41536,6 +46592,9 @@ export class RecalculatePurchasePriceResponse extends BaseResponse implements IR
     failedCount?: number;
     totalCount?: number;
     processedProducts?: ProductRecalculationResult[];
+    priceSync?: PurchasePriceSyncSummary;
+    semiProducts?: BomRecalculationSummary;
+    products?: BomRecalculationSummary;
     isSuccess?: boolean;
     message?: string;
 
@@ -41554,6 +46613,9 @@ export class RecalculatePurchasePriceResponse extends BaseResponse implements IR
                 for (let item of _data["processedProducts"])
                     this.processedProducts!.push(ProductRecalculationResult.fromJS(item));
             }
+            this.priceSync = _data["priceSync"] ? PurchasePriceSyncSummary.fromJS(_data["priceSync"]) : <any>undefined;
+            this.semiProducts = _data["semiProducts"] ? BomRecalculationSummary.fromJS(_data["semiProducts"]) : <any>undefined;
+            this.products = _data["products"] ? BomRecalculationSummary.fromJS(_data["products"]) : <any>undefined;
             this.isSuccess = _data["isSuccess"];
             this.message = _data["message"];
         }
@@ -41576,6 +46638,9 @@ export class RecalculatePurchasePriceResponse extends BaseResponse implements IR
             for (let item of this.processedProducts)
                 data["processedProducts"].push(item.toJSON());
         }
+        data["priceSync"] = this.priceSync ? this.priceSync.toJSON() : <any>undefined;
+        data["semiProducts"] = this.semiProducts ? this.semiProducts.toJSON() : <any>undefined;
+        data["products"] = this.products ? this.products.toJSON() : <any>undefined;
         data["isSuccess"] = this.isSuccess;
         data["message"] = this.message;
         super.toJSON(data);
@@ -41588,6 +46653,9 @@ export interface IRecalculatePurchasePriceResponse extends IBaseResponse {
     failedCount?: number;
     totalCount?: number;
     processedProducts?: ProductRecalculationResult[];
+    priceSync?: PurchasePriceSyncSummary;
+    semiProducts?: BomRecalculationSummary;
+    products?: BomRecalculationSummary;
     isSuccess?: boolean;
     message?: string;
 }
@@ -41623,6 +46691,98 @@ export class ProductRecalculationResult extends BaseResponse implements IProduct
 
 export interface IProductRecalculationResult extends IBaseResponse {
     productCode?: string;
+}
+
+export class PurchasePriceSyncSummary implements IPurchasePriceSyncSummary {
+    candidates?: number;
+    written?: number;
+    unchanged?: number;
+    skippedNoStockPrice?: number;
+    failed?: number;
+
+    constructor(data?: IPurchasePriceSyncSummary) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.candidates = _data["candidates"];
+            this.written = _data["written"];
+            this.unchanged = _data["unchanged"];
+            this.skippedNoStockPrice = _data["skippedNoStockPrice"];
+            this.failed = _data["failed"];
+        }
+    }
+
+    static fromJS(data: any): PurchasePriceSyncSummary {
+        data = typeof data === 'object' ? data : {};
+        let result = new PurchasePriceSyncSummary();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["candidates"] = this.candidates;
+        data["written"] = this.written;
+        data["unchanged"] = this.unchanged;
+        data["skippedNoStockPrice"] = this.skippedNoStockPrice;
+        data["failed"] = this.failed;
+        return data;
+    }
+}
+
+export interface IPurchasePriceSyncSummary {
+    candidates?: number;
+    written?: number;
+    unchanged?: number;
+    skippedNoStockPrice?: number;
+    failed?: number;
+}
+
+export class BomRecalculationSummary implements IBomRecalculationSummary {
+    succeeded?: number;
+    failed?: number;
+
+    constructor(data?: IBomRecalculationSummary) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.succeeded = _data["succeeded"];
+            this.failed = _data["failed"];
+        }
+    }
+
+    static fromJS(data: any): BomRecalculationSummary {
+        data = typeof data === 'object' ? data : {};
+        let result = new BomRecalculationSummary();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["succeeded"] = this.succeeded;
+        data["failed"] = this.failed;
+        return data;
+    }
+}
+
+export interface IBomRecalculationSummary {
+    succeeded?: number;
+    failed?: number;
 }
 
 export class RecalculatePurchasePriceRequest implements IRecalculatePurchasePriceRequest {
@@ -41730,6 +46890,7 @@ export class StockAnalysisItemDto implements IStockAnalysisItemDto {
     productCode?: string;
     productName?: string;
     productNameNormalized?: string;
+    productNameSuffix?: string | undefined;
     productType?: string;
     availableStock?: number;
     orderedStock?: number;
@@ -41761,6 +46922,7 @@ export class StockAnalysisItemDto implements IStockAnalysisItemDto {
             this.productCode = _data["productCode"];
             this.productName = _data["productName"];
             this.productNameNormalized = _data["productNameNormalized"];
+            this.productNameSuffix = _data["productNameSuffix"];
             this.productType = _data["productType"];
             this.availableStock = _data["availableStock"];
             this.orderedStock = _data["orderedStock"];
@@ -41792,6 +46954,7 @@ export class StockAnalysisItemDto implements IStockAnalysisItemDto {
         data["productCode"] = this.productCode;
         data["productName"] = this.productName;
         data["productNameNormalized"] = this.productNameNormalized;
+        data["productNameSuffix"] = this.productNameSuffix;
         data["productType"] = this.productType;
         data["availableStock"] = this.availableStock;
         data["orderedStock"] = this.orderedStock;
@@ -41816,6 +46979,7 @@ export interface IStockAnalysisItemDto {
     productCode?: string;
     productName?: string;
     productNameNormalized?: string;
+    productNameSuffix?: string | undefined;
     productType?: string;
     availableStock?: number;
     orderedStock?: number;
@@ -42032,6 +47196,7 @@ export class RecurringJobDto implements IRecurringJobDto {
     jobName?: string;
     displayName?: string;
     description?: string;
+    category?: RecurringJobCategory;
     cronExpression?: string;
     timeZoneId?: string;
     isEnabled?: boolean;
@@ -42053,6 +47218,7 @@ export class RecurringJobDto implements IRecurringJobDto {
             this.jobName = _data["jobName"];
             this.displayName = _data["displayName"];
             this.description = _data["description"];
+            this.category = _data["category"];
             this.cronExpression = _data["cronExpression"];
             this.timeZoneId = _data["timeZoneId"];
             this.isEnabled = _data["isEnabled"];
@@ -42074,6 +47240,7 @@ export class RecurringJobDto implements IRecurringJobDto {
         data["jobName"] = this.jobName;
         data["displayName"] = this.displayName;
         data["description"] = this.description;
+        data["category"] = this.category;
         data["cronExpression"] = this.cronExpression;
         data["timeZoneId"] = this.timeZoneId;
         data["isEnabled"] = this.isEnabled;
@@ -42088,12 +47255,25 @@ export interface IRecurringJobDto {
     jobName?: string;
     displayName?: string;
     description?: string;
+    category?: RecurringJobCategory;
     cronExpression?: string;
     timeZoneId?: string;
     isEnabled?: boolean;
     lastModifiedAt?: Date;
     lastModifiedBy?: string;
     nextRunAt?: Date | undefined;
+}
+
+export enum RecurringJobCategory {
+    Uncategorized = "Uncategorized",
+    Finance = "Finance",
+    Marketing = "Marketing",
+    Catalog = "Catalog",
+    Warehouse = "Warehouse",
+    DataQuality = "DataQuality",
+    Content = "Content",
+    Attendance = "Attendance",
+    Integrations = "Integrations",
 }
 
 export class GetRecurringJobResponse extends BaseResponse implements IGetRecurringJobResponse {

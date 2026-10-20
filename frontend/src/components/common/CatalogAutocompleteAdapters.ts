@@ -1,5 +1,6 @@
 import { CatalogItemDto, ProductType } from "../../api/generated/api-client";
 import { MaterialForPurchaseDto } from "../../api/hooks/useMaterials";
+import { formatProductNameWithSuffix } from "../../utils/productName";
 
 /**
  * Adapter function to convert CatalogItemDto to MaterialForPurchaseDto
@@ -10,6 +11,7 @@ export const catalogItemToMaterial = (
 ): MaterialForPurchaseDto => ({
   productCode: item.productCode,
   productName: item.productName,
+  productNameSuffix: item.productNameSuffix,
   productType: item.type?.toString() || "Material",
   location: item.location,
   currentStock: item.stock?.available,
@@ -50,7 +52,13 @@ export const catalogItemToCodeAndName = (item: CatalogItemDto): string => {
 export const materialDisplayValue = (
   material: MaterialForPurchaseDto,
 ): string => {
-  return material.productName || material.productCode || "";
+  if (!material.productName) {
+    return material.productCode || "";
+  }
+  return formatProductNameWithSuffix(
+    material.productName,
+    material.productNameSuffix,
+  );
 };
 
 export const productCodeDisplayValue = (productCode: string): string => {

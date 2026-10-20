@@ -1,7 +1,12 @@
+using Anela.Heblo.Application.Common.Behaviors;
 using Anela.Heblo.Application.Features.Article.UseCases.Generate;
 using Anela.Heblo.Application.Features.Article.UseCases.Generate.Pipeline;
+using Anela.Heblo.Application.Features.Article.UseCases.GetFeedbackList;
+using Anela.Heblo.Application.Features.Article.UseCases.ListArticles;
 using Anela.Heblo.Domain.Features.Article;
 using Anela.Heblo.Persistence.Features.Article;
+using FluentValidation;
+using MediatR;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -29,6 +34,16 @@ public static class ArticleModule
         services.AddScoped<IValidateFactsStep, ValidateFactsStep>();
         services.AddScoped<IWriteArticleStep, WriteArticleStep>();
         services.AddScoped<GenerateArticleJob>();
+
+        services.AddScoped<IValidator<ListArticlesRequest>, ListArticlesRequestValidator>();
+        services.AddScoped<
+            IPipelineBehavior<ListArticlesRequest, ListArticlesResponse>,
+            ValidationResultBehavior<ListArticlesRequest, ListArticlesResponse>>();
+
+        services.AddScoped<IValidator<GetArticleFeedbackListRequest>, GetArticleFeedbackListRequestValidator>();
+        services.AddScoped<
+            IPipelineBehavior<GetArticleFeedbackListRequest, GetArticleFeedbackListResponse>,
+            ValidationResultBehavior<GetArticleFeedbackListRequest, GetArticleFeedbackListResponse>>();
 
         return services;
     }

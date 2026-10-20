@@ -20,13 +20,21 @@ public interface IRagInteractionLogRepository
     Task UpdateSentAsync(Guid id, string sentAnswer, DateTimeOffset sentAt, CancellationToken ct = default);
 
     Task<(List<RagInteractionLog> Logs, int TotalCount)> GetFeedbackLogsPagedAsync(
-        RagFeature? feature,
-        bool? hasFeedback,
-        string? userId,
+        RagFeedbackLogFilter filter,
         string sortBy,
         bool sortDescending,
         int pageNumber,
         int pageSize,
+        CancellationToken ct = default);
+
+    /// <summary>
+    /// Counts tag occurrences per kind for one feature, optionally within the half-open range
+    /// [<paramref name="from"/>, <paramref name="toExclusive"/>).
+    /// </summary>
+    Task<IReadOnlyList<RagTagCount>> GetTagCountsAsync(
+        RagFeature feature,
+        DateTimeOffset? from,
+        DateTimeOffset? toExclusive,
         CancellationToken ct = default);
 
     Task<RagFeedbackAggregateStats> GetFeedbackStatsAsync(RagFeature? feature, CancellationToken ct = default);

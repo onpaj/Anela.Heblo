@@ -44,8 +44,9 @@ public class GenerateLeafletHandler : IRequestHandler<GenerateLeafletRequest, Ge
     {
         var ct = cancellationToken;
 
-        var queryToEmbed = await _expander.ExpandAsync(
-            request.Topic, _options.ToExpansionConfig(), ct);
+        // Leaflet's prompt is plain text, so tags are always empty here; only the embed text is used.
+        var queryToEmbed = (await _expander.ExpandAsync(
+            request.Topic, _options.ToExpansionConfig(), ct)).QueryToEmbed;
 
         var embeddingOptions = _options.ToEmbeddingOptions();
 

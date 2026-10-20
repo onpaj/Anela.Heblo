@@ -10,7 +10,7 @@ type Tab = 'cooling' | 'gifts';
 function ExpeditionSettingsPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const activeTab: Tab = (searchParams.get('tab') as Tab) ?? 'cooling';
-  useScreenView('Customer', 'ExpeditionSettings', activeTab === 'cooling' ? 'CoolingTab' : 'GiftsTab');
+  useScreenView('Customer', 'ExpeditionSettings', activeTab === 'gifts' ? 'GiftsTab' : 'CoolingTab');
 
   const handleTabChange = (tab: Tab) => {
     setSearchParams({ tab });
@@ -58,7 +58,7 @@ function ExpeditionSettingsPage() {
       </div>
 
       <div className="flex-1 overflow-y-auto">
-        {activeTab === 'cooling' ? <CoolingTab /> : <GiftsTab />}
+        {activeTab === 'gifts' ? <GiftsTab /> : <CoolingTab />}
       </div>
     </div>
   );

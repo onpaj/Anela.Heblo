@@ -14,11 +14,11 @@ public sealed class RagQueryExpander : IRagQueryExpander
         _logger = logger;
     }
 
-    public async Task<string> ExpandAsync(string query, RagQueryExpansionConfig config, CancellationToken ct)
+    public async Task<RagExpansionResult> ExpandAsync(string query, RagQueryExpansionConfig config, CancellationToken ct)
     {
         if (!config.Enabled || string.IsNullOrWhiteSpace(query) || string.IsNullOrWhiteSpace(config.Prompt))
         {
-            return query;
+            return RagExpansionResult.Untagged(query);
         }
 
         var messages = new List<ChatMessage>
@@ -30,12 +30,23 @@ public sealed class RagQueryExpander : IRagQueryExpander
         try
         {
             var response = await _chatClient.GetResponseAsync(messages, chatOptions, ct);
-            return string.IsNullOrWhiteSpace(response.Text) ? query : response.Text;
+            if (string.IsNullOrWhiteSpace(response.Text))
+                return RagExpansionResult.Untagged(query);
+
+            var parsed = RagExpansionParser.Parse(response.Text);
+            if (parsed.IsMalformedJson)
+            {
+                _logger.LogWarning(
+                    "Query expansion returned malformed JSON for query '{Query}'; embedding raw response without tags",
+                    query);
+            }
+
+            return parsed.Expansion;
         }
         catch (Exception ex) when (ex is HttpRequestException or TimeoutException or TaskCanceledException)
         {
             _logger.LogWarning(ex, "Query expansion failed for query '{Query}', falling back to raw query", query);
-            return query;
+            return RagExpansionResult.Untagged(query);
         }
     }
 }

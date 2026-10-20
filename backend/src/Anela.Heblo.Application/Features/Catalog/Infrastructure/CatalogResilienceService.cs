@@ -28,7 +28,7 @@ public class CatalogResilienceService : ICatalogResilienceService
         string operationName,
         CancellationToken cancellationToken = default)
     {
-        var context = ResilienceContextPool.Shared.Get(operationName);
+        var context = ResilienceContextPool.Shared.Get(operationName, cancellationToken);
         try
         {
             return await _resiliencePipeline.ExecuteAsync(async (ctx) =>

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Package, Tag, Trash2, RotateCcw, AlertCircle, Loader, FlaskConical } from "lucide-react";
 import { TransportBoxItemsProps } from "./TransportBoxTypes";
 import { CatalogAutocomplete } from "../../common/CatalogAutocomplete";
+import ProductNameSuffix from "../../common/ProductNameSuffix";
 import { ProductType } from "../../../api/generated/api-client";
 import { useManufacturedProductInventoryQuery } from "../../../api/hooks/useManufacturedProductInventory";
 import type { ManufacturedProductInventoryItem } from "../../../api/hooks/useManufacturedProductInventory";
@@ -257,6 +258,7 @@ const TransportBoxItems: React.FC<TransportBoxItemsProps> = ({
                           <div className="text-gray-900 font-medium truncate dark:text-graphite-text">
                             {item.productName}
                           </div>
+                          <ProductNameSuffix suffix={item.productNameSuffix} />
                           <div className="text-xs text-gray-500 mt-1 dark:text-graphite-muted">
                             <span className="font-mono">{item.productCode}</span> •
                             Sklad: {item.stock?.available || 0}

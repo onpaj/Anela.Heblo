@@ -39,7 +39,7 @@ public class ManufactureBasedMaterialCostProviderTests
         string productCode,
         ProductType type,
         IEnumerable<(DateTime date, decimal pricePerPiece, double amount)>? history = null,
-        decimal? purchasePriceWithVat = null)
+        decimal? purchasePrice = null)
     {
         var agg = new CatalogAggregate
         {
@@ -63,18 +63,28 @@ public class ManufactureBasedMaterialCostProviderTests
                 .ToList();
         }
 
-        if (purchasePriceWithVat.HasValue)
+        if (purchasePrice.HasValue)
         {
-            agg.ErpPrice = new ProductPriceErp { PurchasePriceWithVat = purchasePriceWithVat.Value };
+            agg.ErpPrice = BuildErpPrice(purchasePrice.Value);
         }
 
         return agg;
     }
 
+    // Flexi's PurchasePriceWithVat = PurchasePrice x (1 + sales VAT band). The with-VAT value is
+    // deliberately different so a test proves which of the two the provider reads.
+    private const decimal SalesVatMultiplier = 1.21m;
+
+    private static ProductPriceErp BuildErpPrice(decimal purchasePrice) => new()
+    {
+        PurchasePrice = purchasePrice,
+        PurchasePriceWithVat = purchasePrice * SalesVatMultiplier,
+    };
+
     private static CatalogAggregate BuildNonManufacturedProduct(
         string productCode,
         ProductType type,
-        decimal? purchasePriceWithVat)
+        decimal? purchasePrice)
     {
         var agg = new CatalogAggregate
         {
@@ -83,9 +93,9 @@ public class ManufactureBasedMaterialCostProviderTests
             Type = type,
         };
 
-        if (purchasePriceWithVat.HasValue)
+        if (purchasePrice.HasValue)
         {
-            agg.ErpPrice = new ProductPriceErp { PurchasePriceWithVat = purchasePriceWithVat.Value };
+            agg.ErpPrice = BuildErpPrice(purchasePrice.Value);
         }
 
         return agg;
@@ -181,14 +191,14 @@ public class ManufactureBasedMaterialCostProviderTests
     [InlineData(ProductType.SemiProduct)]
     internal async Task RefreshAsync_UsesManufactureHistory_WhenProductTypeIsManufactured(ProductType type)
     {
-        // Arrange — a single manufacture record at price 100m; PurchasePriceWithVat is a sentinel
+        // Arrange — a single manufacture record at price 100m; the purchase price is a sentinel
         // that MUST NOT appear anywhere in the resulting cost series.
         var manufactureMonth = MonthOffsetFromNow(-2).AddDays(10);
         var product = BuildManufacturedProduct(
             productCode: "PROD-A",
             type: type,
             history: new[] { (manufactureMonth, 100m, 5.0) },
-            purchasePriceWithVat: 999m);
+            purchasePrice: 999m);
 
         var repoMock = new Mock<ICatalogRepository>();
         repoMock.Setup(r => r.WaitForCurrentMergeAsync(It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);
@@ -226,7 +236,7 @@ public class ManufactureBasedMaterialCostProviderTests
             productCode: "MAT-1",
             type: type,
             history: new[] { (manufactureMonth, 100m, 5.0) },
-            purchasePriceWithVat: 50m);
+            purchasePrice: 50m);
 
         var repoMock = new Mock<ICatalogRepository>();
         repoMock.Setup(r => r.WaitForCurrentMergeAsync(It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);
@@ -250,6 +260,40 @@ public class ManufactureBasedMaterialCostProviderTests
         // Series spans the SUT window [now - DefaultHistoryDays, now] aligned to first-of-month.
         var expectedMonthCount = ExpectedMonthCount(captured.DataFrom, captured.DataTo);
         series.Should().HaveCount(expectedMonthCount);
+    }
+
+    // Margin is computed against the selling price excl. VAT, and Anela reclaims input VAT,
+    // so the purchase-price fallback must be excl. VAT too.
+    [Theory]
+    [InlineData(ProductType.Goods)]
+    [InlineData(ProductType.Product)]
+    internal async Task RefreshAsync_FallbackCostIsPurchasePriceWithoutVat(ProductType type)
+    {
+        // Arrange — Goods always take the fallback; Product takes it with no manufacture history.
+        var product = BuildNonManufacturedProduct(
+            productCode: "FALLBACK-1",
+            type: type,
+            purchasePrice: 100m);
+
+        var repoMock = new Mock<ICatalogRepository>();
+        repoMock.Setup(r => r.WaitForCurrentMergeAsync(It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);
+        repoMock.Setup(r => r.GetAllAsync(It.IsAny<CancellationToken>())).ReturnsAsync(new List<CatalogAggregate> { product });
+
+        var cacheMock = BuildCaptureCacheMock(out var subscribe);
+        CostCacheData? captured = null;
+        subscribe(d => captured = d);
+
+        var provider = CreateProvider(cacheMock: cacheMock, repoMock: repoMock);
+
+        // Act
+        await provider.RefreshAsync();
+
+        // Assert
+        captured.Should().NotBeNull();
+        var series = captured!.ProductCosts["FALLBACK-1"];
+        series.Should().NotBeEmpty();
+        series.Should().AllSatisfy(mc => mc.Cost.Should().Be(100m));
+        series.Select(mc => mc.Cost).Should().NotContain(100m * SalesVatMultiplier);
     }
 
     // ===== FR-3: Carry-forward fills gap months =====
@@ -388,7 +432,7 @@ public class ManufactureBasedMaterialCostProviderTests
             productCode: "PROD-EMPTY",
             type: ProductType.Product,
             history: Array.Empty<(DateTime, decimal, double)>(),
-            purchasePriceWithVat: 75m);
+            purchasePrice: 75m);
 
         var repoMock = new Mock<ICatalogRepository>();
         repoMock.Setup(r => r.WaitForCurrentMergeAsync(It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);
@@ -419,7 +463,7 @@ public class ManufactureBasedMaterialCostProviderTests
             productCode: "PROD-DEFAULT",
             type: ProductType.Product,
             history: null,
-            purchasePriceWithVat: 75m);
+            purchasePrice: 75m);
 
         var repoMock = new Mock<ICatalogRepository>();
         repoMock.Setup(r => r.WaitForCurrentMergeAsync(It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);
@@ -454,7 +498,7 @@ public class ManufactureBasedMaterialCostProviderTests
         var product = BuildNonManufacturedProduct(
             productCode: "MAT-EMPTY",
             type: ProductType.Material,
-            purchasePriceWithVat: price);
+            purchasePrice: price);
 
         var repoMock = new Mock<ICatalogRepository>();
         repoMock.Setup(r => r.WaitForCurrentMergeAsync(It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);
@@ -483,7 +527,7 @@ public class ManufactureBasedMaterialCostProviderTests
             productCode: "PROD-NO-PRICE",
             type: ProductType.Product,
             history: Array.Empty<(DateTime, decimal, double)>(),
-            purchasePriceWithVat: null);
+            purchasePrice: null);
 
         var repoMock = new Mock<ICatalogRepository>();
         repoMock.Setup(r => r.WaitForCurrentMergeAsync(It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);

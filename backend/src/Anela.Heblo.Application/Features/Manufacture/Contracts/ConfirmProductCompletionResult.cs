@@ -1,3 +1,4 @@
+using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Domain.Features.Manufacture;
 
 namespace Anela.Heblo.Application.Features.Manufacture.Contracts;
@@ -8,6 +9,8 @@ public class ConfirmProductCompletionResult
     public string? ErrorMessage { get; }
     public bool RequiresConfirmation { get; }
     public ResidueDistribution? Distribution { get; }
+    public ErrorCodes? ErrorCode { get; }
+    public Dictionary<string, string>? Params { get; }
 
     public ConfirmProductCompletionResult(string errorMessage)
     {
@@ -15,6 +18,13 @@ public class ConfirmProductCompletionResult
         ErrorMessage = errorMessage;
         RequiresConfirmation = false;
         Distribution = null;
+    }
+
+    public ConfirmProductCompletionResult(string errorMessage, ErrorCodes errorCode, Dictionary<string, string>? parameters)
+        : this(errorMessage)
+    {
+        ErrorCode = errorCode;
+        Params = parameters;
     }
 
     public ConfirmProductCompletionResult()

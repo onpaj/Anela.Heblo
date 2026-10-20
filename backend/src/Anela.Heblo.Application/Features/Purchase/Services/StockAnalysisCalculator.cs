@@ -97,6 +97,7 @@ public class StockAnalysisCalculator : IStockAnalysisCalculator
             ProductCode = item.ProductCode,
             ProductName = item.ProductName,
             ProductNameNormalized = item.ProductNameNormalized,
+            ProductNameSuffix = item.ProductNameSuffix,
             ProductType = item.ProductType.ToString(),
             AvailableStock = (double)item.Stock.Available,
             OrderedStock = (double)item.Stock.Ordered,

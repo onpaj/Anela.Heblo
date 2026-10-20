@@ -96,6 +96,7 @@ public static class AuthenticationExtensions
                 });
 
             // Register E2E testing services only when they're needed (real auth + staging/development)
+            services.AddSingleton<IE2ETokenSigningKeySource, EntraE2ETokenSigningKeySource>();
             services.AddScoped<IServicePrincipalTokenValidator, ServicePrincipalTokenValidator>();
             services.AddScoped<IE2ESessionService, E2ESessionService>();
         }

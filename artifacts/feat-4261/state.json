@@ -1,0 +1,52 @@
+{
+  "feature_id": "feat-4261",
+  "issue_number": 4261,
+  "created_at": "2026-09-22T08:10:27.668177Z",
+  "max_revisions": 3,
+  "phases": {
+    "analyzing": {
+      "status": "completed",
+      "updated_at": "2026-09-22T08:12:41.048891Z"
+    },
+    "architecting": {
+      "status": "completed",
+      "updated_at": "2026-09-22T08:13:54.327240Z"
+    },
+    "designing": {
+      "status": "completed",
+      "updated_at": "2026-09-22T08:14:35.783498Z"
+    },
+    "planning": {
+      "status": "completed",
+      "updated_at": "2026-09-22T08:16:44.337519Z"
+    },
+    "developing": {
+      "status": "in_progress",
+      "updated_at": "2026-09-22T11:18:56.525649Z"
+    },
+    "code-review": {
+      "status": "completed",
+      "updated_at": "2026-09-22T12:20:33.851865Z"
+    }
+  },
+  "tasks": [
+    {
+      "name": "collapse-jobname-into-computed-property",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-09-22T09:42:18.433476Z"
+    },
+    {
+      "name": "generate-and-verify-migration",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-09-22T10:23:43.223574Z"
+    },
+    {
+      "name": "full-verification",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-09-22T12:02:12.785441Z"
+    }
+  ]
+}

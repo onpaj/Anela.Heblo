@@ -68,6 +68,7 @@ public class GetSemiproductRecipePdfHandler : IRequestHandler<GetSemiproductReci
                 PrintedAt = _timeProvider.GetUtcNow().DateTime,
                 Mmq = catalog?.MinimalManufactureQuantity > 0 ? catalog.MinimalManufactureQuantity : null,
                 ExpirationMonths = catalog?.Properties?.ExpirationMonths,
+                BarcodeValue = RecipeBarcode.For(template.ProductCode),
                 Ingredients = ingredientLines,
             };
 

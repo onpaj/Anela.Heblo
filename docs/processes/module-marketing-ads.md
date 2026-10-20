@@ -1,0 +1,48 @@
+---
+process: module-marketing-ads
+kind: module
+module: marketing-ads
+summary: Heblo's ad-platform backbone for AI marketing agents — daily Google Ads performance today (Meta and Sklik planned) and change history in the ads schema, read by agents over MCP and by people in Metabase.
+owns: []
+verified_at: "570fbbd62"
+related: [sync-ads-daily, sync-ads-change-history, sync-google-ads-campaign-data, flow-google-ads-action-execution, flow-ad-proposal-approval, sync-shoptet-orders]
+---
+
+# Marketing Ads (Reklamní kampaně)
+
+## Purpose
+"Heblo is the eyes and the hands, agents are the brain" (handoff `docs/handoff/marketing-agents-platform.md`). This module holds campaign-level data at management granularity for the ad platforms and records every account change, so agents can propose changes and people can see what anyone did. Proposals/approvals (C3), identity and MCP tools (C4) and UI (C5) build on it.
+
+## Users & screens
+Web pages: `/marketing/ads/proposals` (approval inbox), `/marketing/ads/activity` (audit log, out-of-band changes, agent runs), `/marketing/ads/settings` (autonomy, limits, kill switch). Agents and the chief of marketing via the 15 MCP tools in `MarketingAdsMcpTools` (accounts, performance, search terms, blended performance, change history, guardrails, proposals, agent runs, approvals — backed by this module's MediatR handlers; agents authenticate as the `Marketing.Agent` service identity and are rate limited on `/mcp`, see `docs/integrations/marketing-agents-identity.md`). People via Metabase views `ads.v_ads_campaign_monthly`, `ads.v_ads_blended_monthly`, `ads.v_ads_change_events`.
+
+## Processes
+- `sync-ads-daily` — accounts, entities, daily facts, search terms; 05:30 Europe/Prague daily.
+- `sync-ads-change-history` — platform change logs / snapshot diffs, Heblo vs out-of-band; hourly at :15.
+- `sync-google-ads-campaign-data` — the Google Ads read source both jobs call; no job of its own.
+- `flow-google-ads-action-execution` — Google Ads executor: applies and reverts approved negative-keyword and ad-pause actions; validate-only outside production.
+- `flow-ad-proposal-approval` — proposals, limits, autonomy, approval, execution behind the kill switch, revert, audit, agent runs; on demand + 15-min expiry job `ads-proposal-expiry`.
+
+## Data owned
+- `ads.ad_accounts` — one ad account per platform; `is_managed` = Anela's own.
+- `ads.ad_entities` — campaign / ad group / keyword / negative keyword / ad, current state.
+- `ads.ad_daily_facts` — metrics per entity per day, every reported level.
+- `ads.ad_search_term_daily` — search terms per ad group per day.
+- `ads.ad_change_events` — every observed account change with origin.
+- `ads.sync_state` — health per platform × account × stream.
+- Views `ads.v_ads_*` (`backend/src/Anela.Heblo.Persistence.Ads/Sql/ads_read_views.sql`).
+
+## External systems
+Google Ads REST API (read only, via `IAdPlatformReadSource` in `Adapters.GoogleAds`); Meta and Sklik adapters are planned. Reads `shoptet_raw."order"` for the blended views.
+
+## Dependencies
+Reads `shoptet_raw` (Shoptet orders mirror, `sync-shoptet-orders`). Platform adapters plug in read sources; C3 plugs in `IAdExecutionLookup` (`AdExecutionLookup`, executions and reverts from `AdProposalActionExecutions`). Because of that lookup the C2 change sync — and `backend/tools/Anela.Heblo.AdsBackfill`, which runs the same entity step — now needs `ApplicationDbContext` (the Heblo database) besides `AdsDbContext`; the tool registers it on `AdsDatabase:ConnectionString` (same database), pinned by `Anela.Heblo.AdsBackfill.Tests`. Metabase reads the views through `metabase_ro`.
+
+## Known quirks
+- Platform-reported conversions over-count; use the blended view for "is advertising paying off".
+- Non-CZK ad accounts are excluded from blended cost (flagged, not converted).
+- Rollout is manual: migrations are applied by hand, `ads_read_views.sql` is run with `psql`, and `AdsDatabase--ConnectionString` does not exist in either Key Vault yet, so ads persistence is unwired in every environment and the jobs log "skipped" (2026-10-12).
+
+## Code entry points
+- `backend/src/Anela.Heblo.Application/Features/MarketingAds/MarketingAdsModule.cs` — wiring and the "not configured" fallbacks
+- `backend/src/Anela.Heblo.Application/Features/MarketingAds/Reporting/AdsReadRepository.cs` — agent-facing queries

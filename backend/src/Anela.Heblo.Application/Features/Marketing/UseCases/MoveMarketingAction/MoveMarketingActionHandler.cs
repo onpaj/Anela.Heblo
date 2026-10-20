@@ -57,10 +57,7 @@ namespace Anela.Heblo.Application.Features.Marketing.UseCases.MoveMarketingActio
 
             var now = DateTime.UtcNow;
 
-            action.UpdateDetails(
-                title: action.Title,
-                description: action.Description,
-                actionType: action.ActionType,
+            action.Reschedule(
                 startDate: request.StartDate,
                 endDate: request.EndDate,
                 modifiedByUserId: currentUser.Id,

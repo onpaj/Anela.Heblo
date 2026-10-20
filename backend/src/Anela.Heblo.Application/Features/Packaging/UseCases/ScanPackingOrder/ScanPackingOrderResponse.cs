@@ -19,7 +19,8 @@ public class ScanPackingOrderResponse : BaseResponse
         Shipment = shipment;
     }
 
-    public ScanPackingOrderResponse(ErrorCodes errorCode) : base(errorCode) { }
+    public ScanPackingOrderResponse(ErrorCodes errorCode, Dictionary<string, string>? parameters = null)
+        : base(errorCode, parameters) { }
 }
 
 public class ScanOrderData

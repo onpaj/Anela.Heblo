@@ -31,7 +31,7 @@ public class GenerateLeafletHandlerTests
                 It.IsAny<string>(),
                 It.IsAny<RagQueryExpansionConfig>(),
                 It.IsAny<CancellationToken>()))
-            .ReturnsAsync((string q, RagQueryExpansionConfig _, CancellationToken _) => q);
+            .ReturnsAsync((string q, RagQueryExpansionConfig _, CancellationToken _) => RagExpansionResult.Untagged(q));
     }
 
     private GenerateLeafletHandler CreateHandler(LeafletOptions? options = null)
@@ -462,7 +462,7 @@ public class GenerateLeafletHandlerTests
                 It.IsAny<string>(),
                 It.IsAny<RagQueryExpansionConfig>(),
                 It.IsAny<CancellationToken>()))
-            .ReturnsAsync(expandedQuery);
+            .ReturnsAsync(RagExpansionResult.Untagged(expandedQuery));
 
         IEnumerable<string>? capturedEmbeddingInput = null;
         _embeddings

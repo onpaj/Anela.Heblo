@@ -259,3 +259,33 @@ records our own splits produced can carry GPS too.
 no-op — but a record stored with non-zero seconds would have its time shifted by
 up to 59 seconds by the "unchanged" resend. Worth one spot-check on such a record
 if one is ever found.
+
+## Finding 6 (2026-09-30): the Revision touch did not stop phones showing overlaps — work is now recreated, not split
+
+Workers again reported "křížení času" in the phone app for 23., 24. and 29. 9., all
+days split **after** the touch shipped. On every reported day the server data was
+clean (0 overlaps across all 558 September records), and both work records around
+the break carried a `Revision` above the break's — so the touch had run and
+Revision was fresh. Reported days are indistinguishable from unreported ones in
+every server-side field (`Revision` order, `TimestampCreated`, `TimestampChanged`),
+so the phone's sync rule could not be read off the data.
+
+What the data does show: the merge=true split produces two records sharing the
+original's `TimestampCreated`, and neither carries a `TimestampChanged` later than
+the worker's own clock-out — no API write moves it (Finding 5). A client that
+syncs on, or resolves conflicts by, `TimestampChanged` would keep its cached
+full-day record.
+
+The job therefore no longer splits in place. It POSTs the break with
+`merge=false`, creates **new** work records covering the original minus the
+break (ExternalKey `autobreak-{person}-{date}-{HHmm}-{first 8 hex of the original Guid}`), and only then DELETEs the
+original. New records get a new Guid, a new Revision and fresh timestamps, which
+covers every plausible client sync rule. Days carrying our break whose adjacent
+work is still key-less (older merge=true splits, or runs interrupted between
+create and delete) are finished the same way on the next run.
+
+Trade-off: `Location`/`EndLocation` are response-only, so a recreated record
+loses the worker's GPS clock-in/out location.
+
+**Still unverified:** that the phone app drops a record deleted through the API.
+Check on one device before relying on the nightly job's history.

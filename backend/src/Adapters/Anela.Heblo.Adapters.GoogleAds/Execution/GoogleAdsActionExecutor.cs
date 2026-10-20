@@ -1,0 +1,100 @@
+using Anela.Heblo.Adapters.GoogleAds.Api;
+using Anela.Heblo.Application.Features.MarketingAds.Contracts;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
+
+namespace Anela.Heblo.Adapters.GoogleAds.Execution;
+
+/// <summary>
+/// Google Ads executor for the v1 allowlist. Does not compare old values (the core does). Platform
+/// rejections become Failed results; only transport/auth failures throw. Outside the Production
+/// environment every mutate is validate-only whatever GoogleAds:ValidateOnly says, because staging
+/// shares the live account and an App Setting or Key Vault override would beat the appsettings files.
+/// </summary>
+internal sealed class GoogleAdsActionExecutor : IAdActionExecutor
+{
+    private static readonly IReadOnlySet<AdActionType> Supported =
+        new HashSet<AdActionType> { AdActionType.AddNegativeKeyword, AdActionType.PauseAd };
+
+    private readonly IOptionsMonitor<GoogleAdsSettings> _settings;
+    private readonly bool _isProduction;
+    private readonly ILogger<GoogleAdsActionExecutor> _logger;
+    private readonly GoogleAdsPauseAdHandler _pauseAd;
+    private readonly GoogleAdsNegativeKeywordHandler _negativeKeyword;
+
+    public GoogleAdsActionExecutor(
+        IGoogleAdsApiClient api,
+        IOptionsMonitor<GoogleAdsSettings> settings,
+        IHostEnvironment environment,
+        ILogger<GoogleAdsActionExecutor> logger)
+    {
+        _settings = settings;
+        _isProduction = environment.IsProduction();
+        _logger = logger;
+        _pauseAd = new GoogleAdsPauseAdHandler(api);
+        _negativeKeyword = new GoogleAdsNegativeKeywordHandler(api);
+    }
+
+    public AdPlatform Platform => AdPlatform.GoogleAds;
+
+    public IReadOnlySet<AdActionType> SupportedActions => Supported;
+
+    public async Task<AdTargetState> ReadCurrentAsync(AdAction action, CancellationToken ct)
+    {
+        var customerId = CustomerId();
+        if (GoogleAdsActionGuard.Validate(action, customerId) is not null)
+            return GoogleAdsExecutionResults.Missing;
+
+        return action.Type switch
+        {
+            AdActionType.PauseAd => await _pauseAd.ReadCurrentAsync(customerId, action, ct),
+            AdActionType.AddNegativeKeyword => await _negativeKeyword.ReadCurrentAsync(customerId, action, ct),
+            _ => GoogleAdsExecutionResults.Missing,
+        };
+    }
+
+    public async Task<AdExecutionResult> ExecuteAsync(AdAction action, CancellationToken ct)
+    {
+        var customerId = CustomerId();
+        var validateOnly = IsValidateOnly();
+        var result = GoogleAdsActionGuard.Validate(action, customerId) is { } invalid
+            ? GoogleAdsExecutionResults.Failed(invalid)
+            : action.Type switch
+            {
+                AdActionType.PauseAd => await _pauseAd.ExecuteAsync(customerId, action, validateOnly, ct),
+                AdActionType.AddNegativeKeyword => await _negativeKeyword.ExecuteAsync(customerId, action, validateOnly, ct),
+                _ => Unsupported(action),
+            };
+        Log("Execute", action, result, validateOnly);
+        return result;
+    }
+
+    public async Task<AdExecutionResult> RevertAsync(AdAction action, AdExecutionResult original, CancellationToken ct)
+    {
+        var customerId = CustomerId();
+        var validateOnly = IsValidateOnly();
+        var result = GoogleAdsActionGuard.Validate(action, customerId) is { } invalid
+            ? GoogleAdsExecutionResults.Failed(invalid)
+            : action.Type switch
+            {
+                AdActionType.PauseAd => await _pauseAd.RevertAsync(customerId, action, original, validateOnly, ct),
+                AdActionType.AddNegativeKeyword => await _negativeKeyword.RevertAsync(customerId, action, original, validateOnly, ct),
+                _ => Unsupported(action),
+            };
+        Log("Revert", action, result, validateOnly);
+        return result;
+    }
+
+    private static AdExecutionResult Unsupported(AdAction action) =>
+        GoogleAdsExecutionResults.Failed($"Action type {action.Type} is not supported for Google Ads.");
+
+    private bool IsValidateOnly() => _settings.CurrentValue.ValidateOnly || !_isProduction;
+
+    private string CustomerId() => GoogleAdsIds.NormalizeCustomerId(_settings.CurrentValue.CustomerId);
+
+    private void Log(string operation, AdAction action, AdExecutionResult result, bool validateOnly) =>
+        _logger.LogInformation(
+            "GoogleAds: {Operation} {ActionType} on {Level} {Target} -> {Outcome} (validateOnly={ValidateOnly}) {Error}",
+            operation, action.Type, action.TargetLevel, action.TargetExternalId, result.Outcome, validateOnly, result.Error);
+}

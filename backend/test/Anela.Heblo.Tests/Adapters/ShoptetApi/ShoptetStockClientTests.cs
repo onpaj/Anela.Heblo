@@ -152,7 +152,28 @@ public class ShoptetStockClientTests
         result.Should().NotBeNull();
         result!.Code.Should().Be("AKL001");
         result.Amount.Should().Be(10);
+        result.IsAmountKnown.Should().BeTrue();
         result.Claim.Should().Be(3);
+    }
+
+    [Fact]
+    public async Task GetSupplyAsync_NullAmount_IsMarkedUnknown()
+    {
+        var client = BuildClient(_ => Json(new
+        {
+            data = new
+            {
+                supplies = new[]
+                {
+                    new { code = "AKL001", amount = (string?)null, claim = "0.000" },
+                },
+            },
+            errors = (object?)null,
+        }));
+        var result = await client.GetSupplyAsync("AKL001");
+        result.Should().NotBeNull();
+        result!.IsAmountKnown.Should().BeFalse();
+        result.Amount.Should().Be(0);
     }
 
     [Fact]
@@ -275,5 +296,26 @@ public class ShoptetStockClientTests
         Func<Task> act = async () => await client.ListAsync(CancellationToken.None);
 
         await act.Should().ThrowAsync<HttpRequestException>();
+    }
+
+    [Fact]
+    public async Task UpdateStockAsync_Body_IsSingleAmountChangeItem_WithoutRealStock()
+    {
+        string? capturedBody = null;
+        var client = BuildClient(req =>
+        {
+            capturedBody = req.Content!.ReadAsStringAsync().GetAwaiter().GetResult();
+            return Json(new { data = (object?)null, errors = (object?)null });
+        });
+
+        await client.UpdateStockAsync("SA015030V", -15);
+
+        using var doc = JsonDocument.Parse(capturedBody!);
+        var items = doc.RootElement.GetProperty("data");
+        items.GetArrayLength().Should().Be(1);
+        var item = items[0];
+        item.GetProperty("productCode").GetString().Should().Be("SA015030V");
+        item.GetProperty("amountChange").GetDouble().Should().Be(-15);
+        item.TryGetProperty("realStock", out _).Should().BeFalse();
     }
 }

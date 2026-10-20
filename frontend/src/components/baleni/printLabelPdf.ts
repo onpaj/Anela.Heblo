@@ -1,13 +1,24 @@
 import { getAuthenticatedApiClient } from '../../api/client';
+import { LabelOffsets, loadLabelOffsets, toOffsetsQuery } from './labelOffsets/labelOffsetStorage';
 
 interface ApiClientWithInternals {
   baseUrl: string;
   http: { fetch(url: RequestInfo, init?: RequestInit): Promise<Response> };
 }
 
-const buildProxyUrl = (orderCode: string, packageNumber: number): string => {
+/**
+ * Label proxy URL. This computer's per-carrier offsets ride along so the backend can move the
+ * label for this PC's printer; pass `offsets` to override them (adjustment preview / test print).
+ */
+export const buildProxyUrl = (
+  orderCode: string,
+  packageNumber: number,
+  offsets: LabelOffsets = loadLabelOffsets(),
+): string => {
   const apiClient = getAuthenticatedApiClient(false) as unknown as ApiClientWithInternals;
-  return `${apiClient.baseUrl}/api/packaging/orders/${encodeURIComponent(orderCode)}/packages/${packageNumber}/label.pdf`;
+  const url = `${apiClient.baseUrl}/api/packaging/orders/${encodeURIComponent(orderCode)}/packages/${packageNumber}/label.pdf`;
+  const offsetsQuery = toOffsetsQuery(offsets);
+  return offsetsQuery ? `${url}?offsets=${encodeURIComponent(offsetsQuery)}` : url;
 };
 
 export interface PrintAttemptResult {
@@ -24,17 +35,25 @@ export interface PrintAttemptResult {
  */
 const LABEL_POLL_HEADER = 'X-Label-Poll';
 
+/**
+ * Fetches a label PDF through the proxy. `isPoll` marks expected 404s (not-yet-ready or
+ * no-longer-available labels) so the backend logs them quietly.
+ */
+export const fetchLabelPdf = (url: string, isPoll = false): Promise<Response> => {
+  const apiClient = getAuthenticatedApiClient(false) as unknown as ApiClientWithInternals;
+  return isPoll
+    ? apiClient.http.fetch(url, { headers: { [LABEL_POLL_HEADER]: '1' } })
+    : apiClient.http.fetch(url);
+};
+
 const silentPrintViaBlob = async (
   url: string,
   onAfterPrint?: () => void,
   isPoll = false,
 ): Promise<PrintAttemptResult> => {
-  const apiClient = getAuthenticatedApiClient(false) as unknown as ApiClientWithInternals;
   let response: Response;
   try {
-    response = isPoll
-      ? await apiClient.http.fetch(url, { headers: { [LABEL_POLL_HEADER]: '1' } })
-      : await apiClient.http.fetch(url);
+    response = await fetchLabelPdf(url, isPoll);
   } catch {
     return { printed: false };
   }
@@ -86,8 +105,9 @@ export const fetchAndPrintLabel = (
   packageNumber: number,
   onAfterPrint?: () => void,
   isPoll = false,
+  offsets?: LabelOffsets,
 ): Promise<PrintAttemptResult> => {
-  const url = buildProxyUrl(orderCode, packageNumber);
+  const url = buildProxyUrl(orderCode, packageNumber, offsets);
   return silentPrintViaBlob(url, onAfterPrint, isPoll);
 };
 

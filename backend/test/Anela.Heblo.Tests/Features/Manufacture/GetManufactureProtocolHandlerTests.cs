@@ -1,3 +1,4 @@
+using Anela.Heblo.Application.Features.Manufacture.Contracts;
 using Anela.Heblo.Application.Features.Manufacture.UseCases.GetManufactureProtocol;
 using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Domain.Features.Manufacture;
@@ -13,6 +14,7 @@ public class GetManufactureProtocolHandlerTests
     private readonly Mock<IManufactureOrderRepository> _repositoryMock = new();
     private readonly Mock<IManufactureClient> _flexiMock = new();
     private readonly Mock<IManufactureProtocolRenderer> _rendererMock = new();
+    private readonly Mock<IManufactureCatalogSource> _catalogSourceMock = new();
     private readonly GetManufactureProtocolHandler _handler;
 
     private static readonly byte[] PdfMagicBytes = new byte[] { 0x25, 0x50, 0x44, 0x46 };
@@ -23,7 +25,11 @@ public class GetManufactureProtocolHandlerTests
             _repositoryMock.Object,
             _flexiMock.Object,
             _rendererMock.Object,
+            _catalogSourceMock.Object,
             TimeProvider.System);
+        _catalogSourceMock
+            .Setup(c => c.GetProductNameSuffixesAsync(It.IsAny<IEnumerable<string>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Dictionary<string, string>());
     }
 
     [Fact]
@@ -201,6 +207,71 @@ public class GetManufactureProtocolHandlerTests
         second.OuterHumidity.Should().BeNull();
         second.RecordedAt.Should().Be(new DateTime(2026, 4, 2, 14, 0, 0, DateTimeKind.Utc));
         second.Source.Should().Be(ConditionsReadingSource.Partial);
+    }
+
+    [Fact]
+    public async Task Handle_CompletedOrder_ResolvesNameSuffixesForErpDocumentLinesFromCatalog()
+    {
+        var order = BuildCompletedOrder();
+        _repositoryMock
+            .Setup(r => r.GetOrderByIdAsync(1, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(order);
+
+        _flexiMock
+            .Setup(x => x.GetErpDocumentItemsAsync(It.IsAny<string>(), It.IsAny<int?>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<ManufactureErpDocumentItem>());
+        _flexiMock
+            .Setup(x => x.GetErpDocumentItemsAsync("V-MAT-001", It.IsAny<int?>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<ManufactureErpDocumentItem>
+            {
+                new() { ProductCode = "AKL124 ", ProductName = "Acmella In-Tense extrakt", Amount = 1 },
+                new() { ProductCode = "HYD013", ProductName = "Hydrolát máta peprná BIO", Amount = 2 },
+                new() { ProductCode = "OIL001", ProductName = "Olej", Amount = 3 },
+                new() { ProductCode = null!, ProductName = "Textový řádek", Amount = 0 },
+            });
+
+        IEnumerable<string>? requestedCodes = null;
+        var suffixes = new Dictionary<string, string>
+        {
+            ["AKL124"] = "Gatuline Expression AF",
+            ["HYD013"] = "Menthe poivree",
+        };
+        _catalogSourceMock
+            .Setup(c => c.GetProductNameSuffixesAsync(It.IsAny<IEnumerable<string>>(), It.IsAny<CancellationToken>()))
+            .Callback<IEnumerable<string>, CancellationToken>((ids, _) => requestedCodes = ids.ToList())
+            .ReturnsAsync(suffixes);
+
+        ManufactureProtocolData? capturedData = null;
+        _rendererMock
+            .Setup(r => r.Render(It.IsAny<ManufactureProtocolData>()))
+            .Callback<ManufactureProtocolData>(d => capturedData = d)
+            .Returns(PdfMagicBytes);
+
+        await _handler.Handle(new GetManufactureProtocolRequest { Id = 1 }, CancellationToken.None);
+
+        requestedCodes.Should().BeEquivalentTo(new[] { "AKL124", "HYD013", "OIL001" });
+        capturedData!.ProductNameSuffixes.Should().BeEquivalentTo(suffixes);
+    }
+
+    [Fact]
+    public async Task Handle_CompletedOrderWithoutErpLines_DoesNotQueryCatalog()
+    {
+        var order = BuildCompletedOrder();
+        _repositoryMock
+            .Setup(r => r.GetOrderByIdAsync(1, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(order);
+        _flexiMock
+            .Setup(x => x.GetErpDocumentItemsAsync(It.IsAny<string>(), It.IsAny<int?>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<ManufactureErpDocumentItem>());
+        _rendererMock
+            .Setup(r => r.Render(It.IsAny<ManufactureProtocolData>()))
+            .Returns(PdfMagicBytes);
+
+        await _handler.Handle(new GetManufactureProtocolRequest { Id = 1 }, CancellationToken.None);
+
+        _catalogSourceMock.Verify(
+            c => c.GetProductNameSuffixesAsync(It.IsAny<IEnumerable<string>>(), It.IsAny<CancellationToken>()),
+            Times.Never);
     }
 
     private static ManufactureOrder BuildCompletedOrder()

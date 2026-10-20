@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Package, Truck, BarChart3 } from 'lucide-react';
+import { Package, Truck, BarChart3, Move } from 'lucide-react';
 import { useScreenView } from '../../telemetry/useScreenView';
 import { usePackingDashboard } from '../../api/hooks/usePackingDashboard';
 
@@ -33,6 +33,13 @@ const TILES: BaleniTile[] = [
     description: 'Statistiky balicí stanice',
     href: '/baleni/statistiky',
     icon: BarChart3,
+  },
+  {
+    id: 'nastaveni-stitku',
+    title: 'Nastavení štítků',
+    description: 'Posun štítku pro tiskárnu tohoto počítače',
+    href: '/baleni/nastaveni-stitku',
+    icon: Move,
   },
 ];
 
@@ -115,7 +122,7 @@ const BaleniHome: React.FC = () => {
 
       <section>
         <h2 className="text-lg font-semibold text-neutral-slate dark:text-graphite-text mb-4">Navigace</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {TILES.map(({ id, title, description, href, icon: Icon }) => (
             <Link
               key={id}

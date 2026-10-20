@@ -1,0 +1,70 @@
+{
+  "feature_id": "feat-3651",
+  "issue_number": 3651,
+  "created_at": "2026-10-19T20:12:34.633670Z",
+  "max_revisions": 3,
+  "phases": {
+    "analyzing": {
+      "status": "completed",
+      "updated_at": "2026-10-19T20:13:40.639436Z"
+    },
+    "architecting": {
+      "status": "completed",
+      "updated_at": "2026-10-19T20:13:43.930866Z"
+    },
+    "designing": {
+      "status": "completed",
+      "updated_at": "2026-10-19T20:13:47.068879Z"
+    },
+    "planning": {
+      "status": "completed",
+      "updated_at": "2026-10-19T20:14:12.682746Z"
+    },
+    "developing": {
+      "status": "in_progress",
+      "updated_at": "2026-10-19T21:14:24.220484Z"
+    },
+    "code-review": {
+      "status": "completed",
+      "updated_at": "2026-10-20T02:15:20.401485Z"
+    }
+  },
+  "tasks": [
+    {
+      "name": "add-settings",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-10-19T20:15:45.394548Z"
+    },
+    {
+      "name": "circuit-breaker-factory",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-10-19T21:15:53.395055Z"
+    },
+    {
+      "name": "wire-pipeline",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-10-19T22:16:30.356562Z"
+    },
+    {
+      "name": "pipeline-tests",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-10-19T23:37:00.479691Z"
+    },
+    {
+      "name": "update-process-doc",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-10-20T00:15:12.366842Z"
+    },
+    {
+      "name": "final-validation",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-10-20T01:19:54.021574Z"
+    }
+  ]
+}

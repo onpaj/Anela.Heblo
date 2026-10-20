@@ -21,31 +21,22 @@ public class GetConfigurationHandler : IRequestHandler<GetConfigurationRequest, 
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
-    public async Task<GetConfigurationResponse> Handle(GetConfigurationRequest request, CancellationToken cancellationToken)
+    public Task<GetConfigurationResponse> Handle(GetConfigurationRequest request, CancellationToken cancellationToken)
     {
-        try
+        _logger.LogDebug("Handling GetConfiguration request");
+
+        var appConfig = BuildApplicationConfiguration();
+
+        var response = new GetConfigurationResponse
         {
-            _logger.LogDebug("Handling GetConfiguration request");
+            Version = appConfig.Version,
+            Environment = appConfig.Environment,
+            UseMockAuth = appConfig.UseMockAuth,
+        };
 
-            var appConfig = BuildApplicationConfiguration();
+        _logger.LogDebug("Configuration retrieved successfully: {@Config}", response);
 
-            var response = new GetConfigurationResponse
-            {
-                Version = appConfig.Version,
-                Environment = appConfig.Environment,
-                UseMockAuth = appConfig.UseMockAuth,
-                Timestamp = DateTime.UtcNow,
-            };
-
-            _logger.LogDebug("Configuration retrieved successfully: {@Config}", response);
-
-            return response;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error retrieving application configuration");
-            throw;
-        }
+        return Task.FromResult(response);
     }
 
     private ApplicationConfiguration BuildApplicationConfiguration()

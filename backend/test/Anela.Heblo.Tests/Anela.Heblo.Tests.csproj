@@ -55,6 +55,19 @@
     <ProjectReference Include="..\..\src\Anela.Heblo.Xcc\Anela.Heblo.Xcc.csproj" />
     <ProjectReference Include="..\..\src\Adapters\Anela.Heblo.Adapters.Microsoft365\Anela.Heblo.Adapters.Microsoft365.csproj" />
     <ProjectReference Include="..\..\src\Adapters\Anela.Heblo.Adapters.OrgChart\Anela.Heblo.Adapters.OrgChart.csproj" />
+    <ProjectReference Include="..\..\src\Adapters\Anela.Heblo.Adapters.Ecomail\Anela.Heblo.Adapters.Ecomail.csproj" />
+    <ProjectReference Include="..\..\src\Anela.Heblo.Persistence.Ads\Anela.Heblo.Persistence.Ads.csproj" />
+    <ProjectReference Include="..\Anela.Heblo.MarketingAds.TestKit\Anela.Heblo.MarketingAds.TestKit.csproj" />
+    <ProjectReference Include="..\..\src\Anela.Heblo.Persistence.ShoptetOrders\Anela.Heblo.Persistence.ShoptetOrders.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="..\..\src\Anela.Heblo.Persistence.Ads\Sql\ads_read_views.sql" Link="MarketingAds\Sql\ads_read_views.sql">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="..\..\src\Anela.Heblo.Persistence.ShoptetOrders\Sql\shoptet_raw_views.sql" Link="MarketingAds\Sql\shoptet_raw_views.sql">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
 
   <ItemGroup>

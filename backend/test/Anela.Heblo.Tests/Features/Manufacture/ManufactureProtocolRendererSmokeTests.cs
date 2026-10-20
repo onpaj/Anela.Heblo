@@ -122,4 +122,34 @@ public class ManufactureProtocolRendererSmokeTests
         bytes[2].Should().Be(0x44); // D
         bytes[3].Should().Be(0x46); // F
     }
+
+    [Fact]
+    public void Render_WithProductNameSuffixes_DoesNotThrowAndReturnsValidPdfBytes()
+    {
+        var renderer = new QuestPdfManufactureProtocolRenderer();
+        var data = new ManufactureProtocolData
+        {
+            OrderNumber = "MO-2026-042",
+            GeneratedAt = new DateTime(2026, 9, 30, 12, 0, 0, DateTimeKind.Utc),
+            ErpDocuments = new List<ManufactureProtocolErpDocument>
+            {
+                new ManufactureProtocolErpDocument
+                {
+                    DocumentCode = "VYD042",
+                    DocumentType = "Výdej materiálu (polotovar)",
+                    Items = new List<ManufactureErpDocumentItem>
+                    {
+                        new ManufactureErpDocumentItem { ProductCode = "AKL124", ProductName = "Acmella In-Tense extrakt", Amount = 1.5, Unit = "kg" },
+                        new ManufactureErpDocumentItem { ProductCode = "OIL001", ProductName = "Olej", Amount = 2.0, Unit = "kg" },
+                    },
+                },
+            },
+            ProductNameSuffixes = new Dictionary<string, string> { ["AKL124"] = "Gatuline Expression AF" },
+        };
+
+        var bytes = renderer.Render(data);
+
+        bytes.Should().NotBeEmpty();
+        bytes.Take(4).Should().Equal(0x25, 0x50, 0x44, 0x46);
+    }
 }

@@ -82,6 +82,9 @@ const INVALID_PRICE_ERROR =
 interface SyncStatus {
   at: Date;
   changedCount: number;
+  writtenCount: number;
+  failedCount: number;
+  remainingCount: number;
 }
 
 // Czech counts one, a few (2-4) and many (5+) differently, and each form needs its own verb.
@@ -93,6 +96,36 @@ const changedRowsLabel = (count: number): string => {
   if (count < FEW_UPPER_BOUND) return `${count} řádky se změnily`;
   return `${count} řádků se změnilo`;
 };
+
+const writtenPricesLabel = (count: number): string => {
+  if (count === 0) return "do Flexi se nic nezapisovalo";
+  if (count === 1) return "zapsána 1 cena do Flexi";
+  if (count < FEW_UPPER_BOUND) return `zapsány ${count} ceny do Flexi`;
+  return `zapsáno ${count} cen do Flexi`;
+};
+
+const failedPricesLabel = (count: number): string =>
+  `U ${count === 1 ? "1 produktu" : `${count} produktů`} se cenu nepodařilo zapsat do Flexi. ` +
+  "Tyto řádky zůstávají v přehledu jako rozdílné.";
+
+// Not a failure: the run stopped before the gateway could drop it, and the rows it did not
+// reach are waiting for the next click.
+const remainingPricesLabel = (count: number): string => {
+  if (count === 1) return "Zbývá 1 řádek — spusťte synchronizaci znovu.";
+  if (count < FEW_UPPER_BOUND)
+    return `Zbývají ${count} řádky — spusťte synchronizaci znovu.`;
+  return `Zbývá ${count} řádků — spusťte synchronizaci znovu.`;
+};
+
+/**
+ * The rows a sync would write, mirroring `SyncProductPricesHandler.NeedsFlexiWrite`. Only an
+ * estimate for the confirmation prompt: the backend decides for real against prices it reads
+ * fresh, which may have moved since this report was loaded.
+ */
+const needsFlexiWrite = (row: PriceDivergenceRowDto) =>
+  row.kind === PriceDivergenceKind.FlexiDiffers &&
+  row.shoptetPriceWithVat != null &&
+  row.shoptetPriceWithVat > 0;
 
 const formatSyncTime = (at: Date): string =>
   at.toLocaleTimeString("cs-CZ", { hour: "2-digit", minute: "2-digit" });
@@ -153,13 +186,24 @@ const PriceDivergenceReport: React.FC<PriceDivergenceReportProps> = ({ canWrite 
       matchesText(row.productCode, productCodeFilter),
   );
 
-  // Only rows the filters left on screen: the sync re-reads two live systems, so it covers
-  // what the operator is actually looking at rather than the whole catalogue.
+  // Only rows the filters left on screen: the sync re-reads two live systems and writes the
+  // ERP, so it covers what the operator is actually looking at rather than the whole catalogue.
   const visibleProductCodes = visibleRows
     .map((row) => row.productCode)
     .filter((code): code is string => !!code);
 
+  const writableRowCount = visibleRows.filter(needsFlexiWrite).length;
+
   const handleSync = async () => {
+    // The only guard between a click and a bulk write into the live ERP — asked before
+    // anything on screen is cleared, so cancelling leaves the last confirmation in place.
+    const confirmed = window.confirm(
+      `Synchronizovat ${visibleProductCodes.length} zobrazených produktů ze Shoptetu do živého ` +
+        `ERP Flexi?\n\nPřepíše se cena ve Flexi cenou ze Shoptetu u řádků, které se liší ` +
+        `(nyní ${writableRowCount}). Do Shoptetu se nic nezapisuje.`,
+    );
+    if (!confirmed) return;
+
     // Both cleared up front, not only on success: leaving the previous failure on screen for
     // the duration of the retry makes a running sync look like it has already failed again,
     // and a stale confirmation next to a fresh failure reads as both at once.
@@ -170,8 +214,15 @@ const PriceDivergenceReport: React.FC<PriceDivergenceReportProps> = ({ canWrite 
     // themselves and always report no change.
     const rowsBeforeSync = rows;
     try {
-      const syncedRows = await syncPrices(visibleProductCodes);
-      setSyncStatus({ at: new Date(), changedCount: countChangedRows(rowsBeforeSync, syncedRows) });
+      const { rows: syncedRows, writtenCount, failedCount, remainingCount } =
+        await syncPrices(visibleProductCodes);
+      setSyncStatus({
+        at: new Date(),
+        changedCount: countChangedRows(rowsBeforeSync, syncedRows),
+        writtenCount,
+        failedCount,
+        remainingCount,
+      });
       // A row-level save failure only ever cleared on a later successful save of that same
       // row, so a red alert about a write that failed minutes ago would sit under a row the
       // sync has just re-read from both live systems — describing prices no longer on screen.
@@ -295,8 +346,8 @@ const PriceDivergenceReport: React.FC<PriceDivergenceReportProps> = ({ canWrite 
         >
           <AlertTriangle className="h-4 w-4 flex-shrink-0" />
           <span>
-            Pozor — uložení zapisuje cenu přímo do živého Shoptetu a živého ERP Flexi. Ani jeden systém nemá
-            testovací prostředí.
+            Pozor — uložení zapisuje cenu přímo do živého Shoptetu a živého ERP Flexi, synchronizace přepisuje
+            ceny v živém Flexi. Ani jeden systém nemá testovací prostředí.
           </span>
         </div>
       ) : (
@@ -374,24 +425,28 @@ const PriceDivergenceReport: React.FC<PriceDivergenceReportProps> = ({ canWrite 
           Zobrazit pouze rozdílné
         </label>
 
-        <button
-          type="button"
-          data-testid="sync-prices-button"
-          onClick={handleSync}
-          disabled={isSyncing || visibleProductCodes.length === 0}
-          aria-busy={isSyncing}
-          title="Znovu načte ceny zobrazených produktů ze Shoptetu a z Flexi. Nic nezapisuje."
-          className="inline-flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-md border border-gray-300 dark:border-graphite-border bg-white dark:bg-graphite-surface-2 text-gray-700 dark:text-graphite-text hover:bg-gray-50 dark:hover:bg-graphite-surface disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          {isSyncing ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
-          ) : (
-            <RefreshCw className="h-4 w-4" />
-          )}
-          {/* The label carries the state too, not just the spinner: a spinner swap alone
-              changes nothing a screen reader announces. */}
-          {isSyncing ? "Synchronizuji…" : `Synchronizovat (${visibleProductCodes.length})`}
-        </button>
+        {/* Rendered only for a write-capable operator: the sync writes prices into the live
+            ERP, so for everyone else this screen stays exactly what its banner promises. */}
+        {canWrite && (
+          <button
+            type="button"
+            data-testid="sync-prices-button"
+            onClick={handleSync}
+            disabled={isSyncing || visibleProductCodes.length === 0}
+            aria-busy={isSyncing}
+            title="Znovu načte ceny zobrazených produktů ze Shoptetu a z Flexi a u rozdílných řádků zapíše cenu ze Shoptetu do živého ERP Flexi. Do Shoptetu nezapisuje."
+            className="inline-flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-md border border-gray-300 dark:border-graphite-border bg-white dark:bg-graphite-surface-2 text-gray-700 dark:text-graphite-text hover:bg-gray-50 dark:hover:bg-graphite-surface disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {isSyncing ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <RefreshCw className="h-4 w-4" />
+            )}
+            {/* The label carries the state too, not just the spinner: a spinner swap alone
+                changes nothing a screen reader announces. */}
+            {isSyncing ? "Synchronizuji…" : `Synchronizovat (${visibleProductCodes.length})`}
+          </button>
+        )}
       </div>
 
       {/* The table is identical whenever the two systems held what the report already showed,
@@ -407,8 +462,23 @@ const PriceDivergenceReport: React.FC<PriceDivergenceReportProps> = ({ canWrite 
         className="mb-4 text-sm text-gray-500 dark:text-graphite-muted"
       >
         {syncStatus &&
-          `Synchronizováno v ${formatSyncTime(syncStatus.at)} — ${changedRowsLabel(syncStatus.changedCount)}`}
+          `Synchronizováno v ${formatSyncTime(syncStatus.at)} — ` +
+            `${writtenPricesLabel(syncStatus.writtenCount)}, ${changedRowsLabel(syncStatus.changedCount)}` +
+            `${syncStatus.remainingCount > 0 ? `. ${remainingPricesLabel(syncStatus.remainingCount)}` : ""}`}
       </div>
+
+      {/* A write that did not land is not a failed sync — the rest of the selection was
+          synced — so it is reported next to the confirmation rather than in place of it. */}
+      {syncStatus && syncStatus.failedCount > 0 && (
+        <div
+          role="alert"
+          data-testid="sync-prices-failures"
+          className="mb-4 flex items-center gap-2 px-4 py-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-900/40 rounded-md text-sm text-amber-800 dark:text-amber-300"
+        >
+          <AlertTriangle className="h-4 w-4 flex-shrink-0" />
+          <span>{failedPricesLabel(syncStatus.failedCount)}</span>
+        </div>
+      )}
 
       {syncError && (
         <div

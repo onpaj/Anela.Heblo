@@ -33,6 +33,15 @@ public class RecurringJobConfigurationRepositoryTests : IDisposable
     }
 
     [Fact]
+    public void EfCoreModel_ShouldNotMapJobNameAsColumn()
+    {
+        // Assert
+        var entityType = _context.Model.FindEntityType(typeof(RecurringJobConfiguration));
+        Assert.NotNull(entityType);
+        Assert.Null(entityType.FindProperty(nameof(RecurringJobConfiguration.JobName)));
+    }
+
+    [Fact]
     public async Task GetAllAsync_WithConfigurations_ReturnsAllConfigurations()
     {
         // Arrange

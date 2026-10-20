@@ -7,6 +7,7 @@ import {
 } from '../printLabelPdf';
 import type { PrintLabelOptions } from '../printLabelPdf';
 import { getAuthenticatedApiClient } from '../../../api/client';
+import { saveLabelOffset } from '../labelOffsets/labelOffsetStorage';
 
 jest.mock('../../../api/client', () => ({
   getAuthenticatedApiClient: jest.fn(),
@@ -28,6 +29,7 @@ let fetchMock: jest.Mock;
 
 beforeEach(() => {
   jest.clearAllMocks();
+  window.localStorage.clear();
   URL.createObjectURL = jest.fn().mockReturnValue('blob:test-url');
   URL.revokeObjectURL = jest.fn();
   originalOpen = window.open;
@@ -700,5 +702,49 @@ describe('printLabelWithReadiness', () => {
     handler();
 
     expect(onAfterPrint).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('label offsets', () => {
+  const okPdf = () => ({
+    ok: true,
+    status: 200,
+    blob: async () => new Blob(['%PDF'], { type: 'application/pdf' }),
+  });
+
+  beforeEach(() => {
+    jest.spyOn(document.body, 'appendChild').mockImplementation(() => null as any);
+  });
+
+  it('sends this computer\'s saved offsets with the label request', async () => {
+    saveLabelOffset('Zasilkovna', { xMm: 0, yMm: -5 });
+    saveLabelOffset('PPL', { xMm: 2, yMm: 0 });
+    fetchMock.mockResolvedValue(okPdf());
+
+    await fetchAndPrintLabel('250001', 1);
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      `${expectedProxyUrl}?offsets=${encodeURIComponent('Zasilkovna:0:-5,PPL:2:0')}`,
+    );
+  });
+
+  it('uses explicit offsets instead of the saved ones (test print)', async () => {
+    saveLabelOffset('Zasilkovna', { xMm: 0, yMm: -5 });
+    fetchMock.mockResolvedValue(okPdf());
+
+    await fetchAndPrintLabel('250001', 1, undefined, false, { GLS: { xMm: 1, yMm: 2 } });
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      `${expectedProxyUrl}?offsets=${encodeURIComponent('GLS:1:2')}`,
+    );
+  });
+
+  it('sends no offsets parameter when every offset is zero', async () => {
+    saveLabelOffset('PPL', { xMm: 0, yMm: 0 });
+    fetchMock.mockResolvedValue(okPdf());
+
+    await fetchAndPrintLabel('250001', 1);
+
+    expect(fetchMock).toHaveBeenCalledWith(expectedProxyUrl);
   });
 });

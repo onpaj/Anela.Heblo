@@ -13,13 +13,6 @@ export const TestRouterWrapper: React.FC<TestRouterWrapperProps> = ({
   children,
 }) => {
   return (
-    <BrowserRouter
-      future={{
-        v7_startTransition: true,
-        v7_relativeSplatPath: true,
-      }}
-    >
-      {children}
-    </BrowserRouter>
+    <BrowserRouter>{children}</BrowserRouter>
   );
 };

@@ -13,12 +13,16 @@ public enum FlexiManufactureOperationKind
     Allocation
 }
 
-public class FlexiManufactureException : Exception, IHasFailedConsumptionItems
+public class FlexiManufactureException : Exception, IHasFailedConsumptionItems, IManufactureStockShortage
 {
     public FlexiManufactureOperationKind OperationKind { get; }
     public int? WarehouseId { get; }
     public string? RawFlexiError { get; }
     public IReadOnlyList<FailedConsumptionItem> FailedItems { get; }
+
+    // Both kinds are raised before any Flexi document is saved.
+    public bool IsStockShortage =>
+        OperationKind is FlexiManufactureOperationKind.StockValidation or FlexiManufactureOperationKind.Allocation;
 
     public override string Message =>
         string.IsNullOrEmpty(RawFlexiError)

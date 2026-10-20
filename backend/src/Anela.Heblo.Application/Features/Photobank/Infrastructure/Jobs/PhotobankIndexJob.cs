@@ -21,6 +21,7 @@ public class PhotobankIndexJob : IRecurringJob
     public RecurringJobMetadata Metadata { get; } = new()
     {
         JobName = "photobank-index",
+        Category = RecurringJobCategory.Content,
         DisplayName = "Photobank Index",
         Description = "Syncs SharePoint photos into the Photobank via Graph delta API",
         CronExpression = "0 3 * * *",

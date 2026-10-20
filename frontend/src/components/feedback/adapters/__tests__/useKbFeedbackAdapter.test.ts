@@ -110,3 +110,32 @@ test('returns isError when query errors', () => {
   expect(result.current.isError).toBe(true);
   expect(result.current.rows).toEqual([]);
 });
+
+test('passes date and tag filters to the list query', () => {
+  const spy = jest.spyOn(kbHooks, 'useKnowledgeBaseFeedbackListQuery');
+  renderHook(() =>
+    useKbFeedbackAdapter({ ...params, dateFrom: '2026-10-01', dateTo: '2026-10-14', problemTag: 'akné', productTag: 'hořčíkové máslo' }),
+  );
+  expect(spy).toHaveBeenCalledWith(
+    expect.objectContaining({ dateFrom: '2026-10-01', dateTo: '2026-10-14', problemTag: 'akné', productTag: 'hořčíkové máslo' }),
+  );
+});
+
+test('maps problem then product tags onto the row', () => {
+  jest.spyOn(kbHooks, 'useKnowledgeBaseFeedbackListQuery').mockReturnValue({
+    data: {
+      success: true,
+      logs: [{ ...mockLog, problemTags: ['akné'], productTags: ['hořčíkové máslo'], recommendedProductCodes: ['MAS009'] }],
+      totalCount: 1, pageNumber: 1, pageSize: 20, totalPages: 1, stats: mockStats,
+    },
+    isLoading: false,
+    isError: false,
+  } as any);
+  const { result } = renderHook(() => useKbFeedbackAdapter(params));
+  expect(result.current.rows[0].tags).toEqual(['akné', 'hořčíkové máslo']);
+});
+
+test('row tags default to empty when the log has none', () => {
+  const { result } = renderHook(() => useKbFeedbackAdapter(params));
+  expect(result.current.rows[0].tags).toEqual([]);
+});

@@ -77,7 +77,7 @@ const renderReport = ({
   rows = [],
   summary = sampleSummary,
   setPrice = jest.fn(),
-  syncPrices = jest.fn().mockResolvedValue([]),
+  syncPrices = jest.fn().mockResolvedValue({ rows: [], writtenCount: 0, failedCount: 0, remainingCount: 0 }),
   isPending = false,
   isLoading = false,
   error = null,
@@ -686,7 +686,7 @@ test("clears a row's save failure once a sync has re-read that row", async () =>
   renderReport({
     canWrite: true,
     setPrice,
-    syncPrices: jest.fn().mockResolvedValue(synced),
+    syncPrices: jest.fn().mockResolvedValue({ rows: synced, writtenCount: 0, failedCount: 0, remainingCount: 0 }),
     rows: [inAgreementRow],
   });
 

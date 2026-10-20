@@ -24,8 +24,8 @@ export const dataQualityKeys = {
   all: [...QUERY_KEYS.dataQuality] as const,
   runs: (params?: GetDqtRunsParams) =>
     [...QUERY_KEYS.dataQuality, 'runs', params ?? {}] as const,
-  runDetail: (runId: string) =>
-    [...QUERY_KEYS.dataQuality, 'runs', runId, 'detail'] as const,
+  runDetail: (runId: string, resultPage: number, resultPageSize: number) =>
+    [...QUERY_KEYS.dataQuality, 'runs', runId, 'detail', resultPage, resultPageSize] as const,
 };
 
 // ---- Hooks ----
@@ -62,7 +62,7 @@ export const useDqtRunDetail = (
   resultPageSize: number = 50,
 ) => {
   return useQuery({
-    queryKey: dataQualityKeys.runDetail(runId ?? ''),
+    queryKey: dataQualityKeys.runDetail(runId ?? '', resultPage, resultPageSize),
     queryFn: (): Promise<GetDqtRunDetailResponse> => {
       const apiClient = getAuthenticatedApiClient();
       return apiClient.dataQuality_GetRunDetail(runId!, resultPage, resultPageSize);

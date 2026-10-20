@@ -4,7 +4,7 @@ using Microsoft.Extensions.Caching.Memory;
 namespace Anela.Heblo.Application.Features.Catalog.Cache;
 
 /// <summary>
-/// In-memory cache for M1_A (Flat Manufacturing) cost data.
+/// In-memory cache for M1 (Flat Manufacturing) cost data.
 /// Pure storage layer - business logic resides in ManufactureCostSource.
 /// </summary>
 public class FlatManufactureCostCache : IFlatManufactureCostCache

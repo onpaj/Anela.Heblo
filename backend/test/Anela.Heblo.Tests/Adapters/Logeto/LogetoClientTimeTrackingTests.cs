@@ -8,10 +8,8 @@ using Microsoft.Extensions.Options;
 namespace Anela.Heblo.Tests.Adapters.Logeto;
 
 /// <summary>
-/// The break-insertion job decides whether a day is stale by comparing Revision values. If that
-/// field ever stopped binding, every entry would read 0, every comparison would say "already fine",
-/// and the job would silently do nothing while reporting a clean run — so the wire shape is pinned
-/// here rather than assumed.
+/// The break-insertion job recreates work records from what it reads, so every field it copies
+/// must bind from the wire payload — the shape is pinned here rather than assumed.
 /// </summary>
 public class LogetoClientTimeTrackingTests
 {
@@ -50,24 +48,9 @@ public class LogetoClientTimeTrackingTests
     }
 
     [Fact]
-    public async Task GetTimeTrackingAsync_BindsRevision_FromTheWirePayload()
+    public async Task GetTimeTrackingAsync_BindsTheFieldsARecreateCopies()
     {
-        // Arrange
-        var client = CreateClient(TimeTrackingPayload);
-
-        // Act
-        var entries = await client.GetTimeTrackingAsync(
-            new DateOnly(2026, 9, 7), new DateOnly(2026, 9, 7), CancellationToken.None);
-
-        // Assert
-        entries.Should().ContainSingle();
-        entries[0].Revision.Should().Be(45609);
-    }
-
-    [Fact]
-    public async Task GetTimeTrackingAsync_BindsTheFieldsATouchResends()
-    {
-        // Arrange — a touch is a full replacement, so anything it resends must survive the read.
+        // Arrange — a recreated record is built from this read, so anything it copies must survive it.
         var client = CreateClient(TimeTrackingPayload);
 
         // Act

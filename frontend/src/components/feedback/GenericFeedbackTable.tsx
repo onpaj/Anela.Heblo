@@ -1,5 +1,6 @@
 import React from 'react';
 import type { FeedbackRow } from './types';
+import TagChips from './TagChips';
 import { formatDateTime } from '../../utils/formatters';
 
 interface Props {
@@ -86,6 +87,7 @@ const GenericFeedbackTable: React.FC<Props> = ({
                 </td>
                 <td className="px-4 py-3 text-gray-900 dark:text-graphite-text max-w-xs">
                   <span className="line-clamp-2">{row.primaryText}</span>
+                  <TagChips tags={row.tags ?? []} />
                 </td>
                 <td className="px-4 py-3 text-gray-600 dark:text-graphite-muted whitespace-nowrap">
                   {row.userName ?? row.userId ?? '–'}
