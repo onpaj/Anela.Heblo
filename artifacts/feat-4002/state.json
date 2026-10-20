@@ -25,5 +25,24 @@
       "updated_at": null
     }
   },
-  "tasks": []
+  "tasks": [
+    {
+      "name": "upstream-exception-and-detection",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    },
+    {
+      "name": "polling-job-tolerance-and-tracker",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    },
+    {
+      "name": "process-docs-update",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    }
+  ]
 }
