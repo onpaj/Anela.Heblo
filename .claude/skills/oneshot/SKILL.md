@@ -65,8 +65,8 @@ agentharness status {feature_id}
    lock, not a label check — GitHub's label API has no compare-and-set, and
    a candidate list (e.g. `chopchop`'s) may be stale by the time you reach
    this step. Run the claim script that ships beside this skill: it creates
-   the remote `feature/{issue_id}-{Title-Slug}` branch through the GitHub
-   refs API — creating an already-existing ref fails, so exactly one
+   the remote `feature/{issue_id}-{Title-Slug}` branch with an atomic
+   `git push` — it fails if the ref already exists, so exactly one
    concurrent claimer wins, no matter how tight the race — and then swaps
    the labels `agent` → `agent-wip` for visibility:
 ```bash
