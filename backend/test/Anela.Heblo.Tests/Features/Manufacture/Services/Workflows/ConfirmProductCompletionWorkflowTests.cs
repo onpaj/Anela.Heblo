@@ -118,6 +118,28 @@ public class ConfirmProductCompletionWorkflowTests
     }
 
     [Fact]
+    public async Task ExecuteAsync_WhenOrderNotFoundAfterUpdate_ReturnsFailureWithoutSubmittingToErp()
+    {
+        // Arrange
+        var productQuantities = new Dictionary<int, decimal> { { 1, 5.0m } };
+        _mediatorMock
+            .Setup(x => x.Send(It.IsAny<UpdateManufactureOrderRequest>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(CreateSuccessfulUpdateOrderResponse());
+        _repositoryMock
+            .Setup(x => x.GetOrderByIdAsync(ValidOrderId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync((ManufactureOrder?)null);
+
+        // Act
+        var result = await _workflow.ExecuteAsync(ValidOrderId, productQuantities, false, ValidChangeReason, CancellationToken.None);
+
+        // Assert
+        result.Success.Should().BeFalse();
+        result.ErrorMessage.Should().Contain(ErrorCodes.ResourceNotFound.ToString());
+        _mediatorMock.Verify(x => x.Send(It.IsAny<SubmitManufactureRequest>(), It.IsAny<CancellationToken>()), Times.Never);
+        _mediatorMock.Verify(x => x.Send(It.IsAny<UpdateManufactureOrderStatusRequest>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
     public async Task ExecuteAsync_WhenUpdateProductsFails_ReturnsQuantityUpdateError()
     {
         // Arrange
