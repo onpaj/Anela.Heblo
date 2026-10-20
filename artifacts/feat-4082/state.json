@@ -21,16 +21,16 @@
       "updated_at": "2026-10-20T23:11:13.787689Z"
     },
     "developing": {
-      "status": "pending",
-      "updated_at": null
+      "status": "in_progress",
+      "updated_at": "2026-10-20T23:14:36.598511Z"
     }
   },
   "tasks": [
     {
       "name": "exception-path-tests",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-10-20T23:14:36.823235Z"
     },
     {
       "name": "exception-path-middleware",
