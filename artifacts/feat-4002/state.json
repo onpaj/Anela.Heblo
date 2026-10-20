@@ -34,9 +34,9 @@
     },
     {
       "name": "polling-job-tolerance-and-tracker",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-10-20T13:16:48.962603Z"
+      "updated_at": "2026-10-20T13:31:56.390331Z"
     },
     {
       "name": "process-docs-update",
