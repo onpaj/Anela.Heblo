@@ -27,4 +27,19 @@ public class HomeAssistantSettings
 
     /// <summary>Health check reports Healthy only if the last Live snapshot is younger than this.</summary>
     public int LiveSnapshotMaxAgeMinutes { get; init; } = 15;
+
+    /// <summary>Enables the circuit breaker around Home Assistant HTTP calls.</summary>
+    public bool CircuitBreakerEnabled { get; init; } = true;
+
+    /// <summary>Failure ratio (0-1) within the sampling window that opens the circuit.</summary>
+    public double CircuitBreakerFailureRatio { get; init; } = 0.5;
+
+    /// <summary>Minimum number of calls within the sampling window before the circuit can open.</summary>
+    public int CircuitBreakerMinimumThroughput { get; init; } = 8;
+
+    /// <summary>Length (seconds) of the sampling window used to evaluate the failure ratio.</summary>
+    public int CircuitBreakerSamplingDurationSeconds { get; init; } = 60;
+
+    /// <summary>How long (seconds) the circuit stays open before a trial call is allowed.</summary>
+    public int CircuitBreakerBreakDurationSeconds { get; init; } = 60;
 }
