@@ -28,9 +28,9 @@
   "tasks": [
     {
       "name": "exception-path-tests",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-10-20T23:14:36.823235Z"
+      "updated_at": "2026-10-20T23:26:23.297355Z"
     },
     {
       "name": "exception-path-middleware",
