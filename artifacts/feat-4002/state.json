@@ -28,9 +28,9 @@
   "tasks": [
     {
       "name": "upstream-exception-and-detection",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-10-20T12:21:18.115939Z"
+      "updated_at": "2026-10-20T12:24:43.030237Z"
     },
     {
       "name": "polling-job-tolerance-and-tracker",
