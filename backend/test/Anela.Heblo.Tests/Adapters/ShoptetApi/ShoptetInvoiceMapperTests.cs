@@ -96,4 +96,61 @@ public class ShoptetInvoiceMapperTests
         // Assert
         result.BillingMethod.Should().Be(expected);
     }
+
+    [Fact]
+    public void Map_KeepsZeroVatItemInTotal_WhenHeaderTotalIncludesIt()
+    {
+        // Arrange — invoice 126020763 shape: a 21 % product plus a 0 % donation line.
+        // The header total (what the customer paid) includes the donation.
+        var src = new ShoptetInvoiceDto
+        {
+            Code = "INV1",
+            OrderCode = "ORD1",
+            Price = new ShoptetInvoicePriceDto
+            {
+                WithVat = "1259.24",
+                WithoutVat = "1049.24",
+                ToPay = "1259.24",
+                CurrencyCode = "CZK",
+            },
+            Items = new List<ShoptetInvoiceItemDto>
+            {
+                new()
+                {
+                    Code = "P1",
+                    Name = "Product 1",
+                    Amount = "1.00",
+                    ItemType = "product",
+                    UnitPrice = new ShoptetInvoiceUnitPriceDto
+                    {
+                        WithoutVat = "1000.00",
+                        WithVat = "1210.00",
+                        Vat = "210.00",
+                        VatRate = "21.0",
+                    },
+                },
+                new()
+                {
+                    Code = "GOODYDO0001",
+                    Name = "Donation",
+                    Amount = "50.00",
+                    ItemType = "product",
+                    UnitPrice = new ShoptetInvoiceUnitPriceDto
+                    {
+                        WithoutVat = "0.9848",
+                        WithVat = "0.9848",
+                        Vat = "0.00",
+                        VatRate = "0.0",
+                    },
+                },
+            },
+        };
+
+        // Act
+        var result = BuildMapper().Map(src);
+
+        // Assert
+        result.Price.WithVat.Should().Be(1259.24m);
+        result.Price.TotalWithVat.Should().Be(1259.24m);
+    }
 }
