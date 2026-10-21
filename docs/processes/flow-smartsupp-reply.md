@@ -167,6 +167,9 @@ None.
   replay.
 - **No bold or other formatting.** Smartsupp text messages cannot carry formatting; links go out
   as plain text and the customer widget auto-links them.
+- **Upload filename is what the customer sees.** The upload step must send the filename as raw UTF-8
+  (Smartsupp ignores RFC 2047 / `filename*` and the message's `file_name`); an attachment-only send
+  must omit `content` (null -> 422). See `docs/integrations/smartsupp-api.md`.
 - **Shoptet card has no orders.** `RecentOrders` is always empty (TODO; the e-mail fallback was
   removed — see `docs/integrations/shoptet-api.md`). Customers only identified by e-mail (no
   Shoptet GUID variable, e.g. Messenger chats) get no card at all.

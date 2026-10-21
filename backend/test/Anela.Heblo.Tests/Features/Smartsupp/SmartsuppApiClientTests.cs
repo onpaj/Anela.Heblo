@@ -519,6 +519,41 @@ public class SmartsuppApiClientTests
         partBytes.Should().Equal(bytes);
     }
 
+    [Fact]
+    public async Task UploadFileAsync_SendsRawUtf8Filename_OnTheWire()
+    {
+        string? wire = null;
+        var handler = CapturingHandler(async req =>
+        {
+            wire = Encoding.UTF8.GetString(await req.Content!.ReadAsByteArrayAsync());
+            return Json("{}");
+        });
+        var client = CreateClient(handler.Object);
+
+        await client.UploadFileAsync("https://files.smartsupp.com/upload/tok1", "faktura č.1.pdf", "application/pdf", new byte[] { 1 }, CancellationToken.None);
+
+        wire.Should().Contain("filename=\"faktura č.1.pdf\"");
+        wire.Should().NotContain("=?utf-8?");
+        wire.Should().NotContain("filename*=");
+    }
+
+    [Fact]
+    public async Task UploadFileAsync_SanitizesQuotesAndControlCharsInFilename()
+    {
+        string? wire = null;
+        var handler = CapturingHandler(async req =>
+        {
+            wire = Encoding.UTF8.GetString(await req.Content!.ReadAsByteArrayAsync());
+            return Json("{}");
+        });
+        var client = CreateClient(handler.Object);
+
+        await client.UploadFileAsync("https://files.smartsupp.com/upload/tok1", "a\"b\\c\r\nX-Evil: 1.pdf", "application/pdf", new byte[] { 1 }, CancellationToken.None);
+
+        wire.Should().Contain("filename=\"a_b_c__X-Evil: 1.pdf\"");
+        wire.Should().NotContain("\r\nX-Evil");
+    }
+
     [Theory]
     [InlineData("https://evil.example/upload/x")]
     [InlineData("http://files.smartsupp.com/upload/x")]

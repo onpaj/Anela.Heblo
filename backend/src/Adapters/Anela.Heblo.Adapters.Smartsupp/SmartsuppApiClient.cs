@@ -626,7 +626,11 @@ public class SmartsuppApiClient : ISmartsuppApiClient
             var client = _httpClientFactory.CreateClient("Smartsupp");
             var filePart = new ByteArrayContent(content);
             filePart.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(fileType);
-            using var form = new MultipartFormDataContent { { filePart, "file", fileName } };
+            // Smartsupp does not decode RFC 2047 / filename*, so send the name as raw UTF-8 like a browser does.
+            using var form = new MultipartFormDataContent { HeaderEncodingSelector = (_, _) => System.Text.Encoding.UTF8 };
+            filePart.Headers.TryAddWithoutValidation(
+                "Content-Disposition", $"form-data; name=\"file\"; filename=\"{SanitizeFileName(fileName)}\"");
+            form.Add(filePart);
             // No Authorization header: the upload token embedded in the URL authorises the upload.
             using var request = new HttpRequestMessage(HttpMethod.Post, uri) { Content = form };
 
@@ -634,6 +638,14 @@ public class SmartsuppApiClient : ISmartsuppApiClient
             await ThrowIfFailedAsync(response, "file upload", ct);
         }, cancellationToken);
     }
+
+    // Quotes, backslashes and control characters (CR/LF included) would break out of the header value.
+    private static string SanitizeFileName(string fileName) =>
+        string.Create(fileName.Length, fileName, (span, name) =>
+        {
+            for (var i = 0; i < name.Length; i++)
+                span[i] = name[i] is '"' or '\\' || char.IsControl(name[i]) ? '_' : name[i];
+        });
 
     private async Task ThrowIfFailedAsync(HttpResponseMessage response, string operation, CancellationToken ct)
     {

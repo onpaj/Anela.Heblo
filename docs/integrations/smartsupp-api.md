@@ -140,6 +140,15 @@ Upload the file to the `url` returned by `GET /files/upload/token`: `multipart/f
 - Once attached, the CDN serves it with `cache-control: public, max-age=31557600`.
 - CDN URLs are public (no auth), so a browser can use them directly in `<img src>` / `<a href>`.
 - Size and type limits are not published and were not probed.
+- **Filename must be raw UTF-8 (verified 2026-10-21).** files.smartsupp.com reads only `filename="..."` and does not
+  decode RFC 2047 (`=?utf-8?B?...?=`) or `filename*=`, which is what .NET emits for non-ASCII names. The stored name
+  becomes the encoded garbage and the CDN url loses its extension. Send `filename="faktura č.1.pdf"` as raw UTF-8 like a
+  browser (the upload response then has `"name":"faktura č.1.pdf"`).
+- **The upload's name wins over the message's `file_name` (verified 2026-10-21).** `file_name` on the message send is
+  ignored; the echoed `attachments[].file_name` uses the name given at upload.
+- **An attachment-only message must omit `content` entirely (verified 2026-10-21).** `"content": null` returns
+  `422 {"path":"content","code":"type","message":"must be object"}`. The agent echo of such a message has
+  `content:{type:"text",text:null,data:null}` plus `attachments[]`.
 
 ---
 
