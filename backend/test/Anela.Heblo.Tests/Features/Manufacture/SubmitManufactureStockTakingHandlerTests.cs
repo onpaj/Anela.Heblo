@@ -371,7 +371,17 @@ public class SubmitManufactureStockTakingHandlerTests
         // Assert - the amount confirmed by the ERP is written back, not the requested target
         response.Success.Should().BeTrue();
         _catalogStockSyncMock.Verify(
-            x => x.SyncErpStockTakingAsync(productCode, 50.0m, It.IsAny<CancellationToken>()),
+            x => x.SyncErpStockTakingAsync(
+                productCode,
+                50.0m,
+                It.Is<ProductStockTakingSnapshot>(r =>
+                    r.Id == stockTakingRecord.Id &&
+                    r.Code == productCode &&
+                    r.Type == StockTakingKind.Erp &&
+                    r.AmountNew == stockTakingRecord.AmountNew &&
+                    r.AmountOld == stockTakingRecord.AmountOld &&
+                    r.User == stockTakingRecord.User),
+                It.IsAny<CancellationToken>()),
             Times.Once);
     }
 
@@ -397,7 +407,7 @@ public class SubmitManufactureStockTakingHandlerTests
             .ReturnsAsync(stockTakingRecord);
 
         _catalogStockSyncMock
-            .Setup(x => x.SyncErpStockTakingAsync(productCode, It.IsAny<decimal>(), It.IsAny<CancellationToken>()))
+            .Setup(x => x.SyncErpStockTakingAsync(productCode, It.IsAny<decimal>(), It.IsAny<ProductStockTakingSnapshot>(), It.IsAny<CancellationToken>()))
             .ThrowsAsync(new InvalidOperationException("cache unavailable"));
 
         // Act
@@ -432,7 +442,7 @@ public class SubmitManufactureStockTakingHandlerTests
         // Assert
         response.Success.Should().BeFalse();
         _catalogStockSyncMock.Verify(
-            x => x.SyncErpStockTakingAsync(It.IsAny<string>(), It.IsAny<decimal>(), It.IsAny<CancellationToken>()),
+            x => x.SyncErpStockTakingAsync(It.IsAny<string>(), It.IsAny<decimal>(), It.IsAny<ProductStockTakingSnapshot>(), It.IsAny<CancellationToken>()),
             Times.Never);
     }
 

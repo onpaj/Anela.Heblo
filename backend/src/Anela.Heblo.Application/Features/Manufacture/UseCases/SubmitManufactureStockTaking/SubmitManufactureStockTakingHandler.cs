@@ -84,9 +84,6 @@ public class SubmitManufactureStockTakingHandler : IRequestHandler<SubmitManufac
             _logger.LogInformation("Manufacture stock taking submitted successfully for product code {ProductCode}. Record ID: {RecordId}",
                 request.ProductCode, stockTakingRecord.Id);
 
-            // TODO(feat-4128): the in-memory history append on the cached aggregate moves behind
-            // IManufactureCatalogStockSync in task preserve-stock-taking-cache-patch.
-
             // Write the confirmed stock level and the reloaded lots back into the catalog caches.
             // Without this the merged cache patch above is reverted by the next catalog merge,
             // which rebuilds every aggregate from the (still stale) ERP source data.
@@ -95,6 +92,17 @@ public class SubmitManufactureStockTakingHandler : IRequestHandler<SubmitManufac
                 await _catalogStockSync.SyncErpStockTakingAsync(
                     request.ProductCode,
                     (decimal)stockTakingRecord.AmountNew,
+                    new ProductStockTakingSnapshot
+                    {
+                        Id = stockTakingRecord.Id,
+                        Type = stockTakingRecord.Type == StockTakingType.Eshop ? StockTakingKind.Eshop : StockTakingKind.Erp,
+                        Code = stockTakingRecord.Code,
+                        AmountNew = stockTakingRecord.AmountNew,
+                        AmountOld = stockTakingRecord.AmountOld,
+                        Date = stockTakingRecord.Date,
+                        User = stockTakingRecord.User,
+                        Error = stockTakingRecord.Error,
+                    },
                     cancellationToken);
             }
             catch (Exception ex)

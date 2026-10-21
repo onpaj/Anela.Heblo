@@ -452,7 +452,8 @@ public sealed class CatalogCacheStore
     /// <param name="productCode">Product the stock taking was submitted for.</param>
     /// <param name="newStock">New ERP stock level as confirmed by the ERP.</param>
     /// <param name="lots">Freshly loaded lots for the product, or null to leave lots untouched.</param>
-    public async Task ApplyErpStockTakingAsync(string productCode, decimal newStock, IReadOnlyList<CatalogLot>? lots)
+    /// <param name="record">Stock taking record to append to the cached aggregates' history (idempotent by Id), or null to leave history untouched.</param>
+    public async Task ApplyErpStockTakingAsync(string productCode, decimal newStock, IReadOnlyList<CatalogLot>? lots, StockTakingRecord? record = null)
     {
         if (string.IsNullOrWhiteSpace(productCode))
         {
@@ -471,8 +472,8 @@ public sealed class CatalogCacheStore
         await _cacheReplacementSemaphore.WaitAsync();
         try
         {
-            ApplyStockTakingToMergedCache(CurrentCatalogCacheKey, productCode, newStock, lots);
-            ApplyStockTakingToMergedCache(StaleCatalogCacheKey, productCode, newStock, lots);
+            ApplyStockTakingToMergedCache(CurrentCatalogCacheKey, productCode, newStock, lots, record);
+            ApplyStockTakingToMergedCache(StaleCatalogCacheKey, productCode, newStock, lots, record);
         }
         finally
         {
@@ -537,7 +538,8 @@ public sealed class CatalogCacheStore
         string cacheKey,
         string productCode,
         decimal newStock,
-        IReadOnlyList<CatalogLot>? lots)
+        IReadOnlyList<CatalogLot>? lots,
+        StockTakingRecord? record)
     {
         var products = _cache.Get<List<CatalogAggregate>>(cacheKey);
         if (products == null)
@@ -557,6 +559,12 @@ public sealed class CatalogCacheStore
         // copies Stock, so writing to the clone's Stock cannot reach the cached instance.
         var patched = products[index].Clone();
         patched.Stock.Erp = newStock;
+
+        // Clone() copies the history list, so appending cannot reach the cached instance.
+        if (record != null && patched.StockTakingHistory.All(r => r.Id != record.Id))
+        {
+            patched.StockTakingHistory.Add(record);
+        }
 
         if (lots != null)
         {

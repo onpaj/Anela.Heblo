@@ -40,9 +40,9 @@
     },
     {
       "name": "preserve-stock-taking-cache-patch",
-      "status": "pending",
+      "status": "completed",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-10-21T03:20:02.696171Z"
     },
     {
       "name": "migrate-manufacture-tests-to-snapshot",
