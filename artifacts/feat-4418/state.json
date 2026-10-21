@@ -25,5 +25,24 @@
       "updated_at": null
     }
   },
-  "tasks": []
+  "tasks": [
+    {
+      "name": "invariant-parsing-tests",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    },
+    {
+      "name": "invariant-parsing-fix",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    },
+    {
+      "name": "process-doc-update",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    }
+  ]
 }
