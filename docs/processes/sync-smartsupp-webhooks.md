@@ -18,7 +18,7 @@ owns:
   - backend/src/Anela.Heblo.Domain/Features/Smartsupp/**
   - backend/src/Anela.Heblo.Persistence/Smartsupp/**
   - backend/src/Adapters/Anela.Heblo.Adapters.Smartsupp/**
-verified_at: "6ba176e4c"
+verified_at: "ffa433ca0"
 related: [flow-smartsupp-reply, job-smartsupp-webhook-audit-cleanup]
 ---
 
@@ -115,6 +115,7 @@ the HTTP request, one REST call (or two) per orphan, all conversations ever stor
   no files. `GetConversation` exposes it as `MessageDto.Attachments`; malformed JSON logs a
   warning and yields an empty list.
 - Messages are upserted through EF (insert new id, otherwise update content/delivery/etc.).
+  Attachments are sticky: an empty/`[]` incoming `AttachmentsJson` never overwrites stored attachments.
 - Conversation/contact upserts execute immediately; message, delivery and denormalisation
   changes are written by the final `SaveChangesAsync` — the two are not in one transaction.
 - **Agent names** (`SmartsuppAgentCache`): singleton, `GET agents`, 1 h TTL; on failure returns

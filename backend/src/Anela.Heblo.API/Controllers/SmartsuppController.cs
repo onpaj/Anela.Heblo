@@ -144,7 +144,7 @@ public class SmartsuppController : BaseApiController
             Content = content,
             DraftLogId = draftLogId,
         };
-        // Reject over-limit uploads before buffering them; the handler enforces the same policy.
+        // Reject over-limit uploads before copying file contents into memory; the handler enforces the same policy.
         var uploads = files ?? [];
         if (uploads.Count > SmartsuppAttachmentPolicy.MaxFiles)
             return HandleResponse(new SendMessageResponse(ErrorCodes.SmartsuppAttachmentInvalid));
