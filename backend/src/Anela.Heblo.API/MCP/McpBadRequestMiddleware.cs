@@ -14,6 +14,9 @@ namespace Anela.Heblo.API.MCP;
 /// 2. After passing through the pipeline, if a well-formed request still gets
 ///    a 400, log User-Agent, Accept, and Origin so we can identify the client
 ///    (issue #593 — suggested action 1).
+/// Additionally, if the downstream pipeline throws (so no status code is ever
+/// written by this middleware), a structured warning with the exception type
+/// is logged and the exception is rethrown unchanged (issue #4082).
 /// </summary>
 public class McpBadRequestMiddleware
 {
@@ -26,6 +29,7 @@ public class McpBadRequestMiddleware
 
     private static readonly EventId GetBadRequestEvent = new(5931, "McpBadRequest");
     private static readonly EventId PostBadRequestEvent = new(5932, "McpBadRequest");
+    private static readonly EventId RequestExceptionEvent = new(5933, "McpRequestException");
 
     private readonly RequestDelegate _next;
     private readonly ILogger<McpBadRequestMiddleware> _logger;
@@ -71,13 +75,50 @@ public class McpBadRequestMiddleware
             return;
         }
 
-        await _next(context);
+        await InvokeNextLoggingExceptionsAsync(context, getStart);
 
         // Log structured diagnostics for well-formed requests that still get 400.
         if (context.Response.StatusCode == StatusCodes.Status400BadRequest)
         {
             LogBadMcpRequest(context, GetBadRequestEvent, Stopwatch.GetElapsedTime(getStart).TotalMilliseconds);
         }
+    }
+
+    private async Task InvokeNextLoggingExceptionsAsync(HttpContext context, long startTimestamp)
+    {
+        try
+        {
+            await _next(context);
+        }
+        catch (Exception ex) when (!(ex is OperationCanceledException && context.RequestAborted.IsCancellationRequested))
+        {
+            LogMcpRequestException(context, ex.GetType().Name, Stopwatch.GetElapsedTime(startTimestamp).TotalMilliseconds);
+            throw;
+        }
+    }
+
+    private void LogMcpRequestException(HttpContext ctx, string exceptionType, double elapsedMs)
+    {
+        var req = ctx.Request;
+        var sessionIdRaw = req.Headers["Mcp-Session-Id"].ToString();
+        var sessionIdPresent = !string.IsNullOrEmpty(sessionIdRaw);
+        var path = (req.Path.Value ?? string.Empty) + (req.QueryString.Value ?? string.Empty);
+
+        _logger.Log(
+            LogLevel.Warning,
+            RequestExceptionEvent,
+            "MCP request threw: HTTPMethod={HTTPMethod} Path={Path} ExceptionType={ExceptionType} UserAgent={UserAgent} Origin={Origin} Accept={Accept} ContentType={ContentType} McpSessionIdPresent={McpSessionIdPresent} McpSessionIdPrefix={McpSessionIdPrefix} RemoteIp={RemoteIp} ElapsedMs={ElapsedMs}",
+            req.Method,
+            path,
+            exceptionType,
+            req.Headers.UserAgent.Count > 0 ? req.Headers.UserAgent.ToString() : "(missing)",
+            req.Headers.Origin.Count > 0 ? req.Headers.Origin.ToString() : "(missing)",
+            req.Headers.Accept.Count > 0 ? req.Headers.Accept.ToString() : "(missing)",
+            req.Headers.ContentType.Count > 0 ? req.Headers.ContentType.ToString() : "(missing)",
+            sessionIdPresent,
+            McpTelemetryHelpers.TruncateSessionId(sessionIdRaw),
+            ctx.Connection.RemoteIpAddress?.ToString() ?? "(unknown)",
+            elapsedMs);
     }
 
     private void LogBadMcpRequest(HttpContext ctx, EventId eventId, double elapsedMs)
@@ -115,7 +156,7 @@ public class McpBadRequestMiddleware
     private async Task HandlePostAsync(HttpContext context)
     {
         var start = Stopwatch.GetTimestamp();
-        await _next(context);
+        await InvokeNextLoggingExceptionsAsync(context, start);
 
         // Log structured diagnostics for POST requests that get 400, without
         // touching the response — the MCP SDK's own validation stands as-is.
