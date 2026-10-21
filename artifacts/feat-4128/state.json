@@ -34,9 +34,9 @@
     },
     {
       "name": "flip-contract-and-migrate-production-consumers",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-10-21T02:14:50.393105Z"
+      "updated_at": "2026-10-21T02:18:57.956527Z"
     },
     {
       "name": "preserve-stock-taking-cache-patch",
