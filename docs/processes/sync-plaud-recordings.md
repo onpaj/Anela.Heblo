@@ -18,7 +18,7 @@ owns:
   - backend/src/Anela.Heblo.Application/Features/MeetingTasks/MeetingTasksOptions.cs
   - backend/src/Adapters/Anela.Heblo.Adapters.Plaud/**
   - backend/src/Anela.Heblo.API/meeting-users.json
-verified_at: "5e993f9e2"
+verified_at: "3735f5e1a"
 related:
   - feed-meeting-tasks-to-planner
 ---
@@ -101,6 +101,7 @@ not changed.
 |---|---|---|
 | Recurring job `plaud-polling` enabled | off (`DefaultIsEnabled = false`) | Master switch, Recurring Jobs page |
 | `MeetingTasks:MaxRecordingAgeDays` | 7 | Polling look-back window in days |
+| `MeetingTasks:UpstreamFailureAlertThreshold` | 12 | Consecutive polling runs failing on a Plaud upstream 5xx before an Error is logged (and again at every multiple); `<= 0` disables the escalation |
 | `MeetingTasks:UserDirectoryPath` | `meeting-users.json` (21 users in repo) | People list for assignee matching; relative to the app directory, read once at start |
 | `Plaud:CliExecutablePath` | `plaud` | Plaud CLI (`npm install -g @plaud-ai/cli` in the Dockerfile) |
 | `Plaud:ProcessTimeoutSeconds` | 60 | Per CLI call; on timeout the process tree is killed |
@@ -116,6 +117,8 @@ not changed.
   failed after 3 attempts") — agent memory `gotcha_hangfire_single_worker_starves_print` — 2026-09-29.
 - Production Hangfire runs with a single worker (`WorkerCount = 1`), shared with print jobs —
   same source — 2026-09-29.
+- On 2026-08-29/30 the Plaud API returned HTTP 500 to `plaud recent` for ~31 hours, failing every
+  5-minute run (issue #4002) — GitHub issue #4002 — 2026-10-20.
 
 ## Known quirks
 - **A recording whose extraction fails is retried on every run for 7 days.** Nothing is stored
@@ -135,7 +138,15 @@ not changed.
   `docs/integrations/plaud-token-auto-refresh.md` (agent memory `gotcha_plaud_token_kv_wins`).
 - **Failure counters undercount**: an exception from a Plaud CLI call for one recording is
   logged and skipped but not added to the run's `failed` count. A failure of the initial
-  `plaud recent` call fails the whole run (Hangfire Failed, no retry).
+  `plaud recent` call other than a Plaud upstream 5xx (see next bullet) fails the whole run
+  (Hangfire Failed, no retry).
+- **Plaud upstream 5xx does not fail the run.** A CLI `API error: 5xx` is raised as
+  `PlaudUpstreamUnavailableException`; `PlaudPollingJob` logs a Warning, ends the run as
+  Succeeded and retries on the next tick. A consecutive-failure counter
+  (`PlaudPollingHealthTracker`) logs an Error once per multiple of
+  `MeetingTasks:UpstreamFailureAlertThreshold` consecutive failing runs and resets on the next
+  successful list. The counter is in-memory and resets on app restart. Auth failures
+  (`PlaudAuthExpiredException`) and other CLI errors still fail the run.
 - **Re-import can duplicate tasks**: it keeps Approved/Rejected tasks and adds a fresh
   extraction, which usually proposes the same items again as Pending. A task that was sent to
   Planner and later switched back to Pending is deleted by re-import (its Planner task stays).

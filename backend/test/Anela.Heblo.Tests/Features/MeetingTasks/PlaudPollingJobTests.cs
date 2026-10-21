@@ -17,6 +17,7 @@ public sealed class PlaudPollingJobTests
     private readonly Mock<IMediator> _mockMediator = new();
     private readonly Mock<IRecurringJobStatusChecker> _mockStatusChecker = new();
     private readonly Mock<ILogger<PlaudPollingJob>> _mockLogger = new();
+    private readonly PlaudPollingHealthTracker _tracker = new();
     private readonly PlaudPollingJob _job;
 
     public PlaudPollingJobTests()
@@ -25,13 +26,35 @@ public sealed class PlaudPollingJobTests
             .Setup(s => s.IsJobEnabledAsync("plaud-polling", It.IsAny<CancellationToken>(), It.IsAny<bool>()))
             .ReturnsAsync(true);
 
-        _job = new PlaudPollingJob(
-            _mockPlaudClient.Object,
-            _mockMediator.Object,
-            _mockStatusChecker.Object,
-            Options.Create(new MeetingTasksOptions { MaxRecordingAgeDays = 7 }),
-            _mockLogger.Object);
+        _job = CreateJob(12);
     }
+
+    private PlaudPollingJob CreateJob(int alertThreshold) => new(
+        _mockPlaudClient.Object,
+        _mockMediator.Object,
+        _mockStatusChecker.Object,
+        Options.Create(new MeetingTasksOptions { MaxRecordingAgeDays = 7, UpstreamFailureAlertThreshold = alertThreshold }),
+        _tracker,
+        _mockLogger.Object);
+
+    private static PlaudUpstreamUnavailableException Upstream() => new(500, "upstream 500");
+
+    private static PlaudRecordingSummary Rec(string id) => new()
+    {
+        Id = id,
+        Name = id,
+        CreatedAt = new DateTime(2026, 8, 10, 9, 0, 0, DateTimeKind.Utc)
+    };
+
+    private void VerifyLog(LogLevel level, Times times) =>
+        _mockLogger.Verify(
+            x => x.Log(
+                level,
+                It.IsAny<EventId>(),
+                It.IsAny<It.IsAnyType>(),
+                It.IsAny<Exception>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            times);
 
     [Fact]
     public async Task ExecuteAsync_WhenJobDisabled_SkipsWithoutCallingPlaudOrMediator()
@@ -254,5 +277,122 @@ public sealed class PlaudPollingJobTests
                 It.IsAny<Exception>(),
                 It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
             Times.Once);
+    }
+
+    [Fact]
+    public async Task ExecuteAsync_WhenListThrowsUpstreamUnavailable_DoesNotThrowAndLogsWarning()
+    {
+        _mockPlaudClient
+            .Setup(c => c.ListRecentAsync(It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(Upstream());
+
+        var act = async () => await _job.ExecuteAsync(CancellationToken.None);
+
+        await act.Should().NotThrowAsync();
+        _mockMediator.Verify(
+            m => m.Send(It.IsAny<IngestPlaudRecordingRequest>(), It.IsAny<CancellationToken>()),
+            Times.Never);
+        _tracker.ConsecutiveFailures.Should().Be(1);
+        VerifyLog(LogLevel.Warning, Times.Once());
+        VerifyLog(LogLevel.Error, Times.Never());
+    }
+
+    [Fact]
+    public async Task ExecuteAsync_WhenThresholdReached_LogsSingleErrorOnThresholdRun()
+    {
+        var job = CreateJob(2);
+        _mockPlaudClient
+            .Setup(c => c.ListRecentAsync(It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(Upstream());
+
+        await job.ExecuteAsync(CancellationToken.None);
+        VerifyLog(LogLevel.Error, Times.Never());
+
+        await job.ExecuteAsync(CancellationToken.None);
+        VerifyLog(LogLevel.Error, Times.Once());
+
+        await job.ExecuteAsync(CancellationToken.None);
+        VerifyLog(LogLevel.Error, Times.Once());
+    }
+
+    [Fact]
+    public async Task ExecuteAsync_WhenThresholdIsZero_NeverLogsError()
+    {
+        var job = CreateJob(0);
+        _mockPlaudClient
+            .Setup(c => c.ListRecentAsync(It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(Upstream());
+
+        for (var i = 0; i < 5; i++)
+            await job.ExecuteAsync(CancellationToken.None);
+
+        VerifyLog(LogLevel.Error, Times.Never());
+        VerifyLog(LogLevel.Warning, Times.Exactly(5));
+    }
+
+    [Fact]
+    public async Task ExecuteAsync_WhenListSucceeds_ResetsTracker()
+    {
+        _tracker.RecordUpstreamFailure();
+        _tracker.RecordUpstreamFailure();
+        _mockPlaudClient
+            .Setup(c => c.ListRecentAsync(It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<PlaudRecordingSummary>());
+
+        await _job.ExecuteAsync(CancellationToken.None);
+
+        _tracker.ConsecutiveFailures.Should().Be(0);
+    }
+
+    [Fact]
+    public async Task ExecuteAsync_WhenMediatorThrowsUpstreamUnavailable_StopsLoopWithoutThrowing()
+    {
+        _mockPlaudClient
+            .Setup(c => c.ListRecentAsync(It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<PlaudRecordingSummary> { Rec("a"), Rec("b"), Rec("c") });
+        _mockMediator
+            .Setup(m => m.Send(It.IsAny<IngestPlaudRecordingRequest>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(Upstream());
+
+        var act = async () => await _job.ExecuteAsync(CancellationToken.None);
+
+        await act.Should().NotThrowAsync();
+        _mockMediator.Verify(
+            m => m.Send(It.IsAny<IngestPlaudRecordingRequest>(), It.IsAny<CancellationToken>()),
+            Times.Once);
+        _tracker.ConsecutiveFailures.Should().Be(1);
+    }
+
+    [Fact]
+    public async Task ExecuteAsync_WhenMediatorThrowsPlainException_ProcessesRemainingRecordings()
+    {
+        _mockPlaudClient
+            .Setup(c => c.ListRecentAsync(It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<PlaudRecordingSummary> { Rec("a"), Rec("b"), Rec("c") });
+        _mockMediator
+            .SetupSequence(m => m.Send(It.IsAny<IngestPlaudRecordingRequest>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new Exception("boom"))
+            .ReturnsAsync(new IngestPlaudRecordingResponse { Skipped = false })
+            .ReturnsAsync(new IngestPlaudRecordingResponse { Skipped = false });
+
+        await _job.ExecuteAsync(CancellationToken.None);
+
+        _mockMediator.Verify(
+            m => m.Send(It.IsAny<IngestPlaudRecordingRequest>(), It.IsAny<CancellationToken>()),
+            Times.Exactly(3));
+        _tracker.ConsecutiveFailures.Should().Be(0);
+    }
+
+    [Fact]
+    public async Task ExecuteAsync_WhenListThrowsOtherInvalidOperation_Propagates()
+    {
+        _mockPlaudClient
+            .Setup(c => c.ListRecentAsync(It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new InvalidOperationException("auth expired"));
+
+        var act = async () => await _job.ExecuteAsync(CancellationToken.None);
+
+        await act.Should().ThrowAsync<InvalidOperationException>().WithMessage("auth expired");
+        _tracker.ConsecutiveFailures.Should().Be(0);
     }
 }
