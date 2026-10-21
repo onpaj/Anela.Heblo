@@ -11,6 +11,7 @@ public class FlexiInvoiceMappingProfile : BaseFlexiProfile
     private const string GiftGoodyProductCode = "GOODYDO0001";
     private const string DefaultCountryCode = "CZ"; // Shoptet orders without an address have an empty country
     private const string GiftBaseCreditAccount = "code:325002"; // zklDalUcet for GOODYDO0001 gifts
+    private const string GiftVatCategory = "code:000U"; // clenDph for GOODYDO0001 gifts (price list would yield 01-02)
 
     public FlexiInvoiceMappingProfile()
     {
@@ -72,7 +73,9 @@ public class FlexiInvoiceMappingProfile : BaseFlexiProfile
             .ForMember(dest => dest.AccountBaseDal, opt => opt.MapFrom(src => src.Code == GiftGoodyProductCode ? GiftBaseCreditAccount : null))
             .ForMember(dest => dest.PriceVatType, opt => opt.MapFrom(src => "typCeny.bezDph"))
             .ForMember(dest => dest.CopyCategoryVatReport, opt => opt.MapFrom(src => true))
-            .ForMember(dest => dest.CopyCategoryVat, opt => opt.MapFrom(src => true));
+            .ForMember(dest => dest.CategoryVat, opt => opt.MapFrom(src => src.Code == GiftGoodyProductCode ? GiftVatCategory : null))
+            // Copying from the price list would overwrite the explicit gift clenDph above
+            .ForMember(dest => dest.CopyCategoryVat, opt => opt.MapFrom(src => src.Code != GiftGoodyProductCode));
     }
 
     private static string MapCountry(string? countryCode)

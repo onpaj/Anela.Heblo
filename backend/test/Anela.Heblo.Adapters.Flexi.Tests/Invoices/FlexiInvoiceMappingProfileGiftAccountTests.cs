@@ -63,14 +63,25 @@ public class FlexiInvoiceMappingProfileGiftAccountTests
     }
 
     [Fact]
-    public void Map_LeavesDphToAbra_ForGiftProduct()
+    public void Map_SetsVatCategoryExplicitly_ForGiftProduct()
     {
         // Act
         var flexi = MapSingleItem(GiftProductCode);
 
-        // Assert — DPH classification stays owned by the Abra product config
-        flexi.Items[0].CopyCategoryVat.Should().BeTrue();
+        // Assert — an explicit clenDph must not be overwritten by the price-list copy
+        flexi.Items[0].CategoryVat.Should().Be("code:000U");
+        flexi.Items[0].CopyCategoryVat.Should().BeFalse();
+    }
+
+    [Fact]
+    public void Map_CopiesVatCategoryFromPriceList_ForNonGiftProduct()
+    {
+        // Act
+        var flexi = MapSingleItem("P1");
+
+        // Assert
         flexi.Items[0].CategoryVat.Should().BeNull();
+        flexi.Items[0].CopyCategoryVat.Should().BeTrue();
     }
 
     [Fact]
