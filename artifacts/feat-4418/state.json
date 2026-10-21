@@ -40,9 +40,9 @@
     },
     {
       "name": "process-doc-update",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-10-21T20:15:54.718657Z"
+      "updated_at": "2026-10-21T20:16:19.599631Z"
     }
   ]
 }
