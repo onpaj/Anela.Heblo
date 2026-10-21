@@ -28,9 +28,9 @@
   "tasks": [
     {
       "name": "add-snapshot-dtos-and-mapper",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-10-21T01:29:53.846818Z"
+      "updated_at": "2026-10-21T01:29:54.299493Z"
     },
     {
       "name": "flip-contract-and-migrate-production-consumers",
