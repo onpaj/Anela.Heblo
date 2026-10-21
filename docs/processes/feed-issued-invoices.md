@@ -178,9 +178,9 @@ always targets the same Flexi document.
   treat as a different metric, not a bug — same source — 2026-09-16.
 
 ## Known quirks
-- **Rows imported before the zero-VAT fix hold a too-low `Price`.** Until 2026-10-21 the item-sum
+- **Rows imported before the zero-VAT fix hold a too-low `Price`.** Until this fix is deployed the item-sum
   fallback skipped 0 % rows, so any invoice whose header total differed from the item sum by 1 Kč
-  or more because of a 0 % line (donation, voucher) stored the sum without it — invoice
+  or more because of a 0 % line (e.g. the `GOODYDO0001` donation) stored the sum without it — invoice
   126020763: 9 350,76 instead of 9 400,00. Flexi always received the row. Stored `Price` is only
   corrected by **Znovu importovat**; monthly revenue for those months stays understated.
 - **Empty billing country defaults to `CZ`.** Shoptet orders without an address are possible
