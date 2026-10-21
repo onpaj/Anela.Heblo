@@ -1,3 +1,4 @@
+using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Application.Features.Smartsupp.UseCases.CloseConversation;
 using Anela.Heblo.Application.Features.Smartsupp.UseCases.GenerateDraftReply;
 using Anela.Heblo.Application.Features.Smartsupp.UseCases.GetContactShoptetInfo;
@@ -143,16 +144,23 @@ public class SmartsuppController : BaseApiController
             Content = content,
             DraftLogId = draftLogId,
         };
-        foreach (var file in files ?? [])
+        // Reject over-limit uploads before buffering them; the handler enforces the same policy.
+        var uploads = files ?? [];
+        if (uploads.Count > SmartsuppAttachmentPolicy.MaxFiles)
+            return HandleResponse(new SendMessageResponse(ErrorCodes.SmartsuppAttachmentInvalid));
+        if (uploads.Any(f => f.Length > SmartsuppAttachmentPolicy.MaxFileBytes))
+            return HandleResponse(new SendMessageResponse(ErrorCodes.SmartsuppAttachmentTooLarge));
+
+        foreach (var file in uploads)
         {
             await using var stream = file.OpenReadStream();
-            using var ms = new MemoryStream();
-            await stream.CopyToAsync(ms, cancellationToken);
+            var bytes = new byte[file.Length];
+            await stream.ReadExactlyAsync(bytes, cancellationToken);
             request.Files.Add(new SendMessageFile
             {
-                FileName = file.FileName,
+                FileName = Path.GetFileName(file.FileName),
                 ContentType = file.ContentType,
-                Content = ms.ToArray(),
+                Content = bytes,
             });
         }
 
