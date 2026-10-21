@@ -20,7 +20,7 @@ owns:
   - backend/src/Anela.Heblo.Domain/Features/DataQuality/InvoiceDqtResult.cs
   - backend/src/Anela.Heblo.Domain/Features/DataQuality/InvoiceMismatchType.cs
   - backend/src/Anela.Heblo.Persistence/DataQuality/InvoiceDqtResultConfiguration.cs
-verified_at: "5e993f9e2"
+verified_at: "909a84d9d"
 related: []
 ---
 
@@ -63,7 +63,7 @@ covers yesterday).
   as the Flexi invoice code.
 - **Header totals** (CZK, tolerance **0.02**, absolute):
   - Shoptet *with VAT*: the header amount (`toPay`, or `withVat` when `toPay` is 1 Kč or more
-    away from it) when it is within 1 Kč of the sum of non-zero-VAT product lines (absorbs the
+    away from it) when it is within 1 Kč of the sum of all product lines, zero-VAT lines included (absorbs the
     "Zaokrouhlení" rounding line), otherwise that line sum.
     Shoptet *without VAT*: sum of product lines.
   - Flexi *with VAT*: the invoice header total (`SumTotal`); *without VAT*: sum of the lines'
