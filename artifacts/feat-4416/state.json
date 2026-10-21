@@ -21,16 +21,16 @@
       "updated_at": "2026-10-21T10:15:54.763320Z"
     },
     "developing": {
-      "status": "pending",
-      "updated_at": null
+      "status": "in_progress",
+      "updated_at": "2026-10-21T10:17:19.988931Z"
     }
   },
   "tasks": [
     {
       "name": "add-regex-helper-and-tests",
-      "status": "pending",
+      "status": "completed",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-10-21T10:37:03.036208Z"
     }
   ]
 }

@@ -1,5 +1,3 @@
-using System.Text.RegularExpressions;
-
 namespace Anela.Heblo.Domain.Features.InvoiceClassification.Rules;
 
 public class ItemDescriptionClassificationRule : IClassificationRule
@@ -21,13 +19,6 @@ public class ItemDescriptionClassificationRule : IClassificationRule
         if (string.IsNullOrWhiteSpace(itemDescription))
             return false;
 
-        try
-        {
-            return Regex.IsMatch(itemDescription, pattern, RegexOptions.IgnoreCase);
-        }
-        catch (ArgumentException)
-        {
-            return itemDescription.Contains(pattern, StringComparison.OrdinalIgnoreCase);
-        }
+        return ClassificationRegex.IsMatchOrContains(itemDescription, pattern);
     }
 }
