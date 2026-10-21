@@ -1,5 +1,5 @@
-using Anela.Heblo.Application.Features.Manufacture.Contracts;
 using Anela.Heblo.Domain.Features.Catalog;
+using Anela.Heblo.Application.Features.Manufacture.Contracts;
 using Anela.Heblo.Domain.Features.Manufacture;
 
 namespace Anela.Heblo.Application.Features.Manufacture.Services;

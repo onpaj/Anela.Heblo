@@ -1,5 +1,5 @@
+using Anela.Heblo.Application.Features.Manufacture.Contracts;
 using Anela.Heblo.Application.Common.TimePeriods;
-using Anela.Heblo.Domain.Features.Catalog.Sales;
 
 namespace Anela.Heblo.Application.Features.Manufacture.Services;
 
@@ -12,7 +12,7 @@ public interface IConsumptionRateCalculator
     /// <param name="fromDate">Start date of the analysis period</param>
     /// <param name="toDate">End date of the analysis period</param>
     /// <returns>Daily sales rate (pieces per day)</returns>
-    double CalculateDailySalesRate(IEnumerable<CatalogSaleRecord> salesHistory, DateTime fromDate, DateTime toDate);
+    double CalculateDailySalesRate(IEnumerable<ProductSalesRecordSnapshot> salesHistory, DateTime fromDate, DateTime toDate);
 
     /// <summary>
     /// Calculates the daily consumption rate across multiple disjoint date ranges.
@@ -21,7 +21,7 @@ public interface IConsumptionRateCalculator
     /// <param name="salesHistory">Collection of sales records to analyze</param>
     /// <param name="ranges">List of date ranges to include in the analysis</param>
     /// <returns>Daily sales rate (pieces per day)</returns>
-    double CalculateDailySalesRate(IEnumerable<CatalogSaleRecord> salesHistory, IReadOnlyList<DateRange> ranges);
+    double CalculateDailySalesRate(IEnumerable<ProductSalesRecordSnapshot> salesHistory, IReadOnlyList<DateRange> ranges);
 
     /// <summary>
     /// Calculates consumption rate from consumed materials history.
@@ -30,7 +30,7 @@ public interface IConsumptionRateCalculator
     /// <param name="fromDate">Start date of the analysis period</param>
     /// <param name="toDate">End date of the analysis period</param>
     /// <returns>Daily consumption rate (pieces per day)</returns>
-    double CalculateDailyConsumptionRate(IEnumerable<Domain.Features.Catalog.ConsumedMaterials.ConsumedMaterialRecord> consumedHistory, DateTime fromDate, DateTime toDate);
+    double CalculateDailyConsumptionRate(IEnumerable<ProductConsumptionRecordSnapshot> consumedHistory, DateTime fromDate, DateTime toDate);
 
     /// <summary>
     /// Calculates stock days available based on current stock and consumption rate.

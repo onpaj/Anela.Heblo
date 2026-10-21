@@ -20,7 +20,7 @@ public class GetSemiproductRecipePdfHandlerTests
         _manufactureClientMock = new Mock<IManufactureClient>();
         _catalogRepositoryMock = new Mock<IManufactureCatalogSource>();
         _catalogRepositoryMock.Setup(r => r.GetByIdAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync((CatalogAggregate?)null);
+            .ReturnsAsync((ProductCatalogSnapshot?)null);
         _rendererMock = new Mock<ISemiproductRecipeRenderer>();
         _rendererMock.Setup(r => r.Render(It.IsAny<SemiproductRecipeData>()))
             .Returns(new byte[] { 1, 2, 3 });
@@ -175,10 +175,11 @@ public class GetSemiproductRecipePdfHandlerTests
                 new Ingredient { ProductCode = "ING001", ProductName = "Ingredient A", Amount = 1000.0 },
             }
         };
-        var catalogAggregate = new CatalogAggregate
+        var catalogAggregate = new ProductCatalogSnapshot
         {
+            ProductCode = "SEMI001",
             MinimalManufactureQuantity = 500.0,
-            Properties = new CatalogProperties { ExpirationMonths = 24 }
+            Properties = new ProductPropertiesSnapshot { ExpirationMonths = 24 }
         };
 
         _manufactureClientMock.Setup(x => x.GetManufactureTemplateAsync(productCode, It.IsAny<CancellationToken>()))

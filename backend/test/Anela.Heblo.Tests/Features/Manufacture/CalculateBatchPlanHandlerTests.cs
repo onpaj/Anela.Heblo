@@ -33,7 +33,7 @@ public class CalculateBatchPlanHandlerTests
         // Set up default behavior for catalog repository to avoid null reference exceptions
         _catalogRepositoryMock
             .Setup(x => x.GetByIdAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync((CatalogAggregate?)null);
+            .ReturnsAsync((ProductCatalogSnapshot?)null);
 
         _handler = new CalculateBatchPlanHandler(
             _batchPlanningServiceMock.Object,

@@ -55,7 +55,7 @@ public class GetManufacturingStockAnalysisHandlerTests
     {
         // Arrange
         var request = new GetManufacturingStockAnalysisRequest();
-        var emptyCatalogItems = new List<CatalogAggregate>();
+        var emptyCatalogItems = new List<ProductCatalogSnapshot>();
 
         _timePeriodResolverMock.Setup(x => x.Resolve(It.IsAny<TimePeriod>(), It.IsAny<DateTime?>(), It.IsAny<DateTime?>()))
             .Returns(new List<DateRange> { new DateRange(DateTime.Today.AddDays(-30), DateTime.Today) });
@@ -96,7 +96,7 @@ public class GetManufacturingStockAnalysisHandlerTests
             .ReturnsAsync(catalogItems);
 
         // Mock all the services needed for the actual analysis
-        _consumptionCalculatorMock.Setup(x => x.CalculateDailySalesRate(It.IsAny<IEnumerable<CatalogSaleRecord>>(), It.IsAny<IReadOnlyList<DateRange>>()))
+        _consumptionCalculatorMock.Setup(x => x.CalculateDailySalesRate(It.IsAny<IEnumerable<ProductSalesRecordSnapshot>>(), It.IsAny<IReadOnlyList<DateRange>>()))
             .Returns(5.0);
 
         _consumptionCalculatorMock.Setup(x => x.CalculateStockDaysAvailable(It.IsAny<decimal>(), It.IsAny<double>()))
@@ -105,14 +105,14 @@ public class GetManufacturingStockAnalysisHandlerTests
         _severityCalculatorMock.Setup(x => x.CalculateOverstockPercentage(It.IsAny<double>(), It.IsAny<int>()))
             .Returns(66.7);
 
-        _severityCalculatorMock.Setup(x => x.CalculateSeverity(It.IsAny<CatalogAggregate>(), It.IsAny<double>(), It.IsAny<double>()))
+        _severityCalculatorMock.Setup(x => x.CalculateSeverity(It.IsAny<ProductCatalogSnapshot>(), It.IsAny<double>(), It.IsAny<double>()))
             .Returns(ManufacturingStockSeverity.Adequate);
 
-        _productionAnalyzerMock.Setup(x => x.IsInActiveProduction(It.IsAny<IEnumerable<CatalogManufactureRecord>>(), It.IsAny<int>()))
+        _productionAnalyzerMock.Setup(x => x.IsInActiveProduction(It.IsAny<IEnumerable<ProductManufactureRecordSnapshot>>(), It.IsAny<int>()))
             .Returns(false);
 
-        _mapperMock.Setup(x => x.MapToDto(It.IsAny<CatalogAggregate>(), It.IsAny<ManufacturingStockSeverity>(), It.IsAny<double>(), It.IsAny<double>(), It.IsAny<double>(), It.IsAny<double>(), It.IsAny<bool>()))
-            .Returns((CatalogAggregate item, ManufacturingStockSeverity severity, double dailyRate, double salesInPeriod, double stockDaysAvail, double overstock, bool inProduction) =>
+        _mapperMock.Setup(x => x.MapToDto(It.IsAny<ProductCatalogSnapshot>(), It.IsAny<ManufacturingStockSeverity>(), It.IsAny<double>(), It.IsAny<double>(), It.IsAny<double>(), It.IsAny<double>(), It.IsAny<bool>()))
+            .Returns((ProductCatalogSnapshot item, ManufacturingStockSeverity severity, double dailyRate, double salesInPeriod, double stockDaysAvail, double overstock, bool inProduction) =>
                 new ManufacturingStockItemDto
                 {
                     Code = item.ProductCode,
@@ -145,25 +145,25 @@ public class GetManufacturingStockAnalysisHandlerTests
         response.PageSize.Should().Be(10);
     }
 
-    private List<CatalogAggregate> CreateTestCatalogItems()
+    private List<ProductCatalogSnapshot> CreateTestCatalogItems()
     {
-        return new List<CatalogAggregate>
+        return new List<ProductCatalogSnapshot>
         {
-            new CatalogAggregate
+            new ProductCatalogSnapshot
             {
                 ProductCode = "PRD001",
                 ProductName = "Product 1",
-                Type = ProductType.Product,
-                Stock = new StockData { Erp = 100, Eshop = 0, Transport = 0, Reserve = 0 },
-                Properties = new CatalogProperties { StockMinSetup = 50, OptimalStockDaysSetup = 30 }
+                Type = ProductKind.Product,
+                Stock = new ProductStockSnapshot { Erp = 100, Eshop = 0, Transport = 0, Reserve = 0 },
+                Properties = new ProductPropertiesSnapshot { StockMinSetup = 50, OptimalStockDaysSetup = 30 }
             },
-            new CatalogAggregate
+            new ProductCatalogSnapshot
             {
                 ProductCode = "PRD002",
                 ProductName = "Product 2",
-                Type = ProductType.Product,
-                Stock = new StockData { Erp = 200, Eshop = 0, Transport = 0, Reserve = 0 },
-                Properties = new CatalogProperties { StockMinSetup = 100, OptimalStockDaysSetup = 45 }
+                Type = ProductKind.Product,
+                Stock = new ProductStockSnapshot { Erp = 200, Eshop = 0, Transport = 0, Reserve = 0 },
+                Properties = new ProductPropertiesSnapshot { StockMinSetup = 100, OptimalStockDaysSetup = 45 }
             }
         };
     }
@@ -202,13 +202,13 @@ public class GetManufacturingStockAnalysisHandlerTests
     {
         // Arrange — 25 items, PageSize = 5 → without export only 5 would be returned
         var catalogItems = Enumerable.Range(1, 25)
-            .Select(i => new CatalogAggregate
+            .Select(i => new ProductCatalogSnapshot
             {
                 ProductCode = $"PRD{i:D3}",
                 ProductName = $"Product {i}",
-                Type = ProductType.Product,
-                Stock = new StockData { Erp = i * 10m },
-                Properties = new CatalogProperties { OptimalStockDaysSetup = 30 }
+                Type = ProductKind.Product,
+                Stock = new ProductStockSnapshot { Erp = i * 10m },
+                Properties = new ProductPropertiesSnapshot { OptimalStockDaysSetup = 30 }
             })
             .ToList();
 
@@ -218,15 +218,15 @@ public class GetManufacturingStockAnalysisHandlerTests
         _catalogRepositoryMock.Setup(x => x.GetAllAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(catalogItems);
 
-        _consumptionCalculatorMock.Setup(x => x.CalculateDailySalesRate(It.IsAny<IEnumerable<CatalogSaleRecord>>(), It.IsAny<IReadOnlyList<DateRange>>()))
+        _consumptionCalculatorMock.Setup(x => x.CalculateDailySalesRate(It.IsAny<IEnumerable<ProductSalesRecordSnapshot>>(), It.IsAny<IReadOnlyList<DateRange>>()))
             .Returns(1.0);
         _consumptionCalculatorMock.Setup(x => x.CalculateStockDaysAvailable(It.IsAny<decimal>(), It.IsAny<double>()))
             .Returns(20.0);
         _severityCalculatorMock.Setup(x => x.CalculateOverstockPercentage(It.IsAny<double>(), It.IsAny<int>())).Returns(0.0);
-        _severityCalculatorMock.Setup(x => x.CalculateSeverity(It.IsAny<CatalogAggregate>(), It.IsAny<double>(), It.IsAny<double>())).Returns(ManufacturingStockSeverity.Adequate);
-        _productionAnalyzerMock.Setup(x => x.IsInActiveProduction(It.IsAny<IEnumerable<CatalogManufactureRecord>>(), It.IsAny<int>())).Returns(false);
-        _mapperMock.Setup(x => x.MapToDto(It.IsAny<CatalogAggregate>(), It.IsAny<ManufacturingStockSeverity>(), It.IsAny<double>(), It.IsAny<double>(), It.IsAny<double>(), It.IsAny<double>(), It.IsAny<bool>()))
-            .Returns((CatalogAggregate item, ManufacturingStockSeverity sev, double dr, double sp, double sd, double op, bool ip) =>
+        _severityCalculatorMock.Setup(x => x.CalculateSeverity(It.IsAny<ProductCatalogSnapshot>(), It.IsAny<double>(), It.IsAny<double>())).Returns(ManufacturingStockSeverity.Adequate);
+        _productionAnalyzerMock.Setup(x => x.IsInActiveProduction(It.IsAny<IEnumerable<ProductManufactureRecordSnapshot>>(), It.IsAny<int>())).Returns(false);
+        _mapperMock.Setup(x => x.MapToDto(It.IsAny<ProductCatalogSnapshot>(), It.IsAny<ManufacturingStockSeverity>(), It.IsAny<double>(), It.IsAny<double>(), It.IsAny<double>(), It.IsAny<double>(), It.IsAny<bool>()))
+            .Returns((ProductCatalogSnapshot item, ManufacturingStockSeverity sev, double dr, double sp, double sd, double op, bool ip) =>
                 new ManufacturingStockItemDto { Code = item.ProductCode, Name = item.ProductName });
         _filterServiceMock.Setup(x => x.FilterItems(It.IsAny<List<ManufacturingStockItemDto>>(), It.IsAny<GetManufacturingStockAnalysisRequest>()))
             .Returns((List<ManufacturingStockItemDto> items, GetManufacturingStockAnalysisRequest req) => items);
@@ -279,22 +279,22 @@ public class GetManufacturingStockAnalysisHandlerTests
         };
 
         // Create a test catalog item with distinct Available and Reserve amounts
-        var catalogItems = new List<CatalogAggregate>
+        var catalogItems = new List<ProductCatalogSnapshot>
         {
-            new CatalogAggregate
+            new ProductCatalogSnapshot
             {
                 ProductCode = "TEST001",
                 ProductName = "Test Product",
-                Type = ProductType.Product,
-                Stock = new StockData
+                Type = ProductKind.Product,
+                Stock = new ProductStockSnapshot
                 {
                     Erp = 100m,       // Available = 100
                     Eshop = 50m,
                     Transport = 10m,
                     Reserve = 25m,     // Reserve = 25, so Total = 135
-                    PrimaryStockSource = StockSource.Erp
+                    PrimaryStockSource = StockSourceKind.Erp
                 },
-                Properties = new CatalogProperties
+                Properties = new ProductPropertiesSnapshot
                 {
                     OptimalStockDaysSetup = 30
                 }
@@ -315,19 +315,19 @@ public class GetManufacturingStockAnalysisHandlerTests
             .Callback<decimal, double>((stock, rate) => capturedStockAmount = stock)
             .Returns(20.0);
 
-        _consumptionCalculatorMock.Setup(x => x.CalculateDailySalesRate(It.IsAny<IEnumerable<CatalogSaleRecord>>(), It.IsAny<IReadOnlyList<DateRange>>()))
+        _consumptionCalculatorMock.Setup(x => x.CalculateDailySalesRate(It.IsAny<IEnumerable<ProductSalesRecordSnapshot>>(), It.IsAny<IReadOnlyList<DateRange>>()))
             .Returns(5.0);
 
         _severityCalculatorMock.Setup(x => x.CalculateOverstockPercentage(It.IsAny<double>(), It.IsAny<int>()))
             .Returns(0.0);
 
-        _severityCalculatorMock.Setup(x => x.CalculateSeverity(It.IsAny<CatalogAggregate>(), It.IsAny<double>(), It.IsAny<double>()))
+        _severityCalculatorMock.Setup(x => x.CalculateSeverity(It.IsAny<ProductCatalogSnapshot>(), It.IsAny<double>(), It.IsAny<double>()))
             .Returns(ManufacturingStockSeverity.Adequate);
 
-        _productionAnalyzerMock.Setup(x => x.IsInActiveProduction(It.IsAny<IEnumerable<CatalogManufactureRecord>>(), It.IsAny<int>()))
+        _productionAnalyzerMock.Setup(x => x.IsInActiveProduction(It.IsAny<IEnumerable<ProductManufactureRecordSnapshot>>(), It.IsAny<int>()))
             .Returns(false);
 
-        _mapperMock.Setup(x => x.MapToDto(It.IsAny<CatalogAggregate>(), It.IsAny<ManufacturingStockSeverity>(), It.IsAny<double>(), It.IsAny<double>(), It.IsAny<double>(), It.IsAny<double>(), It.IsAny<bool>()))
+        _mapperMock.Setup(x => x.MapToDto(It.IsAny<ProductCatalogSnapshot>(), It.IsAny<ManufacturingStockSeverity>(), It.IsAny<double>(), It.IsAny<double>(), It.IsAny<double>(), It.IsAny<double>(), It.IsAny<bool>()))
             .Returns(new ManufacturingStockItemDto { Code = "TEST001", Reserve = 25 });
 
         _filterServiceMock.Setup(x => x.FilterItems(It.IsAny<List<ManufacturingStockItemDto>>(), It.IsAny<GetManufacturingStockAnalysisRequest>()))
@@ -373,7 +373,7 @@ public class GetManufacturingStockAnalysisHandlerTests
 
         double capturedDailyRate = 0;
 
-        _consumptionCalculatorMock.Setup(x => x.CalculateDailySalesRate(It.IsAny<IEnumerable<CatalogSaleRecord>>(), It.IsAny<IReadOnlyList<DateRange>>()))
+        _consumptionCalculatorMock.Setup(x => x.CalculateDailySalesRate(It.IsAny<IEnumerable<ProductSalesRecordSnapshot>>(), It.IsAny<IReadOnlyList<DateRange>>()))
             .Returns(5.0);
 
         _consumptionCalculatorMock.Setup(x => x.CalculateStockDaysAvailable(It.IsAny<decimal>(), It.IsAny<double>()))
@@ -381,9 +381,9 @@ public class GetManufacturingStockAnalysisHandlerTests
             .Returns(20.0);
 
         _severityCalculatorMock.Setup(x => x.CalculateOverstockPercentage(It.IsAny<double>(), It.IsAny<int>())).Returns(0.0);
-        _severityCalculatorMock.Setup(x => x.CalculateSeverity(It.IsAny<CatalogAggregate>(), It.IsAny<double>(), It.IsAny<double>())).Returns(ManufacturingStockSeverity.Adequate);
-        _productionAnalyzerMock.Setup(x => x.IsInActiveProduction(It.IsAny<IEnumerable<CatalogManufactureRecord>>(), It.IsAny<int>())).Returns(false);
-        _mapperMock.Setup(x => x.MapToDto(It.IsAny<CatalogAggregate>(), It.IsAny<ManufacturingStockSeverity>(), It.IsAny<double>(), It.IsAny<double>(), It.IsAny<double>(), It.IsAny<double>(), It.IsAny<bool>()))
+        _severityCalculatorMock.Setup(x => x.CalculateSeverity(It.IsAny<ProductCatalogSnapshot>(), It.IsAny<double>(), It.IsAny<double>())).Returns(ManufacturingStockSeverity.Adequate);
+        _productionAnalyzerMock.Setup(x => x.IsInActiveProduction(It.IsAny<IEnumerable<ProductManufactureRecordSnapshot>>(), It.IsAny<int>())).Returns(false);
+        _mapperMock.Setup(x => x.MapToDto(It.IsAny<ProductCatalogSnapshot>(), It.IsAny<ManufacturingStockSeverity>(), It.IsAny<double>(), It.IsAny<double>(), It.IsAny<double>(), It.IsAny<double>(), It.IsAny<bool>()))
             .Returns(new ManufacturingStockItemDto { Code = "PRD001" });
         _filterServiceMock.Setup(x => x.FilterItems(It.IsAny<List<ManufacturingStockItemDto>>(), It.IsAny<GetManufacturingStockAnalysisRequest>()))
             .Returns((List<ManufacturingStockItemDto> items, GetManufacturingStockAnalysisRequest req) => items);
@@ -410,15 +410,15 @@ public class GetManufacturingStockAnalysisHandlerTests
             SalesMultiplier = 2.0
         };
 
-        var catalogItems = new List<CatalogAggregate>
+        var catalogItems = new List<ProductCatalogSnapshot>
         {
-            new CatalogAggregate
+            new ProductCatalogSnapshot
             {
                 ProductCode = "PRD001",
                 ProductName = "Product 1",
-                Type = ProductType.Product,
-                Stock = new StockData { Erp = 100m },
-                Properties = new CatalogProperties { OptimalStockDaysSetup = 30 }
+                Type = ProductKind.Product,
+                Stock = new ProductStockSnapshot { Erp = 100m },
+                Properties = new ProductPropertiesSnapshot { OptimalStockDaysSetup = 30 }
             }
         };
 
@@ -430,7 +430,7 @@ public class GetManufacturingStockAnalysisHandlerTests
 
         double capturedDailyRate = 0;
 
-        _consumptionCalculatorMock.Setup(x => x.CalculateDailySalesRate(It.IsAny<IEnumerable<CatalogSaleRecord>>(), It.IsAny<IReadOnlyList<DateRange>>()))
+        _consumptionCalculatorMock.Setup(x => x.CalculateDailySalesRate(It.IsAny<IEnumerable<ProductSalesRecordSnapshot>>(), It.IsAny<IReadOnlyList<DateRange>>()))
             .Returns(5.0);
 
         _consumptionCalculatorMock.Setup(x => x.CalculateStockDaysAvailable(It.IsAny<decimal>(), It.IsAny<double>()))
@@ -438,9 +438,9 @@ public class GetManufacturingStockAnalysisHandlerTests
             .Returns(10.0);
 
         _severityCalculatorMock.Setup(x => x.CalculateOverstockPercentage(It.IsAny<double>(), It.IsAny<int>())).Returns(0.0);
-        _severityCalculatorMock.Setup(x => x.CalculateSeverity(It.IsAny<CatalogAggregate>(), It.IsAny<double>(), It.IsAny<double>())).Returns(ManufacturingStockSeverity.Critical);
-        _productionAnalyzerMock.Setup(x => x.IsInActiveProduction(It.IsAny<IEnumerable<CatalogManufactureRecord>>(), It.IsAny<int>())).Returns(false);
-        _mapperMock.Setup(x => x.MapToDto(It.IsAny<CatalogAggregate>(), It.IsAny<ManufacturingStockSeverity>(), It.IsAny<double>(), It.IsAny<double>(), It.IsAny<double>(), It.IsAny<double>(), It.IsAny<bool>()))
+        _severityCalculatorMock.Setup(x => x.CalculateSeverity(It.IsAny<ProductCatalogSnapshot>(), It.IsAny<double>(), It.IsAny<double>())).Returns(ManufacturingStockSeverity.Critical);
+        _productionAnalyzerMock.Setup(x => x.IsInActiveProduction(It.IsAny<IEnumerable<ProductManufactureRecordSnapshot>>(), It.IsAny<int>())).Returns(false);
+        _mapperMock.Setup(x => x.MapToDto(It.IsAny<ProductCatalogSnapshot>(), It.IsAny<ManufacturingStockSeverity>(), It.IsAny<double>(), It.IsAny<double>(), It.IsAny<double>(), It.IsAny<double>(), It.IsAny<bool>()))
             .Returns(new ManufacturingStockItemDto { Code = "PRD001" });
         _filterServiceMock.Setup(x => x.FilterItems(It.IsAny<List<ManufacturingStockItemDto>>(), It.IsAny<GetManufacturingStockAnalysisRequest>()))
             .Returns((List<ManufacturingStockItemDto> items, GetManufacturingStockAnalysisRequest req) => items);

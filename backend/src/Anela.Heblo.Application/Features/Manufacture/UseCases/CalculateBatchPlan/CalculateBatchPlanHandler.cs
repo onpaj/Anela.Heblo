@@ -1,7 +1,7 @@
+using Anela.Heblo.Domain.Features.Catalog;
 using Anela.Heblo.Application.Common.TimePeriods;
 using Anela.Heblo.Application.Features.Manufacture.Contracts;
 using Anela.Heblo.Application.Features.Manufacture.Services;
-using Anela.Heblo.Domain.Features.Catalog;
 using Anela.Heblo.Domain.Features.Manufacture;
 using MediatR;
 
@@ -35,7 +35,7 @@ public class CalculateBatchPlanHandler : IRequestHandler<CalculateBatchPlanReque
     {
         // Can calculate even for product
         var product = await _catalogSource.GetByIdAsync(request.ProductCode, cancellationToken);
-        if (product?.Type == ProductType.Product)
+        if (product?.Type == ProductKind.Product)
         {
             var manufactureTemplate = await _manufactureClient.GetManufactureTemplateAsync(request.ProductCode, cancellationToken);
             request.ManufactureType = manufactureTemplate.ManufactureType;

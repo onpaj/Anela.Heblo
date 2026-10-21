@@ -17,7 +17,7 @@ owns:
   - backend/src/Anela.Heblo.Domain/Features/Catalog/ICatalogRepository.cs
   - backend/src/Anela.Heblo.Domain/Features/Catalog/BundleProductRule.cs
   - backend/src/Anela.Heblo.Domain/Features/Catalog/Stock/StockData.cs
-verified_at: "5e993f9e2"
+verified_at: "8161c408c"
 related: [sync-catalog-stock, sync-catalog-history, sync-catalog-prices, sync-catalog-master-data, calc-bundle-sales-expansion, calc-margins]
 ---
 

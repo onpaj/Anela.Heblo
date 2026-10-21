@@ -30,7 +30,7 @@ owns:
   - backend/src/Anela.Heblo.API/Controllers/ManufactureOrderController.cs
   - backend/src/Anela.Heblo.API/Controllers/ManufactureSettingsController.cs
   - backend/src/Anela.Heblo.API/MCP/Tools/ManufactureOrderMcpTools.cs
-verified_at: "5e993f9e2"
+verified_at: "8161c408c"
 related:
   - feed-manufacture-to-flexi
   - flow-manufactured-inventory

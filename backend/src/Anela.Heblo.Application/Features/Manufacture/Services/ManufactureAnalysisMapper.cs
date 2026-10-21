@@ -1,6 +1,6 @@
+using Anela.Heblo.Application.Features.Manufacture.Contracts;
 using Anela.Heblo.Application.Features.Manufacture.Configuration;
 using Anela.Heblo.Application.Features.Manufacture.UseCases.GetStockAnalysis;
-using Anela.Heblo.Domain.Features.Catalog;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
@@ -18,7 +18,7 @@ public class ManufactureAnalysisMapper : IManufactureAnalysisMapper
     }
 
     public ManufacturingStockItemDto MapToDto(
-        CatalogAggregate catalogItem,
+        ProductCatalogSnapshot catalogItem,
         ManufacturingStockSeverity severity,
         double dailySalesRate,
         double salesInPeriod,
