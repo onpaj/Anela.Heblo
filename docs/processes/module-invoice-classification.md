@@ -4,7 +4,7 @@ kind: module
 module: invoice-classification
 summary: Rule-based pre-accounting of received supplier invoices — Heblo sets the Flexi accounting template (předkontace) and cost centre on invoices tagged KLASIFIKACE, and hands the rest to the accountant via the MANUAL-KLASIF label.
 owns: []
-verified_at: "5e993f9e2"
+verified_at: "a6f3bf17"
 related:
   - feed-invoice-classification
 ---
