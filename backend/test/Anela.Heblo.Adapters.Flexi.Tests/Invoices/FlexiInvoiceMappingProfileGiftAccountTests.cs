@@ -3,6 +3,8 @@ using Anela.Heblo.Domain.Features.Invoices;
 using AutoMapper;
 using FluentAssertions;
 using Microsoft.Extensions.Logging.Abstractions;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using Rem.FlexiBeeSDK.Model.Invoices;
 using Xunit;
 
@@ -82,6 +84,34 @@ public class FlexiInvoiceMappingProfileGiftAccountTests
         // Assert
         flexi.Items[0].CategoryVat.Should().BeNull();
         flexi.Items[0].CopyCategoryVat.Should().BeTrue();
+    }
+
+    [Fact]
+    public void Serialize_EmitsClenDphAndKopClenDph_ForGiftProduct()
+    {
+        // Arrange
+        var flexi = MapSingleItem(GiftProductCode);
+
+        // Act
+        var item = JObject.Parse(JsonConvert.SerializeObject(flexi.Items[0]));
+
+        // Assert
+        item["clenDph"]!.Value<string>().Should().Be("code:000U");
+        item["kopClenDph"]!.Value<bool>().Should().BeFalse();
+    }
+
+    [Fact]
+    public void Serialize_CopiesVatCategoryWithoutClenDph_ForNonGiftProduct()
+    {
+        // Arrange
+        var flexi = MapSingleItem("P1");
+
+        // Act
+        var item = JObject.Parse(JsonConvert.SerializeObject(flexi.Items[0]));
+
+        // Assert
+        item["kopClenDph"]!.Value<bool>().Should().BeTrue();
+        (item["clenDph"]?.Type ?? JTokenType.Null).Should().Be(JTokenType.Null);
     }
 
     [Fact]
