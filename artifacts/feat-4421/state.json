@@ -22,7 +22,7 @@
     },
     "developing": {
       "status": "in_progress",
-      "updated_at": "2026-10-21T21:15:46.513908Z"
+      "updated_at": "2026-10-21T22:15:53.276998Z"
     }
   },
   "tasks": [
@@ -34,9 +34,9 @@
     },
     {
       "name": "update-process-doc",
-      "status": "pending",
+      "status": "completed",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-10-21T22:16:06.105361Z"
     }
   ]
 }
