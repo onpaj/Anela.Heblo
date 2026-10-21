@@ -28,9 +28,9 @@
   "tasks": [
     {
       "name": "fix-comments",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-10-21T21:15:46.754766Z"
+      "updated_at": "2026-10-21T21:19:53.504232Z"
     },
     {
       "name": "update-process-doc",
