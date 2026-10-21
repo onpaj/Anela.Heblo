@@ -14,6 +14,8 @@ public class ProductCatalogSnapshotBuilder
     private double _minimalManufactureQuantity;
     private double? _netWeight;
     private bool _hasLots;
+    private double? _manufactureDifficulty;
+    private IReadOnlyList<ProductManufactureRecordSnapshot> _manufactured = [];
     private ProductStockSnapshot _stock = new();
     private ProductPropertiesSnapshot _properties = new();
     private IReadOnlyList<ProductSalesRecordSnapshot> _sales = [];
@@ -33,6 +35,8 @@ public class ProductCatalogSnapshotBuilder
     public ProductCatalogSnapshotBuilder WithMinimalManufactureQuantity(double value) { _minimalManufactureQuantity = value; return this; }
     public ProductCatalogSnapshotBuilder WithNetWeight(double? value) { _netWeight = value; return this; }
     public ProductCatalogSnapshotBuilder WithHasLots(bool value) { _hasLots = value; return this; }
+    public ProductCatalogSnapshotBuilder WithManufactureDifficulty(double? value) { _manufactureDifficulty = value; return this; }
+    public ProductCatalogSnapshotBuilder WithManufactureHistory(params ProductManufactureRecordSnapshot[] records) { _manufactured = records; return this; }
     public ProductCatalogSnapshotBuilder WithStock(ProductStockSnapshot stock) { _stock = stock; return this; }
     public ProductCatalogSnapshotBuilder WithProperties(ProductPropertiesSnapshot properties) { _properties = properties; return this; }
     public ProductCatalogSnapshotBuilder WithSalesHistory(params ProductSalesRecordSnapshot[] records) { _sales = records; return this; }
@@ -48,6 +52,8 @@ public class ProductCatalogSnapshotBuilder
         MinimalManufactureQuantity = _minimalManufactureQuantity,
         NetWeight = _netWeight,
         HasLots = _hasLots,
+        ManufactureDifficulty = _manufactureDifficulty,
+        ManufactureHistory = _manufactured,
         Stock = _stock,
         Properties = _properties,
         SalesHistory = _sales,
