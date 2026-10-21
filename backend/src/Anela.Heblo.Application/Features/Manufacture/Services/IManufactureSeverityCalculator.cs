@@ -1,5 +1,5 @@
+using Anela.Heblo.Application.Features.Manufacture.Contracts;
 using Anela.Heblo.Application.Features.Manufacture.UseCases.GetStockAnalysis;
-using Anela.Heblo.Domain.Features.Catalog;
 
 namespace Anela.Heblo.Application.Features.Manufacture.Services;
 
@@ -13,7 +13,7 @@ public interface IManufactureSeverityCalculator
     /// <param name="stockDaysAvailable">Number of days the current stock will last</param>
     /// <returns>Manufacturing stock severity level</returns>
     ManufacturingStockSeverity CalculateSeverity(
-        CatalogAggregate catalogItem,
+        ProductCatalogSnapshot catalogItem,
         double dailySalesRate,
         double stockDaysAvailable);
 
@@ -30,5 +30,5 @@ public interface IManufactureSeverityCalculator
     /// </summary>
     /// <param name="catalogItem">Catalog item to check</param>
     /// <returns>True if item has necessary configuration for severity analysis</returns>
-    bool IsConfiguredForAnalysis(CatalogAggregate catalogItem);
+    bool IsConfiguredForAnalysis(ProductCatalogSnapshot catalogItem);
 }

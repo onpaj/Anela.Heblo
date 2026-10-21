@@ -13,11 +13,17 @@ public class ProductCatalogSnapshot
     public double MinimalManufactureQuantity { get; init; }
     public double? NetWeight { get; init; }
     public bool HasLots { get; init; }
+    public double? ManufactureDifficulty { get; init; }
     public ProductStockSnapshot Stock { get; init; } = new();
     public ProductPropertiesSnapshot Properties { get; init; } = new();
     public IReadOnlyList<ProductSalesRecordSnapshot> SalesHistory { get; init; } = [];
     public IReadOnlyList<ProductConsumptionRecordSnapshot> ConsumedHistory { get; init; } = [];
+    public IReadOnlyList<ProductManufactureRecordSnapshot> ManufactureHistory { get; init; } = [];
     public IReadOnlyList<ProductStockTakingSnapshot> StockTakingHistory { get; init; } = [];
+
+    public double GetTotalSold(DateTime dateFrom, DateTime dateTo) => SalesHistory
+        .Where(w => w.Date >= dateFrom && w.Date <= dateTo)
+        .Sum(s => s.AmountB2B + s.AmountB2C);
 
     public string? ProductFamily => ProductCode?.Substring(0, Math.Min(6, ProductCode.Length));
 

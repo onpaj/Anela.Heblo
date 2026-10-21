@@ -22,7 +22,7 @@
     },
     "developing": {
       "status": "in_progress",
-      "updated_at": "2026-10-21T01:29:53.628632Z"
+      "updated_at": "2026-10-21T02:14:50.193628Z"
     }
   },
   "tasks": [
@@ -34,9 +34,9 @@
     },
     {
       "name": "flip-contract-and-migrate-production-consumers",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-10-21T02:14:50.393105Z"
     },
     {
       "name": "preserve-stock-taking-cache-patch",

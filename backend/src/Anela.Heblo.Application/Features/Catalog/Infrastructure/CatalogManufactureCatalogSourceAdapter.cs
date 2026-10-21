@@ -6,8 +6,8 @@ namespace Anela.Heblo.Application.Features.Catalog.Infrastructure;
 /// <summary>
 /// Catalog-side adapter that implements the Manufacture-owned IManufactureCatalogSource
 /// contract by delegating to the internal ICatalogRepository. DI registration is in
-/// CatalogModule.AddCatalogModule(). See ModuleBoundariesTests "Manufacture -> Catalog"
-/// rule and its ManufactureCatalogAllowlist for the deliberate CatalogAggregate leak.
+/// CatalogModule.AddCatalogModule(). Maps CatalogAggregate to the Manufacture-owned
+/// ProductCatalogSnapshot via CatalogAggregateSnapshotMapper.
 /// </summary>
 internal sealed class CatalogManufactureCatalogSourceAdapter : IManufactureCatalogSource
 {
@@ -18,16 +18,25 @@ internal sealed class CatalogManufactureCatalogSourceAdapter : IManufactureCatal
         _repository = repository;
     }
 
-    public Task<CatalogAggregate?> GetByIdAsync(string id, CancellationToken cancellationToken = default) =>
-        _repository.GetByIdAsync(id, cancellationToken);
+    public async Task<ProductCatalogSnapshot?> GetByIdAsync(string id, CancellationToken cancellationToken = default)
+    {
+        var aggregate = await _repository.GetByIdAsync(id, cancellationToken);
+        return aggregate == null ? null : CatalogAggregateSnapshotMapper.ToSnapshot(aggregate);
+    }
 
-    public Task<IReadOnlyDictionary<string, CatalogAggregate>> GetByIdsAsync(
+    public async Task<IReadOnlyDictionary<string, ProductCatalogSnapshot>> GetByIdsAsync(
         IEnumerable<string> ids,
-        CancellationToken cancellationToken = default) =>
-        _repository.GetByIdsAsync(ids, cancellationToken);
+        CancellationToken cancellationToken = default)
+    {
+        var aggregates = await _repository.GetByIdsAsync(ids, cancellationToken);
+        return aggregates.ToDictionary(kv => kv.Key, kv => CatalogAggregateSnapshotMapper.ToSnapshot(kv.Value));
+    }
 
-    public Task<IEnumerable<CatalogAggregate>> GetAllAsync(CancellationToken cancellationToken = default) =>
-        _repository.GetAllAsync(cancellationToken);
+    public async Task<IEnumerable<ProductCatalogSnapshot>> GetAllAsync(CancellationToken cancellationToken = default)
+    {
+        var aggregates = await _repository.GetAllAsync(cancellationToken);
+        return aggregates.Select(CatalogAggregateSnapshotMapper.ToSnapshot).ToList();
+    }
 
     public async Task<IReadOnlyDictionary<string, string>> GetProductNameSuffixesAsync(
         IEnumerable<string> productCodes,

@@ -24,6 +24,7 @@ internal static class CatalogAggregateSnapshotMapper
             MinimalManufactureQuantity = source.MinimalManufactureQuantity,
             NetWeight = source.NetWeight,
             HasLots = source.HasLots,
+            ManufactureDifficulty = source.ManufactureDifficulty,
             Stock = new ProductStockSnapshot
             {
                 Eshop = source.Stock.Eshop,
@@ -49,6 +50,9 @@ internal static class CatalogAggregateSnapshotMapper
                 .ToList(),
             ConsumedHistory = source.ConsumedHistory
                 .Select(c => new ProductConsumptionRecordSnapshot { Date = c.Date, Amount = c.Amount })
+                .ToList(),
+            ManufactureHistory = source.ManufactureHistory
+                .Select(m => new ProductManufactureRecordSnapshot { Date = m.Date, Amount = m.Amount })
                 .ToList(),
             StockTakingHistory = source.StockTakingHistory.Select(ToSnapshot).ToList(),
         };
