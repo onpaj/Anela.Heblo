@@ -21,16 +21,16 @@
       "updated_at": "2026-10-21T12:16:07.760661Z"
     },
     "developing": {
-      "status": "pending",
-      "updated_at": null
+      "status": "in_progress",
+      "updated_at": "2026-10-21T12:33:11.431872Z"
     }
   },
   "tasks": [
     {
       "name": "invariant-parsing-tests",
-      "status": "pending",
+      "status": "completed",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-10-21T12:33:11.647591Z"
     },
     {
       "name": "invariant-parsing-fix",
