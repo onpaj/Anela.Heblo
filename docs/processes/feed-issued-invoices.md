@@ -136,7 +136,7 @@ always targets the same Flexi document.
   totals go to `sumZklMen`/`sumCelkemMen` and the CZK ones are nulled.
 - VAT rate: Shoptet numeric → named → Flexi: 21 → `high` → `typSzbDph.dphZakl`;
   12 and 15 → `first` → `dphSniz`; 10 → `second` → `dphSniz2`; 0 → `zero` → `dphOsv`;
-  anything else → `dphZakl`. `kopClenKonVykDph`/`kopClenDph` = true copy the VAT-report classification from the price list.
+  anything else → `dphZakl`. `kopClenKonVykDph`/`kopClenDph` = true copy the VAT-report classification from the price list — except gift `GOODYDO0001`, which sends an explicit `clenDph = code:000U` with `kopClenDph = false` (the price list would give `01-02`).
 - Price list `cenik = code:{Code}` and warehouse `sklad = code:ZBOZI` — except rows whose code is
   empty or starts with `SHIPPING`/`BILLING` (no price list, no warehouse), non-stock rows
   (no warehouse) and code `DARBAL` (warehouse removed by the SDK).
@@ -144,7 +144,7 @@ always targets the same Flexi document.
 **Transformations (in this order)**
 | Transformation | Effect |
 |---|---|
-| `GiftWithoutVATIssuedInvoiceImportTransformation` | Product `GOODYDO0001` (free gift) is marked non-stock → no warehouse. The Flexi profile also books it to credit account `zklDalUcet = code:325002`. Despite the name it does **not** change VAT. |
+| `GiftWithoutVATIssuedInvoiceImportTransformation` | Product `GOODYDO0001` (free gift) is marked non-stock → no warehouse. The Flexi profile also books it to credit account `zklDalUcet = code:325002`. Despite the name it does **not** change VAT; the VAT classification (`clenDph = code:000U`) is set in the Flexi mapping profile. |
 | `RemoveDAtTheEndOfProductCodeIssuedInvoiceImportTransformation` | **No-op** (TODO in code): meant to turn `TON100050D` into `TON100050`. |
 | `ProductMappingIssuedInvoiceImportTransformation` | Item code `ProductMapping:ShoptetCode` (`1287`) → `ProductMapping:ErpCode` (`SLU000001`). |
 
