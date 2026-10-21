@@ -1,8 +1,8 @@
 using System.Net;
 using Anela.Heblo.Application.Common.Behaviors;
+using Anela.Heblo.Application.Features.FileStorage.Contracts;
 using Anela.Heblo.Application.Features.ExpeditionListArchive.Contracts;
 using Anela.Heblo.Application.Features.FileStorage.Infrastructure;
-using Anela.Heblo.Application.Features.FileStorage.UseCases.DownloadFromUrl;
 using Anela.Heblo.Application.Features.FileStorage.Validators;
 using Anela.Heblo.Domain.Features.FileStorage;
 using FluentValidation;

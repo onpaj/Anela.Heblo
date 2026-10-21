@@ -6,7 +6,7 @@ summary: Nightly copies a product export file from a configured URL into Azure B
 owns:
   - backend/src/Anela.Heblo.Application/Features/Catalog/Infrastructure/Jobs/ProductExportDownloadJob.cs
   - backend/src/Anela.Heblo.Application/Features/Catalog/Infrastructure/ProductExportOptions.cs
-verified_at: "5e993f9e2"
+verified_at: "44f2229b3"
 related: []
 ---
 
@@ -62,4 +62,5 @@ None.
 ## Code entry points
 - `backend/src/Anela.Heblo.Application/Features/Catalog/Infrastructure/Jobs/ProductExportDownloadJob.cs` — job, telemetry, failure handling
 - `backend/src/Anela.Heblo.Application/Features/FileStorage/UseCases/DownloadFromUrl/DownloadFromUrlHandler.cs` — download + upload
+- `backend/src/Anela.Heblo.Application/Features/FileStorage/Contracts/DownloadFromUrlRequest.cs` — request/response DTOs (`Contracts/` folder)
 - `backend/src/Adapters/Anela.Heblo.Adapters.Azure/Features/FileStorage/AzureBlobStorageService.cs` — blob write
