@@ -1,0 +1,2 @@
+# Implementation: create-summary-cards-component r1
+Added `FinancialSummaryCards.tsx` (exported component, private `SummaryCard`, config-driven cards, class strings copied verbatim from the inline block, `x && x >= 0` and `|| 0` semantics preserved) and `__tests__/FinancialSummaryCards.test.tsx` (8 cases). Tests pass (react-scripts test), eslint and tsc clean for the new files. FinancialOverview.tsx untouched (next task).

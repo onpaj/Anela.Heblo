@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 using Anela.Heblo.Application.Features.MeetingTasks.Services;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -18,6 +19,20 @@ public sealed class PlaudCliClient : IPlaudClient
     /// the prefixed form — a bare id returns NOT_FOUND.
     /// </summary>
     private const string CliIdPrefix = "of_";
+
+    private static readonly Regex UpstreamStatusRegex =
+        new(@"API error:\s*(5\d\d)\b", RegexOptions.Compiled | RegexOptions.CultureInvariant);
+
+    /// <summary>
+    /// Detects a Plaud upstream 5xx ("API error: 500 Internal Server Error") in the CLI's stderr.
+    /// </summary>
+    public static bool TryParseUpstreamStatus(string? stderr, out int status)
+    {
+        status = 0;
+        if (string.IsNullOrEmpty(stderr)) return false;
+        var match = UpstreamStatusRegex.Match(stderr);
+        return match.Success && int.TryParse(match.Groups[1].Value, out status);
+    }
 
     public PlaudCliClient(ILogger<PlaudCliClient> logger, IOptions<PlaudOptions> options, IPlaudTokenRefresher tokenRefresher)
     {
@@ -156,15 +171,21 @@ public sealed class PlaudCliClient : IPlaudClient
 
             if (process.ExitCode != 0)
             {
-                _logger.LogError("Plaud CLI exited with code {ExitCode}: {Error}", process.ExitCode, error);
                 var trimmed = (error ?? string.Empty).Trim();
                 if (trimmed.Contains("AUTH_FAILED", StringComparison.Ordinal))
                 {
+                    _logger.LogError("Plaud CLI exited with code {ExitCode}: {Error}", process.ExitCode, error);
                     throw new PlaudAuthExpiredException(trimmed);
                 }
                 var suffix = trimmed.Length > 0 ? $": {trimmed}" : string.Empty;
-                throw new InvalidOperationException(
-                    $"Plaud CLI exited with code {process.ExitCode}{suffix}");
+                var message = $"Plaud CLI exited with code {process.ExitCode}{suffix}";
+                if (TryParseUpstreamStatus(trimmed, out var upstreamStatus))
+                {
+                    _logger.LogWarning("Plaud CLI upstream error {Status}: {Error}", upstreamStatus, trimmed);
+                    throw new PlaudUpstreamUnavailableException(upstreamStatus, message);
+                }
+                _logger.LogError("Plaud CLI exited with code {ExitCode}: {Error}", process.ExitCode, error);
+                throw new InvalidOperationException(message);
             }
 
             if (!string.IsNullOrEmpty(error))

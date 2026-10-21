@@ -51,6 +51,7 @@ public static class MeetingTasksModule
                 sp.GetRequiredService<ILogger<ClaudeMeetingTaskExtractor>>()));
         services.AddScoped<IMeetingSummaryExplainer, ClaudeMeetingSummaryExplainer>();
         services.AddSingleton<IMeetingUserDirectory, MeetingUserDirectory>();
+        services.AddSingleton<PlaudPollingHealthTracker>();
         services.AddScoped<IMeetingAccessGuard, MeetingAccessGuard>();
 
         // Repository (implementation lives in the Persistence layer)
