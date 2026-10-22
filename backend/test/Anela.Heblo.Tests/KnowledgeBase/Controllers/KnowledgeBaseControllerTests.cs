@@ -85,7 +85,7 @@ public class KnowledgeBaseControllerTests
     {
         // Arrange
         var docId = Guid.NewGuid();
-        var expectedResponse = new UploadDocumentResponse
+        var expectedResponse = new KnowledgeBaseUploadDocumentResponse
         {
             Success = true,
             Document = new DocumentSummary
@@ -114,7 +114,7 @@ public class KnowledgeBaseControllerTests
 
         // Assert
         var okResult = Assert.IsType<OkObjectResult>(result.Result);
-        var response = Assert.IsType<UploadDocumentResponse>(okResult.Value);
+        var response = Assert.IsType<KnowledgeBaseUploadDocumentResponse>(okResult.Value);
 
         Assert.True(response.Success);
         Assert.Equal("guide.pdf", response.Document!.Filename);

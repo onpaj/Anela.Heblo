@@ -21,16 +21,16 @@
       "updated_at": "2026-10-22T08:12:34.804049Z"
     },
     "developing": {
-      "status": "pending",
-      "updated_at": null
+      "status": "in_progress",
+      "updated_at": "2026-10-22T08:25:02.861815Z"
     }
   },
   "tasks": [
     {
       "name": "rename-knowledgebase-response",
-      "status": "pending",
+      "status": "completed",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-10-22T08:25:03.402290Z"
     },
     {
       "name": "rename-catalogdocuments-response",
