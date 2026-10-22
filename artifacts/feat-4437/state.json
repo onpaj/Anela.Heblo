@@ -40,9 +40,9 @@
     },
     {
       "name": "regenerate-client-update-hooks",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-10-22T10:15:23.357732Z"
+      "updated_at": "2026-10-22T10:19:24.623077Z"
     }
   ]
 }
