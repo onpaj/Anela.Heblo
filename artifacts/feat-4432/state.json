@@ -1,0 +1,36 @@
+{
+  "feature_id": "feat-4432",
+  "issue_number": 4432,
+  "created_at": "2026-10-22T04:10:21.122438Z",
+  "max_revisions": 3,
+  "phases": {
+    "analyzing": {
+      "status": "completed",
+      "updated_at": "2026-10-22T04:10:54.922875Z"
+    },
+    "architecting": {
+      "status": "completed",
+      "updated_at": "2026-10-22T04:10:55.311517Z"
+    },
+    "designing": {
+      "status": "completed",
+      "updated_at": "2026-10-22T04:10:55.674370Z"
+    },
+    "planning": {
+      "status": "completed",
+      "updated_at": "2026-10-22T04:10:56.046497Z"
+    },
+    "developing": {
+      "status": "pending",
+      "updated_at": null
+    }
+  },
+  "tasks": [
+    {
+      "name": "add-mapping-profile-tests",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    }
+  ]
+}
