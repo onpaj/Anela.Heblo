@@ -12,7 +12,7 @@ owns:
   - backend/src/Anela.Heblo.Application/Features/Catalog/Infrastructure/LogisticsCatalogSourceAdapter.cs
   - backend/src/Anela.Heblo.Application/Features/Logistics/DashboardTiles/CriticalGiftPackagesTile.cs
   - backend/src/Anela.Heblo.API/Controllers/LogisticsController.cs
-verified_at: "5e993f9e2"
+verified_at: "efaf92a06"
 related:
   - feed-stock-up
   - calc-bundle-sales-expansion

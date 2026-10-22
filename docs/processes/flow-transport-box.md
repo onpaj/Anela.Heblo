@@ -11,6 +11,7 @@ owns:
   - backend/src/Anela.Heblo.Application/Features/Logistics/UseCases/OpenOrResumeBoxByCode/**
   - backend/src/Anela.Heblo.Application/Features/Logistics/UseCases/CreateNewTransportBox/**
   - backend/src/Anela.Heblo.Application/Features/Logistics/UseCases/GetTransportBoxByCode/**
+  - backend/src/Anela.Heblo.Application/Features/Logistics/Services/ITransportBoxCompletionService.cs
   - backend/src/Anela.Heblo.Application/Features/Logistics/Services/TransportBoxCompletionService.cs
   - backend/src/Anela.Heblo.Application/Features/Logistics/Infrastructure/LogisticsCatalogTransportSourceAdapter.cs
   - backend/src/Anela.Heblo.Application/Features/Logistics/Contracts/IInventoryReservationService.cs
@@ -18,7 +19,7 @@ owns:
   - backend/src/Anela.Heblo.Application/Features/Manufacture/Infrastructure/ManufactureInventoryReservationAdapter.cs
   - backend/src/Anela.Heblo.Persistence/Logistics/TransportBoxes/**
   - backend/src/Anela.Heblo.API/Controllers/TransportBoxController.cs
-verified_at: "98cc5153e"
+verified_at: "ae0542857"
 related:
   - feed-stock-up
 ---
