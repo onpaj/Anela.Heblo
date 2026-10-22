@@ -1,5 +1,5 @@
+using Anela.Heblo.Application.Features.Manufacture.Contracts;
 using Anela.Heblo.Application.Features.Manufacture.UseCases.GetStockAnalysis;
-using Anela.Heblo.Domain.Features.Catalog;
 using Microsoft.Extensions.Logging;
 
 namespace Anela.Heblo.Application.Features.Manufacture.Services;
@@ -15,7 +15,7 @@ public class ManufactureSeverityCalculator : IManufactureSeverityCalculator
     }
 
     public ManufacturingStockSeverity CalculateSeverity(
-        CatalogAggregate catalogItem,
+        ProductCatalogSnapshot catalogItem,
         double dailySalesRate,
         double stockDaysAvailable)
     {
@@ -73,7 +73,7 @@ public class ManufactureSeverityCalculator : IManufactureSeverityCalculator
         return percentage;
     }
 
-    public bool IsConfiguredForAnalysis(CatalogAggregate catalogItem)
+    public bool IsConfiguredForAnalysis(ProductCatalogSnapshot catalogItem)
     {
         var isConfigured = catalogItem.Properties.OptimalStockDaysSetup > 0;
 

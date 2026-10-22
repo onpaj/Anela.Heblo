@@ -19,7 +19,7 @@ owns:
   - backend/src/Anela.Heblo.Persistence/Invoices/IssuedInvoiceSyncDataConfiguration.cs
   - backend/src/Adapters/Anela.Heblo.Adapters.ShoptetApi/IssuedInvoices/**
   - backend/src/Adapters/Anela.Heblo.Adapters.Flexi/Invoices/**
-verified_at: "af88adac0"
+verified_at: "909a84d9d"
 related: []
 ---
 
@@ -152,7 +152,7 @@ always targets the same Flexi document.
 - `Price` = invoice total **with VAT**: Shoptet `toPay` when it differs from `withVat` by < 1 Kč
   (absorbs the "Zaokrouhlení" rounding line), else `withVat`; and if that header value differs
   from the item sum by ≥ 1 Kč (e.g. a deposit was deducted) the item sum is used instead. The
-  item sum for this check skips zero-VAT rows. `PriceC` is never written (always 0).
+  item sum for this check includes zero-VAT rows (e.g. a donation line), as the Shoptet header total does. `PriceC` is never written (always 0).
 - `Currency`, `InvoiceDate` (= `creationTime`), `TaxDate` (= Shoptet `taxDate`), `DueDate`,
   `VarSymbol`, `BillingMethod`, `ShippingMethod`, `VatPayer`, `ItemsCount` (number of item rows
   after removing discount rows — shipping and payment rows **are** counted),
@@ -178,6 +178,11 @@ always targets the same Flexi document.
   treat as a different metric, not a bug — same source — 2026-09-16.
 
 ## Known quirks
+- **Rows imported before the zero-VAT fix hold a too-low `Price`.** Until this fix is deployed the item-sum
+  fallback skipped 0 % rows, so any invoice whose header total differed from the item sum by 1 Kč
+  or more because of a 0 % line (e.g. the `GOODYDO0001` donation) stored the sum without it — invoice
+  126020763: 9 350,76 instead of 9 400,00. Flexi always received the row. Stored `Price` is only
+  corrected by **Znovu importovat**; monthly revenue for those months stays understated.
 - **Empty billing country defaults to `CZ`.** Shoptet orders without an address are possible
   (only `fullName` set, `countryCode` empty); `code:` alone makes Flexi answer HTTP 400
   "Zadaný text 'code:' musí identifikovat objekt" on `stat` (invoice 126020860, 2026-09-29).

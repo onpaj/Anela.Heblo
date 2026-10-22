@@ -47,7 +47,7 @@ On demand: `POST /api/manufacture-batch/calculate-batch-plan` (permission
 
 ## Logic & formulas
 - **Daily sales rate** = Σ (B2B + B2C sold pieces in each range) ÷ Σ days of the ranges ×
-  `SalesMultiplier`, rounded to 2 dp, from the catalog sales history (`CatalogAggregate.SalesHistory`, owned by the catalog module).
+  `SalesMultiplier`, rounded to 2 dp, from the catalog sales history (`ProductCatalogSnapshot.SalesHistory`, the Manufacture-owned snapshot mapped from the catalog module's `CatalogAggregate` by `CatalogManufactureCatalogSourceAdapter`).
 - **Stock counted** = `Stock.Total` + `Stock.Planned` (open manufacture orders, added by #4223; the two never overlap — memory note gotcha_stock_planned_disjoint_from_total).
   `CurrentDaysCoverage` = that ÷ daily rate.
 - **Multi-phase volume**: available bulk = `TotalWeightToUse` if given, else

@@ -577,13 +577,13 @@ public class CreateManufactureOrderHandlerTests
         };
     }
 
-    private static CatalogAggregate CreateValidCatalogItem()
+    private static ProductCatalogSnapshot CreateValidCatalogItem()
     {
-        return new CatalogAggregate
+        return new ProductCatalogSnapshot
         {
             ProductCode = ValidProductCode,
             ProductName = ValidProductName,
-            Properties = new CatalogProperties
+            Properties = new ProductPropertiesSnapshot
             {
                 ExpirationMonths = 12
             }

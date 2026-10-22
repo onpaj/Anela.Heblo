@@ -16,7 +16,7 @@ owns:
   - backend/src/Anela.Heblo.Application/Features/Purchase/Infrastructure/PurchaseCatalogSourceAdapter.cs
   - backend/src/Anela.Heblo.Application/Features/Manufacture/Infrastructure/ManufactureCatalogSourceAdapter.cs
   - backend/src/Anela.Heblo.Application/Features/Catalog/Infrastructure/CatalogManufactureCatalogSourceAdapter.cs
-verified_at: "5e993f9e2"
+verified_at: "8161c408c"
 related: [calc-catalog-merge, feed-stock-up, flow-stock-taking]
 ---
 

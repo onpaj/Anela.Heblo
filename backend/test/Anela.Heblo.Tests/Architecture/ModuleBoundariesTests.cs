@@ -128,6 +128,21 @@ public class ModuleBoundariesTests
         "Anela.Heblo.Application.Features.Catalog.UseCases.GetProductUsage.GetProductUsageHandler -> Anela.Heblo.Domain.Features.Manufacture.ManufactureTemplate",
         "Anela.Heblo.Application.Features.Catalog.UseCases.GetProductComposition.GetProductCompositionHandler -> Anela.Heblo.Domain.Features.Manufacture.ManufactureTemplate",
         "Anela.Heblo.Application.Features.Catalog.UseCases.GetProductComposition.GetProductCompositionHandler -> Anela.Heblo.Domain.Features.Manufacture.Ingredient",
+        // Catalog.Infrastructure adapters implement Manufacture-owned contracts
+        // (IManufactureCatalogSource / IManufactureStockSync) and map CatalogAggregate to the
+        // Manufacture-owned ProductCatalogSnapshot DTOs. This is the intended adapter direction
+        // (see the Logistics adapters above); nested compiler-generated types are covered by the
+        // declaring-type check.
+        "Anela.Heblo.Application.Features.Catalog.Infrastructure.CatalogAggregateSnapshotMapper -> Anela.Heblo.Application.Features.Manufacture.Contracts.ProductCatalogSnapshot",
+        "Anela.Heblo.Application.Features.Catalog.Infrastructure.CatalogAggregateSnapshotMapper -> Anela.Heblo.Application.Features.Manufacture.Contracts.ProductConsumptionRecordSnapshot",
+        "Anela.Heblo.Application.Features.Catalog.Infrastructure.CatalogAggregateSnapshotMapper -> Anela.Heblo.Application.Features.Manufacture.Contracts.ProductKind",
+        "Anela.Heblo.Application.Features.Catalog.Infrastructure.CatalogAggregateSnapshotMapper -> Anela.Heblo.Application.Features.Manufacture.Contracts.ProductManufactureRecordSnapshot",
+        "Anela.Heblo.Application.Features.Catalog.Infrastructure.CatalogAggregateSnapshotMapper -> Anela.Heblo.Application.Features.Manufacture.Contracts.ProductSalesRecordSnapshot",
+        "Anela.Heblo.Application.Features.Catalog.Infrastructure.CatalogAggregateSnapshotMapper -> Anela.Heblo.Application.Features.Manufacture.Contracts.ProductStockTakingSnapshot",
+        "Anela.Heblo.Application.Features.Catalog.Infrastructure.CatalogAggregateSnapshotMapper -> Anela.Heblo.Application.Features.Manufacture.Contracts.StockSourceKind",
+        "Anela.Heblo.Application.Features.Catalog.Infrastructure.CatalogAggregateSnapshotMapper -> Anela.Heblo.Application.Features.Manufacture.Contracts.StockTakingKind",
+        "Anela.Heblo.Application.Features.Catalog.Infrastructure.CatalogManufactureCatalogSourceAdapter -> Anela.Heblo.Application.Features.Manufacture.Contracts.ProductCatalogSnapshot",
+        "Anela.Heblo.Application.Features.Catalog.Infrastructure.CatalogManufactureStockSyncAdapter -> Anela.Heblo.Application.Features.Manufacture.Contracts.ProductStockTakingSnapshot",
     };
 
     // Allowlist for DataQuality -> Catalog. Empty — ProductPairingDqtComparer now consumes
@@ -149,60 +164,16 @@ public class ModuleBoundariesTests
     // IMonthlyRevenueSource contract, which MarketingPerformance itself owns.
     private static readonly HashSet<string> MarketingPerformanceInvoicesAllowlist = new(StringComparer.Ordinal);
 
-    // Allowlist for Manufacture -> Catalog. Each group below is a deliberate pragmatic leak
-    // tracked under the same follow-up: introduce Manufacture-owned ProductCatalogSnapshot DTO
-    // and map in CatalogManufactureCatalogSourceAdapter (symmetric to the CatalogManufactureAllowlist
-    // ManufactureHistoryRecord block).
+    // Allowlist for Manufacture -> Catalog. Manufacture no longer references CatalogAggregate or its
+    // sales/consumption/stock-taking history records: IManufactureCatalogSource returns the
+    // Manufacture-owned ProductCatalogSnapshot, mapped in the Catalog.Infrastructure adapter.
+    // The residual entries below are deliberate, separate follow-ups:
+    //   - SubmitManufactureStockTakingHandler talks to the ERP stock-taking domain service/types.
+    //   - ManufactureStockTakingHistoryItemDto exposes the Catalog StockTakingType enum (API shape).
+    //   - CatalogManufactureRecord is still the Catalog-owned manufacture-history DTO.
     private static readonly HashSet<string> ManufactureCatalogAllowlist = new(StringComparer.Ordinal)
     {
-        // Contract surface: IManufactureCatalogSource returns CatalogAggregate by design.
-        "Anela.Heblo.Application.Features.Manufacture.Contracts.IManufactureCatalogSource -> Anela.Heblo.Domain.Features.Catalog.CatalogAggregate",
-
-        // Consumers of CatalogAggregate reached via IManufactureCatalogSource methods.
-        // Remove these entries when ProductCatalogSnapshot DTO lands.
-        "Anela.Heblo.Application.Features.Manufacture.Services.BatchPlanningService -> Anela.Heblo.Domain.Features.Catalog.CatalogAggregate",
-        "Anela.Heblo.Application.Features.Manufacture.Services.BatchPlanningService+<>c__DisplayClass13_0 -> Anela.Heblo.Domain.Features.Catalog.CatalogAggregate",
-        "Anela.Heblo.Application.Features.Manufacture.Services.BatchPlanningService+<CalculateMultiPhaseBatchPlanInternal>d__17 -> Anela.Heblo.Domain.Features.Catalog.CatalogAggregate",
-        "Anela.Heblo.Application.Features.Manufacture.Services.BatchPlanningService+<CalculateSinglePhaseBatchPlanInternal>d__16 -> Anela.Heblo.Domain.Features.Catalog.CatalogAggregate",
-        "Anela.Heblo.Application.Features.Manufacture.Services.IManufactureAnalysisMapper -> Anela.Heblo.Domain.Features.Catalog.CatalogAggregate",
-        "Anela.Heblo.Application.Features.Manufacture.Services.IManufactureSeverityCalculator -> Anela.Heblo.Domain.Features.Catalog.CatalogAggregate",
-        "Anela.Heblo.Application.Features.Manufacture.Services.ManufactureAnalysisMapper -> Anela.Heblo.Domain.Features.Catalog.CatalogAggregate",
-        "Anela.Heblo.Application.Features.Manufacture.Services.ManufactureSeverityCalculator -> Anela.Heblo.Domain.Features.Catalog.CatalogAggregate",
-        "Anela.Heblo.Application.Features.Manufacture.Services.ResidueDistributionCalculator+<CalculateAsync>d__3 -> Anela.Heblo.Domain.Features.Catalog.CatalogAggregate",
-        "Anela.Heblo.Application.Features.Manufacture.UseCases.CalculateBatchByIngredient.CalculateBatchByIngredientHandler+<Handle>d__3 -> Anela.Heblo.Domain.Features.Catalog.CatalogAggregate",
-        "Anela.Heblo.Application.Features.Manufacture.UseCases.CalculateBatchBySize.CalculatedBatchSizeHandler+<Handle>d__3 -> Anela.Heblo.Domain.Features.Catalog.CatalogAggregate",
-        "Anela.Heblo.Application.Features.Manufacture.UseCases.CalculateBatchPlan.CalculateBatchPlanHandler+<Handle>d__7 -> Anela.Heblo.Domain.Features.Catalog.CatalogAggregate",
-        "Anela.Heblo.Application.Features.Manufacture.UseCases.CreateManufactureOrder.CreateManufactureOrderHandler+<Handle>d__6 -> Anela.Heblo.Domain.Features.Catalog.CatalogAggregate",
-        "Anela.Heblo.Application.Features.Manufacture.UseCases.GetManufactureOutput.GetManufactureOutputHandler+<>c -> Anela.Heblo.Domain.Features.Catalog.CatalogAggregate",
-        "Anela.Heblo.Application.Features.Manufacture.UseCases.GetManufactureOutput.GetManufactureOutputHandler+<>c__DisplayClass5_0 -> Anela.Heblo.Domain.Features.Catalog.CatalogAggregate",
-        "Anela.Heblo.Application.Features.Manufacture.UseCases.GetManufactureOutput.GetManufactureOutputHandler+<Handle>d__5 -> Anela.Heblo.Domain.Features.Catalog.CatalogAggregate",
-        "Anela.Heblo.Application.Features.Manufacture.UseCases.GetSemiproductRecipePdf.GetSemiproductRecipePdfHandler+<Handle>d__5 -> Anela.Heblo.Domain.Features.Catalog.CatalogAggregate",
-        "Anela.Heblo.Application.Features.Manufacture.UseCases.GetStockAnalysis.GetManufacturingStockAnalysisHandler -> Anela.Heblo.Domain.Features.Catalog.CatalogAggregate",
-        "Anela.Heblo.Application.Features.Manufacture.UseCases.GetStockAnalysis.GetManufacturingStockAnalysisHandler+<>c -> Anela.Heblo.Domain.Features.Catalog.CatalogAggregate",
-        "Anela.Heblo.Application.Features.Manufacture.UseCases.GetStockAnalysis.GetManufacturingStockAnalysisHandler+<>c__DisplayClass10_0 -> Anela.Heblo.Domain.Features.Catalog.CatalogAggregate",
-        "Anela.Heblo.Application.Features.Manufacture.UseCases.GetStockAnalysis.GetManufacturingStockAnalysisHandler+<>c__DisplayClass9_0 -> Anela.Heblo.Domain.Features.Catalog.CatalogAggregate",
-        "Anela.Heblo.Application.Features.Manufacture.UseCases.GetStockAnalysis.GetManufacturingStockAnalysisHandler+<Handle>d__9 -> Anela.Heblo.Domain.Features.Catalog.CatalogAggregate",
-        "Anela.Heblo.Application.Features.Manufacture.UseCases.SubmitManufactureStockTaking.SubmitManufactureStockTakingHandler -> Anela.Heblo.Domain.Features.Catalog.CatalogAggregate",
-        "Anela.Heblo.Application.Features.Manufacture.UseCases.SubmitManufactureStockTaking.SubmitManufactureStockTakingHandler+<Handle>d__4 -> Anela.Heblo.Domain.Features.Catalog.CatalogAggregate",
-        // WriteDownInventoryAsync was extracted from UpdateManufactureOrderStatusHandler into
-        // ManufactureInventoryWriteDownService (arch-review SRP fix); the CatalogAggregate lookup
-        // now lives there. This base entry covers the compiler-generated async state machine and
-        // closure types nested under it via the declaring-type fallback check.
-        "Anela.Heblo.Application.Features.Manufacture.Services.ManufactureInventoryWriteDownService -> Anela.Heblo.Domain.Features.Catalog.CatalogAggregate",
-
-        // Domain enums/types reached via CatalogAggregate properties.
-        // Same follow-up as above.
-        "Anela.Heblo.Application.Features.Manufacture.Services.ConsumptionRateCalculator -> Anela.Heblo.Domain.Features.Catalog.ConsumedMaterials.ConsumedMaterialRecord",
-        "Anela.Heblo.Application.Features.Manufacture.Services.ConsumptionRateCalculator -> Anela.Heblo.Domain.Features.Catalog.Sales.CatalogSaleRecord",
-        "Anela.Heblo.Application.Features.Manufacture.Services.ConsumptionRateCalculator+<>c -> Anela.Heblo.Domain.Features.Catalog.ConsumedMaterials.ConsumedMaterialRecord",
-        "Anela.Heblo.Application.Features.Manufacture.Services.ConsumptionRateCalculator+<>c -> Anela.Heblo.Domain.Features.Catalog.Sales.CatalogSaleRecord",
-        "Anela.Heblo.Application.Features.Manufacture.Services.ConsumptionRateCalculator+<>c__DisplayClass4_0 -> Anela.Heblo.Domain.Features.Catalog.Sales.CatalogSaleRecord",
-        "Anela.Heblo.Application.Features.Manufacture.Services.ConsumptionRateCalculator+<>c__DisplayClass5_0 -> Anela.Heblo.Domain.Features.Catalog.Sales.CatalogSaleRecord",
-        "Anela.Heblo.Application.Features.Manufacture.Services.ConsumptionRateCalculator+<>c__DisplayClass6_0 -> Anela.Heblo.Domain.Features.Catalog.ConsumedMaterials.ConsumedMaterialRecord",
-        "Anela.Heblo.Application.Features.Manufacture.Services.IConsumptionRateCalculator -> Anela.Heblo.Domain.Features.Catalog.ConsumedMaterials.ConsumedMaterialRecord",
-        "Anela.Heblo.Application.Features.Manufacture.Services.IConsumptionRateCalculator -> Anela.Heblo.Domain.Features.Catalog.Sales.CatalogSaleRecord",
-        "Anela.Heblo.Application.Features.Manufacture.UseCases.CalculateBatchByIngredient.CalculateBatchByIngredientHandler+<>c -> Anela.Heblo.Domain.Features.Catalog.Stock.StockTakingRecord",
-        "Anela.Heblo.Application.Features.Manufacture.UseCases.CalculateBatchBySize.CalculatedBatchSizeHandler+<>c -> Anela.Heblo.Domain.Features.Catalog.Stock.StockTakingRecord",
+        // ERP stock-taking types used by SubmitManufactureStockTakingHandler (out of scope here).
         "Anela.Heblo.Application.Features.Manufacture.UseCases.SubmitManufactureStockTaking.SubmitManufactureStockTakingHandler -> Anela.Heblo.Domain.Features.Catalog.Stock.ErpStockTakingLot",
         "Anela.Heblo.Application.Features.Manufacture.UseCases.SubmitManufactureStockTaking.SubmitManufactureStockTakingHandler -> Anela.Heblo.Domain.Features.Catalog.Stock.IErpStockDomainService",
         "Anela.Heblo.Application.Features.Manufacture.UseCases.SubmitManufactureStockTaking.SubmitManufactureStockTakingHandler+<>c -> Anela.Heblo.Domain.Features.Catalog.Stock.ErpStockTakingLot",
@@ -211,13 +182,6 @@ public class ModuleBoundariesTests
         "Anela.Heblo.Application.Features.Manufacture.UseCases.SubmitManufactureStockTaking.SubmitManufactureStockTakingHandler -> Anela.Heblo.Domain.Features.Catalog.Stock.ErpStockTakingRequest",
         "Anela.Heblo.Application.Features.Manufacture.UseCases.SubmitManufactureStockTaking.SubmitManufactureStockTakingHandler -> Anela.Heblo.Domain.Features.Catalog.Stock.StockTakingRecord",
 
-        // Follow-up (same as ProductCatalogSnapshot): GetManufactureStockTakingHistoryHandler reads
-        // CatalogAggregate via IManufactureCatalogSource and projects StockTakingRecord. The DTO
-        // declares a StockTakingType property to match the Catalog DTO byte-for-byte (FR-6).
-        "Anela.Heblo.Application.Features.Manufacture.UseCases.GetManufactureStockTakingHistory.GetManufactureStockTakingHistoryHandler -> Anela.Heblo.Domain.Features.Catalog.CatalogAggregate",
-        "Anela.Heblo.Application.Features.Manufacture.UseCases.GetManufactureStockTakingHistory.GetManufactureStockTakingHistoryHandler -> Anela.Heblo.Domain.Features.Catalog.Stock.StockTakingRecord",
-        "Anela.Heblo.Application.Features.Manufacture.UseCases.GetManufactureStockTakingHistory.GetManufactureStockTakingHistoryHandler+<>c -> Anela.Heblo.Domain.Features.Catalog.Stock.StockTakingRecord",
-        "Anela.Heblo.Application.Features.Manufacture.UseCases.GetManufactureStockTakingHistory.GetManufactureStockTakingHistoryHandler+<>c -> Anela.Heblo.Domain.Features.Catalog.Stock.StockTakingType",
         "Anela.Heblo.Application.Features.Manufacture.UseCases.GetManufactureStockTakingHistory.ManufactureStockTakingHistoryItemDto -> Anela.Heblo.Domain.Features.Catalog.Stock.StockTakingType",
 
         // ManufactureCatalogSourceAdapter produces CatalogManufactureRecord (the Catalog-owned DTO)
