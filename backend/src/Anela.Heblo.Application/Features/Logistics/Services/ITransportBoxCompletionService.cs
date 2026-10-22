@@ -1,4 +1,4 @@
-namespace Anela.Heblo.Domain.Features.Logistics.Transport;
+namespace Anela.Heblo.Application.Features.Logistics.Services;
 
 /// <summary>
 /// Service for completing transport boxes after stock-up operations finish
