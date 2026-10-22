@@ -22,7 +22,7 @@
     },
     "developing": {
       "status": "in_progress",
-      "updated_at": "2026-10-22T08:25:02.861815Z"
+      "updated_at": "2026-10-22T09:15:32.247961Z"
     }
   },
   "tasks": [
@@ -34,9 +34,9 @@
     },
     {
       "name": "rename-catalogdocuments-response",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-10-22T09:15:32.483018Z"
     },
     {
       "name": "regenerate-client-update-hooks",
