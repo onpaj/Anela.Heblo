@@ -28,9 +28,9 @@
   "tasks": [
     {
       "name": "azure-404-translation",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-10-22T10:15:18.063631Z"
+      "updated_at": "2026-10-22T10:54:30.199060Z"
     },
     {
       "name": "handler-not-found",
