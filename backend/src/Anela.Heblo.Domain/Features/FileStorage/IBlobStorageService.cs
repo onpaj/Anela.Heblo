@@ -49,6 +49,7 @@ public interface IBlobStorageService
     /// <summary>
     /// Downloads a blob as a stream
     /// </summary>
+    /// <exception cref="FileNotFoundException">The blob does not exist.</exception>
     Task<Stream> DownloadAsync(string containerName, string blobName, CancellationToken cancellationToken = default);
 
     /// <summary>

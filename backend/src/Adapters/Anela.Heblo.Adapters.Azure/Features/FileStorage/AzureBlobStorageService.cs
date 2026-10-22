@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using Azure;
 using Azure.Storage.Blobs;
 using Azure.Storage.Blobs.Models;
 using Anela.Heblo.Domain.Features.FileStorage;
@@ -189,6 +190,11 @@ public sealed class AzureBlobStorageService : IBlobStorageService
             var blobClient = containerClient.GetBlobClient(blobName);
             var download = await blobClient.DownloadStreamingAsync(cancellationToken: cancellationToken);
             return new BlobDownloadStream(download.Value.Content, download.Value);
+        }
+        catch (RequestFailedException ex) when (ex.Status == 404)
+        {
+            _logger.LogWarning(ex, "Blob {BlobName} not found in container {ContainerName}", blobName, containerName);
+            throw new FileNotFoundException($"Blob '{blobName}' not found in container '{containerName}'.", blobName, ex);
         }
         catch (Exception ex)
         {

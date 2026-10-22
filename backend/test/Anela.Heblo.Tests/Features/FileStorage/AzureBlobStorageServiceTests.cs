@@ -210,6 +210,40 @@ public class AzureBlobStorageServiceTests
     }
 
     // ---------------------------------------------------------------------------
+    // DownloadAsync
+    // ---------------------------------------------------------------------------
+
+    [Fact]
+    public async Task DownloadAsync_BlobMissing404_ThrowsFileNotFoundException()
+    {
+        var mockContainerClient = new Mock<BlobContainerClient>();
+        var mockBlobClient = new Mock<BlobClient>();
+        mockBlobClient
+            .Setup(x => x.DownloadStreamingAsync(It.IsAny<BlobDownloadOptions>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new RequestFailedException(404, "BlobNotFound"));
+        mockContainerClient.Setup(x => x.GetBlobClient("missing.pdf")).Returns(mockBlobClient.Object);
+        _mockBlobServiceClient.Setup(x => x.GetBlobContainerClient("documents")).Returns(mockContainerClient.Object);
+
+        var ex = await Assert.ThrowsAsync<FileNotFoundException>(() => _service.DownloadAsync("documents", "missing.pdf"));
+
+        Assert.IsType<RequestFailedException>(ex.InnerException);
+    }
+
+    [Fact]
+    public async Task DownloadAsync_Other500_PropagatesRequestFailedException()
+    {
+        var mockContainerClient = new Mock<BlobContainerClient>();
+        var mockBlobClient = new Mock<BlobClient>();
+        mockBlobClient
+            .Setup(x => x.DownloadStreamingAsync(It.IsAny<BlobDownloadOptions>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new RequestFailedException(500, "ServerBusy"));
+        mockContainerClient.Setup(x => x.GetBlobClient("x.pdf")).Returns(mockBlobClient.Object);
+        _mockBlobServiceClient.Setup(x => x.GetBlobContainerClient("documents")).Returns(mockContainerClient.Object);
+
+        await Assert.ThrowsAsync<RequestFailedException>(() => _service.DownloadAsync("documents", "x.pdf"));
+    }
+
+    // ---------------------------------------------------------------------------
     // UploadAsync
     // ---------------------------------------------------------------------------
 
