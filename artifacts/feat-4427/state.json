@@ -28,9 +28,9 @@
   "tasks": [
     {
       "name": "move-interface",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-10-22T00:15:48.450673Z"
+      "updated_at": "2026-10-22T00:20:55.333494Z"
     },
     {
       "name": "update-process-doc",
