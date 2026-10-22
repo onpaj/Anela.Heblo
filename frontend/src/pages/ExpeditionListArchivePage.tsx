@@ -11,8 +11,8 @@ import {
 } from "../api/hooks/useExpeditionListArchive";
 import { useToast } from "../contexts/ToastContext";
 import { useScreenView } from "../telemetry/useScreenView";
-import ExpeditionJobControlsBar from "../components/pages/ExpeditionListArchive/ExpeditionJobControlsBar";
-import { formatDateTime } from "../components/pages/ExpeditionListArchive/formatDateTime";
+import ExpeditionJobControlsBar from "../components/pages/Expedition/ExpeditionJobControlsBar";
+import { formatDateTime } from "../components/pages/Expedition/formatDateTime";
 
 const PAGE_SIZE = 20;
 
