@@ -40,9 +40,9 @@
     },
     {
       "name": "frontend-and-docs-check",
-      "status": "pending",
+      "status": "completed",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-10-22T04:30:17.255516Z"
     }
   ]
 }
