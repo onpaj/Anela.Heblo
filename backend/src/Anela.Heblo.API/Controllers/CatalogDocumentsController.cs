@@ -48,7 +48,7 @@ public class CatalogDocumentsController : BaseApiController
     [HttpPost("materials/{productCode}")]
     [FeatureAuthorize(Feature.Products_Catalog, AccessLevel.Write)]
     [RequestSizeLimit(50 * 1024 * 1024)] // 50 MB
-    public async Task<ActionResult<UploadDocumentResponse>> UploadMaterialDocument(
+    public async Task<ActionResult<CatalogDocumentsUploadDocumentResponse>> UploadMaterialDocument(
         string productCode,
         IFormFile? file,
         [FromForm] string documentTypeCode = "",
@@ -80,7 +80,7 @@ public class CatalogDocumentsController : BaseApiController
     [HttpPost("pif/{productCode}")]
     [FeatureAuthorize(Feature.Products_Catalog, AccessLevel.Write)]
     [RequestSizeLimit(50 * 1024 * 1024)] // 50 MB
-    public async Task<ActionResult<UploadDocumentResponse>> UploadPifDocument(
+    public async Task<ActionResult<CatalogDocumentsUploadDocumentResponse>> UploadPifDocument(
         string productCode,
         IFormFile? file,
         CancellationToken ct = default)

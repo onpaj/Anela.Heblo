@@ -7,7 +7,7 @@ using MediatR;
 
 namespace Anela.Heblo.Application.Features.KnowledgeBase.UseCases.UploadDocument;
 
-public class UploadDocumentHandler : IRequestHandler<UploadDocumentRequest, UploadDocumentResponse>
+public class UploadDocumentHandler : IRequestHandler<UploadDocumentRequest, KnowledgeBaseUploadDocumentResponse>
 {
     private readonly IEnumerable<IDocumentTextExtractor> _extractors;
     private readonly IMediator _mediator;
@@ -20,7 +20,7 @@ public class UploadDocumentHandler : IRequestHandler<UploadDocumentRequest, Uplo
         _mediator = mediator;
     }
 
-    public async Task<UploadDocumentResponse> Handle(
+    public async Task<KnowledgeBaseUploadDocumentResponse> Handle(
         UploadDocumentRequest request,
         CancellationToken cancellationToken)
     {
@@ -28,7 +28,7 @@ public class UploadDocumentHandler : IRequestHandler<UploadDocumentRequest, Uplo
 
         if (!_extractors.Any(e => e.CanHandle(contentType)))
         {
-            return new UploadDocumentResponse
+            return new KnowledgeBaseUploadDocumentResponse
             {
                 Success = false,
                 ErrorCode = ErrorCodes.UnsupportedFileType,
@@ -46,7 +46,7 @@ public class UploadDocumentHandler : IRequestHandler<UploadDocumentRequest, Uplo
             DocumentType = request.DocumentType,
         }, cancellationToken);
 
-        return new UploadDocumentResponse
+        return new KnowledgeBaseUploadDocumentResponse
         {
             Document = MapToSummary(indexResponse),
         };

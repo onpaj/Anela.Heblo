@@ -2519,7 +2519,7 @@ export class ApiClient {
         return Promise.resolve<ListCatalogDocumentsResponse>(null as any);
     }
 
-    catalogDocuments_UploadMaterialDocument(productCode: string, file: FileParameter | null | undefined, documentTypeCode: string | null | undefined, lot: string | null | undefined, commonName: string | null | undefined, uploadAsIs: boolean | undefined): Promise<UploadDocumentResponse> {
+    catalogDocuments_UploadMaterialDocument(productCode: string, file: FileParameter | null | undefined, documentTypeCode: string | null | undefined, lot: string | null | undefined, commonName: string | null | undefined, uploadAsIs: boolean | undefined): Promise<CatalogDocumentsUploadDocumentResponse> {
         let url_ = this.baseUrl + "/api/catalog-documents/materials/{productCode}";
         if (productCode === undefined || productCode === null)
             throw new Error("The parameter 'productCode' must be defined.");
@@ -2553,14 +2553,14 @@ export class ApiClient {
         });
     }
 
-    protected processCatalogDocuments_UploadMaterialDocument(response: Response): Promise<UploadDocumentResponse> {
+    protected processCatalogDocuments_UploadMaterialDocument(response: Response): Promise<CatalogDocumentsUploadDocumentResponse> {
         const status = response.status;
         let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
         if (status === 200) {
             return response.text().then((_responseText) => {
             let result200: any = null;
             let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
-            result200 = UploadDocumentResponse.fromJS(resultData200);
+            result200 = CatalogDocumentsUploadDocumentResponse.fromJS(resultData200);
             return result200;
             });
         } else if (status !== 200 && status !== 204) {
@@ -2568,7 +2568,7 @@ export class ApiClient {
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
             });
         }
-        return Promise.resolve<UploadDocumentResponse>(null as any);
+        return Promise.resolve<CatalogDocumentsUploadDocumentResponse>(null as any);
     }
 
     catalogDocuments_ListPifDocuments(productCode: string): Promise<ListCatalogDocumentsResponse> {
@@ -2608,7 +2608,7 @@ export class ApiClient {
         return Promise.resolve<ListCatalogDocumentsResponse>(null as any);
     }
 
-    catalogDocuments_UploadPifDocument(productCode: string, file: FileParameter | null | undefined): Promise<UploadDocumentResponse> {
+    catalogDocuments_UploadPifDocument(productCode: string, file: FileParameter | null | undefined): Promise<CatalogDocumentsUploadDocumentResponse> {
         let url_ = this.baseUrl + "/api/catalog-documents/pif/{productCode}";
         if (productCode === undefined || productCode === null)
             throw new Error("The parameter 'productCode' must be defined.");
@@ -2632,14 +2632,14 @@ export class ApiClient {
         });
     }
 
-    protected processCatalogDocuments_UploadPifDocument(response: Response): Promise<UploadDocumentResponse> {
+    protected processCatalogDocuments_UploadPifDocument(response: Response): Promise<CatalogDocumentsUploadDocumentResponse> {
         const status = response.status;
         let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
         if (status === 200) {
             return response.text().then((_responseText) => {
             let result200: any = null;
             let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
-            result200 = UploadDocumentResponse.fromJS(resultData200);
+            result200 = CatalogDocumentsUploadDocumentResponse.fromJS(resultData200);
             return result200;
             });
         } else if (status !== 200 && status !== 204) {
@@ -2647,7 +2647,7 @@ export class ApiClient {
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
             });
         }
-        return Promise.resolve<UploadDocumentResponse>(null as any);
+        return Promise.resolve<CatalogDocumentsUploadDocumentResponse>(null as any);
     }
 
     catalogDocuments_GetMaterialDocumentTypes(): Promise<GetMaterialDocumentTypesResponse> {
@@ -5691,7 +5691,7 @@ export class ApiClient {
         return Promise.resolve<SubmitFeedbackResponse>(null as any);
     }
 
-    knowledgeBase_UploadDocument(file: FileParameter | null | undefined, documentType: string | null | undefined): Promise<UploadDocumentResponse2> {
+    knowledgeBase_UploadDocument(file: FileParameter | null | undefined, documentType: string | null | undefined): Promise<KnowledgeBaseUploadDocumentResponse> {
         let url_ = this.baseUrl + "/api/KnowledgeBase/documents/upload";
         url_ = url_.replace(/[?&]$/, "");
 
@@ -5714,14 +5714,14 @@ export class ApiClient {
         });
     }
 
-    protected processKnowledgeBase_UploadDocument(response: Response): Promise<UploadDocumentResponse2> {
+    protected processKnowledgeBase_UploadDocument(response: Response): Promise<KnowledgeBaseUploadDocumentResponse> {
         const status = response.status;
         let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
         if (status === 200) {
             return response.text().then((_responseText) => {
             let result200: any = null;
             let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
-            result200 = UploadDocumentResponse2.fromJS(resultData200);
+            result200 = KnowledgeBaseUploadDocumentResponse.fromJS(resultData200);
             return result200;
             });
         } else if (status !== 200 && status !== 204) {
@@ -5729,7 +5729,7 @@ export class ApiClient {
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
             });
         }
-        return Promise.resolve<UploadDocumentResponse2>(null as any);
+        return Promise.resolve<KnowledgeBaseUploadDocumentResponse>(null as any);
     }
 
     labelIdentification_Identify(photo: FileParameter | null | undefined): Promise<IdentifyLabelResponse> {
@@ -22249,10 +22249,10 @@ export interface IMaterialDocumentTypeDto {
     lotRequired?: boolean;
 }
 
-export class UploadDocumentResponse extends BaseResponse implements IUploadDocumentResponse {
+export class CatalogDocumentsUploadDocumentResponse extends BaseResponse implements ICatalogDocumentsUploadDocumentResponse {
     uploadedFilename?: string;
 
-    constructor(data?: IUploadDocumentResponse) {
+    constructor(data?: ICatalogDocumentsUploadDocumentResponse) {
         super(data);
     }
 
@@ -22263,9 +22263,9 @@ export class UploadDocumentResponse extends BaseResponse implements IUploadDocum
         }
     }
 
-    static override fromJS(data: any): UploadDocumentResponse {
+    static override fromJS(data: any): CatalogDocumentsUploadDocumentResponse {
         data = typeof data === 'object' ? data : {};
-        let result = new UploadDocumentResponse();
+        let result = new CatalogDocumentsUploadDocumentResponse();
         result.init(data);
         return result;
     }
@@ -22278,7 +22278,7 @@ export class UploadDocumentResponse extends BaseResponse implements IUploadDocum
     }
 }
 
-export interface IUploadDocumentResponse extends IBaseResponse {
+export interface ICatalogDocumentsUploadDocumentResponse extends IBaseResponse {
     uploadedFilename?: string;
 }
 
@@ -27655,10 +27655,10 @@ export interface ISubmitFeedbackRequest {
     comment?: string | undefined;
 }
 
-export class UploadDocumentResponse2 extends BaseResponse implements IUploadDocumentResponse2 {
+export class KnowledgeBaseUploadDocumentResponse extends BaseResponse implements IKnowledgeBaseUploadDocumentResponse {
     document?: DocumentSummary | undefined;
 
-    constructor(data?: IUploadDocumentResponse2) {
+    constructor(data?: IKnowledgeBaseUploadDocumentResponse) {
         super(data);
     }
 
@@ -27669,9 +27669,9 @@ export class UploadDocumentResponse2 extends BaseResponse implements IUploadDocu
         }
     }
 
-    static override fromJS(data: any): UploadDocumentResponse2 {
+    static override fromJS(data: any): KnowledgeBaseUploadDocumentResponse {
         data = typeof data === 'object' ? data : {};
-        let result = new UploadDocumentResponse2();
+        let result = new KnowledgeBaseUploadDocumentResponse();
         result.init(data);
         return result;
     }
@@ -27684,7 +27684,7 @@ export class UploadDocumentResponse2 extends BaseResponse implements IUploadDocu
     }
 }
 
-export interface IUploadDocumentResponse2 extends IBaseResponse {
+export interface IKnowledgeBaseUploadDocumentResponse extends IBaseResponse {
     document?: DocumentSummary | undefined;
 }
 
