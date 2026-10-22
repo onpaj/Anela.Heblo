@@ -11,21 +11,11 @@ import {
 import { usePermissionsContext } from "../../../auth/PermissionsContext";
 import { useToast } from "../../../contexts/ToastContext";
 import PrintOrderModal from "../../../components/modals/PrintOrderModal";
+import { formatDateTime } from "./formatDateTime";
 
 const PRINT_JOB_NAME = "print-picking-list";
 const TRIGGER_JOBS_PERMISSION = "jobs.trigger.read";
 const DISABLE_JOBS_PERMISSION = "jobs.disable.read";
-
-const formatDateTime = (iso: string | null): string => {
-  if (!iso) return "–";
-  return new Date(iso).toLocaleString("cs-CZ", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-};
 
 interface ExpeditionJobControlsBarProps {
   /** Rendered as the first child of the button group (e.g. the archive page's "Obnovit" button). */
