@@ -21,16 +21,16 @@
       "updated_at": "2026-10-22T07:19:18.742132Z"
     },
     "developing": {
-      "status": "pending",
-      "updated_at": null
+      "status": "in_progress",
+      "updated_at": "2026-10-22T08:23:43.775878Z"
     }
   },
   "tasks": [
     {
       "name": "write-filter-tests",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-10-22T08:23:43.977692Z"
     }
   ]
 }
