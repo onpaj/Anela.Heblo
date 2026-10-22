@@ -34,9 +34,9 @@
     },
     {
       "name": "rename-catalogdocuments-response",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-10-22T09:15:32.483018Z"
+      "updated_at": "2026-10-22T09:21:47.177311Z"
     },
     {
       "name": "regenerate-client-update-hooks",
