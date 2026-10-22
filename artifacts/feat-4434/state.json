@@ -25,5 +25,18 @@
       "updated_at": null
     }
   },
-  "tasks": []
+  "tasks": [
+    {
+      "name": "test-scaffold-and-open-bounds",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    },
+    {
+      "name": "test-selection-asofdate-nocurrent",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    }
+  ]
 }
