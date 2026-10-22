@@ -25,5 +25,24 @@
       "updated_at": null
     }
   },
-  "tasks": []
+  "tasks": [
+    {
+      "name": "controller-handle-response",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    },
+    {
+      "name": "controller-tests",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    },
+    {
+      "name": "frontend-and-docs-check",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    }
+  ]
 }
