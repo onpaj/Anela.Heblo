@@ -323,7 +323,7 @@ public class GiftPackageManufactureService : IGiftPackageManufactureService, IGi
 
             foreach (var ingredient in giftPackage.Ingredients ?? new List<GiftPackageIngredientDto>())
             {
-                var returnedQuantity = (int)(ingredient.RequiredQuantity * quantity);
+                var returnedQuantity = ConsumedQuantity(ingredient, quantity);
                 disassemblyLog.AddConsumedItem(ingredient.ProductCode, returnedQuantity);
 
                 // DocumentNumber format: GPD-{logId:000000}-{productCode}
