@@ -21,16 +21,16 @@
       "updated_at": "2026-10-22T06:15:29.619961Z"
     },
     "developing": {
-      "status": "pending",
-      "updated_at": null
+      "status": "in_progress",
+      "updated_at": "2026-10-22T06:34:33.726539Z"
     }
   },
   "tasks": [
     {
       "name": "test-scaffold-and-open-bounds",
-      "status": "pending",
+      "status": "completed",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-10-22T06:34:33.975436Z"
     },
     {
       "name": "test-selection-asofdate-nocurrent",
