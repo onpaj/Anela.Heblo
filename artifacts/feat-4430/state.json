@@ -21,16 +21,16 @@
       "updated_at": "2026-10-22T03:17:15.724163Z"
     },
     "developing": {
-      "status": "pending",
-      "updated_at": null
+      "status": "in_progress",
+      "updated_at": "2026-10-22T04:51:27.651752Z"
     }
   },
   "tasks": [
     {
       "name": "feedback-filter-tests",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-10-22T04:51:27.856692Z"
     },
     {
       "name": "feedback-sort-paging-tests",
