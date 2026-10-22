@@ -121,6 +121,10 @@ transitions (New→Opened via the button, Received→Stocked); the API itself do
 None.
 
 ## Known quirks
+- **API failures map to HTTP status via `ErrorCode`.** `TransportBoxController` returns failed
+  responses through `HandleResponse`, so the status follows the ErrorCode's `HttpStatusCode`
+  attribute (default 400) instead of always 400. Hooks throw on any non-ok status, so the
+  frontend does not branch on a literal 400.
 - **An Error box stays Error after its operation is retried.** The completion task reads only
   Received boxes; staff must move it Error → Stocked by hand, and that move does not check the
   operations.

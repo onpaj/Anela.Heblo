@@ -14372,6 +14372,70 @@ export class ApiClient {
         return Promise.resolve<SendMessageResponse>(null as any);
     }
 
+    smartsupp_SendMessageWithAttachments(conversationId: string, content: string | null | undefined, draftLogId: string | null | undefined, files: FileParameter[] | null | undefined): Promise<SendMessageResponse> {
+        let url_ = this.baseUrl + "/api/smartsupp/conversations/{conversationId}/messages/with-attachments";
+        if (conversationId === undefined || conversationId === null)
+            throw new Error("The parameter 'conversationId' must be defined.");
+        url_ = url_.replace("{conversationId}", encodeURIComponent("" + conversationId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = new FormData();
+        if (content !== null && content !== undefined)
+            content_.append("content", content.toString());
+        if (draftLogId !== null && draftLogId !== undefined)
+            content_.append("draftLogId", draftLogId.toString());
+        if (files !== null && files !== undefined)
+            files.forEach(item_ => content_.append("files", item_.data, item_.fileName ? item_.fileName : "files") );
+
+        let options_: RequestInit = {
+            body: content_,
+            method: "POST",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processSmartsupp_SendMessageWithAttachments(_response);
+        });
+    }
+
+    protected processSmartsupp_SendMessageWithAttachments(response: Response): Promise<SendMessageResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = SendMessageResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status === 400) {
+            return response.text().then((_responseText) => {
+            let result400: any = null;
+            let resultData400 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result400 = ProblemDetails.fromJS(resultData400);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result400);
+            });
+        } else if (status === 404) {
+            return response.text().then((_responseText) => {
+            let result404: any = null;
+            let resultData404 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result404 = ProblemDetails.fromJS(resultData404);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result404);
+            });
+        } else if (status === 503) {
+            return response.text().then((_responseText) => {
+            return throwException("A server side error occurred.", status, _responseText, _headers);
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<SendMessageResponse>(null as any);
+    }
+
     smartsupp_SubmitDraftReplyFeedback(request: SubmitDraftReplyFeedbackRequest): Promise<SubmitDraftReplyFeedbackResponse> {
         let url_ = this.baseUrl + "/api/smartsupp/draft-reply/feedback";
         url_ = url_.replace(/[?&]$/, "");
@@ -16124,6 +16188,9 @@ export enum ErrorCodes {
     SmartsuppCloseConversationUnavailable = "SmartsuppCloseConversationUnavailable",
     SmartsuppDraftReplyFeedbackLogNotFound = "SmartsuppDraftReplyFeedbackLogNotFound",
     SmartsuppDraftReplyFeedbackAlreadySubmitted = "SmartsuppDraftReplyFeedbackAlreadySubmitted",
+    SmartsuppAttachmentInvalid = "SmartsuppAttachmentInvalid",
+    SmartsuppAttachmentTooLarge = "SmartsuppAttachmentTooLarge",
+    SmartsuppAttachmentUploadFailed = "SmartsuppAttachmentUploadFailed",
     LotNotFound = "LotNotFound",
     MaterialContainerNotFound = "MaterialContainerNotFound",
     LotAlreadyExists = "LotAlreadyExists",
@@ -48433,6 +48500,7 @@ export class MessageDto implements IMessageDto {
     responseTime?: number | undefined;
     isFirstReply?: boolean;
     pageUrl?: string | undefined;
+    attachments?: MessageAttachmentDto[];
 
     constructor(data?: IMessageDto) {
         if (data) {
@@ -48457,6 +48525,11 @@ export class MessageDto implements IMessageDto {
             this.responseTime = _data["responseTime"];
             this.isFirstReply = _data["isFirstReply"];
             this.pageUrl = _data["pageUrl"];
+            if (Array.isArray(_data["attachments"])) {
+                this.attachments = [] as any;
+                for (let item of _data["attachments"])
+                    this.attachments!.push(MessageAttachmentDto.fromJS(item));
+            }
         }
     }
 
@@ -48481,6 +48554,11 @@ export class MessageDto implements IMessageDto {
         data["responseTime"] = this.responseTime;
         data["isFirstReply"] = this.isFirstReply;
         data["pageUrl"] = this.pageUrl;
+        if (Array.isArray(this.attachments)) {
+            data["attachments"] = [];
+            for (let item of this.attachments)
+                data["attachments"].push(item.toJSON());
+        }
         return data;
     }
 }
@@ -48498,6 +48576,63 @@ export interface IMessageDto {
     responseTime?: number | undefined;
     isFirstReply?: boolean;
     pageUrl?: string | undefined;
+    attachments?: MessageAttachmentDto[];
+}
+
+export class MessageAttachmentDto implements IMessageAttachmentDto {
+    type?: string;
+    fileName?: string;
+    fileType?: string | undefined;
+    url?: string;
+    size?: number | undefined;
+    thumbUrl?: string | undefined;
+
+    constructor(data?: IMessageAttachmentDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.type = _data["type"];
+            this.fileName = _data["fileName"];
+            this.fileType = _data["fileType"];
+            this.url = _data["url"];
+            this.size = _data["size"];
+            this.thumbUrl = _data["thumbUrl"];
+        }
+    }
+
+    static fromJS(data: any): MessageAttachmentDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new MessageAttachmentDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["type"] = this.type;
+        data["fileName"] = this.fileName;
+        data["fileType"] = this.fileType;
+        data["url"] = this.url;
+        data["size"] = this.size;
+        data["thumbUrl"] = this.thumbUrl;
+        return data;
+    }
+}
+
+export interface IMessageAttachmentDto {
+    type?: string;
+    fileName?: string;
+    fileType?: string | undefined;
+    url?: string;
+    size?: number | undefined;
+    thumbUrl?: string | undefined;
 }
 
 export class GenerateDraftReplyResponse extends BaseResponse implements IGenerateDraftReplyResponse {
