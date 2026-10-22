@@ -28,9 +28,9 @@
   "tasks": [
     {
       "name": "extract-format-datetime",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-10-22T09:15:36.264144Z"
+      "updated_at": "2026-10-22T09:19:47.208551Z"
     }
   ]
 }
