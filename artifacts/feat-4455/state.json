@@ -21,16 +21,16 @@
       "updated_at": "2026-10-22T20:12:40.731027Z"
     },
     "developing": {
-      "status": "pending",
-      "updated_at": null
+      "status": "in_progress",
+      "updated_at": "2026-10-22T20:20:35.716374Z"
     }
   },
   "tasks": [
     {
       "name": "add-bom-contract",
-      "status": "pending",
+      "status": "completed",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-10-22T20:20:36.030967Z"
     },
     {
       "name": "add-manufacture-adapter",
