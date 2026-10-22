@@ -65,6 +65,10 @@ public static class SmartsuppPayloadMapper
         var contentText = data.TryGetProperty("content", out var content) && content.ValueKind == JsonValueKind.Object
             ? TryGetString(content, "text") ?? TryGetString(content, "html")
             : TryGetString(data, "content");
+        var hasContentObject = content.ValueKind == JsonValueKind.Object;
+        var contentType = hasContentObject ? TryGetString(content, "type") : null;
+        JsonElement? contentData = hasContentObject && content.TryGetProperty("data", out var cd) ? cd : null;
+        JsonElement? attachments = data.TryGetProperty("attachments", out var att) ? att : null;
 
         return new SmartsuppMessage
         {
@@ -88,7 +92,7 @@ public static class SmartsuppPayloadMapper
             IsReply = TryGetBool(data, "is_reply") ?? false,
             IsFirstReply = TryGetBool(data, "is_first_reply") ?? false,
             ResponseTime = TryGetInt(data, "response_time"),
-            AttachmentsJson = data.TryGetProperty("attachments", out var att) ? att.GetRawText() : null,
+            AttachmentsJson = SmartsuppAttachments.BuildJson(attachments, contentType, contentData),
             CreatedAt = ReadUtc(data, "created_at"),
             UpdatedAt = ReadUtc(data, "updated_at"),
         };
