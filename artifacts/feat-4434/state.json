@@ -1,0 +1,46 @@
+{
+  "feature_id": "feat-4434",
+  "issue_number": 4434,
+  "created_at": "2026-10-22T06:14:40.238317Z",
+  "max_revisions": 3,
+  "phases": {
+    "analyzing": {
+      "status": "completed",
+      "updated_at": "2026-10-22T06:15:22.367459Z"
+    },
+    "architecting": {
+      "status": "completed",
+      "updated_at": "2026-10-22T06:15:24.974748Z"
+    },
+    "designing": {
+      "status": "completed",
+      "updated_at": "2026-10-22T06:15:27.229099Z"
+    },
+    "planning": {
+      "status": "completed",
+      "updated_at": "2026-10-22T06:15:29.619961Z"
+    },
+    "developing": {
+      "status": "in_progress",
+      "updated_at": "2026-10-22T08:17:00.477054Z"
+    },
+    "code-review": {
+      "status": "completed",
+      "updated_at": "2026-10-22T09:25:39.356348Z"
+    }
+  },
+  "tasks": [
+    {
+      "name": "test-scaffold-and-open-bounds",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-10-22T06:34:33.975436Z"
+    },
+    {
+      "name": "test-selection-asofdate-nocurrent",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-10-22T08:39:46.320041Z"
+    }
+  ]
+}
