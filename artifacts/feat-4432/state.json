@@ -21,16 +21,16 @@
       "updated_at": "2026-10-22T04:10:56.046497Z"
     },
     "developing": {
-      "status": "pending",
-      "updated_at": null
+      "status": "in_progress",
+      "updated_at": "2026-10-22T04:43:21.882015Z"
     }
   },
   "tasks": [
     {
       "name": "add-mapping-profile-tests",
-      "status": "pending",
+      "status": "completed",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-10-22T04:43:22.280269Z"
     }
   ]
 }
