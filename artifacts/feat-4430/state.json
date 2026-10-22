@@ -34,9 +34,9 @@
     },
     {
       "name": "feedback-sort-paging-tests",
-      "status": "pending",
+      "status": "completed",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-10-22T06:01:38.582821Z"
     },
     {
       "name": "feedback-stats-tests",
