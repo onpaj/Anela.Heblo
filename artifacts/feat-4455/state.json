@@ -34,9 +34,9 @@
     },
     {
       "name": "add-manufacture-adapter",
-      "status": "pending",
+      "status": "completed",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-10-22T21:46:45.828014Z"
     },
     {
       "name": "switch-consumer",
