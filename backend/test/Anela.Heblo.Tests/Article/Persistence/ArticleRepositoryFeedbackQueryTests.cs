@@ -98,4 +98,49 @@ public class ArticleRepositoryFeedbackQueryTests : IDisposable
         await SeedAsync();
         (await QueryTopicsAsync(false, "user2")).Should().BeEquivalentTo("D");
     }
+
+    // Sort/paging fixtures: all have feedback, distinct non-null scores, distinct CreatedAt.
+    // Precision order asc: P(1) Q(2) R(3) S(4) T(5); Style order asc: T(1) S(2) R(3) Q(4) P(5).
+    private async Task SeedScoredAsync()
+    {
+        _context.Articles.AddRange(
+            Make("R", "user1", 3, 3, 3),
+            Make("P", "user1", 1, 1, 5),
+            Make("T", "user1", 5, 5, 1),
+            Make("Q", "user1", 2, 2, 4),
+            Make("S", "user1", 4, 4, 2));
+        await _context.SaveChangesAsync();
+    }
+
+    private async Task<string[]> QuerySortedTopicsAsync(string sortBy, bool descending)
+    {
+        var (items, _) = await _repository.GetFeedbackPagedAsync(
+            true, null, sortBy, descending, 1, 50);
+        return items.Select(i => i.Topic).ToArray();
+    }
+
+    [Theory]
+    [InlineData("PrecisionScore", false, new[] { "P", "Q", "R", "S", "T" })]
+    [InlineData("PrecisionScore", true, new[] { "T", "S", "R", "Q", "P" })]
+    [InlineData("StyleScore", false, new[] { "T", "S", "R", "Q", "P" })]
+    [InlineData("StyleScore", true, new[] { "P", "Q", "R", "S", "T" })]
+    [InlineData("CreatedAt", false, new[] { "P", "Q", "R", "S", "T" })]
+    [InlineData("CreatedAt", true, new[] { "T", "S", "R", "Q", "P" })]
+    [InlineData("Bogus", false, new[] { "P", "Q", "R", "S", "T" })]
+    [InlineData("Bogus", true, new[] { "T", "S", "R", "Q", "P" })]
+    public async Task SortBy_OrdersResults(string sortBy, bool descending, string[] expected)
+    {
+        await SeedScoredAsync();
+        (await QuerySortedTopicsAsync(sortBy, descending)).Should().Equal(expected);
+    }
+
+    [Fact]
+    public async Task Paging_Page2Size2_ReturnsThirdAndFourthItems_TotalCountUnchanged()
+    {
+        await SeedAsync();
+        var (items, total) = await _repository.GetFeedbackPagedAsync(
+            null, null, "CreatedAt", false, 2, 2);
+        items.Select(i => i.Topic).Should().Equal("C", "D");
+        total.Should().Be(5);
+    }
 }
