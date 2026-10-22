@@ -22,7 +22,7 @@
     },
     "developing": {
       "status": "in_progress",
-      "updated_at": "2026-10-22T06:34:33.726539Z"
+      "updated_at": "2026-10-22T08:17:00.477054Z"
     }
   },
   "tasks": [
@@ -34,9 +34,9 @@
     },
     {
       "name": "test-selection-asofdate-nocurrent",
-      "status": "pending",
+      "status": "completed",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-10-22T08:39:46.320041Z"
     }
   ]
 }

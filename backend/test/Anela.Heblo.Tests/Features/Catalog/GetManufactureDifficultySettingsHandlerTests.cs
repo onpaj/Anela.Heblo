@@ -116,4 +116,123 @@ public class GetManufactureDifficultySettingsHandlerTests
             response.CurrentSetting.Should().BeNull();
         }
     }
+
+    [Fact]
+    public async Task Handle_OnlyOneSettingContainsReference_OnlyThatOneIsCurrent()
+    {
+        SetupList(
+            Setting(1, Now.AddDays(-30), Now.AddDays(-10)),
+            Setting(2, Now.AddDays(-5), Now.AddDays(5)));
+
+        var response = await _handler.Handle(Request(), CancellationToken.None);
+
+        response.Settings.Select(s => s.IsCurrent).Should().Equal(false, true);
+        response.CurrentSetting.Should().NotBeNull();
+        response.CurrentSetting!.Id.Should().Be(2);
+    }
+
+    [Fact]
+    public async Task Handle_OverlappingSettings_AllMatchesFlaggedAndFirstIsCurrentSetting()
+    {
+        SetupList(
+            Setting(1, Now.AddDays(-10), Now.AddDays(10)),
+            Setting(2, Now.AddDays(-5), Now.AddDays(5)));
+
+        var response = await _handler.Handle(Request(), CancellationToken.None);
+
+        response.Settings.Should().OnlyContain(s => s.IsCurrent);
+        response.CurrentSetting.Should().NotBeNull();
+        response.CurrentSetting!.Id.Should().Be(1);
+    }
+
+    [Fact]
+    public async Task Handle_BoundariesEqualToReference_AreInclusive()
+    {
+        SetupList(
+            Setting(1, Now, Now.AddDays(10)),
+            Setting(2, Now.AddDays(-10), Now));
+
+        var response = await _handler.Handle(Request(), CancellationToken.None);
+
+        response.Settings.Should().OnlyContain(s => s.IsCurrent);
+    }
+
+    [Fact]
+    public async Task Handle_AsOfDateSupplied_UsesAsOfDateInsteadOfNow()
+    {
+        var asOf = Now.AddDays(-100);
+        // valid at asOf only, not at now
+        SetupList(Setting(1, asOf.AddDays(-5), asOf.AddDays(5)));
+
+        var response = await _handler.Handle(Request(asOf), CancellationToken.None);
+
+        response.Settings.Should().ContainSingle().Which.IsCurrent.Should().BeTrue();
+        response.CurrentSetting.Should().NotBeNull();
+    }
+
+    [Fact]
+    public async Task Handle_AsOfDateSupplied_SettingValidOnlyNowIsNotCurrent()
+    {
+        var asOf = Now.AddDays(-100);
+        // valid at now only, not at asOf
+        SetupList(Setting(1, Now.AddDays(-5), Now.AddDays(5)));
+
+        var response = await _handler.Handle(Request(asOf), CancellationToken.None);
+
+        response.Settings.Should().ContainSingle().Which.IsCurrent.Should().BeFalse();
+        response.CurrentSetting.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task Handle_AsOfDateSupplied_PassesAsOfDateToRepository()
+    {
+        var asOf = Now.AddDays(-100);
+        SetupList();
+
+        await _handler.Handle(Request(asOf), CancellationToken.None);
+
+        _repositoryMock.Verify(r => r.ListAsync("P1", asOf, It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task Handle_NoAsOfDate_UsesTimeProviderNow()
+    {
+        SetupList(Setting(1, Now.AddDays(-5), Now.AddDays(5)));
+
+        var atNow = await _handler.Handle(Request(), CancellationToken.None);
+        atNow.Settings.Single().IsCurrent.Should().BeTrue();
+
+        _timeProvider.SetUtcNow(new DateTimeOffset(Now.AddDays(100)));
+        var later = await _handler.Handle(Request(), CancellationToken.None);
+        later.Settings.Single().IsCurrent.Should().BeFalse();
+
+        _repositoryMock.Verify(r => r.ListAsync("P1", null, It.IsAny<CancellationToken>()), Times.Exactly(2));
+    }
+
+    [Fact]
+    public async Task Handle_NoSettingMatches_CurrentSettingNullAndNoneFlagged()
+    {
+        SetupList(
+            Setting(1, Now.AddDays(-30), Now.AddDays(-10)),
+            Setting(2, Now.AddDays(10), Now.AddDays(30)));
+
+        var response = await _handler.Handle(Request(), CancellationToken.None);
+
+        response.CurrentSetting.Should().BeNull();
+        response.Settings.Should().HaveCount(2);
+        response.Settings.Should().OnlyContain(s => !s.IsCurrent);
+        response.ProductCode.Should().Be("P1");
+    }
+
+    [Fact]
+    public async Task Handle_EmptyRepository_ReturnsEmptyResponseWithProductCode()
+    {
+        SetupList();
+
+        var response = await _handler.Handle(Request(), CancellationToken.None);
+
+        response.Settings.Should().BeEmpty();
+        response.CurrentSetting.Should().BeNull();
+        response.ProductCode.Should().Be("P1");
+    }
 }
