@@ -34,33 +34,33 @@
     },
     {
       "name": "move-download-into-handler",
-      "status": "pending",
+      "status": "completed",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-10-22T21:29:53.922806Z"
     },
     {
       "name": "remove-interface-method-and-adapter-http",
-      "status": "pending",
+      "status": "completed",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-10-22T21:29:54.155280Z"
     },
     {
       "name": "remove-constants-from-domain",
-      "status": "pending",
+      "status": "completed",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-10-22T21:29:54.378052Z"
     },
     {
       "name": "update-process-docs",
-      "status": "pending",
+      "status": "completed",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-10-22T21:29:54.663752Z"
     },
     {
       "name": "final-validation",
-      "status": "pending",
+      "status": "completed",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-10-22T21:29:54.904926Z"
     }
   ]
 }

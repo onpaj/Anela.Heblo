@@ -17,11 +17,6 @@ public class BlobItemInfo
 public interface IBlobStorageService
 {
     /// <summary>
-    /// Downloads a file from the specified URL and uploads it to blob storage
-    /// </summary>
-    Task<string> DownloadFromUrlAsync(string fileUrl, string containerName, string? blobName = null, CancellationToken cancellationToken = default);
-
-    /// <summary>
     /// Uploads a file stream to blob storage
     /// </summary>
     Task<string> UploadAsync(Stream stream, string containerName, string blobName, string contentType, CancellationToken cancellationToken = default);

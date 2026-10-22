@@ -17,7 +17,7 @@ namespace Anela.Heblo.Application.Features.FileStorage;
 
 public static class FileStorageModule
 {
-    public const string FileDownloadClientName = FileStorageConstants.FileDownloadClientName;
+    public const string FileDownloadClientName = "FileDownload";
 
     public static IServiceCollection AddFileStorageModule(
         this IServiceCollection services,

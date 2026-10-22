@@ -25,9 +25,12 @@ public class SimpleFileStorageTest
         var containerName = "test-container";
 
         // Act
-        var result = await mockService.DownloadFromUrlAsync(
-            "https://example.com/test.pdf",
-            containerName);
+        using var stream = new MemoryStream(new byte[] { 1, 2, 3 });
+        var result = await mockService.UploadAsync(
+            stream,
+            containerName,
+            "test.pdf",
+            "application/pdf");
 
         // Assert
         Assert.NotNull(result);
