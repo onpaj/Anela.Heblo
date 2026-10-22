@@ -1,3 +1,4 @@
+using Anela.Heblo.Domain.Features.Article;
 using Anela.Heblo.Persistence;
 using Anela.Heblo.Persistence.Features.Article;
 using FluentAssertions;
@@ -142,5 +143,23 @@ public class ArticleRepositoryFeedbackQueryTests : IDisposable
             null, null, "CreatedAt", false, 2, 2);
         items.Select(i => i.Topic).Should().Equal("C", "D");
         total.Should().Be(5);
+    }
+
+    [Fact]
+    public async Task GetFeedbackStats_EmptyTable_ReturnsZerosAndNullAverages()
+    {
+        var stats = await _repository.GetFeedbackStatsAsync();
+        stats.Should().Be(new ArticleFeedbackStats(0, 0, null, null));
+    }
+
+    [Fact]
+    public async Task GetFeedbackStats_Populated_AveragesOverNonNullValuesOnly()
+    {
+        await SeedAsync();
+        var stats = await _repository.GetFeedbackStatsAsync();
+        stats.TotalArticles.Should().Be(5);
+        stats.TotalWithFeedback.Should().Be(3);
+        stats.AvgPrecisionScore.Should().Be(4.0);
+        stats.AvgStyleScore.Should().Be(3.0);
     }
 }
