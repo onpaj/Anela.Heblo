@@ -28,9 +28,9 @@
   "tasks": [
     {
       "name": "feedback-filter-tests",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-10-22T04:51:27.856692Z"
+      "updated_at": "2026-10-22T04:51:28.270453Z"
     },
     {
       "name": "feedback-sort-paging-tests",
