@@ -3,7 +3,7 @@ import { getAuthenticatedApiClient, QUERY_KEYS } from '../client';
 import {
   type ListCatalogDocumentsResponse,
   type GetMaterialDocumentTypesResponse,
-  type UploadDocumentResponse,
+  type CatalogDocumentsUploadDocumentResponse,
   type FileParameter,
 } from '../generated/api-client';
 
@@ -68,7 +68,7 @@ export function useMaterialDocumentTypes() {
 export function useUploadMaterialDocument() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (params: UploadMaterialDocumentParams): Promise<UploadDocumentResponse> => {
+    mutationFn: (params: UploadMaterialDocumentParams): Promise<CatalogDocumentsUploadDocumentResponse> => {
       const apiClient = getAuthenticatedApiClient();
       const file: FileParameter = { data: params.file, fileName: params.file.name };
       return apiClient.catalogDocuments_UploadMaterialDocument(
@@ -92,7 +92,7 @@ export function useUploadMaterialDocument() {
 export function useUploadPifDocument() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (params: UploadPifDocumentParams): Promise<UploadDocumentResponse> => {
+    mutationFn: (params: UploadPifDocumentParams): Promise<CatalogDocumentsUploadDocumentResponse> => {
       const apiClient = getAuthenticatedApiClient();
       const file: FileParameter = { data: params.file, fileName: params.file.name };
       return apiClient.catalogDocuments_UploadPifDocument(params.productCode, file);
