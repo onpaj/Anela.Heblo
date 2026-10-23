@@ -40,9 +40,9 @@
     },
     {
       "name": "frontend-transition-selector",
-      "status": "pending",
+      "status": "completed",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-10-23T07:22:17.872812Z"
     },
     {
       "name": "frontend-wire-detail-page",
