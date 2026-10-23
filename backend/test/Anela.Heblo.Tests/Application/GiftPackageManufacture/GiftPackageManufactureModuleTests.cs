@@ -1,7 +1,6 @@
 using Anela.Heblo.Application.Features.Logistics.Contracts;
 using Anela.Heblo.Application.Features.Logistics.UseCases.GiftPackageManufacture;
 using Anela.Heblo.Application.Features.Logistics.UseCases.GiftPackageManufacture.Services;
-using Anela.Heblo.Domain.Features.Manufacture;
 using Anela.Heblo.Persistence;
 using AutoMapper;
 using FluentAssertions;
@@ -22,7 +21,7 @@ public class GiftPackageManufactureModuleTests
         services.AddDbContext<ApplicationDbContext>(options =>
             options.UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString()));
 
-        services.AddSingleton(new Mock<IManufactureClient>().Object);
+        services.AddSingleton(new Mock<IGiftPackageBomSource>().Object);
         services.AddSingleton(new Mock<ILogisticsCatalogSource>().Object);
         services.AddSingleton(new Mock<ILogisticsStockOperationService>().Object);
         services.AddSingleton(new Mock<IMapper>().Object);

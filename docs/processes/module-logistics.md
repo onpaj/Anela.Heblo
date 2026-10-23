@@ -75,7 +75,7 @@ boxes).
 ## External systems
 - **Shoptet** — indirectly: stock movements via `feed-stock-up` (`PATCH /api/stocks/{id}/movements`).
 - **Flexi** — read only: gift package BOM from the product-set definition (*sady a komplety*)
-  via `IManufactureClient.GetSetPartsAsync`. Logistics writes nothing to Flexi.
+  via the Logistics-owned `IGiftPackageBomSource` (Manufacture adapter over `IManufactureClient.GetSetPartsAsync`). Logistics writes nothing to Flexi.
 
 ## Dependencies
 - Reads **Catalog** (cache aggregates: set products, stock, sales history, min/optimal stock
