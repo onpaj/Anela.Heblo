@@ -28,9 +28,9 @@
   "tasks": [
     {
       "name": "add-orgchart-wiring-test",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-10-23T10:16:10.386642Z"
+      "updated_at": "2026-10-23T10:40:50.725684Z"
     }
   ]
 }
