@@ -13,64 +13,15 @@ namespace Anela.Heblo.Adapters.Azure.Features.FileStorage;
 public sealed class AzureBlobStorageService : IBlobStorageService
 {
     private readonly BlobServiceClient _blobServiceClient;
-    private readonly IHttpClientFactory _httpClientFactory;
     private readonly ILogger<AzureBlobStorageService> _logger;
     private readonly ConcurrentDictionary<string, bool> _containerExists = new();
 
     public AzureBlobStorageService(
         BlobServiceClient blobServiceClient,
-        IHttpClientFactory httpClientFactory,
         ILogger<AzureBlobStorageService> logger)
     {
         _blobServiceClient = blobServiceClient;
-        _httpClientFactory = httpClientFactory;
         _logger = logger;
-    }
-
-    /// <inheritdoc />
-    public async Task<string> DownloadFromUrlAsync(string fileUrl, string containerName, string? blobName = null, CancellationToken cancellationToken = default)
-    {
-        var redactedUrl = UrlRedactor.Redact(fileUrl);
-        try
-        {
-            _logger.LogInformation("Starting download from URL: {FileUrl}", redactedUrl);
-
-            // Download file from URL — resolve the named client per call so socket pooling
-            // is managed by IHttpClientFactory (SocketsHttpHandler with PooledConnectionLifetime).
-            var httpClient = _httpClientFactory.CreateClient(FileStorageConstants.FileDownloadClientName);
-            using var response = await httpClient.GetAsync(fileUrl, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
-            response.EnsureSuccessStatusCode();
-
-            using var stream = await response.Content.ReadAsStreamAsync(cancellationToken);
-
-            // Generate blob name if not provided
-            if (string.IsNullOrEmpty(blobName))
-            {
-                var uri = new Uri(fileUrl);
-                blobName = Path.GetFileName(uri.LocalPath);
-
-                // If no filename in URL, generate one
-                if (string.IsNullOrEmpty(blobName))
-                {
-                    var extension = GetExtensionFromContentType(response.Content.Headers.ContentType?.MediaType);
-                    blobName = $"downloaded-file-{Guid.NewGuid()}{extension}";
-                }
-            }
-
-            // Get content type from response or infer from extension
-            var contentType = response.Content.Headers.ContentType?.MediaType ?? GetContentTypeFromExtension(blobName);
-
-            // Upload to blob storage
-            var blobUrl = await UploadAsync(stream, containerName, blobName, contentType, cancellationToken);
-
-            _logger.LogInformation("Successfully downloaded from URL and uploaded to blob: {BlobUrl}", blobUrl);
-            return blobUrl;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error downloading from URL {FileUrl} and uploading to container {ContainerName}", redactedUrl, containerName);
-            throw;
-        }
     }
 
     /// <inheritdoc />
@@ -285,43 +236,5 @@ public sealed class AzureBlobStorageService : IBlobStorageService
         }
 
         return containerClient;
-    }
-
-    private static string GetExtensionFromContentType(string? contentType)
-    {
-        return contentType switch
-        {
-            "image/jpeg" => ".jpg",
-            "image/png" => ".png",
-            "image/gif" => ".gif",
-            "image/webp" => ".webp",
-            "application/pdf" => ".pdf",
-            "text/plain" => ".txt",
-            "application/json" => ".json",
-            "application/xml" => ".xml",
-            _ => ".bin"
-        };
-    }
-
-    private static string GetContentTypeFromExtension(string fileName)
-    {
-        var extension = Path.GetExtension(fileName).ToLowerInvariant();
-        return extension switch
-        {
-            ".jpg" or ".jpeg" => "image/jpeg",
-            ".png" => "image/png",
-            ".gif" => "image/gif",
-            ".webp" => "image/webp",
-            ".pdf" => "application/pdf",
-            ".txt" => "text/plain",
-            ".json" => "application/json",
-            ".xml" => "application/xml",
-            ".zip" => "application/zip",
-            ".doc" => "application/msword",
-            ".docx" => "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-            ".xls" => "application/vnd.ms-excel",
-            ".xlsx" => "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-            _ => "application/octet-stream"
-        };
     }
 }
