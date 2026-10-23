@@ -21,16 +21,16 @@
       "updated_at": "2026-10-23T23:10:09.607410Z"
     },
     "developing": {
-      "status": "pending",
-      "updated_at": null
+      "status": "in_progress",
+      "updated_at": "2026-10-23T23:14:11.812056Z"
     }
   },
   "tasks": [
     {
       "name": "refactor-breakdown-handler",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-10-23T23:14:12.042429Z"
     },
     {
       "name": "verify-tests",
