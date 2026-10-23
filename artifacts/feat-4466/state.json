@@ -21,16 +21,16 @@
       "updated_at": "2026-10-23T05:12:37.538265Z"
     },
     "developing": {
-      "status": "pending",
-      "updated_at": null
+      "status": "in_progress",
+      "updated_at": "2026-10-23T05:15:40.400673Z"
     }
   },
   "tasks": [
     {
       "name": "backend-available-transitions",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-10-23T05:15:40.609373Z"
     },
     {
       "name": "regenerate-api-client",
