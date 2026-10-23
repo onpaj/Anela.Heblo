@@ -29,6 +29,57 @@ public class ShoptetOrderClientTests
         };
     }
 
+    private static ShoptetOrderClient BuildOrderRoutingClient(
+        Dictionary<int, object> listPages,
+        Dictionary<string, object> details,
+        List<string> requests)
+    {
+        return BuildClient(req =>
+        {
+            var pathAndQuery = req.RequestUri!.PathAndQuery;
+            requests.Add(pathAndQuery);
+
+            var path = req.RequestUri.AbsolutePath;
+            if (path == "/api/orders")
+            {
+                var query = System.Web.HttpUtility.ParseQueryString(req.RequestUri.Query);
+                if (int.TryParse(query["page"], out var page) && listPages.TryGetValue(page, out var listBody))
+                    return Json(listBody);
+            }
+            else if (path.StartsWith("/api/orders/", StringComparison.Ordinal))
+            {
+                var code = path["/api/orders/".Length..];
+                if (details.TryGetValue(code, out var detailBody))
+                    return Json(detailBody);
+            }
+
+            return new HttpResponseMessage(HttpStatusCode.NotFound);
+        });
+    }
+
+    private static object ListPage(int page, int pageCount, params (string code, string? email)[] orders)
+    {
+        return new
+        {
+            data = new
+            {
+                orders = orders.Select(o => new { code = o.code, email = o.email, status = new { id = 1 } }).ToArray(),
+                paginator = new { page, pageCount, totalCount = orders.Length },
+            },
+        };
+    }
+
+    private static object Detail(string code, string? externalCode, string? email, int statusId)
+    {
+        return new
+        {
+            data = new
+            {
+                order = new { code, externalCode, email, status = new { id = statusId } },
+            },
+        };
+    }
+
     [Fact]
     public async Task GetOrdersByStatusAsync_ReturnsFullHeaderData()
     {
