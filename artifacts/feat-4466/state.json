@@ -34,9 +34,9 @@
     },
     {
       "name": "regenerate-api-client",
-      "status": "pending",
+      "status": "completed",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-10-23T06:20:32.987011Z"
     },
     {
       "name": "frontend-transition-selector",
