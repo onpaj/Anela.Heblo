@@ -28,9 +28,9 @@
   "tasks": [
     {
       "name": "refactor-breakdown-handler",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-10-23T23:14:12.042429Z"
+      "updated_at": "2026-10-23T23:17:51.421340Z"
     },
     {
       "name": "verify-tests",
