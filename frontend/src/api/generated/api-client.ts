@@ -36695,10 +36695,10 @@ export interface IMarketingFolderLinkRequest {
 }
 
 export enum MarketingFolderType {
-    General = "General",
-    Seasonal = "Seasonal",
-    ProductLine = "ProductLine",
-    Campaign = "Campaign",
+    Images = "Images",
+    Texts = "Texts",
+    Videos = "Videos",
+    Graphics = "Graphics",
     Other = "Other",
 }
 
