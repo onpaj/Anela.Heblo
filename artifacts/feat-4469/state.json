@@ -21,16 +21,16 @@
       "updated_at": "2026-10-23T08:11:25.777423Z"
     },
     "developing": {
-      "status": "pending",
-      "updated_at": null
+      "status": "in_progress",
+      "updated_at": "2026-10-23T08:16:40.555168Z"
     }
   },
   "tasks": [
     {
       "name": "move-dtos-to-contracts",
-      "status": "pending",
+      "status": "completed",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-10-23T08:21:06.449874Z"
     },
     {
       "name": "add-stock-analysis-filter",
