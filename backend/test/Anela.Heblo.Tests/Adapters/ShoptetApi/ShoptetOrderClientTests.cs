@@ -363,4 +363,65 @@ public class ShoptetOrderClientTests
 
         result.Should().BeEmpty();
     }
+
+    [Fact]
+    public async Task ListByExternalCodePrefixAsync_EmailFilter_ReturnsOnlyMatchingEmailCaseInsensitive()
+    {
+        var requests = new List<string>();
+        var client = BuildOrderRoutingClient(
+            new Dictionary<int, object>
+            {
+                [1] = ListPage(1, 1, ("A", "Customer@Example.com"), ("B", "other@example.com")),
+            },
+            new Dictionary<string, object>
+            {
+                ["A"] = Detail("A", "TEST-1", "Customer@Example.com", 1),
+                ["B"] = Detail("B", "TEST-2", "other@example.com", 1),
+            },
+            requests);
+
+        var result = await client.ListByExternalCodePrefixAsync("TEST-", "customer@EXAMPLE.COM");
+
+        result.Should().ContainSingle().Which.Code.Should().Be("A");
+        requests.Should().NotContain(r => r.StartsWith("/api/orders/B", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public async Task ListByExternalCodePrefixAsync_PageCountOne_NoMatch_ReturnsEmpty()
+    {
+        var requests = new List<string>();
+        var client = BuildOrderRoutingClient(
+            new Dictionary<int, object>
+            {
+                [1] = ListPage(1, 1, ("A", "a@example.com")),
+            },
+            new Dictionary<string, object>
+            {
+                ["A"] = Detail("A", "OTHER-1", "a@example.com", 1),
+            },
+            requests);
+
+        var result = await client.ListByExternalCodePrefixAsync("TEST-");
+
+        result.Should().BeEmpty();
+        requests.Count(r => r.StartsWith("/api/orders?", StringComparison.Ordinal)).Should().Be(1);
+    }
+
+    [Fact]
+    public async Task ListByExternalCodePrefixAsync_PageCountZero_ReturnsEmpty()
+    {
+        var requests = new List<string>();
+        var client = BuildOrderRoutingClient(
+            new Dictionary<int, object>
+            {
+                [1] = ListPage(1, 0),
+            },
+            new Dictionary<string, object>(),
+            requests);
+
+        var result = await client.ListByExternalCodePrefixAsync("TEST-");
+
+        result.Should().BeEmpty();
+        requests.Should().ContainSingle();
+    }
 }
