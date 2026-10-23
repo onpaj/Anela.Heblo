@@ -289,4 +289,78 @@ public class ShoptetOrderClientTests
 
         patchedRemark.Should().Contain("previous staff note\\nblocked by accounting");
     }
+
+    [Fact]
+    public async Task ListByExternalCodePrefixAsync_SinglePage_ReturnsOnlyPrefixMatches()
+    {
+        var requests = new List<string>();
+        var client = BuildOrderRoutingClient(
+            new Dictionary<int, object>
+            {
+                [1] = ListPage(1, 1, ("A", "a@example.com"), ("B", "b@example.com")),
+            },
+            new Dictionary<string, object>
+            {
+                ["A"] = Detail("A", "TEST-1", "a@example.com", 7),
+                ["B"] = Detail("B", "OTHER-1", "b@example.com", 7),
+            },
+            requests);
+
+        var result = await client.ListByExternalCodePrefixAsync("TEST-");
+
+        result.Should().HaveCount(1);
+        result[0].Code.Should().Be("A");
+        result[0].ExternalCode.Should().Be("TEST-1");
+        result[0].Email.Should().Be("a@example.com");
+        result[0].StatusId.Should().Be(7);
+        requests.Count(r => r.StartsWith("/api/orders?", StringComparison.Ordinal)).Should().Be(1);
+    }
+
+    [Fact]
+    public async Task ListByExternalCodePrefixAsync_MultiplePages_FindsMatchOnLaterPageAndStops()
+    {
+        var requests = new List<string>();
+        var client = BuildOrderRoutingClient(
+            new Dictionary<int, object>
+            {
+                [1] = ListPage(1, 2, ("A", "a@example.com")),
+                [2] = ListPage(2, 2, ("B", "b@example.com")),
+                [3] = ListPage(3, 2, ("C", "c@example.com")),
+            },
+            new Dictionary<string, object>
+            {
+                ["A"] = Detail("A", "OTHER-1", "a@example.com", 1),
+                ["B"] = Detail("B", "TEST-2", "b@example.com", 1),
+                ["C"] = Detail("C", "TEST-3", "c@example.com", 1),
+            },
+            requests);
+
+        var result = await client.ListByExternalCodePrefixAsync("TEST-");
+
+        result.Should().ContainSingle().Which.Code.Should().Be("B");
+        requests.Should().Contain(r => r.Contains("page=1", StringComparison.Ordinal));
+        requests.Should().Contain(r => r.Contains("page=2", StringComparison.Ordinal));
+        requests.Should().NotContain(r => r.Contains("page=3", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public async Task ListByExternalCodePrefixAsync_PrefixIsCaseSensitive_AndNullExternalCodeIgnored()
+    {
+        var requests = new List<string>();
+        var client = BuildOrderRoutingClient(
+            new Dictionary<int, object>
+            {
+                [1] = ListPage(1, 1, ("A", "a@example.com"), ("B", "b@example.com")),
+            },
+            new Dictionary<string, object>
+            {
+                ["A"] = Detail("A", "test-1", "a@example.com", 1),
+                ["B"] = Detail("B", null, "b@example.com", 1),
+            },
+            requests);
+
+        var result = await client.ListByExternalCodePrefixAsync("TEST-");
+
+        result.Should().BeEmpty();
+    }
 }
