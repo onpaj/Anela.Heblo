@@ -34,9 +34,9 @@
     },
     {
       "name": "controller-fix",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-10-23T12:23:57.917119Z"
+      "updated_at": "2026-10-23T12:36:34.698409Z"
     },
     {
       "name": "frontend-client",
