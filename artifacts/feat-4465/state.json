@@ -28,9 +28,9 @@
   "tasks": [
     {
       "name": "rename-enum-and-backend-tests",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-10-23T04:22:25.169972Z"
+      "updated_at": "2026-10-23T04:22:25.661525Z"
     },
     {
       "name": "update-frontend",
