@@ -17,8 +17,8 @@
       "updated_at": "2026-10-23T20:10:16.085991Z"
     },
     "planning": {
-      "status": "pending",
-      "updated_at": null
+      "status": "completed",
+      "updated_at": "2026-10-23T20:10:19.252069Z"
     },
     "developing": {
       "status": "pending",
