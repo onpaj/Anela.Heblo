@@ -1,0 +1,2 @@
+# Design
+In `backend/src/Anela.Heblo.Application/Features/Dashboard/UseCases/GetAvailableTiles/GetAvailableTilesHandler.cs`, append `.ToArray()` to the `tiles.Select(...)` projection. No other edits. Add a unit test in `backend/test/Anela.Heblo.Tests/Features/Dashboard/GetAvailableTilesHandlerTests.cs` that enumerates `Tiles` twice and verifies the registry mock was invoked once (`Times.Once`). No UI, no process docs impact.
