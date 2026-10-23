@@ -34,9 +34,9 @@
     },
     {
       "name": "add-stock-analysis-filter",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-10-23T09:15:27.944377Z"
+      "updated_at": "2026-10-23T09:59:23.404308Z"
     },
     {
       "name": "update-process-doc-and-validate",
