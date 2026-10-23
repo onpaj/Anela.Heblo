@@ -28,9 +28,9 @@
   "tasks": [
     {
       "name": "add-routing-helpers",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-10-23T20:13:56.751700Z"
+      "updated_at": "2026-10-23T20:17:43.635383Z"
     },
     {
       "name": "add-pagination-and-prefix-tests",
