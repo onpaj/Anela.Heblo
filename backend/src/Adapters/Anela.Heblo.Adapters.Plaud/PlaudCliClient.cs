@@ -163,7 +163,8 @@ public sealed class PlaudCliClient : IPlaudClient
             var outputTask = process.StandardOutput.ReadToEndAsync();
             var errorTask = process.StandardError.ReadToEndAsync();
 
-            cts.Token.Register(() => process.Kill(entireProcessTree: true));
+            // Declared after `using var process`, so it is disposed first and cannot fire on a disposed Process.
+            using var killRegistration = cts.Token.Register(() => TryKillProcessTree(process, _logger));
 
             await process.WaitForExitAsync(cts.Token);
 
