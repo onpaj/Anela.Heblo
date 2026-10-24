@@ -4,6 +4,7 @@ using AutoMapper;
 using FluentAssertions;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Moq;
 using Rem.FlexiBeeSDK.Client.Clients.Accounting.Ledger;
 using Xunit;
@@ -37,7 +38,9 @@ public class LedgerServiceTests
             _mockLedgerClient.Object,
             mockCache.Object,
             mockMapper.Object,
-            _mockLogger.Object);
+            _mockLogger.Object,
+            Options.Create(new FlexiLedgerOptions()),
+            TimeProvider.System);
     }
 
     [Fact]

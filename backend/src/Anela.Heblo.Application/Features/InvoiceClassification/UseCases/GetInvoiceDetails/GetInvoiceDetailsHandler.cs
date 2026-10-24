@@ -24,30 +24,20 @@ public class GetInvoiceDetailsHandler : IRequestHandler<GetInvoiceDetailsRequest
 
     public async Task<GetInvoiceDetailsResponse> Handle(GetInvoiceDetailsRequest request, CancellationToken cancellationToken)
     {
-        try
+        _logger.LogInformation("Getting details for invoice {InvoiceId}", request.InvoiceId);
+
+        // GetInvoiceByIdAsync returns null when the invoice does not exist; any other failure
+        // propagates to the global exception handler (HTTP 500) rather than masquerading as 404.
+        var invoice = await _invoicesClient.GetInvoiceByIdAsync(request.InvoiceId);
+
+        // Explicit null check: AutoMapper would otherwise allocate an empty destination,
+        // breaking the API contract that returns `Invoice = null` when not found.
+        var mapped = invoice is null ? null : _mapper.Map<Contracts.ReceivedInvoiceDto>(invoice);
+
+        return new GetInvoiceDetailsResponse
         {
-            _logger.LogInformation("Getting details for invoice {InvoiceId}", request.InvoiceId);
-
-            var invoice = await _invoicesClient.GetInvoiceByIdAsync(request.InvoiceId);
-
-            // Explicit null check: AutoMapper would otherwise allocate an empty destination,
-            // breaking the API contract that returns `Invoice = null` when not found.
-            var mapped = invoice is null ? null : _mapper.Map<Contracts.ReceivedInvoiceDto>(invoice);
-
-            return new GetInvoiceDetailsResponse
-            {
-                Invoice = mapped,
-                Found = invoice != null
-            };
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error getting invoice details for {InvoiceId}", request.InvoiceId);
-            return new GetInvoiceDetailsResponse
-            {
-                Invoice = null,
-                Found = false
-            };
-        }
+            Invoice = mapped,
+            Found = invoice != null
+        };
     }
 }

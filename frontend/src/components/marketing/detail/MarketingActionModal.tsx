@@ -27,11 +27,11 @@ const ACTION_TYPE_OPTIONS: ReadonlyArray<{ value: MarketingActionType; label: st
 ];
 
 const FOLDER_TYPE_OPTIONS: ReadonlyArray<{ value: MarketingFolderType; label: string }> = [
-  { value: MarketingFolderType.General,     label: "Obrázky" },
-  { value: MarketingFolderType.Seasonal,    label: "Texty" },
-  { value: MarketingFolderType.ProductLine, label: "Videa" },
-  { value: MarketingFolderType.Campaign,    label: "Grafika" },
-  { value: MarketingFolderType.Other,       label: "Ostatní" },
+  { value: MarketingFolderType.Images,     label: "Obrázky" },
+  { value: MarketingFolderType.Texts,      label: "Texty" },
+  { value: MarketingFolderType.Videos,     label: "Videa" },
+  { value: MarketingFolderType.Graphics,   label: "Grafika" },
+  { value: MarketingFolderType.Other,      label: "Ostatní" },
 ];
 
 const resolveActionType = (raw: string | undefined): MarketingActionType => {
@@ -45,7 +45,7 @@ const resolveFolderType = (raw: string | undefined): MarketingFolderType => {
   if (raw && (Object.values(MarketingFolderType) as string[]).includes(raw)) {
     return raw as MarketingFolderType;
   }
-  return MarketingFolderType.General;
+  return MarketingFolderType.Images;
 };
 
 interface FolderLinkInput {
@@ -164,7 +164,7 @@ const MarketingActionModal: React.FC<MarketingActionModalProps> = ({
   const addFolderLink = () =>
     set("folderLinks", [
       ...form.folderLinks,
-      { path: "", label: "", folderType: MarketingFolderType.General },
+      { path: "", label: "", folderType: MarketingFolderType.Images },
     ]);
 
   const updateFolderLink = (

@@ -33,22 +33,48 @@ public class CalculateBatchPlanHandler : IRequestHandler<CalculateBatchPlanReque
 
     public async Task<CalculateBatchPlanResponse> Handle(CalculateBatchPlanRequest request, CancellationToken cancellationToken)
     {
+        var effectiveRequest = request;
+
         // Can calculate even for product
         var product = await _catalogSource.GetByIdAsync(request.ProductCode, cancellationToken);
         if (product?.Type == ProductKind.Product)
         {
             var manufactureTemplate = await _manufactureClient.GetManufactureTemplateAsync(request.ProductCode, cancellationToken);
-            request.ManufactureType = manufactureTemplate.ManufactureType;
-            if (request.ManufactureType == ManufactureType.MultiPhase)
+            var productCode = request.ProductCode;
+            if (manufactureTemplate.ManufactureType == ManufactureType.MultiPhase)
             {
                 // For multi-phase, transform to semiproduct code as before
-                request.ProductCode = manufactureTemplate.Ingredients
-                    .FirstOrDefault(w => w.ProductType == ProductType.SemiProduct)?.ProductCode ?? request.ProductCode;
+                productCode = manufactureTemplate.Ingredients
+                    .FirstOrDefault(w => w.ProductType == ProductType.SemiProduct)?.ProductCode ?? productCode;
             }
+
+            effectiveRequest = CreateEffectiveRequest(request, productCode, manufactureTemplate.ManufactureType);
         }
 
         var salesRanges = ResolveSalesRanges(request);
-        return await _batchPlanningService.CalculateBatchPlan(request, salesRanges, cancellationToken);
+        return await _batchPlanningService.CalculateBatchPlan(effectiveRequest, salesRanges, cancellationToken);
+    }
+
+    private static CalculateBatchPlanRequest CreateEffectiveRequest(
+        CalculateBatchPlanRequest source,
+        string productCode,
+        ManufactureType? manufactureType)
+    {
+        return new CalculateBatchPlanRequest
+        {
+            ProductCode = productCode,
+            FromDate = source.FromDate,
+            ToDate = source.ToDate,
+            TimePeriod = source.TimePeriod,
+            SalesMultiplier = source.SalesMultiplier,
+            ControlMode = source.ControlMode,
+            MmqMultiplier = source.MmqMultiplier,
+            TotalWeightToUse = source.TotalWeightToUse,
+            TargetDaysCoverage = source.TargetDaysCoverage,
+            ProductConstraints = source.ProductConstraints,
+            DirectSemiproductAmount = source.DirectSemiproductAmount,
+            ManufactureType = manufactureType
+        };
     }
 
     private IReadOnlyList<DateRange> ResolveSalesRanges(CalculateBatchPlanRequest request)
