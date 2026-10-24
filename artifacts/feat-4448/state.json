@@ -21,16 +21,16 @@
       "updated_at": "2026-10-24T12:09:24.586562Z"
     },
     "developing": {
-      "status": "pending",
-      "updated_at": null
+      "status": "in_progress",
+      "updated_at": "2026-10-24T12:13:52.838123Z"
     }
   },
   "tasks": [
     {
       "name": "add-dark-variants",
-      "status": "pending",
+      "status": "completed",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-10-24T12:14:11.169595Z"
     },
     {
       "name": "add-class-assertions-test",
