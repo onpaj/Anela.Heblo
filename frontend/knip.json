@@ -10,5 +10,14 @@
   "project": ["src/**/*.{ts,tsx}"],
   "ignore": ["src/api/generated/**"],
   "playwright": false,
-  "jest": false
+  "jest": false,
+  "ignoreDependencies": [
+    "@reportportal/agent-js-jest",
+    "@reportportal/agent-js-playwright",
+    "lint-staged",
+    "eslint-config-react-app",
+    "jest-junit",
+    "jest-environment-jsdom",
+    "jsdom"
+  ]
 }
