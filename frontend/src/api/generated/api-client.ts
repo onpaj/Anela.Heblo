@@ -31731,6 +31731,7 @@ export interface IManufactureOrderConditionsReadingDto {
 
 export class GetManufactureOrderResponse extends BaseResponse implements IGetManufactureOrderResponse {
     order?: ManufactureOrderDto | undefined;
+    availableTransitions?: ManufactureOrderState[];
 
     constructor(data?: IGetManufactureOrderResponse) {
         super(data);
@@ -31740,6 +31741,11 @@ export class GetManufactureOrderResponse extends BaseResponse implements IGetMan
         super.init(_data);
         if (_data) {
             this.order = _data["order"] ? ManufactureOrderDto.fromJS(_data["order"]) : <any>undefined;
+            if (Array.isArray(_data["availableTransitions"])) {
+                this.availableTransitions = [] as any;
+                for (let item of _data["availableTransitions"])
+                    this.availableTransitions!.push(item);
+            }
         }
     }
 
@@ -31753,6 +31759,11 @@ export class GetManufactureOrderResponse extends BaseResponse implements IGetMan
     override toJSON(data?: any) {
         data = typeof data === 'object' ? data : {};
         data["order"] = this.order ? this.order.toJSON() : <any>undefined;
+        if (Array.isArray(this.availableTransitions)) {
+            data["availableTransitions"] = [];
+            for (let item of this.availableTransitions)
+                data["availableTransitions"].push(item);
+        }
         super.toJSON(data);
         return data;
     }
@@ -31760,6 +31771,7 @@ export class GetManufactureOrderResponse extends BaseResponse implements IGetMan
 
 export interface IGetManufactureOrderResponse extends IBaseResponse {
     order?: ManufactureOrderDto | undefined;
+    availableTransitions?: ManufactureOrderState[];
 }
 
 export class CreateManufactureOrderResponse extends BaseResponse implements ICreateManufactureOrderResponse {
