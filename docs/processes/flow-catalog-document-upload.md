@@ -10,7 +10,7 @@ owns:
   - frontend/src/components/catalog/detail/tabs/MaterialDocumentsTab.tsx
   - frontend/src/components/catalog/detail/tabs/PifDocumentsTab.tsx
   - frontend/src/components/catalog/detail/tabs/shared/**
-verified_at: "5e993f9e2"
+verified_at: "5d14855b6"
 related: []
 ---
 

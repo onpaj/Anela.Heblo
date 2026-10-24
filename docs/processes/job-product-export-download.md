@@ -6,7 +6,7 @@ summary: Nightly copies a product export file from a configured URL into Azure B
 owns:
   - backend/src/Anela.Heblo.Application/Features/Catalog/Infrastructure/Jobs/ProductExportDownloadJob.cs
   - backend/src/Anela.Heblo.Application/Features/Catalog/Infrastructure/ProductExportOptions.cs
-verified_at: "44f2229b3"
+verified_at: "788cd4f6"
 related: []
 ---
 
@@ -29,8 +29,9 @@ enabled by default, category Catalog. Can be run by hand from Recurring Jobs. Sk
 2. Send `DownloadFromUrlRequest` (FileStorage module) with `FileUrl` = that URL,
    `ContainerName` = `ProductExportOptions:ContainerName`, `BlobName` =
    `products_{yy_MM_dd_HH_mm}.csv` (UTC).
-3. The FileStorage handler probes the size with HEAD, then streams the file into the Azure Blob
-   container through its own retry policy (`IDownloadResilienceService`).
+3. The FileStorage handler probes the size with HEAD, then (inside its retry policy,
+   `IDownloadResilienceService`) GETs the file and streams it into the Azure Blob container via
+   `IBlobStorageService.UploadAsync`.
 4. Telemetry event `ProductExportDownload` with `Status` (Success / Failed / Cancelled /
    Skipped), attempt count, elapsed ms, file name, blob URL and size; on failure also
    `ErrorCode` and `Cause` (`timeout`, `http-status`, `retry-exhausted`). A failure is re-thrown

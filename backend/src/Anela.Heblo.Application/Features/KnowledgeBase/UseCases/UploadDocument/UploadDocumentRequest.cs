@@ -3,7 +3,7 @@ using MediatR;
 
 namespace Anela.Heblo.Application.Features.KnowledgeBase.UseCases.UploadDocument;
 
-public class UploadDocumentRequest : IRequest<UploadDocumentResponse>
+public class UploadDocumentRequest : IRequest<KnowledgeBaseUploadDocumentResponse>
 {
     public byte[] Content { get; set; } = [];
     public string Filename { get; set; } = default!;

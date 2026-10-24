@@ -3,7 +3,7 @@ using MediatR;
 
 namespace Anela.Heblo.Application.Features.CatalogDocuments.UseCases.UploadPifDocument;
 
-public class UploadPifDocumentRequest : IRequest<UploadDocumentResponse>
+public class UploadPifDocumentRequest : IRequest<CatalogDocumentsUploadDocumentResponse>
 {
     public string ProductCode { get; set; } = string.Empty;
     public string OriginalFilename { get; set; } = string.Empty;
