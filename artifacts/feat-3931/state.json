@@ -64,9 +64,9 @@
     },
     {
       "name": "trim-changelog-and-remaining-exports",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-10-24T11:21:47.299679Z"
+      "updated_at": "2026-10-24T11:21:47.611724Z"
     },
     {
       "name": "promote-ci-and-docs",
