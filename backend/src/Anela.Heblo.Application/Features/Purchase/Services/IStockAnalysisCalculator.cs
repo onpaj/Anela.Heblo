@@ -1,5 +1,4 @@
 using Anela.Heblo.Application.Features.Purchase.Contracts;
-using Anela.Heblo.Application.Features.Purchase.UseCases.GetPurchaseStockAnalysis;
 
 namespace Anela.Heblo.Application.Features.Purchase.Services;
 
@@ -38,12 +37,12 @@ public interface IStockAnalysisCalculator
     StockAnalysisItemDto AnalyzeItem(MaterialStockSnapshot item, DateTime fromDate, DateTime toDate);
 
     /// <summary>
-    /// Filters analyzed stock items by configured-status and stock-status request filters.
+    /// Filters analyzed stock items by configured-status and stock-status filter criteria.
     /// </summary>
     /// <param name="items">Analyzed items to filter</param>
-    /// <param name="request">The request carrying the filter criteria</param>
+    /// <param name="filter">The filter criteria</param>
     /// <returns>The filtered item list</returns>
-    List<StockAnalysisItemDto> FilterItems(List<StockAnalysisItemDto> items, GetPurchaseStockAnalysisRequest request);
+    List<StockAnalysisItemDto> FilterItems(List<StockAnalysisItemDto> items, StockAnalysisFilter filter);
 
     /// <summary>
     /// Sorts analyzed stock items by the requested sort key and direction.

@@ -1,6 +1,5 @@
 using Anela.Heblo.Application.Features.Purchase.Contracts;
 using Anela.Heblo.Application.Features.Purchase.Services;
-using Anela.Heblo.Application.Features.Purchase.UseCases.GetPurchaseStockAnalysis;
 using Anela.Heblo.Xcc;
 using Xunit;
 using FluentAssertions;
@@ -294,7 +293,7 @@ public class StockAnalysisCalculatorTests
     public void FilterItems_StatusFilter_IncludesOnlyMatchingSeverity(StockStatusFilter filter, StockSeverity severity, bool expectedIncluded)
     {
         var items = new List<StockAnalysisItemDto> { MakeItem(severity) };
-        var request = new GetPurchaseStockAnalysisRequest { StockStatus = filter, PageNumber = 1, PageSize = 10 };
+        var request = new StockAnalysisFilter { StockStatus = filter };
 
         var result = _calculator.FilterItems(items, request);
 
@@ -305,7 +304,7 @@ public class StockAnalysisCalculatorTests
     public void FilterItems_OnlyConfiguredTrue_ExcludesUnconfiguredItems()
     {
         var items = new List<StockAnalysisItemDto> { MakeItem(StockSeverity.Optimal, isConfigured: false) };
-        var request = new GetPurchaseStockAnalysisRequest { OnlyConfigured = true, StockStatus = StockStatusFilter.All, PageNumber = 1, PageSize = 10 };
+        var request = new StockAnalysisFilter { OnlyConfigured = true, StockStatus = StockStatusFilter.All };
 
         var result = _calculator.FilterItems(items, request);
 
@@ -316,7 +315,7 @@ public class StockAnalysisCalculatorTests
     public void FilterItems_OnlyConfiguredTrue_KeepsConfiguredItemsMatchingStatus()
     {
         var items = new List<StockAnalysisItemDto> { MakeItem(StockSeverity.Critical, isConfigured: true) };
-        var request = new GetPurchaseStockAnalysisRequest { OnlyConfigured = true, StockStatus = StockStatusFilter.Critical, PageNumber = 1, PageSize = 10 };
+        var request = new StockAnalysisFilter { OnlyConfigured = true, StockStatus = StockStatusFilter.Critical };
 
         var result = _calculator.FilterItems(items, request);
 

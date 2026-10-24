@@ -1,0 +1,52 @@
+{
+  "feature_id": "feat-4475",
+  "issue_number": 4475,
+  "created_at": "2026-10-23T20:09:26.053290Z",
+  "max_revisions": 3,
+  "phases": {
+    "analyzing": {
+      "status": "completed",
+      "updated_at": "2026-10-23T20:10:10.071968Z"
+    },
+    "architecting": {
+      "status": "completed",
+      "updated_at": "2026-10-23T20:10:13.505865Z"
+    },
+    "designing": {
+      "status": "completed",
+      "updated_at": "2026-10-23T20:10:16.085991Z"
+    },
+    "planning": {
+      "status": "completed",
+      "updated_at": "2026-10-23T20:10:19.252069Z"
+    },
+    "developing": {
+      "status": "in_progress",
+      "updated_at": "2026-10-23T22:14:49.163023Z"
+    },
+    "code-review": {
+      "status": "completed",
+      "updated_at": "2026-10-23T23:42:42.582684Z"
+    }
+  },
+  "tasks": [
+    {
+      "name": "add-routing-helpers",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-10-23T20:17:43.635383Z"
+    },
+    {
+      "name": "add-pagination-and-prefix-tests",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-10-23T21:48:23.003123Z"
+    },
+    {
+      "name": "add-email-filter-and-empty-tests",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-10-23T22:27:42.162156Z"
+    }
+  ]
+}

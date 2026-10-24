@@ -6,10 +6,14 @@ using Anela.Heblo.Application.Features.Dashboard.UseCases.SaveUserSettings;
 using Anela.Heblo.Application.Features.Dashboard.UseCases.GetTileData;
 using Anela.Heblo.Application.Features.Dashboard.UseCases.EnableTile;
 using Anela.Heblo.Application.Features.Dashboard.UseCases.DisableTile;
+using Anela.Heblo.Application.Shared;
 using FluentAssertions;
 using MediatR;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using System.Security.Claims;
 using Xunit;
@@ -32,9 +36,17 @@ public class DashboardControllerTests
             new Claim(ClaimTypes.NameIdentifier, "test-user-123")
         }));
 
+        // HandleResponse resolves its Logger from RequestServices
+        var services = new ServiceCollection();
+        services.AddSingleton<ILoggerFactory>(NullLoggerFactory.Instance);
+
         _controller.ControllerContext = new ControllerContext
         {
-            HttpContext = new DefaultHttpContext { User = user }
+            HttpContext = new DefaultHttpContext
+            {
+                User = user,
+                RequestServices = services.BuildServiceProvider()
+            }
         };
     }
 
@@ -184,16 +196,18 @@ public class DashboardControllerTests
     {
         // Arrange
         var tileId = "analytics-tile";
+        var handlerResponse = new EnableTileResponse { Success = true };
 
         _mediatorMock
             .Setup(x => x.Send(It.IsAny<EnableTileRequest>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new EnableTileResponse { Success = true });
+            .ReturnsAsync(handlerResponse);
 
         // Act
         var result = await _controller.EnableTile(tileId);
 
         // Assert
-        result.Should().BeOfType<OkResult>();
+        var okResult = result.Result.Should().BeOfType<OkObjectResult>().Subject;
+        okResult.Value.Should().BeSameAs(handlerResponse);
 
         _mediatorMock.Verify(x => x.Send(
             It.Is<EnableTileRequest>(r =>
@@ -202,24 +216,64 @@ public class DashboardControllerTests
     }
 
     [Fact]
+    public async Task EnableTile_WhenHandlerReturnsRequiredFieldMissing_ShouldReturnBadRequest()
+    {
+        // Arrange
+        var tileId = "analytics-tile";
+        var handlerResponse = new EnableTileResponse(ErrorCodes.RequiredFieldMissing);
+
+        _mediatorMock
+            .Setup(x => x.Send(It.IsAny<EnableTileRequest>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(handlerResponse);
+
+        // Act
+        var result = await _controller.EnableTile(tileId);
+
+        // Assert
+        var badRequest = result.Result.Should().BeOfType<BadRequestObjectResult>().Subject;
+        badRequest.Value.Should().BeSameAs(handlerResponse);
+    }
+
+    [Fact]
     public async Task DisableTile_ShouldReturnOk()
     {
         // Arrange
         var tileId = "analytics-tile";
+        var handlerResponse = new DisableTileResponse { Success = true };
 
         _mediatorMock
             .Setup(x => x.Send(It.IsAny<DisableTileRequest>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new DisableTileResponse { Success = true });
+            .ReturnsAsync(handlerResponse);
 
         // Act
         var result = await _controller.DisableTile(tileId);
 
         // Assert
-        result.Should().BeOfType<OkResult>();
+        var okResult = result.Result.Should().BeOfType<OkObjectResult>().Subject;
+        okResult.Value.Should().BeSameAs(handlerResponse);
 
         _mediatorMock.Verify(x => x.Send(
             It.Is<DisableTileRequest>(r =>
                 r.TileId == tileId),
             It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task DisableTile_WhenHandlerReturnsRequiredFieldMissing_ShouldReturnBadRequest()
+    {
+        // Arrange
+        var tileId = "analytics-tile";
+        var handlerResponse = new DisableTileResponse(ErrorCodes.RequiredFieldMissing);
+
+        _mediatorMock
+            .Setup(x => x.Send(It.IsAny<DisableTileRequest>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(handlerResponse);
+
+        // Act
+        var result = await _controller.DisableTile(tileId);
+
+        // Assert
+        var badRequest = result.Result.Should().BeOfType<BadRequestObjectResult>().Subject;
+        badRequest.Value.Should().BeSameAs(handlerResponse);
     }
 }
