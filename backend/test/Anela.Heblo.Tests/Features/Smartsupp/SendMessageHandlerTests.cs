@@ -193,4 +193,209 @@ public class SendMessageHandlerTests
         _interactionLog.Verify(r => r.UpdateSentAsync(
             It.IsAny<Guid>(), It.IsAny<string>(), It.IsAny<DateTimeOffset>(), It.IsAny<CancellationToken>()), Times.Never);
     }
+
+    // ---- attachments ----
+
+    private static SendMessageFile File(string name = "a.png", int size = 10, string? type = null) =>
+        new() { FileName = name, ContentType = type, Content = new byte[size] };
+
+    private static SendMessageRequest FilesRequest(string? content, params SendMessageFile[] files) =>
+        new() { ConversationId = "conv1", Content = content, Files = files.ToList() };
+
+    private void SetupAttachmentApi()
+    {
+        var n = 0;
+        _apiClient.Setup(c => c.GetUploadTokenAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(() =>
+            {
+                n++;
+                return new SmartsuppUploadToken { Token = $"tok{n}", Url = $"https://files.smartsupp.com/u{n}" };
+            });
+        _apiClient.Setup(c => c.SendMessageAsync(
+                "conv1", It.IsAny<string?>(), It.IsAny<string?>(),
+                It.IsAny<IReadOnlyList<SmartsuppOutgoingAttachment>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new SmartsuppSentMessageData
+            {
+                Id = "ms-att",
+                CreatedAt = new DateTime(2026, 5, 20, 10, 0, 0, DateTimeKind.Utc),
+            });
+    }
+
+    private void VerifyNoApiCalls()
+    {
+        _apiClient.Verify(c => c.GetUploadTokenAsync(It.IsAny<CancellationToken>()), Times.Never);
+        _apiClient.Verify(c => c.UploadFileAsync(
+            It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<byte[]>(),
+            It.IsAny<CancellationToken>()), Times.Never);
+        _apiClient.Verify(c => c.SendMessageAsync(
+            It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<string?>(),
+            It.IsAny<IReadOnlyList<SmartsuppOutgoingAttachment>>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task Handle_WithFiles_UploadsEachThenSendsOneMessageWithAllTokens()
+    {
+        SetupConversation();
+        SetupCurrentUser();
+        SetupAttachmentApi();
+
+        var result = await CreateHandler().Handle(
+            FilesRequest("Text", File("a.png"), File("b.pdf")), CancellationToken.None);
+
+        result.Success.Should().BeTrue();
+        result.MessageId.Should().Be("ms-att");
+        _apiClient.Verify(c => c.GetUploadTokenAsync(It.IsAny<CancellationToken>()), Times.Exactly(2));
+        _apiClient.Verify(c => c.UploadFileAsync(
+            "https://files.smartsupp.com/u1", "a.png", "image/png", It.IsAny<byte[]>(),
+            It.IsAny<CancellationToken>()), Times.Once);
+        _apiClient.Verify(c => c.UploadFileAsync(
+            "https://files.smartsupp.com/u2", "b.pdf", "application/pdf", It.IsAny<byte[]>(),
+            It.IsAny<CancellationToken>()), Times.Once);
+        _apiClient.Verify(c => c.SendMessageAsync(
+            "conv1", "Text", "agt-ondra",
+            It.Is<IReadOnlyList<SmartsuppOutgoingAttachment>>(a =>
+                a.Count == 2 && a[0].Token == "tok1" && a[1].Token == "tok2"
+                && a[0].FileName == "a.png" && a[0].FileType == "image/png"
+                && a[1].FileName == "b.pdf" && a[1].FileType == "application/pdf"),
+            It.IsAny<CancellationToken>()), Times.Once);
+        _apiClient.Verify(c => c.SendMessageAsync(
+            It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task Handle_WithFilesAndNoText_SendsAttachmentOnlyMessage()
+    {
+        SetupConversation();
+        SetupCurrentUser();
+        SetupAttachmentApi();
+
+        var result = await CreateHandler().Handle(FilesRequest(null, File()), CancellationToken.None);
+
+        result.Success.Should().BeTrue();
+        _apiClient.Verify(c => c.SendMessageAsync(
+            "conv1", null, "agt-ondra",
+            It.Is<IReadOnlyList<SmartsuppOutgoingAttachment>>(a => a.Count == 1),
+            It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Theory]
+    [InlineData(typeof(HttpRequestException))]
+    [InlineData(typeof(ArgumentException))]
+    [InlineData(typeof(System.Text.Json.JsonException))]
+    public async Task Handle_WhenAnUploadFails_SendsNothing_ReturnsAttachmentUploadFailed(Type exceptionType)
+    {
+        SetupConversation();
+        SetupCurrentUser();
+        SetupAttachmentApi();
+        _apiClient.Setup(c => c.UploadFileAsync(
+                "https://files.smartsupp.com/u2", It.IsAny<string>(), It.IsAny<string>(), It.IsAny<byte[]>(),
+                It.IsAny<CancellationToken>()))
+            .ThrowsAsync((Exception)Activator.CreateInstance(exceptionType, "boom")!);
+
+        var result = await CreateHandler().Handle(
+            FilesRequest("Text", File("a.png"), File("b.png")), CancellationToken.None);
+
+        result.Success.Should().BeFalse();
+        result.ErrorCode.Should().Be(ErrorCodes.SmartsuppAttachmentUploadFailed);
+        _apiClient.Verify(c => c.SendMessageAsync(
+            It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<string?>(),
+            It.IsAny<IReadOnlyList<SmartsuppOutgoingAttachment>>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task Handle_RejectsSixFiles_WithAttachmentInvalid()
+    {
+        SetupConversation();
+        SetupCurrentUser();
+        var files = Enumerable.Range(0, 6).Select(i => File($"f{i}.png")).ToArray();
+
+        var result = await CreateHandler().Handle(FilesRequest("Text", files), CancellationToken.None);
+
+        result.ErrorCode.Should().Be(ErrorCodes.SmartsuppAttachmentInvalid);
+        VerifyNoApiCalls();
+    }
+
+    [Fact]
+    public async Task Handle_RejectsDisallowedExtension_WithAttachmentInvalid()
+    {
+        SetupConversation();
+        SetupCurrentUser();
+
+        var result = await CreateHandler().Handle(
+            FilesRequest("Text", File("a.png"), File("evil.exe")), CancellationToken.None);
+
+        result.ErrorCode.Should().Be(ErrorCodes.SmartsuppAttachmentInvalid);
+        VerifyNoApiCalls();
+    }
+
+    [Fact]
+    public async Task Handle_RejectsEmptyFile_WithAttachmentInvalid()
+    {
+        SetupConversation();
+        SetupCurrentUser();
+
+        var result = await CreateHandler().Handle(
+            FilesRequest("Text", File("a.png", size: 0)), CancellationToken.None);
+
+        result.ErrorCode.Should().Be(ErrorCodes.SmartsuppAttachmentInvalid);
+        VerifyNoApiCalls();
+    }
+
+    [Fact]
+    public async Task Handle_RejectsFileOver10MB_WithAttachmentTooLarge()
+    {
+        SetupConversation();
+        SetupCurrentUser();
+
+        var result = await CreateHandler().Handle(
+            FilesRequest("Text", File("a.png", size: (int)SmartsuppAttachmentPolicy.MaxFileBytes + 1)),
+            CancellationToken.None);
+
+        result.ErrorCode.Should().Be(ErrorCodes.SmartsuppAttachmentTooLarge);
+        VerifyNoApiCalls();
+    }
+
+    [Fact]
+    public async Task Handle_WithFiles_ChecksConversationAndAgentMappingFirst()
+    {
+        SetupConversation(exists: false);
+        SetupCurrentUser();
+
+        var result = await CreateHandler().Handle(FilesRequest("Text", File()), CancellationToken.None);
+
+        result.ErrorCode.Should().Be(ErrorCodes.SmartsuppConversationNotFound);
+        VerifyNoApiCalls();
+    }
+
+    [Fact]
+    public async Task Handle_WithFiles_RecordsDraftSentText()
+    {
+        SetupConversation();
+        SetupCurrentUser();
+        SetupAttachmentApi();
+        var draftLogId = Guid.NewGuid();
+        var request = FilesRequest("Upravený návrh", File());
+        request.DraftLogId = draftLogId;
+
+        await CreateHandler().Handle(request, CancellationToken.None);
+
+        _interactionLog.Verify(r => r.UpdateSentAsync(
+            draftLogId, "Upravený návrh", It.IsAny<DateTimeOffset>(), It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task Handle_WhenAttachmentSendFails_ReturnsSendMessageUnavailable()
+    {
+        SetupConversation();
+        SetupCurrentUser();
+        SetupAttachmentApi();
+        _apiClient.Setup(c => c.SendMessageAsync(
+                "conv1", It.IsAny<string?>(), It.IsAny<string?>(),
+                It.IsAny<IReadOnlyList<SmartsuppOutgoingAttachment>>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new HttpRequestException("down"));
+
+        var result = await CreateHandler().Handle(FilesRequest("Text", File()), CancellationToken.None);
+
+        result.ErrorCode.Should().Be(ErrorCodes.SmartsuppSendMessageUnavailable);
+    }
 }

@@ -353,6 +353,26 @@ fi
     is still unmet) -- and stop. Do not proceed to any developer/review
     work; that only happens inside `/implement-next-task`.
 
+## Declining a candidate
+
+`find_candidate.sh` skips issues labelled `agent-blocked` and epic trackers
+(label `epic`, or a title starting `Epic:`), but it cannot know in advance
+that an issue is unplannable by an unattended run. If, after reading the
+issue, you decide you cannot or should not plan it -- it needs a human
+decision, the brief is contradictory, it is out of scope -- **record that
+durably before you exit**. Stopping silently leaves the issue at the head of
+the queue, so every later cycle picks it again and everything behind it
+starves:
+
+```bash
+.claude/skills/_lib/decline_issue.sh --issue "$ISSUE_ID" --reason "<one or two sentences: what a human needs to decide or fix>"
+```
+
+This labels the issue `agent-blocked` and comments the reason; a human
+removing the label puts it back in rotation. Applies to every exit that
+does not hand the issue off -- including a failure after step 3's claim, in
+which case also release the claim by removing `agent-planning`.
+
 ## If something looks wrong
 
 If `find_candidate.sh` keeps returning the same `stale-reclaim` candidate

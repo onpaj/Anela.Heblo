@@ -1,0 +1,58 @@
+{
+  "feature_id": "feat-4439",
+  "issue_number": 4439,
+  "created_at": "2026-10-22T10:12:25.202898Z",
+  "max_revisions": 3,
+  "phases": {
+    "analyzing": {
+      "status": "completed",
+      "updated_at": "2026-10-22T10:13:29.914596Z"
+    },
+    "architecting": {
+      "status": "completed",
+      "updated_at": "2026-10-22T10:13:30.694042Z"
+    },
+    "designing": {
+      "status": "completed",
+      "updated_at": "2026-10-22T10:13:31.372672Z"
+    },
+    "planning": {
+      "status": "completed",
+      "updated_at": "2026-10-22T10:13:32.187721Z"
+    },
+    "developing": {
+      "status": "in_progress",
+      "updated_at": "2026-10-22T11:19:15.526500Z"
+    },
+    "code-review": {
+      "status": "completed",
+      "updated_at": "2026-10-22T20:29:46.373570Z"
+    }
+  },
+  "tasks": [
+    {
+      "name": "azure-404-translation",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-10-22T10:54:30.199060Z"
+    },
+    {
+      "name": "handler-not-found",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-10-22T11:40:35.762305Z"
+    },
+    {
+      "name": "controller-status-mapping",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-10-22T12:47:59.154974Z"
+    },
+    {
+      "name": "docs-and-validation",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-10-22T13:25:17.676820Z"
+    }
+  ]
+}

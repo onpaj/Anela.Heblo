@@ -426,6 +426,22 @@ both a dead lease *and* a stale commit before reclaiming, which keeps the
 old check working for pre-lease workers without letting it fire on its
 own.
 
+## Declining an issue
+
+`find_candidate.sh` skips issues labelled `agent-blocked`. If you pick a
+candidate and decide you cannot proceed with it for a reason that is not a
+step 8 terminal task failure (which already swaps the stage label) -- a
+missing prerequisite, a brief that no longer matches the repo -- record that
+durably before exiting, or the oldest-wins selection returns the same issue
+every cycle:
+
+```bash
+.claude/skills/_lib/decline_issue.sh --issue "$ISSUE_ID" --reason "<what a human needs to decide or fix>"
+```
+
+Release the lease (step 4) as usual. A human removing `agent-blocked` puts
+the issue back in rotation.
+
 ## If something looks wrong
 
 If `find_candidate.sh` keeps returning the same `stale-reclaim` candidate

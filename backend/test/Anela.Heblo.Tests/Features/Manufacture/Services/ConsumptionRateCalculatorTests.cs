@@ -1,7 +1,6 @@
+using Anela.Heblo.Application.Features.Manufacture.Contracts;
 using Anela.Heblo.Application.Common.TimePeriods;
 using Anela.Heblo.Application.Features.Manufacture.Services;
-using Anela.Heblo.Domain.Features.Catalog.ConsumedMaterials;
-using Anela.Heblo.Domain.Features.Catalog.Sales;
 using FluentAssertions;
 using Microsoft.Extensions.Logging;
 using Moq;
@@ -26,7 +25,7 @@ public class ConsumptionRateCalculatorTests
         // Arrange
         var fromDate = new DateTime(2025, 1, 1);
         var toDate = new DateTime(2025, 1, 11); // 10 days
-        var salesHistory = new List<CatalogSaleRecord>
+        var salesHistory = new List<ProductSalesRecordSnapshot>
         {
             new() { Date = new DateTime(2025, 1, 2), AmountB2B = 5, AmountB2C = 3 }, // Total: 8
             new() { Date = new DateTime(2025, 1, 5), AmountB2B = 2, AmountB2C = 4 }, // Total: 6
@@ -47,7 +46,7 @@ public class ConsumptionRateCalculatorTests
         // Arrange
         var fromDate = new DateTime(2025, 1, 1);
         var toDate = new DateTime(2025, 1, 11);
-        var salesHistory = new List<CatalogSaleRecord>();
+        var salesHistory = new List<ProductSalesRecordSnapshot>();
 
         // Act
         var result = _calculator.CalculateDailySalesRate(salesHistory, fromDate, toDate);
@@ -62,7 +61,7 @@ public class ConsumptionRateCalculatorTests
         // Arrange
         var fromDate = new DateTime(2025, 1, 1);
         var toDate = new DateTime(2025, 1, 11);
-        var salesHistory = new List<CatalogSaleRecord>
+        var salesHistory = new List<ProductSalesRecordSnapshot>
         {
             new() { Date = new DateTime(2024, 12, 31), AmountB2B = 5, AmountB2C = 3 }, // Before range
             new() { Date = new DateTime(2025, 1, 12), AmountB2B = 2, AmountB2C = 4 }  // After range
@@ -81,7 +80,7 @@ public class ConsumptionRateCalculatorTests
         // Arrange
         var fromDate = new DateTime(2025, 1, 1);
         var toDate = new DateTime(2025, 1, 11); // 10 days
-        var consumedHistory = new List<ConsumedMaterialRecord>
+        var consumedHistory = new List<ProductConsumptionRecordSnapshot>
         {
             new() { Date = new DateTime(2025, 1, 2), Amount = 10 },
             new() { Date = new DateTime(2025, 1, 5), Amount = 15 },
@@ -162,7 +161,7 @@ public class ConsumptionRateCalculatorTests
         // Arrange
         var fromDate = new DateTime(2025, 1, 1);
         var toDate = fromDate.AddDays(daysDiff);
-        var salesHistory = new List<CatalogSaleRecord>
+        var salesHistory = new List<ProductSalesRecordSnapshot>
         {
             new() { Date = new DateTime(2025, 1, 1), AmountB2B = 10, AmountB2C = 0 }
         };
@@ -185,7 +184,7 @@ public class ConsumptionRateCalculatorTests
         var rangeB = new DateRange(new DateTime(2025, 2, 1), new DateTime(2025, 2, 6));
         IReadOnlyList<DateRange> ranges = [rangeA, rangeB];
 
-        var salesHistory = new List<CatalogSaleRecord>
+        var salesHistory = new List<ProductSalesRecordSnapshot>
         {
             new() { Date = new DateTime(2025, 1, 5), AmountB2B = 10, AmountB2C = 10 }, // In A
             new() { Date = new DateTime(2025, 2, 3), AmountB2B = 5, AmountB2C = 5 },  // In B
@@ -205,7 +204,7 @@ public class ConsumptionRateCalculatorTests
     {
         // Arrange
         IReadOnlyList<DateRange> ranges = [];
-        var salesHistory = new List<CatalogSaleRecord>();
+        var salesHistory = new List<ProductSalesRecordSnapshot>();
 
         // Act
         var result = _calculator.CalculateDailySalesRate(salesHistory, ranges);
@@ -222,7 +221,7 @@ public class ConsumptionRateCalculatorTests
         var toDate = new DateTime(2025, 1, 11);
         IReadOnlyList<DateRange> ranges = [new DateRange(fromDate, toDate)];
 
-        var salesHistory = new List<CatalogSaleRecord>
+        var salesHistory = new List<ProductSalesRecordSnapshot>
         {
             new() { Date = new DateTime(2025, 1, 5), AmountB2B = 5, AmountB2C = 5 },
         };

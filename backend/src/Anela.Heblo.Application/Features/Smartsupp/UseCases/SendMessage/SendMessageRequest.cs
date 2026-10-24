@@ -7,8 +7,11 @@ public class SendMessageRequest : IRequest<SendMessageResponse>
     /// <summary>Smartsupp conversation id. Set from the route by the controller.</summary>
     public string ConversationId { get; set; } = null!;
 
-    /// <summary>Text content to send as an agent message.</summary>
-    public string Content { get; set; } = null!;
+    /// <summary>Text content to send as an agent message. May be empty when files are attached.</summary>
+    public string? Content { get; set; }
+
+    /// <summary>Files to attach to the message (empty for a text-only message).</summary>
+    public List<SendMessageFile> Files { get; set; } = [];
 
     /// <summary>
     /// When the message originated from an AI draft, the id of that draft's RAG interaction log row.

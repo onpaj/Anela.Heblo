@@ -46,8 +46,8 @@ public class MoveMarketingActionHandlerTests
         var action = BuildExistingAction(outlookEventId);
         action.AssociateWithProduct("OLD-PROD", DateTime.UtcNow);
         action.AssociateWithProduct("OTHER-PROD", DateTime.UtcNow);
-        action.LinkToFolder("old-key", MarketingFolderType.General, DateTime.UtcNow);
-        action.LinkToFolder("other-key", MarketingFolderType.Seasonal, DateTime.UtcNow);
+        action.LinkToFolder("old-key", MarketingFolderType.Images, DateTime.UtcNow);
+        action.LinkToFolder("other-key", MarketingFolderType.Texts, DateTime.UtcNow);
         return action;
     }
 
@@ -99,8 +99,8 @@ public class MoveMarketingActionHandlerTests
                 a.ProductAssociations.Any(p => p.ProductCodePrefix == "OLD-PROD") &&
                 a.ProductAssociations.Any(p => p.ProductCodePrefix == "OTHER-PROD") &&
                 a.FolderLinks.Count == 2 &&
-                a.FolderLinks.Any(f => f.FolderKey == "old-key" && f.FolderType == MarketingFolderType.General) &&
-                a.FolderLinks.Any(f => f.FolderKey == "other-key" && f.FolderType == MarketingFolderType.Seasonal)),
+                a.FolderLinks.Any(f => f.FolderKey == "old-key" && f.FolderType == MarketingFolderType.Images) &&
+                a.FolderLinks.Any(f => f.FolderKey == "other-key" && f.FolderType == MarketingFolderType.Texts)),
             It.IsAny<CancellationToken>()), Times.Once);
     }
 

@@ -8,11 +8,13 @@ owns:
   - backend/src/Anela.Heblo.Domain/Features/Logistics/GiftPackageManufacture/**
   - backend/src/Anela.Heblo.Persistence/Logistics/GiftPackageManufacture/**
   - backend/src/Anela.Heblo.Application/Features/Logistics/Contracts/ILogisticsCatalogSource.cs
+  - backend/src/Anela.Heblo.Application/Features/Logistics/Contracts/IGiftPackageBomSource.cs
+  - backend/src/Anela.Heblo.Application/Features/Manufacture/Infrastructure/ManufactureGiftPackageBomAdapter.cs
   - backend/src/Anela.Heblo.Application/Features/Logistics/Contracts/Models/LogisticsGiftPackageItem.cs
   - backend/src/Anela.Heblo.Application/Features/Catalog/Infrastructure/LogisticsCatalogSourceAdapter.cs
   - backend/src/Anela.Heblo.Application/Features/Logistics/DashboardTiles/CriticalGiftPackagesTile.cs
   - backend/src/Anela.Heblo.API/Controllers/LogisticsController.cs
-verified_at: "5e993f9e2"
+verified_at: "75a53ff4"
 related:
   - feed-stock-up
   - calc-bundle-sales-expansion
@@ -44,7 +46,8 @@ User-driven; no scheduled work.
    with `ProductType.Set` → code, name, `Stock.Available`, sales in the window
    (`GetTotalSold` = B2B + B2C pieces from the catalog sales history), `StockMinSetup`,
    `OptimalStockDaysSetup` (catalog product properties).
-2. **Components (BOM)**: `IManufactureClient.GetSetPartsAsync` → `FlexiManufactureClient` →
+2. **Components (BOM)**: Logistics-owned `IGiftPackageBomSource.GetSetPartsAsync` →
+   `ManufactureGiftPackageBomAdapter` → `IManufactureClient.GetSetPartsAsync` → `FlexiManufactureClient` →
    Flexi product-set definition (*sady a komplety*), read live on every detail call. Each
    component's stock is the catalog's `WarehouseStock` (warehouse only).
 3. **Manufacture** (`GiftPackageManufactureService.CreateManufactureAsync`): re-reads the detail,
@@ -96,8 +99,8 @@ User-driven; no scheduled work.
 
 ## Known quirks
 - **Flexi (ERP) stock is not moved.** Assembly and disassembly only change Shoptet e-shop stock
-  (via `feed-stock-up`) and Heblo's log; no Flexi document is created. `IManufactureClient` is used
-  only to read the BOM.
+  (via `feed-stock-up`) and Heblo's log; no Flexi document is created. The BOM is read through
+  `IGiftPackageBomSource` (adapter over `IManufactureClient`) and nothing else.
 - **Package-side figures still use `Stock.Available`**: the package's displayed stock, its
   severity, and the disassembly limit include goods in transport and in *sklad výroby*, so a
   package can look covered (or be "disassembled") with fewer pieces actually in the warehouse.
@@ -123,6 +126,7 @@ User-driven; no scheduled work.
 - `backend/src/Anela.Heblo.Application/Features/Logistics/UseCases/GiftPackageManufacture/Services/GiftPackageManufactureService.cs` — metrics, stock check, both transactions, GPM-/GPD- numbers
 - `backend/src/Anela.Heblo.Application/Features/Logistics/UseCases/GiftPackageManufacture/UseCases/CreateGiftPackageManufacture/CreateGiftPackageManufactureHandler.cs` — override permission, error mapping
 - `backend/src/Anela.Heblo.Application/Features/Catalog/Infrastructure/LogisticsCatalogSourceAdapter.cs` — which catalog fields feed the page
+- `backend/src/Anela.Heblo.Application/Features/Manufacture/Infrastructure/ManufactureGiftPackageBomAdapter.cs` — adapter implementing Logistics' `IGiftPackageBomSource`
 - `backend/src/Adapters/Anela.Heblo.Adapters.Flexi/Manufacture/FlexiManufactureClient.cs` — `GetSetPartsAsync` (BOM from Flexi)
 - `backend/src/Anela.Heblo.Domain/Features/Logistics/GiftPackageManufacture/GiftPackageManufactureLog.cs` — log entity
 - `backend/src/Anela.Heblo.API/Controllers/LogisticsController.cs` — endpoints

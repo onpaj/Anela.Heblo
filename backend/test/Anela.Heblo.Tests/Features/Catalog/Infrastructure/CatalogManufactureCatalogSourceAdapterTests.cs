@@ -15,7 +15,7 @@ public class CatalogManufactureCatalogSourceAdapterTests
         new CatalogManufactureCatalogSourceAdapter(_repository.Object);
 
     [Fact]
-    public async Task GetByIdAsync_ForwardsCallAndReturnsRepositoryResult()
+    public async Task GetByIdAsync_ForwardsCallAndReturnsMappedSnapshot()
     {
         var ct = new CancellationTokenSource().Token;
         var expected = new CatalogAggregate { ProductCode = "ABC", ProductName = "Test" };
@@ -23,12 +23,14 @@ public class CatalogManufactureCatalogSourceAdapterTests
 
         var result = await CreateAdapter().GetByIdAsync("ABC", ct);
 
-        result.Should().BeSameAs(expected);
+        result.Should().NotBeNull();
+        result!.ProductCode.Should().Be("ABC");
+        result.ProductName.Should().Be("Test");
         _repository.Verify(r => r.GetByIdAsync("ABC", ct), Times.Once);
     }
 
     [Fact]
-    public async Task GetByIdsAsync_ForwardsCallAndReturnsRepositoryResult()
+    public async Task GetByIdsAsync_ForwardsCallAndReturnsMappedSnapshots()
     {
         var ct = new CancellationTokenSource().Token;
         var ids = new[] { "A", "B" };
@@ -41,12 +43,14 @@ public class CatalogManufactureCatalogSourceAdapterTests
 
         var result = await CreateAdapter().GetByIdsAsync(ids, ct);
 
-        result.Should().BeSameAs(expected);
+        result.Keys.Should().BeEquivalentTo(new[] { "A", "B" });
+        result["A"].ProductCode.Should().Be("A");
+        result["B"].ProductCode.Should().Be("B");
         _repository.Verify(r => r.GetByIdsAsync(ids, ct), Times.Once);
     }
 
     [Fact]
-    public async Task GetAllAsync_ForwardsCallAndReturnsRepositoryResult()
+    public async Task GetAllAsync_ForwardsCallAndReturnsMappedSnapshots()
     {
         var ct = new CancellationTokenSource().Token;
         IEnumerable<CatalogAggregate> expected = new[]
@@ -58,7 +62,7 @@ public class CatalogManufactureCatalogSourceAdapterTests
 
         var result = await CreateAdapter().GetAllAsync(ct);
 
-        result.Should().BeSameAs(expected);
+        result.Select(r => r.ProductCode).Should().Equal("A", "B");
         _repository.Verify(r => r.GetAllAsync(ct), Times.Once);
     }
 

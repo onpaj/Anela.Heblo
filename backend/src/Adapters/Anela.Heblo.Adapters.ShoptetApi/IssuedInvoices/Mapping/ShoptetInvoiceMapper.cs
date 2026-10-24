@@ -70,7 +70,7 @@ public class ShoptetInvoiceMapper
         }
 
         var headerPrice = MapInvoicePrice(src.Price);   // WithVat is toPay (post-rounding) or withVat fallback
-        var totalWithVat = products.Where(i => i.ItemPrice.VatRate != "zero").Sum(i => i.ItemPrice.TotalWithVat);
+        var totalWithVat = products.Sum(i => i.ItemPrice.TotalWithVat);
         var totalWithoutVat = products.Sum(i => i.ItemPrice.TotalWithoutVat);
 
         // Use the header's effective WithVat (toPay when within rounding range, otherwise withVat) as the
@@ -78,8 +78,8 @@ public class ShoptetInvoiceMapper
         // line: items sum to e.g. 14321.50 and toPay/header = 14322.00 — Flexi reports 14322.00.
         // headerPrice.WithVat was already resolved by MapInvoicePrice (toPay if within RoundingToleranceCrowns
         // of withVat, else withVat). This second guard handles the deposit-adjusted case where even the
-        // header's chosen value diverges from items by ≥ 1 Kč — fall back to the item sum to preserve
-        // parity with the Playwright adapter.
+        // header's chosen value diverges from items by ≥ 1 Kč — fall back to the item sum.
+        // Zero-VAT rows (e.g. a donation) are part of that sum: the header total includes them.
         var headerDiff = Math.Abs(headerPrice.WithVat - totalWithVat);
         var effectiveTotalWithVat = headerDiff < RoundingToleranceCrowns ? headerPrice.WithVat : totalWithVat;
 

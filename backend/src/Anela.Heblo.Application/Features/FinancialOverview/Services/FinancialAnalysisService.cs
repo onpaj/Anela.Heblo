@@ -19,6 +19,9 @@ public class FinancialAnalysisService : IFinancialAnalysisService
     private const string MONTHLY_DATA_CACHE_KEY_PREFIX = "financial_monthly_data_";
     private const string STOCK_DATA_CACHE_KEY_PREFIX = "financial_stock_data_";
     private const string LAST_REFRESH_CACHE_KEY = "financial_last_refresh";
+    // Czech Chart of Accounts: class 5 = expenses (náklady), class 6 = income (výnosy)
+    private const string ExpenseAccountClassPrefix = "5";
+    private const string IncomeAccountClassPrefix = "6";
 
     public FinancialAnalysisService(
         ILedgerService ledgerService,
@@ -38,12 +41,12 @@ public class FinancialAnalysisService : IFinancialAnalysisService
         IEnumerable<LedgerItem> debitItems,
         IEnumerable<LedgerItem> creditItems)
     {
-        var debit5 = debitItems.Where(i => i.DebitAccountNumber?.StartsWith("5") == true).Sum(i => i.Amount);
-        var credit5 = creditItems.Where(i => i.CreditAccountNumber?.StartsWith("5") == true).Sum(i => i.Amount);
+        var debit5 = debitItems.Where(i => i.DebitAccountNumber?.StartsWith(ExpenseAccountClassPrefix) == true).Sum(i => i.Amount);
+        var credit5 = creditItems.Where(i => i.CreditAccountNumber?.StartsWith(ExpenseAccountClassPrefix) == true).Sum(i => i.Amount);
         var expenses = debit5 - credit5;
 
-        var credit6 = creditItems.Where(i => i.CreditAccountNumber?.StartsWith("6") == true).Sum(i => i.Amount);
-        var debit6 = debitItems.Where(i => i.DebitAccountNumber?.StartsWith("6") == true).Sum(i => i.Amount);
+        var credit6 = creditItems.Where(i => i.CreditAccountNumber?.StartsWith(IncomeAccountClassPrefix) == true).Sum(i => i.Amount);
+        var debit6 = debitItems.Where(i => i.DebitAccountNumber?.StartsWith(IncomeAccountClassPrefix) == true).Sum(i => i.Amount);
         var income = credit6 - debit6;
 
         return (income, expenses);

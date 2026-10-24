@@ -8,6 +8,9 @@ namespace Anela.Heblo.Application.Features.ExpeditionListArchive.Contracts;
 /// </summary>
 public interface IExpeditionListArchiveBlobStore
 {
+    /// <summary>
+    /// Downloads a blob as a stream. Throws <see cref="FileNotFoundException"/> when the blob does not exist.
+    /// </summary>
     Task<Stream> DownloadAsync(string containerName, string blobPath, CancellationToken cancellationToken);
 
     Task<IReadOnlyList<ExpeditionBlobItem>> ListBlobsAsync(string containerName, string? prefix, CancellationToken cancellationToken);
