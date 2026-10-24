@@ -1,0 +1,54 @@
+{
+  "feature_id": "feat-4470",
+  "issue_number": 4470,
+  "created_at": "2026-10-23T09:10:52.378625Z",
+  "max_revisions": 3,
+  "phases": {
+    "analyzing": {
+      "status": "completed",
+      "updated_at": "2026-10-23T09:11:59.353137Z"
+    },
+    "architecting": {
+      "status": "completed",
+      "updated_at": "2026-10-23T09:11:59.874136Z"
+    },
+    "designing": {
+      "status": "completed",
+      "updated_at": "2026-10-23T09:12:00.514693Z"
+    },
+    "planning": {
+      "status": "completed",
+      "updated_at": "2026-10-24T22:09:47.312104Z"
+    },
+    "developing": {
+      "status": "in_progress",
+      "updated_at": "2026-10-24T23:36:55.863198Z"
+    }
+  },
+  "tasks": [
+    {
+      "name": "backend-request-validator",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-10-24T23:36:56.017824Z"
+    },
+    {
+      "name": "backend-handler",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-10-24T23:36:56.175414Z"
+    },
+    {
+      "name": "frontend-client-helper",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    },
+    {
+      "name": "process-docs-check",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    }
+  ]
+}

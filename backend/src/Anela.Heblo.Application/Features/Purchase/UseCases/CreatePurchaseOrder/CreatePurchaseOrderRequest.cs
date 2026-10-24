@@ -9,10 +9,9 @@ public class CreatePurchaseOrderRequest : IRequest<CreatePurchaseOrderResponse>
     [Required(ErrorMessage = "Supplier is required")]
     public long SupplierId { get; set; }
 
-    [Required(ErrorMessage = "Order date is required")]
-    public string OrderDate { get; set; } = null!;
+    public DateTime OrderDate { get; set; }
 
-    public string? ExpectedDeliveryDate { get; set; }
+    public DateTime? ExpectedDeliveryDate { get; set; }
 
     public ContactVia? ContactVia { get; set; }
 
