@@ -22,8 +22,12 @@ public class UserDashboardSettingsDefaultsTests
         {
             s.Tiles.Add(new UserDashboardTile
             {
-                UserId = "u1", TileId = id, IsVisible = false, DisplayOrder = order,
-                LastModified = Earlier, DashboardSettings = s
+                UserId = "u1",
+                TileId = id,
+                IsVisible = false,
+                DisplayOrder = order,
+                LastModified = Earlier,
+                DashboardSettings = s
             });
         }
         return s;
