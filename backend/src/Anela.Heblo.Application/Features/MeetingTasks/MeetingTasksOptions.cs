@@ -23,4 +23,10 @@ public class MeetingTasksOptions
     /// How many days back the Plaud polling job looks for recordings to ingest.
     /// </summary>
     public int MaxRecordingAgeDays { get; set; } = 7;
+
+    /// <summary>
+    /// Number of consecutive plaud-polling runs failing with an upstream 5xx after which an
+    /// Error is logged (and then repeated every further N runs). 0 disables the escalation.
+    /// </summary>
+    public int UpstreamFailureAlertThreshold { get; set; } = 12;
 }

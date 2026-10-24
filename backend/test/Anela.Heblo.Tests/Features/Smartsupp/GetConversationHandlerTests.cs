@@ -5,6 +5,8 @@ using Anela.Heblo.Application.Features.Smartsupp.UseCases.GetConversation;
 using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Domain.Features.Smartsupp;
 using FluentAssertions;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using Xunit;
 
@@ -42,7 +44,7 @@ public class GetConversationHandlerTests
         };
         _repo.Setup(r => r.GetConversationAsync("c1", default)).ReturnsAsync(conversation);
 
-        var handler = new GetConversationHandler(_repo.Object, _agentCache.Object, _presence.Object);
+        var handler = new GetConversationHandler(_repo.Object, _agentCache.Object, _presence.Object, NullLogger<GetConversationHandler>.Instance);
         var request = new GetConversationRequest { Id = "c1" };
 
         // Act
@@ -61,7 +63,7 @@ public class GetConversationHandlerTests
     {
         // Arrange
         _repo.Setup(r => r.GetConversationAsync("missing", default)).ReturnsAsync((SmartsuppConversation?)null);
-        var handler = new GetConversationHandler(_repo.Object, _agentCache.Object, _presence.Object);
+        var handler = new GetConversationHandler(_repo.Object, _agentCache.Object, _presence.Object, NullLogger<GetConversationHandler>.Instance);
 
         // Act
         var result = await handler.Handle(new GetConversationRequest { Id = "missing" }, CancellationToken.None);
@@ -98,7 +100,7 @@ public class GetConversationHandlerTests
         _repo.Setup(r => r.ListConversationsForContactAsync("contact-1", "c1", default))
              .ReturnsAsync(new List<SmartsuppConversation>());
 
-        var handler = new GetConversationHandler(_repo.Object, _agentCache.Object, _presence.Object);
+        var handler = new GetConversationHandler(_repo.Object, _agentCache.Object, _presence.Object, NullLogger<GetConversationHandler>.Instance);
 
         // Act
         var result = await handler.Handle(new GetConversationRequest { Id = "c1" }, CancellationToken.None);
@@ -143,7 +145,7 @@ public class GetConversationHandlerTests
         _repo.Setup(r => r.ListConversationsForContactAsync("contact-1", "c1", default))
              .ReturnsAsync(new List<SmartsuppConversation> { sibling });
 
-        var handler = new GetConversationHandler(_repo.Object, _agentCache.Object, _presence.Object);
+        var handler = new GetConversationHandler(_repo.Object, _agentCache.Object, _presence.Object, NullLogger<GetConversationHandler>.Instance);
 
         // Act
         var result = await handler.Handle(new GetConversationRequest { Id = "c1" }, CancellationToken.None);
@@ -171,7 +173,7 @@ public class GetConversationHandlerTests
             Messages = new List<SmartsuppMessage>(),
         };
         _repo.Setup(r => r.GetConversationAsync("c1", default)).ReturnsAsync(conversation);
-        var handler = new GetConversationHandler(_repo.Object, cache.Object, _presence.Object);
+        var handler = new GetConversationHandler(_repo.Object, cache.Object, _presence.Object, NullLogger<GetConversationHandler>.Instance);
 
         // Act
         var result = await handler.Handle(new GetConversationRequest { Id = "c1" }, CancellationToken.None);
@@ -193,7 +195,7 @@ public class GetConversationHandlerTests
             Messages = new List<SmartsuppMessage>(),
         };
         _repo.Setup(r => r.GetConversationAsync("c1", default)).ReturnsAsync(conversation);
-        var handler = new GetConversationHandler(_repo.Object, _agentCache.Object, _presence.Object);
+        var handler = new GetConversationHandler(_repo.Object, _agentCache.Object, _presence.Object, NullLogger<GetConversationHandler>.Instance);
 
         // Act
         var result = await handler.Handle(new GetConversationRequest { Id = "c1" }, CancellationToken.None);
@@ -201,5 +203,72 @@ public class GetConversationHandlerTests
         // Assert — must not throw; Variables must be empty
         result.Success.Should().BeTrue();
         result.Conversation!.Variables.Should().BeEmpty();
+    }
+
+    private const string StoredImageAttachmentJson =
+        "[{\"type\":\"image\",\"file_name\":\"test.png\",\"file_type\":\"image/png\",\"url\":\"https://files.smartsuppcdn.com/files/accounts/924500/attachments/7m8eef-Fr.png\",\"size\":177,\"width\":64,\"height\":64,\"thumb_400\":{\"url\":\"https://files.smartsuppcdn.com/files/accounts/924500/attachments/7m8eef-Fr_thumb400.jpg\",\"width\":64,\"height\":64}}]";
+
+    private static SmartsuppConversation ConversationWithAttachments(string? attachmentsJson) =>
+        new()
+        {
+            Id = "c1",
+            Status = SmartsuppConversationStatus.Open,
+            Messages = new List<SmartsuppMessage>
+            {
+                new()
+                {
+                    Id = "m1",
+                    ConversationId = "c1",
+                    AuthorType = SmartsuppMessageAuthorType.Visitor,
+                    CreatedAt = DateTime.UtcNow,
+                    AttachmentsJson = attachmentsJson,
+                },
+            },
+        };
+
+    [Fact]
+    public async Task Handle_MapsAttachmentsOntoMessageDto()
+    {
+        // Arrange
+        _repo.Setup(r => r.GetConversationAsync("c1", default))
+            .ReturnsAsync(ConversationWithAttachments(StoredImageAttachmentJson));
+        var handler = new GetConversationHandler(_repo.Object, _agentCache.Object, _presence.Object, NullLogger<GetConversationHandler>.Instance);
+
+        // Act
+        var result = await handler.Handle(new GetConversationRequest { Id = "c1" }, CancellationToken.None);
+
+        // Assert
+        var attachment = result.Messages.Single().Attachments.Should().ContainSingle().Subject;
+        attachment.Type.Should().Be("image");
+        attachment.FileName.Should().Be("test.png");
+        attachment.FileType.Should().Be("image/png");
+        attachment.Url.Should().Be("https://files.smartsuppcdn.com/files/accounts/924500/attachments/7m8eef-Fr.png");
+        attachment.Size.Should().Be(177);
+        attachment.ThumbUrl.Should().Be("https://files.smartsuppcdn.com/files/accounts/924500/attachments/7m8eef-Fr_thumb400.jpg");
+    }
+
+    [Fact]
+    public async Task Handle_MalformedAttachmentsJson_ReturnsEmptyListAndLogsWarning()
+    {
+        // Arrange
+        var logger = new Mock<ILogger<GetConversationHandler>>();
+        _repo.Setup(r => r.GetConversationAsync("c1", default))
+            .ReturnsAsync(ConversationWithAttachments("{not json"));
+        var handler = new GetConversationHandler(_repo.Object, _agentCache.Object, _presence.Object, logger.Object);
+
+        // Act
+        var result = await handler.Handle(new GetConversationRequest { Id = "c1" }, CancellationToken.None);
+
+        // Assert
+        result.Success.Should().BeTrue();
+        result.Messages.Single().Attachments.Should().BeEmpty();
+        logger.Verify(
+            l => l.Log(
+                LogLevel.Warning,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((state, _) => state.ToString()!.Contains("Malformed AttachmentsJson on Smartsupp message m1")),
+                It.IsAny<Exception?>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Once);
     }
 }

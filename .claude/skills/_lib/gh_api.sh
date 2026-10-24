@@ -349,16 +349,33 @@ pr_view() {
     # therefore never got flagged `still-failing` either. `conclusion` is
     # null while a check is still running, so it can't be upcased blindly.
     sha=$(echo "$pr" | jq -r '.head.sha')
+    #
+    # Unlike GraphQL's statusCheckRollup -- which already reports only the
+    # latest run of each check -- REST's /check-runs lists EVERY run on the
+    # sha. A superseded run (cancelled by a newer push or a concurrency
+    # group, or failed and then re-run) sits next to its replacement, and a
+    # filter that treats any non-success as a failure rejects a PR whose
+    # current checks are all green. So collapse to the latest run per
+    # (app, name) here, to match the shape the call sites were written
+    # against. per_page=100: the default of 30 silently truncates a repo
+    # with many jobs, hiding exactly the runs being judged.
     local runs_resp status_resp rollup
-    runs_resp=$(req GET "/repos/${REPO}/commits/${sha}/check-runs")
+    runs_resp=$(req GET "/repos/${REPO}/commits/${sha}/check-runs?per_page=100")
     status_resp=$(req GET "/repos/${REPO}/commits/${sha}/status")
     rollup=$(jq -cn \
       --argjson runs "$(emit "$runs_resp")" \
       --argjson status "$(emit "$status_resp")" \
-      '[($runs.check_runs // [])[] | {__typename:"CheckRun",
+      'def latest_key: [(.started_at // .completed_at // ""), (.id // 0)];
+       def shaped: {__typename:"CheckRun",
           status: (.status | ascii_upcase),
-          conclusion: (if .conclusion then (.conclusion | ascii_upcase) else null end)}]
-       + [($status.statuses // [])[] | {__typename:"StatusContext", state: (.state | ascii_upcase)}]')
+          conclusion: (if .conclusion then (.conclusion | ascii_upcase) else null end)};
+       ($runs.check_runs // []) as $all
+       | ([$all[] | select(.name != null)]
+            | group_by([(.app.id // .app.slug // ""), .name])
+            | map(max_by(latest_key))) as $named
+       | [$all[] | select(.name == null)] as $unnamed
+       | [($named + $unnamed)[] | shaped]
+         + [($status.statuses // [])[] | {__typename:"StatusContext", state: (.state | ascii_upcase)}]')
     out=$(echo "$out" | jq -c --argjson r "$rollup" '. + {statusCheckRollup: $r}')
   fi
 

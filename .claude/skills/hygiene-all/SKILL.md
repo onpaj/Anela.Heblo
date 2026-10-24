@@ -81,7 +81,8 @@ above so every subagent gets the same mode.
 ## 3. Report
 
 Print a table of every PR: number, status, detail. A `status` of
-`still-failing` or `conflict-unresolved` means that PR was just flagged
+`still-failing`, `conflict-unresolved` or `flagged` (a merge that kept
+failing locally, with git's error in `detail`) means that PR was just flagged
 `needs-work`, and `conflict-resolved` means a merge resolution was pushed to
 that PR's branch — say both plainly in the table rather than making the
 reader infer them from the status name. Then list the `skipped` entries from

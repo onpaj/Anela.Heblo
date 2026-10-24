@@ -2,7 +2,6 @@ using Anela.Heblo.Application.Common.TimePeriods;
 using Anela.Heblo.Application.Features.Manufacture.Contracts;
 using Anela.Heblo.Application.Features.Manufacture.Services;
 using Anela.Heblo.Application.Shared;
-using Anela.Heblo.Domain.Features.Catalog;
 using MediatR;
 using Microsoft.Extensions.Logging;
 
@@ -53,7 +52,7 @@ public class GetManufacturingStockAnalysisHandler : IRequestHandler<GetManufactu
         // 2. Get finished products data
         var allCatalogItems = await _catalogSource.GetAllAsync(cancellationToken);
         var finishedProducts = allCatalogItems
-            .Where(item => item.Type == ProductType.Product)
+            .Where(item => item.Type == ProductKind.Product)
             .ToList();
 
         if (!finishedProducts.Any())
@@ -106,7 +105,7 @@ public class GetManufacturingStockAnalysisHandler : IRequestHandler<GetManufactu
     }
 
     private ManufacturingStockItemDto AnalyzeManufacturingStockItem(
-        CatalogAggregate item,
+        ProductCatalogSnapshot item,
         IReadOnlyList<DateRange> ranges,
         double salesMultiplier = 1.0)
     {

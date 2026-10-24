@@ -8,7 +8,7 @@ owns:
   - backend/src/Anela.Heblo.Domain/Features/FinancialOverview/**
   - backend/src/Anela.Heblo.Application/Features/Catalog/Infrastructure/FinancialOverviewStockValueAdapter.cs
   - backend/src/Anela.Heblo.API/Controllers/FinancialOverviewController.cs
-verified_at: "5e993f9e2"
+verified_at: "426ea2722"
 related: [calc-margins, sync-flexi-analytics]
 ---
 

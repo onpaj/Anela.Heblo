@@ -8,7 +8,7 @@ owns:
   - backend/src/Anela.Heblo.Application/Features/Manufacture/UseCases/GetSemiproductRecipePdf/**
   - backend/src/Anela.Heblo.Domain/Features/Manufacture/ManufactureErpDocumentItem.cs
   - backend/src/Anela.Heblo.API/PDFPrints/**
-verified_at: "5e993f9e2"
+verified_at: "8161c408c"
 related:
   - flow-manufacture-order
   - feed-manufacture-to-flexi

@@ -1,0 +1,18 @@
+# Implementation Plan: POST /mcp 400 diagnostics on exception path
+
+Goal: log a structured Warning (EventId 5933) when a request to /mcp throws, so 400s produced by the exception handler chain are attributable. Tech: .NET 8, xUnit, Moq. Files: `backend/src/Anela.Heblo.API/MCP/McpBadRequestMiddleware.cs`, `backend/test/Anela.Heblo.Tests/MCP/McpBadRequestMiddlewareTests.cs`, `docs/integrations/mcp-server.md`.
+
+### task: exception-path-tests
+Write failing tests first in `McpBadRequestMiddlewareTests.cs` (reuse the `CreateContext` helper and the Moq `ILogger<McpBadRequestMiddleware>` pattern used by the `PostBadRequest_*` tests):
+1. `PostThrows_LogsOneWarning5933WithExceptionType_AndRethrowsSameInstance` - `next` throws `new ArgumentException("x")`; assert `Assert.ThrowsAsync<ArgumentException>` returns the same instance, exactly one Warning with `EventId.Id == 5933 && Name == "McpRequestException"`, message contains `ExceptionType=ArgumentException`, `McpSessionIdPresent=` and no 5932 log.
+2. `PostThrows_WithSessionHeader_LogsEightCharPrefixOnly` - header `Mcp-Session-Id: 1234567890abcdef`; log contains `12345678***` style prefix (match `McpTelemetryHelpers.TruncateSessionId`) and not the full value; also set an `Authorization: Bearer secret` header and assert the log never contains `secret`.
+3. `GetThrows_WithEventStreamAccept_LogsWarning5933AndRethrows`.
+4. `PostThrows_OperationCanceledWithAbortedRequest_DoesNotLog` - set `context.RequestAborted` to a cancelled token and throw `OperationCanceledException`; assert no Warning logged and exception still propagates.
+5. `PostThrowsOperationCanceled_WithoutAbort_Logs` (optional sanity).
+Run `dotnet test backend/test/Anela.Heblo.Tests --filter McpBadRequestMiddlewareTests` and confirm the new tests fail (no 5933 emitted). Commit tests.
+
+### task: exception-path-middleware
+Implement in `McpBadRequestMiddleware.cs` per design.r1.md: add `RequestExceptionEvent` (5933, "McpRequestException"); add the private helper wrapping `_next` in try/catch with the `when` filter, logging then `throw;`; use it from both `HandlePostAsync` and the GET path (GET: only after the Accept check passes). Add `LogMcpRequestException` sharing field extraction with `LogBadMcpRequest` (use `McpTelemetryHelpers.TruncateSessionId`; log exception type name only, never message or Authorization). Do not alter the 5932 template, the 404 short-circuit, or any response status. Update the class XML summary to mention the exception path. Run `dotnet build backend/src/Anela.Heblo.API`, `dotnet format` on the touched projects, and `dotnet test --filter McpBadRequestMiddlewareTests` - all existing and new tests must pass. Depends on: exception-path-tests.
+
+### task: mcp-diagnostics-docs
+Update `docs/integrations/mcp-server.md` section "Diagnostics - Bad-request telemetry": document EventId 5933 (`McpRequestException`) and its `ExceptionType` field; explain that 5932 fires only when the pipeline returns 400 normally, while 5933 covers exceptions later mapped to 400 by `ArgumentExceptionHandler`/`ValidationExceptionHandler`; add the runbook: (1) confirm Production runs a build containing #4052 (`11091d4`), (2) POST a malformed body to /mcp on Staging and expect 5932 or 5933, (3) KQL: `traces | where customDimensions.EventId in ("5932","5933") | summarize count() by tostring(customDimensions.UserAgent), tostring(customDimensions.McpSessionIdPresent)` and correlate `exceptions` by `operation_Id`. Run `python3 scripts/process-docs/check.py index` and confirm it passes (no process doc is expected to change; if it flags an owner doc for the MCP middleware, bump its `verified_at`). Depends on: exception-path-middleware.

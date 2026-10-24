@@ -1,5 +1,4 @@
 using Anela.Heblo.Application.Features.Configuration;
-using Anela.Heblo.Domain.Features.Configuration;
 using Anela.Heblo.Application.Shared;
 using FluentAssertions;
 using Microsoft.Extensions.Configuration;
@@ -51,7 +50,7 @@ public class GetConfigurationHandlerTests
 
         // Assert
         // When APP_VERSION is empty, should fall back to assembly version (non-null, not the hardcoded "1.0.0" default)
-        response.Version.Should().NotBeNullOrEmpty().And.NotBe(ConfigurationConstants.DEFAULT_VERSION);
+        response.Version.Should().NotBeNullOrEmpty().And.NotBe("1.0.0");
     }
 
     [Fact]
@@ -65,7 +64,7 @@ public class GetConfigurationHandlerTests
 
         // Assert
         // When APP_VERSION is absent, should fall back to assembly informational version or assembly version
-        response.Version.Should().NotBeNullOrEmpty().And.NotBe(ConfigurationConstants.DEFAULT_VERSION);
+        response.Version.Should().NotBeNullOrEmpty().And.NotBe("1.0.0");
     }
 
     [Fact]
@@ -84,5 +83,48 @@ public class GetConfigurationHandlerTests
         // Assert
         response.Version.Should().Be("1.2.3");
         response.UseMockAuth.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task Handle_ReturnsProductionEnvironment_WhenAspNetCoreEnvironmentAbsent()
+    {
+        // Arrange — build directly, CreateHandler always adds ASPNETCORE_ENVIRONMENT
+        var configuration = new ConfigurationBuilder().Build();
+        var handler = new GetConfigurationHandler(configuration, NullLogger<GetConfigurationHandler>.Instance);
+
+        // Act
+        var response = await handler.Handle(new GetConfigurationRequest(), CancellationToken.None);
+
+        // Assert
+        response.Environment.Should().Be("Production");
+    }
+
+    [Fact]
+    public async Task Handle_ReturnsConfiguredEnvironment_WhenSet()
+    {
+        // Arrange
+        var handler = CreateHandler(new Dictionary<string, string?>
+        {
+            ["ASPNETCORE_ENVIRONMENT"] = "Staging"
+        });
+
+        // Act
+        var response = await handler.Handle(new GetConfigurationRequest(), CancellationToken.None);
+
+        // Assert
+        response.Environment.Should().Be("Staging");
+    }
+
+    [Fact]
+    public async Task Handle_UseMockAuthDefaultsToFalse_WhenAbsent()
+    {
+        // Arrange
+        var handler = CreateHandler(new Dictionary<string, string?>());
+
+        // Act
+        var response = await handler.Handle(new GetConfigurationRequest(), CancellationToken.None);
+
+        // Assert
+        response.UseMockAuth.Should().BeFalse();
     }
 }

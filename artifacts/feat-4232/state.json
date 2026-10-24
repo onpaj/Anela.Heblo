@@ -1,0 +1,52 @@
+{
+  "feature_id": "feat-4232",
+  "issue_number": 4232,
+  "created_at": "2026-09-20T12:11:21.884122Z",
+  "max_revisions": 3,
+  "phases": {
+    "analyzing": {
+      "status": "completed",
+      "updated_at": "2026-09-20T12:14:23.481682Z"
+    },
+    "architecting": {
+      "status": "completed",
+      "updated_at": "2026-09-20T12:16:59.006416Z"
+    },
+    "designing": {
+      "status": "completed",
+      "updated_at": "2026-09-20T12:17:55.536678Z"
+    },
+    "planning": {
+      "status": "completed",
+      "updated_at": "2026-09-20T12:23:25.801533Z"
+    },
+    "developing": {
+      "status": "in_progress",
+      "updated_at": "2026-09-20T21:16:53.028782Z"
+    },
+    "code-review": {
+      "status": "completed",
+      "updated_at": "2026-09-20T22:25:21.428844Z"
+    }
+  },
+  "tasks": [
+    {
+      "name": "create-filestorage-contracts-folder",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-09-20T13:21:20.732823Z"
+    },
+    {
+      "name": "update-tests-for-contracts-namespace",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-09-20T20:38:02.046360Z"
+    },
+    {
+      "name": "verify-build-format-and-openapi-client",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-09-20T21:41:17.456603Z"
+    }
+  ]
+}

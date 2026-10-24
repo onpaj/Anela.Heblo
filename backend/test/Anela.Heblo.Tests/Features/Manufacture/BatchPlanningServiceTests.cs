@@ -52,7 +52,7 @@ public class BatchPlanningServiceTests
         };
 
         _catalogRepositoryMock.Setup(x => x.GetByIdAsync("NONEXISTENT", It.IsAny<CancellationToken>()))
-            .ReturnsAsync((CatalogAggregate)null);
+            .ReturnsAsync((ProductCatalogSnapshot)null);
 
         // Act & Assert
         var exception = await Assert.ThrowsAsync<ArgumentException>(() =>
@@ -374,26 +374,26 @@ public class BatchPlanningServiceTests
 
         var semiproduct = CreateSemiproduct("SEMI001", 1000);
         var templates = CreateManufactureTemplates();
-        var prod1 = new CatalogAggregate
+        var prod1 = new ProductCatalogSnapshot
         {
             ProductCode = "PROD001",
             ProductName = "Product 1",
-            Stock = new StockData { Erp = 50 },
+            Stock = new ProductStockSnapshot { Erp = 50 },
             NetWeight = 10.0,
             MinimalManufactureQuantity = 10,
             SalesHistory = CreateSalesAcrossRanges(rangeAFrom, 30, 2.0, rangeBFrom, 30, 1.0)
         };
-        var prod2 = new CatalogAggregate
+        var prod2 = new ProductCatalogSnapshot
         {
             ProductCode = "PROD002",
             ProductName = "Product 2",
-            Stock = new StockData { Erp = 25 },
+            Stock = new ProductStockSnapshot { Erp = 25 },
             NetWeight = 5.0,
             MinimalManufactureQuantity = 20,
             SalesHistory = CreateSalesHistory(1)
         };
 
-        SetupRepositoryMocks(semiproduct, templates, new List<CatalogAggregate> { prod1, prod2 });
+        SetupRepositoryMocks(semiproduct, templates, new List<ProductCatalogSnapshot> { prod1, prod2 });
 
         // Act
         var result = await _service.CalculateBatchPlan(request, ranges, CancellationToken.None);
@@ -405,14 +405,14 @@ public class BatchPlanningServiceTests
         Assert.Equal(1.5, item.DailySalesRate, 2);
     }
 
-    private static List<Anela.Heblo.Domain.Features.Catalog.Sales.CatalogSaleRecord> CreateSalesAcrossRanges(
+    private static List<ProductSalesRecordSnapshot> CreateSalesAcrossRanges(
         DateTime range1From, int range1Days, double range1Daily,
         DateTime range2From, int range2Days, double range2Daily)
     {
-        var sales = new List<Anela.Heblo.Domain.Features.Catalog.Sales.CatalogSaleRecord>();
+        var sales = new List<ProductSalesRecordSnapshot>();
         for (int i = 0; i < range1Days; i++)
         {
-            sales.Add(new Anela.Heblo.Domain.Features.Catalog.Sales.CatalogSaleRecord
+            sales.Add(new ProductSalesRecordSnapshot
             {
                 Date = range1From.AddDays(i),
                 AmountB2B = range1Daily / 2,
@@ -421,7 +421,7 @@ public class BatchPlanningServiceTests
         }
         for (int i = 0; i < range2Days; i++)
         {
-            sales.Add(new Anela.Heblo.Domain.Features.Catalog.Sales.CatalogSaleRecord
+            sales.Add(new ProductSalesRecordSnapshot
             {
                 Date = range2From.AddDays(i),
                 AmountB2B = range2Daily / 2,
@@ -474,7 +474,7 @@ public class BatchPlanningServiceTests
         var semiproduct = CreateSemiproduct("SEMI001", 1000);
         var templates = CreateManufactureTemplates();
         var products = CreateProducts();
-        products.First(p => p.ProductCode == "PROD001").Stock.Planned = 40;
+        ReplaceStock(products, "PROD001", planned: 40);
 
         SetupRepositoryMocks(semiproduct, templates, products);
 
@@ -504,7 +504,7 @@ public class BatchPlanningServiceTests
         var semiproduct = CreateSemiproduct("SEMI001", 1000);
         var templates = CreateManufactureTemplates();
         var products = CreateProducts();
-        products.First(p => p.ProductCode == "PROD001").Stock.Planned = 40;
+        ReplaceStock(products, "PROD001", planned: 40);
 
         SetupRepositoryMocks(semiproduct, templates, products);
 
@@ -560,7 +560,7 @@ public class BatchPlanningServiceTests
         var semiproduct = CreateSemiproduct("SEMI001", 1000);
         var templates = CreateManufactureTemplates();
         var products = CreateProducts();
-        products.First(p => p.ProductCode == "PROD001").Stock.Planned = 40;
+        ReplaceStock(products, "PROD001", planned: 40);
 
         SetupRepositoryMocks(semiproduct, templates, products);
 
@@ -595,7 +595,7 @@ public class BatchPlanningServiceTests
         var semiproduct = CreateSemiproduct("SEMI001", 1000);
         var templates = CreateManufactureTemplates();
         var products = CreateProducts();
-        products.First(p => p.ProductCode == "PROD001").Stock.Planned = 40;
+        ReplaceStock(products, "PROD001", planned: 40);
 
         SetupRepositoryMocks(semiproduct, templates, products);
 
@@ -638,7 +638,7 @@ public class BatchPlanningServiceTests
         var semiproduct = CreateSemiproduct("SEMI001", 1000);
         var templates = CreateManufactureTemplates();
         var products = CreateProducts();
-        products.First(p => p.ProductCode == "PROD001").Stock.Planned = 40;
+        ReplaceStock(products, "PROD001", planned: 40);
 
         SetupRepositoryMocks(semiproduct, templates, products);
 
@@ -665,8 +665,7 @@ public class BatchPlanningServiceTests
             MmqMultiplier = 1.0
         };
 
-        var product = CreateProducts().First(p => p.ProductCode == "PROD001");
-        product.Stock.Planned = 40;
+        var product = WithPlanned(CreateProducts().First(p => p.ProductCode == "PROD001"), 40);
 
         _catalogRepositoryMock.Setup(x => x.GetByIdAsync("PROD001", It.IsAny<CancellationToken>()))
             .ReturnsAsync(product);
@@ -684,13 +683,13 @@ public class BatchPlanningServiceTests
         Assert.Equal(item.FutureStock / item.DailySalesRate, item.FutureDaysCoverage, 6);
     }
 
-    private CatalogAggregate CreateSemiproduct(string code, double stock)
+    private ProductCatalogSnapshot CreateSemiproduct(string code, double stock)
     {
-        return new CatalogAggregate
+        return new ProductCatalogSnapshot
         {
             ProductCode = code,
             ProductName = $"Semiproduct {code}",
-            Stock = new StockData { Erp = (decimal)stock },
+            Stock = new ProductStockSnapshot { Erp = (decimal)stock },
             MinimalManufactureQuantity = 1000 // Set MMQ to enable volume calculation
         };
     }
@@ -722,24 +721,59 @@ public class BatchPlanningServiceTests
         };
     }
 
-    private List<CatalogAggregate> CreateProducts()
+    private static ProductCatalogSnapshot WithPlanned(ProductCatalogSnapshot source, decimal planned) => new()
     {
-        return new List<CatalogAggregate>
+        ProductCode = source.ProductCode,
+        ProductName = source.ProductName,
+        ProductNameNormalized = source.ProductNameNormalized,
+        Type = source.Type,
+        MinimalManufactureQuantity = source.MinimalManufactureQuantity,
+        NetWeight = source.NetWeight,
+        HasLots = source.HasLots,
+        ManufactureDifficulty = source.ManufactureDifficulty,
+        Stock = new ProductStockSnapshot
         {
-            new CatalogAggregate
+            Eshop = source.Stock.Eshop,
+            Erp = source.Stock.Erp,
+            Transport = source.Stock.Transport,
+            Manufactured = source.Stock.Manufactured,
+            Reserve = source.Stock.Reserve,
+            Quarantine = source.Stock.Quarantine,
+            Ordered = source.Stock.Ordered,
+            Planned = planned,
+            PrimaryStockSource = source.Stock.PrimaryStockSource,
+        },
+        Properties = source.Properties,
+        SalesHistory = source.SalesHistory,
+        ConsumedHistory = source.ConsumedHistory,
+        ManufactureHistory = source.ManufactureHistory,
+        StockTakingHistory = source.StockTakingHistory,
+    };
+
+    private static void ReplaceStock(List<ProductCatalogSnapshot> products, string code, decimal planned)
+    {
+        var index = products.FindIndex(p => p.ProductCode == code);
+        products[index] = WithPlanned(products[index], planned);
+    }
+
+    private List<ProductCatalogSnapshot> CreateProducts()
+    {
+        return new List<ProductCatalogSnapshot>
+        {
+            new ProductCatalogSnapshot
             {
                 ProductCode = "PROD001",
                 ProductName = "Product 1",
-                Stock = new StockData { Erp = 50 },
+                Stock = new ProductStockSnapshot { Erp = 50 },
                 NetWeight = 10.0, // Set weight for volume calculations
                 MinimalManufactureQuantity = 10,
                 SalesHistory = CreateSalesHistory(2) // 2 units per day
             },
-            new CatalogAggregate
+            new ProductCatalogSnapshot
             {
                 ProductCode = "PROD002",
                 ProductName = "Product 2",
-                Stock = new StockData { Erp = 25 },
+                Stock = new ProductStockSnapshot { Erp = 25 },
                 NetWeight = 5.0, // Set weight for volume calculations
                 MinimalManufactureQuantity = 20,
                 SalesHistory = CreateSalesHistory(1) // 1 unit per day
@@ -747,14 +781,14 @@ public class BatchPlanningServiceTests
         };
     }
 
-    private List<Anela.Heblo.Domain.Features.Catalog.Sales.CatalogSaleRecord> CreateSalesHistory(double dailyAmount)
+    private List<ProductSalesRecordSnapshot> CreateSalesHistory(double dailyAmount)
     {
-        var sales = new List<Anela.Heblo.Domain.Features.Catalog.Sales.CatalogSaleRecord>();
+        var sales = new List<ProductSalesRecordSnapshot>();
         var startDate = DateTime.Now.AddDays(-30);
 
         for (int i = 0; i < 30; i++)
         {
-            sales.Add(new Anela.Heblo.Domain.Features.Catalog.Sales.CatalogSaleRecord
+            sales.Add(new ProductSalesRecordSnapshot
             {
                 Date = startDate.AddDays(i),
                 AmountB2B = dailyAmount / 2,
@@ -765,7 +799,7 @@ public class BatchPlanningServiceTests
         return sales;
     }
 
-    private void SetupRepositoryMocks(CatalogAggregate semiproduct, List<ManufactureTemplate> templates, List<CatalogAggregate> products)
+    private void SetupRepositoryMocks(ProductCatalogSnapshot semiproduct, List<ManufactureTemplate> templates, List<ProductCatalogSnapshot> products)
     {
         _catalogRepositoryMock.Setup(x => x.GetByIdAsync("SEMI001", It.IsAny<CancellationToken>()))
             .ReturnsAsync(semiproduct);
@@ -818,13 +852,13 @@ public class BatchPlanningServiceTests
             });
     }
 
-    private CatalogAggregate CreateSemiproductWithNetWeight(string code, double stock)
+    private ProductCatalogSnapshot CreateSemiproductWithNetWeight(string code, double stock)
     {
-        return new CatalogAggregate
+        return new ProductCatalogSnapshot
         {
             ProductCode = code,
             ProductName = $"Semiproduct {code}",
-            Stock = new StockData { Erp = (decimal)stock },
+            Stock = new ProductStockSnapshot { Erp = (decimal)stock },
             MinimalManufactureQuantity = 1000
         };
     }
@@ -856,24 +890,24 @@ public class BatchPlanningServiceTests
         };
     }
 
-    private List<CatalogAggregate> CreateProductsWithNetWeight()
+    private List<ProductCatalogSnapshot> CreateProductsWithNetWeight()
     {
-        return new List<CatalogAggregate>
+        return new List<ProductCatalogSnapshot>
         {
-            new CatalogAggregate
+            new ProductCatalogSnapshot
             {
                 ProductCode = "PROD001",
                 ProductName = "Product 1",
-                Stock = new StockData { Erp = 50 },
+                Stock = new ProductStockSnapshot { Erp = 50 },
                 NetWeight = 50.0, // 50g per unit
                 MinimalManufactureQuantity = 10,
                 SalesHistory = CreateSalesHistory(2) // 2 units per day
             },
-            new CatalogAggregate
+            new ProductCatalogSnapshot
             {
                 ProductCode = "PROD002",
                 ProductName = "Product 2",
-                Stock = new StockData { Erp = 25 },
+                Stock = new ProductStockSnapshot { Erp = 25 },
                 NetWeight = 25.0, // 25g per unit  
                 MinimalManufactureQuantity = 20,
                 SalesHistory = CreateSalesHistory(1) // 1 unit per day

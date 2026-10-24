@@ -2,6 +2,8 @@ import React from "react";
 import { MessageDto } from "../../../api/hooks/useSmartsupp";
 import AgentBadge from "./AgentBadge";
 import MessageDeliveryIcon from "./MessageDeliveryIcon";
+import LinkifiedText from "./LinkifiedText";
+import MessageAttachments from "./MessageAttachments";
 
 interface MessageBubbleProps {
   message: MessageDto;
@@ -61,7 +63,18 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message, agentNames }) =>
             : "bg-blue-500 dark:bg-blue-900/40 text-white dark:text-blue-50 rounded-tr-sm"
         }`}
       >
-        <p className="text-sm whitespace-pre-wrap break-words">{message.content ?? ""}</p>
+        {message.content && (
+          <p className="text-sm whitespace-pre-wrap break-words">
+            <LinkifiedText text={message.content} />
+          </p>
+        )}
+        {message.attachments && message.attachments.length > 0 && (
+          <MessageAttachments
+            attachments={message.attachments}
+            tone={isVisitor ? "visitor" : "agent"}
+            allowBlob={!isVisitor}
+          />
+        )}
         <div className={`flex items-center gap-1.5 text-xs mt-1 ${isVisitor ? "text-gray-400 dark:text-graphite-faint justify-end" : "text-blue-200 justify-end"}`}>
           <span>{formatTime(message.createdAt ?? new Date(0))}</span>
           {!isVisitor && <MessageDeliveryIcon status={message.deliveryStatus} />}

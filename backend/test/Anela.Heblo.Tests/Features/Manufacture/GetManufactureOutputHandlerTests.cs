@@ -179,37 +179,25 @@ public class GetManufactureOutputHandlerTests
         response.Months.Select(m => m.Month).Should().ContainInOrder("2026-01", "2026-02", "2026-03");
     }
 
-    private List<CatalogAggregate> CreateTestCatalogItems()
+    private List<ProductCatalogSnapshot> CreateTestCatalogItems()
     {
-        var product1 = new CatalogAggregate
+        var product1 = new ProductCatalogSnapshot
         {
             ProductCode = "PRD001",
             ProductName = "Product 1",
-            Type = ProductType.Product
+            Type = ProductKind.Product,
+            ManufactureDifficulty = 3
         };
 
-        // Set manufacture difficulty through the configuration
-        var difficulty1Settings = new List<ManufactureDifficultySetting>
-        {
-            new ManufactureDifficultySetting { DifficultyValue = 3, ValidFrom = DateTime.MinValue }
-        };
-        product1.ManufactureDifficultySettings.Assign(difficulty1Settings, DateTime.Now);
-
-        var product2 = new CatalogAggregate
+        var product2 = new ProductCatalogSnapshot
         {
             ProductCode = "PRD002",
             ProductName = "Product 2",
-            Type = ProductType.Product
+            Type = ProductKind.Product,
+            ManufactureDifficulty = 1
         };
 
-        // Set manufacture difficulty through the configuration
-        var difficulty2Settings = new List<ManufactureDifficultySetting>
-        {
-            new ManufactureDifficultySetting { DifficultyValue = 1, ValidFrom = DateTime.MinValue }
-        };
-        product2.ManufactureDifficultySettings.Assign(difficulty2Settings, DateTime.Now);
-
-        return new List<CatalogAggregate> { product1, product2 };
+        return new List<ProductCatalogSnapshot> { product1, product2 };
     }
 
     private List<ManufactureHistoryRecord> CreateTestManufactureHistory()

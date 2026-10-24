@@ -139,7 +139,23 @@ their snapshot can go stale between listing and this step) got here first
 — report this PR as skipped (`already claimed by an in-progress rework-pr
 run`) and **stop**. Do not add the label again, do not touch the branch.
 
-Otherwise, claim it immediately, before any branch work starts. The label
+Otherwise, **first re-check that the rejection still holds**, before
+claiming anything or spending a revision:
+
+```bash
+GH_REPO="$REPO" .claude/skills/rework-pr/clear_stale_rejection.sh --pr {N}
+```
+
+A CI rejection is a snapshot; if checks are green now (or were green and
+misread), there is nothing to revise, and burning one of
+`MAX_REVISION_ATTEMPTS` on it only strands the PR. Read `.status`:
+
+- `cleared` -- the script removed `needs-work` and commented. Report the PR
+  as `rejection no longer held` and **stop**: no claim, no worktree, no push.
+- `holds`, `pending`, `not-applicable` -- carry on to the claim below.
+- `error` -- note the detail in your report and carry on.
+
+Then claim it, before any branch work starts. The label
 may not exist in the repo yet — create it best-effort first, the same
 pattern `apply_verdict.sh` already uses for `needs-work`/`agent-merged`:
 
@@ -352,6 +368,7 @@ with its reason:
 | Outcome | Exited at |
 |---------|-----------|
 | `not-open` — the PR was merged or closed before work started | step 2 |
+| `rejection no longer held` — `clear_stale_rejection.sh` found the CI rejection stale and cleared `needs-work`; nothing was revised | step 2 |
 | `conflict resolution declined` — a step 4 (or step 6 push-retry) merge conflict whose intent was unclear; the merge was aborted and nothing was pushed | step 4 / step 6 |
 | `push retries exhausted` — 3 rejected pushes; say what landed on the branch that this run did not push | step 6 |
 

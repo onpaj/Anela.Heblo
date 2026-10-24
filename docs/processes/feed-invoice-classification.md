@@ -12,7 +12,7 @@ owns:
   - backend/src/Anela.Heblo.Domain/Features/InvoiceClassification/ReceivedInvoice*.cs
   - backend/src/Anela.Heblo.Persistence/InvoiceClassification/ClassificationHistory*.cs
   - backend/src/Adapters/Anela.Heblo.Adapters.Flexi/Accounting/InvoiceClassification/**
-verified_at: "5e993f9e2"
+verified_at: "d2479f97"
 related: []
 ---
 
@@ -89,8 +89,10 @@ case-insensitive:
 - Only one condition per rule — there is no AND/OR between rule types. Order (drag & drop in
   the Rules tab, `PUT /rules/reorder`) is therefore the only way to express priority: put
   narrow rules (e.g. one supplier + amount) above broad ones.
-- `AMOUNT` numbers are parsed with the server's current culture (`decimal.TryParse` without a
-  culture), and compare against the CZK total even for foreign-currency invoices.
+- `AMOUNT` numbers are parsed with `CultureInfo.InvariantCulture`: the decimal separator is a
+  **dot** (`>=1000.50`); a comma is not accepted (the pattern is then unparseable → no match).
+  Behaviour no longer depends on the server's culture. Amounts compare against the CZK total
+  even for foreign-currency invoices.
 - A match does **not** check that the invoice already has a template — single-invoice mode
   overwrites whatever is on the invoice.
 
@@ -128,6 +130,11 @@ None.
 - **The history filter *Číslo faktury* searches the internal Flexi id**, not the invoice number:
   `GetPagedHistoryAsync` filters `AbraInvoiceId.Contains(...)`. Typing a document number
   (e.g. `FP-…`) finds nothing.
+- **Regex rules have a 200 ms match timeout.** CompanyName, Description and ItemDescription rules
+  match through `ClassificationRegex.IsMatchOrContains` (`Rules/ClassificationRegex.cs`). A
+  pattern that exceeds the timeout (catastrophic backtracking) is treated as a non-match, so the
+  rule silently does not fire instead of stalling the hourly job; an invalid pattern still falls
+  back to a case-insensitive `Contains`.
 - **Invoices issued more than `InvoiceClassificationDaysBack` (30) days ago are never picked
   up**, even with the KLASIFIKACE label — the window is on issue date, not on when the label was
   set. Classify those by hand in Flexi.
