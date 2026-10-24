@@ -1,3 +1,4 @@
+using Anela.Heblo.Adapters.GoogleAds.Execution;
 using Anela.Heblo.Adapters.GoogleAds.Tests.Support;
 using Anela.Heblo.Application.Features.MarketingAds.Contracts;
 using FluentAssertions;
@@ -167,5 +168,121 @@ public sealed class GoogleAdsNegativeKeywordHandlerTests
         var state = await executor.ReadCurrentAsync(Campaign("a b d", "Exact"), CancellationToken.None);
 
         state.Should().Be(new AdTargetState(true, AdActionValues.Absent, null));
+    }
+
+    private static AdAction AdGroup(string text = "zdarma", string matchType = "Broad") =>
+        ExecutorHarness.AddNegative(AdEntityLevel.AdGroup, "221", text, matchType);
+
+    private static AdExecutionResult Original(AdExecutionOutcome outcome, string? resourceName) =>
+        new(outcome, AdActionValues.Absent, AdActionValues.Present, resourceName, "{}", null);
+
+    [Fact]
+    public async Task revert_of_a_failed_original_fails_even_with_a_resource_name()
+    {
+        var api = ExecutorHarness.SeededApi();
+        var executor = ExecutorHarness.Create(api);
+        var original = Original(AdExecutionOutcome.Failed, "customers/1234567890/campaignCriteria/111~9000");
+
+        var reverted = await executor.RevertAsync(Campaign(), original, CancellationToken.None);
+
+        reverted.Outcome.Should().Be(AdExecutionOutcome.Failed);
+        api.Mutations.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task revert_of_a_succeeded_original_without_an_id_fails()
+    {
+        var api = ExecutorHarness.SeededApi();
+        var executor = ExecutorHarness.Create(api);
+
+        var reverted = await executor.RevertAsync(Campaign(), Original(AdExecutionOutcome.Succeeded, null), CancellationToken.None);
+
+        reverted.Outcome.Should().Be(AdExecutionOutcome.Failed);
+        api.Mutations.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task revert_with_an_invalid_payload_fails_even_for_a_valid_original()
+    {
+        var api = ExecutorHarness.SeededApi();
+        var executor = ExecutorHarness.Create(api);
+        var original = Original(AdExecutionOutcome.Succeeded, "customers/1234567890/campaignCriteria/111~9000");
+
+        var reverted = await executor.RevertAsync(Campaign(text: ""), original, CancellationToken.None);
+
+        reverted.Outcome.Should().Be(AdExecutionOutcome.Failed);
+        api.Mutations.Should().BeEmpty();
+    }
+
+    [Theory]
+    [InlineData("customers/1234567890/campaignCriteria/221~9000")]
+    [InlineData("customers/1234567890/adGroupCriteria/222~9000")]
+    public async Task ad_group_revert_refuses_a_campaign_criterion_or_the_wrong_parent(string resourceName)
+    {
+        var api = ExecutorHarness.SeededApi();
+        var executor = ExecutorHarness.Create(api);
+
+        var reverted = await executor.RevertAsync(
+            AdGroup(), Original(AdExecutionOutcome.Succeeded, resourceName), CancellationToken.None);
+
+        reverted.Outcome.Should().Be(AdExecutionOutcome.Failed);
+        api.Mutations.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task ad_group_200_naming_no_criterion_is_failed_so_it_is_checked_by_hand()
+    {
+        var api = ExecutorHarness.SeededApi();
+        api.SucceedNextMutateWithoutResourceName();
+        var executor = ExecutorHarness.Create(api);
+
+        var result = await executor.ExecuteAsync(AdGroup(), CancellationToken.None);
+
+        result.Outcome.Should().Be(AdExecutionOutcome.Failed);
+        result.PlatformResourceId.Should().BeNull();
+        result.Error.Should().Contain("verify in the account");
+    }
+
+    [Theory]
+    [InlineData(AdEntityLevel.Campaign, "111", "campaignCriteria")]
+    [InlineData(AdEntityLevel.AdGroup, "221", "adGroupCriteria")]
+    public async Task validate_only_execute_sends_one_validate_only_mutation_to_the_right_service(
+        AdEntityLevel level, string target, string service)
+    {
+        var api = ExecutorHarness.SeededApi();
+        var executor = ExecutorHarness.Create(api, validateOnly: true);
+
+        var result = await executor.ExecuteAsync(
+            ExecutorHarness.AddNegative(level, target, "zdarma", "Exact"), CancellationToken.None);
+
+        result.Outcome.Should().Be(AdExecutionOutcome.Failed);
+        result.Error.Should().StartWith(GoogleAdsExecutionResults.ValidateOnlyMarker);
+        result.PlatformResourceId.Should().BeNull();
+        var mutation = api.Mutations.Should().ContainSingle().Subject;
+        mutation.Service.Should().Be(service);
+        mutation.Request["validateOnly"]!.GetValue<bool>().Should().BeTrue();
+        api.Negatives.Should().BeEmpty();
+    }
+
+    [Theory]
+    [InlineData(AdEntityLevel.Campaign, "111", "campaignCriteria")]
+    [InlineData(AdEntityLevel.AdGroup, "221", "adGroupCriteria")]
+    public async Task validate_only_revert_sends_a_validate_only_remove_and_keeps_the_criterion(
+        AdEntityLevel level, string target, string service)
+    {
+        var api = ExecutorHarness.SeededApi();
+        var action = ExecutorHarness.AddNegative(level, target, "zdarma", "Exact");
+        var original = await ExecutorHarness.Create(api).ExecuteAsync(action, CancellationToken.None);
+        var validating = ExecutorHarness.Create(api, validateOnly: true);
+
+        var reverted = await validating.RevertAsync(action, original, CancellationToken.None);
+
+        reverted.Outcome.Should().Be(AdExecutionOutcome.Failed);
+        reverted.Error.Should().StartWith(GoogleAdsExecutionResults.ValidateOnlyMarker);
+        api.Mutations.Should().HaveCount(2);
+        api.Mutations.Last().Service.Should().Be(service);
+        api.Mutations.Last().Request["validateOnly"]!.GetValue<bool>().Should().BeTrue();
+        api.Mutations.Last().Request["operations"]![0]!["remove"]!.GetValue<string>().Should().Be(original.PlatformResourceId);
+        api.Negatives.Should().ContainSingle();
     }
 }
